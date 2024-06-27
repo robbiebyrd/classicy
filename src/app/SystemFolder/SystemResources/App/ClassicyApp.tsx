@@ -56,6 +56,13 @@ const ClassicyApp: React.FC<ClassicyAppProps> = ({
         return !!appOpen
     }
 
+    const isAppActive = () => {
+        if (desktopContext && 'activeApp' in desktopContext) {
+            return id === desktopContext.activeApp
+        }
+        return true
+    }
+
     const onFocus = () => {
         desktopEventDispatch({
             type: 'ClassicyAppFocus',
@@ -63,7 +70,18 @@ const ClassicyApp: React.FC<ClassicyAppProps> = ({
         })
     }
 
+    if (isAppActive()) {
+        desktopEventDispatch({
+            type: 'ClassicyWindowFocus',
+            app: {
+                id: id,
+                window: defaultWindow,
+            },
+        })
+    }
+
     React.useEffect(() => {
+
         if (!noDesktopIcon) {
             desktopEventDispatch({
                 type: 'ClassicyDesktopIconAdd',
@@ -72,6 +90,7 @@ const ClassicyApp: React.FC<ClassicyAppProps> = ({
                     name: name,
                     icon: icon,
                 },
+                kind: "app_shortcut"
             })
         }
     }, [noDesktopIcon])

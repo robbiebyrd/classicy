@@ -1,4 +1,5 @@
 import ClassicyApp from "@/app/SystemFolder/SystemResources/App/ClassicyApp";
+import {quitAppHelper} from "@/app/SystemFolder/SystemResources/App/ClassicyAppUtils";
 import {useDesktopDispatch} from "@/app/SystemFolder/SystemResources/AppManager/ClassicyAppManagerContext";
 import ClassicyRichTextEditor from "@/app/SystemFolder/SystemResources/RichTextEditor/ClassicyRichTextEditor";
 import ClassicyWindow from "@/app/SystemFolder/SystemResources/Window/ClassicyWindow";
@@ -35,16 +36,8 @@ const SimpleText = () => {
 > *Because the people who are crazy enough to think they can change the world, are the ones who do."*`
 
     const quitApp = () => {
-        desktopEventDispatch({
-            type: "ClassicyAppClose",
-            app: {
-                id: appId,
-                title: appName,
-                icon: appIcon
-            }
-
-        });
-    };
+        desktopEventDispatch(quitAppHelper(appId, appName, appIcon))
+    }
 
     const appMenu = [
         {

@@ -1,4 +1,5 @@
 import ClassicyApp from '@/app/SystemFolder/SystemResources/App/ClassicyApp'
+import {quitAppHelper} from "@/app/SystemFolder/SystemResources/App/ClassicyAppUtils";
 import {useDesktopDispatch} from '@/app/SystemFolder/SystemResources/AppManager/ClassicyAppManagerContext'
 import ClassicyButton from '@/app/SystemFolder/SystemResources/Button/ClassicyButton'
 import ClassicyControlGroup from '@/app/SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup'
@@ -22,14 +23,7 @@ const Browser = () => {
     }
 
     const quitApp = () => {
-        desktopEventDispatch({
-            type: 'ClassicyAppClose',
-            app: {
-                id: appId,
-                title: appName,
-                icon: appIcon,
-            },
-        })
+        desktopEventDispatch(quitAppHelper(appId, appName, appIcon))
     }
 
     const appMenu = [

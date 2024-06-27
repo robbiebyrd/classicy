@@ -48,6 +48,7 @@ const Finder = () => {
                     name: a,
                     icon: b['_icon'],
                 },
+                kind: "_drive"
             })
         })
 
@@ -58,6 +59,7 @@ const Finder = () => {
                 name: 'Trash',
                 icon: `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/img/icons/system/desktop/trash-full.png`,
             },
+            kind: "trash",
             onClickFunc: emptyTrash,
         })
     }, [])
