@@ -1,6 +1,8 @@
-# Classicy (Previously Platimum)
+# [Classicy (Previously Platinum)](https://classicy.ing)
 
 A UI framework using native CSS/JS replications of the Mac OS 8.1 interface components.
+
+[Just curious? Visit our website to learn more.](https://classicy.ing)
 
 ## Demo
 
