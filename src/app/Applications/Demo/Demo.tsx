@@ -1,4 +1,5 @@
 import ClassicyApp from '@/app/SystemFolder/SystemResources/App/ClassicyApp'
+import {quitAppHelper} from "@/app/SystemFolder/SystemResources/App/ClassicyAppUtils";
 import {useDesktopDispatch} from '@/app/SystemFolder/SystemResources/AppManager/ClassicyAppManagerContext'
 import ClassicyButton from '@/app/SystemFolder/SystemResources/Button/ClassicyButton'
 import ClassicyCheckbox from '@/app/SystemFolder/SystemResources/Checkbox/ClassicyCheckbox'
@@ -20,14 +21,7 @@ const Demo: React.FC = () => {
     const [appContext] = React.useState({})
 
     const quitApp = () => {
-        desktopEventDispatch({
-            type: 'ClassicyAppClose',
-            app: {
-                id: appId,
-                title: appName,
-                icon: appIcon,
-            },
-        })
+        desktopEventDispatch(quitAppHelper(appId, appName, appIcon))
     }
 
     const appMenu = [

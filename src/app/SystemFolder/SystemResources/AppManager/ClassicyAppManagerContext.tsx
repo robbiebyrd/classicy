@@ -111,6 +111,7 @@ export const classicyAppEventHandler = (ds: ClassicyDesktopState, action) => {
         case 'ClassicyAppClose': {
             ds.openApps = ds.openApps.filter((oa) => oa.id !== action.app.id)
             ds.activeWindow = ''
+            ds.activeApp = 'Finder.app'
             break
         }
         case 'ClassicyAppFocus': {

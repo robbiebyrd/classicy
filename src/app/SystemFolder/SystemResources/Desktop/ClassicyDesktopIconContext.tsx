@@ -53,6 +53,31 @@ const getIconSize = (theme: string) => {
     return [iconSize, iconSize / 4]
 }
 
+const sortDesktopIcons = (icons: ClassicyDesktopIconState[], sortType: "name" | "kind" | "label") => {
+    switch (sortType) {
+        case "name":
+            return icons.sort(function (a, b) {
+                if (a.appName.toLowerCase() > b.appName.toLowerCase()) {
+                    return 1
+                }
+                if (a.appName.toLowerCase() < b.appName.toLowerCase()) {
+                    return -1
+                }
+                return 0
+            })
+        case "kind":
+            return icons.sort(function (a, b) {
+                if (a.kind.toLowerCase() > b.kind.toLowerCase()) {
+                    return 1
+                }
+                if (a.kind.toLowerCase() < b.kind.toLowerCase()) {
+                    return -1
+                }
+                return 0
+            })
+    }
+}
+
 const cleanupDesktopIcons = (theme: string, icons: ClassicyDesktopIconState[]) => {
     let newDesktopIcons = []
     let startX: number = 1
@@ -61,15 +86,7 @@ const cleanupDesktopIcons = (theme: string, icons: ClassicyDesktopIconState[]) =
 
     let grid = createGrid(iconSize, iconPadding)
 
-    let sortedIcons = icons.sort(function (a, b) {
-        if (a.appName.toLowerCase() > b.appName.toLowerCase()) {
-            return 1
-        }
-        if (a.appName.toLowerCase() < b.appName.toLowerCase()) {
-            return -1
-        }
-        return 0
-    })
+    let sortedIcons = sortDesktopIcons(icons, "name")
 
     sortedIcons.forEach((icon) => {
         if (startY >= grid[1]) {
@@ -128,7 +145,7 @@ export const classicyDesktopIconEventHandler = (ds: ClassicyDesktopState, action
                     appId: action.app.id,
                     location: action.location,
                     label: action.label,
-                    kind: action.kind,
+                    kind: action.kind || "icon",
                     onClickFunc: action.onClickFunc,
                 })
             }

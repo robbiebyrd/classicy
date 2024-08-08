@@ -3,6 +3,7 @@
 import {getTheme} from '@/app/SystemFolder/Appearance/ClassicyAppearance'
 import {ClassicyAboutWindow} from '@/app/SystemFolder/SystemResources/AboutWindow/ClassicyAboutWindow'
 import ClassicyApp from '@/app/SystemFolder/SystemResources/App/ClassicyApp'
+import {quitAppHelper} from "@/app/SystemFolder/SystemResources/App/ClassicyAppUtils";
 import {useDesktop, useDesktopDispatch} from '@/app/SystemFolder/SystemResources/AppManager/ClassicyAppManagerContext'
 import ClassicyButton from '@/app/SystemFolder/SystemResources/Button/ClassicyButton'
 import ClassicyControlLabel from '@/app/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel'
@@ -46,14 +47,7 @@ export const AppearanceManager: React.FC = () => {
     }
 
     const quitApp = () => {
-        desktopEventDispatch({
-            type: 'ClassicyAppClose',
-            app: {
-                id: appId,
-                title: appName,
-                icon: appIcon,
-            },
-        })
+        desktopEventDispatch(quitAppHelper(appId, appName, appIcon))
     }
 
     const appMenu = [
