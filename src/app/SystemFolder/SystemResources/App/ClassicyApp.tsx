@@ -70,17 +70,17 @@ const ClassicyApp: React.FC<ClassicyAppProps> = ({
         })
     }
 
-    if (isAppActive()) {
-        desktopEventDispatch({
-            type: 'ClassicyWindowFocus',
-            app: {
-                id: id,
-                window: defaultWindow,
-            },
-        })
-    }
-
     React.useEffect(() => {
+
+        if (isAppActive()) {
+            desktopEventDispatch({
+                type: 'ClassicyWindowFocus',
+                app: {
+                    id: id,
+                    window: defaultWindow,
+                },
+            })
+        }
 
         if (!noDesktopIcon) {
             desktopEventDispatch({
