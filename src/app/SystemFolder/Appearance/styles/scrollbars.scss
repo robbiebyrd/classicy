@@ -203,7 +203,7 @@
     min-width: var(--window-control-size);
     min-height: var(--window-control-size);
     border: var(--window-border-size) solid var(--color-theme-07);
-    box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--system-color-02), inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 var(--color-theme-04) !important;
+    box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-02), inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 var(--color-theme-04) !important;
   }
 
   ::-webkit-scrollbar-thumb:vertical {

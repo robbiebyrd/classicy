@@ -2,7 +2,7 @@
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    distDir: 'out', output: 'export', compress: false,
+    distDir: 'out', compress: false, productionBrowserSourceMaps: true,
     // ...
     /**
      * @param {import('webpack').Configuration} webpackConfig

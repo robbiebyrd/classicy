@@ -71,7 +71,6 @@ const ClassicyApp: React.FC<ClassicyAppProps> = ({
     }
 
     React.useEffect(() => {
-
         if (isAppActive()) {
             desktopEventDispatch({
                 type: 'ClassicyWindowFocus',

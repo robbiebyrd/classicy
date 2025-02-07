@@ -41,9 +41,9 @@ const Browser = () => {
     ]
 
     return (
-        <ClassicyApp id={appId} name={appName} icon={appIcon} defaultWindow={'demo'} appContext={appContext}>
+        <ClassicyApp id={appId} name={appName} icon={appIcon} defaultWindow={'browser'} appContext={appContext}>
             <ClassicyWindow
-                id={'demo'}
+                id={'browser'}
                 title={appName}
                 appId={appId}
                 scrollable={false}

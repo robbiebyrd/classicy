@@ -175,6 +175,7 @@
     .classicyWindowIcon {
       max-width: calc(var(--window-control-size) * 2);
       max-height: calc(var(--window-control-size) * 2);
+      padding: 0 var(--window-padding-size);
 
       img {
         height: 100%;
@@ -286,7 +287,7 @@
     position: relative;
     display: block;
     @include appearance.platinumWindowInnerBorder;
-    overflow: scroll;
+    overflow: auto;
     height: calc(100% - (var(--window-control-size) * 2));
     background-color: var(--color-window-document);
   }
@@ -294,7 +295,7 @@
   .classicyWindowContentsWithHeader {
     position: relative;
     display: block;
-    overflow: scroll;
+    overflow: auto;
     height: calc(100% - (var(--window-control-size) * 4));
     background-color: var(--color-window-document);
   }

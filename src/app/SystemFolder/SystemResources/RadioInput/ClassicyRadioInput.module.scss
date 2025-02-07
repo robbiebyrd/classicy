@@ -82,12 +82,14 @@
 }
 
 .classicyRadioInputMixed {
-  top: calc(var(--window-border-size));
-  width: 80%;
-  height: var(--window-border-size);
-  border: var(--color-window-border) calc(var(--window-border-size) * 2) solid;
+  top: calc(var(--window-control-size) / 8);
+  left: calc(var(--window-border-size) / -4);
+  width: calc(var(--window-control-size) / 1);
+  height: calc(var(--window-control-size) / 4);
+  border-width: calc(var(--window-control-size) / 8);
+  border-style: solid;
   border-radius: 0 !important;
-  background: black;
+  background: var(--color-window-border);
 
   &:disabled:checked {
     border-color: var(--color-system-05);
