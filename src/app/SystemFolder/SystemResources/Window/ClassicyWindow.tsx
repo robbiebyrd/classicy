@@ -345,7 +345,7 @@ const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
                     )}
                     <div
                         className={classNames(
-                            isActive() ? '' : classicyWindowStyle.classicyWindowContentsDimmed,
+                            (!isActive() && !modal) ? classicyWindowStyle.classicyWindowContentsDimmed : '',
                             scrollable === true ? '' : classicyWindowStyle.classicyWindowNoScroll,
                             modal === true
                                 ? classicyWindowStyle.classicyWindowContentsModal

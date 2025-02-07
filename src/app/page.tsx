@@ -7,6 +7,7 @@ import ClassicyControlPanels from '@/app/SystemFolder/ControlPanels/ClassicyCont
 import {ClassicyDesktopProvider} from '@/app/SystemFolder/SystemResources/AppManager/ClassicyAppManagerContext'
 import ClassicyDesktop from '@/app/SystemFolder/SystemResources/Desktop/ClassicyDesktop'
 import React from 'react'
+import QuickTime from "@/app/Applications/QuickTime/QuickTime";
 
 export default function Home() {
     return (
@@ -14,6 +15,7 @@ export default function Home() {
             <ClassicyDesktop>
                 <ClassicyControlPanels/>
                 <Demo/>
+                <QuickTime/>
                 <Browser/>
                 <SimpleText/>
             </ClassicyDesktop>

@@ -23,6 +23,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-json-tree": "^0.18.0",
+    "react-player": "^2.16.0",
     "sass": "^1.70.0",
     "sha512-crypt-ts": "^0.1.27",
     "stylelint": "^16.2.1",

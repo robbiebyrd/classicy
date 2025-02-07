@@ -315,11 +315,12 @@
 }
 
 .classicyWindowContentsModalInner {
-  padding: var(--window-padding-size);
+  padding: calc(var(--window-padding-size) / 2);
 }
 
 .classicyWindowContentsInner {
   display: block;
+  height: 100%;
 }
 
 .classicyWindowContentsInnerGrow {

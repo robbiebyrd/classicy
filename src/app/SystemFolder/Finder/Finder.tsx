@@ -20,9 +20,9 @@ const Finder = () => {
     }
 
     const handlePathSettingsChange = (path: string, settings: PathSettingsProps) => {
-        let a = {...pathSettings}
-        a[path] = settings
-        setPathSettings(a)
+        let updatedPathSettings = {...pathSettings}
+        updatedPathSettings[path] = settings
+        setPathSettings(updatedPathSettings)
     }
 
     const openFolder = (path: string) => {
