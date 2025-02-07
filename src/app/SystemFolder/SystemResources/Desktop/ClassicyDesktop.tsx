@@ -129,7 +129,7 @@ const ClassicyDesktop: React.FC<ClassicyDesktopProps> = ({children}) => {
 
     const currentTheme = getThemeVars(desktopState.activeTheme)
 
-    React.useMemo(() => {
+    React.useEffect(() => {
         desktopEventDispatch({
             type: 'ClassicyDesktopFocus',
             menuBar: defaultMenuItems,

@@ -1,10 +1,10 @@
 import ClassicyApp from '@/app/SystemFolder/SystemResources/App/ClassicyApp'
-import { useDesktopDispatch } from '@/app/SystemFolder/SystemResources/AppManager/ClassicyAppManagerContext'
+import {useDesktopDispatch} from '@/app/SystemFolder/SystemResources/AppManager/ClassicyAppManagerContext'
 import ClassicyFileBrowser from '@/app/SystemFolder/SystemResources/File/ClassicyFileBrowser'
-import { ClassicyFileSystem } from '@/app/SystemFolder/SystemResources/File/ClassicyFileSystem'
+import {ClassicyFileSystem} from '@/app/SystemFolder/SystemResources/File/ClassicyFileSystem'
 import ClassicyWindow from '@/app/SystemFolder/SystemResources/Window/ClassicyWindow'
 import React from 'react'
-import { quitAppHelper } from '@/app/SystemFolder/SystemResources/App/ClassicyAppUtils'
+import {quitAppHelper} from '@/app/SystemFolder/SystemResources/App/ClassicyAppUtils'
 
 const Finder = () => {
     const appName: string = 'Finder'
@@ -20,7 +20,7 @@ const Finder = () => {
     }
 
     const handlePathSettingsChange = (path: string, settings: PathSettingsProps) => {
-        let a = pathSettings
+        let a = [...pathSettings]
         a[path] = settings
         setPathSettings(a)
     }
@@ -105,7 +105,7 @@ const Finder = () => {
                         dir: fs.statDir(op),
                     }
                 })
-                .map(({ op, dir }, idx) => {
+                .map(({op, dir}, idx) => {
                     return (
                         <ClassicyWindow
                             id={appName + ':' + op}
@@ -136,12 +136,12 @@ const Finder = () => {
                                         {
                                             id: appId + '_view_as_icons',
                                             title: 'View as Icons',
-                                            onClickFunc: () => handlePathSettingsChange(op, { _viewType: 'icons' }),
+                                            onClickFunc: () => handlePathSettingsChange(op, {_viewType: 'icons'}),
                                         },
                                         {
                                             id: appId + '_view_as_list',
                                             title: 'View as List',
-                                            onClickFunc: () => handlePathSettingsChange(op, { _viewType: 'list' }),
+                                            onClickFunc: () => handlePathSettingsChange(op, {_viewType: 'list'}),
                                         },
                                     ],
                                 },
@@ -152,7 +152,8 @@ const Finder = () => {
                                         {
                                             id: appId + '_about',
                                             title: 'About',
-                                            onClickFunc: () => {},
+                                            onClickFunc: () => {
+                                            },
                                         },
                                     ],
                                 },
