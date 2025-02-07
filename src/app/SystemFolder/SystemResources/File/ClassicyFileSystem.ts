@@ -1,4 +1,4 @@
-import { sha512 } from 'sha512-crypt-ts'
+import {sha512} from 'sha512-crypt-ts'
 
 export enum ClassicyFileSystemEntryFileType {
     File = 'file',
@@ -29,10 +29,11 @@ let defaultFSContent = {
             },
         },
         Library: {
-            _type: ClassicyFileSystemEntryFileType.File,
-            _icon: `${process.env.NEXT_PUBLIC_BASE_PATH}/img/icons/system/mac.png`,
+            _type: ClassicyFileSystemEntryFileType.Directory,
+            _icon: `${process.env.NEXT_PUBLIC_BASE_PATH}/img/icons/system/folders/directory.png`,
             Extensions: {
-                _type: 'file',
+                _type: ClassicyFileSystemEntryFileType.File,
+                _icon: `${process.env.NEXT_PUBLIC_BASE_PATH}/img/icons/system/mac.png`,
                 _mimeType: 'text/plain',
                 _data: 'File Contents',
             },

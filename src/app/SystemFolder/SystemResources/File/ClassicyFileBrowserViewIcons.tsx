@@ -48,7 +48,8 @@ const ClassicyFileBrowserViewIcons: React.FC<ClassicyFileBrowserViewIconsProps> 
                 return fileOnClickFunc(path + ':' + filename)
             }
             default: {
-                return
+                return () => {
+                }
             }
         }
     }
