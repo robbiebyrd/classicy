@@ -1,28 +1,36 @@
-import {sha512} from 'sha512-crypt-ts'
+import { sha512 } from 'sha512-crypt-ts'
+
+export enum ClassicyFileSystemEntryFileType {
+    File = 'file',
+    Shortcut = 'shortcut',
+    AppShortcut = 'app_shortcut',
+    Drive = 'drive',
+    Directory = 'directory',
+}
 
 let defaultFSContent = {
     'Macintosh HD': {
-        _type: 'drive',
+        _type: ClassicyFileSystemEntryFileType.Drive,
         _icon: `${process.env.NEXT_PUBLIC_BASE_PATH}/img/icons/system/drives/disk.png`,
         Applications: {
-            _type: 'directory',
+            _type: ClassicyFileSystemEntryFileType.Directory,
             _icon: `${process.env.NEXT_PUBLIC_BASE_PATH}/img/icons/system/folders/directory.png`,
             'TextEdit.app': {
-                _type: 'file',
+                _type: ClassicyFileSystemEntryFileType.File,
                 _mimeType: 'text/plain',
                 _data: 'File Contents',
                 _invisible: true,
             },
             'Calculator.app': {
-                _type: 'file',
+                _type: ClassicyFileSystemEntryFileType.File,
                 _mimeType: 'text/plain',
                 _data: 'File Contents',
                 _invisible: true,
             },
         },
         Library: {
-            _type: 'directory',
-            _icon: `${process.env.NEXT_PUBLIC_BASE_PATH}/img/icons/system/folders/directory.png`,
+            _type: ClassicyFileSystemEntryFileType.File,
+            _icon: `${process.env.NEXT_PUBLIC_BASE_PATH}/img/icons/system/mac.png`,
             Extensions: {
                 _type: 'file',
                 _mimeType: 'text/plain',
@@ -30,43 +38,43 @@ let defaultFSContent = {
             },
         },
         'System Folder': {
-            _type: 'directory',
+            _type: ClassicyFileSystemEntryFileType.Directory,
             _icon: `${process.env.NEXT_PUBLIC_BASE_PATH}/img/icons/system/folders/directory.png`,
             Finder: {
-                _type: 'file',
+                _type: ClassicyFileSystemEntryFileType.File,
                 _mimeType: 'text/plain',
                 _data: 'File Contents',
             },
             System: {
-                _type: 'file',
+                _type: ClassicyFileSystemEntryFileType.File,
                 _mimeType: 'text/plain',
                 _data: 'File Contents',
             },
         },
         Users: {
-            _type: 'directory',
+            _type: ClassicyFileSystemEntryFileType.Directory,
             _icon: `${process.env.NEXT_PUBLIC_BASE_PATH}/img/icons/system/folders/directory.png`,
             Guest: {
-                _type: 'file',
+                _type: ClassicyFileSystemEntryFileType.File,
                 _mimeType: 'text/plain',
                 _data: 'File Contents',
             },
             Shared: {
-                _type: 'file',
+                _type: ClassicyFileSystemEntryFileType.File,
                 _mimeType: 'text/plain',
                 _data: 'File Contents',
             },
         },
         Utilities: {
-            _type: 'directory',
+            _type: ClassicyFileSystemEntryFileType.Directory,
             _icon: `${process.env.NEXT_PUBLIC_BASE_PATH}/img/icons/system/folders/directory.png`,
             'Disk Utility.app': {
-                _type: 'file',
+                _type: ClassicyFileSystemEntryFileType.File,
                 _mimeType: 'text/plain',
                 _data: 'File Contents',
             },
             'Terminal.app': {
-                _type: 'file',
+                _type: ClassicyFileSystemEntryFileType.File,
                 _mimeType: 'text/plain',
                 _data: 'File Contents',
             },
@@ -74,9 +82,9 @@ let defaultFSContent = {
     },
 }
 
-type ClassicyFileSystemEntryMetadata = {
+export type ClassicyFileSystemEntryMetadata = {
     // The type of file
-    _type: 'file' | 'shortcut' | 'app_shortcut' | 'drive' | 'directory'
+    _type: ClassicyFileSystemEntryFileType
     _mimeType?: string
 
     // Standard fields
@@ -114,9 +122,12 @@ type ClassicyFileSystemEntryMetadata = {
 
     // Used for stat-ing directories and files.
     _size?: number
+
+    // Optional useful field for storing the name.
+    _name?: string
 }
 
-type ClassicyFileSystemEntry = {
+export type ClassicyFileSystemEntry = {
     [entry: string]: any
 } & ClassicyFileSystemEntryMetadata
 
@@ -127,16 +138,10 @@ export class ClassicyFileSystem {
     fs: ClassicyFileSystemEntry
     separator: string
 
-    constructor(
-        basePath: string = '',
-        defaultFS: any = defaultFSContent,
-        separator: string = ':'
-    ) {
+    constructor(basePath: string = '', defaultFS: any = defaultFSContent, separator: string = ':') {
         this.basePath = basePath
         this.fs =
-            typeof window !== 'undefined'
-                ? JSON.parse(localStorage.getItem(this.basePath)) || defaultFS
-                : defaultFS
+            typeof window !== 'undefined' ? JSON.parse(localStorage.getItem(this.basePath)) || defaultFS : defaultFS
         this.separator = separator
     }
 
@@ -149,23 +154,14 @@ export class ClassicyFileSystem {
     }
 
     pathArray = (path: string) => {
-        return [this.basePath, ...path.split(this.separator)].filter(
-            (v) => v !== ''
-        )
+        return [this.basePath, ...path.split(this.separator)].filter((v) => v !== '')
     }
 
     resolve(path: string): ClassicyFileSystemEntry {
-        return this.pathArray(path).reduce(
-            (prev, curr) => prev?.[curr],
-            this.fs
-        )
+        return this.pathArray(path).reduce((prev, curr) => prev?.[curr], this.fs)
     }
 
-    formatSize(
-        bytes: number,
-        measure: 'bits' | 'bytes' = 'bytes',
-        decimals: number = 2
-    ): string {
+    formatSize(bytes: number, measure: 'bits' | 'bytes' = 'bytes', decimals: number = 2): string {
         if (!+bytes) {
             return '0 ' + measure
         }
@@ -180,10 +176,7 @@ export class ClassicyFileSystem {
         return `${parseFloat((bytes / Math.pow(1024, i)).toFixed(Math.max(0, decimals)))} ${sizes[i]}`
     }
 
-    filterMetadata(
-        content: ClassicyFileSystemEntry,
-        mode: 'only' | 'remove' = 'remove'
-    ) {
+    filterMetadata(content: ClassicyFileSystemEntry, mode: 'only' | 'remove' = 'remove') {
         let items: ClassicyFileSystemEntry | object = {}
 
         Object.entries(content).forEach(([key, value]) => {
@@ -230,10 +223,10 @@ export class ClassicyFileSystem {
 
     size(path: ClassicyPathOrFileSystemEntry): number {
         if (typeof path === 'string') {
-            return new Blob([this.readFile(path)]).size
+            return new Blob(this.readFile(path).split('')).size
         }
         if (path instanceof Object && '_data' in path) {
-            return new Blob([path['_data'] as string]).size
+            return new Blob((path['_data'] as string).split('')).size
         }
     }
 
@@ -256,16 +249,11 @@ export class ClassicyFileSystem {
         }
     }
 
-    writeFile(
-        path: string,
-        data: string,
-        metaData?: ClassicyFileSystemEntryMetadata
-    ) {
+    writeFile(path: string, data: string, metaData?: ClassicyFileSystemEntryMetadata) {
         const updateObjProp = (obj, value, propPath) => {
             const [head, ...rest] = propPath.split(':')
 
-            rest.length ? updateObjProp(obj[head], value, rest.join(':')) : obj[head] = value
-
+            rest.length ? updateObjProp(obj[head], value, rest.join(':')) : (obj[head] = value)
         }
 
         let directoryPath = path.split(':')
@@ -335,34 +323,20 @@ export class ClassicyFileSystem {
         for (let i = parts.length - 1; i >= 0; i--) {
             reference = current
             current = i === 0 ? {} : newDirectoryObject()
-            current[parts[i]] =
-                i === parts.length - 1 ? newDirectoryObject() : reference
+            current[parts[i]] = i === parts.length - 1 ? newDirectoryObject() : reference
         }
 
         this.fs = this.deepMerge(current, this.fs)
     }
 
     calculateSizeDir(path: ClassicyPathOrFileSystemEntry | string): number {
-        const gatherSizes = (
-            entry: ClassicyFileSystemEntry,
-            field: string,
-            value: string
-        ): any[] => {
+        const gatherSizes = (entry: ClassicyFileSystemEntry, field: string, value: string): any[] => {
             let results: string[] = []
             for (const key in entry) {
                 if (key === field && entry[key] === value) {
                     results.push(String(this.size(entry)))
-                } else if (
-                    typeof entry[key] === 'object' &&
-                    entry[key] !== null
-                ) {
-                    results = results.concat(
-                        gatherSizes(
-                            entry[key] as ClassicyFileSystemEntry,
-                            field,
-                            value
-                        )
-                    )
+                } else if (typeof entry[key] === 'object' && entry[key] !== null) {
+                    results = results.concat(gatherSizes(entry[key] as ClassicyFileSystemEntry, field, value))
                 }
             }
             return results
@@ -376,9 +350,7 @@ export class ClassicyFileSystem {
     }
 
     countVisibleFiles(path: string): number {
-        const visibleFiles: boolean[] = Object.entries(
-            this.filterMetadata(this.resolve(path))
-        )
+        const visibleFiles: boolean[] = Object.entries(this.filterMetadata(this.resolve(path)))
             .map(([a, b]) => {
                 return !b['_invisible']
             })
@@ -389,9 +361,7 @@ export class ClassicyFileSystem {
     }
 
     countInvisibleFilesInDir(path: string): number {
-        const invisibleFiles: boolean[] = Object.entries(
-            this.filterMetadata(this.resolve(path))
-        )
+        const invisibleFiles: boolean[] = Object.entries(this.filterMetadata(this.resolve(path)))
             .map(([a, b]) => {
                 return b['_invisible']
             })
@@ -416,7 +386,7 @@ export class ClassicyFileSystem {
             _name: name[0],
             _path: path,
             _size: this.calculateSizeDir(current),
-            _type: 'directory',
+            _type: ClassicyFileSystemEntryFileType.Directory,
         }
 
         Object.entries(metaData).forEach(([key, value]) => {
@@ -425,10 +395,7 @@ export class ClassicyFileSystem {
         return returnValue
     }
 
-    private deepMerge(
-        source: ClassicyFileSystemEntry,
-        target: ClassicyFileSystemEntry
-    ): ClassicyFileSystemEntry {
+    private deepMerge(source: ClassicyFileSystemEntry, target: ClassicyFileSystemEntry): ClassicyFileSystemEntry {
         Object.keys(target).forEach((key) => {
             const sourceKeyIsObject = source[key] instanceof Object
             const targetKeyIsObject = target[key] instanceof Object
@@ -438,9 +405,7 @@ export class ClassicyFileSystem {
                 const targetKeyIsArray = target[key] instanceof Array
 
                 if (sourceKeyIsArray && targetKeyIsArray) {
-                    source[key] = Array.from(
-                        new Set(source[key].concat(target[key]))
-                    )
+                    source[key] = Array.from(new Set(source[key].concat(target[key])))
                 } else if (!sourceKeyIsArray && !targetKeyIsArray) {
                     this.deepMerge(source[key], target[key])
                 } else {
@@ -453,10 +418,7 @@ export class ClassicyFileSystem {
         return source
     }
 
-    private deletePropertyPath(
-        fileSystem: ClassicyFileSystemEntry,
-        path: string
-    ): ClassicyFileSystemEntry {
+    private deletePropertyPath(fileSystem: ClassicyFileSystemEntry, path: string): ClassicyFileSystemEntry {
         const pathToArray = path.split(':')
 
         for (let i = 0; i < pathToArray.length - 1; i++) {
