@@ -1,7 +1,9 @@
-import {getTheme} from '@/app/SystemFolder/Appearance/ClassicyAppearance'
-import {classicyDesktopStateEventReducer} from '@/app/SystemFolder/SystemResources/AppManager/ClassicyAppManagerContext'
-import {ClassicyDesktopState} from '@/app/SystemFolder/SystemResources/Desktop/ClassicyDesktopState'
-import {ClassicyMenuItem} from '@/app/SystemFolder/SystemResources/Menu/ClassicyMenu'
+import { ClassicyTheme } from '@/app/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance'
+import { ClassicyMenuItem } from '@/app/SystemFolder/SystemResources/Menu/ClassicyMenu'
+import {
+    classicyDesktopStateEventReducer,
+    ClassicyStore,
+} from '@/app/SystemFolder/ControlPanels/AppManager/ClassicyAppManager'
 
 export type ClassicyDesktopIconState = {
     appId: string
@@ -29,7 +31,7 @@ const getGridPosition = (iconSize: number, iconPadding: number, x: number, y: nu
     ]
 }
 
-const getGridPositionByCount = (count: number, theme: string) => {
+const getGridPositionByCount = (count: number, theme: ClassicyTheme) => {
     const [iconSize, iconPadding] = getIconSize(theme)
     const grid = createGrid(iconSize, iconPadding)
 
@@ -47,15 +49,13 @@ const getGridPositionByCount = (count: number, theme: string) => {
     // to our matrix with an x/y coordinate.
 }
 
-const getIconSize = (theme: string) => {
-    const themeData = getTheme(theme)
-    const iconSize = parseInt(themeData.desktop.iconSize, 10)
-    return [iconSize, iconSize / 4]
+export const getIconSize = (theme: ClassicyTheme) => {
+    return [theme.desktop.iconSize, theme.desktop.iconSize / 4]
 }
 
-const sortDesktopIcons = (icons: ClassicyDesktopIconState[], sortType: "name" | "kind" | "label") => {
+const sortDesktopIcons = (icons: ClassicyDesktopIconState[], sortType: 'name' | 'kind' | 'label') => {
     switch (sortType) {
-        case "name":
+        case 'name':
             return icons.sort(function (a, b) {
                 if (a.appName.toLowerCase() > b.appName.toLowerCase()) {
                     return 1
@@ -65,7 +65,7 @@ const sortDesktopIcons = (icons: ClassicyDesktopIconState[], sortType: "name" | 
                 }
                 return 0
             })
-        case "kind":
+        case 'kind':
             return icons.sort(function (a, b) {
                 if (a.kind.toLowerCase() > b.kind.toLowerCase()) {
                     return 1
@@ -78,7 +78,7 @@ const sortDesktopIcons = (icons: ClassicyDesktopIconState[], sortType: "name" | 
     }
 }
 
-const cleanupDesktopIcons = (theme: string, icons: ClassicyDesktopIconState[]) => {
+const cleanupDesktopIcons = (theme: ClassicyTheme, icons: ClassicyDesktopIconState[]) => {
     let newDesktopIcons = []
     let startX: number = 1
     let startY: number = 0
@@ -86,7 +86,7 @@ const cleanupDesktopIcons = (theme: string, icons: ClassicyDesktopIconState[]) =
 
     let grid = createGrid(iconSize, iconPadding)
 
-    let sortedIcons = sortDesktopIcons(icons, "name")
+    let sortedIcons = sortDesktopIcons(icons, 'name')
 
     sortedIcons.forEach((icon) => {
         if (startY >= grid[1]) {
@@ -111,18 +111,21 @@ const cleanupDesktopIcons = (theme: string, icons: ClassicyDesktopIconState[]) =
     return newDesktopIcons
 }
 
-export const classicyDesktopIconEventHandler = (ds: ClassicyDesktopState, action) => {
+export const classicyDesktopIconEventHandler = (ds: ClassicyStore, action) => {
     switch (action.type) {
         case 'ClassicyDesktopIconCleanup': {
-            ds.desktopIcons = cleanupDesktopIcons(ds.activeTheme, ds.desktopIcons)
+            ds.System.Manager.Desktop.icons = cleanupDesktopIcons(
+                ds.System.Manager.Appearance.activeTheme,
+                ds.System.Manager.Desktop.icons
+            )
             break
         }
         case 'ClassicyDesktopIconFocus': {
-            ds.selectedDesktopIcons = [action.iconId]
+            ds.System.Manager.Desktop.selectedIcons = [action.iconId]
             break
         }
         case 'ClassicyDesktopIconOpen': {
-            ds.selectedDesktopIcons = [action.iconId]
+            ds.System.Manager.Desktop.selectedIcons = [action.iconId]
             ds = classicyDesktopStateEventReducer(ds, {
                 type: 'ClassicyAppOpen',
                 app: action.app,
@@ -132,20 +135,23 @@ export const classicyDesktopIconEventHandler = (ds: ClassicyDesktopState, action
         case 'ClassicyDesktopIconAdd': {
             // TODO: We need to separate onClickFunc from here; it's being stored in the localstorage cache which
             // means it gets blown out after every session clear. An Event name and payload here would be better.
-            let icon = ds.desktopIcons.filter((icon) => icon.appId === action.app.id)
+            let icon = ds.System.Manager.Desktop.icons.filter((icon) => icon.appId === action.app.id)
             if (icon.length === 0) {
                 let newLocation = action.location
                 if (!newLocation) {
-                    action.location = getGridPositionByCount(ds.desktopIcons.length, ds.activeTheme)
+                    action.location = getGridPositionByCount(
+                        ds.System.Manager.Desktop.icons.length,
+                        ds.System.Manager.Appearance.activeTheme
+                    )
                 }
 
-                ds.desktopIcons.push({
+                ds.System.Manager.Desktop.icons.push({
                     icon: action.app.icon,
-                    appName: action.app.name,
                     appId: action.app.id,
+                    appName: action.app.name,
                     location: action.location,
                     label: action.label,
-                    kind: action.kind || "icon",
+                    kind: action.kind || 'icon',
                     onClickFunc: action.onClickFunc,
                 })
             }
@@ -153,16 +159,16 @@ export const classicyDesktopIconEventHandler = (ds: ClassicyDesktopState, action
         }
 
         case 'ClassicyDesktopIconRemove': {
-            let iconIdx = ds.desktopIcons.findIndex((icon) => icon.appId === action.app.id)
+            let iconIdx = ds.System.Manager.Desktop.icons.findIndex((icon) => icon.appId === action.app.id)
             if (iconIdx > -1) {
-                ds.desktopIcons.slice(iconIdx, 1)
+                ds.System.Manager.Desktop.icons.slice(iconIdx, 1)
             }
             break
         }
         case 'ClassicyDesktopIconMove': {
-            let iconIdx = ds.desktopIcons.findIndex((icon) => icon.appId === action.app.id)
+            let iconIdx = ds.System.Manager.Desktop.icons.findIndex((icon) => icon.appId === action.app.id)
             if (iconIdx > -1) {
-                ds.desktopIcons[iconIdx].location = action.location
+                ds.System.Manager.Desktop.icons[iconIdx].location = action.location
             }
             break
         }

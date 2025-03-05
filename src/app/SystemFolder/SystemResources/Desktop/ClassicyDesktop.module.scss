@@ -1,6 +1,6 @@
 @use 'sass:list';
-@use "../../Appearance/styles/appearance";
-@use "../../Appearance/styles/scrollbars";
+@use "../../ControlPanels/AppearanceManager/styles/appearance";
+@use "../../ControlPanels/AppearanceManager/styles/scrollbars";
 
 .classicyDesktop {
   overflow: hidden;

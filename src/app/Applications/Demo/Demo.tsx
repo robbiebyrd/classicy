@@ -1,6 +1,6 @@
 import ClassicyApp from '@/app/SystemFolder/SystemResources/App/ClassicyApp'
 import {quitAppHelper} from "@/app/SystemFolder/SystemResources/App/ClassicyAppUtils";
-import {useDesktopDispatch} from '@/app/SystemFolder/SystemResources/AppManager/ClassicyAppManagerContext'
+import {useDesktopDispatch} from '@/app/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext'
 import ClassicyButton from '@/app/SystemFolder/SystemResources/Button/ClassicyButton'
 import ClassicyCheckbox from '@/app/SystemFolder/SystemResources/Checkbox/ClassicyCheckbox'
 import ClassicyControlGroup from '@/app/SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup'

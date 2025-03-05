@@ -1,7 +1,7 @@
 @use 'sass:list';
 
-@use "../../Appearance/styles/appearance";
-@use "../../Appearance/styles/assets";
+@use "../../ControlPanels/AppearanceManager/styles/appearance";
+@use "../../ControlPanels/AppearanceManager/styles/assets";
 
 .classicyMenuWrapper {
   font-family: var(--ui-font);

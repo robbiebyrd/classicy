@@ -91,7 +91,7 @@
 
 }
 
-@mixin platinumWindowDepressable {
+@mixin platinumWindowUndepressable {
   box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05),
   inset calc(var(--window-border-size) * -2) calc(var(--window-border-size) * -2) var(--color-system-04),
   inset calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) var(--color-system-04),
@@ -99,7 +99,10 @@
   background-color: var(--color-system-02);
   border: var(--window-border-size) solid black;
   border-radius: var(--window-padding-size);
+}
 
+@mixin platinumWindowDepressable {
+  @include platinumWindowUndepressable;
   &:active {
     box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05),
     inset calc(var(--window-border-size) * -2) calc(var(--window-border-size) * -2) var(--color-system-06),
@@ -122,6 +125,15 @@
   }
 }
 
+@mixin platinumWindowDepressed {
+  border-radius: var(--window-padding-size);
+  box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05),
+  inset calc(var(--window-border-size) * -2) calc(var(--window-border-size) * -2) var(--color-system-06),
+  inset calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) var(--color-system-07),
+  inset calc(var(--window-border-size) * 2) calc(var(--window-border-size) * 2) var(--color-system-06);
+  background-color: var(--color-system-05);
+  color: var(--color-white);
+}
 
 @mixin platinumDepressableDefault {
   @include platinumWindowDepressable;

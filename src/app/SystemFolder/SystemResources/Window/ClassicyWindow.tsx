@@ -1,6 +1,6 @@
 'use client'
 
-import {useDesktop, useDesktopDispatch} from '@/app/SystemFolder/SystemResources/AppManager/ClassicyAppManagerContext'
+import {useDesktop, useDesktopDispatch} from '@/app/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext'
 import ClassicyContextualMenu from '@/app/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenu'
 import {ClassicyMenuItem} from '@/app/SystemFolder/SystemResources/Menu/ClassicyMenu'
 import {useSoundDispatch} from '@/app/SystemFolder/SystemResources/SoundManager/ClassicySoundManagerContext'
@@ -50,7 +50,7 @@ const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
                                                            growable,
                                                            initialSize = [350, 0],
                                                            initialPosition = [0, 0],
-                                                           minimumSize = [250, 0],
+                                                           minimumSize = [300, 0],
                                                            header,
                                                            appMenu,
                                                            contextMenu,
@@ -64,7 +64,7 @@ const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
         size: initialSize,
         position: initialPosition,
         closed: hidden,
-        menuBar: appMenu ? appMenu : [],
+        menuBar: appMenu || [],
         contextMenuShown: false,
     }
 
@@ -277,7 +277,7 @@ const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
                     ref={windowRef}
                     style={{
                         width: size[0] === 0 ? 'auto' : size[0],
-                        height: size[1] === 0 ? 'auto' : size[1],
+                        height: windowState.collapsed ? "auto" : size[1] === 0 ? 'auto' : size[1],
                         left: windowState.position[0],
                         top: windowState.position[1],
                         minWidth: minimumSize[0],
@@ -370,7 +370,7 @@ const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
                         <div
                             className={classNames(classicyWindowStyle.classicyWindowResizer,
                                 isActive() ? '' : classicyWindowStyle.classicyWindowResizerDimmed)}
-                            onMouseDown={startResizeWindow}
+                            onMouseDownCapture={startResizeWindow}
                         ></div>
                     )}
                 </div>

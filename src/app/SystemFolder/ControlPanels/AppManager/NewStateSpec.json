@@ -17,8 +17,7 @@
         "soundPlayer": {
         }
       },
-      "desktop": {
-      },
+      "desktop": {},
       "window": {
         "active": "Text",
         "windows": [

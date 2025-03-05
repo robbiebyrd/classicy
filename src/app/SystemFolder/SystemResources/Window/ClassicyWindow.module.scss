@@ -1,6 +1,6 @@
-@use "../../Appearance/styles/assets";
-@use "../../Appearance/styles/scrollbars";
-@use "../../Appearance/styles/appearance";
+@use "../../ControlPanels/AppearanceManager/styles/assets";
+@use "../../ControlPanels/AppearanceManager/styles/scrollbars";
+@use "../../ControlPanels/AppearanceManager/styles/appearance";
 
 .classicyWindowZoomed {
   top: calc(var(--window-control-size) * 2 + var(--window-padding-size)) !important;
@@ -10,8 +10,6 @@
 }
 
 .classicyWindowCollapsed {
-  height: calc(var(--window-control-size) + var(--window-padding-size) / 2) !important;
-  min-height: calc(var(--window-control-size) + var(--window-padding-size) / 2) !important;
 }
 
 .classicyWindowHeader {
@@ -122,9 +120,10 @@
   box-shadow: none !important;
 
   .classicyWindowResizer {
+    top: 10em !important;
+    right: -10em !important;
     width: 20em !important;
     height: 20em !important;
-    margin: -10em;
     cursor: grabbing !important;
   }
 
