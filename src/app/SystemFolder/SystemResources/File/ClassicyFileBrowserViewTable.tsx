@@ -131,7 +131,10 @@ const ClassicyFileBrowserViewTable: React.FC<ClassicyFileBrowserViewTableProps> 
     }
 
     return (
-        <div style={{}} className={classicyFileBrowserViewTableStyles.classicyFileBrowserViewTableContainer}>
+        <div
+            key={appId + '_filebrowser_' + path}
+            className={classicyFileBrowserViewTableStyles.classicyFileBrowserViewTableContainer}
+        >
             <table style={{}} className={classicyFileBrowserViewTableStyles.classicyFileBrowserViewTable}>
                 <thead className={classNames(classicyFileBrowserViewTableStyles.classicyFileBrowserViewTableHeader)}>
                     {table.getHeaderGroups().map((headerGroup) => (

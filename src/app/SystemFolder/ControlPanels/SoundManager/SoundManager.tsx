@@ -1,10 +1,10 @@
 'use client'
 
 import soundManagerStyles from '@/app/SystemFolder/ControlPanels/SoundManager/SoundManager.module.scss'
-import {ClassicyAboutWindow} from '@/app/SystemFolder/SystemResources/AboutWindow/ClassicyAboutWindow'
+import { ClassicyAboutWindow } from '@/app/SystemFolder/SystemResources/AboutWindow/ClassicyAboutWindow'
 import ClassicyApp from '@/app/SystemFolder/SystemResources/App/ClassicyApp'
-import {quitAppHelper} from "@/app/SystemFolder/SystemResources/App/ClassicyAppUtils";
-import {useDesktopDispatch} from '@/app/SystemFolder/SystemResources/AppManager/ClassicyAppManagerContext'
+import { quitAppHelper } from '@/app/SystemFolder/SystemResources/App/ClassicyAppUtils'
+import { useDesktopDispatch } from '@/app/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext'
 import ClassicyCheckbox from '@/app/SystemFolder/SystemResources/Checkbox/ClassicyCheckbox'
 import ClassicyControlGroup from '@/app/SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup'
 import ClassicyControlLabel from '@/app/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel'
@@ -105,10 +105,10 @@ export const SoundManager: React.FC = () => {
                     checked={!playerState.disabled.includes('*')}
                 />
                 <ClassicyDisclosure label={'Disable Sounds'}>
-                    <ClassicyControlLabel label={'These settings are not currently connected.'}/>
+                    <ClassicyControlLabel label={'These settings are not currently connected.'} />
                     <div className={soundManagerStyles.soundManagerControlGroupHolder}>
                         {getSoundLabelGroups().map((group: string) => (
-                            <ClassicyControlGroup label={group} columns={true} key={group}>
+                            <ClassicyControlGroup label={group} columns={true} key={appId + '_' + group}>
                                 {playerState.labels.map((item: ClassicySoundInfo) => (
                                     <>
                                         {item.group === group && (

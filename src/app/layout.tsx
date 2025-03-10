@@ -18,33 +18,32 @@ const favicons: [number, number, string][] = [
     [192, 192, 'apple-touch-icon'],
     [16, 16, 'icon'],
     [32, 32, 'icon'],
-    [96, 96, 'icon']
+    [96, 96, 'icon'],
 ]
 
-export default function RootLayout({children}) {
+export default function RootLayout({ children }) {
     return (
         <html lang="en">
-        <head>
-            <title>MacOS 8.6</title>
-            <meta name="theme-color" content="#808080"/>
-            <meta
-                name="msapplication-TileImage"
-                content={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/img/ms-icon-144x144.png`}
-            />
-            <meta name="msapplication-TileColor" content="#808080"/>
-            <link rel="manifest" href="/manifest.json"/>
-
-            {favicons.map(([x, y, label]) => (
-                <link
-                    key={[label, x, y].join('_')}
-                    rel={label}
-                    sizes={[x, y].join('x')}
-                    href={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/img/${label}-${[x, y].join('x')}.png`}
+            <head>
+                <title>MacOS 8.6</title>
+                <meta name="theme-color" content="#808080" />
+                <meta
+                    name="msapplication-TileImage"
+                    content={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/img/ms-icon-144x144.png`}
                 />
-            ))}
+                <meta name="msapplication-TileColor" content="#808080" />
+                <link rel="manifest" href="/manifest.json" />
 
-        </head>
-        <body className={globalStyles.classicy}>{children}</body>
+                {favicons.map(([x, y, label]) => (
+                    <link
+                        key={[label, x, y].join('_')}
+                        rel={label}
+                        sizes={[x, y].join('x')}
+                        href={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/img/${label}-${[x, y].join('x')}.png`}
+                    />
+                ))}
+            </head>
+            <body className={globalStyles.classicy}>{children}</body>
         </html>
-    );
+    )
 }

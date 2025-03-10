@@ -1,8 +1,79 @@
-import { intToHex } from '@/app/SystemFolder/Appearance/ClassicyColors'
-import { intToPct, intToPx } from '@/app/SystemFolder/Appearance/ClassicySize'
-import themesData from '@/app/SystemFolder/Appearance/styles/themes.json'
+import { intToHex } from '@/app/SystemFolder/ControlPanels/AppearanceManager/ClassicyColors'
+import { intToPct, intToPx } from '@/app/SystemFolder/ControlPanels/AppearanceManager/ClassicySize'
+import themesData from '@/app/SystemFolder/ControlPanels/AppearanceManager/styles/themes.json'
+import { ClassicyThemeSound } from '../SoundManager/ClassicySound'
+import { ClassicyStoreSystemManager } from '@/app/SystemFolder/ControlPanels/AppManager/ClassicyAppManager'
 
-const makeThemeStyle = (theme = themesData[0]) => {
+export interface ClassicyStoreSystemAppearanceManager extends ClassicyStoreSystemManager {
+    availableThemes?: ClassicyTheme[]
+    activeTheme?: ClassicyTheme
+}
+
+export type ClassicyThemeColorPalette = [number, number, number, number, number, number, number]
+
+export type ClassicyThemeColorsWindow = {
+    border: number
+    borderOutset: number
+    borderInset: number
+    frame: number
+    title: number
+    document: number
+}
+
+export type ClassicyThemeColors = {
+    outline: number
+    select: number
+    highlight: number
+    black: number
+    white: number
+    alert: number
+    error: number
+    system: ClassicyThemeColorPalette
+    theme: ClassicyThemeColorPalette
+    window: ClassicyThemeColorsWindow
+}
+
+export type ClassicyThemeTypography = {
+    ui: string
+    uiSize: number
+    header: string
+    headerSize: number
+    body: string
+    bodySize: number
+}
+
+export type ClassicyThemeMeasurementsWindow = {
+    borderSize: number
+    controlSize: number
+    paddingSize: number
+    scrollbarSize: number
+}
+
+export type ClassicyThemeMeasurements = {
+    window: ClassicyThemeMeasurementsWindow
+}
+
+export type ClassicyThemeDesktop = {
+    iconSize: number
+    iconFontSize: number
+    backgroundImage: string
+    backgroundColor: number
+    backgroundSize: number
+    backgroundRepeat: string
+    backgroundPosition: string | number
+}
+
+export type ClassicyTheme = {
+    id: string
+    name: string
+    color: ClassicyThemeColors
+    typography: ClassicyThemeTypography
+    measurements: ClassicyThemeMeasurements
+    desktop: ClassicyThemeDesktop
+    sound: ClassicyThemeSound
+}
+
+const makeThemeStyle = (theme: ClassicyTheme) => {
     return {
         '--color-black': intToHex(theme.color.black),
         '--color-white': intToHex(theme.color.white),
@@ -51,13 +122,8 @@ const makeThemeStyle = (theme = themesData[0]) => {
     }
 }
 
-export const getThemeVars = (theme: string) => {
-    for (let i = 0; i < themesData.length; i++) {
-        if (themesData[i].id === theme) {
-            return makeThemeStyle(themesData[i])
-        }
-    }
-    return makeThemeStyle(themesData[0])
+export const getThemeVars = (theme: ClassicyTheme) => {
+    return makeThemeStyle(theme)
 }
 
 export const getAllThemes = () => {

@@ -1,5 +1,5 @@
-@use "../../Appearance/styles/appearance";
-@use "../../Appearance/styles/assets";
+@use '../../ControlPanels/AppearanceManager/styles/appearance';
+@use '../../ControlPanels/AppearanceManager/styles/assets';
 
 .classicyControlGroup {
   margin: calc(var(--window-padding-size) / 3);
@@ -16,6 +16,6 @@
 
 .classicyControlGroupLegend {
   font-family: var(--ui-font);
-  font-size: calc(var(--ui-font-size) * .75);
+  font-size: calc(var(--ui-font-size) * 0.75);
   margin-top: calc(var(--ui-font-size) * -1);
 }

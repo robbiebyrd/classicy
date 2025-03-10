@@ -1,10 +1,10 @@
 import ClassicyApp from '@/app/SystemFolder/SystemResources/App/ClassicyApp'
-import {useDesktopDispatch} from '@/app/SystemFolder/SystemResources/AppManager/ClassicyAppManagerContext'
+import { useDesktopDispatch } from '@/app/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext'
 import ClassicyFileBrowser from '@/app/SystemFolder/SystemResources/File/ClassicyFileBrowser'
-import {ClassicyFileSystem} from '@/app/SystemFolder/SystemResources/File/ClassicyFileSystem'
+import { ClassicyFileSystem } from '@/app/SystemFolder/SystemResources/File/ClassicyFileSystem'
 import ClassicyWindow from '@/app/SystemFolder/SystemResources/Window/ClassicyWindow'
 import React from 'react'
-import {quitAppHelper} from '@/app/SystemFolder/SystemResources/App/ClassicyAppUtils'
+import { quitAppHelper } from '@/app/SystemFolder/SystemResources/App/ClassicyAppUtils'
 
 const Finder = () => {
     const appName: string = 'Finder'
@@ -20,9 +20,9 @@ const Finder = () => {
     }
 
     const handlePathSettingsChange = (path: string, settings: PathSettingsProps) => {
-        let a = {...pathSettings}
-        a[path] = settings
-        setPathSettings(a)
+        let updatedPathSettings = { ...pathSettings }
+        updatedPathSettings[path] = settings
+        setPathSettings(updatedPathSettings)
     }
 
     const openFolder = (path: string) => {
@@ -37,10 +37,6 @@ const Finder = () => {
         setOpenPaths(uniqueOpenPaths)
     }
 
-    const closeAll = () => {
-        setOpenPaths([])
-    }
-
     const emptyTrash = () => {
         desktopEventDispatch({
             type: 'ClassicyFinderEmptyTrash',
@@ -49,6 +45,14 @@ const Finder = () => {
 
     const quitApp = () => {
         desktopEventDispatch(quitAppHelper(appId, appName, appIcon))
+    }
+
+    const closeWindow = (path: string) => {
+        const updatedPaths = openPaths.filter((p) => p !== path)
+        setOpenPaths(updatedPaths)
+        if (updatedPaths.length == 0) {
+            desktopEventDispatch(quitAppHelper(appId, appName, appIcon))
+        }
     }
 
     const fs = React.useMemo(() => new ClassicyFileSystem(''), [])
@@ -105,7 +109,7 @@ const Finder = () => {
                         dir: fs.statDir(op),
                     }
                 })
-                .map(({op, dir}, idx) => {
+                .map(({ op, dir }, idx) => {
                     return (
                         <ClassicyWindow
                             id={appName + ':' + op}
@@ -119,12 +123,17 @@ const Finder = () => {
                             onCloseFunc={closeFolder}
                             appMenu={[
                                 {
-                                    id: appId + '_file',
+                                    id: appId + '_' + op + '_file',
                                     title: 'File',
                                     menuChildren: [
                                         {
-                                            id: appId + '_quit',
-                                            title: 'Quit',
+                                            id: appId + '_' + op + '_file_closew',
+                                            title: 'Close Window',
+                                            onClickFunc: () => closeWindow(op),
+                                        },
+                                        {
+                                            id: appId + '_' + op + '_file_closews',
+                                            title: 'Close All Windows',
                                             onClickFunc: quitApp,
                                         },
                                     ],
@@ -134,26 +143,25 @@ const Finder = () => {
                                     title: 'View',
                                     menuChildren: [
                                         {
-                                            id: appId + '_view_as_icons',
+                                            id: appId + '_' + op + '_view_as_icons',
                                             title: 'View as Icons',
-                                            onClickFunc: () => handlePathSettingsChange(op, {_viewType: 'icons'}),
+                                            onClickFunc: () => handlePathSettingsChange(op, { _viewType: 'icons' }),
                                         },
                                         {
-                                            id: appId + '_view_as_list',
+                                            id: appId + '_' + op + '_view_as_list',
                                             title: 'View as List',
-                                            onClickFunc: () => handlePathSettingsChange(op, {_viewType: 'list'}),
+                                            onClickFunc: () => handlePathSettingsChange(op, { _viewType: 'list' }),
                                         },
                                     ],
                                 },
                                 {
-                                    id: appId + '_help',
+                                    id: appId + '_' + op + '_help',
                                     title: 'Help',
                                     menuChildren: [
                                         {
-                                            id: appId + '_about',
+                                            id: appId + '_' + op + '_help_about',
                                             title: 'About',
-                                            onClickFunc: () => {
-                                            },
+                                            onClickFunc: () => {},
                                         },
                                     ],
                                 },
@@ -170,23 +178,6 @@ const Finder = () => {
                         </ClassicyWindow>
                     )
                 })}
-            {/*<ClassicyWindow*/}
-            {/*    id={'test-get-file-info'}*/}
-            {/*    scrollable={false}*/}
-            {/*    resizable={false}*/}
-            {/*    collapsable={false}*/}
-            {/*    zoomable={false}*/}
-            {/*    modalWindow={true}*/}
-            {/*    initialSize={[50,200]}*/}
-            {/*    initialPosition={[50,50]}*/}
-            {/*>*/}
-            {/*    <div>*/}
-            {/*        <ClassicyControlLabel label={'File Name'} labelSize={'medium'} icon={'img/icons/system/apple.png'}></ClassicyControlLabel>*/}
-            {/*        <ClassicyDisclosure label={"More Info"}>*/}
-            {/*            Hello*/}
-            {/*        </ClassicyDisclosure>*/}
-            {/*    </div>*/}
-            {/*</ClassicyWindow>*/}{' '}
         </ClassicyApp>
     )
 }

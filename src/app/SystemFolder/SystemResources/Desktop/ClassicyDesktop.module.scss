@@ -1,6 +1,6 @@
 @use 'sass:list';
-@use "../../Appearance/styles/appearance";
-@use "../../Appearance/styles/scrollbars";
+@use '../../ControlPanels/AppearanceManager/styles/appearance';
+@use '../../ControlPanels/AppearanceManager/styles/scrollbars';
 
 .classicyDesktop {
   overflow: hidden;
@@ -17,11 +17,11 @@
   background-size: var(--desktop-background-size);
   user-drag: none;
 
-  &, & * {
+  &,
+  & * {
     @include scrollbars.scrollbars;
     @include scrollbars.scrollbars-themed;
     accent-color: var(--color-theme-04);
-
 
     &:focus-visible {
       outline-color: var(--color-outline);
@@ -32,20 +32,18 @@
     }
 
     &:is(
-    ::-webkit-calendar-picker-indicator,
-    ::-webkit-clear-button,
-    ::-webkit-inner-spin-button,
-    ::-webkit-outer-spin-button
-  ) {
+                ::-webkit-calendar-picker-indicator,
+                ::-webkit-clear-button,
+                ::-webkit-inner-spin-button,
+                ::-webkit-outer-spin-button
+            ) {
       color: var(--color-theme-02);
     }
-
   }
 
   *::selection {
     background: var(--color-theme-02) !important;
   }
-
 }
 
 .classicyDesktopSelect {

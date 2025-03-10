@@ -1,5 +1,5 @@
-@use "../../Appearance/styles/assets";
-@use "../../Appearance/styles/appearance";
+@use '../../ControlPanels/AppearanceManager/styles/assets';
+@use '../../ControlPanels/AppearanceManager/styles/appearance';
 
 .classicyPopUpMenuSmall {
   width: calc(var(--window-control-size) * 2.5) !important;
@@ -10,7 +10,6 @@
   select {
     width: 90%;
     opacity: 0 !important;
-
   }
 
   &:not(.select--multiple)::after {
@@ -43,6 +42,8 @@
   cursor: pointer;
   user-select: none;
 
+  grid-template-areas: 'select';
+
   &,
   &::before,
   &::after,
@@ -51,8 +52,6 @@
   & *::after {
     box-sizing: border-box;
   }
-
-  grid-template-areas: "select";
 
   &.select--disabled {
     cursor: not-allowed;
@@ -91,7 +90,6 @@
     &::-ms-expand {
       display: none;
     }
-
   }
 
   select,
@@ -101,7 +99,7 @@
 
   &:not(.select--multiple)::after {
     height: 100%;
-    content: "";
+    content: '';
 
     border-left: var(--window-border-size) solid var(--color-system-05);
     border-top-right-radius: var(--window-padding-size);

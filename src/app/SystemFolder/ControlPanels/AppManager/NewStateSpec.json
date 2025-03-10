@@ -14,11 +14,9 @@
         "disabled": [
           "disabledSoundLabel"
         ],
-        "soundPlayer": {
-        }
+        "soundPlayer": {}
       },
-      "desktop": {
-      },
+      "desktop": {},
       "window": {
         "active": "Text",
         "windows": [
@@ -50,11 +48,9 @@
               "Text",
               "Text"
             ],
-            "header": {
-            },
+            "header": {},
             "appMenu": [
-              {
-              }
+              {}
             ],
             "contextMenu": [
               {
@@ -65,14 +61,11 @@
                 "icon": "",
                 "keyboardShortcut": "",
                 "link": "",
-                "onClickFunc": {
-                },
-                "menuChildren": [
-                ]
+                "onClickFunc": {},
+                "menuChildren": []
               }
             ],
-            "onCloseFunc": {
-            }
+            "onCloseFunc": {}
           }
         ]
       },

@@ -1,4 +1,4 @@
-import {ClassicyFileSystem} from './ClassicyFileSystem'
+import { ClassicyFileSystem } from './ClassicyFileSystem'
 
 process.env.NEXT_PUBLIC_BASE_PATH = '/platinum'
 
@@ -81,30 +81,20 @@ describe('File System', () => {
         const rootDirectoryStat = fs.statDir('Macintosh HD:Test Directory')
         expect(rootDirectoryStat['_type']).toEqual('directory')
         expect(rootDirectoryStat['_name']).toEqual('Test Directory')
-        expect(rootDirectoryStat['_path']).toEqual(
-            'Macintosh HD:Test Directory'
-        )
-        expect(rootDirectoryStat['_icon']).toEqual(
-            '/classicy/img/icons/system/folders/directory.png'
-        )
+        expect(rootDirectoryStat['_path']).toEqual('Macintosh HD:Test Directory')
+        expect(rootDirectoryStat['_icon']).toEqual('/classicy/img/icons/system/folders/directory.png')
         expect(rootDirectoryStat['_count']).toEqual(0)
         expect(rootDirectoryStat['_countHidden']).toEqual(0)
         expect(rootDirectoryStat['_size']).toEqual(0)
     })
 
     it('can create a nested directories', () => {
-        fs.mkDir(
-            'Macintosh HD:Test Directory:Test Directory 2:Test Directory 3'
-        )
+        fs.mkDir('Macintosh HD:Test Directory:Test Directory 2:Test Directory 3')
         const rootDirectoryStat = fs.statDir('Macintosh HD:Test Directory')
 
-        const secondDirectoryStat = fs.statDir(
-            'Macintosh HD:Test Directory:Test Directory 2'
-        )
+        const secondDirectoryStat = fs.statDir('Macintosh HD:Test Directory:Test Directory 2')
 
-        const thirdDirectoryStat = fs.statDir(
-            'Macintosh HD:Test Directory:Test Directory 2:Test Directory 3'
-        )
+        const thirdDirectoryStat = fs.statDir('Macintosh HD:Test Directory:Test Directory 2:Test Directory 3')
 
         expect(rootDirectoryStat['_count']).toEqual(1)
         expect(secondDirectoryStat['_count']).toEqual(1)
@@ -114,9 +104,7 @@ describe('File System', () => {
     it('can remove a directory', () => {
         fs.mkDir('Macintosh HD:Test Directory')
         const rootDirectoryStat = fs.statDir('Macintosh HD:Test Directory')
-        expect(rootDirectoryStat['_path']).toEqual(
-            'Macintosh HD:Test Directory'
-        )
+        expect(rootDirectoryStat['_path']).toEqual('Macintosh HD:Test Directory')
 
         fs.rmDir('Macintosh HD:Test Directory')
         const secondDirectoryStat = fs.statDir('Macintosh HD:Test Directory')
@@ -137,13 +125,8 @@ describe('File System', () => {
     })
 
     it('can write a file', () => {
-        fs.writeFile(
-            'Macintosh HD:Apps:Test Apps:Test App:Resources:Test.app',
-            'Test Data'
-        )
-        const rootDirectorySize = fs.readFile(
-            'Macintosh HD:Apps:Test Apps:Test App:Resources:Test.app'
-        )
+        fs.writeFile('Macintosh HD:Apps:Test Apps:Test App:Resources:Test.app', 'Test Data')
+        const rootDirectorySize = fs.readFile('Macintosh HD:Apps:Test Apps:Test App:Resources:Test.app')
         expect(fs).toEqual('Test Data.')
     })
 })

@@ -1,8 +1,9 @@
-import {getTheme} from '@/app/SystemFolder/Appearance/ClassicyAppearance'
-import {useDesktop, useDesktopDispatch} from '@/app/SystemFolder/SystemResources/AppManager/ClassicyAppManagerContext'
-import {ClassicyFileSystem} from '@/app/SystemFolder/SystemResources/File/ClassicyFileSystem'
+import { useDesktop, useDesktopDispatch } from '@/app/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext'
+import { ClassicyFileSystem } from '@/app/SystemFolder/SystemResources/File/ClassicyFileSystem'
 import ClassicyIcon from '@/app/SystemFolder/SystemResources/Icon/ClassicyIcon'
 import React from 'react'
+import { getIconSize } from '@/app/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconContext'
+import { ClassicyTheme } from '@/app/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance'
 
 type ClassicyFileBrowserViewIconsProps = {
     fs: ClassicyFileSystem
@@ -14,15 +15,13 @@ type ClassicyFileBrowserViewIconsProps = {
 }
 
 const ClassicyFileBrowserViewIcons: React.FC<ClassicyFileBrowserViewIconsProps> = ({
-                                                                                       fs,
-                                                                                       path,
-                                                                                       appId,
-                                                                                       dirOnClickFunc = () => {
-                                                                                       },
-                                                                                       fileOnClickFunc = () => {
-                                                                                       },
-                                                                                       holderRef,
-                                                                                   }) => {
+    fs,
+    path,
+    appId,
+    dirOnClickFunc = () => {},
+    fileOnClickFunc = () => {},
+    holderRef,
+}) => {
     const desktopContext = useDesktop(),
         desktopEventDispatch = useDesktopDispatch()
 
@@ -48,8 +47,7 @@ const ClassicyFileBrowserViewIcons: React.FC<ClassicyFileBrowserViewIconsProps> 
                 return fileOnClickFunc(path + ':' + filename)
             }
             default: {
-                return () => {
-                }
+                return () => {}
             }
         }
     }
@@ -65,18 +63,12 @@ const ClassicyFileBrowserViewIcons: React.FC<ClassicyFileBrowserViewIconsProps> 
         ]
     }
 
-    const getIconSize = (theme: string) => {
-        const themeData = getTheme(theme)
-        const iconSize = parseInt(themeData.desktop.iconSize, 10)
-        return [iconSize, iconSize / 4]
-    }
-
     const getGridPosition = (i: number, grid: [number, number]): [number, number] => {
         return [i % grid[0], Math.floor(i / grid[0])]
     }
 
     function cleanupIcon(
-        theme: string,
+        theme: ClassicyTheme,
         iconIndex: number,
         iconTotal: number,
         containerMeasure: [number, number]
@@ -105,7 +97,7 @@ const ClassicyFileBrowserViewIcons: React.FC<ClassicyFileBrowserViewIconsProps> 
                 onClickFunc: () => openFileOrFolder(properties, path, filename),
                 holder: holderRef,
                 initialPosition: cleanupIcon(
-                    desktopContext.activeTheme,
+                    desktopContext.System.Manager.Appearance.activeTheme,
                     index,
                     Object.entries(directoryListing).length,
                     containerMeasure
@@ -113,12 +105,12 @@ const ClassicyFileBrowserViewIcons: React.FC<ClassicyFileBrowserViewIconsProps> 
             })
         })
         setItems((_) => [...icons])
-    }, [path, fs, desktopContext.activeTheme, holderRef])
+    }, [path, fs, desktopContext.System.Manager.Appearance.activeTheme, holderRef])
 
     return (
-        <div style={{position: 'absolute', width: '100%', height: '100%'}} ref={holderRef}>
+        <div style={{ position: 'absolute', width: '100%', height: '100%' }} ref={holderRef}>
             {items.map((item) => {
-                return <ClassicyIcon {...item} key={item.name}/>
+                return <ClassicyIcon {...item} key={item.name} />
             })}
         </div>
     )

@@ -1,6 +1,6 @@
 import ClassicyApp from '@/app/SystemFolder/SystemResources/App/ClassicyApp'
-import {quitAppHelper} from "@/app/SystemFolder/SystemResources/App/ClassicyAppUtils";
-import {useDesktopDispatch} from '@/app/SystemFolder/SystemResources/AppManager/ClassicyAppManagerContext'
+import { quitAppHelper } from '@/app/SystemFolder/SystemResources/App/ClassicyAppUtils'
+import { useDesktopDispatch } from '@/app/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext'
 import ClassicyButton from '@/app/SystemFolder/SystemResources/Button/ClassicyButton'
 import ClassicyCheckbox from '@/app/SystemFolder/SystemResources/Checkbox/ClassicyCheckbox'
 import ClassicyControlGroup from '@/app/SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup'
@@ -59,8 +59,8 @@ const Demo: React.FC = () => {
                         id={'select_theme'}
                         small={false}
                         options={[
-                            {value: 'hello', label: 'Hello'},
-                            {value: 'hello2', label: 'Hello again!'},
+                            { value: 'hello', label: 'Hello' },
+                            { value: 'hello2', label: 'Hello again!' },
                         ]}
                         selected={'hello'}
                     />
@@ -68,36 +68,41 @@ const Demo: React.FC = () => {
                     <ClassicyInput id={'test'} labelTitle={'Text Input'}></ClassicyInput>
                     <ClassicyControlGroup label={'Test Radio Inputs'}>
                         <ClassicyRadioInput
-                            inputs={[{
-                                id: 'test1',
-                                isDefault: true,
-                                disabled: false,
-                                label: 'Radio Button 1 (Default)'
-                            },
+                            inputs={[
+                                {
+                                    id: 'test1',
+                                    isDefault: true,
+                                    disabled: false,
+                                    label: 'Radio Button 1 (Default)',
+                                },
                                 {
                                     id: 'test2',
-                                    label: 'Radio Button 2 (Regular)'
+                                    label: 'Radio Button 2 (Regular)',
                                 },
                                 {
                                     id: 'test3',
                                     mixed: true,
-                                    label: 'Radio Button 3 (Mixed)'
-                                }]}
+                                    label: 'Radio Button 3 (Mixed)',
+                                },
+                            ]}
                             name={'test_radio'}
                             label={'Radio Buttons'}
                         />
                         <ClassicyRadioInput
-                            inputs={[{
-                                id: 'test4',
-                                disabled: true,
-                                label: 'Radio Button 4 (Disabled)'
-                            }, {
-                                id: 'test5',
-                                checked: true,
-                                disabled: true,
-                                mixed: true,
-                                label: 'Radio Button 6 (Disabled + Checked + Mixed)'
-                            }]}
+                            inputs={[
+                                {
+                                    id: 'test4',
+                                    disabled: true,
+                                    label: 'Radio Button 4 (Disabled)',
+                                },
+                                {
+                                    id: 'test5',
+                                    checked: true,
+                                    disabled: true,
+                                    mixed: true,
+                                    label: 'Radio Button 6 (Disabled + Checked + Mixed)',
+                                },
+                            ]}
                             name={'test_radio_disabled'}
                             label={'Disabled Radio Buttons'}
                         />
@@ -110,12 +115,7 @@ const Demo: React.FC = () => {
                             label={'Default Checkbox'}
                             disabled={false}
                         />
-                        <ClassicyCheckbox
-                            id={'test7'}
-                            isDefault={false}
-                            label={'Checkbox 2'}
-                            disabled={false}
-                        />
+                        <ClassicyCheckbox id={'test7'} isDefault={false} label={'Checkbox 2'} disabled={false} />
                         <ClassicyCheckbox
                             id={'test8'}
                             mixed={true}
@@ -134,7 +134,7 @@ const Demo: React.FC = () => {
                         />
                     </ClassicyControlGroup>
                     <ClassicyDisclosure label={'Expandable Section'}>
-                        <p style={{fontFamily: 'var(--header-font)'}}>HELLO!</p>
+                        <p style={{ fontFamily: 'var(--header-font)' }}>HELLO!</p>
                     </ClassicyDisclosure>
                     <ClassicyButton isDefault={true}>Do Nothing</ClassicyButton>
                     <ClassicyButton isDefault={false} onClick={quitApp}>

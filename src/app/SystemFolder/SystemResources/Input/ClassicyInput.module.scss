@@ -1,5 +1,5 @@
-@use "../../Appearance/styles/appearance";
-@use "sass:list";
+@use '../../ControlPanels/AppearanceManager/styles/appearance';
+@use 'sass:list';
 
 .classicyInputHolder {
   display: flex;
@@ -24,7 +24,6 @@
     outline: 0 0 0 calc(var(--window-border-size) * 2) var(--color-outline) !important;
     box-shadow: 0 0 0 calc(var(--window-border-size) * 2) var(--color-theme-04),
     0 0 var(--window-border-size) calc(var(--window-border-size) * 2) var(--color-theme-04);
-
   }
 }
 

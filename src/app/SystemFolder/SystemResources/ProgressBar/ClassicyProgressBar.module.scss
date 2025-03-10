@@ -1,4 +1,4 @@
-@use "../../Appearance/styles/appearance";
+@use '../../ControlPanels/AppearanceManager/styles/appearance';
 @use 'sass:list';
 
 .classicyProgress {
@@ -30,7 +30,7 @@
                       var(--color-theme-04),
                       var(--color-theme-05),
                       var(--color-theme-06),
-                      var(--color-theme-07),
+                      var(--color-theme-07)
       );
     }
   }
@@ -52,10 +52,7 @@
 }
 
 .classicyProgressIndeterminate {
-
   progress[value] {
-
-
     &::-webkit-progress-value {
       animation: a 3s linear infinite;
       background: repeating-linear-gradient(
@@ -65,11 +62,7 @@
                       var(--color-theme-04) calc(var(--my-var) + 10px),
                       var(--color-theme-04) calc(var(--my-var) + 20px)
       ) !important;
-      mask: linear-gradient(
-                      0deg,
-                      var(--color-black),
-                      white,
-                      var(--color-black)) luminance;
+      mask: linear-gradient(0deg, var(--color-black), white, var(--color-black)) luminance;
     }
   }
 }

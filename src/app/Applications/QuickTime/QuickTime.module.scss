@@ -1,0 +1,180 @@
+@use '../../SystemFolder/ControlPanels/AppearanceManager/styles/appearance';
+
+.quickTimePlayerVideoHolder {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: calc(100% - var(--window-control-size) * 2);
+}
+
+.quickTimePlayerWrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: calc(100% - var(--window-control-size) * 1);
+  min-height: calc(var(--window-control-size) * 2);
+}
+
+.quickTimePlayerVideoControlsHolder {
+  position: absolute;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  justify-content: center;
+  width: calc(100% - var(--window-control-size) * 3);
+
+  height: calc(var(--window-control-size) * 2);
+  margin-bottom: calc(var(--window-padding-size) - var(--window-border-size));
+  background: var(--color-system-03);
+  justify-items: center;
+}
+
+.quickTimePlayerVideoControlsButton {
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  justify-content: center;
+  height: calc(var(--window-control-size) * 2);
+  margin: 0;
+  padding: 0;
+  @include appearance.platinumWindowDepressable;
+  border: 0;
+  border-radius: 0;
+  aspect-ratio: 1/1 !important;
+
+  img {
+    filter: drop-shadow(var(--window-border-size) var(--window-border-size) 0px rgba(0, 0, 0, 0.5));
+  }
+}
+
+.quickTimePlayerVideoControlsIcon {
+  width: calc(var(--window-control-size) * 1.25);
+  height: calc(var(--window-control-size) * 1);
+}
+
+.quickTimePlayerVideoControlsPlayIcon {
+}
+
+.quickTimePlayerVideoControlsProgressBarHolder {
+  width: 100%;
+  @include appearance.platinumWindowDepressable;
+  border-radius: 0;
+}
+
+.quickTimePlayerVideoControlsProgressBar {
+  flex-grow: 1;
+  width: 100%; /* Specific width is required for Firefox. */
+  height: calc(var(--window-control-size) * 1.25);
+  background: transparent; /* Otherwise white in Chrome */
+  -webkit-appearance: none; /* Hides the slider so that custom slider can be made */
+}
+
+.quickTimePlayerVideoControlsProgressBar::-webkit-slider-thumb {
+  -webkit-appearance: none;
+}
+
+.quickTimePlayerVideoControlsProgressBar:focus {
+  width: 100%;
+  border-color: transparent;
+  outline: none; /* Removes the blue border. You should probably do some kind of focus styling for accessibility reasons though. */
+  background: transparent;
+}
+
+.quickTimePlayerVideoControlsProgressBar::-ms-track {
+  /* Hides the slider so custom styles can be added */
+  cursor: pointer;
+  color: transparent;
+}
+
+.quickTimePlayerVideoControlsProgressBar::-webkit-slider-thumb {
+  width: calc(var(--window-control-size) * 1.25);
+  height: calc(var(--window-control-size) * 1.625);
+  margin-top: calc(
+          var(--window-control-size) * -0.5
+  ); /* You need to specify a margin in Chrome, but in Firefox and IE it is automatic */
+  cursor: pointer;
+  background: url('/img/icons/system/quicktime/thumb-slider.svg') no-repeat;
+  background-size: contain;
+  filter: drop-shadow(
+                  var(--window-border-size) var(--window-border-size) var(--window-border-size) var(--color-system-06)
+  );
+  -webkit-appearance: none;
+}
+
+///* All the same stuff for Firefox */
+//.quickTimePlayerVideoControlsProgressBar::-moz-range-thumb {
+//  width: 16px;
+//  height: 36px;
+//  cursor: pointer;
+//  border: 1px solid #000000;
+//  border-radius: 3px;
+//  background: #ffffff;
+//  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+//}
+//
+///* All the same stuff for IE */
+//.quickTimePlayerVideoControlsProgressBar::-ms-thumb {
+//  width: 16px;
+//  height: 36px;
+//  cursor: pointer;
+//  border: 1px solid #000000;
+//  border-radius: 3px;
+//  background: #ffffff;
+//  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+//}
+
+.quickTimePlayerVideoControlsProgressBar::-webkit-slider-runnable-track {
+  height: calc(var(--window-control-size) * 0.825);
+  margin-top: calc(var(--window-control-size) * 0.25);
+  margin-right: calc(var(--window-padding-size) * 1);
+  margin-left: calc(var(--window-padding-size) * 0.5);
+  cursor: pointer;
+  border: 1px solid var(--color-theme-04);
+  background: transparent;
+  box-shadow: inset var(--window-border-size) var(--window-border-size) var(--window-border-size) var(--color-theme-04),
+  inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--window-border-size) var(--color-theme-06);
+}
+
+.quickTimePlayerVideoControlsProgressBar:focus::-webkit-slider-runnable-track {
+  background: var(--color-theme-02);
+}
+
+//.quickTimePlayerVideoControlsProgressBar::-moz-range-track {
+//  width: 100%;
+//  height: 8.4px;
+//  cursor: pointer;
+//  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+//  background: #3071a9;
+//  border-radius: 1.3px;
+//  border: 0.2px solid #010101;
+//}
+//
+//.quickTimePlayerVideoControlsProgressBar::-ms-track {
+//  width: 100%;
+//  height: 8.4px;
+//  cursor: pointer;
+//  background: transparent;
+//  border-color: transparent;
+//  border-width: 16px 0;
+//  color: transparent;
+//}
+//.quickTimePlayerVideoControlsProgressBar::-ms-fill-lower {
+//  background: #2a6495;
+//  border: 0.2px solid #010101;
+//  border-radius: 2.6px;
+//  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+//}
+//.quickTimePlayerVideoControlsProgressBar:focus::-ms-fill-lower {
+//  background: #3071a9;
+//}
+//.quickTimePlayerVideoControlsProgressBar::-ms-fill-upper {
+//  background: #3071a9;
+//  border: 0.2px solid #010101;
+//  border-radius: 2.6px;
+//  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+//}
+//.quickTimePlayerVideoControlsProgressBar:focus::-ms-fill-upper {
+//  background: #367ebd;
+//}

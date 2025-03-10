@@ -1,4 +1,4 @@
-@use "../../Appearance/styles/appearance";
+@use '../../ControlPanels/AppearanceManager/styles/appearance';
 
 .ClassicyCheckboxGroup {
   display: flex;
@@ -19,10 +19,10 @@
     &:after {
       font-family: var(--ui-font);
       font-size: calc(var(--ui-font-size) * 1.25);
-      line-height: calc(var(--ui-font-size) * .65);
+      line-height: calc(var(--ui-font-size) * 0.65);
       display: flex;
       justify-content: center;
-      content: "\00D7";
+      content: '\00D7';
       text-shadow: var(--color-system-05) 1px 1px 2px;
     }
   }
@@ -41,13 +41,12 @@
     outline: var(--color-outline) solid calc(var(--window-border-size) * 2) !important;
   }
 
-  &:disabled, &:disabled:active {
+  &:disabled,
+  &:disabled:active {
     border: var(--window-border-size) solid var(--color-system-06) !important;
     background: transparent;
     box-shadow: none;
   }
-
-
 }
 
 .ClassicyCheckboxLabel {
@@ -62,14 +61,15 @@
 }
 
 .ClassicyCheckboxDefault {
-  &:checked, &:active {
+  &:checked,
+  &:active {
     &:after {
       font-family: var(--ui-font);
       font-size: calc(var(--ui-font-size) * 1);
-      line-height: calc(var(--ui-font-size) * .75);
+      line-height: calc(var(--ui-font-size) * 0.75);
       display: flex;
       justify-content: center;
-      content: "\2713";
+      content: '\2713';
       text-shadow: var(--color-system-05) 1px 1px 2px;
     }
   }
@@ -80,10 +80,10 @@
     &:after {
       font-family: var(--ui-font);
       font-size: calc(var(--ui-font-size) * 1);
-      line-height: calc(var(--ui-font-size) * .75);
+      line-height: calc(var(--ui-font-size) * 0.75);
       display: flex;
       justify-content: center;
-      content: "-";
+      content: '-';
       text-shadow: var(--color-system-05) 1px 1px 2px;
     }
   }

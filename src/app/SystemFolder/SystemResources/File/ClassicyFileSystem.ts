@@ -1,4 +1,4 @@
-import {sha512} from 'sha512-crypt-ts'
+import { sha512 } from 'sha512-crypt-ts'
 
 export enum ClassicyFileSystemEntryFileType {
     File = 'file',

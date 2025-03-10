@@ -1,4 +1,4 @@
-@use "../../Appearance/styles/appearance";
+@use '../../ControlPanels/AppearanceManager/styles/appearance';
 
 .classicyButton {
   font-family: var(--ui-font);
@@ -13,7 +13,6 @@
   }
 
   @include appearance.platinumWindowDepressable;
-
 }
 
 .classicyButtonDefault {
@@ -50,7 +49,7 @@
 .classicyButtonShapeSquare.classicyButtonSmall {
   width: calc(var(--window-control-size) * 2) !important;
   height: calc(var(--window-control-size) * 2) !important;
-  padding: calc(var(--window-padding-size) * .5);
+  padding: calc(var(--window-padding-size) * 0.5);
 
   img {
     width: 90%;

@@ -1,4 +1,4 @@
-@use "../../Appearance/styles/appearance";
+@use '../../ControlPanels/AppearanceManager/styles/appearance';
 
 .classicyDisclosure {
   padding: 0;
@@ -8,7 +8,6 @@
   display: flex;
   flex-direction: row;
   padding: calc(var(--window-padding-size));
-
 }
 
 .classicyDisclosureInner {
@@ -29,10 +28,10 @@
 .classicyDisclosureTriangle {
   width: calc(var(--window-control-size) + var(--window-padding-size));
   height: calc(var(--window-control-size) + var(--window-padding-size));
+  margin-left: calc(var(--window-control-size) / -2);
   transition-timing-function: steps(4, end);
-  transition-duration: .125s;
+  transition-duration: 0.125s;
   transition-property: all;
-  margin-left: calc(var(--window-control-size) / -2)
 }
 
 .classicyDisclosureTriangleHighlight {
@@ -48,7 +47,7 @@
 }
 
 .classicyDisclosureTriangleDropShadow {
-  opacity: .33;
+  opacity: 0.33;
   color: var(--color-black);
 }
 

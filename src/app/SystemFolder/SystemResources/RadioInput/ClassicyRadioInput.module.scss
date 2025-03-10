@@ -1,5 +1,5 @@
-@use "../../Appearance/styles/appearance";
-@use "../../Appearance/styles/assets";
+@use '../../ControlPanels/AppearanceManager/styles/appearance';
+@use '../../ControlPanels/AppearanceManager/styles/assets';
 
 .classicyRadioInputGroupColumns {
   flex-direction: column;
@@ -26,26 +26,31 @@
   border: calc(var(--window-border-size)) solid var(--color-system-07);
   border-radius: 50%;
 
-  background: radial-gradient(at left top,
-          var(--color-system-02),
-          var(--color-system-01) 40%,
-          var(--color-system-05) 100%);
+  background: radial-gradient(
+                  at left top,
+                  var(--color-system-02),
+                  var(--color-system-01) 40%,
+                  var(--color-system-05) 100%
+  );
   box-shadow: 0 0 2px var(--color-system-07);
-
 }
 
 .classicyRadioInputWrapperChecked {
-  background: radial-gradient(at left top,
-          var(--color-system-07) 10%,
-          var(--color-system-05) 20%,
-          var(--color-system-02) 85%,
-          var(--color-system-01) 100%);
+  background: radial-gradient(
+                  at left top,
+                  var(--color-system-07) 10%,
+                  var(--color-system-05) 20%,
+                  var(--color-system-02) 85%,
+                  var(--color-system-01) 100%
+  );
 
   &:active {
-    background: radial-gradient(at left top,
-            var(--color-system-05) 20%,
-            var(--color-system-01) 85%,
-            var(--color-system-02) 100%);
+    background: radial-gradient(
+                    at left top,
+                    var(--color-system-05) 20%,
+                    var(--color-system-01) 85%,
+                    var(--color-system-02) 100%
+    );
   }
 }
 
@@ -78,7 +83,6 @@
     border-style: solid;
     border-color: var(--color-system-05);
   }
-
 }
 
 .classicyRadioInputMixed {
@@ -112,8 +116,8 @@
   //width: var(--window-control-size);
   //margin: 0;
   //
-  &:checked, &:active {
+  &:checked,
+  &:active {
     border-color: var(--color-theme-06) !important;
   }
-
 }
