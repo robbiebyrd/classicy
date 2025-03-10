@@ -137,32 +137,30 @@ const QuickTimeVideoEmbed: React.FC<QuickTimeVideoEmbed> = ({ appId, name, url, 
 
     React.useEffect(() => {
         const handleKeyDown = (event) => {
-            if (desktop.activeWindow == appId + '_VideoPlayer') {
-                switch (event.key) {
-                    case ' ':
-                        handlePlayPause()
-                        event.preventDefault()
-                        break
-                    case 'Escape':
-                        escapeFullscreen()
-                        break
-                    case 'ArrowRight':
-                        seekForward()
-                        break
-                    case 'ArrowLeft':
-                        seekBackward()
-                        break
-                    case 'f':
-                    case 'F':
-                        toggleFullscreen()
-                        break
-                    case 'l':
-                    case 'L':
-                        setLoop(!loop)
-                        break
-                    default:
-                        break
-                }
+            switch (event.key) {
+                case ' ':
+                    handlePlayPause()
+                    event.preventDefault()
+                    break
+                case 'Escape':
+                    escapeFullscreen()
+                    break
+                case 'ArrowRight':
+                    seekForward()
+                    break
+                case 'ArrowLeft':
+                    seekBackward()
+                    break
+                case 'f':
+                case 'F':
+                    toggleFullscreen()
+                    break
+                case 'l':
+                case 'L':
+                    setLoop(!loop)
+                    break
+                default:
+                    break
             }
         }
 

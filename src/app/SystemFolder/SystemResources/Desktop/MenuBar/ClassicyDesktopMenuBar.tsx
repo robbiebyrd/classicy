@@ -13,7 +13,7 @@ const ClassicyDesktopMenuBar: React.FC = () => {
     const systemMenuItem: ClassicyMenuItem = {
         id: 'apple-menu',
         image: `${process.env.NEXT_PUBLIC_BASE_PATH}/img/icons/system/apple.png`,
-        menuChildren: desktopContext.systemMenu,
+        menuChildren: desktopContext.System.Manager.Desktop.systemMenu,
         className: classicyDesktopMenuStyles.clasicyDesktopMenuAppleMenu,
     }
 
@@ -43,7 +43,7 @@ const ClassicyDesktopMenuBar: React.FC = () => {
 
     const defaultMenuItems = [].concat(
         systemMenuItem,
-        desktopContext.menuBar,
+        desktopContext.System.Manager.Desktop.appMenu,
         appSwitcherMenuMenuItem
     ) as ClassicyMenuItem[]
 
