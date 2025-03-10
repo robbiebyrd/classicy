@@ -1,4 +1,4 @@
-@use "../../ControlPanels/AppearanceManager/styles/appearance";
+@use '../../ControlPanels/AppearanceManager/styles/appearance';
 
 .resizer {
   position: absolute;
@@ -47,12 +47,12 @@
 }
 
 .classicyFileBrowserViewTableContent {
-  font-size: calc(var(--ui-font-size) * .8);
+  font-size: calc(var(--ui-font-size) * 0.8);
   font-weight: normal;
 }
 
 .classicyFileBrowserViewTableColumnHeader {
-  font-size: calc(var(--ui-font-size) * .8);
+  font-size: calc(var(--ui-font-size) * 0.8);
   font-weight: normal;
   font-stretch: condensed;
 
@@ -89,7 +89,7 @@
 }
 
 .classicyFileBrowserViewTableRowSelected td:first-of-type div img {
-  filter: contrast(.75) brightness(.5);
+  filter: contrast(0.75) brightness(0.5);
 }
 
 .classicyFileBrowserViewTableRowContainer {
@@ -97,4 +97,3 @@
   align-items: center;
   flex-direction: row;
 }
-

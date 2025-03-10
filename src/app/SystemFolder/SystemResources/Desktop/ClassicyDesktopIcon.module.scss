@@ -1,6 +1,6 @@
-@use "../../ControlPanels/AppearanceManager/styles/appearance";
-@use "../../ControlPanels/AppearanceManager/styles/assets";
-@use "sass:list";
+@use '../../ControlPanels/AppearanceManager/styles/appearance';
+@use '../../ControlPanels/AppearanceManager/styles/assets';
+@use 'sass:list';
 
 .classicyDesktopIcon {
   position: absolute;
@@ -32,7 +32,7 @@
     margin-top: calc(var(--desktop-icon-font-size) / 2);
     padding: calc(var(--desktop-icon-font-size) / 4);
     color: black;
-    background: rgba(255, 255, 255, .5);
+    background: rgba(255, 255, 255, 0.5);
   }
 }
 
@@ -67,7 +67,6 @@
   z-index: 99;
 
   .classicyDesktopIconMaskOuter {
-
     .classicyDesktopIconMask {
       backdrop-filter: grayscale(1) invert(1) brightness(1) !important;
       background-blend-mode: overlay;
@@ -75,10 +74,8 @@
       * {
         opacity: 0;
       }
-
     }
   }
-
 }
 
 .classicyDesktopIconActive {
@@ -90,7 +87,7 @@
 
   p {
     color: white;
-    background: rgba(0, 0, 0, .5);
+    background: rgba(0, 0, 0, 0.5);
   }
 }
 
@@ -108,14 +105,11 @@
       * {
         opacity: 0;
       }
-
     }
   }
 
   p {
     color: white;
-    background: rgba(0, 0, 0, .5);
+    background: rgba(0, 0, 0, 0.5);
   }
-
 }
-

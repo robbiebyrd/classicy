@@ -1,6 +1,6 @@
-@use "../../ControlPanels/AppearanceManager/styles/assets";
-@use "../../ControlPanels/AppearanceManager/styles/scrollbars";
-@use "../../ControlPanels/AppearanceManager/styles/appearance";
+@use '../../ControlPanels/AppearanceManager/styles/assets';
+@use '../../ControlPanels/AppearanceManager/styles/scrollbars';
+@use '../../ControlPanels/AppearanceManager/styles/appearance';
 
 .classicyWindowZoomed {
   top: calc(var(--window-control-size) * 2 + var(--window-padding-size)) !important;
@@ -14,7 +14,7 @@
 
 .classicyWindowHeader {
   font-family: var(--ui-font);
-  font-size: calc(var(--ui-font-size) * .865);
+  font-size: calc(var(--ui-font-size) * 0.865);
   position: sticky;
   z-index: 999;
   top: 0;
@@ -31,7 +31,7 @@
 }
 
 .classicyWindowHeaderDimmed {
-  opacity: .5;
+  opacity: 0.5;
   border: solid 1px black !important;
   box-shadow: none !important;
 }
@@ -43,9 +43,9 @@
 }
 
 .classicyWindowContentsDimmed {
-  opacity: .8;
+  opacity: 0.8;
   box-shadow: none !important;
-  filter: contrast(.9);
+  filter: contrast(0.9);
 }
 
 .classicyWindowResizerDimmed {
@@ -72,7 +72,8 @@
         background: assets.$title-bar-center;
       }
 
-      .classicyWindowTitleLeft, .classicyWindowTitleRight {
+      .classicyWindowTitleLeft,
+      .classicyWindowTitleRight {
         background: assets.$title-bar-center;
 
         &:after {
@@ -100,11 +101,9 @@
           background-size: contain;
         }
       }
-
     }
   }
 }
-
 
 .classicyWindowInvisible {
   display: none !important;
@@ -208,15 +207,14 @@
         padding: 0;
       }
 
-      .classicyWindowTitleLeft, .classicyWindowTitleRight {
+      .classicyWindowTitleLeft,
+      .classicyWindowTitleRight {
         flex-grow: 1;
         width: auto;
         height: var(--window-control-size);
         margin: calc(var(--window-padding-size) / 2) var(--window-padding-size);
         padding: 0;
-
       }
-
 
       span {
         font-size: var(--window-control-size);
@@ -232,14 +230,14 @@
       opacity: 0;
     }
 
-    .classicyWindowCollapseBox, .classicyWindowZoomBox {
+    .classicyWindowCollapseBox,
+    .classicyWindowZoomBox {
       @include appearance.platinumWindowControlBoxDepressable;
     }
 
     .classicyWindowCollapseBox {
-
       &:after {
-        opacity: .65;
+        opacity: 0.65;
         background-image: assets.$collapse;
         background-position: top left;
       }
@@ -247,7 +245,7 @@
 
     .classicyWindowZoomBox {
       &:after {
-        opacity: .65;
+        opacity: 0.65;
         background-image: assets.$zoom;
         background-position: top left;
       }
@@ -256,7 +254,6 @@
     .classicyWindowCloseBox {
       @include appearance.platinumWindowControlBoxDepressable;
     }
-
   }
 
   .classicyWindowResizer {
@@ -298,7 +295,6 @@
     height: calc(100% - (var(--window-control-size) * 4));
     background-color: var(--color-window-document);
   }
-
 }
 
 .classicyWindowContentsModal {

@@ -1,17 +1,16 @@
-import ClassicyApp from "@/app/SystemFolder/SystemResources/App/ClassicyApp";
-import {quitAppHelper} from "@/app/SystemFolder/SystemResources/App/ClassicyAppUtils";
-import {useDesktopDispatch} from "@/app/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext";
-import ClassicyRichTextEditor from "@/app/SystemFolder/SystemResources/RichTextEditor/ClassicyRichTextEditor";
-import ClassicyWindow from "@/app/SystemFolder/SystemResources/Window/ClassicyWindow";
-import React from "react";
+import ClassicyApp from '@/app/SystemFolder/SystemResources/App/ClassicyApp'
+import { quitAppHelper } from '@/app/SystemFolder/SystemResources/App/ClassicyAppUtils'
+import { useDesktopDispatch } from '@/app/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext'
+import ClassicyRichTextEditor from '@/app/SystemFolder/SystemResources/RichTextEditor/ClassicyRichTextEditor'
+import ClassicyWindow from '@/app/SystemFolder/SystemResources/Window/ClassicyWindow'
+import React from 'react'
 
 const SimpleText = () => {
+    const desktopEventDispatch = useDesktopDispatch()
 
-    const desktopEventDispatch = useDesktopDispatch();
-
-    const appName = "SimpleText";
-    const appId = "SimpleText.app";
-    const appIcon = `${process.env.NEXT_PUBLIC_BASE_PATH || ""}/img/icons/applications/textedit/app.png`;
+    const appName = 'SimpleText'
+    const appId = 'SimpleText.app'
+    const appIcon = `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/img/icons/applications/textedit/app.png`
 
     const defaultText = `> *Here's to the crazy ones.*\n
 > *The misfits.*\n
@@ -41,35 +40,32 @@ const SimpleText = () => {
 
     const appMenu = [
         {
-            id: "file",
-            title: "File",
+            id: 'file',
+            title: 'File',
             menuChildren: [
                 {
-                    id: appId + "_quit",
-                    title: "Quit",
-                    onClickFunc: quitApp
-                }
-            ]
+                    id: appId + '_quit',
+                    title: 'Quit',
+                    onClickFunc: quitApp,
+                },
+            ],
         },
-    ];
+    ]
 
     return (
-        <ClassicyApp
-            id={appId}
-            name={appName}
-            icon={appIcon}
-            defaultWindow={"textedit-demo"}>
+        <ClassicyApp id={appId} name={appName} icon={appIcon} defaultWindow={'textedit-demo'}>
             <ClassicyWindow
-                id={"textedit-demo"}
+                id={'textedit-demo'}
                 title={"Here's to..."}
                 appId={appId}
                 initialSize={[100, 500]}
                 initialPosition={[350, 100]}
-                appMenu={appMenu}>
+                appMenu={appMenu}
+            >
                 <ClassicyRichTextEditor content={defaultText}></ClassicyRichTextEditor>
             </ClassicyWindow>
         </ClassicyApp>
-    );
+    )
 }
 
-export default SimpleText;
+export default SimpleText

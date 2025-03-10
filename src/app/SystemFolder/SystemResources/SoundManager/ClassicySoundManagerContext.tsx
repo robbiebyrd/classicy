@@ -1,4 +1,4 @@
-import {Howl} from 'howler'
+import { Howl } from 'howler'
 import React from 'react'
 import fetch from 'sync-fetch'
 import soundData from '../../../../../public/sounds/platinum/platinum.json'
@@ -39,7 +39,7 @@ interface ClassicySoundAction {
     soundPlayer?: any
 }
 
-export const createSoundPlayer = ({soundData, options}: SoundPlayer): Howl => {
+export const createSoundPlayer = ({ soundData, options }: SoundPlayer): Howl => {
     if ('src' in soundData && 'sprite' in soundData) {
         return new Howl({
             src: soundData.src.map((i) => process.env.NEXT_PUBLIC_BASE_PATH + i),
@@ -50,7 +50,7 @@ export const createSoundPlayer = ({soundData, options}: SoundPlayer): Howl => {
 }
 
 export const initialPlayer = {
-    soundPlayer: createSoundPlayer({soundData: soundData}),
+    soundPlayer: createSoundPlayer({ soundData: soundData }),
     disabled: [],
     labels: soundLabels,
     volume: 100,
@@ -70,7 +70,7 @@ interface SoundPlayer {
 
 export const loadSoundTheme = (soundThemeURL: string): Howl => {
     const data = getSoundTheme(soundThemeURL)
-    return createSoundPlayer({soundData: data})
+    return createSoundPlayer({ soundData: data })
 }
 
 export function useSound() {
@@ -81,7 +81,7 @@ export function useSoundDispatch() {
     return React.useContext(ClassicySoundDispatchContext)
 }
 
-const playerCanPlayInterrupt = ({disabled, soundPlayer}: ClassicySoundState, sound: string) => {
+const playerCanPlayInterrupt = ({ disabled, soundPlayer }: ClassicySoundState, sound: string) => {
     return !disabled.includes('*') && !disabled.includes(sound) && soundPlayer
 }
 
@@ -130,7 +130,7 @@ export const ClassicySoundStateEventReducer = (ss: ClassicySoundState, action: C
     return ss
 }
 
-export const ClassicySoundManagerProvider: React.FC<{ children: any }> = ({children}) => {
+export const ClassicySoundManagerProvider: React.FC<{ children: any }> = ({ children }) => {
     const [sound, soundDispatch] = React.useReducer(ClassicySoundStateEventReducer, initialPlayer)
 
     return (

@@ -1,4 +1,4 @@
-@use "../../SystemFolder/ControlPanels/AppearanceManager/styles/appearance";
+@use '../../SystemFolder/ControlPanels/AppearanceManager/styles/appearance';
 
 .quickTimePlayerVideoHolder {
   position: relative;
@@ -45,7 +45,7 @@
   aspect-ratio: 1/1 !important;
 
   img {
-    filter: drop-shadow(var(--window-border-size) var(--window-border-size) 0px rgba(0, 0, 0, .5));
+    filter: drop-shadow(var(--window-border-size) var(--window-border-size) 0px rgba(0, 0, 0, 0.5));
   }
 }
 
@@ -91,11 +91,15 @@
 .quickTimePlayerVideoControlsProgressBar::-webkit-slider-thumb {
   width: calc(var(--window-control-size) * 1.25);
   height: calc(var(--window-control-size) * 1.625);
-  margin-top: calc(var(--window-control-size) * -.5); /* You need to specify a margin in Chrome, but in Firefox and IE it is automatic */
+  margin-top: calc(
+          var(--window-control-size) * -0.5
+  ); /* You need to specify a margin in Chrome, but in Firefox and IE it is automatic */
   cursor: pointer;
   background: url('/img/icons/system/quicktime/thumb-slider.svg') no-repeat;
   background-size: contain;
-  filter: drop-shadow(var(--window-border-size) var(--window-border-size) var(--window-border-size) var(--color-system-06));
+  filter: drop-shadow(
+                  var(--window-border-size) var(--window-border-size) var(--window-border-size) var(--color-system-06)
+  );
   -webkit-appearance: none;
 }
 
@@ -122,10 +126,10 @@
 //}
 
 .quickTimePlayerVideoControlsProgressBar::-webkit-slider-runnable-track {
-  height: calc(var(--window-control-size) * .825);
-  margin-top: calc(var(--window-control-size) * .25);
+  height: calc(var(--window-control-size) * 0.825);
+  margin-top: calc(var(--window-control-size) * 0.25);
   margin-right: calc(var(--window-padding-size) * 1);
-  margin-left: calc(var(--window-padding-size) * .5);
+  margin-left: calc(var(--window-padding-size) * 0.5);
   cursor: pointer;
   border: 1px solid var(--color-theme-04);
   background: transparent;

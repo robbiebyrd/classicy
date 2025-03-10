@@ -3,5 +3,5 @@ export type ClassicyFinderContextData = {
 }
 
 export const DefaultClassicyFinderState = {
-    openPaths: []
+    openPaths: [],
 }

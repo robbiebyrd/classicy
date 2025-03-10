@@ -3,10 +3,15 @@ import {
     ClassicyFileSystemEntryMetadata,
 } from '@/app/SystemFolder/SystemResources/File/ClassicyFileSystem'
 import React from 'react'
-import {createColumnHelper, flexRender, getCoreRowModel, RowSelectionState, useReactTable,} from '@tanstack/react-table'
-import {capitalizeFirst} from '@/app/SystemFolder/SystemResources/File/ClassicyFileBrowserUtils'
-import classicyFileBrowserViewTableStyles
-    from '@/app/SystemFolder/SystemResources/File/ClassicyFileBrowserViewTable.module.scss'
+import {
+    createColumnHelper,
+    flexRender,
+    getCoreRowModel,
+    RowSelectionState,
+    useReactTable,
+} from '@tanstack/react-table'
+import { capitalizeFirst } from '@/app/SystemFolder/SystemResources/File/ClassicyFileBrowserUtils'
+import classicyFileBrowserViewTableStyles from '@/app/SystemFolder/SystemResources/File/ClassicyFileBrowserViewTable.module.scss'
 import classNames from 'classnames'
 
 type ClassicyFileBrowserViewTableProps = {
@@ -19,15 +24,13 @@ type ClassicyFileBrowserViewTableProps = {
 }
 
 const ClassicyFileBrowserViewTable: React.FC<ClassicyFileBrowserViewTableProps> = ({
-                                                                                       fs,
-                                                                                       path,
-                                                                                       iconSize = 64,
-                                                                                       appId,
-                                                                                       dirOnClickFunc = () => {
-                                                                                       },
-                                                                                       fileOnClickFunc = () => {
-                                                                                       },
-                                                                                   }) => {
+    fs,
+    path,
+    iconSize = 64,
+    appId,
+    dirOnClickFunc = () => {},
+    fileOnClickFunc = () => {},
+}) => {
     const fileList = React.useMemo<ClassicyFileSystemEntryMetadata[]>(() => {
         const a = Object.entries(fs.filterByType(path, ['file', 'directory']))
         const directoryListing = a.map(([d, e]) => {
@@ -105,8 +108,7 @@ const ClassicyFileBrowserViewTable: React.FC<ClassicyFileBrowserViewTableProps> 
                 return fileOnClickFunc(path + ':' + filename)
             }
             default: {
-                return () => {
-                }
+                return () => {}
             }
         }
     }
@@ -129,81 +131,83 @@ const ClassicyFileBrowserViewTable: React.FC<ClassicyFileBrowserViewTableProps> 
     }
 
     return (
-        <div key={appId + "_filebrowser_" + path}
-             className={classicyFileBrowserViewTableStyles.classicyFileBrowserViewTableContainer}>
+        <div
+            key={appId + '_filebrowser_' + path}
+            className={classicyFileBrowserViewTableStyles.classicyFileBrowserViewTableContainer}
+        >
             <table style={{}} className={classicyFileBrowserViewTableStyles.classicyFileBrowserViewTable}>
                 <thead className={classNames(classicyFileBrowserViewTableStyles.classicyFileBrowserViewTableHeader)}>
-                {table.getHeaderGroups().map((headerGroup) => (
-                    <tr
-                        key={headerGroup.id}
-                        className={classicyFileBrowserViewTableStyles.classicyFileBrowserViewTableColumnHeaderGroup}
-                    >
-                        {headerGroup.headers.map((header) => (
-                            <th
-                                key={header.id}
-                                align={'left'}
-                                className={classNames(
-                                    classicyFileBrowserViewTableStyles.classicyFileBrowserViewTableColumnHeader,
-                                    header.column.getIsResizing() ? 'isResizing' : ''
-                                )}
-                                style={{
-                                    width: header.id === '_icon' ? iconSize : 'auto',
-                                }}
-                            >
-                                {header.isPlaceholder
-                                    ? null
-                                    : flexRender(header.column.columnDef.header, header.getContext())}
-                                {header.column.getCanResize() && (
-                                    <div
-                                        onMouseDown={header.getResizeHandler()}
-                                        onTouchStart={header.getResizeHandler()}
-                                        className={classNames(
-                                            classicyFileBrowserViewTableStyles.resizer,
-                                            header.column.getIsResizing() ? 'isResizing' : ''
-                                        )}
-                                    ></div>
-                                )}
-                            </th>
-                        ))}
-                    </tr>
-                ))}
+                    {table.getHeaderGroups().map((headerGroup) => (
+                        <tr
+                            key={headerGroup.id}
+                            className={classicyFileBrowserViewTableStyles.classicyFileBrowserViewTableColumnHeaderGroup}
+                        >
+                            {headerGroup.headers.map((header) => (
+                                <th
+                                    key={header.id}
+                                    align={'left'}
+                                    className={classNames(
+                                        classicyFileBrowserViewTableStyles.classicyFileBrowserViewTableColumnHeader,
+                                        header.column.getIsResizing() ? 'isResizing' : ''
+                                    )}
+                                    style={{
+                                        width: header.id === '_icon' ? iconSize : 'auto',
+                                    }}
+                                >
+                                    {header.isPlaceholder
+                                        ? null
+                                        : flexRender(header.column.columnDef.header, header.getContext())}
+                                    {header.column.getCanResize() && (
+                                        <div
+                                            onMouseDown={header.getResizeHandler()}
+                                            onTouchStart={header.getResizeHandler()}
+                                            className={classNames(
+                                                classicyFileBrowserViewTableStyles.resizer,
+                                                header.column.getIsResizing() ? 'isResizing' : ''
+                                            )}
+                                        ></div>
+                                    )}
+                                </th>
+                            ))}
+                        </tr>
+                    ))}
                 </thead>
                 <tbody className={classicyFileBrowserViewTableStyles.classicyFileBrowserViewTableContent}>
-                {table.getRowModel().rows.map((row) => (
-                    <tr
-                        key={row.id}
-                        className={classNames(
-                            classicyFileBrowserViewTableStyles.classicyFileBrowserViewTableRow,
-                            selectedRow === row.id
-                                ? classicyFileBrowserViewTableStyles.classicyFileBrowserViewTableRowSelected
-                                : null
-                        )}
-                        onDoubleClick={() => openFileOrFolder(row.original, path, row.original._name)}
-                        onClick={() => selectRow(row.id)}
-                    >
-                        {row.getVisibleCells().map((cell) => (
-                            <td key={cell.id} style={{width: cell.column.getSize(), margin: 0, padding: 0}}>
-                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                            </td>
-                        ))}
-                    </tr>
-                ))}
+                    {table.getRowModel().rows.map((row) => (
+                        <tr
+                            key={row.id}
+                            className={classNames(
+                                classicyFileBrowserViewTableStyles.classicyFileBrowserViewTableRow,
+                                selectedRow === row.id
+                                    ? classicyFileBrowserViewTableStyles.classicyFileBrowserViewTableRowSelected
+                                    : null
+                            )}
+                            onDoubleClick={() => openFileOrFolder(row.original, path, row.original._name)}
+                            onClick={() => selectRow(row.id)}
+                        >
+                            {row.getVisibleCells().map((cell) => (
+                                <td key={cell.id} style={{ width: cell.column.getSize(), margin: 0, padding: 0 }}>
+                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                </td>
+                            ))}
+                        </tr>
+                    ))}
                 </tbody>
                 <tfoot>
-                {table.getFooterGroups().map((footerGroup) => (
-                    <tr key={footerGroup.id}>
-                        {footerGroup.headers.map((header) => (
-                            <th key={header.id}>
-                                {header.isPlaceholder
-                                    ? null
-                                    : flexRender(header.column.columnDef.footer, header.getContext())}
-                            </th>
-                        ))}
-                    </tr>
-                ))}
+                    {table.getFooterGroups().map((footerGroup) => (
+                        <tr key={footerGroup.id}>
+                            {footerGroup.headers.map((header) => (
+                                <th key={header.id}>
+                                    {header.isPlaceholder
+                                        ? null
+                                        : flexRender(header.column.columnDef.footer, header.getContext())}
+                                </th>
+                            ))}
+                        </tr>
+                    ))}
                 </tfoot>
             </table>
-            <div className="h-4"/>
+            <div className="h-4" />
         </div>
     )
 }

@@ -1,16 +1,16 @@
 import ClassicyApp from '@/app/SystemFolder/SystemResources/App/ClassicyApp'
-import {quitAppHelper} from "@/app/SystemFolder/SystemResources/App/ClassicyAppUtils";
-import {useDesktop, useDesktopDispatch} from '@/app/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext'
+import { quitAppHelper } from '@/app/SystemFolder/SystemResources/App/ClassicyAppUtils'
+import { useDesktop, useDesktopDispatch } from '@/app/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext'
 import ClassicyWindow from '@/app/SystemFolder/SystemResources/Window/ClassicyWindow'
 import React from 'react'
-import ReactPlayer from "react-player";
-import quickTimeStyles from "@/app/Applications/QuickTime/QuickTime.module.scss";
-import screenfull from "screenfull";
+import ReactPlayer from 'react-player'
+import quickTimeStyles from '@/app/Applications/QuickTime/QuickTime.module.scss'
+import screenfull from 'screenfull'
 
 export type QuickTimeDocument = {
-    url: string;
-    name?: string;
-    options?: Record<string, any>;
+    url: string
+    name?: string
+    options?: Record<string, any>
 }
 
 const QuickTimeMoviePlayer: React.FC = () => {
@@ -24,17 +24,17 @@ const QuickTimeMoviePlayer: React.FC = () => {
 
     const testingDocuments = [
         {
-            url: "https://cdn1.911realtime.org/transcoded/newsw/2001-09-11/NEWSW_20010911_040000_The_National.m3u8",
-            name: "Buck Bunny",
+            url: 'https://cdn1.911realtime.org/transcoded/newsw/2001-09-11/NEWSW_20010911_040000_The_National.m3u8',
+            name: 'Buck Bunny',
             options: {
                 forceHLS: true,
-                forceSafariHLS: false
-            }
+                forceSafariHLS: false,
+            },
         },
         {
             url: 'http://www.samisite.com/sound/cropShadesofGrayMonkees.mp3',
-            name: 'Monkees'
-        }
+            name: 'Monkees',
+        },
     ]
 
     const [openDocuments, setOpenDocuments] = React.useState<QuickTimeDocument[]>(testingDocuments)
@@ -76,7 +76,7 @@ const QuickTimeMoviePlayer: React.FC = () => {
                     modal={true}
                     appMenu={appMenu}
                 >
-                    <QuickTimeVideoEmbed appId={appId} name={doc.name} url={doc.url} options={doc.options}/>
+                    <QuickTimeVideoEmbed appId={appId} name={doc.name} url={doc.url} options={doc.options} />
                 </ClassicyWindow>
             ))}
         </ClassicyApp>
@@ -86,89 +86,89 @@ const QuickTimeMoviePlayer: React.FC = () => {
 export default QuickTimeMoviePlayer
 
 type QuickTimeVideoEmbed = {
-    appId: string;
-    name: string;
-    url: string;
+    appId: string
+    name: string
+    url: string
     options: {}
 }
 
-const QuickTimeVideoEmbed: React.FC<QuickTimeVideoEmbed> = ({appId, name, url, options}) => {
+const QuickTimeVideoEmbed: React.FC<QuickTimeVideoEmbed> = ({ appId, name, url, options }) => {
     const desktop = useDesktop()
 
-    const playerRef = React.useRef(null);
-    const [playing, setPlaying] = React.useState(false);
-    const [volume, setVolume] = React.useState(0.5);
-    const [played, setPlayed] = React.useState(0);
-    const [loop, setLoop] = React.useState(false);
-    const [isFullscreen, setIsFullscreen] = React.useState(false);
+    const playerRef = React.useRef(null)
+    const [playing, setPlaying] = React.useState(false)
+    const [volume, setVolume] = React.useState(0.5)
+    const [played, setPlayed] = React.useState(0)
+    const [loop, setLoop] = React.useState(false)
+    const [isFullscreen, setIsFullscreen] = React.useState(false)
 
     React.useEffect(() => {
         if (screenfull.isEnabled) {
             screenfull.on('change', () => {
-                setIsFullscreen(isFullscreen);
-            });
+                setIsFullscreen(isFullscreen)
+            })
         }
     }, [])
     const handlePlayPause = React.useCallback(() => {
-        setPlaying(prev => !prev);
-    }, [playing]);
+        setPlaying((prev) => !prev)
+    }, [playing])
 
     const seekForward = () => {
-        playerRef.current.seekTo(playerRef.current.getCurrentTime() + 10);
-    };
+        playerRef.current.seekTo(playerRef.current.getCurrentTime() + 10)
+    }
 
     const seekBackward = () => {
-        playerRef.current.seekTo(playerRef.current.getCurrentTime() - 10);
-    };
+        playerRef.current.seekTo(playerRef.current.getCurrentTime() - 10)
+    }
 
     const toggleFullscreen = () => {
         if (!screenfull.isEnabled) {
             return
         }
-        screenfull.toggle(playerRef.current.getInternalPlayer(), {navigationUI: 'hide'});
-    };
+        screenfull.toggle(playerRef.current.getInternalPlayer(), { navigationUI: 'hide' })
+    }
 
     const escapeFullscreen = () => {
         if (!screenfull.isEnabled) {
             return
         }
-        screenfull.exit();
-    };
+        screenfull.exit()
+    }
 
     React.useEffect(() => {
         const handleKeyDown = (event) => {
             if (desktop.activeWindow == appId + '_VideoPlayer') {
                 switch (event.key) {
                     case ' ':
-                        handlePlayPause();
-                        event.preventDefault();
-                        break;
+                        handlePlayPause()
+                        event.preventDefault()
+                        break
                     case 'Escape':
-                        escapeFullscreen();
-                        break;
+                        escapeFullscreen()
+                        break
                     case 'ArrowRight':
-                        seekForward();
-                        break;
+                        seekForward()
+                        break
                     case 'ArrowLeft':
-                        seekBackward();
-                        break;
+                        seekBackward()
+                        break
                     case 'f':
                     case 'F':
-                        toggleFullscreen();
-                        break;
+                        toggleFullscreen()
+                        break
                     case 'l':
                     case 'L':
-                        setLoop(!loop);
-                        break;
+                        setLoop(!loop)
+                        break
                     default:
-                        break;
+                        break
                 }
             }
         }
 
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [handlePlayPause, seekForward, seekBackward, toggleFullscreen]);
+        window.addEventListener('keydown', handleKeyDown)
+        return () => window.removeEventListener('keydown', handleKeyDown)
+    }, [handlePlayPause, seekForward, seekBackward, toggleFullscreen])
 
     return (
         <div className={quickTimeStyles.quickTimePlayerWrapper}>
@@ -180,11 +180,11 @@ const QuickTimeVideoEmbed: React.FC<QuickTimeVideoEmbed> = ({appId, name, url, o
                     loop={loop}
                     controls={false}
                     playsinline={true}
-                    width='100%'
-                    height='100%'
+                    width="100%"
+                    height="100%"
                     volume={volume}
-                    onProgress={({played}) => setPlayed(played)}
-                    config={{file: options}}
+                    onProgress={({ played }) => setPlayed(played)}
+                    config={{ file: options }}
                 />
             </div>
             <div className={quickTimeStyles.quickTimePlayerVideoControlsHolder}>

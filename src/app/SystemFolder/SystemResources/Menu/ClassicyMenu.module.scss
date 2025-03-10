@@ -1,7 +1,7 @@
 @use 'sass:list';
 
-@use "../../ControlPanels/AppearanceManager/styles/appearance";
-@use "../../ControlPanels/AppearanceManager/styles/assets";
+@use '../../ControlPanels/AppearanceManager/styles/appearance';
+@use '../../ControlPanels/AppearanceManager/styles/assets';
 
 .classicyMenuWrapper {
   font-family: var(--ui-font);
@@ -12,7 +12,8 @@
   width: 100%;
   margin: 0;
   padding: 0;
-  box-shadow: inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-05), calc(var(--window-border-size) * 2) calc(var(--window-border-size) * 2) 0 0 var(--color-black);
+  box-shadow: inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-05),
+  calc(var(--window-border-size) * 2) calc(var(--window-border-size) * 2) 0 0 var(--color-black);
 }
 
 .classicyMenu {
@@ -42,7 +43,6 @@
           * {
             display: flex !important;
           }
-
         }
       }
     }
@@ -55,7 +55,7 @@
   flex-direction: column;
   min-width: calc(var(--window-control-size) * 15);
   @include appearance.platinumWindowBorder;
-  margin: 0 0 0 calc(var(--window-padding-size) * -1);;
+  margin: 0 0 0 calc(var(--window-padding-size) * -1);
   padding: var(--window-border-size);
   list-style: none;
   color: var(--color-black);
@@ -67,7 +67,6 @@
     border: var(--color-system-04) solid 1px;
     box-shadow: 1px 1px 0 0 var(--color-system-01);
   }
-
 }
 
 .classicyContextSubMenu {
@@ -89,9 +88,7 @@
     border: var(--color-system-04) solid 1px;
     box-shadow: 1px 1px 0 0 var(--color-system-01);
   }
-
 }
-
 
 .classicyMenuItem {
   display: flex;
@@ -113,11 +110,10 @@
     }
   }
 
-
   img {
     width: calc(var(--window-control-size) * 1.25);
     height: calc(var(--window-control-size) * 1.25);
-    margin-right: calc(var(--window-control-size) * .5);
+    margin-right: calc(var(--window-control-size) * 0.5);
     user-select: none;
     user-drag: none;
   }
@@ -136,8 +132,6 @@
       color: var(--color-black) !important;
     }
   }
-
-
 }
 
 .classicyMenuItemNoImage {
@@ -155,7 +149,6 @@
   p {
     color: var(--color-system-05);
   }
-
 }
 
 .classicyMenuItemChildMenuIndicator {
@@ -164,7 +157,7 @@
     right: var(--window-control-size);
     width: 1em;
     height: 1em;
-    content: " ";
+    content: ' ';
     background-image: assets.$triangle;
     background-repeat: no-repeat;
     background-position: right center;
@@ -172,7 +165,7 @@
 }
 
 .classicyMenuItemKeyboardShortcut {
-  font-size: calc(var(--ui-font-size) * .75) !important;
+  font-size: calc(var(--ui-font-size) * 0.75) !important;
   line-height: 1.75;
   padding-right: calc(var(--window-padding-size) / 2) !important;
 }

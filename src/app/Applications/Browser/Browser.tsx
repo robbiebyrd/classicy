@@ -1,6 +1,6 @@
 import ClassicyApp from '@/app/SystemFolder/SystemResources/App/ClassicyApp'
-import {quitAppHelper} from "@/app/SystemFolder/SystemResources/App/ClassicyAppUtils";
-import {useDesktopDispatch} from '@/app/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext'
+import { quitAppHelper } from '@/app/SystemFolder/SystemResources/App/ClassicyAppUtils'
+import { useDesktopDispatch } from '@/app/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext'
 import ClassicyButton from '@/app/SystemFolder/SystemResources/Button/ClassicyButton'
 import ClassicyControlGroup from '@/app/SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup'
 import ClassicyInput from '@/app/SystemFolder/SystemResources/Input/ClassicyInput'
@@ -62,7 +62,7 @@ const Browser = () => {
                     height="720"
                     width="1280"
                     allowFullScreen={true}
-                    style={{width: '100%', height: '100%', padding: '0', margin: '0'}}
+                    style={{ width: '100%', height: '100%', padding: '0', margin: '0' }}
                 ></iframe>
             </ClassicyWindow>
         </ClassicyApp>

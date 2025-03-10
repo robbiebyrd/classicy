@@ -14,8 +14,7 @@
         "disabled": [
           "disabledSoundLabel"
         ],
-        "soundPlayer": {
-        }
+        "soundPlayer": {}
       },
       "desktop": {},
       "window": {
@@ -49,11 +48,9 @@
               "Text",
               "Text"
             ],
-            "header": {
-            },
+            "header": {},
             "appMenu": [
-              {
-              }
+              {}
             ],
             "contextMenu": [
               {
@@ -64,14 +61,11 @@
                 "icon": "",
                 "keyboardShortcut": "",
                 "link": "",
-                "onClickFunc": {
-                },
-                "menuChildren": [
-                ]
+                "onClickFunc": {},
+                "menuChildren": []
               }
             ],
-            "onCloseFunc": {
-            }
+            "onCloseFunc": {}
           }
         ]
       },

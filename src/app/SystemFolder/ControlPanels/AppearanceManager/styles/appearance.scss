@@ -1,5 +1,7 @@
-@use "sass:list";
-@use "assets";
+@use 'sass:color';
+@use 'sass:string';
+@use 'sass:list';
+@use 'assets';
 
 @mixin platinumWindowBoxShadow {
   box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05),
@@ -12,7 +14,6 @@
   var(--window-border-size) var(--window-border-size) var(--color-window-border-outset);
 }
 
-
 @mixin platinumWindowBorder {
   border: var(--window-border-size) solid var(--color-window-border);
   @include platinumWindowBoxShadow;
@@ -22,9 +23,8 @@
   border: 1px solid var(--color-system-07);
   border-bottom: 1px solid var(--color-system-05);
   @include platinumWindowBoxShadow;
-  box-shadow: inset var(--window-border-size) var(--window-border-size) var(--color-window-border-outset),;
+  box-shadow: inset var(--window-border-size) var(--window-border-size) var(--color-window-border-outset);
 }
-
 
 @mixin platinumWindowInnerBoxShadow {
   box-shadow: calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05),
@@ -45,11 +45,7 @@
 @mixin platinumWindowControlBox {
   width: calc(var(--window-control-size)) !important;
   height: calc(var(--window-control-size)) !important;
-  background: linear-gradient(
-                  135deg,
-                  var(--color-system-05),
-                  var(--color-white) 80%,
-  );
+  background: linear-gradient(135deg, var(--color-system-05), var(--color-white) 80%);
 
   &:before {
     display: block;
@@ -70,12 +66,7 @@
   &:active {
     box-shadow: inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-07),
     inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 0 var(--color-system-05);
-    background: linear-gradient(
-                    135deg,
-                    var(--color-system-06),
-                    var(--color-system-05)
-    );
-
+    background: linear-gradient(135deg, var(--color-system-06), var(--color-system-05));
   }
   &:after {
     position: relative;
@@ -88,7 +79,6 @@
     background-size: contain;
     content: ' ';
   }
-
 }
 
 @mixin platinumWindowUndepressable {
@@ -119,9 +109,8 @@
     color: var(--color-system-05);
 
     * {
-      color: var(--color-system-05)
+      color: var(--color-system-05);
     }
-
   }
 }
 
@@ -146,7 +135,6 @@
   &:active {
     @include platinumDepressableBoxShadowActive;
   }
-
 }
 
 @mixin platinumDepressableBoxShadowActive {
@@ -160,10 +148,9 @@
   inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-06);
 }
 
-
 @function encode-color($string) {
-  $hex: str-slice(ie-hex-str($string), 4);
-  $string: unquote("#{$hex}");
+  $hex: string.slice(color.ie-hex-str($string), 4);
+  $string: string.unquote('#{$hex}');
   $string: '%23' + $string;
   @return $string;
 }
