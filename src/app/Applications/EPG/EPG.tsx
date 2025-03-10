@@ -6,11 +6,11 @@ import React, { useMemo } from 'react'
 import epgStyles from './EPG.module.scss'
 
 interface ClassicyEPGProps {
-    minutesPerGrid: number // Minutes
-    gridTimeWidth: number // Minutes
-    gridWidth: number // Minutes
-    gridStart: Date
-    channelHeaderWidth: number
+    minutesPerGrid?: number // Minutes
+    gridTimeWidth?: number // Minutes
+    gridWidth?: number // Minutes
+    gridStart?: Date
+    channelHeaderWidth?: number
 }
 
 export type EPGProgram = {
