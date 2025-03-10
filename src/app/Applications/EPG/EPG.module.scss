@@ -1,5 +1,4 @@
-@use "../../SystemFolder/ControlPanels/AppearanceManager/styles/appearance";
-
+@use '../../SystemFolder/ControlPanels/AppearanceManager/styles/appearance';
 
 .epgChannel {
   font-family: var(--body-font), serif;
@@ -15,29 +14,42 @@
 
 .epgEntry {
   font-family: var(--body-font), serif;
-  font-size: calc(var(--ui-font-size) * .85);
+  font-size: calc(var(--ui-font-size) * 0.85);
   display: flex;
   align-items: center;
-  height: calc(var(--window-control-size) * 3);
+  flex-direction: row;
   @include appearance.platinumWindowUndepressable;
+  height: calc(var(--window-control-size) * 3);
   padding: var(--window-padding-size);
   border: 0;
   border-radius: 0 !important;
 }
 
 .epgEntryIcon {
-  width: var(--window-control-size);
+  width: calc(var(--window-control-size) * 1.25);
   margin-left: calc(var(--window-control-size) / 3);
 }
 
 .epgChannelIcon {
-  width: 30%;
-  margin-right: calc(var(--window-padding-size) / 4);
+  width: calc(var(--window-control-size) * 1.825);
+  margin-right: calc(var(--window-padding-size) * 0.75);
 }
 
 .epgEntryTitle {
   font-size: calc(var(--ui-font-size) * 1);
   font-weight: bold;
+}
+
+.epgEntryDescription {
+  font-size: calc(var(--ui-font-size) * 0.75);
+  font-weight: normal;
+  overflow: clip;
+  width: auto;
+  text-overflow: ellipsis;
+}
+
+.epgEntryIcons {
+  overflow: hidden;
 }
 
 .epgEntry.selected {
@@ -47,9 +59,13 @@
 }
 
 .epgHeaderTime {
-  font-size: .85em;
-  padding-left: .5em;
+  font-family: var(--body-font);
+  font-size: calc(var(--ui-font-size) * 0.85);
+  padding-left: 0.5em;
   border-left: calc(var(--window-border-size) * 2) solid var(--color-theme-05);
-
 }
 
+.epgGridSetup {
+  display: grid;
+  width: 100%;
+}
