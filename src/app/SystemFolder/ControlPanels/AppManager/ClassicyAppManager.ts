@@ -229,6 +229,9 @@ export const DefaultDesktopState: ClassicyStore = {
                         id: 'about',
                         title: 'About This Computer',
                         keyboardShortcut: '&#8984;S',
+                        onClickFunc: () => {
+                            alert('ABOUT')
+                        },
                     },
                     { id: 'spacer' },
                 ],

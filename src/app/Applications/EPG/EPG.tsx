@@ -2,8 +2,9 @@ import ClassicyApp from '@/app/SystemFolder/SystemResources/App/ClassicyApp'
 import { quitAppHelper } from '@/app/SystemFolder/SystemResources/App/ClassicyAppUtils'
 import { useDesktopDispatch } from '@/app/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext'
 import ClassicyWindow from '@/app/SystemFolder/SystemResources/Window/ClassicyWindow'
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import epgStyles from './EPG.module.scss'
+import ClassicyButton from '@/app/SystemFolder/SystemResources/Button/ClassicyButton'
 
 interface ClassicyEPGProps {
     minutesPerGrid?: number // Minutes
@@ -47,6 +48,7 @@ const EPG: React.FC<ClassicyEPGProps> = ({
     channelHeaderWidth = 6,
 }) => {
     gridStart = new Date('2001-09-11T11:00:00Z')
+    const [gridStartTime, setGridStartTime] = useState(roundDownToNearestMinuntes(gridStart, gridTimeWidth))
 
     const appName = 'EPG'
     const appId = 'EPG.app'
@@ -141,15 +143,13 @@ const EPG: React.FC<ClassicyEPGProps> = ({
         },
     ] as EPGChannel[]
 
-    gridStart = roundDownToNearestMinuntes(gridStart, gridTimeWidth)
-
     const getProgramData = (channel: EPGChannel, channelIndex: number) => {
         return channel.grid.map((gridItem) => {
-            gridItem.start = Math.max(gridItem.start, gridStart.getTime())
+            gridItem.start = Math.max(gridItem.start, gridStartTime.getTime())
 
             const totalGridSlots = gridWidth / minutesPerGrid
 
-            let gridProgramStart = (gridItem.start - gridStart.getTime()) / 60 / 1000 / minutesPerGrid + 2
+            let gridProgramStart = (gridItem.start - gridStartTime.getTime()) / 60 / 1000 / minutesPerGrid + 2
             let gridProgramEnd = (gridItem.end - gridItem.start) / 60 / 1000 / minutesPerGrid
 
             if (gridProgramStart > totalGridSlots || gridProgramEnd <= 0) {
@@ -162,34 +162,34 @@ const EPG: React.FC<ClassicyEPGProps> = ({
                 gridProgramEnd = totalGridSlots
             }
 
-            console.log(gridItem.title, gridProgramStart, gridProgramEnd, gridItem.end - gridStart.getTime() > 0)
-
             return (
-                <div
-                    key={channel.name + gridItem.start + gridItem.end}
-                    className={epgStyles.epgEntry + (gridItem.selected ? ' ' + epgStyles.selected : '')}
-                    style={{
-                        gridRowStart: channelIndex + 2,
-                        gridColumn: gridProgramStart + '/ span ' + gridProgramEnd,
-                    }}
-                >
-                    <div className={epgStyles.epgEntryTitle}>
-                        {gridItem.title}
-                        <div className={epgStyles.epgEntryDescription}>{gridItem.description}</div>
+                <>
+                    <div
+                        key={channel.name + gridItem.start + gridItem.end}
+                        className={epgStyles.epgEntry + (gridItem.selected ? ' ' + epgStyles.selected : '')}
+                        style={{
+                            gridRowStart: channelIndex + 2,
+                            gridColumn: gridProgramStart + '/ span ' + gridProgramEnd,
+                        }}
+                    >
+                        <div className={epgStyles.epgEntryTitle}>
+                            {gridItem.title}
+                            <div className={epgStyles.epgEntryDescription}>{gridItem.description}</div>
+                        </div>
+                        <div className={epgStyles.epgEntryIcons}>
+                            {gridItem.icons?.map((icon) => {
+                                return (
+                                    <img
+                                        key={channel.name + gridItem.start + gridItem.end + icon}
+                                        className={epgStyles.epgEntryIcon}
+                                        src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/img/icons/applications/epg/${icon}`}
+                                        alt={icon}
+                                    />
+                                )
+                            })}
+                        </div>
                     </div>
-                    <div className={epgStyles.epgEntryIcons}>
-                        {gridItem.icons?.map((icon) => {
-                            return (
-                                <img
-                                    key={channel.name + gridItem.start + gridItem.end + icon}
-                                    className={epgStyles.epgEntryIcon}
-                                    src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/img/icons/applications/epg/${icon}`}
-                                    alt={icon}
-                                />
-                            )
-                        })}
-                    </div>
-                </div>
+                </>
             )
         })
     }
@@ -197,7 +197,7 @@ const EPG: React.FC<ClassicyEPGProps> = ({
     const epgHeader = useMemo(() => {
         let headers: React.ReactElement[] = []
         for (let i = 1; i <= gridWidth / minutesPerGrid; i += gridTimeWidth / minutesPerGrid) {
-            const d = new Date(gridStart.getTime() + (i - 1) * minutesPerGrid * 60000)
+            const d = new Date(gridStartTime.getTime() + (i - 1) * minutesPerGrid * 60000)
             headers.push(
                 <div className={epgStyles.epgHeaderTime} style={{ gridColumn: `${i + 1} / span ${minutesPerGrid}` }}>
                     {d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
@@ -205,7 +205,7 @@ const EPG: React.FC<ClassicyEPGProps> = ({
             )
         }
         return headers
-    }, [])
+    }, [gridStartTime])
 
     const epgData = useMemo(() => {
         return gridData.map((channel, channelIndex) => {
@@ -213,7 +213,7 @@ const EPG: React.FC<ClassicyEPGProps> = ({
                 <>
                     <div
                         className={epgStyles.epgChannel}
-                        style={{ gridRowStart: 2, gridColumnStart: 1, gridColumnEnd: 2 }}
+                        style={{ gridRowStart: channelIndex, gridColumnStart: 1, gridColumnEnd: 2 }}
                     >
                         <img
                             className={epgStyles.epgChannelIcon}
@@ -226,7 +226,15 @@ const EPG: React.FC<ClassicyEPGProps> = ({
                 </>
             )
         })
-    }, [])
+    }, [gridStartTime])
+
+    const jumpBack = () => {
+        setGridStartTime(new Date(gridStartTime.getTime() - 30 * 60 * 1000))
+    }
+
+    const jumpForward = () => {
+        setGridStartTime(new Date(gridStartTime.getTime() + 30 * 60 * 1000))
+    }
 
     return (
         <>
@@ -255,6 +263,10 @@ const EPG: React.FC<ClassicyEPGProps> = ({
                         >
                             {epgHeader}
                             {epgData}
+                            <div style={{ gridRowStart: 99 }}>
+                                <ClassicyButton onClick={jumpBack}>&lt;&lt;</ClassicyButton>
+                                <ClassicyButton onClick={jumpForward}>&gt;&gt;</ClassicyButton>
+                            </div>
                         </div>
                     </div>
                 </ClassicyWindow>
