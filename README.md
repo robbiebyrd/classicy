@@ -16,8 +16,8 @@ You will need Node.js v20.11 or higher. You will also need the `yarn` package ma
 
 1. Clone this repo to your local computer and change into the folder
     ```bash
-    git clone https://github.com/robbiebyrd/platinum
-    cd platinum
+    git clone https://github.com/robbiebyrd/classicy
+    cd classicy
     ```
 
 2. Install the necessary dependencies.
@@ -391,7 +391,7 @@ hours and hours using [Kaleidoscope](https://en.wikipedia.org/wiki/Kaleidoscope_
 UI. Luckily, Apple created a theme file for it's default Platinum UI, allowing us to peruse the Resource fork for some
 juicy UI morsels.
 
-In the **Macintosh HD: System Folder:Appearance:Theme Files** is a filed named Apple platinum. I copied this folder from
+In the **Macintosh HD: System Folder:Appearance:Theme Files** is a filed named `Apple platinum`. I copied this folder from
 my SheepShaver instance to my local machine and opened up Resforge to dive in. I also copied and opened up the
 Appearance Control Panel, found in the **Macintosh HD:System Folder:Control Panels** folder.
 
@@ -574,10 +574,10 @@ I'm sure there will be other components I want to add over time, but I felt like
 
 I was pretty confident about my choices here, and I must admit it is only because I've been keeping a secret. This isn't
 the first time this has been done, and in fact, this isn't the first time that I've done this. My
-project [https://github.com/robbiebyrd/platinum](https://github.com/robbiebyrd/platinum) was already in existence well
+project [https://github.com/robbiebyrd/classicy](https://github.com/robbiebyrd/classicy) was already in existence well
 before I decided to revisit this topic again after 4 years.
 
-I first created my version of [Classicy (as Platinum)](https://github.com/robbiebyrd/platinum) in 2019 by forking the
+I first created my version of [Classicy (as Platinum)](https://github.com/robbiebyrd/classicy) in 2019 by forking the
 amazing work
 of [npjg](https://github.com/npjg) and his [https://github.com/npjg/classic.css](https://github.com/npjg/classic.css)
 project. I extended it as part of [my project 9/11 Realtime](https://github.com/Keeping-History/rt911/) and used it as a
@@ -781,7 +781,7 @@ use it as an overlay to create the same effect.
 
 ![Image.tiff.png](https://res.craft.do/user/full/f6bf69d9-c199-b5e2-2561-223aac7866f6/AED3D897-5BB9-4526-BEF3-25354973B35C_2/K64dTSwsMEzNvfWTDCdWSIgBvgal0L6byIoRtIDuflkz/Image.tiff.png)
 
-Platinum theme Windows control buttons, like the close button, have a unique, pixel-gradient overlay.
+The Platinum theme Windows control buttons, like the close button, have a unique, pixel-gradient overlay.
 
 A few other elements, like the collapse and zoom buttons, also required an extra SVG overlay. Thankfully, using the CSS
 psuedo-selectors `::before` and `::after` , I was able to overlay both the pixelated gradient and the inner control SVG.
