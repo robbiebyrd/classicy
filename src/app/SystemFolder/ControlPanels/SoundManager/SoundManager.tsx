@@ -1,7 +1,7 @@
 'use client'
 
 import soundManagerStyles from '@/app/SystemFolder/ControlPanels/SoundManager/SoundManager.module.scss'
-import { ClassicyAboutWindow } from '@/app/SystemFolder/SystemResources/AboutWindow/ClassicyAboutWindow'
+import { getClassicyAboutWindow } from '@/app/SystemFolder/SystemResources/AboutWindow/ClassicyAboutWindow'
 import ClassicyApp from '@/app/SystemFolder/SystemResources/App/ClassicyApp'
 import { quitAppHelper } from '@/app/SystemFolder/SystemResources/App/ClassicyAppUtils'
 import { useDesktopDispatch } from '@/app/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext'
@@ -125,16 +125,7 @@ export const SoundManager: React.FC = () => {
                     </div>
                 </ClassicyDisclosure>
             </ClassicyWindow>
-            {showAbout && (
-                <ClassicyAboutWindow
-                    appId={appId}
-                    appName={appName}
-                    appIcon={appIcon}
-                    hideFunc={() => {
-                        setShowAbout(false)
-                    }}
-                />
-            )}
+            {showAbout && getClassicyAboutWindow({ appId, appName, appIcon, hideFunc: () => setShowAbout(false) })}
         </ClassicyApp>
     )
 }

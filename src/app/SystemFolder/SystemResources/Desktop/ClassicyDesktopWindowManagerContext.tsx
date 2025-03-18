@@ -1,4 +1,18 @@
-import { ClassicyStore } from '@/app/SystemFolder/ControlPanels/AppManager/ClassicyAppManager'
+import {
+    ClassicyStore,
+    ClassicyStoreSystemAppWindow,
+} from '@/app/SystemFolder/ControlPanels/AppManager/ClassicyAppManager'
+
+const initialWindowState = {
+    closed: false,
+    collapsed: false,
+    dragging: false,
+    moving: false,
+    resizing: false,
+    sounding: false,
+    zoomed: false,
+    contextMenuShown: false,
+}
 
 export const classicyWindowEventHandler = (ds: ClassicyStore, action) => {
     const updateWindow = (appId: string, windowId: string, updates: any) => {
@@ -8,29 +22,50 @@ export const classicyWindowEventHandler = (ds: ClassicyStore, action) => {
             }
             return a
         })
+        return ds
     }
 
     switch (action.type) {
         case 'ClassicyWindowOpen':
+            const app = ds.System.Manager.App.apps.findIndex((app) => app.id === action.app.id)
+            const window = ds.System.Manager.App.apps[app].windows.findIndex((w) => w.id === action.window.id)
+            if (window < 0) {
+                ds.System.Manager.App.apps[app].windows.push({
+                    ...initialWindowState,
+                    id: action.window.id,
+                    minimumSize: action.window.minimumSize,
+                    size: action.window.size,
+                    position: action.window.position,
+                } as ClassicyStoreSystemAppWindow)
+                ds.System.Manager.App.apps[app].windows[window].closed = false
+            }
+            break
         case 'ClassicyWindowFocus':
-            updateWindow(action.app.id, action.windowId, { focused: true, hidden: false })
+            console.log('WINDOW FOCUS')
+            ds = updateWindow(action.app.id, action.window.id, { focused: true, hidden: false })
             break
 
         case 'ClassicyWindowHide':
-            updateWindow(action.app.id, action.windowId, { focused: false, hidden: true })
+            ds = updateWindow(action.app.id, action.window.id, { focused: false, hidden: true })
             break
 
         case 'ClassicyWindowClose':
             ds.System.Manager.App.apps = ds.System.Manager.App.apps.map((a) => {
                 if (a.id === action.app.id) {
-                    a.windows = a.windows.filter((w) => w.id !== action.windowId)
+                    console.log('CLOSING ', a)
+                    a.windows = a.windows.map((w) => {
+                        if (w.id == action.window.id) {
+                            w.hidden = true
+                        }
+                        return w
+                    })
                 }
                 return a
             })
             break
 
         case 'ClassicyWindowMenu':
-            // ds.menuBar = action.menuBar
+            ds.System.Manager.Desktop.appMenu = action.menuBar
             break
 
         // case 'ClassicyWindowResize': {
@@ -63,12 +98,13 @@ export const classicyWindowEventHandler = (ds: ClassicyStore, action) => {
         //     }
         //     break
         // }
-        // case 'ClassicyWindowMove': {
-        //     ws.moving = action.moving
-        //     if (action.moving === true) {
-        //         ws.position = action.position
-        //     }
-        //     break
+        case 'ClassicyWindowMove': {
+            ds = updateWindow(action.app.id, action.window.id, { moving: action.moving })
+            if (action.moving === true) {
+                ds = updateWindow(action.app.id, action.window.id, { position: action.position })
+            }
+            break
+        }
         // }
         // case 'ClassicyWindowPosition': {
         //     ws.position = action.position

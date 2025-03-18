@@ -112,7 +112,7 @@ const Finder = () => {
                 .map(({ op, dir }, idx) => {
                     return (
                         <ClassicyWindow
-                            id={appName + ':' + op}
+                            id={op}
                             key={appName + ':' + op}
                             title={dir['_name']}
                             icon={`${process.env.NEXT_PUBLIC_BASE_PATH}${dir['_icon']}`}

@@ -65,7 +65,7 @@ const ClassicyApp: React.FC<ClassicyAppProps> = ({
 
     const onFocus = () => {
         desktopEventDispatch({
-            type: 'ClassicyAppFocus',
+            type: 'ClassicyAppActivate',
             app: { id: id },
         })
     }
@@ -76,7 +76,9 @@ const ClassicyApp: React.FC<ClassicyAppProps> = ({
                 type: 'ClassicyWindowFocus',
                 app: {
                     id: id,
-                    window: defaultWindow,
+                },
+                window: {
+                    id: defaultWindow,
                 },
             })
         }

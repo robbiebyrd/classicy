@@ -97,7 +97,7 @@ const EPG: React.FC<ClassicyEPGProps> = ({
                     start: Date.parse('2001-09-11T11:30:00Z'),
                     end: Date.parse('2001-09-11T12:00:00Z'),
                     icons: ['tv-pg.png', 'cc.png'],
-                    selected: false,
+                    selected: true,
                 },
                 {
                     title: 'Seinfeld',
@@ -113,7 +113,186 @@ const EPG: React.FC<ClassicyEPGProps> = ({
                     start: Date.parse('2001-09-11T12:30:00Z'),
                     end: Date.parse('2001-09-11T13:00:00Z'),
                     icons: ['tv-pg.png', 'cc.png'],
+                    selected: false,
+                },
+                {
+                    title: 'Seinfeld',
+                    description: 'Soup Nazi',
+                    start: Date.parse('2001-09-11T13:00:00Z'),
+                    end: Date.parse('2001-09-11T13:30:00Z'),
+                    icons: ['tv-pg.png', 'cc.png'],
+                    selected: false,
+                },
+                {
+                    title: 'Robocop',
+                    description: '(1987)',
+                    start: Date.parse('2001-09-11T13:30:00Z'),
+                    end: Date.parse('2001-09-11T15:30:00Z'),
+                    icons: ['mpaa-r.png', 'cc.png'],
+                    selected: false,
+                },
+                {
+                    title: 'Robocop 2',
+                    description: '(1990)',
+                    start: Date.parse('2001-09-11T15:30:00Z'),
+                    end: Date.parse('2001-09-11T17:30:00Z'),
+                    icons: ['mpaa-r.png', 'cc.png'],
+                    selected: false,
+                },
+            ],
+        },
+        {
+            name: 'CBS',
+            number: '3',
+            callsign: 'WABC',
+            location: 'New York, NY',
+            icon: 'wjla.png',
+            grid: [
+                {
+                    title: 'Seinfeld',
+                    description: 'The Marine Biologist',
+                    start: Date.parse('2001-09-11T11:00:00Z'),
+                    end: Date.parse('2001-09-11T12:30:00Z'),
+                    icons: ['tv-pg.png', 'cc.png'],
                     selected: true,
+                },
+                {
+                    title: 'Seinfeld',
+                    description: 'The Opposite',
+                    start: Date.parse('2001-09-11T12:30:00Z'),
+                    end: Date.parse('2001-09-11T13:00:00Z'),
+                    icons: ['tv-pg.png', 'cc.png'],
+                    selected: false,
+                },
+                {
+                    title: 'Seinfeld',
+                    description: 'Soup Nazi',
+                    start: Date.parse('2001-09-11T13:00:00Z'),
+                    end: Date.parse('2001-09-11T13:30:00Z'),
+                    icons: ['tv-pg.png', 'cc.png'],
+                    selected: false,
+                },
+                {
+                    title: 'Robocop',
+                    description: '(1987)',
+                    start: Date.parse('2001-09-11T13:30:00Z'),
+                    end: Date.parse('2001-09-11T15:30:00Z'),
+                    icons: ['mpaa-r.png', 'cc.png'],
+                    selected: false,
+                },
+                {
+                    title: 'Robocop 2',
+                    description: '(1990)',
+                    start: Date.parse('2001-09-11T15:30:00Z'),
+                    end: Date.parse('2001-09-11T17:30:00Z'),
+                    icons: ['mpaa-r.png', 'cc.png'],
+                    selected: false,
+                },
+            ],
+        },
+        {
+            name: 'NBC',
+            number: '3',
+            callsign: 'WABC',
+            location: 'New York, NY',
+            icon: 'wjla.png',
+            grid: [
+                {
+                    title: 'Seinfeld',
+                    description: 'The Marine Biologist',
+                    start: Date.parse('2001-09-11T11:00:00Z'),
+                    end: Date.parse('2001-09-11T11:30:00Z'),
+                    icons: ['tv-pg.png', 'cc.png'],
+                    selected: false,
+                },
+                {
+                    title: 'Seinfeld',
+                    description: 'The Puffy Shirt',
+                    start: Date.parse('2001-09-11T11:30:00Z'),
+                    end: Date.parse('2001-09-11T12:00:00Z'),
+                    icons: ['tv-pg.png', 'cc.png'],
+                    selected: true,
+                },
+                {
+                    title: 'Seinfeld',
+                    description: 'The Contest',
+                    start: Date.parse('2001-09-11T12:00:00Z'),
+                    end: Date.parse('2001-09-11T12:30:00Z'),
+                    icons: ['tv-pg.png', 'cc.png'],
+                    selected: false,
+                },
+                {
+                    title: 'Seinfeld',
+                    description: 'The Opposite',
+                    start: Date.parse('2001-09-11T12:30:00Z'),
+                    end: Date.parse('2001-09-11T13:00:00Z'),
+                    icons: ['tv-pg.png', 'cc.png'],
+                    selected: false,
+                },
+                {
+                    title: 'Seinfeld',
+                    description: 'Soup Nazi',
+                    start: Date.parse('2001-09-11T13:00:00Z'),
+                    end: Date.parse('2001-09-11T13:30:00Z'),
+                    icons: ['tv-pg.png', 'cc.png'],
+                    selected: false,
+                },
+                {
+                    title: 'Robocop',
+                    description: '(1987)',
+                    start: Date.parse('2001-09-11T13:30:00Z'),
+                    end: Date.parse('2001-09-11T15:30:00Z'),
+                    icons: ['mpaa-r.png', 'cc.png'],
+                    selected: false,
+                },
+                {
+                    title: 'Robocop 2',
+                    description: '(1990)',
+                    start: Date.parse('2001-09-11T15:30:00Z'),
+                    end: Date.parse('2001-09-11T17:30:00Z'),
+                    icons: ['mpaa-r.png', 'cc.png'],
+                    selected: false,
+                },
+            ],
+        },
+        {
+            name: 'FOX',
+            number: '3',
+            callsign: 'WABC',
+            location: 'New York, NY',
+            icon: 'wjla.png',
+            grid: [
+                {
+                    title: 'Seinfeld',
+                    description: 'The Marine Biologist',
+                    start: Date.parse('2001-09-11T11:00:00Z'),
+                    end: Date.parse('2001-09-11T11:30:00Z'),
+                    icons: ['tv-pg.png', 'cc.png'],
+                    selected: false,
+                },
+                {
+                    title: 'Seinfeld',
+                    description: 'The Puffy Shirt',
+                    start: Date.parse('2001-09-11T11:30:00Z'),
+                    end: Date.parse('2001-09-11T12:00:00Z'),
+                    icons: ['tv-pg.png', 'cc.png'],
+                    selected: true,
+                },
+                {
+                    title: 'Seinfeld',
+                    description: 'The Contest',
+                    start: Date.parse('2001-09-11T12:00:00Z'),
+                    end: Date.parse('2001-09-11T12:30:00Z'),
+                    icons: ['tv-pg.png', 'cc.png'],
+                    selected: false,
+                },
+                {
+                    title: 'Seinfeld',
+                    description: 'The Opposite',
+                    start: Date.parse('2001-09-11T12:30:00Z'),
+                    end: Date.parse('2001-09-11T13:00:00Z'),
+                    icons: ['tv-pg.png', 'cc.png'],
+                    selected: false,
                 },
                 {
                     title: 'Seinfeld',
@@ -163,33 +342,31 @@ const EPG: React.FC<ClassicyEPGProps> = ({
             }
 
             return (
-                <>
-                    <div
-                        key={channel.name + gridItem.start + gridItem.end}
-                        className={epgStyles.epgEntry + (gridItem.selected ? ' ' + epgStyles.selected : '')}
-                        style={{
-                            gridRowStart: channelIndex + 2,
-                            gridColumn: gridProgramStart + '/ span ' + gridProgramEnd,
-                        }}
-                    >
-                        <div className={epgStyles.epgEntryTitle}>
-                            {gridItem.title}
-                            <div className={epgStyles.epgEntryDescription}>{gridItem.description}</div>
-                        </div>
-                        <div className={epgStyles.epgEntryIcons}>
-                            {gridItem.icons?.map((icon) => {
-                                return (
-                                    <img
-                                        key={channel.name + gridItem.start + gridItem.end + icon}
-                                        className={epgStyles.epgEntryIcon}
-                                        src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/img/icons/applications/epg/${icon}`}
-                                        alt={icon}
-                                    />
-                                )
-                            })}
-                        </div>
+                <div
+                    key={channel.name + gridItem.start + gridItem.end}
+                    className={epgStyles.epgEntry + (gridItem.selected ? ' ' + epgStyles.selected : '')}
+                    style={{
+                        gridRowStart: channelIndex + 2,
+                        gridColumn: gridProgramStart + '/ span ' + gridProgramEnd,
+                    }}
+                >
+                    <div className={epgStyles.epgEntryTitle}>
+                        {gridItem.title}
+                        <div className={epgStyles.epgEntryDescription}>{gridItem.description}</div>
                     </div>
-                </>
+                    <div className={epgStyles.epgEntryIcons}>
+                        {gridItem.icons?.map((icon) => {
+                            return (
+                                <img
+                                    key={channel.name + gridItem.start + gridItem.end + icon}
+                                    className={epgStyles.epgEntryIcon}
+                                    src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/img/icons/applications/epg/${icon}`}
+                                    alt={icon}
+                                />
+                            )
+                        })}
+                    </div>
+                </div>
             )
         })
     }
@@ -199,7 +376,12 @@ const EPG: React.FC<ClassicyEPGProps> = ({
         for (let i = 1; i <= gridWidth / minutesPerGrid; i += gridTimeWidth / minutesPerGrid) {
             const d = new Date(gridStartTime.getTime() + (i - 1) * minutesPerGrid * 60000)
             headers.push(
-                <div className={epgStyles.epgHeaderTime} style={{ gridColumn: `${i + 1} / span ${minutesPerGrid}` }}>
+                <div
+                    className={epgStyles.epgHeaderTime}
+                    style={{
+                        gridColumn: `${i + 1} / span ${minutesPerGrid}`,
+                    }}
+                >
                     {d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
                 </div>
             )
@@ -213,7 +395,7 @@ const EPG: React.FC<ClassicyEPGProps> = ({
                 <>
                     <div
                         className={epgStyles.epgChannel}
-                        style={{ gridRowStart: channelIndex, gridColumnStart: 1, gridColumnEnd: 2 }}
+                        style={{ gridRowStart: channelIndex + 2, gridColumnStart: 1, gridColumnEnd: 2 }}
                     >
                         <img
                             className={epgStyles.epgChannelIcon}

@@ -21,7 +21,7 @@
   @include appearance.platinumWindowUndepressable;
   height: calc(var(--window-control-size) * 3);
   padding: var(--window-padding-size);
-  border: 0;
+  border: 0 !important;
   border-radius: 0 !important;
 }
 
@@ -59,7 +59,7 @@
 }
 
 .epgHeaderTime {
-  font-family: var(--body-font);
+  font-family: var(--body-font), sans-serif;
   font-size: calc(var(--ui-font-size) * 0.85);
   padding-left: 0.5em;
   border-left: calc(var(--window-border-size) * 2) solid var(--color-theme-05);

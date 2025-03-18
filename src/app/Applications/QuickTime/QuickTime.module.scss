@@ -89,7 +89,6 @@
 }
 
 .quickTimePlayerVideoControlsProgressBar:focus, .quickTimePlayerVideoControlsVolumeBar:focus {
-  width: 100%;
   border-color: transparent;
   outline: none; /* Removes the blue border. You should probably do some kind of focus styling for accessibility reasons though. */
   background: transparent;

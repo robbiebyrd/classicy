@@ -4,7 +4,10 @@ import {
     ClassicyStoreSystemAppearanceManager,
     ClassicyTheme,
 } from '@/app/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance'
-import { ClassicyStoreSystemDesktopManager } from '@/app/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager'
+import {
+    classicyDesktopEventHandler,
+    ClassicyStoreSystemDesktopManager,
+} from '@/app/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager'
 import { classicyWindowEventHandler } from '@/app/SystemFolder/SystemResources/Desktop/ClassicyDesktopWindowManagerContext'
 import { classicyDesktopIconEventHandler } from '@/app/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconContext'
 import themesData from '@/app/SystemFolder/ControlPanels/AppearanceManager/styles/themes.json'
@@ -28,6 +31,7 @@ export interface ClassicyStoreSystemApp {
 }
 
 export interface ClassicyStoreSystemAppWindow {
+    closed: boolean
     id: string
     appId?: string
     title?: string
@@ -68,119 +72,80 @@ export interface ClassicyStoreSystem {
 
 export interface ClassicyStoreSystemManager {}
 
-export const classicyDesktopEventHandler = (ds: ClassicyStore, action) => {
-    switch (action.type) {
-        case 'ClassicyDesktopFocus': {
-            if ('e' in action && action.e.target.id === 'classicyDesktop') {
-                ds.System.Manager.App.apps = ds.System.Manager.App.apps.map((a) => {
-                    a.focused = false
-                    a.windows = a.windows.map((w) => {
-                        w.focused = false
-                        return w
-                    })
-                    return a
-                })
+export class ClassicyAppManagerHandler {
+    public getAppIndex(ds: ClassicyStore, appId: string) {
+        return ds.System.Manager.App.apps.findIndex((d) => d.id === appId)
+    }
 
-                const appI = ds.System.Manager.App.apps.findIndex((a) => (a.id = 'Finder.app'))
-                ds.System.Manager.App.apps[appI].focused = true
-                ds.System.Manager.Desktop.selectedIcons = []
-                ds.System.Manager.Desktop.showContextMenu = false
-                ds.System.Manager.Desktop.selectBox.active = true
-                ds.System.Manager.Desktop.selectBox.start = [action.e.clientX, action.e.client]
-            }
-
-            if ('menuBar' in action) {
-                ds.System.Manager.Desktop.appMenu = action.menuBar
-            }
-
-            break
-        }
-        case 'ClassicyDesktopDoubleClick': {
-            break
-        }
-        case 'ClassicyDesktopDrag': {
-            ds.System.Manager.Desktop.selectBox.start = [
-                action.e.clientX - ds.System.Manager.Desktop.selectBox.start[0],
-                action.e.clientY - ds.System.Manager.Desktop.selectBox.start[1],
-            ]
-
-            ds.System.Manager.Desktop.selectBox.size = [0, 0]
-            break
-        }
-        case 'ClassicyDesktopStop': {
-            ds.System.Manager.Desktop.selectBox.active = false
-            ds.System.Manager.Desktop.selectBox.size = [0, 0]
-            ds.System.Manager.Desktop.selectBox.start = [0, 0]
-            break
-        }
-        case 'ClassicyDesktopContextMenu': {
-            ds.System.Manager.Desktop.showContextMenu = action.showContextMenu
-            if (action.contextMenu) {
-                ds.System.Manager.Desktop.contextMenu = action.contextMenu
-            }
-            break
-        }
-        case 'ClassicyDesktopTheme': {
-            ds.System.Manager.Appearance.activeTheme = ds.System.Manager.Appearance.availableThemes[action.activeTheme]
-            break
-        }
-        case 'ClassicyDesktopLoadThemes': {
-            console.log('LOADING THEMES')
-            ds.System.Manager.Appearance.availableThemes = action.availableThemes
+    focusApp(ds: ClassicyStore, appId: string) {
+        const findApp = this.getAppIndex(ds, appId)
+        ds.System.Manager.App.apps[findApp].focused = true
+        const focusedWindow = ds.System.Manager.App.apps[findApp].windows.findIndex((w) => w.default)
+        if (focusedWindow >= 0) {
+            ds.System.Manager.App.apps[findApp].windows[focusedWindow].hidden = false
+            ds.System.Manager.App.apps[findApp].windows[focusedWindow].focused = true
         }
     }
-    return ds
+
+    openApp(ds: ClassicyStore, appId: string, appName: string, appIcon: string) {
+        const findApp = this.getAppIndex(ds, appId)
+        if (findApp >= 0) {
+            ds.System.Manager.App.apps[findApp].open = true
+            this.focusApp(ds, appId)
+        } else {
+            ds.System.Manager.App.apps.push({
+                id: appId,
+                name: appName,
+                icon: appIcon,
+                windows: [],
+                open: true,
+            })
+        }
+    }
+
+    closeApp(ds: ClassicyStore, appId: string) {
+        const findApp = this.getAppIndex(ds, appId)
+        if (findApp >= 0) {
+            ds.System.Manager.App.apps[findApp].open = false
+            ds.System.Manager.App.apps[findApp].focused = false
+        }
+    }
+
+    activateApp(ds: ClassicyStore, appId: string) {
+        ds.System.Manager.App.apps = ds.System.Manager.App.apps.map((a) => {
+            a.focused = a.id === appId
+            return a
+        })
+        ds.System.Manager.App.apps = ds.System.Manager.App.apps.map((a) => {
+            if (a.id !== appId) {
+                a.windows = a.windows.map((w) => {
+                    w.focused = false
+                    return w
+                })
+            }
+            return a
+        })
+    }
 }
 
 export const classicyAppEventHandler = (ds: ClassicyStore, action) => {
+    const handler = new ClassicyAppManagerHandler()
+
     switch (action.type) {
         case 'ClassicyAppOpen': {
-            const findApp = ds.System.Manager.App.apps.findIndex((d) => d.id === action.app.id)
-            console.log('findApp', findApp)
-            if (findApp >= 0) {
-                ds.System.Manager.App.apps[findApp].open = true
-                ds.System.Manager.App.apps[findApp].focused = true
-                const focusedWindow = ds.System.Manager.App.apps[findApp].windows.findIndex((w) => w.default)
-                if (focusedWindow >= 0) {
-                    ds.System.Manager.App.apps[findApp].windows[focusedWindow].hidden = false
-                    ds.System.Manager.App.apps[findApp].windows[focusedWindow].focused = true
-                }
-            } else {
-                ds.System.Manager.App.apps.push({
-                    id: action.app.id,
-                    name: action.app.name,
-                    icon: action.app.icon,
-                    windows: [],
-                    open: true,
-                })
-            }
+            handler.openApp(ds, action.app.id, action.app.name, action.app.icon)
             break
         }
         case 'ClassicyAppClose': {
-            const findApp = ds.System.Manager.App.apps.findIndex((d) => d.id === action.app.id)
-            if (findApp >= 0) {
-                ds.System.Manager.App.apps[findApp].open = false
-                ds.System.Manager.App.apps[findApp].focused = false
-            }
+            handler.closeApp(ds, action.app.id)
             break
         }
         case 'ClassicyAppFocus': {
-            const findApp = ds.System.Manager.App.apps.findIndex((d) => d.id === action.app.id)
-            if (findApp >= 0) {
-                ds.System.Manager.App.apps[findApp].focused = true
-                const focusedWindow = ds.System.Manager.App.apps[findApp].windows.findIndex((w) => w.default)
-                if (focusedWindow >= 0) {
-                    ds.System.Manager.App.apps[findApp].windows[focusedWindow].hidden = false
-                    ds.System.Manager.App.apps[findApp].windows[focusedWindow].focused = true
-                }
-            }
+            handler.focusApp(ds, action.app.id)
             break
         }
         case 'ClassicyAppActivate': {
-            const findApp = ds.System.Manager.App.apps.findIndex((d) => d.id === action.app.id)
-            if (findApp >= 0) {
-                ds.System.Manager.App.apps[findApp].focused = true
-            }
+            handler.activateApp(ds, action.app.id)
             break
         }
     }
@@ -190,6 +155,11 @@ export const classicyAppEventHandler = (ds: ClassicyStore, action) => {
 
 export const classicyDesktopStateEventReducer = (ds: ClassicyStore, action) => {
     const startDs = ds
+    if ('debug' in action || true) {
+        console.group('Desktop Event')
+        console.log('Action: ', action)
+        console.log('Start State: ', startDs)
+    }
     if ('type' in action) {
         if (action.type.startsWith('ClassicyWindow')) {
             ds = classicyWindowEventHandler(ds, action)
@@ -201,10 +171,7 @@ export const classicyDesktopStateEventReducer = (ds: ClassicyStore, action) => {
             ds = classicyDesktopEventHandler(ds, action)
         }
     }
-    if ('debug' in action) {
-        console.group('Desktop Event')
-        console.log('Action: ', action)
-        console.log('Start State: ', startDs)
+    if ('debug' in action || true) {
         console.log('End State: ', ds)
         console.groupEnd()
     }
@@ -229,9 +196,7 @@ export const DefaultDesktopState: ClassicyStore = {
                         id: 'about',
                         title: 'About This Computer',
                         keyboardShortcut: '&#8984;S',
-                        onClickFunc: () => {
-                            alert('ABOUT')
-                        },
+                        onClickFunc: () => console.log('ABOUT'),
                     },
                     { id: 'spacer' },
                 ],
