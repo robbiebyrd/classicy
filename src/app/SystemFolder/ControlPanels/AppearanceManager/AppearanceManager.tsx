@@ -1,7 +1,7 @@
 'use client'
 
 import { getTheme } from '@/app/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance'
-import { ClassicyAboutWindow } from '@/app/SystemFolder/SystemResources/AboutWindow/ClassicyAboutWindow'
+import { getClassicyAboutWindow } from '@/app/SystemFolder/SystemResources/AboutWindow/ClassicyAboutWindow'
 import ClassicyApp from '@/app/SystemFolder/SystemResources/App/ClassicyApp'
 import { quitAppHelper } from '@/app/SystemFolder/SystemResources/App/ClassicyAppUtils'
 import { useDesktop, useDesktopDispatch } from '@/app/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext'
@@ -110,16 +110,7 @@ export const AppearanceManager: React.FC = () => {
                 />
                 <ClassicyButton onClick={cleanupIcons}>Cleanup Icons</ClassicyButton>
             </ClassicyWindow>
-            {showAbout && (
-                <ClassicyAboutWindow
-                    appId={appId}
-                    appName={appName}
-                    appIcon={appIcon}
-                    hideFunc={() => {
-                        setShowAbout(false)
-                    }}
-                />
-            )}
+            {showAbout && getClassicyAboutWindow({ appId, appName, appIcon, hideFunc: () => setShowAbout(false) })}
         </ClassicyApp>
     )
 }

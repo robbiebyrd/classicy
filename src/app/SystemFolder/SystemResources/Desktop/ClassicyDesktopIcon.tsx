@@ -126,6 +126,10 @@ const ClassicyDesktopIcon: React.FC<ClassicyDesktopIconProps> = ({
             onDoubleClick={launchIcon}
             draggable={false}
             onClick={clickFocus}
+            onContextMenu={() => {
+                clickFocus()
+                alert('clicked')
+            }} // TODO: Add Context Menu on Desktop Icons
             className={classNames(
                 classicyDesktopIconStyles.classicyDesktopIcon,
                 dragging ? classicyDesktopIconStyles.classicyDesktopIconDragging : '',

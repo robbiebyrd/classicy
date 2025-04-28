@@ -52,7 +52,11 @@ const ClassicyMenu: React.FC<ClassicyMenuProps> = ({ menuItems, navClass, subNav
                 <li
                     id={menuItem.id}
                     key={menuItem.id}
-                    onClick={menuItem.onClickFunc}
+                    onClick={() => {
+                        if (menuItem.onClickFunc) {
+                            menuItem.onClickFunc()
+                        }
+                    }}
                     onMouseOver={() => {
                         player({ type: 'ClassicySoundPlay', sound: 'ClassicyMenuItemHover' })
                     }}

@@ -126,6 +126,7 @@ const ClassicyDesktop: React.FC<ClassicyDesktopProps> = ({ children }) => {
             title: 'Help',
         },
     ]
+    console.log('active theme')
 
     const currentTheme = getThemeVars(desktopState.System.Manager.Appearance.activeTheme)
 

@@ -20,7 +20,6 @@ const QuickTimeMoviePlayer: React.FC = () => {
 
     const desktopEventDispatch = useDesktopDispatch()
     const desktop = useDesktop()
-    const [appContext] = React.useState({})
 
     const testingDocuments = [
         // {
@@ -58,7 +57,7 @@ const QuickTimeMoviePlayer: React.FC = () => {
     ]
 
     return (
-        <ClassicyApp id={appId} name={appName} icon={appIcon} defaultWindow={'demo'} appContext={appContext}>
+        <ClassicyApp id={appId} name={appName} icon={appIcon} defaultWindow={'demo'}>
             {openDocuments.map((doc: QuickTimeDocument) => (
                 <ClassicyWindow
                     key={doc.name + '_' + doc.url}
@@ -237,16 +236,6 @@ const QuickTimeVideoEmbed: React.FC<QuickTimeVideoEmbed> = ({ appId, name, url, 
                         src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/img/icons/system/quicktime/forward-button.svg`}
                     />
                 </button>
-                <button
-                    className={quickTimeStyles.quickTimePlayerVideoControlsButton}
-                    onClick={() => setShowVolume(!showVolume)}
-                    ref={volumeButtonRef}
-                >
-                    <img
-                        src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/img/icons/control-panels/sound-manager/${getVolumeIcon()}`}
-                        className={quickTimeStyles.quickTimePlayerVideoControlsIcon}
-                    />
-                </button>
                 {showVolume && (
                     <div
                         style={{
@@ -276,6 +265,16 @@ const QuickTimeVideoEmbed: React.FC<QuickTimeVideoEmbed> = ({ appId, name, url, 
                         />
                     </div>
                 )}
+                <button
+                    className={quickTimeStyles.quickTimePlayerVideoControlsButton}
+                    onClick={() => setShowVolume(!showVolume)}
+                    ref={volumeButtonRef}
+                >
+                    <img
+                        src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/img/icons/control-panels/sound-manager/${getVolumeIcon()}`}
+                        className={quickTimeStyles.quickTimePlayerVideoControlsIcon}
+                    />
+                </button>
                 <button onClick={toggleFullscreen} className={quickTimeStyles.quickTimePlayerVideoControlsButton}>
                     <img
                         className={quickTimeStyles.quickTimePlayerVideoControlsIcon}

@@ -28,8 +28,8 @@ const ClassicyDesktopMenuBar: React.FC = () => {
 
     const appSwitcherMenuMenuItem: ClassicyMenuItem = {
         id: 'app-switcher',
-        image: activeAppObject[0].icon,
-        title: activeAppObject[0].name,
+        image: activeAppObject?.at(0)?.icon || '',
+        title: activeAppObject?.at(0)?.name || 'Finder',
         className: classicyDesktopMenuStyles.classicyDesktopMenuAppSwitcher,
         menuChildren: desktopContext.System.Manager.App.apps.map((app) => ({
             id: app.id,

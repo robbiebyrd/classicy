@@ -135,7 +135,8 @@ export const classicyDesktopIconEventHandler = (ds: ClassicyStore, action) => {
         case 'ClassicyDesktopIconAdd': {
             // TODO: We need to separate onClickFunc from here; it's being stored in the localstorage cache which
             // means it gets blown out after every session clear. An Event name and payload here would be better.
-            let icon = ds.System.Manager.Desktop.icons.filter((icon) => icon.appId === action.app.id)
+            let icon = ds.System.Manager.Desktop.icons.filter((i) => i.appId === action.app.id)
+
             if (icon.length === 0) {
                 let newLocation = action.location
                 if (!newLocation) {

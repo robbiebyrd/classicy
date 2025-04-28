@@ -74,6 +74,8 @@ export type ClassicyTheme = {
 }
 
 const makeThemeStyle = (theme: ClassicyTheme) => {
+    console.log('theme')
+    console.log(theme)
     return {
         '--color-black': intToHex(theme.color.black),
         '--color-white': intToHex(theme.color.white),
