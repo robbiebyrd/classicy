@@ -13,7 +13,6 @@ const Browser = () => {
     const appIcon = `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/img/icons/system/network/internet-services.png`
 
     const desktopEventDispatch = useDesktopDispatch()
-    const [appContext] = React.useState({})
 
     const refAddressBar = React.useRef(null)
     const [iframeSrc, setIframeUrl] = React.useState('https://theoldnet.com')
@@ -41,7 +40,7 @@ const Browser = () => {
     ]
 
     return (
-        <ClassicyApp id={appId} name={appName} icon={appIcon} defaultWindow={'browser'} appContext={appContext}>
+        <ClassicyApp id={appId} name={appName} icon={appIcon} defaultWindow={'browser'}>
             <ClassicyWindow
                 id={'browser'}
                 title={appName}

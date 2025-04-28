@@ -113,6 +113,7 @@ export const SoundManager: React.FC = () => {
                                     <>
                                         {item.group === group && (
                                             <ClassicyCheckbox
+                                                key={appId + '_' + group + item.id}
                                                 id={'enable_sound_' + item.id}
                                                 label={item.label}
                                                 checked={playerState.disabled.includes('*')}

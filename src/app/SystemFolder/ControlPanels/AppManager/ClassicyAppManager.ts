@@ -41,7 +41,6 @@ export interface ClassicyStoreSystemAppWindow {
     minimumSize: [number, number]
     focused?: boolean
     default?: boolean
-    hidden?: boolean
     resizing?: boolean
     zoomed?: boolean
     collapsed?: boolean
@@ -82,7 +81,7 @@ export class ClassicyAppManagerHandler {
         ds.System.Manager.App.apps[findApp].focused = true
         const focusedWindow = ds.System.Manager.App.apps[findApp].windows.findIndex((w) => w.default)
         if (focusedWindow >= 0) {
-            ds.System.Manager.App.apps[findApp].windows[focusedWindow].hidden = false
+            ds.System.Manager.App.apps[findApp].windows[focusedWindow].closed = false
             ds.System.Manager.App.apps[findApp].windows[focusedWindow].focused = true
         }
     }
@@ -91,6 +90,10 @@ export class ClassicyAppManagerHandler {
         const findApp = this.getAppIndex(ds, appId)
         if (findApp >= 0) {
             ds.System.Manager.App.apps[findApp].open = true
+            ds.System.Manager.App.apps[findApp].windows = ds.System.Manager.App.apps[findApp].windows.map((w) => {
+                w.closed = false
+                return w
+            })
             this.focusApp(ds, appId)
         } else {
             ds.System.Manager.App.apps.push({
@@ -108,6 +111,7 @@ export class ClassicyAppManagerHandler {
         if (findApp >= 0) {
             ds.System.Manager.App.apps[findApp].open = false
             ds.System.Manager.App.apps[findApp].focused = false
+            ds.System.Manager.App.apps[findApp].windows.map((w) => (w.closed = true))
         }
     }
 
@@ -155,7 +159,7 @@ export const classicyAppEventHandler = (ds: ClassicyStore, action) => {
 
 export const classicyDesktopStateEventReducer = (ds: ClassicyStore, action) => {
     const startDs = ds
-    if ('debug' in action || true) {
+    if ('debug' in action) {
         console.group('Desktop Event')
         console.log('Action: ', action)
         console.log('Start State: ', startDs)
@@ -171,7 +175,7 @@ export const classicyDesktopStateEventReducer = (ds: ClassicyStore, action) => {
             ds = classicyDesktopEventHandler(ds, action)
         }
     }
-    if ('debug' in action || true) {
+    if ('debug' in action) {
         console.log('End State: ', ds)
         console.groupEnd()
     }
@@ -224,6 +228,7 @@ export const DefaultDesktopState: ClassicyStore = {
                                 minimumSize: [300, 20],
                                 focused: true,
                                 default: true,
+                                closed: false,
                             },
                         ],
                         open: true,

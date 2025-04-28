@@ -20,7 +20,6 @@ const QuickTimeMoviePlayer: React.FC = () => {
 
     const desktopEventDispatch = useDesktopDispatch()
     const desktop = useDesktop()
-    const [appContext] = React.useState({})
 
     const testingDocuments = [
         // {
@@ -58,7 +57,7 @@ const QuickTimeMoviePlayer: React.FC = () => {
     ]
 
     return (
-        <ClassicyApp id={appId} name={appName} icon={appIcon} defaultWindow={'demo'} appContext={appContext}>
+        <ClassicyApp id={appId} name={appName} icon={appIcon} defaultWindow={'demo'}>
             {openDocuments.map((doc: QuickTimeDocument) => (
                 <ClassicyWindow
                     key={doc.name + '_' + doc.url}

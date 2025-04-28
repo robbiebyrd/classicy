@@ -9,12 +9,14 @@ import ClassicyDesktop from '@/app/SystemFolder/SystemResources/Desktop/Classicy
 import React from 'react'
 import QuickTimeMoviePlayer from '@/app/Applications/QuickTime/QuickTimeMoviePlayer'
 import EPG from '@/app/Applications/EPG/EPG'
+import StateDebugger from '@/app/Applications/StateDebugger/StateDebugger'
 
 export default function Home() {
     return (
         <ClassicyDesktopProvider>
             <ClassicyDesktop>
                 <ClassicyControlPanels />
+                <StateDebugger />
                 <Demo />
                 <EPG />
                 <QuickTimeMoviePlayer />

@@ -55,7 +55,6 @@ const EPG: React.FC<ClassicyEPGProps> = ({
     const appIcon = `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/img/icons/system/folders/directory.png`
 
     const desktopEventDispatch = useDesktopDispatch()
-    const [appContext] = React.useState({})
 
     const quitApp = () => {
         desktopEventDispatch(quitAppHelper(appId, appName, appIcon))
@@ -394,6 +393,7 @@ const EPG: React.FC<ClassicyEPGProps> = ({
             return (
                 <>
                     <div
+                        key={channel.name + channelIndex}
                         className={epgStyles.epgChannel}
                         style={{ gridRowStart: channelIndex + 2, gridColumnStart: 1, gridColumnEnd: 2 }}
                     >
@@ -420,7 +420,7 @@ const EPG: React.FC<ClassicyEPGProps> = ({
 
     return (
         <>
-            <ClassicyApp id={appId} name={appName} icon={appIcon} defaultWindow={'demo'} appContext={appContext}>
+            <ClassicyApp id={appId} name={appName} icon={appIcon} defaultWindow={'demo'}>
                 <ClassicyWindow
                     id={'demo2'}
                     title={appName}

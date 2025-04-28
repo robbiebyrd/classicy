@@ -81,81 +81,14 @@ export const classicyDesktopEventHandler = (ds: ClassicyStore, action) => {
             break
         }
         case 'ClassicyDesktopTheme': {
-            ds.System.Manager.Appearance.activeTheme = ds.System.Manager.Appearance.availableThemes[action.activeTheme]
+            ds.System.Manager.Appearance.activeTheme = ds.System.Manager.Appearance.availableThemes.find(
+                (a) => a.id == action.activeTheme
+            )
             break
         }
         case 'ClassicyDesktopLoadThemes': {
-            console.log('LOADING THEMES')
             ds.System.Manager.Appearance.availableThemes = action.availableThemes
         }
     }
     return ds
 }
-
-// export interface ClassicyDesktopState {
-//     activeTheme: string
-//     availableThemes: ClassicyTheme[]
-//
-//     soundPlayer: Howl
-//     selectedDesktopIcons: string[]
-//
-//     activeWindow: string
-//     activeApp: string
-//
-//     menuBar: ClassicyMenuItem[]
-//     systemMenu: ClassicyMenuItem[]
-//     appSwitcherMenu: ClassicyMenuItem[]
-//     contextMenu: ClassicyMenuItem[]
-//     showContextMenu: boolean
-//     selectBox: boolean
-//     selectBoxSize: number[]
-//     selectBoxStart: number[]
-//     desktopIcons: ClassicyDesktopIconState[]
-//     openApps: ClassicyAppItem[]
-//     new?: ClassicyStore
-// }
-//
-// export type ClassicyAppItem = {
-//     id: string
-//     name: string
-//     icon: string
-//     hidden: boolean
-//     defaultWindow?: string
-// }
-// activeTheme: 'default', RENAMED
-// availableThemes: [],
-// selectedDesktopIcons: [],
-// soundPlayer: null, TODO: FIX THIS!
-// activeWindow: '', TODO: MOVED
-// menuBar: [],
-// systemMenu: [
-//     {
-//         id: 'about',
-//         title: 'About This Computer',
-//         keyboardShortcut: '&#8984;S',
-//     },
-//     {id: 'spacer'},
-// ],
-// activeApp: 'finder.app',
-// appSwitcherMenu: [
-//     {
-//         id: 'finder.app',
-//         title: 'Finder',
-//         icon: `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/img/icons/system/macos.svg`,
-//         onClickFunc: () => alert("e")
-//     },
-// ],
-// openApps: [
-//     {
-//         id: 'finder.app',
-//         name: 'Finder',
-//         icon: `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/img/icons/system/macos.svg`,
-//         hidden: false,
-//     },
-// ],
-// desktopIcons: [],
-// contextMenu: [],
-// showContextMenu: false,
-// selectBox: false,
-// selectBoxSize: [0, 0],
-// selectBoxStart: [0, 0],

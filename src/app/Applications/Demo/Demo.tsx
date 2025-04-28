@@ -18,7 +18,6 @@ const Demo: React.FC = () => {
     const appIcon = `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/img/icons/system/folders/directory.png`
 
     const desktopEventDispatch = useDesktopDispatch()
-    const [appContext] = React.useState({})
 
     const quitApp = () => {
         desktopEventDispatch(quitAppHelper(appId, appName, appIcon))
@@ -40,7 +39,7 @@ const Demo: React.FC = () => {
 
     return (
         <>
-            <ClassicyApp id={appId} name={appName} icon={appIcon} defaultWindow={'demo'} appContext={appContext}>
+            <ClassicyApp id={appId} name={appName} icon={appIcon} defaultWindow={'demo'}>
                 <ClassicyWindow
                     id={'demo2'}
                     title={appName}

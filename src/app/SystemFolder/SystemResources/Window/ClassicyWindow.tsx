@@ -1,13 +1,13 @@
 'use client'
 
 import { useDesktop, useDesktopDispatch } from '@/app/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext'
-import ClassicyContextualMenu from '@/app/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenu'
 import { ClassicyMenuItem } from '@/app/SystemFolder/SystemResources/Menu/ClassicyMenu'
 import { useSoundDispatch } from '@/app/SystemFolder/SystemResources/SoundManager/ClassicySoundManagerContext'
 import classicyWindowStyle from '@/app/SystemFolder/SystemResources/Window/ClassicyWindow.module.scss'
 import { ClassicyWindowState } from '@/app/SystemFolder/SystemResources/Window/ClassicyWindowContext'
 import classNames from 'classnames'
 import React, { useEffect, useMemo } from 'react'
+import ClassicyContextualMenu from '@/app/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenu'
 
 interface ClassicyWindowProps {
     title?: string
@@ -57,21 +57,6 @@ const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
     const [size, setSize] = React.useState<[number, number]>(initialSize)
     const [clickPosition, setClickPosition] = React.useState<[number, number]>([0, 0])
 
-    let initialWindowState: ClassicyWindowState = {
-        collapsed: false,
-        contextMenu: contextMenu,
-        dragging: false,
-        moving: false,
-        resizing: false,
-        sounding: false,
-        zoomed: false,
-        size: initialSize,
-        position: initialPosition,
-        closed: hidden,
-        menuBar: appMenu || [],
-        contextMenuShown: false,
-    }
-
     const clickOffset = [10, 10]
 
     const desktopContext = useDesktop()
@@ -79,8 +64,26 @@ const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
     let player = useSoundDispatch()
 
     const windowRef = React.useRef(null)
+
+    const app = useMemo(() => {
+        return desktopContext.System.Manager.App.apps.findIndex((app) => app.id === appId)
+    }, [appId, desktopContext.System.Manager.App.apps])
+
     const ws = useMemo(() => {
-        const app = desktopContext.System.Manager.App.apps.findIndex((app) => app.id === appId)
+        const initialWindowState: ClassicyWindowState = {
+            collapsed: false,
+            contextMenu: contextMenu,
+            dragging: false,
+            moving: false,
+            resizing: false,
+            sounding: false,
+            zoomed: false,
+            size: initialSize,
+            position: initialPosition,
+            closed: hidden,
+            menuBar: appMenu || [],
+            contextMenuShown: false,
+        }
         let window = desktopContext.System.Manager.App.apps[app].windows.find((w) => w.id === id)
         if (!window) {
             window = {
@@ -91,12 +94,22 @@ const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
                     windowRef.current?.getBoundingClientRect().left,
                     windowRef.current?.getBoundingClientRect().top,
                 ],
-
                 ...initialWindowState,
             }
         }
         return window
-    }, [desktopContext])
+    }, [
+        app,
+        appId,
+        appMenu,
+        contextMenu,
+        desktopContext.System.Manager.App.apps,
+        hidden,
+        id,
+        initialPosition,
+        initialSize,
+        minimumSize,
+    ])
 
     useEffect(() => {
         desktopEventDispatch({
@@ -106,23 +119,15 @@ const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
                 id: appId,
             },
         })
-    }, [])
-
-    if (player === null) {
-        player = (_) => {}
-    }
+    }, [desktopContext.System.Manager.App.apps])
 
     const startResizeWindow = () => {
-        // windowEventDispatch({
-        //     type: 'ClassicyWindowPosition',
-        //     position: [windowRef.current.getBoundingClientRect().left, windowRef.current.getBoundingClientRect().top],
-        // })
         desktopEventDispatch({
             type: 'ClassicyWindowPosition',
             app: {
                 id: appId,
             },
-            window,
+            window: ws,
             position: [windowRef.current.getBoundingClientRect().left, windowRef.current.getBoundingClientRect().top],
         })
         setResize(true)
@@ -132,12 +137,21 @@ const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
 
     const startMoveWindow = (e) => {
         e.preventDefault()
-        player({ type: 'ClassicySoundPlay', sound: 'ClassicyWindowMoveIdle' })
-        setDragging(true)
         setClickPosition([
             e.clientX - windowRef.current.getBoundingClientRect().left,
             e.clientY - windowRef.current.getBoundingClientRect().top,
         ])
+        desktopEventDispatch({
+            type: 'ClassicyWindowMove',
+            app: {
+                id: appId,
+            },
+            window: ws,
+            moving: true,
+            position: [windowRef.current.getBoundingClientRect().left, windowRef.current.getBoundingClientRect().top],
+        })
+        player({ type: 'ClassicySoundPlay', sound: 'ClassicyWindowMoveIdle' })
+        setDragging(true)
     }
 
     const changeWindow = (e) => {
@@ -147,7 +161,7 @@ const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
         }
 
         if (ws.resizing) {
-            setSize([Math.abs(ws.position[0] - e.clientX - 4), Math.abs(ws.position[1] - e.clientY - 4)])
+            setSize([Math.abs(ws.position[0] - e.clientX), Math.abs(ws.position[1] - e.clientY)])
         }
 
         if (ws.dragging) {
@@ -163,31 +177,21 @@ const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
         }
         setResize(false)
         setDragging(false)
-        setMoving(false)
-        setClickPosition([0, 0])
+        setMoving(false, [ws.position[0], ws.position[1]])
     }
 
     const setDragging = (toDrag: boolean) => {
-        // windowEventDispatch({
-        //     type: 'ClassicyWindowDrag',
-        //     dragging: toDrag,
-        // })
         desktopEventDispatch({
             type: 'ClassicyWindowDrag',
             dragging: toDrag,
             app: {
                 id: appId,
             },
-            window,
+            window: ws,
         })
     }
 
     const setMoving = (toMove: boolean, toPosition: [number, number] = [0, 0]) => {
-        // windowEventDispatch({
-        //     type: 'ClassicyWindowMove',
-        //     moving: toMove,
-        //     position: toPosition,
-        // })
         desktopEventDispatch({
             type: 'ClassicyWindowMove',
             moving: toMove,
@@ -195,15 +199,12 @@ const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
             app: {
                 id: appId,
             },
-            window,
+            window: ws,
         })
     }
 
     const isActive = () => {
-        if (desktopContext && 'activeWindow' in desktopContext) {
-            return id === desktopContext.activeWindow
-        }
-        return true
+        return ws.focused
     }
 
     const setActive = () => {
@@ -216,11 +217,11 @@ const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
                     id: appId,
                     appMenu: appMenu,
                 },
-                window,
+                window: ws,
             })
             desktopEventDispatch({
                 type: 'ClassicyWindowContextMenu',
-                contextMenu: contextMenu ? contextMenu : [],
+                contextMenu: contextMenu || [],
             })
         }
     }
@@ -239,24 +240,18 @@ const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
     const setCollapse = (toCollapse: boolean) => {
         if (toCollapse) {
             player({ type: 'ClassicySoundPlay', sound: 'ClassicyWindowCollapse' })
-            // windowEventDispatch({
-            //     type: 'ClassicyWindowCollapse',
-            // })
             desktopEventDispatch({
                 type: 'ClassicyWindowCollapse',
-                window: id,
+                window: ws,
                 app: {
                     id: appId,
                 },
             })
         } else {
             player({ type: 'ClassicySoundPlay', sound: 'ClassicyWindowExpand' })
-            // windowEventDispatch({
-            //     type: 'ClassicyWindowExpand',
-            // })
             desktopEventDispatch({
                 type: 'ClassicyWindowExpand',
-                window: id,
+                window: ws,
                 app: {
                     id: appId,
                 },
@@ -275,14 +270,10 @@ const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
             setCollapse(false)
         }
         player({ type: 'ClassicySoundPlay', sound: 'ClassicyWindowZoom' })
-        // windowEventDispatch({
-        //     type: 'ClassicyWindowZoom',
-        //     zoomed: toZoom,
-        // })
         desktopEventDispatch({
             type: 'ClassicyWindowZoom',
             zoomed: toZoom,
-            window: id,
+            window: ws,
             app: {
                 id: appId,
             },
@@ -290,16 +281,11 @@ const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
     }
 
     const setContextMenu = (toShow: boolean, atPosition: [number, number]) => {
-        // windowEventDispatch({
-        //     type: 'ClassicyWindowContextMenu',
-        //     contextMenu: toShow,
-        //     position: atPosition,
-        // })
         desktopEventDispatch({
             type: 'ClassicyWindowContextMenu',
             contextMenu: toShow,
             position: atPosition,
-            window: id,
+            window: ws,
             app: {
                 id: appId,
             },
@@ -318,14 +304,10 @@ const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
 
     const setResize = (toResize: boolean) => {
         if (resizable) {
-            // windowEventDispatch({
-            //     type: 'ClassicyWindowResize',
-            //     resizing: toResize,
-            // })
             desktopEventDispatch({
                 type: 'ClassicyWindowResize',
                 resizing: toResize,
-                window: id,
+                window: ws,
                 app: {
                     id: appId,
                 },
@@ -340,7 +322,7 @@ const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
             app: {
                 id: appId,
             },
-            window,
+            window: ws,
         })
         if (typeof onCloseFunc === 'function') {
             onCloseFunc(id)
@@ -376,6 +358,7 @@ const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
                         top: ws.position[1],
                         minWidth: minimumSize[0],
                         minHeight: ws.collapsed ? 0 : minimumSize[1],
+                        maxHeight: ws.collapsed ? '1em' : '100%',
                     }}
                     className={classNames(
                         classicyWindowStyle.classicyWindow,
@@ -391,7 +374,7 @@ const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
                         scrollable === true ? '' : classicyWindowStyle.classicyWindowNoScroll
                     )}
                     onMouseMove={changeWindow}
-                    onMouseUp={stopChangeWindow}
+                    // onMouseUp={stopChangeWindow}
                     onClick={setActive}
                     onContextMenu={showContextMenu}
                     onMouseOut={hideContextMenu}
@@ -399,7 +382,7 @@ const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
                     {contextMenu && ws.contextMenu && (
                         <ClassicyContextualMenu
                             menuItems={contextMenu}
-                            // position={windowState.contextMenuLocation}
+                            position={clickPosition}
                         ></ClassicyContextualMenu>
                     )}
 
@@ -415,7 +398,11 @@ const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
                                 <div className={classicyWindowStyle.classicyWindowCloseBox} onClick={close}></div>
                             </div>
                         )}
-                        <div className={classicyWindowStyle.classicyWindowTitle} onMouseDown={startMoveWindow}>
+                        <div
+                            className={classicyWindowStyle.classicyWindowTitle}
+                            onMouseDown={startMoveWindow}
+                            onMouseUp={stopChangeWindow}
+                        >
                             {titleBar()}
                         </div>
                         {collapsable && (
@@ -463,7 +450,6 @@ const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
                             )}
                         >
                             {' '}
-                            {JSON.stringify(ws, null, 1)}
                             {children}
                         </div>
                     </div>
@@ -473,7 +459,8 @@ const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
                                 classicyWindowStyle.classicyWindowResizer,
                                 isActive() ? '' : classicyWindowStyle.classicyWindowResizerDimmed
                             )}
-                            onMouseDownCapture={startResizeWindow}
+                            onMouseDown={startResizeWindow}
+                            onMouseUp={stopChangeWindow}
                         ></div>
                     )}
                 </div>

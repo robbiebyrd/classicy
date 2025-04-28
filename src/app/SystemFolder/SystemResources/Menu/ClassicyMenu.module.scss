@@ -169,3 +169,19 @@
   line-height: 1.75;
   padding-right: calc(var(--window-padding-size) / 2) !important;
 }
+
+.classicyMenuItemFlash {
+  -webkit-animation-name: classicyMenuItemFlashKeyframes;
+  animation-name: classicyMenuItemFlashKeyframes;
+  animation-duration: 1s;
+  animation-iteration-count: 1;
+}
+
+@keyframes classicyMenuItemFlashKeyframes {
+  0% { filter: invert(100%);}
+  20% { filter: invert(0);}
+  40% { filter: invert(100%);}
+  60% { filter: invert(0);}
+  80% { filter: invert(100%);}
+  100% { filter: invert(0);}
+}

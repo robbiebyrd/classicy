@@ -14,7 +14,6 @@ interface ClassicyAppProps {
     debug?: boolean
     openOnBoot?: boolean
     children?: any
-    appContext?: any
 }
 
 const ClassicyApp: React.FC<ClassicyAppProps> = ({
@@ -23,7 +22,6 @@ const ClassicyApp: React.FC<ClassicyAppProps> = ({
     name,
     openOnBoot,
     noDesktopIcon,
-    appContext,
     defaultWindow,
     debug = false,
     children,
@@ -57,10 +55,8 @@ const ClassicyApp: React.FC<ClassicyAppProps> = ({
     }
 
     const isAppActive = () => {
-        if (desktopContext && 'activeApp' in desktopContext) {
-            return id === desktopContext.activeApp
-        }
-        return true
+        let activeAppObject = desktopContext.System.Manager.App.apps.find((app) => app.focused)
+        return activeAppObject.id == id
     }
 
     const onFocus = () => {
@@ -108,9 +104,6 @@ const ClassicyApp: React.FC<ClassicyAppProps> = ({
             >
                 <h1>Providers</h1>
                 <hr />
-                <h2>appContext</h2>
-                <JSONTree data={appContext} theme={debuggerJSONTheme} />
-                <br />
                 <h2>desktopContext</h2>
                 <JSONTree data={desktopContext} theme={debuggerJSONTheme} />
                 <br />
