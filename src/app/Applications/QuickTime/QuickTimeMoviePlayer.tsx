@@ -10,6 +10,7 @@ import screenfull from 'screenfull'
 export type QuickTimeDocument = {
     url: string
     name?: string
+    type?: string
     options?: Record<string, any>
 }
 
@@ -22,17 +23,19 @@ const QuickTimeMoviePlayer: React.FC = () => {
     const desktop = useDesktop()
 
     const testingDocuments = [
-        // {
-        //     url: 'https://cdn1.911realtime.org/transcoded/newsw/2001-09-11/NEWSW_20010911_040000_The_National.m3u8',
-        //     name: 'Buck Bunny',
-        //     options: {
-        //         forceHLS: true,
-        //         forceSafariHLS: false,
-        //     },
-        // },
+        {
+            url: 'https://cdn1.911realtime.org/transcoded/newsw/2001-09-11/NEWSW_20010911_040000_The_National.m3u8',
+            name: 'Buck Bunny',
+            options: {
+                forceHLS: true,
+                forceSafariHLS: false,
+            },
+            type: 'video',
+        },
         {
             url: 'http://www.samisite.com/sound/cropShadesofGrayMonkees.mp3',
             name: 'Monkees',
+            type: 'audio',
         },
     ]
 
@@ -75,7 +78,13 @@ const QuickTimeMoviePlayer: React.FC = () => {
                     modal={true}
                     appMenu={appMenu}
                 >
-                    <QuickTimeVideoEmbed appId={appId} name={doc.name} url={doc.url} options={doc.options} />
+                    <QuickTimeVideoEmbed
+                        appId={appId}
+                        name={doc.name}
+                        url={doc.url}
+                        options={doc.options}
+                        type={doc.type}
+                    />
                 </ClassicyWindow>
             ))}
         </ClassicyApp>
@@ -88,10 +97,11 @@ type QuickTimeVideoEmbed = {
     appId: string
     name: string
     url: string
+    type: string
     options: {}
 }
 
-const QuickTimeVideoEmbed: React.FC<QuickTimeVideoEmbed> = ({ appId, name, url, options }) => {
+const QuickTimeVideoEmbed: React.FC<QuickTimeVideoEmbed> = ({ appId, name, url, options, type }) => {
     const desktop = useDesktop()
 
     const playerRef = React.useRef(null)
@@ -152,7 +162,9 @@ const QuickTimeVideoEmbed: React.FC<QuickTimeVideoEmbed> = ({ appId, name, url, 
                     break
                 case 'f':
                 case 'F':
-                    toggleFullscreen()
+                    if (type != 'audio') {
+                        toggleFullscreen()
+                    }
                     break
                 case 'l':
                 case 'L':
@@ -275,12 +287,14 @@ const QuickTimeVideoEmbed: React.FC<QuickTimeVideoEmbed> = ({ appId, name, url, 
                         className={quickTimeStyles.quickTimePlayerVideoControlsIcon}
                     />
                 </button>
-                <button onClick={toggleFullscreen} className={quickTimeStyles.quickTimePlayerVideoControlsButton}>
-                    <img
-                        className={quickTimeStyles.quickTimePlayerVideoControlsIcon}
-                        src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/img/icons/system/quicktime/fullscreen-button.svg`}
-                    />
-                </button>
+                {type != 'audio' && (
+                    <button onClick={toggleFullscreen} className={quickTimeStyles.quickTimePlayerVideoControlsButton}>
+                        <img
+                            className={quickTimeStyles.quickTimePlayerVideoControlsIcon}
+                            src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/img/icons/system/quicktime/fullscreen-button.svg`}
+                        />
+                    </button>
+                )}
             </div>
         </div>
     )

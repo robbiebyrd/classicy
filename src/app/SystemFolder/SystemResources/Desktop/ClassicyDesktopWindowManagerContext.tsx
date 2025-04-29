@@ -41,7 +41,6 @@ export const classicyWindowEventHandler = (ds: ClassicyStore, action) => {
             }
             break
         case 'ClassicyWindowFocus':
-            console.log(action.app)
             ds.System.Manager.App.apps = ds.System.Manager.App.apps.map((a) => {
                 if (a.id === action.app.id) {
                     a.focused = true
@@ -102,7 +101,6 @@ export const classicyWindowEventHandler = (ds: ClassicyStore, action) => {
                 }
                 return a
             })
-            console.log('zoomed')
             break
         case 'ClassicyWindowCollapse':
             ds.System.Manager.App.apps = ds.System.Manager.App.apps.map((a) => {
@@ -116,7 +114,6 @@ export const classicyWindowEventHandler = (ds: ClassicyStore, action) => {
                 }
                 return a
             })
-            console.log('collapsed')
             break
         case 'ClassicyWindowExpand':
             ds.System.Manager.App.apps = ds.System.Manager.App.apps.map((a) => {
@@ -130,7 +127,6 @@ export const classicyWindowEventHandler = (ds: ClassicyStore, action) => {
                 }
                 return a
             })
-            console.log('collapsed')
             break
 
         case 'ClassicyWindowMove': {

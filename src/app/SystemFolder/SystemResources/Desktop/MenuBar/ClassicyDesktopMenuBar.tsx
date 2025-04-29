@@ -31,14 +31,16 @@ const ClassicyDesktopMenuBar: React.FC = () => {
         image: activeAppObject?.at(0)?.icon || '',
         title: activeAppObject?.at(0)?.name || 'Finder',
         className: classicyDesktopMenuStyles.classicyDesktopMenuAppSwitcher,
-        menuChildren: desktopContext.System.Manager.App.apps.map((app) => ({
-            id: app.id,
-            icon: app.icon,
-            title: app.name,
-            onClickFunc: () => {
-                setActiveApp(app.id)
-            },
-        })),
+        menuChildren: desktopContext.System.Manager.App.apps
+            .filter((a) => a.open)
+            .map((app) => ({
+                id: app.id,
+                icon: app.icon,
+                title: app.name,
+                onClickFunc: () => {
+                    setActiveApp(app.id)
+                },
+            })),
     }
 
     const defaultMenuItems = [].concat(

@@ -76,8 +76,21 @@ export class ClassicyAppManagerHandler {
         return ds.System.Manager.App.apps.findIndex((d) => d.id === appId)
     }
 
+    deFocusApps(ds: ClassicyStore) {
+        ds.System.Manager.App.apps = ds.System.Manager.App.apps.map((a) => {
+            a.focused = false
+            a.windows = a.windows.map((w) => {
+                w.focused = false
+                return w
+            })
+            return a
+        })
+        return ds
+    }
+
     focusApp(ds: ClassicyStore, appId: string) {
         const findApp = this.getAppIndex(ds, appId)
+        ds = this.deFocusApps(ds)
         ds.System.Manager.App.apps[findApp].focused = true
         const focusedWindow = ds.System.Manager.App.apps[findApp].windows.findIndex((w) => w.default)
         if (focusedWindow >= 0) {
@@ -142,6 +155,11 @@ export const classicyAppEventHandler = (ds: ClassicyStore, action) => {
         }
         case 'ClassicyAppClose': {
             handler.closeApp(ds, action.app.id)
+            const lastOpenApp = () => {
+                const openApps = ds.System.Manager.App.apps.filter((w) => w.open)
+                return openApps[0].id
+            }
+            handler.focusApp(ds, lastOpenApp())
             break
         }
         case 'ClassicyAppFocus': {

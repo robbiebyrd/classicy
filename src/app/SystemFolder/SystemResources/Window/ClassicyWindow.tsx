@@ -358,7 +358,6 @@ const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
                         top: ws.position[1],
                         minWidth: minimumSize[0],
                         minHeight: ws.collapsed ? 0 : minimumSize[1],
-                        maxHeight: ws.collapsed ? '1em' : '100%',
                     }}
                     className={classNames(
                         classicyWindowStyle.classicyWindow,
@@ -374,7 +373,7 @@ const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
                         scrollable === true ? '' : classicyWindowStyle.classicyWindowNoScroll
                     )}
                     onMouseMove={changeWindow}
-                    // onMouseUp={stopChangeWindow}
+                    onMouseUp={stopChangeWindow}
                     onClick={setActive}
                     onContextMenu={showContextMenu}
                     onMouseOut={hideContextMenu}
@@ -391,7 +390,6 @@ const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
                             classicyWindowStyle.classicyWindowTitleBar,
                             modal === true ? classicyWindowStyle.classicyWindowTitleBarModal : ''
                         )}
-                        onDoubleClick={toggleCollapse}
                     >
                         {closable && (
                             <div className={classicyWindowStyle.classicyWindowControlBox}>

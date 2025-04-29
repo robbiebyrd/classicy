@@ -119,10 +119,11 @@
   box-shadow: none !important;
 
   .classicyWindowResizer {
-    top: 10em !important;
-    right: -10em !important;
-    width: 20em !important;
-    height: 20em !important;
+    //top: 2em !important;
+    right: -2em !important;
+    bottom: -2em !important;
+    width: 4em !important;
+    height: 4em !important;
     cursor: grabbing !important;
   }
 
@@ -144,8 +145,6 @@
   }
 
   .classicyWindowTitle {
-    margin: -20em;
-    padding: 30em;
   }
 }
 

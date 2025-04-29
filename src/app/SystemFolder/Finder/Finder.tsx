@@ -101,6 +101,7 @@ const Finder = () => {
             icon={appIcon}
             noDesktopIcon={true}
             defaultWindow={appName + ':' + openPaths[0]}
+            debug={true}
         >
             {openPaths
                 .map((op) => {

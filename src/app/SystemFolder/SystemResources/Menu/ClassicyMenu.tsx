@@ -24,82 +24,79 @@ interface ClassicyMenuProps {
 }
 
 const ClassicyMenu: React.FC<ClassicyMenuProps> = ({ menuItems, navClass, subNavClass, children }) => {
+    if (menuItems && menuItems.length > 0) {
+        return (
+            <div className={classicyMenuStyles.classicyMenuWrapper}>
+                <ul className={classNames(navClass)}>
+                    {menuItems.map((item: ClassicyMenuItem) => (
+                        <ClassicyMenuItem menuItem={item} subNavClass={subNavClass} />
+                    ))}
+                    {children}
+                </ul>
+            </div>
+        )
+    }
+}
+
+const ClassicyMenuItem: React.FC<{ menuItem: ClassicyMenuItem; subNavClass: string }> = ({ menuItem, subNavClass }) => {
     const player = useSoundDispatch()
-
-    const generateMenuItem = (menuItem: ClassicyMenuItem, subNavClass: string = 'default') => {
-        if (menuItem) {
-            let newMenuItem = <></>
-            if (menuItem.id === 'spacer') {
-                return <hr />
-            } else {
-                newMenuItem = (
-                    <>
-                        <p>
-                            {menuItem.image !== undefined &&
-                                (newMenuItem = <img src={menuItem.image} alt={menuItem.title} />)}
-                            {!!menuItem.icon && <img src={menuItem.icon} alt={menuItem.title} />}
-                            {menuItem.title}
-                        </p>
-                        <p
-                            className={classicyMenuStyles.classicyMenuItemKeyboardShortcut}
-                            dangerouslySetInnerHTML={{ __html: menuItem.keyboardShortcut }}
-                        ></p>
-                    </>
-                )
-            }
-
-            return (
-                <li
-                    id={menuItem.id}
-                    key={menuItem.id}
-                    onClick={() => {
-                        if (menuItem.onClickFunc) {
-                            menuItem.onClickFunc()
-                        }
-                    }}
-                    onMouseOver={() => {
-                        player({ type: 'ClassicySoundPlay', sound: 'ClassicyMenuItemHover' })
-                    }}
-                    onMouseOut={() => {
-                        player({ type: 'ClassicySoundPlay', sound: 'ClassicyMenuItemClick' })
-                    }}
-                    className={classNames(
-                        classicyMenuStyles.classicyMenuItem,
-                        !!menuItem.icon ? '' : classicyMenuStyles.classicyMenuItemNoImage,
-                        menuItem.className,
-                        menuItem.disabled ? classicyMenuStyles.classicyMenuItemDisabled : '',
-                        menuItem.menuChildren && menuItem.menuChildren.length > 0
-                            ? classicyMenuStyles.classicyMenuItemChildMenuIndicator
-                            : ''
-                    )}
-                >
-                    {newMenuItem}
-                    {menuItem.menuChildren &&
-                        menuItem.menuChildren.length > 0 &&
-                        generateMenu(menuItem.menuChildren, subNavClass, subNavClass)}
-                </li>
+    if (menuItem) {
+        let newMenuItem = <></>
+        if (menuItem.id === 'spacer') {
+            return <hr />
+        } else {
+            newMenuItem = (
+                <>
+                    <p>
+                        {menuItem.image !== undefined &&
+                            (newMenuItem = <img src={menuItem.image} alt={menuItem.title} />)}
+                        {!!menuItem.icon && <img src={menuItem.icon} alt={menuItem.title} />}
+                        {menuItem.title}
+                    </p>
+                    <p
+                        className={classicyMenuStyles.classicyMenuItemKeyboardShortcut}
+                        dangerouslySetInnerHTML={{ __html: menuItem.keyboardShortcut }}
+                    ></p>
+                </>
             )
         }
-    }
-    const generateMenu = (
-        items: ClassicyMenuItem[],
-        navClass: string = classicyMenuStyles.classicyMenu,
-        subNavClass: string = classicyMenuStyles.classicySubMenu,
-        children?: any
-    ) => {
-        if (items && items.length > 0) {
-            return (
-                <div className={classicyMenuStyles.classicyMenuWrapper}>
-                    <ul className={classNames(navClass)}>
-                        {items.map((item: ClassicyMenuItem) => generateMenuItem(item, subNavClass))}
-                        {children}
-                    </ul>
-                </div>
-            )
-        }
-    }
 
-    return generateMenu(menuItems, navClass, subNavClass, children)
+        return (
+            <li
+                id={menuItem.id}
+                key={menuItem.id}
+                onClick={() => {
+                    if (menuItem.onClickFunc) {
+                        menuItem.onClickFunc()
+                    }
+                }}
+                onMouseOver={() => {
+                    player({ type: 'ClassicySoundPlay', sound: 'ClassicyMenuItemHover' })
+                }}
+                onMouseOut={() => {
+                    player({ type: 'ClassicySoundPlay', sound: 'ClassicyMenuItemClick' })
+                }}
+                className={classNames(
+                    classicyMenuStyles.classicyMenuItem,
+                    !!menuItem.icon ? '' : classicyMenuStyles.classicyMenuItemNoImage,
+                    menuItem.className,
+                    menuItem.disabled ? classicyMenuStyles.classicyMenuItemDisabled : '',
+                    menuItem.menuChildren && menuItem.menuChildren.length > 0
+                        ? classicyMenuStyles.classicyMenuItemChildMenuIndicator
+                        : ''
+                )}
+            >
+                {newMenuItem}
+                {menuItem.menuChildren && menuItem.menuChildren.length > 0 && (
+                    <ClassicyMenu
+                        menuItems={menuItem.menuChildren}
+                        subNavClass={subNavClass}
+                        navClass={subNavClass}
+                    ></ClassicyMenu>
+                )}
+            </li>
+        )
+    }
 }
 
 export default ClassicyMenu
