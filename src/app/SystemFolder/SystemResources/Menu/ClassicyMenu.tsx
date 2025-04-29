@@ -29,7 +29,7 @@ const ClassicyMenu: React.FC<ClassicyMenuProps> = ({ menuItems, navClass, subNav
             <div className={classicyMenuStyles.classicyMenuWrapper}>
                 <ul className={classNames(navClass)}>
                     {menuItems.map((item: ClassicyMenuItem) => (
-                        <ClassicyMenuItem menuItem={item} subNavClass={subNavClass} />
+                        <ClassicyMenuItem key={item?.id} menuItem={item} subNavClass={subNavClass} />
                     ))}
                     {children}
                 </ul>
