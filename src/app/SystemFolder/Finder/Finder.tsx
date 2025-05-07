@@ -73,12 +73,16 @@ const Finder = () => {
         const drives = fs.filterByType('', 'drive')
 
         Object.entries(drives).forEach(([a, b]) => {
+            const openFolderFunc = () => {
+                openFolder(a)
+            }
             desktopEventDispatch({
                 type: 'ClassicyDesktopIconAdd',
                 app: {
                     id: appId,
                     name: a,
                     icon: b['_icon'],
+                    onClickFunc: openFolderFunc,
                 },
                 kind: '_drive',
             })
