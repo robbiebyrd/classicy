@@ -308,6 +308,10 @@ const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
                 type: 'ClassicyWindowResize',
                 resizing: toResize,
                 window: ws,
+                size: [
+                    windowRef.current?.getBoundingClientRect().width,
+                    windowRef.current?.getBoundingClientRect().height,
+                ],
                 app: {
                     id: appId,
                 },

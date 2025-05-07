@@ -96,6 +96,11 @@ export class ClassicyAppManagerHandler {
         if (focusedWindow >= 0) {
             ds.System.Manager.App.apps[findApp].windows[focusedWindow].closed = false
             ds.System.Manager.App.apps[findApp].windows[focusedWindow].focused = true
+            ds.System.Manager.Desktop.appMenu = ds.System.Manager.App.apps[findApp].appMenu
+        } else if (ds.System.Manager.App.apps[findApp].windows.length > 0) {
+            ds.System.Manager.App.apps[findApp].windows[0].closed = false
+            ds.System.Manager.App.apps[findApp].windows[0].focused = true
+            ds.System.Manager.Desktop.appMenu = ds.System.Manager.App.apps[findApp].appMenu
         }
     }
 

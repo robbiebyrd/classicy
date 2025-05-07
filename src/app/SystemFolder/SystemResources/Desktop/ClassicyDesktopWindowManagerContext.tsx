@@ -37,6 +37,7 @@ export const classicyWindowEventHandler = (ds: ClassicyStore, action) => {
                     size: action.window.size,
                     position: action.window.position,
                     closed: false,
+                    hidden: false,
                 } as ClassicyStoreSystemAppWindow)
             }
             break
@@ -55,7 +56,7 @@ export const classicyWindowEventHandler = (ds: ClassicyStore, action) => {
             break
 
         case 'ClassicyWindowClose':
-            ds = updateWindow(action.app.id, action.window.id, { closed: true, hidden: true })
+            ds = updateWindow(action.app.id, action.window.id, { closed: true })
             break
 
         case 'ClassicyWindowMenu':
@@ -68,7 +69,7 @@ export const classicyWindowEventHandler = (ds: ClassicyStore, action) => {
                     a.windows = a.windows.map((w) => {
                         if (w.id == action.window.id) {
                             w.resizing = action.resizing
-                            w.size = action.window.size
+                            w.size = action.size
                         }
                         return w
                     })
