@@ -1,5 +1,5 @@
 import ClassicyApp from '@/app/SystemFolder/SystemResources/App/ClassicyApp'
-import { useDesktopDispatch } from '@/app/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext'
+import { useDesktop, useDesktopDispatch } from '@/app/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext'
 import ClassicyFileBrowser from '@/app/SystemFolder/SystemResources/File/ClassicyFileBrowser'
 import { ClassicyFileSystem } from '@/app/SystemFolder/SystemResources/File/ClassicyFileSystem'
 import ClassicyWindow from '@/app/SystemFolder/SystemResources/Window/ClassicyWindow'
@@ -11,6 +11,7 @@ const Finder = () => {
     const appId: string = 'Finder.app'
     const appIcon: string = `${process.env.NEXT_PUBLIC_BASE_PATH}/img/icons/system/macos.svg`
     const desktopEventDispatch = useDesktopDispatch()
+    const desktop = useDesktop()
 
     const [openPaths, setOpenPaths] = React.useState(['Macintosh HD'])
     const [pathSettings, setPathSettings] = React.useState<Record<string, PathSettingsProps>>({})
@@ -27,6 +28,17 @@ const Finder = () => {
 
     const openFolder = (path: string) => {
         setOpenPaths(Array.from(new Set([...openPaths, path])))
+        const appIndex = desktop.System.Manager.App.apps.findIndex((app) => app.id === appId)
+        const windowIndex = desktop.System.Manager.App.apps[appIndex].windows.findIndex((w) => w.id === path)
+        const ws = desktop.System.Manager.App.apps[appIndex].windows[windowIndex]
+        ws.closed = false
+        desktopEventDispatch({
+            type: 'ClassicyWindowOpen',
+            window: ws,
+            app: {
+                id: appId,
+            },
+        })
     }
 
     const openFile = (path: string) => {
@@ -118,6 +130,7 @@ const Finder = () => {
                             title={dir['_name']}
                             icon={`${process.env.NEXT_PUBLIC_BASE_PATH}${dir['_icon']}`}
                             appId={appId}
+                            hidden={false}
                             initialSize={[425, 300]}
                             initialPosition={[50 + idx * 50, 50 + idx * 50]}
                             header={<span>{getHeaderString(dir)}</span>}
