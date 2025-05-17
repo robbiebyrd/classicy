@@ -153,7 +153,7 @@ const Finder = () => {
                             id={op}
                             key={appName + ':' + op}
                             title={dir['_name']}
-                            icon={`${process.env.NEXT_PUBLIC_BASE_PATH}${dir['_icon']}`}
+                            icon={`${dir['_icon']}`}
                             appId={appId}
                             hidden={false}
                             initialSize={[425, 300]}

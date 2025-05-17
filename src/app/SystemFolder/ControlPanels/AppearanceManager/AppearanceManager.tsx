@@ -12,7 +12,6 @@ import { useSoundDispatch } from '@/app/SystemFolder/SystemResources/SoundManage
 import ClassicyWindow from '@/app/SystemFolder/SystemResources/Window/ClassicyWindow'
 import React from 'react'
 import ClassicyTabs from '@/app/SystemFolder/SystemResources/Tabs/ClassicyTabs'
-import DOMPurify from 'dompurify'
 
 export const AppearanceManager: React.FC = () => {
     const appName: string = 'Appearance Manager'
@@ -27,7 +26,9 @@ export const AppearanceManager: React.FC = () => {
 
     const [showAbout, setShowAbout] = React.useState(false)
     const [bg, setBg] = React.useState<string>(
-        desktopContext.System.Manager.Appearance.activeTheme.desktop.backgroundImage
+        process.env.NEXT_PUBLIC_BASE_PATH +
+            '/' +
+            desktopContext.System.Manager.Appearance.activeTheme.desktop.backgroundImage
     )
 
     const themesList = desktopContext.System.Manager.Appearance.availableThemes.map((a: any) =>
@@ -86,7 +87,7 @@ export const AppearanceManager: React.FC = () => {
         { label: 'Sunny', value: 'sunny.png' },
         { label: 'Sunny Dark', value: 'sunny_dark.png' },
         { label: 'Sunny Light', value: 'sunny_light.png' },
-        { label: 'Saves Azul', value: 'waves_azul.png' },
+        { label: 'Waves Azul', value: 'waves_azul.png' },
         { label: 'Waves Bondi', value: 'waves_bondi.png' },
         { label: 'Waves Sunny', value: 'waves_sunny.png' },
     ]
@@ -103,7 +104,7 @@ export const AppearanceManager: React.FC = () => {
         setBg(backgroundPrefix + '/' + e.target.value)
         desktopEventDispatch({
             type: 'ClassicyDesktopChangeBackground',
-            backgroundImage: backgroundPrefix + '/' + e.target.value,
+            backgroundImage: '/img/wallpapers/' + e.target.value,
         })
     }
 
@@ -185,7 +186,7 @@ export const AppearanceManager: React.FC = () => {
                     <div style={{ display: 'flex', flexDirection: 'row', gap: '1em' }}>
                         <img
                             draggable={false}
-                            src={DOMPurify.sanitize(bg)}
+                            src={bg}
                             style={{ height: '100%', minWidth: '50%', userSelect: 'none' }}
                         />
                         <div style={{ width: '100%' }}>

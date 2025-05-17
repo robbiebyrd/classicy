@@ -31,7 +31,7 @@ const ClassicyDesktopMenuWidgetTime: React.FC<ClassicyDesktopMenuWidgetTimeProps
         minutes: new Date(desktopContext.System.Manager.DateAndTime.dateTime).getUTCMinutes(),
         hours: new Date(desktopContext.System.Manager.DateAndTime.dateTime).getUTCHours(),
         seconds: new Date(desktopContext.System.Manager.DateAndTime.dateTime).getUTCSeconds(),
-        period: new Date(desktopContext.System.Manager.DateAndTime.dateTime).getUTCHours() >= 12 ? ' PM' : ' AM',
+        period: new Date(desktopContext.System.Manager.DateAndTime.dateTime).getUTCHours() > 12 ? ' PM' : ' AM',
     })
 
     const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
