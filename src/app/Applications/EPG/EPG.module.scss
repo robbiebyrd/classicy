@@ -17,12 +17,16 @@
   font-size: calc(var(--ui-font-size) * 0.85);
   display: flex;
   align-items: center;
-  flex-direction: row;
   @include appearance.platinumWindowUndepressable;
+  flex-direction: row;
   height: calc(var(--window-control-size) * 3);
   padding: var(--window-padding-size);
   border: 0 !important;
   border-radius: 0 !important;
+
+  & > * {
+    z-index: 100;
+  }
 }
 
 .epgEntryIcon {
@@ -62,9 +66,12 @@
   font-family: var(--body-font), sans-serif;
   font-size: calc(var(--ui-font-size) * 0.85);
   position: relative;
+  z-index: 100;
   width: 100%;
   padding-top: calc(var(--window-border-size) * 2);
+
   border-left: calc(var(--window-border-size) * 2) solid var(--color-theme-05);
+
 }
 
 .epgHeaderTimeInner {
@@ -105,19 +112,32 @@
 
 .epgIndicatorHolder {
   position: absolute;
-  height: 100%;
+  z-index: 10;
+  height: calc(100% - var(--window-border-size) * 3);
+  justify-items: center;
 }
 
 .epgIndicator {
+  z-index: 1;
   top: 0;
   right: 0;
-  width: var(--window-border-size);
-  background-color: var(--color-theme-02);
+  width: 100%;
+  opacity: .35;
+  border-right: 1px solid var(--color-theme-01);
+  border-left: 1px solid var(--color-theme-07);
+  background: linear-gradient(0.25turn, var(--color-theme-05), var(--color-theme-03));
+}
+
+.epgIndicatorCenter {
+  width: 1px;
+  height: 100%;
+  margin: 0 auto;
+  background-color: var(--color-theme-05);
 }
 
 .epgGridSetupBorder {
-  width: calc(100% - var(--window-border-size) * 2);
   @include appearance.platinumWindowControlBoxBorder;
+  width: calc(100% - var(--window-border-size) * 2);
 }
 
 .epgHolder {

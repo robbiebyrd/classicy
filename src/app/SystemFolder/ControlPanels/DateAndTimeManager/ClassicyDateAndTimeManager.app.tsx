@@ -4,7 +4,7 @@ import { ClassicyStore } from '@/app/SystemFolder/ControlPanels/AppManager/Class
 import { useDesktop, useDesktopDispatch } from '@/app/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext'
 import { getClassicyAboutWindow } from '@/app/SystemFolder/SystemResources/AboutWindow/ClassicyAboutWindow'
 import ClassicyApp from '@/app/SystemFolder/SystemResources/App/ClassicyApp'
-import { quitAppHelper } from '@/app/SystemFolder/SystemResources/App/ClassicyAppUtils'
+import { quitAppHelper, quitMenuItemHelper } from '@/app/SystemFolder/SystemResources/App/ClassicyAppUtils'
 import ClassicyButton from '@/app/SystemFolder/SystemResources/Button/ClassicyButton'
 import ClassicyDatePicker from '@/app/SystemFolder/SystemResources/DatePicker/ClassicyDatePicker'
 import ClassicyPopUpMenu from '@/app/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu'
@@ -34,7 +34,7 @@ export const ClassicyDateAndTimeManager: React.FC = () => {
         const date = new Date(desktopContext.System.Manager.DateAndTime.dateTime)
 
         let hoursToSet = period == 'am' ? updatedDate.getHours() : updatedDate.getHours() + 12
-        if (period == 'am' && updatedDate.getHours() == 12) {
+        if (period == 'pm' && updatedDate.getHours() == 12) {
             hoursToSet = 0
         }
         date.setHours(hoursToSet, updatedDate.getMinutes(), updatedDate.getSeconds())
@@ -44,7 +44,7 @@ export const ClassicyDateAndTimeManager: React.FC = () => {
         })
     }
 
-    const updateDate = (updatedDate: Date) => {
+    const updateSystemDate = (updatedDate: Date) => {
         const date = new Date(desktopContext.System.Manager.DateAndTime.dateTime)
         date.setMonth(updatedDate.getMonth())
         date.setDate(updatedDate.getDate())
@@ -56,7 +56,7 @@ export const ClassicyDateAndTimeManager: React.FC = () => {
         })
     }
 
-    const updateTimeZone = (e: ChangeEvent<HTMLSelectElement>) => {
+    const updateSystemTimeZone = (e: ChangeEvent<HTMLSelectElement>) => {
         setPeriod(e.target.value)
         desktopEventDispatch({
             type: 'ClassicyManagerDateTimeTZSet',
@@ -68,13 +68,7 @@ export const ClassicyDateAndTimeManager: React.FC = () => {
         {
             id: appId + '_file',
             title: 'File',
-            menuChildren: [
-                {
-                    id: appId + '_quit',
-                    title: 'Quit',
-                    onClickFunc: quitApp,
-                },
-            ],
+            menuChildren: [quitMenuItemHelper(appId, appName, appIcon)],
         },
         {
             id: appId + '_help',
@@ -229,7 +223,7 @@ export const ClassicyDateAndTimeManager: React.FC = () => {
                                 id={'date'}
                                 labelTitle={''}
                                 prefillValue={date}
-                                onChangeFunc={updateDate}
+                                onChangeFunc={updateSystemDate}
                             ></ClassicyDatePicker>
                         </ClassicyControlGroup>
                     </div>
@@ -250,7 +244,7 @@ export const ClassicyDateAndTimeManager: React.FC = () => {
                             id={'timezone'}
                             small={false}
                             options={timezones}
-                            onChangeFunc={updateTimeZone}
+                            onChangeFunc={updateSystemTimeZone}
                             selected={desktopContext.System.Manager.DateAndTime.timeZoneOffset?.toString()}
                         />
                     </ClassicyControlGroup>

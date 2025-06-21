@@ -1,6 +1,6 @@
-import ClassicyApp from '@/app/SystemFolder/SystemResources/App/ClassicyApp'
-import { quitAppHelper } from '@/app/SystemFolder/SystemResources/App/ClassicyAppUtils'
 import { useDesktopDispatch } from '@/app/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext'
+import ClassicyApp from '@/app/SystemFolder/SystemResources/App/ClassicyApp'
+import { quitMenuItemHelper } from '@/app/SystemFolder/SystemResources/App/ClassicyAppUtils'
 import ClassicyButton from '@/app/SystemFolder/SystemResources/Button/ClassicyButton'
 import ClassicyControlGroup from '@/app/SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup'
 import ClassicyInput from '@/app/SystemFolder/SystemResources/Input/ClassicyInput'
@@ -21,21 +21,11 @@ const Browser = () => {
         setIframeUrl(refAddressBar.current.value)
     }
 
-    const quitApp = () => {
-        desktopEventDispatch(quitAppHelper(appId, appName, appIcon))
-    }
-
     const appMenu = [
         {
             id: 'file',
             title: 'File',
-            menuChildren: [
-                {
-                    id: appId + '_quit',
-                    title: 'Quit',
-                    onClickFunc: quitApp,
-                },
-            ],
+            menuChildren: [quitMenuItemHelper(appId, appName, appIcon)],
         },
     ]
 

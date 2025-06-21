@@ -2,7 +2,7 @@
   {
     "name": "ABC",
     "number": "3",
-    "callsign": "WABC",
+    "callSign": "WABC",
     "location": "New York, NY",
     "icon": "wjla.png",
     "grid": [
@@ -88,7 +88,7 @@
   {
     "name": "CBS",
     "number": "3",
-    "callsign": "WABC",
+    "callSign": "WABC",
     "location": "New York, NY",
     "icon": "wjla.png",
     "grid": [
@@ -152,7 +152,7 @@
   {
     "name": "NBC",
     "number": "3",
-    "callsign": "WABC",
+    "callSign": "WABC",
     "location": "New York, NY",
     "icon": "wjla.png",
     "grid": [
@@ -238,7 +238,7 @@
   {
     "name": "FOX",
     "number": "3",
-    "callsign": "WABC",
+    "callSign": "WABC",
     "location": "New York, NY",
     "icon": "wjla.png",
     "grid": [

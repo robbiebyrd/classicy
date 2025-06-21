@@ -1,22 +1,22 @@
 'use client'
 
-import soundManagerStyles from '@/app/SystemFolder/ControlPanels/SoundManager/ClassicySoundManager.module.scss'
-import { getClassicyAboutWindow } from '@/app/SystemFolder/SystemResources/AboutWindow/ClassicyAboutWindow'
-import ClassicyApp from '@/app/SystemFolder/SystemResources/App/ClassicyApp'
-import { quitAppHelper } from '@/app/SystemFolder/SystemResources/App/ClassicyAppUtils'
 import { useDesktopDispatch } from '@/app/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext'
-import ClassicyCheckbox from '@/app/SystemFolder/SystemResources/Checkbox/ClassicyCheckbox'
-import ClassicyControlGroup from '@/app/SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup'
-import ClassicyControlLabel from '@/app/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel'
-import ClassicyDisclosure from '@/app/SystemFolder/SystemResources/Disclosure/ClassicyDisclosure'
+import soundManagerStyles from '@/app/SystemFolder/ControlPanels/SoundManager/ClassicySoundManager.module.scss'
 import {
     ClassicySoundInfo,
     useSound,
     useSoundDispatch,
 } from '@/app/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext'
+import { getClassicyAboutWindow } from '@/app/SystemFolder/SystemResources/AboutWindow/ClassicyAboutWindow'
+import ClassicyApp from '@/app/SystemFolder/SystemResources/App/ClassicyApp'
+import { quitAppHelper, quitMenuItemHelper } from '@/app/SystemFolder/SystemResources/App/ClassicyAppUtils'
+import ClassicyButton from '@/app/SystemFolder/SystemResources/Button/ClassicyButton'
+import ClassicyCheckbox from '@/app/SystemFolder/SystemResources/Checkbox/ClassicyCheckbox'
+import ClassicyControlGroup from '@/app/SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup'
+import ClassicyControlLabel from '@/app/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel'
+import ClassicyDisclosure from '@/app/SystemFolder/SystemResources/Disclosure/ClassicyDisclosure'
 import ClassicyWindow from '@/app/SystemFolder/SystemResources/Window/ClassicyWindow'
 import React, { useState } from 'react'
-import ClassicyButton from '@/app/SystemFolder/SystemResources/Button/ClassicyButton'
 
 export const ClassicySoundManager: React.FC = () => {
     const desktopEventDispatch = useDesktopDispatch()
@@ -48,13 +48,7 @@ export const ClassicySoundManager: React.FC = () => {
         {
             id: appId + '_file',
             title: 'File',
-            menuChildren: [
-                {
-                    id: appId + '_quit',
-                    title: 'Quit',
-                    onClickFunc: quitApp,
-                },
-            ],
+            menuChildren: [quitMenuItemHelper(appId, appName, appIcon)],
         },
         {
             id: appId + '_help',

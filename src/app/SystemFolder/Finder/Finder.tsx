@@ -1,7 +1,6 @@
 import { useDesktop, useDesktopDispatch } from '@/app/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext'
 import { getClassicyAboutWindow } from '@/app/SystemFolder/SystemResources/AboutWindow/ClassicyAboutWindow'
 import ClassicyApp from '@/app/SystemFolder/SystemResources/App/ClassicyApp'
-import { quitAppHelper } from '@/app/SystemFolder/SystemResources/App/ClassicyAppUtils'
 import ClassicyFileBrowser from '@/app/SystemFolder/SystemResources/File/ClassicyFileBrowser'
 import { ClassicyFileSystem } from '@/app/SystemFolder/SystemResources/File/ClassicyFileSystem'
 import ClassicyWindow from '@/app/SystemFolder/SystemResources/Window/ClassicyWindow'
@@ -78,10 +77,6 @@ const Finder = () => {
             type: 'ClassicyAppFinderCloseFolder',
             path,
         })
-    }
-
-    const quitApp = () => {
-        desktopEventDispatch(quitAppHelper(appId, appName, appIcon))
     }
 
     const fs = useMemo(() => new ClassicyFileSystem(''), [])
@@ -170,7 +165,14 @@ const Finder = () => {
                                             {
                                                 id: appId + '_' + op + '_file_closews',
                                                 title: 'Close All Windows',
-                                                onClickFunc: quitApp,
+                                                event: 'ClassicyAppClose',
+                                                eventData: {
+                                                    app: {
+                                                        id: appId,
+                                                        title: appName,
+                                                        icon: appIcon,
+                                                    },
+                                                },
                                             },
                                         ],
                                     },

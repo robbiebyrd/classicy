@@ -1,5 +1,7 @@
+import { capitalizeFirst, iconImageByType } from '@/app/SystemFolder/SystemResources/File/ClassicyFileBrowserUtils'
+import classicyFileBrowserViewTableStyles from '@/app/SystemFolder/SystemResources/File/ClassicyFileBrowserViewTable.module.scss'
 import { ClassicyFileSystem } from '@/app/SystemFolder/SystemResources/File/ClassicyFileSystem'
-import React, { useMemo, useState } from 'react'
+import { ClassicyFileSystemEntryMetadata } from '@/app/SystemFolder/SystemResources/File/ClassicyFileSystemModel'
 import {
     createColumnHelper,
     flexRender,
@@ -7,10 +9,8 @@ import {
     getSortedRowModel,
     useReactTable,
 } from '@tanstack/react-table'
-import { capitalizeFirst, iconImageByType } from '@/app/SystemFolder/SystemResources/File/ClassicyFileBrowserUtils'
-import classicyFileBrowserViewTableStyles from '@/app/SystemFolder/SystemResources/File/ClassicyFileBrowserViewTable.module.scss'
 import classNames from 'classnames'
-import { ClassicyFileSystemEntryMetadata } from '@/app/SystemFolder/SystemResources/File/ClassicyFileSystemModel'
+import React, { useMemo, useState } from 'react'
 
 type ClassicyFileBrowserViewTableProps = {
     fs: ClassicyFileSystem
@@ -149,7 +149,6 @@ const ClassicyFileBrowserViewTable: React.FC<ClassicyFileBrowserViewTableProps> 
                                         width: header.id === '_icon' ? iconSize : 'auto',
                                     }}
                                     onClick={(e) => {
-                                        console.log(header.column.getIsSorted())
                                         if (
                                             header.column.getIsSorted() == false ||
                                             header.column.getIsSorted() == 'desc'

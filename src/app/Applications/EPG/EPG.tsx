@@ -1,6 +1,6 @@
 import { useDesktop, useDesktopDispatch } from '@/app/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext'
 import ClassicyApp from '@/app/SystemFolder/SystemResources/App/ClassicyApp'
-import { quitAppHelper } from '@/app/SystemFolder/SystemResources/App/ClassicyAppUtils'
+import { quitMenuItemHelper } from '@/app/SystemFolder/SystemResources/App/ClassicyAppUtils'
 import ClassicyButton from '@/app/SystemFolder/SystemResources/Button/ClassicyButton'
 import ClassicyWindow from '@/app/SystemFolder/SystemResources/Window/ClassicyWindow'
 import classNames from 'classnames'
@@ -9,9 +9,9 @@ import epgStyles from './EPG.module.scss'
 import data from './testdata.json' with { type: 'json' }
 
 interface ClassicyEPGProps {
-    minutesPerGrid?: number // Minutes
-    gridTimeWidth?: number // Minutes
-    gridWidth?: number // Minutes
+    minutesPerGrid?: number // in Minutes
+    gridTimeWidth?: number // in Minutes
+    gridWidth?: number // in Minutes
     gridStart?: Date
     channelHeaderWidth?: number
 }
@@ -30,7 +30,7 @@ export type EPGChannel = {
     name: string
     title?: string
     number: string
-    callsign: string
+    callSign: string
     location: string
     icon: string
     grid: EPGProgram[]
@@ -65,10 +65,6 @@ const EPG: React.FC<ClassicyEPGProps> = ({
         return endTime
     }, [gridStartTime, gridWidth])
 
-    const quitApp = () => {
-        desktopEventDispatch(quitAppHelper(appId, appName, appIcon))
-    }
-
     const testClick = (e) => {
         alert(e.target.id)
     }
@@ -77,17 +73,12 @@ const EPG: React.FC<ClassicyEPGProps> = ({
         {
             id: 'file',
             title: 'File',
-            menuChildren: [
-                {
-                    id: appId + '_quit',
-                    title: 'Quit',
-                    onClickFunc: quitApp,
-                },
-            ],
+            menuChildren: [quitMenuItemHelper(appId, appName, appIcon)],
         },
     ]
 
     const gridData = data as EPGChannel[]
+    const defaultDocumentIcon = `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/img/icons/system/quicktime/movie.png`
 
     const getProgramData = (channel: EPGChannel, channelIndex: number) => {
         return channel.grid.map((gridItem) => {
@@ -200,7 +191,7 @@ const EPG: React.FC<ClassicyEPGProps> = ({
                         <img
                             className={epgStyles.epgChannelIcon}
                             src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/img/icons/applications/epg/channels/${channel.icon}`}
-                            alt={channel.number + ' ' + channel.callsign + ' - ' + channel.location}
+                            alt={channel.number + ' ' + channel.callSign + ' - ' + channel.location}
                         />
                         {channel.name}
                     </div>
@@ -252,17 +243,20 @@ const EPG: React.FC<ClassicyEPGProps> = ({
                                 <div
                                     className={classNames(epgStyles.epgGridSetup, epgStyles.epgIndicatorHolder)}
                                     style={{
+                                        pointerEvents: 'none',
                                         gridTemplateColumns: `${channelHeaderWidth}fr repeat(${gridWidth / minutesPerGrid}, 1fr)`,
                                     }}
                                 >
                                     <div
                                         className={epgStyles.epgIndicator}
                                         style={{ gridColumnStart: indicator + 2, gridColumnEnd: indicator + 3 }}
-                                    ></div>
+                                    >
+                                        <div className={epgStyles.epgIndicatorCenter}></div>
+                                    </div>
                                 </div>
                             )}
                             <div
-                                className={epgStyles.epgGridSetup}
+                                className={classNames(epgStyles.epgGridSetup)}
                                 style={{
                                     gridTemplateColumns: `${channelHeaderWidth}fr repeat(${gridWidth / minutesPerGrid}, 1fr)`,
                                     backgroundColor: 'var(--color-white)',

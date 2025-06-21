@@ -1,9 +1,10 @@
-import ClassicyApp from '@/app/SystemFolder/SystemResources/App/ClassicyApp'
-import { quitAppHelper } from '@/app/SystemFolder/SystemResources/App/ClassicyAppUtils'
 import { useDesktopDispatch } from '@/app/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext'
+import ClassicyApp from '@/app/SystemFolder/SystemResources/App/ClassicyApp'
+import { quitAppHelper, quitMenuItemHelper } from '@/app/SystemFolder/SystemResources/App/ClassicyAppUtils'
 import ClassicyButton from '@/app/SystemFolder/SystemResources/Button/ClassicyButton'
 import ClassicyCheckbox from '@/app/SystemFolder/SystemResources/Checkbox/ClassicyCheckbox'
 import ClassicyControlGroup from '@/app/SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup'
+import ClassicyControlLabel from '@/app/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel'
 import ClassicyDisclosure from '@/app/SystemFolder/SystemResources/Disclosure/ClassicyDisclosure'
 import ClassicyInput from '@/app/SystemFolder/SystemResources/Input/ClassicyInput'
 import ClassicyPopUpMenu from '@/app/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu'
@@ -11,7 +12,6 @@ import ClassicyProgressBar from '@/app/SystemFolder/SystemResources/ProgressBar/
 import ClassicyRadioInput from '@/app/SystemFolder/SystemResources/RadioInput/ClassicyRadioInput'
 import ClassicyWindow from '@/app/SystemFolder/SystemResources/Window/ClassicyWindow'
 import React from 'react'
-import ClassicyControlLabel from '@/app/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel'
 
 const Demo: React.FC = () => {
     const appName = 'Demo'
@@ -40,13 +40,7 @@ const Demo: React.FC = () => {
         {
             id: 'file',
             title: 'File',
-            menuChildren: [
-                {
-                    id: appId + '_quit',
-                    title: 'Quit',
-                    onClickFunc: quitApp,
-                },
-            ],
+            menuChildren: [quitMenuItemHelper(appId, appName, appIcon)],
         },
     ]
 

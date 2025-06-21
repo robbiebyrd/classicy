@@ -1,6 +1,6 @@
-import ClassicyApp from '@/app/SystemFolder/SystemResources/App/ClassicyApp'
-import { quitAppHelper } from '@/app/SystemFolder/SystemResources/App/ClassicyAppUtils'
 import { useDesktopDispatch } from '@/app/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext'
+import ClassicyApp from '@/app/SystemFolder/SystemResources/App/ClassicyApp'
+import { quitMenuItemHelper } from '@/app/SystemFolder/SystemResources/App/ClassicyAppUtils'
 import ClassicyRichTextEditor from '@/app/SystemFolder/SystemResources/RichTextEditor/ClassicyRichTextEditor'
 import ClassicyWindow from '@/app/SystemFolder/SystemResources/Window/ClassicyWindow'
 import React from 'react'
@@ -34,21 +34,11 @@ const SimpleText = () => {
 > *While some see them as the crazy ones, we see genius.*\n
 > *Because the people who are crazy enough to think they can change the world, are the ones who do."*`
 
-    const quitApp = () => {
-        desktopEventDispatch(quitAppHelper(appId, appName, appIcon))
-    }
-
     const appMenu = [
         {
             id: 'file',
             title: 'File',
-            menuChildren: [
-                {
-                    id: appId + '_quit',
-                    title: 'Quit',
-                    onClickFunc: quitApp,
-                },
-            ],
+            menuChildren: [quitMenuItemHelper(appId, appName, appIcon)],
         },
     ]
 

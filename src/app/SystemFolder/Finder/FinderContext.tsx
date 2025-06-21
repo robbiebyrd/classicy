@@ -5,14 +5,12 @@ export const classicyFinderEventHandler = (ds: ClassicyStore, action) => {
 
     switch (action.type) {
         case 'ClassicyAppFinderOpenFolder': {
-            console.log(ds.System.Manager.App.apps[appId])
             ds.System.Manager.App.apps[appId].data['openPaths'] = Array.from(
                 new Set([...ds.System.Manager.App.apps[appId]?.data['openPaths'], action.path])
             )
             break
         }
         case 'ClassicyAppFinderOpenFolders': {
-            console.log(ds.System.Manager.App.apps[appId])
             ds.System.Manager.App.apps[appId].data['openPaths'] = Array.from(
                 new Set([...ds.System.Manager.App.apps[appId]?.data['openPaths'], ...action.paths])
             )
