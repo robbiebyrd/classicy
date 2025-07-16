@@ -1,0 +1,52 @@
+.classicyRichTextEditor {
+  border: var(--window-border-size) solid black;
+  box-shadow: calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 0 var(--color-system-05),
+  calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) 0 0 var(--color-system-04);
+
+  &:focus-visible {
+    margin: 2em;
+    padding: 2em;
+    border-radius: 2pt;
+    outline: 0 0 0 calc(var(--window-border-size) * 2) var(--color-outline) !important;
+    box-shadow: 0 0 0 calc(var(--window-border-size) * 2) var(--color-theme-04),
+    0 0 var(--window-border-size) calc(var(--window-border-size) * 2) var(--color-theme-04);
+  }
+
+  div {
+    height: auto;
+    outline: none;
+  }
+
+  div[role='textbox'] {
+    padding: 0 var(--window-padding-size);
+  }
+
+  div[role='toolbar'] {
+    position: sticky;
+    top: 0;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    width: 100%;
+    background: var(--color-system-02);
+
+    div, button {
+      display: flex;
+      flex-direction: row;
+      flex-grow: 1;
+      justify-content: center;
+      border-radius: 0 !important;
+      background: var(--color-system-02);
+
+      button {
+        display: flex;
+        justify-content: center;
+        text-align: center;
+      }
+    }
+  }
+
+  .prose {
+    font-family: 'AppleGaramond', serif;
+  }
+}

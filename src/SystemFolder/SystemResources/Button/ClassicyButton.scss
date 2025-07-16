@@ -1,0 +1,57 @@
+@use '../../ControlPanels/AppearanceManager/styles/appearance';
+
+.classicyButton {
+  font-family: var(--ui-font), sans-serif;
+  font-size: var(--ui-font-size);
+
+  margin: calc(var(--window-padding-size));
+  padding: calc(var(--window-padding-size) / 2) var(--window-padding-size);
+  user-select: none;
+
+  &:focus {
+    outline: var(--color-outline) solid calc(var(--window-border-size) * 2) !important;
+  }
+
+  @include appearance.platinumWindowDepressable;
+}
+
+.classicyButtonDefault {
+  font-family: var(--ui-font), sans-serif;
+  font-size: var(--ui-font-size);
+
+  margin: calc(var(--window-padding-size));
+  padding: calc(var(--window-padding-size) / 2) var(--window-padding-size);
+  user-select: none;
+
+  @include appearance.platinumDepressableDefault;
+
+  &:active:disabled {
+    box-shadow: none;
+  }
+}
+
+.classicyButtonShapeSquare {
+  width: calc(var(--window-control-size) * 4);
+  padding: calc(var(--window-padding-size) * 2);
+  border-radius: 0;
+  aspect-ratio: 1/1 !important;
+
+  img {
+    width: 100%;
+  }
+}
+
+.classicyButtonSmall {
+  font-size: calc(var(--ui-font-size) / 2);
+  border-radius: calc(var(--window-padding-size) / 2);
+}
+
+.classicyButtonShapeSquare.classicyButtonSmall {
+  width: calc(var(--window-control-size) * 2) !important;
+  height: calc(var(--window-control-size) * 2) !important;
+  padding: calc(var(--window-padding-size) * 0.5);
+
+  img {
+    width: 90%;
+  }
+}

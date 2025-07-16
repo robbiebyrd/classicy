@@ -1,0 +1,122 @@
+@use '../../ControlPanels/AppearanceManager/styles/assets';
+@use '../../ControlPanels/AppearanceManager/styles/appearance';
+
+.classicyPopUpMenuSmall {
+  width: calc(var(--window-control-size) * 2.5) !important;
+  min-width: auto !important;
+  min-height: auto !important;
+  aspect-ratio: 1.5/1;
+
+  select {
+    width: 90%;
+    opacity: 0 !important;
+  }
+
+  &:not(.select--multiple)::after {
+    height: 100% !important;
+    border-left: none !important;
+    box-shadow: none !important;
+    aspect-ratio: 1 / 1 !important;
+  }
+}
+
+.classicyPopUpMenuWrapper {
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  justify-content: center;
+  width: 100%;
+}
+
+.classicyPopUpMenu {
+  font-family: var(--ui-font), sans-serif;
+  font-size: .75em;
+  line-height: 1.1;
+
+  position: relative;
+
+  display: grid;
+
+  align-items: center;
+  height: calc(var(--window-control-size) * 2.125);
+
+  @include appearance.platinumWindowDepressable;
+  cursor: pointer;
+  user-select: none;
+
+  grid-template-areas: 'select';
+
+  &,
+  &::before,
+  &::after,
+  & *,
+  & *::before,
+  & *::after {
+    box-sizing: border-box;
+  }
+
+  &.select--disabled {
+    cursor: not-allowed;
+    background-color: var(--color-system-01);
+    background-image: linear-gradient(to top, var(--color-system-02), var(--color-system-01) 33%);
+  }
+
+  label {
+    font-size: 1.125rem;
+    font-weight: 500;
+    margin-top: 2rem;
+  }
+
+  select {
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    z-index: 1;
+    margin: 0;
+    padding: calc(var(--window-padding-size) / 2) 0 var(--window-padding-size) calc(var(--window-padding-size) * 1);
+    cursor: inherit;
+    outline: none;
+    background-color: transparent;
+    appearance: none;
+
+    &:focus {
+      border-radius: var(--window-padding-size);
+      outline: var(--color-outline) solid calc(var(--window-border-size) * 2) !important;
+      box-shadow: 0 0 0 var(--window-border-size) var(--color-system-04),
+      0 0 0 calc(var(--window-border-size) * 2) var(--color-system-02),
+      0 0 0 calc(var(--window-border-size) * 3) var(--color-black),
+      inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 0 var(--color-system-05),
+      inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-06);
+    }
+
+    &::-ms-expand {
+      display: none;
+    }
+  }
+
+  select,
+  &::after {
+    grid-area: select;
+  }
+
+  &:not(.select--multiple)::after {
+    height: 100%;
+    content: '';
+
+    border-left: var(--window-border-size) solid var(--color-system-05);
+    border-top-right-radius: var(--window-padding-size);
+    border-bottom-right-radius: var(--window-padding-size);
+    background-image: assets.$down-arrow;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 50%;
+    box-shadow: inset calc(var(--window-border-size) * 2) var(--window-border-size) 0 0 var(--color-white);
+    justify-self: end;
+    aspect-ratio: 1 / 1;
+  }
+
+  select[multiple] {
+    height: 6rem;
+    padding-right: 0;
+  }
+}

@@ -1,0 +1,22 @@
+@use '../../ControlPanels/AppearanceManager/styles/appearance';
+@use '../../ControlPanels/AppearanceManager/styles/assets';
+
+.classicyControlGroup {
+  position: relative;
+}
+
+.classicyControlGroupNoColumns {
+  columns: 1;
+}
+
+.classicyControlGroupColumns {
+  flex-grow: 1;
+  columns: 2;
+}
+
+.classicyControlGroupLegend {
+  font-family: var(--ui-font), sans-serif;
+  font-size: calc(var(--ui-font-size) * 0.75);
+  margin: 0;
+  padding: 0;
+}

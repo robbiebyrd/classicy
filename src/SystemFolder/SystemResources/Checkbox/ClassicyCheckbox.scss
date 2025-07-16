@@ -1,0 +1,90 @@
+@use '../../ControlPanels/AppearanceManager/styles/appearance';
+
+.ClassicyCheckboxGroup {
+  display: flex;
+  flex-direction: row;
+  padding: calc(var(--window-border-size) * 2);
+}
+
+.ClassicyCheckbox {
+  width: calc(var(--window-control-size));
+  height: var(--window-control-size);
+  margin: var(--window-border-size);
+  border-radius: 0;
+  @include appearance.platinumWindowBorder;
+  background: var(--color-system-03);
+  appearance: none;
+
+  &:checked {
+    &:after {
+      font-family: var(--ui-font), sans-serif;
+      font-size: calc(var(--ui-font-size) * 1.25);
+      line-height: calc(var(--ui-font-size) * 0.65);
+      display: flex;
+      justify-content: center;
+      content: '\00D7';
+      text-shadow: var(--color-system-05) 1px 1px 2px;
+    }
+  }
+
+  &:disabled:checked {
+    color: var(--color-system-05);
+  }
+
+  &:active {
+    background: var(--color-system-06);
+    box-shadow: none;
+  }
+
+  &:focus {
+    border-radius: 1px;
+    outline: var(--color-outline) solid calc(var(--window-border-size) * 2) !important;
+  }
+
+  &:disabled,
+  &:disabled:active {
+    border: var(--window-border-size) solid var(--color-system-06) !important;
+    background: transparent;
+    box-shadow: none;
+  }
+}
+
+.ClassicyCheckboxLabel {
+  font-family: var(--ui-font), sans-serif;
+  font-size: var(--ui-font-size);
+  height: var(--window-control-size);
+  margin-left: calc(var(--window-control-size) / 2);
+}
+
+.ClassicyCheckboxLabelDisabled {
+  color: var(--color-system-05);
+}
+
+.ClassicyCheckboxDefault {
+  &:checked,
+  &:active {
+    &:after {
+      font-family: var(--ui-font), sans-serif;
+      font-size: calc(var(--ui-font-size) * 1);
+      line-height: calc(var(--ui-font-size) * 0.75);
+      display: flex;
+      justify-content: center;
+      content: '\2713';
+      text-shadow: var(--color-system-05) 1px 1px 2px;
+    }
+  }
+}
+
+.ClassicyCheckboxMixed {
+  &:checked {
+    &:after {
+      font-family: var(--ui-font), sans-serif;
+      font-size: calc(var(--ui-font-size) * 1);
+      line-height: calc(var(--ui-font-size) * 0.75);
+      display: flex;
+      justify-content: center;
+      content: '-';
+      text-shadow: var(--color-system-05) 1px 1px 2px;
+    }
+  }
+}

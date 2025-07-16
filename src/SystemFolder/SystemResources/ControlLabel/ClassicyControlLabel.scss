@@ -1,0 +1,28 @@
+.classicyControlLabel {
+  font-family: var(--ui-font), sans-serif;
+  user-select: none;
+}
+
+.classicyControlLabelSmall {
+  font-size: calc(var(--ui-font-size) / 2);
+}
+
+.classicyControlLabelMedium {
+  font-size: var(--ui-font-size);
+}
+
+.classicyControlLabelLarge {
+  font-size: calc(var(--ui-font-size) * 2);
+}
+
+.classicyControlLabelDisabled {
+  color: var(--color-system-05);
+}
+
+.classicyControlLabelLeft {
+  margin-left: calc(var(--window-control-size) / 2);
+}
+
+.classicyControlLabelRight {
+  margin-right: calc(var(--window-control-size) / 2);
+}

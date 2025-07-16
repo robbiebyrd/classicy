@@ -1,0 +1,59 @@
+@use '../../ControlPanels/AppearanceManager/styles/appearance';
+
+.classicyTabContainer {
+}
+
+.classicyTabsHolder {
+  border: var(--window-border-size) solid black;
+}
+
+.classicyButtonsHolder {
+  display: flex;
+  flex-direction: row;
+  margin-bottom: calc(var(--window-border-size) * -1);
+  margin-left: calc(var(--window-control-size) * 1);
+  gap: calc(var(--window-padding-size) * 2);
+}
+
+.classicyTabButton {
+  font-family: var(--ui-font), sans-serif;
+  font-size: var(--ui-font-size);
+  width: 99%;
+  height: calc(var(--window-control-size) * 2);
+  padding: calc(var(--window-padding-size) * 0.5) calc(var(--window-padding-size) * 3) calc(var(--window-padding-size) * 1) calc(var(--window-padding-size) * 3);
+  user-select: none;
+  border: none;
+  background-color: var(--color-system-04);
+  background-position: left bottom;
+  background-size: 100%;
+  mask-repeat: no-repeat;
+  mask-size: 100%;
+  mask-position: center center;
+  min-width: calc(var(--window-control-size) * 7);
+  text-wrap: nowrap;
+}
+
+.classicyTabButtonWrapper {
+  height: calc(var(--window-control-size) * 2);
+  border-top: var(--window-border-size) solid;
+  background-color: var(--color-system-07);
+  mask-repeat: no-repeat;
+  mask-size: calc(100% + var(--window-border-size) * 1);
+  mask-position: center bottom;
+}
+
+.classicyTabButtonActive {
+  border-bottom: none !important;
+  background-color: var(--color-system-02);
+}
+
+.classicyTabHiddenContent {
+  display: none;
+  padding: var(--window-padding-size);
+}
+
+.classicyTabActiveContent {
+  display: block;
+  padding: var(--window-padding-size);
+  background-color: var(--color-system-02);
+}

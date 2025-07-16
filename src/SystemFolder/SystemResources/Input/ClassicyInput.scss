@@ -1,0 +1,38 @@
+@use '../../ControlPanels/AppearanceManager/styles/appearance';
+@use 'sass:list';
+
+.classicyInputHolder {
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  width: calc(100% - var(--window-padding-size) * 2);
+  padding: var(--window-padding-size);
+  column-gap: calc(var(--window-control-size) * 1);
+}
+
+.classicyInput {
+  font-family: var(--ui-font), sans-serif;
+  flex-grow: 1;
+  width: auto;
+  padding: calc(var(--window-padding-size) / 2);
+  border: var(--window-border-size) solid black;
+  box-shadow: calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 0 var(--color-system-05),
+  calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) 0 0 var(--color-system-04);
+
+  &:focus-visible {
+    border-radius: 2pt;
+    outline: 0 0 0 calc(var(--window-border-size) * 2) var(--color-outline) !important;
+    box-shadow: 0 0 0 calc(var(--window-border-size) * 2) var(--color-theme-04),
+    0 0 var(--window-border-size) calc(var(--window-border-size) * 2) var(--color-theme-04);
+  }
+}
+
+.classicyInputDefault {
+}
+
+.classicyInputLabel {
+  font-family: var(--ui-font), sans-serif;
+  font-size: var(--ui-font-size);
+  height: var(--window-control-size);
+  user-select: none;
+}

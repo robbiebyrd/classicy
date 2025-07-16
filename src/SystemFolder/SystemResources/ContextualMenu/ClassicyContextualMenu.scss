@@ -1,0 +1,11 @@
+@use '../../ControlPanels/AppearanceManager/styles/appearance';
+
+.classicyContextMenuWrapper {
+  position: fixed;
+  z-index: 900;
+  display: inline-block;
+  margin: 0;
+
+  @include appearance.platinumWindowBoxShadow;
+  padding: 0;
+}

@@ -1,0 +1,18 @@
+.soundManagerAbout {
+  font-family: var(--header-font) serif;
+  display: flex;
+  align-content: center;
+  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+  justify-items: center;
+}
+
+.soundManagerControlGroupHolder {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: stretch;
+  margin: calc(var(--window-padding-size)) 0;
+}

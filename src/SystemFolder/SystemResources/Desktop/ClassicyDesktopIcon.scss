@@ -1,0 +1,115 @@
+@use '../../ControlPanels/AppearanceManager/styles/appearance';
+@use '../../ControlPanels/AppearanceManager/styles/assets';
+@use 'sass:list';
+
+.classicyDesktopIcon {
+  position: absolute;
+  z-index: 10 !important;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  width: calc(var(--desktop-icon-size) * 2);
+  height: calc(var(--desktop-icon-size) * 2);
+  user-select: none;
+  text-align: center;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+
+  img {
+    width: var(--desktop-icon-size);
+    height: var(--desktop-icon-size);
+    margin: auto;
+    user-select: none;
+    user-drag: none;
+    -webkit-user-drag: none;
+  }
+
+  p {
+    font-family: var(--body-font), serif;
+    font-size: var(--desktop-icon-font-size);
+    width: fit-content;
+    margin-top: calc(var(--desktop-icon-font-size) / 2);
+    padding: calc(var(--desktop-icon-font-size) / 4);
+    color: black;
+    background: rgba(255, 255, 255, 0.5);
+  }
+}
+
+.classicyDesktopIconDragging {
+  z-index: 500 !important;
+  margin: calc(var(--desktop-icon-size) * -4);
+  padding: calc(var(--desktop-icon-size) * 4);
+  user-select: none;
+}
+
+.classicyDesktopIconMask {
+  width: calc(var(--desktop-icon-size) - var(--window-border-size) * 2);
+  height: calc(var(--desktop-icon-size) - var(--window-border-size) * 2);
+  margin: 0 auto;
+  mask-mode: alpha !important;
+  mask-size: calc(100% - var(--window-border-size)) !important;
+  mask-repeat: no-repeat !important;
+  @include appearance.theme-halftone(#000000, 7%);
+}
+
+.classicyDesktopIconMaskOuter {
+  width: calc(var(--desktop-icon-size) + var(--window-border-size));
+  height: calc(var(--desktop-icon-size) + var(--window-border-size));
+  margin: 0 auto;
+  background: black !important;
+  mask-mode: alpha !important;
+  mask-size: cover !important;
+  mask-repeat: no-repeat !important;
+}
+
+.classicyDesktopIconOpen {
+  z-index: 99;
+
+  .classicyDesktopIconMaskOuter {
+    .classicyDesktopIconMask {
+      backdrop-filter: grayscale(1) invert(1) brightness(1) !important;
+      background-blend-mode: overlay;
+
+      * {
+        opacity: 0;
+      }
+    }
+  }
+}
+
+.classicyDesktopIconActive {
+  .classicyDesktopIconMaskOuter {
+    img {
+      filter: brightness(50%);
+    }
+  }
+
+  p {
+    color: white;
+    background: rgba(0, 0, 0, 0.5);
+  }
+}
+
+.classicyDesktopIconActiveAndOpen {
+  z-index: 99;
+
+  .classicyDesktopIconMaskOuter {
+    background: black;
+    filter: brightness(-5);
+
+    .classicyDesktopIconMask {
+      filter: brightness(50%);
+      backdrop-filter: grayscale(1) invert(1) brightness(1) !important;
+
+      * {
+        opacity: 0;
+      }
+    }
+  }
+
+  p {
+    color: white;
+    background: rgba(0, 0, 0, 0.5);
+  }
+}

@@ -1,0 +1,182 @@
+[
+  {
+    "id": "ClassicyClick",
+    "group": "General",
+    "label": "Click",
+    "description": ""
+  },
+  {
+    "id": "ClassicyBeep",
+    "group": "System",
+    "label": "Beep",
+    "description": ""
+  },
+  {
+    "id": "ClassicyBoot",
+    "group": "System",
+    "label": "Boot",
+    "description": ""
+  },
+  {
+    "id": "ClassicyAlertIndigo",
+    "group": "Alert",
+    "label": "Indigo",
+    "description": ""
+  },
+  {
+    "id": "ClassicyAlertQuack",
+    "group": "Alert",
+    "label": "Quack",
+    "description": ""
+  },
+  {
+    "id": "ClassicyAlertSosumi",
+    "group": "Alert",
+    "label": "Sosumi",
+    "description": ""
+  },
+  {
+    "id": "ClassicyAlertWildEep",
+    "group": "Alert",
+    "label": "Wild Eep",
+    "description": ""
+  },
+  {
+    "id": "ClassicyButtonClickDown",
+    "group": "Buttons",
+    "label": "Button Click (Press)",
+    "description": ""
+  },
+  {
+    "id": "ClassicyButtonClickUp",
+    "group": "Buttons",
+    "label": "Button Click (Up)",
+    "description": ""
+  },
+  {
+    "id": "ClassicyInputRadioClickDown",
+    "group": "Inputs",
+    "label": "Radio Button (Press)",
+    "description": ""
+  },
+  {
+    "id": "ClassicyInputRadioClickUp",
+    "group": "Inputs",
+    "label": "Radio Button (Up)",
+    "description": ""
+  },
+  {
+    "id": "ClassicyMenuClose",
+    "group": "Menus",
+    "label": "Menu Close",
+    "description": ""
+  },
+  {
+    "id": "ClassicyMenuItemClick",
+    "group": "Menus",
+    "label": "Menu Item (Click)",
+    "description": ""
+  },
+  {
+    "id": "ClassicyMenuItemHover",
+    "group": "Menus",
+    "label": "Menu Item (Hover)",
+    "description": ""
+  },
+  {
+    "id": "ClassicyMenuOpen",
+    "group": "Menus",
+    "label": "Menu Open",
+    "description": ""
+  },
+  {
+    "id": "ClassicyWindowClose",
+    "group": "Menus",
+    "label": "Window Close",
+    "description": ""
+  },
+  {
+    "id": "ClassicyWindowCollapse",
+    "group": "Windows",
+    "label": "Window Collapse",
+    "description": ""
+  },
+  {
+    "id": "ClassicyWindowControlClickDown",
+    "group": "Windows",
+    "label": "Window Control (Press)",
+    "description": ""
+  },
+  {
+    "id": "ClassicyWindowControlClickUp",
+    "group": "Windows",
+    "label": "Window Control (Up)",
+    "description": ""
+  },
+  {
+    "id": "ClassicyWindowExpand",
+    "group": "Windows",
+    "label": "Window Expand",
+    "description": ""
+  },
+  {
+    "id": "ClassicyWindowFocus",
+    "group": "Windows",
+    "label": "Window Focus",
+    "description": ""
+  },
+  {
+    "id": "ClassicyWindowMoveIdle",
+    "group": "Windows",
+    "label": "Window Move (Idle)",
+    "description": ""
+  },
+  {
+    "id": "ClassicyWindowMoveMoving",
+    "group": "Windows",
+    "label": "Window Moving",
+    "description": ""
+  },
+  {
+    "id": "ClassicyWindowMoveStop",
+    "group": "Windows",
+    "label": "Window Move (Stop)",
+    "description": ""
+  },
+  {
+    "id": "ClassicyWindowOpen",
+    "group": "Windows",
+    "label": "Window Open",
+    "description": ""
+  },
+  {
+    "id": "ClassicyWindowResizeIdle",
+    "group": "Windows",
+    "label": "Window Resize (Idle)",
+    "description": ""
+  },
+  {
+    "id": "ClassicyWindowResizeResizing",
+    "group": "Windows",
+    "label": "Window Resizing",
+    "description": ""
+  },
+  {
+    "id": "ClassicyWindowResizeStop",
+    "group": "Windows",
+    "label": "Window Resize (Stop)",
+    "description": ""
+  },
+  {
+    "id": "ClassicyWindowZoomMaximize",
+    "group": "Windows",
+    "label": "Window Maximize",
+    "description": ""
+  },
+  {
+    "id": "ClassicyWindowZoomMinimize",
+    "group": "Windows",
+    "label": "Window Minimize",
+    "description": ""
+  }
+]

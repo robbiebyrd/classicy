@@ -1,0 +1,92 @@
+@use '../../ControlPanels/AppearanceManager/styles/appearance';
+
+.resizer {
+  position: absolute;
+  z-index: 500;
+  top: 0;
+  right: 0;
+  width: 15px;
+  height: 100%;
+  cursor: col-resize;
+
+  &:hover {
+  }
+}
+
+.isResizing {
+}
+
+
+.classicyFileBrowserViewTableContainer {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: var(--color-system-01);
+}
+
+.classicyFileBrowserViewTable {
+  font-family: var(--body-font);
+  font-weight: 100;
+  width: 100%;
+  table-layout: auto;
+  border-collapse: collapse;
+}
+
+.classicyFileBrowserViewTableHeader {
+  position: sticky;
+  top: 0;
+  border: none !important;
+}
+
+.classicyFileBrowserViewTableContent {
+  font-size: calc(var(--ui-font-size) * 0.8);
+  font-weight: normal;
+}
+
+.classicyFileBrowserViewTableColumnHeader {
+  font-size: calc(var(--ui-font-size) * 0.8);
+  font-weight: normal;
+  font-stretch: condensed;
+
+  position: relative;
+  padding: var(--window-padding-size);
+
+  @include appearance.platinumWindowBoxShadow;
+}
+
+.classicyFileBrowserViewTableColumnHeaderSelected {
+  @include appearance.platinumWindowHeaderBorderDepressed;
+  background-color: var(--color-system-04);
+}
+
+.classicyFileBrowserViewTableColumnHeaderGroup {
+  background: var(--color-system-03);
+}
+
+.classicyFileBrowserViewTableRow {
+  border-top: 1px solid var(--color-white);
+  border-bottom: 1px solid var(--color-white);
+}
+
+.classicyFileBrowserViewTableRowIcon {
+  margin: calc(var(--desktop-icon-size) / 16);
+}
+
+.classicyFileBrowserViewTableRowIconLabel {
+  padding: calc(var(--desktop-icon-size) / 16);
+}
+
+.classicyFileBrowserViewTableRowSelected td:first-of-type div span {
+  color: var(--color-white);
+  background: var(--color-system-07);
+}
+
+.classicyFileBrowserViewTableRowSelected td:first-of-type div img {
+  filter: contrast(0.75) brightness(0.5);
+}
+
+.classicyFileBrowserViewTableRowContainer {
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+}

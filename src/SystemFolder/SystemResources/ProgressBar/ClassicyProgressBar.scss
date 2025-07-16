@@ -1,0 +1,70 @@
+@use '../../ControlPanels/AppearanceManager/styles/appearance';
+@use 'sass:list';
+
+.classicyProgress {
+  progress[value] {
+    width: calc(100%);
+    padding: 0 var(--window-border-size);
+    background: var(--color-system-03) !important;
+
+    &::-webkit-progress-bar {
+      background: var(--color-system-04);
+      @include appearance.platinumWindowInnerBorder;
+    }
+
+    &::-webkit-progress-value {
+      transition: 1s all;
+      background: linear-gradient(
+                      to bottom,
+                      var(--color-theme-07),
+                      var(--color-theme-06),
+                      var(--color-theme-05),
+                      var(--color-theme-04),
+                      var(--color-theme-03),
+                      var(--color-theme-02),
+                      var(--color-theme-01),
+                      var(--color-white),
+                      var(--color-theme-01),
+                      var(--color-theme-02),
+                      var(--color-theme-03),
+                      var(--color-theme-04),
+                      var(--color-theme-05),
+                      var(--color-theme-06),
+                      var(--color-theme-07)
+      );
+    }
+  }
+}
+
+@property --slide-var {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+
+.classicyProgressIndeterminate {
+  @keyframes stripeSlide {
+    from {
+      --slide-var: 0px;
+    }
+    to {
+      --slide-var: 40px;
+    }
+  }
+
+  progress[value] {
+    &::-webkit-progress-value {
+      animation: stripeSlide 3s linear infinite;
+      animation-play-state: running;
+      background-image: repeating-linear-gradient(
+                      45deg,
+                      white var(--slide-var),
+                      white calc(var(--slide-var) + 10px),
+                      var(--color-theme-04) calc(var(--slide-var) + 10px),
+                      var(--color-theme-04) calc(var(--slide-var) + 20px)
+      ) !important;
+      mask: linear-gradient(0deg, var(--color-black), white, var(--color-black)) luminance;
+    }
+  }
+}

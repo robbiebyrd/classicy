@@ -1,0 +1,6 @@
+/node_modules/
+/dist/
+/.idea/
+/.DS_Store
+/codealike.json
+.DS_Store

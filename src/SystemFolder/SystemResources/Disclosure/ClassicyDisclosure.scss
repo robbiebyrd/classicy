@@ -1,0 +1,88 @@
+@use '../../ControlPanels/AppearanceManager/styles/appearance';
+
+.classicyDisclosure {
+  padding: 0;
+}
+
+.classicyDisclosureHeader {
+  display: flex;
+  flex-direction: row;
+  padding: calc(var(--window-padding-size));
+}
+
+.classicyDisclosureInner {
+  padding: calc(var(--window-padding-size));
+}
+
+.classicyDisclosureInnerOpen {
+  display: block;
+  height: 100%;
+}
+
+.classicyDisclosureInnerClose {
+  display: none;
+  height: 0;
+  opacity: 0;
+}
+
+.classicyDisclosureTriangle {
+  width: calc(var(--window-control-size) + var(--window-padding-size));
+  height: calc(var(--window-control-size) + var(--window-padding-size));
+  margin-left: calc(var(--window-control-size) / -2);
+  transition-timing-function: steps(4, end);
+  transition-duration: 0.125s;
+  transition-property: all;
+}
+
+.classicyDisclosureTriangleHighlight {
+  fill: var(--color-theme-02);
+}
+
+.classicyDisclosureTriangleShadow {
+  fill: var(--color-theme-04);
+}
+
+.classicyDisclosureTriangleInner {
+  fill: var(--color-theme-03);
+}
+
+.classicyDisclosureTriangleDropShadow {
+  opacity: 0.33;
+  color: var(--color-black);
+}
+
+.classicyDisclosureTriangleOutline {
+  color: var(--color-black);
+}
+
+.classicyDisclosureTriangleRightOpen {
+  transform: rotate(90deg);
+}
+
+.classicyDisclosureTriangleRightClosed {
+  transform: rotate(0);
+}
+
+.classicyDisclosureTriangleLeftOpen {
+  transform: rotate(90deg);
+}
+
+.classicyDisclosureTriangleLeftClosed {
+  transform: rotate(180deg);
+}
+
+.classicyDisclosureTriangleUpOpen {
+  transform: rotate(90deg);
+}
+
+.classicyDisclosureTriangleUpClosed {
+  transform: rotate(270deg);
+}
+
+.classicyDisclosureTriangleDownClosed {
+  transform: rotate(90deg);
+}
+
+.classicyDisclosureTriangleDownOpen {
+  transform: rotate(270deg);
+}

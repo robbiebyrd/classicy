@@ -1,0 +1,377 @@
+@use '../../ControlPanels/AppearanceManager/styles/assets';
+@use '../../ControlPanels/AppearanceManager/styles/scrollbars';
+@use '../../ControlPanels/AppearanceManager/styles/appearance';
+
+.classicyWindowZoomed {
+  top: calc(var(--window-control-size) * 2 + var(--window-padding-size)) !important;
+  left: calc(var(--window-padding-size) * 2) !important;
+  width: calc(100% - (var(--window-padding-size) * 2 + (var(--window-control-size) * 2))) !important;
+  height: calc(100vh - (var(--window-padding-size) * 1)) !important;
+}
+
+.classicyWindowCollapsed {
+}
+
+.classicyWindowHeader {
+  font-family: var(--ui-font), sans-serif;
+  font-size: calc(var(--ui-font-size) * 0.865);
+  position: sticky;
+  z-index: 999;
+  top: 0;
+  display: flex;
+  @include appearance.platinumWindowHeaderBorder;
+  @include appearance.platinumWindowInnerBoxShadowOuter;
+
+  @include appearance.no-select;
+  align-items: center;
+  flex-direction: row;
+  justify-content: center;
+  height: var(--window-control-size);
+  padding: var(--window-padding-size);
+  background: var(--color-system-03);
+  column-gap: var(--window-control-size);
+}
+
+.classicyWindowHeaderDimmed {
+  opacity: 0.5;
+  border: solid 1px black !important;
+  box-shadow: none !important;
+}
+
+.classicyWindowInactive {
+  z-index: unset;
+  user-select: none;
+  filter: contrast(.6) brightness(1.25);
+  @include scrollbars.scrollbars-inactive();
+}
+
+.classicyWindowContentsDimmed {
+  opacity: 0.8;
+  box-shadow: none !important;
+  filter: contrast(0.9);
+}
+
+.classicyWindowResizerDimmed {
+  border-top: 1px solid var(--color-system-05) !important;
+  border-left: 1px solid var(--color-system-05) !important;
+  background-image: none !important;
+  box-shadow: var(--color-system-03) 1px 1px 0,
+  var(--color-system-03) -3px -3px 0;
+}
+
+.classicyWindowActive {
+  z-index: 300 !important;
+
+  .classicyWindowTitleBar {
+    user-select: none;
+
+    .classicyWindowControlBox {
+      opacity: 1 !important;
+    }
+
+    .classicyWindowTitle {
+      .classicyWindowTitleText {
+        color: black !important;
+      }
+
+      .classicyWindowTitleCenter {
+        background: assets.$title-bar-center;
+      }
+
+      .classicyWindowTitleLeft,
+      .classicyWindowTitleRight {
+        background: assets.$title-bar-center;
+        background-size: auto 100%;
+
+        &:after {
+          position: relative;
+          top: -100%;
+          right: calc(var(--window-padding-size) * -1);
+          display: block;
+          float: right;
+          width: var(--window-padding-size);
+          content: ' ';
+          background-image: assets.$title-bar-right;
+          background-repeat: no-repeat;
+        }
+
+        &:before {
+          position: relative;
+          left: calc((var(--window-padding-size) * -1) / 2);
+          display: block;
+          content: ' ';
+          background-image: assets.$title-bar-left;
+          background-repeat: no-repeat;
+        }
+      }
+    }
+  }
+}
+
+.classicyWindowInvisible {
+  display: none !important;
+}
+
+.classicyWindowNoScroll {
+  overflow: hidden !important;
+}
+
+.classicyWindowResizing {
+  border: calc(var(--window-padding-size) / 4) dotted !important;
+  border-color: black !important;
+  background: transparent !important;
+  box-shadow: none !important;
+
+  .classicyWindowResizer {
+    cursor: grabbing !important; /* Use grabbing cursor while actively resizing */
+  }
+
+  * {
+    opacity: 0;
+  }
+}
+
+.classicyWindowDragging {
+  cursor: grabbing !important; /* Set cursor for the dragging element itself */
+  border: calc(var(--window-padding-size) / 4) dotted !important;
+  border-color: black !important;
+  background: transparent !important;
+  box-shadow: none !important;
+
+  * {
+    user-select: none; /* Prevent text selection while dragging */
+    opacity: 0;
+    user-drag: none; /* Prevent accidental dragging of child elements */
+  }
+}
+
+.classicyWindowRed {
+  @include appearance.platinumWindowBorder;
+  z-index: 99999 !important;
+  border-color: var(--color-error) !important;
+
+  .classicyWindowTitleBar {
+    background-color: #f7cecd !important;
+
+    .classicyWindowTitle {
+      .classicyWindowTitleCenter {
+        background: assets.$title-bar-center-red;
+        background-size: auto 100%;
+      }
+
+      .classicyWindowTitleLeft,
+      .classicyWindowTitleRight {
+        background: assets.$title-bar-center-red;
+
+        &:after {
+          background-image: assets.$title-bar-right-red;
+        }
+
+        &:before {
+          background-image: assets.$title-bar-left-red;
+        }
+      }
+    }
+  }
+}
+
+.classicyWindow {
+  position: absolute;
+  z-index: 20;
+  max-height: calc(100% - var(--window-control-size) * 4 - var(--window-padding-size));
+  padding: calc(var(--window-padding-size) / 1.25);
+
+  background-color: var(--color-window-frame);
+  @include appearance.platinumWindowBorder;
+
+  .classicyWindowTitleBar {
+    @include appearance.no-select;
+
+    font-family: var(--ui-font), sans-serif;
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    height: calc(var(--window-control-size) + 3px);
+    padding-bottom: var(--window-padding-size);
+    text-align: center;
+    border: none;
+    box-shadow: none;
+    column-gap: calc(var(--window-border-size) * 4);
+
+    .classicyWindowIcon {
+      max-width: calc(var(--window-control-size) * 2);
+      max-height: calc(var(--window-control-size) * 2);
+      padding: 0 calc(var(--window-padding-size) / 2);
+
+      img {
+        height: 100%;
+        user-select: none;
+        pointer-events: none;
+        object-fit: contain;
+      }
+    }
+
+    .classicyWindowTitle {
+      position: relative;
+      display: flex;
+      flex-direction: row;
+      flex-grow: 1;
+      text-align: center;
+
+      .classicyWindowTitleText {
+        font-size: var(--ui-font-size);
+        overflow: hidden;
+        align-content: flex-start;
+        height: 1.5em !important;
+        cursor: default;
+        user-select: none;
+        color: var(--color-system-05);
+        user-drag: none;
+
+        & > p {
+          overflow: hidden;
+          margin: 0;
+          text-wrap: nowrap;
+          text-overflow: ellipsis;
+        }
+      }
+
+      .classicyWindowTitleCenter {
+        flex-grow: 1;
+        width: auto;
+        height: calc(var(--window-control-size) * 1.25);
+        margin: calc(var(--window-padding-size) / 2) var(--window-padding-size);
+        margin-top: 0;
+        padding: 0;
+      }
+
+      .classicyWindowTitleLeft,
+      .classicyWindowTitleRight {
+        flex-grow: 1;
+        width: auto;
+        height: calc(var(--window-control-size) * 1.25);
+        margin: calc(var(--window-padding-size) / 2) var(--window-padding-size);
+        margin-top: 0;
+        padding: 0;
+      }
+
+      span {
+        font-size: var(--window-control-size);
+        margin: 0;
+        padding: 0;
+        background: var(--color-window-frame) !important;
+      }
+    }
+
+    .classicyWindowControlBox {
+      @include appearance.platinumBoxShadow;
+      padding: var(--window-border-size) 0 var(--window-border-size) var(--window-border-size);
+      opacity: 0;
+    }
+
+    .classicyWindowCollapseBox,
+    .classicyWindowZoomBox {
+      @include appearance.platinumWindowControlBoxDepressable;
+    }
+
+    .classicyWindowCollapseBox {
+      &:after {
+        opacity: 0.65;
+        background-image: assets.$collapse;
+        background-position: top left;
+      }
+    }
+
+    .classicyWindowZoomBox {
+      &:after {
+        opacity: 0.65;
+        background-image: assets.$zoom;
+        background-position: top left;
+      }
+    }
+
+    .classicyWindowCloseBox {
+      @include appearance.platinumWindowControlBoxDepressable;
+    }
+  }
+
+  .classicyWindowResizer {
+    position: absolute;
+    z-index: 999;
+    right: calc(var(--window-padding-size) + var(--window-border-size) * -1);
+    bottom: calc(var(--window-padding-size) + var(--window-border-size) * -2);
+    width: calc(var(--window-padding-size) * 2.5 + var(--window-border-size) * 1);
+    height: calc(var(--window-padding-size) * 2.5 + var(--window-border-size) * 1);
+    margin: calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1);
+    padding: 0;
+    cursor: grab;
+    user-select: none;
+    border-top: 1px solid var(--color-system-07);
+    border-left: 1px solid var(--color-system-07);
+    background-color: var(--color-system-03);
+    background-image: assets.$resizer;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: calc(var(--window-control-size) - (var(--window-border-size) * 2));
+    box-shadow: var(--color-system-03) 1px 1px 0,
+    var(--color-system-03) -1px -1px 0;
+  }
+
+  .classicyWindowContents {
+    position: relative;
+    display: block;
+    @include appearance.platinumWindowInnerBorder;
+    overflow: auto;
+    height: calc(100% - (var(--window-control-size) * 2));
+    background-color: var(--color-window-document);
+  }
+
+  .classicyWindowContentsWithHeader {
+    position: relative;
+    display: block;
+    overflow: auto;
+    height: calc(100% - (var(--window-control-size) * 4));
+    background-color: var(--color-window-document);
+  }
+}
+
+.classicyWindowContentsModal {
+  width: calc(100% - var(--window-padding-size) / 2);
+  height: calc(100% - (var(--window-control-size) * 2) - var(--window-padding-size));
+  margin: 0 !important;
+  padding: calc(var(--window-padding-size) / 4) !important;
+  border: none !important;
+  @include appearance.platinumWindowBorder;
+  border-top: calc(var(--window-padding-size) / 4) solid var(--color-black) !important;
+  background-color: var(--color-window-frame) !important;
+  @include appearance.platinumWindowBoxShadow;
+}
+
+.classicyWindowContentsModalInner {
+  padding: calc(var(--window-padding-size) / 2);
+}
+
+.classicyWindowContentsInner {
+  position: relative;
+  display: block;
+  height: 100%;
+}
+
+.classicyWindowContentsInnerGrow {
+  height: 100%;
+}
+
+.classicyWindowModal {
+  margin: 0 !important;
+  padding: 0;
+}
+
+.classicyWindowTitleBarModal {
+  padding: calc(var(--window-padding-size) / 1.25) calc(var(--window-padding-size) / 1.25) !important;
+
+  & .classicyWindowTitle {
+    width: 100% !important;
+    max-width: 100% !important;
+
+  }
+}

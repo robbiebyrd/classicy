@@ -1,0 +1,53 @@
+@use '../../ControlPanels/AppearanceManager/styles/appearance';
+@use 'sass:list';
+
+.classicyTimePickerHolder {
+  display: flex;
+  align-items: baseline;
+  flex-direction: row;
+  width: calc(100% - var(--window-padding-size) * 2);
+  padding: var(--window-padding-size);
+  gap: 0;
+}
+
+.classicyTimePicker {
+  font-family: var(--ui-font), sans-serif;
+  font-size: var(--ui-font-size);
+  width: auto;
+  border: var(--window-border-size) solid black;
+  box-shadow: calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 0 var(--color-system-05),
+  calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) 0 0 var(--color-system-04);
+  display: flex;
+  align-items: baseline;
+  flex-direction: row;
+  background-color: var(--color-white);
+  margin-right: var(--window-padding-size);
+
+  input {
+    margin: 0;
+    padding: 0;
+    font-family: var(--ui-font), sans-serif;
+    box-shadow: none !important;
+    height: 100%;
+    margin-right: var(--window-padding-size);
+    text-align: right;
+    border: none;
+    outline: none;
+
+    height: calc(var(--window-control-size) * 1.5);
+
+    &:focus-visible {
+      outline: 0 !important;
+    }
+  }
+}
+
+.classicyTimePickerDefault {
+}
+
+.classicyTimePickerLabel {
+  font-family: var(--ui-font), sans-serif;
+  font-size: var(--ui-font-size);
+  height: var(--window-control-size);
+  user-select: none;
+}

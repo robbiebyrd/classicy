@@ -1,0 +1,27 @@
+.classicyDesktopMenuTime {
+  float: right;
+  margin: 0 var(--window-control-size);
+
+  &:hover {
+    color: var(--color-black) !important;
+    background: transparent !important;
+  }
+}
+
+.classicyDesktopMenuTimeSeparatorRight {
+  margin-right: calc(var(--window-padding-size))
+}
+
+.classicyDesktopMenuTimeSeparatorLeft {
+  margin-left: calc(var(--window-border-size) * 2)
+}
+
+.textBlinker {
+  animation: blinker 2s steps(1, end) infinite;
+}
+
+@keyframes blinker {
+  50% {
+    opacity: 0;
+  }
+}

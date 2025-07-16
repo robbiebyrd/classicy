@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "outDir": "./dist/",
+    "sourceMap": true,
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ],
+      "snd/*": [
+        "./assets/sounds/*"
+      ],
+      "img/*": [
+        "./assets/img/*"
+      ],
+    },
+    "strict": true,
+    "resolveJsonModule": true,
+    "noImplicitReturns": true,
+    "noImplicitAny": true,
+    "module": "ES6",
+    "moduleResolution": "node",
+    "target": "ES2023",
+    "allowJs": true,
+    "jsx": "react",
+    "allowSyntheticDefaultImports": true
+  },
+  "include": [
+    "./src/custom.d.ts",
+    "./src/**/*"
+  ]
+}

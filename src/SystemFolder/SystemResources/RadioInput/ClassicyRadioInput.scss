@@ -1,0 +1,125 @@
+@use '../../ControlPanels/AppearanceManager/styles/appearance';
+@use '../../ControlPanels/AppearanceManager/styles/assets';
+
+.classicyRadioInputGroupColumns {
+  flex-direction: column;
+}
+
+.classicyRadioInputGroup {
+  display: flex;
+  align-items: stretch;
+  flex-direction: row;
+  justify-content: stretch;
+  padding: calc(var(--window-border-size) * 4);
+
+  div {
+    display: flex;
+    align-items: stretch;
+    flex-direction: row;
+  }
+}
+
+.classicyRadioInputMargin {
+  margin: 0 var(--window-control-size) 0 0;
+}
+
+.classicyRadioInputWrapper {
+  width: calc(var(--window-control-size) / 1);
+  height: calc(var(--window-control-size) / 1);
+  margin-top: calc(var(--window-control-size) / 4);
+  border: calc(var(--window-border-size)) solid var(--color-system-07);
+  border-radius: 50%;
+
+  background: radial-gradient(
+                  at left top,
+                  var(--color-system-02),
+                  var(--color-system-01) 40%,
+                  var(--color-system-05) 100%
+  );
+  box-shadow: 0 0 2px var(--color-system-07);
+}
+
+.classicyRadioInputWrapperChecked {
+  background: radial-gradient(
+                  at left top,
+                  var(--color-system-07) 10%,
+                  var(--color-system-05) 20%,
+                  var(--color-system-02) 85%,
+                  var(--color-system-01) 100%
+  );
+
+  &:active {
+    background: radial-gradient(
+                    at left top,
+                    var(--color-system-05) 20%,
+                    var(--color-system-01) 85%,
+                    var(--color-system-02) 100%
+    );
+  }
+}
+
+.classicyRadioInputWrapperDisabled {
+  border: calc(var(--window-border-size)) solid var(--color-system-05) !important;
+  background: var(--color-system-02) !important;
+}
+
+.classicyRadioInput {
+  position: relative;
+  margin: 2px;
+  opacity: 0;
+  border-width: calc(var(--window-control-size) / 3);
+  border-style: solid;
+  border-radius: 50%;
+  appearance: none;
+
+  &:focus {
+    outline: 1px solid var(--color-system-05);
+  }
+
+  &:checked {
+    opacity: 1;
+    border-color: var(--color-window-border);
+  }
+
+  &:disabled:checked {
+    opacity: 1;
+    border-style: solid;
+    border-color: var(--color-system-05);
+  }
+}
+
+.classicyRadioInputMixed {
+  margin-top:calc(var(--window-control-size) / 2.5);
+  width: calc(var(--window-control-size) / 1);
+  height: calc(var(--window-control-size) / 4);
+  border-width: calc(var(--window-control-size) / 8);
+  border-style: solid;
+  border-radius: 0 !important;
+  background: var(--color-window-border);
+
+  &:disabled:checked {
+    border-color: var(--color-system-05);
+    background: var(--color-system-05);
+  }
+}
+
+.classicyRadioInputLabel {
+  font-family: var(--ui-font), sans-serif;
+  font-size: var(--ui-font-size);
+  height: var(--window-control-size);
+  margin-left: calc(var(--window-control-size) / 2);
+}
+
+.classicyRadioInputLabelDisabled {
+  color: var(--color-system-05);
+}
+
+.classicyRadioInputDefault {
+  //width: var(--window-control-size);
+  //margin: 0;
+  //
+  &:checked,
+  &:active {
+    border-color: var(--color-theme-06) !important;
+  }
+}

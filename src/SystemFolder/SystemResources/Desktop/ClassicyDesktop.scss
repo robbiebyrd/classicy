@@ -1,0 +1,52 @@
+@use 'sass:list';
+@use '../../ControlPanels/AppearanceManager/styles/appearance';
+@use '../../ControlPanels/AppearanceManager/styles/scrollbars';
+
+.classicyDesktop {
+  overflow: hidden;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  cursor: default;
+  user-select: none;
+  background-color: var(--desktop-background-color);
+  background-image: var(--desktop-background-image);
+  background-repeat: var(--desktop-background-repeat);
+  background-position: var(--desktop-background-position);
+  background-size: var(--desktop-background-size);
+  user-drag: none;
+  @include appearance.no-select;
+
+  &,
+  & * {
+    @include scrollbars.scrollbars;
+    @include scrollbars.scrollbars-themed;
+    accent-color: var(--color-theme-04);
+
+    &:focus-visible {
+      outline-color: var(--color-outline);
+    }
+
+    &::marker {
+      color: var(--color-theme-02);
+    }
+
+    &:is( ::-webkit-calendar-picker-indicator,
+      ::-webkit-clear-button,
+      ::-webkit-inner-spin-button,
+      ::-webkit-outer-spin-button) {
+      color: var(--color-theme-02);
+    }
+  }
+
+  *::selection {
+    background: var(--color-theme-02) !important;
+  }
+}
+
+.classicyDesktopSelect {
+  position: absolute !important;
+  border: var(--window-border-size) dotted var(--color-black);
+  outline: var(--window-border-size) dotted var(--color-black);
+}
