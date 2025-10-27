@@ -70,7 +70,6 @@ export const ClassicyRadioInput: React.FC<ClassicyRadioInputProps> = ({
                                     )}
                                     type={'radio'}
                                     value={item.id}
-                                    checked={item.id === check}
                                     defaultChecked={item.checked}
                                     tabIndex={0}
                                     onChange={() => !item.disabled && handleOnChange(item.id)}

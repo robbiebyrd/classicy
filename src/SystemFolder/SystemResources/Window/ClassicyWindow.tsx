@@ -128,6 +128,7 @@ export const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
     }, [appId, desktopContext.System.Manager.App.apps[appId], ws])
 
     const startResizeWindow = (e: React.MouseEvent<HTMLDivElement>) => {
+
         e.preventDefault()
         desktopEventDispatch({
             type: 'ClassicyWindowPosition',
@@ -183,6 +184,7 @@ export const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
 
     const stopChangeWindow = (e: React.MouseEvent<HTMLDivElement>) => {
         e.preventDefault()
+        setActive()
         if (ws.resizing || ws.dragging || ws.moving) {
             player({type: 'ClassicySoundPlayInterrupt', sound: 'ClassicyWindowMoveStop'})
         }
@@ -276,6 +278,7 @@ export const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
     }
 
     const toggleZoom = () => {
+        setActive()
         if (zoomable) {
             setZoom(!ws.zoomed, false)
         }
@@ -320,6 +323,7 @@ export const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
 
     const showContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
         e.preventDefault()
+        setActive()
         setContextMenu(true, [e.clientX - clickOffset[0], e.clientY - clickOffset[1]])
     }
 
@@ -341,6 +345,7 @@ export const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
     }
 
     const close = () => {
+        setActive()
         player({type: 'ClassicySoundPlay', sound: 'ClassicyWindowClose'})
         desktopEventDispatch({
             type: 'ClassicyWindowClose',

@@ -11,13 +11,13 @@ export const DefaultFSContent = {
         'Applications': {
             _type: ClassicyFileSystemEntryFileType.Directory,
             _icon: directoryIcon,
-            'TextEdit.app': {
+            'TextEdit': {
                 _type: ClassicyFileSystemEntryFileType.File,
                 _mimeType: 'text/plain',
                 _data: 'File Contents',
                 _invisible: true,
             },
-            'Calculator.app': {
+            'Calculator': {
                 _type: ClassicyFileSystemEntryFileType.File,
                 _mimeType: 'text/plain',
                 _data: 'File Contents',

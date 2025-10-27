@@ -1,15 +1,15 @@
-import { useDesktop, useDesktopDispatch } from '@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext'
-import { getClassicyAboutWindow } from '@/SystemFolder/SystemResources/AboutWindow/ClassicyAboutWindow'
+import {useDesktop, useDesktopDispatch} from '@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext'
+import {ClassicyAboutWindow} from '@/SystemFolder/SystemResources/AboutWindow/ClassicyAboutWindow'
 import {ClassicyApp} from '@/SystemFolder/SystemResources/App/ClassicyApp'
 import {ClassicyFileBrowser} from '@/SystemFolder/SystemResources/File/ClassicyFileBrowser'
-import { ClassicyFileSystem } from '@/SystemFolder/SystemResources/File/ClassicyFileSystem'
+import {ClassicyFileSystem} from '@/SystemFolder/SystemResources/File/ClassicyFileSystem'
 import {
     ClassicyFileSystemEntry,
     ClassicyFileSystemEntryMetadata
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import {ClassicyWindow} from '@/SystemFolder/SystemResources/Window/ClassicyWindow'
-import React, { useEffect, useMemo, useState } from 'react'
 import appIcon from 'img/icons/system/mac.png'
+import React, {useEffect, useMemo, useState} from 'react'
 
 type PathSettingsProps = {
     _viewType: 'list' | 'icons'
@@ -23,7 +23,7 @@ export const Finder = () => {
     const [pathSettings, setPathSettings] = useState<Record<string, PathSettingsProps>>({})
     const [showAbout, setShowAbout] = useState(false)
 
-    const { openPaths } = desktop.System.Manager.App.apps[appId]?.data || {}
+    const {openPaths} = desktop.System.Manager.App.apps[appId]?.data || {}
 
     useEffect(() => {
         const appData = desktop.System.Manager.App.apps[appId]?.data || {}
@@ -37,7 +37,7 @@ export const Finder = () => {
     }, [])
 
     const handlePathSettingsChange = (path: string, settings: PathSettingsProps) => {
-        let updatedPathSettings = { ...pathSettings }
+        let updatedPathSettings = {...pathSettings}
         updatedPathSettings[path] = settings
         setPathSettings(updatedPathSettings)
     }
@@ -98,7 +98,7 @@ export const Finder = () => {
                     icon: metadata['_icon'],
                 },
                 event: 'ClassicyAppFinderOpenFolder',
-                eventData: { path },
+                eventData: {path},
                 kind: 'drive',
             })
         })
@@ -117,14 +117,13 @@ export const Finder = () => {
     }, [fs])
 
     const getHeaderString = (dir: ClassicyFileSystemEntryMetadata) => {
-        return ""
-        // return (
-        //     dir['_count'] +
-        //     ' items' +
-        //     (dir['_countHidden'] ? ' (' + dir['_countHidden'] + ' hidden)' : '') +
-        //     ', ' +
-        //     fs.formatSize(dir['_size'] || 0)
-        // )
+        return (
+            dir['_count'] +
+            ' items' +
+            (dir['_countHidden'] ? ' (' + dir['_countHidden'] + ' hidden)' : '') +
+            ', ' +
+            fs.formatSize(dir['_size'] || 0)
+        )
     }
 
     return (
@@ -184,12 +183,12 @@ export const Finder = () => {
                                             {
                                                 id: appId + '_' + op + '_view_as_icons',
                                                 title: 'View as Icons',
-                                                onClickFunc: () => handlePathSettingsChange(op, { _viewType: 'icons' }),
+                                                onClickFunc: () => handlePathSettingsChange(op, {_viewType: 'icons'}),
                                             },
                                             {
                                                 id: appId + '_' + op + '_view_as_list',
                                                 title: 'View as List',
-                                                onClickFunc: () => handlePathSettingsChange(op, { _viewType: 'list' }),
+                                                onClickFunc: () => handlePathSettingsChange(op, {_viewType: 'list'}),
                                             },
                                         ],
                                     },
@@ -219,7 +218,14 @@ export const Finder = () => {
                             </ClassicyWindow>
                         )
                     })}
-            {showAbout && getClassicyAboutWindow({ appId, appName, appIcon, hideFunc: () => setShowAbout(false) })}
+            {showAbout && (
+                <ClassicyAboutWindow
+                    appId={appId}
+                    appIcon={appIcon}
+                    appName={appName}
+                    hideFunc={() => setShowAbout(false)}
+                />
+            )}
         </ClassicyApp>
     )
 }

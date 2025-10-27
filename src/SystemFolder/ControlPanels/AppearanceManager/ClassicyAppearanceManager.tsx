@@ -196,8 +196,7 @@ export const ClassicyAppearanceManager: React.FC = () => {
     }
     const loadSoundTheme = async (themeName: string) => {
         const soundTheme = getTheme(themeName).sound
-        const data = fetch(soundTheme.file).then((response) => response.json())
-        await data
+        const data = await fetch(soundTheme.file).then((response) => response.json())
         player({
             type: 'ClassicySoundLoad',
             file: data,

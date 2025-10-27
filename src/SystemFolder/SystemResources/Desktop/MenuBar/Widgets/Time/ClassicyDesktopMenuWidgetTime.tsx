@@ -2,8 +2,8 @@ import './ClassicyDesktopMenuWidgetTime.scss'
 import '@/SystemFolder/SystemResources/Menu/ClassicyMenu.scss'
 import {useDesktop, useDesktopDispatch} from '@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext'
 import classNames from 'classnames'
-import React, {useEffect, useState} from 'react'
 import appIcon from 'img/icons/control-panels/date-time-manager/date-time-manager.png'
+import React, {useEffect, useState} from 'react'
 
 export const ClassicyDesktopMenuWidgetTime: React.FC = ({}) => {
     const desktopContext = useDesktop()
@@ -12,7 +12,12 @@ export const ClassicyDesktopMenuWidgetTime: React.FC = ({}) => {
     const {show, militaryTime, displaySeconds, displayPeriod, displayDay, displayLongDay, flashSeparators} =
         desktopContext.System.Manager.DateAndTime
 
+    const [showingTime, setShowingTime] = useState(true)
+
     const [time, setTime] = useState({
+        year: new Date(desktopContext.System.Manager.DateAndTime.dateTime).getFullYear(),
+        month: new Date(desktopContext.System.Manager.DateAndTime.dateTime).getMonth(),
+        date: new Date(desktopContext.System.Manager.DateAndTime.dateTime).getDate(),
         day: new Date(desktopContext.System.Manager.DateAndTime.dateTime).getUTCDay(),
         minutes: new Date(desktopContext.System.Manager.DateAndTime.dateTime).getUTCMinutes(),
         hours: new Date(desktopContext.System.Manager.DateAndTime.dateTime).getUTCHours(),
@@ -36,6 +41,9 @@ export const ClassicyDesktopMenuWidgetTime: React.FC = ({}) => {
                 localDate.getHours() + parseInt(desktopContext.System.Manager.DateAndTime.timeZoneOffset)
             )
             setTime({
+                year: localDate.getFullYear(),
+                month: localDate.getMonth(),
+                date: localDate.getDate(),
                 day: localDate.getDay(),
                 minutes: localDate.getMinutes(),
                 hours: localDate.getHours() === 0 ? 12 : localDate.getHours(),
@@ -92,27 +100,36 @@ export const ClassicyDesktopMenuWidgetTime: React.FC = ({}) => {
                         "classicyDesktopMenuTime"
                     )}
                     onDoubleClick={openDateTimeManager}
+                    onClick={() => {setShowingTime(!showingTime)}}
                 >
-                    {displayDay && (
-                        <span className={"classicyDesktopMenuTimeSeparatorRight"}>
+                    {showingTime ? (
+                        <div>
+                            {displayDay && (
+                                <span className={"classicyDesktopMenuTimeSeparatorRight"}>
                             {displayLongDay ? daysOfWeek[time.day] : daysOfWeek[time.day].slice(0, 3)}
                         </span>
-                    )}
-                    <span> {militaryTime ? convertToTwoDigit(time.hours) : convertTo12HourPeriod(time.hours)}</span>
-                    <span>
+                            )}
+                            <span> {militaryTime ? convertToTwoDigit(time.hours) : convertTo12HourPeriod(time.hours)}</span>
+                            <span>
                         <span className={displaySeconds ? '' : toBlink()}>:</span>
-                        {convertToTwoDigit(time.minutes)}
+                                {convertToTwoDigit(time.minutes)}
                     </span>
-                    {displaySeconds && (
-                        <>
-                            <span className={toBlink()}>:</span>
-                            <span>{convertToTwoDigit(time.seconds)}</span>
-                        </>
-                    )}
-                    {!militaryTime && displayPeriod && (
-                        <span className={"classicyDesktopMenuTimeSeparatorLeft"}>
-                            {time.period}
-                        </span>
+                            {displaySeconds && (
+                                <>
+                                    <span className={toBlink()}>:</span>
+                                    <span>{convertToTwoDigit(time.seconds)}</span>
+                                </>
+                            )}
+                            {!militaryTime && displayPeriod && (
+                                <span className={"classicyDesktopMenuTimeSeparatorLeft"}>
+                                    {time.period}
+                                </span>
+                            )}
+                        </div>
+                    ) : (
+                        <div>
+                            <span> {time.month}/{time.day}/{time.year}</span>
+                        </div>
                     )}
                 </li>
             )}

@@ -1,8 +1,8 @@
 import {ClassicyStoreSystemManager} from '@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager'
 import {Howl} from 'howler'
 import React, {createContext, type Dispatch, useContext, useReducer} from 'react'
-import soundLabels from './ClassicySoundManagerLabels.json'
 import soundData from "snd/platinum/platinum.json";
+import soundLabels from './ClassicySoundManagerLabels.json'
 
 export const createSoundPlayer = ({soundData, options}: SoundPlayer): Howl | null => {
     if ('src' in soundData && 'sprite' in soundData) {
@@ -67,22 +67,24 @@ enum ClassicySoundActionTypes {
 interface ClassicySoundAction {
     type: ClassicySoundActionTypes
     sound?: string
-    file?: SoundPlayer
+    file?: SoundData
     disabled?: string | string[]
     enabled?: string | string[]
     soundPlayer?: any
 }
 
+interface SoundData {
+    src: string[]
+    sprite: Record<string, any>
+}
+
 interface SoundPlayer {
-    soundData: {
-        src: string[]
-        sprite: Record<string, any>
-    }
+    soundData: SoundData
     options?: Record<string, any>
 }
 
-export const loadSoundTheme = (soundTheme: SoundPlayer): Howl | null => {
-    return createSoundPlayer(soundTheme)
+export const loadSoundTheme = (soundTheme: SoundData): Howl | null => {
+    return createSoundPlayer({soundData: soundTheme})
 }
 
 export function useSound() {
