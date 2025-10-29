@@ -34,7 +34,6 @@ export const ClassicySoundManager: React.FC = () => {
         player({
             type: 'ClassicySoundDisable',
             disabled: checked ? [] : ['*'],
-            debug: true,
         })
     }
 
@@ -43,13 +42,11 @@ export const ClassicySoundManager: React.FC = () => {
             player({
                 type: 'ClassicySoundEnableOne',
                 enabled: sound,
-                debug: true,
             })
         } else {
             player({
                 type: 'ClassicySoundDisableOne',
                 disabled: sound,
-                debug: true,
             })
         }
     }

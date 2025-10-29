@@ -1,6 +1,6 @@
 import {intToHex} from '@/SystemFolder/ControlPanels/AppearanceManager/ClassicyColors'
 import {intToPct, intToPx} from '@/SystemFolder/ControlPanels/AppearanceManager/ClassicySize'
-import themesData from '../AppearanceManager/styles/themes.json'
+import themesData  from '../AppearanceManager/styles/themes.json'
 import {ClassicyStoreSystemManager} from '@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager'
 import {ClassicyThemeSound} from '@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext'
 
@@ -129,8 +129,8 @@ export const getThemeVars = (theme: ClassicyTheme) => {
     return makeThemeStyle(theme)
 }
 
-export const getAllThemes = () => {
-    return themesData
+export const getAllThemes = (): ClassicyTheme[] => {
+    return themesData.map((t) => { return t as unknown as ClassicyTheme })
 }
 
 export const getTheme = (theme: string, overrides?: {}) => {

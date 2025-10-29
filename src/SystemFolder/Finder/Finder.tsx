@@ -147,6 +147,7 @@ export const Finder = () => {
                                 title={dir['_name']}
                                 icon={dir['_icon']}
                                 appId={appId}
+                                defaultWindow={false}
                                 hidden={false}
                                 initialSize={[425, 300]}
                                 initialPosition={[50 + idx * 50, 50 + idx * 50]}

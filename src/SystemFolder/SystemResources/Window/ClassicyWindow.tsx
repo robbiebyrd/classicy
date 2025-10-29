@@ -1,5 +1,6 @@
 'use client'
 
+import {ClassicyStoreSystemAppWindow} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import fileIcon from 'img/icons/system/files/file.png'
 import {useDesktop, useDesktopDispatch} from '@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext'
 import {useSoundDispatch} from '@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext'
@@ -23,6 +24,7 @@ interface ClassicyWindowProps {
     scrollable?: boolean
     modal?: boolean
     growable?: boolean
+    defaultWindow?: boolean
     initialSize?: [number, number]
     initialPosition?: [number, number]
     minimumSize?: [number, number]
@@ -48,6 +50,7 @@ export const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
                                                                   modal = false,
                                                                   type = 'default',
                                                                   growable,
+                                                                  defaultWindow = false,
                                                                   initialSize = [350, 0],
                                                                   initialPosition = [110, 110],
                                                                   minimumSize = [300, 0],
@@ -73,20 +76,23 @@ export const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
     const windowRef = useRef<HTMLDivElement | null>(null)
 
     const ws = useMemo(() => {
-        const initialWindowState: ClassicyWindowState = {
+        const initialWindowState: ClassicyStoreSystemAppWindow = {
             collapsed: false,
             focused: false,
             contextMenu: contextMenu,
             dragging: false,
             moving: false,
             resizing: false,
-            sounding: false,
             zoomed: false,
             size: initialSize,
             position: initialPosition,
             closed: hidden,
             menuBar: appMenu || [],
-            contextMenuShown: false,
+            showContextMenu: false,
+            default: defaultWindow,
+            id: id,
+            appId: appId,
+            minimumSize: [0,0],
         }
 
         const window = desktopContext.System.Manager.App.apps[appId]?.windows.find((w) => w.id === id)
@@ -95,15 +101,14 @@ export const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
         }
 
         return {
-            id,
+            ...initialWindowState,
             appId,
             minimumSize,
-            ...initialWindowState,
             position: [
                 windowRef.current?.getBoundingClientRect().left || 0,
                 windowRef.current?.getBoundingClientRect().top || 0,
             ],
-        } as ClassicyWindowState
+        } as ClassicyStoreSystemAppWindow
     }, [
         appId,
         appId,

@@ -1,7 +1,7 @@
 import macosIcon from 'img/icons/system/macos.png';
 import {
     ClassicyStoreSystemAppearanceManager,
-    ClassicyTheme,
+    ClassicyTheme, getAllThemes,
 } from '@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance'
 import {
     classicyDateTimeManagerEventHandler
@@ -115,13 +115,13 @@ export class ClassicyAppManagerHandler {
             ds.System.Manager.App.apps[appId].focused = true
         }
         const focusedWindow = ds.System.Manager.App.apps[appId]?.windows.findIndex((w) => w.default)
-        if (focusedWindow >= 0) {
+        if (focusedWindow > 0) {
             ds.System.Manager.App.apps[appId].windows[focusedWindow].closed = false
             ds.System.Manager.App.apps[appId].windows[focusedWindow].focused = true
             if (ds.System.Manager.App.apps[appId].appMenu) {
                 ds.System.Manager.Desktop.appMenu = ds.System.Manager.App.apps[appId].appMenu
             }
-        } else if (ds.System.Manager.App.apps[appId]?.windows.length > 0) {
+        } else if (ds.System.Manager.App.apps[appId]?.windows.length == 1) {
             ds.System.Manager.App.apps[appId].windows[0].closed = false
             ds.System.Manager.App.apps[appId].windows[0].focused = true
             if (ds.System.Manager.App.apps[appId].appMenu) {
@@ -206,7 +206,7 @@ export const classicyAppEventHandler = (ds: ClassicyStore, action: ActionMessage
         case 'ClassicyAppClose': {
             handler.closeApp(ds, action.app.id)
             const openApps = Object.values(ds.System.Manager.App.apps).find((value) => {
-                return value.open === true
+                return value.open
             })
 
             if (openApps?.id) {
@@ -319,7 +319,7 @@ export const DefaultDesktopState: ClassicyStore = {
                 },
             },
             Appearance: {
-                availableThemes: themesData as unknown as ClassicyTheme[],
+                availableThemes: getAllThemes(),
                 activeTheme: themesData.find((t) => t.id == 'default') as unknown as ClassicyTheme,
             },
         },

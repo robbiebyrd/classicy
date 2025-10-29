@@ -104,10 +104,10 @@ export const ClassicyDesktopIcon: React.FC<ClassicyDesktopIconProps> = ({
     const isLaunched = () => {
         // Check if a Finder window is open
         if (appId.startsWith('Finder.app')) {
-            const a = desktopContext.System.Manager.App.apps['Finder.app'].windows.findIndex(
-                (w) => w.id === eventData.path && w.closed === false
+            const pathCount = desktopContext.System.Manager.App.apps['Finder.app'].windows.findIndex(
+                (w) => w.id === eventData.path && !w.closed
             )
-            return a >= 0
+            return pathCount >= 0
         }
         return desktopContext.System.Manager.App.apps[appId]?.open
     }

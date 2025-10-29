@@ -35,6 +35,8 @@ export interface ClassicyStoreSystemDesktopManager extends ClassicyStoreSystemMa
 }
 
 export const classicyDesktopEventHandler = (ds: ClassicyStore, action: ActionMessage) => {
+    const mgr = new ClassicyAppManagerHandler()
+
     switch (action.type) {
         case 'ClassicyDesktopAppMenuAdd': {
             const menuItem = {
@@ -71,7 +73,6 @@ export const classicyDesktopEventHandler = (ds: ClassicyStore, action: ActionMes
         }
         case 'ClassicyDesktopFocus': {
             if ('e' in action && action.e.target.id === 'classicyDesktop') {
-                const mgr = new ClassicyAppManagerHandler()
                 ds = mgr.deFocusApps(ds)
 
                 ds.System.Manager.App.apps['Finder.app'].focused = true
