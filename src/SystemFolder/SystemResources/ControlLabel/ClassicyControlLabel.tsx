@@ -65,11 +65,11 @@ export const ClassicyControlLabel: React.FC<ClassicyControlLabelProps> = ({
 
     return (
         <div
-            style={{
-                display: 'flex',
-                flexDirection: ['left', 'bottom'].includes(direction) ? 'row' : 'row-reverse',
-                alignItems: icon ? 'center' : '',
-            }}
+            className={classNames(
+                'flex',
+                ['left', 'bottom'].includes(direction) ? 'flex-row' : 'flex-row-reverse',
+                icon ? 'items-center' : ''
+            )}
             onClick={(e) => {
                 e.preventDefault()
                 if (onClickFunc) {

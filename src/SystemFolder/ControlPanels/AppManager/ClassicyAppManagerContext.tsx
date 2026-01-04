@@ -1,47 +1,79 @@
-import { ClassicySoundManagerProvider } from '@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext'
-import React, {createContext, type Dispatch, ReactNode, useContext, useEffect, useReducer} from 'react'
-import { classicyDesktopStateEventReducer, ClassicyStore, DefaultDesktopState } from './ClassicyAppManager'
+import { ClassicySoundManagerProvider } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
+import googleAnalytics from "@analytics/google-analytics";
+import googleTagManager from "@analytics/google-tag-manager";
+import Analytics, { AnalyticsPlugin } from "analytics";
+import React, { useEffect, useMemo, useReducer, useState } from "react";
+import { AnalyticsProvider } from "use-analytics";
+import {
+  classicyDesktopStateEventReducer,
+  ClassicyStore,
+  DefaultAppManagerState,
+} from "./ClassicyAppManager";
+import {
+  ClassicyAppManagerContext,
+  ClassicyAppManagerDispatchContext,
+} from "./ClassicyAppManagerUtils";
 
-const ClassicyDesktopContext = createContext<ClassicyStore>(DefaultDesktopState)
-const ClassicyDesktopDispatchContext = createContext<Dispatch<any>>((() => undefined) as Dispatch<any>)
+type ClassicyAppManagerProviderProps = {
+  gaMeasurementIds?: string[];
+  gtmContainerId?: string;
+  appName?: string;
+};
 
-type ClassicyDesktopProviderProps = {
-    children: ReactNode
-}
+export const ClassicyAppManagerProvider: React.FC<
+  React.PropsWithChildren<ClassicyAppManagerProviderProps>
+> = ({ children, gtmContainerId, gaMeasurementIds, appName = "classicy" }) => {
+  const [appManagerState, setAppManagerState] = useState<ClassicyStore>(
+    DefaultAppManagerState,
+  );
 
-export const ClassicyDesktopProvider: React.FC<ClassicyDesktopProviderProps> = ({children}) => {
-    let desktopState: ClassicyStore
+  const [appManager, dispatch] = useReducer(
+    classicyDesktopStateEventReducer,
+    appManagerState,
+  );
 
-    if (typeof window !== 'undefined') {
-        try {
-            const storedState = localStorage.getItem('classicyDesktopState')
-            desktopState = storedState ? JSON.parse(storedState) : DefaultDesktopState
-        } catch (error) {
-            desktopState = DefaultDesktopState
-        }
-    } else {
-        desktopState = DefaultDesktopState
+  const analytics = useMemo(() => {
+    const plugins: AnalyticsPlugin[] = [];
+
+    if (gaMeasurementIds && gaMeasurementIds.length > 0) {
+      plugins.push(googleAnalytics({ measurementIds: gaMeasurementIds }));
     }
 
-    const [desktop, dispatch] = useReducer(classicyDesktopStateEventReducer, desktopState)
+    if (gtmContainerId) {
+      plugins.push(googleTagManager({ containerId: gtmContainerId }));
+    }
 
-    useEffect(() => {
-        localStorage.setItem('classicyDesktopState', JSON.stringify(desktop))
-    }, [desktop])
+    return Analytics({ app: appName, plugins: plugins });
+  }, [appName, gaMeasurementIds, gtmContainerId]);
 
-    return (
-        <ClassicyDesktopContext.Provider value={desktop}>
-            <ClassicyDesktopDispatchContext.Provider value={dispatch}>
-                <ClassicySoundManagerProvider>{children}</ClassicySoundManagerProvider>
-            </ClassicyDesktopDispatchContext.Provider>
-        </ClassicyDesktopContext.Provider>
-    )
-}
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const storedState = localStorage.getItem("classicyDesktopState");
+        setAppManagerState(
+          storedState ? JSON.parse(storedState) : DefaultAppManagerState,
+        );
+      } catch (error) {
+        console.log(error);
+      }
+    } else {
+      setAppManagerState(DefaultAppManagerState);
+    }
+  }, []);
 
-export function useDesktop() {
-    return useContext(ClassicyDesktopContext)
-}
+  useEffect(() => {
+    localStorage.setItem("classicyDesktopState", JSON.stringify(appManager));
+  }, [appManager]);
 
-export function useDesktopDispatch() {
-    return useContext(ClassicyDesktopDispatchContext)
-}
+  return (
+    <AnalyticsProvider instance={analytics}>
+      <ClassicyAppManagerContext.Provider value={appManager}>
+        <ClassicyAppManagerDispatchContext.Provider value={dispatch}>
+          <ClassicySoundManagerProvider>
+            {children}
+          </ClassicySoundManagerProvider>
+        </ClassicyAppManagerDispatchContext.Provider>
+      </ClassicyAppManagerContext.Provider>
+    </AnalyticsProvider>
+  );
+};

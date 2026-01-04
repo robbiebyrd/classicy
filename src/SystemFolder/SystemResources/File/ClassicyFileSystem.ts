@@ -5,7 +5,7 @@ import {
     ClassicyFileSystemEntryFileType,
     ClassicyFileSystemEntryMetadata,
 } from '@/SystemFolder/SystemResources/File/ClassicyFileSystemModel'
-import directoryIcon from 'img/icons/system/folders/directory.png'
+import directoryIcon from '@img/icons/system/folders/directory.png'
 
 export type ClassicyPathOrFileSystemEntry = string | ClassicyFileSystemEntry
 

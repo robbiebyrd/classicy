@@ -8,12 +8,12 @@
   font-size: var(--ui-font-size);
   position: relative;
   z-index: 5000;
-  display: flex;
+  display: block;
   width: 100%;
   margin: 0;
   padding: 0;
   box-shadow: inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-05),
-  calc(var(--window-border-size) * 2) calc(var(--window-border-size) * 2) 0 0 var(--color-black);
+    calc(var(--window-border-size) * 2) calc(var(--window-border-size) * 2) 0 0 var(--color-black);
 }
 
 .classicyMenu {
@@ -100,6 +100,7 @@
   height: calc(100% - var(--window-padding-size)) !important;
   margin: 0;
   padding: calc(var(--window-padding-size) / 2) var(--window-padding-size);
+  box-sizing: content-box;
 
   &:hover {
     color: var(--color-white);
@@ -178,10 +179,27 @@
 }
 
 @keyframes classicyMenuItemFlashKeyframes {
-  0% { filter: invert(100%);}
-  20% { filter: invert(0);}
-  40% { filter: invert(100%);}
-  60% { filter: invert(0);}
-  80% { filter: invert(100%);}
-  100% { filter: invert(0);}
+  0% {
+    filter: invert(100%);
+  }
+
+  20% {
+    filter: invert(0);
+  }
+
+  40% {
+    filter: invert(100%);
+  }
+
+  60% {
+    filter: invert(0);
+  }
+
+  80% {
+    filter: invert(100%);
+  }
+
+  100% {
+    filter: invert(0);
+  }
 }

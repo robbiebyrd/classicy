@@ -1,10 +1,10 @@
-import {ClassicyStoreSystemManager} from '@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager'
-import {Howl} from 'howler'
-import React, {createContext, type Dispatch, useContext, useReducer} from 'react'
-import soundData from "snd/platinum/platinum.json";
+import { ClassicyStoreSystemManager } from '@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager'
+import { Howl } from 'howler'
+import React, { createContext, type Dispatch, useContext, useReducer } from 'react'
+import soundData from "@snd/platinum/platinum.json";
 import soundLabels from './ClassicySoundManagerLabels.json'
 
-export const createSoundPlayer = ({soundData, options}: SoundPlayer): Howl | null => {
+export const createSoundPlayer = ({ soundData, options }: SoundPlayer): Howl | null => {
     if ('src' in soundData && 'sprite' in soundData) {
         return new Howl({
             src: soundData.src,
@@ -16,8 +16,8 @@ export const createSoundPlayer = ({soundData, options}: SoundPlayer): Howl | nul
 }
 
 export const initialPlayer = {
-    soundPlayer: createSoundPlayer({soundData: soundData}),
-    disabled: [],
+    soundPlayer: createSoundPlayer({ soundData: soundData }),
+    disabled: [] as string[],
     labels: soundLabels,
     volume: 100,
 }
@@ -84,7 +84,7 @@ interface SoundPlayer {
 }
 
 export const loadSoundTheme = (soundTheme: SoundData): Howl | null => {
-    return createSoundPlayer({soundData: soundTheme})
+    return createSoundPlayer({ soundData: soundTheme })
 }
 
 export function useSound() {
@@ -95,7 +95,7 @@ export function useSoundDispatch() {
     return useContext(ClassicySoundDispatchContext)
 }
 
-const playerCanPlayInterrupt = ({disabled, soundPlayer}: ClassicySoundState, sound: string) => {
+const playerCanPlayInterrupt = ({ disabled, soundPlayer }: ClassicySoundState, sound: string) => {
     return !disabled.includes('*') && !disabled.includes(sound) && soundPlayer
 }
 
@@ -183,7 +183,7 @@ export const ClassicySoundStateEventReducer = (ss: ClassicySoundState, action: C
     return ss
 }
 
-export const ClassicySoundManagerProvider: React.FC<{ children: any }> = ({children}) => {
+export const ClassicySoundManagerProvider: React.FC<{ children: any }> = ({ children }) => {
     const [sound, soundDispatch] = useReducer(ClassicySoundStateEventReducer, initialPlayer)
 
     return (

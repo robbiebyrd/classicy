@@ -1,7 +1,7 @@
 import { ClassicyFileSystemEntryFileType } from '@/SystemFolder/SystemResources/File/ClassicyFileSystemModel'
-import diskIcon from 'img/icons/system/drives/disk.png'
-import directoryIcon from 'img/icons/system/folders/directory.png'
-import macIcon from 'img/icons/system/mac.png'
+import diskIcon from '@img/icons/system/drives/disk.png'
+import directoryIcon from '@img/icons/system/folders/directory.png'
+import macIcon from '@img/icons/system/mac.png'
 
 
 export const DefaultFSContent = {

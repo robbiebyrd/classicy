@@ -1,0 +1,174 @@
+{
+  "src": [
+    "/sounds/platinum/platinum.ogg",
+    "/sounds/platinum/platinum.m4a",
+    "/sounds/platinum/platinum.mp3",
+    "/sounds/platinum/platinum.ac3"
+  ],
+  "sprite": {
+    "ClassicyAlertBonk": [
+      0,
+      499.31972789115645
+    ],
+    "ClassicyAlertGrowl": [
+      2000,
+      977.8231292517008
+    ],
+    "ClassicyAlertIndigo": [
+      4000,
+      352.31292517006807
+    ],
+    "ClassicyAlertQuack": [
+      6000,
+      183.3786848072565
+    ],
+    "ClassicyAlertSosumi": [
+      8000,
+      179.6371882086163
+    ],
+    "ClassicyAlertTabitha": [
+      10000,
+      736.2358276643998
+    ],
+    "ClassicyAlertWildEep": [
+      12000,
+      137.00680272108912
+    ],
+    "ClassicyBeep": [
+      14000,
+      254.94331065759644
+    ],
+    "ClassicyBoot": [
+      16000,
+      1376.4852607709734
+    ],
+    "ClassicyButtonClickDown": [
+      19000,
+      1.678004535147437
+    ],
+    "ClassicyButtonClickUp": [
+      21000,
+      1.678004535147437
+    ],
+    "ClassicyClick": [
+      23000,
+      19.20634920634967
+    ],
+    "ClassicyEmailMailError": [
+      25000,
+      1097.1882086167816
+    ],
+    "ClassicyEmailMailSent": [
+      28000,
+      627.0068027210875
+    ],
+    "ClassicyEmailNewMail": [
+      30000,
+      966.5306122448989
+    ],
+    "ClassicyEmailNoMail": [
+      32000,
+      296.07709750566613
+    ],
+    "ClassicyInputRadioClickDown": [
+      34000,
+      46.666666666666856
+    ],
+    "ClassicyInputRadioClickUp": [
+      36000,
+      6.666666666667709
+    ],
+    "ClassicyMenuClose": [
+      38000,
+      131.67800453514644
+    ],
+    "ClassicyMenuItemClick": [
+      40000,
+      140.00000000000057
+    ],
+    "ClassicyMenuItemHover": [
+      42000,
+      36.666666666668846
+    ],
+    "ClassicyMenuOpen": [
+      44000,
+      135.01133786848385
+    ],
+    "ClassicyTabClick": [
+      46000,
+      161.8140589569137
+    ],
+    "ClassicyTabClickDown": [
+      48000,
+      79.43310657596214
+    ],
+    "ClassicyTabClickUp": [
+      50000,
+      68.57142857143117
+    ],
+    "ClassicyThump": [
+      52000,
+      144.39909297052367
+    ],
+    "ClassicyWindowClose": [
+      54000,
+      135.01133786848385
+    ],
+    "ClassicyWindowCollapse": [
+      56000,
+      119.99999999999744
+    ],
+    "ClassicyWindowControlClickDown": [
+      58000,
+      11.678004535149
+    ],
+    "ClassicyWindowControlClickUp": [
+      60000,
+      56.66666666666487
+    ],
+    "ClassicyWindowExpand": [
+      62000,
+      235.01133786847817
+    ],
+    "ClassicyWindowFocus": [
+      64000,
+      30.000000000001137
+    ],
+    "ClassicyWindowMoveIdle": [
+      66000,
+      381.67800453514644
+    ],
+    "ClassicyWindowMoveMoving": [
+      68000,
+      853.3333333333388
+    ],
+    "ClassicyWindowMoveStop": [
+      70000,
+      200.00000000000284
+    ],
+    "ClassicyWindowOpen": [
+      72000,
+      306.666666666672
+    ],
+    "ClassicyWindowResizeIdle": [
+      74000,
+      381.67800453514644
+    ],
+    "ClassicyWindowResizeResizing": [
+      76000,
+      873.3333333333348
+    ],
+    "ClassicyWindowResizeStop": [
+      78000,
+      306.666666666672
+    ],
+    "ClassicyWindowZoomMaximize": [
+      80000,
+      13.06122448978897
+    ],
+    "ClassicyWindowZoomMinimize": [
+      82000,
+      58.04988662131905
+    ]
+  }
+}

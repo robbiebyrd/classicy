@@ -1,7 +1,7 @@
-import soundOnImg from 'img/icons/control-panels/sound-manager/sound-on.png'
-import soundOffImg from 'img/icons/control-panels/sound-manager/sound-off.png'
-import sound66Img from 'img/icons/control-panels/sound-manager/sound-66.png'
-import sound33Img from 'img/icons/control-panels/sound-manager/sound-33.png'
+import soundOnImg from '@img/icons/control-panels/sound-manager/sound-on.png'
+import soundOffImg from '@img/icons/control-panels/sound-manager/sound-off.png'
+import sound66Img from '@img/icons/control-panels/sound-manager/sound-66.png'
+import sound33Img from '@img/icons/control-panels/sound-manager/sound-33.png'
 
 export function timeFriendly(seconds: number): string {
     if (!Number.isFinite(seconds)) {

@@ -1,6 +1,8 @@
 @use '../../ControlPanels/AppearanceManager/styles/appearance';
 
 .classicyButton {
+  @apply select-none;
+
   font-family: var(--ui-font), sans-serif;
   font-size: var(--ui-font-size);
 
@@ -31,6 +33,8 @@
 }
 
 .classicyButtonShapeSquare {
+  @apply rounded-none aspect-square [&_img]:w-full;
+
   width: calc(var(--window-control-size) * 4);
   padding: calc(var(--window-padding-size) * 2);
   border-radius: 0;
@@ -42,6 +46,8 @@
 }
 
 .classicyButtonSmall {
+  @apply text-[calc(var(--ui-font-size)/2)] rounded-[calc(var(--window-padding-size)/2)];
+
   font-size: calc(var(--ui-font-size) / 2);
   border-radius: calc(var(--window-padding-size) / 2);
 }

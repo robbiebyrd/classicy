@@ -46,14 +46,6 @@
 
   grid-template-areas: 'select';
 
-  &,
-  &::before,
-  &::after,
-  & *,
-  & *::before,
-  & *::after {
-    box-sizing: border-box;
-  }
 
   &.select--disabled {
     cursor: not-allowed;
@@ -83,10 +75,10 @@
       border-radius: var(--window-padding-size);
       outline: var(--color-outline) solid calc(var(--window-border-size) * 2) !important;
       box-shadow: 0 0 0 var(--window-border-size) var(--color-system-04),
-      0 0 0 calc(var(--window-border-size) * 2) var(--color-system-02),
-      0 0 0 calc(var(--window-border-size) * 3) var(--color-black),
-      inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 0 var(--color-system-05),
-      inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-06);
+        0 0 0 calc(var(--window-border-size) * 2) var(--color-system-02),
+        0 0 0 calc(var(--window-border-size) * 3) var(--color-black),
+        inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 0 var(--color-system-05),
+        inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-06);
     }
 
     &::-ms-expand {

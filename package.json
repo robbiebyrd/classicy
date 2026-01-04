@@ -1,8 +1,11 @@
 {
+  "main": "./dist/classicy.es.js",
+  "module": "./dist/classicy.umd.js",
+  "types": "./dist/types/src/index.d.ts",
   "name": "classicy",
-  "version": "0.5.2",
+  "version": "0.6.0",
+  "type": "module",
   "description": "A UI framework in React, replicating the user interface of Classic MacOS 8 (called Platinum).",
-  "main": "index.js",
   "keywords": [
     "react",
     "typescript",
@@ -14,52 +17,78 @@
   "author": "Robbie Byrd <me@robbiebyrd.com>",
   "license": "MIT",
   "scripts": {
-    "clean": "rm -rf dist && mkdir dist",
-    "build": "npm run build-prod",
-    "build-audio": "./scripts/build_sprites.sh",
-    "build-watch": "webpack --mode development --stats-error-details --watch",
-    "build-dev": "webpack --mode development --stats-error-details",
-    "build-prod": "npm run setup-dist && npm run build-audio && webpack --mode production",
-    "setup-dist": "npm run clean && cp package.json ./dist/package.json && cp README.md ./dist/README.md",
-    "serve": "npx http-server dist/ -p 3000"
+    "dev": "vite",
+    "build": "npm run build-audio && tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "build-audio": "./bin/make_audio_sprites.sh"
+  },
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/types/src/index.d.ts",
+      "import": "./dist/classicy.es.js",
+      "require": "./dist/classicy.umd.js"
+    },
+    "./dist/*": "./dist/*.js"
   },
   "dependencies": {
-    "@mdxeditor/editor": "^3.39.1",
+    "@analytics/google-tag-manager": "^0.6.0",
+    "@mdxeditor/editor": "^3.52.1",
     "@plussub/srt-vtt-parser": "^2.0.5",
+    "@tailwindcss/vite": "^4.1.18",
     "@tanstack/react-table": "^8.21.3",
+    "analytics": "^0.8.19",
     "classnames": "^2.5.1",
     "howler": "^2.2.4",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
+    "react-ga4": "^2.1.0",
     "react-json-tree": "^0.20.0",
-    "react-player": "^3.3.1",
+    "react-player": "^3.4.0",
     "screenfull": "^6.0.2",
-    "sha512-crypt-ts": "^0.1.27"
+    "sha512-crypt-ts": "^0.1.27",
+    "tailwindcss": "^4.1.18",
+    "use-analytics": "^1.1.0"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
   },
   "devDependencies": {
+    "@analytics/google-analytics": "^1.1.0",
     "@babel/core": "^7.28.0",
     "@babel/preset-env": "^7.28.0",
     "@babel/preset-react": "^7.27.1",
+    "@eslint/js": "^9.39.1",
     "@svgr/webpack": "^8.1.0",
     "@types/howler": "^2.2.12",
-    "@types/node": "^24.0.14",
-    "@types/react": "^19.1.8",
-    "@types/react-dom": "^19.1.6",
-    "@types/webpack": "^5.28.5",
-    "babel-loader": "^10.0.0",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.5",
+    "@types/react-dom": "^19.2.3",
+    "@types/use-analytics": "^0.0.3",
+    "@vitejs/plugin-react": "^5.1.1",
     "css-loader": "^7.1.2",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
     "file-loader": "^6.2.0",
-    "html-webpack-plugin": "^5.6.4",
+    "globals": "^16.5.0",
     "node-sass": "^9.0.0",
-    "sass": "^1.89.2",
-    "sass-loader": "^16.0.5",
-    "style-loader": "^4.0.0",
-    "ts-loader": "^9.5.2",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "sass": "^1.94.2",
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.3",
+    "tsc-alias": "^1.8.16",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.46.4",
     "url-loader": "^4.1.1",
-    "webpack": "^5.100.2",
-    "webpack-cli": "^6.0.1",
-    "webpack-dev-server": "^5.2.2"
+    "vite": "^7.2.4",
+    "vite-plugin-dts": "^4.5.4",
+    "vite-plugin-react-rich-svg": "^1.3.0"
+  },
+  "volta": {
+    "node": "24.11.0",
+    "yarn": "1.19.2"
   }
 }
