@@ -3,7 +3,7 @@
   "module": "./dist/classicy.umd.js",
   "types": "./dist/types/src/index.d.ts",
   "name": "classicy",
-  "version": "0.6.12",
+  "version": "0.6.13.1",
   "repository": {
     "type": "git",
     "url": "https://github.com/robbiebyrd/classicy"
