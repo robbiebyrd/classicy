@@ -18,18 +18,28 @@ jobs:
 
     steps:
       - name: Checkout code
+        id: checkout-code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Setup Node.js
+        id: setup-node-js
         uses: actions/setup-node@v6
         with:
           node-version: '24.x'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
+        id: install-npm-deps
         run: npm install
+
+      - name: Install FFMpeg
+        id: setup-ffmpeg
+        uses: FedericoCarboni/setup-ffmpeg@v3
+        with:
+          ffmpeg-version: release
+          linking-type: static
 
       - name: Build Package
         run: npm run build
