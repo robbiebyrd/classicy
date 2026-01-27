@@ -41,7 +41,12 @@ jobs:
           ffmpeg-version: release
           linking-type: static
 
+      - name: List Directory
+        id: debug-list-directory
+        run: ls /home/runner/work/classicy/classicy
+
       - name: Build Package
+        id: build-package
         run: npm run build
 
       - name: Bump version and push tag
