@@ -4,6 +4,10 @@
   "types": "./dist/types/src/index.d.ts",
   "name": "classicy",
   "version": "0.6.7",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/robbiebyrd/classicy"
+  },
   "type": "module",
   "description": "A UI framework in React, replicating the user interface of Classic MacOS 8 (called Platinum).",
   "keywords": [
