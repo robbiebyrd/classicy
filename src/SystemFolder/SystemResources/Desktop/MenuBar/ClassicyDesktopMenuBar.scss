@@ -1,6 +1,6 @@
 .classicyDesktopMenuBar {
   z-index: 500;
-  background: var(--color-black);
+  // background: var(--color-black);
 }
 
 .clasicyDesktopMenuAppleMenu {
@@ -21,8 +21,8 @@
   user-select: none;
   border-radius: var(--window-control-size) var(--window-control-size) 0 0;
   background-color: var(--color-system-02) !important;
-  box-shadow: inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-05),
-    calc(var(--window-border-size) * 2) calc(var(--window-border-size) * 2) 0 0 var(--color-black);
+  // box-shadow: inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-05),
+  //   calc(var(--window-border-size) * 2) calc(var(--window-border-size) * 2) 0 0 var(--color-black);
   user-drag: none;
 
 
