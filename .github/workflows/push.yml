@@ -33,7 +33,7 @@ jobs:
 
       - name: Bump version and push tag
         id: bump_version
-        uses: phips28/gh-action-bump-version@v11
+        uses: phips28/gh-action-bump-version@master
         with:
           target-branch: main
           tag-prefix:  'v'
