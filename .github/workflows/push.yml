@@ -27,16 +27,16 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      # - name: Bump version and push tag
-      #   id: bump_version
-      #   uses: phips28/gh-action-bump-version@master
-      #   with:
-      #     target-branch: main
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Bump version and push tag
+        id: bump_version
+        uses: phips28/gh-action-bump-version@master
+        with:
+          target-branch: main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # - name: Publish to npm
-      #   if: steps.bump_version.outputs.newTag != ''
-      #   uses: JS-DevTools/npm-publish@v3
-      #   with:
-      #     token: ${{ secrets.NPM_TOKEN }}
+      - name: Publish to npm
+        if: steps.bump_version.outputs.newTag != ''
+        uses: JS-DevTools/npm-publish@v3
+        with:
+          token: ${{ secrets.NPM_TOKEN }}
