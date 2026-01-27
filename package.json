@@ -3,7 +3,7 @@
   "module": "./dist/classicy.umd.js",
   "types": "./dist/types/src/index.d.ts",
   "name": "classicy",
-  "version": "0.6.4",
+  "version": "0.6.5",
   "type": "module",
   "description": "A UI framework in React, replicating the user interface of Classic MacOS 8 (called Platinum).",
   "keywords": [
