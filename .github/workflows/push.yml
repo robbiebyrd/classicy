@@ -43,7 +43,7 @@ jobs:
 
       - name: List Directory
         id: debug-list-directory
-        run: ls /home/runner/work/classicy/classicy
+        run: ls /home/runner/work/classicy/classicy/assets/img/icons/system/quicktime
 
       - name: Build Package
         id: build-package
