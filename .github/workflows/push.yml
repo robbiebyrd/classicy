@@ -37,6 +37,7 @@ jobs:
 
       - name: Publish to npm
         if: steps.bump_version.outputs.newTag != ''
-        uses: JS-DevTools/npm-publish@v3
+        uses: JS-DevTools/npm-publish@v4
         with:
           token: ${{ secrets.NPM_TOKEN }}
+          tag-prefix:  'v'
