@@ -32,6 +32,7 @@ jobs:
         uses: phips28/gh-action-bump-version@master
         with:
           target-branch: main
+          tag-prefix:  'v'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -40,4 +41,3 @@ jobs:
         uses: JS-DevTools/npm-publish@v4
         with:
           token: ${{ secrets.NPM_TOKEN }}
-          tag-prefix:  'v'
