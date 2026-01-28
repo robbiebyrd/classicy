@@ -23,7 +23,7 @@ export const ClassicyFileBrowser: React.FC<ClassicyFileBrowserProps> = ({
     const holderRef = useRef<HTMLDivElement>(null)
 
     return (
-        <div style={{ position: 'absolute', width: '100%', height: '100%' }}>
+        <div className="absolute w-full h-full">
             {(() => {
                 switch (display) {
                     case 'list':

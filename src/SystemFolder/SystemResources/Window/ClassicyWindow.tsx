@@ -540,10 +540,8 @@ export const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
                   ? "classicyWindowContentsModal"
                   : "classicyWindowContents",
                 header ? "classicyWindowContentsWithHeader" : "",
+                ws.collapsed ? "hidden" : "block",
               )}
-              style={{
-                display: ws.collapsed == true ? "none" : "block",
-              }}
             >
               <div
                 className={classNames(

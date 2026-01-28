@@ -85,11 +85,11 @@ export const ClassicyIcon: React.FC<ClassicyIconProps> = ({
       draggable={false}
       className={classNames(
         "classicyIcon",
+        "absolute",
         dragging ? "classicyIconDragging" : "",
         active ? "classicyIconActive" : "",
       )}
       style={{
-        position: "absolute",
         left: position[0] + "px",
         top: position[1] + "px",
       }}

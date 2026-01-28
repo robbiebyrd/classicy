@@ -182,7 +182,7 @@ export const ClassicyDatePicker: React.FC<ClassicyDatePickerProps> =
                 disabled={disabled}
                 value={month}
                 maxLength={2}
-                style={{ width: "25%" }}
+                className="w-1/4"
               ></input>
               /
               <input
@@ -198,7 +198,7 @@ export const ClassicyDatePicker: React.FC<ClassicyDatePickerProps> =
                 disabled={disabled}
                 value={day}
                 maxLength={2}
-                style={{ width: "25%" }}
+                className="w-1/4"
               ></input>
               /
               <input
@@ -214,7 +214,7 @@ export const ClassicyDatePicker: React.FC<ClassicyDatePickerProps> =
                 disabled={disabled}
                 value={year}
                 maxLength={4}
-                style={{ width: "50%" }}
+                className="w-1/2"
               ></input>
             </div>
           </div>
