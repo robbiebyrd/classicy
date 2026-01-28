@@ -7,8 +7,9 @@
   font-family: var(--ui-font), sans-serif;
   font-size: var(--ui-font-size);
   position: relative;
+  height: 100%;
+  display: flex;
   z-index: 5000;
-  display: block;
   width: 100%;
   margin: 0;
   padding: 0;
@@ -55,7 +56,7 @@
   flex-direction: column;
   min-width: calc(var(--window-control-size) * 15);
   @include appearance.platinumWindowBorder;
-  margin: 0 0 0 calc(var(--window-padding-size) * -1);
+  margin: calc(var(--window-padding-size) * 1) 0 0 calc(var(--window-padding-size) * -1);
   padding: var(--window-border-size);
   list-style: none;
   color: var(--color-black);

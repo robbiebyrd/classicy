@@ -86,8 +86,12 @@ export const ClassicyAppearanceManager: React.FC = () => {
 
   const [showAbout, setShowAbout] = useState(false);
   const [bg, setBg] = useState<string>(
-    desktopContext.System.Manager.Appearance.activeTheme.desktop
-      .backgroundImage || Default,
+    desktopContext.System.Manager.Appearance.activeTheme.desktop.backgroundImage.startsWith(
+      "data:",
+    )
+      ? desktopContext.System.Manager.Appearance.activeTheme.desktop
+          .backgroundImage
+      : Default,
   );
 
   const themesList =

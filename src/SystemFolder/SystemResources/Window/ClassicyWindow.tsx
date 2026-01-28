@@ -129,10 +129,7 @@ export const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
       ...initialWindowState,
       appId,
       minimumSize,
-      position: [
-        windowRef.current?.getBoundingClientRect().left || 0,
-        windowRef.current?.getBoundingClientRect().top || 0,
-      ],
+      position: initialPosition,
     } as ClassicyStoreSystemAppWindow;
   }, [
     appId,

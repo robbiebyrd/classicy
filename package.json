@@ -22,10 +22,14 @@
   "license": "MIT",
   "scripts": {
     "dev": "vite",
-    "build": "npm run build-audio && tsc -b && vite build",
+    "build": "npm run build:audio && npm run build:source",
+    "build:source": "tsc -b && vite build",
+    "build:audio": "./bin/make_audio_sprites.sh",
+    "build:watch": "concurrently --kill-others \"npm run build:watchaudio\" \"yarn run build:watchsource\"",
+    "build:watchaudio": "nodemon --watch \"resources/sounds/**\" --ext \"mp3,mp4,wav,aif,aiff,ogg,flac,m4a,ac3,json\" --exec \"npm run build:audio\"",
+    "build:watchsource": "nodemon --watch \"src/**\" --watch \"assets/**\" --ext \"tsx,ts,json,css,scss,png,jpg,svg\" --exec \"npm run build:source\"",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "build-audio": "./bin/make_audio_sprites.sh"
+    "preview": "vite preview"
   },
   "files": [
     "dist"
@@ -77,6 +81,7 @@
     "eslint-plugin-react-refresh": "^0.4.24",
     "file-loader": "^6.2.0",
     "globals": "^16.5.0",
+    "nodemon": "^3.1.11",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "sass": "^1.97.3",
