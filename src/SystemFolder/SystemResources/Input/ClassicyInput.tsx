@@ -49,7 +49,7 @@ export const ClassicyInput: React.FC<ClassicyInputProps> = React.forwardRef<
   };
 
   return (
-    <div className={"classicyInputHolder"}>
+    <div className={"flex items-center flex-row w-[calc(100%-var(--window-padding-size)*2)] p-[length:var(--window-padding-size)] gap-x-[calc(var(--window-control-size)*1)]"}>
       {labelTitle && (
         <ClassicyControlLabel
           label={labelTitle}
@@ -70,6 +70,7 @@ export const ClassicyInput: React.FC<ClassicyInputProps> = React.forwardRef<
         placeholder={placeholder}
         className={classNames(
           "classicyInput",
+          "grow w-auto p-[calc(var(--window-padding-size)/2)]",
           isDefault ? "classicyInputDefault" : "",
         )}
       ></input>

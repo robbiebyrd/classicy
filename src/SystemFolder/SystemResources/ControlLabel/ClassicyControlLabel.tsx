@@ -35,21 +35,21 @@ export const ClassicyControlLabel: React.FC<ClassicyControlLabelProps> = ({
 
     const getDirectionClass = (direction: ClassicyControlLabelDirections) => {
         if (direction === 'right') {
-            return "classicyControlLabelRight"
+            return "mr-[calc(var(--window-control-size)/2)]"
         }
-        return "classicyControlLabelLeft"
+        return "ml-[calc(var(--window-control-size)/2)]"
     }
 
     const getSizeClass = (size: ClassicyControlLabelSize) => {
         switch (size) {
             case 'small':
-                return "classicyControlLabelSmall"
+                return "text-[calc(var(--ui-font-size)/2)]"
             case 'medium':
-                return "classicyControlLabelMedium"
+                return "text-[length:var(--ui-font-size)]"
             case 'large':
-                return "classicyControlLabelLarge"
+                return "text-[calc(var(--ui-font-size)*2)]"
             default:
-                return "classicyControlLabelLeft"
+                return "ml-[calc(var(--window-control-size)/2)]"
         }
     }
 
@@ -84,8 +84,8 @@ export const ClassicyControlLabel: React.FC<ClassicyControlLabelProps> = ({
             <label
                 htmlFor={labelFor}
                 className={classNames(
-                    "classicyControlLabel",
-                    disabled ? "classicyControlLabelDisabled" : '',
+                    "font-[family:var(--ui-font)] select-none",
+                    disabled ? "text-[color:var(--color-system-05)]" : '',
                     getDirectionClass(direction),
                     getSizeClass(labelSize)
                 )}
