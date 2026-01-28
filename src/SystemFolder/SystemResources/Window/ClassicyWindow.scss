@@ -30,8 +30,7 @@
   align-items: center;
   flex-direction: row;
   justify-content: center;
-  height: var(--window-control-size);
-  padding: var(--window-padding-size);
+  height: auto;
   background: var(--color-system-03);
   column-gap: var(--window-control-size);
 }
@@ -198,7 +197,7 @@
     position: relative;
     display: flex;
     flex-direction: row;
-    height: calc(var(--window-control-size) + 3px);
+    height: calc(var(--window-control-size) * 1.5);
     padding-bottom: var(--window-padding-size);
     text-align: center;
     border: none;
@@ -230,6 +229,7 @@
         overflow: hidden;
         align-content: flex-start;
         height: 1.5em !important;
+        line-height: 1;
         cursor: default;
         user-select: none;
         color: var(--color-system-05);
@@ -346,7 +346,7 @@
     position: relative;
     display: block;
     overflow: auto;
-    height: calc(100% - (var(--window-control-size) * 4));
+    height: calc(100% - (var(--window-control-size) * 2.25));
     background-color: var(--color-window-document);
   }
 }

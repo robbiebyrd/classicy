@@ -38,8 +38,8 @@
 
 .classicyDesktopIconDragging {
   z-index: 500 !important;
-  margin: calc(var(--desktop-icon-size) * -4);
-  padding: calc(var(--desktop-icon-size) * 4);
+  // margin: calc(var(--desktop-icon-size) * -4);
+  // padding: calc(var(--desktop-icon-size) * 4);
   user-select: none;
 }
 

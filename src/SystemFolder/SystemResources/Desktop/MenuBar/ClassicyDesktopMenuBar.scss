@@ -1,9 +1,13 @@
 .classicyDesktopMenuBar {
   z-index: 500;
-  // background: var(--color-black);
+background: var(--color-black);
 }
 
 .clasicyDesktopMenuAppleMenu {
+  > p {
+    height: 100%;
+    display: flex;
+  }
   div {
     ul {
       width: 30vw
