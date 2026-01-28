@@ -133,7 +133,8 @@ Run `npm run serve` and visit the site in your browser at http://localhost:3000.
     - Gallery Picker (Slider)
     - Color Picker
 
-## Component Organization
+## Architecture
+### Component Organization
 
 * `<ClassicyDesktopProvider>`
     * `<ClassicyDesktop>`
@@ -146,7 +147,7 @@ Run `npm run serve` and visit the site in your browser at http://localhost:3000.
                         * `<ClassicyUIControls?>`
                         * `<OtherReactNodes?>`
 
-## Events
+### Events
 
 * `ClassicyDesktop`
     * `ClassicyDesktopClick`
@@ -209,3 +210,6 @@ Run `npm run serve` and visit the site in your browser at http://localhost:3000.
     * `ClassicyMenuHover`
     * `ClassicyMenuClick`
     * `ClassicyMenuChange`
+
+# License
+This software is provided free and in the public domain under [The Unlicense](https://unlicense.org/).
