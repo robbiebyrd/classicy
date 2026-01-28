@@ -19,7 +19,7 @@
     "typescript-react"
   ],
   "author": "Robbie Byrd <me@robbiebyrd.com>",
-  "license": "MIT",
+  "license": "Unlicense",
   "scripts": {
     "dev": "vite",
     "build": "npm run build:audio && npm run build:source",
