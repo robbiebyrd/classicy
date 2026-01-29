@@ -1,10 +1,7 @@
 @use '../../ControlPanels/AppearanceManager/styles/appearance';
 
-.ClassicyCheckboxGroup {
-  display: flex;
-  flex-direction: row;
-  padding: calc(var(--window-border-size) * 2);
-}
+// ClassicyCheckboxGroup layout has been converted to Tailwind CSS in ClassicyCheckbox.tsx
+// Keeping only the complex checkbox styling below
 
 .ClassicyCheckbox {
   width: calc(var(--window-control-size));
@@ -49,16 +46,7 @@
   }
 }
 
-.ClassicyCheckboxLabel {
-  font-family: var(--ui-font), sans-serif;
-  font-size: var(--ui-font-size);
-  height: var(--window-control-size);
-  margin-left: calc(var(--window-control-size) / 2);
-}
-
-.ClassicyCheckboxLabelDisabled {
-  color: var(--color-system-05);
-}
+// ClassicyCheckboxLabel styles removed - using ClassicyControlLabel component instead
 
 .ClassicyCheckboxDefault {
   &:checked,
