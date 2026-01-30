@@ -1,7 +1,5 @@
 @use '../../ControlPanels/AppearanceManager/styles/appearance';
 
-// ClassicyCheckboxGroup layout has been converted to Tailwind CSS in ClassicyCheckbox.tsx
-// Keeping only the complex checkbox styling below
 
 .ClassicyCheckbox {
   width: calc(var(--window-control-size));
@@ -46,7 +44,6 @@
   }
 }
 
-// ClassicyCheckboxLabel styles removed - using ClassicyControlLabel component instead
 
 .ClassicyCheckboxDefault {
   &:checked,
