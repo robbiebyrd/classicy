@@ -1,8 +1,6 @@
 @use '../../ControlPanels/AppearanceManager/styles/appearance';
 @use 'sass:list';
 
-// classicyInputHolder and layout styles have been converted to Tailwind CSS in ClassicyInput.tsx
-// Keeping only the complex input styling below
 
 .classicyInput {
   font-family: var(--ui-font), sans-serif;
@@ -21,4 +19,3 @@
 .classicyInputDefault {
 }
 
-// classicyInputLabel removed - using ClassicyControlLabel component instead
