@@ -1,6 +1,6 @@
 import "./ClassicyIcon.scss";
 import classNames from "classnames";
-import React, { useRef, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
 interface ClassicyIconProps {
@@ -10,7 +10,7 @@ interface ClassicyIconProps {
   label?: string;
   initialPosition?: [number, number];
   holder?: any;
-  onClickFunc?: any;
+  onClickFunc?: () => void;
   invisible?: boolean;
 }
 
@@ -77,19 +77,22 @@ export const ClassicyIcon: React.FC<ClassicyIconProps> = ({
       ]);
     }
   };
+  const iconId = useMemo(() => {
+    return Math.random().toString(36).substring(2, 7);
+  }, []);
 
   return (
     <div
       ref={iconRef}
-      id={`${id}-${Math.random().toString(36).substring(2, 7)}`}
+      id={`${id}-${iconId}`}
       draggable={false}
       className={classNames(
         "classicyIcon",
+        "absolute",
         dragging ? "classicyIconDragging" : "",
         active ? "classicyIconActive" : "",
       )}
       style={{
-        position: "absolute",
         left: position[0] + "px",
         top: position[1] + "px",
       }}

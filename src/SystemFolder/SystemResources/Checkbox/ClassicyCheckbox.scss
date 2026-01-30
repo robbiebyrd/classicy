@@ -1,10 +1,5 @@
 @use '../../ControlPanels/AppearanceManager/styles/appearance';
 
-.ClassicyCheckboxGroup {
-  display: flex;
-  flex-direction: row;
-  padding: calc(var(--window-border-size) * 2);
-}
 
 .ClassicyCheckbox {
   width: calc(var(--window-control-size));
@@ -49,16 +44,6 @@
   }
 }
 
-.ClassicyCheckboxLabel {
-  font-family: var(--ui-font), sans-serif;
-  font-size: var(--ui-font-size);
-  height: var(--window-control-size);
-  margin-left: calc(var(--window-control-size) / 2);
-}
-
-.ClassicyCheckboxLabelDisabled {
-  color: var(--color-system-05);
-}
 
 .ClassicyCheckboxDefault {
   &:checked,

@@ -171,7 +171,7 @@ export const ClassicyTimePicker: React.FC<ClassicyTimePickerProps> = React.forwa
                     onKeyDown={(e) => incrementTimePartChange(e, 'hour')}
                     value={parseInt(hour) % 12 === 0 ? 12 : parseInt(hour) % 12}
                     maxLength={2}
-                    style={{width: '50%'}}
+                    className="w-1/2"
                 ></input>
                 :
                 <input
@@ -187,7 +187,7 @@ export const ClassicyTimePicker: React.FC<ClassicyTimePickerProps> = React.forwa
                     onBlur={(e) => handleTimePartChange(e, 'minutes')}
                     onKeyDown={(e) => incrementTimePartChange(e, 'minutes')}
                     maxLength={2}
-                    style={{width: '50%'}}
+                    className="w-1/2"
                 ></input>
                 :
                 <input
@@ -203,7 +203,7 @@ export const ClassicyTimePicker: React.FC<ClassicyTimePickerProps> = React.forwa
                     onBlur={(e) => handleTimePartChange(e, 'seconds')}
                     onKeyDown={(e) => incrementTimePartChange(e, 'seconds')}
                     maxLength={2}
-                    style={{width: '50%'}}
+                    className="w-1/2"
                 ></input>
             </div>
             <ClassicyPopUpMenu

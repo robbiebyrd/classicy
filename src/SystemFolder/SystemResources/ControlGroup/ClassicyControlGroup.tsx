@@ -16,14 +16,12 @@ export const ClassicyControlGroup: React.FC<ClassicyControlGroupProps> = ({
   return (
     <fieldset
       className={classNames(
-        "classicyControlGroup",
-        columns
-          ? "classicyControlGroupColumns"
-          : "classicyControlGroupNoColumns",
+        "relative",
+        columns ? "grow columns-2" : "columns-1",
       )}
     >
       {label !== "" && (
-        <legend className={"classicyControlGroupLegend"}>{label}</legend>
+        <legend className={"font-[family:var(--ui-font)] text-[calc(var(--ui-font-size)*0.75)] m-0 p-0"}>{label}</legend>
       )}
       <div className={columns ? "classicyControlGroupContentColumns" : ""}>
         {children}

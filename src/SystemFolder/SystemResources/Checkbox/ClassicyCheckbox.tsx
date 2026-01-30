@@ -38,7 +38,7 @@ export const ClassicyCheckbox: React.FC<ClassicyCheckboxProps> = ({
   };
 
   return (
-    <div className={"ClassicyCheckboxGroup"}>
+    <div className={"flex flex-row p-[calc(var(--window-border-size)*2)]"}>
       <input
         type={"checkbox"}
         onClick={handleOnClick}

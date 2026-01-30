@@ -1,20 +1,11 @@
 @use '../../ControlPanels/AppearanceManager/styles/appearance';
 @use 'sass:list';
 
-.classicyInputHolder {
-  display: flex;
-  align-items: center;
-  flex-direction: row;
-  width: calc(100% - var(--window-padding-size) * 2);
-  padding: var(--window-padding-size);
-  column-gap: calc(var(--window-control-size) * 1);
-}
+// classicyInputHolder and layout styles have been converted to Tailwind CSS in ClassicyInput.tsx
+// Keeping only the complex input styling below
 
 .classicyInput {
   font-family: var(--ui-font), sans-serif;
-  flex-grow: 1;
-  width: auto;
-  padding: calc(var(--window-padding-size) / 2);
   border: var(--window-border-size) solid black;
   box-shadow: calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 0 var(--color-system-05),
   calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) 0 0 var(--color-system-04);
@@ -30,9 +21,4 @@
 .classicyInputDefault {
 }
 
-.classicyInputLabel {
-  font-family: var(--ui-font), sans-serif;
-  font-size: var(--ui-font-size);
-  height: var(--window-control-size);
-  user-select: none;
-}
+// classicyInputLabel removed - using ClassicyControlLabel component instead
