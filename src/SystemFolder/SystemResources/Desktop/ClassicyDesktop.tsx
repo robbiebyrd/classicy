@@ -50,7 +50,8 @@ export const ClassicyDesktop: React.FC<ClassicyDesktopProps> = ({
         availableThemes: getAllThemes(),
       });
     }
-  }, [desktopState.System.Manager.Appearance.availableThemes.length, desktopEventDispatch]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const startSelectBox = (e: React.MouseEvent<HTMLDivElement>) => {
     if ("id" in e.target && e.target.id == "classicyDesktop") {

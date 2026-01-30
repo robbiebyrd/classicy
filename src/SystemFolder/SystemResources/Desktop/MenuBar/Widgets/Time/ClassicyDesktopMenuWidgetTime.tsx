@@ -6,7 +6,7 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import classNames from "classnames";
 import appIcon from "@img/icons/control-panels/date-time-manager/date-time-manager.png";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 export const ClassicyDesktopMenuWidgetTime: React.FC = () => {
   const desktopContext = useAppManager();
@@ -64,6 +64,9 @@ export const ClassicyDesktopMenuWidgetTime: React.FC = () => {
     "Saturday",
   ];
 
+  // Use ref to track previous minutes to avoid dependency on time.minutes in useEffect
+  const prevMinutesRef = useRef(time.minutes);
+
   useEffect(() => {
     const intervalId = setInterval(() => {
       const date = new Date(desktopContext.System.Manager.DateAndTime.dateTime);
@@ -90,7 +93,8 @@ export const ClassicyDesktopMenuWidgetTime: React.FC = () => {
       });
 
       // Only dispatch global state update when minute changes
-      if (newMinutes !== time.minutes) {
+      if (newMinutes !== prevMinutesRef.current) {
+        prevMinutesRef.current = newMinutes;
         desktopEventDispatch({
           type: "ClassicyManagerDateTimeSet",
           dateTime: date,
@@ -103,7 +107,6 @@ export const ClassicyDesktopMenuWidgetTime: React.FC = () => {
     desktopContext.System.Manager.DateAndTime.dateTime,
     desktopContext.System.Manager.DateAndTime.timeZoneOffset,
     desktopEventDispatch,
-    time.minutes,
   ]);
 
   const convertToTwoDigit = (num: number) => {

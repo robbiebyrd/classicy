@@ -47,10 +47,11 @@ export const Finder = () => {
     path: string,
     settings: PathSettingsProps,
   ) => {
-    const updatedPathSettings = { ...pathSettings };
-    updatedPathSettings[path] = settings;
-    setPathSettings(updatedPathSettings);
-  }, [pathSettings]);
+    setPathSettings((prevPathSettings) => ({
+      ...prevPathSettings,
+      [path]: settings,
+    }));
+  }, []);
 
   const openFolder = useCallback((path: string) => {
     desktopEventDispatch({
