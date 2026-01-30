@@ -58,11 +58,16 @@ export const QuickTimeVideoEmbed: React.FC<QuickTimeVideoEmbed> = ({
 
   useEffect(() => {
     if (screenfull.isEnabled) {
-      screenfull.on("change", () => {
-        setIsFullscreen(isFullscreen);
-      });
+      const handleFullscreenChange = () => {
+        setIsFullscreen(screenfull.isFullscreen);
+      };
+      screenfull.on("change", handleFullscreenChange);
+      
+      return () => {
+        screenfull.off("change", handleFullscreenChange);
+      };
     }
-  });
+  }, []);
 
   const toggleCC = useCallback(() => {
     setShowSubtitles((prev) => !prev);

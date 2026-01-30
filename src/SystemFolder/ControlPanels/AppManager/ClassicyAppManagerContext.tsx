@@ -61,8 +61,13 @@ export const ClassicyAppManagerProvider: React.FC<
     }
   }, []);
 
+  // Debounce localStorage writes to prevent blocking main thread
   useEffect(() => {
-    localStorage.setItem("classicyDesktopState", JSON.stringify(appManager));
+    const timeoutId = setTimeout(() => {
+      localStorage.setItem("classicyDesktopState", JSON.stringify(appManager));
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
   }, [appManager]);
 
   return (

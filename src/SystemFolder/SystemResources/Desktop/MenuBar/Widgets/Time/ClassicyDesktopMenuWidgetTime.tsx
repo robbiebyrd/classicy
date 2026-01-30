@@ -68,26 +68,34 @@ export const ClassicyDesktopMenuWidgetTime: React.FC = () => {
     const intervalId = setInterval(() => {
       const date = new Date(desktopContext.System.Manager.DateAndTime.dateTime);
       date.setSeconds(date.getSeconds() + 1);
-      desktopEventDispatch({
-        type: "ClassicyManagerDateTimeSet",
-        dateTime: date,
-      });
 
       const localDate = new Date(date.toISOString());
       localDate.setHours(
         localDate.getHours() +
           parseInt(desktopContext.System.Manager.DateAndTime.timeZoneOffset),
       );
+      
+      const newMinutes = localDate.getMinutes();
+      
+      // Update local time state every second for display
       setTime({
         year: localDate.getFullYear(),
         month: localDate.getMonth(),
         date: localDate.getDate(),
         day: localDate.getDay(),
-        minutes: localDate.getMinutes(),
+        minutes: newMinutes,
         hours: localDate.getHours() === 0 ? 12 : localDate.getHours(),
         seconds: localDate.getSeconds(),
         period: localDate.getHours() < 12 ? " AM" : " PM",
       });
+
+      // Only dispatch global state update when minute changes
+      if (newMinutes !== time.minutes) {
+        desktopEventDispatch({
+          type: "ClassicyManagerDateTimeSet",
+          dateTime: date,
+        });
+      }
     }, 1000);
 
     return () => clearInterval(intervalId);
@@ -95,6 +103,7 @@ export const ClassicyDesktopMenuWidgetTime: React.FC = () => {
     desktopContext.System.Manager.DateAndTime.dateTime,
     desktopContext.System.Manager.DateAndTime.timeZoneOffset,
     desktopEventDispatch,
+    time.minutes,
   ]);
 
   const convertToTwoDigit = (num: number) => {
