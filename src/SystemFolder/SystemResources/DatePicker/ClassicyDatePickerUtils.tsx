@@ -1,12 +1,23 @@
-const monthsAndDays = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+const getDaysInMonth = (month: number, year?: number): number => {
+    const monthsAndDays = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    const monthIndex = month - 1
 
-export const validateDayOfMonth = (day: number, month: number): number => {
+    // Handle February leap year
+    if (monthIndex === 1 && year !== undefined) {
+        const isLeapYear = (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0)
+        return isLeapYear ? 29 : 28
+    }
+
+    return monthsAndDays[monthIndex] || 31
+}
+
+export const validateDayOfMonth = (day: number, month: number, year?: number): number => {
     if (day <= 0) {
         return 1
     }
-    const monthInt = month - 1
-    if (day > monthsAndDays[monthInt]) {
-        return monthsAndDays[monthInt]
+    const maxDays = getDaysInMonth(month, year)
+    if (day > maxDays) {
+        return maxDays
     }
     return day
 }

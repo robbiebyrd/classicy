@@ -14,9 +14,9 @@ interface ClassicyDesktopIconProps {
   icon: string;
   label?: string;
   kind: string;
-  onClickFunc?: any;
+  onClickFunc?: () => void;
   event?: string;
-  eventData?: any;
+  eventData?: Record<string, unknown>;
 }
 
 export const ClassicyDesktopIcon: React.FC<ClassicyDesktopIconProps> = ({
@@ -118,9 +118,13 @@ export const ClassicyDesktopIcon: React.FC<ClassicyDesktopIconProps> = ({
   const isLaunched = () => {
     // Check if a Finder window is open
     if (appId.startsWith("Finder.app")) {
-      const pathCount = desktopContext.System.Manager.App.apps[
-        "Finder.app"
-      ].windows.findIndex((w) => w.id === eventData.path && !w.closed);
+      const finderApp = desktopContext.System.Manager.App.apps["Finder.app"];
+      if (!finderApp?.windows) {
+        return false;
+      }
+      const pathCount = finderApp.windows.findIndex(
+        (w) => w.id === eventData?.path && !w.closed
+      );
       return pathCount >= 0;
     }
     return desktopContext.System.Manager.App.apps[appId]?.open;
@@ -170,9 +174,10 @@ export const ClassicyDesktopIcon: React.FC<ClassicyDesktopIconProps> = ({
       draggable={false}
       onClick={clickFocus}
       onContextMenu={(e: React.MouseEvent<HTMLDivElement>) => {
+        e.preventDefault();
         clickFocus(e);
-        alert("clicked");
-      }} // TODO: Add Context Menu on Desktop Icons
+        // TODO: Add Context Menu on Desktop Icons
+      }}
       className={classNames(
         "classicyDesktopIcon",
         dragging ? "classicyDesktopIconDragging" : "",

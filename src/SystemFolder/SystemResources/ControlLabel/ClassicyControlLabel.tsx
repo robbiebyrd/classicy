@@ -13,8 +13,8 @@ interface ClassicyControlLabelProps {
     icon?: string
     iconSize?: string
     direction?: ClassicyControlLabelDirections
-    children?: any
-    onClickFunc?: Function
+    children?: React.ReactNode
+    onClickFunc?: (e: React.MouseEvent) => void
 }
 
 export const ClassicyControlLabel: React.FC<ClassicyControlLabelProps> = ({
@@ -29,8 +29,8 @@ export const ClassicyControlLabel: React.FC<ClassicyControlLabelProps> = ({
     onClickFunc,
 }) => {
 
-    if (label == '') {
-        return
+    if (label === '') {
+        return null
     }
 
     const getDirectionClass = (direction: ClassicyControlLabelDirections) => {

@@ -8,11 +8,9 @@ interface ClassicyProgressProps {
     indeterminate?: boolean
 }
 
-const ClassicyProgressBar: React.FC<ClassicyProgressProps> = ({ max = 100, value = 0, indeterminate }) => {
-    if (indeterminate) {
-        max = 100
-        value = 100
-    }
+export const ClassicyProgressBar: React.FC<ClassicyProgressProps> = ({ max = 100, value = 0, indeterminate }) => {
+    const effectiveMax = indeterminate ? 100 : max
+    const effectiveValue = indeterminate ? 100 : value
 
     return (
         <div
@@ -23,7 +21,7 @@ const ClassicyProgressBar: React.FC<ClassicyProgressProps> = ({ max = 100, value
                     : "classicyProgressDeterminate"
             )}
         >
-            <progress max={max} value={value} />
+            <progress max={effectiveMax} value={effectiveValue} />
         </div>
     )
 }

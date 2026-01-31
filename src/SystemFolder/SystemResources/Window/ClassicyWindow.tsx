@@ -11,7 +11,14 @@ import { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMe
 import "./ClassicyWindow.scss";
 import classNames from "classnames";
 import fileIcon from "@img/icons/system/files/file.png";
-import React, { ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
 interface ClassicyWindowProps {
@@ -77,24 +84,43 @@ export const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
   const player = useSoundDispatch();
 
   const { track } = useClassicyAnalytics();
-  const analyticsArgs = {
+  const analyticsArgs = useMemo(() => {
+    return {
+      appId,
+      id,
+      icon,
+      hidden,
+      closable,
+      zoomable,
+      collapsable,
+      resizable,
+      scrollable,
+      modal,
+      windowType: type,
+      growable,
+      defaultWindow,
+      initialSize,
+      initialPosition,
+      minimumSize,
+    };
+  }, [
     appId,
-    id,
-    icon,
-    hidden,
     closable,
-    zoomable,
     collapsable,
+    defaultWindow,
+    growable,
+    hidden,
+    icon,
+    id,
+    initialPosition,
+    initialSize,
+    minimumSize,
+    modal,
     resizable,
     scrollable,
-    modal,
-    windowType: type,
-    growable,
-    defaultWindow,
-    initialSize,
-    initialPosition,
-    minimumSize,
-  };
+    type,
+    zoomable,
+  ]);
 
   const windowRef = useRef<HTMLDivElement | null>(null);
 
@@ -266,30 +292,42 @@ export const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
     });
   };
 
-  const isActive = () => {
+  const isActive = useCallback(() => {
     return ws.focused;
-  };
+  }, [ws]);
 
-  const setActive = (e?: React.MouseEvent<HTMLDivElement>) => {
-    e?.preventDefault();
-    track("focus", { type: "ClassicyWindow", ...analyticsArgs });
-    if (!isActive()) {
-      player({ type: "ClassicySoundPlay", sound: "ClassicyWindowFocus" });
+  const setActive = useCallback(
+    (e?: React.MouseEvent<HTMLDivElement>) => {
+      e?.preventDefault();
+      track("focus", { type: "ClassicyWindow", ...analyticsArgs });
+      if (!isActive()) {
+        player({ type: "ClassicySoundPlay", sound: "ClassicyWindowFocus" });
 
-      desktopEventDispatch({
-        type: "ClassicyWindowFocus",
-        app: {
-          id: appId,
-          appMenu: appMenu,
-        },
-        window: ws,
-      });
-      // desktopEventDispatch({
-      //     type: 'ClassicyWindowContextMenu',
-      //     contextMenu: contextMenu || [],
-      // })
-    }
-  };
+        desktopEventDispatch({
+          type: "ClassicyWindowFocus",
+          app: {
+            id: appId,
+            appMenu: appMenu,
+          },
+          window: ws,
+        });
+        // desktopEventDispatch({
+        //     type: 'ClassicyWindowContextMenu',
+        //     contextMenu: contextMenu || [],
+        // })
+      }
+    },
+    [
+      isActive,
+      track,
+      appId,
+      appMenu,
+      analyticsArgs,
+      desktopEventDispatch,
+      player,
+      ws,
+    ],
+  );
 
   useEffect(() => {
     // This ensures that once a window has opened it becomes the focus.

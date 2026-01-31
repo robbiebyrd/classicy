@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
     "target": "ESNext",
     "useDefineForClassFields": true,
     "lib": [
@@ -35,7 +34,7 @@
     //    "noUnusedLocals": true,
     //    "noUnusedParameters": true,
     ////    "erasableSyntaxOnly": true,
-    //    "noFallthroughCasesInSwitch": true,
+    "noFallthroughCasesInSwitch": true,
     //    "noUncheckedSideEffectImports": true,
     "paths": {
       "@/*": [
@@ -48,5 +47,8 @@
         "./assets/img/*"
       ]
     }
-  }
+  },
+  "exclude": [
+    "example/"
+  ],
 }

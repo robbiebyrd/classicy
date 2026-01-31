@@ -162,7 +162,7 @@ export const classicyDesktopIconEventHandler = (ds: ClassicyStore, action: Actio
         case 'ClassicyDesktopIconRemove': {
             let iconIdx = ds.System.Manager.Desktop.icons.findIndex((icon) => icon.appId === action.app.id)
             if (iconIdx > -1) {
-                ds.System.Manager.Desktop.icons.slice(iconIdx, 1)
+                ds.System.Manager.Desktop.icons.splice(iconIdx, 1)
             }
             break
         }

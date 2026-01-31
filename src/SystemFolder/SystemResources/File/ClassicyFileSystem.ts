@@ -20,9 +20,13 @@ export class ClassicyFileSystem {
 
         const retrieved = localStorage.getItem(this.storageKey)
         if (typeof window !== 'undefined' && retrieved) {
-            const parsed = JSON.parse(retrieved)
-            if (parsed) {
-                this.fs = parsed
+            try {
+                const parsed = JSON.parse(retrieved)
+                if (parsed) {
+                    this.fs = parsed
+                }
+            } catch (e) {
+                console.error('Failed to parse localStorage data, using defaults:', e)
             }
         }
 

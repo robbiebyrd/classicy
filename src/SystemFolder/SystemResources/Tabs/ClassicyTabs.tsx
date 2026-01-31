@@ -4,11 +4,11 @@ import tabMaskImageURL from "@img/ui/tab.svg?base64";
 import React, { useState } from "react";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
-interface TabProps {
+export interface TabProps {
   tabs: TabIndividual[];
 }
 
-interface TabIndividual {
+export interface TabIndividual {
   title: string;
   children: React.ReactNode;
 }

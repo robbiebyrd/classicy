@@ -88,7 +88,7 @@ export const ClassicyDatePicker: React.FC<ClassicyDatePickerProps> =
             setMonth(e.currentTarget.value);
             break;
           case "day":
-            inputValue = validateDayOfMonth(inputValue, parseInt(month));
+            inputValue = validateDayOfMonth(inputValue, parseInt(month), parseInt(year));
             updatedDate.setDate(inputValue);
             setDay(e.currentTarget.value);
             break;
@@ -124,7 +124,7 @@ export const ClassicyDatePicker: React.FC<ClassicyDatePickerProps> =
         switch (part) {
           case "month": {
             const currentMonth = validateMonth(parseInt(month) + modifier);
-            updatedDate.setHours(currentMonth);
+            updatedDate.setMonth(currentMonth - 1);
             setMonth(currentMonth.toString());
             break;
           }
@@ -132,6 +132,7 @@ export const ClassicyDatePicker: React.FC<ClassicyDatePickerProps> =
             const currentDay = validateDayOfMonth(
               parseInt(day) + modifier,
               parseInt(month),
+              parseInt(year),
             );
             updatedDate.setDate(currentDay);
             setDay(currentDay.toString());

@@ -20,7 +20,7 @@ import React, { CSSProperties, useState } from "react";
 import "../../ControlPanels/AppearanceManager/styles/fonts.scss";
 
 interface ClassicyDesktopProps {
-  children?: any;
+  children?: React.ReactNode;
 }
 
 export const ClassicyDesktop: React.FC<ClassicyDesktopProps> = ({

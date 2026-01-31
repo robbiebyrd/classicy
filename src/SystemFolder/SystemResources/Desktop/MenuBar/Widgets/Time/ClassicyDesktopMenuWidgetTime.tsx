@@ -181,7 +181,7 @@ export const ClassicyDesktopMenuWidgetTime: React.FC = () => {
             <div>
               <span>
                 {" "}
-                {time.month}/{time.day}/{time.year}
+                {time.month + 1}/{time.date}/{time.year}
               </span>
             </div>
           )}

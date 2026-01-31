@@ -33,12 +33,13 @@ export const Finder = () => {
   useEffect(() => {
     const appData = desktop.System.Manager.App.apps[appId]?.data || {};
     if (!("openPaths" in appData)) {
-      appData.openPaths = [];
+      return;
+    } else {
+      desktopEventDispatch({
+        type: "ClassicyAppFinderOpenFolders",
+        paths: appData.openPaths,
+      });
     }
-    desktopEventDispatch({
-      type: "ClassicyAppFinderOpenFolders",
-      paths: appData.openPaths,
-    });
   }, [desktopEventDispatch, desktop.System.Manager.App.apps, appId]);
 
   const handlePathSettingsChange = (

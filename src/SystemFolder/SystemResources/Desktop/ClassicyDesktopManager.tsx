@@ -79,7 +79,7 @@ export const classicyDesktopEventHandler = (ds: ClassicyStore, action: ActionMes
                 ds.System.Manager.Desktop.selectedIcons = []
                 ds.System.Manager.Desktop.showContextMenu = false
                 ds.System.Manager.Desktop.selectBox.active = true
-                ds.System.Manager.Desktop.selectBox.start = [action.e.clientX, action.e.client]
+                ds.System.Manager.Desktop.selectBox.start = [action.e.clientX, action.e.clientY]
             }
 
             if ('menuBar' in action) {
