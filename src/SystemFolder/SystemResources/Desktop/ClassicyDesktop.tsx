@@ -16,7 +16,7 @@ import { ClassicyDesktopMenuBar } from "@/SystemFolder/SystemResources/Desktop/M
 import { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import classNames from "classnames";
 import macosIcon from "@img/icons/system/macos.png";
-import React, { CSSProperties, useState } from "react";
+import React, { CSSProperties, useEffect, useMemo, useState } from "react";
 import "../../ControlPanels/AppearanceManager/styles/fonts.scss";
 
 interface ClassicyDesktopProps {
@@ -39,15 +39,19 @@ export const ClassicyDesktop: React.FC<ClassicyDesktopProps> = ({
   const desktopState = useAppManager();
   const desktopEventDispatch = useAppManagerDispatch();
 
-  if (
-    desktopState.System.Manager.Appearance.availableThemes &&
-    desktopState.System.Manager.Appearance.availableThemes.length <= 0
-  ) {
-    desktopEventDispatch({
-      type: "ClassicyDesktopLoadThemes",
-      availableThemes: getAllThemes(),
-    });
-  }
+  // Load themes on mount if not already loaded
+  useEffect(() => {
+    if (
+      desktopState.System.Manager.Appearance.availableThemes &&
+      desktopState.System.Manager.Appearance.availableThemes.length <= 0
+    ) {
+      desktopEventDispatch({
+        type: "ClassicyDesktopLoadThemes",
+        availableThemes: getAllThemes(),
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const startSelectBox = (e: React.MouseEvent<HTMLDivElement>) => {
     if ("id" in e.target && e.target.id == "classicyDesktop") {
@@ -101,7 +105,7 @@ export const ClassicyDesktop: React.FC<ClassicyDesktopProps> = ({
     }
   };
 
-  const defaultMenuItems: ClassicyMenuItem[] = [
+  const defaultMenuItems: ClassicyMenuItem[] = useMemo(() => [
     {
       id: "finder_file",
       title: "File",
@@ -163,7 +167,7 @@ export const ClassicyDesktop: React.FC<ClassicyDesktopProps> = ({
         },
       ],
     },
-  ];
+  ], [desktopEventDispatch]);
 
   const currentTheme = getThemeVars(
     desktopState.System.Manager.Appearance.activeTheme,

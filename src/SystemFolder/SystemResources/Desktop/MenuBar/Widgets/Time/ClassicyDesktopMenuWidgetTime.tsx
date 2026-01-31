@@ -6,7 +6,7 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import classNames from "classnames";
 import appIcon from "@img/icons/control-panels/date-time-manager/date-time-manager.png";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 export const ClassicyDesktopMenuWidgetTime: React.FC = () => {
   const desktopContext = useAppManager();
@@ -64,30 +64,42 @@ export const ClassicyDesktopMenuWidgetTime: React.FC = () => {
     "Saturday",
   ];
 
+  // Use ref to track previous minutes to avoid dependency on time.minutes in useEffect
+  const prevMinutesRef = useRef(time.minutes);
+
   useEffect(() => {
     const intervalId = setInterval(() => {
       const date = new Date(desktopContext.System.Manager.DateAndTime.dateTime);
       date.setSeconds(date.getSeconds() + 1);
-      desktopEventDispatch({
-        type: "ClassicyManagerDateTimeSet",
-        dateTime: date,
-      });
 
       const localDate = new Date(date.toISOString());
       localDate.setHours(
         localDate.getHours() +
           parseInt(desktopContext.System.Manager.DateAndTime.timeZoneOffset),
       );
+      
+      const newMinutes = localDate.getMinutes();
+      
+      // Update local time state every second for display
       setTime({
         year: localDate.getFullYear(),
         month: localDate.getMonth(),
         date: localDate.getDate(),
         day: localDate.getDay(),
-        minutes: localDate.getMinutes(),
+        minutes: newMinutes,
         hours: localDate.getHours() === 0 ? 12 : localDate.getHours(),
         seconds: localDate.getSeconds(),
         period: localDate.getHours() < 12 ? " AM" : " PM",
       });
+
+      // Only dispatch global state update when minute changes
+      if (newMinutes !== prevMinutesRef.current) {
+        prevMinutesRef.current = newMinutes;
+        desktopEventDispatch({
+          type: "ClassicyManagerDateTimeSet",
+          dateTime: date,
+        });
+      }
     }, 1000);
 
     return () => clearInterval(intervalId);

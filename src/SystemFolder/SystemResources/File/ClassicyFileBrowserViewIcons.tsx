@@ -33,6 +33,9 @@ export const ClassicyFileBrowserViewIcons: React.FC<ClassicyFileBrowserViewIcons
       const desktopContext = useAppManager();
 
       const [items, setItems] = useState<iconType[]>([]);
+      
+      // Extract only the theme value to avoid re-renders on unrelated appearance changes
+      const activeTheme = desktopContext.System.Manager.Appearance.activeTheme;
 
       useEffect(() => {
         if (!holderRef?.current) {
@@ -77,7 +80,7 @@ export const ClassicyFileBrowserViewIcons: React.FC<ClassicyFileBrowserViewIcons
               onClickFunc: () => openFileOrFolder(properties, path, filename),
               holder: holderRef,
               initialPosition: cleanupIcon(
-                desktopContext.System.Manager.Appearance.activeTheme,
+                activeTheme,
                 index,
                 Object.entries(directoryListing).length,
                 containerMeasure,
@@ -92,7 +95,7 @@ export const ClassicyFileBrowserViewIcons: React.FC<ClassicyFileBrowserViewIcons
         fs,
         dirOnClickFunc,
         fileOnClickFunc,
-        desktopContext.System.Manager.Appearance.activeTheme,
+        activeTheme,
         holderRef,
       ]);
 

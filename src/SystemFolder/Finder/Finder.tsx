@@ -12,7 +12,7 @@ import {
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 import appIcon from "@img/icons/system/mac.png";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 type PathSettingsProps = {
   _viewType: "list" | "icons";
@@ -30,6 +30,8 @@ export const Finder = () => {
 
   const { openPaths } = desktop.System.Manager.App.apps[appId]?.data || {};
 
+  const fs = useMemo(() => new ClassicyFileSystem(), []);
+
   useEffect(() => {
     const appData = desktop.System.Manager.App.apps[appId]?.data || {};
     if (!("openPaths" in appData)) {
@@ -42,16 +44,17 @@ export const Finder = () => {
     }
   }, [desktopEventDispatch, desktop.System.Manager.App.apps, appId]);
 
-  const handlePathSettingsChange = (
+  const handlePathSettingsChange = useCallback((
     path: string,
     settings: PathSettingsProps,
   ) => {
-    const updatedPathSettings = { ...pathSettings };
-    updatedPathSettings[path] = settings;
-    setPathSettings(updatedPathSettings);
-  };
+    setPathSettings((prevPathSettings) => ({
+      ...prevPathSettings,
+      [path]: settings,
+    }));
+  }, []);
 
-  const openFolder = (path: string) => {
+  const openFolder = useCallback((path: string) => {
     desktopEventDispatch({
       type: "ClassicyAppFinderOpenFolder",
       path,
@@ -77,24 +80,22 @@ export const Finder = () => {
         window: ws,
       });
     }
-  };
+  }, [desktopEventDispatch, desktop.System.Manager.App.apps, appId]);
 
-  const openFile = (path: string) => {
+  const openFile = useCallback((path: string) => {
     const file = fs.resolve(path);
     desktopEventDispatch({
       type: "ClassicyAppFinderOpenFile",
       file,
     });
-  };
+  }, [fs, desktopEventDispatch]);
 
-  const closeFolder = (path: string) => {
+  const closeFolder = useCallback((path: string) => {
     desktopEventDispatch({
       type: "ClassicyAppFinderCloseFolder",
       path,
     });
-  };
-
-  const fs = useMemo(() => new ClassicyFileSystem(), []);
+  }, [desktopEventDispatch]);
 
   useEffect(() => {
     const drives = fs.filterByType("", "drive");

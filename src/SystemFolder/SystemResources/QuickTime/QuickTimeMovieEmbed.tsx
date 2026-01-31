@@ -62,6 +62,7 @@ export const QuickTimeVideoEmbed: React.FC<QuickTimeVideoEmbed> = ({
         setIsFullscreen(screenfull.isFullscreen);
       };
       screenfull.on("change", handleFullscreenChange);
+      
       return () => {
         screenfull.off("change", handleFullscreenChange);
       };

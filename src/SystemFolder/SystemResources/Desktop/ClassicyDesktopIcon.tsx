@@ -19,7 +19,7 @@ interface ClassicyDesktopIconProps {
   eventData?: Record<string, unknown>;
 }
 
-export const ClassicyDesktopIcon: React.FC<ClassicyDesktopIconProps> = ({
+export const ClassicyDesktopIcon: React.FC<ClassicyDesktopIconProps> = React.memo(({
   appId,
   appName,
   icon,
@@ -199,4 +199,6 @@ export const ClassicyDesktopIcon: React.FC<ClassicyDesktopIconProps> = ({
       <p>{label ? label : appName}</p>
     </div>
   );
-};
+});
+
+ClassicyDesktopIcon.displayName = "ClassicyDesktopIcon";
