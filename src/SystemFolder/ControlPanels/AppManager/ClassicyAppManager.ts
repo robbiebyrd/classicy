@@ -33,11 +33,11 @@ export interface ClassicyStoreSystemApp {
   icon: string;
   windows: ClassicyStoreSystemAppWindow[];
   open: boolean;
-  data?: Record<string, unknown>;
+  data?: Record<string, any>;
   focused?: boolean;
   noDesktopIcon?: boolean;
   debug?: boolean;
-  options?: Record<string, unknown>[];
+  options?: Record<string, any>[];
   appMenu?: ClassicyMenuItem[];
 }
 

@@ -29,7 +29,7 @@
     "build:watchaudio": "nodemon --watch \"resources/sounds/**\" --ext \"mp3,mp4,wav,aif,aiff,ogg,flac,m4a,ac3,json\" --exec \"npm run build:audio\"",
     "build:watchsource": "nodemon --watch \"src/**\" --watch \"assets/**\" --ext \"tsx,ts,json,css,scss,png,jpg,svg\" --exec \"npm run build:source\"",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "cd example && npm i && npm link classicy && npx vite build && npx vite preview"
   },
   "files": [
     "dist"

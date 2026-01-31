@@ -28,7 +28,8 @@ export const Finder = () => {
   >({});
   const [showAbout, setShowAbout] = useState(false);
 
-  const { openPaths } = desktop.System.Manager.App.apps[appId]?.data || {};
+  const openPaths =
+    desktop.System.Manager.App.apps[appId]?.data?.openPaths || ([] as string[]);
 
   const fs = useMemo(() => new ClassicyFileSystem(), []);
 
