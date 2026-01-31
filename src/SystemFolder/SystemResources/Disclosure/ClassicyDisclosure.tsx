@@ -9,7 +9,7 @@ type ClassicyDisclosureTriangleDirections = "up" | "right" | "down" | "left";
 type ClassicyDisclosureProps = {
   direction?: ClassicyDisclosureTriangleDirections;
   label?: string;
-  children?: any;
+  children?: React.ReactNode;
 };
 
 export const ClassicyDisclosure: React.FC<ClassicyDisclosureProps> = ({
@@ -30,9 +30,11 @@ export const ClassicyDisclosure: React.FC<ClassicyDisclosureProps> = ({
   function handleKeyPress(e: React.KeyboardEvent<HTMLDivElement>) {
     switch (e.key) {
       case "Enter":
+      // falls through
       case " ": {
         track("click", { expanded: !open, ...analyticsArgs });
         setOpen(!open);
+        break;
       }
     }
   }

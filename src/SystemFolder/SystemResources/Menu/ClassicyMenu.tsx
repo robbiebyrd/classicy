@@ -14,8 +14,8 @@ export interface ClassicyMenuItem {
   keyboardShortcut?: string;
   link?: string;
   event?: string;
-  eventData?: any;
-  onClickFunc?: any;
+  eventData?: Record<string, unknown>;
+  onClickFunc?: () => void;
   menuChildren?: ClassicyMenuItem[];
   className?: string;
 }
@@ -25,7 +25,7 @@ interface ClassicyMenuProps {
   menuItems: ClassicyMenuItem[];
   navClass?: string;
   subNavClass?: string;
-  children?: any;
+  children?: React.ReactNode;
 }
 
 export const ClassicyMenu: React.FC<ClassicyMenuProps> = ({
@@ -37,11 +37,7 @@ export const ClassicyMenu: React.FC<ClassicyMenuProps> = ({
 }) => {
   return menuItems && menuItems.length > 0 ? (
     <div className={"classicyMenuWrapper"}>
-      <ul
-        className={classNames(navClass)}
-        key={name + "_menu"}
-        onClick={() => console.log("menuItem clicks")}
-      >
+      <ul className={classNames(navClass)} key={name + "_menu"}>
         {menuItems.map((item: ClassicyMenuItem) => (
           <ClassicyMenuItem
             key={item?.id}
@@ -103,7 +99,7 @@ export const ClassicyMenuItem: React.FC<{
         player({ type: "ClassicySoundPlay", sound: "ClassicyMenuItemHover" });
       }}
       onMouseOut={() => {
-        player({ type: "ClassicySoundPlay", sound: "ClassicyMenuItemClick" });
+        player({ type: "ClassicySoundPlay", sound: "ClassicyMenuItemBlur" });
       }}
       className={classNames(
         "classicyMenuItem",
@@ -124,10 +120,9 @@ export const ClassicyMenuItem: React.FC<{
           {menuItem.title}
         </p>
         {menuItem.keyboardShortcut && (
-          <p
-            className={"classicyMenuItemKeyboardShortcut"}
-            dangerouslySetInnerHTML={{ __html: menuItem.keyboardShortcut }}
-          ></p>
+          <p className={"classicyMenuItemKeyboardShortcut"}>
+            {menuItem.keyboardShortcut}
+          </p>
         )}
       </>
 

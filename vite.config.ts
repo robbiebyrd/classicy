@@ -1,9 +1,10 @@
+import tailwindcss from '@tailwindcss/vite';
 import react from "@vitejs/plugin-react";
 import path, { resolve } from "path";
 import { defineConfig } from "vite";
 import dts from 'vite-plugin-dts';
+import VitePluginImageTools from 'vite-plugin-image-tools';
 import richSvg from "vite-plugin-react-rich-svg";
-import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
     resolve: {
@@ -13,12 +14,19 @@ export default defineConfig({
             "@img": path.resolve(__dirname, "./assets/img"),
         },
     },
-    plugins: [react(),
+    plugins: [
+    react(),
     dts({
         outDir: 'dist/types',
     }),
     richSvg(),
     tailwindcss(),
+    VitePluginImageTools({
+      quality: 100,
+      enableWebp: true,
+      enableDev:true,
+      enableDevWebp:true
+    })
     ],
     build: {
         sourcemap: true,

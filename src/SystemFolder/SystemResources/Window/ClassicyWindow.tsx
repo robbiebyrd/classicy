@@ -77,24 +77,43 @@ export const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
   const player = useSoundDispatch();
 
   const { track } = useClassicyAnalytics();
-  const analyticsArgs = {
+  const analyticsArgs = useMemo(() => {
+    return {
+      appId,
+      id,
+      icon,
+      hidden,
+      closable,
+      zoomable,
+      collapsable,
+      resizable,
+      scrollable,
+      modal,
+      windowType: type,
+      growable,
+      defaultWindow,
+      initialSize,
+      initialPosition,
+      minimumSize,
+    };
+  }, [
     appId,
-    id,
-    icon,
-    hidden,
     closable,
-    zoomable,
     collapsable,
+    defaultWindow,
+    growable,
+    hidden,
+    icon,
+    id,
+    initialPosition,
+    initialSize,
+    minimumSize,
+    modal,
     resizable,
     scrollable,
-    modal,
-    windowType: type,
-    growable,
-    defaultWindow,
-    initialSize,
-    initialPosition,
-    minimumSize,
-  };
+    type,
+    zoomable,
+  ]);
 
   const windowRef = useRef<HTMLDivElement | null>(null);
 

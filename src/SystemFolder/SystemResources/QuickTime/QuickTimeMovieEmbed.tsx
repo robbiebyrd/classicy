@@ -109,8 +109,11 @@ export const QuickTimeVideoEmbed: React.FC<QuickTimeVideoEmbed> = ({
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      const { windows } = desktop.System.Manager.App.apps[appId];
-      const a = windows.find((w) => (w.id = appId + "_VideoPlayer_" + url));
+      const app = desktop.System.Manager.App.apps[appId];
+      if (!app?.windows) {
+        return;
+      }
+      const a = app.windows.find((w) => w.id === appId + "_VideoPlayer_" + url);
       if (!a || !a.focused) {
         return;
       }
@@ -239,7 +242,7 @@ export const QuickTimeVideoEmbed: React.FC<QuickTimeVideoEmbed> = ({
           >
             <img
               className={"quickTimePlayerVideoControlsIcon"}
-              src={`url('${playing ? playButton : pauseButton})`}
+              src={`url('${playing ? pauseButton : playButton})`}
             />
           </button>
           <div className={"quickTimePlayerVideoControlsProgressBarHolder"}>
@@ -313,12 +316,12 @@ export const QuickTimeVideoEmbed: React.FC<QuickTimeVideoEmbed> = ({
                 style={{
                   left: volumeButtonRef.current?.offsetLeft,
                 }}
-                value={1 - volume}
+                value={volume}
                 onClick={() => {
                   setShowVolume(false);
                 }}
                 onChange={(e) => {
-                  setVolume(1 - parseFloat(e.target.value));
+                  setVolume(parseFloat(e.target.value));
                 }}
               />
             </div>

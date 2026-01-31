@@ -16,8 +16,8 @@ type classicyPopUpMenuProps = {
   options: classicyPopUpMenuOptions[];
   selected?: string;
   small?: boolean;
-  onChangeFunc?: any;
-  style?: any;
+  onChangeFunc?: (e: ChangeEvent<HTMLSelectElement>) => void;
+  style?: React.CSSProperties;
 };
 export const ClassicyPopUpMenu: React.FC<classicyPopUpMenuProps> = ({
   id,

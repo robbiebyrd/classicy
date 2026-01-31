@@ -33,11 +33,11 @@ export interface ClassicyStoreSystemApp {
   icon: string;
   windows: ClassicyStoreSystemAppWindow[];
   open: boolean;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
   focused?: boolean;
   noDesktopIcon?: boolean;
   debug?: boolean;
-  options?: Record<string, any>[];
+  options?: Record<string, unknown>[];
   appMenu?: ClassicyMenuItem[];
 }
 
@@ -93,7 +93,7 @@ export interface ClassicyStoreSystemDateAndTimeManager extends ClassicyStoreSyst
   show: boolean;
 }
 
-/* trunk-ignore(eslint/@typescript-eslint/no-empty-object-type) */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface ClassicyStoreSystemManager {}
 
 export class ClassicyAppManagerHandler {

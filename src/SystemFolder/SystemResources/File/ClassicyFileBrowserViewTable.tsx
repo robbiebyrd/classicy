@@ -168,7 +168,7 @@ export const ClassicyFileBrowserViewTable: React.FC<ClassicyFileBrowserViewTable
                       className={classNames(
                         "classicyFileBrowserViewTableColumnHeader",
                         header.column.getIsResizing() ? "isResizing" : "",
-                        header.id == sorting[0].id
+                        sorting.length > 0 && header.id === sorting[0].id
                           ? "classicyFileBrowserViewTableColumnHeaderSelected"
                           : "",
                       )}
@@ -191,7 +191,7 @@ export const ClassicyFileBrowserViewTable: React.FC<ClassicyFileBrowserViewTable
                           header.column.columnDef.header,
                           header.getContext(),
                         )}
-                      {header.id == sorting[0].id && (
+                      {sorting.length > 0 && header.id === sorting[0].id && (
                         <img
                           src={`${arrowUpIcon}`}
                           alt={"Up Arrow"}
