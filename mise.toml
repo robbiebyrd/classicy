@@ -1,0 +1,29 @@
+min_version = "2024.9.5"
+
+[env]
+_.path = ['{{config_root}}/node_modules/.bin']
+
+# Use the project name derived from the current directory
+PROJECT_NAME = "{{ config_root | basename }}"
+
+# Set up the path for node module binaries
+BIN_PATH = "{{ config_root }}/node_modules/.bin"
+
+NODE_ENV = "{{ env.NODE_ENV | default(value='development') }}"
+
+ASDF_FFMPEG_ENABLE="libaom fontconfig freetype frei0r lame libass libvorbis libvpx opus rtmpdump sdl2 snappy theora x264 x265 xz"
+
+[plugins]
+ffmpeg = "https://github.com/acj/asdf-ffmpeg.git"
+
+[tools]
+# Install Node.js using the specified version
+node = "{{ env['NODE_VERSION'] | default(value='24') }}"
+
+# Install some npm packages globally if needed
+"npm:typescript" = "latest"
+"npm:eslint" = "latest"
+"npm:nodemon" = "latest"
+"npm:concurrently" = "latest"
+"npm:audiosprite" = "latest"
+"ffmpeg" = "8.0.1"
