@@ -1,0 +1,4 @@
+{
+  "directory": ["./src"],
+  "exclude": ["custom.d.ts"]
+}
