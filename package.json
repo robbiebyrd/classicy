@@ -57,7 +57,8 @@
     "screenfull": "^6.0.2",
     "sha512-crypt-ts": "^0.1.27",
     "tailwindcss": "^4.1.18",
-    "use-analytics": "^1.1.0"
+    "use-analytics": "^1.1.0",
+    "zustand": "^5.0.11"
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0",
