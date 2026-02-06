@@ -21,18 +21,26 @@ npm install
 To create a production build:
 
 ```sh
-npm run build-prod
+npm run build
 ```
 
 To create a development build:
 
 ```sh
-npm run build-dev
+npm run dev
 ```
 
 ## Running
 
-Run `npm run serve` and visit the site in your browser at http://localhost:3000.
+To run the example site locally (builds the package, links it into the example, and starts the example dev server):
+
+```sh
+npm run preview
+```
+
+Then visit the site in your browser at http://localhost:3000.
+
+(For iterative package development you can also use `npm run dev`, which builds the source and links the package locally.)
 
 ## Acknowledgements
 
@@ -156,7 +164,7 @@ Run `npm run serve` and visit the site in your browser at http://localhost:3000.
 * `ClassicySoundPlay`
     * `ClassicyAlertSosumi`
     * `ClassicyAlertWildEep`
-    * `ClassicyAlertndigo`
+    * `ClassicyAlertIndigo`
     * `ClassicyBeep`
     * `ClassicyBoot`
     * `ClassicyButtonClickDown`
