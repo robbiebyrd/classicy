@@ -33,10 +33,12 @@ export interface ClassicyStoreSystemApp {
   icon: string;
   windows: ClassicyStoreSystemAppWindow[];
   open: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data?: Record<string, any>;
   focused?: boolean;
   noDesktopIcon?: boolean;
   debug?: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   options?: Record<string, any>[];
   appMenu?: ClassicyMenuItem[];
 }
@@ -212,10 +214,8 @@ export class ClassicyAppManagerHandler {
   }
 }
 
-export type ActionMessage = Record<
-  string,
-  any
-> & {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type ActionMessage = Record<string, any> & {
   type: string;
 };
 

@@ -1,4 +1,4 @@
-import { ClassicySoundManagerProvider } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
+import { ClassicySoundManagerProvider } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerProvider";
 import googleAnalytics from "@analytics/google-analytics";
 import googleTagManager from "@analytics/google-tag-manager";
 import Analytics, { AnalyticsPlugin } from "analytics";

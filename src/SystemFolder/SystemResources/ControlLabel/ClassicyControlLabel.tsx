@@ -45,11 +45,11 @@ export const ClassicyControlLabel: React.FC<ClassicyControlLabelProps> = ({
             case 'small':
                 return "text-[calc(var(--ui-font-size)/2)]"
             case 'medium':
-                return "text-[length:var(--ui-font-size)]"
+                return "text-[var(--ui-font-size)]"
             case 'large':
                 return "text-[calc(var(--ui-font-size)*2)]"
             default:
-                return "ml-[calc(var(--window-control-size)/2)]"
+                return "text-[calc(var(--window-control-size)/2)]"
         }
     }
 
@@ -84,11 +84,11 @@ export const ClassicyControlLabel: React.FC<ClassicyControlLabelProps> = ({
             <label
                 htmlFor={labelFor}
                 className={classNames(
-                    "font-[family:var(--ui-font)] select-none",
                     disabled ? "text-[color:var(--color-system-05)]" : '',
                     getDirectionClass(direction),
                     getSizeClass(labelSize)
                 )}
+                style={{fontFamily: "var(--ui-font)"}}
             >
                 {label}
             </label>

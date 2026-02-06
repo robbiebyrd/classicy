@@ -27,10 +27,10 @@
     "build:source": "npm run generate-barrels && tsc -b && vite build",
     "build:audio": "./bin/make_audio_sprites.sh",
     "build:watch": "concurrently --kill-others \"npm run build:watchaudio\" \"npm run build:watchsource\"",
-    "build:watchaudio": "nodemon --watch \"resources/sounds/**\" --ext \"mp3,mp4,wav,aif,aiff,ogg,flac,m4a,ac3,json\" --exec \"npm run build:audio\"",
-    "build:watchsource": "nodemon --watch \"src/**\" --watch \"assets/**\" --ext \"tsx,ts,json,css,scss,png,jpg,svg\" --exec \"npm run build:source\"",
+    "build:watchaudio": "nodemon --watch \"resources/sounds/**\" --ext \"mp3,mp4,wav,aif,aiff,ogg,flac,m4a,ac3,json\" --exec \"npm run build:audio\" --ignore \"example/**\" ",
+    "build:watchsource": "nodemon --watch \"src/**\" --watch \"assets/**\" --ext \"tsx,ts,json,css,scss,png,jpg,svg\" --exec \"npm run build:source\" --ignore \"example/**\" ",
     "lint": "eslint .",
-    "preview": "npm run build:source && npm link && cd example && npm i && npm link classicy && npm run build && npm run dev"
+    "preview": "npm run build && npm link && cd example && npm i && npm link classicy && npm run build && npm run dev"
   },
   "files": [
     "dist"

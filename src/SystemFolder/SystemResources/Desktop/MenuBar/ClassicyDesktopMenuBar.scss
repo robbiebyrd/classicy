@@ -1,6 +1,7 @@
 .classicyDesktopMenuBar {
   z-index: 500;
-background: var(--color-black);
+  background: var(--color-black);
+  min-height: calc(var(--window-control-size));
 }
 
 .clasicyDesktopMenuAppleMenu {
