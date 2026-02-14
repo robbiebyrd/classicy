@@ -4,7 +4,7 @@ declare module "*.svg" {
 }
 
 declare module "*.png" {
-  const value: any;
+  const value: unknown;
   export default value;
 }
 
@@ -59,28 +59,28 @@ declare module "@analytics/google-analytics" {
     name: string;
 
     /** Exposed events of the plugin */
-    EVENTS?: any;
+    EVENTS?: unknown;
 
     /** Configuration of the plugin */
-    config?: any;
+    config?: unknown;
 
     /** Method to load analytics scripts */
-    initialize?: (...params: any[]) => any;
+    initialize?: (...params: unknown[]) => unknown;
 
     /** Page visit tracking method */
-    page?: (...params: any[]) => any;
+    page?: (...params: unknown[]) => unknown;
 
     /** Custom event tracking method */
-    track?: (...params: any[]) => any;
+    track?: (...params: unknown[]) => unknown;
 
     /** User identify method */
-    identify?: (...params: any[]) => any;
+    identify?: (...params: unknown[]) => unknown;
 
     /** Function to determine if analytics script is loaded */
-    loaded?: (...params: any[]) => any;
+    loaded?: (...params: unknown[]) => unknown;
 
     /** Fire function when the plugin is ready */
-    ready?: (...params: any[]) => any;
+    ready?: (...params: unknown[]) => unknown;
   };
 
   function GoogleAnalytics(options: GoogleAnalyticsOptions): AnalyticsPlugin;

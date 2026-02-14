@@ -1,7 +1,6 @@
 .classicyDesktopMenuBar {
   z-index: 500;
   background: var(--color-black);
-  min-height: calc(var(--window-control-size));
 }
 
 .clasicyDesktopMenuAppleMenu {
@@ -11,7 +10,7 @@
   }
   div {
     ul {
-      width: 30vw
+      min-width: 20vw;
     }
   }
 }
@@ -31,13 +30,13 @@
   user-drag: none;
 
 
-  li {
+  & li {
     &:after {
       display: none !important;
     }
 
-    p {
-      padding: 0 !important;
+    & p {
+      padding: 0;
     }
   }
 }

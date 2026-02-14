@@ -22,7 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-/.trunk
-/.roo
 /.env
+codealike.json
+tsconfig.tsbuildinfo
 .trunk/
