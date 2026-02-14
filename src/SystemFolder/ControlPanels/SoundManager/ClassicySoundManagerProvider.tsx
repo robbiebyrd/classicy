@@ -1,4 +1,4 @@
-import { useReducer } from "react";
+import { FC as FunctionalComponent, ReactNode, useReducer } from "react";
 import {
   initialPlayer,
   ClassicySoundStateEventReducer,
@@ -6,7 +6,7 @@ import {
   ClassicySoundManagerContext,
 } from "./ClassicySoundManagerUtils";
 
-export const ClassicySoundManagerProvider: React.FC<{ children: React.ReactNode }> = ({
+export const ClassicySoundManagerProvider: FunctionalComponent<{ children: ReactNode }> = ({
   children,
 }) => {
   const [sound, soundDispatch] = useReducer(

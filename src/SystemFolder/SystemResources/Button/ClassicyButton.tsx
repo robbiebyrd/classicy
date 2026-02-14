@@ -1,19 +1,19 @@
 import "./ClassicyButton.scss";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import classNames from "classnames";
-import React from "react";
+import { FC as FunctionalComponent, PropsWithChildren, MouseEvent, MouseEventHandler } from "react";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
-type ClassicyButtonProps = React.PropsWithChildren<{
+type ClassicyButtonProps = PropsWithChildren<{
   isDefault?: boolean;
   disabled?: boolean;
-  onClickFunc?: React.MouseEventHandler<HTMLButtonElement>;
+  onClickFunc?: MouseEventHandler<HTMLButtonElement>;
   buttonShape?: "rectangle" | "square";
   buttonSize?: "medium" | "small";
   buttonType?: "button" | "submit" | "reset";
 }>;
 
-export const ClassicyButton: React.FC<ClassicyButtonProps> = ({
+export const ClassicyButton: FunctionalComponent<ClassicyButtonProps> = ({
   isDefault = false,
   buttonType = "button",
   buttonShape = "rectangle",
@@ -27,7 +27,7 @@ export const ClassicyButton: React.FC<ClassicyButtonProps> = ({
   const { track } = useClassicyAnalytics();
   const analyticsArgs = { type: "ClassicyButton", isDefault, disabled };
 
-  const onHandleFunc = (e: React.MouseEvent<HTMLButtonElement>) => {
+  const onHandleFunc = (e: MouseEvent<HTMLButtonElement>) => {
     track("click", { ...analyticsArgs });
     if (onClickFunc) {
       onClickFunc(e);
@@ -41,7 +41,6 @@ export const ClassicyButton: React.FC<ClassicyButtonProps> = ({
       role={buttonType}
       className={classNames(
         "classicyButton",
-        "text-3xl font-bold underline",
         isDefault ? "classicyButtonDefault" : "",
         buttonShape === "square" ? "classicyButtonShapeSquare" : "",
         buttonSize === "small" ? "classicyButtonSmall" : "",

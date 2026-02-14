@@ -1,7 +1,7 @@
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import "./ClassicyPopUpMenu.scss";
 import classNames from "classnames";
-import React, { ChangeEvent, useState } from "react";
+import { FC as FunctionalComponent, CSSProperties, ChangeEvent, useState } from "react";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
 type classicyPopUpMenuOptions = {
@@ -17,9 +17,9 @@ type classicyPopUpMenuProps = {
   selected?: string;
   small?: boolean;
   onChangeFunc?: (e: ChangeEvent<HTMLSelectElement>) => void;
-  style?: React.CSSProperties;
+  style?: CSSProperties;
 };
-export const ClassicyPopUpMenu: React.FC<classicyPopUpMenuProps> = ({
+export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
   id,
   label,
   options,

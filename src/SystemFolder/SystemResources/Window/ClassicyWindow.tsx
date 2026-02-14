@@ -11,7 +11,9 @@ import { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMe
 import "./ClassicyWindow.scss";
 import classNames from "classnames";
 import fileIcon from "@img/icons/system/files/file.png";
-import React, {
+import {
+  FC as FunctionalComponent,
+  MouseEvent,
   ReactNode,
   useCallback,
   useEffect,
@@ -46,7 +48,7 @@ interface ClassicyWindowProps {
   type?: string;
 }
 
-export const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
+export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
   id,
   title = "",
   appId,
@@ -197,7 +199,7 @@ export const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
     }
   }, [appId, ws, appMenu, desktopEventDispatch]);
 
-  const startResizeWindow = (e: React.MouseEvent<HTMLDivElement>) => {
+  const startResizeWindow = (e: MouseEvent<HTMLDivElement>) => {
     e.preventDefault();
     track("resize", { type: "ClassicyWindow", ...analyticsArgs });
     desktopEventDispatch({
@@ -219,7 +221,7 @@ export const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
     ]);
   };
 
-  const startMoveWindow = (e: React.MouseEvent<HTMLDivElement>) => {
+  const startMoveWindow = (e: MouseEvent<HTMLDivElement>) => {
     e.preventDefault();
     if (modal && type == "error") {
       // Don't allow modal error dialogs to move
@@ -246,7 +248,7 @@ export const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
     setDragging(true);
   };
 
-  const changeWindow = (e: React.MouseEvent<HTMLDivElement>) => {
+  const changeWindow = (e: MouseEvent<HTMLDivElement>) => {
     e.preventDefault();
     if (ws.resizing || ws.dragging) {
       setActive(e);
@@ -268,7 +270,7 @@ export const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
     }
   };
 
-  const stopChangeWindow = (e: React.MouseEvent<HTMLDivElement>) => {
+  const stopChangeWindow = (e: MouseEvent<HTMLDivElement>) => {
     track("halt", { type: "ClassicyWindow", ...analyticsArgs });
     e.preventDefault();
     setActive();
@@ -314,7 +316,7 @@ export const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
   }, [ws.focused]);
 
   const setActive = useCallback(
-    (e?: React.MouseEvent<HTMLDivElement>) => {
+    (e?: MouseEvent<HTMLDivElement>) => {
       e?.preventDefault();
       track("focus", { type: "ClassicyWindow", ...analyticsArgs });
       if (!ws.focused) {
@@ -421,12 +423,12 @@ export const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
     });
   };
 
-  const onMouseOutHandler = (e: React.MouseEvent<HTMLDivElement>) => {
+  const onMouseOutHandler = (e: MouseEvent<HTMLDivElement>) => {
     e.preventDefault();
     setContextMenu(false, [0, 0]);
   };
 
-  const showContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
+  const showContextMenu = (e: MouseEvent<HTMLDivElement>) => {
     e.preventDefault();
     setActive();
     track("contextMenu", {

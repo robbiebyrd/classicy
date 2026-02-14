@@ -6,9 +6,9 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import classNames from "classnames";
 import appIcon from "@img/icons/control-panels/date-time-manager/date-time-manager.png";
-import React, { useEffect, useRef, useState } from "react";
+import { FC as FunctionalComponent, useEffect, useRef, useState } from "react";
 
-export const ClassicyDesktopMenuWidgetTime: React.FC = () => {
+export const ClassicyDesktopMenuWidgetTime: FunctionalComponent = () => {
   const desktopContext = useAppManager();
   const desktopEventDispatch = useAppManagerDispatch();
 
@@ -77,9 +77,9 @@ export const ClassicyDesktopMenuWidgetTime: React.FC = () => {
         localDate.getHours() +
           parseInt(desktopContext.System.Manager.DateAndTime.timeZoneOffset),
       );
-      
+
       const newMinutes = localDate.getMinutes();
-      
+
       // Update local time state every second for display
       setTime({
         year: localDate.getFullYear(),

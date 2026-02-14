@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components -- Utilities and constants file, not components */
 import { ClassicyStoreSystemManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { Howl } from "howler";
-import { createContext, type Dispatch } from "react";
+import { createContext, Dispatch } from "react";
 import soundData from "@snd/platinum/platinum.json";
 import soundLabels from "./ClassicySoundManagerLabels.json";
 

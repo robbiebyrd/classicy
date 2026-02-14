@@ -5,7 +5,7 @@ import {
     ClassicyStoreSystemManager,
 } from '@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager'
 import {ClassicyMenuItem} from '@/SystemFolder/SystemResources/Menu/ClassicyMenu'
-import React from 'react'
+import { MouseEvent } from 'react'
 
 export interface ClassicyStoreSystemDesktopManagerIcon {
     appId: string
@@ -14,7 +14,7 @@ export interface ClassicyStoreSystemDesktopManagerIcon {
     label?: string
     kind: string
     location?: [number, number]
-    onClickFunc?: (event: React.MouseEvent) => void
+    onClickFunc?: (event: MouseEvent) => void
     event?: string
     eventData?: any
     contextMenu?: ClassicyMenuItem[]

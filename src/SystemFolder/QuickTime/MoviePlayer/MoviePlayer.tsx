@@ -6,11 +6,11 @@ import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import { quitMenuItemHelper } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
 import { QuickTimeVideoEmbed } from "@/SystemFolder/SystemResources/QuickTime/QuickTimeMovieEmbed";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
-import React, { useEffect } from "react";
+import { FC as FunctionalComponent, useEffect } from "react";
 import defaultDocumentIcon from "@img/icons/system/quicktime/movie.png";
 import { MoviePlayerAppInfo, QuickTimeMovieDocument } from "./MoviePlayerUtils";
 
-export const MoviePlayer: React.FC = () => {
+export const MoviePlayer: FunctionalComponent = () => {
   const { name: appName, id: appId, icon: appIcon } = MoviePlayerAppInfo;
 
   const desktopEventDispatch = useAppManagerDispatch();

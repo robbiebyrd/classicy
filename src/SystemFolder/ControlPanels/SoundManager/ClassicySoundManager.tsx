@@ -19,10 +19,10 @@ import { ClassicyControlGroup } from "@/SystemFolder/SystemResources/ControlGrou
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import { ClassicyDisclosure } from "@/SystemFolder/SystemResources/Disclosure/ClassicyDisclosure";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
-import React, { useState } from "react";
+import { FC as FunctionalComponent, useState } from "react";
 import appIcon from "@img/icons/control-panels/sound-manager/app.png";
 
-export const ClassicySoundManager: React.FC = () => {
+export const ClassicySoundManager: FunctionalComponent = () => {
   const desktopEventDispatch = useAppManagerDispatch();
 
   const playerState = useSound();

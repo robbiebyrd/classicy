@@ -1,7 +1,7 @@
 "use client";
 
-import appIcon from "@img/icons/control-panels/appearance-manager/app.png";
-import packageIcon from "@img/icons/control-panels/appearance-manager/platinum.png";
+import appIcon from "./resources/app.png";
+import packageIcon from "./resources/platinum.png";
 import {
   ClassicyTheme,
   getTheme,
@@ -23,18 +23,19 @@ import { ClassicyInput } from "@/SystemFolder/SystemResources/Input/ClassicyInpu
 import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
 import { ClassicyTabs } from "@/SystemFolder/SystemResources/Tabs/ClassicyTabs";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
-import React, { ChangeEvent, useState } from "react";
+import { FC as FunctionalComponent, ChangeEvent, useState } from "react";
 import {
   ClassicyDefaultWallpaper,
   ClassicyWallpapers,
 } from "./ClassicyWallpapers";
+import { ClassicyFonts } from "./ClassicyFonts";
 
 function isValidUrlWithRegex(url: string): boolean {
   const urlPattern = /^(https?):\/\/[^\s/$.?#].[^\s]*$/i;
   return urlPattern.test(url);
 }
 
-export const ClassicyAppearanceManager: React.FC = () => {
+export const ClassicyAppearanceManager: FunctionalComponent = () => {
   const appName: string = "Appearance Manager";
   const appId: string = "AppearanceManager.app";
 
@@ -55,15 +56,6 @@ export const ClassicyAppearanceManager: React.FC = () => {
     (({ id, name }) => ({ value: id, label: name }))(a),
   );
 
-  const fonts = [
-    { label: "Charcoal", value: "Charcoal" },
-    { label: "ChicagoFLF", value: "ChicagoFLF" },
-    { label: "Geneva", value: "Geneva" },
-    { label: "AppleGaramond", value: "AppleGaramond" },
-  ];
-
-  const backgrounds = ClassicyWallpapers;
-
   const switchTheme = async (e: ChangeEvent<HTMLSelectElement>) => {
     desktopEventDispatch({
       type: "ClassicyDesktopChangeTheme",
@@ -80,7 +72,7 @@ export const ClassicyAppearanceManager: React.FC = () => {
     });
   };
 
-  const setBackgroundURL = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const setBackgroundURL = (e: ChangeEvent<HTMLInputElement>) => {
     if (isValidUrlWithRegex(e.target.value)) {
       setBg(e.target.value);
       desktopEventDispatch({
@@ -199,7 +191,7 @@ export const ClassicyAppearanceManager: React.FC = () => {
               <ClassicyControlLabel label={"Patterns"} direction={"left"} />
               <ClassicyPopUpMenu
                 id={"bg"}
-                options={backgrounds}
+                options={ClassicyWallpapers}
                 onChangeFunc={changeBackground}
                 selected={bg.split("/").pop()}
               ></ClassicyPopUpMenu>
@@ -291,7 +283,7 @@ export const ClassicyAppearanceManager: React.FC = () => {
             </div>
             <ClassicyPopUpMenu
               id={"ui"}
-              options={fonts}
+              options={ClassicyFonts}
               selected={appearanceState.activeTheme.typography.ui}
               onChangeFunc={changeFont}
             ></ClassicyPopUpMenu>
@@ -305,7 +297,7 @@ export const ClassicyAppearanceManager: React.FC = () => {
             </div>
             <ClassicyPopUpMenu
               id={"body"}
-              options={fonts}
+              options={ClassicyFonts}
               selected={appearanceState.activeTheme.typography.body}
               onChangeFunc={changeFont}
             ></ClassicyPopUpMenu>
@@ -316,7 +308,7 @@ export const ClassicyAppearanceManager: React.FC = () => {
             </div>
             <ClassicyPopUpMenu
               id={"header"}
-              options={fonts}
+              options={ClassicyFonts}
               selected={appearanceState.activeTheme.typography.header}
               onChangeFunc={changeFont}
             ></ClassicyPopUpMenu>

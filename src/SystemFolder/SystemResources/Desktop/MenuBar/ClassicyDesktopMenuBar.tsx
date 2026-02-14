@@ -11,9 +11,9 @@ import {
   ClassicyMenuItem,
 } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import "@/SystemFolder/SystemResources/Menu/ClassicyMenu.scss";
-import React from "react";
+import { FC as FunctionalComponent } from "react";
 
-export const ClassicyDesktopMenuBar: React.FC = () => {
+export const ClassicyDesktopMenuBar: FunctionalComponent = () => {
   const desktopContext = useAppManager();
   const desktopEventDispatch = useAppManagerDispatch();
 

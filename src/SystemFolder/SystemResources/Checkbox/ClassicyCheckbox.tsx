@@ -1,7 +1,7 @@
 import "./ClassicyCheckbox.scss";
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import classNames from "classnames";
-import React, { useState } from "react";
+import { FC as FunctionalComponent, useState } from "react";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
 export type ClassicyCheckboxProps = {
@@ -14,7 +14,7 @@ export type ClassicyCheckboxProps = {
   label?: string;
 };
 
-export const ClassicyCheckbox: React.FC<ClassicyCheckboxProps> = ({
+export const ClassicyCheckbox: FunctionalComponent<ClassicyCheckboxProps> = ({
   id,
   checked,
   mixed,
@@ -38,7 +38,7 @@ export const ClassicyCheckbox: React.FC<ClassicyCheckboxProps> = ({
   };
 
   return (
-    <div className={"flex flex-row p-[calc(var(--window-border-size)*2)]"}>
+    <div style={{display: "flex", flexDirection: 'row'}}>
       <input
         type={"checkbox"}
         onClick={handleOnClick}
@@ -47,9 +47,9 @@ export const ClassicyCheckbox: React.FC<ClassicyCheckboxProps> = ({
         checked={check}
         disabled={disabled}
         className={classNames(
-          "ClassicyCheckbox",
-          isDefault ? "ClassicyCheckboxDefault" : "",
-          mixed ? "ClassicyCheckboxMixed" : "",
+          "classicyCheckbox",
+          isDefault ? "classicyCheckboxDefault" : "",
+          mixed ? "classicyCheckboxMixed" : "",
         )}
       />
       <ClassicyControlLabel

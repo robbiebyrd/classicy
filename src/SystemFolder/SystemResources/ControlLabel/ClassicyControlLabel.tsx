@@ -1,6 +1,6 @@
 import './ClassicyControlLabel.scss'
 import classNames from 'classnames'
-import React from 'react'
+import { FC as FunctionalComponent, ReactNode, MouseEvent } from 'react'
 
 type ClassicyControlLabelDirections = 'left' | 'right'
 type ClassicyControlLabelSize = 'small' | 'medium' | 'large'
@@ -13,11 +13,11 @@ interface ClassicyControlLabelProps {
     icon?: string
     iconSize?: string
     direction?: ClassicyControlLabelDirections
-    children?: React.ReactNode
-    onClickFunc?: (e: React.MouseEvent) => void
+    children?: ReactNode
+    onClickFunc?: (e: MouseEvent) => void
 }
 
-export const ClassicyControlLabel: React.FC<ClassicyControlLabelProps> = ({
+export const ClassicyControlLabel: FunctionalComponent<ClassicyControlLabelProps> = ({
     labelFor = '',
     label = '',
     labelSize = 'medium',
@@ -33,23 +33,22 @@ export const ClassicyControlLabel: React.FC<ClassicyControlLabelProps> = ({
         return null
     }
 
-    const getDirectionClass = (direction: ClassicyControlLabelDirections) => {
+    const getDirectionStyle = (direction: ClassicyControlLabelDirections) => {
         if (direction === 'right') {
-            return "mr-[calc(var(--window-control-size)/2)]"
+            return { marginRight: "calc(var(--window-control-size)/2)" }
         }
-        return "ml-[calc(var(--window-control-size)/2)]"
+        return { marginLeft: "calc(var(--window-control-size)/2)" }
     }
-
-    const getSizeClass = (size: ClassicyControlLabelSize) => {
+    const getSizeStyle = (size: ClassicyControlLabelSize) => {
         switch (size) {
             case 'small':
-                return "text-[calc(var(--ui-font-size)/2)]"
+                return "calc(var(--ui-font-size)/2)"
             case 'medium':
-                return "text-[var(--ui-font-size)]"
+                return "var(--ui-font-size)"
             case 'large':
-                return "text-[calc(var(--ui-font-size)*2)]"
+                return "calc(var(--ui-font-size)*2)"
             default:
-                return "text-[calc(var(--window-control-size)/2)]"
+                return "calc(var(--window-control-size)/2)"
         }
     }
 
@@ -65,11 +64,7 @@ export const ClassicyControlLabel: React.FC<ClassicyControlLabelProps> = ({
 
     return (
         <div
-            className={classNames(
-                'flex',
-                ['left', 'bottom'].includes(direction) ? 'flex-row' : 'flex-row-reverse',
-                icon ? 'items-center' : ''
-            )}
+        style={{display: "flex", flexDirection: ['left', 'bottom'].includes(direction) ? 'row' : 'row-reverse', alignItems: icon ? "center" : ""}}
             onClick={(e) => {
                 e.preventDefault()
                 if (onClickFunc) {
@@ -83,12 +78,7 @@ export const ClassicyControlLabel: React.FC<ClassicyControlLabelProps> = ({
 
             <label
                 htmlFor={labelFor}
-                className={classNames(
-                    disabled ? "text-[color:var(--color-system-05)]" : '',
-                    getDirectionClass(direction),
-                    getSizeClass(labelSize)
-                )}
-                style={{fontFamily: "var(--ui-font)"}}
+                style={{color: disabled ? "var(--color-system-05)" : 'inherit', fontFamily: "var(--ui-font)", fontSize: getSizeStyle(labelSize), ...getDirectionStyle(direction)}}
             >
                 {label}
             </label>

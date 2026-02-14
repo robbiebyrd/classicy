@@ -16,11 +16,11 @@ import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/Clas
 import { ClassicyRadioInput } from "@/SystemFolder/SystemResources/RadioInput/ClassicyRadioInput";
 import { ClassicyTimePicker } from "@/SystemFolder/SystemResources/TimePicker/ClassicyTimePicker";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
-import React, { ChangeEvent, useState } from "react";
+import { FC as FunctionalComponent, ChangeEvent, useState } from "react";
 import { ClassicyControlGroup } from "../../SystemResources/ControlGroup/ClassicyControlGroup";
 import appIcon from "@img/icons/control-panels/date-time-manager/date-time-manager.png";
 
-export const ClassicyDateAndTimeManager: React.FC = () => {
+export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
   const appName: string = "Date and Time Manager";
   const appId: string = "DateAndTimeManager.app";
 

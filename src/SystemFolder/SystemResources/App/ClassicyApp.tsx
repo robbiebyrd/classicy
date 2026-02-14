@@ -4,7 +4,7 @@ import {
   useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
-import React, { useEffect, useRef } from "react";
+import { FC as FunctionalComponent, ReactNode, useEffect, useRef } from "react";
 import { JSONTree } from "react-json-tree";
 
 export interface ClassicyAppProps {
@@ -15,10 +15,10 @@ export interface ClassicyAppProps {
   noDesktopIcon?: boolean;
   addSystemMenu?: boolean;
   debug?: boolean;
-  children?: React.ReactNode;
+  children?: ReactNode;
 }
 
-export const ClassicyApp: React.FC<ClassicyAppProps> = ({
+export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
   id,
   icon,
   name,

@@ -1,7 +1,7 @@
 import "./ClassicyTabs.scss";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import tabMaskImageURL from "@img/ui/tab.svg?base64";
-import React, { useState } from "react";
+import { FC as FunctionalComponent, ReactNode, MouseEvent, useState } from "react";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
 export interface TabProps {
@@ -10,22 +10,22 @@ export interface TabProps {
 
 export interface TabIndividual {
   title: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
-export const ClassicyTabs: React.FC<TabProps> = ({ tabs }) => {
+export const ClassicyTabs: FunctionalComponent<TabProps> = ({ tabs }) => {
   const [activeTab, setActiveTab] = useState(0);
   const player = useSoundDispatch();
   const { track } = useClassicyAnalytics();
   const analyticsArgs = { tabs: tabs.map((t) => t.title) };
 
-  const handleTabClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleTabClick = (e: MouseEvent<HTMLButtonElement>) => {
     player({ type: "ClassicySoundPlay", sound: "ClassicyTabClickUp" });
     const tabId = parseInt((e.target as HTMLButtonElement).id);
     track("click", { type: "ClassicyTab", tabId, ...analyticsArgs });
     setActiveTab(tabId);
   };
-  const startTabClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+  const startTabClick = (e: MouseEvent<HTMLButtonElement>) => {
     player({ type: "ClassicySoundPlay", sound: "ClassicyTabClickDown" });
     const tabId = parseInt((e.target as HTMLButtonElement).id);
     track("selected", { type: "ClassicyTab", tabId, ...analyticsArgs });

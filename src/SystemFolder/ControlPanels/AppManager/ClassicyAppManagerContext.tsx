@@ -2,7 +2,7 @@ import { ClassicySoundManagerProvider } from "@/SystemFolder/ControlPanels/Sound
 import googleAnalytics from "@analytics/google-analytics";
 import googleTagManager from "@analytics/google-tag-manager";
 import Analytics, { AnalyticsPlugin } from "analytics";
-import React, { useMemo } from "react";
+import { FC as FunctionalComponent, PropsWithChildren, useMemo } from "react";
 import { AnalyticsProvider } from "use-analytics";
 
 type ClassicyAppManagerProviderProps = {
@@ -11,8 +11,8 @@ type ClassicyAppManagerProviderProps = {
   appName?: string;
 };
 
-export const ClassicyAppManagerProvider: React.FC<
-  React.PropsWithChildren<ClassicyAppManagerProviderProps>
+export const ClassicyAppManagerProvider: FunctionalComponent<
+  PropsWithChildren<ClassicyAppManagerProviderProps>
 > = ({ children, gtmContainerId, gaMeasurementIds, appName = "classicy" }) => {
   const analytics = useMemo(() => {
     const plugins: AnalyticsPlugin[] = [];

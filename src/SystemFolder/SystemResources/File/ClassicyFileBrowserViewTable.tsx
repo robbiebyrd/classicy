@@ -13,7 +13,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import classNames from "classnames";
-import React, { RefObject, useMemo, useState } from "react";
+import { FC as FunctionalComponent, memo, RefObject, useMemo, useState } from "react";
 import arrowUpIcon from "@img/ui/menu-dropdown-arrow-up.svg";
 
 type ClassicyFileBrowserViewTableProps = {
@@ -32,8 +32,8 @@ type ColumnSort = {
 };
 type SortingState = ColumnSort[];
 
-export const ClassicyFileBrowserViewTable: React.FC<ClassicyFileBrowserViewTableProps> =
-  React.memo(
+export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrowserViewTableProps> =
+  memo(
     ({
       fs,
       path,

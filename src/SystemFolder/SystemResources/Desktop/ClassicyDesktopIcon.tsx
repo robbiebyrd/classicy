@@ -6,7 +6,7 @@ import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/u
 
 import "./ClassicyDesktopIcon.scss";
 import classNames from "classnames";
-import React, { useRef, useState } from "react";
+import { FC as FunctionalComponent, memo, MouseEvent, useRef, useState } from "react";
 
 interface ClassicyDesktopIconProps {
   appId: string;
@@ -19,7 +19,7 @@ interface ClassicyDesktopIconProps {
   eventData?: Record<string, unknown>;
 }
 
-export const ClassicyDesktopIcon: React.FC<ClassicyDesktopIconProps> = React.memo(({
+export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> = memo(({
   appId,
   appName,
   icon,
@@ -41,7 +41,7 @@ export const ClassicyDesktopIcon: React.FC<ClassicyDesktopIconProps> = React.mem
   const { track } = useClassicyAnalytics();
   const analyticsArgs = { appId, appName, icon, label, kind };
 
-  const clickFocus = (e: React.MouseEvent<HTMLDivElement>) => {
+  const clickFocus = (e: MouseEvent<HTMLDivElement>) => {
     e.stopPropagation();
     track("focus", { type: "ClassicyDesktopIcon", ...analyticsArgs });
     desktopEventDispatch({
@@ -50,7 +50,7 @@ export const ClassicyDesktopIcon: React.FC<ClassicyDesktopIconProps> = React.mem
     });
   };
 
-  const changeIcon = (e: React.MouseEvent<HTMLDivElement>) => {
+  const changeIcon = (e: MouseEvent<HTMLDivElement>) => {
     if (dragging) {
       clickFocus(e);
 
@@ -136,7 +136,7 @@ export const ClassicyDesktopIcon: React.FC<ClassicyDesktopIconProps> = React.mem
     setClickPosition([0, 0]);
   };
 
-  const startDrag = (e: React.MouseEvent<HTMLDivElement>) => {
+  const startDrag = (e: MouseEvent<HTMLDivElement>) => {
     if (iconRef.current == null) {
       return;
     }
@@ -173,7 +173,7 @@ export const ClassicyDesktopIcon: React.FC<ClassicyDesktopIconProps> = React.mem
       onDoubleClick={launchIcon}
       draggable={false}
       onClick={clickFocus}
-      onContextMenu={(e: React.MouseEvent<HTMLDivElement>) => {
+      onContextMenu={(e: MouseEvent<HTMLDivElement>) => {
         e.preventDefault();
         clickFocus(e);
         // TODO: Add Context Menu on Desktop Icons

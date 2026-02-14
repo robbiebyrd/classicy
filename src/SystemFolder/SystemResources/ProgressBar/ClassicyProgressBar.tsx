@@ -1,6 +1,6 @@
 import './ClassicyProgressBar.scss'
 import classNames from 'classnames'
-import React from 'react'
+import { FC as FunctionalComponent } from 'react'
 
 interface ClassicyProgressProps {
     value?: number
@@ -8,7 +8,7 @@ interface ClassicyProgressProps {
     indeterminate?: boolean
 }
 
-export const ClassicyProgressBar: React.FC<ClassicyProgressProps> = ({ max = 100, value = 0, indeterminate }) => {
+export const ClassicyProgressBar: FunctionalComponent<ClassicyProgressProps> = ({ max = 100, value = 0, indeterminate }) => {
     const effectiveMax = indeterminate ? 100 : max
     const effectiveValue = indeterminate ? 100 : value
 

@@ -2,18 +2,18 @@ import "./ClassicyAboutWindow.scss";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
-import React, { useEffect } from "react";
+import { FC as FunctionalComponent, MouseEventHandler, useEffect } from "react";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
 export type ClassicyAboutWindowProps = {
   appId: string;
   appName: string;
   appIcon: string;
-  hideFunc: React.MouseEventHandler<HTMLButtonElement>;
+  hideFunc: MouseEventHandler<HTMLButtonElement>;
   appMenu?: ClassicyMenuItem[];
 };
 
-export const ClassicyAboutWindow: React.FC<ClassicyAboutWindowProps> = ({
+export const ClassicyAboutWindow: FunctionalComponent<ClassicyAboutWindowProps> = ({
   appId,
   appName,
   appIcon,
