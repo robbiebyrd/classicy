@@ -141,9 +141,13 @@ export const classicyWindowEventHandler = (
       ds.System.Manager.App.apps[action.app.id].windows =
         ds.System.Manager.App.apps[action.app.id].windows.map((w) => {
           w.focused = w.id == action.window.id;
-          ds.System.Manager.Desktop.appMenu = action.window.menuBar;
           return w;
         });
+      // Prefer fresh appMenu from component props (has closures) over stored menuBar
+      const focusMenu = action.app.appMenu || action.window.menuBar;
+      if (focusMenu) {
+        ds.System.Manager.Desktop.appMenu = focusMenu;
+      }
       break;
     }
     case "ClassicyWindowClose": {

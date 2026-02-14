@@ -11,7 +11,14 @@ import { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMe
 import "./ClassicyWindow.scss";
 import classNames from "classnames";
 import fileIcon from "@img/icons/system/files/file.png";
-import React, { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
 interface ClassicyWindowProps {
@@ -72,7 +79,9 @@ export const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
 
   const clickOffset = [10, 10];
 
-  const desktopContext = useAppManager();
+  const currentApp = useAppManager(
+    (state) => state.System.Manager.App.apps[appId],
+  );
   const desktopEventDispatch = useAppManagerDispatch();
   const player = useSoundDispatch();
 
@@ -117,8 +126,6 @@ export const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
 
   const windowRef = useRef<HTMLDivElement | null>(null);
 
-  // Select only the specific app and window to avoid re-renders on unrelated app changes
-  const currentApp = desktopContext.System.Manager.App.apps[appId];
   const currentWindow = currentApp?.windows.find((w) => w.id === id);
 
   const ws = useMemo(() => {
@@ -164,15 +171,31 @@ export const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
     minimumSize,
   ]);
 
+  const windowRegistered = useRef(false);
   useEffect(() => {
-    desktopEventDispatch({
-      type: "ClassicyWindowOpen",
-      window: ws,
-      app: {
-        id: appId,
-      },
-    });
-  }, [appId, desktopContext.System.Manager.App.apps, ws, desktopEventDispatch]);
+    if (!windowRegistered.current) {
+      windowRegistered.current = true;
+      desktopEventDispatch({
+        type: "ClassicyWindowOpen",
+        window: ws,
+        app: {
+          id: appId,
+        },
+      });
+      // Refresh the desktop menu bar with fresh closures from the component
+      // props, since onClickFunc cannot survive JSON serialization to localStorage.
+      if (appMenu) {
+        desktopEventDispatch({
+          type: "ClassicyWindowFocus",
+          app: {
+            id: appId,
+            appMenu: appMenu,
+          },
+          window: ws,
+        });
+      }
+    }
+  }, [appId, ws, appMenu, desktopEventDispatch]);
 
   const startResizeWindow = (e: React.MouseEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -290,30 +313,33 @@ export const ClassicyWindow: React.FC<ClassicyWindowProps> = ({
     return ws.focused;
   }, [ws.focused]);
 
-  const setActive = useCallback((e?: React.MouseEvent<HTMLDivElement>) => {
-    e?.preventDefault();
-    track("focus", { type: "ClassicyWindow", ...analyticsArgs });
-    if (!ws.focused) {
-      player({ type: "ClassicySoundPlay", sound: "ClassicyWindowFocus" });
+  const setActive = useCallback(
+    (e?: React.MouseEvent<HTMLDivElement>) => {
+      e?.preventDefault();
+      track("focus", { type: "ClassicyWindow", ...analyticsArgs });
+      if (!ws.focused) {
+        player({ type: "ClassicySoundPlay", sound: "ClassicyWindowFocus" });
 
-      desktopEventDispatch({
-        type: "ClassicyWindowFocus",
-        app: {
-          id: appId,
-          appMenu: appMenu,
-        },
-        window: ws,
-      });
-      // desktopEventDispatch({
-      //     type: 'ClassicyWindowContextMenu',
-      //     contextMenu: contextMenu || [],
-      // })
-    }
-  }, [ws, appId, appMenu, desktopEventDispatch, player, track, analyticsArgs]);
+        desktopEventDispatch({
+          type: "ClassicyWindowFocus",
+          app: {
+            id: appId,
+            appMenu: appMenu,
+          },
+          window: ws,
+        });
+        // desktopEventDispatch({
+        //     type: 'ClassicyWindowContextMenu',
+        //     contextMenu: contextMenu || [],
+        // })
+      }
+    },
+    [ws, appId, appMenu, desktopEventDispatch, player, track, analyticsArgs],
+  );
 
   useEffect(() => {
     // This ensures that once a window has opened it becomes the focus.
-    setActive();
+    // setActive();
     if (modal && type == "error") {
       player({ type: "ClassicySoundPlayError" });
     }

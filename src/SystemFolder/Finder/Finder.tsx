@@ -12,7 +12,7 @@ import {
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 import appIcon from "@img/icons/system/mac.png";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type PathSettingsProps = {
   _viewType: "list" | "icons";
@@ -21,82 +21,98 @@ export const Finder = () => {
   const appName: string = "Finder";
   const appId: string = "Finder.app";
   const desktopEventDispatch = useAppManagerDispatch();
-  const desktop = useAppManager();
+  const appState = useAppManager(
+    (state) => state.System.Manager.App.apps[appId],
+  );
 
   const [pathSettings, setPathSettings] = useState<
     Record<string, PathSettingsProps>
   >({});
   const [showAbout, setShowAbout] = useState(false);
 
-  const openPaths =
-    desktop.System.Manager.App.apps[appId]?.data?.openPaths || ([] as string[]);
-
   const fs = useMemo(() => new ClassicyFileSystem(), []);
 
+  const prevOpenPathsRef = useRef<string[] | null>(null);
   useEffect(() => {
-    const appData = desktop.System.Manager.App.apps[appId]?.data || {};
+    const appData = appState.data || {};
     if (!("openPaths" in appData)) {
       return;
-    } else {
-      desktopEventDispatch({
-        type: "ClassicyAppFinderOpenFolders",
-        paths: appData.openPaths,
-      });
     }
-  }, [desktopEventDispatch, desktop.System.Manager.App.apps, appId]);
-
-  const handlePathSettingsChange = useCallback((
-    path: string,
-    settings: PathSettingsProps,
-  ) => {
-    setPathSettings((prevPathSettings) => ({
-      ...prevPathSettings,
-      [path]: settings,
-    }));
-  }, []);
-
-  const openFolder = useCallback((path: string) => {
-    desktopEventDispatch({
-      type: "ClassicyAppFinderOpenFolder",
-      path,
-    });
-
-    const windowIndex = desktop.System.Manager.App.apps[
-      appId
-    ].windows.findIndex((w) => w.id === path);
-    const ws = desktop.System.Manager.App.apps[appId].windows[windowIndex];
-    if (ws) {
-      desktopEventDispatch({
-        type: "ClassicyWindowOpen",
-        app: {
-          id: appId,
-        },
-        window: ws,
-      });
-      desktopEventDispatch({
-        type: "ClassicyWindowFocus",
-        app: {
-          id: appId,
-        },
-        window: ws,
-      });
+    const openPaths: string[] = appData.openPaths;
+    const prev = prevOpenPathsRef.current;
+    if (
+      prev &&
+      prev.length === openPaths.length &&
+      prev.every((p, i) => p === openPaths[i])
+    ) {
+      return;
     }
-  }, [desktopEventDispatch, desktop.System.Manager.App.apps, appId]);
-
-  const openFile = useCallback((path: string) => {
-    const file = fs.resolve(path);
+    prevOpenPathsRef.current = openPaths;
     desktopEventDispatch({
-      type: "ClassicyAppFinderOpenFile",
-      file,
+      type: "ClassicyAppFinderOpenFolders",
+      paths: openPaths,
     });
-  }, [fs, desktopEventDispatch]);
+  }, [desktopEventDispatch, appState.data]);
 
-  const closeFolder = useCallback((path: string) => {
-    desktopEventDispatch({
-      type: "ClassicyAppFinderCloseFolder",
-      path,
-    });
-  }, [desktopEventDispatch]);
+  const handlePathSettingsChange = useCallback(
+    (path: string, settings: PathSettingsProps) => {
+      setPathSettings((prevPathSettings) => ({
+        ...prevPathSettings,
+        [path]: settings,
+      }));
+    },
+    [],
+  );
+
+  const openFolder = useCallback(
+    (path: string) => {
+      desktopEventDispatch({
+        type: "ClassicyAppFinderOpenFolder",
+        path,
+      });
+
+      const windowIndex = appState.windows.findIndex((w) => w.id === path);
+      const ws = appState.windows[windowIndex];
+      if (ws) {
+        desktopEventDispatch({
+          type: "ClassicyWindowOpen",
+          app: {
+            id: appId,
+          },
+          window: ws,
+        });
+        desktopEventDispatch({
+          type: "ClassicyWindowFocus",
+          app: {
+            id: appId,
+          },
+          window: ws,
+        });
+      }
+    },
+    [desktopEventDispatch, appState.windows],
+  );
+
+  const openFile = useCallback(
+    (path: string) => {
+      const file = fs.resolve(path);
+      desktopEventDispatch({
+        type: "ClassicyAppFinderOpenFile",
+        file,
+      });
+    },
+    [fs, desktopEventDispatch],
+  );
+
+  const closeFolder = useCallback(
+    (path: string) => {
+      desktopEventDispatch({
+        type: "ClassicyAppFinderCloseFolder",
+        path,
+      });
+    },
+    [desktopEventDispatch],
+  );
 
   useEffect(() => {
     const drives = fs.filterByType("", "drive");
@@ -145,11 +161,13 @@ export const Finder = () => {
       icon={appIcon}
       noDesktopIcon={true}
       defaultWindow={
-        openPaths ? appName + "_" + openPaths.at(0) : "Macintosh HD"
+        appState.data.openPaths
+          ? appName + "_" + appState.data.openPaths.at(0)
+          : "Macintosh HD"
       }
     >
-      {openPaths?.length > 0 &&
-        openPaths
+      {appState.data.openPaths?.length > 0 &&
+        appState.data.openPaths
           .map((p: string) => {
             return [p, fs.statDir(p)];
           })

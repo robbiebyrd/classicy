@@ -346,7 +346,7 @@
     position: relative;
     display: block;
     overflow: auto;
-    height: calc(100% - (var(--window-control-size) * 2.25));
+    height: calc(100% - (var(--window-control-size) * 3.25));
     background-color: var(--color-window-document);
   }
 }

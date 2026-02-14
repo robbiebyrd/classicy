@@ -41,6 +41,7 @@ export const ClassicyButton: React.FC<ClassicyButtonProps> = ({
       role={buttonType}
       className={classNames(
         "classicyButton",
+        "text-3xl font-bold underline",
         isDefault ? "classicyButtonDefault" : "",
         buttonShape === "square" ? "classicyButtonShapeSquare" : "",
         buttonSize === "small" ? "classicyButtonSmall" : "",

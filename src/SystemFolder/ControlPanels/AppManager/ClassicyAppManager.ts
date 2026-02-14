@@ -33,12 +33,10 @@ export interface ClassicyStoreSystemApp {
   icon: string;
   windows: ClassicyStoreSystemAppWindow[];
   open: boolean;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data?: Record<string, any>;
   focused?: boolean;
   noDesktopIcon?: boolean;
   debug?: boolean;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   options?: Record<string, any>[];
   appMenu?: ClassicyMenuItem[];
 }
@@ -95,8 +93,9 @@ export interface ClassicyStoreSystemDateAndTimeManager extends ClassicyStoreSyst
   show: boolean;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface ClassicyStoreSystemManager {}
+export interface ClassicyStoreSystemManager {
+  version?: number;
+}
 
 export class ClassicyAppManagerHandler {
   public getAppIndex(ds: ClassicyStore, appId: string) {
@@ -271,23 +270,32 @@ export const classicyDesktopStateEventReducer = (
     console.log("Start State: ", ds);
   }
 
+  let handled = false;
   if ("type" in action) {
     if (action.type.startsWith("ClassicyWindow")) {
       ds = classicyWindowEventHandler(ds, action);
+      handled = true;
     } else if (action.type.startsWith("ClassicyAppFinder")) {
       ds = classicyFinderEventHandler(ds, action);
+      handled = true;
     } else if (action.type.startsWith("ClassicyAppMoviePlayer")) {
       ds = classicyQuickTimeMoviePlayerEventHandler(ds, action);
+      handled = true;
     } else if (action.type.startsWith("ClassicyAppPictureViewer")) {
       ds = classicyQuickTimePictureViewerEventHandler(ds, action);
+      handled = true;
     } else if (action.type.startsWith("ClassicyDesktopIcon")) {
       ds = classicyDesktopIconEventHandler(ds, action);
+      handled = true;
     } else if (action.type.startsWith("ClassicyDesktop")) {
       ds = classicyDesktopEventHandler(ds, action);
+      handled = true;
     } else if (action.type.startsWith("ClassicyManagerDateTime")) {
       ds = classicyDateTimeManagerEventHandler(ds, action);
+      handled = true;
     } else if (action.type.startsWith("ClassicyApp")) {
       ds = classicyAppEventHandler(ds, action);
+      handled = true;
     }
   }
 
@@ -296,7 +304,7 @@ export const classicyDesktopStateEventReducer = (
     console.groupEnd();
   }
 
-  return { ...ds };
+  return handled ? { ...ds } : ds;
 };
 
 export const DefaultAppManagerState: ClassicyStore = {

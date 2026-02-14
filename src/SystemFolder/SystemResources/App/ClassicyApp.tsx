@@ -4,7 +4,7 @@ import {
   useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { JSONTree } from "react-json-tree";
 
 export interface ClassicyAppProps {
@@ -28,31 +28,37 @@ export const ClassicyApp: React.FC<ClassicyAppProps> = ({
   debug = false,
   children,
 }) => {
-  const desktopContext = useAppManager();
+  const appContext = useAppManager(
+    (state) => state.System.Manager.App.apps[id],
+  );
+
   const desktopEventDispatch = useAppManagerDispatch();
 
-  const themeData = desktopContext.System.Manager.Appearance.activeTheme;
+  const activeThemeData = useAppManager(
+    (state) => state.System.Manager.Appearance.activeTheme,
+  );
+
   const debuggerJSONTheme = {
-    base00: intToHex(themeData.color.white),
-    base01: intToHex(themeData.color.black),
-    base02: intToHex(themeData.color.system[3]),
-    base03: intToHex(themeData.color.system[3]),
-    base04: intToHex(themeData.color.system[3]),
-    base05: intToHex(themeData.color.system[4]),
-    base06: intToHex(themeData.color.system[5]),
-    base07: intToHex(themeData.color.system[6]),
-    base08: intToHex(themeData.color.error),
-    base09: intToHex(themeData.color.theme[2]),
-    base0A: intToHex(themeData.color.theme[1]),
-    base0B: intToHex(themeData.color.theme[2]),
-    base0C: intToHex(themeData.color.theme[3]),
-    base0D: intToHex(themeData.color.theme[4]),
-    base0E: intToHex(themeData.color.theme[5]),
-    base0F: intToHex(themeData.color.theme[6]),
+    base00: intToHex(activeThemeData.color.white),
+    base01: intToHex(activeThemeData.color.black),
+    base02: intToHex(activeThemeData.color.system[3]),
+    base03: intToHex(activeThemeData.color.system[3]),
+    base04: intToHex(activeThemeData.color.system[3]),
+    base05: intToHex(activeThemeData.color.system[4]),
+    base06: intToHex(activeThemeData.color.system[5]),
+    base07: intToHex(activeThemeData.color.system[6]),
+    base08: intToHex(activeThemeData.color.error),
+    base09: intToHex(activeThemeData.color.theme[2]),
+    base0A: intToHex(activeThemeData.color.theme[1]),
+    base0B: intToHex(activeThemeData.color.theme[2]),
+    base0C: intToHex(activeThemeData.color.theme[3]),
+    base0D: intToHex(activeThemeData.color.theme[4]),
+    base0E: intToHex(activeThemeData.color.theme[5]),
+    base0F: intToHex(activeThemeData.color.theme[6]),
   };
 
   const isAppOpen = () => {
-    return desktopContext.System.Manager.App.apps[id]?.open;
+    return appContext?.open;
   };
 
   const onFocus = () => {
@@ -62,11 +68,12 @@ export const ClassicyApp: React.FC<ClassicyAppProps> = ({
     });
   };
 
+  const appContextRef = useRef(appContext);
   useEffect(() => {
-    const isAppActive = () => {
-      return desktopContext.System.Manager.App.apps[id]?.focused;
-    };
+    appContextRef.current = appContext;
+  }, [appContext]);
 
+  useEffect(() => {
     if (addSystemMenu) {
       desktopEventDispatch({
         type: "ClassicyDesktopAppMenuAdd",
@@ -86,7 +93,7 @@ export const ClassicyApp: React.FC<ClassicyAppProps> = ({
         },
       });
     }
-    if (isAppActive() && defaultWindow) {
+    if (appContextRef.current?.focused && defaultWindow) {
       desktopEventDispatch({
         type: "ClassicyWindowFocus",
         app: {
@@ -117,7 +124,6 @@ export const ClassicyApp: React.FC<ClassicyAppProps> = ({
     id,
     name,
     icon,
-    desktopContext.System.Manager.App.apps,
   ]);
 
   return (
@@ -137,7 +143,7 @@ export const ClassicyApp: React.FC<ClassicyAppProps> = ({
               <h1>Providers</h1>
               <hr />
               <h2>desktopContext</h2>
-              <JSONTree data={desktopContext} theme={debuggerJSONTheme} />
+              <JSONTree data={appContext} theme={debuggerJSONTheme} />
             </ClassicyWindow>
           )}
         </>

@@ -28,7 +28,7 @@
     "build:audio": "./bin/make_audio_sprites.sh",
     "build:watch": "concurrently --kill-others \"npm run build:watchaudio\" \"npm run build:watchsource\"",
     "build:watchaudio": "nodemon --watch \"resources/sounds/**\" --ext \"mp3,mp4,wav,aif,aiff,ogg,flac,m4a,ac3,json\" --exec \"npm run build:audio\" --ignore \"example/**\" ",
-    "build:watchsource": "nodemon --watch \"src/**\" --watch \"assets/**\" --ext \"tsx,ts,json,css,scss,png,jpg,svg\" --exec \"npm run build:source\" --ignore \"example/**\" ",
+    "build:watchsource": "nodemon --watch \"src/**\" --watch \"assets/**\" --ext \"tsx,ts,json,css,scss,png,jpg,svg\" --exec \"npm run build:source\" --ignore \"example/**\" --ignore \"**/index.ts\" ",
     "lint": "eslint .",
     "preview": "npm run build && npm link && cd example && npm i && npm link classicy && npm run build && npm run dev"
   },
@@ -47,7 +47,6 @@
     "@analytics/google-tag-manager": "^0.6.0",
     "@mdxeditor/editor": "^3.52.1",
     "@plussub/srt-vtt-parser": "^2.0.5",
-    "@tailwindcss/vite": "^4.1.18",
     "@tanstack/react-table": "^8.21.3",
     "analytics": "^0.8.19",
     "classnames": "^2.5.1",
@@ -56,7 +55,6 @@
     "react-player": "^3.4.0",
     "screenfull": "^6.0.2",
     "sha512-crypt-ts": "^0.1.27",
-    "tailwindcss": "^4.1.18",
     "use-analytics": "^1.1.0",
     "zustand": "^5.0.11"
   },
@@ -78,6 +76,7 @@
     "@types/use-analytics": "^0.0.3",
     "@vitejs/plugin-react": "^5.1.1",
     "barrelsby": "^2.8.1",
+    "concurrently": "^9.2.1",
     "css-loader": "^7.1.2",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",

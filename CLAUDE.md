@@ -31,28 +31,35 @@ Use `npm run build:source` for faster iteration when not modifying sound files.
 ### Component Hierarchy
 
 ```
-ClassicyAppManagerProvider     # Root provider - wraps entire desktop
-  └── ClassicyDesktop          # Desktop surface with icons and menu bar
-       ├── ClassicyDesktopMenuBar
-       └── ClassicyApp         # Individual application container
-            └── ClassicyWindow # Window component with controls
-                 └── UI Components (Button, Input, Tabs, etc.)
+ClassicyAppManagerProvider     # Thin wrapper - Analytics + SoundManager only
+  └── AnalyticsProvider        # Google Analytics/GTM
+       └── ClassicySoundManagerProvider  # Sound (still uses React Context)
+            └── ClassicyDesktop          # Desktop surface with icons and menu bar
+                 ├── ClassicyDesktopMenuBar
+                 └── ClassicyApp         # Individual application container
+                      └── ClassicyWindow # Window component with controls
+                           └── UI Components (Button, Input, Tabs, etc.)
 ```
 
 ### State Management
 
-Uses React Context + useReducer pattern with a centralized event reducer:
+Uses **Zustand** for app/desktop state with the existing event reducer for domain logic:
 
-- **ClassicyAppManagerProvider** (`src/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext.tsx`) - Root provider that wraps SoundManager and Analytics
-- **ClassicyStore** - Central state object containing all system managers
-- **classicyDesktopStateEventReducer** (`ClassicyAppManager.ts:264`) - Routes events by prefix to domain-specific handlers
+- **Zustand store** (`src/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils.tsx`) - Global store created with `create<ClassicyStoreWithActions>()`
+- **`useAppManager(selector)`** - Zustand hook to read state. Use selectors for performance.
+- **`useAppManagerDispatch()`** - Returns the dispatch function from the Zustand store
+- **classicyDesktopStateEventReducer** (`ClassicyAppManager.ts`) - Still routes events by prefix to domain-specific handlers (called inside Zustand's `set()`)
+- **SoundManager** still uses React Context/useReducer (not migrated to Zustand)
 
-Event routing by prefix:
+Event routing by prefix (unchanged):
 - `ClassicyWindow*` → Window operations (focus, move, resize, collapse, zoom)
 - `ClassicyDesktop*` → Desktop operations (menus, themes, backgrounds)
 - `ClassicyDesktopIcon*` → Icon selection and interaction
 - `ClassicyApp*` → App lifecycle (open, close, focus, activate)
 - `ClassicyAppFinder*`, `ClassicyAppMoviePlayer*`, `ClassicyAppPictureViewer*` → App-specific handlers
+- `ClassicyManagerDateTime*` → Date/time manager operations
+
+State persists to localStorage (key: `classicyDesktopState`) via Zustand's `subscribe()` with 500ms debounce.
 
 ### Directory Structure
 
@@ -65,9 +72,19 @@ Event routing by prefix:
 
 Apps follow this pattern:
 1. Use `ClassicyApp` wrapper with id, name, icon props
-2. Use `useAppManager()` to read state, `useAppManagerDispatch()` to dispatch events
-3. Wrap content in `ClassicyWindow` components
-4. Create a Context file with event handler if app needs custom state management
+2. Use `useAppManager(selector)` to read state with a selector for performance
+3. Use `useAppManagerDispatch()` to get the dispatch function for events
+4. Wrap content in `ClassicyWindow` components
+5. Create an event handler in `ClassicyAppManager.ts` if the app needs custom state
+
+```tsx
+// Reading state — always use a selector to avoid unnecessary re-renders
+const appState = useAppManager(state => state.System.Manager.App.apps[id]);
+
+// Dispatching actions
+const dispatch = useAppManagerDispatch();
+dispatch({ type: 'ClassicyAppOpen', app: { id, name, icon } });
+```
 
 ### Theming
 
@@ -76,10 +93,8 @@ Themes are JSON-based (`src/SystemFolder/ControlPanels/AppearanceManager/styles/
 - Colors (system palette, theme accent colors)
 - Desktop appearance (background, patterns)
 
-State persists to localStorage under key `classicyDesktopState`.
-
 ## Build Notes
 
-- Uses Volta for Node version management (Node 24.11.0)
+- Uses Volta for Node version management (Node 24.12.0)
 - Audio sprites generated via audiosprite npm package from `resources/sounds/` directories
 - Library outputs to `dist/` as `classicy.es.js` and `classicy.umd.js`
