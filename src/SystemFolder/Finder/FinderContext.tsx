@@ -6,12 +6,13 @@ export const classicyFinderEventHandler = (ds: ClassicyStore, action: ActionMess
     switch (action.type) {
         case 'ClassicyAppFinderOpenFolder': {
 
-            if (!ds.System.Manager.App.apps[appId].data) {
+            if (!("openPaths" in ds.System.Manager.App.apps[appId].data)) {
+                ds.System.Manager.App.apps[appId].data["openPaths"] = [action.path]
                 break
             }
 
             ds.System.Manager.App.apps[appId].data['openPaths'] = Array.from(
-                new Set([...ds.System.Manager.App.apps[appId]?.data['openPaths'], action.path])
+                new Set([...ds.System.Manager.App.apps[appId].data['openPaths'], action.path])
             )
             break
         }

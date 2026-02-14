@@ -24,7 +24,7 @@ function getInitialState(): ClassicyStore {
   return DefaultAppManagerState;
 }
 
-export const useClassicyStore = create<ClassicyStoreWithActions>()((set) => ({
+export const useAppManager = create<ClassicyStoreWithActions>()((set) => ({
   ...getInitialState(),
   dispatch: (action: ActionMessage) => {
     set((currentState) => {
@@ -40,7 +40,7 @@ export const useClassicyStore = create<ClassicyStoreWithActions>()((set) => ({
 
 // Persist to localStorage with debouncing (matches original 500ms debounce)
 let debounceTimer: ReturnType<typeof setTimeout>;
-useClassicyStore.subscribe((state) => {
+useAppManager.subscribe((state) => {
   clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -49,10 +49,6 @@ useClassicyStore.subscribe((state) => {
   }, 500);
 });
 
-export function useAppManager(): ClassicyStore {
-  return useClassicyStore();
-}
-
 export function useAppManagerDispatch(): (action: ActionMessage) => void {
-  return useClassicyStore((state) => state.dispatch);
+  return useAppManager((state) => state.dispatch);
 }
