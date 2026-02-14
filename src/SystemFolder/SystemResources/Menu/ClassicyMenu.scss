@@ -56,12 +56,15 @@
   flex-direction: column;
   min-width: calc(var(--window-control-size) * 15);
   @include appearance.platinumWindowBorder;
-  margin: calc(var(--window-padding-size) * 1) 0 0 calc(var(--window-padding-size) * -1);
+  margin: 0 0 0 calc(var(--window-padding-size) * -1);
   padding: var(--window-border-size);
   list-style: none;
   color: var(--color-black);
   background: var(--color-system-02);
   background-color: var(--color-system-02);
+
+  li {
+  }
 
   hr {
     margin: calc(var(--window-control-size) / 2) calc(var(--window-border-size) * 2);
@@ -98,10 +101,10 @@
   flex-direction: row;
   flex-wrap: wrap;
   justify-content: space-between;
-  height: calc(100% - var(--window-padding-size)) !important;
   margin: 0;
-  padding: calc(var(--window-padding-size) / 2) var(--window-padding-size);
+  padding: 0 calc(var(--window-padding-size)* 1.25);
   box-sizing: content-box;
+  height: 100%;
 
   &:hover {
     color: var(--color-white);
@@ -137,9 +140,6 @@
 }
 
 .classicyMenuItemNoImage {
-  p {
-    padding-left: calc(var(--window-control-size) * 1.75) !important;
-  }
 }
 
 .classicyMenuItemDisabled {

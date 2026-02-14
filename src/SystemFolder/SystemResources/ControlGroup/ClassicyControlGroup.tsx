@@ -21,7 +21,7 @@ export const ClassicyControlGroup: React.FC<ClassicyControlGroupProps> = ({
       )}
     >
       {label !== "" && (
-        <legend className={"font-[family:var(--ui-font)] text-[calc(var(--ui-font-size)*0.75)] m-0 p-0"}>{label}</legend>
+        <legend className={"font-(--ui-font) text-[calc(var(--ui-font-size)*0.75)] m-0 p-0"}>{label}</legend>
       )}
       <div className={columns ? "classicyControlGroupContentColumns" : ""}>
         {children}

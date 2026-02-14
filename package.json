@@ -76,6 +76,7 @@
     "@types/react-dom": "^19.2.3",
     "@types/use-analytics": "^0.0.3",
     "@vitejs/plugin-react": "^5.1.1",
+    "audiosprite": "^0.7.2",
     "barrelsby": "^2.8.1",
     "css-loader": "^7.1.2",
     "eslint": "^9.39.1",

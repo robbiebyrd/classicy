@@ -47,9 +47,11 @@
   font-size: calc(var(--ui-font-size) * 0.8);
   font-weight: normal;
   font-stretch: condensed;
+  display: flex;
+  flex-direction: row;
 
   position: relative;
-  padding: var(--window-padding-size);
+  padding: 0 var(--window-padding-size);
 
   @include appearance.platinumWindowBoxShadow;
 }
@@ -60,6 +62,8 @@
 }
 
 .classicyFileBrowserViewTableColumnHeaderGroup {
+  display: flex;
+  flex-direction: row;
   background: var(--color-system-03);
 }
 
