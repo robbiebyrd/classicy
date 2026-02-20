@@ -6,7 +6,7 @@ import {
   useSoundDispatch,
 } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import classNames from "classnames";
-import React from "react";
+import { FC as FunctionalComponent, MouseEvent } from "react";
 import soundOnImg from "@img/icons/control-panels/sound-manager/sound-on.png";
 import soundOffImg from "@img/icons/control-panels/sound-manager/sound-off.png";
 import appIcon from "@img/icons/control-panels/sound-manager/app.png";
@@ -15,14 +15,14 @@ type ClassicyDesktopMenuWidgetSoundProps = {
   hide?: boolean;
 };
 
-export const ClassicyDesktopMenuWidgetSound: React.FC<
+export const ClassicyDesktopMenuWidgetSound: FunctionalComponent<
   ClassicyDesktopMenuWidgetSoundProps
 > = ({ hide = false }) => {
   const player = useSoundDispatch();
   const playerState = useSound();
   const desktopEventDispatch = useAppManagerDispatch();
 
-  const openSoundManager = (e: React.MouseEvent) => {
+  const openSoundManager = (e: MouseEvent) => {
     e.preventDefault();
     desktopEventDispatch({
       type: "ClassicyAppOpen",

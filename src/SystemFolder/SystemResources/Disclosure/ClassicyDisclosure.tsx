@@ -1,7 +1,7 @@
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import "./ClassicyDisclosure.scss";
 import classNames from "classnames";
-import React, { useState } from "react";
+import { FC as FunctionalComponent, ReactNode, KeyboardEvent, useState } from "react";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
 type ClassicyDisclosureTriangleDirections = "up" | "right" | "down" | "left";
@@ -9,10 +9,10 @@ type ClassicyDisclosureTriangleDirections = "up" | "right" | "down" | "left";
 type ClassicyDisclosureProps = {
   direction?: ClassicyDisclosureTriangleDirections;
   label?: string;
-  children?: React.ReactNode;
+  children?: ReactNode;
 };
 
-export const ClassicyDisclosure: React.FC<ClassicyDisclosureProps> = ({
+export const ClassicyDisclosure: FunctionalComponent<ClassicyDisclosureProps> = ({
   direction = "right",
   label = "",
   children,
@@ -27,7 +27,7 @@ export const ClassicyDisclosure: React.FC<ClassicyDisclosureProps> = ({
     direction.slice(1) +
     (open ? "Open" : "Closed");
 
-  function handleKeyPress(e: React.KeyboardEvent<HTMLDivElement>) {
+  function handleKeyPress(e: KeyboardEvent<HTMLDivElement>) {
     switch (e.key) {
       case "Enter":
       // falls through

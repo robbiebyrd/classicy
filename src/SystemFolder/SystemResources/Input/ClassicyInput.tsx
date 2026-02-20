@@ -1,7 +1,7 @@
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import "./ClassicyInput.scss";
 import classNames from "classnames";
-import React, { ChangeEventHandler } from "react";
+import { FC as FunctionalComponent, ForwardedRef, forwardRef, ChangeEventHandler } from "react";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
 interface ClassicyInputProps {
@@ -13,10 +13,10 @@ interface ClassicyInputProps {
   prefillValue?: string;
   disabled?: boolean;
   isDefault?: boolean;
-  ref?: any;
+  ref?: ForwardedRef<HTMLInputElement>;
 }
 
-export const ClassicyInput: React.FC<ClassicyInputProps> = React.forwardRef<
+export const ClassicyInput: FunctionalComponent<ClassicyInputProps> = forwardRef<
   HTMLInputElement,
   ClassicyInputProps
 >(function ClassicyInput(
@@ -49,7 +49,7 @@ export const ClassicyInput: React.FC<ClassicyInputProps> = React.forwardRef<
   };
 
   return (
-    <div className={"flex items-center flex-row w-[calc(100%-var(--window-padding-size)*2)] p-[length:var(--window-padding-size)] gap-x-[calc(var(--window-control-size)*1)]"}>
+    <div className={""}>
       {labelTitle && (
         <ClassicyControlLabel
           label={labelTitle}
@@ -70,7 +70,6 @@ export const ClassicyInput: React.FC<ClassicyInputProps> = React.forwardRef<
         placeholder={placeholder}
         className={classNames(
           "classicyInput",
-          "grow w-auto p-[calc(var(--window-padding-size)/2)]",
           isDefault ? "classicyInputDefault" : "",
         )}
       ></input>

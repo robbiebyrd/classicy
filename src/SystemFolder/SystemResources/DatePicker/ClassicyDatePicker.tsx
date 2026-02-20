@@ -6,7 +6,7 @@ import {
   validateMonth,
 } from "@/SystemFolder/SystemResources/DatePicker/ClassicyDatePickerUtils";
 import classNames from "classnames";
-import React, { ChangeEvent, KeyboardEvent, useRef, useState } from "react";
+import { FC as FunctionalComponent, forwardRef, MouseEvent, ChangeEvent, KeyboardEvent, useRef, useState } from "react";
 
 interface ClassicyDatePickerProps {
   id: string;
@@ -19,8 +19,8 @@ interface ClassicyDatePickerProps {
   isDefault?: boolean;
 }
 
-export const ClassicyDatePicker: React.FC<ClassicyDatePickerProps> =
-  React.forwardRef<HTMLInputElement, ClassicyDatePickerProps>(
+export const ClassicyDatePicker: FunctionalComponent<ClassicyDatePickerProps> =
+  forwardRef<HTMLInputElement, ClassicyDatePickerProps>(
     function ClassicyDatePicker({
       id,
       inputType,
@@ -54,7 +54,7 @@ export const ClassicyDatePicker: React.FC<ClassicyDatePickerProps> =
           .toString(),
       );
 
-      const selectText = (e: React.MouseEvent<HTMLInputElement>) => {
+      const selectText = (e: MouseEvent<HTMLInputElement>) => {
         e.currentTarget.focus();
         e.currentTarget.select();
       };
@@ -183,7 +183,7 @@ export const ClassicyDatePicker: React.FC<ClassicyDatePickerProps> =
                 disabled={disabled}
                 value={month}
                 maxLength={2}
-                className="w-1/4"
+                style={{width: "25%"}}
               ></input>
               /
               <input
@@ -199,7 +199,7 @@ export const ClassicyDatePicker: React.FC<ClassicyDatePickerProps> =
                 disabled={disabled}
                 value={day}
                 maxLength={2}
-                className="w-1/4"
+                style={{width: "25%"}}
               ></input>
               /
               <input
@@ -215,7 +215,7 @@ export const ClassicyDatePicker: React.FC<ClassicyDatePickerProps> =
                 disabled={disabled}
                 value={year}
                 maxLength={4}
-                className="w-1/2"
+                style={{width: "50%"}}
               ></input>
             </div>
           </div>

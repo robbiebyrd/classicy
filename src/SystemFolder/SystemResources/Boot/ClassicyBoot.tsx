@@ -1,11 +1,10 @@
 import './ClassicyBoot.scss'
 import {useSoundDispatch} from '@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext'
-import classNames from 'classnames'
-import React from 'react'
+import { FC as FunctionalComponent } from 'react'
 
-export const ClassicyBoot: React.FC = () => {
+export const ClassicyBoot: FunctionalComponent = () => {
     const player = useSoundDispatch()
     player({type: 'ClassicySoundPlay', sound: 'ClassicyBoot'})
 
-    return <div className={classNames("classicyBoot")}/>
+    return <div className={"classicyBoot"}/>
 }

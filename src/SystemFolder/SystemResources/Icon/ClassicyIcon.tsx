@@ -1,6 +1,6 @@
 import "./ClassicyIcon.scss";
 import classNames from "classnames";
-import React, { useMemo, useRef, useState } from "react";
+import { FC as FunctionalComponent, MouseEvent, useMemo, useRef, useState } from "react";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
 interface ClassicyIconProps {
@@ -14,7 +14,7 @@ interface ClassicyIconProps {
   invisible?: boolean;
 }
 
-export const ClassicyIcon: React.FC<ClassicyIconProps> = ({
+export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
   appId,
   name,
   icon,
@@ -64,7 +64,7 @@ export const ClassicyIcon: React.FC<ClassicyIconProps> = ({
     setDragging(true);
   };
 
-  const changeIcon = (e: React.MouseEvent<HTMLDivElement>) => {
+  const changeIcon = (e: MouseEvent<HTMLDivElement>) => {
     if (dragging && iconRef.current) {
       setFocus(true);
       setPosition([

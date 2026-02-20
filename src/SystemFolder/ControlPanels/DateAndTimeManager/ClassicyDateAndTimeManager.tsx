@@ -16,17 +16,19 @@ import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/Clas
 import { ClassicyRadioInput } from "@/SystemFolder/SystemResources/RadioInput/ClassicyRadioInput";
 import { ClassicyTimePicker } from "@/SystemFolder/SystemResources/TimePicker/ClassicyTimePicker";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
-import React, { ChangeEvent, useState } from "react";
+import { FC as FunctionalComponent, ChangeEvent, useState } from "react";
 import { ClassicyControlGroup } from "../../SystemResources/ControlGroup/ClassicyControlGroup";
 import appIcon from "@img/icons/control-panels/date-time-manager/date-time-manager.png";
 
-export const ClassicyDateAndTimeManager: React.FC = () => {
+export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
   const appName: string = "Date and Time Manager";
   const appId: string = "DateAndTimeManager.app";
 
   const [period, setPeriod] = useState<string>("am");
 
-  const desktopContext = useAppManager(),
+  const dateAndTimeState = useAppManager(
+      (state) => state.System.Manager.DateAndTime,
+    ),
     desktopEventDispatch = useAppManagerDispatch();
 
   const [showAbout, setShowAbout] = useState(false);
@@ -36,7 +38,7 @@ export const ClassicyDateAndTimeManager: React.FC = () => {
   };
 
   const updateSystemTime = (updatedDate: Date) => {
-    const date = new Date(desktopContext.System.Manager.DateAndTime.dateTime);
+    const date = new Date(dateAndTimeState.dateTime);
 
     let hoursToSet =
       period == "am" ? updatedDate.getHours() : updatedDate.getHours() + 12;
@@ -55,7 +57,7 @@ export const ClassicyDateAndTimeManager: React.FC = () => {
   };
 
   const updateSystemDate = (updatedDate: Date) => {
-    const date = new Date(desktopContext.System.Manager.DateAndTime.dateTime);
+    const date = new Date(dateAndTimeState.dateTime);
     date.setMonth(updatedDate.getMonth());
     date.setDate(updatedDate.getDate());
     date.setFullYear(updatedDate.getFullYear());
@@ -198,11 +200,8 @@ export const ClassicyDateAndTimeManager: React.FC = () => {
     },
   ];
 
-  const date = new Date(desktopContext.System.Manager.DateAndTime.dateTime);
-  date.setHours(
-    date.getHours() +
-      parseInt(desktopContext.System.Manager.DateAndTime.timeZoneOffset),
-  );
+  const date = new Date(dateAndTimeState.dateTime);
+  date.setHours(date.getHours() + parseInt(dateAndTimeState.timeZoneOffset));
 
   return (
     <ClassicyApp
@@ -266,7 +265,7 @@ export const ClassicyDateAndTimeManager: React.FC = () => {
                 small={false}
                 options={timezones}
                 onChangeFunc={updateSystemTimeZone}
-                selected={desktopContext.System.Manager.DateAndTime.timeZoneOffset?.toString()}
+                selected={dateAndTimeState.timeZoneOffset?.toString()}
               />
             </ClassicyControlGroup>
           </div>

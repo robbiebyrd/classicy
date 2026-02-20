@@ -1,7 +1,7 @@
 import './ClassicyContextualMenu.scss'
 import {ClassicyMenu, ClassicyMenuItem} from '@/SystemFolder/SystemResources/Menu/ClassicyMenu'
 import '@/SystemFolder/SystemResources/Menu/ClassicyMenu.scss'
-import React from 'react'
+import { FC as FunctionalComponent } from 'react'
 
 interface ClassicyMenuProps {
     name: string
@@ -9,7 +9,7 @@ interface ClassicyMenuProps {
     menuItems: ClassicyMenuItem[]
 }
 
-export const ClassicyContextualMenu: React.FC<ClassicyMenuProps> = ({name, menuItems, position}) => {
+export const ClassicyContextualMenu: FunctionalComponent<ClassicyMenuProps> = ({name, menuItems, position}) => {
     return (
         <div
             className={"classicyContextMenuWrapper"}

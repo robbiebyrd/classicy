@@ -3,7 +3,8 @@ import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyA
 import "./QuickTimeMovieEmbed.scss";
 import { parse } from "@plussub/srt-vtt-parser";
 import { ParsedResult } from "@plussub/srt-vtt-parser/dist/types";
-import React, {
+import {
+  FC as FunctionalComponent,
   Suspense,
   useCallback,
   useEffect,
@@ -32,7 +33,7 @@ type QuickTimeVideoEmbed = {
   muted?: boolean;
 };
 
-export const QuickTimeVideoEmbed: React.FC<QuickTimeVideoEmbed> = ({
+export const QuickTimeVideoEmbed: FunctionalComponent<QuickTimeVideoEmbed> = ({
   appId,
   name,
   url,
@@ -62,7 +63,7 @@ export const QuickTimeVideoEmbed: React.FC<QuickTimeVideoEmbed> = ({
         setIsFullscreen(screenfull.isFullscreen);
       };
       screenfull.on("change", handleFullscreenChange);
-      
+
       return () => {
         screenfull.off("change", handleFullscreenChange);
       };

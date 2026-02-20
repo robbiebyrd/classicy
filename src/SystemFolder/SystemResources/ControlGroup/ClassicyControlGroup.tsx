@@ -1,27 +1,26 @@
 import "./ClassicyControlGroup.scss";
 import classNames from "classnames";
-import React from "react";
+import { relative } from "path";
+import { FC as FunctionalComponent, ReactNode } from "react";
 
 type ClassicyControlGroupProps = {
   label: string;
   columns?: boolean;
-  children: React.ReactNode;
+  children: ReactNode;
 };
 
-export const ClassicyControlGroup: React.FC<ClassicyControlGroupProps> = ({
+export const ClassicyControlGroup: FunctionalComponent<ClassicyControlGroupProps> = ({
   label = "",
   columns = false,
   children,
 }) => {
   return (
     <fieldset
-      className={classNames(
-        "relative",
-        columns ? "grow columns-2" : "columns-1",
-      )}
+      style={{flexGrow: columns ? 1: 0, ...(columns ? {columns: 1} : {}), position: "relative"}}
     >
       {label !== "" && (
-        <legend className={"font-(--ui-font) text-[calc(var(--ui-font-size)*0.75)] m-0 p-0"}>{label}</legend>
+        <legend style={{fontFamily: "var(--ui-font)", fontSize: "calc(var(--ui-font-size)*0.75)", margin: 0, padding: 0}}
+        >{label}</legend>
       )}
       <div className={columns ? "classicyControlGroupContentColumns" : ""}>
         {children}

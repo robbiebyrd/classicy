@@ -6,7 +6,7 @@ import {
 import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import { ClassicyFileSystemEntryMetadata } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { ClassicyIcon } from "@/SystemFolder/SystemResources/Icon/ClassicyIcon";
-import React, { RefObject, useEffect, useState } from "react";
+import { FC as FunctionalComponent, memo, RefObject, useEffect, useState } from "react";
 
 export type ClassicyFileBrowserViewIconsProps = {
   fs: ClassicyFileSystem;
@@ -23,17 +23,17 @@ type iconType = {
   invisible: boolean;
   icon: string;
   onClickFunc: () => void;
-  holder: React.RefObject<HTMLDivElement | null>;
+  holder: RefObject<HTMLDivElement | null>;
   initialPosition: [number, number];
 };
 
-export const ClassicyFileBrowserViewIcons: React.FC<ClassicyFileBrowserViewIconsProps> =
-  React.memo(
+export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrowserViewIconsProps> =
+  memo(
     ({ fs, path, appId, dirOnClickFunc, fileOnClickFunc, holderRef }) => {
       const desktopContext = useAppManager();
 
       const [items, setItems] = useState<iconType[]>([]);
-      
+
       // Extract only the theme value to avoid re-renders on unrelated appearance changes
       const activeTheme = desktopContext.System.Manager.Appearance.activeTheme;
 

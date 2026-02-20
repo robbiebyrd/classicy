@@ -2,7 +2,7 @@ import "@/SystemFolder/SystemResources/Menu/ClassicyMenu.scss";
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import classNames from "classnames";
-import React from "react";
+import { FC as FunctionalComponent, ReactNode } from "react";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
 export interface ClassicyMenuItem {
@@ -25,10 +25,10 @@ interface ClassicyMenuProps {
   menuItems: ClassicyMenuItem[];
   navClass?: string;
   subNavClass?: string;
-  children?: React.ReactNode;
+  children?: ReactNode;
 }
 
-export const ClassicyMenu: React.FC<ClassicyMenuProps> = ({
+export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
   name,
   menuItems,
   navClass,
@@ -53,7 +53,7 @@ export const ClassicyMenu: React.FC<ClassicyMenuProps> = ({
   );
 };
 
-export const ClassicyMenuItem: React.FC<{
+export const ClassicyMenuItem: FunctionalComponent<{
   menuItem: ClassicyMenuItem;
   subNavClass: string;
 }> = ({ menuItem, subNavClass }) => {

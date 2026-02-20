@@ -1,47 +1,64 @@
-import {ActionMessage, ClassicyStore} from '@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager'
+import {
+  ActionMessage,
+  ClassicyStore,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 
-export const classicyFinderEventHandler = (ds: ClassicyStore, action: ActionMessage) => {
-    const appId = 'Finder.app'
+export const classicyFinderEventHandler = (
+  ds: ClassicyStore,
+  action: ActionMessage,
+) => {
+  const appId = "Finder.app";
+  let appData = ds.System.Manager.App.apps[appId].data;
 
-    switch (action.type) {
-        case 'ClassicyAppFinderOpenFolder': {
+  switch (action.type) {
+    case "ClassicyAppFinderOpenFolder": {
+      if (!("openPaths" in appData)) {
+        appData["openPaths"] = [action.path];
+        break;
+      }
 
-            if (!ds.System.Manager.App.apps[appId].data) {
-                break
-            }
-
-            ds.System.Manager.App.apps[appId].data['openPaths'] = Array.from(
-                new Set([...ds.System.Manager.App.apps[appId]?.data['openPaths'], action.path])
-            )
-            break
-        }
-        case 'ClassicyAppFinderOpenFolders': {
-            if (!ds.System.Manager.App.apps[appId].data) {
-                ds.System.Manager.App.apps[appId].data = {
-                    "openPaths": []
-                }
-            }
-
-            ds.System.Manager.App.apps[appId].data['openPaths'] = Array.from(
-                new Set([...ds.System.Manager.App.apps[appId]?.data['openPaths'], ...action.paths])
-            )
-            break
-        }
-        case 'ClassicyAppFinderCloseFolder': {
-            if (!ds.System.Manager.App.apps[appId].data) {
-                ds.System.Manager.App.apps[appId].data = {
-                    "openPaths": []
-                }
-            }
-            ds.System.Manager.App.apps[appId].data['openPaths'] = ds.System.Manager.App.apps[appId]?.data[
-                'openPaths'
-            ].filter((p: string) => p !== action.path)
-            break
-        }
-        case 'ClassicyAppFinderEmptyTrash': {
-            // TODO: What will this do?
-            break
-        }
+      appData["openPaths"] = Array.from(
+        new Set([...appData["openPaths"], action.path]),
+      );
+      break;
     }
-    return ds
-}
+    case "ClassicyAppFinderOpenFolders": {
+      if (!appData) {
+        appData = {
+          openPaths: [],
+        };
+      }
+
+      if (!("openPaths" in appData)) {
+        appData["openPaths"] = [];
+      }
+
+      appData["openPaths"] = Array.from(
+        new Set([...appData["openPaths"], ...action.paths]),
+      );
+      break;
+    }
+    case "ClassicyAppFinderCloseFolder": {
+      if (!appData) {
+        appData = {
+          openPaths: [],
+        };
+      }
+
+      if (!("openPaths" in appData)) {
+        appData["openPaths"] = [];
+      }
+
+      appData["openPaths"] = appData["openPaths"].filter(
+        (p: string) => p !== action.path,
+      );
+      break;
+    }
+    case "ClassicyAppFinderEmptyTrash": {
+      // TODO: What will this do?
+      break;
+    }
+  }
+  ds.System.Manager.App.apps[appId].data = { ...appData };
+  return ds;
+};

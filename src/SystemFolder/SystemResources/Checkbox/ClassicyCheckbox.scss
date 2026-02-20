@@ -1,7 +1,7 @@
 @use '../../ControlPanels/AppearanceManager/styles/appearance';
 
 
-.ClassicyCheckbox {
+.classicyCheckbox {
   width: calc(var(--window-control-size));
   height: var(--window-control-size);
   margin: var(--window-border-size);
@@ -45,7 +45,7 @@
 }
 
 
-.ClassicyCheckboxDefault {
+.classicyCheckboxDefault {
   &:checked,
   &:active {
     &:after {
@@ -60,7 +60,7 @@
   }
 }
 
-.ClassicyCheckboxMixed {
+.classicyCheckboxMixed {
   &:checked {
     &:after {
       font-family: var(--ui-font), sans-serif;

@@ -1,11 +1,11 @@
 import "./ClassicyTextEditor.scss";
-import React from "react";
+import { FC as FunctionalComponent } from "react";
 
 export interface EditorProps {
   content: string;
 }
 
-export const ClassicyTextEditor: React.FC<EditorProps> = ({ content }) => {
+export const ClassicyTextEditor: FunctionalComponent<EditorProps> = ({ content }) => {
   return (
     <div>
       <textarea className={"classicyTextEditor"}>{content}</textarea>

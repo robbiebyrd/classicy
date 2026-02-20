@@ -1,5 +1,5 @@
 import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
-import React, { useRef, useMemo, useCallback } from "react";
+import { FC as FunctionalComponent, useRef, useMemo, useCallback } from "react";
 import { ClassicyFileBrowserViewIcons } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewIcons";
 import { ClassicyFileBrowserViewTable } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewTable";
 
@@ -16,7 +16,7 @@ type ClassicyFileBrowserProps = {
 const defaultDirOnClick = () => {};
 const defaultFileOnClick = () => {};
 
-export const ClassicyFileBrowser: React.FC<ClassicyFileBrowserProps> = ({
+export const ClassicyFileBrowser: FunctionalComponent<ClassicyFileBrowserProps> = ({
   fs,
   display = "icons",
   path,

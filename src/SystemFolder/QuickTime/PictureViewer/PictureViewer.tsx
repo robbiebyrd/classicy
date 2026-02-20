@@ -5,7 +5,7 @@ import {
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import { quitMenuItemHelper } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
-import React, { useEffect } from "react";
+import { FC as FunctionalComponent, useEffect } from "react";
 import appIcon from "@img/icons/system/quicktime/player.png";
 import defaultDocumentIcon from "@img/icons/system/quicktime/movie.png";
 
@@ -21,7 +21,7 @@ export const PictureViewerAppInfo = {
   icon: appIcon,
 };
 
-export const QuickTimePictureViewer: React.FC = () => {
+export const QuickTimePictureViewer: FunctionalComponent = () => {
   const { name: appName, id: appId, icon: appIcon } = PictureViewerAppInfo;
 
   const desktopEventDispatch = useAppManagerDispatch();

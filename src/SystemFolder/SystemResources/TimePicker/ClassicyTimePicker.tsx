@@ -2,7 +2,7 @@ import "./ClassicyTimePicker.scss";
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
 import classNames from "classnames";
-import React, { ChangeEvent, KeyboardEvent, useState } from "react";
+import { FC as FunctionalComponent, forwardRef, ForwardedRef, ChangeEvent, KeyboardEvent, useState } from "react";
 
 interface ClassicyTimePickerProps {
   id: string;
@@ -13,11 +13,11 @@ interface ClassicyTimePickerProps {
   prefillValue?: Date;
   disabled?: boolean;
   isDefault?: boolean;
-  ref?: React.ForwardedRef<HTMLInputElement>;
+  ref?: ForwardedRef<HTMLInputElement>;
 }
 
-export const ClassicyTimePicker: React.FC<ClassicyTimePickerProps> =
-  React.forwardRef<HTMLInputElement, ClassicyTimePickerProps>(
+export const ClassicyTimePicker: FunctionalComponent<ClassicyTimePickerProps> =
+  forwardRef<HTMLInputElement, ClassicyTimePickerProps>(
     function ClassicyTimePicker(
       {
         id,

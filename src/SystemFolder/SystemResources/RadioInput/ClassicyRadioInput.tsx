@@ -2,7 +2,7 @@ import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/Clas
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import "./ClassicyRadioInput.scss";
 import classNames from "classnames";
-import React, { useState } from "react";
+import { FC as FunctionalComponent, useState } from "react";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
 type ClassicyRadioInputProps = {
@@ -23,7 +23,7 @@ type ClassicyRadioInputValueProps = {
   label?: string;
 };
 
-export const ClassicyRadioInput: React.FC<ClassicyRadioInputProps> = ({
+export const ClassicyRadioInput: FunctionalComponent<ClassicyRadioInputProps> = ({
   name,
   label,
   align = "columns",

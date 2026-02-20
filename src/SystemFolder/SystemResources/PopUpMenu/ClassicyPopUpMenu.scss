@@ -29,9 +29,13 @@
 }
 
 .classicyPopUpMenu {
+  @include appearance.platinumWindowDepressable;
+
   font-family: var(--ui-font), sans-serif;
   font-size: .75em;
   line-height: 1.1;
+
+  width: 100%;
 
   position: relative;
 
@@ -40,7 +44,6 @@
   align-items: center;
   height: calc(var(--window-control-size) * 2.125);
 
-  @include appearance.platinumWindowDepressable;
   cursor: pointer;
   user-select: none;
 
