@@ -7,10 +7,6 @@ import {
   DefaultAppManagerState,
 } from "./ClassicyAppManager";
 
-export interface ClassicyStoreWithActions extends ClassicyStore {
-  dispatch: (action: ActionMessage) => void;
-}
-
 function getInitialState(): ClassicyStore {
   if (typeof window !== "undefined") {
     try {
@@ -31,35 +27,29 @@ function getInitialState(): ClassicyStore {
   return DefaultAppManagerState;
 }
 
-export const useAppManager: UseBoundStore<StoreApi<ClassicyStoreWithActions>> = create<ClassicyStoreWithActions>()(immer<ClassicyStoreWithActions>((set) => ({
+export const useAppManager: UseBoundStore<StoreApi<ClassicyStore>> = create<ClassicyStore>()(immer<ClassicyStore>(() => ({
   ...getInitialState(),
-  dispatch: (action: ActionMessage) => {
-    set((currentState) => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { dispatch, ...stateOnly } = currentState;
-      return classicyDesktopStateEventReducer(
-        stateOnly as ClassicyStore,
-        action,
-      );
-    });
-  },
 })));
+
+export const dispatch = (action: ActionMessage): void => {
+  useAppManager.setState((currentState) =>
+    classicyDesktopStateEventReducer(currentState, action)
+  );
+};
+
+export const useAppManagerDispatch = (): ((action: ActionMessage) => void) => dispatch;
 
 // Persist to localStorage with debouncing (matches original 500ms debounce)
 let debounceTimer: ReturnType<typeof setTimeout>;
-useAppManager.subscribe((state) => {
+
+/** Call this during app cleanup or test teardown to stop localStorage sync. */
+export const unsubscribeAppManagerPersistence = useAppManager.subscribe((state) => {
   clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { dispatch, ...stateOnly } = state;
     try {
-      localStorage.setItem("classicyDesktopState", JSON.stringify(stateOnly));
+      localStorage.setItem("classicyDesktopState", JSON.stringify(state));
     } catch (error) {
       console.error('[ClassicyAppManager] Failed to persist desktop state to localStorage. Storage quota may be exceeded.', error);
     }
   }, 500);
 });
-
-export function useAppManagerDispatch(): (action: ActionMessage) => void {
-  return useAppManager((state) => state.dispatch);
-}

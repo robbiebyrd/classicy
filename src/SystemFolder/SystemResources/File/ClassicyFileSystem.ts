@@ -39,7 +39,13 @@ export class ClassicyFileSystem {
     }
 
     load(data: string) {
-        this.fs = JSON.parse(data) as ClassicyFileSystemEntry
+        try {
+            const parsed = JSON.parse(data) as ClassicyFileSystemEntry
+            this.fs = parsed
+        } catch (error) {
+            console.error('[ClassicyFileSystem] Failed to parse data in load()', error)
+            throw error
+        }
     }
 
     snapshot(): string {

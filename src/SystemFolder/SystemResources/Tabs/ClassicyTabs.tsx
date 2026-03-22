@@ -37,7 +37,7 @@ export const ClassicyTabs: FunctionalComponent<TabProps> = ({ tabs }) => {
         {tabs.map((tab, index) => {
           return (
             <div
-              key={"button_" + index.toString()}
+              key={"button_" + tab.title}
               className={"classicyTabButtonWrapper"}
               style={{
                 maskImage: `url(data:image/svg+xml;base64,${tabMaskImageURL}`,
@@ -67,7 +67,7 @@ export const ClassicyTabs: FunctionalComponent<TabProps> = ({ tabs }) => {
           return (
             <div
               id={index.toString()}
-              key={index.toString()}
+              key={tab.title}
               className={
                 index == activeTab
                   ? "classicyTabActiveContent"
