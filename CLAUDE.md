@@ -10,15 +10,15 @@ Classicy is a React/TypeScript UI framework that replicates the Mac OS 8 (Platin
 
 ```bash
 npm install              # Install dependencies
-npm run dev              # Start Vite dev server
+npm run build:source     # TypeScript + Vite build only (fastest iteration)
 npm run build            # Full build (audio sprites + source)
-npm run build:source     # TypeScript + Vite build only
 npm run build:audio      # Generate audio sprites from resources/sounds/
+npm run build:watch      # Watch mode: rebuilds source + audio on file changes
 npm run lint             # Run ESLint
-npm run preview          # Preview production build
+npm run preview          # Full build → npm link → run example app
 ```
 
-Use `npm run build:source` for faster iteration when not modifying sound files.
+**Local dev workflow**: `npm run build:source && npm link`, then in `example/`: `npm link classicy && npm run dev`. The `npm run dev` script in the root does exactly this (build + link). The `example/` directory is a standalone Vite app that consumes the built package.
 
 ## Path Aliases
 
@@ -67,6 +67,7 @@ State persists to localStorage (key: `classicyDesktopState`) via Zustand's `subs
 - `src/SystemFolder/SystemResources/` - Reusable UI components (Window, Button, Input, Menu, etc.)
 - `src/SystemFolder/Finder/` - Finder app implementation
 - `src/SystemFolder/QuickTime/` - Media player apps
+- `example/` - Standalone Vite app that consumes the built package for local testing
 
 ### Creating Apps
 
@@ -95,8 +96,11 @@ Themes are JSON-based (`src/SystemFolder/ControlPanels/AppearanceManager/styles/
 
 ## Build Notes
 
-- Uses Volta for Node version management (Node 24.12.0)
-- Audio sprites generated via audiosprite npm package from `resources/sounds/` directories
+- Uses **mise** for tool version management (`mise.toml`) — Node 24, ffmpeg 8.0.1
+- `npm run build:source` runs `generate-barrels` first — barrelsby auto-generates all `index.ts` barrel files. Don't manually edit barrel files.
+- Audio sprites generated via audiosprite from `resources/sounds/` directories
 - Library outputs to `dist/` as `classicy.es.js` and `classicy.umd.js`
+- Consumers must import the CSS separately: `import 'classicy/dist/classicy.css'`
+- Tailwind CSS v4 is used internally (via `@tailwindcss/vite`) — not exposed to consumers
 
 @.claude/wiz-claude.md
