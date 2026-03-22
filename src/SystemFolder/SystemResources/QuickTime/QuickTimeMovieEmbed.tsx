@@ -45,7 +45,7 @@ export const QuickTimeVideoEmbed: FunctionalComponent<QuickTimeVideoEmbed> = ({
   controlsDocked,
   muted,
 }) => {
-  const desktop = useAppManager();
+  const appWindows = useAppManager(s => s.System.Manager.App.apps[appId]?.windows);
 
   const [playing, setPlaying] = useState(autoPlay);
   const [volume, setVolume] = useState(0.5);
@@ -110,11 +110,10 @@ export const QuickTimeVideoEmbed: FunctionalComponent<QuickTimeVideoEmbed> = ({
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      const app = desktop.System.Manager.App.apps[appId];
-      if (!app?.windows) {
+      if (!appWindows) {
         return;
       }
-      const a = app.windows.find((w) => w.id === appId + "_VideoPlayer_" + url);
+      const a = appWindows.find((w) => w.id === appId + "_VideoPlayer_" + url);
       if (!a || !a.focused) {
         return;
       }
@@ -151,7 +150,7 @@ export const QuickTimeVideoEmbed: FunctionalComponent<QuickTimeVideoEmbed> = ({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [
     handlePlayPause,
-    desktop.System.Manager.App.apps,
+    appWindows,
     seekForward,
     seekBackward,
     toggleFullscreen,
@@ -172,7 +171,7 @@ export const QuickTimeVideoEmbed: FunctionalComponent<QuickTimeVideoEmbed> = ({
       .then((res) => res.text())
       .then((text) => parse(text))
       .then((text) => setSubtitlesData(text))
-      .catch(() => setSubtitlesData(null));
+      .catch((error) => { console.error('[QuickTime] Subtitle fetch failed', { subtitlesUrl, error }); setSubtitlesData(null); });
   }, [subtitlesUrl]);
 
   return (

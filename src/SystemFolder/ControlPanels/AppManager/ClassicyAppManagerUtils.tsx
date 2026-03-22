@@ -1,5 +1,5 @@
+import { produce } from "immer";
 import { create, StoreApi, UseBoundStore } from "zustand";
-import { immer } from "zustand/middleware/immer";
 import {
   ActionMessage,
   classicyDesktopStateEventReducer,
@@ -27,13 +27,15 @@ function getInitialState(): ClassicyStore {
   return DefaultAppManagerState;
 }
 
-export const useAppManager: UseBoundStore<StoreApi<ClassicyStore>> = create<ClassicyStore>()(immer<ClassicyStore>(() => ({
+export const useAppManager: UseBoundStore<StoreApi<ClassicyStore>> = create<ClassicyStore>()(() => ({
   ...getInitialState(),
-})));
+}));
 
 export const dispatch = (action: ActionMessage): void => {
   useAppManager.setState((currentState) =>
-    classicyDesktopStateEventReducer(currentState, action)
+    produce(currentState, (draft) => {
+      classicyDesktopStateEventReducer(draft as ClassicyStore, action);
+    })
   );
 };
 

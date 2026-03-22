@@ -1,5 +1,3 @@
-"use client";
-
 import appIcon from "./resources/app.png";
 import packageIcon from "./resources/platinum.png";
 import {
@@ -112,14 +110,20 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
   };
   const loadSoundTheme = async (themeName: string) => {
     const soundTheme = getTheme(themeName).sound;
-    const data = await fetch(soundTheme.file).then((response) =>
-      response.json(),
-    );
-    player({
-      type: "ClassicySoundLoad",
-      file: data,
-      disabled: soundTheme.disabled,
-    });
+    try {
+      const response = await fetch(soundTheme.file);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const data = await response.json();
+      player({
+        type: "ClassicySoundLoad",
+        file: data,
+        disabled: soundTheme.disabled,
+      });
+    } catch (error) {
+      console.error("[ClassicyAppearanceManager] Failed to load sound theme", { themeName, error });
+    }
   };
 
   const quitApp = () => {

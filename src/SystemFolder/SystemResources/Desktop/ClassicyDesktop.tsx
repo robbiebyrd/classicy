@@ -36,15 +36,14 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 
   const clickOffset = [10, 10];
 
-  const desktopState = useAppManager();
+  const availableThemes = useAppManager(s => s.System.Manager.Appearance.availableThemes);
+  const activeTheme = useAppManager(s => s.System.Manager.Appearance.activeTheme);
+  const desktopIcons = useAppManager(s => s.System.Manager.Desktop.icons);
   const desktopEventDispatch = useAppManagerDispatch();
 
   // Load themes on mount if not already loaded
   useEffect(() => {
-    if (
-      desktopState.System.Manager.Appearance.availableThemes &&
-      desktopState.System.Manager.Appearance.availableThemes.length <= 0
-    ) {
+    if (availableThemes && availableThemes.length <= 0) {
       desktopEventDispatch({
         type: "ClassicyDesktopLoadThemes",
         availableThemes: getAllThemes(),
@@ -169,9 +168,7 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
     },
   ], [desktopEventDispatch]);
 
-  const currentTheme = getThemeVars(
-    desktopState.System.Manager.Appearance.activeTheme,
-  );
+  const currentTheme = useMemo(() => getThemeVars(activeTheme), [activeTheme]);
 
   return (
     <>
@@ -212,7 +209,7 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
             appIcon: macosIcon,
             hideFunc: () => setShowAbout(false),
           })}
-        {desktopState.System.Manager.Desktop.icons.map((i) => (
+        {desktopIcons.map((i) => (
           <ClassicyDesktopIcon
             appId={i.appId}
             appName={i.appName}
