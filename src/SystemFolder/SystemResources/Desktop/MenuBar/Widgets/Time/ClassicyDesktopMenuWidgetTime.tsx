@@ -9,7 +9,7 @@ import appIcon from "@img/icons/control-panels/date-time-manager/date-time-manag
 import { FC as FunctionalComponent, useEffect, useRef, useState } from "react";
 
 export const ClassicyDesktopMenuWidgetTime: FunctionalComponent = () => {
-  const desktopContext = useAppManager();
+  const dateAndTime = useAppManager(s => s.System.Manager.DateAndTime);
   const desktopEventDispatch = useAppManagerDispatch();
 
   const {
@@ -20,38 +20,19 @@ export const ClassicyDesktopMenuWidgetTime: FunctionalComponent = () => {
     displayDay,
     displayLongDay,
     flashSeparators,
-  } = desktopContext.System.Manager.DateAndTime;
+  } = dateAndTime;
 
   const [showingTime, setShowingTime] = useState(true);
 
   const [time, setTime] = useState({
-    year: new Date(
-      desktopContext.System.Manager.DateAndTime.dateTime,
-    ).getFullYear(),
-    month: new Date(
-      desktopContext.System.Manager.DateAndTime.dateTime,
-    ).getMonth(),
-    date: new Date(
-      desktopContext.System.Manager.DateAndTime.dateTime,
-    ).getDate(),
-    day: new Date(
-      desktopContext.System.Manager.DateAndTime.dateTime,
-    ).getUTCDay(),
-    minutes: new Date(
-      desktopContext.System.Manager.DateAndTime.dateTime,
-    ).getUTCMinutes(),
-    hours: new Date(
-      desktopContext.System.Manager.DateAndTime.dateTime,
-    ).getUTCHours(),
-    seconds: new Date(
-      desktopContext.System.Manager.DateAndTime.dateTime,
-    ).getUTCSeconds(),
-    period:
-      new Date(
-        desktopContext.System.Manager.DateAndTime.dateTime,
-      ).getUTCHours() > 12
-        ? " PM"
-        : " AM",
+    year: new Date(dateAndTime.dateTime).getFullYear(),
+    month: new Date(dateAndTime.dateTime).getMonth(),
+    date: new Date(dateAndTime.dateTime).getDate(),
+    day: new Date(dateAndTime.dateTime).getUTCDay(),
+    minutes: new Date(dateAndTime.dateTime).getUTCMinutes(),
+    hours: new Date(dateAndTime.dateTime).getUTCHours(),
+    seconds: new Date(dateAndTime.dateTime).getUTCSeconds(),
+    period: new Date(dateAndTime.dateTime).getUTCHours() > 12 ? " PM" : " AM",
   });
 
   const daysOfWeek = [
@@ -64,18 +45,29 @@ export const ClassicyDesktopMenuWidgetTime: FunctionalComponent = () => {
     "Saturday",
   ];
 
-  // Use ref to track previous minutes to avoid dependency on time.minutes in useEffect
+  // Refs to hold current values so the interval callback doesn't need them in its dep array
+  const dateTimeRef = useRef(dateAndTime.dateTime);
+  const timeZoneOffsetRef = useRef(dateAndTime.timeZoneOffset);
   const prevMinutesRef = useRef(time.minutes);
 
+  // Keep refs in sync with the latest values without restarting the interval
+  useEffect(() => {
+    dateTimeRef.current = dateAndTime.dateTime;
+  }, [dateAndTime.dateTime]);
+
+  useEffect(() => {
+    timeZoneOffsetRef.current = dateAndTime.timeZoneOffset;
+  }, [dateAndTime.timeZoneOffset]);
+
+  // Interval created once on mount; reads from refs to avoid restart on every tick
   useEffect(() => {
     const intervalId = setInterval(() => {
-      const date = new Date(desktopContext.System.Manager.DateAndTime.dateTime);
+      const date = new Date(dateTimeRef.current);
       date.setSeconds(date.getSeconds() + 1);
 
       const localDate = new Date(date.toISOString());
       localDate.setHours(
-        localDate.getHours() +
-          parseInt(desktopContext.System.Manager.DateAndTime.timeZoneOffset),
+        localDate.getHours() + parseInt(timeZoneOffsetRef.current),
       );
 
       const newMinutes = localDate.getMinutes();
@@ -103,11 +95,7 @@ export const ClassicyDesktopMenuWidgetTime: FunctionalComponent = () => {
     }, 1000);
 
     return () => clearInterval(intervalId);
-  }, [
-    desktopContext.System.Manager.DateAndTime.dateTime,
-    desktopContext.System.Manager.DateAndTime.timeZoneOffset,
-    desktopEventDispatch,
-  ]);
+  }, []);
 
   const convertToTwoDigit = (num: number) => {
     return num.toLocaleString("en-US", {

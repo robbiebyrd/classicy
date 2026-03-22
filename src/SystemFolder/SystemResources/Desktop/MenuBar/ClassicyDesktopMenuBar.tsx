@@ -11,18 +11,13 @@ import {
   ClassicyMenuItem,
 } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import "@/SystemFolder/SystemResources/Menu/ClassicyMenu.scss";
-import { FC as FunctionalComponent } from "react";
+import { FC as FunctionalComponent, useMemo } from "react";
 
 export const ClassicyDesktopMenuBar: FunctionalComponent = () => {
-  const desktopContext = useAppManager();
+  const apps = useAppManager(s => s.System.Manager.App.apps);
+  const systemMenu = useAppManager(s => s.System.Manager.Desktop.systemMenu);
+  const appMenu = useAppManager(s => s.System.Manager.Desktop.appMenu);
   const desktopEventDispatch = useAppManagerDispatch();
-
-  const systemMenuItem: ClassicyMenuItem = {
-    id: "apple-menu",
-    image: appleMenuIcon,
-    menuChildren: desktopContext.System.Manager.Desktop.systemMenu,
-    className: "clasicyDesktopMenuAppleMenu",
-  };
 
   const setActiveApp = (appId: string) => {
     desktopEventDispatch({
@@ -31,34 +26,40 @@ export const ClassicyDesktopMenuBar: FunctionalComponent = () => {
     });
   };
 
-  const activeAppObject = Object.values(
-    desktopContext.System.Manager.App.apps,
-  ).filter((app) => app.focused);
+  const appSwitcherMenuMenuItem: ClassicyMenuItem = useMemo(() => {
+    const activeAppObject = Object.values(apps).filter((app) => app.focused);
+    return {
+      id: "app-switcher",
+      image: activeAppObject?.at(0)?.icon || "",
+      title: activeAppObject?.at(0)?.name || "Finder",
+      className: "classicyDesktopMenuAppSwitcher",
+      menuChildren: Object.values(apps)
+        .filter((a) => a.open)
+        .map((app) => ({
+          id: app.id,
+          icon: app.icon,
+          title: app.name,
+          onClickFunc: () => {
+            setActiveApp(app.id);
+          },
+        })),
+    };
+  }, [apps, desktopEventDispatch]);
 
-  const appSwitcherMenuMenuItem: ClassicyMenuItem = {
-    id: "app-switcher",
-    image: activeAppObject?.at(0)?.icon || "",
-    title: activeAppObject?.at(0)?.name || "Finder",
-    className: "classicyDesktopMenuAppSwitcher",
-    menuChildren: Object.values(desktopContext.System.Manager.App.apps)
-      .filter((a) => a.open)
-      .map((app) => ({
-        id: app.id,
-        icon: app.icon,
-        title: app.name,
-        onClickFunc: () => {
-          setActiveApp(app.id);
-        },
-      })),
-  };
-
-  const defaultMenuItems = [systemMenuItem] as ClassicyMenuItem[];
-
-  if (desktopContext.System.Manager.Desktop.appMenu) {
-    defaultMenuItems.push(...desktopContext.System.Manager.Desktop.appMenu);
-  }
-
-  defaultMenuItems.push(appSwitcherMenuMenuItem);
+  const defaultMenuItems: ClassicyMenuItem[] = useMemo(() => {
+    const systemMenuItem: ClassicyMenuItem = {
+      id: "apple-menu",
+      image: appleMenuIcon,
+      menuChildren: systemMenu,
+      className: "clasicyDesktopMenuAppleMenu",
+    };
+    const items = [systemMenuItem] as ClassicyMenuItem[];
+    if (appMenu) {
+      items.push(...appMenu);
+    }
+    items.push(appSwitcherMenuMenuItem);
+    return items;
+  }, [systemMenu, appMenu, appSwitcherMenuMenuItem]);
 
   return (
     <nav className={"classicyDesktopMenuBar"}>

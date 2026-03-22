@@ -30,12 +30,9 @@ type iconType = {
 export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrowserViewIconsProps> =
   memo(
     ({ fs, path, appId, dirOnClickFunc, fileOnClickFunc, holderRef }) => {
-      const desktopContext = useAppManager();
+      const activeTheme = useAppManager(s => s.System.Manager.Appearance.activeTheme);
 
       const [items, setItems] = useState<iconType[]>([]);
-
-      // Extract only the theme value to avoid re-renders on unrelated appearance changes
-      const activeTheme = desktopContext.System.Manager.Appearance.activeTheme;
 
       useEffect(() => {
         if (!holderRef?.current) {
