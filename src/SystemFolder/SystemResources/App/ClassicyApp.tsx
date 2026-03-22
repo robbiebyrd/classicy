@@ -4,7 +4,7 @@ import {
   useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
-import { FC as FunctionalComponent, ReactNode, useEffect, useRef } from "react";
+import { FC as FunctionalComponent, ReactNode, useEffect } from "react";
 import { JSONTree } from "react-json-tree";
 
 export interface ClassicyAppProps {
@@ -68,11 +68,6 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
     });
   };
 
-  const appContextRef = useRef(appContext);
-  useEffect(() => {
-    appContextRef.current = appContext;
-  }, [appContext]);
-
   useEffect(() => {
     if (addSystemMenu) {
       desktopEventDispatch({
@@ -93,17 +88,6 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
         },
       });
     }
-    if (appContextRef.current?.focused && defaultWindow) {
-      desktopEventDispatch({
-        type: "ClassicyWindowFocus",
-        app: {
-          id: id,
-        },
-        window: {
-          id: defaultWindow,
-        },
-      });
-    }
 
     if (!noDesktopIcon) {
       desktopEventDispatch({
@@ -119,12 +103,25 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
   }, [
     addSystemMenu,
     noDesktopIcon,
-    defaultWindow,
     desktopEventDispatch,
     id,
     name,
     icon,
   ]);
+
+  useEffect(() => {
+    if (appContext?.focused && defaultWindow) {
+      desktopEventDispatch({
+        type: "ClassicyWindowFocus",
+        app: {
+          id: id,
+        },
+        window: {
+          id: defaultWindow,
+        },
+      });
+    }
+  }, [appContext?.focused, defaultWindow, desktopEventDispatch, id]);
 
   return (
     <div onMouseDown={onFocus}>

@@ -304,6 +304,10 @@ export const classicyDesktopStateEventReducer = (
     console.groupEnd();
   }
 
+  if (!handled && process.env.NODE_ENV !== 'production') {
+    console.warn('[ClassicyDesktopStateEventReducer] Unhandled action type', { type: action.type });
+  }
+
   return handled ? { ...ds } : ds;
 };
 
