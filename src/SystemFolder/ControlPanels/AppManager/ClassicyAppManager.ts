@@ -123,7 +123,7 @@ export class ClassicyAppManagerHandler {
     const focusedWindow = ds.System.Manager.App.apps[appId]?.windows.findIndex(
       (w) => w.default,
     );
-    if (focusedWindow > 0) {
+    if (focusedWindow >= 0) {
       ds.System.Manager.App.apps[appId].windows[focusedWindow].closed = false;
       ds.System.Manager.App.apps[appId].windows[focusedWindow].focused = true;
       if (ds.System.Manager.App.apps[appId].appMenu) {

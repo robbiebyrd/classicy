@@ -114,7 +114,7 @@ export const ClassicySoundStateEventReducer = (
   ss: ClassicySoundState,
   action: ClassicySoundAction,
 ) => {
-  if (!("debug" in action)) {
+  if ("debug" in action) {
     console.group("Sound Event");
     console.log("Action: ", action);
     console.log("Start State: ", ss);
@@ -196,7 +196,7 @@ export const ClassicySoundStateEventReducer = (
       break;
     }
   }
-  if (!("debug" in action)) {
+  if ("debug" in action) {
     console.log("End State: ", ss);
     console.groupEnd();
   }

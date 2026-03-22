@@ -51,6 +51,7 @@
     "analytics": "^0.8.19",
     "classnames": "^2.5.1",
     "howler": "^2.2.4",
+    "immer": "^11.1.4",
     "react-json-tree": "^0.20.0",
     "react-player": "^3.4.0",
     "screenfull": "^6.0.2",
