@@ -31,7 +31,11 @@ export class ClassicyFileSystem {
         }
 
         this.separator = separator
-        localStorage.setItem(this.storageKey, this.snapshot())
+        try {
+            localStorage.setItem(this.storageKey, this.snapshot())
+        } catch (error) {
+            console.error('[ClassicyFileSystem] Failed to persist initial filesystem to localStorage.', error)
+        }
     }
 
     load(data: string) {

@@ -52,6 +52,7 @@
     "classnames": "^2.5.1",
     "he": "^1.2.0",
     "howler": "^2.2.4",
+    "immer": "^11.1.4",
     "react-json-tree": "^0.20.0",
     "react-player": "^3.4.0",
     "screenfull": "^6.0.2",
