@@ -4,6 +4,8 @@ import {
   deFocusApps,
   openApp,
   closeApp,
+  activateApp,
+  loadApp,
   classicyDesktopStateEventReducer,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
@@ -169,6 +171,159 @@ describe("closeApp", () => {
     expect(ds.System.Manager.App.apps["Notes.app"].open).toBe(false);
     expect(ds.System.Manager.App.apps["Notes.app"].focused).toBe(false);
     expect(ds.System.Manager.App.apps["Notes.app"].windows[0].closed).toBe(true);
+  });
+});
+
+describe("activateApp", () => {
+  it("marks the target app as focused", () => {
+    const ds = makeStore();
+    ds.System.Manager.App.apps["Notes.app"] = {
+      id: "Notes.app",
+      name: "Notes",
+      icon: "",
+      open: true,
+      focused: false,
+      windows: [],
+      data: {},
+    };
+
+    activateApp(ds, "Notes.app");
+
+    expect(ds.System.Manager.App.apps["Notes.app"].focused).toBe(true);
+  });
+
+  it("marks all other apps as unfocused", () => {
+    const ds = makeStore();
+    ds.System.Manager.App.apps["Notes.app"] = {
+      id: "Notes.app",
+      name: "Notes",
+      icon: "",
+      open: true,
+      focused: false,
+      windows: [],
+      data: {},
+    };
+    ds.System.Manager.App.apps["Finder.app"].focused = true;
+
+    activateApp(ds, "Notes.app");
+
+    expect(ds.System.Manager.App.apps["Finder.app"].focused).toBe(false);
+  });
+
+  it("unfocuses windows of other apps", () => {
+    const ds = makeStore();
+    ds.System.Manager.App.apps["Finder.app"].windows = [
+      { id: "w1", closed: false, focused: true, size: [400, 300], position: [0, 0], minimumSize: [100, 100] },
+    ];
+    ds.System.Manager.App.apps["Notes.app"] = {
+      id: "Notes.app",
+      name: "Notes",
+      icon: "",
+      open: true,
+      focused: false,
+      windows: [],
+      data: {},
+    };
+
+    activateApp(ds, "Notes.app");
+
+    expect(ds.System.Manager.App.apps["Finder.app"].windows[0].focused).toBe(false);
+  });
+
+  it("does NOT change the windows of the target app (unlike focusApp)", () => {
+    const ds = makeStore();
+    ds.System.Manager.App.apps["Notes.app"] = {
+      id: "Notes.app",
+      name: "Notes",
+      icon: "",
+      open: true,
+      focused: false,
+      windows: [
+        { id: "w1", closed: false, focused: false, size: [400, 300], position: [0, 0], minimumSize: [100, 100] },
+      ],
+      data: {},
+    };
+
+    activateApp(ds, "Notes.app");
+
+    // activateApp only sets app.focused — it does not touch the target app's windows
+    expect(ds.System.Manager.App.apps["Notes.app"].windows[0].focused).toBe(false);
+  });
+});
+
+describe("loadApp", () => {
+  it("registers an unknown app with open=false", () => {
+    const ds = makeStore();
+    loadApp(ds, "Calculator.app", "Calculator", "calc-icon.png");
+    const app = ds.System.Manager.App.apps["Calculator.app"];
+    expect(app).toBeDefined();
+    expect(app.open).toBe(false);
+    expect(app.id).toBe("Calculator.app");
+    expect(app.name).toBe("Calculator");
+  });
+
+  it("is a no-op when the app is already registered", () => {
+    const ds = makeStore();
+    // Pre-register with open=true and custom name to verify state is not reset
+    ds.System.Manager.App.apps["Notes.app"] = {
+      id: "Notes.app",
+      name: "Original Name",
+      icon: "original-icon.png",
+      open: true,
+      focused: true,
+      windows: [{ id: "w1", closed: false, size: [400, 300], position: [0, 0], minimumSize: [100, 100] }],
+      data: { custom: "value" },
+    };
+
+    loadApp(ds, "Notes.app", "New Name", "new-icon.png");
+
+    const app = ds.System.Manager.App.apps["Notes.app"];
+    expect(app.open).toBe(true);
+    expect(app.name).toBe("Original Name");
+    expect(app.windows).toHaveLength(1);
+  });
+});
+
+describe("focusApp — appMenu propagation", () => {
+  it("sets ds.System.Manager.Desktop.appMenu when the focused app has appMenu and a default window", () => {
+    const ds = makeStore();
+    const menu = [{ id: "file", title: "File" }];
+    ds.System.Manager.App.apps["Notes.app"] = {
+      id: "Notes.app",
+      name: "Notes",
+      icon: "",
+      open: true,
+      focused: false,
+      appMenu: menu,
+      windows: [
+        { id: "main", closed: false, default: true, size: [400, 300], position: [0, 0], minimumSize: [100, 100] },
+      ],
+      data: {},
+    };
+
+    focusApp(ds, "Notes.app");
+
+    expect(ds.System.Manager.Desktop.appMenu).toBe(menu);
+  });
+
+  it("does not set ds.System.Manager.Desktop.appMenu when the focused app has no appMenu property", () => {
+    const ds = makeStore();
+    ds.System.Manager.Desktop.appMenu = [];
+    ds.System.Manager.App.apps["Notes.app"] = {
+      id: "Notes.app",
+      name: "Notes",
+      icon: "",
+      open: true,
+      focused: false,
+      windows: [
+        { id: "main", closed: false, default: true, size: [400, 300], position: [0, 0], minimumSize: [100, 100] },
+      ],
+      data: {},
+    };
+
+    focusApp(ds, "Notes.app");
+
+    expect(ds.System.Manager.Desktop.appMenu).toEqual([]);
   });
 });
 

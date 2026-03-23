@@ -48,4 +48,17 @@ describe("pctToInt", () => {
   it("handles value without % suffix", () => {
     expect(pctToInt("75")).toBe(75);
   });
+
+  it("round-trips with intToPct: pctToInt(intToPct(50)) returns 50", () => {
+    // intToPct(50) returns "50*" (not "50%") — pctToInt does not strip "*",
+    // so parseInt("50*") is called, which returns 50 because parseInt stops
+    // at the first non-numeric character.
+    expect(pctToInt(intToPct(50))).toBe(50);
+  });
+
+  it('pctToInt("50*") returns 50 via parseInt truncation', () => {
+    // "50*" does not end with "%" so no stripping occurs.
+    // parseInt("50*") === 50 because parseInt ignores trailing non-numeric chars.
+    expect(pctToInt("50*")).toBe(50);
+  });
 });
