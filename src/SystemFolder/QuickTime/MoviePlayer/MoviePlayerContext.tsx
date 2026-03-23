@@ -28,6 +28,10 @@ export const classicyQuickTimeMoviePlayerEventHandler = (
     ds.System.Manager.App.apps[appId].data = {};
   }
 
+  if (!("openFiles" in ds.System.Manager.App.apps[appId].data)) {
+    ds.System.Manager.App.apps[appId].data["openFiles"] = [];
+  }
+
   const openDocUrls = ds.System.Manager.App.apps[appId]?.data["openFiles"].map(
     (app: ClassicyQuickTimeDocument) => app.url,
   );
