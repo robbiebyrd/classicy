@@ -207,6 +207,9 @@ export const ClassicySoundStateEventReducer = (
     }
     default: {
       next = { ...ss };
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('[ClassicySoundStateEventReducer] Unhandled action type', { type: action.type });
+      }
       break;
     }
   }
