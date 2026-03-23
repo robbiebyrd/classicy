@@ -27,3 +27,4 @@ codealike.json
 tsconfig.tsbuildinfo
 .trunk/
 .yarn
+/.claude

@@ -18,7 +18,7 @@ export class ClassicyFileSystem {
         this.storageKey = storageKey
         this.fs = defaultFS
 
-        const retrieved = localStorage.getItem(this.storageKey)
+        const retrieved = typeof window !== 'undefined' ? localStorage.getItem(this.storageKey) : null
         if (typeof window !== 'undefined' && retrieved) {
             try {
                 const parsed = JSON.parse(retrieved)
@@ -115,8 +115,9 @@ export class ClassicyFileSystem {
         return filteredItems
     }
 
-    statFile(path: string): ClassicyFileSystemEntry {
+    statFile(path: string): ClassicyFileSystemEntry | undefined {
         let item = this.resolve(path)
+        if (!item) return undefined
         item['_size'] = this.size(path)
         return item
     }
@@ -224,7 +225,9 @@ export class ClassicyFileSystem {
     }
 
     countVisibleFiles(path: string): number {
-        const visibleFiles: boolean[] = Object.entries(this.filterMetadata(this.resolve(path)))
+        const resolved = this.resolve(path)
+        if (!resolved) return 0
+        const visibleFiles: boolean[] = Object.entries(this.filterMetadata(resolved))
             .map(([_, b]) => {
                 return !b['_invisible']
             })
@@ -235,7 +238,9 @@ export class ClassicyFileSystem {
     }
 
     countInvisibleFilesInDir(path: string): number {
-        const invisibleFiles: boolean[] = Object.entries(this.filterMetadata(this.resolve(path)))
+        const resolved = this.resolve(path)
+        if (!resolved) return 0
+        const invisibleFiles: boolean[] = Object.entries(this.filterMetadata(resolved))
             .map(([a, b]) => {
                 return b['_invisible']
             })

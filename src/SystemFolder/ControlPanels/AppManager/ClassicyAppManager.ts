@@ -92,10 +92,6 @@ export interface ClassicyStoreSystemDateAndTimeManager extends ClassicyStoreSyst
 
 export interface ClassicyStoreSystemManager {}
 
-export function getAppIndex(ds: ClassicyStore, appId: string) {
-  return ds.System.Manager.App.apps[appId];
-}
-
 export function deFocusApps(ds: ClassicyStore) {
   Object.entries(ds.System.Manager.App.apps).forEach(([key]) => {
     ds.System.Manager.App.apps[key].focused = false;
@@ -261,32 +257,25 @@ export const classicyDesktopStateEventReducer = (
     console.log("Start State: ", ds);
   }
 
-  let handled = false;
   if ("type" in action) {
     if (action.type.startsWith("ClassicyWindow")) {
       ds = classicyWindowEventHandler(ds, action);
-      handled = true;
     } else if (action.type.startsWith("ClassicyAppFinder")) {
       ds = classicyFinderEventHandler(ds, action);
-      handled = true;
     } else if (action.type.startsWith("ClassicyAppMoviePlayer")) {
       ds = classicyQuickTimeMoviePlayerEventHandler(ds, action);
-      handled = true;
     } else if (action.type.startsWith("ClassicyAppPictureViewer")) {
       ds = classicyQuickTimePictureViewerEventHandler(ds, action);
-      handled = true;
     } else if (action.type.startsWith("ClassicyDesktopIcon")) {
       ds = classicyDesktopIconEventHandler(ds, action);
-      handled = true;
     } else if (action.type.startsWith("ClassicyDesktop")) {
       ds = classicyDesktopEventHandler(ds, action);
-      handled = true;
     } else if (action.type.startsWith("ClassicyManagerDateTime")) {
       ds = classicyDateTimeManagerEventHandler(ds, action);
-      handled = true;
     } else if (action.type.startsWith("ClassicyApp")) {
       ds = classicyAppEventHandler(ds, action);
-      handled = true;
+    } else if (process.env.NODE_ENV !== 'production') {
+      console.warn('[ClassicyDesktopStateEventReducer] Unhandled action type', { type: action.type });
     }
   }
 
@@ -295,11 +284,7 @@ export const classicyDesktopStateEventReducer = (
     console.groupEnd();
   }
 
-  if (!handled && process.env.NODE_ENV !== 'production') {
-    console.warn('[ClassicyDesktopStateEventReducer] Unhandled action type', { type: action.type });
-  }
-
-  return handled ? { ...ds } : ds;
+  return ds;
 };
 
 export const DefaultAppManagerState: ClassicyStore = {

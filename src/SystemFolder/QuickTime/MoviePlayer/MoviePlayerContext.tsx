@@ -24,7 +24,9 @@ export const classicyQuickTimeMoviePlayerEventHandler = (
 ) => {
   const { id: appId } = MoviePlayerAppInfo;
 
-  if (!ds.System.Manager.App.apps[appId]?.data) {
+  if (!ds.System.Manager.App.apps[appId]) return ds;
+
+  if (!ds.System.Manager.App.apps[appId].data) {
     ds.System.Manager.App.apps[appId].data = {};
   }
 

@@ -12,9 +12,16 @@ import {
 } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import "@/SystemFolder/SystemResources/Menu/ClassicyMenu.scss";
 import { FC as FunctionalComponent, useMemo } from "react";
+import { useShallow } from "zustand/react/shallow";
 
 export const ClassicyDesktopMenuBar: FunctionalComponent = () => {
-  const apps = useAppManager(s => s.System.Manager.App.apps);
+  const appSwitcherData = useAppManager(
+    useShallow(s =>
+      Object.values(s.System.Manager.App.apps)
+        .filter(a => a.open || a.focused)
+        .map(a => ({ id: a.id, name: a.name, icon: a.icon, focused: a.focused, open: a.open }))
+    )
+  );
   const systemMenu = useAppManager(s => s.System.Manager.Desktop.systemMenu);
   const appMenu = useAppManager(s => s.System.Manager.Desktop.appMenu);
   const desktopEventDispatch = useAppManagerDispatch();
@@ -27,15 +34,15 @@ export const ClassicyDesktopMenuBar: FunctionalComponent = () => {
   };
 
   const appSwitcherMenuMenuItem: ClassicyMenuItem = useMemo(() => {
-    const activeAppObject = Object.values(apps).filter((app) => app.focused);
+    const focusedApp = appSwitcherData.find(a => a.focused);
     return {
       id: "app-switcher",
-      image: activeAppObject?.at(0)?.icon || "",
-      title: activeAppObject?.at(0)?.name || "Finder",
+      image: focusedApp?.icon || "",
+      title: focusedApp?.name || "Finder",
       className: "classicyDesktopMenuAppSwitcher",
-      menuChildren: Object.values(apps)
-        .filter((a) => a.open)
-        .map((app) => ({
+      menuChildren: appSwitcherData
+        .filter(a => a.open)
+        .map(app => ({
           id: app.id,
           icon: app.icon,
           title: app.name,
@@ -44,7 +51,7 @@ export const ClassicyDesktopMenuBar: FunctionalComponent = () => {
           },
         })),
     };
-  }, [apps, desktopEventDispatch]);
+  }, [appSwitcherData, desktopEventDispatch]);
 
   const defaultMenuItems: ClassicyMenuItem[] = useMemo(() => {
     const systemMenuItem: ClassicyMenuItem = {

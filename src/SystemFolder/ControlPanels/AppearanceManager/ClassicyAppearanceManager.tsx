@@ -21,7 +21,7 @@ import { ClassicyInput } from "@/SystemFolder/SystemResources/Input/ClassicyInpu
 import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
 import { ClassicyTabs } from "@/SystemFolder/SystemResources/Tabs/ClassicyTabs";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
-import { FC as FunctionalComponent, ChangeEvent, useState } from "react";
+import { FC as FunctionalComponent, ChangeEvent, useMemo, useState } from "react";
 import {
   ClassicyDefaultWallpaper,
   ClassicyWallpapers,
@@ -55,8 +55,12 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
       : ClassicyDefaultWallpaper,
   );
 
-  const themesList = appearanceState.availableThemes?.map((a: ClassicyTheme) =>
-    (({ id, name }) => ({ value: id, label: name }))(a),
+  const themesList = useMemo(
+    () =>
+      appearanceState.availableThemes?.map((a: ClassicyTheme) =>
+        (({ id, name }) => ({ value: id, label: name }))(a),
+      ),
+    [appearanceState.availableThemes],
   );
 
   const switchTheme = async (e: ChangeEvent<HTMLSelectElement>) => {
@@ -64,7 +68,7 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
       type: "ClassicyDesktopChangeTheme",
       activeTheme: e.currentTarget.value,
     });
-    await loadSoundTheme(e.currentTarget.value);
+    await fetchAndApplySoundTheme(e.currentTarget.value);
   };
 
   const changeBackground = (e: ChangeEvent<HTMLSelectElement>) => {
@@ -113,7 +117,7 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
       fontType: e.target.id,
     });
   };
-  const loadSoundTheme = async (themeName: string) => {
+  const fetchAndApplySoundTheme = async (themeName: string) => {
     const soundTheme = getTheme(themeName).sound;
     try {
       const response = await fetch(soundTheme.file);
