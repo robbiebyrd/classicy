@@ -1,5 +1,3 @@
-"use client";
-
 import { ClassicyStoreSystemAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
   useAppManager,

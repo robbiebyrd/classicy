@@ -1,5 +1,5 @@
 import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
-import { FC as FunctionalComponent, useRef, useMemo, useCallback } from "react";
+import { FC as FunctionalComponent, useRef } from "react";
 import { ClassicyFileBrowserViewIcons } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewIcons";
 import { ClassicyFileBrowserViewTable } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewTable";
 
@@ -26,61 +26,28 @@ export const ClassicyFileBrowser: FunctionalComponent<ClassicyFileBrowserProps> 
 }) => {
   const holderRef = useRef<HTMLDivElement>(null);
 
-  // Use useCallback to create stable references for callback functions
-  const handleDirClick = useCallback(
-    (path: string) => {
-      if (dirOnClickFunc) {
-        dirOnClickFunc(path);
-      }
-    },
-    [dirOnClickFunc],
-  );
-
-  const handleFileClick = useCallback(
-    (path: string) => {
-      if (fileOnClickFunc) {
-        fileOnClickFunc(path);
-      }
-    },
-    [fileOnClickFunc],
-  );
-
-  // Use default functions if no callbacks provided
-  const finalDirClick = dirOnClickFunc ? handleDirClick : defaultDirOnClick;
-  const finalFileClick = fileOnClickFunc ? handleFileClick : defaultFileOnClick;
-
-  // Memoize the view component to prevent unnecessary re-renders
-  const viewComponent = useMemo(() => {
-    switch (display) {
-      case "list":
-        return (
-          <ClassicyFileBrowserViewTable
-            fileOnClickFunc={finalFileClick}
-            dirOnClickFunc={finalDirClick}
-            fs={fs}
-            path={path}
-            appId={appId}
-            iconSize={18}
-            holderRef={holderRef}
-          />
-        );
-      default:
-        return (
-          <ClassicyFileBrowserViewIcons
-            fileOnClickFunc={finalFileClick}
-            dirOnClickFunc={finalDirClick}
-            fs={fs}
-            path={path}
-            appId={appId}
-            holderRef={holderRef}
-          />
-        );
-    }
-  }, [display, finalFileClick, finalDirClick, fs, path, appId]);
-
   return (
     <div style={{ position: "absolute", width: "100%", height: "100%" }}>
-      {viewComponent}
+      {display === "list" ? (
+        <ClassicyFileBrowserViewTable
+          fileOnClickFunc={fileOnClickFunc ?? defaultFileOnClick}
+          dirOnClickFunc={dirOnClickFunc ?? defaultDirOnClick}
+          fs={fs}
+          path={path}
+          appId={appId}
+          iconSize={18}
+          holderRef={holderRef}
+        />
+      ) : (
+        <ClassicyFileBrowserViewIcons
+          fileOnClickFunc={fileOnClickFunc ?? defaultFileOnClick}
+          dirOnClickFunc={dirOnClickFunc ?? defaultDirOnClick}
+          fs={fs}
+          path={path}
+          appId={appId}
+          holderRef={holderRef}
+        />
+      )}
     </div>
   );
 };

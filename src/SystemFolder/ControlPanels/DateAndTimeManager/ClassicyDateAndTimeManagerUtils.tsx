@@ -10,7 +10,6 @@ export const classicyDateTimeManagerEventHandler = (
   switch (action.type) {
     case "ClassicyManagerDateTimeSet": {
       const t = action.dateTime as unknown as Date;
-      t.setHours(t.getHours());
       ds.System.Manager.DateAndTime.dateTime = t.toISOString();
       break;
     }

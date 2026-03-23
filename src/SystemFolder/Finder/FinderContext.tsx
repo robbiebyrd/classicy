@@ -8,6 +8,7 @@ export const classicyFinderEventHandler = (
   action: ActionMessage,
 ) => {
   const appId = "Finder.app";
+  if (!ds.System.Manager.App.apps[appId]) return ds;
   let appData = ds.System.Manager.App.apps[appId].data;
 
   switch (action.type) {

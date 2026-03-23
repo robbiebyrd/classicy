@@ -32,7 +32,10 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
   const [clickPosition, setClickPosition] = useState<[number, number]>([0, 0]);
   const [dragging, setDragging] = useState<boolean>(false);
 
-  const desktopContext = useAppManager();
+  const selectedIcons = useAppManager(s => s.System.Manager.Desktop.selectedIcons);
+  const desktopIcons = useAppManager(s => s.System.Manager.Desktop.icons);
+  const isOpen = useAppManager(s => !!s.System.Manager.App.apps[appId]?.open);
+  const finderWindows = useAppManager(s => s.System.Manager.App.apps["Finder.app"]?.windows);
   const desktopEventDispatch = useAppManagerDispatch();
 
   const iconRef = useRef<HTMLDivElement>(null);
@@ -65,9 +68,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
   };
 
   const isActive = (i: string) => {
-    const idx = desktopContext.System.Manager.Desktop.selectedIcons?.findIndex(
-      (o) => o === i,
-    );
+    const idx = selectedIcons?.findIndex((o) => o === i);
     return idx != undefined && idx > -1;
   };
 
@@ -94,21 +95,17 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
   };
 
   const getIconLocation = () => {
-    const iconIdx = desktopContext.System.Manager.Desktop.icons.findIndex(
-      (i) => i.appId === appId,
-    );
+    const iconIdx = desktopIcons.findIndex((i) => i.appId === appId);
 
-    if (!desktopContext.System.Manager.Desktop.icons[iconIdx].location) {
+    if (!desktopIcons[iconIdx].location) {
       return [0, 0];
     }
 
     let leftValue: number = 0;
     let topValue: number = 0;
     if (iconIdx > -1) {
-      leftValue =
-        desktopContext.System.Manager.Desktop.icons[iconIdx].location[0];
-      topValue =
-        desktopContext.System.Manager.Desktop.icons[iconIdx].location[1];
+      leftValue = desktopIcons[iconIdx].location[0];
+      topValue = desktopIcons[iconIdx].location[1];
     }
     return [topValue, leftValue];
   };
@@ -118,16 +115,15 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
   const isLaunched = () => {
     // Check if a Finder window is open
     if (appId.startsWith("Finder.app")) {
-      const finderApp = desktopContext.System.Manager.App.apps["Finder.app"];
-      if (!finderApp?.windows) {
+      if (!finderWindows) {
         return false;
       }
-      const pathCount = finderApp.windows.findIndex(
+      const pathCount = finderWindows.findIndex(
         (w) => w.id === eventData?.path && !w.closed
       );
       return pathCount >= 0;
     }
-    return desktopContext.System.Manager.App.apps[appId]?.open;
+    return isOpen;
   };
 
   const stopChangeIcon = () => {
@@ -143,9 +139,10 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 
     track("move", { type: "ClassicyDesktopIcon", ...analyticsArgs });
 
+    const rect = iconRef.current.getBoundingClientRect();
     setClickPosition([
-      e.clientX - iconRef.current.getBoundingClientRect().left,
-      e.clientY - iconRef.current.getBoundingClientRect().top,
+      e.clientX - rect.left,
+      e.clientY - rect.top,
     ]);
 
     setDragging(true);

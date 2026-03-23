@@ -45,6 +45,10 @@ jobs:
         id: debug-list-directory
         run: ls /home/runner/work/classicy/classicy/assets/img/icons/system/quicktime
 
+      - name: Run Tests
+        id: run-tests
+        run: npm test
+
       - name: Build Package
         id: build-package
         run: npm run build

@@ -50,6 +50,7 @@ export interface ClassicySoundAction {
   disabled?: string | string[];
   enabled?: string | string[];
   soundPlayer?: Howl;
+  volume?: number;
 }
 
 export interface SoundData {
@@ -113,8 +114,8 @@ const playerCanPlay = (ss: ClassicySoundState, sound: string) => {
 export const ClassicySoundStateEventReducer = (
   ss: ClassicySoundState,
   action: ClassicySoundAction,
-) => {
-  if (!("debug" in action)) {
+): ClassicySoundState => {
+  if ("debug" in action) {
     console.group("Sound Event");
     console.log("Action: ", action);
     console.log("Start State: ", ss);
@@ -124,15 +125,19 @@ export const ClassicySoundStateEventReducer = (
     ClassicySoundActionTypes[
       action.type as unknown as keyof typeof ClassicySoundActionTypes
     ];
+
+  let next: ClassicySoundState;
   switch (validatedAction) {
     case ClassicySoundActionTypes.ClassicySoundStop: {
       ss.soundPlayer?.stop();
+      next = { ...ss };
       break;
     }
     case ClassicySoundActionTypes.ClassicySoundPlay: {
       if (action.sound && playerCanPlay(ss, action.sound)) {
         ss.soundPlayer?.play(action.sound);
       }
+      next = { ...ss };
       break;
     }
     case ClassicySoundActionTypes.ClassicySoundPlayInterrupt: {
@@ -140,6 +145,7 @@ export const ClassicySoundStateEventReducer = (
         ss.soundPlayer?.stop();
         ss.soundPlayer?.play(action.sound);
       }
+      next = { ...ss };
       break;
     }
     case ClassicySoundActionTypes.ClassicySoundPlayError: {
@@ -147,44 +153,48 @@ export const ClassicySoundStateEventReducer = (
         ss.soundPlayer?.stop();
         ss.soundPlayer?.play(action.sound || "ClassicyAlertWildEep");
       }
+      next = { ...ss };
       break;
     }
     case ClassicySoundActionTypes.ClassicySoundLoad: {
-      if (action.file) {
-        ss.soundPlayer = loadSoundTheme(action.file);
-      }
-
-      if (action.disabled) {
-        ss.disabled = Array.isArray(action.disabled)
-          ? action.disabled
-          : [action.disabled];
-      }
-
+      next = {
+        ...ss,
+        soundPlayer: action.file ? loadSoundTheme(action.file) : ss.soundPlayer,
+        disabled: action.disabled
+          ? Array.isArray(action.disabled)
+            ? action.disabled
+            : [action.disabled]
+          : ss.disabled,
+      };
       break;
     }
     case ClassicySoundActionTypes.ClassicySoundSet: {
-      ss.soundPlayer = action.soundPlayer ?? null;
+      next = { ...ss, soundPlayer: action.soundPlayer ?? null };
       break;
     }
     case ClassicySoundActionTypes.ClassicyVolumeSet: {
-      ss.soundPlayer = action.soundPlayer ?? null;
+      next = { ...ss, volume: action.volume };
       break;
     }
     case ClassicySoundActionTypes.ClassicySoundDisable: {
-      if (action.disabled) {
-        ss.disabled = Array.isArray(action.disabled)
-          ? action.disabled
-          : [action.disabled];
-      }
+      next = {
+        ...ss,
+        disabled: action.disabled
+          ? Array.isArray(action.disabled)
+            ? action.disabled
+            : [action.disabled]
+          : ss.disabled,
+      };
       break;
     }
     case ClassicySoundActionTypes.ClassicySoundDisableOne: {
       if (action.disabled) {
-        const disabled = Array.isArray(action.disabled)
+        const toDisable = Array.isArray(action.disabled)
           ? action.disabled
           : [action.disabled];
-        ss.disabled.push(...disabled);
-        ss.disabled = Array.from(new Set(ss.disabled));
+        next = { ...ss, disabled: Array.from(new Set([...ss.disabled, ...toDisable])) };
+      } else {
+        next = { ...ss };
       }
       break;
     }
@@ -192,14 +202,22 @@ export const ClassicySoundStateEventReducer = (
       const enabled = Array.isArray(action.enabled)
         ? action.enabled
         : [action.enabled];
-      ss.disabled = ss.disabled.filter((item) => !enabled.includes(item));
+      next = { ...ss, disabled: ss.disabled.filter((item) => !enabled.includes(item)) };
+      break;
+    }
+    default: {
+      next = { ...ss };
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('[ClassicySoundStateEventReducer] Unhandled action type', { type: action.type });
+      }
       break;
     }
   }
-  if (!("debug" in action)) {
-    console.log("End State: ", ss);
+
+  if ("debug" in action) {
+    console.log("End State: ", next);
     console.groupEnd();
   }
 
-  return ss;
+  return next;
 };

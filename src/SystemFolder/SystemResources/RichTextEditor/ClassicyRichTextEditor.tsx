@@ -19,6 +19,25 @@ interface ClassicyRichTextEditorProps {
   editorRef?: RefObject<MDXEditorMethods | null>;
 }
 
+const editorPlugins = [
+  headingsPlugin(),
+  quotePlugin(),
+  thematicBreakPlugin(),
+  markdownShortcutPlugin(),
+  toolbarPlugin({
+    toolbarContents: () => (
+      <>
+        <UndoRedo />
+        <BoldItalicUnderlineToggles options={["Bold"]} />
+        <BoldItalicUnderlineToggles options={["Italic"]} />
+        <BoldItalicUnderlineToggles options={["Underline"]} />
+        <CodeToggle></CodeToggle>
+        <InsertThematicBreak></InsertThematicBreak>
+      </>
+    ),
+  }),
+];
+
 export const ClassicyRichTextEditor: FunctionalComponent<ClassicyRichTextEditorProps> = ({
   content,
   editorRef,
@@ -29,24 +48,7 @@ export const ClassicyRichTextEditor: FunctionalComponent<ClassicyRichTextEditorP
         ref={editorRef}
         markdown={content}
         contentEditableClassName="prose"
-        plugins={[
-          headingsPlugin(),
-          quotePlugin(),
-          thematicBreakPlugin(),
-          markdownShortcutPlugin(),
-          toolbarPlugin({
-            toolbarContents: () => (
-              <>
-                <UndoRedo />
-                <BoldItalicUnderlineToggles options={["Bold"]} />
-                <BoldItalicUnderlineToggles options={["Italic"]} />
-                <BoldItalicUnderlineToggles options={["Underline"]} />
-                <CodeToggle></CodeToggle>
-                <InsertThematicBreak></InsertThematicBreak>
-              </>
-            ),
-          }),
-        ]}
+        plugins={editorPlugins}
       />
     </div>
   );
