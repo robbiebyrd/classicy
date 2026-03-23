@@ -12,19 +12,19 @@ import {
 } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import "@/SystemFolder/SystemResources/Menu/ClassicyMenu.scss";
 import { FC as FunctionalComponent, useMemo } from "react";
-import { useShallow } from "zustand/react/shallow";
 
 export const ClassicyDesktopMenuBar: FunctionalComponent = () => {
-  const appSwitcherData = useAppManager(
-    useShallow(s =>
-      Object.values(s.System.Manager.App.apps)
-        .filter(a => a.open || a.focused)
-        .map(a => ({ id: a.id, name: a.name, icon: a.icon, focused: a.focused, open: a.open }))
-    )
-  );
+  const apps = useAppManager(s => s.System.Manager.App.apps);
   const systemMenu = useAppManager(s => s.System.Manager.Desktop.systemMenu);
   const appMenu = useAppManager(s => s.System.Manager.Desktop.appMenu);
   const desktopEventDispatch = useAppManagerDispatch();
+
+  const appSwitcherData = useMemo(() =>
+    Object.values(apps)
+      .filter(a => a.open || a.focused)
+      .map(a => ({ id: a.id, name: a.name, icon: a.icon, focused: a.focused, open: a.open })),
+    [apps]
+  );
 
   const setActiveApp = (appId: string) => {
     desktopEventDispatch({

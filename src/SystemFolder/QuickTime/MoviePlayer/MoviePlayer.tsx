@@ -20,33 +20,25 @@ export const MoviePlayer: FunctionalComponent = () => {
   const openDocuments: QuickTimeMovieDocument[] =
     appData && appData["openFiles"];
 
-  // Load Default Demo documents on open
+  // Load Default Demo documents on open (only if none exist)
   useEffect(() => {
+    if (!appOpen) return;
     const data = appData || {};
-    if (
-      (appOpen && !data["openFiles"]) ||
-      data["openFiles"]?.length === 0
-    ) {
-      const defaultDocs = [
-        {
-          url: "/vid/quicktime/sample.mp4",
-          name: "Quick Time",
-          icon: defaultDocumentIcon,
-          options: {},
-          type: "video",
-        },
-      ];
+    if (!data["openFiles"] || data["openFiles"]?.length === 0) {
       desktopEventDispatch({
         type: "ClassicyAppMoviePlayerOpenDocuments",
-        documents: defaultDocs,
-      });
-    } else {
-      desktopEventDispatch({
-        type: "ClassicyAppMoviePlayerOpenDocuments",
-        documents: data["openFiles"],
+        documents: [
+          {
+            url: "/vid/quicktime/sample.mp4",
+            name: "Quick Time",
+            icon: defaultDocumentIcon,
+            options: {},
+            type: "video",
+          },
+        ],
       });
     }
-  }, [appId, appData, appOpen, desktopEventDispatch]);
+  }, [appId, appOpen, desktopEventDispatch]);
 
   // const openUrl = (name: string, url: string, iconUrl?: string) => {
   //   desktopEventDispatch({

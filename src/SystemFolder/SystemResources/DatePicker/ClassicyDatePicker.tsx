@@ -28,7 +28,7 @@ export const ClassicyDatePicker: FunctionalComponent<ClassicyDatePickerProps> =
       disabled = false,
       isDefault,
       onChangeFunc,
-    }) {
+    }, _ref) {
       const dateTime = useAppManager(s => s.System.Manager.DateAndTime.dateTime);
 
       const yearRef = useRef<HTMLInputElement>(null);
