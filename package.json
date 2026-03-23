@@ -29,6 +29,8 @@
     "build:watch": "concurrently --kill-others \"npm run build:watchaudio\" \"npm run build:watchsource\"",
     "build:watchaudio": "nodemon --watch \"resources/sounds/**\" --ext \"mp3,mp4,wav,aif,aiff,ogg,flac,m4a,ac3,json\" --exec \"npm run build:audio\" --ignore \"example/**\" ",
     "build:watchsource": "nodemon --watch \"src/**\" --watch \"assets/**\" --ext \"tsx,ts,json,css,scss,png,jpg,svg\" --exec \"tsc -b && vite build\" --ignore \"example/**\" ",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "lint": "eslint .",
     "preview": "npm run build && npm link && cd example && npm i && npm link classicy && npm run build && npm run dev"
   },
@@ -90,6 +92,7 @@
     "eslint-plugin-react-refresh": "^0.5.0",
     "file-loader": "^6.2.0",
     "globals": "^17.3.0",
+    "jsdom": "^29.0.1",
     "nodemon": "^3.1.11",
     "postcss": "^8.5.6",
     "react": "^19.2.0",
@@ -104,7 +107,8 @@
     "vite": "^7.2.4",
     "vite-plugin-dts": "^4.5.4",
     "vite-plugin-image-tools": "^3.1.1",
-    "vite-plugin-react-rich-svg": "^1.3.0"
+    "vite-plugin-react-rich-svg": "^1.3.0",
+    "vitest": "^4.1.1"
   },
   "volta": {
     "node": "24.12.0"
