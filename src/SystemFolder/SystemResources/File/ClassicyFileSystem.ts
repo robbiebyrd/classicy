@@ -175,45 +175,6 @@ export class ClassicyFileSystem {
         }
 
         return updateObjProp(this.fs, data, path)
-
-        //     let directoryPath = path.split(':')
-        //     const filename = directoryPath.pop()
-        //     if (!this.resolve(directoryPath.join(':'))) {
-        //         this.mkDir(directoryPath.join(':'))
-        //     }
-        //
-        //     let pathArray = []
-        //     let cs: ClassicyFileSystemEntry
-        //     return directoryPath.map((p) => {
-        //         pathArray.push(p)
-        //
-        //         const dir = this.resolve(directoryPath.join(':'))
-        //         cs[p] = dir
-        //         return dir
-        //     })
-        //
-        //     let newDirectoryObject = metaData
-        //         ? metaData
-        //         : {
-        //               _type: 'file',
-        //               _icon: `/img/icons/system/files/file.png`,
-        //           }
-        //
-        //     newDirectoryObject['_data'] = data
-        //
-        //     let current
-        //     let reference = current
-        //     const parts: string[] = this.pathArray(path)
-        //
-        //     for (let i = parts.length - 1; i >= 0; i--) {
-        //         reference = current
-        //         current = i === 0 ? {} : newDirectoryObject
-        //         current[parts[i]] =
-        //             i === parts.length - 1 ? newDirectoryObject : reference
-        //     }
-        //
-        //     this.fs = this.deepMerge(current, this.fs)
-        // }
     }
 
     rmDir(path: string) {
@@ -279,7 +240,7 @@ export class ClassicyFileSystem {
                 return b['_invisible']
             })
             .filter(function (element) {
-                return element === false
+                return element === true
             })
         return invisibleFiles.length
     }
