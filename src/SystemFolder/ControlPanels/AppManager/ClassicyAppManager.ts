@@ -66,9 +66,6 @@ export interface ClassicyStoreSystemAppWindow {
 
 export interface ClassicyStore {
   System: ClassicyStoreSystem;
-  Resource?: {
-    App: Record<string, ClassicyStoreSystemApp>;
-  };
 }
 
 export interface ClassicyStoreSystem {
@@ -93,124 +90,116 @@ export interface ClassicyStoreSystemDateAndTimeManager extends ClassicyStoreSyst
   show: boolean;
 }
 
-export interface ClassicyStoreSystemManager {
-  version?: number;
+export interface ClassicyStoreSystemManager {}
+
+export function deFocusApps(ds: ClassicyStore) {
+  Object.entries(ds.System.Manager.App.apps).forEach(([key]) => {
+    ds.System.Manager.App.apps[key].focused = false;
+    ds.System.Manager.App.apps[key].windows = ds.System.Manager.App.apps[
+      key
+    ].windows.map((w) => {
+      w.focused = false;
+      return w;
+    });
+  });
+  return ds;
 }
 
-export class ClassicyAppManagerHandler {
-  public getAppIndex(ds: ClassicyStore, appId: string) {
-    return ds.System.Manager.App.apps[appId];
+export function focusApp(ds: ClassicyStore, appId: string) {
+  ds = deFocusApps(ds);
+  if (ds.System.Manager.App.apps[appId]) {
+    ds.System.Manager.App.apps[appId].focused = true;
   }
+  const focusedWindow = ds.System.Manager.App.apps[appId]?.windows.findIndex(
+    (w) => w.default,
+  );
+  if (focusedWindow >= 0) {
+    ds.System.Manager.App.apps[appId].windows[focusedWindow].closed = false;
+    ds.System.Manager.App.apps[appId].windows[focusedWindow].focused = true;
+    if (ds.System.Manager.App.apps[appId].appMenu) {
+      ds.System.Manager.Desktop.appMenu =
+        ds.System.Manager.App.apps[appId].appMenu;
+    }
+  } else if (ds.System.Manager.App.apps[appId]?.windows.length == 1) {
+    ds.System.Manager.App.apps[appId].windows[0].closed = false;
+    ds.System.Manager.App.apps[appId].windows[0].focused = true;
+    if (ds.System.Manager.App.apps[appId].appMenu) {
+      ds.System.Manager.Desktop.appMenu =
+        ds.System.Manager.App.apps[appId].appMenu;
+    }
+  }
+}
 
-  public deFocusApps(ds: ClassicyStore) {
-    Object.entries(ds.System.Manager.App.apps).forEach(([key]) => {
-      ds.System.Manager.App.apps[key].focused = false;
+export function openApp(
+  ds: ClassicyStore,
+  appId: string,
+  appName: string,
+  appIcon: string,
+) {
+  const findApp = ds.System.Manager.App.apps[appId];
+  if (findApp) {
+    ds.System.Manager.App.apps[appId].open = true;
+    ds.System.Manager.App.apps[appId].windows = ds.System.Manager.App.apps[
+      appId
+    ].windows.map((w) => {
+      w.closed = false;
+      return w;
+    });
+    focusApp(ds, appId);
+  } else {
+    ds.System.Manager.App.apps[appId] = {
+      id: appId,
+      name: appName,
+      icon: appIcon,
+      windows: [],
+      open: true,
+      data: {},
+    };
+  }
+}
+
+export function loadApp(
+  ds: ClassicyStore,
+  appId: string,
+  appName: string,
+  appIcon: string,
+) {
+  const findApp = ds.System.Manager.App.apps[appId];
+  if (!findApp) {
+    ds.System.Manager.App.apps[appId] = {
+      id: appId,
+      name: appName,
+      icon: appIcon,
+      windows: [],
+      open: false,
+      data: {},
+    };
+  }
+}
+
+export function closeApp(ds: ClassicyStore, appId: string) {
+  const findApp = ds.System.Manager.App.apps[appId];
+  if (findApp) {
+    ds.System.Manager.App.apps[appId].open = false;
+    ds.System.Manager.App.apps[appId].focused = false;
+    ds.System.Manager.App.apps[appId].windows?.map((w) => (w.closed = true));
+  }
+}
+
+export function activateApp(ds: ClassicyStore, appId: string) {
+  Object.entries(ds.System.Manager.App.apps).forEach(([key]) => {
+    ds.System.Manager.App.apps[key].focused = key === appId;
+  });
+  Object.entries(ds.System.Manager.App.apps).forEach(([key]) => {
+    if (key !== appId) {
       ds.System.Manager.App.apps[key].windows = ds.System.Manager.App.apps[
         key
       ].windows.map((w) => {
         w.focused = false;
         return w;
       });
-    });
-    return ds;
-  }
-
-  public focusApp(ds: ClassicyStore, appId: string) {
-    ds = this.deFocusApps(ds);
-    if (ds.System.Manager.App.apps[appId]) {
-      ds.System.Manager.App.apps[appId].focused = true;
     }
-    const focusedWindow = ds.System.Manager.App.apps[appId]?.windows.findIndex(
-      (w) => w.default,
-    );
-    if (focusedWindow > 0) {
-      ds.System.Manager.App.apps[appId].windows[focusedWindow].closed = false;
-      ds.System.Manager.App.apps[appId].windows[focusedWindow].focused = true;
-      if (ds.System.Manager.App.apps[appId].appMenu) {
-        ds.System.Manager.Desktop.appMenu =
-          ds.System.Manager.App.apps[appId].appMenu;
-      }
-    } else if (ds.System.Manager.App.apps[appId]?.windows.length == 1) {
-      ds.System.Manager.App.apps[appId].windows[0].closed = false;
-      ds.System.Manager.App.apps[appId].windows[0].focused = true;
-      if (ds.System.Manager.App.apps[appId].appMenu) {
-        ds.System.Manager.Desktop.appMenu =
-          ds.System.Manager.App.apps[appId].appMenu;
-      }
-    }
-  }
-
-  public openApp(
-    ds: ClassicyStore,
-    appId: string,
-    appName: string,
-    appIcon: string,
-  ) {
-    const findApp = ds.System.Manager.App.apps[appId];
-    if (findApp) {
-      ds.System.Manager.App.apps[appId].open = true;
-      ds.System.Manager.App.apps[appId].windows = ds.System.Manager.App.apps[
-        appId
-      ].windows.map((w) => {
-        w.closed = false;
-        return w;
-      });
-      this.focusApp(ds, appId);
-    } else {
-      ds.System.Manager.App.apps[appId] = {
-        id: appId,
-        name: appName,
-        icon: appIcon,
-        windows: [],
-        open: true,
-        data: {},
-      };
-    }
-  }
-
-  public loadApp(
-    ds: ClassicyStore,
-    appId: string,
-    appName: string,
-    appIcon: string,
-  ) {
-    const findApp = ds.System.Manager.App.apps[appId];
-    if (!findApp) {
-      ds.System.Manager.App.apps[appId] = {
-        id: appId,
-        name: appName,
-        icon: appIcon,
-        windows: [],
-        open: false,
-        data: {},
-      };
-    }
-  }
-
-  public closeApp(ds: ClassicyStore, appId: string) {
-    const findApp = ds.System.Manager.App.apps[appId];
-    if (findApp) {
-      ds.System.Manager.App.apps[appId].open = false;
-      ds.System.Manager.App.apps[appId].focused = false;
-      ds.System.Manager.App.apps[appId].windows?.map((w) => (w.closed = true));
-    }
-  }
-
-  public activateApp(ds: ClassicyStore, appId: string) {
-    Object.entries(ds.System.Manager.App.apps).forEach(([key]) => {
-      ds.System.Manager.App.apps[key].focused = key === appId;
-    });
-    Object.entries(ds.System.Manager.App.apps).forEach(([key]) => {
-      if (key !== appId) {
-        ds.System.Manager.App.apps[key].windows = ds.System.Manager.App.apps[
-          key
-        ].windows.map((w) => {
-          w.focused = false;
-          return w;
-        });
-      }
-    });
-  }
+  });
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -222,19 +211,17 @@ export const classicyAppEventHandler = (
   ds: ClassicyStore,
   action: ActionMessage,
 ) => {
-  const handler = new ClassicyAppManagerHandler();
-
   switch (action.type) {
     case "ClassicyAppOpen": {
-      handler.openApp(ds, action.app.id, action.app.name, action.app.icon);
+      openApp(ds, action.app.id, action.app.name, action.app.icon);
       break;
     }
     case "ClassicyAppLoad": {
-      handler.loadApp(ds, action.app.id, action.app.name, action.app.icon);
+      loadApp(ds, action.app.id, action.app.name, action.app.icon);
       break;
     }
     case "ClassicyAppClose": {
-      handler.closeApp(ds, action.app.id);
+      closeApp(ds, action.app.id);
       const openApps = Object.values(ds.System.Manager.App.apps).find(
         (value) => {
           return value.open;
@@ -242,17 +229,17 @@ export const classicyAppEventHandler = (
       );
 
       if (openApps?.id) {
-        handler.focusApp(ds, openApps.id);
+        focusApp(ds, openApps.id);
       }
 
       break;
     }
     case "ClassicyAppFocus": {
-      handler.focusApp(ds, action.app.id);
+      focusApp(ds, action.app.id);
       break;
     }
     case "ClassicyAppActivate": {
-      handler.activateApp(ds, action.app.id);
+      activateApp(ds, action.app.id);
       break;
     }
   }
@@ -270,32 +257,25 @@ export const classicyDesktopStateEventReducer = (
     console.log("Start State: ", ds);
   }
 
-  let handled = false;
   if ("type" in action) {
     if (action.type.startsWith("ClassicyWindow")) {
       ds = classicyWindowEventHandler(ds, action);
-      handled = true;
     } else if (action.type.startsWith("ClassicyAppFinder")) {
       ds = classicyFinderEventHandler(ds, action);
-      handled = true;
     } else if (action.type.startsWith("ClassicyAppMoviePlayer")) {
       ds = classicyQuickTimeMoviePlayerEventHandler(ds, action);
-      handled = true;
     } else if (action.type.startsWith("ClassicyAppPictureViewer")) {
       ds = classicyQuickTimePictureViewerEventHandler(ds, action);
-      handled = true;
     } else if (action.type.startsWith("ClassicyDesktopIcon")) {
       ds = classicyDesktopIconEventHandler(ds, action);
-      handled = true;
     } else if (action.type.startsWith("ClassicyDesktop")) {
       ds = classicyDesktopEventHandler(ds, action);
-      handled = true;
     } else if (action.type.startsWith("ClassicyManagerDateTime")) {
       ds = classicyDateTimeManagerEventHandler(ds, action);
-      handled = true;
     } else if (action.type.startsWith("ClassicyApp")) {
       ds = classicyAppEventHandler(ds, action);
-      handled = true;
+    } else if (process.env.NODE_ENV !== 'production') {
+      console.warn('[ClassicyDesktopStateEventReducer] Unhandled action type', { type: action.type });
     }
   }
 
@@ -304,7 +284,7 @@ export const classicyDesktopStateEventReducer = (
     console.groupEnd();
   }
 
-  return handled ? { ...ds } : ds;
+  return ds;
 };
 
 export const DefaultAppManagerState: ClassicyStore = {
@@ -336,7 +316,7 @@ export const DefaultAppManagerState: ClassicyStore = {
             id: "about",
             title: "About This Computer",
             keyboardShortcut: "&#8984;S",
-            onClickFunc: () => console.log("ABOUT"),
+            onClickFunc: () => {},
           },
           { id: "spacer" },
         ],

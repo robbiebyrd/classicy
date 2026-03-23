@@ -18,7 +18,7 @@ export class ClassicyFileSystem {
         this.storageKey = storageKey
         this.fs = defaultFS
 
-        const retrieved = localStorage.getItem(this.storageKey)
+        const retrieved = typeof window !== 'undefined' ? localStorage.getItem(this.storageKey) : null
         if (typeof window !== 'undefined' && retrieved) {
             try {
                 const parsed = JSON.parse(retrieved)
@@ -31,11 +31,21 @@ export class ClassicyFileSystem {
         }
 
         this.separator = separator
-        localStorage.setItem(this.storageKey, this.snapshot())
+        try {
+            localStorage.setItem(this.storageKey, this.snapshot())
+        } catch (error) {
+            console.error('[ClassicyFileSystem] Failed to persist initial filesystem to localStorage.', error)
+        }
     }
 
     load(data: string) {
-        this.fs = JSON.parse(data) as ClassicyFileSystemEntry
+        try {
+            const parsed = JSON.parse(data) as ClassicyFileSystemEntry
+            this.fs = parsed
+        } catch (error) {
+            console.error('[ClassicyFileSystem] Failed to parse data in load()', error)
+            throw error
+        }
     }
 
     snapshot(): string {
@@ -105,8 +115,9 @@ export class ClassicyFileSystem {
         return filteredItems
     }
 
-    statFile(path: string): ClassicyFileSystemEntry {
+    statFile(path: string): ClassicyFileSystemEntry | undefined {
         let item = this.resolve(path)
+        if (!item) return undefined
         item['_size'] = this.size(path)
         return item
     }
@@ -165,45 +176,6 @@ export class ClassicyFileSystem {
         }
 
         return updateObjProp(this.fs, data, path)
-
-        //     let directoryPath = path.split(':')
-        //     const filename = directoryPath.pop()
-        //     if (!this.resolve(directoryPath.join(':'))) {
-        //         this.mkDir(directoryPath.join(':'))
-        //     }
-        //
-        //     let pathArray = []
-        //     let cs: ClassicyFileSystemEntry
-        //     return directoryPath.map((p) => {
-        //         pathArray.push(p)
-        //
-        //         const dir = this.resolve(directoryPath.join(':'))
-        //         cs[p] = dir
-        //         return dir
-        //     })
-        //
-        //     let newDirectoryObject = metaData
-        //         ? metaData
-        //         : {
-        //               _type: 'file',
-        //               _icon: `/img/icons/system/files/file.png`,
-        //           }
-        //
-        //     newDirectoryObject['_data'] = data
-        //
-        //     let current
-        //     let reference = current
-        //     const parts: string[] = this.pathArray(path)
-        //
-        //     for (let i = parts.length - 1; i >= 0; i--) {
-        //         reference = current
-        //         current = i === 0 ? {} : newDirectoryObject
-        //         current[parts[i]] =
-        //             i === parts.length - 1 ? newDirectoryObject : reference
-        //     }
-        //
-        //     this.fs = this.deepMerge(current, this.fs)
-        // }
     }
 
     rmDir(path: string) {
@@ -253,7 +225,9 @@ export class ClassicyFileSystem {
     }
 
     countVisibleFiles(path: string): number {
-        const visibleFiles: boolean[] = Object.entries(this.filterMetadata(this.resolve(path)))
+        const resolved = this.resolve(path)
+        if (!resolved) return 0
+        const visibleFiles: boolean[] = Object.entries(this.filterMetadata(resolved))
             .map(([_, b]) => {
                 return !b['_invisible']
             })
@@ -264,12 +238,14 @@ export class ClassicyFileSystem {
     }
 
     countInvisibleFilesInDir(path: string): number {
-        const invisibleFiles: boolean[] = Object.entries(this.filterMetadata(this.resolve(path)))
+        const resolved = this.resolve(path)
+        if (!resolved) return 0
+        const invisibleFiles: boolean[] = Object.entries(this.filterMetadata(resolved))
             .map(([a, b]) => {
                 return b['_invisible']
             })
             .filter(function (element) {
-                return element === false
+                return element === true
             })
         return invisibleFiles.length
     }

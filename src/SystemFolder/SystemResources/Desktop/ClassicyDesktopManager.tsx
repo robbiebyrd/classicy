@@ -1,8 +1,8 @@
 import {
     ActionMessage,
-    ClassicyAppManagerHandler,
     ClassicyStore,
     ClassicyStoreSystemManager,
+    deFocusApps,
 } from '@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager'
 import {ClassicyMenuItem} from '@/SystemFolder/SystemResources/Menu/ClassicyMenu'
 import { MouseEvent } from 'react'
@@ -35,8 +35,6 @@ export interface ClassicyStoreSystemDesktopManager extends ClassicyStoreSystemMa
 }
 
 export const classicyDesktopEventHandler = (ds: ClassicyStore, action: ActionMessage) => {
-    const mgr = new ClassicyAppManagerHandler()
-
     switch (action.type) {
         case 'ClassicyDesktopAppMenuAdd': {
             const menuItem = {
@@ -73,7 +71,7 @@ export const classicyDesktopEventHandler = (ds: ClassicyStore, action: ActionMes
         }
         case 'ClassicyDesktopFocus': {
             if ('e' in action && action.e.target.id === 'classicyDesktop') {
-                ds = mgr.deFocusApps(ds)
+                deFocusApps(ds)
 
                 ds.System.Manager.App.apps['Finder.app'].focused = true
                 ds.System.Manager.Desktop.selectedIcons = []
@@ -86,9 +84,6 @@ export const classicyDesktopEventHandler = (ds: ClassicyStore, action: ActionMes
                 ds.System.Manager.Desktop.appMenu = action.menuBar
             }
 
-            break
-        }
-        case 'ClassicyDesktopDoubleClick': {
             break
         }
         case 'ClassicyDesktopDrag': {

@@ -1,5 +1,3 @@
-"use client";
-
 import appIcon from "./resources/app.png";
 import packageIcon from "./resources/platinum.png";
 import {
@@ -23,12 +21,17 @@ import { ClassicyInput } from "@/SystemFolder/SystemResources/Input/ClassicyInpu
 import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
 import { ClassicyTabs } from "@/SystemFolder/SystemResources/Tabs/ClassicyTabs";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
-import { FC as FunctionalComponent, ChangeEvent, useState } from "react";
+import { FC as FunctionalComponent, ChangeEvent, useMemo, useState } from "react";
 import {
   ClassicyDefaultWallpaper,
   ClassicyWallpapers,
 } from "./ClassicyWallpapers";
-import { ClassicyFonts } from "./ClassicyFonts";
+const ClassicyFonts = [
+  { label: "Charcoal", value: "Charcoal" },
+  { label: "ChicagoFLF", value: "ChicagoFLF" },
+  { label: "Geneva", value: "Geneva" },
+  { label: "AppleGaramond", value: "AppleGaramond" },
+];
 
 function isValidUrlWithRegex(url: string): boolean {
   const urlPattern = /^(https?):\/\/[^\s/$.?#].[^\s]*$/i;
@@ -52,8 +55,12 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
       : ClassicyDefaultWallpaper,
   );
 
-  const themesList = appearanceState.availableThemes?.map((a: ClassicyTheme) =>
-    (({ id, name }) => ({ value: id, label: name }))(a),
+  const themesList = useMemo(
+    () =>
+      appearanceState.availableThemes?.map((a: ClassicyTheme) =>
+        (({ id, name }) => ({ value: id, label: name }))(a),
+      ),
+    [appearanceState.availableThemes],
   );
 
   const switchTheme = async (e: ChangeEvent<HTMLSelectElement>) => {
@@ -61,7 +68,7 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
       type: "ClassicyDesktopChangeTheme",
       activeTheme: e.currentTarget.value,
     });
-    await loadSoundTheme(e.currentTarget.value);
+    await fetchAndApplySoundTheme(e.currentTarget.value);
   };
 
   const changeBackground = (e: ChangeEvent<HTMLSelectElement>) => {
@@ -110,16 +117,22 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
       fontType: e.target.id,
     });
   };
-  const loadSoundTheme = async (themeName: string) => {
+  const fetchAndApplySoundTheme = async (themeName: string) => {
     const soundTheme = getTheme(themeName).sound;
-    const data = await fetch(soundTheme.file).then((response) =>
-      response.json(),
-    );
-    player({
-      type: "ClassicySoundLoad",
-      file: data,
-      disabled: soundTheme.disabled,
-    });
+    try {
+      const response = await fetch(soundTheme.file);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const data = await response.json();
+      player({
+        type: "ClassicySoundLoad",
+        file: data,
+        disabled: soundTheme.disabled,
+      });
+    } catch (error) {
+      console.error("[ClassicyAppearanceManager] Failed to load sound theme", { themeName, error });
+    }
   };
 
   const quitApp = () => {

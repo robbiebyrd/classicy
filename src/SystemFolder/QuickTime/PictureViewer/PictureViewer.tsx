@@ -25,20 +25,18 @@ export const QuickTimePictureViewer: FunctionalComponent = () => {
   const { name: appName, id: appId, icon: appIcon } = PictureViewerAppInfo;
 
   const desktopEventDispatch = useAppManagerDispatch();
-  const desktop = useAppManager();
-
-  const appData = desktop.System.Manager.App.apps[appId]?.data;
+  const appData = useAppManager(s => s.System.Manager.App.apps[appId]?.data);
+  const appOpen = useAppManager(s => s.System.Manager.App.apps[appId]?.open);
 
   const openDocuments =
     appData && "openFiles" in appData ? appData["openFiles"] : [];
 
   // Load Default Demo documents on open
   useEffect(() => {
-    const appData = desktop.System.Manager.App.apps[appId]?.data || {};
+    const data = appData || {};
     if (
-      (desktop.System.Manager.App.apps[appId]?.open &&
-        !appData["openDocuments"]) ||
-      appData["openDocuments"]?.length === 0
+      (appOpen && !data["openDocuments"]) ||
+      data["openDocuments"]?.length === 0
     ) {
       const defaultDocs = [
         {
@@ -52,7 +50,7 @@ export const QuickTimePictureViewer: FunctionalComponent = () => {
         documents: defaultDocs,
       });
     }
-  }, [appId, desktop.System.Manager.App.apps, desktopEventDispatch]);
+  }, [appId, appData, appOpen, desktopEventDispatch]);
 
   // const openUrl = (name: string, url: string, iconUrl?: string) => {
   //     desktopEventDispatch({

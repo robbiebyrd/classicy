@@ -1,6 +1,6 @@
 import "./ClassicyIcon.scss";
 import classNames from "classnames";
-import { FC as FunctionalComponent, MouseEvent, useMemo, useRef, useState } from "react";
+import { FC as FunctionalComponent, MouseEvent, useId, useRef, useState } from "react";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
 interface ClassicyIconProps {
@@ -77,9 +77,7 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
       ]);
     }
   };
-  const iconId = useMemo(() => {
-    return Math.random().toString(36).substring(2, 7);
-  }, []);
+  const iconId = useId();
 
   return (
     <div

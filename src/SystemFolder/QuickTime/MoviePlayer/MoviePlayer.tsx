@@ -14,19 +14,18 @@ export const MoviePlayer: FunctionalComponent = () => {
   const { name: appName, id: appId, icon: appIcon } = MoviePlayerAppInfo;
 
   const desktopEventDispatch = useAppManagerDispatch();
-  const desktop = useAppManager();
+  const appData = useAppManager(s => s.System.Manager.App.apps[appId]?.data);
+  const appOpen = useAppManager(s => s.System.Manager.App.apps[appId]?.open);
 
   const openDocuments: QuickTimeMovieDocument[] =
-    desktop.System.Manager.App.apps[appId]?.data &&
-    desktop.System.Manager.App.apps[appId].data["openFiles"];
+    appData && appData["openFiles"];
 
   // Load Default Demo documents on open
   useEffect(() => {
-    const appData = desktop.System.Manager.App.apps[appId]?.data || {};
+    const data = appData || {};
     if (
-      (desktop.System.Manager.App.apps[appId]?.open &&
-        !appData["openDocuments"]) ||
-      appData["openDocuments"]?.length === 0
+      (appOpen && !data["openFiles"]) ||
+      data["openFiles"]?.length === 0
     ) {
       const defaultDocs = [
         {
@@ -44,10 +43,10 @@ export const MoviePlayer: FunctionalComponent = () => {
     } else {
       desktopEventDispatch({
         type: "ClassicyAppMoviePlayerOpenDocuments",
-        documents: appData["openDocuments"],
+        documents: data["openFiles"],
       });
     }
-  }, [appId, desktop.System.Manager.App.apps, desktopEventDispatch]);
+  }, [appId, appData, appOpen, desktopEventDispatch]);
 
   // const openUrl = (name: string, url: string, iconUrl?: string) => {
   //   desktopEventDispatch({

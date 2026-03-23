@@ -16,7 +16,7 @@ import { ClassicyDesktopMenuBar } from "@/SystemFolder/SystemResources/Desktop/M
 import { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import classNames from "classnames";
 import macosIcon from "@img/icons/system/macos.png";
-import { FC as FunctionalComponent, ReactNode, MouseEvent, CSSProperties, useEffect, useMemo, useState } from "react";
+import { FC as FunctionalComponent, ReactNode, MouseEvent, CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import "../../ControlPanels/AppearanceManager/styles/fonts.scss";
 
 interface ClassicyDesktopProps {
@@ -35,22 +35,31 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
   const [selectBox, setSelectBox] = useState(false);
 
   const clickOffset = [10, 10];
+  const rafIdRef = useRef<number | null>(null);
 
-  const desktopState = useAppManager();
+  const availableThemes = useAppManager(s => s.System.Manager.Appearance.availableThemes);
+  const activeTheme = useAppManager(s => s.System.Manager.Appearance.activeTheme);
+  const desktopIcons = useAppManager(s => s.System.Manager.Desktop.icons);
   const desktopEventDispatch = useAppManagerDispatch();
 
   // Load themes on mount if not already loaded
   useEffect(() => {
-    if (
-      desktopState.System.Manager.Appearance.availableThemes &&
-      desktopState.System.Manager.Appearance.availableThemes.length <= 0
-    ) {
+    if (availableThemes && availableThemes.length <= 0) {
       desktopEventDispatch({
         type: "ClassicyDesktopLoadThemes",
         availableThemes: getAllThemes(),
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Cancel any pending RAF on unmount to prevent state updates after teardown
+  useEffect(() => {
+    return () => {
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
+    };
   }, []);
 
   const startSelectBox = (e: MouseEvent<HTMLDivElement>) => {
@@ -67,10 +76,15 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
   };
 
   const resizeSelectBox = (e: MouseEvent<HTMLDivElement>) => {
-    setSelectBoxSize([
-      e.clientX - selectBoxStart[0],
-      e.clientY - selectBoxStart[1],
-    ]);
+    const x = e.clientX;
+    const y = e.clientY;
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+    }
+    rafIdRef.current = requestAnimationFrame(() => {
+      setSelectBoxSize([x - selectBoxStart[0], y - selectBoxStart[1]]);
+      rafIdRef.current = null;
+    });
   };
 
   const clearSelectBox = () => {
@@ -169,9 +183,7 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
     },
   ], [desktopEventDispatch]);
 
-  const currentTheme = getThemeVars(
-    desktopState.System.Manager.Appearance.activeTheme,
-  );
+  const currentTheme = useMemo(() => getThemeVars(activeTheme), [activeTheme]);
 
   return (
     <>
@@ -212,7 +224,7 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
             appIcon: macosIcon,
             hideFunc: () => setShowAbout(false),
           })}
-        {desktopState.System.Manager.Desktop.icons.map((i) => (
+        {desktopIcons.map((i) => (
           <ClassicyDesktopIcon
             appId={i.appId}
             appName={i.appName}

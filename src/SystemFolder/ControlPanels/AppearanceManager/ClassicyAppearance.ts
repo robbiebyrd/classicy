@@ -84,7 +84,7 @@ export type ClassicyTheme = {
   sound: ClassicyThemeSound;
 };
 
-const makeThemeStyle = (theme: ClassicyTheme) => {
+export const getThemeVars = (theme: ClassicyTheme) => {
   return {
     "--color-black": intToHex(theme.color.black),
     "--color-white": intToHex(theme.color.white),
@@ -136,10 +136,6 @@ const makeThemeStyle = (theme: ClassicyTheme) => {
   };
 };
 
-export const getThemeVars = (theme: ClassicyTheme) => {
-  return makeThemeStyle(theme);
-};
-
 export const getAllThemes = (): ClassicyTheme[] => {
   return themesData.map((t) => {
     return t as unknown as ClassicyTheme;
@@ -150,12 +146,12 @@ export const getTheme = (theme: string, overrides?: object) => {
   const namedThemeData =
     themesData.find((t) => t.id === theme) || themesData[0];
   const updatedTheme = overrides
-    ? mergeDeep(namedThemeData, overrides)
+    ? mergeDeep(structuredClone(namedThemeData) as Record<string, unknown>, overrides)
     : namedThemeData;
   return updatedTheme as ClassicyTheme;
 };
 
-export const mergeDeep = (
+const mergeDeep = (
   target: Record<string, unknown>,
   ...sources: unknown[]
 ): Record<string, unknown> => {

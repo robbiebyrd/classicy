@@ -34,7 +34,7 @@ export const ClassicyAboutWindow: FunctionalComponent<ClassicyAboutWindowProps> 
 
   return (
     <ClassicyWindow
-      id="AppearanceManager_about"
+      id={appId + "_about"}
       appId={appId}
       closable={false}
       resizable={false}

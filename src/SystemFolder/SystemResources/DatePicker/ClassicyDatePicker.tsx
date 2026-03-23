@@ -29,29 +29,23 @@ export const ClassicyDatePicker: FunctionalComponent<ClassicyDatePickerProps> =
       isDefault,
       onChangeFunc,
     }) {
-      const desktop = useAppManager();
+      const dateTime = useAppManager(s => s.System.Manager.DateAndTime.dateTime);
 
       const yearRef = useRef<HTMLInputElement>(null);
       const monthRef = useRef<HTMLInputElement>(null);
       const dayRef = useRef<HTMLInputElement>(null);
 
       const [selectedDate, setSelectedDate] = useState<Date>(
-        new Date(desktop.System.Manager.DateAndTime.dateTime),
+        new Date(dateTime),
       );
       const [month, setMonth] = useState<string>(
-        (
-          new Date(desktop.System.Manager.DateAndTime.dateTime).getMonth() + 1
-        ).toString(),
+        (new Date(dateTime).getMonth() + 1).toString(),
       );
       const [day, setDay] = useState<string>(
-        new Date(desktop.System.Manager.DateAndTime.dateTime)
-          .getDate()
-          .toString(),
+        new Date(dateTime).getDate().toString(),
       );
       const [year, setYear] = useState<string>(
-        new Date(desktop.System.Manager.DateAndTime.dateTime)
-          .getFullYear()
-          .toString(),
+        new Date(dateTime).getFullYear().toString(),
       );
 
       const selectText = (e: MouseEvent<HTMLInputElement>) => {

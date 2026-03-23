@@ -13,6 +13,8 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import classNames from "classnames";
+
+const columnHelper = createColumnHelper<ClassicyFileSystemEntryMetadata>();
 import { FC as FunctionalComponent, memo, RefObject, useMemo, useState } from "react";
 import arrowUpIcon from "@img/ui/menu-dropdown-arrow-up.svg";
 
@@ -89,9 +91,6 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
         });
       }, [path, fs]);
 
-      const columnHelper =
-        createColumnHelper<ClassicyFileSystemEntryMetadata>();
-
       const columns = useMemo(
         () => [
           columnHelper.accessor((row) => row._name, {
@@ -134,7 +133,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
             enableResizing: true,
           }),
         ],
-        [columnHelper, fs, iconSize],
+        [fs, iconSize],
       );
 
       const table = useReactTable({
