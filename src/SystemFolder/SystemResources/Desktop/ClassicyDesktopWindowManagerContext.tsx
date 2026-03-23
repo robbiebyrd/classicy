@@ -102,6 +102,7 @@ export const classicyWindowEventHandler = (
   action: ActionMessage,
 ) => {
   const updateWindow = (appId: string, windowId: string, updates: any) => {
+    if (!ds.System.Manager.App.apps[appId]) return ds;
     ds.System.Manager.App.apps[appId].windows = ds.System.Manager.App.apps[
       appId
     ].windows.map((w: ClassicyStoreSystemAppWindow) =>
@@ -112,6 +113,7 @@ export const classicyWindowEventHandler = (
 
   switch (action.type) {
     case "ClassicyWindowOpen": {
+      if (!ds.System.Manager.App.apps[action.app.id]) break;
       const window = ds.System.Manager.App.apps[
         action.app.id
       ].windows.findIndex((w) => w.id === action.window.id);
@@ -156,6 +158,7 @@ export const classicyWindowEventHandler = (
     }
 
     case "ClassicyWindowDestroy": {
+      if (!ds.System.Manager.App.apps[action.app.id]) break;
       ds = updateWindow(action.app.id, action.window.id, { closed: true });
       ds.System.Manager.App.apps[action.app.id].windows =
         ds.System.Manager.App.apps[action.app.id].windows
@@ -169,6 +172,7 @@ export const classicyWindowEventHandler = (
     }
 
     case "ClassicyWindowResize": {
+      if (!ds.System.Manager.App.apps[action.app.id]) break;
       ds.System.Manager.App.apps[action.app.id].windows =
         ds.System.Manager.App.apps[action.app.id].windows.map((w) => {
           if (w.id == action.window.id) {
@@ -180,6 +184,7 @@ export const classicyWindowEventHandler = (
       break;
     }
     case "ClassicyWindowDrag": {
+      if (!ds.System.Manager.App.apps[action.app.id]) break;
       ds.System.Manager.App.apps[action.app.id].windows =
         ds.System.Manager.App.apps[action.app.id].windows.map((w) => {
           if (w.id == action.window.id) {
@@ -190,6 +195,7 @@ export const classicyWindowEventHandler = (
       break;
     }
     case "ClassicyWindowZoom": {
+      if (!ds.System.Manager.App.apps[action.app.id]) break;
       ds.System.Manager.App.apps[action.app.id].windows =
         ds.System.Manager.App.apps[action.app.id].windows.map((w) => {
           if (w.id == action.window.id) {
@@ -200,6 +206,7 @@ export const classicyWindowEventHandler = (
       break;
     }
     case "ClassicyWindowCollapse": {
+      if (!ds.System.Manager.App.apps[action.app.id]) break;
       ds.System.Manager.App.apps[action.app.id].windows =
         ds.System.Manager.App.apps[action.app.id].windows.map((w) => {
           if (w.id == action.window.id) {
@@ -210,6 +217,7 @@ export const classicyWindowEventHandler = (
       break;
     }
     case "ClassicyWindowExpand": {
+      if (!ds.System.Manager.App.apps[action.app.id]) break;
       ds.System.Manager.App.apps[action.app.id].windows =
         ds.System.Manager.App.apps[action.app.id].windows.map((w) => {
           if (w.id == action.window.id) {
@@ -220,6 +228,7 @@ export const classicyWindowEventHandler = (
       break;
     }
     case "ClassicyWindowMove": {
+      if (!ds.System.Manager.App.apps[action.app.id]) break;
       ds.System.Manager.App.apps[action.app.id].windows =
         ds.System.Manager.App.apps[action.app.id].windows.map((w) => {
           if (w.id == action.window.id) {
@@ -231,6 +240,7 @@ export const classicyWindowEventHandler = (
       break;
     }
     case "ClassicyWindowPosition": {
+      if (!ds.System.Manager.App.apps[action.app.id]) break;
       ds.System.Manager.App.apps[action.app.id].windows =
         ds.System.Manager.App.apps[action.app.id].windows.map((w) => {
           if (w.id == action.window.id) {

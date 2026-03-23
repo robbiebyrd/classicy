@@ -54,6 +54,15 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Cancel any pending RAF on unmount to prevent state updates after teardown
+  useEffect(() => {
+    return () => {
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
+    };
+  }, []);
+
   const startSelectBox = (e: MouseEvent<HTMLDivElement>) => {
     if ("id" in e.target && e.target.id == "classicyDesktop") {
       if (e.button > 1) {

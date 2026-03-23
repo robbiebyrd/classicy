@@ -1,5 +1,5 @@
 import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
-import { FC as FunctionalComponent, useRef, useCallback } from "react";
+import { FC as FunctionalComponent, useRef } from "react";
 import { ClassicyFileBrowserViewIcons } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewIcons";
 import { ClassicyFileBrowserViewTable } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewTable";
 
@@ -26,35 +26,12 @@ export const ClassicyFileBrowser: FunctionalComponent<ClassicyFileBrowserProps> 
 }) => {
   const holderRef = useRef<HTMLDivElement>(null);
 
-  // Use useCallback to create stable references for callback functions
-  const handleDirClick = useCallback(
-    (path: string) => {
-      if (dirOnClickFunc) {
-        dirOnClickFunc(path);
-      }
-    },
-    [dirOnClickFunc],
-  );
-
-  const handleFileClick = useCallback(
-    (path: string) => {
-      if (fileOnClickFunc) {
-        fileOnClickFunc(path);
-      }
-    },
-    [fileOnClickFunc],
-  );
-
-  // Use default functions if no callbacks provided
-  const finalDirClick = dirOnClickFunc ? handleDirClick : defaultDirOnClick;
-  const finalFileClick = fileOnClickFunc ? handleFileClick : defaultFileOnClick;
-
   return (
     <div style={{ position: "absolute", width: "100%", height: "100%" }}>
       {display === "list" ? (
         <ClassicyFileBrowserViewTable
-          fileOnClickFunc={finalFileClick}
-          dirOnClickFunc={finalDirClick}
+          fileOnClickFunc={fileOnClickFunc ?? defaultFileOnClick}
+          dirOnClickFunc={dirOnClickFunc ?? defaultDirOnClick}
           fs={fs}
           path={path}
           appId={appId}
@@ -63,8 +40,8 @@ export const ClassicyFileBrowser: FunctionalComponent<ClassicyFileBrowserProps> 
         />
       ) : (
         <ClassicyFileBrowserViewIcons
-          fileOnClickFunc={finalFileClick}
-          dirOnClickFunc={finalDirClick}
+          fileOnClickFunc={fileOnClickFunc ?? defaultFileOnClick}
+          dirOnClickFunc={dirOnClickFunc ?? defaultDirOnClick}
           fs={fs}
           path={path}
           appId={appId}

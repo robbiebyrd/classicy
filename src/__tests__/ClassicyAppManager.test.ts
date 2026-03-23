@@ -180,24 +180,38 @@ describe("classicyDesktopStateEventReducer", () => {
     expect(result).toBe(original);
   });
 
-  it("returns a new state object for handled ClassicyApp* actions", () => {
+  it("returns state with the new app registered for ClassicyAppOpen", () => {
     const ds = makeStore();
     const result = classicyDesktopStateEventReducer(ds, {
       type: "ClassicyAppOpen",
       app: { id: "Calculator.app", name: "Calculator", icon: "" },
     });
-    expect(result).not.toBe(ds);
     expect(result.System.Manager.App.apps["Calculator.app"]).toBeDefined();
+    expect(result.System.Manager.App.apps["Calculator.app"].open).toBe(true);
   });
 
-  it("routes ClassicyWindow* actions without throwing", () => {
+  it("routes ClassicyWindowFocus: sets the target window and app as focused", () => {
     const ds = makeStore();
+    ds.System.Manager.App.apps["Finder.app"].focused = false;
     ds.System.Manager.App.apps["Finder.app"].windows = [
-      { id: "w1", closed: false, size: [400, 300], position: [0, 0], minimumSize: [100, 100] },
+      { id: "w1", closed: false, focused: false, size: [400, 300], position: [0, 0], minimumSize: [100, 100] },
+      { id: "w2", closed: false, focused: true, size: [400, 300], position: [0, 0], minimumSize: [100, 100] },
     ];
-    expect(() =>
-      classicyDesktopStateEventReducer(ds, { type: "ClassicyWindowFocus", app: { id: "Finder.app" }, window: { id: "w1" } })
-    ).not.toThrow();
+
+    const result = classicyDesktopStateEventReducer(ds, {
+      type: "ClassicyWindowFocus",
+      app: { id: "Finder.app" },
+      window: { id: "w1" },
+    });
+
+    // The target app is now focused
+    expect(result.System.Manager.App.apps["Finder.app"].focused).toBe(true);
+
+    // The target window is focused; the other window is not
+    const w1 = result.System.Manager.App.apps["Finder.app"].windows.find((w) => w.id === "w1");
+    const w2 = result.System.Manager.App.apps["Finder.app"].windows.find((w) => w.id === "w2");
+    expect(w1?.focused).toBe(true);
+    expect(w2?.focused).toBe(false);
   });
 
   it("emits console.warn for unhandled actions in development", () => {

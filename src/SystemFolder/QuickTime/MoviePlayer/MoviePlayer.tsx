@@ -24,8 +24,8 @@ export const MoviePlayer: FunctionalComponent = () => {
   useEffect(() => {
     const data = appData || {};
     if (
-      (appOpen && !data["openDocuments"]) ||
-      data["openDocuments"]?.length === 0
+      (appOpen && !data["openFiles"]) ||
+      data["openFiles"]?.length === 0
     ) {
       const defaultDocs = [
         {
@@ -43,7 +43,7 @@ export const MoviePlayer: FunctionalComponent = () => {
     } else {
       desktopEventDispatch({
         type: "ClassicyAppMoviePlayerOpenDocuments",
-        documents: data["openDocuments"],
+        documents: data["openFiles"],
       });
     }
   }, [appId, appData, appOpen, desktopEventDispatch]);
