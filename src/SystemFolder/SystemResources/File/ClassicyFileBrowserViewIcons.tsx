@@ -6,7 +6,7 @@ import {
 import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import { ClassicyFileSystemEntryMetadata } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { ClassicyIcon } from "@/SystemFolder/SystemResources/Icon/ClassicyIcon";
-import { FC as FunctionalComponent, memo, RefObject, useEffect, useState } from "react";
+import { FC as FunctionalComponent, memo, RefObject, useLayoutEffect, useState } from "react";
 
 export type ClassicyFileBrowserViewIconsProps = {
   fs: ClassicyFileSystem;
@@ -34,7 +34,7 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 
       const [items, setItems] = useState<iconType[]>([]);
 
-      useEffect(() => {
+      useLayoutEffect(() => {
         if (!holderRef?.current) {
           return;
         }
@@ -93,7 +93,6 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
         dirOnClickFunc,
         fileOnClickFunc,
         activeTheme,
-        holderRef,
       ]);
 
       return (
