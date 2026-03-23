@@ -9,6 +9,9 @@ export const useClassicyAnalytics = () => {
     
     // If analytics is not available (no provider), return a safe default
     if (!analytics) {
+        if (process.env.NODE_ENV !== 'production') {
+            console.warn('[ClassicyAnalytics] No analytics provider found. Using no-op fallback. Wrap your app in AnalyticsProvider to enable tracking.');
+        }
         return {
             track: (..._args: any[]) => {},
             page: (..._args: any[]) => {},

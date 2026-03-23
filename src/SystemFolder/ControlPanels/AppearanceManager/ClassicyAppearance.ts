@@ -150,7 +150,7 @@ export const getTheme = (theme: string, overrides?: object) => {
   const namedThemeData =
     themesData.find((t) => t.id === theme) || themesData[0];
   const updatedTheme = overrides
-    ? mergeDeep(namedThemeData, overrides)
+    ? mergeDeep(structuredClone(namedThemeData) as Record<string, unknown>, overrides)
     : namedThemeData;
   return updatedTheme as ClassicyTheme;
 };

@@ -26,7 +26,12 @@ import {
   ClassicyDefaultWallpaper,
   ClassicyWallpapers,
 } from "./ClassicyWallpapers";
-import { ClassicyFonts } from "./ClassicyFonts";
+const ClassicyFonts = [
+  { label: "Charcoal", value: "Charcoal" },
+  { label: "ChicagoFLF", value: "ChicagoFLF" },
+  { label: "Geneva", value: "Geneva" },
+  { label: "AppleGaramond", value: "AppleGaramond" },
+];
 
 function isValidUrlWithRegex(url: string): boolean {
   const urlPattern = /^(https?):\/\/[^\s/$.?#].[^\s]*$/i;

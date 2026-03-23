@@ -16,7 +16,7 @@ import { ClassicyDesktopMenuBar } from "@/SystemFolder/SystemResources/Desktop/M
 import { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import classNames from "classnames";
 import macosIcon from "@img/icons/system/macos.png";
-import { FC as FunctionalComponent, ReactNode, MouseEvent, CSSProperties, useEffect, useMemo, useState } from "react";
+import { FC as FunctionalComponent, ReactNode, MouseEvent, CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import "../../ControlPanels/AppearanceManager/styles/fonts.scss";
 import "../../../index.css";
 
@@ -36,6 +36,7 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
   const [selectBox, setSelectBox] = useState(false);
 
   const clickOffset = [10, 10];
+  const rafIdRef = useRef<number | null>(null);
 
   const availableThemes = useAppManager(s => s.System.Manager.Appearance.availableThemes);
   const activeTheme = useAppManager(s => s.System.Manager.Appearance.activeTheme);
@@ -67,10 +68,15 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
   };
 
   const resizeSelectBox = (e: MouseEvent<HTMLDivElement>) => {
-    setSelectBoxSize([
-      e.clientX - selectBoxStart[0],
-      e.clientY - selectBoxStart[1],
-    ]);
+    const x = e.clientX;
+    const y = e.clientY;
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+    }
+    rafIdRef.current = requestAnimationFrame(() => {
+      setSelectBoxSize([x - selectBoxStart[0], y - selectBoxStart[1]]);
+      rafIdRef.current = null;
+    });
   };
 
   const clearSelectBox = () => {
