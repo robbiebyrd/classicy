@@ -26,5 +26,6 @@ dist-ssr
 codealike.json
 tsconfig.tsbuildinfo
 .trunk/
-.yarn
 /.claude
+tsconfig.tsbuildinfo
+.yarn
