@@ -98,3 +98,5 @@ Themes are JSON-based (`src/SystemFolder/ControlPanels/AppearanceManager/styles/
 - Uses Volta for Node version management (Node 24.12.0)
 - Audio sprites generated via audiosprite npm package from `resources/sounds/` directories
 - Library outputs to `dist/` as `classicy.es.js` and `classicy.umd.js`
+
+@.claude/wiz-claude.md

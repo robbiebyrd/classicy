@@ -18,6 +18,7 @@ import classNames from "classnames";
 import macosIcon from "@img/icons/system/macos.png";
 import { FC as FunctionalComponent, ReactNode, MouseEvent, CSSProperties, useEffect, useMemo, useState } from "react";
 import "../../ControlPanels/AppearanceManager/styles/fonts.scss";
+import "../../../index.css";
 
 interface ClassicyDesktopProps {
   children?: ReactNode;
