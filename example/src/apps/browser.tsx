@@ -27,6 +27,16 @@ const recordVisit = (url: string) => {
     saveVisitedHistory(entries)
 }
 
+const sanitizeUrl = (url: string): string => {
+    try {
+        const parsed = new URL(url)
+        if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+            return parsed.href
+        }
+    } catch { /* invalid URL */ }
+    return 'about:blank'
+}
+
 const Browser = () => {
     const appName = 'Browser'
     const appId = 'Browser.app'
@@ -48,7 +58,7 @@ const Browser = () => {
 
     const canGoBack = historyIndex > 0
     const canGoForward = historyIndex < history.length - 1
-    const iframeSrc = history[historyIndex]
+    const iframeSrc = sanitizeUrl(history[historyIndex])
 
     const clearLoadingTimeout = React.useCallback(() => {
         if (loadingTimeoutRef.current) {
