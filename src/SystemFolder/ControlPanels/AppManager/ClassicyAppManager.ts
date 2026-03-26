@@ -33,10 +33,12 @@ export interface ClassicyStoreSystemApp {
   icon: string;
   windows: ClassicyStoreSystemAppWindow[];
   open: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data?: Record<string, any>;
   focused?: boolean;
   noDesktopIcon?: boolean;
   debug?: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   options?: Record<string, any>[];
   appMenu?: ClassicyMenuItem[];
 }
@@ -120,7 +122,7 @@ export function focusApp(ds: ClassicyStore, appId: string) {
       ds.System.Manager.Desktop.appMenu =
         ds.System.Manager.App.apps[appId].appMenu;
     }
-  } else if (ds.System.Manager.App.apps[appId]?.windows.length == 1) {
+  } else if (ds.System.Manager.App.apps[appId]?.windows.length === 1) {
     ds.System.Manager.App.apps[appId].windows[0].closed = false;
     ds.System.Manager.App.apps[appId].windows[0].focused = true;
     if (ds.System.Manager.App.apps[appId].appMenu) {
@@ -202,6 +204,7 @@ export function activateApp(ds: ClassicyStore, appId: string) {
   });
 }
 
+// TODO: Replace with discriminated union of specific action types for full type safety
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type ActionMessage = Record<string, any> & {
   type: string;
@@ -344,8 +347,8 @@ export const DefaultAppManagerState: ClassicyStore = {
       Appearance: {
         availableThemes: getAllThemes(),
         activeTheme: themesData.find(
-          (t) => t.id == "default",
-        ) as unknown as ClassicyTheme,
+          (t) => t.id === "default",
+        ) as ClassicyTheme,
       },
     },
   },

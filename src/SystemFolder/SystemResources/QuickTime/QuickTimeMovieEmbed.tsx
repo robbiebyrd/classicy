@@ -113,7 +113,7 @@ export const QuickTimeVideoEmbed: FunctionalComponent<QuickTimeVideoEmbed> = ({
       if (!appWindows) {
         return;
       }
-      const a = appWindows.find((w) => w.id === appId + "_VideoPlayer_" + url);
+      const a = appWindows.find((w) => w.id === appId + "_MoviePlayer_" + url);
       if (!a || !a.focused) {
         return;
       }
@@ -133,7 +133,7 @@ export const QuickTimeVideoEmbed: FunctionalComponent<QuickTimeVideoEmbed> = ({
           break;
         case "f":
         case "F":
-          if (type != "audio") {
+          if (type !== "audio") {
             toggleFullscreen();
           }
           break;
@@ -168,7 +168,10 @@ export const QuickTimeVideoEmbed: FunctionalComponent<QuickTimeVideoEmbed> = ({
     }
 
     fetch(subtitlesUrl)
-      .then((res) => res.text())
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.text();
+      })
       .then((text) => parse(text))
       .then((text) => setSubtitlesData(text))
       .catch((error) => { console.error('[QuickTime] Subtitle fetch failed', { subtitlesUrl, error }); setSubtitlesData(null); });
@@ -336,7 +339,7 @@ export const QuickTimeVideoEmbed: FunctionalComponent<QuickTimeVideoEmbed> = ({
               className={"quickTimePlayerVideoControlsIcon"}
             />
           </button>
-          {type != "audio" && (
+          {type !== "audio" && (
             <button
               onClick={toggleFullscreen}
               className={"quickTimePlayerVideoControlsButton"}

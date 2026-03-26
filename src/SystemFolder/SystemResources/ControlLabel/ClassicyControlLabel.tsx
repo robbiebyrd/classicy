@@ -78,7 +78,12 @@ export const ClassicyControlLabel: FunctionalComponent<ClassicyControlLabelProps
 
             <label
                 htmlFor={labelFor}
-                style={{color: disabled ? "var(--color-system-05)" : 'inherit', fontFamily: "var(--ui-font)", fontSize: getSizeStyle(labelSize), ...getDirectionStyle(direction)}}
+                className={classNames(
+                    disabled ? "text-[color:var(--color-system-05)]" : '',
+                    getDirectionClass(direction),
+                    getSizeClass(labelSize)
+                )}
+                style={{fontFamily: "var(--ui-font)"}}
             >
                 {label}
             </label>

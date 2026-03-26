@@ -2,6 +2,7 @@ import "@/SystemFolder/SystemResources/Menu/ClassicyMenu.scss";
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import classNames from "classnames";
+import he from 'he';
 import { FC as FunctionalComponent, ReactNode } from "react";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
@@ -117,11 +118,11 @@ export const ClassicyMenuItem: FunctionalComponent<{
           {!menuItem.image && menuItem.icon && (
             <img src={menuItem.icon} alt={menuItem.title} />
           )}
-          {menuItem.title}
+          {menuItem.title && he.decode(menuItem.title)}
         </p>
         {menuItem.keyboardShortcut && (
           <p className={"classicyMenuItemKeyboardShortcut"}>
-            {menuItem.keyboardShortcut}
+            {he.decode(menuItem.keyboardShortcut)}
           </p>
         )}
       </>

@@ -26,7 +26,7 @@
 .classicyRadioInputWrapper {
   width: calc(var(--window-control-size) / 1);
   height: calc(var(--window-control-size) / 1);
-  margin-top: calc(var(--window-control-size) / 4);
+  margin-top: calc(var(--window-control-size) / 2);
   border: calc(var(--window-border-size)) solid var(--color-system-07);
   border-radius: 50%;
 
@@ -65,7 +65,7 @@
 
 .classicyRadioInput {
   position: relative;
-  margin: 2px;
+  margin: calc(var(--window-border-size)*1.5);
   opacity: 0;
   border-width: calc(var(--window-control-size) / 3);
   border-style: solid;

@@ -14,6 +14,7 @@ export class ClassicyFileSystem {
     fs: ClassicyFileSystemEntry
     separator: string
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     constructor(storageKey: string = 'classicyStorage', defaultFS: any = DefaultFSContent, separator: string = ':') {
         this.storageKey = storageKey
         this.fs = defaultFS
@@ -145,7 +146,7 @@ export class ClassicyFileSystem {
         }
 
         if ('_data' in path) {
-            return sha512.crypt(path['_data'], '')
+            return sha512.crypt(String(path['_data']), '')
         }
         return
     }
@@ -205,7 +206,7 @@ export class ClassicyFileSystem {
     }
 
     calculateSizeDir(path: ClassicyPathOrFileSystemEntry | string): number {
-        const gatherSizes = (entry: ClassicyFileSystemEntry, field: string, value: string): any[] => {
+        const gatherSizes = (entry: ClassicyFileSystemEntry, field: string, value: string): string[] => {
             let results: string[] = []
             for (const key in entry) {
                 if (key === field && entry[key] === value) {
