@@ -2,7 +2,7 @@ import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/Clas
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import "./ClassicyRadioInput.scss";
 import classNames from "classnames";
-import { FC as FunctionalComponent, useState } from "react";
+import { FC as FunctionalComponent, useEffect, useState } from "react";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
 type ClassicyRadioInputProps = {
@@ -34,6 +34,9 @@ export const ClassicyRadioInput: FunctionalComponent<ClassicyRadioInputProps> = 
   const [check, setCheck] = useState<string>(
     inputs.findLast((input) => input.checked === true)?.id || "",
   );
+  useEffect(() => {
+    setCheck(inputs.findLast((input) => input.checked === true)?.id || "");
+  }, [inputs]);
   const player = useSoundDispatch();
 
   const { track } = useClassicyAnalytics();

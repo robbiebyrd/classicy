@@ -235,8 +235,10 @@ export const Finder = () => {
 
   useEffect(() => {
     const drives = fs.filterByType("", "drive");
+    const driveNames: string[] = [];
 
     Object.entries(drives).forEach(([path, metadata]) => {
+      driveNames.push(path);
       desktopEventDispatch({
         type: "ClassicyDesktopIconAdd",
         app: {
@@ -250,17 +252,14 @@ export const Finder = () => {
       });
     });
 
-    // desktopEventDispatch({
-    //     type: 'ClassicyDesktopIconAdd',
-    //     app: {
-    //         id: 'finder_trash',
-    //         name: 'Trash',
-    //         icon: `/img/icons/system/desktop/trash-full.png`,
-    //     },
-    //     kind: 'trash',
-    //     event: 'ClassicyAppFinderEmptyTrash',
-    //     eventData: {},
-    // })
+    return () => {
+      driveNames.forEach((name) => {
+        desktopEventDispatch({
+          type: "ClassicyDesktopIconRemove",
+          app: { id: appId, name },
+        });
+      });
+    };
   }, [fs, desktopEventDispatch]);
 
   const getHeaderString = (dir: ClassicyFileSystemEntryMetadata) => {

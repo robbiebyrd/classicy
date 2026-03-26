@@ -35,8 +35,8 @@ export const QuickTimePictureViewer: FunctionalComponent = () => {
   useEffect(() => {
     const data = appData || {};
     if (
-      (appOpen && !data["openDocuments"]) ||
-      data["openDocuments"]?.length === 0
+      (appOpen && !data["openFiles"]) ||
+      data["openFiles"]?.length === 0
     ) {
       const defaultDocs = [
         {

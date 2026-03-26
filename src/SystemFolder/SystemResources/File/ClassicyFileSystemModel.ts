@@ -48,7 +48,7 @@ export type ClassicyFileSystemEntryMetadata = {
 
     // Files
     // The contents of the file.
-    _data?: any
+    _data?: unknown
 
     // Used for stat-ing directories and files.
     _size?: number
@@ -58,5 +58,6 @@ export type ClassicyFileSystemEntryMetadata = {
 }
 
 export type ClassicyFileSystemEntry = {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [entry: string]: any
 } & ClassicyFileSystemEntryMetadata

@@ -1,7 +1,7 @@
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import "./ClassicyPopUpMenu.scss";
 import classNames from "classnames";
-import { FC as FunctionalComponent, CSSProperties, ChangeEvent, useState } from "react";
+import { FC as FunctionalComponent, CSSProperties, ChangeEvent, useEffect, useState } from "react";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
 type classicyPopUpMenuOptions = {
@@ -29,6 +29,7 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
   onChangeFunc,
 }) => {
   const [selectedItem, setSelectedItem] = useState(selected);
+  useEffect(() => { setSelectedItem(selected); }, [selected]);
   const { track } = useClassicyAnalytics();
   const analyticsArgs = { id, label, options, selected };
 
