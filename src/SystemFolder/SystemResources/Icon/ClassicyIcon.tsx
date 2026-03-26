@@ -1,6 +1,6 @@
 import "./ClassicyIcon.scss";
 import classNames from "classnames";
-import { FC as FunctionalComponent, MouseEvent, useId, useRef, useState } from "react";
+import { FC as FunctionalComponent, MouseEvent, RefObject, useId, useRef, useState } from "react";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
 interface ClassicyIconProps {
@@ -9,7 +9,7 @@ interface ClassicyIconProps {
   icon: string;
   label?: string;
   initialPosition?: [number, number];
-  holder?: any;
+  holder?: RefObject<HTMLElement | null>;
   onClickFunc?: () => void;
   invisible?: boolean;
 }

@@ -20,7 +20,6 @@
     //    "verbatimModuleSyntax": true,
     "moduleDetection": "force",
     "noEmit": true,
-    "emitDeclarationOnly": true,
     "jsx": "react-jsx",
     "declarationMap": true,
     "outDir": "./dist/",

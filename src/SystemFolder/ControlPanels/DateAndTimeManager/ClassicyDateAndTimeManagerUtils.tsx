@@ -9,13 +9,13 @@ export const classicyDateTimeManagerEventHandler = (
 ) => {
   switch (action.type) {
     case "ClassicyManagerDateTimeSet": {
-      const t = action.dateTime as unknown as Date;
+      const t = action.dateTime as Date;
       ds.System.Manager.DateAndTime.dateTime = t.toISOString();
       break;
     }
     case "ClassicyManagerDateTimeTZSet": {
       ds.System.Manager.DateAndTime.timeZoneOffset =
-        action.tzOffset as unknown as string;
+        String(action.tzOffset);
       break;
     }
   }

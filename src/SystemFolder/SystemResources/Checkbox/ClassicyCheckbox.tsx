@@ -1,7 +1,7 @@
 import "./ClassicyCheckbox.scss";
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import classNames from "classnames";
-import { FC as FunctionalComponent, useState } from "react";
+import { FC as FunctionalComponent, useEffect, useState } from "react";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
 export type ClassicyCheckboxProps = {
@@ -24,6 +24,7 @@ export const ClassicyCheckbox: FunctionalComponent<ClassicyCheckboxProps> = ({
   label,
 }) => {
   const [check, setCheck] = useState<boolean>(checked || false);
+  useEffect(() => { setCheck(checked || false); }, [checked]);
   const { track } = useClassicyAnalytics();
   const analyticsArgs = { type: "ClassicyCheckbox", label };
 

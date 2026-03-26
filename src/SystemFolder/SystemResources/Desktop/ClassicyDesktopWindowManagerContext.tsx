@@ -101,7 +101,7 @@ export const classicyWindowEventHandler = (
   ds: ClassicyStore,
   action: ActionMessage,
 ) => {
-  const updateWindow = (appId: string, windowId: string, updates: any) => {
+  const updateWindow = (appId: string, windowId: string, updates: Partial<ClassicyStoreSystemAppWindow>) => {
     if (!ds.System.Manager.App.apps[appId]) return ds;
     ds.System.Manager.App.apps[appId].windows = ds.System.Manager.App.apps[
       appId
@@ -119,7 +119,7 @@ export const classicyWindowEventHandler = (
       ].windows.findIndex((w) => w.id === action.window.id);
       if (window < 0) {
         let paddedPosition: [number, number] = action.window.position;
-        if (action.window.position[0] == 0 && action.window.position[1] == 0) {
+        if (action.window.position[0] === 0 && action.window.position[1] === 0) {
           const length =
             ds.System.Manager.App.apps[action.app.id].windows.length * 10;
           paddedPosition = [30 + length, 30 + length];
@@ -142,7 +142,7 @@ export const classicyWindowEventHandler = (
       ds.System.Manager.App.apps[action.app.id].focused = true;
       ds.System.Manager.App.apps[action.app.id].windows =
         ds.System.Manager.App.apps[action.app.id].windows.map((w) => {
-          w.focused = w.id == action.window.id;
+          w.focused = w.id === action.window.id;
           return w;
         });
       // Prefer fresh appMenu from component props (has closures) over stored menuBar
@@ -175,7 +175,7 @@ export const classicyWindowEventHandler = (
       if (!ds.System.Manager.App.apps[action.app.id]) break;
       ds.System.Manager.App.apps[action.app.id].windows =
         ds.System.Manager.App.apps[action.app.id].windows.map((w) => {
-          if (w.id == action.window.id) {
+          if (w.id === action.window.id) {
             w.resizing = action.resizing;
             w.size = action.size;
           }
@@ -187,7 +187,7 @@ export const classicyWindowEventHandler = (
       if (!ds.System.Manager.App.apps[action.app.id]) break;
       ds.System.Manager.App.apps[action.app.id].windows =
         ds.System.Manager.App.apps[action.app.id].windows.map((w) => {
-          if (w.id == action.window.id) {
+          if (w.id === action.window.id) {
             w.dragging = action.dragging;
           }
           return w;
@@ -198,7 +198,7 @@ export const classicyWindowEventHandler = (
       if (!ds.System.Manager.App.apps[action.app.id]) break;
       ds.System.Manager.App.apps[action.app.id].windows =
         ds.System.Manager.App.apps[action.app.id].windows.map((w) => {
-          if (w.id == action.window.id) {
+          if (w.id === action.window.id) {
             w.zoomed = action.zoomed;
           }
           return w;
@@ -209,7 +209,7 @@ export const classicyWindowEventHandler = (
       if (!ds.System.Manager.App.apps[action.app.id]) break;
       ds.System.Manager.App.apps[action.app.id].windows =
         ds.System.Manager.App.apps[action.app.id].windows.map((w) => {
-          if (w.id == action.window.id) {
+          if (w.id === action.window.id) {
             w.collapsed = true;
           }
           return w;
@@ -220,7 +220,7 @@ export const classicyWindowEventHandler = (
       if (!ds.System.Manager.App.apps[action.app.id]) break;
       ds.System.Manager.App.apps[action.app.id].windows =
         ds.System.Manager.App.apps[action.app.id].windows.map((w) => {
-          if (w.id == action.window.id) {
+          if (w.id === action.window.id) {
             w.collapsed = false;
           }
           return w;
@@ -231,7 +231,7 @@ export const classicyWindowEventHandler = (
       if (!ds.System.Manager.App.apps[action.app.id]) break;
       ds.System.Manager.App.apps[action.app.id].windows =
         ds.System.Manager.App.apps[action.app.id].windows.map((w) => {
-          if (w.id == action.window.id) {
+          if (w.id === action.window.id) {
             w.position = action.position;
             w.moving = action.moving;
           }
@@ -243,7 +243,7 @@ export const classicyWindowEventHandler = (
       if (!ds.System.Manager.App.apps[action.app.id]) break;
       ds.System.Manager.App.apps[action.app.id].windows =
         ds.System.Manager.App.apps[action.app.id].windows.map((w) => {
-          if (w.id == action.window.id) {
+          if (w.id === action.window.id) {
             w.position = action.position as [number, number];
           }
           return w;

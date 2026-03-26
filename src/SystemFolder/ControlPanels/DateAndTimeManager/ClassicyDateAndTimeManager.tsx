@@ -15,7 +15,7 @@ import { ClassicyRadioInput } from "@/SystemFolder/SystemResources/RadioInput/Cl
 import { ClassicyTimePicker } from "@/SystemFolder/SystemResources/TimePicker/ClassicyTimePicker";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 import { FC as FunctionalComponent, ChangeEvent, useState } from "react";
-import { ClassicyControlGroup } from "../../SystemResources/ControlGroup/ClassicyControlGroup";
+import { ClassicyControlGroup } from "@/SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup";
 import appIcon from "@img/icons/control-panels/date-time-manager/date-time-manager.png";
 
 export const ClassicyDateAndTimeManager: FunctionalComponent = () => {

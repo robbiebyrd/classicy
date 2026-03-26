@@ -123,7 +123,7 @@ export const ClassicySoundStateEventReducer = (
 
   const validatedAction =
     ClassicySoundActionTypes[
-      action.type as unknown as keyof typeof ClassicySoundActionTypes
+      action.type as keyof typeof ClassicySoundActionTypes
     ];
 
   let next: ClassicySoundState;
