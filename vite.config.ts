@@ -20,7 +20,7 @@ export default defineConfig({
         outDir: 'dist/types',
     }),
     richSvg(),
-    tailwindcss(),
+    tailwindcss({optimize: {minify: true}}),
     VitePluginImageTools({
       quality: 100,
       enableWebp: true,

@@ -6,7 +6,7 @@ export const intToPct = (int: number | string): string => {
     if (typeof int === 'string') {
         return int
     }
-    return int.toString() + '*'
+    return int.toString() + '%'
 }
 
 export const pctToInt = (pct: string): number => {

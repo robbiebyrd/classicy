@@ -58,7 +58,7 @@ export const ClassicyTimePicker: FunctionalComponent<ClassicyTimePickerProps> =
         const updatedDate = new Date(selectedDate);
         let hours = parseInt(hour);
 
-        if (e.target.value == "pm") {
+        if (e.target.value === "pm") {
           hours += 12;
         }
 

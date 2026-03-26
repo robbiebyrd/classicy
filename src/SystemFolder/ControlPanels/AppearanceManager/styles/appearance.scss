@@ -28,8 +28,8 @@
 
 @mixin platinumWindowHeaderBorderDepressed {
   box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-03),
-  inset calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) var(--color-system-05),
-  calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) var(--color-system-06);
+    inset calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) var(--color-system-05),
+    calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) var(--color-system-06);
   border-bottom: calc(var(--window-border-size) * 1) solid black;
   color: var(--color-black);
 }

@@ -38,7 +38,7 @@ export const MoviePlayer: FunctionalComponent = () => {
         ],
       });
     }
-  }, [appId, appOpen, desktopEventDispatch]);
+  }, [appId, appData, appOpen, desktopEventDispatch]);
 
   // const openUrl = (name: string, url: string, iconUrl?: string) => {
   //   desktopEventDispatch({
