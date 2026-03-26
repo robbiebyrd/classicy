@@ -28,7 +28,7 @@
     "build:audio": "./bin/make_audio_sprites.sh",
     "build:watch": "concurrently --kill-others \"npm run build:watchaudio\" \"npm run build:watchsource\"",
     "build:watchaudio": "nodemon --watch \"resources/sounds/**\" --ext \"mp3,mp4,wav,aif,aiff,ogg,flac,m4a,ac3,json\" --exec \"npm run build:audio\" --ignore \"example/**\" ",
-    "build:watchsource": "nodemon --watch \"src/**\" --watch \"assets/**\" --ext \"tsx,ts,json,css,scss,png,jpg,svg\" --exec \"npm run build:source\" --ignore \"example/**\" --ignore \"**/index.ts\" ",
+    "build:watchsource": "nodemon --watch \"src/**\" --watch \"assets/**\" --ext \"tsx,ts,json,css,scss,png,jpg,svg\" --exec \"tsc -b && vite build\" --ignore \"example/**\" --ignore \"**/index.ts\" ",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",

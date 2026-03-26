@@ -1,5 +1,12 @@
-const wp = (filename: string) =>
-  new URL(`../../../assets/img/wallpapers/${filename}`, import.meta.url).href;
+const wallpaperModules = import.meta.glob(
+  "../../../../assets/img/wallpapers/*.png",
+  { eager: true, import: "default" },
+) as Record<string, string>;
+
+const wp = (filename: string): string => {
+  const key = `../../../../assets/img/wallpapers/${filename}`;
+  return wallpaperModules[key] ?? "";
+};
 
 export const ClassicyDefaultWallpaper = wp("default.png");
 
