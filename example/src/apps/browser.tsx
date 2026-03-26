@@ -50,22 +50,22 @@ const Browser = () => {
     const canGoForward = historyIndex < history.length - 1
     const iframeSrc = history[historyIndex]
 
-    const clearLoadingTimeout = () => {
+    const clearLoadingTimeout = React.useCallback(() => {
         if (loadingTimeoutRef.current) {
             clearTimeout(loadingTimeoutRef.current)
             loadingTimeoutRef.current = null
         }
-    }
+    }, [])
 
-    const startLoading = () => {
+    const startLoading = React.useCallback(() => {
         clearLoadingTimeout()
         setIsLoading(true)
-    }
+    }, [clearLoadingTimeout])
 
-    const handleIframeLoad = () => {
+    const handleIframeLoad = React.useCallback(() => {
         clearLoadingTimeout()
         setIsLoading(false)
-    }
+    }, [clearLoadingTimeout])
 
     // Sync address bar and record default URL on mount
     React.useEffect(() => {
@@ -109,7 +109,7 @@ const Browser = () => {
             window.removeEventListener('blur', handleWindowBlur)
             clearLoadingTimeout()
         }
-    }, [])
+    }, [desktopEventDispatch, appId, startLoading, clearLoadingTimeout])
 
     const showError = () => {
         setUrlError(true)
@@ -253,6 +253,7 @@ const Browser = () => {
                     width="1280"
                     allowFullScreen={true}
                     onLoad={handleIframeLoad}
+                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation-by-user-activation"
                     style={{ width: '100%', height: '100%', padding: '0', margin: '0' }}
                 ></iframe>
             </ClassicyWindow>
