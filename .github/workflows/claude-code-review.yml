@@ -2,43 +2,255 @@ name: Claude Code Review
 
 on:
   pull_request:
-    types: [opened, synchronize, ready_for_review, reopened]
-    # Optional: Only run on specific file changes
-    # paths:
-    #   - "src/**/*.ts"
-    #   - "src/**/*.tsx"
-    #   - "src/**/*.js"
-    #   - "src/**/*.jsx"
+    types: [opened, synchronize, reopened]
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  pull_request_review:
+    types: [submitted]
 
 jobs:
-  claude-review:
-    # Optional: Filter by PR author
-    # if: |
-    #   github.event.pull_request.user.login == 'external-contributor' ||
-    #   github.event.pull_request.user.login == 'new-developer' ||
-    #   github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
-
+  # Automatic, exhaustive review triggered on every PR open/update
+  auto-review:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: read
-      issues: read
+      pull-requests: write
+      issues: write
       id-token: write
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0  # Full history so Claude can compare the full diff
 
-      - name: Run Claude Code Review
-        id: claude-review
+      - name: Run Comprehensive Claude Code Review
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Plugins: code-review for PR analysis, typescript for strict type checks,
+          # and frontend for React/CSS/a11y patterns.
+          plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
+          plugins: |
+            code-review@claude-code-plugins
+            typescript@claude-code-plugins
+            frontend@claude-code-plugins
+          direct_prompt: |
+            You are performing an exhaustive code review for the **Classicy** project — a React/TypeScript
+            UI component library that replicates the Mac OS 8 Platinum interface. It is published as an
+            npm package and consumed by external apps.
+
+            Review ALL changed files in this pull request. For each file, check against the rules below.
+            Also flag issues in surrounding context that the changed code touches.
+
+            ---
+
+            ## Architecture & Established Patterns
+
+            ### Component Hierarchy (must be respected)
+            ```
+            ClassicyAppManagerProvider
+              └── AnalyticsProvider
+                   └── ClassicySoundManagerProvider
+                        └── ClassicyDesktop
+                             ├── ClassicyDesktopMenuBar
+                             └── ClassicyApp
+                                  └── ClassicyWindow
+                                       └── UI Components
+            ```
+            - New apps MUST wrap content in `ClassicyApp` (with `id`, `name`, `icon` props) and
+              `ClassicyWindow`. Violating the hierarchy is a critical issue.
+            - `ClassicyDesktop` manages the desktop surface. Components must not reach above their level.
+
+            ### State Management — Zustand
+            - State reads MUST use `useAppManager(selector)` with a **specific selector**.
+              Reading the entire store without a selector causes every component to re-render on any
+              state change. This is a critical performance bug.
+              ```tsx
+              // CORRECT
+              const appState = useAppManager(state => state.System.Manager.App.apps[id]);
+              // WRONG — re-renders on every state change
+              const allState = useAppManager(state => state);
+              ```
+            - State mutations MUST use `useAppManagerDispatch()`. Never mutate Zustand state directly.
+            - Custom app state MUST be routed through `classicyDesktopStateEventReducer` in
+              `ClassicyAppManager.ts`, not managed in local component state.
+            - localStorage key is `"classicyDesktopState"` — never change this (would wipe all user data).
+            - **SoundManager still uses React Context/useReducer** — do NOT migrate it to Zustand.
+
+            ### Event Naming Convention
+            All dispatched event `type` values must follow the established prefix:
+            | Prefix | Domain |
+            |--------|--------|
+            | `ClassicyWindow*` | Window ops (focus, move, resize, collapse, zoom) |
+            | `ClassicyDesktop*` | Desktop ops (menus, themes, backgrounds) |
+            | `ClassicyDesktopIcon*` | Icon selection / interaction |
+            | `ClassicyApp*` | App lifecycle (open, close, focus, activate) |
+            | `ClassicyAppFinder*` | Finder-specific |
+            | `ClassicyAppMoviePlayer*` | MoviePlayer-specific |
+            | `ClassicyAppPictureViewer*` | PictureViewer-specific |
+            | `ClassicyManagerDateTime*` | Date/Time manager |
+
+            ### File & Build System Rules
+            - **Never manually edit `index.ts` barrel files** — they are auto-generated by barrelsby via
+              `generate-barrels`. Any manual edits will be overwritten.
+            - Imports must use the configured path aliases, not deep relative paths:
+              - `@/` → `./src/`
+              - `@snd/` → `./assets/sounds/`
+              - `@img/` → `./assets/img/`
+            - New components belong in `src/SystemFolder/SystemResources/<ComponentName>/`.
+
+            ### CSS & Theming
+            - Tailwind CSS v4 is used **internally only** — do not expose Tailwind class names in the
+              public API or component prop interfaces.
+            - All colors and typography must reference the theme system (`themes.json` in
+              `AppearanceManager/styles/`). Hardcoded color values in components are a red flag.
+            - CSS consumers must import `classicy/dist/classicy.css` separately — do not bundle external
+              CSS into component files.
+
+            ---
+
+            ## TypeScript Standards
+
+            - **Zero `any` tolerance** — use proper generics, `unknown`, or specific union types.
+              `any` bypasses the type system and defeats the purpose of TypeScript.
+            - All component props MUST have an explicit TypeScript interface or type alias.
+            - Prefer `unknown` over `any` for values of undetermined type — force callers to narrow.
+            - Generic constraints must be meaningful: `<T extends SomeBase>`, never `<T = any>`.
+            - Avoid type assertions (`as SomeType`) unless genuinely necessary; use type guards instead.
+            - All functions must have explicit return types (especially exported/public ones).
+            - Prefer discriminated unions for event/action types over string enums.
+            - Use Zod for runtime validation at system boundaries (user input, external API responses).
+            - `strictNullChecks` is assumed active — no bypassing with `!` non-null assertions unless
+              the value is provably non-null at that point.
+
+            ---
+
+            ## React Best Practices
+
+            - **Selectors over full store**: `useAppManager` must always receive a selector. See above.
+            - **Memoization**: Wrap components in `React.memo()` when they receive object/array props.
+              Use `useCallback` for callbacks passed to children. Use `useMemo` for expensive derivations.
+            - **Hook rules**: No conditional hook calls. No hook calls inside loops or nested functions.
+            - **Effects**: Every `useEffect` that sets up a subscription, timer, or event listener must
+              return a cleanup function. Missing cleanups are memory leaks.
+            - **Stale closures**: Verify that all values used inside effects/callbacks are in their
+              dependency arrays. Missing deps cause stale closure bugs that are hard to debug.
+            - **List rendering**: Always provide a stable, unique `key` prop. Index keys are only
+              acceptable for static, non-reorderable lists.
+            - **No direct mutation**: Never mutate state objects or arrays directly — always return new
+              references in reducers.
+            - **No inline object/array props**: `<Comp style={{ margin: 0 }} />` creates a new object
+              every render and defeats `React.memo`. Extract to a const.
+
+            ---
+
+            ## Review Checklist
+
+            For every changed file, verify:
+
+            **Correctness**
+            - Logic errors, off-by-one errors, wrong conditions
+            - Null/undefined handling — optional chaining (`?.`) and nullish coalescing (`??`)
+            - Unhandled promise rejections — all `async` calls must be wrapped in try/catch or
+              `.catch()`
+            - Effect cleanup (see above)
+
+            **Type Safety**
+            - No `any` (explicit or implicit via inference gaps)
+            - No unsafe type assertions without justification
+            - Explicit return types on exported functions
+            - Generics used correctly and constrained
+
+            **React**
+            - Zustand selector pattern followed
+            - No missing `useEffect`/`useCallback`/`useMemo` dependencies
+            - No stale closures
+            - Stable `key` props in lists
+            - No direct state mutation
+            - No inline object/array props on memoized components
+
+            **Performance**
+            - No expensive calculations in render body without `useMemo`
+            - No unnecessary re-renders from missing `memo`/`useCallback`
+            - Large data sets paginated or virtualized
+
+            **Security**
+            - No `dangerouslySetInnerHTML` with unsanitized content
+            - No `eval()` or `new Function()` with user-provided input
+            - No sensitive data (tokens, keys, PII) logged to console
+
+            **Accessibility**
+            - Interactive elements have accessible labels (`aria-label`, `aria-labelledby`, or visible
+              text)
+            - Keyboard navigation works (focus management, `onKeyDown` where needed)
+            - Color contrast meets WCAG AA — especially important for a themed UI framework
+            - `<img>` elements have meaningful `alt` text
+
+            **Code Quality**
+            - No commented-out code blocks
+            - No `console.log` / `console.error` left in production code
+            - No TODO comments without a linked issue number
+            - Complex logic has explanatory inline comments
+            - Functions and variables have descriptive, unambiguous names
+
+            **Naming Conventions**
+            - Components: PascalCase with the `Classicy` prefix (e.g. `ClassicyButton`)
+            - Event types: `ClassicyDomain*` prefix as per the table above
+            - Hooks: camelCase starting with `use` (e.g. `useAppManager`)
+            - Files: match the primary exported symbol name exactly
+
+            ---
+
+            ## Output Format
+
+            Structure your review with these sections:
+
+            ### Summary
+            One paragraph: what the PR does and its overall quality.
+
+            ### Critical Issues — must fix before merge
+            Blockers only. Reference exact `file:line`. Provide a corrected code snippet for each.
+
+            ### Warnings — should fix
+            Important but non-blocking. Reference `file:line`. Suggest a fix.
+
+            ### Suggestions — consider
+            Style, minor performance improvements, small refactors.
+
+            ### Approved Patterns
+            Highlight code that correctly follows the established conventions. Reinforcing good patterns
+            is as important as catching bad ones.
+
+            Be specific. Every issue must cite a file path and line number. Do not produce generic
+            advice — all feedback must be grounded in the actual changed code.
+
+  # Interactive review — responds to comments that mention Claude or use slash commands
+  interactive-review:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Interactive Claude Review
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
-          plugins: 'code-review@claude-code-plugins'
-          prompt: '/code-review:code-review ${{ github.repository }}/pull/${{ github.event.pull_request.number }}'
-          # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
-          # or https://code.claude.com/docs/en/cli-reference for available options
-
+          plugins: |
+            code-review@claude-code-plugins
+            typescript@claude-code-plugins
+            frontend@claude-code-plugins
+          prompt: '/code-review:code-review ${{ github.repository }}/pull/${{ github.event.issue.number || github.event.pull_request.number }}'
