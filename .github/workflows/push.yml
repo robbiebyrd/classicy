@@ -63,6 +63,55 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Select release codename
+        if: steps.bump_version.outputs.newTag != ''
+        id: codename
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          NAMES=(
+            "Big Deal" "Pleiades" "Furnishings 2000" "7Up" "Road Warrior"
+            "Beta Cheese" "Regatta" "Cube-E" "I Tripoli" "Jirocho"
+            "Star Trek" "Mozart" "Capone" "Danook" "Thag" "Zhag"
+            "Marconi" "Unity" "Buster" "Son of Buster" "Harmony"
+            "Ides of Buster" "Copland" "Maxwell" "Tempo" "Orient Express"
+            "Bride of Buster" "Allegro" "Scimitar" "Rick Ford Release"
+            "The" "Veronica" "Gershwin" "Sonata" "Minuet" "Fortissimo"
+            "Moonlight" "Limelight" "LU1" "Sforzando" "Coda" "Intermezzo"
+            "Larghetto" "Cadenza" "Rubato" "Overture" "Ellington"
+            "Coltrane" "Ravel" "Bartók" "Satie" "Fats" "Buster's Ghost"
+            "Dawn of Buster" "Buster Rises" "Curse of Buster" "Dillinger"
+            "Siegel" "Lansky" "Lucky" "Scarface" "Lepke" "Perihelion"
+            "Cygnus" "Solstice" "Eventide" "Aurora" "Cutlass" "Zeppelin"
+            "Magellan" "Vanguard" "Silverado" "Broadside"
+          )
+
+          USED_NAMES=$(gh release list --repo "$GITHUB_REPOSITORY" --limit 1000 --json name --jq '.[].name')
+
+          CODENAME=""
+          for name in "${NAMES[@]}"; do
+            if ! echo "$USED_NAMES" | grep -qxF "$name"; then
+              CODENAME="$name"
+              break
+            fi
+          done
+
+          if [ -z "$CODENAME" ]; then
+            CODENAME="Release ${{ steps.bump_version.outputs.newTag }}"
+          fi
+
+          echo "name=$CODENAME" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        if: steps.bump_version.outputs.newTag != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ steps.bump_version.outputs.newTag }}" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "${{ steps.codename.outputs.name }}" \
+            --generate-notes
+
       - name: Publish to npm
         if: steps.bump_version.outputs.newTag != ''
         uses: JS-DevTools/npm-publish@v4
