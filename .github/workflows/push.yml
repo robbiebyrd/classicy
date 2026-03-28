@@ -63,6 +63,41 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Select release codename
+        if: steps.bump_version.outputs.newTag != ''
+        id: codename
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mapfile -t NAMES < .github/release-codenames.txt
+
+          USED_NAMES=$(gh release list --repo "$GITHUB_REPOSITORY" --limit 100 --json name --jq '.[].name')
+
+          CODENAME=""
+          for name in "${NAMES[@]}"; do
+            if ! echo "$USED_NAMES" | grep -qxF "$name"; then
+              CODENAME="$name"
+              break
+            fi
+          done
+
+          if [ -z "$CODENAME" ]; then
+            CODENAME="Release ${{ steps.bump_version.outputs.newTag }}"
+          fi
+
+          echo "name=$CODENAME" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        if: steps.bump_version.outputs.newTag != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ steps.bump_version.outputs.newTag }}" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "${{ steps.codename.outputs.name }}" \
+            --generate-notes
+
       - name: Publish to npm
         if: steps.bump_version.outputs.newTag != ''
         uses: JS-DevTools/npm-publish@v4
