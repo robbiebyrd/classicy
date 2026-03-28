@@ -69,24 +69,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          NAMES=(
-            "Big Deal" "Pleiades" "Furnishings 2000" "7Up" "Road Warrior"
-            "Beta Cheese" "Regatta" "Cube-E" "I Tripoli" "Jirocho"
-            "Star Trek" "Mozart" "Capone" "Danook" "Thag" "Zhag"
-            "Marconi" "Unity" "Buster" "Son of Buster" "Harmony"
-            "Ides of Buster" "Copland" "Maxwell" "Tempo" "Orient Express"
-            "Bride of Buster" "Allegro" "Scimitar" "Rick Ford Release"
-            "The" "Veronica" "Gershwin" "Sonata" "Minuet" "Fortissimo"
-            "Moonlight" "Limelight" "LU1" "Sforzando" "Coda" "Intermezzo"
-            "Larghetto" "Cadenza" "Rubato" "Overture" "Ellington"
-            "Coltrane" "Ravel" "Bartók" "Satie" "Fats" "Buster's Ghost"
-            "Dawn of Buster" "Buster Rises" "Curse of Buster" "Dillinger"
-            "Siegel" "Lansky" "Lucky" "Scarface" "Lepke" "Perihelion"
-            "Cygnus" "Solstice" "Eventide" "Aurora" "Cutlass" "Zeppelin"
-            "Magellan" "Vanguard" "Silverado" "Broadside"
-          )
+          set -euo pipefail
+          mapfile -t NAMES < .github/release-codenames.txt
 
-          USED_NAMES=$(gh release list --repo "$GITHUB_REPOSITORY" --limit 1000 --json name --jq '.[].name')
+          USED_NAMES=$(gh release list --repo "$GITHUB_REPOSITORY" --limit 100 --json name --jq '.[].name')
 
           CODENAME=""
           for name in "${NAMES[@]}"; do
