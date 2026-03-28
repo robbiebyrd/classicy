@@ -14,14 +14,42 @@ import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/Clas
 import { ClassicyRadioInput } from "@/SystemFolder/SystemResources/RadioInput/ClassicyRadioInput";
 import { ClassicyTimePicker } from "@/SystemFolder/SystemResources/TimePicker/ClassicyTimePicker";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
-import { FC as FunctionalComponent, ChangeEvent, useState } from "react";
+import { FC as FunctionalComponent, ChangeEvent, useCallback, useState } from "react";
 import { ClassicyControlGroup } from "@/SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup";
 import appIcon from "@img/icons/control-panels/date-time-manager/date-time-manager.png";
 
-export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
-  const appName: string = "Date and Time Manager";
-  const appId: string = "DateAndTimeManager.app";
+const APP_ID = "DateAndTimeManager.app";
+const APP_NAME = "Date and Time Manager";
 
+const TIMEZONES = [
+  { label: "Pacific/Midway", value: "-11" },
+  { label: "Pacific/Honolulu", value: "-10" },
+  { label: "America/Anchorage", value: "-8" },
+  { label: "America/Los_Angeles", value: "-7" },
+  { label: "America/Denver", value: "-6" },
+  { label: "America/Chicago", value: "-5" },
+  { label: "America/New_York", value: "-4" },
+  { label: "America/Halifax", value: "-3" },
+  { label: "America/Noronha", value: "-2" },
+  { label: "Atlantic/Cape_Verde", value: "-1" },
+  { label: "Africa/Monrovia", value: "0" },
+  { label: "Europe/London", value: "1" },
+  { label: "Europe/Amsterdam", value: "2" },
+  { label: "Europe/Athens", value: "3" },
+  { label: "Europe/Samara", value: "4" },
+  { label: "Asia/Tashkent", value: "5" },
+  { label: "Asia/Dhaka", value: "6" },
+  { label: "Asia/Bangkok", value: "7" },
+  { label: "Asia/Chongqing", value: "8" },
+  { label: "Asia/Tokyo", value: "9" },
+  { label: "Australia/Brisbane", value: "10" },
+  { label: "Australia/Canberra", value: "11" },
+  { label: "Pacific/Fiji", value: "12" },
+  { label: "Pacific/Auckland", value: "13" },
+  { label: "Pacific/Apia", value: "14" },
+];
+
+export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
   const [period, setPeriod] = useState<string>("am");
 
   const dateAndTimeState = useAppManager(
@@ -32,11 +60,12 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
   const [showAbout, setShowAbout] = useState(false);
 
   const quitApp = () => {
-    desktopEventDispatch(quitAppHelper(appId, appName, appIcon));
+    desktopEventDispatch(quitAppHelper(APP_ID, APP_NAME, appIcon));
   };
 
-  const updateSystemTime = (updatedDate: Date) => {
-    const date = new Date(dateAndTimeState.dateTime);
+  const updateSystemTime = useCallback((updatedDate: Date) => {
+    const currentDateTime = useAppManager.getState().System.Manager.DateAndTime.dateTime;
+    const date = new Date(currentDateTime);
 
     let hoursToSet =
       period == "am" ? updatedDate.getHours() : updatedDate.getHours() + 12;
@@ -52,7 +81,7 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
       type: "ClassicyManagerDateTimeSet",
       dateTime: date,
     });
-  };
+  }, [period, desktopEventDispatch]);
 
   const updateSystemDate = (updatedDate: Date) => {
     const date = new Date(dateAndTimeState.dateTime);
@@ -76,16 +105,16 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
 
   const appMenu = [
     {
-      id: appId + "_file",
+      id: APP_ID + "_file",
       title: "File",
-      menuChildren: [quitMenuItemHelper(appId, appName, appIcon)],
+      menuChildren: [quitMenuItemHelper(APP_ID, APP_NAME, appIcon)],
     },
     {
-      id: appId + "_help",
+      id: APP_ID + "_help",
       title: "Help",
       menuChildren: [
         {
-          id: appId + "_about",
+          id: APP_ID + "_about",
           title: "About",
           onClickFunc: () => {
             setShowAbout(true);
@@ -95,116 +124,13 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
     },
   ];
 
-  const timezones = [
-    {
-      label: "Pacific/Midway",
-      value: "-11",
-    },
-    {
-      label: "Pacific/Honolulu",
-      value: "-10",
-    },
-    {
-      label: "America/Anchorage",
-      value: "-8",
-    },
-    {
-      label: "America/Los_Angeles",
-      value: "-7",
-    },
-    {
-      label: "America/Denver",
-      value: "-6",
-    },
-    {
-      label: "America/Chicago",
-      value: "-5",
-    },
-    {
-      label: "America/New_York",
-      value: "-4",
-    },
-    {
-      label: "America/Halifax",
-      value: "-3",
-    },
-    {
-      label: "America/Noronha",
-      value: "-2",
-    },
-    {
-      label: "Atlantic/Cape_Verde",
-      value: "-1",
-    },
-    {
-      label: "Africa/Monrovia",
-      value: "0",
-    },
-    {
-      label: "Europe/London",
-      value: "1",
-    },
-    {
-      label: "Europe/Amsterdam",
-      value: "2",
-    },
-    {
-      label: "Europe/Athens",
-      value: "3",
-    },
-    {
-      label: "Europe/Samara",
-      value: "4",
-    },
-    {
-      label: "Asia/Tashkent",
-      value: "5",
-    },
-    {
-      label: "Asia/Dhaka",
-      value: "6",
-    },
-    {
-      label: "Asia/Bangkok",
-      value: "7",
-    },
-    {
-      label: "Asia/Chongqing",
-      value: "8",
-    },
-    {
-      label: "Asia/Tokyo",
-      value: "9",
-    },
-    {
-      label: "Australia/Brisbane",
-      value: "10",
-    },
-    {
-      label: "Australia/Canberra",
-      value: "11",
-    },
-    {
-      label: "Pacific/Fiji",
-      value: "12",
-    },
-    {
-      label: "Pacific/Auckland",
-      value: "13",
-    },
-    {
-      label: "Pacific/Apia",
-      value: "14",
-    },
-  ];
-
   const date = new Date(dateAndTimeState.dateTime);
   date.setHours(date.getHours() + parseInt(dateAndTimeState.timeZoneOffset));
 
   return (
     <ClassicyApp
-      id={appId}
-      name={appName}
+      id={APP_ID}
+      name={APP_NAME}
       icon={appIcon}
       defaultWindow={"DateAndTimeManager_1"}
       noDesktopIcon={true}
@@ -212,8 +138,8 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
     >
       <ClassicyWindow
         id={"DateAndTimeManager_1"}
-        title={appName}
-        appId={appId}
+        title={APP_NAME}
+        appId={APP_ID}
         icon={appIcon}
         closable={true}
         resizable={false}
@@ -261,7 +187,7 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
               <ClassicyPopUpMenu
                 id={"timezone"}
                 small={false}
-                options={timezones}
+                options={TIMEZONES}
                 onChangeFunc={updateSystemTimeZone}
                 selected={dateAndTimeState.timeZoneOffset?.toString()}
               />
@@ -293,8 +219,8 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
       </ClassicyWindow>
       {showAbout &&
         getClassicyAboutWindow({
-          appId,
-          appName,
+          appId: APP_ID,
+          appName: APP_NAME,
           appIcon,
           hideFunc: () => setShowAbout(false),
         })}

@@ -8,6 +8,8 @@ import { classicyDateTimeManagerEventHandler } from "@/SystemFolder/ControlPanel
 import { ClassicyStoreSystemSoundManager } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { classicyFinderEventHandler } from "@/SystemFolder/Finder/FinderContext";
 import { classicyQuickTimeMoviePlayerEventHandler } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerContext";
+import { MoviePlayerAppInfo } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerUtils";
+import { isValidHttpUrl } from "@/SystemFolder/SystemResources/Utils/urlValidation";
 import { classicyQuickTimePictureViewerEventHandler } from "@/SystemFolder/QuickTime/PictureViewer/PictureViewerContext";
 import { classicyDesktopIconEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconContext";
 import {
@@ -63,6 +65,7 @@ export interface ClassicyStoreSystemAppWindow {
   menuBar?: ClassicyMenuItem[];
   contextMenu?: ClassicyMenuItem[];
   showContextMenu?: boolean;
+  zOrder?: number;
   options?: Record<string, JsonValue>[];
 }
 
@@ -112,22 +115,15 @@ export function focusApp(ds: ClassicyStore, appId: string) {
   if (ds.System.Manager.App.apps[appId]) {
     ds.System.Manager.App.apps[appId].focused = true;
   }
-  const focusedWindow = ds.System.Manager.App.apps[appId]?.windows.findIndex(
-    (w) => w.default,
-  );
-  if (focusedWindow >= 0) {
-    ds.System.Manager.App.apps[appId].windows[focusedWindow].closed = false;
-    ds.System.Manager.App.apps[appId].windows[focusedWindow].focused = true;
-    if (ds.System.Manager.App.apps[appId].appMenu) {
-      ds.System.Manager.Desktop.appMenu =
-        ds.System.Manager.App.apps[appId].appMenu;
-    }
-  } else if (ds.System.Manager.App.apps[appId]?.windows.length === 1) {
-    ds.System.Manager.App.apps[appId].windows[0].closed = false;
-    ds.System.Manager.App.apps[appId].windows[0].focused = true;
-    if (ds.System.Manager.App.apps[appId].appMenu) {
-      ds.System.Manager.Desktop.appMenu =
-        ds.System.Manager.App.apps[appId].appMenu;
+  const windows = ds.System.Manager.App.apps[appId]?.windows ?? [];
+  const defaultIdx = windows.findIndex((w) => w.default);
+  const idx = defaultIdx >= 0 ? defaultIdx : windows.length === 1 ? 0 : -1;
+  if (idx >= 0) {
+    windows[idx].closed = false;
+    windows[idx].focused = true;
+    const menuBar = windows[idx].menuBar;
+    if (menuBar) {
+      ds.System.Manager.Desktop.appMenu = menuBar;
     }
   }
 }
@@ -254,14 +250,38 @@ export const classicyDesktopStateEventReducer = (
   ds: ClassicyStore,
   action: ActionMessage,
 ) => {
-  if ("debug" in action) {
+  if ("debug" in action && process.env.NODE_ENV !== "production") {
     console.group("Desktop Event");
     console.log("Action: ", action);
     console.log("Start State: ", ds);
   }
 
   if ("type" in action) {
-    if (action.type.startsWith("ClassicyWindow")) {
+    // Cross-app orchestration handled at top level, before prefix routing
+    if (action.type === "ClassicyAppFinderOpenFile") {
+      const file = action.file;
+      if (file && file._creator === "QuickTime") {
+        let document: unknown;
+        try {
+          document = typeof file._data === "string" ? JSON.parse(file._data) : file._data;
+        } catch {
+          // Malformed JSON — skip silently
+        }
+        if (
+          typeof document === "object" &&
+          document !== null &&
+          "url" in document &&
+          typeof (document as { url: unknown }).url === "string" &&
+          isValidHttpUrl((document as { url: string }).url)
+        ) {
+          ds = classicyAppEventHandler(ds, { type: "ClassicyAppOpen", app: MoviePlayerAppInfo });
+          ds = classicyQuickTimeMoviePlayerEventHandler(ds, {
+            type: "ClassicyAppMoviePlayerOpenDocument",
+            document: document as { url: string },
+          });
+        }
+      }
+    } else if (action.type.startsWith("ClassicyWindow")) {
       ds = classicyWindowEventHandler(ds, action);
     } else if (action.type.startsWith("ClassicyAppFinder")) {
       ds = classicyFinderEventHandler(ds, action);
@@ -282,7 +302,7 @@ export const classicyDesktopStateEventReducer = (
     }
   }
 
-  if ("debug" in action) {
+  if ("debug" in action && process.env.NODE_ENV !== "production") {
     console.log("End State: ", ds);
     console.groupEnd();
   }

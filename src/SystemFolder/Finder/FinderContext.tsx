@@ -1,4 +1,4 @@
-import {
+import type {
   ActionMessage,
   ClassicyStore,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
@@ -57,6 +57,10 @@ export const classicyFinderEventHandler = (
     }
     case "ClassicyAppFinderEmptyTrash": {
       // TODO: What will this do?
+      break;
+    }
+    case "ClassicyAppFinderOpenFile": {
+      // Handled at top level in classicyDesktopStateEventReducer (cross-app orchestration)
       break;
     }
   }

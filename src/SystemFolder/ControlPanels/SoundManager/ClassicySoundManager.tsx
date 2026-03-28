@@ -17,17 +17,17 @@ import { ClassicyControlGroup } from "@/SystemFolder/SystemResources/ControlGrou
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import { ClassicyDisclosure } from "@/SystemFolder/SystemResources/Disclosure/ClassicyDisclosure";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
-import { FC as FunctionalComponent, useState } from "react";
+import { FC as FunctionalComponent, useMemo, useState } from "react";
 import appIcon from "@img/icons/control-panels/sound-manager/app.png";
+
+const APP_ID = "SoundManager.app";
+const APP_NAME = "Sound Manager";
 
 export const ClassicySoundManager: FunctionalComponent = () => {
   const desktopEventDispatch = useAppManagerDispatch();
 
   const playerState = useSound();
   const player = useSoundDispatch();
-
-  const appName: string = "Sound Manager";
-  const appId: string = "SoundManager.app";
 
   const [showAbout, setShowAbout] = useState(false);
 
@@ -53,21 +53,21 @@ export const ClassicySoundManager: FunctionalComponent = () => {
   };
 
   const quitApp = () => {
-    desktopEventDispatch(quitAppHelper(appId, appName, appIcon));
+    desktopEventDispatch(quitAppHelper(APP_ID, APP_NAME, appIcon));
   };
 
   const appMenu = [
     {
-      id: appId + "_file",
+      id: APP_ID + "_file",
       title: "File",
-      menuChildren: [quitMenuItemHelper(appId, appName, appIcon)],
+      menuChildren: [quitMenuItemHelper(APP_ID, APP_NAME, appIcon)],
     },
     {
-      id: appId + "_help",
+      id: APP_ID + "_help",
       title: "Help",
       menuChildren: [
         {
-          id: appId + "_about",
+          id: APP_ID + "_about",
           title: "About",
           onClickFunc: () => {
             setShowAbout(true);
@@ -77,22 +77,20 @@ export const ClassicySoundManager: FunctionalComponent = () => {
     },
   ];
 
-  const getSoundLabelGroups = () => {
-    const soundLabelGroups = [
-      ...new Set(playerState.labels.map((item) => item.group)),
-    ];
-
-    const index = soundLabelGroups.indexOf("Alert");
-    if (index !== -1) {
-      soundLabelGroups.splice(index, 1);
+  const groupedLabels = useMemo(() => {
+    const groups = new Map<string, ClassicySoundInfo[]>();
+    for (const item of playerState.labels) {
+      if (item.group === "Alert") continue;
+      if (!groups.has(item.group)) groups.set(item.group, []);
+      groups.get(item.group)!.push(item);
     }
-    return soundLabelGroups;
-  };
+    return groups;
+  }, [playerState.labels]);
 
   return (
     <ClassicyApp
-      id={appId}
-      name={appName}
+      id={APP_ID}
+      name={APP_NAME}
       icon={appIcon}
       defaultWindow={"SoundManager_1"}
       noDesktopIcon={true}
@@ -100,8 +98,8 @@ export const ClassicySoundManager: FunctionalComponent = () => {
     >
       <ClassicyWindow
         id={"SoundManager_1"}
-        title={appName}
-        appId={appId}
+        title={APP_NAME}
+        appId={APP_ID}
         icon={appIcon}
         closable={true}
         resizable={false}
@@ -134,26 +132,23 @@ export const ClassicySoundManager: FunctionalComponent = () => {
               label={"These settings are not currently connected."}
             />
             <div className={"soundManagerControlGroupHolder"}>
-              {getSoundLabelGroups().map((group: string) => (
+              {[...groupedLabels.entries()].map(([group, items]) => (
                 <ClassicyControlGroup
                   label={group}
                   columns={true}
-                  key={appId + "_" + group}
+                  key={APP_ID + "_" + group}
                 >
-                  {playerState.labels.map(
-                    (item: ClassicySoundInfo) =>
-                      item.group === group && (
-                        <ClassicyCheckbox
-                          key={appId + "_" + group + item.id}
-                          id={"enable_sound_" + item.id}
-                          label={item.label}
-                          checked={!playerState.disabled.includes("*")}
-                          onClickFunc={(checked: boolean) =>
-                            disableSounds(checked, item.id)
-                          }
-                        />
-                      ),
-                  )}
+                  {items.map((item: ClassicySoundInfo) => (
+                    <ClassicyCheckbox
+                      key={APP_ID + "_" + group + item.id}
+                      id={"enable_sound_" + item.id}
+                      label={item.label}
+                      checked={!playerState.disabled.includes("*")}
+                      onClickFunc={(checked: boolean) =>
+                        disableSounds(checked, item.id)
+                      }
+                    />
+                  ))}
                 </ClassicyControlGroup>
               ))}
             </div>
@@ -165,8 +160,8 @@ export const ClassicySoundManager: FunctionalComponent = () => {
       </ClassicyWindow>
       {showAbout &&
         getClassicyAboutWindow({
-          appId,
-          appName,
+          appId: APP_ID,
+          appName: APP_NAME,
           appIcon,
           hideFunc: () => setShowAbout(false),
         })}

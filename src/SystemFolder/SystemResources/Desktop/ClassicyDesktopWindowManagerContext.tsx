@@ -134,6 +134,8 @@ export const classicyWindowEventHandler = (
           hidden: false,
           menuBar: action.window.menuBar,
         } as ClassicyStoreSystemAppWindow);
+      } else {
+        ds = updateWindow(action.app.id, action.window.id, { closed: false });
       }
       break;
     }
@@ -143,6 +145,9 @@ export const classicyWindowEventHandler = (
       ds.System.Manager.App.apps[action.app.id].windows =
         ds.System.Manager.App.apps[action.app.id].windows.map((w) => {
           w.focused = w.id === action.window.id;
+          if (w.focused) {
+            w.zOrder = Date.now();
+          }
           return w;
         });
       // Prefer fresh appMenu from component props (has closures) over stored menuBar
@@ -153,7 +158,15 @@ export const classicyWindowEventHandler = (
       break;
     }
     case "ClassicyWindowClose": {
-      ds = updateWindow(action.app.id, action.window.id, { closed: true });
+      ds = updateWindow(action.app.id, action.window.id, { closed: true, focused: false });
+      const openWindows = ds.System.Manager.App.apps[action.app.id]?.windows
+        .filter((w) => !w.closed && w.id !== action.window.id);
+      if (openWindows?.length) {
+        const nextFocus = openWindows.reduce((best, w) =>
+          (w.zOrder ?? 0) > (best.zOrder ?? 0) ? w : best
+        );
+        ds = updateWindow(action.app.id, nextFocus.id, { focused: true });
+      }
       break;
     }
 

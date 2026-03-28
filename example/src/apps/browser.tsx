@@ -176,11 +176,11 @@ const Browser = () => {
         }
     }
 
-    const quitApp = () => {
+    const quitApp = React.useCallback(() => {
         desktopEventDispatch(quitAppHelper(appId, appName, appIcon))
-    }
+    }, [desktopEventDispatch, appId, appName, appIcon])
 
-    const appMenu = [
+    const appMenu = React.useMemo(() => [
         {
             id: 'file',
             title: 'File',
@@ -192,7 +192,7 @@ const Browser = () => {
                 },
             ],
         },
-    ]
+    ], [appId, quitApp])
 
     return (
         <ClassicyApp id={appId} name={appName} icon={appIcon} defaultWindow={'browser'}>
@@ -242,7 +242,7 @@ const Browser = () => {
                                 </p>
                             </ClassicyButton>
                             </div>
-                            <div style={{minWidth: 0, flex: 1, display: "flex", flexDirection: "row", alignSelf: "center", gap: "4px"}}>
+                            <div style={{minWidth: 0, flex: 1, display: "flex", flexDirection: "row", alignSelf: "center", gap: "4px", alignItems: "center"}}>
                                 {!isCompact && <ClassicyControlLabel label="Address:" />}
                                 <ClassicyInput id={'browserAddress'} ref={refAddressBar} backgroundColor="white" onEnterFunc={goBook}></ClassicyInput>
                             </div>

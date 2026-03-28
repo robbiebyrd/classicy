@@ -262,7 +262,7 @@ export const Finder = () => {
     };
   }, [fs, desktopEventDispatch]);
 
-  const getHeaderString = (dir: ClassicyFileSystemEntryMetadata) => {
+  const getHeaderString = useCallback((dir: ClassicyFileSystemEntryMetadata) => {
     return (
       dir["_count"] +
       " items" +
@@ -270,7 +270,7 @@ export const Finder = () => {
       ", " +
       fs.formatSize(dir["_size"] || 0)
     );
-  };
+  }, [fs]);
 
   return (
     <ClassicyApp
@@ -279,8 +279,8 @@ export const Finder = () => {
       icon={appIcon}
       noDesktopIcon={true}
       defaultWindow={
-        appState.data.openPaths
-          ? appName + "_" + appState.data.openPaths.at(0)
+        appState.data.openPaths?.length
+          ? appState.data.openPaths.at(0)
           : "Macintosh HD"
       }
     >

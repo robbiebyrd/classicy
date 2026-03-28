@@ -1,5 +1,6 @@
 import { sha512 } from 'sha512-crypt-ts'
 import { DefaultFSContent } from '@/SystemFolder/SystemResources/File/DefaultClassicyFileSystem'
+import { isValidFileSystemEntry } from '@/SystemFolder/SystemResources/File/ClassicyFileSystemValidation'
 import {
     ClassicyFileSystemEntry,
     ClassicyFileSystemEntryFileType,
@@ -23,8 +24,10 @@ export class ClassicyFileSystem {
         if (typeof window !== 'undefined' && retrieved) {
             try {
                 const parsed = JSON.parse(retrieved)
-                if (parsed) {
+                if (isValidFileSystemEntry(parsed)) {
                     this.fs = parsed
+                } else {
+                    console.warn('[ClassicyFileSystem] localStorage data failed validation, using defaults')
                 }
             } catch (e) {
                 console.error('Failed to parse localStorage data, using defaults:', e)

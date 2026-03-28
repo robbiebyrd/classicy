@@ -8,16 +8,38 @@ import { ClassicyDesktopMenuWidgetSound } from "@/SystemFolder/SystemResources/D
 import { ClassicyDesktopMenuWidgetTime } from "@/SystemFolder/SystemResources/Desktop/MenuBar/Widgets/Time/ClassicyDesktopMenuWidgetTime";
 import {
   ClassicyMenu,
+  ClassicyMenuContext,
   ClassicyMenuItem,
+  ClassicyMenuProvider,
 } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import "@/SystemFolder/SystemResources/Menu/ClassicyMenu.scss";
-import { FC as FunctionalComponent, useMemo } from "react";
+import { FC as FunctionalComponent, useContext, useEffect, useMemo, useRef } from "react";
 
 export const ClassicyDesktopMenuBar: FunctionalComponent = () => {
+  return (
+    <ClassicyMenuProvider>
+      <ClassicyDesktopMenuBarContent />
+    </ClassicyMenuProvider>
+  );
+};
+
+const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
   const apps = useAppManager(s => s.System.Manager.App.apps);
   const systemMenu = useAppManager(s => s.System.Manager.Desktop.systemMenu);
   const appMenu = useAppManager(s => s.System.Manager.Desktop.appMenu);
   const desktopEventDispatch = useAppManagerDispatch();
+  const { closeAll } = useContext(ClassicyMenuContext);
+  const navRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (navRef.current && !navRef.current.contains(e.target as Node)) {
+        closeAll();
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [closeAll]);
 
   const appSwitcherData = useMemo(() =>
     Object.values(apps)
@@ -51,7 +73,7 @@ export const ClassicyDesktopMenuBar: FunctionalComponent = () => {
           },
         })),
     };
-  }, [appSwitcherData, desktopEventDispatch]);
+  }, [appSwitcherData, setActiveApp]);
 
   const defaultMenuItems: ClassicyMenuItem[] = useMemo(() => {
     const systemMenuItem: ClassicyMenuItem = {
@@ -69,7 +91,7 @@ export const ClassicyDesktopMenuBar: FunctionalComponent = () => {
   }, [systemMenu, appMenu, appSwitcherMenuMenuItem]);
 
   return (
-    <nav className={"classicyDesktopMenuBar"}>
+    <nav ref={navRef} className={"classicyDesktopMenuBar"}>
       <ClassicyMenu
         name={"desktopMenuBar"}
         menuItems={defaultMenuItems}

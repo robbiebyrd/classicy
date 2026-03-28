@@ -5,7 +5,6 @@ import { parse } from "@plussub/srt-vtt-parser";
 import { ParsedResult } from "@plussub/srt-vtt-parser/dist/types";
 import {
   FC as FunctionalComponent,
-  Suspense,
   useCallback,
   useEffect,
   useRef,
@@ -14,11 +13,12 @@ import {
 import ReactPlayer from "react-player";
 import screenfull from "screenfull";
 import { getVolumeIcon, timeFriendly } from "./QuickTimeUtils";
+import { isValidHttpUrl } from "@/SystemFolder/SystemResources/Utils/urlValidation";
 import playButton from "@img/icons/system/quicktime/play-button.svg";
 import pauseButton from "@img/icons/system/quicktime/pause-button.svg";
 import backwardButton from "@img/icons/system/quicktime/backward-button.svg";
 import forwardButton from "@img/icons/system/quicktime/forward-button.svg";
-import fullscreenButton from "@img/icons/system/quicktime/forward-button.svg";
+import fullscreenButton from "@img/icons/system/quicktime/fullscreen-button.svg";
 
 type QuickTimeVideoEmbed = {
   appId: string;
@@ -82,23 +82,26 @@ export const QuickTimeVideoEmbed: FunctionalComponent<QuickTimeVideoEmbed> = ({
     if (screenfull.isEnabled && playerRef.current) {
       screenfull.toggle(playerRef.current, { navigationUI: "hide" });
     }
-    return;
-  }, [playerRef]);
+  }, []);
 
   const seekTo = (seconds: number) => {
-    playerRef.current?.fastSeek(seconds);
+    if (playerRef.current) {
+      playerRef.current.currentTime = seconds;
+    }
   };
 
   const seekForward = useCallback(() => {
     seekTo((playerRef.current?.currentTime || 0) + 10);
-  }, [playerRef]);
+  }, []);
 
   const seekBackward = useCallback(() => {
     seekTo((playerRef.current?.currentTime || 0) - 10);
-  }, [playerRef]);
+  }, []);
 
   const seekToPct = (pct: number) => {
-    playerRef.current?.fastSeek(pct * playerRef.current?.duration);
+    if (playerRef.current) {
+      playerRef.current.currentTime = pct * playerRef.current.duration;
+    }
   };
 
   const escapeFullscreen = () => {
@@ -163,18 +166,23 @@ export const QuickTimeVideoEmbed: FunctionalComponent<QuickTimeVideoEmbed> = ({
   const volumeButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    if (!subtitlesUrl) {
+    if (!subtitlesUrl || !isValidHttpUrl(subtitlesUrl)) {
       return;
     }
-
-    fetch(subtitlesUrl)
+    const controller = new AbortController();
+    fetch(subtitlesUrl, { signal: controller.signal })
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.text();
       })
       .then((text) => parse(text))
-      .then((text) => setSubtitlesData(text))
-      .catch((error) => { console.error('[QuickTime] Subtitle fetch failed', { subtitlesUrl, error }); setSubtitlesData(null); });
+      .then((result) => setSubtitlesData(result))
+      .catch((error) => {
+        if (error.name === "AbortError") return;
+        console.error('[QuickTime] Subtitle fetch failed', { subtitlesUrl, error });
+        setSubtitlesData(null);
+      });
+    return () => controller.abort();
   }, [subtitlesUrl]);
 
   return (
@@ -205,34 +213,29 @@ export const QuickTimeVideoEmbed: FunctionalComponent<QuickTimeVideoEmbed> = ({
           volume={muted ? 0 : volume}
           config={options}
         />
-        <Suspense>
-          {showSubtitles &&
-            subtitlesData?.entries &&
-            subtitlesData?.entries?.length > 0 &&
-            subtitlesData.entries.find((i) => {
-              const time = (playerRef.current?.currentTime || 0) * 1000;
-              return i.from < time && i.to > time;
-            }) && (
-              <div
-                className={
-                  "quickTimePlayerCaptionsHolder" +
-                  " " +
-                  "quickTimePlayerCaptionsHolderBottom" +
-                  " " +
-                  "quickTimePlayerCaptionsHolderCenter"
-                }
-              >
-                <div className={"quickTimePlayerCaptions"}>
-                  {
-                    subtitlesData.entries.find((i) => {
-                      const time = (playerRef.current?.currentTime || 0) * 1000;
-                      return i.from < time && i.to > time;
-                    })?.text
-                  }
-                </div>
+        {(() => {
+          if (!showSubtitles || !subtitlesData?.entries?.length) return null;
+          const currentTime = (playerRef.current?.currentTime || 0) * 1000;
+          const currentEntry = subtitlesData.entries.find(
+            (i) => i.from < currentTime && i.to > currentTime,
+          );
+          if (!currentEntry) return null;
+          return (
+            <div
+              className={
+                "quickTimePlayerCaptionsHolder" +
+                " " +
+                "quickTimePlayerCaptionsHolderBottom" +
+                " " +
+                "quickTimePlayerCaptionsHolderCenter"
+              }
+            >
+              <div className={"quickTimePlayerCaptions"}>
+                {currentEntry.text}
               </div>
-            )}
-        </Suspense>
+            </div>
+          );
+        })()}
       </div>
       {!hideControls && (
         <div
@@ -245,7 +248,7 @@ export const QuickTimeVideoEmbed: FunctionalComponent<QuickTimeVideoEmbed> = ({
           >
             <img
               className={"quickTimePlayerVideoControlsIcon"}
-              src={`url('${playing ? pauseButton : playButton})`}
+              src={playing ? pauseButton : playButton}
             />
           </button>
           <div className={"quickTimePlayerVideoControlsProgressBarHolder"}>
@@ -276,7 +279,7 @@ export const QuickTimeVideoEmbed: FunctionalComponent<QuickTimeVideoEmbed> = ({
           >
             <img
               className={"quickTimePlayerVideoControlsIcon"}
-              src={`url('${backwardButton}')`}
+              src={backwardButton}
             />
           </button>
           <button
@@ -285,7 +288,7 @@ export const QuickTimeVideoEmbed: FunctionalComponent<QuickTimeVideoEmbed> = ({
           >
             <img
               className={"quickTimePlayerVideoControlsIcon"}
-              src={`url('${forwardButton}')`}
+              src={forwardButton}
             />
           </button>
           {subtitlesUrl && (
@@ -346,7 +349,7 @@ export const QuickTimeVideoEmbed: FunctionalComponent<QuickTimeVideoEmbed> = ({
             >
               <img
                 className={"quickTimePlayerVideoControlsIcon"}
-                src={`url(${fullscreenButton})`}
+                src={fullscreenButton}
               />
             </button>
           )}

@@ -6,7 +6,7 @@ import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import { quitMenuItemHelper } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
 import { QuickTimeVideoEmbed } from "@/SystemFolder/SystemResources/QuickTime/QuickTimeMovieEmbed";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
-import { FC as FunctionalComponent, useEffect } from "react";
+import { FC as FunctionalComponent, useEffect, useMemo } from "react";
 import defaultDocumentIcon from "@img/icons/system/quicktime/movie.png";
 import { MoviePlayerAppInfo, QuickTimeMovieDocument } from "./MoviePlayerUtils";
 
@@ -38,44 +38,15 @@ export const MoviePlayer: FunctionalComponent = () => {
         ],
       });
     }
-  }, [appId, appData, appOpen, desktopEventDispatch]);
+  }, [appData, appOpen, desktopEventDispatch]);
 
-  // const openUrl = (name: string, url: string, iconUrl?: string) => {
-  //   desktopEventDispatch({
-  //     type: "ClassicyAppMoviePlayerOpenDocument",
-  //     document: { name, url: url, icon: iconUrl || defaultDocumentIcon },
-  //   });
-
-  //   const windowIndex = desktop.System.Manager.App.apps[
-  //     appId
-  //   ].windows.findIndex((w) => w.id === appId + "_MoviePlayer_" + url);
-  //   const ws = desktop.System.Manager.App.apps[appId].windows[windowIndex];
-  //   if (ws) {
-  //     ws.closed = false;
-  //     desktopEventDispatch({
-  //       type: "ClassicyWindowOpen",
-  //       app: {
-  //         id: appId,
-  //       },
-  //       window: ws,
-  //     });
-  //     desktopEventDispatch({
-  //       type: "ClassicyWindowFocus",
-  //       app: {
-  //         id: appId,
-  //       },
-  //       window: ws,
-  //     });
-  //   }
-  // };
-
-  const appMenu = [
+  const appMenu = useMemo(() => [
     {
       id: "file",
       title: "File",
       menuChildren: [quitMenuItemHelper(appId, appName, appIcon)],
     },
-  ];
+  ], [appId, appName, appIcon]);
 
   return (
     <ClassicyApp id={appId} name={appName} icon={appIcon}>
