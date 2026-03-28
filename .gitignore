@@ -29,3 +29,7 @@ tsconfig.tsbuildinfo
 /.claude
 tsconfig.tsbuildinfo
 .yarn
+
+# macOS duplicate files (Finder copies, iCloud conflicts)
+*\ [0-9].ts
+*\ [0-9].tsx
