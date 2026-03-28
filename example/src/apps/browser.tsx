@@ -50,15 +50,21 @@ const Browser = () => {
     const refIframe = React.useRef<HTMLIFrameElement>(null)
     const [history, setHistory] = React.useState<string[]>([defaultUrl])
     const [historyIndex, setHistoryIndex] = React.useState(0)
+    const [iframeSrc, setIframeSrc] = React.useState(sanitizeUrl(defaultUrl))
     const [urlError, setUrlError] = React.useState(false)
     const [isLoading, setIsLoading] = React.useState(true)
     const loadingTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
     const refToolbar = React.useRef<HTMLDivElement>(null)
     const [isCompact, setIsCompact] = React.useState(false)
 
+    // Refs to avoid stale closures in handleIframeLoad
+    const historyRef = React.useRef(history)
+    const historyIndexRef = React.useRef(historyIndex)
+    historyRef.current = history
+    historyIndexRef.current = historyIndex
+
     const canGoBack = historyIndex > 0
     const canGoForward = historyIndex < history.length - 1
-    const iframeSrc = sanitizeUrl(history[historyIndex])
 
     const clearLoadingTimeout = React.useCallback(() => {
         if (loadingTimeoutRef.current) {
@@ -75,6 +81,26 @@ const Browser = () => {
     const handleIframeLoad = React.useCallback(() => {
         clearLoadingTimeout()
         setIsLoading(false)
+
+        // Try to read the iframe's current URL for in-iframe navigation
+        try {
+            const currentUrl = refIframe.current?.contentWindow?.location.href
+            if (currentUrl && currentUrl !== 'about:blank') {
+                const idx = historyIndexRef.current
+                const hist = historyRef.current
+                if (currentUrl !== hist[idx]) {
+                    const newHistory = [...hist.slice(0, idx + 1), currentUrl]
+                    setHistory(newHistory)
+                    setHistoryIndex(idx + 1)
+                    if (refAddressBar.current) {
+                        refAddressBar.current.value = currentUrl
+                    }
+                    recordVisit(currentUrl)
+                }
+            }
+        } catch {
+            // Cross-origin: cannot read iframe URL
+        }
     }, [clearLoadingTimeout])
 
     // Sync address bar and record default URL on mount
@@ -134,6 +160,7 @@ const Browser = () => {
         startLoading()
         setHistory(prev => [...prev.slice(0, historyIndex + 1), url])
         setHistoryIndex(prev => prev + 1)
+        setIframeSrc(sanitizeUrl(url))
         if (refAddressBar.current) {
             refAddressBar.current.value = url
         }
@@ -161,6 +188,7 @@ const Browser = () => {
         startLoading()
         const newIndex = historyIndex - 1
         setHistoryIndex(newIndex)
+        setIframeSrc(sanitizeUrl(history[newIndex]))
         if (refAddressBar.current) {
             refAddressBar.current.value = history[newIndex]
         }
@@ -171,6 +199,7 @@ const Browser = () => {
         startLoading()
         const newIndex = historyIndex + 1
         setHistoryIndex(newIndex)
+        setIframeSrc(sanitizeUrl(history[newIndex]))
         if (refAddressBar.current) {
             refAddressBar.current.value = history[newIndex]
         }
