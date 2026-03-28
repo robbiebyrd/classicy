@@ -44,7 +44,7 @@ const Browser = () => {
 
     const desktopEventDispatch = useAppManagerDispatch()
 
-    const defaultUrl = 'https://theoldnet.com'
+    const defaultUrl = 'https://web.archive.org/web/19970404064352/http://www.apple.com/'
 
     const refAddressBar = React.useRef<HTMLInputElement>(null)
     const refIframe = React.useRef<HTMLIFrameElement>(null)
