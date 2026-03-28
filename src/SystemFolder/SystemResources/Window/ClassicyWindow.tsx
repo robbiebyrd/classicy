@@ -197,6 +197,15 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
     }
   }, [appId, ws, appMenu, desktopEventDispatch]);
 
+  useEffect(() => {
+    if (ws.focused && appMenu) {
+      desktopEventDispatch({
+        type: "ClassicyWindowMenu",
+        menuBar: appMenu,
+      });
+    }
+  }, [ws.focused, appMenu, desktopEventDispatch]);
+
   const startResizeWindow = (e: MouseEvent<HTMLDivElement>) => {
     e.preventDefault();
     track("resize", { type: "ClassicyWindow", ...analyticsArgs });
@@ -319,7 +328,6 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
       track("focus", { type: "ClassicyWindow", ...analyticsArgs });
       if (!ws.focused) {
         player({ type: "ClassicySoundPlay", sound: "ClassicyWindowFocus" });
-
         desktopEventDispatch({
           type: "ClassicyWindowFocus",
           app: {
@@ -328,10 +336,6 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
           },
           window: ws,
         });
-        // desktopEventDispatch({
-        //     type: 'ClassicyWindowContextMenu',
-        //     contextMenu: contextMenu || [],
-        // })
       }
     },
     [ws, appId, appMenu, desktopEventDispatch, player, track, analyticsArgs],
@@ -343,7 +347,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
     if (modal && type == "error") {
       player({ type: "ClassicySoundPlayError" });
     }
-  }, [modal, player, setActive, type]);
+  }, [modal, player, type]);
 
   const toggleCollapse = () => {
     if (collapsable) {
@@ -387,7 +391,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
     if (ws.collapsed) {
       setCollapse(false);
     }
-    if (!playSound) {
+    if (playSound) {
       player({
         type: "ClassicySoundPlay",
         sound: toZoom
@@ -511,6 +515,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
                 name={[appId, id, "contextMenu"].join("_")}
                 menuItems={contextMenu}
                 position={clickPosition}
+                onClose={() => setContextMenu(false, [0, 0])}
               ></ClassicyContextualMenu>
             )}
 

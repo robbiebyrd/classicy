@@ -9,13 +9,21 @@ export const classicyDateTimeManagerEventHandler = (
 ) => {
   switch (action.type) {
     case "ClassicyManagerDateTimeSet": {
-      const t = action.dateTime as Date;
-      ds.System.Manager.DateAndTime.dateTime = t.toISOString();
+      const raw = action.dateTime;
+      if (!(raw instanceof Date)) {
+        console.error("[classicyDateTimeManagerEventHandler] Expected a Date for dateTime", { received: raw, receivedType: typeof raw });
+        break;
+      }
+      ds.System.Manager.DateAndTime.dateTime = raw.toISOString();
       break;
     }
     case "ClassicyManagerDateTimeTZSet": {
-      ds.System.Manager.DateAndTime.timeZoneOffset =
-        String(action.tzOffset);
+      const offset = Number(action.tzOffset);
+      if (!Number.isFinite(offset) || offset < -12 || offset > 14) {
+        console.error("[classicyDateTimeManagerEventHandler] Invalid tzOffset:", action.tzOffset);
+        break;
+      }
+      ds.System.Manager.DateAndTime.timeZoneOffset = String(offset);
       break;
     }
   }

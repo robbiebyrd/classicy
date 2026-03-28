@@ -26,6 +26,10 @@ import {
   ClassicyDefaultWallpaper,
   ClassicyWallpapers,
 } from "./ClassicyWallpapers";
+import { isValidHttpUrl } from "@/SystemFolder/SystemResources/Utils/urlValidation";
+const APP_ID = "AppearanceManager.app";
+const APP_NAME = "Appearance Manager";
+
 const ClassicyFonts = [
   { label: "Charcoal", value: "Charcoal" },
   { label: "ChicagoFLF", value: "ChicagoFLF" },
@@ -34,13 +38,10 @@ const ClassicyFonts = [
 ];
 
 function isValidUrlWithRegex(url: string): boolean {
-  const urlPattern = /^(https?):\/\/[^\s/$.?#].[^\s]*$/i;
-  return urlPattern.test(url);
+  return isValidHttpUrl(url);
 }
 
 export const ClassicyAppearanceManager: FunctionalComponent = () => {
-  const appName: string = "Appearance Manager";
-  const appId: string = "AppearanceManager.app";
 
   const appearanceState = useAppManager(
       (state) => state.System.Manager.Appearance,
@@ -64,11 +65,12 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
   );
 
   const switchTheme = async (e: ChangeEvent<HTMLSelectElement>) => {
+    const themeId = e.currentTarget.value;
     desktopEventDispatch({
       type: "ClassicyDesktopChangeTheme",
-      activeTheme: e.currentTarget.value,
+      activeTheme: themeId,
     });
-    await fetchAndApplySoundTheme(e.currentTarget.value);
+    await fetchAndApplySoundTheme(themeId);
   };
 
   const changeBackground = (e: ChangeEvent<HTMLSelectElement>) => {
@@ -136,21 +138,21 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
   };
 
   const quitApp = () => {
-    desktopEventDispatch(quitAppHelper(appId, appName, appIcon));
+    desktopEventDispatch(quitAppHelper(APP_ID, APP_NAME, appIcon));
   };
 
   const appMenu = [
     {
-      id: appId + "_file",
+      id: APP_ID + "_file",
       title: "File",
-      menuChildren: [quitMenuItemHelper(appId, appName, appIcon)],
+      menuChildren: [quitMenuItemHelper(APP_ID, APP_NAME, appIcon)],
     },
     {
-      id: appId + "_help",
+      id: APP_ID + "_help",
       title: "Help",
       menuChildren: [
         {
-          id: appId + "_about",
+          id: APP_ID + "_about",
           title: "About",
           onClickFunc: () => {
             setShowAbout(true);
@@ -333,8 +335,8 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 
   return (
     <ClassicyApp
-      id={appId}
-      name={appName}
+      id={APP_ID}
+      name={APP_NAME}
       icon={appIcon}
       defaultWindow={"AppearanceManager_1"}
       noDesktopIcon={true}
@@ -342,8 +344,8 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
     >
       <ClassicyWindow
         id={"AppearanceManager_1"}
-        title={appName}
-        appId={appId}
+        title={APP_NAME}
+        appId={APP_ID}
         icon={appIcon}
         closable={true}
         resizable={false}
@@ -373,8 +375,8 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
       </ClassicyWindow>
       {showAbout &&
         getClassicyAboutWindow({
-          appId,
-          appName,
+          appId: APP_ID,
+          appName: APP_NAME,
           appIcon,
           hideFunc: () => setShowAbout(false),
         })}

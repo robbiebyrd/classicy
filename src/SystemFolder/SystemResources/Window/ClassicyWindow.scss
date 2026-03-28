@@ -295,6 +295,7 @@
         opacity: 0.65;
         background-image: assets.$zoom;
         background-position: top left;
+        margin-top: calc(var(--window-border-size) * 2)
       }
     }
 
@@ -309,7 +310,7 @@
     right: calc(var(--window-padding-size) + var(--window-border-size) * -1);
     bottom: calc(var(--window-padding-size) + var(--window-border-size) * -2);
     width: calc(
-      var(--window-padding-size) * 2.5 + var(--window-border-size) * 1
+      var(--window-padding-size) * 2.5 + var(--window-border-size) * 1.5
     );
     height: calc(
       var(--window-padding-size) * 2.5 + var(--window-border-size) * 1

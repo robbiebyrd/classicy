@@ -194,15 +194,19 @@ export const ClassicySoundStateEventReducer = (
           : [action.disabled];
         next = { ...ss, disabled: Array.from(new Set([...ss.disabled, ...toDisable])) };
       } else {
-        next = { ...ss };
+        next = ss;
       }
       break;
     }
     case ClassicySoundActionTypes.ClassicySoundEnableOne: {
-      const enabled = Array.isArray(action.enabled)
-        ? action.enabled
-        : [action.enabled];
-      next = { ...ss, disabled: ss.disabled.filter((item) => !enabled.includes(item)) };
+      if (action.enabled) {
+        const enabled = Array.isArray(action.enabled)
+          ? action.enabled
+          : [action.enabled];
+        next = { ...ss, disabled: ss.disabled.filter((item) => !enabled.includes(item)) };
+      } else {
+        next = ss;
+      }
       break;
     }
     default: {

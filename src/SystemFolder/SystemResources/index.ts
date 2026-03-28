@@ -22,4 +22,5 @@ export * from "./RichTextEditor/index";
 export * from "./Tabs/index";
 export * from "./TextEditor/index";
 export * from "./TimePicker/index";
+export * from "./Utils/index";
 export * from "./Window/index";

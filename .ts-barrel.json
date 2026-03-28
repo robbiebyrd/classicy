@@ -1,4 +1,4 @@
 {
   "directory": ["./src"],
-  "exclude": ["__tests__", "\\.test\\.ts$", "custom\\.d\\.ts", "\\s\\d+\\.ts$"]
+  "exclude": ["__tests__", "\\.test\\.tsx?$", "custom\\.d\\.ts", "\\s\\d+\\.ts$"]
 }

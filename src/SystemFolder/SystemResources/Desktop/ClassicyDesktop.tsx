@@ -214,6 +214,7 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
             name={"desktopContextMenu"}
             menuItems={defaultMenuItems}
             position={contextMenuLocation}
+            onClose={() => setContextMenu(false)}
           />
         )}
         <Finder />

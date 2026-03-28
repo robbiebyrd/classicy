@@ -47,12 +47,10 @@ export const classicyQuickTimeMoviePlayerEventHandler = (
         Array.isArray(openDocUrls) &&
         !openDocUrls.includes(action.document.url)
       ) {
-        ds.System.Manager.App.apps[appId].data["openFiles"] = Array.from(
-          new Set([
-            ...ds.System.Manager.App.apps[appId].data["openFiles"],
-            action.document,
-          ]),
-        );
+        ds.System.Manager.App.apps[appId].data["openFiles"] = [
+          ...ds.System.Manager.App.apps[appId].data["openFiles"],
+          action.document,
+        ];
         ds = classicyAppEventHandler(ds, {
           type: "ClassicyAppOpen",
           app: MoviePlayerAppInfo,
@@ -67,12 +65,10 @@ export const classicyQuickTimeMoviePlayerEventHandler = (
       if (!docs) {
         break;
       }
-      ds.System.Manager.App.apps[appId].data["openFiles"] = Array.from(
-        new Set([
-          ...ds.System.Manager.App.apps[appId].data["openFiles"],
-          ...docs,
-        ]),
-      );
+      ds.System.Manager.App.apps[appId].data["openFiles"] = [
+        ...ds.System.Manager.App.apps[appId].data["openFiles"],
+        ...docs,
+      ];
       ds = classicyAppEventHandler(ds, {
         type: "ClassicyAppOpen",
         app: MoviePlayerAppInfo,

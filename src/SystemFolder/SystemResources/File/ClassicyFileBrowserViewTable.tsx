@@ -185,6 +185,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
                         }
                       }}
                     >
+                      <div style={{display: "flex", flexDirection: "row", alignItems: "center"}}>
                       {!header.isPlaceholder &&
                         flexRender(
                           header.column.columnDef.header,
@@ -211,6 +212,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
                           )}
                         ></div>
                       )}
+                      </div>
                     </th>
                   ))}
                 </tr>

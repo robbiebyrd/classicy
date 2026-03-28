@@ -1,4 +1,4 @@
-import { produce } from "immer";
+import { produce, castDraft } from "immer";
 import { create, StoreApi, UseBoundStore } from "zustand";
 import {
   ActionMessage,
@@ -41,7 +41,7 @@ export const useAppManager: UseBoundStore<StoreApi<ClassicyStore>> = create<Clas
 export const dispatch = (action: ActionMessage): void => {
   useAppManager.setState((currentState) =>
     produce(currentState, (draft) => {
-      classicyDesktopStateEventReducer(draft as ClassicyStore, action);
+      classicyDesktopStateEventReducer(castDraft(draft) as ClassicyStore, action);
     })
   );
 };

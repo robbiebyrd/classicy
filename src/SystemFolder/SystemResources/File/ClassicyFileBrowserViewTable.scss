@@ -48,10 +48,10 @@
   font-weight: normal;
   font-stretch: condensed;
   display: table-cell;
-  flex-direction: row;
 
+  align-items: center;
   position: relative;
-  padding: 0 var(--window-padding-size);
+  padding: var(--window-padding-size);
 
   @include appearance.platinumWindowBoxShadow;
 }

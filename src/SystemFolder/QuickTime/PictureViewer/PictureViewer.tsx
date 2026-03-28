@@ -5,7 +5,7 @@ import {
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import { quitMenuItemHelper } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
-import { FC as FunctionalComponent, useEffect } from "react";
+import { FC as FunctionalComponent, useEffect, useMemo } from "react";
 import appIcon from "@img/icons/system/quicktime/player.png";
 import defaultDocumentIcon from "@img/icons/system/quicktime/movie.png";
 
@@ -34,10 +34,7 @@ export const QuickTimePictureViewer: FunctionalComponent = () => {
   // Load Default Demo documents on open
   useEffect(() => {
     const data = appData || {};
-    if (
-      (appOpen && !data["openFiles"]) ||
-      data["openFiles"]?.length === 0
-    ) {
+    if (appOpen && (!data["openFiles"] || data["openFiles"]?.length === 0)) {
       const defaultDocs = [
         {
           url: "/assets/img/apps/quicktime/sample-picture.jpg",
@@ -50,44 +47,15 @@ export const QuickTimePictureViewer: FunctionalComponent = () => {
         documents: defaultDocs,
       });
     }
-  }, [appId, appData, appOpen, desktopEventDispatch]);
+  }, [appData, appOpen, desktopEventDispatch]);
 
-  // const openUrl = (name: string, url: string, iconUrl?: string) => {
-  //     desktopEventDispatch({
-  //         type: 'ClassicyAppPictureViewerOpenDocument',
-  //         document: {name, url: url, icon: iconUrl || defaultDocumentIcon},
-  //     })
-
-  //     const windowIndex = desktop.System.Manager.App.apps[appId].windows.findIndex(
-  //         (w) => w.id === appId + '_PictureViewer_' + url
-  //     )
-  //     const ws = desktop.System.Manager.App.apps[appId].windows[windowIndex]
-  //     if (ws) {
-  //         ws.closed = false
-  //         desktopEventDispatch({
-  //             type: 'ClassicyWindowOpen',
-  //             app: {
-  //                 id: appId,
-  //             },
-  //             window: ws,
-  //         })
-  //         desktopEventDispatch({
-  //             type: 'ClassicyWindowFocus',
-  //             app: {
-  //                 id: appId,
-  //             },
-  //             window: ws,
-  //         })
-  //     }
-  // }
-
-  const appMenu = [
+  const appMenu = useMemo(() => [
     {
       id: "file",
       title: "File",
       menuChildren: [quitMenuItemHelper(appId, appName, appIcon)],
     },
-  ];
+  ], [appId, appName, appIcon]);
 
   return (
     <ClassicyApp id={appId} name={appName} icon={appIcon}>

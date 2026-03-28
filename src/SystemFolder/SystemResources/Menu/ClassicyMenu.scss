@@ -40,10 +40,6 @@
         &:hover {
           color: #fff;
           background-color: var(--color-theme-04);
-
-          * {
-            display: flex !important;
-          }
         }
       }
     }
@@ -109,10 +105,6 @@
   &:hover {
     color: var(--color-white);
     background-color: var(--color-theme-04);
-
-    div ul {
-      display: flex !important;
-    }
   }
 
   img {
@@ -140,6 +132,15 @@
 }
 
 .classicyMenuItemNoImage {
+}
+
+.classicyMenuItemOpen {
+  color: var(--color-white);
+  background-color: var(--color-theme-04);
+
+  > .classicyMenuWrapper > ul {
+    display: flex !important;
+  }
 }
 
 .classicyMenuItemDisabled {
@@ -175,32 +176,33 @@
 .classicyMenuItemFlash {
   -webkit-animation-name: classicyMenuItemFlashKeyframes;
   animation-name: classicyMenuItemFlashKeyframes;
-  animation-duration: 1s;
+  animation-duration: .25s;
   animation-iteration-count: 1;
+  animation-timing-function: steps(1, end) ;
 }
 
 @keyframes classicyMenuItemFlashKeyframes {
   0% {
-    filter: invert(100%);
+    background-color: var(--color-theme-04);
   }
 
   20% {
-    filter: invert(0);
+    background-color: var(--color-system-02);
   }
 
   40% {
-    filter: invert(100%);
+    background-color: var(--color-theme-04);
   }
 
   60% {
-    filter: invert(0);
+    background-color: var(--color-system-02);
   }
 
   80% {
-    filter: invert(100%);
+    background-color: var(--color-theme-04);
   }
 
   100% {
-    filter: invert(0);
+    background-color: var(--color-system-02);
   }
 }
