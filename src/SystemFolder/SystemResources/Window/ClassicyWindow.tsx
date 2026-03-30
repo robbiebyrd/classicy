@@ -74,16 +74,19 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
     icon = fileIcon;
   }
 
-  const [size, setSize] = useState<[number, number]>(initialSize);
-  const [clickPosition, setClickPosition] = useState<[number, number]>([0, 0]);
-
-  const clickOffset = [10, 10];
-
   const currentApp = useAppManager(
     (state) => state.System.Manager.App.apps[appId],
   );
+  const currentWindow = currentApp?.windows.find((w) => w.id === id);
   const desktopEventDispatch = useAppManagerDispatch();
   const player = useSoundDispatch();
+
+  const [size, setSize] = useState<[number, number]>(
+    currentWindow?.size ?? initialSize,
+  );
+  const [clickPosition, setClickPosition] = useState<[number, number]>([0, 0]);
+
+  const clickOffset = [10, 10];
 
   const { track } = useClassicyAnalytics();
   const analyticsArgs = useMemo(() => {
@@ -125,8 +128,6 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
   ]);
 
   const windowRef = useRef<HTMLDivElement | null>(null);
-
-  const currentWindow = currentApp?.windows.find((w) => w.id === id);
 
   const ws = useMemo(() => {
     const initialWindowState: ClassicyStoreSystemAppWindow = {
@@ -289,7 +290,8 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
     }
     setResize(false);
     setDragging(false);
-    setMoving(false, [ws.position[0], ws.position[1]]);
+    const rect = windowRef.current?.getBoundingClientRect();
+    setMoving(false, [rect?.left ?? ws.position[0], rect?.top ?? ws.position[1]]);
   };
 
   const setDragging = (toDrag: boolean) => {
