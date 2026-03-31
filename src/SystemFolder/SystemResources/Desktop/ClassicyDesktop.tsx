@@ -71,6 +71,7 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
         toggleDesktopContextMenu(e);
       } else {
         clearActives(e);
+        selectionIconElementsRef.current = document.querySelectorAll<HTMLDivElement>(".classicyDesktopIcon");
         setSelectBox(true);
         setSelectBoxStart([e.clientX, e.clientY]);
         setSelectBoxSize([0, 0]);
@@ -90,10 +91,15 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
     return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
   };
 
+  // Cache icon NodeList for the duration of a selection drag
+  const selectionIconElementsRef = useRef<NodeListOf<HTMLDivElement> | null>(null);
+
   const getIconsInSelectBox = (boxStart: number[], boxSize: number[]): string[] => {
     const selectRect = getNormalizedSelectRect(boxStart, boxSize);
     const selectedIds: string[] = [];
-    const iconElements = document.querySelectorAll<HTMLDivElement>(".classicyDesktopIcon");
+    const iconElements =
+      selectionIconElementsRef.current ??
+      document.querySelectorAll<HTMLDivElement>(".classicyDesktopIcon");
     iconElements.forEach((el) => {
       const iconRect = el.getBoundingClientRect();
       if (rectsIntersect(selectRect, iconRect)) {
@@ -126,6 +132,7 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
   };
 
   const clearSelectBox = () => {
+    selectionIconElementsRef.current = null;
     setSelectBoxSize([0, 0]);
     setSelectBoxStart([0, 0]);
     setSelectBox(false);
@@ -242,10 +249,10 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
           <div
             className={"classicyDesktopSelect"}
             style={{
-              left: selectBoxStart[0],
-              top: selectBoxStart[1],
-              width: selectBoxSize[0],
-              height: selectBoxSize[1],
+              left: Math.min(selectBoxStart[0], selectBoxStart[0] + selectBoxSize[0]),
+              top: Math.min(selectBoxStart[1], selectBoxStart[1] + selectBoxSize[1]),
+              width: Math.abs(selectBoxSize[0]),
+              height: Math.abs(selectBoxSize[1]),
             }}
           />
         )}

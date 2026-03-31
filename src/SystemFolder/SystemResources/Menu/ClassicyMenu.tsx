@@ -11,6 +11,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -90,7 +91,7 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
   const [isFlashing, setIsFlashing] = useState(false);
 
   const { track } = useClassicyAnalytics();
-  const analyticsArgs = {
+  const analyticsArgs = useMemo(() => ({
     id: menuItem.id,
     title: menuItem.title,
     image: menuItem.image,
@@ -100,7 +101,7 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
     event: menuItem.event,
     eventData: menuItem.eventData,
     childrenCount: menuItem.menuChildren?.length,
-  };
+  }), [menuItem]);
 
   const hasChildren = menuItem.menuChildren && menuItem.menuChildren.length > 0;
 

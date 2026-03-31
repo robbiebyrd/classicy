@@ -121,6 +121,16 @@ const RE_WAYBACK_TOOLBAR =
 const RE_HEAD_TAG = /(<head[^>]*>)/i;
 const RE_ARCHIVE_TIME = /\/web\/(\d{14})\//;
 
+const sanitizeTimeParam = (rawTime: string | null): string => {
+  if (!rawTime) {
+    return defaultTime;
+  }
+  if (/^\d{14}$/.test(rawTime)) {
+    return rawTime;
+  }
+  throw new Error("Invalid time parameter");
+};
+
 const arcUrl = (url: string, time: string): string =>
   `${prefix}/${time}/${url}`;
 
@@ -196,7 +206,14 @@ const server = http.createServer(
 
     const reqUrl = new URL(req.url ?? "/", `http://localhost:${port}`);
     let targetUrl = reqUrl.searchParams.get("url");
-    const time = reqUrl.searchParams.get("time") || defaultTime;
+    let time: string;
+    try {
+      time = sanitizeTimeParam(reqUrl.searchParams.get("time"));
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Invalid time parameter";
+      res.writeHead(400).end(msg);
+      return;
+    }
 
     // Unwrap nested proxy URLs — if the target is itself a TimeMachine URL,
     // extract the real url param from it

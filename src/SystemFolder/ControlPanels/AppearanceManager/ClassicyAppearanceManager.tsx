@@ -180,9 +180,10 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
     });
   };
 
-  const tabs = [
-    {
-      title: "Themes",
+  const tabs = useMemo(
+    () => [
+      {
+        title: "Themes",
       children: (
         <>
           <ClassicyControlLabel
@@ -330,7 +331,20 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
         </div>
       ),
     },
-  ];
+    ],
+    [
+      themesList,
+      bg,
+      appearanceState,
+      switchTheme,
+      changeBackground,
+      setBackgroundURL,
+      alignBackground,
+      repeatBackground,
+      backgroundSize,
+      changeFont,
+    ],
+  );
 
   return (
     <ClassicyApp
