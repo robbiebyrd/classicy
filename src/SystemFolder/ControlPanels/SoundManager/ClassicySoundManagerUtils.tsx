@@ -78,8 +78,15 @@ export const createSoundPlayer = ({
       src: soundData.src,
       sprite: soundData.sprite as Record<string, [number, number] | [number, number, boolean]>,
       ...options,
+      onloaderror: (_id: number, err: unknown) => {
+        console.error("[ClassicySoundManager] Failed to load audio sprite", { src: soundData.src, error: err });
+      },
+      onplayerror: (_id: number, err: unknown) => {
+        console.warn("[ClassicySoundManager] Audio play error", { error: err });
+      },
     });
   }
+  console.error("[ClassicySoundManager] createSoundPlayer: soundData is missing src or sprite", { soundData });
   return null;
 };
 

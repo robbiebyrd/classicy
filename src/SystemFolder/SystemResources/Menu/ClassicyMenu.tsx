@@ -11,6 +11,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
@@ -115,6 +116,10 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
     }
   };
 
+  // Ref ensures rAF callback always reads the latest executeAction
+  const executeActionRef = useRef(executeAction);
+  executeActionRef.current = executeAction;
+
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (menuItem.disabled) return;
@@ -146,7 +151,7 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
     // Defer action execution so the close state propagates before
     // the action triggers re-renders that could remount the menu tree
     requestAnimationFrame(() => {
-      executeAction();
+      executeActionRef.current();
     });
   };
 

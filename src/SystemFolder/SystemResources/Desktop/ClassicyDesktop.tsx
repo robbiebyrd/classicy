@@ -78,20 +78,54 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
     }
   };
 
+  const getNormalizedSelectRect = (start: number[], size: number[]): DOMRect => {
+    const x = size[0] < 0 ? start[0] + size[0] : start[0];
+    const y = size[1] < 0 ? start[1] + size[1] : start[1];
+    const w = Math.abs(size[0]);
+    const h = Math.abs(size[1]);
+    return new DOMRect(x, y, w, h);
+  };
+
+  const rectsIntersect = (a: DOMRect, b: DOMRect): boolean => {
+    return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+  };
+
+  const getIconsInSelectBox = (boxStart: number[], boxSize: number[]): string[] => {
+    const selectRect = getNormalizedSelectRect(boxStart, boxSize);
+    const selectedIds: string[] = [];
+    const iconElements = document.querySelectorAll<HTMLDivElement>(".classicyDesktopIcon");
+    iconElements.forEach((el) => {
+      const iconRect = el.getBoundingClientRect();
+      if (rectsIntersect(selectRect, iconRect)) {
+        const iconId = el.id.replace(/\.shortcut$/, "");
+        selectedIds.push(iconId);
+      }
+    });
+    return selectedIds;
+  };
+
   const resizeSelectBox = (e: MouseEvent<HTMLDivElement>) => {
+    if (!selectBox) return;
     const x = e.clientX;
     const y = e.clientY;
     if (rafIdRef.current !== null) {
       cancelAnimationFrame(rafIdRef.current);
     }
     rafIdRef.current = requestAnimationFrame(() => {
-      setSelectBoxSize([x - selectBoxStart[0], y - selectBoxStart[1]]);
+      const newSize = [x - selectBoxStart[0], y - selectBoxStart[1]];
+      setSelectBoxSize(newSize);
+
+      const selectedIds = getIconsInSelectBox(selectBoxStart, newSize);
+      desktopEventDispatch({
+        type: "ClassicyDesktopIconSelectBox",
+        iconIds: selectedIds,
+      });
+
       rafIdRef.current = null;
     });
   };
 
   const clearSelectBox = () => {
-    clearSelectedIcons();
     setSelectBoxSize([0, 0]);
     setSelectBoxStart([0, 0]);
     setSelectBox(false);

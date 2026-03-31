@@ -5,20 +5,54 @@
 
 import http, { IncomingMessage, ServerResponse } from "node:http";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { promises as fs } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 
 const port: number = Number(process.env.TIMEMACHINE_PORT) || 8765;
 const defaultTime: string = process.env.ARCHIVE_TIME || "19980101000000";
 const prefix: string = process.env.URL_PREFIX || "https://web.archive.org/web";
-const hostname = process.env.LISTENER || '0.0.0.0';
+const hostname = process.env.LISTENER || "0.0.0.0";
 const cacheDir: string | undefined = process.env.CACHE_DIR;
+const allowedOrigin: string =
+  process.env.CORS_ORIGIN || "http://localhost:5173";
 
 if (cacheDir && !existsSync(cacheDir)) {
   mkdirSync(cacheDir, { recursive: true });
 }
 
-console.log({"options": {"port": port, "defaultTime": defaultTime, "prefix": prefix, "hostname": hostname, "cacheDir": cacheDir || "disabled"}})
+console.log({
+  options: {
+    port,
+    defaultTime,
+    prefix,
+    hostname,
+    cacheDir: cacheDir || "disabled",
+    allowedOrigin,
+  },
+});
+
+// --- URL validation ---
+
+const ALLOWED_PROTOCOLS = new Set(["http:", "https:"]);
+const PRIVATE_HOST_RE =
+  /^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|0\.0\.0\.0|\[?::1\]?)/;
+
+const validateTargetUrl = (raw: string): string => {
+  let parsed: URL;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    throw new Error("Invalid URL");
+  }
+  if (!ALLOWED_PROTOCOLS.has(parsed.protocol)) {
+    throw new Error("Disallowed protocol");
+  }
+  if (PRIVATE_HOST_RE.test(parsed.hostname)) {
+    throw new Error("Private/internal hosts disallowed");
+  }
+  return raw;
+};
 
 // --- Cache ---
 
@@ -33,24 +67,61 @@ interface CacheEntry {
 const cacheKey = (url: string, time: string): string =>
   createHash("sha256").update(`${time}:${url}`).digest("hex");
 
-const cacheGet = (url: string, time: string): CacheEntry | null => {
+const cacheGet = async (
+  url: string,
+  time: string,
+): Promise<CacheEntry | null> => {
   if (!cacheDir) return null;
   const file = join(cacheDir, `${cacheKey(url, time)}.json`);
-  if (!existsSync(file)) return null;
   try {
-    return JSON.parse(readFileSync(file, "utf-8")) as CacheEntry;
-  } catch {
+    const data = await fs.readFile(file, "utf-8");
+    return JSON.parse(data) as CacheEntry;
+  } catch (e) {
+    const code = (e as NodeJS.ErrnoException).code;
+    if (code !== "ENOENT") {
+      console.warn("[TimeMachine] Failed to read cache entry", {
+        file,
+        url,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
     return null;
   }
 };
 
-const cachePut = (url: string, time: string, entry: CacheEntry): void => {
+const cachePut = async (
+  url: string,
+  time: string,
+  entry: CacheEntry,
+): Promise<void> => {
   if (!cacheDir) return;
   const file = join(cacheDir, `${cacheKey(url, time)}.json`);
-  writeFileSync(file, JSON.stringify(entry));
+  try {
+    await fs.writeFile(file, JSON.stringify(entry));
+  } catch (e) {
+    console.error("[TimeMachine] Failed to write cache entry", {
+      file,
+      url,
+      error: e instanceof Error ? e.message : String(e),
+    });
+  }
 };
 
-// --- URL rewriting ---
+// --- URL rewriting (regexes hoisted to module scope) ---
+
+const RE_ARCHIVE_ABSOLUTE =
+  /(<a\b[^>]*\bhref\s*=\s*["'])https?:\/\/web\.archive\.org\/web\/\d{1,14}\/(https?:\/\/[^"']*)(["'])/gi;
+const RE_ARCHIVE_RELATIVE =
+  /(<a\b[^>]*\bhref\s*=\s*["'])\/web\/\d{1,14}\/(https?:\/\/[^"']*)(["'])/gi;
+const RE_LEADING_WHITESPACE = /^[\s\t\r\n]+</i;
+const RE_WAYBACK_JS_HEAD =
+  /((?:<head[^>]*>))[\s\S]*?<!-- End Wayback Rewrite JS Include -->/i;
+const RE_WAYBACK_JS_HTML =
+  /((?:<html[^>]*>))[\s\S]*?<!-- End Wayback Rewrite JS Include -->/i;
+const RE_WAYBACK_TOOLBAR =
+  /<!-- BEGIN WAYBACK TOOLBAR INSERT -->[\s\S]*?<!-- END WAYBACK TOOLBAR INSERT -->/gi;
+const RE_HEAD_TAG = /(<head[^>]*>)/i;
+const RE_ARCHIVE_TIME = /\/web\/(\d{14})\//;
 
 const arcUrl = (url: string, time: string): string =>
   `${prefix}/${time}/${url}`;
@@ -61,39 +132,35 @@ const rewriteArchiveLinks = (
   time: string,
 ): string =>
   html
-    // Absolute archive.org URLs in <a> hrefs
     .replace(
-      /(<a\b[^>]*\bhref\s*=\s*["'])https?:\/\/web\.archive\.org\/web\/\d{1,14}\/(https?:\/\/[^"']*)(["'])/gi,
+      RE_ARCHIVE_ABSOLUTE,
       (_, before, originalUrl, after) =>
         `${before}${proxyBase}/?url=${encodeURIComponent(originalUrl)}&time=${time}${after}`,
     )
-    // Relative /web/<timestamp>/<url> paths in <a> hrefs
     .replace(
-      /(<a\b[^>]*\bhref\s*=\s*["'])\/web\/\d{1,14}\/(https?:\/\/[^"']*)(["'])/gi,
+      RE_ARCHIVE_RELATIVE,
       (_, before, originalUrl, after) =>
         `${before}${proxyBase}/?url=${encodeURIComponent(originalUrl)}&time=${time}${after}`,
     );
 
-const stripWaybackToolbar = (html: string, baseUrl: string): string =>
-  html
-    .replace(/^[\s\t\r\n]+</i, "<")
-    .replace(
-      /((?:<head[^>]*>))[\s\S]*?<!-- End Wayback Rewrite JS Include -->/i,
-      "$1",
-    )
-    .replace(
-      /((?:<html[^>]*>))[\s\S]*?<!-- End Wayback Rewrite JS Include -->/i,
-      "$1",
-    )
-    .replace(
-      /<!-- BEGIN WAYBACK TOOLBAR INSERT -->[\s\S]*?<!-- END WAYBACK TOOLBAR INSERT -->/gi,
-      "",
-    )
-    .replace(/(<head[^>]*>)/i, `$1<base href="${baseUrl}">`);
+const stripWaybackToolbar = (html: string, baseUrl: string): string => {
+  const safeBase = baseUrl.replace(/"/g, "%22");
+  return html
+    .replace(RE_LEADING_WHITESPACE, "<")
+    .replace(RE_WAYBACK_JS_HEAD, "$1")
+    .replace(RE_WAYBACK_JS_HTML, "$1")
+    .replace(RE_WAYBACK_TOOLBAR, "")
+    .replace(RE_HEAD_TAG, `$1<base href="${safeBase}">`);
+};
 
 // --- Server ---
 
-const sendCached = (res: ServerResponse, entry: CacheEntry, targetUrl: string, time: string): void => {
+const sendCached = (
+  res: ServerResponse,
+  entry: CacheEntry,
+  targetUrl: string,
+  time: string,
+): void => {
   res.setHeader("Content-Type", entry.contentType);
   res.setHeader("X-Archive-Url", entry.archiveUrl);
   res.setHeader("X-Original-Url", targetUrl);
@@ -113,7 +180,10 @@ const sendCached = (res: ServerResponse, entry: CacheEntry, targetUrl: string, t
 
 const server = http.createServer(
   async (req: IncomingMessage, res: ServerResponse) => {
-    res.setHeader("Access-Control-Allow-Origin", "*");
+    const origin = req.headers.origin;
+    if (origin === allowedOrigin) {
+      res.setHeader("Access-Control-Allow-Origin", origin);
+    }
     res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
     res.setHeader(
@@ -138,7 +208,9 @@ const server = http.createServer(
         if (nested.port === String(port) && nested.searchParams.has("url")) {
           targetUrl = nested.searchParams.get("url");
         }
-      } catch { /* not a valid URL, use as-is */ }
+      } catch {
+        /* not a valid URL, use as-is */
+      }
     }
 
     if (!targetUrl) {
@@ -146,8 +218,17 @@ const server = http.createServer(
       return;
     }
 
+    // Validate URL — block private/internal targets and non-http protocols
+    try {
+      targetUrl = validateTargetUrl(targetUrl);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Invalid URL";
+      res.writeHead(403).end(msg);
+      return;
+    }
+
     // Check cache
-    const cached = cacheGet(targetUrl, time);
+    const cached = await cacheGet(targetUrl, time);
     if (cached) {
       console.log(`[CACHE HIT] ${targetUrl}`);
       sendCached(res, cached, targetUrl, time);
@@ -170,8 +251,7 @@ const server = http.createServer(
       res.setHeader("X-Original-Url", targetUrl);
       res.setHeader("X-Cache", "MISS");
 
-      // Extract actual archive timestamp from the resolved URL
-      const archiveTimeMatch = fetchRes.url.match(/\/web\/(\d{14})\//);
+      const archiveTimeMatch = fetchRes.url.match(RE_ARCHIVE_TIME);
       const archiveTime = archiveTimeMatch ? archiveTimeMatch[1] : "";
       if (archiveTime) {
         res.setHeader("X-Archive-Time", archiveTime);
@@ -184,9 +264,8 @@ const server = http.createServer(
         const html = await fetchRes.text();
         const filtered = stripWaybackToolbar(html, fetchRes.url);
 
-        // Cache the filtered HTML (before link rewriting, since rewriting
-        // depends on the current hostname/port which could change)
-        cachePut(targetUrl, time, {
+        // Cache after toolbar stripping but before link rewriting
+        await cachePut(targetUrl, time, {
           contentType,
           archiveUrl: fetchRes.url,
           archiveTime,
@@ -199,7 +278,7 @@ const server = http.createServer(
       } else {
         const buffer = Buffer.from(await fetchRes.arrayBuffer());
 
-        cachePut(targetUrl, time, {
+        await cachePut(targetUrl, time, {
           contentType,
           archiveUrl: fetchRes.url,
           archiveTime,
@@ -210,9 +289,8 @@ const server = http.createServer(
         res.end(buffer);
       }
     } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
-      console.error(e);
-      res.writeHead(500).end(`TimeMachine error: ${message}`);
+      console.error("[TimeMachine] Upstream request failed:", e);
+      res.writeHead(500).end("TimeMachine error: upstream request failed");
     }
   },
 );

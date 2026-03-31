@@ -1,4 +1,5 @@
 import { ClassicyApp, ClassicyButton, ClassicyControlLabel, ClassicyIcons, ClassicyInput, ClassicyWindow, quitAppHelper, useAppManagerDispatch } from 'classicy'
+import DOMPurify from 'dompurify'
 import React from 'react'
 import './browser.scss'
 import { useBrowserNavigation } from './useBrowserNavigation'
@@ -11,11 +12,12 @@ const ShadowContent: React.FC<{ html: string; onClick: (e: React.MouseEvent) => 
         if (hostRef.current && !shadowRef.current) {
             shadowRef.current = hostRef.current.attachShadow({ mode: 'open' })
         }
+        // No cleanup: ShadowRoot cannot be detached once attached (browser limitation)
     }, [])
 
     React.useEffect(() => {
         if (shadowRef.current) {
-            shadowRef.current.innerHTML = html
+            shadowRef.current.innerHTML = DOMPurify.sanitize(html, { FORCE_BODY: true })
         }
     }, [html])
 

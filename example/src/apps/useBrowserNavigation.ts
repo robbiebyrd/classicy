@@ -8,12 +8,15 @@ interface BrowserHistoryEntry {
 const HISTORY_STORAGE_KEY = 'Browser.app.visitedHistory'
 const PROXY_BASE = 'http://localhost:8765'
 const DEFAULT_TIME = '20010911000000'
+const MAX_HISTORY = 500
 
 const loadVisitedHistory = (): BrowserHistoryEntry[] => {
     try {
         const stored = localStorage.getItem(HISTORY_STORAGE_KEY)
         return stored ? JSON.parse(stored) : []
-    } catch {
+    } catch (e) {
+        console.warn('[Browser] Visited history in localStorage is corrupt, resetting', { error: e })
+        localStorage.removeItem(HISTORY_STORAGE_KEY)
         return []
     }
 }
@@ -25,7 +28,7 @@ const saveVisitedHistory = (entries: BrowserHistoryEntry[]) => {
 const recordVisit = (url: string) => {
     const entries = loadVisitedHistory()
     entries.push({ url, visitedAt: new Date().toISOString() })
-    saveVisitedHistory(entries)
+    saveVisitedHistory(entries.slice(-MAX_HISTORY))
 }
 
 const PROXY_PORT = new URL(PROXY_BASE).port
@@ -111,6 +114,7 @@ export const useBrowserNavigation = ({ defaultUrl, archiveTime = DEFAULT_TIME, o
             setStatusText(`Viewing page archived ${formatArchiveTime(actualTime)}`)
         } catch (e: unknown) {
             if (e instanceof DOMException && e.name === 'AbortError') return
+            console.error('[Browser] Failed to fetch page', { url, error: e })
             setStatusText('Error loading page')
             setHtmlContent('<p>Could not connect to TimeMachine server. Is it running?</p>')
         } finally {
@@ -132,12 +136,25 @@ export const useBrowserNavigation = ({ defaultUrl, archiveTime = DEFAULT_TIME, o
     }, [])
 
     const navigateTo = React.useCallback((url: string) => {
-        setHistory(prev => [...prev.slice(0, historyIndex + 1), url])
-        setHistoryIndex(prev => prev + 1)
+        setHistoryIndex(prev => {
+            const newIndex = prev + 1
+            setHistory(h => [...h.slice(0, newIndex), url])
+            return newIndex
+        })
         setAddressBarValue(url)
         recordVisit(url)
         fetchPage(url)
-    }, [historyIndex, fetchPage])
+    }, [fetchPage])
+
+    // Stable refs so handleContentClick doesn't churn
+    const navigateToRef = React.useRef(navigateTo)
+    React.useEffect(() => { navigateToRef.current = navigateTo }, [navigateTo])
+
+    const historyRef = React.useRef(history)
+    React.useEffect(() => { historyRef.current = history }, [history])
+
+    const historyIndexRef = React.useRef(historyIndex)
+    React.useEffect(() => { historyIndexRef.current = historyIndex }, [historyIndex])
 
     const goTo = React.useCallback(() => {
         const value = addressBarValue.trim()
@@ -173,21 +190,31 @@ export const useBrowserNavigation = ({ defaultUrl, archiveTime = DEFAULT_TIME, o
         if (!anchor) return
 
         e.preventDefault()
-        const href = anchor.href
-        if (!href) return
+        const rawHref = anchor.getAttribute('href')
+        if (!rawHref) return
 
-        // Archive.org link — extract the original URL
-        const originalUrl = extractOriginalUrl(href)
-        if (originalUrl) {
-            navigateTo(originalUrl)
+        // First check if the resolved href is a proxy/archive URL we can extract
+        const resolvedHref = anchor.href
+        const originalUrl = extractOriginalUrl(resolvedHref)
+        if (originalUrl && isNavigableUrl(originalUrl)) {
+            navigateToRef.current(originalUrl)
             return
         }
 
-        // Direct http/https link
-        if (isNavigableUrl(href)) {
-            navigateTo(href)
+        // Resolve relative URLs against the current page URL
+        const currentUrl = historyRef.current[historyIndexRef.current]
+        try {
+            const resolved = new URL(rawHref, currentUrl).href
+            if (isNavigableUrl(resolved)) {
+                navigateToRef.current(resolved)
+                return
+            }
+        } catch { /* invalid URL, fall through */ }
+
+        if (isNavigableUrl(resolvedHref)) {
+            navigateToRef.current(resolvedHref)
         }
-    }, [navigateTo])
+    }, [])
 
     return {
         htmlContent,
