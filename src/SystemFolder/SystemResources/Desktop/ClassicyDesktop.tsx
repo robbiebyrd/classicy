@@ -16,7 +16,7 @@ import { ClassicyDesktopMenuBar } from "@/SystemFolder/SystemResources/Desktop/M
 import { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import classNames from "classnames";
 import macosIcon from "@img/icons/system/macos.png";
-import { FC as FunctionalComponent, ReactNode, MouseEvent, CSSProperties, useEffect, useMemo, useRef, useState } from "react";
+import { FC as FunctionalComponent, ReactNode, MouseEvent, CSSProperties, startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "../../ControlPanels/AppearanceManager/styles/fonts.scss";
 import "../../../index.css";
 
@@ -46,9 +46,11 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
   // Load themes on mount if not already loaded
   useEffect(() => {
     if (availableThemes && availableThemes.length <= 0) {
-      desktopEventDispatch({
-        type: "ClassicyDesktopLoadThemes",
-        availableThemes: getAllThemes(),
+      startTransition(() => {
+        desktopEventDispatch({
+          type: "ClassicyDesktopLoadThemes",
+          availableThemes: getAllThemes(),
+        });
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -69,6 +71,7 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
         toggleDesktopContextMenu(e);
       } else {
         clearActives(e);
+        selectionIconElementsRef.current = document.querySelectorAll<HTMLDivElement>(".classicyDesktopIcon");
         setSelectBox(true);
         setSelectBoxStart([e.clientX, e.clientY]);
         setSelectBoxSize([0, 0]);
@@ -76,20 +79,60 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
     }
   };
 
+  const getNormalizedSelectRect = (start: number[], size: number[]): DOMRect => {
+    const x = size[0] < 0 ? start[0] + size[0] : start[0];
+    const y = size[1] < 0 ? start[1] + size[1] : start[1];
+    const w = Math.abs(size[0]);
+    const h = Math.abs(size[1]);
+    return new DOMRect(x, y, w, h);
+  };
+
+  const rectsIntersect = (a: DOMRect, b: DOMRect): boolean => {
+    return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+  };
+
+  // Cache icon NodeList for the duration of a selection drag
+  const selectionIconElementsRef = useRef<NodeListOf<HTMLDivElement> | null>(null);
+
+  const getIconsInSelectBox = (boxStart: number[], boxSize: number[]): string[] => {
+    const selectRect = getNormalizedSelectRect(boxStart, boxSize);
+    const selectedIds: string[] = [];
+    const iconElements =
+      selectionIconElementsRef.current ??
+      document.querySelectorAll<HTMLDivElement>(".classicyDesktopIcon");
+    iconElements.forEach((el) => {
+      const iconRect = el.getBoundingClientRect();
+      if (rectsIntersect(selectRect, iconRect)) {
+        const iconId = el.id.replace(/\.shortcut$/, "");
+        selectedIds.push(iconId);
+      }
+    });
+    return selectedIds;
+  };
+
   const resizeSelectBox = (e: MouseEvent<HTMLDivElement>) => {
+    if (!selectBox) return;
     const x = e.clientX;
     const y = e.clientY;
     if (rafIdRef.current !== null) {
       cancelAnimationFrame(rafIdRef.current);
     }
     rafIdRef.current = requestAnimationFrame(() => {
-      setSelectBoxSize([x - selectBoxStart[0], y - selectBoxStart[1]]);
+      const newSize = [x - selectBoxStart[0], y - selectBoxStart[1]];
+      setSelectBoxSize(newSize);
+
+      const selectedIds = getIconsInSelectBox(selectBoxStart, newSize);
+      desktopEventDispatch({
+        type: "ClassicyDesktopIconSelectBox",
+        iconIds: selectedIds,
+      });
+
       rafIdRef.current = null;
     });
   };
 
   const clearSelectBox = () => {
-    clearSelectedIcons();
+    selectionIconElementsRef.current = null;
     setSelectBoxSize([0, 0]);
     setSelectBoxStart([0, 0]);
     setSelectBox(false);
@@ -124,10 +167,12 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
     {
       id: "finder_file",
       title: "File",
+      disabled: true,
     },
     {
       id: "finder_edit",
       title: "Edit",
+      disabled: true,
     },
     {
       id: "finder_view",
@@ -167,6 +212,7 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
     {
       id: "finder_special",
       title: "Special",
+      disabled: true,
     },
 
     {
@@ -183,6 +229,8 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
       ],
     },
   ], [desktopEventDispatch]);
+
+  const closeContextMenu = useCallback(() => setContextMenu(false), []);
 
   const currentTheme = useMemo(() => getThemeVars(activeTheme), [activeTheme]);
 
@@ -201,31 +249,32 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
           <div
             className={"classicyDesktopSelect"}
             style={{
-              left: selectBoxStart[0],
-              top: selectBoxStart[1],
-              width: selectBoxSize[0],
-              height: selectBoxSize[1],
+              left: Math.min(selectBoxStart[0], selectBoxStart[0] + selectBoxSize[0]),
+              top: Math.min(selectBoxStart[1], selectBoxStart[1] + selectBoxSize[1]),
+              width: Math.abs(selectBoxSize[0]),
+              height: Math.abs(selectBoxSize[1]),
             }}
           />
         )}
         <ClassicyDesktopMenuBar />
-        {contextMenu && (
+        {contextMenu ? (
           <ClassicyContextualMenu
             name={"desktopContextMenu"}
             menuItems={defaultMenuItems}
             position={contextMenuLocation}
-            onClose={() => setContextMenu(false)}
+            onClose={closeContextMenu}
           />
-        )}
+        ) : null}
         <Finder />
         <ClassicyControlPanels />
-        {showAbout &&
-          getClassicyAboutWindow({
-            appId: "Finder.app",
-            appName: "Finder",
-            appIcon: macosIcon,
-            hideFunc: () => setShowAbout(false),
-          })}
+        {showAbout
+          ? getClassicyAboutWindow({
+              appId: "Finder.app",
+              appName: "Finder",
+              appIcon: macosIcon,
+              hideFunc: () => setShowAbout(false),
+            })
+          : null}
         {desktopIcons.map((i) => (
           <ClassicyDesktopIcon
             appId={i.appId}

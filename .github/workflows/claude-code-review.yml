@@ -36,9 +36,7 @@ jobs:
           plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
           plugins: |
             code-review@claude-code-plugins
-            typescript@claude-code-plugins
-            frontend@claude-code-plugins
-          direct_prompt: |
+          prompt: |
             You are performing an exhaustive code review for the **Classicy** project — a React/TypeScript
             UI component library that replicates the Mac OS 8 Platinum interface. It is published as an
             npm package and consumed by external apps.
@@ -252,6 +250,4 @@ jobs:
           plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
           plugins: |
             code-review@claude-code-plugins
-            typescript@claude-code-plugins
-            frontend@claude-code-plugins
           prompt: '/code-review:code-review ${{ github.repository }}/pull/${{ github.event.issue.number || github.event.pull_request.number }}'

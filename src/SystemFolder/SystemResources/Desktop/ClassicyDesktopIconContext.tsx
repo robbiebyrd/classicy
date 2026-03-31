@@ -118,6 +118,10 @@ export const classicyDesktopIconEventHandler = (ds: ClassicyStore, action: Actio
             ds.System.Manager.Desktop.selectedIcons = [action.iconId]
             break
         }
+        case 'ClassicyDesktopIconSelectBox': {
+            ds.System.Manager.Desktop.selectedIcons = action.iconIds ?? []
+            break
+        }
         case 'ClassicyDesktopIconClearFocus': {
             ds.System.Manager.Desktop.selectedIcons = []
             break

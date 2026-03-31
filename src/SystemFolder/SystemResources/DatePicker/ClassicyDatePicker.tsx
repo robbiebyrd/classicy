@@ -36,16 +36,16 @@ export const ClassicyDatePicker: FunctionalComponent<ClassicyDatePickerProps> =
       const dayRef = useRef<HTMLInputElement>(null);
 
       const [selectedDate, setSelectedDate] = useState<Date>(
-        new Date(dateTime),
+        () => new Date(dateTime),
       );
       const [month, setMonth] = useState<string>(
-        (new Date(dateTime).getMonth() + 1).toString(),
+        () => (new Date(dateTime).getMonth() + 1).toString(),
       );
       const [day, setDay] = useState<string>(
-        new Date(dateTime).getDate().toString(),
+        () => new Date(dateTime).getDate().toString(),
       );
       const [year, setYear] = useState<string>(
-        new Date(dateTime).getFullYear().toString(),
+        () => new Date(dateTime).getFullYear().toString(),
       );
 
       const selectText = (e: MouseEvent<HTMLInputElement>) => {
@@ -177,7 +177,7 @@ export const ClassicyDatePicker: FunctionalComponent<ClassicyDatePickerProps> =
                 disabled={disabled}
                 value={month}
                 maxLength={2}
-                style={{width: "25%"}}
+                className={"classicyDatePickerInputShort"}
               ></input>
               /
               <input
@@ -193,7 +193,7 @@ export const ClassicyDatePicker: FunctionalComponent<ClassicyDatePickerProps> =
                 disabled={disabled}
                 value={day}
                 maxLength={2}
-                style={{width: "25%"}}
+                className={"classicyDatePickerInputShort"}
               ></input>
               /
               <input
@@ -209,7 +209,7 @@ export const ClassicyDatePicker: FunctionalComponent<ClassicyDatePickerProps> =
                 disabled={disabled}
                 value={year}
                 maxLength={4}
-                style={{width: "50%"}}
+                className={"classicyDatePickerInputLong"}
               ></input>
             </div>
           </div>

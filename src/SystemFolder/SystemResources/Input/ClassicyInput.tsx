@@ -59,7 +59,7 @@ export const ClassicyInput: FunctionalComponent<ClassicyInputProps> = forwardRef
   };
 
   return (
-    <div className={""} style={{alignSelf: "center", width: "100%"}}>
+    <div className={"classicyInputHolder"}>
       {labelTitle && (
         <ClassicyControlLabel
           label={labelTitle}

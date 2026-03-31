@@ -23,6 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 /.env
+example/timemachine/.env
 codealike.json
 tsconfig.tsbuildinfo
 .trunk/

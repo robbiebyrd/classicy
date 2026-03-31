@@ -1,0 +1,5 @@
+.classicyPictureViewerImage {
+  width: calc(100% - var(--window-padding-size));
+  height: calc(100% - var(--window-padding-size));
+  object-fit: contain;
+}

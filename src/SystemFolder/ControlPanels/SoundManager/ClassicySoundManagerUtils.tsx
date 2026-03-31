@@ -2,7 +2,7 @@
 import { ClassicyStoreSystemManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { Howl } from "howler";
 import { createContext, Dispatch } from "react";
-import soundData from "@snd/platinum/platinum.json";
+import { ClassicySounds } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicySounds";
 import soundLabels from "./ClassicySoundManagerLabels.json";
 
 export interface ClassicyStoreSystemSoundManager extends ClassicyStoreSystemManager {
@@ -12,7 +12,7 @@ export interface ClassicyStoreSystemSoundManager extends ClassicyStoreSystemMana
 }
 
 export type ClassicyThemeSound = {
-  file: string;
+  name: string;
   disabled: string[];
 };
 
@@ -78,13 +78,22 @@ export const createSoundPlayer = ({
       src: soundData.src,
       sprite: soundData.sprite as Record<string, [number, number] | [number, number, boolean]>,
       ...options,
+      onloaderror: (_id: number, err: unknown) => {
+        console.error("[ClassicySoundManager] Failed to load audio sprite", { src: soundData.src, error: err });
+      },
+      onplayerror: (_id: number, err: unknown) => {
+        console.warn("[ClassicySoundManager] Audio play error", { error: err });
+      },
     });
   }
+  console.error("[ClassicySoundManager] createSoundPlayer: soundData is missing src or sprite", { soundData });
   return null;
 };
 
+const defaultSoundData = ClassicySounds["platinum"];
+
 export const initialPlayer: ClassicySoundState = {
-  soundPlayer: createSoundPlayer({ soundData: soundData }),
+  soundPlayer: defaultSoundData ? createSoundPlayer({ soundData: defaultSoundData }) : null,
   disabled: [] as string[],
   labels: soundLabels,
   volume: 100,

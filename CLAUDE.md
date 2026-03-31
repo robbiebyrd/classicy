@@ -101,6 +101,6 @@ Themes are JSON-based (`src/SystemFolder/ControlPanels/AppearanceManager/styles/
 - Audio sprites generated via audiosprite from `resources/sounds/` directories
 - Library outputs to `dist/` as `classicy.es.js` and `classicy.umd.js`
 - Consumers must import the CSS separately: `import 'classicy/dist/classicy.css'`
-- Tailwind CSS v4 is used internally (via `@tailwindcss/vite`) — not exposed to consumers
+- All styling uses SCSS files co-located with components — no Tailwind or inline styles for layout/presentation
 
 @.claude/wiz-claude.md

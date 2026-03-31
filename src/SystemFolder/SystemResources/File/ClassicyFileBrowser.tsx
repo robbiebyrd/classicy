@@ -1,3 +1,4 @@
+import "./ClassicyFileBrowserViewTable.scss";
 import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import { FC as FunctionalComponent, useRef } from "react";
 import { ClassicyFileBrowserViewIcons } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewIcons";
@@ -27,7 +28,7 @@ export const ClassicyFileBrowser: FunctionalComponent<ClassicyFileBrowserProps> 
   const holderRef = useRef<HTMLDivElement>(null);
 
   return (
-    <div style={{ position: "absolute", width: "100%", height: "100%" }}>
+    <div className={"classicyFileBrowserFill"}>
       {display === "list" ? (
         <ClassicyFileBrowserViewTable
           fileOnClickFunc={fileOnClickFunc ?? defaultFileOnClick}

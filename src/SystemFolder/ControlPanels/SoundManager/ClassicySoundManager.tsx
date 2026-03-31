@@ -17,7 +17,7 @@ import { ClassicyControlGroup } from "@/SystemFolder/SystemResources/ControlGrou
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import { ClassicyDisclosure } from "@/SystemFolder/SystemResources/Disclosure/ClassicyDisclosure";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
-import { FC as FunctionalComponent, useMemo, useState } from "react";
+import { FC as FunctionalComponent, useCallback, useMemo, useState } from "react";
 import appIcon from "@img/icons/control-panels/sound-manager/app.png";
 
 const APP_ID = "SoundManager.app";
@@ -38,7 +38,7 @@ export const ClassicySoundManager: FunctionalComponent = () => {
     });
   };
 
-  const disableSounds = (checked: boolean, sound: string) => {
+  const disableSounds = useCallback((checked: boolean, sound: string) => {
     if (checked) {
       player({
         type: "ClassicySoundEnableOne",
@@ -50,7 +50,7 @@ export const ClassicySoundManager: FunctionalComponent = () => {
         disabled: sound,
       });
     }
-  };
+  }, [player]);
 
   const quitApp = () => {
     desktopEventDispatch(quitAppHelper(APP_ID, APP_NAME, appIcon));
@@ -111,15 +111,7 @@ export const ClassicySoundManager: FunctionalComponent = () => {
         modal={false}
         appMenu={appMenu}
       >
-        <div
-          style={{
-            backgroundColor: "var(--color-system-03)",
-            height: "100%",
-            width: "100%",
-            padding: "var(--window-padding-size)",
-            boxSizing: "border-box",
-          }}
-        >
+        <div className={"classicySoundManagerContent"}>
           <ClassicyCheckbox
             id={"disable_sounds"}
             isDefault={true}
@@ -158,13 +150,14 @@ export const ClassicySoundManager: FunctionalComponent = () => {
           </ClassicyButton>
         </div>
       </ClassicyWindow>
-      {showAbout &&
-        getClassicyAboutWindow({
-          appId: APP_ID,
-          appName: APP_NAME,
-          appIcon,
-          hideFunc: () => setShowAbout(false),
-        })}
+      {showAbout
+        ? getClassicyAboutWindow({
+            appId: APP_ID,
+            appName: APP_NAME,
+            appIcon,
+            hideFunc: () => setShowAbout(false),
+          })
+        : null}
     </ClassicyApp>
   );
 };

@@ -1,7 +1,7 @@
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import "./ClassicyPopUpMenu.scss";
 import classNames from "classnames";
-import { FC as FunctionalComponent, CSSProperties, ChangeEvent, useEffect, useState } from "react";
+import { FC as FunctionalComponent, ChangeEvent, useEffect, useState } from "react";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
 type classicyPopUpMenuOptions = {
@@ -17,14 +17,14 @@ type classicyPopUpMenuProps = {
   selected?: string;
   small?: boolean;
   onChangeFunc?: (e: ChangeEvent<HTMLSelectElement>) => void;
-  style?: CSSProperties;
+  className?: string;
 };
 export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
   id,
   label,
   options,
   selected,
-  style,
+  className: extraClassName,
   small = false,
   onChangeFunc,
 }) => {
@@ -54,10 +54,10 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
         ></ClassicyControlLabel>
       )}
       <div
-        style={style}
         className={classNames(
-          "classicyPopUpMenu grow-[2]",
+          "classicyPopUpMenu",
           small ? "classicyPopUpMenuSmall" : "",
+          extraClassName,
         )}
       >
         <select

@@ -39,7 +39,7 @@ export const ClassicyCheckbox: FunctionalComponent<ClassicyCheckboxProps> = ({
   };
 
   return (
-    <div style={{display: "flex", flexDirection: 'row'}}>
+    <div className={"classicyCheckboxHolder"}>
       <input
         type={"checkbox"}
         onChange={handleOnClick}

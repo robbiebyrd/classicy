@@ -15,7 +15,7 @@
   background-repeat: var(--desktop-background-repeat);
   background-position: var(--desktop-background-position);
   background-size: var(--desktop-background-size);
-  user-drag: none;
+  -webkit-user-drag: none;
   @include appearance.no-select;
 
   &,

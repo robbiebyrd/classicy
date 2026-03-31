@@ -1,40 +1,54 @@
 import { ClassicyApp, ClassicyButton, ClassicyControlLabel, ClassicyIcons, ClassicyInput, ClassicyWindow, quitAppHelper, useAppManagerDispatch } from 'classicy'
+import DOMPurify from 'dompurify'
 import React from 'react'
+import './browser.scss'
+import { useBrowserNavigation } from './useBrowserNavigation'
 
-interface BrowserHistoryEntry {
-    url: string
-    visitedAt: string
+interface ShadowLinkClick {
+    href: string;
+    rawHref: string;
 }
 
-const HISTORY_STORAGE_KEY = 'Browser.app.visitedHistory'
+const ShadowContent: React.FC<{ html: string; onLinkClick: (link: ShadowLinkClick) => void }> = ({ html, onLinkClick }) => {
+    const hostRef = React.useRef<HTMLDivElement>(null)
+    const shadowRef = React.useRef<ShadowRoot | null>(null)
+    const onLinkClickRef = React.useRef(onLinkClick)
+    onLinkClickRef.current = onLinkClick
 
-const loadVisitedHistory = (): BrowserHistoryEntry[] => {
-    try {
-        const stored = localStorage.getItem(HISTORY_STORAGE_KEY)
-        return stored ? JSON.parse(stored) : []
-    } catch {
-        return []
-    }
-}
-
-const saveVisitedHistory = (entries: BrowserHistoryEntry[]) => {
-    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(entries))
-}
-
-const recordVisit = (url: string) => {
-    const entries = loadVisitedHistory()
-    entries.push({ url, visitedAt: new Date().toISOString() })
-    saveVisitedHistory(entries)
-}
-
-const sanitizeUrl = (url: string): string => {
-    try {
-        const parsed = new URL(url)
-        if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
-            return parsed.href
+    React.useEffect(() => {
+        if (hostRef.current && !shadowRef.current) {
+            shadowRef.current = hostRef.current.attachShadow({ mode: 'open' })
         }
-    } catch { /* invalid URL */ }
-    return 'about:blank'
+        // No cleanup: ShadowRoot cannot be detached once attached (browser limitation)
+    }, [])
+
+    React.useEffect(() => {
+        if (shadowRef.current) {
+            shadowRef.current.innerHTML = DOMPurify.sanitize(html, { FORCE_BODY: true })
+        }
+    }, [html])
+
+    React.useEffect(() => {
+        const shadow = shadowRef.current
+        if (!shadow) return
+        const target = shadow as unknown as EventTarget
+        const handler = (e: Event) => {
+            const mouseEvent = e as MouseEvent
+            const clickTarget = mouseEvent.composedPath()[0] as HTMLElement | undefined
+            if (!clickTarget) return
+            const anchor = clickTarget.closest?.('a')
+            if (!anchor) return
+            mouseEvent.preventDefault()
+            onLinkClickRef.current({
+                href: anchor.href,
+                rawHref: anchor.getAttribute('href') || '',
+            })
+        }
+        target.addEventListener('click', handler)
+        return () => target.removeEventListener('click', handler)
+    }, [])
+
+    return <div ref={hostRef} className="browserPage" />
 }
 
 const Browser = () => {
@@ -44,72 +58,37 @@ const Browser = () => {
 
     const desktopEventDispatch = useAppManagerDispatch()
 
-    const defaultUrl = 'https://web.archive.org/web/19970404064352/http://www.apple.com/'
+    const defaultUrl = 'http://www.apple.com/'
 
-    const refAddressBar = React.useRef<HTMLInputElement>(null)
-    const refIframe = React.useRef<HTMLIFrameElement>(null)
-    const [history, setHistory] = React.useState<string[]>([defaultUrl])
-    const [historyIndex, setHistoryIndex] = React.useState(0)
-    const [iframeSrc, setIframeSrc] = React.useState(sanitizeUrl(defaultUrl))
     const [urlError, setUrlError] = React.useState(false)
-    const [isLoading, setIsLoading] = React.useState(true)
-    const loadingTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+    const refAddressBar = React.useRef<HTMLInputElement>(null)
     const refToolbar = React.useRef<HTMLDivElement>(null)
     const [isCompact, setIsCompact] = React.useState(false)
 
-    // Refs to avoid stale closures in handleIframeLoad
-    const historyRef = React.useRef(history)
-    const historyIndexRef = React.useRef(historyIndex)
-    historyRef.current = history
-    historyIndexRef.current = historyIndex
+    const showError = React.useCallback(() => {
+        setUrlError(true)
+        desktopEventDispatch({
+            type: 'ClassicyWindowFocus',
+            app: { id: appId },
+            window: { id: 'browser_error' },
+        })
+    }, [desktopEventDispatch, appId])
 
-    const canGoBack = historyIndex > 0
-    const canGoForward = historyIndex < history.length - 1
-
-    const clearLoadingTimeout = React.useCallback(() => {
-        if (loadingTimeoutRef.current) {
-            clearTimeout(loadingTimeoutRef.current)
-            loadingTimeoutRef.current = null
-        }
-    }, [])
-
-    const startLoading = React.useCallback(() => {
-        clearLoadingTimeout()
-        setIsLoading(true)
-    }, [clearLoadingTimeout])
-
-    const handleIframeLoad = React.useCallback(() => {
-        clearLoadingTimeout()
-        setIsLoading(false)
-
-        // Try to read the iframe's current URL for in-iframe navigation
-        try {
-            const currentUrl = refIframe.current?.contentWindow?.location.href
-            if (currentUrl && currentUrl !== 'about:blank') {
-                const idx = historyIndexRef.current
-                const hist = historyRef.current
-                if (currentUrl !== hist[idx]) {
-                    const newHistory = [...hist.slice(0, idx + 1), currentUrl]
-                    setHistory(newHistory)
-                    setHistoryIndex(idx + 1)
-                    if (refAddressBar.current) {
-                        refAddressBar.current.value = currentUrl
-                    }
-                    recordVisit(currentUrl)
-                }
-            }
-        } catch {
-            // Cross-origin: cannot read iframe URL
-        }
-    }, [clearLoadingTimeout])
-
-    // Sync address bar and record default URL on mount
-    React.useEffect(() => {
-        if (refAddressBar.current) {
-            refAddressBar.current.value = defaultUrl
-        }
-        recordVisit(defaultUrl)
-    }, [])
+    const {
+        htmlContent,
+        pageTitle,
+        addressBarValue,
+        setAddressBarValue,
+        isLoading,
+        statusText,
+        canGoBack,
+        canGoForward,
+        goTo,
+        goBack,
+        goForward,
+        refresh,
+        handleContentClick,
+    } = useBrowserNavigation({ defaultUrl, onShowError: showError })
 
     // Hide button labels when toolbar is narrow
     React.useEffect(() => {
@@ -120,90 +99,6 @@ const Browser = () => {
         observer.observe(refToolbar.current)
         return () => observer.disconnect()
     }, [])
-
-    // Detect in-iframe clicks via window blur (cross-origin compatible)
-    React.useEffect(() => {
-        const handleWindowBlur = () => {
-            if (document.activeElement === refIframe.current) {
-                // Focus the browser window when the iframe is clicked
-                desktopEventDispatch({
-                    type: 'ClassicyWindowFocus',
-                    app: { id: appId },
-                    window: { id: 'browser' },
-                })
-
-                startLoading()
-                // Reset after 10s if no load event fires (click wasn't a navigation)
-                loadingTimeoutRef.current = setTimeout(() => {
-                    setIsLoading(false)
-                }, 10000)
-            }
-        }
-
-        window.addEventListener('blur', handleWindowBlur)
-        return () => {
-            window.removeEventListener('blur', handleWindowBlur)
-            clearLoadingTimeout()
-        }
-    }, [desktopEventDispatch, appId, startLoading, clearLoadingTimeout])
-
-    const showError = () => {
-        setUrlError(true)
-        desktopEventDispatch({
-            type: 'ClassicyWindowFocus',
-            app: { id: appId },
-            window: { id: 'browser_error' },
-        })
-    }
-
-    const navigateTo = (url: string) => {
-        startLoading()
-        setHistory(prev => [...prev.slice(0, historyIndex + 1), url])
-        setHistoryIndex(prev => prev + 1)
-        setIframeSrc(sanitizeUrl(url))
-        if (refAddressBar.current) {
-            refAddressBar.current.value = url
-        }
-        recordVisit(url)
-    }
-
-    const goBook = () => {
-        if (!refAddressBar.current) return
-        const value = refAddressBar.current.value.trim()
-        try {
-            const url = new URL(value)
-            if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-                showError()
-                return
-            }
-            setUrlError(false)
-            navigateTo(value)
-        } catch {
-            showError()
-        }
-    }
-
-    const goBack = () => {
-        if (!canGoBack) return
-        startLoading()
-        const newIndex = historyIndex - 1
-        setHistoryIndex(newIndex)
-        setIframeSrc(sanitizeUrl(history[newIndex]))
-        if (refAddressBar.current) {
-            refAddressBar.current.value = history[newIndex]
-        }
-    }
-
-    const goForward = () => {
-        if (!canGoForward) return
-        startLoading()
-        const newIndex = historyIndex + 1
-        setHistoryIndex(newIndex)
-        setIframeSrc(sanitizeUrl(history[newIndex]))
-        if (refAddressBar.current) {
-            refAddressBar.current.value = history[newIndex]
-        }
-    }
 
     const quitApp = React.useCallback(() => {
         desktopEventDispatch(quitAppHelper(appId, appName, appIcon))
@@ -246,7 +141,7 @@ const Browser = () => {
             )}
             <ClassicyWindow
                 id={'browser'}
-                title={appName}
+                title={pageTitle || appName}
                 appId={appId}
                 scrollable={false}
                 initialSize={[100, 500]}
@@ -254,47 +149,49 @@ const Browser = () => {
                 appMenu={appMenu}
                 growable={true}
             >
-                <div ref={refToolbar} style={{backgroundColor: "var(--color-system-03)", display: "flex", flexDirection: "row"}}>
-                    <div style={{minWidth: 0, flex: 1}}>
-                        <div style={{display: "flex", flexDirection: "row", gap: "0.5em", alignItems: "center"}}>
-                            <div style={{display: "flex", flexDirection: "row", flexShrink: 0}}>
+                <div className="browser">
+                <div className="browserToolbar" ref={refToolbar}>
+                    <div className="browserToolbarInner">
+                        <div className="browserToolbarControls">
+                            <div className="browserNavButtons">
                             <ClassicyButton onClickFunc={goBack} disabled={!canGoBack}>
-                                <p style={{display: "flex", flexDirection: "row", margin: 0, padding: 0, opacity: canGoBack ? 1 : 0.4}}>
-                                <img src={ClassicyIcons.applications.internetExplorer.backward}/>
+                                <div className={`browserNavButtonContent browserHoverSwap${!canGoBack ? ' browserNavButtonContentDisabled' : ''}`}>
+                                    <img src={ClassicyIcons.applications.internetExplorer.backward} className="browserIconDefault"/>
+                                    <img src={ClassicyIcons.applications.internetExplorer.backwardOn} className="browserIconHover"/>
                                     {!isCompact && <ClassicyControlLabel label='Back'></ClassicyControlLabel>}
-                                </p>
+                                </div>
                             </ClassicyButton>
                             <ClassicyButton buttonSize='medium' onClickFunc={goForward} disabled={!canGoForward}>
-                                <p style={{display: "flex", flexDirection: "row", margin: 0, padding: 0, opacity: canGoForward ? 1 : 0.4}}>
-                                    <img src={ClassicyIcons.applications.internetExplorer.forward} style={{width: "auto", height: "150%"}} />
+                                <div className={`browserNavButtonContent browserHoverSwap${!canGoForward ? ' browserNavButtonContentDisabled' : ''}`}>
+                                    <img src={ClassicyIcons.applications.internetExplorer.forward} className="browserIconDefault" />
+                                    <img src={ClassicyIcons.applications.internetExplorer.forwardOn} className="browserIconHover" />
                                     {!isCompact && <ClassicyControlLabel label='Forward'></ClassicyControlLabel>}
-                                </p>
+                                </div>
                             </ClassicyButton>
                             </div>
-                            <div style={{minWidth: 0, flex: 1, display: "flex", flexDirection: "row", alignSelf: "center", gap: "4px", alignItems: "center"}}>
+                            <div className="browserAddressBar">
                                 {!isCompact && <ClassicyControlLabel label="Address:" />}
-                                <ClassicyInput id={'browserAddress'} ref={refAddressBar} backgroundColor="white" onEnterFunc={goBook}></ClassicyInput>
+                                <ClassicyInput id={'browserAddress'} ref={refAddressBar} prefillValue={addressBarValue} onChangeFunc={(e) => setAddressBarValue(e.target.value)} backgroundColor="white" onEnterFunc={goTo}></ClassicyInput>
                             </div>
-                            <ClassicyButton onClickFunc={goBook}>Go</ClassicyButton>
+                            <ClassicyButton onClickFunc={refresh}>
+                                <div className="browserNavButtonContent browserHoverSwap">
+                                    <img src={ClassicyIcons.applications.internetExplorer.refresh} className="browserIconDefault" />
+                                    <img src={ClassicyIcons.applications.internetExplorer.refreshOn} className="browserIconHover" />
+                                    {!isCompact && <ClassicyControlLabel label='Refresh'></ClassicyControlLabel>}
+                                </div>
+                            </ClassicyButton>
+                            <ClassicyButton onClickFunc={goTo}>Go</ClassicyButton>
                         </div>
                     </div>
-                    <img src={isLoading ? ClassicyIcons.applications.internetExplorer.loaderAnimated : ClassicyIcons.applications.internetExplorer.loader} style={{
-                        aspectRatio: "1/1",
-                        height: "38px",
-                        boxShadow: "inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-03), inset calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) var(--color-system-05), calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) var(--color-system-06)"
-                        }}/>
+                    <img src={isLoading ? ClassicyIcons.applications.internetExplorer.loaderAnimated : ClassicyIcons.applications.internetExplorer.loader} className="browserLoaderIcon"/>
                 </div>
-                <iframe
-                    ref={refIframe}
-                    title="myBook"
-                    src={iframeSrc}
-                    height="720"
-                    width="1280"
-                    allowFullScreen={true}
-                    onLoad={handleIframeLoad}
-                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation-by-user-activation"
-                    style={{ width: '100%', height: '100%', padding: '0', margin: '0' }}
-                ></iframe>
+                <div className="browserContents">
+                    <ShadowContent html={htmlContent} onLinkClick={handleContentClick} />
+                </div>
+                <div className="browserStatusBar">
+                    {statusText}
+                </div>
+                </div>
             </ClassicyWindow>
         </ClassicyApp>
     )

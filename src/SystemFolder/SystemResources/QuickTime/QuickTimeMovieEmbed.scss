@@ -12,8 +12,35 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: calc(100% - var(--window-control-size) * 1);
+  height: 100%;
   min-height: calc(var(--window-control-size) * 1.5);
+
+  &.quickTimePlayerWrapperDocked {
+    height: calc(100% - var(--window-control-size) * 1);
+  }
+}
+
+.quickTimePlayerVideoHolderDocked {
+  height: calc(100% - var(--window-control-size) * 1);
+}
+
+.quickTimePlayerVideoHolderUndocked {
+  height: calc(100% - var(--window-border-size) * 4);
+}
+
+.quickTimePlayerVideoControlsHolderDocked {
+  position: absolute;
+}
+
+.quickTimePlayerVideoControlsHolderUndocked {
+  position: relative;
+}
+
+.quickTimePlayerVolumePopup {
+  z-index: 999999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .quickTimePlayerVideoControlsHolder {

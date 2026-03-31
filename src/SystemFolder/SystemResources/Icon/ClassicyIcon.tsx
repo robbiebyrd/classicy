@@ -86,7 +86,6 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
       draggable={false}
       className={classNames(
         "classicyIcon",
-        "absolute",
         dragging ? "classicyIconDragging" : "",
         active ? "classicyIconActive" : "",
       )}

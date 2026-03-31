@@ -102,6 +102,10 @@
   box-sizing: content-box;
   height: 100%;
 
+  > .classicyMenuWrapper {
+    pointer-events: none;
+  }
+
   &:hover {
     color: var(--color-white);
     background-color: var(--color-theme-04);
@@ -112,7 +116,7 @@
     height: calc(var(--window-control-size) * 1.25);
     margin-right: calc(var(--window-control-size) * 0.5);
     user-select: none;
-    user-drag: none;
+    -webkit-user-drag: none;
   }
 
   p {
@@ -138,8 +142,12 @@
   color: var(--color-white);
   background-color: var(--color-theme-04);
 
-  > .classicyMenuWrapper > ul {
-    display: flex !important;
+  > .classicyMenuWrapper {
+    pointer-events: auto;
+
+    > ul {
+      display: flex !important;
+    }
   }
 }
 

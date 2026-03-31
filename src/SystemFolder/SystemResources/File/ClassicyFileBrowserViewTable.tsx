@@ -68,26 +68,17 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
       };
 
       const fileList = useMemo<ClassicyFileSystemEntryMetadata[]>(() => {
-        const a: [string, ClassicyFileSystemEntryMetadata][] = Object.entries(
-          fs.filterByType(path, ["file", "directory"]),
-        );
-        const directoryListing = a.map(([d, e]) => {
-          const g = e;
-          g["_name"] = d;
-          g["_path"] = path + ":" + d;
-          return g;
-        });
-
-        return Object.entries(directoryListing).map((entry) => {
-          const filteredValues = {} as Record<string, unknown>;
-          const filteredKeyArray: [string, unknown][] = Object.entries(
-            entry[1],
-          ).filter((key) => key[0].startsWith("_"));
-          for (const [key, value] of filteredKeyArray) {
-            filteredValues[key] = value;
+        const directoryItems = fs.filterByType(path, ["file", "directory"]);
+        return Object.entries(directoryItems).map(([filename, metadata]) => {
+          const filtered = {} as Record<string, unknown>;
+          for (const [key, value] of Object.entries(metadata)) {
+            if (key.startsWith("_")) {
+              filtered[key] = value;
+            }
           }
-
-          return filteredValues as ClassicyFileSystemEntryMetadata;
+          filtered["_name"] = filename;
+          filtered["_path"] = path + ":" + filename;
+          return filtered as ClassicyFileSystemEntryMetadata;
         });
       }, [path, fs]);
 
@@ -153,7 +144,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
           key={appId + "_filebrowser_" + path}
           className={"classicyFileBrowserViewTableContainer"}
         >
-          <table style={{}} className={"classicyFileBrowserViewTable"}>
+          <table className={"classicyFileBrowserViewTable"}>
             <thead className={classNames("classicyFileBrowserViewTableHeader")}>
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr
@@ -171,9 +162,6 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
                           ? "classicyFileBrowserViewTableColumnHeaderSelected"
                           : "",
                       )}
-                      style={{
-                        width: header.id === "_icon" ? iconSize : "auto",
-                      }}
                       onClick={() => {
                         if (
                           header.column.getIsSorted() == false ||
@@ -185,7 +173,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
                         }
                       }}
                     >
-                      <div style={{display: "flex", flexDirection: "row", alignItems: "center"}}>
+                      <div className={"classicyFileBrowserViewTableHeaderCellContent"}>
                       {!header.isPlaceholder &&
                         flexRender(
                           header.column.columnDef.header,
@@ -195,10 +183,9 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
                         <img
                           src={`${arrowUpIcon}`}
                           alt={"Up Arrow"}
+                          className={"classicyFileBrowserViewTableSortArrow"}
                           style={{
-                            margin: "0 var(--window-padding-size)",
                             transform: `rotate(${sorting[0].desc ? "0deg" : "180deg"})`,
-                            height: "calc(var(--ui-font-size) * 0.5)",
                           }}
                         />
                       )}
@@ -240,11 +227,8 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
                   {row.getVisibleCells().map((cell) => (
                     <td
                       key={cell.id}
-                      style={{
-                        width: cell.column.getSize(),
-                        margin: 0,
-                        padding: 0,
-                      }}
+                      className={"classicyFileBrowserViewTableCell"}
+                      style={{ width: cell.column.getSize() }}
                     >
                       {flexRender(
                         cell.column.columnDef.cell,
@@ -272,7 +256,6 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
               ))}
             </tfoot>
           </table>
-          <div className="h-4" />
         </div>
       );
     },

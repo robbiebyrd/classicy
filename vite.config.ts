@@ -1,4 +1,3 @@
-import tailwindcss from '@tailwindcss/vite';
 import react from "@vitejs/plugin-react";
 import path, { resolve } from "path";
 import { defineConfig } from "vite";
@@ -7,6 +6,7 @@ import VitePluginImageTools from 'vite-plugin-image-tools';
 import richSvg from "vite-plugin-react-rich-svg";
 
 export default defineConfig({
+    assetsInclude: ['**/*.ogg', '**/*.m4a', '**/*.mp3', '**/*.ac3', '**/*.wav', '**/*.caf'],
     resolve: {
         alias: {
             "@": path.resolve(__dirname, "./src/"),
@@ -20,7 +20,6 @@ export default defineConfig({
         outDir: 'dist/types',
     }),
     richSvg(),
-    tailwindcss({optimize: {minify: true}}),
     VitePluginImageTools({
       quality: 100,
       enableWebp: true,

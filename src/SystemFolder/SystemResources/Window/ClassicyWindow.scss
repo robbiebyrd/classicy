@@ -4,16 +4,17 @@
 
 .classicyWindowZoomed {
   top: calc(
-    var(--window-control-size) * 2 + var(--window-padding-size)
+    var(--window-control-size) * 2
   ) !important;
   left: calc(var(--window-padding-size) * 2) !important;
   width: calc(
-    100% - (var(--window-padding-size) * 2 + (var(--window-control-size) * 2))
+    100% - (var(--window-padding-size) * 2)
   ) !important;
   height: calc(100vh - (var(--window-padding-size) * 1)) !important;
 }
 
 .classicyWindowCollapsed {
+  height: calc(var(--window-control-size) * 1.5) !important;
 }
 
 .classicyWindowHeader {
@@ -30,7 +31,7 @@
   align-items: center;
   flex-direction: row;
   justify-content: center;
-  height: auto;
+  height: calc(var(--window-control-size) * 1.5);
   background: var(--color-system-03);
   column-gap: var(--window-control-size);
 }
@@ -198,7 +199,7 @@
     display: flex;
     flex-direction: row;
     height: calc(var(--window-control-size) * 1.5);
-    padding-bottom: var(--window-padding-size);
+    padding-bottom: var(--window-border-size);
     text-align: center;
     border: none;
     box-shadow: none;
@@ -206,11 +207,15 @@
 
     .classicyWindowIcon {
       max-width: calc(var(--window-control-size) * 2);
-      max-height: calc(var(--window-control-size) * 2);
+      max-height: calc(var(--window-control-size) * 1);
       padding: 0 calc(var(--window-padding-size) / 2);
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-start;
 
       img {
         height: 100%;
+        width: 100%;
         user-select: none;
         pointer-events: none;
         object-fit: contain;
@@ -233,7 +238,8 @@
         cursor: default;
         user-select: none;
         color: var(--color-system-05);
-        user-drag: none;
+        -webkit-user-drag: none;
+        display: flex;
 
         & > p {
           overflow: hidden;
@@ -256,7 +262,7 @@
       .classicyWindowTitleRight {
         flex-grow: 1;
         width: auto;
-        height: calc(var(--window-control-size) * 1.25);
+        height: calc(var(--window-control-size) * 1);
         margin: calc(var(--window-padding-size) / 2) var(--window-padding-size);
         margin-top: 0;
         padding: 0;
@@ -275,6 +281,8 @@
       padding: var(--window-border-size) 0 var(--window-border-size)
         var(--window-border-size);
       opacity: 0;
+      width: calc(var(--window-control-size) + var(--window-border-size)) !important;
+      height: calc(var(--window-control-size) + var(--window-border-size)) !important;
     }
 
     .classicyWindowCollapseBox,
@@ -339,7 +347,7 @@
     display: block;
     @include appearance.platinumWindowInnerBorder;
     overflow: auto;
-    height: calc(100% - (var(--window-control-size) * 2));
+    height: calc(100% - (var(--window-control-size) * 1) - var(--window-padding-size) * 1.5);
     background-color: var(--color-window-document);
   }
 
@@ -347,7 +355,7 @@
     position: relative;
     display: block;
     overflow: auto;
-    height: calc(100% - (var(--window-control-size) * 3.25));
+    height: calc(100% - (var(--window-control-size) * 3) - (var(--window-padding-size))) !important;
     background-color: var(--color-window-document);
   }
 }

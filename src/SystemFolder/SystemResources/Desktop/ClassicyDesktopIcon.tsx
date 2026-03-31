@@ -6,7 +6,7 @@ import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/u
 
 import "./ClassicyDesktopIcon.scss";
 import classNames from "classnames";
-import { FC as FunctionalComponent, memo, MouseEvent, useRef, useState } from "react";
+import { FC as FunctionalComponent, memo, MouseEvent, useMemo, useRef, useState } from "react";
 
 interface ClassicyDesktopIconProps {
   appId: string;
@@ -32,8 +32,11 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
   const [clickPosition, setClickPosition] = useState<[number, number]>([0, 0]);
   const [dragging, setDragging] = useState<boolean>(false);
 
-  const selectedIcons = useAppManager(s => s.System.Manager.Desktop.selectedIcons);
-  const desktopIcons = useAppManager(s => s.System.Manager.Desktop.icons);
+  const isSelected = useAppManager(s => s.System.Manager.Desktop.selectedIcons?.includes(appId) ?? false);
+  const iconLocation = useAppManager(s => {
+    const icon = s.System.Manager.Desktop.icons.find(i => i.appId === appId);
+    return icon?.location ?? null;
+  });
   const isOpen = useAppManager(s => !!s.System.Manager.App.apps[appId]?.open);
   const finderWindows = useAppManager(s => s.System.Manager.App.apps["Finder.app"]?.windows);
   const desktopEventDispatch = useAppManagerDispatch();
@@ -67,11 +70,6 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
     }
   };
 
-  const isActive = (i: string) => {
-    const idx = selectedIcons?.findIndex((o) => o === i);
-    return idx != undefined && idx > -1;
-  };
-
   const launchIcon = () => {
     if (onClickFunc) {
       onClickFunc();
@@ -94,23 +92,10 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
     });
   };
 
-  const getIconLocation = () => {
-    const iconIdx = desktopIcons.findIndex((i) => i.appId === appId);
-
-    if (!desktopIcons[iconIdx].location) {
-      return [0, 0];
-    }
-
-    let leftValue: number = 0;
-    let topValue: number = 0;
-    if (iconIdx > -1) {
-      leftValue = desktopIcons[iconIdx].location[0];
-      topValue = desktopIcons[iconIdx].location[1];
-    }
-    return [topValue, leftValue];
-  };
-
-  const thisLocation = getIconLocation();
+  const thisLocation = useMemo(() => {
+    if (!iconLocation) return [0, 0];
+    return [iconLocation[1], iconLocation[0]];
+  }, [iconLocation]);
 
   const isLaunched = () => {
     // Check if a Finder window is open
@@ -148,12 +133,13 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
     setDragging(true);
   };
 
-  const getClass = (i: string) => {
-    if (isActive(i) && isLaunched()) {
+  const getClass = () => {
+    const launched = isLaunched();
+    if (isSelected && launched) {
       return "classicyDesktopIconActiveAndOpen";
-    } else if (isActive(i)) {
+    } else if (isSelected) {
       return "classicyDesktopIconActive";
-    } else if (isLaunched()) {
+    } else if (launched) {
       return "classicyDesktopIconOpen";
     } else {
       return "";
@@ -178,7 +164,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
       className={classNames(
         "classicyDesktopIcon",
         dragging ? "classicyDesktopIconDragging" : "",
-        getClass(appId),
+        getClass(),
       )}
       style={{ top: thisLocation[0], left: thisLocation[1] }}
     >

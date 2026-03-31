@@ -50,9 +50,8 @@ export const MoviePlayer: FunctionalComponent = () => {
 
   return (
     <ClassicyApp id={appId} name={appName} icon={appIcon}>
-      {Array.isArray(openDocuments) &&
-        openDocuments.length > 0 &&
-        openDocuments.map((doc) => (
+      {Array.isArray(openDocuments) && openDocuments.length > 0
+        ? openDocuments.map((doc) => (
           <ClassicyWindow
             key={doc.name + "_" + doc.url}
             id={appId + "_MoviePlayer_" + doc.url}
@@ -86,7 +85,8 @@ export const MoviePlayer: FunctionalComponent = () => {
               controlsDocked={true}
             />
           </ClassicyWindow>
-        ))}
+        ))
+        : null}
     </ClassicyApp>
   );
 };

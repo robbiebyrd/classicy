@@ -1,3 +1,4 @@
+import "./PictureViewer.scss";
 import {
   useAppManager,
   useAppManagerDispatch,
@@ -6,20 +7,8 @@ import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import { quitMenuItemHelper } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 import { FC as FunctionalComponent, useEffect, useMemo } from "react";
-import appIcon from "@img/icons/system/quicktime/player.png";
 import defaultDocumentIcon from "@img/icons/system/quicktime/movie.png";
-
-export type QuickTimeImageDocument = {
-  url: string;
-  name?: string;
-  icon?: string;
-};
-
-export const PictureViewerAppInfo = {
-  name: "Picture Viewer",
-  id: "PictureViewer.app",
-  icon: appIcon,
-};
+import { PictureViewerAppInfo, QuickTimeImageDocument } from "@/SystemFolder/QuickTime/PictureViewer/PictureViewerUtils";
 
 export const QuickTimePictureViewer: FunctionalComponent = () => {
   const { name: appName, id: appId, icon: appIcon } = PictureViewerAppInfo;
@@ -59,9 +48,8 @@ export const QuickTimePictureViewer: FunctionalComponent = () => {
 
   return (
     <ClassicyApp id={appId} name={appName} icon={appIcon}>
-      {Array.isArray(openDocuments) &&
-        openDocuments.length > 0 &&
-        openDocuments.map((doc: QuickTimeImageDocument) => (
+      {Array.isArray(openDocuments) && openDocuments.length > 0
+        ? openDocuments.map((doc: QuickTimeImageDocument) => (
           <ClassicyWindow
             key={doc.name + "_" + doc.url}
             id={appId + "_PictureViewer_" + doc.url}
@@ -88,14 +76,11 @@ export const QuickTimePictureViewer: FunctionalComponent = () => {
             <img
               src={doc.url}
               alt={doc.name}
-              style={{
-                width: "calc(100% - var(--window-padding-size))",
-                height: "calc(100% - var(--window-padding-size))",
-                objectFit: "contain",
-              }}
+              className={"classicyPictureViewerImage"}
             />
           </ClassicyWindow>
-        ))}
+        ))
+        : null}
     </ClassicyApp>
   );
 };

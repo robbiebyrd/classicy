@@ -79,7 +79,7 @@ function makeStoreForDesktop(): ClassicyStore {
       backgroundRepeat: "no-repeat",
       backgroundPosition: "center",
     },
-    sound: { file: "", disabled: [] },
+    sound: { name: "platinum", disabled: [] },
   };
   ds.System.Manager.Appearance.availableThemes = [ds.System.Manager.Appearance.activeTheme];
   return ds;

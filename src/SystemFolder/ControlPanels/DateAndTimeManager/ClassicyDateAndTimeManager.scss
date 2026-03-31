@@ -1,0 +1,25 @@
+.classicyDateAndTimeManagerContent {
+  background-color: var(--color-system-03);
+  height: 100%;
+  width: 100%;
+  padding: var(--window-padding-size);
+  box-sizing: border-box;
+}
+
+.classicyDateAndTimeManagerRow {
+  display: flex;
+  flex-direction: row;
+}
+
+.classicyDateAndTimeManagerDateColumn {
+  width: 42%;
+}
+
+.classicyDateAndTimeManagerTimeColumn {
+  width: 58%;
+}
+
+.classicyDateAndTimeManagerColumn {
+  display: flex;
+  flex-direction: column;
+}

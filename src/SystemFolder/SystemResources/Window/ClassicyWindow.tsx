@@ -427,6 +427,16 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
     });
   };
 
+  const closeContextMenuHandler = useCallback(() => {
+    desktopEventDispatch({
+      type: "ClassicyWindowContextMenu",
+      contextMenu: false,
+      position: [0, 0],
+      window: ws,
+      app: { id: appId },
+    });
+  }, [desktopEventDispatch, ws, appId]);
+
   const onMouseOutHandler = (e: MouseEvent<HTMLDivElement>) => {
     e.preventDefault();
     setContextMenu(false, [0, 0]);
@@ -512,14 +522,14 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
           onMouseOut={onMouseOutHandler}
         >
           <>
-            {contextMenu && ws.contextMenu && (
+            {contextMenu && ws.contextMenu ? (
               <ClassicyContextualMenu
                 name={[appId, id, "contextMenu"].join("_")}
                 menuItems={contextMenu}
                 position={clickPosition}
-                onClose={() => setContextMenu(false, [0, 0])}
+                onClose={closeContextMenuHandler}
               ></ClassicyContextualMenu>
-            )}
+            ) : null}
 
             <div
               className={classNames(

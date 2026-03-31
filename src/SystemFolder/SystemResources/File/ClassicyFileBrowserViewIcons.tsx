@@ -1,3 +1,4 @@
+import "./ClassicyFileBrowserViewTable.scss";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import {
   cleanupIcon,
@@ -97,7 +98,7 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 
       return (
         <div
-          style={{ position: "absolute", width: "100%", height: "100%" }}
+          className={"classicyFileBrowserFill"}
           ref={holderRef}
         >
           {items.map((item) => {

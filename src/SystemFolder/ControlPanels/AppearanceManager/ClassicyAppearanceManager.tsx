@@ -1,9 +1,11 @@
+import "./ClassicyAppearanceManager.scss";
 import appIcon from "./resources/app.png";
 import packageIcon from "./resources/platinum.png";
 import {
   ClassicyTheme,
   getTheme,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { ClassicySounds } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicySounds";
 import {
   useAppManager,
   useAppManagerDispatch,
@@ -21,7 +23,7 @@ import { ClassicyInput } from "@/SystemFolder/SystemResources/Input/ClassicyInpu
 import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
 import { ClassicyTabs } from "@/SystemFolder/SystemResources/Tabs/ClassicyTabs";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
-import { FC as FunctionalComponent, ChangeEvent, useMemo, useState } from "react";
+import { FC as FunctionalComponent, ChangeEvent, startTransition, useMemo, useState } from "react";
 import {
   ClassicyDefaultWallpaper,
   ClassicyWallpapers,
@@ -64,77 +66,87 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
     [appearanceState.availableThemes],
   );
 
-  const switchTheme = async (e: ChangeEvent<HTMLSelectElement>) => {
+  const switchTheme = (e: ChangeEvent<HTMLSelectElement>) => {
     const themeId = e.currentTarget.value;
-    desktopEventDispatch({
-      type: "ClassicyDesktopChangeTheme",
-      activeTheme: themeId,
+    startTransition(() => {
+      desktopEventDispatch({
+        type: "ClassicyDesktopChangeTheme",
+        activeTheme: themeId,
+      });
     });
-    await fetchAndApplySoundTheme(themeId);
+    applySoundTheme(themeId);
   };
 
   const changeBackground = (e: ChangeEvent<HTMLSelectElement>) => {
     setBg(e.target.value);
-    desktopEventDispatch({
-      type: "ClassicyDesktopChangeBackground",
-      backgroundImage: e.target.value,
+    startTransition(() => {
+      desktopEventDispatch({
+        type: "ClassicyDesktopChangeBackground",
+        backgroundImage: e.target.value,
+      });
     });
   };
 
   const setBackgroundURL = (e: ChangeEvent<HTMLInputElement>) => {
     if (isValidUrlWithRegex(e.target.value)) {
       setBg(e.target.value);
-      desktopEventDispatch({
-        type: "ClassicyDesktopChangeBackground",
-        backgroundImage: e.target.value,
+      startTransition(() => {
+        desktopEventDispatch({
+          type: "ClassicyDesktopChangeBackground",
+          backgroundImage: e.target.value,
+        });
       });
     }
   };
 
   const alignBackground = (e: ChangeEvent<HTMLSelectElement>) => {
-    desktopEventDispatch({
-      type: "ClassicyDesktopChangeBackgroundPosition",
-      backgroundPosition: e.target.value,
+    startTransition(() => {
+      desktopEventDispatch({
+        type: "ClassicyDesktopChangeBackgroundPosition",
+        backgroundPosition: e.target.value,
+      });
     });
   };
 
   const repeatBackground = (e: ChangeEvent<HTMLSelectElement>) => {
-    desktopEventDispatch({
-      type: "ClassicyDesktopChangeBackgroundRepeat",
-      backgroundRepeat: e.target.value,
+    startTransition(() => {
+      desktopEventDispatch({
+        type: "ClassicyDesktopChangeBackgroundRepeat",
+        backgroundRepeat: e.target.value,
+      });
     });
   };
 
   const backgroundSize = (e: ChangeEvent<HTMLSelectElement>) => {
-    desktopEventDispatch({
-      type: "ClassicyDesktopChangeBackgroundSize",
-      backgroundSize: e.target.value,
+    startTransition(() => {
+      desktopEventDispatch({
+        type: "ClassicyDesktopChangeBackgroundSize",
+        backgroundSize: e.target.value,
+      });
     });
   };
 
   const changeFont = (e: ChangeEvent<HTMLSelectElement>) => {
-    desktopEventDispatch({
-      type: "ClassicyDesktopChangeFont",
-      font: e.target.value,
-      fontType: e.target.id,
+    startTransition(() => {
+      desktopEventDispatch({
+        type: "ClassicyDesktopChangeFont",
+        font: e.target.value,
+        fontType: e.target.id,
+      });
     });
   };
-  const fetchAndApplySoundTheme = async (themeName: string) => {
+  const applySoundTheme = (themeName: string) => {
     const soundTheme = getTheme(themeName).sound;
-    try {
-      const response = await fetch(soundTheme.file);
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      const data = await response.json();
-      player({
-        type: "ClassicySoundLoad",
-        file: data,
-        disabled: soundTheme.disabled,
-      });
-    } catch (error) {
-      console.error("[ClassicyAppearanceManager] Failed to load sound theme", { themeName, error });
+    const data = ClassicySounds[soundTheme.name];
+    if (!data) {
+      console.error("[ClassicyAppearanceManager] Sound theme not found", { name: soundTheme.name });
+      return;
     }
+    player({
+      type: "ClassicySoundLoad",
+      file: data,
+      disabled: soundTheme.disabled,
+    });
   };
 
   const quitApp = () => {
@@ -168,9 +180,10 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
     });
   };
 
-  const tabs = [
-    {
-      title: "Themes",
+  const tabs = useMemo(
+    () => [
+      {
+        title: "Themes",
       children: (
         <>
           <ClassicyControlLabel
@@ -195,14 +208,14 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
       title: "Desktop",
       children: (
         <>
-          <div style={{ display: "flex", flexDirection: "row", gap: "1em" }}>
+          <div className={"classicyAppearanceManagerDesktopRow"}>
             <img
               draggable={false}
               src={bg}
-              style={{ height: "100%", minWidth: "50%", userSelect: "none" }}
+              className={"classicyAppearanceManagerDesktopPreview"}
               alt={"Background"}
             />
-            <div style={{ width: "100%" }}>
+            <div className={"classicyAppearanceManagerDesktopControls"}>
               <ClassicyControlLabel label={"Patterns"} direction={"left"} />
               <ClassicyPopUpMenu
                 id={"bg"}
@@ -217,17 +230,8 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
                 onChangeFunc={setBackgroundURL}
               />
               <br />
-              <div
-                style={{
-                  width: "100%",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "1em",
-                }}
-              >
-                <div
-                  style={{ display: "flex", flexDirection: "row", gap: "1em" }}
-                >
+              <div className={"classicyAppearanceManagerDesktopOptionsColumn"}>
+                <div className={"classicyAppearanceManagerDesktopOptionsRow"}>
                   <ClassicyControlLabel label={"Align"} direction={"left"} />
                   <ClassicyPopUpMenu
                     onChangeFunc={alignBackground}
@@ -246,9 +250,7 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
                     selected={"center"}
                   />
                 </div>
-                <div
-                  style={{ display: "flex", flexDirection: "row", gap: "1em" }}
-                >
+                <div className={"classicyAppearanceManagerDesktopOptionsRow"}>
                   <ClassicyControlLabel label={"Repeat"} direction={"left"} />
                   <ClassicyPopUpMenu
                     onChangeFunc={repeatBackground}
@@ -263,9 +265,7 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
                     selected={"repeat"}
                   />
                 </div>
-                <div
-                  style={{ display: "flex", flexDirection: "row", gap: "1em" }}
-                >
+                <div className={"classicyAppearanceManagerDesktopOptionsRow"}>
                   <ClassicyControlLabel label={"Size"} direction={"left"} />
                   <ClassicyPopUpMenu
                     onChangeFunc={backgroundSize}
@@ -288,9 +288,9 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
     {
       title: "Fonts",
       children: (
-        <div style={{ display: "flex", flexDirection: "column", gap: "1em" }}>
-          <div style={{ display: "flex", flexDirection: "row", gap: "1em" }}>
-            <div style={{ width: "50%" }}>
+        <div className={"classicyAppearanceManagerFontsColumn"}>
+          <div className={"classicyAppearanceManagerFontsRow"}>
+            <div className={"classicyAppearanceManagerFontsLabel"}>
               <ClassicyControlLabel
                 label={"Large System Font"}
                 direction={"left"}
@@ -303,8 +303,8 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
               onChangeFunc={changeFont}
             ></ClassicyPopUpMenu>
           </div>
-          <div style={{ display: "flex", flexDirection: "row", gap: "1em" }}>
-            <div style={{ width: "50%" }}>
+          <div className={"classicyAppearanceManagerFontsRow"}>
+            <div className={"classicyAppearanceManagerFontsLabel"}>
               <ClassicyControlLabel
                 label={"Small System Font"}
                 direction={"left"}
@@ -317,8 +317,8 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
               onChangeFunc={changeFont}
             ></ClassicyPopUpMenu>
           </div>
-          <div style={{ display: "flex", flexDirection: "row", gap: "1em" }}>
-            <div style={{ width: "50%" }}>
+          <div className={"classicyAppearanceManagerFontsRow"}>
+            <div className={"classicyAppearanceManagerFontsLabel"}>
               <ClassicyControlLabel label={"Header Font"} direction={"left"} />
             </div>
             <ClassicyPopUpMenu
@@ -331,7 +331,20 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
         </div>
       ),
     },
-  ];
+    ],
+    [
+      themesList,
+      bg,
+      appearanceState,
+      switchTheme,
+      changeBackground,
+      setBackgroundURL,
+      alignBackground,
+      repeatBackground,
+      backgroundSize,
+      changeFont,
+    ],
+  );
 
   return (
     <ClassicyApp
@@ -357,15 +370,7 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
         modal={false}
         appMenu={appMenu}
       >
-        <div
-          style={{
-            backgroundColor: "var(--color-system-03)",
-            height: "100%",
-            width: "100%",
-            padding: "var(--window-padding-size)",
-            boxSizing: "border-box",
-          }}
-        >
+        <div className={"classicyAppearanceManagerContent"}>
           <ClassicyTabs tabs={tabs} />
           <ClassicyButton onClickFunc={cleanupIcons}>
             Cleanup Icons
@@ -373,13 +378,14 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
           <ClassicyButton onClickFunc={quitApp}>Quit</ClassicyButton>
         </div>
       </ClassicyWindow>
-      {showAbout &&
-        getClassicyAboutWindow({
-          appId: APP_ID,
-          appName: APP_NAME,
-          appIcon,
-          hideFunc: () => setShowAbout(false),
-        })}
+      {showAbout
+        ? getClassicyAboutWindow({
+            appId: APP_ID,
+            appName: APP_NAME,
+            appIcon,
+            hideFunc: () => setShowAbout(false),
+          })
+        : null}
     </ClassicyApp>
   );
 };
