@@ -112,7 +112,7 @@
     height: calc(var(--window-control-size) * 1.25);
     margin-right: calc(var(--window-control-size) * 0.5);
     user-select: none;
-    user-drag: none;
+    -webkit-user-drag: none;
   }
 
   p {

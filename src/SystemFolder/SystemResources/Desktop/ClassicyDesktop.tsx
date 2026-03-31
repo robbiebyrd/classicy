@@ -16,7 +16,7 @@ import { ClassicyDesktopMenuBar } from "@/SystemFolder/SystemResources/Desktop/M
 import { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import classNames from "classnames";
 import macosIcon from "@img/icons/system/macos.png";
-import { FC as FunctionalComponent, ReactNode, MouseEvent, CSSProperties, useEffect, useMemo, useRef, useState } from "react";
+import { FC as FunctionalComponent, ReactNode, MouseEvent, CSSProperties, startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "../../ControlPanels/AppearanceManager/styles/fonts.scss";
 import "../../../index.css";
 
@@ -46,9 +46,11 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
   // Load themes on mount if not already loaded
   useEffect(() => {
     if (availableThemes && availableThemes.length <= 0) {
-      desktopEventDispatch({
-        type: "ClassicyDesktopLoadThemes",
-        availableThemes: getAllThemes(),
+      startTransition(() => {
+        desktopEventDispatch({
+          type: "ClassicyDesktopLoadThemes",
+          availableThemes: getAllThemes(),
+        });
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -124,10 +126,12 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
     {
       id: "finder_file",
       title: "File",
+      disabled: true,
     },
     {
       id: "finder_edit",
       title: "Edit",
+      disabled: true,
     },
     {
       id: "finder_view",
@@ -167,6 +171,7 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
     {
       id: "finder_special",
       title: "Special",
+      disabled: true,
     },
 
     {
@@ -183,6 +188,8 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
       ],
     },
   ], [desktopEventDispatch]);
+
+  const closeContextMenu = useCallback(() => setContextMenu(false), []);
 
   const currentTheme = useMemo(() => getThemeVars(activeTheme), [activeTheme]);
 
@@ -209,23 +216,24 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
           />
         )}
         <ClassicyDesktopMenuBar />
-        {contextMenu && (
+        {contextMenu ? (
           <ClassicyContextualMenu
             name={"desktopContextMenu"}
             menuItems={defaultMenuItems}
             position={contextMenuLocation}
-            onClose={() => setContextMenu(false)}
+            onClose={closeContextMenu}
           />
-        )}
+        ) : null}
         <Finder />
         <ClassicyControlPanels />
-        {showAbout &&
-          getClassicyAboutWindow({
-            appId: "Finder.app",
-            appName: "Finder",
-            appIcon: macosIcon,
-            hideFunc: () => setShowAbout(false),
-          })}
+        {showAbout
+          ? getClassicyAboutWindow({
+              appId: "Finder.app",
+              appName: "Finder",
+              appIcon: macosIcon,
+              hideFunc: () => setShowAbout(false),
+            })
+          : null}
         {desktopIcons.map((i) => (
           <ClassicyDesktopIcon
             appId={i.appId}

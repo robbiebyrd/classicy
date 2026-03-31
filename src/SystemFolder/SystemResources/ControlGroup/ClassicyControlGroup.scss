@@ -1,5 +1,19 @@
 @use '../../ControlPanels/AppearanceManager/styles/appearance';
 @use '../../ControlPanels/AppearanceManager/styles/assets';
 
-// All classes have been converted to Tailwind CSS utilities in ClassicyControlGroup.tsx
-// This file is kept for potential future styles
+.classicyControlGroupFieldset {
+  position: relative;
+  flex-grow: 0;
+
+  &.classicyControlGroupFieldsetColumns {
+    flex-grow: 1;
+    columns: 1;
+  }
+}
+
+.classicyControlGroupLegend {
+  font-family: var(--ui-font);
+  font-size: calc(var(--ui-font-size) * 0.75);
+  margin: 0;
+  padding: 0;
+}

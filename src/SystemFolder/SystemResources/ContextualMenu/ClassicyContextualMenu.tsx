@@ -1,5 +1,6 @@
 import './ClassicyContextualMenu.scss'
-import {ClassicyMenu, ClassicyMenuItem, ClassicyMenuProvider} from '@/SystemFolder/SystemResources/Menu/ClassicyMenu'
+import {ClassicyMenu, ClassicyMenuItem} from '@/SystemFolder/SystemResources/Menu/ClassicyMenu'
+import {ClassicyMenuProvider} from '@/SystemFolder/SystemResources/Menu/ClassicyMenuProvider'
 import '@/SystemFolder/SystemResources/Menu/ClassicyMenu.scss'
 import { FC as FunctionalComponent } from 'react'
 

@@ -8,10 +8,10 @@ import { ClassicyDesktopMenuWidgetSound } from "@/SystemFolder/SystemResources/D
 import { ClassicyDesktopMenuWidgetTime } from "@/SystemFolder/SystemResources/Desktop/MenuBar/Widgets/Time/ClassicyDesktopMenuWidgetTime";
 import {
   ClassicyMenu,
-  ClassicyMenuContext,
   ClassicyMenuItem,
-  ClassicyMenuProvider,
 } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import { ClassicyMenuContext } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuContext";
+import { ClassicyMenuProvider } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuProvider";
 import "@/SystemFolder/SystemResources/Menu/ClassicyMenu.scss";
 import { FC as FunctionalComponent, useContext, useEffect, useMemo, useRef } from "react";
 

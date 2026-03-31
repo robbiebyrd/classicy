@@ -51,6 +51,7 @@ const Browser = () => {
     const [history, setHistory] = React.useState<string[]>([defaultUrl])
     const [historyIndex, setHistoryIndex] = React.useState(0)
     const [iframeSrc, setIframeSrc] = React.useState(sanitizeUrl(defaultUrl))
+    const [addressBarValue, setAddressBarValue] = React.useState(defaultUrl)
     const [urlError, setUrlError] = React.useState(false)
     const [isLoading, setIsLoading] = React.useState(true)
     const loadingTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -92,9 +93,7 @@ const Browser = () => {
                     const newHistory = [...hist.slice(0, idx + 1), currentUrl]
                     setHistory(newHistory)
                     setHistoryIndex(idx + 1)
-                    if (refAddressBar.current) {
-                        refAddressBar.current.value = currentUrl
-                    }
+                    setAddressBarValue(currentUrl)
                     recordVisit(currentUrl)
                 }
             }
@@ -103,11 +102,8 @@ const Browser = () => {
         }
     }, [clearLoadingTimeout])
 
-    // Sync address bar and record default URL on mount
+    // Record default URL visit on mount
     React.useEffect(() => {
-        if (refAddressBar.current) {
-            refAddressBar.current.value = defaultUrl
-        }
         recordVisit(defaultUrl)
     }, [])
 
@@ -161,15 +157,12 @@ const Browser = () => {
         setHistory(prev => [...prev.slice(0, historyIndex + 1), url])
         setHistoryIndex(prev => prev + 1)
         setIframeSrc(sanitizeUrl(url))
-        if (refAddressBar.current) {
-            refAddressBar.current.value = url
-        }
+        setAddressBarValue(url)
         recordVisit(url)
     }
 
     const goBook = () => {
-        if (!refAddressBar.current) return
-        const value = refAddressBar.current.value.trim()
+        const value = addressBarValue.trim()
         try {
             const url = new URL(value)
             if (url.protocol !== 'http:' && url.protocol !== 'https:') {
@@ -189,9 +182,7 @@ const Browser = () => {
         const newIndex = historyIndex - 1
         setHistoryIndex(newIndex)
         setIframeSrc(sanitizeUrl(history[newIndex]))
-        if (refAddressBar.current) {
-            refAddressBar.current.value = history[newIndex]
-        }
+        setAddressBarValue(history[newIndex])
     }
 
     const goForward = () => {
@@ -200,9 +191,7 @@ const Browser = () => {
         const newIndex = historyIndex + 1
         setHistoryIndex(newIndex)
         setIframeSrc(sanitizeUrl(history[newIndex]))
-        if (refAddressBar.current) {
-            refAddressBar.current.value = history[newIndex]
-        }
+        setAddressBarValue(history[newIndex])
     }
 
     const quitApp = React.useCallback(() => {
@@ -273,7 +262,7 @@ const Browser = () => {
                             </div>
                             <div style={{minWidth: 0, flex: 1, display: "flex", flexDirection: "row", alignSelf: "center", gap: "4px", alignItems: "center"}}>
                                 {!isCompact && <ClassicyControlLabel label="Address:" />}
-                                <ClassicyInput id={'browserAddress'} ref={refAddressBar} backgroundColor="white" onEnterFunc={goBook}></ClassicyInput>
+                                <ClassicyInput id={'browserAddress'} ref={refAddressBar} prefillValue={addressBarValue} onChangeFunc={(e) => setAddressBarValue(e.target.value)} backgroundColor="white" onEnterFunc={goBook}></ClassicyInput>
                             </div>
                             <ClassicyButton onClickFunc={goBook}>Go</ClassicyButton>
                         </div>

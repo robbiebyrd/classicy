@@ -16,3 +16,11 @@
   justify-content: stretch;
   margin: calc(var(--window-padding-size)) 0;
 }
+
+.classicySoundManagerContent {
+  background-color: var(--color-system-03);
+  height: 100%;
+  width: 100%;
+  padding: var(--window-padding-size);
+  box-sizing: border-box;
+}

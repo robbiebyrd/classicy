@@ -195,7 +195,7 @@ export const ClassicyTimePicker: FunctionalComponent<ClassicyTimePickerProps> =
               onKeyDown={(e) => incrementTimePartChange(e, "hour")}
               value={parseInt(hour) % 12 === 0 ? 12 : parseInt(hour) % 12}
               maxLength={2}
-              className="w-1/2"
+              className={"classicyTimePickerInput"}
             ></input>
             :
             <input
@@ -211,7 +211,7 @@ export const ClassicyTimePicker: FunctionalComponent<ClassicyTimePickerProps> =
               onBlur={(e) => handleTimePartChange(e, "minutes")}
               onKeyDown={(e) => incrementTimePartChange(e, "minutes")}
               maxLength={2}
-              className="w-1/2"
+              className={"classicyTimePickerInput"}
             ></input>
             :
             <input
@@ -227,7 +227,7 @@ export const ClassicyTimePicker: FunctionalComponent<ClassicyTimePickerProps> =
               onBlur={(e) => handleTimePartChange(e, "seconds")}
               onKeyDown={(e) => incrementTimePartChange(e, "seconds")}
               maxLength={2}
-              className="w-1/2"
+              className={"classicyTimePickerInput"}
             ></input>
           </div>
           <ClassicyPopUpMenu
@@ -237,7 +237,7 @@ export const ClassicyTimePicker: FunctionalComponent<ClassicyTimePickerProps> =
               { label: "am", value: "am" },
               { label: "pm", value: "pm" },
             ]}
-            style={{ minWidth: "calc(var(--ui-font-size) * 4)" }}
+            className={"classicyTimePickerPeriod"}
             onChangeFunc={handlePeriodChange}
           ></ClassicyPopUpMenu>
         </div>

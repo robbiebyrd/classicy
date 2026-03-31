@@ -98,13 +98,10 @@ export interface ClassicyStoreSystemDateAndTimeManager extends ClassicyStoreSyst
 export interface ClassicyStoreSystemManager {}
 
 export function deFocusApps(ds: ClassicyStore) {
-  Object.entries(ds.System.Manager.App.apps).forEach(([key]) => {
-    ds.System.Manager.App.apps[key].focused = false;
-    ds.System.Manager.App.apps[key].windows = ds.System.Manager.App.apps[
-      key
-    ].windows.map((w) => {
+  Object.values(ds.System.Manager.App.apps).forEach((app) => {
+    app.focused = false;
+    app.windows.forEach((w) => {
       w.focused = false;
-      return w;
     });
   });
   return ds;
@@ -136,12 +133,9 @@ export function openApp(
 ) {
   const findApp = ds.System.Manager.App.apps[appId];
   if (findApp) {
-    ds.System.Manager.App.apps[appId].open = true;
-    ds.System.Manager.App.apps[appId].windows = ds.System.Manager.App.apps[
-      appId
-    ].windows.map((w) => {
+    findApp.open = true;
+    findApp.windows.forEach((w) => {
       w.closed = false;
-      return w;
     });
     focusApp(ds, appId);
   } else {
@@ -178,23 +172,20 @@ export function loadApp(
 export function closeApp(ds: ClassicyStore, appId: string) {
   const findApp = ds.System.Manager.App.apps[appId];
   if (findApp) {
-    ds.System.Manager.App.apps[appId].open = false;
-    ds.System.Manager.App.apps[appId].focused = false;
-    ds.System.Manager.App.apps[appId].windows?.map((w) => (w.closed = true));
+    findApp.open = false;
+    findApp.focused = false;
+    findApp.windows?.forEach((w) => {
+      w.closed = true;
+    });
   }
 }
 
 export function activateApp(ds: ClassicyStore, appId: string) {
-  Object.entries(ds.System.Manager.App.apps).forEach(([key]) => {
-    ds.System.Manager.App.apps[key].focused = key === appId;
-  });
-  Object.entries(ds.System.Manager.App.apps).forEach(([key]) => {
+  Object.entries(ds.System.Manager.App.apps).forEach(([key, app]) => {
+    app.focused = key === appId;
     if (key !== appId) {
-      ds.System.Manager.App.apps[key].windows = ds.System.Manager.App.apps[
-        key
-      ].windows.map((w) => {
+      app.windows.forEach((w) => {
         w.focused = false;
-        return w;
       });
     }
   });

@@ -1,3 +1,4 @@
+import "./ClassicyDateAndTimeManager.scss";
 import {
   useAppManager,
   useAppManagerDispatch,
@@ -151,17 +152,9 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
         modal={false}
         appMenu={appMenu}
       >
-        <div
-          style={{
-            backgroundColor: "var(--color-system-03)",
-            height: "100%",
-            width: "100%",
-            padding: "var(--window-padding-size)",
-            boxSizing: "border-box",
-          }}
-        >
-          <div style={{ display: "flex", flexDirection: "row" }}>
-            <div style={{ width: "42%" }}>
+        <div className={"classicyDateAndTimeManagerContent"}>
+          <div className={"classicyDateAndTimeManagerRow"}>
+            <div className={"classicyDateAndTimeManagerDateColumn"}>
               <ClassicyControlGroup label={"Current Date"}>
                 <ClassicyDatePicker
                   id={"date"}
@@ -171,7 +164,7 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
                 ></ClassicyDatePicker>
               </ClassicyControlGroup>
             </div>
-            <div style={{ width: "58%" }}>
+            <div className={"classicyDateAndTimeManagerTimeColumn"}>
               <ClassicyControlGroup label={"Current Time"}>
                 <ClassicyTimePicker
                   id={"time"}
@@ -182,7 +175,7 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
               </ClassicyControlGroup>
             </div>
           </div>
-          <div style={{ display: "flex", flexDirection: "column" }}>
+          <div className={"classicyDateAndTimeManagerColumn"}>
             <ClassicyControlGroup label={"Timezone"}>
               <ClassicyPopUpMenu
                 id={"timezone"}
@@ -193,7 +186,7 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
               />
             </ClassicyControlGroup>
           </div>
-          <div style={{ display: "flex", flexDirection: "column" }}>
+          <div className={"classicyDateAndTimeManagerColumn"}>
             <ClassicyControlGroup label={"Time Format"}>
               <ClassicyRadioInput
                 inputs={[
@@ -217,13 +210,14 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
           </ClassicyButton>
         </div>
       </ClassicyWindow>
-      {showAbout &&
-        getClassicyAboutWindow({
-          appId: APP_ID,
-          appName: APP_NAME,
-          appIcon,
-          hideFunc: () => setShowAbout(false),
-        })}
+      {showAbout
+        ? getClassicyAboutWindow({
+            appId: APP_ID,
+            appName: APP_NAME,
+            appIcon,
+            hideFunc: () => setShowAbout(false),
+          })
+        : null}
     </ClassicyApp>
   );
 };

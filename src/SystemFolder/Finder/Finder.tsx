@@ -284,19 +284,16 @@ export const Finder = () => {
           : "Macintosh HD"
       }
     >
-      {appState.data.openPaths?.length > 0 &&
-        appState.data.openPaths
-          .map((p: string) => {
-            return [p, fs.statDir(p)];
-          })
-          .map(([op, dir]: [string, ClassicyFileSystemEntry], idx: number) => {
+      {appState.data.openPaths?.length > 0
+        ? appState.data.openPaths.map((p: string, idx: number) => {
+            const dir = fs.statDir(p);
             return (
               <FinderWindowMemo
-                key={appName + "_" + op}
+                key={appName + "_" + p}
                 appId={appId}
                 appName={appName}
                 appIcon={appIcon}
-                op={op}
+                op={p}
                 dir={dir}
                 idx={idx}
                 closeFolder={closeFolder}
@@ -309,15 +306,16 @@ export const Finder = () => {
                 fs={fs}
               />
             );
-          })}
-      {showAbout && (
+          })
+        : null}
+      {showAbout ? (
         <ClassicyAboutWindow
           appId={appId}
           appIcon={appIcon}
           appName={appName}
           hideFunc={() => setShowAbout(false)}
         />
-      )}
+      ) : null}
     </ClassicyApp>
   );
 };

@@ -1,6 +1,7 @@
 import ccIcon from "@img/icons/system/quicktime/cc.png";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import "./QuickTimeMovieEmbed.scss";
+import classNames from "classnames";
 import { parse } from "@plussub/srt-vtt-parser";
 import { ParsedResult } from "@plussub/srt-vtt-parser/dist/types";
 import {
@@ -187,20 +188,10 @@ export const QuickTimeVideoEmbed: FunctionalComponent<QuickTimeVideoEmbed> = ({
 
   return (
     <div
-      className={"quickTimePlayerWrapper"}
-      style={{
-        height: controlsDocked
-          ? "calc(100% - var(--window-control-size) * 1)"
-          : "100%",
-      }}
+      className={classNames("quickTimePlayerWrapper", controlsDocked && "quickTimePlayerWrapperDocked")}
     >
       <div
-        className={"quickTimePlayerVideoHolder"}
-        style={{
-          height: controlsDocked
-            ? "calc(100% - var(--window-control-size) * 1)"
-            : "calc(100% - var(--window-border-size) * 4)",
-        }}
+        className={classNames("quickTimePlayerVideoHolder", controlsDocked ? "quickTimePlayerVideoHolderDocked" : "quickTimePlayerVideoHolderUndocked")}
       >
         <ReactPlayer
           ref={playerRef}
@@ -239,8 +230,7 @@ export const QuickTimeVideoEmbed: FunctionalComponent<QuickTimeVideoEmbed> = ({
       </div>
       {!hideControls && (
         <div
-          className={"quickTimePlayerVideoControlsHolder"}
-          style={{ position: controlsDocked ? "absolute" : "relative" }}
+          className={classNames("quickTimePlayerVideoControlsHolder", controlsDocked ? "quickTimePlayerVideoControlsHolderDocked" : "quickTimePlayerVideoControlsHolderUndocked")}
         >
           <button
             onClick={handlePlayPause}
@@ -304,14 +294,7 @@ export const QuickTimeVideoEmbed: FunctionalComponent<QuickTimeVideoEmbed> = ({
           )}
 
           {showVolume && (
-            <div
-              style={{
-                zIndex: 999999,
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-              }}
-            >
+            <div className={"quickTimePlayerVolumePopup"}>
               <input
                 className={"quickTimePlayerVideoControlsVolumeBar"}
                 id={url + "_volume"}
@@ -319,9 +302,7 @@ export const QuickTimeVideoEmbed: FunctionalComponent<QuickTimeVideoEmbed> = ({
                 min="0"
                 max="1"
                 step="0.1"
-                style={{
-                  left: volumeButtonRef.current?.offsetLeft,
-                }}
+                style={{ left: volumeButtonRef.current?.offsetLeft }}
                 value={volume}
                 onClick={() => {
                   setShowVolume(false);

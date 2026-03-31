@@ -1,2 +1,40 @@
-// All classes have been converted to Tailwind CSS utilities in ClassicyControlLabel.tsx
-// This file is kept for potential future styles
+.classicyControlLabelHolder {
+  display: flex;
+  align-items: center;
+}
+
+.classicyControlLabelHolderLeft {
+  flex-direction: row;
+}
+
+.classicyControlLabelHolderRight {
+  flex-direction: row-reverse;
+}
+
+.classicyControlLabel {
+  font-family: var(--ui-font);
+}
+
+.classicyControlLabelDisabled {
+  color: var(--color-system-05);
+}
+
+.classicyControlLabelSizeSmall {
+  font-size: calc(var(--ui-font-size) / 2);
+}
+
+.classicyControlLabelSizeMedium {
+  font-size: var(--ui-font-size);
+}
+
+.classicyControlLabelSizeLarge {
+  font-size: calc(var(--ui-font-size) * 2);
+}
+
+.classicyControlLabelMarginLeft {
+  margin-left: calc(var(--window-control-size) / 2);
+}
+
+.classicyControlLabelMarginRight {
+  margin-right: calc(var(--window-control-size) / 2);
+}

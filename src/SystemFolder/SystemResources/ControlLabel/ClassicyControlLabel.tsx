@@ -33,23 +33,10 @@ export const ClassicyControlLabel: FunctionalComponent<ClassicyControlLabelProps
         return null
     }
 
-    const getDirectionStyle = (direction: ClassicyControlLabelDirections) => {
-        if (direction === 'right') {
-            return { marginRight: "calc(var(--window-control-size)/2)" }
-        }
-        return { marginLeft: "calc(var(--window-control-size)/2)" }
-    }
-    const getSizeStyle = (size: ClassicyControlLabelSize) => {
-        switch (size) {
-            case 'small':
-                return "calc(var(--ui-font-size)/2)"
-            case 'medium':
-                return "var(--ui-font-size)"
-            case 'large':
-                return "calc(var(--ui-font-size)*2)"
-            default:
-                return "calc(var(--window-control-size)/2)"
-        }
+    const sizeClassMap: Record<ClassicyControlLabelSize, string> = {
+        small: 'classicyControlLabelSizeSmall',
+        medium: 'classicyControlLabelSizeMedium',
+        large: 'classicyControlLabelSizeLarge',
     }
 
     const imageSize = (s: string | undefined) => {
@@ -62,9 +49,14 @@ export const ClassicyControlLabel: FunctionalComponent<ClassicyControlLabelProps
         return '32px'
     }
 
+    const isLeftOrBottom = ['left', 'bottom'].includes(direction)
+
     return (
         <div
-        style={{display: "flex", flexDirection: ['left', 'bottom'].includes(direction) ? 'row' : 'row-reverse', alignItems: icon ? "center" : ""}}
+            className={classNames(
+                'classicyControlLabelHolder',
+                isLeftOrBottom ? 'classicyControlLabelHolderLeft' : 'classicyControlLabelHolderRight',
+            )}
             onClick={(e) => {
                 e.preventDefault()
                 if (onClickFunc) {
@@ -74,23 +66,21 @@ export const ClassicyControlLabel: FunctionalComponent<ClassicyControlLabelProps
         >
             {icon && <img src={icon} width={imageSize(iconSize)} alt={label} />}
 
-            {['left', 'bottom'].includes(direction) && children}
+            {isLeftOrBottom && children}
 
             <label
                 htmlFor={labelFor}
                 className={classNames(
-                    disabled ? "text-[color:var(--color-system-05)]" : '',
+                    'classicyControlLabel',
+                    sizeClassMap[labelSize],
+                    disabled && 'classicyControlLabelDisabled',
+                    direction === 'right' ? 'classicyControlLabelMarginRight' : 'classicyControlLabelMarginLeft',
                 )}
-                style={{
-                    fontFamily: "var(--ui-font)",
-                    fontSize: getSizeStyle(labelSize),
-                    ...getDirectionStyle(direction),
-                }}
             >
                 {label}
             </label>
 
-            {['right', 'top'].includes(direction) && children}
+            {!isLeftOrBottom && children}
         </div>
     )
 }

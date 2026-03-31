@@ -2,7 +2,7 @@ import {
   classicyAppEventHandler,
   ClassicyStore,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
-import { PictureViewerAppInfo } from "@/SystemFolder/QuickTime/PictureViewer/PictureViewer";
+import { PictureViewerAppInfo } from "@/SystemFolder/QuickTime/PictureViewer/PictureViewerUtils";
 import { ClassicyQuickTimeDocument } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerContext";
 
 type classicyQuickTimeEvent = {

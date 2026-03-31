@@ -1,4 +1,3 @@
-import tailwindcss from '@tailwindcss/vite';
 import react from "@vitejs/plugin-react";
 import path, { resolve } from "path";
 import { defineConfig } from "vite";
@@ -20,7 +19,6 @@ export default defineConfig({
         outDir: 'dist/types',
     }),
     richSvg(),
-    tailwindcss({optimize: {minify: true}}),
     VitePluginImageTools({
       quality: 100,
       enableWebp: true,

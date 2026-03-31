@@ -14,6 +14,7 @@
 }
 
 .classicyWindowCollapsed {
+  height: calc(var(--window-control-size) * 1.5) !important;
 }
 
 .classicyWindowHeader {
@@ -233,7 +234,9 @@
         cursor: default;
         user-select: none;
         color: var(--color-system-05);
-        user-drag: none;
+        -webkit-user-drag: none;
+        display: flex;
+        align-items: center;
 
         & > p {
           overflow: hidden;
@@ -275,6 +278,8 @@
       padding: var(--window-border-size) 0 var(--window-border-size)
         var(--window-border-size);
       opacity: 0;
+      width: calc(var(--window-control-size) + var(--window-border-size)) !important;
+      height: calc(var(--window-control-size) + var(--window-border-size)) !important;
     }
 
     .classicyWindowCollapseBox,
@@ -339,7 +344,7 @@
     display: block;
     @include appearance.platinumWindowInnerBorder;
     overflow: auto;
-    height: calc(100% - (var(--window-control-size) * 2));
+    height: calc(100% - (var(--window-control-size) * 2) - var(--window-border-size));
     background-color: var(--color-window-document);
   }
 
@@ -347,7 +352,7 @@
     position: relative;
     display: block;
     overflow: auto;
-    height: calc(100% - (var(--window-control-size) * 3.25));
+    height: calc(100% - (var(--window-control-size) * 3.5));
     background-color: var(--color-window-document);
   }
 }

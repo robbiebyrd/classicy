@@ -1,11 +1,12 @@
 import "@/SystemFolder/SystemResources/Menu/ClassicyMenu.scss";
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
+import { ClassicyMenuContext } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuContext";
 import classNames from "classnames";
 import he from 'he';
 import {
-  createContext,
   FC as FunctionalComponent,
+  memo,
   ReactNode,
   useCallback,
   useContext,
@@ -29,41 +30,6 @@ export interface ClassicyMenuItem {
   className?: string;
 }
 
-interface ClassicyMenuContextValue {
-  closeSignal: number;
-  closeAll: () => void;
-  menuBarActive: boolean;
-  activateMenuBar: () => void;
-}
-
-export const ClassicyMenuContext = createContext<ClassicyMenuContextValue>({
-  closeSignal: 0,
-  closeAll: () => {},
-  menuBarActive: false,
-  activateMenuBar: () => {},
-});
-
-export const ClassicyMenuProvider: FunctionalComponent<{ children: ReactNode; onClose?: () => void }> = ({ children, onClose }) => {
-  const [closeSignal, setCloseSignal] = useState(0);
-  const [menuBarActive, setMenuBarActive] = useState(false);
-
-  const closeAll = useCallback(() => {
-    setCloseSignal(s => s + 1);
-    setMenuBarActive(false);
-    onClose?.();
-  }, [onClose]);
-
-  const activateMenuBar = useCallback(() => {
-    setMenuBarActive(true);
-  }, []);
-
-  return (
-    <ClassicyMenuContext.Provider value={{ closeSignal, closeAll, menuBarActive, activateMenuBar }}>
-      {children}
-    </ClassicyMenuContext.Provider>
-  );
-};
-
 interface ClassicyMenuProps {
   name: string;
   menuItems: ClassicyMenuItem[];
@@ -86,17 +52,20 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
     setOpenChildId(null);
   }, [closeSignal]);
 
+  const handleOpen = useCallback((id: string) => setOpenChildId(id), []);
+  const handleClose = useCallback(() => setOpenChildId(null), []);
+
   return menuItems && menuItems.length > 0 ? (
     <div className={"classicyMenuWrapper"}>
       <ul className={classNames(navClass)} key={name + "_menu"}>
         {menuItems.map((item: ClassicyMenuItem) => (
-          <ClassicyMenuItem
+          <ClassicyMenuItemComponent
             key={item?.id}
             menuItem={item}
             subNavClass={subNavClass || ""}
             isOpen={openChildId === item.id}
-            onOpen={() => setOpenChildId(item.id)}
-            onClose={() => setOpenChildId(null)}
+            onOpen={handleOpen}
+            onClose={handleClose}
           />
         ))}
         {children}
@@ -107,13 +76,13 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
   );
 };
 
-export const ClassicyMenuItem: FunctionalComponent<{
+const ClassicyMenuItemComponent: FunctionalComponent<{
   menuItem: ClassicyMenuItem;
   subNavClass: string;
   isOpen: boolean;
-  onOpen: () => void;
+  onOpen: (id: string) => void;
   onClose: () => void;
-}> = ({ menuItem, subNavClass, isOpen, onOpen, onClose }) => {
+}> = memo(({ menuItem, subNavClass, isOpen, onOpen, onClose }) => {
   const player = useSoundDispatch();
   const desktopDispatch = useAppManagerDispatch();
   const { closeAll, menuBarActive, activateMenuBar } = useContext(ClassicyMenuContext);
@@ -154,7 +123,7 @@ export const ClassicyMenuItem: FunctionalComponent<{
       if (isOpen) {
         closeAll();
       } else {
-        onOpen();
+        onOpen(menuItem.id);
         activateMenuBar();
         player({ type: "ClassicySoundPlay", sound: "ClassicyMenuOpen" });
       }
@@ -166,7 +135,7 @@ export const ClassicyMenuItem: FunctionalComponent<{
 
   const handleMouseEnter = () => {
     if (hasChildren && menuBarActive) {
-      onOpen();
+      onOpen(menuItem.id);
     }
   };
 
@@ -230,4 +199,6 @@ export const ClassicyMenuItem: FunctionalComponent<{
       )}
     </li>
   );
-};
+});
+
+ClassicyMenuItemComponent.displayName = "ClassicyMenuItemComponent";
