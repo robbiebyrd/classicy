@@ -143,7 +143,11 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
     if (e.animationName !== "classicyMenuItemFlashKeyframes") return;
     setIsFlashing(false);
     closeAll();
-    executeAction();
+    // Defer action execution so the close state propagates before
+    // the action triggers re-renders that could remount the menu tree
+    requestAnimationFrame(() => {
+      executeAction();
+    });
   };
 
   return menuItem && menuItem.id === "spacer" ? (

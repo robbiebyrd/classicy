@@ -103,3 +103,15 @@ jobs:
         uses: JS-DevTools/npm-publish@v4
         with:
           token: ${{ secrets.NPM_TOKEN }}
+
+      - name: Trigger classicy-web deploy
+        if: steps.bump_version.outputs.newTag != ''
+        env:
+          GH_TOKEN: ${{ secrets.CLASSICY_WEB_DISPATCH_TOKEN }}
+        run: |
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            /repos/robbiebyrd/classicy-web/dispatches \
+            -f event_type="deploy-pages" \
+            -f "client_payload[tag]=${{ steps.bump_version.outputs.newTag }}"

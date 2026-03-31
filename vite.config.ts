@@ -6,6 +6,7 @@ import VitePluginImageTools from 'vite-plugin-image-tools';
 import richSvg from "vite-plugin-react-rich-svg";
 
 export default defineConfig({
+    assetsInclude: ['**/*.ogg', '**/*.m4a', '**/*.mp3', '**/*.ac3', '**/*.wav', '**/*.caf'],
     resolve: {
         alias: {
             "@": path.resolve(__dirname, "./src/"),

@@ -21,8 +21,10 @@ const { MockHowl } = vi.hoisted(() => {
 
 vi.mock("howler", () => ({ Howl: MockHowl }));
 
-vi.mock("@snd/platinum/platinum.json", () => ({
-    default: { src: ["test.mp3"], sprite: { click: [0, 100] } },
+vi.mock("@/SystemFolder/ControlPanels/AppearanceManager/ClassicySounds", () => ({
+    ClassicySounds: {
+        platinum: { src: ["test.mp3"], sprite: { click: [0, 100] } },
+    },
 }));
 
 vi.mock(

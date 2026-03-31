@@ -5,6 +5,7 @@ import {
   ClassicyTheme,
   getTheme,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { ClassicySounds } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicySounds";
 import {
   useAppManager,
   useAppManagerDispatch,
@@ -65,7 +66,7 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
     [appearanceState.availableThemes],
   );
 
-  const switchTheme = async (e: ChangeEvent<HTMLSelectElement>) => {
+  const switchTheme = (e: ChangeEvent<HTMLSelectElement>) => {
     const themeId = e.currentTarget.value;
     startTransition(() => {
       desktopEventDispatch({
@@ -73,7 +74,7 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
         activeTheme: themeId,
       });
     });
-    await fetchAndApplySoundTheme(themeId);
+    applySoundTheme(themeId);
   };
 
   const changeBackground = (e: ChangeEvent<HTMLSelectElement>) => {
@@ -134,22 +135,18 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
       });
     });
   };
-  const fetchAndApplySoundTheme = async (themeName: string) => {
+  const applySoundTheme = (themeName: string) => {
     const soundTheme = getTheme(themeName).sound;
-    try {
-      const response = await fetch(soundTheme.file);
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      const data = await response.json();
-      player({
-        type: "ClassicySoundLoad",
-        file: data,
-        disabled: soundTheme.disabled,
-      });
-    } catch (error) {
-      console.error("[ClassicyAppearanceManager] Failed to load sound theme", { themeName, error });
+    const data = ClassicySounds[soundTheme.name];
+    if (!data) {
+      console.error("[ClassicyAppearanceManager] Sound theme not found", { name: soundTheme.name });
+      return;
     }
+    player({
+      type: "ClassicySoundLoad",
+      file: data,
+      disabled: soundTheme.disabled,
+    });
   };
 
   const quitApp = () => {

@@ -37,13 +37,15 @@
   "files": [
     "dist"
   ],
+  "style": "./dist/classicy.css",
   "exports": {
     ".": {
       "types": "./dist/types/src/index.d.ts",
       "import": "./dist/classicy.es.js",
       "require": "./dist/classicy.umd.js"
     },
-    "./dist/*": "./dist/*.js"
+    "./dist/classicy.css": "./dist/classicy.css",
+    "./dist/*": "./dist/*"
   },
   "dependencies": {
     "@analytics/google-tag-manager": "^0.6.0",

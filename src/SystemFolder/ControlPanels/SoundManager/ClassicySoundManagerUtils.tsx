@@ -2,7 +2,7 @@
 import { ClassicyStoreSystemManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { Howl } from "howler";
 import { createContext, Dispatch } from "react";
-import soundData from "@snd/platinum/platinum.json";
+import { ClassicySounds } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicySounds";
 import soundLabels from "./ClassicySoundManagerLabels.json";
 
 export interface ClassicyStoreSystemSoundManager extends ClassicyStoreSystemManager {
@@ -12,7 +12,7 @@ export interface ClassicyStoreSystemSoundManager extends ClassicyStoreSystemMana
 }
 
 export type ClassicyThemeSound = {
-  file: string;
+  name: string;
   disabled: string[];
 };
 
@@ -83,8 +83,10 @@ export const createSoundPlayer = ({
   return null;
 };
 
+const defaultSoundData = ClassicySounds["platinum"];
+
 export const initialPlayer: ClassicySoundState = {
-  soundPlayer: createSoundPlayer({ soundData: soundData }),
+  soundPlayer: defaultSoundData ? createSoundPlayer({ soundData: defaultSoundData }) : null,
   disabled: [] as string[],
   labels: soundLabels,
   volume: 100,

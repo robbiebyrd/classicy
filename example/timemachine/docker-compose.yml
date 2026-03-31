@@ -1,0 +1,13 @@
+services:
+  timemachine:
+    build: .
+    env_file:
+      - .env
+    ports:
+      - "${TIMEMACHINE_PORT:-8765}:${TIMEMACHINE_PORT:-8765}"
+    volumes:
+      - timemachine-cache:${CACHE_DIR:-/app/cache}
+    restart: unless-stopped
+
+volumes:
+  timemachine-cache:

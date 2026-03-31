@@ -4,11 +4,11 @@
 
 .classicyWindowZoomed {
   top: calc(
-    var(--window-control-size) * 2 + var(--window-padding-size)
+    var(--window-control-size) * 2
   ) !important;
   left: calc(var(--window-padding-size) * 2) !important;
   width: calc(
-    100% - (var(--window-padding-size) * 2 + (var(--window-control-size) * 2))
+    100% - (var(--window-padding-size) * 2)
   ) !important;
   height: calc(100vh - (var(--window-padding-size) * 1)) !important;
 }
@@ -31,7 +31,7 @@
   align-items: center;
   flex-direction: row;
   justify-content: center;
-  height: auto;
+  height: calc(var(--window-control-size) * 1.5);
   background: var(--color-system-03);
   column-gap: var(--window-control-size);
 }
@@ -199,7 +199,7 @@
     display: flex;
     flex-direction: row;
     height: calc(var(--window-control-size) * 1.5);
-    padding-bottom: var(--window-padding-size);
+    padding-bottom: var(--window-border-size);
     text-align: center;
     border: none;
     box-shadow: none;
@@ -207,11 +207,15 @@
 
     .classicyWindowIcon {
       max-width: calc(var(--window-control-size) * 2);
-      max-height: calc(var(--window-control-size) * 2);
+      max-height: calc(var(--window-control-size) * 1);
       padding: 0 calc(var(--window-padding-size) / 2);
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-start;
 
       img {
         height: 100%;
+        width: 100%;
         user-select: none;
         pointer-events: none;
         object-fit: contain;
@@ -236,7 +240,6 @@
         color: var(--color-system-05);
         -webkit-user-drag: none;
         display: flex;
-        align-items: center;
 
         & > p {
           overflow: hidden;
@@ -259,7 +262,7 @@
       .classicyWindowTitleRight {
         flex-grow: 1;
         width: auto;
-        height: calc(var(--window-control-size) * 1.25);
+        height: calc(var(--window-control-size) * 1);
         margin: calc(var(--window-padding-size) / 2) var(--window-padding-size);
         margin-top: 0;
         padding: 0;
@@ -344,7 +347,7 @@
     display: block;
     @include appearance.platinumWindowInnerBorder;
     overflow: auto;
-    height: calc(100% - (var(--window-control-size) * 2) - var(--window-border-size));
+    height: calc(100% - (var(--window-control-size) * 1) - var(--window-padding-size) * 1.5);
     background-color: var(--color-window-document);
   }
 
@@ -352,7 +355,7 @@
     position: relative;
     display: block;
     overflow: auto;
-    height: calc(100% - (var(--window-control-size) * 3.5));
+    height: calc(100% - (var(--window-control-size) * 3) - (var(--window-padding-size))) !important;
     background-color: var(--color-window-document);
   }
 }

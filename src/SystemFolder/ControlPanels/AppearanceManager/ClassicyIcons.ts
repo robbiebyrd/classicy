@@ -48,11 +48,13 @@ export const ClassicyIcons = {
       downloadingFileAnimated: icon("applications/internet-explorer/downloading-file-animated.png"),
       downloadingFile: icon("applications/internet-explorer/downloading-file.png"),
       forward: icon("applications/internet-explorer/forward.png"),
-      forwardHover: icon("applications/internet-explorer/forward-hover.png"),
+      forwardOn: icon("applications/internet-explorer/forward-on.png"),
       backward: icon("applications/internet-explorer/backward.png"),
-      backwardHover: icon("applications/internet-explorer/backward-hover.png"),
+      backwardOn: icon("applications/internet-explorer/backward-on.png"),
       loaderAnimated: icon("applications/internet-explorer/loader-animated.png"),
       loader: icon("applications/internet-explorer/loader.png"),
+      refresh: icon("applications/internet-explorer/refresh.png"),
+      refreshOn: icon("applications/internet-explorer/refresh-on.png"),
       ics8: {
         _1128: icon("applications/internet-explorer/ics8/1128.png"),
         _1131: icon("applications/internet-explorer/ics8/1131.png"),
@@ -104,6 +106,10 @@ export const ClassicyIcons = {
         _4003: icon("applications/internet-explorer/ics8/4003.png"),
         _4004: icon("applications/internet-explorer/ics8/4004.png"),
       },
+    },
+    netscape: {
+      loaderAnimated: icon("applications/netscape/loader-animated.png"),
+      loader: icon("applications/netscape/loader.png"),
     },
     news: {
       app: icon("applications/news/app.png"),

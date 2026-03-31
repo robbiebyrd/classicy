@@ -7,7 +7,11 @@
     "dev": "vite -d",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "proxy": "npm run proxy:up",
+    "proxy:cycle": "npm run proxy:down && npm run proxy:up",
+    "proxy:up": "cd timemachine && docker compose up --build --force-recreate -d",
+    "proxy:down": "cd timemachine && docker compose down"
   },
   "dependencies": {
     "classicy": "*",
