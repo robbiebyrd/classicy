@@ -21,7 +21,7 @@
   "author": "Robbie Byrd <me@robbiebyrd.com>",
   "license": "Unlicense",
   "scripts": {
-    "generate-barrels": "barrelsby --delete -c .ts-barrel.json --location all --noHeader",
+    "generate-barrels": "barrelsby -c .ts-barrel.json",
     "dev": "npm run build:source && npm link",
     "build": "npm run build:audio && npm run build:source",
     "build:source": "npm run generate-barrels && tsc -b && vite build",
