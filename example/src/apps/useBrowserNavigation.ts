@@ -185,17 +185,11 @@ export const useBrowserNavigation = ({ defaultUrl, archiveTime = DEFAULT_TIME, o
         fetchPage(history[historyIndex])
     }, [history, historyIndex, fetchPage])
 
-    const handleContentClick = React.useCallback((e: React.MouseEvent) => {
-        const anchor = (e.target as HTMLElement).closest('a')
-        if (!anchor) return
-
-        e.preventDefault()
-        const rawHref = anchor.getAttribute('href')
-        if (!rawHref) return
+    const handleContentClick = React.useCallback((link: { href: string; rawHref: string }) => {
+        if (!link.rawHref) return
 
         // First check if the resolved href is a proxy/archive URL we can extract
-        const resolvedHref = anchor.href
-        const originalUrl = extractOriginalUrl(resolvedHref)
+        const originalUrl = extractOriginalUrl(link.href)
         if (originalUrl && isNavigableUrl(originalUrl)) {
             navigateToRef.current(originalUrl)
             return
@@ -204,15 +198,15 @@ export const useBrowserNavigation = ({ defaultUrl, archiveTime = DEFAULT_TIME, o
         // Resolve relative URLs against the current page URL
         const currentUrl = historyRef.current[historyIndexRef.current]
         try {
-            const resolved = new URL(rawHref, currentUrl).href
+            const resolved = new URL(link.rawHref, currentUrl).href
             if (isNavigableUrl(resolved)) {
                 navigateToRef.current(resolved)
                 return
             }
         } catch { /* invalid URL, fall through */ }
 
-        if (isNavigableUrl(resolvedHref)) {
-            navigateToRef.current(resolvedHref)
+        if (isNavigableUrl(link.href)) {
+            navigateToRef.current(link.href)
         }
     }, [])
 

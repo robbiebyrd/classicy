@@ -4,9 +4,16 @@ import React from 'react'
 import './browser.scss'
 import { useBrowserNavigation } from './useBrowserNavigation'
 
-const ShadowContent: React.FC<{ html: string; onClick: (e: React.MouseEvent) => void }> = ({ html, onClick }) => {
+interface ShadowLinkClick {
+    href: string;
+    rawHref: string;
+}
+
+const ShadowContent: React.FC<{ html: string; onLinkClick: (link: ShadowLinkClick) => void }> = ({ html, onLinkClick }) => {
     const hostRef = React.useRef<HTMLDivElement>(null)
     const shadowRef = React.useRef<ShadowRoot | null>(null)
+    const onLinkClickRef = React.useRef(onLinkClick)
+    onLinkClickRef.current = onLinkClick
 
     React.useEffect(() => {
         if (hostRef.current && !shadowRef.current) {
@@ -32,13 +39,14 @@ const ShadowContent: React.FC<{ html: string; onClick: (e: React.MouseEvent) => 
             const anchor = clickTarget.closest?.('a')
             if (!anchor) return
             mouseEvent.preventDefault()
-            // Build a synthetic event with the anchor as target for handleContentClick
-            const syntheticEvent = { ...mouseEvent, target: anchor, preventDefault: () => mouseEvent.preventDefault() }
-            onClick(syntheticEvent as unknown as React.MouseEvent)
+            onLinkClickRef.current({
+                href: anchor.href,
+                rawHref: anchor.getAttribute('href') || '',
+            })
         }
         target.addEventListener('click', handler)
         return () => target.removeEventListener('click', handler)
-    }, [onClick])
+    }, [])
 
     return <div ref={hostRef} className="browserPage" />
 }
@@ -178,7 +186,7 @@ const Browser = () => {
                     <img src={isLoading ? ClassicyIcons.applications.internetExplorer.loaderAnimated : ClassicyIcons.applications.internetExplorer.loader} className="browserLoaderIcon"/>
                 </div>
                 <div className="browserContents">
-                    <ShadowContent html={htmlContent} onClick={handleContentClick} />
+                    <ShadowContent html={htmlContent} onLinkClick={handleContentClick} />
                 </div>
                 <div className="browserStatusBar">
                     {statusText}

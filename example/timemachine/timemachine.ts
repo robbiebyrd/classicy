@@ -13,11 +13,11 @@ const port: number = Number(process.env.TIMEMACHINE_PORT) || 8765;
 const defaultTime: string = process.env.ARCHIVE_TIME || "19980101000000";
 const prefix: string = process.env.URL_PREFIX || "https://web.archive.org/web";
 const hostname = process.env.LISTENER || "0.0.0.0";
-const cacheDir: string | undefined = process.env.CACHE_DIR;
+const cacheDir: string = process.env.CACHE_DIR ?? "/app/cache";
 const allowedOrigin: string =
   process.env.CORS_ORIGIN || "http://localhost:5173";
 
-if (cacheDir && !existsSync(cacheDir)) {
+if (!existsSync(cacheDir)) {
   mkdirSync(cacheDir, { recursive: true });
 }
 
@@ -71,7 +71,6 @@ const cacheGet = async (
   url: string,
   time: string,
 ): Promise<CacheEntry | null> => {
-  if (!cacheDir) return null;
   const file = join(cacheDir, `${cacheKey(url, time)}.json`);
   try {
     const data = await fs.readFile(file, "utf-8");
@@ -94,7 +93,6 @@ const cachePut = async (
   time: string,
   entry: CacheEntry,
 ): Promise<void> => {
-  if (!cacheDir) return;
   const file = join(cacheDir, `${cacheKey(url, time)}.json`);
   try {
     await fs.writeFile(file, JSON.stringify(entry));
