@@ -62,7 +62,8 @@ export const ClassicyDesktopMenuWidgetTime: FunctionalComponent = () => {
   // Interval created once on mount; reads from refs to avoid restart on every tick
   useEffect(() => {
     const intervalId = setInterval(() => {
-      const date = new Date();
+      const date = new Date(dateTimeRef.current);
+      date.setSeconds(date.getSeconds() + 1);
 
       const localDate = new Date(date.toISOString());
       localDate.setHours(

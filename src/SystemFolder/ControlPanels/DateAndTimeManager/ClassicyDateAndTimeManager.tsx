@@ -65,8 +65,9 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
   };
 
   const updateSystemTime = useCallback((updatedDate: Date) => {
-    const currentDateTime = useAppManager.getState().System.Manager.DateAndTime.dateTime;
-    const date = new Date(currentDateTime);
+    const state = useAppManager.getState().System.Manager.DateAndTime;
+    const date = new Date(state.dateTime);
+    const tzOffset = parseInt(state.timeZoneOffset);
 
     let hoursToSet =
       period == "am" ? updatedDate.getHours() : updatedDate.getHours() + 12;
@@ -74,7 +75,7 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
       hoursToSet = 0;
     }
     date.setHours(
-      hoursToSet,
+      hoursToSet - tzOffset,
       updatedDate.getMinutes(),
       updatedDate.getSeconds(),
     );
@@ -85,10 +86,15 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
   }, [period, desktopEventDispatch]);
 
   const updateSystemDate = (updatedDate: Date) => {
+    const tzOffset = parseInt(dateAndTimeState.timeZoneOffset);
     const date = new Date(dateAndTimeState.dateTime);
+    // The picker displays TZ-adjusted dates; convert back to UTC for storage
+    // by temporarily applying the offset, setting date fields, then reverting
+    date.setHours(date.getHours() + tzOffset);
     date.setMonth(updatedDate.getMonth());
     date.setDate(updatedDate.getDate());
     date.setFullYear(updatedDate.getFullYear());
+    date.setHours(date.getHours() - tzOffset);
 
     desktopEventDispatch({
       type: "ClassicyManagerDateTimeSet",
