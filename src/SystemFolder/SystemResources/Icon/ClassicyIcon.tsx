@@ -1,118 +1,135 @@
 import "./ClassicyIcon.scss";
 import classNames from "classnames";
-import { FC as FunctionalComponent, MouseEvent, RefObject, useId, useRef, useState } from "react";
+import {
+	type FC as FunctionalComponent,
+	type KeyboardEvent,
+	type MouseEvent,
+	type RefObject,
+	useId,
+	useRef,
+	useState,
+} from "react";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
 interface ClassicyIconProps {
-  appId: string;
-  name: string;
-  icon: string;
-  label?: string;
-  initialPosition?: [number, number];
-  holder?: RefObject<HTMLElement | null>;
-  onClickFunc?: () => void;
-  invisible?: boolean;
+	appId: string;
+	name: string;
+	icon: string;
+	label?: string;
+	initialPosition?: [number, number];
+	holder?: RefObject<HTMLElement | null>;
+	onClickFunc?: () => void;
+	invisible?: boolean;
 }
 
 export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
-  appId,
-  name,
-  icon,
-  label,
-  initialPosition = [0, 0],
-  holder,
-  onClickFunc,
-  invisible = false,
+	appId,
+	name,
+	icon,
+	label,
+	initialPosition = [0, 0],
+	holder,
+	onClickFunc,
+	invisible = false,
 }) => {
-  const [position, setPosition] = useState<[number, number]>(initialPosition);
-  const [dragging, setDragging] = useState<boolean>(false);
-  const [active, setActive] = useState<boolean>(false);
+	const [position, setPosition] = useState<[number, number]>(initialPosition);
+	const [dragging, setDragging] = useState<boolean>(false);
+	const [active, setActive] = useState<boolean>(false);
 
-  const iconRef = useRef<HTMLDivElement>(null);
+	const iconRef = useRef<HTMLDivElement>(null);
 
-  const id = appId + ".shortcut";
+	const id = `${appId}.shortcut`;
 
-  const { track } = useClassicyAnalytics();
-  const analyticsArgs = { type: "ClassicyIcon", appId, name, icon, label };
+	const { track } = useClassicyAnalytics();
+	const analyticsArgs = { type: "ClassicyIcon", appId, name, icon, label };
 
-  const toggleFocus = () => {
-    track("focus", analyticsArgs);
-    setActive(!active);
-  };
-  const setFocus = (active: boolean) => {
-    track("focus", analyticsArgs);
-    setActive(active);
-  };
+	const toggleFocus = () => {
+		track("focus", analyticsArgs);
+		setActive(!active);
+	};
+	const setFocus = (active: boolean) => {
+		track("focus", analyticsArgs);
+		setActive(active);
+	};
 
-  const clearFocus = () => {
-    track("blur", analyticsArgs);
-    setActive(false);
-  };
+	const clearFocus = () => {
+		track("blur", analyticsArgs);
+		setActive(false);
+	};
 
-  const doDoubleClick = () => {
-    if (onClickFunc) {
-      clearFocus();
-      onClickFunc();
-    }
-  };
+	const doDoubleClick = () => {
+		if (onClickFunc) {
+			clearFocus();
+			onClickFunc();
+		}
+	};
 
-  const stopChangeIcon = () => {
-    setDragging(false);
-  };
+	const stopChangeIcon = () => {
+		setDragging(false);
+	};
 
-  const startDrag = () => {
-    setDragging(true);
-  };
+	const startDrag = () => {
+		setDragging(true);
+	};
 
-  const changeIcon = (e: MouseEvent<HTMLDivElement>) => {
-    if (dragging && iconRef.current) {
-      setFocus(true);
-      setPosition([
-        e.clientX -
-          holder.current.getBoundingClientRect().left -
-          iconRef.current.getBoundingClientRect().width / 2,
-        e.clientY -
-          holder.current.getBoundingClientRect().top -
-          iconRef.current.getBoundingClientRect().height / 2,
-      ]);
-    }
-  };
-  const iconId = useId();
+	const changeIcon = (e: MouseEvent<HTMLDivElement>) => {
+		if (dragging && iconRef.current) {
+			setFocus(true);
+			setPosition([
+				e.clientX -
+					holder.current.getBoundingClientRect().left -
+					iconRef.current.getBoundingClientRect().width / 2,
+				e.clientY -
+					holder.current.getBoundingClientRect().top -
+					iconRef.current.getBoundingClientRect().height / 2,
+			]);
+		}
+	};
+	const iconId = useId();
 
-  return (
-    <div
-      ref={iconRef}
-      id={`${id}-${iconId}`}
-      draggable={false}
-      className={classNames(
-        "classicyIcon",
-        dragging ? "classicyIconDragging" : "",
-        active ? "classicyIconActive" : "",
-      )}
-      style={{
-        left: position[0] + "px",
-        top: position[1] + "px",
-      }}
-      onClick={toggleFocus}
-      onMouseDown={startDrag}
-      onMouseMove={changeIcon}
-      onMouseUp={stopChangeIcon}
-      onDoubleClick={doDoubleClick}
-    >
-      <div
-        className={classNames(
-          "classicyIconMaskOuter",
-          invisible ? "classicyIconInvisible" : "",
-        )}
-        style={{ maskImage: `url(${icon})` }}
-      >
-        <div className={"classicyIconMask"} style={{ mask: `url(${icon})` }}>
-          <img src={icon} alt={name} />
-        </div>
-      </div>
-      <p className={classNames(invisible ? "classicyIconInvisible" : "")}>
-        {label ? label : name}
-      </p>
-    </div>
-  );
+	return (
+		// biome-ignore lint/a11y/useSemanticElements: icon is a draggable div with ref and complex mouse handling incompatible with <button>
+		<div
+			role="button"
+			tabIndex={0}
+			ref={iconRef}
+			id={`${id}-${iconId}`}
+			draggable={false}
+			className={classNames(
+				"classicyIcon",
+				dragging ? "classicyIconDragging" : "",
+				active ? "classicyIconActive" : "",
+			)}
+			style={{
+				left: `${position[0]}px`,
+				top: `${position[1]}px`,
+			}}
+			onClick={toggleFocus}
+			onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
+				if (e.key === "Enter" || e.key === " ") {
+					e.preventDefault();
+					doDoubleClick();
+				}
+			}}
+			onMouseDown={startDrag}
+			onMouseMove={changeIcon}
+			onMouseUp={stopChangeIcon}
+			onDoubleClick={doDoubleClick}
+		>
+			<div
+				className={classNames(
+					"classicyIconMaskOuter",
+					invisible ? "classicyIconInvisible" : "",
+				)}
+				style={{ maskImage: `url(${icon})` }}
+			>
+				<div className={"classicyIconMask"} style={{ mask: `url(${icon})` }}>
+					<img src={icon} alt={name} />
+				</div>
+			</div>
+			<p className={classNames(invisible ? "classicyIconInvisible" : "")}>
+				{label ? label : name}
+			</p>
+		</div>
+	);
 };

@@ -49,6 +49,10 @@
   @include scrollbars.scrollbars-inactive();
 }
 
+.classicyWindowActiveApp {
+  z-index: 150 !important;
+}
+
 .classicyWindowContentsDimmed {
   opacity: 0.8;
   box-shadow: none !important;

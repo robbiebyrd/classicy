@@ -1,112 +1,117 @@
 import "./ClassicyFileBrowserViewTable.scss";
+import {
+	type FC as FunctionalComponent,
+	memo,
+	type RefObject,
+	useLayoutEffect,
+	useState,
+} from "react";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import {
-  cleanupIcon,
-  iconImageByType,
+	cleanupIcon,
+	iconImageByType,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserUtils";
-import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
-import { ClassicyFileSystemEntryMetadata } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import type { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
+import type { ClassicyFileSystemEntryMetadata } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { ClassicyIcon } from "@/SystemFolder/SystemResources/Icon/ClassicyIcon";
-import { FC as FunctionalComponent, memo, RefObject, useLayoutEffect, useState } from "react";
 
 export type ClassicyFileBrowserViewIconsProps = {
-  fs: ClassicyFileSystem;
-  path: string;
-  appId: string;
-  dirOnClickFunc?: (path: string) => void;
-  fileOnClickFunc?: (path: string) => void;
-  holderRef?: RefObject<HTMLDivElement | null>;
+	fs: ClassicyFileSystem;
+	path: string;
+	appId: string;
+	dirOnClickFunc?: (path: string) => void;
+	fileOnClickFunc?: (path: string) => void;
+	holderRef?: RefObject<HTMLDivElement | null>;
 };
 
 type iconType = {
-  appId: string;
-  name: string;
-  invisible: boolean;
-  icon: string;
-  onClickFunc: () => void;
-  holder: RefObject<HTMLDivElement | null>;
-  initialPosition: [number, number];
+	appId: string;
+	name: string;
+	invisible: boolean;
+	icon: string;
+	onClickFunc: () => void;
+	holder: RefObject<HTMLDivElement | null>;
+	initialPosition: [number, number];
 };
 
 export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrowserViewIconsProps> =
-  memo(
-    ({ fs, path, appId, dirOnClickFunc, fileOnClickFunc, holderRef }) => {
-      const activeTheme = useAppManager(s => s.System.Manager.Appearance.activeTheme);
+	memo(({ fs, path, appId, dirOnClickFunc, fileOnClickFunc, holderRef }) => {
+		const activeTheme = useAppManager(
+			(s) => s.System.Manager.Appearance.activeTheme,
+		);
 
-      const [items, setItems] = useState<iconType[]>([]);
+		const [items, setItems] = useState<iconType[]>([]);
 
-      useLayoutEffect(() => {
-        if (!holderRef?.current) {
-          return;
-        }
+		useLayoutEffect(() => {
+			if (!holderRef?.current) {
+				return;
+			}
 
-        const openFileOrFolder = (
-          properties: ClassicyFileSystemEntryMetadata,
-          path: string,
-          filename: string,
-        ) => {
-          switch (properties["_type"]) {
-            case "directory": {
-              if (dirOnClickFunc) {
-                return dirOnClickFunc(path + ":" + filename);
-              }
-              break;
-            }
-            case "file": {
-              if (fileOnClickFunc) {
-                return fileOnClickFunc(path + ":" + filename);
-              }
-              break;
-            }
-          }
-        };
+			const openFileOrFolder = (
+				properties: ClassicyFileSystemEntryMetadata,
+				path: string,
+				filename: string,
+			) => {
+				switch (properties._type) {
+					case "directory": {
+						if (dirOnClickFunc) {
+							return dirOnClickFunc(`${path}:${filename}`);
+						}
+						break;
+					}
+					case "file": {
+						if (fileOnClickFunc) {
+							return fileOnClickFunc(`${path}:${filename}`);
+						}
+						break;
+					}
+				}
+			};
 
-        const containerMeasure: [number, number] = [
-          holderRef.current.getBoundingClientRect().width,
-          holderRef.current.getBoundingClientRect().height,
-        ];
-        const directoryListing: ClassicyFileSystemEntryMetadata | object =
-          fs.filterByType(path, ["file", "directory"]);
+			const containerMeasure: [number, number] = [
+				holderRef.current.getBoundingClientRect().width,
+				holderRef.current.getBoundingClientRect().height,
+			];
+			const directoryListing: ClassicyFileSystemEntryMetadata | object =
+				fs.filterByType(path, ["file", "directory"]);
 
-        const updatedIcons = Object.entries(directoryListing).map(
-          ([filename, properties], index) => {
-            return {
-              appId: appId,
-              name: filename,
-              invisible: properties["_invisible"],
-              icon: properties["_icon"] || iconImageByType(properties["_type"]),
-              onClickFunc: () => openFileOrFolder(properties, path, filename),
-              holder: holderRef,
-              initialPosition: cleanupIcon(
-                activeTheme,
-                index,
-                Object.entries(directoryListing).length,
-                containerMeasure,
-              ),
-            };
-          },
-        );
-        setItems(updatedIcons);
-      }, [
-        appId,
-        path,
-        fs,
-        dirOnClickFunc,
-        fileOnClickFunc,
-        activeTheme,
-      ]);
+			const updatedIcons = Object.entries(directoryListing).map(
+				([filename, properties], index) => {
+					return {
+						appId: appId,
+						name: filename,
+						invisible: properties._invisible,
+						icon: properties._icon || iconImageByType(properties._type),
+						onClickFunc: () => openFileOrFolder(properties, path, filename),
+						holder: holderRef,
+						initialPosition: cleanupIcon(
+							activeTheme,
+							index,
+							Object.entries(directoryListing).length,
+							containerMeasure,
+						),
+					};
+				},
+			);
+			setItems(updatedIcons);
+		}, [
+			appId,
+			path,
+			fs,
+			dirOnClickFunc,
+			fileOnClickFunc,
+			activeTheme,
+			holderRef?.current,
+			holderRef,
+		]);
 
-      return (
-        <div
-          className={"classicyFileBrowserFill"}
-          ref={holderRef}
-        >
-          {items.map((item) => {
-            return <ClassicyIcon {...item} key={item.name} />;
-          })}
-        </div>
-      );
-    },
-  );
+		return (
+			<div className={"classicyFileBrowserFill"} ref={holderRef}>
+				{items.map((item) => {
+					return <ClassicyIcon {...item} key={item.name} />;
+				})}
+			</div>
+		);
+	});
 
 ClassicyFileBrowserViewIcons.displayName = "ClassicyFileBrowserViewIcons";

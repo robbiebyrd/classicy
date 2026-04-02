@@ -10,7 +10,8 @@ FROM node:22-alpine
 
 WORKDIR /app
 COPY --from=build /app/dist/timemachine.js ./
-RUN addgroup -S timemachine && adduser -S timemachine -G timemachine
+RUN addgroup -S timemachine && adduser -S timemachine -G timemachine \
+    && mkdir -p /app/cache && chown timemachine:timemachine /app/cache
 USER timemachine
 
 EXPOSE ${TIMEMACHINE_PORT:-8765}

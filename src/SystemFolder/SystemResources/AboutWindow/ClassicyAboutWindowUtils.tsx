@@ -1,8 +1,8 @@
 import {
-  ClassicyAboutWindow,
-  ClassicyAboutWindowProps,
+	ClassicyAboutWindow,
+	type ClassicyAboutWindowProps,
 } from "./ClassicyAboutWindow";
 
 export const getClassicyAboutWindow = (props: ClassicyAboutWindowProps) => {
-  return <ClassicyAboutWindow {...props} />;
+	return <ClassicyAboutWindow {...props} />;
 };

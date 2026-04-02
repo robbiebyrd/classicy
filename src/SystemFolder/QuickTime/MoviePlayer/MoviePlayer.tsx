@@ -1,92 +1,97 @@
+import defaultDocumentIcon from "@img/icons/system/quicktime/movie.png";
+import { type FC as FunctionalComponent, useEffect, useMemo } from "react";
 import {
-  useAppManager,
-  useAppManagerDispatch,
+	useAppManager,
+	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import { quitMenuItemHelper } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
 import { QuickTimeVideoEmbed } from "@/SystemFolder/SystemResources/QuickTime/QuickTimeMovieEmbed";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
-import { FC as FunctionalComponent, useEffect, useMemo } from "react";
-import defaultDocumentIcon from "@img/icons/system/quicktime/movie.png";
-import { MoviePlayerAppInfo, QuickTimeMovieDocument } from "./MoviePlayerUtils";
+import {
+	MoviePlayerAppInfo,
+	type QuickTimeMovieDocument,
+} from "./MoviePlayerUtils";
 
 export const MoviePlayer: FunctionalComponent = () => {
-  const { name: appName, id: appId, icon: appIcon } = MoviePlayerAppInfo;
+	const { name: appName, id: appId, icon: appIcon } = MoviePlayerAppInfo;
 
-  const desktopEventDispatch = useAppManagerDispatch();
-  const appData = useAppManager(s => s.System.Manager.App.apps[appId]?.data);
-  const appOpen = useAppManager(s => s.System.Manager.App.apps[appId]?.open);
+	const desktopEventDispatch = useAppManagerDispatch();
+	const appData = useAppManager((s) => s.System.Manager.App.apps[appId]?.data);
+	const appOpen = useAppManager((s) => s.System.Manager.App.apps[appId]?.open);
 
-  const openDocuments: QuickTimeMovieDocument[] =
-    appData && appData["openFiles"];
+	const openDocuments: QuickTimeMovieDocument[] = appData?.openFiles;
 
-  // Load Default Demo documents on open (only if none exist)
-  useEffect(() => {
-    if (!appOpen) return;
-    const data = appData || {};
-    if (!data["openFiles"] || data["openFiles"]?.length === 0) {
-      desktopEventDispatch({
-        type: "ClassicyAppMoviePlayerOpenDocuments",
-        documents: [
-          {
-            url: "/vid/quicktime/sample.mp4",
-            name: "Quick Time",
-            icon: defaultDocumentIcon,
-            options: {},
-            type: "video",
-          },
-        ],
-      });
-    }
-  }, [appData, appOpen, desktopEventDispatch]);
+	// Load Default Demo documents on open (only if none exist)
+	useEffect(() => {
+		if (!appOpen) return;
+		const data = appData || {};
+		if (!data.openFiles || data.openFiles?.length === 0) {
+			desktopEventDispatch({
+				type: "ClassicyAppMoviePlayerOpenDocuments",
+				documents: [
+					{
+						url: "/vid/quicktime/sample.mp4",
+						name: "Quick Time",
+						icon: defaultDocumentIcon,
+						options: {},
+						type: "video",
+					},
+				],
+			});
+		}
+	}, [appData, appOpen, desktopEventDispatch]);
 
-  const appMenu = useMemo(() => [
-    {
-      id: "file",
-      title: "File",
-      menuChildren: [quitMenuItemHelper(appId, appName, appIcon)],
-    },
-  ], [appId, appName, appIcon]);
+	const appMenu = useMemo(
+		() => [
+			{
+				id: "file",
+				title: "File",
+				menuChildren: [quitMenuItemHelper(appId, appName, appIcon)],
+			},
+		],
+		[],
+	);
 
-  return (
-    <ClassicyApp id={appId} name={appName} icon={appIcon}>
-      {Array.isArray(openDocuments) && openDocuments.length > 0
-        ? openDocuments.map((doc) => (
-          <ClassicyWindow
-            key={doc.name + "_" + doc.url}
-            id={appId + "_MoviePlayer_" + doc.url}
-            title={doc.name}
-            icon={doc.icon || undefined}
-            minimumSize={[300, 60]}
-            appId={appId}
-            closable={true}
-            resizable={true}
-            zoomable={true}
-            scrollable={true}
-            collapsable={false}
-            initialSize={[400, 100]}
-            initialPosition={[300, 50]}
-            modal={true}
-            appMenu={appMenu}
-            onCloseFunc={() =>
-              desktopEventDispatch({
-                type: "ClassicyAppMoviePlayerCloseDocument",
-                document: doc,
-              })
-            }
-          >
-            <QuickTimeVideoEmbed
-              appId={appId}
-              name={doc.name}
-              url={doc.url}
-              options={doc.options}
-              type={doc.type}
-              subtitlesUrl={doc.subtitlesUrl}
-              controlsDocked={true}
-            />
-          </ClassicyWindow>
-        ))
-        : null}
-    </ClassicyApp>
-  );
+	return (
+		<ClassicyApp id={appId} name={appName} icon={appIcon}>
+			{Array.isArray(openDocuments) && openDocuments.length > 0
+				? openDocuments.map((doc) => (
+						<ClassicyWindow
+							key={`${doc.name}_${doc.url}`}
+							id={`${appId}_MoviePlayer_${doc.url}`}
+							title={doc.name}
+							icon={doc.icon || undefined}
+							minimumSize={[300, 60]}
+							appId={appId}
+							closable={true}
+							resizable={true}
+							zoomable={true}
+							scrollable={true}
+							collapsable={false}
+							initialSize={[400, 100]}
+							initialPosition={[300, 50]}
+							modal={true}
+							appMenu={appMenu}
+							onCloseFunc={() =>
+								desktopEventDispatch({
+									type: "ClassicyAppMoviePlayerCloseDocument",
+									document: doc,
+								})
+							}
+						>
+							<QuickTimeVideoEmbed
+								appId={appId}
+								name={doc.name}
+								url={doc.url}
+								options={doc.options}
+								type={doc.type}
+								subtitlesUrl={doc.subtitlesUrl}
+								controlsDocked={true}
+							/>
+						</ClassicyWindow>
+					))
+				: null}
+		</ClassicyApp>
+	);
 };

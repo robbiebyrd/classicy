@@ -4,15 +4,15 @@
  * potentially dangerous schemes.
  */
 export function isValidHttpUrl(url: string): boolean {
-  if (!url) return false;
+	if (!url) return false;
 
-  // Allow relative URLs (paths starting with /)
-  if (url.startsWith("/")) return true;
+	// Allow relative URLs (paths starting with /)
+	if (url.startsWith("/")) return true;
 
-  try {
-    const parsed = new URL(url);
-    return parsed.protocol === "https:" || parsed.protocol === "http:";
-  } catch {
-    return false;
-  }
+	try {
+		const parsed = new URL(url);
+		return parsed.protocol === "https:" || parsed.protocol === "http:";
+	} catch {
+		return false;
+	}
 }
