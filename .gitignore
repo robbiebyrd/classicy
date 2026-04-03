@@ -31,6 +31,9 @@ tsconfig.tsbuildinfo
 tsconfig.tsbuildinfo
 .yarn
 
+# Generated static assets (large files copied from source)
+example/public/pager/
+
 # macOS duplicate files (Finder copies, iCloud conflicts)
 *\ [0-9].ts
 *\ [0-9].tsx

@@ -7,6 +7,7 @@ import { Browser } from "./Applications/Browser/Browser";
 import { Demo } from "./Applications/Demo/Demo";
 import EPG from "./Applications/EPG/EPG";
 import News from "./Applications/News/News";
+import PagerDecoder from "./Applications/PagerDecoder/PagerDecoder";
 import SimpleText from "./Applications/SimpleText/SimpleText";
 import { TV } from "./Applications/TV/TV";
 
@@ -20,9 +21,10 @@ createRoot(rootElement).render(
 				<Demo />
 				<EPG />
 				<News />
+				<PagerDecoder />
 				<SimpleText />
 				<TV />
 			</ClassicyDesktop>
 		</ClassicyAppManagerProvider>
-	</StrictMode>,
+	</StrictMode>
 );

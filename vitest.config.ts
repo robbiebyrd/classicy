@@ -7,6 +7,7 @@ export default defineConfig({
 		setupFiles: ["./src/__tests__/setup.ts"],
 	},
 	resolve: {
+		dedupe: ["react", "react-dom"],
 		alias: {
 			"@": path.resolve(__dirname, "./src/"),
 			"@img": path.resolve(__dirname, "./assets/img"),
