@@ -12,10 +12,11 @@ const PagerDecoder = () => {
 	const { index, progress, error } = usePagerIndex();
 	const { lines, streamingText, streamingMeta } = usePagerPlayback(index);
 
-	const bottomRef = useRef<HTMLDivElement>(null);
+	const terminalRef = useRef<HTMLDivElement>(null);
 	useEffect(() => {
-		bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-	}, [lines.length]);
+		const el = terminalRef.current;
+		if (el) el.scrollTop = el.scrollHeight;
+	}, [lines, streamingMeta]);
 
 	const appMenu = [
 		{
@@ -37,7 +38,7 @@ const PagerDecoder = () => {
 				resizable
 				growable
 			>
-				<div className={styles.terminal}>
+				<div className={styles.terminal} ref={terminalRef}>
 					{!index && (
 						<p className={styles.loading}>
 							{error
@@ -63,8 +64,7 @@ const PagerDecoder = () => {
 					{index && !streamingMeta && (
 						<span className={styles.cursor} aria-hidden="true" />
 					)}
-					<div ref={bottomRef} />
-				</div>
+					</div>
 			</ClassicyWindow>
 		</ClassicyApp>
 	);
