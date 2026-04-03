@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { getCurrentEasternHMS } from "./pagerUtils";
 import type { PagerRecord } from "./pagerUtils";
+import { getCurrentEasternHMS } from "./pagerUtils";
 
 export interface CompletedLine {
 	id: string;
@@ -32,7 +32,7 @@ export function usePagerPlayback(
 
 	const queueRef = useRef<StreamingItem[]>([]);
 	const currentItemRef = useRef<StreamingItem | null>(null);
-	const charIndexRef = useRef(0);
+	const wordIndexRef = useRef(0);
 	const seenSecondsRef = useRef(new Set<string>());
 
 	// Clock tick: every 1s, look up new messages for the current ET second
@@ -65,7 +65,7 @@ export function usePagerPlayback(
 				const next = queueRef.current.shift();
 				if (!next) return;
 				currentItemRef.current = next;
-				charIndexRef.current = 0;
+				wordIndexRef.current = 0;
 				setStreamingMeta({
 					timeKey: next.timeKey,
 					provider: next.record.provider,
@@ -74,26 +74,26 @@ export function usePagerPlayback(
 			}
 
 			const item = currentItemRef.current;
-			const msg = item.record.message;
-			charIndexRef.current += 1;
-			const partial = msg.slice(0, charIndexRef.current);
+			const words = item.record.message.split(" ");
+			wordIndexRef.current += 1;
+			const partial = words.slice(0, wordIndexRef.current).join(" ");
 			setStreamingText(partial);
 
-			if (charIndexRef.current >= msg.length) {
+			if (wordIndexRef.current >= words.length) {
 				// Message complete — move to lines
 				const completed: CompletedLine = {
 					id: `${item.timeKey}-${item.record.recipient_id}-${Date.now()}`,
 					timeKey: item.timeKey,
 					provider: item.record.provider,
-					text: msg,
+					text: item.record.message,
 				};
 				setLines((prev) => [...prev, completed]);
 				setStreamingText("");
 				setStreamingMeta(null);
 				currentItemRef.current = null;
-				charIndexRef.current = 0;
+				wordIndexRef.current = 0;
 			}
-		}, 30);
+		}, 1);
 
 		return () => clearInterval(streamId);
 	}, [index]);

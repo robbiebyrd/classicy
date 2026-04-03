@@ -44,63 +44,66 @@ describe("usePagerPlayback", () => {
 	});
 
 	it("enqueues messages that match the current second on clock tick", () => {
-		const record = makeRecord("Hello world");
+		// 3 words — won't complete within the first 2 stream ticks
+		const record = makeRecord("Hello world foo");
 		const index = makeIndex([["03:00:00", [record]]]);
 		const { result } = renderHook(() => usePagerPlayback(index));
 
 		act(() => {
-			// 1000ms clock tick enqueues message; +30ms stream tick picks it up
-			vi.advanceTimersByTime(1030);
+			// clock at t=1000 fires alongside stream tick; advance enough for both
+			vi.advanceTimersByTime(1001);
 		});
 
 		expect(result.current.streamingMeta).not.toBeNull();
 		expect(result.current.streamingMeta?.provider).toBe("Metrocall");
 	});
 
-	it("streams message characters one at a time at 30ms intervals", () => {
-		const record = makeRecord("Hello");
+	it("streams message words one at a time", () => {
+		// 3-word message; clock+stream coincide at t=1000 (first word),
+		// then each subsequent ms advances one word
+		const record = makeRecord("Hello world foo");
 		const index = makeIndex([["03:00:00", [record]]]);
 		const { result } = renderHook(() => usePagerPlayback(index));
 
 		act(() => {
-			vi.advanceTimersByTime(1030); // clock tick + first stream tick → "H"
+			vi.advanceTimersByTime(1000); // clock fires; stream fires at same ms → "Hello"
 		});
-		expect(result.current.streamingText).toBe("H");
+		expect(result.current.streamingText).toBe("Hello");
 
 		act(() => {
-			vi.advanceTimersByTime(30); // second char → "He"
+			vi.advanceTimersByTime(1); // next stream tick → "Hello world"
 		});
-		expect(result.current.streamingText).toBe("He");
+		expect(result.current.streamingText).toBe("Hello world");
 	});
 
 	it("moves completed line to lines[] and clears streamingMeta", () => {
-		const record = makeRecord("Hi");
+		// 2-word message: word 1 at t=1000, word 2 (+complete) at t=1001
+		const record = makeRecord("Hi there");
 		const index = makeIndex([["03:00:00", [record]]]);
 		const { result } = renderHook(() => usePagerPlayback(index));
 
 		act(() => {
-			vi.advanceTimersByTime(1000); // clock tick
-			vi.advanceTimersByTime(30 * 2 + 30); // stream both chars + one more tick
+			vi.advanceTimersByTime(1001);
 		});
 
 		expect(result.current.lines).toHaveLength(1);
-		expect(result.current.lines[0].text).toBe("Hi");
+		expect(result.current.lines[0].text).toBe("Hi there");
 		expect(result.current.streamingMeta).toBeNull();
 		expect(result.current.streamingText).toBe("");
 	});
 
 	it("streams queued messages in order", () => {
+		// r1 is 1 word (completes at t=1000); r2 has 3 words (starts at t=1001)
 		const r1 = makeRecord("Msg1");
-		const r2 = makeRecord("Msg2");
+		const r2 = makeRecord("Msg two three");
 		const index = makeIndex([["03:00:00", [r1, r2]]]);
 		const { result } = renderHook(() => usePagerPlayback(index));
 
 		act(() => {
-			// clock tick + stream all of r1 (4 chars × 30ms) + move to lines
-			vi.advanceTimersByTime(1000 + 30 * 4 + 30);
+			vi.advanceTimersByTime(1001);
 		});
 
-		// r1 complete, r2 started
+		// r1 complete, r2 started (streaming first word)
 		expect(result.current.lines).toHaveLength(1);
 		expect(result.current.lines[0].text).toBe("Msg1");
 		expect(result.current.streamingMeta).not.toBeNull();
@@ -112,15 +115,13 @@ describe("usePagerPlayback", () => {
 		const { result } = renderHook(() => usePagerPlayback(index));
 
 		act(() => {
-			vi.advanceTimersByTime(1000); // first tick at 03:00:00
+			vi.advanceTimersByTime(1000); // first clock tick at 03:00:00
 		});
 		act(() => {
-			vi.advanceTimersByTime(1000); // second tick still at 03:00:00 (same mock)
+			vi.advanceTimersByTime(1000); // second clock tick still at 03:00:00 (mocked)
 		});
-
-		// Only one message should be streaming/queued — not duplicated
 		act(() => {
-			vi.advanceTimersByTime(30 * 5 + 30 * 5 + 100); // stream it all + extra
+			vi.advanceTimersByTime(100); // drain any remaining queue
 		});
 
 		expect(result.current.lines).toHaveLength(1);
