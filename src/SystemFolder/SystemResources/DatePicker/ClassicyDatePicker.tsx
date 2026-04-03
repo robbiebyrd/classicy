@@ -1,5 +1,9 @@
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
-import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
+import {
+	ClassicyControlLabel,
+	type ClassicyLabelPosition,
+	labelPositionClass,
+} from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import "./ClassicyDatePicker.scss";
 import classNames from "classnames";
 import {
@@ -21,6 +25,7 @@ interface ClassicyDatePickerProps {
 	inputType?: "text";
 	onChangeFunc?: (date: Date) => void;
 	labelTitle?: string;
+	labelPosition?: ClassicyLabelPosition;
 	placeholder?: string;
 	prefillValue?: Date;
 	disabled?: boolean;
@@ -30,7 +35,15 @@ interface ClassicyDatePickerProps {
 export const ClassicyDatePicker: FunctionalComponent<ClassicyDatePickerProps> =
 	forwardRef<HTMLInputElement, ClassicyDatePickerProps>(
 		function ClassicyDatePicker(
-			{ id, inputType, labelTitle, disabled = false, isDefault, onChangeFunc },
+			{
+				id,
+				inputType,
+				labelTitle,
+				labelPosition = "above",
+				disabled = false,
+				isDefault,
+				onChangeFunc,
+			},
 			_ref,
 		) {
 			const dateTime = useAppManager(
@@ -158,12 +171,16 @@ export const ClassicyDatePicker: FunctionalComponent<ClassicyDatePickerProps> =
 			};
 
 			return (
-				<div className={"classicyDatePickerHolder"}>
+				<div
+					className={classNames(
+						"classicyDatePickerHolder",
+						labelPositionClass(labelPosition),
+					)}
+				>
 					{labelTitle && (
 						<ClassicyControlLabel
 							label={labelTitle}
 							labelFor={id}
-							direction={"left"}
 							disabled={disabled}
 						></ClassicyControlLabel>
 					)}

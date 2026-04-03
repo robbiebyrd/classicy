@@ -8,7 +8,11 @@ import {
 	type KeyboardEvent,
 	useState,
 } from "react";
-import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
+import {
+	ClassicyControlLabel,
+	type ClassicyLabelPosition,
+	labelPositionClass,
+} from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
 
 interface ClassicyTimePickerProps {
@@ -16,6 +20,7 @@ interface ClassicyTimePickerProps {
 	inputType?: "text";
 	onChangeFunc?: (updatedDate: Date) => void;
 	labelTitle?: string;
+	labelPosition?: ClassicyLabelPosition;
 	placeholder?: string;
 	prefillValue?: Date;
 	disabled?: boolean;
@@ -30,6 +35,7 @@ export const ClassicyTimePicker: FunctionalComponent<ClassicyTimePickerProps> =
 				id,
 				inputType = "text",
 				labelTitle,
+				labelPosition = "above",
 				placeholder,
 				prefillValue,
 				disabled = false,
@@ -172,12 +178,16 @@ export const ClassicyTimePicker: FunctionalComponent<ClassicyTimePickerProps> =
 			};
 
 			return (
-				<div className={"classicyTimePickerHolder"}>
+				<div
+					className={classNames(
+						"classicyTimePickerHolder",
+						labelPositionClass(labelPosition),
+					)}
+				>
 					{labelTitle && (
 						<ClassicyControlLabel
 							label={labelTitle}
 							labelFor={id}
-							direction={"left"}
 							disabled={disabled}
 						></ClassicyControlLabel>
 					)}

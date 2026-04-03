@@ -10,6 +10,18 @@ import type {
 type ClassicyControlLabelDirections = "left" | "right";
 type ClassicyControlLabelSize = "small" | "medium" | "large";
 
+export type ClassicyLabelPosition = "above" | "left" | "right" | "below";
+
+export function labelPositionClass(position: ClassicyLabelPosition): string {
+	const map: Record<ClassicyLabelPosition, string> = {
+		above: "classicyLabelAbove",
+		below: "classicyLabelBelow",
+		left: "classicyLabelLeft",
+		right: "classicyLabelRight",
+	};
+	return map[position];
+}
+
 interface ClassicyControlLabelProps {
 	labelFor?: string;
 	label?: string;
@@ -69,8 +81,8 @@ export const ClassicyControlLabel: FunctionalComponent<
 					: "classicyControlLabelHolderRight",
 			)}
 			onClick={(e) => {
-				e.preventDefault();
 				if (onClickFunc) {
+					e.preventDefault();
 					onClickFunc(e);
 				}
 			}}

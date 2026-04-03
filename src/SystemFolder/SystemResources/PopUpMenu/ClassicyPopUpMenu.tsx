@@ -1,4 +1,8 @@
-import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
+import {
+	ClassicyControlLabel,
+	type ClassicyLabelPosition,
+	labelPositionClass,
+} from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import "./ClassicyPopUpMenu.scss";
 import classNames from "classnames";
 import {
@@ -18,6 +22,7 @@ type classicyPopUpMenuOptions = {
 type classicyPopUpMenuProps = {
 	id: string;
 	label?: string;
+	labelPosition?: ClassicyLabelPosition;
 	options: classicyPopUpMenuOptions[];
 	selected?: string;
 	small?: boolean;
@@ -27,6 +32,7 @@ type classicyPopUpMenuProps = {
 export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 	id,
 	label,
+	labelPosition = "above",
 	options,
 	selected,
 	className: extraClassName,
@@ -53,13 +59,13 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 	};
 
 	return (
-		<div className={"classicyPopUpMenuWrapper"}>
-			{label && (
-				<ClassicyControlLabel
-					label={label}
-					direction={"right"}
-				></ClassicyControlLabel>
+		<div
+			className={classNames(
+				"classicyPopUpMenuWrapper",
+				labelPositionClass(labelPosition),
 			)}
+		>
+			{label && <ClassicyControlLabel label={label}></ClassicyControlLabel>}
 			<div
 				className={classNames(
 					"classicyPopUpMenu",

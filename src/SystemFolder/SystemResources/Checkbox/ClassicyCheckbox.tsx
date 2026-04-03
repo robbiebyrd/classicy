@@ -2,7 +2,11 @@ import "./ClassicyCheckbox.scss";
 import classNames from "classnames";
 import { type FC as FunctionalComponent, useEffect, useState } from "react";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
-import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
+import {
+	ClassicyControlLabel,
+	type ClassicyLabelPosition,
+	labelPositionClass,
+} from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 
 export type ClassicyCheckboxProps = {
 	id: string;
@@ -12,6 +16,7 @@ export type ClassicyCheckboxProps = {
 	disabled?: boolean;
 	onClickFunc?: (checked: boolean) => void;
 	label?: string;
+	labelPosition?: ClassicyLabelPosition;
 };
 
 export const ClassicyCheckbox: FunctionalComponent<ClassicyCheckboxProps> = ({
@@ -22,6 +27,7 @@ export const ClassicyCheckbox: FunctionalComponent<ClassicyCheckboxProps> = ({
 	disabled,
 	onClickFunc,
 	label,
+	labelPosition = "right",
 }) => {
 	const [check, setCheck] = useState<boolean>(checked || false);
 	useEffect(() => {
@@ -41,7 +47,13 @@ export const ClassicyCheckbox: FunctionalComponent<ClassicyCheckboxProps> = ({
 	};
 
 	return (
-		<div className={"classicyCheckboxHolder"}>
+		<div
+			className={classNames(
+				"classicyCheckboxHolder",
+				labelPositionClass(labelPosition),
+			)}
+		>
+			<ClassicyControlLabel label={label} labelFor={id} disabled={disabled} />
 			<input
 				type={"checkbox"}
 				onChange={handleOnClick}
@@ -55,7 +67,6 @@ export const ClassicyCheckbox: FunctionalComponent<ClassicyCheckboxProps> = ({
 					mixed ? "classicyCheckboxMixed" : "",
 				)}
 			/>
-			<ClassicyControlLabel label={label} labelFor={id} disabled={disabled} />
 		</div>
 	);
 };

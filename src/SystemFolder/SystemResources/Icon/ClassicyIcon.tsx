@@ -10,12 +10,17 @@ import {
 	useState,
 } from "react";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
+import {
+	type ClassicyLabelPosition,
+	labelPositionClass,
+} from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 
 interface ClassicyIconProps {
 	appId: string;
 	name: string;
 	icon: string;
 	label?: string;
+	labelPosition?: ClassicyLabelPosition;
 	initialPosition?: [number, number];
 	holder?: RefObject<HTMLElement | null>;
 	onClickFunc?: () => void;
@@ -27,6 +32,7 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	name,
 	icon,
 	label,
+	labelPosition = "below",
 	initialPosition = [0, 0],
 	holder,
 	onClickFunc,
@@ -99,6 +105,7 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 				"classicyIcon",
 				dragging ? "classicyIconDragging" : "",
 				active ? "classicyIconActive" : "",
+				labelPositionClass(labelPosition),
 			)}
 			style={{
 				left: `${position[0]}px`,
@@ -116,6 +123,9 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 			onMouseUp={stopChangeIcon}
 			onDoubleClick={doDoubleClick}
 		>
+			<p className={classNames(invisible ? "classicyIconInvisible" : "")}>
+				{label ? label : name}
+			</p>
 			<div
 				className={classNames(
 					"classicyIconMaskOuter",
@@ -127,9 +137,6 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 					<img src={icon} alt={name} />
 				</div>
 			</div>
-			<p className={classNames(invisible ? "classicyIconInvisible" : "")}>
-				{label ? label : name}
-			</p>
 		</div>
 	);
 };
