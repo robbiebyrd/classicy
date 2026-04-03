@@ -126,4 +126,38 @@ describe("usePagerPlayback", () => {
 
 		expect(result.current.lines).toHaveLength(1);
 	});
+
+	it("caps lines at 200, dropping oldest entries", () => {
+		// Build an index with 201 single-word messages at different seconds
+		const entries: [string, PagerRecord[]][] = Array.from(
+			{ length: 201 },
+			(_, i) => {
+				const s = String(i).padStart(2, "0");
+				const timeKey = `00:${s.slice(0, 2).padStart(2, "0")}:00`.replace(
+					/00:(\d{2}):00/,
+					(_, m) => `00:${m}:${String(i % 60).padStart(2, "0")}`,
+				);
+				return [
+					`03:00:${String(i % 60).padStart(2, "0")}`,
+					[makeRecord(`Msg${i}`, `03:00:${String(i % 60).padStart(2, "0")}`)],
+				] as [string, PagerRecord[]];
+			},
+		);
+		// Use a flat index with all 201 records at the same second for simplicity
+		const records = Array.from({ length: 201 }, (_, i) =>
+			makeRecord(`Word${i}`),
+		);
+		const index = makeIndex([["03:00:00", records]]);
+		const { result } = renderHook(() => usePagerPlayback(index));
+
+		act(() => {
+			// clock tick + enough stream ticks to complete all 201 messages
+			vi.advanceTimersByTime(1000 + 201 + 10);
+		});
+
+		expect(result.current.lines.length).toBe(200);
+		// Oldest message (Word0) should have been dropped
+		expect(result.current.lines[0].text).toBe("Word1");
+		expect(result.current.lines[199].text).toBe("Word200");
+	});
 });

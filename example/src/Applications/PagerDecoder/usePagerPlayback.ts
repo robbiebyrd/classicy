@@ -87,7 +87,7 @@ export function usePagerPlayback(
 					provider: item.record.provider,
 					text: item.record.message,
 				};
-				setLines((prev) => [...prev, completed]);
+				setLines((prev) => [...prev, completed].slice(-200));
 				setStreamingText("");
 				setStreamingMeta(null);
 				currentItemRef.current = null;
