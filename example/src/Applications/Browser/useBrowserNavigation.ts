@@ -138,11 +138,12 @@ export const useBrowserNavigation = ({
 				}
 			};
 			setHistory((h) => {
-				const currentUrl = h[historyIndex];
+				const idx = historyIndexRef.current;
+				const currentUrl = h[idx];
 				if (currentUrl && normalize(currentUrl) === normalize(url)) {
 					return h;
 				}
-				const newHistory = [...h.slice(0, historyIndex + 1), url];
+				const newHistory = [...h.slice(0, idx + 1), url];
 				setHistoryIndex(newHistory.length - 1);
 				return newHistory;
 			});
@@ -150,7 +151,7 @@ export const useBrowserNavigation = ({
 			onRecordVisit(url);
 			fetchPage(url);
 		},
-		[fetchPage, onRecordVisit, historyIndex],
+		[fetchPage, onRecordVisit],
 	);
 
 	// Stable refs so handleContentClick doesn't churn
