@@ -1,4 +1,3 @@
-import appIcon from "@img/icons/system/mac.png";
 import {
 	type FC as FunctionalComponent,
 	memo,
@@ -21,6 +20,10 @@ import type {
 	ClassicyFileSystemEntryMetadata,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
+
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+const appIcon = ClassicyIcons.system.mac;
+
 
 type PathSettingsProps = {
 	_viewType: "list" | "icons";
@@ -154,7 +157,7 @@ export const Finder = () => {
 	const appId: string = "Finder.app";
 	const desktopEventDispatch = useAppManagerDispatch();
 	const appState = useAppManager(
-		(state) => state.System.Manager.App.apps[appId],
+		(state) => state.System.Manager.Applications.apps[appId],
 	);
 
 	const [pathSettings, setPathSettings] = useState<
@@ -263,10 +266,17 @@ export const Finder = () => {
 
 	useEffect(() => {
 		const drives = fs.filterByType("", "drive");
-		const driveNames: string[] = [];
+		const addedDriveNames: string[] = [];
 
 		Object.entries(drives).forEach(([path, metadata]) => {
-			driveNames.push(path);
+			const alreadyExists = useAppManager
+				.getState()
+				.System.Manager.Desktop.icons.some(
+					(i) => i.appId === appId && i.appName === path,
+				);
+			if (!alreadyExists) {
+				addedDriveNames.push(path);
+			}
 			desktopEventDispatch({
 				type: "ClassicyDesktopIconAdd",
 				app: {
@@ -281,7 +291,7 @@ export const Finder = () => {
 		});
 
 		return () => {
-			driveNames.forEach((name) => {
+			addedDriveNames.forEach((name) => {
 				desktopEventDispatch({
 					type: "ClassicyDesktopIconRemove",
 					app: { id: appId, name },

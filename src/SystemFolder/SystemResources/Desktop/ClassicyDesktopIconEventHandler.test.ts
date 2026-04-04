@@ -28,7 +28,7 @@ function makeStore(): ClassicyStore {
 					appMenu: [],
 					selectBox: { size: [0, 0], start: [0, 0], active: false },
 				},
-				App: {
+				Applications: {
 					apps: {
 						"Finder.app": {
 							id: "Finder.app",
@@ -318,7 +318,7 @@ describe("classicyDesktopIconEventHandler — ClassicyDesktopIconOpen", () => {
 		});
 
 		expect(ds.System.Manager.Desktop.selectedIcons).toEqual(["Notes.app"]);
-		expect(ds.System.Manager.App.apps["Notes.app"]).toBeDefined();
-		expect(ds.System.Manager.App.apps["Notes.app"].open).toBe(true);
+		expect(ds.System.Manager.Applications.apps["Notes.app"]).toBeDefined();
+		expect(ds.System.Manager.Applications.apps["Notes.app"].open).toBe(true);
 	});
 });

@@ -1,6 +1,7 @@
 import "./ClassicyDesktopMenuWidgetTime.scss";
 import "@/SystemFolder/SystemResources/Menu/ClassicyMenu.scss";
-import appIcon from "@img/icons/control-panels/date-time-manager/date-time-manager.png";
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+const appIcon = ClassicyIcons.controlPanels.dateTimeManager.dateTimeManager;
 import classNames from "classnames";
 import {
 	type FC as FunctionalComponent,
@@ -52,29 +53,39 @@ export const ClassicyDesktopMenuWidgetTime: FunctionalComponent = () => {
 	];
 
 	// Refs to hold current values so the interval callback doesn't need them in its dep array
-	const dateTimeRef = useRef(dateAndTime.dateTime);
+	const localDateRef = useRef(
+		new Date(
+			new Date(dateAndTime.dateTime).getTime() +
+				parseInt(dateAndTime.timeZoneOffset, 10) * 60 * 60 * 1000,
+		),
+	);
 	const timeZoneOffsetRef = useRef(dateAndTime.timeZoneOffset);
 	const prevMinutesRef = useRef(time.minutes);
 
-	// Keep refs in sync with the latest values without restarting the interval
+	// When the store changes (user sets new time/tz), reset the accumulated clock
 	useEffect(() => {
-		dateTimeRef.current = dateAndTime.dateTime;
-	}, [dateAndTime.dateTime]);
+		localDateRef.current = new Date(
+			new Date(dateAndTime.dateTime).getTime() +
+				parseInt(dateAndTime.timeZoneOffset, 10) * 60 * 60 * 1000,
+		);
+	}, [dateAndTime.dateTime, dateAndTime.timeZoneOffset]);
 
 	useEffect(() => {
 		timeZoneOffsetRef.current = dateAndTime.timeZoneOffset;
 	}, [dateAndTime.timeZoneOffset]);
 
-	// Interval created once on mount; reads from refs to avoid restart on every tick
+	// Interval created once on mount; advances from accumulated ref
 	useEffect(() => {
 		const intervalId = setInterval(() => {
-			const date = new Date(dateTimeRef.current);
-			date.setSeconds(date.getSeconds() + 1);
+			const advanced = new Date(localDateRef.current.getTime() + 1000);
+			localDateRef.current = advanced;
 
-			const localDate = new Date(date.toISOString());
-			localDate.setHours(
-				localDate.getHours() + parseInt(timeZoneOffsetRef.current, 10),
+			const date = new Date(
+				advanced.getTime() -
+					parseInt(timeZoneOffsetRef.current, 10) * 60 * 60 * 1000,
 			);
+
+			const localDate = advanced;
 
 			const newMinutes = localDate.getMinutes();
 

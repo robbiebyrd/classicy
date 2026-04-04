@@ -9,7 +9,7 @@ function makeValidStoredState(
 	return {
 		System: {
 			Manager: {
-				App: { apps: {} },
+				Applications: { apps: {} },
 				Desktop: {
 					selectedIcons: [],
 					contextMenu: [],
@@ -69,7 +69,7 @@ describe("dispatch", () => {
 			app: { id: "Calculator.app", name: "Calculator", icon: "" },
 		});
 		const state = useAppManager.getState();
-		const app = state.System.Manager.App.apps["Calculator.app"];
+		const app = state.System.Manager.Applications.apps["Calculator.app"];
 		expect(app).toBeDefined();
 		expect(app.open).toBe(true);
 		expect(app.id).toBe("Calculator.app");
@@ -83,7 +83,7 @@ describe("dispatch", () => {
 		});
 		dispatch({ type: "ClassicyAppClose", app: { id: "Notes.app" } });
 		const state = useAppManager.getState();
-		expect(state.System.Manager.App.apps["Notes.app"].open).toBe(false);
+		expect(state.System.Manager.Applications.apps["Notes.app"].open).toBe(false);
 	});
 
 	it("multiple dispatches accumulate correctly", () => {
@@ -98,8 +98,8 @@ describe("dispatch", () => {
 		dispatch({ type: "ClassicyAppClose", app: { id: "App1.app" } });
 
 		const state = useAppManager.getState();
-		expect(state.System.Manager.App.apps["App1.app"].open).toBe(false);
-		expect(state.System.Manager.App.apps["App2.app"].open).toBe(true);
+		expect(state.System.Manager.Applications.apps["App1.app"].open).toBe(false);
+		expect(state.System.Manager.Applications.apps["App2.app"].open).toBe(true);
 	});
 });
 
@@ -142,7 +142,7 @@ describe("persistence lifecycle", () => {
 		const raw = localStorage.getItem("classicyDesktopState");
 		expect(raw).not.toBeNull();
 		const parsed = JSON.parse(raw ?? "");
-		expect(parsed.System.Manager.App.apps["Test.app"]).toBeDefined();
+		expect(parsed.System.Manager.Applications.apps["Test.app"]).toBeDefined();
 	});
 
 	it("does not write to localStorage before 500ms", () => {
@@ -203,7 +203,7 @@ describe("getInitialState — localStorage behaviour (via module re-import)", ()
 		// The DefaultAppManagerState is from ClassicyAppManager; the store was
 		// initialised from it, so Finder.app (seeded in default state) must exist.
 		const state = useAppManager.getState();
-		expect(state.System.Manager.App.apps["Finder.app"]).toBeDefined();
+		expect(state.System.Manager.Applications.apps["Finder.app"]).toBeDefined();
 	});
 
 	it("restores valid persisted state from localStorage", async () => {
@@ -211,9 +211,9 @@ describe("getInitialState — localStorage behaviour (via module re-import)", ()
 		// Add a sentinel app to distinguish from default state
 		(
 			stored.System as Record<string, unknown> & {
-				Manager: { App: { apps: Record<string, unknown> } };
+				Manager: { Applications: { apps: Record<string, unknown> } };
 			}
-		).Manager.App.apps["Persisted.app"] = {
+		).Manager.Applications.apps["Persisted.app"] = {
 			id: "Persisted.app",
 			name: "Persisted",
 			icon: "",
@@ -229,7 +229,7 @@ describe("getInitialState — localStorage behaviour (via module re-import)", ()
 		stopAppManagerPersistence();
 
 		const state = useAppManager.getState();
-		expect(state.System.Manager.App.apps["Persisted.app"]).toBeDefined();
+		expect(state.System.Manager.Applications.apps["Persisted.app"]).toBeDefined();
 	});
 
 	it("falls back to DefaultAppManagerState and calls console.error for malformed JSON", async () => {
@@ -248,18 +248,18 @@ describe("getInitialState — localStorage behaviour (via module re-import)", ()
 		);
 		// Falls back: Finder.app (from DefaultAppManagerState) must exist
 		const state = useAppManager.getState();
-		expect(state.System.Manager.App.apps["Finder.app"]).toBeDefined();
+		expect(state.System.Manager.Applications.apps["Finder.app"]).toBeDefined();
 
 		errorSpy.mockRestore();
 	});
 
-	it("falls back to DefaultAppManagerState and calls console.warn when System.Manager.App is missing", async () => {
+	it("falls back to DefaultAppManagerState and calls console.warn when System.Manager.Applications is missing", async () => {
 		const badState = makeValidStoredState();
 		delete (
 			badState.System as Record<string, unknown> & {
 				Manager: Record<string, unknown>;
 			}
-		).Manager.App;
+		).Manager.Applications;
 		localStorage.setItem("classicyDesktopState", JSON.stringify(badState));
 		const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
@@ -273,7 +273,7 @@ describe("getInitialState — localStorage behaviour (via module re-import)", ()
 			expect.stringContaining("Persisted state schema mismatch"),
 		);
 		const state = useAppManager.getState();
-		expect(state.System.Manager.App.apps["Finder.app"]).toBeDefined();
+		expect(state.System.Manager.Applications.apps["Finder.app"]).toBeDefined();
 
 		warnSpy.mockRestore();
 	});
@@ -298,7 +298,7 @@ describe("getInitialState — localStorage behaviour (via module re-import)", ()
 			expect.stringContaining("Persisted state schema mismatch"),
 		);
 		const state = useAppManager.getState();
-		expect(state.System.Manager.App.apps["Finder.app"]).toBeDefined();
+		expect(state.System.Manager.Applications.apps["Finder.app"]).toBeDefined();
 
 		warnSpy.mockRestore();
 	});

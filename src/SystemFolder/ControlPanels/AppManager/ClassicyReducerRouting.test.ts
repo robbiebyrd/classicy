@@ -33,7 +33,7 @@ function makeStore(): ClassicyStore {
 					appMenu: [],
 					selectBox: { size: [0, 0], start: [0, 0], active: false },
 				},
-				App: {
+				Applications: {
 					apps: {
 						"Finder.app": {
 							id: "Finder.app",
@@ -61,7 +61,7 @@ function makeStore(): ClassicyStore {
 describe("prefix routing: ClassicyWindow*", () => {
 	it("ClassicyWindowFocus routes to window handler — target window becomes focused", () => {
 		const ds = makeStore();
-		ds.System.Manager.App.apps["Finder.app"].windows = [
+		ds.System.Manager.Applications.apps["Finder.app"].windows = [
 			{
 				id: "w1",
 				closed: false,
@@ -86,10 +86,10 @@ describe("prefix routing: ClassicyWindow*", () => {
 			window: { id: "w1" },
 		});
 
-		const w1 = result.System.Manager.App.apps["Finder.app"].windows.find(
+		const w1 = result.System.Manager.Applications.apps["Finder.app"].windows.find(
 			(w) => w.id === "w1",
 		);
-		const w2 = result.System.Manager.App.apps["Finder.app"].windows.find(
+		const w2 = result.System.Manager.Applications.apps["Finder.app"].windows.find(
 			(w) => w.id === "w2",
 		);
 		expect(w1?.focused).toBe(true);
@@ -98,7 +98,7 @@ describe("prefix routing: ClassicyWindow*", () => {
 
 	it("ClassicyWindowClose routes to window handler — target window is marked closed", () => {
 		const ds = makeStore();
-		ds.System.Manager.App.apps["Finder.app"].windows = [
+		ds.System.Manager.Applications.apps["Finder.app"].windows = [
 			{
 				id: "w1",
 				closed: false,
@@ -115,7 +115,7 @@ describe("prefix routing: ClassicyWindow*", () => {
 			window: { id: "w1" },
 		});
 
-		const w1 = result.System.Manager.App.apps["Finder.app"].windows.find(
+		const w1 = result.System.Manager.Applications.apps["Finder.app"].windows.find(
 			(w) => w.id === "w1",
 		);
 		expect(w1?.closed).toBe(true);
@@ -195,13 +195,13 @@ describe("prefix routing: ClassicyApp*", () => {
 			app: { id: "Calculator.app", name: "Calculator", icon: "calc.png" },
 		});
 
-		expect(result.System.Manager.App.apps["Calculator.app"]).toBeDefined();
-		expect(result.System.Manager.App.apps["Calculator.app"].open).toBe(true);
+		expect(result.System.Manager.Applications.apps["Calculator.app"]).toBeDefined();
+		expect(result.System.Manager.Applications.apps["Calculator.app"].open).toBe(true);
 	});
 
 	it("ClassicyAppClose routes to app handler — app is marked as closed", () => {
 		const ds = makeStore();
-		ds.System.Manager.App.apps["Notes.app"] = {
+		ds.System.Manager.Applications.apps["Notes.app"] = {
 			id: "Notes.app",
 			name: "Notes",
 			icon: "",
@@ -216,8 +216,8 @@ describe("prefix routing: ClassicyApp*", () => {
 			app: { id: "Notes.app" },
 		});
 
-		expect(result.System.Manager.App.apps["Notes.app"].open).toBe(false);
-		expect(result.System.Manager.App.apps["Notes.app"].focused).toBe(false);
+		expect(result.System.Manager.Applications.apps["Notes.app"].open).toBe(false);
+		expect(result.System.Manager.Applications.apps["Notes.app"].focused).toBe(false);
 	});
 });
 
@@ -269,8 +269,8 @@ describe("ClassicyAppFinderOpenFile cross-app orchestration", () => {
 			},
 		});
 
-		expect(result.System.Manager.App.apps["MoviePlayer.app"]).toBeDefined();
-		expect(result.System.Manager.App.apps["MoviePlayer.app"].open).toBe(true);
+		expect(result.System.Manager.Applications.apps["MoviePlayer.app"]).toBeDefined();
+		expect(result.System.Manager.Applications.apps["MoviePlayer.app"].open).toBe(true);
 	});
 
 	it("opens MoviePlayer when _data is already a parsed object (not a JSON string)", () => {
@@ -289,8 +289,8 @@ describe("ClassicyAppFinderOpenFile cross-app orchestration", () => {
 			},
 		});
 
-		expect(result.System.Manager.App.apps["MoviePlayer.app"]).toBeDefined();
-		expect(result.System.Manager.App.apps["MoviePlayer.app"].open).toBe(true);
+		expect(result.System.Manager.Applications.apps["MoviePlayer.app"]).toBeDefined();
+		expect(result.System.Manager.Applications.apps["MoviePlayer.app"].open).toBe(true);
 	});
 
 	it("does NOT open MoviePlayer when file has no _creator field", () => {
@@ -307,7 +307,7 @@ describe("ClassicyAppFinderOpenFile cross-app orchestration", () => {
 			},
 		});
 
-		expect(result.System.Manager.App.apps["MoviePlayer.app"]).toBeUndefined();
+		expect(result.System.Manager.Applications.apps["MoviePlayer.app"]).toBeUndefined();
 	});
 
 	it("does NOT open MoviePlayer when _data URL is not a valid http/https URL", () => {
@@ -325,7 +325,7 @@ describe("ClassicyAppFinderOpenFile cross-app orchestration", () => {
 			},
 		});
 
-		expect(result.System.Manager.App.apps["MoviePlayer.app"]).toBeUndefined();
+		expect(result.System.Manager.Applications.apps["MoviePlayer.app"]).toBeUndefined();
 	});
 
 	it("does NOT open MoviePlayer when _data is malformed JSON", () => {
@@ -339,7 +339,7 @@ describe("ClassicyAppFinderOpenFile cross-app orchestration", () => {
 			},
 		});
 
-		expect(result.System.Manager.App.apps["MoviePlayer.app"]).toBeUndefined();
+		expect(result.System.Manager.Applications.apps["MoviePlayer.app"]).toBeUndefined();
 	});
 
 	it("does NOT open MoviePlayer when file is missing entirely", () => {
@@ -349,7 +349,7 @@ describe("ClassicyAppFinderOpenFile cross-app orchestration", () => {
 			type: "ClassicyAppFinderOpenFile",
 		});
 
-		expect(result.System.Manager.App.apps["MoviePlayer.app"]).toBeUndefined();
+		expect(result.System.Manager.Applications.apps["MoviePlayer.app"]).toBeUndefined();
 	});
 });
 

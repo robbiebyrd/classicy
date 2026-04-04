@@ -1,7 +1,10 @@
-import diskIcon from "@img/icons/system/drives/disk.png";
-import directoryIcon from "@img/icons/system/folders/directory.png";
-import macIcon from "@img/icons/system/mac.png";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+const diskIcon = ClassicyIcons.system.drives.disk;
+const directoryIcon = ClassicyIcons.system.folders.directory;
+const macIcon = ClassicyIcons.system.mac;
+
 
 export const DefaultFSContent = {
 	"Macintosh HD": {

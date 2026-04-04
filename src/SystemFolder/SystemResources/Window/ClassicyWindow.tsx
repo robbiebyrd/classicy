@@ -7,7 +7,6 @@ import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/Clas
 import { ClassicyContextualMenu } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenu";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import "./ClassicyWindow.scss";
-import fileIcon from "@img/icons/system/files/file.png";
 import classNames from "classnames";
 import {
 	type FC as FunctionalComponent,
@@ -20,6 +19,10 @@ import {
 	useRef,
 	useState,
 } from "react";
+
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+const fileIcon = ClassicyIcons.system.files.file;
+
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
 interface ClassicyWindowProps {
@@ -76,7 +79,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	}
 
 	const currentApp = useAppManager(
-		(state) => state.System.Manager.App.apps[appId],
+		(state) => state.System.Manager.Applications.apps[appId],
 	);
 	const currentWindow = currentApp?.windows.find((w) => w.id === id);
 	const desktopEventDispatch = useAppManagerDispatch();
@@ -330,7 +333,6 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 
 	const setActive = useCallback(
 		(e?: MouseEvent<HTMLDivElement>) => {
-			e?.preventDefault();
 			track("focus", { type: "ClassicyWindow", ...analyticsArgs });
 			if (!ws.focused) {
 				player({ type: "ClassicySoundPlay", sound: "ClassicyWindowFocus" });

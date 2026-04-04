@@ -195,8 +195,31 @@ export const classicyDesktopIconEventHandler = (
 			const iconIdx = ds.System.Manager.Desktop.icons.findIndex(
 				(icon) => icon.appId === action.app.id,
 			);
-			if (iconIdx > -1) {
-				ds.System.Manager.Desktop.icons[iconIdx].location = action.location;
+			if (iconIdx === -1) break;
+
+			const selected = ds.System.Manager.Desktop.selectedIcons ?? [];
+			const oldLocation =
+				ds.System.Manager.Desktop.icons[iconIdx].location ?? [0, 0];
+			const newLocation: [number, number] = action.location;
+
+			if (selected.length > 1 && selected.includes(action.app.id)) {
+				const dx = newLocation[0] - oldLocation[0];
+				const dy = newLocation[1] - oldLocation[1];
+				for (const selId of selected) {
+					const selIdx = ds.System.Manager.Desktop.icons.findIndex(
+						(icon) => icon.appId === selId,
+					);
+					if (selIdx > -1) {
+						const selLoc =
+							ds.System.Manager.Desktop.icons[selIdx].location ?? [0, 0];
+						ds.System.Manager.Desktop.icons[selIdx].location = [
+							selLoc[0] + dx,
+							selLoc[1] + dy,
+						];
+					}
+				}
+			} else {
+				ds.System.Manager.Desktop.icons[iconIdx].location = newLocation;
 			}
 			break;
 		}

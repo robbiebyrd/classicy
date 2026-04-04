@@ -93,6 +93,26 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	};
 	const iconId = useId();
 
+	const labelEl = (
+		<p className={classNames(invisible ? "classicyIconInvisible" : "")}>
+			{label ? label : name}
+		</p>
+	);
+
+	const iconEl = (
+		<div
+			className={classNames(
+				"classicyIconMaskOuter",
+				invisible ? "classicyIconInvisible" : "",
+			)}
+			style={{ maskImage: `url(${icon})` }}
+		>
+			<div className={"classicyIconMask"} style={{ mask: `url(${icon})` }}>
+				<img src={icon} alt={name} />
+			</div>
+		</div>
+	);
+
 	return (
 		// biome-ignore lint/a11y/useSemanticElements: icon is a draggable div with ref and complex mouse handling incompatible with <button>
 		<div
@@ -123,20 +143,8 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 			onMouseUp={stopChangeIcon}
 			onDoubleClick={doDoubleClick}
 		>
-			<p className={classNames(invisible ? "classicyIconInvisible" : "")}>
-				{label ? label : name}
-			</p>
-			<div
-				className={classNames(
-					"classicyIconMaskOuter",
-					invisible ? "classicyIconInvisible" : "",
-				)}
-				style={{ maskImage: `url(${icon})` }}
-			>
-				<div className={"classicyIconMask"} style={{ mask: `url(${icon})` }}>
-					<img src={icon} alt={name} />
-				</div>
-			</div>
+			{labelPosition === "above" ? labelEl : iconEl}
+			{labelPosition === "above" ? iconEl : labelEl}
 		</div>
 	);
 };

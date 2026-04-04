@@ -1,4 +1,3 @@
-import appleMenuIcon from "@img/icons/system/apple.png";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -21,6 +20,10 @@ import {
 	useRef,
 } from "react";
 
+
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+const appleMenuIcon = ClassicyIcons.system.apple;
+
 export const ClassicyDesktopMenuBar: FunctionalComponent = () => {
 	return (
 		<ClassicyMenuProvider>
@@ -30,7 +33,7 @@ export const ClassicyDesktopMenuBar: FunctionalComponent = () => {
 };
 
 const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
-	const apps = useAppManager((s) => s.System.Manager.App.apps);
+	const apps = useAppManager((s) => s.System.Manager.Applications.apps);
 	const systemMenu = useAppManager((s) => s.System.Manager.Desktop.systemMenu);
 	const appMenu = useAppManager((s) => s.System.Manager.Desktop.appMenu);
 	const desktopEventDispatch = useAppManagerDispatch();

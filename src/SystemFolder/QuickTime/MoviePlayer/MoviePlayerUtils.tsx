@@ -1,4 +1,5 @@
-import appIcon from "@img/icons/system/quicktime/player.png";
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+const appIcon = ClassicyIcons.system.quicktime.player;
 
 export type QuickTimeMovieDocument = {
 	url: string;

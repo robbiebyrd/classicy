@@ -106,8 +106,8 @@ export const classicyWindowEventHandler = (
 		windowId: string,
 		updates: Partial<ClassicyStoreSystemAppWindow>,
 	) => {
-		if (!ds.System.Manager.App.apps[appId]) return ds;
-		ds.System.Manager.App.apps[appId].windows = ds.System.Manager.App.apps[
+		if (!ds.System.Manager.Applications.apps[appId]) return ds;
+		ds.System.Manager.Applications.apps[appId].windows = ds.System.Manager.Applications.apps[
 			appId
 		].windows.map((w: ClassicyStoreSystemAppWindow) =>
 			w.id === windowId ? { ...w, ...updates } : w,
@@ -117,8 +117,8 @@ export const classicyWindowEventHandler = (
 
 	switch (action.type) {
 		case "ClassicyWindowOpen": {
-			if (!ds.System.Manager.App.apps[action.app.id]) break;
-			const window = ds.System.Manager.App.apps[
+			if (!ds.System.Manager.Applications.apps[action.app.id]) break;
+			const window = ds.System.Manager.Applications.apps[
 				action.app.id
 			].windows.findIndex((w) => w.id === action.window.id);
 			if (window < 0) {
@@ -128,10 +128,10 @@ export const classicyWindowEventHandler = (
 					action.window.position[1] === 0
 				) {
 					const length =
-						ds.System.Manager.App.apps[action.app.id].windows.length * 10;
+						ds.System.Manager.Applications.apps[action.app.id].windows.length * 10;
 					paddedPosition = [30 + length, 30 + length];
 				}
-				ds.System.Manager.App.apps[action.app.id].windows.push({
+				ds.System.Manager.Applications.apps[action.app.id].windows.push({
 					...initialWindowState,
 					id: action.window.id,
 					minimumSize: action.window.minimumSize,
@@ -147,10 +147,10 @@ export const classicyWindowEventHandler = (
 			break;
 		}
 		case "ClassicyWindowFocus": {
-			if (!ds.System.Manager.App.apps[action.app.id]) break;
-			ds.System.Manager.App.apps[action.app.id].focused = true;
-			ds.System.Manager.App.apps[action.app.id].windows =
-				ds.System.Manager.App.apps[action.app.id].windows.map((w) => {
+			if (!ds.System.Manager.Applications.apps[action.app.id]) break;
+			ds.System.Manager.Applications.apps[action.app.id].focused = true;
+			ds.System.Manager.Applications.apps[action.app.id].windows =
+				ds.System.Manager.Applications.apps[action.app.id].windows.map((w) => {
 					w.focused = w.id === action.window.id;
 					if (w.focused) {
 						w.zOrder = Date.now();
@@ -169,7 +169,7 @@ export const classicyWindowEventHandler = (
 				closed: true,
 				focused: false,
 			});
-			const openWindows = ds.System.Manager.App.apps[
+			const openWindows = ds.System.Manager.Applications.apps[
 				action.app.id
 			]?.windows.filter((w) => !w.closed && w.id !== action.window.id);
 			if (openWindows?.length) {
@@ -182,10 +182,10 @@ export const classicyWindowEventHandler = (
 		}
 
 		case "ClassicyWindowDestroy": {
-			if (!ds.System.Manager.App.apps[action.app.id]) break;
+			if (!ds.System.Manager.Applications.apps[action.app.id]) break;
 			ds = updateWindow(action.app.id, action.window.id, { closed: true });
-			ds.System.Manager.App.apps[action.app.id].windows =
-				ds.System.Manager.App.apps[action.app.id].windows
+			ds.System.Manager.Applications.apps[action.app.id].windows =
+				ds.System.Manager.Applications.apps[action.app.id].windows
 					.map((w) => (w.id === action.window.id ? null : w))
 					.filter(notEmpty);
 			break;
@@ -196,9 +196,9 @@ export const classicyWindowEventHandler = (
 		}
 
 		case "ClassicyWindowResize": {
-			if (!ds.System.Manager.App.apps[action.app.id]) break;
-			ds.System.Manager.App.apps[action.app.id].windows =
-				ds.System.Manager.App.apps[action.app.id].windows.map((w) => {
+			if (!ds.System.Manager.Applications.apps[action.app.id]) break;
+			ds.System.Manager.Applications.apps[action.app.id].windows =
+				ds.System.Manager.Applications.apps[action.app.id].windows.map((w) => {
 					if (w.id === action.window.id) {
 						w.resizing = action.resizing;
 						w.size = action.size;
@@ -208,9 +208,9 @@ export const classicyWindowEventHandler = (
 			break;
 		}
 		case "ClassicyWindowDrag": {
-			if (!ds.System.Manager.App.apps[action.app.id]) break;
-			ds.System.Manager.App.apps[action.app.id].windows =
-				ds.System.Manager.App.apps[action.app.id].windows.map((w) => {
+			if (!ds.System.Manager.Applications.apps[action.app.id]) break;
+			ds.System.Manager.Applications.apps[action.app.id].windows =
+				ds.System.Manager.Applications.apps[action.app.id].windows.map((w) => {
 					if (w.id === action.window.id) {
 						w.dragging = action.dragging;
 					}
@@ -219,9 +219,9 @@ export const classicyWindowEventHandler = (
 			break;
 		}
 		case "ClassicyWindowZoom": {
-			if (!ds.System.Manager.App.apps[action.app.id]) break;
-			ds.System.Manager.App.apps[action.app.id].windows =
-				ds.System.Manager.App.apps[action.app.id].windows.map((w) => {
+			if (!ds.System.Manager.Applications.apps[action.app.id]) break;
+			ds.System.Manager.Applications.apps[action.app.id].windows =
+				ds.System.Manager.Applications.apps[action.app.id].windows.map((w) => {
 					if (w.id === action.window.id) {
 						w.zoomed = action.zoomed;
 					}
@@ -230,9 +230,9 @@ export const classicyWindowEventHandler = (
 			break;
 		}
 		case "ClassicyWindowCollapse": {
-			if (!ds.System.Manager.App.apps[action.app.id]) break;
-			ds.System.Manager.App.apps[action.app.id].windows =
-				ds.System.Manager.App.apps[action.app.id].windows.map((w) => {
+			if (!ds.System.Manager.Applications.apps[action.app.id]) break;
+			ds.System.Manager.Applications.apps[action.app.id].windows =
+				ds.System.Manager.Applications.apps[action.app.id].windows.map((w) => {
 					if (w.id === action.window.id) {
 						w.collapsed = true;
 					}
@@ -241,9 +241,9 @@ export const classicyWindowEventHandler = (
 			break;
 		}
 		case "ClassicyWindowExpand": {
-			if (!ds.System.Manager.App.apps[action.app.id]) break;
-			ds.System.Manager.App.apps[action.app.id].windows =
-				ds.System.Manager.App.apps[action.app.id].windows.map((w) => {
+			if (!ds.System.Manager.Applications.apps[action.app.id]) break;
+			ds.System.Manager.Applications.apps[action.app.id].windows =
+				ds.System.Manager.Applications.apps[action.app.id].windows.map((w) => {
 					if (w.id === action.window.id) {
 						w.collapsed = false;
 					}
@@ -252,9 +252,9 @@ export const classicyWindowEventHandler = (
 			break;
 		}
 		case "ClassicyWindowMove": {
-			if (!ds.System.Manager.App.apps[action.app.id]) break;
-			ds.System.Manager.App.apps[action.app.id].windows =
-				ds.System.Manager.App.apps[action.app.id].windows.map((w) => {
+			if (!ds.System.Manager.Applications.apps[action.app.id]) break;
+			ds.System.Manager.Applications.apps[action.app.id].windows =
+				ds.System.Manager.Applications.apps[action.app.id].windows.map((w) => {
 					if (w.id === action.window.id) {
 						w.position = action.position;
 						w.moving = action.moving;
@@ -264,9 +264,9 @@ export const classicyWindowEventHandler = (
 			break;
 		}
 		case "ClassicyWindowPosition": {
-			if (!ds.System.Manager.App.apps[action.app.id]) break;
-			ds.System.Manager.App.apps[action.app.id].windows =
-				ds.System.Manager.App.apps[action.app.id].windows.map((w) => {
+			if (!ds.System.Manager.Applications.apps[action.app.id]) break;
+			ds.System.Manager.Applications.apps[action.app.id].windows =
+				ds.System.Manager.Applications.apps[action.app.id].windows.map((w) => {
 					if (w.id === action.window.id) {
 						w.position = action.position as [number, number];
 					}

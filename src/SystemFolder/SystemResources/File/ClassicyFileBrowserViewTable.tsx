@@ -16,7 +16,8 @@ import type { ClassicyFileSystemEntryMetadata } from "@/SystemFolder/SystemResou
 
 const columnHelper = createColumnHelper<ClassicyFileSystemEntryMetadata>();
 
-import arrowUpIcon from "@img/ui/menu-dropdown-arrow-up.svg";
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+const arrowUpIcon = ClassicyIcons.ui.menuDropdownArrowUp;
 import {
 	type FC as FunctionalComponent,
 	memo,

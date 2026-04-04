@@ -29,6 +29,7 @@ export const useThemesTab = ({
 						<ClassicyPopUpMenu
 							id={"select_theme"}
 							label={"Selected Theme"}
+							labelPosition="left"
 							options={themesList}
 							onChangeFunc={switchTheme}
 							selected={activeThemeId || "default"}

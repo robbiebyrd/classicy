@@ -33,7 +33,7 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 	children,
 }) => {
 	const appContext = useAppManager(
-		(state) => state.System.Manager.App.apps[id],
+		(state) => state.System.Manager.Applications.apps[id],
 	);
 
 	const desktopEventDispatch = useAppManagerDispatch();
@@ -109,7 +109,10 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 	useEffect(() => {
 		if (appContext?.focused && defaultWindow) {
 			const anyWindowFocused = appContext?.windows?.some((w) => w.focused);
-			if (!anyWindowFocused) {
+			const defaultWindowExists = appContext?.windows?.some(
+				(w) => w.id === defaultWindow,
+			);
+			if (!anyWindowFocused && defaultWindowExists) {
 				desktopEventDispatch({
 					type: "ClassicyWindowFocus",
 					app: {

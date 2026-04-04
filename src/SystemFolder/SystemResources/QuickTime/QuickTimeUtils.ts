@@ -1,7 +1,8 @@
-import sound33Img from "@img/icons/control-panels/sound-manager/sound-33.png";
-import sound66Img from "@img/icons/control-panels/sound-manager/sound-66.png";
-import soundOffImg from "@img/icons/control-panels/sound-manager/sound-off.png";
-import soundOnImg from "@img/icons/control-panels/sound-manager/sound-on.png";
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+const sound33Img = ClassicyIcons.controlPanels.soundManager.sound33;
+const sound66Img = ClassicyIcons.controlPanels.soundManager.sound66;
+const soundOffImg = ClassicyIcons.controlPanels.soundManager.soundOff;
+const soundOnImg = ClassicyIcons.controlPanels.soundManager.soundOn;
 
 export function timeFriendly(seconds: number): string {
 	if (!Number.isFinite(seconds)) {

@@ -11,7 +11,6 @@ import { Finder } from "@/SystemFolder/Finder/Finder";
 import { getClassicyAboutWindow } from "@/SystemFolder/SystemResources/AboutWindow/ClassicyAboutWindowUtils";
 import { ClassicyContextualMenu } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenu";
 import "./ClassicyDesktop.scss";
-import macosIcon from "@img/icons/system/macos.png";
 import classNames from "classnames";
 import {
 	type CSSProperties,
@@ -28,6 +27,10 @@ import {
 import { ClassicyDesktopIcon } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIcon";
 import { ClassicyDesktopMenuBar } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+const macosIcon = ClassicyIcons.system.macos;
+
 import "../../ControlPanels/AppearanceManager/styles/fonts.scss";
 import "../../../index.css";
 

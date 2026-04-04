@@ -8,8 +8,8 @@ export const classicyFinderEventHandler = (
 	action: ActionMessage,
 ) => {
 	const appId = "Finder.app";
-	if (!ds.System.Manager.App.apps[appId]) return ds;
-	let appData = ds.System.Manager.App.apps[appId].data;
+	if (!ds.System.Manager.Applications.apps[appId]) return ds;
+	let appData = ds.System.Manager.Applications.apps[appId].data;
 
 	switch (action.type) {
 		case "ClassicyAppFinderOpenFolder": {
@@ -53,6 +53,13 @@ export const classicyFinderEventHandler = (
 			appData.openPaths = appData.openPaths.filter(
 				(p: string) => p !== action.path,
 			);
+
+			// Sync the window closed state so the desktop icon doesn't show as open
+			const windows = ds.System.Manager.Applications.apps[appId].windows;
+			const winIdx = windows.findIndex((w) => w.id === action.path);
+			if (winIdx !== -1) {
+				windows[winIdx] = { ...windows[winIdx], closed: true, focused: false };
+			}
 			break;
 		}
 		case "ClassicyAppFinderEmptyTrash": {
@@ -64,6 +71,6 @@ export const classicyFinderEventHandler = (
 			break;
 		}
 	}
-	ds.System.Manager.App.apps[appId].data = { ...appData };
+	ds.System.Manager.Applications.apps[appId].data = { ...appData };
 	return ds;
 };

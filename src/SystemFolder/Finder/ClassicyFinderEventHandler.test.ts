@@ -28,7 +28,7 @@ function makeStore(): ClassicyStore {
 					appMenu: [],
 					selectBox: { size: [0, 0], start: [0, 0], active: false },
 				},
-				App: {
+				Applications: {
 					apps: {
 						"Finder.app": {
 							id: "Finder.app",
@@ -53,13 +53,13 @@ function makeStore(): ClassicyStore {
 
 // Helper to get Finder's openPaths from a store
 function openPaths(ds: ClassicyStore): string[] {
-	return ds.System.Manager.App.apps["Finder.app"]?.data?.openPaths ?? [];
+	return ds.System.Manager.Applications.apps["Finder.app"]?.data?.openPaths ?? [];
 }
 
 describe("classicyFinderEventHandler — guard", () => {
 	it("returns ds unchanged when Finder.app is not registered", () => {
 		const ds = makeStore();
-		delete ds.System.Manager.App.apps["Finder.app"];
+		delete ds.System.Manager.Applications.apps["Finder.app"];
 
 		const result = classicyFinderEventHandler(ds, {
 			type: "ClassicyAppFinderOpenFolder",
@@ -67,7 +67,7 @@ describe("classicyFinderEventHandler — guard", () => {
 		});
 
 		expect(result).toBe(ds);
-		expect(ds.System.Manager.App.apps["Finder.app"]).toBeUndefined();
+		expect(ds.System.Manager.Applications.apps["Finder.app"]).toBeUndefined();
 	});
 });
 
@@ -86,7 +86,7 @@ describe("classicyFinderEventHandler — ClassicyAppFinderOpenFolder", () => {
 
 	it("adds path to existing openPaths", () => {
 		const ds = makeStore();
-		ds.System.Manager.App.apps["Finder.app"].data = {
+		ds.System.Manager.Applications.apps["Finder.app"].data = {
 			openPaths: ["/Users/existing"],
 		};
 
@@ -102,7 +102,7 @@ describe("classicyFinderEventHandler — ClassicyAppFinderOpenFolder", () => {
 
 	it("deduplicates when the same path is added twice", () => {
 		const ds = makeStore();
-		ds.System.Manager.App.apps["Finder.app"].data = {
+		ds.System.Manager.Applications.apps["Finder.app"].data = {
 			openPaths: ["/Users/test"],
 		};
 
@@ -133,7 +133,7 @@ describe("classicyFinderEventHandler — ClassicyAppFinderOpenFolders", () => {
 
 	it("deduplicates across existing paths and new paths", () => {
 		const ds = makeStore();
-		ds.System.Manager.App.apps["Finder.app"].data = { openPaths: ["/Users/a"] };
+		ds.System.Manager.Applications.apps["Finder.app"].data = { openPaths: ["/Users/a"] };
 
 		classicyFinderEventHandler(ds, {
 			type: "ClassicyAppFinderOpenFolders",
@@ -148,7 +148,7 @@ describe("classicyFinderEventHandler — ClassicyAppFinderOpenFolders", () => {
 
 	it("handles empty appData gracefully", () => {
 		const ds = makeStore();
-		ds.System.Manager.App.apps["Finder.app"].data = null as unknown as Record<
+		ds.System.Manager.Applications.apps["Finder.app"].data = null as unknown as Record<
 			string,
 			unknown
 		>;
@@ -165,7 +165,7 @@ describe("classicyFinderEventHandler — ClassicyAppFinderOpenFolders", () => {
 describe("classicyFinderEventHandler — ClassicyAppFinderCloseFolder", () => {
 	it("removes the specified path from openPaths", () => {
 		const ds = makeStore();
-		ds.System.Manager.App.apps["Finder.app"].data = {
+		ds.System.Manager.Applications.apps["Finder.app"].data = {
 			openPaths: ["/Users/a", "/Users/b"],
 		};
 
@@ -179,7 +179,7 @@ describe("classicyFinderEventHandler — ClassicyAppFinderCloseFolder", () => {
 
 	it("is a no-op when the path is not in openPaths", () => {
 		const ds = makeStore();
-		ds.System.Manager.App.apps["Finder.app"].data = { openPaths: ["/Users/a"] };
+		ds.System.Manager.Applications.apps["Finder.app"].data = { openPaths: ["/Users/a"] };
 
 		classicyFinderEventHandler(ds, {
 			type: "ClassicyAppFinderCloseFolder",
@@ -201,6 +201,43 @@ describe("classicyFinderEventHandler — ClassicyAppFinderCloseFolder", () => {
 		).not.toThrow();
 
 		expect(openPaths(ds)).toEqual([]);
+	});
+
+	it("marks the matching window as closed and unfocused", () => {
+		const ds = makeStore();
+		ds.System.Manager.Applications.apps["Finder.app"].data = {
+			openPaths: ["/Users/a"],
+		};
+		ds.System.Manager.Applications.apps["Finder.app"].windows = [
+			{ id: "/Users/a", closed: false, focused: true } as never,
+		];
+
+		classicyFinderEventHandler(ds, {
+			type: "ClassicyAppFinderCloseFolder",
+			path: "/Users/a",
+		});
+
+		const win = ds.System.Manager.Applications.apps["Finder.app"].windows[0];
+		expect(win.closed).toBe(true);
+		expect(win.focused).toBe(false);
+	});
+
+	it("does not modify windows when no window matches the closed path", () => {
+		const ds = makeStore();
+		ds.System.Manager.Applications.apps["Finder.app"].data = {
+			openPaths: ["/Users/a", "/Users/b"],
+		};
+		ds.System.Manager.Applications.apps["Finder.app"].windows = [
+			{ id: "/Users/b", closed: false, focused: false } as never,
+		];
+
+		classicyFinderEventHandler(ds, {
+			type: "ClassicyAppFinderCloseFolder",
+			path: "/Users/a",
+		});
+
+		const win = ds.System.Manager.Applications.apps["Finder.app"].windows[0];
+		expect(win.closed).toBe(false);
 	});
 });
 

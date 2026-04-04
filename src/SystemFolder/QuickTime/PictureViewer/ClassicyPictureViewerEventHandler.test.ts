@@ -46,7 +46,7 @@ function makeStore(): ClassicyStore {
 					appMenu: [],
 					selectBox: { size: [0, 0], start: [0, 0], active: false },
 				},
-				App: {
+				Applications: {
 					apps: {
 						"Finder.app": {
 							id: "Finder.app",
@@ -71,7 +71,7 @@ function makeStore(): ClassicyStore {
 
 function makeStoreWithPictureViewer(): ClassicyStore {
 	const ds = makeStore();
-	ds.System.Manager.App.apps["PictureViewer.app"] = {
+	ds.System.Manager.Applications.apps["PictureViewer.app"] = {
 		id: "PictureViewer.app",
 		name: "Picture Viewer",
 		icon: "picture-icon.png",
@@ -94,10 +94,10 @@ describe("classicyQuickTimePictureViewerEventHandler — ClassicyAppPictureViewe
 		});
 
 		expect(
-			result.System.Manager.App.apps["PictureViewer.app"].data.openFiles,
+			result.System.Manager.Applications.apps["PictureViewer.app"].data.openFiles,
 		).toHaveLength(1);
 		expect(
-			result.System.Manager.App.apps["PictureViewer.app"].data.openFiles[0].url,
+			result.System.Manager.Applications.apps["PictureViewer.app"].data.openFiles[0].url,
 		).toBe(doc.url);
 	});
 
@@ -115,7 +115,7 @@ describe("classicyQuickTimePictureViewerEventHandler — ClassicyAppPictureViewe
 		});
 
 		expect(
-			result.System.Manager.App.apps["PictureViewer.app"].data.openFiles,
+			result.System.Manager.Applications.apps["PictureViewer.app"].data.openFiles,
 		).toHaveLength(1);
 	});
 
@@ -128,7 +128,7 @@ describe("classicyQuickTimePictureViewerEventHandler — ClassicyAppPictureViewe
 			document: doc,
 		});
 
-		expect(result.System.Manager.App.apps["PictureViewer.app"].open).toBe(true);
+		expect(result.System.Manager.Applications.apps["PictureViewer.app"].open).toBe(true);
 	});
 });
 
@@ -146,13 +146,13 @@ describe("classicyQuickTimePictureViewerEventHandler — ClassicyAppPictureViewe
 		});
 
 		expect(
-			result.System.Manager.App.apps["PictureViewer.app"].data.openFiles,
+			result.System.Manager.Applications.apps["PictureViewer.app"].data.openFiles,
 		).toHaveLength(2);
 	});
 
 	it("filters out duplicates when bulk adding", () => {
 		const ds = makeStoreWithPictureViewer();
-		ds.System.Manager.App.apps["PictureViewer.app"].data.openFiles = [
+		ds.System.Manager.Applications.apps["PictureViewer.app"].data.openFiles = [
 			{ url: "http://example.com/a.png", name: "A" },
 		];
 
@@ -165,9 +165,9 @@ describe("classicyQuickTimePictureViewerEventHandler — ClassicyAppPictureViewe
 		});
 
 		expect(
-			result.System.Manager.App.apps["PictureViewer.app"].data.openFiles,
+			result.System.Manager.Applications.apps["PictureViewer.app"].data.openFiles,
 		).toHaveLength(2);
-		const urls = result.System.Manager.App.apps[
+		const urls = result.System.Manager.Applications.apps[
 			"PictureViewer.app"
 		].data.openFiles.map((f: { url: string }) => f.url);
 		expect(urls).toContain("http://example.com/a.png");
@@ -182,14 +182,14 @@ describe("classicyQuickTimePictureViewerEventHandler — ClassicyAppPictureViewe
 			documents: [{ url: "http://example.com/a.png", name: "A" }],
 		});
 
-		expect(result.System.Manager.App.apps["PictureViewer.app"].open).toBe(true);
+		expect(result.System.Manager.Applications.apps["PictureViewer.app"].open).toBe(true);
 	});
 });
 
 describe("classicyQuickTimePictureViewerEventHandler — ClassicyAppPictureViewerCloseDocument", () => {
 	it("removes a document by URL", () => {
 		const ds = makeStoreWithPictureViewer();
-		ds.System.Manager.App.apps["PictureViewer.app"].data.openFiles = [
+		ds.System.Manager.Applications.apps["PictureViewer.app"].data.openFiles = [
 			{ url: "http://example.com/a.png", name: "A" },
 			{ url: "http://example.com/b.png", name: "B" },
 		];
@@ -200,16 +200,16 @@ describe("classicyQuickTimePictureViewerEventHandler — ClassicyAppPictureViewe
 		});
 
 		expect(
-			result.System.Manager.App.apps["PictureViewer.app"].data.openFiles,
+			result.System.Manager.Applications.apps["PictureViewer.app"].data.openFiles,
 		).toHaveLength(1);
 		expect(
-			result.System.Manager.App.apps["PictureViewer.app"].data.openFiles[0].url,
+			result.System.Manager.Applications.apps["PictureViewer.app"].data.openFiles[0].url,
 		).toBe("http://example.com/b.png");
 	});
 
 	it("is a no-op when the document URL does not exist in openFiles", () => {
 		const ds = makeStoreWithPictureViewer();
-		ds.System.Manager.App.apps["PictureViewer.app"].data.openFiles = [
+		ds.System.Manager.Applications.apps["PictureViewer.app"].data.openFiles = [
 			{ url: "http://example.com/a.png", name: "A" },
 		];
 
@@ -219,7 +219,7 @@ describe("classicyQuickTimePictureViewerEventHandler — ClassicyAppPictureViewe
 		});
 
 		expect(
-			result.System.Manager.App.apps["PictureViewer.app"].data.openFiles,
+			result.System.Manager.Applications.apps["PictureViewer.app"].data.openFiles,
 		).toHaveLength(1);
 	});
 });
@@ -234,7 +234,7 @@ describe("classicyQuickTimePictureViewerEventHandler — auto-load when unregist
 			document: { url: "http://example.com/image.png" },
 		});
 
-		expect(result.System.Manager.App.apps["PictureViewer.app"]).toBeDefined();
+		expect(result.System.Manager.Applications.apps["PictureViewer.app"]).toBeDefined();
 	});
 
 	it("adds the document after auto-loading PictureViewer.app", () => {
@@ -247,10 +247,10 @@ describe("classicyQuickTimePictureViewerEventHandler — auto-load when unregist
 		});
 
 		expect(
-			result.System.Manager.App.apps["PictureViewer.app"].data.openFiles,
+			result.System.Manager.Applications.apps["PictureViewer.app"].data.openFiles,
 		).toHaveLength(1);
 		expect(
-			result.System.Manager.App.apps["PictureViewer.app"].data.openFiles[0].url,
+			result.System.Manager.Applications.apps["PictureViewer.app"].data.openFiles[0].url,
 		).toBe(doc.url);
 	});
 });

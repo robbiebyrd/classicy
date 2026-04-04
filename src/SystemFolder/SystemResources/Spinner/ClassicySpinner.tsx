@@ -16,6 +16,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
 const REPEAT_INTERVAL_MS = 100;
@@ -48,7 +49,7 @@ export const ClassicySpinner: FunctionalComponent<ClassicySpinnerProps> =
 			placeholder,
 			prefillValue,
 			minValue = 0,
-			maxValue,
+			maxValue = undefined,
 			disabled = false,
 			isDefault,
 			backgroundColor,
@@ -106,6 +107,13 @@ export const ClassicySpinner: FunctionalComponent<ClassicySpinnerProps> =
 				if (intervalRef.current !== null) clearInterval(intervalRef.current);
 			};
 		}, []);
+
+		const inputWidth = (() => {
+			const candidates = [String(minValue)];
+			if (maxValue !== undefined) candidates.push(String(maxValue));
+			const maxLen = Math.max(...candidates.map((s) => s.length));
+			return `${maxLen + 2}ch`;
+		})();
 
 		const notifyChange = (val: number) => {
 			onChangeFuncRef.current?.({
@@ -191,10 +199,14 @@ export const ClassicySpinner: FunctionalComponent<ClassicySpinnerProps> =
 							"classicySpinner",
 							isDefault ? "classicySpinnerDefault" : "",
 						)}
-						style={backgroundColor ? { backgroundColor } : undefined}
+						style={{
+							width: inputWidth,
+							...(backgroundColor ? { backgroundColor } : {}),
+						}}
 					/>
 					<div className={"classicySpinnerButtons"}>
 						<button
+							className="classicySpinnerButton"
 							type="button"
 							aria-label="Increment"
 							disabled={disabled}
@@ -202,9 +214,10 @@ export const ClassicySpinner: FunctionalComponent<ClassicySpinnerProps> =
 							onMouseUp={stopRepeat}
 							onMouseLeave={stopRepeat}
 						>
-							^
+							<img src={ClassicyIcons.ui.menuDropdownArrowUp} alt="Increment" />
 						</button>
 						<button
+							className="classicySpinnerButton"
 							type="button"
 							aria-label="Decrement"
 							disabled={disabled}
@@ -212,7 +225,7 @@ export const ClassicySpinner: FunctionalComponent<ClassicySpinnerProps> =
 							onMouseUp={stopRepeat}
 							onMouseLeave={stopRepeat}
 						>
-							v
+							<img src={ClassicyIcons.ui.menuDropdownArrowUp} alt="Decrement" style={{transform: "scaleY(-1)"}} />
 						</button>
 					</div>
 				</div>

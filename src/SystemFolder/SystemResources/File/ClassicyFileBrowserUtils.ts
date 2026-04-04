@@ -1,7 +1,10 @@
-import fileIcon from "@img/icons/system/files/file.png";
-import directoryIcon from "@img/icons/system/folders/directory.png";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { getIconSize } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconContext";
+
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+const fileIcon = ClassicyIcons.system.files.file;
+const directoryIcon = ClassicyIcons.system.folders.directory;
+
 
 export const capitalizeFirst = (s: string) => {
 	return s && String(s[0]).toUpperCase() + String(s).slice(1);

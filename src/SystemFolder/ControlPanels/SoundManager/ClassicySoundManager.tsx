@@ -1,6 +1,5 @@
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import "./ClassicySoundManager.scss";
-import appIcon from "@img/icons/control-panels/sound-manager/app.png";
 import {
 	type FC as FunctionalComponent,
 	useCallback,
@@ -18,6 +17,10 @@ import {
 	quitAppHelper,
 	quitMenuItemHelper,
 } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
+
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+const appIcon = ClassicyIcons.controlPanels.soundManager.app;
+
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyCheckbox } from "@/SystemFolder/SystemResources/Checkbox/ClassicyCheckbox";
 import { ClassicyControlGroup } from "@/SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup";

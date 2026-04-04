@@ -1,4 +1,3 @@
-import defaultDocumentIcon from "@img/icons/system/quicktime/movie.png";
 import { type FC as FunctionalComponent, useEffect, useMemo } from "react";
 import {
 	useAppManager,
@@ -13,12 +12,16 @@ import {
 	type QuickTimeMovieDocument,
 } from "./MoviePlayerUtils";
 
+
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+const defaultDocumentIcon = ClassicyIcons.system.quicktime.movie;
+
 export const MoviePlayer: FunctionalComponent = () => {
 	const { name: appName, id: appId, icon: appIcon } = MoviePlayerAppInfo;
 
 	const desktopEventDispatch = useAppManagerDispatch();
-	const appData = useAppManager((s) => s.System.Manager.App.apps[appId]?.data);
-	const appOpen = useAppManager((s) => s.System.Manager.App.apps[appId]?.open);
+	const appData = useAppManager((s) => s.System.Manager.Applications.apps[appId]?.data);
+	const appOpen = useAppManager((s) => s.System.Manager.Applications.apps[appId]?.open);
 
 	const openDocuments: QuickTimeMovieDocument[] = appData?.openFiles;
 

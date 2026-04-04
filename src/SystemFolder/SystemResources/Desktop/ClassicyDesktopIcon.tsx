@@ -43,6 +43,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 				0, 0,
 			]);
 			const [dragging, setDragging] = useState<boolean>(false);
+			const didDragRef = useRef(false);
 
 			const isSelected = useAppManager(
 				(s) => s.System.Manager.Desktop.selectedIcons?.includes(appId) ?? false,
@@ -54,10 +55,10 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 				return icon?.location ?? null;
 			});
 			const isOpen = useAppManager(
-				(s) => !!s.System.Manager.App.apps[appId]?.open,
+				(s) => !!s.System.Manager.Applications.apps[appId]?.open,
 			);
 			const finderWindows = useAppManager(
-				(s) => s.System.Manager.App.apps["Finder.app"]?.windows,
+				(s) => s.System.Manager.Applications.apps["Finder.app"]?.windows,
 			);
 			const desktopEventDispatch = useAppManagerDispatch();
 
@@ -69,6 +70,10 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 
 			const clickFocus = (e: MouseEvent<HTMLDivElement>) => {
 				e.stopPropagation();
+				if (didDragRef.current) {
+					didDragRef.current = false;
+					return;
+				}
 				track("focus", { type: "ClassicyDesktopIcon", ...analyticsArgs });
 				desktopEventDispatch({
 					type: "ClassicyDesktopIconFocus",
@@ -78,8 +83,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 
 			const changeIcon = (e: MouseEvent<HTMLDivElement>) => {
 				if (dragging) {
-					clickFocus(e);
-
+					didDragRef.current = true;
 					desktopEventDispatch({
 						type: "ClassicyDesktopIconMove",
 						app: {
@@ -146,6 +150,15 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 				}
 
 				track("move", { type: "ClassicyDesktopIcon", ...analyticsArgs });
+				didDragRef.current = false;
+
+				// If icon is not already selected, select just this one for the drag
+				if (!isSelected) {
+					desktopEventDispatch({
+						type: "ClassicyDesktopIconFocus",
+						iconId: appId,
+					});
+				}
 
 				const rect = iconRef.current.getBoundingClientRect();
 				setClickPosition([e.clientX - rect.left, e.clientY - rect.top]);

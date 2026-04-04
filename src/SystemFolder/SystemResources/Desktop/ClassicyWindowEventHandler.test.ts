@@ -28,7 +28,7 @@ function makeStore(): ClassicyStore {
 					appMenu: [],
 					selectBox: { size: [0, 0], start: [0, 0], active: false },
 				},
-				App: {
+				Applications: {
 					apps: {
 						"Finder.app": {
 							id: "Finder.app",
@@ -53,7 +53,7 @@ function makeStore(): ClassicyStore {
 
 function makeStoreWithWindows() {
 	const ds = makeStore();
-	ds.System.Manager.App.apps.TestApp = {
+	ds.System.Manager.Applications.apps.TestApp = {
 		id: "TestApp",
 		name: "Test",
 		icon: "",
@@ -105,7 +105,7 @@ describe("ClassicyWindowOpen", () => {
 				position: [150, 150],
 			},
 		});
-		const windows = ds.System.Manager.App.apps.TestApp.windows;
+		const windows = ds.System.Manager.Applications.apps.TestApp.windows;
 		expect(windows).toHaveLength(3);
 		expect(windows.find((w) => w.id === "w3")).toBeDefined();
 	});
@@ -122,7 +122,7 @@ describe("ClassicyWindowOpen", () => {
 				position: [50, 50],
 			},
 		});
-		const windows = ds.System.Manager.App.apps.TestApp.windows;
+		const windows = ds.System.Manager.Applications.apps.TestApp.windows;
 		expect(windows).toHaveLength(2);
 		// Original size is unchanged
 		expect(windows.find((w) => w.id === "w1")?.size).toEqual([400, 300]);
@@ -140,7 +140,7 @@ describe("ClassicyWindowOpen", () => {
 				position: [0, 0],
 			},
 		});
-		const w3 = ds.System.Manager.App.apps.TestApp.windows.find(
+		const w3 = ds.System.Manager.Applications.apps.TestApp.windows.find(
 			(w) => w.id === "w3",
 		);
 		expect(w3?.position[0]).toBeGreaterThan(0);
@@ -159,7 +159,7 @@ describe("ClassicyWindowOpen", () => {
 				position: [100, 100],
 			},
 		});
-		expect(ds.System.Manager.App.apps.NonExistentApp).toBeUndefined();
+		expect(ds.System.Manager.Applications.apps.NonExistentApp).toBeUndefined();
 	});
 });
 
@@ -171,7 +171,7 @@ describe("ClassicyWindowFocus", () => {
 			app: { id: "TestApp" },
 			window: { id: "w1", menuBar: [] },
 		});
-		const windows = ds.System.Manager.App.apps.TestApp.windows;
+		const windows = ds.System.Manager.Applications.apps.TestApp.windows;
 		expect(windows.find((w) => w.id === "w1")?.focused).toBe(true);
 		expect(windows.find((w) => w.id === "w2")?.focused).toBe(false);
 	});
@@ -183,7 +183,7 @@ describe("ClassicyWindowFocus", () => {
 			app: { id: "TestApp" },
 			window: { id: "w1", menuBar: [] },
 		});
-		expect(ds.System.Manager.App.apps.TestApp.focused).toBe(true);
+		expect(ds.System.Manager.Applications.apps.TestApp.focused).toBe(true);
 	});
 
 	it("updates appMenu when menuBar is provided on the window", () => {
@@ -218,7 +218,7 @@ describe("ClassicyWindowClose", () => {
 			window: { id: "w1" },
 		});
 		expect(
-			ds.System.Manager.App.apps.TestApp.windows.find((w) => w.id === "w1")
+			ds.System.Manager.Applications.apps.TestApp.windows.find((w) => w.id === "w1")
 				?.closed,
 		).toBe(true);
 	});
@@ -231,7 +231,7 @@ describe("ClassicyWindowClose", () => {
 			window: { id: "w1" },
 		});
 		expect(
-			ds.System.Manager.App.apps.TestApp.windows.find((w) => w.id === "w2")
+			ds.System.Manager.Applications.apps.TestApp.windows.find((w) => w.id === "w2")
 				?.closed,
 		).toBe(false);
 	});
@@ -245,7 +245,7 @@ describe("ClassicyWindowDestroy", () => {
 			app: { id: "TestApp" },
 			window: { id: "w1" },
 		});
-		const windows = ds.System.Manager.App.apps.TestApp.windows;
+		const windows = ds.System.Manager.Applications.apps.TestApp.windows;
 		expect(windows).toHaveLength(1);
 		expect(windows.find((w) => w.id === "w1")).toBeUndefined();
 	});
@@ -258,7 +258,7 @@ describe("ClassicyWindowDestroy", () => {
 			window: { id: "w1" },
 		});
 		expect(
-			ds.System.Manager.App.apps.TestApp.windows.find((w) => w.id === "w2"),
+			ds.System.Manager.Applications.apps.TestApp.windows.find((w) => w.id === "w2"),
 		).toBeDefined();
 	});
 });
@@ -285,7 +285,7 @@ describe("ClassicyWindowResize", () => {
 			resizing: true,
 			size: [800, 600],
 		});
-		const w1 = ds.System.Manager.App.apps.TestApp.windows.find(
+		const w1 = ds.System.Manager.Applications.apps.TestApp.windows.find(
 			(w) => w.id === "w1",
 		);
 		expect(w1?.size).toEqual([800, 600]);
@@ -302,7 +302,7 @@ describe("ClassicyWindowResize", () => {
 			size: [400, 300],
 		});
 		expect(
-			ds.System.Manager.App.apps.TestApp.windows.find((w) => w.id === "w1")
+			ds.System.Manager.Applications.apps.TestApp.windows.find((w) => w.id === "w1")
 				?.resizing,
 		).toBe(false);
 	});
@@ -318,7 +318,7 @@ describe("ClassicyWindowDrag", () => {
 			dragging: true,
 		});
 		expect(
-			ds.System.Manager.App.apps.TestApp.windows.find((w) => w.id === "w1")
+			ds.System.Manager.Applications.apps.TestApp.windows.find((w) => w.id === "w1")
 				?.dragging,
 		).toBe(true);
 	});
@@ -332,7 +332,7 @@ describe("ClassicyWindowDrag", () => {
 			dragging: false,
 		});
 		expect(
-			ds.System.Manager.App.apps.TestApp.windows.find((w) => w.id === "w1")
+			ds.System.Manager.Applications.apps.TestApp.windows.find((w) => w.id === "w1")
 				?.dragging,
 		).toBe(false);
 	});
@@ -348,7 +348,7 @@ describe("ClassicyWindowZoom", () => {
 			zoomed: true,
 		});
 		expect(
-			ds.System.Manager.App.apps.TestApp.windows.find((w) => w.id === "w1")
+			ds.System.Manager.Applications.apps.TestApp.windows.find((w) => w.id === "w1")
 				?.zoomed,
 		).toBe(true);
 	});
@@ -362,7 +362,7 @@ describe("ClassicyWindowZoom", () => {
 			zoomed: false,
 		});
 		expect(
-			ds.System.Manager.App.apps.TestApp.windows.find((w) => w.id === "w1")
+			ds.System.Manager.Applications.apps.TestApp.windows.find((w) => w.id === "w1")
 				?.zoomed,
 		).toBe(false);
 	});
@@ -377,7 +377,7 @@ describe("ClassicyWindowCollapse", () => {
 			window: { id: "w1" },
 		});
 		expect(
-			ds.System.Manager.App.apps.TestApp.windows.find((w) => w.id === "w1")
+			ds.System.Manager.Applications.apps.TestApp.windows.find((w) => w.id === "w1")
 				?.collapsed,
 		).toBe(true);
 	});
@@ -390,7 +390,7 @@ describe("ClassicyWindowCollapse", () => {
 			window: { id: "w1" },
 		});
 		expect(
-			ds.System.Manager.App.apps.TestApp.windows.find((w) => w.id === "w2")
+			ds.System.Manager.Applications.apps.TestApp.windows.find((w) => w.id === "w2")
 				?.collapsed,
 		).toBe(false);
 	});
@@ -400,7 +400,7 @@ describe("ClassicyWindowExpand", () => {
 	it("sets collapsed=false on a previously collapsed window", () => {
 		const ds = makeStoreWithWindows();
 		// First collapse w1
-		ds.System.Manager.App.apps.TestApp.windows[0].collapsed = true;
+		ds.System.Manager.Applications.apps.TestApp.windows[0].collapsed = true;
 
 		classicyWindowEventHandler(ds, {
 			type: "ClassicyWindowExpand",
@@ -408,15 +408,15 @@ describe("ClassicyWindowExpand", () => {
 			window: { id: "w1" },
 		});
 		expect(
-			ds.System.Manager.App.apps.TestApp.windows.find((w) => w.id === "w1")
+			ds.System.Manager.Applications.apps.TestApp.windows.find((w) => w.id === "w1")
 				?.collapsed,
 		).toBe(false);
 	});
 
 	it("does not affect other windows", () => {
 		const ds = makeStoreWithWindows();
-		ds.System.Manager.App.apps.TestApp.windows[0].collapsed = true;
-		ds.System.Manager.App.apps.TestApp.windows[1].collapsed = true;
+		ds.System.Manager.Applications.apps.TestApp.windows[0].collapsed = true;
+		ds.System.Manager.Applications.apps.TestApp.windows[1].collapsed = true;
 
 		classicyWindowEventHandler(ds, {
 			type: "ClassicyWindowExpand",
@@ -424,7 +424,7 @@ describe("ClassicyWindowExpand", () => {
 			window: { id: "w1" },
 		});
 		expect(
-			ds.System.Manager.App.apps.TestApp.windows.find((w) => w.id === "w2")
+			ds.System.Manager.Applications.apps.TestApp.windows.find((w) => w.id === "w2")
 				?.collapsed,
 		).toBe(true);
 	});
@@ -440,7 +440,7 @@ describe("ClassicyWindowMove", () => {
 			position: [300, 250],
 			moving: true,
 		});
-		const w1 = ds.System.Manager.App.apps.TestApp.windows.find(
+		const w1 = ds.System.Manager.Applications.apps.TestApp.windows.find(
 			(w) => w.id === "w1",
 		);
 		expect(w1?.position).toEqual([300, 250]);
@@ -457,7 +457,7 @@ describe("ClassicyWindowMove", () => {
 			moving: false,
 		});
 		expect(
-			ds.System.Manager.App.apps.TestApp.windows.find((w) => w.id === "w1")
+			ds.System.Manager.Applications.apps.TestApp.windows.find((w) => w.id === "w1")
 				?.moving,
 		).toBe(false);
 	});
@@ -472,7 +472,7 @@ describe("ClassicyWindowMove", () => {
 			moving: true,
 		});
 		expect(
-			ds.System.Manager.App.apps.TestApp.windows.find((w) => w.id === "w2")
+			ds.System.Manager.Applications.apps.TestApp.windows.find((w) => w.id === "w2")
 				?.position,
 		).toEqual([200, 200]);
 	});
@@ -487,7 +487,7 @@ describe("ClassicyWindowPosition", () => {
 			window: { id: "w1" },
 			position: [450, 350],
 		});
-		const w1 = ds.System.Manager.App.apps.TestApp.windows.find(
+		const w1 = ds.System.Manager.Applications.apps.TestApp.windows.find(
 			(w) => w.id === "w1",
 		);
 		expect(w1?.position).toEqual([450, 350]);
@@ -503,7 +503,7 @@ describe("ClassicyWindowPosition", () => {
 			position: [450, 350],
 		});
 		expect(
-			ds.System.Manager.App.apps.TestApp.windows.find((w) => w.id === "w2")
+			ds.System.Manager.Applications.apps.TestApp.windows.find((w) => w.id === "w2")
 				?.position,
 		).toEqual([200, 200]);
 	});

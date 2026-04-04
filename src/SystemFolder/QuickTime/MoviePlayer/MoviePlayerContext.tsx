@@ -24,17 +24,17 @@ export const classicyQuickTimeMoviePlayerEventHandler = (
 ) => {
 	const { id: appId } = MoviePlayerAppInfo;
 
-	if (!ds.System.Manager.App.apps[appId]) return ds;
+	if (!ds.System.Manager.Applications.apps[appId]) return ds;
 
-	if (!ds.System.Manager.App.apps[appId].data) {
-		ds.System.Manager.App.apps[appId].data = {};
+	if (!ds.System.Manager.Applications.apps[appId].data) {
+		ds.System.Manager.Applications.apps[appId].data = {};
 	}
 
-	if (!("openFiles" in ds.System.Manager.App.apps[appId].data)) {
-		ds.System.Manager.App.apps[appId].data.openFiles = [];
+	if (!("openFiles" in ds.System.Manager.Applications.apps[appId].data)) {
+		ds.System.Manager.Applications.apps[appId].data.openFiles = [];
 	}
 
-	const openDocUrls = ds.System.Manager.App.apps[appId]?.data.openFiles.map(
+	const openDocUrls = ds.System.Manager.Applications.apps[appId]?.data.openFiles.map(
 		(app: ClassicyQuickTimeDocument) => app.url,
 	);
 
@@ -47,8 +47,8 @@ export const classicyQuickTimeMoviePlayerEventHandler = (
 				Array.isArray(openDocUrls) &&
 				!openDocUrls.includes(action.document.url)
 			) {
-				ds.System.Manager.App.apps[appId].data.openFiles = [
-					...ds.System.Manager.App.apps[appId].data.openFiles,
+				ds.System.Manager.Applications.apps[appId].data.openFiles = [
+					...ds.System.Manager.Applications.apps[appId].data.openFiles,
 					action.document,
 				];
 				ds = classicyAppEventHandler(ds, {
@@ -65,8 +65,8 @@ export const classicyQuickTimeMoviePlayerEventHandler = (
 			if (!docs) {
 				break;
 			}
-			ds.System.Manager.App.apps[appId].data.openFiles = [
-				...ds.System.Manager.App.apps[appId].data.openFiles,
+			ds.System.Manager.Applications.apps[appId].data.openFiles = [
+				...ds.System.Manager.Applications.apps[appId].data.openFiles,
 				...docs,
 			];
 			ds = classicyAppEventHandler(ds, {
@@ -80,8 +80,8 @@ export const classicyQuickTimeMoviePlayerEventHandler = (
 				break;
 			}
 
-			ds.System.Manager.App.apps[appId].data.openFiles =
-				ds.System.Manager.App.apps[appId].data.openFiles.filter(
+			ds.System.Manager.Applications.apps[appId].data.openFiles =
+				ds.System.Manager.Applications.apps[appId].data.openFiles.filter(
 					(p: ClassicyQuickTimeDocument) => p.url !== action.document?.url,
 				);
 			break;

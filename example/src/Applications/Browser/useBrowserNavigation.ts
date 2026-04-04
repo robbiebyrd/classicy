@@ -1,38 +1,7 @@
 import React from "react";
 
-interface BrowserHistoryEntry {
-	url: string;
-	visitedAt: string;
-}
-
-const HISTORY_STORAGE_KEY = "Browser.app.visitedHistory";
 const PROXY_BASE = "http://localhost:8765";
 const DEFAULT_TIME = "20010911000000";
-const MAX_HISTORY = 500;
-
-const loadVisitedHistory = (): BrowserHistoryEntry[] => {
-	try {
-		const stored = localStorage.getItem(HISTORY_STORAGE_KEY);
-		return stored ? JSON.parse(stored) : [];
-	} catch (e) {
-		console.warn(
-			"[Browser] Visited history in localStorage is corrupt, resetting",
-			{ error: e },
-		);
-		localStorage.removeItem(HISTORY_STORAGE_KEY);
-		return [];
-	}
-};
-
-const saveVisitedHistory = (entries: BrowserHistoryEntry[]) => {
-	localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(entries));
-};
-
-const recordVisit = (url: string) => {
-	const entries = loadVisitedHistory();
-	entries.push({ url, visitedAt: new Date().toISOString() });
-	saveVisitedHistory(entries.slice(-MAX_HISTORY));
-};
 
 const PROXY_PORT = new URL(PROXY_BASE).port;
 
@@ -78,12 +47,14 @@ interface UseBrowserNavigationOptions {
 	defaultUrl: string;
 	archiveTime?: string;
 	onShowError: () => void;
+	onRecordVisit: (url: string) => void;
 }
 
 export const useBrowserNavigation = ({
 	defaultUrl,
 	archiveTime = DEFAULT_TIME,
 	onShowError,
+	onRecordVisit,
 }: UseBrowserNavigationOptions) => {
 	const [history, setHistory] = React.useState<string[]>([defaultUrl]);
 	const [historyIndex, setHistoryIndex] = React.useState(0);
@@ -143,9 +114,9 @@ export const useBrowserNavigation = ({
 
 	// Load default page on mount
 	React.useEffect(() => {
-		recordVisit(defaultUrl);
+		onRecordVisit(defaultUrl);
 		fetchPage(defaultUrl);
-	}, [defaultUrl, fetchPage]);
+	}, [defaultUrl, fetchPage, onRecordVisit]);
 
 	// Cleanup abort controller on unmount
 	React.useEffect(() => {
@@ -154,16 +125,32 @@ export const useBrowserNavigation = ({
 
 	const navigateTo = React.useCallback(
 		(url: string) => {
-			setHistoryIndex((prev) => {
-				const newIndex = prev + 1;
-				setHistory((h) => [...h.slice(0, newIndex), url]);
-				return newIndex;
+			// Skip if already on this page (normalize trailing slash and www.)
+			const normalize = (u: string) => {
+				try {
+					const parsed = new URL(u);
+					if (parsed.hostname.startsWith("www.")) {
+						parsed.hostname = parsed.hostname.slice(4);
+					}
+					return parsed.toString().replace(/\/+$/, "");
+				} catch {
+					return u.replace(/\/+$/, "");
+				}
+			};
+			setHistory((h) => {
+				const currentUrl = h[historyIndex];
+				if (currentUrl && normalize(currentUrl) === normalize(url)) {
+					return h;
+				}
+				const newHistory = [...h.slice(0, historyIndex + 1), url];
+				setHistoryIndex(newHistory.length - 1);
+				return newHistory;
 			});
 			setAddressBarValue(url);
-			recordVisit(url);
+			onRecordVisit(url);
 			fetchPage(url);
 		},
-		[fetchPage],
+		[fetchPage, onRecordVisit, historyIndex],
 	);
 
 	// Stable refs so handleContentClick doesn't churn
@@ -182,14 +169,17 @@ export const useBrowserNavigation = ({
 		historyIndexRef.current = historyIndex;
 	}, [historyIndex]);
 
-	const goTo = React.useCallback(() => {
-		const value = addressBarValue.trim();
-		if (!isNavigableUrl(value)) {
-			onShowError();
-			return;
-		}
-		navigateTo(value);
-	}, [addressBarValue, navigateTo, onShowError]);
+	const goTo = React.useCallback(
+		(urlOverride?: string) => {
+			const value = (urlOverride ?? addressBarValue).trim();
+			if (!isNavigableUrl(value)) {
+				onShowError();
+				return;
+			}
+			navigateTo(value);
+		},
+		[addressBarValue, navigateTo, onShowError],
+	);
 
 	const goBack = React.useCallback(() => {
 		if (!canGoBack) return;

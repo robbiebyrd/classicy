@@ -1,8 +1,5 @@
 import "./ClassicyDesktopMenuWidgetSound.scss";
 import "@/SystemFolder/SystemResources/Menu/ClassicyMenu.scss";
-import appIcon from "@img/icons/control-panels/sound-manager/app.png";
-import soundOffImg from "@img/icons/control-panels/sound-manager/sound-off.png";
-import soundOnImg from "@img/icons/control-panels/sound-manager/sound-on.png";
 import classNames from "classnames";
 import type {
 	FC as FunctionalComponent,
@@ -14,6 +11,12 @@ import {
 	useSound,
 	useSoundDispatch,
 } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
+
+
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+const appIcon = ClassicyIcons.controlPanels.soundManager.app;
+const soundOffImg = ClassicyIcons.controlPanels.soundManager.soundOff;
+const soundOnImg = ClassicyIcons.controlPanels.soundManager.soundOn;
 
 type ClassicyDesktopMenuWidgetSoundProps = {
 	hide?: boolean;

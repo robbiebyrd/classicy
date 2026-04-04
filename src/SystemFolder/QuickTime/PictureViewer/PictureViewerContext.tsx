@@ -16,22 +16,22 @@ export const classicyQuickTimePictureViewerEventHandler = (
 	action: classicyQuickTimeEvent,
 ) => {
 	const { id: appId } = PictureViewerAppInfo;
-	if (!ds.System.Manager.App.apps[appId]) {
+	if (!ds.System.Manager.Applications.apps[appId]) {
 		ds = classicyAppEventHandler(ds, {
 			type: "ClassicyAppLoad",
 			app: PictureViewerAppInfo,
 		});
 	}
 
-	if (!ds.System.Manager.App.apps[appId].data) {
-		ds.System.Manager.App.apps[appId].data = {};
+	if (!ds.System.Manager.Applications.apps[appId].data) {
+		ds.System.Manager.Applications.apps[appId].data = {};
 	}
 
-	if (!("openFiles" in ds.System.Manager.App.apps[appId].data)) {
-		ds.System.Manager.App.apps[appId].data.openFiles = [];
+	if (!("openFiles" in ds.System.Manager.Applications.apps[appId].data)) {
+		ds.System.Manager.Applications.apps[appId].data.openFiles = [];
 	}
 
-	const openDocUrls = ds.System.Manager.App.apps[appId].data.openFiles.map(
+	const openDocUrls = ds.System.Manager.Applications.apps[appId].data.openFiles.map(
 		(of: ClassicyQuickTimeDocument) => of.url,
 	);
 
@@ -41,8 +41,8 @@ export const classicyQuickTimePictureViewerEventHandler = (
 				Array.isArray(openDocUrls) &&
 				!openDocUrls.includes(action.document?.url)
 			) {
-				ds.System.Manager.App.apps[appId].data.openFiles = [
-					...ds.System.Manager.App.apps[appId].data.openFiles,
+				ds.System.Manager.Applications.apps[appId].data.openFiles = [
+					...ds.System.Manager.Applications.apps[appId].data.openFiles,
 					action.document,
 				];
 				ds = classicyAppEventHandler(ds, {
@@ -59,8 +59,8 @@ export const classicyQuickTimePictureViewerEventHandler = (
 			if (!docs) {
 				break;
 			}
-			ds.System.Manager.App.apps[appId].data.openFiles = [
-				...ds.System.Manager.App.apps[appId].data.openFiles,
+			ds.System.Manager.Applications.apps[appId].data.openFiles = [
+				...ds.System.Manager.Applications.apps[appId].data.openFiles,
 				...docs,
 			];
 			ds = classicyAppEventHandler(ds, {
@@ -70,8 +70,8 @@ export const classicyQuickTimePictureViewerEventHandler = (
 			break;
 		}
 		case "ClassicyAppPictureViewerCloseDocument": {
-			ds.System.Manager.App.apps[appId].data.openFiles =
-				ds.System.Manager.App.apps[appId].data.openFiles.filter(
+			ds.System.Manager.Applications.apps[appId].data.openFiles =
+				ds.System.Manager.Applications.apps[appId].data.openFiles.filter(
 					(p: ClassicyQuickTimeDocument) => p.url !== action.document?.url,
 				);
 			break;

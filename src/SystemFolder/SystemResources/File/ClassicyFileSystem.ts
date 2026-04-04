@@ -1,4 +1,3 @@
-import directoryIcon from "@img/icons/system/folders/directory.png";
 import { sha512 } from "sha512-crypt-ts";
 import {
 	type ClassicyFileSystemEntry,
@@ -7,6 +6,10 @@ import {
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { isValidFileSystemEntry } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemValidation";
 import { DefaultFSContent } from "@/SystemFolder/SystemResources/File/DefaultClassicyFileSystem";
+
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+const directoryIcon = ClassicyIcons.system.folders.directory;
+
 
 export type ClassicyPathOrFileSystemEntry = string | ClassicyFileSystemEntry;
 

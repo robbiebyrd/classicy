@@ -1,11 +1,5 @@
-import ccIcon from "@img/icons/system/quicktime/cc.png";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import "./QuickTimeMovieEmbed.scss";
-import backwardButton from "@img/icons/system/quicktime/backward-button.svg";
-import forwardButton from "@img/icons/system/quicktime/forward-button.svg";
-import fullscreenButton from "@img/icons/system/quicktime/fullscreen-button.svg";
-import pauseButton from "@img/icons/system/quicktime/pause-button.svg";
-import playButton from "@img/icons/system/quicktime/play-button.svg";
 import { parse } from "@plussub/srt-vtt-parser";
 import type { ParsedResult } from "@plussub/srt-vtt-parser/dist/types";
 import classNames from "classnames";
@@ -18,6 +12,15 @@ import {
 } from "react";
 import ReactPlayer from "react-player";
 import screenfull from "screenfull";
+
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+const ccIcon = ClassicyIcons.system.quicktime.cc;
+const backwardButton = ClassicyIcons.system.quicktime.backwardButton;
+const forwardButton = ClassicyIcons.system.quicktime.forwardButton;
+const fullscreenButton = ClassicyIcons.system.quicktime.fullscreenButton;
+const pauseButton = ClassicyIcons.system.quicktime.pauseButton;
+const playButton = ClassicyIcons.system.quicktime.playButton;
+
 import { isValidHttpUrl } from "@/SystemFolder/SystemResources/Utils/urlValidation";
 import { getVolumeIcon, timeFriendly } from "./QuickTimeUtils";
 
@@ -47,7 +50,7 @@ export const QuickTimeVideoEmbed: FunctionalComponent<QuickTimeVideoEmbed> = ({
 	muted,
 }) => {
 	const appWindows = useAppManager(
-		(s) => s.System.Manager.App.apps[appId]?.windows,
+		(s) => s.System.Manager.Applications.apps[appId]?.windows,
 	);
 
 	const [playing, setPlaying] = useState(autoPlay);

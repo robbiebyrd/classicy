@@ -14,7 +14,7 @@ vi.mock(
 							selectedIcons: [] as string[],
 							icons: [{ appId: "TestApp", location: [100, 200] }],
 						},
-						App: {
+						Applications: {
 							apps: {
 								"Finder.app": { windows: [] as unknown[] },
 								TestApp: { open: false },

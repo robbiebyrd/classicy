@@ -2,10 +2,9 @@
 @use '../../ControlPanels/AppearanceManager/styles/appearance';
 
 .classicyPopUpMenuSmall {
-  width: calc(var(--window-control-size) * 2.5) !important;
-  min-width: auto !important;
-  min-height: auto !important;
-  aspect-ratio: 1.5/1;
+  width: calc(var(--window-control-size) * 1.75) !important;
+  height: calc(var(--window-control-size) * 1.75) !important;
+  aspect-ratio: 1/1;
 
   select {
     width: 90%;

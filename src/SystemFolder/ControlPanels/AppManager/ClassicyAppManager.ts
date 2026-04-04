@@ -1,4 +1,3 @@
-import macosIcon from "@img/icons/system/macos.png";
 import {
 	type ClassicyStoreSystemAppearanceManager,
 	type ClassicyTheme,
@@ -19,6 +18,10 @@ import { classicyWindowEventHandler } from "@/SystemFolder/SystemResources/Deskt
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { isValidHttpUrl } from "@/SystemFolder/SystemResources/Utils/urlValidation";
 import themesData from "../AppearanceManager/styles/themes.json";
+
+
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+const macosIcon = ClassicyIcons.system.macos;
 
 type JsonPrimitive = string | number | boolean | null;
 type JsonObject = { [key: string]: JsonValue };
@@ -78,7 +81,7 @@ export interface ClassicyStoreSystem {
 	Manager: {
 		Desktop: ClassicyStoreSystemDesktopManager;
 		Sound: ClassicyStoreSystemSoundManager;
-		App: ClassicyStoreSystemAppManager;
+		Applications: ClassicyStoreSystemAppManager;
 		Appearance: ClassicyStoreSystemAppearanceManager;
 		DateAndTime: ClassicyStoreSystemDateAndTimeManager;
 	};
@@ -101,7 +104,7 @@ export interface ClassicyStoreSystemDateAndTimeManager
 export type ClassicyStoreSystemManager = {};
 
 export function deFocusApps(ds: ClassicyStore) {
-	Object.values(ds.System.Manager.App.apps).forEach((app) => {
+	Object.values(ds.System.Manager.Applications.apps).forEach((app) => {
 		app.focused = false;
 		app.windows.forEach((w) => {
 			w.focused = false;
@@ -112,12 +115,12 @@ export function deFocusApps(ds: ClassicyStore) {
 
 export function focusApp(ds: ClassicyStore, appId: string) {
 	ds = deFocusApps(ds);
-	if (ds.System.Manager.App.apps[appId]) {
-		ds.System.Manager.App.apps[appId].focused = true;
+	if (ds.System.Manager.Applications.apps[appId]) {
+		ds.System.Manager.Applications.apps[appId].focused = true;
 	}
-	const windows = ds.System.Manager.App.apps[appId]?.windows ?? [];
+	const windows = ds.System.Manager.Applications.apps[appId]?.windows ?? [];
 	const defaultIdx = windows.findIndex((w) => w.default);
-	const idx = defaultIdx >= 0 ? defaultIdx : windows.length === 1 ? 0 : -1;
+	const idx = defaultIdx >= 0 ? defaultIdx : windows.length > 0 ? windows.length - 1 : -1;
 	if (idx >= 0) {
 		windows[idx].closed = false;
 		windows[idx].focused = true;
@@ -134,7 +137,7 @@ export function openApp(
 	appName: string,
 	appIcon: string,
 ) {
-	const findApp = ds.System.Manager.App.apps[appId];
+	const findApp = ds.System.Manager.Applications.apps[appId];
 	if (findApp) {
 		findApp.open = true;
 		findApp.windows.forEach((w) => {
@@ -142,7 +145,7 @@ export function openApp(
 		});
 		focusApp(ds, appId);
 	} else {
-		ds.System.Manager.App.apps[appId] = {
+		ds.System.Manager.Applications.apps[appId] = {
 			id: appId,
 			name: appName,
 			icon: appIcon,
@@ -159,9 +162,9 @@ export function loadApp(
 	appName: string,
 	appIcon: string,
 ) {
-	const findApp = ds.System.Manager.App.apps[appId];
+	const findApp = ds.System.Manager.Applications.apps[appId];
 	if (!findApp) {
-		ds.System.Manager.App.apps[appId] = {
+		ds.System.Manager.Applications.apps[appId] = {
 			id: appId,
 			name: appName,
 			icon: appIcon,
@@ -173,7 +176,7 @@ export function loadApp(
 }
 
 export function closeApp(ds: ClassicyStore, appId: string) {
-	const findApp = ds.System.Manager.App.apps[appId];
+	const findApp = ds.System.Manager.Applications.apps[appId];
 	if (findApp) {
 		findApp.open = false;
 		findApp.focused = false;
@@ -184,7 +187,7 @@ export function closeApp(ds: ClassicyStore, appId: string) {
 }
 
 export function activateApp(ds: ClassicyStore, appId: string) {
-	Object.entries(ds.System.Manager.App.apps).forEach(([key, app]) => {
+	Object.entries(ds.System.Manager.Applications.apps).forEach(([key, app]) => {
 		app.focused = key === appId;
 		if (key !== appId) {
 			app.windows.forEach((w) => {
@@ -198,6 +201,28 @@ export function activateApp(ds: ClassicyStore, appId: string) {
 export type ActionMessage = Record<string, any> & {
 	type: string;
 };
+
+export type AppEventHandler = (
+	ds: ClassicyStore,
+	action: ActionMessage,
+) => ClassicyStore;
+
+const pluginEventHandlers: Array<{
+	prefix: string;
+	handler: AppEventHandler;
+}> = [];
+
+/**
+ * Register an event handler for a given action type prefix.
+ * Call this at module load time from your app's context file.
+ * Handlers are checked before the generic ClassicyApp* handler.
+ */
+export function registerAppEventHandler(
+	prefix: string,
+	handler: AppEventHandler,
+): void {
+	pluginEventHandlers.push({ prefix, handler });
+}
 
 export const classicyAppEventHandler = (
 	ds: ClassicyStore,
@@ -214,7 +239,7 @@ export const classicyAppEventHandler = (
 		}
 		case "ClassicyAppClose": {
 			closeApp(ds, action.app.id);
-			const openApps = Object.values(ds.System.Manager.App.apps).find(
+			const openApps = Object.values(ds.System.Manager.Applications.apps).find(
 				(value) => {
 					return value.open;
 				},
@@ -294,12 +319,20 @@ export const classicyDesktopStateEventReducer = (
 			ds = classicyDesktopEventHandler(ds, action);
 		} else if (action.type.startsWith("ClassicyManagerDateTime")) {
 			ds = classicyDateTimeManagerEventHandler(ds, action);
-		} else if (action.type.startsWith("ClassicyApp")) {
-			ds = classicyAppEventHandler(ds, action);
-		} else if (process.env.NODE_ENV !== "production") {
-			console.warn("[ClassicyDesktopStateEventReducer] Unhandled action type", {
-				type: action.type,
-			});
+		} else {
+			const plugin = pluginEventHandlers.find(({ prefix }) =>
+				action.type.startsWith(prefix),
+			);
+			if (plugin) {
+				ds = plugin.handler(ds, action);
+			} else if (action.type.startsWith("ClassicyApp")) {
+				ds = classicyAppEventHandler(ds, action);
+			} else if (process.env.NODE_ENV !== "production") {
+				console.warn(
+					"[ClassicyDesktopStateEventReducer] Unhandled action type",
+					{ type: action.type },
+				);
+			}
 		}
 	}
 
@@ -351,7 +384,7 @@ export const DefaultAppManagerState: ClassicyStore = {
 					active: false,
 				},
 			},
-			App: {
+			Applications: {
 				apps: {
 					"Finder.app": {
 						id: "Finder.app",

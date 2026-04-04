@@ -18,7 +18,7 @@ function getInitialState(): ClassicyStore {
 					!parsed ||
 					typeof parsed !== "object" ||
 					!("System" in parsed) ||
-					!parsed.System?.Manager?.App?.apps ||
+					!parsed.System?.Manager?.Applications?.apps ||
 					!parsed.System?.Manager?.Desktop ||
 					!parsed.System?.Manager?.Appearance?.activeTheme
 				) {

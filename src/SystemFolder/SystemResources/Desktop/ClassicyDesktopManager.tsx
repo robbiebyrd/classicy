@@ -79,7 +79,7 @@ export const classicyDesktopEventHandler = (
 			if ("e" in action && action.e.target.id === "classicyDesktop") {
 				deFocusApps(ds);
 
-				ds.System.Manager.App.apps["Finder.app"].focused = true;
+				ds.System.Manager.Applications.apps["Finder.app"].focused = true;
 				ds.System.Manager.Desktop.selectedIcons = [];
 				ds.System.Manager.Desktop.showContextMenu = false;
 				ds.System.Manager.Desktop.selectBox.active = true;

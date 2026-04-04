@@ -36,7 +36,7 @@ function makeStore(): ClassicyStore {
 					appMenu: [],
 					selectBox: { size: [0, 0], start: [0, 0], active: false },
 				},
-				App: {
+				Applications: {
 					apps: {
 						"Finder.app": {
 							id: "Finder.app",
@@ -62,7 +62,7 @@ function makeStore(): ClassicyStore {
 describe("deFocusApps", () => {
 	it("marks all apps and their windows as unfocused", () => {
 		const ds = makeStore();
-		ds.System.Manager.App.apps.TestApp = {
+		ds.System.Manager.Applications.apps.TestApp = {
 			id: "TestApp",
 			name: "Test",
 			icon: "",
@@ -83,16 +83,16 @@ describe("deFocusApps", () => {
 
 		deFocusApps(ds);
 
-		expect(ds.System.Manager.App.apps["Finder.app"].focused).toBe(false);
-		expect(ds.System.Manager.App.apps.TestApp.focused).toBe(false);
-		expect(ds.System.Manager.App.apps.TestApp.windows[0].focused).toBe(false);
+		expect(ds.System.Manager.Applications.apps["Finder.app"].focused).toBe(false);
+		expect(ds.System.Manager.Applications.apps.TestApp.focused).toBe(false);
+		expect(ds.System.Manager.Applications.apps.TestApp.windows[0].focused).toBe(false);
 	});
 });
 
 describe("focusApp", () => {
 	it("sets the target app as focused and others as unfocused", () => {
 		const ds = makeStore();
-		ds.System.Manager.App.apps["Notes.app"] = {
+		ds.System.Manager.Applications.apps["Notes.app"] = {
 			id: "Notes.app",
 			name: "Notes",
 			icon: "",
@@ -104,13 +104,13 @@ describe("focusApp", () => {
 
 		focusApp(ds, "Notes.app");
 
-		expect(ds.System.Manager.App.apps["Notes.app"].focused).toBe(true);
-		expect(ds.System.Manager.App.apps["Finder.app"].focused).toBe(false);
+		expect(ds.System.Manager.Applications.apps["Notes.app"].focused).toBe(true);
+		expect(ds.System.Manager.Applications.apps["Finder.app"].focused).toBe(false);
 	});
 
 	it("opens and focuses the default window when one exists", () => {
 		const ds = makeStore();
-		ds.System.Manager.App.apps["Notes.app"] = {
+		ds.System.Manager.Applications.apps["Notes.app"] = {
 			id: "Notes.app",
 			name: "Notes",
 			icon: "",
@@ -139,11 +139,54 @@ describe("focusApp", () => {
 
 		focusApp(ds, "Notes.app");
 
-		const mainWindow = ds.System.Manager.App.apps["Notes.app"].windows.find(
+		const mainWindow = ds.System.Manager.Applications.apps["Notes.app"].windows.find(
 			(w) => w.id === "main",
 		);
 		expect(mainWindow?.closed).toBe(false);
 		expect(mainWindow?.focused).toBe(true);
+	});
+
+	it("focuses the last window when no default window exists and multiple windows are present", () => {
+		const ds = makeStore();
+		ds.System.Manager.Applications.apps["Notes.app"] = {
+			id: "Notes.app",
+			name: "Notes",
+			icon: "",
+			open: true,
+			focused: false,
+			windows: [
+				{
+					id: "first",
+					closed: true,
+					size: [400, 300],
+					position: [0, 0],
+					minimumSize: [100, 100],
+				},
+				{
+					id: "second",
+					closed: true,
+					size: [400, 300],
+					position: [0, 0],
+					minimumSize: [100, 100],
+				},
+				{
+					id: "last",
+					closed: true,
+					size: [400, 300],
+					position: [0, 0],
+					minimumSize: [100, 100],
+				},
+			],
+			data: {},
+		};
+
+		focusApp(ds, "Notes.app");
+
+		const lastWindow = ds.System.Manager.Applications.apps["Notes.app"].windows.find(
+			(w) => w.id === "last",
+		);
+		expect(lastWindow?.closed).toBe(false);
+		expect(lastWindow?.focused).toBe(true);
 	});
 
 	it("does not throw when app does not exist", () => {
@@ -156,13 +199,13 @@ describe("openApp", () => {
 	it("creates a new app entry when app is not registered", () => {
 		const ds = makeStore();
 		openApp(ds, "Calculator.app", "Calculator", "calc-icon.png");
-		expect(ds.System.Manager.App.apps["Calculator.app"]).toBeDefined();
-		expect(ds.System.Manager.App.apps["Calculator.app"].open).toBe(true);
+		expect(ds.System.Manager.Applications.apps["Calculator.app"]).toBeDefined();
+		expect(ds.System.Manager.Applications.apps["Calculator.app"].open).toBe(true);
 	});
 
 	it("sets open=true and reopens windows for an existing app", () => {
 		const ds = makeStore();
-		ds.System.Manager.App.apps["Notes.app"] = {
+		ds.System.Manager.Applications.apps["Notes.app"] = {
 			id: "Notes.app",
 			name: "Notes",
 			icon: "",
@@ -182,8 +225,8 @@ describe("openApp", () => {
 
 		openApp(ds, "Notes.app", "Notes", "notes-icon.png");
 
-		expect(ds.System.Manager.App.apps["Notes.app"].open).toBe(true);
-		expect(ds.System.Manager.App.apps["Notes.app"].windows[0].closed).toBe(
+		expect(ds.System.Manager.Applications.apps["Notes.app"].open).toBe(true);
+		expect(ds.System.Manager.Applications.apps["Notes.app"].windows[0].closed).toBe(
 			false,
 		);
 	});
@@ -192,7 +235,7 @@ describe("openApp", () => {
 describe("closeApp", () => {
 	it("sets open=false and closes all windows", () => {
 		const ds = makeStore();
-		ds.System.Manager.App.apps["Notes.app"] = {
+		ds.System.Manager.Applications.apps["Notes.app"] = {
 			id: "Notes.app",
 			name: "Notes",
 			icon: "",
@@ -212,9 +255,9 @@ describe("closeApp", () => {
 
 		closeApp(ds, "Notes.app");
 
-		expect(ds.System.Manager.App.apps["Notes.app"].open).toBe(false);
-		expect(ds.System.Manager.App.apps["Notes.app"].focused).toBe(false);
-		expect(ds.System.Manager.App.apps["Notes.app"].windows[0].closed).toBe(
+		expect(ds.System.Manager.Applications.apps["Notes.app"].open).toBe(false);
+		expect(ds.System.Manager.Applications.apps["Notes.app"].focused).toBe(false);
+		expect(ds.System.Manager.Applications.apps["Notes.app"].windows[0].closed).toBe(
 			true,
 		);
 	});
@@ -223,7 +266,7 @@ describe("closeApp", () => {
 describe("activateApp", () => {
 	it("marks the target app as focused", () => {
 		const ds = makeStore();
-		ds.System.Manager.App.apps["Notes.app"] = {
+		ds.System.Manager.Applications.apps["Notes.app"] = {
 			id: "Notes.app",
 			name: "Notes",
 			icon: "",
@@ -235,12 +278,12 @@ describe("activateApp", () => {
 
 		activateApp(ds, "Notes.app");
 
-		expect(ds.System.Manager.App.apps["Notes.app"].focused).toBe(true);
+		expect(ds.System.Manager.Applications.apps["Notes.app"].focused).toBe(true);
 	});
 
 	it("marks all other apps as unfocused", () => {
 		const ds = makeStore();
-		ds.System.Manager.App.apps["Notes.app"] = {
+		ds.System.Manager.Applications.apps["Notes.app"] = {
 			id: "Notes.app",
 			name: "Notes",
 			icon: "",
@@ -249,16 +292,16 @@ describe("activateApp", () => {
 			windows: [],
 			data: {},
 		};
-		ds.System.Manager.App.apps["Finder.app"].focused = true;
+		ds.System.Manager.Applications.apps["Finder.app"].focused = true;
 
 		activateApp(ds, "Notes.app");
 
-		expect(ds.System.Manager.App.apps["Finder.app"].focused).toBe(false);
+		expect(ds.System.Manager.Applications.apps["Finder.app"].focused).toBe(false);
 	});
 
 	it("unfocuses windows of other apps", () => {
 		const ds = makeStore();
-		ds.System.Manager.App.apps["Finder.app"].windows = [
+		ds.System.Manager.Applications.apps["Finder.app"].windows = [
 			{
 				id: "w1",
 				closed: false,
@@ -268,7 +311,7 @@ describe("activateApp", () => {
 				minimumSize: [100, 100],
 			},
 		];
-		ds.System.Manager.App.apps["Notes.app"] = {
+		ds.System.Manager.Applications.apps["Notes.app"] = {
 			id: "Notes.app",
 			name: "Notes",
 			icon: "",
@@ -280,14 +323,14 @@ describe("activateApp", () => {
 
 		activateApp(ds, "Notes.app");
 
-		expect(ds.System.Manager.App.apps["Finder.app"].windows[0].focused).toBe(
+		expect(ds.System.Manager.Applications.apps["Finder.app"].windows[0].focused).toBe(
 			false,
 		);
 	});
 
 	it("does NOT change the windows of the target app (unlike focusApp)", () => {
 		const ds = makeStore();
-		ds.System.Manager.App.apps["Notes.app"] = {
+		ds.System.Manager.Applications.apps["Notes.app"] = {
 			id: "Notes.app",
 			name: "Notes",
 			icon: "",
@@ -309,7 +352,7 @@ describe("activateApp", () => {
 		activateApp(ds, "Notes.app");
 
 		// activateApp only sets app.focused — it does not touch the target app's windows
-		expect(ds.System.Manager.App.apps["Notes.app"].windows[0].focused).toBe(
+		expect(ds.System.Manager.Applications.apps["Notes.app"].windows[0].focused).toBe(
 			false,
 		);
 	});
@@ -319,7 +362,7 @@ describe("loadApp", () => {
 	it("registers an unknown app with open=false", () => {
 		const ds = makeStore();
 		loadApp(ds, "Calculator.app", "Calculator", "calc-icon.png");
-		const app = ds.System.Manager.App.apps["Calculator.app"];
+		const app = ds.System.Manager.Applications.apps["Calculator.app"];
 		expect(app).toBeDefined();
 		expect(app.open).toBe(false);
 		expect(app.id).toBe("Calculator.app");
@@ -329,7 +372,7 @@ describe("loadApp", () => {
 	it("is a no-op when the app is already registered", () => {
 		const ds = makeStore();
 		// Pre-register with open=true and custom name to verify state is not reset
-		ds.System.Manager.App.apps["Notes.app"] = {
+		ds.System.Manager.Applications.apps["Notes.app"] = {
 			id: "Notes.app",
 			name: "Original Name",
 			icon: "original-icon.png",
@@ -349,7 +392,7 @@ describe("loadApp", () => {
 
 		loadApp(ds, "Notes.app", "New Name", "new-icon.png");
 
-		const app = ds.System.Manager.App.apps["Notes.app"];
+		const app = ds.System.Manager.Applications.apps["Notes.app"];
 		expect(app.open).toBe(true);
 		expect(app.name).toBe("Original Name");
 		expect(app.windows).toHaveLength(1);
@@ -360,7 +403,7 @@ describe("focusApp — appMenu propagation", () => {
 	it("sets ds.System.Manager.Desktop.appMenu when the focused window has menuBar and is the default window", () => {
 		const ds = makeStore();
 		const menu = [{ id: "file", title: "File" }];
-		ds.System.Manager.App.apps["Notes.app"] = {
+		ds.System.Manager.Applications.apps["Notes.app"] = {
 			id: "Notes.app",
 			name: "Notes",
 			icon: "",
@@ -388,7 +431,7 @@ describe("focusApp — appMenu propagation", () => {
 	it("does not set ds.System.Manager.Desktop.appMenu when the focused window has no menuBar", () => {
 		const ds = makeStore();
 		ds.System.Manager.Desktop.appMenu = [];
-		ds.System.Manager.App.apps["Notes.app"] = {
+		ds.System.Manager.Applications.apps["Notes.app"] = {
 			id: "Notes.app",
 			name: "Notes",
 			icon: "",
@@ -429,14 +472,14 @@ describe("classicyDesktopStateEventReducer", () => {
 			type: "ClassicyAppOpen",
 			app: { id: "Calculator.app", name: "Calculator", icon: "" },
 		});
-		expect(result.System.Manager.App.apps["Calculator.app"]).toBeDefined();
-		expect(result.System.Manager.App.apps["Calculator.app"].open).toBe(true);
+		expect(result.System.Manager.Applications.apps["Calculator.app"]).toBeDefined();
+		expect(result.System.Manager.Applications.apps["Calculator.app"].open).toBe(true);
 	});
 
 	it("routes ClassicyWindowFocus: sets the target window and app as focused", () => {
 		const ds = makeStore();
-		ds.System.Manager.App.apps["Finder.app"].focused = false;
-		ds.System.Manager.App.apps["Finder.app"].windows = [
+		ds.System.Manager.Applications.apps["Finder.app"].focused = false;
+		ds.System.Manager.Applications.apps["Finder.app"].windows = [
 			{
 				id: "w1",
 				closed: false,
@@ -462,13 +505,13 @@ describe("classicyDesktopStateEventReducer", () => {
 		});
 
 		// The target app is now focused
-		expect(result.System.Manager.App.apps["Finder.app"].focused).toBe(true);
+		expect(result.System.Manager.Applications.apps["Finder.app"].focused).toBe(true);
 
 		// The target window is focused; the other window is not
-		const w1 = result.System.Manager.App.apps["Finder.app"].windows.find(
+		const w1 = result.System.Manager.Applications.apps["Finder.app"].windows.find(
 			(w) => w.id === "w1",
 		);
-		const w2 = result.System.Manager.App.apps["Finder.app"].windows.find(
+		const w2 = result.System.Manager.Applications.apps["Finder.app"].windows.find(
 			(w) => w.id === "w2",
 		);
 		expect(w1?.focused).toBe(true);

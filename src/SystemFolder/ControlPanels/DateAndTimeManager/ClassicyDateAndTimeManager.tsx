@@ -1,5 +1,4 @@
 import "./ClassicyDateAndTimeManager.scss";
-import appIcon from "@img/icons/control-panels/date-time-manager/date-time-manager.png";
 import {
 	type ChangeEvent,
 	type FC as FunctionalComponent,
@@ -16,6 +15,10 @@ import {
 	quitAppHelper,
 	quitMenuItemHelper,
 } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
+
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+const appIcon = ClassicyIcons.controlPanels.dateTimeManager.dateTimeManager;
+
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyControlGroup } from "@/SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup";
 import { ClassicyDatePicker } from "@/SystemFolder/SystemResources/DatePicker/ClassicyDatePicker";
@@ -26,6 +29,11 @@ import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWi
 
 const APP_ID = "DateAndTimeManager.app";
 const APP_NAME = "Date and Time Manager";
+
+const TIME_FORMAT_INPUTS = [
+	{ id: "12", label: "12-Hour", checked: true },
+	{ id: "24", label: "Military Time", disabled: true },
+];
 
 const TIMEZONES = [
 	{ label: "Pacific/Midway", value: "-11" },
@@ -185,6 +193,7 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
 								<ClassicyTimePicker
 									id={"time"}
 									labelTitle={""}
+									labelPosition="left"
 									onChangeFunc={updateSystemTime}
 									prefillValue={date}
 								></ClassicyTimePicker>
@@ -205,18 +214,7 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
 					<div className={"classicyDateAndTimeManagerColumn"}>
 						<ClassicyControlGroup label={"Time Format"}>
 							<ClassicyRadioInput
-								inputs={[
-									{
-										id: "12",
-										label: "12-Hour",
-										checked: true,
-									},
-									{
-										id: "24",
-										label: "Military Time",
-										disabled: true,
-									},
-								]}
+								inputs={TIME_FORMAT_INPUTS}
 								name={"period_selector"}
 							/>
 						</ClassicyControlGroup>

@@ -59,6 +59,7 @@
 .classicyLabelRight {
   display: flex;
   flex-direction: row-reverse;
+  justify-content: flex-end;
   align-items: center;
   gap: calc(var(--window-control-size) / 2);
 }

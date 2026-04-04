@@ -8,7 +8,7 @@
   ) !important;
   left: calc(var(--window-padding-size) * 2) !important;
   width: calc(
-    100% - (var(--window-padding-size) * 2)
+    100% - (var(--window-control-size) * 2) - (var(--window-padding-size) * 2)
   ) !important;
   height: calc(100vh - (var(--window-padding-size) * 1)) !important;
 }

@@ -6,12 +6,30 @@ import {
 	ClassicyInput,
 	ClassicyWindow,
 	quitAppHelper,
+	useAppManager,
 	useAppManagerDispatch,
 } from "classicy";
 import DOMPurify from "dompurify";
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import "./browser.scss";
+import "./BrowserContext";
 import { useBrowserNavigation } from "./useBrowserNavigation";
+
+interface BrowserFavorite {
+	id: string;
+	title: string;
+	url: string;
+	icon: string;
+}
+
+const DEFAULT_FAVORITES: BrowserFavorite[] = [
+	{
+		id: "cnn",
+		title: "CNN",
+		url: "http://www.cnn.com/",
+		icon: ClassicyIcons.applications.internetExplorer.news,
+	},
+];
 
 interface ShadowLinkClick {
 	href: string;
@@ -73,9 +91,49 @@ export const Browser = () => {
 	const appIcon = ClassicyIcons.applications.internetExplorer.app;
 
 	const desktopEventDispatch = useAppManagerDispatch();
+	const appState = useAppManager(
+		(state) => state.System.Manager.Applications.apps[appId],
+	);
+
+	const favorites: BrowserFavorite[] = appState?.data?.favorites ?? [];
+
+	const normalizeDomain = useCallback((url: string): string => {
+		try {
+			const hostname = new URL(url).hostname;
+			return hostname.startsWith("www.") ? hostname.slice(4) : hostname;
+		} catch {
+			return "";
+		}
+	}, []);
 
 	const defaultUrl = "http://www.apple.com/";
+	const defaultHomeLabel = "Apple";
+	const defaultHomeIcon = ClassicyIcons.applications.internetExplorer.apple;
+	const homePage = appState?.data?.homePage ?? {
+		url: defaultUrl,
+		label: defaultHomeLabel,
+		icon: defaultHomeIcon,
+	};
 
+	useEffect(() => {
+		if (!appState) return;
+		if (!appState.data?.favorites) {
+			desktopEventDispatch({
+				type: "ClassicyAppBrowserInitFavorites",
+				favorites: DEFAULT_FAVORITES,
+			});
+		}
+		if (!appState.data?.homePage) {
+			desktopEventDispatch({
+				type: "ClassicyAppBrowserSetHomePage",
+				url: defaultUrl,
+				label: defaultHomeLabel,
+				icon: defaultHomeIcon,
+			});
+		}
+	}, [appState, desktopEventDispatch, defaultHomeIcon]);
+
+	const [showFavoritesBar, setShowFavoritesBar] = React.useState(true);
 	const [urlError, setUrlError] = React.useState(false);
 	const refAddressBar = React.useRef<HTMLInputElement>(null);
 	const refToolbar = React.useRef<HTMLDivElement>(null);
@@ -90,6 +148,16 @@ export const Browser = () => {
 		});
 	}, [desktopEventDispatch]);
 
+	const recordVisit = useCallback(
+		(url: string) => {
+			desktopEventDispatch({
+				type: "ClassicyAppBrowserRecordVisit",
+				url,
+			});
+		},
+		[desktopEventDispatch],
+	);
+
 	const {
 		htmlContent,
 		pageTitle,
@@ -102,9 +170,22 @@ export const Browser = () => {
 		goTo,
 		goBack,
 		goForward,
-		refresh,
 		handleContentClick,
-	} = useBrowserNavigation({ defaultUrl, onShowError: showError });
+	} = useBrowserNavigation({
+		defaultUrl,
+		onShowError: showError,
+		onRecordVisit: recordVisit,
+	});
+
+	const windowIcon = useMemo(() => {
+		const currentDomain = normalizeDomain(addressBarValue);
+		if (!currentDomain) return appIcon;
+		if (normalizeDomain(homePage.url) === currentDomain) return homePage.icon;
+		const match = favorites.find(
+			(f) => normalizeDomain(f.url) === currentDomain,
+		);
+		return match ? match.icon : appIcon;
+	}, [addressBarValue, homePage, favorites, normalizeDomain, appIcon]);
 
 	// Hide button labels when toolbar is narrow
 	useEffect(() => {
@@ -133,8 +214,20 @@ export const Browser = () => {
 					},
 				],
 			},
+			{
+				id: "view",
+				title: "View",
+				menuChildren: [
+					{
+						id: `${appId}_show_favorites`,
+						title: "Show Favorites",
+						className: showFavoritesBar ? "browserMenuItemChecked" : "",
+						onClickFunc: () => setShowFavoritesBar((prev) => !prev),
+					},
+				],
+			},
 		],
-		[quitApp],
+		[quitApp, showFavoritesBar],
 	);
 
 	return (
@@ -168,6 +261,7 @@ export const Browser = () => {
 			<ClassicyWindow
 				id={"browser"}
 				title={pageTitle || appName}
+				icon={windowIcon}
 				appId={appId}
 				scrollable={false}
 				initialSize={[100, 500]}
@@ -176,7 +270,7 @@ export const Browser = () => {
 				growable={true}
 			>
 				<div className="browser">
-					<div className="browserToolbar" ref={refToolbar}>
+					<div className="browserBar browserToolbar" ref={refToolbar}>
 						<div className="browserToolbarInner">
 							<div className="browserToolbarControls">
 								<div className="browserNavButtons">
@@ -242,26 +336,42 @@ export const Browser = () => {
 										onEnterFunc={goTo}
 									></ClassicyInput>
 								</div>
-								<ClassicyButton onClickFunc={refresh}>
+								<ClassicyButton onClickFunc={(_) => goTo(undefined)}>
 									<div className="browserNavButtonContent browserHoverSwap">
 										<img
 											src={ClassicyIcons.applications.internetExplorer.refresh}
 											className="browserIconDefault"
-											alt="Refresh"
+											alt="Go"
 										/>
 										<img
 											src={
 												ClassicyIcons.applications.internetExplorer.refreshOn
 											}
 											className="browserIconHover"
-											alt="Refresh Hover"
+											alt="Go Hover"
 										/>
 										{!isCompact && (
-											<ClassicyControlLabel label="Refresh"></ClassicyControlLabel>
+											<ClassicyControlLabel label="Go"></ClassicyControlLabel>
 										)}
 									</div>
 								</ClassicyButton>
-								<ClassicyButton onClickFunc={goTo}>Go</ClassicyButton>
+								<ClassicyButton onClickFunc={() => goTo(homePage.url)}>
+									<div className="browserNavButtonContent browserHoverSwap">
+										<img
+											src={ClassicyIcons.applications.internetExplorer.documentHome}
+											className="browserIconDefault"
+											alt={homePage.label}
+										/>
+										<img
+											src={ClassicyIcons.applications.internetExplorer.documentHome}
+											className="browserIconHover"
+											alt={`${homePage.label} Hover`}
+										/>
+										{!isCompact && (
+											<ClassicyControlLabel label="Home"></ClassicyControlLabel>
+										)}
+									</div>
+								</ClassicyButton>
 							</div>
 						</div>
 						<img
@@ -274,6 +384,26 @@ export const Browser = () => {
 							alt="Loader"
 						/>
 					</div>
+					{showFavoritesBar && <div className="browserBar browserFavoritesBar">
+						<ClassicyControlLabel label="Favorites: "></ClassicyControlLabel>
+						{favorites.map((fav) => (
+							<ClassicyButton
+								key={fav.id}
+								onClickFunc={() => goTo(fav.url)}
+								buttonSize="small"
+							>
+								<div className="browserNavButtonContent">
+									<img src={fav.icon} alt={fav.title} />
+									{!isCompact && (
+										<ClassicyControlLabel
+											label={fav.title}
+											labelSize="small"
+										></ClassicyControlLabel>
+									)}
+								</div>
+							</ClassicyButton>
+						))}
+					</div>}
 					<div className="browserContents">
 						<ShadowContent
 							html={htmlContent}

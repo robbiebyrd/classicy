@@ -17,6 +17,17 @@ import {
 } from "classicy";
 import { useCallback, useEffect } from "react";
 
+const RADIO_INPUTS = [
+	{ id: "test1", isDefault: true, disabled: false, label: "Radio Button 1 (Default)", checked: false },
+	{ id: "test2", label: "Radio Button 2 (Regular)", checked: false },
+	{ id: "test3", mixed: true, label: "Radio Button 3 (Mixed)", checked: false },
+];
+
+const RADIO_INPUTS_DISABLED = [
+	{ id: "test4", disabled: true, label: "Radio Button 4 (Disabled)", checked: false },
+	{ id: "test5", disabled: true, mixed: true, label: "Radio Button 6 (Disabled + Checked + Mixed)", checked: true },
+];
+
 export const Demo: React.FC = () => {
 	const appName = "Demo";
 	const appId = "Demo.app";
@@ -65,7 +76,7 @@ export const Demo: React.FC = () => {
 			id={appId}
 			name={appName}
 			icon={appIcon}
-			defaultWindow={"demo"}
+			defaultWindow={"demo2"}
 			addSystemMenu={false}
 		>
 			<ClassicyWindow
@@ -138,45 +149,12 @@ export const Demo: React.FC = () => {
 				</div>
 				<ClassicyControlGroup label={"Test Radio Inputs"}>
 					<ClassicyRadioInput
-						inputs={[
-							{
-								id: "test1",
-								isDefault: true,
-								disabled: false,
-								label: "Radio Button 1 (Default)",
-								checked: false,
-							},
-							{
-								id: "test2",
-								label: "Radio Button 2 (Regular)",
-								checked: false,
-							},
-							{
-								id: "test3",
-								mixed: true,
-								label: "Radio Button 3 (Mixed)",
-								checked: false,
-							},
-						]}
+						inputs={RADIO_INPUTS}
 						name={"test_radio"}
 						label={"Radio Buttons"}
 					/>
 					<ClassicyRadioInput
-						inputs={[
-							{
-								id: "test4",
-								disabled: true,
-								label: "Radio Button 4 (Disabled)",
-								checked: false,
-							},
-							{
-								id: "test5",
-								disabled: true,
-								mixed: true,
-								label: "Radio Button 6 (Disabled + Checked + Mixed)",
-								checked: true,
-							},
-						]}
+						inputs={RADIO_INPUTS_DISABLED}
 						name={"test_radio_disabled"}
 						label={"Disabled Radio Buttons"}
 					/>
