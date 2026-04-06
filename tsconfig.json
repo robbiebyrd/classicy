@@ -1,53 +1,39 @@
 {
-  "compilerOptions": {
-    "target": "ESNext",
-    "useDefineForClassFields": true,
-    "lib": [
-      "ESNext",
-      "DOM",
-      "DOM.Iterable"
-    ],
-    "module": "ESNext",
-    "types": [
-      "vite/client"
-    ],
-    "declaration": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    /* Bundler mode */
-    "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
-    //    "verbatimModuleSyntax": true,
-    "moduleDetection": "force",
-    "noEmit": true,
-    "jsx": "react-jsx",
-    "declarationMap": true,
-    "outDir": "./dist/",
-    "sourceMap": true,
-    "allowSyntheticDefaultImports": true,
-    "resolveJsonModule": true,
-    //    "noImplicitReturns": true,
-    "noImplicitAny": true,
-    //    /* Linting */
-    //    "strict": true,
-    //    "noUnusedLocals": true,
-    //    "noUnusedParameters": true,
-    ////    "erasableSyntaxOnly": true,
-    "noFallthroughCasesInSwitch": true,
-    //    "noUncheckedSideEffectImports": true,
-    "paths": {
-      "@/*": [
-        "./src/*"
-      ],
-      "@snd/*": [
-        "./assets/sounds/*"
-      ],
-      "@img/*": [
-        "./assets/img/*"
-      ]
-    }
-  },
-  "exclude": [
-    "example/"
-  ],
+	"compilerOptions": {
+		"target": "ESNext",
+		"useDefineForClassFields": true,
+		"lib": ["ESNext", "DOM", "DOM.Iterable"],
+		"module": "ESNext",
+		"types": ["vite/client"],
+		"declaration": true,
+		"skipLibCheck": true,
+		"forceConsistentCasingInFileNames": true,
+		/* Bundler mode */
+		"moduleResolution": "bundler",
+		"allowImportingTsExtensions": true,
+		//    "verbatimModuleSyntax": true,
+		"moduleDetection": "force",
+		"noEmit": true,
+		"jsx": "react-jsx",
+		"declarationMap": true,
+		"outDir": "./dist/",
+		"sourceMap": true,
+		"allowSyntheticDefaultImports": true,
+		"resolveJsonModule": true,
+		//    "noImplicitReturns": true,
+		"noImplicitAny": true,
+		//    /* Linting */
+		//    "strict": true,
+		//    "noUnusedLocals": true,
+		//    "noUnusedParameters": true,
+		////    "erasableSyntaxOnly": true,
+		"noFallthroughCasesInSwitch": true,
+		//    "noUncheckedSideEffectImports": true,
+		"paths": {
+			"@/*": ["./src/*"],
+			"@snd/*": ["./assets/sounds/*"],
+			"@img/*": ["./assets/img/*"]
+		}
+	},
+	"exclude": ["example/"]
 }

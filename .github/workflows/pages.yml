@@ -1,0 +1,70 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24.x'
+
+      - name: Install FFMpeg
+        uses: FedericoCarboni/setup-ffmpeg@v3.1
+        with:
+          ffmpeg-version: release
+          linking-type: static
+
+      - name: Install library dependencies
+        run: npm install
+
+      - name: Build library
+        run: npm run build
+
+      - name: Link library
+        run: npm link
+
+      - name: Install example dependencies
+        working-directory: example
+        run: npm install
+
+      - name: Link classicy into example
+        working-directory: example
+        run: npm link classicy
+
+      - name: Build example app
+        working-directory: example
+        run: npx vite build --base /classicy/
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: example/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

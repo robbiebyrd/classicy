@@ -8,7 +8,7 @@
   ) !important;
   left: calc(var(--window-padding-size) * 2) !important;
   width: calc(
-    100% - (var(--window-padding-size) * 2)
+    100% - (var(--window-control-size) * 2) - (var(--window-padding-size) * 2)
   ) !important;
   height: calc(100vh - (var(--window-padding-size) * 1)) !important;
 }
@@ -47,6 +47,10 @@
   user-select: none;
   filter: contrast(0.6) brightness(1.25);
   @include scrollbars.scrollbars-inactive();
+}
+
+.classicyWindowActiveApp {
+  z-index: 150 !important;
 }
 
 .classicyWindowContentsDimmed {

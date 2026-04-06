@@ -12,7 +12,7 @@ Classicy is a React/TypeScript UI framework that replicates the Mac OS 8 (Platin
 npm install              # Install dependencies
 npm run build:source     # TypeScript + Vite build only (fastest iteration)
 npm run build            # Full build (audio sprites + source)
-npm run build:audio      # Generate audio sprites from resources/sounds/
+npm run build:audio      # Generate audio sprites from assets/sounds/
 npm run build:watch      # Watch mode: rebuilds source + audio on file changes
 npm run lint             # Run ESLint
 npm run preview          # Full build → npm link → run example app
@@ -98,7 +98,7 @@ Themes are JSON-based (`src/SystemFolder/ControlPanels/AppearanceManager/styles/
 
 - Uses **mise** for tool version management (`mise.toml`) — Node 24, ffmpeg 8.0.1
 - `npm run build:source` runs `generate-barrels` first — barrelsby auto-generates all `index.ts` barrel files. Don't manually edit barrel files.
-- Audio sprites generated via audiosprite from `resources/sounds/` directories
+- Audio sprites generated via audiosprite from `assets/sounds/` directories
 - Library outputs to `dist/` as `classicy.es.js` and `classicy.umd.js`
 - Consumers must import the CSS separately: `import 'classicy/dist/classicy.css'`
 - All styling uses SCSS files co-located with components — no Tailwind or inline styles for layout/presentation

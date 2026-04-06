@@ -1,8 +1,13 @@
 {
-  "delete": true,
-  "location": "top",
-  "structure": "flat",
-  "directory": ["./src"],
-  "noHeader": true,
-  "exclude": ["__tests__", "\\.test\\.tsx?$", "custom\\.d\\.ts", "\\s\\d+\\.ts$"]
+	"delete": true,
+	"location": "top",
+	"structure": "flat",
+	"directory": ["./src"],
+	"noHeader": true,
+	"exclude": [
+		"__tests__",
+		"\\.test\\.tsx?$",
+		"custom\\.d\\.ts",
+		"\\s\\d+\\.ts$"
+	]
 }

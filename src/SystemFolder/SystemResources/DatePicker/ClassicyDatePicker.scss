@@ -3,11 +3,8 @@
 
 .classicyDatePickerHolder {
   display: flex;
-  align-items: baseline;
-  flex-direction: row;
   width: calc(100% - var(--window-padding-size) * 2);
   padding: calc(var(--window-padding-size) + var(--window-border-size) * 2);
-  gap: 0;
 }
 
 .classicyDatePicker {

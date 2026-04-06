@@ -3,11 +3,8 @@
 
 .classicyTimePickerHolder {
   display: flex;
-  align-items: baseline;
-  flex-direction: row;
   width: calc(100% - var(--window-padding-size) * 2);
   padding: var(--window-padding-size);
-  gap: 0;
 }
 
 .classicyTimePicker {

@@ -1,35 +1,35 @@
 /* eslint-disable react-refresh/only-export-components -- Re-exporting utilities for backwards compatibility */
 import { useContext } from "react";
 import {
-  ClassicySoundManagerContext,
-  ClassicySoundDispatchContext,
+	ClassicySoundDispatchContext,
+	ClassicySoundManagerContext,
 } from "./ClassicySoundManagerUtils";
 
 // Re-export types and utilities for backwards compatibility
 export type {
-  ClassicyStoreSystemSoundManager,
-  ClassicyThemeSound,
-  ClassicySoundInfo,
-  ClassicySoundState,
-  ClassicySoundAction,
-  SoundData,
-  SoundPlayer,
+	ClassicySoundAction,
+	ClassicySoundInfo,
+	ClassicySoundState,
+	ClassicyStoreSystemSoundManager,
+	ClassicyThemeSound,
+	SoundData,
+	SoundPlayer,
 } from "./ClassicySoundManagerUtils";
 
 export {
-  ClassicySoundActionTypes,
-  createSoundPlayer,
-  initialPlayer,
-  loadSoundTheme,
-  ClassicySoundStateEventReducer,
-  ClassicySoundManagerContext,
-  ClassicySoundDispatchContext,
+	ClassicySoundActionTypes,
+	ClassicySoundDispatchContext,
+	ClassicySoundManagerContext,
+	ClassicySoundStateEventReducer,
+	createSoundPlayer,
+	initialPlayer,
+	loadSoundTheme,
 } from "./ClassicySoundManagerUtils";
 
 export function useSound() {
-  return useContext(ClassicySoundManagerContext);
+	return useContext(ClassicySoundManagerContext);
 }
 
 export function useSoundDispatch() {
-  return useContext(ClassicySoundDispatchContext);
+	return useContext(ClassicySoundDispatchContext);
 }

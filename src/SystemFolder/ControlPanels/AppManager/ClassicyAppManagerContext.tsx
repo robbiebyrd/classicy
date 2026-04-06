@@ -1,36 +1,40 @@
-import { ClassicySoundManagerProvider } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerProvider";
 import googleAnalytics from "@analytics/google-analytics";
 import googleTagManager from "@analytics/google-tag-manager";
-import Analytics, { AnalyticsPlugin } from "analytics";
-import { FC as FunctionalComponent, PropsWithChildren, useMemo } from "react";
+import Analytics, { type AnalyticsPlugin } from "analytics";
+import {
+	type FC as FunctionalComponent,
+	type PropsWithChildren,
+	useMemo,
+} from "react";
 import { AnalyticsProvider } from "use-analytics";
+import { ClassicySoundManagerProvider } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerProvider";
 
 type ClassicyAppManagerProviderProps = {
-  gaMeasurementIds?: string[];
-  gtmContainerId?: string;
-  appName?: string;
+	gaMeasurementIds?: string[];
+	gtmContainerId?: string;
+	appName?: string;
 };
 
 export const ClassicyAppManagerProvider: FunctionalComponent<
-  PropsWithChildren<ClassicyAppManagerProviderProps>
+	PropsWithChildren<ClassicyAppManagerProviderProps>
 > = ({ children, gtmContainerId, gaMeasurementIds, appName = "classicy" }) => {
-  const analytics = useMemo(() => {
-    const plugins: AnalyticsPlugin[] = [];
+	const analytics = useMemo(() => {
+		const plugins: AnalyticsPlugin[] = [];
 
-    if (gaMeasurementIds && gaMeasurementIds.length > 0) {
-      plugins.push(googleAnalytics({ measurementIds: gaMeasurementIds }));
-    }
+		if (gaMeasurementIds && gaMeasurementIds.length > 0) {
+			plugins.push(googleAnalytics({ measurementIds: gaMeasurementIds }));
+		}
 
-    if (gtmContainerId) {
-      plugins.push(googleTagManager({ containerId: gtmContainerId }));
-    }
+		if (gtmContainerId) {
+			plugins.push(googleTagManager({ containerId: gtmContainerId }));
+		}
 
-    return Analytics({ app: appName, plugins: plugins });
-  }, [appName, gaMeasurementIds, gtmContainerId]);
+		return Analytics({ app: appName, plugins: plugins });
+	}, [appName, gaMeasurementIds, gtmContainerId]);
 
-  return (
-    <AnalyticsProvider instance={analytics}>
-      <ClassicySoundManagerProvider>{children}</ClassicySoundManagerProvider>
-    </AnalyticsProvider>
-  );
+	return (
+		<AnalyticsProvider instance={analytics}>
+			<ClassicySoundManagerProvider>{children}</ClassicySoundManagerProvider>
+		</AnalyticsProvider>
+	);
 };
