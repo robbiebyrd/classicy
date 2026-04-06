@@ -11,7 +11,7 @@ import {
 } from "classicy";
 import DOMPurify from "dompurify";
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
-import "./browser.scss";
+import "./Browser.scss";
 import "./BrowserContext";
 import { useBrowserNavigation } from "./useBrowserNavigation";
 
