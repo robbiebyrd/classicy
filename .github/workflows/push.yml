@@ -36,14 +36,10 @@ jobs:
 
       - name: Install FFMpeg
         id: setup-ffmpeg
-        uses: FedericoCarboni/setup-ffmpeg@v3
+        uses: FedericoCarboni/setup-ffmpeg@v3.1
         with:
           ffmpeg-version: release
           linking-type: static
-
-      - name: List Directory
-        id: debug-list-directory
-        run: ls /home/runner/work/classicy/classicy/assets/img/icons/system/quicktime
 
       - name: Run Tests
         id: run-tests
@@ -62,6 +58,9 @@ jobs:
           default: patch
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 'Use newTag output'
+        run: echo "New version tag is ${{ steps.bump_version.outputs.newTag }}"
 
       - name: Select release codename
         if: steps.bump_version.outputs.newTag != ''
