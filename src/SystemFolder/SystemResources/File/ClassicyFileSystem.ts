@@ -258,7 +258,7 @@ export class ClassicyFileSystem {
 			value: string,
 		): string[] => {
 			let results: string[] = [];
-			for (const key in entry) {
+			for (const key of Object.keys(entry)) {
 				if (key === field && entry[key] === value) {
 					results.push(String(this.size(entry)));
 				} else if (typeof entry[key] === "object" && entry[key] !== null) {
@@ -333,6 +333,8 @@ export class ClassicyFileSystem {
 		target: ClassicyFileSystemEntry,
 	): ClassicyFileSystemEntry {
 		Object.keys(target).forEach((key) => {
+			if (key === "__proto__" || key === "constructor" || key === "prototype")
+				return;
 			const sourceKeyIsObject = source[key] instanceof Object;
 			const targetKeyIsObject = target[key] instanceof Object;
 
@@ -368,7 +370,12 @@ export class ClassicyFileSystem {
 		}
 
 		const updatedPath = pathToArray.pop();
-		if (updatedPath) {
+		if (
+			updatedPath &&
+			updatedPath !== "__proto__" &&
+			updatedPath !== "constructor" &&
+			updatedPath !== "prototype"
+		) {
 			delete fileSystem[updatedPath];
 		}
 

@@ -158,6 +158,10 @@ const sanitizeTimeParam = (rawTime: string | null): string => {
 const arcUrl = (url: string, time: string): string =>
 	`${prefix}/${time}/${url}`;
 
+// All archive fetches must target the configured prefix — this is the authoritative
+// check that prevents SSRF if the URL somehow bypasses upstream validation.
+const ARCHIVE_URL_PREFIX = `${prefix}/`;
+
 // --- Archive rate limiter ---
 
 const RETRYABLE_ERROR_CODES = new Set([
@@ -221,6 +225,10 @@ const fetchFromArchive = (
 	resourceType: ResourceType = "document",
 ): Promise<Response> =>
 	new Promise((resolve, reject) => {
+		if (!url.startsWith(ARCHIVE_URL_PREFIX)) {
+			reject(new Error(`Refusing to fetch non-archive URL: ${url}`));
+			return;
+		}
 		const attempt = () => {
 			if (activeFetches >= archiveMaxConcurrent) {
 				setTimeout(attempt, 50);
