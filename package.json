@@ -35,7 +35,8 @@
     "preview": "npm run build && npm link && cd example && npm i && npm link classicy && npm run build && npm run dev"
   },
   "files": [
-    "dist"
+    "dist",
+    "src/SystemFolder/ControlPanels/AppearanceManager/styles"
   ],
   "style": "./dist/classicy.css",
   "exports": {
@@ -45,7 +46,8 @@
       "require": "./dist/classicy.umd.js"
     },
     "./dist/classicy.css": "./dist/classicy.css",
-    "./dist/*": "./dist/*"
+    "./dist/*": "./dist/*",
+    "./scss/*": "./src/SystemFolder/ControlPanels/AppearanceManager/styles/*"
   },
   "dependencies": {
     "@analytics/google-tag-manager": "^0.6.0",
