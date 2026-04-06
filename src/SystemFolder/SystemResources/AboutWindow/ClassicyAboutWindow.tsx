@@ -4,6 +4,7 @@ import {
 	type MouseEventHandler,
 	useEffect,
 } from "react";
+import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
@@ -21,8 +22,15 @@ export const ClassicyAboutWindow: FunctionalComponent<
 	ClassicyAboutWindowProps
 > = ({ appId, appName, appIcon, hideFunc, appMenu }) => {
 	const { track } = useClassicyAnalytics();
+	const desktopEventDispatch = useAppManagerDispatch();
 
 	useEffect(() => {
+		desktopEventDispatch({
+			type: "ClassicyWindowFocus",
+			app: { id: appId },
+			window: { id: `${appId}_about` },
+		});
+
 		const analyticsArgs = {
 			type: "ClassicyAboutWindow",
 			appId,
@@ -30,7 +38,7 @@ export const ClassicyAboutWindow: FunctionalComponent<
 			appIcon,
 		};
 		track("open", analyticsArgs);
-	}, [track, appId, appName, appIcon]);
+	}, [track, desktopEventDispatch, appId, appName, appIcon]);
 
 	return (
 		<ClassicyWindow
@@ -48,8 +56,8 @@ export const ClassicyAboutWindow: FunctionalComponent<
 		>
 			<div className={"aboutWindow"}>
 				<img src={appIcon} alt="About" />
-				<h1>{appName}</h1>
-				<h5>Not Copyright &copy; 1997 Apple Computer, Inc.</h5>
+				<h1 style={{fontFamily: "var(--header-font)"}}>{appName}</h1>
+				<h5 style={{fontFamily: "var(--ui-font)"}}>Not Copyright &copy; 1997 Apple Computer, Inc.</h5>
 				<ClassicyButton onClickFunc={hideFunc}>OK</ClassicyButton>
 			</div>
 		</ClassicyWindow>

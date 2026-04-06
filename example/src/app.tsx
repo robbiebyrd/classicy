@@ -6,6 +6,7 @@ import { ClassicyAppManagerProvider, ClassicyDesktop } from "classicy";
 import { Browser } from "./Applications/Browser/Browser";
 import { Demo } from "./Applications/Demo/Demo";
 import SimpleText from "./Applications/SimpleText/SimpleText";
+import { BlueBox } from "./Applications/BlueBox/BlueBox";
 
 const rootElement = document.getElementById("root");
 if (!rootElement) throw new Error("Root element not found");
@@ -14,6 +15,7 @@ createRoot(rootElement).render(
 		<ClassicyAppManagerProvider>
 			<ClassicyDesktop>
 				<Browser />
+				<BlueBox />
 				<Demo />
 				<SimpleText />
 			</ClassicyDesktop>
