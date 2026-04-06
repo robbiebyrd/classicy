@@ -373,7 +373,16 @@ export class ClassicyFileSystem {
 		const pathToArray = path.split(":");
 
 		for (let i = 0; i < pathToArray.length - 1; i++) {
-			fileSystem = fileSystem[pathToArray[i]];
+			const segment = pathToArray[i];
+			if (
+				segment === "__proto__" ||
+				segment === "constructor" ||
+				segment === "prototype"
+			) {
+				// Avoid traversing into object prototypes
+				return;
+			}
+			fileSystem = fileSystem[segment];
 			if (typeof fileSystem === "undefined") {
 				return;
 			}
