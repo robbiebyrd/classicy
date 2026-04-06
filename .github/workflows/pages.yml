@@ -51,7 +51,7 @@ jobs:
 
       - name: Build example app
         working-directory: example
-        run: npx vite build --base /classicy/
+        run: npx vite build --base /
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
