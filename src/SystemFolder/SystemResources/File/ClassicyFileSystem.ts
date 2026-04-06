@@ -204,6 +204,16 @@ export class ClassicyFileSystem {
 		) => {
 			const [head, ...rest] = propPath.split(":");
 
+			// Prevent prototype pollution via special property names
+			if (
+				head === "__proto__" ||
+				head === "constructor" ||
+				head === "prototype"
+			) {
+				// Abort the write to avoid mutating Object.prototype
+				return;
+			}
+
 			if (rest.length) {
 				updateObjProp(
 					obj[head] as Record<string, unknown>,
