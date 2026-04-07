@@ -5,6 +5,7 @@ import {
 	type FC as FunctionalComponent,
 	memo,
 	type ReactNode,
+	type MouseEvent,
 	useCallback,
 	useContext,
 	useEffect,
@@ -124,7 +125,7 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 	const executeActionRef = useRef(executeAction);
 	executeActionRef.current = executeAction;
 
-	const handleClick = (e: React.MouseEvent) => {
+	const handleClick = (e: MouseEvent) => {
 		e.stopPropagation();
 		if (menuItem.disabled) return;
 
@@ -172,7 +173,7 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 			onKeyDown={(e: React.KeyboardEvent) => {
 				if (e.key === "Enter") {
 					e.preventDefault();
-					handleClick(e as unknown as React.MouseEvent);
+					handleClick(e as unknown as MouseEvent);
 				}
 			}}
 			onMouseEnter={handleMouseEnter}

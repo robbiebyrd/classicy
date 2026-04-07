@@ -1,4 +1,4 @@
-import React from "react";
+import {useState, useCallback, useRef, useEffect} from "react";
 
 const PROXY_BASE = "http://localhost:8765";
 const DEFAULT_TIME = "20010911000000";
@@ -56,19 +56,19 @@ export const useBrowserNavigation = ({
 	onShowError,
 	onRecordVisit,
 }: UseBrowserNavigationOptions) => {
-	const [history, setHistory] = React.useState<string[]>([defaultUrl]);
-	const [historyIndex, setHistoryIndex] = React.useState(0);
-	const [htmlContent, setHtmlContent] = React.useState<string>("");
-	const [addressBarValue, setAddressBarValue] = React.useState(defaultUrl);
-	const [isLoading, setIsLoading] = React.useState(true);
-	const [statusText, setStatusText] = React.useState("");
-	const [pageTitle, setPageTitle] = React.useState("");
-	const abortControllerRef = React.useRef<AbortController | null>(null);
+	const [history, setHistory] = useState<string[]>([defaultUrl]);
+	const [historyIndex, setHistoryIndex] = useState(0);
+	const [htmlContent, setHtmlContent] = useState<string>("");
+	const [addressBarValue, setAddressBarValue] = useState(defaultUrl);
+	const [isLoading, setIsLoading] = useState(true);
+	const [statusText, setStatusText] = useState("");
+	const [pageTitle, setPageTitle] = useState("");
+	const abortControllerRef = useRef<AbortController | null>(null);
 
 	const canGoBack = historyIndex > 0;
 	const canGoForward = historyIndex < history.length - 1;
 
-	const fetchPage = React.useCallback(
+	const fetchPage = useCallback(
 		async (url: string) => {
 			abortControllerRef.current?.abort();
 			const controller = new AbortController();
@@ -113,17 +113,17 @@ export const useBrowserNavigation = ({
 	);
 
 	// Load default page on mount
-	React.useEffect(() => {
+	useEffect(() => {
 		onRecordVisit(defaultUrl);
 		fetchPage(defaultUrl);
 	}, [defaultUrl, fetchPage, onRecordVisit]);
 
 	// Cleanup abort controller on unmount
-	React.useEffect(() => {
+	useEffect(() => {
 		return () => abortControllerRef.current?.abort();
 	}, []);
 
-	const navigateTo = React.useCallback(
+	const navigateTo = useCallback(
 		(url: string) => {
 			// Skip if already on this page (normalize trailing slash and www.)
 			const normalize = (u: string) => {
@@ -155,22 +155,22 @@ export const useBrowserNavigation = ({
 	);
 
 	// Stable refs so handleContentClick doesn't churn
-	const navigateToRef = React.useRef(navigateTo);
-	React.useEffect(() => {
+	const navigateToRef = useRef(navigateTo);
+	useEffect(() => {
 		navigateToRef.current = navigateTo;
 	}, [navigateTo]);
 
-	const historyRef = React.useRef(history);
-	React.useEffect(() => {
+	const historyRef = useRef(history);
+	useEffect(() => {
 		historyRef.current = history;
 	}, [history]);
 
-	const historyIndexRef = React.useRef(historyIndex);
-	React.useEffect(() => {
+	const historyIndexRef = useRef(historyIndex);
+	useEffect(() => {
 		historyIndexRef.current = historyIndex;
 	}, [historyIndex]);
 
-	const goTo = React.useCallback(
+	const goTo = useCallback(
 		(urlOverride?: string) => {
 			const value = (urlOverride ?? addressBarValue).trim();
 			if (!isNavigableUrl(value)) {
@@ -182,7 +182,7 @@ export const useBrowserNavigation = ({
 		[addressBarValue, navigateTo, onShowError],
 	);
 
-	const goBack = React.useCallback(() => {
+	const goBack = useCallback(() => {
 		if (!canGoBack) return;
 		const newIndex = historyIndex - 1;
 		setHistoryIndex(newIndex);
@@ -190,7 +190,7 @@ export const useBrowserNavigation = ({
 		fetchPage(history[newIndex]);
 	}, [canGoBack, historyIndex, history, fetchPage]);
 
-	const goForward = React.useCallback(() => {
+	const goForward = useCallback(() => {
 		if (!canGoForward) return;
 		const newIndex = historyIndex + 1;
 		setHistoryIndex(newIndex);
@@ -198,11 +198,11 @@ export const useBrowserNavigation = ({
 		fetchPage(history[newIndex]);
 	}, [canGoForward, historyIndex, history, fetchPage]);
 
-	const refresh = React.useCallback(() => {
+	const refresh = useCallback(() => {
 		fetchPage(history[historyIndex]);
 	}, [history, historyIndex, fetchPage]);
 
-	const handleContentClick = React.useCallback(
+	const handleContentClick = useCallback(
 		(link: { href: string; rawHref: string }) => {
 			if (!link.rawHref) return;
 

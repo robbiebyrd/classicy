@@ -1,15 +1,41 @@
+import { useCallback, useMemo } from "react";
 import {
 	ClassicyApp,
+	ClassicyFileSystem,
+	ClassicyFileSystemEntryFileType,
 	ClassicyIcons,
 	ClassicyRichTextEditor,
+	ClassicyTextEditor,
 	ClassicyWindow,
 	quitMenuItemHelper,
+	useAppManager,
+	useAppManagerDispatch,
 } from "classicy";
 
 const SimpleText = () => {
 	const appName = "SimpleText";
 	const appId = "SimpleText.app";
 	const appIcon = ClassicyIcons.applications.textedit.app;
+
+	const desktopEventDispatch = useAppManagerDispatch();
+	const appState = useAppManager(
+		(state) => state.System.Manager.Applications.apps[appId],
+	);
+
+	const fs = useMemo(() => new ClassicyFileSystem(), []);
+
+	const openFiles: string[] = appState?.data?.openFiles ?? [];
+
+	const closeFile = useCallback(
+		(path: string) => {
+			desktopEventDispatch({
+				type: `ClassicyApp${appName}CloseFile`,
+				app: { id: appId },
+				path,
+			});
+		},
+		[desktopEventDispatch],
+	);
 
 	const defaultText = `> *Here's to the crazy ones.*\n
 > *The misfits.*\n
@@ -47,6 +73,11 @@ const SimpleText = () => {
 			name={appName}
 			icon={appIcon}
 			defaultWindow={"simple-text-demo"}
+			handlesFileTypes={[
+				ClassicyFileSystemEntryFileType.TextFile,
+				ClassicyFileSystemEntryFileType.Markdown,
+			]}
+			handlesOwnFiles={true}
 		>
 			<ClassicyWindow
 				id={"simple-text-demo"}
@@ -56,8 +87,34 @@ const SimpleText = () => {
 				initialPosition={[350, 100]}
 				appMenu={appMenu}
 			>
-				<ClassicyRichTextEditor content={defaultText}></ClassicyRichTextEditor>
+				<ClassicyRichTextEditor content={defaultText} />
 			</ClassicyWindow>
+			{openFiles.map((filePath: string, idx: number) => {
+				const entry = fs.resolve(filePath);
+				const content =
+					typeof entry?._data === "string" ? entry._data : "";
+				const fileType = entry?._type as ClassicyFileSystemEntryFileType;
+				const fileName = filePath.split(":").pop() || filePath;
+
+				return (
+					<ClassicyWindow
+						key={`${appId}_file_${filePath}`}
+						id={`${appId}_file_${filePath}`}
+						title={fileName}
+						appId={appId}
+						initialSize={[400, 350]}
+						initialPosition={[200 + idx * 30, 100 + idx * 30]}
+						appMenu={appMenu}
+						onCloseFunc={() => closeFile(filePath)}
+					>
+						{fileType === ClassicyFileSystemEntryFileType.Markdown ? (
+							<ClassicyRichTextEditor content={content} />
+						) : (
+							<ClassicyTextEditor content={content} />
+						)}
+					</ClassicyWindow>
+				);
+			})}
 		</ClassicyApp>
 	);
 };

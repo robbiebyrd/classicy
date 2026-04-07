@@ -234,6 +234,7 @@ export const Finder = () => {
 			desktopEventDispatch({
 				type: "ClassicyAppFinderOpenFile",
 				file,
+				path,
 			});
 		},
 		[fs, desktopEventDispatch],

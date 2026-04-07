@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { classicyDesktopStateEventReducer } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 
 vi.mock("@img/icons/system/quicktime/player.png", () => ({
 	default: "player-icon.png",
@@ -46,6 +47,11 @@ function makeStore(): ClassicyStore {
 							data: {},
 						},
 					},
+					fileTypeHandlers: Object.fromEntries(
+						Object.values(ClassicyFileSystemEntryFileType).map(
+							(type) => [type, "Finder.app"],
+						),
+					) as Record<ClassicyFileSystemEntryFileType, string>,
 				},
 				Appearance: {
 					availableThemes: [],
@@ -350,6 +356,121 @@ describe("ClassicyAppFinderOpenFile cross-app orchestration", () => {
 		});
 
 		expect(result.System.Manager.Applications.apps["MoviePlayer.app"]).toBeUndefined();
+	});
+});
+
+// ─── ClassicyAppFinderOpenFile file-type routing ─────────────────────────────
+
+describe("ClassicyAppFinderOpenFile file-type routing", () => {
+	it("routes a TextFile to the default handler app via generic OpenFile", () => {
+		const ds = makeStore();
+		// Register SimpleText as the handler for text_file
+		ds.System.Manager.Applications.apps["SimpleText.app"] = {
+			id: "SimpleText.app",
+			name: "SimpleText",
+			icon: "",
+			open: false,
+			windows: [],
+			data: {},
+		};
+		ds.System.Manager.Applications.fileTypeHandlers[
+			ClassicyFileSystemEntryFileType.TextFile
+		] = "SimpleText.app";
+
+		const result = classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyAppFinderOpenFile",
+			file: {
+				_type: ClassicyFileSystemEntryFileType.TextFile,
+				_data: "Hello world",
+			},
+			path: "Macintosh HD:Documents:Read Me.txt",
+		});
+
+		const app = result.System.Manager.Applications.apps["SimpleText.app"];
+		expect(app.open).toBe(true);
+		expect(app.data?.openFiles).toEqual([
+			"Macintosh HD:Documents:Read Me.txt",
+		]);
+	});
+
+	it("routes a Markdown file to the default handler app", () => {
+		const ds = makeStore();
+		ds.System.Manager.Applications.apps["SimpleText.app"] = {
+			id: "SimpleText.app",
+			name: "SimpleText",
+			icon: "",
+			open: false,
+			windows: [],
+			data: {},
+		};
+		ds.System.Manager.Applications.fileTypeHandlers[
+			ClassicyFileSystemEntryFileType.Markdown
+		] = "SimpleText.app";
+
+		const result = classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyAppFinderOpenFile",
+			file: {
+				_type: ClassicyFileSystemEntryFileType.Markdown,
+				_data: "# Hello",
+			},
+			path: "Macintosh HD:Documents:Notes.md",
+		});
+
+		const app = result.System.Manager.Applications.apps["SimpleText.app"];
+		expect(app.open).toBe(true);
+		expect(app.data?.openFiles).toEqual([
+			"Macintosh HD:Documents:Notes.md",
+		]);
+	});
+
+	it("falls back to Finder (default handler) when no specific handler is registered", () => {
+		const ds = makeStore();
+
+		const result = classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyAppFinderOpenFile",
+			file: {
+				_type: ClassicyFileSystemEntryFileType.File,
+				_data: "some data",
+			},
+			path: "Macintosh HD:Library:Extensions",
+		});
+
+		// Finder is the default handler for all types — it should get the file in openFiles
+		const finder = result.System.Manager.Applications.apps["Finder.app"];
+		expect(finder.data?.openFiles).toEqual([
+			"Macintosh HD:Library:Extensions",
+		]);
+	});
+
+	it("prefers QuickTime _creator routing over file-type routing", () => {
+		const ds = makeStore();
+
+		const result = classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyAppFinderOpenFile",
+			file: {
+				_type: ClassicyFileSystemEntryFileType.File,
+				_creator: "QuickTime",
+				_data: JSON.stringify({
+					url: "https://example.com/video.mp4",
+					name: "Video",
+					type: "video",
+				}),
+			},
+			path: "Macintosh HD:Videos:video.mp4",
+		});
+
+		// QuickTime routing should take priority — MoviePlayer opens, NOT the file-type handler
+		expect(
+			result.System.Manager.Applications.apps["MoviePlayer.app"],
+		).toBeDefined();
+		expect(
+			result.System.Manager.Applications.apps["MoviePlayer.app"].open,
+		).toBe(true);
+		// Finder (file-type default) should NOT have the path in openFiles
+		expect(
+			result.System.Manager.Applications.apps["Finder.app"].data
+				?.openFiles,
+		).toBeUndefined();
 	});
 });
 

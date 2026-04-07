@@ -62,21 +62,14 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 				path: string,
 				filename: string,
 			) => {
-				switch (properties._type) {
-					case "directory": {
-						return dirOnClickFunc(`${path}:${filename}`);
-					}
-					case "file": {
-						return fileOnClickFunc(`${path}:${filename}`);
-					}
-					default: {
-						return () => {};
-					}
+				if (properties._type === "directory") {
+					return dirOnClickFunc(`${path}:${filename}`);
 				}
+				return fileOnClickFunc(`${path}:${filename}`);
 			};
 
 			const fileList = useMemo<ClassicyFileSystemEntryMetadata[]>(() => {
-				const directoryItems = fs.filterByType(path, ["file", "directory"]);
+				const directoryItems = fs.filterByType(path);
 				return Object.entries(directoryItems).map(([filename, metadata]) => {
 					const filtered = {} as Record<string, unknown>;
 					for (const [key, value] of Object.entries(metadata)) {

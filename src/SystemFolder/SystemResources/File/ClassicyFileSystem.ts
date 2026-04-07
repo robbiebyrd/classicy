@@ -128,7 +128,12 @@ export class ClassicyFileSystem {
 
 	filterByType(
 		path: string,
-		byType: string | string[] = ["file", "directory"],
+		byType: string | string[] = [
+			ClassicyFileSystemEntryFileType.File,
+			ClassicyFileSystemEntryFileType.Directory,
+			ClassicyFileSystemEntryFileType.TextFile,
+			ClassicyFileSystemEntryFileType.Markdown,
+		],
 		showInvisible: boolean = true,
 	): ClassicyFileSystemEntry {
 		const filteredItems = {} as ClassicyFileSystemEntry;

@@ -10,7 +10,15 @@ import {
 	useAppManagerDispatch,
 } from "classicy";
 import DOMPurify from "dompurify";
-import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import {
+	type FC as FunctionalComponent,
+	useState,
+	useRef,
+	useCallback,
+	useEffect,
+	useMemo
+} from "react";
+
 import "./Browser.scss";
 import "./BrowserContext";
 import { useBrowserNavigation } from "./useBrowserNavigation";
@@ -36,7 +44,7 @@ interface ShadowLinkClick {
 	rawHref: string;
 }
 
-const ShadowContent: React.FC<{
+const ShadowContent: FunctionalComponent<{
 	html: string;
 	onLinkClick: (link: ShadowLinkClick) => void;
 }> = ({ html, onLinkClick }) => {
@@ -133,11 +141,11 @@ export const Browser = () => {
 		}
 	}, [appState, desktopEventDispatch, defaultHomeIcon]);
 
-	const [showFavoritesBar, setShowFavoritesBar] = React.useState(true);
-	const [urlError, setUrlError] = React.useState(false);
-	const refAddressBar = React.useRef<HTMLInputElement>(null);
-	const refToolbar = React.useRef<HTMLDivElement>(null);
-	const [isCompact, setIsCompact] = React.useState(false);
+	const [showFavoritesBar, setShowFavoritesBar] = useState(true);
+	const [urlError, setUrlError] = useState(false);
+	const refAddressBar = useRef<HTMLInputElement>(null);
+	const refToolbar = useRef<HTMLDivElement>(null);
+	const [isCompact, setIsCompact] = useState(false);
 
 	const showError = useCallback(() => {
 		setUrlError(true);

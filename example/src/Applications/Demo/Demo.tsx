@@ -15,7 +15,11 @@ import {
 	quitMenuItemHelper,
 	useAppManagerDispatch,
 } from "classicy";
-import { useCallback, useEffect } from "react";
+import {
+	type FC as FunctionalComponent,
+	useCallback,
+	useEffect,
+} from "react";
 
 const RADIO_INPUTS = [
 	{ id: "test1", isDefault: true, disabled: false, label: "Radio Button 1 (Default)", checked: false },
@@ -28,7 +32,7 @@ const RADIO_INPUTS_DISABLED = [
 	{ id: "test5", disabled: true, mixed: true, label: "Radio Button 6 (Disabled + Checked + Mixed)", checked: true },
 ];
 
-export const Demo: React.FC = () => {
+export const Demo: FunctionalComponent= () => {
 	const appName = "Demo";
 	const appId = "Demo.app";
 	const appIcon = ClassicyIcons.system.folders.directory;

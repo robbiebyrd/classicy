@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { classicyQuickTimePictureViewerEventHandler } from "@/SystemFolder/QuickTime/PictureViewer/PictureViewerContext";
+import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 
 vi.mock("@/SystemFolder/QuickTime/PictureViewer/PictureViewer", () => ({
 	PictureViewerAppInfo: {
@@ -59,6 +60,11 @@ function makeStore(): ClassicyStore {
 							data: {},
 						},
 					},
+					fileTypeHandlers: Object.fromEntries(
+						Object.values(ClassicyFileSystemEntryFileType).map(
+							(type) => [type, "Finder.app"],
+						),
+					) as Record<ClassicyFileSystemEntryFileType, string>,
 				},
 				Appearance: {
 					availableThemes: [],

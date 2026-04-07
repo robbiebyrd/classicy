@@ -6,6 +6,8 @@ export enum ClassicyFileSystemEntryFileType {
 	AppShortcut = "app_shortcut",
 	Drive = "drive",
 	Directory = "directory",
+	TextFile = "text_file",
+	Markdown = "markdown",
 }
 
 export type ClassicyFileSystemEntryMetadata = {

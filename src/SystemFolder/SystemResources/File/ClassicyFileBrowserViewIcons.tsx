@@ -52,19 +52,14 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 				path: string,
 				filename: string,
 			) => {
-				switch (properties._type) {
-					case "directory": {
-						if (dirOnClickFunc) {
-							return dirOnClickFunc(`${path}:${filename}`);
-						}
-						break;
+				if (properties._type === "directory") {
+					if (dirOnClickFunc) {
+						return dirOnClickFunc(`${path}:${filename}`);
 					}
-					case "file": {
-						if (fileOnClickFunc) {
-							return fileOnClickFunc(`${path}:${filename}`);
-						}
-						break;
-					}
+					return;
+				}
+				if (fileOnClickFunc) {
+					return fileOnClickFunc(`${path}:${filename}`);
 				}
 			};
 
@@ -73,7 +68,7 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 				holderRef.current.getBoundingClientRect().height,
 			];
 			const directoryListing: ClassicyFileSystemEntryMetadata | object =
-				fs.filterByType(path, ["file", "directory"]);
+				fs.filterByType(path);
 
 			const updatedIcons = Object.entries(directoryListing).map(
 				([filename, properties], index) => {

@@ -59,7 +59,7 @@ Event routing by prefix (unchanged):
 - `ClassicyAppFinder*`, `ClassicyAppMoviePlayer*`, `ClassicyAppPictureViewer*` → App-specific handlers
 - `ClassicyManagerDateTime*` → Date/time manager operations
 
-State persists to localStorage (key: `classicyDesktopState`) via Zustand's `subscribe()` with 500ms debounce.
+State persists to localStorage (key: `classicyDesktopState`) via Zustand's `subscribe()` on every state change.
 
 ### Directory Structure
 

@@ -16,6 +16,7 @@ import {
 } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
 import { classicyWindowEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopWindowManagerContext";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { isValidHttpUrl } from "@/SystemFolder/SystemResources/Utils/urlValidation";
 import themesData from "../AppearanceManager/styles/themes.json";
 
@@ -31,6 +32,7 @@ type JsonValue = JsonPrimitive | JsonObject | JsonArray;
 export interface ClassicyStoreSystemAppManager
 	extends ClassicyStoreSystemManager {
 	apps: Record<string, ClassicyStoreSystemApp>;
+	fileTypeHandlers: Record<ClassicyFileSystemEntryFileType, string>;
 }
 
 export interface ClassicyStoreSystemApp {
@@ -47,6 +49,7 @@ export interface ClassicyStoreSystemApp {
 	// biome-ignore lint/suspicious/noExplicitAny: App options are dynamically shaped per app
 	options?: Record<string, any>[];
 	appMenu?: ClassicyMenuItem[];
+	handlesFileTypes?: ClassicyFileSystemEntryFileType[];
 }
 
 export interface ClassicyStoreSystemAppWindow {
@@ -102,6 +105,13 @@ export interface ClassicyStoreSystemDateAndTimeManager
 
 // biome-ignore lint/complexity/noBannedTypes: Intentional empty base type extended by manager interfaces
 export type ClassicyStoreSystemManager = {};
+
+export function getDefaultAppForFileType(
+	ds: ClassicyStore,
+	fileType: ClassicyFileSystemEntryFileType,
+): string | undefined {
+	return ds.System.Manager.Applications.fileTypeHandlers[fileType];
+}
 
 export function deFocusApps(ds: ClassicyStore) {
 	Object.values(ds.System.Manager.Applications.apps).forEach((app) => {
@@ -259,6 +269,81 @@ export const classicyAppEventHandler = (
 			activateApp(ds, action.app.id);
 			break;
 		}
+		case "ClassicyAppRegisterFileTypes": {
+			if (Array.isArray(action.fileTypes)) {
+				const app =
+					ds.System.Manager.Applications.apps[action.app.id];
+				if (app) {
+					const existing = app.handlesFileTypes ?? [];
+					app.handlesFileTypes = Array.from(
+						new Set([...existing, ...action.fileTypes]),
+					);
+				}
+				for (const ft of action.fileTypes) {
+					const current =
+						ds.System.Manager.Applications.fileTypeHandlers[
+							ft as ClassicyFileSystemEntryFileType
+						];
+					if (!current || current === "Finder.app") {
+						ds.System.Manager.Applications.fileTypeHandlers[
+							ft as ClassicyFileSystemEntryFileType
+						] = action.app.id;
+					}
+				}
+			}
+			break;
+		}
+		case "ClassicyAppUnregisterFileTypes": {
+			const app = ds.System.Manager.Applications.apps[action.app.id];
+			if (app && Array.isArray(action.fileTypes)) {
+				app.handlesFileTypes = (app.handlesFileTypes ?? []).filter(
+					(t: ClassicyFileSystemEntryFileType) =>
+						!action.fileTypes.includes(t),
+				);
+			}
+			break;
+		}
+		case "ClassicyAppSetDefaultFileTypeHandler": {
+			if (action.fileType && action.app?.id) {
+				ds.System.Manager.Applications.fileTypeHandlers[
+					action.fileType as ClassicyFileSystemEntryFileType
+				] = action.app.id;
+			}
+			break;
+		}
+		default: {
+			if (
+				action.type.endsWith("OpenFile") &&
+				action.app?.id &&
+				action.path
+			) {
+				const app = ds.System.Manager.Applications.apps[action.app.id];
+				if (app) {
+					if (!app.data) app.data = {};
+					if (!Array.isArray(app.data.openFiles))
+						app.data.openFiles = [];
+					if (!app.data.openFiles.includes(action.path)) {
+						app.data.openFiles = [
+							...app.data.openFiles,
+							action.path,
+						];
+					}
+					openApp(ds, app.id, app.name, app.icon);
+				}
+			} else if (
+				action.type.endsWith("CloseFile") &&
+				action.app?.id &&
+				action.path
+			) {
+				const app = ds.System.Manager.Applications.apps[action.app.id];
+				if (app?.data?.openFiles) {
+					app.data.openFiles = app.data.openFiles.filter(
+						(p: string) => p !== action.path,
+					);
+				}
+			}
+			break;
+		}
 	}
 
 	return ds;
@@ -278,6 +363,7 @@ export const classicyDesktopStateEventReducer = (
 		// Cross-app orchestration handled at top level, before prefix routing
 		if (action.type === "ClassicyAppFinderOpenFile") {
 			const file = action.file;
+			// Legacy QuickTime _creator-based routing
 			if (file && file._creator === "QuickTime") {
 				let document: unknown;
 				try {
@@ -302,6 +388,22 @@ export const classicyDesktopStateEventReducer = (
 					ds = classicyQuickTimeMoviePlayerEventHandler(ds, {
 						type: "ClassicyAppMoviePlayerOpenDocument",
 						document: document as { url: string },
+					});
+				}
+			} else if (file && action.path) {
+				// Route to the default app registered for this file type
+				const fileType =
+					file._type as ClassicyFileSystemEntryFileType;
+				const targetAppId =
+					ds.System.Manager.Applications.fileTypeHandlers[fileType];
+				const targetApp = targetAppId
+					? ds.System.Manager.Applications.apps[targetAppId]
+					: undefined;
+				if (targetApp) {
+					ds = classicyAppEventHandler(ds, {
+						type: `ClassicyApp${targetApp.name}OpenFile`,
+						app: { id: targetAppId },
+						path: action.path,
 					});
 				}
 			}
@@ -395,8 +497,16 @@ export const DefaultAppManagerState: ClassicyStore = {
 						focused: true,
 						noDesktopIcon: true,
 						data: {},
+						handlesFileTypes: Object.values(
+							ClassicyFileSystemEntryFileType,
+						),
 					},
 				},
+				fileTypeHandlers: Object.fromEntries(
+					Object.values(ClassicyFileSystemEntryFileType).map(
+						(type) => [type, "Finder.app"],
+					),
+				) as Record<ClassicyFileSystemEntryFileType, string>,
 			},
 			Appearance: {
 				availableThemes: getAllThemes(),

@@ -58,25 +58,21 @@ export const dispatch = (action: ActionMessage): void => {
 export const useAppManagerDispatch = (): ((action: ActionMessage) => void) =>
 	dispatch;
 
-// Persist to localStorage with debouncing (matches original 500ms debounce)
-let debounceTimer: ReturnType<typeof setTimeout>;
+// Persist to localStorage on every state change
 let unsubscribeFn: (() => void) | null = null;
 
 /** Start persisting state to localStorage. Returns an unsubscribe function. */
 export function startAppManagerPersistence(): () => void {
 	if (unsubscribeFn) return unsubscribeFn;
 	unsubscribeFn = useAppManager.subscribe((state) => {
-		clearTimeout(debounceTimer);
-		debounceTimer = setTimeout(() => {
-			try {
-				localStorage.setItem("classicyDesktopState", JSON.stringify(state));
-			} catch (error) {
-				console.error(
-					"[ClassicyAppManager] Failed to persist desktop state to localStorage. Storage quota may be exceeded.",
-					error,
-				);
-			}
-		}, 500);
+		try {
+			localStorage.setItem("classicyDesktopState", JSON.stringify(state));
+		} catch (error) {
+			console.error(
+				"[ClassicyAppManager] Failed to persist desktop state to localStorage. Storage quota may be exceeded.",
+				error,
+			);
+		}
 	});
 	return unsubscribeFn;
 }
@@ -84,7 +80,6 @@ export function startAppManagerPersistence(): () => void {
 /** Call this during app cleanup or test teardown to stop localStorage sync. */
 export function stopAppManagerPersistence(): void {
 	if (unsubscribeFn) {
-		clearTimeout(debounceTimer);
 		unsubscribeFn();
 		unsubscribeFn = null;
 	}
