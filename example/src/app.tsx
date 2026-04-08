@@ -2,10 +2,9 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./app.css";
 import "classicy/dist/classicy.css";
-import { ClassicyAppManagerProvider, ClassicyDesktop } from "classicy";
+import { ClassicyAppManagerProvider, ClassicyDesktop, SimpleText } from "classicy";
 import { Browser } from "./Applications/Browser/Browser";
 import { Demo } from "./Applications/Demo/Demo";
-import SimpleText from "./Applications/SimpleText/SimpleText";
 import { BlueBox } from "./Applications/BlueBox/BlueBox";
 
 const rootElement = document.getElementById("root");

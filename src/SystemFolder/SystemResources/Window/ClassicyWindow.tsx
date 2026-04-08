@@ -25,6 +25,42 @@ const fileIcon = ClassicyIcons.system.files.file;
 
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
+export type ClassicyWindowPositionX = number | "left" | "center" | "right";
+export type ClassicyWindowPositionY = number | "top" | "center" | "bottom";
+
+function resolvePosition(
+	pos: [ClassicyWindowPositionX, ClassicyWindowPositionY],
+	windowSize: [number, number],
+): [number, number] {
+	const menuBarHeight = 30;
+	const vw = typeof window !== "undefined" ? window.innerWidth : 800;
+	const vh = typeof window !== "undefined" ? window.innerHeight : 600;
+
+	let x: number;
+	if (typeof pos[0] === "number") {
+		x = pos[0];
+	} else if (pos[0] === "left") {
+		x = 0;
+	} else if (pos[0] === "right") {
+		x = Math.max(0, vw - windowSize[0]);
+	} else {
+		x = Math.max(0, (vw - windowSize[0]) / 2);
+	}
+
+	let y: number;
+	if (typeof pos[1] === "number") {
+		y = pos[1];
+	} else if (pos[1] === "top") {
+		y = menuBarHeight;
+	} else if (pos[1] === "bottom") {
+		y = Math.max(menuBarHeight, vh - windowSize[1]);
+	} else {
+		y = Math.max(menuBarHeight, (vh - windowSize[1]) / 2);
+	}
+
+	return [x, y];
+}
+
 interface ClassicyWindowProps {
 	title?: string;
 	id: string;
@@ -40,7 +76,7 @@ interface ClassicyWindowProps {
 	growable?: boolean;
 	defaultWindow?: boolean;
 	initialSize?: [number, number];
-	initialPosition?: [number, number];
+	initialPosition?: [ClassicyWindowPositionX, ClassicyWindowPositionY];
 	minimumSize?: [number, number];
 	header?: ReactNode;
 	appMenu?: ClassicyMenuItem[];
@@ -133,6 +169,11 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 
 	const windowRef = useRef<HTMLDivElement | null>(null);
 
+	const resolvedPosition = useMemo(
+		() => resolvePosition(initialPosition, initialSize),
+		[initialPosition, initialSize],
+	);
+
 	const ws = useMemo(() => {
 		const initialWindowState: ClassicyStoreSystemAppWindow = {
 			collapsed: false,
@@ -143,7 +184,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			resizing: false,
 			zoomed: false,
 			size: initialSize,
-			position: initialPosition,
+			position: resolvedPosition,
 			closed: hidden,
 			menuBar: appMenu || [],
 			showContextMenu: false,
@@ -161,7 +202,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			...initialWindowState,
 			appId,
 			minimumSize,
-			position: initialPosition,
+			position: resolvedPosition,
 		} as ClassicyStoreSystemAppWindow;
 	}, [
 		appId,
@@ -171,7 +212,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		defaultWindow,
 		hidden,
 		id,
-		initialPosition,
+		resolvedPosition,
 		initialSize,
 		minimumSize,
 	]);

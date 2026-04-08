@@ -138,7 +138,7 @@ export const getThemeVars = (theme: ClassicyTheme) => {
 };
 
 export const getAllThemes = (): ClassicyTheme[] => {
-	return themesData as ClassicyTheme[];
+	return themesData as unknown as ClassicyTheme[];
 };
 
 export const getTheme = (theme: string, overrides?: object) => {

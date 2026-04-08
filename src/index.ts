@@ -26,6 +26,7 @@ export * from "./SystemFolder/QuickTime/MoviePlayer/MoviePlayerUtils";
 export * from "./SystemFolder/QuickTime/PictureViewer/PictureViewer";
 export * from "./SystemFolder/QuickTime/PictureViewer/PictureViewerContext";
 export * from "./SystemFolder/QuickTime/PictureViewer/PictureViewerUtils";
+export * from "./SystemFolder/SimpleText/SimpleText";
 export * from "./SystemFolder/SystemResources/AboutWindow/ClassicyAboutWindow";
 export * from "./SystemFolder/SystemResources/AboutWindow/ClassicyAboutWindowUtils";
 export * from "./SystemFolder/SystemResources/Analytics/useClassicyAnalytics";

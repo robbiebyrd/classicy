@@ -181,14 +181,14 @@ describe("classicyDesktopIconEventHandler — ClassicyDesktopIconAdd", () => {
 
 		classicyDesktopIconEventHandler(ds, {
 			type: "ClassicyDesktopIconAdd",
-			app: { id: "TextEdit.app", name: "TextEdit", icon: "textedit.png" },
+			app: { id: "SimpleText.app", name: "SimpleText", icon: "simpletext.png" },
 			kind: "app",
 			location: [200, 300],
 		});
 
 		expect(ds.System.Manager.Desktop.icons).toHaveLength(1);
-		expect(ds.System.Manager.Desktop.icons[0].appId).toBe("TextEdit.app");
-		expect(ds.System.Manager.Desktop.icons[0].appName).toBe("TextEdit");
+		expect(ds.System.Manager.Desktop.icons[0].appId).toBe("SimpleText.app");
+		expect(ds.System.Manager.Desktop.icons[0].appName).toBe("SimpleText");
 	});
 
 	it("is a no-op when an icon with the same appId already exists", () => {

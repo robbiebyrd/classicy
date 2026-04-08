@@ -6,7 +6,7 @@ services:
     ports:
       - "${TIMEMACHINE_PORT:-8765}:${TIMEMACHINE_PORT:-8765}"
     volumes:
-      - timemachine-cache:${CACHE_DIR:-/app/cache}
+      - ${HOST_CACHE_DIR:-timemachine-cache}:${CACHE_DIR:-/app/cache}
     restart: unless-stopped
 
 volumes:

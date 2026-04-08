@@ -1,23 +1,14 @@
 .classicyTextEditor {
-  overflow: hidden;
-  margin: 0;
+  box-sizing: border-box;
+  width: 100%;
+  height: calc(100% - var(--window-border-size)*4);
   resize: none;
-  width: calc(100% - var(--window-padding-size));
-  height: calc(100% - var(--window-padding-size));
-  padding: calc(var(--window-padding-size));
-  border: var(--window-border-size) solid black;
-  box-shadow:
-    calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0
-      0 var(--color-system-05),
-    calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) 0 0
-      var(--color-system-04);
-
+  padding: var(--window-padding-size);
+  border: none;
+  overflow-y: auto;
   &:focus-visible {
-    border-radius: 2pt;
-    outline: 0 0 0 calc(var(--window-border-size) * 2) var(--color-outline) !important;
-    box-shadow:
-      0 0 0 calc(var(--window-border-size) * 2) var(--color-theme-04),
-      0 0 var(--window-border-size) calc(var(--window-border-size) * 2)
-        var(--color-theme-04);
+    border-radius: 0 !important;
+    outline: none !important;
+    box-shadow: none !important;
   }
 }

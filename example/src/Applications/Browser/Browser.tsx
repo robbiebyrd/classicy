@@ -1,6 +1,8 @@
 import {
 	ClassicyApp,
 	ClassicyButton,
+	ClassicyCheckbox,
+	ClassicyControlGroup,
 	ClassicyControlLabel,
 	ClassicyIcons,
 	ClassicyInput,
@@ -16,12 +18,16 @@ import {
 	useRef,
 	useCallback,
 	useEffect,
-	useMemo
+	useMemo,
 } from "react";
 
 import "./Browser.scss";
 import "./BrowserContext";
-import { useBrowserNavigation } from "./useBrowserNavigation";
+import {
+	DEFAULT_PROXY_CONFIG,
+	type TimeMachineProxyConfig,
+	useBrowserNavigation,
+} from "./useBrowserNavigation";
 
 interface BrowserFavorite {
 	id: string;
@@ -62,6 +68,7 @@ const ShadowContent: FunctionalComponent<{
 
 	useEffect(() => {
 		if (shadowRef.current) {
+			// Content is sanitized via DOMPurify before being set
 			shadowRef.current.innerHTML = DOMPurify.sanitize(html, {
 				FORCE_BODY: true,
 			});
@@ -93,6 +100,13 @@ const ShadowContent: FunctionalComponent<{
 	return <div ref={hostRef} className="browserPage" />;
 };
 
+const PROTOCOL_OPTIONS = [
+	{ value: "http:", label: "http" },
+	{ value: "https:", label: "https" },
+	{ value: "ws:", label: "ws" },
+	{ value: "wss:", label: "wss" },
+];
+
 export const Browser = () => {
 	const appName = "Browser";
 	const appId = "Browser.app";
@@ -104,6 +118,9 @@ export const Browser = () => {
 	);
 
 	const favorites: BrowserFavorite[] = appState?.data?.favorites ?? [];
+
+	const proxyConfig: TimeMachineProxyConfig =
+		appState?.data?.proxyConfig ?? DEFAULT_PROXY_CONFIG;
 
 	const normalizeDomain = useCallback((url: string): string => {
 		try {
@@ -143,9 +160,33 @@ export const Browser = () => {
 
 	const [showFavoritesBar, setShowFavoritesBar] = useState(true);
 	const [urlError, setUrlError] = useState(false);
+	const [showSettings, setShowSettings] = useState(false);
 	const refAddressBar = useRef<HTMLInputElement>(null);
 	const refToolbar = useRef<HTMLDivElement>(null);
 	const [isCompact, setIsCompact] = useState(false);
+
+	// Settings form state — initialized from persisted config
+	const [settingsForm, setSettingsForm] =
+		useState<TimeMachineProxyConfig>(proxyConfig);
+
+	// Re-sync form when settings window opens
+	const openSettings = useCallback(() => {
+		setSettingsForm(proxyConfig);
+		setShowSettings(true);
+		desktopEventDispatch({
+			type: "ClassicyWindowFocus",
+			app: { id: appId },
+			window: { id: "browser_settings" },
+		});
+	}, [proxyConfig, desktopEventDispatch]);
+
+	const saveSettings = useCallback(() => {
+		desktopEventDispatch({
+			type: "ClassicyAppBrowserUpdateProxyConfig",
+			proxyConfig: settingsForm,
+		});
+		setShowSettings(false);
+	}, [settingsForm, desktopEventDispatch]);
 
 	const showError = useCallback(() => {
 		setUrlError(true);
@@ -181,6 +222,7 @@ export const Browser = () => {
 		handleContentClick,
 	} = useBrowserNavigation({
 		defaultUrl,
+		proxyConfig,
 		onShowError: showError,
 		onRecordVisit: recordVisit,
 	});
@@ -216,6 +258,11 @@ export const Browser = () => {
 				title: "File",
 				menuChildren: [
 					{
+						id: `${appId}_settings`,
+						title: "Settings…",
+						onClickFunc: openSettings,
+					},
+					{
 						id: `${appId}_quit`,
 						title: "Quit",
 						onClickFunc: quitApp,
@@ -235,7 +282,7 @@ export const Browser = () => {
 				],
 			},
 		],
-		[quitApp, showFavoritesBar],
+		[quitApp, openSettings, showFavoritesBar],
 	);
 
 	return (
@@ -245,6 +292,130 @@ export const Browser = () => {
 			icon={appIcon}
 			defaultWindow={"browser"}
 		>
+			{showSettings && (
+				<ClassicyWindow
+					id={"browser_settings"}
+					title={"Settings"}
+					appId={appId}
+					closable={true}
+					resizable={false}
+					zoomable={false}
+					scrollable={false}
+					collapsable={false}
+					initialSize={[350, 0]}
+					initialPosition={[250, 150]}
+					appMenu={appMenu}
+					onCloseFunc={() => setShowSettings(false)}
+				>
+					<div className="browserSettings">
+						<ClassicyControlGroup label="TimeMachine Proxy">
+							<ClassicyCheckbox
+								id="proxy_enabled"
+								checked={settingsForm.enabled}
+								label="Enable TimeMachine Proxy"
+								onClickFunc={(checked) =>
+									setSettingsForm((s) => ({ ...s, enabled: checked }))
+								}
+							/>
+						</ClassicyControlGroup>
+						<ClassicyControlGroup label="Connection" columns={true}>
+							<div className="browserSettingsRow">
+								<ClassicyControlLabel label="Protocol:" />
+								<div className="browserSettingsProtocol">
+									{PROTOCOL_OPTIONS.map((opt) => (
+										<ClassicyButton
+											key={opt.value}
+											buttonSize="medium"
+											isDefault={settingsForm.protocol === opt.value}
+											disabled={!settingsForm.enabled}
+											onClickFunc={() =>
+												setSettingsForm((s) => ({
+													...s,
+													protocol: opt.value,
+												}))
+											}
+										>
+											{opt.label}
+										</ClassicyButton>
+									))}
+								</div>
+							</div>
+							<ClassicyInput
+								id="proxy_host"
+								labelTitle="Host:"
+								prefillValue={settingsForm.host}
+								disabled={!settingsForm.enabled}
+								onChangeFunc={(e) =>
+									setSettingsForm((s) => ({
+										...s,
+										host: e.target.value,
+									}))
+								}
+							/>
+							<ClassicyInput
+								id="proxy_port"
+								labelTitle="Port:"
+								prefillValue={String(settingsForm.port)}
+								disabled={!settingsForm.enabled}
+								onChangeFunc={(e) => {
+									const val = parseInt(e.target.value, 10);
+									if (!isNaN(val) && val > 0 && val <= 65535) {
+										setSettingsForm((s) => ({ ...s, port: val }));
+									}
+								}}
+							/>
+							<ClassicyInput
+								id="proxy_path"
+								labelTitle="Path:"
+								prefillValue={settingsForm.path}
+								disabled={!settingsForm.enabled}
+								onChangeFunc={(e) =>
+									setSettingsForm((s) => ({
+										...s,
+										path: e.target.value,
+									}))
+								}
+							/>
+						</ClassicyControlGroup>
+						<ClassicyControlGroup label="Archive">
+							<ClassicyInput
+								id="archive_time"
+								labelTitle="Archive Time:"
+								prefillValue={settingsForm.archiveTime}
+								disabled={!settingsForm.enabled}
+								onChangeFunc={(e) =>
+									setSettingsForm((s) => ({
+										...s,
+										archiveTime: e.target.value,
+									}))
+								}
+							/>
+							<ClassicyInput
+								id="proxy_prefix"
+								labelTitle="Proxy Prefix:"
+								prefillValue={settingsForm.proxyPrefix}
+								disabled={!settingsForm.enabled}
+								onChangeFunc={(e) =>
+									setSettingsForm((s) => ({
+										...s,
+										proxyPrefix: e.target.value,
+									}))
+								}
+							/>
+						</ClassicyControlGroup>
+						<div className="browserSettingsButtons">
+							<ClassicyButton
+								onClickFunc={() => setShowSettings(false)}
+							>
+								Cancel
+							</ClassicyButton>
+							<ClassicyButton isDefault={true} onClickFunc={saveSettings}>
+								Save
+							</ClassicyButton>
+						</div>
+					</div>
+				</ClassicyWindow>
+			)}
 			{urlError && (
 				<ClassicyWindow
 					id={"browser_error"}

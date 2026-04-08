@@ -9,8 +9,6 @@ export const ClassicyTextEditor: FunctionalComponent<EditorProps> = ({
 	content,
 }) => {
 	return (
-		<div>
 			<textarea className={"classicyTextEditor"}>{content}</textarea>
-		</div>
 	);
 };

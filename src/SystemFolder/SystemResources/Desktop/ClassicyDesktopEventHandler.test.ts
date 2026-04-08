@@ -243,6 +243,9 @@ describe("classicyDesktopEventHandler — ClassicyDesktopChangeTheme", () => {
 			id: "alt-theme",
 			name: "Alt",
 		};
+		if (!ds.System.Manager.Appearance.availableThemes)	{
+			ds.System.Manager.Appearance.availableThemes = [];
+		}
 		ds.System.Manager.Appearance.availableThemes.push(altTheme);
 
 		classicyDesktopEventHandler(ds, {

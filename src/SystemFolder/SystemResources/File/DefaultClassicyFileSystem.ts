@@ -13,7 +13,7 @@ export const DefaultFSContent = {
 		Applications: {
 			_type: ClassicyFileSystemEntryFileType.Directory,
 			_icon: directoryIcon,
-			TextEdit: {
+			SimpleText: {
 				_type: ClassicyFileSystemEntryFileType.File,
 				_mimeType: "text/plain",
 				_data: "File Contents",

@@ -24,15 +24,19 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyDesktopIcon } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIcon";
 import { ClassicyDesktopMenuBar } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 const macosIcon = ClassicyIcons.system.macos;
+const trashIcon = ClassicyIcons.system.desktop.trashEmpty;
 
 import "../../ControlPanels/AppearanceManager/styles/fonts.scss";
 import "../../../index.css";
+import { ClassicyControlLabel } from "../ControlLabel/ClassicyControlLabel";
 
 interface ClassicyDesktopProps {
 	children?: ReactNode;
@@ -44,6 +48,7 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 	const [contextMenu, setContextMenu] = useState(false);
 	const [contextMenuLocation, setContextMenuLocation] = useState([0, 0]);
 	const [showAbout, setShowAbout] = useState(false);
+	const [showEmptyTrashDialog, setShowEmptyTrashDialog] = useState(false);
 
 	const [selectBoxStart, setSelectBoxStart] = useState([0, 0]);
 	const [selectBoxSize, setSelectBoxSize] = useState([0, 0]);
@@ -61,6 +66,35 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 	const desktopIcons = useAppManager((s) => s.System.Manager.Desktop.icons);
 	const desktopEventDispatch = useAppManagerDispatch();
 
+	const emptyTrash = useCallback(() => {
+		localStorage.removeItem("classicyDesktopState");
+		window.location.reload();
+	}, []);
+
+	// Focus the Empty Trash dialog when it opens
+	useEffect(() => {
+		if (showEmptyTrashDialog) {
+			desktopEventDispatch({
+				type: "ClassicyWindowFocus",
+				app: { id: "Finder.app" },
+				window: { id: "empty_trash" },
+			});
+		}
+	}, [showEmptyTrashDialog, desktopEventDispatch]);
+
+	// Add Trash icon to desktop on mount
+	useEffect(() => {
+		desktopEventDispatch({
+			type: "ClassicyDesktopIconAdd",
+			app: {
+				id: "Trash",
+				name: "Trash",
+				icon: trashIcon,
+			},
+			kind: "trash",
+		});
+	}, [desktopEventDispatch]);
+
 	// Load themes on mount if not already loaded
 	useEffect(() => {
 		if (availableThemes && availableThemes.length <= 0) {
@@ -72,7 +106,7 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 			});
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [desktopEventDispatch, availableThemes.length, availableThemes]);
+	}, [desktopEventDispatch, availableThemes]);
 
 	// Cancel any pending RAF on unmount to prevent state updates after teardown
 	useEffect(() => {
@@ -245,7 +279,15 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 			{
 				id: "finder_special",
 				title: "Special",
-				disabled: true,
+				menuChildren: [
+					{
+						id: "finder_special_empty_trash",
+						title: "Empty Trash\u2026",
+						onClickFunc: () => {
+							setShowEmptyTrashDialog(true);
+						},
+					},
+				],
 			},
 
 			{
@@ -326,8 +368,88 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 					key={i.appId}
 					event={i.event}
 					eventData={i.eventData}
+					onClickFunc={
+						i.appId === "Trash"
+							? () => setShowEmptyTrashDialog(true)
+							: undefined
+					}
+					noLaunch={i.appId === "Trash"}
 				/>
 			))}
+			{showEmptyTrashDialog ? (
+				<div
+					style={{
+						position: "fixed",
+						inset: 0,
+						zIndex: 99999,
+						display: "flex",
+						alignItems: "center",
+						justifyContent: "center",
+					}}
+				>
+					<ClassicyWindow
+						id={"empty_trash"}
+						appId={"Finder.app"}
+						closable={false}
+						resizable={false}
+						zoomable={false}
+						scrollable={true}
+						collapsable={false}
+						initialSize={[400, 0]}
+						initialPosition={["center", "center"]}
+						modal={true}
+						type={"error"}
+					>
+						<div
+							style={{
+								display: "flex",
+								flexDirection: "row",
+								alignItems: "flex-start",
+								gap: "1rem",
+								padding: "1rem",
+							}}
+						>
+							<img
+								src={trashIcon}
+								alt={"Trash"}
+								style={{ width: 32, height: 32, flexShrink: 0 }}
+							/>
+							<div
+								style={{
+									display: "flex",
+									flexDirection: "column",
+									gap: "1rem",
+								}}
+							>
+								<ClassicyControlLabel label="Are you sure you want to reset your desktop?
+									This will clear all saved state and reload the
+									application. This action cannot be undone." />
+								<div
+									style={{
+										display: "flex",
+										justifyContent: "flex-end",
+										gap: "0.5rem",
+									}}
+								>
+									<ClassicyButton
+										isDefault={true}
+										onClickFunc={() =>
+											setShowEmptyTrashDialog(false)
+										}
+									>
+										Cancel
+									</ClassicyButton>
+									<ClassicyButton
+										onClickFunc={emptyTrash}
+									>
+										OK
+									</ClassicyButton>
+								</div>
+							</div>
+						</div>
+					</ClassicyWindow>
+				</div>
+			) : null}
 			{children}
 		</div>
 	);

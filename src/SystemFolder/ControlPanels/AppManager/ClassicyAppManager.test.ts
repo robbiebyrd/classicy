@@ -552,9 +552,9 @@ describe("generic OpenFile / CloseFile", () => {
 describe("file type registration", () => {
 	it("registers file types on an app and updates fileTypeHandlers", () => {
 		const ds = makeStore();
-		ds.System.Manager.Applications.apps["TextEdit.app"] = {
-			id: "TextEdit.app",
-			name: "TextEdit",
+		ds.System.Manager.Applications.apps["SimpleText.app"] = {
+			id: "SimpleText.app",
+			name: "SimpleText",
 			icon: "",
 			open: false,
 			windows: [],
@@ -563,7 +563,7 @@ describe("file type registration", () => {
 
 		classicyAppEventHandler(ds, {
 			type: "ClassicyAppRegisterFileTypes",
-			app: { id: "TextEdit.app" },
+			app: { id: "SimpleText.app" },
 			fileTypes: [
 				ClassicyFileSystemEntryFileType.File,
 				ClassicyFileSystemEntryFileType.Shortcut,
@@ -571,22 +571,22 @@ describe("file type registration", () => {
 		});
 
 		expect(
-			ds.System.Manager.Applications.apps["TextEdit.app"].handlesFileTypes,
+			ds.System.Manager.Applications.apps["SimpleText.app"].handlesFileTypes,
 		).toEqual([
 			ClassicyFileSystemEntryFileType.File,
 			ClassicyFileSystemEntryFileType.Shortcut,
 		]);
-		// fileTypeHandlers should now point to TextEdit for these types
+		// fileTypeHandlers should now point to SimpleText for these types
 		expect(
 			ds.System.Manager.Applications.fileTypeHandlers[
 				ClassicyFileSystemEntryFileType.File
 			],
-		).toBe("TextEdit.app");
+		).toBe("SimpleText.app");
 		expect(
 			ds.System.Manager.Applications.fileTypeHandlers[
 				ClassicyFileSystemEntryFileType.Shortcut
 			],
-		).toBe("TextEdit.app");
+		).toBe("SimpleText.app");
 	});
 
 	it("does not override fileTypeHandlers if a non-Finder app already owns the type", () => {
@@ -595,9 +595,9 @@ describe("file type registration", () => {
 		ds.System.Manager.Applications.fileTypeHandlers[
 			ClassicyFileSystemEntryFileType.File
 		] = "ExistingEditor.app";
-		ds.System.Manager.Applications.apps["TextEdit.app"] = {
-			id: "TextEdit.app",
-			name: "TextEdit",
+		ds.System.Manager.Applications.apps["SimpleText.app"] = {
+			id: "SimpleText.app",
+			name: "SimpleText",
 			icon: "",
 			open: false,
 			windows: [],
@@ -606,7 +606,7 @@ describe("file type registration", () => {
 
 		classicyAppEventHandler(ds, {
 			type: "ClassicyAppRegisterFileTypes",
-			app: { id: "TextEdit.app" },
+			app: { id: "SimpleText.app" },
 			fileTypes: [ClassicyFileSystemEntryFileType.File],
 		});
 
@@ -620,9 +620,9 @@ describe("file type registration", () => {
 
 	it("does not duplicate file types on repeated registration", () => {
 		const ds = makeStore();
-		ds.System.Manager.Applications.apps["TextEdit.app"] = {
-			id: "TextEdit.app",
-			name: "TextEdit",
+		ds.System.Manager.Applications.apps["SimpleText.app"] = {
+			id: "SimpleText.app",
+			name: "SimpleText",
 			icon: "",
 			open: false,
 			windows: [],
@@ -632,7 +632,7 @@ describe("file type registration", () => {
 
 		classicyAppEventHandler(ds, {
 			type: "ClassicyAppRegisterFileTypes",
-			app: { id: "TextEdit.app" },
+			app: { id: "SimpleText.app" },
 			fileTypes: [
 				ClassicyFileSystemEntryFileType.File,
 				ClassicyFileSystemEntryFileType.Directory,
@@ -640,7 +640,7 @@ describe("file type registration", () => {
 		});
 
 		expect(
-			ds.System.Manager.Applications.apps["TextEdit.app"].handlesFileTypes,
+			ds.System.Manager.Applications.apps["SimpleText.app"].handlesFileTypes,
 		).toEqual([
 			ClassicyFileSystemEntryFileType.File,
 			ClassicyFileSystemEntryFileType.Directory,
@@ -649,9 +649,9 @@ describe("file type registration", () => {
 
 	it("unregisters file types via ClassicyAppUnregisterFileTypes", () => {
 		const ds = makeStore();
-		ds.System.Manager.Applications.apps["TextEdit.app"] = {
-			id: "TextEdit.app",
-			name: "TextEdit",
+		ds.System.Manager.Applications.apps["SimpleText.app"] = {
+			id: "SimpleText.app",
+			name: "SimpleText",
 			icon: "",
 			open: false,
 			windows: [],
@@ -664,12 +664,12 @@ describe("file type registration", () => {
 
 		classicyAppEventHandler(ds, {
 			type: "ClassicyAppUnregisterFileTypes",
-			app: { id: "TextEdit.app" },
+			app: { id: "SimpleText.app" },
 			fileTypes: [ClassicyFileSystemEntryFileType.Shortcut],
 		});
 
 		expect(
-			ds.System.Manager.Applications.apps["TextEdit.app"].handlesFileTypes,
+			ds.System.Manager.Applications.apps["SimpleText.app"].handlesFileTypes,
 		).toEqual([ClassicyFileSystemEntryFileType.File]);
 	});
 
@@ -678,7 +678,7 @@ describe("file type registration", () => {
 
 		classicyAppEventHandler(ds, {
 			type: "ClassicyAppSetDefaultFileTypeHandler",
-			app: { id: "TextEdit.app" },
+			app: { id: "SimpleText.app" },
 			fileType: ClassicyFileSystemEntryFileType.File,
 		});
 
@@ -686,7 +686,7 @@ describe("file type registration", () => {
 			ds.System.Manager.Applications.fileTypeHandlers[
 				ClassicyFileSystemEntryFileType.File
 			],
-		).toBe("TextEdit.app");
+		).toBe("SimpleText.app");
 	});
 
 	it("defaults all file types to Finder.app in initial state", () => {

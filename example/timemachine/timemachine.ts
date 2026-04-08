@@ -7,6 +7,7 @@ import { createHash } from "node:crypto";
 import { existsSync, promises as fs, mkdirSync } from "node:fs";
 import http, { type IncomingMessage, type ServerResponse } from "node:http";
 import { join } from "node:path";
+import { WebSocketServer, type WebSocket } from "ws";
 
 const port: number = Number(process.env.TIMEMACHINE_PORT) || 8765;
 const defaultTime: string = process.env.ARCHIVE_TIME || "19980101000000";
@@ -24,6 +25,10 @@ const backOffIntervalSec: number =
 	Number(process.env.BACKOFF_INTERVAL_SEC) || 10;
 const archiveMaxConcurrent: number =
 	Number(process.env.ARCHIVE_MAX_CONCURRENT) || 10;
+const whitelistHosts: string =
+	process.env.WHITELIST_HOSTS || "*";
+const proxyPrefix: string =
+	process.env.PROXY_PREFIX || "";
 
 if (!existsSync(cacheDir)) {
 	mkdirSync(cacheDir, { recursive: true });
@@ -42,8 +47,33 @@ console.log({
 		archiveBurst,
 		archiveMaxRetries,
 		archiveMaxConcurrent,
+		whitelistHosts,
+		proxyPrefix,
 	},
 });
+
+// --- Host whitelist ---
+
+const parseWhitelist = (raw: string): string[] =>
+	raw.split(",").map((h) => h.trim()).filter(Boolean);
+
+const isHostWhitelisted = (targetUrl: string): boolean => {
+	if (whitelistHosts === "*") return true;
+	const allowed = parseWhitelist(whitelistHosts);
+	if (allowed.length === 0) return true;
+	try {
+		const { hostname: targetHost } = new URL(targetUrl);
+		return allowed.some((pattern) => {
+			if (pattern.startsWith("*.")) {
+				const suffix = pattern.slice(1);
+				return targetHost.endsWith(suffix) || targetHost === pattern.slice(2);
+			}
+			return targetHost === pattern;
+		});
+	} catch {
+		return false;
+	}
+};
 
 // --- URL validation ---
 
@@ -155,20 +185,16 @@ const sanitizeTimeParam = (rawTime: string | null): string => {
 	throw new Error("Invalid time parameter");
 };
 
-const arcUrl = (url: string, time: string): string =>
-	`${prefix}/${time}/${url}`;
+const arcUrl = (url: string, time: string): string => {
+	const base = `${prefix}/${time}`;
+	return proxyPrefix ? `${base}/${proxyPrefix}/${url}` : `${base}/${url}`;
+};
 
 // All archive fetches must target the configured prefix — this is the authoritative
 // check that prevents SSRF if the URL somehow bypasses upstream validation.
 const ARCHIVE_URL_PREFIX = `${prefix}/`;
 
-// --- Archive rate limiter ---
-
-const RETRYABLE_ERROR_CODES = new Set([
-	"ECONNREFUSED",
-	"ECONNRESET",
-	"ETIMEDOUT",
-]);
+// --- Request queue with concurrency limiting and rate control ---
 
 type ResourceType = "document" | "image" | "style";
 
@@ -208,6 +234,12 @@ const BROWSER_HEADERS: Record<ResourceType, Record<string, string>> = {
 	},
 };
 
+const RETRYABLE_ERROR_CODES = new Set([
+	"ECONNREFUSED",
+	"ECONNRESET",
+	"ETIMEDOUT",
+]);
+
 const isRetryable = (err: unknown): boolean => {
 	if (!(err instanceof Error)) return false;
 	const cause = (err as Error & { cause?: unknown }).cause;
@@ -215,72 +247,125 @@ const isRetryable = (err: unknown): boolean => {
 	return code !== undefined && RETRYABLE_ERROR_CODES.has(code);
 };
 
-let rateTokens = archiveBurst;
-let rateLastRefill = Date.now();
-let activeFetches = 0;
+interface QueueEntry {
+	execute: () => Promise<Response>;
+	resolve: (value: Response) => void;
+	reject: (reason: unknown) => void;
+}
 
-const fetchFromArchive = (
+class ArchiveRequestQueue {
+	private queue: QueueEntry[] = [];
+	private active = 0;
+	private rateTokens: number;
+	private rateLastRefill = Date.now();
+	private drainScheduled = false;
+
+	constructor(
+		private readonly maxConcurrent: number,
+		private readonly ratePerSec: number,
+		private readonly burst: number,
+	) {
+		this.rateTokens = burst;
+	}
+
+	enqueue(execute: () => Promise<Response>): Promise<Response> {
+		return new Promise<Response>((resolve, reject) => {
+			this.queue.push({ execute, resolve, reject });
+			this.scheduleDrain();
+		});
+	}
+
+	get pending(): number {
+		return this.queue.length;
+	}
+
+	get running(): number {
+		return this.active;
+	}
+
+	private scheduleDrain(): void {
+		if (this.drainScheduled) return;
+		this.drainScheduled = true;
+		queueMicrotask(() => {
+			this.drainScheduled = false;
+			this.drain();
+		});
+	}
+
+	private drain(): void {
+		while (this.queue.length > 0 && this.active < this.maxConcurrent) {
+			this.refillTokens();
+			if (this.rateTokens < 1) {
+				const waitMs = Math.ceil(
+					((1 - this.rateTokens) / this.ratePerSec) * 1000,
+				);
+				setTimeout(() => this.drain(), waitMs);
+				return;
+			}
+
+			this.rateTokens -= 1;
+			const entry = this.queue.shift()!;
+			this.active++;
+
+			entry
+				.execute()
+				.then(
+					(res) => entry.resolve(res),
+					(err) => entry.reject(err),
+				)
+				.finally(() => {
+					this.active--;
+					this.scheduleDrain();
+				});
+		}
+	}
+
+	private refillTokens(): void {
+		const now = Date.now();
+		this.rateTokens = Math.min(
+			this.burst,
+			this.rateTokens +
+				((now - this.rateLastRefill) / 1000) * this.ratePerSec,
+		);
+		this.rateLastRefill = now;
+	}
+}
+
+const archiveQueue = new ArchiveRequestQueue(
+	archiveMaxConcurrent,
+	archiveRatePerSec,
+	archiveBurst,
+);
+
+const fetchFromArchive = async (
 	url: string,
 	retriesLeft = archiveMaxRetries,
 	resourceType: ResourceType = "document",
-): Promise<Response> =>
-	new Promise((resolve, reject) => {
-		if (!url.startsWith(ARCHIVE_URL_PREFIX)) {
-			reject(new Error(`Refusing to fetch non-archive URL: ${url}`));
-			return;
+): Promise<Response> => {
+	if (!url.startsWith(ARCHIVE_URL_PREFIX)) {
+		throw new Error(`Refusing to fetch non-archive URL: ${url}`);
+	}
+
+	try {
+		return await archiveQueue.enqueue(() =>
+			fetch(url, { headers: BROWSER_HEADERS[resourceType] }),
+		);
+	} catch (err) {
+		if (isRetryable(err) && retriesLeft > 0) {
+			const backoffMs =
+				1000 * backOffIntervalSec ** (archiveMaxRetries - retriesLeft);
+			console.warn("[TimeMachine] Connection error, retrying after cooloff", {
+				url,
+				retriesLeft,
+				backoffMs,
+				error: err instanceof Error ? err.message : String(err),
+			});
+			await new Promise((r) => setTimeout(r, backoffMs));
+			return fetchFromArchive(url, retriesLeft - 1, resourceType);
 		}
-		const attempt = () => {
-			if (activeFetches >= archiveMaxConcurrent) {
-				setTimeout(attempt, 50);
-				return;
-			}
-			const now = Date.now();
-			rateTokens = Math.min(
-				archiveBurst,
-				rateTokens + ((now - rateLastRefill) / 1000) * archiveRatePerSec,
-			);
-			rateLastRefill = now;
-			if (rateTokens >= 1) {
-				rateTokens -= 1;
-				activeFetches++;
-				fetch(url, { headers: BROWSER_HEADERS[resourceType] }).then(
-					(res) => {
-						activeFetches--;
-						resolve(res);
-					},
-					(err) => {
-						activeFetches--;
-						if (isRetryable(err) && retriesLeft > 0) {
-							const backoffMs =
-								1000 * backOffIntervalSec ** (archiveMaxRetries - retriesLeft);
-							console.warn(
-								"[TimeMachine] Connection error, retrying after cooloff",
-								{
-									url,
-									retriesLeft,
-									backoffMs,
-									error: err instanceof Error ? err.message : String(err),
-								},
-							);
-							setTimeout(
-								() =>
-									fetchFromArchive(url, retriesLeft - 1).then(resolve, reject),
-								backoffMs,
-							);
-						} else {
-							reject(err);
-						}
-					},
-				);
-			} else {
-				setTimeout(
-					attempt,
-					Math.ceil(((1 - rateTokens) / archiveRatePerSec) * 1000),
-				);
-			}
-		};
-		attempt();
-	});
+		throw err;
+	}
+};
 
 const rewriteArchiveLinks = (
 	html: string,
@@ -524,6 +609,137 @@ const handleCacheClear = async (
 	res.writeHead(200).end(JSON.stringify({ deleted, errors }));
 };
 
+// --- Shared proxy fetch logic ---
+
+interface ProxyResult {
+	contentType: string;
+	archiveUrl: string;
+	originalUrl: string;
+	archiveTime: string;
+	body: string | Buffer;
+	cache: "HIT" | "MISS";
+}
+
+const proxyFetch = async (
+	targetUrl: string,
+	time: string,
+): Promise<ProxyResult> => {
+	const proxyBase = `http://${hostname}:${port}`;
+
+	// Check cache
+	const cached = await cacheGet(targetUrl, time);
+	if (cached) {
+		console.log(`[CACHE HIT] ${targetUrl}`);
+		let body: string | Buffer;
+		if (cached.isHtml) {
+			const cachedUrls = await getCachedResourceUrls(cached.body, time);
+			prefetchResources(cached.body, time);
+			body = rewriteArchiveLinks(
+				rewriteImageUrlsFiltered(
+					rewriteCssUrlsFiltered(cached.body, proxyBase, time, cachedUrls),
+					proxyBase,
+					time,
+					cachedUrls,
+				),
+				proxyBase,
+				time,
+			);
+		} else if (cached.isCss) {
+			body = rewriteCssUrls(cached.body, proxyBase, time);
+		} else {
+			body = Buffer.from(cached.body, "base64");
+		}
+		return {
+			contentType: cached.contentType,
+			archiveUrl: cached.archiveUrl,
+			originalUrl: targetUrl,
+			archiveTime: cached.archiveTime,
+			body,
+			cache: "HIT",
+		};
+	}
+
+	// Fetch from archive
+	const archiveUrl = arcUrl(targetUrl, time);
+	console.log(`${targetUrl} => ${archiveUrl}`);
+	const fetchRes = await fetchFromArchive(archiveUrl);
+
+	if (fetchRes.headers.get("x-ts") === "404") {
+		throw Object.assign(new Error("Not found in archive"), { status: 404 });
+	}
+
+	if (!fetchRes.ok) {
+		throw Object.assign(
+			new Error(`Archive returned ${fetchRes.status}`),
+			{ status: fetchRes.status },
+		);
+	}
+
+	const contentType = fetchRes.headers.get("content-type") || "";
+	const archiveTimeMatch = fetchRes.url.match(RE_ARCHIVE_TIME);
+	const archiveTime = archiveTimeMatch ? archiveTimeMatch[1] : "";
+
+	const isHtml = contentType.startsWith("text/html");
+	const isCss = contentType.startsWith("text/css");
+
+	let body: string | Buffer;
+	if (isHtml) {
+		const html = await fetchRes.text();
+		const filtered = stripWaybackToolbar(html, fetchRes.url);
+		await cachePut(targetUrl, time, {
+			contentType,
+			archiveUrl: fetchRes.url,
+			archiveTime,
+			body: filtered,
+			isHtml: true,
+			isCss: false,
+		});
+		prefetchResources(filtered, time);
+		const empty = new Set<string>();
+		body = rewriteArchiveLinks(
+			rewriteImageUrlsFiltered(
+				rewriteCssUrlsFiltered(filtered, proxyBase, time, empty),
+				proxyBase,
+				time,
+				empty,
+			),
+			proxyBase,
+			time,
+		);
+	} else if (isCss) {
+		const css = await fetchRes.text();
+		await cachePut(targetUrl, time, {
+			contentType,
+			archiveUrl: fetchRes.url,
+			archiveTime,
+			body: css,
+			isHtml: false,
+			isCss: true,
+		});
+		body = rewriteCssUrls(css, proxyBase, time);
+	} else {
+		const buffer = Buffer.from(await fetchRes.arrayBuffer());
+		await cachePut(targetUrl, time, {
+			contentType,
+			archiveUrl: fetchRes.url,
+			archiveTime,
+			body: buffer.toString("base64"),
+			isHtml: false,
+			isCss: false,
+		});
+		body = buffer;
+	}
+
+	return {
+		contentType,
+		archiveUrl: fetchRes.url,
+		originalUrl: targetUrl,
+		archiveTime,
+		body,
+		cache: "MISS",
+	};
+};
+
 // --- Server ---
 
 const sendCached = async (
@@ -627,6 +843,12 @@ const server = http.createServer(
 		} catch (e) {
 			const msg = e instanceof Error ? e.message : "Invalid URL";
 			res.writeHead(403).end(msg);
+			return;
+		}
+
+		// Check host whitelist
+		if (!isHostWhitelisted(targetUrl)) {
+			res.writeHead(403).end("Host not whitelisted");
 			return;
 		}
 
@@ -735,8 +957,146 @@ const server = http.createServer(
 	},
 );
 
+// --- WebSocket server ---
+
+interface WsRequest {
+	type: "fetch";
+	id?: string;
+	url: string;
+	time?: string;
+}
+
+interface WsResponse {
+	type: "result" | "error";
+	id?: string;
+	html?: string;
+	contentType?: string;
+	archiveUrl?: string;
+	originalUrl?: string;
+	archiveTime?: string;
+	cache?: "HIT" | "MISS";
+	status?: number;
+	message?: string;
+}
+
+const wss = new WebSocketServer({ server, path: "/ws" });
+
+wss.on("connection", (ws: WebSocket) => {
+	console.log("[TimeMachine WS] Client connected");
+
+	ws.on("message", (raw: Buffer | string) => {
+		const data = typeof raw === "string" ? raw : raw.toString("utf-8");
+
+		let msg: WsRequest;
+		try {
+			msg = JSON.parse(data) as WsRequest;
+		} catch {
+			const err: WsResponse = {
+				type: "error",
+				status: 400,
+				message: "Invalid JSON",
+			};
+			ws.send(JSON.stringify(err));
+			return;
+		}
+
+		if (msg.type !== "fetch" || !msg.url) {
+			const err: WsResponse = {
+				type: "error",
+				id: msg.id,
+				status: 400,
+				message: "Expected { type: \"fetch\", url: \"...\" }",
+			};
+			ws.send(JSON.stringify(err));
+			return;
+		}
+
+		// Validate time parameter
+		let time: string;
+		try {
+			time = sanitizeTimeParam(msg.time ?? null);
+		} catch {
+			const err: WsResponse = {
+				type: "error",
+				id: msg.id,
+				status: 400,
+				message: "Invalid time parameter",
+			};
+			ws.send(JSON.stringify(err));
+			return;
+		}
+
+		// Validate and process the URL
+		let targetUrl: string;
+		try {
+			targetUrl = validateTargetUrl(msg.url);
+		} catch (e) {
+			const err: WsResponse = {
+				type: "error",
+				id: msg.id,
+				status: 403,
+				message: e instanceof Error ? e.message : "Invalid URL",
+			};
+			ws.send(JSON.stringify(err));
+			return;
+		}
+
+		if (!isHostWhitelisted(targetUrl)) {
+			const err: WsResponse = {
+				type: "error",
+				id: msg.id,
+				status: 403,
+				message: "Host not whitelisted",
+			};
+			ws.send(JSON.stringify(err));
+			return;
+		}
+
+		// Fetch and respond asynchronously
+		proxyFetch(targetUrl, time)
+			.then((result) => {
+				if (ws.readyState !== ws.OPEN) return;
+				const bodyStr =
+					typeof result.body === "string"
+						? result.body
+						: result.body.toString("base64");
+				const resp: WsResponse = {
+					type: "result",
+					id: msg.id,
+					html: bodyStr,
+					contentType: result.contentType,
+					archiveUrl: result.archiveUrl,
+					originalUrl: result.originalUrl,
+					archiveTime: result.archiveTime,
+					cache: result.cache,
+				};
+				ws.send(JSON.stringify(resp));
+			})
+			.catch((e: unknown) => {
+				if (ws.readyState !== ws.OPEN) return;
+				const status =
+					(e as { status?: number }).status ?? 500;
+				const err: WsResponse = {
+					type: "error",
+					id: msg.id,
+					status,
+					message:
+						e instanceof Error
+							? e.message
+							: "Upstream request failed",
+				};
+				ws.send(JSON.stringify(err));
+			});
+	});
+
+	ws.on("close", () => {
+		console.log("[TimeMachine WS] Client disconnected");
+	});
+});
+
 const shutdown = () => {
 	console.log("TimeMachine shutting down...");
+	wss.close();
 	server.close(() => process.exit(0));
 };
 
@@ -745,4 +1105,5 @@ process.on("SIGINT", shutdown);
 
 server.listen(port, () => {
 	console.log(`TimeMachine server listening on http://${hostname}:${port}`);
+	console.log(`TimeMachine WebSocket listening on ws://${hostname}:${port}/ws`);
 });

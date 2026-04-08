@@ -79,6 +79,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 					}
 					filtered._name = filename;
 					filtered._path = `${path}:${filename}`;
+					filtered._size = fs.size(metadata);
 					return filtered as ClassicyFileSystemEntryMetadata;
 				});
 			}, [path, fs]);

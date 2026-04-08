@@ -97,6 +97,13 @@ export const classicyBrowserEventHandler = (
 			appData.history = [];
 			break;
 		}
+		case "ClassicyAppBrowserUpdateProxyConfig": {
+			if (!appData) {
+				appData = {};
+			}
+			appData.proxyConfig = action.proxyConfig;
+			break;
+		}
 	}
 	ds.System.Manager.Applications.apps[appId].data = { ...appData };
 	return ds;

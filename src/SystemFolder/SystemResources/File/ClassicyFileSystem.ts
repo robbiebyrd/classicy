@@ -157,13 +157,23 @@ export class ClassicyFileSystem {
 	}
 
 	size(path: ClassicyPathOrFileSystemEntry): number {
-		if (typeof path === "string") {
-			const contents = this.readFile(path);
-			if (contents !== undefined) {
-				return new Blob(contents.split("")).size;
+		const entry =
+			typeof path === "string" ? this.resolve(path) : path;
+
+		if (!entry) return -1;
+
+		if ("_data" in entry) {
+			return new Blob(String(entry._data).split("")).size;
+		}
+
+		if (entry._type === ClassicyFileSystemEntryFileType.Directory) {
+			let total = 0;
+			for (const [key, child] of Object.entries(entry)) {
+				if (key.startsWith("_") || !child?._type) continue;
+				const childSize = this.size(child);
+				if (childSize > 0) total += childSize;
 			}
-		} else if ("_data" in path) {
-			return new Blob((path._data as string).split("")).size;
+			return total;
 		}
 
 		return -1;

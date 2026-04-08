@@ -105,6 +105,30 @@
   font-family: var(--ui-font), sans-serif;
 }
 
+.browserSettings {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25em;
+  padding: 0.5em;
+}
+
+.browserSettingsRow {
+  align-items: center;
+  gap: 0.5em;
+}
+
+.browserSettingsProtocol {
+  gap: 0.25em;
+}
+
+.browserSettingsButtons {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  gap: 0.5em;
+  padding-top: 0.5em;
+}
+
 .browserStatusBar {
   height: calc(var(--window-control-size) + var(--window-border-size));
   background-color: var(--color-system-04);
