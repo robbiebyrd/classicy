@@ -28,6 +28,7 @@ function makeStore(): ClassicyStore {
 					systemMenu: [],
 					appMenu: [],
 					selectBox: { size: [0, 0], start: [0, 0], active: false },
+					disableBalloonHelp: false,
 				},
 				Applications: {
 					apps: {
@@ -159,6 +160,29 @@ describe("classicyDesktopIconEventHandler — ClassicyDesktopIconFocus", () => {
 
 		expect(ds.System.Manager.Desktop.selectedIcons).toHaveLength(1);
 		expect(ds.System.Manager.Desktop.selectedIcons[0]).toBe("Notes.app");
+	});
+
+	it("focuses Finder.app and defocuses other apps", () => {
+		const ds = makeStoreWithIcons();
+		ds.System.Manager.Applications.apps["SomeApp"] = {
+			id: "SomeApp",
+			name: "Some App",
+			icon: "",
+			windows: [],
+			open: true,
+			focused: true,
+			noDesktopIcon: false,
+			data: {},
+		};
+		ds.System.Manager.Applications.apps["Finder.app"].focused = false;
+
+		classicyDesktopIconEventHandler(ds, {
+			type: "ClassicyDesktopIconFocus",
+			iconId: "Notes.app",
+		});
+
+		expect(ds.System.Manager.Applications.apps["Finder.app"].focused).toBe(true);
+		expect(ds.System.Manager.Applications.apps["SomeApp"].focused).toBe(false);
 	});
 });
 

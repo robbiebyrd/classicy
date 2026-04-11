@@ -4,6 +4,7 @@ import { type FC as FunctionalComponent, useEffect, useState } from "react";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import {
 	ClassicyControlLabel,
+	type ClassicyControlLabelSize,
 	type ClassicyLabelPosition,
 	labelPositionClass,
 } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
@@ -16,6 +17,7 @@ export type ClassicyCheckboxProps = {
 	disabled?: boolean;
 	onClickFunc?: (checked: boolean) => void;
 	label?: string;
+	labelSize?: ClassicyControlLabelSize;
 	labelPosition?: ClassicyLabelPosition;
 };
 
@@ -27,6 +29,7 @@ export const ClassicyCheckbox: FunctionalComponent<ClassicyCheckboxProps> = ({
 	disabled,
 	onClickFunc,
 	label,
+	labelSize = "medium",
 	labelPosition = "right",
 }) => {
 	const [check, setCheck] = useState<boolean>(checked || false);
@@ -53,7 +56,7 @@ export const ClassicyCheckbox: FunctionalComponent<ClassicyCheckboxProps> = ({
 				labelPositionClass(labelPosition),
 			)}
 		>
-			<ClassicyControlLabel label={label} labelFor={id} disabled={disabled} />
+			<ClassicyControlLabel label={label} labelFor={id} labelSize={labelSize} disabled={disabled} />
 			<input
 				type={"checkbox"}
 				onChange={handleOnClick}

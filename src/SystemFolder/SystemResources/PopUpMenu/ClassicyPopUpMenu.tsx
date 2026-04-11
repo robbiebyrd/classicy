@@ -1,5 +1,6 @@
 import {
 	ClassicyControlLabel,
+	type ClassicyControlLabelSize,
 	type ClassicyLabelPosition,
 	labelPositionClass,
 } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
@@ -13,6 +14,10 @@ import {
 } from "react";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
+const PLACEHOLDER_VALUE = "__classicy_placeholder__";
+
+export type ClassicyPopUpMenuSize = ClassicyControlLabelSize | "mini";
+
 type classicyPopUpMenuOptions = {
 	value: string;
 	label: string;
@@ -25,7 +30,8 @@ type classicyPopUpMenuProps = {
 	labelPosition?: ClassicyLabelPosition;
 	options: classicyPopUpMenuOptions[];
 	selected?: string;
-	small?: boolean;
+	placeholder?: string;
+	size?: ClassicyPopUpMenuSize;
 	onChangeFunc?: (e: ChangeEvent<HTMLSelectElement>) => void;
 	className?: string;
 };
@@ -35,18 +41,24 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 	labelPosition = "above",
 	options,
 	selected,
+	placeholder,
 	className: extraClassName,
-	small = false,
+	size = "medium",
 	onChangeFunc,
 }) => {
-	const [selectedItem, setSelectedItem] = useState(selected);
+	// For the control label, "mini" maps to "small" — "mini" is a menu-only size
+	const controlLabelSize: ClassicyControlLabelSize =
+		size === "mini" ? "small" : size;
+	const [selectedItem, setSelectedItem] = useState(selected ?? (placeholder ? PLACEHOLDER_VALUE : undefined));
+	// biome-ignore lint/correctness/useExhaustiveDependencies: placeholder is intentionally excluded — it does not change after mount
 	useEffect(() => {
-		setSelectedItem(selected);
-	}, [selected]);
+		setSelectedItem(selected ?? (placeholder ? PLACEHOLDER_VALUE : undefined)); // eslint-disable-line react-hooks/set-state-in-effect
+	}, [selected]); // eslint-disable-line react-hooks/exhaustive-deps
 	const { track } = useClassicyAnalytics();
 	const analyticsArgs = { id, label, options, selected };
 
 	const onChangeHandler = (e: ChangeEvent<HTMLSelectElement>) => {
+		if (e.target.value === PLACEHOLDER_VALUE) return;
 		setSelectedItem(e.target.value);
 		track("selected", {
 			type: "ClassicyPopUpMenu",
@@ -65,11 +77,11 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 				labelPositionClass(labelPosition),
 			)}
 		>
-			{label && <ClassicyControlLabel label={label}></ClassicyControlLabel>}
+			{label && <ClassicyControlLabel label={label} labelSize={controlLabelSize}></ClassicyControlLabel>}
 			<div
 				className={classNames(
 					"classicyPopUpMenu",
-					small ? "classicyPopUpMenuSmall" : "",
+					`classicyPopUpMenuSize${size.charAt(0).toUpperCase()}${size.slice(1)}`,
 					extraClassName,
 				)}
 			>
@@ -79,6 +91,11 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 					value={selectedItem}
 					onChange={onChangeHandler}
 				>
+					{placeholder && (
+						<option value={PLACEHOLDER_VALUE} disabled>
+							{placeholder}
+						</option>
+					)}
 					{options.map((o) => (
 						<option key={id + o.label + o.value} value={o.value}>
 							{o.label}

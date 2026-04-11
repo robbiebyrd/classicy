@@ -3,6 +3,7 @@ import {
 	type ActionMessage,
 	type ClassicyStore,
 	classicyDesktopStateEventReducer,
+	deFocusApps,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import type { ClassicyStoreSystemDesktopManagerIcon } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
 
@@ -124,6 +125,8 @@ export const classicyDesktopIconEventHandler = (
 			break;
 		}
 		case "ClassicyDesktopIconFocus": {
+			deFocusApps(ds);
+			ds.System.Manager.Applications.apps["Finder.app"].focused = true;
 			ds.System.Manager.Desktop.selectedIcons = [action.iconId];
 			break;
 		}

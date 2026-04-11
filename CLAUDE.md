@@ -64,7 +64,7 @@ State persists to localStorage (key: `classicyDesktopState`) via Zustand's `subs
 ### Directory Structure
 
 - `src/SystemFolder/ControlPanels/` - System-level managers (AppManager, SoundManager, AppearanceManager, DateAndTimeManager)
-- `src/SystemFolder/SystemResources/` - Reusable UI components (Window, Button, Input, Menu, etc.)
+- `src/SystemFolder/SystemResources/` - Reusable UI components (Window, Button, Input, Menu, BalloonHelp, etc.)
 - `src/SystemFolder/Finder/` - Finder app implementation
 - `src/SystemFolder/QuickTime/` - Media player apps
 - `example/` - Standalone Vite app that consumes the built package for local testing
@@ -86,6 +86,21 @@ const appState = useAppManager(state => state.System.Manager.App.apps[id]);
 const dispatch = useAppManagerDispatch();
 dispatch({ type: 'ClassicyAppOpen', app: { id, name, icon } });
 ```
+
+### Balloon Help
+
+`ClassicyBalloonHelp` is a Mac OS 8-style tooltip component. Wrap any element with it to show a speech-bubble tooltip after a delay:
+
+```tsx
+<ClassicyBalloonHelp content="Click to open" title="Open File" position="top-left">
+  <ClassicyButton>Open</ClassicyButton>
+</ClassicyBalloonHelp>
+```
+
+- `position`: one of `top-left | top-center | top-right | bottom-left | bottom-center | bottom-right` (default `top-left`)
+- `delay`: hover delay in ms before balloon appears (default `600`)
+- Rendered via a React portal into `#classicyDesktop` so it is never clipped by parent overflow
+- Globally disabled by `System.Manager.Desktop.disableBalloonHelp` (Zustand store). Toggle with event `ClassicyDesktopSetBalloonHelp` — e.g. `dispatch({ type: 'ClassicyDesktopSetBalloonHelp', disableBalloonHelp: true })`
 
 ### Theming
 

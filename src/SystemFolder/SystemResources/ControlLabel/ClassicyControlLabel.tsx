@@ -8,7 +8,7 @@ import type {
 } from "react";
 
 type ClassicyControlLabelDirections = "left" | "right";
-type ClassicyControlLabelSize = "small" | "medium" | "large";
+export type ClassicyControlLabelSize = "small" | "medium" | "large";
 
 export type ClassicyLabelPosition = "above" | "left" | "right" | "below";
 
@@ -32,6 +32,8 @@ interface ClassicyControlLabelProps {
 	direction?: ClassicyControlLabelDirections;
 	children?: ReactNode;
 	onClickFunc?: (e: MouseEvent) => void;
+	onMouseDown?: (e: MouseEvent) => void;
+	onMouseUp?: (e: MouseEvent) => void;
 }
 
 export const ClassicyControlLabel: FunctionalComponent<
@@ -46,6 +48,8 @@ export const ClassicyControlLabel: FunctionalComponent<
 	iconSize,
 	children,
 	onClickFunc,
+	onMouseDown,
+	onMouseUp,
 }) => {
 	if (label === "") {
 		return null;
@@ -86,6 +90,8 @@ export const ClassicyControlLabel: FunctionalComponent<
 					onClickFunc(e);
 				}
 			}}
+			onMouseDown={onMouseDown}
+			onMouseUp={onMouseUp}
 			onKeyDown={(e: KeyboardEvent) => {
 				if (e.key === "Enter" || e.key === " ") {
 					e.preventDefault();

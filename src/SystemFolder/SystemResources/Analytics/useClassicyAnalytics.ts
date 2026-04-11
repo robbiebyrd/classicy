@@ -1,12 +1,17 @@
 import type { AnalyticsInstance } from "analytics";
+import { createContext, useContext } from "react";
 import { useAnalytics } from "use-analytics";
+
+export const ClassicyAnalyticsPrefixContext = createContext<string>("classicy_");
 
 /**
  * A wrapper around useAnalytics that provides a safe default when analytics context is not available.
  * This prevents errors when the library is used in environments without the Analytics provider.
+ * All event names are prefixed with the value from ClassicyAnalyticsPrefixContext (default: "classicy_").
  */
 export const useClassicyAnalytics = () => {
 	const analytics = useAnalytics();
+	const prefix = useContext(ClassicyAnalyticsPrefixContext);
 
 	// If analytics is not available (no provider), return a safe default
 	if (!analytics) {
@@ -40,5 +45,9 @@ export const useClassicyAnalytics = () => {
 		return noOp;
 	}
 
-	return analytics;
+	return {
+		...analytics,
+		track: (eventName: string, payload?: Record<string, unknown>) =>
+			analytics.track(`${prefix}${eventName}`, payload),
+	};
 };

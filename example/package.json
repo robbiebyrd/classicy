@@ -8,6 +8,8 @@
 		"build": "tsc -b && vite build",
 		"lint": "eslint .",
 		"preview": "vite preview",
+		"use:local": "npm link classicy",
+		"use:published": "npm unlink classicy && npm install",
 		"proxy": "npm run proxy:up",
 		"proxy:cycle": "npm run proxy:down && npm run proxy:up",
 		"proxy:up": "cd timemachine && docker compose up --build --force-recreate -d",

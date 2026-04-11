@@ -12,7 +12,7 @@ export const BlueBox = () => {
 
   const quitApp = useCallback(() => {
     desktopEventDispatch(quitAppHelper(appId, appName, appIcon));
-  }, [desktopEventDispatch, appIcon]);
+  }, [desktopEventDispatch]);
 
   const appMenu = useMemo(
     () => [
@@ -39,12 +39,13 @@ export const BlueBox = () => {
         icon={appIcon}
         appId={appId}
         scrollable={false}
-        initialSize={[640, 480]}
+        initialSize={[645, 485]}
         initialPosition={[100, 100]}
         appMenu={appMenu}
         collapsable={true}
         growable={false}
         resizable={false}
+        zoomable={false}
       >
         <div className="blueBox">
           <div className="blueBoxBar blueBoxToolbar">
@@ -56,11 +57,11 @@ export const BlueBox = () => {
           </div>
           <div className="blueBoxContents">
             <iframe
+              title='Infinite Mac'
               src="https://infinitemac.org/embed?disk=Mac+OS+8.1&machine=Quadra+650&paused=false&auto_pause=true"
               width="640"
               height="480"
               allow="cross-origin-isolated"
-              frameBorder="0"
             ></iframe>
           </div>
         </div>

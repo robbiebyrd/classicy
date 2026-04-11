@@ -1,5 +1,6 @@
-import {useState, useCallback, useRef, useEffect, useMemo} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+export const DEFAULT_PROXY_ON = false;
 export const DEFAULT_PROXY_PROTOCOL = "http:";
 export const DEFAULT_PROXY_HOST = "localhost";
 export const DEFAULT_PROXY_PORT = 8765;
@@ -18,7 +19,7 @@ export interface TimeMachineProxyConfig {
 }
 
 export const DEFAULT_PROXY_CONFIG: TimeMachineProxyConfig = {
-	enabled: true,
+	enabled: DEFAULT_PROXY_ON,
 	protocol: DEFAULT_PROXY_PROTOCOL,
 	host: DEFAULT_PROXY_HOST,
 	port: DEFAULT_PROXY_PORT,
@@ -39,12 +40,12 @@ const formatArchiveTime = (time: string): string => {
 	});
 };
 
-const extractOriginalUrl = (href: string, proxyPort: string): string | null => {
-	// Proxy URL — extract the url query param (match on port to handle
-	// localhost vs 127.0.0.1 vs 0.0.0.0 differences)
+const extractOriginalUrl = (href: string, proxyHost: string): string | null => {
+	// Proxy URL — extract the url query param (match on hostname, since default
+	// ports like 443 are omitted by URL parser, making port comparison unreliable)
 	try {
 		const parsed = new URL(href);
-		if (parsed.port === proxyPort && parsed.searchParams.has("url")) {
+		if (parsed.hostname === proxyHost && parsed.searchParams.has("url")) {
 			return parsed.searchParams.get("url");
 		}
 	} catch {
@@ -107,10 +108,8 @@ const fetchViaWebSocket = async (
 	// Normalize to ws(s) protocol — if protocol is already ws/wss the
 	// replaces are no-ops; if http/https they get converted.
 	const pathSegment = path ? `/${path.replace(/^\/+/, "")}` : "/ws";
-	const wsUrl = proxyBase
-		.replace(/^https:/, "wss:")
-		.replace(/^http:/, "ws:")
-		+ pathSegment;
+	const wsUrl =
+		proxyBase.replace(/^https:/, "wss:").replace(/^http:/, "ws:") + pathSegment;
 
 	return new Promise<ProxyFetchResult>((resolve, reject) => {
 		if (signal.aborted) {
@@ -122,8 +121,10 @@ const fetchViaWebSocket = async (
 		let settled = false;
 
 		const cleanup = () => {
-			if (ws.readyState === WebSocket.OPEN ||
-				ws.readyState === WebSocket.CONNECTING) {
+			if (
+				ws.readyState === WebSocket.OPEN ||
+				ws.readyState === WebSocket.CONNECTING
+			) {
 				ws.close();
 			}
 		};
@@ -183,9 +184,7 @@ const fetchViaWebSocket = async (
 			if (settled) return;
 			settled = true;
 			signal.removeEventListener("abort", onAbort);
-			reject(new Error(
-				`WebSocket closed unexpectedly (code ${event.code})`,
-			));
+			reject(new Error(`WebSocket closed unexpectedly (code ${event.code})`));
 		});
 	});
 };
@@ -209,7 +208,7 @@ export const useBrowserNavigation = ({
 	);
 	const proxyEnabled = proxyConfig.enabled;
 	const archiveTime = proxyConfig.archiveTime;
-	const proxyPort = String(proxyConfig.port);
+	const proxyHost = proxyConfig.host;
 
 	const [history, setHistory] = useState<string[]>([defaultUrl]);
 	const [historyIndex, setHistoryIndex] = useState(0);
@@ -270,8 +269,7 @@ export const useBrowserNavigation = ({
 			} catch (e: unknown) {
 				if (e instanceof DOMException && e.name === "AbortError") return;
 				console.error("[Browser] Failed to fetch page", { url, error: e });
-				const msg =
-					e instanceof Error ? e.message : "Error loading page";
+				const msg = e instanceof Error ? e.message : "Error loading page";
 				setStatusText(`Error: ${msg}`);
 				setHtmlContent(
 					`<p>${msg.includes("not yet implemented") ? msg : "Could not connect to TimeMachine server. Is it running?"}</p>`,
@@ -380,7 +378,7 @@ export const useBrowserNavigation = ({
 			if (!link.rawHref) return;
 
 			// First check if the resolved href is a proxy/archive URL we can extract
-			const originalUrl = extractOriginalUrl(link.href, proxyPort);
+			const originalUrl = extractOriginalUrl(link.href, proxyHost);
 			if (originalUrl && isNavigableUrl(originalUrl)) {
 				navigateToRef.current(originalUrl);
 				return;
@@ -402,7 +400,7 @@ export const useBrowserNavigation = ({
 				navigateToRef.current(link.href);
 			}
 		},
-		[proxyPort],
+		[proxyHost],
 	);
 
 	return {

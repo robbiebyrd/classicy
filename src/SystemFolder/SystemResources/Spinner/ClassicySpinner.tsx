@@ -1,5 +1,6 @@
 import {
 	ClassicyControlLabel,
+	type ClassicyControlLabelSize,
 	type ClassicyLabelPosition,
 	labelPositionClass,
 } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
@@ -28,12 +29,14 @@ interface ClassicySpinnerProps {
 	onChangeFunc?: ChangeEventHandler<HTMLInputElement>;
 	onEnterFunc?: () => void;
 	labelTitle?: string;
+	labelSize?: ClassicyControlLabelSize;
 	labelPosition?: ClassicyLabelPosition;
 	placeholder?: number;
 	prefillValue?: number;
 	minValue?: number;
 	maxValue?: number;
 	disabled?: boolean;
+	labelDisabled?: boolean;
 	isDefault?: boolean;
 	backgroundColor?: string;
 	ref?: ForwardedRef<HTMLInputElement>;
@@ -45,12 +48,14 @@ export const ClassicySpinner: FunctionalComponent<ClassicySpinnerProps> =
 			id,
 			inputType = "number",
 			labelTitle,
+			labelSize = "medium",
 			labelPosition = "above",
 			placeholder,
 			prefillValue,
 			minValue = 0,
 			maxValue = undefined,
 			disabled = false,
+			labelDisabled,
 			isDefault,
 			backgroundColor,
 			onChangeFunc,
@@ -179,7 +184,8 @@ export const ClassicySpinner: FunctionalComponent<ClassicySpinnerProps> =
 					<ClassicyControlLabel
 						label={labelTitle}
 						labelFor={id}
-						disabled={disabled}
+						labelSize={labelSize}
+						disabled={labelDisabled ?? disabled}
 					/>
 				)}
 				<div className={"classicySpinnerInputGroup"}>

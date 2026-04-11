@@ -33,6 +33,7 @@ export interface ClassicyStoreSystemDesktopManager
 		start: [number, number];
 		active: boolean;
 	};
+	disableBalloonHelp: boolean;
 }
 
 export const classicyDesktopEventHandler = (
@@ -165,6 +166,12 @@ export const classicyDesktopEventHandler = (
 		}
 		case "ClassicyDesktopLoadThemes": {
 			ds.System.Manager.Appearance.availableThemes = action.availableThemes;
+			break;
+		}
+		case "ClassicyDesktopSetBalloonHelp": {
+			ds.System.Manager.Desktop.disableBalloonHelp =
+				action.disableBalloonHelp;
+			break;
 		}
 	}
 	return ds;

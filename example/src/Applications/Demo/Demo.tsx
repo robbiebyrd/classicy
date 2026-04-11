@@ -1,5 +1,6 @@
 import {
 	ClassicyApp,
+	ClassicyBalloonHelp,
 	ClassicyButton,
 	ClassicyCheckbox,
 	ClassicyControlGroup,
@@ -15,24 +16,37 @@ import {
 	quitMenuItemHelper,
 	useAppManagerDispatch,
 } from "classicy";
-import {
-	type FC as FunctionalComponent,
-	useCallback,
-	useEffect,
-} from "react";
+import { type FC as FunctionalComponent, useCallback, useEffect } from "react";
 
 const RADIO_INPUTS = [
-	{ id: "test1", isDefault: true, disabled: false, label: "Radio Button 1 (Default)", checked: false },
+	{
+		id: "test1",
+		isDefault: true,
+		disabled: false,
+		label: "Radio Button 1 (Default)",
+		checked: false,
+	},
 	{ id: "test2", label: "Radio Button 2 (Regular)", checked: false },
 	{ id: "test3", mixed: true, label: "Radio Button 3 (Mixed)", checked: false },
 ];
 
 const RADIO_INPUTS_DISABLED = [
-	{ id: "test4", disabled: true, label: "Radio Button 4 (Disabled)", checked: false },
-	{ id: "test5", disabled: true, mixed: true, label: "Radio Button 6 (Disabled + Checked + Mixed)", checked: true },
+	{
+		id: "test4",
+		disabled: true,
+		label: "Radio Button 4 (Disabled)",
+		checked: false,
+	},
+	{
+		id: "test5",
+		disabled: true,
+		mixed: true,
+		label: "Radio Button 6 (Disabled + Checked + Mixed)",
+		checked: true,
+	},
 ];
 
-export const Demo: FunctionalComponent= () => {
+export const Demo: FunctionalComponent = () => {
 	const appName = "Demo";
 	const appId = "Demo.app";
 	const appIcon = ClassicyIcons.system.folders.directory;
@@ -71,7 +85,16 @@ export const Demo: FunctionalComponent= () => {
 		{
 			id: "file",
 			title: "File",
-			menuChildren: [quitMenuItemHelper(appId, appName, appIcon)],
+			menuChildren: [
+				{
+					...quitMenuItemHelper(appId, appName, appIcon),
+					balloon: {
+						title: "Quit Demo",
+						content: "Closes the Demo application and returns to the desktop.",
+						position: "bottom-left",
+					},
+				},
+			],
 		},
 	];
 
@@ -137,7 +160,6 @@ export const Demo: FunctionalComponent= () => {
 					<ClassicyControlGroup label={"Pop Up Menu"}>
 						<ClassicyPopUpMenu
 							id={"select_theme"}
-							small={false}
 							options={[
 								{ value: "hello", label: "Hello" },
 								{ value: "hello2", label: "Hello again!" },
@@ -197,13 +219,31 @@ export const Demo: FunctionalComponent= () => {
 				<ClassicyDisclosure label={"Expandable Section"}>
 					<p style={{ fontFamily: "var(--header-font)" }}>HELLO!</p>
 				</ClassicyDisclosure>
-				<ClassicyButton isDefault={true}>Do Nothing</ClassicyButton>
-				<ClassicyButton isDefault={false} onClickFunc={quitApp}>
-					Quit
-				</ClassicyButton>
+				<ClassicyBalloonHelp
+					title="Do Nothing"
+					content="This button does absolutely nothing."
+					position="top-left"
+				>
+					<ClassicyButton isDefault={true}>Do Nothing</ClassicyButton>
+				</ClassicyBalloonHelp>
+				<ClassicyBalloonHelp
+					title="Quit App"
+					content="Click here to quit this application."
+					position="top-left"
+				>
+					<ClassicyButton isDefault={false} onClickFunc={quitApp}>
+						Quit
+					</ClassicyButton>
+				</ClassicyBalloonHelp>
+				<ClassicyBalloonHelp
+					title="Disabled"
+					content="This button is disabled.."
+					position="top-left"
+				>
 				<ClassicyButton isDefault={false} disabled={true}>
-					Disabled
-				</ClassicyButton>
+						Disabled
+					</ClassicyButton>
+				</ClassicyBalloonHelp>
 			</ClassicyWindow>
 		</ClassicyApp>
 	);

@@ -1,6 +1,7 @@
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import {
 	ClassicyControlLabel,
+	type ClassicyControlLabelSize,
 	type ClassicyLabelPosition,
 	labelPositionClass,
 } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
@@ -25,10 +26,12 @@ interface ClassicyDatePickerProps {
 	inputType?: "text";
 	onChangeFunc?: (date: Date) => void;
 	labelTitle?: string;
+	labelSize?: ClassicyControlLabelSize;
 	labelPosition?: ClassicyLabelPosition;
 	placeholder?: string;
 	prefillValue?: Date;
 	disabled?: boolean;
+	labelDisabled?: boolean;
 	isDefault?: boolean;
 }
 
@@ -39,8 +42,10 @@ export const ClassicyDatePicker: FunctionalComponent<ClassicyDatePickerProps> =
 				id,
 				inputType,
 				labelTitle,
+				labelSize = "medium",
 				labelPosition = "above",
 				disabled = false,
+				labelDisabled,
 				isDefault,
 				onChangeFunc,
 			},
@@ -181,7 +186,8 @@ export const ClassicyDatePicker: FunctionalComponent<ClassicyDatePickerProps> =
 						<ClassicyControlLabel
 							label={labelTitle}
 							labelFor={id}
-							disabled={disabled}
+							labelSize={labelSize}
+							disabled={labelDisabled ?? disabled}
 						></ClassicyControlLabel>
 					)}
 					<div

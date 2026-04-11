@@ -55,7 +55,6 @@ export const useDesktopTab = ({
 									<ClassicyPopUpMenu
 										onChangeFunc={alignBackground}
 										id={"position_custom_background_image"}
-										small={false}
 										options={[
 											{ value: "center", label: "Center" },
 											{ value: "top left", label: "Top Left" },
@@ -74,7 +73,6 @@ export const useDesktopTab = ({
 									<ClassicyPopUpMenu
 										onChangeFunc={repeatBackground}
 										id={"repeat_background_image"}
-										small={false}
 										options={[
 											{ value: "repeat", label: "Repeat" },
 											{ value: "repeat-x", label: "Repeat Horizontally" },
@@ -89,7 +87,6 @@ export const useDesktopTab = ({
 									<ClassicyPopUpMenu
 										onChangeFunc={backgroundSize}
 										id={"repeat_background_image"}
-										small={false}
 										options={[
 											{ value: "normal", label: "Normal" },
 											{ value: "cover", label: "Stretch" },

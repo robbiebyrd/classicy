@@ -10,6 +10,7 @@ import {
 } from "react";
 import {
 	ClassicyControlLabel,
+	type ClassicyControlLabelSize,
 	type ClassicyLabelPosition,
 	labelPositionClass,
 } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
@@ -20,10 +21,12 @@ interface ClassicyTimePickerProps {
 	inputType?: "text";
 	onChangeFunc?: (updatedDate: Date) => void;
 	labelTitle?: string;
+	labelSize?: ClassicyControlLabelSize;
 	labelPosition?: ClassicyLabelPosition;
 	placeholder?: string;
 	prefillValue?: Date;
 	disabled?: boolean;
+	labelDisabled?: boolean;
 	isDefault?: boolean;
 	ref?: ForwardedRef<HTMLInputElement>;
 }
@@ -35,10 +38,12 @@ export const ClassicyTimePicker: FunctionalComponent<ClassicyTimePickerProps> =
 				id,
 				inputType = "text",
 				labelTitle,
+				labelSize = "medium",
 				labelPosition = "above",
 				placeholder,
 				prefillValue,
 				disabled = false,
+				labelDisabled,
 				isDefault,
 				onChangeFunc,
 			},
@@ -188,7 +193,8 @@ export const ClassicyTimePicker: FunctionalComponent<ClassicyTimePickerProps> =
 						<ClassicyControlLabel
 							label={labelTitle}
 							labelFor={id}
-							disabled={disabled}
+							labelSize={labelSize}
+							disabled={labelDisabled ?? disabled}
 						></ClassicyControlLabel>
 					)}
 					<div

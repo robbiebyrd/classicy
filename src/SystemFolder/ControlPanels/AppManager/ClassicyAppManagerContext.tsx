@@ -8,16 +8,18 @@ import {
 } from "react";
 import { AnalyticsProvider } from "use-analytics";
 import { ClassicySoundManagerProvider } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerProvider";
+import { ClassicyAnalyticsPrefixContext } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
 type ClassicyAppManagerProviderProps = {
 	gaMeasurementIds?: string[];
 	gtmContainerId?: string;
 	appName?: string;
+	eventPrefix?: string;
 };
 
 export const ClassicyAppManagerProvider: FunctionalComponent<
 	PropsWithChildren<ClassicyAppManagerProviderProps>
-> = ({ children, gtmContainerId, gaMeasurementIds, appName = "classicy" }) => {
+> = ({ children, gtmContainerId, gaMeasurementIds, appName = "classicy", eventPrefix = "classicy_" }) => {
 	const analytics = useMemo(() => {
 		const plugins: AnalyticsPlugin[] = [];
 
@@ -33,8 +35,10 @@ export const ClassicyAppManagerProvider: FunctionalComponent<
 	}, [appName, gaMeasurementIds, gtmContainerId]);
 
 	return (
-		<AnalyticsProvider instance={analytics}>
-			<ClassicySoundManagerProvider>{children}</ClassicySoundManagerProvider>
-		</AnalyticsProvider>
+		<ClassicyAnalyticsPrefixContext.Provider value={eventPrefix}>
+			<AnalyticsProvider instance={analytics}>
+				<ClassicySoundManagerProvider>{children}</ClassicySoundManagerProvider>
+			</AnalyticsProvider>
+		</ClassicyAnalyticsPrefixContext.Provider>
 	);
 };

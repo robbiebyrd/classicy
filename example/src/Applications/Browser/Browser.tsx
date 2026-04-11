@@ -14,11 +14,11 @@ import {
 import DOMPurify from "dompurify";
 import {
 	type FC as FunctionalComponent,
-	useState,
-	useRef,
 	useCallback,
 	useEffect,
 	useMemo,
+	useRef,
+	useState,
 } from "react";
 
 import "./Browser.scss";

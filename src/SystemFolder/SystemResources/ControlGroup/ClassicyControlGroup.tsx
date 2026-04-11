@@ -5,6 +5,7 @@ import type { FC as FunctionalComponent, ReactNode } from "react";
 type ClassicyControlGroupProps = {
 	label: string;
 	columns?: boolean;
+	layout?: "default" | "form";
 	children: ReactNode;
 };
 
@@ -13,8 +14,13 @@ export const ClassicyControlGroup: FunctionalComponent<
 > = ({
 	label = "",
 	columns = false,
+	layout = "default",
 	children,
 }) => {
+	const contentClass = classNames(
+		columns && "classicyControlGroupContentColumns",
+		layout === "form" && "classicyControlGroupFormContent",
+	);
 	return (
 		<fieldset
 			className={classNames(
@@ -25,7 +31,7 @@ export const ClassicyControlGroup: FunctionalComponent<
 			{label !== "" && (
 				<legend className={"classicyControlGroupLegend"}>{label}</legend>
 			)}
-			<div className={columns ? "classicyControlGroupContentColumns" : ""}>
+			<div className={contentClass || undefined}>
 				{children}
 			</div>
 		</fieldset>

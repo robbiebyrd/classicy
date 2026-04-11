@@ -18,6 +18,7 @@ function makeValidStoredState(
 					systemMenu: [],
 					appMenu: [],
 					selectBox: { size: [0, 0], start: [0, 0], active: false },
+					disableBalloonHelp: false,
 				},
 				Appearance: { activeTheme: { id: "default" }, availableThemes: [] },
 				Sound: { volume: 100, labels: {}, disabled: [] },

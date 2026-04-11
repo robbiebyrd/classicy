@@ -36,6 +36,7 @@ function makeStore(): ClassicyStore {
 					systemMenu: [],
 					appMenu: [],
 					selectBox: { size: [0, 0], start: [0, 0], active: false },
+					disableBalloonHelp: false,
 				},
 				Applications: {
 					apps: {

@@ -17,6 +17,10 @@ import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/C
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import { ClassicyMenuContext } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuContext";
+import {
+	ClassicyBalloonHelp,
+	type ClassicyBalloonPosition,
+} from "@/SystemFolder/SystemResources/BalloonHelp/ClassicyBalloonHelp";
 
 export interface ClassicyMenuItem {
 	id: string;
@@ -31,6 +35,11 @@ export interface ClassicyMenuItem {
 	onClickFunc?: () => void;
 	menuChildren?: ClassicyMenuItem[];
 	className?: string;
+	balloon?: {
+		title?: string;
+		content: string;
+		position?: ClassicyBalloonPosition;
+	};
 }
 
 interface ClassicyMenuProps {
@@ -160,7 +169,7 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 		});
 	};
 
-	return menuItem && menuItem.id === "spacer" ? (
+	const li = menuItem && menuItem.id === "spacer" ? (
 		<hr></hr>
 	) : (
 		<li
@@ -225,6 +234,17 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 			)}
 		</li>
 	);
+
+	return menuItem.balloon ? (
+		<ClassicyBalloonHelp
+			title={menuItem.balloon.title}
+			content={menuItem.balloon.content}
+			position={menuItem.balloon.position ?? "top-left"}
+			className="classicyMenuItemBalloonAnchor"
+		>
+			{li}
+		</ClassicyBalloonHelp>
+	) : li;
 });
 
 ClassicyMenuItemComponent.displayName = "ClassicyMenuItemComponent";

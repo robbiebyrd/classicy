@@ -1,0 +1,77 @@
+
+// Shared strip height — used both for thumbnail size and to offset the active player's bottom edge
+$strip-height: calc(5em + 8px);
+
+.tvContainer {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: black;
+}
+
+// Spacer that fills remaining height above the strip; active player overlays this area
+.tvMainArea {
+  flex: 1;
+}
+
+.tvThumbnailStrip {
+  height: 20%;
+  display: flex;
+  flex-direction: row;
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex-shrink: 0;
+  gap: var(--window-control-size);
+  background-color: var(--color-system-03);
+  padding: calc(var(--window-padding-size) * 2);
+}
+
+// All players live here in the DOM permanently — active one floats up via absolute position
+.tvPlayer {
+  position: relative;
+  flex-shrink: 0;
+  height: auto;
+  padding: 0;
+  border: none;
+  background: black;
+  cursor: pointer;
+
+  &.tvPlayerActive {
+    // Taken out of strip flow; overlays the main area above the strip
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: $strip-height;
+    height: 70%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+    cursor: default;
+
+    & .tvChannelTitleHolder {
+      & .tvChannelTitle {
+        font-size: calc(var(--ui-font-size)*1.75);
+      }
+    }
+  }
+}
+
+.tvChannelTitleHolder {
+  position: absolute;
+  top: var(--window-padding-size);
+  left: var(--window-padding-size);
+  z-index: 1;
+  background-color: var(--color-theme-06);
+}
+
+.tvChannelTitle {
+  font-family: var(--ui-font);
+  font-size: calc(var(--ui-font-size) * .75);
+  margin: 0;
+  padding: 0 var(--window-padding-size);
+  color: var(--color-theme-03);
+}

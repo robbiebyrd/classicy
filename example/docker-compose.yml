@@ -1,0 +1,13 @@
+services:
+  timemachine:
+    image: robbiebyrd/time-machine-proxy:latest
+    env_file:
+      - .env
+    ports:
+      - "${TIMEMACHINE_PORT:-8765}:${TIMEMACHINE_PORT:-8765}"
+    volumes:
+      - ${HOST_CACHE_DIR:-timemachine-cache}:${CACHE_DIR:-/app/cache}
+    restart: unless-stopped
+
+volumes:
+  timemachine-cache:

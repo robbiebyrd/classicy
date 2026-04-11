@@ -79,6 +79,11 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 	};
 
 	useEffect(() => {
+		desktopEventDispatch({
+			type: "ClassicyAppLoad",
+			app: { id, name, icon },
+		});
+
 		if (addSystemMenu) {
 			desktopEventDispatch({
 				type: "ClassicyDesktopAppMenuAdd",

@@ -5,6 +5,7 @@ import {
 	useCallback,
 	useState,
 } from "react";
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -16,7 +17,6 @@ import {
 	quitMenuItemHelper,
 } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
 
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 const appIcon = ClassicyIcons.controlPanels.dateTimeManager.dateTimeManager;
 
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
@@ -204,7 +204,6 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
 						<ClassicyControlGroup label={"Timezone"}>
 							<ClassicyPopUpMenu
 								id={"timezone"}
-								small={false}
 								options={TIMEZONES}
 								onChangeFunc={updateSystemTimeZone}
 								selected={dateAndTimeState.timeZoneOffset?.toString()}

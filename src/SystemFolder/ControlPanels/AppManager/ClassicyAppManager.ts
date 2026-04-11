@@ -485,6 +485,7 @@ export const DefaultAppManagerState: ClassicyStore = {
 					start: [0, 0],
 					active: false,
 				},
+				disableBalloonHelp: false,
 			},
 			Applications: {
 				apps: {

@@ -1,22 +1,41 @@
 @use '../../ControlPanels/AppearanceManager/styles/assets';
 @use '../../ControlPanels/AppearanceManager/styles/appearance';
 
-.classicyPopUpMenuSmall {
-  width: calc(var(--window-control-size) * 1.75) !important;
-  height: calc(var(--window-control-size) * 1.75) !important;
+
+.classicyPopUpMenuSizeMini {
+  width: calc(var(--window-control-size) * 1.3125) !important;
+  height: calc(var(--window-control-size) * 1.3125) !important;
+  font-size: calc(var(--ui-font-size) / 1.25);
   aspect-ratio: 1/1;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  overflow: hidden;
 
   select {
-    width: 90%;
     opacity: 0 !important;
+    min-width: 0;
   }
 
   &:not(.select--multiple)::after {
-    height: 100% !important;
+    justify-self: stretch !important;
+    align-self: stretch !important;
+    aspect-ratio: unset !important;
     border-left: none !important;
+    border-radius: var(--window-padding-size) !important;
     box-shadow: none !important;
-    aspect-ratio: 1 / 1 !important;
   }
+}
+
+.classicyPopUpMenuSizeSmall {
+  font-size: calc(var(--ui-font-size) / 1.25);
+}
+
+.classicyPopUpMenuSizeMedium {
+  font-size: .75em;
+}
+
+.classicyPopUpMenuSizeLarge {
+  font-size: calc(var(--ui-font-size) * 2);
 }
 
 .classicyPopUpMenuWrapper {
@@ -70,6 +89,7 @@
     outline: none;
     background-color: transparent;
     appearance: none;
+    padding-right: calc(var(--window-control-size) * 2);
 
     &:focus {
       border-radius: var(--window-padding-size);

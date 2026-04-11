@@ -17,3 +17,15 @@
   margin: 0;
   padding: 0;
 }
+
+.classicyControlGroupFormContent {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  align-items: center;
+  column-gap: calc(var(--window-padding-size) * 2);
+  row-gap: var(--window-padding-size);
+
+  > * {
+    display: contents;
+  }
+}
