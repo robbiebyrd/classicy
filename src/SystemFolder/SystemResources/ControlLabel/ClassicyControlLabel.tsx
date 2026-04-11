@@ -90,8 +90,6 @@ export const ClassicyControlLabel: FunctionalComponent<
 					onClickFunc(e);
 				}
 			}}
-			onMouseDown={onMouseDown}
-			onMouseUp={onMouseUp}
 			onKeyDown={(e: KeyboardEvent) => {
 				if (e.key === "Enter" || e.key === " ") {
 					e.preventDefault();
@@ -115,6 +113,8 @@ export const ClassicyControlLabel: FunctionalComponent<
 						? "classicyControlLabelMarginRight"
 						: "classicyControlLabelMarginLeft",
 				)}
+				onMouseDown={onMouseDown}
+				onMouseUp={onMouseUp}
 			>
 				{label}
 			</label>
