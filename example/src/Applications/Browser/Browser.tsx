@@ -23,18 +23,12 @@ import {
 
 import "./Browser.scss";
 import "./BrowserContext";
+import type { BrowserFavorite } from "./BrowserContext";
 import {
 	DEFAULT_PROXY_CONFIG,
 	type TimeMachineProxyConfig,
 	useBrowserNavigation,
 } from "./useBrowserNavigation";
-
-interface BrowserFavorite {
-	id: string;
-	title: string;
-	url: string;
-	icon: string;
-}
 
 const DEFAULT_FAVORITES: BrowserFavorite[] = [
 	{
@@ -78,7 +72,6 @@ const ShadowContent: FunctionalComponent<{
 	useEffect(() => {
 		const shadow = shadowRef.current;
 		if (!shadow) return;
-		const target = shadow as unknown as EventTarget;
 		const handler = (e: Event) => {
 			const mouseEvent = e as MouseEvent;
 			const clickTarget = mouseEvent.composedPath()[0] as
@@ -93,8 +86,8 @@ const ShadowContent: FunctionalComponent<{
 				rawHref: anchor.getAttribute("href") || "",
 			});
 		};
-		target.addEventListener("click", handler);
-		return () => target.removeEventListener("click", handler);
+		shadow.addEventListener("click", handler);
+		return () => shadow.removeEventListener("click", handler);
 	}, []);
 
 	return <div ref={hostRef} className="browserPage" />;
@@ -107,6 +100,10 @@ const PROTOCOL_OPTIONS = [
 	{ value: "wss:", label: "wss" },
 ];
 
+const DEFAULT_URL = "http://www.apple.com/";
+const DEFAULT_HOME_LABEL = "Apple";
+const DEFAULT_HOME_ICON = ClassicyIcons.applications.internetExplorer.apple;
+
 export const Browser = () => {
 	const appName = "Browser";
 	const appId = "Browser.app";
@@ -117,7 +114,9 @@ export const Browser = () => {
 		(state) => state.System.Manager.Applications.apps[appId],
 	);
 
-	const favorites: BrowserFavorite[] = appState?.data?.favorites ?? [];
+	const favorites = useAppManager(
+		(state) => (state.System.Manager.Applications.apps[appId]?.data?.favorites ?? []) as BrowserFavorite[],
+	);
 
 	const proxyConfig: TimeMachineProxyConfig =
 		appState?.data?.proxyConfig ?? DEFAULT_PROXY_CONFIG;
@@ -131,13 +130,10 @@ export const Browser = () => {
 		}
 	}, []);
 
-	const defaultUrl = "http://www.apple.com/";
-	const defaultHomeLabel = "Apple";
-	const defaultHomeIcon = ClassicyIcons.applications.internetExplorer.apple;
 	const homePage = appState?.data?.homePage ?? {
-		url: defaultUrl,
-		label: defaultHomeLabel,
-		icon: defaultHomeIcon,
+		url: DEFAULT_URL,
+		label: DEFAULT_HOME_LABEL,
+		icon: DEFAULT_HOME_ICON,
 	};
 
 	useEffect(() => {
@@ -151,17 +147,16 @@ export const Browser = () => {
 		if (!appState.data?.homePage) {
 			desktopEventDispatch({
 				type: "ClassicyAppBrowserSetHomePage",
-				url: defaultUrl,
-				label: defaultHomeLabel,
-				icon: defaultHomeIcon,
+				url: DEFAULT_URL,
+				label: DEFAULT_HOME_LABEL,
+				icon: DEFAULT_HOME_ICON,
 			});
 		}
-	}, [appState, desktopEventDispatch, defaultHomeIcon]);
+	}, [appState, desktopEventDispatch]);
 
-	const [showFavoritesBar, setShowFavoritesBar] = useState(true);
+	const showFavoritesBar: boolean = (appState?.data?.showFavoritesBar as boolean) ?? true;
 	const [urlError, setUrlError] = useState(false);
 	const [showSettings, setShowSettings] = useState(false);
-	const refAddressBar = useRef<HTMLInputElement>(null);
 	const refToolbar = useRef<HTMLDivElement>(null);
 	const [isCompact, setIsCompact] = useState(false);
 
@@ -221,7 +216,7 @@ export const Browser = () => {
 		goForward,
 		handleContentClick,
 	} = useBrowserNavigation({
-		defaultUrl,
+		defaultUrl: DEFAULT_URL,
 		proxyConfig,
 		onShowError: showError,
 		onRecordVisit: recordVisit,
@@ -277,12 +272,12 @@ export const Browser = () => {
 						id: `${appId}_show_favorites`,
 						title: "Show Favorites",
 						className: showFavoritesBar ? "browserMenuItemChecked" : "",
-						onClickFunc: () => setShowFavoritesBar((prev) => !prev),
+						onClickFunc: () => desktopEventDispatch({ type: "ClassicyAppBrowserSetShowFavoritesBar", showFavoritesBar: !showFavoritesBar }),
 					},
 				],
 			},
 		],
-		[quitApp, openSettings, showFavoritesBar],
+		[quitApp, openSettings, showFavoritesBar, desktopEventDispatch],
 	);
 
 	return (
@@ -508,14 +503,13 @@ export const Browser = () => {
 									{!isCompact && <ClassicyControlLabel label="Address:" />}
 									<ClassicyInput
 										id={"browserAddress"}
-										ref={refAddressBar}
 										prefillValue={addressBarValue}
 										onChangeFunc={(e) => setAddressBarValue(e.target.value)}
 										backgroundColor="white"
 										onEnterFunc={goTo}
 									></ClassicyInput>
 								</div>
-								<ClassicyButton onClickFunc={(_) => goTo(undefined)}>
+								<ClassicyButton onClickFunc={() => goTo(undefined)}>
 									<div className="browserNavButtonContent browserHoverSwap">
 										<img
 											src={ClassicyIcons.applications.internetExplorer.refresh}
@@ -563,26 +557,28 @@ export const Browser = () => {
 							alt="Loader"
 						/>
 					</div>
-					{showFavoritesBar && <div className="browserBar browserFavoritesBar">
-						<ClassicyControlLabel label="Favorites: "></ClassicyControlLabel>
-						{favorites.map((fav) => (
-							<ClassicyButton
-								key={fav.id}
-								onClickFunc={() => goTo(fav.url)}
-								buttonSize="small"
-							>
-								<div className="browserNavButtonContent">
-									<img src={fav.icon} alt={fav.title} />
-									{!isCompact && (
-										<ClassicyControlLabel
-											label={fav.title}
-											labelSize="small"
-										></ClassicyControlLabel>
-									)}
-								</div>
-							</ClassicyButton>
-						))}
-					</div>}
+					{showFavoritesBar && (
+						<div className="browserBar browserFavoritesBar">
+							<ClassicyControlLabel label="Favorites: "></ClassicyControlLabel>
+							{favorites.map((fav) => (
+								<ClassicyButton
+									key={fav.id}
+									onClickFunc={() => goTo(fav.url)}
+									buttonSize="small"
+								>
+									<div className="browserNavButtonContent">
+										<img src={fav.icon} alt={fav.title} />
+										{!isCompact && (
+											<ClassicyControlLabel
+												label={fav.title}
+												labelSize="small"
+											></ClassicyControlLabel>
+										)}
+									</div>
+								</ClassicyButton>
+							))}
+						</div>
+					)}
 					<div className="browserContents">
 						<ShadowContent
 							html={htmlContent}

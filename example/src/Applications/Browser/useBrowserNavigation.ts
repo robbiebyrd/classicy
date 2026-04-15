@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { normalizeUrl } from "./browserUtils";
 
 export const DEFAULT_PROXY_ON = false;
 export const DEFAULT_PROXY_PROTOCOL = "http:";
-export const DEFAULT_PROXY_HOST = "localhost";
-export const DEFAULT_PROXY_PORT = 8765;
+export const DEFAULT_PROXY_HOST = import.meta.env.VITE_PROXY_HOST ?? "localhost";
+export const DEFAULT_PROXY_PORT = Number(import.meta.env.VITE_PROXY_PORT ?? 8765);
 export const DEFAULT_ARCHIVE_TIME = "20010911000000";
 export const DEFAULT_PROXY_PREFIX = "https://web.archive.org/web";
 export const DEFAULT_PROXY_PATH = "";
@@ -297,21 +298,10 @@ export const useBrowserNavigation = ({
 	const navigateTo = useCallback(
 		(url: string) => {
 			// Skip if already on this page (normalize trailing slash and www.)
-			const normalize = (u: string) => {
-				try {
-					const parsed = new URL(u);
-					if (parsed.hostname.startsWith("www.")) {
-						parsed.hostname = parsed.hostname.slice(4);
-					}
-					return parsed.toString().replace(/\/+$/, "");
-				} catch {
-					return u.replace(/\/+$/, "");
-				}
-			};
 			setHistory((h) => {
 				const idx = historyIndexRef.current;
 				const currentUrl = h[idx];
-				if (currentUrl && normalize(currentUrl) === normalize(url)) {
+				if (currentUrl && normalizeUrl(currentUrl) === normalizeUrl(url)) {
 					return h;
 				}
 				const newHistory = [...h.slice(0, idx + 1), url];
@@ -369,10 +359,6 @@ export const useBrowserNavigation = ({
 		fetchPage(history[newIndex]);
 	}, [canGoForward, historyIndex, history, fetchPage]);
 
-	const refresh = useCallback(() => {
-		fetchPage(history[historyIndex]);
-	}, [history, historyIndex, fetchPage]);
-
 	const handleContentClick = useCallback(
 		(link: { href: string; rawHref: string }) => {
 			if (!link.rawHref) return;
@@ -415,7 +401,6 @@ export const useBrowserNavigation = ({
 		goTo,
 		goBack,
 		goForward,
-		refresh,
 		handleContentClick,
 	};
 };

@@ -16,7 +16,7 @@ import {
 	quitMenuItemHelper,
 	useAppManagerDispatch,
 } from "classicy";
-import { type FC as FunctionalComponent, useCallback, useEffect } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 
 const RADIO_INPUTS = [
 	{
@@ -46,7 +46,7 @@ const RADIO_INPUTS_DISABLED = [
 	},
 ];
 
-export const Demo: FunctionalComponent = () => {
+export const Demo = () => {
 	const appName = "Demo";
 	const appId = "Demo.app";
 	const appIcon = ClassicyIcons.system.folders.directory;
@@ -81,22 +81,25 @@ export const Demo: FunctionalComponent = () => {
 		});
 	}, [desktopEventDispatch]);
 
-	const appMenu = [
-		{
-			id: "file",
-			title: "File",
-			menuChildren: [
-				{
-					...quitMenuItemHelper(appId, appName, appIcon),
-					balloon: {
-						title: "Quit Demo",
-						content: "Closes the Demo application and returns to the desktop.",
-						position: "bottom-left",
+	const appMenu = useMemo(
+		() => [
+			{
+				id: "file",
+				title: "File",
+				menuChildren: [
+					{
+						...quitMenuItemHelper(appId, appName, appIcon),
+						balloon: {
+							title: "Quit Demo",
+							content: "Closes the Demo application and returns to the desktop.",
+							position: "bottom-left",
+						},
 					},
-				},
-			],
-		},
-	];
+				],
+			},
+		],
+		[appIcon],
+	);
 
 	return (
 		<ClassicyApp

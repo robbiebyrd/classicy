@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 dir=${1:-./assets/sounds}
 outputDir=${2:-./assets/sounds}
 outputPath=${2:-/assets/sounds}
