@@ -64,6 +64,7 @@
     "screenfull": "^6.0.2",
     "sha512-crypt-ts": "^0.1.27",
     "use-analytics": "^1.1.0",
+    "zod": "^4.3.6",
     "zustand": "^5.0.11"
   },
   "peerDependencies": {

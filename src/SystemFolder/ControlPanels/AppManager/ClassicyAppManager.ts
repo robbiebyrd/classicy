@@ -3,6 +3,7 @@ import {
 	type ClassicyTheme,
 	getAllThemes,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { classicyDateTimeManagerEventHandler } from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeManagerUtils";
 import type { ClassicyStoreSystemSoundManager } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { classicyFinderEventHandler } from "@/SystemFolder/Finder/FinderContext";
@@ -15,13 +16,11 @@ import {
 	classicyDesktopEventHandler,
 } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
 import { classicyWindowEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopWindowManagerContext";
-import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { isValidHttpUrl } from "@/SystemFolder/SystemResources/Utils/urlValidation";
 import themesData from "../AppearanceManager/styles/themes.json";
 
-
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 const macosIcon = ClassicyIcons.system.macos;
 
 type JsonPrimitive = string | number | boolean | null;
@@ -130,7 +129,8 @@ export function focusApp(ds: ClassicyStore, appId: string) {
 	}
 	const windows = ds.System.Manager.Applications.apps[appId]?.windows ?? [];
 	const defaultIdx = windows.findIndex((w) => w.default);
-	const idx = defaultIdx >= 0 ? defaultIdx : windows.length > 0 ? windows.length - 1 : -1;
+	const idx =
+		defaultIdx >= 0 ? defaultIdx : windows.length > 0 ? windows.length - 1 : -1;
 	if (idx >= 0) {
 		windows[idx].closed = false;
 		windows[idx].focused = true;
@@ -271,8 +271,7 @@ export const classicyAppEventHandler = (
 		}
 		case "ClassicyAppRegisterFileTypes": {
 			if (Array.isArray(action.fileTypes)) {
-				const app =
-					ds.System.Manager.Applications.apps[action.app.id];
+				const app = ds.System.Manager.Applications.apps[action.app.id];
 				if (app) {
 					const existing = app.handlesFileTypes ?? [];
 					app.handlesFileTypes = Array.from(
@@ -297,8 +296,7 @@ export const classicyAppEventHandler = (
 			const app = ds.System.Manager.Applications.apps[action.app.id];
 			if (app && Array.isArray(action.fileTypes)) {
 				app.handlesFileTypes = (app.handlesFileTypes ?? []).filter(
-					(t: ClassicyFileSystemEntryFileType) =>
-						!action.fileTypes.includes(t),
+					(t: ClassicyFileSystemEntryFileType) => !action.fileTypes.includes(t),
 				);
 			}
 			break;
@@ -312,21 +310,13 @@ export const classicyAppEventHandler = (
 			break;
 		}
 		default: {
-			if (
-				action.type.endsWith("OpenFile") &&
-				action.app?.id &&
-				action.path
-			) {
+			if (action.type.endsWith("OpenFile") && action.app?.id && action.path) {
 				const app = ds.System.Manager.Applications.apps[action.app.id];
 				if (app) {
 					if (!app.data) app.data = {};
-					if (!Array.isArray(app.data.openFiles))
-						app.data.openFiles = [];
+					if (!Array.isArray(app.data.openFiles)) app.data.openFiles = [];
 					if (!app.data.openFiles.includes(action.path)) {
-						app.data.openFiles = [
-							...app.data.openFiles,
-							action.path,
-						];
+						app.data.openFiles = [...app.data.openFiles, action.path];
 					}
 					openApp(ds, app.id, app.name, app.icon);
 				}
@@ -392,8 +382,7 @@ export const classicyDesktopStateEventReducer = (
 				}
 			} else if (file && action.path) {
 				// Route to the default app registered for this file type
-				const fileType =
-					file._type as ClassicyFileSystemEntryFileType;
+				const fileType = file._type as ClassicyFileSystemEntryFileType;
 				const targetAppId =
 					ds.System.Manager.Applications.fileTypeHandlers[fileType];
 				const targetApp = targetAppId
@@ -498,15 +487,14 @@ export const DefaultAppManagerState: ClassicyStore = {
 						focused: true,
 						noDesktopIcon: true,
 						data: {},
-						handlesFileTypes: Object.values(
-							ClassicyFileSystemEntryFileType,
-						),
+						handlesFileTypes: Object.values(ClassicyFileSystemEntryFileType),
 					},
 				},
 				fileTypeHandlers: Object.fromEntries(
-					Object.values(ClassicyFileSystemEntryFileType).map(
-						(type) => [type, "Finder.app"],
-					),
+					Object.values(ClassicyFileSystemEntryFileType).map((type) => [
+						type,
+						"Finder.app",
+					]),
 				) as Record<ClassicyFileSystemEntryFileType, string>,
 			},
 			Appearance: {

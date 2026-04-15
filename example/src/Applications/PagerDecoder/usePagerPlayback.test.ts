@@ -5,10 +5,10 @@ import { DEFAULT_PAGER_SETTINGS } from "./PagerDecoderContext";
 import type { PagerRecord } from "./pagerUtils";
 import { usePagerPlayback } from "./usePagerPlayback";
 
-vi.mock("classicy", async (importOriginal) => {
-	const actual = await importOriginal<typeof import("classicy")>();
-	return { ...actual, useClassicyDateTime: vi.fn(() => ({ localHMS: "03:00:00" })) };
-});
+vi.mock("classicy", () => ({
+	useClassicyDateTime: vi.fn(() => ({ localHMS: "03:00:00" })),
+	registerAppEventHandler: vi.fn(),
+}));
 
 import { useClassicyDateTime } from "classicy";
 
@@ -37,7 +37,7 @@ function makeIndex(
 describe("usePagerPlayback", () => {
 	beforeEach(() => {
 		vi.useFakeTimers();
-		vi.mocked(useClassicyDateTime).mockReturnValue({ localHMS: "03:00:00" } as ReturnType<typeof useClassicyDateTime>);
+		vi.mocked(useClassicyDateTime).mockReturnValue({ localHMS: "03:00:00" } as never);
 	});
 
 	afterEach(() => {
