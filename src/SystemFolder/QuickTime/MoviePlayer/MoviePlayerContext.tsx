@@ -1,7 +1,5 @@
-import {
-	type ClassicyStore,
-	classicyAppEventHandler,
-} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { openApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
+import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { MoviePlayerAppInfo } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerUtils";
 
 export type ClassicyQuickTimeDocument = {
@@ -51,10 +49,12 @@ export const classicyQuickTimeMoviePlayerEventHandler = (
 					...ds.System.Manager.Applications.apps[appId].data.openFiles,
 					action.document,
 				];
-				ds = classicyAppEventHandler(ds, {
-					type: "ClassicyAppOpen",
-					app: MoviePlayerAppInfo,
-				});
+				openApp(
+					ds,
+					MoviePlayerAppInfo.id,
+					MoviePlayerAppInfo.name,
+					MoviePlayerAppInfo.icon,
+				);
 			}
 			break;
 		}
@@ -69,10 +69,12 @@ export const classicyQuickTimeMoviePlayerEventHandler = (
 				...ds.System.Manager.Applications.apps[appId].data.openFiles,
 				...docs,
 			];
-			ds = classicyAppEventHandler(ds, {
-				type: "ClassicyAppOpen",
-				app: MoviePlayerAppInfo,
-			});
+			openApp(
+				ds,
+				MoviePlayerAppInfo.id,
+				MoviePlayerAppInfo.name,
+				MoviePlayerAppInfo.icon,
+			);
 			break;
 		}
 		case "ClassicyAppMoviePlayerCloseDocument": {
