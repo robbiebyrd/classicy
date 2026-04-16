@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type {
-	ActionMessage,
-	ClassicyStore,
-} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+
+export { classicyDateTimeManagerEventHandler } from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeEventHandler";
 
 /** Returns a new Date shifted by tzOffsetHours hours from the UTC ISO string. */
 export function toLocalDate(isoString: string, tzOffsetHours: number): Date {
@@ -103,35 +101,3 @@ export function useClassicyDateTime(options?: {
 	return { dateTime: dateAndTime.dateTime, tzOffset, localDate, localHMS, setDateTime, setTzOffset };
 }
 
-export const classicyDateTimeManagerEventHandler = (
-	ds: ClassicyStore,
-	action: ActionMessage,
-) => {
-	switch (action.type) {
-		case "ClassicyManagerDateTimeSet": {
-			const raw = action.dateTime;
-			if (!(raw instanceof Date)) {
-				console.error(
-					"[classicyDateTimeManagerEventHandler] Expected a Date for dateTime",
-					{ received: raw, receivedType: typeof raw },
-				);
-				break;
-			}
-			ds.System.Manager.DateAndTime.dateTime = raw.toISOString();
-			break;
-		}
-		case "ClassicyManagerDateTimeTZSet": {
-			const offset = Number(action.tzOffset);
-			if (!Number.isFinite(offset) || offset < -12 || offset > 14) {
-				console.error(
-					"[classicyDateTimeManagerEventHandler] Invalid tzOffset:",
-					action.tzOffset,
-				);
-				break;
-			}
-			ds.System.Manager.DateAndTime.timeZoneOffset = String(offset);
-			break;
-		}
-	}
-	return ds;
-};

@@ -1,7 +1,8 @@
 import {
-	type ClassicyStore,
-	classicyAppEventHandler,
-} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+	loadApp,
+	openApp,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
+import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import type { ClassicyQuickTimeDocument } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerContext";
 import { PictureViewerAppInfo } from "@/SystemFolder/QuickTime/PictureViewer/PictureViewerUtils";
 
@@ -17,10 +18,12 @@ export const classicyQuickTimePictureViewerEventHandler = (
 ) => {
 	const { id: appId } = PictureViewerAppInfo;
 	if (!ds.System.Manager.Applications.apps[appId]) {
-		ds = classicyAppEventHandler(ds, {
-			type: "ClassicyAppLoad",
-			app: PictureViewerAppInfo,
-		});
+		loadApp(
+			ds,
+			PictureViewerAppInfo.id,
+			PictureViewerAppInfo.name,
+			PictureViewerAppInfo.icon,
+		);
 	}
 
 	if (!ds.System.Manager.Applications.apps[appId].data) {
@@ -45,10 +48,12 @@ export const classicyQuickTimePictureViewerEventHandler = (
 					...ds.System.Manager.Applications.apps[appId].data.openFiles,
 					action.document,
 				];
-				ds = classicyAppEventHandler(ds, {
-					type: "ClassicyAppOpen",
-					app: PictureViewerAppInfo,
-				});
+				openApp(
+					ds,
+					PictureViewerAppInfo.id,
+					PictureViewerAppInfo.name,
+					PictureViewerAppInfo.icon,
+				);
 			}
 			break;
 		}
@@ -63,10 +68,12 @@ export const classicyQuickTimePictureViewerEventHandler = (
 				...ds.System.Manager.Applications.apps[appId].data.openFiles,
 				...docs,
 			];
-			ds = classicyAppEventHandler(ds, {
-				type: "ClassicyAppOpen",
-				app: PictureViewerAppInfo,
-			});
+			openApp(
+				ds,
+				PictureViewerAppInfo.id,
+				PictureViewerAppInfo.name,
+				PictureViewerAppInfo.icon,
+			);
 			break;
 		}
 		case "ClassicyAppPictureViewerCloseDocument": {

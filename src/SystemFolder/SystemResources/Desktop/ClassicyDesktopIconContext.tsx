@@ -1,9 +1,11 @@
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
-	type ActionMessage,
-	type ClassicyStore,
-	classicyDesktopStateEventReducer,
 	deFocusApps,
+	openApp,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
+import type {
+	ActionMessage,
+	ClassicyStore,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import type { ClassicyStoreSystemDesktopManagerIcon } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
 
@@ -140,10 +142,7 @@ export const classicyDesktopIconEventHandler = (
 		}
 		case "ClassicyDesktopIconOpen": {
 			ds.System.Manager.Desktop.selectedIcons = [action.iconId];
-			ds = classicyDesktopStateEventReducer(ds, {
-				type: "ClassicyAppOpen",
-				app: action.app,
-			});
+			openApp(ds, action.app.id, action.app.name, action.app.icon);
 			break;
 		}
 		case "ClassicyDesktopIconAdd": {
