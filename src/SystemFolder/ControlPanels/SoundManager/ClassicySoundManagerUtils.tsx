@@ -2,9 +2,12 @@
 
 import { Howl } from "howler";
 import { createContext, type Dispatch } from "react";
-import { z } from "zod";
 import { ClassicySounds } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicySounds";
 import type { ClassicyStoreSystemManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import {
+	SoundDataSchema,
+	type SoundData,
+} from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundSchema";
 import soundLabels from "./ClassicySoundManagerLabels.json";
 
 export interface ClassicyStoreSystemSoundManager
@@ -56,18 +59,8 @@ export interface ClassicySoundAction {
 	volume?: number;
 }
 
-export const SoundDataSchema = z.object({
-	src: z.array(z.string()),
-	sprite: z.record(
-		z.string(),
-		z.union([
-			z.tuple([z.number(), z.number()]),
-			z.tuple([z.number(), z.number(), z.boolean()]),
-		]),
-	),
-});
-
-export type SoundData = z.infer<typeof SoundDataSchema>;
+export { SoundDataSchema };
+export type { SoundData };
 
 export interface SoundPlayer {
 	soundData: SoundData;
