@@ -1,9 +1,8 @@
 import type { MouseEvent } from "react";
-import {
-	type ActionMessage,
-	type ClassicyStore,
-	type ClassicyStoreSystemManager,
-	deFocusApps,
+import type {
+	ActionMessage,
+	ClassicyStore,
+	ClassicyStoreSystemManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
@@ -79,7 +78,12 @@ export const classicyDesktopEventHandler = (
 		}
 		case "ClassicyDesktopFocus": {
 			if ("e" in action && action.e.target.id === "classicyDesktop") {
-				deFocusApps(ds);
+				for (const app of Object.values(
+					ds.System.Manager.Applications.apps,
+				)) {
+					app.focused = false;
+					for (const w of app.windows) w.focused = false;
+				}
 
 				ds.System.Manager.Applications.apps["Finder.app"].focused = true;
 				ds.System.Manager.Desktop.selectedIcons = [];
