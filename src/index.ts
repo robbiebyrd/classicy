@@ -63,6 +63,7 @@ export * from "./SystemFolder/SystemResources/Input/ClassicyInput";
 export * from "./SystemFolder/SystemResources/Menu/ClassicyMenu";
 export * from "./SystemFolder/SystemResources/Menu/ClassicyMenuContext";
 export * from "./SystemFolder/SystemResources/Menu/ClassicyMenuProvider";
+export * from "./SystemFolder/SystemResources/PagerDecoder/PagerDecoderContext";
 export * from "./SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
 export * from "./SystemFolder/SystemResources/ProgressBar/ClassicyProgressBar";
 export * from "./SystemFolder/SystemResources/QuickTime/QuickTimeMovieEmbed";
