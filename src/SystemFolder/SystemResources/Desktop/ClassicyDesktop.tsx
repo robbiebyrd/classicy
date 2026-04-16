@@ -33,6 +33,7 @@ import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWi
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 const macosIcon = ClassicyIcons.system.macos;
 const trashIcon = ClassicyIcons.system.desktop.trashEmpty;
+const errorIcon = ClassicyIcons.system.error;
 
 import "../../ControlPanels/AppearanceManager/styles/fonts.scss";
 import "../../../index.css";
@@ -64,6 +65,9 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 		(s) => s.System.Manager.Appearance.activeTheme,
 	);
 	const desktopIcons = useAppManager((s) => s.System.Manager.Desktop.icons);
+	const errorDialog = useAppManager(
+		(s) => s.System.Manager.Desktop.errorDialog,
+	);
 	const desktopEventDispatch = useAppManagerDispatch();
 
 	const emptyTrash = useCallback(() => {
@@ -441,6 +445,77 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 									</ClassicyButton>
 									<ClassicyButton
 										onClickFunc={emptyTrash}
+									>
+										OK
+									</ClassicyButton>
+								</div>
+							</div>
+						</div>
+					</ClassicyWindow>
+				</div>
+			) : null}
+			{errorDialog ? (
+				<div
+					style={{
+						position: "fixed",
+						inset: 0,
+						zIndex: 99999,
+						display: "flex",
+						alignItems: "center",
+						justifyContent: "center",
+					}}
+				>
+					<ClassicyWindow
+						id={"error_dialog"}
+						appId={"Finder.app"}
+						title={errorDialog.title}
+						closable={false}
+						resizable={false}
+						zoomable={false}
+						scrollable={false}
+						collapsable={false}
+						initialSize={[400, 0]}
+						initialPosition={["center", "center"]}
+						modal={true}
+						type={"error"}
+					>
+						<div
+							style={{
+								display: "flex",
+								flexDirection: "row",
+								alignItems: "flex-start",
+								gap: "1rem",
+								padding: "1rem",
+							}}
+						>
+							<img
+								src={errorIcon}
+								alt={"Error"}
+								style={{ width: 32, height: 32, flexShrink: 0 }}
+							/>
+							<div
+								style={{
+									display: "flex",
+									flexDirection: "column",
+									gap: "1rem",
+									flex: 1,
+								}}
+							>
+								<ClassicyControlLabel label={errorDialog.message} />
+								<div
+									style={{
+										display: "flex",
+										justifyContent: "flex-end",
+										gap: "0.5rem",
+									}}
+								>
+									<ClassicyButton
+										isDefault={true}
+										onClickFunc={() =>
+											desktopEventDispatch({
+												type: "ClassicyDesktopCloseErrorDialog",
+											})
+										}
 									>
 										OK
 									</ClassicyButton>

@@ -50,6 +50,9 @@ function makeStore(): ClassicyStore {
 							focused: true,
 							noDesktopIcon: true,
 							data: {},
+							handlesFileTypes: Object.values(
+								ClassicyFileSystemEntryFileType,
+							),
 						},
 					},
 					fileTypeHandlers: Object.fromEntries(
@@ -672,6 +675,65 @@ describe("file type registration", () => {
 		expect(
 			ds.System.Manager.Applications.apps["SimpleText.app"].handlesFileTypes,
 		).toEqual([ClassicyFileSystemEntryFileType.File]);
+	});
+
+	it("resets fileTypeHandlers to Finder.app when the unregistering app owned the mapping", () => {
+		const ds = makeStore();
+		ds.System.Manager.Applications.apps["SimpleText.app"] = {
+			id: "SimpleText.app",
+			name: "SimpleText",
+			icon: "",
+			open: false,
+			windows: [],
+			data: {},
+			handlesFileTypes: [
+				ClassicyFileSystemEntryFileType.File,
+				ClassicyFileSystemEntryFileType.Shortcut,
+			],
+		};
+		ds.System.Manager.Applications.fileTypeHandlers[
+			ClassicyFileSystemEntryFileType.Shortcut
+		] = "SimpleText.app";
+
+		classicyAppEventHandler(ds, {
+			type: "ClassicyAppUnregisterFileTypes",
+			app: { id: "SimpleText.app" },
+			fileTypes: [ClassicyFileSystemEntryFileType.Shortcut],
+		});
+
+		expect(
+			ds.System.Manager.Applications.fileTypeHandlers[
+				ClassicyFileSystemEntryFileType.Shortcut
+			],
+		).toBe("Finder.app");
+	});
+
+	it("does not touch fileTypeHandlers entries owned by other apps on unregister", () => {
+		const ds = makeStore();
+		ds.System.Manager.Applications.apps["SimpleText.app"] = {
+			id: "SimpleText.app",
+			name: "SimpleText",
+			icon: "",
+			open: false,
+			windows: [],
+			data: {},
+			handlesFileTypes: [ClassicyFileSystemEntryFileType.File],
+		};
+		ds.System.Manager.Applications.fileTypeHandlers[
+			ClassicyFileSystemEntryFileType.File
+		] = "OtherEditor.app";
+
+		classicyAppEventHandler(ds, {
+			type: "ClassicyAppUnregisterFileTypes",
+			app: { id: "SimpleText.app" },
+			fileTypes: [ClassicyFileSystemEntryFileType.File],
+		});
+
+		expect(
+			ds.System.Manager.Applications.fileTypeHandlers[
+				ClassicyFileSystemEntryFileType.File
+			],
+		).toBe("OtherEditor.app");
 	});
 
 	it("sets a default file type handler via ClassicyAppSetDefaultFileTypeHandler", () => {

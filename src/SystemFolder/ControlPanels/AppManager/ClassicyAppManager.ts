@@ -298,6 +298,16 @@ export const classicyAppEventHandler = (
 				app.handlesFileTypes = (app.handlesFileTypes ?? []).filter(
 					(t: ClassicyFileSystemEntryFileType) => !action.fileTypes.includes(t),
 				);
+				for (const ft of action.fileTypes) {
+					const key = ft as ClassicyFileSystemEntryFileType;
+					if (
+						ds.System.Manager.Applications.fileTypeHandlers[key] ===
+						action.app.id
+					) {
+						ds.System.Manager.Applications.fileTypeHandlers[key] =
+							"Finder.app";
+					}
+				}
 			}
 			break;
 		}
@@ -394,6 +404,20 @@ export const classicyDesktopStateEventReducer = (
 						app: { id: targetAppId },
 						path: action.path,
 					});
+				} else {
+					// Fall back to Finder if it can handle the requested type
+					const finder = ds.System.Manager.Applications.apps["Finder.app"];
+					if (finder?.handlesFileTypes?.includes(fileType)) {
+						ds = classicyAppEventHandler(ds, {
+							type: `ClassicyApp${finder.name}OpenFile`,
+							app: { id: "Finder.app" },
+							path: action.path,
+						});
+					} else {
+						ds.System.Manager.Desktop.errorDialog = {
+							message: "Finder cannot open the file type you requested.",
+						};
+					}
 				}
 			}
 		} else if (action.type.startsWith("ClassicyWindow")) {
@@ -475,6 +499,7 @@ export const DefaultAppManagerState: ClassicyStore = {
 					active: false,
 				},
 				disableBalloonHelp: false,
+				errorDialog: null,
 			},
 			Applications: {
 				apps: {

@@ -34,6 +34,7 @@ export interface ClassicyStoreSystemDesktopManager
 		active: boolean;
 	};
 	disableBalloonHelp: boolean;
+	errorDialog?: { title?: string; message: string } | null;
 }
 
 export const classicyDesktopEventHandler = (
@@ -171,6 +172,17 @@ export const classicyDesktopEventHandler = (
 		case "ClassicyDesktopSetBalloonHelp": {
 			ds.System.Manager.Desktop.disableBalloonHelp =
 				action.disableBalloonHelp;
+			break;
+		}
+		case "ClassicyDesktopShowErrorDialog": {
+			ds.System.Manager.Desktop.errorDialog = {
+				title: action.title,
+				message: action.message,
+			};
+			break;
+		}
+		case "ClassicyDesktopCloseErrorDialog": {
+			ds.System.Manager.Desktop.errorDialog = null;
 			break;
 		}
 	}

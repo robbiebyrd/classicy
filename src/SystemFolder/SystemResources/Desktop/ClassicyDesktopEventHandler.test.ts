@@ -389,3 +389,31 @@ describe("classicyDesktopEventHandler — ClassicyDesktopLoadThemes", () => {
 		expect(ds.System.Manager.Appearance.availableThemes).toHaveLength(2);
 	});
 });
+
+describe("classicyDesktopEventHandler — error dialog", () => {
+	it("ClassicyDesktopShowErrorDialog stores the message and title", () => {
+		const ds = makeStoreForDesktop();
+
+		classicyDesktopEventHandler(ds, {
+			type: "ClassicyDesktopShowErrorDialog",
+			title: "Oops",
+			message: "Something went wrong.",
+		});
+
+		expect(ds.System.Manager.Desktop.errorDialog).toEqual({
+			title: "Oops",
+			message: "Something went wrong.",
+		});
+	});
+
+	it("ClassicyDesktopCloseErrorDialog clears the dialog", () => {
+		const ds = makeStoreForDesktop();
+		ds.System.Manager.Desktop.errorDialog = { message: "Existing error" };
+
+		classicyDesktopEventHandler(ds, {
+			type: "ClassicyDesktopCloseErrorDialog",
+		});
+
+		expect(ds.System.Manager.Desktop.errorDialog).toBeNull();
+	});
+});

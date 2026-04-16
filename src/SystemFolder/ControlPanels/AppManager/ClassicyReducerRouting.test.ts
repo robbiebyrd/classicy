@@ -46,6 +46,9 @@ function makeStore(): ClassicyStore {
 							focused: true,
 							noDesktopIcon: true,
 							data: {},
+							handlesFileTypes: Object.values(
+								ClassicyFileSystemEntryFileType,
+							),
 						},
 					},
 					fileTypeHandlers: Object.fromEntries(
@@ -441,6 +444,57 @@ describe("ClassicyAppFinderOpenFile file-type routing", () => {
 		expect(finder.data?.openFiles).toEqual([
 			"Macintosh HD:Library:Extensions",
 		]);
+	});
+
+	it("falls back to Finder when fileTypeHandlers points at a missing app", () => {
+		const ds = makeStore();
+		ds.System.Manager.Applications.fileTypeHandlers[
+			ClassicyFileSystemEntryFileType.TextFile
+		] = "Ghost.app";
+
+		const result = classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyAppFinderOpenFile",
+			file: {
+				_type: ClassicyFileSystemEntryFileType.TextFile,
+				_data: "Hello world",
+			},
+			path: "Macintosh HD:Documents:Read Me.txt",
+		});
+
+		const finder = result.System.Manager.Applications.apps["Finder.app"];
+		expect(finder.data?.openFiles).toEqual([
+			"Macintosh HD:Documents:Read Me.txt",
+		]);
+		expect(result.System.Manager.Desktop.errorDialog ?? null).toBeNull();
+	});
+
+	it("shows an error dialog when neither the registered app nor Finder can open the file type", () => {
+		const ds = makeStore();
+		// Point the handler at a non-existent app
+		ds.System.Manager.Applications.fileTypeHandlers[
+			ClassicyFileSystemEntryFileType.TextFile
+		] = "Ghost.app";
+		// Finder no longer claims to handle text files
+		ds.System.Manager.Applications.apps["Finder.app"].handlesFileTypes = (
+			ds.System.Manager.Applications.apps["Finder.app"].handlesFileTypes ?? []
+		).filter((t) => t !== ClassicyFileSystemEntryFileType.TextFile);
+
+		const result = classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyAppFinderOpenFile",
+			file: {
+				_type: ClassicyFileSystemEntryFileType.TextFile,
+				_data: "Hello world",
+			},
+			path: "Macintosh HD:Documents:Read Me.txt",
+		});
+
+		expect(result.System.Manager.Desktop.errorDialog?.message).toBe(
+			"Finder cannot open the file type you requested.",
+		);
+		const finder = result.System.Manager.Applications.apps["Finder.app"];
+		expect(finder.data?.openFiles ?? []).not.toContain(
+			"Macintosh HD:Documents:Read Me.txt",
+		);
 	});
 
 	it("prefers QuickTime _creator routing over file-type routing", () => {
