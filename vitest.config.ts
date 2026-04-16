@@ -12,6 +12,7 @@ export default defineConfig({
 			"@": path.resolve(__dirname, "./src/"),
 			"@img": path.resolve(__dirname, "./assets/img"),
 			"@snd": path.resolve(__dirname, "./assets/sounds"),
+			classicy: path.resolve(__dirname, "./src/index.ts"),
 		},
 	},
 });
