@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { classicyDesktopEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
+import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 
 function makeStore(): ClassicyStore {
 	return {
@@ -27,6 +28,7 @@ function makeStore(): ClassicyStore {
 					systemMenu: [],
 					appMenu: [],
 					selectBox: { size: [0, 0], start: [0, 0], active: false },
+					disableBalloonHelp: false,
 				},
 				Applications: {
 					apps: {
@@ -41,6 +43,11 @@ function makeStore(): ClassicyStore {
 							data: {},
 						},
 					},
+					fileTypeHandlers: Object.fromEntries(
+						Object.values(ClassicyFileSystemEntryFileType).map(
+							(type) => [type, "Finder.app"],
+						),
+					) as Record<ClassicyFileSystemEntryFileType, string>,
 				},
 				Appearance: {
 					availableThemes: [],
@@ -237,6 +244,9 @@ describe("classicyDesktopEventHandler — ClassicyDesktopChangeTheme", () => {
 			id: "alt-theme",
 			name: "Alt",
 		};
+		if (!ds.System.Manager.Appearance.availableThemes)	{
+			ds.System.Manager.Appearance.availableThemes = [];
+		}
 		ds.System.Manager.Appearance.availableThemes.push(altTheme);
 
 		classicyDesktopEventHandler(ds, {
@@ -377,5 +387,33 @@ describe("classicyDesktopEventHandler — ClassicyDesktopLoadThemes", () => {
 
 		expect(ds.System.Manager.Appearance.availableThemes).toBe(newThemes);
 		expect(ds.System.Manager.Appearance.availableThemes).toHaveLength(2);
+	});
+});
+
+describe("classicyDesktopEventHandler — error dialog", () => {
+	it("ClassicyDesktopShowErrorDialog stores the message and title", () => {
+		const ds = makeStoreForDesktop();
+
+		classicyDesktopEventHandler(ds, {
+			type: "ClassicyDesktopShowErrorDialog",
+			title: "Oops",
+			message: "Something went wrong.",
+		});
+
+		expect(ds.System.Manager.Desktop.errorDialog).toEqual({
+			title: "Oops",
+			message: "Something went wrong.",
+		});
+	});
+
+	it("ClassicyDesktopCloseErrorDialog clears the dialog", () => {
+		const ds = makeStoreForDesktop();
+		ds.System.Manager.Desktop.errorDialog = { message: "Existing error" };
+
+		classicyDesktopEventHandler(ds, {
+			type: "ClassicyDesktopCloseErrorDialog",
+		});
+
+		expect(ds.System.Manager.Desktop.errorDialog).toBeNull();
 	});
 });

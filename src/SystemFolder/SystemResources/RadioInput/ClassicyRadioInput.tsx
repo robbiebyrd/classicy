@@ -1,6 +1,7 @@
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import {
 	ClassicyControlLabel,
+	type ClassicyControlLabelSize,
 	type ClassicyLabelPosition,
 	labelPositionClass,
 } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
@@ -12,6 +13,7 @@ import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/u
 type ClassicyRadioInputProps = {
 	name: string;
 	label?: string;
+	labelSize?: ClassicyControlLabelSize;
 	labelPosition?: ClassicyLabelPosition;
 	align?: "rows" | "columns";
 	disabled?: boolean;
@@ -33,6 +35,7 @@ export const ClassicyRadioInput: FunctionalComponent<
 > = ({
 	name,
 	label,
+	labelSize = "medium",
 	labelPosition = "above",
 	align = "columns",
 	disabled = false,
@@ -93,6 +96,7 @@ export const ClassicyRadioInput: FunctionalComponent<
 							tabIndex={0}
 							onChange={() => !item.disabled && handleOnChange(item.id)}
 							onMouseDown={() => {
+								if (item.disabled) return;
 								track("click", {
 									type: "ClassicyRadioInput",
 									itemId: item.id,
@@ -104,6 +108,7 @@ export const ClassicyRadioInput: FunctionalComponent<
 								});
 							}}
 							onMouseUp={() => {
+								if (item.disabled) return;
 								player({
 									type: "ClassicySoundPlay",
 									sound: "ClassicyInputRadioClickUp",
@@ -115,6 +120,25 @@ export const ClassicyRadioInput: FunctionalComponent<
 						labelFor={item.id}
 						disabled={item.disabled}
 						label={item.label}
+						onMouseDown={() => {
+							if (item.disabled) return;
+							track("click", {
+								type: "ClassicyRadioInput",
+								itemId: item.id,
+								...analyticsArgs,
+							});
+							player({
+								type: "ClassicySoundPlay",
+								sound: "ClassicyInputRadioClickDown",
+							});
+						}}
+						onMouseUp={() => {
+							if (item.disabled) return;
+							player({
+								type: "ClassicySoundPlay",
+								sound: "ClassicyInputRadioClickUp",
+							});
+						}}
 					/>
 				</div>
 			))}
@@ -125,7 +149,7 @@ export const ClassicyRadioInput: FunctionalComponent<
 
 	return (
 		<div className={labelPositionClass(labelPosition)}>
-			<ClassicyControlLabel labelFor={name} disabled={disabled} label={label} />
+			<ClassicyControlLabel labelFor={name} disabled={disabled} labelSize={labelSize} label={label} />
 			{group}
 		</div>
 	);

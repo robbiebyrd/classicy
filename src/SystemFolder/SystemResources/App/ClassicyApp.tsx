@@ -1,6 +1,7 @@
 import {
 	type FC as FunctionalComponent,
 	type ReactNode,
+	useCallback,
 	useEffect,
 } from "react";
 import { JSONTree } from "react-json-tree";
@@ -9,6 +10,7 @@ import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import type { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
 export interface ClassicyAppProps {
@@ -19,6 +21,8 @@ export interface ClassicyAppProps {
 	noDesktopIcon?: boolean;
 	addSystemMenu?: boolean;
 	debug?: boolean;
+	handlesFileTypes?: ClassicyFileSystemEntryFileType[];
+	handlesOwnFiles?: boolean;
 	children?: ReactNode;
 }
 
@@ -30,6 +34,8 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 	noDesktopIcon,
 	defaultWindow,
 	debug = false,
+	handlesFileTypes,
+	handlesOwnFiles = false,
 	children,
 }) => {
 	const appContext = useAppManager(
@@ -73,6 +79,11 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 	};
 
 	useEffect(() => {
+		desktopEventDispatch({
+			type: "ClassicyAppLoad",
+			app: { id, name, icon },
+		});
+
 		if (addSystemMenu) {
 			desktopEventDispatch({
 				type: "ClassicyDesktopAppMenuAdd",
@@ -106,6 +117,17 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 		}
 	}, [addSystemMenu, noDesktopIcon, desktopEventDispatch, id, name, icon]);
 
+	const handlesFileTypesKey = handlesFileTypes?.slice().sort().join(",") ?? "";
+	useEffect(() => {
+		if (handlesFileTypesKey) {
+			desktopEventDispatch({
+				type: "ClassicyAppRegisterFileTypes",
+				app: { id },
+				fileTypes: handlesFileTypesKey.split(","),
+			});
+		}
+	}, [desktopEventDispatch, id, handlesFileTypesKey]);
+
 	useEffect(() => {
 		if (appContext?.focused && defaultWindow) {
 			const anyWindowFocused = appContext?.windows?.some((w) => w.focused);
@@ -132,12 +154,38 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 		appContext?.windows,
 	]);
 
+	const openFiles: string[] = appContext?.data?.openFiles ?? [];
+
+	const closeFile = useCallback(
+		(path: string) => {
+			desktopEventDispatch({
+				type: `ClassicyApp${name}CloseFile`,
+				app: { id },
+				path,
+			});
+		},
+		[desktopEventDispatch, id, name],
+	);
+
 	return (
 		// biome-ignore lint/a11y/useKeyWithClickEvents: application container captures focus for the app; keyboard users interact with child windows directly
 		<div role="application" onClick={onFocus}>
 			{isAppOpen() && (
 				<>
 					{children}
+					{!handlesOwnFiles && openFiles.map((filePath: string, idx: number) => (
+						<ClassicyWindow
+							key={`${id}_file_${filePath}`}
+							id={`${id}_file_${filePath}`}
+							title={filePath.split(":").pop() || filePath}
+							appId={id}
+							initialSize={[400, 200]}
+							initialPosition={[100 + idx * 30, 100 + idx * 30]}
+							onCloseFunc={() => closeFile(filePath)}
+						>
+							<span>{filePath}</span>
+						</ClassicyWindow>
+					))}
 					{debug && (
 						<ClassicyWindow
 							initialSize={[400, 300]}

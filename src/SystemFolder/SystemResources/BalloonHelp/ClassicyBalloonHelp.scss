@@ -1,0 +1,45 @@
+@use "../../ControlPanels/AppearanceManager/styles/appearance";
+
+// Tight wrapper — shrinks to the children's dimensions so the balloon
+// is positioned relative to the actual element, not a stretched block.
+.classicyBalloonHelpAnchor {
+  position: relative;
+  display: inline-block;
+}
+
+// Wrapper rendered in a document.body portal. position, z-index, coordinates,
+// and pointer-events are all applied via inline style.
+.classicyBalloonHelpContainer {
+  position: fixed;
+}
+
+// The bubble itself — normal block flow inside the container.
+.classicyBalloonHelp {
+  background: white;
+  border: 1px solid black;
+  border-radius: 8px;
+  padding: var(--window-padding-size);
+  min-width: 80px;
+  max-width: 220px;
+
+  p {
+    margin: 0;
+    font-family: var(--ui-font);
+    font-size: calc(var(--ui-font-size) * 0.85);
+    line-height: 1.3;
+    white-space: normal;
+  }
+}
+
+.classicyBalloonHelpTitle {
+  font-weight: bold;
+  margin-bottom: 3px !important;
+}
+
+// The tail is a sibling of .classicyBalloonHelp — rendered after it in DOM
+// order so it paints on top of the bubble's border. Positional properties
+// (top/bottom, left/right, transform) are applied via inline style.
+.classicyBalloonHelpTail {
+  position: absolute;
+  display: block;
+}

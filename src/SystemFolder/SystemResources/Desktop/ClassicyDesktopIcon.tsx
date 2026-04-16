@@ -25,6 +25,7 @@ interface ClassicyDesktopIconProps {
 	onClickFunc?: () => void;
 	event?: string;
 	eventData?: Record<string, unknown>;
+	noLaunch?: boolean;
 }
 
 export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> =
@@ -38,6 +39,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			onClickFunc,
 			event,
 			eventData,
+			noLaunch = false,
 		}) => {
 			const [clickPosition, setClickPosition] = useState<[number, number]>([
 				0, 0,
@@ -108,15 +110,17 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 					});
 				}
 				track("open", { type: "ClassicyDesktopIcon", ...analyticsArgs });
-				desktopEventDispatch({
-					type: "ClassicyDesktopIconOpen",
-					iconId: id,
-					app: {
-						id: appId,
-						name: appName,
-						icon: icon,
-					},
-				});
+				if (!noLaunch) {
+					desktopEventDispatch({
+						type: "ClassicyDesktopIconOpen",
+						iconId: id,
+						app: {
+							id: appId,
+							name: appName,
+							icon: icon,
+						},
+					});
+				}
 			};
 
 			const thisLocation = useMemo(() => {

@@ -63,3 +63,9 @@
   align-items: center;
   gap: calc(var(--window-control-size) / 2);
 }
+
+@media (max-width: 480px) {
+  .classicyControlLabelHolder {
+    display: none;
+  }
+}

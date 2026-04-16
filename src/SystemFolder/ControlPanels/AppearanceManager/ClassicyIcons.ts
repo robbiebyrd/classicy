@@ -143,8 +143,8 @@ export const ClassicyIcons = {
 		systemProfiler: {
 			app: icon("applications/system-profiler/app.png"),
 		},
-		textedit: {
-			app: icon("applications/textedit/app.png"),
+		simpletext: {
+			app: icon("applications/simpletext/app.png"),
 		},
 	},
 	controlPanels: {

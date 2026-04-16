@@ -3,6 +3,7 @@ import {
 	type ActionMessage,
 	type ClassicyStore,
 	classicyDesktopStateEventReducer,
+	deFocusApps,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import type { ClassicyStoreSystemDesktopManagerIcon } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
 
@@ -29,26 +30,30 @@ const getGridPosition = (
 const getGridPositionByCount = (count: number, theme: ClassicyTheme) => {
 	const [iconSize, iconPadding] = getIconSize(theme);
 	const grid = createGrid(iconSize, iconPadding);
+	const maxRows = Math.max(grid[1], 1);
 
-	if (count < grid[0]) {
-		return getGridPosition(iconSize, iconPadding, 1, count);
-	}
+	const col = Math.floor(count / maxRows) + 1;
+	const row = count % maxRows;
 
-	if (count > grid[0] * grid[1]) {
-		return getGridPosition(iconSize, iconPadding, 1, 1);
-	}
-
-	return getGridPosition(iconSize, iconPadding, 1, 1);
-
-	// TODO: We return the first column if the total count is less, and we return 1,1 if more than we can hold
-	// We need to do an offset on the max number of icons, but use the same positions.
-	// For the middle part, we need to figure out how to convert a column count (e.g. the 35th box)
-	// to our matrix with an x/y coordinate.
+	return getGridPosition(iconSize, iconPadding, col, row);
 };
 
 export const getIconSize = (theme: ClassicyTheme) => {
 	return [theme.desktop.iconSize, theme.desktop.iconSize / 4];
 };
+
+const kindPriority: Record<string, number> = {
+	drive: 0,
+	directory: 1,
+	app_shortcut: 2,
+	shortcut: 3,
+	trash: 4,
+	file: 5,
+	icon: 6,
+};
+
+const getKindPriority = (kind: string): number =>
+	kindPriority[kind?.toLowerCase()] ?? 99;
 
 const sortDesktopIcons = (
 	icons: ClassicyStoreSystemDesktopManagerIcon[],
@@ -56,24 +61,14 @@ const sortDesktopIcons = (
 ) => {
 	switch (sortType) {
 		case "name":
-			return icons.sort((a, b) => {
-				if (a.appName.toLowerCase() > b.appName.toLowerCase()) {
-					return 1;
-				}
-				if (a.appName.toLowerCase() < b.appName.toLowerCase()) {
-					return -1;
-				}
-				return 0;
-			});
+			return icons.sort((a, b) =>
+				a.appName.toLowerCase().localeCompare(b.appName.toLowerCase()),
+			);
 		default:
 			return icons.sort((a, b) => {
-				if (a.kind?.toLowerCase() > b.kind?.toLowerCase()) {
-					return 1;
-				}
-				if (a.kind?.toLowerCase() < b.kind?.toLowerCase()) {
-					return -1;
-				}
-				return 0;
+				const kindDiff = getKindPriority(a.kind) - getKindPriority(b.kind);
+				if (kindDiff !== 0) return kindDiff;
+				return a.appName.toLowerCase().localeCompare(b.appName.toLowerCase());
 			});
 	}
 };
@@ -130,6 +125,8 @@ export const classicyDesktopIconEventHandler = (
 			break;
 		}
 		case "ClassicyDesktopIconFocus": {
+			deFocusApps(ds);
+			ds.System.Manager.Applications.apps["Finder.app"].focused = true;
 			ds.System.Manager.Desktop.selectedIcons = [action.iconId];
 			break;
 		}
@@ -157,14 +154,6 @@ export const classicyDesktopIconEventHandler = (
 			);
 
 			if (icon.length === 0) {
-				const newLocation = action.location;
-				if (!newLocation) {
-					action.location = getGridPositionByCount(
-						ds.System.Manager.Desktop.icons.length,
-						ds.System.Manager.Appearance.activeTheme,
-					);
-				}
-
 				ds.System.Manager.Desktop.icons.push({
 					icon: action.app.icon,
 					appId: action.app.id,
@@ -176,6 +165,11 @@ export const classicyDesktopIconEventHandler = (
 					event: action.event,
 					eventData: action.eventData,
 				});
+
+				ds.System.Manager.Desktop.icons = cleanupDesktopIcons(
+					ds.System.Manager.Appearance.activeTheme,
+					sortDesktopIcons(ds.System.Manager.Desktop.icons, "kind"),
+				);
 			}
 			break;
 		}

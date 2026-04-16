@@ -3,6 +3,7 @@ import type {
 	ClassicyStore,
 } from "classicy";
 import { registerAppEventHandler } from "classicy";
+import { normalizeUrl } from "./browserUtils";
 
 export interface BrowserFavorite {
 	id: string;
@@ -24,81 +25,56 @@ export const classicyBrowserEventHandler = (
 ) => {
 	const appId = "Browser.app";
 	if (!ds.System.Manager.Applications.apps[appId]) return ds;
-	let appData = ds.System.Manager.Applications.apps[appId].data;
+	let appData: Record<string, unknown> = ds.System.Manager.Applications.apps[appId].data ?? {};
 
 	switch (action.type) {
 		case "ClassicyAppBrowserSetHomePage": {
-			if (!appData) {
-				appData = {};
-			}
-			appData.homePage = {
-				url: action.url,
-				label: action.label,
-				icon: action.icon,
-			};
+			appData = { ...appData, homePage: { url: action.url, label: action.label, icon: action.icon } };
 			break;
 		}
 		case "ClassicyAppBrowserInitFavorites": {
-			if (!appData) {
-				appData = {};
-			}
 			if (!("favorites" in appData)) {
-				appData.favorites = action.favorites;
+				appData = { ...appData, favorites: action.favorites };
 			}
 			break;
 		}
 		case "ClassicyAppBrowserAddFavorite": {
-			if (!appData) {
-				appData = { favorites: [] };
-			}
-			if (!("favorites" in appData)) {
-				appData.favorites = [];
-			}
-			appData.favorites = [...appData.favorites, action.favorite];
+			appData = { ...appData, favorites: [...(appData.favorites as BrowserFavorite[] ?? []), action.favorite] };
 			break;
 		}
 		case "ClassicyAppBrowserRemoveFavorite": {
-			if (!appData?.favorites) break;
-			appData.favorites = appData.favorites.filter(
-				(f: BrowserFavorite) => f.id !== action.id,
-			);
+			if (!appData.favorites) break;
+			appData = { ...appData, favorites: (appData.favorites as BrowserFavorite[]).filter((f) => f.id !== action.id) };
 			break;
 		}
 		case "ClassicyAppBrowserRecordVisit": {
-			if (!appData) {
-				appData = {};
-			}
 			if (!("history" in appData)) {
-				appData.history = [];
+				appData = { ...appData, history: [] };
 			}
-			const normalize = (u: string) => {
-				try {
-					const parsed = new URL(u);
-					if (parsed.hostname.startsWith("www.")) {
-						parsed.hostname = parsed.hostname.slice(4);
-					}
-					return parsed.toString().replace(/\/+$/, "");
-				} catch {
-					return u.replace(/\/+$/, "");
-				}
-			};
-			const normalizedUrl = normalize(action.url);
-			const history: BrowserHistoryEntry[] = appData.history.filter(
-				(h: BrowserHistoryEntry) => normalize(h.url) !== normalizedUrl,
+			const normalizedUrl = normalizeUrl(action.url);
+			const history: BrowserHistoryEntry[] = (appData.history as BrowserHistoryEntry[]).filter(
+				(h: BrowserHistoryEntry) => normalizeUrl(h.url) !== normalizedUrl,
 			);
 			history.push({ url: action.url, visitedAt: new Date().toISOString() });
-			appData.history = history.slice(-MAX_HISTORY);
+			appData = { ...appData, history: history.slice(-MAX_HISTORY) };
 			break;
 		}
 		case "ClassicyAppBrowserClearHistory": {
-			if (!appData) {
-				appData = {};
-			}
-			appData.history = [];
+			appData = { ...appData, history: [] };
 			break;
 		}
+		case "ClassicyAppBrowserUpdateProxyConfig": {
+			appData = { ...appData, proxyConfig: action.proxyConfig };
+			break;
+		}
+		case "ClassicyAppBrowserSetShowFavoritesBar": {
+			appData = { ...appData, showFavoritesBar: action.showFavoritesBar };
+			break;
+		}
+		default:
+			break;
 	}
-	ds.System.Manager.Applications.apps[appId].data = { ...appData };
+	ds.System.Manager.Applications.apps[appId].data = appData;
 	return ds;
 };
 

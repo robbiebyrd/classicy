@@ -1,6 +1,8 @@
 import {
 	ClassicyApp,
 	ClassicyButton,
+	ClassicyCheckbox,
+	ClassicyControlGroup,
 	ClassicyControlLabel,
 	ClassicyIcons,
 	ClassicyInput,
@@ -10,17 +12,23 @@ import {
 	useAppManagerDispatch,
 } from "classicy";
 import DOMPurify from "dompurify";
-import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import {
+	type FC as FunctionalComponent,
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
+
 import "./Browser.scss";
 import "./BrowserContext";
-import { useBrowserNavigation } from "./useBrowserNavigation";
-
-interface BrowserFavorite {
-	id: string;
-	title: string;
-	url: string;
-	icon: string;
-}
+import type { BrowserFavorite } from "./BrowserContext";
+import {
+	DEFAULT_PROXY_CONFIG,
+	type TimeMachineProxyConfig,
+	useBrowserNavigation,
+} from "./useBrowserNavigation";
 
 const DEFAULT_FAVORITES: BrowserFavorite[] = [
 	{
@@ -36,7 +44,7 @@ interface ShadowLinkClick {
 	rawHref: string;
 }
 
-const ShadowContent: React.FC<{
+const ShadowContent: FunctionalComponent<{
 	html: string;
 	onLinkClick: (link: ShadowLinkClick) => void;
 }> = ({ html, onLinkClick }) => {
@@ -54,6 +62,7 @@ const ShadowContent: React.FC<{
 
 	useEffect(() => {
 		if (shadowRef.current) {
+			// Content is sanitized via DOMPurify before being set
 			shadowRef.current.innerHTML = DOMPurify.sanitize(html, {
 				FORCE_BODY: true,
 			});
@@ -63,7 +72,6 @@ const ShadowContent: React.FC<{
 	useEffect(() => {
 		const shadow = shadowRef.current;
 		if (!shadow) return;
-		const target = shadow as unknown as EventTarget;
 		const handler = (e: Event) => {
 			const mouseEvent = e as MouseEvent;
 			const clickTarget = mouseEvent.composedPath()[0] as
@@ -78,12 +86,23 @@ const ShadowContent: React.FC<{
 				rawHref: anchor.getAttribute("href") || "",
 			});
 		};
-		target.addEventListener("click", handler);
-		return () => target.removeEventListener("click", handler);
+		shadow.addEventListener("click", handler);
+		return () => shadow.removeEventListener("click", handler);
 	}, []);
 
 	return <div ref={hostRef} className="browserPage" />;
 };
+
+const PROTOCOL_OPTIONS = [
+	{ value: "http:", label: "http" },
+	{ value: "https:", label: "https" },
+	{ value: "ws:", label: "ws" },
+	{ value: "wss:", label: "wss" },
+];
+
+const DEFAULT_URL = "http://www.apple.com/";
+const DEFAULT_HOME_LABEL = "Apple";
+const DEFAULT_HOME_ICON = ClassicyIcons.applications.internetExplorer.apple;
 
 export const Browser = () => {
 	const appName = "Browser";
@@ -95,7 +114,12 @@ export const Browser = () => {
 		(state) => state.System.Manager.Applications.apps[appId],
 	);
 
-	const favorites: BrowserFavorite[] = appState?.data?.favorites ?? [];
+	const favorites = useAppManager(
+		(state) => (state.System.Manager.Applications.apps[appId]?.data?.favorites ?? []) as BrowserFavorite[],
+	);
+
+	const proxyConfig: TimeMachineProxyConfig =
+		appState?.data?.proxyConfig ?? DEFAULT_PROXY_CONFIG;
 
 	const normalizeDomain = useCallback((url: string): string => {
 		try {
@@ -106,13 +130,10 @@ export const Browser = () => {
 		}
 	}, []);
 
-	const defaultUrl = "http://www.apple.com/";
-	const defaultHomeLabel = "Apple";
-	const defaultHomeIcon = ClassicyIcons.applications.internetExplorer.apple;
 	const homePage = appState?.data?.homePage ?? {
-		url: defaultUrl,
-		label: defaultHomeLabel,
-		icon: defaultHomeIcon,
+		url: DEFAULT_URL,
+		label: DEFAULT_HOME_LABEL,
+		icon: DEFAULT_HOME_ICON,
 	};
 
 	useEffect(() => {
@@ -126,18 +147,41 @@ export const Browser = () => {
 		if (!appState.data?.homePage) {
 			desktopEventDispatch({
 				type: "ClassicyAppBrowserSetHomePage",
-				url: defaultUrl,
-				label: defaultHomeLabel,
-				icon: defaultHomeIcon,
+				url: DEFAULT_URL,
+				label: DEFAULT_HOME_LABEL,
+				icon: DEFAULT_HOME_ICON,
 			});
 		}
-	}, [appState, desktopEventDispatch, defaultHomeIcon]);
+	}, [appState, desktopEventDispatch]);
 
-	const [showFavoritesBar, setShowFavoritesBar] = React.useState(true);
-	const [urlError, setUrlError] = React.useState(false);
-	const refAddressBar = React.useRef<HTMLInputElement>(null);
-	const refToolbar = React.useRef<HTMLDivElement>(null);
-	const [isCompact, setIsCompact] = React.useState(false);
+	const showFavoritesBar: boolean = (appState?.data?.showFavoritesBar as boolean) ?? true;
+	const [urlError, setUrlError] = useState(false);
+	const [showSettings, setShowSettings] = useState(false);
+	const refToolbar = useRef<HTMLDivElement>(null);
+	const [isCompact, setIsCompact] = useState(false);
+
+	// Settings form state — initialized from persisted config
+	const [settingsForm, setSettingsForm] =
+		useState<TimeMachineProxyConfig>(proxyConfig);
+
+	// Re-sync form when settings window opens
+	const openSettings = useCallback(() => {
+		setSettingsForm(proxyConfig);
+		setShowSettings(true);
+		desktopEventDispatch({
+			type: "ClassicyWindowFocus",
+			app: { id: appId },
+			window: { id: "browser_settings" },
+		});
+	}, [proxyConfig, desktopEventDispatch]);
+
+	const saveSettings = useCallback(() => {
+		desktopEventDispatch({
+			type: "ClassicyAppBrowserUpdateProxyConfig",
+			proxyConfig: settingsForm,
+		});
+		setShowSettings(false);
+	}, [settingsForm, desktopEventDispatch]);
 
 	const showError = useCallback(() => {
 		setUrlError(true);
@@ -172,7 +216,8 @@ export const Browser = () => {
 		goForward,
 		handleContentClick,
 	} = useBrowserNavigation({
-		defaultUrl,
+		defaultUrl: DEFAULT_URL,
+		proxyConfig,
 		onShowError: showError,
 		onRecordVisit: recordVisit,
 	});
@@ -208,6 +253,11 @@ export const Browser = () => {
 				title: "File",
 				menuChildren: [
 					{
+						id: `${appId}_settings`,
+						title: "Settings…",
+						onClickFunc: openSettings,
+					},
+					{
 						id: `${appId}_quit`,
 						title: "Quit",
 						onClickFunc: quitApp,
@@ -222,12 +272,12 @@ export const Browser = () => {
 						id: `${appId}_show_favorites`,
 						title: "Show Favorites",
 						className: showFavoritesBar ? "browserMenuItemChecked" : "",
-						onClickFunc: () => setShowFavoritesBar((prev) => !prev),
+						onClickFunc: () => desktopEventDispatch({ type: "ClassicyAppBrowserSetShowFavoritesBar", showFavoritesBar: !showFavoritesBar }),
 					},
 				],
 			},
 		],
-		[quitApp, showFavoritesBar],
+		[quitApp, openSettings, showFavoritesBar, desktopEventDispatch],
 	);
 
 	return (
@@ -237,6 +287,130 @@ export const Browser = () => {
 			icon={appIcon}
 			defaultWindow={"browser"}
 		>
+			{showSettings && (
+				<ClassicyWindow
+					id={"browser_settings"}
+					title={"Settings"}
+					appId={appId}
+					closable={true}
+					resizable={false}
+					zoomable={false}
+					scrollable={false}
+					collapsable={false}
+					initialSize={[350, 0]}
+					initialPosition={[250, 150]}
+					appMenu={appMenu}
+					onCloseFunc={() => setShowSettings(false)}
+				>
+					<div className="browserSettings">
+						<ClassicyControlGroup label="TimeMachine Proxy">
+							<ClassicyCheckbox
+								id="proxy_enabled"
+								checked={settingsForm.enabled}
+								label="Enable TimeMachine Proxy"
+								onClickFunc={(checked) =>
+									setSettingsForm((s) => ({ ...s, enabled: checked }))
+								}
+							/>
+						</ClassicyControlGroup>
+						<ClassicyControlGroup label="Connection" columns={true}>
+							<div className="browserSettingsRow">
+								<ClassicyControlLabel label="Protocol:" />
+								<div className="browserSettingsProtocol">
+									{PROTOCOL_OPTIONS.map((opt) => (
+										<ClassicyButton
+											key={opt.value}
+											buttonSize="medium"
+											isDefault={settingsForm.protocol === opt.value}
+											disabled={!settingsForm.enabled}
+											onClickFunc={() =>
+												setSettingsForm((s) => ({
+													...s,
+													protocol: opt.value,
+												}))
+											}
+										>
+											{opt.label}
+										</ClassicyButton>
+									))}
+								</div>
+							</div>
+							<ClassicyInput
+								id="proxy_host"
+								labelTitle="Host:"
+								prefillValue={settingsForm.host}
+								disabled={!settingsForm.enabled}
+								onChangeFunc={(e) =>
+									setSettingsForm((s) => ({
+										...s,
+										host: e.target.value,
+									}))
+								}
+							/>
+							<ClassicyInput
+								id="proxy_port"
+								labelTitle="Port:"
+								prefillValue={String(settingsForm.port)}
+								disabled={!settingsForm.enabled}
+								onChangeFunc={(e) => {
+									const val = parseInt(e.target.value, 10);
+									if (!isNaN(val) && val > 0 && val <= 65535) {
+										setSettingsForm((s) => ({ ...s, port: val }));
+									}
+								}}
+							/>
+							<ClassicyInput
+								id="proxy_path"
+								labelTitle="Path:"
+								prefillValue={settingsForm.path}
+								disabled={!settingsForm.enabled}
+								onChangeFunc={(e) =>
+									setSettingsForm((s) => ({
+										...s,
+										path: e.target.value,
+									}))
+								}
+							/>
+						</ClassicyControlGroup>
+						<ClassicyControlGroup label="Archive">
+							<ClassicyInput
+								id="archive_time"
+								labelTitle="Archive Time:"
+								prefillValue={settingsForm.archiveTime}
+								disabled={!settingsForm.enabled}
+								onChangeFunc={(e) =>
+									setSettingsForm((s) => ({
+										...s,
+										archiveTime: e.target.value,
+									}))
+								}
+							/>
+							<ClassicyInput
+								id="proxy_prefix"
+								labelTitle="Proxy Prefix:"
+								prefillValue={settingsForm.proxyPrefix}
+								disabled={!settingsForm.enabled}
+								onChangeFunc={(e) =>
+									setSettingsForm((s) => ({
+										...s,
+										proxyPrefix: e.target.value,
+									}))
+								}
+							/>
+						</ClassicyControlGroup>
+						<div className="browserSettingsButtons">
+							<ClassicyButton
+								onClickFunc={() => setShowSettings(false)}
+							>
+								Cancel
+							</ClassicyButton>
+							<ClassicyButton isDefault={true} onClickFunc={saveSettings}>
+								Save
+							</ClassicyButton>
+						</div>
+					</div>
+				</ClassicyWindow>
+			)}
 			{urlError && (
 				<ClassicyWindow
 					id={"browser_error"}
@@ -329,14 +503,13 @@ export const Browser = () => {
 									{!isCompact && <ClassicyControlLabel label="Address:" />}
 									<ClassicyInput
 										id={"browserAddress"}
-										ref={refAddressBar}
 										prefillValue={addressBarValue}
 										onChangeFunc={(e) => setAddressBarValue(e.target.value)}
 										backgroundColor="white"
 										onEnterFunc={goTo}
 									></ClassicyInput>
 								</div>
-								<ClassicyButton onClickFunc={(_) => goTo(undefined)}>
+								<ClassicyButton onClickFunc={() => goTo(undefined)}>
 									<div className="browserNavButtonContent browserHoverSwap">
 										<img
 											src={ClassicyIcons.applications.internetExplorer.refresh}
@@ -384,26 +557,28 @@ export const Browser = () => {
 							alt="Loader"
 						/>
 					</div>
-					{showFavoritesBar && <div className="browserBar browserFavoritesBar">
-						<ClassicyControlLabel label="Favorites: "></ClassicyControlLabel>
-						{favorites.map((fav) => (
-							<ClassicyButton
-								key={fav.id}
-								onClickFunc={() => goTo(fav.url)}
-								buttonSize="small"
-							>
-								<div className="browserNavButtonContent">
-									<img src={fav.icon} alt={fav.title} />
-									{!isCompact && (
-										<ClassicyControlLabel
-											label={fav.title}
-											labelSize="small"
-										></ClassicyControlLabel>
-									)}
-								</div>
-							</ClassicyButton>
-						))}
-					</div>}
+					{showFavoritesBar && (
+						<div className="browserBar browserFavoritesBar">
+							<ClassicyControlLabel label="Favorites: "></ClassicyControlLabel>
+							{favorites.map((fav) => (
+								<ClassicyButton
+									key={fav.id}
+									onClickFunc={() => goTo(fav.url)}
+									buttonSize="small"
+								>
+									<div className="browserNavButtonContent">
+										<img src={fav.icon} alt={fav.title} />
+										{!isCompact && (
+											<ClassicyControlLabel
+												label={fav.title}
+												labelSize="small"
+											></ClassicyControlLabel>
+										)}
+									</div>
+								</ClassicyButton>
+							))}
+						</div>
+					)}
 					<div className="browserContents">
 						<ShadowContent
 							html={htmlContent}

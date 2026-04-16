@@ -253,9 +253,6 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 			>
 				<div className={"classicyAppearanceManagerContent"}>
 					<ClassicyTabs tabs={tabs} />
-					<ClassicyButton onClickFunc={cleanupIcons}>
-						Cleanup Icons
-					</ClassicyButton>
 					<ClassicyButton onClickFunc={quitApp}>Quit</ClassicyButton>
 				</div>
 			</ClassicyWindow>

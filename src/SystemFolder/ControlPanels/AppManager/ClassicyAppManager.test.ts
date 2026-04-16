@@ -3,6 +3,7 @@ import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManag
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	activateApp,
+	classicyAppEventHandler,
 	classicyDesktopStateEventReducer,
 	closeApp,
 	deFocusApps,
@@ -10,6 +11,7 @@ import {
 	loadApp,
 	openApp,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 
 function makeStore(): ClassicyStore {
 	return {
@@ -35,6 +37,7 @@ function makeStore(): ClassicyStore {
 					systemMenu: [],
 					appMenu: [],
 					selectBox: { size: [0, 0], start: [0, 0], active: false },
+					disableBalloonHelp: false,
 				},
 				Applications: {
 					apps: {
@@ -47,8 +50,16 @@ function makeStore(): ClassicyStore {
 							focused: true,
 							noDesktopIcon: true,
 							data: {},
+							handlesFileTypes: Object.values(
+								ClassicyFileSystemEntryFileType,
+							),
 						},
 					},
+					fileTypeHandlers: Object.fromEntries(
+						Object.values(ClassicyFileSystemEntryFileType).map(
+							(type) => [type, "Finder.app"],
+						),
+					) as Record<ClassicyFileSystemEntryFileType, string>,
 				},
 				Appearance: {
 					availableThemes: [],
@@ -453,6 +464,302 @@ describe("focusApp — appMenu propagation", () => {
 		focusApp(ds, "Notes.app");
 
 		expect(ds.System.Manager.Desktop.appMenu).toEqual([]);
+	});
+});
+
+describe("generic OpenFile / CloseFile", () => {
+	it("stores the path in app.data.openFiles on OpenFile", () => {
+		const ds = makeStore();
+		ds.System.Manager.Applications.apps["Notes.app"] = {
+			id: "Notes.app",
+			name: "Notes",
+			icon: "",
+			open: false,
+			windows: [],
+			data: {},
+		};
+
+		classicyAppEventHandler(ds, {
+			type: "ClassicyAppNotesOpenFile",
+			app: { id: "Notes.app" },
+			path: "Macintosh HD:Documents:readme.txt",
+		});
+
+		expect(ds.System.Manager.Applications.apps["Notes.app"].data?.openFiles).toEqual([
+			"Macintosh HD:Documents:readme.txt",
+		]);
+		expect(ds.System.Manager.Applications.apps["Notes.app"].open).toBe(true);
+	});
+
+	it("does not duplicate paths on repeated OpenFile", () => {
+		const ds = makeStore();
+		ds.System.Manager.Applications.apps["Notes.app"] = {
+			id: "Notes.app",
+			name: "Notes",
+			icon: "",
+			open: true,
+			windows: [],
+			data: { openFiles: ["Macintosh HD:Documents:readme.txt"] },
+		};
+
+		classicyAppEventHandler(ds, {
+			type: "ClassicyAppNotesOpenFile",
+			app: { id: "Notes.app" },
+			path: "Macintosh HD:Documents:readme.txt",
+		});
+
+		expect(ds.System.Manager.Applications.apps["Notes.app"].data?.openFiles).toEqual([
+			"Macintosh HD:Documents:readme.txt",
+		]);
+	});
+
+	it("removes the path from app.data.openFiles on CloseFile", () => {
+		const ds = makeStore();
+		ds.System.Manager.Applications.apps["Notes.app"] = {
+			id: "Notes.app",
+			name: "Notes",
+			icon: "",
+			open: true,
+			windows: [],
+			data: {
+				openFiles: [
+					"Macintosh HD:Documents:readme.txt",
+					"Macintosh HD:Documents:notes.txt",
+				],
+			},
+		};
+
+		classicyAppEventHandler(ds, {
+			type: "ClassicyAppNotesCloseFile",
+			app: { id: "Notes.app" },
+			path: "Macintosh HD:Documents:readme.txt",
+		});
+
+		expect(ds.System.Manager.Applications.apps["Notes.app"].data?.openFiles).toEqual([
+			"Macintosh HD:Documents:notes.txt",
+		]);
+	});
+
+	it("is a no-op when the app does not exist", () => {
+		const ds = makeStore();
+
+		expect(() =>
+			classicyAppEventHandler(ds, {
+				type: "ClassicyAppGhostOpenFile",
+				app: { id: "Ghost.app" },
+				path: "Macintosh HD:test",
+			}),
+		).not.toThrow();
+	});
+});
+
+describe("file type registration", () => {
+	it("registers file types on an app and updates fileTypeHandlers", () => {
+		const ds = makeStore();
+		ds.System.Manager.Applications.apps["SimpleText.app"] = {
+			id: "SimpleText.app",
+			name: "SimpleText",
+			icon: "",
+			open: false,
+			windows: [],
+			data: {},
+		};
+
+		classicyAppEventHandler(ds, {
+			type: "ClassicyAppRegisterFileTypes",
+			app: { id: "SimpleText.app" },
+			fileTypes: [
+				ClassicyFileSystemEntryFileType.File,
+				ClassicyFileSystemEntryFileType.Shortcut,
+			],
+		});
+
+		expect(
+			ds.System.Manager.Applications.apps["SimpleText.app"].handlesFileTypes,
+		).toEqual([
+			ClassicyFileSystemEntryFileType.File,
+			ClassicyFileSystemEntryFileType.Shortcut,
+		]);
+		// fileTypeHandlers should now point to SimpleText for these types
+		expect(
+			ds.System.Manager.Applications.fileTypeHandlers[
+				ClassicyFileSystemEntryFileType.File
+			],
+		).toBe("SimpleText.app");
+		expect(
+			ds.System.Manager.Applications.fileTypeHandlers[
+				ClassicyFileSystemEntryFileType.Shortcut
+			],
+		).toBe("SimpleText.app");
+	});
+
+	it("does not override fileTypeHandlers if a non-Finder app already owns the type", () => {
+		const ds = makeStore();
+		// Pre-set a custom handler
+		ds.System.Manager.Applications.fileTypeHandlers[
+			ClassicyFileSystemEntryFileType.File
+		] = "ExistingEditor.app";
+		ds.System.Manager.Applications.apps["SimpleText.app"] = {
+			id: "SimpleText.app",
+			name: "SimpleText",
+			icon: "",
+			open: false,
+			windows: [],
+			data: {},
+		};
+
+		classicyAppEventHandler(ds, {
+			type: "ClassicyAppRegisterFileTypes",
+			app: { id: "SimpleText.app" },
+			fileTypes: [ClassicyFileSystemEntryFileType.File],
+		});
+
+		// Should not override the existing non-Finder handler
+		expect(
+			ds.System.Manager.Applications.fileTypeHandlers[
+				ClassicyFileSystemEntryFileType.File
+			],
+		).toBe("ExistingEditor.app");
+	});
+
+	it("does not duplicate file types on repeated registration", () => {
+		const ds = makeStore();
+		ds.System.Manager.Applications.apps["SimpleText.app"] = {
+			id: "SimpleText.app",
+			name: "SimpleText",
+			icon: "",
+			open: false,
+			windows: [],
+			data: {},
+			handlesFileTypes: [ClassicyFileSystemEntryFileType.File],
+		};
+
+		classicyAppEventHandler(ds, {
+			type: "ClassicyAppRegisterFileTypes",
+			app: { id: "SimpleText.app" },
+			fileTypes: [
+				ClassicyFileSystemEntryFileType.File,
+				ClassicyFileSystemEntryFileType.Directory,
+			],
+		});
+
+		expect(
+			ds.System.Manager.Applications.apps["SimpleText.app"].handlesFileTypes,
+		).toEqual([
+			ClassicyFileSystemEntryFileType.File,
+			ClassicyFileSystemEntryFileType.Directory,
+		]);
+	});
+
+	it("unregisters file types via ClassicyAppUnregisterFileTypes", () => {
+		const ds = makeStore();
+		ds.System.Manager.Applications.apps["SimpleText.app"] = {
+			id: "SimpleText.app",
+			name: "SimpleText",
+			icon: "",
+			open: false,
+			windows: [],
+			data: {},
+			handlesFileTypes: [
+				ClassicyFileSystemEntryFileType.File,
+				ClassicyFileSystemEntryFileType.Shortcut,
+			],
+		};
+
+		classicyAppEventHandler(ds, {
+			type: "ClassicyAppUnregisterFileTypes",
+			app: { id: "SimpleText.app" },
+			fileTypes: [ClassicyFileSystemEntryFileType.Shortcut],
+		});
+
+		expect(
+			ds.System.Manager.Applications.apps["SimpleText.app"].handlesFileTypes,
+		).toEqual([ClassicyFileSystemEntryFileType.File]);
+	});
+
+	it("resets fileTypeHandlers to Finder.app when the unregistering app owned the mapping", () => {
+		const ds = makeStore();
+		ds.System.Manager.Applications.apps["SimpleText.app"] = {
+			id: "SimpleText.app",
+			name: "SimpleText",
+			icon: "",
+			open: false,
+			windows: [],
+			data: {},
+			handlesFileTypes: [
+				ClassicyFileSystemEntryFileType.File,
+				ClassicyFileSystemEntryFileType.Shortcut,
+			],
+		};
+		ds.System.Manager.Applications.fileTypeHandlers[
+			ClassicyFileSystemEntryFileType.Shortcut
+		] = "SimpleText.app";
+
+		classicyAppEventHandler(ds, {
+			type: "ClassicyAppUnregisterFileTypes",
+			app: { id: "SimpleText.app" },
+			fileTypes: [ClassicyFileSystemEntryFileType.Shortcut],
+		});
+
+		expect(
+			ds.System.Manager.Applications.fileTypeHandlers[
+				ClassicyFileSystemEntryFileType.Shortcut
+			],
+		).toBe("Finder.app");
+	});
+
+	it("does not touch fileTypeHandlers entries owned by other apps on unregister", () => {
+		const ds = makeStore();
+		ds.System.Manager.Applications.apps["SimpleText.app"] = {
+			id: "SimpleText.app",
+			name: "SimpleText",
+			icon: "",
+			open: false,
+			windows: [],
+			data: {},
+			handlesFileTypes: [ClassicyFileSystemEntryFileType.File],
+		};
+		ds.System.Manager.Applications.fileTypeHandlers[
+			ClassicyFileSystemEntryFileType.File
+		] = "OtherEditor.app";
+
+		classicyAppEventHandler(ds, {
+			type: "ClassicyAppUnregisterFileTypes",
+			app: { id: "SimpleText.app" },
+			fileTypes: [ClassicyFileSystemEntryFileType.File],
+		});
+
+		expect(
+			ds.System.Manager.Applications.fileTypeHandlers[
+				ClassicyFileSystemEntryFileType.File
+			],
+		).toBe("OtherEditor.app");
+	});
+
+	it("sets a default file type handler via ClassicyAppSetDefaultFileTypeHandler", () => {
+		const ds = makeStore();
+
+		classicyAppEventHandler(ds, {
+			type: "ClassicyAppSetDefaultFileTypeHandler",
+			app: { id: "SimpleText.app" },
+			fileType: ClassicyFileSystemEntryFileType.File,
+		});
+
+		expect(
+			ds.System.Manager.Applications.fileTypeHandlers[
+				ClassicyFileSystemEntryFileType.File
+			],
+		).toBe("SimpleText.app");
+	});
+
+	it("defaults all file types to Finder.app in initial state", () => {
+		const ds = makeStore();
+
+		for (const fileType of Object.values(ClassicyFileSystemEntryFileType)) {
+			expect(
+				ds.System.Manager.Applications.fileTypeHandlers[fileType],
+			).toBe("Finder.app");
+		}
 	});
 });
 

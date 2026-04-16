@@ -38,3 +38,5 @@ example/public/pager/
 *\ [0-9].ts
 *\ [0-9].tsx
 .claude
+example/timemachine/cache
+/.playwright-mcp

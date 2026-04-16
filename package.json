@@ -32,7 +32,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",
-    "preview": "npm run build && npm link && cd example && npm i && npm link classicy && npm run build && npm run dev"
+    "preview": "npm run build && npm link && cd example && npm i && npm link classicy && npm run build && concurrently --kill-others \"cd .. && npm run build:watchsource\" \"npm run dev\""
   },
   "files": [
     "dist",
@@ -64,6 +64,7 @@
     "screenfull": "^6.0.2",
     "sha512-crypt-ts": "^0.1.27",
     "use-analytics": "^1.1.0",
+    "zod": "^4.3.6",
     "zustand": "^5.0.11"
   },
   "peerDependencies": {

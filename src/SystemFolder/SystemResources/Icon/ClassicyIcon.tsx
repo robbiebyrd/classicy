@@ -79,7 +79,7 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	};
 
 	const changeIcon = (e: MouseEvent<HTMLDivElement>) => {
-		if (dragging && iconRef.current) {
+		if (holder?.current && dragging && iconRef.current) {
 			setFocus(true);
 			setPosition([
 				e.clientX -

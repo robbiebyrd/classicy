@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { classicyWindowEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopWindowManagerContext";
+import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 
 function makeStore(): ClassicyStore {
 	return {
@@ -27,6 +28,7 @@ function makeStore(): ClassicyStore {
 					systemMenu: [],
 					appMenu: [],
 					selectBox: { size: [0, 0], start: [0, 0], active: false },
+					disableBalloonHelp: false,
 				},
 				Applications: {
 					apps: {
@@ -41,6 +43,11 @@ function makeStore(): ClassicyStore {
 							data: {},
 						},
 					},
+					fileTypeHandlers: Object.fromEntries(
+						Object.values(ClassicyFileSystemEntryFileType).map(
+							(type) => [type, "Finder.app"],
+						),
+					) as Record<ClassicyFileSystemEntryFileType, string>,
 				},
 				Appearance: {
 					availableThemes: [],

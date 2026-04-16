@@ -1,14 +1,11 @@
 import "./ClassicyControlGroup.scss";
 import classNames from "classnames";
 import type { FC as FunctionalComponent, ReactNode } from "react";
-import type { ClassicyLabelPosition } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 
 type ClassicyControlGroupProps = {
 	label: string;
-	// labelPosition controls the legend alignment; only "above" is fully supported
-	// due to HTML fieldset/legend constraints.
-	labelPosition?: ClassicyLabelPosition;
 	columns?: boolean;
+	layout?: "default" | "form";
 	children: ReactNode;
 };
 
@@ -16,10 +13,14 @@ export const ClassicyControlGroup: FunctionalComponent<
 	ClassicyControlGroupProps
 > = ({
 	label = "",
-	labelPosition: _labelPosition = "above",
 	columns = false,
+	layout = "default",
 	children,
 }) => {
+	const contentClass = classNames(
+		columns && "classicyControlGroupContentColumns",
+		layout === "form" && "classicyControlGroupFormContent",
+	);
 	return (
 		<fieldset
 			className={classNames(
@@ -30,7 +31,7 @@ export const ClassicyControlGroup: FunctionalComponent<
 			{label !== "" && (
 				<legend className={"classicyControlGroupLegend"}>{label}</legend>
 			)}
-			<div className={columns ? "classicyControlGroupContentColumns" : ""}>
+			<div className={contentClass || undefined}>
 				{children}
 			</div>
 		</fieldset>

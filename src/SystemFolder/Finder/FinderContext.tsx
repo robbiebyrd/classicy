@@ -13,8 +13,8 @@ export const classicyFinderEventHandler = (
 
 	switch (action.type) {
 		case "ClassicyAppFinderOpenFolder": {
-			if (!("openPaths" in appData)) {
-				appData.openPaths = [action.path];
+			if (!appData || !("openPaths" in appData)) {
+				appData = { openPaths: [action.path] };
 				break;
 			}
 

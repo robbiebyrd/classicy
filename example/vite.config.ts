@@ -15,4 +15,12 @@ export default defineConfig({
 			"react-dom": path.resolve("./node_modules/react-dom"),
 		},
 	},
+	test: {
+		environment: "jsdom",
+		alias: {
+			react: path.resolve("../node_modules/react"),
+			"react-dom": path.resolve("../node_modules/react-dom"),
+			"react-dom/client": path.resolve("../node_modules/react-dom/client"),
+		},
+	},
 });

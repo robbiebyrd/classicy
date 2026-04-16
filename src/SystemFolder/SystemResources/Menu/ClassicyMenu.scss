@@ -192,25 +192,41 @@
 @keyframes classicyMenuItemFlashKeyframes {
   0% {
     background-color: var(--color-theme-04);
+    color: var(--color-white);
   }
 
   20% {
     background-color: var(--color-system-02);
+    color: var(--color-black);
   }
 
   40% {
     background-color: var(--color-theme-04);
+    color: var(--color-white);
   }
 
   60% {
     background-color: var(--color-system-02);
+    color: var(--color-black);
   }
 
   80% {
     background-color: var(--color-theme-04);
+    color: var(--color-white);
   }
 
   100% {
     background-color: var(--color-system-02);
+    color: var(--color-black);
+  }
+}
+.classicyMenuItemBalloonAnchor {
+  display: block;
+  width: 100%;
+
+  .classicyMenuItem {
+    float: none;
+    width: 100%;
+    box-sizing: border-box;
   }
 }

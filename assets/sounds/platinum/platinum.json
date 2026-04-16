@@ -136,11 +136,13 @@
     ],
     "ClassicyWindowMoveIdle": [
       66000,
-      381.67800453514644
+      381.67800453514644,
+      true
     ],
     "ClassicyWindowMoveMoving": [
       68000,
-      853.3333333333388
+      853.3333333333388,
+      true
     ],
     "ClassicyWindowMoveStop": [
       70000,
@@ -152,11 +154,13 @@
     ],
     "ClassicyWindowResizeIdle": [
       74000,
-      381.67800453514644
+      381.67800453514644,
+      true
     ],
     "ClassicyWindowResizeResizing": [
       76000,
-      873.3333333333348
+      873.3333333333348,
+      true
     ],
     "ClassicyWindowResizeStop": [
       78000,

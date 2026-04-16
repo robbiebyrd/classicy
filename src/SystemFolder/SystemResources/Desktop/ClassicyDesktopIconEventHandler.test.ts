@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { classicyDesktopIconEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconContext";
+import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 
 function makeStore(): ClassicyStore {
 	return {
@@ -27,6 +28,7 @@ function makeStore(): ClassicyStore {
 					systemMenu: [],
 					appMenu: [],
 					selectBox: { size: [0, 0], start: [0, 0], active: false },
+					disableBalloonHelp: false,
 				},
 				Applications: {
 					apps: {
@@ -41,6 +43,11 @@ function makeStore(): ClassicyStore {
 							data: {},
 						},
 					},
+					fileTypeHandlers: Object.fromEntries(
+						Object.values(ClassicyFileSystemEntryFileType).map(
+							(type) => [type, "Finder.app"],
+						),
+					) as Record<ClassicyFileSystemEntryFileType, string>,
 				},
 				Appearance: {
 					availableThemes: [],
@@ -154,6 +161,29 @@ describe("classicyDesktopIconEventHandler — ClassicyDesktopIconFocus", () => {
 		expect(ds.System.Manager.Desktop.selectedIcons).toHaveLength(1);
 		expect(ds.System.Manager.Desktop.selectedIcons[0]).toBe("Notes.app");
 	});
+
+	it("focuses Finder.app and defocuses other apps", () => {
+		const ds = makeStoreWithIcons();
+		ds.System.Manager.Applications.apps["SomeApp"] = {
+			id: "SomeApp",
+			name: "Some App",
+			icon: "",
+			windows: [],
+			open: true,
+			focused: true,
+			noDesktopIcon: false,
+			data: {},
+		};
+		ds.System.Manager.Applications.apps["Finder.app"].focused = false;
+
+		classicyDesktopIconEventHandler(ds, {
+			type: "ClassicyDesktopIconFocus",
+			iconId: "Notes.app",
+		});
+
+		expect(ds.System.Manager.Applications.apps["Finder.app"].focused).toBe(true);
+		expect(ds.System.Manager.Applications.apps["SomeApp"].focused).toBe(false);
+	});
 });
 
 describe("classicyDesktopIconEventHandler — ClassicyDesktopIconClearFocus", () => {
@@ -175,14 +205,14 @@ describe("classicyDesktopIconEventHandler — ClassicyDesktopIconAdd", () => {
 
 		classicyDesktopIconEventHandler(ds, {
 			type: "ClassicyDesktopIconAdd",
-			app: { id: "TextEdit.app", name: "TextEdit", icon: "textedit.png" },
+			app: { id: "SimpleText.app", name: "SimpleText", icon: "simpletext.png" },
 			kind: "app",
 			location: [200, 300],
 		});
 
 		expect(ds.System.Manager.Desktop.icons).toHaveLength(1);
-		expect(ds.System.Manager.Desktop.icons[0].appId).toBe("TextEdit.app");
-		expect(ds.System.Manager.Desktop.icons[0].appName).toBe("TextEdit");
+		expect(ds.System.Manager.Desktop.icons[0].appId).toBe("SimpleText.app");
+		expect(ds.System.Manager.Desktop.icons[0].appName).toBe("SimpleText");
 	});
 
 	it("is a no-op when an icon with the same appId already exists", () => {

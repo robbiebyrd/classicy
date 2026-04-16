@@ -1,5 +1,6 @@
 import {
 	ClassicyControlLabel,
+	type ClassicyControlLabelSize,
 	type ClassicyLabelPosition,
 	labelPositionClass,
 } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
@@ -20,10 +21,12 @@ interface ClassicyInputProps {
 	onChangeFunc?: ChangeEventHandler<HTMLInputElement>;
 	onEnterFunc?: () => void;
 	labelTitle?: string;
+	labelSize?: ClassicyControlLabelSize;
 	labelPosition?: ClassicyLabelPosition;
 	placeholder?: string;
 	prefillValue?: string;
 	disabled?: boolean;
+	labelDisabled?: boolean;
 	isDefault?: boolean;
 	backgroundColor?: string;
 	ref?: ForwardedRef<HTMLInputElement>;
@@ -35,10 +38,12 @@ export const ClassicyInput: FunctionalComponent<ClassicyInputProps> =
 			id,
 			inputType = "text",
 			labelTitle,
+			labelSize = "medium",
 			labelPosition = "above",
 			placeholder,
 			prefillValue,
 			disabled = false,
+			labelDisabled,
 			isDefault,
 			backgroundColor,
 			onChangeFunc,
@@ -79,7 +84,8 @@ export const ClassicyInput: FunctionalComponent<ClassicyInputProps> =
 					<ClassicyControlLabel
 						label={labelTitle}
 						labelFor={id}
-						disabled={disabled}
+						labelSize={labelSize}
+						disabled={labelDisabled ?? disabled}
 					></ClassicyControlLabel>
 				)}
 				<input
