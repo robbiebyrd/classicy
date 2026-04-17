@@ -158,7 +158,6 @@ export const News: React.FC = () => {
 					>
 						<ClassicyPopUpMenu
 							id={"per_page"}
-							small={false}
 							label={"Per Page"}
 							labelPosition="left"
 							onChangeFunc={(e: ChangeEvent<HTMLSelectElement>) =>
@@ -177,7 +176,6 @@ export const News: React.FC = () => {
 					<div style={{ flexGrow: 1 }}>
 						<ClassicyPopUpMenu
 							id={"thumb_size"}
-							small={false}
 							label={"Size"}
 							labelPosition="left"
 							onChangeFunc={(e: ChangeEvent<HTMLSelectElement>) =>
