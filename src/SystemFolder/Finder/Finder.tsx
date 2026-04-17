@@ -12,6 +12,7 @@ import {
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyAboutWindow } from "@/SystemFolder/SystemResources/AboutWindow/ClassicyAboutWindow";
+import { FinderAboutThisComputer } from "@/SystemFolder/Finder/FinderAboutThisComputer";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import { ClassicyFileBrowser } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowser";
 import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
@@ -358,6 +359,9 @@ export const Finder = () => {
 					appName={appName}
 					hideFunc={() => setShowAbout(false)}
 				/>
+			) : null}
+			{appState.data.showAboutThisComputer ? (
+				<FinderAboutThisComputer />
 			) : null}
 		</ClassicyApp>
 	);

@@ -87,6 +87,16 @@ jobs:
 
           echo "name=$CODENAME" >> "$GITHUB_OUTPUT"
 
+      - name: Update release codename in package.json
+        if: steps.bump_version.outputs.newTag != '' && steps.codename.outputs.name != ''
+        run: |
+          npm pkg set release="${{ steps.codename.outputs.name }}"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add package.json
+          git commit -m "ci: set release codename to ${{ steps.codename.outputs.name }} [skip ci]"
+          git push
+
       - name: Create GitHub Release
         if: steps.bump_version.outputs.newTag != ''
         env:
