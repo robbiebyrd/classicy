@@ -43,7 +43,7 @@ export const FinderAboutThisComputer: FunctionalComponent = () => {
 			<div className="finderAboutThisComputer">
 				<div className="finderAboutThisComputerHeader">
 					<div className="finderAboutThisComputerBanner">
-						<span>Classicy computer</span>
+						<span>{release ?? "Classicy"}</span>
 					</div>
 					<div className="finderAboutThisComputerVersion">
 						<img src={ClassicyIcons.system.macos} alt="Classicy" />
