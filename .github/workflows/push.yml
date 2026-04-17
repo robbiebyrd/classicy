@@ -82,7 +82,7 @@ jobs:
           done
 
           if [ -z "$CODENAME" ]; then
-            CODENAME="Release ${{ steps.bump_version.outputs.newTag }}"
+            CODENAME="${{ steps.bump_version.outputs.newTag }}"
           fi
 
           echo "name=$CODENAME" >> "$GITHUB_OUTPUT"
