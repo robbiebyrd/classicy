@@ -360,7 +360,7 @@ export const Finder = () => {
 					hideFunc={() => setShowAbout(false)}
 				/>
 			) : null}
-			{appState.data.showAboutThisComputer ? (
+			{appState.data?.showAboutThisComputer ? (
 				<FinderAboutThisComputer />
 			) : null}
 		</ClassicyApp>
