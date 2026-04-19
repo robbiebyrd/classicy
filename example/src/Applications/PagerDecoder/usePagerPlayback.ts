@@ -27,6 +27,7 @@ interface StreamingItem {
 export function usePagerPlayback(
 	index: Map<string, PagerRecord[]> | null,
 	settings: PagerDecoderSettings = DEFAULT_PAGER_SETTINGS,
+	paused = false,
 ): PlaybackState {
 	const [lines, setLines] = useState<CompletedLine[]>([]);
 	const [streamingText, setStreamingText] = useState("");
@@ -43,6 +44,8 @@ export function usePagerPlayback(
 	const seenSecondsRef = useRef(new Set<string>());
 	const settingsRef = useRef(settings);
 	settingsRef.current = settings;
+	const pausedRef = useRef(paused);
+	pausedRef.current = paused;
 	const localHMSRef = useRef(localHMS);
 	localHMSRef.current = localHMS;
 
@@ -51,6 +54,7 @@ export function usePagerPlayback(
 		if (!index) return;
 
 		const clockId = setInterval(() => {
+			if (pausedRef.current) return;
 			const timeKey = localHMSRef.current;
 			if (seenSecondsRef.current.has(timeKey)) return;
 			seenSecondsRef.current.add(timeKey);
@@ -73,6 +77,7 @@ export function usePagerPlayback(
 		if (!index) return;
 
 		const streamId = setInterval(() => {
+			if (pausedRef.current) return;
 			// If not currently streaming, pick the next item from the queue
 			if (!currentItemRef.current) {
 				const next = queueRef.current.shift();

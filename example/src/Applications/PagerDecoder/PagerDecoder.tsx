@@ -48,9 +48,12 @@ export const PagerDecoder = () => {
 	}, [appState, dispatch]);
 
 	const { index, progress, error, uniqueValues } = usePagerIndex();
+	const isPaused =
+		appState?.windows?.find((w) => w.id === "pager-terminal")?.closed ?? false;
 	const { lines, streamingText, streamingMeta } = usePagerPlayback(
 		index,
 		settings,
+		isPaused,
 	);
 
 	const [detailLines, setDetailLines] = useState<CompletedLine[]>([]);

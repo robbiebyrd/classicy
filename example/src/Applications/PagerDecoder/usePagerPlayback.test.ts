@@ -179,6 +179,45 @@ describe("usePagerPlayback", () => {
 		expect(result.current.lines[0].text).toBe("From Arch");
 	});
 
+	it("does not enqueue or stream messages when paused", () => {
+		const record = makeRecord("Hello world");
+		const index = makeIndex([["03:00:00", [record]]]);
+		const { result } = renderHook(() =>
+			usePagerPlayback(index, DEFAULT_PAGER_SETTINGS, true),
+		);
+
+		act(() => {
+			vi.advanceTimersByTime(2000);
+		});
+
+		expect(result.current.lines).toHaveLength(0);
+		expect(result.current.streamingText).toBe("");
+		expect(result.current.streamingMeta).toBeNull();
+	});
+
+	it("resumes processing when unpaused", () => {
+		const record = makeRecord("Hi there");
+		const index = makeIndex([["03:00:00", [record]]]);
+		let paused = true;
+		const { result, rerender } = renderHook(() =>
+			usePagerPlayback(index, DEFAULT_PAGER_SETTINGS, paused),
+		);
+
+		act(() => {
+			vi.advanceTimersByTime(1001);
+		});
+		expect(result.current.lines).toHaveLength(0);
+
+		paused = false;
+		rerender();
+
+		act(() => {
+			vi.advanceTimersByTime(1001);
+		});
+		expect(result.current.lines).toHaveLength(1);
+		expect(result.current.lines[0].text).toBe("Hi there");
+	});
+
 	it("caps lines at 200, dropping oldest entries", () => {
 		// Use a flat index with all 201 records at the same second for simplicity
 		const records = Array.from({ length: 201 }, (_, i) =>

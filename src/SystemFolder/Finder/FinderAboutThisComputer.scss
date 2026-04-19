@@ -4,6 +4,7 @@
   height: 100%;
   font-family: var(--ui-font), serif;
   font-size: 12px;
+  background-color: var(--color-system-02);
 }
 
 .finderAboutThisComputerHeader {
@@ -22,8 +23,14 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  img {
+    width: 90%;
+    height: 90%;
+    object-fit: contain;
+    filter: drop-shadow(4px 4px 6px rgba(255, 255, 255, 0.5));
+  }
 
-  span {
+  p {
     color: #fff;
     font-size: 26px;
     font-family: var(--header-font), serif;
@@ -76,6 +83,7 @@
   border-top: 1px solid #999;
   flex: 1;
   overflow-y: auto;
+  background-color: var(--color-system-01);
 }
 
 .finderAboutThisComputerUsageItem {
