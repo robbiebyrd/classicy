@@ -1,9 +1,0 @@
-html,
-body,
-div {
-	overscroll-behavior: none;
-}
-
-html, body {
-	overflow: hidden;
-}
