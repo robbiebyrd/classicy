@@ -1,0 +1,46 @@
+@use 'classicy/scss/appearance';
+
+.blueBox {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.blueBoxBar {
+    background-color: var(--color-system-03);
+}
+
+.blueBoxToolbar {
+  display: flex;
+  flex-direction: row;
+}
+
+.blueBoxToolbarInner {
+  min-width: 0;
+  flex: 1;
+}
+
+.blueBoxToolbarControls {
+  display: flex;
+  flex-direction: row;
+  gap: 0.5em;
+  align-items: center;
+}
+
+.blueBoxContents {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 10%;
+  height: 100%;
+}
+
+.blueBoxStatusBar {
+  height: calc(var(--window-control-size) + var(--window-border-size));
+  background-color: var(--color-system-04);
+  border-top: 1px solid var(--color-system-07);
+  font-family: var(--ui-font);
+  font-size: calc(var(--ui-font-size)/1.25);
+  display: flex;
+  align-items: center;
+}

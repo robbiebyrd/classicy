@@ -35,5 +35,5 @@
 			"@img/*": ["./assets/img/*"]
 		}
 	},
-	"exclude": ["example/"]
+	"exclude": ["example/", "rt911/"]
 }

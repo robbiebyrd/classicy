@@ -1,0 +1,125 @@
+import { useEffect, useRef, useState } from "react";
+import { useClassicyDateTime } from "classicy";
+import type { PagerDecoderSettings } from "./PagerDecoderContext";
+import { DEFAULT_PAGER_SETTINGS } from "./PagerDecoderContext";
+import type { PagerRecord } from "./pagerUtils";
+import { matchesFilter } from "./pagerUtils";
+
+export interface CompletedLine {
+	id: string;
+	timeKey: string;
+	provider: string;
+	text: string;
+	record: PagerRecord;
+}
+
+export interface PlaybackState {
+	lines: CompletedLine[];
+	streamingText: string;
+	streamingMeta: { timeKey: string; provider: string } | null;
+}
+
+interface StreamingItem {
+	record: PagerRecord;
+	timeKey: string;
+}
+
+export function usePagerPlayback(
+	index: Map<string, PagerRecord[]> | null,
+	settings: PagerDecoderSettings = DEFAULT_PAGER_SETTINGS,
+	paused = false,
+): PlaybackState {
+	const [lines, setLines] = useState<CompletedLine[]>([]);
+	const [streamingText, setStreamingText] = useState("");
+	const [streamingMeta, setStreamingMeta] = useState<{
+		timeKey: string;
+		provider: string;
+	} | null>(null);
+
+	const { localHMS } = useClassicyDateTime({ tick: true });
+
+	const queueRef = useRef<StreamingItem[]>([]);
+	const currentItemRef = useRef<StreamingItem | null>(null);
+	const wordIndexRef = useRef(0);
+	const seenSecondsRef = useRef(new Set<string>());
+	const settingsRef = useRef(settings);
+	settingsRef.current = settings;
+	const pausedRef = useRef(paused);
+	pausedRef.current = paused;
+	const localHMSRef = useRef(localHMS);
+	localHMSRef.current = localHMS;
+
+	// Clock tick: every 1s, look up new messages for the current ET second
+	useEffect(() => {
+		if (!index) return;
+
+		const clockId = setInterval(() => {
+			if (pausedRef.current) return;
+			const timeKey = localHMSRef.current;
+			if (seenSecondsRef.current.has(timeKey)) return;
+			seenSecondsRef.current.add(timeKey);
+
+			const records = index.get(timeKey);
+			if (!records) return;
+
+			for (const record of records) {
+				if (matchesFilter(record, settingsRef.current.filter)) {
+					queueRef.current.push({ record, timeKey });
+				}
+			}
+		}, 1000);
+
+		return () => clearInterval(clockId);
+	}, [index]);
+
+	// Stream tick: every 1ms, advance one word
+	useEffect(() => {
+		if (!index) return;
+
+		const streamId = setInterval(() => {
+			if (pausedRef.current) return;
+			// If not currently streaming, pick the next item from the queue
+			if (!currentItemRef.current) {
+				const next = queueRef.current.shift();
+				if (!next) return;
+				currentItemRef.current = next;
+				wordIndexRef.current = 0;
+				setStreamingMeta({
+					timeKey: next.timeKey,
+					provider: next.record.provider,
+				});
+				setStreamingText("");
+			}
+
+			const item = currentItemRef.current;
+			const words = item.record.message.split(" ");
+			wordIndexRef.current += 1;
+			const partial = words.slice(0, wordIndexRef.current).join(" ");
+			setStreamingText(partial);
+
+			if (wordIndexRef.current >= words.length) {
+				// Message complete — move to lines
+				const completed: CompletedLine = {
+					id: `${item.timeKey}-${item.record.recipient_id}-${Date.now()}`,
+					timeKey: item.timeKey,
+					provider: item.record.provider,
+					text: item.record.message,
+					record: item.record,
+				};
+				const retention = settingsRef.current.retentionLines;
+				setLines((prev) => {
+					const next = [...prev, completed];
+					return retention > 0 ? next.slice(-retention) : next;
+				});
+				setStreamingText("");
+				setStreamingMeta(null);
+				currentItemRef.current = null;
+				wordIndexRef.current = 0;
+			}
+		}, 1);
+
+		return () => clearInterval(streamId);
+	}, [index]);
+
+	return { lines, streamingText, streamingMeta };
+}
