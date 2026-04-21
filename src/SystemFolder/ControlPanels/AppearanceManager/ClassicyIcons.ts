@@ -19,6 +19,10 @@ const ui = (filename: string): string => {
 };
 
 export const ClassicyIcons = {
+	classicy: {
+		logo: ui("classicy-logo.svg"),
+		bg: ui("earth.png"),
+	},
 	applications: {
 		epg: {
 			app: icon("applications/epg/tv.png"),

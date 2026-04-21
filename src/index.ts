@@ -22,6 +22,7 @@ export * from "./SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerPro
 export * from "./SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerUtils";
 export * from "./SystemFolder/ControlPanels/SoundManager/ClassicySoundSchema";
 export * from "./SystemFolder/Finder/Finder";
+export * from "./SystemFolder/Finder/FinderAboutThisComputer";
 export * from "./SystemFolder/Finder/FinderContext";
 export * from "./SystemFolder/QuickTime/MoviePlayer/MoviePlayer";
 export * from "./SystemFolder/QuickTime/MoviePlayer/MoviePlayerContext";

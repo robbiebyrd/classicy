@@ -24,13 +24,13 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyDesktopIcon } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIcon";
 import { ClassicyDesktopMenuBar } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 const macosIcon = ClassicyIcons.system.macos;
 const trashIcon = ClassicyIcons.system.desktop.trashEmpty;
 const errorIcon = ClassicyIcons.system.error;
@@ -67,6 +67,9 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 	const desktopIcons = useAppManager((s) => s.System.Manager.Desktop.icons);
 	const errorDialog = useAppManager(
 		(s) => s.System.Manager.Desktop.errorDialog,
+	);
+	const disableBalloonHelp = useAppManager(
+		(s) => s.System.Manager.Desktop.disableBalloonHelp,
 	);
 	const desktopEventDispatch = useAppManagerDispatch();
 
@@ -299,16 +302,19 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 				title: "Help",
 				menuChildren: [
 					{
-						id: "finder_help_about",
-						title: "About",
+						id: "finder_help_balloon",
+						title: disableBalloonHelp ? "Show Balloon Help" : "Hide Balloon Help",
 						onClickFunc: () => {
-							setShowAbout(true);
+							desktopEventDispatch({
+								type: "ClassicyDesktopSetBalloonHelp",
+								disableBalloonHelp: !disableBalloonHelp,
+							});
 						},
 					},
 				],
 			},
 		],
-		[desktopEventDispatch],
+		[desktopEventDispatch, disableBalloonHelp],
 	);
 
 	const closeContextMenu = useCallback(() => setContextMenu(false), []);
@@ -425,9 +431,11 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 									gap: "1rem",
 								}}
 							>
-								<ClassicyControlLabel label="Are you sure you want to reset your desktop?
+								<ClassicyControlLabel
+									label="Are you sure you want to reset your desktop?
 									This will clear all saved state and reload the
-									application. This action cannot be undone." />
+									application. This action cannot be undone."
+								/>
 								<div
 									style={{
 										display: "flex",
@@ -437,17 +445,11 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 								>
 									<ClassicyButton
 										isDefault={true}
-										onClickFunc={() =>
-											setShowEmptyTrashDialog(false)
-										}
+										onClickFunc={() => setShowEmptyTrashDialog(false)}
 									>
 										Cancel
 									</ClassicyButton>
-									<ClassicyButton
-										onClickFunc={emptyTrash}
-									>
-										OK
-									</ClassicyButton>
+									<ClassicyButton onClickFunc={emptyTrash}>OK</ClassicyButton>
 								</div>
 							</div>
 						</div>

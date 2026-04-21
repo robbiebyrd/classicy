@@ -7,10 +7,12 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { FinderAboutThisComputer } from "@/SystemFolder/Finder/FinderAboutThisComputer";
 import { ClassicyAboutWindow } from "@/SystemFolder/SystemResources/AboutWindow/ClassicyAboutWindow";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import { ClassicyFileBrowser } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowser";
@@ -21,9 +23,7 @@ import type {
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 const appIcon = ClassicyIcons.system.mac;
-
 
 type PathSettingsProps = {
 	_viewType: "list" | "icons";
@@ -45,6 +45,8 @@ type FinderWindowProps = {
 	pathSettings: Record<string, PathSettingsProps>;
 	getHeaderString: (dir: ClassicyFileSystemEntryMetadata) => string;
 	fs: ClassicyFileSystem;
+	disableBalloonHelp: boolean;
+	toggleBalloonHelp: () => void;
 };
 
 const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
@@ -63,6 +65,8 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 	pathSettings,
 	getHeaderString,
 	fs,
+	disableBalloonHelp,
+	toggleBalloonHelp,
 }) => {
 	const appMenu = useMemo(
 		() => [
@@ -105,11 +109,11 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 				title: "Help",
 				menuChildren: [
 					{
-						id: `${appId}_${op}_help_about`,
-						title: "About",
-						onClickFunc: () => {
-							setShowAbout(true);
-						},
+						id: `${appId}_${op}_help_balloon`,
+						title: disableBalloonHelp
+							? "Show Balloon Help"
+							: "Hide Balloon Help",
+						onClickFunc: toggleBalloonHelp,
 					},
 				],
 			},
@@ -120,7 +124,8 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 			closeFolder,
 			closeAllFolders,
 			handlePathSettingsChange,
-			setShowAbout,
+			disableBalloonHelp,
+			toggleBalloonHelp,
 		],
 	);
 
@@ -159,6 +164,15 @@ export const Finder = () => {
 	const appState = useAppManager(
 		(state) => state.System.Manager.Applications.apps[appId],
 	);
+	const disableBalloonHelp = useAppManager(
+		(state) => state.System.Manager.Desktop.disableBalloonHelp,
+	);
+	const toggleBalloonHelp = useCallback(() => {
+		desktopEventDispatch({
+			type: "ClassicyDesktopSetBalloonHelp",
+			disableBalloonHelp: !disableBalloonHelp,
+		});
+	}, [desktopEventDispatch, disableBalloonHelp]);
 
 	const [pathSettings, setPathSettings] = useState<
 		Record<string, PathSettingsProps>
@@ -347,6 +361,8 @@ export const Finder = () => {
 								pathSettings={pathSettings}
 								getHeaderString={getHeaderString}
 								fs={fs}
+								disableBalloonHelp={disableBalloonHelp}
+								toggleBalloonHelp={toggleBalloonHelp}
 							/>
 						);
 					})
@@ -358,6 +374,9 @@ export const Finder = () => {
 					appName={appName}
 					hideFunc={() => setShowAbout(false)}
 				/>
+			) : null}
+			{appState.data?.showAboutThisComputer ? (
+				<FinderAboutThisComputer />
 			) : null}
 		</ClassicyApp>
 	);

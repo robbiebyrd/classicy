@@ -28,6 +28,7 @@ type classicyPopUpMenuProps = {
 	id: string;
 	label?: string;
 	labelPosition?: ClassicyLabelPosition;
+	labelSize?: ClassicyControlLabelSize;
 	options: classicyPopUpMenuOptions[];
 	selected?: string;
 	placeholder?: string;
@@ -39,6 +40,7 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 	id,
 	label,
 	labelPosition = "above",
+	labelSize,
 	options,
 	selected,
 	placeholder,
@@ -47,8 +49,7 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 	onChangeFunc,
 }) => {
 	// For the control label, "mini" maps to "small" — "mini" is a menu-only size
-	const controlLabelSize: ClassicyControlLabelSize =
-		size === "mini" ? "small" : size;
+	const controlLabelSize: ClassicyControlLabelSize = labelSize || size === "mini" ? "small" : size;
 	const [selectedItem, setSelectedItem] = useState(selected ?? (placeholder ? PLACEHOLDER_VALUE : undefined));
 	// biome-ignore lint/correctness/useExhaustiveDependencies: placeholder is intentionally excluded — it does not change after mount
 	useEffect(() => {

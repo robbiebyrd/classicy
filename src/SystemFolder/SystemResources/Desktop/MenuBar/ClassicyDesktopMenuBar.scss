@@ -54,6 +54,14 @@
   float: right;
   margin-right: 0;
   margin-left: 0;
+  &:hover {
+    &:before {
+      background: var(--color-theme-02) !important;
+      box-shadow: 1px 1px var(--color-theme-05),
+        inset -1px -1px var(--color-theme-02),
+        inset 1px 1px var(--color-theme-01) !important;
+    }
+  }
 
   &:before {
     width: calc(var(--window-border-size) * 2);
