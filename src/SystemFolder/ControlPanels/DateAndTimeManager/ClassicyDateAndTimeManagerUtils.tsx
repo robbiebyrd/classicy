@@ -34,8 +34,12 @@ export interface ClassicyDateTimeValue {
 	localDate: Date;
 	/** "HH:MM:SS" derived from localDate. */
 	localHMS: string;
+	/** Whether the clock is currently paused. */
+	paused: boolean;
 	setDateTime: (date: Date) => void;
 	setTzOffset: (offset: string) => void;
+	pause: () => void;
+	resume: () => void;
 }
 
 /**
@@ -54,6 +58,7 @@ export function useClassicyDateTime(options?: {
 	const dispatch = useAppManagerDispatch();
 
 	const tzOffset = parseInt(dateAndTime.timeZoneOffset, 10);
+	const paused = dateAndTime.paused;
 
 	const [localDate, setLocalDate] = useState<Date>(() =>
 		toLocalDate(dateAndTime.dateTime, tzOffset),
@@ -63,6 +68,9 @@ export function useClassicyDateTime(options?: {
 	const localDateRef = useRef<Date>(toLocalDate(dateAndTime.dateTime, tzOffset));
 	const tzOffsetRef = useRef(tzOffset);
 	tzOffsetRef.current = tzOffset;
+	// Stable ref so the interval callback always sees the latest paused state
+	const pausedRef = useRef(paused);
+	pausedRef.current = paused;
 
 	// When the store changes (user sets a new time), reset the accumulated clock
 	useEffect(() => {
@@ -71,10 +79,12 @@ export function useClassicyDateTime(options?: {
 		setLocalDate(reset);
 	}, [dateAndTime.dateTime, tzOffset]);
 
-	// Per-second tick: advance from the accumulated ref, not from the store base
+	// Per-second tick: advance from the accumulated ref, not from the store base.
+	// Reads pausedRef inside the callback so the interval itself never needs recreating.
 	useEffect(() => {
 		if (!tick) return;
 		const id = setInterval(() => {
+			if (pausedRef.current) return;
 			const advanced = new Date(localDateRef.current.getTime() + 1000);
 			localDateRef.current = advanced;
 			setLocalDate(advanced);
@@ -96,8 +106,18 @@ export function useClassicyDateTime(options?: {
 		[dispatch],
 	);
 
+	const pause = useCallback(
+		() => dispatch({ type: "ClassicyManagerDateTimePause" }),
+		[dispatch],
+	);
+
+	const resume = useCallback(
+		() => dispatch({ type: "ClassicyManagerDateTimeResume" }),
+		[dispatch],
+	);
+
 	const localHMS = toLocalHMS(localDate.toISOString(), 0);
 
-	return { dateTime: dateAndTime.dateTime, tzOffset, localDate, localHMS, setDateTime, setTzOffset };
+	return { dateTime: dateAndTime.dateTime, tzOffset, localDate, localHMS, paused, setDateTime, setTzOffset, pause, resume };
 }
 

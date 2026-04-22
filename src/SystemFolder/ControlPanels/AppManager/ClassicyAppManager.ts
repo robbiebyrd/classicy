@@ -109,6 +109,7 @@ export interface ClassicyStoreSystemDateAndTimeManager
 	displayLongDay: boolean;
 	flashSeparators: boolean;
 	show: boolean;
+	paused: boolean;
 }
 
 // biome-ignore lint/complexity/noBannedTypes: Intentional empty base type extended by manager interfaces
@@ -389,6 +390,7 @@ export const DefaultAppManagerState: ClassicyStore = {
 				displayDay: true,
 				displayLongDay: false,
 				flashSeparators: true,
+				paused: false,
 			},
 			Sound: {
 				volume: 100,

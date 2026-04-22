@@ -61,6 +61,7 @@ export const ClassicyDesktopMenuWidgetTime: FunctionalComponent = () => {
 	);
 	const timeZoneOffsetRef = useRef(dateAndTime.timeZoneOffset);
 	const prevMinutesRef = useRef(time.minutes);
+	const pausedRef = useRef(dateAndTime.paused);
 
 	// When the store changes (user sets new time/tz), reset the accumulated clock
 	useEffect(() => {
@@ -74,9 +75,14 @@ export const ClassicyDesktopMenuWidgetTime: FunctionalComponent = () => {
 		timeZoneOffsetRef.current = dateAndTime.timeZoneOffset;
 	}, [dateAndTime.timeZoneOffset]);
 
+	useEffect(() => {
+		pausedRef.current = dateAndTime.paused;
+	}, [dateAndTime.paused]);
+
 	// Interval created once on mount; advances from accumulated ref
 	useEffect(() => {
 		const intervalId = setInterval(() => {
+			if (pausedRef.current) return;
 			const advanced = new Date(localDateRef.current.getTime() + 1000);
 			localDateRef.current = advanced;
 

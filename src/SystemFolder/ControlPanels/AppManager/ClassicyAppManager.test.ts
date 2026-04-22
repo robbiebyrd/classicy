@@ -27,6 +27,7 @@ function makeStore(): ClassicyStore {
 					displayDay: true,
 					displayLongDay: false,
 					flashSeparators: false,
+					paused: false,
 				},
 				Sound: { volume: 100, labels: {}, disabled: [] },
 				Desktop: {

@@ -32,6 +32,14 @@ export const classicyDateTimeManagerEventHandler = (
 			ds.System.Manager.DateAndTime.timeZoneOffset = String(offset);
 			break;
 		}
+		case "ClassicyManagerDateTimePause": {
+			ds.System.Manager.DateAndTime.paused = true;
+			break;
+		}
+		case "ClassicyManagerDateTimeResume": {
+			ds.System.Manager.DateAndTime.paused = false;
+			break;
+		}
 	}
 	return ds;
 };
