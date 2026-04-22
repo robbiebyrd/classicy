@@ -66,6 +66,7 @@ interface ClassicyWindowProps {
 	id: string;
 	appId: string;
 	icon?: string;
+	hideIcon?: boolean;
 	hidden?: boolean;
 	closable?: boolean;
 	zoomable?: boolean;
@@ -91,6 +92,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	title = "",
 	appId,
 	icon,
+	hideIcon = false,
 	hidden = false,
 	closable = true,
 	zoomable = true,
@@ -611,9 +613,11 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 							{title !== "" ? (
 								<>
 									<div className={"classicyWindowTitleLeft"}></div>
+									{!hideIcon && (
 									<div className={"classicyWindowIcon"}>
 										<img src={icon} alt={title} />
 									</div>
+								)}
 									<div className={"classicyWindowTitleText"}>
 										<p>{title}</p>
 									</div>

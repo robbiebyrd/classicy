@@ -3,7 +3,8 @@
   "module": "./dist/classicy.es.js",
   "types": "./dist/types/src/index.d.ts",
   "name": "classicy",
-  "version": "0.6.58",
+  "version": "0.7.0",
+  "release": "Zhag",
   "repository": {
     "type": "git",
     "url": "https://github.com/robbiebyrd/classicy"
@@ -27,12 +28,13 @@
     "build:source": "npm run generate-barrels && tsc -b && vite build",
     "build:audio": "./bin/make_audio_sprites.sh",
     "build:watch": "concurrently --kill-others \"npm run build:watchaudio\" \"npm run build:watchsource\"",
-    "build:watchaudio": "nodemon --watch \"resources/sounds/**\" --ext \"mp3,mp4,wav,aif,aiff,ogg,flac,m4a,ac3,json\" --exec \"npm run build:audio\" --ignore \"example/**\" ",
-    "build:watchsource": "nodemon --watch \"src/**\" --watch \"assets/**\" --ext \"tsx,ts,json,css,scss,png,jpg,svg\" --exec \"tsc -b && vite build\" --ignore \"example/**\" --ignore \"**/index.ts\" --ignore \"**/index\\ *.ts\" --ignore \"**/index\\ *.tsx\" ",
+    "build:watchaudio": "nodemon --watch \"resources/sounds/**\" --ext \"mp3,mp4,wav,aif,aiff,ogg,flac,m4a,ac3,json\" --exec \"npm run build:audio\" --ignore \"example/**\" --ignore \"rt911/**\" ",
+    "build:watchsource": "nodemon --watch \"src/**\" --watch \"assets/**\" --ext \"tsx,ts,json,css,scss,png,jpg,svg\" --exec \"tsc -b && vite build\" --ignore \"example/**\" --ignore \"rt911/**\" --ignore \"**/index.ts\" --ignore \"**/index\\ *.ts\" --ignore \"**/index\\ *.tsx\" ",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",
-    "preview": "npm run build && npm link && cd example && npm i && npm link classicy && npm run build && concurrently --kill-others \"cd .. && npm run build:watchsource\" \"npm run dev\""
+    "preview": "npm run build && npm link && cd example && npm i && npm link classicy && npm run build && concurrently --kill-others \"cd .. && npm run build:watchsource\" \"npm run dev\"",
+    "rt911": "npm run build && npm link && cd rt911 && npm i && npm link classicy && npm run build && concurrently --kill-others \"cd .. && npm run build:watchsource\" \"npm run dev\""
   },
   "files": [
     "dist",

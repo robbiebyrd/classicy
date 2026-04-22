@@ -1,0 +1,118 @@
+.finderAboutThisComputer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  font-family: var(--ui-font), serif;
+  font-size: 12px;
+  background-color: var(--color-system-02);
+}
+
+.finderAboutThisComputerHeader {
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  padding: 8px;
+  align-items: center;
+}
+
+.finderAboutThisComputerBanner {
+  flex: 0 0 260px;
+  height: 120px;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  img {
+    width: 90%;
+    height: 90%;
+    object-fit: contain;
+    filter: drop-shadow(4px 4px 6px rgba(255, 255, 255, 0.5));
+  }
+
+  p {
+    color: #fff;
+    font-size: 26px;
+    font-family: var(--header-font), serif;
+    font-style: italic;
+    text-align: center;
+    padding: 8px;
+  }
+}
+
+.finderAboutThisComputerVersion {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+
+  img {
+    width: 56px;
+    height: 56px;
+    padding: 4px;
+    border: 1px solid #999;
+    background: #fff;
+  }
+
+  span {
+    font-family: var(--header-font), serif;
+    font-size: 15px;
+    font-weight: bold;
+  }
+}
+
+.finderAboutThisComputerInfo {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 4px 8px 6px;
+
+  p {
+    margin: 1px 0;
+  }
+}
+
+.finderAboutThisComputerCopyright {
+  font-size: 11px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.finderAboutThisComputerUsage {
+  border-top: 1px solid #999;
+  flex: 1;
+  overflow-y: auto;
+  background-color: var(--color-system-01);
+}
+
+.finderAboutThisComputerUsageItem {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+
+  img {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+}
+
+.finderAboutThisComputerUsageName {
+  min-width: 80px;
+}
+
+.finderAboutThisComputerUsageSize {
+  min-width: 60px;
+  text-align: right;
+}
+
+.finderAboutThisComputerUsageBar {
+  flex: 1;
+
+  .classicyProgress {
+    width: 100%;
+  }
+}

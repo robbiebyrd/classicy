@@ -92,7 +92,7 @@ export const Demo = () => {
 						balloon: {
 							title: "Quit Demo",
 							content: "Closes the Demo application and returns to the desktop.",
-							position: "bottom-left",
+							position: "bottom-left" as const,
 						},
 					},
 				],

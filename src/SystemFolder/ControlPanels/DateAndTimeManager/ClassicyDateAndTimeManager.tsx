@@ -88,10 +88,14 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
 			if (period === "pm" && updatedDate.getHours() === 12) {
 				hoursToSet = 0;
 			}
-			date.setHours(
+			// Use UTC methods so the result is timezone-independent of the browser's
+			// local timezone. The user's input is in the selected Classicy timezone:
+			// local_hour - tzOffset = UTC_hour.
+			date.setUTCHours(
 				hoursToSet - tzOffset,
 				updatedDate.getMinutes(),
 				updatedDate.getSeconds(),
+				0,
 			);
 			desktopEventDispatch({
 				type: "ClassicyManagerDateTimeSet",
@@ -105,12 +109,13 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
 		const tzOffset = parseInt(dateAndTimeState.timeZoneOffset, 10);
 		const date = new Date(dateAndTimeState.dateTime);
 		// The picker displays TZ-adjusted dates; convert back to UTC for storage
-		// by temporarily applying the offset, setting date fields, then reverting
-		date.setHours(date.getHours() + tzOffset);
-		date.setMonth(updatedDate.getMonth());
-		date.setDate(updatedDate.getDate());
-		date.setFullYear(updatedDate.getFullYear());
-		date.setHours(date.getHours() - tzOffset);
+		// by temporarily applying the offset, setting date fields, then reverting.
+		// Use UTC methods throughout to stay independent of the browser's timezone.
+		date.setUTCHours(date.getUTCHours() + tzOffset);
+		date.setUTCMonth(updatedDate.getMonth());
+		date.setUTCDate(updatedDate.getDate());
+		date.setUTCFullYear(updatedDate.getFullYear());
+		date.setUTCHours(date.getUTCHours() - tzOffset);
 
 		desktopEventDispatch({
 			type: "ClassicyManagerDateTimeSet",
@@ -147,9 +152,15 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
 		},
 	];
 
-	const date = new Date(dateAndTimeState.dateTime);
-	date.setHours(
-		date.getHours() + parseInt(dateAndTimeState.timeZoneOffset, 10),
+	// Shift stored UTC dateTime into the selected Classicy timezone for display.
+	// We also counteract the browser's own UTC offset so that date.getHours()
+	// (which the pickers use internally) returns the correct Classicy-local hour
+	// regardless of which timezone the user's browser is set to.
+	const tzOffset = parseInt(dateAndTimeState.timeZoneOffset, 10);
+	const date = new Date(
+		new Date(dateAndTimeState.dateTime).getTime() +
+			tzOffset * 3600000 +
+			new Date().getTimezoneOffset() * 60000,
 	);
 
 	return (

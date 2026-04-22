@@ -93,18 +93,19 @@ export const ClassicyDesktopMenuWidgetTime: FunctionalComponent = () => {
 
 			const localDate = advanced;
 
-			const newMinutes = localDate.getMinutes();
+			const newMinutes = localDate.getUTCMinutes();
 
-			// Update local time state every second for display
+			// localDate has been shifted by tzOffset so its UTC fields represent
+			// the correct local time — use getUTC* to read them browser-tz-independently.
 			setTime({
-				year: localDate.getFullYear(),
-				month: localDate.getMonth(),
-				date: localDate.getDate(),
-				day: localDate.getDay(),
+				year: localDate.getUTCFullYear(),
+				month: localDate.getUTCMonth(),
+				date: localDate.getUTCDate(),
+				day: localDate.getUTCDay(),
 				minutes: newMinutes,
-				hours: localDate.getHours() === 0 ? 12 : localDate.getHours(),
-				seconds: localDate.getSeconds(),
-				period: localDate.getHours() < 12 ? " AM" : " PM",
+				hours: localDate.getUTCHours() === 0 ? 12 : localDate.getUTCHours(),
+				seconds: localDate.getUTCSeconds(),
+				period: localDate.getUTCHours() < 12 ? " AM" : " PM",
 			});
 
 			// Only dispatch global state update when minute changes

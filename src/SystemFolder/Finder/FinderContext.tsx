@@ -62,6 +62,14 @@ export const classicyFinderEventHandler = (
 			}
 			break;
 		}
+		case "ClassicyAppFinderAboutThisComputerOpen": {
+			appData = { ...appData, showAboutThisComputer: true };
+			break;
+		}
+		case "ClassicyAppFinderAboutThisComputerClose": {
+			appData = { ...appData, showAboutThisComputer: false };
+			break;
+		}
 		case "ClassicyAppFinderEmptyTrash": {
 			// TODO: What will this do?
 			break;
