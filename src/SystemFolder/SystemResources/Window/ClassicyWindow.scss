@@ -402,7 +402,6 @@
     calc(var(--window-padding-size) / 1.25) !important;
 
   & .classicyWindowTitle {
-    width: 100% !important;
-    max-width: 100% !important;
+    width: calc(100% - var(--window-control-size)*5) !important;
   }
 }
