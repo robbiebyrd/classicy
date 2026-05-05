@@ -1,7 +1,9 @@
 import "./ClassicyDesktopMenuWidgetTime.scss";
 import "@/SystemFolder/SystemResources/Menu/ClassicyMenu.scss";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+
 const appIcon = ClassicyIcons.controlPanels.dateTimeManager.dateTimeManager;
+
 import classNames from "classnames";
 import {
 	type FC as FunctionalComponent,
@@ -138,7 +140,7 @@ export const ClassicyDesktopMenuWidgetTime: FunctionalComponent = () => {
 	};
 
 	const toBlink = () => {
-		if (flashSeparators) {
+		if ((!dateAndTime.paused) && flashSeparators) {
 			return "textBlinker";
 		}
 
