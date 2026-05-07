@@ -36,9 +36,13 @@
   }
 }
 
+.classicyButtonDepressed {
+  @include appearance.platinumWindowDepressed;
+}
+
 .classicyButtonShapeSquare {
   width: calc(var(--window-control-size) * 4);
-  padding: calc(var(--window-padding-size) * 2);
+  padding: 0;
   border-radius: 0;
   aspect-ratio: 1/1 !important;
 

@@ -4,6 +4,7 @@ import Analytics, { type AnalyticsPlugin } from "analytics";
 import {
 	type FC as FunctionalComponent,
 	type PropsWithChildren,
+	useEffect,
 	useMemo,
 } from "react";
 import { AnalyticsProvider } from "use-analytics";
@@ -15,6 +16,19 @@ type ClassicyAppManagerProviderProps = {
 	gtmContainerId?: string;
 	appName?: string;
 	eventPrefix?: string;
+};
+
+const getOrCreateUserId = (storageKey: string): string => {
+	const existing = localStorage.getItem(storageKey);
+	if (existing) return existing;
+	const secureFallbackId = () => {
+		const bytes = new Uint8Array(16);
+		crypto.getRandomValues(bytes);
+		return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+	};
+	const id = crypto?.randomUUID?.() ?? secureFallbackId();
+	localStorage.setItem(storageKey, id);
+	return id;
 };
 
 export const ClassicyAppManagerProvider: FunctionalComponent<
@@ -33,6 +47,11 @@ export const ClassicyAppManagerProvider: FunctionalComponent<
 
 		return Analytics({ app: appName, plugins: plugins });
 	}, [appName, gaMeasurementIds, gtmContainerId]);
+
+	useEffect(() => {
+		const userId = getOrCreateUserId(`${appName}_user_id`);
+		analytics.identify(userId);
+	}, [analytics, appName]);
 
 	return (
 		<ClassicyAnalyticsPrefixContext.Provider value={eventPrefix}>

@@ -51,6 +51,7 @@
   line-height: 1.1;
 
   width: 100%;
+  height: 100%;
   flex-grow: 2;
 
   position: relative;
@@ -82,6 +83,7 @@
     font-family: inherit;
     font-size: inherit;
     line-height: inherit;
+    height: 100%;
     z-index: 1;
     margin: 0;
     padding: calc(var(--window-padding-size) / 2) 0 var(--window-padding-size) calc(var(--window-padding-size) * 1);

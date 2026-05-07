@@ -16,6 +16,8 @@ type ClassicyButtonProps = PropsWithChildren<{
 	buttonShape?: "rectangle" | "square";
 	buttonSize?: "medium" | "small";
 	buttonType?: "button" | "submit" | "reset";
+	/** When true, holds the button in its pressed/active visual state. */
+	depressed?: boolean;
 }>;
 
 export const ClassicyButton: FunctionalComponent<ClassicyButtonProps> = ({
@@ -24,6 +26,7 @@ export const ClassicyButton: FunctionalComponent<ClassicyButtonProps> = ({
 	buttonShape = "rectangle",
 	buttonSize,
 	disabled = false,
+	depressed = false,
 	onClickFunc,
 	children,
 }) => {
@@ -49,7 +52,9 @@ export const ClassicyButton: FunctionalComponent<ClassicyButtonProps> = ({
 				isDefault ? "classicyButtonDefault" : "",
 				buttonShape === "square" ? "classicyButtonShapeSquare" : "",
 				buttonSize === "small" ? "classicyButtonSmall" : "",
+				depressed ? "classicyButtonDepressed" : "",
 			)}
+			aria-pressed={depressed || undefined}
 			onClick={onHandleFunc}
 			onMouseDown={() => {
 				player({ type: "ClassicySoundPlay", sound: "ClassicyButtonClickDown" });

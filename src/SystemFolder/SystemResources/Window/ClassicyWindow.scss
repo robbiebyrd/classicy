@@ -232,6 +232,7 @@
       flex-direction: row;
       flex-grow: 1;
       text-align: center;
+      min-width: 0;
 
       .classicyWindowTitleText {
         font-size: var(--ui-font-size);
