@@ -21,7 +21,7 @@ type ClassicyAppManagerProviderProps = {
 const getOrCreateUserId = (storageKey: string): string => {
 	const existing = localStorage.getItem(storageKey);
 	if (existing) return existing;
-	const id = crypto.randomUUID();
+	const id = crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 	localStorage.setItem(storageKey, id);
 	return id;
 };

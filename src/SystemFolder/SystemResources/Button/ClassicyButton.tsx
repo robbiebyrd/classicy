@@ -54,6 +54,7 @@ export const ClassicyButton: FunctionalComponent<ClassicyButtonProps> = ({
 				buttonSize === "small" ? "classicyButtonSmall" : "",
 				depressed ? "classicyButtonDepressed" : "",
 			)}
+			aria-pressed={depressed || undefined}
 			onClick={onHandleFunc}
 			onMouseDown={() => {
 				player({ type: "ClassicySoundPlay", sound: "ClassicyButtonClickDown" });
