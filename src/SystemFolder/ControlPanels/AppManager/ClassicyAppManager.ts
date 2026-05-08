@@ -38,6 +38,7 @@ export interface ClassicyStoreSystemAppManager
 	extends ClassicyStoreSystemManager {
 	apps: Record<string, ClassicyStoreSystemApp>;
 	fileTypeHandlers: Record<ClassicyFileSystemEntryFileType, string>;
+	focusedAppId?: string;
 }
 
 export interface ClassicyStoreSystemApp {
@@ -192,6 +193,8 @@ export const classicyAppEventHandler = (
 
 			if (openApps?.id) {
 				focusApp(ds, openApps.id);
+			} else {
+				deFocusApps(ds);
 			}
 
 			break;
@@ -435,6 +438,7 @@ export const DefaultAppManagerState: ClassicyStore = {
 				errorDialog: null,
 			},
 			Applications: {
+				focusedAppId: "Finder.app",
 				apps: {
 					"Finder.app": {
 						id: "Finder.app",
