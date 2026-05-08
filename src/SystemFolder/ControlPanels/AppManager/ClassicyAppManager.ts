@@ -415,7 +415,7 @@ export const DefaultAppManagerState: ClassicyStore = {
 				availableThemes: getAllThemes(),
 				activeTheme: themesData.find(
 					(t) => t.id === "default",
-				) as ClassicyTheme,
+				) as unknown as ClassicyTheme,
 			},
 		},
 	},

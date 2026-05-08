@@ -35,15 +35,12 @@ type PathSettingsProps = {
 
 type FinderWindowProps = {
 	appId: string;
-	appName: string;
-	appIcon: string;
 	op: string;
 	dir: ClassicyFileSystemEntry;
 	idx: number;
 	closeFolder: (path: string) => void;
 	closeAllFolders: () => void;
 	handlePathSettingsChange: (path: string, settings: PathSettingsProps) => void;
-	setShowAbout: (show: boolean) => void;
 	openFolder: (path: string) => void;
 	openFile: (path: string) => void;
 	pathSettings: Record<string, PathSettingsProps>;
@@ -55,15 +52,12 @@ type FinderWindowProps = {
 
 const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 	appId,
-	appName: _appName,
-	appIcon: _appIcon,
 	op,
 	dir,
 	idx,
 	closeFolder,
 	closeAllFolders,
 	handlePathSettingsChange,
-	setShowAbout,
 	openFolder,
 	openFile,
 	pathSettings,
@@ -285,7 +279,7 @@ export const Finder = () => {
 				path,
 			});
 		});
-	}, [desktopEventDispatch, appState.data?.openPaths]);
+	}, [desktopEventDispatch, finderData.openPaths]);
 
 	useEffect(() => {
 		const drives = fs.filterByType("", "drive");
@@ -351,19 +345,17 @@ export const Finder = () => {
 			{finderData.openPaths && finderData.openPaths.length > 0
 				? finderData.openPaths.map((p: string, idx: number) => {
 						const dir = fs.statDir(p);
+						if (!dir) return null;
 						return (
 							<FinderWindowMemo
 								key={`${appName}_${p}`}
 								appId={appId}
-								appName={appName}
-								appIcon={appIcon}
 								op={p}
 								dir={dir}
 								idx={idx}
 								closeFolder={closeFolder}
 								closeAllFolders={closeAllFolders}
 								handlePathSettingsChange={handlePathSettingsChange}
-								setShowAbout={setShowAbout}
 								openFolder={openFolder}
 								openFile={openFile}
 								pathSettings={pathSettings}

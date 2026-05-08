@@ -93,7 +93,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	id,
 	title = "",
 	appId,
-	icon,
+	icon: iconProp,
 	hideIcon = false,
 	hidden = false,
 	closable = true,
@@ -114,9 +114,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	onCloseFunc,
 	children,
 }) => {
-	if (!icon || icon === "") {
-		icon = fileIcon;
-	}
+	const icon = iconProp || fileIcon;
 
 	const currentApp = useAppManager(
 		(state) => state.System.Manager.Applications.apps[appId],
@@ -378,7 +376,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	}, [ws.focused]);
 
 	const setActive = useCallback(
-		(e?: MouseEvent<HTMLDivElement>) => {
+		(_e?: MouseEvent<HTMLDivElement>) => {
 			track("focus", { type: "ClassicyWindow", ...analyticsArgs });
 			if (!ws.focused) {
 				player({ type: "ClassicySoundPlay", sound: "ClassicyWindowFocus" });
