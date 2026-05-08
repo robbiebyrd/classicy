@@ -1,4 +1,21 @@
 import type { MouseEvent } from "react";
+import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import {
+	hasActiveTheme,
+	hasApp,
+	hasAvailableThemes,
+	hasBackgroundImage,
+	hasBackgroundPosition,
+	hasBackgroundRepeat,
+	hasBackgroundSize,
+	hasDesktopAppRef,
+	hasDisableBalloonHelp,
+	hasErrorDialogMessage,
+	hasFont,
+	hasMenuBar,
+	hasMouseEvent,
+	hasShowContextMenu,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
 import type {
 	ActionMessage,
 	ClassicyStore,
@@ -42,6 +59,7 @@ export const classicyDesktopEventHandler = (
 ) => {
 	switch (action.type) {
 		case "ClassicyDesktopAppMenuAdd": {
+			if (!hasDesktopAppRef(action)) break;
 			const menuItem = {
 				id: `system_menu_${action.app.id}`,
 				title: action.app.name,
@@ -68,6 +86,7 @@ export const classicyDesktopEventHandler = (
 			break;
 		}
 		case "ClassicyDesktopAppMenuRemove": {
+			if (!hasApp(action)) break;
 			const exists = ds.System.Manager.Desktop.systemMenu.findIndex(
 				(i) => i && i.id === `system_menu_${action.app.id}`,
 			);
@@ -77,10 +96,8 @@ export const classicyDesktopEventHandler = (
 			break;
 		}
 		case "ClassicyDesktopFocus": {
-			if ("e" in action && action.e.target.id === "classicyDesktop") {
-				for (const app of Object.values(
-					ds.System.Manager.Applications.apps,
-				)) {
+			if (hasMouseEvent(action) && (action.e.target as Record<string, unknown>).id === "classicyDesktop") {
+				for (const app of Object.values(ds.System.Manager.Applications.apps)) {
 					app.focused = false;
 					for (const w of app.windows) w.focused = false;
 				}
@@ -95,13 +112,14 @@ export const classicyDesktopEventHandler = (
 				];
 			}
 
-			if ("menuBar" in action) {
+			if (hasMenuBar(action)) {
 				ds.System.Manager.Desktop.appMenu = action.menuBar;
 			}
 
 			break;
 		}
 		case "ClassicyDesktopDrag": {
+			if (!hasMouseEvent(action)) break;
 			ds.System.Manager.Desktop.selectBox.start = [
 				action.e.clientX - ds.System.Manager.Desktop.selectBox.start[0],
 				action.e.clientY - ds.System.Manager.Desktop.selectBox.start[1],
@@ -117,13 +135,15 @@ export const classicyDesktopEventHandler = (
 			break;
 		}
 		case "ClassicyDesktopContextMenu": {
+			if (!hasShowContextMenu(action)) break;
 			ds.System.Manager.Desktop.showContextMenu = action.showContextMenu;
-			if (action.contextMenu) {
-				ds.System.Manager.Desktop.contextMenu = action.contextMenu;
+			if (Array.isArray(action.contextMenu)) {
+				ds.System.Manager.Desktop.contextMenu = action.contextMenu as ClassicyMenuItem[];
 			}
 			break;
 		}
 		case "ClassicyDesktopChangeTheme": {
+			if (!hasActiveTheme(action)) break;
 			const foundTheme = ds.System.Manager.Appearance.availableThemes?.find(
 				(a) => a.id === action.activeTheme,
 			);
@@ -133,27 +153,32 @@ export const classicyDesktopEventHandler = (
 			break;
 		}
 		case "ClassicyDesktopChangeBackground": {
+			if (!hasBackgroundImage(action)) break;
 			ds.System.Manager.Appearance.activeTheme.desktop.backgroundImage =
 				action.backgroundImage;
 			ds.System.Manager.Appearance.activeTheme.desktop.backgroundSize = "auto";
 			break;
 		}
 		case "ClassicyDesktopChangeBackgroundPosition": {
+			if (!hasBackgroundPosition(action)) break;
 			ds.System.Manager.Appearance.activeTheme.desktop.backgroundPosition =
 				action.backgroundPosition;
 			break;
 		}
 		case "ClassicyDesktopChangeBackgroundRepeat": {
+			if (!hasBackgroundRepeat(action)) break;
 			ds.System.Manager.Appearance.activeTheme.desktop.backgroundRepeat =
 				action.backgroundRepeat;
 			break;
 		}
 		case "ClassicyDesktopChangeBackgroundSize": {
+			if (!hasBackgroundSize(action)) break;
 			ds.System.Manager.Appearance.activeTheme.desktop.backgroundSize =
 				action.backgroundSize;
 			break;
 		}
 		case "ClassicyDesktopChangeFont": {
+			if (!hasFont(action)) break;
 			switch (action.fontType) {
 				case "body":
 					ds.System.Manager.Appearance.activeTheme.typography.body =
@@ -170,17 +195,19 @@ export const classicyDesktopEventHandler = (
 			break;
 		}
 		case "ClassicyDesktopLoadThemes": {
-			ds.System.Manager.Appearance.availableThemes = action.availableThemes;
+			if (!hasAvailableThemes(action)) break;
+			ds.System.Manager.Appearance.availableThemes = action.availableThemes as ClassicyTheme[];
 			break;
 		}
 		case "ClassicyDesktopSetBalloonHelp": {
-			ds.System.Manager.Desktop.disableBalloonHelp =
-				action.disableBalloonHelp;
+			if (!hasDisableBalloonHelp(action)) break;
+			ds.System.Manager.Desktop.disableBalloonHelp = action.disableBalloonHelp;
 			break;
 		}
 		case "ClassicyDesktopShowErrorDialog": {
+			if (!hasErrorDialogMessage(action)) break;
 			ds.System.Manager.Desktop.errorDialog = {
-				title: action.title,
+				title: typeof action.title === "string" ? action.title : undefined,
 				message: action.message,
 			};
 			break;

@@ -5,6 +5,7 @@ export default defineConfig({
 	test: {
 		environment: "jsdom",
 		setupFiles: ["./src/__tests__/setup.ts"],
+		exclude: ["**/.claude/**", "**/.trunk/**", "**/node_modules/**"],
 	},
 	resolve: {
 		dedupe: ["react", "react-dom"],

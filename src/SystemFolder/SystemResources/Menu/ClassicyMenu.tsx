@@ -3,9 +3,9 @@ import classNames from "classnames";
 import he from "he";
 import {
 	type FC as FunctionalComponent,
+	type MouseEvent,
 	memo,
 	type ReactNode,
-	type MouseEvent,
 	useCallback,
 	useContext,
 	useEffect,
@@ -16,11 +16,11 @@ import {
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
-import { ClassicyMenuContext } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuContext";
 import {
 	ClassicyBalloonHelp,
 	type ClassicyBalloonPosition,
 } from "@/SystemFolder/SystemResources/BalloonHelp/ClassicyBalloonHelp";
+import { ClassicyMenuContext } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuContext";
 
 export interface ClassicyMenuItem {
 	id: string;
@@ -169,71 +169,72 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 		});
 	};
 
-	const li = menuItem && menuItem.id === "spacer" ? (
-		<hr></hr>
-	) : (
-		<li
-			// biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: <li> items in a menu require role="menuitem" per ARIA menu pattern
-			role="menuitem"
-			tabIndex={-1}
-			id={menuItem.id}
-			key={menuItem.id}
-			onClick={handleClick}
-			onKeyDown={(e: React.KeyboardEvent) => {
-				if (e.key === "Enter") {
-					e.preventDefault();
-					handleClick(e as unknown as MouseEvent);
-				}
-			}}
-			onMouseEnter={handleMouseEnter}
-			onFocus={() => {
-				track("hover", { type: "ClassicyMenuItem", ...analyticsArgs });
-				player({ type: "ClassicySoundPlay", sound: "ClassicyMenuItemHover" });
-			}}
-			onAnimationEnd={handleAnimationEnd}
-			onMouseOver={() => {
-				track("hover", { type: "ClassicyMenuItem", ...analyticsArgs });
-				player({ type: "ClassicySoundPlay", sound: "ClassicyMenuItemHover" });
-			}}
-			onBlur={() => {
-				player({ type: "ClassicySoundPlay", sound: "ClassicyMenuItemBlur" });
-			}}
-			onMouseOut={() => {
-				player({ type: "ClassicySoundPlay", sound: "ClassicyMenuItemBlur" });
-			}}
-			className={classNames(
-				"classicyMenuItem",
-				menuItem.icon ? "" : "classicyMenuItemNoImage",
-				menuItem.className,
-				menuItem.disabled ? "classicyMenuItemDisabled" : "",
-				hasChildren ? "classicyMenuItemChildMenuIndicator" : "",
-				isOpen ? "classicyMenuItemOpen" : "",
-				isFlashing ? "classicyMenuItemFlash" : "",
-			)}
-		>
-			<p>
-				{menuItem.image && <img src={menuItem.image} alt={menuItem.title} />}
-				{!menuItem.image && menuItem.icon && (
-					<img src={menuItem.icon} alt={menuItem.title} />
+	const li =
+		menuItem && menuItem.id === "spacer" ? (
+			<hr></hr>
+		) : (
+			<li
+				// biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: <li> items in a menu require role="menuitem" per ARIA menu pattern
+				role="menuitem"
+				tabIndex={-1}
+				id={menuItem.id}
+				key={menuItem.id}
+				onClick={handleClick}
+				onKeyDown={(e: React.KeyboardEvent) => {
+					if (e.key === "Enter") {
+						e.preventDefault();
+						handleClick(e as unknown as MouseEvent);
+					}
+				}}
+				onMouseEnter={handleMouseEnter}
+				onFocus={() => {
+					track("hover", { type: "ClassicyMenuItem", ...analyticsArgs });
+					player({ type: "ClassicySoundPlay", sound: "ClassicyMenuItemHover" });
+				}}
+				onAnimationEnd={handleAnimationEnd}
+				onMouseOver={() => {
+					track("hover", { type: "ClassicyMenuItem", ...analyticsArgs });
+					player({ type: "ClassicySoundPlay", sound: "ClassicyMenuItemHover" });
+				}}
+				onBlur={() => {
+					player({ type: "ClassicySoundPlay", sound: "ClassicyMenuItemBlur" });
+				}}
+				onMouseOut={() => {
+					player({ type: "ClassicySoundPlay", sound: "ClassicyMenuItemBlur" });
+				}}
+				className={classNames(
+					"classicyMenuItem",
+					menuItem.icon ? "" : "classicyMenuItemNoImage",
+					menuItem.className,
+					menuItem.disabled ? "classicyMenuItemDisabled" : "",
+					hasChildren ? "classicyMenuItemChildMenuIndicator" : "",
+					isOpen ? "classicyMenuItemOpen" : "",
+					isFlashing ? "classicyMenuItemFlash" : "",
 				)}
-				{menuItem.title && he.decode(menuItem.title)}
-			</p>
-			{menuItem.keyboardShortcut && (
-				<p className={"classicyMenuItemKeyboardShortcut"}>
-					{he.decode(menuItem.keyboardShortcut)}
+			>
+				<p>
+					{menuItem.image && <img src={menuItem.image} alt={menuItem.title} />}
+					{!menuItem.image && menuItem.icon && (
+						<img src={menuItem.icon} alt={menuItem.title} />
+					)}
+					{menuItem.title && he.decode(menuItem.title)}
 				</p>
-			)}
+				{menuItem.keyboardShortcut && (
+					<p className={"classicyMenuItemKeyboardShortcut"}>
+						{he.decode(menuItem.keyboardShortcut)}
+					</p>
+				)}
 
-			{hasChildren && (
-				<ClassicyMenu
-					name={`${menuItem.id}_subitem`}
-					menuItems={menuItem.menuChildren ?? []}
-					subNavClass={subNavClass}
-					navClass={subNavClass}
-				></ClassicyMenu>
-			)}
-		</li>
-	);
+				{hasChildren && (
+					<ClassicyMenu
+						name={`${menuItem.id}_subitem`}
+						menuItems={menuItem.menuChildren ?? []}
+						subNavClass={subNavClass}
+						navClass={subNavClass}
+					></ClassicyMenu>
+				)}
+			</li>
+		);
 
 	return menuItem.balloon ? (
 		<ClassicyBalloonHelp
@@ -244,7 +245,9 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 		>
 			{li}
 		</ClassicyBalloonHelp>
-	) : li;
+	) : (
+		li
+	);
 });
 
 ClassicyMenuItemComponent.displayName = "ClassicyMenuItemComponent";

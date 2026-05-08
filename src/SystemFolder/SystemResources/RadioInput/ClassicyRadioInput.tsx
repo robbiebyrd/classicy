@@ -149,7 +149,12 @@ export const ClassicyRadioInput: FunctionalComponent<
 
 	return (
 		<div className={labelPositionClass(labelPosition)}>
-			<ClassicyControlLabel labelFor={name} disabled={disabled} labelSize={labelSize} label={label} />
+			<ClassicyControlLabel
+				labelFor={name}
+				disabled={disabled}
+				labelSize={labelSize}
+				label={label}
+			/>
 			{group}
 		</div>
 	);

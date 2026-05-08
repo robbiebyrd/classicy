@@ -6,14 +6,13 @@ import type {
 	KeyboardEvent,
 	MouseEvent,
 } from "react";
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import {
 	useSound,
 	useSoundDispatch,
 } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 
-
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 const appIcon = ClassicyIcons.controlPanels.soundManager.app;
 const soundOffImg = ClassicyIcons.controlPanels.soundManager.soundOff;
 const soundOnImg = ClassicyIcons.controlPanels.soundManager.soundOn;

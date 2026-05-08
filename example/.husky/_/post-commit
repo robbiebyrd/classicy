@@ -1,0 +1,6 @@
+#!/bin/sh
+
+# --- HUD attribution begin ---
+# AI attribution tracking — installed by HUD plugin
+node "/Users/robbie.byrd/.claude/plugins/hud/scripts/post-commit-runner.cjs" 2>/dev/null || true
+# --- HUD attribution end ---

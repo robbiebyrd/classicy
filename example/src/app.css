@@ -4,6 +4,14 @@ div {
 	overscroll-behavior: none;
 }
 
-html, body {
+html,
+body {
 	overflow: hidden;
+	height: 100vh;
+	width: 100vw;
+}
+
+#root {
+	height: 100%;
+	width: 100%;
 }

@@ -1,10 +1,9 @@
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 const diskIcon = ClassicyIcons.system.drives.disk;
 const directoryIcon = ClassicyIcons.system.folders.directory;
 const macIcon = ClassicyIcons.system.mac;
-
 
 export const DefaultFSContent = {
 	"Macintosh HD": {
@@ -56,12 +55,14 @@ export const DefaultFSContent = {
 			"Read Me.txt": {
 				_type: ClassicyFileSystemEntryFileType.TextFile,
 				_mimeType: "text/plain",
-				_data: "Welcome to Classicy!\n\nThis is a plain text file opened in SimpleText.",
+				_data:
+					"Welcome to Classicy!\n\nThis is a plain text file opened in SimpleText.",
 			},
 			"Release Notes.md": {
 				_type: ClassicyFileSystemEntryFileType.Markdown,
 				_mimeType: "text/markdown",
-				_data: "# Release Notes\n\n## v0.6\n\n- **New:** File type registration for apps\n- **New:** SimpleText opens text and markdown files\n- *Improved* desktop state persistence\n",
+				_data:
+					"# Release Notes\n\n## v0.6\n\n- **New:** File type registration for apps\n- **New:** SimpleText opens text and markdown files\n- *Improved* desktop state persistence\n",
 			},
 		},
 		Users: {

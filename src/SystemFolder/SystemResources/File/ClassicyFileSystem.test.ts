@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
+import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
+import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { isValidFileSystemEntry } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemValidation";
+
+describe("ClassicyFileSystem.hash", () => {
+	it('returns the SHA-256 hex digest for file content "hello"', () => {
+		const cfs = new ClassicyFileSystem("test-hash");
+		expect(
+			cfs.hash({ _type: ClassicyFileSystemEntryFileType.File, _data: "hello" }),
+		).toBe("2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824");
+	});
+});
 
 describe("isValidFileSystemEntry", () => {
 	it("accepts a valid FS entry with _type", () => {

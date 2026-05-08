@@ -1,4 +1,6 @@
-import { sha512 } from "sha512-crypt-ts";
+import { sha256 } from "@noble/hashes/sha2.js";
+import { bytesToHex } from "@noble/hashes/utils.js";
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import {
 	type ClassicyFileSystemEntry,
 	ClassicyFileSystemEntryFileType,
@@ -7,9 +9,7 @@ import {
 import { isValidFileSystemEntry } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemValidation";
 import { DefaultFSContent } from "@/SystemFolder/SystemResources/File/DefaultClassicyFileSystem";
 
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 const directoryIcon = ClassicyIcons.system.folders.directory;
-
 
 export type ClassicyPathOrFileSystemEntry = string | ClassicyFileSystemEntry;
 
@@ -157,8 +157,7 @@ export class ClassicyFileSystem {
 	}
 
 	size(path: ClassicyPathOrFileSystemEntry): number {
-		const entry =
-			typeof path === "string" ? this.resolve(path) : path;
+		const entry = typeof path === "string" ? this.resolve(path) : path;
 
 		if (!entry) return -1;
 
@@ -185,11 +184,13 @@ export class ClassicyFileSystem {
 			if (contents === undefined) {
 				return;
 			}
-			return sha512.crypt(contents, "");
+			return bytesToHex(sha256(new TextEncoder().encode(contents)));
 		}
 
 		if ("_data" in path) {
-			return sha512.crypt(String(path._data), "");
+			return bytesToHex(
+				sha256(new TextEncoder().encode(String(path._data))),
+			);
 		}
 		return;
 	}

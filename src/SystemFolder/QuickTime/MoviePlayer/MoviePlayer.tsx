@@ -1,4 +1,5 @@
 import { type FC as FunctionalComponent, useEffect, useMemo } from "react";
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -9,27 +10,31 @@ import { QuickTimeVideoEmbed } from "@/SystemFolder/SystemResources/QuickTime/Qu
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 import {
 	MoviePlayerAppInfo,
-	type QuickTimeMovieDocument,
+	isMoviePlayerData,
+	type MoviePlayerOpenDocument,
 } from "./MoviePlayerUtils";
 
-
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 const defaultDocumentIcon = ClassicyIcons.system.quicktime.movie;
 
 export const MoviePlayer: FunctionalComponent = () => {
 	const { name: appName, id: appId, icon: appIcon } = MoviePlayerAppInfo;
 
 	const desktopEventDispatch = useAppManagerDispatch();
-	const appData = useAppManager((s) => s.System.Manager.Applications.apps[appId]?.data);
-	const appOpen = useAppManager((s) => s.System.Manager.Applications.apps[appId]?.open);
+	const appData = useAppManager(
+		(s) => s.System.Manager.Applications.apps[appId]?.data,
+	);
+	const appOpen = useAppManager(
+		(s) => s.System.Manager.Applications.apps[appId]?.open,
+	);
 
-	const openDocuments: QuickTimeMovieDocument[] = appData?.openFiles;
+	const rawAppData = appData ?? {};
+	const movieData = isMoviePlayerData(rawAppData) ? rawAppData : null;
+	const openDocuments: MoviePlayerOpenDocument[] = movieData?.openFiles ?? [];
 
 	// Load Default Demo documents on open (only if none exist)
 	useEffect(() => {
 		if (!appOpen) return;
-		const data = appData || {};
-		if (!data.openFiles || data.openFiles?.length === 0) {
+		if (!movieData?.openFiles || movieData.openFiles.length === 0) {
 			desktopEventDispatch({
 				type: "ClassicyAppMoviePlayerOpenDocuments",
 				documents: [
@@ -61,7 +66,7 @@ export const MoviePlayer: FunctionalComponent = () => {
 			{Array.isArray(openDocuments) && openDocuments.length > 0
 				? openDocuments.map((doc) => (
 						<ClassicyWindow
-							key={`${doc.name}_${doc.url}`}
+							key={`${doc.name ?? doc.url}`}
 							id={`${appId}_MoviePlayer_${doc.url}`}
 							title={doc.name}
 							icon={doc.icon || undefined}
@@ -85,10 +90,10 @@ export const MoviePlayer: FunctionalComponent = () => {
 						>
 							<QuickTimeVideoEmbed
 								appId={appId}
-								name={doc.name}
+								name={doc.name ?? ""}
 								url={doc.url}
 								options={doc.options}
-								type={doc.type}
+								type={doc.type === "image" || !doc.type ? "video" : doc.type}
 								subtitlesUrl={doc.subtitlesUrl}
 								controlsDocked={true}
 							/>

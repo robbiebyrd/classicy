@@ -6,6 +6,7 @@ import {
 	useMemo,
 	useState,
 } from "react";
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import {
 	type ClassicySoundInfo,
 	useSound,
@@ -18,7 +19,6 @@ import {
 	quitMenuItemHelper,
 } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
 
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 const appIcon = ClassicyIcons.controlPanels.soundManager.app;
 
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";

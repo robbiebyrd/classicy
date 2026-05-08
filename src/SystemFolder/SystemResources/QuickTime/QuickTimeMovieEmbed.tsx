@@ -14,6 +14,7 @@ import ReactPlayer from "react-player";
 import screenfull from "screenfull";
 
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+
 const ccIcon = ClassicyIcons.system.quicktime.cc;
 const backwardButton = ClassicyIcons.system.quicktime.backwardButton;
 const forwardButton = ClassicyIcons.system.quicktime.forwardButton;

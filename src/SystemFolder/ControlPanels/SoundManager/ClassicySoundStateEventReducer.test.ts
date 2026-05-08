@@ -4,6 +4,7 @@
 import type { Howl } from "howler";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+	ClassicySoundActionTypes,
 	type ClassicySoundState,
 	ClassicySoundStateEventReducer,
 } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerUtils";
@@ -35,18 +36,6 @@ vi.mock(
 	"@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerLabels.json",
 	() => ({ default: [] }),
 );
-
-// ---------------------------------------------------------------------------
-// The reducer validates action.type via ClassicySoundActionTypes[type], which
-// maps a string key → numeric enum value used in the switch. Passing numeric
-// enum values (e.g. ClassicySoundActionTypes.ClassicySoundStop === 0) produces
-// a reverse-lookup string, which never matches the numeric switch cases.
-// Therefore all actions must use string keys.
-// ---------------------------------------------------------------------------
-
-/** Shorthand type so tests stay concise */
-type ActionType =
-	keyof typeof import("@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerUtils").ClassicySoundActionTypes;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -81,7 +70,7 @@ describe("ClassicySoundStop", () => {
 	it("calls soundPlayer.stop()", () => {
 		const ss = makeSoundState();
 		ClassicySoundStateEventReducer(ss, {
-			type: "ClassicySoundStop" as ActionType,
+			type: "ClassicySoundStop" as ClassicySoundActionTypes,
 		});
 		expect(ss.soundPlayer?.stop).toHaveBeenCalledOnce();
 	});
@@ -89,7 +78,7 @@ describe("ClassicySoundStop", () => {
 	it("returns a new state object (not the same reference)", () => {
 		const ss = makeSoundState();
 		const next = ClassicySoundStateEventReducer(ss, {
-			type: "ClassicySoundStop" as ActionType,
+			type: "ClassicySoundStop" as ClassicySoundActionTypes,
 		});
 		expect(next).not.toBe(ss);
 	});
@@ -103,7 +92,7 @@ describe("ClassicySoundPlay", () => {
 	it("calls soundPlayer.play(sound) when not disabled and not playing", () => {
 		const ss = makeSoundState();
 		ClassicySoundStateEventReducer(ss, {
-			type: "ClassicySoundPlay" as ActionType,
+			type: "ClassicySoundPlay" as ClassicySoundActionTypes,
 			sound: "click",
 		});
 		expect(ss.soundPlayer?.play).toHaveBeenCalledWith("click");
@@ -112,7 +101,7 @@ describe("ClassicySoundPlay", () => {
 	it("does NOT play when sound is in disabled list", () => {
 		const ss = makeSoundState({ disabled: ["click"] });
 		ClassicySoundStateEventReducer(ss, {
-			type: "ClassicySoundPlay" as ActionType,
+			type: "ClassicySoundPlay" as ClassicySoundActionTypes,
 			sound: "click",
 		});
 		expect(ss.soundPlayer?.play).not.toHaveBeenCalled();
@@ -121,7 +110,7 @@ describe("ClassicySoundPlay", () => {
 	it("does NOT play when '*' is in disabled list", () => {
 		const ss = makeSoundState({ disabled: ["*"] });
 		ClassicySoundStateEventReducer(ss, {
-			type: "ClassicySoundPlay" as ActionType,
+			type: "ClassicySoundPlay" as ClassicySoundActionTypes,
 			sound: "click",
 		});
 		expect(ss.soundPlayer?.play).not.toHaveBeenCalled();
@@ -132,7 +121,7 @@ describe("ClassicySoundPlay", () => {
 		(player.playing as ReturnType<typeof vi.fn>).mockReturnValue(true);
 		const ss = makeSoundState({ soundPlayer: player });
 		ClassicySoundStateEventReducer(ss, {
-			type: "ClassicySoundPlay" as ActionType,
+			type: "ClassicySoundPlay" as ClassicySoundActionTypes,
 			sound: "click",
 		});
 		expect(ss.soundPlayer?.play).not.toHaveBeenCalled();
@@ -149,7 +138,7 @@ describe("ClassicySoundPlayInterrupt", () => {
 		(player.playing as ReturnType<typeof vi.fn>).mockReturnValue(true);
 		const ss = makeSoundState({ soundPlayer: player });
 		ClassicySoundStateEventReducer(ss, {
-			type: "ClassicySoundPlayInterrupt" as ActionType,
+			type: "ClassicySoundPlayInterrupt" as ClassicySoundActionTypes,
 			sound: "click",
 		});
 		expect(ss.soundPlayer?.stop).toHaveBeenCalledOnce();
@@ -159,7 +148,7 @@ describe("ClassicySoundPlayInterrupt", () => {
 	it("does NOT play when sound is disabled", () => {
 		const ss = makeSoundState({ disabled: ["click"] });
 		ClassicySoundStateEventReducer(ss, {
-			type: "ClassicySoundPlayInterrupt" as ActionType,
+			type: "ClassicySoundPlayInterrupt" as ClassicySoundActionTypes,
 			sound: "click",
 		});
 		expect(ss.soundPlayer?.stop).not.toHaveBeenCalled();
@@ -175,7 +164,7 @@ describe("ClassicySoundPlayError", () => {
 	it("stops then plays the error sound", () => {
 		const ss = makeSoundState();
 		ClassicySoundStateEventReducer(ss, {
-			type: "ClassicySoundPlayError" as ActionType,
+			type: "ClassicySoundPlayError" as ClassicySoundActionTypes,
 			sound: "ClassicyAlertWildEep",
 		});
 		expect(ss.soundPlayer?.stop).toHaveBeenCalledOnce();
@@ -192,10 +181,10 @@ describe("ClassicySoundLoad", () => {
 		const ss = makeSoundState();
 		const original = ss.soundPlayer;
 		const next = ClassicySoundStateEventReducer(ss, {
-			type: "ClassicySoundLoad" as ActionType,
+			type: "ClassicySoundLoad" as ClassicySoundActionTypes,
 			file: { src: ["new.mp3"], sprite: { ding: [0, 200] } },
 		});
-		// loadSoundTheme calls createSoundPlayer → new MockHowl — the returned
+		// ClassicySoundLoad calls createSoundPlayer → new MockHowl — the returned
 		// player is a different instance from the one we put in the test state.
 		expect(next.soundPlayer).not.toBe(original);
 	});
@@ -203,7 +192,7 @@ describe("ClassicySoundLoad", () => {
 	it("updates disabled list when disabled array is provided", () => {
 		const ss = makeSoundState();
 		const next = ClassicySoundStateEventReducer(ss, {
-			type: "ClassicySoundLoad" as ActionType,
+			type: "ClassicySoundLoad" as ClassicySoundActionTypes,
 			disabled: ["click", "drag"],
 		});
 		expect(next.disabled).toEqual(["click", "drag"]);
@@ -213,7 +202,7 @@ describe("ClassicySoundLoad", () => {
 		const ss = makeSoundState();
 		const original = ss.soundPlayer;
 		const next = ClassicySoundStateEventReducer(ss, {
-			type: "ClassicySoundLoad" as ActionType,
+			type: "ClassicySoundLoad" as ClassicySoundActionTypes,
 		});
 		expect(next.soundPlayer).toBe(original);
 	});
@@ -221,7 +210,7 @@ describe("ClassicySoundLoad", () => {
 	it("keeps existing disabled when disabled is not provided", () => {
 		const ss = makeSoundState({ disabled: ["beep"] });
 		const next = ClassicySoundStateEventReducer(ss, {
-			type: "ClassicySoundLoad" as ActionType,
+			type: "ClassicySoundLoad" as ClassicySoundActionTypes,
 		});
 		expect(next.disabled).toEqual(["beep"]);
 	});
@@ -236,7 +225,7 @@ describe("ClassicySoundSet", () => {
 		const ss = makeSoundState();
 		const newPlayer = makePlayer();
 		const next = ClassicySoundStateEventReducer(ss, {
-			type: "ClassicySoundSet" as ActionType,
+			type: "ClassicySoundSet" as ClassicySoundActionTypes,
 			soundPlayer: newPlayer,
 		});
 		expect(next.soundPlayer).toBe(newPlayer);
@@ -245,7 +234,7 @@ describe("ClassicySoundSet", () => {
 	it("sets soundPlayer to null when soundPlayer is absent from action", () => {
 		const ss = makeSoundState();
 		const next = ClassicySoundStateEventReducer(ss, {
-			type: "ClassicySoundSet" as ActionType,
+			type: "ClassicySoundSet" as ClassicySoundActionTypes,
 			// soundPlayer omitted → undefined → null via nullish coalescing
 		});
 		expect(next.soundPlayer).toBeNull();
@@ -260,7 +249,7 @@ describe("ClassicyVolumeSet", () => {
 	it("updates volume in returned state", () => {
 		const ss = makeSoundState({ volume: 100 });
 		const next = ClassicySoundStateEventReducer(ss, {
-			type: "ClassicyVolumeSet" as ActionType,
+			type: "ClassicyVolumeSet" as ClassicySoundActionTypes,
 			volume: 42,
 		});
 		expect(next.volume).toBe(42);
@@ -275,7 +264,7 @@ describe("ClassicySoundDisable", () => {
 	it("replaces disabled list with provided array", () => {
 		const ss = makeSoundState({ disabled: ["old"] });
 		const next = ClassicySoundStateEventReducer(ss, {
-			type: "ClassicySoundDisable" as ActionType,
+			type: "ClassicySoundDisable" as ClassicySoundActionTypes,
 			disabled: ["click", "drag"],
 		});
 		expect(next.disabled).toEqual(["click", "drag"]);
@@ -284,7 +273,7 @@ describe("ClassicySoundDisable", () => {
 	it("wraps a single string in an array", () => {
 		const ss = makeSoundState({ disabled: [] });
 		const next = ClassicySoundStateEventReducer(ss, {
-			type: "ClassicySoundDisable" as ActionType,
+			type: "ClassicySoundDisable" as ClassicySoundActionTypes,
 			disabled: "click",
 		});
 		expect(next.disabled).toEqual(["click"]);
@@ -299,7 +288,7 @@ describe("ClassicySoundDisableOne", () => {
 	it("adds a sound to the disabled list, deduplicating via Set", () => {
 		const ss = makeSoundState({ disabled: ["beep"] });
 		const next = ClassicySoundStateEventReducer(ss, {
-			type: "ClassicySoundDisableOne" as ActionType,
+			type: "ClassicySoundDisableOne" as ClassicySoundActionTypes,
 			disabled: "click",
 		});
 		expect(next.disabled).toEqual(["beep", "click"]);
@@ -308,7 +297,7 @@ describe("ClassicySoundDisableOne", () => {
 	it("does not duplicate when the sound is already disabled", () => {
 		const ss = makeSoundState({ disabled: ["click"] });
 		const next = ClassicySoundStateEventReducer(ss, {
-			type: "ClassicySoundDisableOne" as ActionType,
+			type: "ClassicySoundDisableOne" as ClassicySoundActionTypes,
 			disabled: "click",
 		});
 		expect(next.disabled).toEqual(["click"]);
@@ -317,7 +306,7 @@ describe("ClassicySoundDisableOne", () => {
 	it("is a no-op (returns same reference) when action.disabled is undefined", () => {
 		const ss = makeSoundState({ disabled: ["beep"] });
 		const next = ClassicySoundStateEventReducer(ss, {
-			type: "ClassicySoundDisableOne" as ActionType,
+			type: "ClassicySoundDisableOne" as ClassicySoundActionTypes,
 		});
 		expect(next).toBe(ss);
 	});
@@ -331,7 +320,7 @@ describe("ClassicySoundEnableOne", () => {
 	it("removes a sound from the disabled list", () => {
 		const ss = makeSoundState({ disabled: ["beep", "click"] });
 		const next = ClassicySoundStateEventReducer(ss, {
-			type: "ClassicySoundEnableOne" as ActionType,
+			type: "ClassicySoundEnableOne" as ClassicySoundActionTypes,
 			enabled: "click",
 		});
 		expect(next.disabled).toEqual(["beep"]);
@@ -340,7 +329,7 @@ describe("ClassicySoundEnableOne", () => {
 	it("is a no-op (returns same reference) when action.enabled is undefined", () => {
 		const ss = makeSoundState({ disabled: ["beep"] });
 		const next = ClassicySoundStateEventReducer(ss, {
-			type: "ClassicySoundEnableOne" as ActionType,
+			type: "ClassicySoundEnableOne" as ClassicySoundActionTypes,
 		});
 		expect(next).toBe(ss);
 	});
@@ -358,7 +347,7 @@ describe("Default (unhandled action)", () => {
 	it("returns a copy of state for an unknown action type", () => {
 		const ss = makeSoundState();
 		const next = ClassicySoundStateEventReducer(ss, {
-			type: "ClassicySoundNonExistent" as ActionType,
+			type: "ClassicySoundNonExistent" as ClassicySoundActionTypes,
 		});
 		expect(next).not.toBe(ss);
 		expect(next.volume).toBe(ss.volume);
@@ -369,7 +358,7 @@ describe("Default (unhandled action)", () => {
 		const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 		const ss = makeSoundState();
 		ClassicySoundStateEventReducer(ss, {
-			type: "ClassicySoundNonExistent" as ActionType,
+			type: "ClassicySoundNonExistent" as ClassicySoundActionTypes,
 		});
 		expect(warnSpy).toHaveBeenCalledWith(
 			expect.stringContaining("Unhandled action type"),

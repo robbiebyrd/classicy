@@ -3,8 +3,13 @@ import {
 	openApp,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { registerAppEventHandler } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import type { ClassicyQuickTimeDocument } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerContext";
-import { PictureViewerAppInfo } from "@/SystemFolder/QuickTime/PictureViewer/PictureViewerUtils";
+import {
+	PictureViewerAppInfo,
+	isPictureViewerData,
+	type PictureViewerData,
+} from "@/SystemFolder/QuickTime/PictureViewer/PictureViewerUtils";
 
 type classicyQuickTimeEvent = {
 	type: string;
@@ -26,15 +31,14 @@ export const classicyQuickTimePictureViewerEventHandler = (
 		);
 	}
 
-	if (!ds.System.Manager.Applications.apps[appId].data) {
-		ds.System.Manager.Applications.apps[appId].data = {};
+	const rawData = ds.System.Manager.Applications.apps[appId].data ?? {};
+	if (!isPictureViewerData(rawData)) {
+		ds.System.Manager.Applications.apps[appId].data = { openFiles: [] };
 	}
+	const appData = ds.System.Manager.Applications.apps[appId]
+		.data as PictureViewerData;
 
-	if (!("openFiles" in ds.System.Manager.Applications.apps[appId].data)) {
-		ds.System.Manager.Applications.apps[appId].data.openFiles = [];
-	}
-
-	const openDocUrls = ds.System.Manager.Applications.apps[appId].data.openFiles.map(
+	const openDocUrls = appData.openFiles.map(
 		(of: ClassicyQuickTimeDocument) => of.url,
 	);
 
@@ -44,10 +48,7 @@ export const classicyQuickTimePictureViewerEventHandler = (
 				Array.isArray(openDocUrls) &&
 				!openDocUrls.includes(action.document?.url)
 			) {
-				ds.System.Manager.Applications.apps[appId].data.openFiles = [
-					...ds.System.Manager.Applications.apps[appId].data.openFiles,
-					action.document,
-				];
+				appData.openFiles = [...appData.openFiles, action.document];
 				openApp(
 					ds,
 					PictureViewerAppInfo.id,
@@ -64,10 +65,7 @@ export const classicyQuickTimePictureViewerEventHandler = (
 			if (!docs) {
 				break;
 			}
-			ds.System.Manager.Applications.apps[appId].data.openFiles = [
-				...ds.System.Manager.Applications.apps[appId].data.openFiles,
-				...docs,
-			];
+			appData.openFiles = [...appData.openFiles, ...docs];
 			openApp(
 				ds,
 				PictureViewerAppInfo.id,
@@ -77,12 +75,18 @@ export const classicyQuickTimePictureViewerEventHandler = (
 			break;
 		}
 		case "ClassicyAppPictureViewerCloseDocument": {
-			ds.System.Manager.Applications.apps[appId].data.openFiles =
-				ds.System.Manager.Applications.apps[appId].data.openFiles.filter(
-					(p: ClassicyQuickTimeDocument) => p.url !== action.document?.url,
-				);
+			appData.openFiles = appData.openFiles.filter(
+				(p: ClassicyQuickTimeDocument) => p.url !== action.document?.url,
+			);
 			break;
 		}
 	}
 	return ds;
 };
+
+// Self-register so the kernel router can dispatch ClassicyAppPictureViewer* events
+// without a hard-wired import.
+registerAppEventHandler(
+	"ClassicyAppPictureViewer",
+	classicyQuickTimePictureViewerEventHandler,
+);

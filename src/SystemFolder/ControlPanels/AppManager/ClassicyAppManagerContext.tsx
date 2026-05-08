@@ -33,7 +33,13 @@ const getOrCreateUserId = (storageKey: string): string => {
 
 export const ClassicyAppManagerProvider: FunctionalComponent<
 	PropsWithChildren<ClassicyAppManagerProviderProps>
-> = ({ children, gtmContainerId, gaMeasurementIds, appName = "classicy", eventPrefix = "classicy_" }) => {
+> = ({
+	children,
+	gtmContainerId,
+	gaMeasurementIds,
+	appName = "classicy",
+	eventPrefix = "classicy_",
+}) => {
 	const analytics = useMemo(() => {
 		const plugins: AnalyticsPlugin[] = [];
 

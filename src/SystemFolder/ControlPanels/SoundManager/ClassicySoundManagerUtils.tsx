@@ -5,8 +5,8 @@ import { createContext, type Dispatch } from "react";
 import { ClassicySounds } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicySounds";
 import type { ClassicyStoreSystemManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
-	SoundDataSchema,
 	type SoundData,
+	SoundDataSchema,
 } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundSchema";
 import soundLabels from "./ClassicySoundManagerLabels.json";
 
@@ -37,20 +37,20 @@ export type ClassicySoundState = {
 };
 
 export enum ClassicySoundActionTypes {
-	ClassicySoundStop,
-	ClassicySoundPlay,
-	ClassicySoundPlayInterrupt,
-	ClassicySoundPlayError,
-	ClassicySoundLoad,
-	ClassicySoundSet,
-	ClassicySoundDisable,
-	ClassicySoundDisableOne,
-	ClassicySoundEnableOne,
-	ClassicyVolumeSet,
+	ClassicySoundStop = "ClassicySoundStop",
+	ClassicySoundPlay = "ClassicySoundPlay",
+	ClassicySoundPlayInterrupt = "ClassicySoundPlayInterrupt",
+	ClassicySoundPlayError = "ClassicySoundPlayError",
+	ClassicySoundLoad = "ClassicySoundLoad",
+	ClassicySoundSet = "ClassicySoundSet",
+	ClassicySoundDisable = "ClassicySoundDisable",
+	ClassicySoundDisableOne = "ClassicySoundDisableOne",
+	ClassicySoundEnableOne = "ClassicySoundEnableOne",
+	ClassicyVolumeSet = "ClassicyVolumeSet",
 }
 
 export interface ClassicySoundAction {
-	type: ClassicySoundActionTypes | keyof typeof ClassicySoundActionTypes;
+	type: ClassicySoundActionTypes | string;
 	sound?: string;
 	file?: SoundData;
 	disabled?: string | string[];
@@ -59,8 +59,8 @@ export interface ClassicySoundAction {
 	volume?: number;
 }
 
-export { SoundDataSchema };
 export type { SoundData };
+export { SoundDataSchema };
 
 export interface SoundPlayer {
 	soundData: SoundData;
@@ -145,13 +145,8 @@ export const ClassicySoundStateEventReducer = (
 		console.log("Start State: ", ss);
 	}
 
-	const validatedAction =
-		ClassicySoundActionTypes[
-			action.type as keyof typeof ClassicySoundActionTypes
-		];
-
 	let next: ClassicySoundState;
-	switch (validatedAction) {
+	switch (action.type) {
 		case ClassicySoundActionTypes.ClassicySoundStop: {
 			ss.soundPlayer?.stop();
 			next = { ...ss };

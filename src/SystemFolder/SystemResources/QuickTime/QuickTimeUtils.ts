@@ -1,4 +1,5 @@
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+
 const sound33Img = ClassicyIcons.controlPanels.soundManager.sound33;
 const sound66Img = ClassicyIcons.controlPanels.soundManager.sound66;
 const soundOffImg = ClassicyIcons.controlPanels.soundManager.soundOff;

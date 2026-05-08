@@ -1,5 +1,14 @@
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
+	hasApp,
+	hasDesktopAppRef,
+	hasIconAddFields,
+	hasIconId,
+	hasIconIds,
+	hasIconLocation,
+	hasSortBy,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
+import {
 	deFocusApps,
 	openApp,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
@@ -27,17 +36,6 @@ const getGridPosition = (
 		Math.floor(window.innerWidth - (iconSize * 2 + iconPadding) * x),
 		Math.floor((iconSize * 2 + iconPadding) * y) + defaultPadding,
 	];
-};
-
-const getGridPositionByCount = (count: number, theme: ClassicyTheme) => {
-	const [iconSize, iconPadding] = getIconSize(theme);
-	const grid = createGrid(iconSize, iconPadding);
-	const maxRows = Math.max(grid[1], 1);
-
-	const col = Math.floor(count / maxRows) + 1;
-	const row = count % maxRows;
-
-	return getGridPosition(iconSize, iconPadding, col, row);
 };
 
 export const getIconSize = (theme: ClassicyTheme) => {
@@ -117,23 +115,27 @@ export const classicyDesktopIconEventHandler = (
 			break;
 		}
 		case "ClassicyDesktopIconSort": {
+			const sortBy = hasSortBy(action) ? action.sortBy : "name";
 			ds.System.Manager.Desktop.icons = cleanupDesktopIcons(
 				ds.System.Manager.Appearance.activeTheme,
 				sortDesktopIcons(
 					ds.System.Manager.Desktop.icons,
-					action.sortBy || "name",
+					sortBy as "name" | "kind" | "label",
 				),
 			);
 			break;
 		}
 		case "ClassicyDesktopIconFocus": {
+			if (!hasIconId(action)) break;
 			deFocusApps(ds);
 			ds.System.Manager.Applications.apps["Finder.app"].focused = true;
 			ds.System.Manager.Desktop.selectedIcons = [action.iconId];
 			break;
 		}
 		case "ClassicyDesktopIconSelectBox": {
-			ds.System.Manager.Desktop.selectedIcons = action.iconIds ?? [];
+			ds.System.Manager.Desktop.selectedIcons = hasIconIds(action)
+				? (action.iconIds as string[])
+				: [];
 			break;
 		}
 		case "ClassicyDesktopIconClearFocus": {
@@ -141,6 +143,7 @@ export const classicyDesktopIconEventHandler = (
 			break;
 		}
 		case "ClassicyDesktopIconOpen": {
+			if (!hasIconId(action) || !hasDesktopAppRef(action)) break;
 			ds.System.Manager.Desktop.selectedIcons = [action.iconId];
 			openApp(ds, action.app.id, action.app.name, action.app.icon);
 			break;
@@ -148,6 +151,7 @@ export const classicyDesktopIconEventHandler = (
 		case "ClassicyDesktopIconAdd": {
 			// TODO: We need to separate onClickFunc from here; it's being stored in the localstorage cache which
 			// means it gets blown out after every session clear. An Event name and payload here would be better.
+			if (!hasIconAddFields(action)) break;
 			const icon = ds.System.Manager.Desktop.icons.filter(
 				(i) => i.appId === action.app.id,
 			);
@@ -157,12 +161,16 @@ export const classicyDesktopIconEventHandler = (
 					icon: action.app.icon,
 					appId: action.app.id,
 					appName: action.app.name,
-					location: action.location,
-					label: action.label,
-					kind: action.kind || "icon",
-					onClickFunc: action.onClickFunc,
-					event: action.event,
-					eventData: action.eventData,
+					location: Array.isArray(action.location) ? action.location as [number, number] : undefined,
+					label: typeof action.label === "string" ? action.label : undefined,
+					kind: typeof action.kind === "string" ? action.kind : "icon",
+					onClickFunc: typeof action.onClickFunc === "function"
+						? action.onClickFunc as ClassicyStoreSystemDesktopManagerIcon["onClickFunc"]
+						: undefined,
+					event: typeof action.event === "string" ? action.event : undefined,
+					eventData: typeof action.eventData === "object" && action.eventData !== null
+						? action.eventData as Record<string, unknown>
+						: undefined,
 				});
 
 				ds.System.Manager.Desktop.icons = cleanupDesktopIcons(
@@ -174,10 +182,14 @@ export const classicyDesktopIconEventHandler = (
 		}
 
 		case "ClassicyDesktopIconRemove": {
+			if (!hasApp(action)) break;
+			const appName = typeof (action.app as Record<string, unknown>).name === "string"
+				? (action.app as Record<string, unknown>).name as string
+				: undefined;
 			const iconIdx = ds.System.Manager.Desktop.icons.findIndex(
 				(icon) =>
 					icon.appId === action.app.id &&
-					(!action.app.name || icon.appName === action.app.name),
+					(!appName || icon.appName === appName),
 			);
 			if (iconIdx > -1) {
 				ds.System.Manager.Desktop.icons.splice(iconIdx, 1);
@@ -185,14 +197,16 @@ export const classicyDesktopIconEventHandler = (
 			break;
 		}
 		case "ClassicyDesktopIconMove": {
+			if (!hasIconLocation(action)) break;
 			const iconIdx = ds.System.Manager.Desktop.icons.findIndex(
 				(icon) => icon.appId === action.app.id,
 			);
 			if (iconIdx === -1) break;
 
 			const selected = ds.System.Manager.Desktop.selectedIcons ?? [];
-			const oldLocation =
-				ds.System.Manager.Desktop.icons[iconIdx].location ?? [0, 0];
+			const oldLocation = ds.System.Manager.Desktop.icons[iconIdx].location ?? [
+				0, 0,
+			];
 			const newLocation: [number, number] = action.location;
 
 			if (selected.length > 1 && selected.includes(action.app.id)) {
@@ -203,8 +217,9 @@ export const classicyDesktopIconEventHandler = (
 						(icon) => icon.appId === selId,
 					);
 					if (selIdx > -1) {
-						const selLoc =
-							ds.System.Manager.Desktop.icons[selIdx].location ?? [0, 0];
+						const selLoc = ds.System.Manager.Desktop.icons[selIdx].location ?? [
+							0, 0,
+						];
 						ds.System.Manager.Desktop.icons[selIdx].location = [
 							selLoc[0] + dx,
 							selLoc[1] + dy,
