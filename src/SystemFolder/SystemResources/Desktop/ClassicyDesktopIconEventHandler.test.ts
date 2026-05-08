@@ -164,7 +164,7 @@ describe("classicyDesktopIconEventHandler — ClassicyDesktopIconFocus", () => {
 		expect(ds.System.Manager.Desktop.selectedIcons[0]).toBe("Notes.app");
 	});
 
-	it("focuses Finder.app and defocuses other apps", () => {
+	it("focuses Finder.app and defocuses the previously-focused app", () => {
 		const ds = makeStoreWithIcons();
 		ds.System.Manager.Applications.apps["SomeApp"] = {
 			id: "SomeApp",
@@ -176,6 +176,8 @@ describe("classicyDesktopIconEventHandler — ClassicyDesktopIconFocus", () => {
 			noDesktopIcon: false,
 			data: {},
 		};
+		// Set SomeApp as the tracked focused app (matches real usage via focusApp/activateApp)
+		ds.System.Manager.Applications.focusedAppId = "SomeApp";
 		ds.System.Manager.Applications.apps["Finder.app"].focused = false;
 
 		classicyDesktopIconEventHandler(ds, {

@@ -24,6 +24,15 @@ import {
 import { classicyWindowEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopWindowManagerContext";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import {
+	hasApp,
+	hasAppAndFileType,
+	hasAppAndFileTypes,
+	hasAppAndPath,
+	hasDesktopAppRef,
+	hasFinderFile,
+	hasPath,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
 import { isValidHttpUrl } from "@/SystemFolder/SystemResources/Utils/urlValidation";
 import themesData from "../AppearanceManager/styles/themes.json";
 
@@ -121,8 +130,7 @@ export {
 	openApp,
 };
 
-// biome-ignore lint/suspicious/noExplicitAny: ActionMessage is a catch-all event type accessed with dynamic properties throughout the codebase
-export type ActionMessage = Record<string, any> & {
+export type ActionMessage = Record<string, unknown> & {
 	type: string;
 };
 
@@ -174,15 +182,21 @@ export const classicyAppEventHandler = (
 ) => {
 	switch (action.type) {
 		case "ClassicyAppOpen": {
-			openApp(ds, action.app.id, action.app.name, action.app.icon);
+			if (hasDesktopAppRef(action)) {
+				openApp(ds, action.app.id, action.app.name, action.app.icon);
+			}
 			break;
 		}
 		case "ClassicyAppLoad": {
-			loadApp(ds, action.app.id, action.app.name, action.app.icon);
+			if (hasDesktopAppRef(action)) {
+				loadApp(ds, action.app.id, action.app.name, action.app.icon);
+			}
 			break;
 		}
 		case "ClassicyAppClose": {
-			closeApp(ds, action.app.id);
+			if (hasApp(action)) {
+				closeApp(ds, action.app.id);
+			}
 			const openApps = Object.values(ds.System.Manager.Applications.apps).find(
 				(value) => {
 					return value.open;
@@ -198,20 +212,24 @@ export const classicyAppEventHandler = (
 			break;
 		}
 		case "ClassicyAppFocus": {
-			focusApp(ds, action.app.id);
+			if (hasApp(action)) {
+				focusApp(ds, action.app.id);
+			}
 			break;
 		}
 		case "ClassicyAppActivate": {
-			activateApp(ds, action.app.id);
+			if (hasApp(action)) {
+				activateApp(ds, action.app.id);
+			}
 			break;
 		}
 		case "ClassicyAppRegisterFileTypes": {
-			if (Array.isArray(action.fileTypes)) {
+			if (hasAppAndFileTypes(action)) {
 				const app = ds.System.Manager.Applications.apps[action.app.id];
 				if (app) {
 					const existing = app.handlesFileTypes ?? [];
 					app.handlesFileTypes = Array.from(
-						new Set([...existing, ...action.fileTypes]),
+						new Set([...existing, ...(action.fileTypes as ClassicyFileSystemEntryFileType[])]),
 					);
 				}
 				for (const ft of action.fileTypes) {
@@ -229,25 +247,27 @@ export const classicyAppEventHandler = (
 			break;
 		}
 		case "ClassicyAppUnregisterFileTypes": {
-			const app = ds.System.Manager.Applications.apps[action.app.id];
-			if (app && Array.isArray(action.fileTypes)) {
-				app.handlesFileTypes = (app.handlesFileTypes ?? []).filter(
-					(t: ClassicyFileSystemEntryFileType) => !action.fileTypes.includes(t),
-				);
-				for (const ft of action.fileTypes) {
-					const key = ft as ClassicyFileSystemEntryFileType;
-					if (
-						ds.System.Manager.Applications.fileTypeHandlers[key] ===
-						action.app.id
-					) {
-						ds.System.Manager.Applications.fileTypeHandlers[key] = "Finder.app";
+			if (hasAppAndFileTypes(action)) {
+				const app = ds.System.Manager.Applications.apps[action.app.id];
+				if (app) {
+					app.handlesFileTypes = (app.handlesFileTypes ?? []).filter(
+						(t: ClassicyFileSystemEntryFileType) => !(action.fileTypes as unknown[]).includes(t),
+					);
+					for (const ft of action.fileTypes) {
+						const key = ft as ClassicyFileSystemEntryFileType;
+						if (
+							ds.System.Manager.Applications.fileTypeHandlers[key] ===
+							action.app.id
+						) {
+							ds.System.Manager.Applications.fileTypeHandlers[key] = "Finder.app";
+						}
 					}
 				}
 			}
 			break;
 		}
 		case "ClassicyAppSetDefaultFileTypeHandler": {
-			if (action.fileType && action.app?.id) {
+			if (hasAppAndFileType(action)) {
 				ds.System.Manager.Applications.fileTypeHandlers[
 					action.fileType as ClassicyFileSystemEntryFileType
 				] = action.app.id;
@@ -255,23 +275,19 @@ export const classicyAppEventHandler = (
 			break;
 		}
 		default: {
-			if (action.type.endsWith("OpenFile") && action.app?.id && action.path) {
+			if (action.type.endsWith("OpenFile") && hasAppAndPath(action)) {
 				const app = ds.System.Manager.Applications.apps[action.app.id];
 				if (app) {
 					if (!app.data) app.data = {};
 					const openFiles = app.data.openFiles;
 					if (!Array.isArray(openFiles)) {
-						app.data.openFiles = [action.path as string];
-					} else if (!openFiles.includes(action.path as string)) {
-						app.data.openFiles = [...openFiles, action.path as string];
+						app.data.openFiles = [action.path];
+					} else if (!openFiles.includes(action.path)) {
+						app.data.openFiles = [...openFiles, action.path];
 					}
 					openApp(ds, app.id, app.name, app.icon);
 				}
-			} else if (
-				action.type.endsWith("CloseFile") &&
-				action.app?.id &&
-				action.path
-			) {
+			} else if (action.type.endsWith("CloseFile") && hasAppAndPath(action)) {
 				const app = ds.System.Manager.Applications.apps[action.app.id];
 				if (app?.data) {
 					const openFiles = app.data.openFiles;
@@ -302,7 +318,7 @@ export const classicyDesktopStateEventReducer = (
 	if ("type" in action) {
 		// Cross-app orchestration handled at top level, before prefix routing
 		if (action.type === "ClassicyAppFinderOpenFile") {
-			const file = action.file;
+			const file = hasFinderFile(action) ? action.file : undefined;
 			// Legacy QuickTime _creator-based routing
 			if (file && file._creator === "QuickTime") {
 				let document: unknown;
@@ -333,7 +349,7 @@ export const classicyDesktopStateEventReducer = (
 						document: document as { url: string },
 					});
 				}
-			} else if (file && action.path) {
+			} else if (file && hasPath(action)) {
 				// Route to the default app registered for this file type
 				const fileType = file._type as ClassicyFileSystemEntryFileType;
 				const targetAppId =

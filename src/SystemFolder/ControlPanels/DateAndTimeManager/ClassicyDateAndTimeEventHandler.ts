@@ -1,3 +1,7 @@
+import {
+	hasDateTime,
+	hasTzOffset,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
 import type {
 	ActionMessage,
 	ClassicyStore,
@@ -9,18 +13,24 @@ export const classicyDateTimeManagerEventHandler = (
 ) => {
 	switch (action.type) {
 		case "ClassicyManagerDateTimeSet": {
-			const raw = action.dateTime;
-			if (!(raw instanceof Date)) {
+			if (!hasDateTime(action)) {
 				console.error(
 					"[classicyDateTimeManagerEventHandler] Expected a Date for dateTime",
-					{ received: raw, receivedType: typeof raw },
+					{ received: action.dateTime, receivedType: typeof action.dateTime },
 				);
 				break;
 			}
-			ds.System.Manager.DateAndTime.dateTime = raw.toISOString();
+			ds.System.Manager.DateAndTime.dateTime = action.dateTime.toISOString();
 			break;
 		}
 		case "ClassicyManagerDateTimeTZSet": {
+			if (!hasTzOffset(action)) {
+				console.error(
+					"[classicyDateTimeManagerEventHandler] Invalid tzOffset:",
+					action.tzOffset,
+				);
+				break;
+			}
 			const offset = Number(action.tzOffset);
 			if (!Number.isFinite(offset) || offset < -12 || offset > 14) {
 				console.error(

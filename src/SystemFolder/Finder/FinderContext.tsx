@@ -1,3 +1,7 @@
+import {
+	hasPath,
+	hasPaths,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
 import type {
 	ActionMessage,
 	ClassicyStore,
@@ -34,20 +38,22 @@ export const classicyFinderEventHandler = (
 
 	switch (action.type) {
 		case "ClassicyAppFinderOpenFolder": {
+			if (!hasPath(action)) break;
 			if (!appData.openPaths) {
-				appData = { ...appData, openPaths: [action.path as string] };
+				appData = { ...appData, openPaths: [action.path] };
 				break;
 			}
 
 			appData = {
 				...appData,
 				openPaths: Array.from(
-					new Set([...appData.openPaths, action.path as string]),
+					new Set([...appData.openPaths, action.path]),
 				),
 			};
 			break;
 		}
 		case "ClassicyAppFinderOpenFolders": {
+			if (!hasPaths(action)) break;
 			const existing = appData.openPaths ?? [];
 			appData = {
 				...appData,
@@ -58,10 +64,11 @@ export const classicyFinderEventHandler = (
 			break;
 		}
 		case "ClassicyAppFinderCloseFolder": {
+			if (!hasPath(action)) break;
 			const existing = appData.openPaths ?? [];
 			appData = {
 				...appData,
-				openPaths: existing.filter((p: string) => p !== (action.path as string)),
+				openPaths: existing.filter((p: string) => p !== action.path),
 			};
 
 			// Sync the window closed state so the desktop icon doesn't show as open
