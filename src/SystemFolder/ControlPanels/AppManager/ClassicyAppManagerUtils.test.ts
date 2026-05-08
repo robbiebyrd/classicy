@@ -84,7 +84,9 @@ describe("dispatch", () => {
 		});
 		dispatch({ type: "ClassicyAppClose", app: { id: "Notes.app" } });
 		const state = useAppManager.getState();
-		expect(state.System.Manager.Applications.apps["Notes.app"].open).toBe(false);
+		expect(state.System.Manager.Applications.apps["Notes.app"].open).toBe(
+			false,
+		);
 	});
 
 	it("multiple dispatches accumulate correctly", () => {
@@ -129,11 +131,16 @@ describe("persistence lifecycle", () => {
 		vi.useRealTimers();
 	});
 
-	it("writes state to localStorage immediately on dispatch", () => {
+	it("writes state to localStorage after 500ms debounce", () => {
 		dispatch({
 			type: "ClassicyAppOpen",
 			app: { id: "Test.app", name: "Test", icon: "" },
 		});
+
+		// Before debounce fires nothing should be written
+		expect(localStorage.getItem("classicyDesktopState")).toBeNull();
+
+		vi.advanceTimersByTime(500);
 
 		const raw = localStorage.getItem("classicyDesktopState");
 		expect(raw).not.toBeNull();
@@ -141,11 +148,21 @@ describe("persistence lifecycle", () => {
 		expect(parsed.System.Manager.Applications.apps["Test.app"]).toBeDefined();
 	});
 
+	it("does not write to localStorage before 500ms", () => {
+		dispatch({
+			type: "ClassicyAppOpen",
+			app: { id: "Test.app", name: "Test", icon: "" },
+		});
+		vi.advanceTimersByTime(499);
+		expect(localStorage.getItem("classicyDesktopState")).toBeNull();
+	});
+
 	it("stopAppManagerPersistence prevents further writes", () => {
 		dispatch({
 			type: "ClassicyAppOpen",
 			app: { id: "Test.app", name: "Test", icon: "" },
 		});
+		vi.advanceTimersByTime(500);
 
 		// State is now persisted; stop and clear storage
 		stopAppManagerPersistence();
@@ -156,6 +173,7 @@ describe("persistence lifecycle", () => {
 			type: "ClassicyAppOpen",
 			app: { id: "Another.app", name: "Another", icon: "" },
 		});
+		vi.advanceTimersByTime(500);
 
 		expect(localStorage.getItem("classicyDesktopState")).toBeNull();
 	});
@@ -214,7 +232,9 @@ describe("getInitialState — localStorage behaviour (via module re-import)", ()
 		stopAppManagerPersistence();
 
 		const state = useAppManager.getState();
-		expect(state.System.Manager.Applications.apps["Persisted.app"]).toBeDefined();
+		expect(
+			state.System.Manager.Applications.apps["Persisted.app"],
+		).toBeDefined();
 	});
 
 	it("falls back to DefaultAppManagerState and calls console.error for malformed JSON", async () => {
