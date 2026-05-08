@@ -2,6 +2,10 @@ import { describe, expect, it, vi } from "vitest";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { classicyDesktopStateEventReducer } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+// Side-effect imports: register app plugins so ClassicyAppFinder* and
+// ClassicyAppMoviePlayer* events are handled by classicyDesktopStateEventReducer.
+import "@/SystemFolder/Finder/FinderContext";
+import "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerContext";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 
 vi.mock("@img/icons/system/quicktime/player.png", () => ({

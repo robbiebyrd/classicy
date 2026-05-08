@@ -1,4 +1,5 @@
 import {
+	hasFinderFile,
 	hasPath,
 	hasPaths,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
@@ -6,7 +7,14 @@ import type {
 	ActionMessage,
 	ClassicyStore,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
-import { registerAppEventHandler } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import {
+	classicyAppEventHandler,
+	dispatchToPlugin,
+	registerAppEventHandler,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import { isValidHttpUrl } from "@/SystemFolder/SystemResources/Utils/urlValidation";
+import { MoviePlayerAppInfo } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerUtils";
 
 export type FinderData = {
 	openPaths?: string[];
@@ -92,8 +100,69 @@ export const classicyFinderEventHandler = (
 			break;
 		}
 		case "ClassicyAppFinderOpenFile": {
-			// Handled at top level in classicyDesktopStateEventReducer (cross-app orchestration)
-			break;
+			const file = hasFinderFile(action) ? action.file : undefined;
+			// Legacy QuickTime _creator-based routing
+			if (file && file._creator === "QuickTime") {
+				let document: unknown;
+				try {
+					document =
+						typeof file._data === "string"
+							? JSON.parse(file._data)
+							: file._data;
+				} catch (error: unknown) {
+					console.warn(
+						"ClassicyFinder: failed to parse QuickTime file data",
+						{ error, file },
+					);
+				}
+				if (
+					typeof document === "object" &&
+					document !== null &&
+					"url" in document &&
+					typeof (document as { url: unknown }).url === "string" &&
+					isValidHttpUrl((document as { url: string }).url)
+				) {
+					ds = classicyAppEventHandler(ds, {
+						type: "ClassicyAppOpen",
+						app: MoviePlayerAppInfo,
+					});
+					ds = dispatchToPlugin(ds, "ClassicyAppMoviePlayer", {
+						type: "ClassicyAppMoviePlayerOpenDocument",
+						document: document as { url: string },
+					});
+				}
+			} else if (file && hasPath(action)) {
+				// Route to the default app registered for this file type
+				const fileType = file._type as ClassicyFileSystemEntryFileType;
+				const targetAppId =
+					ds.System.Manager.Applications.fileTypeHandlers[fileType];
+				const targetApp = targetAppId
+					? ds.System.Manager.Applications.apps[targetAppId]
+					: undefined;
+				if (targetApp) {
+					ds = classicyAppEventHandler(ds, {
+						type: `ClassicyApp${targetApp.name}OpenFile`,
+						app: { id: targetAppId },
+						path: action.path,
+					});
+				} else {
+					// Fall back to Finder if it can handle the requested type
+					const finder = ds.System.Manager.Applications.apps[appId];
+					if (finder?.handlesFileTypes?.includes(fileType)) {
+						ds = classicyAppEventHandler(ds, {
+							type: `ClassicyApp${finder.name}OpenFile`,
+							app: { id: appId },
+							path: action.path,
+						});
+					} else {
+						ds.System.Manager.Desktop.errorDialog = {
+							message: "Finder cannot open the file type you requested.",
+						};
+					}
+				}
+			}
+			// Skip the default data write below — this action does not mutate Finder's appData
+			return ds;
 		}
 	}
 	ds.System.Manager.Applications.apps[appId].data = { ...appData };
@@ -102,6 +171,4 @@ export const classicyFinderEventHandler = (
 
 // Self-register so the kernel router can dispatch ClassicyAppFinder* events
 // without a hard-wired import.
-// Note: ClassicyAppFinderOpenFile cross-app orchestration is handled at the
-// top level of classicyDesktopStateEventReducer before prefix routing.
 registerAppEventHandler("ClassicyAppFinder", classicyFinderEventHandler);

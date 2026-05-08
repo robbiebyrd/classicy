@@ -12,6 +12,10 @@ import {
 	openApp,
 	registerAppEventHandler,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+// Side-effect imports: register app plugins so ClassicyAppFinder* and
+// ClassicyAppMoviePlayer* events are handled by classicyDesktopStateEventReducer.
+import "@/SystemFolder/Finder/FinderContext";
+import "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerContext";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 
 function makeStore(): ClassicyStore {
@@ -1000,7 +1004,7 @@ describe("ClassicyAppFinderOpenFile — QuickTime malformed JSON", () => {
 		});
 
 		expect(warnSpy).toHaveBeenCalledWith(
-			expect.stringContaining("ClassicyAppManager"),
+			expect.stringContaining("ClassicyFinder"),
 			expect.objectContaining({ error: expect.any(SyntaxError) }),
 		);
 		warnSpy.mockRestore();

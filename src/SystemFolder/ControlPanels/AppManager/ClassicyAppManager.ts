@@ -15,7 +15,6 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
 import { classicyDateTimeManagerEventHandler } from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeEventHandler";
 import type { ClassicyStoreSystemSoundManager } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
-import { MoviePlayerAppInfo } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerUtils";
 import { classicyDesktopIconEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconContext";
 import {
 	type ClassicyStoreSystemDesktopManager,
@@ -30,10 +29,7 @@ import {
 	hasAppAndFileTypes,
 	hasAppAndPath,
 	hasDesktopAppRef,
-	hasFinderFile,
-	hasPath,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
-import { isValidHttpUrl } from "@/SystemFolder/SystemResources/Utils/urlValidation";
 import themesData from "../AppearanceManager/styles/themes.json";
 
 const macosIcon = ClassicyIcons.system.macos;
@@ -162,9 +158,9 @@ export function registerAppEventHandler(
 
 /**
  * Dispatch an action to the registered handler for the given prefix.
- * Used for internal cross-app orchestration without a direct import.
+ * Used for cross-app orchestration without a direct import between apps.
  */
-function dispatchToPlugin(
+export function dispatchToPlugin(
 	ds: ClassicyStore,
 	prefix: string,
 	action: ActionMessage,
@@ -316,70 +312,7 @@ export const classicyDesktopStateEventReducer = (
 	}
 
 	if ("type" in action) {
-		// Cross-app orchestration handled at top level, before prefix routing
-		if (action.type === "ClassicyAppFinderOpenFile") {
-			const file = hasFinderFile(action) ? action.file : undefined;
-			// Legacy QuickTime _creator-based routing
-			if (file && file._creator === "QuickTime") {
-				let document: unknown;
-				try {
-					document =
-						typeof file._data === "string"
-							? JSON.parse(file._data)
-							: file._data;
-				} catch (error: unknown) {
-					console.warn(
-						"ClassicyAppManager: failed to parse QuickTime file data",
-						{ error, file },
-					);
-				}
-				if (
-					typeof document === "object" &&
-					document !== null &&
-					"url" in document &&
-					typeof (document as { url: unknown }).url === "string" &&
-					isValidHttpUrl((document as { url: string }).url)
-				) {
-					ds = classicyAppEventHandler(ds, {
-						type: "ClassicyAppOpen",
-						app: MoviePlayerAppInfo,
-					});
-					ds = dispatchToPlugin(ds, "ClassicyAppMoviePlayer", {
-						type: "ClassicyAppMoviePlayerOpenDocument",
-						document: document as { url: string },
-					});
-				}
-			} else if (file && hasPath(action)) {
-				// Route to the default app registered for this file type
-				const fileType = file._type as ClassicyFileSystemEntryFileType;
-				const targetAppId =
-					ds.System.Manager.Applications.fileTypeHandlers[fileType];
-				const targetApp = targetAppId
-					? ds.System.Manager.Applications.apps[targetAppId]
-					: undefined;
-				if (targetApp) {
-					ds = classicyAppEventHandler(ds, {
-						type: `ClassicyApp${targetApp.name}OpenFile`,
-						app: { id: targetAppId },
-						path: action.path,
-					});
-				} else {
-					// Fall back to Finder if it can handle the requested type
-					const finder = ds.System.Manager.Applications.apps["Finder.app"];
-					if (finder?.handlesFileTypes?.includes(fileType)) {
-						ds = classicyAppEventHandler(ds, {
-							type: `ClassicyApp${finder.name}OpenFile`,
-							app: { id: "Finder.app" },
-							path: action.path,
-						});
-					} else {
-						ds.System.Manager.Desktop.errorDialog = {
-							message: "Finder cannot open the file type you requested.",
-						};
-					}
-				}
-			}
-		} else if (action.type.startsWith("ClassicyWindow")) {
+		if (action.type.startsWith("ClassicyWindow")) {
 			ds = classicyWindowEventHandler(ds, action);
 		} else if (action.type.startsWith("ClassicyDesktopIcon")) {
 			ds = classicyDesktopIconEventHandler(ds, action);
