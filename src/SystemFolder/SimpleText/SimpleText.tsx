@@ -37,7 +37,8 @@ export const SimpleText = () => {
 		Record<string, ClassicyFileSystemEntryFileType>
 	>({});
 
-	const openFiles: string[] = appState?.data?.openFiles ?? [];
+	const rawOpenFiles = appState?.data?.openFiles;
+	const openFiles: string[] = Array.isArray(rawOpenFiles) ? rawOpenFiles : [];
 
 	const closeFile = useCallback(
 		(path: string) => {

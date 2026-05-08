@@ -23,7 +23,11 @@ import {
 
 import "./Browser.scss";
 import "./BrowserContext";
-import type { BrowserFavorite } from "./BrowserContext";
+import {
+	isBrowserData,
+	type BrowserData,
+	type BrowserFavorite,
+} from "./BrowserContext";
 import {
 	DEFAULT_PROXY_CONFIG,
 	type TimeMachineProxyConfig,
@@ -113,15 +117,20 @@ export const Browser = () => {
 	const appState = useAppManager(
 		(state) => state.System.Manager.Applications.apps[appId],
 	);
+	const browserData: BrowserData = isBrowserData(appState?.data ?? {})
+		? (appState?.data as BrowserData)
+		: {};
 
 	const favorites = useAppManager(
-		(state) =>
-			(state.System.Manager.Applications.apps[appId]?.data?.favorites ??
-				[]) as BrowserFavorite[],
+		(state) => {
+			const raw = state.System.Manager.Applications.apps[appId]?.data ?? {};
+			return (isBrowserData(raw) ? raw.favorites : undefined) ?? ([] as BrowserFavorite[]);
+		},
 	);
 
 	const proxyConfig: TimeMachineProxyConfig =
-		appState?.data?.proxyConfig ?? DEFAULT_PROXY_CONFIG;
+		(browserData.proxyConfig as TimeMachineProxyConfig | undefined) ??
+		DEFAULT_PROXY_CONFIG;
 
 	const normalizeDomain = useCallback((url: string): string => {
 		try {
@@ -132,7 +141,7 @@ export const Browser = () => {
 		}
 	}, []);
 
-	const homePage = appState?.data?.homePage ?? {
+	const homePage = browserData.homePage ?? {
 		url: DEFAULT_URL,
 		label: DEFAULT_HOME_LABEL,
 		icon: DEFAULT_HOME_ICON,
@@ -140,13 +149,13 @@ export const Browser = () => {
 
 	useEffect(() => {
 		if (!appState) return;
-		if (!appState.data?.favorites) {
+		if (!browserData.favorites) {
 			desktopEventDispatch({
 				type: "ClassicyAppBrowserInitFavorites",
 				favorites: DEFAULT_FAVORITES,
 			});
 		}
-		if (!appState.data?.homePage) {
+		if (!browserData.homePage) {
 			desktopEventDispatch({
 				type: "ClassicyAppBrowserSetHomePage",
 				url: DEFAULT_URL,
@@ -156,8 +165,7 @@ export const Browser = () => {
 		}
 	}, [appState, desktopEventDispatch]);
 
-	const showFavoritesBar: boolean =
-		(appState?.data?.showFavoritesBar as boolean) ?? true;
+	const showFavoritesBar: boolean = browserData.showFavoritesBar ?? true;
 	const [urlError, setUrlError] = useState(false);
 	const [showSettings, setShowSettings] = useState(false);
 	const refToolbar = useRef<HTMLDivElement>(null);

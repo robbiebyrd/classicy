@@ -7,6 +7,7 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import {
 	PictureViewerAppInfo,
+	isPictureViewerData,
 	type QuickTimeImageDocument,
 } from "@/SystemFolder/QuickTime/PictureViewer/PictureViewerUtils";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
@@ -26,13 +27,14 @@ export const QuickTimePictureViewer: FunctionalComponent = () => {
 		(s) => s.System.Manager.Applications.apps[appId]?.open,
 	);
 
-	const openDocuments =
-		appData && "openFiles" in appData ? appData.openFiles : [];
+	const rawAppData = appData ?? {};
+	const pictureData = isPictureViewerData(rawAppData) ? rawAppData : null;
+	const openDocuments: QuickTimeImageDocument[] =
+		pictureData?.openFiles ?? [];
 
 	// Load Default Demo documents on open
 	useEffect(() => {
-		const data = appData || {};
-		if (appOpen && (!data.openFiles || data.openFiles?.length === 0)) {
+		if (appOpen && (!pictureData?.openFiles || pictureData.openFiles.length === 0)) {
 			const defaultDocs = [
 				{
 					url: "/assets/img/apps/quicktime/sample-picture.jpg",

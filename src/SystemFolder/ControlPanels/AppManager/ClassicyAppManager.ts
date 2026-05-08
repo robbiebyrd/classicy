@@ -47,13 +47,11 @@ export interface ClassicyStoreSystemApp {
 	icon: string;
 	windows: ClassicyStoreSystemAppWindow[];
 	open: boolean;
-	// biome-ignore lint/suspicious/noExplicitAny: App data is dynamically shaped per app
-	data?: Record<string, any>;
+	data?: Record<string, unknown>;
 	focused?: boolean;
 	noDesktopIcon?: boolean;
 	debug?: boolean;
-	// biome-ignore lint/suspicious/noExplicitAny: App options are dynamically shaped per app
-	options?: Record<string, any>[];
+	options?: Record<string, unknown>[];
 	appMenu?: ClassicyMenuItem[];
 	handlesFileTypes?: ClassicyFileSystemEntryFileType[];
 }
@@ -261,9 +259,11 @@ export const classicyAppEventHandler = (
 				const app = ds.System.Manager.Applications.apps[action.app.id];
 				if (app) {
 					if (!app.data) app.data = {};
-					if (!Array.isArray(app.data.openFiles)) app.data.openFiles = [];
-					if (!app.data.openFiles.includes(action.path)) {
-						app.data.openFiles = [...app.data.openFiles, action.path];
+					const openFiles = app.data.openFiles;
+					if (!Array.isArray(openFiles)) {
+						app.data.openFiles = [action.path as string];
+					} else if (!openFiles.includes(action.path as string)) {
+						app.data.openFiles = [...openFiles, action.path as string];
 					}
 					openApp(ds, app.id, app.name, app.icon);
 				}
@@ -273,10 +273,13 @@ export const classicyAppEventHandler = (
 				action.path
 			) {
 				const app = ds.System.Manager.Applications.apps[action.app.id];
-				if (app?.data?.openFiles) {
-					app.data.openFiles = app.data.openFiles.filter(
-						(p: string) => p !== action.path,
-					);
+				if (app?.data) {
+					const openFiles = app.data.openFiles;
+					if (Array.isArray(openFiles)) {
+						app.data.openFiles = openFiles.filter(
+							(p: unknown) => p !== action.path,
+						);
+					}
 				}
 			}
 			break;

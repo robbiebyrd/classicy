@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { classicyDesktopStateEventReducer } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
-import { classicyFinderEventHandler } from "@/SystemFolder/Finder/FinderContext";
+import {
+	classicyFinderEventHandler,
+	isFinderData,
+} from "@/SystemFolder/Finder/FinderContext";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 
 function makeStore(): ClassicyStore {
@@ -63,9 +66,8 @@ function makeStore(): ClassicyStore {
 
 // Helper to get Finder's openPaths from a store
 function openPaths(ds: ClassicyStore): string[] {
-	return (
-		ds.System.Manager.Applications.apps["Finder.app"]?.data?.openPaths ?? []
-	);
+	const data = ds.System.Manager.Applications.apps["Finder.app"]?.data ?? {};
+	return isFinderData(data) ? (data.openPaths ?? []) : [];
 }
 
 describe("classicyFinderEventHandler — guard", () => {

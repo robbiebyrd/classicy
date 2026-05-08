@@ -12,6 +12,10 @@ import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import {
+	isFinderData,
+	type FinderData,
+} from "@/SystemFolder/Finder/FinderContext";
 import { FinderAboutThisComputer } from "@/SystemFolder/Finder/FinderAboutThisComputer";
 import { ClassicyAboutWindow } from "@/SystemFolder/SystemResources/AboutWindow/ClassicyAboutWindow";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
@@ -164,6 +168,9 @@ export const Finder = () => {
 	const appState = useAppManager(
 		(state) => state.System.Manager.Applications.apps[appId],
 	);
+	const finderData: FinderData = isFinderData(appState?.data ?? {})
+		? (appState?.data as FinderData)
+		: {};
 	const disableBalloonHelp = useAppManager(
 		(state) => state.System.Manager.Desktop.disableBalloonHelp,
 	);
@@ -183,8 +190,9 @@ export const Finder = () => {
 
 	const prevOpenPathsRef = useRef<string[] | null>(null);
 	useEffect(() => {
-		const appData = appState.data || {};
-		if (!("openPaths" in appData)) {
+		const raw = appState.data ?? {};
+		const appData: FinderData = isFinderData(raw) ? raw : {};
+		if (!appData.openPaths) {
 			return;
 		}
 		const openPaths: string[] = appData.openPaths;
@@ -265,7 +273,7 @@ export const Finder = () => {
 	);
 
 	const closeAllFolders = useCallback(() => {
-		const paths: string[] = appState.data?.openPaths ?? [];
+		const paths: string[] = finderData.openPaths ?? [];
 		paths.forEach((path) => {
 			desktopEventDispatch({
 				type: "ClassicyWindowClose",
@@ -335,13 +343,13 @@ export const Finder = () => {
 			icon={appIcon}
 			noDesktopIcon={true}
 			defaultWindow={
-				appState.data.openPaths?.length
-					? appState.data.openPaths.at(0)
+				finderData.openPaths?.length
+					? finderData.openPaths.at(0)
 					: "Macintosh HD"
 			}
 		>
-			{appState.data.openPaths?.length > 0
-				? appState.data.openPaths.map((p: string, idx: number) => {
+			{finderData.openPaths && finderData.openPaths.length > 0
+				? finderData.openPaths.map((p: string, idx: number) => {
 						const dir = fs.statDir(p);
 						return (
 							<FinderWindowMemo

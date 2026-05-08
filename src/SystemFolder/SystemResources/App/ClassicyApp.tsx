@@ -154,7 +154,8 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 		appContext?.windows,
 	]);
 
-	const openFiles: string[] = appContext?.data?.openFiles ?? [];
+	const rawOpenFiles = appContext?.data?.openFiles;
+	const openFiles: string[] = Array.isArray(rawOpenFiles) ? rawOpenFiles : [];
 
 	const closeFile = useCallback(
 		(path: string) => {

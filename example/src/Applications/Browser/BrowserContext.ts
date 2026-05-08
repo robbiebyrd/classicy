@@ -14,6 +14,37 @@ export interface BrowserHistoryEntry {
 	visitedAt: string;
 }
 
+export interface BrowserHomePage {
+	url: string;
+	label: string;
+	icon: string;
+}
+
+export interface BrowserData {
+	favorites?: BrowserFavorite[];
+	homePage?: BrowserHomePage;
+	proxyConfig?: Record<string, unknown>;
+	history?: BrowserHistoryEntry[];
+	showFavoritesBar?: boolean;
+}
+
+export function isBrowserData(
+	d: Record<string, unknown>,
+): d is BrowserData {
+	if (d === null || typeof d !== "object") return false;
+	if ("favorites" in d && !Array.isArray(d.favorites) && d.favorites !== undefined)
+		return false;
+	if ("history" in d && !Array.isArray(d.history) && d.history !== undefined)
+		return false;
+	if (
+		"showFavoritesBar" in d &&
+		typeof d.showFavoritesBar !== "boolean" &&
+		d.showFavoritesBar !== undefined
+	)
+		return false;
+	return true;
+}
+
 const MAX_HISTORY = 500;
 
 export const classicyBrowserEventHandler = (
