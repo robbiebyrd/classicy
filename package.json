@@ -3,7 +3,7 @@
 	"module": "./dist/classicy.es.js",
 	"types": "./dist/types/src/index.d.ts",
 	"name": "classicy",
-	"version": "0.9.0",
+	"version": "0.9.1",
 	"release": "Unity",
 	"repository": {
 		"type": "git",
@@ -69,7 +69,7 @@
 		"react-json-tree": "^0.20.0",
 		"react-player": "^3.4.0",
 		"screenfull": "^6.0.2",
-"use-analytics": "^1.1.0",
+		"use-analytics": "^1.1.0",
 		"zod": "^4.3.6",
 		"zustand": "^5.0.11"
 	},
