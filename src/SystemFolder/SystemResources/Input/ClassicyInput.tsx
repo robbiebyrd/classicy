@@ -17,7 +17,6 @@ import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/u
 
 interface ClassicyInputProps {
 	id: string;
-	inputType?: "text";
 	onChangeFunc?: ChangeEventHandler<HTMLInputElement>;
 	onEnterFunc?: () => void;
 	labelTitle?: string;
@@ -36,7 +35,6 @@ export const ClassicyInput: FunctionalComponent<ClassicyInputProps> =
 	forwardRef<HTMLInputElement, ClassicyInputProps>(function ClassicyInput(
 		{
 			id,
-			inputType = "text",
 			labelTitle,
 			labelSize = "medium",
 			labelPosition = "above",
@@ -54,7 +52,6 @@ export const ClassicyInput: FunctionalComponent<ClassicyInputProps> =
 		const { track } = useClassicyAnalytics();
 		const analyticsArgs = {
 			id,
-			inputType,
 			labelTitle,
 			placeholder,
 			prefillValue,
@@ -94,7 +91,7 @@ export const ClassicyInput: FunctionalComponent<ClassicyInputProps> =
 					onChange={handleOnChangeFunc}
 					onKeyDown={handleOnKeyDown}
 					name={id}
-					type={inputType}
+					type="text"
 					ref={ref}
 					disabled={disabled}
 					value={prefillValue}
