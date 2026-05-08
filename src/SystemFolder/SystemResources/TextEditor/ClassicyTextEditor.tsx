@@ -30,7 +30,7 @@ const fontSizeClass: Record<ClassicyControlLabelSize, string> = {
 
 export const ClassicyTextEditor: FunctionalComponent<EditorProps> = ({
 	id,
-	content = "",
+	content,
 	prefillValue,
 	disabled = false,
 	labelDisabled,
