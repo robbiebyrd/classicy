@@ -1,4 +1,10 @@
 import {
+	type ClassicyStoreSystemAppearanceManager,
+	type ClassicyTheme,
+	getAllThemes,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import {
 	activateApp,
 	closeApp,
 	deFocusApps,
@@ -7,12 +13,6 @@ import {
 	loadApp,
 	openApp,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
-import {
-	type ClassicyStoreSystemAppearanceManager,
-	type ClassicyTheme,
-	getAllThemes,
-} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { classicyDateTimeManagerEventHandler } from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeEventHandler";
 import type { ClassicyStoreSystemSoundManager } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { classicyFinderEventHandler } from "@/SystemFolder/Finder/FinderContext";
@@ -222,8 +222,7 @@ export const classicyAppEventHandler = (
 						ds.System.Manager.Applications.fileTypeHandlers[key] ===
 						action.app.id
 					) {
-						ds.System.Manager.Applications.fileTypeHandlers[key] =
-							"Finder.app";
+						ds.System.Manager.Applications.fileTypeHandlers[key] = "Finder.app";
 					}
 				}
 			}
@@ -289,8 +288,11 @@ export const classicyDesktopStateEventReducer = (
 						typeof file._data === "string"
 							? JSON.parse(file._data)
 							: file._data;
-				} catch {
-					// Malformed JSON — skip silently
+				} catch (error: unknown) {
+					console.warn(
+						"ClassicyAppManager: failed to parse QuickTime file data",
+						{ error, file },
+					);
 				}
 				if (
 					typeof document === "object" &&

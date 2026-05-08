@@ -51,15 +51,14 @@ function makeStore(): ClassicyStore {
 							focused: true,
 							noDesktopIcon: true,
 							data: {},
-							handlesFileTypes: Object.values(
-								ClassicyFileSystemEntryFileType,
-							),
+							handlesFileTypes: Object.values(ClassicyFileSystemEntryFileType),
 						},
 					},
 					fileTypeHandlers: Object.fromEntries(
-						Object.values(ClassicyFileSystemEntryFileType).map(
-							(type) => [type, "Finder.app"],
-						),
+						Object.values(ClassicyFileSystemEntryFileType).map((type) => [
+							type,
+							"Finder.app",
+						]),
 					) as Record<ClassicyFileSystemEntryFileType, string>,
 				},
 				Appearance: {
@@ -95,9 +94,13 @@ describe("deFocusApps", () => {
 
 		deFocusApps(ds);
 
-		expect(ds.System.Manager.Applications.apps["Finder.app"].focused).toBe(false);
+		expect(ds.System.Manager.Applications.apps["Finder.app"].focused).toBe(
+			false,
+		);
 		expect(ds.System.Manager.Applications.apps.TestApp.focused).toBe(false);
-		expect(ds.System.Manager.Applications.apps.TestApp.windows[0].focused).toBe(false);
+		expect(ds.System.Manager.Applications.apps.TestApp.windows[0].focused).toBe(
+			false,
+		);
 	});
 });
 
@@ -117,7 +120,9 @@ describe("focusApp", () => {
 		focusApp(ds, "Notes.app");
 
 		expect(ds.System.Manager.Applications.apps["Notes.app"].focused).toBe(true);
-		expect(ds.System.Manager.Applications.apps["Finder.app"].focused).toBe(false);
+		expect(ds.System.Manager.Applications.apps["Finder.app"].focused).toBe(
+			false,
+		);
 	});
 
 	it("opens and focuses the default window when one exists", () => {
@@ -151,9 +156,9 @@ describe("focusApp", () => {
 
 		focusApp(ds, "Notes.app");
 
-		const mainWindow = ds.System.Manager.Applications.apps["Notes.app"].windows.find(
-			(w) => w.id === "main",
-		);
+		const mainWindow = ds.System.Manager.Applications.apps[
+			"Notes.app"
+		].windows.find((w) => w.id === "main");
 		expect(mainWindow?.closed).toBe(false);
 		expect(mainWindow?.focused).toBe(true);
 	});
@@ -194,9 +199,9 @@ describe("focusApp", () => {
 
 		focusApp(ds, "Notes.app");
 
-		const lastWindow = ds.System.Manager.Applications.apps["Notes.app"].windows.find(
-			(w) => w.id === "last",
-		);
+		const lastWindow = ds.System.Manager.Applications.apps[
+			"Notes.app"
+		].windows.find((w) => w.id === "last");
 		expect(lastWindow?.closed).toBe(false);
 		expect(lastWindow?.focused).toBe(true);
 	});
@@ -212,7 +217,9 @@ describe("openApp", () => {
 		const ds = makeStore();
 		openApp(ds, "Calculator.app", "Calculator", "calc-icon.png");
 		expect(ds.System.Manager.Applications.apps["Calculator.app"]).toBeDefined();
-		expect(ds.System.Manager.Applications.apps["Calculator.app"].open).toBe(true);
+		expect(ds.System.Manager.Applications.apps["Calculator.app"].open).toBe(
+			true,
+		);
 	});
 
 	it("sets open=true and reopens windows for an existing app", () => {
@@ -238,9 +245,9 @@ describe("openApp", () => {
 		openApp(ds, "Notes.app", "Notes", "notes-icon.png");
 
 		expect(ds.System.Manager.Applications.apps["Notes.app"].open).toBe(true);
-		expect(ds.System.Manager.Applications.apps["Notes.app"].windows[0].closed).toBe(
-			false,
-		);
+		expect(
+			ds.System.Manager.Applications.apps["Notes.app"].windows[0].closed,
+		).toBe(false);
 	});
 });
 
@@ -268,10 +275,12 @@ describe("closeApp", () => {
 		closeApp(ds, "Notes.app");
 
 		expect(ds.System.Manager.Applications.apps["Notes.app"].open).toBe(false);
-		expect(ds.System.Manager.Applications.apps["Notes.app"].focused).toBe(false);
-		expect(ds.System.Manager.Applications.apps["Notes.app"].windows[0].closed).toBe(
-			true,
+		expect(ds.System.Manager.Applications.apps["Notes.app"].focused).toBe(
+			false,
 		);
+		expect(
+			ds.System.Manager.Applications.apps["Notes.app"].windows[0].closed,
+		).toBe(true);
 	});
 });
 
@@ -308,7 +317,9 @@ describe("activateApp", () => {
 
 		activateApp(ds, "Notes.app");
 
-		expect(ds.System.Manager.Applications.apps["Finder.app"].focused).toBe(false);
+		expect(ds.System.Manager.Applications.apps["Finder.app"].focused).toBe(
+			false,
+		);
 	});
 
 	it("unfocuses windows of other apps", () => {
@@ -335,9 +346,9 @@ describe("activateApp", () => {
 
 		activateApp(ds, "Notes.app");
 
-		expect(ds.System.Manager.Applications.apps["Finder.app"].windows[0].focused).toBe(
-			false,
-		);
+		expect(
+			ds.System.Manager.Applications.apps["Finder.app"].windows[0].focused,
+		).toBe(false);
 	});
 
 	it("does NOT change the windows of the target app (unlike focusApp)", () => {
@@ -364,9 +375,9 @@ describe("activateApp", () => {
 		activateApp(ds, "Notes.app");
 
 		// activateApp only sets app.focused — it does not touch the target app's windows
-		expect(ds.System.Manager.Applications.apps["Notes.app"].windows[0].focused).toBe(
-			false,
-		);
+		expect(
+			ds.System.Manager.Applications.apps["Notes.app"].windows[0].focused,
+		).toBe(false);
 	});
 });
 
@@ -486,9 +497,9 @@ describe("generic OpenFile / CloseFile", () => {
 			path: "Macintosh HD:Documents:readme.txt",
 		});
 
-		expect(ds.System.Manager.Applications.apps["Notes.app"].data?.openFiles).toEqual([
-			"Macintosh HD:Documents:readme.txt",
-		]);
+		expect(
+			ds.System.Manager.Applications.apps["Notes.app"].data?.openFiles,
+		).toEqual(["Macintosh HD:Documents:readme.txt"]);
 		expect(ds.System.Manager.Applications.apps["Notes.app"].open).toBe(true);
 	});
 
@@ -509,9 +520,9 @@ describe("generic OpenFile / CloseFile", () => {
 			path: "Macintosh HD:Documents:readme.txt",
 		});
 
-		expect(ds.System.Manager.Applications.apps["Notes.app"].data?.openFiles).toEqual([
-			"Macintosh HD:Documents:readme.txt",
-		]);
+		expect(
+			ds.System.Manager.Applications.apps["Notes.app"].data?.openFiles,
+		).toEqual(["Macintosh HD:Documents:readme.txt"]);
 	});
 
 	it("removes the path from app.data.openFiles on CloseFile", () => {
@@ -536,9 +547,9 @@ describe("generic OpenFile / CloseFile", () => {
 			path: "Macintosh HD:Documents:readme.txt",
 		});
 
-		expect(ds.System.Manager.Applications.apps["Notes.app"].data?.openFiles).toEqual([
-			"Macintosh HD:Documents:notes.txt",
-		]);
+		expect(
+			ds.System.Manager.Applications.apps["Notes.app"].data?.openFiles,
+		).toEqual(["Macintosh HD:Documents:notes.txt"]);
 	});
 
 	it("is a no-op when the app does not exist", () => {
@@ -757,10 +768,44 @@ describe("file type registration", () => {
 		const ds = makeStore();
 
 		for (const fileType of Object.values(ClassicyFileSystemEntryFileType)) {
-			expect(
-				ds.System.Manager.Applications.fileTypeHandlers[fileType],
-			).toBe("Finder.app");
+			expect(ds.System.Manager.Applications.fileTypeHandlers[fileType]).toBe(
+				"Finder.app",
+			);
 		}
+	});
+});
+
+describe("ClassicyAppFinderOpenFile — QuickTime malformed JSON", () => {
+	it("calls console.warn with context when _data is malformed JSON", () => {
+		const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+		const ds = makeStore();
+
+		classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyAppFinderOpenFile",
+			file: { _creator: "QuickTime", _data: "{ not valid json {{" },
+		});
+
+		expect(warnSpy).toHaveBeenCalledWith(
+			expect.stringContaining("ClassicyAppManager"),
+			expect.objectContaining({ error: expect.any(SyntaxError) }),
+		);
+		warnSpy.mockRestore();
+	});
+
+	it("does not call console.warn when _data is valid JSON", () => {
+		const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+		const ds = makeStore();
+
+		classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyAppFinderOpenFile",
+			file: {
+				_creator: "QuickTime",
+				_data: JSON.stringify({ url: "https://example.com/video.mp4" }),
+			},
+		});
+
+		expect(warnSpy).not.toHaveBeenCalled();
+		warnSpy.mockRestore();
 	});
 });
 
@@ -780,8 +825,12 @@ describe("classicyDesktopStateEventReducer", () => {
 			type: "ClassicyAppOpen",
 			app: { id: "Calculator.app", name: "Calculator", icon: "" },
 		});
-		expect(result.System.Manager.Applications.apps["Calculator.app"]).toBeDefined();
-		expect(result.System.Manager.Applications.apps["Calculator.app"].open).toBe(true);
+		expect(
+			result.System.Manager.Applications.apps["Calculator.app"],
+		).toBeDefined();
+		expect(result.System.Manager.Applications.apps["Calculator.app"].open).toBe(
+			true,
+		);
 	});
 
 	it("routes ClassicyWindowFocus: sets the target window and app as focused", () => {
@@ -813,15 +862,17 @@ describe("classicyDesktopStateEventReducer", () => {
 		});
 
 		// The target app is now focused
-		expect(result.System.Manager.Applications.apps["Finder.app"].focused).toBe(true);
+		expect(result.System.Manager.Applications.apps["Finder.app"].focused).toBe(
+			true,
+		);
 
 		// The target window is focused; the other window is not
-		const w1 = result.System.Manager.Applications.apps["Finder.app"].windows.find(
-			(w) => w.id === "w1",
-		);
-		const w2 = result.System.Manager.Applications.apps["Finder.app"].windows.find(
-			(w) => w.id === "w2",
-		);
+		const w1 = result.System.Manager.Applications.apps[
+			"Finder.app"
+		].windows.find((w) => w.id === "w1");
+		const w2 = result.System.Manager.Applications.apps[
+			"Finder.app"
+		].windows.find((w) => w.id === "w2");
 		expect(w1?.focused).toBe(true);
 		expect(w2?.focused).toBe(false);
 	});
