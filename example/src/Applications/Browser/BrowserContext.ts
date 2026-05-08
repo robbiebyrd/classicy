@@ -29,7 +29,7 @@ export interface BrowserData {
 }
 
 export function isBrowserData(
-	d: Record<string, unknown>,
+	d: unknown,
 ): d is BrowserData {
 	if (d === null || typeof d !== "object") return false;
 	if ("favorites" in d && !Array.isArray(d.favorites) && d.favorites !== undefined)
@@ -94,13 +94,14 @@ export const classicyBrowserEventHandler = (
 			if (!("history" in appData)) {
 				appData = { ...appData, history: [] };
 			}
-			const normalizedUrl = normalizeUrl(action.url);
+			const url = action.url as string;
+			const normalizedUrl = normalizeUrl(url);
 			const history: BrowserHistoryEntry[] = (
 				appData.history as BrowserHistoryEntry[]
 			).filter(
 				(h: BrowserHistoryEntry) => normalizeUrl(h.url) !== normalizedUrl,
 			);
-			history.push({ url: action.url, visitedAt: new Date().toISOString() });
+			history.push({ url, visitedAt: new Date().toISOString() });
 			appData = { ...appData, history: history.slice(-MAX_HISTORY) };
 			break;
 		}

@@ -117,16 +117,10 @@ export const Browser = () => {
 	const appState = useAppManager(
 		(state) => state.System.Manager.Applications.apps[appId],
 	);
-	const browserData: BrowserData = isBrowserData(appState?.data ?? {})
-		? (appState?.data as BrowserData)
-		: {};
+	const rawData = appState?.data ?? {};
+	const browserData: BrowserData = isBrowserData(rawData) ? rawData : {};
 
-	const favorites = useAppManager(
-		(state) => {
-			const raw = state.System.Manager.Applications.apps[appId]?.data ?? {};
-			return (isBrowserData(raw) ? raw.favorites : undefined) ?? ([] as BrowserFavorite[]);
-		},
-	);
+	const favorites: BrowserFavorite[] = browserData.favorites ?? [];
 
 	const proxyConfig: TimeMachineProxyConfig =
 		(browserData.proxyConfig as TimeMachineProxyConfig | undefined) ??
