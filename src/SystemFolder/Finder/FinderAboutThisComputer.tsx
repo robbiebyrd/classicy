@@ -19,7 +19,8 @@ const appId = "Finder.app";
 
 const { version } = packageJson;
 const pkgExtra = packageJson as Record<string, unknown>;
-const release = typeof pkgExtra.release === "string" ? pkgExtra.release : "Classicy";
+const release =
+	typeof pkgExtra.release === "string" ? pkgExtra.release : "Classicy";
 
 export const FinderAboutThisComputer: FunctionalComponent = () => {
 	const dispatch = useAppManagerDispatch();
@@ -30,7 +31,8 @@ export const FinderAboutThisComputer: FunctionalComponent = () => {
 			measureUserAgentSpecificMemory?: () => Promise<MemoryMeasurement>;
 		};
 		if (typeof perf.measureUserAgentSpecificMemory === "function") {
-			perf.measureUserAgentSpecificMemory()
+			perf
+				.measureUserAgentSpecificMemory()
 				.then((result) => setOsUsedMb(result.bytes / (1024 * 1024)))
 				.catch(() => {
 					console.log("Could not measure memory usage, using default value");
@@ -66,7 +68,8 @@ export const FinderAboutThisComputer: FunctionalComponent = () => {
 		>
 			<div className="finderAboutThisComputer">
 				<div className="finderAboutThisComputerHeader">
-					<div className="finderAboutThisComputerBanner"
+					<div
+						className="finderAboutThisComputerBanner"
 						style={{
 							backgroundSize: "cover",
 							backgroundPosition: "bottom left",
@@ -74,7 +77,7 @@ export const FinderAboutThisComputer: FunctionalComponent = () => {
 							backgroundRepeat: "no-repeat",
 						}}
 					>
-						<img src={ClassicyIcons.classicy.logo} alt="Classicy"/>
+						<img src={ClassicyIcons.classicy.logo} alt="Classicy" />
 						{/* <p>{release ?? "Classicy"}</p> */}
 					</div>
 					<div className="finderAboutThisComputerVersion">
@@ -107,10 +110,7 @@ export const FinderAboutThisComputer: FunctionalComponent = () => {
 							{osUsedMb.toFixed(1)} MB
 						</span>
 						<div className="finderAboutThisComputerUsageBar">
-							<ClassicyProgressBar
-								value={osUsedMb}
-								max={BUILT_IN_MEMORY_MB}
-							/>
+							<ClassicyProgressBar value={osUsedMb} max={BUILT_IN_MEMORY_MB} />
 						</div>
 					</div>
 				</div>

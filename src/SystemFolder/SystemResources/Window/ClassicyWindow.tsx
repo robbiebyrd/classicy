@@ -21,9 +21,11 @@ import {
 } from "react";
 
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+
 const fileIcon = ClassicyIcons.system.files.file;
 
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
+import { useClassicyCursor } from "@/SystemFolder/SystemResources/Cursor/useClassicyCursor";
 
 export type ClassicyWindowPositionX = number | "left" | "center" | "right";
 export type ClassicyWindowPositionY = number | "top" | "center" | "bottom";
@@ -131,6 +133,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const clickOffset = [10, 10];
 
 	const { track } = useClassicyAnalytics();
+	const setCursor = useClassicyCursor();
 	const analyticsArgs = useMemo(() => {
 		return {
 			appId,
@@ -538,6 +541,18 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		}
 	};
 
+	const windowStyle = useMemo(
+		() => ({
+			width: size[0] === 0 ? "auto" : size[0],
+			height: ws.collapsed ? "auto" : size[1] === 0 ? "auto" : size[1],
+			left: ws.position[0],
+			top: ws.position[1],
+			minWidth: minimumSize[0],
+			minHeight: ws.collapsed ? 0 : minimumSize[1],
+		}),
+		[size[0], size[1], ws.collapsed, ws.position[0], ws.position[1], minimumSize[0], minimumSize[1]],
+	);
+
 	return (
 		<>
 			{!ws.closed && (
@@ -547,14 +562,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 					id={[appId, id].join("_")}
 					ref={windowRef}
 					role="application"
-					style={{
-						width: size[0] === 0 ? "auto" : size[0],
-						height: ws.collapsed ? "auto" : size[1] === 0 ? "auto" : size[1],
-						left: ws.position[0],
-						top: ws.position[1],
-						minWidth: minimumSize[0],
-						minHeight: ws.collapsed ? 0 : minimumSize[1],
-					}}
+					style={windowStyle}
 					className={classNames(
 						"classicyWindow",
 						ws.collapsed ? "classicyWindowCollapsed" : "",
@@ -614,10 +622,10 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 								<>
 									<div className={"classicyWindowTitleLeft"}></div>
 									{!hideIcon && (
-									<div className={"classicyWindowIcon"}>
-										<img src={icon} alt={title} />
-									</div>
-								)}
+										<div className={"classicyWindowIcon"}>
+											<img src={icon} alt={title} />
+										</div>
+									)}
 									<div className={"classicyWindowTitleText"}>
 										<p>{title}</p>
 									</div>
@@ -698,6 +706,8 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 							role="presentation"
 							onMouseDown={startResizeWindow}
 							onMouseUp={stopChangeWindow}
+							onMouseEnter={() => setCursor("resizeLr")}
+							onMouseLeave={() => setCursor()}
 						></div>
 					)}
 				</div>

@@ -115,7 +115,9 @@ export const Browser = () => {
 	);
 
 	const favorites = useAppManager(
-		(state) => (state.System.Manager.Applications.apps[appId]?.data?.favorites ?? []) as BrowserFavorite[],
+		(state) =>
+			(state.System.Manager.Applications.apps[appId]?.data?.favorites ??
+				[]) as BrowserFavorite[],
 	);
 
 	const proxyConfig: TimeMachineProxyConfig =
@@ -154,7 +156,8 @@ export const Browser = () => {
 		}
 	}, [appState, desktopEventDispatch]);
 
-	const showFavoritesBar: boolean = (appState?.data?.showFavoritesBar as boolean) ?? true;
+	const showFavoritesBar: boolean =
+		(appState?.data?.showFavoritesBar as boolean) ?? true;
 	const [urlError, setUrlError] = useState(false);
 	const [showSettings, setShowSettings] = useState(false);
 	const refToolbar = useRef<HTMLDivElement>(null);
@@ -272,7 +275,11 @@ export const Browser = () => {
 						id: `${appId}_show_favorites`,
 						title: "Show Favorites",
 						className: showFavoritesBar ? "browserMenuItemChecked" : "",
-						onClickFunc: () => desktopEventDispatch({ type: "ClassicyAppBrowserSetShowFavoritesBar", showFavoritesBar: !showFavoritesBar }),
+						onClickFunc: () =>
+							desktopEventDispatch({
+								type: "ClassicyAppBrowserSetShowFavoritesBar",
+								showFavoritesBar: !showFavoritesBar,
+							}),
 					},
 				],
 			},
@@ -399,9 +406,7 @@ export const Browser = () => {
 							/>
 						</ClassicyControlGroup>
 						<div className="browserSettingsButtons">
-							<ClassicyButton
-								onClickFunc={() => setShowSettings(false)}
-							>
+							<ClassicyButton onClickFunc={() => setShowSettings(false)}>
 								Cancel
 							</ClassicyButton>
 							<ClassicyButton isDefault={true} onClickFunc={saveSettings}>
@@ -531,12 +536,16 @@ export const Browser = () => {
 								<ClassicyButton onClickFunc={() => goTo(homePage.url)}>
 									<div className="browserNavButtonContent browserHoverSwap">
 										<img
-											src={ClassicyIcons.applications.internetExplorer.documentHome}
+											src={
+												ClassicyIcons.applications.internetExplorer.documentHome
+											}
 											className="browserIconDefault"
 											alt={homePage.label}
 										/>
 										<img
-											src={ClassicyIcons.applications.internetExplorer.documentHome}
+											src={
+												ClassicyIcons.applications.internetExplorer.documentHome
+											}
 											className="browserIconHover"
 											alt={`${homePage.label} Hover`}
 										/>

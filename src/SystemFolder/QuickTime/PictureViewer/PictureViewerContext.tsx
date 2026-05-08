@@ -3,6 +3,7 @@ import {
 	openApp,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { registerAppEventHandler } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import type { ClassicyQuickTimeDocument } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerContext";
 import { PictureViewerAppInfo } from "@/SystemFolder/QuickTime/PictureViewer/PictureViewerUtils";
 
@@ -34,9 +35,9 @@ export const classicyQuickTimePictureViewerEventHandler = (
 		ds.System.Manager.Applications.apps[appId].data.openFiles = [];
 	}
 
-	const openDocUrls = ds.System.Manager.Applications.apps[appId].data.openFiles.map(
-		(of: ClassicyQuickTimeDocument) => of.url,
-	);
+	const openDocUrls = ds.System.Manager.Applications.apps[
+		appId
+	].data.openFiles.map((of: ClassicyQuickTimeDocument) => of.url);
 
 	switch (action.type) {
 		case "ClassicyAppPictureViewerOpenDocument": {
@@ -86,3 +87,10 @@ export const classicyQuickTimePictureViewerEventHandler = (
 	}
 	return ds;
 };
+
+// Self-register so the kernel router can dispatch ClassicyAppPictureViewer* events
+// without a hard-wired import.
+registerAppEventHandler(
+	"ClassicyAppPictureViewer",
+	classicyQuickTimePictureViewerEventHandler,
+);

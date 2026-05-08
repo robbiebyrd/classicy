@@ -107,11 +107,11 @@ export const classicyWindowEventHandler = (
 		updates: Partial<ClassicyStoreSystemAppWindow>,
 	) => {
 		if (!ds.System.Manager.Applications.apps[appId]) return ds;
-		ds.System.Manager.Applications.apps[appId].windows = ds.System.Manager.Applications.apps[
-			appId
-		].windows.map((w: ClassicyStoreSystemAppWindow) =>
-			w.id === windowId ? { ...w, ...updates } : w,
-		);
+		ds.System.Manager.Applications.apps[appId].windows =
+			ds.System.Manager.Applications.apps[appId].windows.map(
+				(w: ClassicyStoreSystemAppWindow) =>
+					w.id === windowId ? { ...w, ...updates } : w,
+			);
 		return ds;
 	};
 
@@ -128,7 +128,8 @@ export const classicyWindowEventHandler = (
 					action.window.position[1] === 0
 				) {
 					const length =
-						ds.System.Manager.Applications.apps[action.app.id].windows.length * 10;
+						ds.System.Manager.Applications.apps[action.app.id].windows.length *
+						10;
 					paddedPosition = [30 + length, 30 + length];
 				}
 				ds.System.Manager.Applications.apps[action.app.id].windows.push({

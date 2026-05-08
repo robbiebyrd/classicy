@@ -327,3 +327,133 @@ describe("getInitialState — localStorage behaviour (via module re-import)", ()
 		warnSpy.mockRestore();
 	});
 });
+
+// ─── Persistence exclusions ───────────────────────────────────────────────────
+
+describe("persistence exclusions", () => {
+	let dispatch: typeof import("@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils")["dispatch"];
+	let useAppManager: typeof import("@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils")["useAppManager"];
+	let stopAppManagerPersistence: typeof import("@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils")["stopAppManagerPersistence"];
+
+	beforeEach(async () => {
+		vi.useFakeTimers();
+		vi.resetModules();
+		localStorage.clear();
+
+		// Import ClassicyAppManager first so we can register test event handlers
+		// in the fresh module instance, before the utils module auto-starts persistence.
+		const appManagerMod = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager"
+		);
+
+		// Register a test handler that populates Browser.app data.history.
+		appManagerMod.registerAppEventHandler(
+			"ClassicyAppBrowserTest",
+			(ds: import("@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager").ClassicyStore, action) => {
+				if (action.type === "ClassicyAppBrowserTestSetHistory") {
+					const appId = "Browser.app";
+					if (!ds.System.Manager.Applications.apps[appId]) return ds;
+					ds.System.Manager.Applications.apps[appId].data = {
+						...(ds.System.Manager.Applications.apps[appId].data ?? {}),
+						history: (action as { type: string; history: unknown[] }).history,
+					};
+				}
+				return ds;
+			},
+		);
+
+		const mod = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils"
+		);
+		dispatch = mod.dispatch;
+		useAppManager = mod.useAppManager;
+		stopAppManagerPersistence = mod.stopAppManagerPersistence;
+	});
+
+	afterEach(() => {
+		stopAppManagerPersistence();
+		localStorage.clear();
+		vi.useRealTimers();
+	});
+
+	it("excludes Browser.app data.history from localStorage snapshot", () => {
+		// Open Browser.app so it exists in state
+		dispatch({
+			type: "ClassicyAppOpen",
+			app: { id: "Browser.app", name: "Browser", icon: "" },
+		});
+		// Populate history via the registered test handler
+		dispatch({
+			type: "ClassicyAppBrowserTestSetHistory",
+			history: [{ url: "https://example.com", visitedAt: "2024-01-01T00:00:00Z" }],
+		} as Parameters<typeof dispatch>[0]);
+
+		vi.advanceTimersByTime(500);
+
+		const raw = localStorage.getItem("classicyDesktopState");
+		expect(raw).not.toBeNull();
+		const parsed = JSON.parse(raw ?? "");
+		const browserApp = parsed.System?.Manager?.Applications?.apps?.["Browser.app"];
+		expect(browserApp).toBeDefined();
+		// history must NOT appear in the persisted snapshot
+		expect(browserApp.data?.history).toBeUndefined();
+	});
+
+	it("does not mutate live state when stripping history for persistence", () => {
+		dispatch({
+			type: "ClassicyAppOpen",
+			app: { id: "Browser.app", name: "Browser", icon: "" },
+		});
+		dispatch({
+			type: "ClassicyAppBrowserTestSetHistory",
+			history: [{ url: "https://example.com", visitedAt: "2024-01-01T00:00:00Z" }],
+		} as Parameters<typeof dispatch>[0]);
+
+		vi.advanceTimersByTime(500);
+
+		// Live store must still hold the history after persistence ran
+		const liveState = useAppManager.getState();
+		const liveHistory =
+			liveState.System.Manager.Applications.apps["Browser.app"].data?.history;
+		expect(liveHistory).toBeDefined();
+		expect(Array.isArray(liveHistory)).toBe(true);
+	});
+
+	it("does not strip history from non-Browser apps", async () => {
+		// Register a second handler for a non-Browser app with a history field
+		const appManagerMod = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager"
+		);
+		appManagerMod.registerAppEventHandler(
+			"ClassicyAppOtherTest",
+			(ds: import("@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager").ClassicyStore, action) => {
+				if (action.type === "ClassicyAppOtherTestSetHistory") {
+					const appId = "Other.app";
+					if (!ds.System.Manager.Applications.apps[appId]) return ds;
+					ds.System.Manager.Applications.apps[appId].data = {
+						...(ds.System.Manager.Applications.apps[appId].data ?? {}),
+						history: (action as { type: string; history: unknown[] }).history,
+					};
+				}
+				return ds;
+			},
+		);
+
+		dispatch({
+			type: "ClassicyAppOpen",
+			app: { id: "Other.app", name: "Other", icon: "" },
+		});
+		dispatch({
+			type: "ClassicyAppOtherTestSetHistory",
+			history: [{ url: "https://example.com" }],
+		} as Parameters<typeof dispatch>[0]);
+
+		vi.advanceTimersByTime(500);
+
+		const raw = localStorage.getItem("classicyDesktopState");
+		const parsed = JSON.parse(raw ?? "");
+		const otherApp = parsed.System?.Manager?.Applications?.apps?.["Other.app"];
+		// history on non-Browser apps must be preserved as-is
+		expect(otherApp?.data?.history).toBeDefined();
+	});
+});

@@ -173,19 +173,20 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 			{isAppOpen() && (
 				<>
 					{children}
-					{!handlesOwnFiles && openFiles.map((filePath: string, idx: number) => (
-						<ClassicyWindow
-							key={`${id}_file_${filePath}`}
-							id={`${id}_file_${filePath}`}
-							title={filePath.split(":").pop() || filePath}
-							appId={id}
-							initialSize={[400, 200]}
-							initialPosition={[100 + idx * 30, 100 + idx * 30]}
-							onCloseFunc={() => closeFile(filePath)}
-						>
-							<span>{filePath}</span>
-						</ClassicyWindow>
-					))}
+					{!handlesOwnFiles &&
+						openFiles.map((filePath: string, idx: number) => (
+							<ClassicyWindow
+								key={`${id}_file_${filePath}`}
+								id={`${id}_file_${filePath}`}
+								title={filePath.split(":").pop() || filePath}
+								appId={id}
+								initialSize={[400, 200]}
+								initialPosition={[100 + idx * 30, 100 + idx * 30]}
+								onCloseFunc={() => closeFile(filePath)}
+							>
+								<span>{filePath}</span>
+							</ClassicyWindow>
+						))}
 					{debug && (
 						<ClassicyWindow
 							initialSize={[400, 300]}

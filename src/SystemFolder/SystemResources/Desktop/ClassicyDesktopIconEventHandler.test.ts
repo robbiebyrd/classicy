@@ -45,9 +45,10 @@ function makeStore(): ClassicyStore {
 						},
 					},
 					fileTypeHandlers: Object.fromEntries(
-						Object.values(ClassicyFileSystemEntryFileType).map(
-							(type) => [type, "Finder.app"],
-						),
+						Object.values(ClassicyFileSystemEntryFileType).map((type) => [
+							type,
+							"Finder.app",
+						]),
 					) as Record<ClassicyFileSystemEntryFileType, string>,
 				},
 				Appearance: {
@@ -182,7 +183,9 @@ describe("classicyDesktopIconEventHandler — ClassicyDesktopIconFocus", () => {
 			iconId: "Notes.app",
 		});
 
-		expect(ds.System.Manager.Applications.apps["Finder.app"].focused).toBe(true);
+		expect(ds.System.Manager.Applications.apps["Finder.app"].focused).toBe(
+			true,
+		);
 		expect(ds.System.Manager.Applications.apps["SomeApp"].focused).toBe(false);
 	});
 });

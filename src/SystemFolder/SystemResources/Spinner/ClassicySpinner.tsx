@@ -231,7 +231,11 @@ export const ClassicySpinner: FunctionalComponent<ClassicySpinnerProps> =
 							onMouseUp={stopRepeat}
 							onMouseLeave={stopRepeat}
 						>
-							<img src={ClassicyIcons.ui.menuDropdownArrowUp} alt="Decrement" style={{transform: "scaleY(-1)"}} />
+							<img
+								src={ClassicyIcons.ui.menuDropdownArrowUp}
+								alt="Decrement"
+								style={{ transform: "scaleY(-1)" }}
+							/>
 						</button>
 					</div>
 				</div>

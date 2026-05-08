@@ -78,9 +78,7 @@ export const classicyDesktopEventHandler = (
 		}
 		case "ClassicyDesktopFocus": {
 			if ("e" in action && action.e.target.id === "classicyDesktop") {
-				for (const app of Object.values(
-					ds.System.Manager.Applications.apps,
-				)) {
+				for (const app of Object.values(ds.System.Manager.Applications.apps)) {
 					app.focused = false;
 					for (const w of app.windows) w.focused = false;
 				}
@@ -174,8 +172,7 @@ export const classicyDesktopEventHandler = (
 			break;
 		}
 		case "ClassicyDesktopSetBalloonHelp": {
-			ds.System.Manager.Desktop.disableBalloonHelp =
-				action.disableBalloonHelp;
+			ds.System.Manager.Desktop.disableBalloonHelp = action.disableBalloonHelp;
 			break;
 		}
 		case "ClassicyDesktopShowErrorDialog": {

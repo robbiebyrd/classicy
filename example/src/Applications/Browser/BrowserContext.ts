@@ -1,7 +1,4 @@
-import type {
-	ActionMessage,
-	ClassicyStore,
-} from "classicy";
+import type { ActionMessage, ClassicyStore } from "classicy";
 import { registerAppEventHandler } from "classicy";
 import { normalizeUrl } from "./browserUtils";
 
@@ -25,11 +22,15 @@ export const classicyBrowserEventHandler = (
 ) => {
 	const appId = "Browser.app";
 	if (!ds.System.Manager.Applications.apps[appId]) return ds;
-	let appData: Record<string, unknown> = ds.System.Manager.Applications.apps[appId].data ?? {};
+	let appData: Record<string, unknown> =
+		ds.System.Manager.Applications.apps[appId].data ?? {};
 
 	switch (action.type) {
 		case "ClassicyAppBrowserSetHomePage": {
-			appData = { ...appData, homePage: { url: action.url, label: action.label, icon: action.icon } };
+			appData = {
+				...appData,
+				homePage: { url: action.url, label: action.label, icon: action.icon },
+			};
 			break;
 		}
 		case "ClassicyAppBrowserInitFavorites": {
@@ -39,12 +40,23 @@ export const classicyBrowserEventHandler = (
 			break;
 		}
 		case "ClassicyAppBrowserAddFavorite": {
-			appData = { ...appData, favorites: [...(appData.favorites as BrowserFavorite[] ?? []), action.favorite] };
+			appData = {
+				...appData,
+				favorites: [
+					...((appData.favorites as BrowserFavorite[]) ?? []),
+					action.favorite,
+				],
+			};
 			break;
 		}
 		case "ClassicyAppBrowserRemoveFavorite": {
 			if (!appData.favorites) break;
-			appData = { ...appData, favorites: (appData.favorites as BrowserFavorite[]).filter((f) => f.id !== action.id) };
+			appData = {
+				...appData,
+				favorites: (appData.favorites as BrowserFavorite[]).filter(
+					(f) => f.id !== action.id,
+				),
+			};
 			break;
 		}
 		case "ClassicyAppBrowserRecordVisit": {
@@ -52,7 +64,9 @@ export const classicyBrowserEventHandler = (
 				appData = { ...appData, history: [] };
 			}
 			const normalizedUrl = normalizeUrl(action.url);
-			const history: BrowserHistoryEntry[] = (appData.history as BrowserHistoryEntry[]).filter(
+			const history: BrowserHistoryEntry[] = (
+				appData.history as BrowserHistoryEntry[]
+			).filter(
 				(h: BrowserHistoryEntry) => normalizeUrl(h.url) !== normalizedUrl,
 			);
 			history.push({ url: action.url, visitedAt: new Date().toISOString() });

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { classicyDesktopStateEventReducer } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { classicyQuickTimeMoviePlayerEventHandler } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerContext";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 
@@ -53,9 +54,10 @@ function makeStore(): ClassicyStore {
 						},
 					},
 					fileTypeHandlers: Object.fromEntries(
-						Object.values(ClassicyFileSystemEntryFileType).map(
-							(type) => [type, "Finder.app"],
-						),
+						Object.values(ClassicyFileSystemEntryFileType).map((type) => [
+							type,
+							"Finder.app",
+						]),
 					) as Record<ClassicyFileSystemEntryFileType, string>,
 				},
 				Appearance: {
@@ -95,7 +97,8 @@ describe("classicyQuickTimeMoviePlayerEventHandler — ClassicyAppMoviePlayerOpe
 			result.System.Manager.Applications.apps["MoviePlayer.app"].data.openFiles,
 		).toHaveLength(1);
 		expect(
-			result.System.Manager.Applications.apps["MoviePlayer.app"].data.openFiles[0].url,
+			result.System.Manager.Applications.apps["MoviePlayer.app"].data
+				.openFiles[0].url,
 		).toBe(doc.url);
 	});
 
@@ -139,7 +142,9 @@ describe("classicyQuickTimeMoviePlayerEventHandler — ClassicyAppMoviePlayerOpe
 			document: doc,
 		});
 
-		expect(result.System.Manager.Applications.apps["MoviePlayer.app"].open).toBe(true);
+		expect(
+			result.System.Manager.Applications.apps["MoviePlayer.app"].open,
+		).toBe(true);
 	});
 });
 
@@ -193,7 +198,9 @@ describe("classicyQuickTimeMoviePlayerEventHandler — ClassicyAppMoviePlayerOpe
 			documents: [{ url: "http://example.com/a.mp4", name: "A" }],
 		});
 
-		expect(result.System.Manager.Applications.apps["MoviePlayer.app"].open).toBe(true);
+		expect(
+			result.System.Manager.Applications.apps["MoviePlayer.app"].open,
+		).toBe(true);
 	});
 });
 
@@ -214,7 +221,8 @@ describe("classicyQuickTimeMoviePlayerEventHandler — ClassicyAppMoviePlayerClo
 			result.System.Manager.Applications.apps["MoviePlayer.app"].data.openFiles,
 		).toHaveLength(1);
 		expect(
-			result.System.Manager.Applications.apps["MoviePlayer.app"].data.openFiles[0].url,
+			result.System.Manager.Applications.apps["MoviePlayer.app"].data
+				.openFiles[0].url,
 		).toBe("http://example.com/b.mp4");
 	});
 
@@ -244,6 +252,28 @@ describe("classicyQuickTimeMoviePlayerEventHandler — guard", () => {
 			document: { url: "http://example.com/movie.mp4" },
 		});
 
-		expect(result.System.Manager.Applications.apps["MoviePlayer.app"]).toBeUndefined();
+		expect(
+			result.System.Manager.Applications.apps["MoviePlayer.app"],
+		).toBeUndefined();
+	});
+});
+
+describe("classicyDesktopStateEventReducer routes ClassicyAppMoviePlayer* events", () => {
+	it("routes ClassicyAppMoviePlayerOpenDocument via the reducer", () => {
+		const ds = makeStoreWithMoviePlayer();
+		const doc = { url: "http://example.com/routed.mp4", name: "Routed" };
+
+		const result = classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyAppMoviePlayerOpenDocument",
+			document: doc,
+		});
+
+		expect(
+			result.System.Manager.Applications.apps["MoviePlayer.app"].data.openFiles,
+		).toHaveLength(1);
+		expect(
+			result.System.Manager.Applications.apps["MoviePlayer.app"].data
+				.openFiles[0].url,
+		).toBe(doc.url);
 	});
 });

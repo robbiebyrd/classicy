@@ -1,5 +1,6 @@
 import { openApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { registerAppEventHandler } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { MoviePlayerAppInfo } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerUtils";
 
 export type ClassicyQuickTimeDocument = {
@@ -32,9 +33,9 @@ export const classicyQuickTimeMoviePlayerEventHandler = (
 		ds.System.Manager.Applications.apps[appId].data.openFiles = [];
 	}
 
-	const openDocUrls = ds.System.Manager.Applications.apps[appId]?.data.openFiles.map(
-		(app: ClassicyQuickTimeDocument) => app.url,
-	);
+	const openDocUrls = ds.System.Manager.Applications.apps[
+		appId
+	]?.data.openFiles.map((app: ClassicyQuickTimeDocument) => app.url);
 
 	switch (action.type) {
 		case "ClassicyAppMoviePlayerOpenDocument": {
@@ -91,3 +92,10 @@ export const classicyQuickTimeMoviePlayerEventHandler = (
 	}
 	return ds;
 };
+
+// Self-register so the kernel router can dispatch ClassicyAppMoviePlayer* events
+// without a hard-wired import.
+registerAppEventHandler(
+	"ClassicyAppMoviePlayer",
+	classicyQuickTimeMoviePlayerEventHandler,
+);

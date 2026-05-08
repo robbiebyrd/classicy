@@ -10,6 +10,7 @@ import {
 	focusApp,
 	loadApp,
 	openApp,
+	registerAppEventHandler,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 
@@ -806,6 +807,23 @@ describe("ClassicyAppFinderOpenFile — QuickTime malformed JSON", () => {
 
 		expect(warnSpy).not.toHaveBeenCalled();
 		warnSpy.mockRestore();
+	});
+});
+
+describe("registerAppEventHandler — idempotency", () => {
+	it("does not register the same prefix twice — second call is a no-op", () => {
+		// Register with a unique prefix so we don't collide with other tests.
+		// Register twice; without the guard the handler would be invoked twice.
+		const handler = vi.fn((ds: ClassicyStore) => ds);
+		const uniquePrefix = `ClassicyAppIdempotencyTest_${Date.now()}`;
+
+		registerAppEventHandler(uniquePrefix, handler);
+		registerAppEventHandler(uniquePrefix, handler);
+
+		const ds = makeStore();
+		classicyDesktopStateEventReducer(ds, { type: `${uniquePrefix}Action` });
+
+		expect(handler).toHaveBeenCalledTimes(1);
 	});
 });
 

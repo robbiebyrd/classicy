@@ -100,9 +100,7 @@ export const ClassicyIcons = {
 			documentShortcutEdit: icon(
 				"applications/internet-explorer/document-shortcut-edit.png",
 			),
-			documentSound: icon(
-				"applications/internet-explorer/document-sound.png",
-			),
+			documentSound: icon("applications/internet-explorer/document-sound.png"),
 			documentWarning: icon(
 				"applications/internet-explorer/document-warning.png",
 			),
@@ -471,5 +469,22 @@ export const ClassicyIcons = {
 		menuDropdownArrows: ui("menu-dropdown-arrows.svg"),
 		stripe: ui("stripe.svg"),
 		tab: ui("tab.svg"),
+		cursors: {
+			add: ui("cursors/cursor-add.png"),
+			eyedropper: ui("cursors/cursor-eyedropper.png"),
+			handCounting: ui("cursors/cursor-hand-counting.png"),
+			hand: ui("cursors/cursor-hand.png"),
+			highlight: ui("cursors/cursor-highlight.png"),
+			menu: ui("cursors/cursor-menu.png"),
+			plus: ui("cursors/cursor-plus.png"),
+			resizeL: ui("cursors/cursor-resize-l.png"),
+			resizeLr: ui("cursors/cursor-resize-lr.png"),
+			resizeR: ui("cursors/cursor-resize-r.png"),
+			rom: ui("cursors/cursor-rom.png"),
+			shortcut: ui("cursors/cursor-shortcut.png"),
+			spin: ui("cursors/cursor-spin.png"),
+			watch: ui("cursors/cursor-watch.png"),
+			precision: ui("cursors/cursor-precision.png"),
+		},
 	},
 };

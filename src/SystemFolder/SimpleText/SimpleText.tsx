@@ -1,28 +1,41 @@
-import { useCallback, useMemo } from "react";
-import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
-import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import { useCallback, useMemo, useState } from "react";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
-import { ClassicyRichTextEditor } from "@/SystemFolder/SystemResources/RichTextEditor/ClassicyRichTextEditor";
-import { ClassicyTextEditor } from "@/SystemFolder/SystemResources/TextEditor/ClassicyTextEditor";
-import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
-import { quitMenuItemHelper } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
 import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
+import { quitMenuItemHelper } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
+import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
+import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import { ClassicyRichTextEditor } from "@/SystemFolder/SystemResources/RichTextEditor/ClassicyRichTextEditor";
+import { ClassicyTextEditor } from "@/SystemFolder/SystemResources/TextEditor/ClassicyTextEditor";
+import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
+
+const appName = "SimpleText";
+const appId = "SimpleText.app";
+const appIcon = ClassicyIcons.applications.simpletext.app;
+
+const baseMenu = [
+	{
+		id: "file",
+		title: "File",
+		menuChildren: [quitMenuItemHelper(appId, appName, appIcon)],
+	},
+];
 
 export const SimpleText = () => {
-	const appName = "SimpleText";
-	const appId = "SimpleText.app";
-	const appIcon = ClassicyIcons.applications.simpletext.app;
-
 	const desktopEventDispatch = useAppManagerDispatch();
 	const appState = useAppManager(
 		(state) => state.System.Manager.Applications.apps[appId],
 	);
 
 	const fs = useMemo(() => new ClassicyFileSystem(), []);
+
+	// fileTypeOverrides tracks in-session type toggles keyed by file path
+	const [fileTypeOverrides, setFileTypeOverrides] = useState<
+		Record<string, ClassicyFileSystemEntryFileType>
+	>({});
 
 	const openFiles: string[] = appState?.data?.openFiles ?? [];
 
@@ -37,15 +50,54 @@ export const SimpleText = () => {
 		[desktopEventDispatch],
 	);
 
+	const toggleFileType = useCallback(
+		(filePath: string, currentType: ClassicyFileSystemEntryFileType) => {
+			const nextType =
+				currentType === ClassicyFileSystemEntryFileType.Markdown
+					? ClassicyFileSystemEntryFileType.TextFile
+					: ClassicyFileSystemEntryFileType.Markdown;
+
+			// Persist the new type onto the filesystem entry and save to localStorage
+			const entry = fs.resolve(filePath);
+			if (entry) {
+				entry._type = nextType;
+				try {
+					localStorage.setItem(fs.storageKey, fs.snapshot());
+				} catch (e) {
+					console.error("[SimpleText] Failed to persist file type change", e);
+				}
+			}
+
+			setFileTypeOverrides((prev) => ({ ...prev, [filePath]: nextType }));
+		},
+		[fs],
+	);
+
 	const defaultText = ``;
 
-	const appMenu = [
-		{
-			id: "file",
-			title: "File",
-			menuChildren: [quitMenuItemHelper(appId, appName, appIcon)],
+	const buildAppMenu = useCallback(
+		(filePath: string, currentType: ClassicyFileSystemEntryFileType) => {
+			const isMarkdown =
+				currentType === ClassicyFileSystemEntryFileType.Markdown;
+			return [
+				...baseMenu,
+				{
+					id: "format",
+					title: "Format",
+					menuChildren: [
+						{
+							id: "toggle-format",
+							title: isMarkdown
+								? "View as Plain Text"
+								: "View as Rich Text",
+							onClickFunc: () => toggleFileType(filePath, currentType),
+						},
+					],
+				},
+			];
 		},
-	];
+		[toggleFileType],
+	);
 
 	return (
 		<ClassicyApp
@@ -66,16 +118,16 @@ export const SimpleText = () => {
 					appId={appId}
 					initialSize={[100, 500]}
 					initialPosition={[350, 100]}
-					appMenu={appMenu}
+					appMenu={baseMenu}
 				>
 					<ClassicyRichTextEditor content={defaultText} />
 				</ClassicyWindow>
 			)}
 			{openFiles.map((filePath: string, idx: number) => {
 				const entry = fs.resolve(filePath);
-				const content =
-					typeof entry?._data === "string" ? entry._data : "";
-				const fileType = entry?._type as ClassicyFileSystemEntryFileType;
+				const content = typeof entry?._data === "string" ? entry._data : "";
+				const storedType = entry?._type as ClassicyFileSystemEntryFileType;
+				const fileType = fileTypeOverrides[filePath] ?? storedType;
 				const fileName = filePath.split(":").pop() || filePath;
 
 				return (
@@ -86,7 +138,7 @@ export const SimpleText = () => {
 						appId={appId}
 						initialSize={[400, 350]}
 						initialPosition={[200 + idx * 30, 100 + idx * 30]}
-						appMenu={appMenu}
+						appMenu={buildAppMenu(filePath, fileType)}
 						onCloseFunc={() => closeFile(filePath)}
 					>
 						{fileType === ClassicyFileSystemEntryFileType.Markdown ? (
@@ -100,4 +152,3 @@ export const SimpleText = () => {
 		</ClassicyApp>
 	);
 };
-

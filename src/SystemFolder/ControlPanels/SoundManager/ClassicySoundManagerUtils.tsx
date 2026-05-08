@@ -5,8 +5,8 @@ import { createContext, type Dispatch } from "react";
 import { ClassicySounds } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicySounds";
 import type { ClassicyStoreSystemManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
-	SoundDataSchema,
 	type SoundData,
+	SoundDataSchema,
 } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundSchema";
 import soundLabels from "./ClassicySoundManagerLabels.json";
 
@@ -59,8 +59,8 @@ export interface ClassicySoundAction {
 	volume?: number;
 }
 
-export { SoundDataSchema };
 export type { SoundData };
+export { SoundDataSchema };
 
 export interface SoundPlayer {
 	soundData: SoundData;

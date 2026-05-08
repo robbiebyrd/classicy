@@ -41,3 +41,4 @@ example/public/pager/
 .claude
 example/timemachine/cache
 /.playwright-mcp
+/.husky/post-commit

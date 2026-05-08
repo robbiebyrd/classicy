@@ -56,8 +56,10 @@ export const ClassicyAboutWindow: FunctionalComponent<
 		>
 			<div className={"aboutWindow"}>
 				<img src={appIcon} alt="About" />
-				<h1 style={{fontFamily: "var(--header-font)"}}>{appName}</h1>
-				<h5 style={{fontFamily: "var(--ui-font)"}}>Not Copyright &copy; 1997 Apple Computer, Inc.</h5>
+				<h1 style={{ fontFamily: "var(--header-font)" }}>{appName}</h1>
+				<h5 style={{ fontFamily: "var(--ui-font)" }}>
+					Not Copyright &copy; 1997 Apple Computer, Inc.
+				</h5>
 				<ClassicyButton onClickFunc={hideFunc}>OK</ClassicyButton>
 			</div>
 		</ClassicyWindow>

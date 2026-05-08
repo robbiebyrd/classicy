@@ -2,6 +2,7 @@ import type {
 	ActionMessage,
 	ClassicyStore,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { registerAppEventHandler } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 
 export const classicyFinderEventHandler = (
 	ds: ClassicyStore,
@@ -82,3 +83,9 @@ export const classicyFinderEventHandler = (
 	ds.System.Manager.Applications.apps[appId].data = { ...appData };
 	return ds;
 };
+
+// Self-register so the kernel router can dispatch ClassicyAppFinder* events
+// without a hard-wired import.
+// Note: ClassicyAppFinderOpenFile cross-app orchestration is handled at the
+// top level of classicyDesktopStateEventReducer before prefix routing.
+registerAppEventHandler("ClassicyAppFinder", classicyFinderEventHandler);

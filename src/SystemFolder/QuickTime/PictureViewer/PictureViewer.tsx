@@ -1,5 +1,6 @@
 import "./PictureViewer.scss";
 import { type FC as FunctionalComponent, useEffect, useMemo } from "react";
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -12,16 +13,18 @@ import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import { quitMenuItemHelper } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 const defaultDocumentIcon = ClassicyIcons.system.quicktime.movie;
-
 
 export const QuickTimePictureViewer: FunctionalComponent = () => {
 	const { name: appName, id: appId, icon: appIcon } = PictureViewerAppInfo;
 
 	const desktopEventDispatch = useAppManagerDispatch();
-	const appData = useAppManager((s) => s.System.Manager.Applications.apps[appId]?.data);
-	const appOpen = useAppManager((s) => s.System.Manager.Applications.apps[appId]?.open);
+	const appData = useAppManager(
+		(s) => s.System.Manager.Applications.apps[appId]?.data,
+	);
+	const appOpen = useAppManager(
+		(s) => s.System.Manager.Applications.apps[appId]?.open,
+	);
 
 	const openDocuments =
 		appData && "openFiles" in appData ? appData.openFiles : [];

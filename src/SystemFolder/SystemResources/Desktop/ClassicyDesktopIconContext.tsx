@@ -29,17 +29,6 @@ const getGridPosition = (
 	];
 };
 
-const getGridPositionByCount = (count: number, theme: ClassicyTheme) => {
-	const [iconSize, iconPadding] = getIconSize(theme);
-	const grid = createGrid(iconSize, iconPadding);
-	const maxRows = Math.max(grid[1], 1);
-
-	const col = Math.floor(count / maxRows) + 1;
-	const row = count % maxRows;
-
-	return getGridPosition(iconSize, iconPadding, col, row);
-};
-
 export const getIconSize = (theme: ClassicyTheme) => {
 	return [theme.desktop.iconSize, theme.desktop.iconSize / 4];
 };
@@ -191,8 +180,9 @@ export const classicyDesktopIconEventHandler = (
 			if (iconIdx === -1) break;
 
 			const selected = ds.System.Manager.Desktop.selectedIcons ?? [];
-			const oldLocation =
-				ds.System.Manager.Desktop.icons[iconIdx].location ?? [0, 0];
+			const oldLocation = ds.System.Manager.Desktop.icons[iconIdx].location ?? [
+				0, 0,
+			];
 			const newLocation: [number, number] = action.location;
 
 			if (selected.length > 1 && selected.includes(action.app.id)) {
@@ -203,8 +193,9 @@ export const classicyDesktopIconEventHandler = (
 						(icon) => icon.appId === selId,
 					);
 					if (selIdx > -1) {
-						const selLoc =
-							ds.System.Manager.Desktop.icons[selIdx].location ?? [0, 0];
+						const selLoc = ds.System.Manager.Desktop.icons[selIdx].location ?? [
+							0, 0,
+						];
 						ds.System.Manager.Desktop.icons[selIdx].location = [
 							selLoc[0] + dx,
 							selLoc[1] + dy,

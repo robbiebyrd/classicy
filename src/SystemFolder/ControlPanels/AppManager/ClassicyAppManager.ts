@@ -15,10 +15,7 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
 import { classicyDateTimeManagerEventHandler } from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeEventHandler";
 import type { ClassicyStoreSystemSoundManager } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
-import { classicyFinderEventHandler } from "@/SystemFolder/Finder/FinderContext";
-import { classicyQuickTimeMoviePlayerEventHandler } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerContext";
 import { MoviePlayerAppInfo } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerUtils";
-import { classicyQuickTimePictureViewerEventHandler } from "@/SystemFolder/QuickTime/PictureViewer/PictureViewerContext";
 import { classicyDesktopIconEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconContext";
 import {
 	type ClassicyStoreSystemDesktopManager,
@@ -144,12 +141,32 @@ const pluginEventHandlers: Array<{
  * Register an event handler for a given action type prefix.
  * Call this at module load time from your app's context file.
  * Handlers are checked before the generic ClassicyApp* handler.
+ * Registering the same prefix a second time is a no-op.
  */
 export function registerAppEventHandler(
 	prefix: string,
 	handler: AppEventHandler,
 ): void {
+	if (pluginEventHandlers.some((entry) => entry.prefix === prefix)) {
+		return;
+	}
 	pluginEventHandlers.push({ prefix, handler });
+}
+
+/**
+ * Dispatch an action to the registered handler for the given prefix.
+ * Used for internal cross-app orchestration without a direct import.
+ */
+function dispatchToPlugin(
+	ds: ClassicyStore,
+	prefix: string,
+	action: ActionMessage,
+): ClassicyStore {
+	const plugin = pluginEventHandlers.find((entry) => entry.prefix === prefix);
+	if (plugin) {
+		return plugin.handler(ds, action);
+	}
+	return ds;
 }
 
 export const classicyAppEventHandler = (
@@ -305,7 +322,7 @@ export const classicyDesktopStateEventReducer = (
 						type: "ClassicyAppOpen",
 						app: MoviePlayerAppInfo,
 					});
-					ds = classicyQuickTimeMoviePlayerEventHandler(ds, {
+					ds = dispatchToPlugin(ds, "ClassicyAppMoviePlayer", {
 						type: "ClassicyAppMoviePlayerOpenDocument",
 						document: document as { url: string },
 					});
@@ -342,12 +359,6 @@ export const classicyDesktopStateEventReducer = (
 			}
 		} else if (action.type.startsWith("ClassicyWindow")) {
 			ds = classicyWindowEventHandler(ds, action);
-		} else if (action.type.startsWith("ClassicyAppFinder")) {
-			ds = classicyFinderEventHandler(ds, action);
-		} else if (action.type.startsWith("ClassicyAppMoviePlayer")) {
-			ds = classicyQuickTimeMoviePlayerEventHandler(ds, action);
-		} else if (action.type.startsWith("ClassicyAppPictureViewer")) {
-			ds = classicyQuickTimePictureViewerEventHandler(ds, action);
 		} else if (action.type.startsWith("ClassicyDesktopIcon")) {
 			ds = classicyDesktopIconEventHandler(ds, action);
 		} else if (action.type.startsWith("ClassicyDesktop")) {

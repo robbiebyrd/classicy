@@ -56,7 +56,12 @@ export const ClassicyCheckbox: FunctionalComponent<ClassicyCheckboxProps> = ({
 				labelPositionClass(labelPosition),
 			)}
 		>
-			<ClassicyControlLabel label={label} labelFor={id} labelSize={labelSize} disabled={disabled} />
+			<ClassicyControlLabel
+				label={label}
+				labelFor={id}
+				labelSize={labelSize}
+				disabled={disabled}
+			/>
 			<input
 				type={"checkbox"}
 				onChange={handleOnClick}

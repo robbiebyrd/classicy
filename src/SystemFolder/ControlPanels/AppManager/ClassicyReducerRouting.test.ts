@@ -47,15 +47,14 @@ function makeStore(): ClassicyStore {
 							focused: true,
 							noDesktopIcon: true,
 							data: {},
-							handlesFileTypes: Object.values(
-								ClassicyFileSystemEntryFileType,
-							),
+							handlesFileTypes: Object.values(ClassicyFileSystemEntryFileType),
 						},
 					},
 					fileTypeHandlers: Object.fromEntries(
-						Object.values(ClassicyFileSystemEntryFileType).map(
-							(type) => [type, "Finder.app"],
-						),
+						Object.values(ClassicyFileSystemEntryFileType).map((type) => [
+							type,
+							"Finder.app",
+						]),
 					) as Record<ClassicyFileSystemEntryFileType, string>,
 				},
 				Appearance: {
@@ -97,12 +96,12 @@ describe("prefix routing: ClassicyWindow*", () => {
 			window: { id: "w1" },
 		});
 
-		const w1 = result.System.Manager.Applications.apps["Finder.app"].windows.find(
-			(w) => w.id === "w1",
-		);
-		const w2 = result.System.Manager.Applications.apps["Finder.app"].windows.find(
-			(w) => w.id === "w2",
-		);
+		const w1 = result.System.Manager.Applications.apps[
+			"Finder.app"
+		].windows.find((w) => w.id === "w1");
+		const w2 = result.System.Manager.Applications.apps[
+			"Finder.app"
+		].windows.find((w) => w.id === "w2");
 		expect(w1?.focused).toBe(true);
 		expect(w2?.focused).toBe(false);
 	});
@@ -126,9 +125,9 @@ describe("prefix routing: ClassicyWindow*", () => {
 			window: { id: "w1" },
 		});
 
-		const w1 = result.System.Manager.Applications.apps["Finder.app"].windows.find(
-			(w) => w.id === "w1",
-		);
+		const w1 = result.System.Manager.Applications.apps[
+			"Finder.app"
+		].windows.find((w) => w.id === "w1");
 		expect(w1?.closed).toBe(true);
 	});
 });
@@ -206,8 +205,12 @@ describe("prefix routing: ClassicyApp*", () => {
 			app: { id: "Calculator.app", name: "Calculator", icon: "calc.png" },
 		});
 
-		expect(result.System.Manager.Applications.apps["Calculator.app"]).toBeDefined();
-		expect(result.System.Manager.Applications.apps["Calculator.app"].open).toBe(true);
+		expect(
+			result.System.Manager.Applications.apps["Calculator.app"],
+		).toBeDefined();
+		expect(result.System.Manager.Applications.apps["Calculator.app"].open).toBe(
+			true,
+		);
 	});
 
 	it("ClassicyAppClose routes to app handler — app is marked as closed", () => {
@@ -227,8 +230,12 @@ describe("prefix routing: ClassicyApp*", () => {
 			app: { id: "Notes.app" },
 		});
 
-		expect(result.System.Manager.Applications.apps["Notes.app"].open).toBe(false);
-		expect(result.System.Manager.Applications.apps["Notes.app"].focused).toBe(false);
+		expect(result.System.Manager.Applications.apps["Notes.app"].open).toBe(
+			false,
+		);
+		expect(result.System.Manager.Applications.apps["Notes.app"].focused).toBe(
+			false,
+		);
 	});
 });
 
@@ -280,8 +287,12 @@ describe("ClassicyAppFinderOpenFile cross-app orchestration", () => {
 			},
 		});
 
-		expect(result.System.Manager.Applications.apps["MoviePlayer.app"]).toBeDefined();
-		expect(result.System.Manager.Applications.apps["MoviePlayer.app"].open).toBe(true);
+		expect(
+			result.System.Manager.Applications.apps["MoviePlayer.app"],
+		).toBeDefined();
+		expect(
+			result.System.Manager.Applications.apps["MoviePlayer.app"].open,
+		).toBe(true);
 	});
 
 	it("opens MoviePlayer when _data is already a parsed object (not a JSON string)", () => {
@@ -300,8 +311,12 @@ describe("ClassicyAppFinderOpenFile cross-app orchestration", () => {
 			},
 		});
 
-		expect(result.System.Manager.Applications.apps["MoviePlayer.app"]).toBeDefined();
-		expect(result.System.Manager.Applications.apps["MoviePlayer.app"].open).toBe(true);
+		expect(
+			result.System.Manager.Applications.apps["MoviePlayer.app"],
+		).toBeDefined();
+		expect(
+			result.System.Manager.Applications.apps["MoviePlayer.app"].open,
+		).toBe(true);
 	});
 
 	it("does NOT open MoviePlayer when file has no _creator field", () => {
@@ -318,7 +333,9 @@ describe("ClassicyAppFinderOpenFile cross-app orchestration", () => {
 			},
 		});
 
-		expect(result.System.Manager.Applications.apps["MoviePlayer.app"]).toBeUndefined();
+		expect(
+			result.System.Manager.Applications.apps["MoviePlayer.app"],
+		).toBeUndefined();
 	});
 
 	it("does NOT open MoviePlayer when _data URL is not a valid http/https URL", () => {
@@ -336,7 +353,9 @@ describe("ClassicyAppFinderOpenFile cross-app orchestration", () => {
 			},
 		});
 
-		expect(result.System.Manager.Applications.apps["MoviePlayer.app"]).toBeUndefined();
+		expect(
+			result.System.Manager.Applications.apps["MoviePlayer.app"],
+		).toBeUndefined();
 	});
 
 	it("does NOT open MoviePlayer when _data is malformed JSON", () => {
@@ -350,7 +369,9 @@ describe("ClassicyAppFinderOpenFile cross-app orchestration", () => {
 			},
 		});
 
-		expect(result.System.Manager.Applications.apps["MoviePlayer.app"]).toBeUndefined();
+		expect(
+			result.System.Manager.Applications.apps["MoviePlayer.app"],
+		).toBeUndefined();
 	});
 
 	it("does NOT open MoviePlayer when file is missing entirely", () => {
@@ -360,7 +381,9 @@ describe("ClassicyAppFinderOpenFile cross-app orchestration", () => {
 			type: "ClassicyAppFinderOpenFile",
 		});
 
-		expect(result.System.Manager.Applications.apps["MoviePlayer.app"]).toBeUndefined();
+		expect(
+			result.System.Manager.Applications.apps["MoviePlayer.app"],
+		).toBeUndefined();
 	});
 });
 
@@ -393,9 +416,7 @@ describe("ClassicyAppFinderOpenFile file-type routing", () => {
 
 		const app = result.System.Manager.Applications.apps["SimpleText.app"];
 		expect(app.open).toBe(true);
-		expect(app.data?.openFiles).toEqual([
-			"Macintosh HD:Documents:Read Me.txt",
-		]);
+		expect(app.data?.openFiles).toEqual(["Macintosh HD:Documents:Read Me.txt"]);
 	});
 
 	it("routes a Markdown file to the default handler app", () => {
@@ -423,9 +444,7 @@ describe("ClassicyAppFinderOpenFile file-type routing", () => {
 
 		const app = result.System.Manager.Applications.apps["SimpleText.app"];
 		expect(app.open).toBe(true);
-		expect(app.data?.openFiles).toEqual([
-			"Macintosh HD:Documents:Notes.md",
-		]);
+		expect(app.data?.openFiles).toEqual(["Macintosh HD:Documents:Notes.md"]);
 	});
 
 	it("falls back to Finder (default handler) when no specific handler is registered", () => {
@@ -442,9 +461,7 @@ describe("ClassicyAppFinderOpenFile file-type routing", () => {
 
 		// Finder is the default handler for all types — it should get the file in openFiles
 		const finder = result.System.Manager.Applications.apps["Finder.app"];
-		expect(finder.data?.openFiles).toEqual([
-			"Macintosh HD:Library:Extensions",
-		]);
+		expect(finder.data?.openFiles).toEqual(["Macintosh HD:Library:Extensions"]);
 	});
 
 	it("falls back to Finder when fileTypeHandlers points at a missing app", () => {
@@ -524,8 +541,7 @@ describe("ClassicyAppFinderOpenFile file-type routing", () => {
 		).toBe(true);
 		// Finder (file-type default) should NOT have the path in openFiles
 		expect(
-			result.System.Manager.Applications.apps["Finder.app"].data
-				?.openFiles,
+			result.System.Manager.Applications.apps["Finder.app"].data?.openFiles,
 		).toBeUndefined();
 	});
 });

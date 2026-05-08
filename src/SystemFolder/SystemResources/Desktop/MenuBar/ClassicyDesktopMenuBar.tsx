@@ -20,8 +20,8 @@ import {
 	useRef,
 } from "react";
 
-
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+
 const appleMenuIcon = ClassicyIcons.system.apple;
 
 export const ClassicyDesktopMenuBar: FunctionalComponent = () => {

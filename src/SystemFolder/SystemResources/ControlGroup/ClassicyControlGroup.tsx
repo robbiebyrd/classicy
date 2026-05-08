@@ -11,12 +11,7 @@ type ClassicyControlGroupProps = {
 
 export const ClassicyControlGroup: FunctionalComponent<
 	ClassicyControlGroupProps
-> = ({
-	label = "",
-	columns = false,
-	layout = "default",
-	children,
-}) => {
+> = ({ label = "", columns = false, layout = "default", children }) => {
 	const contentClass = classNames(
 		columns && "classicyControlGroupContentColumns",
 		layout === "form" && "classicyControlGroupFormContent",
@@ -31,9 +26,7 @@ export const ClassicyControlGroup: FunctionalComponent<
 			{label !== "" && (
 				<legend className={"classicyControlGroupLegend"}>{label}</legend>
 			)}
-			<div className={contentClass || undefined}>
-				{children}
-			</div>
+			<div className={contentClass || undefined}>{children}</div>
 		</fieldset>
 	);
 };

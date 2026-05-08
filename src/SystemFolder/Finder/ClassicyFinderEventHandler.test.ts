@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { classicyDesktopStateEventReducer } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { classicyFinderEventHandler } from "@/SystemFolder/Finder/FinderContext";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 
@@ -45,9 +46,10 @@ function makeStore(): ClassicyStore {
 						},
 					},
 					fileTypeHandlers: Object.fromEntries(
-						Object.values(ClassicyFileSystemEntryFileType).map(
-							(type) => [type, "Finder.app"],
-						),
+						Object.values(ClassicyFileSystemEntryFileType).map((type) => [
+							type,
+							"Finder.app",
+						]),
 					) as Record<ClassicyFileSystemEntryFileType, string>,
 				},
 				Appearance: {
@@ -61,7 +63,9 @@ function makeStore(): ClassicyStore {
 
 // Helper to get Finder's openPaths from a store
 function openPaths(ds: ClassicyStore): string[] {
-	return ds.System.Manager.Applications.apps["Finder.app"]?.data?.openPaths ?? [];
+	return (
+		ds.System.Manager.Applications.apps["Finder.app"]?.data?.openPaths ?? []
+	);
 }
 
 describe("classicyFinderEventHandler — guard", () => {
@@ -141,7 +145,9 @@ describe("classicyFinderEventHandler — ClassicyAppFinderOpenFolders", () => {
 
 	it("deduplicates across existing paths and new paths", () => {
 		const ds = makeStore();
-		ds.System.Manager.Applications.apps["Finder.app"].data = { openPaths: ["/Users/a"] };
+		ds.System.Manager.Applications.apps["Finder.app"].data = {
+			openPaths: ["/Users/a"],
+		};
 
 		classicyFinderEventHandler(ds, {
 			type: "ClassicyAppFinderOpenFolders",
@@ -156,10 +162,8 @@ describe("classicyFinderEventHandler — ClassicyAppFinderOpenFolders", () => {
 
 	it("handles empty appData gracefully", () => {
 		const ds = makeStore();
-		ds.System.Manager.Applications.apps["Finder.app"].data = null as unknown as Record<
-			string,
-			unknown
-		>;
+		ds.System.Manager.Applications.apps["Finder.app"].data =
+			null as unknown as Record<string, unknown>;
 
 		classicyFinderEventHandler(ds, {
 			type: "ClassicyAppFinderOpenFolders",
@@ -187,7 +191,9 @@ describe("classicyFinderEventHandler — ClassicyAppFinderCloseFolder", () => {
 
 	it("is a no-op when the path is not in openPaths", () => {
 		const ds = makeStore();
-		ds.System.Manager.Applications.apps["Finder.app"].data = { openPaths: ["/Users/a"] };
+		ds.System.Manager.Applications.apps["Finder.app"].data = {
+			openPaths: ["/Users/a"],
+		};
 
 		classicyFinderEventHandler(ds, {
 			type: "ClassicyAppFinderCloseFolder",
@@ -246,6 +252,19 @@ describe("classicyFinderEventHandler — ClassicyAppFinderCloseFolder", () => {
 
 		const win = ds.System.Manager.Applications.apps["Finder.app"].windows[0];
 		expect(win.closed).toBe(false);
+	});
+});
+
+describe("classicyDesktopStateEventReducer routes ClassicyAppFinder* events", () => {
+	it("routes ClassicyAppFinderOpenFolder via the reducer", () => {
+		const ds = makeStore();
+
+		const result = classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyAppFinderOpenFolder",
+			path: "/Users/routed",
+		});
+
+		expect(openPaths(result)).toContain("/Users/routed");
 	});
 });
 

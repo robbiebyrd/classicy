@@ -303,7 +303,9 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 				menuChildren: [
 					{
 						id: "finder_help_balloon",
-						title: disableBalloonHelp ? "Show Balloon Help" : "Hide Balloon Help",
+						title: disableBalloonHelp
+							? "Show Balloon Help"
+							: "Hide Balloon Help",
 						onClickFunc: () => {
 							desktopEventDispatch({
 								type: "ClassicyDesktopSetBalloonHelp",
