@@ -3,8 +3,8 @@
 	"module": "./dist/classicy.es.js",
 	"types": "./dist/types/src/index.d.ts",
 	"name": "classicy",
-	"version": "0.9.2",
-	"release": "Son of Buster",
+	"version": "0.9.3",
+	"release": "Harmony",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/robbiebyrd/classicy"
