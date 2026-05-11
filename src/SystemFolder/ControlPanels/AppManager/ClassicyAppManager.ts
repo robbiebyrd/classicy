@@ -1,4 +1,10 @@
 import {
+	type ClassicyStoreSystemAppearanceManager,
+	type ClassicyTheme,
+	getAllThemes,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import {
 	activateApp,
 	closeApp,
 	deFocusApps,
@@ -7,18 +13,8 @@ import {
 	loadApp,
 	openApp,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
-import {
-	type ClassicyStoreSystemAppearanceManager,
-	type ClassicyTheme,
-	getAllThemes,
-} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { classicyDateTimeManagerEventHandler } from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeEventHandler";
 import type { ClassicyStoreSystemSoundManager } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
-import { classicyFinderEventHandler } from "@/SystemFolder/Finder/FinderContext";
-import { classicyQuickTimeMoviePlayerEventHandler } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerContext";
-import { MoviePlayerAppInfo } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerUtils";
-import { classicyQuickTimePictureViewerEventHandler } from "@/SystemFolder/QuickTime/PictureViewer/PictureViewerContext";
 import { classicyDesktopIconEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconContext";
 import {
 	type ClassicyStoreSystemDesktopManager,
@@ -27,7 +23,13 @@ import {
 import { classicyWindowEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopWindowManagerContext";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
-import { isValidHttpUrl } from "@/SystemFolder/SystemResources/Utils/urlValidation";
+import {
+	hasApp,
+	hasAppAndFileType,
+	hasAppAndFileTypes,
+	hasAppAndPath,
+	hasDesktopAppRef,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
 import themesData from "../AppearanceManager/styles/themes.json";
 
 const macosIcon = ClassicyIcons.system.macos;
@@ -41,6 +43,7 @@ export interface ClassicyStoreSystemAppManager
 	extends ClassicyStoreSystemManager {
 	apps: Record<string, ClassicyStoreSystemApp>;
 	fileTypeHandlers: Record<ClassicyFileSystemEntryFileType, string>;
+	focusedAppId?: string;
 }
 
 export interface ClassicyStoreSystemApp {
@@ -49,13 +52,11 @@ export interface ClassicyStoreSystemApp {
 	icon: string;
 	windows: ClassicyStoreSystemAppWindow[];
 	open: boolean;
-	// biome-ignore lint/suspicious/noExplicitAny: App data is dynamically shaped per app
-	data?: Record<string, any>;
+	data?: Record<string, unknown>;
 	focused?: boolean;
 	noDesktopIcon?: boolean;
 	debug?: boolean;
-	// biome-ignore lint/suspicious/noExplicitAny: App options are dynamically shaped per app
-	options?: Record<string, any>[];
+	options?: Record<string, unknown>[];
 	appMenu?: ClassicyMenuItem[];
 	handlesFileTypes?: ClassicyFileSystemEntryFileType[];
 }
@@ -125,8 +126,7 @@ export {
 	openApp,
 };
 
-// biome-ignore lint/suspicious/noExplicitAny: ActionMessage is a catch-all event type accessed with dynamic properties throughout the codebase
-export type ActionMessage = Record<string, any> & {
+export type ActionMessage = Record<string, unknown> & {
 	type: string;
 };
 
@@ -144,12 +144,32 @@ const pluginEventHandlers: Array<{
  * Register an event handler for a given action type prefix.
  * Call this at module load time from your app's context file.
  * Handlers are checked before the generic ClassicyApp* handler.
+ * Registering the same prefix a second time is a no-op.
  */
 export function registerAppEventHandler(
 	prefix: string,
 	handler: AppEventHandler,
 ): void {
+	if (pluginEventHandlers.some((entry) => entry.prefix === prefix)) {
+		return;
+	}
 	pluginEventHandlers.push({ prefix, handler });
+}
+
+/**
+ * Dispatch an action to the registered handler for the given prefix.
+ * Used for cross-app orchestration without a direct import between apps.
+ */
+export function dispatchToPlugin(
+	ds: ClassicyStore,
+	prefix: string,
+	action: ActionMessage,
+): ClassicyStore {
+	const plugin = pluginEventHandlers.find((entry) => entry.prefix === prefix);
+	if (plugin) {
+		return plugin.handler(ds, action);
+	}
+	return ds;
 }
 
 export const classicyAppEventHandler = (
@@ -158,15 +178,21 @@ export const classicyAppEventHandler = (
 ) => {
 	switch (action.type) {
 		case "ClassicyAppOpen": {
-			openApp(ds, action.app.id, action.app.name, action.app.icon);
+			if (hasDesktopAppRef(action)) {
+				openApp(ds, action.app.id, action.app.name, action.app.icon);
+			}
 			break;
 		}
 		case "ClassicyAppLoad": {
-			loadApp(ds, action.app.id, action.app.name, action.app.icon);
+			if (hasDesktopAppRef(action)) {
+				loadApp(ds, action.app.id, action.app.name, action.app.icon);
+			}
 			break;
 		}
 		case "ClassicyAppClose": {
-			closeApp(ds, action.app.id);
+			if (hasApp(action)) {
+				closeApp(ds, action.app.id);
+			}
 			const openApps = Object.values(ds.System.Manager.Applications.apps).find(
 				(value) => {
 					return value.open;
@@ -175,25 +201,31 @@ export const classicyAppEventHandler = (
 
 			if (openApps?.id) {
 				focusApp(ds, openApps.id);
+			} else {
+				deFocusApps(ds);
 			}
 
 			break;
 		}
 		case "ClassicyAppFocus": {
-			focusApp(ds, action.app.id);
+			if (hasApp(action)) {
+				focusApp(ds, action.app.id);
+			}
 			break;
 		}
 		case "ClassicyAppActivate": {
-			activateApp(ds, action.app.id);
+			if (hasApp(action)) {
+				activateApp(ds, action.app.id);
+			}
 			break;
 		}
 		case "ClassicyAppRegisterFileTypes": {
-			if (Array.isArray(action.fileTypes)) {
+			if (hasAppAndFileTypes(action)) {
 				const app = ds.System.Manager.Applications.apps[action.app.id];
 				if (app) {
 					const existing = app.handlesFileTypes ?? [];
 					app.handlesFileTypes = Array.from(
-						new Set([...existing, ...action.fileTypes]),
+						new Set([...existing, ...(action.fileTypes as ClassicyFileSystemEntryFileType[])]),
 					);
 				}
 				for (const ft of action.fileTypes) {
@@ -211,26 +243,27 @@ export const classicyAppEventHandler = (
 			break;
 		}
 		case "ClassicyAppUnregisterFileTypes": {
-			const app = ds.System.Manager.Applications.apps[action.app.id];
-			if (app && Array.isArray(action.fileTypes)) {
-				app.handlesFileTypes = (app.handlesFileTypes ?? []).filter(
-					(t: ClassicyFileSystemEntryFileType) => !action.fileTypes.includes(t),
-				);
-				for (const ft of action.fileTypes) {
-					const key = ft as ClassicyFileSystemEntryFileType;
-					if (
-						ds.System.Manager.Applications.fileTypeHandlers[key] ===
-						action.app.id
-					) {
-						ds.System.Manager.Applications.fileTypeHandlers[key] =
-							"Finder.app";
+			if (hasAppAndFileTypes(action)) {
+				const app = ds.System.Manager.Applications.apps[action.app.id];
+				if (app) {
+					app.handlesFileTypes = (app.handlesFileTypes ?? []).filter(
+						(t: ClassicyFileSystemEntryFileType) => !(action.fileTypes as unknown[]).includes(t),
+					);
+					for (const ft of action.fileTypes) {
+						const key = ft as ClassicyFileSystemEntryFileType;
+						if (
+							ds.System.Manager.Applications.fileTypeHandlers[key] ===
+							action.app.id
+						) {
+							ds.System.Manager.Applications.fileTypeHandlers[key] = "Finder.app";
+						}
 					}
 				}
 			}
 			break;
 		}
 		case "ClassicyAppSetDefaultFileTypeHandler": {
-			if (action.fileType && action.app?.id) {
+			if (hasAppAndFileType(action)) {
 				ds.System.Manager.Applications.fileTypeHandlers[
 					action.fileType as ClassicyFileSystemEntryFileType
 				] = action.app.id;
@@ -238,26 +271,27 @@ export const classicyAppEventHandler = (
 			break;
 		}
 		default: {
-			if (action.type.endsWith("OpenFile") && action.app?.id && action.path) {
+			if (action.type.endsWith("OpenFile") && hasAppAndPath(action)) {
 				const app = ds.System.Manager.Applications.apps[action.app.id];
 				if (app) {
 					if (!app.data) app.data = {};
-					if (!Array.isArray(app.data.openFiles)) app.data.openFiles = [];
-					if (!app.data.openFiles.includes(action.path)) {
-						app.data.openFiles = [...app.data.openFiles, action.path];
+					const openFiles = app.data.openFiles;
+					if (!Array.isArray(openFiles)) {
+						app.data.openFiles = [action.path];
+					} else if (!openFiles.includes(action.path)) {
+						app.data.openFiles = [...openFiles, action.path];
 					}
 					openApp(ds, app.id, app.name, app.icon);
 				}
-			} else if (
-				action.type.endsWith("CloseFile") &&
-				action.app?.id &&
-				action.path
-			) {
+			} else if (action.type.endsWith("CloseFile") && hasAppAndPath(action)) {
 				const app = ds.System.Manager.Applications.apps[action.app.id];
-				if (app?.data?.openFiles) {
-					app.data.openFiles = app.data.openFiles.filter(
-						(p: string) => p !== action.path,
-					);
+				if (app?.data) {
+					const openFiles = app.data.openFiles;
+					if (Array.isArray(openFiles)) {
+						app.data.openFiles = openFiles.filter(
+							(p: unknown) => p !== action.path,
+						);
+					}
 				}
 			}
 			break;
@@ -278,74 +312,8 @@ export const classicyDesktopStateEventReducer = (
 	}
 
 	if ("type" in action) {
-		// Cross-app orchestration handled at top level, before prefix routing
-		if (action.type === "ClassicyAppFinderOpenFile") {
-			const file = action.file;
-			// Legacy QuickTime _creator-based routing
-			if (file && file._creator === "QuickTime") {
-				let document: unknown;
-				try {
-					document =
-						typeof file._data === "string"
-							? JSON.parse(file._data)
-							: file._data;
-				} catch {
-					// Malformed JSON — skip silently
-				}
-				if (
-					typeof document === "object" &&
-					document !== null &&
-					"url" in document &&
-					typeof (document as { url: unknown }).url === "string" &&
-					isValidHttpUrl((document as { url: string }).url)
-				) {
-					ds = classicyAppEventHandler(ds, {
-						type: "ClassicyAppOpen",
-						app: MoviePlayerAppInfo,
-					});
-					ds = classicyQuickTimeMoviePlayerEventHandler(ds, {
-						type: "ClassicyAppMoviePlayerOpenDocument",
-						document: document as { url: string },
-					});
-				}
-			} else if (file && action.path) {
-				// Route to the default app registered for this file type
-				const fileType = file._type as ClassicyFileSystemEntryFileType;
-				const targetAppId =
-					ds.System.Manager.Applications.fileTypeHandlers[fileType];
-				const targetApp = targetAppId
-					? ds.System.Manager.Applications.apps[targetAppId]
-					: undefined;
-				if (targetApp) {
-					ds = classicyAppEventHandler(ds, {
-						type: `ClassicyApp${targetApp.name}OpenFile`,
-						app: { id: targetAppId },
-						path: action.path,
-					});
-				} else {
-					// Fall back to Finder if it can handle the requested type
-					const finder = ds.System.Manager.Applications.apps["Finder.app"];
-					if (finder?.handlesFileTypes?.includes(fileType)) {
-						ds = classicyAppEventHandler(ds, {
-							type: `ClassicyApp${finder.name}OpenFile`,
-							app: { id: "Finder.app" },
-							path: action.path,
-						});
-					} else {
-						ds.System.Manager.Desktop.errorDialog = {
-							message: "Finder cannot open the file type you requested.",
-						};
-					}
-				}
-			}
-		} else if (action.type.startsWith("ClassicyWindow")) {
+		if (action.type.startsWith("ClassicyWindow")) {
 			ds = classicyWindowEventHandler(ds, action);
-		} else if (action.type.startsWith("ClassicyAppFinder")) {
-			ds = classicyFinderEventHandler(ds, action);
-		} else if (action.type.startsWith("ClassicyAppMoviePlayer")) {
-			ds = classicyQuickTimeMoviePlayerEventHandler(ds, action);
-		} else if (action.type.startsWith("ClassicyAppPictureViewer")) {
-			ds = classicyQuickTimePictureViewerEventHandler(ds, action);
 		} else if (action.type.startsWith("ClassicyDesktopIcon")) {
 			ds = classicyDesktopIconEventHandler(ds, action);
 		} else if (action.type.startsWith("ClassicyDesktop")) {
@@ -422,6 +390,7 @@ export const DefaultAppManagerState: ClassicyStore = {
 				errorDialog: null,
 			},
 			Applications: {
+				focusedAppId: "Finder.app",
 				apps: {
 					"Finder.app": {
 						id: "Finder.app",
@@ -446,7 +415,7 @@ export const DefaultAppManagerState: ClassicyStore = {
 				availableThemes: getAllThemes(),
 				activeTheme: themesData.find(
 					(t) => t.id === "default",
-				) as ClassicyTheme,
+				) as unknown as ClassicyTheme,
 			},
 		},
 	},

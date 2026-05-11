@@ -196,12 +196,6 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		},
 	];
 
-	const cleanupIcons = () => {
-		desktopEventDispatch({
-			type: "ClassicyDesktopIconCleanup",
-		});
-	};
-
 	const themesTab = useThemesTab({
 		themesList,
 		switchTheme,

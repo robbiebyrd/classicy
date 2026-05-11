@@ -23,7 +23,6 @@ import {
 
 interface ClassicyDatePickerProps {
 	id: string;
-	inputType?: "text";
 	onChangeFunc?: (date: Date) => void;
 	labelTitle?: string;
 	labelSize?: ClassicyControlLabelSize;
@@ -40,7 +39,6 @@ export const ClassicyDatePicker: FunctionalComponent<ClassicyDatePickerProps> =
 		function ClassicyDatePicker(
 			{
 				id,
-				inputType,
 				labelTitle,
 				labelSize = "medium",
 				labelPosition = "above",
@@ -204,7 +202,7 @@ export const ClassicyDatePicker: FunctionalComponent<ClassicyDatePickerProps> =
 							onKeyDown={(e) => incrementDatePartChange(e, "month")}
 							onClick={selectText}
 							name={`${id}_month`}
-							type={inputType}
+							type="text"
 							ref={monthRef}
 							disabled={disabled}
 							value={month}
@@ -220,7 +218,7 @@ export const ClassicyDatePicker: FunctionalComponent<ClassicyDatePickerProps> =
 							onKeyDown={(e) => incrementDatePartChange(e, "day")}
 							onClick={selectText}
 							name={`${id}_day`}
-							type={inputType}
+							type="text"
 							ref={dayRef}
 							disabled={disabled}
 							value={day}
@@ -236,7 +234,7 @@ export const ClassicyDatePicker: FunctionalComponent<ClassicyDatePickerProps> =
 							onBlur={(e) => handleDatePartChange(e, "year")}
 							onKeyDown={(e) => incrementDatePartChange(e, "year")}
 							name={`${id}_year`}
-							type={inputType}
+							type="text"
 							ref={yearRef}
 							disabled={disabled}
 							value={year}

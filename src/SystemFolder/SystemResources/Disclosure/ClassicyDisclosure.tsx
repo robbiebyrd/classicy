@@ -67,7 +67,9 @@ export const ClassicyDisclosure: FunctionalComponent<
 				tabIndex={0}
 				onKeyDown={(e) => handleKeyPress(e)}
 			>
-				{labelPosition === "left" && <ClassicyControlLabel label={label} labelSize={labelSize} />}
+				{labelPosition === "left" && (
+					<ClassicyControlLabel label={label} labelSize={labelSize} />
+				)}
 				<svg
 					id="a"
 					xmlns="http://www.w3.org/2000/svg"
@@ -99,7 +101,9 @@ export const ClassicyDisclosure: FunctionalComponent<
 						points=".76 8.29 .76 8.86 4.79 5.34 4.47 5.05 .76 8.29"
 					/>
 				</svg>
-				{labelPosition !== "left" && <ClassicyControlLabel label={label} labelSize={labelSize} />}
+				{labelPosition !== "left" && (
+					<ClassicyControlLabel label={label} labelSize={labelSize} />
+				)}
 			</div>
 			<div
 				className={classNames(

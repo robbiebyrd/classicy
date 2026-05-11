@@ -2,7 +2,8 @@ import type { AnalyticsInstance } from "analytics";
 import { createContext, useContext } from "react";
 import { useAnalytics } from "use-analytics";
 
-export const ClassicyAnalyticsPrefixContext = createContext<string>("classicy_");
+export const ClassicyAnalyticsPrefixContext =
+	createContext<string>("classicy_");
 
 /**
  * A wrapper around useAnalytics that provides a safe default when analytics context is not available.

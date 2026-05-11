@@ -45,9 +45,10 @@ function makeStore(): ClassicyStore {
 						},
 					},
 					fileTypeHandlers: Object.fromEntries(
-						Object.values(ClassicyFileSystemEntryFileType).map(
-							(type) => [type, "Finder.app"],
-						),
+						Object.values(ClassicyFileSystemEntryFileType).map((type) => [
+							type,
+							"Finder.app",
+						]),
 					) as Record<ClassicyFileSystemEntryFileType, string>,
 				},
 				Appearance: {
@@ -226,8 +227,9 @@ describe("ClassicyWindowClose", () => {
 			window: { id: "w1" },
 		});
 		expect(
-			ds.System.Manager.Applications.apps.TestApp.windows.find((w) => w.id === "w1")
-				?.closed,
+			ds.System.Manager.Applications.apps.TestApp.windows.find(
+				(w) => w.id === "w1",
+			)?.closed,
 		).toBe(true);
 	});
 
@@ -239,8 +241,9 @@ describe("ClassicyWindowClose", () => {
 			window: { id: "w1" },
 		});
 		expect(
-			ds.System.Manager.Applications.apps.TestApp.windows.find((w) => w.id === "w2")
-				?.closed,
+			ds.System.Manager.Applications.apps.TestApp.windows.find(
+				(w) => w.id === "w2",
+			)?.closed,
 		).toBe(false);
 	});
 });
@@ -266,7 +269,9 @@ describe("ClassicyWindowDestroy", () => {
 			window: { id: "w1" },
 		});
 		expect(
-			ds.System.Manager.Applications.apps.TestApp.windows.find((w) => w.id === "w2"),
+			ds.System.Manager.Applications.apps.TestApp.windows.find(
+				(w) => w.id === "w2",
+			),
 		).toBeDefined();
 	});
 });
@@ -310,8 +315,9 @@ describe("ClassicyWindowResize", () => {
 			size: [400, 300],
 		});
 		expect(
-			ds.System.Manager.Applications.apps.TestApp.windows.find((w) => w.id === "w1")
-				?.resizing,
+			ds.System.Manager.Applications.apps.TestApp.windows.find(
+				(w) => w.id === "w1",
+			)?.resizing,
 		).toBe(false);
 	});
 });
@@ -326,8 +332,9 @@ describe("ClassicyWindowDrag", () => {
 			dragging: true,
 		});
 		expect(
-			ds.System.Manager.Applications.apps.TestApp.windows.find((w) => w.id === "w1")
-				?.dragging,
+			ds.System.Manager.Applications.apps.TestApp.windows.find(
+				(w) => w.id === "w1",
+			)?.dragging,
 		).toBe(true);
 	});
 
@@ -340,8 +347,9 @@ describe("ClassicyWindowDrag", () => {
 			dragging: false,
 		});
 		expect(
-			ds.System.Manager.Applications.apps.TestApp.windows.find((w) => w.id === "w1")
-				?.dragging,
+			ds.System.Manager.Applications.apps.TestApp.windows.find(
+				(w) => w.id === "w1",
+			)?.dragging,
 		).toBe(false);
 	});
 });
@@ -356,8 +364,9 @@ describe("ClassicyWindowZoom", () => {
 			zoomed: true,
 		});
 		expect(
-			ds.System.Manager.Applications.apps.TestApp.windows.find((w) => w.id === "w1")
-				?.zoomed,
+			ds.System.Manager.Applications.apps.TestApp.windows.find(
+				(w) => w.id === "w1",
+			)?.zoomed,
 		).toBe(true);
 	});
 
@@ -370,8 +379,9 @@ describe("ClassicyWindowZoom", () => {
 			zoomed: false,
 		});
 		expect(
-			ds.System.Manager.Applications.apps.TestApp.windows.find((w) => w.id === "w1")
-				?.zoomed,
+			ds.System.Manager.Applications.apps.TestApp.windows.find(
+				(w) => w.id === "w1",
+			)?.zoomed,
 		).toBe(false);
 	});
 });
@@ -385,8 +395,9 @@ describe("ClassicyWindowCollapse", () => {
 			window: { id: "w1" },
 		});
 		expect(
-			ds.System.Manager.Applications.apps.TestApp.windows.find((w) => w.id === "w1")
-				?.collapsed,
+			ds.System.Manager.Applications.apps.TestApp.windows.find(
+				(w) => w.id === "w1",
+			)?.collapsed,
 		).toBe(true);
 	});
 
@@ -398,8 +409,9 @@ describe("ClassicyWindowCollapse", () => {
 			window: { id: "w1" },
 		});
 		expect(
-			ds.System.Manager.Applications.apps.TestApp.windows.find((w) => w.id === "w2")
-				?.collapsed,
+			ds.System.Manager.Applications.apps.TestApp.windows.find(
+				(w) => w.id === "w2",
+			)?.collapsed,
 		).toBe(false);
 	});
 });
@@ -416,8 +428,9 @@ describe("ClassicyWindowExpand", () => {
 			window: { id: "w1" },
 		});
 		expect(
-			ds.System.Manager.Applications.apps.TestApp.windows.find((w) => w.id === "w1")
-				?.collapsed,
+			ds.System.Manager.Applications.apps.TestApp.windows.find(
+				(w) => w.id === "w1",
+			)?.collapsed,
 		).toBe(false);
 	});
 
@@ -432,8 +445,9 @@ describe("ClassicyWindowExpand", () => {
 			window: { id: "w1" },
 		});
 		expect(
-			ds.System.Manager.Applications.apps.TestApp.windows.find((w) => w.id === "w2")
-				?.collapsed,
+			ds.System.Manager.Applications.apps.TestApp.windows.find(
+				(w) => w.id === "w2",
+			)?.collapsed,
 		).toBe(true);
 	});
 });
@@ -465,8 +479,9 @@ describe("ClassicyWindowMove", () => {
 			moving: false,
 		});
 		expect(
-			ds.System.Manager.Applications.apps.TestApp.windows.find((w) => w.id === "w1")
-				?.moving,
+			ds.System.Manager.Applications.apps.TestApp.windows.find(
+				(w) => w.id === "w1",
+			)?.moving,
 		).toBe(false);
 	});
 
@@ -480,8 +495,9 @@ describe("ClassicyWindowMove", () => {
 			moving: true,
 		});
 		expect(
-			ds.System.Manager.Applications.apps.TestApp.windows.find((w) => w.id === "w2")
-				?.position,
+			ds.System.Manager.Applications.apps.TestApp.windows.find(
+				(w) => w.id === "w2",
+			)?.position,
 		).toEqual([200, 200]);
 	});
 });
@@ -511,8 +527,9 @@ describe("ClassicyWindowPosition", () => {
 			position: [450, 350],
 		});
 		expect(
-			ds.System.Manager.Applications.apps.TestApp.windows.find((w) => w.id === "w2")
-				?.position,
+			ds.System.Manager.Applications.apps.TestApp.windows.find(
+				(w) => w.id === "w2",
+			)?.position,
 		).toEqual([200, 200]);
 	});
 });

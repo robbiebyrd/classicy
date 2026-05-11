@@ -91,7 +91,8 @@ export const Demo = () => {
 						...quitMenuItemHelper(appId, appName, appIcon),
 						balloon: {
 							title: "Quit Demo",
-							content: "Closes the Demo application and returns to the desktop.",
+							content:
+								"Closes the Demo application and returns to the desktop.",
 							position: "bottom-left" as const,
 						},
 					},
@@ -243,7 +244,7 @@ export const Demo = () => {
 					content="This button is disabled.."
 					position="top-left"
 				>
-				<ClassicyButton isDefault={false} disabled={true}>
+					<ClassicyButton isDefault={false} disabled={true}>
 						Disabled
 					</ClassicyButton>
 				</ClassicyBalloonHelp>

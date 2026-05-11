@@ -45,9 +45,10 @@ function makeStore(): ClassicyStore {
 						},
 					},
 					fileTypeHandlers: Object.fromEntries(
-						Object.values(ClassicyFileSystemEntryFileType).map(
-							(type) => [type, "Finder.app"],
-						),
+						Object.values(ClassicyFileSystemEntryFileType).map((type) => [
+							type,
+							"Finder.app",
+						]),
 					) as Record<ClassicyFileSystemEntryFileType, string>,
 				},
 				Appearance: {
@@ -245,7 +246,7 @@ describe("classicyDesktopEventHandler — ClassicyDesktopChangeTheme", () => {
 			id: "alt-theme",
 			name: "Alt",
 		};
-		if (!ds.System.Manager.Appearance.availableThemes)	{
+		if (!ds.System.Manager.Appearance.availableThemes) {
 			ds.System.Manager.Appearance.availableThemes = [];
 		}
 		ds.System.Manager.Appearance.availableThemes.push(altTheme);
@@ -388,6 +389,87 @@ describe("classicyDesktopEventHandler — ClassicyDesktopLoadThemes", () => {
 
 		expect(ds.System.Manager.Appearance.availableThemes).toBe(newThemes);
 		expect(ds.System.Manager.Appearance.availableThemes).toHaveLength(2);
+	});
+});
+
+describe("classicyDesktopEventHandler — ClassicyDesktopFocus", () => {
+	it("defocuses all apps, focuses Finder, clears selectedIcons when target is classicyDesktop", () => {
+		const ds = makeStoreForDesktop();
+		ds.System.Manager.Applications.apps["Notes.app"] = {
+			id: "Notes.app",
+			name: "Notes",
+			icon: "",
+			windows: [
+				{
+					id: "notes-win-1",
+					closed: false,
+					size: [400, 300],
+					position: [0, 0],
+					minimumSize: [100, 100],
+					focused: true,
+				},
+			],
+			open: true,
+			focused: true,
+		};
+		ds.System.Manager.Desktop.selectedIcons = ["icon1", "icon2"];
+		ds.System.Manager.Desktop.showContextMenu = true;
+
+		classicyDesktopEventHandler(ds, {
+			type: "ClassicyDesktopFocus",
+			e: { target: { id: "classicyDesktop" }, clientX: 100, clientY: 200 },
+		});
+
+		expect(ds.System.Manager.Applications.apps["Finder.app"].focused).toBe(true);
+		expect(ds.System.Manager.Applications.apps["Notes.app"].focused).toBe(false);
+		expect(
+			ds.System.Manager.Applications.apps["Notes.app"].windows[0].focused,
+		).toBe(false);
+		expect(ds.System.Manager.Desktop.selectedIcons).toEqual([]);
+		expect(ds.System.Manager.Desktop.showContextMenu).toBe(false);
+		expect(ds.System.Manager.Desktop.selectBox.active).toBe(true);
+		expect(ds.System.Manager.Desktop.selectBox.start).toEqual([100, 200]);
+	});
+
+	it("makes no state change when target is not classicyDesktop", () => {
+		const ds = makeStoreForDesktop();
+		ds.System.Manager.Applications.apps["Notes.app"] = {
+			id: "Notes.app",
+			name: "Notes",
+			icon: "",
+			windows: [],
+			open: true,
+			focused: true,
+		};
+		ds.System.Manager.Desktop.selectedIcons = ["icon1"];
+
+		classicyDesktopEventHandler(ds, {
+			type: "ClassicyDesktopFocus",
+			e: { target: { id: "someOtherElement" }, clientX: 50, clientY: 50 },
+		});
+
+		expect(ds.System.Manager.Applications.apps["Notes.app"].focused).toBe(true);
+		expect(ds.System.Manager.Desktop.selectedIcons).toEqual(["icon1"]);
+		expect(ds.System.Manager.Desktop.selectBox.active).toBe(false);
+	});
+});
+
+describe("classicyDesktopEventHandler — ClassicyDesktopDrag", () => {
+	it("updates selectBox.start to the delta and resets size to [0, 0]", () => {
+		const ds = makeStoreForDesktop();
+		ds.System.Manager.Desktop.selectBox = {
+			active: true,
+			start: [50, 60],
+			size: [100, 200],
+		};
+
+		classicyDesktopEventHandler(ds, {
+			type: "ClassicyDesktopDrag",
+			e: { clientX: 150, clientY: 180 },
+		});
+
+		expect(ds.System.Manager.Desktop.selectBox.start).toEqual([100, 120]);
+		expect(ds.System.Manager.Desktop.selectBox.size).toEqual([0, 0]);
 	});
 });
 

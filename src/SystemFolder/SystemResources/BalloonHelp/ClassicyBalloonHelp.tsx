@@ -28,8 +28,9 @@ const readControlSize = (): number => {
 	const el =
 		document.getElementById("classicyDesktop") ?? document.documentElement;
 	return (
-		parseFloat(getComputedStyle(el).getPropertyValue("--window-control-size")) ||
-		0
+		parseFloat(
+			getComputedStyle(el).getPropertyValue("--window-control-size"),
+		) || 0
 	);
 };
 
@@ -162,7 +163,9 @@ export const ClassicyBalloonHelp: FC<ClassicyBalloonHelpProps> = ({
 		<div
 			ref={anchorRef}
 			role="tooltip"
-			className={["classicyBalloonHelpAnchor", className].filter(Boolean).join(" ")}
+			className={["classicyBalloonHelpAnchor", className]
+				.filter(Boolean)
+				.join(" ")}
 			onMouseEnter={show}
 			onMouseLeave={hide}
 		>

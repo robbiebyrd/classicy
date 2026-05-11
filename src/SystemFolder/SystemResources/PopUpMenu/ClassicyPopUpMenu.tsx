@@ -49,8 +49,11 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 	onChangeFunc,
 }) => {
 	// For the control label, "mini" maps to "small" — "mini" is a menu-only size
-	const controlLabelSize: ClassicyControlLabelSize = labelSize || size === "mini" ? "small" : size;
-	const [selectedItem, setSelectedItem] = useState(selected ?? (placeholder ? PLACEHOLDER_VALUE : undefined));
+	const controlLabelSize: ClassicyControlLabelSize =
+		labelSize || size === "mini" ? "small" : size;
+	const [selectedItem, setSelectedItem] = useState(
+		selected ?? (placeholder ? PLACEHOLDER_VALUE : undefined),
+	);
 	// biome-ignore lint/correctness/useExhaustiveDependencies: placeholder is intentionally excluded — it does not change after mount
 	useEffect(() => {
 		setSelectedItem(selected ?? (placeholder ? PLACEHOLDER_VALUE : undefined)); // eslint-disable-line react-hooks/set-state-in-effect
@@ -78,7 +81,12 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 				labelPositionClass(labelPosition),
 			)}
 		>
-			{label && <ClassicyControlLabel label={label} labelSize={controlLabelSize}></ClassicyControlLabel>}
+			{label && (
+				<ClassicyControlLabel
+					label={label}
+					labelSize={controlLabelSize}
+				></ClassicyControlLabel>
+			)}
 			<div
 				className={classNames(
 					"classicyPopUpMenu",

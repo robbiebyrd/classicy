@@ -1,7 +1,7 @@
 import platinumJson from "@snd/platinum/platinum.json";
 import {
-	SoundDataSchema,
 	type SoundData,
+	SoundDataSchema,
 } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundSchema";
 
 const platinumOgg = new URL("@snd/platinum/platinum.ogg", import.meta.url).href;

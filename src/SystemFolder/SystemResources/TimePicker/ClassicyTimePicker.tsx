@@ -18,7 +18,6 @@ import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/Clas
 
 interface ClassicyTimePickerProps {
 	id: string;
-	inputType?: "text";
 	onChangeFunc?: (updatedDate: Date) => void;
 	labelTitle?: string;
 	labelSize?: ClassicyControlLabelSize;
@@ -36,7 +35,6 @@ export const ClassicyTimePicker: FunctionalComponent<ClassicyTimePickerProps> =
 		function ClassicyTimePicker(
 			{
 				id,
-				inputType = "text",
 				labelTitle,
 				labelSize = "medium",
 				labelPosition = "above",
@@ -207,7 +205,7 @@ export const ClassicyTimePicker: FunctionalComponent<ClassicyTimePickerProps> =
 							id={`${id}_hour`}
 							tabIndex={0}
 							name={`${id}_hour`}
-							type={inputType}
+							type="text"
 							ref={ref}
 							disabled={disabled}
 							placeholder={placeholder}
@@ -226,7 +224,7 @@ export const ClassicyTimePicker: FunctionalComponent<ClassicyTimePickerProps> =
 							id={`${id}_minutes`}
 							tabIndex={0}
 							name={`${id}_minutes`}
-							type={inputType}
+							type="text"
 							ref={ref}
 							disabled={disabled}
 							value={String(minutes)}
@@ -242,7 +240,7 @@ export const ClassicyTimePicker: FunctionalComponent<ClassicyTimePickerProps> =
 							id={`${id}_seconds`}
 							tabIndex={0}
 							name={`${id}_seconds`}
-							type={inputType}
+							type="text"
 							ref={ref}
 							disabled={disabled}
 							value={String(seconds)}

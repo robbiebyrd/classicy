@@ -25,7 +25,6 @@ const STEP_ESCALATION_MS = 3000;
 
 interface ClassicySpinnerProps {
 	id: string;
-	inputType?: "number";
 	onChangeFunc?: ChangeEventHandler<HTMLInputElement>;
 	onEnterFunc?: () => void;
 	labelTitle?: string;
@@ -46,7 +45,6 @@ export const ClassicySpinner: FunctionalComponent<ClassicySpinnerProps> =
 	forwardRef<HTMLInputElement, ClassicySpinnerProps>(function ClassicySpinner(
 		{
 			id,
-			inputType = "number",
 			labelTitle,
 			labelSize = "medium",
 			labelPosition = "above",
@@ -66,7 +64,6 @@ export const ClassicySpinner: FunctionalComponent<ClassicySpinnerProps> =
 		const { track } = useClassicyAnalytics();
 		const analyticsArgs = {
 			id,
-			inputType,
 			labelTitle,
 			placeholder,
 			prefillValue,
@@ -195,7 +192,7 @@ export const ClassicySpinner: FunctionalComponent<ClassicySpinnerProps> =
 						onChange={handleOnChangeFunc}
 						onKeyDown={handleOnKeyDown}
 						name={id}
-						type={inputType}
+						type="number"
 						ref={ref}
 						disabled={disabled}
 						value={value}
@@ -231,7 +228,11 @@ export const ClassicySpinner: FunctionalComponent<ClassicySpinnerProps> =
 							onMouseUp={stopRepeat}
 							onMouseLeave={stopRepeat}
 						>
-							<img src={ClassicyIcons.ui.menuDropdownArrowUp} alt="Decrement" style={{transform: "scaleY(-1)"}} />
+							<img
+								src={ClassicyIcons.ui.menuDropdownArrowUp}
+								alt="Decrement"
+								style={{ transform: "scaleY(-1)" }}
+							/>
 						</button>
 					</div>
 				</div>

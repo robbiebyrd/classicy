@@ -1,3 +1,13 @@
+import {
+	hasApp,
+	hasAppAndWindow,
+	hasMenuBar,
+	hasWindowDragging,
+	hasWindowMove,
+	hasWindowPosition,
+	hasWindowResizing,
+	hasWindowZoomed,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
 import type {
 	ActionMessage,
 	ClassicyStore,
@@ -107,46 +117,53 @@ export const classicyWindowEventHandler = (
 		updates: Partial<ClassicyStoreSystemAppWindow>,
 	) => {
 		if (!ds.System.Manager.Applications.apps[appId]) return ds;
-		ds.System.Manager.Applications.apps[appId].windows = ds.System.Manager.Applications.apps[
-			appId
-		].windows.map((w: ClassicyStoreSystemAppWindow) =>
-			w.id === windowId ? { ...w, ...updates } : w,
-		);
+		ds.System.Manager.Applications.apps[appId].windows =
+			ds.System.Manager.Applications.apps[appId].windows.map(
+				(w: ClassicyStoreSystemAppWindow) =>
+					w.id === windowId ? { ...w, ...updates } : w,
+			);
 		return ds;
 	};
 
 	switch (action.type) {
 		case "ClassicyWindowOpen": {
+			if (!hasAppAndWindow(action)) break;
 			if (!ds.System.Manager.Applications.apps[action.app.id]) break;
+			const win = action.window as {
+				id: string;
+				position: [number, number];
+				minimumSize: [number, number];
+				size: [number, number];
+				menuBar?: ClassicyMenuItem[];
+			};
 			const window = ds.System.Manager.Applications.apps[
 				action.app.id
-			].windows.findIndex((w) => w.id === action.window.id);
+			].windows.findIndex((w) => w.id === win.id);
 			if (window < 0) {
-				let paddedPosition: [number, number] = action.window.position;
-				if (
-					action.window.position[0] === 0 &&
-					action.window.position[1] === 0
-				) {
+				let paddedPosition: [number, number] = win.position;
+				if (win.position[0] === 0 && win.position[1] === 0) {
 					const length =
-						ds.System.Manager.Applications.apps[action.app.id].windows.length * 10;
+						ds.System.Manager.Applications.apps[action.app.id].windows.length *
+						10;
 					paddedPosition = [30 + length, 30 + length];
 				}
 				ds.System.Manager.Applications.apps[action.app.id].windows.push({
 					...initialWindowState,
-					id: action.window.id,
-					minimumSize: action.window.minimumSize,
-					size: action.window.size,
+					id: win.id,
+					minimumSize: win.minimumSize,
+					size: win.size,
 					position: paddedPosition,
 					closed: false,
 					hidden: false,
-					menuBar: action.window.menuBar,
+					menuBar: win.menuBar,
 				} as ClassicyStoreSystemAppWindow);
 			} else {
-				ds = updateWindow(action.app.id, action.window.id, { closed: false });
+				ds = updateWindow(action.app.id, win.id, { closed: false });
 			}
 			break;
 		}
 		case "ClassicyWindowFocus": {
+			if (!hasAppAndWindow(action)) break;
 			if (!ds.System.Manager.Applications.apps[action.app.id]) break;
 			ds.System.Manager.Applications.apps[action.app.id].focused = true;
 			ds.System.Manager.Applications.apps[action.app.id].windows =
@@ -158,13 +175,17 @@ export const classicyWindowEventHandler = (
 					return w;
 				});
 			// Prefer fresh appMenu from component props (has closures) over stored menuBar
-			const focusMenu = action.app.appMenu || action.window.menuBar;
+			const appObj = action.app as Record<string, unknown>;
+			const winObj = action.window as Record<string, unknown>;
+			const focusMenu = (Array.isArray(appObj.appMenu) ? appObj.appMenu : null) ||
+				(Array.isArray(winObj.menuBar) ? winObj.menuBar : null);
 			if (focusMenu) {
-				ds.System.Manager.Desktop.appMenu = focusMenu;
+				ds.System.Manager.Desktop.appMenu = focusMenu as ClassicyMenuItem[];
 			}
 			break;
 		}
 		case "ClassicyWindowClose": {
+			if (!hasAppAndWindow(action)) break;
 			ds = updateWindow(action.app.id, action.window.id, {
 				closed: true,
 				focused: false,
@@ -182,6 +203,7 @@ export const classicyWindowEventHandler = (
 		}
 
 		case "ClassicyWindowDestroy": {
+			if (!hasAppAndWindow(action)) break;
 			if (!ds.System.Manager.Applications.apps[action.app.id]) break;
 			ds = updateWindow(action.app.id, action.window.id, { closed: true });
 			ds.System.Manager.Applications.apps[action.app.id].windows =
@@ -191,11 +213,14 @@ export const classicyWindowEventHandler = (
 			break;
 		}
 		case "ClassicyWindowMenu": {
-			ds.System.Manager.Desktop.appMenu = action.menuBar;
+			if (hasMenuBar(action)) {
+				ds.System.Manager.Desktop.appMenu = action.menuBar;
+			}
 			break;
 		}
 
 		case "ClassicyWindowResize": {
+			if (!hasWindowResizing(action)) break;
 			if (!ds.System.Manager.Applications.apps[action.app.id]) break;
 			ds.System.Manager.Applications.apps[action.app.id].windows =
 				ds.System.Manager.Applications.apps[action.app.id].windows.map((w) => {
@@ -208,6 +233,7 @@ export const classicyWindowEventHandler = (
 			break;
 		}
 		case "ClassicyWindowDrag": {
+			if (!hasWindowDragging(action)) break;
 			if (!ds.System.Manager.Applications.apps[action.app.id]) break;
 			ds.System.Manager.Applications.apps[action.app.id].windows =
 				ds.System.Manager.Applications.apps[action.app.id].windows.map((w) => {
@@ -219,6 +245,7 @@ export const classicyWindowEventHandler = (
 			break;
 		}
 		case "ClassicyWindowZoom": {
+			if (!hasWindowZoomed(action)) break;
 			if (!ds.System.Manager.Applications.apps[action.app.id]) break;
 			ds.System.Manager.Applications.apps[action.app.id].windows =
 				ds.System.Manager.Applications.apps[action.app.id].windows.map((w) => {
@@ -230,6 +257,7 @@ export const classicyWindowEventHandler = (
 			break;
 		}
 		case "ClassicyWindowCollapse": {
+			if (!hasAppAndWindow(action)) break;
 			if (!ds.System.Manager.Applications.apps[action.app.id]) break;
 			ds.System.Manager.Applications.apps[action.app.id].windows =
 				ds.System.Manager.Applications.apps[action.app.id].windows.map((w) => {
@@ -241,6 +269,7 @@ export const classicyWindowEventHandler = (
 			break;
 		}
 		case "ClassicyWindowExpand": {
+			if (!hasAppAndWindow(action)) break;
 			if (!ds.System.Manager.Applications.apps[action.app.id]) break;
 			ds.System.Manager.Applications.apps[action.app.id].windows =
 				ds.System.Manager.Applications.apps[action.app.id].windows.map((w) => {
@@ -252,6 +281,7 @@ export const classicyWindowEventHandler = (
 			break;
 		}
 		case "ClassicyWindowMove": {
+			if (!hasWindowMove(action)) break;
 			if (!ds.System.Manager.Applications.apps[action.app.id]) break;
 			ds.System.Manager.Applications.apps[action.app.id].windows =
 				ds.System.Manager.Applications.apps[action.app.id].windows.map((w) => {
@@ -264,11 +294,12 @@ export const classicyWindowEventHandler = (
 			break;
 		}
 		case "ClassicyWindowPosition": {
+			if (!hasWindowPosition(action)) break;
 			if (!ds.System.Manager.Applications.apps[action.app.id]) break;
 			ds.System.Manager.Applications.apps[action.app.id].windows =
 				ds.System.Manager.Applications.apps[action.app.id].windows.map((w) => {
 					if (w.id === action.window.id) {
-						w.position = action.position as [number, number];
+						w.position = action.position;
 					}
 					return w;
 				});

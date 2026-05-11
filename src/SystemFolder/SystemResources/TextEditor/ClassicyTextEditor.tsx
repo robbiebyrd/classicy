@@ -1,4 +1,5 @@
 import "./ClassicyTextEditor.scss";
+import classNames from "classnames";
 import type { FC as FunctionalComponent } from "react";
 import {
 	ClassicyControlLabel,
@@ -6,7 +7,6 @@ import {
 	type ClassicyLabelPosition,
 	labelPositionClass,
 } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
-import classNames from "classnames";
 
 export interface EditorProps {
 	id?: string;
@@ -30,7 +30,7 @@ const fontSizeClass: Record<ClassicyControlLabelSize, string> = {
 
 export const ClassicyTextEditor: FunctionalComponent<EditorProps> = ({
 	id,
-	content = "",
+	content,
 	prefillValue,
 	disabled = false,
 	labelDisabled,
@@ -42,9 +42,19 @@ export const ClassicyTextEditor: FunctionalComponent<EditorProps> = ({
 	labelPosition = "above",
 }) => {
 	return (
-		<div className={classNames("classicyTextEditorHolder", labelPositionClass(labelPosition))}>
+		<div
+			className={classNames(
+				"classicyTextEditorHolder",
+				labelPositionClass(labelPosition),
+			)}
+		>
 			{labelTitle && (
-				<ClassicyControlLabel label={labelTitle} labelFor={id} labelSize={labelSize} disabled={labelDisabled ?? disabled} />
+				<ClassicyControlLabel
+					label={labelTitle}
+					labelFor={id}
+					labelSize={labelSize}
+					disabled={labelDisabled ?? disabled}
+				/>
 			)}
 			<textarea
 				id={id}

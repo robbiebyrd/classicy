@@ -65,7 +65,9 @@ export function useClassicyDateTime(options?: {
 	);
 
 	// Accumulates the advancing local time so each tick builds on the previous tick
-	const localDateRef = useRef<Date>(toLocalDate(dateAndTime.dateTime, tzOffset));
+	const localDateRef = useRef<Date>(
+		toLocalDate(dateAndTime.dateTime, tzOffset),
+	);
 	const tzOffsetRef = useRef(tzOffset);
 	tzOffsetRef.current = tzOffset;
 	// Stable ref so the interval callback always sees the latest paused state
@@ -118,6 +120,15 @@ export function useClassicyDateTime(options?: {
 
 	const localHMS = toLocalHMS(localDate.toISOString(), 0);
 
-	return { dateTime: dateAndTime.dateTime, tzOffset, localDate, localHMS, paused, setDateTime, setTzOffset, pause, resume };
+	return {
+		dateTime: dateAndTime.dateTime,
+		tzOffset,
+		localDate,
+		localHMS,
+		paused,
+		setDateTime,
+		setTzOffset,
+		pause,
+		resume,
+	};
 }
-

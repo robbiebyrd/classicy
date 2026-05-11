@@ -12,6 +12,10 @@ import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import {
+	isFinderData,
+	type FinderData,
+} from "@/SystemFolder/Finder/FinderContext";
 import { FinderAboutThisComputer } from "@/SystemFolder/Finder/FinderAboutThisComputer";
 import { ClassicyAboutWindow } from "@/SystemFolder/SystemResources/AboutWindow/ClassicyAboutWindow";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
@@ -31,15 +35,12 @@ type PathSettingsProps = {
 
 type FinderWindowProps = {
 	appId: string;
-	appName: string;
-	appIcon: string;
 	op: string;
 	dir: ClassicyFileSystemEntry;
 	idx: number;
 	closeFolder: (path: string) => void;
 	closeAllFolders: () => void;
 	handlePathSettingsChange: (path: string, settings: PathSettingsProps) => void;
-	setShowAbout: (show: boolean) => void;
 	openFolder: (path: string) => void;
 	openFile: (path: string) => void;
 	pathSettings: Record<string, PathSettingsProps>;
@@ -51,15 +52,12 @@ type FinderWindowProps = {
 
 const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 	appId,
-	appName: _appName,
-	appIcon: _appIcon,
 	op,
 	dir,
 	idx,
 	closeFolder,
 	closeAllFolders,
 	handlePathSettingsChange,
-	setShowAbout,
 	openFolder,
 	openFile,
 	pathSettings,
@@ -164,6 +162,9 @@ export const Finder = () => {
 	const appState = useAppManager(
 		(state) => state.System.Manager.Applications.apps[appId],
 	);
+	const finderData: FinderData = isFinderData(appState?.data ?? {})
+		? (appState?.data as FinderData)
+		: {};
 	const disableBalloonHelp = useAppManager(
 		(state) => state.System.Manager.Desktop.disableBalloonHelp,
 	);
@@ -183,8 +184,9 @@ export const Finder = () => {
 
 	const prevOpenPathsRef = useRef<string[] | null>(null);
 	useEffect(() => {
-		const appData = appState.data || {};
-		if (!("openPaths" in appData)) {
+		const raw = appState.data ?? {};
+		const appData: FinderData = isFinderData(raw) ? raw : {};
+		if (!appData.openPaths) {
 			return;
 		}
 		const openPaths: string[] = appData.openPaths;
@@ -265,7 +267,7 @@ export const Finder = () => {
 	);
 
 	const closeAllFolders = useCallback(() => {
-		const paths: string[] = appState.data?.openPaths ?? [];
+		const paths: string[] = finderData.openPaths ?? [];
 		paths.forEach((path) => {
 			desktopEventDispatch({
 				type: "ClassicyWindowClose",
@@ -277,7 +279,7 @@ export const Finder = () => {
 				path,
 			});
 		});
-	}, [desktopEventDispatch, appState.data?.openPaths]);
+	}, [desktopEventDispatch, finderData.openPaths]);
 
 	useEffect(() => {
 		const drives = fs.filterByType("", "drive");
@@ -335,27 +337,25 @@ export const Finder = () => {
 			icon={appIcon}
 			noDesktopIcon={true}
 			defaultWindow={
-				appState.data.openPaths?.length
-					? appState.data.openPaths.at(0)
+				finderData.openPaths?.length
+					? finderData.openPaths.at(0)
 					: "Macintosh HD"
 			}
 		>
-			{appState.data.openPaths?.length > 0
-				? appState.data.openPaths.map((p: string, idx: number) => {
+			{finderData.openPaths && finderData.openPaths.length > 0
+				? finderData.openPaths.map((p: string, idx: number) => {
 						const dir = fs.statDir(p);
+						if (!dir) return null;
 						return (
 							<FinderWindowMemo
 								key={`${appName}_${p}`}
 								appId={appId}
-								appName={appName}
-								appIcon={appIcon}
 								op={p}
 								dir={dir}
 								idx={idx}
 								closeFolder={closeFolder}
 								closeAllFolders={closeAllFolders}
 								handlePathSettingsChange={handlePathSettingsChange}
-								setShowAbout={setShowAbout}
 								openFolder={openFolder}
 								openFile={openFile}
 								pathSettings={pathSettings}

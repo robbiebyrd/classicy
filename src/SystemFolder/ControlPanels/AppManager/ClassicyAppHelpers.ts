@@ -1,5 +1,5 @@
-import type { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import type { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 
 export function getDefaultAppForFileType(
 	ds: ClassicyStore,
@@ -9,12 +9,17 @@ export function getDefaultAppForFileType(
 }
 
 export function deFocusApps(ds: ClassicyStore) {
-	Object.values(ds.System.Manager.Applications.apps).forEach((app) => {
-		app.focused = false;
-		app.windows.forEach((w) => {
-			w.focused = false;
-		});
-	});
+	const prevId = ds.System.Manager.Applications.focusedAppId;
+	if (prevId) {
+		const prevApp = ds.System.Manager.Applications.apps[prevId];
+		if (prevApp) {
+			prevApp.focused = false;
+			prevApp.windows.forEach((w) => {
+				w.focused = false;
+			});
+		}
+		ds.System.Manager.Applications.focusedAppId = undefined;
+	}
 	return ds;
 }
 
@@ -22,6 +27,7 @@ export function focusApp(ds: ClassicyStore, appId: string) {
 	ds = deFocusApps(ds);
 	if (ds.System.Manager.Applications.apps[appId]) {
 		ds.System.Manager.Applications.apps[appId].focused = true;
+		ds.System.Manager.Applications.focusedAppId = appId;
 	}
 	const windows = ds.System.Manager.Applications.apps[appId]?.windows ?? [];
 	const defaultIdx = windows.findIndex((w) => w.default);
@@ -93,12 +99,19 @@ export function closeApp(ds: ClassicyStore, appId: string) {
 }
 
 export function activateApp(ds: ClassicyStore, appId: string) {
-	Object.entries(ds.System.Manager.Applications.apps).forEach(([key, app]) => {
-		app.focused = key === appId;
-		if (key !== appId) {
-			app.windows.forEach((w) => {
+	const prevId = ds.System.Manager.Applications.focusedAppId;
+	if (prevId && prevId !== appId) {
+		const prevApp = ds.System.Manager.Applications.apps[prevId];
+		if (prevApp) {
+			prevApp.focused = false;
+			prevApp.windows.forEach((w) => {
 				w.focused = false;
 			});
 		}
-	});
+	}
+	const app = ds.System.Manager.Applications.apps[appId];
+	if (app) {
+		app.focused = true;
+		ds.System.Manager.Applications.focusedAppId = appId;
+	}
 }

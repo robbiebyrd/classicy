@@ -23,7 +23,11 @@ import {
 
 import "./Browser.scss";
 import "./BrowserContext";
-import type { BrowserFavorite } from "./BrowserContext";
+import {
+	isBrowserData,
+	type BrowserData,
+	type BrowserFavorite,
+} from "./BrowserContext";
 import {
 	DEFAULT_PROXY_CONFIG,
 	type TimeMachineProxyConfig,
@@ -113,13 +117,14 @@ export const Browser = () => {
 	const appState = useAppManager(
 		(state) => state.System.Manager.Applications.apps[appId],
 	);
+	const rawData = appState?.data ?? {};
+	const browserData: BrowserData = isBrowserData(rawData) ? rawData : {};
 
-	const favorites = useAppManager(
-		(state) => (state.System.Manager.Applications.apps[appId]?.data?.favorites ?? []) as BrowserFavorite[],
-	);
+	const favorites: BrowserFavorite[] = browserData.favorites ?? [];
 
 	const proxyConfig: TimeMachineProxyConfig =
-		appState?.data?.proxyConfig ?? DEFAULT_PROXY_CONFIG;
+		(browserData.proxyConfig as TimeMachineProxyConfig | undefined) ??
+		DEFAULT_PROXY_CONFIG;
 
 	const normalizeDomain = useCallback((url: string): string => {
 		try {
@@ -130,7 +135,7 @@ export const Browser = () => {
 		}
 	}, []);
 
-	const homePage = appState?.data?.homePage ?? {
+	const homePage = browserData.homePage ?? {
 		url: DEFAULT_URL,
 		label: DEFAULT_HOME_LABEL,
 		icon: DEFAULT_HOME_ICON,
@@ -138,13 +143,13 @@ export const Browser = () => {
 
 	useEffect(() => {
 		if (!appState) return;
-		if (!appState.data?.favorites) {
+		if (!browserData.favorites) {
 			desktopEventDispatch({
 				type: "ClassicyAppBrowserInitFavorites",
 				favorites: DEFAULT_FAVORITES,
 			});
 		}
-		if (!appState.data?.homePage) {
+		if (!browserData.homePage) {
 			desktopEventDispatch({
 				type: "ClassicyAppBrowserSetHomePage",
 				url: DEFAULT_URL,
@@ -154,7 +159,7 @@ export const Browser = () => {
 		}
 	}, [appState, desktopEventDispatch]);
 
-	const showFavoritesBar: boolean = (appState?.data?.showFavoritesBar as boolean) ?? true;
+	const showFavoritesBar: boolean = browserData.showFavoritesBar ?? true;
 	const [urlError, setUrlError] = useState(false);
 	const [showSettings, setShowSettings] = useState(false);
 	const refToolbar = useRef<HTMLDivElement>(null);
@@ -272,7 +277,11 @@ export const Browser = () => {
 						id: `${appId}_show_favorites`,
 						title: "Show Favorites",
 						className: showFavoritesBar ? "browserMenuItemChecked" : "",
-						onClickFunc: () => desktopEventDispatch({ type: "ClassicyAppBrowserSetShowFavoritesBar", showFavoritesBar: !showFavoritesBar }),
+						onClickFunc: () =>
+							desktopEventDispatch({
+								type: "ClassicyAppBrowserSetShowFavoritesBar",
+								showFavoritesBar: !showFavoritesBar,
+							}),
 					},
 				],
 			},
@@ -399,9 +408,7 @@ export const Browser = () => {
 							/>
 						</ClassicyControlGroup>
 						<div className="browserSettingsButtons">
-							<ClassicyButton
-								onClickFunc={() => setShowSettings(false)}
-							>
+							<ClassicyButton onClickFunc={() => setShowSettings(false)}>
 								Cancel
 							</ClassicyButton>
 							<ClassicyButton isDefault={true} onClickFunc={saveSettings}>
@@ -531,12 +538,16 @@ export const Browser = () => {
 								<ClassicyButton onClickFunc={() => goTo(homePage.url)}>
 									<div className="browserNavButtonContent browserHoverSwap">
 										<img
-											src={ClassicyIcons.applications.internetExplorer.documentHome}
+											src={
+												ClassicyIcons.applications.internetExplorer.documentHome
+											}
 											className="browserIconDefault"
 											alt={homePage.label}
 										/>
 										<img
-											src={ClassicyIcons.applications.internetExplorer.documentHome}
+											src={
+												ClassicyIcons.applications.internetExplorer.documentHome
+											}
 											className="browserIconHover"
 											alt={`${homePage.label} Hover`}
 										/>

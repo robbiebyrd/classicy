@@ -140,7 +140,7 @@ export const ClassicyDesktopMenuWidgetTime: FunctionalComponent = () => {
 	};
 
 	const toBlink = () => {
-		if ((!dateAndTime.paused) && flashSeparators) {
+		if (!dateAndTime.paused && flashSeparators) {
 			return "textBlinker";
 		}
 

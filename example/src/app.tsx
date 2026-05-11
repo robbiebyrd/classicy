@@ -16,12 +16,12 @@ if (!rootElement) throw new Error("Root element not found");
 createRoot(rootElement).render(
 	<StrictMode>
 		<ClassicyAppManagerProvider>
-				<ClassicyDesktop>
-					<Browser />
-					<BlueBox />
-					<Demo />
-					<SimpleText />
-				</ClassicyDesktop>
+			<ClassicyDesktop>
+				<Browser />
+				<BlueBox />
+				<Demo />
+				<SimpleText />
+			</ClassicyDesktop>
 		</ClassicyAppManagerProvider>
 	</StrictMode>,
 );
