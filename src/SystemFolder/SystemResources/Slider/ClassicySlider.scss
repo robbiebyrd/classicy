@@ -32,9 +32,6 @@ $_thumb-strikes-svg: url('../../../../assets/img/ui/slider-strikes.svg');
 // ── Thumb appearance mixin ────────────────────────────────────────────────────
 @mixin thumb-appearance(
   $body-gradient,
-  $highlight-angle:   145deg,
-  $highlight-opacity: 0.7,
-  $grip-color:        rgba(0, 0, 0, 0.22)
 ) {
   clip-path: $thumb-shape;
   background:
@@ -124,17 +121,13 @@ $_thumb-strikes-svg: url('../../../../assets/img/ui/slider-strikes.svg');
   // Image 2 — depressed / dragging (inverted gradient, reversed glint)
   &:active::-webkit-slider-thumb {
     @include thumb-appearance(
-      linear-gradient(to bottom, var(--color-theme-04), var(--color-theme-03), var(--color-theme-04)),
-      $highlight-angle:   325deg,
-      $highlight-opacity: 0.35,
+      linear-gradient(to bottom, var(--color-theme-04), var(--color-theme-03), var(--color-theme-04))
     );
   }
 
   &:active::-moz-range-thumb {
     @include thumb-appearance(
-      linear-gradient(to bottom, var(--color-theme-04), var(--color-theme-03), var(--color-theme-04)),
-      $highlight-angle:   325deg,
-      $highlight-opacity: 0.35,
+      linear-gradient(to bottom, var(--color-theme-04), var(--color-theme-03), var(--color-theme-04))
     );
   }
 }
@@ -144,32 +137,24 @@ $_thumb-strikes-svg: url('../../../../assets/img/ui/slider-strikes.svg');
 .classicySliderHighlighted {
   &::-webkit-slider-thumb {
     @include thumb-appearance(
-      linear-gradient(to bottom, var(--color-theme-04), var(--color-theme-03), var(--color-theme-04)),
-      $highlight-opacity: 0.5,
+      linear-gradient(to bottom, var(--color-theme-04), var(--color-theme-03), var(--color-theme-04))
     );
   }
 
   &::-moz-range-thumb {
     @include thumb-appearance(
-      linear-gradient(to bottom, var(--color-theme-03), var(--color-theme-04), var(--color-theme-03)),
-      $highlight-opacity: 0.5,
-    );
+      linear-gradient(to bottom, var(--color-theme-03), var(--color-theme-04), var(--color-theme-03))    );
   }
 
   &:active::-webkit-slider-thumb {
     @include thumb-appearance(
-      linear-gradient(to bottom, var(--color-theme-06), var(--color-theme-05), var(--color-theme-06)),
-      $highlight-angle:   325deg,
-      $highlight-opacity: 0.3,
+      linear-gradient(to bottom, var(--color-theme-06), var(--color-theme-05), var(--color-theme-06))
     );
   }
 
   &:active::-moz-range-thumb {
     @include thumb-appearance(
-      linear-gradient(to bottom, var(--color-theme-06), var(--color-theme-05), var(--color-theme-06)),
-      $highlight-angle:   325deg,
-      $highlight-opacity: 0.3,
-    );
+      linear-gradient(to bottom, var(--color-theme-06), var(--color-theme-05), var(--color-theme-06))    );
   }
 }
 
