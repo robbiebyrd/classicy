@@ -1,5 +1,4 @@
 import "./ClassicyTabs.scss";
-import tabMaskImageURL from "@img/ui/tab.svg?base64";
 import {
 	type FC as FunctionalComponent,
 	type MouseEvent,
@@ -44,16 +43,10 @@ export const ClassicyTabs: FunctionalComponent<TabProps> = ({ tabs }) => {
 						<div
 							key={`button_${tab.title}`}
 							className={"classicyTabButtonWrapper"}
-							style={{
-								maskImage: `url(data:image/svg+xml;base64,${tabMaskImageURL}`,
-							}}
 						>
 							<button
 								type="button"
 								id={index.toString()}
-								style={{
-									maskImage: `url(data:image/svg+xml;base64,${tabMaskImageURL}`,
-								}}
 								className={
 									"classicyTabButton" +
 									" " +

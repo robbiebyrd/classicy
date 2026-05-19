@@ -1,5 +1,20 @@
 @use '../../ControlPanels/AppearanceManager/styles/appearance';
 
+// ── Tab geometry ──────────────────────────────────────────────────────────────
+// Trapezoid approximating the original SVG path (viewBox 75.31 × 23.44 px).
+// The original has ~3 px bezier curves at the top corners; straight lines are
+// indistinguishable at screen size.
+// Top-left x offset: 10.32 / 75.31 ≈ 13.70%   Top-right: 64.98 / 75.31 ≈ 86.30%
+$tab-shape: polygon(13.70% 0%, 86.30% 0%, 100% 100%, 0% 100%);
+
+// ── Tab border SVG ────────────────────────────────────────────────────────────
+// Draws only the 3 visible sides (left diagonal, top, right diagonal — no bottom).
+// 2 px centered stroke → 1 px visible inside after clip-path crops the outer half.
+// preserveAspectRatio='none' is required so the SVG stretches to exactly fill the
+// element — otherwise the browser letterboxes it and the stroke drifts off the clip edges.
+// Path: bottom-left → top-left → top-right → bottom-right (open, no closing line).
+$_tab-border-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 75.31 23.44' preserveAspectRatio='none'%3E%3Cpath d='M0,23.44 L10.32,0 H64.98 L75.31,23.44' fill='none' stroke='black' stroke-width='2'/%3E%3C/svg%3E");
+
 .classicyTabContainer {
 }
 
@@ -15,36 +30,42 @@
   gap: calc(var(--window-padding-size) * 2);
 }
 
+// clip-path on <button> does not reliably clip background-color in all browsers.
+// All visual shaping lives here on the wrapper <div> instead.
+// Active fill is detected via :has() so the button element stays transparent.
+.classicyTabButtonWrapper {
+  height: calc(var(--window-control-size) * 2);
+  clip-path: $tab-shape;
+  // SVG layer (top): 3-sided border tracing the tab outline via stroke.
+  // background-color (bottom): fill — overridden to active color via :has() below.
+  background-image: $_tab-border-svg;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-color: var(--color-system-04);
+
+  &:has(.classicyTabButtonActive) {
+    background-color: var(--color-system-02);
+  }
+}
+
 .classicyTabButton {
   font-family: var(--ui-font), sans-serif;
   font-size: var(--ui-font-size);
-  width: 99%;
+  width: 100%;
   height: calc(var(--window-control-size) * 2);
   padding: calc(var(--window-padding-size) * 0.5) calc(var(--window-padding-size) * 3) calc(var(--window-padding-size) * 1) calc(var(--window-padding-size) * 3);
   user-select: none;
+  -webkit-appearance: none;
+  appearance: none; // resets the UA-default buttonface background
   border: none;
-  background-color: var(--color-system-04);
-  background-position: left bottom;
-  background-size: 100%;
-  mask-repeat: no-repeat;
-  mask-size: 100%;
-  mask-position: center center;
+  background: transparent; // wrapper provides all visual background
   min-width: calc(var(--window-control-size) * 7);
   text-wrap: nowrap;
 }
 
-.classicyTabButtonWrapper {
-  height: calc(var(--window-control-size) * 2);
-  border-top: var(--window-border-size) solid;
-  background-color: var(--color-system-07);
-  mask-repeat: no-repeat;
-  mask-size: calc(100% + var(--window-border-size) * 1);
-  mask-position: center bottom;
-}
-
 .classicyTabButtonActive {
-  border-bottom: none !important;
-  background-color: var(--color-system-02);
+  // Kept as a class flag — the visual active state is handled by
+  // .classicyTabButtonWrapper:has(.classicyTabButtonActive) above.
 }
 
 .classicyTabHiddenContent {
