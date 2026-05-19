@@ -1,0 +1,65 @@
+import { describe, expect, it, vi } from "vitest";
+import { render } from "@/__tests__/test-utils";
+import { fireEvent } from "@testing-library/react";
+import { ClassicySlider } from "@/SystemFolder/SystemResources/Slider/ClassicySlider";
+
+vi.mock(
+	"@/SystemFolder/SystemResources/Slider/ClassicySlider.scss",
+	() => ({}),
+);
+
+describe("ClassicySlider", () => {
+	it("renders a range input", () => {
+		const { container } = render(<ClassicySlider id="test" value={5} />);
+		expect(container.querySelector('input[type="range"]')).toBeInTheDocument();
+	});
+
+	it("reflects min, max, step, and value on the input", () => {
+		const { container } = render(
+			<ClassicySlider id="test" value={30} min={1} max={60} step={1} />,
+		);
+		const input = container.querySelector('input[type="range"]') as HTMLInputElement;
+		expect(input).toHaveAttribute("min", "1");
+		expect(input).toHaveAttribute("max", "60");
+		expect(input).toHaveAttribute("step", "1");
+		// Uncontrolled input: value is set via defaultValue / ref, check DOM property
+		expect(input.value).toBe("30");
+	});
+
+	it("shows valueLabel when provided", () => {
+		const { getByText } = render(
+			<ClassicySlider id="test" value={30} valueLabel="30 min" />,
+		);
+		expect(getByText("30 min")).toBeInTheDocument();
+	});
+
+	it("shows raw numeric value when no valueLabel provided", () => {
+		const { getByText } = render(<ClassicySlider id="test" value={42} />);
+		expect(getByText("42")).toBeInTheDocument();
+	});
+
+	it("renders a label when labelTitle is provided", () => {
+		const { getByText } = render(
+			<ClassicySlider id="test" value={5} labelTitle="Skip:" />,
+		);
+		expect(getByText("Skip:")).toBeInTheDocument();
+	});
+
+	it("calls onChangeFunc when the input changes", () => {
+		const onChange = vi.fn();
+		const { container } = render(
+			<ClassicySlider id="test" value={5} onChangeFunc={onChange} />,
+		);
+		const input = container.querySelector('input[type="range"]') as HTMLInputElement;
+		fireEvent.change(input, { target: { value: "20" } });
+		expect(onChange).toHaveBeenCalledTimes(1);
+	});
+
+	it("disables the input when disabled=true", () => {
+		const { container } = render(
+			<ClassicySlider id="test" value={5} disabled={true} />,
+		);
+		const input = container.querySelector('input[type="range"]') as HTMLInputElement;
+		expect(input).toBeDisabled();
+	});
+});

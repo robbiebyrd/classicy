@@ -1,0 +1,175 @@
+@use '../../ControlPanels/AppearanceManager/styles/appearance';
+
+// ── Thumb geometry ────────────────────────────────────────────────────────────
+$thumb-w:   calc(var(--window-control-size)*2);   // 1:1 aspect ratio with $thumb-h
+$thumb-h:   calc(var(--window-control-size)*1.75);   // rectangular body (0–62%) + downward triangle (62–100%)
+$track-h:   calc(var(--window-padding-size));
+// Centers the tall thumb vertically on the track
+$thumb-margin-top: calc(($track-h - $thumb-h) / 2);  // −6.5 px
+
+// Pentagon: flat top + right/left sides down to 62%, then arrow-point to 100%
+$thumb-shape: polygon(9% 2%, 92% 2%, 92% 56.6%, 50% 95%, 9% 56.6%);
+
+// ── Thumb border SVG ──────────────────────────────────────────────────────────
+// `border`, `box-shadow`, and `filter: drop-shadow` all fail on
+// ::webkit-slider-thumb: border/shadow paint before clip-path (rectangle-clipped),
+// and filter is not applied to this pseudo-element by the browser.
+//
+// Solution: SVG background layer draws a 4px black stroke on the same pentagon
+// path used by clip-path. The stroke is centered on the path so its outer 2px
+// are cropped by clip-path, leaving a clean 2px border (= --window-border-size × 2)
+// that follows every edge exactly — including the diagonal lower sides.
+//
+// SVG viewBox = 21 × 21 px (matches $thumb-w × $thumb-h, 1:1 aspect ratio).
+// Points = $thumb-shape converted to px: (0,0)(21,0)(21,13.02)(10.5,21)(0,13.02)
+$_thumb-border-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 21 21'%3E%3Cpolygon points='0,0 21,0 21,13.02 10.5,21 0,13.02' fill='none' stroke='black' stroke-width='4'/%3E%3C/svg%3E");
+
+// ── Thumb grip strikes SVG ────────────────────────────────────────────────────
+// Three vertical lines centered in the thumb body to indicate draggability.
+// Sourced from assets/img/ui/slider-strikes.svg (ui icon section).
+$_thumb-strikes-svg: url('../../../../assets/img/ui/slider-strikes.svg');
+
+// ── Thumb appearance mixin ────────────────────────────────────────────────────
+@mixin thumb-appearance(
+  $body-gradient,
+) {
+  clip-path: $thumb-shape;
+  background:
+    $_thumb-border-svg 0 0 / 100% 100% no-repeat,
+    $_thumb-strikes-svg center 30% / 45% 35% no-repeat,
+    $body-gradient;
+}
+
+// ─── Track ────────────────────────────────────────────────────────────────────
+
+.classicySliderTrackGroup {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--window-padding-size);
+  width: 100%;
+}
+
+// ─── Base slider ──────────────────────────────────────────────────────────────
+
+.classicySlider {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: $thumb-h;   // tall enough for the shield thumb's full hit-area
+  background: transparent;
+  outline: none;
+  cursor: pointer;
+  overflow: visible; // allows the bottom point of the thumb to paint below the track
+
+  // Grooved cylinder track
+  &::-webkit-slider-runnable-track {
+    height: $track-h;
+    border-radius: 999px;
+    border: var(--window-border-size) solid var(--color-window-border);
+    background: linear-gradient(
+      to bottom,
+      var(--color-system-06) 0%,
+      var(--color-system-04) 10%,
+      var(--color-system-03) 50%,
+      var(--color-system-04) 90%,
+      var(--color-system-05) 100%
+    );
+    box-shadow:
+      inset var(--window-border-size) var(--window-border-size) var(--color-system-05);
+  }
+
+  &::-moz-range-track {
+    height: $track-h;
+    border-radius: 999px;
+    border: var(--window-border-size) solid var(--color-window-border);
+    background: linear-gradient(
+      to bottom,
+      var(--color-system-06) 0%,
+      var(--color-system-04) 10%,
+      var(--color-system-03) 50%,
+      var(--color-system-04) 90%,
+      var(--color-system-05) 100%
+    );
+    box-shadow:
+      inset var(--window-border-size) var(--window-border-size) var(--color-system-05);
+  }
+
+  // Image 1 — normal (raised Platinum silver)
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: $thumb-w;
+    height: $thumb-h;
+    margin-top: $thumb-margin-top;
+    cursor: pointer;
+    @include thumb-appearance(
+      linear-gradient(to bottom, var(--color-system-01), var(--color-system-04))
+    );
+  }
+
+  &::-moz-range-thumb {
+    width: $thumb-w;
+    height: $thumb-h;
+    border: none;
+    cursor: pointer;
+    @include thumb-appearance(
+      linear-gradient(to bottom, var(--color-system-01), var(--color-system-04))
+    );
+  }
+
+  // Image 2 — depressed / dragging (inverted gradient, reversed glint)
+  &:active::-webkit-slider-thumb {
+    @include thumb-appearance(
+      linear-gradient(to bottom, var(--color-theme-04), var(--color-theme-03), var(--color-theme-04))
+    );
+  }
+
+  &:active::-moz-range-thumb {
+    @include thumb-appearance(
+      linear-gradient(to bottom, var(--color-theme-04), var(--color-theme-03), var(--color-theme-04))
+    );
+  }
+}
+
+// ─── Highlighted variant (Image 3) — theme blue ───────────────────────────────
+
+.classicySliderHighlighted {
+  &::-webkit-slider-thumb {
+    @include thumb-appearance(
+      linear-gradient(to bottom, var(--color-theme-04), var(--color-theme-03), var(--color-theme-04))
+    );
+  }
+
+  &::-moz-range-thumb {
+    @include thumb-appearance(
+      linear-gradient(to bottom, var(--color-theme-03), var(--color-theme-04), var(--color-theme-03))    );
+  }
+
+  &:active::-webkit-slider-thumb {
+    @include thumb-appearance(
+      linear-gradient(to bottom, var(--color-theme-06), var(--color-theme-05), var(--color-theme-06))
+    );
+  }
+
+  &:active::-moz-range-thumb {
+    @include thumb-appearance(
+      linear-gradient(to bottom, var(--color-theme-06), var(--color-theme-05), var(--color-theme-06))    );
+  }
+}
+
+// ─── Disabled variant (Image 1 at 50% contrast) ───────────────────────────────
+
+.classicySliderDisabled {
+  cursor: not-allowed;
+  filter: contrast(0.5);
+
+  &::-webkit-slider-thumb {
+    cursor: not-allowed;
+  }
+
+  &::-moz-range-thumb {
+    cursor: not-allowed;
+  }
+}
+
