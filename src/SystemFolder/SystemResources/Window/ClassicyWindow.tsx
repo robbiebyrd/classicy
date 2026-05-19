@@ -305,8 +305,10 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	};
 
 	const changeWindow = (e: MouseEvent<HTMLDivElement>) => {
-		e.preventDefault();
-		if (ws.resizing || ws.dragging) {
+		// Only prevent default when actually moving/resizing — unconditional
+		// preventDefault() on mousemove breaks native range-input thumb dragging.
+		if (ws.resizing || ws.dragging || ws.moving) {
+			e.preventDefault();
 			setActive(e);
 		}
 
@@ -328,14 +330,17 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 
 	const stopChangeWindow = (e: MouseEvent<HTMLDivElement>) => {
 		track("halt", { type: "ClassicyWindow", ...analyticsArgs });
-		e.preventDefault();
-		setActive();
+		// Only prevent default when actually stopping a drag or resize.
+		// Unconditional preventDefault() breaks Safari's native range input
+		// release, causing the page to freeze after slider interactions.
 		if (ws.resizing || ws.dragging || ws.moving) {
+			e.preventDefault();
 			player({
 				type: "ClassicySoundPlayInterrupt",
 				sound: "ClassicyWindowMoveStop",
 			});
 		}
+		setActive();
 		setResize(false);
 		setDragging(false);
 		const rect = windowRef.current?.getBoundingClientRect();

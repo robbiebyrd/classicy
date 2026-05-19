@@ -75,6 +75,7 @@ export * from "./SystemFolder/SystemResources/QuickTime/QuickTimeMovieEmbed";
 export * from "./SystemFolder/SystemResources/QuickTime/QuickTimeUtils";
 export * from "./SystemFolder/SystemResources/RadioInput/ClassicyRadioInput";
 export * from "./SystemFolder/SystemResources/RichTextEditor/ClassicyRichTextEditor";
+export * from "./SystemFolder/SystemResources/Slider/ClassicySlider";
 export * from "./SystemFolder/SystemResources/Spinner/ClassicySpinner";
 export * from "./SystemFolder/SystemResources/Tabs/ClassicyTabs";
 export * from "./SystemFolder/SystemResources/TextEditor/ClassicyTextEditor";
