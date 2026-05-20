@@ -1,6 +1,11 @@
 name: Deploy to GitHub Pages
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'example/**'
   workflow_run:
     workflows:
       - Release Package
@@ -22,7 +27,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
