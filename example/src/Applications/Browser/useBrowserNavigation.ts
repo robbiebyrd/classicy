@@ -8,7 +8,7 @@ export const DEFAULT_PROXY_HOST =
 export const DEFAULT_PROXY_PORT = Number(
 	import.meta.env.VITE_PROXY_PORT ?? 443,
 );
-export const DEFAULT_ARCHIVE_TIME = "20010911000000";
+export const DEFAULT_ARCHIVE_TIME = "19970101000000";
 export const DEFAULT_PROXY_PREFIX = "https://web.archive.org/web";
 export const DEFAULT_PROXY_PATH = "/ws";
 
