@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { normalizeUrl } from "./browserUtils";
 
-export const DEFAULT_PROXY_ON = false;
-export const DEFAULT_PROXY_PROTOCOL = "http:";
+export const DEFAULT_PROXY_ON = true;
+export const DEFAULT_PROXY_PROTOCOL = "wss:";
 export const DEFAULT_PROXY_HOST =
-	import.meta.env.VITE_PROXY_HOST ?? "localhost";
+	import.meta.env.VITE_PROXY_HOST ?? "timemachine.911realtime.org";
 export const DEFAULT_PROXY_PORT = Number(
-	import.meta.env.VITE_PROXY_PORT ?? 8765,
+	import.meta.env.VITE_PROXY_PORT ?? 443,
 );
 export const DEFAULT_ARCHIVE_TIME = "20010911000000";
 export const DEFAULT_PROXY_PREFIX = "https://web.archive.org/web";
-export const DEFAULT_PROXY_PATH = "";
+export const DEFAULT_PROXY_PATH = "/ws";
 
 export interface TimeMachineProxyConfig {
 	enabled: boolean;
