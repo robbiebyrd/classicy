@@ -45,10 +45,9 @@ jobs:
 
       - name: Install FFMpeg
         id: setup-ffmpeg
-        uses: FedericoCarboni/setup-ffmpeg@v3.1
-        with:
-          ffmpeg-version: release
-          linking-type: static
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
 
       - name: Run Tests
         id: run-tests
