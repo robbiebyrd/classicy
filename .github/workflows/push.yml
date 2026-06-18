@@ -27,16 +27,21 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup pnpm
+        id: setup-pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Setup Node.js
         id: setup-node-js
         uses: actions/setup-node@v6
         with:
           node-version: '24.x'
           registry-url: 'https://registry.npmjs.org'
+          cache: 'pnpm'
 
       - name: Install dependencies
-        id: install-npm-deps
-        run: npm install
+        id: install-deps
+        run: pnpm install --frozen-lockfile
 
       - name: Install FFMpeg
         id: setup-ffmpeg
@@ -47,11 +52,11 @@ jobs:
 
       - name: Run Tests
         id: run-tests
-        run: npm test
+        run: pnpm test
 
       - name: Build Package
         id: build-package
-        run: npm run build
+        run: pnpm build
 
       - name: Bump version and push tag
         id: bump_version
@@ -94,7 +99,7 @@ jobs:
       - name: Update release codename in package.json
         if: steps.bump_version.outputs.newTag != '' && steps.codename.outputs.name != ''
         run: |
-          npm pkg set release="${{ steps.codename.outputs.name }}"
+          pnpm pkg set release="${{ steps.codename.outputs.name }}"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
           git add package.json

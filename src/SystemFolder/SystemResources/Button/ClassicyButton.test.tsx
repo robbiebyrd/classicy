@@ -79,4 +79,36 @@ describe("ClassicyButton", () => {
 		const btn = document.querySelector('button[type="submit"]');
 		expect(btn).toBeInTheDocument();
 	});
+
+	it("defaults to md padding and margin classes", () => {
+		render(<ClassicyButton>Default</ClassicyButton>);
+		const btn = screen.getByRole("button", { name: "Default" });
+		expect(btn).toHaveClass("classicyButtonPaddingMd");
+		expect(btn).toHaveClass("classicyButtonMarginMd");
+	});
+
+	it("applies the requested padding variant", () => {
+		render(<ClassicyButton padding="lg">Pad</ClassicyButton>);
+		const btn = screen.getByRole("button", { name: "Pad" });
+		expect(btn).toHaveClass("classicyButtonPaddingLg");
+		expect(btn).not.toHaveClass("classicyButtonPaddingMd");
+	});
+
+	it("applies the requested margin variant", () => {
+		render(<ClassicyButton margin="xl">Marg</ClassicyButton>);
+		const btn = screen.getByRole("button", { name: "Marg" });
+		expect(btn).toHaveClass("classicyButtonMarginXl");
+		expect(btn).not.toHaveClass("classicyButtonMarginMd");
+	});
+
+	it("omits any padding class on square buttons but keeps the margin class", () => {
+		render(
+			<ClassicyButton buttonShape="square" padding="lg" margin="lg">
+				Sq
+			</ClassicyButton>,
+		);
+		const btn = screen.getByRole("button", { name: "Sq" });
+		expect(btn.className).not.toMatch(/classicyButtonPadding/);
+		expect(btn).toHaveClass("classicyButtonMarginLg");
+	});
 });

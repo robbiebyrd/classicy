@@ -18,7 +18,25 @@ type ClassicyButtonProps = PropsWithChildren<{
 	buttonType?: "button" | "submit" | "reset";
 	/** When true, holds the button in its pressed/active visual state. */
 	depressed?: boolean;
+	/** Inner spacing variant; scales off --window-padding-size. Ignored for square buttons. */
+	padding?: "sm" | "md" | "lg" | "xl";
+	/** Outer spacing variant; scales off --window-padding-size. */
+	margin?: "sm" | "md" | "lg" | "xl";
 }>;
+
+const paddingVariantClass = {
+	sm: "classicyButtonPaddingSm",
+	md: "classicyButtonPaddingMd",
+	lg: "classicyButtonPaddingLg",
+	xl: "classicyButtonPaddingXl",
+} as const;
+
+const marginVariantClass = {
+	sm: "classicyButtonMarginSm",
+	md: "classicyButtonMarginMd",
+	lg: "classicyButtonMarginLg",
+	xl: "classicyButtonMarginXl",
+} as const;
 
 export const ClassicyButton: FunctionalComponent<ClassicyButtonProps> = ({
 	isDefault = false,
@@ -27,6 +45,8 @@ export const ClassicyButton: FunctionalComponent<ClassicyButtonProps> = ({
 	buttonSize,
 	disabled = false,
 	depressed = false,
+	padding = "md",
+	margin = "md",
 	onClickFunc,
 	children,
 }) => {
@@ -53,6 +73,8 @@ export const ClassicyButton: FunctionalComponent<ClassicyButtonProps> = ({
 				buttonShape === "square" ? "classicyButtonShapeSquare" : "",
 				buttonSize === "small" ? "classicyButtonSmall" : "",
 				depressed ? "classicyButtonDepressed" : "",
+				buttonShape !== "square" ? paddingVariantClass[padding] : "",
+				marginVariantClass[margin],
 			)}
 			aria-pressed={depressed || undefined}
 			onClick={onHandleFunc}

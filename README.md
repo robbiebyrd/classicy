@@ -12,35 +12,35 @@ A UI framework using native CSS/JS replications of the Mac OS 8 interface compon
 
 ## Building and running on localhost
 
-First install dependencies:
+This project uses [pnpm](https://pnpm.io/) (enable it with `corepack enable`). First install dependencies:
 
 ```sh
-npm install
+pnpm install
 ```
 
 To create a production build:
 
 ```sh
-npm run build
+pnpm build
 ```
 
 To create a development build:
 
 ```sh
-npm run dev
+pnpm dev
 ```
 
 ## Running
 
-To run the example site locally (builds the package, links it into the example, and starts the example dev server):
+To run the example site locally (builds the package and starts the example dev server):
 
 ```sh
-npm run preview
+pnpm preview
 ```
 
 Then visit the site in your browser at http://localhost:3000.
 
-(For iterative package development you can also use `npm run dev`, which builds the source and links the package locally.)
+(For iterative package development you can also use `pnpm dev`, which builds the source. The `example/` app consumes it directly through the pnpm workspace — no linking step required.)
 
 ### Browser app — TimeMachine Proxy
 

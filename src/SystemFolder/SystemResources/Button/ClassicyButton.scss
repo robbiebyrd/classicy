@@ -6,9 +6,6 @@
 
   border-radius: calc(var(--window-padding-size)/2);
 
-  margin: calc(var(--window-padding-size));
-  padding: calc(var(--window-padding-size) / 2) var(--window-padding-size);
-
   user-select: none;
   -webkit-user-select: none;
 
@@ -22,9 +19,6 @@
 .classicyButtonDefault {
   font-family: var(--ui-font), sans-serif;
   font-size: var(--ui-font-size);
-
-  margin: calc(var(--window-padding-size));
-  padding: calc(var(--window-padding-size) / 2) var(--window-padding-size);
 
   user-select: none;
   -webkit-user-select: none;
@@ -63,5 +57,26 @@
 
   img {
     width: 90%;
+  }
+}
+
+// Spacing scale — all derived from --window-padding-size so it tracks the theme.
+// Keys are the class-name suffix; values are the multiplier. Md (1x) reproduces
+// the historical default spacing.
+$classicy-button-spacing: (
+  Sm: 0.5,
+  Md: 1,
+  Lg: 1.5,
+  Xl: 2,
+);
+
+@each $suffix, $mult in $classicy-button-spacing {
+  .classicyButtonPadding#{$suffix} {
+    padding: calc(var(--window-padding-size) / 2 * #{$mult})
+      calc(var(--window-padding-size) * #{$mult});
+  }
+
+  .classicyButtonMargin#{$suffix} {
+    margin: calc(var(--window-padding-size) * #{$mult});
   }
 }
