@@ -69,6 +69,21 @@
   }
 }
 
+.classicyContextMenu {
+  // Mirrors `.classicySubMenu` (vertical, bordered, system-02 surface) but stays
+  // visible: a contextual menu's root is shown immediately, not on hover. Fixed
+  // positioning + shadow are handled by `.classicyContextMenuWrapper`.
+  display: flex;
+  flex-direction: column;
+  min-width: calc(var(--window-control-size) * 15);
+  @include appearance.platinumWindowBorder;
+  margin: 0;
+  padding: var(--window-border-size);
+  list-style: none;
+  color: var(--color-black);
+  background-color: var(--color-system-02);
+}
+
 .classicyContextSubMenu {
   position: absolute;
   left: 100%;

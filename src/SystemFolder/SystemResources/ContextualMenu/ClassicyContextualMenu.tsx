@@ -54,6 +54,7 @@ export const ClassicyContextualMenu: FunctionalComponent<ClassicyMenuProps> = ({
 				<ClassicyMenu
 					name={name}
 					menuItems={menuItems}
+					navClass={"classicyContextMenu"}
 					subNavClass={"classicyContextSubMenu"}
 				></ClassicyMenu>
 			</div>
