@@ -8,15 +8,15 @@
 		"build": "tsc -b && vite build",
 		"lint": "eslint .",
 		"preview": "vite preview",
-		"use:local": "npm link classicy",
-		"use:published": "npm unlink classicy && npm install",
-		"proxy": "npm run proxy:up",
-		"proxy:cycle": "npm run proxy:down && npm run proxy:up",
+		"use:local": "pnpm add classicy@workspace:* && pnpm install",
+		"use:published": "pnpm add classicy@latest",
+		"proxy": "pnpm proxy:up",
+		"proxy:cycle": "pnpm proxy:down && pnpm proxy:up",
 		"proxy:up": "cd timemachine && docker compose up --build --force-recreate -d",
 		"proxy:down": "cd timemachine && docker compose down"
 	},
 	"dependencies": {
-		"classicy": "*",
+		"classicy": "workspace:*",
 		"dompurify": "^3.4.0",
 		"react": "^19.1.0",
 		"react-dom": "^19.1.0"

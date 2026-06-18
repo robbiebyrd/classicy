@@ -10,6 +10,7 @@
 		"url": "https://github.com/robbiebyrd/classicy"
 	},
 	"type": "module",
+	"packageManager": "pnpm@10.26.0",
 	"description": "A UI framework in React, replicating the user interface of Classic MacOS 8 (called Platinum).",
 	"keywords": [
 		"react",
@@ -23,18 +24,18 @@
 	"license": "Unlicense",
 	"scripts": {
 		"generate-barrels": "barrelsby -c .ts-barrel.json",
-		"dev": "npm run build:source && npm link",
-		"build": "npm run build:audio && npm run build:source",
-		"build:source": "npm run generate-barrels && tsc -b && vite build",
+		"dev": "pnpm build:source",
+		"build": "pnpm build:audio && pnpm build:source",
+		"build:source": "pnpm generate-barrels && tsc -b && vite build",
 		"build:audio": "./bin/make_audio_sprites.sh",
-		"build:watch": "concurrently --kill-others \"npm run build:watchaudio\" \"npm run build:watchsource\"",
-		"build:watchaudio": "nodemon --watch \"resources/sounds/**\" --ext \"mp3,mp4,wav,aif,aiff,ogg,flac,m4a,ac3,json\" --exec \"npm run build:audio\" --ignore \"example/**\" --ignore \"rt911/**\" ",
+		"build:watch": "concurrently --kill-others \"pnpm build:watchaudio\" \"pnpm build:watchsource\"",
+		"build:watchaudio": "nodemon --watch \"resources/sounds/**\" --ext \"mp3,mp4,wav,aif,aiff,ogg,flac,m4a,ac3,json\" --exec \"pnpm build:audio\" --ignore \"example/**\" --ignore \"rt911/**\" ",
 		"build:watchsource": "nodemon --watch \"src/**\" --watch \"assets/**\" --ext \"tsx,ts,json,css,scss,png,jpg,svg\" --exec \"tsc -b && vite build\" --ignore \"example/**\" --ignore \"rt911/**\" --ignore \"**/index.ts\" --ignore \"**/index\\ *.ts\" --ignore \"**/index\\ *.tsx\" ",
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"lint": "biome check .",
 		"lint:fix": "biome check --write .",
-		"preview": "npm run build && npm link && cd example && npm i && npm link classicy && npm run build && concurrently --kill-others \"cd .. && npm run build:watchsource\" \"npm run dev\"",
+		"preview": "pnpm build && concurrently --kill-others \"pnpm build:watchsource\" \"pnpm --filter classicy-example dev\"",
 		"prepare": "husky"
 	},
 	"lint-staged": {
@@ -121,5 +122,13 @@
 	},
 	"volta": {
 		"node": "24.12.0"
+	},
+	"pnpm": {
+		"onlyBuiltDependencies": [
+			"@ffmpeg-installer/linux-x64",
+			"@parcel/watcher",
+			"esbuild",
+			"sharp"
+		]
 	}
 }

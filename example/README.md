@@ -1,43 +1,42 @@
 # Classicy Example App
 
-A standalone Vite + React application that demonstrates the Classicy component library. It runs against the locally built and linked `classicy` package.
+A standalone Vite + React application that demonstrates the Classicy component library. It is part of the pnpm workspace and consumes the local `classicy` package directly (via the `workspace:*` dependency) — no linking step required.
 
 ## Setup
 
-The example app can run against either the **locally built** library (for developing Classicy itself) or the **published npm package** (for trying out the example standalone).
+The example app runs against the **locally built** library by default (it resolves `classicy` through the pnpm workspace). It can optionally be pointed at the **published npm package** instead (for trying out the example standalone).
 
 ### Using the local build
 
-From the **repository root**:
+From the **repository root** (this project uses [pnpm](https://pnpm.io/); run `corepack enable` first if needed):
 
 ```sh
-npm install
-npm run preview
+pnpm install
+pnpm preview
 ```
 
-This builds the library, links it locally, and starts the example dev server. Then open http://localhost:5173 in your browser.
+This builds the library and starts the example dev server. Then open http://localhost:5173 in your browser.
 
-For iterative development, run `npm run build:watch` in the root (rebuilds on file changes), then in this directory:
+For iterative development, run `pnpm build:watch` in the root (rebuilds on file changes), then in this directory:
 
 ```sh
-npm run use:local   # link the local build
-npm run dev         # start the Vite dev server
+pnpm dev   # start the Vite dev server (already resolving the local workspace build)
 ```
 
 ### Using the published package
 
-To run the example against the latest published version of `classicy` on npm without a local build:
+To point the example at the latest published version of `classicy` on npm instead of the workspace build:
 
 ```sh
 cd example
-npm run use:published   # removes the local link, installs from npm
-npm run dev
+pnpm run use:published   # replaces the workspace dependency with classicy@latest
+pnpm dev
 ```
 
-To switch back to the local build at any time:
+To switch back to the local workspace build at any time:
 
 ```sh
-npm run use:local
+pnpm run use:local
 ```
 
 ## Applications
