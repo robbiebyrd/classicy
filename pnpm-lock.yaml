@@ -12,7 +12,7 @@ importers:
         specifier: ^0.6.0
         version: 0.6.0
       '@mdxeditor/editor':
-        specifier: ^3.52.1
+        specifier: ^3.55.0
         version: 3.55.0(@codemirror/language@6.12.3)(@lezer/highlight@1.2.3)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(yjs@13.6.31)
       '@noble/hashes':
         specifier: ^2.2.0
@@ -36,7 +36,7 @@ importers:
         specifier: ^2.2.4
         version: 2.2.4
       immer:
-        specifier: ^11.1.4
+        specifier: ^11.1.8
         version: 11.1.8
       react-json-tree:
         specifier: ^0.20.0
@@ -51,29 +51,29 @@ importers:
         specifier: ^1.1.0
         version: 1.1.0(react@19.2.7)
       zod:
-        specifier: ^4.3.6
+        specifier: ^4.4.3
         version: 4.4.3
       zustand:
-        specifier: ^5.0.11
+        specifier: ^5.0.14
         version: 5.0.14(@types/react@19.2.17)(immer@11.1.8)(react@19.2.7)
     devDependencies:
       '@analytics/google-analytics':
         specifier: ^1.1.0
         version: 1.1.0
       '@babel/core':
-        specifier: ^7.28.0
+        specifier: ^7.29.7
         version: 7.29.7
       '@babel/preset-env':
-        specifier: ^7.28.0
+        specifier: ^7.29.7
         version: 7.29.7(@babel/core@7.29.7)
       '@babel/preset-react':
-        specifier: ^7.27.1
+        specifier: ^7.29.7
         version: 7.29.7(@babel/core@7.29.7)
       '@biomejs/biome':
-        specifier: ^2.4.14
+        specifier: ^2.5.0
         version: 2.5.0
       '@eslint/js':
-        specifier: ^9.39.1
+        specifier: ^9.39.4
         version: 9.39.4
       '@ffmpeg-installer/ffmpeg':
         specifier: ^1.1.0
@@ -94,13 +94,13 @@ importers:
         specifier: ^1.2.3
         version: 1.2.3
       '@types/howler':
-        specifier: ^2.2.12
+        specifier: ^2.2.13
         version: 2.2.13
       '@types/node':
-        specifier: ^24.1.0
+        specifier: ^24.13.2
         version: 24.13.2
       '@types/react':
-        specifier: ^19.2.5
+        specifier: ^19.2.17
         version: 19.2.17
       '@types/react-dom':
         specifier: ^19.2.3
@@ -109,73 +109,73 @@ importers:
         specifier: ^0.0.3
         version: 0.0.3(@types/dlv@1.1.5)
       '@vitejs/plugin-react':
-        specifier: ^5.1.1
+        specifier: ^5.2.0
         version: 5.2.0(vite@7.3.5(@types/node@24.13.2)(sass@1.101.0)(yaml@2.9.0))
       barrelsby:
         specifier: ^2.8.1
         version: 2.8.1
       concurrently:
-        specifier: ^9.2.1
+        specifier: ^9.2.3
         version: 9.2.3
       eslint:
-        specifier: ^9.39.1
+        specifier: ^9.39.4
         version: 9.39.4
       eslint-plugin-react-hooks:
-        specifier: ^7.0.1
+        specifier: ^7.1.1
         version: 7.1.1(eslint@9.39.4)
       eslint-plugin-react-refresh:
-        specifier: ^0.5.0
+        specifier: ^0.5.3
         version: 0.5.3(eslint@9.39.4)
       globals:
-        specifier: ^17.3.0
+        specifier: ^17.6.0
         version: 17.6.0
       husky:
         specifier: ^9.1.7
         version: 9.1.7
       jsdom:
-        specifier: ^29.0.1
+        specifier: ^29.1.1
         version: 29.1.1(@noble/hashes@2.2.0)
       lint-staged:
-        specifier: ^17.0.3
+        specifier: ^17.0.7
         version: 17.0.7
       nodemon:
-        specifier: ^3.1.11
+        specifier: ^3.1.14
         version: 3.1.14
       react:
-        specifier: ^19.2.0
+        specifier: ^19.2.7
         version: 19.2.7
       react-dom:
-        specifier: ^19.2.0
+        specifier: ^19.2.7
         version: 19.2.7(react@19.2.7)
       sass:
-        specifier: ^1.97.3
+        specifier: ^1.101.0
         version: 1.101.0
       ts-node:
         specifier: ^10.9.2
         version: 10.9.2(@types/node@24.13.2)(typescript@5.9.3)
       tsc-alias:
-        specifier: ^1.8.16
+        specifier: ^1.8.17
         version: 1.8.17
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
       typescript-eslint:
-        specifier: ^8.46.4
+        specifier: ^8.61.1
         version: 8.61.1(eslint@9.39.4)(typescript@5.9.3)
       vite:
-        specifier: ^7.2.4
+        specifier: ^7.3.5
         version: 7.3.5(@types/node@24.13.2)(sass@1.101.0)(yaml@2.9.0)
       vite-plugin-dts:
         specifier: ^4.5.4
         version: 4.5.4(@types/node@24.13.2)(rollup@4.62.0)(typescript@5.9.3)(vite@7.3.5(@types/node@24.13.2)(sass@1.101.0)(yaml@2.9.0))
       vite-plugin-image-tools:
-        specifier: ^3.1.1
+        specifier: ^3.1.3
         version: 3.1.3
       vite-plugin-react-rich-svg:
         specifier: ^1.3.0
         version: 1.3.0(typescript@5.9.3)(vite@7.3.5(@types/node@24.13.2)(sass@1.101.0)(yaml@2.9.0))
       vitest:
-        specifier: ^4.1.1
+        specifier: ^4.1.9
         version: 4.1.9(@types/node@24.13.2)(jsdom@29.1.1(@noble/hashes@2.2.0))(vite@7.3.5(@types/node@24.13.2)(sass@1.101.0)(yaml@2.9.0))
 
   example:
@@ -4144,8 +4144,8 @@ packages:
     resolution: {integrity: sha512-BzQguy9W9NJgoVn2mRWzbFrFWWztGCcng2QI9+41frfk+Athwgx3qhqhvStz7ExeUUu7Kzw427sNzHpEZNINog==}
     engines: {node: '>=16.0.0'}
 
-  nanoid@3.3.12:
-    resolution: {integrity: sha512-ZB9RH/39qpq5Vu6Y+NmUaFhQR6pp+M2Xt76XBnEwDaGcVAqhlvxrl3B2bKS5D3NH3QR76v3aSrKaF/Kiy7lEtQ==}
+  nanoid@3.3.13:
+    resolution: {integrity: sha512-sPdqC6ByMVVGvF1ynvvMo0/o+oD1VX7DaHhijt1bFgjvBkHBib4t49GoNDhf2NDta4oeUNlaGbSt5K7qjZ955Q==}
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
@@ -9874,7 +9874,7 @@ snapshots:
 
   mylas@2.1.14: {}
 
-  nanoid@3.3.12: {}
+  nanoid@3.3.13: {}
 
   native-promise-only@0.8.1: {}
 
@@ -10084,7 +10084,7 @@ snapshots:
 
   postcss@8.5.15:
     dependencies:
-      nanoid: 3.3.12
+      nanoid: 3.3.13
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
