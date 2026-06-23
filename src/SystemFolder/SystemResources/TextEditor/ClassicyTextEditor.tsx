@@ -1,6 +1,6 @@
 import "./ClassicyTextEditor.scss";
 import classNames from "classnames";
-import type { FC as FunctionalComponent } from "react";
+import { type FC as FunctionalComponent, useEffect, useState } from "react";
 import {
 	ClassicyControlLabel,
 	type ClassicyControlLabelSize,
@@ -41,6 +41,15 @@ export const ClassicyTextEditor: FunctionalComponent<EditorProps> = ({
 	labelSize = "medium",
 	labelPosition = "above",
 }) => {
+	// Controlled with internal state so the editor reflects later prefillValue/
+	// content changes. A bare <textarea defaultValue> is uncontrolled and snapshots
+	// its text once at mount, ignoring prop updates — which breaks any consumer that
+	// fills the value asynchronously (e.g. text fetched after the editor renders).
+	const [value, setValue] = useState(prefillValue ?? content ?? "");
+	useEffect(() => {
+		setValue(prefillValue ?? content ?? "");
+	}, [prefillValue, content]);
+
 	return (
 		<div
 			className={classNames(
@@ -65,7 +74,8 @@ export const ClassicyTextEditor: FunctionalComponent<EditorProps> = ({
 					autoHeight && "classicyTextEditorAutoHeight",
 					border && "classicyTextEditorBorder",
 				)}
-				defaultValue={prefillValue ?? content}
+				value={value}
+				onChange={(e) => setValue(e.target.value)}
 			/>
 		</div>
 	);
