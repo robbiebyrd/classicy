@@ -7,6 +7,11 @@ import {
 	DefaultAppManagerState,
 } from "./ClassicyAppManager";
 
+let hydratedFromStorage = false;
+
+/** True iff the module store initialized from valid persisted localStorage state. */
+export const wasHydratedFromStorage = (): boolean => hydratedFromStorage;
+
 function getInitialState(): ClassicyStore {
 	if (typeof window !== "undefined") {
 		try {
@@ -27,6 +32,7 @@ function getInitialState(): ClassicyStore {
 					);
 					return DefaultAppManagerState;
 				}
+				hydratedFromStorage = true;
 				return parsed;
 			}
 		} catch (error) {

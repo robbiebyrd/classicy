@@ -457,3 +457,44 @@ describe("persistence exclusions", () => {
 		expect(otherApp?.data?.history).toBeDefined();
 	});
 });
+
+// ─── wasHydratedFromStorage ───────────────────────────────────────────────────
+
+describe("wasHydratedFromStorage", () => {
+	afterEach(() => {
+		localStorage.clear();
+	});
+
+	it("returns false when no persisted state exists at import", async () => {
+		vi.resetModules();
+		localStorage.clear();
+		const mod = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils"
+		);
+		expect(mod.wasHydratedFromStorage()).toBe(false);
+		mod.stopAppManagerPersistence();
+	});
+
+	it("returns true when valid persisted state exists at import", async () => {
+		vi.resetModules();
+		localStorage.setItem(
+			"classicyDesktopState",
+			JSON.stringify(makeValidStoredState()),
+		);
+		const mod = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils"
+		);
+		expect(mod.wasHydratedFromStorage()).toBe(true);
+		mod.stopAppManagerPersistence();
+	});
+
+	it("returns false when persisted state is schema-invalid", async () => {
+		vi.resetModules();
+		localStorage.setItem("classicyDesktopState", JSON.stringify({ bogus: true }));
+		const mod = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils"
+		);
+		expect(mod.wasHydratedFromStorage()).toBe(false);
+		mod.stopAppManagerPersistence();
+	});
+});
