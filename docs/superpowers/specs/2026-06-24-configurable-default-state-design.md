@@ -10,7 +10,7 @@ The classicy desktop store is seeded from a hardcoded `DefaultAppManagerState`
 (`ClassicyAppManager.ts`). Consuming apps cannot override any of those defaults —
 clock start time, theme, sound volume, menus, etc. The motivating case: an app
 (rt911) wants the menu-bar clock to boot at a fixed historical moment
-(7:40 AM Eastern, 2001‑09‑11) instead of the real system time.
+(8:40 AM Eastern, 2001‑09‑11) instead of the real system time.
 
 Today the only override path is to dispatch a change *after* mount from
 application code, which is boilerplate the library should absorb.
@@ -153,15 +153,15 @@ Provider seeding:
 <ClassicyAppManagerProvider
 	defaultState={{
 		System: { Manager: { DateAndTime: {
-			dateTime: "2001-09-11T11:40:00.000Z", // 7:40 AM EDT (UTC-4)
+			dateTime: "2001-09-11T12:40:00.000Z", // 8:40 AM EDT (UTC-4)
 			timeZoneOffset: "-4",
 		}}},
 	}}
 >
 ```
 
-`2001-09-11` fell in Eastern Daylight Time (UTC-4), so 7:40 AM Eastern is
-`11:40` UTC. The store holds `dateTime` as a UTC ISO string plus a separate
+`2001-09-11` fell in Eastern Daylight Time (UTC-4), so 8:40 AM Eastern is
+`12:40` UTC. The store holds `dateTime` as a UTC ISO string plus a separate
 `timeZoneOffset`, and the clock widget renders via UTC getters + the offset.
 
 ## Rollout

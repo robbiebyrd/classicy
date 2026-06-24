@@ -42,9 +42,9 @@ describe("mergeClassicyState", () => {
 	it("merges a nested primitive without touching siblings", () => {
 		const base = makeStore();
 		const merged = mergeClassicyState(base, {
-			System: { Manager: { DateAndTime: { dateTime: "2001-09-11T11:40:00.000Z" } } },
+			System: { Manager: { DateAndTime: { dateTime: "2001-09-11T12:40:00.000Z" } } },
 		});
-		expect(merged.System.Manager.DateAndTime.dateTime).toBe("2001-09-11T11:40:00.000Z");
+		expect(merged.System.Manager.DateAndTime.dateTime).toBe("2001-09-11T12:40:00.000Z");
 		// sibling fields retained from base
 		expect(merged.System.Manager.DateAndTime.show).toBe(base.System.Manager.DateAndTime.show);
 		expect(merged.System.Manager.DateAndTime.militaryTime).toBe(
@@ -84,7 +84,7 @@ describe("mergeClassicyState", () => {
 		const base = makeStore();
 		const before = base.System.Manager.DateAndTime.dateTime;
 		mergeClassicyState(base, {
-			System: { Manager: { DateAndTime: { dateTime: "2001-09-11T11:40:00.000Z" } } },
+			System: { Manager: { DateAndTime: { dateTime: "2001-09-11T12:40:00.000Z" } } },
 		});
 		expect(base.System.Manager.DateAndTime.dateTime).toBe(before);
 	});
@@ -323,7 +323,7 @@ function makeValidStoredState(): Record<string, unknown> {
 }
 
 const SEED = {
-	System: { Manager: { DateAndTime: { dateTime: "2001-09-11T11:40:00.000Z", timeZoneOffset: "-4" } } },
+	System: { Manager: { DateAndTime: { dateTime: "2001-09-11T12:40:00.000Z", timeZoneOffset: "-4" } } },
 };
 
 describe("ClassicyAppManagerProvider defaultState", () => {
@@ -350,7 +350,7 @@ describe("ClassicyAppManagerProvider defaultState", () => {
 		await waitFor(() => {
 			expect(
 				utils.useAppManager.getState().System.Manager.DateAndTime.dateTime,
-			).toBe("2001-09-11T11:40:00.000Z");
+			).toBe("2001-09-11T12:40:00.000Z");
 		});
 		expect(
 			utils.useAppManager.getState().System.Manager.DateAndTime.timeZoneOffset,
@@ -492,7 +492,7 @@ state.
 <ClassicyAppManagerProvider
   defaultState={{
     System: { Manager: { DateAndTime: {
-      dateTime: "2001-09-11T11:40:00.000Z", // 7:40 AM US Eastern (EDT, UTC-4)
+      dateTime: "2001-09-11T12:40:00.000Z", // 8:40 AM US Eastern (EDT, UTC-4)
       timeZoneOffset: "-4",
     } } },
   }}
@@ -519,4 +519,4 @@ git commit -m "docs: document defaultState seeding on ClassicyAppManagerProvider
 
 1. Bump classicy package version and publish.
 2. Bump the classicy dependency in rt911.
-3. In rt911 `packages/frontend/src/app.tsx`, pass `defaultState` to set the 7:40 AM 2001-09-11 clock (see spec "Consumer usage").
+3. In rt911 `packages/frontend/src/app.tsx`, pass `defaultState` to set the 8:40 AM 2001-09-11 clock (see spec "Consumer usage").
