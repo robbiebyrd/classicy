@@ -252,6 +252,30 @@ import { ClassicyWindow, ClassicyButton, ClassicyBalloonHelp } from 'classicy';
                         * `<ClassicyUIControls?>`
                         * `<OtherReactNodes?>`
 
+### Seeding default state
+
+`ClassicyAppManagerProvider` accepts an optional `defaultState` — a deep-partial
+`ClassicyStore` merged over the built-in defaults **on first load only** (when no
+saved state exists in `localStorage`). Returning visitors keep their persisted
+state.
+
+```tsx
+<ClassicyAppManagerProvider
+  defaultState={{
+    System: { Manager: { DateAndTime: {
+      dateTime: "2001-09-11T12:40:00.000Z", // 8:40 AM US Eastern (EDT, UTC-4)
+      timeZoneOffset: "-4",
+    } } },
+  }}
+>
+  {/* ... */}
+</ClassicyAppManagerProvider>
+```
+
+Arrays in `defaultState` replace their default counterparts wholesale (they are
+not concatenated). To force a value on every load regardless of saved state,
+clear `localStorage["classicyDesktopState"]` or dispatch the change at runtime.
+
 ### Events
 
 * `ClassicyDesktop`
