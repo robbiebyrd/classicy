@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
-import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import type { ClassicyStore, DeepPartial } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	activateApp,
 	classicyAppEventHandler,
@@ -9,6 +9,7 @@ import {
 	deFocusApps,
 	focusApp,
 	loadApp,
+	mergeClassicyState,
 	openApp,
 	registerAppEventHandler,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
@@ -1121,5 +1122,57 @@ describe("classicyDesktopStateEventReducer", () => {
 			expect.objectContaining({ type: "UnknownXYZAction" }),
 		);
 		warnSpy.mockRestore();
+	});
+});
+
+describe("mergeClassicyState", () => {
+	it("merges a nested primitive without touching siblings", () => {
+		const base = makeStore();
+		const merged = mergeClassicyState(base, {
+			System: { Manager: { DateAndTime: { dateTime: "2001-09-11T12:40:00.000Z" } } },
+		});
+		expect(merged.System.Manager.DateAndTime.dateTime).toBe("2001-09-11T12:40:00.000Z");
+		// sibling fields retained from base
+		expect(merged.System.Manager.DateAndTime.show).toBe(base.System.Manager.DateAndTime.show);
+		expect(merged.System.Manager.DateAndTime.militaryTime).toBe(
+			base.System.Manager.DateAndTime.militaryTime,
+		);
+		// unrelated managers retained
+		expect(merged.System.Manager.Sound.volume).toBe(base.System.Manager.Sound.volume);
+	});
+
+	it("replaces arrays wholesale rather than concatenating", () => {
+		const base = makeStore();
+		base.System.Manager.Desktop.systemMenu = [{ id: "a" }, { id: "b" }];
+		const merged = mergeClassicyState(base, {
+			System: { Manager: { Desktop: { systemMenu: [{ id: "z" }] } } },
+		} as DeepPartial<ClassicyStore>);
+		expect(merged.System.Manager.Desktop.systemMenu).toEqual([{ id: "z" }]);
+	});
+
+	it("override primitive wins over base", () => {
+		const base = makeStore();
+		const merged = mergeClassicyState(base, {
+			System: { Manager: { Sound: { volume: 25 } } },
+		});
+		expect(merged.System.Manager.Sound.volume).toBe(25);
+	});
+
+	it("skips override keys whose value is undefined", () => {
+		const base = makeStore();
+		base.System.Manager.DateAndTime.timeZoneOffset = "-5";
+		const merged = mergeClassicyState(base, {
+			System: { Manager: { DateAndTime: { timeZoneOffset: undefined } } },
+		});
+		expect(merged.System.Manager.DateAndTime.timeZoneOffset).toBe("-5");
+	});
+
+	it("does not mutate the base argument", () => {
+		const base = makeStore();
+		const before = base.System.Manager.DateAndTime.dateTime;
+		mergeClassicyState(base, {
+			System: { Manager: { DateAndTime: { dateTime: "2001-09-11T12:40:00.000Z" } } },
+		});
+		expect(base.System.Manager.DateAndTime.dateTime).toBe(before);
 	});
 });
