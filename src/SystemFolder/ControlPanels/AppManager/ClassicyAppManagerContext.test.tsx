@@ -1,0 +1,115 @@
+import { render, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+/** Minimal valid persisted-state shape that passes the store's schema check. */
+function makeValidStoredState(): Record<string, unknown> {
+	return {
+		System: {
+			Manager: {
+				Applications: { apps: {} },
+				Desktop: {
+					selectedIcons: [],
+					contextMenu: [],
+					showContextMenu: false,
+					icons: [],
+					systemMenu: [],
+					appMenu: [],
+					selectBox: { size: [0, 0], start: [0, 0], active: false },
+					disableBalloonHelp: false,
+				},
+				Appearance: { activeTheme: { id: "default" }, availableThemes: [] },
+				Sound: { volume: 100, labels: {}, disabled: [] },
+				DateAndTime: {
+					show: true,
+					dateTime: "2020-01-01T00:00:00.000Z",
+					timeZoneOffset: "0",
+					militaryTime: false,
+					displaySeconds: true,
+					displayPeriod: true,
+					displayDay: true,
+					displayLongDay: false,
+					flashSeparators: false,
+					paused: false,
+				},
+			},
+		},
+	};
+}
+
+const SEED = {
+	System: {
+		Manager: {
+			DateAndTime: {
+				dateTime: "2001-09-11T12:40:00.000Z",
+				timeZoneOffset: "-4",
+			},
+		},
+	},
+};
+
+describe("ClassicyAppManagerProvider defaultState", () => {
+	beforeEach(() => {
+		vi.resetModules();
+		localStorage.clear();
+	});
+	afterEach(async () => {
+		const mod = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils"
+		);
+		mod.stopAppManagerPersistence();
+		localStorage.clear();
+	});
+
+	it("seeds the store when no persisted state exists", async () => {
+		const ctx = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext"
+		);
+		const utils = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils"
+		);
+		render(<ctx.ClassicyAppManagerProvider defaultState={SEED} />);
+		await waitFor(() => {
+			expect(
+				utils.useAppManager.getState().System.Manager.DateAndTime.dateTime,
+			).toBe("2001-09-11T12:40:00.000Z");
+		});
+		expect(
+			utils.useAppManager.getState().System.Manager.DateAndTime.timeZoneOffset,
+		).toBe("-4");
+	});
+
+	it("does NOT override when valid persisted state exists", async () => {
+		localStorage.setItem(
+			"classicyDesktopState",
+			JSON.stringify(makeValidStoredState()),
+		);
+		const ctx = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext"
+		);
+		const utils = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils"
+		);
+		render(<ctx.ClassicyAppManagerProvider defaultState={SEED} />);
+		// give any effect a chance to run, then assert persisted value survived
+		await new Promise((r) => setTimeout(r, 0));
+		expect(
+			utils.useAppManager.getState().System.Manager.DateAndTime.dateTime,
+		).toBe("2020-01-01T00:00:00.000Z");
+	});
+
+	it("is a no-op when defaultState is omitted", async () => {
+		const ctx = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext"
+		);
+		const utils = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils"
+		);
+		const before =
+			utils.useAppManager.getState().System.Manager.DateAndTime.dateTime;
+		render(<ctx.ClassicyAppManagerProvider />);
+		await new Promise((r) => setTimeout(r, 0));
+		expect(
+			utils.useAppManager.getState().System.Manager.DateAndTime.dateTime,
+		).toBe(before);
+	});
+});

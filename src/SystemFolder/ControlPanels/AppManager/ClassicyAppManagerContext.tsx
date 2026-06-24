@@ -6,8 +6,18 @@ import {
 	type PropsWithChildren,
 	useEffect,
 	useMemo,
+	useRef,
 } from "react";
 import { AnalyticsProvider } from "use-analytics";
+import type {
+	ClassicyStore,
+	DeepPartial,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { mergeClassicyState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import {
+	useAppManager,
+	wasHydratedFromStorage,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicySoundManagerProvider } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerProvider";
 import { ClassicyAnalyticsPrefixContext } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
@@ -16,6 +26,7 @@ type ClassicyAppManagerProviderProps = {
 	gtmContainerId?: string;
 	appName?: string;
 	eventPrefix?: string;
+	defaultState?: DeepPartial<ClassicyStore>;
 };
 
 const getOrCreateUserId = (storageKey: string): string => {
@@ -39,7 +50,17 @@ export const ClassicyAppManagerProvider: FunctionalComponent<
 	gaMeasurementIds,
 	appName = "classicy",
 	eventPrefix = "classicy_",
+	defaultState,
 }) => {
+	const seeded = useRef(false);
+	useEffect(() => {
+		if (seeded.current || !defaultState || wasHydratedFromStorage()) return;
+		seeded.current = true;
+		useAppManager.setState((s) =>
+			mergeClassicyState(s as ClassicyStore, defaultState),
+		);
+	}, [defaultState]);
+
 	const analytics = useMemo(() => {
 		const plugins: AnalyticsPlugin[] = [];
 
