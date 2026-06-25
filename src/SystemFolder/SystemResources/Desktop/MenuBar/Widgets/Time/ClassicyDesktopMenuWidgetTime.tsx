@@ -16,6 +16,7 @@ import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { computeAnchoredTime } from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeManagerUtils";
 
 export const ClassicyDesktopMenuWidgetTime: FunctionalComponent = () => {
 	const dateAndTime = useAppManager((s) => s.System.Manager.DateAndTime);
@@ -54,23 +55,30 @@ export const ClassicyDesktopMenuWidgetTime: FunctionalComponent = () => {
 		"Saturday",
 	];
 
-	// Refs to hold current values so the interval callback doesn't need them in its dep array
-	const localDateRef = useRef(
-		new Date(
-			new Date(dateAndTime.dateTime).getTime() +
-				parseInt(dateAndTime.timeZoneOffset, 10) * 60 * 60 * 1000,
-		),
+	// Wall-clock anchors: virtualAnchorMsRef holds the local (tz-shifted) epoch-ms
+	// when the anchor was last set; realAnchorMsRef holds Date.now() at that moment.
+	const virtualAnchorMsRef = useRef<number>(
+		new Date(dateAndTime.dateTime).getTime() +
+			parseInt(dateAndTime.timeZoneOffset, 10) * 60 * 60 * 1000,
 	);
+	const realAnchorMsRef = useRef<number>(Date.now());
+
 	const timeZoneOffsetRef = useRef(dateAndTime.timeZoneOffset);
 	const prevMinutesRef = useRef(time.minutes);
+	const prevSecondsRef = useRef(time.seconds);
 	const pausedRef = useRef(dateAndTime.paused);
 
-	// When the store changes (user sets new time/tz), reset the accumulated clock
+	// When the store changes (user sets new time/tz), reset both anchors and
+	// the second/minute refs so the next tick always updates from the new baseline.
 	useEffect(() => {
-		localDateRef.current = new Date(
+		const newVirtualMs =
 			new Date(dateAndTime.dateTime).getTime() +
-				parseInt(dateAndTime.timeZoneOffset, 10) * 60 * 60 * 1000,
-		);
+			parseInt(dateAndTime.timeZoneOffset, 10) * 60 * 60 * 1000;
+		virtualAnchorMsRef.current = newVirtualMs;
+		realAnchorMsRef.current = Date.now();
+		const d = new Date(newVirtualMs);
+		prevSecondsRef.current = d.getUTCSeconds();
+		prevMinutesRef.current = d.getUTCMinutes();
 	}, [dateAndTime.dateTime, dateAndTime.timeZoneOffset]);
 
 	useEffect(() => {
@@ -81,24 +89,41 @@ export const ClassicyDesktopMenuWidgetTime: FunctionalComponent = () => {
 		pausedRef.current = dateAndTime.paused;
 	}, [dateAndTime.paused]);
 
-	// Interval created once on mount; advances from accumulated ref
+	// Pause: snapshot both anchors at the current virtual moment so the formula
+	// yields that frozen time on subsequent ticks.
+	// Resume: reset only realAnchorMs so the clock continues from the paused instant.
+	useEffect(() => {
+		if (dateAndTime.paused) {
+			const frozenMs =
+				virtualAnchorMsRef.current + (Date.now() - realAnchorMsRef.current);
+			virtualAnchorMsRef.current = frozenMs;
+			realAnchorMsRef.current = Date.now();
+		} else {
+			realAnchorMsRef.current = Date.now();
+		}
+	}, [dateAndTime.paused]);
+
+	// Poll every 250ms; evaluate anchor formula and update display only when the
+	// second changes. Dispatches the global store update on minute boundaries.
 	useEffect(() => {
 		const intervalId = setInterval(() => {
 			if (pausedRef.current) return;
-			const advanced = new Date(localDateRef.current.getTime() + 1000);
-			localDateRef.current = advanced;
+			const localDate = computeAnchoredTime(
+				virtualAnchorMsRef.current,
+				realAnchorMsRef.current,
+			);
+
+			const newSeconds = localDate.getUTCSeconds();
+			if (newSeconds === prevSecondsRef.current) return;
+			prevSecondsRef.current = newSeconds;
 
 			const date = new Date(
-				advanced.getTime() -
+				localDate.getTime() -
 					parseInt(timeZoneOffsetRef.current, 10) * 60 * 60 * 1000,
 			);
 
-			const localDate = advanced;
-
 			const newMinutes = localDate.getUTCMinutes();
 
-			// localDate has been shifted by tzOffset so its UTC fields represent
-			// the correct local time — use getUTC* to read them browser-tz-independently.
 			setTime({
 				year: localDate.getUTCFullYear(),
 				month: localDate.getUTCMonth(),
@@ -106,11 +131,10 @@ export const ClassicyDesktopMenuWidgetTime: FunctionalComponent = () => {
 				day: localDate.getUTCDay(),
 				minutes: newMinutes,
 				hours: localDate.getUTCHours() === 0 ? 12 : localDate.getUTCHours(),
-				seconds: localDate.getUTCSeconds(),
+				seconds: newSeconds,
 				period: localDate.getUTCHours() < 12 ? " AM" : " PM",
 			});
 
-			// Only dispatch global state update when minute changes
 			if (newMinutes !== prevMinutesRef.current) {
 				prevMinutesRef.current = newMinutes;
 				desktopEventDispatch({
@@ -118,7 +142,7 @@ export const ClassicyDesktopMenuWidgetTime: FunctionalComponent = () => {
 					dateTime: date,
 				});
 			}
-		}, 1000);
+		}, 250);
 
 		return () => clearInterval(intervalId);
 	}, [desktopEventDispatch]);

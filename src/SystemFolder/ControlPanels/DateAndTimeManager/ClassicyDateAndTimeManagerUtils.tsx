@@ -22,6 +22,22 @@ export function toLocalHMS(isoString: string, tzOffsetHours: number): string {
 	return `${h}:${m}:${s}`;
 }
 
+/**
+ * Computes the current virtual time from two wall-clock anchors.
+ *
+ * virtualAnchorMs: the virtual epoch-ms when the anchor was last set.
+ * realAnchorMs: Date.now() at that exact same moment.
+ *
+ * Drift-free: however late the caller invokes this, the elapsed real time
+ * is always reflected exactly, with no accumulation error.
+ */
+export function computeAnchoredTime(
+	virtualAnchorMs: number,
+	realAnchorMs: number,
+): Date {
+	return new Date(virtualAnchorMs + (Date.now() - realAnchorMs));
+}
+
 export interface ClassicyDateTimeValue {
 	/** UTC ISO string from the store (updates on minute boundaries when tick is active). */
 	dateTime: string;
@@ -45,10 +61,10 @@ export interface ClassicyDateTimeValue {
 /**
  * Read the virtual clock from the Classicy store.
  *
- * With `tick: true` the returned `localDate` and `localHMS` advance every
- * second from the stored base time, matching the MenuBar widget pattern.
- * The store itself is only updated on minute boundaries to avoid excess
- * writes.
+ * With `tick: true` the returned `localDate` and `localHMS` advance using
+ * wall-clock anchoring — drift-free regardless of interval jitter or tab
+ * backgrounding. The store is only updated on minute boundaries to avoid
+ * excess writes.
  */
 export function useClassicyDateTime(options?: {
 	tick?: boolean;
@@ -64,33 +80,64 @@ export function useClassicyDateTime(options?: {
 		toLocalDate(dateAndTime.dateTime, tzOffset),
 	);
 
-	// Accumulates the advancing local time so each tick builds on the previous tick
-	const localDateRef = useRef<Date>(
-		toLocalDate(dateAndTime.dateTime, tzOffset),
+	// Wall-clock anchors: virtualAnchorMsRef holds the virtual epoch-ms when the
+	// anchor was last set; realAnchorMsRef holds Date.now() at that moment.
+	// computeAnchoredTime() produces drift-free virtual time from these two refs.
+	const virtualAnchorMsRef = useRef<number>(
+		toLocalDate(dateAndTime.dateTime, tzOffset).getTime(),
 	);
+	const realAnchorMsRef = useRef<number>(Date.now());
+
 	const tzOffsetRef = useRef(tzOffset);
 	tzOffsetRef.current = tzOffset;
-	// Stable ref so the interval callback always sees the latest paused state
 	const pausedRef = useRef(paused);
 	pausedRef.current = paused;
 
-	// When the store changes (user sets a new time), reset the accumulated clock
+	// When the store's dateTime changes (user sets a new time, or minute dispatch
+	// from the MenuBar widget), reset both anchors to the new virtual moment.
 	useEffect(() => {
-		const reset = toLocalDate(dateAndTime.dateTime, tzOffset);
-		localDateRef.current = reset;
-		setLocalDate(reset);
+		const newVirtualMs = toLocalDate(dateAndTime.dateTime, tzOffset).getTime();
+		virtualAnchorMsRef.current = newVirtualMs;
+		realAnchorMsRef.current = Date.now();
+		setLocalDate(new Date(newVirtualMs));
 	}, [dateAndTime.dateTime, tzOffset]);
 
-	// Per-second tick: advance from the accumulated ref, not from the store base.
-	// Reads pausedRef inside the callback so the interval itself never needs recreating.
+	// Pause: snapshot both anchors at the current virtual moment so the formula
+	// yields that frozen time on all subsequent ticks.
+	// Resume: keep virtualAnchorMs at the frozen moment, reset realAnchorMs to
+	// now so elapsed real time counts from the exact resume instant.
+	useEffect(() => {
+		if (paused) {
+			const frozenMs =
+				virtualAnchorMsRef.current + (Date.now() - realAnchorMsRef.current);
+			virtualAnchorMsRef.current = frozenMs;
+			realAnchorMsRef.current = Date.now();
+		} else {
+			realAnchorMsRef.current = Date.now();
+		}
+	}, [paused]);
+
+	// Poll every 250ms and evaluate the anchor formula. Only updates React state
+	// when the displayed second actually changes, so render frequency stays ≤1 Hz
+	// even though the interval fires 4× per second.
 	useEffect(() => {
 		if (!tick) return;
 		const id = setInterval(() => {
 			if (pausedRef.current) return;
-			const advanced = new Date(localDateRef.current.getTime() + 1000);
-			localDateRef.current = advanced;
-			setLocalDate(advanced);
-		}, 1000);
+			const virtualNow = computeAnchoredTime(
+				virtualAnchorMsRef.current,
+				realAnchorMsRef.current,
+			);
+			setLocalDate((prev) => {
+				if (
+					Math.floor(prev.getTime() / 1000) ===
+					Math.floor(virtualNow.getTime() / 1000)
+				) {
+					return prev;
+				}
+				return virtualNow;
+			});
+		}, 250);
 		return () => clearInterval(id);
 	}, [tick]);
 
