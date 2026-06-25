@@ -68,12 +68,17 @@ export const ClassicyDesktopMenuWidgetTime: FunctionalComponent = () => {
 	const prevSecondsRef = useRef(time.seconds);
 	const pausedRef = useRef(dateAndTime.paused);
 
-	// When the store changes (user sets new time/tz), reset both anchors.
+	// When the store changes (user sets new time/tz), reset both anchors and
+	// the second/minute refs so the next tick always updates from the new baseline.
 	useEffect(() => {
-		virtualAnchorMsRef.current =
+		const newVirtualMs =
 			new Date(dateAndTime.dateTime).getTime() +
 			parseInt(dateAndTime.timeZoneOffset, 10) * 60 * 60 * 1000;
+		virtualAnchorMsRef.current = newVirtualMs;
 		realAnchorMsRef.current = Date.now();
+		const d = new Date(newVirtualMs);
+		prevSecondsRef.current = d.getUTCSeconds();
+		prevMinutesRef.current = d.getUTCMinutes();
 	}, [dateAndTime.dateTime, dateAndTime.timeZoneOffset]);
 
 	useEffect(() => {
