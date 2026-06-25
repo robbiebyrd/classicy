@@ -22,6 +22,22 @@ export function toLocalHMS(isoString: string, tzOffsetHours: number): string {
 	return `${h}:${m}:${s}`;
 }
 
+/**
+ * Computes the current virtual time from two wall-clock anchors.
+ *
+ * virtualAnchorMs: the virtual epoch-ms when the anchor was last set.
+ * realAnchorMs: Date.now() at that exact same moment.
+ *
+ * Drift-free: however late the caller invokes this, the elapsed real time
+ * is always reflected exactly, with no accumulation error.
+ */
+export function computeAnchoredTime(
+	virtualAnchorMs: number,
+	realAnchorMs: number,
+): Date {
+	return new Date(virtualAnchorMs + (Date.now() - realAnchorMs));
+}
+
 export interface ClassicyDateTimeValue {
 	/** UTC ISO string from the store (updates on minute boundaries when tick is active). */
 	dateTime: string;

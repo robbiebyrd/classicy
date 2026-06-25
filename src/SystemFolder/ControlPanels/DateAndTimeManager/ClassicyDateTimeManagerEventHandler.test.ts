@@ -3,6 +3,7 @@ import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManag
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	classicyDateTimeManagerEventHandler,
+	computeAnchoredTime,
 	toLocalDate,
 	toLocalHMS,
 } from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeManagerUtils";
@@ -277,5 +278,52 @@ describe("classicyDateTimeManagerEventHandler — ClassicyManagerDateTimeTZSet",
 			undefined,
 		);
 		expect(ds.System.Manager.DateAndTime.timeZoneOffset).toBe(original);
+	});
+});
+
+describe("computeAnchoredTime", () => {
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	it("returns virtual anchor time when no real time has elapsed", () => {
+		vi.useFakeTimers();
+		vi.setSystemTime(5000);
+		const result = computeAnchoredTime(1_000_000_000, 5000);
+		expect(result.getTime()).toBe(1_000_000_000);
+	});
+
+	it("advances virtual time by exact real elapsed milliseconds", () => {
+		vi.useFakeTimers();
+		vi.setSystemTime(5000);
+		vi.setSystemTime(8500); // 3500ms later
+		const result = computeAnchoredTime(1_000_000_000, 5000);
+		expect(result.getTime()).toBe(1_000_003_500);
+	});
+
+	it("reflects exact real elapsed time even when ticks would have fired late", () => {
+		vi.useFakeTimers();
+		const virtualAnchorMs = 1_000_000_000;
+		const realAnchorMs = 0;
+		// Three "late" ticks: +1050, +980, +1100ms = 3130ms total real elapsed.
+		// An accumulator would give 3000ms; the formula gives the exact 3130ms.
+		vi.setSystemTime(3130);
+		const result = computeAnchoredTime(virtualAnchorMs, realAnchorMs);
+		expect(result.getTime()).toBe(1_000_003_130);
+	});
+
+	it("resumes from exact paused moment when real anchor is reset on resume", () => {
+		vi.useFakeTimers();
+		// Clock was running: virtualAnchor=5_002_000, realAnchor captured at t=2000.
+		// 5 seconds pass while paused (real time advances to t=7000).
+		// On resume: realAnchor resets to Date.now()=7000; virtualAnchor stays 5_002_000.
+		vi.setSystemTime(7000);
+		const atResume = computeAnchoredTime(5_002_000, 7000);
+		expect(atResume.getTime()).toBe(5_002_000); // exactly the paused moment
+
+		// 1 more real second after resume
+		vi.setSystemTime(8000);
+		const after1s = computeAnchoredTime(5_002_000, 7000);
+		expect(after1s.getTime()).toBe(5_003_000);
 	});
 });
