@@ -3,6 +3,7 @@ import classNames from "classnames";
 import type {
 	ChangeEventHandler,
 	FC as FunctionalComponent,
+	SyntheticEvent,
 } from "react";
 import { useEffect, useRef } from "react";
 import {
@@ -24,7 +25,21 @@ interface ClassicySliderProps {
 	disabled?: boolean;
 	highlighted?: boolean;
 	valueLabel?: string;
+	/**
+	 * Accessible name for the slider's input. Use when the slider has no visible
+	 * `labelTitle` (e.g. a compact slider in a toolbar or media overlay) so
+	 * assistive technology still announces what it controls.
+	 */
+	ariaLabel?: string;
 	onChangeFunc?: ChangeEventHandler<HTMLInputElement>;
+	/**
+	 * Fired once when the user finishes adjusting the slider — on pointer release
+	 * or key release — rather than on every intermediate value like `onChangeFunc`.
+	 * Receives the committed numeric value. Use this to defer expensive work
+	 * (persistence, network writes, store dispatches) to the end of a drag while
+	 * keeping `onChangeFunc` for live, per-tick updates.
+	 */
+	onCommitFunc?: (value: number) => void;
 }
 
 export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
@@ -39,7 +54,9 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 	disabled = false,
 	highlighted = false,
 	valueLabel,
+	ariaLabel,
 	onChangeFunc,
+	onCommitFunc,
 }) => {
 	// Uncontrolled input with ref-sync: avoids Safari freeze bug where React's
 	// controlled value reconciliation conflicts with native slider capture on mouseup.
@@ -54,6 +71,14 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 		}
 	}, [value]);
 
+	// Commit the current value once the user releases the slider — on pointer up
+	// (mouse, touch, and pen all surface as pointer events) or key up. onChangeFunc
+	// fires continuously during a drag; onCommitFunc fires only at the end, so
+	// consumers can keep live UI responsive while deferring expensive side effects.
+	const handleCommit = (e: SyntheticEvent<HTMLInputElement>) => {
+		if (onCommitFunc) onCommitFunc(Number(e.currentTarget.value));
+	};
+
 	const sizeClassMap: Record<ClassicyControlLabelSize, string> = {
 		small: "classicyControlLabelSizeSmall",
 		medium: "classicyControlLabelSizeMedium",
@@ -66,6 +91,7 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 				ref={inputRef}
 				id={id}
 				type="range"
+				aria-label={ariaLabel}
 				className={classNames(
 					"classicySlider",
 					highlighted && "classicySliderHighlighted",
@@ -77,8 +103,12 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 				step={step}
 				disabled={disabled}
 				onChange={onChangeFunc}
+				onPointerUp={onCommitFunc ? handleCommit : undefined}
+				onKeyUp={onCommitFunc ? handleCommit : undefined}
 			/>
-			<span className={classNames("classicySliderValue", sizeClassMap[labelSize])}>
+			<span
+				className={classNames("classicySliderValue", sizeClassMap[labelSize])}
+			>
 				{valueLabel !== undefined ? valueLabel : value}
 			</span>
 		</div>
