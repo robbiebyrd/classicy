@@ -91,6 +91,10 @@ function makeStoreForDesktop(): ClassicyStore {
 			headerSize: 14,
 			body: "Geneva",
 			bodySize: 12,
+			mono: "Monaco",
+			monoSize: 12,
+			digital: "VCR OSD Mono",
+			digitalSize: 12,
 		},
 		measurements: {
 			window: {

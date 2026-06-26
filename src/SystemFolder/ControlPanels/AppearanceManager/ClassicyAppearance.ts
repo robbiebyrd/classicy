@@ -52,6 +52,10 @@ export type ClassicyThemeTypography = {
 	headerSize: number;
 	body: string;
 	bodySize: number;
+	mono: string;
+	monoSize: number;
+	digital: string;
+	digitalSize: number;
 };
 
 export type ClassicyThemeMeasurementsWindow = {
@@ -117,6 +121,10 @@ export const getThemeVars = (theme: ClassicyTheme) => {
 		"--body-font-size": intToPx(theme.typography.bodySize),
 		"--ui-font": theme.typography.ui,
 		"--ui-font-size": intToPx(theme.typography.uiSize),
+		"--mono-font": theme.typography.mono,
+		"--mono-font-size": intToPx(theme.typography.monoSize),
+		"--digital-font": theme.typography.digital,
+		"--digital-font-size": intToPx(theme.typography.digitalSize),
 		"--color-window-border": intToHex(theme.color.window.border),
 		"--color-window-border-outset": intToHex(theme.color.window.borderOutset),
 		"--color-window-border-inset": intToHex(theme.color.window.borderInset),
