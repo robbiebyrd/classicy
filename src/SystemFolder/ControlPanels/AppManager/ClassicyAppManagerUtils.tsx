@@ -3,8 +3,10 @@ import { create, type StoreApi, type UseBoundStore } from "zustand";
 import {
 	type ActionMessage,
 	type ClassicyStore,
+	type DeepPartial,
 	classicyDesktopStateEventReducer,
 	DefaultAppManagerState,
+	mergeClassicyState,
 } from "./ClassicyAppManager";
 
 let hydratedFromStorage = false;
@@ -33,7 +35,13 @@ function getInitialState(): ClassicyStore {
 					return DefaultAppManagerState;
 				}
 				hydratedFromStorage = true;
-				return parsed;
+				// Merge persisted state on top of current defaults so any new fields
+				// added since the state was saved get their default values instead of
+				// being undefined (e.g. new typography.monoSize / digitalSize keys).
+				return mergeClassicyState(
+					DefaultAppManagerState,
+					parsed as DeepPartial<ClassicyStore>,
+				);
 			}
 		} catch (error) {
 			console.error(
