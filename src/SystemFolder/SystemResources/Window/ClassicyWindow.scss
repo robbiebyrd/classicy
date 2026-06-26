@@ -59,6 +59,10 @@
   filter: contrast(0.9);
 }
 
+.classicyWindowContentsNotDimmed {
+  filter: contrast(1.667) brightness(0.8);
+}
+
 .classicyWindowResizerDimmed {
   border-top: 1px solid var(--color-system-05) !important;
   border-left: 1px solid var(--color-system-05) !important;

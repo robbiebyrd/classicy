@@ -111,6 +111,7 @@ interface ClassicyWindowProps {
 	header?: ReactNode;
 	appMenu?: ClassicyMenuItem[];
 	contextMenu?: ClassicyMenuItem[];
+	dimContents?: boolean;
 	onCloseFunc?: (id: string) => void;
 	children?: ReactNode;
 	type?: string;
@@ -135,6 +136,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	initialSize = [350, 0],
 	initialPosition = [110, 110],
 	minimumSize = [300, 0],
+	dimContents = true,
 	header,
 	appMenu,
 	contextMenu,
@@ -712,7 +714,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 					)}
 					<div
 						className={classNames(
-							!isActive() ? "classicyWindowContentsDimmed" : "",
+							!isActive() ? (dimContents ? "classicyWindowContentsDimmed" : "classicyWindowContentsNotDimmed") : "",
 							scrollable === true ? "" : "classicyWindowNoScroll",
 							modal === true
 								? "classicyWindowContentsModal"
