@@ -142,6 +142,11 @@ export const ClassicyIcons = {
 			compressing: icon("applications/stuffit/compressing.png"),
 			file: icon("applications/stuffit/file.png"),
 		},
+		usenet: {
+			app: icon("applications/usenet/usenet.png"),
+			search: icon("applications/usenet/usenet_search.png"),
+			server: icon("applications/usenet/usenet_server.png"),
+		},
 		systemProfiler: {
 			app: icon("applications/system-profiler/app.png"),
 		},
