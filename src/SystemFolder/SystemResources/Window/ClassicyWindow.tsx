@@ -29,6 +29,33 @@ import { useClassicyCursor } from "@/SystemFolder/SystemResources/Cursor/useClas
 
 export type ClassicyWindowPositionX = number | "left" | "center" | "right";
 export type ClassicyWindowPositionY = number | "top" | "center" | "bottom";
+export type ClassicyWindowSizeDimension = number | `${number}%`;
+
+function resolveSize(
+	size: [ClassicyWindowSizeDimension, ClassicyWindowSizeDimension],
+): [number, number] {
+	const menuBarHeight = 30;
+	const desktop =
+		typeof document !== "undefined"
+			? document.getElementById("classicyDesktop")
+			: null;
+	const dw =
+		desktop?.clientWidth ??
+		(typeof window !== "undefined" ? window.innerWidth : 800);
+	const dh =
+		(desktop?.clientHeight ??
+			(typeof window !== "undefined" ? window.innerHeight : 600)) -
+		menuBarHeight;
+
+	const resolve = (dim: ClassicyWindowSizeDimension, max: number): number => {
+		if (typeof dim === "number") return dim;
+		const pct = parseFloat(dim);
+		if (!Number.isNaN(pct)) return Math.round((pct / 100) * max);
+		return 0;
+	};
+
+	return [resolve(size[0], dw), resolve(size[1], dh)];
+}
 
 function resolvePosition(
 	pos: [ClassicyWindowPositionX, ClassicyWindowPositionY],
@@ -78,9 +105,9 @@ interface ClassicyWindowProps {
 	modal?: boolean;
 	growable?: boolean;
 	defaultWindow?: boolean;
-	initialSize?: [number, number];
+	initialSize?: [ClassicyWindowSizeDimension, ClassicyWindowSizeDimension];
 	initialPosition?: [ClassicyWindowPositionX, ClassicyWindowPositionY];
-	minimumSize?: [number, number];
+	minimumSize?: [ClassicyWindowSizeDimension, ClassicyWindowSizeDimension];
 	header?: ReactNode;
 	appMenu?: ClassicyMenuItem[];
 	contextMenu?: ClassicyMenuItem[];
@@ -123,8 +150,14 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const desktopEventDispatch = useAppManagerDispatch();
 	const player = useSoundDispatch();
 
+	const resolvedSize = useMemo(() => resolveSize(initialSize), [initialSize]);
+	const resolvedMinimumSize = useMemo(
+		() => resolveSize(minimumSize),
+		[minimumSize],
+	);
+
 	const [size, setSize] = useState<[number, number]>(
-		currentWindow?.size ?? initialSize,
+		currentWindow?.size ?? resolvedSize,
 	);
 	const [clickPosition, setClickPosition] = useState<[number, number]>([0, 0]);
 
@@ -173,8 +206,8 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const windowRef = useRef<HTMLDivElement | null>(null);
 
 	const resolvedPosition = useMemo(
-		() => resolvePosition(initialPosition, initialSize),
-		[initialPosition, initialSize],
+		() => resolvePosition(initialPosition, resolvedSize),
+		[initialPosition, resolvedSize],
 	);
 
 	const ws = useMemo(() => {
@@ -186,7 +219,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			moving: false,
 			resizing: false,
 			zoomed: false,
-			size: initialSize,
+			size: resolvedSize,
 			position: resolvedPosition,
 			closed: hidden,
 			menuBar: appMenu || [],
@@ -204,7 +237,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		return {
 			...initialWindowState,
 			appId,
-			minimumSize,
+			minimumSize: resolvedMinimumSize,
 			position: resolvedPosition,
 		} as ClassicyStoreSystemAppWindow;
 	}, [
@@ -216,8 +249,8 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		hidden,
 		id,
 		resolvedPosition,
-		initialSize,
-		minimumSize,
+		resolvedSize,
+		resolvedMinimumSize,
 	]);
 
 	const windowRegistered = useRef(false);
@@ -272,8 +305,8 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		setResize(true);
 		setZoom(false);
 		setSize([
-			windowRef?.current?.clientWidth || initialSize[0],
-			windowRef?.current?.clientHeight || initialSize[1],
+			windowRef?.current?.clientWidth || resolvedSize[0],
+			windowRef?.current?.clientHeight || resolvedSize[1],
 		]);
 	};
 
@@ -550,10 +583,10 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			height: ws.collapsed ? "auto" : size[1] === 0 ? "auto" : size[1],
 			left: ws.position[0],
 			top: ws.position[1],
-			minWidth: minimumSize[0],
-			minHeight: ws.collapsed ? 0 : minimumSize[1],
+			minWidth: resolvedMinimumSize[0],
+			minHeight: ws.collapsed ? 0 : resolvedMinimumSize[1],
 		}),
-		[size[0], size[1], ws.collapsed, ws.position[0], ws.position[1], minimumSize[0], minimumSize[1]],
+		[size[0], size[1], ws.collapsed, ws.position[0], ws.position[1], resolvedMinimumSize[0], resolvedMinimumSize[1]],
 	);
 
 	return (
