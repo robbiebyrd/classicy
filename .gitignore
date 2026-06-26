@@ -48,3 +48,4 @@ example/timemachine/cache
 /.playwright-mcp
 /.husky/post-commit
 /stories/archive
+.history
