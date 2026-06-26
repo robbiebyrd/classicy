@@ -173,3 +173,8 @@ $_thumb-strikes-svg: url('../../../../assets/img/ui/slider-strikes.svg');
   }
 }
 
+.classicySliderValue {
+  font-family: var(--ui-font);
+  font-size: calc(var(--ui-font-size) / 1.25);
+  text-align: center;
+}
