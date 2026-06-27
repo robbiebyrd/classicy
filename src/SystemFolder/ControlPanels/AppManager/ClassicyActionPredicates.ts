@@ -205,6 +205,13 @@ export function hasFont(
 	return typeof m.fontType === "string" && typeof m.font === "string";
 }
 
+/** Action has `fontType: string` and `fontSize: number` */
+export function hasFontSize(
+	m: Msg,
+): m is Msg & { fontType: string; fontSize: number } {
+	return typeof m.fontType === "string" && typeof m.fontSize === "number";
+}
+
 /** Action has `availableThemes: unknown[]` */
 export function hasAvailableThemes(
 	m: Msg,

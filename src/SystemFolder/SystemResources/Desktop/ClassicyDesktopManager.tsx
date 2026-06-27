@@ -12,6 +12,7 @@ import {
 	hasDisableBalloonHelp,
 	hasErrorDialogMessage,
 	hasFont,
+	hasFontSize,
 	hasMenuBar,
 	hasMouseEvent,
 	hasShowContextMenu,
@@ -190,6 +191,40 @@ export const classicyDesktopEventHandler = (
 				case "header":
 					ds.System.Manager.Appearance.activeTheme.typography.header =
 						action.font;
+					break;
+				case "mono":
+					ds.System.Manager.Appearance.activeTheme.typography.mono =
+						action.font;
+					break;
+				case "digital":
+					ds.System.Manager.Appearance.activeTheme.typography.digital =
+						action.font;
+					break;
+			}
+			break;
+		}
+		case "ClassicyDesktopChangeFontSize": {
+			if (!hasFontSize(action)) break;
+			switch (action.fontType) {
+				case "uiSize":
+					ds.System.Manager.Appearance.activeTheme.typography.uiSize =
+						action.fontSize;
+					break;
+				case "bodySize":
+					ds.System.Manager.Appearance.activeTheme.typography.bodySize =
+						action.fontSize;
+					break;
+				case "headerSize":
+					ds.System.Manager.Appearance.activeTheme.typography.headerSize =
+						action.fontSize;
+					break;
+				case "monoSize":
+					ds.System.Manager.Appearance.activeTheme.typography.monoSize =
+						action.fontSize;
+					break;
+				case "digitalSize":
+					ds.System.Manager.Appearance.activeTheme.typography.digitalSize =
+						action.fontSize;
 					break;
 			}
 			break;

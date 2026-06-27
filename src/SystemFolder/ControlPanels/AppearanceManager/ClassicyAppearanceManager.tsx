@@ -171,6 +171,19 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		},
 		[desktopEventDispatch],
 	);
+
+	const changeFontSize = useCallback(
+		(fontType: string, size: number) => {
+			startTransition(() => {
+				desktopEventDispatch({
+					type: "ClassicyDesktopChangeFontSize",
+					fontType,
+					fontSize: size,
+				});
+			});
+		},
+		[desktopEventDispatch],
+	);
 	const quitApp = () => {
 		desktopEventDispatch(quitAppHelper(APP_ID, APP_NAME, appIcon));
 	};
@@ -214,6 +227,7 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 	const fontsTab = useFontsTab({
 		typography: appearanceState.activeTheme.typography,
 		changeFont,
+		changeFontSize,
 	});
 
 	const tabs = useMemo(
