@@ -133,6 +133,9 @@ export const ClassicyIcons = {
 			loaderAnimated: icon("applications/netscape/loader-animated.png"),
 			loader: icon("applications/netscape/loader.png"),
 		},
+		pager: {
+			app: icon("applications/pager/app.png"),
+		},
 		news: {
 			app: icon("applications/news/app.png"),
 		},
