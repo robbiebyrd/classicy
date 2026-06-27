@@ -139,6 +139,9 @@ export const ClassicyIcons = {
 		news: {
 			app: icon("applications/news/app.png"),
 		},
+		radio: {
+			app: icon("applications/radio/app.png"),
+		},
 		registerWithApple: {
 			app: icon("applications/register-with-apple/app.png"),
 		},
