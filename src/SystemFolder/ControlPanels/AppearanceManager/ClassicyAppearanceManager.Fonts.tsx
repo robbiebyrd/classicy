@@ -36,7 +36,7 @@ export const useFontsTab = ({
 					<div className={"classicyAppearanceManagerFontsRow"}>
 						<div className={"classicyAppearanceManagerFontsLabel"}>
 							<ClassicyControlLabel
-								label={"Large System Font"}
+								label={"System Font"}
 								direction={"left"}
 							/>
 						</div>
