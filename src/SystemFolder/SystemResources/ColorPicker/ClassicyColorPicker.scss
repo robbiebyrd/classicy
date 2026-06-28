@@ -104,36 +104,70 @@
   padding: var(--window-padding-size);
 }
 
-.classicyColorPickerCrayonGrid {
-  display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  gap: 2px;
-  background: var(--color-system-05);
+// Dark cardboard box interior; rows of crayons stack inside it.
+.classicyColorPickerCrayonBox {
+  background: #0e0906;
   border: var(--window-border-size) solid var(--color-window-border);
-  padding: 4px;
+  box-shadow:
+    inset 2px 2px 0 rgba(255, 255, 255, 0.06),
+    inset -2px -2px 0 rgba(0, 0, 0, 0.55);
+  padding: 6px 8px 0;
+  overflow: hidden;
+}
+
+.classicyColorPickerCrayonRows {
+  display: flex;
+  flex-direction: column;
+}
+
+// Each row overlaps the one behind it; z-index (set inline) ensures front rows
+// paint on top of back rows. The negative margin slides each row up by
+// (96 - 28)px so only the 28px tip of each back row remains visible.
+.classicyColorPickerCrayonRow {
+  display: flex;
+  position: relative;
+
+  &:not(:first-child) {
+    margin-top: -68px;
+  }
 }
 
 .classicyColorPickerCrayon {
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   cursor: pointer;
   background: none;
   border: none;
-  padding: 1px;
+  padding: 0;
   outline: none;
+  position: relative;
+  z-index: 0;
+  transition: transform 0.07s ease;
 
-  &:hover svg { transform: translateY(-2px); }
-  &:focus-visible { outline: 2px solid var(--color-outline); outline-offset: 1px; }
+  &:hover {
+    transform: translateY(-8px);
+    z-index: 100;
+  }
+
+  &:focus-visible { outline: 2px solid var(--color-outline); }
 }
 
-.classicyColorPickerCrayonSelected svg {
-  outline: 2px solid var(--color-outline);
-  outline-offset: 1px;
+.classicyColorPickerCrayonSelected {
+  transform: translateY(-5px);
+  z-index: 50;
+}
+
+// Gray front lip of the crayon box, below the crayons.
+.classicyColorPickerCrayonBoxLip {
+  height: 22px;
+  background: linear-gradient(to bottom, #bbbbbb, #888888);
+  border-top: 2px solid #d4d4d4;
+  margin-top: 6px;
 }
 
 .classicyColorPickerCrayonPreviewStrip {
   height: 20px;
+  flex-shrink: 0;
   border: var(--window-border-size) solid var(--color-window-border);
   box-shadow: inset 1px 1px 0 var(--color-system-06);
 }

@@ -53,26 +53,22 @@ export const ClassicyColorWheel: FC<ClassicyColorWheelProps> = ({
 
     ctx.putImageData(imageData, 0, 0);
 
-    // Draw crosshair at current hue / saturation
+    // Draw crosshair at current hue / saturation, inverted against the wheel color beneath it
     const rad = hue * (Math.PI / 180);
     const r = (saturation / 100) * radius;
     const cx = radius + r * Math.cos(rad);
     const cy = radius + r * Math.sin(rad);
     const ARM = 7;
 
-    ctx.lineWidth = 1.5;
+    ctx.save();
+    ctx.globalCompositeOperation = "difference";
     ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.moveTo(cx - ARM, cy); ctx.lineTo(cx + ARM, cy);
     ctx.moveTo(cx, cy - ARM); ctx.lineTo(cx, cy + ARM);
     ctx.stroke();
-
-    ctx.lineWidth = 0.75;
-    ctx.strokeStyle = "#000000";
-    ctx.beginPath();
-    ctx.moveTo(cx - ARM, cy); ctx.lineTo(cx + ARM, cy);
-    ctx.moveTo(cx, cy - ARM); ctx.lineTo(cx, cy + ARM);
-    ctx.stroke();
+    ctx.restore();
   }, [size, hue, saturation, brightness, mode]);
 
   const hitTest = (e: PointerEvent<HTMLCanvasElement>): { h: number; s: number } | null => {

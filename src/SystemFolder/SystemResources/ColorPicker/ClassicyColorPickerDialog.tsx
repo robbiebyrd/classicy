@@ -64,7 +64,7 @@ export const ClassicyColorPickerDialog: FC<ClassicyColorPickerDialogProps> = ({
       collapsable={false}
       resizable={false}
       scrollable={false}
-      initialSize={[520, 400]}
+      initialSize={[520, 430]}
       initialPosition={[200, 100]}
       onCloseFunc={() => onCancelFunc?.()}
     >
