@@ -3,6 +3,7 @@ import {
 	ClassicyBalloonHelp,
 	ClassicyButton,
 	ClassicyCheckbox,
+	ClassicyColorPicker,
 	ClassicyControlGroup,
 	ClassicyControlLabel,
 	ClassicyDisclosure,
@@ -11,12 +12,13 @@ import {
 	ClassicyPopUpMenu,
 	ClassicyProgressBar,
 	ClassicyRadioInput,
+	ClassicyTabs,
 	ClassicyWindow,
 	quitAppHelper,
 	quitMenuItemHelper,
 	useAppManagerDispatch,
 } from "classicy";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 const RADIO_INPUTS = [
 	{
@@ -52,6 +54,7 @@ export const Demo = () => {
 	const appIcon = ClassicyIcons.system.folders.directory;
 
 	const desktopEventDispatch = useAppManagerDispatch();
+	const [pickedColor, setPickedColor] = useState(0x2060c0);
 
 	const quitApp = useCallback(() => {
 		desktopEventDispatch(quitAppHelper(appId, appName, appIcon));
@@ -102,6 +105,137 @@ export const Demo = () => {
 		[appIcon],
 	);
 
+	const tabs = [
+		{
+			title: "Inputs",
+			children: (
+				<>
+					<ClassicyControlGroup label={"Pop Up Menu"}>
+						<ClassicyPopUpMenu
+							id={"select_theme"}
+							options={[
+								{ value: "hello", label: "Hello" },
+								{ value: "hello2", label: "Hello again!" },
+							]}
+							selected={"hello"}
+						/>
+					</ClassicyControlGroup>
+					<ClassicyInput id={"test"} labelTitle={"Text Input"} />
+					<ClassicyControlGroup label={"Radio Buttons"}>
+						<ClassicyRadioInput
+							inputs={RADIO_INPUTS}
+							name={"test_radio"}
+							label={"Radio Buttons"}
+						/>
+						<ClassicyRadioInput
+							inputs={RADIO_INPUTS_DISABLED}
+							name={"test_radio_disabled"}
+							label={"Disabled Radio Buttons"}
+						/>
+					</ClassicyControlGroup>
+					<ClassicyControlGroup label={"Checkboxes"}>
+						<ClassicyCheckbox
+							id={"test6"}
+							isDefault={true}
+							checked={true}
+							label={"Default Checkbox"}
+							disabled={false}
+						/>
+						<ClassicyCheckbox
+							id={"test7"}
+							isDefault={false}
+							label={"Checkbox 2"}
+							disabled={false}
+						/>
+						<ClassicyCheckbox
+							id={"test8"}
+							mixed={true}
+							isDefault={false}
+							label={"Mixed"}
+							disabled={false}
+						/>
+						<ClassicyCheckbox
+							id={"test9"}
+							isDefault={false}
+							label={"Disabled"}
+							disabled={true}
+						/>
+					</ClassicyControlGroup>
+				</>
+			),
+		},
+		{
+			title: "Colors",
+			children: (
+				<ClassicyControlGroup label={"Color Picker"}>
+					<ClassicyColorPicker
+						id={"demo-color-1"}
+						value={pickedColor}
+						labelTitle={"Accent color:"}
+						onChangeFunc={setPickedColor}
+					/>
+					<ClassicyColorPicker
+						id={"demo-color-2"}
+						defaultValue={0xba572c}
+						labelTitle={"Uncontrolled:"}
+					/>
+					<ClassicyColorPicker
+						id={"demo-color-3"}
+						defaultValue={0x888888}
+						labelTitle={"Disabled:"}
+						disabled={true}
+					/>
+				</ClassicyControlGroup>
+			),
+		},
+		{
+			title: "Feedback",
+			children: (
+				<>
+					<ClassicyControlGroup label={"Progress Bars"}>
+						<ClassicyProgressBar value={59} />
+						<ClassicyProgressBar indeterminate={true} />
+					</ClassicyControlGroup>
+					<ClassicyDisclosure label={"Expandable Section"}>
+						<p style={{ fontFamily: "var(--header-font)" }}>HELLO!</p>
+					</ClassicyDisclosure>
+				</>
+			),
+		},
+		{
+			title: "Buttons",
+			children: (
+				<>
+					<ClassicyBalloonHelp
+						title="Do Nothing"
+						content="This button does absolutely nothing."
+						position="top-left"
+					>
+						<ClassicyButton isDefault={true}>Do Nothing</ClassicyButton>
+					</ClassicyBalloonHelp>
+					<ClassicyBalloonHelp
+						title="Quit App"
+						content="Click here to quit this application."
+						position="top-left"
+					>
+						<ClassicyButton isDefault={false} onClickFunc={quitApp}>
+							Quit
+						</ClassicyButton>
+					</ClassicyBalloonHelp>
+					<ClassicyBalloonHelp
+						title="Disabled"
+						content="This button is disabled."
+						position="top-left"
+					>
+						<ClassicyButton isDefault={false} disabled={true}>
+							Disabled
+						</ClassicyButton>
+					</ClassicyBalloonHelp>
+				</>
+			),
+		},
+	];
+
 	return (
 		<ClassicyApp
 			id={appId}
@@ -147,107 +281,14 @@ export const Demo = () => {
 				closable={false}
 				resizable={false}
 				zoomable={false}
-				scrollable={false}
+				scrollable={true}
 				collapsable={false}
-				initialSize={[400, 0]}
+				initialSize={[400, 500]}
 				initialPosition={[300, 50]}
 				modal={true}
 				appMenu={appMenu}
 			>
-				<div
-					style={{
-						padding: ".5em",
-						display: "flex",
-						flexDirection: "column",
-					}}
-				>
-					<ClassicyControlGroup label={"Pop Up Menu"}>
-						<ClassicyPopUpMenu
-							id={"select_theme"}
-							options={[
-								{ value: "hello", label: "Hello" },
-								{ value: "hello2", label: "Hello again!" },
-							]}
-							selected={"hello"}
-						/>
-					</ClassicyControlGroup>
-					<ClassicyControlGroup label={"Progress Bars"}>
-						<ClassicyProgressBar value={59}></ClassicyProgressBar>
-						<ClassicyProgressBar indeterminate={true}></ClassicyProgressBar>
-					</ClassicyControlGroup>
-					<ClassicyInput id={"test"} labelTitle={"Text Input"}></ClassicyInput>
-				</div>
-				<ClassicyControlGroup label={"Test Radio Inputs"}>
-					<ClassicyRadioInput
-						inputs={RADIO_INPUTS}
-						name={"test_radio"}
-						label={"Radio Buttons"}
-					/>
-					<ClassicyRadioInput
-						inputs={RADIO_INPUTS_DISABLED}
-						name={"test_radio_disabled"}
-						label={"Disabled Radio Buttons"}
-					/>
-				</ClassicyControlGroup>
-				<ClassicyControlGroup label={"Test Checkboxes"}>
-					<ClassicyCheckbox
-						id={"test6"}
-						isDefault={true}
-						checked={true}
-						label={"Default Checkbox"}
-						disabled={false}
-					/>
-					<ClassicyCheckbox
-						id={"test7"}
-						isDefault={false}
-						label={"Checkbox 2"}
-						disabled={false}
-					/>
-					<ClassicyCheckbox
-						id={"test8"}
-						mixed={true}
-						isDefault={false}
-						label={"Mixed"}
-						disabled={false}
-					/>
-					<ClassicyCheckbox
-						id={"test9"}
-						isDefault={false}
-						label={"Disabled"}
-						disabled={true}
-						onClickFunc={() => {
-							alert("This is disabled");
-						}}
-					/>
-				</ClassicyControlGroup>
-				<ClassicyDisclosure label={"Expandable Section"}>
-					<p style={{ fontFamily: "var(--header-font)" }}>HELLO!</p>
-				</ClassicyDisclosure>
-				<ClassicyBalloonHelp
-					title="Do Nothing"
-					content="This button does absolutely nothing."
-					position="top-left"
-				>
-					<ClassicyButton isDefault={true}>Do Nothing</ClassicyButton>
-				</ClassicyBalloonHelp>
-				<ClassicyBalloonHelp
-					title="Quit App"
-					content="Click here to quit this application."
-					position="top-left"
-				>
-					<ClassicyButton isDefault={false} onClickFunc={quitApp}>
-						Quit
-					</ClassicyButton>
-				</ClassicyBalloonHelp>
-				<ClassicyBalloonHelp
-					title="Disabled"
-					content="This button is disabled.."
-					position="top-left"
-				>
-					<ClassicyButton isDefault={false} disabled={true}>
-						Disabled
-					</ClassicyButton>
-				</ClassicyBalloonHelp>
+				<ClassicyTabs tabs={tabs} />
 			</ClassicyWindow>
 		</ClassicyApp>
 	);
