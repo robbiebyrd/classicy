@@ -163,6 +163,20 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
 			new Date().getTimezoneOffset() * 60000,
 	);
 
+	const adjustToDisplay = (isoString: string): Date =>
+		new Date(
+			new Date(isoString).getTime() +
+				tzOffset * 3600000 +
+				new Date().getTimezoneOffset() * 60000,
+		);
+
+	const minValue = dateAndTimeState.minDateTime
+		? adjustToDisplay(dateAndTimeState.minDateTime)
+		: undefined;
+	const maxValue = dateAndTimeState.maxDateTime
+		? adjustToDisplay(dateAndTimeState.maxDateTime)
+		: undefined;
+
 	return (
 		<ClassicyApp
 			id={APP_ID}
@@ -196,6 +210,8 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
 									labelTitle={""}
 									prefillValue={date}
 									onChangeFunc={updateSystemDate}
+									minValue={minValue}
+									maxValue={maxValue}
 								></ClassicyDatePicker>
 							</ClassicyControlGroup>
 						</div>
@@ -207,6 +223,8 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
 									labelPosition="left"
 									onChangeFunc={updateSystemTime}
 									prefillValue={date}
+									minValue={minValue}
+									maxValue={maxValue}
 								></ClassicyTimePicker>
 							</ClassicyControlGroup>
 						</div>

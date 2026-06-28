@@ -32,6 +32,8 @@ interface ClassicyDatePickerProps {
 	disabled?: boolean;
 	labelDisabled?: boolean;
 	isDefault?: boolean;
+	minValue?: Date;
+	maxValue?: Date;
 }
 
 export const ClassicyDatePicker: FunctionalComponent<ClassicyDatePickerProps> =
