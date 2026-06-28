@@ -44,6 +44,7 @@ export * from "./SystemFolder/SystemResources/Checkbox/ClassicyCheckbox";
 export * from "./SystemFolder/SystemResources/ColorPicker/ClassicyColorPickerCMYK";
 export * from "./SystemFolder/SystemResources/ColorPicker/ClassicyColorPickerCrayon";
 export * from "./SystemFolder/SystemResources/ColorPicker/ClassicyColorPickerCrayons";
+export * from "./SystemFolder/SystemResources/ColorPicker/ClassicyColorPickerDialog";
 export * from "./SystemFolder/SystemResources/ColorPicker/ClassicyColorPickerHLS";
 export * from "./SystemFolder/SystemResources/ColorPicker/ClassicyColorPickerHSV";
 export * from "./SystemFolder/SystemResources/ColorPicker/ClassicyColorPickerRGB";

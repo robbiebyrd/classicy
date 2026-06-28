@@ -77,8 +77,8 @@ export const ClassicyColorPickerDialog: FC<ClassicyColorPickerDialogProps> = ({
       collapsable={false}
       resizable={false}
       scrollable={false}
-      initialSize={[520, 420]}
-      initialPosition={["center", "center"]}
+      initialSize={[480, 380]}
+      initialPosition={[200, 100]}
       onCloseFunc={() => onCancelFunc?.()}
     >
       <ClassicyTabs tabs={tabs} />
