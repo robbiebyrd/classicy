@@ -1,5 +1,4 @@
-import type { ChangeEvent, FC } from "react";
-import React from "react";
+import type { CSSProperties, ChangeEvent, FC } from "react";
 import { ClassicySlider } from "@/SystemFolder/SystemResources/Slider/ClassicySlider";
 import { ClassicyColorWheel } from "./ClassicyColorWheel";
 import { intToRgb, rgbToInt, rgbToHls, hlsToRgb } from "./ClassicyColorPickerUtils";
@@ -44,13 +43,12 @@ export const ClassicyColorPickerHLS: FC<ClassicyColorPickerHLSProps> = ({ color,
   const lightnessSliderStyle = {
     "--classicy-slider-track-from": `rgb(${lDarkR},${lDarkG},${lDarkB})`,
     "--classicy-slider-track-to": `rgb(${lLightR},${lLightG},${lLightB})`,
-  } as React.CSSProperties;
+  } as CSSProperties;
 
   return (
     <div className="classicyColorPickerWheelTab">
       <div className="classicyColorPickerWheelLayout">
-        <div className="classicyColorPickerWheelOuter"
-          style={{ width: WHEEL_SIZE + 40, height: WHEEL_SIZE + 40 }}>
+        <div className="classicyColorPickerWheelOuter">
           {DEGREE_MARKS.map((deg) => {
             const rad = (deg * Math.PI) / 180;
             const lx = radius + 20 + labelRadius * Math.cos(rad);
@@ -62,7 +60,7 @@ export const ClassicyColorPickerHLS: FC<ClassicyColorPickerHLSProps> = ({ color,
               </span>
             );
           })}
-          <div style={{ position: "absolute", left: 20, top: 20 }}>
+          <div className="classicyColorPickerWheelCanvasWrapper">
             <ClassicyColorWheel
               size={WHEEL_SIZE}
               hue={h} saturation={s} brightness={l}

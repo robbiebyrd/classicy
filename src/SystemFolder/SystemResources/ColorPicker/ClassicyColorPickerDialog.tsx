@@ -38,7 +38,6 @@ export const ClassicyColorPickerDialog: FC<ClassicyColorPickerDialogProps> = ({
 
   const handleOK = () => {
     onSelectFunc?.(pendingColor);
-    onCancelFunc?.();
   };
 
   const tabs = [
