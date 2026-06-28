@@ -1,7 +1,10 @@
-import React from "react";
 import { fireEvent, render, screen } from "@/__tests__/test-utils";
 import { describe, expect, it, vi } from "vitest";
 import { ClassicyColorPicker } from "./ClassicyColorPicker";
+import { ClassicyColorPickerCrayon } from "./ClassicyColorPickerCrayon";
+import { ClassicyColorPickerRGB } from "./ClassicyColorPickerRGB";
+import { ClassicyColorPickerCMYK } from "./ClassicyColorPickerCMYK";
+import { MAC_OS_8_CRAYONS } from "./ClassicyColorPickerCrayons";
 
 // ── Module mocks (hoisted) ────────────────────────────────────────────────────
 
@@ -123,12 +126,6 @@ describe("ClassicyColorPicker", () => {
 });
 
 // ── Sub-component behavioural tests ───────────────────────────────────────────
-// These render the actual sub-components directly (no top-level mock for them).
-
-import { ClassicyColorPickerCrayon } from "./ClassicyColorPickerCrayon";
-import { ClassicyColorPickerRGB } from "./ClassicyColorPickerRGB";
-import { ClassicyColorPickerCMYK } from "./ClassicyColorPickerCMYK";
-import { MAC_OS_8_CRAYONS } from "./ClassicyColorPickerCrayons";
 
 describe("ClassicyColorPickerCrayon — crayon click", () => {
   it("calls onChangeFunc with the crayon's integer color when clicked", () => {

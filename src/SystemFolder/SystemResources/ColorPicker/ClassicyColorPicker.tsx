@@ -64,9 +64,7 @@ export const ClassicyColorPicker: FC<ClassicyColorPickerProps> = ({
             disabled && "classicyColorPickerSwatchDisabled",
           )}
           style={{ backgroundColor: intToHex(value) }}
-          onClick={() => {
-            if (!disabled) setOpen(true);
-          }}
+          onClick={() => setOpen(true)}
           disabled={disabled}
           aria-label={`Color: ${intToHex(value)}. Click to open color picker.`}
         />
