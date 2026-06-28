@@ -18,6 +18,7 @@ import {
 	quitMenuItemHelper,
 	useAppManagerDispatch,
 } from "classicy";
+import { AppIcons } from "../../app";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 const RADIO_INPUTS = [
@@ -51,7 +52,7 @@ const RADIO_INPUTS_DISABLED = [
 export const Demo = () => {
 	const appName = "Demo";
 	const appId = "Demo.app";
-	const appIcon = ClassicyIcons.system.folders.directory;
+	const appIcon = AppIcons.demo.app;
 
 	const desktopEventDispatch = useAppManagerDispatch();
 	const [pickedColor, setPickedColor] = useState(0x2060c0);

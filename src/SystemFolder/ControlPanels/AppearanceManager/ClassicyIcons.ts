@@ -18,6 +18,34 @@ const ui = (filename: string): string => {
 	return uiModules[key] ?? "";
 };
 
+// Recursive type for consumer icon namespaces.
+// Values are URL strings or nested objects of URL strings (up to 2 levels).
+export type ClassicyIconMap = Record<
+	string,
+	string | Record<string, string | Record<string, string>>
+>;
+
+/**
+ * Register custom icon namespaces into ClassicyIcons at runtime.
+ *
+ * Call this once before rendering — typically in your app entry point.
+ * The function returns its argument with full TypeScript types so you can
+ * keep a typed local reference for autocomplete:
+ *
+ * ```ts
+ * import appIcon from './icon.png';
+ * const MyIcons = registerClassicyIcons({ myApp: { icon: appIcon } });
+ * // MyIcons.myApp.icon  — fully typed
+ * // ClassicyIcons['myApp']['icon']  — also works at runtime
+ * ```
+ */
+export function registerClassicyIcons<T extends Record<string, ClassicyIconMap>>(
+	icons: T,
+): T {
+	Object.assign(ClassicyIcons as Record<string, unknown>, icons);
+	return icons;
+}
+
 export const ClassicyIcons = {
 	classicy: {
 		logo: ui("classicy-logo.svg"),
