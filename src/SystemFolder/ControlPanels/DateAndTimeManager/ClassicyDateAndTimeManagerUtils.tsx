@@ -52,6 +52,8 @@ export interface ClassicyDateTimeValue {
 	localHMS: string;
 	/** Whether the clock is currently paused. */
 	paused: boolean;
+	/** Whether the clock is locked at a boundary (min or max). */
+	boundaryLocked: boolean;
 	setDateTime: (date: Date) => void;
 	setTzOffset: (offset: string) => void;
 	pause: () => void;
@@ -93,6 +95,17 @@ export function useClassicyDateTime(options?: {
 	const pausedRef = useRef(paused);
 	pausedRef.current = paused;
 
+	const boundaryLocked = dateAndTime.boundaryLocked;
+	const minDateTime = dateAndTime.minDateTime ?? null;
+	const maxDateTime = dateAndTime.maxDateTime ?? null;
+
+	const boundaryLockedRef = useRef(boundaryLocked);
+	boundaryLockedRef.current = boundaryLocked;
+	const minDateTimeRef = useRef(minDateTime);
+	minDateTimeRef.current = minDateTime;
+	const maxDateTimeRef = useRef(maxDateTime);
+	maxDateTimeRef.current = maxDateTime;
+
 	// When the store's dateTime changes (user sets a new time, or minute dispatch
 	// from the MenuBar widget), reset both anchors to the new virtual moment.
 	useEffect(() => {
@@ -120,18 +133,43 @@ export function useClassicyDateTime(options?: {
 	// Poll every 250ms and evaluate the anchor formula. Only updates React state
 	// when the displayed second actually changes, so render frequency stays ≤1 Hz
 	// even though the interval fires 4× per second.
+	// Also checks min/max bounds on each tick and dispatches a correction if the
+	// virtual clock crosses a boundary; skips advancing when boundaryLocked is true.
 	useEffect(() => {
 		if (!tick) return;
 		const id = setInterval(() => {
-			if (pausedRef.current) return;
+			if (pausedRef.current || boundaryLockedRef.current) return;
+
 			const virtualNow = computeAnchoredTime(
 				virtualAnchorMsRef.current,
 				realAnchorMsRef.current,
 			);
+			const virtualNowMs = virtualNow.getTime();
+			const utcNowMs = virtualNowMs - tzOffsetRef.current * 3600000;
+
+			const minMs =
+				minDateTimeRef.current !== null
+					? new Date(minDateTimeRef.current).getTime()
+					: null;
+			const maxMs =
+				maxDateTimeRef.current !== null
+					? new Date(maxDateTimeRef.current).getTime()
+					: null;
+
+			if (minMs !== null && utcNowMs < minMs) {
+				dispatch({ type: "ClassicyManagerDateTimeSet", dateTime: new Date(minMs) });
+				return;
+			}
+
+			if (maxMs !== null && utcNowMs >= maxMs) {
+				dispatch({ type: "ClassicyManagerDateTimeSet", dateTime: new Date(maxMs) });
+				return;
+			}
+
 			setLocalDate((prev) => {
 				if (
 					Math.floor(prev.getTime() / 1000) ===
-					Math.floor(virtualNow.getTime() / 1000)
+					Math.floor(virtualNowMs / 1000)
 				) {
 					return prev;
 				}
@@ -139,7 +177,7 @@ export function useClassicyDateTime(options?: {
 			});
 		}, 250);
 		return () => clearInterval(id);
-	}, [tick]);
+	}, [tick, dispatch]);
 
 	const setDateTime = useCallback(
 		(date: Date) => {
@@ -173,6 +211,7 @@ export function useClassicyDateTime(options?: {
 		localDate,
 		localHMS,
 		paused,
+		boundaryLocked,
 		setDateTime,
 		setTzOffset,
 		pause,

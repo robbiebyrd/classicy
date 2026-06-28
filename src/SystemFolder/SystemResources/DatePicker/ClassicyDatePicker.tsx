@@ -32,6 +32,8 @@ interface ClassicyDatePickerProps {
 	disabled?: boolean;
 	labelDisabled?: boolean;
 	isDefault?: boolean;
+	minValue?: Date;
+	maxValue?: Date;
 }
 
 export const ClassicyDatePicker: FunctionalComponent<ClassicyDatePickerProps> =
@@ -46,6 +48,8 @@ export const ClassicyDatePicker: FunctionalComponent<ClassicyDatePickerProps> =
 				labelDisabled,
 				isDefault,
 				onChangeFunc,
+				minValue,
+				maxValue,
 			},
 			_ref,
 		) {
@@ -75,9 +79,24 @@ export const ClassicyDatePicker: FunctionalComponent<ClassicyDatePickerProps> =
 				e.currentTarget.select();
 			};
 
+			const clampDate = (date: Date): Date => {
+				if (minValue !== undefined && date.getTime() < minValue.getTime())
+					return new Date(minValue.getTime());
+				if (maxValue !== undefined && date.getTime() >= maxValue.getTime())
+					return new Date(maxValue.getTime());
+				return date;
+			};
+
 			const handleDateChange = (date: Date) => {
+				const clamped = clampDate(date);
+				if (clamped !== date) {
+					setSelectedDate(clamped);
+					setMonth((clamped.getMonth() + 1).toString());
+					setDay(clamped.getDate().toString());
+					setYear(clamped.getFullYear().toString());
+				}
 				if (onChangeFunc) {
-					onChangeFunc(date);
+					onChangeFunc(clamped);
 				}
 			};
 
