@@ -28,6 +28,8 @@ interface ClassicyTimePickerProps {
 	labelDisabled?: boolean;
 	isDefault?: boolean;
 	ref?: ForwardedRef<HTMLInputElement>;
+	minValue?: Date;
+	maxValue?: Date;
 }
 
 export const ClassicyTimePicker: FunctionalComponent<ClassicyTimePickerProps> =
@@ -44,6 +46,8 @@ export const ClassicyTimePicker: FunctionalComponent<ClassicyTimePickerProps> =
 				labelDisabled,
 				isDefault,
 				onChangeFunc,
+				minValue,
+				maxValue,
 			},
 			ref,
 		) {
@@ -65,7 +69,27 @@ export const ClassicyTimePicker: FunctionalComponent<ClassicyTimePickerProps> =
 				prefillValue.getHours() < 12 ? "am" : "pm",
 			);
 
-			const handleDateChange = (date: Date) => onChangeFunc?.(date);
+			const clampDateTime = (date: Date): Date => {
+				if (minValue !== undefined && date.getTime() < minValue.getTime())
+					return new Date(minValue.getTime());
+				if (maxValue !== undefined && date.getTime() >= maxValue.getTime())
+					return new Date(maxValue.getTime());
+				return date;
+			};
+
+			const handleDateChange = (date: Date) => {
+				const clamped = clampDateTime(date);
+				if (clamped !== date) {
+					const h = clamped.getHours();
+					const isPm = h >= 12;
+					setSelectedDate(clamped);
+					setHour((isPm ? (h === 12 ? 12 : h - 12) : h === 0 ? 12 : h).toString());
+					setMinutes(clamped.getMinutes().toString());
+					setSeconds(clamped.getSeconds().toString());
+					setPeriod(isPm ? "pm" : "am");
+				}
+				onChangeFunc?.(clamped);
+			};
 
 			const handlePeriodChange = (e: ChangeEvent<HTMLSelectElement>) => {
 				setPeriod(e.target.value);
