@@ -20,7 +20,19 @@ export const classicyDateTimeManagerEventHandler = (
 				);
 				break;
 			}
-			ds.System.Manager.DateAndTime.dateTime = action.dateTime.toISOString();
+			const { minDateTime, maxDateTime } = ds.System.Manager.DateAndTime;
+			const isoValue = action.dateTime.toISOString();
+
+			if (maxDateTime !== null && isoValue >= maxDateTime) {
+				ds.System.Manager.DateAndTime.dateTime = maxDateTime;
+				ds.System.Manager.DateAndTime.boundaryLocked = true;
+			} else if (minDateTime !== null && isoValue < minDateTime) {
+				ds.System.Manager.DateAndTime.dateTime = minDateTime;
+				ds.System.Manager.DateAndTime.boundaryLocked = false;
+			} else {
+				ds.System.Manager.DateAndTime.dateTime = isoValue;
+				ds.System.Manager.DateAndTime.boundaryLocked = false;
+			}
 			break;
 		}
 		case "ClassicyManagerDateTimeTZSet": {
@@ -47,6 +59,9 @@ export const classicyDateTimeManagerEventHandler = (
 			break;
 		}
 		case "ClassicyManagerDateTimeResume": {
+			if (ds.System.Manager.DateAndTime.boundaryLocked) {
+				break;
+			}
 			ds.System.Manager.DateAndTime.paused = false;
 			break;
 		}

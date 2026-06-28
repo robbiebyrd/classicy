@@ -293,6 +293,104 @@ describe("classicyDateTimeManagerEventHandler — ClassicyManagerDateTimeTZSet",
 	});
 });
 
+describe("classicyDateTimeManagerEventHandler — boundary enforcement", () => {
+	const MIN = "2020-01-01T00:00:00.000Z";
+	const MAX = "2025-01-01T00:00:00.000Z";
+
+	it("stores the date and clears boundaryLocked when date is within bounds", () => {
+		const ds = makeStore({ minDateTime: MIN, maxDateTime: MAX });
+		const date = new Date("2022-06-15T12:00:00.000Z");
+		classicyDateTimeManagerEventHandler(ds, {
+			type: "ClassicyManagerDateTimeSet",
+			dateTime: date,
+		});
+		expect(ds.System.Manager.DateAndTime.dateTime).toBe(date.toISOString());
+		expect(ds.System.Manager.DateAndTime.boundaryLocked).toBe(false);
+	});
+
+	it("clamps to maxDateTime and sets boundaryLocked when date equals maxDateTime", () => {
+		const ds = makeStore({ minDateTime: MIN, maxDateTime: MAX });
+		classicyDateTimeManagerEventHandler(ds, {
+			type: "ClassicyManagerDateTimeSet",
+			dateTime: new Date(MAX),
+		});
+		expect(ds.System.Manager.DateAndTime.dateTime).toBe(MAX);
+		expect(ds.System.Manager.DateAndTime.boundaryLocked).toBe(true);
+	});
+
+	it("clamps to maxDateTime and sets boundaryLocked when date exceeds maxDateTime", () => {
+		const ds = makeStore({ minDateTime: MIN, maxDateTime: MAX });
+		classicyDateTimeManagerEventHandler(ds, {
+			type: "ClassicyManagerDateTimeSet",
+			dateTime: new Date("2030-01-01T00:00:00.000Z"),
+		});
+		expect(ds.System.Manager.DateAndTime.dateTime).toBe(MAX);
+		expect(ds.System.Manager.DateAndTime.boundaryLocked).toBe(true);
+	});
+
+	it("clamps to minDateTime and clears boundaryLocked when date is below minDateTime", () => {
+		const ds = makeStore({ minDateTime: MIN, maxDateTime: MAX });
+		classicyDateTimeManagerEventHandler(ds, {
+			type: "ClassicyManagerDateTimeSet",
+			dateTime: new Date("2010-01-01T00:00:00.000Z"),
+		});
+		expect(ds.System.Manager.DateAndTime.dateTime).toBe(MIN);
+		expect(ds.System.Manager.DateAndTime.boundaryLocked).toBe(false);
+	});
+
+	it("clears boundaryLocked when date is set back within bounds after a lock", () => {
+		const ds = makeStore({
+			minDateTime: MIN,
+			maxDateTime: MAX,
+			boundaryLocked: true,
+			dateTime: MAX,
+		});
+		classicyDateTimeManagerEventHandler(ds, {
+			type: "ClassicyManagerDateTimeSet",
+			dateTime: new Date("2022-06-15T12:00:00.000Z"),
+		});
+		expect(ds.System.Manager.DateAndTime.boundaryLocked).toBe(false);
+	});
+
+	it("ignores ClassicyManagerDateTimeResume when boundaryLocked is true", () => {
+		const ds = makeStore({ boundaryLocked: true, paused: true });
+		classicyDateTimeManagerEventHandler(ds, {
+			type: "ClassicyManagerDateTimeResume",
+		});
+		expect(ds.System.Manager.DateAndTime.paused).toBe(true);
+	});
+
+	it("resumes normally when boundaryLocked is false", () => {
+		const ds = makeStore({ boundaryLocked: false, paused: true });
+		classicyDateTimeManagerEventHandler(ds, {
+			type: "ClassicyManagerDateTimeResume",
+		});
+		expect(ds.System.Manager.DateAndTime.paused).toBe(false);
+	});
+
+	it("applies no clamping when minDateTime is null", () => {
+		const ds = makeStore({ minDateTime: null, maxDateTime: MAX });
+		const date = new Date("2000-01-01T00:00:00.000Z");
+		classicyDateTimeManagerEventHandler(ds, {
+			type: "ClassicyManagerDateTimeSet",
+			dateTime: date,
+		});
+		expect(ds.System.Manager.DateAndTime.dateTime).toBe(date.toISOString());
+		expect(ds.System.Manager.DateAndTime.boundaryLocked).toBe(false);
+	});
+
+	it("applies no clamping when maxDateTime is null", () => {
+		const ds = makeStore({ minDateTime: MIN, maxDateTime: null });
+		const date = new Date("2099-01-01T00:00:00.000Z");
+		classicyDateTimeManagerEventHandler(ds, {
+			type: "ClassicyManagerDateTimeSet",
+			dateTime: date,
+		});
+		expect(ds.System.Manager.DateAndTime.dateTime).toBe(date.toISOString());
+		expect(ds.System.Manager.DateAndTime.boundaryLocked).toBe(false);
+	});
+});
+
 describe("computeAnchoredTime", () => {
 	afterEach(() => {
 		vi.useRealTimers();
