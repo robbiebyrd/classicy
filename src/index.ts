@@ -41,6 +41,7 @@ export * from "./SystemFolder/SystemResources/BalloonHelp/ClassicyBalloonHelp";
 export * from "./SystemFolder/SystemResources/Boot/ClassicyBoot";
 export * from "./SystemFolder/SystemResources/Button/ClassicyButton";
 export * from "./SystemFolder/SystemResources/Checkbox/ClassicyCheckbox";
+export * from "./SystemFolder/SystemResources/ColorPicker/ClassicyColorPicker";
 export * from "./SystemFolder/SystemResources/ColorPicker/ClassicyColorPickerCMYK";
 export * from "./SystemFolder/SystemResources/ColorPicker/ClassicyColorPickerCrayon";
 export * from "./SystemFolder/SystemResources/ColorPicker/ClassicyColorPickerCrayons";
