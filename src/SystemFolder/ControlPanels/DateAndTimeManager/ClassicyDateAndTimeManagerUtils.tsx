@@ -145,6 +145,7 @@ export function useClassicyDateTime(options?: {
 				realAnchorMsRef.current,
 			);
 			const virtualNowMs = virtualNow.getTime();
+			const utcNowMs = virtualNowMs - tzOffsetRef.current * 3600000;
 
 			const minMs =
 				minDateTimeRef.current !== null
@@ -155,12 +156,12 @@ export function useClassicyDateTime(options?: {
 					? new Date(maxDateTimeRef.current).getTime()
 					: null;
 
-			if (minMs !== null && virtualNowMs < minMs) {
+			if (minMs !== null && utcNowMs < minMs) {
 				dispatch({ type: "ClassicyManagerDateTimeSet", dateTime: new Date(minMs) });
 				return;
 			}
 
-			if (maxMs !== null && virtualNowMs >= maxMs) {
+			if (maxMs !== null && utcNowMs >= maxMs) {
 				dispatch({ type: "ClassicyManagerDateTimeSet", dateTime: new Date(maxMs) });
 				return;
 			}

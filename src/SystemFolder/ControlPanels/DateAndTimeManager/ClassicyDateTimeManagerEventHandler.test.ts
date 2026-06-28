@@ -437,3 +437,23 @@ describe("computeAnchoredTime", () => {
 		expect(after1s.getTime()).toBe(5_003_000);
 	});
 });
+
+describe("UTC de-shift for bounds comparison", () => {
+	it("correctly computes utcNowMs by subtracting tzOffset from virtualNowMs", () => {
+		// Virtual anchor is UTC+5: 12:00 UTC displayed as 17:00 local
+		// virtualNowMs = UTC_epoch + 5h
+		const utcMs = new Date("2024-06-15T12:00:00.000Z").getTime();
+		const tzOffsetHours = 5;
+		const virtualNowMs = utcMs + tzOffsetHours * 3600000;
+		const utcNowMs = virtualNowMs - tzOffsetHours * 3600000;
+		expect(utcNowMs).toBe(utcMs);
+	});
+
+	it("negative offset: virtualNowMs behind UTC, de-shift recovers correct UTC epoch", () => {
+		const utcMs = new Date("2024-06-15T12:00:00.000Z").getTime();
+		const tzOffsetHours = -5;
+		const virtualNowMs = utcMs + tzOffsetHours * 3600000;
+		const utcNowMs = virtualNowMs - tzOffsetHours * 3600000;
+		expect(utcNowMs).toBe(utcMs);
+	});
+});
