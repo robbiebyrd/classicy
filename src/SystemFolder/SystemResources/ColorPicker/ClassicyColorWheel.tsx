@@ -112,6 +112,7 @@ export const ClassicyColorWheel: FC<ClassicyColorWheelProps> = ({
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
     />
   );
 };
