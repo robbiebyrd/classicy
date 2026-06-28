@@ -49,7 +49,15 @@ vi.mock(
 	},
 );
 
-function makeStore(): ClassicyStore {
+function makeStore(
+	overrides: Partial<{
+		minDateTime: string | null;
+		maxDateTime: string | null;
+		boundaryLocked: boolean;
+		paused: boolean;
+		dateTime: string;
+	}> = {},
+): ClassicyStore {
 	return {
 		System: {
 			Manager: {
@@ -64,6 +72,10 @@ function makeStore(): ClassicyStore {
 					displayLongDay: false,
 					flashSeparators: false,
 					paused: false,
+					minDateTime: null,
+					maxDateTime: null,
+					boundaryLocked: false,
+					...overrides,
 				},
 				Sound: { volume: 100, labels: {}, disabled: [] },
 				Desktop: {
