@@ -8,6 +8,7 @@ import { ClassicyContextualMenu } from "@/SystemFolder/SystemResources/Contextua
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import "./ClassicyWindow.scss";
 import classNames from "classnames";
+import { createPortal } from "react-dom";
 import {
 	type FC as FunctionalComponent,
 	type KeyboardEvent,
@@ -601,12 +602,15 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		[size[0], size[1], ws.collapsed, ws.position[0], ws.position[1], resolvedMinimumSize[0], resolvedMinimumSize[1]],
 	);
 
-	return (
-		<>
-			{!ws.closed && (
-				// biome-ignore lint/a11y/useKeyWithClickEvents: application container captures clicks for focus
-				// biome-ignore lint/a11y/useKeyWithMouseEvents: mouse tracking for window drag
-				<div
+	const desktopRoot =
+		typeof document !== "undefined"
+			? (document.getElementById("classicyDesktop") ?? document.body)
+			: null;
+
+	const windowContent = !ws.closed && (
+		// biome-ignore lint/a11y/useKeyWithClickEvents: application container captures clicks for focus
+		// biome-ignore lint/a11y/useKeyWithMouseEvents: mouse tracking for window drag
+		<div
 					id={[appId, id].join("_")}
 					ref={windowRef}
 					role="application"
@@ -615,7 +619,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 						"classicyWindow",
 						ws.collapsed ? "classicyWindowCollapsed" : "",
 						ws.zoomed ? "classicyWindowZoomed" : "",
-						isActive() ? "classicyWindowActive" : "classicyWindowInactive",
+						modal || isActive() ? "classicyWindowActive" : "classicyWindowInactive",
 						currentApp?.focused && !isActive() ? "classicyWindowActiveApp" : "",
 						!ws.closed ? "" : "classicyWindowInvisible",
 						ws.moving ? "classicyWindowDragging" : "",
@@ -724,7 +728,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 					)}
 					<div
 						className={classNames(
-							!isActive() ? (dimContents ? "classicyWindowContentsDimmed" : "classicyWindowContentsNotDimmed") : "",
+							!modal && !isActive() ? (dimContents ? "classicyWindowContentsDimmed" : "classicyWindowContentsNotDimmed") : "",
 							scrollable === true ? "" : "classicyWindowNoScroll",
 							modal === true
 								? "classicyWindowContentsModal"
@@ -759,7 +763,11 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 						></div>
 					)}
 				</div>
-			)}
-		</>
 	);
+
+	if (modal && desktopRoot) {
+		return createPortal(windowContent, desktopRoot);
+	}
+
+	return <>{windowContent}</>;
 };
