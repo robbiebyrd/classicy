@@ -137,6 +137,14 @@
 .classicyColorPickerWheelOuter {
   position: relative;
   flex-shrink: 0;
+  width: 240px;
+  height: 240px;
+}
+
+.classicyColorPickerWheelCanvasWrapper {
+  position: absolute;
+  left: 20px;
+  top: 20px;
 }
 
 .classicyColorPickerWheelCanvas {
