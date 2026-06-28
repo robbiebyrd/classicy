@@ -158,8 +158,10 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		[minimumSize],
 	);
 
+	// Non-resizable windows can't be user-resized, so persisted size from the
+	// store is useless and can cause collapse if localStorage is stale.
 	const [size, setSize] = useState<[number, number]>(
-		currentWindow?.size ?? resolvedSize,
+		resizable ? (currentWindow?.size ?? resolvedSize) : resolvedSize,
 	);
 	const [clickPosition, setClickPosition] = useState<[number, number]>([0, 0]);
 
