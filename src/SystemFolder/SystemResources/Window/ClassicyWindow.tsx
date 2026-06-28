@@ -206,6 +206,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	]);
 
 	const windowRef = useRef<HTMLDivElement | null>(null);
+	const pendingSizeRef = useRef<[number, number] | null>(null);
 
 	const resolvedPosition = useMemo(
 		() => resolvePosition(initialPosition, resolvedSize),
@@ -348,10 +349,13 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		}
 
 		if (ws.resizing) {
-			setSize([
-				Math.abs(ws.position[0] - e.clientX) + 5,
-				Math.abs(ws.position[1] - e.clientY) + 5,
-			]);
+			const newWidth = Math.abs(ws.position[0] - e.clientX) + 5;
+			const newHeight = Math.abs(ws.position[1] - e.clientY) + 5;
+			pendingSizeRef.current = [newWidth, newHeight];
+			if (windowRef.current) {
+				windowRef.current.style.width = `${newWidth}px`;
+				windowRef.current.style.height = `${newHeight}px`;
+			}
 		}
 
 		if (ws.dragging) {
@@ -377,6 +381,10 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		}
 		setActive();
 		setResize(false);
+		if (pendingSizeRef.current) {
+			setSize(pendingSizeRef.current);
+			pendingSizeRef.current = null;
+		}
 		setDragging(false);
 		const rect = windowRef.current?.getBoundingClientRect();
 		setMoving(false, [
