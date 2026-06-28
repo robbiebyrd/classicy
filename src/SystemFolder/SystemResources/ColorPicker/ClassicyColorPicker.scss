@@ -195,4 +195,11 @@
 
 .classicyColorPickerValueSlider {
   padding-top: var(--window-padding-size);
+
+  .classicySlider::-webkit-slider-runnable-track {
+    background: linear-gradient(to right, var(--classicy-slider-track-from, #000), var(--classicy-slider-track-to, #fff));
+  }
+  .classicySlider::-moz-range-track {
+    background: linear-gradient(to right, var(--classicy-slider-track-from, #000), var(--classicy-slider-track-to, #fff));
+  }
 }
