@@ -26,6 +26,53 @@
   gap: var(--window-padding-size);
 }
 
+// ── Dialog layout ────────────────────────────────────────────────────────────
+
+.classicyColorPickerDialogBody {
+  display: flex;
+  gap: var(--window-padding-size);
+  flex: 1;
+  min-height: 0;
+}
+
+.classicyColorPickerModeList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 90px;
+  flex-shrink: 0;
+  border: var(--window-border-size) solid var(--color-window-border);
+  box-shadow:
+    inset 1px 1px 0 var(--color-system-06),
+    inset -1px -1px 0 var(--color-system-01);
+  background: var(--color-white);
+  overflow-y: auto;
+
+  li {
+    padding: 3px 6px;
+    font-family: var(--ui-font);
+    font-size: var(--ui-font-size);
+    cursor: default;
+    white-space: nowrap;
+
+    &:hover {
+      background: var(--color-select);
+      color: var(--color-white);
+    }
+  }
+}
+
+.classicyColorPickerModeListItemSelected {
+  background: var(--color-select);
+  color: var(--color-white);
+}
+
+.classicyColorPickerActivePanel {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+}
+
 // ── Dialog internals ─────────────────────────────────────────────────────────
 
 .classicyColorPickerPreview {

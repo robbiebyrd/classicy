@@ -1,7 +1,6 @@
 import "./ClassicyColorPicker.scss";
 import { type FC, useEffect, useState } from "react";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
-import { ClassicyTabs } from "@/SystemFolder/SystemResources/Tabs/ClassicyTabs";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 import { intToHex } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyColors";
 import { ClassicyColorPickerCrayon } from "./ClassicyColorPickerCrayon";
@@ -10,6 +9,9 @@ import { ClassicyColorPickerHSV } from "./ClassicyColorPickerHSV";
 import { ClassicyColorPickerHLS } from "./ClassicyColorPickerHLS";
 import { ClassicyColorPickerCMYK } from "./ClassicyColorPickerCMYK";
 import { MAC_OS_8_CRAYONS, type ClassicyCrayon } from "./ClassicyColorPickerCrayons";
+
+type PickerMode = "Crayons" | "RGB" | "HSV" | "HLS" | "CMYK";
+const PICKER_MODES: PickerMode[] = ["Crayons", "RGB", "HSV", "HLS", "CMYK"];
 
 interface ClassicyColorPickerDialogProps {
   id: string;
@@ -29,6 +31,7 @@ export const ClassicyColorPickerDialog: FC<ClassicyColorPickerDialogProps> = ({
   onCancelFunc,
 }) => {
   const [pendingColor, setPendingColor] = useState(initialColor);
+  const [mode, setMode] = useState<PickerMode>("Crayons");
 
   // Reset to initialColor whenever the dialog is freshly opened.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -40,30 +43,15 @@ export const ClassicyColorPickerDialog: FC<ClassicyColorPickerDialogProps> = ({
     onSelectFunc?.(pendingColor);
   };
 
-  const tabs = [
-    {
-      title: "Crayons",
-      children: (
-        <ClassicyColorPickerCrayon color={pendingColor} crayons={crayons} onChangeFunc={setPendingColor} />
-      ),
-    },
-    {
-      title: "RGB",
-      children: <ClassicyColorPickerRGB color={pendingColor} onChangeFunc={setPendingColor} />,
-    },
-    {
-      title: "HSV",
-      children: <ClassicyColorPickerHSV color={pendingColor} onChangeFunc={setPendingColor} />,
-    },
-    {
-      title: "HLS",
-      children: <ClassicyColorPickerHLS color={pendingColor} onChangeFunc={setPendingColor} />,
-    },
-    {
-      title: "CMYK",
-      children: <ClassicyColorPickerCMYK color={pendingColor} onChangeFunc={setPendingColor} />,
-    },
-  ];
+  const activePanel = (() => {
+    switch (mode) {
+      case "Crayons": return <ClassicyColorPickerCrayon color={pendingColor} crayons={crayons} onChangeFunc={setPendingColor} />;
+      case "RGB":     return <ClassicyColorPickerRGB color={pendingColor} onChangeFunc={setPendingColor} />;
+      case "HSV":     return <ClassicyColorPickerHSV color={pendingColor} onChangeFunc={setPendingColor} />;
+      case "HLS":     return <ClassicyColorPickerHLS color={pendingColor} onChangeFunc={setPendingColor} />;
+      case "CMYK":    return <ClassicyColorPickerCMYK color={pendingColor} onChangeFunc={setPendingColor} />;
+    }
+  })();
 
   return (
     <ClassicyWindow
@@ -76,11 +64,28 @@ export const ClassicyColorPickerDialog: FC<ClassicyColorPickerDialogProps> = ({
       collapsable={false}
       resizable={false}
       scrollable={false}
-      initialSize={[480, 380]}
+      initialSize={[520, 400]}
       initialPosition={[200, 100]}
       onCloseFunc={() => onCancelFunc?.()}
     >
-      <ClassicyTabs tabs={tabs} />
+      <div className="classicyColorPickerDialogBody">
+        <ul className="classicyColorPickerModeList" role="listbox" aria-label="Color picker mode">
+          {PICKER_MODES.map((m) => (
+            <li
+              key={m}
+              role="option"
+              aria-selected={m === mode}
+              className={m === mode ? "classicyColorPickerModeListItemSelected" : undefined}
+              onClick={() => setMode(m)}
+            >
+              {m}
+            </li>
+          ))}
+        </ul>
+        <div className="classicyColorPickerActivePanel">
+          {activePanel}
+        </div>
+      </div>
       <div
         className="classicyColorPickerPreview"
         style={{ backgroundColor: intToHex(pendingColor) }}
