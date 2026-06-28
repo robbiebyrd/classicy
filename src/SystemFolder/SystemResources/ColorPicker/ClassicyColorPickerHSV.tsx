@@ -1,4 +1,5 @@
 import type { ChangeEvent, FC } from "react";
+import React from "react";
 import { ClassicySlider } from "@/SystemFolder/SystemResources/Slider/ClassicySlider";
 import { ClassicyColorWheel } from "./ClassicyColorWheel";
 import { intToRgb, rgbToInt, rgbToHsv, hsvToRgb } from "./ClassicyColorPickerUtils";
@@ -36,7 +37,14 @@ export const ClassicyColorPickerHSV: FC<ClassicyColorPickerHSVProps> = ({ color,
   const onSliderChange = (e: ChangeEvent<HTMLInputElement>) => emit(h, s, Number(e.target.value));
 
   const radius = WHEEL_SIZE / 2;
-  const labelRadius = radius + 18;
+  const labelRadius = radius + 20;
+
+  const { r: vDarkR, g: vDarkG, b: vDarkB } = hsvToRgb(h, 100, 0);
+  const { r: vLightR, g: vLightG, b: vLightB } = hsvToRgb(h, 100, 100);
+  const valueSliderStyle = {
+    "--classicy-slider-track-from": `rgb(${vDarkR},${vDarkG},${vDarkB})`,
+    "--classicy-slider-track-to": `rgb(${vLightR},${vLightG},${vLightB})`,
+  } as React.CSSProperties;
 
   return (
     <div className="classicyColorPickerWheelTab">
@@ -74,7 +82,7 @@ export const ClassicyColorPickerHSV: FC<ClassicyColorPickerHSVProps> = ({ color,
                 <input
                   id={`cp-hsv-${field}`}
                   type="number"
-                  min={field === "h" ? 0 : 0}
+                  min={0}
                   max={field === "h" ? 360 : 100}
                   value={val}
                   onChange={onFieldChange(field)}
@@ -87,7 +95,7 @@ export const ClassicyColorPickerHSV: FC<ClassicyColorPickerHSVProps> = ({ color,
       </div>
 
       {/* Value slider */}
-      <div className="classicyColorPickerValueSlider">
+      <div className="classicyColorPickerValueSlider" style={valueSliderStyle}>
         <ClassicySlider
           id="cp-hsv-v-slider"
           labelTitle="Value:"
