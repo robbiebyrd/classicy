@@ -283,7 +283,7 @@ export const Demo = () => {
 				zoomable={false}
 				scrollable={true}
 				collapsable={false}
-				initialSize={[400, 500]}
+				initialSize={["40%", 500]}
 				initialPosition={[300, 50]}
 				modal={true}
 				appMenu={appMenu}
