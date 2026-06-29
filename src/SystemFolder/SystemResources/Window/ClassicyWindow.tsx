@@ -210,6 +210,23 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 
 	const windowRef = useRef<HTMLDivElement | null>(null);
 	const pendingSizeRef = useRef<[number, number] | null>(null);
+	const isDraggingRef = useRef(false);
+	const isResizingRef = useRef(false);
+	const clickPositionRef = useRef<[number, number]>([0, 0]);
+	const wsPositionRef = useRef<[number, number]>([0, 0]);
+	const docMoveHandlerRef = useRef<(e: globalThis.MouseEvent) => void>(() => {});
+	const docUpHandlerRef = useRef<(e: globalThis.MouseEvent) => void>(() => {});
+
+	useEffect(() => {
+		const moveHandler = (e: globalThis.MouseEvent) => docMoveHandlerRef.current(e);
+		const upHandler = (e: globalThis.MouseEvent) => docUpHandlerRef.current(e);
+		document.addEventListener("mousemove", moveHandler);
+		document.addEventListener("mouseup", upHandler);
+		return () => {
+			document.removeEventListener("mousemove", moveHandler);
+			document.removeEventListener("mouseup", upHandler);
+		};
+	}, []);
 
 	const resolvedPosition = useMemo(
 		() => resolvePosition(initialPosition, resolvedSize),
@@ -259,6 +276,10 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		resolvedMinimumSize,
 	]);
 
+	useEffect(() => {
+		wsPositionRef.current = ws.position as [number, number];
+	}, [ws.position]);
+
 	const windowRegistered = useRef(false);
 	useEffect(() => {
 		if (!windowRegistered.current) {
@@ -294,19 +315,64 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		}
 	}, [ws.focused, appMenu, desktopEventDispatch]);
 
+	// Updated every render so the stable document listeners always see fresh state.
+	docMoveHandlerRef.current = (e: globalThis.MouseEvent) => {
+		if (!isDraggingRef.current && !isResizingRef.current) return;
+		// Skip when mouse is still inside the window — the React onMouseMove handler covers that.
+		if (windowRef.current?.contains(e.target as Node)) return;
+
+		if (isResizingRef.current) {
+			const newWidth = Math.abs(wsPositionRef.current[0] - e.clientX) + 5;
+			const newHeight = Math.abs(wsPositionRef.current[1] - e.clientY) + 5;
+			pendingSizeRef.current = [newWidth, newHeight];
+			if (windowRef.current) {
+				windowRef.current.style.width = `${newWidth}px`;
+				windowRef.current.style.height = `${newHeight}px`;
+			}
+		}
+
+		if (isDraggingRef.current) {
+			setMoving(true, [
+				e.clientX - clickPositionRef.current[0],
+				e.clientY - clickPositionRef.current[1],
+			]);
+		}
+	};
+
+	docUpHandlerRef.current = (e: globalThis.MouseEvent) => {
+		if (!isDraggingRef.current && !isResizingRef.current) return;
+		isDraggingRef.current = false;
+		isResizingRef.current = false;
+
+		player({ type: "ClassicySoundPlayInterrupt", sound: "ClassicyWindowMoveStop" });
+		setActive();
+		setResize(false);
+		if (pendingSizeRef.current) {
+			setSize(pendingSizeRef.current);
+			pendingSizeRef.current = null;
+		}
+		setDragging(false);
+		const rect = windowRef.current?.getBoundingClientRect();
+		setMoving(false, [
+			rect?.left ?? wsPositionRef.current[0],
+			rect?.top ?? wsPositionRef.current[1],
+		]);
+	};
+
 	const startResizeWindow = (e: MouseEvent<HTMLDivElement>) => {
 		e.preventDefault();
 		track("resize", { type: "ClassicyWindow", ...analyticsArgs });
+		const left = windowRef?.current?.getBoundingClientRect().left ?? 0;
+		const top = windowRef?.current?.getBoundingClientRect().top ?? 0;
+		wsPositionRef.current = [left, top];
+		isResizingRef.current = true;
 		desktopEventDispatch({
 			type: "ClassicyWindowPosition",
 			app: {
 				id: appId,
 			},
 			window: ws,
-			position: [
-				windowRef?.current?.getBoundingClientRect().left,
-				windowRef?.current?.getBoundingClientRect().top,
-			],
+			position: [left, top],
 		});
 		setResize(true);
 		setZoom(false);
@@ -323,10 +389,11 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			return;
 		}
 		track("move", { type: "ClassicyWindow", ...analyticsArgs });
-		setClickPosition([
-			e.clientX - (windowRef?.current?.getBoundingClientRect().left || 0),
-			e.clientY - (windowRef?.current?.getBoundingClientRect().top || 0),
-		]);
+		const offsetX = e.clientX - (windowRef?.current?.getBoundingClientRect().left || 0);
+		const offsetY = e.clientY - (windowRef?.current?.getBoundingClientRect().top || 0);
+		setClickPosition([offsetX, offsetY]);
+		clickPositionRef.current = [offsetX, offsetY];
+		isDraggingRef.current = true;
 		desktopEventDispatch({
 			type: "ClassicyWindowMove",
 			app: {
@@ -382,6 +449,10 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				sound: "ClassicyWindowMoveStop",
 			});
 		}
+		// Clear refs so the document-level mouseup handler knows this event
+		// was already handled by the element and skips double-processing.
+		isDraggingRef.current = false;
+		isResizingRef.current = false;
 		setActive();
 		setResize(false);
 		if (pendingSizeRef.current) {
