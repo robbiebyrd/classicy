@@ -49,3 +49,4 @@ example/timemachine/cache
 /.husky/post-commit
 /stories/archive
 .history
+.worktrees
