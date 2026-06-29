@@ -15,6 +15,7 @@ import classNames from "classnames";
 import {
 	type CSSProperties,
 	type FC as FunctionalComponent,
+	type KeyboardEvent,
 	type MouseEvent,
 	type ReactNode,
 	startTransition,
@@ -27,6 +28,11 @@ import {
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyDesktopIcon } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIcon";
+import {
+	type ArrowDirection,
+	nearestIconInDirection,
+	typeaheadMatch,
+} from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopKeyNav";
 import { ClassicyDesktopMenuBar } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
@@ -57,6 +63,9 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 
 	const clickOffset = [10, 10];
 	const rafIdRef = useRef<number | null>(null);
+	const desktopRef = useRef<HTMLDivElement>(null);
+	const typePrefixRef = useRef<string>("");
+	const typePrefixTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	const availableThemes = useAppManager(
 		(s) => s.System.Manager.Appearance.availableThemes,
@@ -65,6 +74,9 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 		(s) => s.System.Manager.Appearance.activeTheme,
 	);
 	const desktopIcons = useAppManager((s) => s.System.Manager.Desktop.icons);
+	const selectedIcons = useAppManager(
+		(s) => s.System.Manager.Desktop.selectedIcons ?? [],
+	);
 	const errorDialog = useAppManager(
 		(s) => s.System.Manager.Desktop.errorDialog,
 	);
@@ -124,11 +136,63 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 		};
 	}, []);
 
+	// Cancel any pending typeahead timer on unmount
+	useEffect(() => {
+		return () => {
+			if (typePrefixTimerRef.current !== null) {
+				clearTimeout(typePrefixTimerRef.current);
+			}
+		};
+	}, []);
+
+	const handleKeyDown = useCallback(
+		(e: KeyboardEvent<HTMLDivElement>) => {
+			const target = e.target as HTMLElement;
+			const isOnIcon = target.closest(".classicyDesktopIcon") !== null;
+			const isOnDesktop = target === desktopRef.current;
+			if (!isOnIcon && !isOnDesktop) return;
+
+			const arrowKeys = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
+
+			if (arrowKeys.includes(e.key)) {
+				e.preventDefault();
+				const currentId = selectedIcons[0];
+				if (!currentId) return;
+				const nextId = nearestIconInDirection(
+					desktopIcons,
+					currentId,
+					e.key as ArrowDirection,
+				);
+				if (nextId) {
+					desktopEventDispatch({ type: "ClassicyDesktopIconFocus", iconId: nextId });
+					document.getElementById(`${nextId}.shortcut`)?.focus();
+				}
+			} else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+				e.preventDefault();
+				if (typePrefixTimerRef.current !== null) {
+					clearTimeout(typePrefixTimerRef.current);
+				}
+				typePrefixRef.current += e.key;
+				typePrefixTimerRef.current = setTimeout(() => {
+					typePrefixRef.current = "";
+					typePrefixTimerRef.current = null;
+				}, 800);
+				const matchId = typeaheadMatch(desktopIcons, typePrefixRef.current);
+				if (matchId) {
+					desktopEventDispatch({ type: "ClassicyDesktopIconFocus", iconId: matchId });
+					document.getElementById(`${matchId}.shortcut`)?.focus();
+				}
+			}
+		},
+		[desktopIcons, selectedIcons, desktopEventDispatch],
+	);
+
 	const startSelectBox = (e: MouseEvent<HTMLDivElement>) => {
 		if ("id" in e.target && e.target.id === "classicyDesktop") {
 			if (e.button > 1) {
 				toggleDesktopContextMenu(e);
 			} else {
+				desktopRef.current?.focus();
 				clearActives(e);
 				selectionIconElementsRef.current =
 					document.querySelectorAll<HTMLDivElement>(".classicyDesktopIcon");
@@ -327,12 +391,15 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 		<div
 			role="application"
 			id={"classicyDesktop"}
+			ref={desktopRef}
+			tabIndex={-1}
 			style={currentTheme as CSSProperties}
 			className={classNames("classicyDesktop")}
 			onMouseMove={resizeSelectBox}
 			onContextMenu={toggleDesktopContextMenu}
 			onMouseUp={clearSelectBox}
 			onMouseDown={startSelectBox}
+			onKeyDown={handleKeyDown}
 		>
 			{selectBox && (
 				<div
