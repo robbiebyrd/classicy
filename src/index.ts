@@ -60,6 +60,7 @@ export * from "./SystemFolder/SystemResources/DatePicker/ClassicyDatePickerUtils
 export * from "./SystemFolder/SystemResources/Desktop/ClassicyDesktop";
 export * from "./SystemFolder/SystemResources/Desktop/ClassicyDesktopIcon";
 export * from "./SystemFolder/SystemResources/Desktop/ClassicyDesktopIconContext";
+export * from "./SystemFolder/SystemResources/Desktop/ClassicyDesktopKeyNav";
 export * from "./SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
 export * from "./SystemFolder/SystemResources/Desktop/ClassicyDesktopWindowManagerContext";
 export * from "./SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar";
