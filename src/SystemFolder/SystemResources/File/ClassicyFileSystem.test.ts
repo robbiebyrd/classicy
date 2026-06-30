@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
+import {
+	ClassicyFileSystem,
+	mergeClassicyFileSystemEntries,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { isValidFileSystemEntry } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemValidation";
 
@@ -63,5 +66,48 @@ describe("isValidFileSystemEntry", () => {
 			},
 		};
 		expect(isValidFileSystemEntry(fs)).toBe(true);
+	});
+});
+
+describe("mergeClassicyFileSystemEntries", () => {
+	it("merges a nested entry without touching siblings", () => {
+		const base = {
+			"Macintosh HD": {
+				_type: ClassicyFileSystemEntryFileType.Drive,
+				Documents: {
+					_type: ClassicyFileSystemEntryFileType.Directory,
+					"Read Me.txt": {
+						_type: ClassicyFileSystemEntryFileType.TextFile,
+						_data: "hi",
+					},
+				},
+			},
+		};
+		const merged = mergeClassicyFileSystemEntries(base, {
+			"Macintosh HD": {
+				Documents: {
+					"Welcome.txt": {
+						_type: ClassicyFileSystemEntryFileType.TextFile,
+						_data: "hello",
+					},
+				},
+			},
+		});
+		expect(merged["Macintosh HD"].Documents["Read Me.txt"]._data).toBe("hi");
+		expect(merged["Macintosh HD"].Documents["Welcome.txt"]._data).toBe(
+			"hello",
+		);
+	});
+
+	it("does not mutate the base argument", () => {
+		const base = {
+			"Macintosh HD": { _type: ClassicyFileSystemEntryFileType.Drive },
+		};
+		mergeClassicyFileSystemEntries(base, {
+			"Macintosh HD": { _type: ClassicyFileSystemEntryFileType.Directory },
+		});
+		expect(base["Macintosh HD"]._type).toBe(
+			ClassicyFileSystemEntryFileType.Drive,
+		);
 	});
 });
