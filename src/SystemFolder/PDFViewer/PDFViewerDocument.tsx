@@ -33,13 +33,23 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 	const [doc, setDoc] = useState<PDFDocumentProxy | null>(null);
 	const [currentPage, setCurrentPage] = useState(1);
 	const [scale, setScale] = useState(1.0);
+	// `error` means the document itself failed to load — there's no `doc`,
+	// no `numPages`, and nothing for a toolbar to navigate, so this still
+	// replaces the entire component output below.
 	const [error, setError] = useState(false);
+	// `pageError` means the document loaded fine but the *current* page
+	// failed to render. The toolbar must stay usable here (e.g. to click
+	// Next/Previous away from the bad page), so this only swaps out the
+	// canvas-display area, not the whole component. Kept separate from
+	// `error` so the two failure modes can't clobber each other.
+	const [pageError, setPageError] = useState(false);
 
 	// Load the document whenever the URL changes
 	useEffect(() => {
 		let cancelled = false;
 		setDoc(null);
 		setError(false);
+		setPageError(false);
 		setCurrentPage(1);
 		// `destroy()` lives on the loading task (not the resolved
 		// PDFDocumentProxy), and is safe to call whether the load is still
@@ -67,6 +77,11 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 		if (!doc || !canvasRef.current) return;
 		let cancelled = false;
 		let renderTask: RenderTask | null = null;
+		// Reset any stale per-page error from a previous page/zoom before
+		// attempting this render — e.g. clicking Next away from a page that
+		// failed to render should give the new page a clean slate rather than
+		// inheriting the old error.
+		setPageError(false);
 		doc
 			.getPage(currentPage)
 			.then((page) => {
@@ -88,14 +103,15 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 				// only that case so it never surfaces as an unhandled promise
 				// rejection. Any other rejection reason is a genuine render
 				// failure, so surface it the same way the catch handlers above
-				// do.
+				// do. This is a *page*-render failure (the document already
+				// loaded fine), so it sets `pageError`, not `error`.
 				renderTask.promise.catch((reason: unknown) => {
 					if (reason instanceof RenderingCancelledException) return;
-					if (!cancelled) setError(true);
+					if (!cancelled) setPageError(true);
 				});
 			})
 			.catch(() => {
-				if (!cancelled) setError(true);
+				if (!cancelled) setPageError(true);
 			});
 		return () => {
 			cancelled = true;
@@ -103,6 +119,9 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 		};
 	}, [doc, currentPage, scale]);
 
+	// A document-load failure means there's no `doc`, no `numPages`, and
+	// nothing for a toolbar to navigate — full replacement is the only
+	// sensible option here.
 	if (error) {
 		return <p className="pdfViewerDocumentError">Couldn't load this PDF.</p>;
 	}
@@ -151,7 +170,16 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 				</ClassicyButton>
 			</div>
 			<div className="pdfViewerDocumentCanvasWrapper">
-				<canvas ref={canvasRef} className="pdfViewerDocumentCanvas" />
+				{pageError ? (
+					<p className="pdfViewerDocumentPageError">
+						Couldn't render this page.
+					</p>
+				) : null}
+				<canvas
+					ref={canvasRef}
+					className="pdfViewerDocumentCanvas"
+					hidden={pageError}
+				/>
 			</div>
 		</div>
 	);

@@ -128,7 +128,7 @@ describe("PDFViewerDocument", () => {
 		expect(screen.getByText("Zoom Out")).toBeDisabled();
 	});
 
-	it("shows an error message when the document fails to load", async () => {
+	it("shows an error message (no toolbar) when the document fails to load", async () => {
 		getDocumentMock.mockReturnValueOnce({
 			promise: Promise.reject(new Error("boom")),
 			destroy: vi.fn(),
@@ -137,16 +137,42 @@ describe("PDFViewerDocument", () => {
 		expect(
 			await screen.findByText("Couldn't load this PDF."),
 		).toBeInTheDocument();
+		// There's no `doc`/`numPages` to navigate, so unlike a page-render
+		// error, the toolbar has nothing useful to show here — full
+		// replacement is correct for this case.
+		expect(screen.queryByText("Next")).not.toBeInTheDocument();
+		expect(screen.queryByText("Previous")).not.toBeInTheDocument();
 	});
 
-	it("shows an error message when a specific page fails to load", async () => {
+	it("shows a page error but keeps the toolbar visible and usable when a specific page fails to load", async () => {
 		mockDoc.getPage.mockImplementationOnce(() =>
 			Promise.reject(new Error("page boom")),
 		);
+		const user = userEvent.setup();
 		render(<PDFViewerDocument url="http://example.com/sample.pdf" />);
+
+		// The document loaded fine — only the current page failed — so the
+		// toolbar (and the page counter) must stay present, not be replaced by
+		// a full-component error like a document-load failure would be.
 		expect(
-			await screen.findByText("Couldn't load this PDF."),
+			await screen.findByText("Couldn't render this page."),
 		).toBeInTheDocument();
+		expect(screen.getByText("Page 1 of 3")).toBeInTheDocument();
+		expect(screen.getByText("Previous")).toBeInTheDocument();
+		expect(screen.getByText("Next")).toBeInTheDocument();
+		expect(screen.getByText("Next")).not.toBeDisabled();
+		expect(screen.getByText("Zoom In")).not.toBeDisabled();
+		expect(
+			screen.queryByText("Couldn't load this PDF."),
+		).not.toBeInTheDocument();
+
+		// Clicking Next should be possible from the error state, and should
+		// clear the per-page error once the next page renders successfully.
+		await user.click(screen.getByText("Next"));
+		expect(await screen.findByText("Page 2 of 3")).toBeInTheDocument();
+		expect(
+			screen.queryByText("Couldn't render this page."),
+		).not.toBeInTheDocument();
 	});
 
 	it("destroys the loading task when the component unmounts", async () => {
@@ -230,9 +256,12 @@ describe("PDFViewerDocument", () => {
 		expect(
 			screen.queryByText("Couldn't load this PDF."),
 		).not.toBeInTheDocument();
+		expect(
+			screen.queryByText("Couldn't render this page."),
+		).not.toBeInTheDocument();
 	});
 
-	it("shows an error message when a render task fails for a reason other than cancellation", async () => {
+	it("shows a page error (toolbar still visible) when a render task fails for a reason other than cancellation", async () => {
 		// A genuine pdf.js rendering failure (not a RenderingCancelledException)
 		// must still surface to the user instead of being silently swallowed.
 		// The rejection is held back until after the page has rendered (rather
@@ -254,7 +283,10 @@ describe("PDFViewerDocument", () => {
 		rejectRender(new Error("canvas context lost"));
 
 		expect(
-			await screen.findByText("Couldn't load this PDF."),
+			await screen.findByText("Couldn't render this page."),
 		).toBeInTheDocument();
+		// The document loaded fine, so the toolbar must stay usable.
+		expect(screen.getByText("Page 1 of 3")).toBeInTheDocument();
+		expect(screen.getByText("Next")).not.toBeDisabled();
 	});
 });
