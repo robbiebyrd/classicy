@@ -157,7 +157,38 @@ describe("classicyPDFViewerEventHandler — ClassicyAppPDFViewerCloseFile", () =
 });
 
 describe("classicyDesktopStateEventReducer routes ClassicyAppPDFViewer* events", () => {
-	it("routes ClassicyAppPDFViewerOpenFile via the reducer", () => {
+	// NOTE: This deliberately starts from makeStore() (PDFViewer.app NOT
+	// pre-registered), not makeStoreWithPDFViewer(). The kernel router's
+	// generic catch-all (classicyAppEventHandler's default branch in
+	// ClassicyAppManager.ts) also matches any "ClassicyApp*"-prefixed,
+	// "...OpenFile"-suffixed action shaped like { app: { id }, path } — but
+	// that catch-all only mutates an app that already exists in the store
+	// (`if (app) { ... }`); it never auto-loads a missing app. Only the
+	// dedicated classicyPDFViewerEventHandler (registered via
+	// registerAppEventHandler("ClassicyAppPDFViewer", ...) in
+	// PDFViewerContext.tsx) auto-loads PDFViewer.app via loadApp(...) when
+	// it's missing. So if routing fell through to the generic catch-all
+	// instead of the dedicated reducer, this test would fail: there'd be no
+	// app for the catch-all to mutate, and nothing would happen.
+	it("self-registers PDFViewer.app and routes the open via the dedicated reducer, not the generic catch-all", () => {
+		const ds = makeStore();
+		expect(
+			ds.System.Manager.Applications.apps["PDFViewer.app"],
+		).toBeUndefined();
+
+		const result = classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyAppPDFViewerOpenFile",
+			app: { id: "PDFViewer.app" },
+			path: "Macintosh HD:Documents:Sample.pdf",
+		});
+
+		expect(
+			result.System.Manager.Applications.apps["PDFViewer.app"],
+		).toBeDefined();
+		expect(getOpenFiles(result)).toEqual(["Macintosh HD:Documents:Sample.pdf"]);
+	});
+
+	it("routes ClassicyAppPDFViewerOpenFile via the reducer (pre-registered app smoke test)", () => {
 		const ds = makeStoreWithPDFViewer();
 
 		const result = classicyDesktopStateEventReducer(ds, {
