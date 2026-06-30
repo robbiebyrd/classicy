@@ -72,6 +72,13 @@ export const DefaultFSContent = {
 				_data:
 					"https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf",
 			},
+			"Sample 2.pdf": {
+				_type: ClassicyFileSystemEntryFileType.Pdf,
+				_mimeType: "application/pdf",
+				_icon: documentIcon,
+				_data:
+					"https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+			},
 		},
 		Users: {
 			_type: ClassicyFileSystemEntryFileType.Directory,

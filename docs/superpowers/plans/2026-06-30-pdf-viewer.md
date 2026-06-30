@@ -972,8 +972,9 @@ Open the printed local URL (e.g. `http://localhost:5173`) and verify:
 3. A "PDFViewer" window opens showing page 1 of the seeded PDF rendered on canvas.
 4. Click "Next" — page 2 renders, "Previous" becomes enabled.
 5. Click "Zoom In" a few times — the page visibly grows; click "Zoom Out" past 1.0x — it shrinks; both buttons disable at their bounds.
-6. Double-click `Sample.pdf` again from Finder (or open it a second time) — confirm a second independent window opens (multi-window).
-7. Close one window — confirm the other stays open and its page/zoom state is untouched.
+6. Back in Finder, double-click `Sample 2.pdf` (the second, distinct seeded demo PDF) — confirm an independent second window opens alongside the still-open `Sample.pdf` window (multi-window). Note: double-clicking `Sample.pdf` again is correctly a no-op (`PDFViewerContext`'s reducer dedups `openFiles` by path) — it does **not** open a second window, so multi-window can only be verified with two different files.
+7. In the `Sample 2.pdf` window, navigate to a different page and/or zoom level than the `Sample.pdf` window. Confirm each window's page number and zoom level stay independent of the other (changing one doesn't affect the other).
+8. Close one window — confirm the other stays open and its page/zoom state is untouched.
 
 - [ ] **Step 5: Run the full suite, lint, and typecheck**
 
