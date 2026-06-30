@@ -10,7 +10,9 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
  * Deep-merge `overrides` onto a structural clone of `base`.
  * Plain objects merge recursively; arrays and primitives from `overrides`
  * replace the base value wholesale; `undefined` override values are skipped;
- * `base` is never mutated.
+ * `base` is never mutated. Replacement values (arrays, primitives, or whole
+ * sub-objects) are cloned into the result, so the returned value shares no
+ * object references with either `base` or `overrides`.
  */
 export function deepMergeReplacingArrays<T>(
 	base: T,
@@ -29,7 +31,10 @@ export function deepMergeReplacingArrays<T>(
 				mergeInto(cloned, next);
 				target[key] = cloned;
 			} else {
-				target[key] = next;
+				target[key] =
+					typeof next === "object" && next !== null
+						? structuredClone(next)
+						: next;
 			}
 		}
 	};

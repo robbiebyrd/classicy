@@ -34,4 +34,12 @@ describe("deepMergeReplacingArrays", () => {
 		deepMergeReplacingArrays(base, { a: { x: 99 } });
 		expect(base.a.x).toBe(before);
 	});
+
+	it("does not alias array overrides into the result", () => {
+		const overrideArr = [9];
+		const base = { list: [1, 2, 3] };
+		const merged = deepMergeReplacingArrays(base, { list: overrideArr });
+		merged.list.push(99);
+		expect(overrideArr).toEqual([9]);
+	});
 });
