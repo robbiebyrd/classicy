@@ -1,4 +1,5 @@
 import { render, waitFor } from "@testing-library/react";
+import { useContext } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 /** Minimal valid persisted-state shape that passes the store's schema check. */
@@ -111,5 +112,53 @@ describe("ClassicyAppManagerProvider defaultState", () => {
 		expect(
 			utils.useAppManager.getState().System.Manager.DateAndTime.dateTime,
 		).toBe(before);
+	});
+});
+
+describe("ClassicyAppManagerProvider defaultFileSystem", () => {
+	it("provides mode 'merge' and no override by default", async () => {
+		const ctx = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext"
+		);
+		const fsCtx = await import(
+			"@/SystemFolder/SystemResources/File/ClassicyFileSystemContext"
+		);
+		let captured: { defaultFileSystem?: unknown; mode: string } | undefined;
+		function Capture() {
+			captured = useContext(fsCtx.ClassicyDefaultFileSystemContext);
+			return null;
+		}
+		render(
+			<ctx.ClassicyAppManagerProvider>
+				<Capture />
+			</ctx.ClassicyAppManagerProvider>,
+		);
+		expect(captured?.defaultFileSystem).toBeUndefined();
+		expect(captured?.mode).toBe("merge");
+	});
+
+	it("passes defaultFileSystem and defaultFileSystemMode through context", async () => {
+		const ctx = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext"
+		);
+		const fsCtx = await import(
+			"@/SystemFolder/SystemResources/File/ClassicyFileSystemContext"
+		);
+		const tree = { "My Drive": { _type: "drive" } };
+		let captured: { defaultFileSystem?: unknown; mode: string } | undefined;
+		function Capture() {
+			captured = useContext(fsCtx.ClassicyDefaultFileSystemContext);
+			return null;
+		}
+		render(
+			<ctx.ClassicyAppManagerProvider
+				defaultFileSystem={tree}
+				defaultFileSystemMode="exclusive"
+			>
+				<Capture />
+			</ctx.ClassicyAppManagerProvider>,
+		);
+		expect(captured?.defaultFileSystem).toEqual(tree);
+		expect(captured?.mode).toBe("exclusive");
 	});
 });
