@@ -111,4 +111,9 @@ describe("ClassicyButton", () => {
 		expect(btn.className).not.toMatch(/classicyButtonPadding/);
 		expect(btn).toHaveClass("classicyButtonMarginLg");
 	});
+
+	it("forwards aria-label to the underlying button element", () => {
+		render(<ClassicyButton aria-label="Remove file.png">✕</ClassicyButton>);
+		expect(screen.getByRole("button", { name: "Remove file.png" })).toBeInTheDocument();
+	});
 });
