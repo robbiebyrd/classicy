@@ -85,7 +85,9 @@ describe("mergeClassicyFileSystemEntries", () => {
 		};
 		const merged = mergeClassicyFileSystemEntries(base, {
 			"Macintosh HD": {
+				_type: ClassicyFileSystemEntryFileType.Drive,
 				Documents: {
+					_type: ClassicyFileSystemEntryFileType.Directory,
 					"Welcome.txt": {
 						_type: ClassicyFileSystemEntryFileType.TextFile,
 						_data: "hello",

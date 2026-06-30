@@ -1,6 +1,7 @@
 import { render, waitFor } from "@testing-library/react";
 import { useContext } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 
 /** Minimal valid persisted-state shape that passes the store's schema check. */
 function makeValidStoredState(): Record<string, unknown> {
@@ -124,7 +125,7 @@ describe("ClassicyAppManagerProvider defaultFileSystem", () => {
 			"@/SystemFolder/SystemResources/File/ClassicyFileSystemContext"
 		);
 		let captured: { defaultFileSystem?: unknown; mode: string } | undefined;
-		function Capture() {
+		function Capture(): null {
 			captured = useContext(fsCtx.ClassicyDefaultFileSystemContext);
 			return null;
 		}
@@ -144,9 +145,11 @@ describe("ClassicyAppManagerProvider defaultFileSystem", () => {
 		const fsCtx = await import(
 			"@/SystemFolder/SystemResources/File/ClassicyFileSystemContext"
 		);
-		const tree = { "My Drive": { _type: "drive" } };
+		const tree = {
+			"My Drive": { _type: ClassicyFileSystemEntryFileType.Drive },
+		};
 		let captured: { defaultFileSystem?: unknown; mode: string } | undefined;
-		function Capture() {
+		function Capture(): null {
 			captured = useContext(fsCtx.ClassicyDefaultFileSystemContext);
 			return null;
 		}

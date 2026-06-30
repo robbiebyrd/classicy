@@ -4,12 +4,12 @@ import {
 	mergeClassicyFileSystemEntries,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import { DefaultFSContent } from "@/SystemFolder/SystemResources/File/DefaultClassicyFileSystem";
-import type { ClassicyFileSystemEntry } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import type { ClassicyFileSystemTree } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 
 export type ClassicyDefaultFileSystemMode = "merge" | "exclusive";
 
 type ClassicyDefaultFileSystemContextValue = {
-	defaultFileSystem?: ClassicyFileSystemEntry;
+	defaultFileSystem?: ClassicyFileSystemTree;
 	mode: ClassicyDefaultFileSystemMode;
 };
 

@@ -5,6 +5,7 @@ import {
 	type ClassicyFileSystemEntry,
 	ClassicyFileSystemEntryFileType,
 	type ClassicyFileSystemEntryMetadata,
+	type ClassicyFileSystemTree,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { isValidFileSystemEntry } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemValidation";
 import { DefaultFSContent } from "@/SystemFolder/SystemResources/File/DefaultClassicyFileSystem";
@@ -425,8 +426,8 @@ export class ClassicyFileSystem {
  * useClassicyFileSystem in ClassicyFileSystemContext.tsx.
  */
 export function mergeClassicyFileSystemEntries(
-	base: ClassicyFileSystemEntry,
-	overrides: ClassicyFileSystemEntry,
-): ClassicyFileSystemEntry {
+	base: ClassicyFileSystemTree,
+	overrides: ClassicyFileSystemTree,
+): ClassicyFileSystemTree {
 	return deepMergeReplacingArrays(base, overrides);
 }

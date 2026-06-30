@@ -6,10 +6,13 @@ import {
 	useClassicyFileSystem,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
 import { DefaultFSContent } from "@/SystemFolder/SystemResources/File/DefaultClassicyFileSystem";
-import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import {
+	ClassicyFileSystemEntryFileType,
+	type ClassicyFileSystemTree,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 
 type ContextValue = {
-	defaultFileSystem?: Record<string, unknown>;
+	defaultFileSystem?: ClassicyFileSystemTree;
 	mode: "merge" | "exclusive";
 };
 
@@ -40,7 +43,9 @@ describe("useClassicyFileSystem", () => {
 			wrapper: wrapperFor({
 				defaultFileSystem: {
 					"Macintosh HD": {
+						_type: ClassicyFileSystemEntryFileType.Drive,
 						Documents: {
+							_type: ClassicyFileSystemEntryFileType.Directory,
 							"Welcome.txt": {
 								_type: ClassicyFileSystemEntryFileType.TextFile,
 								_data: "hello",

@@ -24,7 +24,7 @@ import {
 	ClassicyDefaultFileSystemContext,
 	type ClassicyDefaultFileSystemMode,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
-import type { ClassicyFileSystemEntry } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import type { ClassicyFileSystemTree } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 
 type ClassicyAppManagerProviderProps = {
 	gaMeasurementIds?: string[];
@@ -32,7 +32,7 @@ type ClassicyAppManagerProviderProps = {
 	appName?: string;
 	eventPrefix?: string;
 	defaultState?: DeepPartial<ClassicyStore>;
-	defaultFileSystem?: ClassicyFileSystemEntry;
+	defaultFileSystem?: ClassicyFileSystemTree;
 	defaultFileSystemMode?: ClassicyDefaultFileSystemMode;
 };
 

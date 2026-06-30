@@ -63,3 +63,5 @@ export type ClassicyFileSystemEntry = {
 	// biome-ignore lint/suspicious/noExplicitAny: Recursive filesystem structure with dynamic keys requires any
 	[entry: string]: any;
 } & ClassicyFileSystemEntryMetadata;
+
+export type ClassicyFileSystemTree = Record<string, ClassicyFileSystemEntry>;
