@@ -7,32 +7,41 @@
 
 ## Overview
 
-A new `PDFViewer.app` that renders PDF files using `pdfjs-dist`. It registers itself as the file-type handler for a new `Pdf` file type, so double-clicking a `.pdf` file in Finder opens it in PDF Viewer. The app follows the same generic "file-type handler" pattern as `SimpleText` — no changes to Finder or its event-routing reducer are required.
+A new `PDFViewer.app` that renders PDF files using `pdfjs-dist`. It registers itself as the file-type handler for a new `Pdf` file type, so double-clicking a `.pdf` file in Finder opens it in PDF Viewer. The app is structured like `QuickTime/PictureViewer` — an `AppInfo` + types module (`PDFViewerUtils.tsx`), a dedicated state reducer (`PDFViewerContext.tsx`), and an app shell (`PDFViewer.tsx`) — plus a standalone, embeddable rendering component (`PDFViewerDocument.tsx`) with no dependency on Finder, windows, or app state, which PictureViewer does not have (its `<img>` is inlined directly in its app shell).
 
 ## Background
 
-Classicy's Finder already supports generic file-type routing: `ClassicyAppFinderOpenFile` looks up `fileTypeHandlers[file._type]` and dynamically dispatches `ClassicyApp<AppName>OpenFile`. A catch-all reducer in `ClassicyAppManager.ts` (any action type ending in `OpenFile`/`CloseFile`) adds/removes the path from `app.data.openFiles` and opens the app — no per-app reducer needed. `SimpleText` is the existing app built entirely on this path (no custom context file). PDF Viewer reuses this exactly.
+Classicy's Finder already supports generic file-type routing: `ClassicyAppFinderOpenFile` looks up `fileTypeHandlers[file._type]` and dynamically dispatches `ClassicyApp<AppName>OpenFile`. By default, a catch-all branch in `ClassicyAppManager.ts` (any action type ending in `OpenFile`/`CloseFile`) handles this for apps with no app-specific reducer (e.g. `SimpleText`). Apps may instead self-register a dedicated reducer via `registerAppEventHandler(prefix, handler)`; once registered, the kernel router (`classicyDesktopStateEventReducer`) sends every action whose type starts with that prefix to the app's own handler instead of the generic one (see `Finder`'s and `PictureViewer`'s own self-registered handlers). PDF Viewer follows the `PictureViewer` pattern: a self-registered `PDFViewerContext.tsx` reducer explicitly owns `ClassicyAppPDFViewerOpenFile`/`ClassicyAppPDFViewerCloseFile` — Finder's dispatch and the action names are unchanged from the generic path, so **no changes to `Finder.tsx`/`FinderContext.tsx` are required**; only the receiving side changes from implicit (generic catch-all) to explicit (own reducer).
 
 Classicy has no real file-upload/import mechanism yet — all virtual filesystem content is seeded in `DefaultClassicyFileSystem.ts`, with binary/media content referenced by URL (see `Videos/BuckBunny.mov`, `Videos/Monkees.mp3`) rather than embedded. PDF Viewer follows the same convention: seeded demo PDF(s) referenced by URL, fetched directly by `pdfjs-dist`.
+
+Unlike `PictureViewer`'s documents (ad hoc `{url, name, icon}` objects not backed by the virtual filesystem), PDF files live in and are resolved from the virtual filesystem by path (`ClassicyFileSystem.resolve(path)`). `PDFViewerContext.tsx` therefore tracks `openFiles: string[]` (paths), matching what `Finder` already sends (`{app, path}`), rather than mirroring `PictureViewer`'s document-object shape.
 
 ## Files
 
 - `src/SystemFolder/SystemResources/File/ClassicyFileSystemModel.ts` — add `Pdf = "pdf"` to `ClassicyFileSystemEntryFileType`.
 - `src/SystemFolder/SystemResources/File/DefaultClassicyFileSystem.ts` — seed `Documents/Sample.pdf` (see Seed Data below).
+- `src/SystemFolder/PDFViewer/PDFViewerUtils.tsx` — `PDFViewerAppInfo`, `PDFViewerData` type, `isPDFViewerData` type guard, new.
+- `src/SystemFolder/PDFViewer/PDFViewerContext.tsx` — self-registered reducer for `ClassicyAppPDFViewerOpenFile`/`CloseFile`, new.
 - `src/SystemFolder/PDFViewer/PDFViewer.tsx` — app shell (`ClassicyApp` + `ClassicyWindow` per open file), new.
-- `src/SystemFolder/PDFViewer/PDFViewerDocument.tsx` — page-rendering component + toolbar, new.
-- `src/SystemFolder/PDFViewer/PDFViewerUtils.ts` — `PDFViewerAppInfo`, any shared types, new.
+- `src/SystemFolder/PDFViewer/PDFViewerDocument.tsx` — standalone, embeddable page-rendering component + toolbar (no Finder/app-state dependency), new.
 - `src/index.ts` — export the new app.
 - `example/src/app.tsx` — mount `<PDFViewer />` for local dev preview.
 - `package.json` — add `pdfjs-dist` dependency.
 
+## State — `PDFViewerUtils.tsx` / `PDFViewerContext.tsx`
+
+Mirrors `PictureViewerUtils.tsx` / `PictureViewerContext.tsx` exactly in shape, adapted for path-based `openFiles`:
+
+- `PDFViewerUtils.tsx` exports `PDFViewerAppInfo = { id: "PDFViewer.app", name: "PDFViewer", icon: ClassicyIcons.system.files.document }` (no space in `name` — keeps action-type strings like `ClassicyAppPDFViewerOpenFile` clean, matching `SimpleText`'s no-space convention), `PDFViewerData = { openFiles: string[] }`, and `isPDFViewerData`.
+- `PDFViewerContext.tsx` exports `classicyPDFViewerEventHandler`, self-registered via `registerAppEventHandler("ClassicyAppPDFViewer", classicyPDFViewerEventHandler)`. On `ClassicyAppPDFViewerOpenFile` (`{path}`): auto-loads the app if not yet registered (`loadApp`, mirroring `PictureViewer`'s auto-load), appends `path` to `openFiles` if not already present, opens the app. On `ClassicyAppPDFViewerCloseFile` (`{path}`): removes `path` from `openFiles`.
+
 ## App shell — `PDFViewer.tsx`
 
-- `appId: "PDFViewer.app"`, `name: "PDFViewer"` (no space — keeps the dynamically-generated action-type strings, e.g. `ClassicyAppPDFViewerOpenFile`, clean; matches `SimpleText`'s no-space naming convention).
-- `icon: ClassicyIcons.system.files.document` (generic placeholder; a dedicated app icon can be dropped into `assets/img/icons/applications/pdfviewer/app.png` later, same flow as other apps).
-- `handlesFileTypes={[ClassicyFileSystemEntryFileType.Pdf]}`, `handlesOwnFiles={true}`.
-- Reads `appState.data.openFiles` (array of paths, written by the generic `OpenFile`/`CloseFile` reducer). For each path, resolves the entry via `ClassicyFileSystem`, reads `_data` as the PDF URL, and renders a `ClassicyWindow` (multi-window — one per open PDF, same as `SimpleText`/`PictureViewer`).
-- `closeFile(path)` dispatches `ClassicyAppPDFViewerCloseFile` (handled by the same generic reducer).
+- Reads `id`/`name`/`icon` from `PDFViewerAppInfo` (mirrors `PictureViewer.tsx`'s `const { name: appName, id: appId, icon: appIcon } = PictureViewerAppInfo;`).
+- `handlesFileTypes={[ClassicyFileSystemEntryFileType.Pdf]}`, `handlesOwnFiles={true}` — registering `handlesFileTypes` is independent of which reducer ultimately handles the resulting `OpenFile`/`CloseFile` actions, so Finder's routing is unaffected by the switch to a dedicated reducer.
+- Reads `appState.data.openFiles` (array of paths, written by `PDFViewerContext.tsx`). For each path, resolves the entry via `ClassicyFileSystem`, reads `_data` as the PDF URL, and renders a `ClassicyWindow` containing `<PDFViewerDocument url={...} />` (multi-window — one per open PDF, same as `SimpleText`/`PictureViewer`).
+- `closeFile(path)` dispatches `ClassicyAppPDFViewerCloseFile` (now routed to `PDFViewerContext.tsx`'s reducer instead of the generic catch-all).
 - App menu: `File > Quit` only (`quitMenuItemHelper`), matching `SimpleText`'s `baseMenu`.
 
 ## Viewer — `PDFViewerDocument.tsx`
@@ -73,6 +82,7 @@ In `DefaultClassicyFileSystem.ts`, under `Documents`:
 ## Testing
 
 - `pdfjs-dist` is mocked in tests (no real network calls).
-- `PDFViewer`: opening/closing files via `appState.data.openFiles` (mirrors the generic OpenFile/CloseFile contract `SimpleText` already relies on; covered indirectly by existing `ClassicyAppManager`/`ClassicyFinderEventHandler` tests, plus a `PDFViewer`-specific render test).
-- `PDFViewerDocument`: page navigation and zoom button disabled-states at bounds, page-counter text rendering.
-- No new Finder-side tests needed — Finder routing is unchanged and already covered by `ClassicyFinderEventHandler.test.ts`.
+- `PDFViewerContext.tsx`: dedicated reducer tests mirroring `ClassicyPictureViewerEventHandler.test.ts` — opening a file adds it to `openFiles` and opens the app, opening an already-open path is a no-op (dedup), closing removes it, the auto-load-when-unregistered path, and that `classicyDesktopStateEventReducer` correctly routes `ClassicyAppPDFViewer*` actions to this handler (not the generic catch-all).
+- `PDFViewerUtils.tsx`: `isPDFViewerData` type-guard tests, mirroring `PictureViewerData.test.ts`.
+- `PDFViewerDocument`: page navigation and zoom button disabled-states at bounds, page-counter text rendering, loading/error states — tested standalone (no app-state/store dependency, since it's a plain `{url}` component).
+- No new Finder-side tests needed — Finder's dispatch and the action names it sends are unchanged; only the receiving reducer changed. Covered already by `ClassicyFinderEventHandler.test.ts`.
