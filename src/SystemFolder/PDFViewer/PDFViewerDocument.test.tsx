@@ -17,27 +17,51 @@ vi.mock(
 	}),
 );
 
-const { getDocumentMock, mockDoc, mockPage, mockLoadingTaskDestroy } =
-	vi.hoisted(() => {
-		const mockPage = {
-			getViewport: vi.fn(() => ({ width: 100, height: 100 })),
-			render: vi.fn(() => ({ promise: Promise.resolve(), cancel: vi.fn() })),
-		};
-		const mockDoc = {
-			numPages: 3,
-			getPage: vi.fn(() => Promise.resolve(mockPage)),
-		};
-		const mockLoadingTaskDestroy = vi.fn();
-		const getDocumentMock = vi.fn(() => ({
-			promise: Promise.resolve(mockDoc),
-			destroy: mockLoadingTaskDestroy,
-		}));
-		return { getDocumentMock, mockDoc, mockPage, mockLoadingTaskDestroy };
-	});
+const {
+	getDocumentMock,
+	mockDoc,
+	mockPage,
+	mockLoadingTaskDestroy,
+	RenderingCancelledExceptionMock,
+} = vi.hoisted(() => {
+	// Mirrors the real pdf.js RenderingCancelledException (a concrete,
+	// instanceof-checkable class) closely enough for the component's
+	// `reason instanceof RenderingCancelledException` check to work against
+	// this mocked module.
+	class RenderingCancelledExceptionMock extends Error {
+		extraDelay: number;
+		constructor(msg: string, extraDelay = 0) {
+			super(msg);
+			this.name = "RenderingCancelledException";
+			this.extraDelay = extraDelay;
+		}
+	}
+	const mockPage = {
+		getViewport: vi.fn(() => ({ width: 100, height: 100 })),
+		render: vi.fn(() => ({ promise: Promise.resolve(), cancel: vi.fn() })),
+	};
+	const mockDoc = {
+		numPages: 3,
+		getPage: vi.fn(() => Promise.resolve(mockPage)),
+	};
+	const mockLoadingTaskDestroy = vi.fn();
+	const getDocumentMock = vi.fn(() => ({
+		promise: Promise.resolve(mockDoc),
+		destroy: mockLoadingTaskDestroy,
+	}));
+	return {
+		getDocumentMock,
+		mockDoc,
+		mockPage,
+		mockLoadingTaskDestroy,
+		RenderingCancelledExceptionMock,
+	};
+});
 
 vi.mock("pdfjs-dist", () => ({
 	getDocument: getDocumentMock,
 	GlobalWorkerOptions: { workerSrc: "" },
+	RenderingCancelledException: RenderingCancelledExceptionMock,
 }));
 
 vi.mock("pdfjs-dist/build/pdf.worker.min.mjs?url", () => ({
@@ -162,7 +186,7 @@ describe("PDFViewerDocument", () => {
 		expect(cancel).toHaveBeenCalledTimes(1);
 	});
 
-	it("does not leave an unhandled rejection when a cancelled render task's promise rejects", async () => {
+	it("does not leave an unhandled rejection when a cancelled render task's promise rejects, and does not show an error", async () => {
 		// Unlike the never-settling promise above, pdf.js actually rejects
 		// `renderTask.promise` with a RenderingCancelledException once
 		// `cancel()` runs. Wire `cancel` to reject the same promise the
@@ -171,7 +195,9 @@ describe("PDFViewerDocument", () => {
 		// on this test's assertions to coincidentally swallow it.
 		let rejectRender: (reason?: unknown) => void = () => {};
 		const cancel = vi.fn(() => {
-			rejectRender(new Error("RenderingCancelledException"));
+			rejectRender(
+				new RenderingCancelledExceptionMock("Rendering cancelled, page 1"),
+			);
 		});
 		mockPage.render.mockReturnValueOnce({
 			promise: new Promise((_resolve, reject) => {
@@ -201,5 +227,34 @@ describe("PDFViewerDocument", () => {
 		}
 
 		expect(unhandledRejections).toHaveLength(0);
+		expect(
+			screen.queryByText("Couldn't load this PDF."),
+		).not.toBeInTheDocument();
+	});
+
+	it("shows an error message when a render task fails for a reason other than cancellation", async () => {
+		// A genuine pdf.js rendering failure (not a RenderingCancelledException)
+		// must still surface to the user instead of being silently swallowed.
+		// The rejection is held back until after the page has rendered (rather
+		// than constructed pre-rejected) so the component's `.catch` has
+		// already attached by the time it fires, same as the cancellation
+		// test above — otherwise this would itself trip an
+		// unhandled-rejection warning.
+		let rejectRender: (reason?: unknown) => void = () => {};
+		mockPage.render.mockReturnValueOnce({
+			promise: new Promise((_resolve, reject) => {
+				rejectRender = reject;
+			}),
+			cancel: vi.fn(),
+		});
+
+		render(<PDFViewerDocument url="http://example.com/sample.pdf" />);
+		await screen.findByText("Page 1 of 3");
+
+		rejectRender(new Error("canvas context lost"));
+
+		expect(
+			await screen.findByText("Couldn't load this PDF."),
+		).toBeInTheDocument();
 	});
 });

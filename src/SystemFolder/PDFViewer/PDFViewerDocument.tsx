@@ -3,6 +3,7 @@ import {
 	GlobalWorkerOptions,
 	getDocument,
 	type PDFDocumentProxy,
+	RenderingCancelledException,
 	type RenderTask,
 } from "pdfjs-dist";
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
@@ -83,13 +84,15 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 				// `renderTask.promise` rejects with a RenderingCancelledException
 				// whenever cleanup calls `renderTask.cancel()` below (e.g. a fast
 				// Next/Previous or Zoom click while a page is still rendering).
-				// That's expected, routine behavior, not a real error — swallow it
-				// here so it never surfaces as an unhandled promise rejection.
-				// Errors that aren't cancellations are still real render failures,
-				// but pdf.js doesn't distinguish them on this promise, and a
-				// flickered `error` state from a cancellation would be wrong, so
-				// we deliberately don't call setError(true) from this handler.
-				renderTask.promise.catch(() => {});
+				// That's expected, routine behavior, not a real error — swallow
+				// only that case so it never surfaces as an unhandled promise
+				// rejection. Any other rejection reason is a genuine render
+				// failure, so surface it the same way the catch handlers above
+				// do.
+				renderTask.promise.catch((reason: unknown) => {
+					if (reason instanceof RenderingCancelledException) return;
+					if (!cancelled) setError(true);
+				});
 			})
 			.catch(() => {
 				if (!cancelled) setError(true);
