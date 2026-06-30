@@ -4,6 +4,7 @@ import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/
 const diskIcon = ClassicyIcons.system.drives.disk;
 const directoryIcon = ClassicyIcons.system.folders.directory;
 const macIcon = ClassicyIcons.system.mac;
+const documentIcon = ClassicyIcons.system.files.document;
 
 export const DefaultFSContent = {
 	"Macintosh HD": {
@@ -63,6 +64,13 @@ export const DefaultFSContent = {
 				_mimeType: "text/markdown",
 				_data:
 					"# Release Notes\n\n## v0.6\n\n- **New:** File type registration for apps\n- **New:** SimpleText opens text and markdown files\n- *Improved* desktop state persistence\n",
+			},
+			"Sample.pdf": {
+				_type: ClassicyFileSystemEntryFileType.Pdf,
+				_mimeType: "application/pdf",
+				_icon: documentIcon,
+				_data:
+					"https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf",
 			},
 		},
 		Users: {

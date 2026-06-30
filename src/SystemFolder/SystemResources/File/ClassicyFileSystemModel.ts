@@ -8,6 +8,7 @@ export enum ClassicyFileSystemEntryFileType {
 	Directory = "directory",
 	TextFile = "text_file",
 	Markdown = "markdown",
+	Pdf = "pdf",
 }
 
 export type ClassicyFileSystemEntryMetadata = {
