@@ -3,6 +3,7 @@ import {
 	GlobalWorkerOptions,
 	getDocument,
 	type PDFDocumentProxy,
+	type RenderTask,
 } from "pdfjs-dist";
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import {
@@ -39,8 +40,16 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 		setDoc(null);
 		setError(false);
 		setCurrentPage(1);
-		getDocument({ url })
-			.promise.then((loadedDoc) => {
+		// `destroy()` lives on the loading task (not the resolved
+		// PDFDocumentProxy), and is safe to call whether the load is still
+		// in flight or has already settled — it aborts network requests and
+		// tears down the worker/transport either way. Keeping the task in a
+		// closure variable (rather than relying on `doc` state, which lags
+		// one render behind) means cleanup always tears down the instance
+		// that *this* effect run created, exactly once.
+		const loadingTask = getDocument({ url });
+		loadingTask.promise
+			.then((loadedDoc) => {
 				if (!cancelled) setDoc(loadedDoc);
 			})
 			.catch(() => {
@@ -48,6 +57,7 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 			});
 		return () => {
 			cancelled = true;
+			loadingTask.destroy();
 		};
 	}, [url]);
 
@@ -55,21 +65,28 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 	useEffect(() => {
 		if (!doc || !canvasRef.current) return;
 		let cancelled = false;
-		doc.getPage(currentPage).then((page) => {
-			if (cancelled || !canvasRef.current) return;
-			const viewport = page.getViewport({ scale });
-			const context = canvasRef.current.getContext("2d");
-			if (!context) return;
-			canvasRef.current.width = viewport.width;
-			canvasRef.current.height = viewport.height;
-			page.render({
-				canvas: canvasRef.current,
-				canvasContext: context,
-				viewport,
+		let renderTask: RenderTask | null = null;
+		doc
+			.getPage(currentPage)
+			.then((page) => {
+				if (cancelled || !canvasRef.current) return;
+				const viewport = page.getViewport({ scale });
+				const context = canvasRef.current.getContext("2d");
+				if (!context) return;
+				canvasRef.current.width = viewport.width;
+				canvasRef.current.height = viewport.height;
+				renderTask = page.render({
+					canvas: canvasRef.current,
+					canvasContext: context,
+					viewport,
+				});
+			})
+			.catch(() => {
+				if (!cancelled) setError(true);
 			});
-		});
 		return () => {
 			cancelled = true;
+			renderTask?.cancel();
 		};
 	}, [doc, currentPage, scale]);
 

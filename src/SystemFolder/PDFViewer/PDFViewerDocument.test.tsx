@@ -17,20 +17,23 @@ vi.mock(
 	}),
 );
 
-const { getDocumentMock, mockDoc } = vi.hoisted(() => {
-	const mockPage = {
-		getViewport: vi.fn(() => ({ width: 100, height: 100 })),
-		render: vi.fn(() => ({ promise: Promise.resolve() })),
-	};
-	const mockDoc = {
-		numPages: 3,
-		getPage: vi.fn(() => Promise.resolve(mockPage)),
-	};
-	const getDocumentMock = vi.fn(() => ({
-		promise: Promise.resolve(mockDoc),
-	}));
-	return { getDocumentMock, mockDoc, mockPage };
-});
+const { getDocumentMock, mockDoc, mockPage, mockLoadingTaskDestroy } =
+	vi.hoisted(() => {
+		const mockPage = {
+			getViewport: vi.fn(() => ({ width: 100, height: 100 })),
+			render: vi.fn(() => ({ promise: Promise.resolve(), cancel: vi.fn() })),
+		};
+		const mockDoc = {
+			numPages: 3,
+			getPage: vi.fn(() => Promise.resolve(mockPage)),
+		};
+		const mockLoadingTaskDestroy = vi.fn();
+		const getDocumentMock = vi.fn(() => ({
+			promise: Promise.resolve(mockDoc),
+			destroy: mockLoadingTaskDestroy,
+		}));
+		return { getDocumentMock, mockDoc, mockPage, mockLoadingTaskDestroy };
+	});
 
 vi.mock("pdfjs-dist", () => ({
 	getDocument: getDocumentMock,
@@ -49,6 +52,8 @@ beforeEach(() => {
 	) as unknown as typeof HTMLCanvasElement.prototype.getContext;
 	getDocumentMock.mockClear();
 	mockDoc.getPage.mockClear();
+	mockLoadingTaskDestroy.mockClear();
+	mockPage.render.mockClear();
 });
 
 describe("PDFViewerDocument", () => {
@@ -102,10 +107,58 @@ describe("PDFViewerDocument", () => {
 	it("shows an error message when the document fails to load", async () => {
 		getDocumentMock.mockReturnValueOnce({
 			promise: Promise.reject(new Error("boom")),
+			destroy: vi.fn(),
 		});
 		render(<PDFViewerDocument url="http://example.com/broken.pdf" />);
 		expect(
 			await screen.findByText("Couldn't load this PDF."),
 		).toBeInTheDocument();
+	});
+
+	it("shows an error message when a specific page fails to load", async () => {
+		mockDoc.getPage.mockImplementationOnce(() =>
+			Promise.reject(new Error("page boom")),
+		);
+		render(<PDFViewerDocument url="http://example.com/sample.pdf" />);
+		expect(
+			await screen.findByText("Couldn't load this PDF."),
+		).toBeInTheDocument();
+	});
+
+	it("destroys the loading task when the component unmounts", async () => {
+		const { unmount } = render(
+			<PDFViewerDocument url="http://example.com/sample.pdf" />,
+		);
+		await screen.findByText("Page 1 of 3");
+		expect(mockLoadingTaskDestroy).not.toHaveBeenCalled();
+		unmount();
+		expect(mockLoadingTaskDestroy).toHaveBeenCalledTimes(1);
+	});
+
+	it("destroys the previous loading task when the url changes", async () => {
+		const { rerender } = render(
+			<PDFViewerDocument url="http://example.com/sample.pdf" />,
+		);
+		await screen.findByText("Page 1 of 3");
+		expect(mockLoadingTaskDestroy).not.toHaveBeenCalled();
+		rerender(<PDFViewerDocument url="http://example.com/other.pdf" />);
+		expect(mockLoadingTaskDestroy).toHaveBeenCalledTimes(1);
+		await screen.findByText("Page 1 of 3");
+	});
+
+	it("cancels the in-flight render task when the page changes again before it settles", async () => {
+		const cancel = vi.fn();
+		// Render never resolves/rejects for this test; we only care that the
+		// task returned by page.render() gets cancelled by the next effect run.
+		mockPage.render.mockReturnValueOnce({
+			promise: new Promise(() => {}),
+			cancel,
+		});
+		const user = userEvent.setup();
+		render(<PDFViewerDocument url="http://example.com/sample.pdf" />);
+		await screen.findByText("Page 1 of 3");
+		await user.click(screen.getByText("Next"));
+		await screen.findByText("Page 2 of 3");
+		expect(cancel).toHaveBeenCalledTimes(1);
 	});
 });
