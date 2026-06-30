@@ -5,13 +5,14 @@ import "classicy/dist/classicy.css";
 import {
 	ClassicyAppManagerProvider,
 	ClassicyDesktop,
-	SimpleText,
+	PDFViewer,
 	registerClassicyIcons,
+	SimpleText,
 } from "classicy";
 import { BlueBox } from "./Applications/BlueBox/BlueBox";
+import infiniteMacIcon from "./Applications/BlueBox/infinite-mac.png";
 import { Browser } from "./Applications/Browser/Browser";
 import { Demo } from "./Applications/Demo/Demo";
-import infiniteMacIcon from "./Applications/BlueBox/infinite-mac.png";
 
 // Register custom application icons before the React tree renders.
 export const AppIcons = registerClassicyIcons({
@@ -30,6 +31,7 @@ createRoot(rootElement).render(
 				<BlueBox />
 				<Demo />
 				<SimpleText />
+				<PDFViewer />
 			</ClassicyDesktop>
 		</ClassicyAppManagerProvider>
 	</StrictMode>,
