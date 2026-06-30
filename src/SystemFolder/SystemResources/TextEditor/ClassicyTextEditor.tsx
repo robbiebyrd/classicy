@@ -1,6 +1,6 @@
 import "./ClassicyTextEditor.scss";
 import classNames from "classnames";
-import { type ChangeEventHandler, type FC as FunctionalComponent, useEffect, useState } from "react";
+import { type ChangeEvent, type ChangeEventHandler, type FC as FunctionalComponent, useCallback, useEffect, useState } from "react";
 import {
 	ClassicyControlLabel,
 	type ClassicyControlLabelSize,
@@ -52,6 +52,14 @@ export const ClassicyTextEditor: FunctionalComponent<EditorProps> = ({
 		setValue(prefillValue ?? content ?? "");
 	}, [prefillValue, content]);
 
+	const handleChange = useCallback(
+		(e: ChangeEvent<HTMLTextAreaElement>) => {
+			setValue(e.target.value);
+			onChangeFunc?.(e);
+		},
+		[onChangeFunc],
+	);
+
 	return (
 		<div
 			className={classNames(
@@ -77,10 +85,7 @@ export const ClassicyTextEditor: FunctionalComponent<EditorProps> = ({
 					border && "classicyTextEditorBorder",
 				)}
 				value={value}
-				onChange={(e) => {
-					setValue(e.target.value);
-					onChangeFunc?.(e);
-				}}
+				onChange={handleChange}
 			/>
 		</div>
 	);
