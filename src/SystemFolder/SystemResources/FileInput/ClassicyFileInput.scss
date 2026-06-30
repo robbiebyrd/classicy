@@ -1,0 +1,49 @@
+/* src/SystemFolder/SystemResources/FileInput/ClassicyFileInput.scss */
+@use '../../ControlPanels/AppearanceManager/styles/appearance';
+
+.classicyFileInputHolder {
+  display: flex;
+  width: 100%;
+}
+
+.classicyFileInputBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--window-padding-size);
+  width: 100%;
+}
+
+/* Visually hidden but stays in accessibility tree for label association */
+.classicyFileInputNative {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.classicyFileInputError {
+  font-family: var(--ui-font), sans-serif;
+  font-size: var(--ui-font-size);
+  color: #c00;
+}
+
+.classicyFileInputList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--window-padding-size) / 2);
+}
+
+.classicyFileInputItem {
+  display: flex;
+  align-items: center;
+  gap: var(--window-padding-size);
+  font-family: var(--ui-font), sans-serif;
+  font-size: var(--ui-font-size);
+}
