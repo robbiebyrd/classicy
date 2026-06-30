@@ -276,6 +276,45 @@ Arrays in `defaultState` replace their default counterparts wholesale (they are
 not concatenated). To force a value on every load regardless of saved state,
 clear `localStorage["classicyDesktopState"]` or dispatch the change at runtime.
 
+### Seeding the default filesystem
+
+`ClassicyAppManagerProvider` accepts optional `defaultFileSystem` and
+`defaultFileSystemMode` props to seed the virtual filesystem used by Finder
+and other file-aware apps **on first load only** (when no saved filesystem
+exists in `localStorage["classicyStorage"]`). Returning visitors keep their
+persisted filesystem.
+
+```tsx
+<ClassicyAppManagerProvider
+  defaultFileSystem={{
+    "Macintosh HD": {
+      _type: "drive",
+      _icon: ClassicyIcons.system.drives.disk,
+      Documents: {
+        _type: "directory",
+        _icon: ClassicyIcons.system.folders.directory,
+        "My Document.txt": {
+          _type: "text_file",
+          _mimeType: "text/plain",
+          _data: "Hello, Classicy!",
+        },
+      },
+    },
+  }}
+  defaultFileSystemMode="merge"
+>
+  {/* ... */}
+</ClassicyAppManagerProvider>
+```
+
+`defaultFileSystemMode` controls how the filesystem is constructed:
+- `"merge"` (default) deep-merges your tree onto the library's `DefaultFSContent`
+- `"exclusive"` uses your tree as the entire filesystem, ignoring `DefaultFSContent`
+
+Like `defaultState`, filesystem trees are seed-only. To force a filesystem
+value on every load regardless of saved state, clear `localStorage["classicyStorage"]`
+or rebuild the filesystem at runtime.
+
 ### Events
 
 * `ClassicyDesktop`

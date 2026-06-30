@@ -20,6 +20,11 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicySoundManagerProvider } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerProvider";
 import { ClassicyAnalyticsPrefixContext } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
+import {
+	ClassicyDefaultFileSystemContext,
+	type ClassicyDefaultFileSystemMode,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
+import type { ClassicyFileSystemTree } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 
 type ClassicyAppManagerProviderProps = {
 	gaMeasurementIds?: string[];
@@ -27,6 +32,8 @@ type ClassicyAppManagerProviderProps = {
 	appName?: string;
 	eventPrefix?: string;
 	defaultState?: DeepPartial<ClassicyStore>;
+	defaultFileSystem?: ClassicyFileSystemTree;
+	defaultFileSystemMode?: ClassicyDefaultFileSystemMode;
 };
 
 const getOrCreateUserId = (storageKey: string): string => {
@@ -51,6 +58,8 @@ export const ClassicyAppManagerProvider: FunctionalComponent<
 	appName = "classicy",
 	eventPrefix = "classicy_",
 	defaultState,
+	defaultFileSystem,
+	defaultFileSystemMode,
 }) => {
 	const seeded = useRef(false);
 	useEffect(() => {
@@ -60,6 +69,14 @@ export const ClassicyAppManagerProvider: FunctionalComponent<
 			mergeClassicyState(s as ClassicyStore, defaultState),
 		);
 	}, [defaultState]);
+
+	const fsContextValue = useMemo(
+		() => ({
+			defaultFileSystem,
+			mode: defaultFileSystemMode ?? ("merge" as const),
+		}),
+		[defaultFileSystem, defaultFileSystemMode],
+	);
 
 	const analytics = useMemo(() => {
 		const plugins: AnalyticsPlugin[] = [];
@@ -82,9 +99,11 @@ export const ClassicyAppManagerProvider: FunctionalComponent<
 
 	return (
 		<ClassicyAnalyticsPrefixContext.Provider value={eventPrefix}>
-			<AnalyticsProvider instance={analytics}>
-				<ClassicySoundManagerProvider>{children}</ClassicySoundManagerProvider>
-			</AnalyticsProvider>
+			<ClassicyDefaultFileSystemContext.Provider value={fsContextValue}>
+				<AnalyticsProvider instance={analytics}>
+					<ClassicySoundManagerProvider>{children}</ClassicySoundManagerProvider>
+				</AnalyticsProvider>
+			</ClassicyDefaultFileSystemContext.Provider>
 		</ClassicyAnalyticsPrefixContext.Provider>
 	);
 };

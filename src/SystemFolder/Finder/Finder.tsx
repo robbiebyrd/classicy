@@ -20,7 +20,8 @@ import { FinderAboutThisComputer } from "@/SystemFolder/Finder/FinderAboutThisCo
 import { ClassicyAboutWindow } from "@/SystemFolder/SystemResources/AboutWindow/ClassicyAboutWindow";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import { ClassicyFileBrowser } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowser";
-import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
+import { useClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
+import type { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import type {
 	ClassicyFileSystemEntry,
 	ClassicyFileSystemEntryMetadata,
@@ -180,7 +181,7 @@ export const Finder = () => {
 	>({});
 	const [showAbout, setShowAbout] = useState(false);
 
-	const fs = useMemo(() => new ClassicyFileSystem(), []);
+	const fs = useClassicyFileSystem();
 
 	const prevOpenPathsRef = useRef<string[] | null>(null);
 	useEffect(() => {

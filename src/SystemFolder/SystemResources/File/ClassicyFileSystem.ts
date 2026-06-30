@@ -5,9 +5,11 @@ import {
 	type ClassicyFileSystemEntry,
 	ClassicyFileSystemEntryFileType,
 	type ClassicyFileSystemEntryMetadata,
+	type ClassicyFileSystemTree,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { isValidFileSystemEntry } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemValidation";
 import { DefaultFSContent } from "@/SystemFolder/SystemResources/File/DefaultClassicyFileSystem";
+import { deepMergeReplacingArrays } from "@/SystemFolder/SystemResources/Utils/deepMerge";
 
 const directoryIcon = ClassicyIcons.system.folders.directory;
 
@@ -416,4 +418,16 @@ export class ClassicyFileSystem {
 
 		return fileSystem;
 	}
+}
+
+/**
+ * Deep-merge `overrides` onto a structural clone of `base`. Used to resolve
+ * the effective default filesystem tree in "merge" mode — see
+ * useClassicyFileSystem in ClassicyFileSystemContext.tsx.
+ */
+export function mergeClassicyFileSystemEntries(
+	base: ClassicyFileSystemTree,
+	overrides: ClassicyFileSystemTree,
+): ClassicyFileSystemTree {
+	return deepMergeReplacingArrays(base, overrides);
 }
