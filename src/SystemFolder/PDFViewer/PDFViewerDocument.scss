@@ -1,0 +1,30 @@
+.pdfViewerDocument {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+}
+
+.pdfViewerDocumentToolbar {
+	display: flex;
+	align-items: center;
+	gap: var(--window-padding-size);
+	padding: var(--window-padding-size);
+	background-color: var(--color-system-02);
+	border-bottom: var(--window-border-size) solid var(--color-system-04);
+}
+
+.pdfViewerDocumentCanvasWrapper {
+	flex: 1;
+	overflow: auto;
+	display: flex;
+	justify-content: center;
+	padding: var(--window-padding-size);
+	background-color: var(--color-system-01);
+}
+
+.pdfViewerDocumentLoading,
+.pdfViewerDocumentError {
+	padding: var(--window-padding-size);
+	text-align: center;
+	font-family: var(--ui-font), sans-serif;
+}
