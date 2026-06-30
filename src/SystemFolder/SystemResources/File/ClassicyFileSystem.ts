@@ -135,6 +135,7 @@ export class ClassicyFileSystem {
 			ClassicyFileSystemEntryFileType.Directory,
 			ClassicyFileSystemEntryFileType.TextFile,
 			ClassicyFileSystemEntryFileType.Markdown,
+			ClassicyFileSystemEntryFileType.Pdf,
 		],
 		showInvisible: boolean = true,
 	): ClassicyFileSystemEntry {

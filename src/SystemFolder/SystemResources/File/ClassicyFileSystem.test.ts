@@ -15,6 +15,33 @@ describe("ClassicyFileSystem.hash", () => {
 	});
 });
 
+describe("ClassicyFileSystem.filterByType", () => {
+	it("includes File, Directory, TextFile, Markdown, and Pdf entries by default (no byType argument)", () => {
+		const cfs = new ClassicyFileSystem("test-filter-by-type-default", {
+			_type: "directory",
+			"Macintosh HD": {
+				_type: "drive",
+				Documents: {
+					_type: "directory",
+					"Read Me.txt": { _type: ClassicyFileSystemEntryFileType.TextFile },
+					"Release Notes.md": {
+						_type: ClassicyFileSystemEntryFileType.Markdown,
+					},
+					"Sample.pdf": { _type: ClassicyFileSystemEntryFileType.Pdf },
+				},
+			},
+		});
+
+		const filtered = cfs.filterByType("Macintosh HD:Documents");
+
+		expect(Object.keys(filtered)).toEqual([
+			"Read Me.txt",
+			"Release Notes.md",
+			"Sample.pdf",
+		]);
+	});
+});
+
 describe("isValidFileSystemEntry", () => {
 	it("accepts a valid FS entry with _type", () => {
 		expect(
