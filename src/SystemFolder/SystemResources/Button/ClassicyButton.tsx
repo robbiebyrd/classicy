@@ -1,6 +1,7 @@
 import "./ClassicyButton.scss";
 import classNames from "classnames";
 import type {
+	ButtonHTMLAttributes,
 	FC as FunctionalComponent,
 	MouseEvent,
 	MouseEventHandler,
@@ -22,7 +23,7 @@ type ClassicyButtonProps = PropsWithChildren<{
 	padding?: "sm" | "md" | "lg" | "xl";
 	/** Outer spacing variant; scales off --window-padding-size. */
 	margin?: "sm" | "md" | "lg" | "xl";
-}>;
+}> & Omit<ButtonHTMLAttributes<HTMLButtonElement>, "onClick" | "type" | "disabled" | "onMouseDown" | "onMouseUp">;
 
 const paddingVariantClass = {
 	sm: "classicyButtonPaddingSm",
@@ -49,6 +50,7 @@ export const ClassicyButton: FunctionalComponent<ClassicyButtonProps> = ({
 	margin = "md",
 	onClickFunc,
 	children,
+	...rest
 }) => {
 	const player = useSoundDispatch();
 
@@ -64,6 +66,7 @@ export const ClassicyButton: FunctionalComponent<ClassicyButtonProps> = ({
 
 	return (
 		<button
+			{...rest}
 			type={buttonType}
 			tabIndex={0}
 			role={buttonType}
