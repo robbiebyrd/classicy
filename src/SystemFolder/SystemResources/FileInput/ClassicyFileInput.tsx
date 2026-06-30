@@ -3,7 +3,6 @@ import "./ClassicyFileInput.scss";
 import classNames from "classnames";
 import {
     type ChangeEvent,
-    type FC as FunctionalComponent,
     forwardRef,
     useCallback,
     useImperativeHandle,
@@ -36,7 +35,7 @@ interface ClassicyFileInputProps {
     onChangeFunc?: (files: File[]) => void;
 }
 
-export const ClassicyFileInput: FunctionalComponent<ClassicyFileInputProps> = forwardRef<
+export const ClassicyFileInput = forwardRef<
     ClassicyFileInputHandle,
     ClassicyFileInputProps
 >(function ClassicyFileInput(
@@ -55,14 +54,16 @@ export const ClassicyFileInput: FunctionalComponent<ClassicyFileInputProps> = fo
     },
     ref,
 ) {
-    const [files, setFiles] = useState<File[]>([]);
+    type FileEntry = { id: string; file: File };
+    const entryCounter = useRef(0);
+    const [entries, setEntries] = useState<FileEntry[]>([]);
     const [error, setError] = useState<string | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
     const tryAdd = useCallback(
-        (currentFiles: File[], incoming: File[]): File[] | null => {
-            const combined = [...currentFiles, ...incoming];
-            if (maxFiles !== undefined && combined.length > maxFiles) {
+        (currentEntries: FileEntry[], incoming: File[]): FileEntry[] | null => {
+            const combined = currentEntries.length + incoming.length;
+            if (maxFiles !== undefined && combined > maxFiles) {
                 setError(`Max ${maxFiles} files allowed.`);
                 return null;
             }
@@ -75,7 +76,11 @@ export const ClassicyFileInput: FunctionalComponent<ClassicyFileInputProps> = fo
                     return null;
                 }
             }
-            return combined;
+            const newEntries = incoming.map((f) => ({
+                id: `${f.name}:${f.size}:${f.lastModified}:${++entryCounter.current}`,
+                file: f,
+            }));
+            return [...currentEntries, ...newEntries];
         },
         [maxFiles, maxFileSizeMb],
     );
@@ -83,12 +88,12 @@ export const ClassicyFileInput: FunctionalComponent<ClassicyFileInputProps> = fo
     const addFiles = useCallback(
         (incoming: File[]) => {
             setError(null);
-            const next = tryAdd(files, incoming);
+            const next = tryAdd(entries, incoming);
             if (next === null) return;
-            setFiles(next);
-            onChangeFunc?.(next);
+            setEntries(next);
+            onChangeFunc?.(next.map((e) => e.file));
         },
-        [files, tryAdd, onChangeFunc],
+        [entries, tryAdd, onChangeFunc],
     );
 
     useImperativeHandle(ref, () => ({ addFiles }), [addFiles]);
@@ -103,12 +108,13 @@ export const ClassicyFileInput: FunctionalComponent<ClassicyFileInputProps> = fo
     );
 
     const handleRemove = useCallback(
-        (name: string) => {
-            const updated = files.filter((f) => f.name !== name);
-            setFiles(updated);
-            onChangeFunc?.(updated);
+        (id: string) => {
+            setError(null);
+            const updated = entries.filter((e) => e.id !== id);
+            setEntries(updated);
+            onChangeFunc?.(updated.map((e) => e.file));
         },
-        [files, onChangeFunc],
+        [entries, onChangeFunc],
     );
 
     return (
@@ -144,18 +150,18 @@ export const ClassicyFileInput: FunctionalComponent<ClassicyFileInputProps> = fo
                     {multiple ? "Choose Files…" : "Choose File…"}
                 </ClassicyButton>
                 {error && (
-                    <span className="classicyFileInputError">{error}</span>
+                    <span role="alert" className="classicyFileInputError">{error}</span>
                 )}
-                {files.length > 0 && (
+                {entries.length > 0 && (
                     <ul className="classicyFileInputList">
-                        {files.map((f) => (
-                            <li key={f.name} className="classicyFileInputItem">
-                                <span>{f.name}</span>
+                        {entries.map((entry) => (
+                            <li key={entry.id} className="classicyFileInputItem">
+                                <span>{entry.file.name}</span>
                                 <ClassicyButton
                                     buttonSize="small"
                                     disabled={disabled}
-                                    onClickFunc={() => handleRemove(f.name)}
-                                    aria-label={`Remove ${f.name}`}
+                                    onClickFunc={() => handleRemove(entry.id)}
+                                    aria-label={`Remove ${entry.file.name}`}
                                 >
                                     ✕
                                 </ClassicyButton>
