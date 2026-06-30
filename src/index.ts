@@ -75,6 +75,7 @@ export * from "./SystemFolder/SystemResources/File/ClassicyFileSystem";
 export * from "./SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 export * from "./SystemFolder/SystemResources/File/ClassicyFileSystemValidation";
 export * from "./SystemFolder/SystemResources/File/DefaultClassicyFileSystem";
+export * from "./SystemFolder/SystemResources/FileInput/ClassicyFileInput";
 export * from "./SystemFolder/SystemResources/Icon/ClassicyIcon";
 export * from "./SystemFolder/SystemResources/Input/ClassicyInput";
 export * from "./SystemFolder/SystemResources/Menu/ClassicyMenu";
