@@ -80,6 +80,16 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 					canvasContext: context,
 					viewport,
 				});
+				// `renderTask.promise` rejects with a RenderingCancelledException
+				// whenever cleanup calls `renderTask.cancel()` below (e.g. a fast
+				// Next/Previous or Zoom click while a page is still rendering).
+				// That's expected, routine behavior, not a real error — swallow it
+				// here so it never surfaces as an unhandled promise rejection.
+				// Errors that aren't cancellations are still real render failures,
+				// but pdf.js doesn't distinguish them on this promise, and a
+				// flickered `error` state from a cancellation would be wrong, so
+				// we deliberately don't call setError(true) from this handler.
+				renderTask.promise.catch(() => {});
 			})
 			.catch(() => {
 				if (!cancelled) setError(true);

@@ -161,4 +161,45 @@ describe("PDFViewerDocument", () => {
 		await screen.findByText("Page 2 of 3");
 		expect(cancel).toHaveBeenCalledTimes(1);
 	});
+
+	it("does not leave an unhandled rejection when a cancelled render task's promise rejects", async () => {
+		// Unlike the never-settling promise above, pdf.js actually rejects
+		// `renderTask.promise` with a RenderingCancelledException once
+		// `cancel()` runs. Wire `cancel` to reject the same promise the
+		// component captured, then watch for a real Node unhandledRejection
+		// to prove the component attaches its own handler rather than relying
+		// on this test's assertions to coincidentally swallow it.
+		let rejectRender: (reason?: unknown) => void = () => {};
+		const cancel = vi.fn(() => {
+			rejectRender(new Error("RenderingCancelledException"));
+		});
+		mockPage.render.mockReturnValueOnce({
+			promise: new Promise((_resolve, reject) => {
+				rejectRender = reject;
+			}),
+			cancel,
+		});
+
+		const unhandledRejections: unknown[] = [];
+		const onUnhandledRejection = (reason: unknown) => {
+			unhandledRejections.push(reason);
+		};
+		process.on("unhandledRejection", onUnhandledRejection);
+
+		try {
+			const user = userEvent.setup();
+			render(<PDFViewerDocument url="http://example.com/sample.pdf" />);
+			await screen.findByText("Page 1 of 3");
+			await user.click(screen.getByText("Next"));
+			await screen.findByText("Page 2 of 3");
+			expect(cancel).toHaveBeenCalledTimes(1);
+			// Let the microtask queue flush the rejection (and any
+			// unhandledRejection event Node would emit for it).
+			await new Promise((resolve) => setTimeout(resolve, 0));
+		} finally {
+			process.removeListener("unhandledRejection", onUnhandledRejection);
+		}
+
+		expect(unhandledRejections).toHaveLength(0);
+	});
 });
