@@ -77,7 +77,7 @@ export const DefaultFSContent = {
 				_mimeType: "application/pdf",
 				_icon: documentIcon,
 				_data:
-					"https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+					"https://raw.githubusercontent.com/mozilla/pdf.js/master/test/pdfs/hello_world_rotated.pdf",
 			},
 		},
 		Users: {
