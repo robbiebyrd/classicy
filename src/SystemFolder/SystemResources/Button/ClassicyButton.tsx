@@ -23,7 +23,7 @@ type ClassicyButtonProps = PropsWithChildren<{
 	padding?: "sm" | "md" | "lg" | "xl";
 	/** Outer spacing variant; scales off --window-padding-size. */
 	margin?: "sm" | "md" | "lg" | "xl";
-}> & Omit<ButtonHTMLAttributes<HTMLButtonElement>, "onClick" | "type" | "disabled">;
+}> & Omit<ButtonHTMLAttributes<HTMLButtonElement>, "onClick" | "type" | "disabled" | "onMouseDown" | "onMouseUp">;
 
 const paddingVariantClass = {
 	sm: "classicyButtonPaddingSm",
