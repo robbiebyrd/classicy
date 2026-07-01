@@ -37,7 +37,7 @@ describe("isMoviePlayerData", () => {
 		const data: Record<string, unknown> = { openFiles: [] };
 		if (isMoviePlayerData(data)) {
 			// TypeScript should allow this without a cast
-			const files: import("@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerUtils").MoviePlayerOpenDocument[] =
+			const files: import("@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerUtils").MoviePlayerOpenFile[] =
 				data.openFiles;
 			expect(files).toHaveLength(0);
 		} else {

@@ -46,8 +46,9 @@ export const classicyQuickTimePictureViewerEventHandler = (
 	switch (action.type) {
 		case "ClassicyAppPictureViewerOpenDocument": {
 			if (
+				action.document &&
 				Array.isArray(openDocUrls) &&
-				!openDocUrls.includes(action.document?.url)
+				!openDocUrls.includes(action.document.url)
 			) {
 				appData.openFiles = [...appData.openFiles, action.document];
 				openApp(

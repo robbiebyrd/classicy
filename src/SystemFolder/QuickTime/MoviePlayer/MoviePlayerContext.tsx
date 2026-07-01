@@ -19,6 +19,7 @@ type classicyQuickTimeEvent = {
 	type: string;
 	document?: ClassicyQuickTimeDocument;
 	documents?: ClassicyQuickTimeDocument[];
+	path?: string;
 };
 
 export const classicyQuickTimeMoviePlayerEventHandler = (
@@ -36,8 +37,8 @@ export const classicyQuickTimeMoviePlayerEventHandler = (
 	const appData = ds.System.Manager.Applications.apps[appId]
 		.data as MoviePlayerData;
 
-	const openDocUrls = appData.openFiles.map(
-		(doc: ClassicyQuickTimeDocument) => doc.url,
+	const openDocUrls = appData.openFiles.map((doc) =>
+		typeof doc === "string" ? undefined : doc.url,
 	);
 
 	switch (action.type) {
@@ -80,8 +81,26 @@ export const classicyQuickTimeMoviePlayerEventHandler = (
 				break;
 			}
 			appData.openFiles = appData.openFiles.filter(
-				(p: ClassicyQuickTimeDocument) => p.url !== action.document?.url,
+				(p) => typeof p === "string" || p.url !== action.document?.url,
 			);
+			break;
+		}
+		// Opened from Finder via a ClassicyFileSystem path — resolved to an
+		// actual video/audio source (url or _data) at render time in MoviePlayer.tsx.
+		case "ClassicyAppMoviePlayerOpenFile": {
+			if (action.path && !appData.openFiles.includes(action.path)) {
+				appData.openFiles = [...appData.openFiles, action.path];
+				openApp(
+					ds,
+					MoviePlayerAppInfo.id,
+					MoviePlayerAppInfo.name,
+					MoviePlayerAppInfo.icon,
+				);
+			}
+			break;
+		}
+		case "ClassicyAppMoviePlayerCloseFile": {
+			appData.openFiles = appData.openFiles.filter((p) => p !== action.path);
 			break;
 		}
 	}

@@ -6,6 +6,7 @@ import { classicyQuickTimeMoviePlayerEventHandler } from "@/SystemFolder/QuickTi
 import {
 	isMoviePlayerData,
 	type MoviePlayerOpenDocument,
+	type MoviePlayerOpenFile,
 } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerUtils";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 
@@ -107,6 +108,13 @@ function makeStoreWithMoviePlayer(): ClassicyStore {
 }
 
 function getOpenFiles(ds: ClassicyStore): MoviePlayerOpenDocument[] {
+	const data = ds.System.Manager.Applications.apps["MoviePlayer.app"]?.data ?? {};
+	return isMoviePlayerData(data)
+		? (data.openFiles as MoviePlayerOpenDocument[])
+		: [];
+}
+
+function getRawOpenFiles(ds: ClassicyStore): MoviePlayerOpenFile[] {
 	const data = ds.System.Manager.Applications.apps["MoviePlayer.app"]?.data ?? {};
 	return isMoviePlayerData(data) ? data.openFiles : [];
 }
@@ -248,6 +256,90 @@ describe("classicyQuickTimeMoviePlayerEventHandler — ClassicyAppMoviePlayerClo
 		});
 
 		expect(getOpenFiles(result)).toHaveLength(1);
+	});
+});
+
+describe("classicyQuickTimeMoviePlayerEventHandler — ClassicyAppMoviePlayerOpenFile", () => {
+	it("adds a filesystem path to openFiles", () => {
+		const ds = makeStoreWithMoviePlayer();
+
+		const result = classicyQuickTimeMoviePlayerEventHandler(ds, {
+			type: "ClassicyAppMoviePlayerOpenFile",
+			path: "Macintosh HD:Documents:Videos:clip.mp4",
+		});
+
+		expect(getRawOpenFiles(result)).toEqual([
+			"Macintosh HD:Documents:Videos:clip.mp4",
+		]);
+	});
+
+	it("deduplicates by path — the same path is not added twice", () => {
+		const ds = makeStoreWithMoviePlayer();
+		const path = "Macintosh HD:Documents:Videos:clip.mp4";
+
+		let result = classicyQuickTimeMoviePlayerEventHandler(ds, {
+			type: "ClassicyAppMoviePlayerOpenFile",
+			path,
+		});
+		result = classicyQuickTimeMoviePlayerEventHandler(result, {
+			type: "ClassicyAppMoviePlayerOpenFile",
+			path,
+		});
+
+		expect(getRawOpenFiles(result)).toHaveLength(1);
+	});
+
+	it("opens the app when a new path is added", () => {
+		const ds = makeStoreWithMoviePlayer();
+
+		const result = classicyQuickTimeMoviePlayerEventHandler(ds, {
+			type: "ClassicyAppMoviePlayerOpenFile",
+			path: "Macintosh HD:Documents:Videos:clip.mp4",
+		});
+
+		expect(
+			result.System.Manager.Applications.apps["MoviePlayer.app"].open,
+		).toBe(true);
+	});
+});
+
+describe("classicyQuickTimeMoviePlayerEventHandler — ClassicyAppMoviePlayerCloseFile", () => {
+	it("removes a document by path", () => {
+		const ds = makeStoreWithMoviePlayer();
+		ds.System.Manager.Applications.apps["MoviePlayer.app"].data = {
+			openFiles: [
+				"Macintosh HD:Documents:Videos:a.mp4",
+				"Macintosh HD:Documents:Videos:b.mp4",
+			],
+		};
+
+		const result = classicyQuickTimeMoviePlayerEventHandler(ds, {
+			type: "ClassicyAppMoviePlayerCloseFile",
+			path: "Macintosh HD:Documents:Videos:a.mp4",
+		});
+
+		expect(getRawOpenFiles(result)).toEqual([
+			"Macintosh HD:Documents:Videos:b.mp4",
+		]);
+	});
+
+	it("does not remove manually-opened documents with the same shape", () => {
+		const ds = makeStoreWithMoviePlayer();
+		ds.System.Manager.Applications.apps["MoviePlayer.app"].data = {
+			openFiles: [
+				{ url: "http://example.com/a.mp4", name: "A" },
+				"Macintosh HD:Documents:Videos:a.mp4",
+			],
+		};
+
+		const result = classicyQuickTimeMoviePlayerEventHandler(ds, {
+			type: "ClassicyAppMoviePlayerCloseFile",
+			path: "Macintosh HD:Documents:Videos:a.mp4",
+		});
+
+		expect(getRawOpenFiles(result)).toEqual([
+			{ url: "http://example.com/a.mp4", name: "A" },
+		]);
 	});
 });
 

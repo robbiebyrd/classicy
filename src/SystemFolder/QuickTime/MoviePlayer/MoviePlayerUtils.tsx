@@ -22,8 +22,14 @@ export type MoviePlayerOpenDocument = {
 	subtitlesUrl?: string;
 };
 
+// An open file can be either a manually-opened document (url-only, e.g. the
+// demo video) or a plain ClassicyFileSystem path (e.g. a video double-clicked
+// in Finder — see ClassicyAppMoviePlayerOpenFile), resolved to a source at
+// render time via ClassicyFileSystem + resolveFileSystemEntrySource.
+export type MoviePlayerOpenFile = string | MoviePlayerOpenDocument;
+
 export type MoviePlayerData = {
-	openFiles: MoviePlayerOpenDocument[];
+	openFiles: MoviePlayerOpenFile[];
 };
 
 export function isMoviePlayerData(
