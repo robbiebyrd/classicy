@@ -315,6 +315,28 @@ Like `defaultState`, filesystem trees are seed-only. To force a filesystem
 value on every load regardless of saved state, clear `localStorage["classicyStorage"]`
 or rebuild the filesystem at runtime.
 
+### Default apps
+
+`ClassicyDesktop` automatically mounts four built-in apps — `SimpleText`,
+`PDFViewer`, `MoviePlayer`, and `PictureViewer` — the same way it always
+mounts `Finder`. Each can be disabled individually via a prop on
+`ClassicyAppManagerProvider`:
+
+```tsx
+<ClassicyAppManagerProvider
+  disableSimpleText={false}    // default: false (loads)
+  disablePDFViewer={false}     // default: false (loads)
+  disableMoviePlayer={true}    // opt out of Movie Player
+  disablePictureViewer={true}  // opt out of Picture Viewer
+>
+  <ClassicyDesktop />
+</ClassicyAppManagerProvider>
+```
+
+Disabling an app only stops it from auto-mounting — it remains available to
+import and render yourself (e.g. `import { PDFViewer } from "classicy"`) if
+you want custom placement.
+
 ### Events
 
 * `ClassicyDesktop`

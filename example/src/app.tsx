@@ -5,9 +5,7 @@ import "classicy/dist/classicy.css";
 import {
 	ClassicyAppManagerProvider,
 	ClassicyDesktop,
-	PDFViewer,
 	registerClassicyIcons,
-	SimpleText,
 } from "classicy";
 import { BlueBox } from "./Applications/BlueBox/BlueBox";
 import infiniteMacIcon from "./Applications/BlueBox/infinite-mac.png";
@@ -30,8 +28,6 @@ createRoot(rootElement).render(
 				<Browser />
 				<BlueBox />
 				<Demo />
-				<SimpleText />
-				<PDFViewer />
 			</ClassicyDesktop>
 		</ClassicyAppManagerProvider>
 	</StrictMode>,
