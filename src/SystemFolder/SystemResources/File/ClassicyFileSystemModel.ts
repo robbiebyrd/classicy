@@ -50,7 +50,12 @@ export type ClassicyFileSystemEntryMetadata = {
 	_path?: string;
 
 	// Files
-	// The contents of the file.
+	// The contents of the file. For entries opened via
+	// resolveFileSystemEntrySource (ClassicyFileSystemContentResolver.ts),
+	// a string here is treated as gzip-compressed, base64url-encoded bytes
+	// and takes precedence over _url when both are set — see
+	// base64Compression.ts. Other consumers (e.g. SimpleText) may still use
+	// this field for plain literal content.
 	_data?: unknown;
 
 	// Used for stat-ing directories and files.
