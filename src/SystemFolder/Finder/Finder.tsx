@@ -17,6 +17,7 @@ import {
 	type FinderData,
 } from "@/SystemFolder/Finder/FinderContext";
 import { FinderAboutThisComputer } from "@/SystemFolder/Finder/FinderAboutThisComputer";
+import { useFinderFolderSize } from "@/SystemFolder/Finder/useFinderFolderSize";
 import { ClassicyAboutWindow } from "@/SystemFolder/SystemResources/AboutWindow/ClassicyAboutWindow";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import { ClassicyFileBrowser } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowser";
@@ -155,6 +156,31 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 };
 
 const FinderWindowMemo = memo(FinderWindow);
+
+type FinderFolderWindowProps = Omit<FinderWindowProps, "dir" | "op"> & {
+	path: string;
+};
+
+const FinderFolderWindow: FunctionalComponent<FinderFolderWindowProps> = ({
+	path,
+	fs,
+	...rest
+}) => {
+	const size = useFinderFolderSize(path, fs);
+	const shell = fs.statDirShell(path);
+	if (!shell) return null;
+
+	return (
+		<FinderWindowMemo
+			{...rest}
+			fs={fs}
+			op={path}
+			dir={{ ...shell, _size: size }}
+		/>
+	);
+};
+
+const FinderFolderWindowMemo = memo(FinderFolderWindow);
 
 export const Finder = () => {
 	const appName: string = "Finder";
@@ -320,12 +346,18 @@ export const Finder = () => {
 
 	const getHeaderString = useCallback(
 		(dir: ClassicyFileSystemEntryMetadata) => {
+			const sizeText =
+				dir._size === undefined
+					? "Calculating…"
+					: dir._size === -1
+						? "—"
+						: fs.formatSize(dir._size);
 			return (
 				dir._count +
 				" items" +
 				(dir._countHidden ? ` (${dir._countHidden} hidden)` : "") +
 				", " +
-				fs.formatSize(dir._size || 0)
+				sizeText
 			);
 		},
 		[fs],
@@ -344,29 +376,24 @@ export const Finder = () => {
 			}
 		>
 			{finderData.openPaths && finderData.openPaths.length > 0
-				? finderData.openPaths.map((p: string, idx: number) => {
-						const dir = fs.statDir(p);
-						if (!dir) return null;
-						return (
-							<FinderWindowMemo
-								key={`${appName}_${p}`}
-								appId={appId}
-								op={p}
-								dir={dir}
-								idx={idx}
-								closeFolder={closeFolder}
-								closeAllFolders={closeAllFolders}
-								handlePathSettingsChange={handlePathSettingsChange}
-								openFolder={openFolder}
-								openFile={openFile}
-								pathSettings={pathSettings}
-								getHeaderString={getHeaderString}
-								fs={fs}
-								disableBalloonHelp={disableBalloonHelp}
-								toggleBalloonHelp={toggleBalloonHelp}
-							/>
-						);
-					})
+				? finderData.openPaths.map((p: string, idx: number) => (
+						<FinderFolderWindowMemo
+							key={`${appName}_${p}`}
+							path={p}
+							appId={appId}
+							idx={idx}
+							closeFolder={closeFolder}
+							closeAllFolders={closeAllFolders}
+							handlePathSettingsChange={handlePathSettingsChange}
+							openFolder={openFolder}
+							openFile={openFile}
+							pathSettings={pathSettings}
+							getHeaderString={getHeaderString}
+							fs={fs}
+							disableBalloonHelp={disableBalloonHelp}
+							toggleBalloonHelp={toggleBalloonHelp}
+						/>
+					))
 				: null}
 			{showAbout ? (
 				<ClassicyAboutWindow

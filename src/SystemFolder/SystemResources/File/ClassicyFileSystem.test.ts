@@ -1,10 +1,15 @@
-import { describe, expect, it } from "vitest";
+// @vitest-environment node
+import { describe, expect, it, vi, afterEach } from "vitest";
 import {
 	ClassicyFileSystem,
 	mergeClassicyFileSystemEntries,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
+import type {
+	ClassicyFileSystemEntry,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { isValidFileSystemEntry } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemValidation";
+import { compressToBase64 } from "@/SystemFolder/SystemResources/Utils/base64Compression";
 
 describe("ClassicyFileSystem.hash", () => {
 	it('returns the SHA-256 hex digest for file content "hello"', () => {
@@ -138,5 +143,267 @@ describe("mergeClassicyFileSystemEntries", () => {
 		expect(base["Macintosh HD"]._type).toBe(
 			ClassicyFileSystemEntryFileType.Drive,
 		);
+	});
+});
+
+describe("ClassicyFileSystem.size", () => {
+	afterEach(() => {
+		vi.unstubAllGlobals();
+	});
+
+	it("returns the uncompressed byte length for gzip+base64 _data", async () => {
+		const cfs = new ClassicyFileSystem("test-size-data-compressed");
+		const original = new TextEncoder().encode("hello world, this is a test file");
+		const encoded = await compressToBase64(original);
+		const entry = {
+			_type: ClassicyFileSystemEntryFileType.File,
+			_data: encoded,
+		};
+		await expect(cfs.size(entry)).resolves.toBe(original.byteLength);
+	});
+
+	it("falls back to raw Blob-length for _data that isn't valid gzip", async () => {
+		const cfs = new ClassicyFileSystem("test-size-data-plain");
+		const entry = {
+			_type: ClassicyFileSystemEntryFileType.File,
+			_data: "hello",
+		};
+		await expect(cfs.size(entry)).resolves.toBe(5);
+	});
+
+	it("returns a pre-set _size on a _url entry without calling fetch", async () => {
+		const fetchMock = vi.fn();
+		vi.stubGlobal("fetch", fetchMock);
+		const cfs = new ClassicyFileSystem("test-size-url-cached");
+		const entry = {
+			_type: ClassicyFileSystemEntryFileType.File,
+			_url: "https://example.com/file.pdf",
+			_size: 42,
+		};
+		await expect(cfs.size(entry)).resolves.toBe(42);
+		expect(fetchMock).not.toHaveBeenCalled();
+	});
+
+	it("resolves size via HEAD for a _url entry with no _size, and caches it onto the entry", async () => {
+		const fetchMock = vi.fn().mockResolvedValue({
+			ok: true,
+			headers: new Headers({ "Content-Length": "1024" }),
+		});
+		vi.stubGlobal("fetch", fetchMock);
+		const cfs = new ClassicyFileSystem("test-size-url-head");
+		const entry: ClassicyFileSystemEntry = {
+			_type: ClassicyFileSystemEntryFileType.File,
+			_url: "https://example.com/file.pdf",
+		};
+		await expect(cfs.size(entry)).resolves.toBe(1024);
+		expect(entry._size).toBe(1024);
+		expect(fetchMock).toHaveBeenCalledWith(
+			"https://example.com/file.pdf",
+			expect.objectContaining({ method: "HEAD", signal: expect.any(AbortSignal) }),
+		);
+	});
+
+	it("returns -1 and does not cache when the HEAD request fails", async () => {
+		const fetchMock = vi.fn().mockRejectedValue(new Error("network error"));
+		vi.stubGlobal("fetch", fetchMock);
+		const cfs = new ClassicyFileSystem("test-size-url-fail");
+		const entry: ClassicyFileSystemEntry = {
+			_type: ClassicyFileSystemEntryFileType.File,
+			_url: "https://example.com/file.pdf",
+		};
+		await expect(cfs.size(entry)).resolves.toBe(-1);
+		expect(entry._size).toBeUndefined();
+	});
+
+	it("returns -1 when the HEAD response has no Content-Length", async () => {
+		const fetchMock = vi.fn().mockResolvedValue({
+			ok: true,
+			headers: new Headers(),
+		});
+		vi.stubGlobal("fetch", fetchMock);
+		const cfs = new ClassicyFileSystem("test-size-url-no-length");
+		const entry = {
+			_type: ClassicyFileSystemEntryFileType.File,
+			_url: "https://example.com/file.pdf",
+		};
+		await expect(cfs.size(entry)).resolves.toBe(-1);
+	});
+
+	it("sums a directory's children concurrently, excluding one that fails to resolve", async () => {
+		const fetchMock = vi.fn().mockRejectedValue(new Error("unreachable"));
+		vi.stubGlobal("fetch", fetchMock);
+		const cfs = new ClassicyFileSystem("test-size-dir-mixed");
+		const entry = {
+			_type: ClassicyFileSystemEntryFileType.Directory,
+			"a.txt": { _type: ClassicyFileSystemEntryFileType.File, _data: "hello" },
+			"b.pdf": {
+				_type: ClassicyFileSystemEntryFileType.File,
+				_url: "https://example.com/b.pdf",
+			},
+		};
+		await expect(cfs.size(entry)).resolves.toBe(5);
+	});
+});
+
+describe("ClassicyFileSystem.calculateSizeDir", () => {
+	afterEach(() => {
+		vi.unstubAllGlobals();
+	});
+
+	it("sums File-type descendants at any nesting depth", async () => {
+		const cfs = new ClassicyFileSystem("test-calc-size-nested", {
+			_type: "directory",
+			"Macintosh HD": {
+				_type: ClassicyFileSystemEntryFileType.Drive,
+				Documents: {
+					_type: ClassicyFileSystemEntryFileType.Directory,
+					"a.txt": {
+						_type: ClassicyFileSystemEntryFileType.File,
+						_data: "hello", // 5 bytes
+					},
+					Nested: {
+						_type: ClassicyFileSystemEntryFileType.Directory,
+						"b.txt": {
+							_type: ClassicyFileSystemEntryFileType.File,
+							_data: "hi", // 2 bytes
+						},
+					},
+				},
+			},
+		});
+		await expect(
+			cfs.calculateSizeDir("Macintosh HD:Documents"),
+		).resolves.toBe(7);
+	});
+
+	it("also sums TextFile, Markdown, and Pdf descendants (previously excluded)", async () => {
+		const cfs = new ClassicyFileSystem("test-calc-size-all-types", {
+			_type: "directory",
+			"Macintosh HD": {
+				_type: ClassicyFileSystemEntryFileType.Drive,
+				Documents: {
+					_type: ClassicyFileSystemEntryFileType.Directory,
+					"a.txt": {
+						_type: ClassicyFileSystemEntryFileType.TextFile,
+						_data: "hello", // 5 bytes
+					},
+					"b.md": {
+						_type: ClassicyFileSystemEntryFileType.Markdown,
+						_data: "hi", // 2 bytes
+					},
+					"c.pdf": {
+						_type: ClassicyFileSystemEntryFileType.Pdf,
+						_data: "!!!", // 3 bytes
+					},
+				},
+			},
+		});
+		await expect(
+			cfs.calculateSizeDir("Macintosh HD:Documents"),
+		).resolves.toBe(10);
+	});
+
+	it("excludes a descendant whose size can't be resolved from the total", async () => {
+		const fetchMock = vi.fn().mockRejectedValue(new Error("unreachable"));
+		vi.stubGlobal("fetch", fetchMock);
+		const cfs = new ClassicyFileSystem("test-calc-size-fail", {
+			_type: "directory",
+			"Macintosh HD": {
+				_type: ClassicyFileSystemEntryFileType.Drive,
+				Documents: {
+					_type: ClassicyFileSystemEntryFileType.Directory,
+					"a.txt": {
+						_type: ClassicyFileSystemEntryFileType.File,
+						_data: "hello", // 5 bytes
+					},
+					"b.txt": {
+						_type: ClassicyFileSystemEntryFileType.File,
+						_url: "https://example.com/b.txt",
+					},
+				},
+			},
+		});
+		await expect(
+			cfs.calculateSizeDir("Macintosh HD:Documents"),
+		).resolves.toBe(5);
+	});
+});
+
+describe("ClassicyFileSystem.statFile", () => {
+	afterEach(() => {
+		vi.unstubAllGlobals();
+	});
+
+	it("awaits the resolved size and sets it on the returned entry", async () => {
+		const fetchMock = vi.fn().mockResolvedValue({
+			ok: true,
+			headers: new Headers({ "Content-Length": "2048" }),
+		});
+		vi.stubGlobal("fetch", fetchMock);
+		const cfs = new ClassicyFileSystem("test-stat-file", {
+			_type: "directory",
+			"Macintosh HD": {
+				_type: ClassicyFileSystemEntryFileType.Drive,
+				"a.pdf": {
+					_type: ClassicyFileSystemEntryFileType.Pdf,
+					_url: "https://example.com/a.pdf",
+				},
+			},
+		});
+		const stated = await cfs.statFile("Macintosh HD:a.pdf");
+		expect(stated?._size).toBe(2048);
+	});
+});
+
+describe("ClassicyFileSystem.statDirShell", () => {
+	it("returns count/name/path/type synchronously without touching _size, even with unresolved _url children", () => {
+		const fetchMock = vi.fn();
+		vi.stubGlobal("fetch", fetchMock);
+		const cfs = new ClassicyFileSystem("test-stat-dir-shell", {
+			_type: "directory",
+			"Macintosh HD": {
+				_type: ClassicyFileSystemEntryFileType.Drive,
+				Documents: {
+					_type: ClassicyFileSystemEntryFileType.Directory,
+					"a.pdf": {
+						_type: ClassicyFileSystemEntryFileType.Pdf,
+						_url: "https://example.com/a.pdf",
+					},
+				},
+			},
+		});
+		const shell = cfs.statDirShell("Macintosh HD:Documents");
+		expect(shell?._name).toBe("Documents");
+		expect(shell?._path).toBe("Macintosh HD:Documents");
+		expect(shell?._type).toBe(ClassicyFileSystemEntryFileType.Directory);
+		expect(shell?._count).toBe(1);
+		expect(shell?._size).toBeUndefined();
+		expect(fetchMock).not.toHaveBeenCalled();
+		vi.unstubAllGlobals();
+	});
+});
+
+describe("ClassicyFileSystem.statDir", () => {
+	afterEach(() => {
+		vi.unstubAllGlobals();
+	});
+
+	it("returns the shell fields plus the awaited computed _size", async () => {
+		const cfs = new ClassicyFileSystem("test-stat-dir", {
+			_type: "directory",
+			"Macintosh HD": {
+				_type: ClassicyFileSystemEntryFileType.Drive,
+				Documents: {
+					_type: ClassicyFileSystemEntryFileType.Directory,
+					"a.txt": {
+						_type: ClassicyFileSystemEntryFileType.File,
+						_data: "hello",
+					},
+				},
+			},
+		});
+		const dir = await cfs.statDir("Macintosh HD:Documents");
+		expect(dir?._name).toBe("Documents");
+		expect(dir?._size).toBe(5);
 	});
 });

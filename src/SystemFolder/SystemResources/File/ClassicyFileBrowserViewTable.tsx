@@ -24,6 +24,7 @@ import {
 	type FC as FunctionalComponent,
 	memo,
 	type RefObject,
+	useEffect,
 	useMemo,
 	useState,
 } from "react";
@@ -70,20 +71,49 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 				return fileOnClickFunc(`${path}:${filename}`);
 			};
 
-			const fileList = useMemo<ClassicyFileSystemEntryMetadata[]>(() => {
+			const [fileList, setFileList] = useState<
+				ClassicyFileSystemEntryMetadata[]
+			>([]);
+
+			useEffect(() => {
+				let cancelled = false;
+
 				const directoryItems = fs.filterByType(path);
-				return Object.entries(directoryItems).map(([filename, metadata]) => {
-					const filtered = {} as Record<string, unknown>;
-					for (const [key, value] of Object.entries(metadata)) {
-						if (key.startsWith("_")) {
-							filtered[key] = value;
+				const entriesWithMetadata = Object.entries(directoryItems).map(
+					([filename, metadata]) => {
+						const filtered = {} as Record<string, unknown>;
+						for (const [key, value] of Object.entries(metadata)) {
+							if (key.startsWith("_")) {
+								filtered[key] = value;
+							}
 						}
-					}
-					filtered._name = filename;
-					filtered._path = `${path}:${filename}`;
-					filtered._size = fs.size(metadata);
-					return filtered as ClassicyFileSystemEntryMetadata;
+						filtered._name = filename;
+						filtered._path = `${path}:${filename}`;
+						filtered._size =
+							typeof metadata._size === "number" ? metadata._size : undefined;
+						return { filtered: filtered as ClassicyFileSystemEntryMetadata, metadata };
+					},
+				);
+				const initial = entriesWithMetadata.map(({ filtered }) => filtered);
+				setFileList(initial);
+
+				entriesWithMetadata.forEach(({ filtered, metadata }, index) => {
+					if (typeof filtered._size === "number") return;
+					fs.size(metadata).then((resolvedSize) => {
+						if (cancelled) return;
+						setFileList((prev) => {
+							const next = [...prev];
+							if (next[index]?._path === filtered._path) {
+								next[index] = { ...next[index], _size: resolvedSize };
+							}
+							return next;
+						});
+					});
 				});
+
+				return () => {
+					cancelled = true;
+				};
 			}, [path, fs]);
 
 			const columns = useMemo(
@@ -117,13 +147,18 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 					}),
 					columnHelper.accessor((row) => row._size, {
 						id: "_size",
-						cell: (info) => (
-							<span>
-								{info.getValue() !== undefined
-									? fs.formatSize(info.getValue() ?? 0)
-									: ""}
-							</span>
-						),
+						cell: (info) => {
+							const value = info.getValue();
+							return (
+								<span>
+									{value === undefined
+										? "Calculating…"
+										: value === -1
+											? "—"
+											: fs.formatSize(value)}
+								</span>
+							);
+						},
 						header: () => <span>Size</span>,
 						enableResizing: true,
 					}),

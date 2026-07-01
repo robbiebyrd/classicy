@@ -10,8 +10,16 @@ import {
 import { isValidFileSystemEntry } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemValidation";
 import { DefaultFSContent } from "@/SystemFolder/SystemResources/File/DefaultClassicyFileSystem";
 import { deepMergeReplacingArrays } from "@/SystemFolder/SystemResources/Utils/deepMerge";
+import { decompressFromBase64 } from "@/SystemFolder/SystemResources/Utils/base64Compression";
 
 const directoryIcon = ClassicyIcons.system.folders.directory;
+
+const SUMMABLE_FILE_TYPES = new Set<string>([
+	ClassicyFileSystemEntryFileType.File,
+	ClassicyFileSystemEntryFileType.TextFile,
+	ClassicyFileSystemEntryFileType.Markdown,
+	ClassicyFileSystemEntryFileType.Pdf,
+]);
 
 export type ClassicyPathOrFileSystemEntry = string | ClassicyFileSystemEntry;
 
@@ -152,30 +160,53 @@ export class ClassicyFileSystem {
 		return filteredItems;
 	}
 
-	statFile(path: string): ClassicyFileSystemEntry | undefined {
+	async statFile(path: string): Promise<ClassicyFileSystemEntry | undefined> {
 		const item = this.resolve(path);
 		if (!item) return undefined;
-		item._size = this.size(path);
+		item._size = await this.size(path);
 		return item;
 	}
 
-	size(path: ClassicyPathOrFileSystemEntry): number {
+	async size(path: ClassicyPathOrFileSystemEntry): Promise<number> {
 		const entry = typeof path === "string" ? this.resolve(path) : path;
 
 		if (!entry) return -1;
 
 		if ("_data" in entry) {
-			return new Blob(String(entry._data).split("")).size;
+			try {
+				const bytes = await decompressFromBase64(String(entry._data));
+				return bytes.byteLength;
+			} catch {
+				return new Blob(String(entry._data).split("")).size;
+			}
+		}
+
+		if (typeof entry._size === "number") {
+			return entry._size;
+		}
+
+		if (typeof entry._url === "string") {
+			try {
+				const response = await fetch(entry._url, {
+					method: "HEAD",
+					signal: AbortSignal.timeout(8000),
+				});
+				const contentLength = response.headers.get("Content-Length");
+				if (response.ok && contentLength !== null) {
+					const resolvedSize = Number(contentLength);
+					if (!Number.isNaN(resolvedSize)) {
+						entry._size = resolvedSize;
+						return resolvedSize;
+					}
+				}
+			} catch {
+				// network error, CORS block, or timeout — fall through to -1, uncached
+			}
+			return -1;
 		}
 
 		if (entry._type === ClassicyFileSystemEntryFileType.Directory) {
-			let total = 0;
-			for (const [key, child] of Object.entries(entry)) {
-				if (key.startsWith("_") || !child?._type) continue;
-				const childSize = this.size(child);
-				if (childSize > 0) total += childSize;
-			}
-			return total;
+			return this.calculateSizeDir(entry);
 		}
 
 		return -1;
@@ -280,30 +311,35 @@ export class ClassicyFileSystem {
 		this.fs = this.deepMerge(current, this.fs);
 	}
 
-	calculateSizeDir(path: ClassicyPathOrFileSystemEntry | string): number {
-		const gatherSizes = (
+	async calculateSizeDir(
+		path: ClassicyPathOrFileSystemEntry | string,
+	): Promise<number> {
+		const gatherEntries = (
 			entry: ClassicyFileSystemEntry,
-			field: string,
-			value: string,
-		): string[] => {
-			let results: string[] = [];
+		): ClassicyFileSystemEntry[] => {
+			let results: ClassicyFileSystemEntry[] = [];
 			for (const key of Object.keys(entry)) {
-				if (key === field && entry[key] === value) {
-					results.push(String(this.size(entry)));
+				if (key === "_type" && SUMMABLE_FILE_TYPES.has(entry[key])) {
+					results.push(entry);
 				} else if (typeof entry[key] === "object" && entry[key] !== null) {
 					results = results.concat(
-						gatherSizes(entry[key] as ClassicyFileSystemEntry, field, value),
+						gatherEntries(entry[key] as ClassicyFileSystemEntry),
 					);
 				}
 			}
 			return results;
 		};
 
-		if (typeof path === "string") {
-			path = this.resolve(path);
-		}
+		const resolvedPath = typeof path === "string" ? this.resolve(path) : path;
 
-		return gatherSizes(path, "_type", "file").reduce((a, c) => a + +c, 0);
+		const matchingEntries = gatherEntries(resolvedPath);
+		const sizes = await Promise.all(
+			matchingEntries.map((entry) => this.size(entry)),
+		);
+		return sizes.reduce(
+			(total, entrySize) => (entrySize > 0 ? total + entrySize : total),
+			0,
+		);
 	}
 
 	countVisibleFiles(path: string): number {
@@ -332,10 +368,10 @@ export class ClassicyFileSystem {
 		return invisibleFiles.length;
 	}
 
-	statDir(path: string): ClassicyFileSystemEntry | undefined {
+	statDirShell(path: string): ClassicyFileSystemEntry | undefined {
 		const current: ClassicyFileSystemEntry = this.resolve(path);
 		if (!current) {
-			return;
+			return undefined;
 		}
 		const metaData = this.filterMetadata(current, "only");
 
@@ -346,7 +382,6 @@ export class ClassicyFileSystem {
 			_countHidden: this.countInvisibleFilesInDir(path),
 			_name: name[0],
 			_path: path,
-			_size: this.calculateSizeDir(current),
 			_type: ClassicyFileSystemEntryFileType.Directory,
 		};
 
@@ -355,6 +390,14 @@ export class ClassicyFileSystem {
 		});
 
 		return returnValue;
+	}
+
+	async statDir(path: string): Promise<ClassicyFileSystemEntry | undefined> {
+		const shell = this.statDirShell(path);
+		if (!shell) return undefined;
+		const current = this.resolve(path);
+		shell._size = await this.calculateSizeDir(current);
+		return shell;
 	}
 
 	private deepMerge(

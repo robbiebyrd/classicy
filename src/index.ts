@@ -25,6 +25,7 @@ export * from "./SystemFolder/ControlPanels/SoundManager/ClassicySoundSchema";
 export * from "./SystemFolder/Finder/Finder";
 export * from "./SystemFolder/Finder/FinderAboutThisComputer";
 export * from "./SystemFolder/Finder/FinderContext";
+export * from "./SystemFolder/Finder/useFinderFolderSize";
 export * from "./SystemFolder/PDFViewer/PDFViewer";
 export * from "./SystemFolder/PDFViewer/PDFViewerContext";
 export * from "./SystemFolder/PDFViewer/PDFViewerDocument";

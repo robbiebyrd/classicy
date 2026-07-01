@@ -11,9 +11,10 @@
 ## Global Constraints
 
 - No new npm dependencies — use native `fetch`, `AbortSignal.timeout`, and the existing `base64Compression.ts` utility.
-- `_data`-based entries that aren't valid gzip (legacy/plain-text `_data`) must keep working exactly as today — no landing-order dependency on the separate in-flight `_data` compression effort.
+- `_data`-based entries that aren't valid gzip (legacy/plain-text `_data`) must keep working exactly as today — no landing-order dependency on the separate `_data` compression/content-resolver effort (already merged as of this plan, but `size()` must not assume every `_data` value is compressed).
 - A resolved `_url` size is cached onto `entry._size` (mutates the live tree via the reference `resolve()` returns); a *failed* resolution is never cached, so it can be retried later.
 - No UI call site may block its own rendering on a network round trip — synchronously-available data renders immediately; sizes patch in as they resolve.
+- `calculateSizeDir()` sums exactly these `_type` values: `File`, `TextFile`, `Markdown`, `Pdf` — not `Directory`/`Drive` (containers) and not `Shortcut`/`AppShortcut` (out of scope for this plan).
 - Tests use Vitest (`describe`/`it`/`expect`/`vi`) and, for components/hooks, `@testing-library/react`'s `render`/`renderHook`/`screen`/`waitFor`, matching existing test files in the same directories.
 
 ---
@@ -210,7 +211,7 @@ async size(path: ClassicyPathOrFileSystemEntry): Promise<number> {
 }
 ```
 
-This preserves the original directory branch's behavior exactly (any child with a truthy `_type`, at any file type, recursed via `this.size`) — just made async and concurrent via `Promise.all` instead of a synchronous loop.
+This preserves the original directory branch's behavior exactly (any child with a truthy `_type`, at any file type, recursed via `this.size`) — just made async and concurrent via `Promise.all` instead of a synchronous loop. **This inline loop is temporary:** Task 2 replaces it with a one-line delegation to `calculateSizeDir()` once that method is broadened to match all real file types, eliminating the duplicate traversal. Leave it as written here for Task 1 — do not pre-emptively delegate.
 
 - [ ] **Step 4: Run the tests to verify they pass**
 
@@ -231,17 +232,19 @@ git commit -m "feat: resolve _url file sizes via HTTP HEAD, uncompress _data siz
 
 ---
 
-### Task 2: `ClassicyFileSystem.calculateSizeDir()` — async, concurrent, unchanged matching semantics
+### Task 2: `ClassicyFileSystem.calculateSizeDir()` — async, concurrent, broadened to all file types; `size()` delegates to it
 
 **Files:**
-- Modify: `src/SystemFolder/SystemResources/File/ClassicyFileSystem.ts:283-307` (the `calculateSizeDir` method).
+- Modify: `src/SystemFolder/SystemResources/File/ClassicyFileSystem.ts:283-307` (the `calculateSizeDir` method) and the `size()` method's directory branch written in Task 1.
 - Test: `src/SystemFolder/SystemResources/File/ClassicyFileSystem.test.ts`
 
 **Interfaces:**
 - Consumes: `async size(path): Promise<number>` from Task 1.
-- Produces: `async calculateSizeDir(path: ClassicyPathOrFileSystemEntry | string): Promise<number>` — Task 3's `statDir` awaits this.
+- Produces: `async calculateSizeDir(path: ClassicyPathOrFileSystemEntry | string): Promise<number>` — Task 3's `statDir` awaits this, and (as of this task) `size()`'s own directory branch delegates to it instead of its own inline loop.
 
-**Note:** `calculateSizeDir` only sums descendants whose `_type` is *exactly* `"file"` (`ClassicyFileSystemEntryFileType.File`) at any nesting depth — it does not match `TextFile`/`Markdown`/`Pdf`/etc. This is pre-existing behavior (unrelated to this plan) and must not change; only the async/concurrency mechanics change here.
+**Note:** `calculateSizeDir` previously only summed descendants whose `_type` was *exactly* `"file"` (`ClassicyFileSystemEntryFileType.File`) — a pre-existing gap that silently excluded `TextFile`/`Markdown`/`Pdf` entries from folder-size totals (e.g. the Finder header for a folder full of PDFs). This task fixes that by matching a fixed set of real content-bearing types — `File`, `TextFile`, `Markdown`, `Pdf` — while deliberately leaving `Directory`/`Drive` excluded (they're containers, not content) and `Shortcut`/`AppShortcut` excluded too (out of scope: nobody has asked for shortcut-referenced content to count toward a folder's size, and doing so would need its own design decision about whether a shortcut's size is the shortcut descriptor's own tiny size or the size of whatever it points to). This is a deliberate behavior change: folders containing `TextFile`/`Markdown`/`Pdf` entries will now report larger, more accurate totals than before.
+
+Once `size()` delegates to `calculateSizeDir()` (Step 5 below), Task 1's own inline directory-summing loop is removed — this task is what eliminates that duplication.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -253,7 +256,7 @@ describe("ClassicyFileSystem.calculateSizeDir", () => {
 		vi.unstubAllGlobals();
 	});
 
-	it("sums _type: file descendants at any nesting depth", async () => {
+	it("sums File-type descendants at any nesting depth", async () => {
 		const cfs = new ClassicyFileSystem("test-calc-size-nested", {
 			_type: "directory",
 			"Macintosh HD": {
@@ -277,6 +280,33 @@ describe("ClassicyFileSystem.calculateSizeDir", () => {
 		await expect(
 			cfs.calculateSizeDir("Macintosh HD:Documents"),
 		).resolves.toBe(7);
+	});
+
+	it("also sums TextFile, Markdown, and Pdf descendants (previously excluded)", async () => {
+		const cfs = new ClassicyFileSystem("test-calc-size-all-types", {
+			_type: "directory",
+			"Macintosh HD": {
+				_type: ClassicyFileSystemEntryFileType.Drive,
+				Documents: {
+					_type: ClassicyFileSystemEntryFileType.Directory,
+					"a.txt": {
+						_type: ClassicyFileSystemEntryFileType.TextFile,
+						_data: "hello", // 5 bytes
+					},
+					"b.md": {
+						_type: ClassicyFileSystemEntryFileType.Markdown,
+						_data: "hi", // 2 bytes
+					},
+					"c.pdf": {
+						_type: ClassicyFileSystemEntryFileType.Pdf,
+						_data: "!!!", // 3 bytes
+					},
+				},
+			},
+		});
+		await expect(
+			cfs.calculateSizeDir("Macintosh HD:Documents"),
+		).resolves.toBe(10);
 	});
 
 	it("excludes a descendant whose size can't be resolved from the total", async () => {
@@ -309,9 +339,20 @@ describe("ClassicyFileSystem.calculateSizeDir", () => {
 - [ ] **Step 2: Run the tests to verify they fail**
 
 Run: `pnpm vitest run src/SystemFolder/SystemResources/File/ClassicyFileSystem.test.ts -t "ClassicyFileSystem.calculateSizeDir"`
-Expected: FAIL — `calculateSizeDir` currently returns a number synchronously, not a `Promise`, so `.resolves` assertions fail (and the second test's `_url` child isn't handled by the current synchronous `this.size(entry)` call).
+Expected: FAIL — `calculateSizeDir` currently returns a number synchronously, not a `Promise` (`.resolves` assertions fail), and the `TextFile`/`Markdown`/`Pdf` test fails because the current matching only recognizes the literal `"file"` type.
 
-- [ ] **Step 3: Implement the async `calculateSizeDir()` method**
+- [ ] **Step 3: Implement the async, broadened `calculateSizeDir()` method**
+
+Add this constant near the top of `src/SystemFolder/SystemResources/File/ClassicyFileSystem.ts`, alongside the existing `directoryIcon` constant (line 14):
+
+```ts
+const SUMMABLE_FILE_TYPES = new Set<string>([
+	ClassicyFileSystemEntryFileType.File,
+	ClassicyFileSystemEntryFileType.TextFile,
+	ClassicyFileSystemEntryFileType.Markdown,
+	ClassicyFileSystemEntryFileType.Pdf,
+]);
+```
 
 Replace the existing `calculateSizeDir` method (`src/SystemFolder/SystemResources/File/ClassicyFileSystem.ts:283-307`) with:
 
@@ -321,26 +362,23 @@ async calculateSizeDir(
 ): Promise<number> {
 	const gatherEntries = (
 		entry: ClassicyFileSystemEntry,
-		field: string,
-		value: string,
 	): ClassicyFileSystemEntry[] => {
 		let results: ClassicyFileSystemEntry[] = [];
 		for (const key of Object.keys(entry)) {
-			if (key === field && entry[key] === value) {
+			if (key === "_type" && SUMMABLE_FILE_TYPES.has(entry[key])) {
 				results.push(entry);
 			} else if (typeof entry[key] === "object" && entry[key] !== null) {
 				results = results.concat(
-					gatherEntries(entry[key] as ClassicyFileSystemEntry, field, value),
+					gatherEntries(entry[key] as ClassicyFileSystemEntry),
 				);
 			}
 		}
 		return results;
 	};
 
-	const resolvedPath =
-		typeof path === "string" ? this.resolve(path) : path;
+	const resolvedPath = typeof path === "string" ? this.resolve(path) : path;
 
-	const matchingEntries = gatherEntries(resolvedPath, "_type", "file");
+	const matchingEntries = gatherEntries(resolvedPath);
 	const sizes = await Promise.all(
 		matchingEntries.map((entry) => this.size(entry)),
 	);
@@ -354,13 +392,50 @@ async calculateSizeDir(
 - [ ] **Step 4: Run the tests to verify they pass**
 
 Run: `pnpm vitest run src/SystemFolder/SystemResources/File/ClassicyFileSystem.test.ts -t "ClassicyFileSystem.calculateSizeDir"`
-Expected: PASS (2 tests).
+Expected: PASS (3 tests).
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: Replace `size()`'s inline directory loop with delegation to `calculateSizeDir()`**
+
+In `src/SystemFolder/SystemResources/File/ClassicyFileSystem.ts`, replace the directory branch inside `size()` (written in Task 1) —
+
+```ts
+	if (entry._type === ClassicyFileSystemEntryFileType.Directory) {
+		const childEntries = Object.entries(entry).filter(
+			([key, child]) =>
+				!key.startsWith("_") &&
+				Boolean((child as ClassicyFileSystemEntry)?._type),
+		);
+		const childSizes = await Promise.all(
+			childEntries.map(([, child]) => this.size(child as ClassicyFileSystemEntry)),
+		);
+		return childSizes.reduce(
+			(total, childSize) => (childSize > 0 ? total + childSize : total),
+			0,
+		);
+	}
+```
+
+— with a one-line delegation:
+
+```ts
+	if (entry._type === ClassicyFileSystemEntryFileType.Directory) {
+		return this.calculateSizeDir(entry);
+	}
+```
+
+- [ ] **Step 6: Re-run Task 1's directory test plus the full suite**
+
+Run: `pnpm vitest run src/SystemFolder/SystemResources/File/ClassicyFileSystem.test.ts`
+Expected: PASS, including Task 1's "sums a directory's children concurrently, excluding one that fails to resolve" test (still passes — it only used `File`-type children, which `calculateSizeDir` still matches).
+
+Run: `pnpm vitest run`
+Expected: All tests pass.
+
+- [ ] **Step 7: Commit**
 
 ```bash
 git add src/SystemFolder/SystemResources/File/ClassicyFileSystem.ts src/SystemFolder/SystemResources/File/ClassicyFileSystem.test.ts
-git commit -m "feat: make calculateSizeDir async and resolve children concurrently"
+git commit -m "feat: broaden calculateSizeDir to all file types, dedupe size()'s directory branch"
 ```
 
 ---
