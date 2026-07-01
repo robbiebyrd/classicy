@@ -1,0 +1,63 @@
+@use '../../ControlPanels/AppearanceManager/styles/appearance';
+
+.classicyTriangle {
+  width: calc(var(--window-control-size) + var(--window-padding-size));
+  height: calc(var(--window-control-size) + var(--window-padding-size));
+  margin-left: calc(var(--window-control-size) / -2);
+  transition-timing-function: steps(4, end);
+  transition-duration: 0.125s;
+  transition-property: all;
+}
+
+.classicyTriangleHighlight {
+  fill: var(--color-theme-02);
+}
+
+.classicyTriangleShadow {
+  fill: var(--color-theme-04);
+}
+
+.classicyTriangleInner {
+  fill: var(--color-theme-03);
+}
+
+.classicyTriangleDropShadow {
+  opacity: 0.33;
+  color: var(--color-black);
+}
+
+.classicyTriangleOutline {
+  color: var(--color-black);
+}
+
+.classicyTriangleRightOpen {
+  transform: rotate(90deg);
+}
+
+.classicyTriangleRightClosed {
+  transform: rotate(0);
+}
+
+.classicyTriangleLeftOpen {
+  transform: rotate(90deg);
+}
+
+.classicyTriangleLeftClosed {
+  transform: rotate(180deg);
+}
+
+.classicyTriangleUpOpen {
+  transform: rotate(90deg);
+}
+
+.classicyTriangleUpClosed {
+  transform: rotate(270deg);
+}
+
+.classicyTriangleDownClosed {
+  transform: rotate(90deg);
+}
+
+.classicyTriangleDownOpen {
+  transform: rotate(270deg);
+}

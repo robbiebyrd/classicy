@@ -3,6 +3,7 @@ import {
 	type ClassicyControlLabelSize,
 	type ClassicyLabelPosition,
 } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
+import { ClassicyTriangle } from "@/SystemFolder/SystemResources/Triangle/ClassicyTriangle";
 import "./ClassicyDisclosure.scss";
 import classNames from "classnames";
 import {
@@ -36,12 +37,6 @@ export const ClassicyDisclosure: FunctionalComponent<
 	const { track } = useClassicyAnalytics();
 	const analyticsArgs = { type: "ClassicyLabel", label };
 
-	const triangleClassOpenName =
-		"classicyDisclosureTriangle" +
-		direction.charAt(0).toUpperCase() +
-		direction.slice(1) +
-		(open ? "Open" : "Closed");
-
 	function handleKeyPress(e: KeyboardEvent<HTMLDivElement>) {
 		switch (e.key) {
 			case "Enter":
@@ -70,37 +65,11 @@ export const ClassicyDisclosure: FunctionalComponent<
 				{labelPosition === "left" && (
 					<ClassicyControlLabel label={label} labelSize={labelSize} />
 				)}
-				<svg
-					id="a"
-					xmlns="http://www.w3.org/2000/svg"
-					viewBox="0 0 6.44 11.12"
-					className={classNames(
-						"classicyDisclosureTriangle",
-						triangleClassOpenName,
-					)}
-				>
-					<title>Disclosure triangle</title>
-					<polygon
-						className={"classicyDisclosureTriangleDropShadow"}
-						points="6.44 6.05 1.17 1.07 .93 11.12 6.44 6.05"
-					/>
-					<polygon
-						className={"classicyDisclosureTriangleOutline"}
-						points="5.68 5.34 0 0 0 10.68 5.68 5.34"
-					/>
-					<polygon
-						className={"classicyDisclosureTriangleHighlight"}
-						points="4.79 5.34 .76 1.82 .76 8.86 4.79 5.34"
-					/>
-					<polygon
-						className={"classicyDisclosureTriangleInner"}
-						points="4.79 5.34 1.27 3.42 1.29 8.43 4.79 5.34"
-					/>
-					<polygon
-						className={"classicyDisclosureTriangleShadow"}
-						points=".76 8.29 .76 8.86 4.79 5.34 4.47 5.05 .76 8.29"
-					/>
-				</svg>
+				<ClassicyTriangle
+					direction={direction}
+					open={open}
+					interactive={false}
+				/>
 				{labelPosition !== "left" && (
 					<ClassicyControlLabel label={label} labelSize={labelSize} />
 				)}
