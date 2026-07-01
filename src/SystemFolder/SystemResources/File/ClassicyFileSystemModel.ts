@@ -24,7 +24,7 @@ export type ClassicyFileSystemEntryMetadata = {
 	_label?: string;
 	_comments?: string;
 
-	// The URL if the file is a 'shortcut' type
+	// The URL to fetch this entry's content from (also used for shortcut targets)
 	_url?: string;
 
 	// Icon data
