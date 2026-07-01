@@ -13,6 +13,7 @@ import {
 } from "react";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
+import { decompressFromBase64 } from "@/SystemFolder/SystemResources/Utils/base64Compression";
 
 // pdfjs-dist's canvas module references the browser-only `DOMMatrix` global
 // at module-evaluation time. A static import here would run that the instant
@@ -36,10 +37,12 @@ const SCALE_STEP = 0.25;
 
 interface PDFViewerDocumentProps {
 	url: string;
+	data?: string;
 }
 
 export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 	url,
+	data,
 }) => {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const [doc, setDoc] = useState<PDFDocumentProxy | null>(null);
@@ -56,37 +59,50 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 	// `error` so the two failure modes can't clobber each other.
 	const [pageError, setPageError] = useState(false);
 
-	// Load the document whenever the URL changes
+	// Load the document whenever the URL or embedded data changes. `data`
+	// (compressed + base64url-encoded bytes) takes precedence over `url` when
+	// both are set, matching resolveFileSystemEntrySource's precedence.
 	useEffect(() => {
 		let cancelled = false;
 		// `destroy()` lives on the loading task (not the resolved
 		// PDFDocumentProxy), and is safe to call whether the load is still
 		// in flight or has already settled — it aborts network requests and
-		// tears down the worker/transport either way. Assigned once pdfjs
-		// finishes loading and the task is actually created, so cleanup always
-		// tears down the instance that *this* effect run created, exactly once.
+		// tears down the worker/transport either way. Assigned once both pdfjs
+		// and (if needed) decompression finish and the task is actually
+		// created, so cleanup always tears down the instance that *this*
+		// effect run created, exactly once.
 		let loadingTask: PDFDocumentLoadingTask | null = null;
 		setDoc(null);
 		setError(false);
 		setPageError(false);
 		setCurrentPage(1);
-		loadPdfjs()
-			.then((pdfjs) => {
-				if (cancelled) return undefined;
-				loadingTask = pdfjs.getDocument({ url });
-				return loadingTask.promise;
-			})
-			.then((loadedDoc) => {
-				if (!cancelled && loadedDoc) setDoc(loadedDoc);
-			})
-			.catch(() => {
+		(async () => {
+			try {
+				// Decompressing `data` and loading pdfjs are both async steps
+				// before pdf.js's own document load even starts; run them
+				// concurrently since they're independent. `cancelled` is checked
+				// right after both settle, before creating the loading task, so
+				// a fast unmount/re-run during either never creates an orphaned
+				// task with nothing to destroy it.
+				const [source, pdfjs] = await Promise.all([
+					data
+						? decompressFromBase64(data).then((bytes) => ({ data: bytes }))
+						: Promise.resolve({ url }),
+					loadPdfjs(),
+				]);
+				if (cancelled) return;
+				loadingTask = pdfjs.getDocument(source);
+				const loadedDoc = await loadingTask.promise;
+				if (!cancelled) setDoc(loadedDoc);
+			} catch {
 				if (!cancelled) setError(true);
-			});
+			}
+		})();
 		return () => {
 			cancelled = true;
 			loadingTask?.destroy();
 		};
-	}, [url]);
+	}, [url, data]);
 
 	// Render the current page whenever the document, page, or zoom changes
 	useEffect(() => {

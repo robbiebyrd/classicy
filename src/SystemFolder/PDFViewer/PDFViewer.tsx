@@ -7,6 +7,7 @@ import { PDFViewerDocument } from "@/SystemFolder/PDFViewer/PDFViewerDocument";
 import { PDFViewerAppInfo } from "@/SystemFolder/PDFViewer/PDFViewerUtils";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import { quitMenuItemHelper } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
+import { resolveFileSystemEntrySource } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContentResolver";
 import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
@@ -53,7 +54,7 @@ export const PDFViewer: FunctionalComponent = () => {
 		>
 			{openFiles.map((filePath: string, idx: number) => {
 				const entry = fs.resolve(filePath);
-				const url = typeof entry?._data === "string" ? entry._data : "";
+				const source = resolveFileSystemEntrySource(entry);
 				const fileName = filePath.split(":").pop() || filePath;
 
 				return (
@@ -67,7 +68,10 @@ export const PDFViewer: FunctionalComponent = () => {
 						appMenu={appMenu}
 						onCloseFunc={() => closeFile(filePath)}
 					>
-						<PDFViewerDocument url={url} />
+						<PDFViewerDocument
+							url={source.kind === "url" ? source.url : ""}
+							data={source.kind === "data" ? source.data : undefined}
+						/>
 					</ClassicyWindow>
 				);
 			})}
