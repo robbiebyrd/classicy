@@ -1,12 +1,12 @@
 async function gzipCompress(bytes: Uint8Array): Promise<Uint8Array> {
-	const stream = new Blob([Buffer.from(bytes)])
+	const stream = new Blob([bytes])
 		.stream()
 		.pipeThrough(new CompressionStream("gzip"));
 	return new Uint8Array(await new Response(stream).arrayBuffer());
 }
 
 async function gzipDecompress(bytes: Uint8Array): Promise<Uint8Array> {
-	const stream = new Blob([Buffer.from(bytes)])
+	const stream = new Blob([bytes])
 		.stream()
 		.pipeThrough(new DecompressionStream("gzip"));
 	return new Uint8Array(await new Response(stream).arrayBuffer());
