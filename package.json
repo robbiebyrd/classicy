@@ -3,8 +3,8 @@
 	"module": "./dist/classicy.es.js",
 	"types": "./dist/types/src/index.d.ts",
 	"name": "classicy",
-	"version": "0.22.0",
-	"release": "Dillinger",
+	"version": "0.22.1",
+	"release": "Siegel",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/robbiebyrd/classicy"
