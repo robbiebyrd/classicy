@@ -1,6 +1,9 @@
+// @vitest-environment node
+
 import { describe, expect, it } from "vitest";
 import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import { decompressFromBase64 } from "@/SystemFolder/SystemResources/Utils/base64Compression";
 
 describe("DefaultClassicyFileSystem Pdf seed data", () => {
 	it("seeds a Sample.pdf document with the Pdf file type and a URL", () => {
@@ -9,8 +12,8 @@ describe("DefaultClassicyFileSystem Pdf seed data", () => {
 
 		expect(entry?._type).toBe(ClassicyFileSystemEntryFileType.Pdf);
 		expect(entry?._mimeType).toBe("application/pdf");
-		expect(typeof entry?._data).toBe("string");
-		expect(entry?._data as string).toMatch(/^https?:\/\//);
+		expect(typeof entry?._url).toBe("string");
+		expect(entry?._url as string).toMatch(/^https?:\/\//);
 	});
 
 	// A second, distinct demo PDF is seeded so multi-window support (two
@@ -25,8 +28,22 @@ describe("DefaultClassicyFileSystem Pdf seed data", () => {
 
 		expect(sample2?._type).toBe(ClassicyFileSystemEntryFileType.Pdf);
 		expect(sample2?._mimeType).toBe("application/pdf");
-		expect(typeof sample2?._data).toBe("string");
-		expect(sample2?._data as string).toMatch(/^https?:\/\//);
-		expect(sample2?._data).not.toBe(sample1?._data);
+		expect(typeof sample2?._url).toBe("string");
+		expect(sample2?._url as string).toMatch(/^https?:\/\//);
+		expect(sample2?._url).not.toBe(sample1?._url);
+	});
+
+	it("seeds a third demo PDF, Sample 3.pdf, with compressed embedded data instead of a URL", async () => {
+		const fs = new ClassicyFileSystem();
+		const entry = fs.resolve("Macintosh HD:Documents:Sample 3.pdf");
+
+		expect(entry?._type).toBe(ClassicyFileSystemEntryFileType.Pdf);
+		expect(entry?._mimeType).toBe("application/pdf");
+		expect(entry?._url).toBeUndefined();
+		expect(typeof entry?._data).toBe("string");
+
+		const decoded = await decompressFromBase64(entry?._data as string);
+		const magicBytes = new TextDecoder().decode(decoded.slice(0, 5));
+		expect(magicBytes).toBe("%PDF-");
 	});
 });
