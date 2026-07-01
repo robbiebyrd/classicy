@@ -19,6 +19,7 @@ import {
 	wasHydratedFromStorage,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicySoundManagerProvider } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerProvider";
+import { ClassicyDefaultAppsContext } from "@/SystemFolder/SystemResources/App/ClassicyDefaultAppsContext";
 import { ClassicyAnalyticsPrefixContext } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import {
 	ClassicyDefaultFileSystemContext,
@@ -34,6 +35,10 @@ type ClassicyAppManagerProviderProps = {
 	defaultState?: DeepPartial<ClassicyStore>;
 	defaultFileSystem?: ClassicyFileSystemTree;
 	defaultFileSystemMode?: ClassicyDefaultFileSystemMode;
+	disableSimpleText?: boolean;
+	disablePDFViewer?: boolean;
+	disableMoviePlayer?: boolean;
+	disablePictureViewer?: boolean;
 };
 
 const getOrCreateUserId = (storageKey: string): string => {
@@ -60,6 +65,10 @@ export const ClassicyAppManagerProvider: FunctionalComponent<
 	defaultState,
 	defaultFileSystem,
 	defaultFileSystemMode,
+	disableSimpleText,
+	disablePDFViewer,
+	disableMoviePlayer,
+	disablePictureViewer,
 }) => {
 	const seeded = useRef(false);
 	useEffect(() => {
@@ -76,6 +85,21 @@ export const ClassicyAppManagerProvider: FunctionalComponent<
 			mode: defaultFileSystemMode ?? ("merge" as const),
 		}),
 		[defaultFileSystem, defaultFileSystemMode],
+	);
+
+	const defaultAppsContextValue = useMemo(
+		() => ({
+			disableSimpleText: disableSimpleText ?? false,
+			disablePDFViewer: disablePDFViewer ?? false,
+			disableMoviePlayer: disableMoviePlayer ?? false,
+			disablePictureViewer: disablePictureViewer ?? false,
+		}),
+		[
+			disableSimpleText,
+			disablePDFViewer,
+			disableMoviePlayer,
+			disablePictureViewer,
+		],
 	);
 
 	const analytics = useMemo(() => {
@@ -100,9 +124,11 @@ export const ClassicyAppManagerProvider: FunctionalComponent<
 	return (
 		<ClassicyAnalyticsPrefixContext.Provider value={eventPrefix}>
 			<ClassicyDefaultFileSystemContext.Provider value={fsContextValue}>
-				<AnalyticsProvider instance={analytics}>
-					<ClassicySoundManagerProvider>{children}</ClassicySoundManagerProvider>
-				</AnalyticsProvider>
+				<ClassicyDefaultAppsContext.Provider value={defaultAppsContextValue}>
+					<AnalyticsProvider instance={analytics}>
+						<ClassicySoundManagerProvider>{children}</ClassicySoundManagerProvider>
+					</AnalyticsProvider>
+				</ClassicyDefaultAppsContext.Provider>
 			</ClassicyDefaultFileSystemContext.Provider>
 		</ClassicyAnalyticsPrefixContext.Provider>
 	);

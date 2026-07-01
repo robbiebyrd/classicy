@@ -165,3 +165,58 @@ describe("ClassicyAppManagerProvider defaultFileSystem", () => {
 		expect(captured?.mode).toBe("exclusive");
 	});
 });
+
+describe("ClassicyAppManagerProvider default apps", () => {
+	it("defaults all four disableX props to false", async () => {
+		const ctx = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext"
+		);
+		const appsCtx = await import(
+			"@/SystemFolder/SystemResources/App/ClassicyDefaultAppsContext"
+		);
+		let captured: unknown;
+		function Capture(): null {
+			captured = useContext(appsCtx.ClassicyDefaultAppsContext);
+			return null;
+		}
+		render(
+			<ctx.ClassicyAppManagerProvider>
+				<Capture />
+			</ctx.ClassicyAppManagerProvider>,
+		);
+		expect(captured).toEqual({
+			disableSimpleText: false,
+			disablePDFViewer: false,
+			disableMoviePlayer: false,
+			disablePictureViewer: false,
+		});
+	});
+
+	it("passes explicit disableX props through context", async () => {
+		const ctx = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext"
+		);
+		const appsCtx = await import(
+			"@/SystemFolder/SystemResources/App/ClassicyDefaultAppsContext"
+		);
+		let captured: unknown;
+		function Capture(): null {
+			captured = useContext(appsCtx.ClassicyDefaultAppsContext);
+			return null;
+		}
+		render(
+			<ctx.ClassicyAppManagerProvider
+				disablePictureViewer
+				disableMoviePlayer
+			>
+				<Capture />
+			</ctx.ClassicyAppManagerProvider>,
+		);
+		expect(captured).toEqual({
+			disableSimpleText: false,
+			disablePDFViewer: false,
+			disableMoviePlayer: true,
+			disablePictureViewer: true,
+		});
+	});
+});
