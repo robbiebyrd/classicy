@@ -1,4 +1,3 @@
-export * from "./test-manual";
 export * from "./SystemFolder/ControlPanels/ClassicyControlPanels";
 export * from "./SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
 export * from "./SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
