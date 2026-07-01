@@ -17,6 +17,10 @@ vi.mock(
 	"@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel.scss",
 	() => ({}),
 );
+vi.mock(
+	"@/SystemFolder/SystemResources/Triangle/ClassicyTriangle.scss",
+	() => ({}),
+);
 
 describe("ClassicyDisclosure", () => {
 	it("renders with closed class by default", () => {
