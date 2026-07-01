@@ -43,11 +43,13 @@ export const DefaultFSContent = {
 				_type: ClassicyFileSystemEntryFileType.File,
 				_mimeType: "text/plain",
 				_data: "File Contents",
+				_system: true,
 			},
 			System: {
 				_type: ClassicyFileSystemEntryFileType.File,
 				_mimeType: "text/plain",
 				_data: "File Contents",
+				_system: true,
 			},
 		},
 		Documents: {

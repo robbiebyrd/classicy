@@ -47,3 +47,24 @@ describe("DefaultClassicyFileSystem Pdf seed data", () => {
 		expect(magicBytes).toBe("%PDF-");
 	});
 });
+
+describe("DefaultClassicyFileSystem system-file seed data", () => {
+	it("marks the seeded Finder and System files as system files", () => {
+		const fs = new ClassicyFileSystem();
+
+		expect(fs.resolve("Macintosh HD:System Folder:Finder")?._system).toBe(
+			true,
+		);
+		expect(fs.resolve("Macintosh HD:System Folder:System")?._system).toBe(
+			true,
+		);
+	});
+
+	it("does not mark unrelated seed entries as system files", () => {
+		const fs = new ClassicyFileSystem();
+
+		expect(
+			fs.resolve("Macintosh HD:Documents:Read Me.txt")?._system,
+		).toBeUndefined();
+	});
+});
