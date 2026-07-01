@@ -90,7 +90,7 @@ describe("ClassicyFileBrowserViewTable size column", () => {
 				typeof entryOrPath === "string"
 					? cfs.resolve(entryOrPath)
 					: entryOrPath;
-			return entry._path?.endsWith("big.pdf") ? 9000 : 100;
+			return entry._url?.endsWith("big.pdf") ? 9000 : 100;
 		});
 
 		render(

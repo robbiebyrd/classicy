@@ -79,7 +79,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 				let cancelled = false;
 
 				const directoryItems = fs.filterByType(path);
-				const initial = Object.entries(directoryItems).map(
+				const entriesWithMetadata = Object.entries(directoryItems).map(
 					([filename, metadata]) => {
 						const filtered = {} as Record<string, unknown>;
 						for (const [key, value] of Object.entries(metadata)) {
@@ -91,18 +91,19 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 						filtered._path = `${path}:${filename}`;
 						filtered._size =
 							typeof metadata._size === "number" ? metadata._size : undefined;
-						return filtered as ClassicyFileSystemEntryMetadata;
+						return { filtered: filtered as ClassicyFileSystemEntryMetadata, metadata };
 					},
 				);
+				const initial = entriesWithMetadata.map(({ filtered }) => filtered);
 				setFileList(initial);
 
-				initial.forEach((entry, index) => {
-					if (typeof entry._size === "number") return;
-					fs.size(entry).then((resolvedSize) => {
+				entriesWithMetadata.forEach(({ filtered, metadata }, index) => {
+					if (typeof filtered._size === "number") return;
+					fs.size(metadata).then((resolvedSize) => {
 						if (cancelled) return;
 						setFileList((prev) => {
 							const next = [...prev];
-							if (next[index]?._path === entry._path) {
+							if (next[index]?._path === filtered._path) {
 								next[index] = { ...next[index], _size: resolvedSize };
 							}
 							return next;
