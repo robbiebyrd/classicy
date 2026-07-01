@@ -8,7 +8,12 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyControlPanels } from "@/SystemFolder/ControlPanels/ClassicyControlPanels";
 import { Finder } from "@/SystemFolder/Finder/Finder";
+import { PDFViewer } from "@/SystemFolder/PDFViewer/PDFViewer";
+import { MoviePlayer } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayer";
+import { QuickTimePictureViewer } from "@/SystemFolder/QuickTime/PictureViewer/PictureViewer";
+import { SimpleText } from "@/SystemFolder/SimpleText/SimpleText";
 import { getClassicyAboutWindow } from "@/SystemFolder/SystemResources/AboutWindow/ClassicyAboutWindowUtils";
+import { ClassicyDefaultAppsContext } from "@/SystemFolder/SystemResources/App/ClassicyDefaultAppsContext";
 import { ClassicyContextualMenu } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenu";
 import "./ClassicyDesktop.scss";
 import classNames from "classnames";
@@ -20,6 +25,7 @@ import {
 	type ReactNode,
 	startTransition,
 	useCallback,
+	useContext,
 	useEffect,
 	useMemo,
 	useRef,
@@ -84,6 +90,13 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 		(s) => s.System.Manager.Desktop.disableBalloonHelp,
 	);
 	const desktopEventDispatch = useAppManagerDispatch();
+
+	const {
+		disableSimpleText,
+		disablePDFViewer,
+		disableMoviePlayer,
+		disablePictureViewer,
+	} = useContext(ClassicyDefaultAppsContext);
 
 	const emptyTrash = useCallback(() => {
 		localStorage.removeItem("classicyDesktopState");
@@ -428,6 +441,10 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 				/>
 			) : null}
 			<Finder />
+			{!disableSimpleText && <SimpleText />}
+			{!disablePDFViewer && <PDFViewer />}
+			{!disableMoviePlayer && <MoviePlayer />}
+			{!disablePictureViewer && <QuickTimePictureViewer />}
 			<ClassicyControlPanels />
 			{showAbout
 				? getClassicyAboutWindow({
