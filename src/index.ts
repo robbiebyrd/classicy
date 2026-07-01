@@ -1,3 +1,4 @@
+export * from "./test-manual";
 export * from "./SystemFolder/ControlPanels/ClassicyControlPanels";
 export * from "./SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
 export * from "./SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
@@ -97,6 +98,7 @@ export * from "./SystemFolder/SystemResources/Spinner/ClassicySpinner";
 export * from "./SystemFolder/SystemResources/Tabs/ClassicyTabs";
 export * from "./SystemFolder/SystemResources/TextEditor/ClassicyTextEditor";
 export * from "./SystemFolder/SystemResources/TimePicker/ClassicyTimePicker";
+export * from "./SystemFolder/SystemResources/Utils/base64Compression";
 export * from "./SystemFolder/SystemResources/Utils/deepMerge";
 export * from "./SystemFolder/SystemResources/Utils/urlValidation";
 export * from "./SystemFolder/SystemResources/Window/ClassicyWindow";
