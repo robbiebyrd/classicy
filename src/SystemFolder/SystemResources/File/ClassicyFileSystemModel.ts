@@ -9,6 +9,8 @@ export enum ClassicyFileSystemEntryFileType {
 	TextFile = "text_file",
 	Markdown = "markdown",
 	Pdf = "pdf",
+	Image = "image",
+	Video = "video",
 }
 
 export type ClassicyFileSystemEntryMetadata = {

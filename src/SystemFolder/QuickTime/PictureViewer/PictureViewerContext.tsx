@@ -15,6 +15,7 @@ type classicyQuickTimeEvent = {
 	type: string;
 	document?: ClassicyQuickTimeDocument;
 	documents?: ClassicyQuickTimeDocument[];
+	path?: string;
 };
 
 export const classicyQuickTimePictureViewerEventHandler = (
@@ -38,8 +39,8 @@ export const classicyQuickTimePictureViewerEventHandler = (
 	const appData = ds.System.Manager.Applications.apps[appId]
 		.data as PictureViewerData;
 
-	const openDocUrls = appData.openFiles.map(
-		(of: ClassicyQuickTimeDocument) => of.url,
+	const openDocUrls = appData.openFiles.map((of) =>
+		typeof of === "string" ? undefined : of.url,
 	);
 
 	switch (action.type) {
@@ -76,7 +77,27 @@ export const classicyQuickTimePictureViewerEventHandler = (
 		}
 		case "ClassicyAppPictureViewerCloseDocument": {
 			appData.openFiles = appData.openFiles.filter(
-				(p: ClassicyQuickTimeDocument) => p.url !== action.document?.url,
+				(p) => typeof p === "string" || p.url !== action.document?.url,
+			);
+			break;
+		}
+		// Opened from Finder via a ClassicyFileSystem path — resolved to an
+		// actual image source (url or _data) at render time in PictureViewer.tsx.
+		case "ClassicyAppPictureViewerOpenFile": {
+			if (action.path && !appData.openFiles.includes(action.path)) {
+				appData.openFiles = [...appData.openFiles, action.path];
+				openApp(
+					ds,
+					PictureViewerAppInfo.id,
+					PictureViewerAppInfo.name,
+					PictureViewerAppInfo.icon,
+				);
+			}
+			break;
+		}
+		case "ClassicyAppPictureViewerCloseFile": {
+			appData.openFiles = appData.openFiles.filter(
+				(p) => p !== action.path,
 			);
 			break;
 		}

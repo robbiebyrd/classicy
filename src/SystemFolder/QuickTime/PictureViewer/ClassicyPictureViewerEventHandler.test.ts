@@ -5,6 +5,7 @@ import { classicyDesktopStateEventReducer } from "@/SystemFolder/ControlPanels/A
 import { classicyQuickTimePictureViewerEventHandler } from "@/SystemFolder/QuickTime/PictureViewer/PictureViewerContext";
 import {
 	isPictureViewerData,
+	type PictureViewerOpenFile,
 	type QuickTimeImageDocument,
 } from "@/SystemFolder/QuickTime/PictureViewer/PictureViewerUtils";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
@@ -132,6 +133,13 @@ function makeStoreWithPictureViewer(): ClassicyStore {
 }
 
 function getOpenFiles(ds: ClassicyStore): QuickTimeImageDocument[] {
+	const data = ds.System.Manager.Applications.apps["PictureViewer.app"]?.data ?? {};
+	return isPictureViewerData(data)
+		? (data.openFiles as QuickTimeImageDocument[])
+		: [];
+}
+
+function getRawOpenFiles(ds: ClassicyStore): PictureViewerOpenFile[] {
 	const data = ds.System.Manager.Applications.apps["PictureViewer.app"]?.data ?? {};
 	return isPictureViewerData(data) ? data.openFiles : [];
 }
@@ -262,6 +270,107 @@ describe("classicyQuickTimePictureViewerEventHandler — ClassicyAppPictureViewe
 		});
 
 		expect(getOpenFiles(result)).toHaveLength(1);
+	});
+});
+
+describe("classicyQuickTimePictureViewerEventHandler — ClassicyAppPictureViewerOpenFile", () => {
+	it("adds a filesystem path to openFiles", () => {
+		const ds = makeStoreWithPictureViewer();
+
+		const result = classicyQuickTimePictureViewerEventHandler(ds, {
+			type: "ClassicyAppPictureViewerOpenFile",
+			path: "Macintosh HD:Documents:Photos:photo.jpg",
+		});
+
+		expect(getRawOpenFiles(result)).toEqual([
+			"Macintosh HD:Documents:Photos:photo.jpg",
+		]);
+	});
+
+	it("deduplicates by path — the same path is not added twice", () => {
+		const ds = makeStoreWithPictureViewer();
+		const path = "Macintosh HD:Documents:Photos:photo.jpg";
+
+		let result = classicyQuickTimePictureViewerEventHandler(ds, {
+			type: "ClassicyAppPictureViewerOpenFile",
+			path,
+		});
+		result = classicyQuickTimePictureViewerEventHandler(result, {
+			type: "ClassicyAppPictureViewerOpenFile",
+			path,
+		});
+
+		expect(getRawOpenFiles(result)).toHaveLength(1);
+	});
+
+	it("opens the app when a new path is added", () => {
+		const ds = makeStoreWithPictureViewer();
+
+		const result = classicyQuickTimePictureViewerEventHandler(ds, {
+			type: "ClassicyAppPictureViewerOpenFile",
+			path: "Macintosh HD:Documents:Photos:photo.jpg",
+		});
+
+		expect(
+			result.System.Manager.Applications.apps["PictureViewer.app"].open,
+		).toBe(true);
+	});
+
+	it("coexists with manually-opened documents in the same openFiles list", () => {
+		const ds = makeStoreWithPictureViewer();
+		ds.System.Manager.Applications.apps["PictureViewer.app"].data = {
+			openFiles: [{ url: "http://example.com/a.png", name: "A" }],
+		};
+
+		const result = classicyQuickTimePictureViewerEventHandler(ds, {
+			type: "ClassicyAppPictureViewerOpenFile",
+			path: "Macintosh HD:Documents:Photos:photo.jpg",
+		});
+
+		expect(getRawOpenFiles(result)).toEqual([
+			{ url: "http://example.com/a.png", name: "A" },
+			"Macintosh HD:Documents:Photos:photo.jpg",
+		]);
+	});
+});
+
+describe("classicyQuickTimePictureViewerEventHandler — ClassicyAppPictureViewerCloseFile", () => {
+	it("removes a document by path", () => {
+		const ds = makeStoreWithPictureViewer();
+		ds.System.Manager.Applications.apps["PictureViewer.app"].data = {
+			openFiles: [
+				"Macintosh HD:Documents:Photos:a.jpg",
+				"Macintosh HD:Documents:Photos:b.jpg",
+			],
+		};
+
+		const result = classicyQuickTimePictureViewerEventHandler(ds, {
+			type: "ClassicyAppPictureViewerCloseFile",
+			path: "Macintosh HD:Documents:Photos:a.jpg",
+		});
+
+		expect(getRawOpenFiles(result)).toEqual([
+			"Macintosh HD:Documents:Photos:b.jpg",
+		]);
+	});
+
+	it("does not remove manually-opened documents with the same shape", () => {
+		const ds = makeStoreWithPictureViewer();
+		ds.System.Manager.Applications.apps["PictureViewer.app"].data = {
+			openFiles: [
+				{ url: "http://example.com/a.png", name: "A" },
+				"Macintosh HD:Documents:Photos:a.jpg",
+			],
+		};
+
+		const result = classicyQuickTimePictureViewerEventHandler(ds, {
+			type: "ClassicyAppPictureViewerCloseFile",
+			path: "Macintosh HD:Documents:Photos:a.jpg",
+		});
+
+		expect(getRawOpenFiles(result)).toEqual([
+			{ url: "http://example.com/a.png", name: "A" },
+		]);
 	});
 });
 

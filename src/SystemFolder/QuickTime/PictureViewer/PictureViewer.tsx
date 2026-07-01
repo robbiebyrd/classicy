@@ -1,5 +1,10 @@
 import "./PictureViewer.scss";
-import { type FC as FunctionalComponent, useEffect, useMemo } from "react";
+import {
+	type FC as FunctionalComponent,
+	useCallback,
+	useEffect,
+	useMemo,
+} from "react";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import {
 	useAppManager,
@@ -8,13 +13,65 @@ import {
 import {
 	PictureViewerAppInfo,
 	isPictureViewerData,
-	type QuickTimeImageDocument,
+	type PictureViewerOpenFile,
 } from "@/SystemFolder/QuickTime/PictureViewer/PictureViewerUtils";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import { quitMenuItemHelper } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
+import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
+import { resolveFileSystemEntrySource } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContentResolver";
+import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import { useResolvedMediaSource } from "@/SystemFolder/SystemResources/File/useResolvedMediaSource";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
 const defaultDocumentIcon = ClassicyIcons.system.quicktime.movie;
+
+type ResolvedPictureDocument = {
+	key: string;
+	path?: string;
+	title: string;
+	icon?: string;
+	url?: string;
+	data?: string;
+	mimeType?: string;
+};
+
+function resolvePictureDocument(
+	entry: PictureViewerOpenFile,
+	fs: ClassicyFileSystem,
+): ResolvedPictureDocument {
+	if (typeof entry === "string") {
+		const fsEntry = fs.resolve(entry);
+		const source = resolveFileSystemEntrySource(fsEntry);
+		return {
+			key: entry,
+			path: entry,
+			title: entry.split(":").pop() || entry,
+			icon: fsEntry?._icon,
+			url: source.kind === "url" ? source.url : undefined,
+			data: source.kind === "data" ? source.data : undefined,
+			mimeType: fsEntry?._mimeType,
+		};
+	}
+	return {
+		key: entry.url,
+		title: entry.name ?? entry.url,
+		icon: entry.icon,
+		url: entry.url,
+	};
+}
+
+const PictureViewerImage: FunctionalComponent<{
+	url?: string;
+	data?: string;
+	mimeType?: string;
+	alt: string;
+}> = ({ url, data, mimeType, alt }) => {
+	const src = useResolvedMediaSource(url, data, mimeType);
+	if (!src) {
+		return null;
+	}
+	return <img src={src} alt={alt} className={"classicyPictureViewerImage"} />;
+};
 
 export const QuickTimePictureViewer: FunctionalComponent = () => {
 	const { name: appName, id: appId, icon: appIcon } = PictureViewerAppInfo;
@@ -27,10 +84,15 @@ export const QuickTimePictureViewer: FunctionalComponent = () => {
 		(s) => s.System.Manager.Applications.apps[appId]?.open,
 	);
 
+	const fs = useMemo(() => new ClassicyFileSystem(), []);
+
 	const rawAppData = appData ?? {};
 	const pictureData = isPictureViewerData(rawAppData) ? rawAppData : null;
-	const openDocuments: QuickTimeImageDocument[] =
-		pictureData?.openFiles ?? [];
+	const openFiles: PictureViewerOpenFile[] = pictureData?.openFiles ?? [];
+	const openDocuments = useMemo(
+		() => openFiles.map((entry) => resolvePictureDocument(entry, fs)),
+		[openFiles, fs],
+	);
 
 	// Load Default Demo documents on open
 	useEffect(() => {
@@ -49,6 +111,17 @@ export const QuickTimePictureViewer: FunctionalComponent = () => {
 		}
 	}, [appData, appOpen, desktopEventDispatch]);
 
+	const closeFile = useCallback(
+		(path: string) => {
+			desktopEventDispatch({
+				type: `ClassicyApp${appName.replace(/\s+/g, "")}CloseFile`,
+				app: { id: appId },
+				path,
+			});
+		},
+		[desktopEventDispatch, appId, appName],
+	);
+
 	const appMenu = useMemo(
 		() => [
 			{
@@ -61,40 +134,47 @@ export const QuickTimePictureViewer: FunctionalComponent = () => {
 	);
 
 	return (
-		<ClassicyApp id={appId} name={appName} icon={appIcon}>
-			{Array.isArray(openDocuments) && openDocuments.length > 0
-				? openDocuments.map((doc: QuickTimeImageDocument) => (
-						<ClassicyWindow
-							key={`${doc.name}_${doc.url}`}
-							id={`${appId}_PictureViewer_${doc.url}`}
-							title={doc.name}
-							icon={doc.icon || undefined}
-							minimumSize={[300, 60]}
-							appId={appId}
-							closable={true}
-							resizable={true}
-							zoomable={true}
-							scrollable={true}
-							collapsable={false}
-							initialSize={[400, 100]}
-							initialPosition={[300, 50]}
-							modal={false}
-							appMenu={appMenu}
-							onCloseFunc={() =>
-								desktopEventDispatch({
+		<ClassicyApp
+			id={appId}
+			name={appName}
+			icon={appIcon}
+			handlesFileTypes={[ClassicyFileSystemEntryFileType.Image]}
+			handlesOwnFiles={true}
+		>
+			{openDocuments.map((doc) => (
+				<ClassicyWindow
+					key={`${appId}_PictureViewer_${doc.key}`}
+					id={`${appId}_PictureViewer_${doc.key}`}
+					title={doc.title}
+					icon={doc.icon || undefined}
+					minimumSize={[300, 60]}
+					appId={appId}
+					closable={true}
+					resizable={true}
+					zoomable={true}
+					scrollable={true}
+					collapsable={false}
+					initialSize={[400, 100]}
+					initialPosition={[300, 50]}
+					modal={false}
+					appMenu={appMenu}
+					onCloseFunc={() =>
+						doc.path
+							? closeFile(doc.path)
+							: desktopEventDispatch({
 									type: "ClassicyAppPictureViewerCloseDocument",
-									document: doc,
+									document: { url: doc.url, name: doc.title, icon: doc.icon },
 								})
-							}
-						>
-							<img
-								src={doc.url}
-								alt={doc.name}
-								className={"classicyPictureViewerImage"}
-							/>
-						</ClassicyWindow>
-					))
-				: null}
+					}
+				>
+					<PictureViewerImage
+						url={doc.url}
+						data={doc.data}
+						mimeType={doc.mimeType}
+						alt={doc.title}
+					/>
+				</ClassicyWindow>
+			))}
 		</ClassicyApp>
 	);
 };

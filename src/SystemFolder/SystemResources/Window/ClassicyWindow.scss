@@ -94,7 +94,7 @@
       .classicyWindowTitleLeft,
       .classicyWindowTitleRight {
         background: assets.$title-bar-center;
-        background-size: auto 100%;
+        background-size: auto 105%;
 
         &:after {
           position: relative;
@@ -169,7 +169,7 @@
     .classicyWindowTitle {
       .classicyWindowTitleCenter {
         background: assets.$title-bar-center-red;
-        background-size: auto 100%;
+        background-size: auto 105%;
       }
 
       .classicyWindowTitleLeft,

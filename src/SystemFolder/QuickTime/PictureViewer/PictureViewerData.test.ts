@@ -32,7 +32,7 @@ describe("isPictureViewerData", () => {
 	it("narrows the type so openFiles is accessible without casting", () => {
 		const data: Record<string, unknown> = { openFiles: [] };
 		if (isPictureViewerData(data)) {
-			const files: import("@/SystemFolder/QuickTime/PictureViewer/PictureViewerUtils").QuickTimeImageDocument[] =
+			const files: import("@/SystemFolder/QuickTime/PictureViewer/PictureViewerUtils").PictureViewerOpenFile[] =
 				data.openFiles;
 			expect(files).toHaveLength(0);
 		} else {

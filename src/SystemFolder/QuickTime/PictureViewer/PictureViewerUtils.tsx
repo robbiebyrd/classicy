@@ -8,8 +8,14 @@ export type QuickTimeImageDocument = {
 	icon?: string;
 };
 
+// An open file can be either a manually-opened document (url-only, e.g. the
+// demo picture) or a plain ClassicyFileSystem path (e.g. a JPG double-clicked
+// in Finder — see ClassicyAppPictureViewerOpenFile), resolved to a source at
+// render time via ClassicyFileSystem + resolveFileSystemEntrySource.
+export type PictureViewerOpenFile = string | QuickTimeImageDocument;
+
 export type PictureViewerData = {
-	openFiles: QuickTimeImageDocument[];
+	openFiles: PictureViewerOpenFile[];
 };
 
 export function isPictureViewerData(
