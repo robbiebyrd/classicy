@@ -50,3 +50,4 @@ example/timemachine/cache
 /stories/archive
 .history
 .worktrees
+.superpowers/
