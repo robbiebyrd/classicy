@@ -1,10 +1,8 @@
 import "./PDFViewerDocument.scss";
-import {
-	GlobalWorkerOptions,
-	getDocument,
-	type PDFDocumentProxy,
-	RenderingCancelledException,
-	type RenderTask,
+import type {
+	PDFDocumentLoadingTask,
+	PDFDocumentProxy,
+	RenderTask,
 } from "pdfjs-dist";
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import {
@@ -16,7 +14,21 @@ import {
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 
-GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+// pdfjs-dist's canvas module references the browser-only `DOMMatrix` global
+// at module-evaluation time. A static import here would run that the instant
+// anything is imported from the classicy barrel — crashing any consumer's
+// non-browser environment (Node, test runners, SSR) even if they never
+// render a PDFViewer. Load it lazily instead, once, on first use.
+let pdfjsPromise: Promise<typeof import("pdfjs-dist")> | null = null;
+function loadPdfjs() {
+	if (!pdfjsPromise) {
+		pdfjsPromise = import("pdfjs-dist").then((pdfjs) => {
+			pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+			return pdfjs;
+		});
+	}
+	return pdfjsPromise;
+}
 
 const MIN_SCALE = 0.5;
 const MAX_SCALE = 3.0;
@@ -47,28 +59,32 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 	// Load the document whenever the URL changes
 	useEffect(() => {
 		let cancelled = false;
+		// `destroy()` lives on the loading task (not the resolved
+		// PDFDocumentProxy), and is safe to call whether the load is still
+		// in flight or has already settled — it aborts network requests and
+		// tears down the worker/transport either way. Assigned once pdfjs
+		// finishes loading and the task is actually created, so cleanup always
+		// tears down the instance that *this* effect run created, exactly once.
+		let loadingTask: PDFDocumentLoadingTask | null = null;
 		setDoc(null);
 		setError(false);
 		setPageError(false);
 		setCurrentPage(1);
-		// `destroy()` lives on the loading task (not the resolved
-		// PDFDocumentProxy), and is safe to call whether the load is still
-		// in flight or has already settled — it aborts network requests and
-		// tears down the worker/transport either way. Keeping the task in a
-		// closure variable (rather than relying on `doc` state, which lags
-		// one render behind) means cleanup always tears down the instance
-		// that *this* effect run created, exactly once.
-		const loadingTask = getDocument({ url });
-		loadingTask.promise
+		loadPdfjs()
+			.then((pdfjs) => {
+				if (cancelled) return undefined;
+				loadingTask = pdfjs.getDocument({ url });
+				return loadingTask.promise;
+			})
 			.then((loadedDoc) => {
-				if (!cancelled) setDoc(loadedDoc);
+				if (!cancelled && loadedDoc) setDoc(loadedDoc);
 			})
 			.catch(() => {
 				if (!cancelled) setError(true);
 			});
 		return () => {
 			cancelled = true;
-			loadingTask.destroy();
+			loadingTask?.destroy();
 		};
 	}, [url]);
 
@@ -82,9 +98,8 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 		// failed to render should give the new page a clean slate rather than
 		// inheriting the old error.
 		setPageError(false);
-		doc
-			.getPage(currentPage)
-			.then((page) => {
+		Promise.all([doc.getPage(currentPage), loadPdfjs()])
+			.then(([page, pdfjs]) => {
 				if (cancelled || !canvasRef.current) return;
 				const viewport = page.getViewport({ scale });
 				const context = canvasRef.current.getContext("2d");
@@ -106,7 +121,7 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 				// do. This is a *page*-render failure (the document already
 				// loaded fine), so it sets `pageError`, not `error`.
 				renderTask.promise.catch((reason: unknown) => {
-					if (reason instanceof RenderingCancelledException) return;
+					if (reason instanceof pdfjs.RenderingCancelledException) return;
 					if (!cancelled) setPageError(true);
 				});
 			})
