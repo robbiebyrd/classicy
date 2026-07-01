@@ -14,6 +14,13 @@ import { decompressFromBase64 } from "@/SystemFolder/SystemResources/Utils/base6
 
 const directoryIcon = ClassicyIcons.system.folders.directory;
 
+const SUMMABLE_FILE_TYPES = new Set<string>([
+	ClassicyFileSystemEntryFileType.File,
+	ClassicyFileSystemEntryFileType.TextFile,
+	ClassicyFileSystemEntryFileType.Markdown,
+	ClassicyFileSystemEntryFileType.Pdf,
+]);
+
 export type ClassicyPathOrFileSystemEntry = string | ClassicyFileSystemEntry;
 
 export class ClassicyFileSystem {
@@ -199,18 +206,7 @@ export class ClassicyFileSystem {
 		}
 
 		if (entry._type === ClassicyFileSystemEntryFileType.Directory) {
-			const childEntries = Object.entries(entry).filter(
-				([key, child]) =>
-					!key.startsWith("_") &&
-					Boolean((child as ClassicyFileSystemEntry)?._type),
-			);
-			const childSizes = await Promise.all(
-				childEntries.map(([, child]) => this.size(child as ClassicyFileSystemEntry)),
-			);
-			return childSizes.reduce(
-				(total, childSize) => (childSize > 0 ? total + childSize : total),
-				0,
-			);
+			return this.calculateSizeDir(entry);
 		}
 
 		return -1;
@@ -315,30 +311,35 @@ export class ClassicyFileSystem {
 		this.fs = this.deepMerge(current, this.fs);
 	}
 
-	calculateSizeDir(path: ClassicyPathOrFileSystemEntry | string): number {
-		const gatherSizes = (
+	async calculateSizeDir(
+		path: ClassicyPathOrFileSystemEntry | string,
+	): Promise<number> {
+		const gatherEntries = (
 			entry: ClassicyFileSystemEntry,
-			field: string,
-			value: string,
-		): string[] => {
-			let results: string[] = [];
+		): ClassicyFileSystemEntry[] => {
+			let results: ClassicyFileSystemEntry[] = [];
 			for (const key of Object.keys(entry)) {
-				if (key === field && entry[key] === value) {
-					results.push(String(this.size(entry)));
+				if (key === "_type" && SUMMABLE_FILE_TYPES.has(entry[key])) {
+					results.push(entry);
 				} else if (typeof entry[key] === "object" && entry[key] !== null) {
 					results = results.concat(
-						gatherSizes(entry[key] as ClassicyFileSystemEntry, field, value),
+						gatherEntries(entry[key] as ClassicyFileSystemEntry),
 					);
 				}
 			}
 			return results;
 		};
 
-		if (typeof path === "string") {
-			path = this.resolve(path);
-		}
+		const resolvedPath = typeof path === "string" ? this.resolve(path) : path;
 
-		return gatherSizes(path, "_type", "file").reduce((a, c) => a + +c, 0);
+		const matchingEntries = gatherEntries(resolvedPath);
+		const sizes = await Promise.all(
+			matchingEntries.map((entry) => this.size(entry)),
+		);
+		return sizes.reduce(
+			(total, entrySize) => (entrySize > 0 ? total + entrySize : total),
+			0,
+		);
 	}
 
 	countVisibleFiles(path: string): number {
@@ -381,7 +382,7 @@ export class ClassicyFileSystem {
 			_countHidden: this.countInvisibleFilesInDir(path),
 			_name: name[0],
 			_path: path,
-			_size: this.calculateSizeDir(current),
+			_size: 0,
 			_type: ClassicyFileSystemEntryFileType.Directory,
 		};
 

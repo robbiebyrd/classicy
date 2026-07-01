@@ -244,3 +244,87 @@ describe("ClassicyFileSystem.size", () => {
 		await expect(cfs.size(entry)).resolves.toBe(5);
 	});
 });
+
+describe("ClassicyFileSystem.calculateSizeDir", () => {
+	afterEach(() => {
+		vi.unstubAllGlobals();
+	});
+
+	it("sums File-type descendants at any nesting depth", async () => {
+		const cfs = new ClassicyFileSystem("test-calc-size-nested", {
+			_type: "directory",
+			"Macintosh HD": {
+				_type: ClassicyFileSystemEntryFileType.Drive,
+				Documents: {
+					_type: ClassicyFileSystemEntryFileType.Directory,
+					"a.txt": {
+						_type: ClassicyFileSystemEntryFileType.File,
+						_data: "hello", // 5 bytes
+					},
+					Nested: {
+						_type: ClassicyFileSystemEntryFileType.Directory,
+						"b.txt": {
+							_type: ClassicyFileSystemEntryFileType.File,
+							_data: "hi", // 2 bytes
+						},
+					},
+				},
+			},
+		});
+		await expect(
+			cfs.calculateSizeDir("Macintosh HD:Documents"),
+		).resolves.toBe(7);
+	});
+
+	it("also sums TextFile, Markdown, and Pdf descendants (previously excluded)", async () => {
+		const cfs = new ClassicyFileSystem("test-calc-size-all-types", {
+			_type: "directory",
+			"Macintosh HD": {
+				_type: ClassicyFileSystemEntryFileType.Drive,
+				Documents: {
+					_type: ClassicyFileSystemEntryFileType.Directory,
+					"a.txt": {
+						_type: ClassicyFileSystemEntryFileType.TextFile,
+						_data: "hello", // 5 bytes
+					},
+					"b.md": {
+						_type: ClassicyFileSystemEntryFileType.Markdown,
+						_data: "hi", // 2 bytes
+					},
+					"c.pdf": {
+						_type: ClassicyFileSystemEntryFileType.Pdf,
+						_data: "!!!", // 3 bytes
+					},
+				},
+			},
+		});
+		await expect(
+			cfs.calculateSizeDir("Macintosh HD:Documents"),
+		).resolves.toBe(10);
+	});
+
+	it("excludes a descendant whose size can't be resolved from the total", async () => {
+		const fetchMock = vi.fn().mockRejectedValue(new Error("unreachable"));
+		vi.stubGlobal("fetch", fetchMock);
+		const cfs = new ClassicyFileSystem("test-calc-size-fail", {
+			_type: "directory",
+			"Macintosh HD": {
+				_type: ClassicyFileSystemEntryFileType.Drive,
+				Documents: {
+					_type: ClassicyFileSystemEntryFileType.Directory,
+					"a.txt": {
+						_type: ClassicyFileSystemEntryFileType.File,
+						_data: "hello", // 5 bytes
+					},
+					"b.txt": {
+						_type: ClassicyFileSystemEntryFileType.File,
+						_url: "https://example.com/b.txt",
+					},
+				},
+			},
+		});
+		await expect(
+			cfs.calculateSizeDir("Macintosh HD:Documents"),
+		).resolves.toBe(5);
+	});
+});
