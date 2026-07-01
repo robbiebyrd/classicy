@@ -53,7 +53,10 @@ function resolveMovieDocument(
 			url: source.kind === "url" ? source.url : undefined,
 			data: source.kind === "data" ? source.data : undefined,
 			mimeType: fsEntry?._mimeType,
-			type: "video",
+			type:
+				fsEntry?._type === ClassicyFileSystemEntryFileType.Audio
+					? "audio"
+					: "video",
 		};
 	}
 	return {
@@ -161,7 +164,10 @@ export const MoviePlayer: FunctionalComponent = () => {
 			id={appId}
 			name={appName}
 			icon={appIcon}
-			handlesFileTypes={[ClassicyFileSystemEntryFileType.Video]}
+			handlesFileTypes={[
+				ClassicyFileSystemEntryFileType.Video,
+				ClassicyFileSystemEntryFileType.Audio,
+			]}
 			handlesOwnFiles={true}
 		>
 			{openDocuments.map((doc) => (
