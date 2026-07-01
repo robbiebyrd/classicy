@@ -368,10 +368,10 @@ export class ClassicyFileSystem {
 		return invisibleFiles.length;
 	}
 
-	statDir(path: string): ClassicyFileSystemEntry | undefined {
+	statDirShell(path: string): ClassicyFileSystemEntry | undefined {
 		const current: ClassicyFileSystemEntry = this.resolve(path);
 		if (!current) {
-			return;
+			return undefined;
 		}
 		const metaData = this.filterMetadata(current, "only");
 
@@ -382,7 +382,6 @@ export class ClassicyFileSystem {
 			_countHidden: this.countInvisibleFilesInDir(path),
 			_name: name[0],
 			_path: path,
-			_size: 0,
 			_type: ClassicyFileSystemEntryFileType.Directory,
 		};
 
@@ -391,6 +390,14 @@ export class ClassicyFileSystem {
 		});
 
 		return returnValue;
+	}
+
+	async statDir(path: string): Promise<ClassicyFileSystemEntry | undefined> {
+		const shell = this.statDirShell(path);
+		if (!shell) return undefined;
+		const current = this.resolve(path);
+		shell._size = await this.calculateSizeDir(current);
+		return shell;
 	}
 
 	private deepMerge(

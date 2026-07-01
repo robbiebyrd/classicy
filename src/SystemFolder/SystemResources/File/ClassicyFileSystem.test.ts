@@ -328,3 +328,82 @@ describe("ClassicyFileSystem.calculateSizeDir", () => {
 		).resolves.toBe(5);
 	});
 });
+
+describe("ClassicyFileSystem.statFile", () => {
+	afterEach(() => {
+		vi.unstubAllGlobals();
+	});
+
+	it("awaits the resolved size and sets it on the returned entry", async () => {
+		const fetchMock = vi.fn().mockResolvedValue({
+			ok: true,
+			headers: new Headers({ "Content-Length": "2048" }),
+		});
+		vi.stubGlobal("fetch", fetchMock);
+		const cfs = new ClassicyFileSystem("test-stat-file", {
+			_type: "directory",
+			"Macintosh HD": {
+				_type: ClassicyFileSystemEntryFileType.Drive,
+				"a.pdf": {
+					_type: ClassicyFileSystemEntryFileType.Pdf,
+					_url: "https://example.com/a.pdf",
+				},
+			},
+		});
+		const stated = await cfs.statFile("Macintosh HD:a.pdf");
+		expect(stated?._size).toBe(2048);
+	});
+});
+
+describe("ClassicyFileSystem.statDirShell", () => {
+	it("returns count/name/path/type synchronously without touching _size, even with unresolved _url children", () => {
+		const fetchMock = vi.fn();
+		vi.stubGlobal("fetch", fetchMock);
+		const cfs = new ClassicyFileSystem("test-stat-dir-shell", {
+			_type: "directory",
+			"Macintosh HD": {
+				_type: ClassicyFileSystemEntryFileType.Drive,
+				Documents: {
+					_type: ClassicyFileSystemEntryFileType.Directory,
+					"a.pdf": {
+						_type: ClassicyFileSystemEntryFileType.Pdf,
+						_url: "https://example.com/a.pdf",
+					},
+				},
+			},
+		});
+		const shell = cfs.statDirShell("Macintosh HD:Documents");
+		expect(shell?._name).toBe("Documents");
+		expect(shell?._path).toBe("Macintosh HD:Documents");
+		expect(shell?._type).toBe(ClassicyFileSystemEntryFileType.Directory);
+		expect(shell?._count).toBe(1);
+		expect(shell?._size).toBeUndefined();
+		expect(fetchMock).not.toHaveBeenCalled();
+		vi.unstubAllGlobals();
+	});
+});
+
+describe("ClassicyFileSystem.statDir", () => {
+	afterEach(() => {
+		vi.unstubAllGlobals();
+	});
+
+	it("returns the shell fields plus the awaited computed _size", async () => {
+		const cfs = new ClassicyFileSystem("test-stat-dir", {
+			_type: "directory",
+			"Macintosh HD": {
+				_type: ClassicyFileSystemEntryFileType.Drive,
+				Documents: {
+					_type: ClassicyFileSystemEntryFileType.Directory,
+					"a.txt": {
+						_type: ClassicyFileSystemEntryFileType.File,
+						_data: "hello",
+					},
+				},
+			},
+		});
+		const dir = await cfs.statDir("Macintosh HD:Documents");
+		expect(dir?._name).toBe("Documents");
+		expect(dir?._size).toBe(5);
+	});
+});
