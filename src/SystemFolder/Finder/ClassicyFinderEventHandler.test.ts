@@ -302,3 +302,78 @@ describe("classicyFinderEventHandler — no-op actions", () => {
 		).not.toThrow();
 	});
 });
+
+describe("classicyFinderEventHandler — ClassicyAppFinderOpenFile with a system file", () => {
+	it("shows the system-file error dialog and does not route to any handler", () => {
+		const ds = makeStore();
+		ds.System.Manager.Applications.apps["SimpleText.app"] = {
+			id: "SimpleText.app",
+			name: "SimpleText",
+			icon: "",
+			windows: [],
+			open: false,
+			focused: false,
+			data: {},
+		};
+		ds.System.Manager.Applications.fileTypeHandlers[
+			ClassicyFileSystemEntryFileType.TextFile
+		] = "SimpleText.app";
+
+		classicyFinderEventHandler(ds, {
+			type: "ClassicyAppFinderOpenFile",
+			path: "Macintosh HD:System Folder:Finder",
+			file: {
+				_type: ClassicyFileSystemEntryFileType.TextFile,
+				_system: true,
+			},
+		});
+
+		expect(ds.System.Manager.Desktop.errorDialog).toEqual({
+			message:
+				"This file is used by the system software. It cannot be opened.",
+		});
+		expect(
+			ds.System.Manager.Applications.apps["SimpleText.app"].data?.openFiles,
+		).toBeUndefined();
+	});
+
+	it("blocks a system file even when the file type resolves to a registered handler", () => {
+		const ds = makeStore();
+		// makeStore's default fileTypeHandlers maps every type to "Finder.app",
+		// so without the guard this would route straight through to Finder's
+		// own openFiles list instead of showing the system-file error.
+		classicyFinderEventHandler(ds, {
+			type: "ClassicyAppFinderOpenFile",
+			path: "Macintosh HD:System Folder:System",
+			file: {
+				_type: ClassicyFileSystemEntryFileType.File,
+				_system: true,
+			},
+		});
+
+		expect(ds.System.Manager.Desktop.errorDialog).toEqual({
+			message:
+				"This file is used by the system software. It cannot be opened.",
+		});
+		expect(
+			ds.System.Manager.Applications.apps["Finder.app"].data?.openFiles,
+		).toBeUndefined();
+	});
+
+	it("does not affect non-system files with no registered handler for their type", () => {
+		const ds = makeStore();
+		delete ds.System.Manager.Applications.fileTypeHandlers[
+			ClassicyFileSystemEntryFileType.File
+		];
+
+		classicyFinderEventHandler(ds, {
+			type: "ClassicyAppFinderOpenFile",
+			path: "Macintosh HD:Utilities:Terminal.app",
+			file: { _type: ClassicyFileSystemEntryFileType.File },
+		});
+
+		expect(ds.System.Manager.Desktop.errorDialog).toEqual({
+			message: "Finder cannot open the file type you requested.",
+		});
+	});
+});

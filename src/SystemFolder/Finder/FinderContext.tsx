@@ -101,6 +101,13 @@ export const classicyFinderEventHandler = (
 		}
 		case "ClassicyAppFinderOpenFile": {
 			const file = hasFinderFile(action) ? action.file : undefined;
+			if (file?._system) {
+				ds.System.Manager.Desktop.errorDialog = {
+					message:
+						"This file is used by the system software. It cannot be opened.",
+				};
+				return ds;
+			}
 			// Legacy QuickTime _creator-based routing
 			if (file && file._creator === "QuickTime") {
 				let document: unknown;
