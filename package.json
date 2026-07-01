@@ -4,7 +4,7 @@
 	"types": "./dist/types/src/index.d.ts",
 	"name": "classicy",
 	"version": "0.20.0",
-	"release": "Buster's Ghost",
+	"release": "Dawn of Buster",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/robbiebyrd/classicy"
