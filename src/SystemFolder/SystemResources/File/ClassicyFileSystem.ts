@@ -153,10 +153,10 @@ export class ClassicyFileSystem {
 		return filteredItems;
 	}
 
-	statFile(path: string): ClassicyFileSystemEntry | undefined {
+	async statFile(path: string): Promise<ClassicyFileSystemEntry | undefined> {
 		const item = this.resolve(path);
 		if (!item) return undefined;
-		item._size = this.size(path);
+		item._size = await this.size(path);
 		return item;
 	}
 

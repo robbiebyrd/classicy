@@ -4,6 +4,9 @@ import {
 	ClassicyFileSystem,
 	mergeClassicyFileSystemEntries,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
+import type {
+	ClassicyFileSystemEntry,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { isValidFileSystemEntry } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemValidation";
 import { compressToBase64 } from "@/SystemFolder/SystemResources/Utils/base64Compression";
@@ -188,7 +191,7 @@ describe("ClassicyFileSystem.size", () => {
 		});
 		vi.stubGlobal("fetch", fetchMock);
 		const cfs = new ClassicyFileSystem("test-size-url-head");
-		const entry = {
+		const entry: ClassicyFileSystemEntry = {
 			_type: ClassicyFileSystemEntryFileType.File,
 			_url: "https://example.com/file.pdf",
 		};
@@ -204,7 +207,7 @@ describe("ClassicyFileSystem.size", () => {
 		const fetchMock = vi.fn().mockRejectedValue(new Error("network error"));
 		vi.stubGlobal("fetch", fetchMock);
 		const cfs = new ClassicyFileSystem("test-size-url-fail");
-		const entry = {
+		const entry: ClassicyFileSystemEntry = {
 			_type: ClassicyFileSystemEntryFileType.File,
 			_url: "https://example.com/file.pdf",
 		};
