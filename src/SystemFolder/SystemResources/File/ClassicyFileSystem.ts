@@ -10,6 +10,7 @@ import {
 import { isValidFileSystemEntry } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemValidation";
 import { DefaultFSContent } from "@/SystemFolder/SystemResources/File/DefaultClassicyFileSystem";
 import { deepMergeReplacingArrays } from "@/SystemFolder/SystemResources/Utils/deepMerge";
+import { decompressFromBase64 } from "@/SystemFolder/SystemResources/Utils/base64Compression";
 
 const directoryIcon = ClassicyIcons.system.folders.directory;
 
@@ -159,23 +160,57 @@ export class ClassicyFileSystem {
 		return item;
 	}
 
-	size(path: ClassicyPathOrFileSystemEntry): number {
+	async size(path: ClassicyPathOrFileSystemEntry): Promise<number> {
 		const entry = typeof path === "string" ? this.resolve(path) : path;
 
 		if (!entry) return -1;
 
 		if ("_data" in entry) {
-			return new Blob(String(entry._data).split("")).size;
+			try {
+				const bytes = await decompressFromBase64(String(entry._data));
+				return bytes.byteLength;
+			} catch {
+				return new Blob(String(entry._data).split("")).size;
+			}
+		}
+
+		if (typeof entry._size === "number") {
+			return entry._size;
+		}
+
+		if (typeof entry._url === "string") {
+			try {
+				const response = await fetch(entry._url, {
+					method: "HEAD",
+					signal: AbortSignal.timeout(8000),
+				});
+				const contentLength = response.headers.get("Content-Length");
+				if (response.ok && contentLength !== null) {
+					const resolvedSize = Number(contentLength);
+					if (!Number.isNaN(resolvedSize)) {
+						entry._size = resolvedSize;
+						return resolvedSize;
+					}
+				}
+			} catch {
+				// network error, CORS block, or timeout — fall through to -1, uncached
+			}
+			return -1;
 		}
 
 		if (entry._type === ClassicyFileSystemEntryFileType.Directory) {
-			let total = 0;
-			for (const [key, child] of Object.entries(entry)) {
-				if (key.startsWith("_") || !child?._type) continue;
-				const childSize = this.size(child);
-				if (childSize > 0) total += childSize;
-			}
-			return total;
+			const childEntries = Object.entries(entry).filter(
+				([key, child]) =>
+					!key.startsWith("_") &&
+					Boolean((child as ClassicyFileSystemEntry)?._type),
+			);
+			const childSizes = await Promise.all(
+				childEntries.map(([, child]) => this.size(child as ClassicyFileSystemEntry)),
+			);
+			return childSizes.reduce(
+				(total, childSize) => (childSize > 0 ? total + childSize : total),
+				0,
+			);
 		}
 
 		return -1;

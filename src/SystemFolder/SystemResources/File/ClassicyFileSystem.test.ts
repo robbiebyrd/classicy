@@ -1,10 +1,12 @@
-import { describe, expect, it } from "vitest";
+// @vitest-environment node
+import { describe, expect, it, vi, afterEach } from "vitest";
 import {
 	ClassicyFileSystem,
 	mergeClassicyFileSystemEntries,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { isValidFileSystemEntry } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemValidation";
+import { compressToBase64 } from "@/SystemFolder/SystemResources/Utils/base64Compression";
 
 describe("ClassicyFileSystem.hash", () => {
 	it('returns the SHA-256 hex digest for file content "hello"', () => {
@@ -138,5 +140,104 @@ describe("mergeClassicyFileSystemEntries", () => {
 		expect(base["Macintosh HD"]._type).toBe(
 			ClassicyFileSystemEntryFileType.Drive,
 		);
+	});
+});
+
+describe("ClassicyFileSystem.size", () => {
+	afterEach(() => {
+		vi.unstubAllGlobals();
+	});
+
+	it("returns the uncompressed byte length for gzip+base64 _data", async () => {
+		const cfs = new ClassicyFileSystem("test-size-data-compressed");
+		const original = new TextEncoder().encode("hello world, this is a test file");
+		const encoded = await compressToBase64(original);
+		const entry = {
+			_type: ClassicyFileSystemEntryFileType.File,
+			_data: encoded,
+		};
+		await expect(cfs.size(entry)).resolves.toBe(original.byteLength);
+	});
+
+	it("falls back to raw Blob-length for _data that isn't valid gzip", async () => {
+		const cfs = new ClassicyFileSystem("test-size-data-plain");
+		const entry = {
+			_type: ClassicyFileSystemEntryFileType.File,
+			_data: "hello",
+		};
+		await expect(cfs.size(entry)).resolves.toBe(5);
+	});
+
+	it("returns a pre-set _size on a _url entry without calling fetch", async () => {
+		const fetchMock = vi.fn();
+		vi.stubGlobal("fetch", fetchMock);
+		const cfs = new ClassicyFileSystem("test-size-url-cached");
+		const entry = {
+			_type: ClassicyFileSystemEntryFileType.File,
+			_url: "https://example.com/file.pdf",
+			_size: 42,
+		};
+		await expect(cfs.size(entry)).resolves.toBe(42);
+		expect(fetchMock).not.toHaveBeenCalled();
+	});
+
+	it("resolves size via HEAD for a _url entry with no _size, and caches it onto the entry", async () => {
+		const fetchMock = vi.fn().mockResolvedValue({
+			ok: true,
+			headers: new Headers({ "Content-Length": "1024" }),
+		});
+		vi.stubGlobal("fetch", fetchMock);
+		const cfs = new ClassicyFileSystem("test-size-url-head");
+		const entry = {
+			_type: ClassicyFileSystemEntryFileType.File,
+			_url: "https://example.com/file.pdf",
+		};
+		await expect(cfs.size(entry)).resolves.toBe(1024);
+		expect(entry._size).toBe(1024);
+		expect(fetchMock).toHaveBeenCalledWith(
+			"https://example.com/file.pdf",
+			expect.objectContaining({ method: "HEAD", signal: expect.any(AbortSignal) }),
+		);
+	});
+
+	it("returns -1 and does not cache when the HEAD request fails", async () => {
+		const fetchMock = vi.fn().mockRejectedValue(new Error("network error"));
+		vi.stubGlobal("fetch", fetchMock);
+		const cfs = new ClassicyFileSystem("test-size-url-fail");
+		const entry = {
+			_type: ClassicyFileSystemEntryFileType.File,
+			_url: "https://example.com/file.pdf",
+		};
+		await expect(cfs.size(entry)).resolves.toBe(-1);
+		expect(entry._size).toBeUndefined();
+	});
+
+	it("returns -1 when the HEAD response has no Content-Length", async () => {
+		const fetchMock = vi.fn().mockResolvedValue({
+			ok: true,
+			headers: new Headers(),
+		});
+		vi.stubGlobal("fetch", fetchMock);
+		const cfs = new ClassicyFileSystem("test-size-url-no-length");
+		const entry = {
+			_type: ClassicyFileSystemEntryFileType.File,
+			_url: "https://example.com/file.pdf",
+		};
+		await expect(cfs.size(entry)).resolves.toBe(-1);
+	});
+
+	it("sums a directory's children concurrently, excluding one that fails to resolve", async () => {
+		const fetchMock = vi.fn().mockRejectedValue(new Error("unreachable"));
+		vi.stubGlobal("fetch", fetchMock);
+		const cfs = new ClassicyFileSystem("test-size-dir-mixed");
+		const entry = {
+			_type: ClassicyFileSystemEntryFileType.Directory,
+			"a.txt": { _type: ClassicyFileSystemEntryFileType.File, _data: "hello" },
+			"b.pdf": {
+				_type: ClassicyFileSystemEntryFileType.File,
+				_url: "https://example.com/b.pdf",
+			},
+		};
+		await expect(cfs.size(entry)).resolves.toBe(5);
 	});
 });
