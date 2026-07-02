@@ -4,6 +4,7 @@ import {
 	useEffect,
 	useMemo,
 } from "react";
+import sampleMovie from "@vid/quicktime/sample.mp4?no-inline";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import {
 	useAppManager,
@@ -126,7 +127,7 @@ export const MoviePlayer: FunctionalComponent = () => {
 				type: "ClassicyAppMoviePlayerOpenDocuments",
 				documents: [
 					{
-						url: "/vid/quicktime/sample.mp4",
+						url: sampleMovie,
 						name: "Quick Time",
 						icon: defaultDocumentIcon,
 						options: {},

@@ -5,6 +5,7 @@ import {
 	useEffect,
 	useMemo,
 } from "react";
+import samplePicture from "@img/apps/quicktime/sample-picture.jpg?inline";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import {
 	useAppManager,
@@ -99,7 +100,7 @@ export const QuickTimePictureViewer: FunctionalComponent = () => {
 		if (appOpen && (!pictureData?.openFiles || pictureData.openFiles.length === 0)) {
 			const defaultDocs = [
 				{
-					url: "/assets/img/apps/quicktime/sample-picture.jpg",
+					url: samplePicture,
 					name: "Sample Picture",
 					icon: defaultDocumentIcon,
 				},

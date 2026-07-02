@@ -32,7 +32,8 @@
 		"paths": {
 			"@/*": ["./src/*"],
 			"@snd/*": ["./assets/sounds/*"],
-			"@img/*": ["./assets/img/*"]
+			"@img/*": ["./assets/img/*"],
+			"@vid/*": ["./assets/vid/*"]
 		}
 	},
 	"exclude": ["example/", "rt911/"]

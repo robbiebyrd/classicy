@@ -6,6 +6,7 @@ import VitePluginImageTools from "vite-plugin-image-tools";
 import richSvg from "vite-plugin-react-rich-svg";
 
 export default defineConfig({
+	base: "./",
 	assetsInclude: [
 		"**/*.ogg",
 		"**/*.m4a",
@@ -19,6 +20,7 @@ export default defineConfig({
 			"@": path.resolve(__dirname, "./src/"),
 			"@snd": path.resolve(__dirname, "./assets/sounds"),
 			"@img": path.resolve(__dirname, "./assets/img"),
+			"@vid": path.resolve(__dirname, "./assets/vid"),
 		},
 	},
 	plugins: [
