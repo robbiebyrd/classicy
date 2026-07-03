@@ -10,8 +10,8 @@ import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
-import { getClassicyAboutWindow } from "@/SystemFolder/SystemResources/AboutWindow/ClassicyAboutWindowUtils";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
+import { useClassicyAboutMenu } from "@/SystemFolder/SystemResources/App/ClassicyAppMenuHooks";
 import {
 	quitAppHelper,
 	quitMenuItemHelper,
@@ -71,7 +71,11 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
 		),
 		desktopEventDispatch = useAppManagerDispatch();
 
-	const [showAbout, setShowAbout] = useState(false);
+	const { aboutMenuItem, aboutWindow } = useClassicyAboutMenu(
+		APP_ID,
+		APP_NAME,
+		appIcon,
+	);
 
 	const quitApp = () => {
 		desktopEventDispatch(quitAppHelper(APP_ID, APP_NAME, appIcon));
@@ -140,15 +144,7 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
 		{
 			id: `${APP_ID}_help`,
 			title: "Help",
-			menuChildren: [
-				{
-					id: `${APP_ID}_about`,
-					title: "About",
-					onClickFunc: () => {
-						setShowAbout(true);
-					},
-				},
-			],
+			menuChildren: [aboutMenuItem],
 		},
 	];
 
@@ -252,14 +248,7 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
 					</ClassicyButton>
 				</div>
 			</ClassicyWindow>
-			{showAbout
-				? getClassicyAboutWindow({
-						appId: APP_ID,
-						appName: APP_NAME,
-						appIcon,
-						hideFunc: () => setShowAbout(false),
-					})
-				: null}
+			{aboutWindow}
 		</ClassicyApp>
 	);
 };
