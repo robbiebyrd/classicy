@@ -17,12 +17,12 @@ import {
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
-import { getClassicyAboutWindow } from "@/SystemFolder/SystemResources/AboutWindow/ClassicyAboutWindowUtils";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import {
 	quitAppHelper,
 	quitMenuItemHelper,
 } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
+import { useClassicyAboutMenu } from "@/SystemFolder/SystemResources/App/ClassicyAppMenuHooks";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyTabs } from "@/SystemFolder/SystemResources/Tabs/ClassicyTabs";
 import { isValidHttpUrl } from "@/SystemFolder/SystemResources/Utils/urlValidation";
@@ -47,7 +47,11 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		desktopEventDispatch = useAppManagerDispatch(),
 		player = useSoundDispatch();
 
-	const [showAbout, setShowAbout] = useState(false);
+	const { aboutMenuItem, aboutWindow } = useClassicyAboutMenu(
+		APP_ID,
+		APP_NAME,
+		appIcon,
+	);
 	const [bg, setBg] = useState<string>(
 		appearanceState.activeTheme.desktop.backgroundImage.startsWith("data:")
 			? appearanceState.activeTheme.desktop.backgroundImage
@@ -197,15 +201,7 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		{
 			id: `${APP_ID}_help`,
 			title: "Help",
-			menuChildren: [
-				{
-					id: `${APP_ID}_about`,
-					title: "About",
-					onClickFunc: () => {
-						setShowAbout(true);
-					},
-				},
-			],
+			menuChildren: [aboutMenuItem],
 		},
 	];
 
@@ -264,14 +260,7 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 					<ClassicyButton onClickFunc={quitApp}>Quit</ClassicyButton>
 				</div>
 			</ClassicyWindow>
-			{showAbout
-				? getClassicyAboutWindow({
-						appId: APP_ID,
-						appName: APP_NAME,
-						appIcon,
-						hideFunc: () => setShowAbout(false),
-					})
-				: null}
+			{aboutWindow}
 		</ClassicyApp>
 	);
 };
