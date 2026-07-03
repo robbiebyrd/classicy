@@ -41,6 +41,7 @@ export * from "./SystemFolder/SystemResources/AboutWindow/ClassicyAboutWindow";
 export * from "./SystemFolder/SystemResources/AboutWindow/ClassicyAboutWindowUtils";
 export * from "./SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 export * from "./SystemFolder/SystemResources/App/ClassicyApp";
+export * from "./SystemFolder/SystemResources/App/ClassicyAppMenuHooks";
 export * from "./SystemFolder/SystemResources/App/ClassicyAppUtils";
 export * from "./SystemFolder/SystemResources/App/ClassicyDefaultAppsContext";
 export * from "./SystemFolder/SystemResources/BalloonHelp/ClassicyBalloonHelp";
