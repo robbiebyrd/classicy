@@ -4,7 +4,7 @@
 	"types": "./dist/types/src/index.d.ts",
 	"name": "classicy",
 	"version": "0.25.4",
-	"release": "Solstice",
+	"release": "Eventide",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/robbiebyrd/classicy"
