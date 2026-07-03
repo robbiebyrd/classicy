@@ -17,8 +17,10 @@ app that wants these standard menu items has to re-derive them from scratch.
 
 ## Goals
 
-- Give Movie Player (and Picture Viewer, its sibling QuickTime app) the same
-  Close Window / Close All Windows / About menu items Finder has.
+- Give Movie Player, Picture Viewer, SimpleText, and PDFViewer the same
+  Close Window / Close All Windows / About menu items Finder has. All four
+  share the same shape (multiple windows open at once, one per file path),
+  so all four get the full treatment.
 - Extract the common parts into shared, documented helpers under
   `SystemResources/App/`, so any `ClassicyApp` can adopt them with minimal
   code.
@@ -172,6 +174,15 @@ return <ClassicyApp>...{aboutWindow}</ClassicyApp>;
   folder's window its own menu today.
 - **PictureViewer.tsx**: same treatment as MoviePlayer (it currently has no
   Help menu and no Close Window/Close All Windows items at all).
+- **PDFViewer.tsx**: same treatment — currently a single static `appMenu`
+  (File → Quit only) shared by every open PDF window; moves to a
+  per-document menu the same way.
+- **SimpleText.tsx**: already builds a per-file `appMenu` via
+  `buildAppMenu(filePath, fileType)`, so this is the most direct fit — add
+  Close Window/Close All Windows/About into that existing per-file menu
+  rather than introducing a new mechanism. The always-present "Untitled"
+  placeholder window (shown when no files are open) gets Help → About too,
+  but no Close Window item — there's no file behind it to close.
 - **Finder.tsx**: per-folder-window "Close Window" and the app-level "Close
   All Windows" switch to `closeWindowMenuItemHelper`/
   `closeAllWindowsMenuItemHelper` + `useClassicyWindowClose`. Finder gains a
@@ -193,7 +204,8 @@ return <ClassicyApp>...{aboutWindow}</ClassicyApp>;
   `useClassicyAboutMenu` (menu item shape, toggling `showAbout` renders/hides
   the about window, `hideFunc` closes it).
 - Existing test suites for Finder, Sound Manager, Appearance Manager, Date &
-  Time Manager, Movie Player, and Picture Viewer are re-run; any assertions
-  that reach into the old inline menu/about shape get updated to match.
+  Time Manager, Movie Player, Picture Viewer, PDFViewer, and SimpleText are
+  re-run; any assertions that reach into the old inline menu/about shape get
+  updated to match.
 - Full project test suite, `tsc --noEmit`, and `pnpm build:source` must
   stay green.
