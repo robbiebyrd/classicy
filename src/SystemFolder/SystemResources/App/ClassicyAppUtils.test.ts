@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+	closeAllWindowsMenuItemHelper,
+	closeWindowMenuItemHelper,
 	quitAppHelper,
 	quitMenuItemHelper,
 } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
@@ -63,5 +65,48 @@ describe("quitMenuItemHelper", () => {
 	it("includes the app icon in eventData", () => {
 		const result = quitMenuItemHelper("my-app", "My App", "icon.png");
 		expect(result.eventData.app.icon).toBe("icon.png");
+	});
+});
+
+describe("closeWindowMenuItemHelper", () => {
+	it("uses the given id", () => {
+		const onClickFunc = () => {};
+		const result = closeWindowMenuItemHelper("my-app_win-1_close", onClickFunc);
+		expect(result.id).toBe("my-app_win-1_close");
+	});
+
+	it("sets the title to 'Close Window'", () => {
+		const result = closeWindowMenuItemHelper("id", () => {});
+		expect(result.title).toBe("Close Window");
+	});
+
+	it("wires onClickFunc to the given callback", () => {
+		let called = false;
+		const result = closeWindowMenuItemHelper("id", () => {
+			called = true;
+		});
+		result.onClickFunc?.();
+		expect(called).toBe(true);
+	});
+});
+
+describe("closeAllWindowsMenuItemHelper", () => {
+	it("uses the given id", () => {
+		const result = closeAllWindowsMenuItemHelper("my-app_close_all", () => {});
+		expect(result.id).toBe("my-app_close_all");
+	});
+
+	it("sets the title to 'Close All Windows'", () => {
+		const result = closeAllWindowsMenuItemHelper("id", () => {});
+		expect(result.title).toBe("Close All Windows");
+	});
+
+	it("wires onClickFunc to the given callback", () => {
+		let called = false;
+		const result = closeAllWindowsMenuItemHelper("id", () => {
+			called = true;
+		});
+		result.onClickFunc?.();
+		expect(called).toBe(true);
 	});
 });

@@ -1,3 +1,5 @@
+import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+
 export const quitAppHelper = (
 	appId: string,
 	appName: string,
@@ -29,5 +31,27 @@ export const quitMenuItemHelper = (
 				icon: appIcon,
 			},
 		},
+	};
+};
+
+export const closeWindowMenuItemHelper = (
+	id: string,
+	onClickFunc: () => void,
+): ClassicyMenuItem => {
+	return {
+		id,
+		title: "Close Window",
+		onClickFunc,
+	};
+};
+
+export const closeAllWindowsMenuItemHelper = (
+	id: string,
+	onClickFunc: () => void,
+): ClassicyMenuItem => {
+	return {
+		id,
+		title: "Close All Windows",
+		onClickFunc,
 	};
 };
