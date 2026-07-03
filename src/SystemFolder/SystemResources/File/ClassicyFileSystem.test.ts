@@ -45,6 +45,25 @@ describe("ClassicyFileSystem.filterByType", () => {
 			"Sample.pdf",
 		]);
 	});
+
+	it("includes Image, Video, and Audio entries by default (no byType argument)", () => {
+		const cfs = new ClassicyFileSystem("test-filter-by-type-default-media", {
+			_type: "directory",
+			"Macintosh HD": {
+				_type: "drive",
+				Documents: {
+					_type: "directory",
+					"Photo.jpg": { _type: ClassicyFileSystemEntryFileType.Image },
+					"Movie.mov": { _type: ClassicyFileSystemEntryFileType.Video },
+					"Song.mp3": { _type: ClassicyFileSystemEntryFileType.Audio },
+				},
+			},
+		});
+
+		const filtered = cfs.filterByType("Macintosh HD:Documents");
+
+		expect(Object.keys(filtered)).toEqual(["Photo.jpg", "Movie.mov", "Song.mp3"]);
+	});
 });
 
 describe("isValidFileSystemEntry", () => {

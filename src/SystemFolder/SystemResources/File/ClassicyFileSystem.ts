@@ -144,6 +144,9 @@ export class ClassicyFileSystem {
 			ClassicyFileSystemEntryFileType.TextFile,
 			ClassicyFileSystemEntryFileType.Markdown,
 			ClassicyFileSystemEntryFileType.Pdf,
+			ClassicyFileSystemEntryFileType.Image,
+			ClassicyFileSystemEntryFileType.Video,
+			ClassicyFileSystemEntryFileType.Audio,
 		],
 		showInvisible: boolean = true,
 	): ClassicyFileSystemEntry {
