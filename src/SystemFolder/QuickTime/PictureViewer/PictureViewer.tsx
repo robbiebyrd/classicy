@@ -17,7 +17,15 @@ import {
 	type PictureViewerOpenFile,
 } from "@/SystemFolder/QuickTime/PictureViewer/PictureViewerUtils";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
-import { quitMenuItemHelper } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
+import {
+	useClassicyAboutMenu,
+	useClassicyWindowClose,
+} from "@/SystemFolder/SystemResources/App/ClassicyAppMenuHooks";
+import {
+	closeAllWindowsMenuItemHelper,
+	closeWindowMenuItemHelper,
+	quitMenuItemHelper,
+} from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
 import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import { resolveFileSystemEntrySource } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContentResolver";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
@@ -123,15 +131,61 @@ export const QuickTimePictureViewer: FunctionalComponent = () => {
 		[desktopEventDispatch, appId, appName],
 	);
 
-	const appMenu = useMemo(
-		() => [
+	const windowEntries = useMemo(
+		() =>
+			openDocuments.map((doc) => ({
+				doc,
+				windowId: `${appId}_PictureViewer_${doc.key}`,
+			})),
+		[openDocuments, appId],
+	);
+
+	const closeWindow = useClassicyWindowClose(appId);
+	const { aboutMenuItem, aboutWindow } = useClassicyAboutMenu(
+		appId,
+		appName,
+		appIcon,
+	);
+
+	const closeDocAction = useCallback(
+		(doc: ResolvedPictureDocument) =>
+			doc.path
+				? {
+						type: "ClassicyAppPictureViewerCloseFile",
+						app: { id: appId },
+						path: doc.path,
+					}
+				: {
+						type: "ClassicyAppPictureViewerCloseDocument",
+						document: { url: doc.url, name: doc.title, icon: doc.icon },
+					},
+		[appId],
+	);
+
+	const buildAppMenu = useCallback(
+		(windowId: string, doc: ResolvedPictureDocument) => [
 			{
-				id: "file",
+				id: `${windowId}_file`,
 				title: "File",
-				menuChildren: [quitMenuItemHelper(appId, appName, appIcon)],
+				menuChildren: [
+					closeWindowMenuItemHelper(`${windowId}_close_window`, () =>
+						closeWindow(windowId, closeDocAction(doc)),
+					),
+					closeAllWindowsMenuItemHelper(`${appId}_close_all_windows`, () => {
+						windowEntries.forEach((entry) =>
+							closeWindow(entry.windowId, closeDocAction(entry.doc)),
+						);
+					}),
+					quitMenuItemHelper(appId, appName, appIcon),
+				],
+			},
+			{
+				id: `${windowId}_help`,
+				title: "Help",
+				menuChildren: [aboutMenuItem],
 			},
 		],
-		[],
+		[appId, appName, appIcon, closeWindow, closeDocAction, windowEntries, aboutMenuItem],
 	);
 
 	return (
@@ -142,10 +196,10 @@ export const QuickTimePictureViewer: FunctionalComponent = () => {
 			handlesFileTypes={[ClassicyFileSystemEntryFileType.Image]}
 			handlesOwnFiles={true}
 		>
-			{openDocuments.map((doc) => (
+			{windowEntries.map(({ doc, windowId }) => (
 				<ClassicyWindow
-					key={`${appId}_PictureViewer_${doc.key}`}
-					id={`${appId}_PictureViewer_${doc.key}`}
+					key={windowId}
+					id={windowId}
 					title={doc.title}
 					icon={doc.icon || undefined}
 					minimumSize={[300, 60]}
@@ -158,7 +212,7 @@ export const QuickTimePictureViewer: FunctionalComponent = () => {
 					initialSize={[400, 100]}
 					initialPosition={[300, 50]}
 					modal={false}
-					appMenu={appMenu}
+					appMenu={buildAppMenu(windowId, doc)}
 					onCloseFunc={() =>
 						doc.path
 							? closeFile(doc.path)
@@ -176,6 +230,7 @@ export const QuickTimePictureViewer: FunctionalComponent = () => {
 					/>
 				</ClassicyWindow>
 			))}
+			{aboutWindow}
 		</ClassicyApp>
 	);
 };
