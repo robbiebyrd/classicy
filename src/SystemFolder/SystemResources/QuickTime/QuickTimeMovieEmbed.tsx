@@ -61,8 +61,18 @@ export const QuickTimeVideoEmbed: FunctionalComponent<QuickTimeVideoEmbed> = ({
 	const [showVolume, setShowVolume] = useState<boolean>(false);
 	const [subtitlesData, setSubtitlesData] = useState<ParsedResult | null>(null);
 	const [showSubtitles, setShowSubtitles] = useState(false);
+	const [currentTime, setCurrentTime] = useState(0);
 
 	const playerRef = useRef<HTMLVideoElement | null>(null);
+
+	// currentTime isn't reactive on its own — reading playerRef.current.currentTime
+	// during render only reflects whatever it was at the last render, so the
+	// progress bar/time label would only update when some other state change
+	// happened to trigger a re-render (e.g. pause). The native timeupdate event
+	// fires continuously during playback, so mirror it into state here.
+	const handleTimeUpdate = useCallback(() => {
+		setCurrentTime(playerRef.current?.currentTime || 0);
+	}, []);
 
 	useEffect(() => {
 		if (screenfull.isEnabled) {
@@ -94,6 +104,7 @@ export const QuickTimeVideoEmbed: FunctionalComponent<QuickTimeVideoEmbed> = ({
 	const seekTo = (seconds: number) => {
 		if (playerRef.current) {
 			playerRef.current.currentTime = seconds;
+			setCurrentTime(seconds);
 		}
 	};
 
@@ -109,7 +120,9 @@ export const QuickTimeVideoEmbed: FunctionalComponent<QuickTimeVideoEmbed> = ({
 
 	const seekToPct = (pct: number) => {
 		if (playerRef.current) {
-			playerRef.current.currentTime = pct * playerRef.current.duration;
+			const seconds = pct * playerRef.current.duration;
+			playerRef.current.currentTime = seconds;
+			setCurrentTime(seconds);
 		}
 	};
 
@@ -223,12 +236,13 @@ export const QuickTimeVideoEmbed: FunctionalComponent<QuickTimeVideoEmbed> = ({
 					height="100%"
 					volume={muted ? 0 : volume}
 					config={options}
+					onTimeUpdate={handleTimeUpdate}
 				/>
 				{(() => {
 					if (!showSubtitles || !subtitlesData?.entries?.length) return null;
-					const currentTime = (playerRef.current?.currentTime || 0) * 1000;
+					const currentTimeMs = currentTime * 1000;
 					const currentEntry = subtitlesData.entries.find(
-						(i) => i.from < currentTime && i.to > currentTime,
+						(i) => i.from < currentTimeMs && i.to > currentTimeMs,
 					);
 					if (!currentEntry) return null;
 					return (
@@ -277,10 +291,7 @@ export const QuickTimeVideoEmbed: FunctionalComponent<QuickTimeVideoEmbed> = ({
 							min="0" // Zero percent
 							max="1" // 100 percent
 							step="0.001" // 1 percent
-							value={
-								(playerRef.current?.currentTime || 0) /
-								(playerRef.current?.duration || 1)
-							}
+							value={currentTime / (playerRef.current?.duration || 1)}
 							readOnly={false}
 							onChange={(e) => {
 								seekToPct(parseFloat(e.target.value));
@@ -288,7 +299,7 @@ export const QuickTimeVideoEmbed: FunctionalComponent<QuickTimeVideoEmbed> = ({
 						/>
 					</div>
 					<p className={"quickTimePlayerVideoControlsTime"}>
-						{timeFriendly(playerRef.current?.currentTime || 0)}
+						{timeFriendly(currentTime)}
 					</p>
 					<button
 						type="button"
@@ -357,7 +368,7 @@ export const QuickTimeVideoEmbed: FunctionalComponent<QuickTimeVideoEmbed> = ({
 						ref={volumeButtonRef}
 					>
 						<img
-							src={`/assets/img/icons/control-panels/sound-manager/${getVolumeIcon(volume)}`}
+							src={getVolumeIcon(volume)}
 							className={"quickTimePlayerVideoControlsIcon"}
 							alt="Volume"
 						/>
