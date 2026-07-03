@@ -71,9 +71,6 @@ Magellan
 Vanguard
 Silverado
 Broadside
-
-9:31 PM
-Claude responded: Stravinsky
 Stravinsky
 Vivace
 Glissando
@@ -139,3 +136,103 @@ Roadie
 Big Whoop
 Hat
 Project Carl
+Nebula
+Meridian
+Corona
+Eclipse
+Comet
+Pulsar
+Nova
+Supernova
+Parallax
+Zodiac
+Orion
+Andromeda
+Cassiopeia
+Draco
+Lyra
+Perseus
+Triton
+Europa
+Umbra
+Occultation
+Cortez
+Balboa
+Cook
+Vespucci
+Hudson
+Frobisher
+Bering
+Clipper
+Schooner
+Brigantine
+Windward
+Leeward
+Sextant
+Astrolabe
+Tradewind
+Monsoon
+Polaris
+Compass Rose
+Longitude
+Privateer
+Legato
+Staccato
+Vibrato
+Tremolo
+Andante
+Allegretto
+Presto
+Adagio
+Fugue
+Prelude
+Requiem
+Serenade
+Rhapsody
+Etude
+Chorale
+Debussy
+Chopin
+Vivaldi
+Bach
+Beethoven
+Haydn
+Handel
+Liszt
+Tchaikovsky
+Sibelius
+Holst
+Basie
+Armstrong
+Monk
+Parker
+Torrio
+Nitti
+Colosimo
+Genovese
+Bonanno
+Luciano
+Schultz
+Diamond
+Weiss
+Karpis
+Buster Strikes Back
+Return of Buster
+Buster II
+Attack of Buster
+Night of Buster
+Buster Unleashed
+Buster Begins
+Ghost of Buster's Ghost
+Wednesday
+Furniture 2001
+Beta Salsa
+Beta Mustard
+Steve's Release
+Not Copland Either
+Big Whoop 2
+Hat Trick
+Project Larry
+Mild Salsa
+10Down
+The Real One
