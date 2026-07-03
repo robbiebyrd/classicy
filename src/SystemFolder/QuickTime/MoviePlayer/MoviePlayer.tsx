@@ -11,7 +11,15 @@ import {
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
-import { quitMenuItemHelper } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
+import {
+	useClassicyAboutMenu,
+	useClassicyWindowClose,
+} from "@/SystemFolder/SystemResources/App/ClassicyAppMenuHooks";
+import {
+	closeAllWindowsMenuItemHelper,
+	closeWindowMenuItemHelper,
+	quitMenuItemHelper,
+} from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
 import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import { resolveFileSystemEntrySource } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContentResolver";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
@@ -149,15 +157,61 @@ export const MoviePlayer: FunctionalComponent = () => {
 		[desktopEventDispatch, appId, appName],
 	);
 
-	const appMenu = useMemo(
-		() => [
+	const windowEntries = useMemo(
+		() =>
+			openDocuments.map((doc) => ({
+				doc,
+				windowId: `${appId}_MoviePlayer_${doc.key}`,
+			})),
+		[openDocuments, appId],
+	);
+
+	const closeWindow = useClassicyWindowClose(appId);
+	const { aboutMenuItem, aboutWindow } = useClassicyAboutMenu(
+		appId,
+		appName,
+		appIcon,
+	);
+
+	const closeDocAction = useCallback(
+		(doc: ResolvedMovieDocument) =>
+			doc.path
+				? {
+						type: "ClassicyAppMoviePlayerCloseFile",
+						app: { id: appId },
+						path: doc.path,
+					}
+				: {
+						type: "ClassicyAppMoviePlayerCloseDocument",
+						document: { url: doc.url, name: doc.title, icon: doc.icon },
+					},
+		[appId],
+	);
+
+	const buildAppMenu = useCallback(
+		(windowId: string, doc: ResolvedMovieDocument) => [
 			{
-				id: "file",
+				id: `${windowId}_file`,
 				title: "File",
-				menuChildren: [quitMenuItemHelper(appId, appName, appIcon)],
+				menuChildren: [
+					closeWindowMenuItemHelper(`${windowId}_close_window`, () =>
+						closeWindow(windowId, closeDocAction(doc)),
+					),
+					closeAllWindowsMenuItemHelper(`${appId}_close_all_windows`, () => {
+						windowEntries.forEach((entry) =>
+							closeWindow(entry.windowId, closeDocAction(entry.doc)),
+						);
+					}),
+					quitMenuItemHelper(appId, appName, appIcon),
+				],
+			},
+			{
+				id: `${windowId}_help`,
+				title: "Help",
+				menuChildren: [aboutMenuItem],
 			},
 		],
-		[],
+		[appId, appName, appIcon, closeWindow, closeDocAction, windowEntries, aboutMenuItem],
 	);
 
 	return (
@@ -171,10 +225,10 @@ export const MoviePlayer: FunctionalComponent = () => {
 			]}
 			handlesOwnFiles={true}
 		>
-			{openDocuments.map((doc) => (
+			{windowEntries.map(({ doc, windowId }) => (
 				<ClassicyWindow
-					key={`${appId}_MoviePlayer_${doc.key}`}
-					id={`${appId}_MoviePlayer_${doc.key}`}
+					key={windowId}
+					id={windowId}
 					title={doc.title}
 					icon={doc.icon || undefined}
 					minimumSize={[300, 60]}
@@ -187,7 +241,7 @@ export const MoviePlayer: FunctionalComponent = () => {
 					initialSize={[400, 100]}
 					initialPosition={[300, 50]}
 					modal={true}
-					appMenu={appMenu}
+					appMenu={buildAppMenu(windowId, doc)}
 					onCloseFunc={() =>
 						doc.path
 							? closeFile(doc.path)
@@ -209,6 +263,7 @@ export const MoviePlayer: FunctionalComponent = () => {
 					/>
 				</ClassicyWindow>
 			))}
+			{aboutWindow}
 		</ClassicyApp>
 	);
 };
