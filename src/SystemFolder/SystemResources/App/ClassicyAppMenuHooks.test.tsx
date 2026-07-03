@@ -4,7 +4,7 @@ import {
 	DefaultAppManagerState,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
-import { useClassicyWindowClose } from "@/SystemFolder/SystemResources/App/ClassicyAppMenuHooks";
+import { useClassicyWindowClose, useClassicyAboutMenu } from "@/SystemFolder/SystemResources/App/ClassicyAppMenuHooks";
 
 function seedTestApp() {
 	useAppManager.setState(DefaultAppManagerState, true);
@@ -89,5 +89,36 @@ describe("useClassicyWindowClose", () => {
 		const first = result.current;
 		rerender({ appId: "TestApp.app" });
 		expect(result.current).toBe(first);
+	});
+});
+
+describe("useClassicyAboutMenu", () => {
+	beforeEach(() => {
+		useAppManager.setState(DefaultAppManagerState, true);
+	});
+
+	it("builds an About menu item with the expected id and title", () => {
+		const { result } = renderHook(() =>
+			useClassicyAboutMenu("TestApp.app", "Test App", "icon.png"),
+		);
+		expect(result.current.aboutMenuItem.id).toBe("TestApp.app_about");
+		expect(result.current.aboutMenuItem.title).toBe("About");
+	});
+
+	it("starts with no about window rendered", () => {
+		const { result } = renderHook(() =>
+			useClassicyAboutMenu("TestApp.app", "Test App", "icon.png"),
+		);
+		expect(result.current.aboutWindow).toBeNull();
+	});
+
+	it("renders the about window after the menu item is clicked", () => {
+		const { result } = renderHook(() =>
+			useClassicyAboutMenu("TestApp.app", "Test App", "icon.png"),
+		);
+		act(() => {
+			result.current.aboutMenuItem.onClickFunc?.();
+		});
+		expect(result.current.aboutWindow).not.toBeNull();
 	});
 });
