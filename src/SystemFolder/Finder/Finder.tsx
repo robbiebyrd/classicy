@@ -18,8 +18,17 @@ import {
 } from "@/SystemFolder/Finder/FinderContext";
 import { FinderAboutThisComputer } from "@/SystemFolder/Finder/FinderAboutThisComputer";
 import { useFinderFolderSize } from "@/SystemFolder/Finder/useFinderFolderSize";
-import { ClassicyAboutWindow } from "@/SystemFolder/SystemResources/AboutWindow/ClassicyAboutWindow";
+import type { ActionMessage } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
+import {
+	useClassicyAboutMenu,
+	useClassicyWindowClose,
+} from "@/SystemFolder/SystemResources/App/ClassicyAppMenuHooks";
+import {
+	closeAllWindowsMenuItemHelper,
+	closeWindowMenuItemHelper,
+} from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
+import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { ClassicyFileBrowser } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowser";
 import { useClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
 import type { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
@@ -42,6 +51,7 @@ type FinderWindowProps = {
 	idx: number;
 	closeFolder: (path: string) => void;
 	closeAllFolders: () => void;
+	closeWindow: (windowId: string, appCleanupAction: ActionMessage) => void;
 	handlePathSettingsChange: (path: string, settings: PathSettingsProps) => void;
 	openFolder: (path: string) => void;
 	openFile: (path: string) => void;
@@ -50,6 +60,7 @@ type FinderWindowProps = {
 	fs: ClassicyFileSystem;
 	disableBalloonHelp: boolean;
 	toggleBalloonHelp: () => void;
+	aboutMenuItem: ClassicyMenuItem;
 };
 
 const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
@@ -59,6 +70,7 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 	idx,
 	closeFolder,
 	closeAllFolders,
+	closeWindow,
 	handlePathSettingsChange,
 	openFolder,
 	openFile,
@@ -67,6 +79,7 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 	fs,
 	disableBalloonHelp,
 	toggleBalloonHelp,
+	aboutMenuItem,
 }) => {
 	const appMenu = useMemo(
 		() => [
@@ -74,16 +87,13 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 				id: `${appId}_${op}_file`,
 				title: "File",
 				menuChildren: [
-					{
-						id: `${appId}_${op}_file_closew`,
-						title: "Close Window",
-						onClickFunc: () => closeFolder(op),
-					},
-					{
-						id: `${appId}_${op}_file_closews`,
-						title: "Close All Windows",
-						onClickFunc: closeAllFolders,
-					},
+					closeWindowMenuItemHelper(`${appId}_${op}_file_closew`, () =>
+						closeWindow(op, { type: "ClassicyAppFinderCloseFolder", path: op }),
+					),
+					closeAllWindowsMenuItemHelper(
+						`${appId}_${op}_file_closews`,
+						closeAllFolders,
+					),
 				],
 			},
 			{
@@ -115,17 +125,19 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 							: "Hide Balloon Help",
 						onClickFunc: toggleBalloonHelp,
 					},
+					aboutMenuItem,
 				],
 			},
 		],
 		[
 			appId,
 			op,
-			closeFolder,
+			closeWindow,
 			closeAllFolders,
 			handlePathSettingsChange,
 			disableBalloonHelp,
 			toggleBalloonHelp,
+			aboutMenuItem,
 		],
 	);
 
@@ -205,9 +217,14 @@ export const Finder = () => {
 	const [pathSettings, setPathSettings] = useState<
 		Record<string, PathSettingsProps>
 	>({});
-	const [showAbout, setShowAbout] = useState(false);
 
 	const fs = useClassicyFileSystem();
+	const closeWindow = useClassicyWindowClose(appId);
+	const { aboutMenuItem, aboutWindow } = useClassicyAboutMenu(
+		appId,
+		appName,
+		appIcon,
+	);
 
 	const prevOpenPathsRef = useRef<string[] | null>(null);
 	useEffect(() => {
@@ -296,17 +313,9 @@ export const Finder = () => {
 	const closeAllFolders = useCallback(() => {
 		const paths: string[] = finderData.openPaths ?? [];
 		paths.forEach((path) => {
-			desktopEventDispatch({
-				type: "ClassicyWindowClose",
-				app: { id: appId },
-				window: { id: path },
-			});
-			desktopEventDispatch({
-				type: "ClassicyAppFinderCloseFolder",
-				path,
-			});
+			closeWindow(path, { type: "ClassicyAppFinderCloseFolder", path });
 		});
-	}, [desktopEventDispatch, finderData.openPaths]);
+	}, [closeWindow, finderData.openPaths]);
 
 	useEffect(() => {
 		const drives = fs.filterByType("", "drive");
@@ -384,6 +393,7 @@ export const Finder = () => {
 							idx={idx}
 							closeFolder={closeFolder}
 							closeAllFolders={closeAllFolders}
+							closeWindow={closeWindow}
 							handlePathSettingsChange={handlePathSettingsChange}
 							openFolder={openFolder}
 							openFile={openFile}
@@ -392,17 +402,11 @@ export const Finder = () => {
 							fs={fs}
 							disableBalloonHelp={disableBalloonHelp}
 							toggleBalloonHelp={toggleBalloonHelp}
+							aboutMenuItem={aboutMenuItem}
 						/>
 					))
 				: null}
-			{showAbout ? (
-				<ClassicyAboutWindow
-					appId={appId}
-					appIcon={appIcon}
-					appName={appName}
-					hideFunc={() => setShowAbout(false)}
-				/>
-			) : null}
+			{aboutWindow}
 			{appState.data?.showAboutThisComputer ? (
 				<FinderAboutThisComputer />
 			) : null}
