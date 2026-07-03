@@ -5,7 +5,15 @@ import {
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
-import { quitMenuItemHelper } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
+import {
+	useClassicyAboutMenu,
+	useClassicyWindowClose,
+} from "@/SystemFolder/SystemResources/App/ClassicyAppMenuHooks";
+import {
+	closeAllWindowsMenuItemHelper,
+	closeWindowMenuItemHelper,
+	quitMenuItemHelper,
+} from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
 import { useClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { ClassicyRichTextEditor } from "@/SystemFolder/SystemResources/RichTextEditor/ClassicyRichTextEditor";
@@ -15,14 +23,6 @@ import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWi
 const appName = "SimpleText";
 const appId = "SimpleText.app";
 const appIcon = ClassicyIcons.applications.simpletext.app;
-
-const baseMenu = [
-	{
-		id: "file",
-		title: "File",
-		menuChildren: [quitMenuItemHelper(appId, appName, appIcon)],
-	},
-];
 
 export const SimpleText = () => {
 	const desktopEventDispatch = useAppManagerDispatch();
@@ -76,14 +76,44 @@ export const SimpleText = () => {
 
 	const defaultText = ``;
 
+	const closeWindow = useClassicyWindowClose(appId);
+	const { aboutMenuItem, aboutWindow } = useClassicyAboutMenu(
+		appId,
+		appName,
+		appIcon,
+	);
+
 	const buildAppMenu = useCallback(
 		(filePath: string, currentType: ClassicyFileSystemEntryFileType) => {
 			const isMarkdown =
 				currentType === ClassicyFileSystemEntryFileType.Markdown;
+			const windowId = `${appId}_file_${filePath}`;
 			return [
-				...baseMenu,
 				{
-					id: "format",
+					id: `${windowId}_file`,
+					title: "File",
+					menuChildren: [
+						closeWindowMenuItemHelper(`${windowId}_close_window`, () =>
+							closeWindow(windowId, {
+								type: `ClassicyApp${appName}CloseFile`,
+								app: { id: appId },
+								path: filePath,
+							}),
+						),
+						closeAllWindowsMenuItemHelper(`${appId}_close_all_windows`, () => {
+							openFiles.forEach((p) =>
+								closeWindow(`${appId}_file_${p}`, {
+									type: `ClassicyApp${appName}CloseFile`,
+									app: { id: appId },
+									path: p,
+								}),
+							);
+						}),
+						quitMenuItemHelper(appId, appName, appIcon),
+					],
+				},
+				{
+					id: `${windowId}_format`,
 					title: "Format",
 					menuChildren: [
 						{
@@ -95,9 +125,14 @@ export const SimpleText = () => {
 						},
 					],
 				},
+				{
+					id: `${windowId}_help`,
+					title: "Help",
+					menuChildren: [aboutMenuItem],
+				},
 			];
 		},
-		[toggleFileType],
+		[toggleFileType, appId, appName, appIcon, closeWindow, openFiles, aboutMenuItem],
 	);
 
 	return (
@@ -119,7 +154,18 @@ export const SimpleText = () => {
 					appId={appId}
 					initialSize={[100, 500]}
 					initialPosition={[350, 100]}
-					appMenu={baseMenu}
+					appMenu={[
+						{
+							id: "file",
+							title: "File",
+							menuChildren: [quitMenuItemHelper(appId, appName, appIcon)],
+						},
+						{
+							id: "help",
+							title: "Help",
+							menuChildren: [aboutMenuItem],
+						},
+					]}
 				>
 					<ClassicyRichTextEditor content={defaultText} />
 				</ClassicyWindow>
@@ -150,6 +196,7 @@ export const SimpleText = () => {
 					</ClassicyWindow>
 				);
 			})}
+			{aboutWindow}
 		</ClassicyApp>
 	);
 };
