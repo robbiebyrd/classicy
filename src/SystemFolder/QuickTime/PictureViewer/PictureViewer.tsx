@@ -4,6 +4,7 @@ import {
 	useCallback,
 	useEffect,
 	useMemo,
+	useRef,
 } from "react";
 import samplePicture from "@img/apps/quicktime/sample-picture.jpg?inline";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
@@ -103,9 +104,15 @@ export const QuickTimePictureViewer: FunctionalComponent = () => {
 		[openFiles, fs],
 	);
 
-	// Load Default Demo documents on open
+	// Load the demo picture only the first time the app opens (and only if no
+	// files were already open then). Once that check has happened, closing
+	// all windows later must leave the app open with zero windows, not
+	// reload the demo.
+	const hasCheckedInitialLoadRef = useRef(false);
 	useEffect(() => {
-		if (appOpen && (!pictureData?.openFiles || pictureData.openFiles.length === 0)) {
+		if (!appOpen || hasCheckedInitialLoadRef.current) return;
+		hasCheckedInitialLoadRef.current = true;
+		if (!pictureData?.openFiles || pictureData.openFiles.length === 0) {
 			const defaultDocs = [
 				{
 					url: samplePicture,
@@ -118,7 +125,7 @@ export const QuickTimePictureViewer: FunctionalComponent = () => {
 				documents: defaultDocs,
 			});
 		}
-	}, [appData, appOpen, desktopEventDispatch]);
+	}, [appOpen, pictureData?.openFiles, desktopEventDispatch]);
 
 	const closeFile = useCallback(
 		(path: string) => {

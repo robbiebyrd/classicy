@@ -3,6 +3,7 @@ import {
 	useCallback,
 	useEffect,
 	useMemo,
+	useRef,
 } from "react";
 import sampleMovie from "@vid/quicktime/sample.mp4?no-inline";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
@@ -127,9 +128,14 @@ export const MoviePlayer: FunctionalComponent = () => {
 		[openFiles, fs],
 	);
 
-	// Load Default Demo documents on open (only if none exist)
+	// Load the demo video only the first time the app opens (and only if no
+	// files were already open then). Once that check has happened, closing
+	// all windows later must leave the app open with zero windows, not
+	// reload the demo.
+	const hasCheckedInitialLoadRef = useRef(false);
 	useEffect(() => {
-		if (!appOpen) return;
+		if (!appOpen || hasCheckedInitialLoadRef.current) return;
+		hasCheckedInitialLoadRef.current = true;
 		if (!movieData?.openFiles || movieData.openFiles.length === 0) {
 			desktopEventDispatch({
 				type: "ClassicyAppMoviePlayerOpenDocuments",
@@ -144,7 +150,7 @@ export const MoviePlayer: FunctionalComponent = () => {
 				],
 			});
 		}
-	}, [appData, appOpen, desktopEventDispatch]);
+	}, [appOpen, movieData?.openFiles, desktopEventDispatch]);
 
 	const closeFile = useCallback(
 		(path: string) => {
