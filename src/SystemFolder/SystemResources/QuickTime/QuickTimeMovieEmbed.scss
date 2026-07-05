@@ -242,3 +242,15 @@
   text-shadow: 0px 0 3px var(--color-theme-05);
   filter: saturate(500%) contrast(2);
 }
+
+// Applied when a caller provides an explicit captionStyle: neutralize the
+// themed effects so the caller's exact colors render, and match the plain
+// subtitle-overlay presentation (rt911 TV's former .subtitleOverlay).
+.quickTimePlayerCaptionsCustomStyle {
+  filter: none;
+  text-shadow: none;
+  white-space: pre-line;
+  line-height: 1.4;
+  text-align: center;
+  border-radius: 2px;
+}
