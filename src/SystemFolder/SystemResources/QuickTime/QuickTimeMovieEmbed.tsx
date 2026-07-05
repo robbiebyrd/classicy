@@ -1,31 +1,24 @@
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import "./QuickTimeMovieEmbed.scss";
-import { parse } from "@plussub/srt-vtt-parser";
-import type { ParsedResult } from "@plussub/srt-vtt-parser/dist/types";
 import classNames from "classnames";
-import {
-	type FC as FunctionalComponent,
-	useCallback,
-	useEffect,
-	useRef,
-	useState,
-} from "react";
+import { type FC as FunctionalComponent, useCallback, useEffect } from "react";
 import ReactPlayer from "react-player";
-import screenfull from "screenfull";
-
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import {
+	type QuickTimeCaptionStyle,
+	QuickTimeCaptionsOverlay,
+} from "@/SystemFolder/SystemResources/QuickTime/QuickTimeCaptionsOverlay";
+import { QuickTimeFullscreenButton } from "@/SystemFolder/SystemResources/QuickTime/QuickTimeFullscreenButton";
+import { QuickTimePlayPauseButton } from "@/SystemFolder/SystemResources/QuickTime/QuickTimePlayPauseButton";
+import { QuickTimeSeekBar } from "@/SystemFolder/SystemResources/QuickTime/QuickTimeSeekBar";
+import { QuickTimeVolumeControl } from "@/SystemFolder/SystemResources/QuickTime/QuickTimeVolumeControl";
+import { useControllableState } from "@/SystemFolder/SystemResources/QuickTime/useControllableState";
+import { useQuickTimePlayback } from "@/SystemFolder/SystemResources/QuickTime/useQuickTimePlayback";
+import { useQuickTimeSubtitles } from "@/SystemFolder/SystemResources/QuickTime/useQuickTimeSubtitles";
 
 const ccIcon = ClassicyIcons.system.quicktime.cc;
-const backwardButton = ClassicyIcons.system.quicktime.backwardButton;
-const forwardButton = ClassicyIcons.system.quicktime.forwardButton;
-const fullscreenButton = ClassicyIcons.system.quicktime.fullscreenButton;
-const pauseButton = ClassicyIcons.system.quicktime.pauseButton;
-const playButton = ClassicyIcons.system.quicktime.playButton;
 
-import { isValidHttpUrl } from "@/SystemFolder/SystemResources/Utils/urlValidation";
-import { getVolumeIcon, timeFriendly } from "./QuickTimeUtils";
-
-type QuickTimeVideoEmbed = {
+type QuickTimeVideoEmbedProps = {
 	appId: string;
 	name: string;
 	url: string;
@@ -36,9 +29,24 @@ type QuickTimeVideoEmbed = {
 	hideControls?: boolean;
 	controlsDocked?: boolean;
 	muted?: boolean;
+	playing?: boolean;
+	onPlayingChange?: (playing: boolean) => void;
+	volume?: number;
+	onVolumeChange?: (volume: number) => void;
+	captionsEnabled?: boolean;
+	onCaptionsEnabledChange?: (enabled: boolean) => void;
+	captionStyle?: QuickTimeCaptionStyle;
+	onMediaElement?: (el: HTMLVideoElement | null) => void;
+	onReady?: () => void;
+	onWaiting?: () => void;
+	onPlaying?: () => void;
+	crossOrigin?: "" | "anonymous" | "use-credentials";
+	playsInline?: boolean;
 };
 
-export const QuickTimeVideoEmbed: FunctionalComponent<QuickTimeVideoEmbed> = ({
+export const QuickTimeVideoEmbed: FunctionalComponent<
+	QuickTimeVideoEmbedProps
+> = ({
 	appId,
 	name,
 	url,
@@ -49,91 +57,68 @@ export const QuickTimeVideoEmbed: FunctionalComponent<QuickTimeVideoEmbed> = ({
 	hideControls,
 	controlsDocked,
 	muted,
+	playing: playingProp,
+	onPlayingChange,
+	volume: volumeProp,
+	onVolumeChange,
+	captionsEnabled,
+	onCaptionsEnabledChange,
+	captionStyle,
+	onMediaElement,
+	onReady,
+	onWaiting,
+	onPlaying,
+	crossOrigin,
+	playsInline,
 }) => {
 	const appWindows = useAppManager(
 		(s) => s.System.Manager.Applications.apps[appId]?.windows,
 	);
 
-	const [playing, setPlaying] = useState(autoPlay);
-	const [volume, setVolume] = useState(0.5);
-	const [loop, setLoop] = useState(false);
-	const [_isFullscreen, setIsFullscreen] = useState(false);
-	const [showVolume, setShowVolume] = useState<boolean>(false);
-	const [subtitlesData, setSubtitlesData] = useState<ParsedResult | null>(null);
-	const [showSubtitles, setShowSubtitles] = useState(false);
-	const [currentTime, setCurrentTime] = useState(0);
-
-	const playerRef = useRef<HTMLVideoElement | null>(null);
-
-	// currentTime isn't reactive on its own — reading playerRef.current.currentTime
-	// during render only reflects whatever it was at the last render, so the
-	// progress bar/time label would only update when some other state change
-	// happened to trigger a re-render (e.g. pause). The native timeupdate event
-	// fires continuously during playback, so mirror it into state here.
-	const handleTimeUpdate = useCallback(() => {
-		setCurrentTime(playerRef.current?.currentTime || 0);
-	}, []);
-
-	useEffect(() => {
-		if (screenfull.isEnabled) {
-			const handleFullscreenChange = () => {
-				setIsFullscreen(screenfull.isFullscreen);
-			};
-			screenfull.on("change", handleFullscreenChange);
-
-			return () => {
-				screenfull.off("change", handleFullscreenChange);
-			};
-		}
-	}, []);
+	const playback = useQuickTimePlayback({
+		autoPlay,
+		playing: playingProp,
+		onPlayingChange,
+		volume: volumeProp,
+		onVolumeChange,
+		onMediaElement,
+	});
+	const { activeCueText } = useQuickTimeSubtitles(subtitlesUrl);
+	const [showSubtitles, setShowSubtitles] = useControllableState<boolean>(
+		captionsEnabled,
+		false,
+		onCaptionsEnabledChange,
+	);
 
 	const toggleCC = useCallback(() => {
 		setShowSubtitles((prev) => !prev);
-	}, []);
+	}, [setShowSubtitles]);
 
-	const handlePlayPause = useCallback(() => {
-		setPlaying((prev) => !prev);
-	}, []);
+	const {
+		attachMediaRef,
+		playerRef,
+		playing,
+		handlePlayPause,
+		volume,
+		setVolume,
+		loop,
+		setLoop,
+		currentTime,
+		handleTimeUpdate,
+		seekForward,
+		seekBackward,
+		seekToPct,
+		toggleFullscreen,
+		escapeFullscreen,
+	} = playback;
 
-	const toggleFullscreen = useCallback(() => {
-		if (screenfull.isEnabled && playerRef.current) {
-			screenfull.toggle(playerRef.current, { navigationUI: "hide" });
-		}
-	}, []);
-
-	const seekTo = (seconds: number) => {
-		if (playerRef.current) {
-			playerRef.current.currentTime = seconds;
-			setCurrentTime(seconds);
-		}
-	};
-
-	const seekForward = useCallback(() => {
-		seekTo((playerRef.current?.currentTime || 0) + 10);
-		// biome-ignore lint/correctness/useExhaustiveDependencies: playerRef is a ref; including it would cause infinite re-renders
-	}, [seekTo]);
-
-	const seekBackward = useCallback(() => {
-		seekTo((playerRef.current?.currentTime || 0) - 10);
-		// biome-ignore lint/correctness/useExhaustiveDependencies: playerRef is a ref; including it would cause infinite re-renders
-	}, [seekTo]);
-
-	const seekToPct = (pct: number) => {
-		if (playerRef.current) {
-			const seconds = pct * playerRef.current.duration;
-			playerRef.current.currentTime = seconds;
-			setCurrentTime(seconds);
-		}
-	};
-
-	const escapeFullscreen = useCallback(() => {
-		if (!screenfull.isEnabled) {
+	// Keyboard shortcuts belong to the visible chrome: with hideControls the
+	// consumer owns all transport (and the window-id lookup below is
+	// MoviePlayer-shaped anyway), so skip the listener entirely.
+	useEffect(() => {
+		if (hideControls) {
 			return;
 		}
-		screenfull.exit();
-	}, []);
-
-	useEffect(() => {
 		const handleKeyDown = (event: KeyboardEvent) => {
 			if (!appWindows) {
 				return;
@@ -174,6 +159,7 @@ export const QuickTimeVideoEmbed: FunctionalComponent<QuickTimeVideoEmbed> = ({
 		window.addEventListener("keydown", handleKeyDown);
 		return () => window.removeEventListener("keydown", handleKeyDown);
 	}, [
+		hideControls,
 		handlePlayPause,
 		appWindows,
 		seekForward,
@@ -181,35 +167,11 @@ export const QuickTimeVideoEmbed: FunctionalComponent<QuickTimeVideoEmbed> = ({
 		toggleFullscreen,
 		type,
 		loop,
+		setLoop,
 		appId,
 		url,
 		escapeFullscreen,
 	]);
-
-	const volumeButtonRef = useRef<HTMLButtonElement>(null);
-
-	useEffect(() => {
-		if (!subtitlesUrl || !isValidHttpUrl(subtitlesUrl)) {
-			return;
-		}
-		const controller = new AbortController();
-		fetch(subtitlesUrl, { signal: controller.signal })
-			.then((res) => {
-				if (!res.ok) throw new Error(`HTTP ${res.status}`);
-				return res.text();
-			})
-			.then((text) => parse(text))
-			.then((result) => setSubtitlesData(result))
-			.catch((error) => {
-				if (error.name === "AbortError") return;
-				console.error("[QuickTime] Subtitle fetch failed", {
-					subtitlesUrl,
-					error,
-				});
-				setSubtitlesData(null);
-			});
-		return () => controller.abort();
-	}, [subtitlesUrl]);
 
 	return (
 		<div
@@ -227,40 +189,29 @@ export const QuickTimeVideoEmbed: FunctionalComponent<QuickTimeVideoEmbed> = ({
 				)}
 			>
 				<ReactPlayer
-					ref={playerRef}
+					ref={attachMediaRef}
 					src={url}
 					playing={playing}
 					loop={loop}
 					controls={false}
 					width="100%"
 					height="100%"
+					muted={muted}
 					volume={muted ? 0 : volume}
 					config={options}
 					onTimeUpdate={handleTimeUpdate}
+					onReady={onReady}
+					onWaiting={onWaiting}
+					onPlaying={onPlaying}
+					crossOrigin={crossOrigin}
+					playsInline={playsInline}
 				/>
-				{(() => {
-					if (!showSubtitles || !subtitlesData?.entries?.length) return null;
-					const currentTimeMs = currentTime * 1000;
-					const currentEntry = subtitlesData.entries.find(
-						(i) => i.from < currentTimeMs && i.to > currentTimeMs,
-					);
-					if (!currentEntry) return null;
-					return (
-						<div
-							className={
-								"quickTimePlayerCaptionsHolder" +
-								" " +
-								"quickTimePlayerCaptionsHolderBottom" +
-								" " +
-								"quickTimePlayerCaptionsHolderCenter"
-							}
-						>
-							<div className={"quickTimePlayerCaptions"}>
-								{currentEntry.text}
-							</div>
-						</div>
-					);
-				})()}
+				{showSubtitles && (
+					<QuickTimeCaptionsOverlay
+						text={activeCueText(currentTime)}
+						captionStyle={captionStyle}
+					/>
+				)}
 			</div>
 			{!hideControls && (
 				<div
@@ -271,58 +222,18 @@ export const QuickTimeVideoEmbed: FunctionalComponent<QuickTimeVideoEmbed> = ({
 							: "quickTimePlayerVideoControlsHolderUndocked",
 					)}
 				>
-					<button
-						type="button"
-						onClick={handlePlayPause}
-						className={"quickTimePlayerVideoControlsButton"}
-					>
-						<img
-							className={"quickTimePlayerVideoControlsIcon"}
-							src={playing ? pauseButton : playButton}
-							alt={playing ? "Pause" : "Play"}
-						/>
-					</button>
-					<div className={"quickTimePlayerVideoControlsProgressBarHolder"}>
-						<input
-							id={`${appId}_${name}_progressBar`}
-							className={"quickTimePlayerVideoControlsProgressBar"}
-							key={`${appId}_${name}_progressBar`}
-							type="range"
-							min="0" // Zero percent
-							max="1" // 100 percent
-							step="0.001" // 1 percent
-							value={currentTime / (playerRef.current?.duration || 1)}
-							readOnly={false}
-							onChange={(e) => {
-								seekToPct(parseFloat(e.target.value));
-							}}
-						/>
-					</div>
-					<p className={"quickTimePlayerVideoControlsTime"}>
-						{timeFriendly(currentTime)}
-					</p>
-					<button
-						type="button"
-						onClick={seekBackward}
-						className={"quickTimePlayerVideoControlsButton"}
-					>
-						<img
-							className={"quickTimePlayerVideoControlsIcon"}
-							src={backwardButton}
-							alt="Seek backward 10 seconds"
-						/>
-					</button>
-					<button
-						type="button"
-						onClick={seekForward}
-						className={"quickTimePlayerVideoControlsButton"}
-					>
-						<img
-							className={"quickTimePlayerVideoControlsIcon"}
-							src={forwardButton}
-							alt="Seek forward 10 seconds"
-						/>
-					</button>
+					<QuickTimePlayPauseButton
+						playing={playing}
+						onToggle={handlePlayPause}
+					/>
+					<QuickTimeSeekBar
+						id={`${appId}_${name}_progressBar`}
+						currentTime={currentTime}
+						duration={playerRef.current?.duration || 1}
+						onSeekToPct={seekToPct}
+						onSeekForward={seekForward}
+						onSeekBackward={seekBackward}
+					/>
 					{subtitlesUrl && (
 						<button
 							type="button"
@@ -340,51 +251,13 @@ export const QuickTimeVideoEmbed: FunctionalComponent<QuickTimeVideoEmbed> = ({
 							/>
 						</button>
 					)}
-
-					{showVolume && (
-						<div className={"quickTimePlayerVolumePopup"}>
-							<input
-								className={"quickTimePlayerVideoControlsVolumeBar"}
-								id={`${url}_volume`}
-								type="range"
-								min="0"
-								max="1"
-								step="0.1"
-								style={{ left: volumeButtonRef.current?.offsetLeft }}
-								value={volume}
-								onClick={() => {
-									setShowVolume(false);
-								}}
-								onChange={(e) => {
-									setVolume(parseFloat(e.target.value));
-								}}
-							/>
-						</div>
-					)}
-					<button
-						type="button"
-						className={"quickTimePlayerVideoControlsButton"}
-						onClick={() => setShowVolume(!showVolume)}
-						ref={volumeButtonRef}
-					>
-						<img
-							src={getVolumeIcon(volume)}
-							className={"quickTimePlayerVideoControlsIcon"}
-							alt="Volume"
-						/>
-					</button>
+					<QuickTimeVolumeControl
+						id={`${url}_volume`}
+						volume={volume}
+						onVolumeChange={setVolume}
+					/>
 					{type !== "audio" && (
-						<button
-							type="button"
-							onClick={toggleFullscreen}
-							className={"quickTimePlayerVideoControlsButton"}
-						>
-							<img
-								className={"quickTimePlayerVideoControlsIcon"}
-								src={fullscreenButton}
-								alt="Enter fullscreen"
-							/>
-						</button>
+						<QuickTimeFullscreenButton onToggle={toggleFullscreen} />
 					)}
 				</div>
 			)}
