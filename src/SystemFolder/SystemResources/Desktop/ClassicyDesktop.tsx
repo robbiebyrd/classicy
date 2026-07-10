@@ -15,6 +15,7 @@ import { SimpleText } from "@/SystemFolder/SimpleText/SimpleText";
 import { getClassicyAboutWindow } from "@/SystemFolder/SystemResources/AboutWindow/ClassicyAboutWindowUtils";
 import { ClassicyDefaultAppsContext } from "@/SystemFolder/SystemResources/App/ClassicyDefaultAppsContext";
 import { ClassicyContextualMenu } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenu";
+import { ClassicyCrashScreen } from "@/SystemFolder/SystemResources/CrashScreen/ClassicyCrashScreen";
 import "./ClassicyDesktop.scss";
 import classNames from "classnames";
 import {
@@ -55,7 +56,7 @@ interface ClassicyDesktopProps {
 	children?: ReactNode;
 }
 
-export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
+const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	children,
 }) => {
 	const [contextMenu, setContextMenu] = useState(false);
@@ -177,7 +178,10 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 					e.key as ArrowDirection,
 				);
 				if (nextId) {
-					desktopEventDispatch({ type: "ClassicyDesktopIconFocus", iconId: nextId });
+					desktopEventDispatch({
+						type: "ClassicyDesktopIconFocus",
+						iconId: nextId,
+					});
 					document.getElementById(`${nextId}.shortcut`)?.focus();
 				}
 			} else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
@@ -192,7 +196,10 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 				}, 800);
 				const matchId = typeaheadMatch(desktopIcons, typePrefixRef.current);
 				if (matchId) {
-					desktopEventDispatch({ type: "ClassicyDesktopIconFocus", iconId: matchId });
+					desktopEventDispatch({
+						type: "ClassicyDesktopIconFocus",
+						iconId: matchId,
+					});
 					document.getElementById(`${matchId}.shortcut`)?.focus();
 				}
 			}
@@ -617,3 +624,11 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 		</div>
 	);
 };
+
+export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
+	children,
+}) => (
+	<ClassicyCrashScreen>
+		<ClassicyDesktopInner>{children}</ClassicyDesktopInner>
+	</ClassicyCrashScreen>
+);

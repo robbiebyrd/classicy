@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { ClassicyAppManagerProvider } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
@@ -33,5 +33,25 @@ describe("ClassicyDesktop default apps", () => {
 		expect(screen.getByAltText("PDFViewer")).toBeInTheDocument();
 		expect(screen.queryByAltText("Movie Player")).not.toBeInTheDocument();
 		expect(screen.queryByAltText("Picture Viewer")).not.toBeInTheDocument();
+	});
+
+	it("shows the Sad Mac crash screen when a child app throws during render", () => {
+		const consoleError = vi
+			.spyOn(console, "error")
+			.mockImplementation(() => {});
+		const Bomb = () => {
+			throw new Error("boom");
+		};
+		const { container } = render(
+			<ClassicyAppManagerProvider>
+				<ClassicyDesktop>
+					<Bomb />
+				</ClassicyDesktop>
+			</ClassicyAppManagerProvider>,
+		);
+		expect(container.querySelector(".classicyCrashScreen")).toBeInTheDocument();
+		// The desktop itself is gone — the boundary replaced it entirely.
+		expect(screen.queryByAltText("SimpleText")).not.toBeInTheDocument();
+		consoleError.mockRestore();
 	});
 });
