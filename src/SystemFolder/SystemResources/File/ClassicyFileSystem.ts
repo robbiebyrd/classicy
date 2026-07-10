@@ -147,6 +147,7 @@ export class ClassicyFileSystem {
 			ClassicyFileSystemEntryFileType.Image,
 			ClassicyFileSystemEntryFileType.Video,
 			ClassicyFileSystemEntryFileType.Audio,
+			ClassicyFileSystemEntryFileType.AppShortcut,
 		],
 		showInvisible: boolean = true,
 	): ClassicyFileSystemEntry {

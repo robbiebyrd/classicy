@@ -329,8 +329,7 @@ describe("classicyFinderEventHandler — ClassicyAppFinderOpenFile with a system
 		});
 
 		expect(ds.System.Manager.Desktop.errorDialog).toEqual({
-			message:
-				"This file is used by the system software. It cannot be opened.",
+			message: "This file is used by the system software. It cannot be opened.",
 		});
 		expect(
 			ds.System.Manager.Applications.apps["SimpleText.app"].data?.openFiles,
@@ -352,8 +351,7 @@ describe("classicyFinderEventHandler — ClassicyAppFinderOpenFile with a system
 		});
 
 		expect(ds.System.Manager.Desktop.errorDialog).toEqual({
-			message:
-				"This file is used by the system software. It cannot be opened.",
+			message: "This file is used by the system software. It cannot be opened.",
 		});
 		expect(
 			ds.System.Manager.Applications.apps["Finder.app"].data?.openFiles,
@@ -375,5 +373,88 @@ describe("classicyFinderEventHandler — ClassicyAppFinderOpenFile with a system
 		expect(ds.System.Manager.Desktop.errorDialog).toEqual({
 			message: "Finder cannot open the file type you requested.",
 		});
+	});
+});
+
+describe("classicyFinderEventHandler — ClassicyAppFinderOpenFile with an app shortcut", () => {
+	const withTVApp = (open: boolean): ClassicyStore => {
+		const ds = makeStore();
+		ds.System.Manager.Applications.apps["TV.app"] = {
+			id: "TV.app",
+			name: "TV",
+			icon: "/icons/tv.png",
+			windows: [
+				{
+					id: "tv_main",
+					default: true,
+					closed: !open,
+					focused: false,
+					size: [400, 300] as [number, number],
+					position: [0, 0] as [number, number],
+					minimumSize: [0, 0] as [number, number],
+				},
+			],
+			open,
+			focused: false,
+			data: {},
+		};
+		return ds;
+	};
+
+	const openShortcut = (ds: ClassicyStore, creator?: string) =>
+		classicyFinderEventHandler(ds, {
+			type: "ClassicyAppFinderOpenFile",
+			path: "Macintosh HD:Applications:TV",
+			file: {
+				_type: ClassicyFileSystemEntryFileType.AppShortcut,
+				_icon: "/icons/tv.png",
+				...(creator ? { _creator: creator } : {}),
+			},
+		});
+
+	it("opens and focuses a closed app", () => {
+		const ds = withTVApp(false);
+
+		openShortcut(ds, "TV.app");
+
+		const app = ds.System.Manager.Applications.apps["TV.app"];
+		expect(app.open).toBe(true);
+		expect(app.focused).toBe(true);
+		expect(app.windows[0].closed).toBe(false);
+		expect(ds.System.Manager.Desktop.errorDialog).toBeUndefined();
+	});
+
+	it("focuses an already-open app and its default window", () => {
+		const ds = withTVApp(true);
+		ds.System.Manager.Applications.focusedAppId = "Finder.app";
+
+		openShortcut(ds, "TV.app");
+
+		const app = ds.System.Manager.Applications.apps["TV.app"];
+		expect(app.focused).toBe(true);
+		expect(app.windows[0].focused).toBe(true);
+		expect(ds.System.Manager.Applications.focusedAppId).toBe("TV.app");
+	});
+
+	it("shows an error dialog when the shortcut has no _creator", () => {
+		const ds = withTVApp(false);
+
+		openShortcut(ds, undefined);
+
+		expect(ds.System.Manager.Desktop.errorDialog).toEqual({
+			message: "The application that created this item could not be found.",
+		});
+		expect(ds.System.Manager.Applications.apps["TV.app"].open).toBe(false);
+	});
+
+	it("shows an error dialog when the target app is not loaded, without creating a stub", () => {
+		const ds = makeStore();
+
+		openShortcut(ds, "Ghost.app");
+
+		expect(ds.System.Manager.Desktop.errorDialog).toEqual({
+			message: "The application that created this item could not be found.",
+		});
+		expect(ds.System.Manager.Applications.apps["Ghost.app"]).toBeUndefined();
 	});
 });

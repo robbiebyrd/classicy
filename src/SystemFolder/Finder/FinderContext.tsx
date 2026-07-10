@@ -3,6 +3,7 @@ import {
 	hasPath,
 	hasPaths,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
+import { openApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
 import type {
 	ActionMessage,
 	ClassicyStore,
@@ -12,18 +13,16 @@ import {
 	dispatchToPlugin,
 	registerAppEventHandler,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { MoviePlayerAppInfo } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerUtils";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { isValidHttpUrl } from "@/SystemFolder/SystemResources/Utils/urlValidation";
-import { MoviePlayerAppInfo } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerUtils";
 
 export type FinderData = {
 	openPaths?: string[];
 	showAboutThisComputer?: boolean;
 };
 
-export function isFinderData(
-	d: Record<string, unknown>,
-): d is FinderData {
+export function isFinderData(d: Record<string, unknown>): d is FinderData {
 	if (d === null || typeof d !== "object") return false;
 	if ("openPaths" in d && !Array.isArray(d.openPaths)) return false;
 	if (
@@ -54,9 +53,7 @@ export const classicyFinderEventHandler = (
 
 			appData = {
 				...appData,
-				openPaths: Array.from(
-					new Set([...appData.openPaths, action.path]),
-				),
+				openPaths: Array.from(new Set([...appData.openPaths, action.path])),
 			};
 			break;
 		}
@@ -117,10 +114,10 @@ export const classicyFinderEventHandler = (
 							? JSON.parse(file._data)
 							: file._data;
 				} catch (error: unknown) {
-					console.warn(
-						"ClassicyFinder: failed to parse QuickTime file data",
-						{ error, file },
-					);
+					console.warn("ClassicyFinder: failed to parse QuickTime file data", {
+						error,
+						file,
+					});
 				}
 				if (
 					typeof document === "object" &&
@@ -137,6 +134,26 @@ export const classicyFinderEventHandler = (
 						type: "ClassicyAppMoviePlayerOpenDocument",
 						document: document as { url: string },
 					});
+				}
+			} else if (
+				file &&
+				file._type === ClassicyFileSystemEntryFileType.AppShortcut
+			) {
+				// App shortcuts (e.g. the derived Applications folder) open or
+				// focus the app named by _creator — same semantics as
+				// double-clicking the app's desktop icon.
+				const targetAppId =
+					typeof file._creator === "string" ? file._creator : undefined;
+				const targetApp = targetAppId
+					? ds.System.Manager.Applications.apps[targetAppId]
+					: undefined;
+				if (targetApp) {
+					openApp(ds, targetApp.id, targetApp.name, targetApp.icon);
+				} else {
+					ds.System.Manager.Desktop.errorDialog = {
+						message:
+							"The application that created this item could not be found.",
+					};
 				}
 			} else if (file && hasPath(action)) {
 				// Route to the default app registered for this file type

@@ -64,6 +64,26 @@ describe("ClassicyFileSystem.filterByType", () => {
 
 		expect(Object.keys(filtered)).toEqual(["Photo.jpg", "Movie.mov", "Song.mp3"]);
 	});
+
+	it("includes AppShortcut entries by default so the Applications folder is browsable", () => {
+		const cfs = new ClassicyFileSystem("test-filter-by-type-app-shortcut", {
+			_type: "directory",
+			"Macintosh HD": {
+				_type: "drive",
+				Applications: {
+					_type: "directory",
+					TV: {
+						_type: ClassicyFileSystemEntryFileType.AppShortcut,
+						_creator: "TV.app",
+					},
+				},
+			},
+		});
+
+		const filtered = cfs.filterByType("Macintosh HD:Applications");
+
+		expect(Object.keys(filtered)).toEqual(["TV"]);
+	});
 });
 
 describe("isValidFileSystemEntry", () => {
