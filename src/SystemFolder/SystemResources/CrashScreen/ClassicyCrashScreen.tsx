@@ -33,18 +33,24 @@ export class ClassicyCrashScreen extends Component<
 		console.error("Classicy crashed:", error, info.componentStack);
 	}
 
-	componentDidUpdate(
-		_prevProps: ClassicyCrashScreenProps,
-		prevState: ClassicyCrashScreenState,
-	): void {
-		if (!prevState.crashed && this.state.crashed) {
-			window.addEventListener("keydown", this.reload);
-		}
+	componentDidMount(): void {
+		// Attached unconditionally (not just on the crashed transition) because
+		// a child that throws during the initial mount is caught by
+		// getDerivedStateFromError before componentDidMount ever runs — the
+		// boundary mounts already crashed, so there is no
+		// componentDidUpdate transition to hook the listener onto.
+		window.addEventListener("keydown", this.onKeyDown);
 	}
 
 	componentWillUnmount(): void {
-		window.removeEventListener("keydown", this.reload);
+		window.removeEventListener("keydown", this.onKeyDown);
 	}
+
+	private readonly onKeyDown = (): void => {
+		if (this.state.crashed) {
+			this.reload();
+		}
+	};
 
 	private readonly reload = (): void => {
 		window.location.reload();
