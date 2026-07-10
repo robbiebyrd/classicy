@@ -3,7 +3,7 @@
 	"module": "./dist/classicy.es.js",
 	"types": "./dist/types/src/index.d.ts",
 	"name": "classicy",
-	"version": "0.26.3",
+	"version": "0.27.0",
 	"release": "Vanguard",
 	"repository": {
 		"type": "git",
