@@ -31,7 +31,7 @@ function loadPdfjs() {
 	return pdfjsPromise;
 }
 
-const MIN_SCALE = 0.5;
+const MIN_SCALE = 0.1;
 const MAX_SCALE = 3.0;
 const SCALE_STEP = 0.25;
 
