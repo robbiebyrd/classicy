@@ -9,6 +9,15 @@ export const capitalizeFirst = (s: string) => {
 	return s && String(s[0]).toUpperCase() + String(s).slice(1);
 };
 
+/**
+ * Human-readable label for a ClassicyFileSystemEntryFileType value in file
+ * listings ("app_shortcut" → "Application", "text_file" → "Text file").
+ */
+export const fileTypeDisplayName = (fileType: string) => {
+	if (fileType === "app_shortcut") return "Application";
+	return capitalizeFirst(fileType.replaceAll("_", " "));
+};
+
 export const iconImageByType = (byType: string) => {
 	switch (byType) {
 		case "directory": {

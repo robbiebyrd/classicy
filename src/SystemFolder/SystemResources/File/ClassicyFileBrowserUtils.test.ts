@@ -2,8 +2,24 @@ import { describe, expect, it } from "vitest";
 import {
 	capitalizeFirst,
 	createGrid,
+	fileTypeDisplayName,
 	getGridPosition,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserUtils";
+
+describe("fileTypeDisplayName", () => {
+	it("shows app shortcuts as Application", () => {
+		expect(fileTypeDisplayName("app_shortcut")).toBe("Application");
+	});
+
+	it("humanizes underscored types", () => {
+		expect(fileTypeDisplayName("text_file")).toBe("Text file");
+	});
+
+	it("capitalizes simple types", () => {
+		expect(fileTypeDisplayName("directory")).toBe("Directory");
+		expect(fileTypeDisplayName("pdf")).toBe("Pdf");
+	});
+});
 
 describe("capitalizeFirst", () => {
 	it("capitalizes the first letter of a lowercase string", () => {

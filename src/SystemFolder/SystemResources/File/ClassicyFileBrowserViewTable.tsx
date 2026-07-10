@@ -1,5 +1,5 @@
 import {
-	capitalizeFirst,
+	fileTypeDisplayName,
 	iconImageByType,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserUtils";
 import "./ClassicyFileBrowserViewTable.scss";
@@ -91,7 +91,10 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 						filtered._path = `${path}:${filename}`;
 						filtered._size =
 							typeof metadata._size === "number" ? metadata._size : undefined;
-						return { filtered: filtered as ClassicyFileSystemEntryMetadata, metadata };
+						return {
+							filtered: filtered as ClassicyFileSystemEntryMetadata,
+							metadata,
+						};
 					},
 				);
 				const initial = entriesWithMetadata.map(({ filtered }) => filtered);
@@ -141,7 +144,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 					}),
 					columnHelper.accessor((row) => row._type, {
 						id: "_type",
-						cell: (info) => <span>{capitalizeFirst(info.getValue())}</span>,
+						cell: (info) => <span>{fileTypeDisplayName(info.getValue())}</span>,
 						header: () => <span>File Type</span>,
 						enableResizing: true,
 					}),
