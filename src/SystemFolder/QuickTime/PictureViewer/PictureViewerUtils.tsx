@@ -1,6 +1,6 @@
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 
-const appIcon = ClassicyIcons.system.quicktime.player;
+const appIcon = ClassicyIcons.applications.pictureViewer.app;
 
 export type QuickTimeImageDocument = {
 	url: string;

@@ -168,6 +168,9 @@ export const ClassicyIcons = {
 		news: {
 			app: icon("applications/news/app.png"),
 		},
+		pictureViewer: {
+			app: icon("applications/picture-viewer/app.png"),
+		},
 		radio: {
 			app: icon("applications/radio/app.png"),
 		},
