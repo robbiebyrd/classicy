@@ -57,7 +57,7 @@ vi.mock(
 );
 
 vi.mock("@/SystemFolder/SystemResources/Window/ClassicyWindow", () => ({
-	ClassicyWindow: () => null,
+	ClassicyWindow: (): null => null,
 }));
 
 function renderApp() {

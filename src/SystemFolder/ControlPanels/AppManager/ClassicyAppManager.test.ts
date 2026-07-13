@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
-import type { ClassicyStore, DeepPartial } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import type {
+	ClassicyStore,
+	DeepPartial,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	activateApp,
 	classicyAppEventHandler,
@@ -110,9 +113,9 @@ describe("deFocusApps", () => {
 		expect(ds.System.Manager.Applications.apps["Finder.app"].focused).toBe(
 			false,
 		);
-		expect(ds.System.Manager.Applications.apps["Finder.app"].windows[0].focused).toBe(
-			false,
-		);
+		expect(
+			ds.System.Manager.Applications.apps["Finder.app"].windows[0].focused,
+		).toBe(false);
 		expect(ds.System.Manager.Applications.focusedAppId).toBeUndefined();
 	});
 });
@@ -347,10 +350,14 @@ describe("ClassicyAppClose — focus transfer", () => {
 
 		// Notes.app is now closed and unfocused
 		expect(ds.System.Manager.Applications.apps["Notes.app"].open).toBe(false);
-		expect(ds.System.Manager.Applications.apps["Notes.app"].focused).toBe(false);
+		expect(ds.System.Manager.Applications.apps["Notes.app"].focused).toBe(
+			false,
+		);
 
 		// The remaining open app (Finder) becomes focused
-		expect(ds.System.Manager.Applications.apps["Finder.app"].focused).toBe(true);
+		expect(ds.System.Manager.Applications.apps["Finder.app"].focused).toBe(
+			true,
+		);
 	});
 
 	it("does not crash and leaves no focused app when no other app is open", () => {
@@ -375,11 +382,13 @@ describe("ClassicyAppClose — focus transfer", () => {
 		).not.toThrow();
 
 		expect(ds.System.Manager.Applications.apps["Notes.app"].open).toBe(false);
-		expect(ds.System.Manager.Applications.apps["Notes.app"].focused).toBe(false);
+		expect(ds.System.Manager.Applications.apps["Notes.app"].focused).toBe(
+			false,
+		);
 		// No app should be focused
-		const anyFocused = Object.values(
-			ds.System.Manager.Applications.apps,
-		).some((app) => app.focused);
+		const anyFocused = Object.values(ds.System.Manager.Applications.apps).some(
+			(app) => app.focused,
+		);
 		expect(anyFocused).toBe(false);
 	});
 });
@@ -1146,16 +1155,24 @@ describe("mergeClassicyState", () => {
 	it("merges a nested primitive without touching siblings", () => {
 		const base = makeStore();
 		const merged = mergeClassicyState(base, {
-			System: { Manager: { DateAndTime: { dateTime: "2001-09-11T12:40:00.000Z" } } },
+			System: {
+				Manager: { DateAndTime: { dateTime: "2001-09-11T12:40:00.000Z" } },
+			},
 		});
-		expect(merged.System.Manager.DateAndTime.dateTime).toBe("2001-09-11T12:40:00.000Z");
+		expect(merged.System.Manager.DateAndTime.dateTime).toBe(
+			"2001-09-11T12:40:00.000Z",
+		);
 		// sibling fields retained from base
-		expect(merged.System.Manager.DateAndTime.show).toBe(base.System.Manager.DateAndTime.show);
+		expect(merged.System.Manager.DateAndTime.show).toBe(
+			base.System.Manager.DateAndTime.show,
+		);
 		expect(merged.System.Manager.DateAndTime.militaryTime).toBe(
 			base.System.Manager.DateAndTime.militaryTime,
 		);
 		// unrelated managers retained
-		expect(merged.System.Manager.Sound.volume).toBe(base.System.Manager.Sound.volume);
+		expect(merged.System.Manager.Sound.volume).toBe(
+			base.System.Manager.Sound.volume,
+		);
 	});
 
 	it("replaces arrays wholesale rather than concatenating", () => {
@@ -1188,7 +1205,9 @@ describe("mergeClassicyState", () => {
 		const base = makeStore();
 		const before = base.System.Manager.DateAndTime.dateTime;
 		mergeClassicyState(base, {
-			System: { Manager: { DateAndTime: { dateTime: "2001-09-11T12:40:00.000Z" } } },
+			System: {
+				Manager: { DateAndTime: { dateTime: "2001-09-11T12:40:00.000Z" } },
+			},
 		});
 		expect(base.System.Manager.DateAndTime.dateTime).toBe(before);
 	});
@@ -1284,7 +1303,9 @@ describe("focusWindow", () => {
 
 		const app = ds.System.Manager.Applications.apps["Notes.app"];
 		expect(app.lastAccessedWindowId).toBe("nw1");
-		expect(app.windows.find((w) => w.id === "nw1")?.zOrder).toBeTypeOf("number");
+		expect(app.windows.find((w) => w.id === "nw1")?.zOrder).toBeTypeOf(
+			"number",
+		);
 	});
 
 	it("prefers the provided menuBar over the window's stored menuBar", () => {
@@ -1340,9 +1361,7 @@ describe("focusWindow", () => {
 
 		expect(ds.System.Manager.Applications.apps["Notes.app"].focused).toBe(true);
 		expect(ds.System.Manager.Applications.focusedAppId).toBe("Notes.app");
-		const anyWindowFocused = Object.values(
-			ds.System.Manager.Applications.apps,
-		)
+		const anyWindowFocused = Object.values(ds.System.Manager.Applications.apps)
 			.flatMap((a) => a.windows)
 			.some((w) => w.focused);
 		expect(anyWindowFocused).toBe(false);

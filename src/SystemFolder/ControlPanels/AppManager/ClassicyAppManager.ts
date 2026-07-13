@@ -5,6 +5,13 @@ import {
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import {
+	hasApp,
+	hasAppAndFileType,
+	hasAppAndFileTypes,
+	hasAppAndPath,
+	hasDesktopAppRef,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
+import {
 	activateApp,
 	closeApp,
 	deFocusApps,
@@ -24,15 +31,8 @@ import {
 import { classicyWindowEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopWindowManagerContext";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
-import { deepMergeReplacingArrays } from "@/SystemFolder/SystemResources/Utils/deepMerge";
 import type { DeepPartial } from "@/SystemFolder/SystemResources/Utils/deepMerge";
-import {
-	hasApp,
-	hasAppAndFileType,
-	hasAppAndFileTypes,
-	hasAppAndPath,
-	hasDesktopAppRef,
-} from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
+import { deepMergeReplacingArrays } from "@/SystemFolder/SystemResources/Utils/deepMerge";
 import themesData from "../AppearanceManager/styles/themes.json";
 
 const macosIcon = ClassicyIcons.system.macos;
@@ -235,7 +235,10 @@ export const classicyAppEventHandler = (
 				if (app) {
 					const existing = app.handlesFileTypes ?? [];
 					app.handlesFileTypes = Array.from(
-						new Set([...existing, ...(action.fileTypes as ClassicyFileSystemEntryFileType[])]),
+						new Set([
+							...existing,
+							...(action.fileTypes as ClassicyFileSystemEntryFileType[]),
+						]),
 					);
 				}
 				for (const ft of action.fileTypes) {
@@ -257,7 +260,8 @@ export const classicyAppEventHandler = (
 				const app = ds.System.Manager.Applications.apps[action.app.id];
 				if (app) {
 					app.handlesFileTypes = (app.handlesFileTypes ?? []).filter(
-						(t: ClassicyFileSystemEntryFileType) => !(action.fileTypes as unknown[]).includes(t),
+						(t: ClassicyFileSystemEntryFileType) =>
+							!(action.fileTypes as unknown[]).includes(t),
 					);
 					for (const ft of action.fileTypes) {
 						const key = ft as ClassicyFileSystemEntryFileType;
@@ -265,7 +269,8 @@ export const classicyAppEventHandler = (
 							ds.System.Manager.Applications.fileTypeHandlers[key] ===
 							action.app.id
 						) {
-							ds.System.Manager.Applications.fileTypeHandlers[key] = "Finder.app";
+							ds.System.Manager.Applications.fileTypeHandlers[key] =
+								"Finder.app";
 						}
 					}
 				}

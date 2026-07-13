@@ -1,5 +1,4 @@
 import {
-	hasApp,
 	hasAppAndWindow,
 	hasMenuBar,
 	hasWindowDragging,
@@ -172,7 +171,8 @@ export const classicyWindowEventHandler = (
 			// Prefer fresh appMenu from component props (has closures) over stored menuBar
 			const appObj = action.app as Record<string, unknown>;
 			const winObj = action.window as Record<string, unknown>;
-			const freshMenu = (Array.isArray(appObj.appMenu) ? appObj.appMenu : null) ||
+			const freshMenu =
+				(Array.isArray(appObj.appMenu) ? appObj.appMenu : null) ||
 				(Array.isArray(winObj.menuBar) ? winObj.menuBar : null);
 			ds = focusWindow(
 				ds,
