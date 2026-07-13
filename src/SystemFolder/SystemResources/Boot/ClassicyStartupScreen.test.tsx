@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, render, screen } from "@/__tests__/test-utils";
 import { ClassicyStartupScreen } from "@/SystemFolder/SystemResources/Boot/ClassicyStartupScreen";
+import { resetStartupScreenSession } from "@/SystemFolder/SystemResources/Boot/ClassicyStartupScreenSession";
 
 const mockPlayer = vi.hoisted(() => vi.fn());
 
@@ -52,6 +53,16 @@ describe("ClassicyStartupScreen", () => {
 	it("marks the session so the splash shows only once per session", () => {
 		render(<ClassicyStartupScreen />);
 		expect(sessionStorage.getItem("classicyStartupScreenShown")).toBe("true");
+	});
+
+	it("resetStartupScreenSession clears the key so the splash shows again", () => {
+		sessionStorage.setItem("classicyStartupScreenShown", "true");
+		resetStartupScreenSession();
+		expect(sessionStorage.getItem("classicyStartupScreenShown")).toBeNull();
+		const { container } = render(<ClassicyStartupScreen />);
+		expect(
+			container.querySelector(".classicyStartupScreen"),
+		).toBeInTheDocument();
 	});
 
 	it("renders nothing when the session key is already set", () => {

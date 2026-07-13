@@ -197,6 +197,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 										<th
 											key={header.id}
 											align={"left"}
+											style={{ width: header.getSize() }}
 											className={classNames(
 												"classicyFileBrowserViewTableColumnHeader",
 												header.column.getIsResizing() ? "isResizing" : "",

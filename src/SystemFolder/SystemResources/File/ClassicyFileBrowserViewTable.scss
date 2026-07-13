@@ -28,7 +28,7 @@
   font-family: var(--body-font);
   font-weight: 100;
   width: 100%;
-  table-layout: auto;
+  table-layout: fixed;
   border-collapse: collapse;
 }
 
@@ -75,10 +75,14 @@
 
 .classicyFileBrowserViewTableRowIcon {
   margin: calc(var(--desktop-icon-size) / 16);
+  flex-shrink: 0;
 }
 
 .classicyFileBrowserViewTableRowIconLabel {
   padding: calc(var(--desktop-icon-size) / 16);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .classicyFileBrowserViewTableRowSelected td:first-of-type div span {
@@ -94,6 +98,7 @@
   display: flex;
   align-items: center;
   flex-direction: row;
+  overflow: hidden;
 }
 
 .classicyFileBrowserViewTableHeaderCellContent {
@@ -110,6 +115,9 @@
 .classicyFileBrowserViewTableCell {
   margin: 0;
   padding: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .classicyFileBrowserViewTableSpacer {

@@ -17,10 +17,19 @@
 	flex: 1;
 	overflow: auto;
 	display: flex;
-	justify-content: center;
-	align-items: center;
 	padding: var(--window-padding-size);
 	background-color: var(--color-system-01);
+}
+
+.pdfViewerDocumentCanvas {
+	// Auto margins center the canvas when it fits, but collapse to 0 when it
+	// overflows — unlike justify-content/align-items: center, which push
+	// overflow past the scroll container's start edge where scrollTop/Left
+	// can never reach it (cutting off the top of tall pages).
+	margin: auto;
+	// Never let flex squeeze the canvas below its rendered pixel size; that
+	// distorts the page instead of letting the wrapper scroll.
+	flex-shrink: 0;
 }
 
 .pdfViewerDocumentToolPan {

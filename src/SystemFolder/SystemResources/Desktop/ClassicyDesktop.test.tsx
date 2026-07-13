@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { ClassicyAppManagerProvider } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext";
@@ -94,5 +94,21 @@ describe("ClassicyDesktop startup screen", () => {
 			</ClassicyAppManagerProvider>,
 		);
 		expect(container.querySelector(".classicyStartupScreen")).toBeNull();
+	});
+
+	it("clears the session key when the trash is emptied, so the splash replays after reload", () => {
+		sessionStorage.setItem("classicyStartupScreenShown", "true");
+		const reload = vi.fn();
+		vi.stubGlobal("location", { ...window.location, reload });
+		render(
+			<ClassicyAppManagerProvider>
+				<ClassicyDesktop />
+			</ClassicyAppManagerProvider>,
+		);
+		fireEvent.doubleClick(screen.getByAltText("Trash"));
+		fireEvent.click(screen.getByText("OK"));
+		expect(sessionStorage.getItem("classicyStartupScreenShown")).toBeNull();
+		expect(reload).toHaveBeenCalled();
+		vi.unstubAllGlobals();
 	});
 });

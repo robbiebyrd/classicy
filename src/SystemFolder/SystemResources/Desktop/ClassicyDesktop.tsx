@@ -15,6 +15,7 @@ import { SimpleText } from "@/SystemFolder/SimpleText/SimpleText";
 import { getClassicyAboutWindow } from "@/SystemFolder/SystemResources/AboutWindow/ClassicyAboutWindowUtils";
 import { ClassicyDefaultAppsContext } from "@/SystemFolder/SystemResources/App/ClassicyDefaultAppsContext";
 import { ClassicyStartupScreen } from "@/SystemFolder/SystemResources/Boot/ClassicyStartupScreen";
+import { resetStartupScreenSession } from "@/SystemFolder/SystemResources/Boot/ClassicyStartupScreenSession";
 import { ClassicyContextualMenu } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenu";
 import { ClassicyCrashScreen } from "@/SystemFolder/SystemResources/CrashScreen/ClassicyCrashScreen";
 import "./ClassicyDesktop.scss";
@@ -106,6 +107,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 
 	const emptyTrash = useCallback(() => {
 		localStorage.removeItem("classicyDesktopState");
+		resetStartupScreenSession();
 		window.location.reload();
 	}, []);
 

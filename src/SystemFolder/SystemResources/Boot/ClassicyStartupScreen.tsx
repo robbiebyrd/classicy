@@ -2,26 +2,11 @@ import "./ClassicyStartupScreen.scss";
 import { type FC as FunctionalComponent, useEffect, useState } from "react";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
+import {
+	hasShownStartupScreenThisSession,
+	markStartupScreenShownThisSession,
+} from "@/SystemFolder/SystemResources/Boot/ClassicyStartupScreenSession";
 import { ClassicyProgressBar } from "@/SystemFolder/SystemResources/ProgressBar/ClassicyProgressBar";
-
-const SESSION_KEY = "classicyStartupScreenShown";
-
-const hasShownThisSession = (): boolean => {
-	try {
-		return sessionStorage.getItem(SESSION_KEY) !== null;
-	} catch {
-		// Storage unavailable (private browsing, SSR): degrade to showing.
-		return false;
-	}
-};
-
-const markShownThisSession = (): void => {
-	try {
-		sessionStorage.setItem(SESSION_KEY, "true");
-	} catch {
-		// Storage unavailable: the splash will simply show again next load.
-	}
-};
 
 interface ClassicyStartupScreenProps {
 	duration?: number;
@@ -36,13 +21,15 @@ interface ClassicyStartupScreenProps {
 export const ClassicyStartupScreen: FunctionalComponent<
 	ClassicyStartupScreenProps
 > = ({ duration = 4000 }) => {
-	const [visible, setVisible] = useState(() => !hasShownThisSession());
+	const [visible, setVisible] = useState(
+		() => !hasShownStartupScreenThisSession(),
+	);
 	const [progress, setProgress] = useState(0);
 	const player = useSoundDispatch();
 
 	useEffect(() => {
 		if (!visible) return;
-		markShownThisSession();
+		markStartupScreenShownThisSession();
 		player({ type: "ClassicySoundPlay", sound: "ClassicyBoot" });
 	}, [visible, player]);
 
