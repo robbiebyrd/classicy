@@ -293,6 +293,9 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	useEffect(() => {
 		if (!windowRegistered.current) {
 			windowRegistered.current = true;
+			// A genuinely new window is focused by the ClassicyWindowOpen handler;
+			// a persisted window re-registering must not steal focus. Menu-closure
+			// refresh for the focused window happens in the ws.focused effect below.
 			desktopEventDispatch({
 				type: "ClassicyWindowOpen",
 				window: ws,
@@ -300,20 +303,8 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 					id: appId,
 				},
 			});
-			// Refresh the desktop menu bar with fresh closures from the component
-			// props, since onClickFunc cannot survive JSON serialization to localStorage.
-			if (appMenu) {
-				desktopEventDispatch({
-					type: "ClassicyWindowFocus",
-					app: {
-						id: appId,
-						appMenu: appMenu,
-					},
-					window: ws,
-				});
-			}
 		}
-	}, [appId, ws, appMenu, desktopEventDispatch]);
+	}, [appId, ws, desktopEventDispatch]);
 
 	useEffect(() => {
 		if (ws.focused && appMenu) {
