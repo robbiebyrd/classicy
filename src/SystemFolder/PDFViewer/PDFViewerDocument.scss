@@ -23,6 +23,25 @@
 	background-color: var(--color-system-01);
 }
 
+.pdfViewerDocumentToolPan {
+	cursor:
+		url('../../../assets/img/ui/cursors/cursor-hand.png') 8 8,
+		grab;
+}
+
+.pdfViewerDocumentToolZoom {
+	// Hotspot sits over the lens of the 32px Sherlock magnifying glass.
+	cursor:
+		url('../../../assets/img/icons/system/sherlock/search.png') 10 10,
+		zoom-in;
+}
+
+.pdfViewerDocumentToolIcon {
+	width: 16px;
+	height: 16px;
+	display: block;
+}
+
 .pdfViewerDocumentLoading,
 .pdfViewerDocumentError,
 .pdfViewerDocumentPageError {

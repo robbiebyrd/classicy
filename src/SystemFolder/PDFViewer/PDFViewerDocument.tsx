@@ -1,4 +1,5 @@
 import "./PDFViewerDocument.scss";
+import classNames from "classnames";
 import type {
 	PDFDocumentLoadingTask,
 	PDFDocumentProxy,
@@ -7,10 +8,14 @@ import type {
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import {
 	type FC as FunctionalComponent,
+	type MouseEvent,
+	type PointerEvent,
 	useEffect,
 	useRef,
 	useState,
 } from "react";
+import zoomToolIcon from "@img/icons/system/sherlock/search.png";
+import panToolIcon from "@img/ui/cursors/cursor-hand.png";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import { decompressFromBase64 } from "@/SystemFolder/SystemResources/Utils/base64Compression";
@@ -45,9 +50,31 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 	data,
 }) => {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
+	const wrapperRef = useRef<HTMLDivElement>(null);
+	// Pan-drag bookkeeping. A ref, not state: pointermove happens dozens of
+	// times per second and only mutates the wrapper's scroll offsets — no
+	// re-render wanted.
+	const panDragRef = useRef<{
+		startX: number;
+		startY: number;
+		scrollLeft: number;
+		scrollTop: number;
+	} | null>(null);
+	// Set by a Zoom-tool click, consumed by the render effect. The scroll
+	// adjustment that keeps the clicked point under the cursor can only be
+	// applied *after* the canvas has been resized to the new scale —
+	// scrollLeft/Top set any earlier would be clamped to the old, smaller
+	// content size.
+	const pendingZoomScrollRef = useRef<{
+		docX: number;
+		docY: number;
+		cursorX: number;
+		cursorY: number;
+	} | null>(null);
 	const [doc, setDoc] = useState<PDFDocumentProxy | null>(null);
 	const [currentPage, setCurrentPage] = useState(1);
 	const [scale, setScale] = useState(1.0);
+	const [activeTool, setActiveTool] = useState<"pan" | "zoom">("pan");
 	// `error` means the document itself failed to load — there's no `doc`,
 	// no `numPages`, and nothing for a toolbar to navigate, so this still
 	// replaces the entire component output below.
@@ -122,6 +149,17 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 				if (!context) return;
 				canvasRef.current.width = viewport.width;
 				canvasRef.current.height = viewport.height;
+				// Now that the canvas holds its new-scale dimensions, the scroll
+				// range is big enough to place the zoomed point back under the
+				// cursor (see pendingZoomScrollRef).
+				const pendingZoom = pendingZoomScrollRef.current;
+				if (pendingZoom && wrapperRef.current) {
+					pendingZoomScrollRef.current = null;
+					wrapperRef.current.scrollLeft =
+						pendingZoom.docX * scale - pendingZoom.cursorX;
+					wrapperRef.current.scrollTop =
+						pendingZoom.docY * scale - pendingZoom.cursorY;
+				}
 				renderTask = page.render({
 					canvas: canvasRef.current,
 					canvasContext: context,
@@ -163,6 +201,57 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 
 	const numPages = doc.numPages;
 
+	const handleWrapperPointerDown = (e: PointerEvent<HTMLDivElement>) => {
+		if (activeTool !== "pan") return;
+		const wrapper = e.currentTarget;
+		panDragRef.current = {
+			startX: e.clientX,
+			startY: e.clientY,
+			scrollLeft: wrapper.scrollLeft,
+			scrollTop: wrapper.scrollTop,
+		};
+		// Keeps the drag alive when the pointer leaves the wrapper mid-drag.
+		// Throws in environments without an active-pointer registry (jsdom);
+		// the drag still works there, just without capture.
+		try {
+			wrapper.setPointerCapture(e.pointerId);
+		} catch {
+			/* capture unavailable — non-fatal */
+		}
+	};
+
+	const handleWrapperPointerMove = (e: PointerEvent<HTMLDivElement>) => {
+		const drag = panDragRef.current;
+		if (!drag) return;
+		// Dragging moves the document with the hand, so the scroll offsets run
+		// opposite to the pointer delta.
+		e.currentTarget.scrollLeft = drag.scrollLeft + (drag.startX - e.clientX);
+		e.currentTarget.scrollTop = drag.scrollTop + (drag.startY - e.clientY);
+	};
+
+	const endPanDrag = () => {
+		panDragRef.current = null;
+	};
+
+	const handleWrapperClick = (e: MouseEvent<HTMLDivElement>) => {
+		if (activeTool !== "zoom" || !canvasRef.current) return;
+		const nextScale = e.ctrlKey
+			? Math.max(MIN_SCALE, +(scale - SCALE_STEP).toFixed(2))
+			: Math.min(MAX_SCALE, +(scale + SCALE_STEP).toFixed(2));
+		if (nextScale === scale) return;
+		const canvasRect = canvasRef.current.getBoundingClientRect();
+		const wrapperRect = e.currentTarget.getBoundingClientRect();
+		pendingZoomScrollRef.current = {
+			// The clicked point in unscaled document coordinates — where it
+			// lands after the rescale is docX/Y * nextScale.
+			docX: (e.clientX - canvasRect.left) / scale,
+			docY: (e.clientY - canvasRect.top) / scale,
+			cursorX: e.clientX - wrapperRect.left,
+			cursorY: e.clientY - wrapperRect.top,
+		};
+		setScale(nextScale);
+	};
+
 	return (
 		<div className="pdfViewerDocument">
 			<div className="pdfViewerDocumentToolbar">
@@ -183,24 +272,61 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 				</ClassicyButton>
 				<ClassicyButton
 					buttonSize="small"
+					aria-label="Zoom Out"
 					disabled={scale <= MIN_SCALE}
 					onClickFunc={() =>
 						setScale((s) => Math.max(MIN_SCALE, +(s - SCALE_STEP).toFixed(2)))
 					}
 				>
-					Zoom Out
+					-
 				</ClassicyButton>
 				<ClassicyButton
 					buttonSize="small"
+					aria-label="Zoom In"
 					disabled={scale >= MAX_SCALE}
 					onClickFunc={() =>
 						setScale((s) => Math.min(MAX_SCALE, +(s + SCALE_STEP).toFixed(2)))
 					}
 				>
-					Zoom In
+					+
+				</ClassicyButton>
+				<ClassicyButton
+					buttonSize="small"
+					buttonShape="square"
+					aria-label="Pan Tool"
+					depressed={activeTool === "pan"}
+					onClickFunc={() => setActiveTool("pan")}
+				>
+					<img src={panToolIcon} alt="" className="pdfViewerDocumentToolIcon" />
+				</ClassicyButton>
+				<ClassicyButton
+					buttonSize="small"
+					buttonShape="square"
+					aria-label="Zoom Tool"
+					depressed={activeTool === "zoom"}
+					onClickFunc={() => setActiveTool("zoom")}
+				>
+					<img
+						src={zoomToolIcon}
+						alt=""
+						className="pdfViewerDocumentToolIcon"
+					/>
 				</ClassicyButton>
 			</div>
-			<div className="pdfViewerDocumentCanvasWrapper">
+			<div
+				ref={wrapperRef}
+				className={classNames(
+					"pdfViewerDocumentCanvasWrapper",
+					activeTool === "pan"
+						? "pdfViewerDocumentToolPan"
+						: "pdfViewerDocumentToolZoom",
+				)}
+				onPointerDown={handleWrapperPointerDown}
+				onPointerMove={handleWrapperPointerMove}
+				onPointerUp={endPanDrag}
+				onPointerCancel={endPanDrag}
+				onClick={handleWrapperClick}
+			>
 				{pageError ? (
 					<p className="pdfViewerDocumentPageError">
 						Couldn't render this page.

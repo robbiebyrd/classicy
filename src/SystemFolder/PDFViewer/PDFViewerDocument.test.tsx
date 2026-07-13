@@ -1,6 +1,12 @@
 import { Blob as NodeBlob } from "node:buffer";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, userEvent } from "@/__tests__/test-utils";
+import {
+	fireEvent,
+	render,
+	screen,
+	userEvent,
+	waitFor,
+} from "@/__tests__/test-utils";
 
 globalThis.Blob = NodeBlob as unknown as typeof Blob;
 
@@ -88,6 +94,7 @@ beforeEach(() => {
 	mockDoc.getPage.mockClear();
 	mockLoadingTaskDestroy.mockClear();
 	mockPage.render.mockClear();
+	mockPage.getViewport.mockClear();
 });
 
 describe("PDFViewerDocument", () => {
@@ -133,9 +140,9 @@ describe("PDFViewerDocument", () => {
 		render(<PDFViewerDocument url="http://example.com/sample.pdf" />);
 		await screen.findByText("Page 1 of 3");
 		for (let i = 0; i < 4; i++) {
-			await user.click(screen.getByText("Zoom Out"));
+			await user.click(screen.getByRole("button", { name: "Zoom Out" }));
 		}
-		expect(screen.getByText("Zoom Out")).toBeDisabled();
+		expect(screen.getByRole("button", { name: "Zoom Out" })).toBeDisabled();
 	});
 
 	it("shows an error message (no toolbar) when the document fails to load", async () => {
@@ -171,7 +178,7 @@ describe("PDFViewerDocument", () => {
 		expect(screen.getByText("Previous")).toBeInTheDocument();
 		expect(screen.getByText("Next")).toBeInTheDocument();
 		expect(screen.getByText("Next")).not.toBeDisabled();
-		expect(screen.getByText("Zoom In")).not.toBeDisabled();
+		expect(screen.getByRole("button", { name: "Zoom In" })).not.toBeDisabled();
 		expect(
 			screen.queryByText("Couldn't load this PDF."),
 		).not.toBeInTheDocument();
@@ -352,6 +359,162 @@ describe("PDFViewerDocument", () => {
 		// "unchanged", not refire the load.
 		rerender(<PDFViewerDocument url="" data={compressed} />);
 		expect(getDocumentMock).toHaveBeenCalledTimes(1);
+	});
+
+	describe("pan and zoom tools", () => {
+		// The canvas wrapper is the scroll container the tools operate on;
+		// it has no text or role of its own, so class lookup is the only
+		// stable way to grab it.
+		const getWrapper = (container: HTMLElement) =>
+			container.querySelector(
+				".pdfViewerDocumentCanvasWrapper",
+			) as HTMLElement;
+
+		it('relabels the step-zoom buttons "+" and "-", keeping accessible names', async () => {
+			render(<PDFViewerDocument url="http://example.com/sample.pdf" />);
+			await screen.findByText("Page 1 of 3");
+			expect(screen.getByRole("button", { name: "Zoom In" })).toHaveTextContent(
+				"+",
+			);
+			expect(
+				screen.getByRole("button", { name: "Zoom Out" }),
+			).toHaveTextContent("-");
+			// The old visible labels must be gone — only the glyphs remain.
+			expect(screen.queryByText("Zoom In")).not.toBeInTheDocument();
+			expect(screen.queryByText("Zoom Out")).not.toBeInTheDocument();
+		});
+
+		it("starts with the Pan tool active and switches tools on click", async () => {
+			const user = userEvent.setup();
+			render(<PDFViewerDocument url="http://example.com/sample.pdf" />);
+			await screen.findByText("Page 1 of 3");
+			const pan = screen.getByRole("button", { name: "Pan Tool" });
+			const zoom = screen.getByRole("button", { name: "Zoom Tool" });
+			expect(pan).toHaveAttribute("aria-pressed", "true");
+			expect(zoom).not.toHaveAttribute("aria-pressed");
+			await user.click(zoom);
+			expect(zoom).toHaveAttribute("aria-pressed", "true");
+			expect(pan).not.toHaveAttribute("aria-pressed");
+		});
+
+		it("swaps the wrapper's tool cursor class when the tool changes", async () => {
+			const user = userEvent.setup();
+			const { container } = render(
+				<PDFViewerDocument url="http://example.com/sample.pdf" />,
+			);
+			await screen.findByText("Page 1 of 3");
+			const wrapper = getWrapper(container);
+			expect(wrapper).toHaveClass("pdfViewerDocumentToolPan");
+			expect(wrapper).not.toHaveClass("pdfViewerDocumentToolZoom");
+			await user.click(screen.getByRole("button", { name: "Zoom Tool" }));
+			expect(wrapper).toHaveClass("pdfViewerDocumentToolZoom");
+			expect(wrapper).not.toHaveClass("pdfViewerDocumentToolPan");
+		});
+
+		it("pans the scroll offsets while dragging with the Pan tool, and stops on release", async () => {
+			const { container } = render(
+				<PDFViewerDocument url="http://example.com/sample.pdf" />,
+			);
+			await screen.findByText("Page 1 of 3");
+			const wrapper = getWrapper(container);
+			fireEvent.pointerDown(wrapper, { pointerId: 1, clientX: 100, clientY: 100 });
+			fireEvent.pointerMove(wrapper, { pointerId: 1, clientX: 80, clientY: 70 });
+			// Dragging left/up by (20, 30) scrolls the content right/down by the
+			// same amount — the document follows the hand.
+			expect(wrapper.scrollLeft).toBe(20);
+			expect(wrapper.scrollTop).toBe(30);
+			fireEvent.pointerUp(wrapper, { pointerId: 1 });
+			fireEvent.pointerMove(wrapper, { pointerId: 1, clientX: 0, clientY: 0 });
+			expect(wrapper.scrollLeft).toBe(20);
+			expect(wrapper.scrollTop).toBe(30);
+		});
+
+		it("does not pan while the Zoom tool is active", async () => {
+			const user = userEvent.setup();
+			const { container } = render(
+				<PDFViewerDocument url="http://example.com/sample.pdf" />,
+			);
+			await screen.findByText("Page 1 of 3");
+			await user.click(screen.getByRole("button", { name: "Zoom Tool" }));
+			const wrapper = getWrapper(container);
+			fireEvent.pointerDown(wrapper, { pointerId: 1, clientX: 100, clientY: 100 });
+			fireEvent.pointerMove(wrapper, { pointerId: 1, clientX: 50, clientY: 50 });
+			expect(wrapper.scrollLeft).toBe(0);
+			expect(wrapper.scrollTop).toBe(0);
+		});
+
+		it("zooms in on click with the Zoom tool, keeping the click point under the cursor", async () => {
+			const user = userEvent.setup();
+			const { container } = render(
+				<PDFViewerDocument url="http://example.com/sample.pdf" />,
+			);
+			await screen.findByText("Page 1 of 3");
+			await user.click(screen.getByRole("button", { name: "Zoom Tool" }));
+			const wrapper = getWrapper(container);
+			mockPage.getViewport.mockClear();
+			fireEvent.click(wrapper, { clientX: 50, clientY: 40 });
+			await waitFor(() =>
+				expect(mockPage.getViewport).toHaveBeenCalledWith({ scale: 1.25 }),
+			);
+			// jsdom rects are all zeros, so the clicked document point is simply
+			// (clientX, clientY) / oldScale. Keeping it under the cursor means
+			// scroll = doc * newScale - cursorOffset: 50 * 1.25 - 50 = 12.5, and
+			// 40 * 1.25 - 40 = 10.
+			await waitFor(() => {
+				expect(wrapper.scrollLeft).toBeCloseTo(12.5);
+				expect(wrapper.scrollTop).toBeCloseTo(10);
+			});
+		});
+
+		it("zooms out on ctrl-click with the Zoom tool", async () => {
+			const user = userEvent.setup();
+			const { container } = render(
+				<PDFViewerDocument url="http://example.com/sample.pdf" />,
+			);
+			await screen.findByText("Page 1 of 3");
+			await user.click(screen.getByRole("button", { name: "Zoom Tool" }));
+			mockPage.getViewport.mockClear();
+			fireEvent.click(getWrapper(container), { ctrlKey: true });
+			await waitFor(() =>
+				expect(mockPage.getViewport).toHaveBeenCalledWith({ scale: 0.75 }),
+			);
+		});
+
+		it("clamps Zoom tool clicks at the minimum scale", async () => {
+			const user = userEvent.setup();
+			const { container } = render(
+				<PDFViewerDocument url="http://example.com/sample.pdf" />,
+			);
+			await screen.findByText("Page 1 of 3");
+			await user.click(screen.getByRole("button", { name: "Zoom Tool" }));
+			const wrapper = getWrapper(container);
+			// 1.0 → 0.75 → 0.5 → 0.25 → 0.1 (the last step clamps to MIN_SCALE).
+			for (const expected of [0.75, 0.5, 0.25, 0.1]) {
+				fireEvent.click(wrapper, { ctrlKey: true });
+				await waitFor(() =>
+					expect(mockPage.getViewport).toHaveBeenCalledWith({
+						scale: expected,
+					}),
+				);
+			}
+			// Already at the floor: another ctrl-click must not trigger a
+			// re-render at some smaller (or repeated) scale.
+			mockPage.getViewport.mockClear();
+			fireEvent.click(wrapper, { ctrlKey: true });
+			await new Promise((resolve) => setTimeout(resolve, 0));
+			expect(mockPage.getViewport).not.toHaveBeenCalled();
+		});
+
+		it("does not zoom on canvas click while the Pan tool is active", async () => {
+			const { container } = render(
+				<PDFViewerDocument url="http://example.com/sample.pdf" />,
+			);
+			await screen.findByText("Page 1 of 3");
+			mockPage.getViewport.mockClear();
+			fireEvent.click(getWrapper(container), { clientX: 50, clientY: 40 });
+			await new Promise((resolve) => setTimeout(resolve, 0));
+			expect(mockPage.getViewport).not.toHaveBeenCalled();
+		});
 	});
 
 	it("does not call getDocument if unmounted while data is still decompressing", async () => {
