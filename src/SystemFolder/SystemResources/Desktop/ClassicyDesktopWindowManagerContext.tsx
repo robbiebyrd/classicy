@@ -8,6 +8,7 @@ import {
 	hasWindowResizing,
 	hasWindowZoomed,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
+import { focusWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
 import type {
 	ActionMessage,
 	ClassicyStore,
@@ -157,6 +158,9 @@ export const classicyWindowEventHandler = (
 					hidden: false,
 					menuBar: win.menuBar,
 				} as ClassicyStoreSystemAppWindow);
+				// A genuinely new window opens focused (Mac behavior); re-registered
+				// persisted windows must not steal focus.
+				ds = focusWindow(ds, action.app.id, win.id);
 			} else {
 				ds = updateWindow(action.app.id, win.id, { closed: false });
 			}
@@ -165,23 +169,17 @@ export const classicyWindowEventHandler = (
 		case "ClassicyWindowFocus": {
 			if (!hasAppAndWindow(action)) break;
 			if (!ds.System.Manager.Applications.apps[action.app.id]) break;
-			ds.System.Manager.Applications.apps[action.app.id].focused = true;
-			ds.System.Manager.Applications.apps[action.app.id].windows =
-				ds.System.Manager.Applications.apps[action.app.id].windows.map((w) => {
-					w.focused = w.id === action.window.id;
-					if (w.focused) {
-						w.zOrder = Date.now();
-					}
-					return w;
-				});
 			// Prefer fresh appMenu from component props (has closures) over stored menuBar
 			const appObj = action.app as Record<string, unknown>;
 			const winObj = action.window as Record<string, unknown>;
-			const focusMenu = (Array.isArray(appObj.appMenu) ? appObj.appMenu : null) ||
+			const freshMenu = (Array.isArray(appObj.appMenu) ? appObj.appMenu : null) ||
 				(Array.isArray(winObj.menuBar) ? winObj.menuBar : null);
-			if (focusMenu) {
-				ds.System.Manager.Desktop.appMenu = focusMenu as ClassicyMenuItem[];
-			}
+			ds = focusWindow(
+				ds,
+				action.app.id,
+				action.window.id,
+				(freshMenu as ClassicyMenuItem[] | null) ?? undefined,
+			);
 			break;
 		}
 		case "ClassicyWindowClose": {
@@ -190,6 +188,11 @@ export const classicyWindowEventHandler = (
 				closed: true,
 				focused: false,
 			});
+			// Promote a sibling only when this app holds focus — closing a
+			// background app's window must not steal global focus.
+			if (ds.System.Manager.Applications.focusedAppId !== action.app.id) {
+				break;
+			}
 			const openWindows = ds.System.Manager.Applications.apps[
 				action.app.id
 			]?.windows.filter((w) => !w.closed && w.id !== action.window.id);
@@ -197,7 +200,7 @@ export const classicyWindowEventHandler = (
 				const nextFocus = openWindows.reduce((best, w) =>
 					(w.zOrder ?? 0) > (best.zOrder ?? 0) ? w : best,
 				);
-				ds = updateWindow(action.app.id, nextFocus.id, { focused: true });
+				ds = focusWindow(ds, action.app.id, nextFocus.id);
 			}
 			break;
 		}

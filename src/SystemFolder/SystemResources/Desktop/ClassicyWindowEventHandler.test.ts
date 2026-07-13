@@ -545,3 +545,165 @@ describe("ClassicyWindowPosition", () => {
 		).toEqual([200, 200]);
 	});
 });
+
+describe("ClassicyWindowFocus — global invariant", () => {
+	it("defocuses other apps and their windows in a single action", () => {
+		const ds = makeStoreWithWindows();
+		// Finder starts focused with a focused window (cross-app state)
+		ds.System.Manager.Applications.focusedAppId = "Finder.app";
+		ds.System.Manager.Applications.apps["Finder.app"].windows = [
+			{
+				id: "finder-w",
+				closed: false,
+				collapsed: false,
+				dragging: false,
+				moving: false,
+				resizing: false,
+				zoomed: false,
+				focused: true,
+				size: [400, 300],
+				position: [0, 0],
+				minimumSize: [100, 100],
+			},
+		];
+
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowFocus",
+			app: { id: "TestApp" },
+			window: { id: "w1" },
+		});
+
+		const apps = ds.System.Manager.Applications.apps;
+		expect(apps["Finder.app"].focused).toBe(false);
+		expect(apps["Finder.app"].windows[0].focused).toBe(false);
+		expect(apps.TestApp.focused).toBe(true);
+		expect(ds.System.Manager.Applications.focusedAppId).toBe("TestApp");
+		const focusedWindows = Object.values(apps)
+			.flatMap((a) => a.windows)
+			.filter((w) => w.focused);
+		expect(focusedWindows).toHaveLength(1);
+		expect(focusedWindows[0].id).toBe("w1");
+	});
+
+	it("records lastAccessedWindowId on the app", () => {
+		const ds = makeStoreWithWindows();
+
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowFocus",
+			app: { id: "TestApp" },
+			window: { id: "w1" },
+		});
+
+		expect(
+			ds.System.Manager.Applications.apps.TestApp.lastAccessedWindowId,
+		).toBe("w1");
+	});
+});
+
+describe("ClassicyWindowOpen — focus of new windows", () => {
+	it("focuses a genuinely new window and defocuses everything else", () => {
+		const ds = makeStoreWithWindows();
+		ds.System.Manager.Applications.apps["Finder.app"].focused = true;
+		ds.System.Manager.Applications.focusedAppId = "Finder.app";
+
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowOpen",
+			app: { id: "TestApp" },
+			window: {
+				id: "w3",
+				minimumSize: [100, 100],
+				size: [500, 350],
+				position: [150, 150],
+			},
+		});
+
+		const apps = ds.System.Manager.Applications.apps;
+		expect(apps.TestApp.windows.find((w) => w.id === "w3")?.focused).toBe(true);
+		expect(apps.TestApp.focused).toBe(true);
+		expect(ds.System.Manager.Applications.focusedAppId).toBe("TestApp");
+		expect(apps["Finder.app"].focused).toBe(false);
+		// w2 was focused in the fixture; the new window took over
+		expect(apps.TestApp.windows.find((w) => w.id === "w2")?.focused).toBe(
+			false,
+		);
+	});
+
+	it("does NOT steal focus when re-registering an existing window", () => {
+		const ds = makeStoreWithWindows();
+		ds.System.Manager.Applications.focusedAppId = "Finder.app";
+
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowOpen",
+			app: { id: "TestApp" },
+			window: {
+				id: "w1",
+				minimumSize: [100, 100],
+				size: [999, 999],
+				position: [50, 50],
+			},
+		});
+
+		// w2 keeps its focus from the fixture; focusedAppId untouched
+		expect(
+			ds.System.Manager.Applications.apps.TestApp.windows.find(
+				(w) => w.id === "w2",
+			)?.focused,
+		).toBe(true);
+		expect(ds.System.Manager.Applications.focusedAppId).toBe("Finder.app");
+	});
+});
+
+describe("ClassicyWindowClose — focus promotion", () => {
+	function makeCloseStore() {
+		const ds = makeStoreWithWindows();
+		const testApp = ds.System.Manager.Applications.apps.TestApp;
+		testApp.focused = true;
+		testApp.windows[0].zOrder = 1000; // w1
+		testApp.windows[1].zOrder = 2000; // w2 (focused in fixture)
+		ds.System.Manager.Applications.apps["Finder.app"].focused = false;
+		ds.System.Manager.Applications.focusedAppId = "TestApp";
+		return ds;
+	}
+
+	it("promotes the highest-zOrder sibling via focusWindow when the focused app closes a window", () => {
+		const ds = makeCloseStore();
+
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowClose",
+			app: { id: "TestApp" },
+			window: { id: "w2" },
+		});
+
+		const testApp = ds.System.Manager.Applications.apps.TestApp;
+		expect(testApp.windows.find((w) => w.id === "w2")?.closed).toBe(true);
+		expect(testApp.windows.find((w) => w.id === "w1")?.focused).toBe(true);
+		// Promotion goes through focusWindow, so recency bookkeeping updates too
+		expect(testApp.lastAccessedWindowId).toBe("w1");
+		expect(ds.System.Manager.Applications.focusedAppId).toBe("TestApp");
+	});
+
+	it("does NOT steal global focus when a background app's window closes", () => {
+		const ds = makeStoreWithWindows();
+		// Finder is the focused app; TestApp is in the background
+		ds.System.Manager.Applications.focusedAppId = "Finder.app";
+		ds.System.Manager.Applications.apps["Finder.app"].focused = true;
+		ds.System.Manager.Applications.apps.TestApp.focused = false;
+
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowClose",
+			app: { id: "TestApp" },
+			window: { id: "w2" },
+		});
+
+		expect(ds.System.Manager.Applications.focusedAppId).toBe("Finder.app");
+		expect(ds.System.Manager.Applications.apps["Finder.app"].focused).toBe(
+			true,
+		);
+		// No TestApp window was promoted to focused
+		expect(
+			ds.System.Manager.Applications.apps.TestApp.windows.some(
+				(w) => w.focused,
+			),
+		).toBe(false);
+	});
+});
