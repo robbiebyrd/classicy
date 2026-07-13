@@ -8,6 +8,7 @@ import {
 	closeApp,
 	deFocusApps,
 	focusApp,
+	focusWindow,
 	loadApp,
 	mergeClassicyState,
 	openApp,
@@ -1186,5 +1187,175 @@ describe("mergeClassicyState", () => {
 			System: { Manager: { DateAndTime: { dateTime: "2001-09-11T12:40:00.000Z" } } },
 		});
 		expect(base.System.Manager.DateAndTime.dateTime).toBe(before);
+	});
+});
+
+function makeWindow(id: string, overrides: Record<string, unknown> = {}) {
+	return {
+		id,
+		closed: false,
+		focused: false,
+		size: [400, 300] as [number, number],
+		position: [0, 0] as [number, number],
+		minimumSize: [100, 100] as [number, number],
+		...overrides,
+	};
+}
+
+describe("deFocusApps — global sweep", () => {
+	it("clears focus flags on ALL apps and windows, even when focusedAppId is stale", () => {
+		const ds = makeStore();
+		// Corrupted state: two apps and two windows focused, pointer already cleared
+		ds.System.Manager.Applications.focusedAppId = undefined;
+		ds.System.Manager.Applications.apps["Finder.app"].focused = true;
+		ds.System.Manager.Applications.apps["Finder.app"].windows = [
+			makeWindow("fw", { focused: true }),
+		];
+		ds.System.Manager.Applications.apps["Notes.app"] = {
+			id: "Notes.app",
+			name: "Notes",
+			icon: "",
+			open: true,
+			focused: true,
+			windows: [makeWindow("nw", { focused: true })],
+			data: {},
+		};
+
+		deFocusApps(ds);
+
+		const apps = ds.System.Manager.Applications.apps;
+		expect(apps["Finder.app"].focused).toBe(false);
+		expect(apps["Finder.app"].windows[0].focused).toBe(false);
+		expect(apps["Notes.app"].focused).toBe(false);
+		expect(apps["Notes.app"].windows[0].focused).toBe(false);
+		expect(ds.System.Manager.Applications.focusedAppId).toBeUndefined();
+	});
+});
+
+describe("focusWindow", () => {
+	function makeTwoAppStore() {
+		const ds = makeStore();
+		ds.System.Manager.Applications.apps["Finder.app"].windows = [
+			makeWindow("fw1", { focused: true }),
+		];
+		ds.System.Manager.Applications.apps["Notes.app"] = {
+			id: "Notes.app",
+			name: "Notes",
+			icon: "",
+			open: true,
+			focused: false,
+			windows: [makeWindow("nw1"), makeWindow("nw2")],
+			data: {},
+		};
+		return ds;
+	}
+
+	it("focuses the target window and app and defocuses everything else globally", () => {
+		const ds = makeTwoAppStore();
+
+		focusWindow(ds, "Notes.app", "nw2");
+
+		const apps = ds.System.Manager.Applications.apps;
+		expect(apps["Notes.app"].focused).toBe(true);
+		expect(ds.System.Manager.Applications.focusedAppId).toBe("Notes.app");
+		expect(apps["Notes.app"].windows.find((w) => w.id === "nw2")?.focused).toBe(
+			true,
+		);
+		expect(apps["Notes.app"].windows.find((w) => w.id === "nw1")?.focused).toBe(
+			false,
+		);
+		expect(apps["Finder.app"].focused).toBe(false);
+		expect(apps["Finder.app"].windows[0].focused).toBe(false);
+		// Global invariant: exactly one focused window across the whole store
+		const focusedCount = Object.values(apps)
+			.flatMap((a) => a.windows)
+			.filter((w) => w.focused).length;
+		expect(focusedCount).toBe(1);
+	});
+
+	it("stamps zOrder on the window and lastAccessedWindowId on the app", () => {
+		const ds = makeTwoAppStore();
+
+		focusWindow(ds, "Notes.app", "nw1");
+
+		const app = ds.System.Manager.Applications.apps["Notes.app"];
+		expect(app.lastAccessedWindowId).toBe("nw1");
+		expect(app.windows.find((w) => w.id === "nw1")?.zOrder).toBeTypeOf("number");
+	});
+
+	it("prefers the provided menuBar over the window's stored menuBar", () => {
+		const ds = makeTwoAppStore();
+		const storedMenu = [{ id: "stored", title: "Stored" }];
+		const freshMenu = [{ id: "fresh", title: "Fresh" }];
+		ds.System.Manager.Applications.apps["Notes.app"].windows[0].menuBar =
+			storedMenu;
+
+		focusWindow(ds, "Notes.app", "nw1", freshMenu);
+
+		expect(ds.System.Manager.Desktop.appMenu).toBe(freshMenu);
+	});
+
+	it("falls back to the window's stored menuBar when no menuBar is provided", () => {
+		const ds = makeTwoAppStore();
+		const storedMenu = [{ id: "stored", title: "Stored" }];
+		ds.System.Manager.Applications.apps["Notes.app"].windows[0].menuBar =
+			storedMenu;
+
+		focusWindow(ds, "Notes.app", "nw1");
+
+		expect(ds.System.Manager.Desktop.appMenu).toBe(storedMenu);
+	});
+
+	it("leaves Desktop.appMenu unchanged when neither menu is available", () => {
+		const ds = makeTwoAppStore();
+		const existingMenu = [{ id: "existing", title: "Existing" }];
+		ds.System.Manager.Desktop.appMenu = existingMenu;
+
+		focusWindow(ds, "Notes.app", "nw1");
+
+		expect(ds.System.Manager.Desktop.appMenu).toBe(existingMenu);
+	});
+
+	it("does not change closed or collapsed flags", () => {
+		const ds = makeTwoAppStore();
+		ds.System.Manager.Applications.apps["Notes.app"].windows[0].collapsed =
+			true;
+
+		focusWindow(ds, "Notes.app", "nw1");
+
+		const nw1 = ds.System.Manager.Applications.apps["Notes.app"].windows[0];
+		expect(nw1.collapsed).toBe(true);
+		expect(nw1.closed).toBe(false);
+		expect(nw1.focused).toBe(true);
+	});
+
+	it("still focuses the app when the window id is unknown", () => {
+		const ds = makeTwoAppStore();
+
+		focusWindow(ds, "Notes.app", "does-not-exist");
+
+		expect(ds.System.Manager.Applications.apps["Notes.app"].focused).toBe(true);
+		expect(ds.System.Manager.Applications.focusedAppId).toBe("Notes.app");
+		const anyWindowFocused = Object.values(
+			ds.System.Manager.Applications.apps,
+		)
+			.flatMap((a) => a.windows)
+			.some((w) => w.focused);
+		expect(anyWindowFocused).toBe(false);
+		expect(
+			ds.System.Manager.Applications.apps["Notes.app"].lastAccessedWindowId,
+		).toBeUndefined();
+	});
+
+	it("does not throw and changes nothing when the app does not exist", () => {
+		const ds = makeTwoAppStore();
+
+		expect(() => focusWindow(ds, "Nope.app", "w")).not.toThrow();
+
+		// Pre-existing focus is untouched
+		expect(ds.System.Manager.Applications.apps["Finder.app"].focused).toBe(
+			true,
+		);
+		expect(ds.System.Manager.Applications.focusedAppId).toBe("Finder.app");
 	});
 });

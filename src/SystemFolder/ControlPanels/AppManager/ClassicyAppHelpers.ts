@@ -1,5 +1,6 @@
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import type { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
 export function getDefaultAppForFileType(
 	ds: ClassicyStore,
@@ -9,16 +10,36 @@ export function getDefaultAppForFileType(
 }
 
 export function deFocusApps(ds: ClassicyStore) {
-	const prevId = ds.System.Manager.Applications.focusedAppId;
-	if (prevId) {
-		const prevApp = ds.System.Manager.Applications.apps[prevId];
-		if (prevApp) {
-			prevApp.focused = false;
-			prevApp.windows.forEach((w) => {
-				w.focused = false;
-			});
+	for (const app of Object.values(ds.System.Manager.Applications.apps)) {
+		app.focused = false;
+		app.windows.forEach((w) => {
+			w.focused = false;
+		});
+	}
+	ds.System.Manager.Applications.focusedAppId = undefined;
+	return ds;
+}
+
+export function focusWindow(
+	ds: ClassicyStore,
+	appId: string,
+	windowId: string,
+	menuBar?: ClassicyMenuItem[],
+) {
+	const app = ds.System.Manager.Applications.apps[appId];
+	if (!app) return ds;
+	deFocusApps(ds);
+	app.focused = true;
+	ds.System.Manager.Applications.focusedAppId = appId;
+	const win = app.windows.find((w) => w.id === windowId);
+	if (win) {
+		win.focused = true;
+		win.zOrder = Date.now();
+		app.lastAccessedWindowId = windowId;
+		const menu = menuBar ?? win.menuBar;
+		if (menu) {
+			ds.System.Manager.Desktop.appMenu = menu;
 		}
-		ds.System.Manager.Applications.focusedAppId = undefined;
 	}
 	return ds;
 }

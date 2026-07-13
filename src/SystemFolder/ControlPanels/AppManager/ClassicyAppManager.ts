@@ -9,6 +9,7 @@ import {
 	closeApp,
 	deFocusApps,
 	focusApp,
+	focusWindow,
 	getDefaultAppForFileType,
 	loadApp,
 	openApp,
@@ -56,6 +57,7 @@ export interface ClassicyStoreSystemApp {
 	open: boolean;
 	data?: Record<string, unknown>;
 	focused?: boolean;
+	lastAccessedWindowId?: string;
 	noDesktopIcon?: boolean;
 	debug?: boolean;
 	options?: Record<string, unknown>[];
@@ -128,6 +130,7 @@ export {
 	closeApp,
 	deFocusApps,
 	focusApp,
+	focusWindow,
 	getDefaultAppForFileType,
 	loadApp,
 	openApp,
