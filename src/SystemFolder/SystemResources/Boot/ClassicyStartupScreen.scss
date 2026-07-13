@@ -1,0 +1,53 @@
+@use "../../ControlPanels/AppearanceManager/styles/appearance";
+
+.classicyStartupScreen {
+  position: fixed;
+  z-index: 100000;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--desktop-background-color);
+}
+
+.classicyStartupScreenPanel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--window-padding-size) * 3);
+  padding: calc(var(--window-padding-size) * 6)
+    calc(var(--window-padding-size) * 8);
+  background: var(--color-system-03);
+  @include appearance.platinumWindowBorder;
+}
+
+.classicyStartupScreenLogo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  min-width: 20rem;
+  padding: 2.5rem 3.5rem;
+  background: var(--color-white);
+  border: 1px solid var(--color-black);
+
+  img {
+    width: 7rem;
+    height: auto;
+  }
+}
+
+.classicyStartupScreenWordmark {
+  font-family: var(--header-font), Georgia, "Times New Roman", serif;
+  font-size: 3rem;
+  line-height: 1;
+  color: var(--color-black);
+
+  @include appearance.no-select;
+}
+
+.classicyStartupScreenProgress {
+  width: 12rem;
+  text-align: center;
+}
