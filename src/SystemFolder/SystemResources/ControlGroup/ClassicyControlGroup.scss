@@ -5,17 +5,44 @@
   position: relative;
   flex-grow: 0;
 
+  // Explicit equivalents of the UA fieldset defaults. The group must not
+  // depend on native <fieldset>/<legend> layout: engines disagree on how a
+  // rendered legend contributes to fieldset height, and WebKit's initial
+  // layout pass over-reserves the legend height until an interaction forces
+  // a relayout, visibly collapsing the group.
+  border: calc(var(--window-border-size) * 2) groove rgb(239, 239, 239);
+  margin: 0 calc(var(--window-border-size) * 2);
+  padding: var(--window-padding-size) calc(var(--window-padding-size) * 2) calc(var(--window-padding-size) * 1.5);
+
   &.classicyControlGroupFieldsetColumns {
     flex-grow: 1;
     columns: 1;
   }
 }
 
+.classicyControlGroupFieldsetLabeled {
+  // Reserve the space an in-flow legend used to occupy: half its line box
+  // overhangs above the border, the rest displaces the content below.
+  margin-top: calc(var(--ui-font-size) * 0.75 * 1.4 / 2);
+  padding-top: calc(var(--ui-font-size) * 0.8);
+}
+
 .classicyControlGroupLegend {
   font-family: var(--ui-font);
   font-size: calc(var(--ui-font-size) * 0.75);
+  line-height: 1.4;
   margin: 0;
   padding: 0;
+
+  // Absolutely positioned so the browser does not treat this as a "rendered
+  // legend" and never takes the engine-specific legend layout path. The
+  // background patch over the border recreates the native notch.
+  position: absolute;
+  top: calc(var(--window-border-size) * -1); // center of the border
+  left: calc(var(--window-padding-size) * 2); // align with the fieldset's horizontal padding
+  transform: translateY(-50%);
+  background: var(--color-system-03);
+  white-space: nowrap;
 }
 
 .classicyControlGroupFormContent {

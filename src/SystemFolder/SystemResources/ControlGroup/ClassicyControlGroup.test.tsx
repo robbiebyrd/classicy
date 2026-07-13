@@ -53,4 +53,22 @@ describe("ClassicyControlGroup", () => {
 		);
 		expect(container.querySelector("legend")).not.toBeInTheDocument();
 	});
+
+	it("applies the labeled modifier class when a label is present", () => {
+		const { container } = render(
+			<ClassicyControlGroup label="Settings">{null}</ClassicyControlGroup>,
+		);
+		expect(container.querySelector("fieldset")).toHaveClass(
+			"classicyControlGroupFieldsetLabeled",
+		);
+	});
+
+	it("omits the labeled modifier class when label is empty string", () => {
+		const { container } = render(
+			<ClassicyControlGroup label="">{null}</ClassicyControlGroup>,
+		);
+		expect(container.querySelector("fieldset")).not.toHaveClass(
+			"classicyControlGroupFieldsetLabeled",
+		);
+	});
 });

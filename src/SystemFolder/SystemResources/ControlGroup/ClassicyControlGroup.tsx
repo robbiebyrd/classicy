@@ -20,6 +20,7 @@ export const ClassicyControlGroup: FunctionalComponent<
 		<fieldset
 			className={classNames(
 				"classicyControlGroupFieldset",
+				label !== "" && "classicyControlGroupFieldsetLabeled",
 				columns && "classicyControlGroupFieldsetColumns",
 			)}
 		>
