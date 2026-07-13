@@ -4,7 +4,7 @@
 	"types": "./dist/types/src/index.d.ts",
 	"name": "classicy",
 	"version": "0.29.0",
-	"release": "Ostinato",
+	"release": "Pizzicato",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/robbiebyrd/classicy"
