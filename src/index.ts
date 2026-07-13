@@ -46,6 +46,7 @@ export * from "./SystemFolder/SystemResources/App/ClassicyAppUtils";
 export * from "./SystemFolder/SystemResources/App/ClassicyDefaultAppsContext";
 export * from "./SystemFolder/SystemResources/BalloonHelp/ClassicyBalloonHelp";
 export * from "./SystemFolder/SystemResources/Boot/ClassicyBoot";
+export * from "./SystemFolder/SystemResources/Boot/ClassicyStartupScreen";
 export * from "./SystemFolder/SystemResources/Button/ClassicyButton";
 export * from "./SystemFolder/SystemResources/Checkbox/ClassicyCheckbox";
 export * from "./SystemFolder/SystemResources/ColorPicker/ClassicyColorPicker";

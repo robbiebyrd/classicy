@@ -62,6 +62,9 @@ describe("ClassicyAppManagerProvider defaultState", () => {
 		localStorage.clear();
 	});
 
+	// Generous timeout: as the first test in the file it pays the one-time
+	// dynamic-import cost of the full provider module graph, which can exceed
+	// the default 5s under parallel full-suite load.
 	it("seeds the store when no persisted state exists", async () => {
 		const ctx = await import(
 			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext"
@@ -78,7 +81,7 @@ describe("ClassicyAppManagerProvider defaultState", () => {
 		expect(
 			utils.useAppManager.getState().System.Manager.DateAndTime.timeZoneOffset,
 		).toBe("-4");
-	});
+	}, 20000);
 
 	it("does NOT override when valid persisted state exists", async () => {
 		localStorage.setItem(
@@ -205,10 +208,7 @@ describe("ClassicyAppManagerProvider default apps", () => {
 			return null;
 		}
 		render(
-			<ctx.ClassicyAppManagerProvider
-				disablePictureViewer
-				disableMoviePlayer
-			>
+			<ctx.ClassicyAppManagerProvider disablePictureViewer disableMoviePlayer>
 				<Capture />
 			</ctx.ClassicyAppManagerProvider>,
 		);

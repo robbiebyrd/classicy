@@ -88,9 +88,7 @@ describe("ClassicyStartupScreen", () => {
 		act(() => {
 			vi.advanceTimersByTime(2000);
 		});
-		const progress = container.querySelector(
-			"progress",
-		) as HTMLProgressElement;
+		const progress = container.querySelector("progress") as HTMLProgressElement;
 		expect(progress.value).toBeGreaterThan(25);
 		expect(progress.value).toBeLessThan(75);
 	});
