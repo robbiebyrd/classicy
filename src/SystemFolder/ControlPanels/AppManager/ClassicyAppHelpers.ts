@@ -1,4 +1,7 @@
-import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import type {
+	ClassicyStore,
+	ClassicyStoreSystemApp,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import type { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
@@ -44,23 +47,32 @@ export function focusWindow(
 	return ds;
 }
 
-export function focusApp(ds: ClassicyStore, appId: string) {
-	ds = deFocusApps(ds);
-	if (ds.System.Manager.Applications.apps[appId]) {
-		ds.System.Manager.Applications.apps[appId].focused = true;
-		ds.System.Manager.Applications.focusedAppId = appId;
+function pickWindowToRestore(app: ClassicyStoreSystemApp) {
+	const candidates = app.windows.filter((w) => !w.closed);
+	if (candidates.length === 0) return undefined;
+	const lastAccessed = candidates.find(
+		(w) => w.id === app.lastAccessedWindowId,
+	);
+	if (lastAccessed) return lastAccessed;
+	const withZOrder = candidates.filter((w) => w.zOrder !== undefined);
+	if (withZOrder.length > 0) {
+		return withZOrder.reduce((best, w) =>
+			(w.zOrder ?? 0) > (best.zOrder ?? 0) ? w : best,
+		);
 	}
-	const windows = ds.System.Manager.Applications.apps[appId]?.windows ?? [];
-	const defaultIdx = windows.findIndex((w) => w.default);
-	const idx =
-		defaultIdx >= 0 ? defaultIdx : windows.length > 0 ? windows.length - 1 : -1;
-	if (idx >= 0) {
-		windows[idx].closed = false;
-		windows[idx].focused = true;
-		const menuBar = windows[idx].menuBar;
-		if (menuBar) {
-			ds.System.Manager.Desktop.appMenu = menuBar;
-		}
+	return candidates.find((w) => w.default) ?? candidates[candidates.length - 1];
+}
+
+export function focusApp(ds: ClassicyStore, appId: string) {
+	const app = ds.System.Manager.Applications.apps[appId];
+	if (!app) return;
+	const restore = pickWindowToRestore(app);
+	if (restore) {
+		focusWindow(ds, appId, restore.id);
+	} else {
+		deFocusApps(ds);
+		app.focused = true;
+		ds.System.Manager.Applications.focusedAppId = appId;
 	}
 }
 
@@ -119,20 +131,7 @@ export function closeApp(ds: ClassicyStore, appId: string) {
 	}
 }
 
-export function activateApp(ds: ClassicyStore, appId: string) {
-	const prevId = ds.System.Manager.Applications.focusedAppId;
-	if (prevId && prevId !== appId) {
-		const prevApp = ds.System.Manager.Applications.apps[prevId];
-		if (prevApp) {
-			prevApp.focused = false;
-			prevApp.windows.forEach((w) => {
-				w.focused = false;
-			});
-		}
-	}
-	const app = ds.System.Manager.Applications.apps[appId];
-	if (app) {
-		app.focused = true;
-		ds.System.Manager.Applications.focusedAppId = appId;
-	}
-}
+/**
+ * @deprecated Alias of focusApp, kept for public API compatibility.
+ */
+export const activateApp = focusApp;

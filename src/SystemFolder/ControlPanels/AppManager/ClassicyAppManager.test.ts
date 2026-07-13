@@ -138,7 +138,7 @@ describe("focusApp", () => {
 		);
 	});
 
-	it("opens and focuses the default window when one exists", () => {
+	it("focuses the default non-closed window and does NOT reopen closed windows", () => {
 		const ds = makeStore();
 		ds.System.Manager.Applications.apps["Notes.app"] = {
 			id: "Notes.app",
@@ -149,7 +149,7 @@ describe("focusApp", () => {
 			windows: [
 				{
 					id: "main",
-					closed: true,
+					closed: false,
 					default: true,
 					size: [400, 300],
 					position: [0, 0],
@@ -169,11 +169,41 @@ describe("focusApp", () => {
 
 		focusApp(ds, "Notes.app");
 
-		const mainWindow = ds.System.Manager.Applications.apps[
-			"Notes.app"
-		].windows.find((w) => w.id === "main");
-		expect(mainWindow?.closed).toBe(false);
-		expect(mainWindow?.focused).toBe(true);
+		const windows = ds.System.Manager.Applications.apps["Notes.app"].windows;
+		expect(windows.find((w) => w.id === "main")?.focused).toBe(true);
+		// Closed windows are never reopened by activation
+		expect(windows.find((w) => w.id === "secondary")?.closed).toBe(true);
+		expect(windows.find((w) => w.id === "secondary")?.focused).toBeFalsy();
+	});
+
+	it("activates the app with NO focused window when all its windows are closed", () => {
+		const ds = makeStore();
+		ds.System.Manager.Applications.apps["Notes.app"] = {
+			id: "Notes.app",
+			name: "Notes",
+			icon: "",
+			open: true,
+			focused: false,
+			windows: [
+				{
+					id: "main",
+					closed: true,
+					default: true,
+					size: [400, 300],
+					position: [0, 0],
+					minimumSize: [100, 100],
+				},
+			],
+			data: {},
+		};
+
+		focusApp(ds, "Notes.app");
+
+		expect(ds.System.Manager.Applications.apps["Notes.app"].focused).toBe(true);
+		expect(ds.System.Manager.Applications.focusedAppId).toBe("Notes.app");
+		const windows = ds.System.Manager.Applications.apps["Notes.app"].windows;
+		expect(windows.every((w) => !w.focused)).toBe(true);
+		expect(windows.every((w) => w.closed)).toBe(true);
 	});
 
 	it("focuses the last window when no default window exists and multiple windows are present", () => {
@@ -187,21 +217,21 @@ describe("focusApp", () => {
 			windows: [
 				{
 					id: "first",
-					closed: true,
+					closed: false,
 					size: [400, 300],
 					position: [0, 0],
 					minimumSize: [100, 100],
 				},
 				{
 					id: "second",
-					closed: true,
+					closed: false,
 					size: [400, 300],
 					position: [0, 0],
 					minimumSize: [100, 100],
 				},
 				{
 					id: "last",
-					closed: true,
+					closed: false,
 					size: [400, 300],
 					position: [0, 0],
 					minimumSize: [100, 100],
@@ -421,35 +451,6 @@ describe("activateApp", () => {
 		).toBe(false);
 	});
 
-	it("does NOT change the windows of the target app (unlike focusApp)", () => {
-		const ds = makeStore();
-		ds.System.Manager.Applications.apps["Notes.app"] = {
-			id: "Notes.app",
-			name: "Notes",
-			icon: "",
-			open: true,
-			focused: false,
-			windows: [
-				{
-					id: "w1",
-					closed: false,
-					focused: false,
-					size: [400, 300],
-					position: [0, 0],
-					minimumSize: [100, 100],
-				},
-			],
-			data: {},
-		};
-
-		activateApp(ds, "Notes.app");
-
-		// activateApp only sets app.focused — it does not touch the target app's windows
-		expect(
-			ds.System.Manager.Applications.apps["Notes.app"].windows[0].focused,
-		).toBe(false);
-	});
-
 	it("updates focusedAppId to the newly activated app", () => {
 		const ds = makeStore();
 		ds.System.Manager.Applications.apps["Notes.app"] = {
@@ -467,7 +468,7 @@ describe("activateApp", () => {
 		expect(ds.System.Manager.Applications.focusedAppId).toBe("Notes.app");
 	});
 
-	it("only defocuses windows of the previously-focused app", () => {
+	it("defocuses windows of other apps", () => {
 		const ds = makeStore();
 		// Finder.app is the previously focused app (focusedAppId = "Finder.app")
 		ds.System.Manager.Applications.apps["Finder.app"].windows = [
@@ -515,10 +516,13 @@ describe("activateApp", () => {
 		expect(
 			ds.System.Manager.Applications.apps["Finder.app"].windows[0].focused,
 		).toBe(false);
-		// Third app's windows are unchanged (not iterated)
 		expect(
 			ds.System.Manager.Applications.apps["Calculator.app"].windows[0].focused,
 		).toBe(false);
+	});
+
+	it("is an alias of focusApp", () => {
+		expect(activateApp).toBe(focusApp);
 	});
 });
 
@@ -1357,5 +1361,102 @@ describe("focusWindow", () => {
 			true,
 		);
 		expect(ds.System.Manager.Applications.focusedAppId).toBe("Finder.app");
+	});
+});
+
+describe("focusApp — restoration chain", () => {
+	function makeChainStore() {
+		const ds = makeStore();
+		ds.System.Manager.Applications.apps["Notes.app"] = {
+			id: "Notes.app",
+			name: "Notes",
+			icon: "",
+			open: true,
+			focused: false,
+			windows: [
+				makeWindow("older", { zOrder: 1000 }),
+				makeWindow("newer", { zOrder: 2000 }),
+				makeWindow("untouched", { default: true }),
+			],
+			data: {},
+		};
+		return ds;
+	}
+
+	it("prefers lastAccessedWindowId over zOrder and default", () => {
+		const ds = makeChainStore();
+		ds.System.Manager.Applications.apps["Notes.app"].lastAccessedWindowId =
+			"older";
+
+		focusApp(ds, "Notes.app");
+
+		const windows = ds.System.Manager.Applications.apps["Notes.app"].windows;
+		expect(windows.find((w) => w.id === "older")?.focused).toBe(true);
+	});
+
+	it("falls back to the highest-zOrder non-closed window when lastAccessedWindowId is stale", () => {
+		const ds = makeChainStore();
+		ds.System.Manager.Applications.apps["Notes.app"].lastAccessedWindowId =
+			"gone-window";
+
+		focusApp(ds, "Notes.app");
+
+		const windows = ds.System.Manager.Applications.apps["Notes.app"].windows;
+		expect(windows.find((w) => w.id === "newer")?.focused).toBe(true);
+	});
+
+	it("skips a closed lastAccessedWindowId and falls back to zOrder", () => {
+		const ds = makeChainStore();
+		const app = ds.System.Manager.Applications.apps["Notes.app"];
+		app.lastAccessedWindowId = "older";
+		const older = app.windows.find((w) => w.id === "older");
+		if (older) older.closed = true;
+
+		focusApp(ds, "Notes.app");
+
+		expect(app.windows.find((w) => w.id === "newer")?.focused).toBe(true);
+		expect(app.windows.find((w) => w.id === "older")?.closed).toBe(true);
+	});
+
+	it("falls back to the default window when no window has a zOrder", () => {
+		const ds = makeStore();
+		ds.System.Manager.Applications.apps["Notes.app"] = {
+			id: "Notes.app",
+			name: "Notes",
+			icon: "",
+			open: true,
+			focused: false,
+			windows: [makeWindow("plain"), makeWindow("main", { default: true })],
+			data: {},
+		};
+
+		focusApp(ds, "Notes.app");
+
+		const windows = ds.System.Manager.Applications.apps["Notes.app"].windows;
+		expect(windows.find((w) => w.id === "main")?.focused).toBe(true);
+	});
+
+	it("focuses a collapsed last-accessed window without expanding it", () => {
+		const ds = makeChainStore();
+		const app = ds.System.Manager.Applications.apps["Notes.app"];
+		app.lastAccessedWindowId = "older";
+		const older = app.windows.find((w) => w.id === "older");
+		if (older) older.collapsed = true;
+
+		focusApp(ds, "Notes.app");
+
+		expect(app.windows.find((w) => w.id === "older")?.focused).toBe(true);
+		expect(app.windows.find((w) => w.id === "older")?.collapsed).toBe(true);
+	});
+
+	it("updates lastAccessedWindowId to the restored window", () => {
+		const ds = makeChainStore();
+
+		focusApp(ds, "Notes.app");
+
+		// "newer" wins via zOrder, and becomes the new last-accessed window
+		expect(
+			ds.System.Manager.Applications.apps["Notes.app"].lastAccessedWindowId,
+		).toBe("newer");
 	});
 });
