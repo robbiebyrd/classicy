@@ -4,6 +4,7 @@ import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/Clas
 import { classicyDesktopStateEventReducer } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	classicyFinderEventHandler,
+	FINDER_ABOUT_THIS_COMPUTER_WINDOW_ID,
 	isFinderData,
 } from "@/SystemFolder/Finder/FinderContext";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
@@ -279,6 +280,60 @@ describe("classicyDesktopStateEventReducer routes ClassicyAppFinder* events", ()
 		});
 
 		expect(openPaths(result)).toContain("/Users/routed");
+	});
+});
+
+describe("classicyFinderEventHandler — ClassicyAppFinderAboutThisComputerOpen", () => {
+	const aboutWindowId = FINDER_ABOUT_THIS_COMPUTER_WINDOW_ID;
+
+	it("focuses a previously-closed About This Computer window on re-open", () => {
+		const ds = makeStore();
+		ds.System.Manager.Applications.focusedAppId = "SimpleText.app";
+		ds.System.Manager.Applications.apps["Finder.app"].focused = false;
+		ds.System.Manager.Applications.apps["Finder.app"].windows = [
+			{ id: aboutWindowId, closed: true, focused: false } as never,
+		];
+
+		classicyFinderEventHandler(ds, {
+			type: "ClassicyAppFinderAboutThisComputerOpen",
+		});
+
+		const app = ds.System.Manager.Applications.apps["Finder.app"];
+		expect(app.focused).toBe(true);
+		expect(ds.System.Manager.Applications.focusedAppId).toBe("Finder.app");
+		expect(app.windows[0].focused).toBe(true);
+	});
+
+	it("focuses Finder on first open, before the window has registered", () => {
+		const ds = makeStore();
+		ds.System.Manager.Applications.focusedAppId = "SimpleText.app";
+		ds.System.Manager.Applications.apps["Finder.app"].focused = false;
+
+		classicyFinderEventHandler(ds, {
+			type: "ClassicyAppFinderAboutThisComputerOpen",
+		});
+
+		const app = ds.System.Manager.Applications.apps["Finder.app"];
+		expect(app.focused).toBe(true);
+		expect(ds.System.Manager.Applications.focusedAppId).toBe("Finder.app");
+	});
+
+	it("sets showAboutThisComputer without clobbering other Finder data", () => {
+		const ds = makeStore();
+		ds.System.Manager.Applications.apps["Finder.app"].data = {
+			openPaths: ["/Users/a"],
+		};
+
+		classicyFinderEventHandler(ds, {
+			type: "ClassicyAppFinderAboutThisComputerOpen",
+		});
+
+		const data = ds.System.Manager.Applications.apps["Finder.app"].data;
+		expect(
+			isFinderData(data ?? {}) &&
+				(data as { showAboutThisComputer?: boolean }).showAboutThisComputer,
+		).toBe(true);
+		expect(openPaths(ds)).toEqual(["/Users/a"]);
 	});
 });
 

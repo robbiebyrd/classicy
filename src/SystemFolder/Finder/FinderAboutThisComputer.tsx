@@ -3,6 +3,7 @@ import type { FC as FunctionalComponent } from "react";
 import { useEffect, useState } from "react";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { FINDER_ABOUT_THIS_COMPUTER_WINDOW_ID } from "@/SystemFolder/Finder/FinderContext";
 import { ClassicyProgressBar } from "@/SystemFolder/SystemResources/ProgressBar/ClassicyProgressBar";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 import packageJson from "../../../package.json";
@@ -51,7 +52,7 @@ export const FinderAboutThisComputer: FunctionalComponent = () => {
 
 	return (
 		<ClassicyWindow
-			id="finder_about_this_computer"
+			id={FINDER_ABOUT_THIS_COMPUTER_WINDOW_ID}
 			appId={appId}
 			hideIcon={true}
 			title="About This Computer"

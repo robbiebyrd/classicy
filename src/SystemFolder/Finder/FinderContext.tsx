@@ -3,7 +3,10 @@ import {
 	hasPath,
 	hasPaths,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
-import { openApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
+import {
+	focusWindow,
+	openApp,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
 import type {
 	ActionMessage,
 	ClassicyStore,
@@ -21,6 +24,9 @@ export type FinderData = {
 	openPaths?: string[];
 	showAboutThisComputer?: boolean;
 };
+
+export const FINDER_ABOUT_THIS_COMPUTER_WINDOW_ID =
+	"finder_about_this_computer";
 
 export function isFinderData(d: Record<string, unknown>): d is FinderData {
 	if (d === null || typeof d !== "object") return false;
@@ -86,6 +92,11 @@ export const classicyFinderEventHandler = (
 		}
 		case "ClassicyAppFinderAboutThisComputerOpen": {
 			appData = { ...appData, showAboutThisComputer: true };
+			// Focus explicitly: the ClassicyWindowOpen handler only focuses
+			// brand-new windows, and this window persists as closed after its
+			// first open. On first open (no entry yet) this focuses Finder and
+			// the window registration focuses the window itself.
+			ds = focusWindow(ds, appId, FINDER_ABOUT_THIS_COMPUTER_WINDOW_ID);
 			break;
 		}
 		case "ClassicyAppFinderAboutThisComputerClose": {
