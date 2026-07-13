@@ -131,10 +131,10 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 	useEffect(() => {
 		if (appContext?.focused && defaultWindow) {
 			const anyWindowFocused = appContext?.windows?.some((w) => w.focused);
-			const defaultWindowExists = appContext?.windows?.some(
+			const defaultWin = appContext?.windows?.find(
 				(w) => w.id === defaultWindow,
 			);
-			if (!anyWindowFocused && defaultWindowExists) {
+			if (!anyWindowFocused && defaultWin && !defaultWin.closed) {
 				desktopEventDispatch({
 					type: "ClassicyWindowFocus",
 					app: {
