@@ -8,7 +8,6 @@ import { ClassicyContextualMenu } from "@/SystemFolder/SystemResources/Contextua
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import "./ClassicyWindow.scss";
 import classNames from "classnames";
-import { createPortal } from "react-dom";
 import {
 	type FC as FunctionalComponent,
 	type KeyboardEvent,
@@ -20,10 +19,15 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { createPortal } from "react-dom";
 
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 
 const fileIcon = ClassicyIcons.system.files.file;
+
+// Pixels the pointer must travel with the button held before a title bar
+// mousedown becomes a window drag; anything less is treated as a click.
+const dragThreshold = 4;
 
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import { useClassicyCursor } from "@/SystemFolder/SystemResources/Cursor/useClassicyCursor";
@@ -212,13 +216,18 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const pendingSizeRef = useRef<[number, number] | null>(null);
 	const isDraggingRef = useRef(false);
 	const isResizingRef = useRef(false);
+	const pendingDragRef = useRef(false);
+	const dragStartPointRef = useRef<[number, number]>([0, 0]);
 	const clickPositionRef = useRef<[number, number]>([0, 0]);
 	const wsPositionRef = useRef<[number, number]>([0, 0]);
-	const docMoveHandlerRef = useRef<(e: globalThis.MouseEvent) => void>(() => {});
+	const docMoveHandlerRef = useRef<(e: globalThis.MouseEvent) => void>(
+		() => {},
+	);
 	const docUpHandlerRef = useRef<(e: globalThis.MouseEvent) => void>(() => {});
 
 	useEffect(() => {
-		const moveHandler = (e: globalThis.MouseEvent) => docMoveHandlerRef.current(e);
+		const moveHandler = (e: globalThis.MouseEvent) =>
+			docMoveHandlerRef.current(e);
 		const upHandler = (e: globalThis.MouseEvent) => docUpHandlerRef.current(e);
 		document.addEventListener("mousemove", moveHandler);
 		document.addEventListener("mouseup", upHandler);
@@ -317,6 +326,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 
 	// Updated every render so the stable document listeners always see fresh state.
 	docMoveHandlerRef.current = (e: globalThis.MouseEvent) => {
+		promoteDragIfNeeded(e.clientX, e.clientY);
 		if (!isDraggingRef.current && !isResizingRef.current) return;
 		// Skip when mouse is still inside the window — the React onMouseMove handler covers that.
 		if (windowRef.current?.contains(e.target as Node)) return;
@@ -339,12 +349,16 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		}
 	};
 
-	docUpHandlerRef.current = (e: globalThis.MouseEvent) => {
+	docUpHandlerRef.current = (_e: globalThis.MouseEvent) => {
+		pendingDragRef.current = false;
 		if (!isDraggingRef.current && !isResizingRef.current) return;
 		isDraggingRef.current = false;
 		isResizingRef.current = false;
 
-		player({ type: "ClassicySoundPlayInterrupt", sound: "ClassicyWindowMoveStop" });
+		player({
+			type: "ClassicySoundPlayInterrupt",
+			sound: "ClassicyWindowMoveStop",
+		});
 		setActive();
 		setResize(false);
 		if (pendingSizeRef.current) {
@@ -388,12 +402,32 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			// Don't allow modal error dialogs to move
 			return;
 		}
-		track("move", { type: "ClassicyWindow", ...analyticsArgs });
-		const offsetX = e.clientX - (windowRef?.current?.getBoundingClientRect().left || 0);
-		const offsetY = e.clientY - (windowRef?.current?.getBoundingClientRect().top || 0);
+		// Only arm a potential drag; it becomes a real drag once the pointer
+		// travels past dragThreshold (see promoteDragIfNeeded). A bare click
+		// must not enter drag state so double-click can collapse the window.
+		const offsetX =
+			e.clientX - (windowRef?.current?.getBoundingClientRect().left || 0);
+		const offsetY =
+			e.clientY - (windowRef?.current?.getBoundingClientRect().top || 0);
 		setClickPosition([offsetX, offsetY]);
 		clickPositionRef.current = [offsetX, offsetY];
+		dragStartPointRef.current = [e.clientX, e.clientY];
+		pendingDragRef.current = true;
+	};
+
+	const promoteDragIfNeeded = (clientX: number, clientY: number) => {
+		if (!pendingDragRef.current) return;
+		const distance = Math.hypot(
+			clientX - dragStartPointRef.current[0],
+			clientY - dragStartPointRef.current[1],
+		);
+		if (distance < dragThreshold) return;
+		pendingDragRef.current = false;
 		isDraggingRef.current = true;
+		track("move", { type: "ClassicyWindow", ...analyticsArgs });
+		// Move to the pointer-derived position immediately: the mousemove
+		// handlers still see stale (pre-drag) store state during this event,
+		// so a drag delivered in a single fast mousemove would otherwise be lost.
 		desktopEventDispatch({
 			type: "ClassicyWindowMove",
 			app: {
@@ -402,8 +436,8 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			window: ws,
 			moving: true,
 			position: [
-				windowRef?.current?.getBoundingClientRect().left,
-				windowRef?.current?.getBoundingClientRect().top,
+				clientX - clickPositionRef.current[0],
+				clientY - clickPositionRef.current[1],
 			],
 		});
 		player({ type: "ClassicySoundPlay", sound: "ClassicyWindowMoveIdle" });
@@ -411,6 +445,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	};
 
 	const changeWindow = (e: MouseEvent<HTMLDivElement>) => {
+		promoteDragIfNeeded(e.clientX, e.clientY);
 		// Only prevent default when actually moving/resizing — unconditional
 		// preventDefault() on mousemove breaks native range-input thumb dragging.
 		if (ws.resizing || ws.dragging || ws.moving) {
@@ -451,6 +486,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		}
 		// Clear refs so the document-level mouseup handler knows this event
 		// was already handled by the element and skips double-processing.
+		pendingDragRef.current = false;
 		isDraggingRef.current = false;
 		isResizingRef.current = false;
 		setActive();
@@ -670,7 +706,15 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			minWidth: resolvedMinimumSize[0],
 			minHeight: ws.collapsed ? 0 : resolvedMinimumSize[1],
 		}),
-		[size[0], size[1], ws.collapsed, ws.position[0], ws.position[1], resolvedMinimumSize[0], resolvedMinimumSize[1]],
+		[
+			size[0],
+			size[1],
+			ws.collapsed,
+			ws.position[0],
+			ws.position[1],
+			resolvedMinimumSize[0],
+			resolvedMinimumSize[1],
+		],
 	);
 
 	const desktopRoot =
@@ -682,158 +726,163 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		// biome-ignore lint/a11y/useKeyWithClickEvents: application container captures clicks for focus
 		// biome-ignore lint/a11y/useKeyWithMouseEvents: mouse tracking for window drag
 		<div
-					id={[appId, id].join("_")}
-					ref={windowRef}
-					role="application"
-					style={windowStyle}
-					className={classNames(
-						"classicyWindow",
-						ws.collapsed ? "classicyWindowCollapsed" : "",
-						ws.zoomed ? "classicyWindowZoomed" : "",
-						modal || isActive() ? "classicyWindowActive" : "classicyWindowInactive",
-						currentApp?.focused && !isActive() ? "classicyWindowActiveApp" : "",
-						!ws.closed ? "" : "classicyWindowInvisible",
-						ws.moving ? "classicyWindowDragging" : "",
-						ws.resizing ? "classicyWindowResizing" : "",
-						modal ? "classicyWindowModal" : "",
-						modal && type === "error" ? "classicyWindowRed" : "",
-						scrollable ? "" : "classicyWindowNoScroll",
-					)}
-					onMouseMove={changeWindow}
-					onMouseUp={stopChangeWindow}
-					onClick={setActive}
-					onContextMenu={showContextMenu}
-					onMouseOut={onMouseOutHandler}
-				>
-					{contextMenu && ws.contextMenu ? (
-						<ClassicyContextualMenu
-							name={[appId, id, "contextMenu"].join("_")}
-							menuItems={contextMenu}
-							position={clickPosition}
-							onClose={closeContextMenuHandler}
-						></ClassicyContextualMenu>
-					) : null}
+			id={[appId, id].join("_")}
+			ref={windowRef}
+			role="application"
+			style={windowStyle}
+			className={classNames(
+				"classicyWindow",
+				ws.collapsed ? "classicyWindowCollapsed" : "",
+				ws.zoomed ? "classicyWindowZoomed" : "",
+				modal || isActive() ? "classicyWindowActive" : "classicyWindowInactive",
+				currentApp?.focused && !isActive() ? "classicyWindowActiveApp" : "",
+				!ws.closed ? "" : "classicyWindowInvisible",
+				ws.moving ? "classicyWindowDragging" : "",
+				ws.resizing ? "classicyWindowResizing" : "",
+				modal ? "classicyWindowModal" : "",
+				modal && type === "error" ? "classicyWindowRed" : "",
+				scrollable ? "" : "classicyWindowNoScroll",
+			)}
+			onMouseMove={changeWindow}
+			onMouseUp={stopChangeWindow}
+			onClick={setActive}
+			onContextMenu={showContextMenu}
+			onMouseOut={onMouseOutHandler}
+		>
+			{contextMenu && ws.contextMenu ? (
+				<ClassicyContextualMenu
+					name={[appId, id, "contextMenu"].join("_")}
+					menuItems={contextMenu}
+					position={clickPosition}
+					onClose={closeContextMenuHandler}
+				></ClassicyContextualMenu>
+			) : null}
 
-					<div
-						className={classNames(
-							"classicyWindowTitleBar",
-							modal === true ? "classicyWindowTitleBarModal" : "",
-						)}
-					>
-						{closable && (
-							<div className={"classicyWindowControlBox"}>
-								{/* biome-ignore lint/a11y/useSemanticElements: custom window control styled as pixel-precise box */}
-								<div
-									className={"classicyWindowCloseBox"}
-									role="button"
-									tabIndex={0}
-									onClick={close}
-									onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
-										if (e.key === "Enter" || e.key === " ") close();
-									}}
-								></div>
-							</div>
-						)}
-						{/* biome-ignore lint/a11y/noStaticElementInteractions: title bar is a mouse-only drag handle */}
+			<div
+				className={classNames(
+					"classicyWindowTitleBar",
+					modal === true ? "classicyWindowTitleBarModal" : "",
+				)}
+			>
+				{closable && (
+					<div className={"classicyWindowControlBox"}>
+						{/* biome-ignore lint/a11y/useSemanticElements: custom window control styled as pixel-precise box */}
 						<div
-							className={"classicyWindowTitle"}
-							role="presentation"
-							onMouseDown={startMoveWindow}
-							onMouseUp={stopChangeWindow}
-						>
-							{title !== "" ? (
-								<>
-									<div className={"classicyWindowTitleLeft"}></div>
-									{!hideIcon && (
-										<div className={"classicyWindowIcon"}>
-											<img src={icon} alt={title} />
-										</div>
-									)}
-									<div className={"classicyWindowTitleText"}>
-										<p>{title}</p>
-									</div>
-									<div className={"classicyWindowTitleRight"}></div>
-								</>
-							) : (
-								<div className={"classicyWindowTitleCenter"}></div>
-							)}
-						</div>
-						{zoomable && (
-							<div className={"classicyWindowControlBox"}>
-								{/* biome-ignore lint/a11y/useSemanticElements: custom window control styled as pixel-precise box */}
-								<div
-									className={"classicyWindowZoomBox"}
-									role="button"
-									tabIndex={0}
-									onClick={toggleZoom}
-									onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
-										if (e.key === "Enter" || e.key === " ") toggleZoom();
-									}}
-								></div>
-							</div>
-						)}
-						{collapsable && (
-							<div className={"classicyWindowControlBox"}>
-								{/* biome-ignore lint/a11y/useSemanticElements: custom window control styled as pixel-precise box */}
-								<div
-									className={"classicyWindowCollapseBox"}
-									role="button"
-									tabIndex={0}
-									onClick={toggleCollapse}
-									onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
-										if (e.key === "Enter" || e.key === " ") toggleCollapse();
-									}}
-								></div>
-							</div>
-						)}
-					</div>
-					{header && !ws.collapsed && (
-						<div
-							className={classNames(
-								"classicyWindowHeader",
-								isActive() ? "" : "classicyWindowHeaderDimmed",
-							)}
-						>
-							{header}
-						</div>
-					)}
-					<div
-						className={classNames(
-							!modal && !isActive() ? (dimContents ? "classicyWindowContentsDimmed" : "classicyWindowContentsNotDimmed") : "",
-							scrollable === true ? "" : "classicyWindowNoScroll",
-							modal === true
-								? "classicyWindowContentsModal"
-								: "classicyWindowContents",
-							header ? "classicyWindowContentsWithHeader" : "",
-							ws.collapsed ? "hidden" : "block",
-						)}
-					>
-						<div
-							className={classNames(
-								"classicyWindowContentsInner",
-								modal === true ? "classicyWindowContentsModalInner" : "",
-								growable ? "classicyWindowContentsInnerGrow" : "",
-							)}
-						>
-							{" "}
-							{children}
-						</div>
-					</div>
-					{resizable && !ws.collapsed && (
-						// biome-ignore lint/a11y/noStaticElementInteractions: resize handle is mouse-only drag target
-						<div
-							className={classNames(
-								"classicyWindowResizer",
-								isActive() ? "" : "classicyWindowResizerDimmed",
-							)}
-							role="presentation"
-							onMouseDown={startResizeWindow}
-							onMouseUp={stopChangeWindow}
-							onMouseEnter={() => setCursor("resizeLr")}
-							onMouseLeave={() => setCursor()}
+							className={"classicyWindowCloseBox"}
+							role="button"
+							tabIndex={0}
+							onClick={close}
+							onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
+								if (e.key === "Enter" || e.key === " ") close();
+							}}
 						></div>
+					</div>
+				)}
+				{/* biome-ignore lint/a11y/noStaticElementInteractions: title bar is a mouse-only drag handle */}
+				<div
+					className={"classicyWindowTitle"}
+					role="presentation"
+					onMouseDown={startMoveWindow}
+					onMouseUp={stopChangeWindow}
+					onDoubleClick={toggleCollapse}
+				>
+					{title !== "" ? (
+						<>
+							<div className={"classicyWindowTitleLeft"}></div>
+							{!hideIcon && (
+								<div className={"classicyWindowIcon"}>
+									<img src={icon} alt={title} />
+								</div>
+							)}
+							<div className={"classicyWindowTitleText"}>
+								<p>{title}</p>
+							</div>
+							<div className={"classicyWindowTitleRight"}></div>
+						</>
+					) : (
+						<div className={"classicyWindowTitleCenter"}></div>
 					)}
 				</div>
+				{zoomable && (
+					<div className={"classicyWindowControlBox"}>
+						{/* biome-ignore lint/a11y/useSemanticElements: custom window control styled as pixel-precise box */}
+						<div
+							className={"classicyWindowZoomBox"}
+							role="button"
+							tabIndex={0}
+							onClick={toggleZoom}
+							onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
+								if (e.key === "Enter" || e.key === " ") toggleZoom();
+							}}
+						></div>
+					</div>
+				)}
+				{collapsable && (
+					<div className={"classicyWindowControlBox"}>
+						{/* biome-ignore lint/a11y/useSemanticElements: custom window control styled as pixel-precise box */}
+						<div
+							className={"classicyWindowCollapseBox"}
+							role="button"
+							tabIndex={0}
+							onClick={toggleCollapse}
+							onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
+								if (e.key === "Enter" || e.key === " ") toggleCollapse();
+							}}
+						></div>
+					</div>
+				)}
+			</div>
+			{header && !ws.collapsed && (
+				<div
+					className={classNames(
+						"classicyWindowHeader",
+						isActive() ? "" : "classicyWindowHeaderDimmed",
+					)}
+				>
+					{header}
+				</div>
+			)}
+			<div
+				className={classNames(
+					!modal && !isActive()
+						? dimContents
+							? "classicyWindowContentsDimmed"
+							: "classicyWindowContentsNotDimmed"
+						: "",
+					scrollable === true ? "" : "classicyWindowNoScroll",
+					modal === true
+						? "classicyWindowContentsModal"
+						: "classicyWindowContents",
+					header ? "classicyWindowContentsWithHeader" : "",
+					ws.collapsed ? "hidden" : "block",
+				)}
+			>
+				<div
+					className={classNames(
+						"classicyWindowContentsInner",
+						modal === true ? "classicyWindowContentsModalInner" : "",
+						growable ? "classicyWindowContentsInnerGrow" : "",
+					)}
+				>
+					{" "}
+					{children}
+				</div>
+			</div>
+			{resizable && !ws.collapsed && (
+				// biome-ignore lint/a11y/noStaticElementInteractions: resize handle is mouse-only drag target
+				<div
+					className={classNames(
+						"classicyWindowResizer",
+						isActive() ? "" : "classicyWindowResizerDimmed",
+					)}
+					role="presentation"
+					onMouseDown={startResizeWindow}
+					onMouseUp={stopChangeWindow}
+					onMouseEnter={() => setCursor("resizeLr")}
+					onMouseLeave={() => setCursor()}
+				></div>
+			)}
+		</div>
 	);
 
 	if (modal && desktopRoot) {
