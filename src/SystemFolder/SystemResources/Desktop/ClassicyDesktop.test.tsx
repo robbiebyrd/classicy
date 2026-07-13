@@ -8,6 +8,7 @@ import { ClassicyDesktop } from "@/SystemFolder/SystemResources/Desktop/Classicy
 describe("ClassicyDesktop default apps", () => {
 	beforeEach(() => {
 		localStorage.clear();
+		sessionStorage.clear();
 		useAppManager.setState(DefaultAppManagerState, true);
 	});
 
@@ -53,5 +54,45 @@ describe("ClassicyDesktop default apps", () => {
 		// The desktop itself is gone — the boundary replaced it entirely.
 		expect(screen.queryByAltText("SimpleText")).not.toBeInTheDocument();
 		consoleError.mockRestore();
+	});
+});
+
+describe("ClassicyDesktop startup screen", () => {
+	beforeEach(() => {
+		localStorage.clear();
+		sessionStorage.clear();
+		useAppManager.setState(DefaultAppManagerState, true);
+	});
+
+	it("renders the startup splash by default on a fresh session", () => {
+		const { container } = render(
+			<ClassicyAppManagerProvider>
+				<ClassicyDesktop />
+			</ClassicyAppManagerProvider>,
+		);
+		expect(
+			container.querySelector(".classicyStartupScreen"),
+		).toBeInTheDocument();
+		// The desktop is mounted underneath while the splash is up
+		expect(screen.getByAltText("SimpleText")).toBeInTheDocument();
+	});
+
+	it("suppresses the splash when startupScreen is false", () => {
+		const { container } = render(
+			<ClassicyAppManagerProvider>
+				<ClassicyDesktop startupScreen={false} />
+			</ClassicyAppManagerProvider>,
+		);
+		expect(container.querySelector(".classicyStartupScreen")).toBeNull();
+	});
+
+	it("does not show the splash again within the same session", () => {
+		sessionStorage.setItem("classicyStartupScreenShown", "true");
+		const { container } = render(
+			<ClassicyAppManagerProvider>
+				<ClassicyDesktop />
+			</ClassicyAppManagerProvider>,
+		);
+		expect(container.querySelector(".classicyStartupScreen")).toBeNull();
 	});
 });

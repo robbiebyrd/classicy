@@ -14,6 +14,7 @@ import { QuickTimePictureViewer } from "@/SystemFolder/QuickTime/PictureViewer/P
 import { SimpleText } from "@/SystemFolder/SimpleText/SimpleText";
 import { getClassicyAboutWindow } from "@/SystemFolder/SystemResources/AboutWindow/ClassicyAboutWindowUtils";
 import { ClassicyDefaultAppsContext } from "@/SystemFolder/SystemResources/App/ClassicyDefaultAppsContext";
+import { ClassicyStartupScreen } from "@/SystemFolder/SystemResources/Boot/ClassicyStartupScreen";
 import { ClassicyContextualMenu } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenu";
 import { ClassicyCrashScreen } from "@/SystemFolder/SystemResources/CrashScreen/ClassicyCrashScreen";
 import "./ClassicyDesktop.scss";
@@ -54,10 +55,14 @@ import { ClassicyControlLabel } from "../ControlLabel/ClassicyControlLabel";
 
 interface ClassicyDesktopProps {
 	children?: ReactNode;
+	startupScreen?: boolean;
+	startupDuration?: number;
 }
 
 const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	children,
+	startupScreen = true,
+	startupDuration = 4000,
 }) => {
 	const [contextMenu, setContextMenu] = useState(false);
 	const [contextMenuLocation, setContextMenuLocation] = useState([0, 0]);
@@ -621,14 +626,22 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 				</div>
 			) : null}
 			{children}
+			{startupScreen && <ClassicyStartupScreen duration={startupDuration} />}
 		</div>
 	);
 };
 
 export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 	children,
+	startupScreen,
+	startupDuration,
 }) => (
 	<ClassicyCrashScreen>
-		<ClassicyDesktopInner>{children}</ClassicyDesktopInner>
+		<ClassicyDesktopInner
+			startupScreen={startupScreen}
+			startupDuration={startupDuration}
+		>
+			{children}
+		</ClassicyDesktopInner>
 	</ClassicyCrashScreen>
 );
