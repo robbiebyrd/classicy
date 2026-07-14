@@ -56,7 +56,7 @@ HTMLCanvasElement.prototype.getContext = vi.fn(() => null);
 // ── ClassicyColorPicker swatch wrapper ────────────────────────────────────────
 
 describe("ClassicyColorPicker", () => {
-  it("renders swatch with background color matching defaultValue", () => {
+  it("renders swatch with preview color variable matching defaultValue", () => {
     const { container } = render(
       <ClassicyColorPicker id="test" defaultValue={0xff0000} />,
     );
@@ -64,7 +64,9 @@ describe("ClassicyColorPicker", () => {
       ".classicyColorPickerSwatch",
     ) as HTMLElement;
     expect(swatch).toBeInTheDocument();
-    expect(swatch.style.backgroundColor).toBe("rgb(255, 0, 0)");
+    expect(swatch.style.getPropertyValue("--classicy-preview-color")).toBe(
+      "#ff0000",
+    );
   });
 
   it("does not show dialog before swatch is clicked", () => {

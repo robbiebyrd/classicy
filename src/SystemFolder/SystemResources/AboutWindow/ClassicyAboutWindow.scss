@@ -7,4 +7,12 @@
   justify-content: center;
   text-align: center;
   justify-items: center;
+
+  h1 {
+    font-family: var(--header-font);
+  }
+
+  h5 {
+    font-family: var(--ui-font);
+  }
 }

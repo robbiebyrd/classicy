@@ -1,4 +1,4 @@
-import { type FC, useState } from "react";
+import { type CSSProperties, type FC, useState } from "react";
 import classNames from "classnames";
 import { intToHex } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyColors";
 import type { ClassicyCrayon } from "./ClassicyColorPickerCrayons";
@@ -57,11 +57,7 @@ export const ClassicyColorPickerCrayon: FC<ClassicyColorPickerCrayonProps> = ({
       <div className="classicyColorPickerCrayonBox" role="listbox" aria-label="Crayon colors">
         <div className="classicyColorPickerCrayonRows">
           {rows.map((row, rowIdx) => (
-            <div
-              key={rowIdx}
-              className="classicyColorPickerCrayonRow"
-              style={{ zIndex: rowIdx }}
-            >
+            <div key={rowIdx} className="classicyColorPickerCrayonRow">
               {row.map((crayon) => (
                 <button
                   key={crayon.color}
@@ -88,7 +84,7 @@ export const ClassicyColorPickerCrayon: FC<ClassicyColorPickerCrayonProps> = ({
       </div>
       <div
         className="classicyColorPickerCrayonPreviewStrip"
-        style={{ backgroundColor: intToHex(previewColor) }}
+        style={{ "--classicy-preview-color": intToHex(previewColor) } as CSSProperties}
         aria-label={`Preview: ${intToHex(previewColor)}`}
       />
     </div>

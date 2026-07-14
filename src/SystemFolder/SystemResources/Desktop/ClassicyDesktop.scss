@@ -50,3 +50,40 @@
   border: var(--window-border-size) dotted var(--color-black);
   outline: var(--window-border-size) dotted var(--color-black);
 }
+
+// Full-screen overlay that centers a modal dialog (Empty Trash, error dialogs).
+.classicyDesktopDialogOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.classicyDesktopDialogContent {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.classicyDesktopDialogIcon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+}
+
+.classicyDesktopDialogBody {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  flex: 1;
+}
+
+.classicyDesktopDialogButtons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}

@@ -7,10 +7,13 @@
   display: inline-block;
 }
 
-// Wrapper rendered in a document.body portal. position, z-index, coordinates,
-// and pointer-events are all applied via inline style.
+// Wrapper rendered in a portal. Coordinates are measured from the anchor
+// element at display time and applied via inline style; z-index sits above
+// everything including modal windows (99999).
 .classicyBalloonHelpContainer {
   position: fixed;
+  z-index: 100000;
+  pointer-events: none;
 }
 
 // The bubble itself — normal block flow inside the container.
@@ -37,9 +40,36 @@
 }
 
 // The tail is a sibling of .classicyBalloonHelp — rendered after it in DOM
-// order so it paints on top of the bubble's border. Positional properties
-// (top/bottom, left/right, transform) are applied via inline style.
+// order so it paints on top of the bubble's border. It sits outside the
+// bubble and overlaps it by 2px so the white fill masks the border line at
+// the junction. scaleX(-1) mirrors the tip to the right; scaleY(-1) flips
+// the tail upward for bottom placements. The flips are composed from custom
+// properties so the vertical and horizontal position classes combine freely.
 .classicyBalloonHelpTail {
   position: absolute;
   display: block;
+  transform: scaleX(var(--classicy-balloon-tail-sx, 1))
+    scaleY(var(--classicy-balloon-tail-sy, 1));
+}
+
+.classicyBalloonHelpTailTop {
+  bottom: -12px;
+}
+
+.classicyBalloonHelpTailBottom {
+  top: -12px;
+  --classicy-balloon-tail-sy: -1;
+}
+
+.classicyBalloonHelpTailLeft {
+  left: 8px;
+}
+
+.classicyBalloonHelpTailCenter {
+  left: calc(50% - 10px);
+}
+
+.classicyBalloonHelpTailRight {
+  right: 8px;
+  --classicy-balloon-tail-sx: -1;
 }

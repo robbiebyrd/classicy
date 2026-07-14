@@ -35,9 +35,6 @@ export const ClassicyColorPickerHLS: FC<ClassicyColorPickerHLSProps> = ({ color,
 
   const onSliderChange = (e: ChangeEvent<HTMLInputElement>) => emit(h, Number(e.target.value), s);
 
-  const radius = WHEEL_SIZE / 2;
-  const labelRadius = radius + 20;
-
   const { r: lDarkR, g: lDarkG, b: lDarkB } = hlsToRgb(h, 0, 100);
   const { r: lLightR, g: lLightG, b: lLightB } = hlsToRgb(h, 100, 100);
   const lightnessSliderStyle = {
@@ -49,17 +46,15 @@ export const ClassicyColorPickerHLS: FC<ClassicyColorPickerHLSProps> = ({ color,
     <div className="classicyColorPickerWheelTab">
       <div className="classicyColorPickerWheelLayout">
         <div className="classicyColorPickerWheelOuter">
-          {DEGREE_MARKS.map((deg) => {
-            const rad = (deg * Math.PI) / 180;
-            const lx = radius + 20 + labelRadius * Math.cos(rad);
-            const ly = radius + 20 + labelRadius * Math.sin(rad);
-            return (
-              <span key={deg} className="classicyColorPickerWheelDegreeLabel"
-                style={{ left: lx, top: ly }}>
-                {deg}°
-              </span>
-            );
-          })}
+          {DEGREE_MARKS.map((deg) => (
+            <span
+              key={deg}
+              className="classicyColorPickerWheelDegreeLabel"
+              data-degree={deg}
+            >
+              {deg}°
+            </span>
+          ))}
           <div className="classicyColorPickerWheelCanvasWrapper">
             <ClassicyColorWheel
               size={WHEEL_SIZE}

@@ -21,7 +21,8 @@ input[type=number] {
   border: none;
   box-shadow: none;
   outline: none;
-  background-color: var(--color-white);
+  width: var(--classicy-spinner-width);
+  background-color: var(--classicy-spinner-background, var(--color-white));
 
   &:focus-visible {
     outline: none;
@@ -82,6 +83,11 @@ input[type=number] {
     img {
       height: auto;
       width: 100%;
+    }
+
+    // The decrement button reuses the up-arrow icon, flipped vertically.
+    &:last-child img {
+      transform: scaleY(-1);
     }
   }
 }

@@ -7,6 +7,7 @@ import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/u
 import "./ClassicyDesktopIcon.scss";
 import classNames from "classnames";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	type KeyboardEvent,
 	type MouseEvent,
@@ -216,12 +217,11 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 				>
 					<div
 						className={"classicyDesktopIconMaskOuter"}
-						style={{ maskImage: `url(${icon})` }}
+						style={
+							{ "--classicy-icon-mask": `url(${icon})` } as CSSProperties
+						}
 					>
-						<div
-							className={"classicyDesktopIconMask"}
-							style={{ mask: `url(${icon})` }}
-						>
+						<div className={"classicyDesktopIconMask"}>
 							<img src={icon} alt={appName} />
 						</div>
 					</div>

@@ -1,5 +1,5 @@
 import "./ClassicyColorPicker.scss";
-import { type FC, useEffect, useState } from "react";
+import { type CSSProperties, type FC, useEffect, useState } from "react";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 import { intToHex } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyColors";
@@ -88,7 +88,7 @@ export const ClassicyColorPickerDialog: FC<ClassicyColorPickerDialogProps> = ({
       </div>
       <div
         className="classicyColorPickerPreview"
-        style={{ backgroundColor: intToHex(pendingColor) }}
+        style={{ "--classicy-preview-color": intToHex(pendingColor) } as CSSProperties}
         aria-label={`Selected color: ${intToHex(pendingColor)}`}
       />
       <div className="classicyColorPickerDialogFooter">

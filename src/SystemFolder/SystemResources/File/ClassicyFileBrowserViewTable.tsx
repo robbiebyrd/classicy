@@ -230,10 +230,12 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 													<img
 														src={`${arrowUpIcon}`}
 														alt={"Up Arrow"}
-														className={"classicyFileBrowserViewTableSortArrow"}
-														style={{
-															transform: `rotate(${sorting[0].desc ? "0deg" : "180deg"})`,
-														}}
+														className={classNames(
+															"classicyFileBrowserViewTableSortArrow",
+															!sorting[0].desc
+																? "classicyFileBrowserViewTableSortArrowAscending"
+																: "",
+														)}
 													/>
 												)}
 												{header.column.getCanResize() && (

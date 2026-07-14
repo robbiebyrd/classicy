@@ -487,16 +487,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 				/>
 			))}
 			{showEmptyTrashDialog ? (
-				<div
-					style={{
-						position: "fixed",
-						inset: 0,
-						zIndex: 99999,
-						display: "flex",
-						alignItems: "center",
-						justifyContent: "center",
-					}}
-				>
+				<div className={"classicyDesktopDialogOverlay"}>
 					<ClassicyWindow
 						id={"empty_trash"}
 						appId={"Finder.app"}
@@ -510,39 +501,19 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 						modal={true}
 						type={"error"}
 					>
-						<div
-							style={{
-								display: "flex",
-								flexDirection: "row",
-								alignItems: "flex-start",
-								gap: "1rem",
-								padding: "1rem",
-							}}
-						>
+						<div className={"classicyDesktopDialogContent"}>
 							<img
 								src={trashIcon}
 								alt={"Trash"}
-								style={{ width: 32, height: 32, flexShrink: 0 }}
+								className={"classicyDesktopDialogIcon"}
 							/>
-							<div
-								style={{
-									display: "flex",
-									flexDirection: "column",
-									gap: "1rem",
-								}}
-							>
+							<div className={"classicyDesktopDialogBody"}>
 								<ClassicyControlLabel
 									label="Are you sure you want to reset your desktop?
 									This will clear all saved state and reload the
 									application. This action cannot be undone."
 								/>
-								<div
-									style={{
-										display: "flex",
-										justifyContent: "flex-end",
-										gap: "0.5rem",
-									}}
-								>
+								<div className={"classicyDesktopDialogButtons"}>
 									<ClassicyButton
 										isDefault={true}
 										onClickFunc={() => setShowEmptyTrashDialog(false)}
@@ -557,16 +528,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 				</div>
 			) : null}
 			{errorDialog ? (
-				<div
-					style={{
-						position: "fixed",
-						inset: 0,
-						zIndex: 99999,
-						display: "flex",
-						alignItems: "center",
-						justifyContent: "center",
-					}}
-				>
+				<div className={"classicyDesktopDialogOverlay"}>
 					<ClassicyWindow
 						id={"error_dialog"}
 						appId={"Finder.app"}
@@ -581,36 +543,15 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 						modal={true}
 						type={"error"}
 					>
-						<div
-							style={{
-								display: "flex",
-								flexDirection: "row",
-								alignItems: "flex-start",
-								gap: "1rem",
-								padding: "1rem",
-							}}
-						>
+						<div className={"classicyDesktopDialogContent"}>
 							<img
 								src={errorIcon}
 								alt={"Error"}
-								style={{ width: 32, height: 32, flexShrink: 0 }}
+								className={"classicyDesktopDialogIcon"}
 							/>
-							<div
-								style={{
-									display: "flex",
-									flexDirection: "column",
-									gap: "1rem",
-									flex: 1,
-								}}
-							>
+							<div className={"classicyDesktopDialogBody"}>
 								<ClassicyControlLabel label={errorDialog.message} />
-								<div
-									style={{
-										display: "flex",
-										justifyContent: "flex-end",
-										gap: "0.5rem",
-									}}
-								>
+								<div className={"classicyDesktopDialogButtons"}>
 									<ClassicyButton
 										isDefault={true}
 										onClickFunc={() =>

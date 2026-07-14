@@ -1,5 +1,5 @@
 import "./ClassicyColorPicker.scss";
-import { type FC, useState } from "react";
+import { type CSSProperties, type FC, useState } from "react";
 import classNames from "classnames";
 import {
   ClassicyControlLabel,
@@ -63,7 +63,7 @@ export const ClassicyColorPicker: FC<ClassicyColorPickerProps> = ({
             "classicyColorPickerSwatch",
             disabled && "classicyColorPickerSwatchDisabled",
           )}
-          style={{ backgroundColor: intToHex(value) }}
+          style={{ "--classicy-preview-color": intToHex(value) } as CSSProperties}
           onClick={() => setOpen(true)}
           disabled={disabled}
           aria-label={`Color: ${intToHex(value)}. Click to open color picker.`}

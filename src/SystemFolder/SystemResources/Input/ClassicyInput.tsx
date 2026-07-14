@@ -8,6 +8,7 @@ import "./ClassicyInput.scss";
 import classNames from "classnames";
 import {
 	type ChangeEventHandler,
+	type CSSProperties,
 	type ForwardedRef,
 	type FC as FunctionalComponent,
 	forwardRef,
@@ -100,7 +101,13 @@ export const ClassicyInput: FunctionalComponent<ClassicyInputProps> =
 						"classicyInput",
 						isDefault ? "classicyInputDefault" : "",
 					)}
-					style={backgroundColor ? { backgroundColor } : undefined}
+					style={
+						backgroundColor
+							? ({
+									"--classicy-input-background": backgroundColor,
+								} as CSSProperties)
+							: undefined
+					}
 				></input>
 			</div>
 		);

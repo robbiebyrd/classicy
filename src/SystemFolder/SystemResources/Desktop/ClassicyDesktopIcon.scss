@@ -44,6 +44,7 @@
 }
 
 .classicyDesktopIconMask {
+  mask-image: var(--classicy-icon-mask);
   width: calc(var(--desktop-icon-size) - var(--window-border-size) * 2);
   height: calc(var(--desktop-icon-size) - var(--window-border-size) * 2);
   margin: 0 auto;
@@ -54,6 +55,7 @@
 }
 
 .classicyDesktopIconMaskOuter {
+  mask-image: var(--classicy-icon-mask);
   width: calc(var(--desktop-icon-size) + var(--window-border-size));
   height: calc(var(--desktop-icon-size) + var(--window-border-size));
   margin: 0 auto;

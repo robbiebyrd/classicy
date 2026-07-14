@@ -35,9 +35,6 @@ export const ClassicyColorPickerHSV: FC<ClassicyColorPickerHSVProps> = ({ color,
 
   const onSliderChange = (e: ChangeEvent<HTMLInputElement>) => emit(h, s, Number(e.target.value));
 
-  const radius = WHEEL_SIZE / 2;
-  const labelRadius = radius + 20;
-
   const { r: vDarkR, g: vDarkG, b: vDarkB } = hsvToRgb(h, 100, 0);
   const { r: vLightR, g: vLightG, b: vLightB } = hsvToRgb(h, 100, 100);
   const valueSliderStyle = {
@@ -50,17 +47,15 @@ export const ClassicyColorPickerHSV: FC<ClassicyColorPickerHSVProps> = ({ color,
       <div className="classicyColorPickerWheelLayout">
         <div className="classicyColorPickerWheelOuter">
           {/* Degree labels absolutely positioned around the wheel */}
-          {DEGREE_MARKS.map((deg) => {
-            const rad = (deg * Math.PI) / 180;
-            const lx = radius + 20 + labelRadius * Math.cos(rad);
-            const ly = radius + 20 + labelRadius * Math.sin(rad);
-            return (
-              <span key={deg} className="classicyColorPickerWheelDegreeLabel"
-                style={{ left: lx, top: ly }}>
-                {deg}°
-              </span>
-            );
-          })}
+          {DEGREE_MARKS.map((deg) => (
+            <span
+              key={deg}
+              className="classicyColorPickerWheelDegreeLabel"
+              data-degree={deg}
+            >
+              {deg}°
+            </span>
+          ))}
           <div className="classicyColorPickerWheelCanvasWrapper">
             <ClassicyColorWheel
               size={WHEEL_SIZE}

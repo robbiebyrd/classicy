@@ -24,7 +24,7 @@
   align-self: center;
   width: 100%;
   input {
-      background-color: var(--color-white);
+      background-color: var(--classicy-input-background, var(--color-white));
   }
 }
 

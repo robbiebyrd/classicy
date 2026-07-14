@@ -20,9 +20,6 @@ interface ClassicyBalloonHelpProps extends PropsWithChildren {
 	className?: string;
 }
 
-// Z-index sits above everything including modal windows (99999).
-const BALLOON_Z_INDEX = 100000;
-
 // Read --window-control-size from the desktop element at the time of display.
 const readControlSize = (): number => {
 	const el =
@@ -48,9 +45,6 @@ const containerPortalStyle = (
 	];
 
 	return {
-		position: "fixed",
-		zIndex: BALLOON_Z_INDEX,
-		pointerEvents: "none",
 		...(vertical === "top"
 			? { bottom: `${window.innerHeight - rect.top}px` }
 			: { top: `${rect.bottom}px` }),
@@ -65,32 +59,31 @@ const containerPortalStyle = (
 	};
 };
 
-// Tail sits outside the bubble and overlaps it by 2px so the white fill
-// masks the border line at the junction. scaleX/-1 mirrors the tip to the
-// right; scaleY/-1 flips the tail upward for bottom placements.
-const tailStyle = (position: ClassicyBalloonPosition): CSSProperties => {
+// Tail placement and flipping are handled by per-position classes in
+// ClassicyBalloonHelp.scss; this maps the position prop onto those classes.
+const tailPositionClasses = (position: ClassicyBalloonPosition): string => {
 	const [vertical, horizontal] = position.split("-") as [
 		"top" | "bottom",
 		"left" | "center" | "right",
 	];
-	const sx = horizontal === "right" ? -1 : 1;
-	const sy = vertical === "bottom" ? -1 : 1;
-	return {
-		...(vertical === "top" ? { bottom: "-12px" } : { top: "-12px" }),
-		...(horizontal === "left" && { left: "8px" }),
-		...(horizontal === "center" && { left: "calc(50% - 10px)" }),
-		...(horizontal === "right" && { right: "8px" }),
-		...((sx !== 1 || sy !== 1) && { transform: `scaleX(${sx}) scaleY(${sy})` }),
-	};
+	return [
+		vertical === "top"
+			? "classicyBalloonHelpTailTop"
+			: "classicyBalloonHelpTailBottom",
+		horizontal === "left" && "classicyBalloonHelpTailLeft",
+		horizontal === "center" && "classicyBalloonHelpTailCenter",
+		horizontal === "right" && "classicyBalloonHelpTailRight",
+	]
+		.filter(Boolean)
+		.join(" ");
 };
 
 // The tail is a sibling of the bubble so it paints on top of the bubble's
 // border. The white rect at the base covers the 2px overlap for a seamless
 // junction.
-const BalloonTail: FC<{ style: CSSProperties }> = ({ style }) => (
+const BalloonTail: FC<{ className: string }> = ({ className }) => (
 	<svg
-		className="classicyBalloonHelpTail"
-		style={style}
+		className={`classicyBalloonHelpTail ${className}`}
 		width="20"
 		height="14"
 		viewBox="0 0 20 14"
@@ -182,7 +175,7 @@ export const ClassicyBalloonHelp: FC<ClassicyBalloonHelpProps> = ({
 							{title && <p className="classicyBalloonHelpTitle">{title}</p>}
 							<p className="classicyBalloonHelpContent">{content}</p>
 						</div>
-						<BalloonTail style={tailStyle(position)} />
+						<BalloonTail className={tailPositionClasses(position)} />
 					</div>,
 					document.getElementById("classicyDesktop") ?? document.body,
 				)}

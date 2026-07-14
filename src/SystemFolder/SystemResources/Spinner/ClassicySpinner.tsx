@@ -9,6 +9,7 @@ import classNames from "classnames";
 import {
 	type ChangeEvent,
 	type ChangeEventHandler,
+	type CSSProperties,
 	type ForwardedRef,
 	type FC as FunctionalComponent,
 	forwardRef,
@@ -202,10 +203,14 @@ export const ClassicySpinner: FunctionalComponent<ClassicySpinnerProps> =
 							"classicySpinner",
 							isDefault ? "classicySpinnerDefault" : "",
 						)}
-						style={{
-							width: inputWidth,
-							...(backgroundColor ? { backgroundColor } : {}),
-						}}
+						style={
+							{
+								"--classicy-spinner-width": inputWidth,
+								...(backgroundColor
+									? { "--classicy-spinner-background": backgroundColor }
+									: {}),
+							} as CSSProperties
+						}
 					/>
 					<div className={"classicySpinnerButtons"}>
 						<button
@@ -231,7 +236,6 @@ export const ClassicySpinner: FunctionalComponent<ClassicySpinnerProps> =
 							<img
 								src={ClassicyIcons.ui.menuDropdownArrowUp}
 								alt="Decrement"
-								style={{ transform: "scaleY(-1)" }}
 							/>
 						</button>
 					</div>

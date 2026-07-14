@@ -1,6 +1,7 @@
 import "./ClassicyIcon.scss";
 import classNames from "classnames";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	type KeyboardEvent,
 	type MouseEvent,
@@ -105,9 +106,9 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 				"classicyIconMaskOuter",
 				invisible ? "classicyIconInvisible" : "",
 			)}
-			style={{ maskImage: `url(${icon})` }}
+			style={{ "--classicy-icon-mask": `url(${icon})` } as CSSProperties}
 		>
-			<div className={"classicyIconMask"} style={{ mask: `url(${icon})` }}>
+			<div className={"classicyIconMask"}>
 				<img src={icon} alt={name} />
 			</div>
 		</div>
