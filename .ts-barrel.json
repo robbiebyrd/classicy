@@ -7,6 +7,7 @@
 	"exclude": [
 		"__tests__",
 		"\\.test\\.tsx?$",
+		"\\.stories\\.tsx?$",
 		"custom\\.d\\.ts",
 		"\\s\\d+\\.ts$"
 	]

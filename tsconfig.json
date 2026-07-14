@@ -36,5 +36,5 @@
 			"@vid/*": ["./assets/vid/*"]
 		}
 	},
-	"exclude": ["example/", "rt911/"]
+	"exclude": ["example/", "rt911/", "storybook/", "src/**/*.stories.tsx"]
 }
