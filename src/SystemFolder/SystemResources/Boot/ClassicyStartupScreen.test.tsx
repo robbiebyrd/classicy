@@ -37,8 +37,8 @@ describe("ClassicyStartupScreen", () => {
 		expect(
 			container.querySelector(".classicyStartupScreen"),
 		).toBeInTheDocument();
-		expect(screen.getByAltText("Mac OS")).toBeInTheDocument();
-		expect(screen.getByText("Mac OS")).toBeInTheDocument();
+		expect(screen.getByAltText("Classicy")).toBeInTheDocument();
+		expect(screen.getByText("Classicy")).toBeInTheDocument();
 		expect(screen.getByText("Starting Up…")).toBeInTheDocument();
 	});
 
