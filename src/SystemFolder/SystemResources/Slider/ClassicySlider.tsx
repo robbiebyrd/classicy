@@ -13,6 +13,38 @@ import {
 	labelPositionClass,
 } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 
+export interface ClassicySliderTicks {
+	/** Tick positions as percentages (0–100) along the thumb-travel axis. */
+	positions: number[];
+	/** Density-clamped interval in value units; only set for numeric tickInterval. */
+	snapStep?: number;
+}
+
+// At most one tick per 2% of the value range (≤ 51 marks, endpoints included).
+const MAX_TICKS_PER_RANGE = 50;
+
+export const computeSliderTicks = (
+	tickInterval: number | "center" | undefined,
+	min: number,
+	max: number,
+): ClassicySliderTicks => {
+	const range = max - min;
+	if (tickInterval === undefined || range <= 0) return { positions: [] };
+	if (tickInterval === "center") return { positions: [50] };
+	if (!Number.isFinite(tickInterval) || tickInterval <= 0) {
+		return { positions: [] };
+	}
+
+	const interval = Math.max(tickInterval, range / MAX_TICKS_PER_RANGE);
+	// Index-based loop avoids float drift from repeated addition; the epsilon
+	// admits endpoints that land on the grid within rounding error.
+	const count = Math.floor(range / interval + 1e-6) + 1;
+	const positions = Array.from({ length: count }, (_, k) =>
+		Math.min(100, ((k * interval) / range) * 100),
+	);
+	return { positions, snapStep: interval };
+};
+
 interface ClassicySliderProps {
 	id: string;
 	labelTitle?: string;

@@ -1,7 +1,10 @@
 import { fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { render } from "@/__tests__/test-utils";
-import { ClassicySlider } from "@/SystemFolder/SystemResources/Slider/ClassicySlider";
+import {
+	ClassicySlider,
+	computeSliderTicks,
+} from "@/SystemFolder/SystemResources/Slider/ClassicySlider";
 
 vi.mock(
 	"@/SystemFolder/SystemResources/Slider/ClassicySlider.scss",
@@ -116,5 +119,48 @@ describe("ClassicySlider", () => {
 			'input[type="range"]',
 		) as HTMLInputElement;
 		expect(input).toHaveAttribute("aria-label", "Volume for WETA");
+	});
+});
+
+describe("computeSliderTicks", () => {
+	it("returns no positions when tickInterval is undefined", () => {
+		expect(computeSliderTicks(undefined, 0, 100).positions).toEqual([]);
+	});
+
+	it("returns a single 50% position for 'center'", () => {
+		const ticks = computeSliderTicks("center", 0, 100);
+		expect(ticks.positions).toEqual([50]);
+		expect(ticks.snapStep).toBeUndefined();
+	});
+
+	it("places ticks every interval including on-grid endpoints", () => {
+		const ticks = computeSliderTicks(25, 0, 100);
+		expect(ticks.positions).toEqual([0, 25, 50, 75, 100]);
+		expect(ticks.snapStep).toBe(25);
+	});
+
+	it("omits max when it is off-grid", () => {
+		expect(computeSliderTicks(30, 0, 100).positions).toEqual([0, 30, 60, 90]);
+	});
+
+	it("respects a non-zero min", () => {
+		expect(computeSliderTicks(30, 10, 70).positions).toEqual([0, 50, 100]);
+	});
+
+	it("clamps density to one tick per 2% of range", () => {
+		const ticks = computeSliderTicks(0.5, 0, 100);
+		expect(ticks.positions).toHaveLength(51);
+		expect(ticks.snapStep).toBe(2);
+	});
+
+	it("returns no positions for zero, negative, or NaN intervals", () => {
+		expect(computeSliderTicks(0, 0, 100).positions).toEqual([]);
+		expect(computeSliderTicks(-5, 0, 100).positions).toEqual([]);
+		expect(computeSliderTicks(Number.NaN, 0, 100).positions).toEqual([]);
+	});
+
+	it("returns no positions when max <= min", () => {
+		expect(computeSliderTicks(10, 100, 100).positions).toEqual([]);
+		expect(computeSliderTicks("center", 5, 1).positions).toEqual([]);
 	});
 });
