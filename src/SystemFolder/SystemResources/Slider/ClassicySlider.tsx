@@ -40,7 +40,7 @@ export const computeSliderTicks = (
 	// admits endpoints that land on the grid within rounding error.
 	const count = Math.floor(range / interval + 1e-6) + 1;
 	const positions = Array.from({ length: count }, (_, k) =>
-		Math.min(100, ((k * interval) / range) * 100),
+		Math.min(100, (k * interval * 100) / range),
 	);
 	return { positions, snapStep: interval };
 };

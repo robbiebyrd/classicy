@@ -153,6 +153,12 @@ describe("computeSliderTicks", () => {
 		expect(ticks.snapStep).toBe(2);
 	});
 
+	it("produces exact positions under density clamping", () => {
+		const { positions } = computeSliderTicks(0.5, 0, 100);
+		expect(positions[7]).toBe(14);
+		expect(positions[29]).toBe(58);
+	});
+
 	it("returns no positions for zero, negative, or NaN intervals", () => {
 		expect(computeSliderTicks(0, 0, 100).positions).toEqual([]);
 		expect(computeSliderTicks(-5, 0, 100).positions).toEqual([]);
