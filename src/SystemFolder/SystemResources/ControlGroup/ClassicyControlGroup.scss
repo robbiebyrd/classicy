@@ -35,13 +35,11 @@
   padding: 0;
 
   // Absolutely positioned so the browser does not treat this as a "rendered
-  // legend" and never takes the engine-specific legend layout path. The
-  // background patch over the border recreates the native notch.
+  // legend" and never takes the engine-specific legend layout path.
   position: absolute;
   top: calc(var(--window-border-size) * -1); // center of the border
   left: calc(var(--window-padding-size) * 2); // align with the fieldset's horizontal padding
   transform: translateY(-50%);
-  background: var(--color-system-03);
   white-space: nowrap;
 }
 
