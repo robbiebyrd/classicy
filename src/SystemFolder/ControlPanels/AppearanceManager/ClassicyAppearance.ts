@@ -113,6 +113,14 @@ export const getThemeVars = (theme: ClassicyTheme) => {
 		"--window-border-size": intToPx(theme.measurements.window.borderSize),
 		"--window-padding-size": intToPx(theme.measurements.window.paddingSize),
 		"--window-scrollbar-size": intToPx(theme.measurements.window.scrollbarSize),
+		// Stripe unit of the scrollbar arrow glyphs; scales with the scrollbar.
+		"--window-scrollbar-arrow-size": intToPx(
+			theme.measurements.window.scrollbarSize / 4,
+		),
+		// Classic Mac OS small-icon (SICN) size.
+		"--icon-small-size": intToPx(16),
+		// Classic Mac OS regular icon size (dialog icons, previews).
+		"--icon-size-regular": intToPx(32),
 		"--desktop-icon-size": intToPx(theme.desktop.iconSize),
 		"--desktop-icon-font-size": intToPx(theme.desktop.iconFontSize),
 		"--header-font": theme.typography.header,

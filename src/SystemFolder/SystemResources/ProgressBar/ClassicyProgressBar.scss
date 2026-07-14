@@ -59,8 +59,8 @@
       animation-play-state: running;
       background-image: repeating-linear-gradient(
                       45deg,
-                      white var(--slide-var),
-                      white calc(var(--slide-var) + 10px),
+                      var(--color-white) var(--slide-var),
+                      var(--color-white) calc(var(--slide-var) + 10px),
                       var(--color-theme-04) calc(var(--slide-var) + 10px),
                       var(--color-theme-04) calc(var(--slide-var) + 20px)
       ) !important;

@@ -57,9 +57,9 @@
   &:hover {
     &:before {
       background: var(--color-theme-02) !important;
-      box-shadow: 1px 1px var(--color-theme-05),
-        inset -1px -1px var(--color-theme-02),
-        inset 1px 1px var(--color-theme-01) !important;
+      box-shadow: var(--window-border-size) var(--window-border-size) var(--color-theme-05),
+        inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-theme-02),
+        inset var(--window-border-size) var(--window-border-size) var(--color-theme-01) !important;
     }
   }
 
@@ -68,11 +68,11 @@
     height: 75%;
     margin-right: var(--window-padding-size);
     content: '';
-    border: 1px solid var(--color-system-02);
+    border: var(--window-border-size) solid var(--color-system-02);
     background: var(--color-system-02);
-    box-shadow: 1px 1px var(--color-system-05),
-      inset -1px -1px var(--color-system-02),
-      inset 1px 1px var(--color-system-01);
+    box-shadow: var(--window-border-size) var(--window-border-size) var(--color-system-05),
+      inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-02),
+      inset var(--window-border-size) var(--window-border-size) var(--color-system-01);
 
   }
 

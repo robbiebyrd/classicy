@@ -172,7 +172,7 @@
   margin-right: calc(var(--window-padding-size) * .5);
   margin-left: calc(var(--window-padding-size) * .75);
   cursor: pointer;
-  border: 1px solid var(--color-theme-04);
+  border: var(--window-border-size) solid var(--color-theme-04);
   background: transparent;
   box-shadow: inset var(--window-border-size) var(--window-border-size) var(--window-border-size) var(--color-theme-04),
   inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--window-border-size) var(--color-theme-06);
@@ -194,7 +194,7 @@
   margin-right: calc(var(--window-padding-size) * 1);
   margin-left: calc(var(--window-padding-size) * 0.5);
   cursor: pointer;
-  border: 1px solid var(--color-theme-04);
+  border: var(--window-border-size) solid var(--color-theme-04);
   background: transparent;
   box-shadow: inset var(--window-border-size) var(--window-border-size) var(--window-border-size) var(--color-theme-04),
   inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--window-border-size) var(--color-theme-06);
@@ -252,5 +252,5 @@
   white-space: pre-line;
   line-height: 1.4;
   text-align: center;
-  border-radius: 2px;
+  border-radius: calc(var(--window-border-size) * 2);
 }

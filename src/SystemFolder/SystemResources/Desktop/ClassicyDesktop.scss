@@ -70,8 +70,8 @@
 }
 
 .classicyDesktopDialogIcon {
-  width: 32px;
-  height: 32px;
+  width: var(--icon-size-regular);
+  height: var(--icon-size-regular);
   flex-shrink: 0;
 }
 

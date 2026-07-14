@@ -38,7 +38,7 @@
 
 .classicyWindowHeaderDimmed {
   opacity: 0.5;
-  border: solid 1px black !important;
+  border: solid var(--window-border-size) var(--color-black) !important;
   box-shadow: none !important;
 }
 
@@ -64,11 +64,11 @@
 }
 
 .classicyWindowResizerDimmed {
-  border-top: 1px solid var(--color-system-05) !important;
-  border-left: 1px solid var(--color-system-05) !important;
+  border-top: var(--window-border-size) solid var(--color-system-05) !important;
+  border-left: var(--window-border-size) solid var(--color-system-05) !important;
   background-image: none !important;
   box-shadow:
-    var(--color-system-03) 1px 1px 0,
+    var(--color-system-03) var(--window-border-size) var(--window-border-size) 0,
     var(--color-system-03) -3px -3px 0;
 }
 
@@ -84,7 +84,7 @@
 
     .classicyWindowTitle {
       .classicyWindowTitleText {
-        color: black !important;
+        color: var(--color-black) !important;
       }
 
       .classicyWindowTitleCenter {
@@ -131,7 +131,7 @@
 
 .classicyWindowResizing {
   border: calc(var(--window-padding-size) / 4) dotted !important;
-  border-color: black !important;
+  border-color: var(--color-black) !important;
   background: transparent !important;
   box-shadow: none !important;
 
@@ -147,7 +147,7 @@
 .classicyWindowDragging {
   cursor: grabbing !important; /* Set cursor for the dragging element itself */
   border: calc(var(--window-padding-size) / 4) dotted !important;
-  border-color: black !important;
+  border-color: var(--color-black) !important;
   background: transparent !important;
   box-shadow: none !important;
 
@@ -336,8 +336,8 @@
       calc(var(--window-border-size) * -1);
     padding: 0;
     user-select: none;
-    border-top: 1px solid var(--color-system-07);
-    border-left: 1px solid var(--color-system-07);
+    border-top: var(--window-border-size) solid var(--color-system-07);
+    border-left: var(--window-border-size) solid var(--color-system-07);
     background-color: var(--color-system-03);
     background-image: assets.$resizer;
     background-repeat: no-repeat;
@@ -346,8 +346,8 @@
       var(--window-control-size) - (var(--window-border-size) * 2)
     );
     box-shadow:
-      var(--color-system-03) 1px 1px 0,
-      var(--color-system-03) -1px -1px 0;
+      var(--color-system-03) var(--window-border-size) var(--window-border-size) 0,
+      var(--color-system-03) calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0;
   }
 
   .classicyWindowContents {

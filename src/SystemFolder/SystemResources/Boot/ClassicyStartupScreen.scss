@@ -30,7 +30,7 @@
   min-width: 20rem;
   padding: 2.5rem 3.5rem;
   background: var(--color-white);
-  border: 1px solid var(--color-black);
+  border: var(--window-border-size) solid var(--color-black);
 
   img {
     width: 7rem;

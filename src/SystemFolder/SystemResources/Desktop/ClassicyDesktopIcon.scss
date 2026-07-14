@@ -31,7 +31,7 @@
     width: fit-content;
     margin-top: calc(var(--desktop-icon-font-size) / 2);
     padding: calc(var(--desktop-icon-font-size) / 4);
-    color: black;
+    color: var(--color-black);
     background: rgba(255, 255, 255, 0.5);
   }
 }
@@ -59,7 +59,7 @@
   width: calc(var(--desktop-icon-size) + var(--window-border-size));
   height: calc(var(--desktop-icon-size) + var(--window-border-size));
   margin: 0 auto;
-  background: black !important;
+  background: var(--color-black) !important;
   mask-mode: alpha !important;
   mask-size: cover !important;
   mask-repeat: no-repeat !important;
@@ -88,7 +88,7 @@
   }
 
   p {
-    color: white;
+    color: var(--color-white);
     background: rgba(0, 0, 0, 0.5);
   }
 }
@@ -97,7 +97,7 @@
   z-index: 99;
 
   .classicyDesktopIconMaskOuter {
-    background: black;
+    background: var(--color-black);
     filter: brightness(-5);
 
     .classicyDesktopIconMask {
@@ -111,7 +111,7 @@
   }
 
   p {
-    color: white;
+    color: var(--color-white);
     background: rgba(0, 0, 0, 0.5);
   }
 }

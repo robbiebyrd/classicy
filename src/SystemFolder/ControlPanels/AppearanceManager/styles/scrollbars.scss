@@ -1,3 +1,10 @@
+// The scrollbar arrow glyphs are drawn as stacked gradient stripes sized in
+// multiples of --window-scrollbar-arrow-size (scrollbar size / 4, from theme).
+$sb-arrow: var(--window-scrollbar-arrow-size);
+$sb-arrow-half: calc(var(--window-scrollbar-arrow-size) / 2);
+$sb-arrow-1-5x: calc(var(--window-scrollbar-arrow-size) * 1.5);
+$sb-arrow-2x: calc(var(--window-scrollbar-arrow-size) * 2);
+
 @mixin scrollbars() {
   ::-webkit-scrollbar {
     width: var(--window-scrollbar-size);
@@ -7,43 +14,43 @@
   ::-webkit-scrollbar-button:start:vertical,
   ::-webkit-scrollbar-button:start:horizontal {
     display: block;
-    top: 16px;
+    top: var(--window-scrollbar-size);
     background-color: var(--color-system-02);
     width: var(--window-scrollbar-size) v;
     height: var(--window-scrollbar-size);
   }
 
   ::-webkit-scrollbar-button:start:vertical {
-    border-left: 1px solid var(--color-black);
-    border-right: 1px solid var(--color-black);
-    border-bottom: 1px solid var(--color-black);
+    border-left: var(--window-border-size) solid var(--color-black);
+    border-right: var(--window-border-size) solid var(--color-black);
+    border-bottom: var(--window-border-size) solid var(--color-black);
   }
 
   ::-webkit-scrollbar-button:start:vertical:decrement {
-    background: linear-gradient(transparent 75%, var(--color-black) 0) 50%/8px 4px no-repeat,
-    linear-gradient(transparent 50%, var(--color-black) 0) 50%/6px 4px no-repeat,
-    linear-gradient(transparent 25%, var(--color-black) 0) 50%/4px 4px no-repeat,
-    linear-gradient(var(--color-black) 50%, var(--color-black) 0) 50%/2px 4px no-repeat,
+    background: linear-gradient(transparent 75%, var(--color-black) 0) 50%/#{$sb-arrow-2x} #{$sb-arrow} no-repeat,
+    linear-gradient(transparent 50%, var(--color-black) 0) 50%/#{$sb-arrow-1-5x} #{$sb-arrow} no-repeat,
+    linear-gradient(transparent 25%, var(--color-black) 0) 50%/#{$sb-arrow} #{$sb-arrow} no-repeat,
+    linear-gradient(var(--color-black) 50%, var(--color-black) 0) 50%/#{$sb-arrow-half} #{$sb-arrow} no-repeat,
     var(--color-system-02);
     width: var(--window-scrollbar-size);
     height: var(--window-scrollbar-size);
   }
 
   ::-webkit-scrollbar-button:start:vertical:decrement:active {
-    background: linear-gradient(transparent 75%, var(--color-black) 0) 50%/8px 4px no-repeat,
-    linear-gradient(transparent 50%, var(--color-black) 0) 50%/6px 4px no-repeat,
-    linear-gradient(transparent 25%, var(--color-black) 0) 50%/4px 4px no-repeat,
-    linear-gradient(var(--color-black) 50%, var(--color-black) 0) 50%/2px 4px no-repeat,
+    background: linear-gradient(transparent 75%, var(--color-black) 0) 50%/#{$sb-arrow-2x} #{$sb-arrow} no-repeat,
+    linear-gradient(transparent 50%, var(--color-black) 0) 50%/#{$sb-arrow-1-5x} #{$sb-arrow} no-repeat,
+    linear-gradient(transparent 25%, var(--color-black) 0) 50%/#{$sb-arrow} #{$sb-arrow} no-repeat,
+    linear-gradient(var(--color-black) 50%, var(--color-black) 0) 50%/#{$sb-arrow-half} #{$sb-arrow} no-repeat,
     var(--color-system-06);
-    box-shadow: inset 1px 1px 0 var(--color-system-07),
-    inset -1px -1px 0 var(--color-system-07);
+    box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-07),
+    inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 var(--color-system-07);
   }
 
   ::-webkit-scrollbar-button:start:vertical:increment {
-    background: linear-gradient(0deg, transparent 75%, var(--color-black) 0) 50%/8px 4px no-repeat,
-    linear-gradient(0deg, transparent 50%, var(--color-black) 0) 50%/6px 4px no-repeat,
-    linear-gradient(0deg, transparent 25%, var(--color-black) 0) 50%/4px 4px no-repeat,
-    linear-gradient(0deg, var(--color-black) 50%, var(--color-black) 0) 50%/2px 4px no-repeat,
+    background: linear-gradient(0deg, transparent 75%, var(--color-black) 0) 50%/#{$sb-arrow-2x} #{$sb-arrow} no-repeat,
+    linear-gradient(0deg, transparent 50%, var(--color-black) 0) 50%/#{$sb-arrow-1-5x} #{$sb-arrow} no-repeat,
+    linear-gradient(0deg, transparent 25%, var(--color-black) 0) 50%/#{$sb-arrow} #{$sb-arrow} no-repeat,
+    linear-gradient(0deg, var(--color-black) 50%, var(--color-black) 0) 50%/#{$sb-arrow-half} #{$sb-arrow} no-repeat,
     var(--color-system-02);
     border-bottom: none;
     width: var(--window-scrollbar-size);
@@ -51,46 +58,46 @@
   }
 
   ::-webkit-scrollbar-button:start:vertical:increment:active {
-    background: linear-gradient(0deg, transparent 75%, var(--color-black) 0) 50%/8px 4px no-repeat,
-    linear-gradient(0deg, transparent 50%, var(--color-black) 0) 50%/6px 4px no-repeat,
-    linear-gradient(0deg, transparent 25%, var(--color-black) 0) 50%/4px 4px no-repeat,
-    linear-gradient(var(--color-black) 50%, var(--color-black) 0) 50%/2px 4px no-repeat,
+    background: linear-gradient(0deg, transparent 75%, var(--color-black) 0) 50%/#{$sb-arrow-2x} #{$sb-arrow} no-repeat,
+    linear-gradient(0deg, transparent 50%, var(--color-black) 0) 50%/#{$sb-arrow-1-5x} #{$sb-arrow} no-repeat,
+    linear-gradient(0deg, transparent 25%, var(--color-black) 0) 50%/#{$sb-arrow} #{$sb-arrow} no-repeat,
+    linear-gradient(var(--color-black) 50%, var(--color-black) 0) 50%/#{$sb-arrow-half} #{$sb-arrow} no-repeat,
     var(--color-system-06);
-    box-shadow: inset 1px 1px 0 var(--color-system-06),
-    inset -1px -1px 0 var(--color-system-07);
+    box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-06),
+    inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 var(--color-system-07);
   }
 
   ::-webkit-scrollbar-button:start:horizontal {
-    border-top: 1px solid var(--color-black);
-    border-bottom: 1px solid var(--color-black);
-    border-right: 1px solid var(--color-black);
+    border-top: var(--window-border-size) solid var(--color-black);
+    border-bottom: var(--window-border-size) solid var(--color-black);
+    border-right: var(--window-border-size) solid var(--color-black);
   }
 
   ::-webkit-scrollbar-button:start:horizontal:decrement {
-    background: linear-gradient(90deg, transparent 75%, var(--color-black) 0) 50%/4px 8px no-repeat,
-    linear-gradient(90deg, transparent 50%, var(--color-black) 0) 50%/4px 6px no-repeat,
-    linear-gradient(90deg, transparent 25%, var(--color-black) 0) 50%/4px 4px no-repeat,
-    linear-gradient(90deg, var(--color-black) 50%, var(--color-black) 0) 50%/4px 2px no-repeat,
+    background: linear-gradient(90deg, transparent 75%, var(--color-black) 0) 50%/#{$sb-arrow} #{$sb-arrow-2x} no-repeat,
+    linear-gradient(90deg, transparent 50%, var(--color-black) 0) 50%/#{$sb-arrow} #{$sb-arrow-1-5x} no-repeat,
+    linear-gradient(90deg, transparent 25%, var(--color-black) 0) 50%/#{$sb-arrow} #{$sb-arrow} no-repeat,
+    linear-gradient(90deg, var(--color-black) 50%, var(--color-black) 0) 50%/#{$sb-arrow} #{$sb-arrow-half} no-repeat,
     var(--color-system-02);
     width: var(--window-scrollbar-size);
     height: var(--window-scrollbar-size);
   }
 
   ::-webkit-scrollbar-button:start:horizontal:decrement:active {
-    background: linear-gradient(90deg, transparent 75%, var(--color-black) 0) 50%/4px 8px no-repeat,
-    linear-gradient(90deg, transparent 50%, var(--color-black) 0) 50%/4px 6px no-repeat,
-    linear-gradient(90deg, transparent 25%, var(--color-black) 0) 50%/4px 4px no-repeat,
-    linear-gradient(var(--color-black) 50%, var(--color-black) 0) 50%/2px 4px no-repeat,
+    background: linear-gradient(90deg, transparent 75%, var(--color-black) 0) 50%/#{$sb-arrow} #{$sb-arrow-2x} no-repeat,
+    linear-gradient(90deg, transparent 50%, var(--color-black) 0) 50%/#{$sb-arrow} #{$sb-arrow-1-5x} no-repeat,
+    linear-gradient(90deg, transparent 25%, var(--color-black) 0) 50%/#{$sb-arrow} #{$sb-arrow} no-repeat,
+    linear-gradient(var(--color-black) 50%, var(--color-black) 0) 50%/#{$sb-arrow-half} #{$sb-arrow} no-repeat,
     var(--color-system-06);
-    box-shadow: inset 1px 1px 0 var(--color-system-06),
-    inset -1px -1px 0 var(--color-system-07);
+    box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-06),
+    inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 var(--color-system-07);
   }
 
   ::-webkit-scrollbar-button:start:horizontal:increment {
-    background: linear-gradient(270deg, transparent 75%, var(--color-black) 0) 50%/4px 8px no-repeat,
-    linear-gradient(270deg, transparent 50%, var(--color-black) 0) 50%/4px 6px no-repeat,
-    linear-gradient(270deg, transparent 25%, var(--color-black) 0) 50%/4px 4px no-repeat,
-    linear-gradient(270deg, var(--color-black) 50%, var(--color-black) 0) 50%/4px 2px no-repeat,
+    background: linear-gradient(270deg, transparent 75%, var(--color-black) 0) 50%/#{$sb-arrow} #{$sb-arrow-2x} no-repeat,
+    linear-gradient(270deg, transparent 50%, var(--color-black) 0) 50%/#{$sb-arrow} #{$sb-arrow-1-5x} no-repeat,
+    linear-gradient(270deg, transparent 25%, var(--color-black) 0) 50%/#{$sb-arrow} #{$sb-arrow} no-repeat,
+    linear-gradient(270deg, var(--color-black) 50%, var(--color-black) 0) 50%/#{$sb-arrow} #{$sb-arrow-half} no-repeat,
     var(--color-system-02);
     border-right: none;
     width: var(--window-scrollbar-size);
@@ -98,38 +105,38 @@
   }
 
   ::-webkit-scrollbar-button:start:horizontal:increment:active {
-    background: linear-gradient(270deg, transparent 75%, var(--color-black) 0) 50%/4px 8px no-repeat,
-    linear-gradient(270deg, transparent 50%, var(--color-black) 0) 50%/4px 6px no-repeat,
-    linear-gradient(270deg, transparent 25%, var(--color-black) 0) 50%/4px 4px no-repeat,
-    linear-gradient(var(--color-black) 50%, var(--color-black) 0) 50%/2px 4px no-repeat,
+    background: linear-gradient(270deg, transparent 75%, var(--color-black) 0) 50%/#{$sb-arrow} #{$sb-arrow-2x} no-repeat,
+    linear-gradient(270deg, transparent 50%, var(--color-black) 0) 50%/#{$sb-arrow} #{$sb-arrow-1-5x} no-repeat,
+    linear-gradient(270deg, transparent 25%, var(--color-black) 0) 50%/#{$sb-arrow} #{$sb-arrow} no-repeat,
+    linear-gradient(var(--color-black) 50%, var(--color-black) 0) 50%/#{$sb-arrow-half} #{$sb-arrow} no-repeat,
     var(--color-system-06);
-    box-shadow: inset 1px 1px 0 var(--color-system-06),
-    inset -1px -1px 0 var(--color-system-07);
+    box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-06),
+    inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 var(--color-system-07);
   }
 
   ::-webkit-scrollbar-track {
     background-color: var(--color-system-04);
-    border: 1px solid var(--color-black);
+    border: var(--window-border-size) solid var(--color-black);
   }
 
   ::-webkit-scrollbar-track:vertical {
-    box-shadow: inset 1px 1px 0 var(--color-system-06),
-    inset -1px 2px 0 var(--color-system-03),
-    inset 2px 0 0 rgba(0, 0, 0, 0.25),
-    inset -2px 0 0 rgba(255, 255, 255, 0.25);
+    box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-06),
+    inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * 2) 0 var(--color-system-03),
+    inset calc(var(--window-border-size) * 2) 0 0 rgba(0, 0, 0, 0.25),
+    inset calc(var(--window-border-size) * -2) 0 0 rgba(255, 255, 255, 0.25);
   }
 
   ::-webkit-scrollbar-track:horizontal {
-    box-shadow: inset 1px 1px 0 var(--color-system-06),
-    inset 2px -1px 0 var(--color-system-03),
-    inset 2px 0 0 rgba(0, 0, 0, 0.25),
-    inset -2px 0 0 rgba(255, 255, 255, 0.25);
+    box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-06),
+    inset calc(var(--window-border-size) * 2) calc(var(--window-border-size) * -1) 0 var(--color-system-03),
+    inset calc(var(--window-border-size) * 2) 0 0 rgba(0, 0, 0, 0.25),
+    inset calc(var(--window-border-size) * -2) 0 0 rgba(255, 255, 255, 0.25);
   }
 
   ::-webkit-scrollbar-corner {
-    border-top: 1px solid var(--color-black);
-    border-left: 1px solid var(--color-black);
-    box-shadow: inset 1px 1px 0 var(--color-white);
+    border-top: var(--window-border-size) solid var(--color-black);
+    border-left: var(--window-border-size) solid var(--color-black);
+    box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-white);
     background: var(--color-system-03);
   }
 
@@ -142,8 +149,8 @@
   ::-webkit-scrollbar-button:start:vertical,
   ::-webkit-scrollbar-button:start:horizontal {
     background-color: var(--color-system-02);
-    box-shadow: inset 1px 1px 0 var(--color-white),
-    inset -1px -1px 0 rgba(255, 255, 255, 0.5);
+    box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-white),
+    inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 rgba(255, 255, 255, 0.5);
   }
 
   ::-webkit-scrollbar-button:start:vertical {
@@ -190,7 +197,7 @@
 
   ::-webkit-scrollbar-track {
     background: var(--color-system-02) !important;
-    border: 1px solid var(--color-system-06) !important;
+    border: var(--window-border-size) solid var(--color-system-06) !important;
   }
 
   ::-webkit-scrollbar-track:vertical {

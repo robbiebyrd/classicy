@@ -19,7 +19,7 @@ $_tab-border-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/s
 }
 
 .classicyTabsHolder {
-  border: var(--window-border-size) solid black;
+  border: var(--window-border-size) solid var(--color-black);
 }
 
 .classicyButtonsHolder {

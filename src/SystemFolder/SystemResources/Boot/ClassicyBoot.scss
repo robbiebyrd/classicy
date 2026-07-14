@@ -5,5 +5,5 @@
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: black !important;
+  background: var(--color-black, black) !important;
 }

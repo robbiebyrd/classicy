@@ -11,7 +11,7 @@
   font-family: var(--ui-font), sans-serif;
   font-size: var(--ui-font-size);
   width: auto;
-  border: var(--window-border-size) solid black;
+  border: var(--window-border-size) solid var(--color-black);
   box-shadow: calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 0 var(--color-system-05),
   calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) 0 0 var(--color-system-04);
   display: flex;

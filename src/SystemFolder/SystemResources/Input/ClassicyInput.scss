@@ -4,13 +4,13 @@
 
 .classicyInput {
   font-family: var(--ui-font), sans-serif;
-  border: var(--window-border-size) solid black;
+  border: var(--window-border-size) solid var(--color-black);
   box-shadow: calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 0 var(--color-system-05),
   calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) 0 0 var(--color-system-04);
   width: 100%;
 
   &:focus-visible {
-    border-radius: 2pt;
+    border-radius: calc(var(--ui-font-size) * 0.1905);
     outline: 0 0 0 calc(var(--window-border-size) * 2) var(--color-outline) !important;
     box-shadow: 0 0 0 calc(var(--window-border-size) * 2) var(--color-theme-04),
     0 0 var(--window-border-size) calc(var(--window-border-size) * 2) var(--color-theme-04);

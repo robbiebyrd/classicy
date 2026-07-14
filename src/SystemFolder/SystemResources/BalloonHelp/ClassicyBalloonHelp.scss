@@ -18,8 +18,8 @@
 
 // The bubble itself — normal block flow inside the container.
 .classicyBalloonHelp {
-  background: white;
-  border: 1px solid black;
+  background: var(--color-white);
+  border: var(--window-border-size) solid var(--color-black);
   border-radius: 8px;
   padding: var(--window-padding-size);
   min-width: 80px;

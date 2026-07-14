@@ -6,7 +6,7 @@
 @mixin platinumWindowBoxShadow {
   box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05),
   inset var(--window-border-size) var(--window-border-size) var(--color-window-border-outset),
-  var(--window-border-size) var(--window-border-size) 0 0 black;
+  var(--window-border-size) var(--window-border-size) 0 0 var(--color-black);
 }
 
 @mixin platinumBoxShadow {
@@ -20,8 +20,8 @@
 }
 
 @mixin platinumWindowHeaderBorder {
-  border: 1px solid var(--color-system-07);
-  border-bottom: 1px solid var(--color-system-05);
+  border: var(--window-border-size) solid var(--color-system-07);
+  border-bottom: var(--window-border-size) solid var(--color-system-05);
   @include platinumWindowBoxShadow;
   box-shadow: inset var(--window-border-size) var(--window-border-size) var(--color-window-border-outset);
 }
@@ -30,7 +30,7 @@
   box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-03),
     inset calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) var(--color-system-05),
     calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) var(--color-system-06);
-  border-bottom: calc(var(--window-border-size) * 1) solid black;
+  border-bottom: calc(var(--window-border-size) * 1) solid var(--color-black);
   color: var(--color-black);
 }
 
@@ -52,7 +52,7 @@
 @mixin platinumWindowControlBoxBorder {
   box-shadow: inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-03),
   inset calc((var(--window-border-size)) * -1) calc((var(--window-border-size)) * -1) 0 0 var(--color-system-05);
-  border: var(--window-border-size) solid black;
+  border: var(--window-border-size) solid var(--color-black);
 }
 
 @mixin platinumWindowControlBox {
@@ -100,7 +100,7 @@
   inset calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) var(--color-system-04),
   inset calc(var(--window-border-size) * 2) calc(var(--window-border-size) * 2) var(--color-white);
   background-color: var(--color-system-02);
-  border: var(--window-border-size) solid black;
+  border: var(--window-border-size) solid var(--color-black);
   border-radius: var(--window-padding-size);
 }
 

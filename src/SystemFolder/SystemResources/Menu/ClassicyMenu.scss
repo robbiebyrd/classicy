@@ -30,15 +30,15 @@
 
   hr {
     margin: calc(var(--window-control-size) / 2) calc(var(--window-border-size) * 2);
-    border: var(--color-system-04) solid 1px;
-    box-shadow: 1px 1px 0 0 var(--color-system-01);
+    border: var(--color-system-04) solid var(--window-border-size);
+    box-shadow: var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-01);
   }
 
   div {
     ul {
       li {
         &:hover {
-          color: #fff;
+          color: var(--color-white);
           background-color: var(--color-theme-04);
         }
       }
@@ -64,8 +64,8 @@
 
   hr {
     margin: calc(var(--window-control-size) / 2) calc(var(--window-border-size) * 2);
-    border: var(--color-system-04) solid 1px;
-    box-shadow: 1px 1px 0 0 var(--color-system-01);
+    border: var(--color-system-04) solid var(--window-border-size);
+    box-shadow: var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-01);
   }
 }
 
@@ -100,8 +100,8 @@
 
   hr {
     margin: calc(var(--window-control-size) / 2) calc(var(--window-border-size) * 2);
-    border: var(--color-system-04) solid 1px;
-    box-shadow: 1px 1px 0 0 var(--color-system-01);
+    border: var(--color-system-04) solid var(--window-border-size);
+    box-shadow: var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-01);
   }
 }
 
