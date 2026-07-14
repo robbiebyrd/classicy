@@ -2,6 +2,7 @@ import "./ClassicySlider.scss";
 import classNames from "classnames";
 import type {
 	ChangeEventHandler,
+	CSSProperties,
 	FC as FunctionalComponent,
 	SyntheticEvent,
 } from "react";
@@ -72,6 +73,13 @@ interface ClassicySliderProps {
 	 * keeping `onChangeFunc` for live, per-tick updates.
 	 */
 	onCommitFunc?: (value: number) => void;
+	/**
+	 * Draws tick marks under the track. `"center"` renders a single tick at the
+	 * midpoint. A number renders a tick every `tickInterval` value-units
+	 * starting at `min`, capped at one tick per 2% of the range. Omit for no
+	 * ticks (default).
+	 */
+	tickInterval?: number | "center";
 }
 
 export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
@@ -89,6 +97,7 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 	ariaLabel,
 	onChangeFunc,
 	onCommitFunc,
+	tickInterval,
 }) => {
 	// Uncontrolled input with ref-sync: avoids Safari freeze bug where React's
 	// controlled value reconciliation conflicts with native slider capture on mouseup.
@@ -117,27 +126,56 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 		large: "classicyControlLabelSizeLarge",
 	};
 
+	const ticks = computeSliderTicks(tickInterval, min, max);
+
+	const rangeInput = (
+		<input
+			ref={inputRef}
+			id={id}
+			type="range"
+			aria-label={ariaLabel}
+			className={classNames(
+				"classicySlider",
+				highlighted && "classicySliderHighlighted",
+				disabled && "classicySliderDisabled",
+			)}
+			defaultValue={value}
+			min={min}
+			max={max}
+			step={step}
+			disabled={disabled}
+			onChange={onChangeFunc}
+			onPointerUp={onCommitFunc ? handleCommit : undefined}
+			onKeyUp={onCommitFunc ? handleCommit : undefined}
+		/>
+	);
+
 	const slider = (
 		<div className="classicySliderTrackGroup">
-			<input
-				ref={inputRef}
-				id={id}
-				type="range"
-				aria-label={ariaLabel}
-				className={classNames(
-					"classicySlider",
-					highlighted && "classicySliderHighlighted",
-					disabled && "classicySliderDisabled",
-				)}
-				defaultValue={value}
-				min={min}
-				max={max}
-				step={step}
-				disabled={disabled}
-				onChange={onChangeFunc}
-				onPointerUp={onCommitFunc ? handleCommit : undefined}
-				onKeyUp={onCommitFunc ? handleCommit : undefined}
-			/>
+			{ticks.positions.length > 0 ? (
+				<div className="classicySliderStack">
+					{rangeInput}
+					<div
+						aria-hidden="true"
+						className={classNames(
+							"classicySliderTicks",
+							disabled && "classicySliderTicksDisabled",
+						)}
+					>
+						<div className="classicySliderTicksTrack">
+							{ticks.positions.map((pos) => (
+								<span
+									key={pos}
+									className="classicySliderTick"
+									style={{ "--classicy-tick-left": `${pos}%` } as CSSProperties}
+								/>
+							))}
+						</div>
+					</div>
+				</div>
+			) : (
+				rangeInput
+			)}
 			<span
 				className={classNames("classicySliderValue", sizeClassMap[labelSize])}
 			>

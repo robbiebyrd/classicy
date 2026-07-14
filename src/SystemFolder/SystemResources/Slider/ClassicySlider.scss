@@ -178,3 +178,42 @@ $_thumb-strikes-svg: url('../../../../assets/img/ui/slider-strikes.svg');
   font-size: calc(var(--ui-font-size) / 1.25);
   text-align: center;
 }
+
+// ─── Tick marks ───────────────────────────────────────────────────────────────
+
+// Column wrapper so the tick rail sits directly under the input; takes the
+// input's place in the track-group row.
+.classicySliderStack {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+// The rail is inset by half the thumb width on each side: a native range
+// thumb's center travels from thumb-width/2 to width − thumb-width/2, so
+// percentage positions inside the inner track land exactly under the thumb's
+// point.
+.classicySliderTicks {
+  padding: 0 calc(#{$thumb-w} / 2);
+  height: calc(var(--window-padding-size) * 0.75 + var(--window-border-size));
+}
+
+.classicySliderTicksTrack {
+  position: relative;
+  height: 100%;
+}
+
+.classicySliderTick {
+  position: absolute;
+  left: var(--classicy-tick-left);
+  top: var(--window-border-size);
+  width: var(--window-border-size);
+  height: calc(var(--window-padding-size) * 0.75);
+  background: var(--color-black);
+  transform: translateX(-50%);
+}
+
+.classicySliderTicksDisabled {
+  filter: contrast(0.5);
+}

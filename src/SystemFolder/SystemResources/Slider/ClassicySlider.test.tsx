@@ -120,6 +120,61 @@ describe("ClassicySlider", () => {
 		) as HTMLInputElement;
 		expect(input).toHaveAttribute("aria-label", "Volume for WETA");
 	});
+
+	it("renders no tick rail when tickInterval is not set", () => {
+		const { container } = render(<ClassicySlider id="test" value={5} />);
+		expect(container.querySelector(".classicySliderTicks")).toBeNull();
+		expect(container.querySelector(".classicySliderStack")).toBeNull();
+	});
+
+	it("renders a single centered tick for tickInterval='center'", () => {
+		const { container } = render(
+			<ClassicySlider id="test" value={5} tickInterval="center" />,
+		);
+		const ticks = container.querySelectorAll(".classicySliderTick");
+		expect(ticks).toHaveLength(1);
+		expect(
+			(ticks[0] as HTMLElement).style.getPropertyValue("--classicy-tick-left"),
+		).toBe("50%");
+	});
+
+	it("renders one tick per interval position", () => {
+		const { container } = render(
+			<ClassicySlider
+				id="test"
+				value={50}
+				min={0}
+				max={100}
+				tickInterval={25}
+			/>,
+		);
+		const ticks = [...container.querySelectorAll(".classicySliderTick")];
+		expect(ticks).toHaveLength(5);
+		expect(
+			ticks.map((t) =>
+				(t as HTMLElement).style.getPropertyValue("--classicy-tick-left"),
+			),
+		).toEqual(["0%", "25%", "50%", "75%", "100%"]);
+	});
+
+	it("hides the tick rail from assistive technology", () => {
+		const { container } = render(
+			<ClassicySlider id="test" value={5} tickInterval={25} />,
+		);
+		expect(container.querySelector(".classicySliderTicks")).toHaveAttribute(
+			"aria-hidden",
+			"true",
+		);
+	});
+
+	it("dims the tick rail when disabled", () => {
+		const { container } = render(
+			<ClassicySlider id="test" value={5} tickInterval={25} disabled={true} />,
+		);
+		expect(container.querySelector(".classicySliderTicks")).toHaveClass(
+			"classicySliderTicksDisabled",
+		);
+	});
 });
 
 describe("computeSliderTicks", () => {
