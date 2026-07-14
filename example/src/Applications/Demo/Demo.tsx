@@ -12,6 +12,7 @@ import {
 	ClassicyPopUpMenu,
 	ClassicyProgressBar,
 	ClassicyRadioInput,
+	ClassicySlider,
 	ClassicyTabs,
 	ClassicyWindow,
 	quitAppHelper,
@@ -160,6 +161,25 @@ export const Demo = () => {
 							isDefault={false}
 							label={"Disabled"}
 							disabled={true}
+						/>
+					</ClassicyControlGroup>
+					<ClassicyControlGroup label={"Slider with Tick Marks"}>
+						<ClassicySlider
+							id={"demo_tick_slider"}
+							labelTitle={"Snappy"}
+							value={50}
+							min={0}
+							max={100}
+							tickInterval={10}
+							snapToTicks={true}
+						/>
+						<ClassicySlider
+							id={"demo_center_tick_slider"}
+							labelTitle={"Centered"}
+							value={50}
+							min={0}
+							max={100}
+							tickInterval={"center"}
 						/>
 					</ClassicyControlGroup>
 				</>
