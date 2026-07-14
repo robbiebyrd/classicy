@@ -80,6 +80,12 @@ interface ClassicySliderProps {
 	 * ticks (default).
 	 */
 	tickInterval?: number | "center";
+	/**
+	 * When true and `tickInterval` is a number, the thumb snaps to tick
+	 * positions: the input's `step` becomes the effective tick interval,
+	 * overriding `step`. Ignored when `tickInterval` is absent or `"center"`.
+	 */
+	snapToTicks?: boolean;
 }
 
 export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
@@ -98,6 +104,7 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 	onChangeFunc,
 	onCommitFunc,
 	tickInterval,
+	snapToTicks = false,
 }) => {
 	// Uncontrolled input with ref-sync: avoids Safari freeze bug where React's
 	// controlled value reconciliation conflicts with native slider capture on mouseup.
@@ -128,6 +135,9 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 
 	const ticks = computeSliderTicks(tickInterval, min, max);
 
+	const effectiveStep =
+		snapToTicks && ticks.snapStep !== undefined ? ticks.snapStep : step;
+
 	const rangeInput = (
 		<input
 			ref={inputRef}
@@ -142,7 +152,7 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 			defaultValue={value}
 			min={min}
 			max={max}
-			step={step}
+			step={effectiveStep}
 			disabled={disabled}
 			onChange={onChangeFunc}
 			onPointerUp={onCommitFunc ? handleCommit : undefined}

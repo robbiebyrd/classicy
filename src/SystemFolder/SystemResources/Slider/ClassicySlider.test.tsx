@@ -175,6 +175,64 @@ describe("ClassicySlider", () => {
 			"classicySliderTicksDisabled",
 		);
 	});
+
+	it("snaps step to the tick interval when snapToTicks is set", () => {
+		const { container } = render(
+			<ClassicySlider
+				id="test"
+				value={50}
+				min={0}
+				max={100}
+				step={1}
+				tickInterval={25}
+				snapToTicks={true}
+			/>,
+		);
+		const input = container.querySelector(
+			'input[type="range"]',
+		) as HTMLInputElement;
+		expect(input).toHaveAttribute("step", "25");
+	});
+
+	it("snaps to the density-clamped interval, not the raw one", () => {
+		const { container } = render(
+			<ClassicySlider
+				id="test"
+				value={50}
+				min={0}
+				max={100}
+				tickInterval={0.5}
+				snapToTicks={true}
+			/>,
+		);
+		const input = container.querySelector(
+			'input[type="range"]',
+		) as HTMLInputElement;
+		expect(input).toHaveAttribute("step", "2");
+	});
+
+	it("ignores snapToTicks for 'center' and missing tickInterval", () => {
+		const centered = render(
+			<ClassicySlider
+				id="t1"
+				value={50}
+				step={5}
+				tickInterval="center"
+				snapToTicks={true}
+			/>,
+		);
+		expect(
+			centered.container.querySelector('input[type="range"]'),
+		).toHaveAttribute("step", "5");
+
+		const none = render(
+			<ClassicySlider id="t2" value={50} step={5} snapToTicks={true} />,
+		);
+		expect(none.container.querySelector('input[type="range"]')).toHaveAttribute(
+			"step",
+			"5",
+		);
+	});
 });
 
 describe("computeSliderTicks", () => {
