@@ -1,0 +1,29 @@
+{
+	"compilerOptions": {
+		"target": "ESNext",
+		"lib": ["ESNext", "DOM", "DOM.Iterable"],
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"moduleDetection": "force",
+		"jsx": "react-jsx",
+		"noEmit": true,
+		"skipLibCheck": true,
+		"allowImportingTsExtensions": true,
+		"allowSyntheticDefaultImports": true,
+		"resolveJsonModule": true,
+		"noImplicitAny": true,
+		"types": ["vite/client"],
+		"paths": {
+			"@sb/*": ["./.storybook/*"],
+			"@/*": ["../src/*"],
+			"@snd/*": ["../assets/sounds/*"],
+			"@img/*": ["../assets/img/*"],
+			"@vid/*": ["../assets/vid/*"]
+		}
+	},
+	"include": [
+		".storybook/**/*",
+		"../src/**/*.stories.tsx",
+		"../src/custom.d.ts"
+	]
+}

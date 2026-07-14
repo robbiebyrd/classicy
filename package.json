@@ -36,7 +36,9 @@
 		"lint": "biome check .",
 		"lint:fix": "biome check --write .",
 		"preview": "pnpm build && concurrently --kill-others \"pnpm build:watchsource\" \"pnpm --filter classicy-example dev\"",
-		"prepare": "husky"
+		"prepare": "husky",
+		"storybook": "pnpm --filter classicy-storybook dev",
+		"build:storybook": "pnpm --filter classicy-storybook build"
 	},
 	"lint-staged": {
 		"**/*.{js,jsx,ts,tsx,json,css,scss}": "biome check --write --no-errors-on-unmatched"
