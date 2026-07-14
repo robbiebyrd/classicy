@@ -39,9 +39,19 @@ const config: StorybookConfig = {
 				richSvg(),
 				VitePluginImageTools({
 					quality: 100,
-					enableWebp: true,
+					// Disabled: pdfjs-dist's worker is imported with `?url` (see
+					// PDFViewerDocument.tsx) and is emitted as a plain asset whose
+					// name ends in ".mjs". vite-plugin-image-tools's webp-compat
+					// pass matches any bundle entry ending in "js"/"css" and
+					// assumes it's a JS/CSS chunk (`.code`/`.source`), but an
+					// asset only has `.source` — so `.code` is undefined and the
+					// plugin crashes trying to `.replace()` it. This only bites
+					// once a story renders the real ClassicyDesktop (which pulls
+					// in PDFViewer transitively), so webp conversion is disabled
+					// here rather than worked around upstream.
+					enableWebp: false,
 					enableDev: true,
-					enableDevWebp: true,
+					enableDevWebp: false,
 				}),
 			],
 		});

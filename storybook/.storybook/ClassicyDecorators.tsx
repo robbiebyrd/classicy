@@ -1,18 +1,66 @@
 import type { Decorator } from "@storybook/react-vite";
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
+import { useLayoutEffect, useState } from "react";
 import {
 	getTheme,
 	getThemeVars,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
-import { stopAppManagerPersistence } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { ClassicyAppManagerProvider } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext";
+import {
+	stopAppManagerPersistence,
+	useAppManager,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicySoundManagerProvider } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerProvider";
+import { ClassicyDesktop } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktop";
 
 // Stories must not write desktop state into the user's localStorage.
 stopAppManagerPersistence();
 
+const resetClassicyStore = (themeId: string) => {
+	const fresh = structuredClone(DefaultAppManagerState);
+	fresh.System.Manager.Appearance.activeTheme = getTheme(themeId);
+	useAppManager.setState(fresh, true);
+};
+
+const ClassicyDesktopFrame = ({
+	storyId,
+	themeId,
+	children,
+}: {
+	storyId: string;
+	themeId: string;
+	children: ReactNode;
+}) => {
+	const [ready, setReady] = useState(false);
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: storyId is an intentional invalidation key — it forces the store reset to rerun when switching stories even if themeId is unchanged
+	useLayoutEffect(() => {
+		resetClassicyStore(themeId);
+		setReady(true);
+		return () => setReady(false);
+	}, [storyId, themeId]);
+
+	if (!ready) return null;
+	return (
+		<ClassicyAppManagerProvider>
+			<ClassicyDesktop startupScreen={false}>{children}</ClassicyDesktop>
+		</ClassicyAppManagerProvider>
+	);
+};
+
 export const withClassicy: Decorator = (Story, context) => {
-	const theme = getTheme((context.globals.theme as string) ?? "default");
-	const vars = getThemeVars(theme) as CSSProperties;
+	const themeId = (context.globals.theme as string) ?? "default";
+
+	if (context.parameters.classicy?.desktop) {
+		return (
+			<ClassicyDesktopFrame storyId={context.id} themeId={themeId}>
+				<Story />
+			</ClassicyDesktopFrame>
+		);
+	}
+
+	const vars = getThemeVars(getTheme(themeId)) as CSSProperties;
 	const isCanvas = context.viewMode === "story";
 
 	return (
