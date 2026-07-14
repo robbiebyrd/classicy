@@ -13,7 +13,7 @@ interface ClassicyStartupScreenProps {
 }
 
 /**
- * Classicy boot splash: covers the already-mounted desktop, plays the boot
+ * Mac OS 8 boot splash: covers the already-mounted desktop, plays the boot
  * chime, fills a progress bar over `duration` ms, then removes itself.
  * Shows once per browser-tab session. Deliberately self-contained — it does
  * not touch the window manager, app registration, or focus system.
@@ -53,7 +53,7 @@ export const ClassicyStartupScreen: FunctionalComponent<
 		<div className="classicyStartupScreen" role="status">
 			<div className="classicyStartupScreenPanel">
 				<div className="classicyStartupScreenLogo">
-					<img src={ClassicyIcons.classicy.logo} alt="Classicy" />
+					<img src={ClassicyIcons.system.macosSvg} alt="Classicy" />
 					<span className="classicyStartupScreenWordmark">Classicy</span>
 				</div>
 				<div className="classicyStartupScreenProgress">
