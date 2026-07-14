@@ -3,7 +3,7 @@
 	"module": "./dist/classicy.es.js",
 	"types": "./dist/types/src/index.d.ts",
 	"name": "classicy",
-	"version": "0.31.5",
+	"version": "0.32.0",
 	"release": "Mingus",
 	"repository": {
 		"type": "git",
