@@ -4,7 +4,7 @@ import {
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
-import { ClassicyContextualMenu } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenu";
+import { useClassicyContextualMenu } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import "./ClassicyWindow.scss";
 import classNames from "classnames";
@@ -156,6 +156,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const currentWindow = currentApp?.windows.find((w) => w.id === id);
 	const desktopEventDispatch = useAppManagerDispatch();
 	const player = useSoundDispatch();
+	const { showContextMenu } = useClassicyContextualMenu();
 
 	const resolvedSize = useMemo(() => resolveSize(initialSize), [initialSize]);
 	const resolvedMinimumSize = useMemo(
@@ -169,8 +170,6 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		resizable ? (currentWindow?.size ?? resolvedSize) : resolvedSize,
 	);
 	const [clickPosition, setClickPosition] = useState<[number, number]>([0, 0]);
-
-	const clickOffset = [10, 10];
 
 	const { track } = useClassicyAnalytics();
 	const setCursor = useClassicyCursor();
@@ -246,7 +245,6 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		const initialWindowState: ClassicyStoreSystemAppWindow = {
 			collapsed: false,
 			focused: false,
-			contextMenu: contextMenu,
 			dragging: false,
 			moving: false,
 			resizing: false,
@@ -255,7 +253,6 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			position: resolvedPosition,
 			closed: hidden,
 			menuBar: appMenu || [],
-			showContextMenu: false,
 			default: defaultWindow,
 			id: id,
 			appId: appId,
@@ -275,7 +272,6 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	}, [
 		appId,
 		appMenu,
-		contextMenu,
 		currentWindow,
 		defaultWindow,
 		hidden,
@@ -614,45 +610,22 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		});
 	};
 
-	const setContextMenu = (toShow: boolean, atPosition: [number, number]) => {
-		desktopEventDispatch({
-			type: "ClassicyWindowContextMenu",
-			contextMenu: toShow,
-			position: atPosition,
-			window: ws,
-			app: {
-				id: appId,
-			},
-		});
-	};
-
-	const closeContextMenuHandler = useCallback(() => {
-		desktopEventDispatch({
-			type: "ClassicyWindowContextMenu",
-			contextMenu: false,
-			position: [0, 0],
-			window: ws,
-			app: { id: appId },
-		});
-	}, [desktopEventDispatch, ws, appId]);
-
-	const onMouseOutHandler = (e: MouseEvent<HTMLDivElement>) => {
+	const onContextMenuHandler = (e: MouseEvent<HTMLDivElement>) => {
+		if (e.defaultPrevented) return;
+		// Claim the right-click: neither the desktop menu nor the native
+		// browser menu may appear over a window.
 		e.preventDefault();
-		setContextMenu(false, [0, 0]);
-	};
-
-	const showContextMenu = (e: MouseEvent<HTMLDivElement>) => {
-		e.preventDefault();
+		e.stopPropagation();
 		setActive();
+		const items = contextMenu ?? currentApp?.contextMenu;
 		track("contextMenu", {
 			type: "ClassicyWindow",
-			show: true,
+			show: !!items,
 			...analyticsArgs,
 		});
-		setContextMenu(true, [
-			e.clientX - clickOffset[0],
-			e.clientY - clickOffset[1],
-		]);
+		if (items && items.length > 0) {
+			showContextMenu(items, [e.clientX, e.clientY]);
+		}
 	};
 
 	const setResize = (toResize: boolean) => {
@@ -715,7 +688,6 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 
 	const windowContent = !ws.closed && (
 		// biome-ignore lint/a11y/useKeyWithClickEvents: application container captures clicks for focus
-		// biome-ignore lint/a11y/useKeyWithMouseEvents: mouse tracking for window drag
 		<div
 			id={[appId, id].join("_")}
 			ref={windowRef}
@@ -737,18 +709,8 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			onMouseMove={changeWindow}
 			onMouseUp={stopChangeWindow}
 			onClick={setActive}
-			onContextMenu={showContextMenu}
-			onMouseOut={onMouseOutHandler}
+			onContextMenu={onContextMenuHandler}
 		>
-			{contextMenu && ws.contextMenu ? (
-				<ClassicyContextualMenu
-					name={[appId, id, "contextMenu"].join("_")}
-					menuItems={contextMenu}
-					position={clickPosition}
-					onClose={closeContextMenuHandler}
-				></ClassicyContextualMenu>
-			) : null}
-
 			<div
 				className={classNames(
 					"classicyWindowTitleBar",
