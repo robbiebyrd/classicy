@@ -3,7 +3,7 @@
 	"module": "./dist/classicy.es.js",
 	"types": "./dist/types/src/index.d.ts",
 	"name": "classicy",
-	"version": "0.37.0",
+	"version": "0.37.1",
 	"release": "Costello",
 	"repository": {
 		"type": "git",
