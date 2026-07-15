@@ -81,8 +81,6 @@ function makeStore(
 				Sound: { volume: 100, labels: {}, disabled: [] },
 				Desktop: {
 					selectedIcons: [],
-					contextMenu: [],
-					showContextMenu: false,
 					icons: [],
 					systemMenu: [],
 					appMenu: [],
@@ -133,14 +131,16 @@ function makeStoreWithPictureViewer(): ClassicyStore {
 }
 
 function getOpenFiles(ds: ClassicyStore): QuickTimeImageDocument[] {
-	const data = ds.System.Manager.Applications.apps["PictureViewer.app"]?.data ?? {};
+	const data =
+		ds.System.Manager.Applications.apps["PictureViewer.app"]?.data ?? {};
 	return isPictureViewerData(data)
 		? (data.openFiles as QuickTimeImageDocument[])
 		: [];
 }
 
 function getRawOpenFiles(ds: ClassicyStore): PictureViewerOpenFile[] {
-	const data = ds.System.Manager.Applications.apps["PictureViewer.app"]?.data ?? {};
+	const data =
+		ds.System.Manager.Applications.apps["PictureViewer.app"]?.data ?? {};
 	return isPictureViewerData(data) ? data.openFiles : [];
 }
 

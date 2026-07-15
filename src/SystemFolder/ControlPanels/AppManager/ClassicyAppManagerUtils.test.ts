@@ -12,8 +12,6 @@ function makeValidStoredState(
 				Applications: { apps: {} },
 				Desktop: {
 					selectedIcons: [],
-					contextMenu: [],
-					showContextMenu: false,
 					icons: [],
 					systemMenu: [],
 					appMenu: [],

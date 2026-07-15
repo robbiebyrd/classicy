@@ -15,7 +15,6 @@ import {
 	hasFontSize,
 	hasMenuBar,
 	hasMouseEvent,
-	hasShowContextMenu,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
 import type {
 	ActionMessage,
@@ -42,8 +41,6 @@ export interface ClassicyStoreSystemDesktopManager
 	selectedIcons?: string[];
 	systemMenu: ClassicyMenuItem[];
 	appMenu: ClassicyMenuItem[];
-	contextMenu: ClassicyMenuItem[];
-	showContextMenu: boolean;
 	icons: ClassicyStoreSystemDesktopManagerIcon[];
 	selectBox: {
 		size: [number, number];
@@ -108,7 +105,6 @@ export const classicyDesktopEventHandler = (
 
 				ds.System.Manager.Applications.apps["Finder.app"].focused = true;
 				ds.System.Manager.Desktop.selectedIcons = [];
-				ds.System.Manager.Desktop.showContextMenu = false;
 				ds.System.Manager.Desktop.selectBox.active = true;
 				ds.System.Manager.Desktop.selectBox.start = [
 					action.e.clientX,
@@ -136,15 +132,6 @@ export const classicyDesktopEventHandler = (
 			ds.System.Manager.Desktop.selectBox.active = false;
 			ds.System.Manager.Desktop.selectBox.size = [0, 0];
 			ds.System.Manager.Desktop.selectBox.start = [0, 0];
-			break;
-		}
-		case "ClassicyDesktopContextMenu": {
-			if (!hasShowContextMenu(action)) break;
-			ds.System.Manager.Desktop.showContextMenu = action.showContextMenu;
-			if (Array.isArray(action.contextMenu)) {
-				ds.System.Manager.Desktop.contextMenu =
-					action.contextMenu as ClassicyMenuItem[];
-			}
 			break;
 		}
 		case "ClassicyDesktopChangeTheme": {

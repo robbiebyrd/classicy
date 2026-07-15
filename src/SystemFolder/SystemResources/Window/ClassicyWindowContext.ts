@@ -13,7 +13,4 @@ export type ClassicyWindowState = {
 	resizing: boolean;
 	sounding: boolean;
 	moving: boolean;
-	contextMenu?: ClassicyMenuItem[];
-	contextMenuShown: boolean;
-	contextMenuLocation?: [number, number];
 };

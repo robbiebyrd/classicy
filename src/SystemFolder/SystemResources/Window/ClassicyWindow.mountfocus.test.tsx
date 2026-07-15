@@ -31,7 +31,6 @@ vi.mock(
 											position: [110, 110] as [number, number],
 											minimumSize: [0, 0] as [number, number],
 											menuBar: [] as unknown[],
-											showContextMenu: false,
 											default: false,
 										},
 									],

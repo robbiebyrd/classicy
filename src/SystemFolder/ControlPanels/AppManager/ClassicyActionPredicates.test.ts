@@ -25,7 +25,6 @@ import {
 	hasMouseEvent,
 	hasPath,
 	hasPaths,
-	hasShowContextMenu,
 	hasSortBy,
 	hasTzOffset,
 	hasWindow,
@@ -404,25 +403,6 @@ describe("hasMouseEvent", () => {
 			e: { clientX: "100", clientY: 200, target: {} },
 		};
 		expect(hasMouseEvent(m)).toBe(false);
-	});
-});
-
-// ─── hasShowContextMenu ───────────────────────────────────────────────────────
-
-describe("hasShowContextMenu", () => {
-	it("returns true when showContextMenu is a boolean", () => {
-		const m: Msg = { type: "X", showContextMenu: false };
-		expect(hasShowContextMenu(m)).toBe(true);
-	});
-
-	it("returns false when showContextMenu is missing", () => {
-		const m: Msg = { type: "X" };
-		expect(hasShowContextMenu(m)).toBe(false);
-	});
-
-	it("returns false when showContextMenu is not a boolean", () => {
-		const m: Msg = { type: "X", showContextMenu: 1 };
-		expect(hasShowContextMenu(m)).toBe(false);
 	});
 });
 

@@ -9,7 +9,7 @@ const mockPlayer = vi.hoisted(() => vi.fn());
 const mockAppState = vi.hoisted(
 	() =>
 		({ contextMenu: undefined }) as {
-			contextMenu?: { id: string; title: string }[];
+			contextMenu?: { id: string; title?: string }[];
 		},
 );
 

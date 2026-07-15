@@ -35,8 +35,6 @@ function makeStore(
 				Sound: { volume: 100, labels: {}, disabled: [] },
 				Desktop: {
 					selectedIcons: [],
-					contextMenu: [],
-					showContextMenu: false,
 					icons: [],
 					systemMenu: [],
 					appMenu: [],
@@ -204,53 +202,6 @@ describe("classicyDesktopEventHandler — ClassicyDesktopStop", () => {
 		expect(ds.System.Manager.Desktop.selectBox.active).toBe(false);
 		expect(ds.System.Manager.Desktop.selectBox.size).toEqual([0, 0]);
 		expect(ds.System.Manager.Desktop.selectBox.start).toEqual([0, 0]);
-	});
-});
-
-describe("classicyDesktopEventHandler — ClassicyDesktopContextMenu", () => {
-	it("sets showContextMenu to true", () => {
-		const ds = makeStoreForDesktop();
-		classicyDesktopEventHandler(ds, {
-			type: "ClassicyDesktopContextMenu",
-			showContextMenu: true,
-		});
-
-		expect(ds.System.Manager.Desktop.showContextMenu).toBe(true);
-	});
-
-	it("sets showContextMenu to false", () => {
-		const ds = makeStoreForDesktop();
-		ds.System.Manager.Desktop.showContextMenu = true;
-		classicyDesktopEventHandler(ds, {
-			type: "ClassicyDesktopContextMenu",
-			showContextMenu: false,
-		});
-
-		expect(ds.System.Manager.Desktop.showContextMenu).toBe(false);
-	});
-
-	it("sets the contextMenu array when provided", () => {
-		const ds = makeStoreForDesktop();
-		const menu = [{ id: "item1", title: "Item 1" }];
-		classicyDesktopEventHandler(ds, {
-			type: "ClassicyDesktopContextMenu",
-			showContextMenu: true,
-			contextMenu: menu,
-		});
-
-		expect(ds.System.Manager.Desktop.contextMenu).toBe(menu);
-	});
-
-	it("does not overwrite contextMenu when none is provided", () => {
-		const ds = makeStoreForDesktop();
-		const existing = [{ id: "existing", title: "Existing" }];
-		ds.System.Manager.Desktop.contextMenu = existing;
-		classicyDesktopEventHandler(ds, {
-			type: "ClassicyDesktopContextMenu",
-			showContextMenu: false,
-		});
-
-		expect(ds.System.Manager.Desktop.contextMenu).toBe(existing);
 	});
 });
 
@@ -429,7 +380,6 @@ describe("classicyDesktopEventHandler — ClassicyDesktopFocus", () => {
 			focused: true,
 		};
 		ds.System.Manager.Desktop.selectedIcons = ["icon1", "icon2"];
-		ds.System.Manager.Desktop.showContextMenu = true;
 
 		classicyDesktopEventHandler(ds, {
 			type: "ClassicyDesktopFocus",
@@ -446,7 +396,6 @@ describe("classicyDesktopEventHandler — ClassicyDesktopFocus", () => {
 			ds.System.Manager.Applications.apps["Notes.app"].windows[0].focused,
 		).toBe(false);
 		expect(ds.System.Manager.Desktop.selectedIcons).toEqual([]);
-		expect(ds.System.Manager.Desktop.showContextMenu).toBe(false);
 		expect(ds.System.Manager.Desktop.selectBox.active).toBe(true);
 		expect(ds.System.Manager.Desktop.selectBox.start).toEqual([100, 200]);
 	});

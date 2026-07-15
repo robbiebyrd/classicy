@@ -44,8 +44,6 @@ function makeStore(
 				Sound: { volume: 100, labels: {}, disabled: [] },
 				Desktop: {
 					selectedIcons: [],
-					contextMenu: [],
-					showContextMenu: false,
 					icons: [],
 					systemMenu: [],
 					appMenu: [],
@@ -168,19 +166,15 @@ describe("prefix routing: ClassicyDesktop*", () => {
 		expect(result.System.Manager.Desktop.selectBox.start).toEqual([0, 0]);
 	});
 
-	it("ClassicyDesktopContextMenu routes to desktop handler — showContextMenu is updated", () => {
+	it("ClassicyDesktopSetBalloonHelp routes to desktop handler — disableBalloonHelp is updated", () => {
 		const ds = makeStore();
 
 		const result = classicyDesktopStateEventReducer(ds, {
-			type: "ClassicyDesktopContextMenu",
-			showContextMenu: true,
-			contextMenu: [{ id: "cut", title: "Cut" }],
+			type: "ClassicyDesktopSetBalloonHelp",
+			disableBalloonHelp: true,
 		});
 
-		expect(result.System.Manager.Desktop.showContextMenu).toBe(true);
-		expect(result.System.Manager.Desktop.contextMenu).toEqual([
-			{ id: "cut", title: "Cut" },
-		]);
+		expect(result.System.Manager.Desktop.disableBalloonHelp).toBe(true);
 	});
 });
 

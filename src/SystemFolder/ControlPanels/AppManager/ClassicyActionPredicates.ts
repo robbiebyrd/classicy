@@ -163,13 +163,6 @@ export function hasMouseEvent(m: Msg): m is Msg & {
 
 // ─── Desktop state fields ─────────────────────────────────────────────────────
 
-/** Action has `showContextMenu: boolean` */
-export function hasShowContextMenu(
-	m: Msg,
-): m is Msg & { showContextMenu: boolean } {
-	return typeof m.showContextMenu === "boolean";
-}
-
 /** Action has `activeTheme: string` (theme id) */
 export function hasActiveTheme(m: Msg): m is Msg & { activeTheme: string } {
 	return typeof m.activeTheme === "string";

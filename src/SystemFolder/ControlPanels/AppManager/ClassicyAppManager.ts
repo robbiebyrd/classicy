@@ -84,8 +84,6 @@ export interface ClassicyStoreSystemAppWindow {
 	moving?: boolean;
 	modal?: boolean;
 	menuBar?: ClassicyMenuItem[];
-	contextMenu?: ClassicyMenuItem[];
-	showContextMenu?: boolean;
 	zOrder?: number;
 	options?: Record<string, JsonValue>[];
 }
@@ -407,8 +405,6 @@ export const DefaultAppManagerState: ClassicyStore = {
 			},
 			Desktop: {
 				selectedIcons: [],
-				contextMenu: [],
-				showContextMenu: false,
 				icons: [],
 				systemMenu: [
 					{

@@ -23,7 +23,6 @@ const initialWindowState = {
 	resizing: false,
 	sounding: false,
 	zoomed: false,
-	contextMenuShown: false,
 };
 
 const notEmpty = <T,>(value: T | null | undefined): value is T => value != null;
@@ -308,14 +307,6 @@ export const classicyWindowEventHandler = (
 				});
 			break;
 		}
-		// case 'ClassicyWindowContextMenu': {
-		//     ws.contextMenu = action.contextMenu
-		//     if (action.contextMenuShown === true) {
-		//         ws.contextMenuLocation = action.position
-		//     }
-		//     break
-		// }
-		// }
 	}
 	return ds;
 };

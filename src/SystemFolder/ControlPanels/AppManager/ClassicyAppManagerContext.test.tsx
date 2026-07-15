@@ -11,8 +11,6 @@ function makeValidStoredState(): Record<string, unknown> {
 				Applications: { apps: {} },
 				Desktop: {
 					selectedIcons: [],
-					contextMenu: [],
-					showContextMenu: false,
 					icons: [],
 					systemMenu: [],
 					appMenu: [],

@@ -56,8 +56,6 @@ function makeStore(
 				Sound: { volume: 100, labels: {}, disabled: [] },
 				Desktop: {
 					selectedIcons: [],
-					contextMenu: [],
-					showContextMenu: false,
 					icons: [],
 					systemMenu: [],
 					appMenu: [],
@@ -108,14 +106,16 @@ function makeStoreWithMoviePlayer(): ClassicyStore {
 }
 
 function getOpenFiles(ds: ClassicyStore): MoviePlayerOpenDocument[] {
-	const data = ds.System.Manager.Applications.apps["MoviePlayer.app"]?.data ?? {};
+	const data =
+		ds.System.Manager.Applications.apps["MoviePlayer.app"]?.data ?? {};
 	return isMoviePlayerData(data)
 		? (data.openFiles as MoviePlayerOpenDocument[])
 		: [];
 }
 
 function getRawOpenFiles(ds: ClassicyStore): MoviePlayerOpenFile[] {
-	const data = ds.System.Manager.Applications.apps["MoviePlayer.app"]?.data ?? {};
+	const data =
+		ds.System.Manager.Applications.apps["MoviePlayer.app"]?.data ?? {};
 	return isMoviePlayerData(data) ? data.openFiles : [];
 }
 

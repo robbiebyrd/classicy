@@ -28,8 +28,6 @@ function makeStore(): ClassicyStore {
 				Sound: { volume: 100, labels: {}, disabled: [] },
 				Desktop: {
 					selectedIcons: [],
-					contextMenu: [],
-					showContextMenu: false,
 					icons: [],
 					systemMenu: [],
 					appMenu: [],
