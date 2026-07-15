@@ -7,7 +7,7 @@ export default create({
 
 	brandTitle: "Classicy",
 	brandUrl: "https://github.com/robbiebyrd/classicy",
-	brandImage: "assets/img/icons/system/macos.png",
+	brandImage: "assets/img/ui/classicy-logo.svg",
 	brandTarget: "_blank",
 
 	fontBase: '"Charcoal", "Geneva", "Helvetica Neue", sans-serif',
