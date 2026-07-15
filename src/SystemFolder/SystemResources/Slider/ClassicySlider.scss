@@ -56,6 +56,7 @@ $_thumb-strikes-svg: url('../../../../assets/img/ui/slider-strikes.svg');
   flex: 1;
   -webkit-appearance: none;
   appearance: none;
+  margin: 0; // reset the UA default (2px in Chromium) so ticks align with thumb travel
   height: $thumb-h;   // tall enough for the shield thumb's full hit-area
   background: transparent;
   outline: none;
