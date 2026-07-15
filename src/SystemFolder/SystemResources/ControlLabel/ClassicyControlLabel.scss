@@ -64,6 +64,14 @@
   gap: calc(var(--window-control-size) / 2);
 }
 
+.classicyLabelAlignCenter > .classicyControlLabelHolder {
+  justify-content: center;
+}
+
+.classicyLabelAlignRight > .classicyControlLabelHolder {
+  justify-content: flex-end;
+}
+
 @media (max-width: 480px) {
   .classicyControlLabelHolder {
     display: none;

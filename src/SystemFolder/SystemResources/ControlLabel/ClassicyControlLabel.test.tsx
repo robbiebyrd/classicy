@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@/__tests__/test-utils";
-import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
+import {
+	ClassicyControlLabel,
+	labelAlignClass,
+} from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 
 vi.mock(
 	"@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel.scss",
@@ -59,5 +62,19 @@ describe("ClassicyControlLabel", () => {
 			</ClassicyControlLabel>,
 		);
 		expect(screen.getByRole("button", { name: "Child" })).toBeInTheDocument();
+	});
+});
+
+describe("labelAlignClass", () => {
+	it("maps left to classicyLabelAlignLeft", () => {
+		expect(labelAlignClass("left")).toBe("classicyLabelAlignLeft");
+	});
+
+	it("maps center to classicyLabelAlignCenter", () => {
+		expect(labelAlignClass("center")).toBe("classicyLabelAlignCenter");
+	});
+
+	it("maps right to classicyLabelAlignRight", () => {
+		expect(labelAlignClass("right")).toBe("classicyLabelAlignRight");
 	});
 });

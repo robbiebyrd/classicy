@@ -22,6 +22,17 @@ export function labelPositionClass(position: ClassicyLabelPosition): string {
 	return map[position];
 }
 
+export type ClassicyLabelAlign = "left" | "center" | "right";
+
+export function labelAlignClass(align: ClassicyLabelAlign): string {
+	const map: Record<ClassicyLabelAlign, string> = {
+		left: "classicyLabelAlignLeft",
+		center: "classicyLabelAlignCenter",
+		right: "classicyLabelAlignRight",
+	};
+	return map[align];
+}
+
 interface ClassicyControlLabelProps {
 	labelFor?: string;
 	label?: string;
