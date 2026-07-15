@@ -106,6 +106,20 @@ dispatch({ type: 'ClassicyAppOpen', app: { id, name, icon } });
 - Rendered via a React portal into `#classicyDesktop` so it is never clipped by parent overflow
 - Globally disabled by `System.Manager.Desktop.disableBalloonHelp` (Zustand store). Toggle with event `ClassicyDesktopSetBalloonHelp` — e.g. `dispatch({ type: 'ClassicyDesktopSetBalloonHelp', disableBalloonHelp: true })`
 
+### Contextual Menus
+
+Right-click menus resolve target-based, innermost wins: a `ClassicyContextualMenuTarget`-wrapped control > the window's `contextMenu` prop > the app's `contextMenu` prop (`ClassicyApp`) > the desktop default menu (empty desktop only). Desktop icons take an optional `contextMenu` prop. A single `ClassicyContextualMenuProvider` (mounted by `ClassicyDesktop`) renders the one open menu via portal.
+
+```tsx
+<ClassicyContextualMenuTarget menuItems={[{ id: "copy", title: "Copy" }]}>
+  <ClassicyButton>Copy</ClassicyButton>
+</ClassicyContextualMenuTarget>
+```
+
+- Components with custom right-click behavior and no menu call `e.preventDefault()` in their own `onContextMenu`; every menu layer checks `e.defaultPrevented` and stays silent.
+- If neither a window nor its app defines a menu, right-click shows nothing (the native browser menu stays suppressed inside the desktop).
+- Right-clicking a window focuses it first, so the active menu always tracks focus.
+
 ### Theming
 
 Themes are JSON-based (`src/SystemFolder/ControlPanels/AppearanceManager/styles/themes.json`) and control:

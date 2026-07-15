@@ -61,6 +61,8 @@ export * from "./SystemFolder/SystemResources/ColorPicker/ClassicyColorPickerRGB
 export * from "./SystemFolder/SystemResources/ColorPicker/ClassicyColorPickerUtils";
 export * from "./SystemFolder/SystemResources/ColorPicker/ClassicyColorWheel";
 export * from "./SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenu";
+export * from "./SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
+export * from "./SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuTarget";
 export * from "./SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup";
 export * from "./SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 export * from "./SystemFolder/SystemResources/CrashScreen/ClassicyCrashScreen";
