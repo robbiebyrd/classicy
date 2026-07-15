@@ -10,7 +10,7 @@ const MENU_ITEMS = [
 		keyboardShortcut: "⌘D",
 		onClickFunc: fn(),
 	},
-	{ id: "sep1" },
+	{ id: "spacer" },
 	{ id: "info", title: "Get Info", onClickFunc: fn() },
 	{ id: "trash", title: "Move To Trash", onClickFunc: fn() },
 ];
