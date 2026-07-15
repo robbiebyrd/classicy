@@ -436,8 +436,12 @@ describe("classicyDesktopEventHandler — ClassicyDesktopFocus", () => {
 			e: { target: { id: "classicyDesktop" }, clientX: 100, clientY: 200 },
 		});
 
-		expect(ds.System.Manager.Applications.apps["Finder.app"].focused).toBe(true);
-		expect(ds.System.Manager.Applications.apps["Notes.app"].focused).toBe(false);
+		expect(ds.System.Manager.Applications.apps["Finder.app"].focused).toBe(
+			true,
+		);
+		expect(ds.System.Manager.Applications.apps["Notes.app"].focused).toBe(
+			false,
+		);
 		expect(
 			ds.System.Manager.Applications.apps["Notes.app"].windows[0].focused,
 		).toBe(false);

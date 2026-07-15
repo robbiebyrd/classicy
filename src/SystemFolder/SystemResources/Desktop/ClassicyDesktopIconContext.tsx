@@ -17,6 +17,7 @@ import type {
 	ClassicyStore,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import type { ClassicyStoreSystemDesktopManagerIcon } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
+import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
 const createGrid = (iconSize: number, iconPadding: number) => {
 	return [
@@ -161,15 +162,22 @@ export const classicyDesktopIconEventHandler = (
 					icon: action.app.icon,
 					appId: action.app.id,
 					appName: action.app.name,
-					location: Array.isArray(action.location) ? action.location as [number, number] : undefined,
+					location: Array.isArray(action.location)
+						? (action.location as [number, number])
+						: undefined,
 					label: typeof action.label === "string" ? action.label : undefined,
 					kind: typeof action.kind === "string" ? action.kind : "icon",
-					onClickFunc: typeof action.onClickFunc === "function"
-						? action.onClickFunc as ClassicyStoreSystemDesktopManagerIcon["onClickFunc"]
-						: undefined,
+					onClickFunc:
+						typeof action.onClickFunc === "function"
+							? (action.onClickFunc as ClassicyStoreSystemDesktopManagerIcon["onClickFunc"])
+							: undefined,
 					event: typeof action.event === "string" ? action.event : undefined,
-					eventData: typeof action.eventData === "object" && action.eventData !== null
-						? action.eventData as Record<string, unknown>
+					eventData:
+						typeof action.eventData === "object" && action.eventData !== null
+							? (action.eventData as Record<string, unknown>)
+							: undefined,
+					contextMenu: Array.isArray(action.contextMenu)
+						? (action.contextMenu as ClassicyMenuItem[])
 						: undefined,
 				});
 
@@ -183,9 +191,10 @@ export const classicyDesktopIconEventHandler = (
 
 		case "ClassicyDesktopIconRemove": {
 			if (!hasApp(action)) break;
-			const appName = typeof (action.app as Record<string, unknown>).name === "string"
-				? (action.app as Record<string, unknown>).name as string
-				: undefined;
+			const appName =
+				typeof (action.app as Record<string, unknown>).name === "string"
+					? ((action.app as Record<string, unknown>).name as string)
+					: undefined;
 			const iconIdx = ds.System.Manager.Desktop.icons.findIndex(
 				(icon) =>
 					icon.appId === action.app.id &&

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+	type KeyNavIcon,
 	nearestIconInDirection,
 	typeaheadMatch,
-	type KeyNavIcon,
 } from "./ClassicyDesktopKeyNav";
 
 // Grid layout used across many tests:

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@/__tests__/test-utils";
+import { fireEvent, render, screen } from "@/__tests__/test-utils";
+import { ClassicyContextualMenuProvider } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 
 const mockDispatch = vi.hoisted(() => vi.fn());
 
@@ -105,5 +106,47 @@ describe("ClassicyDesktopIcon", () => {
 				},
 			}),
 		);
+	});
+});
+
+describe("ClassicyDesktopIcon contextual menu", () => {
+	const iconMenu = [{ id: "open", title: "Open Item" }];
+
+	it("shows its per-icon menu on right-click and selects the icon", () => {
+		const { container } = render(
+			<ClassicyContextualMenuProvider>
+				<ClassicyDesktopIcon {...defaultProps} contextMenu={iconMenu} />
+			</ClassicyContextualMenuProvider>,
+		);
+		const iconDiv = container.querySelector(
+			"#TestApp\\.shortcut",
+		) as HTMLElement;
+		mockDispatch.mockClear();
+		fireEvent.contextMenu(iconDiv);
+		expect(screen.getByText("Open Item")).toBeInTheDocument();
+		expect(mockDispatch).toHaveBeenCalledWith({
+			type: "ClassicyDesktopIconFocus",
+			iconId: "TestApp",
+		});
+	});
+
+	it("shows nothing on right-click when no menu is defined, but still claims the event", () => {
+		const outerHandler = vi.fn();
+		const { container } = render(
+			<ClassicyContextualMenuProvider>
+				{/* biome-ignore lint/a11y/noStaticElementInteractions: test harness */}
+				<div onContextMenu={outerHandler}>
+					<ClassicyDesktopIcon {...defaultProps} />
+				</div>
+			</ClassicyContextualMenuProvider>,
+		);
+		const iconDiv = container.querySelector(
+			"#TestApp\\.shortcut",
+		) as HTMLElement;
+		fireEvent.contextMenu(iconDiv);
+		expect(outerHandler).not.toHaveBeenCalled();
+		expect(
+			document.querySelector(".classicyContextMenuWrapper"),
+		).not.toBeInTheDocument();
 	});
 });

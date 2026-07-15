@@ -3,6 +3,8 @@ import {
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
+import { useClassicyContextualMenu } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
+import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
 import "./ClassicyDesktopIcon.scss";
 import classNames from "classnames";
@@ -27,6 +29,7 @@ interface ClassicyDesktopIconProps {
 	event?: string;
 	eventData?: Record<string, unknown>;
 	noLaunch?: boolean;
+	contextMenu?: ClassicyMenuItem[];
 }
 
 export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> =
@@ -41,6 +44,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			event,
 			eventData,
 			noLaunch = false,
+			contextMenu,
 		}) => {
 			const [clickPosition, setClickPosition] = useState<[number, number]>([
 				0, 0,
@@ -64,6 +68,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 				(s) => s.System.Manager.Applications.apps["Finder.app"]?.windows,
 			);
 			const desktopEventDispatch = useAppManagerDispatch();
+			const { showContextMenu } = useClassicyContextualMenu();
 
 			const iconRef = useRef<HTMLDivElement>(null);
 
@@ -204,9 +209,12 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 						}
 					}}
 					onContextMenu={(e: MouseEvent<HTMLDivElement>) => {
+						if (e.defaultPrevented) return;
 						e.preventDefault();
-						clickFocus(e);
-						// TODO: Add Context Menu on Desktop Icons
+						clickFocus(e); // selects the icon and stops propagation
+						if (contextMenu && contextMenu.length > 0) {
+							showContextMenu(contextMenu, [e.clientX, e.clientY]);
+						}
 					}}
 					className={classNames(
 						"classicyDesktopIcon",
@@ -217,9 +225,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 				>
 					<div
 						className={"classicyDesktopIconMaskOuter"}
-						style={
-							{ "--classicy-icon-mask": `url(${icon})` } as CSSProperties
-						}
+						style={{ "--classicy-icon-mask": `url(${icon})` } as CSSProperties}
 					>
 						<div className={"classicyDesktopIconMask"}>
 							<img src={icon} alt={appName} />

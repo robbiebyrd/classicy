@@ -469,6 +469,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 					key={i.appId}
 					event={i.event}
 					eventData={i.eventData}
+					contextMenu={i.contextMenu}
 					onClickFunc={
 						i.appId === "Trash"
 							? () => setShowEmptyTrashDialog(true)

@@ -69,8 +69,6 @@ export function typeaheadMatch(
 	const lower = prefix.toLowerCase();
 	const matches = icons
 		.filter((i) => (i.label ?? i.appName).toLowerCase().startsWith(lower))
-		.sort((a, b) =>
-			(a.label ?? a.appName).localeCompare(b.label ?? b.appName),
-		);
+		.sort((a, b) => (a.label ?? a.appName).localeCompare(b.label ?? b.appName));
 	return matches[0]?.appId ?? null;
 }

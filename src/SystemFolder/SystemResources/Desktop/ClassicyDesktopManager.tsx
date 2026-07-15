@@ -97,7 +97,10 @@ export const classicyDesktopEventHandler = (
 			break;
 		}
 		case "ClassicyDesktopFocus": {
-			if (hasMouseEvent(action) && (action.e.target as Record<string, unknown>).id === "classicyDesktop") {
+			if (
+				hasMouseEvent(action) &&
+				(action.e.target as Record<string, unknown>).id === "classicyDesktop"
+			) {
 				for (const app of Object.values(ds.System.Manager.Applications.apps)) {
 					app.focused = false;
 					for (const w of app.windows) w.focused = false;
@@ -139,7 +142,8 @@ export const classicyDesktopEventHandler = (
 			if (!hasShowContextMenu(action)) break;
 			ds.System.Manager.Desktop.showContextMenu = action.showContextMenu;
 			if (Array.isArray(action.contextMenu)) {
-				ds.System.Manager.Desktop.contextMenu = action.contextMenu as ClassicyMenuItem[];
+				ds.System.Manager.Desktop.contextMenu =
+					action.contextMenu as ClassicyMenuItem[];
 			}
 			break;
 		}
@@ -231,7 +235,8 @@ export const classicyDesktopEventHandler = (
 		}
 		case "ClassicyDesktopLoadThemes": {
 			if (!hasAvailableThemes(action)) break;
-			ds.System.Manager.Appearance.availableThemes = action.availableThemes as ClassicyTheme[];
+			ds.System.Manager.Appearance.availableThemes =
+				action.availableThemes as ClassicyTheme[];
 			break;
 		}
 		case "ClassicyDesktopSetBalloonHelp": {
