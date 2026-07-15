@@ -3,8 +3,8 @@ import { create, type StoreApi, type UseBoundStore } from "zustand";
 import {
 	type ActionMessage,
 	type ClassicyStore,
-	type DeepPartial,
 	classicyDesktopStateEventReducer,
+	type DeepPartial,
 	DefaultAppManagerState,
 	mergeClassicyState,
 } from "./ClassicyAppManager";
@@ -82,8 +82,7 @@ let debounceTimer: ReturnType<typeof setTimeout> | null = null;
  */
 function sanitizeStateForPersistence(state: ClassicyStore): ClassicyStore {
 	return produce(state, (draft) => {
-		const browserApp =
-			draft.System.Manager.Applications.apps["Browser.app"];
+		const browserApp = draft.System.Manager.Applications.apps["Browser.app"];
 		if (browserApp?.data && "history" in browserApp.data) {
 			delete (browserApp.data as Record<string, unknown>).history;
 		}

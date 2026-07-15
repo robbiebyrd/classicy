@@ -1,39 +1,39 @@
 import { describe, expect, it } from "vitest";
 import {
+	hasActiveTheme,
 	hasApp,
+	hasAppAndFileType,
 	hasAppAndFileTypes,
 	hasAppAndPath,
-	hasAppAndFileType,
-	hasWindow,
 	hasAppAndWindow,
-	hasWindowDragging,
-	hasWindowZoomed,
-	hasWindowResizing,
-	hasWindowMove,
-	hasWindowPosition,
-	hasMenuBar,
-	hasDesktopAppRef,
-	hasMouseEvent,
-	hasShowContextMenu,
-	hasActiveTheme,
+	hasAvailableThemes,
 	hasBackgroundImage,
 	hasBackgroundPosition,
 	hasBackgroundRepeat,
 	hasBackgroundSize,
-	hasFont,
-	hasAvailableThemes,
+	hasDateTime,
+	hasDesktopAppRef,
 	hasDisableBalloonHelp,
 	hasErrorDialogMessage,
-	hasSortBy,
+	hasFinderFile,
+	hasFont,
+	hasIconAddFields,
 	hasIconId,
 	hasIconIds,
-	hasIconAddFields,
 	hasIconLocation,
-	hasDateTime,
-	hasTzOffset,
+	hasMenuBar,
+	hasMouseEvent,
 	hasPath,
 	hasPaths,
-	hasFinderFile,
+	hasShowContextMenu,
+	hasSortBy,
+	hasTzOffset,
+	hasWindow,
+	hasWindowDragging,
+	hasWindowMove,
+	hasWindowPosition,
+	hasWindowResizing,
+	hasWindowZoomed,
 } from "./ClassicyActionPredicates";
 
 type Msg = Record<string, unknown> & { type: string };
@@ -66,7 +66,11 @@ describe("hasApp", () => {
 
 describe("hasAppAndFileTypes", () => {
 	it("returns true when app.id is a string and fileTypes is an array", () => {
-		const m: Msg = { type: "X", app: { id: "A.app" }, fileTypes: ["text_file"] };
+		const m: Msg = {
+			type: "X",
+			app: { id: "A.app" },
+			fileTypes: ["text_file"],
+		};
 		expect(hasAppAndFileTypes(m)).toBe(true);
 	});
 
@@ -171,12 +175,22 @@ describe("hasAppAndWindow", () => {
 
 describe("hasWindowDragging", () => {
 	it("returns true when app, window, and boolean dragging are present", () => {
-		const m: Msg = { type: "X", app: { id: "A.app" }, window: { id: "w1" }, dragging: false };
+		const m: Msg = {
+			type: "X",
+			app: { id: "A.app" },
+			window: { id: "w1" },
+			dragging: false,
+		};
 		expect(hasWindowDragging(m)).toBe(true);
 	});
 
 	it("returns false when dragging is not a boolean", () => {
-		const m: Msg = { type: "X", app: { id: "A.app" }, window: { id: "w1" }, dragging: 1 };
+		const m: Msg = {
+			type: "X",
+			app: { id: "A.app" },
+			window: { id: "w1" },
+			dragging: 1,
+		};
 		expect(hasWindowDragging(m)).toBe(false);
 	});
 
@@ -190,12 +204,22 @@ describe("hasWindowDragging", () => {
 
 describe("hasWindowZoomed", () => {
 	it("returns true when app, window, and boolean zoomed are present", () => {
-		const m: Msg = { type: "X", app: { id: "A.app" }, window: { id: "w1" }, zoomed: true };
+		const m: Msg = {
+			type: "X",
+			app: { id: "A.app" },
+			window: { id: "w1" },
+			zoomed: true,
+		};
 		expect(hasWindowZoomed(m)).toBe(true);
 	});
 
 	it("returns false when zoomed is not a boolean", () => {
-		const m: Msg = { type: "X", app: { id: "A.app" }, window: { id: "w1" }, zoomed: "yes" };
+		const m: Msg = {
+			type: "X",
+			app: { id: "A.app" },
+			window: { id: "w1" },
+			zoomed: "yes",
+		};
 		expect(hasWindowZoomed(m)).toBe(false);
 	});
 });
@@ -204,22 +228,45 @@ describe("hasWindowZoomed", () => {
 
 describe("hasWindowResizing", () => {
 	it("returns true when app, window, boolean resizing, and size tuple are present", () => {
-		const m: Msg = { type: "X", app: { id: "A.app" }, window: { id: "w1" }, resizing: false, size: [800, 600] };
+		const m: Msg = {
+			type: "X",
+			app: { id: "A.app" },
+			window: { id: "w1" },
+			resizing: false,
+			size: [800, 600],
+		};
 		expect(hasWindowResizing(m)).toBe(true);
 	});
 
 	it("returns false when size is missing", () => {
-		const m: Msg = { type: "X", app: { id: "A.app" }, window: { id: "w1" }, resizing: false };
+		const m: Msg = {
+			type: "X",
+			app: { id: "A.app" },
+			window: { id: "w1" },
+			resizing: false,
+		};
 		expect(hasWindowResizing(m)).toBe(false);
 	});
 
 	it("returns false when size is not a 2-element array", () => {
-		const m: Msg = { type: "X", app: { id: "A.app" }, window: { id: "w1" }, resizing: false, size: [800] };
+		const m: Msg = {
+			type: "X",
+			app: { id: "A.app" },
+			window: { id: "w1" },
+			resizing: false,
+			size: [800],
+		};
 		expect(hasWindowResizing(m)).toBe(false);
 	});
 
 	it("returns false when resizing is not a boolean", () => {
-		const m: Msg = { type: "X", app: { id: "A.app" }, window: { id: "w1" }, resizing: 1, size: [800, 600] };
+		const m: Msg = {
+			type: "X",
+			app: { id: "A.app" },
+			window: { id: "w1" },
+			resizing: 1,
+			size: [800, 600],
+		};
 		expect(hasWindowResizing(m)).toBe(false);
 	});
 });
@@ -228,17 +275,34 @@ describe("hasWindowResizing", () => {
 
 describe("hasWindowMove", () => {
 	it("returns true when app, window, position tuple, and boolean moving are present", () => {
-		const m: Msg = { type: "X", app: { id: "A.app" }, window: { id: "w1" }, position: [10, 20], moving: true };
+		const m: Msg = {
+			type: "X",
+			app: { id: "A.app" },
+			window: { id: "w1" },
+			position: [10, 20],
+			moving: true,
+		};
 		expect(hasWindowMove(m)).toBe(true);
 	});
 
 	it("returns false when position is missing", () => {
-		const m: Msg = { type: "X", app: { id: "A.app" }, window: { id: "w1" }, moving: true };
+		const m: Msg = {
+			type: "X",
+			app: { id: "A.app" },
+			window: { id: "w1" },
+			moving: true,
+		};
 		expect(hasWindowMove(m)).toBe(false);
 	});
 
 	it("returns false when moving is not a boolean", () => {
-		const m: Msg = { type: "X", app: { id: "A.app" }, window: { id: "w1" }, position: [10, 20], moving: "yes" };
+		const m: Msg = {
+			type: "X",
+			app: { id: "A.app" },
+			window: { id: "w1" },
+			position: [10, 20],
+			moving: "yes",
+		};
 		expect(hasWindowMove(m)).toBe(false);
 	});
 });
@@ -247,12 +311,22 @@ describe("hasWindowMove", () => {
 
 describe("hasWindowPosition", () => {
 	it("returns true when app, window, and position tuple are present", () => {
-		const m: Msg = { type: "X", app: { id: "A.app" }, window: { id: "w1" }, position: [10, 20] };
+		const m: Msg = {
+			type: "X",
+			app: { id: "A.app" },
+			window: { id: "w1" },
+			position: [10, 20],
+		};
 		expect(hasWindowPosition(m)).toBe(true);
 	});
 
 	it("returns false when position is not a 2-element array of numbers", () => {
-		const m: Msg = { type: "X", app: { id: "A.app" }, window: { id: "w1" }, position: ["a", "b"] };
+		const m: Msg = {
+			type: "X",
+			app: { id: "A.app" },
+			window: { id: "w1" },
+			position: ["a", "b"],
+		};
 		expect(hasWindowPosition(m)).toBe(false);
 	});
 
@@ -290,7 +364,10 @@ describe("hasMenuBar", () => {
 
 describe("hasDesktopAppRef", () => {
 	it("returns true when app has id, name, and icon as strings", () => {
-		const m: Msg = { type: "X", app: { id: "A.app", name: "App", icon: "icon.png" } };
+		const m: Msg = {
+			type: "X",
+			app: { id: "A.app", name: "App", icon: "icon.png" },
+		};
 		expect(hasDesktopAppRef(m)).toBe(true);
 	});
 
@@ -309,7 +386,10 @@ describe("hasDesktopAppRef", () => {
 
 describe("hasMouseEvent", () => {
 	it("returns true when action.e has clientX and clientY as numbers", () => {
-		const m: Msg = { type: "X", e: { clientX: 100, clientY: 200, target: { id: "classicyDesktop" } } };
+		const m: Msg = {
+			type: "X",
+			e: { clientX: 100, clientY: 200, target: { id: "classicyDesktop" } },
+		};
 		expect(hasMouseEvent(m)).toBe(true);
 	});
 
@@ -319,7 +399,10 @@ describe("hasMouseEvent", () => {
 	});
 
 	it("returns false when clientX is not a number", () => {
-		const m: Msg = { type: "X", e: { clientX: "100", clientY: 200, target: {} } };
+		const m: Msg = {
+			type: "X",
+			e: { clientX: "100", clientY: 200, target: {} },
+		};
 		expect(hasMouseEvent(m)).toBe(false);
 	});
 });
@@ -560,7 +643,10 @@ describe("hasIconIds", () => {
 
 describe("hasIconAddFields", () => {
 	it("returns true when app has id, name, icon and required icon fields are present", () => {
-		const m: Msg = { type: "X", app: { id: "A.app", name: "App", icon: "icon.png" } };
+		const m: Msg = {
+			type: "X",
+			app: { id: "A.app", name: "App", icon: "icon.png" },
+		};
 		expect(hasIconAddFields(m)).toBe(true);
 	});
 

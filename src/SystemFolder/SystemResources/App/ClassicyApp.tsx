@@ -11,6 +11,7 @@ import {
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import type { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
 export interface ClassicyAppProps {
@@ -23,6 +24,7 @@ export interface ClassicyAppProps {
 	debug?: boolean;
 	handlesFileTypes?: ClassicyFileSystemEntryFileType[];
 	handlesOwnFiles?: boolean;
+	contextMenu?: ClassicyMenuItem[];
 	children?: ReactNode;
 }
 
@@ -36,6 +38,7 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 	debug = false,
 	handlesFileTypes,
 	handlesOwnFiles = false,
+	contextMenu,
 	children,
 }) => {
 	const appContext = useAppManager(
@@ -82,6 +85,7 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 		desktopEventDispatch({
 			type: "ClassicyAppLoad",
 			app: { id, name, icon },
+			contextMenu,
 		});
 
 		if (addSystemMenu) {
@@ -115,6 +119,9 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 				kind: "app_shortcut",
 			});
 		}
+		// contextMenu is intentionally omitted from the deps: inline menu
+		// literals change identity every render and must not re-fire the load
+		// effect.
 	}, [addSystemMenu, noDesktopIcon, desktopEventDispatch, id, name, icon]);
 
 	const handlesFileTypesKey = handlesFileTypes?.slice().sort().join(",") ?? "";

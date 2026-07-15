@@ -106,6 +106,7 @@ export function loadApp(
 	appId: string,
 	appName: string,
 	appIcon: string,
+	contextMenu?: ClassicyMenuItem[],
 ) {
 	const findApp = ds.System.Manager.Applications.apps[appId];
 	if (!findApp) {
@@ -116,7 +117,12 @@ export function loadApp(
 			windows: [],
 			open: false,
 			data: {},
+			contextMenu,
 		};
+	} else {
+		// Always refresh: menu onClickFunc handlers do not survive localStorage
+		// persistence, so a re-mounting app must overwrite the persisted value.
+		findApp.contextMenu = contextMenu;
 	}
 }
 

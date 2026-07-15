@@ -349,7 +349,10 @@ describe("persistence exclusions", () => {
 		// Register a test handler that populates Browser.app data.history.
 		appManagerMod.registerAppEventHandler(
 			"ClassicyAppBrowserTest",
-			(ds: import("@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager").ClassicyStore, action) => {
+			(
+				ds: import("@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager").ClassicyStore,
+				action,
+			) => {
 				if (action.type === "ClassicyAppBrowserTestSetHistory") {
 					const appId = "Browser.app";
 					if (!ds.System.Manager.Applications.apps[appId]) return ds;
@@ -385,7 +388,9 @@ describe("persistence exclusions", () => {
 		// Populate history via the registered test handler
 		dispatch({
 			type: "ClassicyAppBrowserTestSetHistory",
-			history: [{ url: "https://example.com", visitedAt: "2024-01-01T00:00:00Z" }],
+			history: [
+				{ url: "https://example.com", visitedAt: "2024-01-01T00:00:00Z" },
+			],
 		} as Parameters<typeof dispatch>[0]);
 
 		vi.advanceTimersByTime(500);
@@ -393,7 +398,8 @@ describe("persistence exclusions", () => {
 		const raw = localStorage.getItem("classicyDesktopState");
 		expect(raw).not.toBeNull();
 		const parsed = JSON.parse(raw ?? "");
-		const browserApp = parsed.System?.Manager?.Applications?.apps?.["Browser.app"];
+		const browserApp =
+			parsed.System?.Manager?.Applications?.apps?.["Browser.app"];
 		expect(browserApp).toBeDefined();
 		// history must NOT appear in the persisted snapshot
 		expect(browserApp.data?.history).toBeUndefined();
@@ -406,7 +412,9 @@ describe("persistence exclusions", () => {
 		});
 		dispatch({
 			type: "ClassicyAppBrowserTestSetHistory",
-			history: [{ url: "https://example.com", visitedAt: "2024-01-01T00:00:00Z" }],
+			history: [
+				{ url: "https://example.com", visitedAt: "2024-01-01T00:00:00Z" },
+			],
 		} as Parameters<typeof dispatch>[0]);
 
 		vi.advanceTimersByTime(500);
@@ -426,7 +434,10 @@ describe("persistence exclusions", () => {
 		);
 		appManagerMod.registerAppEventHandler(
 			"ClassicyAppOtherTest",
-			(ds: import("@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager").ClassicyStore, action) => {
+			(
+				ds: import("@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager").ClassicyStore,
+				action,
+			) => {
 				if (action.type === "ClassicyAppOtherTestSetHistory") {
 					const appId = "Other.app";
 					if (!ds.System.Manager.Applications.apps[appId]) return ds;
@@ -490,7 +501,10 @@ describe("wasHydratedFromStorage", () => {
 
 	it("returns false when persisted state is schema-invalid", async () => {
 		vi.resetModules();
-		localStorage.setItem("classicyDesktopState", JSON.stringify({ bogus: true }));
+		localStorage.setItem(
+			"classicyDesktopState",
+			JSON.stringify({ bogus: true }),
+		);
 		const mod = await import(
 			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils"
 		);

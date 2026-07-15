@@ -667,6 +667,53 @@ describe("loadApp", () => {
 	});
 });
 
+describe("ClassicyAppLoad — app contextMenu", () => {
+	it("stores contextMenu on a newly loaded app", () => {
+		const ds = makeStore();
+		classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyAppLoad",
+			app: { id: "Menu.app", name: "Menu App", icon: "icon.png" },
+			contextMenu: [{ id: "m1", title: "App Item" }],
+		});
+		expect(ds.System.Manager.Applications.apps["Menu.app"].contextMenu).toEqual(
+			[{ id: "m1", title: "App Item" }],
+		);
+	});
+
+	it("refreshes contextMenu on an already-loaded app (persisted state is stale)", () => {
+		const ds = makeStore();
+		classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyAppLoad",
+			app: { id: "Menu.app", name: "Menu App", icon: "icon.png" },
+			contextMenu: [{ id: "m1", title: "Old Item" }],
+		});
+		classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyAppLoad",
+			app: { id: "Menu.app", name: "Menu App", icon: "icon.png" },
+			contextMenu: [{ id: "m2", title: "New Item" }],
+		});
+		expect(ds.System.Manager.Applications.apps["Menu.app"].contextMenu).toEqual(
+			[{ id: "m2", title: "New Item" }],
+		);
+	});
+
+	it("clears contextMenu when the app no longer declares one", () => {
+		const ds = makeStore();
+		classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyAppLoad",
+			app: { id: "Menu.app", name: "Menu App", icon: "icon.png" },
+			contextMenu: [{ id: "m1", title: "Old Item" }],
+		});
+		classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyAppLoad",
+			app: { id: "Menu.app", name: "Menu App", icon: "icon.png" },
+		});
+		expect(
+			ds.System.Manager.Applications.apps["Menu.app"].contextMenu,
+		).toBeUndefined();
+	});
+});
+
 describe("focusApp — appMenu propagation", () => {
 	it("sets ds.System.Manager.Desktop.appMenu when the focused window has menuBar and is the default window", () => {
 		const ds = makeStore();

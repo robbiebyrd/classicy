@@ -19,8 +19,8 @@ import {
 	wasHydratedFromStorage,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicySoundManagerProvider } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerProvider";
-import { ClassicyDefaultAppsContext } from "@/SystemFolder/SystemResources/App/ClassicyDefaultAppsContext";
 import { ClassicyAnalyticsPrefixContext } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
+import { ClassicyDefaultAppsContext } from "@/SystemFolder/SystemResources/App/ClassicyDefaultAppsContext";
 import {
 	ClassicyDefaultFileSystemContext,
 	type ClassicyDefaultFileSystemMode,
@@ -126,7 +126,9 @@ export const ClassicyAppManagerProvider: FunctionalComponent<
 			<ClassicyDefaultFileSystemContext.Provider value={fsContextValue}>
 				<ClassicyDefaultAppsContext.Provider value={defaultAppsContextValue}>
 					<AnalyticsProvider instance={analytics}>
-						<ClassicySoundManagerProvider>{children}</ClassicySoundManagerProvider>
+						<ClassicySoundManagerProvider>
+							{children}
+						</ClassicySoundManagerProvider>
 					</AnalyticsProvider>
 				</ClassicyDefaultAppsContext.Provider>
 			</ClassicyDefaultFileSystemContext.Provider>

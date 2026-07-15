@@ -34,9 +34,7 @@ function isNumberTuple2(v: unknown): v is [number, number] {
 // ─── App identity ─────────────────────────────────────────────────────────────
 
 /** Action has `app.id: string` */
-export function hasApp(
-	m: Msg,
-): m is Msg & { app: { id: string } } {
+export function hasApp(m: Msg): m is Msg & { app: { id: string } } {
 	return isObject(m.app) && typeof m.app.id === "string";
 }
 
@@ -64,10 +62,11 @@ export function hasAppAndFileType(
 // ─── Window identity ──────────────────────────────────────────────────────────
 
 /** Action has `window.id: string` */
-export function hasWindow(
-	m: Msg,
-): m is Msg & { window: { id: string } } {
-	return isObject(m.window) && typeof (m.window as Record<string, unknown>).id === "string";
+export function hasWindow(m: Msg): m is Msg & { window: { id: string } } {
+	return (
+		isObject(m.window) &&
+		typeof (m.window as Record<string, unknown>).id === "string"
+	);
 }
 
 /** Action has `app.id: string` and `window.id: string` */
@@ -78,9 +77,11 @@ export function hasAppAndWindow(
 }
 
 /** Action has app+window ids plus `dragging: boolean` */
-export function hasWindowDragging(
-	m: Msg,
-): m is Msg & { app: { id: string }; window: { id: string }; dragging: boolean } {
+export function hasWindowDragging(m: Msg): m is Msg & {
+	app: { id: string };
+	window: { id: string };
+	dragging: boolean;
+} {
 	return hasAppAndWindow(m) && typeof m.dragging === "boolean";
 }
 
@@ -92,9 +93,12 @@ export function hasWindowZoomed(
 }
 
 /** Action has app+window ids plus `resizing: boolean` and `size: [number, number]` */
-export function hasWindowResizing(
-	m: Msg,
-): m is Msg & { app: { id: string }; window: { id: string }; resizing: boolean; size: [number, number] } {
+export function hasWindowResizing(m: Msg): m is Msg & {
+	app: { id: string };
+	window: { id: string };
+	resizing: boolean;
+	size: [number, number];
+} {
 	return (
 		hasAppAndWindow(m) &&
 		typeof m.resizing === "boolean" &&
@@ -103,9 +107,12 @@ export function hasWindowResizing(
 }
 
 /** Action has app+window ids plus `position: [number, number]` and `moving: boolean` */
-export function hasWindowMove(
-	m: Msg,
-): m is Msg & { app: { id: string }; window: { id: string }; position: [number, number]; moving: boolean } {
+export function hasWindowMove(m: Msg): m is Msg & {
+	app: { id: string };
+	window: { id: string };
+	position: [number, number];
+	moving: boolean;
+} {
 	return (
 		hasAppAndWindow(m) &&
 		isNumberTuple2(m.position) &&
@@ -114,18 +121,18 @@ export function hasWindowMove(
 }
 
 /** Action has app+window ids plus `position: [number, number]` */
-export function hasWindowPosition(
-	m: Msg,
-): m is Msg & { app: { id: string }; window: { id: string }; position: [number, number] } {
+export function hasWindowPosition(m: Msg): m is Msg & {
+	app: { id: string };
+	window: { id: string };
+	position: [number, number];
+} {
 	return hasAppAndWindow(m) && isNumberTuple2(m.position);
 }
 
 // ─── Menu bar ─────────────────────────────────────────────────────────────────
 
 /** Action has `menuBar: ClassicyMenuItem[]` */
-export function hasMenuBar(
-	m: Msg,
-): m is Msg & { menuBar: ClassicyMenuItem[] } {
+export function hasMenuBar(m: Msg): m is Msg & { menuBar: ClassicyMenuItem[] } {
 	return Array.isArray(m.menuBar);
 }
 
@@ -146,9 +153,9 @@ export function hasDesktopAppRef(
 // ─── Mouse event ──────────────────────────────────────────────────────────────
 
 /** Action has `e.clientX: number`, `e.clientY: number`, and `e.target` object */
-export function hasMouseEvent(
-	m: Msg,
-): m is Msg & { e: { clientX: number; clientY: number; target: Record<string, unknown> } } {
+export function hasMouseEvent(m: Msg): m is Msg & {
+	e: { clientX: number; clientY: number; target: Record<string, unknown> };
+} {
 	if (!isObject(m.e)) return false;
 	const e = m.e as Record<string, unknown>;
 	return typeof e.clientX === "number" && typeof e.clientY === "number";
@@ -164,9 +171,7 @@ export function hasShowContextMenu(
 }
 
 /** Action has `activeTheme: string` (theme id) */
-export function hasActiveTheme(
-	m: Msg,
-): m is Msg & { activeTheme: string } {
+export function hasActiveTheme(m: Msg): m is Msg & { activeTheme: string } {
 	return typeof m.activeTheme === "string";
 }
 
@@ -199,9 +204,7 @@ export function hasBackgroundSize(
 }
 
 /** Action has `fontType: string` and `font: string` */
-export function hasFont(
-	m: Msg,
-): m is Msg & { fontType: string; font: string } {
+export function hasFont(m: Msg): m is Msg & { fontType: string; font: string } {
 	return typeof m.fontType === "string" && typeof m.font === "string";
 }
 
@@ -227,32 +230,24 @@ export function hasDisableBalloonHelp(
 }
 
 /** Action has `message: string` (for error dialogs) */
-export function hasErrorDialogMessage(
-	m: Msg,
-): m is Msg & { message: string } {
+export function hasErrorDialogMessage(m: Msg): m is Msg & { message: string } {
 	return typeof m.message === "string";
 }
 
 // ─── Desktop icon fields ──────────────────────────────────────────────────────
 
 /** Action has `sortBy: string` */
-export function hasSortBy(
-	m: Msg,
-): m is Msg & { sortBy: string } {
+export function hasSortBy(m: Msg): m is Msg & { sortBy: string } {
 	return typeof m.sortBy === "string";
 }
 
 /** Action has `iconId: string` */
-export function hasIconId(
-	m: Msg,
-): m is Msg & { iconId: string } {
+export function hasIconId(m: Msg): m is Msg & { iconId: string } {
 	return typeof m.iconId === "string";
 }
 
 /** Action has `iconIds: unknown[]` */
-export function hasIconIds(
-	m: Msg,
-): m is Msg & { iconIds: unknown[] } {
+export function hasIconIds(m: Msg): m is Msg & { iconIds: unknown[] } {
 	return Array.isArray(m.iconIds);
 }
 
@@ -273,32 +268,24 @@ export function hasIconLocation(
 // ─── DateTime fields ──────────────────────────────────────────────────────────
 
 /** Action has `dateTime: Date` */
-export function hasDateTime(
-	m: Msg,
-): m is Msg & { dateTime: Date } {
+export function hasDateTime(m: Msg): m is Msg & { dateTime: Date } {
 	return m.dateTime instanceof Date;
 }
 
 /** Action has `tzOffset: string` */
-export function hasTzOffset(
-	m: Msg,
-): m is Msg & { tzOffset: string } {
+export function hasTzOffset(m: Msg): m is Msg & { tzOffset: string } {
 	return typeof m.tzOffset === "string";
 }
 
 // ─── Finder fields ────────────────────────────────────────────────────────────
 
 /** Action has `path: string` */
-export function hasPath(
-	m: Msg,
-): m is Msg & { path: string } {
+export function hasPath(m: Msg): m is Msg & { path: string } {
 	return typeof m.path === "string";
 }
 
 /** Action has `paths: unknown[]` */
-export function hasPaths(
-	m: Msg,
-): m is Msg & { paths: unknown[] } {
+export function hasPaths(m: Msg): m is Msg & { paths: unknown[] } {
 	return Array.isArray(m.paths);
 }
 

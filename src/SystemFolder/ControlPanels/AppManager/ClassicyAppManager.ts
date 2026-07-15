@@ -62,6 +62,7 @@ export interface ClassicyStoreSystemApp {
 	debug?: boolean;
 	options?: Record<string, unknown>[];
 	appMenu?: ClassicyMenuItem[];
+	contextMenu?: ClassicyMenuItem[];
 	handlesFileTypes?: ClassicyFileSystemEntryFileType[];
 }
 
@@ -195,7 +196,15 @@ export const classicyAppEventHandler = (
 		}
 		case "ClassicyAppLoad": {
 			if (hasDesktopAppRef(action)) {
-				loadApp(ds, action.app.id, action.app.name, action.app.icon);
+				loadApp(
+					ds,
+					action.app.id,
+					action.app.name,
+					action.app.icon,
+					Array.isArray(action.contextMenu)
+						? (action.contextMenu as ClassicyMenuItem[])
+						: undefined,
+				);
 			}
 			break;
 		}
