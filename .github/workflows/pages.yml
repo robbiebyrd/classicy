@@ -62,7 +62,9 @@ jobs:
         run: pnpm --filter classicy-storybook build
 
       - name: Merge Storybook into Pages artifact
-        run: mv storybook/storybook-static example/dist/storybook
+        run: |
+          mv storybook/storybook-static example/dist/storybook
+          cp -r assets example/dist/assets
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
