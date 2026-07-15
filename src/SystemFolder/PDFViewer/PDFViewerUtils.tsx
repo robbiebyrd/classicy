@@ -18,7 +18,7 @@ export function isPDFViewerData(
 }
 
 export const PDFViewerAppInfo = {
-	name: "PDFViewer",
+	name: "PDF Viewer",
 	id: "PDFViewer.app",
 	icon: appIcon,
 };

@@ -67,7 +67,7 @@ function makeStoreWithPDFViewer(): ClassicyStore {
 	const ds = makeStore();
 	ds.System.Manager.Applications.apps["PDFViewer.app"] = {
 		id: "PDFViewer.app",
-		name: "PDFViewer",
+		name: "PDF Viewer",
 		icon: "pdf-icon.png",
 		open: false,
 		focused: false,

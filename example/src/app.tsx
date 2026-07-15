@@ -8,14 +8,14 @@ import {
 	registerClassicyIcons,
 } from "classicy";
 import { BlueBox } from "./Applications/BlueBox/BlueBox";
-import infiniteMacIcon from "./Applications/BlueBox/infinite-mac.png";
+import demoIcon from "./Applications/Demo/app.png";
 import { Browser } from "./Applications/Browser/Browser";
 import { Demo } from "./Applications/Demo/Demo";
 
 // Register custom application icons before the React tree renders.
 export const AppIcons = registerClassicyIcons({
 	demo: {
-		app: infiniteMacIcon,
+		app: demoIcon,
 	},
 });
 
