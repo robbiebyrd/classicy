@@ -6,6 +6,8 @@ on:
       - main
     paths:
       - 'example/**'
+      - 'storybook/**'
+      - 'src/**/*.stories.tsx'
   workflow_run:
     workflows:
       - Release Package
@@ -55,6 +57,12 @@ jobs:
       - name: Build example app
         working-directory: example
         run: pnpm exec vite build --base /
+
+      - name: Build Storybook
+        run: pnpm --filter classicy-storybook build
+
+      - name: Merge Storybook into Pages artifact
+        run: mv storybook/storybook-static example/dist/storybook
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
