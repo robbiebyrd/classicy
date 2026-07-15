@@ -2,8 +2,8 @@ import "./ClassicyProgressBar.scss";
 import classNames from "classnames";
 import type { FC as FunctionalComponent } from "react";
 import {
-	type ClassicyLabelAlign,
 	ClassicyControlLabel,
+	type ClassicyLabelAlign,
 	type ClassicyLabelPosition,
 	labelAlignClass,
 	labelPositionClass,
