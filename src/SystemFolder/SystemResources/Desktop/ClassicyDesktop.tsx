@@ -16,7 +16,10 @@ import { getClassicyAboutWindow } from "@/SystemFolder/SystemResources/AboutWind
 import { ClassicyDefaultAppsContext } from "@/SystemFolder/SystemResources/App/ClassicyDefaultAppsContext";
 import { ClassicyStartupScreen } from "@/SystemFolder/SystemResources/Boot/ClassicyStartupScreen";
 import { resetStartupScreenSession } from "@/SystemFolder/SystemResources/Boot/ClassicyStartupScreenSession";
-import { ClassicyContextualMenu } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenu";
+import {
+	ClassicyContextualMenuProvider,
+	useClassicyContextualMenu,
+} from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 import { ClassicyCrashScreen } from "@/SystemFolder/SystemResources/CrashScreen/ClassicyCrashScreen";
 import "./ClassicyDesktop.scss";
 import classNames from "classnames";
@@ -65,8 +68,6 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	startupScreen = true,
 	startupDuration = 4000,
 }) => {
-	const [contextMenu, setContextMenu] = useState(false);
-	const [contextMenuLocation, setContextMenuLocation] = useState([0, 0]);
 	const [showAbout, setShowAbout] = useState(false);
 	const [showEmptyTrashDialog, setShowEmptyTrashDialog] = useState(false);
 
@@ -74,7 +75,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	const [selectBoxSize, setSelectBoxSize] = useState([0, 0]);
 	const [selectBox, setSelectBox] = useState(false);
 
-	const clickOffset = [10, 10];
+	const { showContextMenu } = useClassicyContextualMenu();
 	const rafIdRef = useRef<number | null>(null);
 	const desktopRef = useRef<HTMLDivElement>(null);
 	const typePrefixRef = useRef<string>("");
@@ -303,7 +304,6 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	};
 
 	const clearActives = (e: MouseEvent<HTMLDivElement>) => {
-		setContextMenu(false);
 		clearSelectedIcons();
 		desktopEventDispatch({
 			type: "ClassicyDesktopFocus",
@@ -317,13 +317,14 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	};
 
 	const toggleDesktopContextMenu = (e: MouseEvent<HTMLDivElement>) => {
+		if (e.defaultPrevented) return;
+		// Always suppress the native browser menu over the desktop, but only
+		// show the default menu when the click target IS the desktop itself
+		// (e.target, not currentTarget — the handler lives on the desktop div,
+		// so currentTarget is always the desktop).
 		e.preventDefault();
-		if (e.currentTarget.id === "classicyDesktop") {
-			setContextMenuLocation([
-				e.clientX - clickOffset[0],
-				e.clientY - clickOffset[1],
-			]);
-			setContextMenu(!contextMenu);
+		if ((e.target as HTMLElement).id === "classicyDesktop") {
+			showContextMenu(defaultMenuItems, [e.clientX, e.clientY]);
 		}
 	};
 
@@ -410,8 +411,6 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 		[desktopEventDispatch, disableBalloonHelp],
 	);
 
-	const closeContextMenu = useCallback(() => setContextMenu(false), []);
-
 	const currentTheme = useMemo(() => getThemeVars(activeTheme), [activeTheme]);
 
 	return (
@@ -446,14 +445,6 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 				/>
 			)}
 			<ClassicyDesktopMenuBar />
-			{contextMenu ? (
-				<ClassicyContextualMenu
-					name={"desktopContextMenu"}
-					menuItems={defaultMenuItems}
-					position={contextMenuLocation}
-					onClose={closeContextMenu}
-				/>
-			) : null}
 			<Finder />
 			{!disableSimpleText && <SimpleText />}
 			{!disablePDFViewer && <PDFViewer />}
@@ -580,11 +571,13 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 	startupDuration,
 }) => (
 	<ClassicyCrashScreen>
-		<ClassicyDesktopInner
-			startupScreen={startupScreen}
-			startupDuration={startupDuration}
-		>
-			{children}
-		</ClassicyDesktopInner>
+		<ClassicyContextualMenuProvider>
+			<ClassicyDesktopInner
+				startupScreen={startupScreen}
+				startupDuration={startupDuration}
+			>
+				{children}
+			</ClassicyDesktopInner>
+		</ClassicyContextualMenuProvider>
 	</ClassicyCrashScreen>
 );
