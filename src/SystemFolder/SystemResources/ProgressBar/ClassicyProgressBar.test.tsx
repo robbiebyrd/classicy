@@ -44,4 +44,38 @@ describe("ClassicyProgressBar", () => {
 		expect(progress).toHaveAttribute("value", "100");
 		expect(progress).toHaveAttribute("max", "100");
 	});
+
+	it("applies classicyLabelAlignLeft on the label wrapper by default", () => {
+		const { container } = render(
+			<ClassicyProgressBar label="Loading" labelPosition="above" />,
+		);
+		const wrapper = container.firstChild as Element;
+		expect(wrapper).toHaveClass("classicyLabelAbove");
+		expect(wrapper).toHaveClass("classicyLabelAlignLeft");
+	});
+
+	it("applies classicyLabelAlignCenter when labelAlign=center", () => {
+		const { container } = render(
+			<ClassicyProgressBar label="Loading" labelAlign="center" />,
+		);
+		expect(container.firstChild as Element).toHaveClass(
+			"classicyLabelAlignCenter",
+		);
+	});
+
+	it("applies classicyLabelAlignRight when labelAlign=right", () => {
+		const { container } = render(
+			<ClassicyProgressBar label="Loading" labelAlign="right" />,
+		);
+		expect(container.firstChild as Element).toHaveClass(
+			"classicyLabelAlignRight",
+		);
+	});
+
+	it("renders no label wrapper when there is no label, even with labelAlign", () => {
+		const { container } = render(<ClassicyProgressBar labelAlign="center" />);
+		const wrapper = container.firstChild as Element;
+		expect(wrapper).toHaveClass("classicyProgress");
+		expect(wrapper).not.toHaveClass("classicyLabelAlignCenter");
+	});
 });

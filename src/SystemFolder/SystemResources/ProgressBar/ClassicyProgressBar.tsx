@@ -2,8 +2,10 @@ import "./ClassicyProgressBar.scss";
 import classNames from "classnames";
 import type { FC as FunctionalComponent } from "react";
 import {
+	type ClassicyLabelAlign,
 	ClassicyControlLabel,
 	type ClassicyLabelPosition,
+	labelAlignClass,
 	labelPositionClass,
 } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 
@@ -13,6 +15,7 @@ interface ClassicyProgressProps {
 	indeterminate?: boolean;
 	label?: string;
 	labelPosition?: ClassicyLabelPosition;
+	labelAlign?: ClassicyLabelAlign;
 }
 
 export const ClassicyProgressBar: FunctionalComponent<
@@ -23,6 +26,7 @@ export const ClassicyProgressBar: FunctionalComponent<
 	indeterminate,
 	label,
 	labelPosition = "above",
+	labelAlign = "left",
 }) => {
 	const effectiveMax = indeterminate ? 100 : max;
 	const effectiveValue = indeterminate ? 100 : value;
@@ -43,7 +47,12 @@ export const ClassicyProgressBar: FunctionalComponent<
 	if (!label) return bar;
 
 	return (
-		<div className={labelPositionClass(labelPosition)}>
+		<div
+			className={classNames(
+				labelPositionClass(labelPosition),
+				labelAlignClass(labelAlign),
+			)}
+		>
 			<ClassicyControlLabel label={label} />
 			{bar}
 		</div>

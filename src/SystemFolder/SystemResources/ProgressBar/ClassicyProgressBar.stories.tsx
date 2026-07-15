@@ -4,6 +4,12 @@ import { ClassicyProgressBar } from "./ClassicyProgressBar";
 const meta = {
 	title: "Controls/ProgressBar",
 	component: ClassicyProgressBar,
+	argTypes: {
+		labelAlign: {
+			control: "select",
+			options: ["left", "center", "right"],
+		},
+	},
 } satisfies Meta<typeof ClassicyProgressBar>;
 
 export default meta;
@@ -19,4 +25,8 @@ export const Indeterminate: Story = {
 
 export const WithLabel: Story = {
 	args: { value: 33, label: "Copying files…" },
+};
+
+export const CenteredLabel: Story = {
+	args: { value: 33, label: "Copying files…", labelAlign: "center" },
 };
