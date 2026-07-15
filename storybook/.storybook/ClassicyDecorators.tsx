@@ -24,22 +24,18 @@ const resetClassicyStore = (themeId: string) => {
 };
 
 const ClassicyDesktopFrame = ({
-	storyId,
 	themeId,
 	children,
 }: {
-	storyId: string;
 	themeId: string;
 	children: ReactNode;
 }) => {
 	const [ready, setReady] = useState(false);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: storyId is an intentional invalidation key — it forces the store reset to rerun when switching stories even if themeId is unchanged
 	useLayoutEffect(() => {
 		resetClassicyStore(themeId);
 		setReady(true);
-		return () => setReady(false);
-	}, [storyId, themeId]);
+	}, [themeId]);
 
 	if (!ready) return null;
 	return (
@@ -53,10 +49,22 @@ export const withClassicy: Decorator = (Story, context) => {
 	const themeId = (context.globals.theme as string) ?? "default";
 
 	if (context.parameters.classicy?.desktop) {
+		// Keyed on story + theme so any switch fully unmounts/remounts the frame,
+		// guaranteeing the store-reset effect runs against a clean component tree
+		// instead of leaking component-local state across resets.
+		// `height` (not `minHeight`) is required here: ClassicyDesktop's root
+		// element is styled `height: 100%`, and a percentage height only
+		// resolves against an ancestor with an explicit `height`, not one that
+		// merely ends up that tall via `min-height`.
 		return (
-			<ClassicyDesktopFrame storyId={context.id} themeId={themeId}>
-				<Story />
-			</ClassicyDesktopFrame>
+			<div style={{ height: "100vh" }}>
+				<ClassicyDesktopFrame
+					key={`${context.id}-${themeId}`}
+					themeId={themeId}
+				>
+					<Story />
+				</ClassicyDesktopFrame>
+			</div>
 		);
 	}
 
