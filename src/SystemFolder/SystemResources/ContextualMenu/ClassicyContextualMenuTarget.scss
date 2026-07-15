@@ -1,0 +1,5 @@
+// display: contents keeps the wrapper out of layout entirely — the wrapped
+// control renders exactly as if unwrapped.
+.classicyContextualMenuTarget {
+	display: contents;
+}
