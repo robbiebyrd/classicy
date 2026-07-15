@@ -103,4 +103,10 @@ describe("ClassicyStartupScreen", () => {
 		expect(progress.value).toBeGreaterThan(25);
 		expect(progress.value).toBeLessThan(75);
 	});
+
+	it("centers the Starting Up label over the progress bar", () => {
+		render(<ClassicyStartupScreen />);
+		const label = screen.getByText("Starting Up…");
+		expect(label.closest(".classicyLabelAlignCenter")).not.toBeNull();
+	});
 });

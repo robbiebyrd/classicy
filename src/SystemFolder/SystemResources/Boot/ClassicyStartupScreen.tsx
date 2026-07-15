@@ -62,6 +62,7 @@ export const ClassicyStartupScreen: FunctionalComponent<
 						max={100}
 						label="Starting Up…"
 						labelPosition="above"
+						labelAlign="center"
 					/>
 				</div>
 			</div>
