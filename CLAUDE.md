@@ -18,6 +18,8 @@ pnpm build:audio          # Generate audio sprites from assets/sounds/
 pnpm build:watch          # Watch mode: rebuilds source + audio on file changes
 pnpm lint                 # Run ESLint
 pnpm preview              # Full build → run example app
+pnpm storybook            # Run the component showcase (Storybook) dev server
+pnpm build:storybook      # Build static Storybook to storybook/storybook-static/
 ```
 
 **Local dev workflow**: `pnpm build:source` to (re)build the library; the `example/` app resolves it automatically through the workspace symlink. For live iteration use `pnpm build:watch` (or `pnpm preview`, which builds then runs the example dev server with the source watcher).
