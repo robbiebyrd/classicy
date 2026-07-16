@@ -69,6 +69,20 @@
   }
 }
 
+// A submenu nested inside another submenu (third level and deeper from the
+// menu bar) opens to the right of its parent item, mirroring
+// `.classicyContextSubMenu`. The first-level dropdown keeps its static
+// position below the menu bar.
+.classicySubMenu .classicyMenuWrapper > .classicySubMenu {
+  left: 100%;
+  margin: calc(var(--window-padding-size) * -4) calc(var(--window-padding-size) * -2);
+
+  &.classicySubMenuFlipLeft {
+    left: auto;
+    right: 100%;
+  }
+}
+
 .classicyContextMenu {
   // Mirrors `.classicySubMenu` (vertical, bordered, system-02 surface) but stays
   // visible: a contextual menu's root is shown immediately, not on hover. Fixed
@@ -87,6 +101,11 @@
 .classicyContextSubMenu {
   position: absolute;
   left: 100%;
+
+  &.classicySubMenuFlipLeft {
+    left: auto;
+    right: 100%;
+  }
   display: none;
   flex-direction: column;
   min-width: calc(var(--window-control-size) * 15);

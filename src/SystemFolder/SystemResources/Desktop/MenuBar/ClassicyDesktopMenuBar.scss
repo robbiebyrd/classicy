@@ -30,7 +30,11 @@
   -webkit-user-drag: none;
 
 
-  & li {
+  // Hide the child-menu triangle on top-level menu titles only (including
+  // balloon-wrapped ones); items inside dropdowns keep the indicator from
+  // `.classicyMenuItemChildMenuIndicator`.
+  > li,
+  > .classicyBalloonHelpAnchor > li {
     &:after {
       display: none !important;
     }

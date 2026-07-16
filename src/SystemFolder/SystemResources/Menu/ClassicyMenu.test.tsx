@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@/__tests__/test-utils";
+import { fireEvent, render, screen } from "@/__tests__/test-utils";
 
 vi.mock(
 	"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils",
@@ -62,6 +62,83 @@ describe("ClassicyMenu", () => {
 		render(<ClassicyMenu name="test-menu" menuItems={items} />);
 		// he.decode converts &#8984; to the Command symbol
 		expect(screen.getByText("\u2318S")).toBeInTheDocument();
+	});
+
+	it("flips a nested submenu to the left when it would overflow the viewport", () => {
+		const items = [
+			{
+				id: "view",
+				title: "View",
+				menuChildren: [
+					{
+						id: "sort",
+						title: "Sort By",
+						menuChildren: [{ id: "name", title: "Name" }],
+					},
+				],
+			},
+		];
+		const rectSpy = vi
+			.spyOn(Element.prototype, "getBoundingClientRect")
+			.mockReturnValue({
+				right: window.innerWidth + 50,
+				left: window.innerWidth - 100,
+				top: 0,
+				bottom: 0,
+				width: 150,
+				height: 0,
+				x: 0,
+				y: 0,
+				toJSON: () => ({}),
+			} as DOMRect);
+
+		const { container } = render(
+			<ClassicyMenu
+				name="test-menu"
+				menuItems={items}
+				navClass="classicyDesktopMenu"
+				subNavClass="classicySubMenu"
+			/>,
+		);
+		fireEvent.click(screen.getByText("View"));
+		fireEvent.click(screen.getByText("Sort By"));
+
+		const nestedSubMenu = container.querySelector(
+			"ul.classicySubMenu ul.classicySubMenu",
+		);
+		expect(nestedSubMenu).toHaveClass("classicySubMenuFlipLeft");
+		rectSpy.mockRestore();
+	});
+
+	it("does not flip a nested submenu that fits in the viewport", () => {
+		const items = [
+			{
+				id: "view",
+				title: "View",
+				menuChildren: [
+					{
+						id: "sort",
+						title: "Sort By",
+						menuChildren: [{ id: "name", title: "Name" }],
+					},
+				],
+			},
+		];
+		const { container } = render(
+			<ClassicyMenu
+				name="test-menu"
+				menuItems={items}
+				navClass="classicyDesktopMenu"
+				subNavClass="classicySubMenu"
+			/>,
+		);
+		fireEvent.click(screen.getByText("View"));
+		fireEvent.click(screen.getByText("Sort By"));
+
+		const nestedSubMenu = container.querySelector(
+			"ul.classicySubMenu ul.classicySubMenu",
+		);
+		expect(nestedSubMenu).not.toHaveClass("classicySubMenuFlipLeft");
 	});
 
 	it("renders a nested submenu for items with menuChildren", () => {

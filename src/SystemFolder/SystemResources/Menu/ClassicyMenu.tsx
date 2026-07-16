@@ -99,6 +99,25 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 	const { closeAll, menuBarActive, activateMenuBar } =
 		useContext(ClassicyMenuContext);
 	const [isFlashing, setIsFlashing] = useState(false);
+	const [submenuFlipped, setSubmenuFlipped] = useState(false);
+	const itemRef = useRef<HTMLLIElement>(null);
+
+	// Once open, measure the child menu against the viewport; if it would
+	// overflow the right edge, flip it to open leftward instead. Measured only
+	// on open (not after flipping) so the menu can't oscillate between sides.
+	useEffect(() => {
+		if (!isOpen) {
+			setSubmenuFlipped(false);
+			return;
+		}
+		const submenu = itemRef.current?.querySelector(
+			":scope > .classicyMenuWrapper > ul",
+		);
+		if (!submenu) return;
+		setSubmenuFlipped(
+			submenu.getBoundingClientRect().right > window.innerWidth,
+		);
+	}, [isOpen]);
 
 	const { track } = useClassicyAnalytics();
 	const analyticsArgs = useMemo(
@@ -177,6 +196,7 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 				// biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: <li> items in a menu require role="menuitem" per ARIA menu pattern
 				role="menuitem"
 				tabIndex={-1}
+				ref={itemRef}
 				id={menuItem.id}
 				key={menuItem.id}
 				onClick={handleClick}
@@ -230,7 +250,10 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 						name={`${menuItem.id}_subitem`}
 						menuItems={menuItem.menuChildren ?? []}
 						subNavClass={subNavClass}
-						navClass={subNavClass}
+						navClass={classNames(
+							subNavClass,
+							submenuFlipped && "classicySubMenuFlipLeft",
+						)}
 					></ClassicyMenu>
 				)}
 			</li>
