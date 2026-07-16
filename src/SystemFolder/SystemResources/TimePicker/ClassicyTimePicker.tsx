@@ -285,6 +285,7 @@ export const ClassicyTimePicker: FunctionalComponent<ClassicyTimePickerProps> =
 						]}
 						className={"classicyTimePickerPeriod"}
 						onChangeFunc={handlePeriodChange}
+						disabled={disabled}
 					></ClassicyPopUpMenu>
 				</div>
 			);

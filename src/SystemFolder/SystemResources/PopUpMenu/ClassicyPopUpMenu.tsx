@@ -35,6 +35,7 @@ type classicyPopUpMenuProps = {
 	size?: ClassicyPopUpMenuSize;
 	onChangeFunc?: (e: ChangeEvent<HTMLSelectElement>) => void;
 	className?: string;
+	disabled?: boolean;
 };
 export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 	id,
@@ -47,6 +48,7 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 	className: extraClassName,
 	size = "medium",
 	onChangeFunc,
+	disabled = false,
 }) => {
 	// For the control label, "mini" maps to "small" — "mini" is a menu-only size
 	const controlLabelSize: ClassicyControlLabelSize =
@@ -99,6 +101,7 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 					tabIndex={0}
 					value={selectedItem}
 					onChange={onChangeHandler}
+					disabled={disabled}
 				>
 					{placeholder && (
 						<option value={PLACEHOLDER_VALUE} disabled>

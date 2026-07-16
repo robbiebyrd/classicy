@@ -24,7 +24,7 @@ afterEach(() => {
 });
 
 describe("ClassicyDateAndTimeManager — dateTimeLocked", () => {
-	it("disables the date and time editors but not the timezone picker when locked", () => {
+	it("disables the date and time editors — including the AM/PM popup — but not the timezone picker when locked", () => {
 		dispatch({ type: "ClassicyManagerDateTimeLock" });
 		const { container } = renderOpen();
 
@@ -36,12 +36,21 @@ describe("ClassicyDateAndTimeManager — dateTimeLocked", () => {
 			for (const input of inputs) expect((input as HTMLInputElement).disabled).toBe(true);
 		}
 
-		const tzSelect = container.querySelector("select") as HTMLSelectElement;
+		// The AM/PM popup is ClassicyTimePicker's nested ClassicyPopUpMenu — it
+		// must be disabled too, otherwise a user can still flip AM/PM and shift
+		// the clock 12 hours while "locked".
+		const amPmSelect = container.querySelector("select#am-pm") as HTMLSelectElement;
+		expect(amPmSelect).not.toBeNull();
+		expect(amPmSelect.disabled).toBe(true);
+
+		// The timezone popup is a separate, standalone ClassicyPopUpMenu (not
+		// nested inside a disabled editor) and must stay enabled while locked.
+		const tzSelect = container.querySelector("select#timezone") as HTMLSelectElement;
 		expect(tzSelect).not.toBeNull();
 		expect(tzSelect.disabled).toBe(false);
 	});
 
-	it("editors are enabled when not locked", () => {
+	it("editors — including the AM/PM popup — are enabled when not locked, and the timezone picker is always enabled", () => {
 		const { container } = renderOpen();
 		// Scoped to the date/time columns (the "editors" this feature controls) —
 		// the separate Time Format control group has its own permanently
@@ -54,5 +63,13 @@ describe("ClassicyDateAndTimeManager — dateTimeLocked", () => {
 			expect(inputs.length).toBeGreaterThan(0);
 			for (const input of inputs) expect((input as HTMLInputElement).disabled).toBe(false);
 		}
+
+		const amPmSelect = container.querySelector("select#am-pm") as HTMLSelectElement;
+		expect(amPmSelect).not.toBeNull();
+		expect(amPmSelect.disabled).toBe(false);
+
+		const tzSelect = container.querySelector("select#timezone") as HTMLSelectElement;
+		expect(tzSelect).not.toBeNull();
+		expect(tzSelect.disabled).toBe(false);
 	});
 });

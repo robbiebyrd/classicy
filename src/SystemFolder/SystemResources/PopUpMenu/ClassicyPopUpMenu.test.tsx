@@ -73,4 +73,16 @@ describe("ClassicyPopUpMenu", () => {
 		// Verify no label element exists at all
 		expect(document.querySelector("label")).not.toBeInTheDocument();
 	});
+
+	it("is enabled by default", () => {
+		render(<ClassicyPopUpMenu id="fruit" options={options} />);
+		const select = screen.getByRole("combobox") as HTMLSelectElement;
+		expect(select.disabled).toBe(false);
+	});
+
+	it("disables the underlying select when disabled is true", () => {
+		render(<ClassicyPopUpMenu id="fruit" options={options} disabled />);
+		const select = screen.getByRole("combobox") as HTMLSelectElement;
+		expect(select.disabled).toBe(true);
+	});
 });
