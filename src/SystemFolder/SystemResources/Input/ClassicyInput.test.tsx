@@ -58,4 +58,17 @@ describe("ClassicyInput", () => {
 		render(<ClassicyInput id="test-input" />);
 		expect(screen.queryByRole("label")).not.toBeInTheDocument();
 	});
+
+	it("defaults the input type to text", () => {
+		render(<ClassicyInput id="typed-default" />);
+		expect(document.getElementById("typed-default")).toHaveAttribute("type", "text");
+	});
+
+	it("passes a custom type through to the input", () => {
+		render(<ClassicyInput id="typed-password" type="password" />);
+		expect(document.getElementById("typed-password")).toHaveAttribute(
+			"type",
+			"password",
+		);
+	});
 });
