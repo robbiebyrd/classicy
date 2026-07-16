@@ -25,6 +25,8 @@ interface ClassicyInputProps {
 	labelPosition?: ClassicyLabelPosition;
 	placeholder?: string;
 	prefillValue?: string;
+	/** Native input type (e.g. "password", "email"); defaults to "text". */
+	type?: string;
 	disabled?: boolean;
 	labelDisabled?: boolean;
 	isDefault?: boolean;
@@ -41,6 +43,7 @@ export const ClassicyInput: FunctionalComponent<ClassicyInputProps> =
 			labelPosition = "above",
 			placeholder,
 			prefillValue,
+			type = "text",
 			disabled = false,
 			labelDisabled,
 			isDefault,
@@ -92,7 +95,7 @@ export const ClassicyInput: FunctionalComponent<ClassicyInputProps> =
 					onChange={handleOnChangeFunc}
 					onKeyDown={handleOnKeyDown}
 					name={id}
-					type="text"
+					type={type}
 					ref={ref}
 					disabled={disabled}
 					value={prefillValue}
