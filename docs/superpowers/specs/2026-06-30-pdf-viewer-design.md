@@ -33,7 +33,7 @@ Unlike `PictureViewer`'s documents (ad hoc `{url, name, icon}` objects not backe
 
 Mirrors `PictureViewerUtils.tsx` / `PictureViewerContext.tsx` exactly in shape, adapted for path-based `openFiles`:
 
-- `PDFViewerUtils.tsx` exports `PDFViewerAppInfo = { id: "PDFViewer.app", name: "PDFViewer", icon: ClassicyIcons.system.files.document }` (no space in `name` — keeps action-type strings like `ClassicyAppPDFViewerOpenFile` clean, matching `SimpleText`'s no-space convention), `PDFViewerData = { openFiles: string[] }`, and `isPDFViewerData`.
+- `PDFViewerUtils.tsx` exports `PDFViewerAppInfo = { id: "PDFViewer.app", name: "PDF Viewer", icon: ClassicyIcons.system.files.document }` (no space in `name` — keeps action-type strings like `ClassicyAppPDFViewerOpenFile` clean, matching `SimpleText`'s no-space convention), `PDFViewerData = { openFiles: string[] }`, and `isPDFViewerData`.
 - `PDFViewerContext.tsx` exports `classicyPDFViewerEventHandler`, self-registered via `registerAppEventHandler("ClassicyAppPDFViewer", classicyPDFViewerEventHandler)`. On `ClassicyAppPDFViewerOpenFile` (`{path}`): auto-loads the app if not yet registered (`loadApp`, mirroring `PictureViewer`'s auto-load), appends `path` to `openFiles` if not already present, opens the app. On `ClassicyAppPDFViewerCloseFile` (`{path}`): removes `path` from `openFiles`.
 
 ## App shell — `PDFViewer.tsx`

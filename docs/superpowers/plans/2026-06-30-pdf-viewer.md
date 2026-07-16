@@ -578,7 +578,7 @@ function makeStoreWithPDFViewer(): ClassicyStore {
 	const ds = makeStore();
 	ds.System.Manager.Applications.apps["PDFViewer.app"] = {
 		id: "PDFViewer.app",
-		name: "PDFViewer",
+		name: "PDF Viewer",
 		icon: "pdf-icon.png",
 		open: false,
 		focused: false,
@@ -737,7 +737,7 @@ export function isPDFViewerData(
 }
 
 export const PDFViewerAppInfo = {
-	name: "PDFViewer",
+	name: "PDF Viewer",
 	id: "PDFViewer.app",
 	icon: appIcon,
 };
@@ -837,7 +837,7 @@ git commit -m "feat(pdf-viewer): add PDFViewerUtils and a dedicated PDFViewerCon
 
 **Interfaces:**
 - Consumes: `ClassicyFileSystemEntryFileType.Pdf` (Task 1), `PDFViewerDocument` (Task 2, named export `{ url: string }` prop), `PDFViewerAppInfo` (Task 3, `{ id, name, icon }`). Relies on Task 3's `classicyPDFViewerEventHandler` (self-registered at module load — pulled in automatically once `src/index.ts` is regenerated, the same way `PictureViewer.tsx` never directly imports `PictureViewerContext.tsx` either) to maintain `appState.data.openFiles` in response to the `OpenFile`/`CloseFile` actions this app dispatches.
-- Produces: `export const PDFViewer: FunctionalComponent` — a `ClassicyApp` with `id="PDFViewer.app"`, `name="PDFViewer"`, registered for `handlesFileTypes={[ClassicyFileSystemEntryFileType.Pdf]}`.
+- Produces: `export const PDFViewer: FunctionalComponent` — a `ClassicyApp` with `id="PDFViewer.app"`, `name="PDF Viewer"`, registered for `handlesFileTypes={[ClassicyFileSystemEntryFileType.Pdf]}`.
 
 No new automated test is added for `PDFViewer.tsx` itself. This mirrors `PictureViewer.tsx`, which also has no dedicated render test — its coverage comes entirely from `PictureViewerContext`'s reducer tests (Task 3's equivalent) plus its already-tested child rendering. Verification for this task is the manual run-through in Step 4 below, plus the full existing suite staying green.
 
@@ -969,7 +969,7 @@ pnpm dev
 Open the printed local URL (e.g. `http://localhost:5173`) and verify:
 1. Open Finder, navigate to `Macintosh HD > Documents`.
 2. Double-click `Sample.pdf`.
-3. A "PDFViewer" window opens showing page 1 of the seeded PDF rendered on canvas.
+3. A "PDF Viewer" window opens showing page 1 of the seeded PDF rendered on canvas.
 4. Click "Next" — page 2 renders, "Previous" becomes enabled.
 5. Click "Zoom In" a few times — the page visibly grows; click "Zoom Out" past 1.0x — it shrinks; both buttons disable at their bounds.
 6. Back in Finder, double-click `Sample 2.pdf` (the second, distinct seeded demo PDF) — confirm an independent second window opens alongside the still-open `Sample.pdf` window (multi-window). Note: double-clicking `Sample.pdf` again is correctly a no-op (`PDFViewerContext`'s reducer dedups `openFiles` by path) — it does **not** open a second window, so multi-window can only be verified with two different files.

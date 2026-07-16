@@ -59,7 +59,7 @@ conditionally renders each app.
   surface area, but a consumer wanting only 3 of the 4 default apps would have
   no way to express that short of falling back to full manual mounting.
   Rejected for insufficient flexibility.
-- **Single `disableDefaultApps: Array<"SimpleText" | "PDFViewer" | ...>`
+- **Single `disableDefaultApps: Array<"SimpleText" | "PDF Viewer" | ...>`
   prop.** One prop instead of four, but requires the consumer to know and spell
   the exact string literals, with no editor autocomplete guiding them to valid
   values the way named boolean props do. Rejected in favor of discoverability.

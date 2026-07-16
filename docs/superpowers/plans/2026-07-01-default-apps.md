@@ -323,7 +323,7 @@ describe("ClassicyDesktop default apps", () => {
 			</ClassicyAppManagerProvider>,
 		);
 		expect(screen.getByAltText("SimpleText")).toBeInTheDocument();
-		expect(screen.getByAltText("PDFViewer")).toBeInTheDocument();
+		expect(screen.getByAltText("PDF Viewer")).toBeInTheDocument();
 		expect(screen.getByAltText("Movie Player")).toBeInTheDocument();
 		expect(screen.getByAltText("Picture Viewer")).toBeInTheDocument();
 	});
@@ -335,7 +335,7 @@ describe("ClassicyDesktop default apps", () => {
 			</ClassicyAppManagerProvider>,
 		);
 		expect(screen.getByAltText("SimpleText")).toBeInTheDocument();
-		expect(screen.getByAltText("PDFViewer")).toBeInTheDocument();
+		expect(screen.getByAltText("PDF Viewer")).toBeInTheDocument();
 		expect(screen.queryByAltText("Movie Player")).not.toBeInTheDocument();
 		expect(screen.queryByAltText("Picture Viewer")).not.toBeInTheDocument();
 	});
