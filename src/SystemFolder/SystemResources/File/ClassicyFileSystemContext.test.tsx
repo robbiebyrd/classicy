@@ -206,3 +206,72 @@ describe("useClassicyFileSystem Applications overlay", () => {
 		expect(result.current.resolve("Macintosh HD:Applications")).toBeUndefined();
 	});
 });
+
+describe("useClassicyFileSystem Extensions overlay", () => {
+	const drive = () => ({
+		"Macintosh HD": {
+			_type: ClassicyFileSystemEntryFileType.Drive,
+			"System Folder": { _type: ClassicyFileSystemEntryFileType.Directory },
+		},
+	});
+
+	const addExtensionApp = (id: string, name: string) => {
+		act(() => {
+			dispatch({
+				type: "ClassicyAppLoad",
+				app: { id, name, icon: `/icons/${id}.png` },
+				extension: true,
+			});
+		});
+	};
+
+	beforeEach(() => {
+		localStorage.clear();
+		useAppManager.setState(DefaultAppManagerState, true);
+	});
+
+	it("overlays registered extensions into System Folder/Extensions", () => {
+		const { result } = renderHook(
+			() => useClassicyFileSystem("test-ext-overlay"),
+			{
+				wrapper: wrapperFor({ defaultFileSystem: drive(), mode: "exclusive" }),
+			},
+		);
+
+		addExtensionApp("ClockExt.app", "Clock");
+
+		const entry = result.current.resolve(
+			"Macintosh HD:System Folder:Extensions:Clock",
+		);
+		expect(entry._type).toBe(ClassicyFileSystemEntryFileType.Extension);
+		expect(entry._creator).toBe("ClockExt.app");
+	});
+
+	it("adds no Extensions overlay when no extensions are registered", () => {
+		const { result } = renderHook(
+			() => useClassicyFileSystem("test-ext-overlay-empty"),
+			{
+				wrapper: wrapperFor({ defaultFileSystem: drive(), mode: "exclusive" }),
+			},
+		);
+
+		expect(
+			result.current.resolve("Macintosh HD:System Folder:Extensions"),
+		).toBeUndefined();
+	});
+
+	it("does not persist the Extensions overlay to localStorage", () => {
+		renderHook(() => useClassicyFileSystem("test-ext-overlay-persist"), {
+			wrapper: wrapperFor({ defaultFileSystem: drive(), mode: "exclusive" }),
+		});
+
+		addExtensionApp("ClockExt.app", "Clock");
+
+		const persisted = localStorage.getItem("test-ext-overlay-persist");
+		expect(persisted).not.toBeNull();
+		expect(
+			JSON.parse(persisted as string)["Macintosh HD"]["System Folder"]
+				.Extensions,
+		).toBeUndefined();
+	});
+});
