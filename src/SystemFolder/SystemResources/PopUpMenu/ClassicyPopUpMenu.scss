@@ -86,7 +86,7 @@
     height: 100%;
     z-index: 1;
     margin: 0;
-    padding: calc(var(--window-padding-size) / 2) 0 var(--window-padding-size) calc(var(--window-padding-size) * 1);
+    padding: calc(var(--window-padding-size)) 0 var(--window-padding-size) calc(var(--window-padding-size) * 1);
     cursor: inherit;
     outline: none;
     background-color: transparent;
