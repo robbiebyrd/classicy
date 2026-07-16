@@ -129,10 +129,17 @@ export function loadApp(
 		// persistence, so a re-mounting app must overwrite the persisted value.
 		findApp.contextMenu = contextMenu;
 		if (extension) {
-			// A persisted extension entry may have open: false from an old
-			// session; extensions always run once mounted.
+			// A persisted extension entry may have open: false (or a stale
+			// focused flag) from an old session; extensions always run in the
+			// background once mounted.
 			findApp.extension = true;
 			findApp.open = true;
+			findApp.focused = false;
+		} else if (findApp.extension) {
+			// The app was an extension in a previous session but mounts as a
+			// regular app now — clear the stale flag so it isn't hidden from
+			// the App Switcher or listed under System Folder/Extensions.
+			delete findApp.extension;
 		}
 	}
 }

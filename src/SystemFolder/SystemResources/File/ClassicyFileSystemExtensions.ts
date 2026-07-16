@@ -5,7 +5,7 @@ import {
 	ClassicyFileSystemEntryFileType,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 
-export const SYSTEM_FOLDER_NAME = "System Folder";
+const SYSTEM_FOLDER_NAME = "System Folder";
 
 /**
  * Derives the virtual "System Folder/Extensions" directory from the app

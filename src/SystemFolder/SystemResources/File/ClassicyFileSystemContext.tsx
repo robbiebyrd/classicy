@@ -56,7 +56,7 @@ export function useClassicyFileSystem(
 			.join("\u0001"),
 	);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: appShortcutsKey is an intentional invalidation key — the icon set is read via getState() so icon moves/focus don't re-render
+	// biome-ignore lint/correctness/useExhaustiveDependencies: appShortcutsKey and extensionAppsKey are intentional invalidation keys — the icon/app sets are read via getState() so moves/focus don't re-render
 	return useMemo(() => {
 		const resolved = !defaultFileSystem
 			? DefaultFSContent
