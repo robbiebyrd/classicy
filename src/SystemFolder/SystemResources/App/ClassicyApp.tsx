@@ -21,6 +21,7 @@ export interface ClassicyAppProps {
 	defaultWindow?: string;
 	noDesktopIcon?: boolean;
 	addSystemMenu?: boolean;
+	extension?: boolean;
 	debug?: boolean;
 	handlesFileTypes?: ClassicyFileSystemEntryFileType[];
 	handlesOwnFiles?: boolean;
@@ -34,6 +35,7 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 	name,
 	addSystemMenu,
 	noDesktopIcon,
+	extension,
 	defaultWindow,
 	debug = false,
 	handlesFileTypes,
@@ -81,14 +83,18 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 		});
 	};
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: contextMenu is intentionally omitted to prevent re-firing with inline menu literals
 	useEffect(() => {
 		desktopEventDispatch({
 			type: "ClassicyAppLoad",
 			app: { id, name, icon },
 			contextMenu,
+			extension,
 		});
 
-		if (addSystemMenu) {
+		// Extensions are background-only: no Apple-menu entry and no desktop
+		// icon (which also keeps them out of the derived Applications folder).
+		if (addSystemMenu && !extension) {
 			desktopEventDispatch({
 				type: "ClassicyDesktopAppMenuAdd",
 				app: {
@@ -108,7 +114,7 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 			});
 		}
 
-		if (!noDesktopIcon) {
+		if (!noDesktopIcon && !extension) {
 			desktopEventDispatch({
 				type: "ClassicyDesktopIconAdd",
 				app: {
@@ -119,10 +125,15 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 				kind: "app_shortcut",
 			});
 		}
-		// contextMenu is intentionally omitted from the deps: inline menu
-		// literals change identity every render and must not re-fire the load
-		// effect.
-	}, [addSystemMenu, noDesktopIcon, desktopEventDispatch, id, name, icon]);
+	}, [
+		addSystemMenu,
+		noDesktopIcon,
+		extension,
+		desktopEventDispatch,
+		id,
+		name,
+		icon,
+	]);
 
 	const handlesFileTypesKey = handlesFileTypes?.slice().sort().join(",") ?? "";
 	useEffect(() => {
