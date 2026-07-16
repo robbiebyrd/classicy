@@ -5,7 +5,10 @@ import {
 	buildExtensionsFolder,
 	withExtensionsFolder,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemExtensions";
-import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import {
+	type ClassicyFileSystemEntry,
+	ClassicyFileSystemEntryFileType,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 
 const app = (
 	id: string,
@@ -53,18 +56,22 @@ describe("buildExtensionsFolder", () => {
 });
 
 describe("withExtensionsFolder", () => {
-	const drive = () => ({
-		"Macintosh HD": {
-			_type: ClassicyFileSystemEntryFileType.Drive,
-			"System Folder": {
-				_type: ClassicyFileSystemEntryFileType.Directory,
-				Finder: {
-					_type: ClassicyFileSystemEntryFileType.File,
-					_system: true,
+	// The tree root itself carries no _type (only its named drive children do),
+	// mirroring the production root in ClassicyFileSystem.ts — cast through
+	// unknown to satisfy the ClassicyFileSystemEntry parameter type.
+	const drive = () =>
+		({
+			"Macintosh HD": {
+				_type: ClassicyFileSystemEntryFileType.Drive,
+				"System Folder": {
+					_type: ClassicyFileSystemEntryFileType.Directory,
+					Finder: {
+						_type: ClassicyFileSystemEntryFileType.File,
+						_system: true,
+					},
 				},
 			},
-		},
-	});
+		}) as unknown as ClassicyFileSystemEntry;
 
 	it("merges the derived folder into System Folder on the first drive", () => {
 		const tree = withExtensionsFolder(drive(), [app("ClockExt.app", "Clock")]);
@@ -77,7 +84,9 @@ describe("withExtensionsFolder", () => {
 
 	it("creates System Folder when the drive lacks one", () => {
 		const tree = withExtensionsFolder(
-			{ "Macintosh HD": { _type: ClassicyFileSystemEntryFileType.Drive } },
+			{
+				"Macintosh HD": { _type: ClassicyFileSystemEntryFileType.Drive },
+			} as unknown as ClassicyFileSystemEntry,
 			[app("ClockExt.app", "Clock")],
 		);
 
@@ -112,7 +121,7 @@ describe("withExtensionsFolder", () => {
 	it("passes through a drive-less tree unchanged", () => {
 		const tree = {
 			Stuff: { _type: ClassicyFileSystemEntryFileType.Directory },
-		};
+		} as unknown as ClassicyFileSystemEntry;
 		expect(withExtensionsFolder(tree, [app("ClockExt.app", "Clock")])).toBe(
 			tree,
 		);

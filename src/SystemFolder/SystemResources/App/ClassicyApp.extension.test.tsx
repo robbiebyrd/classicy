@@ -20,7 +20,7 @@ vi.mock(
 									open: true,
 									focused: false,
 									extension: true,
-									windows: [],
+									windows: [] as never[],
 									data: {},
 								},
 							},

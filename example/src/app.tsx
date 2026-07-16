@@ -8,9 +8,10 @@ import {
 	registerClassicyIcons,
 } from "classicy";
 import { BlueBox } from "./Applications/BlueBox/BlueBox";
-import demoIcon from "./Applications/Demo/app.png";
 import { Browser } from "./Applications/Browser/Browser";
+import demoIcon from "./Applications/Demo/app.png";
 import { Demo } from "./Applications/Demo/Demo";
+import { DemoExtension } from "./Applications/DemoExtension/DemoExtension";
 
 // Register custom application icons before the React tree renders.
 export const AppIcons = registerClassicyIcons({
@@ -28,6 +29,7 @@ createRoot(rootElement).render(
 				<Browser />
 				<BlueBox />
 				<Demo />
+				<DemoExtension />
 			</ClassicyDesktop>
 		</ClassicyAppManagerProvider>
 	</StrictMode>,
