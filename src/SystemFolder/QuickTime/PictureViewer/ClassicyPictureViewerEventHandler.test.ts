@@ -76,6 +76,7 @@ function makeStore(
 					minDateTime: null,
 					maxDateTime: null,
 					boundaryLocked: false,
+					dateTimeLocked: false,
 					...overrides,
 				},
 				Sound: { volume: 100, labels: {}, disabled: [] },

@@ -120,6 +120,10 @@ export interface ClassicyStoreSystemDateAndTimeManager
 	minDateTime: string | null;
 	maxDateTime: string | null;
 	boundaryLocked: boolean;
+	/** When true, the Date & Time Manager's date/time editors are disabled
+	 *  (timezone stays editable). Set by the host app, e.g. while a server
+	 *  forces the clock. Not a write guard — DateTimeSet still applies. */
+	dateTimeLocked: boolean;
 }
 
 // biome-ignore lint/complexity/noBannedTypes: Intentional empty base type extended by manager interfaces
@@ -399,6 +403,7 @@ export const DefaultAppManagerState: ClassicyStore = {
 				minDateTime: null,
 				maxDateTime: null,
 				boundaryLocked: false,
+				dateTimeLocked: false,
 			},
 			Sound: {
 				volume: 100,

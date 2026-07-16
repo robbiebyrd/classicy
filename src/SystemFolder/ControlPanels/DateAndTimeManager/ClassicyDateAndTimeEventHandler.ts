@@ -58,6 +58,14 @@ export const classicyDateTimeManagerEventHandler = (
 			ds.System.Manager.DateAndTime.paused = true;
 			break;
 		}
+		case "ClassicyManagerDateTimeLock": {
+			ds.System.Manager.DateAndTime.dateTimeLocked = true;
+			break;
+		}
+		case "ClassicyManagerDateTimeUnlock": {
+			ds.System.Manager.DateAndTime.dateTimeLocked = false;
+			break;
+		}
 		case "ClassicyManagerDateTimeResume": {
 			if (ds.System.Manager.DateAndTime.boundaryLocked) {
 				break;

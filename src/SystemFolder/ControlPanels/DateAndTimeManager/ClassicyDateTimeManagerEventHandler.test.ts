@@ -14,6 +14,7 @@ function makeStore(
 		minDateTime: string | null;
 		maxDateTime: string | null;
 		boundaryLocked: boolean;
+		dateTimeLocked: boolean;
 		paused: boolean;
 		dateTime: string;
 	}> = {},
@@ -35,6 +36,7 @@ function makeStore(
 					minDateTime: null,
 					maxDateTime: null,
 					boundaryLocked: false,
+					dateTimeLocked: false,
 					...overrides,
 				},
 				Sound: { volume: 100, labels: {}, disabled: [] },
@@ -433,6 +435,34 @@ describe("computeAnchoredTime", () => {
 		vi.setSystemTime(8000);
 		const after1s = computeAnchoredTime(5_002_000, 7000);
 		expect(after1s.getTime()).toBe(5_003_000);
+	});
+});
+
+describe("classicyDateTimeManagerEventHandler — ClassicyManagerDateTimeLock/Unlock", () => {
+	it("sets dateTimeLocked on Lock", () => {
+		const ds = makeStore();
+		classicyDateTimeManagerEventHandler(ds, {
+			type: "ClassicyManagerDateTimeLock",
+		});
+		expect(ds.System.Manager.DateAndTime.dateTimeLocked).toBe(true);
+	});
+
+	it("clears dateTimeLocked on Unlock", () => {
+		const ds = makeStore({ dateTimeLocked: true });
+		classicyDateTimeManagerEventHandler(ds, {
+			type: "ClassicyManagerDateTimeUnlock",
+		});
+		expect(ds.System.Manager.DateAndTime.dateTimeLocked).toBe(false);
+	});
+
+	it("still applies DateTimeSet while locked (lock is a UI flag, not a write guard)", () => {
+		const ds = makeStore({ dateTimeLocked: true });
+		const date = new Date("2024-06-15T12:00:00.000Z");
+		classicyDateTimeManagerEventHandler(ds, {
+			type: "ClassicyManagerDateTimeSet",
+			dateTime: date,
+		});
+		expect(ds.System.Manager.DateAndTime.dateTime).toBe(date.toISOString());
 	});
 });
 
