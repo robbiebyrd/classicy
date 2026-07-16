@@ -208,6 +208,7 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
 									onChangeFunc={updateSystemDate}
 									minValue={minValue}
 									maxValue={maxValue}
+									disabled={dateAndTimeState.dateTimeLocked}
 								></ClassicyDatePicker>
 							</ClassicyControlGroup>
 						</div>
@@ -221,6 +222,7 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
 									prefillValue={date}
 									minValue={minValue}
 									maxValue={maxValue}
+									disabled={dateAndTimeState.dateTimeLocked}
 								></ClassicyTimePicker>
 							</ClassicyControlGroup>
 						</div>
