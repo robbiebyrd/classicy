@@ -59,6 +59,7 @@ export interface ClassicyStoreSystemApp {
 	focused?: boolean;
 	lastAccessedWindowId?: string;
 	noDesktopIcon?: boolean;
+	extension?: boolean;
 	debug?: boolean;
 	options?: Record<string, unknown>[];
 	appMenu?: ClassicyMenuItem[];
@@ -202,6 +203,7 @@ export const classicyAppEventHandler = (
 					Array.isArray(action.contextMenu)
 						? (action.contextMenu as ClassicyMenuItem[])
 						: undefined,
+					action.extension === true,
 				);
 			}
 			break;
