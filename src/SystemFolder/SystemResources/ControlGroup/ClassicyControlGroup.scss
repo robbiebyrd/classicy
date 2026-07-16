@@ -32,13 +32,15 @@
   font-size: calc(var(--ui-font-size) * 0.75);
   line-height: 1.4;
   margin: 0;
-  padding: 0;
+  // Horizontal padding extends the painted background slightly past the
+  // text so it masks the groove border on both sides.
+  padding: 0 calc(var(--window-padding-size) / 2);
 
   // Absolutely positioned so the browser does not treat this as a "rendered
   // legend" and never takes the engine-specific legend layout path.
   position: absolute;
   top: calc(var(--window-border-size) * -1); // center of the border
-  left: calc(var(--window-padding-size) * 2); // align with the fieldset's horizontal padding
+  left: calc(var(--window-padding-size) * 1.5); // padding keeps text aligned with the fieldset's horizontal padding
   transform: translateY(-50%);
   white-space: nowrap;
 }

@@ -71,4 +71,22 @@ describe("ClassicyControlGroup", () => {
 			"classicyControlGroupFieldsetLabeled",
 		);
 	});
+
+	it("gives the legend the default theme background color", () => {
+		render(
+			<ClassicyControlGroup label="Settings">{null}</ClassicyControlGroup>,
+		);
+		const legend = screen.getByText("Settings") as HTMLElement;
+		expect(legend.style.backgroundColor).toBe("var(--color-system-03)");
+	});
+
+	it("gives the legend a custom background color when the prop is provided", () => {
+		render(
+			<ClassicyControlGroup label="Settings" backgroundColor="#ffffff">
+				{null}
+			</ClassicyControlGroup>,
+		);
+		const legend = screen.getByText("Settings") as HTMLElement;
+		expect(legend.style.backgroundColor).toBe("rgb(255, 255, 255)");
+	});
 });
