@@ -36,3 +36,20 @@ export const Columns: Story = {
 		),
 	},
 };
+
+export const CustomBackground: Story = {
+	args: {
+		label: "On a White Surface",
+		backgroundColor: "#ffffff",
+		children: (
+			<ClassicyCheckbox id="cg-custom" checked={true} label="Enabled" />
+		),
+	},
+	decorators: [
+		(Story) => (
+			<div style={{ background: "#ffffff", padding: "16px" }}>
+				<Story />
+			</div>
+		),
+	],
+};
