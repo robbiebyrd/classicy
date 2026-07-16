@@ -511,3 +511,25 @@ describe("classicyFinderEventHandler — ClassicyAppFinderOpenFile with an app s
 		expect(ds.System.Manager.Applications.apps["Ghost.app"]).toBeUndefined();
 	});
 });
+
+describe("classicyFinderEventHandler — ClassicyAppFinderOpenFile (Extension)", () => {
+	it("shows the Library error dialog and does not open any app", () => {
+		const ds = makeStore();
+
+		classicyFinderEventHandler(ds, {
+			type: "ClassicyAppFinderOpenFile",
+			file: {
+				_type: ClassicyFileSystemEntryFileType.Extension,
+				_creator: "ClockExt.app",
+			},
+			path: "Macintosh HD:System Folder:Extensions:Clock",
+		});
+
+		expect(ds.System.Manager.Desktop.errorDialog).toEqual({
+			title: "Library",
+			message:
+				"This file adds functionality to your computer. It cannot be opened.",
+		});
+		expect(ds.System.Manager.Applications.apps["ClockExt.app"]).toBeUndefined();
+	});
+});
