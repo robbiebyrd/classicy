@@ -52,12 +52,8 @@ describe("DefaultClassicyFileSystem system-file seed data", () => {
 	it("marks the seeded Finder and System files as system files", () => {
 		const fs = new ClassicyFileSystem();
 
-		expect(fs.resolve("Macintosh HD:System Folder:Finder")?._system).toBe(
-			true,
-		);
-		expect(fs.resolve("Macintosh HD:System Folder:System")?._system).toBe(
-			true,
-		);
+		expect(fs.resolve("Macintosh HD:System Folder:Finder")?._system).toBe(true);
+		expect(fs.resolve("Macintosh HD:System Folder:System")?._system).toBe(true);
 	});
 
 	it("does not mark unrelated seed entries as system files", () => {
@@ -66,5 +62,14 @@ describe("DefaultClassicyFileSystem system-file seed data", () => {
 		expect(
 			fs.resolve("Macintosh HD:Documents:Read Me.txt")?._system,
 		).toBeUndefined();
+	});
+});
+
+describe("DefaultClassicyFileSystem Extensions folder", () => {
+	it("seeds System Folder/Extensions as a directory", () => {
+		const fs = new ClassicyFileSystem();
+		const entry = fs.resolve("Macintosh HD:System Folder:Extensions");
+
+		expect(entry?._type).toBe(ClassicyFileSystemEntryFileType.Directory);
 	});
 });

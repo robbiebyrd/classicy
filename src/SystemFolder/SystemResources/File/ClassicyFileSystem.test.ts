@@ -1,12 +1,10 @@
 // @vitest-environment node
-import { describe, expect, it, vi, afterEach } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
 	ClassicyFileSystem,
 	mergeClassicyFileSystemEntries,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
-import type {
-	ClassicyFileSystemEntry,
-} from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import type { ClassicyFileSystemEntry } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { isValidFileSystemEntry } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemValidation";
 import { compressToBase64 } from "@/SystemFolder/SystemResources/Utils/base64Compression";
@@ -62,7 +60,11 @@ describe("ClassicyFileSystem.filterByType", () => {
 
 		const filtered = cfs.filterByType("Macintosh HD:Documents");
 
-		expect(Object.keys(filtered)).toEqual(["Photo.jpg", "Movie.mov", "Song.mp3"]);
+		expect(Object.keys(filtered)).toEqual([
+			"Photo.jpg",
+			"Movie.mov",
+			"Song.mp3",
+		]);
 	});
 
 	it("includes AppShortcut entries by default so the Applications folder is browsable", () => {
@@ -83,6 +85,31 @@ describe("ClassicyFileSystem.filterByType", () => {
 		const filtered = cfs.filterByType("Macintosh HD:Applications");
 
 		expect(Object.keys(filtered)).toEqual(["TV"]);
+	});
+
+	it("includes Extension entries by default so the System Folder:Extensions folder is browsable", () => {
+		const cfs = new ClassicyFileSystem("test-filter-by-type-extension", {
+			_type: "directory",
+			"Macintosh HD": {
+				_type: "drive",
+				"System Folder": {
+					_type: "directory",
+					Extensions: {
+						_type: "directory",
+						Clock: {
+							_type: ClassicyFileSystemEntryFileType.Extension,
+							_creator: "ClockExt.app",
+							_readOnly: true,
+							_nameLocked: true,
+						},
+					},
+				},
+			},
+		});
+
+		const filtered = cfs.filterByType("Macintosh HD:System Folder:Extensions");
+
+		expect(Object.keys(filtered)).toEqual(["Clock"]);
 	});
 });
 
@@ -167,9 +194,7 @@ describe("mergeClassicyFileSystemEntries", () => {
 			},
 		});
 		expect(merged["Macintosh HD"].Documents["Read Me.txt"]._data).toBe("hi");
-		expect(merged["Macintosh HD"].Documents["Welcome.txt"]._data).toBe(
-			"hello",
-		);
+		expect(merged["Macintosh HD"].Documents["Welcome.txt"]._data).toBe("hello");
 	});
 
 	it("does not mutate the base argument", () => {
@@ -192,7 +217,9 @@ describe("ClassicyFileSystem.size", () => {
 
 	it("returns the uncompressed byte length for gzip+base64 _data", async () => {
 		const cfs = new ClassicyFileSystem("test-size-data-compressed");
-		const original = new TextEncoder().encode("hello world, this is a test file");
+		const original = new TextEncoder().encode(
+			"hello world, this is a test file",
+		);
 		const encoded = await compressToBase64(original);
 		const entry = {
 			_type: ClassicyFileSystemEntryFileType.File,
@@ -238,7 +265,10 @@ describe("ClassicyFileSystem.size", () => {
 		expect(entry._size).toBe(1024);
 		expect(fetchMock).toHaveBeenCalledWith(
 			"https://example.com/file.pdf",
-			expect.objectContaining({ method: "HEAD", signal: expect.any(AbortSignal) }),
+			expect.objectContaining({
+				method: "HEAD",
+				signal: expect.any(AbortSignal),
+			}),
 		);
 	});
 
@@ -310,9 +340,9 @@ describe("ClassicyFileSystem.calculateSizeDir", () => {
 				},
 			},
 		});
-		await expect(
-			cfs.calculateSizeDir("Macintosh HD:Documents"),
-		).resolves.toBe(7);
+		await expect(cfs.calculateSizeDir("Macintosh HD:Documents")).resolves.toBe(
+			7,
+		);
 	});
 
 	it("also sums TextFile, Markdown, and Pdf descendants (previously excluded)", async () => {
@@ -337,9 +367,9 @@ describe("ClassicyFileSystem.calculateSizeDir", () => {
 				},
 			},
 		});
-		await expect(
-			cfs.calculateSizeDir("Macintosh HD:Documents"),
-		).resolves.toBe(10);
+		await expect(cfs.calculateSizeDir("Macintosh HD:Documents")).resolves.toBe(
+			10,
+		);
 	});
 
 	it("excludes a descendant whose size can't be resolved from the total", async () => {
@@ -362,9 +392,9 @@ describe("ClassicyFileSystem.calculateSizeDir", () => {
 				},
 			},
 		});
-		await expect(
-			cfs.calculateSizeDir("Macintosh HD:Documents"),
-		).resolves.toBe(5);
+		await expect(cfs.calculateSizeDir("Macintosh HD:Documents")).resolves.toBe(
+			5,
+		);
 	});
 });
 

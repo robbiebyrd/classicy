@@ -107,6 +107,7 @@ export function loadApp(
 	appName: string,
 	appIcon: string,
 	contextMenu?: ClassicyMenuItem[],
+	extension?: boolean,
 ) {
 	const findApp = ds.System.Manager.Applications.apps[appId];
 	if (!findApp) {
@@ -115,14 +116,31 @@ export function loadApp(
 			name: appName,
 			icon: appIcon,
 			windows: [],
-			open: false,
+			// Extensions run in the background from the moment they load; their
+			// windows can only render while the app is open. They never take
+			// focus on load.
+			open: extension === true,
 			data: {},
 			contextMenu,
+			...(extension ? { extension: true, focused: false } : {}),
 		};
 	} else {
 		// Always refresh: menu onClickFunc handlers do not survive localStorage
 		// persistence, so a re-mounting app must overwrite the persisted value.
 		findApp.contextMenu = contextMenu;
+		if (extension) {
+			// A persisted extension entry may have open: false (or a stale
+			// focused flag) from an old session; extensions always run in the
+			// background once mounted.
+			findApp.extension = true;
+			findApp.open = true;
+			findApp.focused = false;
+		} else if (findApp.extension) {
+			// The app was an extension in a previous session but mounts as a
+			// regular app now — clear the stale flag so it isn't hidden from
+			// the App Switcher or listed under System Folder/Extensions.
+			delete findApp.extension;
+		}
 	}
 }
 

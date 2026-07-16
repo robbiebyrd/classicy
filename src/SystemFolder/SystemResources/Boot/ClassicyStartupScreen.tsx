@@ -1,6 +1,12 @@
 import "./ClassicyStartupScreen.scss";
-import { type FC as FunctionalComponent, useEffect, useState } from "react";
+import {
+	type FC as FunctionalComponent,
+	useEffect,
+	useMemo,
+	useState,
+} from "react";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import {
 	hasShownStartupScreenThisSession,
@@ -26,6 +32,26 @@ export const ClassicyStartupScreen: FunctionalComponent<
 	);
 	const [progress, setProgress] = useState(0);
 	const player = useSoundDispatch();
+
+	// Extension apps have already dispatched ClassicyAppLoad by the time the
+	// splash covers the desktop, so the store is the parade's source of truth.
+	// Select the stable apps record and derive with useMemo — a filtering
+	// selector would return a fresh array every snapshot.
+	const apps = useAppManager((state) => state.System.Manager.Applications.apps);
+	const extensions = useMemo(
+		() => Object.values(apps).filter((app) => app.extension),
+		[apps],
+	);
+
+	// Mac OS 7-style parade: with N extensions, icon i appears once elapsed
+	// time passes (i + 1) × duration / (N + 1) — the last icon lands before
+	// the progress bar completes.
+	const revealInterval = duration / (extensions.length + 1);
+	const elapsed = (progress / 100) * duration;
+	const visibleExtensions = extensions.slice(
+		0,
+		Math.min(extensions.length, Math.floor(elapsed / revealInterval)),
+	);
 
 	useEffect(() => {
 		if (!visible) return;
@@ -66,6 +92,13 @@ export const ClassicyStartupScreen: FunctionalComponent<
 					/>
 				</div>
 			</div>
+			{visibleExtensions.length > 0 && (
+				<div className="classicyStartupScreenExtensions">
+					{visibleExtensions.map((ext) => (
+						<img key={ext.id} src={ext.icon} alt={ext.name} title={ext.name} />
+					))}
+				</div>
+			)}
 		</div>
 	);
 };

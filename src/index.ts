@@ -75,6 +75,7 @@ export * from "./SystemFolder/SystemResources/Desktop/ClassicyDesktopIconContext
 export * from "./SystemFolder/SystemResources/Desktop/ClassicyDesktopKeyNav";
 export * from "./SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
 export * from "./SystemFolder/SystemResources/Desktop/ClassicyDesktopWindowManagerContext";
+export * from "./SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
 export * from "./SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar";
 export * from "./SystemFolder/SystemResources/Desktop/MenuBar/Widgets/Sound/ClassicyDesktopMenuWidgetSound";
 export * from "./SystemFolder/SystemResources/Desktop/MenuBar/Widgets/Time/ClassicyDesktopMenuWidgetTime";
@@ -87,6 +88,7 @@ export * from "./SystemFolder/SystemResources/File/ClassicyFileSystem";
 export * from "./SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
 export * from "./SystemFolder/SystemResources/File/ClassicyFileSystemContentResolver";
 export * from "./SystemFolder/SystemResources/File/ClassicyFileSystemContext";
+export * from "./SystemFolder/SystemResources/File/ClassicyFileSystemExtensions";
 export * from "./SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 export * from "./SystemFolder/SystemResources/File/ClassicyFileSystemValidation";
 export * from "./SystemFolder/SystemResources/File/DefaultClassicyFileSystem";

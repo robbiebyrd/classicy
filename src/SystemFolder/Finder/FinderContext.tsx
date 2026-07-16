@@ -116,6 +116,16 @@ export const classicyFinderEventHandler = (
 				};
 				return ds;
 			}
+			if (file?._type === ClassicyFileSystemEntryFileType.Extension) {
+				// Mac OS 8 behavior: extensions add functionality at boot and are
+				// not openable documents or applications.
+				ds.System.Manager.Desktop.errorDialog = {
+					title: "Library",
+					message:
+						"This file adds functionality to your computer. It cannot be opened.",
+				};
+				return ds;
+			}
 			// Legacy QuickTime _creator-based routing
 			if (file && file._creator === "QuickTime") {
 				let document: unknown;

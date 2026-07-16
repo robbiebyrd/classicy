@@ -21,6 +21,7 @@ import {
 } from "react";
 
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { appSwitcherAppsFrom } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
 
 const appleMenuIcon = ClassicyIcons.system.apple;
 
@@ -50,19 +51,7 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
 		return () => document.removeEventListener("mousedown", handleClickOutside);
 	}, [closeAll]);
 
-	const appSwitcherData = useMemo(
-		() =>
-			Object.values(apps)
-				.filter((a) => a.open || a.focused)
-				.map((a) => ({
-					id: a.id,
-					name: a.name,
-					icon: a.icon,
-					focused: a.focused,
-					open: a.open,
-				})),
-		[apps],
-	);
+	const appSwitcherData = useMemo(() => appSwitcherAppsFrom(apps), [apps]);
 
 	const setActiveApp = (appId: string) => {
 		desktopEventDispatch({

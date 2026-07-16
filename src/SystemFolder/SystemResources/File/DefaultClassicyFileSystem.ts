@@ -5,6 +5,7 @@ const diskIcon = ClassicyIcons.system.drives.disk;
 const directoryIcon = ClassicyIcons.system.folders.directory;
 const macIcon = ClassicyIcons.system.mac;
 const documentIcon = ClassicyIcons.system.files.document;
+const extensionsFolderIcon = ClassicyIcons.system.folders.extensions;
 
 export const DefaultFSContent = {
 	"Macintosh HD": {
@@ -51,6 +52,10 @@ export const DefaultFSContent = {
 				_data: "File Contents",
 				_system: true,
 			},
+			Extensions: {
+				_type: ClassicyFileSystemEntryFileType.Directory,
+				_icon: extensionsFolderIcon,
+			},
 		},
 		Documents: {
 			_type: ClassicyFileSystemEntryFileType.Directory,
@@ -71,21 +76,20 @@ export const DefaultFSContent = {
 				_type: ClassicyFileSystemEntryFileType.Pdf,
 				_mimeType: "application/pdf",
 				_icon: documentIcon,
-				_url:
-					"https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf",
+				_url: "https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf",
 			},
 			"Sample 2.pdf": {
 				_type: ClassicyFileSystemEntryFileType.Pdf,
 				_mimeType: "application/pdf",
 				_icon: documentIcon,
-				_url:
-					"https://raw.githubusercontent.com/mozilla/pdf.js/master/test/pdfs/hello_world_rotated.pdf",
+				_url: "https://raw.githubusercontent.com/mozilla/pdf.js/master/test/pdfs/hello_world_rotated.pdf",
 			},
 			"Sample 3.pdf": {
 				_type: ClassicyFileSystemEntryFileType.Pdf,
 				_mimeType: "application/pdf",
 				_icon: documentIcon,
-				_data: "H4sIAAAAAAAAA21R0U7CMBR931ccH0g0Udtu3dCE8MCEkKiRwN4ID4VdcGS2Zi0G_HrTbRHibJrm9txzzz237c2eJnfiXgYCHGa9DwYDsOz0SWCpcqo0O7CZ2pFFCI45hsOAdO6JYaeg4bHnIrdYRp6-AkvNQTsIsFfKCzUyRyw5OCLOIaRcXQhG_wr6syLt2v5sTtYcqg1ZeN7EaNcEAnFr0G-WGu1IOwv5x7a86PJCeufeIROft64i9RGMsloslMi2CDkSjizH9ZTK0twiLZW1xeZ0dYNsj3HmVdvCVj_uTFF7ZIvD2tVXDwqwkbLUZKZUfpErNurC5bGibcCRBPx3IYnjKMYWZ-wRTUafsfihg4moywul6GBR1D9jrlJFSVU9xqL4JiRgc2P8T7bvaZ2qXO1T8n7Q643fJj-sv2hkTQIAAA",
+				_data:
+					"H4sIAAAAAAAAA21R0U7CMBR931ccH0g0Udtu3dCE8MCEkKiRwN4ID4VdcGS2Zi0G_HrTbRHibJrm9txzzz237c2eJnfiXgYCHGa9DwYDsOz0SWCpcqo0O7CZ2pFFCI45hsOAdO6JYaeg4bHnIrdYRp6-AkvNQTsIsFfKCzUyRyw5OCLOIaRcXQhG_wr6syLt2v5sTtYcqg1ZeN7EaNcEAnFr0G-WGu1IOwv5x7a86PJCeufeIROft64i9RGMsloslMi2CDkSjizH9ZTK0twiLZW1xeZ0dYNsj3HmVdvCVj_uTFF7ZIvD2tVXDwqwkbLUZKZUfpErNurC5bGibcCRBPx3IYnjKMYWZ-wRTUafsfihg4moywul6GBR1D9jrlJFSVU9xqL4JiRgc2P8T7bvaZ2qXO1T8n7Q643fJj-sv2hkTQIAAA",
 			},
 		},
 		Users: {

@@ -4,6 +4,7 @@ export enum ClassicyFileSystemEntryFileType {
 	File = "file",
 	Shortcut = "shortcut",
 	AppShortcut = "app_shortcut",
+	Extension = "extension",
 	Drive = "drive",
 	Directory = "directory",
 	TextFile = "text_file",

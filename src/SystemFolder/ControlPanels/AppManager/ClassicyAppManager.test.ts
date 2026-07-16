@@ -1524,3 +1524,101 @@ describe("focusApp — restoration chain", () => {
 		).toBe("newer");
 	});
 });
+
+describe("ClassicyAppLoad — extensions", () => {
+	it("creates an extension entry open and unfocused", () => {
+		const ds = makeStore();
+		classicyAppEventHandler(ds, {
+			type: "ClassicyAppLoad",
+			app: { id: "ClockExt.app", name: "Clock", icon: "/icons/clock.png" },
+			extension: true,
+		});
+
+		const app = ds.System.Manager.Applications.apps["ClockExt.app"];
+		expect(app.extension).toBe(true);
+		expect(app.open).toBe(true);
+		expect(app.focused).toBe(false);
+		// Loading an extension must not steal focus from the focused app
+		expect(ds.System.Manager.Applications.focusedAppId).toBe("Finder.app");
+	});
+
+	it("still creates regular apps closed and without the flag", () => {
+		const ds = makeStore();
+		classicyAppEventHandler(ds, {
+			type: "ClassicyAppLoad",
+			app: { id: "TV.app", name: "TV", icon: "/icons/tv.png" },
+		});
+
+		const app = ds.System.Manager.Applications.apps["TV.app"];
+		expect(app.open).toBe(false);
+		expect(app.extension).toBeUndefined();
+	});
+
+	it("revives a persisted extension entry that was closed", () => {
+		const ds = makeStore();
+		ds.System.Manager.Applications.apps["ClockExt.app"] = {
+			id: "ClockExt.app",
+			name: "Clock",
+			icon: "/icons/clock.png",
+			windows: [],
+			open: false,
+			data: {},
+		};
+
+		classicyAppEventHandler(ds, {
+			type: "ClassicyAppLoad",
+			app: { id: "ClockExt.app", name: "Clock", icon: "/icons/clock.png" },
+			extension: true,
+		});
+
+		const app = ds.System.Manager.Applications.apps["ClockExt.app"];
+		expect(app.extension).toBe(true);
+		expect(app.open).toBe(true);
+	});
+
+	it("clears the extension flag when a persisted extension remounts as a regular app", () => {
+		const ds = makeStore();
+		ds.System.Manager.Applications.apps["ClockExt.app"] = {
+			id: "ClockExt.app",
+			name: "Clock",
+			icon: "/icons/clock.png",
+			windows: [],
+			open: true,
+			extension: true,
+			data: {},
+		};
+
+		classicyAppEventHandler(ds, {
+			type: "ClassicyAppLoad",
+			app: { id: "ClockExt.app", name: "Clock", icon: "/icons/clock.png" },
+		});
+
+		expect(
+			ds.System.Manager.Applications.apps["ClockExt.app"].extension,
+		).toBeUndefined();
+	});
+
+	it("resets a stale focused flag when reviving a persisted extension", () => {
+		const ds = makeStore();
+		ds.System.Manager.Applications.apps["ClockExt.app"] = {
+			id: "ClockExt.app",
+			name: "Clock",
+			icon: "/icons/clock.png",
+			windows: [],
+			open: false,
+			focused: true,
+			data: {},
+		};
+
+		classicyAppEventHandler(ds, {
+			type: "ClassicyAppLoad",
+			app: { id: "ClockExt.app", name: "Clock", icon: "/icons/clock.png" },
+			extension: true,
+		});
+
+		const app = ds.System.Manager.Applications.apps["ClockExt.app"];
+		expect(app.extension).toBe(true);
+		expect(app.open).toBe(true);
+		expect(app.focused).toBe(false);
+	});
+});

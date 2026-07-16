@@ -8,6 +8,7 @@ import {
 	APP_SHORTCUT_ICON_KIND,
 	withApplicationsFolder,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
+import { withExtensionsFolder } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemExtensions";
 import type { ClassicyFileSystemTree } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { DefaultFSContent } from "@/SystemFolder/SystemResources/File/DefaultClassicyFileSystem";
 
@@ -46,7 +47,16 @@ export function useClassicyFileSystem(
 			.join("\u0001"),
 	);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: appShortcutsKey is an intentional invalidation key — the icon set is read via getState() so icon moves/focus don't re-render
+	// Stable key over the extension-app set so the tree is only rebuilt when
+	// an extension registers/unregisters — not on focus or window changes.
+	const extensionAppsKey = useAppManager((s) =>
+		Object.values(s.System.Manager.Applications.apps)
+			.filter((a) => a.extension)
+			.map((a) => `${a.id}\u0000${a.name}\u0000${a.icon}`)
+			.join("\u0001"),
+	);
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: appShortcutsKey and extensionAppsKey are intentional invalidation keys — the icon/app sets are read via getState() so moves/focus don't re-render
 	return useMemo(() => {
 		const resolved = !defaultFileSystem
 			? DefaultFSContent
@@ -62,6 +72,20 @@ export function useClassicyFileSystem(
 			fs.fs,
 			useAppManager.getState().System.Manager.Desktop.icons,
 		);
+		// Same live-only overlay strategy for System Folder/Extensions, derived
+		// from apps flagged extension rather than desktop icons (extensions have
+		// no desktop icon). extensionAppsKey keeps this in sync with the store.
+		fs.fs = withExtensionsFolder(
+			fs.fs,
+			Object.values(useAppManager.getState().System.Manager.Applications.apps),
+		);
 		return fs;
-	}, [defaultFileSystem, mode, storageKey, separator, appShortcutsKey]);
+	}, [
+		defaultFileSystem,
+		mode,
+		storageKey,
+		separator,
+		appShortcutsKey,
+		extensionAppsKey,
+	]);
 }

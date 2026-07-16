@@ -51,3 +51,19 @@
   width: 12rem;
   text-align: center;
 }
+
+.classicyStartupScreenExtensions {
+  position: absolute;
+  inset: auto calc(var(--window-padding-size) * 2)
+    calc(var(--window-padding-size) * 2);
+  display: flex;
+  // wrap-reverse grows the parade upward when a row fills, like Mac OS 7
+  flex-wrap: wrap-reverse;
+  gap: calc(var(--window-padding-size) * 1.5);
+
+  img {
+    width: var(--icon-size-regular, 32px);
+    height: var(--icon-size-regular, 32px);
+    image-rendering: pixelated;
+  }
+}

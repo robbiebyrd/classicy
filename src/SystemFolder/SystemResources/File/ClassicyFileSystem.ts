@@ -9,8 +9,8 @@ import {
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { isValidFileSystemEntry } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemValidation";
 import { DefaultFSContent } from "@/SystemFolder/SystemResources/File/DefaultClassicyFileSystem";
-import { deepMergeReplacingArrays } from "@/SystemFolder/SystemResources/Utils/deepMerge";
 import { decompressFromBase64 } from "@/SystemFolder/SystemResources/Utils/base64Compression";
+import { deepMergeReplacingArrays } from "@/SystemFolder/SystemResources/Utils/deepMerge";
 
 const directoryIcon = ClassicyIcons.system.folders.directory;
 
@@ -148,6 +148,7 @@ export class ClassicyFileSystem {
 			ClassicyFileSystemEntryFileType.Video,
 			ClassicyFileSystemEntryFileType.Audio,
 			ClassicyFileSystemEntryFileType.AppShortcut,
+			ClassicyFileSystemEntryFileType.Extension,
 		],
 		showInvisible: boolean = true,
 	): ClassicyFileSystemEntry {
@@ -226,9 +227,7 @@ export class ClassicyFileSystem {
 		}
 
 		if ("_data" in path) {
-			return bytesToHex(
-				sha256(new TextEncoder().encode(String(path._data))),
-			);
+			return bytesToHex(sha256(new TextEncoder().encode(String(path._data))));
 		}
 		return;
 	}
