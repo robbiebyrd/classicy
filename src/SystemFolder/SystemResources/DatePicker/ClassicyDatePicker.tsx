@@ -9,10 +9,12 @@ import "./ClassicyDatePicker.scss";
 import classNames from "classnames";
 import {
 	type ChangeEvent,
+	type ForwardedRef,
 	type FC as FunctionalComponent,
 	forwardRef,
 	type KeyboardEvent,
 	type MouseEvent,
+	type MutableRefObject,
 	useRef,
 	useState,
 } from "react";
@@ -20,6 +22,9 @@ import {
 	validateDayOfMonth,
 	validateMonth,
 } from "@/SystemFolder/SystemResources/DatePicker/ClassicyDatePickerUtils";
+import { ClassicyLittleArrows } from "@/SystemFolder/SystemResources/TimePicker/ClassicyLittleArrows";
+
+type ClassicyDatePart = "month" | "day" | "year";
 
 interface ClassicyDatePickerProps {
 	id: string;
@@ -32,6 +37,7 @@ interface ClassicyDatePickerProps {
 	disabled?: boolean;
 	labelDisabled?: boolean;
 	isDefault?: boolean;
+	ref?: ForwardedRef<HTMLInputElement>;
 	minValue?: Date;
 	maxValue?: Date;
 }
@@ -44,6 +50,7 @@ export const ClassicyDatePicker: FunctionalComponent<ClassicyDatePickerProps> =
 				labelTitle,
 				labelSize = "medium",
 				labelPosition = "above",
+				prefillValue,
 				disabled = false,
 				labelDisabled,
 				isDefault,
@@ -51,28 +58,45 @@ export const ClassicyDatePicker: FunctionalComponent<ClassicyDatePickerProps> =
 				minValue,
 				maxValue,
 			},
-			_ref,
+			ref,
 		) {
 			const dateTime = useAppManager(
 				(s) => s.System.Manager.DateAndTime.dateTime,
 			);
 
+			// `prefillValue` (matching TimePicker's API) overrides the shared
+			// date/time store as the field's seed value.
+			const seed = prefillValue ?? new Date(dateTime);
+
 			const yearRef = useRef<HTMLInputElement>(null);
 			const monthRef = useRef<HTMLInputElement>(null);
 			const dayRef = useRef<HTMLInputElement>(null);
 
+			// Merge the internal month-field ref with the forwarded ref so callers
+			// can focus/measure the control (previously the ref was ignored).
+			const setMonthRef = (node: HTMLInputElement | null) => {
+				monthRef.current = node;
+				if (typeof ref === "function") {
+					ref(node);
+				} else if (ref) {
+					(ref as MutableRefObject<HTMLInputElement | null>).current = node;
+				}
+			};
+
 			const [selectedDate, setSelectedDate] = useState<Date>(
-				() => new Date(dateTime),
+				() => new Date(seed),
 			);
 			const [month, setMonth] = useState<string>(() =>
-				(new Date(dateTime).getMonth() + 1).toString(),
+				(new Date(seed).getMonth() + 1).toString(),
 			);
 			const [day, setDay] = useState<string>(() =>
-				new Date(dateTime).getDate().toString(),
+				new Date(seed).getDate().toString(),
 			);
 			const [year, setYear] = useState<string>(() =>
-				new Date(dateTime).getFullYear().toString(),
+				new Date(seed).getFullYear().toString(),
 			);
+			// Which field the visible little-arrows (and Up/Down keys) act on.
+			const [focusedPart, setFocusedPart] = useState<ClassicyDatePart>("month");
 
 			const selectText = (e: MouseEvent<HTMLInputElement>) => {
 				e.currentTarget.focus();
@@ -144,32 +168,21 @@ export const ClassicyDatePicker: FunctionalComponent<ClassicyDatePickerProps> =
 				handleDateChange(updatedDate);
 			};
 
-			const incrementDatePartChange = (
-				e: KeyboardEvent<HTMLInputElement>,
-				part: "month" | "day" | "year",
-			) => {
+			// Shared increment core: used by both the Up/Down keys and the visible
+			// little-arrows widget so mouse-only users can adjust the date too.
+			const stepDatePart = (part: ClassicyDatePart, direction: 1 | -1) => {
 				const updatedDate = new Date(selectedDate);
-				let modifier = 0;
-
-				switch (e.key) {
-					case "ArrowDown":
-						modifier = -1;
-						break;
-					case "ArrowUp":
-						modifier = 1;
-						break;
-				}
 
 				switch (part) {
 					case "month": {
-						const currentMonth = validateMonth(parseInt(month, 10) + modifier);
+						const currentMonth = validateMonth(parseInt(month, 10) + direction);
 						updatedDate.setMonth(currentMonth - 1);
 						setMonth(currentMonth.toString());
 						break;
 					}
 					case "day": {
 						const currentDay = validateDayOfMonth(
-							parseInt(day, 10) + modifier,
+							parseInt(day, 10) + direction,
 							parseInt(month, 10),
 							parseInt(year, 10),
 						);
@@ -178,18 +191,23 @@ export const ClassicyDatePicker: FunctionalComponent<ClassicyDatePickerProps> =
 						break;
 					}
 					case "year": {
-						const currentYear = parseInt(year, 10) + modifier;
+						const currentYear = parseInt(year, 10) + direction;
 						updatedDate.setFullYear(currentYear);
 						setYear(currentYear.toString());
-						break;
-					}
-					default: {
 						break;
 					}
 				}
 
 				setSelectedDate(updatedDate);
 				handleDateChange(updatedDate);
+			};
+
+			const incrementDatePartChange = (
+				e: KeyboardEvent<HTMLInputElement>,
+				part: ClassicyDatePart,
+			) => {
+				if (e.key === "ArrowDown") stepDatePart(part, -1);
+				else if (e.key === "ArrowUp") stepDatePart(part, 1);
 			};
 
 			return (
@@ -207,59 +225,71 @@ export const ClassicyDatePicker: FunctionalComponent<ClassicyDatePickerProps> =
 							disabled={labelDisabled ?? disabled}
 						></ClassicyControlLabel>
 					)}
-					<div
-						className={classNames(
-							"classicyDatePicker",
-							isDefault ? "classicyDatePickerDefault" : "",
-						)}
-					>
-						<input
-							id={`${id}_month`}
-							tabIndex={0}
-							onChange={(e) => handleDatePartChange(e, "month")}
-							onBlur={(e) => handleDatePartChange(e, "month")}
-							onKeyDown={(e) => incrementDatePartChange(e, "month")}
-							onClick={selectText}
-							name={`${id}_month`}
-							type="text"
-							ref={monthRef}
+					<div className="classicyDatePickerField">
+						<div
+							className={classNames(
+								"classicyDatePicker",
+								isDefault ? "classicyDatePickerDefault" : "",
+							)}
+						>
+							<input
+								id={`${id}_month`}
+								tabIndex={0}
+								onChange={(e) => handleDatePartChange(e, "month")}
+								onBlur={(e) => handleDatePartChange(e, "month")}
+								onKeyDown={(e) => incrementDatePartChange(e, "month")}
+								onClick={selectText}
+								onFocus={() => setFocusedPart("month")}
+								name={`${id}_month`}
+								type="text"
+								ref={setMonthRef}
+								disabled={disabled}
+								value={month}
+								maxLength={2}
+								className={"classicyDatePickerInputShort"}
+							></input>
+							/
+							<input
+								id={`${id}_day`}
+								tabIndex={0}
+								onChange={(e) => handleDatePartChange(e, "day")}
+								onBlur={(e) => handleDatePartChange(e, "day")}
+								onKeyDown={(e) => incrementDatePartChange(e, "day")}
+								onClick={selectText}
+								onFocus={() => setFocusedPart("day")}
+								name={`${id}_day`}
+								type="text"
+								ref={dayRef}
+								disabled={disabled}
+								value={day}
+								maxLength={2}
+								className={"classicyDatePickerInputShort"}
+							></input>
+							/
+							<input
+								id={`${id}_year`}
+								tabIndex={0}
+								onClick={selectText}
+								onFocus={() => setFocusedPart("year")}
+								onChange={(e) => handleDatePartChange(e, "year")}
+								onBlur={(e) => handleDatePartChange(e, "year")}
+								onKeyDown={(e) => incrementDatePartChange(e, "year")}
+								name={`${id}_year`}
+								type="text"
+								ref={yearRef}
+								disabled={disabled}
+								value={year}
+								maxLength={4}
+								className={"classicyDatePickerInputLong"}
+							></input>
+						</div>
+						<ClassicyLittleArrows
+							className="classicyDatePickerArrows"
 							disabled={disabled}
-							value={month}
-							maxLength={2}
-							className={"classicyDatePickerInputShort"}
-						></input>
-						/
-						<input
-							id={`${id}_day`}
-							tabIndex={0}
-							onChange={(e) => handleDatePartChange(e, "day")}
-							onBlur={(e) => handleDatePartChange(e, "day")}
-							onKeyDown={(e) => incrementDatePartChange(e, "day")}
-							onClick={selectText}
-							name={`${id}_day`}
-							type="text"
-							ref={dayRef}
-							disabled={disabled}
-							value={day}
-							maxLength={2}
-							className={"classicyDatePickerInputShort"}
-						></input>
-						/
-						<input
-							id={`${id}_year`}
-							tabIndex={0}
-							onClick={selectText}
-							onChange={(e) => handleDatePartChange(e, "year")}
-							onBlur={(e) => handleDatePartChange(e, "year")}
-							onKeyDown={(e) => incrementDatePartChange(e, "year")}
-							name={`${id}_year`}
-							type="text"
-							ref={yearRef}
-							disabled={disabled}
-							value={year}
-							maxLength={4}
-							className={"classicyDatePickerInputLong"}
-						></input>
+							upLabel="Increment date"
+							downLabel="Decrement date"
+							onStep={(direction) => stepDatePart(focusedPart, direction)}
+						/>
 					</div>
 				</div>
 			);

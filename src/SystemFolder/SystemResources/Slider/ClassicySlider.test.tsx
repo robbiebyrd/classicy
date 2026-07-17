@@ -211,6 +211,113 @@ describe("ClassicySlider", () => {
 		expect(input).toHaveAttribute("step", "2");
 	});
 
+	it("defaults to a downward indicator on the horizontal input", () => {
+		const { container } = render(<ClassicySlider id="test" value={5} />);
+		const input = container.querySelector('input[type="range"]');
+		expect(input).toHaveClass("classicySliderIndicatorDown");
+		expect(input).not.toHaveClass("classicySliderInputVertical");
+		expect(input).toHaveAttribute("aria-orientation", "horizontal");
+	});
+
+	it("marks the input vertical and defaults to a leftward indicator", () => {
+		const { container } = render(
+			<ClassicySlider id="test" value={5} orientation="vertical" />,
+		);
+		const input = container.querySelector('input[type="range"]');
+		expect(input).toHaveClass("classicySliderInputVertical");
+		expect(input).toHaveClass("classicySliderIndicatorLeft");
+		expect(input).toHaveAttribute("aria-orientation", "vertical");
+	});
+
+	it("applies the requested indicator direction", () => {
+		const { container } = render(
+			<ClassicySlider id="test" value={5} indicatorDirection="up" />,
+		);
+		expect(container.querySelector('input[type="range"]')).toHaveClass(
+			"classicySliderIndicatorUp",
+		);
+	});
+
+	it("renders a nondirectional knob when requested", () => {
+		const { container } = render(
+			<ClassicySlider
+				id="test"
+				value={5}
+				indicatorDirection="nondirectional"
+			/>,
+		);
+		expect(container.querySelector('input[type="range"]')).toHaveClass(
+			"classicySliderIndicatorNondirectional",
+		);
+	});
+
+	it("renders a ghost indicator element when ghost is enabled", () => {
+		const { container } = render(
+			<ClassicySlider id="test" value={40} ghost={true} />,
+		);
+		const ghost = container.querySelector(".classicySliderGhost");
+		expect(ghost).toBeInTheDocument();
+		// Hidden until a drag begins.
+		expect(ghost).toHaveClass("classicySliderGhostHidden");
+	});
+
+	it("reveals the ghost on pointer down and positions it by value", () => {
+		const { container } = render(
+			<ClassicySlider id="test" value={25} min={0} max={100} ghost={true} />,
+		);
+		const input = container.querySelector(
+			'input[type="range"]',
+		) as HTMLInputElement;
+		fireEvent.pointerDown(input);
+		const ghost = container.querySelector(
+			".classicySliderGhost",
+		) as HTMLElement;
+		expect(ghost).not.toHaveClass("classicySliderGhostHidden");
+		expect(ghost.style.getPropertyValue("--classicy-ghost-pos")).toBe("0.25");
+		fireEvent.pointerUp(input);
+		expect(ghost).toHaveClass("classicySliderGhostHidden");
+	});
+
+	it("renders no ghost element when ghost is not enabled", () => {
+		const { container } = render(<ClassicySlider id="test" value={5} />);
+		expect(container.querySelector(".classicySliderGhost")).toBeNull();
+	});
+
+	it("renders tick labels aligned to tick positions", () => {
+		const { container, getByText } = render(
+			<ClassicySlider
+				id="test"
+				value={50}
+				min={0}
+				max={100}
+				tickInterval={25}
+				tickLabels={["Slow", null, null, null, "Fast"]}
+			/>,
+		);
+		expect(getByText("Slow")).toBeInTheDocument();
+		expect(getByText("Fast")).toBeInTheDocument();
+		const labels = container.querySelectorAll(".classicySliderTickLabel");
+		expect(labels).toHaveLength(2);
+		expect(
+			(labels[0] as HTMLElement).style.getPropertyValue("--classicy-tick-left"),
+		).toBe("0%");
+		expect(
+			(labels[1] as HTMLElement).style.getPropertyValue("--classicy-tick-left"),
+		).toBe("100%");
+	});
+
+	it("renders no label rail when tickLabels are all empty", () => {
+		const { container } = render(
+			<ClassicySlider
+				id="test"
+				value={50}
+				tickInterval={25}
+				tickLabels={[null, null]}
+			/>,
+		);
+		expect(container.querySelector(".classicySliderTickLabels")).toBeNull();
+	});
+
 	it("ignores snapToTicks for 'center' and missing tickInterval", () => {
 		const centered = render(
 			<ClassicySlider

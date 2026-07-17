@@ -15,6 +15,14 @@ export const Default: Story = {
 	args: { id: "date-default", labelTitle: "Date" },
 };
 
+export const Prefilled: Story = {
+	args: {
+		id: "date-prefilled",
+		labelTitle: "Date",
+		prefillValue: new Date("1998-07-14T00:00:00"),
+	},
+};
+
 export const Disabled: Story = {
 	args: { id: "date-disabled", labelTitle: "Date", disabled: true },
 };

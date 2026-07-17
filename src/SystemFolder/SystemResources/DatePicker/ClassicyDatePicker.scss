@@ -53,3 +53,14 @@
 .classicyDatePickerInputLong {
   width: 50%;
 }
+
+.classicyDatePickerField {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.classicyDatePickerArrows {
+  align-self: center;
+  margin-left: var(--window-padding-size);
+}

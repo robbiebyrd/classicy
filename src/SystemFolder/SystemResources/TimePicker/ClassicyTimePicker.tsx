@@ -15,6 +15,9 @@ import {
 	labelPositionClass,
 } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
+import { ClassicyLittleArrows } from "@/SystemFolder/SystemResources/TimePicker/ClassicyLittleArrows";
+
+type ClassicyTimePart = "hour" | "minutes" | "seconds";
 
 interface ClassicyTimePickerProps {
 	id: string;
@@ -68,6 +71,8 @@ export const ClassicyTimePicker: FunctionalComponent<ClassicyTimePickerProps> =
 			const [period, setPeriod] = useState<string>(
 				prefillValue.getHours() < 12 ? "am" : "pm",
 			);
+			// Which field the visible little-arrows (and Up/Down keys) act on.
+			const [focusedPart, setFocusedPart] = useState<ClassicyTimePart>("hour");
 
 			const clampDateTime = (date: Date): Date => {
 				if (minValue !== undefined && date.getTime() < minValue.getTime())
@@ -83,7 +88,9 @@ export const ClassicyTimePicker: FunctionalComponent<ClassicyTimePickerProps> =
 					const h = clamped.getHours();
 					const isPm = h >= 12;
 					setSelectedDate(clamped);
-					setHour((isPm ? (h === 12 ? 12 : h - 12) : h === 0 ? 12 : h).toString());
+					setHour(
+						(isPm ? (h === 12 ? 12 : h - 12) : h === 0 ? 12 : h).toString(),
+					);
 					setMinutes(clamped.getMinutes().toString());
 					setSeconds(clamped.getSeconds().toString());
 					setPeriod(isPm ? "pm" : "am");
@@ -154,25 +161,14 @@ export const ClassicyTimePicker: FunctionalComponent<ClassicyTimePickerProps> =
 				handleDateChange(updatedDate);
 			};
 
-			const incrementTimePartChange = (
-				e: KeyboardEvent<HTMLInputElement>,
-				part: "hour" | "minutes" | "seconds",
-			) => {
+			// Shared increment core: used by both the Up/Down keys and the visible
+			// little-arrows widget so mouse-only users can adjust the clock too.
+			const stepTimePart = (part: ClassicyTimePart, direction: 1 | -1) => {
 				const updatedDate = new Date(selectedDate);
-				let modifier = 0;
-
-				switch (e.key) {
-					case "ArrowDown":
-						modifier = -1;
-						break;
-					case "ArrowUp":
-						modifier = 1;
-						break;
-				}
 
 				switch (part) {
 					case "hour": {
-						const currentHour = parseInt(hour, 10) + modifier;
+						const currentHour = parseInt(hour, 10) + direction;
 						if (currentHour > 12 || currentHour <= 0) {
 							return;
 						}
@@ -181,7 +177,7 @@ export const ClassicyTimePicker: FunctionalComponent<ClassicyTimePickerProps> =
 						break;
 					}
 					case "minutes": {
-						const currentMinutes = parseInt(minutes, 10) + modifier;
+						const currentMinutes = parseInt(minutes, 10) + direction;
 						if (currentMinutes < 0 || currentMinutes > 59) {
 							return;
 						}
@@ -190,7 +186,7 @@ export const ClassicyTimePicker: FunctionalComponent<ClassicyTimePickerProps> =
 						break;
 					}
 					case "seconds": {
-						const currentSeconds = parseInt(seconds, 10) + modifier;
+						const currentSeconds = parseInt(seconds, 10) + direction;
 						if (currentSeconds < 0 || currentSeconds > 59) {
 							return;
 						}
@@ -202,6 +198,14 @@ export const ClassicyTimePicker: FunctionalComponent<ClassicyTimePickerProps> =
 
 				setSelectedDate(updatedDate);
 				handleDateChange(updatedDate);
+			};
+
+			const incrementTimePartChange = (
+				e: KeyboardEvent<HTMLInputElement>,
+				part: ClassicyTimePart,
+			) => {
+				if (e.key === "ArrowDown") stepTimePart(part, -1);
+				else if (e.key === "ArrowUp") stepTimePart(part, 1);
 			};
 
 			return (
@@ -219,62 +223,74 @@ export const ClassicyTimePicker: FunctionalComponent<ClassicyTimePickerProps> =
 							disabled={labelDisabled ?? disabled}
 						></ClassicyControlLabel>
 					)}
-					<div
-						className={classNames(
-							"classicyTimePicker",
-							isDefault ? "classicyTimePickerDefault" : "",
-						)}
-					>
-						<input
-							id={`${id}_hour`}
-							tabIndex={0}
-							name={`${id}_hour`}
-							type="text"
-							ref={ref}
+					<div className="classicyTimePickerField">
+						<div
+							className={classNames(
+								"classicyTimePicker",
+								isDefault ? "classicyTimePickerDefault" : "",
+							)}
+						>
+							<input
+								id={`${id}_hour`}
+								tabIndex={0}
+								name={`${id}_hour`}
+								type="text"
+								ref={ref}
+								disabled={disabled}
+								placeholder={placeholder}
+								onClick={(e) => e.currentTarget.select()}
+								onFocus={() => setFocusedPart("hour")}
+								onChange={(e) => handleTimePartChange(e, "hour")}
+								onBlur={(e) => handleTimePartChange(e, "hour")}
+								onKeyDown={(e) => incrementTimePartChange(e, "hour")}
+								value={
+									parseInt(hour, 10) % 12 === 0 ? 12 : parseInt(hour, 10) % 12
+								}
+								maxLength={2}
+								className={"classicyTimePickerInput"}
+							></input>
+							:
+							<input
+								id={`${id}_minutes`}
+								tabIndex={0}
+								name={`${id}_minutes`}
+								type="text"
+								ref={ref}
+								disabled={disabled}
+								value={String(minutes)}
+								onClick={(e) => e.currentTarget.select()}
+								onFocus={() => setFocusedPart("minutes")}
+								onChange={(e) => handleTimePartChange(e, "minutes")}
+								onBlur={(e) => handleTimePartChange(e, "minutes")}
+								onKeyDown={(e) => incrementTimePartChange(e, "minutes")}
+								maxLength={2}
+								className={"classicyTimePickerInput"}
+							></input>
+							:
+							<input
+								id={`${id}_seconds`}
+								tabIndex={0}
+								name={`${id}_seconds`}
+								type="text"
+								ref={ref}
+								disabled={disabled}
+								value={String(seconds)}
+								onClick={(e) => e.currentTarget.select()}
+								onFocus={() => setFocusedPart("seconds")}
+								onChange={(e) => handleTimePartChange(e, "seconds")}
+								onBlur={(e) => handleTimePartChange(e, "seconds")}
+								onKeyDown={(e) => incrementTimePartChange(e, "seconds")}
+								maxLength={2}
+								className={"classicyTimePickerInput"}
+							></input>
+						</div>
+						<ClassicyLittleArrows
+							className="classicyTimePickerArrows"
 							disabled={disabled}
-							placeholder={placeholder}
-							onClick={(e) => e.currentTarget.select()}
-							onChange={(e) => handleTimePartChange(e, "hour")}
-							onBlur={(e) => handleTimePartChange(e, "hour")}
-							onKeyDown={(e) => incrementTimePartChange(e, "hour")}
-							value={
-								parseInt(hour, 10) % 12 === 0 ? 12 : parseInt(hour, 10) % 12
-							}
-							maxLength={2}
-							className={"classicyTimePickerInput"}
-						></input>
-						:
-						<input
-							id={`${id}_minutes`}
-							tabIndex={0}
-							name={`${id}_minutes`}
-							type="text"
-							ref={ref}
-							disabled={disabled}
-							value={String(minutes)}
-							onClick={(e) => e.currentTarget.select()}
-							onChange={(e) => handleTimePartChange(e, "minutes")}
-							onBlur={(e) => handleTimePartChange(e, "minutes")}
-							onKeyDown={(e) => incrementTimePartChange(e, "minutes")}
-							maxLength={2}
-							className={"classicyTimePickerInput"}
-						></input>
-						:
-						<input
-							id={`${id}_seconds`}
-							tabIndex={0}
-							name={`${id}_seconds`}
-							type="text"
-							ref={ref}
-							disabled={disabled}
-							value={String(seconds)}
-							onClick={(e) => e.currentTarget.select()}
-							onChange={(e) => handleTimePartChange(e, "seconds")}
-							onBlur={(e) => handleTimePartChange(e, "seconds")}
-							onKeyDown={(e) => incrementTimePartChange(e, "seconds")}
-							maxLength={2}
-							className={"classicyTimePickerInput"}
-						></input>
+							upLabel="Increment time"
+							downLabel="Decrement time"
+							onStep={(direction) => stepTimePart(focusedPart, direction)}
+						/>
 					</div>
 					<ClassicyPopUpMenu
 						selected={period}
