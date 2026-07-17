@@ -19,6 +19,7 @@ const SUMMABLE_FILE_TYPES = new Set<string>([
 	ClassicyFileSystemEntryFileType.TextFile,
 	ClassicyFileSystemEntryFileType.Markdown,
 	ClassicyFileSystemEntryFileType.Pdf,
+	ClassicyFileSystemEntryFileType.Stack,
 ]);
 
 export type ClassicyPathOrFileSystemEntry = string | ClassicyFileSystemEntry;
@@ -149,6 +150,7 @@ export class ClassicyFileSystem {
 			ClassicyFileSystemEntryFileType.Audio,
 			ClassicyFileSystemEntryFileType.AppShortcut,
 			ClassicyFileSystemEntryFileType.Extension,
+			ClassicyFileSystemEntryFileType.Stack,
 		],
 		showInvisible: boolean = true,
 	): ClassicyFileSystemEntry {

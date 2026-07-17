@@ -95,9 +95,15 @@ export const HyperCard: FunctionalComponent = () => {
 			} else if (e.kind === "play") {
 				player({ type: "ClassicySoundPlay", sound: e.sound });
 			} else if (e.kind === "openApp") {
+				// ClassicyAppOpen's predicate requires { id, name, icon }; stacks
+				// author only the app id, so resolve the registered app record.
+				const target =
+					useAppManager.getState().System.Manager.Applications.apps[e.appId];
 				dispatch({
 					type: e.event ?? "ClassicyAppOpen",
-					app: { id: e.appId },
+					app: target
+						? { id: target.id, name: target.name, icon: target.icon }
+						: { id: e.appId },
 					...(e.data ?? {}),
 				});
 			} else if (e.kind === "custom") {
@@ -175,16 +181,33 @@ export const HyperCard: FunctionalComponent = () => {
 	}, [activeStackId, waitToken, waitMs, dispatch]);
 
 	// --- load queued `.stack` documents (Finder OpenFile routing) ---
-	// The reducer only queues paths (fetching is async); this effect resolves
-	// each entry through the file system, fetches/decodes its JSON, validates
-	// it, and either opens the stack or reports the failure.
+	// Double-clicking a Stack file appends its path to this app's
+	// data.openFiles (the kernel's generic *OpenFile handling). Read it raw —
+	// not through useHyperCardData — because on first open the kernel writes
+	// { openFiles } before any HyperCard action has seeded openStacks. This
+	// effect resolves each entry through the file system, fetches/decodes its
+	// JSON, validates it, and either opens the stack (keyed by its path) or
+	// reports the failure; both outcomes consume the path.
 	const fs = useClassicyFileSystem();
-	const pendingOpenFiles = data?.pendingOpenFiles;
+	const rawOpenFiles = useAppManager((s) => {
+		const d = s.System.Manager.Applications.apps[appId]?.data as
+			| { openFiles?: unknown }
+			| undefined;
+		return Array.isArray(d?.openFiles) ? (d.openFiles as string[]) : undefined;
+	});
+	const openStacksById = data?.openStacks;
 	const loadingRef = useRef<Set<string>>(new Set());
 	useEffect(() => {
-		if (!pendingOpenFiles || pendingOpenFiles.length === 0) return;
-		for (const path of pendingOpenFiles) {
+		if (!rawOpenFiles || rawOpenFiles.length === 0) return;
+		for (const path of rawOpenFiles) {
 			if (loadingRef.current.has(path)) continue;
+			if (openStacksById?.[path]) {
+				// Already open from this path (e.g. re-double-clicked): focus it
+				// via the reducer's OpenFile case and clear the queue entry.
+				dispatch({ type: "ClassicyAppHyperCardOpenFile", path });
+				dispatch({ type: "ClassicyAppHyperCardOpenFileConsumed", path });
+				continue;
+			}
 			loadingRef.current.add(path);
 			const fileName = path.split(":").pop() ?? path;
 			const fail = (message: string) => {
@@ -236,7 +259,7 @@ export const HyperCard: FunctionalComponent = () => {
 					);
 				});
 		}
-	}, [pendingOpenFiles, fs, dispatch]);
+	}, [rawOpenFiles, openStacksById, fs, dispatch]);
 
 	const openStack = useCallback(
 		(id: string, stack: HCStack) => {
@@ -324,8 +347,15 @@ export const HyperCard: FunctionalComponent = () => {
 			addSystemMenu={true}
 			defaultWindow={"hypercard_main"}
 			handlesFileTypes={[ClassicyFileSystemEntryFileType.Stack]}
+			handlesOwnFiles={true}
 		>
 			<ClassicyWindow
+				// Keyed on the active stack: a stack opened from a .stack file
+				// loads after the window mounted at its empty-state size, and
+				// ClassicyWindow reads its size once at mount. The OpenStack
+				// reducer stamps the fitted size onto the window record; the
+				// remount picks it up.
+				key={activeStackId ?? "no-stack"}
 				id={"hypercard_main"}
 				title={windowTitle}
 				appId={appId}

@@ -190,13 +190,13 @@ describe("OpenFile routing (.stack documents)", () => {
 		return store;
 	}
 
-	it("queues a path and opens the app", () => {
+	it("queues a path into openFiles and opens the app", () => {
 		const store = makeStoreWithDesktop();
 		dispatch(store, {
 			type: "ClassicyAppHyperCardOpenFile",
 			path: "Macintosh HD:Getting Started.stack",
 		});
-		expect(data(store).pendingOpenFiles).toEqual([
+		expect(data(store).openFiles).toEqual([
 			"Macintosh HD:Getting Started.stack",
 		]);
 		expect(store.System.Manager.Applications.apps[APP_ID].open).toBe(true);
@@ -207,7 +207,7 @@ describe("OpenFile routing (.stack documents)", () => {
 		const path = "Macintosh HD:Getting Started.stack";
 		dispatch(store, { type: "ClassicyAppHyperCardOpenFile", path });
 		dispatch(store, { type: "ClassicyAppHyperCardOpenFile", path });
-		expect(data(store).pendingOpenFiles).toEqual([path]);
+		expect(data(store).openFiles).toEqual([path]);
 	});
 
 	it("focuses an already-open stack instead of re-queueing", () => {
@@ -221,7 +221,7 @@ describe("OpenFile routing (.stack documents)", () => {
 		});
 		data(store).activeStackId = undefined;
 		dispatch(store, { type: "ClassicyAppHyperCardOpenFile", path });
-		expect(data(store).pendingOpenFiles ?? []).toEqual([]);
+		expect(data(store).openFiles ?? []).toEqual([]);
 		expect(data(store).activeStackId).toBe(path);
 	});
 
@@ -230,7 +230,7 @@ describe("OpenFile routing (.stack documents)", () => {
 		const path = "Macintosh HD:Getting Started.stack";
 		dispatch(store, { type: "ClassicyAppHyperCardOpenFile", path });
 		dispatch(store, { type: "ClassicyAppHyperCardOpenFileConsumed", path });
-		expect(data(store).pendingOpenFiles).toEqual([]);
+		expect(data(store).openFiles).toEqual([]);
 	});
 
 	it("failure clears the queue and raises an error dialog", () => {
@@ -242,10 +242,29 @@ describe("OpenFile routing (.stack documents)", () => {
 			path,
 			message: "“Broken.stack” is not a valid HyperCard stack: no cards",
 		});
-		expect(data(store).pendingOpenFiles).toEqual([]);
+		expect(data(store).openFiles).toEqual([]);
 		expect(store.System.Manager.Desktop.errorDialog).toEqual({
 			title: "HyperCard",
 			message: "“Broken.stack” is not a valid HyperCard stack: no cards",
 		});
+	});
+
+	it("preserves a kernel-written openFiles queue when seeding openStacks", () => {
+		// Finder routes OpenFile through the kernel's generic handler, which
+		// writes { openFiles: [...] } with no openStacks. The first HyperCard
+		// action must not clobber that queue while initializing its data.
+		const store = makeStoreWithDesktop();
+		const path = "Macintosh HD:Getting Started.stack";
+		store.System.Manager.Applications.apps[APP_ID].data = {
+			openFiles: [path],
+		};
+		dispatch(store, {
+			type: "ClassicyAppHyperCardOpenStack",
+			stackId: path,
+			stackSource: path,
+			stack: demoStack,
+		});
+		expect(data(store).openFiles).toEqual([path]);
+		expect(data(store).openStacks[path].currentCardId).toBe("c1");
 	});
 });

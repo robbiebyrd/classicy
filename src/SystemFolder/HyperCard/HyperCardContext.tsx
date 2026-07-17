@@ -44,7 +44,13 @@ function getData(ds: ClassicyStore): HyperCardData | undefined {
 	if (!app) return undefined;
 	const raw = app.data ?? {};
 	if (!isHyperCardData(raw)) {
-		app.data = { openStacks: {} } satisfies HyperCardData;
+		// Merge instead of replace: the kernel's generic *OpenFile handler may
+		// have already written { openFiles: [...] } before any HyperCard action
+		// ran — replacing would drop that queue.
+		app.data = {
+			...(typeof raw === "object" && raw !== null ? raw : {}),
+			openStacks: {},
+		} satisfies HyperCardData;
 	}
 	return app.data as unknown as HyperCardData;
 }
@@ -92,6 +98,15 @@ export const classicyHyperCardEventHandler = (
 
 			openApp(ds, APP_ID, HyperCardAppInfo.name, HyperCardAppInfo.icon);
 			data.activeStackId = stackId;
+
+			// Fit the (possibly already-mounted) window to this stack's card
+			// width. The component keys the window on activeStackId, so it
+			// remounts and re-reads this record; height 0 = auto, matching the
+			// initialSize used when a stack is preloaded at mount.
+			const win = ds.System.Manager.Applications.apps[APP_ID].windows?.find(
+				(w) => w.id === "hypercard_main",
+			);
+			if (win) win.size = [(stack.size?.[0] ?? 420) + 4, 0];
 
 			if (!data.openStacks[stackId]) {
 				const open: HCOpenStack = {
@@ -207,18 +222,21 @@ export const classicyHyperCardEventHandler = (
 		}
 
 		case "ClassicyAppHyperCardOpenFile": {
-			// Finder routes double-clicked Stack-type files here (see
-			// FinderContext's fileTypeHandlers dispatch). The reducer only queues
-			// the path — fetching/parsing is async, so the HyperCard component
-			// resolves the entry and dispatches OpenStack/OpenFileFailed.
+			// Double-clicked Stack-type files land in data.openFiles: Finder
+			// dispatches ClassicyAppHyperCardOpenFile through the generic
+			// classicyAppEventHandler (whose *OpenFile default appends the path
+			// and opens the app); this case gives programmatic dispatch through
+			// the plugin router the same behavior, plus focus-if-already-open.
+			// Fetching/parsing is async, so the HyperCard component consumes the
+			// queue and dispatches OpenStack/OpenFileConsumed/OpenFileFailed.
 			const path = action.path as string | undefined;
 			if (!path) break;
-			const pending = data.pendingOpenFiles ?? [];
-			if (!pending.includes(path) && !data.openStacks[path]) {
-				data.pendingOpenFiles = [...pending, path];
-			} else if (data.openStacks[path]) {
+			if (data.openStacks[path]) {
 				// Already open from this path: just focus it.
 				data.activeStackId = path;
+			} else {
+				const files = data.openFiles ?? [];
+				if (!files.includes(path)) data.openFiles = [...files, path];
 			}
 			openApp(ds, APP_ID, HyperCardAppInfo.name, HyperCardAppInfo.icon);
 			break;
@@ -227,18 +245,14 @@ export const classicyHyperCardEventHandler = (
 		case "ClassicyAppHyperCardOpenFileConsumed": {
 			const path = action.path as string | undefined;
 			if (!path) break;
-			data.pendingOpenFiles = (data.pendingOpenFiles ?? []).filter(
-				(p) => p !== path,
-			);
+			data.openFiles = (data.openFiles ?? []).filter((p) => p !== path);
 			break;
 		}
 
 		case "ClassicyAppHyperCardOpenFileFailed": {
 			const path = action.path as string | undefined;
 			if (!path) break;
-			data.pendingOpenFiles = (data.pendingOpenFiles ?? []).filter(
-				(p) => p !== path,
-			);
+			data.openFiles = (data.openFiles ?? []).filter((p) => p !== path);
 			ds.System.Manager.Desktop.errorDialog = {
 				title: "HyperCard",
 				message:
