@@ -3,7 +3,7 @@
 	"module": "./dist/classicy.es.js",
 	"types": "./dist/types/src/index.d.ts",
 	"name": "classicy",
-	"version": "0.41.5",
+	"version": "0.41.6",
 	"release": "Buster Ascendant",
 	"repository": {
 		"type": "git",
