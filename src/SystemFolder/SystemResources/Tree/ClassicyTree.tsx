@@ -2,9 +2,9 @@ import "./ClassicyTree.scss";
 import classNames from "classnames";
 import {
 	type FC as FunctionalComponent,
-	type KeyboardEvent,
-	type MouseEvent,
 	type MouseEventHandler,
+	type KeyboardEvent as ReactKeyboardEvent,
+	type MouseEvent as ReactMouseEvent,
 	type ReactNode,
 	useState,
 } from "react";
@@ -32,6 +32,8 @@ export type ClassicyTreeNodeButton = {
 	depressed?: boolean;
 };
 
+export type ClassicyTreeSelectionMode = "none" | "single" | "multi";
+
 export type ClassicyTreeNode = {
 	/** Stable identifier for the node. */
 	id: string;
@@ -45,8 +47,14 @@ export type ClassicyTreeNode = {
 	children?: ClassicyTreeNode[];
 	/** Whether a branch node starts expanded. */
 	defaultOpen?: boolean;
-	/** Leaf-only: a small ClassicyButton rendered to the right of the label. */
+	/** Leaf-only: a single small button (kept for back-compat; `buttons` wins if both set). */
 	button?: ClassicyTreeNodeButton;
+	/** Leaf-only: multiple small buttons rendered right of the label. */
+	buttons?: ClassicyTreeNodeButton[];
+	/** Grayed out; not clickable; branches also refuse to toggle. */
+	disabled?: boolean;
+	/** Leaf-only: opt out of selection while staying enabled-looking. Default true. */
+	selectable?: boolean;
 };
 
 type ClassicyTreeProps = {
@@ -55,6 +63,14 @@ type ClassicyTreeProps = {
 	direction?: ClassicyTriangleDirection;
 	/** Fired whenever a branch node is expanded or collapsed. */
 	onToggleNode?: (id: string, open: boolean) => void;
+	selectionMode?: ClassicyTreeSelectionMode;
+	selectedIds?: string[];
+	onSelectNode?: (
+		id: string,
+		node: ClassicyTreeNode,
+		e: ReactMouseEvent | ReactKeyboardEvent,
+	) => void;
+	onActivateNode?: (id: string, node: ClassicyTreeNode) => void;
 };
 
 type ClassicyTreeNodeItemProps = {
@@ -62,6 +78,14 @@ type ClassicyTreeNodeItemProps = {
 	depth: number;
 	direction: ClassicyTriangleDirection;
 	onToggleNode?: (id: string, open: boolean) => void;
+	selectionMode?: ClassicyTreeSelectionMode;
+	selectedIds?: string[];
+	onSelectNode?: (
+		id: string,
+		node: ClassicyTreeNode,
+		e: ReactMouseEvent | ReactKeyboardEvent,
+	) => void;
+	onActivateNode?: (id: string, node: ClassicyTreeNode) => void;
 };
 
 const ClassicyTreeNodeItem: FunctionalComponent<ClassicyTreeNodeItemProps> = ({
@@ -69,14 +93,24 @@ const ClassicyTreeNodeItem: FunctionalComponent<ClassicyTreeNodeItemProps> = ({
 	depth,
 	direction,
 	onToggleNode,
+	selectionMode = "none",
+	selectedIds = [],
+	onSelectNode,
+	onActivateNode,
 }) => {
 	const hasChildren = Array.isArray(node.children) && node.children.length > 0;
 	const [open, setOpen] = useState(node.defaultOpen ?? false);
 
+	const canSelect =
+		!hasChildren &&
+		selectionMode !== "none" &&
+		node.selectable !== false &&
+		!node.disabled;
+	const isSelected = !hasChildren && selectedIds.includes(node.id);
+	const leafButtons = node.buttons ?? (node.button ? [node.button] : []);
+
 	function toggle() {
-		if (!hasChildren) {
-			return;
-		}
+		if (!hasChildren || node.disabled) return; // disabled branches refuse to toggle
 		const next = !open;
 		setOpen(next);
 		onToggleNode?.(node.id, next);
@@ -86,6 +120,13 @@ const ClassicyTreeNodeItem: FunctionalComponent<ClassicyTreeNodeItemProps> = ({
 		if (e.key === "Enter" || e.key === " ") {
 			e.preventDefault();
 			toggle();
+		}
+	}
+
+	function handleLeafKeyDown(e: ReactKeyboardEvent<HTMLDivElement>) {
+		if (e.key === "Enter" || e.key === " ") {
+			e.preventDefault();
+			onSelectNode?.(node.id, node, e);
 		}
 	}
 
@@ -125,33 +166,70 @@ const ClassicyTreeNodeItem: FunctionalComponent<ClassicyTreeNodeItemProps> = ({
 					<div
 						role="button"
 						aria-expanded={open}
-						tabIndex={0}
-						className={"classicyTreeNodeLabelHolder classicyTreeNodeBranch"}
+						tabIndex={node.disabled ? -1 : 0}
+						className={classNames(
+							"classicyTreeNodeLabelHolder classicyTreeNodeBranch",
+							{
+								classicyTreeNodeDisabled: node.disabled,
+							},
+						)}
 						onClick={toggle}
 						onKeyDown={handleKeyDown}
 					>
 						{rowInner}
 					</div>
+				) : canSelect ? (
+					// biome-ignore lint/a11y/useSemanticElements: selectable row is a flex container with svg/img/span children incompatible with <button>
+					<div
+						role="button"
+						tabIndex={0}
+						aria-pressed={isSelected}
+						className={classNames(
+							"classicyTreeNodeLabelHolder",
+							"classicyTreeNodeLeaf",
+							"classicyTreeNodeSelectable",
+							{
+								classicyTreeNodeSelected: isSelected,
+							},
+						)}
+						onClick={(e) => onSelectNode?.(node.id, node, e)}
+						onDoubleClick={() => onActivateNode?.(node.id, node)}
+						onKeyDown={handleLeafKeyDown}
+					>
+						{rowInner}
+					</div>
 				) : (
-					<div className={"classicyTreeNodeLabelHolder classicyTreeNodeLeaf"}>
+					<div
+						className={classNames(
+							"classicyTreeNodeLabelHolder",
+							"classicyTreeNodeLeaf",
+							{
+								classicyTreeNodeDisabled: node.disabled,
+								classicyTreeNodeSelected: isSelected,
+							},
+						)}
+					>
 						{rowInner}
 					</div>
 				)}
-				{!hasChildren && node.button && (
-					<ClassicyButton
-						buttonSize={"small"}
-						margin={"sm"}
-						isDefault={node.button.isDefault}
-						disabled={node.button.disabled}
-						depressed={node.button.depressed}
-						onClickFunc={(e: MouseEvent<HTMLButtonElement>) => {
-							e.stopPropagation();
-							node.button?.onClickFunc?.(e);
-						}}
-					>
-						{node.button.label}
-					</ClassicyButton>
-				)}
+				{!hasChildren &&
+					leafButtons.map((b, i) => (
+						<ClassicyButton
+							// biome-ignore lint/suspicious/noArrayIndexKey: buttons array is static per node
+							key={i}
+							buttonSize={"small"}
+							margin={"sm"}
+							isDefault={b.isDefault}
+							disabled={b.disabled}
+							depressed={b.depressed}
+							onClickFunc={(e: ReactMouseEvent<HTMLButtonElement>) => {
+								e.stopPropagation();
+								b.onClickFunc?.(e);
+							}}
+						>
+							{b.label}
+						</ClassicyButton>
+					))}
 				{node.rightIcon && (
 					<img
 						className={"classicyTreeNodeIconRight"}
@@ -170,6 +248,10 @@ const ClassicyTreeNodeItem: FunctionalComponent<ClassicyTreeNodeItemProps> = ({
 							depth={depth + 1}
 							direction={direction}
 							onToggleNode={onToggleNode}
+							selectionMode={selectionMode}
+							selectedIds={selectedIds}
+							onSelectNode={onSelectNode}
+							onActivateNode={onActivateNode}
 						/>
 					))}
 				</ul>
@@ -182,6 +264,10 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 	nodes,
 	direction = "right",
 	onToggleNode,
+	selectionMode = "none",
+	selectedIds,
+	onSelectNode,
+	onActivateNode,
 }) => {
 	return (
 		<ul className={classNames("classicyTree")}>
@@ -192,6 +278,10 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 					depth={0}
 					direction={direction}
 					onToggleNode={onToggleNode}
+					selectionMode={selectionMode}
+					selectedIds={selectedIds}
+					onSelectNode={onSelectNode}
+					onActivateNode={onActivateNode}
 				/>
 			))}
 		</ul>

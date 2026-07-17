@@ -166,3 +166,151 @@ describe("ClassicyTree", () => {
 		expect(row.querySelector(".classicyTreeNodeIconRight")).not.toBeNull();
 	});
 });
+
+describe("ClassicyTree selection & disabled", () => {
+	const leaf = (
+		id: string,
+		extra: Partial<ClassicyTreeNode> = {},
+	): ClassicyTreeNode => ({
+		id,
+		label: id,
+		...extra,
+	});
+	const nodes: ClassicyTreeNode[] = [
+		{
+			id: "folder",
+			label: "folder",
+			defaultOpen: true,
+			children: [leaf("a"), leaf("b", { disabled: true }), leaf("c")],
+		},
+	];
+
+	it("fires onSelectNode for an enabled leaf when selectionMode is single", async () => {
+		const user = userEvent.setup();
+		const onSelectNode = vi.fn();
+		render(
+			<ClassicyTree
+				nodes={nodes}
+				selectionMode="single"
+				selectedIds={[]}
+				onSelectNode={onSelectNode}
+			/>,
+		);
+		await user.click(screen.getByText("a"));
+		expect(onSelectNode).toHaveBeenCalledTimes(1);
+		expect(onSelectNode.mock.calls[0][0]).toBe("a");
+	});
+
+	it("does not fire onSelectNode for a disabled leaf, and marks it disabled", async () => {
+		const user = userEvent.setup();
+		const onSelectNode = vi.fn();
+		render(
+			<ClassicyTree
+				nodes={nodes}
+				selectionMode="single"
+				selectedIds={[]}
+				onSelectNode={onSelectNode}
+			/>,
+		);
+		const row = screen.getByText("b").closest("li");
+		expect(row?.querySelector(".classicyTreeNodeDisabled")).not.toBeNull();
+		await user.click(screen.getByText("b"));
+		expect(onSelectNode).not.toHaveBeenCalled();
+	});
+
+	it("renders the selected style for ids in selectedIds", () => {
+		render(
+			<ClassicyTree
+				nodes={nodes}
+				selectionMode="multi"
+				selectedIds={["c"]}
+				onSelectNode={() => {}}
+			/>,
+		);
+		expect(
+			screen.getByText("c").closest(".classicyTreeNodeLabelHolder")?.className,
+		).toContain("classicyTreeNodeSelected");
+	});
+
+	it("fires onActivateNode on leaf double-click", async () => {
+		const user = userEvent.setup();
+		const onActivateNode = vi.fn();
+		render(
+			<ClassicyTree
+				nodes={nodes}
+				selectionMode="single"
+				selectedIds={[]}
+				onActivateNode={onActivateNode}
+			/>,
+		);
+		await user.dblClick(screen.getByText("a"));
+		expect(onActivateNode).toHaveBeenCalledWith(
+			"a",
+			expect.objectContaining({ id: "a" }),
+		);
+	});
+
+	it("selects an enabled leaf with the keyboard (Enter)", async () => {
+		const user = userEvent.setup();
+		const onSelectNode = vi.fn();
+		render(
+			<ClassicyTree
+				nodes={nodes}
+				selectionMode="single"
+				selectedIds={[]}
+				onSelectNode={onSelectNode}
+			/>,
+		);
+		screen
+			.getByText("a")
+			.closest('[role="button"]')
+			?.dispatchEvent(new FocusEvent("focus"));
+		await user.type(
+			screen.getByText("a").closest('[role="button"]') as HTMLElement,
+			"{Enter}",
+		);
+		expect(onSelectNode).toHaveBeenCalled();
+	});
+
+	it("keeps leaves inert when selectionMode is none (default)", async () => {
+		const user = userEvent.setup();
+		const onSelectNode = vi.fn();
+		render(<ClassicyTree nodes={nodes} onSelectNode={onSelectNode} />);
+		expect(screen.getByText("a").closest('[role="button"]')).toBeNull();
+		await user.click(screen.getByText("a"));
+		expect(onSelectNode).not.toHaveBeenCalled();
+	});
+
+	it("renders multiple leaf buttons from `buttons` and clicks don't select", async () => {
+		const user = userEvent.setup();
+		const onSelectNode = vi.fn();
+		const onEdit = vi.fn();
+		const withButtons: ClassicyTreeNode[] = [
+			{
+				id: "f",
+				label: "f",
+				defaultOpen: true,
+				children: [
+					leaf("x", {
+						buttons: [
+							{ label: "Edit", onClickFunc: onEdit },
+							{ label: "Remove" },
+						],
+					}),
+				],
+			},
+		];
+		render(
+			<ClassicyTree
+				nodes={withButtons}
+				selectionMode="single"
+				selectedIds={[]}
+				onSelectNode={onSelectNode}
+			/>,
+		);
+		await user.click(screen.getByRole("button", { name: "Edit" }));
+		expect(onEdit).toHaveBeenCalledTimes(1);
+		expect(onSelectNode).not.toHaveBeenCalled();
+		expect(screen.getByRole("button", { name: "Remove" })).toBeInTheDocument();
+	});
+});
