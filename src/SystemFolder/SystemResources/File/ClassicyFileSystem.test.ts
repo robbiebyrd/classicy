@@ -113,6 +113,114 @@ describe("ClassicyFileSystem.filterByType", () => {
 	});
 });
 
+describe("ClassicyFileSystem.filterByType — notCreatedAfter", () => {
+	const makeFs = (storageKey: string) =>
+		new ClassicyFileSystem(storageKey, {
+			_type: "directory",
+			"Macintosh HD": {
+				_type: "drive",
+				Documents: {
+					_type: "directory",
+					"Past.txt": {
+						_type: ClassicyFileSystemEntryFileType.TextFile,
+						_createdOn: "2020-01-01T00:00:00.000Z",
+					},
+					"Future.txt": {
+						_type: ClassicyFileSystemEntryFileType.TextFile,
+						_createdOn: "2030-01-01T00:00:00.000Z",
+					},
+					"NoDate.txt": {
+						_type: ClassicyFileSystemEntryFileType.TextFile,
+					},
+				},
+			},
+		});
+
+	it("returns all entries when no cutoff is passed (feature off)", () => {
+		const cfs = makeFs("test-not-created-after-off");
+		const filtered = cfs.filterByType("Macintosh HD:Documents");
+		expect(Object.keys(filtered)).toEqual([
+			"Past.txt",
+			"Future.txt",
+			"NoDate.txt",
+		]);
+	});
+
+	it("omits entries created strictly after the cutoff", () => {
+		const cfs = makeFs("test-not-created-after-cutoff");
+		const filtered = cfs.filterByType(
+			"Macintosh HD:Documents",
+			undefined,
+			true,
+			new Date("2025-06-15T12:00:00.000Z"),
+		);
+		expect(Object.keys(filtered)).toEqual(["Past.txt", "NoDate.txt"]);
+	});
+
+	it("keeps an entry created exactly at the cutoff (not strictly after)", () => {
+		const cfs = makeFs("test-not-created-after-equal");
+		const filtered = cfs.filterByType(
+			"Macintosh HD:Documents",
+			undefined,
+			true,
+			new Date("2030-01-01T00:00:00.000Z"),
+		);
+		expect(Object.keys(filtered)).toEqual([
+			"Past.txt",
+			"Future.txt",
+			"NoDate.txt",
+		]);
+	});
+
+	it("keeps entries without a _createdOn regardless of cutoff", () => {
+		const cfs = makeFs("test-not-created-after-nodate");
+		const filtered = cfs.filterByType(
+			"Macintosh HD:Documents",
+			undefined,
+			true,
+			new Date("2000-01-01T00:00:00.000Z"),
+		);
+		expect(Object.keys(filtered)).toEqual(["NoDate.txt"]);
+	});
+
+	it("accepts an ISO string cutoff", () => {
+		const cfs = makeFs("test-not-created-after-iso");
+		const filtered = cfs.filterByType(
+			"Macintosh HD:Documents",
+			undefined,
+			true,
+			"2025-06-15T12:00:00.000Z",
+		);
+		expect(Object.keys(filtered)).toEqual(["Past.txt", "NoDate.txt"]);
+	});
+
+	it("accepts an epoch-millis cutoff", () => {
+		const cfs = makeFs("test-not-created-after-epoch");
+		const filtered = cfs.filterByType(
+			"Macintosh HD:Documents",
+			undefined,
+			true,
+			new Date("2025-06-15T12:00:00.000Z").getTime(),
+		);
+		expect(Object.keys(filtered)).toEqual(["Past.txt", "NoDate.txt"]);
+	});
+
+	it("ignores an unparseable cutoff and returns all entries", () => {
+		const cfs = makeFs("test-not-created-after-bad-cutoff");
+		const filtered = cfs.filterByType(
+			"Macintosh HD:Documents",
+			undefined,
+			true,
+			"not-a-date",
+		);
+		expect(Object.keys(filtered)).toEqual([
+			"Past.txt",
+			"Future.txt",
+			"NoDate.txt",
+		]);
+	});
+});
+
 describe("isValidFileSystemEntry", () => {
 	it("accepts a valid FS entry with _type", () => {
 		expect(

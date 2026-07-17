@@ -39,6 +39,7 @@ type ClassicyFileBrowserViewTableProps = {
 	dirOnClickFunc?: (path: string) => void;
 	fileOnClickFunc?: (path: string) => void;
 	holderRef?: RefObject<HTMLDivElement | null>;
+	hideFilesCreatedAfter?: Date | string | number | null;
 };
 
 type ColumnSort = {
@@ -56,6 +57,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 			appId,
 			dirOnClickFunc = () => {},
 			fileOnClickFunc = () => {},
+			hideFilesCreatedAfter = null,
 		}) => {
 			const [selectedRow, setSelectedRow] = useState<string>();
 			const [sorting, setSorting] = useState<SortingState>([
@@ -85,7 +87,12 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 			useEffect(() => {
 				let cancelled = false;
 
-				const directoryItems = fs.filterByType(path);
+				const directoryItems = fs.filterByType(
+					path,
+					undefined,
+					true,
+					hideFilesCreatedAfter,
+				);
 				const entriesWithMetadata = Object.entries(directoryItems).map(
 					([filename, metadata]) => {
 						const filtered = {} as Record<string, unknown>;
@@ -124,7 +131,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 				return () => {
 					cancelled = true;
 				};
-			}, [path, fs]);
+			}, [path, fs, hideFilesCreatedAfter]);
 
 			const columns = useMemo(
 				() => [
