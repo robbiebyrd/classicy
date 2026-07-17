@@ -33,7 +33,7 @@ describe("ClassicyPopUpMenu", () => {
 		expect(screen.getByRole("button")).toHaveTextContent("Banana");
 	});
 
-	it("keeps a native <select> mirror carrying the id, value and disabled state", () => {
+	it("puts the id on the visible control and reflects its value and disabled state (no hidden <select>)", () => {
 		const { container } = render(
 			<ClassicyPopUpMenu
 				id="fruit"
@@ -42,10 +42,18 @@ describe("ClassicyPopUpMenu", () => {
 				disabled
 			/>,
 		);
-		const select = container.querySelector("select#fruit") as HTMLSelectElement;
-		expect(select).not.toBeNull();
-		expect(select.value).toBe("apple");
-		expect(select.disabled).toBe(true);
+		// No hidden native <select> mirror anymore.
+		expect(container.querySelector("select")).toBeNull();
+
+		// The id lives on the visible custom control (a <button>), which shows
+		// the selected value and reflects disabled via the attribute, aria and class.
+		const control = container.querySelector("#fruit") as HTMLButtonElement;
+		expect(control).not.toBeNull();
+		expect(control.tagName).toBe("BUTTON");
+		expect(control).toHaveTextContent("Apple");
+		expect(control).toBeDisabled();
+		expect(control).toHaveAttribute("aria-disabled", "true");
+		expect(control).toHaveClass("classicyPopUpMenuButtonDisabled");
 	});
 
 	it("opens the menu on click and marks the current item with a checkmark", async () => {

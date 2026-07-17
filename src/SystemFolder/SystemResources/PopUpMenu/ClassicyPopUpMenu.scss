@@ -67,23 +67,6 @@
   }
 }
 
-// Visually-hidden native <select> mirror — keeps the element id, disabled state
-// and form value available to consumers/tests without being seen or focusable.
-.classicyPopUpMenuNativeMirror {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  clip-path: inset(50%);
-  white-space: nowrap;
-  border: 0;
-  opacity: 0;
-  pointer-events: none;
-}
-
 // The visible trigger: current selection on the left, indicator on the right.
 .classicyPopUpMenuButton {
   display: flex;

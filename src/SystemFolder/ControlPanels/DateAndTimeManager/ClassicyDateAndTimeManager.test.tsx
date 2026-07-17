@@ -100,20 +100,17 @@ describe("ClassicyDateAndTimeManager — dateTimeLocked", () => {
 
 		// The AM/PM popup is ClassicyTimePicker's nested ClassicyPopUpMenu — it
 		// must be disabled too, otherwise a user can still flip AM/PM and shift
-		// the clock 12 hours while "locked".
-		const amPmSelect = container.querySelector(
-			"select#am-pm",
-		) as HTMLSelectElement;
-		expect(amPmSelect).not.toBeNull();
-		expect(amPmSelect.disabled).toBe(true);
+		// the clock 12 hours while "locked". The pop-up's visible control (a
+		// <button>) carries the id and reflects disabled via the attribute.
+		const amPm = container.querySelector("#am-pm") as HTMLButtonElement;
+		expect(amPm).not.toBeNull();
+		expect(amPm.disabled).toBe(true);
 
 		// The timezone popup is a separate, standalone ClassicyPopUpMenu (not
 		// nested inside a disabled editor) and must stay enabled while locked.
-		const tzSelect = container.querySelector(
-			"select#timezone",
-		) as HTMLSelectElement;
-		expect(tzSelect).not.toBeNull();
-		expect(tzSelect.disabled).toBe(false);
+		const tz = container.querySelector("#timezone") as HTMLButtonElement;
+		expect(tz).not.toBeNull();
+		expect(tz.disabled).toBe(false);
 	});
 
 	it("editors — including the AM/PM popup — are enabled when not locked, and the timezone picker is always enabled", () => {
@@ -136,16 +133,12 @@ describe("ClassicyDateAndTimeManager — dateTimeLocked", () => {
 				expect((input as HTMLInputElement).disabled).toBe(false);
 		}
 
-		const amPmSelect = container.querySelector(
-			"select#am-pm",
-		) as HTMLSelectElement;
-		expect(amPmSelect).not.toBeNull();
-		expect(amPmSelect.disabled).toBe(false);
+		const amPm = container.querySelector("#am-pm") as HTMLButtonElement;
+		expect(amPm).not.toBeNull();
+		expect(amPm.disabled).toBe(false);
 
-		const tzSelect = container.querySelector(
-			"select#timezone",
-		) as HTMLSelectElement;
-		expect(tzSelect).not.toBeNull();
-		expect(tzSelect.disabled).toBe(false);
+		const tz = container.querySelector("#timezone") as HTMLButtonElement;
+		expect(tz).not.toBeNull();
+		expect(tz.disabled).toBe(false);
 	});
 });

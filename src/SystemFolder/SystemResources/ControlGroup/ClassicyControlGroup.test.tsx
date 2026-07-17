@@ -163,7 +163,9 @@ describe("ClassicyControlGroup", () => {
 		);
 		const legend = container.querySelector("legend");
 		expect(legend).toBeInTheDocument();
-		expect(legend?.querySelector("select")).toBeInTheDocument();
+		// The pop-up menu button now renders as a custom control carrying its id
+		// (the native <select> was removed in the HIG pop-up-menu rework).
+		expect(legend?.querySelector("#popup-title")).toBeInTheDocument();
 	});
 
 	it("prefers a checkbox title over a pop-up-menu title", () => {
@@ -180,6 +182,7 @@ describe("ClassicyControlGroup", () => {
 		);
 		const legend = container.querySelector("legend");
 		expect(legend?.querySelector("input[type='checkbox']")).toBeInTheDocument();
-		expect(legend?.querySelector("select")).not.toBeInTheDocument();
+		// The pop-up-menu title is suppressed, so its control (id "popup") is absent.
+		expect(legend?.querySelector("#popup")).not.toBeInTheDocument();
 	});
 });

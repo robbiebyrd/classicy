@@ -45,14 +45,19 @@ describe("ClassicyMenu", () => {
 		expect(container.querySelector("li")).not.toBeInTheDocument();
 	});
 
-	it("renders a spacer as <hr> for items with id='spacer'", () => {
+	it("renders a spacer as a ClassicySeparator for items with id='spacer'", () => {
 		const items = [
 			{ id: "item-1", title: "New" },
 			{ id: "spacer" },
 			{ id: "item-2", title: "Open" },
 		];
 		render(<ClassicyMenu name="test-menu" menuItems={items} />);
-		expect(screen.getByRole("separator")).toBeInTheDocument();
+		const separator = screen.getByRole("separator");
+		expect(separator).toBeInTheDocument();
+		// The divider is the standalone ClassicySeparator (horizontal engraving),
+		// not a raw <hr>.
+		expect(separator).toHaveClass("classicySeparator");
+		expect(separator).toHaveClass("classicySeparatorHorizontal");
 	});
 
 	it("renders keyboard shortcut text when keyboardShortcut is provided", () => {

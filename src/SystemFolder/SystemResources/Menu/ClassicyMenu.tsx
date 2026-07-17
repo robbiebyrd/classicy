@@ -26,6 +26,7 @@ import {
 	runMenuItemAction,
 } from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
 import { ClassicyMenuContext } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuContext";
+import { ClassicySeparator } from "@/SystemFolder/SystemResources/Separator/ClassicySeparator";
 
 export interface ClassicyMenuItem {
 	id: string;
@@ -223,7 +224,7 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 
 	const li =
 		menuItem && menuItem.id === "spacer" ? (
-			<hr></hr>
+			<ClassicySeparator />
 		) : (
 			<li
 				// biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: <li> items in a menu require role="menuitem" per ARIA menu pattern

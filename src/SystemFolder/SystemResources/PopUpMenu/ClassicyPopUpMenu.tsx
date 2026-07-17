@@ -87,7 +87,7 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 	const optionId = (index: number) => `${reactId}-opt-${index}`;
 
 	const emitChange = useCallback(
-		(value: string, nativeEvent?: ChangeEvent<HTMLSelectElement>) => {
+		(value: string) => {
 			if (value === PLACEHOLDER_VALUE) return;
 			setSelectedItem(value);
 			track("selected", {
@@ -99,12 +99,12 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 				selected,
 			});
 			if (onChangeFunc) {
-				const evt =
-					nativeEvent ??
-					({
-						target: { value },
-						currentTarget: { value },
-					} as unknown as ChangeEvent<HTMLSelectElement>);
+				// Synthesize a `{ target: { value } }`-shaped event so consumers
+				// written against the old native <select> API keep working.
+				const evt = {
+					target: { value },
+					currentTarget: { value },
+				} as unknown as ChangeEvent<HTMLSelectElement>;
 				onChangeFunc(evt);
 			}
 		},
@@ -222,35 +222,20 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 					extraClassName,
 				)}
 			>
-				{/* Visually-hidden native mirror: preserves the element id, the
-				    disabled state and form value for consumers/tests while the
-				    visible control is the custom Mac-style button below. */}
-				<select
-					id={id}
-					className="classicyPopUpMenuNativeMirror"
-					tabIndex={-1}
-					aria-hidden={true}
-					value={selectedItem}
-					disabled={disabled}
-					onChange={(e) => emitChange(e.target.value, e)}
-				>
-					{placeholder && (
-						<option value={PLACEHOLDER_VALUE} disabled>
-							{placeholder}
-						</option>
-					)}
-					{options.map((o) => (
-						<option key={id + o.label + o.value} value={o.value}>
-							{o.label}
-						</option>
-					))}
-				</select>
-
+				{/* The visible custom button IS the control: it carries the `id`
+				    so consumers/tests can target it, and reflects the disabled
+				    state via the native `disabled` attribute, `aria-disabled` and
+				    a disabled class. (No hidden native <select> mirror anymore.) */}
 				<button
 					ref={buttonRef}
+					id={id}
 					type="button"
-					className="classicyPopUpMenuButton"
+					className={classNames(
+						"classicyPopUpMenuButton",
+						disabled && "classicyPopUpMenuButtonDisabled",
+					)}
 					disabled={disabled}
+					aria-disabled={disabled}
 					aria-haspopup="listbox"
 					aria-expanded={open}
 					onClick={() => (open ? closeMenu() : openMenu())}
