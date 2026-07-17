@@ -1,0 +1,128 @@
+@use "../../ControlPanels/AppearanceManager/styles/appearance";
+
+// Bevel Button (HIG #5) — rectangular beveled control giving a 3-D look.
+// The bevel width sets the apparent height; it is exposed as a local custom
+// property (--bevel-w) so every state can scale its highlight/shadow to match.
+.classicyBevelButton {
+  --bevel-w: var(--hig-bevel-md, 3px);
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--window-padding-size) / 2);
+
+  min-width: var(--hig-control-box, 12px);
+  min-height: var(--hig-control-box, 12px);
+  padding: calc(var(--window-padding-size) / 2) var(--window-padding-size);
+
+  font-family: var(--ui-font), sans-serif;
+  font-size: var(--ui-font-size);
+  color: var(--color-black);
+
+  background-color: var(--color-system-02);
+  border: var(--window-border-size) solid var(--color-black);
+
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: default;
+
+  // Raised bevel: white highlight top-left, gray shadow bottom-right.
+  box-shadow:
+    inset var(--bevel-w) var(--bevel-w) 0 0 var(--color-white),
+    inset calc(var(--bevel-w) * -1) calc(var(--bevel-w) * -1) 0 0 var(--color-system-05);
+
+  &:focus-visible {
+    outline: var(--color-outline) solid calc(var(--window-border-size) * 2);
+    outline-offset: var(--window-border-size);
+  }
+
+  // --- Bevel widths: small 2px / medium 3px / large 4px (via HIG tokens) ---
+  &.classicyBevelButtonBevelSmall {
+    --bevel-w: var(--hig-bevel-sm, 2px);
+  }
+  &.classicyBevelButtonBevelMedium {
+    --bevel-w: var(--hig-bevel-md, 3px);
+  }
+  &.classicyBevelButtonBevelLarge {
+    --bevel-w: var(--hig-bevel-lg, 4px);
+  }
+
+  // --- On / pressed: bevel inverts (pushed-in) and the fill darkens. Under
+  //     platinum pressed-was-off and pressed-was-on look identical. ---
+  &[data-state="on"],
+  &[data-state="pressed-off"],
+  &[data-state="pressed-on"] {
+    background-color: var(--color-system-04);
+    color: var(--color-black);
+    box-shadow:
+      inset var(--bevel-w) var(--bevel-w) 0 0 var(--color-system-05),
+      inset calc(var(--bevel-w) * -1) calc(var(--bevel-w) * -1) 0 0 var(--color-white);
+  }
+
+  &[data-state="pressed-off"],
+  &[data-state="pressed-on"] {
+    background-color: var(--color-system-05);
+  }
+
+  // --- Mixed: pushed-in bevel with a lighter dithered-style fill. ---
+  &[data-state="mixed"] {
+    background-color: var(--color-system-03);
+    color: var(--color-black);
+    box-shadow:
+      inset var(--bevel-w) var(--bevel-w) 0 0 var(--color-system-05),
+      inset calc(var(--bevel-w) * -1) calc(var(--bevel-w) * -1) 0 0 var(--color-white);
+  }
+
+  // --- Disabled: flatten the bevel and dim the content. ---
+  &[data-state="disabled-off"],
+  &[data-state="disabled-on"] {
+    background-color: var(--color-system-02);
+    border-color: var(--color-system-05);
+    color: var(--color-system-05);
+    box-shadow:
+      inset var(--bevel-w) var(--bevel-w) 0 0 var(--color-system-04),
+      inset calc(var(--bevel-w) * -1) calc(var(--bevel-w) * -1) 0 0 var(--color-system-04);
+    cursor: default;
+
+    .classicyBevelButtonIcon {
+      opacity: 0.5;
+    }
+  }
+
+  // Keep the "on" disabled state visibly latched (inset) even while dimmed.
+  &[data-state="disabled-on"] {
+    background-color: var(--color-system-03);
+  }
+}
+
+.classicyBevelButtonIcon {
+  display: block;
+  width: var(--window-control-size);
+  height: var(--window-control-size);
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.classicyBevelButtonLabel {
+  line-height: 1;
+  white-space: nowrap;
+}
+
+// Pop-up arrow affordance. Small/large scale the glyph; horizontal points
+// right (▸) and vertical points down (▾).
+.classicyBevelButtonArrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: calc(var(--window-padding-size) / 2);
+  line-height: 1;
+  pointer-events: none;
+}
+
+.classicyBevelButtonArrowSmall {
+  font-size: calc(var(--ui-font-size) / 1.5);
+}
+
+.classicyBevelButtonArrowLarge {
+  font-size: var(--ui-font-size);
+}
