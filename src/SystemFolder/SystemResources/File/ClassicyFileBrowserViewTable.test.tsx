@@ -114,6 +114,99 @@ describe("ClassicyFileBrowserViewTable size column", () => {
 	});
 });
 
+describe("ClassicyFileBrowserViewTable disclosure tree", () => {
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	const makeNestedFs = () =>
+		new ClassicyFileSystem("test-table-disclosure", {
+			_type: "directory",
+			Documents: {
+				_type: ClassicyFileSystemEntryFileType.Directory,
+				Reports: {
+					_type: ClassicyFileSystemEntryFileType.Directory,
+					"q1.pdf": {
+						_type: ClassicyFileSystemEntryFileType.Pdf,
+						_url: "https://example.com/q1.pdf",
+					},
+				},
+				"top.pdf": {
+					_type: ClassicyFileSystemEntryFileType.Pdf,
+					_url: "https://example.com/top.pdf",
+				},
+			},
+		});
+
+	it("shows a disclosure triangle for folders and none for files", async () => {
+		const cfs = makeNestedFs();
+		vi.spyOn(cfs, "size").mockResolvedValue(100);
+
+		render(
+			<ClassicyFileBrowserViewTable
+				fs={cfs}
+				path="Documents"
+				appId="Finder.app"
+			/>,
+		);
+
+		await screen.findByText("Reports");
+		// Only the single folder (Reports) at this level owns a triangle.
+		expect(screen.getAllByRole("button")).toHaveLength(1);
+	});
+
+	it("expands a folder inline when its triangle is clicked and collapses again", async () => {
+		const user = userEvent.setup();
+		const cfs = makeNestedFs();
+		vi.spyOn(cfs, "size").mockResolvedValue(100);
+
+		render(
+			<ClassicyFileBrowserViewTable
+				fs={cfs}
+				path="Documents"
+				appId="Finder.app"
+			/>,
+		);
+
+		await screen.findByText("Reports");
+		expect(screen.queryByText("q1.pdf")).not.toBeInTheDocument();
+
+		const triangle = screen.getByRole("button");
+		await user.click(triangle);
+
+		expect(await screen.findByText("q1.pdf")).toBeInTheDocument();
+
+		await user.click(screen.getByRole("button"));
+		await waitFor(() =>
+			expect(screen.queryByText("q1.pdf")).not.toBeInTheDocument(),
+		);
+	});
+
+	it("indents disclosed children by --window-control-size per level", async () => {
+		const user = userEvent.setup();
+		const cfs = makeNestedFs();
+		vi.spyOn(cfs, "size").mockResolvedValue(100);
+
+		render(
+			<ClassicyFileBrowserViewTable
+				fs={cfs}
+				path="Documents"
+				appId="Finder.app"
+			/>,
+		);
+
+		await screen.findByText("Reports");
+		await user.click(screen.getByRole("button"));
+
+		const childRow = (await screen.findByText("q1.pdf")).closest(
+			".classicyFileBrowserViewTableRowContainer",
+		) as HTMLElement;
+		expect(childRow.style.paddingLeft).toBe(
+			"calc(var(--window-control-size) * 1)",
+		);
+	});
+});
+
 describe("ClassicyFileBrowserViewTable keyboard navigation", () => {
 	afterEach(() => {
 		vi.restoreAllMocks();
