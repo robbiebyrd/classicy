@@ -390,6 +390,48 @@ describe("ClassicyAppClose — focus transfer", () => {
 		);
 		expect(anyFocused).toBe(false);
 	});
+
+	it("ignores a focus/activate for an app that is already closed", () => {
+		// Regression: a click on an in-window control that quits its own app
+		// (e.g. a dialog's Quit button) bubbles up to ClassicyApp's container,
+		// which dispatches ClassicyAppActivate AFTER the ClassicyAppClose —
+		// the closed app must not steal focus back.
+		const ds = makeStore();
+		ds.System.Manager.Applications.apps["Notes.app"] = {
+			id: "Notes.app",
+			name: "Notes",
+			icon: "",
+			open: true,
+			focused: true,
+			windows: [
+				{
+					id: "gate",
+					closed: false,
+					size: [300, 200],
+					position: [0, 0],
+					minimumSize: [100, 100],
+				},
+			],
+			data: {},
+		};
+
+		classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyAppClose",
+			app: { id: "Notes.app" },
+		});
+		classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyAppActivate",
+			app: { id: "Notes.app" },
+		});
+
+		expect(ds.System.Manager.Applications.apps["Notes.app"].focused).toBe(
+			false,
+		);
+		expect(ds.System.Manager.Applications.apps["Finder.app"].focused).toBe(
+			true,
+		);
+		expect(ds.System.Manager.Applications.focusedAppId).toBe("Finder.app");
+	});
 });
 
 describe("activateApp", () => {

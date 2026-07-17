@@ -65,7 +65,10 @@ function pickWindowToRestore(app: ClassicyStoreSystemApp) {
 
 export function focusApp(ds: ClassicyStore, appId: string) {
 	const app = ds.System.Manager.Applications.apps[appId];
-	if (!app) return;
+	// A closed app can never take focus: in-window controls that quit their
+	// own app bubble a ClassicyAppActivate after the ClassicyAppClose, and
+	// honoring it would leave a closed app owning the menu bar.
+	if (!app || !app.open) return;
 	const restore = pickWindowToRestore(app);
 	if (restore) {
 		focusWindow(ds, appId, restore.id);
