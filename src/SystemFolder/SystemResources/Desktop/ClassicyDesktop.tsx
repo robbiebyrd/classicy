@@ -8,6 +8,7 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyControlPanels } from "@/SystemFolder/ControlPanels/ClassicyControlPanels";
 import { Finder } from "@/SystemFolder/Finder/Finder";
+import { HyperCard } from "@/SystemFolder/HyperCard/HyperCard";
 import { PDFViewer } from "@/SystemFolder/PDFViewer/PDFViewer";
 import { MoviePlayer } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayer";
 import { QuickTimePictureViewer } from "@/SystemFolder/QuickTime/PictureViewer/PictureViewer";
@@ -104,6 +105,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 		disablePDFViewer,
 		disableMoviePlayer,
 		disablePictureViewer,
+		disableHyperCard,
 	} = useContext(ClassicyDefaultAppsContext);
 
 	const emptyTrash = useCallback(() => {
@@ -448,6 +450,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 			<Finder />
 			{!disableSimpleText && <SimpleText />}
 			{!disablePDFViewer && <PDFViewer />}
+			{!disableHyperCard && <HyperCard />}
 			{!disableMoviePlayer && <MoviePlayer />}
 			{!disablePictureViewer && <QuickTimePictureViewer />}
 			<ClassicyControlPanels />

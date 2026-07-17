@@ -86,6 +86,22 @@ function sanitizeStateForPersistence(state: ClassicyStore): ClassicyStore {
 		if (browserApp?.data && "history" in browserApp.data) {
 			delete (browserApp.data as Record<string, unknown>).history;
 		}
+		// HyperCard: drop the ephemeral interpreter runtime (frames, pending
+		// dialog/wait/transition, effects) so a reload never restores a
+		// half-finished continuation. Only stack deltas are persisted.
+		const hyperCardApp =
+			draft.System.Manager.Applications.apps["HyperCard.app"];
+		const openStacks = (hyperCardApp?.data as Record<string, unknown>)
+			?.openStacks;
+		if (openStacks && typeof openStacks === "object") {
+			for (const openStack of Object.values(
+				openStacks as Record<string, Record<string, unknown>>,
+			)) {
+				if (openStack && typeof openStack === "object") {
+					delete openStack.runtime;
+				}
+			}
+		}
 	});
 }
 

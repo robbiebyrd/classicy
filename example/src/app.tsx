@@ -9,6 +9,9 @@ import {
 } from "classicy";
 import { BlueBox } from "./Applications/BlueBox/BlueBox";
 import { Browser } from "./Applications/Browser/Browser";
+// Side-effect import: registers example HyperCard plugins (custom part, commands,
+// effect handler) and a demo stack — demonstrates the HyperCard plugin API.
+import "./Applications/HyperCardPlugins/HyperCardPluginsDemo";
 import demoIcon from "./Applications/Demo/app.png";
 import { Demo } from "./Applications/Demo/Demo";
 import { DemoExtension } from "./Applications/DemoExtension/DemoExtension";

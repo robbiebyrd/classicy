@@ -1,0 +1,187 @@
+{
+	"name": "Feature Tour",
+	"version": "2",
+	"size": [460, 320],
+	"variables": { "tries": 0 },
+	"backgrounds": [
+		{
+			"id": "bg",
+			"parts": [
+				{
+					"id": "footer",
+					"type": "label",
+					"shared": true,
+					"rect": [16, 292, 428, 20],
+					"content": "Loaded from features.stack.json"
+				}
+			]
+		}
+	],
+	"cards": [
+		{
+			"id": "controls",
+			"name": "Controls",
+			"background": "bg",
+			"parts": [
+				{
+					"id": "ctitle",
+					"type": "label",
+					"rect": [16, 14, 428, 22],
+					"content": "Controls Demo"
+				},
+				{
+					"id": "agree",
+					"type": "checkbox",
+					"name": "I agree",
+					"rect": [16, 48, 200, 24],
+					"script": {
+						"onMouseUp": [
+							{
+								"do": "if",
+								"condition": "field \"agree\" = \"true\"",
+								"then": [
+									{
+										"do": "put",
+										"value": "\"Thanks for agreeing!\"",
+										"field": "status"
+									}
+								],
+								"else": [
+									{
+										"do": "put",
+										"value": "\"Please agree to continue.\"",
+										"field": "status"
+									}
+								]
+							}
+						]
+					}
+				},
+				{
+					"id": "color",
+					"type": "popup",
+					"name": "Color",
+					"rect": [16, 84, 220, 28],
+					"options": {
+						"choices": [
+							{ "value": "red", "label": "Red" },
+							{ "value": "green", "label": "Green" },
+							{ "value": "blue", "label": "Blue" }
+						]
+					},
+					"script": {
+						"onMouseUp": [
+							{
+								"do": "put",
+								"value": "\"You picked \" & field \"color\"",
+								"field": "status"
+							}
+						]
+					}
+				},
+				{
+					"id": "level",
+					"type": "slider",
+					"name": "Level",
+					"rect": [16, 122, 260, 40],
+					"options": { "min": 0, "max": 100, "step": 5 },
+					"script": {
+						"onMouseUp": [
+							{ "do": "put", "value": "field \"level\"", "field": "bar" },
+							{
+								"do": "put",
+								"value": "\"Level is \" & field \"level\"",
+								"field": "status"
+							}
+						]
+					}
+				},
+				{
+					"id": "bar",
+					"type": "progress",
+					"rect": [290, 130, 154, 20],
+					"options": { "max": 100 },
+					"content": "0"
+				},
+				{
+					"id": "status",
+					"type": "field",
+					"locked": true,
+					"rect": [16, 176, 428, 48],
+					"content": "Interact with the controls above."
+				},
+				{
+					"id": "toLogic",
+					"type": "button",
+					"name": "Next: Logic →",
+					"rect": [300, 244, 144, 28],
+					"script": {
+						"onMouseUp": [
+							{ "do": "visual", "effect": "wipeLeft" },
+							{ "do": "go", "to": "logic" }
+						]
+					}
+				}
+			]
+		},
+		{
+			"id": "logic",
+			"name": "Logic",
+			"background": "bg",
+			"parts": [
+				{
+					"id": "ltitle",
+					"type": "label",
+					"rect": [16, 14, 428, 22],
+					"content": "Guess the number (it's 7)"
+				},
+				{ "id": "guess", "type": "field", "rect": [16, 48, 120, 30] },
+				{
+					"id": "check",
+					"type": "button",
+					"name": "Check",
+					"rect": [150, 50, 90, 28],
+					"script": {
+						"onMouseUp": [
+							{ "do": "add", "value": "1", "var": "tries" },
+							{
+								"do": "if",
+								"condition": "field \"guess\" = 7",
+								"then": [
+									{ "do": "answer", "message": "Correct!", "buttons": ["Yay"] }
+								],
+								"else": [
+									{
+										"do": "answer",
+										"message": "\"Nope. Tries: \" & tries",
+										"buttons": ["OK"]
+									}
+								]
+							}
+						]
+					}
+				},
+				{
+					"id": "beepBtn",
+					"type": "button",
+					"name": "Beep",
+					"rect": [16, 96, 90, 28],
+					"script": { "onMouseUp": [{ "do": "beep" }] }
+				},
+				{
+					"id": "home",
+					"type": "button",
+					"name": "⌂ Start Over",
+					"rect": [300, 244, 144, 28],
+					"script": {
+						"onMouseUp": [
+							{ "do": "put", "value": "0", "var": "tries" },
+							{ "do": "visual", "effect": "iris" },
+							{ "do": "go", "to": "first" }
+						]
+					}
+				}
+			]
+		}
+	]
+}

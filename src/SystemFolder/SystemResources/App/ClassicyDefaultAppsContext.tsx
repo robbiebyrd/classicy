@@ -5,6 +5,7 @@ export type ClassicyDefaultAppsContextValue = {
 	disablePDFViewer: boolean;
 	disableMoviePlayer: boolean;
 	disablePictureViewer: boolean;
+	disableHyperCard: boolean;
 };
 
 export const ClassicyDefaultAppsContext =
@@ -13,4 +14,5 @@ export const ClassicyDefaultAppsContext =
 		disablePDFViewer: false,
 		disableMoviePlayer: false,
 		disablePictureViewer: false,
+		disableHyperCard: false,
 	});
