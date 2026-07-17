@@ -80,6 +80,7 @@ export const ClassicyFileOpenDialog: FunctionalComponent<
 	};
 
 	// fresh dialog session: reset caches, load the first volume's root
+	// biome-ignore lint/correctness/useExhaustiveDependencies: this effect must fire only on open transitions — volumes/loadFolder are read fresh from the current closure, not tracked as invalidation keys
 	useEffect(() => {
 		if (!open || volumes.length === 0) return;
 		setFolders(new Map());
@@ -87,16 +88,15 @@ export const ClassicyFileOpenDialog: FunctionalComponent<
 		setFilterIndex(0);
 		setActiveVolumeId(volumes[0].id);
 		loadFolder(volumes[0], []);
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [open]);
 
 	// load a volume root on first switch to it
+	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally re-runs only on volume switch / open — folders/loadFolder are read fresh, not tracked as invalidation keys
 	useEffect(() => {
 		if (!open || !activeVolume) return;
 		if (!folders.has(cacheKey(activeVolume.id, []))) {
 			loadFolder(activeVolume, []);
 		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [activeVolumeId, open]);
 
 	const isEntryDisabled = (entry: ClassicyFileDialogEntry) =>
@@ -157,6 +157,7 @@ export const ClassicyFileOpenDialog: FunctionalComponent<
 		});
 	};
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: buildNodes/isEntryDisabled are recreated each render and close over folders/activeTypes already; activeVolume/folders/filterIndex are the actual invalidation keys
 	const nodes = useMemo(() => {
 		// Only clear/repopulate the index when buildNodes actually runs for
 		// these deps — resetting it unconditionally on every render would wipe
@@ -164,7 +165,6 @@ export const ClassicyFileOpenDialog: FunctionalComponent<
 		// selection change), breaking lookups for the next interaction.
 		nodeIndex.current = new Map();
 		return activeVolume ? buildNodes(activeVolume, []) : [];
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [activeVolume, folders, filterIndex]);
 
 	// prune selections that the current filter disabled or a reload removed
@@ -181,7 +181,11 @@ export const ClassicyFileOpenDialog: FunctionalComponent<
 		}
 	};
 
-	const handleSelect = (nodeId: string, _node: ClassicyTreeNode, e: unknown) => {
+	const handleSelect = (
+		nodeId: string,
+		_node: ClassicyTreeNode,
+		e: unknown,
+	) => {
 		if (!nodeIndex.current.has(nodeId)) return;
 		if (selectionMode === "single") {
 			setSelectedIds([nodeId]);
@@ -251,7 +255,7 @@ export const ClassicyFileOpenDialog: FunctionalComponent<
 			initialPosition={[180, 120]}
 			onCloseFunc={() => onCancelFunc?.()}
 		>
-			{/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: dialog-level keyboard shortcuts */}
+			{/* biome-ignore lint/a11y/noStaticElementInteractions: dialog-level keyboard shortcuts (Escape to cancel, Enter to open) */}
 			<div className={"classicyFileOpenDialogBody"} onKeyDown={handleKeyDown}>
 				<ClassicyPopUpMenu
 					id={`${id}-volume`}

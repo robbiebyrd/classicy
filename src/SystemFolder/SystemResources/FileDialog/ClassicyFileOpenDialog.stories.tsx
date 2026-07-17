@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { ClassicyFileOpenDialog } from "./ClassicyFileOpenDialog";
 import type { ClassicyFileDialogVolume } from "./ClassicyFileDialogVolume";
+import { ClassicyFileOpenDialog } from "./ClassicyFileOpenDialog";
 
 const demoVolume: ClassicyFileDialogVolume = {
 	id: "demo",

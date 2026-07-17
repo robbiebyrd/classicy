@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { renderWithProviders, screen, userEvent, waitFor } from "@/__tests__/test-utils";
+import { renderWithProviders, screen, userEvent } from "@/__tests__/test-utils";
 import type { ClassicyFileDialogVolume } from "@/SystemFolder/SystemResources/FileDialog/ClassicyFileDialogVolume";
 import { ClassicyFileOpenDialog } from "@/SystemFolder/SystemResources/FileDialog/ClassicyFileOpenDialog";
 
@@ -50,18 +50,35 @@ vi.mock("@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons", () => ({
 }));
 
 // --- scss side-effect imports, mocked like every other consumer's tests --
-vi.mock("@/SystemFolder/SystemResources/FileDialog/ClassicyFileOpenDialog.scss", () => ({}));
-vi.mock("@/SystemFolder/SystemResources/Window/ClassicyWindow.scss", () => ({}));
+vi.mock(
+	"@/SystemFolder/SystemResources/FileDialog/ClassicyFileOpenDialog.scss",
+	() => ({}),
+);
+vi.mock(
+	"@/SystemFolder/SystemResources/Window/ClassicyWindow.scss",
+	() => ({}),
+);
 vi.mock("@/SystemFolder/SystemResources/Tree/ClassicyTree.scss", () => ({}));
-vi.mock("@/SystemFolder/SystemResources/Button/ClassicyButton.scss", () => ({}));
-vi.mock("@/SystemFolder/SystemResources/Triangle/ClassicyTriangle.scss", () => ({}));
-vi.mock("@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu.scss", () => ({}));
+vi.mock(
+	"@/SystemFolder/SystemResources/Button/ClassicyButton.scss",
+	() => ({}),
+);
+vi.mock(
+	"@/SystemFolder/SystemResources/Triangle/ClassicyTriangle.scss",
+	() => ({}),
+);
+vi.mock(
+	"@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu.scss",
+	() => ({}),
+);
 vi.mock(
 	"@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel.scss",
 	() => ({}),
 );
 
-function makeVolume(overrides: Partial<ClassicyFileDialogVolume> = {}): ClassicyFileDialogVolume {
+function makeVolume(
+	overrides: Partial<ClassicyFileDialogVolume> = {},
+): ClassicyFileDialogVolume {
 	return {
 		id: "vol-a",
 		label: "Volume A",
@@ -69,11 +86,28 @@ function makeVolume(overrides: Partial<ClassicyFileDialogVolume> = {}): Classicy
 			if (path.length === 0) {
 				return [
 					{ id: "docs", name: "Documents", kind: "folder" as const },
-					{ id: "movie", name: "movie.mov", kind: "file" as const, fileType: "video" },
-					{ id: "song", name: "song.mp3", kind: "file" as const, fileType: "audio" },
+					{
+						id: "movie",
+						name: "movie.mov",
+						kind: "file" as const,
+						fileType: "video",
+					},
+					{
+						id: "song",
+						name: "song.mp3",
+						kind: "file" as const,
+						fileType: "audio",
+					},
 				];
 			}
-			return [{ id: "docs/inner", name: "inner.pdf", kind: "file" as const, fileType: "pdf" }];
+			return [
+				{
+					id: "docs/inner",
+					name: "inner.pdf",
+					kind: "file" as const,
+					fileType: "pdf",
+				},
+			];
 		}),
 		...overrides,
 	};
@@ -88,7 +122,9 @@ const baseProps = {
 
 describe("ClassicyFileOpenDialog", () => {
 	it("lists the active volume root on open", async () => {
-		renderWithProviders(<ClassicyFileOpenDialog {...baseProps} volumes={[makeVolume()]} />);
+		renderWithProviders(
+			<ClassicyFileOpenDialog {...baseProps} volumes={[makeVolume()]} />,
+		);
 		expect(await screen.findByText("movie.mov")).toBeInTheDocument();
 		expect(screen.getByText("Documents")).toBeInTheDocument();
 	});
@@ -96,7 +132,9 @@ describe("ClassicyFileOpenDialog", () => {
 	it("expands a folder lazily and shows its children", async () => {
 		const user = userEvent.setup();
 		const vol = makeVolume();
-		renderWithProviders(<ClassicyFileOpenDialog {...baseProps} volumes={[vol]} />);
+		renderWithProviders(
+			<ClassicyFileOpenDialog {...baseProps} volumes={[vol]} />,
+		);
 		await user.click(await screen.findByText("Documents"));
 		expect(await screen.findByText("inner.pdf")).toBeInTheDocument();
 		expect(vol.list).toHaveBeenCalledWith(["Documents"]);
@@ -107,14 +145,29 @@ describe("ClassicyFileOpenDialog", () => {
 		let fail = true;
 		const vol = makeVolume({
 			list: vi.fn(async (path: string[]) => {
-				if (path.length === 0) return [{ id: "docs", name: "Documents", kind: "folder" as const }];
-				if (fail) { fail = false; throw new Error("boom"); }
-				return [{ id: "docs/late", name: "late.txt", kind: "file" as const, fileType: "text_file" }];
+				if (path.length === 0)
+					return [{ id: "docs", name: "Documents", kind: "folder" as const }];
+				if (fail) {
+					fail = false;
+					throw new Error("boom");
+				}
+				return [
+					{
+						id: "docs/late",
+						name: "late.txt",
+						kind: "file" as const,
+						fileType: "text_file",
+					},
+				];
 			}),
 		});
-		renderWithProviders(<ClassicyFileOpenDialog {...baseProps} volumes={[vol]} />);
+		renderWithProviders(
+			<ClassicyFileOpenDialog {...baseProps} volumes={[vol]} />,
+		);
 		await user.click(await screen.findByText("Documents"));
-		expect(await screen.findByText("Couldn't open this folder")).toBeInTheDocument();
+		expect(
+			await screen.findByText("Couldn't open this folder"),
+		).toBeInTheDocument();
 		await user.click(screen.getByRole("button", { name: "Retry" }));
 		expect(await screen.findByText("late.txt")).toBeInTheDocument();
 	});
@@ -133,9 +186,14 @@ describe("ClassicyFileOpenDialog", () => {
 			/>,
 		);
 		await user.click(await screen.findByText("song.mp3"));
-		await user.selectOptions(screen.getByRole("combobox", { name: /show/i }), "1");
+		await user.selectOptions(
+			screen.getByRole("combobox", { name: /show/i }),
+			"1",
+		);
 		const songHolder = screen.getByText("song.mp3").closest("li");
-		expect(songHolder?.querySelector(".classicyTreeNodeDisabled")).not.toBeNull();
+		expect(
+			songHolder?.querySelector(".classicyTreeNodeDisabled"),
+		).not.toBeNull();
 		await user.click(screen.getByRole("button", { name: "Open" }));
 		expect(baseProps.onOpenFunc).not.toHaveBeenCalled(); // selection was pruned → Open disabled
 	});
@@ -144,7 +202,11 @@ describe("ClassicyFileOpenDialog", () => {
 		const user = userEvent.setup();
 		const onOpenFunc = vi.fn();
 		renderWithProviders(
-			<ClassicyFileOpenDialog {...baseProps} onOpenFunc={onOpenFunc} volumes={[makeVolume()]} />,
+			<ClassicyFileOpenDialog
+				{...baseProps}
+				onOpenFunc={onOpenFunc}
+				volumes={[makeVolume()]}
+			/>,
 		);
 		await user.click(await screen.findByText("movie.mov"));
 		await user.click(screen.getByText("song.mp3"));
@@ -163,7 +225,11 @@ describe("ClassicyFileOpenDialog", () => {
 		const user = userEvent.setup();
 		const onOpenFunc = vi.fn();
 		renderWithProviders(
-			<ClassicyFileOpenDialog {...baseProps} onOpenFunc={onOpenFunc} volumes={[makeVolume()]} />,
+			<ClassicyFileOpenDialog
+				{...baseProps}
+				onOpenFunc={onOpenFunc}
+				volumes={[makeVolume()]}
+			/>,
 		);
 		await user.dblClick(await screen.findByText("movie.mov"));
 		expect(onOpenFunc).toHaveBeenCalledTimes(1);
@@ -175,15 +241,27 @@ describe("ClassicyFileOpenDialog", () => {
 		const volB = makeVolume({
 			id: "vol-b",
 			label: "Volume B",
-			list: vi.fn(async () => [{ id: "bfile", name: "b.txt", kind: "file" as const, fileType: "text_file" }]),
+			list: vi.fn(async () => [
+				{
+					id: "bfile",
+					name: "b.txt",
+					kind: "file" as const,
+					fileType: "text_file",
+				},
+			]),
 		});
 		renderWithProviders(
 			<ClassicyFileOpenDialog {...baseProps} volumes={[makeVolume(), volB]} />,
 		);
 		await user.click(await screen.findByText("movie.mov"));
-		await user.selectOptions(screen.getByRole("combobox", { name: /volume/i }), "vol-b");
+		await user.selectOptions(
+			screen.getByRole("combobox", { name: /volume/i }),
+			"vol-b",
+		);
 		expect(await screen.findByText("b.txt")).toBeInTheDocument();
-		const openButton = screen.getByRole("button", { name: "Open" }) as HTMLButtonElement;
+		const openButton = screen.getByRole("button", {
+			name: "Open",
+		}) as HTMLButtonElement;
 		expect(openButton.disabled).toBe(true);
 	});
 
@@ -191,7 +269,11 @@ describe("ClassicyFileOpenDialog", () => {
 		const user = userEvent.setup();
 		const onCancelFunc = vi.fn();
 		renderWithProviders(
-			<ClassicyFileOpenDialog {...baseProps} onCancelFunc={onCancelFunc} volumes={[makeVolume()]} />,
+			<ClassicyFileOpenDialog
+				{...baseProps}
+				onCancelFunc={onCancelFunc}
+				volumes={[makeVolume()]}
+			/>,
 		);
 		await user.click(screen.getByRole("button", { name: "Cancel" }));
 		expect(onCancelFunc).toHaveBeenCalledTimes(1);
