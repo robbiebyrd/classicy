@@ -1,0 +1,36 @@
+@use '../../ControlPanels/AppearanceManager/styles/appearance';
+@use '../../ControlPanels/AppearanceManager/styles/assets';
+
+// Standalone engraved separator line, modeled on the Platinum menu `<hr>`
+// treatment (dark line + light highlight = incised look) but usable in any
+// dialog content region. The two-tone engraving is built from two stacked 1px
+// borders rather than a border + box-shadow so the control is asserted at
+// exactly the 2px HIG frame width and the drop-shadow never bleeds past it.
+.classicySeparator {
+  flex: 0 0 auto;
+  border: 0;
+  padding: 0;
+  background: none;
+}
+
+.classicySeparatorHorizontal {
+  box-sizing: border-box;
+  width: 100%;
+  height: var(--hig-frame-width); // 2px total: 1px line + 1px highlight
+  margin: calc(var(--window-padding-size) / 2) 0;
+  // Top pixel = the dividing line; bottom pixel = the engraved highlight.
+  border-top: var(--window-border-size) solid var(--color-system-04);
+  border-bottom: var(--window-border-size) solid var(--color-system-01);
+}
+
+.classicySeparatorVertical {
+  box-sizing: border-box;
+  width: var(--hig-frame-width); // 2px total: 1px line + 1px highlight
+  height: 100%;
+  min-height: var(--window-control-size);
+  align-self: stretch;
+  margin: 0 calc(var(--window-padding-size) / 2);
+  // Leading pixel = the dividing line; trailing pixel = the engraved highlight.
+  border-left: var(--window-border-size) solid var(--color-system-04);
+  border-right: var(--window-border-size) solid var(--color-system-01);
+}

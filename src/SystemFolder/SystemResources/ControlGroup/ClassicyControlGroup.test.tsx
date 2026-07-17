@@ -1,11 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { render, screen } from "@/__tests__/test-utils";
 import { ClassicyControlGroup } from "@/SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup";
-
-vi.mock(
-	"@/SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup.scss",
-	() => ({}),
-);
 
 describe("ClassicyControlGroup", () => {
 	it("renders label as a legend element", () => {
@@ -54,6 +49,16 @@ describe("ClassicyControlGroup", () => {
 		expect(container.querySelector("legend")).not.toBeInTheDocument();
 	});
 
+	it("renders no legend element when no title props are provided", () => {
+		const { container } = render(
+			<ClassicyControlGroup>{null}</ClassicyControlGroup>,
+		);
+		expect(container.querySelector("legend")).not.toBeInTheDocument();
+		expect(container.querySelector("fieldset")).not.toHaveClass(
+			"classicyControlGroupFieldsetLabeled",
+		);
+	});
+
 	it("applies the labeled modifier class when a label is present", () => {
 		const { container } = render(
 			<ClassicyControlGroup label="Settings">{null}</ClassicyControlGroup>,
@@ -88,5 +93,93 @@ describe("ClassicyControlGroup", () => {
 		);
 		const legend = screen.getByText("Settings") as HTMLElement;
 		expect(legend.style.backgroundColor).toBe("rgb(255, 255, 255)");
+	});
+
+	// --- Variant (#201: primary vs secondary) ---
+
+	it("applies the primary variant class by default", () => {
+		const { container } = render(
+			<ClassicyControlGroup label="Settings">{null}</ClassicyControlGroup>,
+		);
+		const fieldset = container.querySelector("fieldset");
+		expect(fieldset).toHaveClass("classicyControlGroupFieldsetPrimary");
+		expect(fieldset).not.toHaveClass("classicyControlGroupFieldsetSecondary");
+	});
+
+	it("applies the secondary variant class when variant='secondary'", () => {
+		const { container } = render(
+			<ClassicyControlGroup label="Settings" variant="secondary">
+				{null}
+			</ClassicyControlGroup>,
+		);
+		const fieldset = container.querySelector("fieldset");
+		expect(fieldset).toHaveClass("classicyControlGroupFieldsetSecondary");
+		expect(fieldset).not.toHaveClass("classicyControlGroupFieldsetPrimary");
+	});
+
+	// --- Rich titles (#201: ReactNode / checkbox / pop-up-menu titles) ---
+
+	it("renders a ReactNode title in the legend, overriding label", () => {
+		render(
+			<ClassicyControlGroup
+				label="ignored"
+				title={<span data-testid="node-title">Custom</span>}
+			>
+				{null}
+			</ClassicyControlGroup>,
+		);
+		const legend = screen.getByTestId("node-title").closest("legend");
+		expect(legend).toBeInTheDocument();
+		expect(screen.queryByText("ignored")).not.toBeInTheDocument();
+	});
+
+	it("renders a checkbox in the legend via checkboxTitle", () => {
+		const { container } = render(
+			<ClassicyControlGroup
+				checkboxTitle={{ id: "cb-title", checked: true, label: "Enable" }}
+			>
+				{null}
+			</ClassicyControlGroup>,
+		);
+		const legend = container.querySelector("legend");
+		expect(legend).toBeInTheDocument();
+		expect(legend?.querySelector("input[type='checkbox']")).toBeInTheDocument();
+		expect(container.querySelector("fieldset")).toHaveClass(
+			"classicyControlGroupFieldsetLabeled",
+		);
+	});
+
+	it("renders a pop-up menu in the legend via popUpMenuTitle", () => {
+		const { container } = render(
+			<ClassicyControlGroup
+				popUpMenuTitle={{
+					id: "popup-title",
+					options: [{ value: "a", label: "Alpha" }],
+					selected: "a",
+				}}
+			>
+				{null}
+			</ClassicyControlGroup>,
+		);
+		const legend = container.querySelector("legend");
+		expect(legend).toBeInTheDocument();
+		expect(legend?.querySelector("select")).toBeInTheDocument();
+	});
+
+	it("prefers a checkbox title over a pop-up-menu title", () => {
+		const { container } = render(
+			<ClassicyControlGroup
+				checkboxTitle={{ id: "cb", checked: true, label: "Enable" }}
+				popUpMenuTitle={{
+					id: "popup",
+					options: [{ value: "a", label: "Alpha" }],
+				}}
+			>
+				{null}
+			</ClassicyControlGroup>,
+		);
+		const legend = container.querySelector("legend");
+		expect(legend?.querySelector("input[type='checkbox']")).toBeInTheDocument();
+		expect(legend?.querySelector("select")).not.toBeInTheDocument();
 	});
 });

@@ -10,9 +10,9 @@
   // rendered legend contributes to fieldset height, and WebKit's initial
   // layout pass over-reserves the legend height until an interaction forces
   // a relayout, visibly collapsing the group.
-  border: calc(var(--window-border-size) * 2) groove rgb(239, 239, 239);
   margin: 0 calc(var(--window-border-size) * 2);
-  padding: var(--window-padding-size) calc(var(--window-padding-size) * 2) calc(var(--window-padding-size) * 1.5);
+  // HIG interior margins: 12px top, 10px sides, 10px bottom.
+  padding: var(--hig-groupbox-margin-top) var(--hig-groupbox-margin-side) var(--hig-groupbox-margin-bottom);
 
   &.classicyControlGroupFieldsetColumns {
     flex-grow: 1;
@@ -20,11 +20,26 @@
   }
 }
 
+// Primary group box: the 2px etched frame (1px light + 1px dark). The `groove`
+// keyword paints exactly that light/dark pair; the width is pinned to the HIG
+// 2px frame token shared with list boxes, edit-text frames and image wells.
+.classicyControlGroupFieldsetPrimary {
+  border: var(--hig-frame-width) groove rgb(239, 239, 239);
+}
+
+// Secondary group box: a single 1px line, no etch.
+.classicyControlGroupFieldsetSecondary {
+  border: 1px solid var(--color-system-05);
+}
+
 .classicyControlGroupFieldsetLabeled {
   // Reserve the space an in-flow legend used to occupy: half its line box
   // overhangs above the border, the rest displaces the content below.
   margin-top: calc(var(--ui-font-size) * 0.75 * 1.4 / 2);
-  padding-top: calc(var(--ui-font-size) * 0.8);
+  // Content clears the legend overhanging the top border; keep the HIG 12px
+  // top margin as the floor so short text titles still get headroom and
+  // taller checkbox / pop-up titles are not clipped.
+  padding-top: max(var(--hig-groupbox-margin-top), calc(var(--ui-font-size) * 0.8));
 }
 
 .classicyControlGroupLegend {
@@ -33,14 +48,14 @@
   line-height: 1.4;
   margin: 0;
   // Horizontal padding extends the painted background slightly past the
-  // text so it masks the groove border on both sides.
-  padding: 0 calc(var(--window-padding-size) / 2);
+  // title so it masks the frame on both sides (HIG 3px title padding).
+  padding: 0 var(--hig-groupbox-title-pad);
 
   // Absolutely positioned so the browser does not treat this as a "rendered
   // legend" and never takes the engine-specific legend layout path.
   position: absolute;
   top: calc(var(--window-border-size) * -1); // center of the border
-  left: calc(var(--window-padding-size) * 1.5); // padding keeps text aligned with the fieldset's horizontal padding
+  left: var(--hig-groupbox-margin-side); // align title with the interior side margin
   transform: translateY(-50%);
   white-space: nowrap;
 }
