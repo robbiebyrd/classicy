@@ -7,6 +7,7 @@ import {
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import {
 	useClassicyAboutMenu,
+	useClassicyEditMenu,
 	useClassicyWindowClose,
 } from "@/SystemFolder/SystemResources/App/ClassicyAppMenuHooks";
 import {
@@ -77,6 +78,7 @@ export const SimpleText = () => {
 	const defaultText = ``;
 
 	const closeWindow = useClassicyWindowClose(appId);
+	const editMenu = useClassicyEditMenu(appId);
 	const { aboutMenuItem, aboutWindow } = useClassicyAboutMenu(
 		appId,
 		appName,
@@ -101,26 +103,25 @@ export const SimpleText = () => {
 							}),
 						),
 						closeAllWindowsMenuItemHelper(`${appId}_close_all_windows`, () => {
-							openFiles.forEach((p) =>
+							openFiles.forEach((p) => {
 								closeWindow(`${appId}_file_${p}`, {
 									type: `ClassicyApp${appName}CloseFile`,
 									app: { id: appId },
 									path: p,
-								}),
-							);
+								});
+							});
 						}),
 						quitMenuItemHelper(appId, appName, appIcon),
 					],
 				},
+				editMenu,
 				{
 					id: `${windowId}_format`,
 					title: "Format",
 					menuChildren: [
 						{
 							id: "toggle-format",
-							title: isMarkdown
-								? "View as Plain Text"
-								: "View as Rich Text",
+							title: isMarkdown ? "View as Plain Text" : "View as Rich Text",
 							onClickFunc: () => toggleFileType(filePath, currentType),
 						},
 					],
@@ -132,7 +133,7 @@ export const SimpleText = () => {
 				},
 			];
 		},
-		[toggleFileType, appId, appName, appIcon, closeWindow, openFiles, aboutMenuItem],
+		[toggleFileType, closeWindow, openFiles, aboutMenuItem, editMenu],
 	);
 
 	return (
@@ -160,6 +161,7 @@ export const SimpleText = () => {
 							title: "File",
 							menuChildren: [quitMenuItemHelper(appId, appName, appIcon)],
 						},
+						editMenu,
 						{
 							id: "help",
 							title: "Help",
