@@ -96,6 +96,7 @@ export * from "./SystemFolder/SystemResources/File/useResolvedMediaSource";
 export * from "./SystemFolder/SystemResources/FileInput/ClassicyFileInput";
 export * from "./SystemFolder/SystemResources/Icon/ClassicyIcon";
 export * from "./SystemFolder/SystemResources/Input/ClassicyInput";
+export * from "./SystemFolder/SystemResources/Keyboard/useKeyboardEquivalents";
 export * from "./SystemFolder/SystemResources/Menu/ClassicyMenu";
 export * from "./SystemFolder/SystemResources/Menu/ClassicyMenuContext";
 export * from "./SystemFolder/SystemResources/Menu/ClassicyMenuProvider";
