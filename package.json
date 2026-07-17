@@ -3,7 +3,7 @@
 	"module": "./dist/classicy.es.js",
 	"types": "./dist/types/src/index.d.ts",
 	"name": "classicy",
-	"version": "0.41.2",
+	"version": "0.41.3",
 	"release": "Last Stand of Buster",
 	"repository": {
 		"type": "git",
