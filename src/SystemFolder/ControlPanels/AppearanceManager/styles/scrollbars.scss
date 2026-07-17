@@ -9,18 +9,18 @@ $sb-arrow-2x: calc(var(--window-scrollbar-arrow-size) * 2);
   // Firefox / standards fallback: WebKit gets the fully-styled platinum
   // scrollbar below; Firefox (and any engine without ::-webkit-scrollbar)
   // at least picks up the theme-accent thumb and inset track colors.
-  * {
+  & {
     scrollbar-width: auto;
     scrollbar-color: var(--color-theme-03) var(--color-system-04);
   }
 
-  ::-webkit-scrollbar {
+  &::-webkit-scrollbar {
     width: var(--window-scrollbar-size);
     height: var(--window-scrollbar-size);
   }
 
-  ::-webkit-scrollbar-button:start:vertical,
-  ::-webkit-scrollbar-button:start:horizontal {
+  &::-webkit-scrollbar-button:start:vertical,
+  &::-webkit-scrollbar-button:start:horizontal {
     display: block;
     top: var(--window-scrollbar-size);
     background-color: var(--color-system-02);
@@ -28,13 +28,13 @@ $sb-arrow-2x: calc(var(--window-scrollbar-arrow-size) * 2);
     height: var(--window-scrollbar-size);
   }
 
-  ::-webkit-scrollbar-button:start:vertical {
+  &::-webkit-scrollbar-button:start:vertical {
     border-left: var(--window-border-size) solid var(--color-black);
     border-right: var(--window-border-size) solid var(--color-black);
     border-bottom: var(--window-border-size) solid var(--color-black);
   }
 
-  ::-webkit-scrollbar-button:start:vertical:decrement {
+  &::-webkit-scrollbar-button:start:vertical:decrement {
     background: linear-gradient(transparent 75%, var(--color-black) 0) 50%/#{$sb-arrow-2x} #{$sb-arrow} no-repeat,
     linear-gradient(transparent 50%, var(--color-black) 0) 50%/#{$sb-arrow-1-5x} #{$sb-arrow} no-repeat,
     linear-gradient(transparent 25%, var(--color-black) 0) 50%/#{$sb-arrow} #{$sb-arrow} no-repeat,
@@ -44,7 +44,7 @@ $sb-arrow-2x: calc(var(--window-scrollbar-arrow-size) * 2);
     height: var(--window-scrollbar-size);
   }
 
-  ::-webkit-scrollbar-button:start:vertical:decrement:active {
+  &::-webkit-scrollbar-button:start:vertical:decrement:active {
     background: linear-gradient(transparent 75%, var(--color-black) 0) 50%/#{$sb-arrow-2x} #{$sb-arrow} no-repeat,
     linear-gradient(transparent 50%, var(--color-black) 0) 50%/#{$sb-arrow-1-5x} #{$sb-arrow} no-repeat,
     linear-gradient(transparent 25%, var(--color-black) 0) 50%/#{$sb-arrow} #{$sb-arrow} no-repeat,
@@ -54,7 +54,7 @@ $sb-arrow-2x: calc(var(--window-scrollbar-arrow-size) * 2);
     inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 var(--color-system-07);
   }
 
-  ::-webkit-scrollbar-button:start:vertical:increment {
+  &::-webkit-scrollbar-button:start:vertical:increment {
     background: linear-gradient(0deg, transparent 75%, var(--color-black) 0) 50%/#{$sb-arrow-2x} #{$sb-arrow} no-repeat,
     linear-gradient(0deg, transparent 50%, var(--color-black) 0) 50%/#{$sb-arrow-1-5x} #{$sb-arrow} no-repeat,
     linear-gradient(0deg, transparent 25%, var(--color-black) 0) 50%/#{$sb-arrow} #{$sb-arrow} no-repeat,
@@ -65,7 +65,7 @@ $sb-arrow-2x: calc(var(--window-scrollbar-arrow-size) * 2);
     height: var(--window-scrollbar-size);
   }
 
-  ::-webkit-scrollbar-button:start:vertical:increment:active {
+  &::-webkit-scrollbar-button:start:vertical:increment:active {
     background: linear-gradient(0deg, transparent 75%, var(--color-black) 0) 50%/#{$sb-arrow-2x} #{$sb-arrow} no-repeat,
     linear-gradient(0deg, transparent 50%, var(--color-black) 0) 50%/#{$sb-arrow-1-5x} #{$sb-arrow} no-repeat,
     linear-gradient(0deg, transparent 25%, var(--color-black) 0) 50%/#{$sb-arrow} #{$sb-arrow} no-repeat,
@@ -75,13 +75,13 @@ $sb-arrow-2x: calc(var(--window-scrollbar-arrow-size) * 2);
     inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 var(--color-system-07);
   }
 
-  ::-webkit-scrollbar-button:start:horizontal {
+  &::-webkit-scrollbar-button:start:horizontal {
     border-top: var(--window-border-size) solid var(--color-black);
     border-bottom: var(--window-border-size) solid var(--color-black);
     border-right: var(--window-border-size) solid var(--color-black);
   }
 
-  ::-webkit-scrollbar-button:start:horizontal:decrement {
+  &::-webkit-scrollbar-button:start:horizontal:decrement {
     background: linear-gradient(90deg, transparent 75%, var(--color-black) 0) 50%/#{$sb-arrow} #{$sb-arrow-2x} no-repeat,
     linear-gradient(90deg, transparent 50%, var(--color-black) 0) 50%/#{$sb-arrow} #{$sb-arrow-1-5x} no-repeat,
     linear-gradient(90deg, transparent 25%, var(--color-black) 0) 50%/#{$sb-arrow} #{$sb-arrow} no-repeat,
@@ -91,7 +91,7 @@ $sb-arrow-2x: calc(var(--window-scrollbar-arrow-size) * 2);
     height: var(--window-scrollbar-size);
   }
 
-  ::-webkit-scrollbar-button:start:horizontal:decrement:active {
+  &::-webkit-scrollbar-button:start:horizontal:decrement:active {
     background: linear-gradient(90deg, transparent 75%, var(--color-black) 0) 50%/#{$sb-arrow} #{$sb-arrow-2x} no-repeat,
     linear-gradient(90deg, transparent 50%, var(--color-black) 0) 50%/#{$sb-arrow} #{$sb-arrow-1-5x} no-repeat,
     linear-gradient(90deg, transparent 25%, var(--color-black) 0) 50%/#{$sb-arrow} #{$sb-arrow} no-repeat,
@@ -101,7 +101,7 @@ $sb-arrow-2x: calc(var(--window-scrollbar-arrow-size) * 2);
     inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 var(--color-system-07);
   }
 
-  ::-webkit-scrollbar-button:start:horizontal:increment {
+  &::-webkit-scrollbar-button:start:horizontal:increment {
     background: linear-gradient(270deg, transparent 75%, var(--color-black) 0) 50%/#{$sb-arrow} #{$sb-arrow-2x} no-repeat,
     linear-gradient(270deg, transparent 50%, var(--color-black) 0) 50%/#{$sb-arrow} #{$sb-arrow-1-5x} no-repeat,
     linear-gradient(270deg, transparent 25%, var(--color-black) 0) 50%/#{$sb-arrow} #{$sb-arrow} no-repeat,
@@ -112,7 +112,7 @@ $sb-arrow-2x: calc(var(--window-scrollbar-arrow-size) * 2);
     height: var(--window-scrollbar-size);
   }
 
-  ::-webkit-scrollbar-button:start:horizontal:increment:active {
+  &::-webkit-scrollbar-button:start:horizontal:increment:active {
     background: linear-gradient(270deg, transparent 75%, var(--color-black) 0) 50%/#{$sb-arrow} #{$sb-arrow-2x} no-repeat,
     linear-gradient(270deg, transparent 50%, var(--color-black) 0) 50%/#{$sb-arrow} #{$sb-arrow-1-5x} no-repeat,
     linear-gradient(270deg, transparent 25%, var(--color-black) 0) 50%/#{$sb-arrow} #{$sb-arrow} no-repeat,
@@ -122,33 +122,33 @@ $sb-arrow-2x: calc(var(--window-scrollbar-arrow-size) * 2);
     inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 var(--color-system-07);
   }
 
-  ::-webkit-scrollbar-track {
+  &::-webkit-scrollbar-track {
     background-color: var(--color-system-04);
     border: var(--window-border-size) solid var(--color-black);
   }
 
-  ::-webkit-scrollbar-track:vertical {
+  &::-webkit-scrollbar-track:vertical {
     box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-06),
     inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * 2) 0 var(--color-system-03),
     inset calc(var(--window-border-size) * 2) 0 0 rgba(0, 0, 0, 0.25),
     inset calc(var(--window-border-size) * -2) 0 0 rgba(255, 255, 255, 0.25);
   }
 
-  ::-webkit-scrollbar-track:horizontal {
+  &::-webkit-scrollbar-track:horizontal {
     box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-06),
     inset calc(var(--window-border-size) * 2) calc(var(--window-border-size) * -1) 0 var(--color-system-03),
     inset calc(var(--window-border-size) * 2) 0 0 rgba(0, 0, 0, 0.25),
     inset calc(var(--window-border-size) * -2) 0 0 rgba(255, 255, 255, 0.25);
   }
 
-  ::-webkit-scrollbar-corner {
+  &::-webkit-scrollbar-corner {
     border-top: var(--window-border-size) solid var(--color-black);
     border-left: var(--window-border-size) solid var(--color-black);
     box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-white);
     background: var(--color-system-03);
   }
 
-  ::-webkit-scrollbar {
+  &::-webkit-scrollbar {
     margin-bottom: 100px;
   }
 }
@@ -156,31 +156,23 @@ $sb-arrow-2x: calc(var(--window-scrollbar-arrow-size) * 2);
 @mixin scrollbars-inactive() {
   // Firefox / standards fallback for the inactive (blurred window) state:
   // flatten the thumb into the track using neutral system greys.
-  * {
+  & {
     scrollbar-color: var(--color-system-04) var(--color-system-02);
   }
 
-  ::-webkit-scrollbar-button:start:vertical,
-  ::-webkit-scrollbar-button:start:horizontal {
+  &::-webkit-scrollbar-button:start:vertical,
+  &::-webkit-scrollbar-button:start:horizontal {
     background-color: var(--color-system-02);
     box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-white),
     inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 rgba(255, 255, 255, 0.5);
   }
 
-  ::-webkit-scrollbar-button:start:vertical {
+  &::-webkit-scrollbar-button:start:vertical {
     background: var(--color-system-02) !important;
     border: none !important;
   }
 
-  ::-webkit-scrollbar-button:start:vertical:decrement {
-    background: var(--color-system-02) !important;
-    border: none !important;
-    box-shadow: none !important;
-    width: 0 !important;
-    height: 0 !important;
-  }
-
-  ::-webkit-scrollbar-button:start:vertical:increment {
+  &::-webkit-scrollbar-button:start:vertical:decrement {
     background: var(--color-system-02) !important;
     border: none !important;
     box-shadow: none !important;
@@ -188,12 +180,7 @@ $sb-arrow-2x: calc(var(--window-scrollbar-arrow-size) * 2);
     height: 0 !important;
   }
 
-  ::-webkit-scrollbar-button:start:horizontal {
-    border: none !important;
-    box-shadow: none !important;
-  }
-
-  ::-webkit-scrollbar-button:start:horizontal:decrement {
+  &::-webkit-scrollbar-button:start:vertical:increment {
     background: var(--color-system-02) !important;
     border: none !important;
     box-shadow: none !important;
@@ -201,7 +188,12 @@ $sb-arrow-2x: calc(var(--window-scrollbar-arrow-size) * 2);
     height: 0 !important;
   }
 
-  ::-webkit-scrollbar-button:start:horizontal:increment {
+  &::-webkit-scrollbar-button:start:horizontal {
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  &::-webkit-scrollbar-button:start:horizontal:decrement {
     background: var(--color-system-02) !important;
     border: none !important;
     box-shadow: none !important;
@@ -209,31 +201,39 @@ $sb-arrow-2x: calc(var(--window-scrollbar-arrow-size) * 2);
     height: 0 !important;
   }
 
-  ::-webkit-scrollbar-track {
+  &::-webkit-scrollbar-button:start:horizontal:increment {
+    background: var(--color-system-02) !important;
+    border: none !important;
+    box-shadow: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  &::-webkit-scrollbar-track {
     background: var(--color-system-02) !important;
     border: var(--window-border-size) solid var(--color-system-06) !important;
   }
 
-  ::-webkit-scrollbar-track:vertical {
+  &::-webkit-scrollbar-track:vertical {
     box-shadow: none !important;
   }
 
-  ::-webkit-scrollbar-track:horizontal {
+  &::-webkit-scrollbar-track:horizontal {
     box-shadow: none !important;
   }
 
-  ::-webkit-scrollbar-corner {
+  &::-webkit-scrollbar-corner {
     border: none !important;
     box-shadow: none !important;
   }
 
-  ::-webkit-scrollbar-thumb {
+  &::-webkit-scrollbar-thumb {
     display: none !important;
   }
 }
 
 @mixin scrollbars-themed() {
-  ::-webkit-scrollbar-thumb {
+  &::-webkit-scrollbar-thumb {
     min-width: var(--window-control-size);
     min-height: var(--window-control-size);
     border: var(--window-border-size) solid var(--color-theme-07);
@@ -241,7 +241,7 @@ $sb-arrow-2x: calc(var(--window-scrollbar-arrow-size) * 2);
     inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 var(--color-theme-04) !important;
   }
 
-  ::-webkit-scrollbar-thumb:vertical {
+  &::-webkit-scrollbar-thumb:vertical {
     background: linear-gradient(
                     transparent 12.5%,
                     var(--color-theme-05) 0,
@@ -277,7 +277,7 @@ $sb-arrow-2x: calc(var(--window-scrollbar-arrow-size) * 2);
     var(--color-theme-03);
   }
 
-  ::-webkit-scrollbar-thumb:horizontal {
+  &::-webkit-scrollbar-thumb:horizontal {
     background: linear-gradient(
                     90deg,
                     transparent 12.5%,
