@@ -6,6 +6,10 @@
 
   border-radius: calc(var(--window-padding-size)/2);
 
+  // Mac OS 8 HIG push-button metrics (theme tokens, injected at runtime).
+  // Minimum button height (HIG 20px).
+  min-height: var(--hig-button-height);
+
   user-select: none;
   -webkit-user-select: none;
 
@@ -14,6 +18,12 @@
   }
 
   @include appearance.platinumWindowDepressable;
+}
+
+// HIG: OK / Cancel–style push buttons have a minimum width (58px). Applies to
+// standard rectangular buttons only — square (icon) and small buttons opt out.
+.classicyButton:not(.classicyButtonShapeSquare):not(.classicyButtonSmall) {
+  min-width: var(--hig-button-min-width);
 }
 
 .classicyButtonDefault {
@@ -25,6 +35,16 @@
 
   @include appearance.platinumDepressableDefault;
 
+  // Anchor the platinum default-button ring outset to the HIG token (3px).
+  // Same three-layer platinum ring as the mixin, but its outer reach is now
+  // driven by --hig-button-default-ring instead of border-size arithmetic.
+  box-shadow:
+    0 0 0 calc(var(--hig-button-default-ring) / 3) var(--color-system-04),
+    0 0 0 calc(var(--hig-button-default-ring) / 3 * 2) var(--color-system-02),
+    0 0 0 var(--hig-button-default-ring) var(--color-black),
+    inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 0 var(--color-system-05),
+    inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-06);
+
   &:active:disabled {
     box-shadow: none;
   }
@@ -32,6 +52,17 @@
 
 .classicyButtonDepressed {
   @include appearance.platinumWindowDepressed;
+}
+
+// ~8-tick keyboard-activation highlight (Enter/Space on the focused button).
+// Mirrors the pressed (:active) appearance so keyboard activation gives the
+// same visual feedback as a mouse press.
+.classicyButtonKeyActive {
+  @include appearance.platinumWindowDepressed;
+}
+
+.classicyButtonDefault.classicyButtonKeyActive {
+  @include appearance.platinumDepressableBoxShadowActive;
 }
 
 .classicyButtonShapeSquare {
@@ -62,7 +93,9 @@
 
 // Spacing scale — all derived from --window-padding-size so it tracks the theme.
 // Keys are the class-name suffix; values are the multiplier. Md (1x) reproduces
-// the historical default spacing.
+// the historical default spacing. Horizontal padding is floored at the HIG
+// text-to-border minimum (--hig-button-text-padding, 8px) so labels never crowd
+// the button frame.
 $classicy-button-spacing: (
   Sm: 0.5,
   Md: 1,
@@ -73,7 +106,7 @@ $classicy-button-spacing: (
 @each $suffix, $mult in $classicy-button-spacing {
   .classicyButtonPadding#{$suffix} {
     padding: calc(var(--window-padding-size) / 2 * #{$mult})
-      calc(var(--window-padding-size) * #{$mult});
+      max(var(--hig-button-text-padding), calc(var(--window-padding-size) * #{$mult}));
   }
 
   .classicyButtonMargin#{$suffix} {
