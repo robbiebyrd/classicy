@@ -79,11 +79,10 @@ export const ClassicySoundManager: FunctionalComponent = () => {
 	};
 
 	// Mac OS 8 HIG control-panel menu bar (audit ch. 6 §35): Apple / File.
-	// About ideally lives as the first item of the global Apple menu
-	// (Desktop.systemMenu), which is outside this panel's editable scope; until a
-	// per-app Apple-menu injection point exists it sits at the top of File (out of
-	// the old Help menu). No Edit menu — this panel has no text-entry fields.
-	// TODO(#209): relocate About to the Apple menu.
+	// The About entry is discovery data for the desktop menu bar (HIG #209):
+	// ClassicyDesktopMenuBar hoists it into the Apple menu and strips it from
+	// this menu before rendering, so it must stay published but never shows here.
+	// No Edit menu — this panel has no text-entry fields.
 	//
 	// ClassicyMenu renders an <hr> divider only for id === "spacer" and keys by
 	// id, so at most one divider per menu.

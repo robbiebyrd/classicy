@@ -66,6 +66,44 @@ const findAppAboutItem = (
 const isAboutThisComputerItem = (item: ClassicyMenuItem): boolean =>
 	item.id === "about" || item.title === "About This Computer";
 
+/** Drop leading/trailing dividers and collapse runs left behind by a removal. */
+const trimSpacers = (items: ClassicyMenuItem[]): ClassicyMenuItem[] => {
+	const trimmed: ClassicyMenuItem[] = [];
+	for (const item of items) {
+		if (
+			item.id === "spacer" &&
+			(trimmed.length === 0 || trimmed[trimmed.length - 1].id === "spacer")
+		) {
+			continue;
+		}
+		trimmed.push(item);
+	}
+	while (trimmed.length > 0 && trimmed[trimmed.length - 1].id === "spacer") {
+		trimmed.pop();
+	}
+	return trimmed;
+};
+
+/**
+ * Remove the hoisted About entry (matched by reference — it came out of this
+ * same tree via `findAppAboutItem`) from the app's published menus so About
+ * renders only in the Apple menu. Menus emptied by the removal are dropped
+ * entirely, and dividers left dangling by it are tidied away.
+ */
+const stripAboutItem = (
+	items: ClassicyMenuItem[],
+	aboutItem: ClassicyMenuItem,
+): ClassicyMenuItem[] =>
+	items.flatMap((item) => {
+		if (item === aboutItem) return [];
+		if (!item.menuChildren || item.menuChildren.length === 0) return [item];
+		const menuChildren = trimSpacers(
+			stripAboutItem(item.menuChildren, aboutItem),
+		);
+		if (menuChildren.length === 0) return [];
+		return [{ ...item, menuChildren }];
+	});
+
 export const ClassicyDesktopMenuBar: FunctionalComponent = () => {
 	return (
 		<ClassicyMenuProvider>
@@ -161,10 +199,10 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
 	}, [disableBalloonHelp, appHelpMenu]);
 
 	// HIG #209: the first Apple-menu item is "About <the focused app>". Resolve
-	// the focused app (fallback Finder), pull its About handler out of the app's
-	// published menu, and prepend it — then splice in the rest of the system
+	// the focused app (fallback Finder), *move* its About entry out of the app's
+	// published menu into the Apple menu — then splice in the rest of the system
 	// menu with its own "About This Computer" entry removed to avoid two Abouts.
-	const appleMenuItem: ClassicyMenuItem = useMemo(() => {
+	const { appleMenuItem, strippedAppMenu } = useMemo(() => {
 		const appList = Object.values(apps);
 		const focusedApp =
 			appList.find((a) => a.focused === true) ??
@@ -199,24 +237,29 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
 		}
 
 		return {
-			id: "apple-menu",
-			image: appleMenuIcon,
-			menuChildren,
-			className: "clasicyDesktopMenuAppleMenu",
+			appleMenuItem: {
+				id: "apple-menu",
+				image: appleMenuIcon,
+				menuChildren,
+				className: "clasicyDesktopMenuAppleMenu",
+			} satisfies ClassicyMenuItem,
+			// The hoisted About must not also render in the app's own menus.
+			strippedAppMenu:
+				aboutItem && appMenu ? stripAboutItem(appMenu, aboutItem) : appMenu,
 		};
 	}, [apps, appMenu, systemMenu]);
 
 	const defaultMenuItems: ClassicyMenuItem[] = useMemo(() => {
 		const items = [appleMenuItem] as ClassicyMenuItem[];
-		if (appMenu) {
-			items.push(...appMenu);
+		if (strippedAppMenu) {
+			items.push(...strippedAppMenu);
 		}
 		// Help is the rightmost standard menu; the App Switcher floats to the far
 		// right of the bar (8.5+ construct) and is kept last in the data.
 		items.push(helpMenuItem);
 		items.push(appSwitcherMenuMenuItem);
 		return items;
-	}, [appleMenuItem, appMenu, helpMenuItem, appSwitcherMenuMenuItem]);
+	}, [appleMenuItem, strippedAppMenu, helpMenuItem, appSwitcherMenuMenuItem]);
 
 	// HIG #187: app-wide command-key dispatch is handled by ClassicyMenu's own
 	// root keydown listener (below, `menuItems={defaultMenuItems}`), which fires a

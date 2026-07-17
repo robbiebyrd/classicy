@@ -202,12 +202,10 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 
 	// Mac OS 8 HIG control-panel menu bar (audit ch. 6 §35): Apple / File / Edit.
 	//
-	// HIG ideal: "About <name>" is the FIRST item of the *Apple* menu. That menu
-	// is the global Desktop.systemMenu, owned by the desktop menu-bar workstream
-	// and outside this control panel's editable scope, so there is currently no
-	// per-app Apple-menu injection point. Until one exists we surface About at the
-	// top of the File menu (out of the old Help menu, which the HIG discourages
-	// for About) so it stays reachable. TODO(#209): relocate to the Apple menu.
+	// The About entry published here is discovery data for the desktop menu bar
+	// (HIG #209): ClassicyDesktopMenuBar hoists it into the Apple menu as
+	// "About <name>" and strips it from this menu before rendering, so it never
+	// shows under File — but it must stay published or the Apple menu loses it.
 	//
 	// Note: ClassicyMenu only renders an <hr> divider for items whose id is
 	// exactly "spacer" and keys items by id, so at most one divider per menu.

@@ -131,6 +131,107 @@ describe("ClassicyDesktopMenuBar — About <app> in the Apple menu (HIG #209)", 
 	});
 });
 
+describe("ClassicyDesktopMenuBar — About is moved (not copied) into the Apple menu", () => {
+	beforeEach(() => {
+		useAppManager.setState(DefaultAppManagerState, true);
+	});
+
+	function focusPdfAppWithMenu(appMenu: ClassicyMenuItem[]): void {
+		setStore((draft) => {
+			draft.System.Manager.Applications.apps = {
+				"PDFViewer.app": pdfApp,
+			};
+			draft.System.Manager.Applications.focusedAppId = "PDFViewer.app";
+			draft.System.Manager.Desktop.appMenu = appMenu;
+		});
+	}
+
+	it("strips the hoisted About item from the app's own menus", () => {
+		focusPdfAppWithMenu([
+			{
+				id: "PDFViewer.app_help",
+				title: "Help",
+				menuChildren: [
+					{
+						id: "PDFViewer.app_help_balloon",
+						title: "Hide Balloon Help",
+						onClickFunc: vi.fn(),
+					},
+					{
+						id: "PDFViewer.app_about",
+						title: "About",
+						onClickFunc: vi.fn(),
+					},
+				],
+			},
+		]);
+
+		render(<ClassicyDesktopMenuBar />);
+
+		// Hoisted copy is in the Apple menu…
+		expect(document.getElementById("PDFViewer.app_about_apple")).not.toBeNull();
+		// …and the original is gone from the app's Help menu.
+		expect(document.getElementById("PDFViewer.app_about")).toBeNull();
+		// Sibling items survive the strip.
+		expect(
+			document.getElementById("PDFViewer.app_help_balloon"),
+		).not.toBeNull();
+	});
+
+	it("drops an app menu left empty by the About strip", () => {
+		focusPdfAppWithMenu([
+			{
+				id: "PDFViewer.app_help",
+				title: "Help",
+				menuChildren: [
+					{
+						id: "PDFViewer.app_about",
+						title: "About",
+						onClickFunc: vi.fn(),
+					},
+				],
+			},
+		]);
+
+		render(<ClassicyDesktopMenuBar />);
+
+		expect(document.getElementById("PDFViewer.app_about_apple")).not.toBeNull();
+		// Help held only About — the whole menu disappears rather than render empty.
+		expect(document.getElementById("PDFViewer.app_help")).toBeNull();
+	});
+
+	it("removes a spacer left dangling at the top of a stripped menu", () => {
+		focusPdfAppWithMenu([
+			{
+				id: "PDFViewer.app_file",
+				title: "File",
+				menuChildren: [
+					{
+						id: "PDFViewer.app_about",
+						title: "About PDFViewer",
+						onClickFunc: vi.fn(),
+					},
+					{ id: "spacer" },
+					{
+						id: "PDFViewer.app_quit",
+						title: "Quit",
+						onClickFunc: vi.fn(),
+					},
+				],
+			},
+		]);
+
+		render(<ClassicyDesktopMenuBar />);
+
+		expect(document.getElementById("PDFViewer.app_about")).toBeNull();
+		const fileMenu = document.getElementById("PDFViewer.app_file");
+		expect(fileMenu).not.toBeNull();
+		// First remaining child is Quit, not the orphaned divider.
+		const firstChild = fileMenu?.querySelector(".classicyMenuWrapper ul li");
+		expect(firstChild?.id).toBe("PDFViewer.app_quit");
+	});
+});
+
 describe("ClassicyDesktopMenuBar — app-wide keyboard shortcuts (HIG #187)", () => {
 	beforeEach(() => {
 		useAppManager.setState(DefaultAppManagerState, true);
