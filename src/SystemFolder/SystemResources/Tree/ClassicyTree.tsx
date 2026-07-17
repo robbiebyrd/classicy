@@ -116,7 +116,7 @@ const ClassicyTreeNodeItem: FunctionalComponent<ClassicyTreeNodeItemProps> = ({
 		onToggleNode?.(node.id, next);
 	}
 
-	function handleKeyDown(e: KeyboardEvent<HTMLDivElement>) {
+	function handleKeyDown(e: ReactKeyboardEvent<HTMLDivElement>) {
 		if (e.key === "Enter" || e.key === " ") {
 			e.preventDefault();
 			toggle();
