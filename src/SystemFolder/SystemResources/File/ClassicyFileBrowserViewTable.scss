@@ -32,7 +32,6 @@
 }
 
 .classicyFileBrowserViewTableContainer {
-  @extend %classicyListBoxFrame;
   position: absolute;
   width: 100%;
   height: calc(100% - var(--window-border-size));
