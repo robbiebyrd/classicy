@@ -13,6 +13,7 @@ export enum ClassicyFileSystemEntryFileType {
 	Image = "image",
 	Video = "video",
 	Audio = "audio",
+	Stack = "stack",
 }
 
 export type ClassicyFileSystemEntryMetadata = {

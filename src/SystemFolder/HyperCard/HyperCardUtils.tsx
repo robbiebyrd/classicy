@@ -146,6 +146,13 @@ export interface HCOpenStack {
 export interface HyperCardData {
 	activeStackId?: string;
 	openStacks: Record<string, HCOpenStack>;
+	/**
+	 * File-system paths of `.stack` documents queued by
+	 * ClassicyAppHyperCardOpenFile (Finder routing for
+	 * ClassicyFileSystemEntryFileType.Stack). The HyperCard component fetches,
+	 * validates, and opens each, then consumes the path.
+	 */
+	pendingOpenFiles?: string[];
 }
 
 export function isHyperCardData(d: unknown): d is HyperCardData {

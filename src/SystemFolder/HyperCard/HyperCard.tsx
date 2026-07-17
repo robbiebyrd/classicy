@@ -21,7 +21,10 @@ import {
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { HyperCardCard } from "@/SystemFolder/HyperCard/HyperCardCard";
 import { HyperCardDialog } from "@/SystemFolder/HyperCard/HyperCardDialog";
-import type { HCStack } from "@/SystemFolder/HyperCard/HyperCardModel";
+import {
+	type HCStack,
+	validateStack,
+} from "@/SystemFolder/HyperCard/HyperCardModel";
 import {
 	getHyperCardEffectHandler,
 	getRegisteredStacks,
@@ -38,7 +41,11 @@ import {
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import { quitMenuItemHelper } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
+import { resolveFileSystemEntrySource } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContentResolver";
+import { useClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
+import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import { decompressFromBase64 } from "@/SystemFolder/SystemResources/Utils/base64Compression";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 // Side-effect import: registers the ClassicyAppHyperCard* reducer.
 import "./HyperCardContext";
@@ -167,6 +174,70 @@ export const HyperCard: FunctionalComponent = () => {
 		return () => clearTimeout(timer);
 	}, [activeStackId, waitToken, waitMs, dispatch]);
 
+	// --- load queued `.stack` documents (Finder OpenFile routing) ---
+	// The reducer only queues paths (fetching is async); this effect resolves
+	// each entry through the file system, fetches/decodes its JSON, validates
+	// it, and either opens the stack or reports the failure.
+	const fs = useClassicyFileSystem();
+	const pendingOpenFiles = data?.pendingOpenFiles;
+	const loadingRef = useRef<Set<string>>(new Set());
+	useEffect(() => {
+		if (!pendingOpenFiles || pendingOpenFiles.length === 0) return;
+		for (const path of pendingOpenFiles) {
+			if (loadingRef.current.has(path)) continue;
+			loadingRef.current.add(path);
+			const fileName = path.split(":").pop() ?? path;
+			const fail = (message: string) => {
+				loadingRef.current.delete(path);
+				dispatch({
+					type: "ClassicyAppHyperCardOpenFileFailed",
+					path,
+					message,
+				});
+			};
+			let source: ReturnType<typeof resolveFileSystemEntrySource>;
+			try {
+				source = resolveFileSystemEntrySource(fs.resolve(path));
+			} catch {
+				source = { kind: "none" };
+			}
+			const textPromise: Promise<string> =
+				source.kind === "url"
+					? fetch(source.url).then((r) => {
+							if (!r.ok) throw new Error(`HTTP ${r.status}`);
+							return r.text();
+						})
+					: source.kind === "data"
+						? decompressFromBase64(source.data).then((bytes) =>
+								new TextDecoder().decode(bytes),
+							)
+						: Promise.reject(new Error("the file has no content"));
+			textPromise
+				.then((text) => {
+					const result = validateStack(JSON.parse(text));
+					if (result.ok === false) {
+						fail(
+							`“${fileName}” is not a valid HyperCard stack: ${result.errors[0]}`,
+						);
+						return;
+					}
+					loadingRef.current.delete(path);
+					dispatch({
+						type: "ClassicyAppHyperCardOpenStack",
+						stackId: path,
+						stackSource: path,
+						stack: result.stack,
+					});
+					dispatch({ type: "ClassicyAppHyperCardOpenFileConsumed", path });
+				})
+				.catch((err: unknown) => {
+					fail(
+						`“${fileName}” could not be opened: ${err instanceof Error ? err.message : String(err)}.`,
+					);
+				});
+		}
+	}, [pendingOpenFiles, fs, dispatch]);
+
 	const openStack = useCallback(
 		(id: string, stack: HCStack) => {
 			dispatch({
@@ -252,6 +323,7 @@ export const HyperCard: FunctionalComponent = () => {
 			icon={appIcon}
 			addSystemMenu={true}
 			defaultWindow={"hypercard_main"}
+			handlesFileTypes={[ClassicyFileSystemEntryFileType.Stack]}
 		>
 			<ClassicyWindow
 				id={"hypercard_main"}

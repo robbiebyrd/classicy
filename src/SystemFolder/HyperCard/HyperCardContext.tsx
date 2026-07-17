@@ -206,6 +206,49 @@ export const classicyHyperCardEventHandler = (
 			break;
 		}
 
+		case "ClassicyAppHyperCardOpenFile": {
+			// Finder routes double-clicked Stack-type files here (see
+			// FinderContext's fileTypeHandlers dispatch). The reducer only queues
+			// the path — fetching/parsing is async, so the HyperCard component
+			// resolves the entry and dispatches OpenStack/OpenFileFailed.
+			const path = action.path as string | undefined;
+			if (!path) break;
+			const pending = data.pendingOpenFiles ?? [];
+			if (!pending.includes(path) && !data.openStacks[path]) {
+				data.pendingOpenFiles = [...pending, path];
+			} else if (data.openStacks[path]) {
+				// Already open from this path: just focus it.
+				data.activeStackId = path;
+			}
+			openApp(ds, APP_ID, HyperCardAppInfo.name, HyperCardAppInfo.icon);
+			break;
+		}
+
+		case "ClassicyAppHyperCardOpenFileConsumed": {
+			const path = action.path as string | undefined;
+			if (!path) break;
+			data.pendingOpenFiles = (data.pendingOpenFiles ?? []).filter(
+				(p) => p !== path,
+			);
+			break;
+		}
+
+		case "ClassicyAppHyperCardOpenFileFailed": {
+			const path = action.path as string | undefined;
+			if (!path) break;
+			data.pendingOpenFiles = (data.pendingOpenFiles ?? []).filter(
+				(p) => p !== path,
+			);
+			ds.System.Manager.Desktop.errorDialog = {
+				title: "HyperCard",
+				message:
+					typeof action.message === "string" && action.message.length > 0
+						? action.message
+						: "The stack could not be opened.",
+			};
+			break;
+		}
+
 		case "ClassicyAppHyperCardCloseStack": {
 			const stackId =
 				(action.stackId as string | undefined) ?? data.activeStackId;
