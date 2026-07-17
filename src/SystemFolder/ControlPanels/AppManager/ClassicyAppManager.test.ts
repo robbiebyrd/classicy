@@ -856,6 +856,27 @@ describe("generic OpenFile / CloseFile", () => {
 	});
 });
 
+describe("ClassicyAppFileSystemChanged", () => {
+	it("bumps the file system revision from an unset counter", () => {
+		const ds = makeStore();
+		expect(ds.System.Manager.Applications.fileSystemRevision).toBeUndefined();
+
+		classicyAppEventHandler(ds, { type: "ClassicyAppFileSystemChanged" });
+
+		expect(ds.System.Manager.Applications.fileSystemRevision).toBe(1);
+	});
+
+	it("increments an existing revision on each write", () => {
+		const ds = makeStore();
+		ds.System.Manager.Applications.fileSystemRevision = 4;
+
+		classicyAppEventHandler(ds, { type: "ClassicyAppFileSystemChanged" });
+		classicyAppEventHandler(ds, { type: "ClassicyAppFileSystemChanged" });
+
+		expect(ds.System.Manager.Applications.fileSystemRevision).toBe(6);
+	});
+});
+
 describe("file type registration", () => {
 	it("registers file types on an app and updates fileTypeHandlers", () => {
 		const ds = makeStore();

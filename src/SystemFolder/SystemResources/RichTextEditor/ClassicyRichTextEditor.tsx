@@ -17,6 +17,8 @@ import type { FC as FunctionalComponent, RefObject } from "react";
 interface ClassicyRichTextEditorProps {
 	content: string;
 	editorRef?: RefObject<MDXEditorMethods | null>;
+	/** Fired with the current markdown whenever the document is edited. */
+	onChangeFunc?: (markdown: string) => void;
 }
 
 const editorPlugins = [
@@ -40,7 +42,7 @@ const editorPlugins = [
 
 export const ClassicyRichTextEditor: FunctionalComponent<
 	ClassicyRichTextEditorProps
-> = ({ content, editorRef }) => {
+> = ({ content, editorRef, onChangeFunc }) => {
 	return (
 		<div className={"classicyRichTextEditor"}>
 			<MDXEditor
@@ -48,6 +50,7 @@ export const ClassicyRichTextEditor: FunctionalComponent<
 				markdown={content}
 				contentEditableClassName="prose"
 				plugins={editorPlugins}
+				onChange={onChangeFunc}
 			/>
 		</div>
 	);

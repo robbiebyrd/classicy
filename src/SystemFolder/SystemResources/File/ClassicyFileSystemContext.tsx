@@ -56,7 +56,16 @@ export function useClassicyFileSystem(
 			.join("\u0001"),
 	);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: appShortcutsKey and extensionAppsKey are intentional invalidation keys — the icon/app sets are read via getState() so moves/focus don't re-render
+	// Bumped by ClassicyAppFileSystemChanged after any write to the file system
+	// (see useClassicyFileSystemWriter). Because each hook call builds its own
+	// localStorage-seeded ClassicyFileSystem, a save in one component would
+	// otherwise never reach another's instance — depending on this revision
+	// forces every consumer to rebuild from the freshly persisted snapshot.
+	const fileSystemRevision = useAppManager(
+		(s) => s.System.Manager.Applications.fileSystemRevision ?? 0,
+	);
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: appShortcutsKey, extensionAppsKey and fileSystemRevision are intentional invalidation keys — the icon/app sets are read via getState() so moves/focus don't re-render
 	return useMemo(() => {
 		const resolved = !defaultFileSystem
 			? DefaultFSContent
@@ -87,5 +96,6 @@ export function useClassicyFileSystem(
 		separator,
 		appShortcutsKey,
 		extensionAppsKey,
+		fileSystemRevision,
 	]);
 }

@@ -47,6 +47,12 @@ export interface ClassicyStoreSystemAppManager
 	apps: Record<string, ClassicyStoreSystemApp>;
 	fileTypeHandlers: Record<ClassicyFileSystemEntryFileType, string>;
 	focusedAppId?: string;
+	/** Monotonic counter bumped whenever the virtual file system is written to.
+	 *  useClassicyFileSystem reads this so every consumer rebuilds its (per-hook,
+	 *  localStorage-seeded) ClassicyFileSystem instance after a save — otherwise
+	 *  a file written by one app would stay invisible to the Finder and others.
+	 *  Optional so existing store fixtures need not set it; reads default to 0. */
+	fileSystemRevision?: number;
 }
 
 export interface ClassicyStoreSystemApp {
@@ -290,6 +296,14 @@ export const classicyAppEventHandler = (
 			}
 			break;
 		}
+		case "ClassicyAppFileSystemChanged": {
+			// Fired after any write to the virtual file system (see
+			// useClassicyFileSystemWriter). Bumping the revision invalidates every
+			// useClassicyFileSystem memo so all consumers re-read from localStorage.
+			const apps = ds.System.Manager.Applications;
+			apps.fileSystemRevision = (apps.fileSystemRevision ?? 0) + 1;
+			break;
+		}
 		case "ClassicyAppSetDefaultFileTypeHandler": {
 			if (hasAppAndFileType(action)) {
 				ds.System.Manager.Applications.fileTypeHandlers[
@@ -454,6 +468,7 @@ export const DefaultAppManagerState: ClassicyStore = {
 						"Finder.app",
 					]),
 				) as Record<ClassicyFileSystemEntryFileType, string>,
+				fileSystemRevision: 0,
 			},
 			Appearance: {
 				availableThemes: getAllThemes(),
