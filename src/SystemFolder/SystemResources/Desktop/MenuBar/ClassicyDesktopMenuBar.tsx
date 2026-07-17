@@ -6,10 +6,6 @@ import "./ClassicyDesktopMenuBar.scss";
 import { ClassicyDesktopMenuWidgetSound } from "@/SystemFolder/SystemResources/Desktop/MenuBar/Widgets/Sound/ClassicyDesktopMenuWidgetSound";
 import { ClassicyDesktopMenuWidgetTime } from "@/SystemFolder/SystemResources/Desktop/MenuBar/Widgets/Time/ClassicyDesktopMenuWidgetTime";
 import {
-	findMenuItemByShortcut,
-	runMenuItemAction,
-} from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
-import {
 	ClassicyMenu,
 	type ClassicyMenuItem,
 } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
@@ -89,7 +85,7 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
 	// not a consumer has populated a `helpMenu` slot on the desktop store.
 	const appHelpMenu = useAppManager((s) => s.System.Manager.Desktop?.helpMenu);
 	const desktopEventDispatch = useAppManagerDispatch();
-	const { closeAll, menuBarActive } = useContext(ClassicyMenuContext);
+	const { closeAll } = useContext(ClassicyMenuContext);
 	const navRef = useRef<HTMLElement>(null);
 
 	useEffect(() => {
@@ -145,6 +141,10 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
 			{
 				id: "help-toggle-balloons",
 				title: disableBalloonHelp ? "Show Balloons" : "Hide Balloons",
+				// Real working equivalent — Option-H rather than a ⌘ combo, since
+				// the browser reserves most ⌘/Ctrl+letter chords. Fires whether or
+				// not the Help menu is dropped down.
+				keyboardShortcut: "⌥H",
 				event: "ClassicyDesktopSetBalloonHelp",
 				eventData: { disableBalloonHelp: !disableBalloonHelp },
 			},
@@ -218,29 +218,10 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
 		return items;
 	}, [appleMenuItem, appMenu, helpMenuItem, appSwitcherMenuMenuItem]);
 
-	// HIG #187: a command-key equivalent works app-wide, not only while a menu is
-	// dropped down. When a menu IS open, ClassicyMenu's own root listener already
-	// dispatches command-keys, so this listener stands down (menuBarActive guard)
-	// to avoid firing an item twice. `defaultPrevented` further guards against any
-	// other handler that already consumed the same keystroke.
-	const shortcutMenuSet: ClassicyMenuItem[] = useMemo(
-		() => [appleMenuItem, ...(appMenu ?? []), helpMenuItem],
-		[appleMenuItem, appMenu, helpMenuItem],
-	);
-
-	useEffect(() => {
-		const handler = (event: KeyboardEvent) => {
-			if (menuBarActive) return;
-			if (event.defaultPrevented) return;
-			if (!(event.metaKey || event.ctrlKey)) return;
-			const match = findMenuItemByShortcut(shortcutMenuSet, event);
-			if (!match) return;
-			event.preventDefault();
-			runMenuItemAction(match, desktopEventDispatch);
-		};
-		document.addEventListener("keydown", handler);
-		return () => document.removeEventListener("keydown", handler);
-	}, [menuBarActive, shortcutMenuSet, desktopEventDispatch]);
+	// HIG #187: app-wide command-key dispatch is handled by ClassicyMenu's own
+	// root keydown listener (below, `menuItems={defaultMenuItems}`), which fires a
+	// matching item's action whether or not a menu is dropped down. No separate
+	// listener is needed here.
 
 	return (
 		<nav ref={navRef} className={"classicyDesktopMenuBar"}>

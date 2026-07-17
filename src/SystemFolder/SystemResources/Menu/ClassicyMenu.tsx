@@ -87,7 +87,22 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 		if (isSubmenu) return;
 		const handler = (event: KeyboardEvent) => {
 			if (event.defaultPrevented) return;
-			if (!(event.metaKey || event.ctrlKey)) return;
+			// Menu equivalents require a Command (⌘/Ctrl), Control, or Option
+			// modifier. Plain keystrokes never trigger a menu action.
+			if (!(event.metaKey || event.ctrlKey || event.altKey)) return;
+			// For an Option/Alt-only chord, don't hijack text entry — Option+letter
+			// types accented characters in inputs/textareas on macOS.
+			if (!event.metaKey && !event.ctrlKey) {
+				const t = event.target as HTMLElement | null;
+				if (
+					t &&
+					(t.tagName === "INPUT" ||
+						t.tagName === "TEXTAREA" ||
+						t.isContentEditable)
+				) {
+					return;
+				}
+			}
 			const match = findMenuItemByShortcut(menuItems, event);
 			if (!match) return;
 			event.preventDefault();

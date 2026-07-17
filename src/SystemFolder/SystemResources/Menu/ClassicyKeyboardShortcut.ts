@@ -89,8 +89,27 @@ export const formatKeyboardShortcut = (raw: string | undefined): string => {
 };
 
 /**
+ * Match a shortcut's key against a keydown event by BOTH the logical key
+ * (`e.key`) and the physical key (`e.code`). The physical fallback is essential
+ * for Option/Alt equivalents: on macOS, Option+&lt;letter&gt; remaps `e.key` to a
+ * composed/dead-key character (Option+E → "Dead"/"´"), but `e.code` stays
+ * `KeyE`, so only a code match survives.
+ */
+const keyMatchesEvent = (key: string, e: KeyboardEvent): boolean => {
+	if (!key) return false;
+	const k = key.toLowerCase();
+	if (e.key.toLowerCase() === k) return true;
+	if (/^[a-z]$/.test(k) && e.code === `Key${k.toUpperCase()}`) return true;
+	if (/^[0-9]$/.test(k) && e.code === `Digit${k}`) return true;
+	return false;
+};
+
+/**
  * Does a keydown event satisfy this shortcut? Command is matched against
  * meta-or-ctrl (mirrors `useKeyboardEquivalents`) so it works on any platform.
+ * Control and Option are matched against `e.ctrlKey` / `e.altKey`, so menu items
+ * can register `⌃`/`⌥` equivalents (which the browser is far less likely to
+ * reserve than `⌘`/Ctrl+letter).
  */
 export const shortcutMatchesEvent = (
 	raw: string | undefined,
@@ -104,15 +123,19 @@ export const shortcutMatchesEvent = (
 		if (!cmdOrCtrl) return false;
 	} else if (p.control) {
 		if (!e.ctrlKey) return false;
+	} else if (p.option) {
+		// Option-only equivalent: require Alt and no command/control key so a
+		// ⌘/Ctrl press can't accidentally trigger it.
+		if (!e.altKey || cmdOrCtrl) return false;
 	} else if (cmdOrCtrl) {
-		// A shortcut with no command/control modifier shouldn't match a
+		// A shortcut with no command/control/option modifier shouldn't match a
 		// command-key press.
 		return false;
 	}
 	if (p.shift !== e.shiftKey) return false;
 	if (p.option !== e.altKey) return false;
 
-	return p.key.toLowerCase() === e.key.toLowerCase();
+	return keyMatchesEvent(p.key, e);
 };
 
 /**

@@ -106,6 +106,43 @@ describe("shortcutMatchesEvent", () => {
 	it("does not match a plain key press with no command modifier", () => {
 		expect(shortcutMatchesEvent("⌘S", makeKeyEvent({ key: "s" }))).toBe(false);
 	});
+
+	it("matches a Control equivalent (⌃D)", () => {
+		expect(
+			shortcutMatchesEvent("⌃D", makeKeyEvent({ ctrlKey: true, key: "d" })),
+		).toBe(true);
+	});
+
+	it("matches an Option equivalent by physical code despite a remapped key", () => {
+		// macOS remaps Option+X's `key` to a composed character; `code` stays KeyX.
+		expect(
+			shortcutMatchesEvent(
+				"⌥X",
+				makeKeyEvent({ altKey: true, key: "≈", code: "KeyX" }),
+			),
+		).toBe(true);
+	});
+
+	it("matches an Option equivalent by key when not remapped", () => {
+		expect(
+			shortcutMatchesEvent("⌥X", makeKeyEvent({ altKey: true, key: "x" })),
+		).toBe(true);
+	});
+
+	it("does not fire an Option equivalent when Command is also held", () => {
+		expect(
+			shortcutMatchesEvent(
+				"⌥X",
+				makeKeyEvent({ altKey: true, metaKey: true, key: "≈", code: "KeyX" }),
+			),
+		).toBe(false);
+	});
+
+	it("does not match an Option equivalent without Alt", () => {
+		expect(
+			shortcutMatchesEvent("⌥X", makeKeyEvent({ key: "x", code: "KeyX" })),
+		).toBe(false);
+	});
 });
 
 describe("findMenuItemByShortcut", () => {
