@@ -83,3 +83,26 @@ export const StartCollapsed: Story = {
 		nodes: nodes.map((n) => ({ ...n, defaultOpen: false })),
 	},
 };
+
+export const SelectableWithDisabled: Story = {
+	args: {
+		selectionMode: "multi",
+		selectedIds: ["kept"],
+		nodes: [
+			{
+				id: "root",
+				label: "Documents",
+				defaultOpen: true,
+				children: [
+					{ id: "kept", label: "Kept file" },
+					{ id: "grayed", label: "Grayed file", disabled: true },
+					{
+						id: "plain",
+						label: "Plain file",
+						buttons: [{ label: "Edit" }, { label: "Remove" }],
+					},
+				],
+			},
+		],
+	},
+};

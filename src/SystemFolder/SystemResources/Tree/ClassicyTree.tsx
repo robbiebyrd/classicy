@@ -2,9 +2,9 @@ import "./ClassicyTree.scss";
 import classNames from "classnames";
 import {
 	type FC as FunctionalComponent,
-	type KeyboardEvent,
-	type MouseEvent,
 	type MouseEventHandler,
+	type KeyboardEvent as ReactKeyboardEvent,
+	type MouseEvent as ReactMouseEvent,
 	type ReactNode,
 	useCallback,
 	useMemo,
@@ -35,6 +35,8 @@ export type ClassicyTreeNodeButton = {
 	depressed?: boolean;
 };
 
+export type ClassicyTreeSelectionMode = "none" | "single" | "multi";
+
 export type ClassicyTreeNode = {
 	/** Stable identifier for the node. */
 	id: string;
@@ -48,8 +50,14 @@ export type ClassicyTreeNode = {
 	children?: ClassicyTreeNode[];
 	/** Whether a branch node starts expanded. */
 	defaultOpen?: boolean;
-	/** Leaf-only: a small ClassicyButton rendered to the right of the label. */
+	/** Leaf-only: a single small button (kept for back-compat; `buttons` wins if both set). */
 	button?: ClassicyTreeNodeButton;
+	/** Leaf-only: multiple small buttons rendered right of the label. */
+	buttons?: ClassicyTreeNodeButton[];
+	/** Grayed out; not clickable; branches also refuse to toggle. */
+	disabled?: boolean;
+	/** Leaf-only: opt out of selection while staying enabled-looking. Default true. */
+	selectable?: boolean;
 };
 
 type ClassicyTreeProps = {
@@ -58,6 +66,14 @@ type ClassicyTreeProps = {
 	direction?: ClassicyTriangleDirection;
 	/** Fired whenever a branch node is expanded or collapsed. */
 	onToggleNode?: (id: string, open: boolean) => void;
+	selectionMode?: ClassicyTreeSelectionMode;
+	selectedIds?: string[];
+	onSelectNode?: (
+		id: string,
+		node: ClassicyTreeNode,
+		e: ReactMouseEvent | ReactKeyboardEvent,
+	) => void;
+	onActivateNode?: (id: string, node: ClassicyTreeNode) => void;
 };
 
 /** A single row in the flattened (currently-visible) view of the tree. */
@@ -106,13 +122,28 @@ function flattenVisible(
 	return acc;
 }
 
+// The roving-tabindex "active" row that drives keyboard navigation (arrow
+// keys, Home/End, type-select) is a purely mechanical focus concern, kept
+// deliberately separate from `selectedIds` below — a row can be the
+// keyboard's current tab stop without being selected (e.g. selectionMode
+// "none"), and a controlled `selectedIds` set from a parent never needs to
+// touch it. `focus` (not `select`) names the setter to keep that distinction
+// visible at the call site.
 type SharedRowContext = {
 	direction: ClassicyTriangleDirection;
 	openSet: Set<string>;
 	tabStopId?: string;
 	toggle: (id: string) => void;
-	select: (id: string) => void;
+	focus: (id: string) => void;
 	registerRef: (id: string, el: HTMLDivElement | null) => void;
+	selectionMode: ClassicyTreeSelectionMode;
+	selectedIds: string[];
+	onSelectNode?: (
+		id: string,
+		node: ClassicyTreeNode,
+		e: ReactMouseEvent | ReactKeyboardEvent,
+	) => void;
+	onActivateNode?: (id: string, node: ClassicyTreeNode) => void;
 };
 
 type ClassicyTreeNodeItemProps = {
@@ -129,6 +160,14 @@ const ClassicyTreeNodeItem: FunctionalComponent<ClassicyTreeNodeItemProps> = ({
 	const hasChildren = nodeHasChildren(node);
 	const open = hasChildren && ctx.openSet.has(node.id);
 	const isTabStop = ctx.tabStopId === node.id;
+
+	const canSelect =
+		!hasChildren &&
+		ctx.selectionMode !== "none" &&
+		node.selectable !== false &&
+		!node.disabled;
+	const isSelected = !hasChildren && ctx.selectedIds.includes(node.id);
+	const leafButtons = node.buttons ?? (node.button ? [node.button] : []);
 
 	const rowInner = (
 		<>
@@ -155,7 +194,7 @@ const ClassicyTreeNodeItem: FunctionalComponent<ClassicyTreeNodeItemProps> = ({
 
 	const registerRef = (el: HTMLDivElement | null) =>
 		ctx.registerRef(node.id, el);
-	const onFocus = () => ctx.select(node.id);
+	const onFocus = () => ctx.focus(node.id);
 
 	return (
 		<li className={"classicyTreeNode"}>
@@ -173,8 +212,37 @@ const ClassicyTreeNodeItem: FunctionalComponent<ClassicyTreeNodeItemProps> = ({
 						aria-expanded={open}
 						tabIndex={isTabStop ? 0 : -1}
 						ref={registerRef}
-						className={"classicyTreeNodeLabelHolder classicyTreeNodeBranch"}
-						onClick={() => ctx.toggle(node.id)}
+						className={classNames(
+							"classicyTreeNodeLabelHolder classicyTreeNodeBranch",
+							{
+								classicyTreeNodeDisabled: node.disabled,
+							},
+						)}
+						onClick={() => {
+							if (!node.disabled) ctx.toggle(node.id);
+						}}
+						onFocus={onFocus}
+					>
+						{rowInner}
+					</div>
+				) : canSelect ? (
+					// biome-ignore lint/a11y/useSemanticElements: selectable row is a flex container with svg/img/span children incompatible with <button>
+					// biome-ignore lint/a11y/useKeyWithClickEvents: keyboard handling (Enter/Space) lives on the list container that owns this row
+					<div
+						role="button"
+						tabIndex={isTabStop ? 0 : -1}
+						aria-pressed={isSelected}
+						ref={registerRef}
+						className={classNames(
+							"classicyTreeNodeLabelHolder",
+							"classicyTreeNodeLeaf",
+							"classicyTreeNodeSelectable",
+							{
+								classicyTreeNodeSelected: isSelected,
+							},
+						)}
+						onClick={(e) => ctx.onSelectNode?.(node.id, node, e)}
+						onDoubleClick={() => ctx.onActivateNode?.(node.id, node)}
 						onFocus={onFocus}
 					>
 						{rowInner}
@@ -184,27 +252,37 @@ const ClassicyTreeNodeItem: FunctionalComponent<ClassicyTreeNodeItemProps> = ({
 					<div
 						tabIndex={isTabStop ? 0 : -1}
 						ref={registerRef}
-						className={"classicyTreeNodeLabelHolder classicyTreeNodeLeaf"}
+						className={classNames(
+							"classicyTreeNodeLabelHolder",
+							"classicyTreeNodeLeaf",
+							{
+								classicyTreeNodeDisabled: node.disabled,
+								classicyTreeNodeSelected: isSelected,
+							},
+						)}
 						onFocus={onFocus}
 					>
 						{rowInner}
 					</div>
 				)}
-				{!hasChildren && node.button && (
-					<ClassicyButton
-						buttonSize={"small"}
-						margin={"sm"}
-						isDefault={node.button.isDefault}
-						disabled={node.button.disabled}
-						depressed={node.button.depressed}
-						onClickFunc={(e: MouseEvent<HTMLButtonElement>) => {
-							e.stopPropagation();
-							node.button?.onClickFunc?.(e);
-						}}
-					>
-						{node.button.label}
-					</ClassicyButton>
-				)}
+				{!hasChildren &&
+					leafButtons.map((b, i) => (
+						<ClassicyButton
+							// biome-ignore lint/suspicious/noArrayIndexKey: buttons array is static per node
+							key={i}
+							buttonSize={"small"}
+							margin={"sm"}
+							isDefault={b.isDefault}
+							disabled={b.disabled}
+							depressed={b.depressed}
+							onClickFunc={(e: ReactMouseEvent<HTMLButtonElement>) => {
+								e.stopPropagation();
+								b.onClickFunc?.(e);
+							}}
+						>
+							{b.label}
+						</ClassicyButton>
+					))}
 				{node.rightIcon && (
 					<img
 						className={"classicyTreeNodeIconRight"}
@@ -230,18 +308,24 @@ const ClassicyTreeNodeItem: FunctionalComponent<ClassicyTreeNodeItemProps> = ({
 	);
 };
 
-const isPrintableChar = (e: KeyboardEvent): boolean =>
+const isPrintableChar = (e: ReactKeyboardEvent): boolean =>
 	e.key.length === 1 && !e.metaKey && !e.ctrlKey && !e.altKey;
 
 export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 	nodes,
 	direction = "right",
 	onToggleNode,
+	selectionMode = "none",
+	selectedIds,
+	onSelectNode,
+	onActivateNode,
 }) => {
 	const [openSet, setOpenSet] = useState<Set<string>>(() =>
 		collectDefaultOpen(nodes),
 	);
-	const [selectedId, setSelectedId] = useState<string | undefined>();
+	// The row currently driving the roving tabindex — see the SharedRowContext
+	// comment above for why this is kept separate from `selectedIds`.
+	const [activeId, setActiveId] = useState<string | undefined>();
 
 	const rowRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 	const typeBuffer = useRef("");
@@ -265,7 +349,7 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 
 	const selectRow = useCallback(
 		(id: string) => {
-			setSelectedId(id);
+			setActiveId(id);
 			focusRow(id);
 		},
 		[focusRow],
@@ -293,15 +377,21 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 
 	// The first visible row is the tab stop until the user selects one, so the
 	// list is reachable with a single Tab and then driven by the arrow keys.
-	const tabStopId = selectedId ?? visible[0]?.id;
+	const tabStopId = activeId ?? visible[0]?.id;
+
+	const resolvedSelectedIds = selectedIds ?? [];
 
 	const ctx: SharedRowContext = {
 		direction,
 		openSet,
 		tabStopId,
 		toggle,
-		select: setSelectedId,
+		focus: setActiveId,
 		registerRef,
+		selectionMode,
+		selectedIds: resolvedSelectedIds,
+		onSelectNode,
+		onActivateNode,
 	};
 
 	const typeSelect = useCallback(
@@ -327,10 +417,10 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 	);
 
 	const handleKeyDown = useCallback(
-		(e: KeyboardEvent<HTMLUListElement>) => {
+		(e: ReactKeyboardEvent<HTMLUListElement>) => {
 			if (visible.length === 0) return;
-			const curIndex = selectedId
-				? visible.findIndex((r) => r.id === selectedId)
+			const curIndex = activeId
+				? visible.findIndex((r) => r.id === activeId)
 				: -1;
 			const current = curIndex >= 0 ? visible[curIndex] : undefined;
 
@@ -362,7 +452,8 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 					if (
 						(e.metaKey || e.ctrlKey) &&
 						current?.hasChildren &&
-						!current.open
+						!current.open &&
+						!current.node.disabled
 					) {
 						e.preventDefault();
 						setOpen(current.id, true);
@@ -374,7 +465,8 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 					if (
 						(e.metaKey || e.ctrlKey) &&
 						current?.hasChildren &&
-						current.open
+						current.open &&
+						!current.node.disabled
 					) {
 						e.preventDefault();
 						setOpen(current.id, false);
@@ -383,9 +475,22 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 				}
 				case "Enter":
 				case " ": {
-					if (current?.hasChildren) {
+					if (!current) return;
+					if (current.hasChildren) {
+						if (!current.node.disabled) {
+							e.preventDefault();
+							toggle(current.id);
+						}
+						return;
+					}
+					// Leaf: honor the same selectability rules as a mouse click.
+					const canSelect =
+						selectionMode !== "none" &&
+						current.node.selectable !== false &&
+						!current.node.disabled;
+					if (canSelect) {
 						e.preventDefault();
-						toggle(current.id);
+						onSelectNode?.(current.id, current.node, e);
 					}
 					return;
 				}
@@ -396,7 +501,16 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 				}
 			}
 		},
-		[visible, selectedId, selectRow, setOpen, toggle, typeSelect],
+		[
+			visible,
+			activeId,
+			selectRow,
+			setOpen,
+			toggle,
+			typeSelect,
+			selectionMode,
+			onSelectNode,
+		],
 	);
 
 	return (

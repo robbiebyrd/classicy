@@ -96,3 +96,25 @@
   flex-shrink: 0;
   margin-left: auto;
 }
+
+.classicyTreeNodeDisabled {
+	.classicyTreeNodeLabel {
+		color: var(--color-system-05);
+	}
+	.classicyTreeNodeIcon {
+		opacity: 0.5;
+	}
+	cursor: default;
+	pointer-events: none;
+}
+
+.classicyTreeNodeSelectable {
+	cursor: pointer;
+}
+
+.classicyTreeNodeSelected {
+	background: var(--color-select);
+	.classicyTreeNodeLabel {
+		color: var(--color-white);
+	}
+}

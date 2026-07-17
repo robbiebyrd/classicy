@@ -209,6 +209,7 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 			{label && (
 				<ClassicyControlLabel
 					label={label}
+					labelFor={id}
 					labelSize={controlLabelSize}
 				></ClassicyControlLabel>
 			)}

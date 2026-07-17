@@ -1,0 +1,32 @@
+@use '../../ControlPanels/AppearanceManager/styles/appearance';
+
+.classicyFileOpenDialogBody {
+	display: flex;
+	flex-direction: column;
+	gap: calc(var(--window-padding-size) * 1);
+	padding: var(--window-padding-size);
+	height: 100%;
+	box-sizing: border-box;
+}
+
+.classicyFileOpenDialogWell {
+	flex: 1;
+	min-height: 220px;
+	overflow-y: auto;
+	background: var(--color-white);
+	border: var(--window-border-size) solid var(--color-window-border);
+	box-shadow:
+		inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-06),
+		inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 var(--color-system-01);
+}
+
+.classicyFileOpenDialogFooter {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.classicyFileOpenDialogActions {
+	display: flex;
+	margin-left: auto;
+}
