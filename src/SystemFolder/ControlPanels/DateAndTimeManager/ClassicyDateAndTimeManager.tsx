@@ -159,12 +159,12 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
 					...closeWindowMenuItemHelper(`${APP_ID}_close_window`, () =>
 						windowClose(WINDOW_ID, quitAppHelper(APP_ID, APP_NAME, appIcon)),
 					),
-					keyboardShortcut: "⌘W",
+					keyboardShortcut: "⌥W",
 				},
 				{ id: "spacer" },
 				{
 					...quitMenuItemHelper(APP_ID, APP_NAME, appIcon),
-					keyboardShortcut: "⌘Q",
+					keyboardShortcut: "⌥Q",
 				},
 			],
 		},

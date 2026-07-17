@@ -42,7 +42,7 @@ afterEach(() => {
 });
 
 describe("ClassicyDateAndTimeManager — HIG menu structure (audit ch. 6 §35)", () => {
-	it("exposes a File menu with Close Window (⌘W) and Quit (⌘Q) separated by a divider, plus About out of any Help menu", () => {
+	it("exposes a File menu with Close Window (⌥W) and Quit (⌥Q) separated by a divider, plus About out of any Help menu", () => {
 		renderOpen();
 		const menuBar = windowMenuBar();
 
@@ -58,8 +58,10 @@ describe("ClassicyDateAndTimeManager — HIG menu structure (audit ch. 6 §35)",
 
 		const closeItem = fileChildren.find((c) => c.title === "Close Window");
 		const quitItem = fileChildren.find((c) => c.title === "Quit");
-		expect(closeItem?.keyboardShortcut).toBe("⌘W");
-		expect(quitItem?.keyboardShortcut).toBe("⌘Q");
+		// Close/Quit use Option equivalents: ⌘W/⌘Q are reserved by the browser
+		// (⌘W would close the whole tab), so ⌥W/⌥Q are the reachable, working ones.
+		expect(closeItem?.keyboardShortcut).toBe("⌥W");
+		expect(quitItem?.keyboardShortcut).toBe("⌥Q");
 
 		// Close and Quit are separated by exactly one divider ("spacer").
 		const closeIdx = fileChildren.findIndex((c) => c.title === "Close Window");

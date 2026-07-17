@@ -76,6 +76,15 @@ describe("formatKeyboardShortcut", () => {
 	it("orders Shift before Command (⇧⌘S)", () => {
 		expect(formatKeyboardShortcut("Cmd+Shift+S")).toBe("⇧⌘S");
 	});
+
+	it("renders a bare Option equivalent as a hint (⌥H)", () => {
+		expect(formatKeyboardShortcut("Option-H")).toBe("⌥H");
+		expect(formatKeyboardShortcut("⌥H")).toBe("⌥H");
+	});
+
+	it("renders a bare Control equivalent as a hint (⌃D)", () => {
+		expect(formatKeyboardShortcut("Control-D")).toBe("⌃D");
+	});
 });
 
 describe("shortcutMatchesEvent", () => {
