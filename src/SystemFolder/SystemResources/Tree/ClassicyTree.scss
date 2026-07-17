@@ -1,0 +1,80 @@
+@use '../../ControlPanels/AppearanceManager/styles/appearance';
+
+.classicyTree {
+  list-style: none;
+  margin: 0;
+  padding: calc(var(--window-padding-size));
+  font-family: var(--ui-font);
+  font-size: var(--ui-font-size);
+}
+
+.classicyTreeGroup {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.classicyTreeNode {
+  margin: 0;
+  padding: 0;
+}
+
+.classicyTreeNodeRow {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: calc(var(--window-padding-size) / 2);
+  min-height: calc(var(--window-control-size) + var(--window-padding-size));
+}
+
+.classicyTreeNodeLabelHolder {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: calc(var(--window-padding-size) / 2);
+  min-width: 0;
+
+  &:focus {
+    outline: var(--color-outline) solid var(--window-border-size);
+  }
+}
+
+.classicyTreeNodeBranch {
+  cursor: pointer;
+}
+
+.classicyTreeNodeLeaf {
+  cursor: default;
+}
+
+.classicyTreeNodeDisclosure {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--window-control-size));
+  height: calc(var(--window-control-size));
+  flex-shrink: 0;
+}
+
+.classicyTreeNodeIcon {
+  width: calc(var(--window-control-size));
+  height: calc(var(--window-control-size));
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.classicyTreeNodeLabel {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.classicyTreeNodeIconRight {
+  width: calc(var(--window-control-size));
+  height: calc(var(--window-control-size));
+  object-fit: contain;
+  flex-shrink: 0;
+  margin-left: auto;
+}
