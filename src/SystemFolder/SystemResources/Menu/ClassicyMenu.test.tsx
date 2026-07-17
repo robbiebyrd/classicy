@@ -141,6 +141,24 @@ describe("ClassicyMenu", () => {
 		expect(nestedSubMenu).not.toHaveClass("classicySubMenuFlipLeft");
 	});
 
+	it("renders keyboard shortcut modifiers as glyphs (Cmd+Shift+S -> ⇧⌘S)", () => {
+		const items = [
+			{ id: "save-as", title: "Save As", keyboardShortcut: "Cmd+Shift+S" },
+		];
+		render(<ClassicyMenu name="test-menu" menuItems={items} />);
+		expect(screen.getByText("⇧⌘S")).toBeInTheDocument();
+	});
+
+	it("fires a menu item's action on its command-key press (closes-and-executes)", () => {
+		const onClickFunc = vi.fn();
+		const items = [
+			{ id: "find", title: "Find", keyboardShortcut: "⌘F", onClickFunc },
+		];
+		render(<ClassicyMenu name="test-menu" menuItems={items} />);
+		fireEvent.keyDown(document, { key: "f", metaKey: true });
+		expect(onClickFunc).toHaveBeenCalledOnce();
+	});
+
 	it("renders a nested submenu for items with menuChildren", () => {
 		const items = [
 			{

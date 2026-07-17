@@ -34,9 +34,24 @@ const ClassicyContextualMenuContext = createContext<ClassicyContextualMenuAPI>({
 export const useClassicyContextualMenu = (): ClassicyContextualMenuAPI =>
 	useContext(ClassicyContextualMenuContext);
 
-// Menus open slightly up-left of the pointer so the first item sits under it,
-// matching the desktop's and windows' historical [10, 10] offset.
-const clickOffset: [number, number] = [10, 10];
+// HIG "Contextual Menus" (Ch. 4): the menu opens 1 px down and to the right of
+// the click point, so the pointer sits just outside the top-left corner.
+const clickOffset: [number, number] = [1, 1];
+
+// The HIG requires a Help item as the first item of every contextual menu. If
+// the caller didn't supply one, inject a disabled placeholder at the top.
+const HELP_ITEM_ID = "contextual-help";
+
+const withHelpItem = (items: ClassicyMenuItem[]): ClassicyMenuItem[] => {
+	const hasHelp = items.some(
+		(i) =>
+			i.id === HELP_ITEM_ID ||
+			i.id === "help" ||
+			i.title?.trim().toLowerCase() === "help",
+	);
+	if (hasHelp) return items;
+	return [{ id: HELP_ITEM_ID, title: "Help", disabled: true }, ...items];
+};
 
 export const ClassicyContextualMenuProvider: FunctionalComponent<
 	PropsWithChildren
@@ -46,8 +61,8 @@ export const ClassicyContextualMenuProvider: FunctionalComponent<
 	const showContextMenu = useCallback(
 		(items: ClassicyMenuItem[], clickAt: [number, number]) => {
 			setOpenMenu({
-				items,
-				position: [clickAt[0] - clickOffset[0], clickAt[1] - clickOffset[1]],
+				items: withHelpItem(items),
+				position: [clickAt[0] + clickOffset[0], clickAt[1] + clickOffset[1]],
 			});
 		},
 		[],

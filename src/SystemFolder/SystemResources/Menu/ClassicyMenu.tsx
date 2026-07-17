@@ -20,6 +20,11 @@ import {
 	ClassicyBalloonHelp,
 	type ClassicyBalloonPosition,
 } from "@/SystemFolder/SystemResources/BalloonHelp/ClassicyBalloonHelp";
+import {
+	findMenuItemByShortcut,
+	formatKeyboardShortcut,
+	runMenuItemAction,
+} from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
 import { ClassicyMenuContext } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuContext";
 
 export interface ClassicyMenuItem {
@@ -48,6 +53,12 @@ interface ClassicyMenuProps {
 	navClass?: string;
 	subNavClass?: string;
 	children?: ReactNode;
+	/**
+	 * Internal: set on the nested menus rendered for `menuChildren`. Only the
+	 * root menu (menu bar / contextual menu) installs the command-key listener,
+	 * so nested submenus don't double-handle a keystroke.
+	 */
+	isSubmenu?: boolean;
 }
 
 export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
@@ -56,14 +67,35 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 	navClass,
 	subNavClass,
 	children,
+	isSubmenu = false,
 }) => {
-	const { closeSignal } = useContext(ClassicyMenuContext);
+	const { closeSignal, closeAll } = useContext(ClassicyMenuContext);
 	const [openChildId, setOpenChildId] = useState<string | null>(null);
+	const desktopDispatch = useAppManagerDispatch();
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: closeSignal is intentionally used as a trigger; the effect resets menu state when the signal changes
 	useEffect(() => {
 		setOpenChildId(null);
 	}, [closeSignal]);
+
+	// HIG "Sticky Menus" command-key path: a command-key press matching any
+	// item's keyboard shortcut fires that item's action and closes the menu,
+	// whether or not the menu is currently dropped down. Only the root menu
+	// binds the listener so a keystroke is handled exactly once.
+	useEffect(() => {
+		if (isSubmenu) return;
+		const handler = (event: KeyboardEvent) => {
+			if (event.defaultPrevented) return;
+			if (!(event.metaKey || event.ctrlKey)) return;
+			const match = findMenuItemByShortcut(menuItems, event);
+			if (!match) return;
+			event.preventDefault();
+			closeAll();
+			runMenuItemAction(match, desktopDispatch);
+		};
+		document.addEventListener("keydown", handler);
+		return () => document.removeEventListener("keydown", handler);
+	}, [isSubmenu, menuItems, closeAll, desktopDispatch]);
 
 	const handleOpen = useCallback((id: string) => setOpenChildId(id), []);
 	const handleClose = useCallback(() => setOpenChildId(null), []);
@@ -96,7 +128,7 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 }> = memo(({ menuItem, subNavClass, isOpen, onOpen, onClose: _onClose }) => {
 	const player = useSoundDispatch();
 	const desktopDispatch = useAppManagerDispatch();
-	const { closeAll, menuBarActive, activateMenuBar } =
+	const { closeAll, menuBarActive, activateMenuBar, pokeActivity } =
 		useContext(ClassicyMenuContext);
 	const [isFlashing, setIsFlashing] = useState(false);
 	const [submenuFlipped, setSubmenuFlipped] = useState(false);
@@ -172,6 +204,7 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 	};
 
 	const handleMouseEnter = () => {
+		pokeActivity();
 		if (hasChildren && menuBarActive) {
 			onOpen(menuItem.id);
 		}
@@ -201,6 +234,7 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 				key={menuItem.id}
 				onClick={handleClick}
 				onKeyDown={(e: React.KeyboardEvent) => {
+					pokeActivity();
 					if (e.key === "Enter") {
 						e.preventDefault();
 						handleClick(e as unknown as MouseEvent);
@@ -241,7 +275,7 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 				</p>
 				{menuItem.keyboardShortcut && (
 					<p className={"classicyMenuItemKeyboardShortcut"}>
-						{he.decode(menuItem.keyboardShortcut)}
+						{formatKeyboardShortcut(menuItem.keyboardShortcut)}
 					</p>
 				)}
 
@@ -250,6 +284,7 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 						name={`${menuItem.id}_subitem`}
 						menuItems={menuItem.menuChildren ?? []}
 						subNavClass={subNavClass}
+						isSubmenu={true}
 						navClass={classNames(
 							subNavClass,
 							submenuFlipped && "classicySubMenuFlipLeft",

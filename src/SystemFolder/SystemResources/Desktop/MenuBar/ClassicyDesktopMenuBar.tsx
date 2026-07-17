@@ -37,6 +37,16 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
 	const apps = useAppManager((s) => s.System.Manager.Applications.apps);
 	const systemMenu = useAppManager((s) => s.System.Manager.Desktop.systemMenu);
 	const appMenu = useAppManager((s) => s.System.Manager.Desktop.appMenu);
+	const disableBalloonHelp = useAppManager(
+		(s) => s.System.Manager.Desktop.disableBalloonHelp,
+	);
+	// Optional per-app Help entries. Read defensively so the bar works whether or
+	// not a consumer has populated a `helpMenu` slot on the desktop store.
+	const appHelpMenu = useAppManager(
+		(s) =>
+			(s.System.Manager.Desktop as unknown as { helpMenu?: ClassicyMenuItem[] })
+				.helpMenu,
+	);
 	const desktopEventDispatch = useAppManagerDispatch();
 	const { closeAll } = useContext(ClassicyMenuContext);
 	const navRef = useRef<HTMLElement>(null);
@@ -81,6 +91,34 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
 		// biome-ignore lint/correctness/useExhaustiveDependencies: setActiveApp is defined inline and recreated each render; including it would cause infinite loops
 	}, [appSwitcherData, setActiveApp]);
 
+	// Standard Help menu (HIG Ch. 4 "Menu Bar"): rightmost of the standard
+	// menus. About Balloon Help, a Show/Hide Balloons toggle wired to the
+	// existing balloon-help store flag, and a slot for app-supplied help items.
+	const helpMenuItem: ClassicyMenuItem = useMemo(() => {
+		const helpChildren: ClassicyMenuItem[] = [
+			{
+				id: "help-about-balloon",
+				title: "About Balloon Help…",
+				onClickFunc: () => {},
+			},
+			{
+				id: "help-toggle-balloons",
+				title: disableBalloonHelp ? "Show Balloons" : "Hide Balloons",
+				event: "ClassicyDesktopSetBalloonHelp",
+				eventData: { disableBalloonHelp: !disableBalloonHelp },
+			},
+		];
+		if (appHelpMenu && appHelpMenu.length > 0) {
+			helpChildren.push({ id: "spacer" }, ...appHelpMenu);
+		}
+		return {
+			id: "help-menu",
+			title: "Help",
+			className: "classicyDesktopMenuHelp",
+			menuChildren: helpChildren,
+		};
+	}, [disableBalloonHelp, appHelpMenu]);
+
 	const defaultMenuItems: ClassicyMenuItem[] = useMemo(() => {
 		const systemMenuItem: ClassicyMenuItem = {
 			id: "apple-menu",
@@ -92,9 +130,12 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
 		if (appMenu) {
 			items.push(...appMenu);
 		}
+		// Help is the rightmost standard menu; the App Switcher floats to the far
+		// right of the bar (8.5+ construct) and is kept last in the data.
+		items.push(helpMenuItem);
 		items.push(appSwitcherMenuMenuItem);
 		return items;
-	}, [systemMenu, appMenu, appSwitcherMenuMenuItem]);
+	}, [systemMenu, appMenu, helpMenuItem, appSwitcherMenuMenuItem]);
 
 	return (
 		<nav ref={navRef} className={"classicyDesktopMenuBar"}>

@@ -9,7 +9,9 @@ import {
 	type FC as FunctionalComponent,
 	useCallback,
 	useEffect,
+	useLayoutEffect,
 	useRef,
+	useState,
 } from "react";
 
 interface ClassicyMenuProps {
@@ -26,6 +28,19 @@ export const ClassicyContextualMenu: FunctionalComponent<ClassicyMenuProps> = ({
 	onClose,
 }) => {
 	const wrapperRef = useRef<HTMLDivElement>(null);
+	// Start at the requested x; the layout effect flips the root menu leftward
+	// if it would overflow the right edge of the viewport (HIG contextual menus).
+	const [left, setLeft] = useState<number>(position[0]);
+
+	useLayoutEffect(() => {
+		setLeft(position[0]);
+		const el = wrapperRef.current;
+		if (!el) return;
+		const width = el.getBoundingClientRect().width;
+		if (position[0] + width > window.innerWidth) {
+			setLeft(Math.max(0, position[0] - width));
+		}
+	}, [position[0], position[1]]);
 
 	const handleClickOutside = useCallback(
 		(e: MouseEvent) => {
@@ -45,11 +60,11 @@ export const ClassicyContextualMenu: FunctionalComponent<ClassicyMenuProps> = ({
 	}, [handleClickOutside]);
 
 	return (
-		<ClassicyMenuProvider onClose={onClose}>
+		<ClassicyMenuProvider onClose={onClose} startActive={true}>
 			<div
 				ref={wrapperRef}
 				className={"classicyContextMenuWrapper"}
-				style={{ left: position[0], top: position[1] }}
+				style={{ left, top: position[1] }}
 			>
 				<ClassicyMenu
 					name={name}
