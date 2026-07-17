@@ -35,6 +35,13 @@ export interface ClassicyMenuItem {
 	disabled?: boolean;
 	icon?: string;
 	keyboardShortcut?: string;
+	/**
+	 * When true, the `keyboardShortcut` is handled natively by the browser (e.g.
+	 * the Edit menu's ⌘Z/⌘X/⌘C/⌘V/⌘A in a focused text field). The glyph still
+	 * renders in the menu, but the app-wide dispatcher does NOT intercept the
+	 * keystroke — so native editing keeps working and we don't preventDefault it.
+	 */
+	nativeShortcut?: boolean;
 	link?: string;
 	event?: string;
 	eventData?: Record<string, unknown>;

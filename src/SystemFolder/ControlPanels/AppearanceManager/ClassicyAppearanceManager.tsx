@@ -20,6 +20,7 @@ import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/Clas
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import {
 	useClassicyAboutMenu,
+	useClassicyEditMenu,
 	useClassicyWindowClose,
 } from "@/SystemFolder/SystemResources/App/ClassicyAppMenuHooks";
 import {
@@ -58,6 +59,7 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		appIcon,
 	);
 	const windowClose = useClassicyWindowClose(APP_ID);
+	const editMenu = useClassicyEditMenu(APP_ID);
 	const [bg, setBg] = useState<string>(
 		appearanceState.activeTheme.desktop.backgroundImage.startsWith("data:")
 			? appearanceState.activeTheme.desktop.backgroundImage
@@ -229,26 +231,8 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 			],
 		},
 		// Edit menu — the Themes tab exposes a background-image URL text field.
-		// Standard HIG Edit commands; wiring to the focused field is tracked by
-		// the keyboard-equivalent workstream (display-only for now, like the
-		// existing menu keyboardShortcut strings).
-		{
-			id: `${APP_ID}_edit`,
-			title: "Edit",
-			menuChildren: [
-				{ id: `${APP_ID}_undo`, title: "Undo", keyboardShortcut: "⌘Z" },
-				{ id: "spacer" },
-				{ id: `${APP_ID}_cut`, title: "Cut", keyboardShortcut: "⌘X" },
-				{ id: `${APP_ID}_copy`, title: "Copy", keyboardShortcut: "⌘C" },
-				{ id: `${APP_ID}_paste`, title: "Paste", keyboardShortcut: "⌘V" },
-				{ id: `${APP_ID}_clear`, title: "Clear" },
-				{
-					id: `${APP_ID}_select_all`,
-					title: "Select All",
-					keyboardShortcut: "⌘A",
-				},
-			],
-		},
+		// Commands act on the focused field; ⌘Z/⌘X/⌘C/⌘V/⌘A work natively there.
+		editMenu,
 	];
 
 	const themesTab = useThemesTab({

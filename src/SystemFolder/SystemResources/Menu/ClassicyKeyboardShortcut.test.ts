@@ -190,6 +190,22 @@ describe("findMenuItemByShortcut", () => {
 		);
 		expect(found).toBeUndefined();
 	});
+
+	it("skips nativeShortcut items so the browser handles the keystroke", () => {
+		const nativeItems = [
+			{
+				id: "undo",
+				title: "Undo",
+				keyboardShortcut: "⌘Z",
+				nativeShortcut: true,
+			},
+		];
+		const found = findMenuItemByShortcut(
+			nativeItems,
+			makeKeyEvent({ metaKey: true, key: "z" }),
+		);
+		expect(found).toBeUndefined();
+	});
 });
 
 describe("runMenuItemAction", () => {

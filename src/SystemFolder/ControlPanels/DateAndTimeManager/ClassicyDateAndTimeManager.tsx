@@ -13,6 +13,7 @@ import {
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import {
 	useClassicyAboutMenu,
+	useClassicyEditMenu,
 	useClassicyWindowClose,
 } from "@/SystemFolder/SystemResources/App/ClassicyAppMenuHooks";
 import {
@@ -82,6 +83,7 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
 		appIcon,
 	);
 	const windowClose = useClassicyWindowClose(APP_ID);
+	const editMenu = useClassicyEditMenu(APP_ID);
 
 	const quitApp = () => {
 		desktopEventDispatch(quitAppHelper(APP_ID, APP_NAME, appIcon));
@@ -168,26 +170,9 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
 				},
 			],
 		},
-		// Edit menu — this panel has date/time entry fields. Standard HIG Edit
-		// commands; wiring to the focused field is tracked by the
-		// keyboard-equivalent workstream (display-only for now).
-		{
-			id: `${APP_ID}_edit`,
-			title: "Edit",
-			menuChildren: [
-				{ id: `${APP_ID}_undo`, title: "Undo", keyboardShortcut: "⌘Z" },
-				{ id: "spacer" },
-				{ id: `${APP_ID}_cut`, title: "Cut", keyboardShortcut: "⌘X" },
-				{ id: `${APP_ID}_copy`, title: "Copy", keyboardShortcut: "⌘C" },
-				{ id: `${APP_ID}_paste`, title: "Paste", keyboardShortcut: "⌘V" },
-				{ id: `${APP_ID}_clear`, title: "Clear" },
-				{
-					id: `${APP_ID}_select_all`,
-					title: "Select All",
-					keyboardShortcut: "⌘A",
-				},
-			],
-		},
+		// Edit menu — this panel has date/time entry fields. Commands act on the
+		// focused field; ⌘Z/⌘X/⌘C/⌘V/⌘A work natively there.
+		editMenu,
 	];
 
 	// Shift stored UTC dateTime into the selected Classicy timezone for display.

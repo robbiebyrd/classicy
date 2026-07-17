@@ -149,6 +149,7 @@ export const findMenuItemByShortcut = (
 	for (const item of items) {
 		if (
 			!item.disabled &&
+			!item.nativeShortcut &&
 			item.keyboardShortcut &&
 			shortcutMatchesEvent(item.keyboardShortcut, e)
 		) {
