@@ -9,9 +9,14 @@ $sb-arrow-2x: calc(var(--window-scrollbar-arrow-size) * 2);
   // Firefox / standards fallback: WebKit gets the fully-styled platinum
   // scrollbar below; Firefox (and any engine without ::-webkit-scrollbar)
   // at least picks up the theme-accent thumb and inset track colors.
-  & {
-    scrollbar-width: auto;
-    scrollbar-color: var(--color-theme-03) var(--color-system-04);
+  // Guarded: a non-auto scrollbar-color/width makes Chrome 121+ and
+  // Safari 26.2+ ignore all ::-webkit-scrollbar styling, so these
+  // properties must never reach engines that support the pseudos.
+  @supports not selector(::-webkit-scrollbar) {
+    & {
+      scrollbar-width: auto;
+      scrollbar-color: var(--color-theme-03) var(--color-system-04);
+    }
   }
 
   &::-webkit-scrollbar {
@@ -156,8 +161,11 @@ $sb-arrow-2x: calc(var(--window-scrollbar-arrow-size) * 2);
 @mixin scrollbars-inactive() {
   // Firefox / standards fallback for the inactive (blurred window) state:
   // flatten the thumb into the track using neutral system greys.
-  & {
-    scrollbar-color: var(--color-system-04) var(--color-system-02);
+  // Guarded for the same reason as in scrollbars() above.
+  @supports not selector(::-webkit-scrollbar) {
+    & {
+      scrollbar-color: var(--color-system-04) var(--color-system-02);
+    }
   }
 
   &::-webkit-scrollbar-button:start:vertical,
