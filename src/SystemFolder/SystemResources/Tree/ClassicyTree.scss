@@ -1,11 +1,29 @@
 @use '../../ControlPanels/AppearanceManager/styles/appearance';
 
+// Reusable HIG list-box frame: a 2 px black rule around a scrolling list so the
+// frame's inner edge coincides with the outer edge of the scroll bar/track.
+// box-sizing keeps the border inside the element so it aligns with the scroll
+// area rather than expanding the box. Opt-in — add the class (or, for the tree,
+// the `.classicyTreeFramed` modifier) to a scrolling list container.
+.classicyListBoxFrame {
+  box-sizing: border-box;
+  border: var(--hig-frame-width, 2px) solid var(--color-black);
+  background: var(--color-white);
+}
+
 .classicyTree {
   list-style: none;
   margin: 0;
   padding: calc(var(--window-padding-size));
   font-family: var(--ui-font);
   font-size: var(--ui-font-size);
+}
+
+// Opt-in list-box frame for a tree used as a standalone scrolling list box.
+.classicyTreeFramed {
+  box-sizing: border-box;
+  border: var(--hig-frame-width, 2px) solid var(--color-black);
+  background: var(--color-white);
 }
 
 .classicyTreeGroup {

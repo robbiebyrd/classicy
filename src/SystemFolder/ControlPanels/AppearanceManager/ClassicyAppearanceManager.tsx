@@ -18,8 +18,13 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
-import { useClassicyAboutMenu } from "@/SystemFolder/SystemResources/App/ClassicyAppMenuHooks";
 import {
+	useClassicyAboutMenu,
+	useClassicyEditMenu,
+	useClassicyWindowClose,
+} from "@/SystemFolder/SystemResources/App/ClassicyAppMenuHooks";
+import {
+	closeWindowMenuItemHelper,
 	quitAppHelper,
 	quitMenuItemHelper,
 } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
@@ -35,6 +40,7 @@ import appIcon from "./resources/app.png";
 
 const APP_ID = "AppearanceManager.app";
 const APP_NAME = "Appearance Manager";
+const WINDOW_ID = "AppearanceManager_1";
 
 function isValidUrlWithRegex(url: string): boolean {
 	return isValidHttpUrl(url);
@@ -52,6 +58,8 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		APP_NAME,
 		appIcon,
 	);
+	const windowClose = useClassicyWindowClose(APP_ID);
+	const editMenu = useClassicyEditMenu(APP_ID);
 	const [bg, setBg] = useState<string>(
 		appearanceState.activeTheme.desktop.backgroundImage.startsWith("data:")
 			? appearanceState.activeTheme.desktop.backgroundImage
@@ -192,17 +200,39 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		desktopEventDispatch(quitAppHelper(APP_ID, APP_NAME, appIcon));
 	};
 
+	// Mac OS 8 HIG control-panel menu bar (audit ch. 6 §35): Apple / File / Edit.
+	//
+	// HIG ideal: "About <name>" is the FIRST item of the *Apple* menu. That menu
+	// is the global Desktop.systemMenu, owned by the desktop menu-bar workstream
+	// and outside this control panel's editable scope, so there is currently no
+	// per-app Apple-menu injection point. Until one exists we surface About at the
+	// top of the File menu (out of the old Help menu, which the HIG discourages
+	// for About) so it stays reachable. TODO(#209): relocate to the Apple menu.
+	//
+	// Note: ClassicyMenu only renders an <hr> divider for items whose id is
+	// exactly "spacer" and keys items by id, so at most one divider per menu.
 	const appMenu = [
 		{
 			id: `${APP_ID}_file`,
 			title: "File",
-			menuChildren: [quitMenuItemHelper(APP_ID, APP_NAME, appIcon)],
+			menuChildren: [
+				{ ...aboutMenuItem, title: `About ${APP_NAME}` },
+				{
+					...closeWindowMenuItemHelper(`${APP_ID}_close_window`, () =>
+						windowClose(WINDOW_ID, quitAppHelper(APP_ID, APP_NAME, appIcon)),
+					),
+					keyboardShortcut: "⌥W",
+				},
+				{ id: "spacer" },
+				{
+					...quitMenuItemHelper(APP_ID, APP_NAME, appIcon),
+					keyboardShortcut: "⌥Q",
+				},
+			],
 		},
-		{
-			id: `${APP_ID}_help`,
-			title: "Help",
-			menuChildren: [aboutMenuItem],
-		},
+		// Edit menu — the Themes tab exposes a background-image URL text field.
+		// Commands act on the focused field; ⌘Z/⌘X/⌘C/⌘V/⌘A work natively there.
+		editMenu,
 	];
 
 	const themesTab = useThemesTab({
@@ -241,7 +271,7 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 			addSystemMenu={true}
 		>
 			<ClassicyWindow
-				id={"AppearanceManager_1"}
+				id={WINDOW_ID}
 				title={APP_NAME}
 				appId={APP_ID}
 				icon={appIcon}
@@ -250,7 +280,9 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 				zoomable={false}
 				scrollable={false}
 				collapsable={false}
-				initialSize={[500, 0]}
+				// HIG (audit ch. 6 §35): control-panel windows respect the
+				// 492×340 absolute ceiling. 480 stays under it (was 500).
+				initialSize={[480, 0]}
 				initialPosition={[300, 50]}
 				modal={false}
 				appMenu={appMenu}

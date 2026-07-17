@@ -1,0 +1,111 @@
+@use "../../ControlPanels/AppearanceManager/styles/assets";
+@use "../../ControlPanels/AppearanceManager/styles/appearance";
+
+.classicyAlert {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hig-group-gap, 16px);
+  padding: var(--hig-dialog-edge, 12px);
+  min-width: 280px;
+  max-width: 460px;
+  font-family: var(--ui-font), sans-serif;
+
+  .classicyAlertTop {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: var(--hig-group-gap, 16px);
+  }
+
+  // Severity icon: fixed 32px square per the HIG alert icon column.
+  .classicyAlertIcon {
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+
+    .classicyAlertIconSvg {
+      width: 32px;
+      height: 32px;
+      display: block;
+      color: var(--color-black, #000);
+    }
+  }
+
+  .classicyAlertBody {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--hig-item-gap-focus, 6px);
+    // Vertically align the label with the icon's cap height.
+    padding-top: 1px;
+  }
+
+  // Tier 1 — bold system-font label (heading).
+  .classicyAlertLabel {
+    font-family: var(--ui-font), sans-serif;
+    font-weight: bold;
+    margin: 0;
+    line-height: 1.2;
+  }
+
+  // Tier 2 — plain small-system-font narrative (body).
+  .classicyAlertMessage {
+    font-family: var(--ui-font), sans-serif;
+    font-weight: normal;
+    font-size: 0.85em;
+    margin: 0;
+    line-height: 1.3;
+
+    p {
+      margin: 0 0 0.4em 0;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+
+  // Buttons row: right-aligned, default rightmost; Help pushed to the far left.
+  .classicyAlertButtons {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: var(--hig-button-gap-h, 12px);
+
+    .classicyAlertHelpButton {
+      margin-right: auto;
+    }
+  }
+}
+
+// Movable alert: the window is draggable (not error-typed), so paint the red
+// title-bar highlight here — mirrors `.classicyWindowRed`'s title treatment
+// without touching ClassicyWindow. The non-movable variant already gets the red
+// border from `.classicyWindowRed` (modal + type="error").
+.classicyWindow:has(.classicyAlertMovable) {
+  .classicyWindowTitleBar {
+    background-color: #f7cecd !important;
+
+    .classicyWindowTitle {
+      .classicyWindowTitleCenter {
+        background: assets.$title-bar-center-red;
+        background-size: auto 105%;
+      }
+
+      .classicyWindowTitleLeft,
+      .classicyWindowTitleRight {
+        background: assets.$title-bar-center-red;
+
+        &:after {
+          background-image: assets.$title-bar-right-red;
+        }
+
+        &:before {
+          background-image: assets.$title-bar-left-red;
+        }
+      }
+    }
+  }
+}

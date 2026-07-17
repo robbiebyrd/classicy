@@ -39,5 +39,17 @@
 				"organizeImports": "on"
 			}
 		}
-	}
+	},
+	"overrides": [
+		{
+			"includes": ["src/SystemFolder/HyperCard/**"],
+			"linter": {
+				"rules": {
+					"suspicious": {
+						"noThenProperty": "off"
+					}
+				}
+			}
+		}
+	]
 }

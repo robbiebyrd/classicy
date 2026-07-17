@@ -20,7 +20,13 @@ import {
 	ClassicyBalloonHelp,
 	type ClassicyBalloonPosition,
 } from "@/SystemFolder/SystemResources/BalloonHelp/ClassicyBalloonHelp";
+import {
+	findMenuItemByShortcut,
+	formatKeyboardShortcut,
+	runMenuItemAction,
+} from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
 import { ClassicyMenuContext } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuContext";
+import { ClassicySeparator } from "@/SystemFolder/SystemResources/Separator/ClassicySeparator";
 
 export interface ClassicyMenuItem {
 	id: string;
@@ -29,6 +35,13 @@ export interface ClassicyMenuItem {
 	disabled?: boolean;
 	icon?: string;
 	keyboardShortcut?: string;
+	/**
+	 * When true, the `keyboardShortcut` is handled natively by the browser (e.g.
+	 * the Edit menu's ⌘Z/⌘X/⌘C/⌘V/⌘A in a focused text field). The glyph still
+	 * renders in the menu, but the app-wide dispatcher does NOT intercept the
+	 * keystroke — so native editing keeps working and we don't preventDefault it.
+	 */
+	nativeShortcut?: boolean;
 	link?: string;
 	event?: string;
 	eventData?: Record<string, unknown>;
@@ -48,6 +61,12 @@ interface ClassicyMenuProps {
 	navClass?: string;
 	subNavClass?: string;
 	children?: ReactNode;
+	/**
+	 * Internal: set on the nested menus rendered for `menuChildren`. Only the
+	 * root menu (menu bar / contextual menu) installs the command-key listener,
+	 * so nested submenus don't double-handle a keystroke.
+	 */
+	isSubmenu?: boolean;
 }
 
 export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
@@ -56,14 +75,50 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 	navClass,
 	subNavClass,
 	children,
+	isSubmenu = false,
 }) => {
-	const { closeSignal } = useContext(ClassicyMenuContext);
+	const { closeSignal, closeAll } = useContext(ClassicyMenuContext);
 	const [openChildId, setOpenChildId] = useState<string | null>(null);
+	const desktopDispatch = useAppManagerDispatch();
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: closeSignal is intentionally used as a trigger; the effect resets menu state when the signal changes
 	useEffect(() => {
 		setOpenChildId(null);
 	}, [closeSignal]);
+
+	// HIG "Sticky Menus" command-key path: a command-key press matching any
+	// item's keyboard shortcut fires that item's action and closes the menu,
+	// whether or not the menu is currently dropped down. Only the root menu
+	// binds the listener so a keystroke is handled exactly once.
+	useEffect(() => {
+		if (isSubmenu) return;
+		const handler = (event: KeyboardEvent) => {
+			if (event.defaultPrevented) return;
+			// Menu equivalents require a Command (⌘/Ctrl), Control, or Option
+			// modifier. Plain keystrokes never trigger a menu action.
+			if (!(event.metaKey || event.ctrlKey || event.altKey)) return;
+			// For an Option/Alt-only chord, don't hijack text entry — Option+letter
+			// types accented characters in inputs/textareas on macOS.
+			if (!event.metaKey && !event.ctrlKey) {
+				const t = event.target as HTMLElement | null;
+				if (
+					t &&
+					(t.tagName === "INPUT" ||
+						t.tagName === "TEXTAREA" ||
+						t.isContentEditable)
+				) {
+					return;
+				}
+			}
+			const match = findMenuItemByShortcut(menuItems, event);
+			if (!match) return;
+			event.preventDefault();
+			closeAll();
+			runMenuItemAction(match, desktopDispatch);
+		};
+		document.addEventListener("keydown", handler);
+		return () => document.removeEventListener("keydown", handler);
+	}, [isSubmenu, menuItems, closeAll, desktopDispatch]);
 
 	const handleOpen = useCallback((id: string) => setOpenChildId(id), []);
 	const handleClose = useCallback(() => setOpenChildId(null), []);
@@ -96,7 +151,7 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 }> = memo(({ menuItem, subNavClass, isOpen, onOpen, onClose: _onClose }) => {
 	const player = useSoundDispatch();
 	const desktopDispatch = useAppManagerDispatch();
-	const { closeAll, menuBarActive, activateMenuBar } =
+	const { closeAll, menuBarActive, activateMenuBar, pokeActivity } =
 		useContext(ClassicyMenuContext);
 	const [isFlashing, setIsFlashing] = useState(false);
 	const [submenuFlipped, setSubmenuFlipped] = useState(false);
@@ -172,6 +227,7 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 	};
 
 	const handleMouseEnter = () => {
+		pokeActivity();
 		if (hasChildren && menuBarActive) {
 			onOpen(menuItem.id);
 		}
@@ -190,7 +246,7 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 
 	const li =
 		menuItem && menuItem.id === "spacer" ? (
-			<hr></hr>
+			<ClassicySeparator />
 		) : (
 			<li
 				// biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: <li> items in a menu require role="menuitem" per ARIA menu pattern
@@ -201,6 +257,7 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 				key={menuItem.id}
 				onClick={handleClick}
 				onKeyDown={(e: React.KeyboardEvent) => {
+					pokeActivity();
 					if (e.key === "Enter") {
 						e.preventDefault();
 						handleClick(e as unknown as MouseEvent);
@@ -241,7 +298,7 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 				</p>
 				{menuItem.keyboardShortcut && (
 					<p className={"classicyMenuItemKeyboardShortcut"}>
-						{he.decode(menuItem.keyboardShortcut)}
+						{formatKeyboardShortcut(menuItem.keyboardShortcut)}
 					</p>
 				)}
 
@@ -250,6 +307,7 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 						name={`${menuItem.id}_subitem`}
 						menuItems={menuItem.menuChildren ?? []}
 						subNavClass={subNavClass}
+						isSubmenu={true}
 						navClass={classNames(
 							subNavClass,
 							submenuFlipped && "classicySubMenuFlipLeft",

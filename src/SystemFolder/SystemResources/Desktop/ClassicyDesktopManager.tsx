@@ -48,6 +48,11 @@ export interface ClassicyStoreSystemDesktopManager
 		active: boolean;
 	};
 	disableBalloonHelp: boolean;
+	/** When true, double-clicking a window's title bar collapses it (Appearance
+	 * control-panel option). Defaults to true. */
+	doubleClickTitleToCollapse?: boolean;
+	/** Optional app-supplied items appended to the standard Help menu. */
+	helpMenu?: ClassicyMenuItem[];
 	errorDialog?: { title?: string; message: string } | null;
 }
 

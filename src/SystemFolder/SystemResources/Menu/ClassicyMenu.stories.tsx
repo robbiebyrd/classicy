@@ -38,3 +38,44 @@ export const Default: Story = {
 		],
 	},
 };
+
+// Free-form modifier spellings (Cmd, Option, Ctrl, Shift, or entities) are
+// parsed and rendered as platinum modifier glyphs (⌃ ⌥ ⇧ ⌘). Pressing the
+// matching command-key also fires the item and closes the menu.
+export const ModifierGlyphShortcuts: Story = {
+	args: {
+		name: "storybook_menu_glyphs",
+		menuItems: [
+			{
+				id: "save",
+				title: "Save",
+				keyboardShortcut: "Cmd+S",
+				onClickFunc: fn(),
+			},
+			{
+				id: "save-as",
+				title: "Save As…",
+				keyboardShortcut: "Cmd+Shift+S",
+				onClickFunc: fn(),
+			},
+			{
+				id: "duplicate",
+				title: "Duplicate",
+				keyboardShortcut: "Command-Option-D",
+				onClickFunc: fn(),
+			},
+			{
+				id: "settings",
+				title: "Settings",
+				keyboardShortcut: "Ctrl+Option+Shift+Cmd+K",
+				onClickFunc: fn(),
+			},
+			{
+				id: "help-key",
+				title: "Help",
+				keyboardShortcut: "F1",
+				onClickFunc: fn(),
+			},
+		],
+	},
+};

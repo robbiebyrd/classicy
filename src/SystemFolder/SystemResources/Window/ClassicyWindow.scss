@@ -2,15 +2,12 @@
 @use "../../ControlPanels/AppearanceManager/styles/scrollbars";
 @use "../../ControlPanels/AppearanceManager/styles/appearance";
 
+// #208: Zoom geometry is now computed in JS (standard-state vs user-state and
+// the horizontal/vertical zoom modes), applied via the window's inline
+// position/size. The class is retained purely as a state hook; it must NOT
+// force a rect or it would override the computed standard state.
 .classicyWindowZoomed {
-  top: calc(
-    var(--window-control-size) * 2
-  ) !important;
-  left: calc(var(--window-padding-size) * 2) !important;
-  width: calc(
-    100% - (var(--window-control-size) * 2) - (var(--window-padding-size) * 2)
-  ) !important;
-  height: calc(100vh - (var(--window-padding-size) * 1)) !important;
+  // intentionally no geometry — see ClassicyWindow.tsx applyZoom()
 }
 
 .classicyWindowCollapsed {
@@ -39,6 +36,13 @@
 .classicyWindowHeaderDimmed {
   opacity: 0.5;
   border: solid var(--window-border-size) var(--color-black) !important;
+  box-shadow: none !important;
+}
+
+// #183: list-view header variant — drops the beveled bottom separator so the
+// header reads as a column-heading strip rather than a raised bar.
+.classicyWindowHeaderList {
+  border-bottom: none !important;
   box-shadow: none !important;
 }
 
@@ -408,4 +412,127 @@
   & .classicyWindowTitle {
     width: calc(100% - var(--window-control-size)*5) !important;
   }
+}
+
+// #205: draggable frame edges. Mac OS 8 lets you drag a window from the narrow
+// frame on every side, not just the title bar. These thin handles sit over the
+// window's padding ring and reuse the title-bar move logic in JS.
+.classicyWindowFrameEdge {
+  position: absolute;
+  z-index: 5; // below the resizer (999) and the control boxes
+  cursor: default;
+}
+
+.classicyWindowFrameEdge-top {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--window-padding-size);
+}
+
+.classicyWindowFrameEdge-bottom {
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: var(--window-padding-size);
+}
+
+.classicyWindowFrameEdge-left {
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: var(--window-padding-size);
+}
+
+.classicyWindowFrameEdge-right {
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: var(--window-padding-size);
+}
+
+// #196: Placard status region. A placard sits at the window's bottom edge, to
+// the LEFT of the horizontal scroll bar. It is pinned to the bottom-left of the
+// window frame and sized to the scrollbar gutter so its frame meets the
+// scrollbar's outer line; it stays clear of the bottom-right resizer.
+.classicyWindowPlacardBar {
+  position: absolute;
+  z-index: 998; // just below the resizer (999) so the corner grip stays usable
+  left: calc(var(--window-padding-size) + var(--window-border-size));
+  bottom: calc(var(--window-padding-size) + var(--window-border-size) * -1);
+  display: flex;
+  align-items: center;
+  // leave the bottom-right corner free for the resizer / horizontal scroll bar
+  max-width: calc(100% - var(--window-control-size) * 3.5);
+  height: var(--window-scrollbar-size);
+  // pull the placard up by the frame width so its top bevel meets the
+  // horizontal scroll bar's outer line rather than overlapping it
+  margin-bottom: var(--hig-frame-width);
+}
+
+.classicyWindowPlacardBarDimmed {
+  opacity: 0.6;
+}
+
+// #205 / #32: document windows use the standard HIG 19px title bar height.
+.classicyWindowDocument {
+  .classicyWindowTitleBar {
+    min-height: var(--hig-titlebar-height);
+  }
+}
+
+// #205: utility (tool-palette) window — a crosshatch/pinstripe top drag region
+// instead of the pinstriped document title bar.
+.classicyWindowUtility {
+  .classicyWindowTitleBar {
+    min-height: var(--hig-titlebar-height);
+    background-image: repeating-linear-gradient(
+      0deg,
+      var(--color-system-04) 0,
+      var(--color-system-04) var(--window-border-size),
+      transparent var(--window-border-size),
+      transparent calc(var(--window-border-size) * 2)
+    );
+
+    .classicyWindowTitleText {
+      background: var(--color-window-frame);
+      padding: 0 calc(var(--window-padding-size) / 2);
+    }
+
+    .classicyWindowTitleLeft,
+    .classicyWindowTitleRight,
+    .classicyWindowTitleCenter {
+      background: none !important;
+
+      &:before,
+      &:after {
+        content: none !important;
+      }
+    }
+  }
+}
+
+// #203: modeless-dialog content frame — a 2px frame around the window body with
+// distinct active/inactive states. Opt in via the `contentFrame` prop.
+.classicyWindowContentsFramed {
+  border: var(--hig-frame-width) solid var(--color-system-07) !important;
+}
+
+.classicyWindowContentsFramedDimmed {
+  border-color: var(--color-system-05) !important;
+}
+
+// #197: modal scrim — an input-blocking backdrop rendered behind a modal window
+// in the desktop portal. Kept transparent so it doesn't double-dim on top of
+// the desktop's own dialog overlay; it exists to catch (and beep on) outside
+// clicks and to visually separate the modal's stacking context.
+.classicyWindowModalScrim {
+  position: absolute;
+  inset: 0;
+  z-index: 290; // below the active modal window (z-index 300) but above others
+  background: transparent;
+}
+
+.classicyWindowModalScrimError {
+  z-index: 99998; // just below the red error modal (z-index 99999)
 }

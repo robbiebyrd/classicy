@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { ClassicyDefaultAppsContext } from "@/SystemFolder/SystemResources/App/ClassicyDefaultAppsContext";
 
 describe("ClassicyDefaultAppsContext", () => {
-	it("defaults all four apps to enabled when no Provider is present", () => {
+	it("defaults all apps to enabled when no Provider is present", () => {
 		let captured: unknown;
 		function Capture(): null {
 			captured = useContext(ClassicyDefaultAppsContext);
@@ -16,6 +16,7 @@ describe("ClassicyDefaultAppsContext", () => {
 			disablePDFViewer: false,
 			disableMoviePlayer: false,
 			disablePictureViewer: false,
+			disableHyperCard: false,
 		});
 	});
 });

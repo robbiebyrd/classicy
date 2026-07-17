@@ -35,3 +35,25 @@ export const Small: Story = {
 export const Square: Story = {
 	args: { buttonShape: "square", children: "▸" },
 };
+
+// Short-labelled buttons still honor the HIG minimum width (58px), so an
+// "OK"/"Cancel" pair lines up at a consistent size.
+export const OkCancelRow: Story = {
+	render: (args) => (
+		<div style={{ display: "flex" }}>
+			<ClassicyButton {...args} isDefault={true}>
+				OK
+			</ClassicyButton>
+			<ClassicyButton {...args} isDefault={false}>
+				Cancel
+			</ClassicyButton>
+		</div>
+	),
+	args: { children: "OK" },
+};
+
+// Focus the button and press Return/Enter (or Space) to see the ~8-tick
+// keyboard-activation highlight.
+export const KeyboardActivation: Story = {
+	args: { isDefault: true, children: "Press Return" },
+};

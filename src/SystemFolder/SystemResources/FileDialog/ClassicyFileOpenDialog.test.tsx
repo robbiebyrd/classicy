@@ -120,6 +120,31 @@ const baseProps = {
 	onOpenFunc: vi.fn(),
 };
 
+// ClassicyPopUpMenu no longer mirrors a native <select> (upstream "drop
+// pop-up menu hidden <select>"): drive it like its own tests do — click the
+// trigger button (queried by the control's associated label) to open the
+// listbox, then click the target option by its visible label text.
+//
+// The control's label sits inside ClassicyControlLabel's own clickable
+// wrapper, which is itself `role="button"` — so a plain name-based query
+// matches both that wrapper and the real <button>. Filter to the <button>.
+function getPopUpTrigger(name: string | RegExp): HTMLElement {
+	const match = screen
+		.getAllByRole("button", { name })
+		.find((el) => el.tagName === "BUTTON");
+	if (!match) throw new Error(`No <button> trigger found for name ${name}`);
+	return match;
+}
+
+async function choosePopUpOption(
+	user: ReturnType<typeof userEvent.setup>,
+	triggerName: string | RegExp,
+	optionName: string,
+) {
+	await user.click(getPopUpTrigger(triggerName));
+	await user.click(screen.getByRole("option", { name: optionName }));
+}
+
 describe("ClassicyFileOpenDialog", () => {
 	it("lists the active volume root on open", async () => {
 		renderWithProviders(
@@ -186,10 +211,7 @@ describe("ClassicyFileOpenDialog", () => {
 			/>,
 		);
 		await user.click(await screen.findByText("song.mp3"));
-		await user.selectOptions(
-			screen.getByRole("combobox", { name: /show/i }),
-			"1",
-		);
+		await choosePopUpOption(user, /show/i, "Movies");
 		const songHolder = screen.getByText("song.mp3").closest("li");
 		expect(
 			songHolder?.querySelector(".classicyTreeNodeDisabled"),
@@ -254,10 +276,7 @@ describe("ClassicyFileOpenDialog", () => {
 			<ClassicyFileOpenDialog {...baseProps} volumes={[makeVolume(), volB]} />,
 		);
 		await user.click(await screen.findByText("movie.mov"));
-		await user.selectOptions(
-			screen.getByRole("combobox", { name: /volume/i }),
-			"vol-b",
-		);
+		await choosePopUpOption(user, /volume/i, "Volume B");
 		expect(await screen.findByText("b.txt")).toBeInTheDocument();
 		const openButton = screen.getByRole("button", {
 			name: "Open",
@@ -287,18 +306,12 @@ describe("ClassicyFileOpenDialog", () => {
 		expect(volA.list).toHaveBeenCalledTimes(1);
 		expect(volA.list).toHaveBeenCalledWith([]);
 
-		await user.selectOptions(
-			screen.getByRole("combobox", { name: /volume/i }),
-			"vol-b",
-		);
+		await choosePopUpOption(user, /volume/i, "Volume B");
 		expect(await screen.findByText("b.txt")).toBeInTheDocument();
 		expect(volB.list).toHaveBeenCalledTimes(1);
 		expect(volB.list).toHaveBeenCalledWith([]);
 
-		await user.selectOptions(
-			screen.getByRole("combobox", { name: /volume/i }),
-			"vol-a",
-		);
+		await choosePopUpOption(user, /volume/i, "Volume A");
 		expect(await screen.findByText("movie.mov")).toBeInTheDocument();
 		expect(volA.list).toHaveBeenCalledTimes(1);
 	});

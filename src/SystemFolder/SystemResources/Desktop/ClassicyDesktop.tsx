@@ -8,6 +8,7 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyControlPanels } from "@/SystemFolder/ControlPanels/ClassicyControlPanels";
 import { Finder } from "@/SystemFolder/Finder/Finder";
+import { HyperCard } from "@/SystemFolder/HyperCard/HyperCard";
 import { PDFViewer } from "@/SystemFolder/PDFViewer/PDFViewer";
 import { MoviePlayer } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayer";
 import { QuickTimePictureViewer } from "@/SystemFolder/QuickTime/PictureViewer/PictureViewer";
@@ -38,7 +39,7 @@ import {
 	useState,
 } from "react";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
-import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
+import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
 import { ClassicyDesktopIcon } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIcon";
 import {
 	type ArrowDirection,
@@ -47,15 +48,12 @@ import {
 } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopKeyNav";
 import { ClassicyDesktopMenuBar } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
-import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
 const macosIcon = ClassicyIcons.system.macos;
 const trashIcon = ClassicyIcons.system.desktop.trashEmpty;
-const errorIcon = ClassicyIcons.system.error;
 
 import "../../ControlPanels/AppearanceManager/styles/fonts.scss";
 import "../../../index.css";
-import { ClassicyControlLabel } from "../ControlLabel/ClassicyControlLabel";
 
 interface ClassicyDesktopProps {
 	children?: ReactNode;
@@ -104,6 +102,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 		disablePDFViewer,
 		disableMoviePlayer,
 		disablePictureViewer,
+		disableHyperCard,
 	} = useContext(ClassicyDefaultAppsContext);
 
 	const emptyTrash = useCallback(() => {
@@ -448,6 +447,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 			<Finder />
 			{!disableSimpleText && <SimpleText />}
 			{!disablePDFViewer && <PDFViewer />}
+			{!disableHyperCard && <HyperCard />}
 			{!disableMoviePlayer && <MoviePlayer />}
 			{!disablePictureViewer && <QuickTimePictureViewer />}
 			<ClassicyControlPanels />
@@ -480,84 +480,44 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 			))}
 			{showEmptyTrashDialog ? (
 				<div className={"classicyDesktopDialogOverlay"}>
-					<ClassicyWindow
+					<ClassicyAlert
 						id={"empty_trash"}
 						appId={"Finder.app"}
-						closable={false}
-						resizable={false}
-						zoomable={false}
-						scrollable={true}
-						collapsable={false}
-						initialSize={[400, 0]}
-						initialPosition={["center", "center"]}
-						modal={true}
-						type={"error"}
-					>
-						<div className={"classicyDesktopDialogContent"}>
-							<img
-								src={trashIcon}
-								alt={"Trash"}
-								className={"classicyDesktopDialogIcon"}
-							/>
-							<div className={"classicyDesktopDialogBody"}>
-								<ClassicyControlLabel
-									label="Are you sure you want to reset your desktop?
-									This will clear all saved state and reload the
-									application. This action cannot be undone."
-								/>
-								<div className={"classicyDesktopDialogButtons"}>
-									<ClassicyButton
-										isDefault={true}
-										onClickFunc={() => setShowEmptyTrashDialog(false)}
-									>
-										Cancel
-									</ClassicyButton>
-									<ClassicyButton onClickFunc={emptyTrash}>OK</ClassicyButton>
-								</div>
-							</div>
-						</div>
-					</ClassicyWindow>
+						alertType={"caution"}
+						label={"Are you sure you want to reset your desktop?"}
+						message={
+							"This will clear all saved state and reload the application. This action cannot be undone."
+						}
+						defaultButtonId={"cancel"}
+						buttons={[
+							{ id: "cancel", label: "Cancel", role: "cancel" },
+							{
+								id: "reset",
+								label: "Reset",
+								role: "normal",
+								onClick: emptyTrash,
+							},
+						]}
+						onClose={() => setShowEmptyTrashDialog(false)}
+					/>
 				</div>
 			) : null}
 			{errorDialog ? (
 				<div className={"classicyDesktopDialogOverlay"}>
-					<ClassicyWindow
+					<ClassicyAlert
 						id={"error_dialog"}
 						appId={"Finder.app"}
+						alertType={"stop"}
 						title={errorDialog.title}
-						closable={false}
-						resizable={false}
-						zoomable={false}
-						scrollable={false}
-						collapsable={false}
-						initialSize={[400, 0]}
-						initialPosition={["center", "center"]}
-						modal={true}
-						type={"error"}
-					>
-						<div className={"classicyDesktopDialogContent"}>
-							<img
-								src={errorIcon}
-								alt={"Error"}
-								className={"classicyDesktopDialogIcon"}
-							/>
-							<div className={"classicyDesktopDialogBody"}>
-								<ClassicyControlLabel label={errorDialog.message} />
-								<div className={"classicyDesktopDialogButtons"}>
-									<ClassicyButton
-										isDefault={true}
-										onClickFunc={() =>
-											desktopEventDispatch({
-												type: "ClassicyDesktopCloseErrorDialog",
-											})
-										}
-									>
-										OK
-									</ClassicyButton>
-								</div>
-							</div>
-						</div>
-					</ClassicyWindow>
+						label={errorDialog.title ?? "Error"}
+						message={errorDialog.message}
+						buttons={[{ id: "ok", label: "OK", role: "default" }]}
+						onClose={() =>
+							desktopEventDispatch({
+								type: "ClassicyDesktopCloseErrorDialog",
+							})
+						}
+					/>
 				</div>
 			) : null}
 			{children}

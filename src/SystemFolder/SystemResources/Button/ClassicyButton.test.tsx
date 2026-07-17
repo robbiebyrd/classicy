@@ -1,5 +1,12 @@
+import { createRef } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { render, screen, userEvent } from "@/__tests__/test-utils";
+import {
+	act,
+	fireEvent,
+	render,
+	screen,
+	userEvent,
+} from "@/__tests__/test-utils";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 
 vi.mock(
@@ -114,6 +121,71 @@ describe("ClassicyButton", () => {
 
 	it("forwards aria-label to the underlying button element", () => {
 		render(<ClassicyButton aria-label="Remove file.png">✕</ClassicyButton>);
-		expect(screen.getByRole("button", { name: "Remove file.png" })).toBeInTheDocument();
+		expect(
+			screen.getByRole("button", { name: "Remove file.png" }),
+		).toBeInTheDocument();
+	});
+
+	it("forwards a ref to the underlying button element (so a dialog can bind it as default)", () => {
+		const ref = createRef<HTMLButtonElement>();
+		render(
+			<ClassicyButton ref={ref} isDefault={true}>
+				OK
+			</ClassicyButton>,
+		);
+		expect(ref.current).toBeInstanceOf(HTMLButtonElement);
+		expect(ref.current).toHaveClass("classicyButtonDefault");
+	});
+
+	it("adds a transient keyboard-activation highlight on Enter and clears it (~8 ticks)", () => {
+		vi.useFakeTimers();
+		try {
+			render(<ClassicyButton>Go</ClassicyButton>);
+			const btn = screen.getByRole("button", { name: "Go" });
+			expect(btn).not.toHaveClass("classicyButtonKeyActive");
+
+			fireEvent.keyDown(btn, { key: "Enter" });
+			expect(btn).toHaveClass("classicyButtonKeyActive");
+			expect(btn).toHaveAttribute("aria-pressed", "true");
+
+			act(() => {
+				vi.advanceTimersByTime(200);
+			});
+			expect(btn).not.toHaveClass("classicyButtonKeyActive");
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it("also highlights on Space activation", () => {
+		vi.useFakeTimers();
+		try {
+			render(<ClassicyButton>Go</ClassicyButton>);
+			const btn = screen.getByRole("button", { name: "Go" });
+			fireEvent.keyDown(btn, { key: " " });
+			expect(btn).toHaveClass("classicyButtonKeyActive");
+			act(() => {
+				vi.advanceTimersByTime(200);
+			});
+			expect(btn).not.toHaveClass("classicyButtonKeyActive");
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it("does not highlight from the keyboard when disabled", () => {
+		render(<ClassicyButton disabled={true}>Nope</ClassicyButton>);
+		const btn = screen.getByRole("button", { name: "Nope" });
+		fireEvent.keyDown(btn, { key: "Enter" });
+		expect(btn).not.toHaveClass("classicyButtonKeyActive");
+	});
+
+	it("still forwards a consumer onKeyDown handler", () => {
+		const onKeyDown = vi.fn();
+		render(<ClassicyButton onKeyDown={onKeyDown}>Go</ClassicyButton>);
+		fireEvent.keyDown(screen.getByRole("button", { name: "Go" }), {
+			key: "Enter",
+		});
+		expect(onKeyDown).toHaveBeenCalledTimes(1);
 	});
 });

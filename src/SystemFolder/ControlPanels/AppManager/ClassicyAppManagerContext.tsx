@@ -39,6 +39,7 @@ type ClassicyAppManagerProviderProps = {
 	disablePDFViewer?: boolean;
 	disableMoviePlayer?: boolean;
 	disablePictureViewer?: boolean;
+	disableHyperCard?: boolean;
 };
 
 const getOrCreateUserId = (storageKey: string): string => {
@@ -69,6 +70,7 @@ export const ClassicyAppManagerProvider: FunctionalComponent<
 	disablePDFViewer,
 	disableMoviePlayer,
 	disablePictureViewer,
+	disableHyperCard,
 }) => {
 	const seeded = useRef(false);
 	useEffect(() => {
@@ -93,12 +95,14 @@ export const ClassicyAppManagerProvider: FunctionalComponent<
 			disablePDFViewer: disablePDFViewer ?? false,
 			disableMoviePlayer: disableMoviePlayer ?? false,
 			disablePictureViewer: disablePictureViewer ?? false,
+			disableHyperCard: disableHyperCard ?? false,
 		}),
 		[
 			disableSimpleText,
 			disablePDFViewer,
 			disableMoviePlayer,
 			disablePictureViewer,
+			disableHyperCard,
 		],
 	);
 

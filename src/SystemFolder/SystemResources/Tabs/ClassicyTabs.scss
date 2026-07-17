@@ -61,6 +61,22 @@ $_tab-border-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/s
   background: transparent; // wrapper provides all visual background
   min-width: calc(var(--window-control-size) * 7);
   text-wrap: nowrap;
+  // Icon + label sit on one baseline row; either may be omitted.
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--window-padding-size) / 2);
+}
+
+.classicyTabButtonIcon {
+  width: var(--window-control-size);
+  height: var(--window-control-size);
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.classicyTabButtonLabel {
+  text-wrap: nowrap;
 }
 
 .classicyTabButtonActive {

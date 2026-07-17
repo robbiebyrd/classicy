@@ -17,11 +17,31 @@
 }
 
 
+// Reusable HIG list-box frame: a 2 px black rule around the scrolling list so
+// the frame's inner edge coincides with the outer edge of the scroll bar/track.
+// box-sizing keeps the border inside the element so it aligns with the scroll
+// area rather than expanding the box.
+%classicyListBoxFrame {
+  box-sizing: border-box;
+  border: var(--hig-frame-width, 2px) solid var(--color-black);
+}
+
+.classicyListBoxFrame {
+  @extend %classicyListBoxFrame;
+  background: var(--color-white);
+}
+
 .classicyFileBrowserViewTableContainer {
+  @extend %classicyListBoxFrame;
   position: absolute;
   width: 100%;
   height: calc(100% - var(--window-border-size));
   background: var(--color-system-01);
+
+  &:focus {
+    outline: var(--color-outline) solid var(--window-border-size);
+    outline-offset: calc(var(--window-border-size) * -1);
+  }
 }
 
 .classicyFileBrowserViewTable {

@@ -190,6 +190,7 @@ describe("ClassicyAppManagerProvider default apps", () => {
 			disablePDFViewer: false,
 			disableMoviePlayer: false,
 			disablePictureViewer: false,
+			disableHyperCard: false,
 		});
 	});
 
@@ -215,6 +216,7 @@ describe("ClassicyAppManagerProvider default apps", () => {
 			disablePDFViewer: false,
 			disableMoviePlayer: true,
 			disablePictureViewer: true,
+			disableHyperCard: false,
 		});
 	});
 });

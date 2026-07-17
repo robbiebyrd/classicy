@@ -217,11 +217,11 @@ export const ClassicyFileOpenDialog: FunctionalComponent<
 		}
 	};
 
+	// Escape-to-cancel is handled by ClassicyWindow itself for modal windows
+	// (see #194/#197's onModalCancel/useKeyboardEquivalents) — handling it here
+	// too would fire onCancelFunc twice for a single Escape keypress.
 	const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-		if (e.key === "Escape") {
-			e.preventDefault();
-			onCancelFunc?.();
-		} else if (e.key === "Enter" && liveSelectedIds.length > 0) {
+		if (e.key === "Enter" && liveSelectedIds.length > 0) {
 			e.preventDefault();
 			commitOpen(liveSelectedIds);
 		}

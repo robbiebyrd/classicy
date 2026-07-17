@@ -4,9 +4,11 @@ import type {
 	ChangeEventHandler,
 	CSSProperties,
 	FC as FunctionalComponent,
+	ReactNode,
+	PointerEvent as ReactPointerEvent,
 	SyntheticEvent,
 } from "react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
 	ClassicyControlLabel,
 	type ClassicyControlLabelSize,
@@ -46,6 +48,29 @@ export const computeSliderTicks = (
 	return { positions, snapStep: interval };
 };
 
+/** Orientation of the slider's travel axis. */
+export type ClassicySliderOrientation = "horizontal" | "vertical";
+
+/**
+ * Direction the thumb's indicator (its pointed edge) faces. The Mac OS 8 HIG
+ * lets a slider's indicator point toward the track it annotates, or be
+ * "nondirectional" (a plain, unpointed knob) when direction carries no meaning.
+ */
+export type ClassicySliderIndicatorDirection =
+	| "up"
+	| "down"
+	| "left"
+	| "right"
+	| "nondirectional";
+
+const indicatorClassMap: Record<ClassicySliderIndicatorDirection, string> = {
+	up: "classicySliderIndicatorUp",
+	down: "classicySliderIndicatorDown",
+	left: "classicySliderIndicatorLeft",
+	right: "classicySliderIndicatorRight",
+	nondirectional: "classicySliderIndicatorNondirectional",
+};
+
 interface ClassicySliderProps {
 	id: string;
 	labelTitle?: string;
@@ -64,6 +89,22 @@ interface ClassicySliderProps {
 	 * assistive technology still announces what it controls.
 	 */
 	ariaLabel?: string;
+	/**
+	 * Travel axis. `"horizontal"` (default) tracks left→right; `"vertical"`
+	 * tracks bottom→top. Ticks, labels and the ghost indicator follow the axis.
+	 */
+	orientation?: ClassicySliderOrientation;
+	/**
+	 * Which way the thumb's pointed indicator faces. Defaults to `"down"` for
+	 * horizontal sliders and `"left"` for vertical sliders (the HIG's convention
+	 * of pointing at the track). `"nondirectional"` renders an unpointed knob.
+	 */
+	indicatorDirection?: ClassicySliderIndicatorDirection;
+	/**
+	 * When true, a translucent "ghost" copy of the thumb trails the pointer while
+	 * the user drags, echoing the Mac OS 8 shadow indicator. Off by default.
+	 */
+	ghost?: boolean;
 	onChangeFunc?: ChangeEventHandler<HTMLInputElement>;
 	/**
 	 * Fired once when the user finishes adjusting the slider — on pointer release
@@ -80,6 +121,13 @@ interface ClassicySliderProps {
 	 * ticks (default).
 	 */
 	tickInterval?: number | "center";
+	/**
+	 * Optional labels aligned by index to the computed tick positions. Each entry
+	 * is rendered (text or graphic) beneath/beside its tick to convey the
+	 * direction of increase (e.g. `["Slow", null, null, null, "Fast"]`). Entries
+	 * that are `null`/`undefined` render nothing.
+	 */
+	tickLabels?: (ReactNode | null)[];
 	/**
 	 * When true and `tickInterval` is a number, the thumb snaps to tick
 	 * positions: the input's `step` becomes the effective tick interval,
@@ -101,11 +149,19 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 	highlighted = false,
 	valueLabel,
 	ariaLabel,
+	orientation = "horizontal",
+	indicatorDirection,
+	ghost = false,
 	onChangeFunc,
 	onCommitFunc,
 	tickInterval,
+	tickLabels,
 	snapToTicks = false,
 }) => {
+	const isVertical = orientation === "vertical";
+	const resolvedIndicator: ClassicySliderIndicatorDirection =
+		indicatorDirection ?? (isVertical ? "left" : "down");
+
 	// Uncontrolled input with ref-sync: avoids Safari freeze bug where React's
 	// controlled value reconciliation conflicts with native slider capture on mouseup.
 	const inputRef = useRef<HTMLInputElement>(null);
@@ -119,12 +175,38 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 		}
 	}, [value]);
 
+	// Live value + drag state drive the ghost indicator. Tracked separately from
+	// the (uncontrolled) input so the ghost can shadow the pointer without
+	// interfering with native slider capture.
+	const [dragging, setDragging] = useState(false);
+	const [liveValue, setLiveValue] = useState(value);
+	useEffect(() => {
+		if (!dragging) setLiveValue(value);
+	}, [value, dragging]);
+
 	// Commit the current value once the user releases the slider — on pointer up
 	// (mouse, touch, and pen all surface as pointer events) or key up. onChangeFunc
 	// fires continuously during a drag; onCommitFunc fires only at the end, so
 	// consumers can keep live UI responsive while deferring expensive side effects.
 	const handleCommit = (e: SyntheticEvent<HTMLInputElement>) => {
 		if (onCommitFunc) onCommitFunc(Number(e.currentTarget.value));
+	};
+
+	const handleChange: ChangeEventHandler<HTMLInputElement> = (e) => {
+		if (ghost) setLiveValue(Number(e.currentTarget.value));
+		onChangeFunc?.(e);
+	};
+
+	const handlePointerDown = (e: ReactPointerEvent<HTMLInputElement>) => {
+		if (ghost && !disabled) {
+			setLiveValue(Number(e.currentTarget.value));
+			setDragging(true);
+		}
+	};
+
+	const endDrag = (e: SyntheticEvent<HTMLInputElement>) => {
+		if (dragging) setDragging(false);
+		if (onCommitFunc) handleCommit(e);
 	};
 
 	const sizeClassMap: Record<ClassicyControlLabelSize, string> = {
@@ -138,50 +220,117 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 	const effectiveStep =
 		snapToTicks && ticks.snapStep !== undefined ? ticks.snapStep : step;
 
+	// Fraction (0–1) of travel for the ghost's position along the axis.
+	const range = max - min;
+	const ghostFraction =
+		range > 0 ? Math.min(1, Math.max(0, (liveValue - min) / range)) : 0;
+
+	const hasTicks = ticks.positions.length > 0;
+	const hasLabels =
+		Array.isArray(tickLabels) && tickLabels.some((l) => l != null);
+	const needsStack = hasTicks || ghost;
+
 	const rangeInput = (
 		<input
 			ref={inputRef}
 			id={id}
 			type="range"
 			aria-label={ariaLabel}
+			aria-orientation={orientation}
 			className={classNames(
 				"classicySlider",
 				highlighted && "classicySliderHighlighted",
 				disabled && "classicySliderDisabled",
+				indicatorClassMap[resolvedIndicator],
+				isVertical && "classicySliderInputVertical",
 			)}
 			defaultValue={value}
 			min={min}
 			max={max}
 			step={effectiveStep}
 			disabled={disabled}
-			onChange={onChangeFunc}
-			onPointerUp={onCommitFunc ? handleCommit : undefined}
+			onChange={handleChange}
+			onPointerDown={ghost ? handlePointerDown : undefined}
+			onPointerUp={ghost || onCommitFunc ? endDrag : undefined}
+			onPointerCancel={ghost ? () => setDragging(false) : undefined}
 			onKeyUp={onCommitFunc ? handleCommit : undefined}
 		/>
 	);
 
+	// Ghost is positioned along the travel axis; the axis inset matches the tick
+	// rail so the ghost's center lands under the thumb's point.
+	const ghostEl = ghost ? (
+		<span
+			aria-hidden="true"
+			className={classNames(
+				"classicySliderGhost",
+				indicatorClassMap[resolvedIndicator],
+				!dragging && "classicySliderGhostHidden",
+			)}
+			style={{ "--classicy-ghost-pos": String(ghostFraction) } as CSSProperties}
+		/>
+	) : null;
+
+	const tickRail = hasTicks ? (
+		<div
+			aria-hidden="true"
+			className={classNames(
+				"classicySliderTicks",
+				disabled && "classicySliderTicksDisabled",
+			)}
+		>
+			<div className="classicySliderTicksTrack">
+				{ticks.positions.map((pos) => (
+					<span
+						key={pos}
+						className="classicySliderTick"
+						style={{ "--classicy-tick-left": `${pos}%` } as CSSProperties}
+					/>
+				))}
+			</div>
+		</div>
+	) : null;
+
+	const labelRail = hasLabels ? (
+		<div aria-hidden="true" className="classicySliderTickLabels">
+			<div className="classicySliderTicksTrack">
+				{ticks.positions.map((pos, i) => {
+					const label = tickLabels?.[i];
+					if (label == null) return null;
+					return (
+						<span
+							key={pos}
+							className="classicySliderTickLabel"
+							style={{ "--classicy-tick-left": `${pos}%` } as CSSProperties}
+						>
+							{label}
+						</span>
+					);
+				})}
+			</div>
+		</div>
+	) : null;
+
 	const slider = (
-		<div className="classicySliderTrackGroup">
-			{ticks.positions.length > 0 ? (
-				<div className="classicySliderStack">
-					{rangeInput}
-					<div
-						aria-hidden="true"
-						className={classNames(
-							"classicySliderTicks",
-							disabled && "classicySliderTicksDisabled",
-						)}
-					>
-						<div className="classicySliderTicksTrack">
-							{ticks.positions.map((pos) => (
-								<span
-									key={pos}
-									className="classicySliderTick"
-									style={{ "--classicy-tick-left": `${pos}%` } as CSSProperties}
-								/>
-							))}
-						</div>
+		<div
+			className={classNames(
+				"classicySliderTrackGroup",
+				isVertical && "classicySliderTrackGroupVertical",
+			)}
+		>
+			{needsStack ? (
+				<div
+					className={classNames(
+						"classicySliderStack",
+						isVertical && "classicySliderStackVertical",
+					)}
+				>
+					<div className="classicySliderTrackLayer">
+						{rangeInput}
+						{ghostEl}
 					</div>
+					{tickRail}
+					{labelRail}
 				</div>
 			) : (
 				rangeInput

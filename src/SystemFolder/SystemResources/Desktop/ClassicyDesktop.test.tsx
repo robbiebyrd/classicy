@@ -106,7 +106,9 @@ describe("ClassicyDesktop startup screen", () => {
 			</ClassicyAppManagerProvider>,
 		);
 		fireEvent.doubleClick(screen.getByAltText("Trash"));
-		fireEvent.click(screen.getByText("OK"));
+		// The reset confirmation is now a caution ClassicyAlert; its confirm
+		// button is the HIG-specific verb "Reset" (Cancel is the safe default).
+		fireEvent.click(screen.getByText("Reset"));
 		expect(sessionStorage.getItem("classicyStartupScreenShown")).toBeNull();
 		expect(reload).toHaveBeenCalled();
 		vi.unstubAllGlobals();

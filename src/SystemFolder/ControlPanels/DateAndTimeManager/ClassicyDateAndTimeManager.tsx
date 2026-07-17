@@ -11,8 +11,13 @@ import {
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
-import { useClassicyAboutMenu } from "@/SystemFolder/SystemResources/App/ClassicyAppMenuHooks";
 import {
+	useClassicyAboutMenu,
+	useClassicyEditMenu,
+	useClassicyWindowClose,
+} from "@/SystemFolder/SystemResources/App/ClassicyAppMenuHooks";
+import {
+	closeWindowMenuItemHelper,
 	quitAppHelper,
 	quitMenuItemHelper,
 } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
@@ -29,6 +34,7 @@ import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWi
 
 const APP_ID = "DateAndTimeManager.app";
 const APP_NAME = "Date and Time Manager";
+const WINDOW_ID = "DateAndTimeManager_1";
 
 const TIME_FORMAT_INPUTS = [
 	{ id: "12", label: "12-Hour", checked: true },
@@ -76,6 +82,8 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
 		APP_NAME,
 		appIcon,
 	);
+	const windowClose = useClassicyWindowClose(APP_ID);
+	const editMenu = useClassicyEditMenu(APP_ID);
 
 	const quitApp = () => {
 		desktopEventDispatch(quitAppHelper(APP_ID, APP_NAME, appIcon));
@@ -135,17 +143,36 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
 		});
 	};
 
+	// Mac OS 8 HIG control-panel menu bar (audit ch. 6 §35): Apple / File / Edit.
+	// About ideally lives as the first item of the global Apple menu
+	// (Desktop.systemMenu), which is outside this panel's editable scope; until a
+	// per-app Apple-menu injection point exists it sits at the top of File (out of
+	// the old Help menu). TODO(#209): relocate About to the Apple menu.
+	//
+	// ClassicyMenu renders an <hr> divider only for id === "spacer" and keys by
+	// id, so at most one divider per menu.
 	const appMenu = [
 		{
 			id: `${APP_ID}_file`,
 			title: "File",
-			menuChildren: [quitMenuItemHelper(APP_ID, APP_NAME, appIcon)],
+			menuChildren: [
+				{ ...aboutMenuItem, title: `About ${APP_NAME}` },
+				{
+					...closeWindowMenuItemHelper(`${APP_ID}_close_window`, () =>
+						windowClose(WINDOW_ID, quitAppHelper(APP_ID, APP_NAME, appIcon)),
+					),
+					keyboardShortcut: "⌥W",
+				},
+				{ id: "spacer" },
+				{
+					...quitMenuItemHelper(APP_ID, APP_NAME, appIcon),
+					keyboardShortcut: "⌥Q",
+				},
+			],
 		},
-		{
-			id: `${APP_ID}_help`,
-			title: "Help",
-			menuChildren: [aboutMenuItem],
-		},
+		// Edit menu — this panel has date/time entry fields. Commands act on the
+		// focused field; ⌘Z/⌘X/⌘C/⌘V/⌘A work natively there.
+		editMenu,
 	];
 
 	// Shift stored UTC dateTime into the selected Classicy timezone for display.
@@ -183,7 +210,7 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
 			addSystemMenu={true}
 		>
 			<ClassicyWindow
-				id={"DateAndTimeManager_1"}
+				id={WINDOW_ID}
 				title={APP_NAME}
 				appId={APP_ID}
 				icon={appIcon}

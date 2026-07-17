@@ -1,0 +1,117 @@
+@use "../../ControlPanels/AppearanceManager/styles/appearance";
+
+// Placard (HIG #15) — a small beveled info panel. Familiar placement is the
+// bottom-left of a window, left of the horizontal scroll bar (e.g. a
+// magnification-level pop-up). This is a standalone control; wiring it into
+// ClassicyWindow is a follow-up.
+.classicyPlacardHolder {
+  position: relative;
+  display: inline-block;
+}
+
+.classicyPlacard {
+  --bevel-w: var(--hig-bevel-sm, 2px);
+
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--window-padding-size) / 2);
+
+  min-height: var(--hig-control-height, 18px);
+  padding: 0 calc(var(--window-padding-size) / 1.5);
+
+  font-family: var(--ui-font), sans-serif;
+  font-size: calc(var(--ui-font-size) / 1.2);
+  color: var(--color-black);
+
+  background-color: var(--color-system-02);
+  border: var(--window-border-size) solid var(--color-black);
+
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: default;
+
+  // Raised platinum bevel: light top-left, gray bottom-right.
+  box-shadow:
+    inset var(--bevel-w) var(--bevel-w) 0 0 var(--color-white),
+    inset calc(var(--bevel-w) * -1) calc(var(--bevel-w) * -1) 0 0 var(--color-system-05);
+
+  &:focus-visible {
+    outline: var(--color-outline) solid calc(var(--window-border-size) * 2);
+    outline-offset: var(--window-border-size);
+  }
+
+  // --- Pressed: bevel inverts to look pushed in. ---
+  &[data-state="pressed"] {
+    background-color: var(--color-system-04);
+    box-shadow:
+      inset var(--bevel-w) var(--bevel-w) 0 0 var(--color-system-05),
+      inset calc(var(--bevel-w) * -1) calc(var(--bevel-w) * -1) 0 0 var(--color-white);
+  }
+
+  // --- Disabled: flatten and dim. ---
+  &[data-state="disabled"] {
+    border-color: var(--color-system-05);
+    color: var(--color-system-05);
+    box-shadow:
+      inset var(--bevel-w) var(--bevel-w) 0 0 var(--color-system-04),
+      inset calc(var(--bevel-w) * -1) calc(var(--bevel-w) * -1) 0 0 var(--color-system-04);
+  }
+}
+
+button.classicyPlacard {
+  appearance: none;
+  font: inherit;
+}
+
+.classicyPlacardContent {
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.classicyPlacardArrow {
+  display: inline-flex;
+  align-items: center;
+  font-size: calc(var(--ui-font-size) / 1.5);
+  line-height: 1;
+}
+
+// Pop-up menu opened from a placard. Sits above the placard (its usual place
+// is the bottom of a window, so the menu grows upward).
+.classicyPlacardMenu {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  z-index: 10;
+  min-width: 100%;
+  margin: 0 0 var(--window-border-size) 0;
+  padding: var(--window-border-size);
+  list-style: none;
+
+  background-color: var(--color-system-02);
+  @include appearance.platinumWindowBorder;
+}
+
+.classicyPlacardMenuItem {
+  display: block;
+  width: 100%;
+  padding: calc(var(--window-padding-size) / 3) var(--window-padding-size);
+  border: none;
+  background: transparent;
+  font-family: var(--ui-font), sans-serif;
+  font-size: calc(var(--ui-font-size) / 1.2);
+  color: var(--color-black);
+  text-align: left;
+  white-space: nowrap;
+  cursor: default;
+
+  &:hover:not(:disabled),
+  &:focus:not(:disabled) {
+    background-color: var(--color-theme-hover, var(--color-system-05));
+    color: var(--color-white);
+    outline: none;
+  }
+
+  &:disabled {
+    color: var(--color-system-05);
+  }
+}

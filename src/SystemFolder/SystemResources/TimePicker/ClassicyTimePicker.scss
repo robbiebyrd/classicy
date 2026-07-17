@@ -56,3 +56,14 @@
 .classicyTimePickerPeriod {
   min-width: calc(var(--ui-font-size) * 4);
 }
+
+.classicyTimePickerField {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.classicyTimePickerArrows {
+  align-self: center;
+  margin-right: var(--window-padding-size);
+}

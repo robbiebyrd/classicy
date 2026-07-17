@@ -150,6 +150,47 @@ export const getThemeVars = (theme: ClassicyTheme) => {
 			typeof theme.desktop.backgroundSize === "number"
 				? intToPct(theme.desktop.backgroundSize)
 				: theme.desktop.backgroundSize,
+		// --- HIG dialog layout metrics (Mac OS 8 HIG, Ch. 3 "Layout Guidelines").
+		// Fixed pixel values from the guidelines, exposed as tokens so controls
+		// and dialogs can lay out to the HIG grid instead of ad-hoc spacing.
+		// Push buttons.
+		"--hig-button-height": intToPx(20),
+		"--hig-button-min-width": intToPx(58), // standard OK/Cancel width
+		"--hig-button-text-padding": intToPx(8), // min text-to-border each side
+		"--hig-button-default-ring": intToPx(3), // default-button ring outset
+		"--hig-button-gap-h": intToPx(12), // horizontal gap between buttons
+		"--hig-button-gap-v": intToPx(10), // vertical stack gap between buttons
+		"--hig-dialog-edge": intToPx(12), // button-to-dialog-edge
+		// Generic spacing.
+		"--hig-item-gap": intToPx(4), // min gap between clickable items
+		"--hig-item-gap-focus": intToPx(6), // preferred gap when focus rings show
+		"--hig-group-gap": intToPx(16), // gap between groups of controls
+		// Checkboxes & radio buttons.
+		"--hig-control-box": intToPx(12), // 12x12 box / circle
+		"--hig-control-height": intToPx(18), // full control height
+		"--hig-control-label-gap": intToPx(5), // box-to-label
+		// Pop-up menus & edit fields.
+		"--hig-popup-height": intToPx(20),
+		"--hig-editfield-height": intToPx(22),
+		// Group boxes.
+		"--hig-groupbox-margin-side": intToPx(10),
+		"--hig-groupbox-margin-top": intToPx(12),
+		"--hig-groupbox-margin-bottom": intToPx(10),
+		"--hig-groupbox-title-pad": intToPx(3),
+		// Indicators & misc controls.
+		"--hig-progress-height": intToPx(12),
+		"--hig-static-text-height": intToPx(16),
+		"--hig-disclosure-text-gap": intToPx(5),
+		"--hig-help-button-width": intToPx(20),
+		"--hig-help-button-height": intToPx(21),
+		// Frames & bevels (2px frame shared by list box, edit text, image well,
+		// primary group box, separator, modeless dialog frame).
+		"--hig-frame-width": intToPx(2),
+		"--hig-bevel-sm": intToPx(2),
+		"--hig-bevel-md": intToPx(3),
+		"--hig-bevel-lg": intToPx(4),
+		// Windows.
+		"--hig-titlebar-height": intToPx(19), // document window title bar
 	};
 };
 

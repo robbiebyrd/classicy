@@ -1,0 +1,60 @@
+@use "../../ControlPanels/AppearanceManager/styles/appearance";
+
+// Image Well (HIG #16) — a 2-pixel recessed frame with a white fill that
+// displays an icon/picture and can act as a drag-and-drop target. The recessed
+// look + white fill is what distinguishes it from a (raised) bevel button; it
+// is NOT a substitute for a push button.
+.classicyImageWell {
+  --frame-w: var(--hig-frame-width, 2px);
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+
+  min-width: var(--window-control-size);
+  min-height: var(--window-control-size);
+  padding: var(--window-border-size);
+
+  background-color: var(--color-white);
+  border: var(--window-border-size) solid var(--color-black);
+
+  // Recessed frame: dark shadow top-left, light highlight bottom-right — the
+  // inverse of a raised bevel, so the content sits below the surface.
+  box-shadow:
+    inset var(--frame-w) var(--frame-w) 0 0 var(--color-system-05),
+    inset calc(var(--frame-w) * -1) calc(var(--frame-w) * -1) 0 0 var(--color-white);
+}
+
+.classicyImageWellImage {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+// Selected: accent frame using the Appearance/theme accent (falls back to the
+// focus-ring color).
+.classicyImageWellSelected {
+  outline: calc(var(--window-border-size) * 2) solid
+    var(--color-theme-selection, var(--color-outline));
+  outline-offset: calc(var(--window-border-size) * -1);
+}
+
+// Active drag target highlight.
+.classicyImageWellDragOver {
+  outline: calc(var(--window-border-size) * 2) dashed
+    var(--color-theme-selection, var(--color-outline));
+  outline-offset: calc(var(--window-border-size) * -1);
+}
+
+// Disabled: dim the fill and content.
+.classicyImageWellDisabled {
+  background-color: var(--color-system-02);
+  border-color: var(--color-system-05);
+
+  .classicyImageWellImage {
+    opacity: 0.5;
+  }
+}
