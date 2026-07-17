@@ -153,6 +153,12 @@ export class ClassicyFileSystem {
 			ClassicyFileSystemEntryFileType.Stack,
 		],
 		showInvisible: boolean = true,
+		// When set, entries whose `_createdOn` is strictly after this moment are
+		// omitted from the listing. Apps pass the current Classicy date/time here
+		// so files "created in the future" (relative to the virtual clock) stay
+		// hidden until that time is reached. Entries without a valid `_createdOn`
+		// are always shown. Accepts a Date, an ISO string, or epoch millis.
+		notCreatedAfter: Date | string | number | null = null,
 	): ClassicyFileSystemEntry {
 		const filteredItems = {} as ClassicyFileSystemEntry;
 		if (!this.resolve(path)) return filteredItems;
@@ -160,11 +166,38 @@ export class ClassicyFileSystem {
 			if (a._invisible === true && !showInvisible) {
 				return;
 			}
+			if (this.isCreatedAfter(a, notCreatedAfter)) {
+				return;
+			}
 			if (byType.includes(a._type)) {
 				filteredItems[b] = a;
 			}
 		});
 		return filteredItems;
+	}
+
+	/**
+	 * Returns true when `entry` was created strictly after `cutoff`. Used to hide
+	 * files created "in the future" relative to the current Classicy date/time.
+	 * A null/absent cutoff (feature off) or a missing/unparseable `_createdOn`
+	 * both return false, so the entry is kept.
+	 */
+	private isCreatedAfter(
+		entry: ClassicyFileSystemEntry,
+		cutoff: Date | string | number | null,
+	): boolean {
+		if (cutoff === null || cutoff === undefined) return false;
+
+		const createdOn = entry?._createdOn;
+		if (createdOn === null || createdOn === undefined) return false;
+
+		const createdMs = new Date(createdOn as Date | string | number).getTime();
+		if (Number.isNaN(createdMs)) return false;
+
+		const cutoffMs = new Date(cutoff).getTime();
+		if (Number.isNaN(cutoffMs)) return false;
+
+		return createdMs > cutoffMs;
 	}
 
 	async statFile(path: string): Promise<ClassicyFileSystemEntry | undefined> {

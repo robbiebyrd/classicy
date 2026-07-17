@@ -11,6 +11,9 @@ type ClassicyFileBrowserProps = {
 	display?: "icons" | "list";
 	dirOnClickFunc?: (path: string) => void;
 	fileOnClickFunc?: (path: string) => void;
+	// When set, files whose `_createdOn` is after this moment are hidden from the
+	// listing. Pass the current Classicy date/time to hide "future" files.
+	hideFilesCreatedAfter?: Date | string | number | null;
 };
 
 // Define stable default functions outside component to prevent re-creation
@@ -26,6 +29,7 @@ export const ClassicyFileBrowser: FunctionalComponent<
 	appId,
 	dirOnClickFunc,
 	fileOnClickFunc,
+	hideFilesCreatedAfter = null,
 }) => {
 	const holderRef = useRef<HTMLDivElement>(null);
 
@@ -40,6 +44,7 @@ export const ClassicyFileBrowser: FunctionalComponent<
 					appId={appId}
 					iconSize={18}
 					holderRef={holderRef}
+					hideFilesCreatedAfter={hideFilesCreatedAfter}
 				/>
 			) : (
 				<ClassicyFileBrowserViewIcons
@@ -49,6 +54,7 @@ export const ClassicyFileBrowser: FunctionalComponent<
 					path={path}
 					appId={appId}
 					holderRef={holderRef}
+					hideFilesCreatedAfter={hideFilesCreatedAfter}
 				/>
 			)}
 		</div>
