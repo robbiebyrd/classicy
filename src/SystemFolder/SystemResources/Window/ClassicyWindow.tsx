@@ -146,6 +146,13 @@ interface ClassicyWindowProps {
 	 * (#203), used to distinguish a modeless dialog from a plain window.
 	 */
 	contentFrame?: boolean;
+	/**
+	 * Optional Platinum placard (#196). When provided, this node is mounted in a
+	 * status region at the window's bottom-left edge — to the LEFT of the
+	 * horizontal scroll bar, where the HIG places a placard (often a
+	 * magnification/status pop-up). It is hidden while the window is collapsed.
+	 */
+	placard?: ReactNode;
 }
 
 export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
@@ -177,6 +184,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	zoomMode = "full",
 	headerVariant = "standard",
 	contentFrame = false,
+	placard,
 }) => {
 	const icon = iconProp || fileIcon;
 
@@ -1027,6 +1035,19 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 					{children}
 				</div>
 			</div>
+			{/* #196: a Platinum placard status region pinned to the window's
+					    bottom-left, to the left of the horizontal scroll bar. Hidden
+					    while collapsed and kept clear of the bottom-right resizer. */}
+			{placard && !ws.collapsed && (
+				<div
+					className={classNames(
+						"classicyWindowPlacardBar",
+						isActive() ? "" : "classicyWindowPlacardBarDimmed",
+					)}
+				>
+					{placard}
+				</div>
+			)}
 			{resizable && !ws.collapsed && (
 				// biome-ignore lint/a11y/noStaticElementInteractions: resize handle is mouse-only drag target
 				<div

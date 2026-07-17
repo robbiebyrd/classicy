@@ -1,5 +1,6 @@
 import { desktopParameters, StoryApp } from "@sb/helpers";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { ClassicyPlacard } from "@/SystemFolder/SystemResources/Placard/ClassicyPlacard";
 import { ClassicyWindow } from "./ClassicyWindow";
 
 const meta = {
@@ -215,6 +216,43 @@ export const HorizontalZoom: Story = {
 			>
 				<p style={{ padding: "1em" }}>
 					Click the zoom box: this window grows horizontally only.
+				</p>
+			</ClassicyWindow>
+		</StoryApp>
+	),
+};
+
+/**
+ * #196 — a window with a Platinum placard in the bottom-left status region, to
+ * the left of the horizontal scroll bar. Here the placard is a magnification
+ * pop-up (a `menuItems` placard) as commonly seen in Mac OS 8 document windows.
+ */
+export const WithPlacard: Story = {
+	render: () => (
+		<StoryApp id="storybook.app" name="Storybook">
+			<ClassicyWindow
+				id="placard"
+				appId="storybook.app"
+				title="Untitled Document"
+				initialSize={[440, 300]}
+				initialPosition={[80, 60]}
+				placard={
+					<ClassicyPlacard
+						menuItems={[
+							{ id: "50", title: "50%" },
+							{ id: "100", title: "100%" },
+							{ id: "200", title: "200%" },
+							{ id: "fit", title: "Fit in Window" },
+						]}
+						onSelect={(id) => console.log("magnification:", id)}
+					>
+						100%
+					</ClassicyPlacard>
+				}
+			>
+				<p style={{ padding: "1em" }}>
+					A Platinum window with a magnification placard pinned to the
+					bottom-left, left of the horizontal scroll bar.
 				</p>
 			</ClassicyWindow>
 		</StoryApp>

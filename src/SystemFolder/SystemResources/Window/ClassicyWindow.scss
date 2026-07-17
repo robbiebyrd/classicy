@@ -451,6 +451,29 @@
   width: var(--window-padding-size);
 }
 
+// #196: Placard status region. A placard sits at the window's bottom edge, to
+// the LEFT of the horizontal scroll bar. It is pinned to the bottom-left of the
+// window frame and sized to the scrollbar gutter so its frame meets the
+// scrollbar's outer line; it stays clear of the bottom-right resizer.
+.classicyWindowPlacardBar {
+  position: absolute;
+  z-index: 998; // just below the resizer (999) so the corner grip stays usable
+  left: calc(var(--window-padding-size) + var(--window-border-size));
+  bottom: calc(var(--window-padding-size) + var(--window-border-size) * -1);
+  display: flex;
+  align-items: center;
+  // leave the bottom-right corner free for the resizer / horizontal scroll bar
+  max-width: calc(100% - var(--window-control-size) * 3.5);
+  height: var(--window-scrollbar-size);
+  // pull the placard up by the frame width so its top bevel meets the
+  // horizontal scroll bar's outer line rather than overlapping it
+  margin-bottom: var(--hig-frame-width);
+}
+
+.classicyWindowPlacardBarDimmed {
+  opacity: 0.6;
+}
+
 // #205 / #32: document windows use the standard HIG 19px title bar height.
 .classicyWindowDocument {
   .classicyWindowTitleBar {
