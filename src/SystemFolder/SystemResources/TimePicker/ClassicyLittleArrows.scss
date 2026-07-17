@@ -1,0 +1,51 @@
+@use '../../ControlPanels/AppearanceManager/styles/appearance';
+
+// Little-arrows widget: a boxed, beveled stack of up/down arrows that attaches
+// to a separate content area (clock field, etc.). Mirrors the spinner arrows.
+.classicyLittleArrows {
+  display: inline-flex;
+  flex-direction: column;
+  border: var(--window-border-size) solid var(--color-black);
+  box-shadow:
+    calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 0 var(--color-system-05),
+    calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) 0 0 var(--color-system-04);
+  width: calc(var(--window-control-size) * 0.9);
+  background-color: var(--color-system-02);
+
+  .classicyLittleArrowsButton {
+    flex: 1;
+    margin: 0;
+    padding: 0 calc(var(--window-border-size));
+    border: none;
+    border-radius: 0;
+    background-color: var(--color-system-02);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+
+    &:first-child {
+      border-bottom: var(--window-border-size) solid var(--color-system-04);
+    }
+
+    &:active {
+      background-color: var(--color-theme-04);
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      filter: contrast(0.5);
+    }
+
+    img {
+      height: auto;
+      width: 100%;
+      pointer-events: none;
+    }
+  }
+
+  // The decrement button reuses the up-arrow icon, flipped vertically.
+  .classicyLittleArrowsButtonDown img {
+    transform: scaleY(-1);
+  }
+}

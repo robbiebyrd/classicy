@@ -1,10 +1,12 @@
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
-import {
-	DefaultAppManagerState,
-} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
-import { useClassicyWindowClose, useClassicyAboutMenu } from "@/SystemFolder/SystemResources/App/ClassicyAppMenuHooks";
+import {
+	useClassicyAboutMenu,
+	useClassicyEditMenu,
+	useClassicyWindowClose,
+} from "@/SystemFolder/SystemResources/App/ClassicyAppMenuHooks";
 
 function seedTestApp() {
 	useAppManager.setState(DefaultAppManagerState, true);
@@ -120,5 +122,41 @@ describe("useClassicyAboutMenu", () => {
 			result.current.aboutMenuItem.onClickFunc?.();
 		});
 		expect(result.current.aboutWindow).not.toBeNull();
+	});
+});
+
+describe("useClassicyEditMenu", () => {
+	it("builds an Edit menu with the standard HIG commands", () => {
+		const { result } = renderHook(() => useClassicyEditMenu("TestApp.app"));
+		const edit = result.current;
+		expect(edit.title).toBe("Edit");
+		const titles = (edit.menuChildren ?? [])
+			.filter((c) => c.id !== "spacer")
+			.map((c) => c.title);
+		expect(titles).toEqual([
+			"Undo",
+			"Cut",
+			"Copy",
+			"Paste",
+			"Clear",
+			"Select All",
+		]);
+	});
+
+	it("wires every command to a click handler and flags editing shortcuts native", () => {
+		const { result } = renderHook(() => useClassicyEditMenu("TestApp.app"));
+		const children = (result.current.menuChildren ?? []).filter(
+			(c) => c.id !== "spacer",
+		);
+		// Every command is clickable.
+		for (const c of children) {
+			expect(typeof c.onClickFunc).toBe("function");
+		}
+		// The shortcut-bearing commands defer to native browser editing.
+		const shortcutItems = children.filter((c) => c.keyboardShortcut);
+		expect(shortcutItems.length).toBe(5);
+		for (const c of shortcutItems) {
+			expect(c.nativeShortcut).toBe(true);
+		}
 	});
 });

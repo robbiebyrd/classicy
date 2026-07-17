@@ -22,10 +22,12 @@ const arrowUpIcon = ClassicyIcons.ui.menuDropdownArrowUp;
 
 import {
 	type FC as FunctionalComponent,
+	type KeyboardEvent,
 	memo,
 	type RefObject,
 	useEffect,
 	useMemo,
+	useRef,
 	useState,
 } from "react";
 
@@ -59,6 +61,11 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 			const [sorting, setSorting] = useState<SortingState>([
 				{ id: "_name", desc: false },
 			]);
+			const containerRef = useRef<HTMLDivElement>(null);
+			const typeBuffer = useRef("");
+			const typeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+				undefined,
+			);
 
 			const openFileOrFolder = (
 				properties: ClassicyFileSystemEntryMetadata,
@@ -181,9 +188,96 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 				columnResizeMode: "onChange",
 			});
 
+			const selectRowById = (rowId: string) => {
+				setSelectedRow(rowId);
+				// Keep the newly selected row within the scrolling list box.
+				requestAnimationFrame(() => {
+					const el = containerRef.current?.querySelector(
+						`[data-row-id="${rowId}"]`,
+					);
+					try {
+						el?.scrollIntoView({ block: "nearest" });
+					} catch {
+						// scrollIntoView is not implemented in some test environments.
+					}
+				});
+			};
+
+			// HIG list-box keyboard behavior: Up/Down move the selection one item,
+			// Enter opens the selected item, and typing leading characters selects
+			// the first matching row (type-selection).
+			const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+				const rows = table.getRowModel().rows;
+				if (rows.length === 0) return;
+				const curIndex = rows.findIndex((r) => r.id === selectedRow);
+
+				switch (e.key) {
+					case "ArrowDown": {
+						e.preventDefault();
+						const ni = Math.min(curIndex + 1, rows.length - 1);
+						selectRowById(rows[ni < 0 ? 0 : ni].id);
+						return;
+					}
+					case "ArrowUp": {
+						e.preventDefault();
+						const ni = curIndex < 0 ? 0 : Math.max(curIndex - 1, 0);
+						selectRowById(rows[ni].id);
+						return;
+					}
+					case "Home": {
+						e.preventDefault();
+						selectRowById(rows[0].id);
+						return;
+					}
+					case "End": {
+						e.preventDefault();
+						selectRowById(rows[rows.length - 1].id);
+						return;
+					}
+					case "Enter": {
+						if (curIndex >= 0) {
+							e.preventDefault();
+							const row = rows[curIndex];
+							openFileOrFolder(row.original, path, row.original._name ?? "");
+						}
+						return;
+					}
+					default: {
+						if (
+							e.key.length === 1 &&
+							e.key !== " " &&
+							!e.metaKey &&
+							!e.ctrlKey &&
+							!e.altKey
+						) {
+							if (typeTimer.current) clearTimeout(typeTimer.current);
+							typeBuffer.current += e.key.toLowerCase();
+							typeTimer.current = setTimeout(() => {
+								typeBuffer.current = "";
+							}, 700);
+							const buf = typeBuffer.current;
+							const start = curIndex < 0 ? 0 : curIndex;
+							const order = [
+								...rows.slice(start + 1),
+								...rows.slice(0, start + 1),
+							];
+							const match = order.find((r) =>
+								(r.original._name ?? "").toLowerCase().startsWith(buf),
+							);
+							if (match) selectRowById(match.id);
+						}
+					}
+				}
+			};
+
 			return (
+				// biome-ignore lint/a11y/noStaticElementInteractions: list box is a focusable scroll region driven by arrow keys and type-selection; rows remain the click targets
 				<div
 					key={`${appId}_filebrowser_${path}`}
+					ref={containerRef}
+					// biome-ignore lint/a11y/noNoninteractiveTabindex: the list box is a single roving tab stop for keyboard navigation of its rows
+					tabIndex={0}
+					onKeyDown={handleKeyDown}
 					className={"classicyFileBrowserViewTableContainer"}
 				>
 					<table className={"classicyFileBrowserViewTable"}>
@@ -259,6 +353,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 							{table.getRowModel().rows.map((row) => (
 								<tr
 									key={row.id}
+									data-row-id={row.id}
 									className={classNames(
 										"classicyFileBrowserViewTableRow",
 										selectedRow === row.id

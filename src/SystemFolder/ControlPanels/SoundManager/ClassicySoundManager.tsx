@@ -1,10 +1,6 @@
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import "./ClassicySoundManager.scss";
-import {
-	type FC as FunctionalComponent,
-	useCallback,
-	useMemo,
-} from "react";
+import { type FC as FunctionalComponent, useCallback, useMemo } from "react";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import {
 	type ClassicySoundInfo,
@@ -12,8 +8,12 @@ import {
 	useSoundDispatch,
 } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
-import { useClassicyAboutMenu } from "@/SystemFolder/SystemResources/App/ClassicyAppMenuHooks";
 import {
+	useClassicyAboutMenu,
+	useClassicyWindowClose,
+} from "@/SystemFolder/SystemResources/App/ClassicyAppMenuHooks";
+import {
+	closeWindowMenuItemHelper,
 	quitAppHelper,
 	quitMenuItemHelper,
 } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
@@ -29,6 +29,7 @@ import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWi
 
 const APP_ID = "SoundManager.app";
 const APP_NAME = "Sound Manager";
+const WINDOW_ID = "SoundManager_1";
 
 export const ClassicySoundManager: FunctionalComponent = () => {
 	const desktopEventDispatch = useAppManagerDispatch();
@@ -41,6 +42,7 @@ export const ClassicySoundManager: FunctionalComponent = () => {
 		APP_NAME,
 		appIcon,
 	);
+	const windowClose = useClassicyWindowClose(APP_ID);
 
 	const changeSounds = (checked: boolean) => {
 		player({
@@ -49,6 +51,12 @@ export const ClassicySoundManager: FunctionalComponent = () => {
 		});
 	};
 
+	// TODO(audit ch. 6 §35): the per-sound disable UI is non-functional. The
+	// checkboxes below all bind their `checked` state to the global
+	// `disabled.includes("*")` flag rather than to each sound's own entry, and
+	// while this dispatches ClassicySoundEnableOne/DisableOne the checkbox never
+	// reflects an individual sound's disabled state. Wire per-sound state
+	// (and its checked binding) before advertising this as working.
 	const disableSounds = useCallback(
 		(checked: boolean, sound: string) => {
 			if (checked) {
@@ -70,16 +78,33 @@ export const ClassicySoundManager: FunctionalComponent = () => {
 		desktopEventDispatch(quitAppHelper(APP_ID, APP_NAME, appIcon));
 	};
 
+	// Mac OS 8 HIG control-panel menu bar (audit ch. 6 §35): Apple / File.
+	// About ideally lives as the first item of the global Apple menu
+	// (Desktop.systemMenu), which is outside this panel's editable scope; until a
+	// per-app Apple-menu injection point exists it sits at the top of File (out of
+	// the old Help menu). No Edit menu — this panel has no text-entry fields.
+	// TODO(#209): relocate About to the Apple menu.
+	//
+	// ClassicyMenu renders an <hr> divider only for id === "spacer" and keys by
+	// id, so at most one divider per menu.
 	const appMenu = [
 		{
 			id: `${APP_ID}_file`,
 			title: "File",
-			menuChildren: [quitMenuItemHelper(APP_ID, APP_NAME, appIcon)],
-		},
-		{
-			id: `${APP_ID}_help`,
-			title: "Help",
-			menuChildren: [aboutMenuItem],
+			menuChildren: [
+				{ ...aboutMenuItem, title: `About ${APP_NAME}` },
+				{
+					...closeWindowMenuItemHelper(`${APP_ID}_close_window`, () =>
+						windowClose(WINDOW_ID, quitAppHelper(APP_ID, APP_NAME, appIcon)),
+					),
+					keyboardShortcut: "⌥W",
+				},
+				{ id: "spacer" },
+				{
+					...quitMenuItemHelper(APP_ID, APP_NAME, appIcon),
+					keyboardShortcut: "⌥Q",
+				},
+			],
 		},
 	];
 
@@ -103,7 +128,7 @@ export const ClassicySoundManager: FunctionalComponent = () => {
 			addSystemMenu={true}
 		>
 			<ClassicyWindow
-				id={"SoundManager_1"}
+				id={WINDOW_ID}
 				title={APP_NAME}
 				appId={APP_ID}
 				icon={appIcon}
@@ -112,7 +137,9 @@ export const ClassicySoundManager: FunctionalComponent = () => {
 				zoomable={false}
 				scrollable={false}
 				collapsable={false}
-				initialSize={[500, 0]}
+				// HIG (audit ch. 6 §35): control-panel windows respect the
+				// 492×340 absolute ceiling. 480 stays under it (was 500).
+				initialSize={[480, 0]}
 				initialPosition={[300, 50]}
 				modal={false}
 				appMenu={appMenu}

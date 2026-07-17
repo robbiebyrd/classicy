@@ -91,4 +91,18 @@ describe("ClassicyDisclosure", () => {
 		const inner = container.querySelector(".classicyDisclosureInner");
 		expect(inner).toHaveClass("classicyDisclosureInnerOpen");
 	});
+
+	it("opens with Command-Right and closes with Command-Left", async () => {
+		const user = userEvent.setup();
+		const { container } = render(<ClassicyDisclosure label="More info" />);
+		const header = container.querySelector(
+			".classicyDisclosureHeader",
+		) as HTMLElement;
+		header.focus();
+		await user.keyboard("{Meta>}{ArrowRight}{/Meta}");
+		const inner = container.querySelector(".classicyDisclosureInner");
+		expect(inner).toHaveClass("classicyDisclosureInnerOpen");
+		await user.keyboard("{Meta>}{ArrowLeft}{/Meta}");
+		expect(inner).toHaveClass("classicyDisclosureInnerClose");
+	});
 });

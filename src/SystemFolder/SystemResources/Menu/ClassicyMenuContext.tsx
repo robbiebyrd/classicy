@@ -5,6 +5,11 @@ export interface ClassicyMenuContextValue {
 	closeAll: () => void;
 	menuBarActive: boolean;
 	activateMenuBar: () => void;
+	/**
+	 * Reset the sticky-menu idle auto-close timer. Called by menu items on
+	 * hover/keyboard activity so an in-use menu never times out.
+	 */
+	pokeActivity: () => void;
 }
 
 export const ClassicyMenuContext = createContext<ClassicyMenuContextValue>({
@@ -12,4 +17,5 @@ export const ClassicyMenuContext = createContext<ClassicyMenuContextValue>({
 	closeAll: () => {},
 	menuBarActive: false,
 	activateMenuBar: () => {},
+	pokeActivity: () => {},
 });

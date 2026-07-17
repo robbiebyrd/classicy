@@ -1,7 +1,17 @@
-import { type ReactNode, useCallback, useState } from "react";
+import {
+	type ReactNode,
+	useCallback,
+	useEffect,
+	useMemo,
+	useState,
+} from "react";
 import type { ActionMessage } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyAboutWindow } from "@/SystemFolder/SystemResources/AboutWindow/ClassicyAboutWindow";
+import {
+	classicyEditCommands,
+	ensureEditTracker,
+} from "@/SystemFolder/SystemResources/App/ClassicyEditCommands";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
 /**
@@ -59,4 +69,71 @@ export function useClassicyAboutMenu(
 	) : null;
 
 	return { aboutMenuItem, aboutWindow };
+}
+
+/**
+ * Builds a standard HIG Edit menu (Undo / Cut / Copy / Paste / Clear / Select
+ * All) whose commands act on the last-focused text field. Keyboard equivalents
+ * are handled natively by the browser in the focused field (the items are
+ * flagged `nativeShortcut`), so their glyphs render but the app-wide dispatcher
+ * leaves the keystrokes to the browser; the click handlers drive the same
+ * actions for mouse users.
+ */
+export function useClassicyEditMenu(idPrefix: string): ClassicyMenuItem {
+	useEffect(() => {
+		ensureEditTracker();
+	}, []);
+
+	return useMemo(
+		() => ({
+			id: `${idPrefix}_edit`,
+			title: "Edit",
+			menuChildren: [
+				{
+					id: `${idPrefix}_undo`,
+					title: "Undo",
+					keyboardShortcut: "⌘Z",
+					nativeShortcut: true,
+					onClickFunc: classicyEditCommands.undo,
+				},
+				{ id: "spacer" },
+				{
+					id: `${idPrefix}_cut`,
+					title: "Cut",
+					keyboardShortcut: "⌘X",
+					nativeShortcut: true,
+					onClickFunc: classicyEditCommands.cut,
+				},
+				{
+					id: `${idPrefix}_copy`,
+					title: "Copy",
+					keyboardShortcut: "⌘C",
+					nativeShortcut: true,
+					onClickFunc: classicyEditCommands.copy,
+				},
+				{
+					id: `${idPrefix}_paste`,
+					title: "Paste",
+					keyboardShortcut: "⌘V",
+					nativeShortcut: true,
+					onClickFunc: () => {
+						void classicyEditCommands.paste();
+					},
+				},
+				{
+					id: `${idPrefix}_clear`,
+					title: "Clear",
+					onClickFunc: classicyEditCommands.clear,
+				},
+				{
+					id: `${idPrefix}_select_all`,
+					title: "Select All",
+					keyboardShortcut: "⌘A",
+					nativeShortcut: true,
+					onClickFunc: classicyEditCommands.selectAll,
+				},
+			],
+		}),
+		[idPrefix],
+	);
 }

@@ -25,6 +25,47 @@ import { appSwitcherAppsFrom } from "@/SystemFolder/SystemResources/Desktop/Menu
 
 const appleMenuIcon = ClassicyIcons.system.apple;
 
+/**
+ * Depth-first search of a menu tree for an app's "About" item. Apps publish
+ * their About entry (id `${appId}_about`, title "About") nested somewhere in
+ * their menu (typically under a Help or apple submenu — see
+ * `useClassicyAboutMenu`). Preference order per the HIG #209 rule: an exact
+ * `${appId}_about` id, then any id ending in `_about`, then a title of "About".
+ */
+const findAppAboutItem = (
+	items: ClassicyMenuItem[] | undefined,
+	appId: string,
+): ClassicyMenuItem | undefined => {
+	if (!items) return undefined;
+	const matches = (item: ClassicyMenuItem): boolean =>
+		item.id === `${appId}_about` ||
+		item.id?.endsWith("_about") === true ||
+		item.title === "About";
+	const search = (
+		list: ClassicyMenuItem[],
+		predicate: (item: ClassicyMenuItem) => boolean,
+	): ClassicyMenuItem | undefined => {
+		for (const item of list) {
+			if (predicate(item)) return item;
+			if (item.menuChildren && item.menuChildren.length > 0) {
+				const found = search(item.menuChildren, predicate);
+				if (found) return found;
+			}
+		}
+		return undefined;
+	};
+	// Prefer the focused app's exact About id before the looser fallbacks so an
+	// unrelated `_about` entry can't shadow the real one.
+	return (
+		search(items, (item) => item.id === `${appId}_about`) ??
+		search(items, matches)
+	);
+};
+
+/** True for the systemMenu's own leading "About This Computer" entry. */
+const isAboutThisComputerItem = (item: ClassicyMenuItem): boolean =>
+	item.id === "about" || item.title === "About This Computer";
+
 export const ClassicyDesktopMenuBar: FunctionalComponent = () => {
 	return (
 		<ClassicyMenuProvider>
@@ -37,6 +78,12 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
 	const apps = useAppManager((s) => s.System.Manager.Applications.apps);
 	const systemMenu = useAppManager((s) => s.System.Manager.Desktop.systemMenu);
 	const appMenu = useAppManager((s) => s.System.Manager.Desktop.appMenu);
+	const disableBalloonHelp = useAppManager(
+		(s) => s.System.Manager.Desktop.disableBalloonHelp,
+	);
+	// Optional per-app Help entries. Read defensively so the bar works whether or
+	// not a consumer has populated a `helpMenu` slot on the desktop store.
+	const appHelpMenu = useAppManager((s) => s.System.Manager.Desktop?.helpMenu);
 	const desktopEventDispatch = useAppManagerDispatch();
 	const { closeAll } = useContext(ClassicyMenuContext);
 	const navRef = useRef<HTMLElement>(null);
@@ -81,20 +128,100 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
 		// biome-ignore lint/correctness/useExhaustiveDependencies: setActiveApp is defined inline and recreated each render; including it would cause infinite loops
 	}, [appSwitcherData, setActiveApp]);
 
-	const defaultMenuItems: ClassicyMenuItem[] = useMemo(() => {
-		const systemMenuItem: ClassicyMenuItem = {
+	// Standard Help menu (HIG Ch. 4 "Menu Bar"): rightmost of the standard
+	// menus. About Balloon Help, a Show/Hide Balloons toggle wired to the
+	// existing balloon-help store flag, and a slot for app-supplied help items.
+	const helpMenuItem: ClassicyMenuItem = useMemo(() => {
+		const helpChildren: ClassicyMenuItem[] = [
+			{
+				id: "help-about-balloon",
+				title: "About Balloon Help…",
+				onClickFunc: () => {},
+			},
+			{
+				id: "help-toggle-balloons",
+				title: disableBalloonHelp ? "Show Balloons" : "Hide Balloons",
+				// Real working equivalent — Option-H rather than a ⌘ combo, since
+				// the browser reserves most ⌘/Ctrl+letter chords. Fires whether or
+				// not the Help menu is dropped down.
+				keyboardShortcut: "⌥H",
+				event: "ClassicyDesktopSetBalloonHelp",
+				eventData: { disableBalloonHelp: !disableBalloonHelp },
+			},
+		];
+		if (appHelpMenu && appHelpMenu.length > 0) {
+			helpChildren.push({ id: "spacer" }, ...appHelpMenu);
+		}
+		return {
+			id: "help-menu",
+			title: "Help",
+			className: "classicyDesktopMenuHelp",
+			menuChildren: helpChildren,
+		};
+	}, [disableBalloonHelp, appHelpMenu]);
+
+	// HIG #209: the first Apple-menu item is "About <the focused app>". Resolve
+	// the focused app (fallback Finder), pull its About handler out of the app's
+	// published menu, and prepend it — then splice in the rest of the system
+	// menu with its own "About This Computer" entry removed to avoid two Abouts.
+	const appleMenuItem: ClassicyMenuItem = useMemo(() => {
+		const appList = Object.values(apps);
+		const focusedApp =
+			appList.find((a) => a.focused === true) ??
+			apps["Finder.app"] ??
+			appList[0];
+		const focusedAppId = focusedApp?.id ?? "Finder.app";
+		const appName = focusedApp?.name ?? "Finder";
+
+		const aboutItem = findAppAboutItem(appMenu, focusedAppId);
+
+		let menuChildren: ClassicyMenuItem[];
+		if (aboutItem) {
+			// Drop the system menu's leading "About This Computer" (and a spacer
+			// immediately after it) so our injected spacer isn't doubled.
+			let rest = systemMenu ?? [];
+			if (rest[0] && isAboutThisComputerItem(rest[0])) {
+				rest = rest.slice(1);
+				if (rest[0]?.id === "spacer") rest = rest.slice(1);
+			}
+			menuChildren = [
+				{
+					id: `${focusedAppId}_about_apple`,
+					title: `About ${appName}`,
+					onClickFunc: aboutItem.onClickFunc,
+				},
+				{ id: "spacer" },
+				...rest,
+			];
+		} else {
+			// No app About available — leave the system menu untouched.
+			menuChildren = systemMenu;
+		}
+
+		return {
 			id: "apple-menu",
 			image: appleMenuIcon,
-			menuChildren: systemMenu,
+			menuChildren,
 			className: "clasicyDesktopMenuAppleMenu",
 		};
-		const items = [systemMenuItem] as ClassicyMenuItem[];
+	}, [apps, appMenu, systemMenu]);
+
+	const defaultMenuItems: ClassicyMenuItem[] = useMemo(() => {
+		const items = [appleMenuItem] as ClassicyMenuItem[];
 		if (appMenu) {
 			items.push(...appMenu);
 		}
+		// Help is the rightmost standard menu; the App Switcher floats to the far
+		// right of the bar (8.5+ construct) and is kept last in the data.
+		items.push(helpMenuItem);
 		items.push(appSwitcherMenuMenuItem);
 		return items;
-	}, [systemMenu, appMenu, appSwitcherMenuMenuItem]);
+	}, [appleMenuItem, appMenu, helpMenuItem, appSwitcherMenuMenuItem]);
+
+	// HIG #187: app-wide command-key dispatch is handled by ClassicyMenu's own
+	// root keydown listener (below, `menuItems={defaultMenuItems}`), which fires a
+	// matching item's action whether or not a menu is dropped down. No separate
+	// listener is needed here.
 
 	return (
 		<nav ref={navRef} className={"classicyDesktopMenuBar"}>

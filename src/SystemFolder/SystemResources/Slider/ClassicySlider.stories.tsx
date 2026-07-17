@@ -37,3 +37,50 @@ export const Disabled: Story = {
 		disabled: true,
 	},
 };
+
+export const Vertical: Story = {
+	args: {
+		id: "slider-vertical",
+		labelTitle: "Level",
+		value: 55,
+		orientation: "vertical",
+	},
+};
+
+export const NondirectionalKnob: Story = {
+	args: {
+		id: "slider-nondirectional",
+		labelTitle: "Balance",
+		value: 50,
+		indicatorDirection: "nondirectional",
+		tickInterval: "center",
+	},
+};
+
+export const UpwardIndicator: Story = {
+	args: {
+		id: "slider-up",
+		labelTitle: "Zoom",
+		value: 50,
+		indicatorDirection: "up",
+	},
+};
+
+export const GhostIndicator: Story = {
+	args: {
+		id: "slider-ghost",
+		labelTitle: "Scrub",
+		value: 40,
+		ghost: true,
+	},
+};
+
+export const LabeledTicks: Story = {
+	args: {
+		id: "slider-labeled-ticks",
+		labelTitle: "Speed",
+		value: 50,
+		tickInterval: 25,
+		tickLabels: ["Slow", null, null, null, "Fast"],
+	},
+};

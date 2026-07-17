@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ClassicyFileBrowserViewTable } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewTable";
 import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
@@ -110,5 +111,110 @@ describe("ClassicyFileBrowserViewTable size column", () => {
 		const rows = screen.getAllByRole("row").slice(1); // drop header row
 		expect(rows[0]).toHaveTextContent("small.pdf");
 		expect(rows[1]).toHaveTextContent("big.pdf");
+	});
+});
+
+describe("ClassicyFileBrowserViewTable keyboard navigation", () => {
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	const makeFs = () =>
+		new ClassicyFileSystem("test-table-keyboard", {
+			_type: "directory",
+			Documents: {
+				_type: ClassicyFileSystemEntryFileType.Directory,
+				"apple.pdf": {
+					_type: ClassicyFileSystemEntryFileType.Pdf,
+					_url: "https://example.com/apple.pdf",
+				},
+				"banana.pdf": {
+					_type: ClassicyFileSystemEntryFileType.Pdf,
+					_url: "https://example.com/banana.pdf",
+				},
+			},
+		});
+
+	const dataRow = (name: string) =>
+		screen
+			.getByText(name)
+			.closest("tr.classicyFileBrowserViewTableRow") as HTMLElement;
+
+	it("moves the selection with the Down arrow key", async () => {
+		const user = userEvent.setup();
+		const cfs = makeFs();
+		vi.spyOn(cfs, "size").mockResolvedValue(100);
+
+		const { container } = render(
+			<ClassicyFileBrowserViewTable
+				fs={cfs}
+				path="Documents"
+				appId="Finder.app"
+			/>,
+		);
+
+		await screen.findByText("apple.pdf");
+		const listbox = container.querySelector(
+			".classicyFileBrowserViewTableContainer",
+		) as HTMLElement;
+		listbox.focus();
+		await user.keyboard("{ArrowDown}");
+		expect(dataRow("apple.pdf")).toHaveClass(
+			"classicyFileBrowserViewTableRowSelected",
+		);
+
+		await user.keyboard("{ArrowDown}");
+		expect(dataRow("banana.pdf")).toHaveClass(
+			"classicyFileBrowserViewTableRowSelected",
+		);
+	});
+
+	it("selects a row by typing its leading characters", async () => {
+		const user = userEvent.setup();
+		const cfs = makeFs();
+		vi.spyOn(cfs, "size").mockResolvedValue(100);
+
+		const { container } = render(
+			<ClassicyFileBrowserViewTable
+				fs={cfs}
+				path="Documents"
+				appId="Finder.app"
+			/>,
+		);
+
+		await screen.findByText("banana.pdf");
+		const listbox = container.querySelector(
+			".classicyFileBrowserViewTableContainer",
+		) as HTMLElement;
+		listbox.focus();
+		await user.keyboard("b");
+		expect(dataRow("banana.pdf")).toHaveClass(
+			"classicyFileBrowserViewTableRowSelected",
+		);
+	});
+
+	it("opens the selected item on Enter", async () => {
+		const user = userEvent.setup();
+		const cfs = makeFs();
+		vi.spyOn(cfs, "size").mockResolvedValue(100);
+		const fileOnClickFunc = vi.fn();
+
+		const { container } = render(
+			<ClassicyFileBrowserViewTable
+				fs={cfs}
+				path="Documents"
+				appId="Finder.app"
+				fileOnClickFunc={fileOnClickFunc}
+			/>,
+		);
+
+		await screen.findByText("apple.pdf");
+		const listbox = container.querySelector(
+			".classicyFileBrowserViewTableContainer",
+		) as HTMLElement;
+		listbox.focus();
+		await user.keyboard("{ArrowDown}{Enter}");
+
+		expect(fileOnClickFunc).toHaveBeenCalledWith("Documents:apple.pdf");
 	});
 });

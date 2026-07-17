@@ -5,6 +5,10 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { useClassicyContextualMenu } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
+import {
+	useFocusTrap,
+	useKeyboardEquivalents,
+} from "@/SystemFolder/SystemResources/Keyboard/useKeyboardEquivalents";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import "./ClassicyWindow.scss";
 import classNames from "classnames";
@@ -120,6 +124,35 @@ interface ClassicyWindowProps {
 	onCloseFunc?: (id: string) => void;
 	children?: ReactNode;
 	type?: string;
+	/**
+	 * Platinum window class (#205). `"document"` (default) uses the standard
+	 * 19px HIG title bar; `"utility"` renders a tool-palette style crosshatch
+	 * top drag region.
+	 */
+	windowType?: "document" | "utility";
+	/**
+	 * Zoom-box behavior (#208). `"full"` zooms both axes to the standard state,
+	 * `"horizontal"` only the width, `"vertical"` only the height. The user's
+	 * pre-zoom rect is remembered and restored on un-zoom.
+	 */
+	zoomMode?: "full" | "horizontal" | "vertical";
+	/**
+	 * Window header styling (#183). `"list"` removes the header's bottom
+	 * separator line (list-view column header); `"standard"` keeps the bevel.
+	 */
+	headerVariant?: "standard" | "list";
+	/**
+	 * Draw a 2px active/inactive content-region frame around the window body
+	 * (#203), used to distinguish a modeless dialog from a plain window.
+	 */
+	contentFrame?: boolean;
+	/**
+	 * Optional Platinum placard (#196). When provided, this node is mounted in a
+	 * status region at the window's bottom-left edge — to the LEFT of the
+	 * horizontal scroll bar, where the HIG places a placard (often a
+	 * magnification/status pop-up). It is hidden while the window is collapsed.
+	 */
+	placard?: ReactNode;
 }
 
 export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
@@ -147,12 +180,24 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	contextMenu,
 	onCloseFunc,
 	children,
+	windowType = "document",
+	zoomMode = "full",
+	headerVariant = "standard",
+	contentFrame = false,
+	placard,
 }) => {
 	const icon = iconProp || fileIcon;
 
 	const currentApp = useAppManager(
 		(state) => state.System.Manager.Applications.apps[appId],
 	);
+	// #206: double-click-title-to-collapse is a desktop preference (Appearance
+	// checkbox in the HIG), defaulting on. Optional chaining keeps this safe when
+	// the Desktop slice is absent (e.g. isolated unit tests).
+	const doubleClickTitleToCollapse =
+		useAppManager(
+			(state) => state.System.Manager.Desktop?.doubleClickTitleToCollapse,
+		) ?? true;
 	const currentWindow = currentApp?.windows.find((w) => w.id === id);
 	const desktopEventDispatch = useAppManagerDispatch();
 	const player = useSoundDispatch();
@@ -219,6 +264,11 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const dragStartPointRef = useRef<[number, number]>([0, 0]);
 	const clickPositionRef = useRef<[number, number]>([0, 0]);
 	const wsPositionRef = useRef<[number, number]>([0, 0]);
+	// #208: the user's window rect captured just before a zoom, restored on un-zoom.
+	const userStateRef = useRef<{
+		position: [number, number];
+		size: [number, number];
+	} | null>(null);
 	const docMoveHandlerRef = useRef<(e: globalThis.MouseEvent) => void>(
 		() => {},
 	);
@@ -552,6 +602,41 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		}
 	};
 
+	// #206: Option-click collapses (or expands) every open window at once. The
+	// current window's collapsed state decides the direction for all of them.
+	const collapseOrExpandAll = (toCollapse: boolean) => {
+		if (typeof useAppManager.getState !== "function") {
+			// Test/mocked store without a real Zustand instance — fall back to self.
+			setCollapse(toCollapse);
+			return;
+		}
+		const apps = useAppManager.getState().System.Manager.Applications.apps;
+		player({
+			type: "ClassicySoundPlay",
+			sound: toCollapse ? "ClassicyWindowCollapse" : "ClassicyWindowExpand",
+		});
+		Object.entries(apps).forEach(([appKey, app]) => {
+			app.windows?.forEach((w) => {
+				if (w.closed) return;
+				if (w.collapsed === toCollapse) return;
+				desktopEventDispatch({
+					type: toCollapse ? "ClassicyWindowCollapse" : "ClassicyWindowExpand",
+					window: w,
+					app: { id: appKey },
+				});
+			});
+		});
+	};
+
+	// #206: the collapse box. Option-click collapses/expands ALL windows.
+	const onCollapseBoxClick = (e: MouseEvent<HTMLDivElement>) => {
+		if (e.altKey) {
+			collapseOrExpandAll(!ws.collapsed);
+			return;
+		}
+		toggleCollapse();
+	};
+
 	const setCollapse = (toCollapse: boolean) => {
 		if (toCollapse) {
 			track("collapse", { type: "ClassicyWindow", ...analyticsArgs });
@@ -580,11 +665,60 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const toggleZoom = () => {
 		setActive();
 		if (zoomable) {
-			setZoom(!ws.zoomed, false);
+			applyZoom(!ws.zoomed);
 		}
 	};
 
-	const setZoom = (toZoom: boolean, playSound: boolean = true) => {
+	// #208: compute the "standard state" rect the window zooms to. `full` fills
+	// the available desktop; `horizontal`/`vertical` grow a single axis and keep
+	// the other at its current value.
+	const computeStandardRect = (): {
+		position: [number, number];
+		size: [number, number];
+	} => {
+		const menuBarHeight = 30;
+		const margin = 8;
+		const desktop =
+			typeof document !== "undefined"
+				? document.getElementById("classicyDesktop")
+				: null;
+		const dw =
+			desktop?.clientWidth ??
+			(typeof window !== "undefined" ? window.innerWidth : 800);
+		const dh =
+			desktop?.clientHeight ??
+			(typeof window !== "undefined" ? window.innerHeight : 600);
+		const stdW = Math.max(resolvedMinimumSize[0], dw - margin * 2);
+		const stdH = Math.max(
+			resolvedMinimumSize[1],
+			dh - menuBarHeight - margin * 2,
+		);
+
+		const rect = windowRef.current?.getBoundingClientRect();
+		const curW = Math.round(rect?.width ?? size[0] ?? resolvedSize[0]);
+		const curH = Math.round(rect?.height ?? size[1] ?? resolvedSize[1]);
+		const curLeft = Math.round(rect?.left ?? ws.position[0]);
+		const curTop = Math.round(rect?.top ?? ws.position[1]);
+
+		if (zoomMode === "horizontal") {
+			return { position: [margin, curTop], size: [stdW, curH] };
+		}
+		if (zoomMode === "vertical") {
+			return {
+				position: [curLeft, menuBarHeight + margin],
+				size: [curW, stdH],
+			};
+		}
+		return {
+			position: [margin, menuBarHeight + margin],
+			size: [stdW, stdH],
+		};
+	};
+
+	// Flip the zoom flag (+ sound/track) without touching geometry. Used both by
+	// the zoom toggle and by resize/collapse, which clear the flag without
+	// restoring the remembered user state.
+	const setZoomFlag = (toZoom: boolean, playSound: boolean = true) => {
 		if (ws.collapsed) {
 			setCollapse(false);
 		}
@@ -609,6 +743,33 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			},
 		});
 	};
+
+	// #208: standard-state vs user-state. Remember the user's rect before zoom
+	// and restore it on un-zoom.
+	const applyZoom = (toZoom: boolean) => {
+		if (toZoom) {
+			userStateRef.current = {
+				position: [ws.position[0], ws.position[1]],
+				size: [size[0], size[1]],
+			};
+			const standard = computeStandardRect();
+			setZoomFlag(true);
+			setSize(standard.size);
+			setMoving(false, standard.position);
+		} else {
+			setZoomFlag(false);
+			const previous = userStateRef.current;
+			if (previous) {
+				setSize(previous.size);
+				setMoving(false, previous.position);
+				userStateRef.current = null;
+			}
+		}
+	};
+
+	// Backward-compatible alias: earlier callers used `setZoom(false)` purely to
+	// clear the zoomed flag (resize/collapse), never to restore a rect.
+	const setZoom = setZoomFlag;
 
 	const onContextMenuHandler = (e: MouseEvent<HTMLDivElement>) => {
 		if (e.defaultPrevented) return;
@@ -661,6 +822,33 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		}
 	};
 
+	// #194/#197: a modal window dismisses on Escape / Command-period (Cancel).
+	// Closable modals close; a fixed modal with no close box just beeps.
+	const onModalCancel = () => {
+		if (closable) {
+			close();
+		} else {
+			player({ type: "ClassicySoundPlayError" });
+		}
+	};
+
+	// #197: clicking outside a modal (on the scrim) beeps and does nothing else.
+	const onModalScrimClick = (e: MouseEvent<HTMLDivElement>) => {
+		e.preventDefault();
+		e.stopPropagation();
+		player({ type: "ClassicySoundPlayError" });
+	};
+
+	// #194/#197: modal windows trap Tab focus within themselves and bind the
+	// dialog-wide Cancel equivalent. Scoped to this window so stacked modals
+	// don't cross-fire.
+	useFocusTrap({ ref: windowRef, enabled: modal, autoFocus: modal });
+	useKeyboardEquivalents({
+		enabled: modal,
+		targetRef: windowRef,
+		onCancel: modal ? onModalCancel : undefined,
+	});
+
 	const windowStyle = useMemo(
 		() => ({
 			width: size[0] === 0 ? "auto" : size[0],
@@ -695,6 +883,9 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			style={windowStyle}
 			className={classNames(
 				"classicyWindow",
+				windowType === "utility"
+					? "classicyWindowUtility"
+					: "classicyWindowDocument",
 				ws.collapsed ? "classicyWindowCollapsed" : "",
 				ws.zoomed ? "classicyWindowZoomed" : "",
 				modal || isActive() ? "classicyWindowActive" : "classicyWindowInactive",
@@ -711,6 +902,22 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			onClick={setActive}
 			onContextMenu={onContextMenuHandler}
 		>
+			{/* #205: drag the window from the narrow frame on all four sides,
+					    not just the title bar. Each edge reuses the title-bar move logic. */}
+			{!ws.collapsed &&
+				(["top", "right", "bottom", "left"] as const).map((edge) => (
+					// biome-ignore lint/a11y/noStaticElementInteractions: frame edge is a mouse-only drag handle
+					<div
+						key={edge}
+						className={classNames(
+							"classicyWindowFrameEdge",
+							`classicyWindowFrameEdge-${edge}`,
+						)}
+						role="presentation"
+						onMouseDown={startMoveWindow}
+						onMouseUp={stopChangeWindow}
+					></div>
+				))}
 			<div
 				className={classNames(
 					"classicyWindowTitleBar",
@@ -737,7 +944,9 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 					role="presentation"
 					onMouseDown={startMoveWindow}
 					onMouseUp={stopChangeWindow}
-					onDoubleClick={toggleCollapse}
+					onDoubleClick={
+						doubleClickTitleToCollapse ? toggleCollapse : undefined
+					}
 				>
 					{title !== "" ? (
 						<>
@@ -756,7 +965,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 						<div className={"classicyWindowTitleCenter"}></div>
 					)}
 				</div>
-				{zoomable && (
+				{zoomable && !modal && (
 					<div className={"classicyWindowControlBox"}>
 						{/* biome-ignore lint/a11y/useSemanticElements: custom window control styled as pixel-precise box */}
 						<div
@@ -777,7 +986,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 							className={"classicyWindowCollapseBox"}
 							role="button"
 							tabIndex={0}
-							onClick={toggleCollapse}
+							onClick={onCollapseBoxClick}
 							onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
 								if (e.key === "Enter" || e.key === " ") toggleCollapse();
 							}}
@@ -789,6 +998,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				<div
 					className={classNames(
 						"classicyWindowHeader",
+						headerVariant === "list" ? "classicyWindowHeaderList" : "",
 						isActive() ? "" : "classicyWindowHeaderDimmed",
 					)}
 				>
@@ -815,12 +1025,29 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 						"classicyWindowContentsInner",
 						modal === true ? "classicyWindowContentsModalInner" : "",
 						growable ? "classicyWindowContentsInnerGrow" : "",
+						contentFrame && isActive() ? "classicyWindowContentsFramed" : "",
+						contentFrame && !isActive()
+							? "classicyWindowContentsFramed classicyWindowContentsFramedDimmed"
+							: "",
 					)}
 				>
 					{" "}
 					{children}
 				</div>
 			</div>
+			{/* #196: a Platinum placard status region pinned to the window's
+					    bottom-left, to the left of the horizontal scroll bar. Hidden
+					    while collapsed and kept clear of the bottom-right resizer. */}
+			{placard && !ws.collapsed && (
+				<div
+					className={classNames(
+						"classicyWindowPlacardBar",
+						isActive() ? "" : "classicyWindowPlacardBarDimmed",
+					)}
+				>
+					{placard}
+				</div>
+			)}
 			{resizable && !ws.collapsed && (
 				// biome-ignore lint/a11y/noStaticElementInteractions: resize handle is mouse-only drag target
 				<div
@@ -839,7 +1066,25 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	);
 
 	if (modal && desktopRoot) {
-		return createPortal(windowContent, desktopRoot);
+		// #197: modal windows render an input-blocking scrim; clicking it beeps.
+		const modalScrim = (
+			// biome-ignore lint/a11y/noStaticElementInteractions: scrim is a mouse-only backdrop
+			<div
+				className={classNames(
+					"classicyWindowModalScrim",
+					modal && type === "error" ? "classicyWindowModalScrimError" : "",
+				)}
+				role="presentation"
+				onMouseDown={onModalScrimClick}
+			></div>
+		);
+		return createPortal(
+			<>
+				{modalScrim}
+				{windowContent}
+			</>,
+			desktopRoot,
+		);
 	}
 
 	return <>{windowContent}</>;

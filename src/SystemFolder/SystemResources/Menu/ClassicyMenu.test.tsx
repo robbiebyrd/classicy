@@ -45,14 +45,19 @@ describe("ClassicyMenu", () => {
 		expect(container.querySelector("li")).not.toBeInTheDocument();
 	});
 
-	it("renders a spacer as <hr> for items with id='spacer'", () => {
+	it("renders a spacer as a ClassicySeparator for items with id='spacer'", () => {
 		const items = [
 			{ id: "item-1", title: "New" },
 			{ id: "spacer" },
 			{ id: "item-2", title: "Open" },
 		];
 		render(<ClassicyMenu name="test-menu" menuItems={items} />);
-		expect(screen.getByRole("separator")).toBeInTheDocument();
+		const separator = screen.getByRole("separator");
+		expect(separator).toBeInTheDocument();
+		// The divider is the standalone ClassicySeparator (horizontal engraving),
+		// not a raw <hr>.
+		expect(separator).toHaveClass("classicySeparator");
+		expect(separator).toHaveClass("classicySeparatorHorizontal");
 	});
 
 	it("renders keyboard shortcut text when keyboardShortcut is provided", () => {
@@ -139,6 +144,62 @@ describe("ClassicyMenu", () => {
 			"ul.classicySubMenu ul.classicySubMenu",
 		);
 		expect(nestedSubMenu).not.toHaveClass("classicySubMenuFlipLeft");
+	});
+
+	it("renders keyboard shortcut modifiers as glyphs (Cmd+Shift+S -> ⇧⌘S)", () => {
+		const items = [
+			{ id: "save-as", title: "Save As", keyboardShortcut: "Cmd+Shift+S" },
+		];
+		render(<ClassicyMenu name="test-menu" menuItems={items} />);
+		expect(screen.getByText("⇧⌘S")).toBeInTheDocument();
+	});
+
+	it("fires a menu item's action on its command-key press (closes-and-executes)", () => {
+		const onClickFunc = vi.fn();
+		const items = [
+			{ id: "find", title: "Find", keyboardShortcut: "⌘F", onClickFunc },
+		];
+		render(<ClassicyMenu name="test-menu" menuItems={items} />);
+		fireEvent.keyDown(document, { key: "f", metaKey: true });
+		expect(onClickFunc).toHaveBeenCalledOnce();
+	});
+
+	it("fires a menu item's action on a Control (⌃) shortcut", () => {
+		const onClickFunc = vi.fn();
+		const items = [
+			{ id: "dim", title: "Dim", keyboardShortcut: "⌃D", onClickFunc },
+		];
+		render(<ClassicyMenu name="test-menu" menuItems={items} />);
+		fireEvent.keyDown(document, { key: "d", ctrlKey: true });
+		expect(onClickFunc).toHaveBeenCalledOnce();
+	});
+
+	it("fires a menu item's action on an Option (⌥) shortcut, matching the physical key", () => {
+		const onClickFunc = vi.fn();
+		const items = [
+			{ id: "expand", title: "Expand", keyboardShortcut: "⌥X", onClickFunc },
+		];
+		render(<ClassicyMenu name="test-menu" menuItems={items} />);
+		// macOS remaps Option+X's `key`; the dispatcher matches on `code`.
+		fireEvent.keyDown(document, { key: "≈", code: "KeyX", altKey: true });
+		expect(onClickFunc).toHaveBeenCalledOnce();
+	});
+
+	it("does not fire an Option shortcut while typing in a text field", () => {
+		const onClickFunc = vi.fn();
+		const items = [
+			{ id: "expand", title: "Expand", keyboardShortcut: "⌥X", onClickFunc },
+		];
+		render(
+			<>
+				<input data-testid="field" />
+				<ClassicyMenu name="test-menu" menuItems={items} />
+			</>,
+		);
+		const field = screen.getByTestId("field");
+		field.focus();
+		fireEvent.keyDown(field, { key: "≈", code: "KeyX", altKey: true });
+		expect(onClickFunc).not.toHaveBeenCalled();
 	});
 
 	it("renders a nested submenu for items with menuChildren", () => {

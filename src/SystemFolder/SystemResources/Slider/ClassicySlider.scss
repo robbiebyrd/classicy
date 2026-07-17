@@ -29,6 +29,12 @@ $_thumb-border-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000
 // Sourced from assets/img/ui/slider-strikes.svg (ui icon section).
 $_thumb-strikes-svg: url('../../../../assets/img/ui/slider-strikes.svg');
 
+// ── Nondirectional thumb (unpointed knob) ─────────────────────────────────────
+// A plain rounded-rectangle indicator for sliders where the pointed edge would
+// carry no meaning. Same 2px-cropped-stroke trick as the pentagon border.
+$_thumb-rect-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 21 21'%3E%3Crect x='0' y='0' width='21' height='21' rx='3' fill='none' stroke='black' stroke-width='4'/%3E%3C/svg%3E");
+$_thumb-rect-shape: inset(0 round calc(var(--window-border-size) * 1.5));
+
 // ── Thumb appearance mixin ────────────────────────────────────────────────────
 @mixin thumb-appearance(
   $body-gradient,
@@ -180,6 +186,156 @@ $_thumb-strikes-svg: url('../../../../assets/img/ui/slider-strikes.svg');
   text-align: center;
 }
 
+// ─── Indicator direction ───────────────────────────────────────────────────────
+// The thumb's pentagon points down by default. Rotate the whole pseudo-element
+// (clip-path + border + strikes travel together) to face any edge; the
+// nondirectional variant swaps in a rounded-rectangle knob with no point.
+
+.classicySliderIndicatorUp {
+  &::-webkit-slider-thumb { transform: rotate(180deg); }
+  &::-moz-range-thumb { transform: rotate(180deg); }
+}
+
+.classicySliderIndicatorLeft {
+  &::-webkit-slider-thumb { transform: rotate(90deg); }
+  &::-moz-range-thumb { transform: rotate(90deg); }
+}
+
+.classicySliderIndicatorRight {
+  &::-webkit-slider-thumb { transform: rotate(-90deg); }
+  &::-moz-range-thumb { transform: rotate(-90deg); }
+}
+
+.classicySliderIndicatorNondirectional {
+  &::-webkit-slider-thumb {
+    clip-path: $_thumb-rect-shape;
+    background:
+      $_thumb-rect-svg 0 0 / 100% 100% no-repeat,
+      $_thumb-strikes-svg center 50% / 45% 35% no-repeat,
+      linear-gradient(to bottom, var(--color-system-01), var(--color-system-04));
+  }
+  &::-moz-range-thumb {
+    clip-path: $_thumb-rect-shape;
+    background:
+      $_thumb-rect-svg 0 0 / 100% 100% no-repeat,
+      $_thumb-strikes-svg center 50% / 45% 35% no-repeat,
+      linear-gradient(to bottom, var(--color-system-01), var(--color-system-04));
+  }
+  &:active::-webkit-slider-thumb {
+    clip-path: $_thumb-rect-shape;
+    background:
+      $_thumb-rect-svg 0 0 / 100% 100% no-repeat,
+      $_thumb-strikes-svg center 50% / 45% 35% no-repeat,
+      linear-gradient(to bottom, var(--color-theme-04), var(--color-theme-03), var(--color-theme-04));
+  }
+  &:active::-moz-range-thumb {
+    clip-path: $_thumb-rect-shape;
+    background:
+      $_thumb-rect-svg 0 0 / 100% 100% no-repeat,
+      $_thumb-strikes-svg center 50% / 45% 35% no-repeat,
+      linear-gradient(to bottom, var(--color-theme-04), var(--color-theme-03), var(--color-theme-04));
+  }
+}
+
+// ─── Ghost indicator (shadow copy tracking the pointer during drag) ─────────────
+
+// Positions the input + ghost overlay; takes the input's place in the stack.
+.classicySliderTrackLayer {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
+
+.classicySliderGhost {
+  position: absolute;
+  top: 0;
+  width: $thumb-w;
+  height: $thumb-h;
+  margin-top: $thumb-margin-top;
+  pointer-events: none;
+  opacity: 0.4;
+  transition: opacity 0.1s linear;
+  transform: translateX(-50%);
+  // Center travels from thumb-width/2 to width − thumb-width/2, matching the
+  // native thumb, so the ghost lands exactly beneath the real indicator.
+  left: calc(#{$thumb-w} / 2 + (100% - #{$thumb-w}) * var(--classicy-ghost-pos, 0));
+  clip-path: $thumb-shape;
+  background:
+    $_thumb-border-svg 0 0 / 100% 100% no-repeat,
+    linear-gradient(to bottom, var(--color-system-02), var(--color-system-05));
+
+  &.classicySliderIndicatorUp { transform: translateX(-50%) rotate(180deg); }
+  &.classicySliderIndicatorLeft { transform: translateX(-50%) rotate(90deg); }
+  &.classicySliderIndicatorRight { transform: translateX(-50%) rotate(-90deg); }
+  &.classicySliderIndicatorNondirectional {
+    clip-path: $_thumb-rect-shape;
+    background:
+      $_thumb-rect-svg 0 0 / 100% 100% no-repeat,
+      linear-gradient(to bottom, var(--color-system-02), var(--color-system-05));
+  }
+}
+
+.classicySliderGhostHidden {
+  opacity: 0;
+}
+
+// ─── Vertical orientation ───────────────────────────────────────────────────────
+
+.classicySliderTrackGroupVertical {
+  flex-direction: column;
+  width: auto;
+  height: 100%;
+}
+
+.classicySliderInputVertical {
+  writing-mode: vertical-lr;
+  direction: rtl; // min at the bottom, max at the top
+  width: $thumb-h;
+  height: 100%;
+  min-height: calc(var(--window-control-size) * 8);
+  flex: 0 0 auto;
+}
+
+.classicySliderStackVertical {
+  flex-direction: row;
+  align-items: stretch;
+  width: auto;
+  height: 100%;
+
+  .classicySliderTrackLayer {
+    flex: 0 0 auto;
+  }
+
+  // Rail runs alongside the vertical track; ticks are placed by `top`,
+  // inverted so 0% sits at the bottom (matching direction: rtl).
+  .classicySliderTicks {
+    padding: calc(#{$thumb-h} / 2) 0;
+    width: calc(var(--window-padding-size) * 0.75 + var(--window-border-size));
+    height: auto;
+  }
+
+  .classicySliderTick {
+    top: auto;
+    left: var(--window-border-size);
+    bottom: var(--classicy-tick-left);
+    width: calc(var(--window-padding-size) * 0.75);
+    height: var(--window-border-size);
+    transform: translateY(50%);
+  }
+
+  .classicySliderTickLabels {
+    width: auto;
+    height: auto;
+  }
+
+  .classicySliderTickLabel {
+    left: auto;
+    bottom: var(--classicy-tick-left);
+    transform: translateY(50%);
+  }
+}
+
 // ─── Tick marks ───────────────────────────────────────────────────────────────
 
 // Column wrapper so the tick rail sits directly under the input; takes the
@@ -217,4 +373,30 @@ $_thumb-strikes-svg: url('../../../../assets/img/ui/slider-strikes.svg');
 
 .classicySliderTicksDisabled {
   filter: contrast(0.5);
+}
+
+// ─── Tick-mark labels (direction-of-increase captions) ──────────────────────────
+
+// Same half-thumb inset as the tick rail so a label sits under its tick.
+.classicySliderTickLabels {
+  position: relative;
+  padding: 0 calc(#{$thumb-w} / 2);
+  height: calc(var(--ui-font-size) * 1.2);
+}
+
+.classicySliderTickLabel {
+  position: absolute;
+  left: var(--classicy-tick-left);
+  transform: translateX(-50%);
+  font-family: var(--ui-font), sans-serif;
+  font-size: calc(var(--ui-font-size) / 1.25);
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--color-black);
+
+  img {
+    display: block;
+    height: calc(var(--ui-font-size));
+    width: auto;
+  }
 }

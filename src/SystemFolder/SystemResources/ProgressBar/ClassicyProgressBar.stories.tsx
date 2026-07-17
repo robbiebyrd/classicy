@@ -30,3 +30,18 @@ export const WithLabel: Story = {
 export const CenteredLabel: Story = {
 	args: { value: 33, label: "Copying files…", labelAlign: "center" },
 };
+
+export const ChasingArrows: Story = {
+	args: { chasingArrows: true, label: "Connecting…" },
+};
+
+// autoSwitch: indeterminate flag stays set, but a known value flips it to a
+// filling determinate bar.
+export const AutoSwitchToDeterminate: Story = {
+	args: {
+		indeterminate: true,
+		autoSwitch: true,
+		value: 45,
+		label: "Downloading…",
+	},
+};

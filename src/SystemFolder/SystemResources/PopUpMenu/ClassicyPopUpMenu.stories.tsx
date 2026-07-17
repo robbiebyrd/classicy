@@ -34,3 +34,11 @@ export const WithLabel: Story = {
 export const Mini: Story = {
 	args: { id: "popup-mini", size: "mini", selected: "monaco" },
 };
+
+export const Placeholder: Story = {
+	args: { id: "popup-placeholder", placeholder: "Select a font…" },
+};
+
+export const Disabled: Story = {
+	args: { id: "popup-disabled", selected: "charcoal", disabled: true },
+};

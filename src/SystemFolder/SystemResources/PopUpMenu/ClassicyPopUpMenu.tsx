@@ -9,12 +9,18 @@ import classNames from "classnames";
 import {
 	type ChangeEvent,
 	type FC as FunctionalComponent,
+	type KeyboardEvent,
+	useCallback,
 	useEffect,
+	useId,
+	useRef,
 	useState,
 } from "react";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
 const PLACEHOLDER_VALUE = "__classicy_placeholder__";
+// HIG checkmark drawn against the current selection in the open menu.
+const CHECKMARK = "✓";
 
 export type ClassicyPopUpMenuSize = ClassicyControlLabelSize | "mini";
 
@@ -37,6 +43,7 @@ type classicyPopUpMenuProps = {
 	className?: string;
 	disabled?: boolean;
 };
+
 export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 	id,
 	label,
@@ -53,6 +60,7 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 	// For the control label, "mini" maps to "small" — "mini" is a menu-only size
 	const controlLabelSize: ClassicyControlLabelSize =
 		labelSize || size === "mini" ? "small" : size;
+
 	const [selectedItem, setSelectedItem] = useState(
 		selected ?? (placeholder ? PLACEHOLDER_VALUE : undefined),
 	);
@@ -60,21 +68,136 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 	useEffect(() => {
 		setSelectedItem(selected ?? (placeholder ? PLACEHOLDER_VALUE : undefined)); // eslint-disable-line react-hooks/set-state-in-effect
 	}, [selected]); // eslint-disable-line react-hooks/exhaustive-deps
-	const { track } = useClassicyAnalytics();
-	const analyticsArgs = { id, label, options, selected };
 
-	const onChangeHandler = (e: ChangeEvent<HTMLSelectElement>) => {
-		if (e.target.value === PLACEHOLDER_VALUE) return;
-		setSelectedItem(e.target.value);
-		track("selected", {
-			type: "ClassicyPopUpMenu",
-			itemId: e.target.value,
-			...analyticsArgs,
-		});
-		if (onChangeFunc) {
-			onChangeFunc(e);
+	const [open, setOpen] = useState(false);
+	const [highlight, setHighlight] = useState<number>(-1);
+
+	const wrapperRef = useRef<HTMLDivElement>(null);
+	const buttonRef = useRef<HTMLButtonElement>(null);
+	const reactId = useId();
+
+	const { track } = useClassicyAnalytics();
+
+	const selectedOption = options.find((o) => o.value === selectedItem);
+	const currentLabel = selectedOption
+		? selectedOption.label
+		: (placeholder ?? "");
+	const currentIndex = options.findIndex((o) => o.value === selectedItem);
+
+	const optionId = (index: number) => `${reactId}-opt-${index}`;
+
+	const emitChange = useCallback(
+		(value: string) => {
+			if (value === PLACEHOLDER_VALUE) return;
+			setSelectedItem(value);
+			track("selected", {
+				type: "ClassicyPopUpMenu",
+				itemId: value,
+				id,
+				label,
+				options,
+				selected,
+			});
+			if (onChangeFunc) {
+				// Synthesize a `{ target: { value } }`-shaped event so consumers
+				// written against the old native <select> API keep working.
+				const evt = {
+					target: { value },
+					currentTarget: { value },
+				} as unknown as ChangeEvent<HTMLSelectElement>;
+				onChangeFunc(evt);
+			}
+		},
+		[onChangeFunc, track, id, label, options, selected],
+	);
+
+	const closeMenu = useCallback(() => {
+		setOpen(false);
+		setHighlight(-1);
+	}, []);
+
+	const openMenu = useCallback(() => {
+		if (disabled) return;
+		setHighlight(currentIndex >= 0 ? currentIndex : 0);
+		setOpen(true);
+	}, [disabled, currentIndex]);
+
+	// Commit a menu selection (mouse or keyboard). Matches native <select>
+	// semantics: re-picking the current value simply closes with no onChange.
+	const commitIndex = useCallback(
+		(index: number) => {
+			const option = options[index];
+			closeMenu();
+			buttonRef.current?.focus();
+			if (!option || option.value === selectedItem) return;
+			emitChange(option.value);
+		},
+		[options, selectedItem, emitChange, closeMenu],
+	);
+
+	// Close on outside pointer-down (release outside = no change).
+	useEffect(() => {
+		if (!open) return;
+		const onPointerDown = (e: globalThis.MouseEvent) => {
+			if (!wrapperRef.current?.contains(e.target as Node)) {
+				closeMenu();
+			}
+		};
+		document.addEventListener("mousedown", onPointerDown);
+		return () => document.removeEventListener("mousedown", onPointerDown);
+	}, [open, closeMenu]);
+
+	const onButtonKeyDown = (e: KeyboardEvent<HTMLButtonElement>) => {
+		if (disabled) return;
+		switch (e.key) {
+			case "ArrowDown":
+				e.preventDefault();
+				if (!open) {
+					openMenu();
+				} else {
+					setHighlight((h) => Math.min(options.length - 1, h + 1));
+				}
+				break;
+			case "ArrowUp":
+				e.preventDefault();
+				if (!open) {
+					openMenu();
+				} else {
+					setHighlight((h) => Math.max(0, h - 1));
+				}
+				break;
+			case "Enter":
+			case " ":
+			case "Spacebar":
+				e.preventDefault();
+				if (!open) {
+					openMenu();
+				} else if (highlight >= 0) {
+					commitIndex(highlight);
+				}
+				break;
+			case "Escape":
+				if (open) {
+					e.preventDefault();
+					closeMenu();
+				}
+				break;
+			case "Home":
+				if (open) {
+					e.preventDefault();
+					setHighlight(0);
+				}
+				break;
+			case "End":
+				if (open) {
+					e.preventDefault();
+					setHighlight(options.length - 1);
+				}
+				break;
 		}
 	};
+
+	const sizeClass = `classicyPopUpMenuSize${size.charAt(0).toUpperCase()}${size.slice(1)}`;
 
 	return (
 		<div
@@ -90,30 +213,80 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 				></ClassicyControlLabel>
 			)}
 			<div
+				ref={wrapperRef}
 				className={classNames(
 					"classicyPopUpMenu",
-					`classicyPopUpMenuSize${size.charAt(0).toUpperCase()}${size.slice(1)}`,
+					sizeClass,
+					disabled && "select--disabled",
+					open && "classicyPopUpMenuOpen",
 					extraClassName,
 				)}
 			>
-				<select
+				{/* The visible custom button IS the control: it carries the `id`
+				    so consumers/tests can target it, and reflects the disabled
+				    state via the native `disabled` attribute, `aria-disabled` and
+				    a disabled class. (No hidden native <select> mirror anymore.) */}
+				<button
+					ref={buttonRef}
 					id={id}
-					tabIndex={0}
-					value={selectedItem}
-					onChange={onChangeHandler}
-					disabled={disabled}
-				>
-					{placeholder && (
-						<option value={PLACEHOLDER_VALUE} disabled>
-							{placeholder}
-						</option>
+					type="button"
+					className={classNames(
+						"classicyPopUpMenuButton",
+						disabled && "classicyPopUpMenuButtonDisabled",
 					)}
-					{options.map((o) => (
-						<option key={id + o.label + o.value} value={o.value}>
-							{o.label}
-						</option>
-					))}
-				</select>
+					disabled={disabled}
+					aria-disabled={disabled}
+					aria-haspopup="listbox"
+					aria-expanded={open}
+					onClick={() => (open ? closeMenu() : openMenu())}
+					onKeyDown={onButtonKeyDown}
+				>
+					<span className="classicyPopUpMenuValue">{currentLabel}</span>
+					<span className="classicyPopUpMenuIndicator" aria-hidden={true} />
+				</button>
+
+				{open && (
+					<div role="listbox" className="classicyPopUpMenuList">
+						{options.map((o, index) => {
+							const isSelected = o.value === selectedItem;
+							return (
+								<div
+									key={id + o.value}
+									id={optionId(index)}
+									role="option"
+									tabIndex={-1}
+									aria-selected={isSelected}
+									className={classNames(
+										"classicyPopUpMenuListItem",
+										index === highlight && "classicyPopUpMenuListItemHighlight",
+									)}
+									onMouseEnter={() => setHighlight(index)}
+									onClick={() => commitIndex(index)}
+									onKeyDown={(e) => {
+										if (e.key === "Enter" || e.key === " ") {
+											e.preventDefault();
+											commitIndex(index);
+										}
+									}}
+								>
+									<span className="classicyPopUpMenuCheck" aria-hidden={true}>
+										{isSelected ? CHECKMARK : ""}
+									</span>
+									{o.icon && (
+										<img
+											className="classicyPopUpMenuListItemIcon"
+											src={o.icon}
+											alt=""
+										/>
+									)}
+									<span className="classicyPopUpMenuListItemLabel">
+										{o.label}
+									</span>
+								</div>
+							);
+						})}
+					</div>
+				)}
 			</div>
 		</div>
 	);
