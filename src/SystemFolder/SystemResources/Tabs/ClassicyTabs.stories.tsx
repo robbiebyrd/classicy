@@ -35,3 +35,32 @@ export const Default: Story = {
 		],
 	},
 };
+
+// Simple monochrome placeholder icons (data URIs) so the story stays
+// self-contained. Real usage would pass theme/system icon paths.
+const folderIcon =
+	"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Cpath d='M1 4h5l2 2h7v7H1z' fill='%23d8b048' stroke='%23000'/%3E%3C/svg%3E";
+const gearIcon =
+	"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Ccircle cx='8' cy='8' r='4' fill='none' stroke='%23000' stroke-width='2'/%3E%3C/svg%3E";
+
+export const WithIcons: Story = {
+	args: {
+		tabs: [
+			{
+				title: "Files",
+				icon: folderIcon,
+				children: <p>A tab with an icon next to its label.</p>,
+			},
+			{
+				title: "Options",
+				icon: gearIcon,
+				children: <ClassicyCheckbox id="tab-opt" label="Enable feature" />,
+			},
+			{
+				// Icon-only tab (no title).
+				icon: folderIcon,
+				children: <p>An icon-only tab.</p>,
+			},
+		],
+	},
+};

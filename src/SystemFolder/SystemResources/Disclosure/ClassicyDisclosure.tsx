@@ -37,13 +37,33 @@ export const ClassicyDisclosure: FunctionalComponent<
 	const { track } = useClassicyAnalytics();
 	const analyticsArgs = { type: "ClassicyLabel", label };
 
+	function setOpenState(next: boolean) {
+		track("click", { expanded: next, ...analyticsArgs });
+		setOpen(next);
+	}
+
 	function handleKeyPress(e: KeyboardEvent<HTMLDivElement>) {
 		switch (e.key) {
 			case "Enter":
 			// falls through
 			case " ": {
-				track("click", { expanded: !open, ...analyticsArgs });
-				setOpen(!open);
+				e.preventDefault();
+				setOpenState(!open);
+				break;
+			}
+			// HIG list-view disclosure equivalents: Command-Right opens, Command-Left closes.
+			case "ArrowRight": {
+				if ((e.metaKey || e.ctrlKey) && !open) {
+					e.preventDefault();
+					setOpenState(true);
+				}
+				break;
+			}
+			case "ArrowLeft": {
+				if ((e.metaKey || e.ctrlKey) && open) {
+					e.preventDefault();
+					setOpenState(false);
+				}
 				break;
 			}
 		}
@@ -55,11 +75,9 @@ export const ClassicyDisclosure: FunctionalComponent<
 			<div
 				role="button"
 				className={"classicyDisclosureHeader"}
-				onClick={() => {
-					track("click", { expanded: !open, ...analyticsArgs });
-					setOpen(!open);
-				}}
+				onClick={() => setOpenState(!open)}
 				tabIndex={0}
+				aria-expanded={open}
 				onKeyDown={(e) => handleKeyPress(e)}
 			>
 				{labelPosition === "left" && (

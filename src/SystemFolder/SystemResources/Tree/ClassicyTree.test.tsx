@@ -157,6 +157,47 @@ describe("ClassicyTree", () => {
 		expect(onToggleNode).not.toHaveBeenCalled();
 	});
 
+	it("opens a branch with Command-Right and closes with Command-Left", async () => {
+		const user = userEvent.setup();
+		render(<ClassicyTree nodes={nodes} />);
+		const holder = screen
+			.getByText("Branch Node")
+			.closest('[role="button"]') as HTMLElement;
+		holder.focus();
+		await user.keyboard("{Meta>}{ArrowRight}{/Meta}");
+		expect(screen.getByText("Leaf Node")).toBeInTheDocument();
+		await user.keyboard("{Meta>}{ArrowLeft}{/Meta}");
+		expect(screen.queryByText("Leaf Node")).not.toBeInTheDocument();
+	});
+
+	it("moves the selection down with the arrow keys", async () => {
+		const user = userEvent.setup();
+		render(<ClassicyTree nodes={nodes} />);
+		const holder = screen
+			.getByText("Branch Node")
+			.closest('[role="button"]') as HTMLElement;
+		holder.focus();
+		await user.keyboard("{ArrowDown}");
+		const topLeafRow = screen
+			.getByText("Top Leaf")
+			.closest(".classicyTreeNodeLabelHolder") as HTMLElement;
+		expect(topLeafRow).toHaveFocus();
+	});
+
+	it("selects a node by typing its leading characters", async () => {
+		const user = userEvent.setup();
+		render(<ClassicyTree nodes={nodes} />);
+		const holder = screen
+			.getByText("Branch Node")
+			.closest('[role="button"]') as HTMLElement;
+		holder.focus();
+		await user.keyboard("t");
+		const topLeafRow = screen
+			.getByText("Top Leaf")
+			.closest(".classicyTreeNodeLabelHolder") as HTMLElement;
+		expect(topLeafRow).toHaveFocus();
+	});
+
 	it("renders left and right icons on a node row", () => {
 		render(<ClassicyTree nodes={nodes} />);
 		const row = screen
