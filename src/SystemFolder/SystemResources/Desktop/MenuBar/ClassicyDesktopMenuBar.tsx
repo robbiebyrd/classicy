@@ -42,11 +42,7 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
 	);
 	// Optional per-app Help entries. Read defensively so the bar works whether or
 	// not a consumer has populated a `helpMenu` slot on the desktop store.
-	const appHelpMenu = useAppManager(
-		(s) =>
-			(s.System.Manager.Desktop as unknown as { helpMenu?: ClassicyMenuItem[] })
-				.helpMenu,
-	);
+	const appHelpMenu = useAppManager((s) => s.System.Manager.Desktop?.helpMenu);
 	const desktopEventDispatch = useAppManagerDispatch();
 	const { closeAll } = useContext(ClassicyMenuContext);
 	const navRef = useRef<HTMLElement>(null);

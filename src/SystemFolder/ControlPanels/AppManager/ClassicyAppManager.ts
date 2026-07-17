@@ -430,6 +430,7 @@ export const DefaultAppManagerState: ClassicyStore = {
 					active: false,
 				},
 				disableBalloonHelp: false,
+				doubleClickTitleToCollapse: true,
 				errorDialog: null,
 			},
 			Applications: {

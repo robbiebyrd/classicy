@@ -188,12 +188,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	// the Desktop slice is absent (e.g. isolated unit tests).
 	const doubleClickTitleToCollapse =
 		useAppManager(
-			(state) =>
-				(
-					state.System.Manager.Desktop as
-						| { doubleClickTitleToCollapse?: boolean }
-						| undefined
-				)?.doubleClickTitleToCollapse,
+			(state) => state.System.Manager.Desktop?.doubleClickTitleToCollapse,
 		) ?? true;
 	const currentWindow = currentApp?.windows.find((w) => w.id === id);
 	const desktopEventDispatch = useAppManagerDispatch();
