@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
-import { desktopVolume, fileSystemVolume } from "@/SystemFolder/SystemResources/FileDialog/ClassicyFileDialogVolume";
+import {
+	desktopVolume,
+	fileSystemVolume,
+} from "@/SystemFolder/SystemResources/FileDialog/ClassicyFileDialogVolume";
 
 describe("fileSystemVolume", () => {
 	it("lists a folder with folders first, files sorted, invisible entries hidden", async () => {
@@ -12,7 +15,10 @@ describe("fileSystemVolume", () => {
 					_type: ClassicyFileSystemEntryFileType.Directory,
 					"Report.pdf": { _type: ClassicyFileSystemEntryFileType.Pdf },
 					"notes.txt": { _type: ClassicyFileSystemEntryFileType.TextFile },
-					Secret: { _type: ClassicyFileSystemEntryFileType.Directory, _invisible: true },
+					Secret: {
+						_type: ClassicyFileSystemEntryFileType.Directory,
+						_invisible: true,
+					},
 				},
 			},
 		};
@@ -34,7 +40,10 @@ describe("fileSystemVolume", () => {
 					_type: ClassicyFileSystemEntryFileType.Directory,
 					"Report.pdf": { _type: ClassicyFileSystemEntryFileType.Pdf },
 					"notes.txt": { _type: ClassicyFileSystemEntryFileType.TextFile },
-					Secret: { _type: ClassicyFileSystemEntryFileType.Directory, _invisible: true },
+					Secret: {
+						_type: ClassicyFileSystemEntryFileType.Directory,
+						_invisible: true,
+					},
 				},
 			},
 		};
@@ -55,14 +64,21 @@ describe("desktopVolume", () => {
 					_type: ClassicyFileSystemEntryFileType.Directory,
 					"Report.pdf": { _type: ClassicyFileSystemEntryFileType.Pdf },
 					"notes.txt": { _type: ClassicyFileSystemEntryFileType.TextFile },
-					Secret: { _type: ClassicyFileSystemEntryFileType.Directory, _invisible: true },
+					Secret: {
+						_type: ClassicyFileSystemEntryFileType.Directory,
+						_invisible: true,
+					},
 				},
 			},
 		};
 		const fs = new ClassicyFileSystem("fileDialogTest", FIXTURE);
 		const vol = desktopVolume(fs);
 		const entries = await vol.list([]);
-		expect(entries[0]).toMatchObject({ name: "Macintosh HD", kind: "folder", fileType: "drive" });
+		expect(entries[0]).toMatchObject({
+			name: "Macintosh HD",
+			kind: "folder",
+			fileType: "drive",
+		});
 	});
 	it("descends through a drive", async () => {
 		const FIXTURE = {
@@ -72,7 +88,10 @@ describe("desktopVolume", () => {
 					_type: ClassicyFileSystemEntryFileType.Directory,
 					"Report.pdf": { _type: ClassicyFileSystemEntryFileType.Pdf },
 					"notes.txt": { _type: ClassicyFileSystemEntryFileType.TextFile },
-					Secret: { _type: ClassicyFileSystemEntryFileType.Directory, _invisible: true },
+					Secret: {
+						_type: ClassicyFileSystemEntryFileType.Directory,
+						_invisible: true,
+					},
 				},
 			},
 		};

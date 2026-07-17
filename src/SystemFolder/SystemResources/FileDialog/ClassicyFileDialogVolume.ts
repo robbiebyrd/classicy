@@ -69,7 +69,9 @@ function listFsChildren(
 }
 
 /** The classic Desktop level: all mounted drives, then their contents. */
-export function desktopVolume(fs: ClassicyFileSystem): ClassicyFileDialogVolume {
+export function desktopVolume(
+	fs: ClassicyFileSystem,
+): ClassicyFileDialogVolume {
 	return {
 		id: "desktop",
 		label: "Desktop",
@@ -87,8 +89,7 @@ export function fileSystemVolume(
 		id: `fs-${drive}`,
 		label: drive,
 		icon:
-			(fs.resolve(drive)?._icon as string) ??
-			ClassicyIcons.system.drives.disk,
+			(fs.resolve(drive)?._icon as string) ?? ClassicyIcons.system.drives.disk,
 		list: (path) => Promise.resolve(listFsChildren(fs, [drive, ...path])),
 	};
 }
