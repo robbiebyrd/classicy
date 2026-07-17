@@ -90,15 +90,6 @@ export const ClassicyFileOpenDialog: FunctionalComponent<
 		loadFolder(volumes[0], []);
 	}, [open]);
 
-	// load a volume root on first switch to it
-	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally re-runs only on volume switch / open — folders/loadFolder are read fresh, not tracked as invalidation keys
-	useEffect(() => {
-		if (!open || !activeVolume) return;
-		if (!folders.has(cacheKey(activeVolume.id, []))) {
-			loadFolder(activeVolume, []);
-		}
-	}, [activeVolumeId, open]);
-
 	const isEntryDisabled = (entry: ClassicyFileDialogEntry) =>
 		entry.kind === "file" &&
 		activeTypes !== null &&
@@ -264,8 +255,12 @@ export const ClassicyFileOpenDialog: FunctionalComponent<
 					options={volumes.map((v) => ({ value: v.id, label: v.label }))}
 					selected={activeVolumeId}
 					onChangeFunc={(e) => {
+						const nextVolume = volumes.find((v) => v.id === e.target.value);
 						setActiveVolumeId(e.target.value);
 						setSelectedIds([]);
+						if (nextVolume && !folders.has(cacheKey(nextVolume.id, []))) {
+							loadFolder(nextVolume, []);
+						}
 					}}
 				/>
 				<div className={"classicyFileOpenDialogWell"}>

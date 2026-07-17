@@ -265,6 +265,44 @@ describe("ClassicyFileOpenDialog", () => {
 		expect(openButton.disabled).toBe(true);
 	});
 
+	it("loads each volume root exactly once per session/switch", async () => {
+		const user = userEvent.setup();
+		const volA = makeVolume();
+		const volB = makeVolume({
+			id: "vol-b",
+			label: "Volume B",
+			list: vi.fn(async () => [
+				{
+					id: "bfile",
+					name: "b.txt",
+					kind: "file" as const,
+					fileType: "text_file",
+				},
+			]),
+		});
+		renderWithProviders(
+			<ClassicyFileOpenDialog {...baseProps} volumes={[volA, volB]} />,
+		);
+		expect(await screen.findByText("movie.mov")).toBeInTheDocument();
+		expect(volA.list).toHaveBeenCalledTimes(1);
+		expect(volA.list).toHaveBeenCalledWith([]);
+
+		await user.selectOptions(
+			screen.getByRole("combobox", { name: /volume/i }),
+			"vol-b",
+		);
+		expect(await screen.findByText("b.txt")).toBeInTheDocument();
+		expect(volB.list).toHaveBeenCalledTimes(1);
+		expect(volB.list).toHaveBeenCalledWith([]);
+
+		await user.selectOptions(
+			screen.getByRole("combobox", { name: /volume/i }),
+			"vol-a",
+		);
+		expect(await screen.findByText("movie.mov")).toBeInTheDocument();
+		expect(volA.list).toHaveBeenCalledTimes(1);
+	});
+
 	it("cancels on Cancel and on Escape", async () => {
 		const user = userEvent.setup();
 		const onCancelFunc = vi.fn();
