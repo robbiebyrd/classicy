@@ -5,6 +5,7 @@ import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWi
 const mockDispatch = vi.hoisted(() => vi.fn());
 const mockPlayer = vi.hoisted(() => vi.fn());
 const mockWindowState = vi.hoisted(() => ({ collapsed: false }));
+const mockDesktop = vi.hoisted(() => ({ doubleClickTitleToCollapse: true }));
 
 vi.mock(
 	"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils",
@@ -13,6 +14,10 @@ vi.mock(
 			const mockState = {
 				System: {
 					Manager: {
+						Desktop: {
+							doubleClickTitleToCollapse:
+								mockDesktop.doubleClickTitleToCollapse,
+						},
 						Applications: {
 							apps: {
 								TestApp: {
@@ -103,6 +108,7 @@ describe("ClassicyWindow title bar", () => {
 		mockDispatch.mockClear();
 		mockPlayer.mockClear();
 		mockWindowState.collapsed = false;
+		mockDesktop.doubleClickTitleToCollapse = true;
 	});
 
 	it("does not start a drag on a bare click", () => {
@@ -177,5 +183,42 @@ describe("ClassicyWindow title bar", () => {
 				e.type === "ClassicyWindowExpand",
 		);
 		expect(collapseEvents).toHaveLength(0);
+	});
+
+	// #206: double-click-title-to-collapse is gated behind a desktop preference.
+	it("does not collapse on double-click when the desktop preference is off", () => {
+		mockDesktop.doubleClickTitleToCollapse = false;
+		const { titleBar } = renderWindow();
+		fireEvent.dblClick(titleBar);
+		const collapseEvents = dispatchedTypes().filter(
+			(e) =>
+				e.type === "ClassicyWindowCollapse" ||
+				e.type === "ClassicyWindowExpand",
+		);
+		expect(collapseEvents).toHaveLength(0);
+	});
+
+	// #206: a plain collapse-box click still collapses the window.
+	it("collapses on a plain collapse-box click", () => {
+		const { container } = renderWindow();
+		const box = container.querySelector(
+			".classicyWindowCollapseBox",
+		) as HTMLElement;
+		fireEvent.click(box);
+		expect(dispatchedTypes()).toContainEqual(
+			expect.objectContaining({ type: "ClassicyWindowCollapse" }),
+		);
+	});
+
+	// #206: Option-clicking the collapse box drives the collapse-all path.
+	it("collapses on an option-click of the collapse box", () => {
+		const { container } = renderWindow();
+		const box = container.querySelector(
+			".classicyWindowCollapseBox",
+		) as HTMLElement;
+		fireEvent.click(box, { altKey: true });
+		expect(dispatchedTypes()).toContainEqual(
+			expect.objectContaining({ type: "ClassicyWindowCollapse" }),
+		);
 	});
 });
