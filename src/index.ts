@@ -33,6 +33,7 @@ export * from "./SystemFolder/HyperCard/HyperCardDialog";
 export * from "./SystemFolder/HyperCard/HyperCardEngine";
 export * from "./SystemFolder/HyperCard/HyperCardExpression";
 export * from "./SystemFolder/HyperCard/HyperCardModel";
+export * from "./SystemFolder/HyperCard/HyperCardPlugins";
 export * from "./SystemFolder/HyperCard/HyperCardSampleStack";
 export * from "./SystemFolder/HyperCard/HyperCardTransition";
 export * from "./SystemFolder/HyperCard/HyperCardUtils";

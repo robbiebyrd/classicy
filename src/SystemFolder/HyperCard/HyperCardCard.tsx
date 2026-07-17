@@ -14,10 +14,15 @@ import {
 	useRef,
 } from "react";
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { makeEvalContext } from "@/SystemFolder/HyperCard/HyperCardEngine";
+import { evaluateToString } from "@/SystemFolder/HyperCard/HyperCardExpression";
 import {
 	DEFAULT_CARD_SIZE,
+	type HCEventName,
 	type HCPart,
+	type HCValue,
 } from "@/SystemFolder/HyperCard/HyperCardModel";
+import { getHyperCardPart } from "@/SystemFolder/HyperCard/HyperCardPlugins";
 import {
 	collectCardParts,
 	fieldKey,
@@ -77,6 +82,15 @@ export const HyperCardCard: FunctionalComponent<HyperCardCardProps> = ({
 		});
 	};
 
+	const fire = (partId: string, event?: HCEventName) => {
+		dispatch({
+			type: "ClassicyAppHyperCardEvent",
+			stackId,
+			partId,
+			event: event ?? "onMouseUp",
+		});
+	};
+
 	const parts = collectCardParts(open.stack, card);
 
 	return (
@@ -101,6 +115,10 @@ export const HyperCardCard: FunctionalComponent<HyperCardCardProps> = ({
 							revKey: `${key}:${rev}`,
 							fireEvent,
 							commitField,
+							fire,
+							stackId,
+							getVariable: (n) => open.variables[n],
+							resolve: (expr) => evaluateToString(expr, makeEvalContext(open)),
 						})}
 					</div>
 				);
@@ -114,6 +132,10 @@ interface RenderCtx {
 	revKey: string;
 	fireEvent: (partId: string, value?: string) => void;
 	commitField: (partId: string, value: string) => void;
+	fire: (partId: string, event?: HCEventName) => void;
+	stackId: string;
+	getVariable: (name: string) => HCValue | undefined;
+	resolve: (expr: string) => string;
 }
 
 function renderPart(part: HCPart, ctx: RenderCtx) {
@@ -202,7 +224,29 @@ function renderPart(part: HCPart, ctx: RenderCtx) {
 		case "group":
 			return <div className={"classicyHyperCardGroup"}>{part.name ?? ""}</div>;
 	}
-	return null;
+	// Unknown type → a plugin-registered custom part, or a placeholder.
+	const Custom = getHyperCardPart(part.type);
+	if (Custom) {
+		return (
+			<Custom
+				part={part}
+				partId={part.id}
+				stackId={ctx.stackId}
+				options={part.options ?? {}}
+				locked={part.locked ?? false}
+				value={ctx.value}
+				setValue={(v) => ctx.commitField(part.id, v)}
+				fire={(event) => ctx.fire(part.id, event)}
+				getVariable={ctx.getVariable}
+				resolve={ctx.resolve}
+			/>
+		);
+	}
+	return (
+		<div className={"classicyHyperCardMissingPart"}>
+			Missing part “{part.type}”
+		</div>
+	);
 }
 
 interface HyperCardFieldProps {

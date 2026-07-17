@@ -21,6 +21,11 @@ import {
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { HyperCardCard } from "@/SystemFolder/HyperCard/HyperCardCard";
 import { HyperCardDialog } from "@/SystemFolder/HyperCard/HyperCardDialog";
+import type { HCStack } from "@/SystemFolder/HyperCard/HyperCardModel";
+import {
+	getHyperCardEffectHandler,
+	getRegisteredStacks,
+} from "@/SystemFolder/HyperCard/HyperCardPlugins";
 import { HyperCardBuiltInStacks } from "@/SystemFolder/HyperCard/HyperCardSampleStack";
 import { HyperCardTransition } from "@/SystemFolder/HyperCard/HyperCardTransition";
 import {
@@ -88,6 +93,58 @@ export const HyperCard: FunctionalComponent = () => {
 					app: { id: e.appId },
 					...(e.data ?? {}),
 				});
+			} else if (e.kind === "custom") {
+				const handler = getHyperCardEffectHandler(e.name);
+				const token = e.token;
+				const sid = activeStackId;
+				const resolveEmpty = () => {
+					if (token) {
+						dispatch({
+							type: "ClassicyAppHyperCardResolveCommand",
+							stackId: sid,
+							token,
+							result: "",
+						});
+					}
+				};
+				if (handler) {
+					Promise.resolve(
+						handler(e.args, {
+							stackId: sid,
+							resolve: (value: string) => {
+								if (token) {
+									dispatch({
+										type: "ClassicyAppHyperCardResolveCommand",
+										stackId: sid,
+										token,
+										result: value,
+									});
+								}
+							},
+							setField: (partId: string, value: string) =>
+								dispatch({
+									type: "ClassicyAppHyperCardCommitField",
+									stackId: sid,
+									partId,
+									value,
+								}),
+							setVariable: (name: string, value) =>
+								dispatch({
+									type: "ClassicyAppHyperCardSetVariable",
+									stackId: sid,
+									name,
+									value,
+								}),
+						}),
+					).catch((err) => {
+						console.error("[HyperCard] effect handler error", e.name, err);
+						resolveEmpty();
+					});
+				} else {
+					// No handler for a blocking command → resolve empty so the stack
+					// never hangs waiting on a plugin that isn't registered.
+					resolveEmpty();
+				}
 			}
 		}
 		dispatch({
@@ -111,16 +168,27 @@ export const HyperCard: FunctionalComponent = () => {
 	}, [activeStackId, waitToken, waitMs, dispatch]);
 
 	const openStack = useCallback(
-		(id: string) => {
-			const entry = HyperCardBuiltInStacks[id];
-			if (!entry) return;
+		(id: string, stack: HCStack) => {
 			dispatch({
 				type: "ClassicyAppHyperCardOpenStack",
-				stackId: entry.id,
-				stack: entry.stack,
+				stackId: id,
+				stack,
 			});
 		},
 		[dispatch],
+	);
+
+	// Built-in stacks plus any a host app registered via registerHyperCardStack.
+	const stackEntries = useMemo(
+		() => [
+			...Object.values(HyperCardBuiltInStacks).map((e) => ({
+				id: e.id,
+				name: e.stack.name,
+				stack: e.stack,
+			})),
+			...getRegisteredStacks(),
+		],
+		[],
 	);
 
 	const navigate = useCallback(
@@ -141,10 +209,10 @@ export const HyperCard: FunctionalComponent = () => {
 				id: "file",
 				title: "File",
 				menuChildren: [
-					...Object.values(HyperCardBuiltInStacks).map((entry) => ({
+					...stackEntries.map((entry) => ({
 						id: `open_${entry.id}`,
-						title: `Open “${entry.stack.name}”`,
-						onClickFunc: () => openStack(entry.id),
+						title: `Open “${entry.name}”`,
+						onClickFunc: () => openStack(entry.id, entry.stack),
 					})),
 					{ id: "file_sep", title: "-" },
 					quitMenuItemHelper(appId, appName, appIcon),
@@ -167,7 +235,7 @@ export const HyperCard: FunctionalComponent = () => {
 				],
 			},
 		],
-		[navigate, openStack],
+		[navigate, openStack, stackEntries],
 	);
 
 	const currentCard = open

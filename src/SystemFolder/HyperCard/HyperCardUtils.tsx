@@ -53,7 +53,8 @@ export type HCRunStatus =
 	| "running"
 	| "awaitingDialog"
 	| "awaitingWait"
-	| "awaitingTransition";
+	| "awaitingTransition"
+	| "awaitingCustom";
 
 export type HCPendingEffect =
 	| { id: number; kind: "beep" }
@@ -64,6 +65,15 @@ export type HCPendingEffect =
 			appId: string;
 			event?: string;
 			data?: Record<string, unknown>;
+	  }
+	// A plugin effect: handled by a registered effect handler in the component.
+	// `token` is present when a blocking command is awaiting resolution.
+	| {
+			id: number;
+			kind: "custom";
+			name: string;
+			args: Record<string, unknown>;
+			token?: string;
 	  };
 
 export interface HCDialog {

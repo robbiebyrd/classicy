@@ -17,7 +17,12 @@ export type HCValue = string | number;
 /** Rectangle as [x, y, width, height], in card-local pixels. */
 export type HCRect = [number, number, number, number];
 
-export type HCPartType =
+/**
+ * Built-in part types. Plugins may register additional types (rendered by name
+ * via registerHyperCardPart), so `HCPart.type` is a widened `string` — this
+ * union documents the built-ins and gives authoring autocomplete.
+ */
+export type HCBuiltinPartType =
 	| "button"
 	| "field"
 	| "checkbox"
@@ -28,6 +33,8 @@ export type HCPartType =
 	| "label"
 	| "image"
 	| "group";
+
+export type HCPartType = HCBuiltinPartType | (string & {});
 
 export interface HCPartStyle {
 	/** Button visual style. */
@@ -145,6 +152,15 @@ export type HCAction =
 			data?: Record<string, unknown>;
 	  };
 
+/**
+ * A plugin command action — `do` is a registered command name
+ * (see registerHyperCardCommand). Deliberately NOT part of the {@link HCAction}
+ * union: a `{ do: string }` member would collapse the discriminated union and
+ * break narrowing of the built-in actions. Stacks are JSON (untyped), so plugin
+ * commands validate fine at runtime; the engine handles them in its default case.
+ */
+export type HCPluginAction = { do: string } & Record<string, unknown>;
+
 export interface HCStack {
 	name: string;
 	/** HyperCard major version this stack targets ("1" | "2"); informational. */
@@ -228,19 +244,6 @@ export function validateStack(raw: unknown): HCValidateResult {
 	return { ok: true, stack: raw as unknown as HCStack };
 }
 
-const VALID_PART_TYPES = new Set<string>([
-	"button",
-	"field",
-	"checkbox",
-	"radio",
-	"popup",
-	"slider",
-	"progress",
-	"label",
-	"image",
-	"group",
-]);
-
 function validateParts(parts: unknown, where: string, errors: string[]): void {
 	if (!Array.isArray(parts)) {
 		errors.push(`Parts of ${where} must be an array.`);
@@ -259,9 +262,11 @@ function validateParts(parts: unknown, where: string, errors: string[]): void {
 		} else {
 			ids.add(part.id);
 		}
-		if (typeof part.type !== "string" || !VALID_PART_TYPES.has(part.type)) {
+		// Any non-empty string type is valid: unknown types resolve to a
+		// plugin-registered part (registerHyperCardPart) or a placeholder at render.
+		if (typeof part.type !== "string" || part.type.length === 0) {
 			errors.push(
-				`Part "${String(part.id)}" of ${where} has invalid type "${String(part.type)}".`,
+				`Part "${String(part.id)}" of ${where} is missing a string type.`,
 			);
 		}
 	});

@@ -28,6 +28,11 @@ import type {
 	HCValue,
 } from "@/SystemFolder/HyperCard/HyperCardModel";
 import {
+	getHyperCardCommand,
+	type HCCommandAction,
+	type HCCommandContext,
+} from "@/SystemFolder/HyperCard/HyperCardPlugins";
+import {
 	fieldKey,
 	findPart,
 	getBackgroundForCard,
@@ -313,7 +318,58 @@ function execAction(open: HCOpenStack, action: EngineAction): void {
 		case "@openCard":
 			pushFrame(rt, openCardActions(open, open.currentCardId));
 			break;
+		default: {
+			// Unknown `do` → a plugin-registered command (registerHyperCardCommand).
+			// `action` is exhaustive-`never` here per the closed union, but at
+			// runtime a JSON stack can carry any command name, so cast.
+			const pluginAction = action as unknown as HCCommandAction;
+			const cmd = getHyperCardCommand(pluginAction.do);
+			if (cmd) {
+				cmd.run(makeCommandContext(open), pluginAction);
+			} else if (process.env.NODE_ENV !== "production") {
+				console.warn(`[HyperCard] Unknown command "${pluginAction.do}"`);
+			}
+			break;
+		}
 	}
+}
+
+/** Build the context a plugin command runs with, backed by the open stack. */
+function makeCommandContext(open: HCOpenStack): HCCommandContext {
+	const rt = open.runtime;
+	return {
+		getVar: (n) => open.variables[n],
+		setVar: (n, v) => {
+			open.variables[n] = v;
+		},
+		getField: (id) => readFieldValue(open, id),
+		setField: (id, v) => writeField(open, id, v),
+		evaluate: (expr) => evaluate(expr, makeEvalContext(open)),
+		show: (partId, visible) => {
+			open.partVisibility[partId] = visible;
+		},
+		go: (to) => pushFrame(rt, [{ do: "go", to }]),
+		queueEffect: (name, args) => {
+			rt.pendingEffects.push({
+				id: rt.seq++,
+				kind: "custom",
+				name,
+				args: args ?? {},
+			});
+		},
+		await: (name, args, into) => {
+			const token = nextToken(rt);
+			rt.pendingEffects.push({
+				id: rt.seq++,
+				kind: "custom",
+				name,
+				args: args ?? {},
+				token,
+			});
+			rt.status = "awaitingCustom";
+			rt.resume = { token, container: into };
+		},
+	};
 }
 
 function containerOf(a: HCContainerRef): HCContainerRef | undefined {
@@ -506,6 +562,23 @@ export function resumeTransition(open: HCOpenStack, token?: string): void {
 	if (rt.status !== "awaitingTransition") return;
 	if (token !== undefined && rt.transition?.token !== token) return;
 	rt.transition = undefined;
+	rt.resume = undefined;
+	rt.status = "running";
+	drive(open);
+}
+
+/** Resume a blocking plugin command (ctx.await) with the handler's result. */
+export function resumeCustom(
+	open: HCOpenStack,
+	result: string,
+	token?: string,
+): void {
+	const rt = open.runtime;
+	if (rt.status !== "awaitingCustom") return;
+	if (token !== undefined && rt.resume?.token !== token) return;
+	const container = rt.resume?.container;
+	open.variables.it = result;
+	if (container) writeContainer(open, container, result);
 	rt.resume = undefined;
 	rt.status = "running";
 	drive(open);

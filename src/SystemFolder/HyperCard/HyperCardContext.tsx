@@ -13,6 +13,7 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	consumeEffects,
+	resumeCustom,
 	resumeDialog,
 	resumeTransition,
 	resumeWait,
@@ -181,6 +182,27 @@ export const classicyHyperCardEventHandler = (
 			if (!open) break;
 			const ids = (action.ids as number[] | undefined) ?? [];
 			consumeEffects(open, ids);
+			break;
+		}
+
+		case "ClassicyAppHyperCardResolveCommand": {
+			const open = activeOpen(data, action);
+			if (!open) break;
+			resumeCustom(
+				open,
+				String(action.result ?? ""),
+				action.token as string | undefined,
+			);
+			break;
+		}
+
+		case "ClassicyAppHyperCardSetVariable": {
+			const open = activeOpen(data, action);
+			if (!open) break;
+			const name = action.name as string | undefined;
+			if (name) {
+				open.variables[name] = action.value as string | number;
+			}
 			break;
 		}
 
