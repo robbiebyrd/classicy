@@ -29,6 +29,7 @@ import type {
 	HCRect,
 	HCStack,
 } from "@/SystemFolder/HyperCard/HyperCardModel";
+import { getHyperCardPartEditorMeta } from "@/SystemFolder/HyperCard/HyperCardPlugins";
 import {
 	type HCOpenStack,
 	HyperCardAppInfo,
@@ -201,7 +202,10 @@ export const classicyHyperCardEditorEventHandler = (
 			const at = action.at as [number, number] | undefined;
 			if (!edit || !partType || !at) break;
 			const desc = getPartDescriptor(partType);
-			const size = desc?.defaultSize ?? FALLBACK_SIZE;
+			const meta = getHyperCardPartEditorMeta(partType);
+			const size = desc?.defaultSize ?? meta?.defaultSize ?? FALLBACK_SIZE;
+			const defaultOptions = desc?.defaultOptions ?? meta?.defaultOptions;
+			const defaultContent = desc?.defaultContent ?? meta?.defaultContent;
 			const id = nextPartId(edit.draft, partType);
 			applyEdit(edit, (draft) => {
 				const parts = layerParts(draft, edit.currentCardId, edit.layer);
@@ -211,10 +215,10 @@ export const classicyHyperCardEditorEventHandler = (
 					type: partType,
 					rect: clampRect([at[0], at[1], size[0], size[1]]),
 				};
-				if (desc?.defaultOptions) {
-					part.options = JSON.parse(JSON.stringify(desc.defaultOptions));
+				if (defaultOptions) {
+					part.options = JSON.parse(JSON.stringify(defaultOptions));
 				}
-				if (desc?.defaultContent) part.content = desc.defaultContent;
+				if (defaultContent) part.content = defaultContent;
 				parts.push(part);
 			});
 			edit.selectedPartId = id;

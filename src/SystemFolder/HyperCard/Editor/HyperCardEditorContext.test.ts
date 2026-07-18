@@ -3,6 +3,7 @@ import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/Clas
 import { classicyHyperCardEditorEventHandler } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorContext";
 import type { HCEditState } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorUtils";
 import type { HCStack } from "@/SystemFolder/HyperCard/HyperCardModel";
+import { registerHyperCardPartEditorMeta } from "@/SystemFolder/HyperCard/HyperCardPlugins";
 
 const APP_ID = "HyperCard.app";
 
@@ -322,5 +323,29 @@ describe("classicyHyperCardEditorEventHandler", () => {
 			edits?: Record<string, HCEditState>;
 		};
 		expect(data.edits?.demo).toBeUndefined();
+	});
+
+	it("AddPart uses plugin editor metadata for unknown types", () => {
+		registerHyperCardPartEditorMeta("metaPart", {
+			label: "Meta Part",
+			defaultSize: [222, 44],
+			defaultOptions: { channel: 7 },
+			defaultContent: "hello",
+		});
+		const store = makeStore();
+		enter(store);
+		dispatch(store, {
+			type: "ClassicyAppHCEditAddPart",
+			stackId: "demo",
+			partType: "metaPart",
+			at: [10, 20],
+		});
+		const parts = edit(store).draft.cards[0].parts!;
+		expect(parts.at(-1)).toMatchObject({
+			type: "metaPart",
+			rect: [10, 20, 222, 44],
+			options: { channel: 7 },
+			content: "hello",
+		});
 	});
 });

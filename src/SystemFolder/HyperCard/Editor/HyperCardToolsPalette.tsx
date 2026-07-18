@@ -7,10 +7,8 @@
 import type { FC as FunctionalComponent } from "react";
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { HYPERCARD_PART_DRAG_MIME } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorOverlay";
-import {
-	BUILTIN_PART_DESCRIPTORS,
-	type HCEditState,
-} from "@/SystemFolder/HyperCard/Editor/HyperCardEditorUtils";
+import { paletteEntries } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorSchemas";
+import type { HCEditState } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorUtils";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 
 interface HyperCardToolsPaletteProps {
@@ -25,6 +23,8 @@ export const HyperCardToolsPalette: FunctionalComponent<
 
 	const setTool = (tool: HCEditState["tool"]) =>
 		dispatch({ type: "ClassicyAppHCEditSetTool", stackId, tool });
+
+	const entries = paletteEntries();
 
 	return (
 		<div className={"classicyHyperCardPalette"}>
@@ -43,27 +43,27 @@ export const HyperCardToolsPalette: FunctionalComponent<
 				</ClassicyButton>
 			</div>
 			<div className={"classicyHyperCardPaletteParts"}>
-				{BUILTIN_PART_DESCRIPTORS.map((desc) => (
+				{entries.map((entry) => (
 					// biome-ignore lint/a11y/noStaticElementInteractions: palette entry
 					// biome-ignore lint/a11y/useKeyWithClickEvents: drag-first control
 					<div
-						key={desc.type}
+						key={entry.type}
 						className={"classicyHyperCardPaletteEntry"}
-						data-part-type={desc.type}
+						data-part-type={entry.type}
 						draggable
 						onDragStart={(e) =>
-							e.dataTransfer?.setData(HYPERCARD_PART_DRAG_MIME, desc.type)
+							e.dataTransfer?.setData(HYPERCARD_PART_DRAG_MIME, entry.type)
 						}
 						onClick={() =>
 							dispatch({
 								type: "ClassicyAppHCEditSetPlacing",
 								stackId,
-								partType: desc.type,
+								partType: entry.type,
 							})
 						}
 					>
-						{desc.label}
-						{edit.placing === desc.type ? " ✓" : ""}
+						{entry.label}
+						{edit.placing === entry.type ? " ✓" : ""}
 					</div>
 				))}
 			</div>

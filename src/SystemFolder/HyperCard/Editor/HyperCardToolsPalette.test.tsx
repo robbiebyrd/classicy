@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { HCEditState } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorUtils";
 import { HyperCardToolsPalette } from "@/SystemFolder/HyperCard/Editor/HyperCardToolsPalette";
+import { registerHyperCardPartEditorMeta } from "@/SystemFolder/HyperCard/HyperCardPlugins";
 
 const dispatch = vi.fn();
 vi.mock(
@@ -70,5 +71,16 @@ describe("HyperCardToolsPalette", () => {
 			stackId: "demo",
 			tool: "browse",
 		});
+	});
+
+	it("lists registered plugin part types after the built-ins", () => {
+		registerHyperCardPartEditorMeta("paletteTest", { label: "Palette Test" });
+		const { container } = render(
+			<HyperCardToolsPalette stackId={"demo"} edit={makeEdit()} />,
+		);
+		const entry = container.querySelector(
+			'.classicyHyperCardPaletteEntry[data-part-type="paletteTest"]',
+		);
+		expect(entry?.textContent).toContain("Palette Test");
 	});
 });
