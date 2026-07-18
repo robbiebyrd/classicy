@@ -229,3 +229,39 @@
 	gap: 4px;
 	align-items: flex-end;
 }
+
+.classicyHyperCardScriptEditor,
+.classicyHyperCardScriptBuilder,
+.classicyHyperCardScriptJson {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 6px;
+}
+
+.classicyHyperCardScriptTabs {
+	display: flex;
+	gap: 4px;
+}
+
+.classicyHyperCardActionRow {
+	border: 1px solid var(--color-system-03, #ccc);
+	padding: 4px;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	align-items: flex-end;
+}
+
+.classicyHyperCardActionNested {
+	margin-left: 12px;
+	width: 100%;
+}
+
+// Plain native <select> (see HyperCardScriptBuilder.tsx's add-action control) —
+// ClassicyPopUpMenu no longer renders one, so this gets a minimal look of its own
+// rather than sitting unstyled.
+.classicyHyperCardActionAddSelect {
+	font: inherit;
+	padding: 2px 4px;
+}

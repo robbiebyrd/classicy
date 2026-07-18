@@ -26,6 +26,7 @@ import type {
 	HyperCardEditorData,
 } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorUtils";
 import { HyperCardInspector } from "@/SystemFolder/HyperCard/Editor/HyperCardInspector";
+import { HyperCardScriptEditor } from "@/SystemFolder/HyperCard/Editor/HyperCardScriptEditor";
 import { HyperCardToolsPalette } from "@/SystemFolder/HyperCard/Editor/HyperCardToolsPalette";
 import { HyperCardCard } from "@/SystemFolder/HyperCard/HyperCardCard";
 import { HyperCardDialog } from "@/SystemFolder/HyperCard/HyperCardDialog";
@@ -467,6 +468,19 @@ export const HyperCard: FunctionalComponent = () => {
 											partId: edit.selectedPartId,
 										}),
 								},
+								{ id: "edit_sep_2", title: "-" },
+								{
+									id: "edit_script",
+									title: "Edit Script…",
+									onClickFunc: () =>
+										dispatch({
+											type: "ClassicyAppHCEditShowScript",
+											stackId: activeStackId,
+											target: edit.selectedPartId
+												? { kind: "part", partId: edit.selectedPartId }
+												: { kind: "card" },
+										}),
+								},
 							],
 						},
 						{
@@ -616,6 +630,20 @@ export const HyperCard: FunctionalComponent = () => {
 					initialPosition={[8, 360]}
 				>
 					<HyperCardInspector stackId={activeStackId} edit={edit} />
+				</ClassicyWindow>
+			) : null}
+
+			{edit?.script && activeStackId ? (
+				<ClassicyWindow
+					id={"hypercard_script"}
+					title={"Script"}
+					appId={appId}
+					appMenu={appMenu}
+					initialSize={[440, 0]}
+					initialPosition={["center", 120]}
+					scrollable={true}
+				>
+					<HyperCardScriptEditor stackId={activeStackId} edit={edit} />
 				</ClassicyWindow>
 			) : null}
 
