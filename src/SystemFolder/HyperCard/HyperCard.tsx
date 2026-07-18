@@ -25,6 +25,7 @@ import type {
 	HCEditState,
 	HyperCardEditorData,
 } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorUtils";
+import { HyperCardInspector } from "@/SystemFolder/HyperCard/Editor/HyperCardInspector";
 import { HyperCardToolsPalette } from "@/SystemFolder/HyperCard/Editor/HyperCardToolsPalette";
 import { HyperCardCard } from "@/SystemFolder/HyperCard/HyperCardCard";
 import { HyperCardDialog } from "@/SystemFolder/HyperCard/HyperCardDialog";
@@ -601,6 +602,20 @@ export const HyperCard: FunctionalComponent = () => {
 					initialPosition={[8, 100]}
 				>
 					<HyperCardToolsPalette stackId={activeStackId} edit={edit} />
+				</ClassicyWindow>
+			) : null}
+
+			{edit && activeStackId ? (
+				<ClassicyWindow
+					id={"hypercard_inspector"}
+					title={"Info"}
+					appId={appId}
+					appMenu={appMenu}
+					windowType={"utility"}
+					initialSize={[240, 0]}
+					initialPosition={[8, 360]}
+				>
+					<HyperCardInspector stackId={activeStackId} edit={edit} />
 				</ClassicyWindow>
 			) : null}
 

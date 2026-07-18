@@ -191,4 +191,14 @@ describe("HyperCard editor integration", () => {
 			Number(toolsWindow?.getAttribute("data-app-menu-len")),
 		).toBeGreaterThan(0);
 	});
+
+	it("renders the inspector window (with appMenu) while editing", () => {
+		mockState = stateWith(makeEdit());
+		const { container } = render(<HyperCard />);
+		const inspector = container.querySelector(
+			'[data-window-id="hypercard_inspector"]',
+		);
+		expect(inspector).not.toBeNull();
+		expect(inspector?.getAttribute("data-has-app-menu")).toBe("true");
+	});
 });
