@@ -150,3 +150,50 @@
 		animation: classicyHyperCardIris var(--hc-transition-duration, 300ms) ease-in-out;
 	}
 }
+
+/* --- Editor --- */
+.classicyHyperCardEditorCanvas {
+	position: relative;
+}
+
+.classicyHyperCardPartInert {
+	pointer-events: none;
+}
+
+.classicyHyperCardPartHidden {
+	opacity: 0.35;
+}
+
+.classicyHyperCardEditorOverlay {
+	position: absolute;
+	inset: 0;
+	outline: none;
+}
+
+.classicyHyperCardEditorHit {
+	position: absolute;
+	cursor: move;
+}
+
+.classicyHyperCardEditorSelection {
+	position: absolute;
+	border: 1px dashed var(--color-black, #000);
+	pointer-events: none;
+}
+
+.classicyHyperCardEditorHandle {
+	position: absolute;
+	width: 6px;
+	height: 6px;
+	background: var(--color-black, #000);
+	pointer-events: all;
+}
+
+.classicyHyperCardEditorHandle[data-handle="nw"] { left: -3px; top: -3px; cursor: nwse-resize; }
+.classicyHyperCardEditorHandle[data-handle="n"] { left: calc(50% - 3px); top: -3px; cursor: ns-resize; }
+.classicyHyperCardEditorHandle[data-handle="ne"] { right: -3px; top: -3px; cursor: nesw-resize; }
+.classicyHyperCardEditorHandle[data-handle="e"] { right: -3px; top: calc(50% - 3px); cursor: ew-resize; }
+.classicyHyperCardEditorHandle[data-handle="se"] { right: -3px; bottom: -3px; cursor: nwse-resize; }
+.classicyHyperCardEditorHandle[data-handle="s"] { left: calc(50% - 3px); bottom: -3px; cursor: ns-resize; }
+.classicyHyperCardEditorHandle[data-handle="sw"] { left: -3px; bottom: -3px; cursor: nesw-resize; }
+.classicyHyperCardEditorHandle[data-handle="w"] { left: -3px; top: calc(50% - 3px); cursor: ew-resize; }
