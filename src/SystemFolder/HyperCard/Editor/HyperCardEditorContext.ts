@@ -110,12 +110,28 @@ export const classicyHyperCardEditorEventHandler = (
 				undo: [],
 				redo: [],
 				dirty: false,
+				pristine: JSON.parse(JSON.stringify(open.stack)) as HCStack,
 			};
 			break;
 		}
 
 		case "ClassicyAppHCEditExit": {
 			const data = getEditorData(ds);
+			const edit = data?.edits?.[stackId];
+			if (edit?.pristine) {
+				const open = (
+					ds.System.Manager.Applications.apps[APP_ID].data as {
+						openStacks?: Record<string, HCOpenStack>;
+					}
+				).openStacks?.[stackId];
+				if (open) {
+					const pristine = edit.pristine;
+					open.stack = pristine;
+					if (!pristine.cards.some((c) => c.id === open.currentCardId)) {
+						open.currentCardId = pristine.cards[0].id;
+					}
+				}
+			}
 			if (data?.edits) delete data.edits[stackId];
 			break;
 		}
@@ -258,6 +274,9 @@ export const classicyHyperCardEditorEventHandler = (
 			edit.draft = prev;
 			edit.dirty = true;
 			edit.selectedPartId = undefined;
+			if (!edit.draft.cards.some((c) => c.id === edit.currentCardId)) {
+				edit.currentCardId = edit.draft.cards[0].id;
+			}
 			break;
 		}
 
@@ -270,6 +289,9 @@ export const classicyHyperCardEditorEventHandler = (
 			edit.draft = next;
 			edit.dirty = true;
 			edit.selectedPartId = undefined;
+			if (!edit.draft.cards.some((c) => c.id === edit.currentCardId)) {
+				edit.currentCardId = edit.draft.cards[0].id;
+			}
 			break;
 		}
 

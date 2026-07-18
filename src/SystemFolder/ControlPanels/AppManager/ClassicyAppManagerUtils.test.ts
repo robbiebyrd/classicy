@@ -425,6 +425,71 @@ describe("persistence exclusions", () => {
 		expect(Array.isArray(liveHistory)).toBe(true);
 	});
 
+	it("empties HyperCard edit-session undo/redo stacks in the localStorage snapshot but keeps draft/dirty", async () => {
+		// Register a test handler that seeds an edit session the way the editor
+		// reducer would (undo/redo holding full HCStack snapshots).
+		const appManagerMod = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager"
+		);
+		appManagerMod.registerAppEventHandler(
+			"ClassicyAppHCEditTest",
+			(
+				ds: import("@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager").ClassicyStore,
+				action,
+			) => {
+				if (action.type === "ClassicyAppHCEditTestSeed") {
+					const appId = "HyperCard.app";
+					if (!ds.System.Manager.Applications.apps[appId]) return ds;
+					ds.System.Manager.Applications.apps[appId].data = {
+						...(ds.System.Manager.Applications.apps[appId].data ?? {}),
+						edits: {
+							demo: {
+								draft: { name: "Demo", cards: [{ id: "c1" }] },
+								currentCardId: "c1",
+								layer: "card",
+								tool: "pointer",
+								undo: [{ name: "Demo", cards: [{ id: "c1" }] }],
+								redo: [{ name: "Demo", cards: [{ id: "c1" }] }],
+								dirty: true,
+							},
+						},
+					};
+				}
+				return ds;
+			},
+		);
+
+		dispatch({
+			type: "ClassicyAppOpen",
+			app: { id: "HyperCard.app", name: "HyperCard", icon: "" },
+		});
+		dispatch({
+			type: "ClassicyAppHCEditTestSeed",
+		} as Parameters<typeof dispatch>[0]);
+
+		vi.advanceTimersByTime(500);
+
+		const raw = localStorage.getItem("classicyDesktopState");
+		expect(raw).not.toBeNull();
+		const parsed = JSON.parse(raw ?? "");
+		const editSession =
+			parsed.System?.Manager?.Applications?.apps?.["HyperCard.app"]?.data?.edits
+				?.demo;
+		expect(editSession).toBeDefined();
+		expect(editSession.undo).toEqual([]);
+		expect(editSession.redo).toEqual([]);
+		expect(editSession.dirty).toBe(true);
+		expect(editSession.draft).toEqual({ name: "Demo", cards: [{ id: "c1" }] });
+
+		// Live state must be untouched by sanitization.
+		const liveData = useAppManager.getState().System.Manager.Applications.apps[
+			"HyperCard.app"
+		].data as { edits?: Record<string, { undo: unknown[]; redo: unknown[] }> };
+		const liveEdit = liveData.edits?.demo;
+		expect(liveEdit?.undo).toHaveLength(1);
+		expect(liveEdit?.redo).toHaveLength(1);
+	});
+
 	it("does not strip history from non-Browser apps", async () => {
 		// Register a second handler for a non-Browser app with a history field
 		const appManagerMod = await import(

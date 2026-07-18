@@ -239,6 +239,73 @@ describe("classicyHyperCardEditorEventHandler", () => {
 		expect(edit(store).currentCardId).toBe("c2");
 	});
 
+	it("Undo/Redo keep currentCardId resolvable when the pointed-to card is gone from the swapped-in draft", () => {
+		const store = makeStore();
+		enter(store);
+		dispatch(store, { type: "ClassicyAppHCEditAddCard", stackId: "demo" });
+		expect(edit(store).currentCardId).toBe("card1");
+		dispatch(store, { type: "ClassicyAppHCEditUndo", stackId: "demo" });
+		const afterUndo = edit(store);
+		expect(afterUndo.draft.cards.map((c) => c.id)).toEqual(["c1", "c2"]);
+		// card1 no longer exists in this draft — currentCardId must fall back to
+		// the first card, not dangle and blank the canvas.
+		expect(afterUndo.currentCardId).toBe("c1");
+		dispatch(store, { type: "ClassicyAppHCEditRedo", stackId: "demo" });
+		const afterRedo = edit(store);
+		expect(
+			afterRedo.draft.cards.some((c) => c.id === afterRedo.currentCardId),
+		).toBe(true);
+	});
+
+	it("Exit restores the pristine stack after a Browse-preview overwrite, discarding the draft", () => {
+		const store = makeStore();
+		enter(store);
+		dispatch(store, {
+			type: "ClassicyAppHCEditSetRect",
+			stackId: "demo",
+			partId: "button1",
+			rect: [50, 60, 100, 24],
+		});
+		// Simulate Browse preview, which overwrites the player's stack in place.
+		const playerData = store.System.Manager.Applications.apps[APP_ID].data as {
+			openStacks: Record<string, { stack: HCStack; currentCardId: string }>;
+		};
+		playerData.openStacks.demo.stack = JSON.parse(
+			JSON.stringify(edit(store).draft),
+		) as HCStack;
+		dispatch(store, { type: "ClassicyAppHCEditExit", stackId: "demo" });
+		expect(playerData.openStacks.demo.stack).toEqual(demoStack);
+		const editorData = store.System.Manager.Applications.apps[APP_ID].data as {
+			edits?: Record<string, HCEditState>;
+		};
+		expect(editorData.edits?.demo).toBeUndefined();
+	});
+
+	it("Exit tolerates a pre-existing session without pristine (legacy persisted state)", () => {
+		const store = makeStore();
+		const data = store.System.Manager.Applications.apps[APP_ID].data as {
+			edits?: Record<string, HCEditState>;
+			openStacks: Record<string, { stack: HCStack }>;
+		};
+		data.edits = {
+			demo: {
+				draft: JSON.parse(JSON.stringify(demoStack)) as HCStack,
+				currentCardId: "c1",
+				layer: "card",
+				tool: "pointer",
+				undo: [],
+				redo: [],
+				dirty: false,
+			},
+		};
+		const beforeStack = data.openStacks.demo.stack;
+		expect(() =>
+			dispatch(store, { type: "ClassicyAppHCEditExit", stackId: "demo" }),
+		).not.toThrow();
+		expect(data.openStacks.demo.stack).toBe(beforeStack);
+		expect(data.edits?.demo).toBeUndefined();
+	});
+
 	it("Exit discards the edit session; MarkSaved clears dirty", () => {
 		const store = makeStore();
 		enter(store);

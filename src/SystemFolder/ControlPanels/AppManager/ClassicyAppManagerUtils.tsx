@@ -102,6 +102,25 @@ function sanitizeStateForPersistence(state: ClassicyStore): ClassicyStore {
 				}
 			}
 		}
+		// HyperCard editor: strip the undo/redo history from each persisted edit
+		// session. Immer's structural sharing collapses to plain arrays under
+		// JSON.stringify, so up to MAX_UNDO full HCStack snapshots get flattened
+		// and re-serialized every 500ms — a quota risk that silently disables
+		// ALL desktop persistence on QuotaExceededError. The draft, dirty flag,
+		// and pristine snapshot are session-scoped and still worth keeping;
+		// only the replay history is dropped. SET to empty arrays rather than
+		// deleting the keys — the editor reducers read `.length` unconditionally.
+		const editSessions = (hyperCardApp?.data as Record<string, unknown>)?.edits;
+		if (editSessions && typeof editSessions === "object") {
+			for (const editSession of Object.values(
+				editSessions as Record<string, Record<string, unknown>>,
+			)) {
+				if (editSession && typeof editSession === "object") {
+					editSession.undo = [];
+					editSession.redo = [];
+				}
+			}
+		}
 	});
 }
 

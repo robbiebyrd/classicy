@@ -27,6 +27,13 @@ export interface HCEditState {
 	/** The edited stack — replaced wholesale by {@link applyEdit}, never mutated. */
 	draft: HCStack;
 	currentCardId: string;
+	/**
+	 * Deep copy of the stack as it was when the edit session was entered.
+	 * Optional so sessions persisted before this field existed don't crash on
+	 * rehydrate. Restored onto the player's open stack on a discarding Exit so
+	 * a Browse-preview overwrite doesn't leak into "Stop Editing (Discard)".
+	 */
+	pristine?: HCStack;
 	/** Which layer edits target: the card's own parts or its background's. */
 	layer: "card" | "background";
 	tool: HCEditorTool;
