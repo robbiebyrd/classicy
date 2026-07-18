@@ -8,7 +8,10 @@ import type { HCStack } from "@/SystemFolder/HyperCard/HyperCardModel";
 
 const stack: HCStack = { name: "My Stack!", cards: [{ id: "c1" }] };
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+	vi.restoreAllMocks();
+	vi.unstubAllGlobals();
+});
 
 describe("serializeStack", () => {
 	it("round-trips through JSON.parse and ends with a newline", () => {
