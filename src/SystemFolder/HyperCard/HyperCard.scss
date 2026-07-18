@@ -197,3 +197,21 @@
 .classicyHyperCardEditorHandle[data-handle="s"] { left: calc(50% - 3px); bottom: -3px; cursor: ns-resize; }
 .classicyHyperCardEditorHandle[data-handle="sw"] { left: -3px; bottom: -3px; cursor: nesw-resize; }
 .classicyHyperCardEditorHandle[data-handle="w"] { left: -3px; top: calc(50% - 3px); cursor: ew-resize; }
+
+.classicyHyperCardPalette {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding: 4px;
+}
+
+.classicyHyperCardPaletteTools {
+	display: flex;
+	gap: 4px;
+}
+
+.classicyHyperCardPaletteEntry {
+	cursor: grab;
+	padding: 2px 4px;
+	user-select: none;
+}
