@@ -215,3 +215,17 @@
 	padding: 2px 4px;
 	user-select: none;
 }
+
+.classicyHyperCardInspector {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 6px;
+	max-width: 220px;
+}
+
+.classicyHyperCardInspectorRow {
+	display: flex;
+	gap: 4px;
+	align-items: flex-end;
+}
