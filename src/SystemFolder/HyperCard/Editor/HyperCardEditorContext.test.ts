@@ -348,4 +348,123 @@ describe("classicyHyperCardEditorEventHandler", () => {
 			content: "hello",
 		});
 	});
+
+	it("SetPartProps renames uniquely and follows selection; rejects duplicate ids", () => {
+		const store = makeStore();
+		enter(store);
+		dispatch(store, {
+			type: "ClassicyAppHCEditSelect",
+			stackId: "demo",
+			partId: "button1",
+		});
+		dispatch(store, {
+			type: "ClassicyAppHCEditSetPartProps",
+			stackId: "demo",
+			partId: "button1",
+			props: { id: "banner1" }, // taken by the background part
+		});
+		expect(edit(store).draft.cards[0].parts![0].id).toBe("button1");
+		dispatch(store, {
+			type: "ClassicyAppHCEditSetPartProps",
+			stackId: "demo",
+			partId: "button1",
+			props: { id: "hero", name: "Hero", locked: true },
+		});
+		const part = edit(store).draft.cards[0].parts![0];
+		expect(part).toMatchObject({ id: "hero", name: "Hero", locked: true });
+		expect(edit(store).selectedPartId).toBe("hero");
+	});
+
+	it("SetPartStyle merges and empty-string deletes", () => {
+		const store = makeStore();
+		enter(store);
+		dispatch(store, {
+			type: "ClassicyAppHCEditSetPartStyle",
+			stackId: "demo",
+			partId: "button1",
+			style: { align: "center" },
+		});
+		expect(edit(store).draft.cards[0].parts![0].style).toEqual({
+			align: "center",
+		});
+		dispatch(store, {
+			type: "ClassicyAppHCEditSetPartStyle",
+			stackId: "demo",
+			partId: "button1",
+			style: { align: "" },
+		});
+		expect(edit(store).draft.cards[0].parts![0].style).toBeUndefined();
+	});
+
+	it("SetPartOption sets and undefined-deletes", () => {
+		const store = makeStore();
+		enter(store);
+		dispatch(store, {
+			type: "ClassicyAppHCEditSetPartOption",
+			stackId: "demo",
+			partId: "button1",
+			key: "min",
+			value: 5,
+		});
+		expect(edit(store).draft.cards[0].parts![0].options).toEqual({ min: 5 });
+		dispatch(store, {
+			type: "ClassicyAppHCEditSetPartOption",
+			stackId: "demo",
+			partId: "button1",
+			key: "min",
+			value: undefined,
+		});
+		expect(edit(store).draft.cards[0].parts![0].options).toBeUndefined();
+	});
+
+	it("SetCardProps / SetStackProps / SetStackVariable edit the draft", () => {
+		const store = makeStore();
+		enter(store);
+		dispatch(store, {
+			type: "ClassicyAppHCEditSetCardProps",
+			stackId: "demo",
+			props: { name: "First!", background: "" },
+		});
+		expect(edit(store).draft.cards[0]).toMatchObject({ name: "First!" });
+		expect(edit(store).draft.cards[0].background).toBeUndefined();
+		dispatch(store, {
+			type: "ClassicyAppHCEditSetStackProps",
+			stackId: "demo",
+			props: { name: "Renamed", width: 640 },
+		});
+		expect(edit(store).draft.name).toBe("Renamed");
+		expect(edit(store).draft.size).toEqual([640, 342]);
+		dispatch(store, {
+			type: "ClassicyAppHCEditSetStackVariable",
+			stackId: "demo",
+			name: "score",
+			value: 10,
+		});
+		expect(edit(store).draft.variables).toEqual({ score: 10 });
+		dispatch(store, {
+			type: "ClassicyAppHCEditSetStackVariable",
+			stackId: "demo",
+			name: "score",
+			value: undefined,
+		});
+		expect(edit(store).draft.variables).toEqual({});
+	});
+
+	it("ShowScript/HideScript manage session state without touching the draft", () => {
+		const store = makeStore();
+		enter(store);
+		const before = edit(store).draft;
+		dispatch(store, {
+			type: "ClassicyAppHCEditShowScript",
+			stackId: "demo",
+			target: { kind: "part", partId: "button1" },
+		});
+		expect(edit(store).script).toEqual({
+			target: { kind: "part", partId: "button1" },
+		});
+		expect(edit(store).draft).toBe(before);
+		expect(edit(store).undo).toHaveLength(0);
+		dispatch(store, { type: "ClassicyAppHCEditHideScript", stackId: "demo" });
+		expect(edit(store).script).toBeUndefined();
+	});
 });

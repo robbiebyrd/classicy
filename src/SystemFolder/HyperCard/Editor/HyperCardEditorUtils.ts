@@ -23,6 +23,13 @@ export const MAX_UNDO = 100;
 
 export type HCEditorTool = "browse" | "pointer";
 
+/** What a script-editor session is pointed at. */
+export type HCScriptTarget =
+	| { kind: "part"; partId: string }
+	| { kind: "card" }
+	| { kind: "background" }
+	| { kind: "stack" };
+
 export interface HCEditState {
 	/** The edited stack — replaced wholesale by {@link applyEdit}, never mutated. */
 	draft: HCStack;
@@ -44,6 +51,8 @@ export interface HCEditState {
 	undo: HCStack[];
 	redo: HCStack[];
 	dirty: boolean;
+	/** Open script-editor session, if any. */
+	script?: { target: HCScriptTarget };
 }
 
 /** Editor slice stored as a sibling key on apps["HyperCard.app"].data. */

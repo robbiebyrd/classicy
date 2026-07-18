@@ -17,6 +17,7 @@ import {
 	applyEdit,
 	getPartDescriptor,
 	type HCEditState,
+	type HCScriptTarget,
 	HYPERCARD_EDIT_EVENT_PREFIX,
 	type HyperCardEditorData,
 	layerParts,
@@ -24,10 +25,11 @@ import {
 	nextPartId,
 	peekLayerParts,
 } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorUtils";
-import type {
-	HCPart,
-	HCRect,
-	HCStack,
+import {
+	DEFAULT_CARD_SIZE,
+	type HCPart,
+	type HCRect,
+	type HCStack,
 } from "@/SystemFolder/HyperCard/HyperCardModel";
 import { getHyperCardPartEditorMeta } from "@/SystemFolder/HyperCard/HyperCardPlugins";
 import {
@@ -329,6 +331,166 @@ export const classicyHyperCardEditorEventHandler = (
 			const fallback = edit.draft.cards[Math.max(0, idx - 1)];
 			edit.currentCardId = fallback.id;
 			edit.selectedPartId = undefined;
+			break;
+		}
+
+		case "ClassicyAppHCEditSetPartProps": {
+			const edit = getEdit(ds, action);
+			const partId = action.partId as string | undefined;
+			const props = action.props as
+				| {
+						id?: string;
+						name?: string;
+						content?: string;
+						visible?: boolean;
+						locked?: boolean;
+						shared?: boolean;
+				  }
+				| undefined;
+			if (!edit || !partId || !props) break;
+			const wantsRename =
+				typeof props.id === "string" &&
+				props.id.length > 0 &&
+				props.id !== partId;
+			const allIds = new Set<string>();
+			for (const c of edit.draft.cards)
+				for (const p of c.parts ?? []) allIds.add(p.id);
+			for (const b of edit.draft.backgrounds ?? [])
+				for (const p of b.parts ?? []) allIds.add(p.id);
+			const renameOk = wantsRename && !allIds.has(props.id as string);
+			applyEdit(edit, (draft) => {
+				const part = layerParts(draft, edit.currentCardId, edit.layer)?.find(
+					(p) => p.id === partId,
+				);
+				if (!part) return;
+				if (renameOk) part.id = props.id as string;
+				if (typeof props.name === "string") part.name = props.name;
+				if (typeof props.content === "string") part.content = props.content;
+				if (typeof props.visible === "boolean") part.visible = props.visible;
+				if (typeof props.locked === "boolean") part.locked = props.locked;
+				if (typeof props.shared === "boolean") part.shared = props.shared;
+			});
+			if (renameOk && edit.selectedPartId === partId) {
+				edit.selectedPartId = props.id as string;
+			}
+			break;
+		}
+
+		case "ClassicyAppHCEditSetPartStyle": {
+			const edit = getEdit(ds, action);
+			const partId = action.partId as string | undefined;
+			const style = action.style as Record<string, string> | undefined;
+			if (!edit || !partId || !style) break;
+			applyEdit(edit, (draft) => {
+				const part = layerParts(draft, edit.currentCardId, edit.layer)?.find(
+					(p) => p.id === partId,
+				);
+				if (!part) return;
+				const next: Record<string, string> = {
+					...(part.style as Record<string, string> | undefined),
+				};
+				for (const [k, v] of Object.entries(style)) {
+					if (v === "") delete next[k];
+					else next[k] = v;
+				}
+				if (Object.keys(next).length === 0) part.style = undefined;
+				else part.style = next as HCPart["style"];
+			});
+			break;
+		}
+
+		case "ClassicyAppHCEditSetPartOption": {
+			const edit = getEdit(ds, action);
+			const partId = action.partId as string | undefined;
+			const key = action.key as string | undefined;
+			if (!edit || !partId || !key) break;
+			applyEdit(edit, (draft) => {
+				const part = layerParts(draft, edit.currentCardId, edit.layer)?.find(
+					(p) => p.id === partId,
+				);
+				if (!part) return;
+				if (action.value === undefined) {
+					if (!part.options) return;
+					delete part.options[key];
+					if (Object.keys(part.options).length === 0) part.options = undefined;
+				} else {
+					part.options ??= {};
+					part.options[key] = action.value;
+				}
+			});
+			break;
+		}
+
+		case "ClassicyAppHCEditSetCardProps": {
+			const edit = getEdit(ds, action);
+			const props = action.props as
+				| { name?: string; background?: string }
+				| undefined;
+			if (!edit || !props) break;
+			const backgroundIds = new Set(
+				(edit.draft.backgrounds ?? []).map((b) => b.id),
+			);
+			applyEdit(edit, (draft) => {
+				const card = draft.cards.find((c) => c.id === edit.currentCardId);
+				if (!card) return;
+				if (typeof props.name === "string") card.name = props.name;
+				if (props.background === "") card.background = undefined;
+				else if (
+					typeof props.background === "string" &&
+					backgroundIds.has(props.background)
+				) {
+					card.background = props.background;
+				}
+			});
+			break;
+		}
+
+		case "ClassicyAppHCEditSetStackProps": {
+			const edit = getEdit(ds, action);
+			const props = action.props as
+				| { name?: string; width?: number; height?: number }
+				| undefined;
+			if (!edit || !props) break;
+			applyEdit(edit, (draft) => {
+				if (typeof props.name === "string" && props.name.length > 0) {
+					draft.name = props.name;
+				}
+				if (props.width !== undefined || props.height !== undefined) {
+					const [w, h] = draft.size ?? DEFAULT_CARD_SIZE;
+					draft.size = [
+						Math.max(64, Math.round(Number(props.width ?? w))),
+						Math.max(64, Math.round(Number(props.height ?? h))),
+					];
+				}
+			});
+			break;
+		}
+
+		case "ClassicyAppHCEditSetStackVariable": {
+			const edit = getEdit(ds, action);
+			const name = action.name as string | undefined;
+			if (!edit || !name) break;
+			applyEdit(edit, (draft) => {
+				if (action.value === undefined) {
+					if (draft.variables) delete draft.variables[name];
+				} else {
+					draft.variables ??= {};
+					draft.variables[name] = action.value as string | number;
+				}
+			});
+			break;
+		}
+
+		case "ClassicyAppHCEditShowScript": {
+			const edit = getEdit(ds, action);
+			const target = action.target as HCScriptTarget | undefined;
+			if (edit && target) edit.script = { target };
+			break;
+		}
+
+		case "ClassicyAppHCEditHideScript": {
+			const edit = getEdit(ds, action);
+			if (edit) edit.script = undefined;
 			break;
 		}
 
