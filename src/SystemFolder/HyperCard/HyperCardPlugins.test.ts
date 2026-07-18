@@ -10,15 +10,18 @@ import {
 	getHyperCardEffectHandler,
 	getHyperCardPart,
 	getHyperCardPartEditorMeta,
+	getHyperCardSaveProviders,
 	getRegisteredEditorCommands,
 	getRegisteredEditorPartTypes,
 	getRegisteredStacks,
 	type HyperCardPartComponent,
+	type HyperCardSaveProvider,
 	registerHyperCardCommand,
 	registerHyperCardCommandEditorMeta,
 	registerHyperCardEffectHandler,
 	registerHyperCardPart,
 	registerHyperCardPartEditorMeta,
+	registerHyperCardSaveProvider,
 	registerHyperCardStack,
 } from "@/SystemFolder/HyperCard/HyperCardPlugins";
 import {
@@ -156,5 +159,21 @@ describe("editor metadata registries", () => {
 		expect(
 			getRegisteredEditorCommands().some((c) => c.name === "setDateTime"),
 		).toBe(true);
+	});
+});
+
+describe("save provider registry", () => {
+	it("registers save providers last-write-wins by id", () => {
+		const a: HyperCardSaveProvider = {
+			id: "p1",
+			label: "One",
+			canSave: () => true,
+			save: async () => ({ ok: true }),
+		};
+		registerHyperCardSaveProvider(a);
+		registerHyperCardSaveProvider({ ...a, label: "One v2" });
+		const providers = getHyperCardSaveProviders();
+		expect(providers.filter((p) => p.id === "p1")).toHaveLength(1);
+		expect(providers.find((p) => p.id === "p1")?.label).toBe("One v2");
 	});
 });

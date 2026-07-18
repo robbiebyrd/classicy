@@ -1,13 +1,17 @@
 /**
  * Stage-1 save path: validate and download the draft as a .stack.json file.
- * (The pluggable save-provider registry arrives in stage 2; this module is
- * where its built-in Download provider will live.)
+ * Also the home of the built-in Download save provider, which wraps that
+ * same path for the provider-aware File menu and save-provider registry.
  */
 
 import {
 	type HCStack,
 	validateStack,
 } from "@/SystemFolder/HyperCard/HyperCardModel";
+import {
+	type HyperCardSaveProvider,
+	registerHyperCardSaveProvider,
+} from "@/SystemFolder/HyperCard/HyperCardPlugins";
 
 /** Serialize a stack the way the repo's .stack.json files are formatted. */
 export function serializeStack(stack: HCStack): string {
@@ -37,4 +41,20 @@ export function downloadStack(
 	anchor.click();
 	URL.revokeObjectURL(url);
 	return { ok: true };
+}
+
+/** The built-in save destination: download the .stack.json to the user's computer. */
+export const downloadSaveProvider: HyperCardSaveProvider = {
+	id: "download",
+	label: "Download",
+	canSave: () => true,
+	save: async (stack, _meta) => {
+		const result = downloadStack(stack);
+		if ("errors" in result) return { ok: false, error: result.errors[0] };
+		return { ok: true };
+	},
+};
+
+export function registerDownloadSaveProvider(): void {
+	registerHyperCardSaveProvider(downloadSaveProvider);
 }

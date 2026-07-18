@@ -247,3 +247,40 @@ export function getRegisteredEditorCommands(): {
 		meta,
 	}));
 }
+
+// ---------------------------------------------------------------------------
+// Save providers (editor)
+// ---------------------------------------------------------------------------
+
+export type HCSaveResult = { ok: true } | { ok: false; error: string };
+
+export interface HCSavedStackRef {
+	id: string;
+	name: string;
+	updatedAt?: string;
+}
+
+/** A destination the editor can save stacks to (and optionally reopen from). */
+export interface HyperCardSaveProvider {
+	id: string;
+	label: string;
+	canSave: () => boolean;
+	save: (
+		stack: HCStack,
+		meta: { stackId: string; fileName?: string },
+	) => Promise<HCSaveResult>;
+	list?: () => Promise<HCSavedStackRef[]>;
+	load?: (ref: HCSavedStackRef) => Promise<HCStack>;
+}
+
+const saveProviderRegistry = new Map<string, HyperCardSaveProvider>();
+
+export function registerHyperCardSaveProvider(
+	provider: HyperCardSaveProvider,
+): void {
+	saveProviderRegistry.set(provider.id, provider);
+}
+
+export function getHyperCardSaveProviders(): HyperCardSaveProvider[] {
+	return Array.from(saveProviderRegistry.values());
+}

@@ -1,10 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+	downloadSaveProvider,
 	downloadStack,
+	registerDownloadSaveProvider,
 	serializeStack,
 	stackFileName,
 } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorSave";
 import type { HCStack } from "@/SystemFolder/HyperCard/HyperCardModel";
+import { getHyperCardSaveProviders } from "@/SystemFolder/HyperCard/HyperCardPlugins";
 
 const stack: HCStack = { name: "My Stack!", cards: [{ id: "c1" }] };
 
@@ -60,5 +63,30 @@ describe("downloadStack", () => {
 		expect(result.ok).toBe(true);
 		expect(anchor.download).toBe("my-stack.stack.json");
 		expect(click).toHaveBeenCalledOnce();
+	});
+});
+
+describe("downloadSaveProvider", () => {
+	it("maps validation failure to a single error string without downloading", async () => {
+		const click = vi.fn();
+		vi.spyOn(document, "createElement").mockReturnValue({
+			click,
+			href: "",
+			download: "",
+		} as unknown as HTMLAnchorElement);
+		const result = await downloadSaveProvider.save(
+			{ name: "", cards: [] } as unknown as HCStack,
+			{ stackId: "x" },
+		);
+		expect(result).toMatchObject({ ok: false });
+		if ("error" in result) expect(result.error.length).toBeGreaterThan(0);
+		expect(click).not.toHaveBeenCalled();
+	});
+
+	it("registers itself under id download", () => {
+		registerDownloadSaveProvider();
+		expect(getHyperCardSaveProviders().some((p) => p.id === "download")).toBe(
+			true,
+		);
 	});
 });

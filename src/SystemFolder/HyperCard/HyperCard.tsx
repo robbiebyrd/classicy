@@ -13,6 +13,7 @@ import {
 	useEffect,
 	useMemo,
 	useRef,
+	useState,
 } from "react";
 import {
 	useAppManager,
@@ -20,12 +21,13 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { HyperCardEditorCanvas } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorCanvas";
-import { downloadStack } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorSave";
+import { registerDownloadSaveProvider } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorSave";
 import type {
 	HCEditState,
 	HyperCardEditorData,
 } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorUtils";
 import { HyperCardInspector } from "@/SystemFolder/HyperCard/Editor/HyperCardInspector";
+import { HyperCardSavedStacks } from "@/SystemFolder/HyperCard/Editor/HyperCardSavedStacks";
 import { HyperCardScriptEditor } from "@/SystemFolder/HyperCard/Editor/HyperCardScriptEditor";
 import { HyperCardToolsPalette } from "@/SystemFolder/HyperCard/Editor/HyperCardToolsPalette";
 import { HyperCardCard } from "@/SystemFolder/HyperCard/HyperCardCard";
@@ -36,6 +38,7 @@ import {
 } from "@/SystemFolder/HyperCard/HyperCardModel";
 import {
 	getHyperCardEffectHandler,
+	getHyperCardSaveProviders,
 	getRegisteredStacks,
 } from "@/SystemFolder/HyperCard/HyperCardPlugins";
 import { HyperCardBuiltInStacks } from "@/SystemFolder/HyperCard/HyperCardSampleStack";
@@ -62,6 +65,9 @@ import "./HyperCardContext";
 import "./Editor/HyperCardEditorContext";
 import "./HyperCard.scss";
 
+// Registers the built-in Download save provider under the save-provider registry.
+registerDownloadSaveProvider();
+
 const { id: appId, name: appName, icon: appIcon } = HyperCardAppInfo;
 
 function useHyperCardData(): HyperCardData | undefined {
@@ -74,6 +80,8 @@ function useHyperCardData(): HyperCardData | undefined {
 export const HyperCard: FunctionalComponent = () => {
 	const dispatch = useAppManagerDispatch();
 	const player = useSoundDispatch();
+
+	const [savedStacksOpen, setSavedStacksOpen] = useState(false);
 
 	const data = useHyperCardData();
 	const activeStackId = data?.activeStackId;
@@ -361,26 +369,45 @@ export const HyperCard: FunctionalComponent = () => {
 							]
 						: []),
 					...(activeStackId && edit
+						? getHyperCardSaveProviders()
+								.filter((p) => p.canSave())
+								.map((provider) => ({
+									id: `save_${provider.id}`,
+									title:
+										provider.id === "download"
+											? "Save a Copy…"
+											: `Save to ${provider.label}`,
+									onClickFunc: () => {
+										void provider
+											.save(edit.draft, { stackId: activeStackId })
+											.then((result) => {
+												if ("error" in result) {
+													dispatch({
+														type: "ClassicyAppHyperCardOpenFileFailed",
+														path: "",
+														message: `The stack can’t be saved: ${result.error}`,
+													});
+												} else {
+													dispatch({
+														type: "ClassicyAppHCEditMarkSaved",
+														stackId: activeStackId,
+													});
+												}
+											});
+									},
+								}))
+						: []),
+					...(getHyperCardSaveProviders().some((p) => p.list)
 						? [
 								{
-									id: "save_copy",
-									title: "Save a Copy…",
-									onClickFunc: () => {
-										const result = downloadStack(edit.draft);
-										if ("errors" in result) {
-											dispatch({
-												type: "ClassicyAppHyperCardOpenFileFailed",
-												path: "",
-												message: `The stack can’t be saved: ${result.errors[0]}`,
-											});
-										} else {
-											dispatch({
-												type: "ClassicyAppHCEditMarkSaved",
-												stackId: activeStackId,
-											});
-										}
-									},
+									id: "open_saved",
+									title: "Open Saved Stack…",
+									onClickFunc: () => setSavedStacksOpen(true),
 								},
+							]
+						: []),
+					...(activeStackId && edit
+						? [
 								{
 									id: "stop_editing",
 									title: "Stop Editing (Discard)",
@@ -644,6 +671,28 @@ export const HyperCard: FunctionalComponent = () => {
 					scrollable={true}
 				>
 					<HyperCardScriptEditor stackId={activeStackId} edit={edit} />
+				</ClassicyWindow>
+			) : null}
+
+			{savedStacksOpen ? (
+				<ClassicyWindow
+					id={"hypercard_saved"}
+					title={"Saved Stacks"}
+					appId={appId}
+					appMenu={appMenu}
+					initialSize={[300, 0]}
+					initialPosition={["center", 160]}
+				>
+					<HyperCardSavedStacks
+						onOpen={(stack, ref, providerId) => {
+							dispatch({
+								type: "ClassicyAppHyperCardOpenStack",
+								stackId: `saved:${providerId}:${ref.id}`,
+								stack,
+							});
+							setSavedStacksOpen(false);
+						}}
+					/>
 				</ClassicyWindow>
 			) : null}
 
