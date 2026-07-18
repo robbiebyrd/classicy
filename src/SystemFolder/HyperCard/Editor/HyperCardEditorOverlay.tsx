@@ -85,7 +85,12 @@ export const HyperCardEditorOverlay: FunctionalComponent<
 		handle?: HandleId,
 	) => {
 		e.stopPropagation();
-		(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+		try {
+			(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+		} catch {
+			// NotFoundError when the pointer id isn't active (capture races,
+			// synthetic events) — dragging works without capture.
+		}
 		if (!handle) {
 			dispatch({ type: "ClassicyAppHCEditSelect", stackId, partId });
 		}

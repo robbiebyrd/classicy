@@ -117,6 +117,40 @@ describe("HyperCardEditorCanvas", () => {
 		});
 	});
 
+	it("still drags when setPointerCapture throws for an inactive pointer id", () => {
+		// Real browsers throw NotFoundError from setPointerCapture when the
+		// pointer id isn't active (capture races, synthetic events); the drag
+		// must survive that. jsdom lacks the method, so install a throwing one.
+		const proto = window.HTMLElement.prototype as unknown as {
+			setPointerCapture?: (id: number) => void;
+		};
+		proto.setPointerCapture = () => {
+			throw new DOMException("No active pointer", "NotFoundError");
+		};
+		try {
+			const { container } = render(
+				<HyperCardEditorCanvas
+					stackId={"demo"}
+					edit={makeEdit({ selectedPartId: "button1" })}
+				/>,
+			);
+			const hit = container.querySelector(
+				'.classicyHyperCardEditorHit[data-part-id="button1"]',
+			) as HTMLElement;
+			fireEvent.pointerDown(hit, { clientX: 20, clientY: 20, pointerId: 7 });
+			fireEvent.pointerMove(hit, { clientX: 30, clientY: 25, pointerId: 7 });
+			fireEvent.pointerUp(hit, { clientX: 30, clientY: 25, pointerId: 7 });
+			expect(dispatch).toHaveBeenCalledWith({
+				type: "ClassicyAppHCEditSetRect",
+				stackId: "demo",
+				partId: "button1",
+				rect: [20, 15, 100, 24],
+			});
+		} finally {
+			delete proto.setPointerCapture;
+		}
+	});
+
 	it("nudges with arrows, deletes with Delete, undoes with Cmd+Z", () => {
 		const { container } = render(
 			<HyperCardEditorCanvas
