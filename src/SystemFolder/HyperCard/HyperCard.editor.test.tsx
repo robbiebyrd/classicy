@@ -67,7 +67,9 @@ function stateWith(edit?: HCEditState) {
 	return {
 		System: {
 			Manager: {
+				Desktop: { appMenu: [] as unknown[] },
 				Applications: {
+					focusedAppId: "HyperCard.app",
 					apps: {
 						"HyperCard.app": {
 							id: "HyperCard.app",
@@ -159,6 +161,23 @@ describe("HyperCard editor integration", () => {
 		const { container } = render(<HyperCard />);
 		const win = container.querySelector('[data-window-id="hypercard_main"]');
 		expect(win?.getAttribute("data-title")).toContain("•");
+	});
+
+	it("pushes the live menu bar (with Edit/Objects) when the app is focused while editing", () => {
+		// focusApp restores the window's registration-time menuBar record, which
+		// goes stale as soon as the dynamic edit-mode menus change — HyperCard
+		// must push its live appMenu whenever it is the focused app.
+		mockState = stateWith(makeEdit());
+		render(<HyperCard />);
+		const menuPushes = dispatch.mock.calls
+			.map(
+				([action]) => action as { type: string; menuBar?: { title: string }[] },
+			)
+			.filter((a) => a.type === "ClassicyWindowMenu");
+		expect(menuPushes.length).toBeGreaterThan(0);
+		const titles = (menuPushes.at(-1)?.menuBar ?? []).map((m) => m.title);
+		expect(titles).toContain("Edit");
+		expect(titles).toContain("Objects");
 	});
 
 	it("gives the tools palette window a non-empty appMenu while editing", () => {

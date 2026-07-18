@@ -513,6 +513,23 @@ export const HyperCard: FunctionalComponent = () => {
 		[navigate, openStack, stackEntries, activeStackId, edit, dispatch],
 	);
 
+	// Keep the menu bar in sync with the dynamic edit-mode menus. Focus
+	// changes (app-level and between this app's own windows) restore the
+	// focused window's registration-time menuBar record, which goes stale the
+	// moment the menus change (enter/exit edit mode, layer toggle). Whenever
+	// this app is focused but the desktop shows a different menu than ours,
+	// push the live one. The reducer stores the dispatched array by reference,
+	// so the identity check settles after one dispatch — no loop.
+	const isFocusedApp = useAppManager(
+		(s) => s.System.Manager.Applications.focusedAppId === appId,
+	);
+	const desktopMenu = useAppManager((s) => s.System.Manager.Desktop.appMenu);
+	useEffect(() => {
+		if (isFocusedApp && desktopMenu !== appMenu) {
+			dispatch({ type: "ClassicyWindowMenu", menuBar: appMenu });
+		}
+	}, [isFocusedApp, desktopMenu, appMenu, dispatch]);
+
 	const currentCard = open
 		? getCard(open.stack, open.currentCardId)
 		: undefined;
