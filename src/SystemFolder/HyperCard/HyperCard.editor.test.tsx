@@ -1,10 +1,15 @@
-import { cleanup, render } from "@testing-library/react";
+import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { HCEditState } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorUtils";
+import type { HCSavedStackRef } from "@/SystemFolder/HyperCard/HyperCardPlugins";
+import { registerHyperCardSaveProvider } from "@/SystemFolder/HyperCard/HyperCardPlugins";
 
 const dispatch = vi.fn();
 let mockState: Record<string, unknown> = {};
 const capturedMenus: Record<string, unknown[]> = {};
+let capturedSavedStacksOnOpen:
+	| ((stack: unknown, ref: HCSavedStackRef, providerId: string) => void)
+	| undefined;
 
 vi.mock(
 	"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils",
@@ -56,6 +61,16 @@ vi.mock(
 		useClassicyFileSystem: () => ({ resolve: (): undefined => undefined }),
 	}),
 );
+vi.mock("@/SystemFolder/HyperCard/Editor/HyperCardSavedStacks", () => ({
+	HyperCardSavedStacks: ({
+		onOpen,
+	}: {
+		onOpen: (stack: unknown, ref: HCSavedStackRef, providerId: string) => void;
+	}): null => {
+		capturedSavedStacksOnOpen = onOpen;
+		return null;
+	},
+}));
 
 import { HyperCard } from "@/SystemFolder/HyperCard/HyperCard";
 
@@ -278,6 +293,67 @@ describe("HyperCard editor integration", () => {
 			type: "ClassicyAppHCEditShowScript",
 			stackId: "demo",
 			target: { kind: "part", partId: "b1" },
+		});
+	});
+
+	it("a rejecting provider.save dispatches OpenFileFailed instead of failing silently", async () => {
+		registerHyperCardSaveProvider({
+			id: "flaky",
+			label: "Flaky",
+			canSave: () => true,
+			save: () => Promise.reject(new Error("network down")),
+		});
+		mockState = stateWith(makeEdit());
+		render(<HyperCard />);
+		menuItem(
+			capturedMenus.hypercard_main,
+			"file",
+			"save_flaky",
+		)?.onClickFunc?.();
+		await waitFor(() =>
+			expect(dispatch).toHaveBeenCalledWith({
+				type: "ClassicyAppHyperCardOpenFileFailed",
+				path: "",
+				message: "The stack can’t be saved: network down",
+			}),
+		);
+	});
+
+	it("provider-loaded stacks are validated before opening; an invalid stack fails instead of dispatching OpenStack", () => {
+		registerHyperCardSaveProvider({
+			id: "test-list-provider",
+			label: "Test List Provider",
+			canSave: () => true,
+			save: async () => ({ ok: true }),
+			list: async () => [],
+		});
+		mockState = stateWith(makeEdit());
+		render(<HyperCard />);
+		act(() => {
+			menuItem(
+				capturedMenus.hypercard_main,
+				"file",
+				"open_saved",
+			)?.onClickFunc?.();
+		});
+		expect(capturedSavedStacksOnOpen).toBeDefined();
+
+		act(() => {
+			capturedSavedStacksOnOpen?.(
+				{ name: "Bad Stack", cards: [] },
+				{ id: "1", name: "Bad Stack" },
+				"test-list-provider",
+			);
+		});
+
+		expect(dispatch).not.toHaveBeenCalledWith(
+			expect.objectContaining({ type: "ClassicyAppHyperCardOpenStack" }),
+		);
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "ClassicyAppHyperCardOpenFileFailed",
+			path: "",
+			message:
+				"“Bad Stack” is not a valid HyperCard stack: Stack.cards must be a non-empty array.",
 		});
 	});
 

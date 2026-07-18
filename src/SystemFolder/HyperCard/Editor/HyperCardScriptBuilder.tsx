@@ -135,8 +135,8 @@ export const HyperCardScriptBuilder: FunctionalComponent<
 			handlers: next,
 		});
 
-	const events = HC_EVENT_NAMES.filter((e) => (handlers[e] ?? []).length > 0);
-	const absent = HC_EVENT_NAMES.filter((e) => !(handlers[e] ?? []).length);
+	const events = HC_EVENT_NAMES.filter((e) => handlers[e] !== undefined);
+	const absent = HC_EVENT_NAMES.filter((e) => !(e in handlers));
 
 	return (
 		<div className={"classicyHyperCardScriptBuilder"}>

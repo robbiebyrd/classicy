@@ -73,6 +73,7 @@ export const HyperCardScriptEditor: FunctionalComponent<
 				/>
 			) : (
 				<HyperCardScriptJson
+					key={JSON.stringify(target)}
 					stackId={stackId}
 					target={target}
 					handlers={handlers}

@@ -393,6 +393,13 @@ export const HyperCard: FunctionalComponent = () => {
 														stackId: activeStackId,
 													});
 												}
+											})
+											.catch((err) => {
+												dispatch({
+													type: "ClassicyAppHyperCardOpenFileFailed",
+													path: "",
+													message: `The stack can’t be saved: ${err instanceof Error ? err.message : String(err)}`,
+												});
 											});
 									},
 								}))
@@ -688,10 +695,19 @@ export const HyperCard: FunctionalComponent = () => {
 				>
 					<HyperCardSavedStacks
 						onOpen={(stack, ref, providerId) => {
+							const result = validateStack(JSON.parse(JSON.stringify(stack)));
+							if (result.ok === false) {
+								dispatch({
+									type: "ClassicyAppHyperCardOpenFileFailed",
+									path: "",
+									message: `“${ref.name}” is not a valid HyperCard stack: ${result.errors[0]}`,
+								});
+								return;
+							}
 							dispatch({
 								type: "ClassicyAppHyperCardOpenStack",
 								stackId: `saved:${providerId}:${ref.id}`,
-								stack,
+								stack: result.stack,
 							});
 							setSavedStacksOpen(false);
 						}}
