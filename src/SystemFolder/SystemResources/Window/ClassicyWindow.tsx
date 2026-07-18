@@ -336,6 +336,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	}, [ws.position]);
 
 	const windowRegistered = useRef(false);
+	const lastMenuBarSignatureRef = useRef<string | undefined>(undefined);
 	useEffect(() => {
 		if (!windowRegistered.current) {
 			windowRegistered.current = true;
@@ -354,12 +355,23 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 
 	useEffect(() => {
 		if (!appMenu) return;
-		desktopEventDispatch({
-			type: "ClassicyWindowSetMenuBar",
-			app: { id: appId },
-			windowId: id,
-			menuBar: appMenu,
-		});
+		// Guard the record write behind a structural signature: inline appMenu
+		// literals produce a new identity every render, and writing the apps
+		// slice re-renders whole-slice selectors — dispatching on identity alone
+		// loops (SimpleText/PDFViewer regression, see 7687143). Functions are
+		// stripped so closure churn doesn't count as a structural change.
+		const signature = JSON.stringify(appMenu, (_key, value) =>
+			typeof value === "function" ? undefined : value,
+		);
+		if (signature !== lastMenuBarSignatureRef.current) {
+			lastMenuBarSignatureRef.current = signature;
+			desktopEventDispatch({
+				type: "ClassicyWindowSetMenuBar",
+				app: { id: appId },
+				windowId: id,
+				menuBar: appMenu,
+			});
+		}
 		if (ws.focused) {
 			desktopEventDispatch({
 				type: "ClassicyWindowMenu",
