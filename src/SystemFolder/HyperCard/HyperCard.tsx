@@ -19,6 +19,13 @@ import {
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
+import { HyperCardEditorCanvas } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorCanvas";
+import { downloadStack } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorSave";
+import type {
+	HCEditState,
+	HyperCardEditorData,
+} from "@/SystemFolder/HyperCard/Editor/HyperCardEditorUtils";
+import { HyperCardToolsPalette } from "@/SystemFolder/HyperCard/Editor/HyperCardToolsPalette";
 import { HyperCardCard } from "@/SystemFolder/HyperCard/HyperCardCard";
 import { HyperCardDialog } from "@/SystemFolder/HyperCard/HyperCardDialog";
 import {
@@ -49,6 +56,8 @@ import { decompressFromBase64 } from "@/SystemFolder/SystemResources/Utils/base6
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 // Side-effect import: registers the ClassicyAppHyperCard* reducer.
 import "./HyperCardContext";
+// Side-effect import: registers the ClassicyAppHCEdit* reducer.
+import "./Editor/HyperCardEditorContext";
 import "./HyperCard.scss";
 
 const { id: appId, name: appName, icon: appIcon } = HyperCardAppInfo;
@@ -69,6 +78,25 @@ export const HyperCard: FunctionalComponent = () => {
 	const open: HCOpenStack | undefined = activeStackId
 		? data?.openStacks[activeStackId]
 		: undefined;
+
+	const edit: HCEditState | undefined = useAppManager((s) => {
+		const d = s.System.Manager.Applications.apps[appId]?.data as
+			| HyperCardEditorData
+			| undefined;
+		return activeStackId ? d?.edits?.[activeStackId] : undefined;
+	});
+	const editingActive = Boolean(edit) && edit?.tool !== "browse";
+
+	// Browse-preview: entering the browse tool pushes the draft into the player.
+	const editTool = edit?.tool;
+	useEffect(() => {
+		if (!activeStackId || !edit || editTool !== "browse") return;
+		dispatch({
+			type: "ClassicyAppHyperCardOpenStack",
+			stackId: activeStackId,
+			stack: edit.draft,
+		});
+	}, [activeStackId, edit, editTool, dispatch]);
 
 	const runtime = open?.runtime;
 	const pendingEffects = runtime?.pendingEffects;
@@ -288,13 +316,21 @@ export const HyperCard: FunctionalComponent = () => {
 	const navigate = useCallback(
 		(to: string) => {
 			if (!activeStackId) return;
+			if (editingActive) {
+				dispatch({
+					type: "ClassicyAppHCEditSetCard",
+					stackId: activeStackId,
+					to,
+				});
+				return;
+			}
 			dispatch({
 				type: "ClassicyAppHyperCardNavigate",
 				stackId: activeStackId,
 				to,
 			});
 		},
-		[activeStackId, dispatch],
+		[activeStackId, editingActive, dispatch],
 	);
 
 	const appMenu: ClassicyMenuItem[] = useMemo(
@@ -309,6 +345,52 @@ export const HyperCard: FunctionalComponent = () => {
 						onClickFunc: () => openStack(entry.id, entry.stack),
 					})),
 					{ id: "file_sep", title: "-" },
+					...(activeStackId && !edit
+						? [
+								{
+									id: "edit_stack",
+									title: "Edit Stack",
+									onClickFunc: () =>
+										dispatch({
+											type: "ClassicyAppHCEditEnter",
+											stackId: activeStackId,
+										}),
+								},
+							]
+						: []),
+					...(activeStackId && edit
+						? [
+								{
+									id: "save_copy",
+									title: "Save a Copy…",
+									onClickFunc: () => {
+										const result = downloadStack(edit.draft);
+										if ("errors" in result) {
+											dispatch({
+												type: "ClassicyAppHyperCardOpenFileFailed",
+												path: "",
+												message: `The stack can’t be saved: ${result.errors[0]}`,
+											});
+										} else {
+											dispatch({
+												type: "ClassicyAppHCEditMarkSaved",
+												stackId: activeStackId,
+											});
+										}
+									},
+								},
+								{
+									id: "stop_editing",
+									title: "Stop Editing (Discard)",
+									onClickFunc: () =>
+										dispatch({
+											type: "ClassicyAppHCEditExit",
+											stackId: activeStackId,
+										}),
+								},
+							]
+						: []),
+					{ id: "file_sep_2", title: "-" },
 					quitMenuItemHelper(appId, appName, appIcon),
 				],
 			},
@@ -328,15 +410,116 @@ export const HyperCard: FunctionalComponent = () => {
 					{ id: "go_back", title: "Back", onClickFunc: () => navigate("back") },
 				],
 			},
+			...(activeStackId && edit
+				? [
+						{
+							id: "edit",
+							title: "Edit",
+							menuChildren: [
+								{
+									id: "undo",
+									title: "Undo",
+									onClickFunc: () =>
+										dispatch({
+											type: "ClassicyAppHCEditUndo",
+											stackId: activeStackId,
+										}),
+								},
+								{
+									id: "redo",
+									title: "Redo",
+									onClickFunc: () =>
+										dispatch({
+											type: "ClassicyAppHCEditRedo",
+											stackId: activeStackId,
+										}),
+								},
+								{ id: "edit_sep", title: "-" },
+								{
+									id: "copy_part",
+									title: "Copy Part",
+									onClickFunc: () =>
+										edit.selectedPartId &&
+										dispatch({
+											type: "ClassicyAppHCEditCopyPart",
+											stackId: activeStackId,
+											partId: edit.selectedPartId,
+										}),
+								},
+								{
+									id: "paste_part",
+									title: "Paste Part",
+									onClickFunc: () =>
+										dispatch({
+											type: "ClassicyAppHCEditPastePart",
+											stackId: activeStackId,
+										}),
+								},
+								{
+									id: "delete_part",
+									title: "Delete Part",
+									onClickFunc: () =>
+										edit.selectedPartId &&
+										dispatch({
+											type: "ClassicyAppHCEditDeletePart",
+											stackId: activeStackId,
+											partId: edit.selectedPartId,
+										}),
+								},
+							],
+						},
+						{
+							id: "objects",
+							title: "Objects",
+							menuChildren: [
+								{
+									id: "new_card",
+									title: "New Card",
+									onClickFunc: () =>
+										dispatch({
+											type: "ClassicyAppHCEditAddCard",
+											stackId: activeStackId,
+										}),
+								},
+								{
+									id: "delete_card",
+									title: "Delete Card",
+									onClickFunc: () =>
+										dispatch({
+											type: "ClassicyAppHCEditDeleteCard",
+											stackId: activeStackId,
+										}),
+								},
+								{ id: "objects_sep", title: "-" },
+								{
+									id: "toggle_layer",
+									title:
+										edit.layer === "background"
+											? "Edit Card Layer"
+											: "Edit Background",
+									onClickFunc: () =>
+										dispatch({
+											type: "ClassicyAppHCEditSetLayer",
+											stackId: activeStackId,
+											layer:
+												edit.layer === "background" ? "card" : "background",
+										}),
+								},
+							],
+						},
+					]
+				: []),
 		],
-		[navigate, openStack, stackEntries],
+		[navigate, openStack, stackEntries, activeStackId, edit, dispatch],
 	);
 
 	const currentCard = open
 		? getCard(open.stack, open.currentCardId)
 		: undefined;
 	const windowTitle = open
-		? `${open.stack.name}${currentCard?.name ? ` — ${currentCard.name}` : ""}`
+		? `${open.stack.name}${currentCard?.name ? ` — ${currentCard.name}` : ""}${
+				edit?.dirty ? " •" : ""
+			}`
 		: appName;
 
 	return (
@@ -366,15 +549,21 @@ export const HyperCard: FunctionalComponent = () => {
 				initialPosition={["center", 80]}
 			>
 				{open && activeStackId ? (
-					<div className={"classicyHyperCardStage"}>
-						<HyperCardTransition
-							transition={runtime?.transition}
-							stackId={activeStackId}
-							cardKey={open.currentCardId}
-						>
-							<HyperCardCard open={open} stackId={activeStackId} />
-						</HyperCardTransition>
-					</div>
+					editingActive && edit ? (
+						<div className={"classicyHyperCardStage"}>
+							<HyperCardEditorCanvas stackId={activeStackId} edit={edit} />
+						</div>
+					) : (
+						<div className={"classicyHyperCardStage"}>
+							<HyperCardTransition
+								transition={runtime?.transition}
+								stackId={activeStackId}
+								cardKey={open.currentCardId}
+							>
+								<HyperCardCard open={open} stackId={activeStackId} />
+							</HyperCardTransition>
+						</div>
+					)
 				) : (
 					<div style={{ padding: "1em" }}>
 						<ClassicyControlLabel
@@ -383,6 +572,19 @@ export const HyperCard: FunctionalComponent = () => {
 					</div>
 				)}
 			</ClassicyWindow>
+
+			{edit && activeStackId ? (
+				<ClassicyWindow
+					id={"hypercard_tools"}
+					title={"Tools"}
+					appId={appId}
+					windowType={"utility"}
+					initialSize={[130, 0]}
+					initialPosition={[8, 100]}
+				>
+					<HyperCardToolsPalette stackId={activeStackId} edit={edit} />
+				</ClassicyWindow>
+			) : null}
 
 			{open && activeStackId && runtime?.dialog ? (
 				<HyperCardDialog dialog={runtime.dialog} stackId={activeStackId} />
