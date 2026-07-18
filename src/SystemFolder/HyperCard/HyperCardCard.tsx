@@ -43,6 +43,8 @@ import "./HyperCard.scss";
 interface HyperCardCardProps {
 	open: HCOpenStack;
 	stackId: string;
+	/** Editor design surface: render every part (hidden ones dimmed) with input disabled. */
+	editing?: boolean;
 }
 
 function rectStyle(part: HCPart): CSSProperties {
@@ -56,6 +58,7 @@ function rectStyle(part: HCPart): CSSProperties {
 export const HyperCardCard: FunctionalComponent<HyperCardCardProps> = ({
 	open,
 	stackId,
+	editing = false,
 }) => {
 	const dispatch = useAppManagerDispatch();
 	const card = getCard(open.stack, open.currentCardId);
@@ -100,15 +103,23 @@ export const HyperCardCard: FunctionalComponent<HyperCardCardProps> = ({
 		>
 			{parts.map(({ part, backgroundId }) => {
 				const visible = open.partVisibility[part.id] ?? part.visible ?? true;
-				if (!visible) return null;
+				if (!visible && !editing) return null;
 				const key = fieldKey(part, open.currentCardId, backgroundId);
 				const rev = open.fieldRev[key] ?? 0;
 				const value = open.fieldValues[key] ?? part.content ?? "";
+				const classNames = [
+					"classicyHyperCardPart",
+					editing ? "classicyHyperCardPartInert" : "",
+					editing && !visible ? "classicyHyperCardPartHidden" : "",
+				]
+					.filter(Boolean)
+					.join(" ");
 				return (
 					<div
 						key={part.id}
-						className={"classicyHyperCardPart"}
+						className={classNames}
 						style={rectStyle(part)}
+						{...(editing ? { "data-part-id": part.id } : {})}
 					>
 						{renderPart(part, {
 							value,
