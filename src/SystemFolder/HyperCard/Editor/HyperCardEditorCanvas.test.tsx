@@ -181,6 +181,20 @@ describe("HyperCardEditorCanvas", () => {
 		});
 	});
 
+	it("pastes with Cmd+V (uppercase key, no selection required)", () => {
+		const { container } = render(
+			<HyperCardEditorCanvas stackId={"demo"} edit={makeEdit()} />,
+		);
+		const surface = container.querySelector(
+			".classicyHyperCardEditorOverlay",
+		) as HTMLElement;
+		fireEvent.keyDown(surface, { key: "V", metaKey: true });
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "ClassicyAppHCEditPastePart",
+			stackId: "demo",
+		});
+	});
+
 	it("adds a part on drop from the palette payload", () => {
 		const { container } = render(
 			<HyperCardEditorCanvas stackId={"demo"} edit={makeEdit()} />,

@@ -353,13 +353,20 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	}, [appId, ws, desktopEventDispatch]);
 
 	useEffect(() => {
-		if (ws.focused && appMenu) {
+		if (!appMenu) return;
+		desktopEventDispatch({
+			type: "ClassicyWindowSetMenuBar",
+			app: { id: appId },
+			windowId: id,
+			menuBar: appMenu,
+		});
+		if (ws.focused) {
 			desktopEventDispatch({
 				type: "ClassicyWindowMenu",
 				menuBar: appMenu,
 			});
 		}
-	}, [ws.focused, appMenu, desktopEventDispatch]);
+	}, [ws.focused, appMenu, appId, id, desktopEventDispatch]);
 
 	// Updated every render so the stable document listeners always see fresh state.
 	docMoveHandlerRef.current = (e: globalThis.MouseEvent) => {

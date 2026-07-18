@@ -299,6 +299,42 @@ describe("ClassicyWindowMenu", () => {
 	});
 });
 
+describe("ClassicyWindowSetMenuBar", () => {
+	it("refreshes the stored window record's menuBar", () => {
+		const ds = makeStoreWithWindows();
+		ds.System.Manager.Applications.apps.TestApp.windows[0].menuBar = [];
+		const menu = [{ id: "file", title: "File" }];
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowSetMenuBar",
+			app: { id: "TestApp" },
+			windowId: "w1",
+			menuBar: menu,
+		});
+		expect(
+			ds.System.Manager.Applications.apps.TestApp.windows.find(
+				(w) => w.id === "w1",
+			)?.menuBar,
+		).toBe(menu);
+	});
+
+	it("is a no-op for an unknown windowId", () => {
+		const ds = makeStoreWithWindows();
+		ds.System.Manager.Applications.apps.TestApp.windows[0].menuBar = [];
+		const menu = [{ id: "file", title: "File" }];
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowSetMenuBar",
+			app: { id: "TestApp" },
+			windowId: "does-not-exist",
+			menuBar: menu,
+		});
+		expect(
+			ds.System.Manager.Applications.apps.TestApp.windows.find(
+				(w) => w.id === "w1",
+			)?.menuBar,
+		).toEqual([]);
+	});
+});
+
 describe("ClassicyWindowResize", () => {
 	it("updates the window size and resizing flag", () => {
 		const ds = makeStoreWithWindows();

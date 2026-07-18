@@ -72,4 +72,12 @@ describe("HyperCardCard editing mode", () => {
 			expect(el.classList.contains("classicyHyperCardPartInert")).toBe(true);
 		}
 	});
+
+	it("marks editing part wrappers inert so they cannot take focus", () => {
+		const { container } = render(
+			<HyperCardCard open={makeOpen()} stackId={"demo"} editing />,
+		);
+		const wrapper = container.querySelector('[data-part-id="b1"]');
+		expect(wrapper?.hasAttribute("inert")).toBe(true);
+	});
 });

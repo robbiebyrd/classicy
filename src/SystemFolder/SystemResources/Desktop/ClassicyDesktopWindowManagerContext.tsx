@@ -1,4 +1,5 @@
 import {
+	hasApp,
 	hasAppAndWindow,
 	hasMenuBar,
 	hasWindowDragging,
@@ -104,6 +105,13 @@ export type ClassicyWindowAction =
 			window: { id: string };
 			position: [number, number];
 			moving: boolean;
+	  }
+	// Refresh a window's stored menuBar record (does not require focus)
+	| {
+			type: "ClassicyWindowSetMenuBar";
+			app: { id: string };
+			windowId: string;
+			menuBar: ClassicyMenuItem[];
 	  };
 
 export const classicyWindowEventHandler = (
@@ -217,6 +225,21 @@ export const classicyWindowEventHandler = (
 		case "ClassicyWindowMenu": {
 			if (hasMenuBar(action)) {
 				ds.System.Manager.Desktop.appMenu = action.menuBar;
+			}
+			break;
+		}
+		case "ClassicyWindowSetMenuBar": {
+			if (
+				hasMenuBar(action) &&
+				hasApp(action) &&
+				typeof (action as { windowId?: unknown }).windowId === "string"
+			) {
+				const windowId = (action as { windowId?: unknown }).windowId as string;
+				if (!ds.System.Manager.Applications.apps[action.app.id]) break;
+				const win = ds.System.Manager.Applications.apps[
+					action.app.id
+				].windows.find((w) => w.id === windowId);
+				if (win) win.menuBar = action.menuBar;
 			}
 			break;
 		}

@@ -119,7 +119,7 @@ export const HyperCardCard: FunctionalComponent<HyperCardCardProps> = ({
 						key={part.id}
 						className={classNames}
 						style={rectStyle(part)}
-						{...(editing ? { "data-part-id": part.id } : {})}
+						{...(editing ? { "data-part-id": part.id, inert: true } : {})}
 					>
 						{renderPart(part, {
 							value,

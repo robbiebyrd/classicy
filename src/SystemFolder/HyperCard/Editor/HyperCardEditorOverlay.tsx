@@ -158,7 +158,8 @@ export const HyperCardEditorOverlay: FunctionalComponent<
 
 	const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
 		const meta = e.metaKey || e.ctrlKey;
-		if (meta && (e.key === "z" || e.key === "Z")) {
+		const key = e.key.toLowerCase();
+		if (meta && key === "z") {
 			e.preventDefault();
 			dispatch({
 				type: e.shiftKey ? "ClassicyAppHCEditRedo" : "ClassicyAppHCEditUndo",
@@ -166,17 +167,17 @@ export const HyperCardEditorOverlay: FunctionalComponent<
 			});
 			return;
 		}
+		if (meta && key === "v") {
+			dispatch({ type: "ClassicyAppHCEditPastePart", stackId });
+			return;
+		}
 		if (!selected) return;
-		if (meta && e.key === "c") {
+		if (meta && key === "c") {
 			dispatch({
 				type: "ClassicyAppHCEditCopyPart",
 				stackId,
 				partId: selected,
 			});
-			return;
-		}
-		if (meta && e.key === "v") {
-			dispatch({ type: "ClassicyAppHCEditPastePart", stackId });
 			return;
 		}
 		if (e.key === "Delete" || e.key === "Backspace") {
