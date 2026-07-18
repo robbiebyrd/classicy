@@ -1,9 +1,10 @@
 import { cleanup, render } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { HCEditState } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorUtils";
 
 const dispatch = vi.fn();
 let mockState: Record<string, unknown> = {};
+const capturedMenus: Record<string, unknown[]> = {};
 
 vi.mock(
 	"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils",
@@ -31,16 +32,19 @@ vi.mock("@/SystemFolder/SystemResources/Window/ClassicyWindow", () => ({
 		title?: string;
 		id: string;
 		appMenu?: unknown[];
-	}) => (
-		<div
-			data-window-id={id}
-			data-title={title}
-			data-has-app-menu={appMenu ? "true" : "false"}
-			data-app-menu-len={appMenu?.length ?? 0}
-		>
-			{children}
-		</div>
-	),
+	}) => {
+		capturedMenus[id] = (appMenu as unknown[]) ?? [];
+		return (
+			<div
+				data-window-id={id}
+				data-title={title}
+				data-has-app-menu={appMenu ? "true" : "false"}
+				data-app-menu-len={appMenu?.length ?? 0}
+			>
+				{children}
+			</div>
+		);
+	},
 }));
 vi.mock(
 	"@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext",
@@ -56,6 +60,13 @@ vi.mock(
 import { HyperCard } from "@/SystemFolder/HyperCard/HyperCard";
 
 afterEach(cleanup);
+
+beforeEach(() => {
+	dispatch.mockClear();
+	for (const k of Object.keys(capturedMenus)) {
+		delete capturedMenus[k];
+	}
+});
 
 function stateWith(edit?: HCEditState) {
 	const stack = {
@@ -120,6 +131,26 @@ function makeEdit(overrides: Partial<HCEditState> = {}): HCEditState {
 		dirty: false,
 		...overrides,
 	};
+}
+
+function menuItem(
+	menus: unknown[],
+	topId: string,
+	childId: string,
+):
+	| {
+			id: string;
+			menuChildren?: { id: string; onClickFunc?: () => void }[];
+			onClickFunc?: () => void;
+	  }
+	| undefined {
+	const top = (
+		menus as {
+			id: string;
+			menuChildren?: { id: string; onClickFunc?: () => void }[];
+		}[]
+	).find((m) => m.id === topId);
+	return top?.menuChildren?.find((c) => c.id === childId);
 }
 
 describe("HyperCard editor integration", () => {
@@ -200,5 +231,64 @@ describe("HyperCard editor integration", () => {
 		);
 		expect(inspector).not.toBeNull();
 		expect(inspector?.getAttribute("data-has-app-menu")).toBe("true");
+	});
+
+	it("shows the edit session's card in the title while editing", () => {
+		const e = makeEdit({ currentCardId: "c2", dirty: true });
+		e.draft.cards.push({ id: "c2", name: "Second", parts: [] });
+		mockState = stateWith(e);
+		const { container } = render(<HyperCard />);
+		const win = container.querySelector('[data-window-id="hypercard_main"]');
+		expect(win?.getAttribute("data-title")).toBe("Demo — Second •");
+	});
+
+	it("menu items dispatch the editor actions", () => {
+		mockState = stateWith(makeEdit({ selectedPartId: "b1" }));
+		render(<HyperCard />);
+		const menus = capturedMenus.hypercard_main;
+		menuItem(menus, "edit", "undo")?.onClickFunc?.();
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "ClassicyAppHCEditUndo",
+			stackId: "demo",
+		});
+		menuItem(menus, "edit", "copy_part")?.onClickFunc?.();
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "ClassicyAppHCEditCopyPart",
+			stackId: "demo",
+			partId: "b1",
+		});
+		menuItem(menus, "objects", "new_card")?.onClickFunc?.();
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "ClassicyAppHCEditAddCard",
+			stackId: "demo",
+		});
+		menuItem(menus, "objects", "toggle_layer")?.onClickFunc?.();
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "ClassicyAppHCEditSetLayer",
+			stackId: "demo",
+			layer: "background",
+		});
+		menuItem(menus, "file", "stop_editing")?.onClickFunc?.();
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "ClassicyAppHCEditExit",
+			stackId: "demo",
+		});
+		menuItem(menus, "edit", "edit_script")?.onClickFunc?.();
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "ClassicyAppHCEditShowScript",
+			stackId: "demo",
+			target: { kind: "part", partId: "b1" },
+		});
+	});
+
+	it("Go menu navigates the edit session while editing", () => {
+		mockState = stateWith(makeEdit());
+		render(<HyperCard />);
+		menuItem(capturedMenus.hypercard_main, "go", "go_next")?.onClickFunc?.();
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "ClassicyAppHCEditSetCard",
+			stackId: "demo",
+			to: "next",
+		});
 	});
 });

@@ -575,10 +575,13 @@ export const HyperCard: FunctionalComponent = () => {
 	const currentCard = open
 		? getCard(open.stack, open.currentCardId)
 		: undefined;
+	const editCard = edit
+		? edit.draft.cards.find((c) => c.id === edit.currentCardId)
+		: undefined;
 	const windowTitle = open
-		? `${open.stack.name}${currentCard?.name ? ` — ${currentCard.name}` : ""}${
-				edit?.dirty ? " •" : ""
-			}`
+		? editingActive && edit
+			? `${edit.draft.name}${editCard?.name ? ` — ${editCard.name}` : ""}${edit.dirty ? " •" : ""}`
+			: `${open.stack.name}${currentCard?.name ? ` — ${currentCard.name}` : ""}${edit?.dirty ? " •" : ""}`
 		: appName;
 
 	return (
