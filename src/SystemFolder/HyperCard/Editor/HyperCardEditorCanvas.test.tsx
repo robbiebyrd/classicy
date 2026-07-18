@@ -1,4 +1,9 @@
-import { cleanup, fireEvent, render } from "@testing-library/react";
+import {
+	cleanup,
+	createEvent,
+	fireEvent,
+	render,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { HyperCardEditorCanvas } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorCanvas";
 import type { HCEditState } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorUtils";
@@ -151,14 +156,16 @@ describe("HyperCardEditorCanvas", () => {
 		) as HTMLElement;
 		surface.getBoundingClientRect = () =>
 			({ left: 0, top: 0, width: 512, height: 342 }) as DOMRect;
-		fireEvent.drop(surface, {
-			clientX: 60,
-			clientY: 80,
-			dataTransfer: {
+		const drop = createEvent.drop(surface);
+		Object.defineProperty(drop, "clientX", { value: 60 });
+		Object.defineProperty(drop, "clientY", { value: 80 });
+		Object.defineProperty(drop, "dataTransfer", {
+			value: {
 				getData: (t: string) =>
 					t === "application/x-hypercard-part-type" ? "slider" : "",
 			},
 		});
+		fireEvent(surface, drop);
 		expect(dispatch).toHaveBeenCalledWith({
 			type: "ClassicyAppHCEditAddPart",
 			stackId: "demo",

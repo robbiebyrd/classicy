@@ -117,16 +117,15 @@ export const HyperCardEditorOverlay: FunctionalComponent<
 		setDrag(undefined);
 	};
 
-	// biome-ignore lint/suspicious/noExplicitAny: jsdom fireEvent.drop doesn't expose clientX/clientY
-	const surfacePoint = (e: any, el: HTMLElement) => {
+	const surfacePoint = (
+		e: { clientX: number; clientY: number },
+		el: HTMLElement,
+	) => {
 		const box = el.getBoundingClientRect();
-		// In jsdom, DragEvent clientX/clientY might be on nativeEvent
-		const clientX = e.clientX ?? e.nativeEvent?.clientX ?? 0;
-		const clientY = e.clientY ?? e.nativeEvent?.clientY ?? 0;
-		return [Math.round(clientX - box.left), Math.round(clientY - box.top)] as [
-			number,
-			number,
-		];
+		return [
+			Math.round(e.clientX - box.left),
+			Math.round(e.clientY - box.top),
+		] as [number, number];
 	};
 
 	const onSurfacePointerDown = (e: PointerEvent<HTMLDivElement>) => {
@@ -218,11 +217,10 @@ export const HyperCardEditorOverlay: FunctionalComponent<
 	});
 
 	return (
-		// biome-ignore lint/a11y/noNoninteractiveTabindex: editor surface needs keyboard input
+		// biome-ignore lint/a11y/noStaticElementInteractions: editor design surface handles pointer/key/drop directly
 		<div
-			// biome-ignore lint/a11y/noStaticElementInteractions: editor design surface
 			className={"classicyHyperCardEditorOverlay"}
-			role="application"
+			// biome-ignore lint/a11y/noNoninteractiveTabindex: editor surface needs keyboard input for arrow/delete/undo editing
 			tabIndex={0}
 			onPointerDown={onSurfacePointerDown}
 			onPointerMove={onPointerMove}
