@@ -58,7 +58,7 @@ describe("getTargetHandlers", () => {
 
 describe("targetLabel", () => {
 	it("labels targets", () => {
-		expect(targetLabel({ kind: "part", partId: "b1" })).toBe('Part "b1"');
+		expect(targetLabel({ kind: "part", partId: "b1" })).toBe("Part “b1”");
 		expect(targetLabel({ kind: "stack" })).toBe("Stack Script");
 	});
 });

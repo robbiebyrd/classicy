@@ -45,7 +45,7 @@ export function getTargetHandlers(
 export function targetLabel(target: HCScriptTarget): string {
 	switch (target.kind) {
 		case "part":
-			return `Part "${target.partId}"`;
+			return `Part “${target.partId}”`;
 		case "card":
 			return "Card Script";
 		case "background":
