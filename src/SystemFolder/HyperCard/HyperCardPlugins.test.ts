@@ -6,13 +6,19 @@ import {
 import type { HCStack } from "@/SystemFolder/HyperCard/HyperCardModel";
 import {
 	getHyperCardCommand,
+	getHyperCardCommandEditorMeta,
 	getHyperCardEffectHandler,
 	getHyperCardPart,
+	getHyperCardPartEditorMeta,
+	getRegisteredEditorCommands,
+	getRegisteredEditorPartTypes,
 	getRegisteredStacks,
 	type HyperCardPartComponent,
 	registerHyperCardCommand,
+	registerHyperCardCommandEditorMeta,
 	registerHyperCardEffectHandler,
 	registerHyperCardPart,
+	registerHyperCardPartEditorMeta,
 	registerHyperCardStack,
 } from "@/SystemFolder/HyperCard/HyperCardPlugins";
 import {
@@ -114,5 +120,41 @@ describe("HyperCardPlugins commands via the engine", () => {
 		const open = openStackFrom(oneCard);
 		startRun(open, [{ do: "totallyUnknownCmd" } as never]);
 		expect(open.runtime.status).toBe("idle");
+	});
+});
+
+describe("editor metadata registries", () => {
+	it("registers and lists part editor metadata", () => {
+		registerHyperCardPartEditorMeta("demoVideo", {
+			label: "Demo Video",
+			defaultSize: [320, 140],
+			optionsSchema: [
+				{ key: "channelId", label: "Channel", kind: "number", default: 1 },
+				{
+					key: "autoPlay",
+					label: "Auto-play",
+					kind: "checkbox",
+					default: true,
+				},
+			],
+		});
+		expect(getHyperCardPartEditorMeta("demoVideo")?.label).toBe("Demo Video");
+		expect(
+			getRegisteredEditorPartTypes().some((e) => e.type === "demoVideo"),
+		).toBe(true);
+		expect(getHyperCardPartEditorMeta("missing")).toBeUndefined();
+	});
+
+	it("registers and lists command editor metadata", () => {
+		registerHyperCardCommandEditorMeta("setDateTime", {
+			label: "Set Date/Time",
+			fields: [{ key: "value", label: "Date/time", kind: "text" }],
+		});
+		expect(getHyperCardCommandEditorMeta("setDateTime")?.fields).toHaveLength(
+			1,
+		);
+		expect(
+			getRegisteredEditorCommands().some((c) => c.name === "setDateTime"),
+		).toBe(true);
 	});
 });

@@ -174,3 +174,76 @@ export function getRegisteredStacks(): {
 }[] {
 	return Array.from(stackRegistry.values());
 }
+
+// ---------------------------------------------------------------------------
+// Editor metadata (additive; the player never reads these)
+// ---------------------------------------------------------------------------
+
+/** One typed field in an inspector/builder form. `choices` edits a string list; `json` edits raw JSON. */
+export interface HCOptionField {
+	key: string;
+	label: string;
+	kind: "text" | "number" | "checkbox" | "choices" | "json";
+	default?: unknown;
+}
+
+/** How the stack EDITOR presents a registered custom part. */
+export interface HyperCardPartEditorMeta {
+	label: string;
+	defaultSize?: [number, number];
+	defaultOptions?: Record<string, unknown>;
+	defaultContent?: string;
+	optionsSchema?: HCOptionField[];
+}
+
+/** How the script BUILDER presents a registered custom command. */
+export interface HyperCardCommandEditorMeta {
+	label: string;
+	fields: HCOptionField[];
+}
+
+const partEditorMetaRegistry = new Map<string, HyperCardPartEditorMeta>();
+const commandEditorMetaRegistry = new Map<string, HyperCardCommandEditorMeta>();
+
+export function registerHyperCardPartEditorMeta(
+	type: string,
+	meta: HyperCardPartEditorMeta,
+): void {
+	partEditorMetaRegistry.set(type, meta);
+}
+
+export function getHyperCardPartEditorMeta(
+	type: string,
+): HyperCardPartEditorMeta | undefined {
+	return partEditorMetaRegistry.get(type);
+}
+
+export function getRegisteredEditorPartTypes(): {
+	type: string;
+	meta: HyperCardPartEditorMeta;
+}[] {
+	return Array.from(partEditorMetaRegistry, ([type, meta]) => ({ type, meta }));
+}
+
+export function registerHyperCardCommandEditorMeta(
+	name: string,
+	meta: HyperCardCommandEditorMeta,
+): void {
+	commandEditorMetaRegistry.set(name, meta);
+}
+
+export function getHyperCardCommandEditorMeta(
+	name: string,
+): HyperCardCommandEditorMeta | undefined {
+	return commandEditorMetaRegistry.get(name);
+}
+
+export function getRegisteredEditorCommands(): {
+	name: string;
+	meta: HyperCardCommandEditorMeta;
+}[] {
+	return Array.from(commandEditorMetaRegistry, ([name, meta]) => ({
+		name,
+		meta,
+	}));
+}
