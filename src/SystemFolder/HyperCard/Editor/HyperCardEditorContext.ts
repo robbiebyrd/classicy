@@ -27,6 +27,7 @@ import {
 } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorUtils";
 import {
 	DEFAULT_CARD_SIZE,
+	type HCEventHandlers,
 	type HCPart,
 	type HCRect,
 	type HCStack,
@@ -491,6 +492,43 @@ export const classicyHyperCardEditorEventHandler = (
 		case "ClassicyAppHCEditHideScript": {
 			const edit = getEdit(ds, action);
 			if (edit) edit.script = undefined;
+			break;
+		}
+
+		case "ClassicyAppHCEditSetScript": {
+			const edit = getEdit(ds, action);
+			const target = action.target as HCScriptTarget | undefined;
+			const handlers = action.handlers as HCEventHandlers | undefined;
+			if (!edit || !target || typeof handlers !== "object" || handlers === null)
+				break;
+			const empty = Object.keys(handlers).length === 0;
+			applyEdit(edit, (draft) => {
+				const card = draft.cards.find((c) => c.id === edit.currentCardId);
+				if (!card) return;
+				switch (target.kind) {
+					case "part": {
+						const parts =
+							edit.layer === "background"
+								? draft.backgrounds?.find((b) => b.id === card.background)
+										?.parts
+								: card.parts;
+						const part = parts?.find((p) => p.id === target.partId);
+						if (part) part.script = empty ? undefined : handlers;
+						break;
+					}
+					case "card":
+						card.script = empty ? undefined : handlers;
+						break;
+					case "background": {
+						const bg = draft.backgrounds?.find((b) => b.id === card.background);
+						if (bg) bg.script = empty ? undefined : handlers;
+						break;
+					}
+					case "stack":
+						draft.stackScript = empty ? undefined : handlers;
+						break;
+				}
+			});
 			break;
 		}
 

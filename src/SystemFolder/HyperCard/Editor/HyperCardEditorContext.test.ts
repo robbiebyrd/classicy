@@ -467,4 +467,34 @@ describe("classicyHyperCardEditorEventHandler", () => {
 		dispatch(store, { type: "ClassicyAppHCEditHideScript", stackId: "demo" });
 		expect(edit(store).script).toBeUndefined();
 	});
+
+	it("SetScript writes handlers to the target and empty handlers delete the script", () => {
+		const store = makeStore();
+		enter(store);
+		dispatch(store, {
+			type: "ClassicyAppHCEditSetScript",
+			stackId: "demo",
+			target: { kind: "part", partId: "button1" },
+			handlers: { onMouseUp: [{ do: "beep" }] },
+		});
+		expect(edit(store).draft.cards[0].parts![0].script).toEqual({
+			onMouseUp: [{ do: "beep" }],
+		});
+		dispatch(store, {
+			type: "ClassicyAppHCEditSetScript",
+			stackId: "demo",
+			target: { kind: "part", partId: "button1" },
+			handlers: {},
+		});
+		expect(edit(store).draft.cards[0].parts![0].script).toBeUndefined();
+		dispatch(store, {
+			type: "ClassicyAppHCEditSetScript",
+			stackId: "demo",
+			target: { kind: "stack" },
+			handlers: { onOpenStack: [{ do: "beep" }] },
+		});
+		expect(edit(store).draft.stackScript).toEqual({
+			onOpenStack: [{ do: "beep" }],
+		});
+	});
 });
