@@ -319,6 +319,58 @@ describe("HyperCard editor integration", () => {
 		);
 	});
 
+	it("a successful save with a ref rebinds the open stack to the saved id", async () => {
+		registerHyperCardSaveProvider({
+			id: "ref-provider",
+			label: "Ref Provider",
+			canSave: () => true,
+			save: async () => ({ ok: true, ref: { id: "77", name: "X" } }),
+		});
+		mockState = stateWith(makeEdit());
+		render(<HyperCard />);
+		menuItem(
+			capturedMenus.hypercard_main,
+			"file",
+			"save_ref-provider",
+		)?.onClickFunc?.();
+		await waitFor(() =>
+			expect(dispatch).toHaveBeenCalledWith({
+				type: "ClassicyAppHCEditRebindStack",
+				stackId: "demo",
+				newStackId: "saved:ref-provider:77",
+			}),
+		);
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "ClassicyAppHCEditMarkSaved",
+			stackId: "demo",
+		});
+	});
+
+	it("a successful save without a ref only marks the stack saved (no rebind)", async () => {
+		registerHyperCardSaveProvider({
+			id: "noref-provider",
+			label: "No Ref Provider",
+			canSave: () => true,
+			save: async () => ({ ok: true }),
+		});
+		mockState = stateWith(makeEdit());
+		render(<HyperCard />);
+		menuItem(
+			capturedMenus.hypercard_main,
+			"file",
+			"save_noref-provider",
+		)?.onClickFunc?.();
+		await waitFor(() =>
+			expect(dispatch).toHaveBeenCalledWith({
+				type: "ClassicyAppHCEditMarkSaved",
+				stackId: "demo",
+			}),
+		);
+		expect(dispatch).not.toHaveBeenCalledWith(
+			expect.objectContaining({ type: "ClassicyAppHCEditRebindStack" }),
+		);
+	});
+
 	it("provider-loaded stacks are validated before opening; an invalid stack fails instead of dispatching OpenStack", () => {
 		registerHyperCardSaveProvider({
 			id: "test-list-provider",

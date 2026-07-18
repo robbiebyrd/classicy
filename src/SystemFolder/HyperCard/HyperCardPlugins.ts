@@ -252,13 +252,21 @@ export function getRegisteredEditorCommands(): {
 // Save providers (editor)
 // ---------------------------------------------------------------------------
 
-export type HCSaveResult = { ok: true } | { ok: false; error: string };
-
 export interface HCSavedStackRef {
 	id: string;
 	name: string;
 	updatedAt?: string;
 }
+
+/**
+ * On a successful save, providers that persist to an addressable store
+ * SHOULD return `ref` so the host can rebind the open stack to
+ * `saved:<providerId>:<ref.id>` — otherwise a first-time create is followed
+ * by duplicate creates on every resave.
+ */
+export type HCSaveResult =
+	| { ok: true; ref?: HCSavedStackRef }
+	| { ok: false; error: string };
 
 /** A destination the editor can save stacks to (and optionally reopen from). */
 export interface HyperCardSaveProvider {

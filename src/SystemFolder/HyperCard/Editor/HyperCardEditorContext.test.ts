@@ -497,4 +497,58 @@ describe("classicyHyperCardEditorEventHandler", () => {
 			onOpenStack: [{ do: "beep" }],
 		});
 	});
+
+	it("Rebind moves the openStacks record, retargets stackSource, follows activeStackId, and moves the edit session", () => {
+		const store = makeStore();
+		enter(store);
+		dispatch(store, {
+			type: "ClassicyAppHCEditRebindStack",
+			stackId: "demo",
+			newStackId: "saved:test:1",
+		});
+		const data = store.System.Manager.Applications.apps[APP_ID].data as {
+			openStacks: Record<string, { stackSource: string }>;
+			activeStackId?: string;
+			edits?: Record<string, HCEditState>;
+		};
+		expect(data.openStacks.demo).toBeUndefined();
+		expect(data.openStacks["saved:test:1"]).toBeDefined();
+		expect(data.openStacks["saved:test:1"].stackSource).toBe("saved:test:1");
+		expect(data.activeStackId).toBe("saved:test:1");
+		expect(data.edits?.demo).toBeUndefined();
+		expect(data.edits?.["saved:test:1"]).toBeDefined();
+	});
+
+	it("Rebind is a no-op when newStackId already exists in openStacks", () => {
+		const store = makeStore();
+		enter(store);
+		const data = store.System.Manager.Applications.apps[APP_ID].data as {
+			openStacks: Record<string, unknown>;
+		};
+		data.openStacks["saved:test:1"] = JSON.parse(
+			JSON.stringify(data.openStacks.demo),
+		);
+		dispatch(store, {
+			type: "ClassicyAppHCEditRebindStack",
+			stackId: "demo",
+			newStackId: "saved:test:1",
+		});
+		expect(data.openStacks.demo).toBeDefined();
+	});
+
+	it("Rebind is a no-op when the source stackId is missing", () => {
+		const store = makeStore();
+		enter(store);
+		expect(() =>
+			dispatch(store, {
+				type: "ClassicyAppHCEditRebindStack",
+				stackId: "ghost",
+				newStackId: "saved:test:1",
+			}),
+		).not.toThrow();
+		const data = store.System.Manager.Applications.apps[APP_ID].data as {
+			openStacks: Record<string, unknown>;
+		};
+		expect(data.openStacks["saved:test:1"]).toBeUndefined();
+	});
 });

@@ -392,6 +392,16 @@ export const HyperCard: FunctionalComponent = () => {
 														type: "ClassicyAppHCEditMarkSaved",
 														stackId: activeStackId,
 													});
+													if (result.ref) {
+														const newStackId = `saved:${provider.id}:${result.ref.id}`;
+														if (newStackId !== activeStackId) {
+															dispatch({
+																type: "ClassicyAppHCEditRebindStack",
+																stackId: activeStackId,
+																newStackId,
+															});
+														}
+													}
 												}
 											})
 											.catch((err) => {

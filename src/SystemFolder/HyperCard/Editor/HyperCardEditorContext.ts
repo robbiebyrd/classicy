@@ -537,6 +537,27 @@ export const classicyHyperCardEditorEventHandler = (
 			if (edit) edit.dirty = false;
 			break;
 		}
+
+		case "ClassicyAppHCEditRebindStack": {
+			const newStackId = action.newStackId as string | undefined;
+			if (!newStackId || newStackId === stackId) break;
+			const data = ds.System.Manager.Applications.apps[APP_ID].data as
+				| (HyperCardEditorData & {
+						openStacks?: Record<string, HCOpenStack>;
+						activeStackId?: string;
+				  })
+				| undefined;
+			if (!data?.openStacks?.[stackId] || data.openStacks[newStackId]) break;
+			data.openStacks[newStackId] = data.openStacks[stackId];
+			delete data.openStacks[stackId];
+			data.openStacks[newStackId].stackSource = newStackId;
+			if (data.activeStackId === stackId) data.activeStackId = newStackId;
+			if (data.edits?.[stackId]) {
+				data.edits[newStackId] = data.edits[stackId];
+				delete data.edits[stackId];
+			}
+			break;
+		}
 	}
 
 	return ds;
