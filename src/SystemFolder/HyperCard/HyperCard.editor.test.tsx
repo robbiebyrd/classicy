@@ -25,12 +25,19 @@ vi.mock("@/SystemFolder/SystemResources/Window/ClassicyWindow", () => ({
 		children,
 		title,
 		id,
+		appMenu,
 	}: {
 		children: React.ReactNode;
 		title?: string;
 		id: string;
+		appMenu?: unknown[];
 	}) => (
-		<div data-window-id={id} data-title={title}>
+		<div
+			data-window-id={id}
+			data-title={title}
+			data-has-app-menu={appMenu ? "true" : "false"}
+			data-app-menu-len={appMenu?.length ?? 0}
+		>
 			{children}
 		</div>
 	),
@@ -152,5 +159,17 @@ describe("HyperCard editor integration", () => {
 		const { container } = render(<HyperCard />);
 		const win = container.querySelector('[data-window-id="hypercard_main"]');
 		expect(win?.getAttribute("data-title")).toContain("•");
+	});
+
+	it("gives the tools palette window a non-empty appMenu while editing", () => {
+		mockState = stateWith(makeEdit());
+		const { container } = render(<HyperCard />);
+		const toolsWindow = container.querySelector(
+			'[data-window-id="hypercard_tools"]',
+		);
+		expect(toolsWindow?.getAttribute("data-has-app-menu")).toBe("true");
+		expect(
+			Number(toolsWindow?.getAttribute("data-app-menu-len")),
+		).toBeGreaterThan(0);
 	});
 });

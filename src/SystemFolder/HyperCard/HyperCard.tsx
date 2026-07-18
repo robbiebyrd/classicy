@@ -390,7 +390,7 @@ export const HyperCard: FunctionalComponent = () => {
 								},
 							]
 						: []),
-					{ id: "file_sep_2", title: "-" },
+					...(activeStackId ? [{ id: "file_sep_2", title: "-" }] : []),
 					quitMenuItemHelper(appId, appName, appIcon),
 				],
 			},
@@ -578,6 +578,7 @@ export const HyperCard: FunctionalComponent = () => {
 					id={"hypercard_tools"}
 					title={"Tools"}
 					appId={appId}
+					appMenu={appMenu}
 					windowType={"utility"}
 					initialSize={[130, 0]}
 					initialPosition={[8, 100]}
