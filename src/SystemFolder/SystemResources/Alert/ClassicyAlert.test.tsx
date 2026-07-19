@@ -68,13 +68,13 @@ describe("ClassicyAlert", () => {
 		const { rerender } = render(
 			<ClassicyAlert alertType="note" label="n" />,
 		);
-		expect(screen.getByRole("img", { name: "Note" })).toBeInTheDocument();
+		expect(screen.getByRole("img", { name: "Info" })).toBeInTheDocument();
 
 		rerender(<ClassicyAlert alertType="caution" label="c" />);
 		expect(screen.getByRole("img", { name: "Caution" })).toBeInTheDocument();
 
 		rerender(<ClassicyAlert alertType="stop" label="s" />);
-		expect(screen.getByRole("img", { name: "Stop" })).toBeInTheDocument();
+		expect(screen.getByRole("img", { name: "Error" })).toBeInTheDocument();
 	});
 
 	it("generates a single default OK button for note alerts", () => {
