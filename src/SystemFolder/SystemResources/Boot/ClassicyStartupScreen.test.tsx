@@ -29,8 +29,14 @@ type MockApp = {
 	extension?: boolean;
 };
 
+type MockParadeIcon = { id: string; icon: string; name?: string };
+
 const mockApps = vi.hoisted(() => ({
 	current: {} as Record<string, MockApp>,
+}));
+
+const mockParadeIcons = vi.hoisted(() => ({
+	current: [] as MockParadeIcon[],
 }));
 
 vi.mock(
@@ -38,7 +44,12 @@ vi.mock(
 	() => ({
 		useAppManager: (selector: (state: unknown) => unknown) =>
 			selector({
-				System: { Manager: { Applications: { apps: mockApps.current } } },
+				System: {
+					Manager: {
+						Applications: { apps: mockApps.current },
+						Boot: { paradeIcons: mockParadeIcons.current },
+					},
+				},
 			}),
 	}),
 );
@@ -48,6 +59,7 @@ describe("ClassicyStartupScreen", () => {
 		sessionStorage.clear();
 		mockPlayer.mockClear();
 		mockApps.current = {};
+		mockParadeIcons.current = [];
 		vi.useFakeTimers();
 	});
 
@@ -146,6 +158,7 @@ describe("ClassicyStartupScreen extension parade", () => {
 	beforeEach(() => {
 		sessionStorage.clear();
 		mockApps.current = {};
+		mockParadeIcons.current = [];
 		vi.useFakeTimers();
 	});
 
@@ -213,5 +226,76 @@ describe("ClassicyStartupScreen extension parade", () => {
 		);
 		expect(imgs).toHaveLength(1);
 		expect(screen.getByAltText("Alpha")).toBeInTheDocument();
+	});
+
+	it("parades injected icons without any extension apps", () => {
+		mockParadeIcons.current = [
+			{ id: "brand", icon: "/brand.png", name: "Brand" },
+		];
+		render(<ClassicyStartupScreen duration={1000} />);
+		act(() => {
+			vi.advanceTimersByTime(600);
+		});
+		const img = screen.getByAltText("Brand");
+		expect(img).toHaveAttribute("src", "/brand.png");
+	});
+
+	it("renders injected icons before extension icons", () => {
+		mockParadeIcons.current = [
+			{ id: "brand", icon: "/brand.png", name: "Brand" },
+		];
+		mockApps.current = {
+			"ClockExt.app": {
+				id: "ClockExt.app",
+				name: "Clock",
+				icon: "/clock.png",
+				open: true,
+				extension: true,
+			},
+		};
+		const { container } = render(<ClassicyStartupScreen duration={1000} />);
+		act(() => {
+			vi.advanceTimersByTime(900);
+		});
+		const imgs = container.querySelectorAll(
+			".classicyStartupScreenExtensions img",
+		);
+		expect(Array.from(imgs).map((img) => img.getAttribute("alt"))).toEqual([
+			"Brand",
+			"Clock",
+		]);
+	});
+
+	it("uses the merged count for reveal timing", () => {
+		mockParadeIcons.current = [
+			{ id: "brand", icon: "/brand.png", name: "Brand" },
+		];
+		mockApps.current = {
+			"ClockExt.app": {
+				id: "ClockExt.app",
+				name: "Clock",
+				icon: "/clock.png",
+				open: true,
+				extension: true,
+			},
+		};
+		render(<ClassicyStartupScreen duration={1000} />);
+		// 2 icons → interval 1000/3 ≈ 333ms. At 400ms only the first shows.
+		act(() => {
+			vi.advanceTimersByTime(400);
+		});
+		expect(screen.getByAltText("Brand")).toBeInTheDocument();
+		expect(screen.queryByAltText("Clock")).not.toBeInTheDocument();
+	});
+
+	it("falls back to an empty alt when an injected icon has no name", () => {
+		mockParadeIcons.current = [{ id: "anon", icon: "/anon.png" }];
+		const { container } = render(<ClassicyStartupScreen duration={1000} />);
+		act(() => {
+			vi.advanceTimersByTime(600);
+		});
+		const img = container.querySelector(".classicyStartupScreenExtensions img");
+		expect(img).toHaveAttribute("src", "/anon.png");
+		expect(img).toHaveAttribute("alt", "");
 	});
 });

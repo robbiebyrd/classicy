@@ -33,24 +33,44 @@ export const ClassicyStartupScreen: FunctionalComponent<
 	const [progress, setProgress] = useState(0);
 	const player = useSoundDispatch();
 
-	// Extension apps have already dispatched ClassicyAppLoad by the time the
-	// splash covers the desktop, so the store is the parade's source of truth.
-	// Select the stable apps record and derive with useMemo — a filtering
-	// selector would return a fresh array every snapshot.
+	// Both parade sources register during mount, before the splash covers the
+	// desktop: extension apps dispatch ClassicyAppLoad and hosts/apps dispatch
+	// ClassicyBootParadeIconAdd. The store is the parade's source of truth.
+	// Select stable references and derive with useMemo — a filtering selector
+	// would return a fresh array every snapshot.
 	const apps = useAppManager((state) => state.System.Manager.Applications.apps);
-	const extensions = useMemo(
-		() => Object.values(apps).filter((app) => app.extension),
-		[apps],
+	const paradeIcons = useAppManager(
+		(state) => state.System.Manager.Boot.paradeIcons,
+	);
+	// Injected parade icons lead, then extension apps — both in registration
+	// order. Keys are prefixed so a manual icon id can never collide with an
+	// app id.
+	const paradeEntries = useMemo(
+		() => [
+			...paradeIcons.map((entry) => ({
+				key: `parade:${entry.id}`,
+				icon: entry.icon,
+				name: entry.name ?? "",
+			})),
+			...Object.values(apps)
+				.filter((app) => app.extension)
+				.map((app) => ({
+					key: `ext:${app.id}`,
+					icon: app.icon,
+					name: app.name,
+				})),
+		],
+		[paradeIcons, apps],
 	);
 
-	// Mac OS 7-style parade: with N extensions, icon i appears once elapsed
-	// time passes (i + 1) × duration / (N + 1) — the last icon lands before
-	// the progress bar completes.
-	const revealInterval = duration / (extensions.length + 1);
+	// Mac OS 7-style parade: with N icons, icon i appears once elapsed time
+	// passes (i + 1) × duration / (N + 1) — the last icon lands before the
+	// progress bar completes.
+	const revealInterval = duration / (paradeEntries.length + 1);
 	const elapsed = (progress / 100) * duration;
-	const visibleExtensions = extensions.slice(
+	const visibleParadeEntries = paradeEntries.slice(
 		0,
-		Math.min(extensions.length, Math.floor(elapsed / revealInterval)),
+		Math.min(paradeEntries.length, Math.floor(elapsed / revealInterval)),
 	);
 
 	useEffect(() => {
@@ -92,10 +112,15 @@ export const ClassicyStartupScreen: FunctionalComponent<
 					/>
 				</div>
 			</div>
-			{visibleExtensions.length > 0 && (
+			{visibleParadeEntries.length > 0 && (
 				<div className="classicyStartupScreenExtensions">
-					{visibleExtensions.map((ext) => (
-						<img key={ext.id} src={ext.icon} alt={ext.name} title={ext.name} />
+					{visibleParadeEntries.map((entry) => (
+						<img
+							key={entry.key}
+							src={entry.icon}
+							alt={entry.name}
+							title={entry.name}
+						/>
 					))}
 				</div>
 			)}
