@@ -28,6 +28,10 @@ import {
 	type ClassicyStoreSystemDesktopManager,
 	classicyDesktopEventHandler,
 } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
+import {
+	type ClassicyStoreSystemBootManager,
+	classicyBootEventHandler,
+} from "@/SystemFolder/SystemResources/Boot/ClassicyBootManager";
 import { classicyWindowEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopWindowManagerContext";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
@@ -102,6 +106,7 @@ export interface ClassicyStoreSystem {
 		Applications: ClassicyStoreSystemAppManager;
 		Appearance: ClassicyStoreSystemAppearanceManager;
 		DateAndTime: ClassicyStoreSystemDateAndTimeManager;
+		Boot: ClassicyStoreSystemBootManager;
 	};
 }
 
@@ -346,6 +351,8 @@ export const classicyDesktopStateEventReducer = (
 			ds = classicyDesktopIconEventHandler(ds, action);
 		} else if (action.type.startsWith("ClassicyDesktop")) {
 			ds = classicyDesktopEventHandler(ds, action);
+		} else if (action.type.startsWith("ClassicyBootParadeIcon")) {
+			ds = classicyBootEventHandler(ds, action);
 		} else if (action.type.startsWith("ClassicyManagerDateTime")) {
 			ds = classicyDateTimeManagerEventHandler(ds, action);
 		} else {
@@ -460,6 +467,9 @@ export const DefaultAppManagerState: ClassicyStore = {
 				activeTheme: themesData.find(
 					(t) => t.id === "default",
 				) as unknown as ClassicyTheme,
+			},
+			Boot: {
+				paradeIcons: [],
 			},
 		},
 	},
