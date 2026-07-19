@@ -22,6 +22,11 @@ export interface ClassicyAppProps {
 	noDesktopIcon?: boolean;
 	addSystemMenu?: boolean;
 	extension?: boolean;
+	/** Show an icon in the startup parade without being an extension.
+	 *  `true` uses the app's own icon; a string (any icon URL, including
+	 *  ClassicyIcons.* values) shows that icon instead. Ignored when
+	 *  `extension` is set — extensions already parade. */
+	bootIcon?: boolean | string;
 	debug?: boolean;
 	handlesFileTypes?: ClassicyFileSystemEntryFileType[];
 	handlesOwnFiles?: boolean;
@@ -36,6 +41,7 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 	addSystemMenu,
 	noDesktopIcon,
 	extension,
+	bootIcon,
 	defaultWindow,
 	debug = false,
 	handlesFileTypes,
@@ -125,10 +131,20 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 				kind: "app_shortcut",
 			});
 		}
+
+		if (bootIcon && !extension) {
+			desktopEventDispatch({
+				type: "ClassicyBootParadeIconAdd",
+				id,
+				icon: typeof bootIcon === "string" ? bootIcon : icon,
+				name,
+			});
+		}
 	}, [
 		addSystemMenu,
 		noDesktopIcon,
 		extension,
+		bootIcon,
 		desktopEventDispatch,
 		id,
 		name,
