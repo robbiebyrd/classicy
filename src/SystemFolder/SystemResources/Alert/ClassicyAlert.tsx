@@ -8,6 +8,7 @@ import {
 	useMemo,
 	useRef,
 } from "react";
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import {
@@ -15,7 +16,6 @@ import {
 	useKeyboardEquivalents,
 } from "@/SystemFolder/SystemResources/Keyboard/useKeyboardEquivalents";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 
 /**
  * Mac OS 8 HIG Alert Box (Human Interface Guidelines, Ch. 3 §"Alert Boxes").
@@ -24,10 +24,10 @@ import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/Cl
  * a two-tier text block (bold label + plain narrative), and up to four
  * buttons. Alerts contain ONLY an icon, text, and buttons — no other controls.
  *
- * Three severities, each with its own icon:
- *   - note    — talking face; typically OK only (+ optional Help)
- *   - caution — triangle + "!"; OK/Continue + Cancel (+ optional Help)
- *   - stop    — octagon + open hand; OK only (+ optional Help)
+ * Three severities, each with its own system icon (from `ClassicyIcons`):
+ *   - note    — info icon; typically OK only (+ optional Help)
+ *   - caution — warn icon; OK/Continue + Cancel (+ optional Help)
+ *   - stop    — error icon; OK only (+ optional Help)
  *
  * Movable alert     = red title-bar highlight (draggable).
  * Non-movable alert = red border around the content region (`.classicyWindowRed`).
@@ -92,20 +92,14 @@ const AlertIcon: FunctionalComponent<{ alertType: ClassicyAlertType }> = ({
 }) => {
 	switch (alertType) {
 		case "caution":
-			// Triangle + "!" — the classic caution glyph.
-			return (
-				<img src={ClassicyIcons.system.warn} alt="Caution" />
-			);
+			// Classic caution triangle (system warn icon).
+			return <img src={ClassicyIcons.system.warn} alt="Caution" />;
 		case "stop":
-			// Octagon + open hand — "stop".
-			return (
-				<img src={ClassicyIcons.system.error} alt="Error" />
-			);
+			// Classic stop octagon (system error icon).
+			return <img src={ClassicyIcons.system.error} alt="Error" />;
 		default:
-			// Note — a talking face.
-			return (
-				<img src={ClassicyIcons.system.info} alt="Info" />
-			);
+			// Classic note bubble (system info icon).
+			return <img src={ClassicyIcons.system.info} alt="Info" />;
 	}
 };
 

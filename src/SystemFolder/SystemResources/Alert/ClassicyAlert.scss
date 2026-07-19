@@ -20,14 +20,13 @@
   // Severity icon: fixed 32px square per the HIG alert icon column.
   .classicyAlertIcon {
     flex: 0 0 auto;
-    width: 32px;
-    height: 32px;
+    width: var(--icon-size-regular, 32px);
+    height: var(--icon-size-regular, 32px);
 
-    .classicyAlertIconSvg {
-      width: 32px;
-      height: 32px;
+    img {
+      width: var(--icon-size-regular, 32px);
+      height: var(--icon-size-regular, 32px);
       display: block;
-      color: var(--color-black, #000);
     }
   }
 
