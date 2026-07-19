@@ -23,15 +23,15 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
 import { classicyDateTimeManagerEventHandler } from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeEventHandler";
 import type { ClassicyStoreSystemSoundManager } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
+import {
+	type ClassicyStoreSystemBootManager,
+	classicyBootEventHandler,
+} from "@/SystemFolder/SystemResources/Boot/ClassicyBootManager";
 import { classicyDesktopIconEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconContext";
 import {
 	type ClassicyStoreSystemDesktopManager,
 	classicyDesktopEventHandler,
 } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
-import {
-	type ClassicyStoreSystemBootManager,
-	classicyBootEventHandler,
-} from "@/SystemFolder/SystemResources/Boot/ClassicyBootManager";
 import { classicyWindowEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopWindowManagerContext";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
