@@ -59,6 +59,7 @@ function makeStore(): ClassicyStore {
 					availableThemes: [],
 					activeTheme: {} as ClassicyTheme,
 				},
+				Boot: { paradeIcons: [] },
 			},
 		},
 	};
