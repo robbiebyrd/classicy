@@ -15,6 +15,7 @@ import {
 	useKeyboardEquivalents,
 } from "@/SystemFolder/SystemResources/Keyboard/useKeyboardEquivalents";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 
 /**
  * Mac OS 8 HIG Alert Box (Human Interface Guidelines, Ch. 3 §"Alert Boxes").
@@ -93,67 +94,17 @@ const AlertIcon: FunctionalComponent<{ alertType: ClassicyAlertType }> = ({
 		case "caution":
 			// Triangle + "!" — the classic caution glyph.
 			return (
-				<svg
-					className={"classicyAlertIconSvg"}
-					viewBox="0 0 64 64"
-					role="img"
-					aria-label="Caution"
-					fill="none"
-					stroke="currentColor"
-					strokeWidth="3"
-					strokeLinejoin="round"
-				>
-					<path d="M32 6 L60 58 H4 Z" fill="var(--color-white, #fff)" />
-					<line x1="32" y1="24" x2="32" y2="44" strokeWidth="5" />
-					<circle cx="32" cy="51" r="2.5" fill="currentColor" stroke="none" />
-				</svg>
+				<img src={ClassicyIcons.system.warn} alt="Caution" />
 			);
 		case "stop":
 			// Octagon + open hand — "stop".
 			return (
-				<svg
-					className={"classicyAlertIconSvg"}
-					viewBox="0 0 64 64"
-					role="img"
-					aria-label="Stop"
-					fill="none"
-					stroke="currentColor"
-					strokeWidth="3"
-					strokeLinejoin="round"
-				>
-					<polygon
-						points="22,6 42,6 58,22 58,42 42,58 22,58 6,42 6,22"
-						fill="var(--color-white, #fff)"
-					/>
-					{/* open palm */}
-					<path
-						d="M24 46 V30 q0-4 4-4 t4 4 V22 q0-4 4-4 t4 4 V30 q4 0 4 4 v10 q0 6-6 6 h-8 q-6 0-6-4z"
-						fill="currentColor"
-						stroke="currentColor"
-						strokeWidth="1.5"
-						strokeLinejoin="round"
-					/>
-				</svg>
+				<img src={ClassicyIcons.system.error} alt="Error" />
 			);
 		default:
 			// Note — a talking face.
 			return (
-				<svg
-					className={"classicyAlertIconSvg"}
-					viewBox="0 0 64 64"
-					role="img"
-					aria-label="Note"
-					fill="none"
-					stroke="currentColor"
-					strokeWidth="3"
-					strokeLinejoin="round"
-				>
-					<circle cx="32" cy="32" r="26" fill="var(--color-white, #fff)" />
-					<circle cx="23" cy="26" r="3.5" fill="currentColor" stroke="none" />
-					<circle cx="41" cy="26" r="3.5" fill="currentColor" stroke="none" />
-					{/* talking smile */}
-					<path d="M20 40 q12 12 24 0" strokeWidth="3" strokeLinecap="round" />
-				</svg>
+				<img src={ClassicyIcons.system.info} alt="Info" />
 			);
 	}
 };
