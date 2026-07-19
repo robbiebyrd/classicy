@@ -108,6 +108,7 @@ describe("dispatch", () => {
 
 describe("persistence lifecycle", () => {
 	let dispatch: typeof import("@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils")["dispatch"];
+	let useAppManager: typeof import("@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils")["useAppManager"];
 	let startAppManagerPersistence: typeof import("@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils")["startAppManagerPersistence"];
 	let stopAppManagerPersistence: typeof import("@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils")["stopAppManagerPersistence"];
 
@@ -119,6 +120,7 @@ describe("persistence lifecycle", () => {
 			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils"
 		);
 		dispatch = mod.dispatch;
+		useAppManager = mod.useAppManager;
 		startAppManagerPersistence = mod.startAppManagerPersistence;
 		stopAppManagerPersistence = mod.stopAppManagerPersistence;
 	});
@@ -180,6 +182,27 @@ describe("persistence lifecycle", () => {
 		const unsub1 = startAppManagerPersistence();
 		const unsub2 = startAppManagerPersistence();
 		expect(unsub1).toBe(unsub2);
+	});
+
+	it("strips boot parade icons from persisted state but keeps them live", () => {
+		dispatch({
+			type: "ClassicyBootParadeIconAdd",
+			id: "brand",
+			icon: "/brand.png",
+			name: "Brand",
+		});
+		vi.advanceTimersByTime(500);
+
+		// Live store keeps the icon…
+		expect(
+			useAppManager.getState().System.Manager.Boot.paradeIcons,
+		).toHaveLength(1);
+
+		// …but the persisted snapshot is always empty (session-only slice).
+		const raw = localStorage.getItem("classicyDesktopState");
+		expect(raw).not.toBeNull();
+		const parsed = JSON.parse(raw ?? "");
+		expect(parsed.System.Manager.Boot.paradeIcons).toEqual([]);
 	});
 });
 

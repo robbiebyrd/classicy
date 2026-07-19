@@ -121,6 +121,10 @@ function sanitizeStateForPersistence(state: ClassicyStore): ClassicyStore {
 				}
 			}
 		}
+		// Boot parade icons are session-only: owners re-register them on every
+		// mount, so persisting them would resurrect icons whose owner removed
+		// its bootIcon prop.
+		draft.System.Manager.Boot.paradeIcons = [];
 	});
 }
 
