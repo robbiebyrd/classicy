@@ -101,3 +101,52 @@ describe("desktopVolume", () => {
 		expect(entries.map((e) => e.name)).toEqual(["notes.txt", "Report.pdf"]);
 	});
 });
+
+describe("write and mkDir capabilities", () => {
+	const FIXTURE = () => ({
+		"Macintosh HD": {
+			_type: ClassicyFileSystemEntryFileType.Drive,
+			Documents: {
+				_type: ClassicyFileSystemEntryFileType.Directory,
+			},
+		},
+	});
+
+	it("fileSystemVolume.write creates a file entry through the drive prefix", async () => {
+		const fs = new ClassicyFileSystem("fileDialogWriteTest", FIXTURE());
+		const vol = fileSystemVolume(fs, "Macintosh HD");
+		await vol.write?.(["Documents"], "New.stack", {
+			data: "STACK",
+			fileType: "stack",
+		});
+		const entry = fs.resolve("Macintosh HD:Documents:New.stack");
+		expect(entry._type).toBe("stack");
+		expect(entry._data).toBe("STACK");
+		const listed = await vol.list(["Documents"]);
+		expect(listed.map((e) => e.name)).toContain("New.stack");
+	});
+
+	it("desktopVolume.write writes at the desktop-relative path", async () => {
+		const fs = new ClassicyFileSystem("fileDialogDesktopWriteTest", FIXTURE());
+		const vol = desktopVolume(fs);
+		await vol.write?.(["Macintosh HD", "Documents"], "Note.txt", {
+			data: "hi",
+			fileType: "text_file",
+			icon: "custom.png",
+		});
+		const entry = fs.resolve("Macintosh HD:Documents:Note.txt");
+		expect(entry._data).toBe("hi");
+		expect(entry._icon).toBe("custom.png");
+	});
+
+	it("mkDir creates a folder that then lists", async () => {
+		const fs = new ClassicyFileSystem("fileDialogMkdirTest", FIXTURE());
+		const vol = desktopVolume(fs);
+		await vol.mkDir?.(["Macintosh HD", "Documents"], "Projects");
+		expect(fs.resolve("Macintosh HD:Documents:Projects")._type).toBe(
+			"directory",
+		);
+		const listed = await vol.list(["Macintosh HD", "Documents"]);
+		expect(listed[0]).toMatchObject({ name: "Projects", kind: "folder" });
+	});
+});
