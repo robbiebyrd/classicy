@@ -365,4 +365,58 @@ describe("ClassicyFileSaveDialog", () => {
 		await user.type(screen.getByLabelText("Save As:"), "My File{Enter}");
 		expect(vol.write).toHaveBeenCalledTimes(1);
 	});
+
+	it("New Folder is disabled when the volume lacks mkDir", async () => {
+		renderWithProviders(
+			<ClassicyFileSaveDialog
+				{...makeProps()}
+				volumes={[makeVolume({ mkDir: undefined })]}
+			/>,
+		);
+		await screen.findByText("Documents");
+		expect(
+			(screen.getByRole("button", { name: "New Folder" }) as HTMLButtonElement)
+				.disabled,
+		).toBe(true);
+	});
+
+	it("creates a folder in the target directory, reloads it, and selects it", async () => {
+		const user = userEvent.setup();
+		const vol = makeVolume();
+		renderWithProviders(
+			<ClassicyFileSaveDialog {...makeProps()} volumes={[vol]} />,
+		);
+		await screen.findByText("Documents");
+		await user.click(screen.getByRole("button", { name: "New Folder" }));
+		await user.type(
+			await screen.findByPlaceholderText("untitled folder"),
+			"Projects",
+		);
+		await user.click(screen.getByRole("button", { name: "Create" }));
+		expect(vol.mkDir).toHaveBeenCalledWith([], "Projects");
+		// root listing reloaded after creation: initial load + reload
+		expect(vol.list).toHaveBeenCalledTimes(2);
+	});
+
+	it("a failing mkDir shows the folder error alert", async () => {
+		const user = userEvent.setup();
+		const vol = makeVolume({
+			mkDir: vi.fn(async () => {
+				throw new Error("nope");
+			}),
+		});
+		renderWithProviders(
+			<ClassicyFileSaveDialog {...makeProps()} volumes={[vol]} />,
+		);
+		await screen.findByText("Documents");
+		await user.click(screen.getByRole("button", { name: "New Folder" }));
+		await user.type(
+			await screen.findByPlaceholderText("untitled folder"),
+			"Projects",
+		);
+		await user.click(screen.getByRole("button", { name: "Create" }));
+		expect(
+			await screen.findByText("The folder could not be created."),
+		).toBeInTheDocument();
+	});
 });

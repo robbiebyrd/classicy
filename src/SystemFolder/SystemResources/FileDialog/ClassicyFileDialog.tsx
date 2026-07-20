@@ -108,6 +108,7 @@ export const ClassicyFileDialog: FunctionalComponent<
 	// final file name (extension included) awaiting the Replace confirmation
 	const [replacePrompt, setReplacePrompt] = useState<string | null>(null);
 	const [newFolderOpen, setNewFolderOpen] = useState(false);
+	const [newFolderName, setNewFolderName] = useState("");
 	const [errorPrompt, setErrorPrompt] = useState<"save" | "folder" | null>(
 		null,
 	);
@@ -363,6 +364,23 @@ export const ClassicyFileDialog: FunctionalComponent<
 		}
 	};
 
+	const handleCreateFolder = async () => {
+		if (props.mode !== "save") return;
+		if (!activeVolume?.mkDir) return;
+		const name = newFolderName.trim();
+		if (name.length === 0 || name.includes(":")) return;
+		const path = selectedFolderPath;
+		try {
+			await activeVolume.mkDir(path, name);
+			loadFolder(activeVolume, path);
+			setSelectedIds([cacheKey(activeVolume.id, [...path, name])]);
+			setNewFolderName("");
+		} catch (error) {
+			setErrorPrompt("folder");
+			props.onErrorFunc?.(error);
+		}
+	};
+
 	// Escape-to-cancel is handled by ClassicyWindow itself for modal windows
 	// (see #194/#197's onModalCancel/useKeyboardEquivalents) — handling it here
 	// too would fire onCancelFunc twice for a single Escape keypress.
@@ -506,7 +524,7 @@ export const ClassicyFileDialog: FunctionalComponent<
 					alertType={"caution"}
 					movable={true}
 					title={"Save"}
-					label={`Replace “${replacePrompt}”?`}
+					label={`Replace "${replacePrompt}"?`}
 					message={
 						"An item with this name already exists in this location. Replacing it will overwrite its contents."
 					}
@@ -520,6 +538,42 @@ export const ClassicyFileDialog: FunctionalComponent<
 					]}
 					defaultButtonId={"cancel"}
 					onClose={() => setReplacePrompt(null)}
+				/>
+			)}
+			{newFolderOpen && (
+				<ClassicyAlert
+					id={`${id}-new-folder`}
+					appId={appId}
+					alertType={"note"}
+					movable={true}
+					title={"New Folder"}
+					label={"Name of new folder:"}
+					message={
+						<ClassicyInput
+							id={`${id}-new-folder-name`}
+							placeholder={"untitled folder"}
+							prefillValue={newFolderName}
+							onChangeFunc={(e) => setNewFolderName(e.target.value)}
+						/>
+					}
+					buttons={[
+						{
+							id: "cancel",
+							label: "Cancel",
+							role: "cancel",
+							onClick: () => setNewFolderName(""),
+						},
+						{
+							id: "create",
+							label: "Create",
+							role: "default",
+							disabled:
+								newFolderName.trim().length === 0 ||
+								newFolderName.includes(":"),
+							onClick: () => void handleCreateFolder(),
+						},
+					]}
+					onClose={() => setNewFolderOpen(false)}
 				/>
 			)}
 			{errorPrompt !== null && (
