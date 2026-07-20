@@ -44,7 +44,6 @@ export * from "./SystemFolder/HyperCard/Editor/HyperCardEditorSave";
 export * from "./SystemFolder/HyperCard/Editor/HyperCardEditorSchemas";
 export * from "./SystemFolder/HyperCard/Editor/HyperCardEditorUtils";
 export * from "./SystemFolder/HyperCard/Editor/HyperCardInspector";
-export * from "./SystemFolder/HyperCard/Editor/HyperCardSavedStacks";
 export * from "./SystemFolder/HyperCard/Editor/HyperCardScriptBuilder";
 export * from "./SystemFolder/HyperCard/Editor/HyperCardScriptEditor";
 export * from "./SystemFolder/HyperCard/Editor/HyperCardScriptJson";

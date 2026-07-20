@@ -1,14 +1,23 @@
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { HCEditState } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorUtils";
-import type { HCSavedStackRef } from "@/SystemFolder/HyperCard/HyperCardPlugins";
 import { registerHyperCardSaveProvider } from "@/SystemFolder/HyperCard/HyperCardPlugins";
 
 const dispatch = vi.fn();
 let mockState: Record<string, unknown> = {};
 const capturedMenus: Record<string, unknown[]> = {};
-let capturedSavedStacksOnOpen:
-	| ((stack: unknown, ref: HCSavedStackRef, providerId: string) => void)
+let capturedOpenDialogProps:
+	| {
+			open: boolean;
+			onOpenFunc: (
+				selections: {
+					volumeId: string;
+					path: string[];
+					entry: { id: string; meta?: Record<string, unknown> };
+				}[],
+			) => void;
+			onCancelFunc?: () => void;
+	  }
 	| undefined;
 
 vi.mock(
@@ -61,16 +70,17 @@ vi.mock(
 		useClassicyFileSystem: () => ({ resolve: (): undefined => undefined }),
 	}),
 );
-vi.mock("@/SystemFolder/HyperCard/Editor/HyperCardSavedStacks", () => ({
-	HyperCardSavedStacks: ({
-		onOpen,
-	}: {
-		onOpen: (stack: unknown, ref: HCSavedStackRef, providerId: string) => void;
-	}): null => {
-		capturedSavedStacksOnOpen = onOpen;
-		return null;
-	},
-}));
+vi.mock(
+	"@/SystemFolder/SystemResources/FileDialog/ClassicyFileOpenDialog",
+	() => ({
+		ClassicyFileOpenDialog: (
+			props: NonNullable<typeof capturedOpenDialogProps>,
+		): null => {
+			capturedOpenDialogProps = props;
+			return null;
+		},
+	}),
+);
 
 import { HyperCard } from "@/SystemFolder/HyperCard/HyperCard";
 
@@ -78,6 +88,7 @@ afterEach(cleanup);
 
 beforeEach(() => {
 	dispatch.mockClear();
+	capturedOpenDialogProps = undefined;
 	for (const k of Object.keys(capturedMenus)) {
 		delete capturedMenus[k];
 	}
@@ -371,15 +382,49 @@ describe("HyperCard editor integration", () => {
 		);
 	});
 
-	it("provider-loaded stacks are validated before opening; an invalid stack fails instead of dispatching OpenStack", () => {
-		registerHyperCardSaveProvider({
-			id: "test-list-provider",
-			label: "Test List Provider",
-			canSave: () => true,
-			save: async () => ({ ok: true }),
-			list: async () => [],
+	it("Open Saved Stack… is always in the File menu, even with no list-capable save provider", () => {
+		mockState = stateWith();
+		render(<HyperCard />);
+		expect(
+			menuItem(capturedMenus.hypercard_main, "file", "open_saved"),
+		).toBeDefined();
+	});
+
+	it("Open Saved Stack… shows the file-system Open dialog; picking a file dispatches OpenFile and closes it", () => {
+		mockState = stateWith();
+		render(<HyperCard />);
+		expect(capturedOpenDialogProps?.open).toBe(false);
+
+		act(() => {
+			menuItem(
+				capturedMenus.hypercard_main,
+				"file",
+				"open_saved",
+			)?.onClickFunc?.();
 		});
-		mockState = stateWith(makeEdit());
+		expect(capturedOpenDialogProps?.open).toBe(true);
+
+		act(() => {
+			capturedOpenDialogProps?.onOpenFunc([
+				{
+					volumeId: "desktop",
+					path: ["Macintosh HD", "Documents"],
+					entry: {
+						id: "Macintosh HD:Documents:My Stack",
+						meta: { classicyPath: "Macintosh HD:Documents:My Stack" },
+					},
+				},
+			]);
+		});
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "ClassicyAppHyperCardOpenFile",
+			path: "Macintosh HD:Documents:My Stack",
+		});
+		expect(capturedOpenDialogProps?.open).toBe(false);
+	});
+
+	it("cancelling the Open dialog closes it without dispatching OpenFile", () => {
+		mockState = stateWith();
 		render(<HyperCard />);
 		act(() => {
 			menuItem(
@@ -388,25 +433,13 @@ describe("HyperCard editor integration", () => {
 				"open_saved",
 			)?.onClickFunc?.();
 		});
-		expect(capturedSavedStacksOnOpen).toBeDefined();
-
 		act(() => {
-			capturedSavedStacksOnOpen?.(
-				{ name: "Bad Stack", cards: [] },
-				{ id: "1", name: "Bad Stack" },
-				"test-list-provider",
-			);
+			capturedOpenDialogProps?.onCancelFunc?.();
 		});
-
+		expect(capturedOpenDialogProps?.open).toBe(false);
 		expect(dispatch).not.toHaveBeenCalledWith(
-			expect.objectContaining({ type: "ClassicyAppHyperCardOpenStack" }),
+			expect.objectContaining({ type: "ClassicyAppHyperCardOpenFile" }),
 		);
-		expect(dispatch).toHaveBeenCalledWith({
-			type: "ClassicyAppHyperCardOpenFileFailed",
-			path: "",
-			message:
-				"“Bad Stack” is not a valid HyperCard stack: Stack.cards must be a non-empty array.",
-		});
 	});
 
 	it("Go menu navigates the edit session while editing", () => {

@@ -27,7 +27,6 @@ import type {
 	HyperCardEditorData,
 } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorUtils";
 import { HyperCardInspector } from "@/SystemFolder/HyperCard/Editor/HyperCardInspector";
-import { HyperCardSavedStacks } from "@/SystemFolder/HyperCard/Editor/HyperCardSavedStacks";
 import { HyperCardScriptEditor } from "@/SystemFolder/HyperCard/Editor/HyperCardScriptEditor";
 import { HyperCardToolsPalette } from "@/SystemFolder/HyperCard/Editor/HyperCardToolsPalette";
 import { HyperCardCard } from "@/SystemFolder/HyperCard/HyperCardCard";
@@ -56,6 +55,8 @@ import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabe
 import { resolveFileSystemEntrySource } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContentResolver";
 import { useClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import { desktopVolume } from "@/SystemFolder/SystemResources/FileDialog/ClassicyFileDialogVolume";
+import { ClassicyFileOpenDialog } from "@/SystemFolder/SystemResources/FileDialog/ClassicyFileOpenDialog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { decompressFromBase64 } from "@/SystemFolder/SystemResources/Utils/base64Compression";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
@@ -414,15 +415,11 @@ export const HyperCard: FunctionalComponent = () => {
 									},
 								}))
 						: []),
-					...(getHyperCardSaveProviders().some((p) => p.list)
-						? [
-								{
-									id: "open_saved",
-									title: "Open Saved Stack…",
-									onClickFunc: () => setSavedStacksOpen(true),
-								},
-							]
-						: []),
+					{
+						id: "open_saved",
+						title: "Open Saved Stack…",
+						onClickFunc: () => setSavedStacksOpen(true),
+					},
 					...(activeStackId && edit
 						? [
 								{
@@ -694,36 +691,35 @@ export const HyperCard: FunctionalComponent = () => {
 				</ClassicyWindow>
 			) : null}
 
-			{savedStacksOpen ? (
-				<ClassicyWindow
-					id={"hypercard_saved"}
-					title={"Saved Stacks"}
-					appId={appId}
-					appMenu={appMenu}
-					initialSize={[300, 0]}
-					initialPosition={["center", 160]}
-				>
-					<HyperCardSavedStacks
-						onOpen={(stack, ref, providerId) => {
-							const result = validateStack(JSON.parse(JSON.stringify(stack)));
-							if (result.ok === false) {
-								dispatch({
-									type: "ClassicyAppHyperCardOpenFileFailed",
-									path: "",
-									message: `“${ref.name}” is not a valid HyperCard stack: ${result.errors[0]}`,
-								});
-								return;
-							}
-							dispatch({
-								type: "ClassicyAppHyperCardOpenStack",
-								stackId: `saved:${providerId}:${ref.id}`,
-								stack: result.stack,
-							});
-							setSavedStacksOpen(false);
-						}}
-					/>
-				</ClassicyWindow>
-			) : null}
+			<ClassicyFileOpenDialog
+				id={"hypercard_open_stack"}
+				appId={appId}
+				open={savedStacksOpen}
+				title={"Open Stack"}
+				volumes={[desktopVolume(fs)]}
+				fileTypeFilters={[
+					{
+						label: "HyperCard Stacks",
+						types: [ClassicyFileSystemEntryFileType.Stack],
+					},
+					{ label: "All Documents", types: null },
+				]}
+				onOpenFunc={(selections) => {
+					// The selected path feeds the same queue Finder uses: the
+					// openFiles effect resolves, fetches, and validates it, then
+					// dispatches OpenStack or the error dialog.
+					for (const selection of selections) {
+						dispatch({
+							type: "ClassicyAppHyperCardOpenFile",
+							path: String(
+								selection.entry.meta?.classicyPath ?? selection.entry.id,
+							),
+						});
+					}
+					setSavedStacksOpen(false);
+				}}
+				onCancelFunc={() => setSavedStacksOpen(false)}
+			/>
 
 			{open && activeStackId && runtime?.dialog ? (
 				<HyperCardDialog dialog={runtime.dialog} stackId={activeStackId} />
