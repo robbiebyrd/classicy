@@ -89,10 +89,45 @@ function writeFsFile(
 	name: string,
 	file: ClassicyFileDialogSaveFile,
 ) {
-	fs.writeFile([...segments, name].join(fs.separator), file.data, {
-		_type: file.fileType as ClassicyFileSystemEntryFileType,
-		_icon: file.icon ?? iconImageByType(file.fileType),
-	});
+	const wrote = fs.writeFile(
+		[...segments, name].join(fs.separator),
+		file.data,
+		{
+			_type: file.fileType as ClassicyFileSystemEntryFileType,
+			_icon: file.icon ?? iconImageByType(file.fileType),
+		},
+	);
+	if (!wrote) {
+		// writeFile() refused the path (empty name, or a prototype-pollution-
+		// prone segment) and silently wrote nothing — surface that as a
+		// rejection so the dialog's error handling fires instead of treating
+		// this as a successful save.
+		throw new Error(`write refused for "${name}"`);
+	}
+}
+
+/**
+ * Confirm a folder actually landed as an own, enumerable child of its parent
+ * after fs.mkDir(). fs.mkDir() has no name validation of its own: a segment
+ * like "__proto__" makes ClassicyFileSystem's deepMerge assign it as the
+ * child object's *prototype* (via the `__proto__` accessor) rather than an
+ * own property, so the folder never actually becomes reachable — even though
+ * a plain `fs.resolve(path)` would still (mis)resolve it through that same
+ * accessor and look truthy. Checking hasOwnProperty on the parent avoids that
+ * trap.
+ */
+function verifyDirCreated(
+	fs: ClassicyFileSystem,
+	parentSegments: string[],
+	name: string,
+) {
+	const parent =
+		parentSegments.length === 0
+			? fs.fs
+			: fs.resolve(parentSegments.join(fs.separator));
+	if (!parent || typeof parent !== "object" || !Object.hasOwn(parent, name)) {
+		throw new Error(`mkDir failed to create "${name}"`);
+	}
 }
 
 /** The classic Desktop level: all mounted drives, then their contents. */
@@ -104,13 +139,12 @@ export function desktopVolume(
 		label: "Desktop",
 		icon: ClassicyIcons.system.mac,
 		list: (path) => Promise.resolve(listFsChildren(fs, path)),
-		write: (path, name, file) => {
+		write: async (path, name, file) => {
 			writeFsFile(fs, path, name, file);
-			return Promise.resolve();
 		},
-		mkDir: (path, name) => {
+		mkDir: async (path, name) => {
 			fs.mkDir([...path, name].join(fs.separator));
-			return Promise.resolve();
+			verifyDirCreated(fs, path, name);
 		},
 	};
 }
@@ -126,13 +160,12 @@ export function fileSystemVolume(
 		icon:
 			(fs.resolve(drive)?._icon as string) ?? ClassicyIcons.system.drives.disk,
 		list: (path) => Promise.resolve(listFsChildren(fs, [drive, ...path])),
-		write: (path, name, file) => {
+		write: async (path, name, file) => {
 			writeFsFile(fs, [drive, ...path], name, file);
-			return Promise.resolve();
 		},
-		mkDir: (path, name) => {
+		mkDir: async (path, name) => {
 			fs.mkDir([drive, ...path, name].join(fs.separator));
-			return Promise.resolve();
+			verifyDirCreated(fs, [drive, ...path], name);
 		},
 	};
 }

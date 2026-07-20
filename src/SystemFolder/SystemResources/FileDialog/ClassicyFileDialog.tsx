@@ -109,9 +109,9 @@ export const ClassicyFileDialog: FunctionalComponent<
 	const [replacePrompt, setReplacePrompt] = useState<string | null>(null);
 	const [newFolderOpen, setNewFolderOpen] = useState(false);
 	const [newFolderName, setNewFolderName] = useState("");
-	const [errorPrompt, setErrorPrompt] = useState<"save" | "folder" | null>(
-		null,
-	);
+	const [errorPrompt, setErrorPrompt] = useState<
+		"save" | "folder" | "folderCollision" | null
+	>(null);
 	// node id → selection payload, rebuilt whenever buildNodes actually runs
 	const nodeIndex = useRef(new Map<string, ClassicyFileOpenSelection>());
 
@@ -313,6 +313,7 @@ export const ClassicyFileDialog: FunctionalComponent<
 		strippedBase.trim().length > 0 &&
 		!trimmedName.includes(":") &&
 		activeVolume?.write !== undefined &&
+		activeFormat !== undefined &&
 		!saving;
 
 	// The listing may be missing when a folder was selected without ever being
@@ -338,7 +339,15 @@ export const ClassicyFileDialog: FunctionalComponent<
 		try {
 			if (confirmedName === undefined) {
 				const entries = await ensureListing(activeVolume, path);
-				if (entries.some((e) => e.kind === "file" && e.name === targetName)) {
+				const collision = entries.find((e) => e.name === targetName);
+				// A folder collision is refused outright: the underlying write
+				// would replace the directory subtree wholesale, destroying it.
+				// Only a same-named file offers the existing Replace prompt.
+				if (collision?.kind === "folder") {
+					setErrorPrompt("folderCollision");
+					return;
+				}
+				if (collision?.kind === "file") {
 					setReplacePrompt(targetName);
 					return;
 				}
@@ -584,7 +593,9 @@ export const ClassicyFileDialog: FunctionalComponent<
 					label={
 						errorPrompt === "save"
 							? "The document could not be saved."
-							: "The folder could not be created."
+							: errorPrompt === "folderCollision"
+								? "A folder with this name already exists in this location."
+								: "The folder could not be created."
 					}
 					buttons={[{ id: "ok", label: "OK", role: "default" }]}
 					onClose={() => setErrorPrompt(null)}

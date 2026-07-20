@@ -643,4 +643,19 @@ describe("writeFile", () => {
 		fs.writeFile("__proto__", "payload");
 		expect(({} as Record<string, unknown>)._data).toBeUndefined();
 	});
+
+	it("returns true on a successful write", () => {
+		const fs = new ClassicyFileSystem("writefile-return-true-test", fixture());
+		expect(fs.writeFile("Macintosh HD:Documents:New.txt", "hello")).toBe(true);
+	});
+
+	it("returns false and writes nothing for a forbidden path segment", () => {
+		const fs = new ClassicyFileSystem("writefile-return-false-test", fixture());
+		expect(fs.writeFile("Macintosh HD:__proto__:x", "payload")).toBe(false);
+	});
+
+	it("returns false and writes nothing for an empty name", () => {
+		const fs = new ClassicyFileSystem("writefile-empty-name-test", fixture());
+		expect(fs.writeFile("", "payload")).toBe(false);
+	});
 });

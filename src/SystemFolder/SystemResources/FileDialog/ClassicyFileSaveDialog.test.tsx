@@ -188,6 +188,35 @@ describe("ClassicyFileSaveDialog", () => {
 		expect(save.disabled).toBe(true);
 	});
 
+	it("Save stays disabled when there are no formats, even with a prefilled name", async () => {
+		renderWithProviders(
+			<ClassicyFileSaveDialog
+				{...makeProps()}
+				formats={[]}
+				defaultFileName="My File"
+				volumes={[makeVolume()]}
+			/>,
+		);
+		await screen.findByText("Documents");
+		expect(
+			(screen.getByRole("button", { name: "Save" }) as HTMLButtonElement)
+				.disabled,
+		).toBe(true);
+	});
+
+	it("Save stays disabled when the typed name is only the extension", async () => {
+		const user = userEvent.setup();
+		renderWithProviders(
+			<ClassicyFileSaveDialog {...makeProps()} volumes={[makeVolume()]} />,
+		);
+		await screen.findByText("Documents");
+		await user.type(screen.getByLabelText("Save As:"), ".stack");
+		expect(
+			(screen.getByRole("button", { name: "Save" }) as HTMLButtonElement)
+				.disabled,
+		).toBe(true);
+	});
+
 	it("Save is disabled on a volume without write capability", async () => {
 		const user = userEvent.setup();
 		renderWithProviders(
@@ -293,6 +322,36 @@ describe("ClassicyFileSaveDialog", () => {
 		expect(props.onSaveFunc).toHaveBeenCalledTimes(1);
 	});
 
+	it("refuses to save over a same-named folder and never writes", async () => {
+		const user = userEvent.setup();
+		const props = makeProps();
+		const vol = makeVolume({
+			list: vi.fn(async (path: string[]) =>
+				path.length === 0
+					? [
+							{ id: "docs", name: "Documents", kind: "folder" as const },
+							{
+								id: "backup-folder",
+								name: "Backup.stack",
+								kind: "folder" as const,
+							},
+						]
+					: [],
+			),
+		});
+		renderWithProviders(<ClassicyFileSaveDialog {...props} volumes={[vol]} />);
+		await screen.findByText("Documents");
+		await user.type(screen.getByLabelText("Save As:"), "Backup");
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		expect(
+			await screen.findByText(
+				"A folder with this name already exists in this location.",
+			),
+		).toBeInTheDocument();
+		expect(vol.write).not.toHaveBeenCalled();
+		expect(props.onSaveFunc).not.toHaveBeenCalled();
+	});
+
 	it("a failing write shows the stop alert, keeps the dialog open, and reports the error", async () => {
 		const user = userEvent.setup();
 		const props = { ...makeProps(), onErrorFunc: vi.fn() };
@@ -378,6 +437,15 @@ describe("ClassicyFileSaveDialog", () => {
 		expect(vol.mkDir).toHaveBeenCalledWith([], "Projects");
 		// root listing reloaded after creation: initial load + reload
 		expect(vol.list).toHaveBeenCalledTimes(2);
+		// The new folder became the target: saving now writes into it, proving
+		// the created folder was selected (not just created).
+		await user.type(screen.getByLabelText("Save As:"), "My File");
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		expect(vol.write).toHaveBeenCalledWith(
+			["Projects"],
+			"My File.stack",
+			expect.anything(),
+		);
 	});
 
 	it("a failing mkDir shows the folder error alert", async () => {

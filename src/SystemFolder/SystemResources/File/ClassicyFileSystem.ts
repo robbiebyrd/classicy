@@ -434,17 +434,24 @@ export class ClassicyFileSystem {
 		return;
 	}
 
+	/**
+	 * Create or replace a file entry. Returns true on success, false when the
+	 * path was refused (empty name, or a prototype-pollution-prone segment
+	 * such as `__proto__`/`constructor`/`prototype`) — nothing is written and
+	 * no mutation is journaled in that case. Callers must check the return
+	 * value rather than assume a resolved call means the write happened.
+	 */
 	writeFile(
 		path: string,
 		data: string,
 		metaData?: Partial<ClassicyFileSystemEntryMetadata>,
-	) {
+	): boolean {
 		// Prevent prototype pollution via special property names anywhere in the path
 		const FORBIDDEN = new Set(["__proto__", "constructor", "prototype"]);
 		const parts = this.pathArray(path);
 		const name = parts.pop();
 		if (!name || FORBIDDEN.has(name) || parts.some((p) => FORBIDDEN.has(p))) {
-			return;
+			return false;
 		}
 
 		const parentPath = parts.join(this.separator);
@@ -465,6 +472,7 @@ export class ClassicyFileSystem {
 		} as ClassicyFileSystemEntry;
 
 		this.notifyMutation("write", path, { data, metadata: metaData });
+		return true;
 	}
 
 	rmDir(path: string) {
