@@ -437,45 +437,34 @@ export class ClassicyFileSystem {
 	writeFile(
 		path: string,
 		data: string,
-		_metaData?: ClassicyFileSystemEntryMetadata,
+		metaData?: Partial<ClassicyFileSystemEntryMetadata>,
 	) {
-		const updateObjProp = (
-			obj: Record<string, unknown>,
-			value: string,
-			propPath: string,
-		): boolean => {
-			const [head, ...rest] = propPath.split(":");
-
-			// Prevent prototype pollution via special property names
-			if (
-				head === "__proto__" ||
-				head === "constructor" ||
-				head === "prototype"
-			) {
-				// Abort the write to avoid mutating Object.prototype
-				return false;
-			}
-
-			if (rest.length) {
-				return updateObjProp(
-					obj[head] as Record<string, unknown>,
-					value,
-					rest.join(":"),
-				);
-			}
-			obj[head] = value;
-			return true;
-		};
-
-		const directoryPath = path.split(":");
-		if (!this.resolve(directoryPath.join(":"))) {
-			this.mkDir(directoryPath.join(":"));
+		// Prevent prototype pollution via special property names anywhere in the path
+		const FORBIDDEN = new Set(["__proto__", "constructor", "prototype"]);
+		const parts = this.pathArray(path);
+		const name = parts.pop();
+		if (!name || FORBIDDEN.has(name) || parts.some((p) => FORBIDDEN.has(p))) {
+			return;
 		}
 
-		const writeSucceeded = updateObjProp(this.fs, data, path);
-		if (writeSucceeded) {
-			this.notifyMutation("write", path, { data });
+		const parentPath = parts.join(this.separator);
+		if (parts.length > 0 && !this.resolve(parentPath)) {
+			this.mkDir(parentPath);
 		}
+		const parent = (
+			parts.length === 0 ? this.fs : this.resolve(parentPath)
+		) as Record<string, unknown>;
+
+		// A file is a full entry object, not a raw string: type and icon metadata
+		// ride along with the data so listings and readFile() both work.
+		parent[name] = {
+			_type: ClassicyFileSystemEntryFileType.TextFile,
+			_createdOn: new Date().toISOString(),
+			...metaData,
+			_data: data,
+		} as ClassicyFileSystemEntry;
+
+		this.notifyMutation("write", path, { data, metadata: metaData });
 	}
 
 	rmDir(path: string) {
