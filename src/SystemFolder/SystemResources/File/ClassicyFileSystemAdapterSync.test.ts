@@ -188,7 +188,7 @@ describe("debounced persist + snapshot", () => {
 			},
 		});
 		const cfs = new ClassicyFileSystem("test-debounce", seedTree());
-		const setItemSpy = vi.spyOn(Storage.prototype, "setItem");
+		const setItemSpy = vi.spyOn(localStorage, "setItem");
 		cfs.mkDir("Macintosh HD:One");
 		cfs.mkDir("Macintosh HD:Two");
 		cfs.mkDir("Macintosh HD:Three");
