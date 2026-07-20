@@ -1621,8 +1621,207 @@ git commit -m "docs(file-dialog): Storybook story for the save dialog"
 
 ---
 
+### Task 6: Wire HyperCard's "Save Stack…" to the Save dialog
+
+*(Added mid-execution at the user's request: "The HyperCard app needs to use the new Open and Save dialogs." The Open dialog is already wired — HyperCard consumes `ClassicyFileOpenDialog`, now a thin wrapper over `ClassicyFileDialog` — so only Save needs work. Execute this task BEFORE Task 5 so the final verification pass covers it.)*
+
+**Files:**
+- Modify: `src/SystemFolder/HyperCard/HyperCard.tsx` (imports; `saveStackOpen` state near `savedStacksOpen` at ~line 85; File-menu item after the save-providers spread ending ~line 417; `<ClassicyFileSaveDialog>` block after the `<ClassicyFileOpenDialog>` block ending ~line 722)
+- Test: `src/SystemFolder/HyperCard/HyperCard.editor.test.tsx` (append; extend the existing mock/captured-props harness)
+
+**Interfaces:**
+- Consumes: `ClassicyFileSaveDialog` (Task 3), `desktopVolume(fs)` (already imported), `serializeStack` from `@/SystemFolder/HyperCard/Editor/HyperCardEditorSave`, `ClassicyFileSystemEntryFileType.Stack` (already imported), the existing `ClassicyAppHCEditMarkSaved` dispatch shape `{ type, stackId }` (see the provider-save block at `HyperCard.tsx:392-395`).
+- Produces: a "Save Stack…" File-menu item (id `save_stack`) visible only while `activeStackId && edit`, which opens a Save dialog writing the serialized draft into the ClassicyFileSystem as a `.stack` file.
+
+- [ ] **Step 1: Write the failing tests**
+
+In `HyperCard.editor.test.tsx`, add a captured-props mock for the save dialog next to the existing `ClassicyFileOpenDialog` mock (mirror its exact pattern):
+
+```tsx
+let capturedSaveDialogProps:
+	| {
+			open: boolean;
+			defaultFileName?: string;
+			formats: {
+				label: string;
+				extension: string;
+				fileType: string;
+				data: () => string | Promise<string>;
+			}[];
+			onSaveFunc: (saved: unknown) => void;
+			onCancelFunc?: () => void;
+	  }
+	| undefined;
+
+vi.mock(
+	"@/SystemFolder/SystemResources/FileDialog/ClassicyFileSaveDialog",
+	() => ({
+		ClassicyFileSaveDialog: (
+			props: NonNullable<typeof capturedSaveDialogProps>,
+		): null => {
+			capturedSaveDialogProps = props;
+			return null;
+		},
+	}),
+);
+```
+
+Reset `capturedSaveDialogProps = undefined;` in the existing `beforeEach`.
+
+Append tests inside the existing `describe` (adapt state-construction and menu-traversal to the file's existing helpers — `stateWith(...)`, `capturedMenus` — and note any adaptation in your report; the assertions below are the requirements):
+
+```tsx
+	function fileMenuChildren(): {
+		id: string;
+		title: string;
+		onClickFunc?: () => void;
+	}[] {
+		const menus = Object.values(capturedMenus).find(
+			(m) => (m as { id: string }[]).some?.((e) => e.id === "file"),
+		) as { id: string; menuChildren?: unknown[] }[] | undefined;
+		const file = menus?.find((m) => m.id === "file");
+		return (file?.menuChildren ?? []) as never;
+	}
+
+	it("shows Save Stack… while editing and opens the save dialog with the stack format", async () => {
+		mockState = stateWith(/* an edit state, as existing edit-mode tests build it */);
+		render(<HyperCard />);
+		const item = fileMenuChildren().find((i) => i.id === "save_stack");
+		expect(item?.title).toBe("Save Stack…");
+		act(() => item?.onClickFunc?.());
+		await waitFor(() => expect(capturedSaveDialogProps?.open).toBe(true));
+		expect(capturedSaveDialogProps?.defaultFileName).toBe("Demo");
+		const fmt = capturedSaveDialogProps?.formats[0];
+		expect(fmt).toMatchObject({
+			label: "HyperCard Stack",
+			extension: ".stack",
+			fileType: "stack",
+		});
+		expect(JSON.parse(String(await fmt?.data()))).toMatchObject({
+			name: "Demo",
+		});
+	});
+
+	it("dispatches ClassicyAppHCEditMarkSaved and closes on save", async () => {
+		mockState = stateWith(/* edit state */);
+		render(<HyperCard />);
+		act(() =>
+			fileMenuChildren()
+				.find((i) => i.id === "save_stack")
+				?.onClickFunc?.(),
+		);
+		await waitFor(() => expect(capturedSaveDialogProps?.open).toBe(true));
+		act(() =>
+			capturedSaveDialogProps?.onSaveFunc({
+				volumeId: "desktop",
+				path: [],
+				fileName: "Demo.stack",
+			}),
+		);
+		expect(dispatch).toHaveBeenCalledWith(
+			expect.objectContaining({ type: "ClassicyAppHCEditMarkSaved" }),
+		);
+		await waitFor(() => expect(capturedSaveDialogProps?.open).toBe(false));
+	});
+
+	it("has no Save Stack… item outside edit mode", () => {
+		mockState = stateWith(undefined);
+		render(<HyperCard />);
+		expect(
+			fileMenuChildren().find((i) => i.id === "save_stack"),
+		).toBeUndefined();
+	});
+```
+
+- [ ] **Step 2: Run to verify failure**
+
+Run: `pnpm exec vitest run src/SystemFolder/HyperCard/HyperCard.editor.test.tsx`
+Expected: the three new tests FAIL (no `save_stack` item, no captured save-dialog props); existing tests still pass.
+
+- [ ] **Step 3: Implement**
+
+In `src/SystemFolder/HyperCard/HyperCard.tsx`:
+
+Add imports (next to the existing `ClassicyFileOpenDialog` / save imports):
+
+```tsx
+import { serializeStack } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorSave";
+import { ClassicyFileSaveDialog } from "@/SystemFolder/SystemResources/FileDialog/ClassicyFileSaveDialog";
+```
+
+Add state next to `savedStacksOpen`:
+
+```tsx
+	const [saveStackOpen, setSaveStackOpen] = useState(false);
+```
+
+Insert a menu entry in the File menu's `menuChildren`, immediately after the save-providers spread (the `...(activeStackId && edit ? getHyperCardSaveProviders()... : [])` block ending at ~line 417) and before the `open_saved` item:
+
+```tsx
+					...(activeStackId && edit
+						? [
+								{
+									id: "save_stack",
+									title: "Save Stack…",
+									onClickFunc: () => setSaveStackOpen(true),
+								},
+							]
+						: []),
+```
+
+(The `appMenu` `useMemo` already invalidates on `activeStackId`/`edit`; `setSaveStackOpen` is a stable setter — check the memo's dependency array and add nothing unless the linter demands it.)
+
+Render the dialog after the existing `<ClassicyFileOpenDialog … />` block (~line 722):
+
+```tsx
+				{edit && activeStackId ? (
+					<ClassicyFileSaveDialog
+						id={"hypercard_save_stack"}
+						appId={appId}
+						open={saveStackOpen}
+						title={"Save Stack"}
+						volumes={[desktopVolume(fs)]}
+						defaultFileName={edit.draft.name || "Untitled"}
+						formats={[
+							{
+								label: "HyperCard Stack",
+								extension: ".stack",
+								fileType: ClassicyFileSystemEntryFileType.Stack,
+								data: () => serializeStack(edit.draft),
+							},
+						]}
+						onSaveFunc={() => {
+							dispatch({
+								type: "ClassicyAppHCEditMarkSaved",
+								stackId: activeStackId,
+							});
+							setSaveStackOpen(false);
+						}}
+						onCancelFunc={() => setSaveStackOpen(false)}
+					/>
+				) : null}
+```
+
+Notes:
+- No `icon` on the format: `iconImageByType` falls back to the generic file icon (no stack icon exists yet).
+- No `onErrorFunc`: the dialog already shows the stop alert and stays open; HyperCard has nothing to add.
+- The dialog performs the filesystem write itself — HyperCard only marks the draft saved.
+
+- [ ] **Step 4: Run the HyperCard editor suite**
+
+Run: `pnpm exec vitest run src/SystemFolder/HyperCard/`
+Expected: ALL PASS (existing + 3 new).
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/SystemFolder/HyperCard/HyperCard.tsx src/SystemFolder/HyperCard/HyperCard.editor.test.tsx
+git commit -m "feat(hypercard): Save Stack… via the ClassicyFileSystem Save dialog"
+```
+
+---
+
 ## Out of Scope
 
-- Wiring HyperCard's "Save Stack" (or any app) to the new dialog — follow-up work.
 - Renaming the `classicyFileOpenDialog*` SCSS classes or the scss file — kept for consumer back-compat.
 - The Escape/modal behavior of stacked alerts over the modal dialog window — inherited from `ClassicyWindow`/`ClassicyAlert` as-is.
