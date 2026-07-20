@@ -1,5 +1,8 @@
-import { createContext, useContext, useMemo } from "react";
-import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { createContext, useContext, useEffect, useMemo } from "react";
+import {
+	dispatch,
+	useAppManager,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import {
 	ClassicyFileSystem,
 	mergeClassicyFileSystemEntries,
@@ -21,6 +24,19 @@ type ClassicyDefaultFileSystemContextValue = {
 
 export const ClassicyDefaultFileSystemContext =
 	createContext<ClassicyDefaultFileSystemContextValue>({ mode: "merge" });
+
+// Reconciliation must run once per storageKey, not once per fs instance —
+// rebuilds (app registration, fsVersion bumps) must not re-trigger it.
+const reconciledStorageKeys = new Set<string>();
+
+/** Test helper: allow reconciliation to run again. */
+export function resetClassicyFileSystemReconciliation(storageKey?: string) {
+	if (storageKey) {
+		reconciledStorageKeys.delete(storageKey);
+	} else {
+		reconciledStorageKeys.clear();
+	}
+}
 
 /**
  * Constructs a ClassicyFileSystem seeded from the nearest
@@ -56,8 +72,14 @@ export function useClassicyFileSystem(
 			.join("\u0001"),
 	);
 
+	// Invalidation key: bumped after an adapter reconcile replaces the tree, so
+	// the fs rebuilds through the normal seed-from-localStorage path.
+	const fsVersion = useAppManager(
+		(s) => s.System.Manager.Desktop.fsVersion ?? 0,
+	);
+
 	// biome-ignore lint/correctness/useExhaustiveDependencies: appShortcutsKey and extensionAppsKey are intentional invalidation keys — the icon/app sets are read via getState() so moves/focus don't re-render
-	return useMemo(() => {
+	const fs = useMemo(() => {
 		const resolved = !defaultFileSystem
 			? DefaultFSContent
 			: mode === "exclusive"
@@ -68,16 +90,22 @@ export function useClassicyFileSystem(
 		// live-only: the constructor's localStorage persist has already run,
 		// and returning visitors' persisted trees can't shadow newly added
 		// apps. appShortcutsKey keeps this in sync with the icon set.
-		fs.fs = withApplicationsFolder(
-			fs.fs,
-			useAppManager.getState().System.Manager.Desktop.icons,
+		fs.applyDerivedTree(
+			withApplicationsFolder(
+				fs.fs,
+				useAppManager.getState().System.Manager.Desktop.icons,
+			),
 		);
 		// Same live-only overlay strategy for System Folder/Extensions, derived
 		// from apps flagged extension rather than desktop icons (extensions have
 		// no desktop icon). extensionAppsKey keeps this in sync with the store.
-		fs.fs = withExtensionsFolder(
-			fs.fs,
-			Object.values(useAppManager.getState().System.Manager.Applications.apps),
+		fs.applyDerivedTree(
+			withExtensionsFolder(
+				fs.fs,
+				Object.values(
+					useAppManager.getState().System.Manager.Applications.apps,
+				),
+			),
 		);
 		return fs;
 	}, [
@@ -87,5 +115,21 @@ export function useClassicyFileSystem(
 		separator,
 		appShortcutsKey,
 		extensionAppsKey,
+		fsVersion,
 	]);
+
+	// Two-way boot sync: offer the local snapshot to reconciling adapters once
+	// per storageKey. A replace has already persisted; the bump rebuilds the fs
+	// from localStorage so every consumer sees the adopted tree.
+	useEffect(() => {
+		if (reconciledStorageKeys.has(fs.storageKey)) return;
+		reconciledStorageKeys.add(fs.storageKey);
+		void fs.reconcileWithAdapters().then((replaced) => {
+			if (replaced) {
+				dispatch({ type: "ClassicyDesktopFileSystemVersionBump" });
+			}
+		});
+	}, [fs]);
+
+	return fs;
 }

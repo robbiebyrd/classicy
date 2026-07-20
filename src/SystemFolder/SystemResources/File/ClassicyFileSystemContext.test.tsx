@@ -1,13 +1,19 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	dispatch,
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import {
+	getClassicyFileSystemAdapters,
+	registerClassicyFileSystemAdapter,
+	unregisterClassicyFileSystemAdapter,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileSystemAdapter";
+import {
 	ClassicyDefaultFileSystemContext,
+	resetClassicyFileSystemReconciliation,
 	useClassicyFileSystem,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
 import {
@@ -273,5 +279,66 @@ describe("useClassicyFileSystem Extensions overlay", () => {
 			JSON.parse(persisted as string)["Macintosh HD"]["System Folder"]
 				.Extensions,
 		).toBeUndefined();
+	});
+});
+
+describe("useClassicyFileSystem sync integration", () => {
+	afterEach(() => {
+		for (const adapter of getClassicyFileSystemAdapters()) {
+			unregisterClassicyFileSystemAdapter(adapter.id);
+		}
+		resetClassicyFileSystemReconciliation();
+	});
+
+	it("rebuilds the filesystem when fsVersion is bumped", () => {
+		const { result } = renderHook(() =>
+			useClassicyFileSystem("test-fs-version-rebuild"),
+		);
+		const first = result.current;
+		act(() => {
+			dispatch({ type: "ClassicyDesktopFileSystemVersionBump" });
+		});
+		expect(result.current).not.toBe(first);
+	});
+
+	it("adopts a replacement tree from an adapter reconcile at boot", async () => {
+		registerClassicyFileSystemAdapter({
+			id: "test-reconcile-hook",
+			reconcile: async () => ({
+				action: "replace",
+				tree: {
+					_type: ClassicyFileSystemEntryFileType.Directory,
+					"Macintosh HD": {
+						_type: ClassicyFileSystemEntryFileType.Drive,
+						"FromRemote.txt": {
+							_type: ClassicyFileSystemEntryFileType.TextFile,
+							_data: "remote",
+						},
+					},
+				},
+			}),
+		});
+		const { result } = renderHook(() =>
+			useClassicyFileSystem("test-reconcile-hook-key"),
+		);
+		await waitFor(() => {
+			expect(result.current.resolve("Macintosh HD:FromRemote.txt")?._data).toBe(
+				"remote",
+			);
+		});
+	});
+
+	it("runs reconciliation only once per storageKey across rebuilds", async () => {
+		const reconcile = vi.fn(async () => ({ action: "useLocal" as const }));
+		registerClassicyFileSystemAdapter({ id: "test-once", reconcile });
+		renderHook(() => useClassicyFileSystem("test-reconcile-once"));
+		await waitFor(() => {
+			expect(reconcile).toHaveBeenCalledTimes(1);
+		});
+		act(() => {
+			dispatch({ type: "ClassicyDesktopFileSystemVersionBump" });
+		});
+		await new Promise((resolve) => setTimeout(resolve, 20));
+		expect(reconcile).toHaveBeenCalledTimes(1);
 	});
 });
