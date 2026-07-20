@@ -172,3 +172,106 @@ describe("journal notifications", () => {
 		expect(received).toContain("mkdir");
 	});
 });
+
+describe("debounced persist + snapshot", () => {
+	it("N rapid writes produce N onChange calls but one persist and one onSnapshot", () => {
+		vi.useFakeTimers();
+		const changes: string[] = [];
+		const snapshots: unknown[] = [];
+		registerClassicyFileSystemAdapter({
+			id: "burst",
+			onChange: (entry) => {
+				changes.push(entry.op);
+			},
+			onSnapshot: (snapshot) => {
+				snapshots.push(snapshot);
+			},
+		});
+		const cfs = new ClassicyFileSystem("test-debounce", seedTree());
+		const setItemSpy = vi.spyOn(Storage.prototype, "setItem");
+		cfs.mkDir("Macintosh HD:One");
+		cfs.mkDir("Macintosh HD:Two");
+		cfs.mkDir("Macintosh HD:Three");
+		expect(changes).toHaveLength(3);
+		expect(snapshots).toHaveLength(0);
+
+		vi.advanceTimersByTime(500);
+		expect(snapshots).toHaveLength(1);
+		const treeWrites = setItemSpy.mock.calls.filter(
+			([key]) => key === "test-debounce",
+		);
+		expect(treeWrites).toHaveLength(1);
+	});
+
+	it("snapshot payload carries the tree, a sha256 hash, the last seq, and the storageKey", () => {
+		vi.useFakeTimers();
+		const snapshots: Array<{
+			tree: Record<string, unknown>;
+			hash: string;
+			seq: number;
+			storageKey: string;
+		}> = [];
+		registerClassicyFileSystemAdapter({
+			id: "inspect",
+			onSnapshot: (snapshot) => {
+				snapshots.push(snapshot);
+			},
+		});
+		const cfs = new ClassicyFileSystem("test-snapshot-payload", seedTree());
+		cfs.writeFile("Macintosh HD:Documents:Read Me.txt", "updated");
+		vi.advanceTimersByTime(500);
+
+		expect(snapshots).toHaveLength(1);
+		const snap = snapshots[0];
+		expect(snap.storageKey).toBe("test-snapshot-payload");
+		expect(snap.hash).toMatch(/^[0-9a-f]{64}$/);
+		expect(snap.seq).toBeGreaterThan(0);
+		expect(
+			(snap.tree["Macintosh HD"] as Record<string, Record<string, unknown>>)
+				.Documents["Read Me.txt"],
+		).toBe("updated");
+	});
+
+	it("honors a custom snapshotDebounceMs", () => {
+		vi.useFakeTimers();
+		const snapshots: unknown[] = [];
+		registerClassicyFileSystemAdapter(
+			{
+				id: "fast",
+				onSnapshot: (snapshot) => {
+					snapshots.push(snapshot);
+				},
+			},
+			{ snapshotDebounceMs: 50 },
+		);
+		const cfs = new ClassicyFileSystem("test-debounce-custom", seedTree());
+		cfs.mkDir("Macintosh HD:Quick");
+		vi.advanceTimersByTime(50);
+		expect(snapshots).toHaveLength(1);
+	});
+
+	it("pagehide flushes a pending persist synchronously", () => {
+		vi.useFakeTimers();
+		const snapshots: unknown[] = [];
+		registerClassicyFileSystemAdapter({
+			id: "pagehide",
+			onSnapshot: (snapshot) => {
+				snapshots.push(snapshot);
+			},
+		});
+		const cfs = new ClassicyFileSystem("test-pagehide", seedTree());
+		cfs.mkDir("Macintosh HD:AlmostLost");
+		expect(snapshots).toHaveLength(0);
+
+		window.dispatchEvent(new Event("pagehide"));
+		expect(snapshots).toHaveLength(1);
+		expect(
+			JSON.parse(localStorage.getItem("test-pagehide") ?? "{}")["Macintosh HD"]
+				.AlmostLost,
+		).toBeDefined();
+
+		// The flush consumed the pending entry — the timer must not double-fire.
+		vi.advanceTimersByTime(500);
+		expect(snapshots).toHaveLength(1);
+	});
+});

@@ -3,8 +3,12 @@ import { bytesToHex } from "@noble/hashes/utils.js";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import {
 	type ClassicyFileSystemJournalEntry,
+	type ClassicyFileSystemSnapshot,
 	getClassicyFileSystemAdapters,
+	getClassicyFileSystemSnapshotDebounceMs,
 	invokeClassicyFileSystemAdapterHook,
+	registerClassicyFileSystemPendingFlush,
+	unregisterClassicyFileSystemPendingFlush,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemAdapter";
 import {
 	type ClassicyFileSystemEntry,
@@ -34,6 +38,7 @@ export class ClassicyFileSystem {
 	fs: ClassicyFileSystemEntry;
 	separator: string;
 	private seq: number = 0;
+	private flushTimer: ReturnType<typeof setTimeout> | null = null;
 
 	constructor(
 		storageKey: string = "classicyStorage",
@@ -134,6 +139,7 @@ export class ClassicyFileSystem {
 		for (const adapter of getClassicyFileSystemAdapters()) {
 			invokeClassicyFileSystemAdapterHook(adapter, "onChange", entry);
 		}
+		this.scheduleFlush();
 	}
 
 	/**
@@ -158,6 +164,46 @@ export class ClassicyFileSystem {
 	 */
 	applyDerivedTree(tree: ClassicyFileSystemEntry) {
 		this.fs = tree;
+	}
+
+	private scheduleFlush() {
+		if (this.flushTimer !== null) {
+			clearTimeout(this.flushTimer);
+		}
+		this.flushTimer = setTimeout(
+			this.flushNow,
+			getClassicyFileSystemSnapshotDebounceMs(),
+		);
+		registerClassicyFileSystemPendingFlush(this.flushNow);
+	}
+
+	/**
+	 * Persist to localStorage and deliver onSnapshot immediately, cancelling any
+	 * pending debounce. Arrow property so pagehide can call it detached.
+	 */
+	flushNow = () => {
+		if (this.flushTimer !== null) {
+			clearTimeout(this.flushTimer);
+			this.flushTimer = null;
+		}
+		unregisterClassicyFileSystemPendingFlush(this.flushNow);
+		this.persist();
+		const snapshot = this.buildSnapshot();
+		for (const adapter of getClassicyFileSystemAdapters()) {
+			invokeClassicyFileSystemAdapterHook(adapter, "onSnapshot", snapshot);
+		}
+	};
+
+	/** Deep-copied tree + sha256 hash + seq — the consistency envelope. */
+	buildSnapshot(): ClassicyFileSystemSnapshot {
+		const serialized = this.snapshot();
+		return {
+			tree: JSON.parse(serialized) as ClassicyFileSystemEntry,
+			hash: bytesToHex(sha256(new TextEncoder().encode(serialized))),
+			seq: this.seq,
+			storageKey: this.storageKey,
+			timestamp: new Date().toISOString(),
+		};
 	}
 
 	pathArray = (path: string) => {
