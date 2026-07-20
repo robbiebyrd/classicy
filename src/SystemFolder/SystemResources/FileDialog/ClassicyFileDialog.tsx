@@ -524,7 +524,7 @@ export const ClassicyFileDialog: FunctionalComponent<
 					alertType={"caution"}
 					movable={true}
 					title={"Save"}
-					label={`Replace "${replacePrompt}"?`}
+					label={`Replace “${replacePrompt}”?`}
 					message={
 						"An item with this name already exists in this location. Replacing it will overwrite its contents."
 					}
