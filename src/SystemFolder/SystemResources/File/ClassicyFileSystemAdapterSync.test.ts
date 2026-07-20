@@ -275,3 +275,92 @@ describe("debounced persist + snapshot", () => {
 		expect(snapshots).toHaveLength(1);
 	});
 });
+
+describe("reconcileWithAdapters", () => {
+	const remoteTree = () => ({
+		_type: "directory",
+		"Macintosh HD": {
+			_type: ClassicyFileSystemEntryFileType.Drive,
+			"FromRemote.txt": {
+				_type: ClassicyFileSystemEntryFileType.TextFile,
+				_data: "remote wins",
+			},
+		},
+	});
+
+	it("returns false and keeps local when the adapter says useLocal", async () => {
+		registerClassicyFileSystemAdapter({
+			id: "local-wins",
+			reconcile: async () => ({ action: "useLocal" }),
+		});
+		const cfs = new ClassicyFileSystem("test-reconcile-local", seedTree());
+		await expect(cfs.reconcileWithAdapters()).resolves.toBe(false);
+		expect(cfs.resolve("Macintosh HD:Documents:Read Me.txt")).toBeDefined();
+	});
+
+	it("returns true, replaces the tree, and persists when the adapter says replace", async () => {
+		registerClassicyFileSystemAdapter({
+			id: "remote-wins",
+			reconcile: async () => ({ action: "replace", tree: remoteTree() }),
+		});
+		const cfs = new ClassicyFileSystem("test-reconcile-replace", seedTree());
+		await expect(cfs.reconcileWithAdapters()).resolves.toBe(true);
+		expect(cfs.resolve("Macintosh HD:FromRemote.txt")._data).toBe(
+			"remote wins",
+		);
+		expect(cfs.resolve("Macintosh HD:Documents")).toBeUndefined();
+		const persisted = JSON.parse(
+			localStorage.getItem("test-reconcile-replace") ?? "{}",
+		);
+		expect(persisted["Macintosh HD"]["FromRemote.txt"]._data).toBe(
+			"remote wins",
+		);
+	});
+
+	it("rejects an invalid replacement tree and keeps local", async () => {
+		const errorSpy = vi
+			.spyOn(console, "error")
+			.mockImplementation(() => undefined);
+		registerClassicyFileSystemAdapter({
+			id: "invalid-remote",
+			reconcile: async () => ({
+				action: "replace",
+				// biome-ignore lint/suspicious/noExplicitAny: intentionally malformed
+				tree: {} as any,
+			}),
+		});
+		const cfs = new ClassicyFileSystem("test-reconcile-invalid", seedTree());
+		await expect(cfs.reconcileWithAdapters()).resolves.toBe(false);
+		expect(cfs.resolve("Macintosh HD:Documents:Read Me.txt")).toBeDefined();
+		expect(errorSpy).toHaveBeenCalled();
+	});
+
+	it("degrades to local when reconcile rejects", async () => {
+		vi.spyOn(console, "error").mockImplementation(() => undefined);
+		registerClassicyFileSystemAdapter({
+			id: "broken",
+			reconcile: async () => {
+				throw new Error("network down");
+			},
+		});
+		const cfs = new ClassicyFileSystem("test-reconcile-reject", seedTree());
+		await expect(cfs.reconcileWithAdapters()).resolves.toBe(false);
+	});
+
+	it("first replace wins — later reconcilers are not consulted", async () => {
+		const secondReconcile = vi.fn(async () => ({
+			action: "useLocal" as const,
+		}));
+		registerClassicyFileSystemAdapter({
+			id: "first",
+			reconcile: async () => ({ action: "replace", tree: remoteTree() }),
+		});
+		registerClassicyFileSystemAdapter({
+			id: "second",
+			reconcile: secondReconcile,
+		});
+		const cfs = new ClassicyFileSystem("test-reconcile-order", seedTree());
+		await expect(cfs.reconcileWithAdapters()).resolves.toBe(true);
+		expect(secondReconcile).not.toHaveBeenCalled();
+	});
+});

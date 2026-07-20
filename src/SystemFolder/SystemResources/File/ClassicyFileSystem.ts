@@ -206,6 +206,39 @@ export class ClassicyFileSystem {
 		};
 	}
 
+	/**
+	 * Two-way boot sync: offer the local snapshot to each adapter implementing
+	 * reconcile (registration order). The first 'replace' verdict wins: the
+	 * validated tree is loaded, journaled as 'load', and flushed immediately.
+	 * Returns true iff the tree was replaced. Errors and invalid trees degrade
+	 * to keeping local — localStorage stays primary.
+	 */
+	async reconcileWithAdapters(): Promise<boolean> {
+		const local = this.buildSnapshot();
+		for (const adapter of getClassicyFileSystemAdapters()) {
+			if (!adapter.reconcile) continue;
+			try {
+				const result = await adapter.reconcile(local);
+				if (result?.action !== "replace") continue;
+				if (!isValidFileSystemEntry(result.tree)) {
+					console.error(
+						`[ClassicyFileSystem] adapter "${adapter.id}" reconcile returned an invalid tree; keeping local`,
+					);
+					continue;
+				}
+				this.load(JSON.stringify(result.tree));
+				this.flushNow();
+				return true;
+			} catch (error) {
+				console.error(
+					`[ClassicyFileSystem] adapter "${adapter.id}" failed in reconcile`,
+					error,
+				);
+			}
+		}
+		return false;
+	}
+
 	pathArray = (path: string) => {
 		return [...path.split(this.separator)].filter((v) => v !== "");
 	};
