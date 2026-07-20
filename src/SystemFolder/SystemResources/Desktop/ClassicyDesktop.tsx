@@ -40,6 +40,7 @@ import {
 } from "react";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
+import { ClassicyDefaultParadeIcons } from "@/SystemFolder/SystemResources/Boot/ClassicyDefaultParadeIcons";
 import { ClassicyDesktopIcon } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIcon";
 import {
 	type ArrowDirection,
@@ -133,6 +134,14 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 			},
 			kind: "trash",
 		});
+	}, [desktopEventDispatch]);
+
+	// Register the classic extension icons in the boot parade on mount.
+	// Adds dedup by id, so a remount never duplicates entries.
+	useEffect(() => {
+		for (const entry of ClassicyDefaultParadeIcons) {
+			desktopEventDispatch({ type: "ClassicyBootParadeIconAdd", ...entry });
+		}
 	}, [desktopEventDispatch]);
 
 	// Load themes on mount if not already loaded

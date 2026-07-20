@@ -39,9 +39,9 @@ export type ClassicyIconMap = Record<
  * // ClassicyIcons['myApp']['icon']  — also works at runtime
  * ```
  */
-export function registerClassicyIcons<T extends Record<string, ClassicyIconMap>>(
-	icons: T,
-): T {
+export function registerClassicyIcons<
+	T extends Record<string, ClassicyIconMap>,
+>(icons: T): T {
 	Object.assign(ClassicyIcons as Record<string, unknown>, icons);
 	return icons;
 }
@@ -308,6 +308,19 @@ export const ClassicyIcons = {
 			networkDrive: icon("system/drives/network-drive.png"),
 			raid: icon("system/drives/raid.png"),
 			rom: icon("system/drives/rom.png"),
+		},
+		extensions: {
+			appleGuide: icon("system/extensions/apple-guide.png"),
+			appleShare: icon("system/extensions/apple-share.png"),
+			appleVision: icon("system/extensions/apple-vision.png"),
+			contextMenus: icon("system/extensions/context-menus.png"),
+			dateAndTime: icon("system/extensions/date-and-time.png"),
+			ethernet: icon("system/extensions/ethernet.png"),
+			fmRadio: icon("system/extensions/fm-radio.png"),
+			quickdraw: icon("system/extensions/quickdraw.png"),
+			quicktime: icon("system/extensions/quicktime.png"),
+			quicktimeMpeg: icon("system/extensions/quicktime-mpeg.png"),
+			soundManager: icon("system/extensions/sound-manager.png"),
 		},
 		files: {
 			_1292: icon("system/files/129 2.png"),

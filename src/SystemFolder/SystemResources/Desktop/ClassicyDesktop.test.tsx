@@ -114,3 +114,54 @@ describe("ClassicyDesktop startup screen", () => {
 		vi.unstubAllGlobals();
 	});
 });
+
+describe("ClassicyDesktop default parade icons", () => {
+	beforeEach(() => {
+		localStorage.clear();
+		sessionStorage.clear();
+		useAppManager.setState(DefaultAppManagerState, true);
+	});
+
+	it("registers the classic extension icons in the boot parade on mount", () => {
+		render(
+			<ClassicyAppManagerProvider>
+				<ClassicyDesktop />
+			</ClassicyAppManagerProvider>,
+		);
+		const paradeIcons =
+			useAppManager.getState().System.Manager.Boot.paradeIcons;
+		expect(paradeIcons.map((entry) => entry.name)).toEqual([
+			"Apple Guide",
+			"AppleShare",
+			"Apple Vision",
+			"Ethernet",
+			"FM Radio",
+			"Date and Time",
+			"Contextual Menus",
+			"QuickDraw",
+			"QuickTime",
+			"QuickTime MPEG",
+			"Sound Manager",
+		]);
+		for (const entry of paradeIcons) {
+			expect(entry.icon).toBeTruthy();
+		}
+	});
+
+	it("does not duplicate parade entries when the desktop remounts", () => {
+		const { unmount } = render(
+			<ClassicyAppManagerProvider>
+				<ClassicyDesktop />
+			</ClassicyAppManagerProvider>,
+		);
+		unmount();
+		render(
+			<ClassicyAppManagerProvider>
+				<ClassicyDesktop />
+			</ClassicyAppManagerProvider>,
+		);
+		expect(
+			useAppManager.getState().System.Manager.Boot.paradeIcons,
+		).toHaveLength(11);
+	});
+});
