@@ -120,6 +120,32 @@ Right-click menus resolve target-based, innermost wins: a `ClassicyContextualMen
 - If neither a window nor its app defines a menu, right-click shows nothing (the native browser menu stays suppressed inside the desktop).
 - Right-clicking a window focuses it first, so the active menu always tracks focus.
 
+### File System Sync Adapters
+
+`ClassicyFileSystem` is browser-local (localStorage-primary), but consumers can
+mirror it to a backend by registering an adapter at app entry
+(`src/SystemFolder/SystemResources/File/ClassicyFileSystemAdapter.ts`):
+
+```ts
+registerClassicyFileSystemAdapter({
+    id: 'my-backend',
+    onChange: (entry) => {},          // journal mode: every mutation, sequenced
+    onSnapshot: (snapshot) => {},     // snapshot mode: debounced full tree + sha256 hash
+    reconcile: async (local) => ({ action: 'useLocal' }),  // two-way boot sync
+}, { snapshotDebounceMs: 500 })
+```
+
+All methods are optional (capability-based). Every mutation flows through
+`writeFile`/`mkDir`/`rmDir`/`load`/`setMetadata` — never mutate `fs.fs` or
+entries directly; use `fs.setMetadata(path, patch)` for metadata changes.
+Snapshots carry a sha256 hash and a persisted monotonic `seq` for drift/gap
+detection. At boot, `reconcile` may return
+`{ action: 'replace', tree }` to adopt a remote tree (validated, persisted,
+then rebuilt via the store's `fsVersion` bump); errors always degrade to
+local-wins. Derived folders (Applications, Extensions) are applied via
+`applyDerivedTree()` and never journal. Design spec:
+`docs/superpowers/specs/2026-07-20-filesystem-adapter-design.md`.
+
 ### Theming
 
 Themes are JSON-based (`src/SystemFolder/ControlPanels/AppearanceManager/styles/themes.json`) and control:
