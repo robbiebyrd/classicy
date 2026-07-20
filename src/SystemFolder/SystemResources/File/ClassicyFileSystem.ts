@@ -2,6 +2,11 @@ import { sha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex } from "@noble/hashes/utils.js";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import {
+	type ClassicyFileSystemJournalEntry,
+	getClassicyFileSystemAdapters,
+	invokeClassicyFileSystemAdapterHook,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileSystemAdapter";
+import {
 	type ClassicyFileSystemEntry,
 	ClassicyFileSystemEntryFileType,
 	type ClassicyFileSystemEntryMetadata,
@@ -28,6 +33,7 @@ export class ClassicyFileSystem {
 	storageKey: string;
 	fs: ClassicyFileSystemEntry;
 	separator: string;
+	private seq: number = 0;
 
 	constructor(
 		storageKey: string = "classicyStorage",
@@ -59,19 +65,21 @@ export class ClassicyFileSystem {
 
 		this.separator = separator;
 		try {
-			localStorage.setItem(this.storageKey, this.snapshot());
-		} catch (error) {
-			console.error(
-				"[ClassicyFileSystem] Failed to persist initial filesystem to localStorage.",
-				error,
-			);
+			const storedSeq = Number(localStorage.getItem(`${this.storageKey}:seq`));
+			if (Number.isFinite(storedSeq) && storedSeq > 0) {
+				this.seq = storedSeq;
+			}
+		} catch {
+			// non-browser environment — seq stays in-memory
 		}
+		this.persist();
 	}
 
 	load(data: string) {
 		try {
 			const parsed = JSON.parse(data) as ClassicyFileSystemEntry;
 			this.fs = parsed;
+			this.notifyMutation("load", "");
 		} catch (error) {
 			console.error(
 				"[ClassicyFileSystem] Failed to parse data in load()",
@@ -83,6 +91,73 @@ export class ClassicyFileSystem {
 
 	snapshot(): string {
 		return JSON.stringify(this.fs, null, 2);
+	}
+
+	/** Centralized localStorage persistence — the only place the tree is written. */
+	persist() {
+		try {
+			localStorage.setItem(this.storageKey, this.snapshot());
+		} catch (error) {
+			console.error(
+				"[ClassicyFileSystem] Failed to persist filesystem to localStorage.",
+				error,
+			);
+		}
+	}
+
+	private nextSeq(): number {
+		this.seq += 1;
+		try {
+			localStorage.setItem(`${this.storageKey}:seq`, String(this.seq));
+		} catch {
+			// non-browser environment — seq stays in-memory
+		}
+		return this.seq;
+	}
+
+	/**
+	 * Journal a mutation: sequence it, deliver to onChange adapters immediately.
+	 * Every mutating method funnels through here — the sync choke point.
+	 */
+	private notifyMutation(
+		op: ClassicyFileSystemJournalEntry["op"],
+		path: string,
+		extra: Pick<ClassicyFileSystemJournalEntry, "data" | "metadata"> = {},
+	) {
+		const entry: ClassicyFileSystemJournalEntry = {
+			seq: this.nextSeq(),
+			op,
+			path,
+			timestamp: new Date().toISOString(),
+			...extra,
+		};
+		for (const adapter of getClassicyFileSystemAdapters()) {
+			invokeClassicyFileSystemAdapterHook(adapter, "onChange", entry);
+		}
+	}
+
+	/**
+	 * Patch an entry's metadata through the journaled mutation path. Returns
+	 * false (journaling nothing) when the path does not resolve.
+	 */
+	setMetadata(
+		path: string,
+		patch: Partial<ClassicyFileSystemEntryMetadata>,
+	): boolean {
+		const entry = this.resolve(path);
+		if (!entry) return false;
+		Object.assign(entry, patch);
+		this.notifyMutation("meta", path, { metadata: patch });
+		return true;
+	}
+
+	/**
+	 * Replace the tree with a derived overlay (Applications / Extensions
+	 * folders). Derived state regenerates from the app store every boot, so
+	 * this intentionally neither journals nor notifies adapters.
+	 */
+	applyDerivedTree(tree: ClassicyFileSystemEntry) {
+		this.fs = tree;
 	}
 
 	pathArray = (path: string) => {
@@ -318,11 +393,14 @@ export class ClassicyFileSystem {
 			this.mkDir(directoryPath.join(":"));
 		}
 
-		return updateObjProp(this.fs, data, path);
+		updateObjProp(this.fs, data, path);
+		this.notifyMutation("write", path, { data });
 	}
 
 	rmDir(path: string) {
-		return this.deletePropertyPath(this.fs, path);
+		const result = this.deletePropertyPath(this.fs, path);
+		this.notifyMutation("rmdir", path);
+		return result;
 	}
 
 	mkDir(path: string) {
@@ -347,6 +425,7 @@ export class ClassicyFileSystem {
 		}
 
 		this.fs = this.deepMerge(current, this.fs);
+		this.notifyMutation("mkdir", path);
 	}
 
 	async calculateSizeDir(
