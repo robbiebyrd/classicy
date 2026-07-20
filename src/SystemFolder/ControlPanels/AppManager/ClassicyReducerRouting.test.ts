@@ -178,6 +178,20 @@ describe("prefix routing: ClassicyDesktop*", () => {
 
 		expect(result.System.Manager.Desktop.disableBalloonHelp).toBe(true);
 	});
+
+	it("ClassicyDesktopFileSystemVersionBump routes to desktop handler — fsVersion increments", () => {
+		const ds = makeStore();
+
+		const once = classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyDesktopFileSystemVersionBump",
+		});
+		expect(once.System.Manager.Desktop.fsVersion).toBe(1);
+
+		const twice = classicyDesktopStateEventReducer(once, {
+			type: "ClassicyDesktopFileSystemVersionBump",
+		});
+		expect(twice.System.Manager.Desktop.fsVersion).toBe(2);
+	});
 });
 
 // ─── ClassicyDesktopIcon* prefix routing ─────────────────────────────────────

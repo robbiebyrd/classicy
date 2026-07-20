@@ -439,6 +439,7 @@ export const DefaultAppManagerState: ClassicyStore = {
 				disableBalloonHelp: false,
 				doubleClickTitleToCollapse: true,
 				errorDialog: null,
+				fsVersion: 0,
 			},
 			Applications: {
 				focusedAppId: "Finder.app",

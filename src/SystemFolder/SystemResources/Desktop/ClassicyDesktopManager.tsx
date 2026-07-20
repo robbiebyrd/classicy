@@ -54,6 +54,9 @@ export interface ClassicyStoreSystemDesktopManager
 	/** Optional app-supplied items appended to the standard Help menu. */
 	helpMenu?: ClassicyMenuItem[];
 	errorDialog?: { title?: string; message: string } | null;
+	/** Bumped when the filesystem tree is replaced out-of-band (adapter
+	 * reconcile) so useClassicyFileSystem rebuilds from localStorage. */
+	fsVersion?: number;
 }
 
 export const classicyDesktopEventHandler = (
@@ -246,6 +249,11 @@ export const classicyDesktopEventHandler = (
 		}
 		case "ClassicyDesktopCloseErrorDialog": {
 			ds.System.Manager.Desktop.errorDialog = null;
+			break;
+		}
+		case "ClassicyDesktopFileSystemVersionBump": {
+			ds.System.Manager.Desktop.fsVersion =
+				(ds.System.Manager.Desktop.fsVersion ?? 0) + 1;
 			break;
 		}
 	}
