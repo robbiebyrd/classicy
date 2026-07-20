@@ -13,6 +13,7 @@ import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/Class
 import "./ClassicyWindow.scss";
 import classNames from "classnames";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	type KeyboardEvent,
 	type MouseEvent,
@@ -153,6 +154,13 @@ interface ClassicyWindowProps {
 	 * magnification/status pop-up). It is hidden while the window is collapsed.
 	 */
 	placard?: ReactNode;
+	/**
+	 * Background color for the window contents area. Accepts any CSS color
+	 * value — hex, rgb()/rgba(), or a `var(--…)` reference. When omitted,
+	 * theme defaults apply (`--color-window-document` for standard windows,
+	 * `--color-window-frame` for modal windows).
+	 */
+	backgroundColor?: string;
 }
 
 export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
@@ -185,6 +193,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	headerVariant = "standard",
 	contentFrame = false,
 	placard,
+	backgroundColor,
 }) => {
 	const icon = iconProp || fileIcon;
 
@@ -1038,6 +1047,13 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 					header ? "classicyWindowContentsWithHeader" : "",
 					ws.collapsed ? "hidden" : "block",
 				)}
+				style={
+					backgroundColor
+						? ({
+								"--classicy-window-contents-bg": backgroundColor,
+							} as CSSProperties)
+						: undefined
+				}
 			>
 				<div
 					className={classNames(

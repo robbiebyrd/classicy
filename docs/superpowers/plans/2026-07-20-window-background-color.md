@@ -28,7 +28,7 @@
 - Consumes: existing `ClassicyWindowProps` and the contents `<div>` in `ClassicyWindow.tsx`.
 - Produces: `backgroundColor?: string` prop on `ClassicyWindow`; CSS custom property `--classicy-window-contents-bg` read by `ClassicyWindow.scss`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `src/SystemFolder/SystemResources/Window/ClassicyWindow.backgroundcolor.test.tsx`. The mock block mirrors `ClassicyWindow.placard.test.tsx` (same store/sound/analytics/cursor/icons/scss mocks):
 
@@ -193,12 +193,12 @@ describe("ClassicyWindow backgroundColor prop", () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `pnpm vitest run src/SystemFolder/SystemResources/Window/ClassicyWindow.backgroundcolor.test.tsx`
 Expected: the four prop tests FAIL (variable is `""`); the omitted-prop test passes (vacuously true before implementation).
 
-- [ ] **Step 3: Implement the prop**
+- [x] **Step 3: Implement the prop**
 
 In `src/SystemFolder/SystemResources/Window/ClassicyWindow.tsx`:
 
@@ -265,12 +265,12 @@ In `src/SystemFolder/SystemResources/Window/ClassicyWindow.scss`, change the thr
   background-color: var(--classicy-window-contents-bg, var(--color-window-frame)) !important;
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `pnpm vitest run src/SystemFolder/SystemResources/Window/ClassicyWindow.backgroundcolor.test.tsx`
 Expected: 5 tests PASS.
 
-- [ ] **Step 5: Run the full suite and lint**
+- [x] **Step 5: Run the full suite and lint**
 
 Run: `pnpm test`
 Expected: 119+ test files pass, 1355 tests (1350 baseline + 5 new), 0 failures.
@@ -278,7 +278,7 @@ Expected: 119+ test files pass, 1355 tests (1350 baseline + 5 new), 0 failures.
 Run: `pnpm lint`
 Expected: no new errors in the touched files (lint only the touched paths if the repo-wide run reports pre-existing drift — see project memory about biome reformatting untouched files).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/SystemFolder/SystemResources/Window/ClassicyWindow.tsx \

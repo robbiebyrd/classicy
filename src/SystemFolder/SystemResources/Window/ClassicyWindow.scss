@@ -360,7 +360,7 @@
     @include appearance.platinumWindowInnerBorder;
     overflow: auto;
     height: calc(100% - (var(--window-control-size) * 1) - var(--window-padding-size) * 1.5);
-    background-color: var(--color-window-document);
+    background-color: var(--classicy-window-contents-bg, var(--color-window-document));
   }
 
   .classicyWindowContentsWithHeader {
@@ -368,7 +368,7 @@
     display: block;
     overflow: auto;
     height: calc(100% - (var(--window-control-size) * 3) - (var(--window-padding-size))) !important;
-    background-color: var(--color-window-document);
+    background-color: var(--classicy-window-contents-bg, var(--color-window-document));
   }
 }
 
@@ -382,7 +382,7 @@
   border: none !important;
   @include appearance.platinumWindowBorder;
   border-top: calc(var(--window-padding-size) / 4) solid var(--color-black) !important;
-  background-color: var(--color-window-frame) !important;
+  background-color: var(--classicy-window-contents-bg, var(--color-window-frame)) !important;
   @include appearance.platinumWindowBoxShadow;
 }
 
