@@ -124,17 +124,18 @@ export function invokeClassicyFileSystemAdapterHook(
 // a single lazily-attached pagehide listener drains the set synchronously.
 // ---------------------------------------------------------------------------
 
-const pendingFlushes = new Set<() => void>();
+const pendingFlushes = new Map<() => void, string>();
 let pagehideListenerAttached = false;
 
 export function registerClassicyFileSystemPendingFlush(
 	flush: () => void,
+	storageKey: string,
 ): void {
-	pendingFlushes.add(flush);
+	pendingFlushes.set(flush, storageKey);
 	if (!pagehideListenerAttached && typeof window !== "undefined") {
 		pagehideListenerAttached = true;
 		window.addEventListener("pagehide", () => {
-			for (const pending of [...pendingFlushes]) {
+			for (const pending of [...pendingFlushes.keys()]) {
 				pending();
 			}
 		});
@@ -145,4 +146,19 @@ export function unregisterClassicyFileSystemPendingFlush(
 	flush: () => void,
 ): void {
 	pendingFlushes.delete(flush);
+}
+
+/**
+ * Run any pending flushes for one storage key. Called by the
+ * ClassicyFileSystem constructor so a rebuilt instance never seeds from
+ * localStorage while a predecessor still holds unpersisted mutations.
+ */
+export function flushClassicyFileSystemPendingForStorageKey(
+	storageKey: string,
+): void {
+	for (const [pending, key] of [...pendingFlushes.entries()]) {
+		if (key === storageKey) {
+			pending();
+		}
+	}
 }

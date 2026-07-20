@@ -124,11 +124,19 @@ export function useClassicyFileSystem(
 	useEffect(() => {
 		if (reconciledStorageKeys.has(fs.storageKey)) return;
 		reconciledStorageKeys.add(fs.storageKey);
-		void fs.reconcileWithAdapters().then((replaced) => {
-			if (replaced) {
-				dispatch({ type: "ClassicyDesktopFileSystemVersionBump" });
-			}
-		});
+		void fs
+			.reconcileWithAdapters()
+			.then((replaced) => {
+				if (replaced) {
+					dispatch({ type: "ClassicyDesktopFileSystemVersionBump" });
+				}
+			})
+			.catch((error) => {
+				console.error(
+					"[ClassicyFileSystem] boot reconciliation failed; keeping local",
+					error,
+				);
+			});
 	}, [fs]);
 
 	return fs;

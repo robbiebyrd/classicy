@@ -171,6 +171,18 @@ describe("journal notifications", () => {
 		expect(cfs.resolve("Macintosh HD:Survives")).toBeDefined();
 		expect(received).toContain("mkdir");
 	});
+
+	it("two live instances sharing a storageKey never journal duplicate seqs", () => {
+		const entries = collectEntries();
+		const a = new ClassicyFileSystem("test-journal-shared-seq", seedTree());
+		const b = new ClassicyFileSystem("test-journal-shared-seq", seedTree());
+		a.mkDir("Macintosh HD:FromA");
+		b.mkDir("Macintosh HD:FromB");
+		a.mkDir("Macintosh HD:FromA2");
+		const seqs = entries.map((e) => e.seq);
+		expect(new Set(seqs).size).toBe(seqs.length);
+		expect(seqs).toEqual([...seqs].sort((x, y) => x - y));
+	});
 });
 
 describe("debounced persist + snapshot", () => {
@@ -273,6 +285,15 @@ describe("debounced persist + snapshot", () => {
 		// The flush consumed the pending entry — the timer must not double-fire.
 		vi.advanceTimersByTime(500);
 		expect(snapshots).toHaveLength(1);
+	});
+
+	it("a rebuild flushes the predecessor's pending mutation before seeding", () => {
+		const cfs = new ClassicyFileSystem("test-rebuild-flush", seedTree());
+		cfs.mkDir("Macintosh HD:AlmostLost");
+		// Rebuild before the 500ms debounce fires — constructor must drain the
+		// predecessor's pending flush, then seed from the updated localStorage.
+		const rebuilt = new ClassicyFileSystem("test-rebuild-flush", seedTree());
+		expect(rebuilt.resolve("Macintosh HD:AlmostLost")).toBeDefined();
 	});
 });
 

@@ -4,6 +4,7 @@ import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/Cl
 import {
 	type ClassicyFileSystemJournalEntry,
 	type ClassicyFileSystemSnapshot,
+	flushClassicyFileSystemPendingForStorageKey,
 	getClassicyFileSystemAdapters,
 	getClassicyFileSystemSnapshotDebounceMs,
 	invokeClassicyFileSystemAdapterHook,
@@ -46,6 +47,10 @@ export class ClassicyFileSystem {
 		defaultFS: any = DefaultFSContent,
 		separator: string = ":",
 	) {
+		// Drain any predecessor instance's pending debounced flush so we never
+		// seed from a localStorage snapshot that is about to be overwritten.
+		flushClassicyFileSystemPendingForStorageKey(storageKey);
+
 		this.storageKey = storageKey;
 		this.fs = defaultFS;
 
@@ -111,7 +116,16 @@ export class ClassicyFileSystem {
 	}
 
 	private nextSeq(): number {
-		this.seq += 1;
+		let stored = 0;
+		try {
+			const parsed = Number(localStorage.getItem(`${this.storageKey}:seq`));
+			if (Number.isFinite(parsed) && parsed > 0) {
+				stored = parsed;
+			}
+		} catch {
+			// non-browser environment — seq stays in-memory
+		}
+		this.seq = Math.max(this.seq, stored) + 1;
 		try {
 			localStorage.setItem(`${this.storageKey}:seq`, String(this.seq));
 		} catch {
@@ -174,7 +188,7 @@ export class ClassicyFileSystem {
 			this.flushNow,
 			getClassicyFileSystemSnapshotDebounceMs(),
 		);
-		registerClassicyFileSystemPendingFlush(this.flushNow);
+		registerClassicyFileSystemPendingFlush(this.flushNow, this.storageKey);
 	}
 
 	/**
