@@ -208,9 +208,7 @@ describe("ClassicyFileSaveDialog", () => {
 		const user = userEvent.setup();
 		const props = makeProps();
 		const vol = makeVolume();
-		renderWithProviders(
-			<ClassicyFileSaveDialog {...props} volumes={[vol]} />,
-		);
+		renderWithProviders(<ClassicyFileSaveDialog {...props} volumes={[vol]} />);
 		await screen.findByText("Documents");
 		await user.type(screen.getByLabelText("Save As:"), "My File");
 		await user.click(screen.getByRole("button", { name: "Save" }));
@@ -232,26 +230,18 @@ describe("ClassicyFileSaveDialog", () => {
 		const user = userEvent.setup();
 		const props = makeProps();
 		const vol = makeVolume();
-		renderWithProviders(
-			<ClassicyFileSaveDialog {...props} volumes={[vol]} />,
-		);
+		renderWithProviders(<ClassicyFileSaveDialog {...props} volumes={[vol]} />);
 		await screen.findByText("Documents");
 		await user.type(screen.getByLabelText("Save As:"), "Deck.stack");
 		await user.click(screen.getByRole("button", { name: "Save" }));
-		expect(vol.write).toHaveBeenCalledWith(
-			[],
-			"Deck.stack",
-			expect.anything(),
-		);
+		expect(vol.write).toHaveBeenCalledWith([], "Deck.stack", expect.anything());
 	});
 
 	it("saves into the selected folder", async () => {
 		const user = userEvent.setup();
 		const props = makeProps();
 		const vol = makeVolume();
-		renderWithProviders(
-			<ClassicyFileSaveDialog {...props} volumes={[vol]} />,
-		);
+		renderWithProviders(<ClassicyFileSaveDialog {...props} volumes={[vol]} />);
 		await user.click(await screen.findByText("Documents"));
 		await user.type(screen.getByLabelText("Save As:"), "My File");
 		await user.click(screen.getByRole("button", { name: "Save" }));
@@ -278,9 +268,7 @@ describe("ClassicyFileSaveDialog", () => {
 		const user = userEvent.setup();
 		const props = makeProps();
 		const vol = makeVolume();
-		renderWithProviders(
-			<ClassicyFileSaveDialog {...props} volumes={[vol]} />,
-		);
+		renderWithProviders(<ClassicyFileSaveDialog {...props} volumes={[vol]} />);
 		await screen.findByText("Documents");
 		await user.type(screen.getByLabelText("Save As:"), "Existing");
 		await user.click(screen.getByRole("button", { name: "Save" }));
@@ -296,9 +284,7 @@ describe("ClassicyFileSaveDialog", () => {
 		expect(props.onSaveFunc).not.toHaveBeenCalled();
 		// Retry, and confirm this time.
 		await user.click(screen.getByRole("button", { name: "Save" }));
-		await user.click(
-			await screen.findByRole("button", { name: "Replace" }),
-		);
+		await user.click(await screen.findByRole("button", { name: "Replace" }));
 		expect(vol.write).toHaveBeenCalledWith(
 			[],
 			"Existing.stack",
@@ -315,9 +301,7 @@ describe("ClassicyFileSaveDialog", () => {
 				throw new Error("disk full");
 			}),
 		});
-		renderWithProviders(
-			<ClassicyFileSaveDialog {...props} volumes={[vol]} />,
-		);
+		renderWithProviders(<ClassicyFileSaveDialog {...props} volumes={[vol]} />);
 		await screen.findByText("Documents");
 		await user.type(screen.getByLabelText("Save As:"), "My File");
 		await user.click(screen.getByRole("button", { name: "Save" }));
@@ -358,9 +342,7 @@ describe("ClassicyFileSaveDialog", () => {
 		const user = userEvent.setup();
 		const props = makeProps();
 		const vol = makeVolume();
-		renderWithProviders(
-			<ClassicyFileSaveDialog {...props} volumes={[vol]} />,
-		);
+		renderWithProviders(<ClassicyFileSaveDialog {...props} volumes={[vol]} />);
 		await screen.findByText("Documents");
 		await user.type(screen.getByLabelText("Save As:"), "My File{Enter}");
 		expect(vol.write).toHaveBeenCalledTimes(1);
