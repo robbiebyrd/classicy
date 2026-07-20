@@ -364,7 +364,7 @@ export class ClassicyFileSystem {
 			obj: Record<string, unknown>,
 			value: string,
 			propPath: string,
-		) => {
+		): boolean => {
 			const [head, ...rest] = propPath.split(":");
 
 			// Prevent prototype pollution via special property names
@@ -374,18 +374,18 @@ export class ClassicyFileSystem {
 				head === "prototype"
 			) {
 				// Abort the write to avoid mutating Object.prototype
-				return;
+				return false;
 			}
 
 			if (rest.length) {
-				updateObjProp(
+				return updateObjProp(
 					obj[head] as Record<string, unknown>,
 					value,
 					rest.join(":"),
 				);
-			} else {
-				obj[head] = value;
 			}
+			obj[head] = value;
+			return true;
 		};
 
 		const directoryPath = path.split(":");
@@ -393,8 +393,10 @@ export class ClassicyFileSystem {
 			this.mkDir(directoryPath.join(":"));
 		}
 
-		updateObjProp(this.fs, data, path);
-		this.notifyMutation("write", path, { data });
+		const writeSucceeded = updateObjProp(this.fs, data, path);
+		if (writeSucceeded) {
+			this.notifyMutation("write", path, { data });
+		}
 	}
 
 	rmDir(path: string) {

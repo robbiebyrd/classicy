@@ -63,6 +63,13 @@ describe("journal notifications", () => {
 		expect(typeof last.timestamp).toBe("string");
 	});
 
+	it("writeFile aborted by the prototype-pollution guard journals nothing", () => {
+		const entries = collectEntries();
+		const cfs = new ClassicyFileSystem("test-journal-proto-guard", seedTree());
+		cfs.writeFile("Macintosh HD:__proto__:x", "payload");
+		expect(entries.filter((e) => e.op === "write")).toHaveLength(0);
+	});
+
 	it("mkDir journals a 'mkdir' entry", () => {
 		const entries = collectEntries();
 		const cfs = new ClassicyFileSystem("test-journal-mkdir", seedTree());
