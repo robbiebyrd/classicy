@@ -82,6 +82,33 @@ vi.mock(
 	}),
 );
 
+let capturedSaveDialogProps:
+	| {
+			open: boolean;
+			defaultFileName?: string;
+			formats: {
+				label: string;
+				extension: string;
+				fileType: string;
+				data: () => string | Promise<string>;
+			}[];
+			onSaveFunc: (saved: unknown) => void;
+			onCancelFunc?: () => void;
+	  }
+	| undefined;
+
+vi.mock(
+	"@/SystemFolder/SystemResources/FileDialog/ClassicyFileSaveDialog",
+	() => ({
+		ClassicyFileSaveDialog: (
+			props: NonNullable<typeof capturedSaveDialogProps>,
+		): null => {
+			capturedSaveDialogProps = props;
+			return null;
+		},
+	}),
+);
+
 import { HyperCard } from "@/SystemFolder/HyperCard/HyperCard";
 
 afterEach(cleanup);
@@ -89,6 +116,7 @@ afterEach(cleanup);
 beforeEach(() => {
 	dispatch.mockClear();
 	capturedOpenDialogProps = undefined;
+	capturedSaveDialogProps = undefined;
 	for (const k of Object.keys(capturedMenus)) {
 		delete capturedMenus[k];
 	}
@@ -166,14 +194,23 @@ function menuItem(
 ):
 	| {
 			id: string;
-			menuChildren?: { id: string; onClickFunc?: () => void }[];
+			title?: string;
+			menuChildren?: {
+				id: string;
+				title?: string;
+				onClickFunc?: () => void;
+			}[];
 			onClickFunc?: () => void;
 	  }
 	| undefined {
 	const top = (
 		menus as {
 			id: string;
-			menuChildren?: { id: string; onClickFunc?: () => void }[];
+			menuChildren?: {
+				id: string;
+				title?: string;
+				onClickFunc?: () => void;
+			}[];
 		}[]
 	).find((m) => m.id === topId);
 	return top?.menuChildren?.find((c) => c.id === childId);
@@ -451,5 +488,56 @@ describe("HyperCard editor integration", () => {
 			stackId: "demo",
 			to: "next",
 		});
+	});
+
+	it("shows Save Stack… while editing and opens the save dialog with the stack format", async () => {
+		mockState = stateWith(makeEdit());
+		render(<HyperCard />);
+		const item = menuItem(capturedMenus.hypercard_main, "file", "save_stack");
+		expect(item?.title).toBe("Save Stack…");
+		act(() => item?.onClickFunc?.());
+		await waitFor(() => expect(capturedSaveDialogProps?.open).toBe(true));
+		expect(capturedSaveDialogProps?.defaultFileName).toBe("Demo");
+		const fmt = capturedSaveDialogProps?.formats[0];
+		expect(fmt).toMatchObject({
+			label: "HyperCard Stack",
+			extension: ".stack",
+			fileType: "stack",
+		});
+		expect(JSON.parse(String(await fmt?.data()))).toMatchObject({
+			name: "Demo",
+		});
+	});
+
+	it("dispatches ClassicyAppHCEditMarkSaved and closes on save", async () => {
+		mockState = stateWith(makeEdit());
+		render(<HyperCard />);
+		act(() =>
+			menuItem(
+				capturedMenus.hypercard_main,
+				"file",
+				"save_stack",
+			)?.onClickFunc?.(),
+		);
+		await waitFor(() => expect(capturedSaveDialogProps?.open).toBe(true));
+		act(() =>
+			capturedSaveDialogProps?.onSaveFunc({
+				volumeId: "desktop",
+				path: [],
+				fileName: "Demo.stack",
+			}),
+		);
+		expect(dispatch).toHaveBeenCalledWith(
+			expect.objectContaining({ type: "ClassicyAppHCEditMarkSaved" }),
+		);
+		await waitFor(() => expect(capturedSaveDialogProps?.open).toBe(false));
+	});
+
+	it("has no Save Stack… item outside edit mode", () => {
+		mockState = stateWith(undefined);
+		render(<HyperCard />);
+		expect(
+			menuItem(capturedMenus.hypercard_main, "file", "save_stack"),
+		).toBeUndefined();
 	});
 });
