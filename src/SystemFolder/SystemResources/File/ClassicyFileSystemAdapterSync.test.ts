@@ -281,7 +281,7 @@ describe("debounced persist + snapshot", () => {
 
 describe("reconcileWithAdapters", () => {
 	const remoteTree = () => ({
-		_type: "directory",
+		_type: ClassicyFileSystemEntryFileType.Directory,
 		"Macintosh HD": {
 			_type: ClassicyFileSystemEntryFileType.Drive,
 			"FromRemote.txt": {
