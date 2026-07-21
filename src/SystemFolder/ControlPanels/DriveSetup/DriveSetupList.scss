@@ -9,26 +9,60 @@
 		margin: 0;
 	}
 
-	&__table {
+	&__tableContainer {
 		border: var(--box-border-size, 2px) inset var(--color-black, #000);
 		background: var(--color-white, #fff);
 		overflow-y: auto;
 		max-height: 180px;
 	}
 
-	&__headRow,
-	&__row {
-		display: grid;
-		grid-template-columns: 2fr 1fr 0.6fr 0.5fr 0.5fr;
-		padding: 2px 6px;
+	&__table {
+		width: 100%;
+		border-collapse: collapse;
+		table-layout: fixed;
+
+		th,
+		td {
+			padding: 2px 6px;
+			text-align: left;
+			overflow: hidden;
+			white-space: nowrap;
+			text-overflow: ellipsis;
+		}
+
+		// Volume Name(s) / Type / Bus / ID / LUN
+		col,
+		th:nth-child(1),
+		td:nth-child(1) {
+			width: 40%;
+		}
+		th:nth-child(2),
+		td:nth-child(2) {
+			width: 24%;
+		}
+		th:nth-child(3),
+		td:nth-child(3) {
+			width: 14%;
+		}
+		th:nth-child(4),
+		td:nth-child(4) {
+			width: 11%;
+		}
+		th:nth-child(5),
+		td:nth-child(5) {
+			width: 11%;
+		}
 	}
 
-	&__headRow {
+	&__head {
 		font-weight: bold;
-		position: sticky;
-		top: 0;
-		background: var(--color-system-2, #ccc);
-		border-bottom: 1px solid var(--color-black, #000);
+
+		th {
+			position: sticky;
+			top: 0;
+			background: var(--color-system-2, #ccc);
+			border-bottom: 1px solid var(--color-black, #000);
+		}
 	}
 
 	&__row {

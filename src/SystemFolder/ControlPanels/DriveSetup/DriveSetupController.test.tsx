@@ -57,6 +57,18 @@ describe("DriveSetupController", () => {
 		expect(spy).not.toHaveBeenCalled();
 	});
 
+	it("shows a 'not connected' alert when sync/backup is requested while disconnected", async () => {
+		render(<DriveSetupController />);
+		dispatch({
+			type: "ClassicyDesktopDriveSetupBackup",
+			drive: "Macintosh HD",
+		});
+		await waitFor(() =>
+			expect(screen.getByText(/not connected/i)).toBeInTheDocument(),
+		);
+		expect(screen.getByText(/no server is configured/i)).toBeInTheDocument();
+	});
+
 	it("runs flushNow on a backup request when connected", async () => {
 		// flushNow is an instance arrow-function field (not a prototype method —
 		// see ClassicyFileSystem.ts), so it can't be prototype-spied directly.
