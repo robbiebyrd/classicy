@@ -15,7 +15,7 @@ import { QuickTimePictureViewer } from "@/SystemFolder/QuickTime/PictureViewer/P
 import { SimpleText } from "@/SystemFolder/SimpleText/SimpleText";
 import { getClassicyAboutWindow } from "@/SystemFolder/SystemResources/AboutWindow/ClassicyAboutWindowUtils";
 import { ClassicyDefaultAppsContext } from "@/SystemFolder/SystemResources/App/ClassicyDefaultAppsContext";
-import { ClassicyStartupScreen } from "@/SystemFolder/SystemResources/Boot/ClassicyStartupScreen";
+import { ClassicyBootSequence } from "@/SystemFolder/SystemResources/Boot/ClassicyBootSequence";
 import { resetStartupScreenSession } from "@/SystemFolder/SystemResources/Boot/ClassicyStartupScreenSession";
 import {
 	ClassicyContextualMenuProvider,
@@ -60,12 +60,14 @@ interface ClassicyDesktopProps {
 	children?: ReactNode;
 	startupScreen?: boolean;
 	startupDuration?: number;
+	preBootScreen?: (powerOn: () => void) => ReactNode;
 }
 
 const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	children,
 	startupScreen = true,
 	startupDuration = 4000,
+	preBootScreen,
 }) => {
 	const [showAbout, setShowAbout] = useState(false);
 	const [showEmptyTrashDialog, setShowEmptyTrashDialog] = useState(false);
@@ -542,7 +544,11 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 				</div>
 			) : null}
 			{children}
-			{startupScreen && <ClassicyStartupScreen duration={startupDuration} />}
+			<ClassicyBootSequence
+				startupScreen={startupScreen}
+				startupDuration={startupDuration}
+				preBootScreen={preBootScreen}
+			/>
 		</div>
 	);
 };
@@ -551,12 +557,14 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 	children,
 	startupScreen,
 	startupDuration,
+	preBootScreen,
 }) => (
 	<ClassicyCrashScreen>
 		<ClassicyContextualMenuProvider>
 			<ClassicyDesktopInner
 				startupScreen={startupScreen}
 				startupDuration={startupDuration}
+				preBootScreen={preBootScreen}
 			>
 				{children}
 			</ClassicyDesktopInner>
