@@ -238,10 +238,13 @@ describe("debounced persist + snapshot", () => {
 		expect(snap.storageKey).toBe("test-snapshot-payload");
 		expect(snap.hash).toMatch(/^[0-9a-f]{64}$/);
 		expect(snap.seq).toBeGreaterThan(0);
-		expect(
-			(snap.tree["Macintosh HD"] as Record<string, Record<string, unknown>>)
-				.Documents["Read Me.txt"],
-		).toBe("updated");
+		const readMe = (
+			snap.tree["Macintosh HD"] as Record<
+				string,
+				Record<string, Record<string, unknown>>
+			>
+		).Documents["Read Me.txt"];
+		expect(readMe._data).toBe("updated");
 	});
 
 	it("honors a custom snapshotDebounceMs", () => {

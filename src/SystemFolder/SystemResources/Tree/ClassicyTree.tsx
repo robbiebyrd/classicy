@@ -58,6 +58,13 @@ export type ClassicyTreeNode = {
 	disabled?: boolean;
 	/** Leaf-only: opt out of selection while staying enabled-looking. Default true. */
 	selectable?: boolean;
+	/**
+	 * Branch-only: single-click fires onSelectNode (like a leaf) instead of
+	 * toggling open/closed; double-click still toggles. Default false, which
+	 * preserves the original click-to-toggle behavior for plain navigation
+	 * trees (e.g. the Open dialog, where folders are never selection targets).
+	 */
+	branchSelectable?: boolean;
 };
 
 type ClassicyTreeProps = {
@@ -167,6 +174,12 @@ const ClassicyTreeNodeItem: FunctionalComponent<ClassicyTreeNodeItemProps> = ({
 		node.selectable !== false &&
 		!node.disabled;
 	const isSelected = !hasChildren && ctx.selectedIds.includes(node.id);
+	const canSelectBranch =
+		hasChildren &&
+		ctx.selectionMode !== "none" &&
+		node.branchSelectable === true &&
+		!node.disabled;
+	const isBranchSelected = hasChildren && ctx.selectedIds.includes(node.id);
 	const leafButtons = node.buttons ?? (node.button ? [node.button] : []);
 
 	const rowInner = (
@@ -210,15 +223,28 @@ const ClassicyTreeNodeItem: FunctionalComponent<ClassicyTreeNodeItemProps> = ({
 					<div
 						role="button"
 						aria-expanded={open}
+						aria-pressed={canSelectBranch ? isBranchSelected : undefined}
 						tabIndex={isTabStop ? 0 : -1}
 						ref={registerRef}
 						className={classNames(
 							"classicyTreeNodeLabelHolder classicyTreeNodeBranch",
 							{
 								classicyTreeNodeDisabled: node.disabled,
+								classicyTreeNodeSelected: canSelectBranch && isBranchSelected,
 							},
 						)}
-						onClick={() => {
+						onClick={(e) => {
+							if (node.disabled) return;
+							// A branch opted into selection (e.g. the Save dialog's
+							// folder-target tree) is picked with a single click;
+							// double-click still expands/collapses it below.
+							if (canSelectBranch) {
+								ctx.onSelectNode?.(node.id, node, e);
+								return;
+							}
+							ctx.toggle(node.id);
+						}}
+						onDoubleClick={() => {
 							if (!node.disabled) ctx.toggle(node.id);
 						}}
 						onFocus={onFocus}
@@ -477,8 +503,16 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 				case " ": {
 					if (!current) return;
 					if (current.hasChildren) {
-						if (!current.node.disabled) {
-							e.preventDefault();
+						if (current.node.disabled) return;
+						// Mirror the click handler: a selectable branch is picked
+						// with Enter/Space rather than toggled.
+						const canSelectBranch =
+							selectionMode !== "none" &&
+							current.node.branchSelectable === true;
+						e.preventDefault();
+						if (canSelectBranch) {
+							onSelectNode?.(current.id, current.node, e);
+						} else {
 							toggle(current.id);
 						}
 						return;

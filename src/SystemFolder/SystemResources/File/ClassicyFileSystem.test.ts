@@ -584,3 +584,78 @@ describe("ClassicyFileSystem.statDir", () => {
 		expect(dir?._size).toBe(5);
 	});
 });
+
+describe("writeFile", () => {
+	const fixture = () => ({
+		"Macintosh HD": {
+			_type: ClassicyFileSystemEntryFileType.Drive,
+			Documents: {
+				_type: ClassicyFileSystemEntryFileType.Directory,
+				"Read Me.txt": {
+					_type: ClassicyFileSystemEntryFileType.TextFile,
+					_data: "original",
+				},
+			},
+		},
+	});
+
+	it("creates a proper file entry with defaults", () => {
+		const fs = new ClassicyFileSystem("writefile-entry-test", fixture());
+		fs.writeFile("Macintosh HD:Documents:New.txt", "hello");
+		const entry = fs.resolve("Macintosh HD:Documents:New.txt");
+		expect(entry._type).toBe(ClassicyFileSystemEntryFileType.TextFile);
+		expect(entry._data).toBe("hello");
+		expect(typeof entry._createdOn).toBe("string");
+		expect(fs.readFile("Macintosh HD:Documents:New.txt")).toBe("hello");
+	});
+
+	it("honors metadata overrides", () => {
+		const fs = new ClassicyFileSystem("writefile-meta-test", fixture());
+		fs.writeFile("Macintosh HD:Documents:Deck.stack", "STACK", {
+			_type: ClassicyFileSystemEntryFileType.Stack,
+			_icon: "stack.png",
+		});
+		const entry = fs.resolve("Macintosh HD:Documents:Deck.stack");
+		expect(entry._type).toBe(ClassicyFileSystemEntryFileType.Stack);
+		expect(entry._icon).toBe("stack.png");
+		expect(entry._data).toBe("STACK");
+	});
+
+	it("replaces an existing entry wholesale", () => {
+		const fs = new ClassicyFileSystem("writefile-replace-test", fixture());
+		fs.writeFile("Macintosh HD:Documents:Read Me.txt", "updated");
+		const entry = fs.resolve("Macintosh HD:Documents:Read Me.txt");
+		expect(entry._data).toBe("updated");
+		expect(entry._type).toBe(ClassicyFileSystemEntryFileType.TextFile);
+	});
+
+	it("creates missing parent folders", () => {
+		const fs = new ClassicyFileSystem("writefile-mkdirp-test", fixture());
+		fs.writeFile("Macintosh HD:Deep:Nested:file.txt", "x");
+		expect(fs.resolve("Macintosh HD:Deep:Nested")._type).toBe("directory");
+		expect(fs.readFile("Macintosh HD:Deep:Nested:file.txt")).toBe("x");
+	});
+
+	it("still refuses prototype-polluting paths", () => {
+		const fs = new ClassicyFileSystem("writefile-proto-test", fixture());
+		fs.writeFile("Macintosh HD:__proto__:x", "payload");
+		expect(({} as Record<string, unknown>).x).toBeUndefined();
+		fs.writeFile("__proto__", "payload");
+		expect(({} as Record<string, unknown>)._data).toBeUndefined();
+	});
+
+	it("returns true on a successful write", () => {
+		const fs = new ClassicyFileSystem("writefile-return-true-test", fixture());
+		expect(fs.writeFile("Macintosh HD:Documents:New.txt", "hello")).toBe(true);
+	});
+
+	it("returns false and writes nothing for a forbidden path segment", () => {
+		const fs = new ClassicyFileSystem("writefile-return-false-test", fixture());
+		expect(fs.writeFile("Macintosh HD:__proto__:x", "payload")).toBe(false);
+	});
+
+	it("returns false and writes nothing for an empty name", () => {
+		const fs = new ClassicyFileSystem("writefile-empty-name-test", fixture());
+		expect(fs.writeFile("", "payload")).toBe(false);
+	});
+});

@@ -21,7 +21,10 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { HyperCardEditorCanvas } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorCanvas";
-import { registerDownloadSaveProvider } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorSave";
+import {
+	registerDownloadSaveProvider,
+	serializeStack,
+} from "@/SystemFolder/HyperCard/Editor/HyperCardEditorSave";
 import type {
 	HCEditState,
 	HyperCardEditorData,
@@ -57,6 +60,7 @@ import { useClassicyFileSystem } from "@/SystemFolder/SystemResources/File/Class
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { desktopVolume } from "@/SystemFolder/SystemResources/FileDialog/ClassicyFileDialogVolume";
 import { ClassicyFileOpenDialog } from "@/SystemFolder/SystemResources/FileDialog/ClassicyFileOpenDialog";
+import { ClassicyFileSaveDialog } from "@/SystemFolder/SystemResources/FileDialog/ClassicyFileSaveDialog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { decompressFromBase64 } from "@/SystemFolder/SystemResources/Utils/base64Compression";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
@@ -83,6 +87,7 @@ export const HyperCard: FunctionalComponent = () => {
 	const player = useSoundDispatch();
 
 	const [savedStacksOpen, setSavedStacksOpen] = useState(false);
+	const [saveStackOpen, setSaveStackOpen] = useState(false);
 
 	const data = useHyperCardData();
 	const activeStackId = data?.activeStackId;
@@ -415,6 +420,15 @@ export const HyperCard: FunctionalComponent = () => {
 									},
 								}))
 						: []),
+					...(activeStackId && edit
+						? [
+								{
+									id: "save_stack",
+									title: "Save Stack…",
+									onClickFunc: () => setSaveStackOpen(true),
+								},
+							]
+						: []),
 					{
 						id: "open_saved",
 						title: "Open Saved Stack…",
@@ -720,6 +734,33 @@ export const HyperCard: FunctionalComponent = () => {
 				}}
 				onCancelFunc={() => setSavedStacksOpen(false)}
 			/>
+
+			{edit && activeStackId ? (
+				<ClassicyFileSaveDialog
+					id={"hypercard_save_stack"}
+					appId={appId}
+					open={saveStackOpen}
+					title={"Save Stack"}
+					volumes={[desktopVolume(fs)]}
+					defaultFileName={edit.draft.name || "Untitled"}
+					formats={[
+						{
+							label: "HyperCard Stack",
+							extension: ".stack",
+							fileType: ClassicyFileSystemEntryFileType.Stack,
+							data: () => serializeStack(edit.draft),
+						},
+					]}
+					onSaveFunc={() => {
+						dispatch({
+							type: "ClassicyAppHCEditMarkSaved",
+							stackId: activeStackId,
+						});
+						setSaveStackOpen(false);
+					}}
+					onCancelFunc={() => setSaveStackOpen(false)}
+				/>
+			) : null}
 
 			{open && activeStackId && runtime?.dialog ? (
 				<HyperCardDialog dialog={runtime.dialog} stackId={activeStackId} />

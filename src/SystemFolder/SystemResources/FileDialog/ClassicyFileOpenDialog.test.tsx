@@ -75,6 +75,8 @@ vi.mock(
 	"@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel.scss",
 	() => ({}),
 );
+vi.mock("@/SystemFolder/SystemResources/Alert/ClassicyAlert.scss", () => ({}));
+vi.mock("@/SystemFolder/SystemResources/Input/ClassicyInput.scss", () => ({}));
 
 function makeVolume(
 	overrides: Partial<ClassicyFileDialogVolume> = {},

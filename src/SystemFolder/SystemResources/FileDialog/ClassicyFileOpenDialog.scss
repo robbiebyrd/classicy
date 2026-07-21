@@ -30,3 +30,18 @@
 	display: flex;
 	margin-left: auto;
 }
+
+.classicyFileDialogNameRow {
+	display: flex;
+	align-items: center;
+	gap: calc(var(--window-padding-size) / 2);
+
+	.classicyInputHolder {
+		flex: 1;
+	}
+}
+
+.classicyFileDialogExtension {
+	white-space: nowrap;
+	user-select: none;
+}
