@@ -17,6 +17,10 @@ export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers
 export * from "./SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeEventHandler";
 export * from "./SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeManager";
 export * from "./SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeManagerUtils";
+export * from "./SystemFolder/ControlPanels/DriveSetup/ClassicyDriveSetup";
+export * from "./SystemFolder/ControlPanels/DriveSetup/ClassicyDriveSetupUtils";
+export * from "./SystemFolder/ControlPanels/DriveSetup/DriveSetupController";
+export * from "./SystemFolder/ControlPanels/DriveSetup/DriveSetupList";
 export * from "./SystemFolder/ControlPanels/SoundManager/ClassicySoundManager";
 export * from "./SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 export * from "./SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerProvider";
