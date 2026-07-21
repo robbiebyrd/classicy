@@ -14,6 +14,7 @@ import {
 	hasDateTime,
 	hasDesktopAppRef,
 	hasDisableBalloonHelp,
+	hasDrive,
 	hasErrorDialogMessage,
 	hasFinderFile,
 	hasFont,
@@ -535,6 +536,18 @@ describe("hasDisableBalloonHelp", () => {
 	it("returns false when disableBalloonHelp is not a boolean", () => {
 		const m: Msg = { type: "X", disableBalloonHelp: 1 };
 		expect(hasDisableBalloonHelp(m)).toBe(false);
+	});
+});
+
+// ─── hasDrive ─────────────────────────────────────────────────────────────────
+
+describe("hasDrive", () => {
+	it("returns true when drive is a string", () => {
+		expect(hasDrive({ type: "X", drive: "Macintosh HD" })).toBe(true);
+	});
+	it("returns false when drive is missing or non-string", () => {
+		expect(hasDrive({ type: "X" })).toBe(false);
+		expect(hasDrive({ type: "X", drive: 1 })).toBe(false);
 	});
 });
 

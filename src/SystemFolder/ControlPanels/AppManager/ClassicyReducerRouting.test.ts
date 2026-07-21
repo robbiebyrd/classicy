@@ -192,6 +192,46 @@ describe("prefix routing: ClassicyDesktop*", () => {
 		});
 		expect(twice.System.Manager.Desktop.fsVersion).toBe(2);
 	});
+
+	it("ClassicyDesktopDriveSetupInitialize records a request and bumps the id", () => {
+		const ds = makeStore();
+		const next = classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyDesktopDriveSetupInitialize",
+			drive: "Macintosh HD",
+		});
+		expect(next.System.Manager.Desktop.driveSetupRequest).toEqual({
+			action: "initialize",
+			drive: "Macintosh HD",
+		});
+		expect(next.System.Manager.Desktop.driveSetupRequestId).toBe(1);
+	});
+
+	it("Sync and Backup set their action and each bump the id", () => {
+		let ds = makeStore();
+		ds = classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyDesktopDriveSetupSync",
+			drive: "Macintosh HD",
+		});
+		expect(ds.System.Manager.Desktop.driveSetupRequest?.action).toBe("sync");
+		ds = classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyDesktopDriveSetupBackup",
+			drive: "Macintosh HD",
+		});
+		expect(ds.System.Manager.Desktop.driveSetupRequest?.action).toBe("backup");
+		expect(ds.System.Manager.Desktop.driveSetupRequestId).toBe(2);
+	});
+
+	it("ClearRequest nulls the pending request", () => {
+		let ds = makeStore();
+		ds = classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyDesktopDriveSetupInitialize",
+			drive: "Macintosh HD",
+		});
+		ds = classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyDesktopDriveSetupClearRequest",
+		});
+		expect(ds.System.Manager.Desktop.driveSetupRequest).toBeNull();
+	});
 });
 
 // ─── ClassicyDesktopIcon* prefix routing ─────────────────────────────────────

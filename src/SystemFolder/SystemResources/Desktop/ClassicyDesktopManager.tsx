@@ -10,6 +10,7 @@ import {
 	hasBackgroundSize,
 	hasDesktopAppRef,
 	hasDisableBalloonHelp,
+	hasDrive,
 	hasErrorDialogMessage,
 	hasFont,
 	hasFontSize,
@@ -57,6 +58,15 @@ export interface ClassicyStoreSystemDesktopManager
 	/** Bumped when the filesystem tree is replaced out-of-band (adapter
 	 * reconcile) so useClassicyFileSystem rebuilds from localStorage. */
 	fsVersion?: number;
+	/** Pending Drive Setup operation requested via a ClassicyDesktopDriveSetup*
+	 * event; consumed and cleared by DriveSetupController. */
+	driveSetupRequest?: {
+		action: "initialize" | "sync" | "backup";
+		drive: string;
+	} | null;
+	/** Bumped on each Drive Setup request so the controller's effect re-fires
+	 * even for a repeated identical request. */
+	driveSetupRequestId?: number;
 }
 
 export const classicyDesktopEventHandler = (
@@ -254,6 +264,28 @@ export const classicyDesktopEventHandler = (
 		case "ClassicyDesktopFileSystemVersionBump": {
 			ds.System.Manager.Desktop.fsVersion =
 				(ds.System.Manager.Desktop.fsVersion ?? 0) + 1;
+			break;
+		}
+		case "ClassicyDesktopDriveSetupInitialize":
+		case "ClassicyDesktopDriveSetupSync":
+		case "ClassicyDesktopDriveSetupBackup": {
+			if (!hasDrive(action)) break;
+			const action_ =
+				action.type === "ClassicyDesktopDriveSetupInitialize"
+					? "initialize"
+					: action.type === "ClassicyDesktopDriveSetupSync"
+						? "sync"
+						: "backup";
+			ds.System.Manager.Desktop.driveSetupRequest = {
+				action: action_,
+				drive: action.drive,
+			};
+			ds.System.Manager.Desktop.driveSetupRequestId =
+				(ds.System.Manager.Desktop.driveSetupRequestId ?? 0) + 1;
+			break;
+		}
+		case "ClassicyDesktopDriveSetupClearRequest": {
+			ds.System.Manager.Desktop.driveSetupRequest = null;
 			break;
 		}
 	}

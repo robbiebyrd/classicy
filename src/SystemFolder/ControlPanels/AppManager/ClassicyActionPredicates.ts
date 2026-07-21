@@ -222,6 +222,11 @@ export function hasDisableBalloonHelp(
 	return typeof m.disableBalloonHelp === "boolean";
 }
 
+/** Action has `drive: string` */
+export function hasDrive(m: Msg): m is Msg & { drive: string } {
+	return typeof m.drive === "string";
+}
+
 /** Action has `message: string` (for error dialogs) */
 export function hasErrorDialogMessage(m: Msg): m is Msg & { message: string } {
 	return typeof m.message === "string";
