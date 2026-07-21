@@ -39,6 +39,26 @@ export function resetClassicyFileSystemReconciliation(storageKey?: string) {
 }
 
 /**
+ * Resolve the effective default filesystem tree from an optional override and
+ * the provider mode. Shared by useClassicyFileSystem and Drive Setup so
+ * "default" means the same thing in both places.
+ */
+export function resolveDefaultFileSystem(
+	defaultFileSystem: ClassicyFileSystemTree | undefined,
+	mode: ClassicyDefaultFileSystemMode,
+): ClassicyFileSystemTree {
+	if (!defaultFileSystem) {
+		return DefaultFSContent as unknown as ClassicyFileSystemTree;
+	}
+	return mode === "exclusive"
+		? defaultFileSystem
+		: (mergeClassicyFileSystemEntries(
+				DefaultFSContent,
+				defaultFileSystem,
+			) as ClassicyFileSystemTree);
+}
+
+/**
  * Constructs a ClassicyFileSystem seeded from the nearest
  * ClassicyAppManagerProvider's defaultFileSystem/defaultFileSystemMode props,
  * falling back to DefaultFSContent when no provider (or no override) is
@@ -80,11 +100,7 @@ export function useClassicyFileSystem(
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: appShortcutsKey and extensionAppsKey are intentional invalidation keys — the icon/app sets are read via getState() so moves/focus don't re-render
 	const fs = useMemo(() => {
-		const resolved = !defaultFileSystem
-			? DefaultFSContent
-			: mode === "exclusive"
-				? defaultFileSystem
-				: mergeClassicyFileSystemEntries(DefaultFSContent, defaultFileSystem);
+		const resolved = resolveDefaultFileSystem(defaultFileSystem, mode);
 		const fs = new ClassicyFileSystem(storageKey, resolved, separator);
 		// Overlay the derived Applications folder after construction so it is
 		// live-only: the constructor's localStorage persist has already run,

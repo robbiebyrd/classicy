@@ -14,6 +14,7 @@ import {
 import {
 	ClassicyDefaultFileSystemContext,
 	resetClassicyFileSystemReconciliation,
+	resolveDefaultFileSystem,
 	useClassicyFileSystem,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
 import {
@@ -340,5 +341,24 @@ describe("useClassicyFileSystem sync integration", () => {
 		});
 		await new Promise((resolve) => setTimeout(resolve, 20));
 		expect(reconcile).toHaveBeenCalledTimes(1);
+	});
+});
+
+describe("resolveDefaultFileSystem", () => {
+	it("returns DefaultFSContent when no override is given", () => {
+		expect(resolveDefaultFileSystem(undefined, "merge")).toBe(DefaultFSContent);
+	});
+
+	it("returns the override verbatim in exclusive mode", () => {
+		const override = { "My Disk": { _type: "drive" } } as never;
+		expect(resolveDefaultFileSystem(override, "exclusive")).toBe(override);
+	});
+
+	it("merges the override onto DefaultFSContent in merge mode", () => {
+		const override = { "My Disk": { _type: "drive" } } as never;
+		const resolved = resolveDefaultFileSystem(override, "merge");
+		// Base drive preserved AND override drive added.
+		expect(resolved["Macintosh HD"]).toBeDefined();
+		expect(resolved["My Disk"]).toBeDefined();
 	});
 });
