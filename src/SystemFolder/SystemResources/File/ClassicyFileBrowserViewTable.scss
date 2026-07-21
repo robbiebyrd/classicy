@@ -122,6 +122,21 @@
   overflow: hidden;
 }
 
+// Leading gutter holding a folder's disclosure triangle. Its left padding grows
+// by --window-control-size per nesting level so disclosed rows step inward.
+.classicyFileBrowserViewTableDisclosure {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  height: 100%;
+}
+
+.classicyFileBrowserViewTableDisclosureTriangle {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
 .classicyFileBrowserViewTableHeaderCellContent {
   display: flex;
   flex-direction: row;

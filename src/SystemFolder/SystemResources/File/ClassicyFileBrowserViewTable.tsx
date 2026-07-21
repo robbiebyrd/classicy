@@ -5,16 +5,31 @@ import {
 import "./ClassicyFileBrowserViewTable.scss";
 import {
 	createColumnHelper,
+	type ExpandedState,
 	flexRender,
 	getCoreRowModel,
+	getExpandedRowModel,
 	getSortedRowModel,
 	useReactTable,
 } from "@tanstack/react-table";
 import classNames from "classnames";
 import type { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
-import type { ClassicyFileSystemEntryMetadata } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import {
+	ClassicyFileSystemEntryFileType,
+	type ClassicyFileSystemEntryMetadata,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import { ClassicyTriangle } from "@/SystemFolder/SystemResources/Triangle/ClassicyTriangle";
 
-const columnHelper = createColumnHelper<ClassicyFileSystemEntryMetadata>();
+/**
+ * A directory-list row. Mirrors the file-system metadata but adds `subRows`,
+ * which is populated only for directories the user has disclosed (expanded) so
+ * the tree is materialized lazily rather than all at once.
+ */
+type FileRow = ClassicyFileSystemEntryMetadata & {
+	subRows?: FileRow[];
+};
+
+const columnHelper = createColumnHelper<FileRow>();
 
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 
@@ -25,6 +40,7 @@ import {
 	type KeyboardEvent,
 	memo,
 	type RefObject,
+	useCallback,
 	useEffect,
 	useMemo,
 	useRef,
@@ -63,6 +79,9 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 			const [sorting, setSorting] = useState<SortingState>([
 				{ id: "_name", desc: false },
 			]);
+			// Which directories are disclosed, keyed by full path. Drives both the
+			// disclosure triangle state and which sub-folders are materialized below.
+			const [expanded, setExpanded] = useState<ExpandedState>({});
 			const containerRef = useRef<HTMLDivElement>(null);
 			const typeBuffer = useRef("");
 			const typeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
@@ -80,21 +99,36 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 				return fileOnClickFunc(`${path}:${filename}`);
 			};
 
-			const [fileList, setFileList] = useState<
-				ClassicyFileSystemEntryMetadata[]
-			>([]);
+			// Folder sizes resolve asynchronously; cache them by path so a rebuild of
+			// the (lazily materialized) tree keeps the sizes we've already computed.
+			const [sizes, setSizes] = useState<Map<string, number>>(new Map());
 
-			useEffect(() => {
-				let cancelled = false;
+			const expandedPaths = useMemo(
+				() =>
+					expanded === true
+						? new Set<string>()
+						: new Set(
+								Object.entries(expanded)
+									.filter(([, open]) => open)
+									.map(([id]) => id),
+							),
+				[expanded],
+			);
 
-				const directoryItems = fs.filterByType(
-					path,
-					undefined,
-					true,
-					hideFilesCreatedAfter,
-				);
-				const entriesWithMetadata = Object.entries(directoryItems).map(
-					([filename, metadata]) => {
+			// Build the currently-visible rows for a directory. A disclosed directory
+			// recursively contributes its children as `subRows`, one depth deeper.
+			const data = useMemo(() => {
+				const buildRows = (dirPath: string): FileRow[] => {
+					// Thread the virtual-clock cutoff through every level so files
+					// "created in the future" stay hidden in disclosed subfolders too.
+					const directoryItems = fs.filterByType(
+						dirPath,
+						undefined,
+						true,
+						hideFilesCreatedAfter,
+					);
+					return Object.entries(directoryItems).map(([filename, metadata]) => {
+						const rowPath = `${dirPath}:${filename}`;
 						const filtered = {} as Record<string, unknown>;
 						for (const [key, value] of Object.entries(metadata)) {
 							if (key.startsWith("_")) {
@@ -102,27 +136,51 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 							}
 						}
 						filtered._name = filename;
-						filtered._path = `${path}:${filename}`;
-						filtered._size =
-							typeof metadata._size === "number" ? metadata._size : undefined;
-						return {
-							filtered: filtered as ClassicyFileSystemEntryMetadata,
-							metadata,
-						};
-					},
-				);
-				const initial = entriesWithMetadata.map(({ filtered }) => filtered);
-				setFileList(initial);
+						filtered._path = rowPath;
+						filtered._size = sizes.has(rowPath)
+							? sizes.get(rowPath)
+							: typeof metadata._size === "number"
+								? metadata._size
+								: undefined;
+						const row = filtered as FileRow;
+						if (
+							metadata._type === ClassicyFileSystemEntryFileType.Directory &&
+							expandedPaths.has(rowPath)
+						) {
+							row.subRows = buildRows(rowPath);
+						}
+						return row;
+					});
+				};
+				return buildRows(path);
+			}, [fs, path, sizes, expandedPaths, hideFilesCreatedAfter]);
 
-				entriesWithMetadata.forEach(({ filtered, metadata }, index) => {
-					if (typeof filtered._size === "number") return;
-					fs.size(metadata).then((resolvedSize) => {
+			// Resolve sizes for any visible row we don't have a size for yet, keyed by
+			// path so newly-disclosed folders pick up their sizes too.
+			useEffect(() => {
+				let cancelled = false;
+				const pending: string[] = [];
+				const collect = (rows: FileRow[]) => {
+					rows.forEach((row) => {
+						if (
+							typeof row._size !== "number" &&
+							row._path &&
+							!sizes.has(row._path)
+						) {
+							pending.push(row._path);
+						}
+						if (row.subRows) collect(row.subRows);
+					});
+				};
+				collect(data);
+
+				pending.forEach((rowPath) => {
+					fs.size(rowPath).then((resolvedSize) => {
 						if (cancelled) return;
-						setFileList((prev) => {
-							const next = [...prev];
-							if (next[index]?._path === filtered._path) {
-								next[index] = { ...next[index], _size: resolvedSize };
-							}
+						setSizes((prev) => {
+							if (prev.has(rowPath)) return prev;
+							const next = new Map(prev);
+							next.set(rowPath, resolvedSize);
 							return next;
 						});
 					});
@@ -131,14 +189,85 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 				return () => {
 					cancelled = true;
 				};
-			}, [path, fs, hideFilesCreatedAfter]);
+			}, [data, fs, sizes]);
+
+			const toggleExpanded = useCallback((rowPath: string) => {
+				setExpanded((prev) => {
+					const prevMap = prev === true ? {} : prev;
+					const next = { ...prevMap };
+					if (next[rowPath]) {
+						delete next[rowPath];
+					} else {
+						next[rowPath] = true;
+					}
+					return next;
+				});
+			}, []);
+
+			// Reserve enough width in the disclosure column for the deepest disclosed
+			// level so the indented triangles are never clipped.
+			const maxDepth = useMemo(() => {
+				let deepest = 0;
+				const walk = (rows: FileRow[], depth: number) => {
+					rows.forEach((row) => {
+						if (depth > deepest) deepest = depth;
+						if (row.subRows) walk(row.subRows, depth + 1);
+					});
+				};
+				walk(data, 0);
+				return deepest;
+			}, [data]);
 
 			const columns = useMemo(
 				() => [
+					columnHelper.display({
+						id: "_disclosure",
+						enableResizing: false,
+						enableSorting: false,
+						size: 28 + maxDepth * 12,
+						header: () => null,
+						cell: ({ row }) => {
+							const isDirectory =
+								row.original._type ===
+								ClassicyFileSystemEntryFileType.Directory;
+							return (
+								<div
+									className={"classicyFileBrowserViewTableDisclosure"}
+									style={{
+										paddingLeft: `calc(var(--window-control-size) * ${row.depth})`,
+									}}
+								>
+									{isDirectory && (
+										// biome-ignore lint/a11y/noStaticElementInteractions: swallows the click so toggling disclosure never doubles as a row selection
+										// biome-ignore lint/a11y/useKeyWithClickEvents: the triangle itself owns keyboard toggling; this wrapper only stops mouse bubbling
+										<span
+											className={
+												"classicyFileBrowserViewTableDisclosureTriangle"
+											}
+											onClick={(e) => e.stopPropagation()}
+										>
+											<ClassicyTriangle
+												direction={"right"}
+												open={expandedPaths.has(row.original._path ?? "")}
+												onToggle={() =>
+													toggleExpanded(row.original._path ?? "")
+												}
+											/>
+										</span>
+									)}
+								</div>
+							);
+						},
+					}),
 					columnHelper.accessor((row) => row._name, {
 						id: "_name",
 						cell: (info) => (
-							<div className={"classicyFileBrowserViewTableRowContainer"}>
+							<div
+								className={"classicyFileBrowserViewTableRowContainer"}
+								style={{
+									paddingLeft: `calc(var(--window-control-size) * ${info.row.depth})`,
+								}}
+							>
 								<img
 									src={
 										info.row.original._icon ||
@@ -180,18 +309,23 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 						enableResizing: true,
 					}),
 				],
-				[fs, iconSize],
+				[fs, iconSize, maxDepth, expandedPaths, toggleExpanded],
 			);
 
 			const table = useReactTable({
-				data: fileList,
+				data,
 				columns,
+				getRowId: (row) => row._path ?? "",
+				getSubRows: (row) => row.subRows,
 				getCoreRowModel: getCoreRowModel(),
 				getSortedRowModel: getSortedRowModel(),
+				getExpandedRowModel: getExpandedRowModel(),
 				state: {
 					sorting,
+					expanded,
 				},
 				onSortingChange: setSorting,
+				onExpandedChange: setExpanded,
 				columnResizeMode: "onChange",
 			});
 
@@ -307,6 +441,9 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 													: "",
 											)}
 											onClick={() => {
+												if (!header.column.getCanSort()) {
+													return;
+												}
 												if (
 													header.column.getIsSorted() === false ||
 													header.column.getIsSorted() === "desc"
