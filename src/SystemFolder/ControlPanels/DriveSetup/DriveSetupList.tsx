@@ -1,4 +1,5 @@
 import "./DriveSetupList.scss";
+import classNames from "classnames";
 import type { FC } from "react";
 import type { DriveRow } from "./ClassicyDriveSetupUtils";
 
@@ -16,36 +17,36 @@ export const DriveSetupList: FC<DriveSetupListProps> = ({
 	return (
 		<div className="driveSetupList">
 			<h2 className="driveSetupList__header">List of Drives</h2>
-			<div className="driveSetupList__table" role="table">
-				<div className="driveSetupList__headRow" role="row">
-					<span role="columnheader">Volume Name(s)</span>
-					<span role="columnheader">Type</span>
-					<span role="columnheader">Bus</span>
-					<span role="columnheader">ID</span>
-					<span role="columnheader">LUN</span>
-				</div>
-				<div className="driveSetupList__body">
-					{drives.map((d) => (
-						// biome-ignore lint/a11y/useKeyWithClickEvents: rows are selectable; keyboard selection handled by parent window focus model
-						<div
-							key={d.name}
-							role="row"
-							aria-selected={selected === d.name}
-							className={
-								selected === d.name
-									? "driveSetupList__row driveSetupList__row--selected"
-									: "driveSetupList__row"
-							}
-							onClick={() => onSelect(d.name)}
-						>
-							<span role="cell">{d.name}</span>
-							<span role="cell">{d.type}</span>
-							<span role="cell">{d.bus}</span>
-							<span role="cell">{d.id}</span>
-							<span role="cell">{d.lun}</span>
-						</div>
-					))}
-				</div>
+			<div className="driveSetupList__tableContainer">
+				<table className="driveSetupList__table">
+					<thead className="driveSetupList__head">
+						<tr>
+							<th>Volume Name(s)</th>
+							<th>Type</th>
+							<th>Bus</th>
+							<th>ID</th>
+							<th>LUN</th>
+						</tr>
+					</thead>
+					<tbody>
+						{drives.map((d) => (
+							<tr
+								key={d.name}
+								aria-selected={selected === d.name}
+								className={classNames("driveSetupList__row", {
+									"driveSetupList__row--selected": selected === d.name,
+								})}
+								onClick={() => onSelect(d.name)}
+							>
+								<td>{d.name}</td>
+								<td>{d.type}</td>
+								<td>{d.bus}</td>
+								<td>{d.id}</td>
+								<td>{d.lun}</td>
+							</tr>
+						))}
+					</tbody>
+				</table>
 			</div>
 		</div>
 	);

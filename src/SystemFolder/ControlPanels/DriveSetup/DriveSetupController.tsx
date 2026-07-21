@@ -47,7 +47,19 @@ export const DriveSetupController: FC = () => {
 			setPendingInitialize(request.drive);
 			return;
 		}
-		if (!isDriveSyncConnected()) return;
+		if (!isDriveSyncConnected()) {
+			// Sync/Backup need a registered filesystem adapter ("logged in").
+			// The window buttons and drive-icon menu items are disabled when
+			// disconnected, but a directly dispatched event can still land here —
+			// tell the user rather than silently doing nothing.
+			setFeedback({
+				label: "Not connected",
+				message:
+					"No server is configured. Log in to sync or back up your files.",
+				type: "stop",
+			});
+			return;
+		}
 		if (request.action === "sync") {
 			void fs
 				.reconcileWithAdapters()

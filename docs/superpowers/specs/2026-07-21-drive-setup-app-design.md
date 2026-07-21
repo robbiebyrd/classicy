@@ -60,6 +60,12 @@ These were resolved during brainstorming:
 - **"Logged in" = adapter registered.** Sync uses `reconcile`-capable behavior
   (`fs.reconcileWithAdapters()`); Backup uses `fs.flushNow()`. Both buttons are
   enabled only when `getClassicyFileSystemAdapters().length > 0`.
+- **App visibility (follow-up).** Drive Setup has no desktop icon but appears in
+  the Apple menu (`addSystemMenu`) and the Applications folder. The latter is
+  achieved with a new `ClassicyApp` `inApplicationsFolder` opt-in: when set with
+  `noDesktopIcon`, the app registers a *hidden* app-shortcut icon that the
+  Applications-folder derivation lists while the desktop filters it out of
+  rendering, keyboard navigation, and grid-slot layout.
 
 ## Architecture
 
@@ -82,7 +88,7 @@ These were resolved during brainstorming:
   - Structure mirrors `ClassicyAppearanceManager`: uses `useClassicyAboutMenu`,
     `useClassicyWindowClose`, and the quit helpers from `ClassicyAppUtils`.
   - The window holds the selected-drive **row highlight** in local `useState`;
-    clicking a button dispatches a `ClassicyDriveSetup*` event with that drive.
+    clicking a button dispatches a `ClassicyDesktopDriveSetup*` event with that drive.
 
 - **`DriveSetupController.tsx`** — always-mounted (not gated by `isAppOpen`), so
   a right-click on a desktop drive icon works even when the window is closed.
@@ -117,8 +123,8 @@ These were resolved during brainstorming:
   - `buildDriveContextMenu(drive, isConnected): ClassicyMenuItem[]` — the shared
     right-click menu, imported by both Drive Setup and Finder. Each item carries
     `event` + `eventData: { drive }` (serializable — required for stored icons):
-    Initialize… → `ClassicyDriveSetupInitialize`, Sync → `ClassicyDriveSetupSync`
-    (`disabled: !isConnected`), Backup → `ClassicyDriveSetupBackup`
+    Initialize… → `ClassicyDesktopDriveSetupInitialize`, Sync → `ClassicyDesktopDriveSetupSync`
+    (`disabled: !isConnected`), Backup → `ClassicyDesktopDriveSetupBackup`
     (`disabled: !isConnected`).
 
 ### DriveRow shape
@@ -164,13 +170,15 @@ a small pending-request field the controller observes:
   "initialize" | "sync" | "backup"; drive: string }`, paired with a
   monotonically incremented `driveSetupRequestId: number` so the controller's
   effect re-fires even for a repeated identical request.
-- New event-reducer cases (prefix `ClassicyDriveSetup*`, routed via a small new
-  handler consistent with the existing prefix-routing table). These are pure
-  state writes — **no** side effects (no reload / async) in the reducer:
-  - `ClassicyDriveSetupInitialize` → set request `{ action: "initialize", drive }`.
-  - `ClassicyDriveSetupSync` → set request `{ action: "sync", drive }`.
-  - `ClassicyDriveSetupBackup` → set request `{ action: "backup", drive }`.
-  - `ClassicyDriveSetupClearRequest` → clear the field (dispatched by the
+- New event-reducer cases handled inside the existing `classicyDesktopEventHandler`.
+  The events are deliberately prefixed `ClassicyDesktopDriveSetup*` so they route
+  through the existing `startsWith("ClassicyDesktop")` branch (they do not start
+  with `ClassicyDesktopIcon`) — no new routing branch or handler is added. These
+  are pure state writes — **no** side effects (no reload / async) in the reducer:
+  - `ClassicyDesktopDriveSetupInitialize` → set request `{ action: "initialize", drive }`.
+  - `ClassicyDesktopDriveSetupSync` → set request `{ action: "sync", drive }`.
+  - `ClassicyDesktopDriveSetupBackup` → set request `{ action: "backup", drive }`.
+  - `ClassicyDesktopDriveSetupClearRequest` → clear the field (dispatched by the
     controller once it has handled a request).
 
 All side effects (reload, async reconcile, flush, dialogs) live in the
@@ -198,7 +206,7 @@ always-on system managers (Appearance, Sound, Date & Time). Its
 
 ## Data Flow
 
-Every action starts by dispatching a `ClassicyDriveSetup*` event carrying the
+Every action starts by dispatching a `ClassicyDesktopDriveSetup*` event carrying the
 target `drive`:
 
 - **In-window buttons** dispatch with the currently highlighted row's drive.
@@ -207,7 +215,7 @@ target `drive`:
 
 The reducer records the request; the always-mounted `DriveSetupController`'s
 effect picks it up, runs the operation below, then dispatches
-`ClassicyDriveSetupClearRequest`.
+`ClassicyDesktopDriveSetupClearRequest`.
 
 Note: **Initialize is per-drive** (uses `drive`); **Sync and Backup are
 filesystem-wide** (`reconcileWithAdapters` / `flushNow` operate on the whole
@@ -274,9 +282,9 @@ Pure-function unit tests:
 
 Reducer tests:
 
-- `ClassicyDriveSetupInitialize/Sync/Backup` set `driveSetupRequest` with the
+- `ClassicyDesktopDriveSetupInitialize/Sync/Backup` set `driveSetupRequest` with the
   right action + drive and bump `driveSetupRequestId`.
-- `ClassicyDriveSetupClearRequest` clears the field.
+- `ClassicyDesktopDriveSetupClearRequest` clears the field.
 
 Component tests (render): list renders one selectable row per drive; selecting a
 row enables `Initialize…`; the controller shows the caution alert on an
