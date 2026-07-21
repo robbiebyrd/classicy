@@ -1,9 +1,9 @@
 import { type FC, useMemo, useState } from "react";
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import {
 	useClassicyAboutMenu,
@@ -18,10 +18,7 @@ import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyBu
 import { useClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
-import {
-	getDriveRows,
-	isDriveSyncConnected,
-} from "./ClassicyDriveSetupUtils";
+import { getDriveRows, isDriveSyncConnected } from "./ClassicyDriveSetupUtils";
 import { DriveSetupController } from "./DriveSetupController";
 import { DriveSetupList } from "./DriveSetupList";
 
@@ -33,7 +30,9 @@ const appIcon = ClassicyIcons.system.drives.disk;
 export const ClassicyDriveSetup: FC = () => {
 	const dispatch = useAppManagerDispatch();
 	const fs = useClassicyFileSystem();
-	const fsVersion = useAppManager((s) => s.System.Manager.Desktop.fsVersion ?? 0);
+	const fsVersion = useAppManager(
+		(s) => s.System.Manager.Desktop.fsVersion ?? 0,
+	);
 
 	const { aboutMenuItem, aboutWindow } = useClassicyAboutMenu(
 		APP_ID,
@@ -55,10 +54,6 @@ export const ClassicyDriveSetup: FC = () => {
 		drive: string,
 	) => {
 		dispatch({ type: `ClassicyDesktopDriveSetup${action}`, drive });
-	};
-
-	const quitApp = () => {
-		dispatch(quitAppHelper(APP_ID, APP_NAME, appIcon));
 	};
 
 	const functionsMenu: ClassicyMenuItem = {

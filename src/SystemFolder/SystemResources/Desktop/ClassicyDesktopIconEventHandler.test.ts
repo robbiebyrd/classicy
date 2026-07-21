@@ -279,6 +279,59 @@ describe("classicyDesktopIconEventHandler — ClassicyDesktopIconAdd", () => {
 
 		expect(ds.System.Manager.Desktop.icons[0].kind).toBe("icon");
 	});
+
+	it("refreshes an existing icon's contextMenu on re-add instead of skipping it", () => {
+		const ds = makeStoreForDesktop();
+
+		// Simulate an icon persisted before the contextMenu feature existed.
+		classicyDesktopIconEventHandler(ds, {
+			type: "ClassicyDesktopIconAdd",
+			app: { id: "Finder.app", name: "Macintosh HD", icon: "drive.png" },
+			kind: "drive",
+		});
+
+		expect(
+			ds.System.Manager.Desktop.icons.find(
+				(i) => i.appId === "Finder.app" && i.appName === "Macintosh HD",
+			)?.contextMenu,
+		).toBeUndefined();
+
+		// Re-add (e.g. Finder re-mounting) now ships a contextMenu.
+		classicyDesktopIconEventHandler(ds, {
+			type: "ClassicyDesktopIconAdd",
+			app: { id: "Finder.app", name: "Macintosh HD", icon: "drive.png" },
+			kind: "drive",
+			contextMenu: [{ id: "x", title: "Initialize…" }],
+		});
+
+		expect(ds.System.Manager.Desktop.icons).toHaveLength(1);
+		const icon = ds.System.Manager.Desktop.icons.find(
+			(i) => i.appId === "Finder.app" && i.appName === "Macintosh HD",
+		);
+		expect(icon?.contextMenu).toEqual([{ id: "x", title: "Initialize…" }]);
+	});
+
+	it("does not wipe an existing contextMenu when re-added without one", () => {
+		const ds = makeStoreForDesktop();
+
+		classicyDesktopIconEventHandler(ds, {
+			type: "ClassicyDesktopIconAdd",
+			app: { id: "Finder.app", name: "Macintosh HD", icon: "drive.png" },
+			kind: "drive",
+			contextMenu: [{ id: "x", title: "Initialize…" }],
+		});
+
+		classicyDesktopIconEventHandler(ds, {
+			type: "ClassicyDesktopIconAdd",
+			app: { id: "Finder.app", name: "Macintosh HD", icon: "drive.png" },
+			kind: "drive",
+		});
+
+		const icon = ds.System.Manager.Desktop.icons.find(
+			(i) => i.appId === "Finder.app" && i.appName === "Macintosh HD",
+		);
+		expect(icon?.contextMenu).toEqual([{ id: "x", title: "Initialize…" }]);
+	});
 });
 
 describe("classicyDesktopIconEventHandler — ClassicyDesktopIconRemove", () => {

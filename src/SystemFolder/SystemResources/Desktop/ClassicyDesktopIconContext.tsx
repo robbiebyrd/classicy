@@ -185,6 +185,18 @@ export const classicyDesktopIconEventHandler = (
 					ds.System.Manager.Appearance.activeTheme,
 					sortDesktopIcons(ds.System.Manager.Desktop.icons, "kind"),
 				);
+			} else if (Array.isArray(action.contextMenu)) {
+				// Refresh the (serializable, code-derived) context menu on an
+				// existing icon so a menu shipped after the icon was first
+				// persisted still attaches on re-add. Location/label/wiring are
+				// intentionally left untouched.
+				const existing = ds.System.Manager.Desktop.icons.find(
+					(i) =>
+						i.appId === action.app.id && i.appName === action.app.name,
+				);
+				if (existing) {
+					existing.contextMenu = action.contextMenu as ClassicyMenuItem[];
+				}
 			}
 			break;
 		}

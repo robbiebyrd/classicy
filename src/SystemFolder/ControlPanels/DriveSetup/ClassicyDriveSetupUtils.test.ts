@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
-import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import {
 	registerClassicyFileSystemAdapter,
 	unregisterClassicyFileSystemAdapter,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemAdapter";
+import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import {
 	buildDriveContextMenu,
 	getDriveRows,
@@ -21,13 +21,24 @@ describe("getDriveRows", () => {
 		const fs = new ClassicyFileSystem("test_rows", tree);
 		const rows = getDriveRows(fs);
 		expect(rows.map((r) => r.name)).toEqual(["Macintosh HD", "Backup Disk"]);
-		expect(rows[0]).toMatchObject({ type: "Macintosh Volume", bus: "ATA", id: "0", lun: "0" });
+		expect(rows[0]).toMatchObject({
+			type: "Macintosh Volume",
+			bus: "ATA",
+			id: "0",
+			lun: "0",
+		});
 		expect(rows[1].id).toBe("1");
 	});
 
 	it("uses metadata overrides when present", () => {
 		const tree = {
-			SCSI0: { _type: "drive", _driveType: "CD-ROM", _bus: "SCSI", _scsiId: "3", _lun: "1" },
+			SCSI0: {
+				_type: "drive",
+				_driveType: "CD-ROM",
+				_bus: "SCSI",
+				_scsiId: "3",
+				_lun: "1",
+			},
 		};
 		const fs = new ClassicyFileSystem("test_rows_meta", tree);
 		expect(getDriveRows(fs)[0]).toMatchObject({
@@ -67,7 +78,9 @@ describe("resetDriveInTree", () => {
 	});
 
 	it("deep-copies the default so later mutation does not leak back", () => {
-		const current = { "Macintosh HD": { _type: ClassicyFileSystemEntryFileType.Drive } };
+		const current = {
+			"Macintosh HD": { _type: ClassicyFileSystemEntryFileType.Drive },
+		};
 		const next = resetDriveInTree(current, "Macintosh HD", resolvedDefault);
 		next["Macintosh HD"].System._type = "changed";
 		expect(resolvedDefault["Macintosh HD"].System._type).toBe("directory");
@@ -82,7 +95,10 @@ describe("resetDriveInTree", () => {
 			},
 		};
 		const next = resetDriveInTree(current, "USB Stick", resolvedDefault);
-		expect(next["USB Stick"]).toEqual({ _type: ClassicyFileSystemEntryFileType.Drive, _icon: "x" });
+		expect(next["USB Stick"]).toEqual({
+			_type: ClassicyFileSystemEntryFileType.Drive,
+			_icon: "x",
+		});
 	});
 });
 
