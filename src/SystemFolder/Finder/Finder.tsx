@@ -13,6 +13,10 @@ import {
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import {
+	buildDriveContextMenu,
+	isDriveSyncConnected,
+} from "@/SystemFolder/ControlPanels/DriveSetup/ClassicyDriveSetupUtils";
+import {
 	isFinderData,
 	type FinderData,
 } from "@/SystemFolder/Finder/FinderContext";
@@ -340,6 +344,7 @@ export const Finder = () => {
 				event: "ClassicyAppFinderOpenFolder",
 				eventData: { path },
 				kind: "drive",
+				contextMenu: buildDriveContextMenu(path, isDriveSyncConnected()),
 			});
 		});
 
