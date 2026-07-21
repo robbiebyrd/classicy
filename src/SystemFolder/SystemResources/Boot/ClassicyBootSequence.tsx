@@ -1,7 +1,10 @@
 import "./ClassicyBootSequence.scss";
 import { type FC as FunctionalComponent, type ReactNode, useState } from "react";
 import { ClassicyStartupScreen } from "@/SystemFolder/SystemResources/Boot/ClassicyStartupScreen";
-import { hasShownStartupScreenThisSession } from "@/SystemFolder/SystemResources/Boot/ClassicyStartupScreenSession";
+import {
+	hasShownStartupScreenThisSession,
+	markStartupScreenShownThisSession,
+} from "@/SystemFolder/SystemResources/Boot/ClassicyStartupScreenSession";
 
 interface ClassicyBootSequenceProps {
 	startupScreen?: boolean;
@@ -27,10 +30,20 @@ export const ClassicyBootSequence: FunctionalComponent<
 			: "startup",
 	);
 
+	const powerOn = () => {
+		// When there is no startup screen to mount, ClassicyStartupScreen never
+		// runs its session-marking effect — so mark it here, or the power-on gate
+		// would replay on every reload (breaking once-per-session).
+		if (!startupScreen) {
+			markStartupScreenShownThisSession();
+		}
+		setPhase("startup");
+	};
+
 	if (phase === "powerOn" && preBootScreen) {
 		return (
 			<div className="classicyPreBootScreen" role="dialog" aria-modal="true">
-				{preBootScreen(() => setPhase("startup"))}
+				{preBootScreen(powerOn)}
 			</div>
 		);
 	}

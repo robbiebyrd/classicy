@@ -118,4 +118,23 @@ describe("ClassicyBootSequence", () => {
 		expect(container.querySelector(".classicyStartupScreen")).toBeNull();
 		expect(mockPlayer).not.toHaveBeenCalled();
 	});
+
+	it("marks the session on POWER ON with startupScreen=false so a reload skips the gate", () => {
+		const { container, unmount } = render(
+			<ClassicyBootSequence startupScreen={false} preBootScreen={powerOnScreen} />,
+		);
+		act(() => {
+			fireEvent.click(screen.getByText("POWER ON"));
+		});
+		// Flag is now persisted for this session.
+		expect(sessionStorage.getItem("classicyStartupScreenShown")).toBe("true");
+		// Simulate a reload within the same tab session: a brand-new mount.
+		unmount();
+		const second = render(
+			<ClassicyBootSequence startupScreen={false} preBootScreen={powerOnScreen} />,
+		);
+		expect(
+			second.container.querySelector(".classicyPreBootScreen"),
+		).toBeNull();
+	});
 });

@@ -60,6 +60,12 @@ interface ClassicyDesktopProps {
 	children?: ReactNode;
 	startupScreen?: boolean;
 	startupDuration?: number;
+	/**
+	 * Optional pre-boot "power on" screen shown before the startup sequence.
+	 * Receives a `powerOn` callback — wire it to your button (e.g. POWER ON);
+	 * calling it dismisses this screen and starts the boot chime + parade.
+	 * Shown once per browser-tab session, like the startup screen.
+	 */
 	preBootScreen?: (powerOn: () => void) => ReactNode;
 }
 

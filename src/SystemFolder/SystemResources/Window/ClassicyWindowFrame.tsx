@@ -6,6 +6,7 @@ interface ClassicyWindowFrameProps {
 	title?: string;
 	children: ReactNode;
 	className?: string;
+	/** Caps the frame's max-width (number → px); content narrower than this stays narrower. */
 	width?: string | number;
 }
 
