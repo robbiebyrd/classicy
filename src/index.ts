@@ -113,6 +113,7 @@ export * from "./SystemFolder/SystemResources/File/ClassicyFileBrowserUtils";
 export * from "./SystemFolder/SystemResources/File/ClassicyFileBrowserViewIcons";
 export * from "./SystemFolder/SystemResources/File/ClassicyFileBrowserViewTable";
 export * from "./SystemFolder/SystemResources/File/ClassicyFileSystem";
+export * from "./SystemFolder/SystemResources/File/ClassicyFileSystemAdapter";
 export * from "./SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
 export * from "./SystemFolder/SystemResources/File/ClassicyFileSystemContentResolver";
 export * from "./SystemFolder/SystemResources/File/ClassicyFileSystemContext";

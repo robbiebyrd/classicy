@@ -2,6 +2,16 @@ import { sha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex } from "@noble/hashes/utils.js";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import {
+	type ClassicyFileSystemJournalEntry,
+	type ClassicyFileSystemSnapshot,
+	flushClassicyFileSystemPendingForStorageKey,
+	getClassicyFileSystemAdapters,
+	getClassicyFileSystemSnapshotDebounceMs,
+	invokeClassicyFileSystemAdapterHook,
+	registerClassicyFileSystemPendingFlush,
+	unregisterClassicyFileSystemPendingFlush,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileSystemAdapter";
+import {
 	type ClassicyFileSystemEntry,
 	ClassicyFileSystemEntryFileType,
 	type ClassicyFileSystemEntryMetadata,
@@ -28,6 +38,8 @@ export class ClassicyFileSystem {
 	storageKey: string;
 	fs: ClassicyFileSystemEntry;
 	separator: string;
+	private seq: number = 0;
+	private flushTimer: ReturnType<typeof setTimeout> | null = null;
 
 	constructor(
 		storageKey: string = "classicyStorage",
@@ -35,6 +47,10 @@ export class ClassicyFileSystem {
 		defaultFS: any = DefaultFSContent,
 		separator: string = ":",
 	) {
+		// Drain any predecessor instance's pending debounced flush so we never
+		// seed from a localStorage snapshot that is about to be overwritten.
+		flushClassicyFileSystemPendingForStorageKey(storageKey);
+
 		this.storageKey = storageKey;
 		this.fs = defaultFS;
 
@@ -59,19 +75,21 @@ export class ClassicyFileSystem {
 
 		this.separator = separator;
 		try {
-			localStorage.setItem(this.storageKey, this.snapshot());
-		} catch (error) {
-			console.error(
-				"[ClassicyFileSystem] Failed to persist initial filesystem to localStorage.",
-				error,
-			);
+			const storedSeq = Number(localStorage.getItem(`${this.storageKey}:seq`));
+			if (Number.isFinite(storedSeq) && storedSeq > 0) {
+				this.seq = storedSeq;
+			}
+		} catch {
+			// non-browser environment — seq stays in-memory
 		}
+		this.persist();
 	}
 
 	load(data: string) {
 		try {
 			const parsed = JSON.parse(data) as ClassicyFileSystemEntry;
 			this.fs = parsed;
+			this.notifyMutation("load", "");
 		} catch (error) {
 			console.error(
 				"[ClassicyFileSystem] Failed to parse data in load()",
@@ -83,6 +101,156 @@ export class ClassicyFileSystem {
 
 	snapshot(): string {
 		return JSON.stringify(this.fs, null, 2);
+	}
+
+	/** Centralized localStorage persistence — the only place the tree is written. */
+	persist() {
+		try {
+			localStorage.setItem(this.storageKey, this.snapshot());
+		} catch (error) {
+			console.error(
+				"[ClassicyFileSystem] Failed to persist filesystem to localStorage.",
+				error,
+			);
+		}
+	}
+
+	private nextSeq(): number {
+		let stored = 0;
+		try {
+			const parsed = Number(localStorage.getItem(`${this.storageKey}:seq`));
+			if (Number.isFinite(parsed) && parsed > 0) {
+				stored = parsed;
+			}
+		} catch {
+			// non-browser environment — seq stays in-memory
+		}
+		this.seq = Math.max(this.seq, stored) + 1;
+		try {
+			localStorage.setItem(`${this.storageKey}:seq`, String(this.seq));
+		} catch {
+			// non-browser environment — seq stays in-memory
+		}
+		return this.seq;
+	}
+
+	/**
+	 * Journal a mutation: sequence it, deliver to onChange adapters immediately.
+	 * Every mutating method funnels through here — the sync choke point.
+	 */
+	private notifyMutation(
+		op: ClassicyFileSystemJournalEntry["op"],
+		path: string,
+		extra: Pick<ClassicyFileSystemJournalEntry, "data" | "metadata"> = {},
+	) {
+		const entry: ClassicyFileSystemJournalEntry = {
+			seq: this.nextSeq(),
+			op,
+			path,
+			timestamp: new Date().toISOString(),
+			...extra,
+		};
+		for (const adapter of getClassicyFileSystemAdapters()) {
+			invokeClassicyFileSystemAdapterHook(adapter, "onChange", entry);
+		}
+		this.scheduleFlush();
+	}
+
+	/**
+	 * Patch an entry's metadata through the journaled mutation path. Returns
+	 * false (journaling nothing) when the path does not resolve.
+	 */
+	setMetadata(
+		path: string,
+		patch: Partial<ClassicyFileSystemEntryMetadata>,
+	): boolean {
+		const entry = this.resolve(path);
+		if (!entry) return false;
+		Object.assign(entry, patch);
+		this.notifyMutation("meta", path, { metadata: patch });
+		return true;
+	}
+
+	/**
+	 * Replace the tree with a derived overlay (Applications / Extensions
+	 * folders). Derived state regenerates from the app store every boot, so
+	 * this intentionally neither journals nor notifies adapters.
+	 */
+	applyDerivedTree(tree: ClassicyFileSystemEntry) {
+		this.fs = tree;
+	}
+
+	private scheduleFlush() {
+		if (this.flushTimer !== null) {
+			clearTimeout(this.flushTimer);
+		}
+		this.flushTimer = setTimeout(
+			this.flushNow,
+			getClassicyFileSystemSnapshotDebounceMs(),
+		);
+		registerClassicyFileSystemPendingFlush(this.flushNow, this.storageKey);
+	}
+
+	/**
+	 * Persist to localStorage and deliver onSnapshot immediately, cancelling any
+	 * pending debounce. Arrow property so pagehide can call it detached.
+	 */
+	flushNow = () => {
+		if (this.flushTimer !== null) {
+			clearTimeout(this.flushTimer);
+			this.flushTimer = null;
+		}
+		unregisterClassicyFileSystemPendingFlush(this.flushNow);
+		this.persist();
+		const snapshot = this.buildSnapshot();
+		for (const adapter of getClassicyFileSystemAdapters()) {
+			invokeClassicyFileSystemAdapterHook(adapter, "onSnapshot", snapshot);
+		}
+	};
+
+	/** Deep-copied tree + sha256 hash + seq — the consistency envelope. */
+	buildSnapshot(): ClassicyFileSystemSnapshot {
+		const serialized = this.snapshot();
+		return {
+			tree: JSON.parse(serialized) as ClassicyFileSystemEntry,
+			hash: bytesToHex(sha256(new TextEncoder().encode(serialized))),
+			seq: this.seq,
+			storageKey: this.storageKey,
+			timestamp: new Date().toISOString(),
+		};
+	}
+
+	/**
+	 * Two-way boot sync: offer the local snapshot to each adapter implementing
+	 * reconcile (registration order). The first 'replace' verdict wins: the
+	 * validated tree is loaded, journaled as 'load', and flushed immediately.
+	 * Returns true iff the tree was replaced. Errors and invalid trees degrade
+	 * to keeping local — localStorage stays primary.
+	 */
+	async reconcileWithAdapters(): Promise<boolean> {
+		const local = this.buildSnapshot();
+		for (const adapter of getClassicyFileSystemAdapters()) {
+			if (!adapter.reconcile) continue;
+			try {
+				const result = await adapter.reconcile(local);
+				if (result?.action !== "replace") continue;
+				if (!isValidFileSystemEntry(result.tree)) {
+					console.error(
+						`[ClassicyFileSystem] adapter "${adapter.id}" reconcile returned an invalid tree; keeping local`,
+					);
+					continue;
+				}
+				this.load(JSON.stringify(result.tree));
+				this.flushNow();
+				return true;
+			} catch (error) {
+				console.error(
+					`[ClassicyFileSystem] adapter "${adapter.id}" failed in reconcile`,
+					error,
+				);
+			}
+		}
+		return false;
 	}
 
 	pathArray = (path: string) => {
@@ -289,7 +457,7 @@ export class ClassicyFileSystem {
 			obj: Record<string, unknown>,
 			value: string,
 			propPath: string,
-		) => {
+		): boolean => {
 			const [head, ...rest] = propPath.split(":");
 
 			// Prevent prototype pollution via special property names
@@ -299,18 +467,18 @@ export class ClassicyFileSystem {
 				head === "prototype"
 			) {
 				// Abort the write to avoid mutating Object.prototype
-				return;
+				return false;
 			}
 
 			if (rest.length) {
-				updateObjProp(
+				return updateObjProp(
 					obj[head] as Record<string, unknown>,
 					value,
 					rest.join(":"),
 				);
-			} else {
-				obj[head] = value;
 			}
+			obj[head] = value;
+			return true;
 		};
 
 		const directoryPath = path.split(":");
@@ -318,11 +486,16 @@ export class ClassicyFileSystem {
 			this.mkDir(directoryPath.join(":"));
 		}
 
-		return updateObjProp(this.fs, data, path);
+		const writeSucceeded = updateObjProp(this.fs, data, path);
+		if (writeSucceeded) {
+			this.notifyMutation("write", path, { data });
+		}
 	}
 
 	rmDir(path: string) {
-		return this.deletePropertyPath(this.fs, path);
+		const result = this.deletePropertyPath(this.fs, path);
+		this.notifyMutation("rmdir", path);
+		return result;
 	}
 
 	mkDir(path: string) {
@@ -347,6 +520,7 @@ export class ClassicyFileSystem {
 		}
 
 		this.fs = this.deepMerge(current, this.fs);
+		this.notifyMutation("mkdir", path);
 	}
 
 	async calculateSizeDir(

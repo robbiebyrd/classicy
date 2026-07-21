@@ -59,16 +59,9 @@ export const SimpleText = () => {
 					? ClassicyFileSystemEntryFileType.TextFile
 					: ClassicyFileSystemEntryFileType.Markdown;
 
-			// Persist the new type onto the filesystem entry and save to localStorage
-			const entry = fs.resolve(filePath);
-			if (entry) {
-				entry._type = nextType;
-				try {
-					localStorage.setItem(fs.storageKey, fs.snapshot());
-				} catch (e) {
-					console.error("[SimpleText] Failed to persist file type change", e);
-				}
-			}
+			// Persist the new type through the journaled mutation path; the
+			// centralized debounced persist handles localStorage.
+			fs.setMetadata(filePath, { _type: nextType });
 
 			setFileTypeOverrides((prev) => ({ ...prev, [filePath]: nextType }));
 		},
