@@ -4,7 +4,7 @@
 	"types": "./dist/types/src/index.d.ts",
 	"name": "classicy",
 	"version": "0.52.0",
-	"release": "Ides of Buster",
+	"release": "Copland",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/robbiebyrd/classicy"
