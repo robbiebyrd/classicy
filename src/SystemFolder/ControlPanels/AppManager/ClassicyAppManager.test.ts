@@ -141,6 +141,25 @@ describe("focusApp", () => {
 		);
 	});
 
+	it("stamps lastFocusedAt so the app can later win successor selection", () => {
+		const ds = makeStore();
+		ds.System.Manager.Applications.apps["Notes.app"] = {
+			id: "Notes.app",
+			name: "Notes",
+			icon: "",
+			open: true,
+			focused: false,
+			windows: [],
+			data: {},
+		};
+
+		focusApp(ds, "Notes.app");
+
+		expect(
+			ds.System.Manager.Applications.apps["Notes.app"].lastFocusedAt,
+		).toEqual(expect.any(Number));
+	});
+
 	it("focuses the default non-closed window and does NOT reopen closed windows", () => {
 		const ds = makeStore();
 		ds.System.Manager.Applications.apps["Notes.app"] = {
@@ -390,6 +409,128 @@ describe("ClassicyAppClose — focus transfer", () => {
 			(app) => app.focused,
 		);
 		expect(anyFocused).toBe(false);
+	});
+
+	it("transfers focus to the MOST RECENTLY focused app, not the first-opened one", () => {
+		// Regression: the close handler used Object.values(apps).find(v => v.open),
+		// which returns the first app in insertion order (always Finder) rather than
+		// the app the user was last in. Quitting the front app should hand the menu
+		// bar to whichever OTHER app was focused most recently.
+		const ds = makeStore();
+		ds.System.Manager.Applications.apps["Alpha.app"] = {
+			id: "Alpha.app",
+			name: "Alpha",
+			icon: "",
+			open: true,
+			focused: false,
+			lastFocusedAt: 100,
+			windows: [],
+			data: {},
+		};
+		ds.System.Manager.Applications.apps["Gamma.app"] = {
+			id: "Gamma.app",
+			name: "Gamma",
+			icon: "",
+			open: true,
+			focused: false,
+			lastFocusedAt: 200,
+			windows: [],
+			data: {},
+		};
+		ds.System.Manager.Applications.apps["Beta.app"] = {
+			id: "Beta.app",
+			name: "Beta",
+			icon: "",
+			open: true,
+			focused: true,
+			lastFocusedAt: 300,
+			windows: [],
+			data: {},
+		};
+
+		classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyAppClose",
+			app: { id: "Beta.app" },
+		});
+
+		// Gamma (lastFocusedAt 200) beats Alpha (100); Finder is never a peer.
+		expect(ds.System.Manager.Applications.apps["Gamma.app"].focused).toBe(true);
+		expect(ds.System.Manager.Applications.apps["Alpha.app"].focused).toBe(
+			false,
+		);
+		expect(ds.System.Manager.Applications.apps["Finder.app"].focused).toBe(
+			false,
+		);
+		expect(ds.System.Manager.Applications.focusedAppId).toBe("Gamma.app");
+	});
+
+	it("never hands focus to a background extension", () => {
+		const ds = makeStore();
+		// An extension with a very recent timestamp must still be skipped.
+		ds.System.Manager.Applications.apps["Ext.app"] = {
+			id: "Ext.app",
+			name: "Ext",
+			icon: "",
+			open: true,
+			focused: false,
+			extension: true,
+			lastFocusedAt: 999,
+			windows: [],
+			data: {},
+		};
+		ds.System.Manager.Applications.apps["Alpha.app"] = {
+			id: "Alpha.app",
+			name: "Alpha",
+			icon: "",
+			open: true,
+			focused: false,
+			lastFocusedAt: 100,
+			windows: [],
+			data: {},
+		};
+		ds.System.Manager.Applications.apps["Beta.app"] = {
+			id: "Beta.app",
+			name: "Beta",
+			icon: "",
+			open: true,
+			focused: true,
+			lastFocusedAt: 300,
+			windows: [],
+			data: {},
+		};
+
+		classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyAppClose",
+			app: { id: "Beta.app" },
+		});
+
+		expect(ds.System.Manager.Applications.apps["Ext.app"].focused).toBe(false);
+		expect(ds.System.Manager.Applications.apps["Alpha.app"].focused).toBe(true);
+		expect(ds.System.Manager.Applications.focusedAppId).toBe("Alpha.app");
+	});
+
+	it("falls back to Finder when the closed app was the only non-Finder app open", () => {
+		const ds = makeStore();
+		ds.System.Manager.Applications.apps["Notes.app"] = {
+			id: "Notes.app",
+			name: "Notes",
+			icon: "",
+			open: true,
+			focused: true,
+			lastFocusedAt: 300,
+			windows: [],
+			data: {},
+		};
+
+		classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyAppClose",
+			app: { id: "Notes.app" },
+		});
+
+		expect(ds.System.Manager.Applications.apps["Finder.app"].focused).toBe(
+			true,
+		);
+		expect(ds.System.Manager.Applications.focusedAppId).toBe("Finder.app");
 	});
 
 	it("ignores a focus/activate for an app that is already closed", () => {

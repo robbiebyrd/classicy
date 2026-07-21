@@ -20,6 +20,7 @@ import {
 	getDefaultAppForFileType,
 	loadApp,
 	openApp,
+	pickSuccessorApp,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
 import { classicyDateTimeManagerEventHandler } from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeEventHandler";
 import type { ClassicyStoreSystemSoundManager } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
@@ -61,6 +62,10 @@ export interface ClassicyStoreSystemApp {
 	open: boolean;
 	data?: Record<string, unknown>;
 	focused?: boolean;
+	// Wall-clock (Date.now) of the app's most recent focus. The only cross-app
+	// recency signal in the store — window zOrder is per-app. Used to pick the
+	// successor that inherits the menu bar when the front app quits.
+	lastFocusedAt?: number;
 	lastAccessedWindowId?: string;
 	noDesktopIcon?: boolean;
 	extension?: boolean;
@@ -218,17 +223,24 @@ export const classicyAppEventHandler = (
 			break;
 		}
 		case "ClassicyAppClose": {
-			if (hasApp(action)) {
-				closeApp(ds, action.app.id);
+			const closingId = hasApp(action) ? action.app.id : undefined;
+			if (closingId) {
+				closeApp(ds, closingId);
 			}
-			const openApps = Object.values(ds.System.Manager.Applications.apps).find(
-				(value) => {
-					return value.open;
-				},
-			);
 
-			if (openApps?.id) {
-				focusApp(ds, openApps.id);
+			// Hand the menu bar to the most recently focused OTHER app, so quitting
+			// the front app immediately transfers control instead of leaving the
+			// dead app's menu on screen. Finder is the floor: when no other real app
+			// remains, fall back to it (the desktop menu bar with "Special"). If even
+			// Finder is closed, no app owns the bar.
+			const successorId = pickSuccessorApp(ds, closingId ?? "");
+			const finderOpen =
+				ds.System.Manager.Applications.apps["Finder.app"]?.open === true;
+
+			if (successorId) {
+				focusApp(ds, successorId);
+			} else if (finderOpen) {
+				focusApp(ds, "Finder.app");
 			} else {
 				deFocusApps(ds);
 			}

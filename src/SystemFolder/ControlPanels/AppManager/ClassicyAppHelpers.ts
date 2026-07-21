@@ -33,6 +33,7 @@ export function focusWindow(
 	if (!app) return ds;
 	deFocusApps(ds);
 	app.focused = true;
+	app.lastFocusedAt = Date.now();
 	ds.System.Manager.Applications.focusedAppId = appId;
 	const win = app.windows.find((w) => w.id === windowId);
 	if (win) {
@@ -75,8 +76,36 @@ export function focusApp(ds: ClassicyStore, appId: string) {
 	} else {
 		deFocusApps(ds);
 		app.focused = true;
+		app.lastFocusedAt = Date.now();
 		ds.System.Manager.Applications.focusedAppId = appId;
 	}
+}
+
+/**
+ * Pick the app that should inherit the menu bar when `closingAppId` quits.
+ *
+ * Returns the most-recently-focused OPEN, non-extension app, excluding Finder
+ * (the floor, never a peer in the rotation) and the app being closed. Returns
+ * undefined when only Finder remains — the caller falls back to Finder + the
+ * desktop menu bar. Recency comes from `lastFocusedAt`; apps that have never
+ * been focused (no timestamp) sort oldest.
+ */
+export function pickSuccessorApp(
+	ds: ClassicyStore,
+	closingAppId: string,
+): string | undefined {
+	const candidates = Object.values(ds.System.Manager.Applications.apps).filter(
+		(app) =>
+			app.open &&
+			app.extension !== true &&
+			app.id !== "Finder.app" &&
+			app.id !== closingAppId,
+	);
+	if (candidates.length === 0) return undefined;
+	const best = candidates.reduce((a, b) =>
+		(b.lastFocusedAt ?? 0) > (a.lastFocusedAt ?? 0) ? b : a,
+	);
+	return best.id;
 }
 
 export function openApp(

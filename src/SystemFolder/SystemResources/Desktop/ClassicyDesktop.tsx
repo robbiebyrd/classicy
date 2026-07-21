@@ -96,6 +96,14 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	const disableBalloonHelp = useAppManager(
 		(s) => s.System.Manager.Desktop.disableBalloonHelp,
 	);
+	const focusedAppId = useAppManager(
+		(s) => s.System.Manager.Applications.focusedAppId,
+	);
+	const finderHasOpenWindow = useAppManager((s) =>
+		(s.System.Manager.Applications.apps["Finder.app"]?.windows ?? []).some(
+			(w) => !w.closed,
+		),
+	);
 	const desktopEventDispatch = useAppManagerDispatch();
 
 	const {
@@ -396,28 +404,32 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 					},
 				],
 			},
-
-			{
-				id: "finder_help",
-				title: "Help",
-				menuChildren: [
-					{
-						id: "finder_help_balloon",
-						title: disableBalloonHelp
-							? "Show Balloon Help"
-							: "Hide Balloon Help",
-						onClickFunc: () => {
-							desktopEventDispatch({
-								type: "ClassicyDesktopSetBalloonHelp",
-								disableBalloonHelp: !disableBalloonHelp,
-							});
-						},
-					},
-				],
-			},
 		],
 		[desktopEventDispatch, disableBalloonHelp],
 	);
+
+	// When focus settles on the desktop — Finder is the focused app (or nothing
+	// is) and no Finder window is open — the bar must show the desktop's own menu
+	// (File/Edit/View/Special). Desktop.appMenu is otherwise only rewritten when a
+	// *window* gains focus, so an app quitting back to the desktop would strand the
+	// dead app's menu on screen. Reinstall the desktop default here. Runs only when
+	// the focus/menu inputs change, so it never loops on its own store write.
+	useEffect(() => {
+		const desktopOwnsBar =
+			(focusedAppId === "Finder.app" || focusedAppId === undefined) &&
+			!finderHasOpenWindow;
+		if (desktopOwnsBar) {
+			desktopEventDispatch({
+				type: "ClassicyDesktopFocus",
+				menuBar: defaultMenuItems,
+			});
+		}
+	}, [
+		focusedAppId,
+		finderHasOpenWindow,
+		defaultMenuItems,
+		desktopEventDispatch,
+	]);
 
 	const currentTheme = useMemo(() => getThemeVars(activeTheme), [activeTheme]);
 

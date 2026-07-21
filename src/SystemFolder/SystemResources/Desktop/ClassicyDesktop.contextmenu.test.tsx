@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { ClassicyAppManagerProvider } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext";
@@ -12,6 +12,12 @@ describe("ClassicyDesktop contextual menu scoping", () => {
 		useAppManager.setState(DefaultAppManagerState, true);
 	});
 
+	// The desktop menu bar always shows "Special" (Finder is frontmost by
+	// default), so assert on the contextual-menu portal itself — it renders a
+	// `.classicyContextMenuWrapper` only while a context menu is open.
+	const contextMenuOpen = () =>
+		document.querySelector(".classicyContextMenuWrapper") !== null;
+
 	it("shows defaultMenuItems when right-clicking the empty desktop", () => {
 		render(
 			<ClassicyAppManagerProvider>
@@ -20,8 +26,12 @@ describe("ClassicyDesktop contextual menu scoping", () => {
 		);
 		const desktop = document.getElementById("classicyDesktop") as HTMLElement;
 		fireEvent.contextMenu(desktop);
+		expect(contextMenuOpen()).toBe(true);
 		// "Special" is a stable defaultMenuItems entry
-		expect(screen.getByText("Special")).toBeInTheDocument();
+		const wrapper = document.querySelector(
+			".classicyContextMenuWrapper",
+		) as HTMLElement;
+		expect(within(wrapper).getByText("Special")).toBeInTheDocument();
 	});
 
 	it("does NOT show defaultMenuItems when right-clicking a child element", () => {
@@ -33,7 +43,7 @@ describe("ClassicyDesktop contextual menu scoping", () => {
 			</ClassicyAppManagerProvider>,
 		);
 		fireEvent.contextMenu(screen.getByText("desktop child"));
-		expect(screen.queryByText("Special")).not.toBeInTheDocument();
+		expect(contextMenuOpen()).toBe(false);
 	});
 
 	it("does not open a menu when the event was already claimed (defaultPrevented)", () => {
@@ -46,6 +56,6 @@ describe("ClassicyDesktop contextual menu scoping", () => {
 			</ClassicyAppManagerProvider>,
 		);
 		fireEvent.contextMenu(screen.getByText("opt-out child"));
-		expect(screen.queryByText("Special")).not.toBeInTheDocument();
+		expect(contextMenuOpen()).toBe(false);
 	});
 });
