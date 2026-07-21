@@ -1,0 +1,42 @@
+.driveSetupList {
+	display: flex;
+	flex-direction: column;
+	gap: var(--window-padding-size, 8px);
+
+	&__header {
+		font-family: var(--header-font, sans-serif);
+		font-weight: bold;
+		margin: 0;
+	}
+
+	&__table {
+		border: var(--box-border-size, 2px) inset var(--color-black, #000);
+		background: var(--color-white, #fff);
+		overflow-y: auto;
+		max-height: 180px;
+	}
+
+	&__headRow,
+	&__row {
+		display: grid;
+		grid-template-columns: 2fr 1fr 0.6fr 0.5fr 0.5fr;
+		padding: 2px 6px;
+	}
+
+	&__headRow {
+		font-weight: bold;
+		position: sticky;
+		top: 0;
+		background: var(--color-system-2, #ccc);
+		border-bottom: 1px solid var(--color-black, #000);
+	}
+
+	&__row {
+		cursor: default;
+
+		&--selected {
+			background: var(--color-theme-1, #000);
+			color: var(--color-white, #fff);
+		}
+	}
+}
