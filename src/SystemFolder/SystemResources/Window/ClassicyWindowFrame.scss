@@ -1,0 +1,35 @@
+@use "../../ControlPanels/AppearanceManager/styles/assets";
+
+.classicyWindowFrame {
+  display: flex;
+  flex-direction: column;
+  max-width: var(--classicy-window-frame-width, none);
+  font-family: var(--ui-font), sans-serif;
+  color: var(--color-black);
+  background: var(--color-system-03);
+  border: var(--window-border-size) solid var(--color-black);
+  box-shadow: 2px 2px 0 var(--color-black);
+}
+
+.classicyWindowFrameTitleBar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: calc(var(--window-control-size) * 1.5);
+  background: assets.$title-bar-center;
+  background-size: auto 100%;
+  border-bottom: var(--window-border-size) solid var(--color-black);
+}
+
+.classicyWindowFrameTitleText {
+  padding: 0 calc(var(--window-padding-size) * 1.5);
+  background: var(--color-system-03);
+  font-size: calc(var(--ui-font-size) * 0.865);
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.classicyWindowFrameBody {
+  padding: calc(var(--window-padding-size) * 2);
+  background: var(--color-system-03);
+}
