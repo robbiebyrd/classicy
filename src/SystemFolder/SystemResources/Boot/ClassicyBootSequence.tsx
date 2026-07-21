@@ -41,10 +41,10 @@ export const ClassicyBootSequence: FunctionalComponent<
 	};
 
 	if (phase === "powerOn" && preBootScreen) {
+		// Plain overlay: the consumer owns the content (window frame, focus,
+		// labels), so we don't advertise modal-dialog semantics we can't back.
 		return (
-			<div className="classicyPreBootScreen" role="dialog" aria-modal="true">
-				{preBootScreen(powerOn)}
-			</div>
+			<div className="classicyPreBootScreen">{preBootScreen(powerOn)}</div>
 		);
 	}
 
