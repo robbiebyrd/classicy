@@ -126,9 +126,12 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 	return menuItems && menuItems.length > 0 ? (
 		<div className={"classicyMenuWrapper"}>
 			<ul className={classNames(navClass)} key={`${name}_menu`}>
-				{menuItems.map((item: ClassicyMenuItem) => (
+				{menuItems.map((item: ClassicyMenuItem, index: number) => (
 					<ClassicyMenuItemComponent
-						key={item?.id}
+						// Separators all share the id "spacer" (it's how they're
+						// detected), so fold the index in to keep React keys unique
+						// when a menu has more than one separator.
+						key={item?.id === "spacer" ? `spacer_${index}` : item?.id}
 						menuItem={item}
 						subNavClass={subNavClass || ""}
 						isOpen={openChildId === item.id}
