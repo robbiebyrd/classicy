@@ -42,4 +42,36 @@ describe("deepMergeReplacingArrays", () => {
 		merged.list.push(99);
 		expect(overrideArr).toEqual([9]);
 	});
+
+	// Menus carry onClickFunc handlers and live in the app-manager store, so
+	// merging store state routes functions through here. structuredClone throws
+	// DataCloneError on functions; the clone must pass them through by reference.
+	it("preserves a function handler nested in base", () => {
+		const handler = () => "clicked";
+		const base = { menu: [{ id: "cleanup", onClickFunc: handler }] };
+		const merged = deepMergeReplacingArrays(base, { menu: base.menu });
+		expect(merged.menu[0].onClickFunc).toBe(handler);
+		expect(merged.menu[0].onClickFunc()).toBe("clicked");
+	});
+
+	it("preserves a function handler arriving in an override", () => {
+		const handler = () => "saved";
+		const base: { window: { title: string; onSaveFunc?: () => string } } = {
+			window: { title: "Untitled" },
+		};
+		const merged = deepMergeReplacingArrays(base, {
+			window: { onSaveFunc: handler },
+		});
+		expect(merged.window.onSaveFunc).toBe(handler);
+		expect(merged.window.title).toBe("Untitled");
+	});
+
+	it("still deep-clones exotic objects rather than aliasing them", () => {
+		// The anti-aliasing guarantee that motivated structuredClone must hold:
+		// a Date in base must be copied, not shared, into the result.
+		const base = { at: new Date("2001-09-11T12:40:00.000Z") };
+		const merged = deepMergeReplacingArrays(base, {});
+		expect(merged.at).not.toBe(base.at);
+		expect(merged.at.getTime()).toBe(base.at.getTime());
+	});
 });
