@@ -594,9 +594,15 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		});
 	};
 
+	// Visual active state — distinct from programmatic focus (ws.focused). Tool
+	// palettes (windowType "utility") are floating windows: they always show
+	// their active chrome and never render the washed-out inactive treatment,
+	// even while the document window owns focus and the menu bar. Focus itself
+	// (ws.focused, menu-bar ownership, ClassicyWindowFocus) is left untouched, so
+	// a palette is never programmatically the focused window.
 	const isActive = useCallback(() => {
-		return ws.focused;
-	}, [ws.focused]);
+		return windowType === "utility" || ws.focused;
+	}, [ws.focused, windowType]);
 
 	const setActive = useCallback(
 		(_e?: MouseEvent<HTMLDivElement>) => {
