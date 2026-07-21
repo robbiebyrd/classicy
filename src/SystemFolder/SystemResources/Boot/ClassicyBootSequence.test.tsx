@@ -10,7 +10,10 @@ vi.mock(
 );
 
 vi.mock("@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons", () => ({
-	ClassicyIcons: { system: { macosSvg: "macos.svg" } },
+	ClassicyIcons: {
+		system: { macosSvg: "macos.svg" },
+		ui: { halftoneLarge: "halftone-large.png" },
+	},
 }));
 
 vi.mock(
@@ -75,6 +78,18 @@ describe("ClassicyBootSequence", () => {
 		expect(mockPlayer).not.toHaveBeenCalled();
 	});
 
+	it("covers the desktop with the halftone pattern via a CSS custom property", () => {
+		const { container } = render(
+			<ClassicyBootSequence preBootScreen={powerOnScreen} />,
+		);
+		const overlay = container.querySelector(
+			".classicyPreBootScreen",
+		) as HTMLElement;
+		expect(overlay.style.getPropertyValue("--classicy-preboot-halftone")).toBe(
+			"url(halftone-large.png)",
+		);
+	});
+
 	it("advances to the startup screen and plays the chime on POWER ON", () => {
 		const { container } = render(
 			<ClassicyBootSequence preBootScreen={powerOnScreen} />,
@@ -120,7 +135,7 @@ describe("ClassicyBootSequence", () => {
 	});
 
 	it("marks the session on POWER ON with startupScreen=false so a reload skips the gate", () => {
-		const { container, unmount } = render(
+		const { unmount } = render(
 			<ClassicyBootSequence startupScreen={false} preBootScreen={powerOnScreen} />,
 		);
 		act(() => {

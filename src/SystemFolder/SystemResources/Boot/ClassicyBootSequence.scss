@@ -5,5 +5,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: transparent;
+  // Opaque white sheet hides the desktop; the halftone (a transparent PNG
+  // supplied via --classicy-preboot-halftone) tiles over it for the classic
+  // Platinum desktop-pattern look.
+  background-color: var(--color-white);
+  background-image: var(--classicy-preboot-halftone);
+  background-repeat: repeat;
 }

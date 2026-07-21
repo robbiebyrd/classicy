@@ -1,5 +1,11 @@
 import "./ClassicyBootSequence.scss";
-import { type FC as FunctionalComponent, type ReactNode, useState } from "react";
+import {
+	type CSSProperties,
+	type FC as FunctionalComponent,
+	type ReactNode,
+	useState,
+} from "react";
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { ClassicyStartupScreen } from "@/SystemFolder/SystemResources/Boot/ClassicyStartupScreen";
 import {
 	hasShownStartupScreenThisSession,
@@ -43,8 +49,15 @@ export const ClassicyBootSequence: FunctionalComponent<
 	if (phase === "powerOn" && preBootScreen) {
 		// Plain overlay: the consumer owns the content (window frame, focus,
 		// labels), so we don't advertise modal-dialog semantics we can't back.
+		// Hide the desktop behind an opaque white sheet tiled with the halftone
+		// pattern (a transparent PNG resolved in JS, handed to SCSS as a var).
+		const overlayStyle = {
+			"--classicy-preboot-halftone": `url(${ClassicyIcons.ui.halftoneLarge})`,
+		} as CSSProperties;
 		return (
-			<div className="classicyPreBootScreen">{preBootScreen(powerOn)}</div>
+			<div className="classicyPreBootScreen" style={overlayStyle}>
+				{preBootScreen(powerOn)}
+			</div>
 		);
 	}
 
