@@ -1,6 +1,8 @@
 import type { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
-import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import { getClassicyFileSystemAdapters } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemAdapter";
 import type { ClassicyFileSystemTree } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
 export type DriveRow = {
 	/** Volume name — the top-level filesystem key. */
@@ -50,4 +52,42 @@ export function resetDriveInTree(
 		next[driveName] = bare as ClassicyFileSystemTree[string];
 	}
 	return next;
+}
+
+/** Connected ("logged in") = at least one filesystem sync adapter registered. */
+export function isDriveSyncConnected(): boolean {
+	return getClassicyFileSystemAdapters().length > 0;
+}
+
+/**
+ * The right-click menu for a desktop drive icon. Items are event-driven
+ * (serializable — desktop icons persist to localStorage and cannot hold
+ * closures). Sync/Backup are disabled unless connected.
+ */
+export function buildDriveContextMenu(
+	drive: string,
+	isConnected: boolean,
+): ClassicyMenuItem[] {
+	return [
+		{
+			id: `drive_${drive}_initialize`,
+			title: "Initialize…",
+			event: "ClassicyDesktopDriveSetupInitialize",
+			eventData: { drive },
+		},
+		{
+			id: `drive_${drive}_sync`,
+			title: "Sync",
+			event: "ClassicyDesktopDriveSetupSync",
+			eventData: { drive },
+			disabled: !isConnected,
+		},
+		{
+			id: `drive_${drive}_backup`,
+			title: "Backup",
+			event: "ClassicyDesktopDriveSetupBackup",
+			eventData: { drive },
+			disabled: !isConnected,
+		},
+	];
 }

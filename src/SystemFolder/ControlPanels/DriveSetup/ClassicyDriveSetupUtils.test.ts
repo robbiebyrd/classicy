@@ -2,7 +2,13 @@ import { describe, expect, it } from "vitest";
 import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import {
+	registerClassicyFileSystemAdapter,
+	unregisterClassicyFileSystemAdapter,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileSystemAdapter";
+import {
+	buildDriveContextMenu,
 	getDriveRows,
+	isDriveSyncConnected,
 	resetDriveInTree,
 } from "./ClassicyDriveSetupUtils";
 
@@ -77,5 +83,35 @@ describe("resetDriveInTree", () => {
 		};
 		const next = resetDriveInTree(current, "USB Stick", resolvedDefault);
 		expect(next["USB Stick"]).toEqual({ _type: ClassicyFileSystemEntryFileType.Drive, _icon: "x" });
+	});
+});
+
+describe("isDriveSyncConnected", () => {
+	it("is false with no adapters and true once one is registered", () => {
+		expect(isDriveSyncConnected()).toBe(false);
+		registerClassicyFileSystemAdapter({ id: "test-adapter" });
+		expect(isDriveSyncConnected()).toBe(true);
+		unregisterClassicyFileSystemAdapter("test-adapter");
+		expect(isDriveSyncConnected()).toBe(false);
+	});
+});
+
+describe("buildDriveContextMenu", () => {
+	it("emits three event-driven items with the drive in eventData", () => {
+		const menu = buildDriveContextMenu("Macintosh HD", true);
+		expect(menu.map((m) => m.event)).toEqual([
+			"ClassicyDesktopDriveSetupInitialize",
+			"ClassicyDesktopDriveSetupSync",
+			"ClassicyDesktopDriveSetupBackup",
+		]);
+		expect(menu.every((m) => m.eventData?.drive === "Macintosh HD")).toBe(true);
+	});
+
+	it("disables Sync and Backup when not connected, Initialize stays enabled", () => {
+		const menu = buildDriveContextMenu("Macintosh HD", false);
+		const byEvent = Object.fromEntries(menu.map((m) => [m.event, m]));
+		expect(byEvent.ClassicyDesktopDriveSetupInitialize.disabled).toBeFalsy();
+		expect(byEvent.ClassicyDesktopDriveSetupSync.disabled).toBe(true);
+		expect(byEvent.ClassicyDesktopDriveSetupBackup.disabled).toBe(true);
 	});
 });
