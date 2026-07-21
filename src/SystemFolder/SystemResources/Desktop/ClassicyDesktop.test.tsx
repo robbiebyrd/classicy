@@ -24,6 +24,28 @@ describe("ClassicyDesktop default apps", () => {
 		expect(screen.getByAltText("Picture Viewer")).toBeInTheDocument();
 	});
 
+	it("registers Drive Setup as a hidden app-shortcut icon: in the store (for Applications) but not rendered on the desktop", () => {
+		const { container } = render(
+			<ClassicyAppManagerProvider>
+				<ClassicyDesktop />
+			</ClassicyAppManagerProvider>,
+		);
+		const driveSetupIcon = useAppManager
+			.getState()
+			.System.Manager.Desktop.icons.find((i) => i.appId === "DriveSetup.app");
+		// Registered as an app-shortcut so the derived Applications folder lists it…
+		expect(driveSetupIcon?.kind).toBe("app_shortcut");
+		expect(driveSetupIcon?.hidden).toBe(true);
+		// …but no desktop icon is drawn for it (desktop icons render with
+		// id "<appId>.shortcut"). A visible app like SimpleText still gets one.
+		expect(
+			container.querySelector("#DriveSetup\\.app\\.shortcut"),
+		).toBeNull();
+		expect(
+			container.querySelector("#SimpleText\\.app\\.shortcut"),
+		).not.toBeNull();
+	});
+
 	it("omits an app's desktop icon when its disableX prop is set, leaving the others", () => {
 		render(
 			<ClassicyAppManagerProvider disableMoviePlayer disablePictureViewer>

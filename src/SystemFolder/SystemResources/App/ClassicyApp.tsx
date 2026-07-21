@@ -20,6 +20,12 @@ export interface ClassicyAppProps {
 	icon: string;
 	defaultWindow?: string;
 	noDesktopIcon?: boolean;
+	/** Opt into the derived Applications folder without a desktop icon. When
+	 *  set alongside `noDesktopIcon`, the app registers a HIDDEN app-shortcut
+	 *  icon: it populates Applications but is never drawn on the desktop.
+	 *  Ignored for `extension` apps and for apps that already show a desktop
+	 *  icon (they appear in Applications anyway). */
+	inApplicationsFolder?: boolean;
 	addSystemMenu?: boolean;
 	extension?: boolean;
 	/** Show an icon in the startup parade without being an extension.
@@ -40,6 +46,7 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 	name,
 	addSystemMenu,
 	noDesktopIcon,
+	inApplicationsFolder,
 	extension,
 	bootIcon,
 	defaultWindow,
@@ -120,16 +127,32 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 			});
 		}
 
-		if (!noDesktopIcon && !extension) {
-			desktopEventDispatch({
-				type: "ClassicyDesktopIconAdd",
-				app: {
-					id: id,
-					name: name,
-					icon: icon,
-				},
-				kind: "app_shortcut",
-			});
+		if (!extension) {
+			if (!noDesktopIcon) {
+				desktopEventDispatch({
+					type: "ClassicyDesktopIconAdd",
+					app: {
+						id: id,
+						name: name,
+						icon: icon,
+					},
+					kind: "app_shortcut",
+				});
+			} else if (inApplicationsFolder) {
+				// Hidden app-shortcut: populates the derived Applications folder
+				// (which is built from app-shortcut icons) without drawing an
+				// icon on the desktop.
+				desktopEventDispatch({
+					type: "ClassicyDesktopIconAdd",
+					app: {
+						id: id,
+						name: name,
+						icon: icon,
+					},
+					kind: "app_shortcut",
+					hidden: true,
+				});
+			}
 		}
 
 		if (bootIcon && !extension) {
@@ -143,6 +166,7 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 	}, [
 		addSystemMenu,
 		noDesktopIcon,
+		inApplicationsFolder,
 		extension,
 		bootIcon,
 		desktopEventDispatch,

@@ -35,6 +35,11 @@ export interface ClassicyStoreSystemDesktopManagerIcon {
 	event?: string;
 	eventData?: Record<string, unknown>;
 	contextMenu?: ClassicyMenuItem[];
+	/** When true, the icon exists in the store (so it populates the derived
+	 * Applications folder) but is NOT drawn on the desktop. Used by apps that
+	 * opt into the Applications folder via `inApplicationsFolder` while keeping
+	 * `noDesktopIcon`. */
+	hidden?: boolean;
 }
 
 export interface ClassicyStoreSystemDesktopManager

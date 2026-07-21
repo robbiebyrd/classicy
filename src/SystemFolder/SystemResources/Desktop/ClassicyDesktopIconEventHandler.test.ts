@@ -280,6 +280,31 @@ describe("classicyDesktopIconEventHandler — ClassicyDesktopIconAdd", () => {
 		expect(ds.System.Manager.Desktop.icons[0].kind).toBe("icon");
 	});
 
+	it("stores the hidden flag when the action carries hidden: true", () => {
+		const ds = makeStoreForDesktop();
+
+		classicyDesktopIconEventHandler(ds, {
+			type: "ClassicyDesktopIconAdd",
+			app: { id: "DriveSetup.app", name: "Drive Setup", icon: "disk.png" },
+			kind: "app_shortcut",
+			hidden: true,
+		});
+
+		expect(ds.System.Manager.Desktop.icons[0].hidden).toBe(true);
+	});
+
+	it("leaves hidden undefined for a normal icon add", () => {
+		const ds = makeStoreForDesktop();
+
+		classicyDesktopIconEventHandler(ds, {
+			type: "ClassicyDesktopIconAdd",
+			app: { id: "SimpleText.app", name: "SimpleText", icon: "st.png" },
+			kind: "app_shortcut",
+		});
+
+		expect(ds.System.Manager.Desktop.icons[0].hidden).toBeUndefined();
+	});
+
 	it("refreshes an existing icon's contextMenu on re-add instead of skipping it", () => {
 		const ds = makeStoreForDesktop();
 

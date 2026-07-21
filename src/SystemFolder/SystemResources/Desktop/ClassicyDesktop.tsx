@@ -94,7 +94,13 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	const activeTheme = useAppManager(
 		(s) => s.System.Manager.Appearance.activeTheme,
 	);
-	const desktopIcons = useAppManager((s) => s.System.Manager.Desktop.icons);
+	const allDesktopIcons = useAppManager((s) => s.System.Manager.Desktop.icons);
+	// Hidden icons exist only to populate the derived Applications folder; they
+	// must never be drawn on, or navigable within, the desktop.
+	const desktopIcons = useMemo(
+		() => allDesktopIcons.filter((i) => !i.hidden),
+		[allDesktopIcons],
+	);
 	const selectedIcons = useAppManager(
 		(s) => s.System.Manager.Desktop.selectedIcons ?? [],
 	);

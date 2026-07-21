@@ -54,4 +54,18 @@ describe("buildApplicationsFolder", () => {
 			0,
 		);
 	});
+
+	it("includes a hidden app_shortcut icon (Applications membership is independent of desktop visibility)", () => {
+		const folder = buildApplicationsFolder([
+			{ ...appIcon("DriveSetup.app", "Drive Setup"), hidden: true },
+		]);
+
+		expect(folder["Drive Setup"]).toEqual({
+			_type: ClassicyFileSystemEntryFileType.AppShortcut,
+			_icon: "/icons/DriveSetup.app.png",
+			_creator: "DriveSetup.app",
+			_readOnly: true,
+			_nameLocked: true,
+		});
+	});
 });

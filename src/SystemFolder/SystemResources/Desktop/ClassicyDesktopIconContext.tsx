@@ -179,6 +179,7 @@ export const classicyDesktopIconEventHandler = (
 					contextMenu: Array.isArray(action.contextMenu)
 						? (action.contextMenu as ClassicyMenuItem[])
 						: undefined,
+					hidden: action.hidden === true ? true : undefined,
 				});
 
 				ds.System.Manager.Desktop.icons = cleanupDesktopIcons(
