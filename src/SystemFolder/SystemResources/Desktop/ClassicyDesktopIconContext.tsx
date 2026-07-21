@@ -86,6 +86,15 @@ const cleanupDesktopIcons = (
 	const grid = createGrid(iconSize, iconPadding);
 
 	icons.forEach((icon) => {
+		// Hidden icons are never drawn on the desktop (they exist only to
+		// populate the derived Applications folder), so they must not consume a
+		// grid slot — otherwise the visible icons leave a gap where the hidden
+		// one "would" sit.
+		if (icon.hidden) {
+			newDesktopIcons.push(icon);
+			return;
+		}
+
 		if (startY >= grid[1]) {
 			startY = 0;
 			startX += 1;

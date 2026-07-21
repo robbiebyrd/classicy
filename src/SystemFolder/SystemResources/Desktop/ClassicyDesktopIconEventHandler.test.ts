@@ -305,6 +305,44 @@ describe("classicyDesktopIconEventHandler — ClassicyDesktopIconAdd", () => {
 		expect(ds.System.Manager.Desktop.icons[0].hidden).toBeUndefined();
 	});
 
+	it("does not reserve a desktop grid slot for a hidden icon (no visible gap), but keeps it in the store", () => {
+		const withHidden = makeStoreForDesktop();
+		withHidden.System.Manager.Desktop.icons = [
+			{ appId: "A.app", appName: "A", icon: "a.png", kind: "app_shortcut" },
+			{
+				appId: "H.app",
+				appName: "H",
+				icon: "h.png",
+				kind: "app_shortcut",
+				hidden: true,
+			},
+			{ appId: "B.app", appName: "B", icon: "b.png", kind: "app_shortcut" },
+		];
+		classicyDesktopIconEventHandler(withHidden, {
+			type: "ClassicyDesktopIconCleanup",
+		});
+
+		const withoutHidden = makeStoreForDesktop();
+		withoutHidden.System.Manager.Desktop.icons = [
+			{ appId: "A.app", appName: "A", icon: "a.png", kind: "app_shortcut" },
+			{ appId: "B.app", appName: "B", icon: "b.png", kind: "app_shortcut" },
+		];
+		classicyDesktopIconEventHandler(withoutHidden, {
+			type: "ClassicyDesktopIconCleanup",
+		});
+
+		const find = (ds: ClassicyStore, id: string) =>
+			ds.System.Manager.Desktop.icons.find((i) => i.appId === id);
+
+		// The visible icon after the hidden one lands where it would if the
+		// hidden icon weren't there — no gap.
+		expect(find(withHidden, "B.app")?.location).toEqual(
+			find(withoutHidden, "B.app")?.location,
+		);
+		// The hidden icon is still stored (so the Applications folder lists it).
+		expect(find(withHidden, "H.app")).toBeDefined();
+	});
+
 	it("refreshes an existing icon's contextMenu on re-add instead of skipping it", () => {
 		const ds = makeStoreForDesktop();
 
