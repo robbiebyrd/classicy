@@ -115,4 +115,10 @@ describe("getThemeVars", () => {
 		const vars = getThemeVars(theme);
 		expect(vars).toHaveProperty("--desktop-icon-size");
 	});
+
+	it("contains --hig-titlebar-height-utility set to 11px", () => {
+		const theme = getTheme("default");
+		const vars = getThemeVars(theme);
+		expect(vars["--hig-titlebar-height-utility"]).toBe("11px");
+	});
 });

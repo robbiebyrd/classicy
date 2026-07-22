@@ -485,7 +485,14 @@
 // instead of the pinstriped document title bar.
 .classicyWindowUtility {
   .classicyWindowTitleBar {
-    min-height: var(--hig-titlebar-height);
+    // Windoid: half-height title bar (11px vs the 19px document bar). Override
+    // both height and min-height — the base .classicyWindowTitleBar sets
+    // height: calc(var(--window-control-size) * 1.5) (~18px), which would
+    // otherwise win over min-height alone.
+    height: var(--hig-titlebar-height-utility);
+    min-height: var(--hig-titlebar-height-utility);
+    align-items: center;
+    padding-bottom: 0;
     background-image: repeating-linear-gradient(
       0deg,
       var(--color-system-04) 0,
@@ -493,6 +500,17 @@
       transparent var(--window-border-size),
       transparent calc(var(--window-border-size) * 2)
     );
+
+    // Shrink the close/zoom/collapse boxes to fit the shorter bar while
+    // keeping the Platinum bevel (inherited from the base rules).
+    .classicyWindowControlBox {
+      width: calc(
+        var(--hig-titlebar-height-utility) - var(--window-border-size) * 2
+      ) !important;
+      height: calc(
+        var(--hig-titlebar-height-utility) - var(--window-border-size) * 2
+      ) !important;
+    }
 
     .classicyWindowTitleText {
       background: var(--color-window-frame);
@@ -508,6 +526,14 @@
       &:after {
         content: none !important;
       }
+    }
+
+    // The crosshatch center is the drag region; shrink it to the shorter bar.
+    .classicyWindowTitleCenter {
+      height: calc(
+        var(--hig-titlebar-height-utility) - var(--window-border-size) * 2
+      );
+      margin: 0 var(--window-padding-size);
     }
   }
 }
