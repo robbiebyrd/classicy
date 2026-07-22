@@ -201,4 +201,20 @@ describe("ClassicyPopUpMenu", () => {
 		expect(screen.getByRole("listbox")).toBeInTheDocument();
 		expect(btn).toHaveFocus();
 	});
+
+	it("wires aria-controls and aria-activedescendant to the highlighted option", async () => {
+		const user = userEvent.setup();
+		render(<ClassicyPopUpMenu id="fruit" options={options} selected="apple" />);
+		const btn = screen.getByRole("button");
+		await user.click(btn);
+		const listbox = screen.getByRole("listbox");
+		expect(listbox.id).toBeTruthy();
+		expect(btn).toHaveAttribute("aria-controls", listbox.id);
+		// highlight starts on the current selection (Apple, index 0)
+		const apple = within(listbox).getByRole("option", { name: "Apple" });
+		expect(btn).toHaveAttribute("aria-activedescendant", apple.id);
+		await user.keyboard("{ArrowDown}"); // -> Banana
+		const banana = within(listbox).getByRole("option", { name: "Banana" });
+		expect(btn).toHaveAttribute("aria-activedescendant", banana.id);
+	});
 });

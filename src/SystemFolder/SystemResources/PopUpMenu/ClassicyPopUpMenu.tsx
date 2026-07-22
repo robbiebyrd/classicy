@@ -85,6 +85,7 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 	const currentIndex = options.findIndex((o) => o.value === selectedItem);
 
 	const optionId = (index: number) => `${reactId}-opt-${index}`;
+	const listId = `${reactId}-list`;
 
 	const emitChange = useCallback(
 		(value: string) => {
@@ -230,6 +231,7 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 				    so consumers/tests can target it, and reflects the disabled
 				    state via the native `disabled` attribute, `aria-disabled` and
 				    a disabled class. (No hidden native <select> mirror anymore.) */}
+				{/* biome-ignore lint/a11y/useAriaPropsSupportedByRole: button with aria-activedescendant is the standard pattern for custom listbox with focus on button */}
 				<button
 					ref={buttonRef}
 					id={id}
@@ -242,6 +244,10 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 					aria-disabled={disabled}
 					aria-haspopup="listbox"
 					aria-expanded={open}
+					aria-controls={open ? listId : undefined}
+					aria-activedescendant={
+						open && highlight >= 0 ? optionId(highlight) : undefined
+					}
 					onClick={() => (open ? closeMenu() : openMenu())}
 					onKeyDown={onButtonKeyDown}
 				>
@@ -250,7 +256,12 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 				</button>
 
 				{open && (
-					<div role="listbox" className="classicyPopUpMenuList">
+					<div
+						id={listId}
+						role="listbox"
+						aria-label={label ?? currentLabel}
+						className="classicyPopUpMenuList"
+					>
 						{options.map((o, index) => {
 							const isSelected = o.value === selectedItem;
 							return (
