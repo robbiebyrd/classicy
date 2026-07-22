@@ -219,7 +219,7 @@
 
     .classicyWindowIcon {
       max-width: calc(var(--window-control-size) * 2);
-      max-height: calc(var(--window-control-size) * 1);
+      max-height: calc(var(--window-control-size) * 1.25);
       padding: 0 calc(var(--window-padding-size) / 2);
       display: flex;
       align-items: flex-start;
