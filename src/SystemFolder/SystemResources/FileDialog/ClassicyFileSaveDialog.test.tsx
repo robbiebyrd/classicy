@@ -128,13 +128,14 @@ function makeProps() {
 	};
 }
 
-// ClassicyPopUpMenu is driven like its own tests: click the trigger button
-// (by associated label), then click the option by visible text.
+// ClassicyPopUpMenu is driven like its own tests: click the trigger
+// (a `<button role="combobox">`, by associated label), then click the option
+// by visible text.
 function getPopUpTrigger(name: string | RegExp): HTMLElement {
 	const match = screen
-		.getAllByRole("button", { name })
+		.getAllByRole("combobox", { name })
 		.find((el) => el.tagName === "BUTTON");
-	if (!match) throw new Error(`No <button> trigger found for name ${name}`);
+	if (!match) throw new Error(`No combobox trigger found for name ${name}`);
 	return match;
 }
 

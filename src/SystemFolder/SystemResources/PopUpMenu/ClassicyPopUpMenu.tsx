@@ -16,6 +16,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { createPortal } from "react-dom";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
 const PLACEHOLDER_VALUE = "__classicy_placeholder__";
@@ -71,9 +72,13 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 
 	const [open, setOpen] = useState(false);
 	const [highlight, setHighlight] = useState<number>(-1);
+	const [menuRect, setMenuRect] = useState<DOMRect | null>(null);
 
 	const wrapperRef = useRef<HTMLDivElement>(null);
 	const buttonRef = useRef<HTMLButtonElement>(null);
+	const listRef = useRef<HTMLDivElement>(null);
+	const typeaheadBufferRef = useRef("");
+	const typeaheadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const reactId = useId();
 
 	const { track } = useClassicyAnalytics();
@@ -85,6 +90,7 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 	const currentIndex = options.findIndex((o) => o.value === selectedItem);
 
 	const optionId = (index: number) => `${reactId}-opt-${index}`;
+	const listId = `${reactId}-list`;
 
 	const emitChange = useCallback(
 		(value: string) => {
@@ -114,13 +120,51 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 	const closeMenu = useCallback(() => {
 		setOpen(false);
 		setHighlight(-1);
+		setMenuRect(null);
 	}, []);
 
 	const openMenu = useCallback(() => {
 		if (disabled) return;
 		setHighlight(currentIndex >= 0 ? currentIndex : 0);
+		if (buttonRef.current) {
+			setMenuRect(buttonRef.current.getBoundingClientRect());
+		}
 		setOpen(true);
+		// Firefox/Safari don't focus a <button> on click (only Chromium does),
+		// so without this the keydown handler never runs after a mouse-open.
+		buttonRef.current?.focus();
 	}, [disabled, currentIndex]);
+
+	// Native-<select>-style type-ahead: accumulate typed chars (reset after
+	// 250ms idle) and jump the highlight to the first matching option label.
+	const handleTypeahead = useCallback(
+		(char: string): boolean => {
+			if (typeaheadTimerRef.current) clearTimeout(typeaheadTimerRef.current);
+			typeaheadBufferRef.current += char;
+			typeaheadTimerRef.current = setTimeout(() => {
+				typeaheadBufferRef.current = "";
+			}, 250);
+
+			const buffer = typeaheadBufferRef.current.toLowerCase();
+			let index = options.findIndex((o) =>
+				o.label.toLowerCase().startsWith(buffer),
+			);
+			// If the accumulated buffer no longer matches, fall back to the
+			// latest char alone (re-locates the first option with that initial).
+			if (index < 0) {
+				const last = char.toLowerCase();
+				index = options.findIndex((o) =>
+					o.label.toLowerCase().startsWith(last),
+				);
+			}
+			if (index < 0) return false;
+
+			if (!open) openMenu(); // typing surfaces the menu; never a silent change
+			setHighlight(index);
+			return true;
+		},
+		[options, open, openMenu],
+	);
 
 	// Commit a menu selection (mouse or keyboard). Matches native <select>
 	// semantics: re-picking the current value simply closes with no onChange.
@@ -139,13 +183,40 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 	useEffect(() => {
 		if (!open) return;
 		const onPointerDown = (e: globalThis.MouseEvent) => {
-			if (!wrapperRef.current?.contains(e.target as Node)) {
+			const target = e.target as Node;
+			if (
+				!wrapperRef.current?.contains(target) &&
+				!listRef.current?.contains(target)
+			) {
 				closeMenu();
 			}
 		};
 		document.addEventListener("mousedown", onPointerDown);
 		return () => document.removeEventListener("mousedown", onPointerDown);
 	}, [open, closeMenu]);
+
+	// A fixed-position portal can't follow its button, so dismiss on scroll/
+	// resize. `capture: true` catches scrolls in any ancestor, not just window.
+	useEffect(() => {
+		if (!open) return;
+		const dismiss = () => {
+			closeMenu();
+			buttonRef.current?.focus();
+		};
+		window.addEventListener("scroll", dismiss, true);
+		window.addEventListener("resize", dismiss);
+		return () => {
+			window.removeEventListener("scroll", dismiss, true);
+			window.removeEventListener("resize", dismiss);
+		};
+	}, [open, closeMenu]);
+
+	useEffect(
+		() => () => {
+			if (typeaheadTimerRef.current) clearTimeout(typeaheadTimerRef.current);
+		},
+		[],
+	);
 
 	const onButtonKeyDown = (e: KeyboardEvent<HTMLButtonElement>) => {
 		if (disabled) return;
@@ -194,6 +265,19 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 					setHighlight(options.length - 1);
 				}
 				break;
+			default: {
+				// Single printable char (not Space, not a modifier combo) -> type-ahead.
+				const isPrintable =
+					e.key.length === 1 &&
+					e.key !== " " &&
+					!e.altKey &&
+					!e.ctrlKey &&
+					!e.metaKey;
+				if (isPrintable && handleTypeahead(e.key)) {
+					e.preventDefault();
+				}
+				break;
+			}
 		}
 	};
 
@@ -231,14 +315,20 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 					ref={buttonRef}
 					id={id}
 					type="button"
+					role="combobox"
 					className={classNames(
 						"classicyPopUpMenuButton",
 						disabled && "classicyPopUpMenuButtonDisabled",
 					)}
 					disabled={disabled}
 					aria-disabled={disabled}
+					aria-label={label ?? currentLabel}
 					aria-haspopup="listbox"
 					aria-expanded={open}
+					aria-controls={open ? listId : undefined}
+					aria-activedescendant={
+						open && highlight >= 0 ? optionId(highlight) : undefined
+					}
 					onClick={() => (open ? closeMenu() : openMenu())}
 					onKeyDown={onButtonKeyDown}
 				>
@@ -246,48 +336,65 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 					<span className="classicyPopUpMenuIndicator" aria-hidden={true} />
 				</button>
 
-				{open && (
-					<div role="listbox" className="classicyPopUpMenuList">
-						{options.map((o, index) => {
-							const isSelected = o.value === selectedItem;
-							return (
-								<div
-									key={id + o.value}
-									id={optionId(index)}
-									role="option"
-									tabIndex={-1}
-									aria-selected={isSelected}
-									className={classNames(
-										"classicyPopUpMenuListItem",
-										index === highlight && "classicyPopUpMenuListItemHighlight",
-									)}
-									onMouseEnter={() => setHighlight(index)}
-									onClick={() => commitIndex(index)}
-									onKeyDown={(e) => {
-										if (e.key === "Enter" || e.key === " ") {
-											e.preventDefault();
-											commitIndex(index);
-										}
-									}}
-								>
-									<span className="classicyPopUpMenuCheck" aria-hidden={true}>
-										{isSelected ? CHECKMARK : ""}
-									</span>
-									{o.icon && (
-										<img
-											className="classicyPopUpMenuListItemIcon"
-											src={o.icon}
-											alt=""
-										/>
-									)}
-									<span className="classicyPopUpMenuListItemLabel">
-										{o.label}
-									</span>
-								</div>
-							);
-						})}
-					</div>
-				)}
+				{open &&
+					menuRect &&
+					createPortal(
+						<div
+							ref={listRef}
+							id={listId}
+							role="listbox"
+							aria-label={label ?? currentLabel}
+							className="classicyPopUpMenuList"
+							style={{
+								position: "fixed",
+								top: `${menuRect.top}px`,
+								left: `${menuRect.left}px`,
+								minWidth: `${menuRect.width}px`,
+								zIndex: 5000,
+							}}
+						>
+							{options.map((o, index) => {
+								const isSelected = o.value === selectedItem;
+								return (
+									<div
+										key={id + o.value}
+										id={optionId(index)}
+										role="option"
+										tabIndex={-1}
+										aria-selected={isSelected}
+										className={classNames(
+											"classicyPopUpMenuListItem",
+											index === highlight &&
+												"classicyPopUpMenuListItemHighlight",
+										)}
+										onMouseEnter={() => setHighlight(index)}
+										onClick={() => commitIndex(index)}
+										onKeyDown={(e) => {
+											if (e.key === "Enter" || e.key === " ") {
+												e.preventDefault();
+												commitIndex(index);
+											}
+										}}
+									>
+										<span className="classicyPopUpMenuCheck" aria-hidden={true}>
+											{isSelected ? CHECKMARK : ""}
+										</span>
+										{o.icon && (
+											<img
+												className="classicyPopUpMenuListItemIcon"
+												src={o.icon}
+												alt=""
+											/>
+										)}
+										<span className="classicyPopUpMenuListItemLabel">
+											{o.label}
+										</span>
+									</div>
+								);
+							})}
+						</div>,
+						document.getElementById("classicyDesktop") ?? document.body,
+					)}
 			</div>
 		</div>
 	);

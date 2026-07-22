@@ -123,14 +123,8 @@
 
 // ----- The floating menu ---------------------------------------------------
 .classicyPopUpMenuList {
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 1000;
-
-  // HIG: the menu is at least as wide as the button.
-  min-width: 100%;
-
+  // Position, min-width and z-index are applied inline by the portal
+  // (see ClassicyPopUpMenu.tsx) so the menu escapes the window's overflow.
   margin: 0;
   padding: var(--window-border-size);
   list-style: none;

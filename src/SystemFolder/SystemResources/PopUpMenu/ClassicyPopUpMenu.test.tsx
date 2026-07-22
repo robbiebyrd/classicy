@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen, userEvent, within } from "@/__tests__/test-utils";
+import { act, render, screen, userEvent, within } from "@/__tests__/test-utils";
 
 vi.mock(
 	"@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics",
@@ -30,7 +30,7 @@ describe("ClassicyPopUpMenu", () => {
 		render(
 			<ClassicyPopUpMenu id="fruit" options={options} selected="banana" />,
 		);
-		expect(screen.getByRole("button")).toHaveTextContent("Banana");
+		expect(screen.getByRole("combobox")).toHaveTextContent("Banana");
 	});
 
 	it("puts the id on the visible control and reflects its value and disabled state (no hidden <select>)", () => {
@@ -61,7 +61,7 @@ describe("ClassicyPopUpMenu", () => {
 		render(
 			<ClassicyPopUpMenu id="fruit" options={options} selected="banana" />,
 		);
-		await user.click(screen.getByRole("button"));
+		await user.click(screen.getByRole("combobox"));
 		const listbox = screen.getByRole("listbox");
 		expect(within(listbox).getAllByRole("option")).toHaveLength(3);
 		const current = within(listbox).getByRole("option", { name: "Banana" });
@@ -84,13 +84,13 @@ describe("ClassicyPopUpMenu", () => {
 				onChangeFunc={onChangeFunc}
 			/>,
 		);
-		await user.click(screen.getByRole("button"));
+		await user.click(screen.getByRole("combobox"));
 		await user.click(screen.getByRole("option", { name: "Cherry" }));
 		expect(onChangeFunc).toHaveBeenCalledOnce();
 		expect(onChangeFunc.mock.calls[0][0].target.value).toBe("cherry");
 		// Menu closes and the trigger reflects the new value.
 		expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
-		expect(screen.getByRole("button")).toHaveTextContent("Cherry");
+		expect(screen.getByRole("combobox")).toHaveTextContent("Cherry");
 	});
 
 	it("re-selecting the current option closes without firing onChangeFunc", async () => {
@@ -104,7 +104,7 @@ describe("ClassicyPopUpMenu", () => {
 				onChangeFunc={onChangeFunc}
 			/>,
 		);
-		await user.click(screen.getByRole("button"));
+		await user.click(screen.getByRole("combobox"));
 		await user.click(screen.getByRole("option", { name: "Apple" }));
 		expect(onChangeFunc).not.toHaveBeenCalled();
 		expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
@@ -124,7 +124,9 @@ describe("ClassicyPopUpMenu", () => {
 				<button type="button">outside</button>
 			</div>,
 		);
-		await user.click(screen.getByRole("button", { name: "Apple" }));
+		const trigger = screen.getByRole("combobox");
+		expect(trigger).toHaveTextContent("Apple");
+		await user.click(trigger);
 		expect(screen.getByRole("listbox")).toBeInTheDocument();
 		await user.click(screen.getByRole("button", { name: "outside" }));
 		expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
@@ -142,7 +144,7 @@ describe("ClassicyPopUpMenu", () => {
 				onChangeFunc={onChangeFunc}
 			/>,
 		);
-		screen.getByRole("button").focus();
+		screen.getByRole("combobox").focus();
 		await user.keyboard("{ArrowDown}"); // opens, highlights current (apple)
 		expect(screen.getByRole("listbox")).toBeInTheDocument();
 		await user.keyboard("{ArrowDown}"); // -> banana
@@ -162,7 +164,7 @@ describe("ClassicyPopUpMenu", () => {
 				onChangeFunc={onChangeFunc}
 			/>,
 		);
-		screen.getByRole("button").focus();
+		screen.getByRole("combobox").focus();
 		await user.keyboard("{ArrowDown}");
 		expect(screen.getByRole("listbox")).toBeInTheDocument();
 		await user.keyboard("{Escape}");
@@ -173,7 +175,7 @@ describe("ClassicyPopUpMenu", () => {
 	it("does not open when disabled", async () => {
 		const user = userEvent.setup();
 		render(<ClassicyPopUpMenu id="fruit" options={options} disabled />);
-		const btn = screen.getByRole("button");
+		const btn = screen.getByRole("combobox");
 		expect(btn).toBeDisabled();
 		await user.click(btn);
 		expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
@@ -186,10 +188,179 @@ describe("ClassicyPopUpMenu", () => {
 		expect(screen.getByText("Pick a fruit")).toBeInTheDocument();
 	});
 
+	it("exposes an accessible name on the trigger from the selected value when no label prop is given", () => {
+		render(
+			<ClassicyPopUpMenu id="fruit" options={options} selected="banana" />,
+		);
+		expect(
+			screen.getByRole("combobox", { name: "Banana" }),
+		).toBeInTheDocument();
+	});
+
+	it("uses the label prop as the trigger's accessible name when provided", () => {
+		render(
+			<ClassicyPopUpMenu
+				id="fruit"
+				options={options}
+				selected="banana"
+				label="Pick a fruit"
+			/>,
+		);
+		expect(
+			screen.getByRole("combobox", { name: "Pick a fruit" }),
+		).toBeInTheDocument();
+	});
+
 	it("shows the placeholder when nothing is selected", () => {
 		render(
 			<ClassicyPopUpMenu id="fruit" options={options} placeholder="Choose…" />,
 		);
-		expect(screen.getByRole("button")).toHaveTextContent("Choose…");
+		expect(screen.getByRole("combobox")).toHaveTextContent("Choose…");
+	});
+
+	it("keeps DOM focus on the trigger button after opening (so keys reach the handler)", async () => {
+		const user = userEvent.setup();
+		render(<ClassicyPopUpMenu id="fruit" options={options} selected="apple" />);
+		const btn = screen.getByRole("combobox");
+		await user.click(btn); // open via mouse
+		expect(screen.getByRole("listbox")).toBeInTheDocument();
+		expect(btn).toHaveFocus();
+	});
+
+	it("wires aria-controls and aria-activedescendant to the highlighted option", async () => {
+		const user = userEvent.setup();
+		render(<ClassicyPopUpMenu id="fruit" options={options} selected="apple" />);
+		const btn = screen.getByRole("combobox");
+		await user.click(btn);
+		const listbox = screen.getByRole("listbox");
+		expect(listbox.id).toBeTruthy();
+		expect(btn).toHaveAttribute("aria-controls", listbox.id);
+		// highlight starts on the current selection (Apple, index 0)
+		const apple = within(listbox).getByRole("option", { name: "Apple" });
+		expect(btn).toHaveAttribute("aria-activedescendant", apple.id);
+		await user.keyboard("{ArrowDown}"); // -> Banana
+		const banana = within(listbox).getByRole("option", { name: "Banana" });
+		expect(btn).toHaveAttribute("aria-activedescendant", banana.id);
+	});
+
+	it("type-ahead while open moves the highlight to the matching option", async () => {
+		const user = userEvent.setup();
+		const onChangeFunc = vi.fn();
+		render(
+			<ClassicyPopUpMenu
+				id="fruit"
+				options={options}
+				selected="apple"
+				onChangeFunc={onChangeFunc}
+			/>,
+		);
+		await user.click(screen.getByRole("combobox"));
+		await user.keyboard("b"); // -> Banana
+		const listbox = screen.getByRole("listbox");
+		const banana = within(listbox).getByRole("option", { name: "Banana" });
+		expect(screen.getByRole("combobox")).toHaveAttribute(
+			"aria-activedescendant",
+			banana.id,
+		);
+		await user.keyboard("{Enter}");
+		expect(onChangeFunc.mock.calls[0][0].target.value).toBe("banana");
+	});
+
+	it("type-ahead while closed opens the menu and highlights the match (no silent change)", async () => {
+		const user = userEvent.setup();
+		const onChangeFunc = vi.fn();
+		render(
+			<ClassicyPopUpMenu
+				id="fruit"
+				options={options}
+				selected="apple"
+				onChangeFunc={onChangeFunc}
+			/>,
+		);
+		screen.getByRole("combobox").focus();
+		await user.keyboard("c"); // opens, highlights Cherry
+		const listbox = screen.getByRole("listbox");
+		expect(listbox).toBeInTheDocument();
+		const cherry = within(listbox).getByRole("option", { name: "Cherry" });
+		expect(screen.getByRole("combobox")).toHaveAttribute(
+			"aria-activedescendant",
+			cherry.id,
+		);
+		expect(onChangeFunc).not.toHaveBeenCalled(); // typing did not commit
+		await user.keyboard("{Enter}");
+		expect(onChangeFunc.mock.calls[0][0].target.value).toBe("cherry");
+	});
+
+	it("renders the open list outside a clipping ancestor (portaled to the body)", async () => {
+		const user = userEvent.setup();
+		render(
+			<div style={{ overflow: "hidden" }} data-testid="clip">
+				<ClassicyPopUpMenu id="fruit" options={options} selected="apple" />
+			</div>,
+		);
+		await user.click(screen.getByRole("combobox"));
+		const listbox = screen.getByRole("listbox");
+		// Portaled: present in the document but NOT nested in the clipping wrapper.
+		expect(document.body).toContainElement(listbox);
+		expect(screen.getByTestId("clip")).not.toContainElement(listbox);
+	});
+
+	it("commits an option click even when portaled out of a clipping wrapper", async () => {
+		const user = userEvent.setup();
+		const onChangeFunc = vi.fn();
+		render(
+			<div style={{ overflow: "hidden" }}>
+				<ClassicyPopUpMenu
+					id="fruit"
+					options={options}
+					selected="apple"
+					onChangeFunc={onChangeFunc}
+				/>
+			</div>,
+		);
+		await user.click(screen.getByRole("combobox"));
+		await user.click(screen.getByRole("option", { name: "Cherry" }));
+		expect(onChangeFunc.mock.calls[0][0].target.value).toBe("cherry");
+		expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+	});
+
+	it("type-ahead buffers characters typed within the reset window", async () => {
+		const user = userEvent.setup();
+		const local = [
+			{ value: "apple", label: "Apple" },
+			{ value: "apricot", label: "Apricot" },
+			{ value: "banana", label: "Banana" },
+		];
+		render(<ClassicyPopUpMenu id="fruit" options={local} selected="banana" />);
+		await user.click(screen.getByRole("combobox"));
+		await user.keyboard("apr"); // buffer "apr" -> Apricot, not first-"a" Apple
+		const listbox = screen.getByRole("listbox");
+		const apricot = within(listbox).getByRole("option", { name: "Apricot" });
+		expect(screen.getByRole("combobox")).toHaveAttribute(
+			"aria-activedescendant",
+			apricot.id,
+		);
+	});
+
+	it("closes on scroll", async () => {
+		const user = userEvent.setup();
+		render(<ClassicyPopUpMenu id="fruit" options={options} selected="apple" />);
+		await user.click(screen.getByRole("combobox"));
+		expect(screen.getByRole("listbox")).toBeInTheDocument();
+		act(() => {
+			window.dispatchEvent(new Event("scroll"));
+		});
+		expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+	});
+
+	it("closes on window resize", async () => {
+		const user = userEvent.setup();
+		render(<ClassicyPopUpMenu id="fruit" options={options} selected="apple" />);
+		await user.click(screen.getByRole("combobox"));
+		expect(screen.getByRole("listbox")).toBeInTheDocument();
+		act(() => {
+			window.dispatchEvent(new Event("resize"));
+		});
+		expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
 	});
 });

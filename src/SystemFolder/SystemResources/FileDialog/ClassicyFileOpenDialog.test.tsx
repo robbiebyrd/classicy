@@ -127,14 +127,15 @@ const baseProps = {
 // trigger button (queried by the control's associated label) to open the
 // listbox, then click the target option by its visible label text.
 //
-// The control's label sits inside ClassicyControlLabel's own clickable
-// wrapper, which is itself `role="button"` — so a plain name-based query
-// matches both that wrapper and the real <button>. Filter to the <button>.
+// The trigger is a `<button role="combobox">` (select-only combobox pattern);
+// ClassicyControlLabel's own clickable wrapper is a separate `role="button"`,
+// so querying by `combobox` already excludes it. Filter to the <button>
+// element defensively.
 function getPopUpTrigger(name: string | RegExp): HTMLElement {
 	const match = screen
-		.getAllByRole("button", { name })
+		.getAllByRole("combobox", { name })
 		.find((el) => el.tagName === "BUTTON");
-	if (!match) throw new Error(`No <button> trigger found for name ${name}`);
+	if (!match) throw new Error(`No combobox trigger found for name ${name}`);
 	return match;
 }
 
