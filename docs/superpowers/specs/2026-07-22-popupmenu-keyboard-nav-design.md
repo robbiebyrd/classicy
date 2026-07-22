@@ -61,16 +61,18 @@ control. DOM focus stays on the `<button>` the entire time the menu is open; the
 
 - Maintain a short-lived typed-buffer in a `useRef` (the accumulated string).
   Use a `window.setTimeout` (tracked in a ref, cleared on each keystroke) to
-  reset the buffer after ~500ms of inactivity, matching native `<select>`.
+  reset the buffer after 250ms of inactivity.
 - In `onButtonKeyDown`, when the key is a single printable character
   (`e.key.length === 1` and not a modifier combo):
   - Append to the buffer.
   - Find the first option whose `label` starts with the buffer
     (case-insensitive). If none, fall back to the first option starting with the
     latest character (lets repeated presses cycle through same-initial items).
-  - If the menu is **open**, move the `highlight` to that option's index.
-  - If the menu is **closed**, commit that option directly (native `<select>`
-    changes value on type without opening) — via `commitIndex(matchIndex)`.
+  - If the menu is **closed**, open it first (`openMenu()`), then move the
+    `highlight` to the matching index — typing surfaces the menu rather than
+    silently changing the value.
+  - Once open (including immediately after the open above), move the `highlight`
+    to that option's index. Commit stays an explicit Enter/click.
 - Do not preventDefault for keys that aren't matched, so existing shortcuts are
   unaffected.
 
@@ -95,8 +97,9 @@ Extend `ClassicyPopUpMenu.test.tsx` (all via `@/__tests__/test-utils`):
    `aria-controls` points at the listbox id.
 3. **Type-ahead while open** — open, type `b`, assert Banana is highlighted
    (`aria-activedescendant`); `{Enter}` commits Banana.
-4. **Type-ahead while closed** — focus button (closed), type `c`, assert
-   `onChangeFunc` fires with `cherry` and the button shows Cherry.
+4. **Type-ahead while closed** — focus button (closed), type `c`, assert the
+   menu opens (listbox present) with Cherry highlighted via
+   `aria-activedescendant`; `{Enter}` then commits `cherry`.
 5. **Type-ahead buffer** — type `ba` selects Banana over a hypothetical
    `Blueberry`-style prefix collision (use options that share an initial).
 
