@@ -75,7 +75,8 @@ control. DOM focus stays on the `<button>` the entire time the menu is open; the
   - Append to the buffer.
   - Find the first option whose `label` starts with the buffer
     (case-insensitive). If none, fall back to the first option starting with the
-    latest character (lets repeated presses cycle through same-initial items).
+    latest character (re-locates the first option with that initial when the
+    buffer stops matching).
   - If the menu is **closed**, open it first (`openMenu()`), then move the
     `highlight` to the matching index — typing surfaces the menu rather than
     silently changing the value.

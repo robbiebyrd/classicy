@@ -265,8 +265,8 @@ Add the helper (after `openMenu`, around line 123). Returns whether a match was 
 			let index = options.findIndex((o) =>
 				o.label.toLowerCase().startsWith(buffer),
 			);
-			// Fall back to the latest char alone so repeated presses cycle through
-			// items sharing an initial.
+			// If the accumulated buffer no longer matches, fall back to the
+			// latest char alone (re-locates the first option with that initial).
 			if (index < 0) {
 				const last = char.toLowerCase();
 				index = options.findIndex((o) =>

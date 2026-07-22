@@ -149,8 +149,8 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 			let index = options.findIndex((o) =>
 				o.label.toLowerCase().startsWith(buffer),
 			);
-			// Fall back to the latest char alone so repeated presses cycle through
-			// items sharing an initial.
+			// If the accumulated buffer no longer matches, fall back to the
+			// latest char alone (re-locates the first option with that initial).
 			if (index < 0) {
 				const last = char.toLowerCase();
 				index = options.findIndex((o) =>
@@ -311,11 +311,11 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 				    so consumers/tests can target it, and reflects the disabled
 				    state via the native `disabled` attribute, `aria-disabled` and
 				    a disabled class. (No hidden native <select> mirror anymore.) */}
-				{/* biome-ignore lint/a11y/useAriaPropsSupportedByRole: button with aria-activedescendant is the standard pattern for custom listbox with focus on button */}
 				<button
 					ref={buttonRef}
 					id={id}
 					type="button"
+					role="combobox"
 					className={classNames(
 						"classicyPopUpMenuButton",
 						disabled && "classicyPopUpMenuButtonDisabled",
