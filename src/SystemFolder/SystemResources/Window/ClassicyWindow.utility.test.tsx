@@ -131,3 +131,45 @@ describe("ClassicyWindow utility (floating) windows never dim when unfocused", (
 		).not.toBeNull();
 	});
 });
+
+describe("ClassicyWindow utility windows have no title text and no icon", () => {
+	// A windoid's title bar is pure crosshatch + controls: even when the
+	// consumer passes a title, it is never painted in the bar.
+	it("renders no title text even when a title prop is provided", () => {
+		const { container } = renderWindow({
+			windowType: "utility",
+			title: "Tools",
+		});
+		expect(container.querySelector(".classicyWindowTitleText")).toBeNull();
+	});
+
+	// No document icon in a utility title bar, even with hideIcon defaulted off.
+	it("renders no icon even when hideIcon is false", () => {
+		const { container } = renderWindow({
+			windowType: "utility",
+			title: "Tools",
+			hideIcon: false,
+		});
+		expect(container.querySelector(".classicyWindowIcon")).toBeNull();
+	});
+
+	// The empty crosshatch center is what the utility bar shows instead.
+	it("renders the empty crosshatch center region", () => {
+		const { container } = renderWindow({
+			windowType: "utility",
+			title: "Tools",
+		});
+		expect(
+			container.querySelector(".classicyWindowTitleCenter"),
+		).not.toBeNull();
+	});
+
+	// Regression: a document window with a title still paints the title text.
+	it("still renders title text for a document window with a title", () => {
+		const { container } = renderWindow({
+			windowType: "document",
+			title: "Tools",
+		});
+		expect(container.querySelector(".classicyWindowTitleText")).not.toBeNull();
+	});
+});

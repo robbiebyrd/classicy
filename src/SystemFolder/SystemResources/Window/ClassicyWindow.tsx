@@ -982,7 +982,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 						doubleClickTitleToCollapse ? toggleCollapse : undefined
 					}
 				>
-					{title !== "" ? (
+					{title !== "" && windowType !== "utility" ? (
 						<>
 							<div className={"classicyWindowTitleLeft"}></div>
 							{!hideIcon && (
