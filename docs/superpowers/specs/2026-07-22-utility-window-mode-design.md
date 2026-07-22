@@ -7,7 +7,8 @@
 ## Summary
 
 Complete the existing `windowType="utility"` feature so a utility window renders
-as a compact Mac OS 8 tool palette ("windoid"): a **half-height** title bar with
+as a compact Mac OS 8 tool palette ("windoid"): a **half-height** title bar
+(~11px, matching the Mac OS 8 windoid) with
 **no title text and no icon** — just the crosshatch drag region and the window
 control boxes. Reference appearance: `tool-1.png` (floating tool palette) and
 `tool-2.png` ("About Help" windoid, where the title text is a *header below* the
@@ -35,7 +36,8 @@ bar, not inside it).
 
 ## Requirements
 
-- R1 — Utility title bar height is **half** the document title bar (~19px → ~10px).
+- R1 — Utility title bar height is **half** the document title bar (~19px → 11px,
+  matching the Mac OS 8 windoid).
 - R2 — Utility windows render **no title text and no icon** in the title bar,
   regardless of the `title` / `icon` / `hideIcon` props a consumer passes.
 - R3 — Control boxes (close / zoom / collapse) shrink to fit the shorter bar and
@@ -52,7 +54,7 @@ Add a themeable HIG variable next to the existing document title-bar height
 
 ```ts
 "--hig-titlebar-height": intToPx(19),          // document window title bar
-"--hig-titlebar-height-utility": intToPx(10),  // utility (tool-palette) title bar
+"--hig-titlebar-height-utility": intToPx(11),  // utility (tool-palette) title bar
 ```
 
 Rationale: matches the codebase's HIG-var pattern and lets themes override the
@@ -115,7 +117,7 @@ bar and title-less chrome.
 
 ## Acceptance criteria
 
-- A `windowType="utility"` window shows a ~10px title bar (half the document
+- A `windowType="utility"` window shows an 11px title bar (half the document
   bar), no title text, no icon, with functional close/zoom/collapse controls.
 - Passing a `title` prop to a utility window does not paint text or an icon in
   the bar, but the title still feeds the accessible name.
