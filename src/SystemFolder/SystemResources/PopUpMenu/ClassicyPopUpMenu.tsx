@@ -195,6 +195,22 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 		return () => document.removeEventListener("mousedown", onPointerDown);
 	}, [open, closeMenu]);
 
+	// A fixed-position portal can't follow its button, so dismiss on scroll/
+	// resize. `capture: true` catches scrolls in any ancestor, not just window.
+	useEffect(() => {
+		if (!open) return;
+		const dismiss = () => {
+			closeMenu();
+			buttonRef.current?.focus();
+		};
+		window.addEventListener("scroll", dismiss, true);
+		window.addEventListener("resize", dismiss);
+		return () => {
+			window.removeEventListener("scroll", dismiss, true);
+			window.removeEventListener("resize", dismiss);
+		};
+	}, [open, closeMenu]);
+
 	useEffect(
 		() => () => {
 			if (typeaheadTimerRef.current) clearTimeout(typeaheadTimerRef.current);

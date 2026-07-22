@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen, userEvent, within } from "@/__tests__/test-utils";
+import { act, render, screen, userEvent, within } from "@/__tests__/test-utils";
 
 vi.mock(
 	"@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics",
@@ -315,5 +315,27 @@ describe("ClassicyPopUpMenu", () => {
 			"aria-activedescendant",
 			apricot.id,
 		);
+	});
+
+	it("closes on scroll", async () => {
+		const user = userEvent.setup();
+		render(<ClassicyPopUpMenu id="fruit" options={options} selected="apple" />);
+		await user.click(screen.getByRole("button"));
+		expect(screen.getByRole("listbox")).toBeInTheDocument();
+		act(() => {
+			window.dispatchEvent(new Event("scroll"));
+		});
+		expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+	});
+
+	it("closes on window resize", async () => {
+		const user = userEvent.setup();
+		render(<ClassicyPopUpMenu id="fruit" options={options} selected="apple" />);
+		await user.click(screen.getByRole("button"));
+		expect(screen.getByRole("listbox")).toBeInTheDocument();
+		act(() => {
+			window.dispatchEvent(new Event("resize"));
+		});
+		expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
 	});
 });
