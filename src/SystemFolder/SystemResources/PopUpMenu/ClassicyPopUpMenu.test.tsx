@@ -266,6 +266,39 @@ describe("ClassicyPopUpMenu", () => {
 		expect(onChangeFunc.mock.calls[0][0].target.value).toBe("cherry");
 	});
 
+	it("renders the open list outside a clipping ancestor (portaled to the body)", async () => {
+		const user = userEvent.setup();
+		render(
+			<div style={{ overflow: "hidden" }} data-testid="clip">
+				<ClassicyPopUpMenu id="fruit" options={options} selected="apple" />
+			</div>,
+		);
+		await user.click(screen.getByRole("button"));
+		const listbox = screen.getByRole("listbox");
+		// Portaled: present in the document but NOT nested in the clipping wrapper.
+		expect(document.body).toContainElement(listbox);
+		expect(screen.getByTestId("clip")).not.toContainElement(listbox);
+	});
+
+	it("commits an option click even when portaled out of a clipping wrapper", async () => {
+		const user = userEvent.setup();
+		const onChangeFunc = vi.fn();
+		render(
+			<div style={{ overflow: "hidden" }}>
+				<ClassicyPopUpMenu
+					id="fruit"
+					options={options}
+					selected="apple"
+					onChangeFunc={onChangeFunc}
+				/>
+			</div>,
+		);
+		await user.click(screen.getByRole("button"));
+		await user.click(screen.getByRole("option", { name: "Cherry" }));
+		expect(onChangeFunc.mock.calls[0][0].target.value).toBe("cherry");
+		expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+	});
+
 	it("type-ahead buffers characters typed within the reset window", async () => {
 		const user = userEvent.setup();
 		const local = [

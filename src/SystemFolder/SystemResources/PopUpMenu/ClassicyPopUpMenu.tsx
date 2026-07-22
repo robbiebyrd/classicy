@@ -16,6 +16,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { createPortal } from "react-dom";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
 const PLACEHOLDER_VALUE = "__classicy_placeholder__";
@@ -71,9 +72,11 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 
 	const [open, setOpen] = useState(false);
 	const [highlight, setHighlight] = useState<number>(-1);
+	const [menuRect, setMenuRect] = useState<DOMRect | null>(null);
 
 	const wrapperRef = useRef<HTMLDivElement>(null);
 	const buttonRef = useRef<HTMLButtonElement>(null);
+	const listRef = useRef<HTMLDivElement>(null);
 	const typeaheadBufferRef = useRef("");
 	const typeaheadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const reactId = useId();
@@ -117,11 +120,15 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 	const closeMenu = useCallback(() => {
 		setOpen(false);
 		setHighlight(-1);
+		setMenuRect(null);
 	}, []);
 
 	const openMenu = useCallback(() => {
 		if (disabled) return;
 		setHighlight(currentIndex >= 0 ? currentIndex : 0);
+		if (buttonRef.current) {
+			setMenuRect(buttonRef.current.getBoundingClientRect());
+		}
 		setOpen(true);
 		// Firefox/Safari don't focus a <button> on click (only Chromium does),
 		// so without this the keydown handler never runs after a mouse-open.
@@ -176,7 +183,11 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 	useEffect(() => {
 		if (!open) return;
 		const onPointerDown = (e: globalThis.MouseEvent) => {
-			if (!wrapperRef.current?.contains(e.target as Node)) {
+			const target = e.target as Node;
+			if (
+				!wrapperRef.current?.contains(target) &&
+				!listRef.current?.contains(target)
+			) {
 				closeMenu();
 			}
 		};
@@ -308,53 +319,65 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 					<span className="classicyPopUpMenuIndicator" aria-hidden={true} />
 				</button>
 
-				{open && (
-					<div
-						id={listId}
-						role="listbox"
-						aria-label={label ?? currentLabel}
-						className="classicyPopUpMenuList"
-					>
-						{options.map((o, index) => {
-							const isSelected = o.value === selectedItem;
-							return (
-								<div
-									key={id + o.value}
-									id={optionId(index)}
-									role="option"
-									tabIndex={-1}
-									aria-selected={isSelected}
-									className={classNames(
-										"classicyPopUpMenuListItem",
-										index === highlight && "classicyPopUpMenuListItemHighlight",
-									)}
-									onMouseEnter={() => setHighlight(index)}
-									onClick={() => commitIndex(index)}
-									onKeyDown={(e) => {
-										if (e.key === "Enter" || e.key === " ") {
-											e.preventDefault();
-											commitIndex(index);
-										}
-									}}
-								>
-									<span className="classicyPopUpMenuCheck" aria-hidden={true}>
-										{isSelected ? CHECKMARK : ""}
-									</span>
-									{o.icon && (
-										<img
-											className="classicyPopUpMenuListItemIcon"
-											src={o.icon}
-											alt=""
-										/>
-									)}
-									<span className="classicyPopUpMenuListItemLabel">
-										{o.label}
-									</span>
-								</div>
-							);
-						})}
-					</div>
-				)}
+				{open &&
+					menuRect &&
+					createPortal(
+						<div
+							ref={listRef}
+							id={listId}
+							role="listbox"
+							aria-label={label ?? currentLabel}
+							className="classicyPopUpMenuList"
+							style={{
+								position: "fixed",
+								top: `${menuRect.top}px`,
+								left: `${menuRect.left}px`,
+								minWidth: `${menuRect.width}px`,
+								zIndex: 5000,
+							}}
+						>
+							{options.map((o, index) => {
+								const isSelected = o.value === selectedItem;
+								return (
+									<div
+										key={id + o.value}
+										id={optionId(index)}
+										role="option"
+										tabIndex={-1}
+										aria-selected={isSelected}
+										className={classNames(
+											"classicyPopUpMenuListItem",
+											index === highlight &&
+												"classicyPopUpMenuListItemHighlight",
+										)}
+										onMouseEnter={() => setHighlight(index)}
+										onClick={() => commitIndex(index)}
+										onKeyDown={(e) => {
+											if (e.key === "Enter" || e.key === " ") {
+												e.preventDefault();
+												commitIndex(index);
+											}
+										}}
+									>
+										<span className="classicyPopUpMenuCheck" aria-hidden={true}>
+											{isSelected ? CHECKMARK : ""}
+										</span>
+										{o.icon && (
+											<img
+												className="classicyPopUpMenuListItemIcon"
+												src={o.icon}
+												alt=""
+											/>
+										)}
+										<span className="classicyPopUpMenuListItemLabel">
+											{o.label}
+										</span>
+									</div>
+								);
+							})}
+						</div>,
+						document.getElementById("classicyDesktop") ?? document.body,
+					)}
 			</div>
 		</div>
 	);
