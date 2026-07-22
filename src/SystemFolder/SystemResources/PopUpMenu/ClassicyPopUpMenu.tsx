@@ -322,6 +322,7 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 					)}
 					disabled={disabled}
 					aria-disabled={disabled}
+					aria-label={label ?? currentLabel}
 					aria-haspopup="listbox"
 					aria-expanded={open}
 					aria-controls={open ? listId : undefined}

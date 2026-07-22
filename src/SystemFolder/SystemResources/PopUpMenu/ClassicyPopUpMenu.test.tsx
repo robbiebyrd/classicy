@@ -188,6 +188,29 @@ describe("ClassicyPopUpMenu", () => {
 		expect(screen.getByText("Pick a fruit")).toBeInTheDocument();
 	});
 
+	it("exposes an accessible name on the trigger from the selected value when no label prop is given", () => {
+		render(
+			<ClassicyPopUpMenu id="fruit" options={options} selected="banana" />,
+		);
+		expect(
+			screen.getByRole("combobox", { name: "Banana" }),
+		).toBeInTheDocument();
+	});
+
+	it("uses the label prop as the trigger's accessible name when provided", () => {
+		render(
+			<ClassicyPopUpMenu
+				id="fruit"
+				options={options}
+				selected="banana"
+				label="Pick a fruit"
+			/>,
+		);
+		expect(
+			screen.getByRole("combobox", { name: "Pick a fruit" }),
+		).toBeInTheDocument();
+	});
+
 	it("shows the placeholder when nothing is selected", () => {
 		render(
 			<ClassicyPopUpMenu id="fruit" options={options} placeholder="Choose…" />,
