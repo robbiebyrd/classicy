@@ -192,4 +192,13 @@ describe("ClassicyPopUpMenu", () => {
 		);
 		expect(screen.getByRole("button")).toHaveTextContent("Choose…");
 	});
+
+	it("keeps DOM focus on the trigger button after opening (so keys reach the handler)", async () => {
+		const user = userEvent.setup();
+		render(<ClassicyPopUpMenu id="fruit" options={options} selected="apple" />);
+		const btn = screen.getByRole("button");
+		await user.click(btn); // open via mouse
+		expect(screen.getByRole("listbox")).toBeInTheDocument();
+		expect(btn).toHaveFocus();
+	});
 });

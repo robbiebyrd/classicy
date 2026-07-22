@@ -120,6 +120,9 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 		if (disabled) return;
 		setHighlight(currentIndex >= 0 ? currentIndex : 0);
 		setOpen(true);
+		// Firefox/Safari don't focus a <button> on click (only Chromium does),
+		// so without this the keydown handler never runs after a mouse-open.
+		buttonRef.current?.focus();
 	}, [disabled, currentIndex]);
 
 	// Commit a menu selection (mouse or keyboard). Matches native <select>
