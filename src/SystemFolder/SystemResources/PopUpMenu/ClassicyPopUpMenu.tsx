@@ -74,6 +74,8 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 
 	const wrapperRef = useRef<HTMLDivElement>(null);
 	const buttonRef = useRef<HTMLButtonElement>(null);
+	const typeaheadBufferRef = useRef("");
+	const typeaheadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const reactId = useId();
 
 	const { track } = useClassicyAnalytics();
@@ -126,6 +128,37 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 		buttonRef.current?.focus();
 	}, [disabled, currentIndex]);
 
+	// Native-<select>-style type-ahead: accumulate typed chars (reset after
+	// 250ms idle) and jump the highlight to the first matching option label.
+	const handleTypeahead = useCallback(
+		(char: string): boolean => {
+			if (typeaheadTimerRef.current) clearTimeout(typeaheadTimerRef.current);
+			typeaheadBufferRef.current += char;
+			typeaheadTimerRef.current = setTimeout(() => {
+				typeaheadBufferRef.current = "";
+			}, 250);
+
+			const buffer = typeaheadBufferRef.current.toLowerCase();
+			let index = options.findIndex((o) =>
+				o.label.toLowerCase().startsWith(buffer),
+			);
+			// Fall back to the latest char alone so repeated presses cycle through
+			// items sharing an initial.
+			if (index < 0) {
+				const last = char.toLowerCase();
+				index = options.findIndex((o) =>
+					o.label.toLowerCase().startsWith(last),
+				);
+			}
+			if (index < 0) return false;
+
+			if (!open) openMenu(); // typing surfaces the menu; never a silent change
+			setHighlight(index);
+			return true;
+		},
+		[options, open, openMenu],
+	);
+
 	// Commit a menu selection (mouse or keyboard). Matches native <select>
 	// semantics: re-picking the current value simply closes with no onChange.
 	const commitIndex = useCallback(
@@ -150,6 +183,13 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 		document.addEventListener("mousedown", onPointerDown);
 		return () => document.removeEventListener("mousedown", onPointerDown);
 	}, [open, closeMenu]);
+
+	useEffect(
+		() => () => {
+			if (typeaheadTimerRef.current) clearTimeout(typeaheadTimerRef.current);
+		},
+		[],
+	);
 
 	const onButtonKeyDown = (e: KeyboardEvent<HTMLButtonElement>) => {
 		if (disabled) return;
@@ -198,6 +238,19 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 					setHighlight(options.length - 1);
 				}
 				break;
+			default: {
+				// Single printable char (not Space, not a modifier combo) -> type-ahead.
+				const isPrintable =
+					e.key.length === 1 &&
+					e.key !== " " &&
+					!e.altKey &&
+					!e.ctrlKey &&
+					!e.metaKey;
+				if (isPrintable && handleTypeahead(e.key)) {
+					e.preventDefault();
+				}
+				break;
+			}
 		}
 	};
 

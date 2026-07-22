@@ -217,4 +217,70 @@ describe("ClassicyPopUpMenu", () => {
 		const banana = within(listbox).getByRole("option", { name: "Banana" });
 		expect(btn).toHaveAttribute("aria-activedescendant", banana.id);
 	});
+
+	it("type-ahead while open moves the highlight to the matching option", async () => {
+		const user = userEvent.setup();
+		const onChangeFunc = vi.fn();
+		render(
+			<ClassicyPopUpMenu
+				id="fruit"
+				options={options}
+				selected="apple"
+				onChangeFunc={onChangeFunc}
+			/>,
+		);
+		await user.click(screen.getByRole("button"));
+		await user.keyboard("b"); // -> Banana
+		const listbox = screen.getByRole("listbox");
+		const banana = within(listbox).getByRole("option", { name: "Banana" });
+		expect(screen.getByRole("button")).toHaveAttribute(
+			"aria-activedescendant",
+			banana.id,
+		);
+		await user.keyboard("{Enter}");
+		expect(onChangeFunc.mock.calls[0][0].target.value).toBe("banana");
+	});
+
+	it("type-ahead while closed opens the menu and highlights the match (no silent change)", async () => {
+		const user = userEvent.setup();
+		const onChangeFunc = vi.fn();
+		render(
+			<ClassicyPopUpMenu
+				id="fruit"
+				options={options}
+				selected="apple"
+				onChangeFunc={onChangeFunc}
+			/>,
+		);
+		screen.getByRole("button").focus();
+		await user.keyboard("c"); // opens, highlights Cherry
+		const listbox = screen.getByRole("listbox");
+		expect(listbox).toBeInTheDocument();
+		const cherry = within(listbox).getByRole("option", { name: "Cherry" });
+		expect(screen.getByRole("button")).toHaveAttribute(
+			"aria-activedescendant",
+			cherry.id,
+		);
+		expect(onChangeFunc).not.toHaveBeenCalled(); // typing did not commit
+		await user.keyboard("{Enter}");
+		expect(onChangeFunc.mock.calls[0][0].target.value).toBe("cherry");
+	});
+
+	it("type-ahead buffers characters typed within the reset window", async () => {
+		const user = userEvent.setup();
+		const local = [
+			{ value: "apple", label: "Apple" },
+			{ value: "apricot", label: "Apricot" },
+			{ value: "banana", label: "Banana" },
+		];
+		render(<ClassicyPopUpMenu id="fruit" options={local} selected="banana" />);
+		await user.click(screen.getByRole("button"));
+		await user.keyboard("apr"); // buffer "apr" -> Apricot, not first-"a" Apple
+		const listbox = screen.getByRole("listbox");
+		const apricot = within(listbox).getByRole("option", { name: "Apricot" });
+		expect(screen.getByRole("button")).toHaveAttribute(
+			"aria-activedescendant",
+			apricot.id,
+		);
+	});
 });
