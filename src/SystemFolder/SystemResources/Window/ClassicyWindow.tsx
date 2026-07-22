@@ -914,6 +914,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			id={[appId, id].join("_")}
 			ref={windowRef}
 			role="application"
+			aria-label={title || undefined}
 			style={windowStyle}
 			className={classNames(
 				"classicyWindow",
@@ -982,7 +983,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 						doubleClickTitleToCollapse ? toggleCollapse : undefined
 					}
 				>
-					{title !== "" ? (
+					{title !== "" && windowType !== "utility" ? (
 						<>
 							<div className={"classicyWindowTitleLeft"}></div>
 							{!hideIcon && (

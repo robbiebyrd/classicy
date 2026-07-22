@@ -81,10 +81,34 @@ export const Utility: Story = {
 				title="Tools"
 				windowType="utility"
 				zoomable={false}
-				initialSize={[180, 220]}
+				initialSize={[120, 240]}
 				initialPosition={[140, 90]}
 			>
-				<p style={{ padding: "1em" }}>Drag me by any edge of the frame.</p>
+				<div
+					style={{
+						display: "grid",
+						gridTemplateColumns: "1fr 1fr",
+						gap: 2,
+						padding: 4,
+					}}
+				>
+					{["▲", "●", "◆", "■", "✕", "＋", "▬", "A"].map((glyph) => (
+						<div
+							key={glyph}
+							style={{
+								display: "flex",
+								alignItems: "center",
+								justifyContent: "center",
+								height: 44,
+								fontSize: 22,
+								border: "1px solid var(--color-system-05)",
+								background: "var(--color-system-02)",
+							}}
+						>
+							{glyph}
+						</div>
+					))}
+				</div>
 			</ClassicyWindow>
 		</StoryApp>
 	),
