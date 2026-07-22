@@ -92,7 +92,7 @@ export const Utility: Story = {
 						padding: 4,
 					}}
 				>
-					{["◱", "◇", "✋", "🖌", "🪣", "✏", "▬", "A"].map((glyph) => (
+					{["▲", "●", "◆", "■", "✕", "＋", "▬", "A"].map((glyph) => (
 						<div
 							key={glyph}
 							style={{

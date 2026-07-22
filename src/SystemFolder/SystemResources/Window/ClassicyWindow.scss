@@ -527,14 +527,6 @@
         content: none !important;
       }
     }
-
-    // The crosshatch center is the drag region; shrink it to the shorter bar.
-    .classicyWindowTitleCenter {
-      height: calc(
-        var(--hig-titlebar-height-utility) - var(--window-border-size) * 2
-      );
-      margin: 0 var(--window-padding-size);
-    }
   }
 }
 

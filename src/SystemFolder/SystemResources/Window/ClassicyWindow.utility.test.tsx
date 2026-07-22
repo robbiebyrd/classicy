@@ -173,3 +173,16 @@ describe("ClassicyWindow utility windows have no title text and no icon", () => 
 		expect(container.querySelector(".classicyWindowTitleText")).not.toBeNull();
 	});
 });
+
+describe("ClassicyWindow utility windows expose title as accessible name", () => {
+	// The windoid paints no title, but the title prop must still name the
+	// window for assistive tech.
+	it("sets aria-label from the title prop on a utility window", () => {
+		const { container } = renderWindow({
+			windowType: "utility",
+			title: "Tools",
+		});
+		const root = container.querySelector('[role="application"]');
+		expect(root?.getAttribute("aria-label")).toBe("Tools");
+	});
+});

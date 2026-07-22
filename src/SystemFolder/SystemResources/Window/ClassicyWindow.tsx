@@ -914,6 +914,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			id={[appId, id].join("_")}
 			ref={windowRef}
 			role="application"
+			aria-label={title || undefined}
 			style={windowStyle}
 			className={classNames(
 				"classicyWindow",
