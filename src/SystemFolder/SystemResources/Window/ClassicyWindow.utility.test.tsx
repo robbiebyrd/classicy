@@ -224,3 +224,46 @@ describe("ClassicyWindow utility windows layer relative to app focus", () => {
 		expect(win?.classList.contains("classicyWindowBackgrounded")).toBe(false);
 	});
 });
+
+describe("ClassicyWindow utility windows with alwaysOnTop float above all apps", () => {
+	beforeEach(() => {
+		mockAppFocused.value = false;
+	});
+
+	// The whole point of the feature: a backgrounded app's palette stays in the
+	// floating band instead of dropping behind the focused app.
+	it("stays classicyWindowFloating when the owning app is NOT focused", () => {
+		mockAppFocused.value = false;
+		const { container } = renderWindow({
+			windowType: "utility",
+			alwaysOnTop: true,
+		});
+		const win = container.querySelector(".classicyWindowUtility");
+		expect(win?.classList.contains("classicyWindowFloating")).toBe(true);
+		expect(win?.classList.contains("classicyWindowBackgrounded")).toBe(false);
+	});
+
+	// When the app IS focused it also floats (same band as the #234 default).
+	it("is classicyWindowFloating when the owning app is focused", () => {
+		mockAppFocused.value = true;
+		const { container } = renderWindow({
+			windowType: "utility",
+			alwaysOnTop: true,
+		});
+		const win = container.querySelector(".classicyWindowUtility");
+		expect(win?.classList.contains("classicyWindowFloating")).toBe(true);
+		expect(win?.classList.contains("classicyWindowBackgrounded")).toBe(false);
+	});
+
+	// alwaysOnTop is a no-op on document windows — they never get a layering class.
+	it("adds neither layering class to a document window even with alwaysOnTop", () => {
+		mockAppFocused.value = false;
+		const { container } = renderWindow({
+			windowType: "document",
+			alwaysOnTop: true,
+		});
+		const win = container.querySelector(".classicyWindowDocument");
+		expect(win?.classList.contains("classicyWindowFloating")).toBe(false);
+		expect(win?.classList.contains("classicyWindowBackgrounded")).toBe(false);
+	});
+});
