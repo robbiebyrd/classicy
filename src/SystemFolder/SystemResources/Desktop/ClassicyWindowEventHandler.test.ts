@@ -743,3 +743,42 @@ describe("ClassicyWindowClose — focus promotion", () => {
 		).toBe(false);
 	});
 });
+
+describe("ClassicyWindowOpen persists windowType", () => {
+	it("stores windowType on a newly opened utility window", () => {
+		const ds = makeStoreWithWindows();
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowOpen",
+			app: { id: "TestApp" },
+			window: {
+				id: "palette",
+				minimumSize: [100, 100],
+				size: [180, 220],
+				position: [150, 150],
+				windowType: "utility",
+			},
+		});
+		const win = ds.System.Manager.Applications.apps.TestApp.windows.find(
+			(w) => w.id === "palette",
+		);
+		expect(win?.windowType).toBe("utility");
+	});
+
+	it("leaves windowType undefined for a plain document window", () => {
+		const ds = makeStoreWithWindows();
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowOpen",
+			app: { id: "TestApp" },
+			window: {
+				id: "doc",
+				minimumSize: [100, 100],
+				size: [400, 300],
+				position: [150, 150],
+			},
+		});
+		const win = ds.System.Manager.Applications.apps.TestApp.windows.find(
+			(w) => w.id === "doc",
+		);
+		expect(win?.windowType).toBeUndefined();
+	});
+});

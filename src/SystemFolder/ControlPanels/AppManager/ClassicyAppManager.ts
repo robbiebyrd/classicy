@@ -95,6 +95,9 @@ export interface ClassicyStoreSystemAppWindow {
 	modal?: boolean;
 	menuBar?: ClassicyMenuItem[];
 	zOrder?: number;
+	// Platinum window class (#205). Utility (tool-palette) windows are excluded
+	// from automatic focus succession; absent ⇒ treated as "document".
+	windowType?: "document" | "utility";
 	options?: Record<string, JsonValue>[];
 }
 

@@ -142,6 +142,7 @@ export const classicyWindowEventHandler = (
 				minimumSize: [number, number];
 				size: [number, number];
 				menuBar?: ClassicyMenuItem[];
+				windowType?: "document" | "utility";
 			};
 			const window = ds.System.Manager.Applications.apps[
 				action.app.id
@@ -163,6 +164,7 @@ export const classicyWindowEventHandler = (
 					closed: false,
 					hidden: false,
 					menuBar: win.menuBar,
+					windowType: win.windowType,
 				} as ClassicyStoreSystemAppWindow);
 				// A genuinely new window opens focused (Mac behavior); re-registered
 				// persisted windows must not steal focus.

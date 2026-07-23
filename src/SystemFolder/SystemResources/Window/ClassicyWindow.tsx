@@ -316,6 +316,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			id: id,
 			appId: appId,
 			minimumSize: [0, 0],
+			windowType: windowType,
 		};
 
 		if (currentWindow) {
@@ -338,6 +339,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		resolvedPosition,
 		resolvedSize,
 		resolvedMinimumSize,
+		windowType,
 	]);
 
 	useEffect(() => {
