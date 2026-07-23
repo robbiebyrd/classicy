@@ -633,6 +633,7 @@ export const HyperCard: FunctionalComponent = () => {
 				title={windowTitle}
 				appId={appId}
 				appMenu={appMenu}
+				zoomable={false}
 				scrollable={true}
 				resizable={true}
 				initialSize={open ? [(open.stack.size?.[0] ?? 420) + 4, 0] : [420, 320]}
@@ -669,6 +670,7 @@ export const HyperCard: FunctionalComponent = () => {
 					title={"Tools"}
 					appId={appId}
 					appMenu={appMenu}
+					zoomable={false}
 					windowType={"utility"}
 					initialSize={[130, 0]}
 					initialPosition={[8, 100]}
@@ -684,6 +686,7 @@ export const HyperCard: FunctionalComponent = () => {
 					appId={appId}
 					appMenu={appMenu}
 					windowType={"utility"}
+					zoomable={false}
 					initialSize={[240, 0]}
 					initialPosition={[8, 360]}
 				>
