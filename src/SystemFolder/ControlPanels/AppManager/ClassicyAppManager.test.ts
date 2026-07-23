@@ -1807,3 +1807,111 @@ describe("ClassicyAppLoad — extensions", () => {
 		expect(app.focused).toBe(false);
 	});
 });
+
+describe("focus succession skips utility windows", () => {
+	function addApp(
+		ds: ReturnType<typeof makeStore>,
+		id: string,
+		windows: Array<Record<string, unknown>>,
+		extra: Record<string, unknown> = {},
+	) {
+		ds.System.Manager.Applications.apps[id] = {
+			id,
+			name: id,
+			icon: "",
+			open: true,
+			focused: false,
+			windows: windows.map((w) => ({
+				closed: false,
+				collapsed: false,
+				dragging: false,
+				moving: false,
+				resizing: false,
+				zoomed: false,
+				focused: false,
+				size: [400, 300],
+				position: [100, 100],
+				minimumSize: [100, 100],
+				...w,
+			})),
+			data: {},
+			...extra,
+		};
+	}
+
+	it("focusApp restores the most-recent non-utility window, not the utility lastAccessed", () => {
+		const ds = makeStore();
+		addApp(
+			ds,
+			"TestApp",
+			[
+				{ id: "doc", zOrder: 5 },
+				{ id: "palette", zOrder: 50, windowType: "utility" },
+			],
+			// lastAccessed points at the utility palette; it must be ignored.
+			{ lastAccessedWindowId: "palette" },
+		);
+		focusApp(ds, "TestApp");
+		const wins = ds.System.Manager.Applications.apps.TestApp.windows;
+		expect(wins.find((w) => w.id === "doc")?.focused).toBe(true);
+		expect(wins.find((w) => w.id === "palette")?.focused).toBe(false);
+	});
+
+	it("focusApp focuses no window when only utility windows are open", () => {
+		const ds = makeStore();
+		addApp(ds, "TestApp", [
+			{ id: "palette", zOrder: 50, windowType: "utility" },
+		]);
+		focusApp(ds, "TestApp");
+		const app = ds.System.Manager.Applications.apps.TestApp;
+		expect(app.focused).toBe(true);
+		expect(ds.System.Manager.Applications.focusedAppId).toBe("TestApp");
+		expect(app.windows.some((w) => w.focused === true)).toBe(false);
+	});
+
+	it("quitting an app focuses the successor app's non-utility window", () => {
+		const ds = makeStore();
+		// Successor app: a utility palette with a higher zOrder than its document.
+		addApp(
+			ds,
+			"Successor",
+			[
+				{ id: "s-doc", zOrder: 5 },
+				{ id: "s-palette", zOrder: 80, windowType: "utility" },
+			],
+			{ lastFocusedAt: 1000 },
+		);
+		// Front app that is quitting.
+		addApp(ds, "Front", [{ id: "f-doc", zOrder: 9 }], {
+			focused: true,
+			lastFocusedAt: 2000,
+		});
+		ds.System.Manager.Applications.focusedAppId = "Front";
+
+		classicyAppEventHandler(ds, {
+			type: "ClassicyAppClose",
+			app: { id: "Front" },
+		});
+
+		expect(ds.System.Manager.Applications.focusedAppId).toBe("Successor");
+		const sWins = ds.System.Manager.Applications.apps.Successor.windows;
+		expect(sWins.find((w) => w.id === "s-doc")?.focused).toBe(true);
+		expect(sWins.find((w) => w.id === "s-palette")?.focused).toBe(false);
+	});
+
+	it("regression: focusApp still restores lastAccessed for a document-only app", () => {
+		const ds = makeStore();
+		addApp(
+			ds,
+			"TestApp",
+			[
+				{ id: "a", zOrder: 5 },
+				{ id: "b", zOrder: 50 },
+			],
+			{ lastAccessedWindowId: "a" },
+		);
+		focusApp(ds, "TestApp");
+		const wins = ds.System.Manager.Applications.apps.TestApp.windows;
+		expect(wins.find((w) => w.id === "a")?.focused).toBe(true);
+	});
+});

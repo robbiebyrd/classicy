@@ -49,7 +49,13 @@ export function focusWindow(
 }
 
 function pickWindowToRestore(app: ClassicyStoreSystemApp) {
-	const candidates = app.windows.filter((w) => !w.closed);
+	// Utility (tool-palette) windows float and never become the active document
+	// window, so they are never a succession target. When only utility windows
+	// remain, candidates is empty and focusApp keeps the app focused with no
+	// focused window.
+	const candidates = app.windows.filter(
+		(w) => !w.closed && w.windowType !== "utility",
+	);
 	if (candidates.length === 0) return undefined;
 	const lastAccessed = candidates.find(
 		(w) => w.id === app.lastAccessedWindowId,
