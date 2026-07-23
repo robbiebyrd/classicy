@@ -132,6 +132,13 @@ interface ClassicyWindowProps {
 	 */
 	windowType?: "document" | "utility";
 	/**
+	 * Utility-only. When true, a `windowType="utility"` palette floats above
+	 * every app's windows — even when its own app is backgrounded — instead of
+	 * dropping behind the focused app (the default #234 behavior). Still sits
+	 * below error modals. No-op on document windows.
+	 */
+	alwaysOnTop?: boolean;
+	/**
 	 * Zoom-box behavior (#208). `"full"` zooms both axes to the standard state,
 	 * `"horizontal"` only the width, `"vertical"` only the height. The user's
 	 * pre-zoom rect is remembered and restored on un-zoom.
@@ -189,6 +196,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	onCloseFunc,
 	children,
 	windowType = "document",
+	alwaysOnTop = false,
 	zoomMode = "full",
 	headerVariant = "standard",
 	contentFrame = false,
@@ -928,7 +936,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				modal || isActive() ? "classicyWindowActive" : "classicyWindowInactive",
 				currentApp?.focused && !isActive() ? "classicyWindowActiveApp" : "",
 				windowType === "utility"
-					? currentApp?.focused
+					? alwaysOnTop || currentApp?.focused
 						? "classicyWindowFloating"
 						: "classicyWindowBackgrounded"
 					: "",
