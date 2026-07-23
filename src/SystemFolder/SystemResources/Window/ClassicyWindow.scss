@@ -502,7 +502,7 @@
   // override cascades to every scrollbar pseudo-element inside the palette. The
   // arrow glyph derives from the scrollbar size (the theme uses size / 4), so it
   // scales down proportionally.
-  --window-scrollbar-size: calc(var(--window-padding-size) * 1 + var(--window-border-size) * 1.5);
+  --window-scrollbar-size: calc(var(--window-padding-size) * 1 + var(--window-border-size) * 1);
   --window-scrollbar-arrow-size: calc(var(--window-scrollbar-size) / 4);
 
   &.classicyWindowCollapsed {
@@ -528,13 +528,6 @@
     min-height: var(--hig-titlebar-height-utility);
     align-items: center;
     padding-bottom: 0;
-    background-image: repeating-linear-gradient(
-      0deg,
-      var(--color-system-04) 0,
-      var(--color-system-04) var(--window-border-size),
-      transparent var(--window-border-size),
-      transparent calc(var(--window-border-size) * 2)
-    );
 
     // Shrink the close/zoom/collapse boxes to fit the shorter bar while
     // keeping the Platinum bevel (inherited from the base rules).
@@ -575,9 +568,21 @@
     }
 
     .classicyWindowTitleLeft,
-    .classicyWindowTitleRight,
-    .classicyWindowTitleCenter {
+    .classicyWindowTitleRight {
       background: none !important;
+
+      &:before,
+      &:after {
+        content: none !important;
+      }
+    }
+
+    .classicyWindowTitleCenter {
+      height: var(--hig-titlebar-height-utility) !important;
+      margin: 0 var(--window-padding-size) !important;
+      background-image: assets.$title-bar-utility !important;
+      background-repeat: repeat !important;
+      background-size: 4px 3px !important;
 
       &:before,
       &:after {
