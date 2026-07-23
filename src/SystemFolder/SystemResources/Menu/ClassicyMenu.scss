@@ -154,6 +154,17 @@
 .classicyMenuItemNoImage {
 }
 
+.classicyMenuItemCheck {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  // Reserve the same left gutter an item icon uses, so checked and unchecked
+  // items in the same menu keep their titles aligned; the ✓ sits centered in it.
+  width: calc(var(--window-control-size) * 1.25);
+  margin-right: calc(var(--window-control-size) * 0.5);
+  user-select: none;
+}
+
 .classicyMenuItemOpen {
   color: var(--color-white);
   background-color: var(--color-theme-04);

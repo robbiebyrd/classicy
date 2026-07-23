@@ -33,6 +33,13 @@ export interface ClassicyMenuItem {
 	title?: string;
 	image?: string;
 	disabled?: boolean;
+	/**
+	 * When defined, this item is a checkable menu item: it renders a Mac OS 8
+	 * checkmark (✓) in the left icon gutter when true, and an empty (but
+	 * reserved) gutter when false — keeping checked/unchecked siblings aligned.
+	 * A checkable item never also shows an icon/image (the checkmark wins).
+	 */
+	checked?: boolean;
 	icon?: string;
 	keyboardShortcut?: string;
 	/**
@@ -293,10 +300,15 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 				)}
 			>
 				<p>
-					{menuItem.image && <img src={menuItem.image} alt={menuItem.title} />}
-					{!menuItem.image && menuItem.icon && (
+					{menuItem.checked !== undefined ? (
+						<span className={"classicyMenuItemCheck"} aria-hidden={"true"}>
+							{menuItem.checked ? "✓" : ""}
+						</span>
+					) : menuItem.image ? (
+						<img src={menuItem.image} alt={menuItem.title} />
+					) : menuItem.icon ? (
 						<img src={menuItem.icon} alt={menuItem.title} />
-					)}
+					) : null}
 					{menuItem.title && he.decode(menuItem.title)}
 				</p>
 				{menuItem.keyboardShortcut && (

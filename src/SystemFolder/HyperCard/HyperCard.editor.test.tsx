@@ -122,7 +122,7 @@ beforeEach(() => {
 	}
 });
 
-function stateWith(edit?: HCEditState) {
+function stateWith(edit?: HCEditState, windows: unknown[] = []) {
 	const stack = {
 		name: "Demo",
 		cards: [
@@ -140,7 +140,7 @@ function stateWith(edit?: HCEditState) {
 							id: "HyperCard.app",
 							name: "HyperCard",
 							icon: "i.png",
-							windows: [] as unknown[],
+							windows: windows,
 							open: true,
 							data: {
 								activeStackId: "demo",
@@ -195,11 +195,9 @@ function menuItem(
 	| {
 			id: string;
 			title?: string;
-			menuChildren?: {
-				id: string;
-				title?: string;
-				onClickFunc?: () => void;
-			}[];
+			disabled?: boolean;
+			checked?: boolean;
+			keyboardShortcut?: string;
 			onClickFunc?: () => void;
 	  }
 	| undefined {
@@ -209,6 +207,9 @@ function menuItem(
 			menuChildren?: {
 				id: string;
 				title?: string;
+				disabled?: boolean;
+				checked?: boolean;
+				keyboardShortcut?: string;
 				onClickFunc?: () => void;
 			}[];
 		}[]
@@ -539,5 +540,143 @@ describe("HyperCard editor integration", () => {
 		expect(
 			menuItem(capturedMenus.hypercard_main, "file", "save_stack"),
 		).toBeUndefined();
+	});
+
+	it("has a View menu placed immediately after Go", () => {
+		mockState = stateWith(makeEdit(), [
+			{ id: "hypercard_tools", closed: false },
+			{ id: "hypercard_inspector", closed: false },
+		]);
+		render(<HyperCard />);
+		const menus = capturedMenus.hypercard_main as { id: string }[];
+		const ids = menus.map((m) => m.id);
+		expect(ids).toContain("view");
+		expect(ids.indexOf("view")).toBe(ids.indexOf("go") + 1);
+		expect(menuItem(menus, "view", "view_hypercard_tools")).toBeDefined();
+		expect(menuItem(menus, "view", "view_hypercard_inspector")).toBeDefined();
+	});
+
+	it("View items are disabled and unchecked outside edit mode", () => {
+		mockState = stateWith();
+		render(<HyperCard />);
+		const tools = menuItem(
+			capturedMenus.hypercard_main,
+			"view",
+			"view_hypercard_tools",
+		);
+		expect(tools?.disabled).toBe(true);
+		expect(tools?.checked).toBe(false);
+	});
+
+	it("View items are enabled and checked when both palettes are open while editing", () => {
+		mockState = stateWith(makeEdit(), [
+			{ id: "hypercard_tools", closed: false },
+			{ id: "hypercard_inspector", closed: false },
+		]);
+		render(<HyperCard />);
+		const tools = menuItem(
+			capturedMenus.hypercard_main,
+			"view",
+			"view_hypercard_tools",
+		);
+		expect(tools?.disabled).toBe(false);
+		expect(tools?.checked).toBe(true);
+		expect(
+			menuItem(capturedMenus.hypercard_main, "view", "view_hypercard_inspector")
+				?.checked,
+		).toBe(true);
+	});
+
+	it("a closed palette is unchecked in the View menu", () => {
+		mockState = stateWith(makeEdit(), [
+			{ id: "hypercard_tools", closed: true },
+			{ id: "hypercard_inspector", closed: false },
+		]);
+		render(<HyperCard />);
+		expect(
+			menuItem(capturedMenus.hypercard_main, "view", "view_hypercard_tools")
+				?.checked,
+		).toBe(false);
+		expect(
+			menuItem(capturedMenus.hypercard_main, "view", "view_hypercard_inspector")
+				?.checked,
+		).toBe(true);
+	});
+
+	it("clicking a visible palette's View item dispatches ClassicyWindowClose", () => {
+		mockState = stateWith(makeEdit(), [
+			{ id: "hypercard_tools", closed: false },
+			{ id: "hypercard_inspector", closed: false },
+		]);
+		render(<HyperCard />);
+		menuItem(
+			capturedMenus.hypercard_main,
+			"view",
+			"view_hypercard_tools",
+		)?.onClickFunc?.();
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "ClassicyWindowClose",
+			app: { id: "HyperCard.app" },
+			window: { id: "hypercard_tools" },
+		});
+	});
+
+	it("clicking a hidden palette's View item dispatches ClassicyWindowOpen", () => {
+		mockState = stateWith(makeEdit(), [
+			{ id: "hypercard_inspector", closed: true },
+		]);
+		render(<HyperCard />);
+		menuItem(
+			capturedMenus.hypercard_main,
+			"view",
+			"view_hypercard_inspector",
+		)?.onClickFunc?.();
+		expect(dispatch).toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: "ClassicyWindowOpen",
+				app: { id: "HyperCard.app" },
+				window: expect.objectContaining({
+					id: "hypercard_inspector",
+					windowType: "utility",
+				}),
+			}),
+		);
+	});
+
+	it("View items carry the ⌃T / ⌃I keyboard equivalents", () => {
+		mockState = stateWith(makeEdit(), [
+			{ id: "hypercard_tools", closed: false },
+			{ id: "hypercard_inspector", closed: false },
+		]);
+		render(<HyperCard />);
+		expect(
+			menuItem(capturedMenus.hypercard_main, "view", "view_hypercard_tools")
+				?.keyboardShortcut,
+		).toBe("Ctrl+T");
+		expect(
+			menuItem(capturedMenus.hypercard_main, "view", "view_hypercard_inspector")
+				?.keyboardShortcut,
+		).toBe("Ctrl+I");
+	});
+
+	it("View items stay enabled and checked during browse-preview (browse tool)", () => {
+		mockState = stateWith(makeEdit({ tool: "browse" }), [
+			{ id: "hypercard_tools", closed: false },
+			{ id: "hypercard_inspector", closed: false },
+		]);
+		render(<HyperCard />);
+		const tools = menuItem(
+			capturedMenus.hypercard_main,
+			"view",
+			"view_hypercard_tools",
+		);
+		expect(tools?.disabled).toBe(false);
+		expect(tools?.checked).toBe(true);
+		const info = menuItem(
+			capturedMenus.hypercard_main,
+			"view",
+			"view_hypercard_inspector",
+		);
+		expect(info?.checked).toBe(true);
 	});
 });

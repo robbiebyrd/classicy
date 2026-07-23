@@ -103,6 +103,27 @@ export const HyperCard: FunctionalComponent = () => {
 	});
 	const editingActive = Boolean(edit) && edit?.tool !== "browse";
 
+	// The palettes mount on `edit && activeStackId` (tool-independent — they
+	// stay up during browse-preview), so the View menu tracks that, not
+	// `editingActive`, which excludes the browse tool.
+	const palettesMounted = Boolean(edit && activeStackId);
+
+	// The two utility palettes' live visibility. `closed` is the store's single
+	// source of truth (their title-bar close boxes flip it), so the View menu's
+	// checkmarks stay in sync no matter how a palette was hidden.
+	const toolsClosed = useAppManager(
+		(s) =>
+			s.System.Manager.Applications.apps[appId]?.windows.find(
+				(w) => w.id === "hypercard_tools",
+			)?.closed ?? false,
+	);
+	const infoClosed = useAppManager(
+		(s) =>
+			s.System.Manager.Applications.apps[appId]?.windows.find(
+				(w) => w.id === "hypercard_inspector",
+			)?.closed ?? false,
+	);
+
 	// Browse-preview: entering the browse tool pushes the draft into the player.
 	const editTool = edit?.tool;
 	useEffect(() => {
@@ -349,8 +370,48 @@ export const HyperCard: FunctionalComponent = () => {
 		[activeStackId, editingActive, dispatch],
 	);
 
-	const appMenu: ClassicyMenuItem[] = useMemo(
-		() => [
+	const appMenu: ClassicyMenuItem[] = useMemo(() => {
+		// A View-menu toggle for one utility palette. Enabled whenever the palette
+		// is mounted; checked while mounted and not hidden. Reads the live `closed`
+		// flag so the checkmark tracks the palette's own title-bar close box.
+		const paletteToggle = (
+			windowId: string,
+			title: string,
+			shortcut: string,
+			closed: boolean,
+			size: [number, number],
+			position: [number, number],
+		): ClassicyMenuItem => ({
+			id: `view_${windowId}`,
+			title,
+			keyboardShortcut: shortcut,
+			disabled: !palettesMounted,
+			checked: palettesMounted && !closed,
+			onClickFunc: () => {
+				if (!edit || !activeStackId) return;
+				dispatch(
+					closed
+						? {
+								type: "ClassicyWindowOpen",
+								app: { id: appId },
+								window: {
+									id: windowId,
+									size,
+									position,
+									minimumSize: [0, 0],
+									windowType: "utility",
+								},
+							}
+						: {
+								type: "ClassicyWindowClose",
+								app: { id: appId },
+								window: { id: windowId },
+							},
+				);
+			},
+		});
+
+		return [
 			{
 				id: "file",
 				title: "File",
@@ -467,6 +528,28 @@ export const HyperCard: FunctionalComponent = () => {
 					{ id: "go_back", title: "Back", onClickFunc: () => navigate("back") },
 				],
 			},
+			{
+				id: "view",
+				title: "View",
+				menuChildren: [
+					paletteToggle(
+						"hypercard_tools",
+						"Tools",
+						"Ctrl+T",
+						toolsClosed,
+						[130, 0],
+						[8, 100],
+					),
+					paletteToggle(
+						"hypercard_inspector",
+						"Info",
+						"Ctrl+I",
+						infoClosed,
+						[240, 0],
+						[8, 360],
+					),
+				],
+			},
 			...(activeStackId && edit
 				? [
 						{
@@ -579,9 +662,18 @@ export const HyperCard: FunctionalComponent = () => {
 						},
 					]
 				: []),
-		],
-		[navigate, openStack, stackEntries, activeStackId, edit, dispatch],
-	);
+		];
+	}, [
+		navigate,
+		openStack,
+		stackEntries,
+		activeStackId,
+		edit,
+		palettesMounted,
+		toolsClosed,
+		infoClosed,
+		dispatch,
+	]);
 
 	// Keep the menu bar in sync with the dynamic edit-mode menus. Focus
 	// changes (app-level and between this app's own windows) restore the
