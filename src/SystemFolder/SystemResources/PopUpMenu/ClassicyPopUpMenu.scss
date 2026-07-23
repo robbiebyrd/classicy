@@ -128,6 +128,9 @@
   margin: 0;
   padding: var(--window-border-size);
   list-style: none;
+  max-height: 300px;
+  overflow-x: hidden;
+  overflow-y: auto;
 
   color: var(--color-black);
   background-color: var(--color-system-02);
