@@ -535,7 +535,7 @@ export const HyperCard: FunctionalComponent = () => {
 					paletteToggle(
 						"hypercard_tools",
 						"Tools",
-						"Cmd+T",
+						"Ctrl+T",
 						toolsClosed,
 						[130, 0],
 						[8, 100],
@@ -543,7 +543,7 @@ export const HyperCard: FunctionalComponent = () => {
 					paletteToggle(
 						"hypercard_inspector",
 						"Info",
-						"Cmd+I",
+						"Ctrl+I",
 						infoClosed,
 						[240, 0],
 						[8, 360],

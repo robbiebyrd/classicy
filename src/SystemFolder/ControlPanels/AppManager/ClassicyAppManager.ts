@@ -439,7 +439,7 @@ export const DefaultAppManagerState: ClassicyStore = {
 					{
 						id: "about",
 						title: "About This Computer",
-						keyboardShortcut: "&#8984;S",
+						keyboardShortcut: "⌃S",
 						event: "ClassicyAppFinderAboutThisComputerOpen",
 						eventData: {},
 					},

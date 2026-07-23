@@ -643,7 +643,7 @@ describe("HyperCard editor integration", () => {
 		);
 	});
 
-	it("View items carry the ⌘T / ⌘I keyboard equivalents", () => {
+	it("View items carry the ⌃T / ⌃I keyboard equivalents", () => {
 		mockState = stateWith(makeEdit(), [
 			{ id: "hypercard_tools", closed: false },
 			{ id: "hypercard_inspector", closed: false },
@@ -652,11 +652,11 @@ describe("HyperCard editor integration", () => {
 		expect(
 			menuItem(capturedMenus.hypercard_main, "view", "view_hypercard_tools")
 				?.keyboardShortcut,
-		).toBe("Cmd+T");
+		).toBe("Ctrl+T");
 		expect(
 			menuItem(capturedMenus.hypercard_main, "view", "view_hypercard_inspector")
 				?.keyboardShortcut,
-		).toBe("Cmd+I");
+		).toBe("Ctrl+I");
 	});
 
 	it("View items stay enabled and checked during browse-preview (browse tool)", () => {
