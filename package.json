@@ -35,7 +35,8 @@
 		"test:watch": "vitest",
 		"lint": "biome check .",
 		"lint:fix": "biome check --write .",
-		"preview": "pnpm build && concurrently --kill-others \"pnpm build:watchsource\" \"pnpm --filter classicy-example dev\"",
+		"preview": "pnpm --filter classicy-example dev",
+		"preview:dist": "pnpm build && concurrently --kill-others \"pnpm build:watchsource\" \"pnpm --filter classicy-example dev\"",
 		"prepare": "husky",
 		"storybook": "pnpm --filter classicy-storybook dev",
 		"build:storybook": "pnpm --filter classicy-storybook build"

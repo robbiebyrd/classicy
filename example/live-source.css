@@ -1,0 +1,7 @@
+/*
+ * Intentionally empty. In the dev server the example resolves `classicy` from
+ * its live TypeScript/SCSS source (see vite.config.ts), where every component
+ * pulls in its own `.scss` as the barrel loads — so the app's explicit
+ * `import "classicy/dist/classicy.css"` is aliased here to a no-op instead of
+ * loading a stale built stylesheet. `vite build` still uses the real dist CSS.
+ */
