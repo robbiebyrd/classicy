@@ -13,6 +13,8 @@ import {
 	type FC as FunctionalComponent,
 	forwardRef,
 	type KeyboardEventHandler,
+	useEffect,
+	useState,
 } from "react";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
@@ -63,7 +65,17 @@ export const ClassicyInput: FunctionalComponent<ClassicyInputProps> =
 			isDefault,
 		};
 
+		// Controlled with internal state so the input owns its text while typing
+		// but still reflects later prefillValue changes (matching ClassicyTextEditor).
+		// Binding the DOM value directly to prefillValue would freeze the field after
+		// one keystroke unless the consumer echoes every change back into the prop.
+		const [value, setValue] = useState(prefillValue ?? "");
+		useEffect(() => {
+			setValue(prefillValue ?? "");
+		}, [prefillValue]);
+
 		const handleOnChangeFunc: ChangeEventHandler<HTMLInputElement> = (e) => {
+			setValue(e.target.value);
 			track("selected", { ...analyticsArgs, selected: e.target.value });
 			if (onChangeFunc) onChangeFunc(e);
 		};
@@ -98,7 +110,7 @@ export const ClassicyInput: FunctionalComponent<ClassicyInputProps> =
 					type={type}
 					ref={ref}
 					disabled={disabled}
-					value={prefillValue}
+					value={value}
 					placeholder={placeholder}
 					className={classNames(
 						"classicyInput",
