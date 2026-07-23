@@ -658,4 +658,25 @@ describe("HyperCard editor integration", () => {
 				?.keyboardShortcut,
 		).toBe("Cmd+I");
 	});
+
+	it("View items stay enabled and checked during browse-preview (browse tool)", () => {
+		mockState = stateWith(makeEdit({ tool: "browse" }), [
+			{ id: "hypercard_tools", closed: false },
+			{ id: "hypercard_inspector", closed: false },
+		]);
+		render(<HyperCard />);
+		const tools = menuItem(
+			capturedMenus.hypercard_main,
+			"view",
+			"view_hypercard_tools",
+		);
+		expect(tools?.disabled).toBe(false);
+		expect(tools?.checked).toBe(true);
+		const info = menuItem(
+			capturedMenus.hypercard_main,
+			"view",
+			"view_hypercard_inspector",
+		);
+		expect(info?.checked).toBe(true);
+	});
 });

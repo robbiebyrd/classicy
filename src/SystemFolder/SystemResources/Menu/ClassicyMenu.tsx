@@ -293,7 +293,6 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 					"classicyMenuItem",
 					menuItem.icon ? "" : "classicyMenuItemNoImage",
 					menuItem.className,
-					menuItem.checked ? "classicyMenuItemChecked" : "",
 					menuItem.disabled ? "classicyMenuItemDisabled" : "",
 					hasChildren ? "classicyMenuItemChildMenuIndicator" : "",
 					isOpen ? "classicyMenuItemOpen" : "",
