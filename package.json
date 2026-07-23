@@ -4,7 +4,7 @@
 	"types": "./dist/types/src/index.d.ts",
 	"name": "classicy",
 	"version": "0.57.2",
-	"release": "Sonata",
+	"release": "Minuet",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/robbiebyrd/classicy"
