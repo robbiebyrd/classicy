@@ -496,12 +496,35 @@
 // #205: utility (tool-palette) window — a crosshatch/pinstripe top drag region
 // instead of the pinstriped document title bar.
 .classicyWindowUtility {
+  // Windoid scrollbars are no wider than the narrow corner gutter the resizer
+  // sits in (same calc as .classicyWindowResizer width below), rather than the
+  // full-size document scrollbar. These custom properties inherit, so the
+  // override cascades to every scrollbar pseudo-element inside the palette. The
+  // arrow glyph derives from the scrollbar size (the theme uses size / 4), so it
+  // scales down proportionally.
+  --window-scrollbar-size: calc(var(--window-padding-size) * 1 + var(--window-border-size) * 1.5);
+  --window-scrollbar-arrow-size: calc(var(--window-scrollbar-size) / 4);
+
+  &.classicyWindowCollapsed {
+      height: calc(var(--window-control-size) * .5) !important;
+  }
+
+  .classicyWindowContents {
+    height: calc(100% - var(--window-control-size) * .25 - var(--window-padding-size) * 1.5)
+  }
+
+  .classicyWindowResizer {
+    height: calc(var(--window-padding-size) * 1 + var(--window-border-size) * 1);
+    width: calc(var(--window-padding-size) * 1 + var(--window-border-size) * 1.5);
+  }
+
   .classicyWindowTitleBar {
     // Windoid: half-height title bar (11px vs the 19px document bar). Override
     // both height and min-height — the base .classicyWindowTitleBar sets
     // height: calc(var(--window-control-size) * 1.5) (~18px), which would
     // otherwise win over min-height alone.
     height: var(--hig-titlebar-height-utility);
+    top: calc(var(--window-border-size)*-2);
     min-height: var(--hig-titlebar-height-utility);
     align-items: center;
     padding-bottom: 0;
@@ -522,6 +545,28 @@
       height: calc(
         var(--hig-titlebar-height-utility) - var(--window-border-size) * 2
       ) !important;
+
+      & .classicyWindowCloseBox {
+        width: calc(
+          var(--hig-titlebar-height-utility) - var(--window-border-size) * 4
+        ) !important;
+        height: calc(
+          var(--hig-titlebar-height-utility) - var(--window-border-size) * 4
+        ) !important;
+      }
+
+      & .classicyWindowCollapseBox {
+        width: calc(
+          var(--hig-titlebar-height-utility) - var(--window-border-size) * 4
+        ) !important;
+        height: calc(
+          var(--hig-titlebar-height-utility) - var(--window-border-size) * 4
+        ) !important;
+
+        &:after {
+          top: calc(var(--window-padding-size) * -1 - var(--window-border-size));
+        }
+      }
     }
 
     .classicyWindowTitleText {

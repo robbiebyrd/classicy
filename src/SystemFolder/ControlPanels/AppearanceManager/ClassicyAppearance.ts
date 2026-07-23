@@ -191,7 +191,7 @@ export const getThemeVars = (theme: ClassicyTheme) => {
 		"--hig-bevel-lg": intToPx(4),
 		// Windows.
 		"--hig-titlebar-height": intToPx(19), // document window title bar
-		"--hig-titlebar-height-utility": intToPx(11), // utility (tool-palette) title bar
+		"--hig-titlebar-height-utility": intToPx(10), // utility (tool-palette) title bar
 	};
 };
 
