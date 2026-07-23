@@ -34,6 +34,32 @@ describe("ClassicyInput", () => {
 		expect(onChange).toHaveBeenCalled();
 	});
 
+	it("shows every character as the user types into a prefilled field", async () => {
+		const user = userEvent.setup();
+		render(<ClassicyInput id="test-input" prefillValue="" />);
+		const input = screen.getByRole<HTMLInputElement>("textbox");
+		await user.type(input, "hello");
+		expect(input.value).toBe("hello");
+	});
+
+	it("appends typed characters after an initial prefillValue", async () => {
+		const user = userEvent.setup();
+		render(<ClassicyInput id="test-input" prefillValue="A" />);
+		const input = screen.getByRole<HTMLInputElement>("textbox");
+		await user.type(input, "BC");
+		expect(input.value).toBe("ABC");
+	});
+
+	it("resyncs the displayed value when prefillValue changes", () => {
+		const { rerender } = render(
+			<ClassicyInput id="test-input" prefillValue="first" />,
+		);
+		const input = screen.getByRole<HTMLInputElement>("textbox");
+		expect(input.value).toBe("first");
+		rerender(<ClassicyInput id="test-input" prefillValue="second" />);
+		expect(input.value).toBe("second");
+	});
+
 	it("calls onEnterFunc when Enter key is pressed", async () => {
 		const user = userEvent.setup();
 		const onEnter = vi.fn();
