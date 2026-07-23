@@ -103,6 +103,22 @@ export const HyperCard: FunctionalComponent = () => {
 	});
 	const editingActive = Boolean(edit) && edit?.tool !== "browse";
 
+	// The two utility palettes' live visibility. `closed` is the store's single
+	// source of truth (their title-bar close boxes flip it), so the View menu's
+	// checkmarks stay in sync no matter how a palette was hidden.
+	const toolsClosed = useAppManager(
+		(s) =>
+			s.System.Manager.Applications.apps[appId]?.windows.find(
+				(w) => w.id === "hypercard_tools",
+			)?.closed ?? false,
+	);
+	const infoClosed = useAppManager(
+		(s) =>
+			s.System.Manager.Applications.apps[appId]?.windows.find(
+				(w) => w.id === "hypercard_inspector",
+			)?.closed ?? false,
+	);
+
 	// Browse-preview: entering the browse tool pushes the draft into the player.
 	const editTool = edit?.tool;
 	useEffect(() => {
@@ -467,6 +483,70 @@ export const HyperCard: FunctionalComponent = () => {
 					{ id: "go_back", title: "Back", onClickFunc: () => navigate("back") },
 				],
 			},
+			{
+				id: "view",
+				title: "View",
+				menuChildren: [
+					{
+						id: "view_hypercard_tools",
+						title: "Tools",
+						keyboardShortcut: "Cmd+T",
+						disabled: !editingActive,
+						checked: editingActive && !toolsClosed,
+						onClickFunc: () => {
+							if (!edit) return;
+							dispatch(
+								toolsClosed
+									? {
+											type: "ClassicyWindowOpen",
+											app: { id: appId },
+											window: {
+												id: "hypercard_tools",
+												size: [130, 0],
+												position: [8, 100],
+												minimumSize: [0, 0],
+												windowType: "utility",
+											},
+										}
+									: {
+											type: "ClassicyWindowClose",
+											app: { id: appId },
+											window: { id: "hypercard_tools" },
+										},
+							);
+						},
+					},
+					{
+						id: "view_hypercard_inspector",
+						title: "Info",
+						keyboardShortcut: "Cmd+I",
+						disabled: !editingActive,
+						checked: editingActive && !infoClosed,
+						onClickFunc: () => {
+							if (!edit) return;
+							dispatch(
+								infoClosed
+									? {
+											type: "ClassicyWindowOpen",
+											app: { id: appId },
+											window: {
+												id: "hypercard_inspector",
+												size: [240, 0],
+												position: [8, 360],
+												minimumSize: [0, 0],
+												windowType: "utility",
+											},
+										}
+									: {
+											type: "ClassicyWindowClose",
+											app: { id: appId },
+											window: { id: "hypercard_inspector" },
+										},
+							);
+						},
+					},
+				],
+			},
 			...(activeStackId && edit
 				? [
 						{
@@ -580,7 +660,17 @@ export const HyperCard: FunctionalComponent = () => {
 					]
 				: []),
 		],
-		[navigate, openStack, stackEntries, activeStackId, edit, dispatch],
+		[
+			navigate,
+			openStack,
+			stackEntries,
+			activeStackId,
+			edit,
+			editingActive,
+			toolsClosed,
+			infoClosed,
+			dispatch,
+		],
 	);
 
 	// Keep the menu bar in sync with the dynamic edit-mode menus. Focus
