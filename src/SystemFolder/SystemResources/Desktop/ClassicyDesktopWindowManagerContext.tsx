@@ -41,6 +41,7 @@ export type ClassicyWindowAction =
 				size: [number, number];
 				position: [number, number];
 				menuBar?: ClassicyMenuItem[];
+				windowType?: "document" | "utility";
 			};
 	  }
 	// Focus a Window

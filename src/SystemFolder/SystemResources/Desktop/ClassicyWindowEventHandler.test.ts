@@ -764,6 +764,11 @@ describe("ClassicyWindowOpen persists windowType", () => {
 		expect(win?.windowType).toBe("utility");
 	});
 
+	// Pins the reducer-level contract: the reducer invents no default, so a
+	// window dispatched without windowType stays undefined. (At runtime the
+	// ClassicyWindow component defaults the prop to "document" and always sends
+	// it — but both undefined and "document" are succession-eligible, since
+	// every consumer filters on `!== "utility"`.)
 	it("leaves windowType undefined for a plain document window", () => {
 		const ds = makeStoreWithWindows();
 		classicyWindowEventHandler(ds, {

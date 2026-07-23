@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import type {
 	ClassicyStore,
+	ClassicyStoreSystemAppWindow,
 	DeepPartial,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
@@ -1812,7 +1813,7 @@ describe("focus succession skips utility windows", () => {
 	function addApp(
 		ds: ReturnType<typeof makeStore>,
 		id: string,
-		windows: Array<Record<string, unknown>>,
+		windows: Array<Partial<ClassicyStoreSystemAppWindow> & { id: string }>,
 		extra: Record<string, unknown> = {},
 	) {
 		ds.System.Manager.Applications.apps[id] = {
@@ -1821,19 +1822,21 @@ describe("focus succession skips utility windows", () => {
 			icon: "",
 			open: true,
 			focused: false,
-			windows: windows.map((w) => ({
-				closed: false,
-				collapsed: false,
-				dragging: false,
-				moving: false,
-				resizing: false,
-				zoomed: false,
-				focused: false,
-				size: [400, 300],
-				position: [100, 100],
-				minimumSize: [100, 100],
-				...w,
-			})),
+			windows: windows.map(
+				(w): ClassicyStoreSystemAppWindow => ({
+					closed: false,
+					collapsed: false,
+					dragging: false,
+					moving: false,
+					resizing: false,
+					zoomed: false,
+					focused: false,
+					size: [400, 300],
+					position: [100, 100],
+					minimumSize: [100, 100],
+					...w,
+				}),
+			),
 			data: {},
 			...extra,
 		};
