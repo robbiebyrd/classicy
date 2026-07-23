@@ -218,4 +218,43 @@ describe("ClassicyMenu", () => {
 		expect(screen.getByText("Zoom In")).toBeInTheDocument();
 		expect(screen.getByText("Zoom Out")).toBeInTheDocument();
 	});
+
+	it("renders a checkmark for a checked item", () => {
+		const items = [{ id: "tools", title: "Tools", checked: true }];
+		const { container } = render(
+			<ClassicyMenu name="test-menu" menuItems={items} />,
+		);
+		const check = container.querySelector(".classicyMenuItemCheck");
+		expect(check).not.toBeNull();
+		expect(check).toHaveTextContent("✓");
+	});
+
+	it("reserves the check gutter but shows no glyph for a checked:false item", () => {
+		const items = [{ id: "info", title: "Info", checked: false }];
+		const { container } = render(
+			<ClassicyMenu name="test-menu" menuItems={items} />,
+		);
+		const check = container.querySelector(".classicyMenuItemCheck");
+		expect(check).not.toBeNull();
+		expect(check?.textContent).toBe("");
+	});
+
+	it("renders no check gutter for an item without a checked prop", () => {
+		const items = [{ id: "plain", title: "Plain" }];
+		const { container } = render(
+			<ClassicyMenu name="test-menu" menuItems={items} />,
+		);
+		expect(container.querySelector(".classicyMenuItemCheck")).toBeNull();
+	});
+
+	it("never renders both an icon and a checkmark (checkmark wins)", () => {
+		const items = [
+			{ id: "tools", title: "Tools", checked: true, icon: "tool.png" },
+		];
+		const { container } = render(
+			<ClassicyMenu name="test-menu" menuItems={items} />,
+		);
+		expect(container.querySelector(".classicyMenuItemCheck")).not.toBeNull();
+		expect(container.querySelector("img")).toBeNull();
+	});
 });
