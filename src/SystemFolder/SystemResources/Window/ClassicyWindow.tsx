@@ -927,6 +927,11 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				ws.zoomed ? "classicyWindowZoomed" : "",
 				modal || isActive() ? "classicyWindowActive" : "classicyWindowInactive",
 				currentApp?.focused && !isActive() ? "classicyWindowActiveApp" : "",
+				windowType === "utility"
+					? currentApp?.focused
+						? "classicyWindowFloating"
+						: "classicyWindowBackgrounded"
+					: "",
 				!ws.closed ? "" : "classicyWindowInvisible",
 				ws.moving ? "classicyWindowDragging" : "",
 				ws.resizing ? "classicyWindowResizing" : "",

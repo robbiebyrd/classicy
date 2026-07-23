@@ -125,6 +125,18 @@
   }
 }
 
+// #234: a utility palette floats above its own app's active document (300)
+// while that app is focused…
+.classicyWindowFloating {
+  z-index: 350 !important;
+}
+
+// …and drops behind the focused app's windows (150 / 300) when its own app is
+// backgrounded, so Finder file-browser windows cover a background app's palette.
+.classicyWindowBackgrounded {
+  z-index: 20 !important;
+}
+
 .classicyWindowInvisible {
   display: none !important;
 }

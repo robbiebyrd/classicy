@@ -6,6 +6,9 @@ import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWi
 // palette is in whenever the user is working in the main document window.
 const mockDispatch = vi.hoisted(() => vi.fn());
 const mockPlayer = vi.hoisted(() => vi.fn());
+// Lets individual tests flip the owning app's focus state, which drives the
+// utility window's z-index band (floating vs backgrounded).
+const mockAppFocused = vi.hoisted(() => ({ value: false }));
 
 vi.mock(
 	"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils",
@@ -19,7 +22,7 @@ vi.mock(
 							apps: {
 								TestApp: {
 									id: "TestApp",
-									focused: false,
+									focused: mockAppFocused.value,
 									windows: [
 										{
 											id: "TestWindow",
@@ -184,5 +187,40 @@ describe("ClassicyWindow utility windows expose title as accessible name", () =>
 		});
 		const root = container.querySelector('[role="application"]');
 		expect(root?.getAttribute("aria-label")).toBe("Tools");
+	});
+});
+
+describe("ClassicyWindow utility windows layer relative to app focus", () => {
+	beforeEach(() => {
+		mockAppFocused.value = false;
+	});
+
+	// When the palette's own app is focused, it floats above that app's
+	// document windows.
+	it("adds classicyWindowFloating when the owning app is focused", () => {
+		mockAppFocused.value = true;
+		const { container } = renderWindow({ windowType: "utility" });
+		const win = container.querySelector(".classicyWindowUtility");
+		expect(win?.classList.contains("classicyWindowFloating")).toBe(true);
+		expect(win?.classList.contains("classicyWindowBackgrounded")).toBe(false);
+	});
+
+	// When the palette's own app is backgrounded, it drops behind the focused
+	// app's windows (e.g. a Finder browser window).
+	it("adds classicyWindowBackgrounded when the owning app is not focused", () => {
+		mockAppFocused.value = false;
+		const { container } = renderWindow({ windowType: "utility" });
+		const win = container.querySelector(".classicyWindowUtility");
+		expect(win?.classList.contains("classicyWindowBackgrounded")).toBe(true);
+		expect(win?.classList.contains("classicyWindowFloating")).toBe(false);
+	});
+
+	// Document windows never get either layering class.
+	it("adds neither layering class to a document window", () => {
+		mockAppFocused.value = true;
+		const { container } = renderWindow({ windowType: "document" });
+		const win = container.querySelector(".classicyWindowDocument");
+		expect(win?.classList.contains("classicyWindowFloating")).toBe(false);
+		expect(win?.classList.contains("classicyWindowBackgrounded")).toBe(false);
 	});
 });
