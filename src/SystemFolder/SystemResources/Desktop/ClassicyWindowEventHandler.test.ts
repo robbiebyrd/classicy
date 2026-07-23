@@ -782,3 +782,96 @@ describe("ClassicyWindowOpen persists windowType", () => {
 		expect(win?.windowType).toBeUndefined();
 	});
 });
+
+describe("ClassicyWindowClose skips utility windows when promoting a sibling", () => {
+	function makeFocusedAppWithUtility() {
+		const ds = makeStore();
+		ds.System.Manager.Applications.focusedAppId = "TestApp";
+		ds.System.Manager.Applications.apps.TestApp = {
+			id: "TestApp",
+			name: "Test",
+			icon: "",
+			open: true,
+			focused: true,
+			windows: [
+				{
+					id: "doc",
+					closed: false,
+					collapsed: false,
+					dragging: false,
+					moving: false,
+					resizing: false,
+					zoomed: false,
+					focused: true,
+					size: [400, 300],
+					position: [100, 100],
+					minimumSize: [100, 100],
+					zOrder: 10,
+				},
+				{
+					id: "doc2",
+					closed: false,
+					collapsed: false,
+					dragging: false,
+					moving: false,
+					resizing: false,
+					zoomed: false,
+					focused: false,
+					size: [400, 300],
+					position: [120, 120],
+					minimumSize: [100, 100],
+					zOrder: 20,
+				},
+				{
+					id: "palette",
+					closed: false,
+					collapsed: false,
+					dragging: false,
+					moving: false,
+					resizing: false,
+					zoomed: false,
+					focused: false,
+					size: [180, 220],
+					position: [300, 100],
+					minimumSize: [100, 100],
+					zOrder: 99,
+					windowType: "utility",
+				},
+			],
+			data: {},
+		};
+		return ds;
+	}
+
+	it("promotes the highest-zOrder non-utility sibling, not the utility window", () => {
+		const ds = makeFocusedAppWithUtility();
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowClose",
+			app: { id: "TestApp" },
+			window: { id: "doc" },
+		});
+		const wins = ds.System.Manager.Applications.apps.TestApp.windows;
+		// "palette" has the highest zOrder but is utility → "doc2" wins.
+		expect(wins.find((w) => w.id === "doc2")?.focused).toBe(true);
+		expect(wins.find((w) => w.id === "palette")?.focused).toBe(false);
+	});
+
+	it("leaves no window focused when only a utility window remains", () => {
+		const ds = makeFocusedAppWithUtility();
+		// Close both document windows; only the utility palette stays open.
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowClose",
+			app: { id: "TestApp" },
+			window: { id: "doc" },
+		});
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowClose",
+			app: { id: "TestApp" },
+			window: { id: "doc2" },
+		});
+		const wins = ds.System.Manager.Applications.apps.TestApp.windows;
+		expect(wins.some((w) => w.focused === true)).toBe(false);
+		// App keeps focus / menu-bar ownership.
+		expect(ds.System.Manager.Applications.focusedAppId).toBe("TestApp");
+	});
+});

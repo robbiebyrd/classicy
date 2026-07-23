@@ -204,7 +204,10 @@ export const classicyWindowEventHandler = (
 			}
 			const openWindows = ds.System.Manager.Applications.apps[
 				action.app.id
-			]?.windows.filter((w) => !w.closed && w.id !== action.window.id);
+			]?.windows.filter(
+				(w) =>
+					!w.closed && w.id !== action.window.id && w.windowType !== "utility",
+			);
 			if (openWindows?.length) {
 				const nextFocus = openWindows.reduce((best, w) =>
 					(w.zOrder ?? 0) > (best.zOrder ?? 0) ? w : best,
