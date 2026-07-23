@@ -133,3 +133,29 @@ jobs:
             /repos/robbiebyrd/classicy-web/dispatches \
             -f event_type="deploy-pages" \
             -f "client_payload[tag]=${{ steps.bump_version.outputs.newTag }}"
+
+      # Mint a short-lived, repo-scoped token from the "classicy dispatch" GitHub
+      # App (installed on Keeping-History/rt911 with Contents: write) so the next
+      # step can POST a repository_dispatch across the org boundary. No PAT to
+      # rotate — the token dies with the job.
+      - name: Mint rt911 dispatch token
+        if: steps.bump_version.outputs.newTag != ''
+        id: rt911-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.RT911_DISPATCH_APP_ID }}
+          private-key: ${{ secrets.RT911_DISPATCH_APP_PRIVATE_KEY }}
+          owner: Keeping-History
+          repositories: rt911
+
+      - name: Trigger rt911 classicy bump
+        if: steps.bump_version.outputs.newTag != ''
+        env:
+          GH_TOKEN: ${{ steps.rt911-token.outputs.token }}
+        run: |
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            /repos/Keeping-History/rt911/dispatches \
+            -f event_type="classicy-published" \
+            -f "client_payload[tag]=${{ steps.bump_version.outputs.newTag }}"
