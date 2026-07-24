@@ -27,6 +27,38 @@
 	flex: 1 1 auto;
 }
 
+.classicyAssistantHeaderLabelIcon {
+	flex: 0 0 auto;
+	width: var(--window-control-size);
+	height: var(--window-control-size);
+	object-fit: contain;
+}
+
+.classicyAssistantAccessoryIcon {
+	position: absolute;
+	right: var(--window-padding-size);
+	bottom: 0;
+	object-fit: contain;
+	pointer-events: none;
+}
+
+.classicyAssistantAccessoryIconSm {
+	width: calc(var(--window-control-size) * 1.25);
+	height: calc(var(--window-control-size) * 1.25);
+}
+
+.classicyAssistantAccessoryIconMd {
+	width: calc(var(--window-control-size) * 1.75);
+	height: calc(var(--window-control-size) * 1.75);
+}
+
+.classicyAssistantAccessoryIconLg {
+	// Taller than the header (1.5×control) so its top overflows upward,
+	// hovering over the title-bar area as in the Setup Assistant screenshot.
+	width: calc(var(--window-control-size) * 2.5);
+	height: calc(var(--window-control-size) * 2.5);
+}
+
 .classicyAssistantBody {
 	flex: 1 1 auto;
 	overflow: auto;

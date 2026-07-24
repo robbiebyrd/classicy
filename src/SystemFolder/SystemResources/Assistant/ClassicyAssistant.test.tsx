@@ -205,3 +205,51 @@ describe("ClassicyAssistant — footer buttons", () => {
 		warn.mockRestore();
 	});
 });
+
+describe("ClassicyAssistant — header icons", () => {
+	it("renders the small label icon before the title", () => {
+		const iconPages: ClassicyAssistantPage[] = [
+			{ title: "Intro", content: <p>x</p>, labelIcon: "label.png" },
+		];
+		const { container } = render(<ClassicyAssistant pages={iconPages} />);
+		const img = container.querySelector(".classicyAssistantHeaderLabelIcon");
+		expect(img).toBeInTheDocument();
+		expect(img).toHaveAttribute("src", "label.png");
+		expect(img).toHaveAttribute("aria-hidden", "true");
+	});
+
+	it("renders the large accessory icon with the size class", () => {
+		const iconPages: ClassicyAssistantPage[] = [
+			{
+				title: "Intro",
+				content: <p>x</p>,
+				accessoryIcon: "big.png",
+				accessoryIconSize: "lg",
+			},
+		];
+		const { container } = render(<ClassicyAssistant pages={iconPages} />);
+		const img = container.querySelector(".classicyAssistantAccessoryIcon");
+		expect(img).toHaveClass("classicyAssistantAccessoryIconLg");
+		expect(img).toHaveAttribute("src", "big.png");
+	});
+
+	it("defaults the accessory icon size to sm", () => {
+		const iconPages: ClassicyAssistantPage[] = [
+			{ title: "Intro", content: <p>x</p>, accessoryIcon: "big.png" },
+		];
+		const { container } = render(<ClassicyAssistant pages={iconPages} />);
+		expect(
+			container.querySelector(".classicyAssistantAccessoryIcon"),
+		).toHaveClass("classicyAssistantAccessoryIconSm");
+	});
+
+	it("renders no icons when none are provided", () => {
+		const { container } = render(<ClassicyAssistant pages={pages} />);
+		expect(
+			container.querySelector(".classicyAssistantHeaderLabelIcon"),
+		).toBeNull();
+		expect(
+			container.querySelector(".classicyAssistantAccessoryIcon"),
+		).toBeNull();
+	});
+});

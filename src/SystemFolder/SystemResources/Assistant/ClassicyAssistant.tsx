@@ -15,6 +15,12 @@ const footerButtonKey = (
 	index: number,
 ): string => `${button.title}-${index}`;
 
+const accessorySizeClass = {
+	sm: "classicyAssistantAccessoryIconSm",
+	md: "classicyAssistantAccessoryIconMd",
+	lg: "classicyAssistantAccessoryIconLg",
+} as const;
+
 export interface ClassicyAssistantButton {
 	title: string;
 	onClick: () => void;
@@ -86,7 +92,25 @@ export const ClassicyAssistant: FunctionalComponent<ClassicyAssistantProps> = ({
 	return (
 		<div className={"classicyAssistant"}>
 			<div className={"classicyAssistantHeader"}>
+				{page.labelIcon && (
+					<img
+						className={"classicyAssistantHeaderLabelIcon"}
+						src={page.labelIcon}
+						alt={""}
+						aria-hidden={true}
+					/>
+				)}
 				<span className={"classicyAssistantHeaderTitle"}>{page.title}</span>
+				{page.accessoryIcon && (
+					<img
+						className={`classicyAssistantAccessoryIcon ${
+							accessorySizeClass[page.accessoryIconSize ?? "sm"]
+						}`}
+						src={page.accessoryIcon}
+						alt={""}
+						aria-hidden={true}
+					/>
+				)}
 			</div>
 			<div className={"classicyAssistantBody"}>{page.content}</div>
 			<div className={"classicyAssistantFooter"}>
