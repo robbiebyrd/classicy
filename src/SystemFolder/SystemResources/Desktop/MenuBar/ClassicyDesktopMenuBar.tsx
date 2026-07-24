@@ -21,6 +21,7 @@ import {
 } from "react";
 
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { ABOUT_BALLOON_HELP_TOPIC_ID } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideTopics";
 import { appSwitcherAppsFrom } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
 import { useClassicyShortcutDispatcher } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyShortcutDispatcher";
 import { collectMenuChords } from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
@@ -176,7 +177,8 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
 			{
 				id: "help-about-balloon",
 				title: "About Balloon Help…",
-				onClickFunc: () => {},
+				event: "ClassicyAppAppleGuideShowTopic",
+				eventData: { topicId: ABOUT_BALLOON_HELP_TOPIC_ID },
 			},
 			{
 				id: "help-toggle-balloons",
