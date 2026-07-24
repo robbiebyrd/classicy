@@ -154,54 +154,6 @@ describe("ClassicyMenu", () => {
 		expect(screen.getByText("⇧⌘S")).toBeInTheDocument();
 	});
 
-	it("fires a menu item's action on its command-key press (closes-and-executes)", () => {
-		const onClickFunc = vi.fn();
-		const items = [
-			{ id: "find", title: "Find", keyboardShortcut: "⌘F", onClickFunc },
-		];
-		render(<ClassicyMenu name="test-menu" menuItems={items} />);
-		fireEvent.keyDown(document, { key: "f", metaKey: true });
-		expect(onClickFunc).toHaveBeenCalledOnce();
-	});
-
-	it("fires a menu item's action on a Control (⌃) shortcut", () => {
-		const onClickFunc = vi.fn();
-		const items = [
-			{ id: "dim", title: "Dim", keyboardShortcut: "⌃D", onClickFunc },
-		];
-		render(<ClassicyMenu name="test-menu" menuItems={items} />);
-		fireEvent.keyDown(document, { key: "d", ctrlKey: true });
-		expect(onClickFunc).toHaveBeenCalledOnce();
-	});
-
-	it("fires a menu item's action on an Option (⌥) shortcut, matching the physical key", () => {
-		const onClickFunc = vi.fn();
-		const items = [
-			{ id: "expand", title: "Expand", keyboardShortcut: "⌥X", onClickFunc },
-		];
-		render(<ClassicyMenu name="test-menu" menuItems={items} />);
-		// macOS remaps Option+X's `key`; the dispatcher matches on `code`.
-		fireEvent.keyDown(document, { key: "≈", code: "KeyX", altKey: true });
-		expect(onClickFunc).toHaveBeenCalledOnce();
-	});
-
-	it("does not fire an Option shortcut while typing in a text field", () => {
-		const onClickFunc = vi.fn();
-		const items = [
-			{ id: "expand", title: "Expand", keyboardShortcut: "⌥X", onClickFunc },
-		];
-		render(
-			<>
-				<input data-testid="field" />
-				<ClassicyMenu name="test-menu" menuItems={items} />
-			</>,
-		);
-		const field = screen.getByTestId("field");
-		field.focus();
-		fireEvent.keyDown(field, { key: "≈", code: "KeyX", altKey: true });
-		expect(onClickFunc).not.toHaveBeenCalled();
-	});
-
 	it("renders a nested submenu for items with menuChildren", () => {
 		const items = [
 			{

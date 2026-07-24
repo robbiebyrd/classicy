@@ -110,6 +110,7 @@ export * from "./SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
 export * from "./SystemFolder/SystemResources/Desktop/ClassicyDesktopWindowManagerContext";
 export * from "./SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
 export * from "./SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar";
+export * from "./SystemFolder/SystemResources/Desktop/MenuBar/ClassicyShortcutDispatcher";
 export * from "./SystemFolder/SystemResources/Desktop/MenuBar/Widgets/Sound/ClassicyDesktopMenuWidgetSound";
 export * from "./SystemFolder/SystemResources/Desktop/MenuBar/Widgets/Time/ClassicyDesktopMenuWidgetTime";
 export * from "./SystemFolder/SystemResources/Disclosure/ClassicyDisclosure";

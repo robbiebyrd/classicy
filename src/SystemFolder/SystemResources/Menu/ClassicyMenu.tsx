@@ -20,11 +20,7 @@ import {
 	ClassicyBalloonHelp,
 	type ClassicyBalloonPosition,
 } from "@/SystemFolder/SystemResources/BalloonHelp/ClassicyBalloonHelp";
-import {
-	findMenuItemByShortcut,
-	formatKeyboardShortcut,
-	runMenuItemAction,
-} from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
+import { formatKeyboardShortcut } from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
 import { ClassicyMenuContext } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuContext";
 import { ClassicySeparator } from "@/SystemFolder/SystemResources/Separator/ClassicySeparator";
 
@@ -69,9 +65,9 @@ interface ClassicyMenuProps {
 	subNavClass?: string;
 	children?: ReactNode;
 	/**
-	 * Internal: set on the nested menus rendered for `menuChildren`. Only the
-	 * root menu (menu bar / contextual menu) installs the command-key listener,
-	 * so nested submenus don't double-handle a keystroke.
+	 * Internal: set on the nested menus rendered for `menuChildren`. Consumers
+	 * mark nested submenus so they can be styled/identified distinctly from the
+	 * root menu (menu bar / contextual menu).
 	 */
 	isSubmenu?: boolean;
 }
@@ -82,50 +78,14 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 	navClass,
 	subNavClass,
 	children,
-	isSubmenu = false,
 }) => {
-	const { closeSignal, closeAll } = useContext(ClassicyMenuContext);
+	const { closeSignal } = useContext(ClassicyMenuContext);
 	const [openChildId, setOpenChildId] = useState<string | null>(null);
-	const desktopDispatch = useAppManagerDispatch();
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: closeSignal is intentionally used as a trigger; the effect resets menu state when the signal changes
 	useEffect(() => {
 		setOpenChildId(null);
 	}, [closeSignal]);
-
-	// HIG "Sticky Menus" command-key path: a command-key press matching any
-	// item's keyboard shortcut fires that item's action and closes the menu,
-	// whether or not the menu is currently dropped down. Only the root menu
-	// binds the listener so a keystroke is handled exactly once.
-	useEffect(() => {
-		if (isSubmenu) return;
-		const handler = (event: KeyboardEvent) => {
-			if (event.defaultPrevented) return;
-			// Menu equivalents require a Command (⌘/Ctrl), Control, or Option
-			// modifier. Plain keystrokes never trigger a menu action.
-			if (!(event.metaKey || event.ctrlKey || event.altKey)) return;
-			// For an Option/Alt-only chord, don't hijack text entry — Option+letter
-			// types accented characters in inputs/textareas on macOS.
-			if (!event.metaKey && !event.ctrlKey) {
-				const t = event.target as HTMLElement | null;
-				if (
-					t &&
-					(t.tagName === "INPUT" ||
-						t.tagName === "TEXTAREA" ||
-						t.isContentEditable)
-				) {
-					return;
-				}
-			}
-			const match = findMenuItemByShortcut(menuItems, event);
-			if (!match) return;
-			event.preventDefault();
-			closeAll();
-			runMenuItemAction(match, desktopDispatch);
-		};
-		document.addEventListener("keydown", handler);
-		return () => document.removeEventListener("keydown", handler);
-	}, [isSubmenu, menuItems, closeAll, desktopDispatch]);
 
 	const handleOpen = useCallback((id: string) => setOpenChildId(id), []);
 	const handleClose = useCallback(() => setOpenChildId(null), []);

@@ -298,10 +298,10 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
 		});
 	}, [systemChordsKey, desktopEventDispatch]);
 
-	// HIG #187: app-wide command-key dispatch is handled by ClassicyMenu's own
-	// root keydown listener (below, `menuItems={defaultMenuItems}`), which fires a
-	// matching item's action whether or not a menu is dropped down. No separate
-	// listener is needed here.
+	// HIG #187: app-wide command-key dispatch is handled by the central
+	// `useClassicyShortcutDispatcher` (above), which fires a matching item's
+	// action whether or not a menu is dropped down. No separate listener is
+	// needed here.
 
 	return (
 		<nav ref={navRef} className={"classicyDesktopMenuBar"}>
