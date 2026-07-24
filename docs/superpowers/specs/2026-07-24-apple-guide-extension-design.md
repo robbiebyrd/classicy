@@ -30,8 +30,14 @@ confirms:
 | Property | Measured |
 |---|---|
 | Capture scale | 1x (2px title-bar stripe period, 2px black frame) |
-| Window size | ≈ 665 × 305 |
-| Title bar interior | ≈ 19px — matches `--hig-titlebar-height` (`ClassicyWindow.scss:498`) |
+| Window size | 700 × 322 (x 12–711, y 13–334) |
+| Title bar interior | 20px (y 17–36) — matches `--hig-titlebar-height` (`ClassicyWindow.scss:498`) |
+| Header band | 42px (y 43–84), `#F3F3F3`, bottom rule `#969696` |
+| Content band | white, fills remaining height (y 87–280 here) |
+| Footer band | 48px (y 285–332), `#E7E7E7`, full window width |
+| Pager group | ~120px wide, right-aligned (x 580–701) |
+| Page cell | recessed, `#CDCDCD`, ~32px wide (x 622–653) |
+| Arrow hue | `#B3B3D7` — the standard Platinum scroll-arrow lavender |
 | Title text | **none** — the title bar carries only the active stripe pattern |
 | Title-bar widgets | close box (left); zoom + collapse (right) |
 | Header band | bold serif "About Help" on the standard grey |
@@ -135,23 +141,28 @@ registerAppleGuideTopic({
 
 ## Window composition
 
-`AppleGuideWindow` composes `ClassicyWindow`'s existing three bands. No new
-chrome is introduced.
+`AppleGuideWindow` composes `ClassicyWindow`. No new window chrome is
+introduced.
 
-| Screenshot band | `ClassicyWindow` mechanism |
+| Screenshot band | Mechanism |
 |---|---|
 | Bold "About Help" bar | `header` prop |
-| White body | `children`, inside the standard content frame |
-| Pager strip | `placard` prop |
+| White body | `children` — a flex column, body row `flex: 1` |
+| Pager strip | last row of that same flex column |
+
+The footer is **not** the `placard` prop. `placard` is the Platinum status
+widget: pinned bottom-left and sized to the scrollbar gutter
+(`ClassicyWindow.scss:479-492`). The reference's footer is a full-width band
+with a right-aligned control, so it is rendered as the final row inside the
+window's children instead — no positioning to fight.
 
 Window props: `title` omitted and `hideIcon` set (the reference has no title
 text); `closable`, `zoomable`, `collapsable` enabled; `resizable` and
 `scrollable` disabled; `initialPosition` `["center", "center"]`.
 
-`initialSize` starts at `[665, 305]` — the measured size of the reference
+`initialSize` starts at `[700, 322]` — the measured outer size of the reference
 window — and is tuned during implementation until the rendered window matches
-`1.png`, since the exact value depends on how the header and placard bands
-contribute to the frame.
+`1.png`.
 
 Each topic gets a stable window id via a shared helper so the reducer and the
 window agree:
