@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components -- Re-exporting utilities for backwards compatibility */
-import { useContext } from "react";
+import { useCallback, useContext } from "react";
 import {
 	ClassicySoundDispatchContext,
 	ClassicySoundManagerContext,
@@ -32,4 +32,18 @@ export function useSound() {
 
 export function useSoundDispatch() {
 	return useContext(ClassicySoundDispatchContext);
+}
+
+/**
+ * Returns a function that plays the user's selected default alert sound
+ * (an application-wide trigger for the `ClassicyAlertSound` event). The sound
+ * itself is resolved from the sound state, which the provider keeps in sync
+ * with the Appearance preference.
+ */
+export function useClassicyAlertSound() {
+	const dispatch = useSoundDispatch();
+	return useCallback(
+		() => dispatch({ type: "ClassicyAlertSound" }),
+		[dispatch],
+	);
 }
