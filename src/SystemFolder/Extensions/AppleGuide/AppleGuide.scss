@@ -2,6 +2,21 @@
 // "About Help" reference capture: header 42px #F3F3F3, white body, footer
 // 48px #E7E7E7 spanning the full window width.
 
+// .classicyWindowHeader is a GLOBAL class shared by every window in the app
+// (ClassicyWindow.scss:17-34 — fixed 18px height, #CCCCCC fill, centered
+// content). A bare `.classicyWindowHeader { ... }` rule here would restyle
+// every window, not just Apple Guide's. Scope the override to windows whose
+// header content is this component's own marker div: ClassicyWindow renders
+// the `header` prop as a direct child of `.classicyWindowHeader`
+// (ClassicyWindow.tsx ~line 1058), so `:has(> .appleGuideTopicTitle)` can
+// only ever match an Apple Guide window's header band.
+.classicyWindowHeader:has(> .appleGuideTopicTitle) {
+  height: 42px;
+  background: #f3f3f3;
+  justify-content: flex-start;
+  border-bottom: 1px solid #969696;
+}
+
 .appleGuideTopicTitle {
   // The reference sets the header in the same bold serif as the body copy,
   // not the UI face. Task 7 confirms this against the capture.
