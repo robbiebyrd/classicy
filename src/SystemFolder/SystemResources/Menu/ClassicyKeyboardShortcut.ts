@@ -99,6 +99,7 @@ const keyMatchesEvent = (key: string, e: KeyboardEvent): boolean => {
 	if (!key) return false;
 	const k = key.toLowerCase();
 	if (e.key.toLowerCase() === k) return true;
+	if (k === "space" && (e.code === "Space" || e.key === " ")) return true;
 	if (/^[a-z]$/.test(k) && e.code === `Key${k.toUpperCase()}`) return true;
 	if (/^[0-9]$/.test(k) && e.code === `Digit${k}`) return true;
 	return false;

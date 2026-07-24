@@ -155,6 +155,18 @@ describe("shortcutMatchesEvent", () => {
 			shortcutMatchesEvent("⌥X", makeKeyEvent({ key: "x", code: "KeyX" })),
 		).toBe(false);
 	});
+
+	it("matches a declared Space shortcut against a spacebar event", () => {
+		// e.key for a spacebar keydown is a literal " "; keyMatchesEvent must
+		// normalize it to the "space" token the same way canonicalChordsFromEvent
+		// does, so a declared "…+Space" shortcut resolves.
+		expect(
+			shortcutMatchesEvent(
+				"⌃Space",
+				makeKeyEvent({ ctrlKey: true, key: " ", code: "Space" }),
+			),
+		).toBe(true);
+	});
 });
 
 describe("findMenuItemByShortcut", () => {

@@ -275,8 +275,8 @@ describe("ClassicyDesktopMenuBar — app-wide keyboard shortcuts (HIG #187)", ()
 			);
 		});
 
-		// Exactly once: the two document listeners (this one + ClassicyMenu's root
-		// listener) coordinate via defaultPrevented so the action never double-fires.
+		// Exactly once: there is now a single document keydown listener (the
+		// central dispatcher), so the action can't double-fire.
 		expect(openClick).toHaveBeenCalledTimes(1);
 	});
 

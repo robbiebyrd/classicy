@@ -286,9 +286,17 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
 	}, [focusedAppId, appChordsKey, desktopEventDispatch]);
 
 	// System scope: the desktop's own always-active chords (system menu + Help).
+	// Sourced from the RESOLVED Apple menu (not the raw systemMenu) so a claimed
+	// chord is always resolvable — the dispatcher searches defaultMenuItems,
+	// whose Apple submenu strips "About This Computer" (⌃S) whenever the
+	// focused app publishes an About entry.
 	const systemChordsKey = useMemo(
-		() => collectMenuChords([...(systemMenu ?? []), helpMenuItem]).join("|"),
-		[systemMenu, helpMenuItem],
+		() =>
+			collectMenuChords([
+				...(appleMenuItem.menuChildren ?? []),
+				helpMenuItem,
+			]).join("|"),
+		[appleMenuItem, helpMenuItem],
 	);
 	useEffect(() => {
 		desktopEventDispatch({
