@@ -315,3 +315,57 @@ describe("ClassicyDesktopMenuBar — app-wide keyboard shortcuts (HIG #187)", ()
 		expect(openClick).not.toHaveBeenCalled();
 	});
 });
+
+describe("ClassicyDesktopMenuBar — shortcut auto-registration (Keyboard registry)", () => {
+	beforeEach(() => {
+		useAppManager.setState(DefaultAppManagerState, true);
+	});
+
+	it("registers the focused app's menu chords under its appId", async () => {
+		const appMenu: ClassicyMenuItem[] = [
+			{
+				id: "view",
+				title: "View",
+				menuChildren: [{ id: "t", title: "Tools", keyboardShortcut: "Ctrl+T" }],
+			},
+		];
+
+		setStore((draft) => {
+			draft.System.Manager.Applications.apps = {
+				"HyperCard.app": {
+					id: "HyperCard.app",
+					name: "HyperCard",
+					icon: "/icons/hypercard.png",
+					windows: [],
+					open: true,
+					focused: true,
+					data: {},
+				},
+			};
+			draft.System.Manager.Applications.focusedAppId = "HyperCard.app";
+			draft.System.Manager.Desktop.appMenu = appMenu;
+		});
+
+		await act(async () => {
+			render(<ClassicyDesktopMenuBar />);
+		});
+
+		expect(
+			useAppManager.getState().System.Manager.Keyboard.app["HyperCard.app"],
+		).toEqual(expect.arrayContaining(["control+t"]));
+	});
+
+	it("registers system + Help chords under the system scope", async () => {
+		setStore((draft) => {
+			draft.System.Manager.Desktop.appMenu = [];
+		});
+
+		await act(async () => {
+			render(<ClassicyDesktopMenuBar />);
+		});
+
+		expect(useAppManager.getState().System.Manager.Keyboard.system).toEqual(
+			expect.arrayContaining(["control+s", "option+h"]),
+		);
+	});
+});

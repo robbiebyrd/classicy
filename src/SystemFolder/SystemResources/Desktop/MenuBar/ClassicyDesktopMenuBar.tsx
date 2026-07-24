@@ -22,6 +22,7 @@ import {
 
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { appSwitcherAppsFrom } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
+import { collectMenuChords } from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
 
 const appleMenuIcon = ClassicyIcons.system.apple;
 
@@ -260,6 +261,39 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
 		items.push(appSwitcherMenuMenuItem);
 		return items;
 	}, [appleMenuItem, strippedAppMenu, helpMenuItem, appSwitcherMenuMenuItem]);
+
+	const focusedAppId = useMemo(() => {
+		const focused = Object.values(apps).find((a) => a.focused === true);
+		return focused?.id ?? "Finder.app";
+	}, [apps]);
+
+	// App scope: the focused app's menu chords, keyed by appId. Re-runs when the
+	// focused app or its published menu changes.
+	const appChordsKey = useMemo(
+		() => collectMenuChords(appMenu ?? []).join("|"),
+		[appMenu],
+	);
+	useEffect(() => {
+		desktopEventDispatch({
+			type: "ClassicyShortcutRegister",
+			scope: "app",
+			appId: focusedAppId,
+			chords: appChordsKey ? appChordsKey.split("|") : [],
+		});
+	}, [focusedAppId, appChordsKey, desktopEventDispatch]);
+
+	// System scope: the desktop's own always-active chords (system menu + Help).
+	const systemChordsKey = useMemo(
+		() => collectMenuChords([...(systemMenu ?? []), helpMenuItem]).join("|"),
+		[systemMenu, helpMenuItem],
+	);
+	useEffect(() => {
+		desktopEventDispatch({
+			type: "ClassicyShortcutRegister",
+			scope: "system",
+			chords: systemChordsKey ? systemChordsKey.split("|") : [],
+		});
+	}, [systemChordsKey, desktopEventDispatch]);
 
 	// HIG #187: app-wide command-key dispatch is handled by ClassicyMenu's own
 	// root keydown listener (below, `menuItems={defaultMenuItems}`), which fires a
