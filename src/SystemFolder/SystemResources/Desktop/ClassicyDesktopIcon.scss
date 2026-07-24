@@ -15,6 +15,7 @@
   image-rendering: pixelated;
   image-rendering: -moz-crisp-edges;
   image-rendering: crisp-edges;
+  outline: none !important;
 
   img {
     width: var(--desktop-icon-size);
