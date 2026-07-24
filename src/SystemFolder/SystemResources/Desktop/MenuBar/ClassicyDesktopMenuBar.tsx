@@ -321,6 +321,12 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
 			>
 				<ClassicyDesktopMenuWidgetSound />
 				<ClassicyDesktopMenuWidgetTime />
+				{/* Portal target for app Menu Bar Extensions. Rendered last so its
+				    float:right lands it to the LEFT of the Sound/Time widgets. */}
+				<ul
+					id={"classicyDesktopMenuExtensions"}
+					className={"classicyDesktopMenuExtensions"}
+				/>
 			</ClassicyMenu>
 		</nav>
 	);
