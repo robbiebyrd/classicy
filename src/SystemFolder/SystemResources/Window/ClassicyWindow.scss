@@ -137,6 +137,15 @@
   z-index: 20 !important;
 }
 
+// Non-error modal dialogs (File Open/Save and friends) sit in a band ABOVE the
+// utility/tool-palette floating band (350) so a palette can never cover an open
+// dialog, yet BELOW the red error/alert band (99999) so system alerts still win.
+// The paired non-error modal scrim (below) sits just under this so it blocks and
+// separates every window beneath the dialog. Error modals keep classicyWindowRed.
+.classicyWindowModalFront {
+  z-index: 370 !important;
+}
+
 .classicyWindowInvisible {
   display: none !important;
 }
@@ -609,7 +618,9 @@
 .classicyWindowModalScrim {
   position: absolute;
   inset: 0;
-  z-index: 290; // below the active modal window (z-index 300) but above others
+  // Above the utility/tool-palette band (350) so palettes are blocked and sit
+  // behind an open dialog, and just below the modal-front window (370).
+  z-index: 360;
   background: transparent;
 }
 

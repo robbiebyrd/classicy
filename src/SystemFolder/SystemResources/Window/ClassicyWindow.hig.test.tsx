@@ -143,6 +143,27 @@ describe("ClassicyWindow HIG dialog behaviors", () => {
 		expect(dragStarts).toHaveLength(0);
 	});
 
+	// A non-error modal (e.g. a File Open/Save dialog) must sit in the
+	// modal-front stacking band so it renders ABOVE utility/tool palettes
+	// (.classicyWindowFloating) rather than being covered by them.
+	it("puts a non-error modal in the modal-front band (above utility palettes)", () => {
+		renderWindow({ modal: true });
+		const win = document.querySelector(".classicyWindowModal");
+		expect(win).not.toBeNull();
+		expect(win?.classList.contains("classicyWindowModalFront")).toBe(true);
+		expect(win?.classList.contains("classicyWindowRed")).toBe(false);
+	});
+
+	// An error alert modal stays in the red alert band (top of the stack), NOT
+	// the modal-front band — so alerts still appear over File dialogs.
+	it("keeps an error alert modal out of the modal-front band", () => {
+		renderWindow({ modal: true, type: "error" });
+		const win = document.querySelector(".classicyWindowModal");
+		expect(win).not.toBeNull();
+		expect(win?.classList.contains("classicyWindowRed")).toBe(true);
+		expect(win?.classList.contains("classicyWindowModalFront")).toBe(false);
+	});
+
 	// #208: zooming a full-mode window moves it to the standard-state origin and
 	// flags it zoomed.
 	it("zooms to the standard-state rect on a zoom-box click", () => {

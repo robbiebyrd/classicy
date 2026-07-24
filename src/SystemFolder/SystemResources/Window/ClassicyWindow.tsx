@@ -944,6 +944,10 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				ws.moving ? "classicyWindowDragging" : "",
 				ws.resizing ? "classicyWindowResizing" : "",
 				modal ? "classicyWindowModal" : "",
+				// Non-error modals (File Open/Save and other dialogs) stack in the
+				// modal-front band, above utility/tool palettes but below error
+				// alerts (classicyWindowRed). Error modals keep the red alert band.
+				modal && type !== "error" ? "classicyWindowModalFront" : "",
 				modal && type === "error" ? "classicyWindowRed" : "",
 				scrollable ? "" : "classicyWindowNoScroll",
 			)}
