@@ -11,8 +11,15 @@ import {
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import type { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import { canonicalChord } from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
+
+export type ClassicyGlobalShortcut = {
+	shortcut: string;
+	event: string;
+	eventData?: Record<string, unknown>;
+};
 
 export interface ClassicyAppProps {
 	id: string;
@@ -28,6 +35,10 @@ export interface ClassicyAppProps {
 	inApplicationsFolder?: boolean;
 	addSystemMenu?: boolean;
 	extension?: boolean;
+	/** Global keyboard shortcuts, honored only for `extension` apps. Each is
+	 *  registered into the shortcut registry on mount (first-registrant wins)
+	 *  and unregistered on unmount; firing dispatches `event` (+ `eventData`). */
+	globalShortcuts?: ClassicyGlobalShortcut[];
 	/** Show an icon in the startup parade without being an extension.
 	 *  `true` uses the app's own icon; a string (any icon URL, including
 	 *  ClassicyIcons.* values) shows that icon instead. Ignored when
@@ -48,6 +59,7 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 	noDesktopIcon,
 	inApplicationsFolder,
 	extension,
+	globalShortcuts,
 	bootIcon,
 	defaultWindow,
 	debug = false,
@@ -185,6 +197,38 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 			});
 		}
 	}, [desktopEventDispatch, id, handlesFileTypesKey]);
+
+	const globalShortcutsKey = JSON.stringify(
+		extension ? (globalShortcuts ?? []) : [],
+	);
+	useEffect(() => {
+		if (!extension) return;
+		const list: ClassicyGlobalShortcut[] = JSON.parse(globalShortcutsKey);
+		const registered: string[] = [];
+		for (const gs of list) {
+			const chord = canonicalChord(gs.shortcut);
+			if (!chord) continue;
+			registered.push(chord);
+			desktopEventDispatch({
+				type: "ClassicyShortcutRegister",
+				scope: "global",
+				appId: id,
+				chord,
+				event: gs.event,
+				eventData: gs.eventData,
+			});
+		}
+		return () => {
+			for (const chord of registered) {
+				desktopEventDispatch({
+					type: "ClassicyShortcutUnregister",
+					scope: "global",
+					appId: id,
+					chord,
+				});
+			}
+		};
+	}, [extension, globalShortcutsKey, id, desktopEventDispatch]);
 
 	useEffect(() => {
 		if (appContext?.focused && defaultWindow) {

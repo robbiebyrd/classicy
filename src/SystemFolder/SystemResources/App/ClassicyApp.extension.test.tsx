@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@/__tests__/test-utils";
-import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
+import {
+	ClassicyApp,
+	type ClassicyGlobalShortcut,
+} from "@/SystemFolder/SystemResources/App/ClassicyApp";
 
 const mockDispatch = vi.hoisted(() => vi.fn());
 
@@ -66,6 +69,22 @@ function renderExtension() {
 	);
 }
 
+function renderApp(props: {
+	id: string;
+	extension?: boolean;
+	globalShortcuts?: ClassicyGlobalShortcut[];
+}) {
+	return render(
+		<ClassicyApp
+			id={props.id}
+			name="Test"
+			icon="/icons/test.png"
+			extension={props.extension}
+			globalShortcuts={props.globalShortcuts}
+		/>,
+	);
+}
+
 describe("ClassicyApp extension prop", () => {
 	beforeEach(() => {
 		mockDispatch.mockClear();
@@ -88,5 +107,45 @@ describe("ClassicyApp extension prop", () => {
 	it("renders its children because the extension is open in the store", () => {
 		renderExtension();
 		expect(screen.getByTestId("ext-child")).toBeInTheDocument();
+	});
+
+	it("an extension registers its global shortcuts on mount and unregisters on unmount", () => {
+		const { unmount } = renderApp({
+			id: "Ext.app",
+			extension: true,
+			globalShortcuts: [{ shortcut: "Ctrl+Space", event: "ExtToggle" }],
+		});
+		expect(mockDispatch).toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: "ClassicyShortcutRegister",
+				scope: "global",
+				appId: "Ext.app",
+				chord: "control+space",
+				event: "ExtToggle",
+			}),
+		);
+		unmount();
+		expect(mockDispatch).toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: "ClassicyShortcutUnregister",
+				scope: "global",
+				appId: "Ext.app",
+				chord: "control+space",
+			}),
+		);
+	});
+
+	it("a NON-extension app's globalShortcuts are ignored", () => {
+		renderApp({
+			id: "Reg.app",
+			extension: false,
+			globalShortcuts: [{ shortcut: "Ctrl+Space", event: "Nope" }],
+		});
+		expect(mockDispatch).not.toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: "ClassicyShortcutRegister",
+				scope: "global",
+			}),
+		);
 	});
 });
