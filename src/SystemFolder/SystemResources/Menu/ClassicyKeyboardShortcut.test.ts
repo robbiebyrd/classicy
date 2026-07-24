@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+	canonicalChord,
+	canonicalChordsFromEvent,
+	collectMenuChords,
 	findMenuItemByShortcut,
 	formatKeyboardShortcut,
 	parseKeyboardShortcut,
@@ -230,5 +233,80 @@ describe("runMenuItemAction", () => {
 		const onClickFunc = vi.fn();
 		runMenuItemAction({ id: "a", disabled: true, onClickFunc }, vi.fn());
 		expect(onClickFunc).not.toHaveBeenCalled();
+	});
+});
+
+describe("canonicalChord", () => {
+	it("normalizes spelling/spacing/glyphs to one canonical form", () => {
+		expect(canonicalChord("Cmd+Shift+S")).toBe("shift+command+s");
+		expect(canonicalChord("⇧⌘S")).toBe("shift+command+s");
+		expect(canonicalChord("command shift s")).toBe("shift+command+s");
+	});
+	it("orders modifiers control, option, shift, command", () => {
+		expect(canonicalChord("Ctrl+Option+Shift+Cmd+K")).toBe(
+			"control+option+shift+command+k",
+		);
+		expect(canonicalChord("⌥H")).toBe("option+h");
+		expect(canonicalChord("⌃S")).toBe("control+s");
+	});
+	it("returns '' for a modifier-only or empty chord", () => {
+		expect(canonicalChord("Cmd")).toBe("");
+		expect(canonicalChord("")).toBe("");
+		expect(canonicalChord(undefined)).toBe("");
+	});
+});
+
+describe("canonicalChordsFromEvent", () => {
+	const ev = (init: Partial<KeyboardEventInit> & { key: string }) =>
+		new KeyboardEvent("keydown", init);
+
+	it("meta+S yields the command candidate only", () => {
+		expect(canonicalChordsFromEvent(ev({ key: "s", metaKey: true }))).toEqual([
+			"command+s",
+		]);
+	});
+	it("ctrl+S yields BOTH command and control candidates (meta-or-ctrl)", () => {
+		const out = canonicalChordsFromEvent(ev({ key: "s", ctrlKey: true }));
+		expect(out).toContain("command+s");
+		expect(out).toContain("control+s");
+	});
+	it("alt+H (no meta/ctrl) yields the option candidate", () => {
+		expect(canonicalChordsFromEvent(ev({ key: "h", altKey: true }))).toEqual([
+			"option+h",
+		]);
+	});
+	it("returns [] when no chord modifier is present", () => {
+		expect(canonicalChordsFromEvent(ev({ key: "a" }))).toEqual([]);
+	});
+	it("derives the key from code when key is a dead/composed char (⌥ physical key)", () => {
+		const out = canonicalChordsFromEvent(
+			ev({ key: "≈", code: "KeyX", altKey: true }),
+		);
+		expect(out).toEqual(["option+x"]);
+	});
+});
+
+describe("collectMenuChords", () => {
+	it("collects canonical chords from nested menus, skipping native and empty", () => {
+		const menu: ClassicyMenuItem[] = [
+			{ id: "a", title: "Save", keyboardShortcut: "Cmd+S" },
+			{
+				id: "b",
+				title: "Undo",
+				keyboardShortcut: "Cmd+Z",
+				nativeShortcut: true,
+			},
+			{ id: "c", title: "No shortcut" },
+			{
+				id: "sub",
+				title: "More",
+				menuChildren: [{ id: "d", title: "Find", keyboardShortcut: "⌘F" }],
+			},
+		];
+		const out = collectMenuChords(menu);
+		expect(out).toContain("command+s");
+		expect(out).toContain("command+f");
+		expect(out).not.toContain("command+z"); // native excluded
+		expect(out).toHaveLength(2);
 	});
 });
