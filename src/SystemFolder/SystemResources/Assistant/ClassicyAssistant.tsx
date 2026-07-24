@@ -1,6 +1,7 @@
 import "./ClassicyAssistant.scss";
 import {
 	type FC as FunctionalComponent,
+	type KeyboardEvent,
 	type ReactNode,
 	useState,
 } from "react";
@@ -89,9 +90,25 @@ export const ClassicyAssistant: FunctionalComponent<ClassicyAssistantProps> = ({
 
 	const goPrev = () => changePage(currentPage - 1);
 
+	const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+		if (e.key === "ArrowRight") {
+			e.preventDefault();
+			goNext();
+		} else if (e.key === "ArrowLeft") {
+			e.preventDefault();
+			goPrev();
+		}
+	};
+
 	return (
-		<div className={"classicyAssistant"}>
-			<div className={"classicyAssistantHeader"}>
+		// biome-ignore lint/a11y/noStaticElementInteractions: wizard container is a focusable arrow-key nav surface
+		// biome-ignore lint/a11y/noNoninteractiveTabindex: focusable so arrow keys work when focus is within the assistant
+		<div className={"classicyAssistant"} tabIndex={0} onKeyDown={onKeyDown}>
+			<section
+				className={"classicyAssistantHeader"}
+				aria-live="polite"
+				aria-label={page.title}
+			>
 				{page.labelIcon && (
 					<img
 						className={"classicyAssistantHeaderLabelIcon"}
@@ -111,8 +128,15 @@ export const ClassicyAssistant: FunctionalComponent<ClassicyAssistantProps> = ({
 						aria-hidden={true}
 					/>
 				)}
+			</section>
+			{/* biome-ignore lint/a11y/useSemanticElements: group of arbitrary step content, not a form fieldset */}
+			<div
+				className={"classicyAssistantBody"}
+				role="group"
+				aria-label={page.title}
+			>
+				{page.content}
 			</div>
-			<div className={"classicyAssistantBody"}>{page.content}</div>
 			<div className={"classicyAssistantFooter"}>
 				<div className={"classicyAssistantFooterButtons"}>
 					{resolvedButtons.map((btn, i) => (

@@ -253,3 +253,41 @@ describe("ClassicyAssistant — header icons", () => {
 		).toBeNull();
 	});
 });
+
+describe("ClassicyAssistant — keyboard & a11y", () => {
+	it("advances on ArrowRight and retreats on ArrowLeft", async () => {
+		const user = userEvent.setup();
+		const { container } = render(<ClassicyAssistant pages={pages} />);
+		const root = container.querySelector(".classicyAssistant") as HTMLElement;
+		root.focus();
+		await user.keyboard("{ArrowRight}");
+		expect(screen.getByText("Network Settings")).toBeInTheDocument();
+		await user.keyboard("{ArrowLeft}");
+		expect(screen.getByText("Introduction")).toBeInTheDocument();
+	});
+
+	it("ArrowRight respects canAdvance", async () => {
+		const gated: ClassicyAssistantPage[] = [
+			{ title: "One", content: <p>one</p>, canAdvance: () => false },
+			{ title: "Two", content: <p>two</p> },
+		];
+		const user = userEvent.setup();
+		const { container } = render(<ClassicyAssistant pages={gated} />);
+		(container.querySelector(".classicyAssistant") as HTMLElement).focus();
+		await user.keyboard("{ArrowRight}");
+		expect(screen.getByText("One")).toBeInTheDocument();
+	});
+
+	it("exposes the current title via an aria-live header region", () => {
+		render(<ClassicyAssistant pages={pages} />);
+		const region = screen.getByRole("region", { name: "Introduction" });
+		expect(region).toHaveAttribute("aria-live", "polite");
+	});
+
+	it("labels the body group with the current title", () => {
+		render(<ClassicyAssistant pages={pages} />);
+		expect(
+			screen.getByRole("group", { name: "Introduction" }),
+		).toBeInTheDocument();
+	});
+});
