@@ -211,6 +211,9 @@ export const canonicalChord = (raw: string | undefined): string => {
 };
 
 const keyFromEvent = (e: KeyboardEvent): string => {
+	// The spacebar's logical `key` is a literal " " character; normalize it to
+	// the word "space" so it matches `canonicalChord("Ctrl+Space")` ("control+space").
+	if (e.key === " ") return "space";
 	// Option remaps a letter's logical `key` to a composed/dead-key character
 	// (Option+X -> "≈"); fall back to the physical `code` in that case so the
 	// derived key is still the pressed letter, not the composed glyph.

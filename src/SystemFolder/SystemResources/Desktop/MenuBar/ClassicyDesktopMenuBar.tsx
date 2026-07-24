@@ -22,6 +22,7 @@ import {
 
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { appSwitcherAppsFrom } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
+import { useClassicyShortcutDispatcher } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyShortcutDispatcher";
 import { collectMenuChords } from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
 
 const appleMenuIcon = ClassicyIcons.system.apple;
@@ -261,6 +262,8 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
 		items.push(appSwitcherMenuMenuItem);
 		return items;
 	}, [appleMenuItem, strippedAppMenu, helpMenuItem, appSwitcherMenuMenuItem]);
+
+	useClassicyShortcutDispatcher(defaultMenuItems);
 
 	const focusedAppId = useMemo(() => {
 		const focused = Object.values(apps).find((a) => a.focused === true);
