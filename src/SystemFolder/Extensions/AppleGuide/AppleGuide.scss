@@ -1,0 +1,111 @@
+// Apple Guide topic window. Band geometry measured from the Mac OS 8
+// "About Help" reference capture: header 42px #F3F3F3, white body, footer
+// 48px #E7E7E7 spanning the full window width.
+
+.appleGuideTopicTitle {
+  // The reference sets the header in the same bold serif as the body copy,
+  // not the UI face. Task 7 confirms this against the capture.
+  font-family: var(--body-font), serif;
+  font-weight: bold;
+  font-size: 13px;
+  padding: 0 12px;
+  line-height: 42px;
+}
+
+.appleGuideBody {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.appleGuideContent {
+  flex: 1;
+  background: #ffffff;
+  // The reference sets help copy in a serif face, unlike the UI chrome.
+  font-family: var(--body-font), serif;
+  font-size: 14px;
+  line-height: 1.45;
+  padding: 12px 20px;
+  overflow: auto;
+
+  p {
+    margin: 0 0 12px;
+  }
+
+  ul {
+    margin: 0 0 12px;
+    padding-left: 18px;
+    list-style: disc;
+  }
+
+  li {
+    margin-bottom: 2px;
+  }
+}
+
+.appleGuideEnd {
+  margin-top: 8px;
+}
+
+.appleGuideFooter {
+  flex: 0 0 48px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  background: #e7e7e7;
+  padding-right: 10px;
+}
+
+.appleGuidePager {
+  display: flex;
+  align-items: center;
+  border: 1px solid #c0c0c0;
+}
+
+.appleGuidePagerArrow {
+  width: 34px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  // Platinum scroll-arrow lavender; disabled arrows render hollow.
+  color: #b3b3d7;
+
+  &::before {
+    content: "";
+    display: block;
+    margin: 0 auto;
+    border-block: 8px solid transparent;
+  }
+
+  &:disabled {
+    cursor: default;
+  }
+}
+
+.appleGuidePagerArrowPrev::before {
+  border-right: 11px solid currentColor;
+  border-left: 0;
+}
+
+.appleGuidePagerArrowNext::before {
+  border-left: 11px solid currentColor;
+  border-right: 0;
+}
+
+.appleGuidePagerPage {
+  min-width: 32px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--ui-font), sans-serif;
+  font-weight: bold;
+  font-size: 12px;
+  // Recessed cell: dark on top/left, light on bottom/right.
+  background: #cdcdcd;
+  border-top: 2px solid #777777;
+  border-left: 1px solid #a5a5a5;
+  border-bottom: 1px solid #c0c0c0;
+  border-right: 1px solid #c0c0c0;
+}
