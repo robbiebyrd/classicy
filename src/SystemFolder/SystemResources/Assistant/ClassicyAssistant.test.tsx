@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, userEvent } from "@/__tests__/test-utils";
 import {
@@ -17,6 +18,23 @@ vi.mock(
 	"@/SystemFolder/SystemResources/Assistant/ClassicyAssistant.scss",
 	() => ({}),
 );
+// Render ClassicyButton as a plain <button> so footer-button assertions read
+// its label and click without pulling in the real button's sound/analytics.
+vi.mock("@/SystemFolder/SystemResources/Button/ClassicyButton", () => ({
+	ClassicyButton: ({
+		children,
+		onClickFunc,
+		disabled,
+	}: {
+		children: ReactNode;
+		onClickFunc?: () => void;
+		disabled?: boolean;
+	}) => (
+		<button type="button" disabled={disabled} onClick={onClickFunc}>
+			{children}
+		</button>
+	),
+}));
 
 beforeEach(() => {
 	soundDispatch.mockClear();
@@ -128,5 +146,62 @@ describe("ClassicyAssistant — advance gate", () => {
 		render(<ClassicyAssistant pages={gated} initialPage={1} />);
 		await user.click(screen.getByRole("button", { name: "Previous page" }));
 		expect(screen.getByText("One")).toBeInTheDocument();
+	});
+});
+
+describe("ClassicyAssistant — footer buttons", () => {
+	it("renders global buttons when a page defines none", () => {
+		const onClick = vi.fn();
+		render(
+			<ClassicyAssistant
+				pages={pages}
+				buttons={[{ title: "Cancel", onClick }]}
+			/>,
+		);
+		expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
+	});
+
+	it("fires a button's onClick", async () => {
+		const onClick = vi.fn();
+		const user = userEvent.setup();
+		render(
+			<ClassicyAssistant
+				pages={pages}
+				buttons={[{ title: "Cancel", onClick }]}
+			/>,
+		);
+		await user.click(screen.getByRole("button", { name: "Cancel" }));
+		expect(onClick).toHaveBeenCalledTimes(1);
+	});
+
+	it("per-page buttons override global buttons", () => {
+		const withPageButtons: ClassicyAssistantPage[] = [
+			{
+				title: "One",
+				content: <p>one</p>,
+				buttons: [{ title: "Help", onClick: vi.fn() }],
+			},
+		];
+		render(
+			<ClassicyAssistant
+				pages={withPageButtons}
+				buttons={[{ title: "Cancel", onClick: vi.fn() }]}
+			/>,
+		);
+		expect(screen.getByRole("button", { name: "Help" })).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
+	});
+
+	it("caps footer buttons at 3 and warns", () => {
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+		const four = [1, 2, 3, 4].map((n) => ({
+			title: `B${n}`,
+			onClick: vi.fn(),
+		}));
+		render(<ClassicyAssistant pages={pages} buttons={four} />);
+		expect(screen.getByRole("button", { name: "B3" })).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "B4" })).toBeNull();
+		expect(warn).toHaveBeenCalled();
+		warn.mockRestore();
 	});
 });

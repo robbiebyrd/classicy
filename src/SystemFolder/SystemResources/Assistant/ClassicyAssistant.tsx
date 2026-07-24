@@ -5,6 +5,15 @@ import {
 	useState,
 } from "react";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
+import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
+
+const MAX_FOOTER_BUTTONS = 3;
+
+/** Stable React key for a footer button (titles may repeat, so include position). */
+const footerButtonKey = (
+	button: ClassicyAssistantButton,
+	index: number,
+): string => `${button.title}-${index}`;
 
 export interface ClassicyAssistantButton {
 	title: string;
@@ -34,6 +43,7 @@ const clamp = (value: number, min: number, max: number): number =>
 
 export const ClassicyAssistant: FunctionalComponent<ClassicyAssistantProps> = ({
 	pages,
+	buttons,
 	initialPage = 0,
 	onPageChange,
 }) => {
@@ -45,6 +55,15 @@ export const ClassicyAssistant: FunctionalComponent<ClassicyAssistantProps> = ({
 
 	const page = pages[currentPage];
 	if (!page) return null;
+
+	// Per-page buttons win over the global default; cap at 3 (no silent truncation).
+	const resolvedButtons = (page.buttons ?? buttons ?? []).slice();
+	if (resolvedButtons.length > MAX_FOOTER_BUTTONS) {
+		console.warn(
+			`ClassicyAssistant: page "${page.title}" has ${resolvedButtons.length} footer buttons; only the first ${MAX_FOOTER_BUTTONS} are shown.`,
+		);
+		resolvedButtons.length = MAX_FOOTER_BUTTONS;
+	}
 
 	const changePage = (index: number) => {
 		const next = clamp(index, 0, lastIndex);
@@ -71,7 +90,18 @@ export const ClassicyAssistant: FunctionalComponent<ClassicyAssistantProps> = ({
 			</div>
 			<div className={"classicyAssistantBody"}>{page.content}</div>
 			<div className={"classicyAssistantFooter"}>
-				<div className={"classicyAssistantFooterButtons"} />
+				<div className={"classicyAssistantFooterButtons"}>
+					{resolvedButtons.map((btn, i) => (
+						<ClassicyButton
+							key={footerButtonKey(btn, i)}
+							buttonSize="small"
+							disabled={btn.disabled}
+							onClickFunc={btn.onClick}
+						>
+							{btn.title}
+						</ClassicyButton>
+					))}
+				</div>
 				<div className={"classicyAssistantNav"}>
 					<button
 						type="button"
