@@ -1,5 +1,9 @@
 import "./ClassicyAssistant.scss";
-import { type FC as FunctionalComponent, type ReactNode, useState } from "react";
+import {
+	type FC as FunctionalComponent,
+	type ReactNode,
+	useState,
+} from "react";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 
 export interface ClassicyAssistantButton {
@@ -37,11 +41,18 @@ export const ClassicyAssistant: FunctionalComponent<ClassicyAssistantProps> = ({
 	const [currentPage, setCurrentPage] = useState(() =>
 		clamp(initialPage, 0, lastIndex),
 	);
-	// player is unused until Task 2; referenced now to establish the hook.
-	useSoundDispatch();
+	const player = useSoundDispatch();
 
 	const page = pages[currentPage];
 	if (!page) return null;
+
+	const goTo = (index: number) => {
+		const next = clamp(index, 0, lastIndex);
+		if (next === currentPage) return;
+		player({ type: "ClassicySoundPlay", sound: "ClassicyTabClickUp" });
+		setCurrentPage(next);
+		onPageChange?.(next);
+	};
 
 	return (
 		<div className={"classicyAssistant"}>
@@ -52,9 +63,27 @@ export const ClassicyAssistant: FunctionalComponent<ClassicyAssistantProps> = ({
 			<div className={"classicyAssistantFooter"}>
 				<div className={"classicyAssistantFooterButtons"} />
 				<div className={"classicyAssistantNav"}>
+					<button
+						type="button"
+						aria-label="Previous page"
+						className={"classicyAssistantNavButton"}
+						disabled={currentPage === 0}
+						onClick={() => goTo(currentPage - 1)}
+					>
+						{"◀"}
+					</button>
 					<span className={"classicyAssistantPageIndicator"}>
 						{currentPage + 1}
 					</span>
+					<button
+						type="button"
+						aria-label="Next page"
+						className={"classicyAssistantNavButton"}
+						disabled={currentPage === lastIndex}
+						onClick={() => goTo(currentPage + 1)}
+					>
+						{"▶"}
+					</button>
 				</div>
 			</div>
 		</div>
