@@ -1339,6 +1339,12 @@ Balloons item.
 Run: `pnpm test src/SystemFolder/SystemResources/Desktop/MenuBar/`
 Expected: PASS, including the existing menu-bar tests.
 
+**Concurrency warning:** another session is actively developing
+`ClassicyMenuBarExtension.*` in this same directory. If a failure comes from a
+`ClassicyMenuBarExtension` test, it is **not yours** — do not modify or "fix"
+those files. Re-run scoped to the files this task owns:
+`pnpm test src/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar`
+
 - [ ] **Step 5: Run the full suite**
 
 Run: `pnpm test`
@@ -1346,10 +1352,18 @@ Expected: PASS — all pre-existing tests plus the new ones. Record the count.
 
 - [ ] **Step 6: Type-check, lint, commit**
 
+Scope both commands to the two files this task owns. A directory-wide
+`biome --write` or `git add` would reformat and stage the concurrent session's
+in-progress `ClassicyMenuBarExtension.*` files.
+
 ```bash
 pnpm build:source
-pnpm biome check --write src/SystemFolder/SystemResources/Desktop/MenuBar/
-git add src/SystemFolder/SystemResources/Desktop/MenuBar/
+pnpm biome check --write \
+  src/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar.tsx \
+  src/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar.help.test.tsx
+git add \
+  src/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar.tsx \
+  src/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar.help.test.tsx
 git commit -m "feat(apple-guide): open About Balloon Help from the Help menu"
 ```
 
