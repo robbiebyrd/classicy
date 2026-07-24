@@ -208,6 +208,11 @@ export function hasFontSize(
 	return typeof m.fontType === "string" && typeof m.fontSize === "number";
 }
 
+/** Action has `alertSound: string` (a `ClassicyAlert*` sprite key) */
+export function hasAlertSound(m: Msg): m is Msg & { alertSound: string } {
+	return typeof m.alertSound === "string";
+}
+
 /** Action has `availableThemes: unknown[]` */
 export function hasAvailableThemes(
 	m: Msg,

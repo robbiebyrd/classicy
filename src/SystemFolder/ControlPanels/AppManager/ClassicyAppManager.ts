@@ -23,6 +23,7 @@ import {
 	pickSuccessorApp,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
 import { classicyDateTimeManagerEventHandler } from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeEventHandler";
+import { DEFAULT_ALERT_SOUND } from "@/SystemFolder/ControlPanels/SoundManager/ClassicyAlertSounds";
 import type { ClassicyStoreSystemSoundManager } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import {
 	type ClassicyStoreSystemBootManager,
@@ -555,6 +556,7 @@ export const DefaultAppManagerState: ClassicyStore = {
 				activeTheme: themesData.find(
 					(t) => t.id === "default",
 				) as unknown as ClassicyTheme,
+				alertSound: DEFAULT_ALERT_SOUND,
 			},
 			Boot: {
 				paradeIcons: [],
