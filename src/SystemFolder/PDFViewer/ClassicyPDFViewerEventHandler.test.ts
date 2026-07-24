@@ -60,6 +60,7 @@ function makeStore(): ClassicyStore {
 					activeTheme: {} as ClassicyTheme,
 				},
 				Boot: { paradeIcons: [] },
+				Keyboard: { app: {}, system: [], global: {} },
 			},
 		},
 	};

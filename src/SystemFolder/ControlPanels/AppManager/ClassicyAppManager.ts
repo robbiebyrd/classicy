@@ -115,7 +115,21 @@ export interface ClassicyStoreSystem {
 		Appearance: ClassicyStoreSystemAppearanceManager;
 		DateAndTime: ClassicyStoreSystemDateAndTimeManager;
 		Boot: ClassicyStoreSystemBootManager;
+		Keyboard: ClassicyStoreSystemKeyboardManager;
 	};
+}
+
+export interface ClassicyStoreSystemKeyboardManager
+	extends ClassicyStoreSystemManager {
+	/** Canonical chords each app claims (auto-derived from its menu). Keyed by appId. */
+	app: Record<string, string[]>;
+	/** Always-active chords owned by the desktop's Apple/system/Help menus. */
+	system: string[];
+	/** Extension globals: canonical chord → dispatched action. Unique; first-wins. */
+	global: Record<
+		string,
+		{ appId: string; event: string; eventData?: Record<string, unknown> }
+	>;
 }
 
 export interface ClassicyStoreSystemDateAndTimeManager
@@ -349,6 +363,62 @@ export const classicyAppEventHandler = (
 	return ds;
 };
 
+export const classicyShortcutEventHandler = (
+	ds: ClassicyStore,
+	action: ActionMessage,
+): ClassicyStore => {
+	const kb = ds.System.Manager.Keyboard;
+	switch (action.type) {
+		case "ClassicyShortcutRegister": {
+			if (action.scope === "app" && typeof action.appId === "string") {
+				kb.app[action.appId] = Array.isArray(action.chords)
+					? [...new Set(action.chords as string[])]
+					: [];
+			} else if (action.scope === "system") {
+				kb.system = Array.isArray(action.chords)
+					? [...new Set(action.chords as string[])]
+					: [];
+			} else if (
+				action.scope === "global" &&
+				typeof action.chord === "string" &&
+				action.chord !== "" &&
+				typeof action.event === "string"
+			) {
+				if (kb.global[action.chord]) {
+					if (process.env.NODE_ENV !== "production") {
+						console.warn(
+							"[ClassicyShortcut] global chord already registered; ignoring",
+							{ chord: action.chord, by: action.appId },
+						);
+					}
+				} else {
+					kb.global[action.chord] = {
+						appId: String(action.appId ?? ""),
+						event: action.event,
+						eventData: action.eventData as Record<string, unknown> | undefined,
+					};
+				}
+			}
+			break;
+		}
+		case "ClassicyShortcutUnregister": {
+			if (action.scope === "app" && typeof action.appId === "string") {
+				delete kb.app[action.appId];
+			} else if (
+				action.scope === "global" &&
+				typeof action.chord === "string"
+			) {
+				const owner = kb.global[action.chord];
+				if (owner && owner.appId === action.appId) {
+					delete kb.global[action.chord];
+				}
+			}
+			break;
+		}
+	}
+	return ds;
+};
+
 export const classicyDesktopStateEventReducer = (
 	ds: ClassicyStore,
 	action: ActionMessage,
@@ -370,6 +440,8 @@ export const classicyDesktopStateEventReducer = (
 			ds = classicyBootEventHandler(ds, action);
 		} else if (action.type.startsWith("ClassicyManagerDateTime")) {
 			ds = classicyDateTimeManagerEventHandler(ds, action);
+		} else if (action.type.startsWith("ClassicyShortcut")) {
+			ds = classicyShortcutEventHandler(ds, action);
 		} else {
 			const plugin = pluginEventHandlers.find(({ prefix }) =>
 				action.type.startsWith(prefix),
@@ -486,6 +558,11 @@ export const DefaultAppManagerState: ClassicyStore = {
 			},
 			Boot: {
 				paradeIcons: [],
+			},
+			Keyboard: {
+				app: {},
+				system: [],
+				global: {},
 			},
 		},
 	},

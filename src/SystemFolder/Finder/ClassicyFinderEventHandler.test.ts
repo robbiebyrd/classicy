@@ -72,6 +72,7 @@ function makeStore(
 					activeTheme: {} as ClassicyTheme,
 				},
 				Boot: { paradeIcons: [] },
+				Keyboard: { app: {}, system: [], global: {} },
 			},
 		},
 	};

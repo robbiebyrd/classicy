@@ -80,7 +80,9 @@ let debounceTimer: ReturnType<typeof setTimeout> | null = null;
  * Produce a sanitized copy of state safe for persistence.
  * Strips fields that contain PII or are intentionally session-only.
  */
-function sanitizeStateForPersistence(state: ClassicyStore): ClassicyStore {
+export function sanitizeStateForPersistence(
+	state: ClassicyStore,
+): ClassicyStore {
 	return produce(state, (draft) => {
 		const browserApp = draft.System.Manager.Applications.apps["Browser.app"];
 		if (browserApp?.data && "history" in browserApp.data) {
@@ -125,6 +127,10 @@ function sanitizeStateForPersistence(state: ClassicyStore): ClassicyStore {
 		// mount, so persisting them would resurrect icons whose owner removed
 		// its bootIcon prop.
 		draft.System.Manager.Boot.paradeIcons = [];
+		// The keyboard-shortcut registry is runtime state: apps and extensions
+		// re-register on every mount. Persisting it would resurrect claims whose
+		// owner is gone (and can hold non-serializable intent). Reset to empty.
+		draft.System.Manager.Keyboard = { app: {}, system: [], global: {} };
 	});
 }
 

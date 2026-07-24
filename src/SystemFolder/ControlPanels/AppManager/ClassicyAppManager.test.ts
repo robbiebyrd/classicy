@@ -89,6 +89,7 @@ function makeStore(
 					activeTheme: {} as ClassicyTheme,
 				},
 				Boot: { paradeIcons: [] },
+				Keyboard: { app: {}, system: [], global: {} },
 			},
 		},
 	};
@@ -1916,5 +1917,97 @@ describe("focus succession skips utility windows", () => {
 		focusApp(ds, "TestApp");
 		const wins = ds.System.Manager.Applications.apps.TestApp.windows;
 		expect(wins.find((w) => w.id === "a")?.focused).toBe(true);
+	});
+});
+
+describe("keyboard shortcut registry reducer", () => {
+	it("registers app chords under the appId (replacing prior claims)", () => {
+		let ds = makeStore();
+		ds = classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyShortcutRegister",
+			scope: "app",
+			appId: "TextEditor.app",
+			chords: ["command+s", "command+o"],
+		});
+		expect(ds.System.Manager.Keyboard.app["TextEditor.app"]).toEqual([
+			"command+s",
+			"command+o",
+		]);
+		// re-register replaces
+		ds = classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyShortcutRegister",
+			scope: "app",
+			appId: "TextEditor.app",
+			chords: ["command+p"],
+		});
+		expect(ds.System.Manager.Keyboard.app["TextEditor.app"]).toEqual([
+			"command+p",
+		]);
+	});
+
+	it("registers system chords", () => {
+		let ds = makeStore();
+		ds = classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyShortcutRegister",
+			scope: "system",
+			chords: ["control+s", "option+h"],
+		});
+		expect(ds.System.Manager.Keyboard.system).toEqual([
+			"control+s",
+			"option+h",
+		]);
+	});
+
+	it("registers a global; a duplicate chord is ignored (first-wins)", () => {
+		let ds = makeStore();
+		ds = classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyShortcutRegister",
+			scope: "global",
+			appId: "ExtA",
+			chord: "control+space",
+			event: "ExtAToggle",
+		});
+		ds = classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyShortcutRegister",
+			scope: "global",
+			appId: "ExtB",
+			chord: "control+space",
+			event: "ExtBToggle",
+		});
+		expect(ds.System.Manager.Keyboard.global["control+space"]).toEqual({
+			appId: "ExtA",
+			event: "ExtAToggle",
+			eventData: undefined,
+		});
+	});
+
+	it("unregisters an app's claims and an owned global", () => {
+		let ds = makeStore();
+		ds = classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyShortcutRegister",
+			scope: "app",
+			appId: "TextEditor.app",
+			chords: ["command+s"],
+		});
+		ds = classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyShortcutRegister",
+			scope: "global",
+			appId: "ExtA",
+			chord: "control+space",
+			event: "ExtAToggle",
+		});
+		ds = classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyShortcutUnregister",
+			scope: "app",
+			appId: "TextEditor.app",
+		});
+		ds = classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyShortcutUnregister",
+			scope: "global",
+			appId: "ExtA",
+			chord: "control+space",
+		});
+		expect(ds.System.Manager.Keyboard.app["TextEditor.app"]).toBeUndefined();
+		expect(ds.System.Manager.Keyboard.global["control+space"]).toBeUndefined();
 	});
 });

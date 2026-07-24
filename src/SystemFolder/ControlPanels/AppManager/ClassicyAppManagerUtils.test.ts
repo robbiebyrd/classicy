@@ -555,6 +555,25 @@ describe("persistence exclusions", () => {
 	});
 });
 
+// ─── sanitizeStateForPersistence — Keyboard exclusion ─────────────────────────
+
+describe("sanitizeStateForPersistence — Keyboard registry", () => {
+	it("strips System.Manager.Keyboard from the persisted snapshot", async () => {
+		const { sanitizeStateForPersistence } = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils"
+		);
+		const { DefaultAppManagerState } = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager"
+		);
+		const state = structuredClone(DefaultAppManagerState);
+		state.System.Manager.Keyboard.app["X.app"] = ["command+s"];
+		const out = sanitizeStateForPersistence(state);
+		expect(out.System.Manager.Keyboard.app).toEqual({});
+		expect(out.System.Manager.Keyboard.system).toEqual([]);
+		expect(out.System.Manager.Keyboard.global).toEqual({});
+	});
+});
+
 // ─── wasHydratedFromStorage ───────────────────────────────────────────────────
 
 describe("wasHydratedFromStorage", () => {
