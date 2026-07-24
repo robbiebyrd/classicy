@@ -11,6 +11,12 @@
 // (ClassicyWindow.tsx ~line 1058), so `:has(> .appleGuideTopicTitle)` can
 // only ever match an Apple Guide window's header band.
 .classicyWindowHeader:has(> .appleGuideTopicTitle) {
+  // box-sizing: border-box — the shared .classicyWindowHeader base rule
+  // (ClassicyWindow.scss) doesn't set box-sizing, so this override's
+  // 1px top + 1px bottom border (from the platinumWindowHeaderBorder mixin
+  // plus the rule below) would otherwise add 2px on top of `height`,
+  // rendering 44px instead of the reference's measured 42px band.
+  box-sizing: border-box;
   height: 42px;
   background: #f3f3f3;
   justify-content: flex-start;
@@ -53,6 +59,14 @@
     list-style: disc;
   }
 
+  li::marker {
+    // ClassicyDesktop.scss sets a global `* ::marker { color: var(--color-theme-02) }`
+    // (lavender) for the whole app's theme. The reference capture's bullets are
+    // plain black, matching the body copy — override back to that here rather
+    // than touch the app-wide rule.
+    color: currentColor;
+  }
+
   li {
     margin-bottom: 2px;
   }
@@ -78,7 +92,12 @@
 }
 
 .appleGuidePagerArrow {
-  width: 34px;
+  // 42px: measured from the reference capture, the whole pager group
+  // (border + 2 arrow buttons + page cell) spans ~120px. With the page
+  // cell fixed at its measured 32px fill width (34px incl. border) and
+  // the pager's 1px border on each side, solving 2w + 34 + 2 = 120 gives
+  // w = 42.
+  width: 42px;
   height: 36px;
   border: none;
   background: transparent;
