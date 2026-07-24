@@ -73,6 +73,7 @@ export * from "./SystemFolder/SystemResources/App/ClassicyAppMenuHooks";
 export * from "./SystemFolder/SystemResources/App/ClassicyAppUtils";
 export * from "./SystemFolder/SystemResources/App/ClassicyDefaultAppsContext";
 export * from "./SystemFolder/SystemResources/App/ClassicyEditCommands";
+export * from "./SystemFolder/SystemResources/Assistant/ClassicyAssistant";
 export * from "./SystemFolder/SystemResources/BalloonHelp/ClassicyBalloonHelp";
 export * from "./SystemFolder/SystemResources/BevelButton/ClassicyBevelButton";
 export * from "./SystemFolder/SystemResources/Boot/ClassicyBoot";
