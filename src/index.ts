@@ -28,6 +28,7 @@ export * from "./SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerCon
 export * from "./SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerProvider";
 export * from "./SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerUtils";
 export * from "./SystemFolder/ControlPanels/SoundManager/ClassicySoundSchema";
+export * from "./SystemFolder/Extensions/AppleGuide/AppleGuideTopics";
 export * from "./SystemFolder/Finder/Finder";
 export * from "./SystemFolder/Finder/FinderAboutThisComputer";
 export * from "./SystemFolder/Finder/FinderContext";
@@ -113,6 +114,7 @@ export * from "./SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
 export * from "./SystemFolder/SystemResources/Desktop/ClassicyDesktopWindowManagerContext";
 export * from "./SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
 export * from "./SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar";
+export * from "./SystemFolder/SystemResources/Desktop/MenuBar/ClassicyMenuBarExtension";
 export * from "./SystemFolder/SystemResources/Desktop/MenuBar/ClassicyShortcutDispatcher";
 export * from "./SystemFolder/SystemResources/Desktop/MenuBar/Widgets/Sound/ClassicyDesktopMenuWidgetSound";
 export * from "./SystemFolder/SystemResources/Desktop/MenuBar/Widgets/Time/ClassicyDesktopMenuWidgetTime";
