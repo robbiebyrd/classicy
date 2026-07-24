@@ -46,13 +46,23 @@ export const ClassicyAssistant: FunctionalComponent<ClassicyAssistantProps> = ({
 	const page = pages[currentPage];
 	if (!page) return null;
 
-	const goTo = (index: number) => {
+	const changePage = (index: number) => {
 		const next = clamp(index, 0, lastIndex);
 		if (next === currentPage) return;
 		player({ type: "ClassicySoundPlay", sound: "ClassicyTabClickUp" });
 		setCurrentPage(next);
 		onPageChange?.(next);
 	};
+
+	const goNext = () => {
+		if (page.canAdvance && page.canAdvance() === false) {
+			player({ type: "ClassicySoundPlayError" });
+			return;
+		}
+		changePage(currentPage + 1);
+	};
+
+	const goPrev = () => changePage(currentPage - 1);
 
 	return (
 		<div className={"classicyAssistant"}>
@@ -68,7 +78,7 @@ export const ClassicyAssistant: FunctionalComponent<ClassicyAssistantProps> = ({
 						aria-label="Previous page"
 						className={"classicyAssistantNavButton"}
 						disabled={currentPage === 0}
-						onClick={() => goTo(currentPage - 1)}
+						onClick={goPrev}
 					>
 						{"◀"}
 					</button>
@@ -80,7 +90,7 @@ export const ClassicyAssistant: FunctionalComponent<ClassicyAssistantProps> = ({
 						aria-label="Next page"
 						className={"classicyAssistantNavButton"}
 						disabled={currentPage === lastIndex}
-						onClick={() => goTo(currentPage + 1)}
+						onClick={goNext}
 					>
 						{"▶"}
 					</button>

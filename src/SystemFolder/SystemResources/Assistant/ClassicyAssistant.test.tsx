@@ -92,3 +92,41 @@ describe("ClassicyAssistant — navigation", () => {
 		});
 	});
 });
+
+describe("ClassicyAssistant — advance gate", () => {
+	it("blocks Next and beeps when canAdvance returns false", async () => {
+		const gated: ClassicyAssistantPage[] = [
+			{ title: "One", content: <p>one</p>, canAdvance: () => false },
+			{ title: "Two", content: <p>two</p> },
+		];
+		const user = userEvent.setup();
+		render(<ClassicyAssistant pages={gated} />);
+		await user.click(screen.getByRole("button", { name: "Next page" }));
+		expect(screen.getByText("One")).toBeInTheDocument();
+		expect(soundDispatch).toHaveBeenCalledWith({
+			type: "ClassicySoundPlayError",
+		});
+	});
+
+	it("allows Next when canAdvance returns true", async () => {
+		const gated: ClassicyAssistantPage[] = [
+			{ title: "One", content: <p>one</p>, canAdvance: () => true },
+			{ title: "Two", content: <p>two</p> },
+		];
+		const user = userEvent.setup();
+		render(<ClassicyAssistant pages={gated} />);
+		await user.click(screen.getByRole("button", { name: "Next page" }));
+		expect(screen.getByText("Two")).toBeInTheDocument();
+	});
+
+	it("never gates Previous", async () => {
+		const gated: ClassicyAssistantPage[] = [
+			{ title: "One", content: <p>one</p> },
+			{ title: "Two", content: <p>two</p>, canAdvance: () => false },
+		];
+		const user = userEvent.setup();
+		render(<ClassicyAssistant pages={gated} initialPage={1} />);
+		await user.click(screen.getByRole("button", { name: "Previous page" }));
+		expect(screen.getByText("One")).toBeInTheDocument();
+	});
+});
