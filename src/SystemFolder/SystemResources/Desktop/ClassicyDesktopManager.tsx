@@ -2,6 +2,7 @@ import type { MouseEvent } from "react";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
 	hasActiveTheme,
+	hasAlertSound,
 	hasApp,
 	hasAvailableThemes,
 	hasBackgroundImage,
@@ -190,6 +191,11 @@ export const classicyDesktopEventHandler = (
 			if (!hasBackgroundSize(action)) break;
 			ds.System.Manager.Appearance.activeTheme.desktop.backgroundSize =
 				action.backgroundSize;
+			break;
+		}
+		case "ClassicyDesktopChangeAlertSound": {
+			if (!hasAlertSound(action)) break;
+			ds.System.Manager.Appearance.alertSound = action.alertSound;
 			break;
 		}
 		case "ClassicyDesktopChangeFont": {

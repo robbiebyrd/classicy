@@ -8,6 +8,7 @@ import {
 	type SoundData,
 	SoundDataSchema,
 } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundSchema";
+import { DEFAULT_ALERT_SOUND } from "./ClassicyAlertSounds";
 import soundLabels from "./ClassicySoundManagerLabels.json";
 
 export interface ClassicyStoreSystemSoundManager
@@ -34,6 +35,8 @@ export type ClassicySoundState = {
 	disabled: string[];
 	labels: ClassicySoundInfo[];
 	volume?: number;
+	/** Sprite key of the user's selected default alert sound. */
+	alertSound?: string;
 };
 
 export enum ClassicySoundActionTypes {
@@ -47,6 +50,8 @@ export enum ClassicySoundActionTypes {
 	ClassicySoundDisableOne = "ClassicySoundDisableOne",
 	ClassicySoundEnableOne = "ClassicySoundEnableOne",
 	ClassicyVolumeSet = "ClassicyVolumeSet",
+	ClassicyAlertSound = "ClassicyAlertSound",
+	ClassicySoundSetAlertSound = "ClassicySoundSetAlertSound",
 }
 
 export interface ClassicySoundAction {
@@ -112,6 +117,7 @@ export const initialPlayer: ClassicySoundState = {
 	disabled: [] as string[],
 	labels: soundLabels,
 	volume: 100,
+	alertSound: DEFAULT_ALERT_SOUND,
 };
 
 export const loadSoundTheme = (soundTheme: SoundData): Howl | null => {
@@ -168,11 +174,25 @@ export const ClassicySoundStateEventReducer = (
 			break;
 		}
 		case ClassicySoundActionTypes.ClassicySoundPlayError: {
-			if (action.sound && playerCanPlayInterrupt(ss, action.sound)) {
+			const sound = action.sound ?? ss.alertSound ?? DEFAULT_ALERT_SOUND;
+			if (playerCanPlayInterrupt(ss, sound)) {
 				ss.soundPlayer?.stop();
-				ss.soundPlayer?.play(action.sound || "ClassicyAlertWildEep");
+				ss.soundPlayer?.play(sound);
 			}
 			next = { ...ss };
+			break;
+		}
+		case ClassicySoundActionTypes.ClassicyAlertSound: {
+			const sound = ss.alertSound ?? DEFAULT_ALERT_SOUND;
+			if (playerCanPlayInterrupt(ss, sound)) {
+				ss.soundPlayer?.stop();
+				ss.soundPlayer?.play(sound);
+			}
+			next = { ...ss };
+			break;
+		}
+		case ClassicySoundActionTypes.ClassicySoundSetAlertSound: {
+			next = { ...ss, alertSound: action.sound ?? ss.alertSound };
 			break;
 		}
 		case ClassicySoundActionTypes.ClassicySoundLoad: {

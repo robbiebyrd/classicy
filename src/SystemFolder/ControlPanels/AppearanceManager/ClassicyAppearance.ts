@@ -11,6 +11,8 @@ export interface ClassicyStoreSystemAppearanceManager
 	extends ClassicyStoreSystemManager {
 	availableThemes?: ClassicyTheme[];
 	activeTheme: ClassicyTheme;
+	/** Sprite key of the user's default alert sound (a `ClassicyAlert*` sound). */
+	alertSound?: string;
 }
 
 export type ClassicyThemeColorPalette = [

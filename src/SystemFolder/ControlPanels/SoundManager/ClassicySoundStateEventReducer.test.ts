@@ -367,3 +367,66 @@ describe("Default (unhandled action)", () => {
 		warnSpy.mockRestore();
 	});
 });
+
+// ---------------------------------------------------------------------------
+// ClassicySoundSetAlertSound / ClassicyAlertSound / PlayError fallback
+// ---------------------------------------------------------------------------
+
+describe("ClassicySoundSetAlertSound", () => {
+	it("stores the alert sound in state", () => {
+		const ss = makeSoundState();
+		const next = ClassicySoundStateEventReducer(ss, {
+			type: "ClassicySoundSetAlertSound" as ClassicySoundActionTypes,
+			sound: "ClassicyAlertQuack",
+		});
+		expect(next.alertSound).toBe("ClassicyAlertQuack");
+	});
+});
+
+describe("ClassicyAlertSound", () => {
+	it("plays the selected alert sound", () => {
+		const ss = makeSoundState({ alertSound: "ClassicyAlertQuack" });
+		ClassicySoundStateEventReducer(ss, {
+			type: "ClassicyAlertSound" as ClassicySoundActionTypes,
+		});
+		expect(ss.soundPlayer?.play).toHaveBeenCalledWith("ClassicyAlertQuack");
+	});
+
+	it("falls back to Sosumi when no alert sound is set", () => {
+		const ss = makeSoundState({ alertSound: undefined });
+		ClassicySoundStateEventReducer(ss, {
+			type: "ClassicyAlertSound" as ClassicySoundActionTypes,
+		});
+		expect(ss.soundPlayer?.play).toHaveBeenCalledWith("ClassicyAlertSosumi");
+	});
+
+	it("does not play a disabled alert sound", () => {
+		const ss = makeSoundState({
+			alertSound: "ClassicyAlertQuack",
+			disabled: ["ClassicyAlertQuack"],
+		});
+		ClassicySoundStateEventReducer(ss, {
+			type: "ClassicyAlertSound" as ClassicySoundActionTypes,
+		});
+		expect(ss.soundPlayer?.play).not.toHaveBeenCalled();
+	});
+});
+
+describe("ClassicySoundPlayError fallback", () => {
+	it("plays the selected alert sound when no sound is given", () => {
+		const ss = makeSoundState({ alertSound: "ClassicyAlertQuack" });
+		ClassicySoundStateEventReducer(ss, {
+			type: "ClassicySoundPlayError" as ClassicySoundActionTypes,
+		});
+		expect(ss.soundPlayer?.play).toHaveBeenCalledWith("ClassicyAlertQuack");
+	});
+
+	it("still honors an explicit sound", () => {
+		const ss = makeSoundState({ alertSound: "ClassicyAlertQuack" });
+		ClassicySoundStateEventReducer(ss, {
+			type: "ClassicySoundPlayError" as ClassicySoundActionTypes,
+			sound: "ClassicyAlertBonk",
+		});
+		expect(ss.soundPlayer?.play).toHaveBeenCalledWith("ClassicyAlertBonk");
+	});
+});

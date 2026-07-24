@@ -16,6 +16,7 @@ import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { DEFAULT_ALERT_SOUND } from "@/SystemFolder/ControlPanels/SoundManager/ClassicyAlertSounds";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import {
@@ -34,6 +35,7 @@ import { isValidHttpUrl } from "@/SystemFolder/SystemResources/Utils/urlValidati
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 import { useDesktopTab } from "./ClassicyAppearanceManager.Desktop";
 import { useFontsTab } from "./ClassicyAppearanceManager.Fonts";
+import { useSoundTab } from "./ClassicyAppearanceManager.Sound";
 import { useThemesTab } from "./ClassicyAppearanceManager.Themes";
 import { ClassicyDefaultWallpaper } from "./ClassicyWallpapers";
 import appIcon from "./resources/app.png";
@@ -184,6 +186,21 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		[desktopEventDispatch],
 	);
 
+	const changeAlertSound = useCallback(
+		(e: ChangeEvent<HTMLSelectElement>) => {
+			const value = e.target.value;
+			startTransition(() => {
+				desktopEventDispatch({
+					type: "ClassicyDesktopChangeAlertSound",
+					alertSound: value,
+				});
+			});
+			// Audition the chosen sound immediately (Mac OS 8 Sound control panel).
+			player({ type: "ClassicySoundPlayInterrupt", sound: value });
+		},
+		[desktopEventDispatch, player],
+	);
+
 	const changeFontSize = useCallback(
 		(fontType: string, size: number) => {
 			startTransition(() => {
@@ -254,9 +271,14 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		changeFontSize,
 	});
 
+	const soundTab = useSoundTab({
+		alertSound: appearanceState.alertSound ?? DEFAULT_ALERT_SOUND,
+		changeAlertSound,
+	});
+
 	const tabs = useMemo(
-		() => [themesTab, desktopTab, fontsTab],
-		[themesTab, desktopTab, fontsTab],
+		() => [themesTab, desktopTab, fontsTab, soundTab],
+		[themesTab, desktopTab, fontsTab, soundTab],
 	);
 
 	return (
