@@ -382,7 +382,10 @@ In the `ClassicyManagerDateTimeSync` case, insert the `dateSource` computation b
 			// In time-only mode the calendar date the user currently SEES is
 			// preserved. That date is rendered in the OLD offset, so shift by it
 			// — not by newTz — before reading the Y/M/D fields.
-			const oldTz = Number.parseInt(dt.timeZoneOffset, 10) || 0;
+			// Number(), not parseInt() — parseInt("5.5") truncates to 5 and
+			// silently shifts the preserved date by a day for fractional-hour
+			// zones. Number("") and Number("abc") still fall through to 0.
+			const oldTz = Number(dt.timeZoneOffset) || 0;
 			const dateSource = dt.syncTimeOnly
 				? new Date(new Date(dt.dateTime).getTime() + oldTz * 3600000)
 				: nowLocal;
