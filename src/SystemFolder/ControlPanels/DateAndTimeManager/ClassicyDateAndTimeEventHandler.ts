@@ -7,6 +7,29 @@ import type {
 	ClassicyStore,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 
+/**
+ * Clamp `date` into the configured [minDateTime, maxDateTime] window, store it
+ * as a UTC ISO string, and update boundaryLocked.
+ *
+ * Shared by ClassicyManagerDateTimeSet and ClassicyManagerDateTimeSync so both
+ * honour host-configured bounds identically.
+ */
+function applyDateTimeWithBounds(ds: ClassicyStore, date: Date): void {
+	const { minDateTime, maxDateTime } = ds.System.Manager.DateAndTime;
+	const isoValue = date.toISOString();
+
+	if (maxDateTime !== null && isoValue >= maxDateTime) {
+		ds.System.Manager.DateAndTime.dateTime = maxDateTime;
+		ds.System.Manager.DateAndTime.boundaryLocked = true;
+	} else if (minDateTime !== null && isoValue < minDateTime) {
+		ds.System.Manager.DateAndTime.dateTime = minDateTime;
+		ds.System.Manager.DateAndTime.boundaryLocked = false;
+	} else {
+		ds.System.Manager.DateAndTime.dateTime = isoValue;
+		ds.System.Manager.DateAndTime.boundaryLocked = false;
+	}
+}
+
 export const classicyDateTimeManagerEventHandler = (
 	ds: ClassicyStore,
 	action: ActionMessage,
@@ -20,19 +43,7 @@ export const classicyDateTimeManagerEventHandler = (
 				);
 				break;
 			}
-			const { minDateTime, maxDateTime } = ds.System.Manager.DateAndTime;
-			const isoValue = action.dateTime.toISOString();
-
-			if (maxDateTime !== null && isoValue >= maxDateTime) {
-				ds.System.Manager.DateAndTime.dateTime = maxDateTime;
-				ds.System.Manager.DateAndTime.boundaryLocked = true;
-			} else if (minDateTime !== null && isoValue < minDateTime) {
-				ds.System.Manager.DateAndTime.dateTime = minDateTime;
-				ds.System.Manager.DateAndTime.boundaryLocked = false;
-			} else {
-				ds.System.Manager.DateAndTime.dateTime = isoValue;
-				ds.System.Manager.DateAndTime.boundaryLocked = false;
-			}
+			applyDateTimeWithBounds(ds, action.dateTime);
 			break;
 		}
 		case "ClassicyManagerDateTimeTZSet": {

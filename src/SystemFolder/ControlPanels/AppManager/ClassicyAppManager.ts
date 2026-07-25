@@ -152,6 +152,10 @@ export interface ClassicyStoreSystemDateAndTimeManager
 	 *  (timezone stays editable). Set by the host app, e.g. while a server
 	 *  forces the clock. Not a write guard — DateTimeSet still applies. */
 	dateTimeLocked: boolean;
+	/** When true, ClassicyManagerDateTimeSync replaces only the time-of-day and
+	 *  preserves the displayed calendar date. Set by the host app, e.g. for a
+	 *  desktop pinned to a fictional date that still wants a real clock. */
+	syncTimeOnly: boolean;
 }
 
 // biome-ignore lint/complexity/noBannedTypes: Intentional empty base type extended by manager interfaces
@@ -499,6 +503,7 @@ export const DefaultAppManagerState: ClassicyStore = {
 				maxDateTime: null,
 				boundaryLocked: false,
 				dateTimeLocked: false,
+				syncTimeOnly: false,
 			},
 			Sound: {
 				volume: 100,

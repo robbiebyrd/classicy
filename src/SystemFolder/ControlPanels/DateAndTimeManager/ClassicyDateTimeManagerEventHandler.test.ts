@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	classicyDateTimeManagerEventHandler,
 	computeAnchoredTime,
@@ -17,6 +18,8 @@ function makeStore(
 		dateTimeLocked: boolean;
 		paused: boolean;
 		dateTime: string;
+		timeZoneOffset: string;
+		syncTimeOnly: boolean;
 	}> = {},
 ): ClassicyStore {
 	return {
@@ -37,6 +40,7 @@ function makeStore(
 					maxDateTime: null,
 					boundaryLocked: false,
 					dateTimeLocked: false,
+					syncTimeOnly: false,
 					...overrides,
 				},
 				Sound: { volume: 100, labels: {}, disabled: [] },
@@ -485,5 +489,13 @@ describe("UTC de-shift for bounds comparison", () => {
 		const virtualNowMs = utcMs + tzOffsetHours * 3600000;
 		const utcNowMs = virtualNowMs - tzOffsetHours * 3600000;
 		expect(utcNowMs).toBe(utcMs);
+	});
+});
+
+describe("DateAndTime store defaults", () => {
+	it("defaults syncTimeOnly to false so Sync replaces the full date and time", () => {
+		expect(DefaultAppManagerState.System.Manager.DateAndTime.syncTimeOnly).toBe(
+			false,
+		);
 	});
 });
