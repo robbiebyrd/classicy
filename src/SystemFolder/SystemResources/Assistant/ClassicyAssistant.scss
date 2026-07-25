@@ -90,8 +90,7 @@
 	column-gap: calc(var(--window-padding-size) * 0.5);
 }
 
-.classicyAssistantPageIndicator {
-	min-width: calc(var(--window-control-size) * 1.25);
-	text-align: center;
-	font-family: var(--ui-font), sans-serif;
-}
+// `.classicyAssistantPageIndicator` carries no rule of its own: the page cell
+// is drawn by ClassicyPager (ClassicyPager.scss). The class is still applied to
+// that cell so stylesheets and tests written against the assistant's original
+// markup keep matching.

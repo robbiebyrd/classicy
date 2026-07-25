@@ -1,53 +1,40 @@
-// Apple Guide topic window. Band geometry measured from the Mac OS 8
-// "About Help" reference capture: header 42px #F3F3F3, white body, footer
-// 48px #E7E7E7 spanning the full window width.
+// Apple Guide topic window. The window body is a ClassicyAssistant, so this
+// sheet only restyles that shared surface to the Mac OS 8 "About Help"
+// reference capture: a 42px header band (lighter than the standard assistant
+// header), a white serif body, and a full-width 48px footer.
+//
+// Colors are theme tokens, not the literals measured off the capture, so help
+// windows recolor with the appearance theme. The default theme's ramp is the
+// closest match to the reference: system-01 #eeeeee for the header band
+// (capture #f3f3f3) and system-02 #dddddd for the footer (capture #e7e7e7),
+// preserving the capture's "header lighter than footer, both lighter than the
+// window frame" relationship.
 
-// .classicyWindowHeader is a GLOBAL class shared by every window in the app
-// (ClassicyWindow.scss:17-34 — fixed 18px height, #CCCCCC fill, centered
-// content). A bare `.classicyWindowHeader { ... }` rule here would restyle
-// every window, not just Apple Guide's. Scope the override to windows whose
-// header content is this component's own marker div: ClassicyWindow renders
-// the `header` prop as a direct child of `.classicyWindowHeader`
-// (ClassicyWindow.tsx ~line 1058), so `:has(> .appleGuideTopicTitle)` can
-// only ever match an Apple Guide window's header band.
-.classicyWindowHeader:has(> .appleGuideTopicTitle) {
-  // box-sizing: border-box — the shared .classicyWindowHeader base rule
-  // (ClassicyWindow.scss) doesn't set box-sizing, so this override's
-  // 1px top + 1px bottom border (from the platinumWindowHeaderBorder mixin
-  // plus the rule below) would otherwise add 2px on top of `height`,
-  // rendering 44px instead of the reference's measured 42px band.
-  box-sizing: border-box;
-  height: 42px;
-  background: #f3f3f3;
-  justify-content: flex-start;
-  border-bottom: 1px solid #969696;
-}
-
-.appleGuideTopicTitle {
-  // The reference sets the header in the same bold serif as the body copy,
-  // not the UI face. Task 7 confirms this against the capture.
-  font-family: var(--body-font), serif;
-  font-weight: bold;
-  font-size: 13px;
-  padding: 0 12px;
-  line-height: 42px;
-}
-
-.appleGuideBody {
-  display: flex;
-  flex-direction: column;
+.appleGuideWindow {
   height: 100%;
 }
 
-.appleGuideContent {
-  flex: 1;
-  background: #ffffff;
+.appleGuideWindow .classicyAssistantHeader {
+  // box-sizing: border-box so the platinumWindowHeaderBorder mixin's 1px top
+  // and bottom borders sit inside the measured 42px band instead of adding to
+  // it. The mixin's own bottom edge (system-05) stands in for the capture's
+  // #969696 rule under the title.
+  box-sizing: border-box;
+  height: 42px;
+  padding: 0 12px;
+  // The reference sets the header in the same bold serif as the body copy,
+  // not the UI face.
+  font-family: var(--body-font), serif;
+  font-size: 13px;
+  background: var(--color-system-01);
+}
+
+.appleGuideWindow .classicyAssistantBody {
   // The reference sets help copy in a serif face, unlike the UI chrome.
   font-family: var(--body-font), serif;
   font-size: 14px;
   line-height: 1.45;
   padding: 12px 20px;
-  overflow: auto;
 
   p {
     margin: 0 0 12px;
@@ -70,76 +57,16 @@
   li {
     margin-bottom: 2px;
   }
+
+  // `.appleGuideEnd` (the "- End -" marker) carries no rule of its own: the
+  // separation the reference shows above it already comes from the preceding
+  // block's 12px bottom margin. The class stays as a hook for consumers
+  // styling or locating the marker.
 }
 
-.appleGuideEnd {
-  margin-top: 8px;
-}
-
-.appleGuideFooter {
-  flex: 0 0 48px;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  background: #e7e7e7;
-  padding-right: 10px;
-}
-
-.appleGuidePager {
-  display: flex;
-  align-items: center;
-  border: 1px solid #c0c0c0;
-}
-
-.appleGuidePagerArrow {
-  // 42px: measured from the reference capture, the whole pager group
-  // (border + 2 arrow buttons + page cell) spans ~120px. With the page
-  // cell fixed at its measured 32px fill width (34px incl. border) and
-  // the pager's 1px border on each side, solving 2w + 34 + 2 = 120 gives
-  // w = 42.
-  width: 42px;
-  height: 36px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  // Platinum scroll-arrow lavender; disabled arrows render hollow.
-  color: #b3b3d7;
-
-  &::before {
-    content: "";
-    display: block;
-    margin: 0 auto;
-    border-block: 8px solid transparent;
-  }
-
-  &:disabled {
-    cursor: default;
-  }
-}
-
-.appleGuidePagerArrowPrev::before {
-  border-right: 11px solid currentColor;
-  border-left: 0;
-}
-
-.appleGuidePagerArrowNext::before {
-  border-left: 11px solid currentColor;
-  border-right: 0;
-}
-
-.appleGuidePagerPage {
-  min-width: 32px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--ui-font), sans-serif;
-  font-weight: bold;
-  font-size: 12px;
-  // Recessed cell: dark on top/left, light on bottom/right.
-  background: #cdcdcd;
-  border-top: 2px solid #777777;
-  border-left: 1px solid #a5a5a5;
-  border-bottom: 1px solid #c0c0c0;
-  border-right: 1px solid #c0c0c0;
+.appleGuideWindow .classicyAssistantFooter {
+  box-sizing: border-box;
+  height: 48px;
+  padding: 0 10px;
+  background: var(--color-system-02);
 }

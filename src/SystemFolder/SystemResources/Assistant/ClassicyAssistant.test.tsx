@@ -111,6 +111,64 @@ describe("ClassicyAssistant — navigation", () => {
 	});
 });
 
+describe("ClassicyAssistant — controlled mode", () => {
+	it("renders the page prop and ignores initialPage", () => {
+		render(<ClassicyAssistant pages={pages} page={1} initialPage={2} />);
+		expect(screen.getByText("Network Settings")).toBeInTheDocument();
+	});
+
+	it("clamps an out-of-range page prop", () => {
+		render(<ClassicyAssistant pages={pages} page={99} />);
+		expect(screen.getByText("Finish")).toBeInTheDocument();
+	});
+
+	it("reports navigation without changing page itself", async () => {
+		const user = userEvent.setup();
+		const onPageChange = vi.fn();
+		render(
+			<ClassicyAssistant pages={pages} page={0} onPageChange={onPageChange} />,
+		);
+		await user.click(screen.getByRole("button", { name: "Next page" }));
+		expect(onPageChange).toHaveBeenCalledWith(1);
+		expect(screen.getByText("Introduction")).toBeInTheDocument();
+	});
+
+	it("follows a changed page prop", () => {
+		const { rerender } = render(<ClassicyAssistant pages={pages} page={0} />);
+		rerender(<ClassicyAssistant pages={pages} page={2} />);
+		expect(screen.getByText("Finish")).toBeInTheDocument();
+	});
+
+	it("still gates on canAdvance", async () => {
+		const gated: ClassicyAssistantPage[] = [
+			{ title: "One", content: <p>one</p>, canAdvance: () => false },
+			{ title: "Two", content: <p>two</p> },
+		];
+		const user = userEvent.setup();
+		const onPageChange = vi.fn();
+		render(
+			<ClassicyAssistant pages={gated} page={0} onPageChange={onPageChange} />,
+		);
+		await user.click(screen.getByRole("button", { name: "Next page" }));
+		expect(onPageChange).not.toHaveBeenCalled();
+		expect(soundDispatch).toHaveBeenCalledWith({
+			type: "ClassicySoundPlayError",
+		});
+	});
+
+	it("reports arrow-key navigation too", async () => {
+		const user = userEvent.setup();
+		const onPageChange = vi.fn();
+		const { container } = render(
+			<ClassicyAssistant pages={pages} page={1} onPageChange={onPageChange} />,
+		);
+		(container.querySelector(".classicyAssistant") as HTMLElement).focus();
+		await user.keyboard("{ArrowLeft}");
+		expect(onPageChange).toHaveBeenCalledWith(0);
+		expect(screen.getByText("Network Settings")).toBeInTheDocument();
+	});
+});
+
 describe("ClassicyAssistant — advance gate", () => {
 	it("blocks Next and beeps when canAdvance returns false", async () => {
 		const gated: ClassicyAssistantPage[] = [

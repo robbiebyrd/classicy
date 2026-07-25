@@ -10,20 +10,22 @@ const { dispatch, appData } = vi.hoisted(() => ({
 }));
 
 vi.mock("@/SystemFolder/Extensions/AppleGuide/AppleGuide.scss", () => ({}));
+vi.mock(
+	"@/SystemFolder/SystemResources/Assistant/ClassicyAssistant.scss",
+	() => ({}),
+);
+vi.mock("@/SystemFolder/SystemResources/Pager/ClassicyPager.scss", () => ({}));
 
 // Reduce ClassicyWindow to a wrapper: the real chrome is tested elsewhere.
 vi.mock("@/SystemFolder/SystemResources/Window/ClassicyWindow", () => ({
 	ClassicyWindow: ({
-		header,
 		children,
 		onCloseFunc,
 	}: {
-		header?: ReactNode;
 		children?: ReactNode;
 		onCloseFunc?: (id: string) => void;
 	}) => (
 		<div>
-			<div data-testid="window-header">{header}</div>
 			{children}
 			<button type="button" onClick={() => onCloseFunc?.("w")}>
 				close
@@ -71,8 +73,25 @@ beforeEach(() => {
 
 describe("AppleGuideWindow", () => {
 	it("renders the topic title in the header band", () => {
-		render(<AppleGuideWindow topicId="one-page" />);
-		expect(screen.getByTestId("window-header")).toHaveTextContent("About Help");
+		const { container } = render(<AppleGuideWindow topicId="one-page" />);
+		expect(
+			container.querySelector(".classicyAssistantHeader"),
+		).toHaveTextContent("About Help");
+	});
+
+	it("keeps the topic title on every page", () => {
+		appData.value = { pages: { "three-page": 2 } };
+		const { container } = render(<AppleGuideWindow topicId="three-page" />);
+		expect(
+			container.querySelector(".classicyAssistantHeader"),
+		).toHaveTextContent("Three Pager");
+	});
+
+	it("renders no footer buttons", () => {
+		const { container } = render(<AppleGuideWindow topicId="one-page" />);
+		expect(
+			container.querySelector(".classicyAssistantFooterButtons")?.children,
+		).toHaveLength(0);
 	});
 
 	it("renders the current page body", () => {
@@ -107,6 +126,14 @@ describe("AppleGuideWindow", () => {
 			topicId: "three-page",
 			page: 1,
 		});
+	});
+
+	it("does not move pages on its own — the store drives the index", async () => {
+		appData.value = { pages: { "three-page": 0 } };
+		render(<AppleGuideWindow topicId="three-page" />);
+		await userEvent.click(screen.getByLabelText("Next page"));
+		expect(screen.getByText("First page body")).toBeInTheDocument();
+		expect(screen.queryByText("Second page body")).not.toBeInTheDocument();
 	});
 
 	it("dispatches CloseTopic when the window is closed", async () => {

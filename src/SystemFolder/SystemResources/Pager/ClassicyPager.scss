@@ -1,0 +1,102 @@
+// Platinum page control (back arrow / recessed page cell / forward arrow).
+// Geometry measured from the Mac OS 8 "About Help" reference capture; colors
+// are theme tokens so the control recolors with the appearance theme.
+
+.classicyPager {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--color-system-03);
+}
+
+.classicyPagerArrow {
+  // 42px: measured from the reference capture, the whole pager group
+  // (border + 2 arrow buttons + page cell) spans ~120px. With the page
+  // cell fixed at its measured 32px fill width (34px incl. border) and
+  // the pager's 1px border on each side, solving 2w + 34 + 2 = 120 gives
+  // w = 42.
+  position: relative;
+  width: 42px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  // Platinum scroll-arrow lavender, matching the window scrollbars.
+  color: var(--color-theme-03);
+
+  // Two stacked CSS triangles: ::before is the glyph, ::after is a smaller
+  // triangle in the band color that punches its middle out. Only the enabled
+  // state draws a solid arrow; disabled hides ::before's fill behind ::after,
+  // leaving the hollow, embossed outline the reference capture shows.
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    transform: translate(-50%, -50%);
+    border-block: 8px solid transparent;
+  }
+
+  &::after {
+    display: none;
+  }
+
+  &:disabled {
+    cursor: default;
+    // Dimmer lavender for the outline; the reference's disabled arrows sit
+    // between the two lavender ramp steps.
+    color: var(--color-theme-02);
+
+    &::after {
+      display: block;
+    }
+  }
+}
+
+.classicyPagerArrowPrev {
+  &::before {
+    border-right: 11px solid currentColor;
+    border-left: 0;
+  }
+
+  &::after {
+    border-block-width: 5px;
+    border-right: 7px solid var(--color-system-01);
+    border-left: 0;
+  }
+}
+
+.classicyPagerArrowNext {
+  &::before {
+    border-left: 11px solid currentColor;
+    border-right: 0;
+  }
+
+  &::after {
+    border-block-width: 5px;
+    border-left: 7px solid var(--color-system-01);
+    border-right: 0;
+  }
+}
+
+.classicyPagerPage {
+  min-width: 32px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--ui-font), sans-serif;
+  font-weight: bold;
+  font-size: 12px;
+  // Recessed cell: darkest on top, mid on the remaining edges. The theme ramp
+  // has no step between system-03 and system-04, so the capture's lighter
+  // bottom/right (#c0c0c0 against a #cdcdcd fill) compresses onto system-04
+  // rather than vanishing into the fill.
+  background: var(--color-system-03);
+  border-top: 2px solid var(--color-system-05);
+  border-left: 1px solid var(--color-system-04);
+  border-bottom: 1px solid var(--color-system-04);
+  border-right: 1px solid var(--color-system-04);
+}
