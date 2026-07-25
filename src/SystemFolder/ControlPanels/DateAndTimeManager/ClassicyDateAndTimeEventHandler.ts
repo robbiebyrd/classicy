@@ -73,18 +73,9 @@ export const classicyDateTimeManagerEventHandler = (
 			// Fractional zones (e.g. India, +5.5) are stored faithfully; the
 			// timezone pop-up lists whole hours only and will show no selection.
 			const newTz = -now.getTimezoneOffset() / 60;
-			// Shift into the new local frame so UTC getters yield machine
-			// wall-clock fields, independent of the browser's own timezone.
-			// Below, a date sourced from dateSource (which may come from a
-			// different offset) is recomposed with this machine wall-clock
-			// time; that only works if both are read in one consistent local
-			// frame first, which is why `- newTz * 3600000` afterwards is
-			// load-bearing: it converts the composed local wall time back to
-			// UTC for storage. That's true when dateSource comes from the
-			// stored date (the time-only path); on the full-sync path
-			// dateSource === nowLocal, so the round trip provably cancels
-			// back to floor_s(Date.now()) — the shared composition below is
-			// intentional, not redundant, since it serves both branches.
+			// Shift into the machine's local frame so UTC getters yield wall-clock
+			// fields. The `- newTz` below converts the recomposed local time back to
+			// UTC; on the full-sync path it cancels, on the time-only path it does not.
 			const nowLocal = new Date(now.getTime() + newTz * 3600000);
 
 			// In time-only mode the calendar date the user currently SEES is

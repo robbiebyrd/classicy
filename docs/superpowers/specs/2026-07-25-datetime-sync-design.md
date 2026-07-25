@@ -116,8 +116,18 @@ and the existing Quit button on the right:
 A new `.classicyDateAndTimeManagerButtonRow` rule in the co-located SCSS supplies
 `display: flex; justify-content: space-between`. The window stays 350×265 — the
 row replaces the standalone Quit button rather than adding height. Sync takes
-`disabled={dateAndTimeState.dateTimeLocked}`; its handler is a one-line dispatch
-of `{ type: "ClassicyManagerDateTimeSync" }`.
+`disabled={dateAndTimeState.dateTimeLocked}`; its handler, `syncClock`, dispatches
+`{ type: "ClassicyManagerDateTimeSync" }` and also increments a `syncGeneration`
+counter held in component state.
+
+`syncGeneration` is passed as `key` to both `ClassicyDatePicker` and
+`ClassicyTimePicker`, forcing them to remount on Sync. Both pickers seed their
+internal `useState` from `prefillValue` only on mount and ignore later prop
+changes, so without the remount the panel's own Current Date / Current Time
+fields would keep showing stale values after a Sync. The counter is bumped only
+inside `syncClock`, not on every store update — keying on `dateTime` instead
+would remount the pickers on each minute tick and destroy a user's half-typed
+entry.
 
 ## Testing
 
