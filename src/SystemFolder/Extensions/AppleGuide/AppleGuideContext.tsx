@@ -12,6 +12,14 @@ import {
 export const APPLE_GUIDE_APP_ID = "AppleGuide.app";
 export const APPLE_GUIDE_APP_NAME = "Apple Guide";
 
+/**
+ * Event that opens (or re-focuses) a topic's window. Exported so consumers
+ * registering a topic via `registerAppleGuideTopic` don't have to hardcode
+ * the reducer's action-type string to open it.
+ */
+export const APPLE_GUIDE_SHOW_TOPIC_EVENT =
+	"ClassicyAppAppleGuideShowTopic" as const;
+
 export type AppleGuideData = {
 	/** Topic ids with an open window, in the order they were opened. */
 	openTopics?: string[];
@@ -23,14 +31,42 @@ export function isAppleGuideData(
 	d: Record<string, unknown>,
 ): d is AppleGuideData {
 	if (d === null || typeof d !== "object") return false;
-	if ("openTopics" in d && !Array.isArray(d.openTopics)) return false;
-	if (
-		"pages" in d &&
-		(typeof d.pages !== "object" || d.pages === null || Array.isArray(d.pages))
-	) {
-		return false;
+	if ("openTopics" in d) {
+		if (!Array.isArray(d.openTopics)) return false;
+		if (!d.openTopics.every((t) => typeof t === "string")) return false;
+	}
+	if ("pages" in d) {
+		if (
+			typeof d.pages !== "object" ||
+			d.pages === null ||
+			Array.isArray(d.pages)
+		) {
+			return false;
+		}
+		if (
+			!Object.values(d.pages as Record<string, unknown>).every(
+				(p) => typeof p === "number" && Number.isFinite(p),
+			)
+		) {
+			return false;
+		}
 	}
 	return true;
+}
+
+/** Drop any topic id no longer registered, so a removed/renamed id can never get stuck. */
+function pruneUnregisteredTopics(data: AppleGuideData): AppleGuideData {
+	const open = data.openTopics;
+	if (!open || open.every((id) => getAppleGuideTopic(id) !== undefined)) {
+		return data;
+	}
+	const kept = open.filter((id) => getAppleGuideTopic(id) !== undefined);
+	const pages = data.pages
+		? Object.fromEntries(
+				Object.entries(data.pages).filter(([id]) => kept.includes(id)),
+			)
+		: data.pages;
+	return { ...data, openTopics: kept, pages };
 }
 
 const topicIdOf = (action: ActionMessage): string | undefined =>
@@ -46,11 +82,13 @@ export const classicyAppleGuideEventHandler = (
 	if (!app) return ds;
 
 	const raw = app.data ?? {};
-	let appData: AppleGuideData = isAppleGuideData(raw) ? raw : {};
+	let appData: AppleGuideData = pruneUnregisteredTopics(
+		isAppleGuideData(raw) ? raw : {},
+	);
 	const topicId = topicIdOf(action);
 
 	switch (action.type) {
-		case "ClassicyAppAppleGuideShowTopic": {
+		case APPLE_GUIDE_SHOW_TOPIC_EVENT: {
 			if (!topicId) break;
 			if (!getAppleGuideTopic(topicId)) {
 				if (process.env.NODE_ENV !== "production") {
