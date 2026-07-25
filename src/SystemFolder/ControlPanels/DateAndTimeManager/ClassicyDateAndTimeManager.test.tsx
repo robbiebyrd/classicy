@@ -181,4 +181,24 @@ describe("ClassicyDateAndTimeManager — Sync button", () => {
 				.disabled,
 		).toBe(false);
 	});
+
+	it("re-seeds the panel's own Current Date / Current Time fields after Sync, rather than leaving stale values displayed", () => {
+		dispatch({
+			type: "ClassicyManagerDateTimeSet",
+			dateTime: new Date("1997-03-04T08:00:00.000Z"),
+		});
+		const { container } = renderOpen();
+
+		fireEvent.click(screen.getByRole("button", { name: "Sync" }));
+
+		const currentYear = String(new Date().getFullYear());
+		const dateColumn = container.querySelector(
+			".classicyDateAndTimeManagerDateColumn",
+		);
+		const yearInput = dateColumn?.querySelector(
+			"#date_year",
+		) as HTMLInputElement;
+		expect(yearInput).not.toBeNull();
+		expect(yearInput.value).toBe(currentYear);
+	});
 });
