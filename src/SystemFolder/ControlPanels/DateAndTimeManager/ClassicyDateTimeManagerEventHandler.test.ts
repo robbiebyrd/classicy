@@ -543,4 +543,62 @@ describe("classicyDateTimeManagerEventHandler — ClassicyManagerDateTimeSync", 
 
 		expect(ds.System.Manager.DateAndTime.paused).toBe(true);
 	});
+
+	it("preserves the displayed calendar date and syncs only H:M:S when syncTimeOnly is set", () => {
+		const realNow = new Date("2026-07-25T14:42:05.000Z");
+		vi.useFakeTimers();
+		vi.setSystemTime(realNow);
+		const tz = browserTzHours(realNow);
+
+		// Stored instant renders as 1997-03-04 in the store's offset of 0.
+		const ds = makeStore({
+			dateTime: "1997-03-04T08:00:00.000Z",
+			timeZoneOffset: "0",
+			syncTimeOnly: true,
+		});
+		classicyDateTimeManagerEventHandler(ds, {
+			type: "ClassicyManagerDateTimeSync",
+		});
+
+		// Read the result back in the new offset: the date must still be
+		// 1997-03-04, and the time must be the machine's wall clock.
+		const stored = new Date(ds.System.Manager.DateAndTime.dateTime);
+		const shown = new Date(stored.getTime() + tz * 3600000);
+		const machineLocal = new Date(realNow.getTime() + tz * 3600000);
+
+		expect(shown.getUTCFullYear()).toBe(1997);
+		expect(shown.getUTCMonth()).toBe(2); // March, zero-indexed
+		expect(shown.getUTCDate()).toBe(4);
+		expect(shown.getUTCHours()).toBe(machineLocal.getUTCHours());
+		expect(shown.getUTCMinutes()).toBe(machineLocal.getUTCMinutes());
+		expect(shown.getUTCSeconds()).toBe(machineLocal.getUTCSeconds());
+
+		// The offset still resets, exactly as in full sync.
+		expect(ds.System.Manager.DateAndTime.timeZoneOffset).toBe(String(tz));
+	});
+
+	it("preserves the date as it read in the OLD offset, not the new one", () => {
+		const realNow = new Date("2026-07-25T14:42:05.000Z");
+		vi.useFakeTimers();
+		vi.setSystemTime(realNow);
+		const tz = browserTzHours(realNow);
+
+		// At UTC this instant is 1997-03-04T23:00Z, but the panel is showing
+		// offset +9, where it reads as 1997-03-05 08:00. The preserved date must
+		// be the 5th (what the user sees), not the 4th (the raw UTC date).
+		const ds = makeStore({
+			dateTime: "1997-03-04T23:00:00.000Z",
+			timeZoneOffset: "9",
+			syncTimeOnly: true,
+		});
+		classicyDateTimeManagerEventHandler(ds, {
+			type: "ClassicyManagerDateTimeSync",
+		});
+
+		const stored = new Date(ds.System.Manager.DateAndTime.dateTime);
+		const shown = new Date(stored.getTime() + tz * 3600000);
+		expect(shown.getUTCFullYear()).toBe(1997);
+		expect(shown.getUTCMonth()).toBe(2);
+		expect(shown.getUTCDate()).toBe(5);
+	});
 });

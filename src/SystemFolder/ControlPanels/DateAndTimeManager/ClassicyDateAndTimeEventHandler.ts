@@ -75,12 +75,26 @@ export const classicyDateTimeManagerEventHandler = (
 			const newTz = -now.getTimezoneOffset() / 60;
 			// Shift into the new local frame so UTC getters yield machine
 			// wall-clock fields, independent of the browser's own timezone.
+			// Below, a date sourced from dateSource (which may come from a
+			// different offset) is recomposed with this machine wall-clock
+			// time; that only works if both are read in one consistent local
+			// frame first, which is why `- newTz * 3600000` afterwards is
+			// load-bearing: it converts the composed local wall time back to
+			// UTC for storage.
 			const nowLocal = new Date(now.getTime() + newTz * 3600000);
 
+			// In time-only mode the calendar date the user currently SEES is
+			// preserved. That date is rendered in the OLD offset, so shift by it
+			// — not by newTz — before reading the Y/M/D fields.
+			const oldTz = Number.parseInt(dt.timeZoneOffset, 10) || 0;
+			const dateSource = dt.syncTimeOnly
+				? new Date(new Date(dt.dateTime).getTime() + oldTz * 3600000)
+				: nowLocal;
+
 			const localMs = Date.UTC(
-				nowLocal.getUTCFullYear(),
-				nowLocal.getUTCMonth(),
-				nowLocal.getUTCDate(),
+				dateSource.getUTCFullYear(),
+				dateSource.getUTCMonth(),
+				dateSource.getUTCDate(),
 				nowLocal.getUTCHours(),
 				nowLocal.getUTCMinutes(),
 				nowLocal.getUTCSeconds(),
