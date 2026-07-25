@@ -14,9 +14,13 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// Compact "About Help" assistant — no icons, non-resizable, single page.
-// Reproduces 1.png.
-export const AboutHelp: Story = {
+// Compact single-page assistant layout — no icons, non-resizable. This is a
+// generic ClassicyAssistant sizing/geometry reference matching 1.png's
+// proportions; it is NOT the real "About Balloon Help" window. The actual
+// About Help implementation is AppleGuideWindow (see
+// SystemFolder/Extensions/AppleGuide/AppleGuideWindow.stories.tsx), opened
+// from the desktop's Help menu.
+export const CompactAssistantLayoutReference: Story = {
 	render: () => (
 		<ClassicyWindow
 			id="about-help"
