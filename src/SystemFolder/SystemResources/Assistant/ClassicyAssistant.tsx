@@ -7,6 +7,7 @@ import {
 } from "react";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
+import { ClassicyPager } from "@/SystemFolder/SystemResources/Pager/ClassicyPager";
 
 const MAX_FOOTER_BUTTONS = 3;
 
@@ -41,7 +42,19 @@ export interface ClassicyAssistantPage {
 export interface ClassicyAssistantProps {
 	pages: ClassicyAssistantPage[];
 	buttons?: ClassicyAssistantButton[];
+	/**
+	 * Uncontrolled starting page (zero-based), clamped to the page range.
+	 * Ignored when `page` is supplied.
+	 */
 	initialPage?: number;
+	/**
+	 * Controlled current page (zero-based). When supplied the component never
+	 * changes pages on its own: it renders this value (clamped to the page
+	 * range) and reports every navigation through `onPageChange`, so the owner
+	 * decides whether the move happens. Omit it to keep the uncontrolled
+	 * behaviour, where the assistant tracks the page itself from `initialPage`.
+	 */
+	page?: number;
 	onPageChange?: (index: number) => void;
 }
 
@@ -52,22 +65,30 @@ export const ClassicyAssistant: FunctionalComponent<ClassicyAssistantProps> = ({
 	pages,
 	buttons,
 	initialPage = 0,
+	page,
 	onPageChange,
 }) => {
 	const lastIndex = Math.max(0, pages.length - 1);
-	const [currentPage, setCurrentPage] = useState(() =>
+	const [uncontrolledPage, setUncontrolledPage] = useState(() =>
 		clamp(initialPage, 0, lastIndex),
 	);
 	const player = useSoundDispatch();
 
-	const page = pages[currentPage];
-	if (!page) return null;
+	const isControlled = page !== undefined;
+	const currentPage = clamp(
+		isControlled ? page : uncontrolledPage,
+		0,
+		lastIndex,
+	);
+
+	const activePage = pages[currentPage];
+	if (!activePage) return null;
 
 	// Per-page buttons win over the global default; cap at 3 (no silent truncation).
-	const resolvedButtons = (page.buttons ?? buttons ?? []).slice();
+	const resolvedButtons = (activePage.buttons ?? buttons ?? []).slice();
 	if (resolvedButtons.length > MAX_FOOTER_BUTTONS) {
 		console.warn(
-			`ClassicyAssistant: page "${page.title}" has ${resolvedButtons.length} footer buttons; only the first ${MAX_FOOTER_BUTTONS} are shown.`,
+			`ClassicyAssistant: page "${activePage.title}" has ${resolvedButtons.length} footer buttons; only the first ${MAX_FOOTER_BUTTONS} are shown.`,
 		);
 		resolvedButtons.length = MAX_FOOTER_BUTTONS;
 	}
@@ -76,12 +97,12 @@ export const ClassicyAssistant: FunctionalComponent<ClassicyAssistantProps> = ({
 		const next = clamp(index, 0, lastIndex);
 		if (next === currentPage) return;
 		player({ type: "ClassicySoundPlay", sound: "ClassicyTabClickUp" });
-		setCurrentPage(next);
+		if (!isControlled) setUncontrolledPage(next);
 		onPageChange?.(next);
 	};
 
 	const goNext = () => {
-		if (page.canAdvance && page.canAdvance() === false) {
+		if (activePage.canAdvance && activePage.canAdvance() === false) {
 			player({ type: "ClassicySoundPlayError" });
 			return;
 		}
@@ -107,23 +128,25 @@ export const ClassicyAssistant: FunctionalComponent<ClassicyAssistantProps> = ({
 			<section
 				className={"classicyAssistantHeader"}
 				aria-live="polite"
-				aria-label={page.title}
+				aria-label={activePage.title}
 			>
-				{page.labelIcon && (
+				{activePage.labelIcon && (
 					<img
 						className={"classicyAssistantHeaderLabelIcon"}
-						src={page.labelIcon}
+						src={activePage.labelIcon}
 						alt={""}
 						aria-hidden={true}
 					/>
 				)}
-				<span className={"classicyAssistantHeaderTitle"}>{page.title}</span>
-				{page.accessoryIcon && (
+				<span className={"classicyAssistantHeaderTitle"}>
+					{activePage.title}
+				</span>
+				{activePage.accessoryIcon && (
 					<img
 						className={`classicyAssistantAccessoryIcon ${
-							accessorySizeClass[page.accessoryIconSize ?? "sm"]
+							accessorySizeClass[activePage.accessoryIconSize ?? "sm"]
 						}`}
-						src={page.accessoryIcon}
+						src={activePage.accessoryIcon}
 						alt={""}
 						aria-hidden={true}
 					/>
@@ -133,9 +156,9 @@ export const ClassicyAssistant: FunctionalComponent<ClassicyAssistantProps> = ({
 			<div
 				className={"classicyAssistantBody"}
 				role="group"
-				aria-label={page.title}
+				aria-label={activePage.title}
 			>
-				{page.content}
+				{activePage.content}
 			</div>
 			<div className={"classicyAssistantFooter"}>
 				<div className={"classicyAssistantFooterButtons"}>
@@ -151,27 +174,14 @@ export const ClassicyAssistant: FunctionalComponent<ClassicyAssistantProps> = ({
 					))}
 				</div>
 				<div className={"classicyAssistantNav"}>
-					<button
-						type="button"
-						aria-label="Previous page"
-						className={"classicyAssistantNavButton"}
-						disabled={currentPage === 0}
-						onClick={goPrev}
-					>
-						{"◀"}
-					</button>
-					<span className={"classicyAssistantPageIndicator"}>
-						{currentPage + 1}
-					</span>
-					<button
-						type="button"
-						aria-label="Next page"
-						className={"classicyAssistantNavButton"}
-						disabled={currentPage === lastIndex}
-						onClick={goNext}
-					>
-						{"▶"}
-					</button>
+					{/* The pager only ever asks for an adjacent page, so route its
+					    request through the same gated handlers the arrow keys use. */}
+					<ClassicyPager
+						page={currentPage}
+						pageCount={pages.length}
+						onPageChange={(next) => (next > currentPage ? goNext() : goPrev())}
+						pageClassName={"classicyAssistantPageIndicator"}
+					/>
 				</div>
 			</div>
 		</div>

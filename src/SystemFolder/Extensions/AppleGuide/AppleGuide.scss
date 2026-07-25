@@ -1,0 +1,86 @@
+// Apple Guide topic window. The window body is a ClassicyAssistant, so this
+// sheet only restyles that shared surface to the Mac OS 8 "About Help"
+// reference capture: a 42px header band (lighter than the standard assistant
+// header), a white serif body, and a full-width 48px footer.
+//
+// Colors are theme tokens, not the literals measured off the capture, so help
+// windows recolor with the appearance theme. The default theme's ramp is the
+// closest match to the reference: system-01 #eeeeee for the header band
+// (capture #f3f3f3) and system-02 #dddddd for the footer (capture #e7e7e7),
+// preserving the capture's "header lighter than footer, both lighter than the
+// window frame" relationship.
+
+.appleGuideWindow {
+  height: 100%;
+}
+
+.appleGuideWindow .classicyAssistantHeader {
+  // box-sizing: border-box so the platinumWindowHeaderBorder mixin's 1px top
+  // and bottom borders sit inside the measured 42px band instead of adding to
+  // it. The mixin's own bottom edge (system-05) stands in for the capture's
+  // #969696 rule under the title.
+  box-sizing: border-box;
+  height: 42px;
+  padding: 0 12px;
+  // The reference sets the header in the same bold serif as the body copy,
+  // not the UI face.
+  font-family: var(--body-font), serif;
+  font-size: 13px;
+  background: var(--color-system-01);
+}
+
+.appleGuideWindow .classicyAssistantBody {
+  // The reference sets help copy in a serif face, unlike the UI chrome.
+  font-family: var(--body-font), serif;
+  font-size: 14px;
+  line-height: 1.45;
+  padding: 12px 20px;
+
+  p {
+    margin: 0 0 12px;
+  }
+
+  ul {
+    margin: 0 0 12px;
+    padding-left: 18px;
+    list-style: disc;
+  }
+
+  li::marker {
+    // ClassicyDesktop.scss sets a global `* ::marker { color: var(--color-theme-02) }`
+    // (lavender) for the whole app's theme. The reference capture's bullets are
+    // plain black, matching the body copy — override back to that here rather
+    // than touch the app-wide rule.
+    color: currentColor;
+  }
+
+  li {
+    margin-bottom: 2px;
+  }
+
+  // `.appleGuideEnd` (the "- End -" marker) carries no rule of its own: the
+  // separation the reference shows above it already comes from the preceding
+  // block's 12px bottom margin. The class stays as a hook for consumers
+  // styling or locating the marker.
+}
+
+.appleGuideWindow .classicyAssistantFooter {
+  box-sizing: border-box;
+  height: 48px;
+  padding: 0 10px;
+  background: var(--color-system-02);
+  // Tell the pager which band it sits on, so the disabled arrows' punch-out is
+  // painted in the footer color and reads as a hole rather than a light blob.
+  --classicy-pager-band: var(--color-system-02);
+}
+
+// `initialSize` is applied as an inline width/height on `.classicyWindow`,
+// which is content-box by default — so the theme's frame padding and border
+// (9.6px + 2px at the default theme) were landing OUTSIDE the requested size,
+// rendering 712x334 for an initialSize of 700x322. Switching this one window to
+// border-box makes initialSize mean the OUTER frame, matching the reference
+// capture exactly and staying correct if a theme changes its frame metrics.
+// Scoped via :has() so no other window's sizing semantics change.
+.classicyWindow:has(.appleGuideWindow) {
+  box-sizing: border-box;
+}

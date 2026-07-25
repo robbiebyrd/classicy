@@ -74,6 +74,9 @@
 	column-gap: var(--window-padding-size);
 	padding: calc(var(--window-padding-size) * 0.5) var(--window-padding-size);
 	background: var(--color-system-03);
+	// The pager's disabled-arrow punch-out is painted in the band color; this
+	// footer is system-03, not the pager's system-01 default.
+	--classicy-pager-band: var(--color-system-03);
 	@include appearance.no-select;
 }
 
@@ -90,8 +93,7 @@
 	column-gap: calc(var(--window-padding-size) * 0.5);
 }
 
-.classicyAssistantPageIndicator {
-	min-width: calc(var(--window-control-size) * 1.25);
-	text-align: center;
-	font-family: var(--ui-font), sans-serif;
-}
+// `.classicyAssistantPageIndicator` carries no rule of its own: the page cell
+// is drawn by ClassicyPager (ClassicyPager.scss). The class is still applied to
+// that cell so stylesheets and tests written against the assistant's original
+// markup keep matching.

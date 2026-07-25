@@ -1,0 +1,23 @@
+.classicyDesktopMenuExtension {
+	display: flex;
+	align-items: center;
+	height: 100%;
+}
+
+.classicyDesktopMenuExtensionTrigger {
+	display: flex;
+	align-items: center;
+	height: 100%;
+	margin: 0;
+	padding: 0;
+	border: none;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	cursor: default;
+
+	img {
+		height: calc(var(--window-control-size) * 1);
+		width: auto;
+	}
+}
