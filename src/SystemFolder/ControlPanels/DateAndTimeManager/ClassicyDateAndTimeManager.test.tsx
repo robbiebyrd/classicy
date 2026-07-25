@@ -1,4 +1,4 @@
-import { cleanup, render } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import {
 	dispatch,
@@ -142,5 +142,43 @@ describe("ClassicyDateAndTimeManager — dateTimeLocked", () => {
 		const tz = container.querySelector("#timezone") as HTMLButtonElement;
 		expect(tz).not.toBeNull();
 		expect(tz.disabled).toBe(false);
+	});
+});
+
+describe("ClassicyDateAndTimeManager — Sync button", () => {
+	it("dispatches ClassicyManagerDateTimeSync, moving the clock to the real current instant", () => {
+		// Park the store far from real time so a successful sync is unambiguous.
+		dispatch({
+			type: "ClassicyManagerDateTimeSet",
+			dateTime: new Date("1997-03-04T08:00:00.000Z"),
+		});
+		renderOpen();
+
+		fireEvent.click(screen.getByRole("button", { name: "Sync" }));
+
+		const synced = new Date(
+			useAppManager.getState().System.Manager.DateAndTime.dateTime,
+		).getTime();
+		// Within a minute of now — clicking Sync must land on real time.
+		expect(Math.abs(synced - Date.now())).toBeLessThan(60_000);
+	});
+
+	it("disables Sync when the clock is locked, so a locked clock cannot be re-synced", () => {
+		dispatch({ type: "ClassicyManagerDateTimeLock" });
+		renderOpen();
+
+		expect(
+			(screen.getByRole("button", { name: "Sync" }) as HTMLButtonElement)
+				.disabled,
+		).toBe(true);
+	});
+
+	it("enables Sync when the clock is not locked", () => {
+		renderOpen();
+
+		expect(
+			(screen.getByRole("button", { name: "Sync" }) as HTMLButtonElement)
+				.disabled,
+		).toBe(false);
 	});
 });

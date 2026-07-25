@@ -89,6 +89,10 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
 		desktopEventDispatch(quitAppHelper(APP_ID, APP_NAME, appIcon));
 	};
 
+	const syncClock = useCallback(() => {
+		desktopEventDispatch({ type: "ClassicyManagerDateTimeSync" });
+	}, [desktopEventDispatch]);
+
 	const updateSystemTime = useCallback(
 		(updatedDate: Date) => {
 			const state = useAppManager.getState().System.Manager.DateAndTime;
@@ -271,9 +275,18 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
 							/>
 						</ClassicyControlGroup>
 					</div>
-					<ClassicyButton isDefault={false} onClickFunc={quitApp}>
-						Quit
-					</ClassicyButton>
+					<div className={"classicyDateAndTimeManagerButtonRow"}>
+						<ClassicyButton
+							isDefault={false}
+							onClickFunc={syncClock}
+							disabled={dateAndTimeState.dateTimeLocked}
+						>
+							Sync
+						</ClassicyButton>
+						<ClassicyButton isDefault={false} onClickFunc={quitApp}>
+							Quit
+						</ClassicyButton>
+					</div>
 				</div>
 			</ClassicyWindow>
 			{aboutWindow}
