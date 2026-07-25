@@ -649,4 +649,42 @@ describe("classicyDateTimeManagerEventHandler — ClassicyManagerDateTimeSync", 
 		expect(shown.getUTCMonth()).toBe(2);
 		expect(shown.getUTCDate()).toBe(5);
 	});
+
+	it("clamps to maxDateTime and sets boundaryLocked when the real time is past the max", () => {
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date("2026-07-25T14:42:05.000Z"));
+
+		const ds = makeStore({
+			dateTime: "2020-01-01T00:00:00.000Z",
+			timeZoneOffset: "0",
+			maxDateTime: "2021-01-01T00:00:00.000Z",
+		});
+		classicyDateTimeManagerEventHandler(ds, {
+			type: "ClassicyManagerDateTimeSync",
+		});
+
+		expect(ds.System.Manager.DateAndTime.dateTime).toBe(
+			"2021-01-01T00:00:00.000Z",
+		);
+		expect(ds.System.Manager.DateAndTime.boundaryLocked).toBe(true);
+	});
+
+	it("clamps to minDateTime and leaves boundaryLocked false when the real time is before the min", () => {
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date("2026-07-25T14:42:05.000Z"));
+
+		const ds = makeStore({
+			dateTime: "2030-06-01T00:00:00.000Z",
+			timeZoneOffset: "0",
+			minDateTime: "2030-01-01T00:00:00.000Z",
+		});
+		classicyDateTimeManagerEventHandler(ds, {
+			type: "ClassicyManagerDateTimeSync",
+		});
+
+		expect(ds.System.Manager.DateAndTime.dateTime).toBe(
+			"2030-01-01T00:00:00.000Z",
+		);
+		expect(ds.System.Manager.DateAndTime.boundaryLocked).toBe(false);
+	});
 });
