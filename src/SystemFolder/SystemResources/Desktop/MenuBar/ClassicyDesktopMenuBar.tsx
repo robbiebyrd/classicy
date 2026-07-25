@@ -21,6 +21,7 @@ import {
 } from "react";
 
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { APPLE_GUIDE_SHOW_TOPIC_EVENT } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideContext";
 import { ABOUT_BALLOON_HELP_TOPIC_ID } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideTopics";
 import { appSwitcherAppsFrom } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
 import { useClassicyShortcutDispatcher } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyShortcutDispatcher";
@@ -177,7 +178,7 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
 			{
 				id: "help-about-balloon",
 				title: "About Balloon Help…",
-				event: "ClassicyAppAppleGuideShowTopic",
+				event: APPLE_GUIDE_SHOW_TOPIC_EVENT,
 				eventData: { topicId: ABOUT_BALLOON_HELP_TOPIC_ID },
 			},
 			{
@@ -208,8 +209,11 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
 	// menu with its own "About This Computer" entry removed to avoid two Abouts.
 	const { appleMenuItem, strippedAppMenu } = useMemo(() => {
 		const appList = Object.values(apps);
+		// Extensions (e.g. Apple Guide) can take window focus but must never be
+		// treated as "the focused app" here — mirrors appSwitcherAppsFrom, which
+		// excludes extensions from the App Switcher for the same reason.
 		const focusedApp =
-			appList.find((a) => a.focused === true) ??
+			appList.find((a) => a.focused === true && !a.extension) ??
 			apps["Finder.app"] ??
 			appList[0];
 		const focusedAppId = focusedApp?.id ?? "Finder.app";
