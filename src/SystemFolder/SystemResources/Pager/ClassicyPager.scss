@@ -6,11 +6,14 @@
   display: flex;
   align-items: center;
   border: 1px solid var(--color-system-03);
-  // The disabled arrows' punch-out has to be painted in whatever band the
-  // pager sits on, or the hollow centre reads as a lighter blob rather than a
-  // hole. Consumers override this to their own footer color; the default suits
-  // a system-01 band.
-  --classicy-pager-band: var(--color-system-01);
+  // The disabled arrows' punch-out is painted in whatever band the pager sits
+  // on (see --classicy-pager-band below), or the hollow centre reads as a
+  // lighter blob rather than a hole.
+  //
+  // The default deliberately lives in the var() fallback at the point of USE,
+  // not as a declaration here: a custom property set on an element always wins
+  // over an inherited one, so declaring it on .classicyPager would shadow every
+  // consumer's footer value and the override could never take effect.
 }
 
 .classicyPagerArrow {
@@ -68,7 +71,7 @@
 
   &::after {
     border-block-width: 5px;
-    border-right: 7px solid var(--classicy-pager-band);
+    border-right: 7px solid var(--classicy-pager-band, var(--color-system-01));
     border-left: 0;
   }
 }
@@ -81,7 +84,7 @@
 
   &::after {
     border-block-width: 5px;
-    border-left: 7px solid var(--classicy-pager-band);
+    border-left: 7px solid var(--classicy-pager-band, var(--color-system-01));
     border-right: 0;
   }
 }
