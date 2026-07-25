@@ -65,6 +65,32 @@ export const classicyDateTimeManagerEventHandler = (
 			ds.System.Manager.DateAndTime.timeZoneOffset = String(offset);
 			break;
 		}
+		case "ClassicyManagerDateTimeSync": {
+			const dt = ds.System.Manager.DateAndTime;
+			const now = new Date();
+			// Sync always adopts the host machine's offset, so the synced hour
+			// reads as real local time regardless of what was selected before.
+			// Fractional zones (e.g. India, +5.5) are stored faithfully; the
+			// timezone pop-up lists whole hours only and will show no selection.
+			const newTz = -now.getTimezoneOffset() / 60;
+			// Shift into the new local frame so UTC getters yield machine
+			// wall-clock fields, independent of the browser's own timezone.
+			const nowLocal = new Date(now.getTime() + newTz * 3600000);
+
+			const localMs = Date.UTC(
+				nowLocal.getUTCFullYear(),
+				nowLocal.getUTCMonth(),
+				nowLocal.getUTCDate(),
+				nowLocal.getUTCHours(),
+				nowLocal.getUTCMinutes(),
+				nowLocal.getUTCSeconds(),
+				0,
+			);
+
+			dt.timeZoneOffset = String(newTz);
+			applyDateTimeWithBounds(ds, new Date(localMs - newTz * 3600000));
+			break;
+		}
 		case "ClassicyManagerDateTimePause": {
 			ds.System.Manager.DateAndTime.paused = true;
 			break;

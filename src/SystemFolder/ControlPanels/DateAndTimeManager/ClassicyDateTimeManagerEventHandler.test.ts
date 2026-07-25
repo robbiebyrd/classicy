@@ -499,3 +499,48 @@ describe("DateAndTime store defaults", () => {
 		);
 	});
 });
+
+describe("classicyDateTimeManagerEventHandler — ClassicyManagerDateTimeSync", () => {
+	// The test runner's TZ is not pinned and vi.setSystemTime does not fake
+	// getTimezoneOffset, so derive the expected offset the same way the reducer
+	// does. Hard-coding would pass in a UTC CI box and fail on a dev machine.
+	const browserTzHours = (at: Date) => -at.getTimezoneOffset() / 60;
+
+	afterEach(() => {
+		vi.useRealTimers();
+		vi.restoreAllMocks();
+	});
+
+	it("sets dateTime to the real current instant and resets the offset to the browser's", () => {
+		const realNow = new Date("2026-07-25T14:42:05.000Z");
+		vi.useFakeTimers();
+		vi.setSystemTime(realNow);
+
+		const ds = makeStore({
+			dateTime: "1997-03-04T08:00:00.000Z",
+			timeZoneOffset: "9",
+		});
+		classicyDateTimeManagerEventHandler(ds, {
+			type: "ClassicyManagerDateTimeSync",
+		});
+
+		expect(ds.System.Manager.DateAndTime.dateTime).toBe(
+			"2026-07-25T14:42:05.000Z",
+		);
+		expect(ds.System.Manager.DateAndTime.timeZoneOffset).toBe(
+			String(browserTzHours(realNow)),
+		);
+	});
+
+	it("leaves paused untouched so a host-paused clock stays frozen at real time", () => {
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date("2026-07-25T14:42:05.000Z"));
+
+		const ds = makeStore({ paused: true });
+		classicyDateTimeManagerEventHandler(ds, {
+			type: "ClassicyManagerDateTimeSync",
+		});
+
+		expect(ds.System.Manager.DateAndTime.paused).toBe(true);
+	});
+});
