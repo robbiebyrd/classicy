@@ -6,6 +6,11 @@
   display: flex;
   align-items: center;
   border: 1px solid var(--color-system-03);
+  // The disabled arrows' punch-out has to be painted in whatever band the
+  // pager sits on, or the hollow centre reads as a lighter blob rather than a
+  // hole. Consumers override this to their own footer color; the default suits
+  // a system-01 band.
+  --classicy-pager-band: var(--color-system-01);
 }
 
 .classicyPagerArrow {
@@ -63,7 +68,7 @@
 
   &::after {
     border-block-width: 5px;
-    border-right: 7px solid var(--color-system-01);
+    border-right: 7px solid var(--classicy-pager-band);
     border-left: 0;
   }
 }
@@ -76,7 +81,7 @@
 
   &::after {
     border-block-width: 5px;
-    border-left: 7px solid var(--color-system-01);
+    border-left: 7px solid var(--classicy-pager-band);
     border-right: 0;
   }
 }

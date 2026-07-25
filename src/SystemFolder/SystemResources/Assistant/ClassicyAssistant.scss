@@ -74,6 +74,9 @@
 	column-gap: var(--window-padding-size);
 	padding: calc(var(--window-padding-size) * 0.5) var(--window-padding-size);
 	background: var(--color-system-03);
+	// The pager's disabled-arrow punch-out is painted in the band color; this
+	// footer is system-03, not the pager's system-01 default.
+	--classicy-pager-band: var(--color-system-03);
 	@include appearance.no-select;
 }
 

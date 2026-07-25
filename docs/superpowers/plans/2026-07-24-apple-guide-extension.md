@@ -11,6 +11,29 @@
 **Spec:** `docs/superpowers/specs/2026-07-24-apple-guide-extension-design.md`
 **Visual reference:** `1.png` at the repo root (1x capture of the Mac OS 8 *About Help* window).
 
+> ## ⚠️ Post-implementation amendments
+>
+> **This plan is the historical record of what was planned and executed. Two
+> things below no longer describe the shipped code**, changed after the final
+> whole-branch review. Read the current source, not these paths, when working
+> on this feature.
+>
+> 1. **The pager moved and was generalised.** Task 3 created
+>    `src/SystemFolder/Extensions/AppleGuide/AppleGuidePager.tsx`. It now lives at
+>    `src/SystemFolder/SystemResources/Pager/ClassicyPager.tsx`, exported as
+>    `ClassicyPager`, with its classes renamed `appleGuidePager*` →
+>    `classicyPager*`. `ClassicyAssistant` uses it too, replacing its old
+>    `◀`/`▶` text-glyph nav.
+> 2. **`AppleGuideWindow` no longer hand-rolls header/body/footer.** It renders
+>    a `ClassicyAssistant` in controlled mode (`page` + `onPageChange`) inside
+>    its `ClassicyWindow`, and restyles it via `.appleGuideWindow`-scoped SCSS.
+>    `ClassicyAssistant` gained an optional `page?: number` controlled mode;
+>    omitting it preserves the original uncontrolled `initialPage` behaviour.
+>
+> Also changed after review: the measured hex colors in Task 4's stylesheet were
+> replaced with `--color-*` theme tokens, and `.classicyWindow` is `border-box`
+> for this window so `initialSize` means the outer frame.
+
 ## Global Constraints
 
 - **Package manager is pnpm.** Never run `npm` or `yarn`. Enable via `corepack enable`.

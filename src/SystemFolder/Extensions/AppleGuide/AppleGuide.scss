@@ -69,4 +69,18 @@
   height: 48px;
   padding: 0 10px;
   background: var(--color-system-02);
+  // Tell the pager which band it sits on, so the disabled arrows' punch-out is
+  // painted in the footer color and reads as a hole rather than a light blob.
+  --classicy-pager-band: var(--color-system-02);
+}
+
+// `initialSize` is applied as an inline width/height on `.classicyWindow`,
+// which is content-box by default — so the theme's frame padding and border
+// (9.6px + 2px at the default theme) were landing OUTSIDE the requested size,
+// rendering 712x334 for an initialSize of 700x322. Switching this one window to
+// border-box makes initialSize mean the OUTER frame, matching the reference
+// capture exactly and staying correct if a theme changes its frame metrics.
+// Scoped via :has() so no other window's sizing semantics change.
+.classicyWindow:has(.appleGuideWindow) {
+  box-sizing: border-box;
 }
