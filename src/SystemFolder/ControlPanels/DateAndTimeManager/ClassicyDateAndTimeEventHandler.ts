@@ -80,13 +80,17 @@ export const classicyDateTimeManagerEventHandler = (
 			// time; that only works if both are read in one consistent local
 			// frame first, which is why `- newTz * 3600000` afterwards is
 			// load-bearing: it converts the composed local wall time back to
-			// UTC for storage.
+			// UTC for storage. That's true when dateSource comes from the
+			// stored date (the time-only path); on the full-sync path
+			// dateSource === nowLocal, so the round trip provably cancels
+			// back to floor_s(Date.now()) — the shared composition below is
+			// intentional, not redundant, since it serves both branches.
 			const nowLocal = new Date(now.getTime() + newTz * 3600000);
 
 			// In time-only mode the calendar date the user currently SEES is
 			// preserved. That date is rendered in the OLD offset, so shift by it
 			// — not by newTz — before reading the Y/M/D fields.
-			const oldTz = Number.parseInt(dt.timeZoneOffset, 10) || 0;
+			const oldTz = Number(dt.timeZoneOffset) || 0;
 			const dateSource = dt.syncTimeOnly
 				? new Date(new Date(dt.dateTime).getTime() + oldTz * 3600000)
 				: nowLocal;

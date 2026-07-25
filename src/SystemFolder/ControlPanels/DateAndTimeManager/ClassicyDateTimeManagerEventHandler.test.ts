@@ -586,9 +586,57 @@ describe("classicyDateTimeManagerEventHandler — ClassicyManagerDateTimeSync", 
 		// At UTC this instant is 1997-03-04T23:00Z, but the panel is showing
 		// offset +9, where it reads as 1997-03-05 08:00. The preserved date must
 		// be the 5th (what the user sees), not the 4th (the raw UTC date).
-		const ds = makeStore({
+		const dsPlus = makeStore({
 			dateTime: "1997-03-04T23:00:00.000Z",
 			timeZoneOffset: "9",
+			syncTimeOnly: true,
+		});
+		classicyDateTimeManagerEventHandler(dsPlus, {
+			type: "ClassicyManagerDateTimeSync",
+		});
+
+		const storedPlus = new Date(dsPlus.System.Manager.DateAndTime.dateTime);
+		const shownPlus = new Date(storedPlus.getTime() + tz * 3600000);
+		expect(shownPlus.getUTCFullYear()).toBe(1997);
+		expect(shownPlus.getUTCMonth()).toBe(2);
+		expect(shownPlus.getUTCDate()).toBe(5);
+
+		// Mirror at offset -9: at UTC this instant is 1997-03-05T02:00Z, but the
+		// panel is showing offset -9, where it reads as 1997-03-04 17:00. The
+		// preserved date must be the 4th, not the 5th. Pairing +9 with -9 means
+		// at least one of the two branches always differs from whatever offset
+		// the test-running machine happens to have, so an implementation that
+		// wrongly used the NEW (machine) offset instead of the OLD (stored) one
+		// can't pass both by accident.
+		const dsMinus = makeStore({
+			dateTime: "1997-03-05T02:00:00.000Z",
+			timeZoneOffset: "-9",
+			syncTimeOnly: true,
+		});
+		classicyDateTimeManagerEventHandler(dsMinus, {
+			type: "ClassicyManagerDateTimeSync",
+		});
+
+		const storedMinus = new Date(dsMinus.System.Manager.DateAndTime.dateTime);
+		const shownMinus = new Date(storedMinus.getTime() + tz * 3600000);
+		expect(shownMinus.getUTCFullYear()).toBe(1997);
+		expect(shownMinus.getUTCMonth()).toBe(2);
+		expect(shownMinus.getUTCDate()).toBe(4);
+	});
+
+	it("does not truncate fractional-hour offsets (e.g. +5:30) when preserving the displayed date", () => {
+		const realNow = new Date("2026-07-25T14:42:05.000Z");
+		vi.useFakeTimers();
+		vi.setSystemTime(realNow);
+		const tz = browserTzHours(realNow);
+
+		// At UTC 18:45, offset +5:30 reads as 1997-03-05T00:15 — one day ahead
+		// of the raw UTC date (March 4). Number.parseInt("5.5", 10) truncates
+		// to 5, which would compute the wrong date (March 4 instead of the
+		// displayed March 5).
+		const ds = makeStore({
+			dateTime: "1997-03-04T18:45:00.000Z",
+			timeZoneOffset: "5.5",
 			syncTimeOnly: true,
 		});
 		classicyDateTimeManagerEventHandler(ds, {
