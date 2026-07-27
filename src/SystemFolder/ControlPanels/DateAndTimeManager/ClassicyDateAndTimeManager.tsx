@@ -71,6 +71,15 @@ const TIMEZONES = [
 
 export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
 	const [period, setPeriod] = useState<string>("am");
+	// Bumped only by syncClock below, and used as part of the pickers' `key` so
+	// they remount and re-seed from the fresh prefillValue on an explicit Sync
+	// click. ClassicyDatePicker/ClassicyTimePicker seed useState from
+	// prefillValue once on mount and ignore later prop changes, so a plain
+	// dispatch alone never updates their displayed fields. Deliberately NOT
+	// keyed on dateAndTimeState.dateTime — that value advances every minute
+	// from the menu-bar clock widget and would remount (and wipe out) a
+	// half-typed entry on every tick.
+	const [syncGeneration, setSyncGeneration] = useState(0);
 
 	const dateAndTimeState = useAppManager(
 			(state) => state.System.Manager.DateAndTime,
@@ -88,6 +97,11 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
 	const quitApp = () => {
 		desktopEventDispatch(quitAppHelper(APP_ID, APP_NAME, appIcon));
 	};
+
+	const syncClock = useCallback(() => {
+		desktopEventDispatch({ type: "ClassicyManagerDateTimeSync" });
+		setSyncGeneration((n) => n + 1);
+	}, [desktopEventDispatch]);
 
 	const updateSystemTime = useCallback(
 		(updatedDate: Date) => {
@@ -228,6 +242,7 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
 						<div className={"classicyDateAndTimeManagerDateColumn"}>
 							<ClassicyControlGroup label={"Current Date"}>
 								<ClassicyDatePicker
+									key={syncGeneration}
 									id={"date"}
 									labelTitle={""}
 									prefillValue={date}
@@ -241,6 +256,7 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
 						<div className={"classicyDateAndTimeManagerTimeColumn"}>
 							<ClassicyControlGroup label={"Current Time"}>
 								<ClassicyTimePicker
+									key={syncGeneration}
 									id={"time"}
 									labelTitle={""}
 									labelPosition="left"
@@ -271,9 +287,18 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
 							/>
 						</ClassicyControlGroup>
 					</div>
-					<ClassicyButton isDefault={false} onClickFunc={quitApp}>
-						Quit
-					</ClassicyButton>
+					<div className={"classicyDateAndTimeManagerButtonRow"}>
+						<ClassicyButton
+							isDefault={false}
+							onClickFunc={syncClock}
+							disabled={dateAndTimeState.dateTimeLocked}
+						>
+							Sync
+						</ClassicyButton>
+						<ClassicyButton isDefault={false} onClickFunc={quitApp}>
+							Quit
+						</ClassicyButton>
+					</div>
 				</div>
 			</ClassicyWindow>
 			{aboutWindow}

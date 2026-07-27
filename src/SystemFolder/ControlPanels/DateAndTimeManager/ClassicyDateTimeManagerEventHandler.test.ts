@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	classicyDateTimeManagerEventHandler,
 	computeAnchoredTime,
@@ -17,6 +18,8 @@ function makeStore(
 		dateTimeLocked: boolean;
 		paused: boolean;
 		dateTime: string;
+		timeZoneOffset: string;
+		syncTimeOnly: boolean;
 	}> = {},
 ): ClassicyStore {
 	return {
@@ -37,6 +40,7 @@ function makeStore(
 					maxDateTime: null,
 					boundaryLocked: false,
 					dateTimeLocked: false,
+					syncTimeOnly: false,
 					...overrides,
 				},
 				Sound: { volume: 100, labels: {}, disabled: [] },
@@ -485,5 +489,202 @@ describe("UTC de-shift for bounds comparison", () => {
 		const virtualNowMs = utcMs + tzOffsetHours * 3600000;
 		const utcNowMs = virtualNowMs - tzOffsetHours * 3600000;
 		expect(utcNowMs).toBe(utcMs);
+	});
+});
+
+describe("DateAndTime store defaults", () => {
+	it("defaults syncTimeOnly to false so Sync replaces the full date and time", () => {
+		expect(DefaultAppManagerState.System.Manager.DateAndTime.syncTimeOnly).toBe(
+			false,
+		);
+	});
+});
+
+describe("classicyDateTimeManagerEventHandler — ClassicyManagerDateTimeSync", () => {
+	// The test runner's TZ is not pinned and vi.setSystemTime does not fake
+	// getTimezoneOffset, so derive the expected offset the same way the reducer
+	// does. Hard-coding would pass in a UTC CI box and fail on a dev machine.
+	const browserTzHours = (at: Date) => -at.getTimezoneOffset() / 60;
+
+	afterEach(() => {
+		vi.useRealTimers();
+		vi.restoreAllMocks();
+	});
+
+	it("sets dateTime to the real current instant and resets the offset to the browser's", () => {
+		const realNow = new Date("2026-07-25T14:42:05.000Z");
+		vi.useFakeTimers();
+		vi.setSystemTime(realNow);
+
+		const ds = makeStore({
+			dateTime: "1997-03-04T08:00:00.000Z",
+			timeZoneOffset: "9",
+		});
+		classicyDateTimeManagerEventHandler(ds, {
+			type: "ClassicyManagerDateTimeSync",
+		});
+
+		expect(ds.System.Manager.DateAndTime.dateTime).toBe(
+			"2026-07-25T14:42:05.000Z",
+		);
+		expect(ds.System.Manager.DateAndTime.timeZoneOffset).toBe(
+			String(browserTzHours(realNow)),
+		);
+	});
+
+	it("leaves paused untouched so a host-paused clock stays frozen at real time", () => {
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date("2026-07-25T14:42:05.000Z"));
+
+		const ds = makeStore({ paused: true });
+		classicyDateTimeManagerEventHandler(ds, {
+			type: "ClassicyManagerDateTimeSync",
+		});
+
+		expect(ds.System.Manager.DateAndTime.paused).toBe(true);
+	});
+
+	it("preserves the displayed calendar date and syncs only H:M:S when syncTimeOnly is set", () => {
+		const realNow = new Date("2026-07-25T14:42:05.000Z");
+		vi.useFakeTimers();
+		vi.setSystemTime(realNow);
+		const tz = browserTzHours(realNow);
+
+		// Stored instant renders as 1997-03-04 in the store's offset of 0.
+		const ds = makeStore({
+			dateTime: "1997-03-04T08:00:00.000Z",
+			timeZoneOffset: "0",
+			syncTimeOnly: true,
+		});
+		classicyDateTimeManagerEventHandler(ds, {
+			type: "ClassicyManagerDateTimeSync",
+		});
+
+		// Read the result back in the new offset: the date must still be
+		// 1997-03-04, and the time must be the machine's wall clock.
+		const stored = new Date(ds.System.Manager.DateAndTime.dateTime);
+		const shown = new Date(stored.getTime() + tz * 3600000);
+		const machineLocal = new Date(realNow.getTime() + tz * 3600000);
+
+		expect(shown.getUTCFullYear()).toBe(1997);
+		expect(shown.getUTCMonth()).toBe(2); // March, zero-indexed
+		expect(shown.getUTCDate()).toBe(4);
+		expect(shown.getUTCHours()).toBe(machineLocal.getUTCHours());
+		expect(shown.getUTCMinutes()).toBe(machineLocal.getUTCMinutes());
+		expect(shown.getUTCSeconds()).toBe(machineLocal.getUTCSeconds());
+
+		// The offset still resets, exactly as in full sync.
+		expect(ds.System.Manager.DateAndTime.timeZoneOffset).toBe(String(tz));
+	});
+
+	it("preserves the date as it read in the OLD offset, not the new one", () => {
+		const realNow = new Date("2026-07-25T14:42:05.000Z");
+		vi.useFakeTimers();
+		vi.setSystemTime(realNow);
+		const tz = browserTzHours(realNow);
+
+		// At UTC this instant is 1997-03-04T23:00Z, but the panel is showing
+		// offset +9, where it reads as 1997-03-05 08:00. The preserved date must
+		// be the 5th (what the user sees), not the 4th (the raw UTC date).
+		const dsPlus = makeStore({
+			dateTime: "1997-03-04T23:00:00.000Z",
+			timeZoneOffset: "9",
+			syncTimeOnly: true,
+		});
+		classicyDateTimeManagerEventHandler(dsPlus, {
+			type: "ClassicyManagerDateTimeSync",
+		});
+
+		const storedPlus = new Date(dsPlus.System.Manager.DateAndTime.dateTime);
+		const shownPlus = new Date(storedPlus.getTime() + tz * 3600000);
+		expect(shownPlus.getUTCFullYear()).toBe(1997);
+		expect(shownPlus.getUTCMonth()).toBe(2);
+		expect(shownPlus.getUTCDate()).toBe(5);
+
+		// Mirror at offset -9: at UTC this instant is 1997-03-05T02:00Z, but the
+		// panel is showing offset -9, where it reads as 1997-03-04 17:00. The
+		// preserved date must be the 4th, not the 5th. Pairing +9 with -9 means
+		// at least one of the two branches always differs from whatever offset
+		// the test-running machine happens to have, so an implementation that
+		// wrongly used the NEW (machine) offset instead of the OLD (stored) one
+		// can't pass both by accident.
+		const dsMinus = makeStore({
+			dateTime: "1997-03-05T02:00:00.000Z",
+			timeZoneOffset: "-9",
+			syncTimeOnly: true,
+		});
+		classicyDateTimeManagerEventHandler(dsMinus, {
+			type: "ClassicyManagerDateTimeSync",
+		});
+
+		const storedMinus = new Date(dsMinus.System.Manager.DateAndTime.dateTime);
+		const shownMinus = new Date(storedMinus.getTime() + tz * 3600000);
+		expect(shownMinus.getUTCFullYear()).toBe(1997);
+		expect(shownMinus.getUTCMonth()).toBe(2);
+		expect(shownMinus.getUTCDate()).toBe(4);
+	});
+
+	it("does not truncate fractional-hour offsets (e.g. +5:30) when preserving the displayed date", () => {
+		const realNow = new Date("2026-07-25T14:42:05.000Z");
+		vi.useFakeTimers();
+		vi.setSystemTime(realNow);
+		const tz = browserTzHours(realNow);
+
+		// At UTC 18:45, offset +5:30 reads as 1997-03-05T00:15 — one day ahead
+		// of the raw UTC date (March 4). Number.parseInt("5.5", 10) truncates
+		// to 5, which would compute the wrong date (March 4 instead of the
+		// displayed March 5).
+		const ds = makeStore({
+			dateTime: "1997-03-04T18:45:00.000Z",
+			timeZoneOffset: "5.5",
+			syncTimeOnly: true,
+		});
+		classicyDateTimeManagerEventHandler(ds, {
+			type: "ClassicyManagerDateTimeSync",
+		});
+
+		const stored = new Date(ds.System.Manager.DateAndTime.dateTime);
+		const shown = new Date(stored.getTime() + tz * 3600000);
+		expect(shown.getUTCFullYear()).toBe(1997);
+		expect(shown.getUTCMonth()).toBe(2);
+		expect(shown.getUTCDate()).toBe(5);
+	});
+
+	it("clamps to maxDateTime and sets boundaryLocked when the real time is past the max", () => {
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date("2026-07-25T14:42:05.000Z"));
+
+		const ds = makeStore({
+			dateTime: "2020-01-01T00:00:00.000Z",
+			timeZoneOffset: "0",
+			maxDateTime: "2021-01-01T00:00:00.000Z",
+		});
+		classicyDateTimeManagerEventHandler(ds, {
+			type: "ClassicyManagerDateTimeSync",
+		});
+
+		expect(ds.System.Manager.DateAndTime.dateTime).toBe(
+			"2021-01-01T00:00:00.000Z",
+		);
+		expect(ds.System.Manager.DateAndTime.boundaryLocked).toBe(true);
+	});
+
+	it("clamps to minDateTime and leaves boundaryLocked false when the real time is before the min", () => {
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date("2026-07-25T14:42:05.000Z"));
+
+		const ds = makeStore({
+			dateTime: "2030-06-01T00:00:00.000Z",
+			timeZoneOffset: "0",
+			minDateTime: "2030-01-01T00:00:00.000Z",
+		});
+		classicyDateTimeManagerEventHandler(ds, {
+			type: "ClassicyManagerDateTimeSync",
+		});
+
+		expect(ds.System.Manager.DateAndTime.dateTime).toBe(
+			"2030-01-01T00:00:00.000Z",
+		);
+		expect(ds.System.Manager.DateAndTime.boundaryLocked).toBe(false);
 	});
 });

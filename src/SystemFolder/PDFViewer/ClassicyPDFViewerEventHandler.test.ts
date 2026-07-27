@@ -25,6 +25,7 @@ function makeStore(): ClassicyStore {
 					maxDateTime: null,
 					boundaryLocked: false,
 					dateTimeLocked: false,
+					syncTimeOnly: false,
 				},
 				Sound: { volume: 100, labels: {}, disabled: [] },
 				Desktop: {

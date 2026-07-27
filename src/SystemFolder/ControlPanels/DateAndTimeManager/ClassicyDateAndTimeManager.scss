@@ -23,3 +23,10 @@
   display: flex;
   flex-direction: column;
 }
+
+.classicyDateAndTimeManagerButtonRow {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
