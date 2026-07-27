@@ -45,6 +45,14 @@ export interface ClassicyMenuItem {
 	 * keystroke — so native editing keeps working and we don't preventDefault it.
 	 */
 	nativeShortcut?: boolean;
+	/**
+	 * Labels this item's title may take over its lifetime. The item reserves the
+	 * width of the widest of them (rendered as hidden, non-measured siblings of
+	 * the title), so a title that changes at runtime — the menu bar's App
+	 * Switcher tracking the focused app — never resizes the item and shifts the
+	 * layout around it. Slack sits to the right of the title.
+	 */
+	titleWidthSamples?: string[];
 	link?: string;
 	event?: string;
 	eventData?: Record<string, unknown>;
@@ -162,6 +170,17 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 
 	const hasChildren = menuItem.menuChildren && menuItem.menuChildren.length > 0;
 
+	// The visible title sits in the same grid cell as these, so it reserves its
+	// own width — only the *other* candidate labels need ghosts. Dropping the
+	// current one also keeps its text a single, unambiguous node in the DOM.
+	const widthSamples = useMemo(
+		() =>
+			(menuItem.titleWidthSamples ?? []).filter(
+				(sample) => sample !== menuItem.title,
+			),
+		[menuItem.titleWidthSamples, menuItem.title],
+	);
+
 	const executeAction = () => {
 		if (menuItem.onClickFunc) {
 			menuItem.onClickFunc();
@@ -269,7 +288,23 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 					) : menuItem.icon ? (
 						<img src={menuItem.icon} alt={menuItem.title} />
 					) : null}
-					{menuItem.title && he.decode(menuItem.title)}
+					{menuItem.title &&
+						(widthSamples.length > 0 ? (
+							<span className={"classicyMenuItemTitleSizer"}>
+								<span>{he.decode(menuItem.title)}</span>
+								{widthSamples.map((sample) => (
+									<span
+										key={sample}
+										className={"classicyMenuItemTitleSample"}
+										aria-hidden={"true"}
+									>
+										{he.decode(sample)}
+									</span>
+								))}
+							</span>
+						) : (
+							he.decode(menuItem.title)
+						))}
 				</p>
 				{menuItem.keyboardShortcut && (
 					<p className={"classicyMenuItemKeyboardShortcut"}>

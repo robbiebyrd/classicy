@@ -165,6 +165,24 @@
   user-select: none;
 }
 
+// Reserved-width title (`titleWidthSamples`): every candidate label is stacked
+// into the same single grid cell, so the cell — and with it the menu item — is
+// always as wide as the widest label. Only the current title paints; the rest
+// just hold the space, leaving the slack to the right of the title.
+.classicyMenuItemTitleSizer {
+  display: grid;
+  justify-items: start;
+  white-space: nowrap;
+
+  > * {
+    grid-area: 1 / 1;
+  }
+}
+
+.classicyMenuItemTitleSample {
+  visibility: hidden;
+}
+
 .classicyMenuItemOpen {
   color: var(--color-white);
   background-color: var(--color-theme-04);

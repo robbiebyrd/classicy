@@ -210,3 +210,44 @@ describe("ClassicyMenu", () => {
 		expect(container.querySelector("img")).toBeNull();
 	});
 });
+
+describe("ClassicyMenu — titleWidthSamples (reserved title width)", () => {
+	const sampleItem = {
+		id: "switcher",
+		title: "Finder",
+		titleWidthSamples: ["Finder", "PictureViewer", "SimpleText"],
+	};
+
+	it("renders the other sample labels hidden so the title reserves their width", () => {
+		const { container } = render(
+			<ClassicyMenu name="test-menu" menuItems={[sampleItem]} />,
+		);
+		const samples = container.querySelectorAll(".classicyMenuItemTitleSample");
+		expect([...samples].map((s) => s.textContent)).toEqual([
+			"PictureViewer",
+			"SimpleText",
+		]);
+		for (const sample of samples) {
+			expect(sample).toHaveAttribute("aria-hidden", "true");
+		}
+	});
+
+	it("keeps the current title as the only visible, readable label", () => {
+		render(<ClassicyMenu name="test-menu" menuItems={[sampleItem]} />);
+		// Would fail if the current title were also emitted as a hidden sample:
+		// getByText throws on multiple matches.
+		const visible = screen.getByText("Finder");
+		expect(visible).not.toHaveAttribute("aria-hidden");
+	});
+
+	it("renders a plain title when no samples are given", () => {
+		const { container } = render(
+			<ClassicyMenu
+				name="test-menu"
+				menuItems={[{ id: "f", title: "File" }]}
+			/>,
+		);
+		expect(container.querySelector(".classicyMenuItemTitleSizer")).toBeNull();
+		expect(screen.getByText("File")).toBeInTheDocument();
+	});
+});

@@ -151,21 +151,25 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
 
 	const appSwitcherMenuMenuItem: ClassicyMenuItem = useMemo(() => {
 		const focusedApp = appSwitcherData.find((a) => a.focused);
+		const openApps = appSwitcherData.filter((a) => a.open);
 		return {
 			id: "app-switcher",
 			image: focusedApp?.icon || "",
 			title: focusedApp?.name || "Finder",
 			className: "classicyDesktopMenuAppSwitcher",
-			menuChildren: appSwitcherData
-				.filter((a) => a.open)
-				.map((app) => ({
-					id: app.id,
-					icon: app.icon,
-					title: app.name,
-					onClickFunc: () => {
-						setActiveApp(app.id);
-					},
-				})),
+			// The switcher's title follows the focused app, and it floats at the
+			// right end of the bar — so a name-length change would otherwise resize
+			// it and shove the sound/time widgets sideways. Reserve the widest open
+			// app's width up front and the bar stays put.
+			titleWidthSamples: openApps.map((app) => app.name),
+			menuChildren: openApps.map((app) => ({
+				id: app.id,
+				icon: app.icon,
+				title: app.name,
+				onClickFunc: () => {
+					setActiveApp(app.id);
+				},
+			})),
 		};
 		// biome-ignore lint/correctness/useExhaustiveDependencies: setActiveApp is defined inline and recreated each render; including it would cause infinite loops
 	}, [appSwitcherData, setActiveApp]);

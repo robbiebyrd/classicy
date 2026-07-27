@@ -369,3 +369,64 @@ describe("ClassicyDesktopMenuBar — shortcut auto-registration (Keyboard regist
 		);
 	});
 });
+
+describe("ClassicyDesktopMenuBar — App Switcher width stability", () => {
+	beforeEach(() => {
+		useAppManager.setState(DefaultAppManagerState, true);
+	});
+
+	const app = (
+		id: string,
+		name: string,
+		extra: Partial<ClassicyStoreSystemApp> = {},
+	): ClassicyStoreSystemApp => ({
+		id,
+		name,
+		icon: `/icons/${name}.png`,
+		windows: [],
+		open: true,
+		focused: false,
+		data: {},
+		...extra,
+	});
+
+	it("reserves the width of every open app's name so the switcher never resizes", () => {
+		setStore((draft) => {
+			draft.System.Manager.Applications.apps = {
+				"Finder.app": app("Finder.app", "Finder", { focused: true }),
+				"PictureViewer.app": app("PictureViewer.app", "PictureViewer"),
+				"SimpleText.app": app("SimpleText.app", "SimpleText"),
+			};
+			draft.System.Manager.Applications.focusedAppId = "Finder.app";
+		});
+
+		render(<ClassicyDesktopMenuBar />);
+
+		const switcher = document.querySelector("#app-switcher");
+		const reserved = [
+			...(switcher?.querySelectorAll(
+				":scope > p .classicyMenuItemTitleSample",
+			) ?? []),
+		].map((s) => s.textContent);
+		expect(reserved).toEqual(["PictureViewer", "SimpleText"]);
+	});
+
+	it("does not reserve width for background extensions", () => {
+		setStore((draft) => {
+			draft.System.Manager.Applications.apps = {
+				"Finder.app": app("Finder.app", "Finder", { focused: true }),
+				"AppleGuide.app": app("AppleGuide.app", "AnExtremelyLongExtension", {
+					extension: true,
+				}),
+			};
+			draft.System.Manager.Applications.focusedAppId = "Finder.app";
+		});
+
+		render(<ClassicyDesktopMenuBar />);
+
+		const switcher = document.querySelector("#app-switcher");
+		expect(
+			switcher?.querySelector(":scope > p .classicyMenuItemTitleSample"),
+		).toBeNull();
+	});
+});
