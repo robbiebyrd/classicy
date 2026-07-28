@@ -30,7 +30,7 @@ vi.mock(
 vi.mock(
 	"@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics",
 	() => ({
-		useClassicyAnalytics: () => ({ track: vi.fn() }),
+		useClassicyAnalytics: () => ({ track: vi.fn(), page: vi.fn() }),
 	}),
 );
 
@@ -43,8 +43,14 @@ vi.mock("@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons", () => ({
 }));
 
 vi.mock("@/SystemFolder/SystemResources/Alert/ClassicyAlert.scss", () => ({}));
-vi.mock("@/SystemFolder/SystemResources/Window/ClassicyWindow.scss", () => ({}));
-vi.mock("@/SystemFolder/SystemResources/Button/ClassicyButton.scss", () => ({}));
+vi.mock(
+	"@/SystemFolder/SystemResources/Window/ClassicyWindow.scss",
+	() => ({}),
+);
+vi.mock(
+	"@/SystemFolder/SystemResources/Button/ClassicyButton.scss",
+	() => ({}),
+);
 
 describe("ClassicyAlert", () => {
 	beforeEach(() => {
@@ -65,9 +71,7 @@ describe("ClassicyAlert", () => {
 	});
 
 	it("shows the matching severity icon per alertType", () => {
-		const { rerender } = render(
-			<ClassicyAlert alertType="note" label="n" />,
-		);
+		const { rerender } = render(<ClassicyAlert alertType="note" label="n" />);
 		expect(screen.getByRole("img", { name: "Info" })).toBeInTheDocument();
 
 		rerender(<ClassicyAlert alertType="caution" label="c" />);
@@ -87,9 +91,9 @@ describe("ClassicyAlert", () => {
 
 	it("generates Cancel + default Continue for caution alerts", () => {
 		render(<ClassicyAlert alertType="caution" label="c" />);
-		expect(
-			screen.getByRole("button", { name: "Cancel" }),
-		).not.toHaveClass("classicyButtonDefault");
+		expect(screen.getByRole("button", { name: "Cancel" })).not.toHaveClass(
+			"classicyButtonDefault",
+		);
 		expect(screen.getByRole("button", { name: "Continue" })).toHaveClass(
 			"classicyButtonDefault",
 		);
@@ -161,9 +165,9 @@ describe("ClassicyAlert", () => {
 		expect(screen.getByRole("button", { name: "Cancel" })).toHaveClass(
 			"classicyButtonDefault",
 		);
-		expect(
-			screen.getByRole("button", { name: "Discard" }),
-		).not.toHaveClass("classicyButtonDefault");
+		expect(screen.getByRole("button", { name: "Discard" })).not.toHaveClass(
+			"classicyButtonDefault",
+		);
 	});
 
 	it("caps the button set at four", () => {

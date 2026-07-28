@@ -41,10 +41,17 @@ Focus is included because in a windowing UI it is the analogue of a browser tab
 switch. Without it, GA attributes the entire session to whichever window opened
 first, and "which window was the user actually on" is unanswerable.
 
-Opening a window normally focuses it, so both conditions fire in the same commit.
-A per-window ref holds the last path this window emitted while continuously
-active; an emission whose path matches it is skipped. The ref clears when the
-window closes or blurs, so re-focusing after visiting another window emits again.
+Opening a window normally focuses it, so both conditions fire in the same
+commit. `ClassicyWindow` tracks the previous commit's open/focus state in
+`wasOpenRef`/`wasFocusedRef` and derives `justOpened`/`justFocused` by
+comparing against the current commit; an emit fires when either is true. When
+open and focus land in the same commit (the common case — a window opens
+already focused), `justOpened` and `justFocused` are both true but the effect
+still runs once, producing a single emit, not two. When a window opens
+unfocused (e.g. several windows restored on reload with one focused), the open
+commit emits once; a later commit where the user focuses it emits again — by
+design, not a bug — two navigations for two distinct user-visible transitions.
+There is no dedupe by path and no ref that clears on blur.
 
 ### 2. Path derivation
 

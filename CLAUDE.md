@@ -119,6 +119,38 @@ Applications — pass `showInApplicationsFolder={false}` for that.
 The Trash and drive icons carry stock balloon help automatically
 (`ClassicyDesktopIconBalloons.ts`), resolved by icon kind at render time.
 
+### Analytics
+
+`useClassicyAnalytics()` returns `track(eventName, payload)` and
+`page(path, title)`. Both are referentially stable, and both fall back to
+silent no-ops when no `AnalyticsProvider` is mounted. Event names are prefixed
+with `ClassicyAnalyticsPrefixContext` (default `classicy_`); **pageview paths
+are not** — a path is a URL namespace, not an event name.
+
+`ClassicyWindow` emits a pageview whenever a window becomes open (whether or
+not it is focused) and whenever an open window gains focus — there is no
+deduplication between the two. A window that opens already focused only sees
+one commit (open+focus together), so that's a single emit; a window that
+opens unfocused and is focused later emits twice. Closing and blurring emit
+nothing.
+
+```tsx
+<ClassicyWindow analyticsPath="/editor/compose" />  // override the derived path
+<ClassicyWindow analyticsExclude />                 // no pageview at all
+```
+
+Paths are derived by `ClassicyAnalyticsPath.ts` as `/<app>/<window>`: the
+`appId` minus a trailing `.app`, plus the window id with any redundant app
+prefix stripped. **A window id containing a filesystem separator (`:` or `/`)
+is treated as user data** and collapses to `/file` or `/folder` — `ClassicyApp`
+builds file-window ids as `` `${id}_file_${filePath}` `` and Finder keys its
+windows by folder path, so slugifying either would leak user file names into GA
+and make path cardinality unbounded.
+
+The window *title* is sent to GA verbatim, including titles derived from user
+file names. That is a deliberate trade-off for readable content reports; the
+path is what stays free of user data.
+
 ### Balloon Help
 
 `ClassicyBalloonHelp` is a Mac OS 8-style tooltip component. Wrap any element with it to show a speech-bubble tooltip after a delay:
