@@ -29,6 +29,11 @@ const noOpAnalytics: AnalyticsInstance & {
 	},
 };
 
+// Explicitly typed so both branches of the hook return the same `page`
+// signature; the annotation, rather than unused parameters, is what carries it.
+const noOpPage: (path: string, title?: string) => Promise<void> = () =>
+	Promise.resolve();
+
 /**
  * A wrapper around useAnalytics that provides a safe default when analytics context is not available.
  * This prevents errors when the library is used in environments without the Analytics provider.
@@ -38,6 +43,9 @@ const noOpAnalytics: AnalyticsInstance & {
  * — consumers put `track` in effect dependency arrays, and an unstable identity
  * re-fires those effects every render (ClassicyAboutWindow's focus dispatch
  * looped into a "Maximum update depth exceeded" crash this way).
+ *
+ * `page(path, title)` is wrapped the same way, but its path is NOT prefixed —
+ * see the comment on the call below.
  */
 export const useClassicyAnalytics = () => {
 	const analytics = useAnalytics();
@@ -51,13 +59,16 @@ export const useClassicyAnalytics = () => {
 					"[ClassicyAnalytics] No analytics provider found. Using no-op fallback. Wrap your app in AnalyticsProvider to enable tracking.",
 				);
 			}
-			return noOpAnalytics;
+			return { ...noOpAnalytics, page: noOpPage };
 		}
 
 		return {
 			...analytics,
 			track: (eventName: string, payload?: Record<string, unknown>) =>
 				analytics.track(`${prefix}${eventName}`, payload),
+			// Deliberately NOT prefixed: the prefix namespaces custom event names,
+			// while a pageview path is a URL namespace.
+			page: (path: string, title?: string) => analytics.page({ path, title }),
 		};
 	}, [analytics, prefix]);
 };
