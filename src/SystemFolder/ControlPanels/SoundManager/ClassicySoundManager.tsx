@@ -123,7 +123,8 @@ export const ClassicySoundManager: FunctionalComponent = () => {
 			name={APP_NAME}
 			icon={appIcon}
 			defaultWindow={"SoundManager_1"}
-			noDesktopIcon={true}
+			showDesktopIcon={false}
+			showInApplicationsFolder={false}
 			addSystemMenu={true}
 		>
 			<ClassicyWindow

@@ -205,7 +205,8 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
 			name={APP_NAME}
 			icon={appIcon}
 			defaultWindow={"DateAndTimeManager_1"}
-			noDesktopIcon={true}
+			showDesktopIcon={false}
+			showInApplicationsFolder={false}
 			addSystemMenu={true}
 		>
 			<ClassicyWindow

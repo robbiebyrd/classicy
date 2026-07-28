@@ -108,8 +108,8 @@ export const ClassicyDriveSetup: FC = () => {
 				name={APP_NAME}
 				icon={appIcon}
 				defaultWindow={WINDOW_ID}
-				noDesktopIcon={true}
-				inApplicationsFolder={true}
+				showDesktopIcon={false}
+				showInApplicationsFolder={true}
 				addSystemMenu={true}
 			>
 				<ClassicyWindow

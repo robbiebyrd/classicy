@@ -28,3 +28,24 @@ const AddIcon = () => {
 export const Default: Story = {
 	render: () => <AddIcon />,
 };
+
+const AddIconWithBalloonHelp = () => {
+	const dispatch = useAppManagerDispatch();
+	useEffect(() => {
+		dispatch({
+			type: "ClassicyDesktopIconAdd",
+			app: { id: "storybook.app", name: "Storybook", icon: SB_ICON },
+			kind: "app_shortcut",
+			balloonHelp: {
+				title: "Storybook",
+				content: "Rest the pointer here to see balloon help.",
+				delay: 300,
+			},
+		});
+	}, [dispatch]);
+	return null;
+};
+
+export const WithBalloonHelp: Story = {
+	render: () => <AddIconWithBalloonHelp />,
+};

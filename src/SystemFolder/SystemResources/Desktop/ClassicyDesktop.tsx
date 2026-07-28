@@ -507,6 +507,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 					event={i.event}
 					eventData={i.eventData}
 					contextMenu={i.contextMenu}
+					balloonHelp={i.balloonHelp}
 					onClickFunc={
 						i.appId === "Trash"
 							? () => setShowEmptyTrashDialog(true)

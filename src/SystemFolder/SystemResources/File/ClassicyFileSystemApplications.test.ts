@@ -5,7 +5,10 @@ import {
 	buildApplicationsFolder,
 	withApplicationsFolder,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
-import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import {
+	type ClassicyFileSystemEntry,
+	ClassicyFileSystemEntryFileType,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 
 const appIcon = (
 	appId: string,
@@ -74,7 +77,10 @@ describe("buildApplicationsFolder", () => {
 });
 
 describe("Applications folder opt-out", () => {
-	const driveTree = () => ({
+	// Mirrors what production passes in (ClassicyFileSystem.fs): a root entry
+	// whose children are drives.
+	const driveTree = (): ClassicyFileSystemEntry => ({
+		_type: ClassicyFileSystemEntryFileType.Directory,
 		"Macintosh HD": {
 			_type: ClassicyFileSystemEntryFileType.Drive,
 			_icon: "/icons/hd.png",

@@ -91,6 +91,34 @@ const dispatch = useAppManagerDispatch();
 dispatch({ type: 'ClassicyAppOpen', app: { id, name, icon } });
 ```
 
+#### App Icon Visibility
+
+`ClassicyApp` controls its two icon surfaces independently. Both default to on;
+`extension` apps get neither.
+
+```tsx
+<ClassicyApp
+    id="TV.app" name="TV" icon={icon}
+    showDesktopIcon={false}          // keep it off the desktop
+    showInApplicationsFolder={true}  // but list it in Applications
+    desktopIconBalloonHelp="Double-click to watch TV."
+/>
+```
+
+- `showDesktopIcon` (default `true`) — draw an icon on the desktop.
+- `showInApplicationsFolder` (default `true`) — list the app in the derived
+  Applications folder. Independent of `showDesktopIcon`, so all four
+  combinations are reachable; turning both off removes any icon record.
+- `desktopIconBalloonHelp` — `string` (titled with the app name) or
+  `{ title?, content, position?, delay? }`.
+
+`noDesktopIcon` and `inApplicationsFolder` are deprecated aliases. Note the
+behavior change: `noDesktopIcon` alone no longer keeps an app out of
+Applications — pass `showInApplicationsFolder={false}` for that.
+
+The Trash and drive icons carry stock balloon help automatically
+(`ClassicyDesktopIconBalloons.ts`), resolved by icon kind at render time.
+
 ### Balloon Help
 
 `ClassicyBalloonHelp` is a Mac OS 8-style tooltip component. Wrap any element with it to show a speech-bubble tooltip after a delay:
@@ -104,6 +132,7 @@ dispatch({ type: 'ClassicyAppOpen', app: { id, name, icon } });
 - `position`: one of `top-left | top-center | top-right | bottom-left | bottom-center | bottom-right` (default `top-left`)
 - `delay`: hover delay in ms before balloon appears (default `600`)
 - Rendered via a React portal into `#classicyDesktop` so it is never clipped by parent overflow
+- The wrapper is `position: relative; display: inline-block`. If that would break your layout (e.g. an absolutely positioned element), use the `useClassicyBalloonHelp(ref, config)` hook instead — it returns `{ handlers, balloon }` to spread onto an element you already own, adding no DOM. `ClassicyDesktopIcon` does this.
 - Globally disabled by `System.Manager.Desktop.disableBalloonHelp` (Zustand store). Toggle with event `ClassicyDesktopSetBalloonHelp` — e.g. `dispatch({ type: 'ClassicyDesktopSetBalloonHelp', disableBalloonHelp: true })`
 
 ### Contextual Menus
