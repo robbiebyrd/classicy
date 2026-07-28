@@ -150,3 +150,67 @@ describe("ClassicyDesktopIcon contextual menu", () => {
 		).not.toBeInTheDocument();
 	});
 });
+
+describe("ClassicyDesktopIcon alias badging", () => {
+	const badge = (container: HTMLElement) =>
+		container.querySelector(".classicyDesktopIconAliasBadge");
+
+	it.each([
+		"app_shortcut",
+		"shortcut",
+	])("badges the %s kind and marks the icon as an alias", (kind) => {
+		const { container } = render(
+			<ClassicyDesktopIcon {...defaultProps} kind={kind} />,
+		);
+		expect(badge(container)).toBeInTheDocument();
+		expect(
+			container.querySelector(".classicyDesktopIconAlias"),
+		).toBeInTheDocument();
+	});
+
+	it.each([
+		"trash",
+		"drive",
+		"directory",
+		"file",
+		"icon",
+	])("leaves the system kind %s unbadged and unitalicized", (kind) => {
+		const { container } = render(
+			<ClassicyDesktopIcon {...defaultProps} kind={kind} />,
+		);
+		expect(badge(container)).not.toBeInTheDocument();
+		expect(
+			container.querySelector(".classicyDesktopIconAlias"),
+		).not.toBeInTheDocument();
+	});
+
+	it("gives the badge its own mask pair so it inherits the icon's state styling", () => {
+		const { container } = render(<ClassicyDesktopIcon {...defaultProps} />);
+		const badgeEl = badge(container) as HTMLElement;
+		expect(badgeEl).toHaveClass("classicyDesktopIconMaskOuter");
+		expect(
+			badgeEl.querySelector(".classicyDesktopIconMask > img"),
+		).toBeInTheDocument();
+		expect(badgeEl.style.getPropertyValue("--classicy-icon-mask")).toMatch(
+			/^url\(.+\)$/,
+		);
+	});
+
+	it("hides the badge from assistive technology", () => {
+		const { container } = render(<ClassicyDesktopIcon {...defaultProps} />);
+		const badgeImg = container.querySelector(
+			".classicyDesktopIconAliasBadge img",
+		) as HTMLImageElement;
+		expect(badgeImg).toHaveAttribute("alt", "");
+		expect(badgeImg).toHaveAttribute("aria-hidden", "true");
+	});
+
+	it("keeps the icon artwork inside its own wrapper", () => {
+		const { container } = render(<ClassicyDesktopIcon {...defaultProps} />);
+		const wrapper = container.querySelector(".classicyDesktopIconImage");
+		expect(wrapper).toBeInTheDocument();
+		expect(
+			wrapper?.querySelector(".classicyDesktopIconMask > img"),
+		).toBeInTheDocument();
+	});
+});

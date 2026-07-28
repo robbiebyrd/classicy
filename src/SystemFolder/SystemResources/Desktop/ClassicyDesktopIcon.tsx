@@ -1,3 +1,4 @@
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -10,6 +11,7 @@ import {
 } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
 import { useClassicyContextualMenu } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 import { defaultBalloonForKind } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconBalloons";
+import { isAliasKind } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconKinds";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
 import "./ClassicyDesktopIcon.scss";
@@ -206,6 +208,8 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 				}
 			};
 
+			const isAlias = isAliasKind(kind);
+
 			return (
 				// biome-ignore lint/a11y/useSemanticElements: desktop icon is a draggable div with ref and complex mouse handling incompatible with <button>
 				<div
@@ -237,17 +241,42 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 						"classicyDesktopIcon",
 						dragging ? "classicyDesktopIconDragging" : "",
 						getClass(),
+						isAlias ? "classicyDesktopIconAlias" : "",
 					)}
 					style={{ top: thisLocation[0], left: thisLocation[1] }}
 					{...balloonHandlers}
 				>
-					<div
-						className={"classicyDesktopIconMaskOuter"}
-						style={{ "--classicy-icon-mask": `url(${icon})` } as CSSProperties}
-					>
-						<div className={"classicyDesktopIconMask"}>
-							<img src={icon} alt={appName} />
+					<div className={"classicyDesktopIconImage"}>
+						<div
+							className={"classicyDesktopIconMaskOuter"}
+							style={
+								{ "--classicy-icon-mask": `url(${icon})` } as CSSProperties
+							}
+						>
+							<div className={"classicyDesktopIconMask"}>
+								<img src={icon} alt={appName} />
+							</div>
 						</div>
+						{isAlias && (
+							<div
+								className={
+									"classicyDesktopIconMaskOuter classicyDesktopIconAliasBadge"
+								}
+								style={
+									{
+										"--classicy-icon-mask": `url(${ClassicyIcons.system.alias})`,
+									} as CSSProperties
+								}
+							>
+								<div className={"classicyDesktopIconMask"}>
+									<img
+										src={ClassicyIcons.system.alias}
+										alt=""
+										aria-hidden="true"
+									/>
+								</div>
+							</div>
+						)}
 					</div>
 					<p>{label ? label : appName}</p>
 					{balloon}
