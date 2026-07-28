@@ -122,15 +122,21 @@ announced to assistive technology today, so this removes no information.
 }
 
 .classicyDesktopIconAliasBadge {
-  --badge-size: calc(var(--desktop-icon-size) / 4);
+  --alias-badge-size: calc(var(--desktop-icon-size) / 4);
   position: absolute;
   bottom: 0;
   left: 0;
-  width: var(--badge-size);
-  height: var(--badge-size);
+  width: var(--alias-badge-size);
+  height: var(--alias-badge-size);
   margin: 0;
 
-  .classicyDesktopIconMask,
+  .classicyDesktopIconMask {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    mask-size: 100% !important;
+  }
+
   img {
     width: 100%;
     height: 100%;
@@ -144,8 +150,10 @@ announced to assistive technology today, so this removes no information.
 ```
 
 The badge modifier must override the fixed `width`/`height` on
-`.classicyDesktopIconMaskOuter` and `.classicyDesktopIconMask`, and the
-`width: var(--desktop-icon-size)` on `.classicyDesktopIcon img`.
+`.classicyDesktopIconMaskOuter` and `.classicyDesktopIconMask`, the
+`width: var(--desktop-icon-size)` on `.classicyDesktopIcon img`, and
+`.classicyDesktopIconMask`'s `mask-size`, which is declared `!important` and so
+cannot be beaten by specificity alone.
 
 No state CSS is added. The selected rule already reads
 `.classicyDesktopIconActive .classicyDesktopIconMaskOuter img`, and the open and
