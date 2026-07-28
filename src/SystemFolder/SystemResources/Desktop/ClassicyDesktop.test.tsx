@@ -38,9 +38,7 @@ describe("ClassicyDesktop default apps", () => {
 		expect(driveSetupIcon?.hidden).toBe(true);
 		// …but no desktop icon is drawn for it (desktop icons render with
 		// id "<appId>.shortcut"). A visible app like SimpleText still gets one.
-		expect(
-			container.querySelector("#DriveSetup\\.app\\.shortcut"),
-		).toBeNull();
+		expect(container.querySelector("#DriveSetup\\.app\\.shortcut")).toBeNull();
 		expect(
 			container.querySelector("#SimpleText\\.app\\.shortcut"),
 		).not.toBeNull();

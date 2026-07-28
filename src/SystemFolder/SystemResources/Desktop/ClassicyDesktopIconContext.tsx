@@ -201,8 +201,7 @@ export const classicyDesktopIconEventHandler = (
 				// persisted still attaches on re-add. Location/label/wiring are
 				// intentionally left untouched.
 				const existing = ds.System.Manager.Desktop.icons.find(
-					(i) =>
-						i.appId === action.app.id && i.appName === action.app.name,
+					(i) => i.appId === action.app.id && i.appName === action.app.name,
 				);
 				if (existing) {
 					existing.contextMenu = action.contextMenu as ClassicyMenuItem[];

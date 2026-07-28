@@ -3,7 +3,13 @@ import {
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
+import "@/SystemFolder/SystemResources/BalloonHelp/ClassicyBalloonHelp.scss";
+import {
+	type ClassicyIconBalloonHelp,
+	useClassicyBalloonHelp,
+} from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
 import { useClassicyContextualMenu } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
+import { defaultBalloonForKind } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconBalloons";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
 import "./ClassicyDesktopIcon.scss";
@@ -30,6 +36,7 @@ interface ClassicyDesktopIconProps {
 	eventData?: Record<string, unknown>;
 	noLaunch?: boolean;
 	contextMenu?: ClassicyMenuItem[];
+	balloonHelp?: ClassicyIconBalloonHelp;
 }
 
 export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> =
@@ -45,6 +52,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			eventData,
 			noLaunch = false,
 			contextMenu,
+			balloonHelp,
 		}) => {
 			const [clickPosition, setClickPosition] = useState<[number, number]>([
 				0, 0,
@@ -71,6 +79,15 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			const { showContextMenu } = useClassicyContextualMenu();
 
 			const iconRef = useRef<HTMLDivElement>(null);
+
+			// Stock copy is resolved here, not stored on the icon record, so revised
+			// text ships with the library rather than staying frozen in localStorage.
+			const effectiveBalloonHelp =
+				balloonHelp ?? defaultBalloonForKind(kind, label ?? appName);
+			const { handlers: balloonHandlers, balloon } = useClassicyBalloonHelp(
+				iconRef,
+				effectiveBalloonHelp,
+			);
 
 			const id = `${appId}.shortcut`;
 			const { track } = useClassicyAnalytics();
@@ -222,6 +239,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 						getClass(),
 					)}
 					style={{ top: thisLocation[0], left: thisLocation[1] }}
+					{...balloonHandlers}
 				>
 					<div
 						className={"classicyDesktopIconMaskOuter"}
@@ -232,6 +250,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 						</div>
 					</div>
 					<p>{label ? label : appName}</p>
+					{balloon}
 				</div>
 			);
 		},
