@@ -49,3 +49,19 @@ const AddIconWithBalloonHelp = () => {
 export const WithBalloonHelp: Story = {
 	render: () => <AddIconWithBalloonHelp />,
 };
+
+const AddAliasIcon = () => {
+	const dispatch = useAppManagerDispatch();
+	useEffect(() => {
+		dispatch({
+			type: "ClassicyDesktopIconAdd",
+			app: { id: "storybook.app", name: "Storybook", icon: SB_ICON },
+			kind: "app_shortcut",
+		});
+	}, [dispatch]);
+	return null;
+};
+
+export const Alias: Story = {
+	render: () => <AddAliasIcon />,
+};
