@@ -34,6 +34,10 @@ const fileIcon = ClassicyIcons.system.files.file;
 // mousedown becomes a window drag; anything less is treated as a click.
 const dragThreshold = 4;
 
+import {
+	classicyWindowPagePath,
+	classicyWindowPageTitle,
+} from "@/SystemFolder/SystemResources/Analytics/ClassicyAnalyticsPath";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import { useClassicyCursor } from "@/SystemFolder/SystemResources/Cursor/useClassicyCursor";
 
@@ -121,6 +125,10 @@ interface ClassicyWindowProps {
 	header?: ReactNode;
 	appMenu?: ClassicyMenuItem[];
 	contextMenu?: ClassicyMenuItem[];
+	/** Override the generated analytics pageview path for this window. */
+	analyticsPath?: string;
+	/** Suppress this window's analytics pageview entirely. */
+	analyticsExclude?: boolean;
 	dimContents?: boolean;
 	onCloseFunc?: (id: string) => void;
 	children?: ReactNode;
@@ -193,6 +201,8 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	header,
 	appMenu,
 	contextMenu,
+	analyticsPath,
+	analyticsExclude,
 	onCloseFunc,
 	children,
 	windowType = "document",
@@ -233,7 +243,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	);
 	const [clickPosition, setClickPosition] = useState<[number, number]>([0, 0]);
 
-	const { track } = useClassicyAnalytics();
+	const { track, page } = useClassicyAnalytics();
 	const setCursor = useClassicyCursor();
 	const analyticsArgs = useMemo(() => {
 		return {
@@ -353,6 +363,48 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	useEffect(() => {
 		wsPositionRef.current = ws.position as [number, number];
 	}, [ws.position]);
+
+	const pageviewPath = useMemo(
+		() => analyticsPath ?? classicyWindowPagePath(appId, id),
+		[analyticsPath, appId, id],
+	);
+	const lastPageviewRef = useRef<string | null>(null);
+	const wasOpenRef = useRef(false);
+	const wasFocusedRef = useRef(false);
+
+	// GA pageviews for a windowing UI: a window becoming open, or an open
+	// window gaining focus, is the analogue of a navigation. Opening normally
+	// focuses in the same commit, so lastPageviewRef suppresses the double
+	// fire; it clears whenever the window is not focused, so re-focusing after
+	// visiting another window emits again.
+	useEffect(() => {
+		const isOpen = !ws.closed;
+		const isFocused = isOpen && ws.focused;
+		const justOpened = isOpen && !wasOpenRef.current;
+		const justFocused = isFocused && !wasFocusedRef.current;
+		wasOpenRef.current = isOpen;
+		wasFocusedRef.current = isFocused;
+
+		if (!isFocused) lastPageviewRef.current = null;
+
+		if (analyticsExclude || !isOpen) return;
+		if (!justOpened && !justFocused) return;
+		if (lastPageviewRef.current === pageviewPath) return;
+
+		lastPageviewRef.current = pageviewPath;
+		page(
+			pageviewPath,
+			classicyWindowPageTitle(currentApp?.name, title, pageviewPath),
+		);
+	}, [
+		ws.closed,
+		ws.focused,
+		analyticsExclude,
+		pageviewPath,
+		currentApp?.name,
+		title,
+		page,
+	]);
 
 	const windowRegistered = useRef(false);
 	const lastMenuBarSignatureRef = useRef<string | undefined>(undefined);

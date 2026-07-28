@@ -73,6 +73,7 @@ export * from "./SystemFolder/SimpleText/SimpleText";
 export * from "./SystemFolder/SystemResources/AboutWindow/ClassicyAboutWindow";
 export * from "./SystemFolder/SystemResources/AboutWindow/ClassicyAboutWindowUtils";
 export * from "./SystemFolder/SystemResources/Alert/ClassicyAlert";
+export * from "./SystemFolder/SystemResources/Analytics/ClassicyAnalyticsPath";
 export * from "./SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 export * from "./SystemFolder/SystemResources/App/ClassicyApp";
 export * from "./SystemFolder/SystemResources/App/ClassicyAppMenuHooks";

@@ -66,7 +66,7 @@ vi.mock(
 vi.mock(
 	"@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics",
 	() => ({
-		useClassicyAnalytics: () => ({ track: vi.fn() }),
+		useClassicyAnalytics: () => ({ track: vi.fn(), page: vi.fn() }),
 	}),
 );
 
