@@ -709,6 +709,7 @@ export const HyperCard: FunctionalComponent = () => {
 			id={appId}
 			name={appName}
 			icon={appIcon}
+			showDesktopIcon={false}
 			addSystemMenu={true}
 			defaultWindow={"hypercard_main"}
 			handlesFileTypes={[ClassicyFileSystemEntryFileType.Stack]}

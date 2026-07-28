@@ -92,6 +92,7 @@ export const PDFViewer: FunctionalComponent = () => {
 			icon={appIcon}
 			handlesFileTypes={[ClassicyFileSystemEntryFileType.Pdf]}
 			handlesOwnFiles={true}
+			showDesktopIcon={false}
 		>
 			{openFiles.map((filePath: string, idx: number) => {
 				const entry = fs.resolve(filePath);

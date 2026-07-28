@@ -225,6 +225,7 @@ export const MoviePlayer: FunctionalComponent = () => {
 			id={appId}
 			name={appName}
 			icon={appIcon}
+			showDesktopIcon={false}
 			handlesFileTypes={[
 				ClassicyFileSystemEntryFileType.Video,
 				ClassicyFileSystemEntryFileType.Audio,
