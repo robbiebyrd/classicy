@@ -1,4 +1,5 @@
 import "./PictureViewer.scss";
+import samplePicture from "@img/apps/quicktime/sample-picture.jpg?inline";
 import {
 	type FC as FunctionalComponent,
 	useCallback,
@@ -6,17 +7,17 @@ import {
 	useMemo,
 	useRef,
 } from "react";
-import samplePicture from "@img/apps/quicktime/sample-picture.jpg?inline";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import {
-	PictureViewerAppInfo,
 	isPictureViewerData,
+	PictureViewerAppInfo,
 	type PictureViewerOpenFile,
 } from "@/SystemFolder/QuickTime/PictureViewer/PictureViewerUtils";
+import { classicyWindowPagePath } from "@/SystemFolder/SystemResources/Analytics/ClassicyAnalyticsPath";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import {
 	useClassicyAboutMenu,
@@ -192,7 +193,15 @@ export const QuickTimePictureViewer: FunctionalComponent = () => {
 				menuChildren: [aboutMenuItem],
 			},
 		],
-		[appId, appName, appIcon, closeWindow, closeDocAction, windowEntries, aboutMenuItem],
+		[
+			appId,
+			appName,
+			appIcon,
+			closeWindow,
+			closeDocAction,
+			windowEntries,
+			aboutMenuItem,
+		],
 	);
 
 	return (
@@ -220,6 +229,13 @@ export const QuickTimePictureViewer: FunctionalComponent = () => {
 					initialSize={[400, 100]}
 					initialPosition={[300, 50]}
 					modal={false}
+					// windowId embeds doc.key, which is a filesystem path or a
+					// consumer-supplied URL. A relative URL carries no separator for
+					// the path deriver's collapse rule to catch, so the document
+					// name would land in the analytics path. Only this component
+					// knows that segment is user data, so it overrides the path with
+					// a code-authored token.
+					analyticsPath={classicyWindowPagePath(appId, "document")}
 					appMenu={buildAppMenu(windowId, doc)}
 					onCloseFunc={() =>
 						doc.path
