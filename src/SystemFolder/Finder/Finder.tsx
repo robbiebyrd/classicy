@@ -8,6 +8,7 @@ import {
 	useState,
 } from "react";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import type { ActionMessage } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -16,13 +17,12 @@ import {
 	buildDriveContextMenu,
 	isDriveSyncConnected,
 } from "@/SystemFolder/ControlPanels/DriveSetup/ClassicyDriveSetupUtils";
-import {
-	isFinderData,
-	type FinderData,
-} from "@/SystemFolder/Finder/FinderContext";
 import { FinderAboutThisComputer } from "@/SystemFolder/Finder/FinderAboutThisComputer";
+import {
+	type FinderData,
+	isFinderData,
+} from "@/SystemFolder/Finder/FinderContext";
 import { useFinderFolderSize } from "@/SystemFolder/Finder/useFinderFolderSize";
-import type { ActionMessage } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import {
 	useClassicyAboutMenu,
@@ -32,14 +32,14 @@ import {
 	closeAllWindowsMenuItemHelper,
 	closeWindowMenuItemHelper,
 } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
-import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { ClassicyFileBrowser } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowser";
-import { useClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
 import type { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
+import { useClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
 import type {
 	ClassicyFileSystemEntry,
 	ClassicyFileSystemEntryMetadata,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
 const appIcon = ClassicyIcons.system.mac;
@@ -382,7 +382,8 @@ export const Finder = () => {
 			id={appId}
 			name={appName}
 			icon={appIcon}
-			noDesktopIcon={true}
+			showDesktopIcon={false}
+			showInApplicationsFolder={false}
 			defaultWindow={
 				finderData.openPaths?.length
 					? finderData.openPaths.at(0)

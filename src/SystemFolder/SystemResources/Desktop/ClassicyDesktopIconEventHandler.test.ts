@@ -492,3 +492,111 @@ describe("classicyDesktopIconEventHandler — ClassicyDesktopIconOpen", () => {
 		expect(ds.System.Manager.Applications.apps["Notes.app"].open).toBe(true);
 	});
 });
+
+describe("classicyDesktopIconEventHandler — ClassicyDesktopIconAdd new fields", () => {
+	const addAction = (extra: Record<string, unknown> = {}) => ({
+		type: "ClassicyDesktopIconAdd",
+		app: { id: "TV.app", name: "TV", icon: "/icons/tv.png" },
+		kind: "app_shortcut",
+		...extra,
+	});
+
+	const findIcon = (ds: ClassicyStore, appId: string) =>
+		ds.System.Manager.Desktop.icons.find((i) => i.appId === appId);
+
+	it("persists inApplications: false", () => {
+		const ds = classicyDesktopIconEventHandler(
+			makeStoreForDesktop(),
+			addAction({ inApplications: false }),
+		);
+		expect(findIcon(ds, "TV.app")?.inApplications).toBe(false);
+	});
+
+	it("leaves inApplications undefined when not supplied", () => {
+		const ds = classicyDesktopIconEventHandler(
+			makeStoreForDesktop(),
+			addAction(),
+		);
+		expect(findIcon(ds, "TV.app")?.inApplications).toBeUndefined();
+	});
+
+	it("persists balloonHelp", () => {
+		const ds = classicyDesktopIconEventHandler(
+			makeStoreForDesktop(),
+			addAction({
+				balloonHelp: { title: "TV", content: "Watch TV.", delay: 250 },
+			}),
+		);
+		expect(findIcon(ds, "TV.app")?.balloonHelp).toEqual({
+			title: "TV",
+			content: "Watch TV.",
+			position: undefined,
+			delay: 250,
+		});
+	});
+
+	it("ignores a malformed balloonHelp payload", () => {
+		const ds = classicyDesktopIconEventHandler(
+			makeStoreForDesktop(),
+			addAction({ balloonHelp: { title: "TV" } }),
+		);
+		expect(findIcon(ds, "TV.app")?.balloonHelp).toBeUndefined();
+	});
+
+	it("refreshes inApplications, hidden and balloonHelp on re-add", () => {
+		let ds = classicyDesktopIconEventHandler(
+			makeStoreForDesktop(),
+			addAction({ balloonHelp: { content: "Old text." } }),
+		);
+		ds = classicyDesktopIconEventHandler(
+			ds,
+			addAction({
+				hidden: true,
+				inApplications: false,
+				balloonHelp: { content: "New text." },
+			}),
+		);
+		const icon = findIcon(ds, "TV.app");
+		expect(icon?.hidden).toBe(true);
+		expect(icon?.inApplications).toBe(false);
+		expect(icon?.balloonHelp?.content).toBe("New text.");
+	});
+
+	it("preserves a user-moved location across a re-add", () => {
+		let ds = classicyDesktopIconEventHandler(
+			makeStoreForDesktop(),
+			addAction(),
+		);
+		ds = classicyDesktopIconEventHandler(ds, {
+			type: "ClassicyDesktopIconMove",
+			app: { id: "TV.app" },
+			location: [42, 84],
+		});
+		ds = classicyDesktopIconEventHandler(
+			ds,
+			addAction({ balloonHelp: { content: "New text." } }),
+		);
+		expect(findIcon(ds, "TV.app")?.location).toEqual([42, 84]);
+	});
+
+	it("re-flows the desktop grid when hidden changes on re-add", () => {
+		// Named so the icon being hidden sorts first: cleanup lays icons out in
+		// array order, so hiding the first one must pull the second up.
+		const alpha = {
+			type: "ClassicyDesktopIconAdd",
+			app: { id: "Alpha.app", name: "Alpha", icon: "/icons/a.png" },
+			kind: "app_shortcut",
+		};
+		let ds = classicyDesktopIconEventHandler(makeStoreForDesktop(), alpha);
+		ds = classicyDesktopIconEventHandler(ds, {
+			type: "ClassicyDesktopIconAdd",
+			app: { id: "Beta.app", name: "Beta", icon: "/icons/b.png" },
+			kind: "app_shortcut",
+		});
+		const betaBefore = findIcon(ds, "Beta.app")?.location;
+
+		ds = classicyDesktopIconEventHandler(ds, { ...alpha, hidden: true });
+
+		expect(findIcon(ds, "Beta.app")?.location).not.toEqual(betaBefore);
+	});
+});

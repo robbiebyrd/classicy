@@ -287,7 +287,8 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 			name={APP_NAME}
 			icon={appIcon}
 			defaultWindow={"AppearanceManager_1"}
-			noDesktopIcon={true}
+			showDesktopIcon={false}
+			showInApplicationsFolder={false}
 			addSystemMenu={true}
 		>
 			<ClassicyWindow

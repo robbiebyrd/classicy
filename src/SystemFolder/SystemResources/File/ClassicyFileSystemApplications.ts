@@ -7,9 +7,18 @@ import {
 
 export const APP_SHORTCUT_ICON_KIND = "app_shortcut";
 
+/** An icon belongs in the derived Applications folder when it is an app
+ *  shortcut that has not opted out. Undefined `inApplications` means opted in,
+ *  so icons persisted before the field existed keep appearing. */
+const isApplicationsEntry = (
+	icon: ClassicyStoreSystemDesktopManagerIcon,
+): boolean =>
+	icon.kind === APP_SHORTCUT_ICON_KIND && icon.inApplications !== false;
+
 /**
  * Derives the virtual "Applications" folder from the desktop's registered
- * app-shortcut icons. The result is merged into the live file system tree at
+ * app-shortcut icons that have not opted out. The result is merged into the
+ * live file system tree at
  * read time (see useClassicyFileSystem) and is never persisted, so the folder
  * always mirrors the apps currently mounted.
  */
@@ -23,7 +32,7 @@ export const buildApplicationsFolder = (
 	};
 
 	for (const icon of icons) {
-		if (icon.kind !== APP_SHORTCUT_ICON_KIND) continue;
+		if (!isApplicationsEntry(icon)) continue;
 		folder[icon.appName] = {
 			_type: ClassicyFileSystemEntryFileType.AppShortcut,
 			_icon: icon.icon,
@@ -47,7 +56,7 @@ export const withApplicationsFolder = (
 	tree: ClassicyFileSystemEntry,
 	icons: ClassicyStoreSystemDesktopManagerIcon[],
 ): ClassicyFileSystemEntry => {
-	if (!icons.some((i) => i.kind === APP_SHORTCUT_ICON_KIND)) return tree;
+	if (!icons.some(isApplicationsEntry)) return tree;
 
 	const driveKey = Object.keys(tree).find(
 		(key) => tree[key]?._type === ClassicyFileSystemEntryFileType.Drive,

@@ -1,8 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import type { ClassicyStoreSystemDesktopManagerIcon } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
-import { buildApplicationsFolder } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
-import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import {
+	buildApplicationsFolder,
+	withApplicationsFolder,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
+import {
+	type ClassicyFileSystemEntry,
+	ClassicyFileSystemEntryFileType,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 
 const appIcon = (
 	appId: string,
@@ -67,5 +73,51 @@ describe("buildApplicationsFolder", () => {
 			_readOnly: true,
 			_nameLocked: true,
 		});
+	});
+});
+
+describe("Applications folder opt-out", () => {
+	// Mirrors what production passes in (ClassicyFileSystem.fs): a root entry
+	// whose children are drives.
+	const driveTree = (): ClassicyFileSystemEntry => ({
+		_type: ClassicyFileSystemEntryFileType.Directory,
+		"Macintosh HD": {
+			_type: ClassicyFileSystemEntryFileType.Drive,
+			_icon: "/icons/hd.png",
+		},
+	});
+
+	it("excludes an app_shortcut icon with inApplications: false", () => {
+		const folder = buildApplicationsFolder([
+			appIcon("TV.app", "TV"),
+			{ ...appIcon("Secret.app", "Secret"), inApplications: false },
+		]);
+
+		expect(folder.TV).toBeDefined();
+		expect(folder.Secret).toBeUndefined();
+	});
+
+	it("includes icons where inApplications is undefined", () => {
+		const folder = buildApplicationsFolder([appIcon("TV.app", "TV")]);
+		expect(folder.TV).toBeDefined();
+	});
+
+	it("leaves the tree untouched when every app_shortcut opts out", () => {
+		const tree = driveTree();
+		const result = withApplicationsFolder(tree, [
+			{ ...appIcon("Secret.app", "Secret"), inApplications: false },
+		]);
+
+		expect(result).toBe(tree);
+	});
+
+	it("still merges Applications when at least one app opts in", () => {
+		const result = withApplicationsFolder(driveTree(), [
+			appIcon("TV.app", "TV"),
+			{ ...appIcon("Secret.app", "Secret"), inApplications: false },
+		]);
+
+		expect(result["Macintosh HD"].Applications.TV).toBeDefined();
+		expect(result["Macintosh HD"].Applications.Secret).toBeUndefined();
 	});
 });

@@ -36,24 +36,154 @@ vi.mock("@/SystemFolder/SystemResources/Window/ClassicyWindow", () => ({
 	ClassicyWindow: (): null => null,
 }));
 
-type IconAddAction = {
+type IconAction = {
 	type: string;
 	kind?: string;
 	hidden?: boolean;
+	inApplications?: boolean;
+	balloonHelp?: { title?: string; content: string };
 	app?: { id?: string };
 };
 
-const iconAddActions = (): IconAddAction[] =>
+const actionsOfType = (type: string): IconAction[] =>
 	mockDispatch.mock.calls
-		.map((call) => call[0] as IconAddAction)
-		.filter((a) => a.type === "ClassicyDesktopIconAdd");
+		.map((call) => call[0] as IconAction)
+		.filter((a) => a.type === type);
 
-describe("ClassicyApp inApplicationsFolder prop", () => {
+const iconAddActions = () => actionsOfType("ClassicyDesktopIconAdd");
+const iconRemoveActions = () => actionsOfType("ClassicyDesktopIconRemove");
+
+describe("ClassicyApp icon visibility", () => {
 	beforeEach(() => {
 		mockDispatch.mockClear();
 	});
 
-	it("registers a HIDDEN app_shortcut icon when noDesktopIcon + inApplicationsFolder", () => {
+	it("shows a desktop icon and lists in Applications by default", () => {
+		render(<ClassicyApp id="Reg.app" name="Reg" icon="/icons/reg.png" />);
+		const adds = iconAddActions();
+		expect(adds).toHaveLength(1);
+		expect(adds[0].kind).toBe("app_shortcut");
+		expect(adds[0].hidden).toBeFalsy();
+		expect(adds[0].inApplications).toBeUndefined();
+	});
+
+	it("registers a hidden icon for showDesktopIcon={false}", () => {
+		render(
+			<ClassicyApp
+				id="Panel.app"
+				name="Panel"
+				icon="/icons/panel.png"
+				showDesktopIcon={false}
+			/>,
+		);
+		const adds = iconAddActions();
+		expect(adds).toHaveLength(1);
+		expect(adds[0].hidden).toBe(true);
+		expect(adds[0].inApplications).toBeUndefined();
+	});
+
+	it("registers a visible icon opted out of Applications", () => {
+		render(
+			<ClassicyApp
+				id="Solo.app"
+				name="Solo"
+				icon="/icons/solo.png"
+				showInApplicationsFolder={false}
+			/>,
+		);
+		const adds = iconAddActions();
+		expect(adds).toHaveLength(1);
+		expect(adds[0].hidden).toBeFalsy();
+		expect(adds[0].inApplications).toBe(false);
+	});
+
+	it("removes the icon when both surfaces are off", () => {
+		render(
+			<ClassicyApp
+				id="Ghost.app"
+				name="Ghost"
+				icon="/icons/ghost.png"
+				showDesktopIcon={false}
+				showInApplicationsFolder={false}
+			/>,
+		);
+		expect(iconAddActions()).toHaveLength(0);
+		const removes = iconRemoveActions();
+		expect(removes).toHaveLength(1);
+		expect(removes[0].app?.id).toBe("Ghost.app");
+	});
+
+	it("registers no icon at all for an extension, whatever the props say", () => {
+		render(
+			<ClassicyApp
+				id="Ext.app"
+				name="Ext"
+				icon="/icons/ext.png"
+				extension
+				showDesktopIcon
+				showInApplicationsFolder
+			/>,
+		);
+		expect(iconAddActions()).toHaveLength(0);
+		expect(iconRemoveActions()).toHaveLength(0);
+	});
+
+	it("attaches normalized balloon help titled with the app name", () => {
+		render(
+			<ClassicyApp
+				id="TV.app"
+				name="TV"
+				icon="/icons/tv.png"
+				desktopIconBalloonHelp="Watch TV."
+			/>,
+		);
+		expect(iconAddActions()[0].balloonHelp).toEqual({
+			title: "TV",
+			content: "Watch TV.",
+		});
+	});
+
+	it("passes the object form of balloon help through", () => {
+		render(
+			<ClassicyApp
+				id="TV.app"
+				name="TV"
+				icon="/icons/tv.png"
+				desktopIconBalloonHelp={{
+					title: "Television",
+					content: "Watch TV.",
+					position: "bottom-center",
+				}}
+			/>,
+		);
+		expect(iconAddActions()[0].balloonHelp).toEqual({
+			title: "Television",
+			content: "Watch TV.",
+			position: "bottom-center",
+		});
+	});
+});
+
+describe("ClassicyApp deprecated icon props", () => {
+	beforeEach(() => {
+		mockDispatch.mockClear();
+	});
+
+	it("maps noDesktopIcon to a hidden icon", () => {
+		render(
+			<ClassicyApp
+				id="Panel.app"
+				name="Panel"
+				icon="/icons/panel.png"
+				noDesktopIcon
+			/>,
+		);
+		const adds = iconAddActions();
+		expect(adds).toHaveLength(1);
+		expect(adds[0].hidden).toBe(true);
+	});
+
+	it("still honors noDesktopIcon + inApplicationsFolder", () => {
 		render(
 			<ClassicyApp
 				id="DriveSetup.app"
@@ -70,23 +200,28 @@ describe("ClassicyApp inApplicationsFolder prop", () => {
 		expect(adds[0].app?.id).toBe("DriveSetup.app");
 	});
 
-	it("registers NO icon when noDesktopIcon alone (no inApplicationsFolder)", () => {
+	it("maps inApplicationsFolder={false} to an opt-out", () => {
 		render(
 			<ClassicyApp
-				id="Panel.app"
-				name="Panel"
-				icon="/icons/panel.png"
-				noDesktopIcon
+				id="Solo.app"
+				name="Solo"
+				icon="/icons/solo.png"
+				inApplicationsFolder={false}
 			/>,
 		);
-		expect(iconAddActions()).toHaveLength(0);
+		expect(iconAddActions()[0].inApplications).toBe(false);
 	});
 
-	it("registers a normal (non-hidden) app_shortcut icon for a regular app", () => {
-		render(<ClassicyApp id="Reg.app" name="Reg" icon="/icons/reg.png" />);
-		const adds = iconAddActions();
-		expect(adds).toHaveLength(1);
-		expect(adds[0].kind).toBe("app_shortcut");
-		expect(adds[0].hidden).toBeFalsy();
+	it("lets the new props win when both forms are passed", () => {
+		render(
+			<ClassicyApp
+				id="Both.app"
+				name="Both"
+				icon="/icons/both.png"
+				noDesktopIcon
+				showDesktopIcon
+			/>,
+		);
+		expect(iconAddActions()[0].hidden).toBeFalsy();
 	});
 });
