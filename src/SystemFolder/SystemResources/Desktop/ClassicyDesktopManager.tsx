@@ -23,6 +23,7 @@ import type {
 	ClassicyStore,
 	ClassicyStoreSystemManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import type { ClassicyIconBalloonHelp } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
 export interface ClassicyStoreSystemDesktopManagerIcon {
@@ -41,6 +42,14 @@ export interface ClassicyStoreSystemDesktopManagerIcon {
 	 * opt into the Applications folder via `inApplicationsFolder` while keeping
 	 * `noDesktopIcon`. */
 	hidden?: boolean;
+	/** When false, the icon is excluded from the derived Applications folder.
+	 * Undefined means included, so icons persisted before this field existed
+	 * keep their current behavior. */
+	inApplications?: boolean;
+	/** Balloon help shown when the pointer rests on the icon. Stock copy for
+	 * system kinds (trash, drive) is resolved at render time instead — see
+	 * ClassicyDesktopIconBalloons. */
+	balloonHelp?: ClassicyIconBalloonHelp;
 }
 
 export interface ClassicyStoreSystemDesktopManager

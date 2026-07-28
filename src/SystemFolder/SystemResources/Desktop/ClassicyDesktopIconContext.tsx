@@ -16,6 +16,10 @@ import type {
 	ActionMessage,
 	ClassicyStore,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import type {
+	ClassicyBalloonPosition,
+	ClassicyIconBalloonHelp,
+} from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
 import type { ClassicyStoreSystemDesktopManagerIcon } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
@@ -112,6 +116,25 @@ const cleanupDesktopIcons = (
 	return newDesktopIcons;
 };
 
+// Actions arrive untyped, and whatever lands here is persisted to localStorage,
+// so balloon payloads are validated field by field rather than cast.
+const readBalloonHelp = (
+	value: unknown,
+): ClassicyIconBalloonHelp | undefined => {
+	if (typeof value !== "object" || value === null) return undefined;
+	const candidate = value as Record<string, unknown>;
+	if (typeof candidate.content !== "string") return undefined;
+	return {
+		content: candidate.content,
+		title: typeof candidate.title === "string" ? candidate.title : undefined,
+		position:
+			typeof candidate.position === "string"
+				? (candidate.position as ClassicyBalloonPosition)
+				: undefined,
+		delay: typeof candidate.delay === "number" ? candidate.delay : undefined,
+	};
+};
+
 export const classicyDesktopIconEventHandler = (
 	ds: ClassicyStore,
 	action: ActionMessage,
@@ -189,22 +212,41 @@ export const classicyDesktopIconEventHandler = (
 						? (action.contextMenu as ClassicyMenuItem[])
 						: undefined,
 					hidden: action.hidden === true ? true : undefined,
+					inApplications: action.inApplications === false ? false : undefined,
+					balloonHelp: readBalloonHelp(action.balloonHelp),
 				});
 
 				ds.System.Manager.Desktop.icons = cleanupDesktopIcons(
 					ds.System.Manager.Appearance.activeTheme,
 					sortDesktopIcons(ds.System.Manager.Desktop.icons, "kind"),
 				);
-			} else if (Array.isArray(action.contextMenu)) {
-				// Refresh the (serializable, code-derived) context menu on an
-				// existing icon so a menu shipped after the icon was first
-				// persisted still attaches on re-add. Location/label/wiring are
-				// intentionally left untouched.
+			} else {
+				// Icons persist to localStorage, so an app whose registration
+				// changed between sessions would otherwise keep its stale record
+				// forever. Serializable, code-derived fields are refreshed on every
+				// re-add; location and label are user state and are left alone.
 				const existing = ds.System.Manager.Desktop.icons.find(
 					(i) => i.appId === action.app.id && i.appName === action.app.name,
 				);
 				if (existing) {
-					existing.contextMenu = action.contextMenu as ClassicyMenuItem[];
+					if (Array.isArray(action.contextMenu)) {
+						existing.contextMenu = action.contextMenu as ClassicyMenuItem[];
+					}
+					const nextHidden = action.hidden === true ? true : undefined;
+					const hiddenChanged = existing.hidden !== nextHidden;
+					existing.hidden = nextHidden;
+					existing.inApplications =
+						action.inApplications === false ? false : undefined;
+					existing.balloonHelp = readBalloonHelp(action.balloonHelp);
+
+					// Hidden icons do not consume a grid slot, so a change in either
+					// direction has to re-flow the remaining icons.
+					if (hiddenChanged) {
+						ds.System.Manager.Desktop.icons = cleanupDesktopIcons(
+							ds.System.Manager.Appearance.activeTheme,
+							ds.System.Manager.Desktop.icons,
+						);
+					}
 				}
 			}
 			break;
