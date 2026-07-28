@@ -164,6 +164,20 @@ describe("ClassicyWindow pageview", () => {
 		expect(mockPage).toHaveBeenCalledTimes(1);
 	});
 
+	it("emits twice for a window that mounts open but unfocused, then gains focus", () => {
+		windowState.focused = false;
+		const { rerender } = renderWindow();
+		expect(mockPage).toHaveBeenCalledTimes(1);
+
+		windowState.focused = true;
+		rerender(
+			<ClassicyWindow id="TestApp_1" appId="TestApp" title="Untitled">
+				<p>content</p>
+			</ClassicyWindow>,
+		);
+		expect(mockPage).toHaveBeenCalledTimes(2);
+	});
+
 	it("uses analyticsPath instead of the derived path", () => {
 		renderWindow({ analyticsPath: "/editor/compose" });
 		expect(mockPage).toHaveBeenCalledWith(

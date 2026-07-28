@@ -368,15 +368,17 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		() => analyticsPath ?? classicyWindowPagePath(appId, id),
 		[analyticsPath, appId, id],
 	);
-	const lastPageviewRef = useRef<string | null>(null);
 	const wasOpenRef = useRef(false);
 	const wasFocusedRef = useRef(false);
 
-	// GA pageviews for a windowing UI: a window becoming open, or an open
-	// window gaining focus, is the analogue of a navigation. Opening normally
-	// focuses in the same commit, so lastPageviewRef suppresses the double
-	// fire; it clears whenever the window is not focused, so re-focusing after
-	// visiting another window emits again.
+	// GA pageviews for a windowing UI: a window becoming open is a navigation
+	// in its own right, and an open window gaining focus is a second, distinct
+	// navigation — both emit, even when they land on the same path. A window
+	// that opens already focused only sees ONE commit (open+focus together),
+	// so that's a single emit, not two; a window that opens unfocused (e.g.
+	// several windows restored on reload) emits on open, then emits again
+	// whenever it's later focused. wasOpenRef/wasFocusedRef track the previous
+	// commit's state so repeats (no open/focus transition) stay silent.
 	useEffect(() => {
 		const isOpen = !ws.closed;
 		const isFocused = isOpen && ws.focused;
@@ -385,13 +387,9 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		wasOpenRef.current = isOpen;
 		wasFocusedRef.current = isFocused;
 
-		if (!isFocused) lastPageviewRef.current = null;
-
 		if (analyticsExclude || !isOpen) return;
 		if (!justOpened && !justFocused) return;
-		if (lastPageviewRef.current === pageviewPath) return;
 
-		lastPageviewRef.current = pageviewPath;
 		page(
 			pageviewPath,
 			classicyWindowPageTitle(currentApp?.name, title, pageviewPath),
