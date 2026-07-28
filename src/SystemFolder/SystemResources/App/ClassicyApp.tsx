@@ -10,6 +10,8 @@ import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import type { ClassicyIconBalloonHelp } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
+import { normalizeIconBalloonHelp } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconBalloons";
 import type { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { canonicalChord } from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
@@ -26,12 +28,21 @@ export interface ClassicyAppProps {
 	name: string;
 	icon: string;
 	defaultWindow?: string;
+	/** Draw an icon for this app on the desktop. Defaults to true. Ignored for
+	 *  `extension` apps, which are background-only. */
+	showDesktopIcon?: boolean;
+	/** List this app in the derived Applications folder. Defaults to true, and
+	 *  is independent of `showDesktopIcon` — an app can appear on the desktop
+	 *  but not in Applications, or the reverse. Ignored for `extension` apps. */
+	showInApplicationsFolder?: boolean;
+	/** Balloon help for this app's desktop icon. A bare string supplies the
+	 *  content and titles the balloon with the app's name. */
+	desktopIconBalloonHelp?: string | ClassicyIconBalloonHelp;
+	/** @deprecated Use `showDesktopIcon={false}`. */
 	noDesktopIcon?: boolean;
-	/** Opt into the derived Applications folder without a desktop icon. When
-	 *  set alongside `noDesktopIcon`, the app registers a HIDDEN app-shortcut
-	 *  icon: it populates Applications but is never drawn on the desktop.
-	 *  Ignored for `extension` apps and for apps that already show a desktop
-	 *  icon (they appear in Applications anyway). */
+	/** @deprecated Use `showInApplicationsFolder`. Note that this no longer
+	 *  needs to accompany `noDesktopIcon` — Applications membership now
+	 *  defaults to true on its own. */
 	inApplicationsFolder?: boolean;
 	addSystemMenu?: boolean;
 	extension?: boolean;
@@ -56,6 +67,9 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 	icon,
 	name,
 	addSystemMenu,
+	showDesktopIcon,
+	showInApplicationsFolder,
+	desktopIconBalloonHelp,
 	noDesktopIcon,
 	inApplicationsFolder,
 	extension,
@@ -108,6 +122,17 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 		});
 	};
 
+	// New props win over their deprecated counterparts. Both surfaces default
+	// to on; `extension` overrides both below.
+	const drawDesktopIcon = showDesktopIcon ?? !noDesktopIcon;
+	const listInApplications =
+		showInApplicationsFolder ?? inApplicationsFolder ?? true;
+	// Serialized so the effect's dependency list is stable across renders that
+	// pass an inline object literal.
+	const balloonHelpKey = JSON.stringify(
+		normalizeIconBalloonHelp(desktopIconBalloonHelp, name) ?? null,
+	);
+
 	// biome-ignore lint/correctness/useExhaustiveDependencies: contextMenu is intentionally omitted to prevent re-firing with inline menu literals
 	useEffect(() => {
 		desktopEventDispatch({
@@ -140,7 +165,9 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 		}
 
 		if (!extension) {
-			if (!noDesktopIcon) {
+			const balloonHelp: ClassicyIconBalloonHelp | null =
+				JSON.parse(balloonHelpKey);
+			if (drawDesktopIcon || listInApplications) {
 				desktopEventDispatch({
 					type: "ClassicyDesktopIconAdd",
 					app: {
@@ -149,20 +176,21 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 						icon: icon,
 					},
 					kind: "app_shortcut",
+					// A hidden icon still populates the derived Applications folder,
+					// which is built from app-shortcut icon records.
+					...(drawDesktopIcon ? {} : { hidden: true }),
+					...(listInApplications ? {} : { inApplications: false }),
+					...(balloonHelp ? { balloonHelp } : {}),
 				});
-			} else if (inApplicationsFolder) {
-				// Hidden app-shortcut: populates the derived Applications folder
-				// (which is built from app-shortcut icons) without drawing an
-				// icon on the desktop.
+			} else {
+				// Icons persist to localStorage, so opting out of both surfaces has
+				// to clear any record left by an earlier registration.
 				desktopEventDispatch({
-					type: "ClassicyDesktopIconAdd",
+					type: "ClassicyDesktopIconRemove",
 					app: {
 						id: id,
 						name: name,
-						icon: icon,
 					},
-					kind: "app_shortcut",
-					hidden: true,
 				});
 			}
 		}
@@ -177,8 +205,9 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 		}
 	}, [
 		addSystemMenu,
-		noDesktopIcon,
-		inApplicationsFolder,
+		drawDesktopIcon,
+		listInApplications,
+		balloonHelpKey,
 		extension,
 		bootIcon,
 		desktopEventDispatch,
