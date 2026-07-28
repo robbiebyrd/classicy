@@ -5,6 +5,17 @@ import { ClassicyAppManagerProvider } from "@/SystemFolder/ControlPanels/AppMana
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyDesktop } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktop";
 
+// The bundled apps pass showDesktopIcon={false}, so they register HIDDEN
+// app-shortcut icons: present in the store (which is what the derived
+// Applications folder is built from) but never drawn on the desktop. These
+// tests therefore assert on the icon records rather than on rendered icons —
+// the record is what proves the app mounted, independent of whether its
+// desktop icon is drawn.
+const iconFor = (appId: string) =>
+	useAppManager
+		.getState()
+		.System.Manager.Desktop.icons.find((i) => i.appId === appId);
+
 describe("ClassicyDesktop default apps", () => {
 	beforeEach(() => {
 		localStorage.clear();
@@ -12,16 +23,16 @@ describe("ClassicyDesktop default apps", () => {
 		useAppManager.setState(DefaultAppManagerState, true);
 	});
 
-	it("mounts all four default apps' desktop icons when no disableX props are set", () => {
+	it("mounts all four default apps when no disableX props are set", () => {
 		render(
 			<ClassicyAppManagerProvider>
 				<ClassicyDesktop />
 			</ClassicyAppManagerProvider>,
 		);
-		expect(screen.getByAltText("SimpleText")).toBeInTheDocument();
-		expect(screen.getByAltText("PDF Viewer")).toBeInTheDocument();
-		expect(screen.getByAltText("Movie Player")).toBeInTheDocument();
-		expect(screen.getByAltText("Picture Viewer")).toBeInTheDocument();
+		expect(iconFor("SimpleText.app")).toBeDefined();
+		expect(iconFor("PDFViewer.app")).toBeDefined();
+		expect(iconFor("MoviePlayer.app")).toBeDefined();
+		expect(iconFor("PictureViewer.app")).toBeDefined();
 	});
 
 	it("registers Drive Setup as a hidden app-shortcut icon: in the store (for Applications) but not rendered on the desktop", () => {
@@ -30,30 +41,27 @@ describe("ClassicyDesktop default apps", () => {
 				<ClassicyDesktop />
 			</ClassicyAppManagerProvider>,
 		);
-		const driveSetupIcon = useAppManager
-			.getState()
-			.System.Manager.Desktop.icons.find((i) => i.appId === "DriveSetup.app");
+		const driveSetupIcon = iconFor("DriveSetup.app");
 		// Registered as an app-shortcut so the derived Applications folder lists it…
 		expect(driveSetupIcon?.kind).toBe("app_shortcut");
 		expect(driveSetupIcon?.hidden).toBe(true);
 		// …but no desktop icon is drawn for it (desktop icons render with
-		// id "<appId>.shortcut"). A visible app like SimpleText still gets one.
+		// id "<appId>.shortcut"). Trash is the contrast case: an icon that is
+		// registered AND drawn, proving the desktop draws icons at all here.
 		expect(container.querySelector("#DriveSetup\\.app\\.shortcut")).toBeNull();
-		expect(
-			container.querySelector("#SimpleText\\.app\\.shortcut"),
-		).not.toBeNull();
+		expect(container.querySelector("#Trash\\.shortcut")).not.toBeNull();
 	});
 
-	it("omits an app's desktop icon when its disableX prop is set, leaving the others", () => {
+	it("does not mount an app at all when its disableX prop is set, leaving the others", () => {
 		render(
 			<ClassicyAppManagerProvider disableMoviePlayer disablePictureViewer>
 				<ClassicyDesktop />
 			</ClassicyAppManagerProvider>,
 		);
-		expect(screen.getByAltText("SimpleText")).toBeInTheDocument();
-		expect(screen.getByAltText("PDF Viewer")).toBeInTheDocument();
-		expect(screen.queryByAltText("Movie Player")).not.toBeInTheDocument();
-		expect(screen.queryByAltText("Picture Viewer")).not.toBeInTheDocument();
+		expect(iconFor("SimpleText.app")).toBeDefined();
+		expect(iconFor("PDFViewer.app")).toBeDefined();
+		expect(iconFor("MoviePlayer.app")).toBeUndefined();
+		expect(iconFor("PictureViewer.app")).toBeUndefined();
 	});
 
 	it("shows the Sad Mac crash screen when a child app throws during render", () => {
@@ -72,7 +80,7 @@ describe("ClassicyDesktop default apps", () => {
 		);
 		expect(container.querySelector(".classicyCrashScreen")).toBeInTheDocument();
 		// The desktop itself is gone — the boundary replaced it entirely.
-		expect(screen.queryByAltText("SimpleText")).not.toBeInTheDocument();
+		expect(container.querySelector("#classicyDesktop")).toBeNull();
 		consoleError.mockRestore();
 	});
 });
@@ -94,7 +102,7 @@ describe("ClassicyDesktop startup screen", () => {
 			container.querySelector(".classicyStartupScreen"),
 		).toBeInTheDocument();
 		// The desktop is mounted underneath while the splash is up
-		expect(screen.getByAltText("SimpleText")).toBeInTheDocument();
+		expect(container.querySelector("#classicyDesktop")).not.toBeNull();
 	});
 
 	it("suppresses the splash when startupScreen is false", () => {

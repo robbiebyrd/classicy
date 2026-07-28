@@ -134,6 +134,7 @@ export const SimpleText = () => {
 			id={appId}
 			name={appName}
 			icon={appIcon}
+			showDesktopIcon={false}
 			defaultWindow={"simple-text-demo"}
 			handlesFileTypes={[
 				ClassicyFileSystemEntryFileType.TextFile,

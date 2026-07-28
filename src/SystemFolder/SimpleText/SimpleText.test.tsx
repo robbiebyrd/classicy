@@ -1,8 +1,11 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { ClassicyAppManagerProvider } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext";
-import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import {
+	dispatch,
+	useAppManager,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyDesktop } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktop";
 
 // Regression test for a dispatch loop introduced in 7687143: ClassicyWindow's
@@ -29,7 +32,15 @@ describe("SimpleText", () => {
 			</ClassicyAppManagerProvider>,
 		);
 
-		fireEvent.doubleClick(screen.getByAltText("SimpleText"));
+		// SimpleText passes showDesktopIcon={false}, so there is no icon to
+		// double-click. How the app gets opened is incidental to this
+		// regression — what matters is that its window actually renders.
+		act(() => {
+			dispatch({
+				type: "ClassicyAppOpen",
+				app: { id: "SimpleText.app", name: "SimpleText", icon: "" },
+			});
+		});
 
 		await waitFor(() => {
 			expect(screen.getByText("Untitled")).toBeInTheDocument();

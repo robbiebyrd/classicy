@@ -34,6 +34,10 @@ const fileIcon = ClassicyIcons.system.files.file;
 // mousedown becomes a window drag; anything less is treated as a click.
 const dragThreshold = 4;
 
+import {
+	classicyWindowPagePath,
+	classicyWindowPageTitle,
+} from "@/SystemFolder/SystemResources/Analytics/ClassicyAnalyticsPath";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import { useClassicyCursor } from "@/SystemFolder/SystemResources/Cursor/useClassicyCursor";
 
@@ -121,6 +125,10 @@ interface ClassicyWindowProps {
 	header?: ReactNode;
 	appMenu?: ClassicyMenuItem[];
 	contextMenu?: ClassicyMenuItem[];
+	/** Override the generated analytics pageview path for this window. */
+	analyticsPath?: string;
+	/** Suppress this window's analytics pageview entirely. */
+	analyticsExclude?: boolean;
 	dimContents?: boolean;
 	onCloseFunc?: (id: string) => void;
 	children?: ReactNode;
@@ -193,6 +201,8 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	header,
 	appMenu,
 	contextMenu,
+	analyticsPath,
+	analyticsExclude,
 	onCloseFunc,
 	children,
 	windowType = "document",
@@ -233,7 +243,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	);
 	const [clickPosition, setClickPosition] = useState<[number, number]>([0, 0]);
 
-	const { track } = useClassicyAnalytics();
+	const { track, page } = useClassicyAnalytics();
 	const setCursor = useClassicyCursor();
 	const analyticsArgs = useMemo(() => {
 		return {
@@ -353,6 +363,56 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	useEffect(() => {
 		wsPositionRef.current = ws.position as [number, number];
 	}, [ws.position]);
+
+	const pageviewPath = useMemo(
+		() => analyticsPath ?? classicyWindowPagePath(appId, id),
+		[analyticsPath, appId, id],
+	);
+	const wasOpenRef = useRef(false);
+	const wasFocusedRef = useRef(false);
+
+	// GA pageviews for a windowing UI: a window becoming open is a navigation
+	// in its own right, and an open window gaining focus is a second, distinct
+	// navigation — both emit, even when they land on the same path. Emission
+	// waits until the window is actually registered in the store: a brand-new
+	// window's first render has no store entry yet (currentWindow is
+	// undefined, ws falls back to an unfocused synthetic state), so the effect
+	// below returns before touching wasOpenRef/wasFocusedRef. That means the
+	// first commit where currentWindow is defined is what counts as "just
+	// opened" — a single emit, even though that commit already has the window
+	// focused (the ClassicyWindowOpen reducer focuses a genuinely new window,
+	// so registration and focus land in the same store update). A window that
+	// opens unfocused (e.g. several windows restored on reload) emits on open,
+	// then emits again whenever it's later focused. wasOpenRef/wasFocusedRef
+	// track the previous commit's state so repeats (no open/focus transition)
+	// stay silent.
+	useEffect(() => {
+		if (!currentWindow) return;
+
+		const isOpen = !ws.closed;
+		const isFocused = isOpen && ws.focused;
+		const justOpened = isOpen && !wasOpenRef.current;
+		const justFocused = isFocused && !wasFocusedRef.current;
+		wasOpenRef.current = isOpen;
+		wasFocusedRef.current = isFocused;
+
+		if (analyticsExclude || !isOpen) return;
+		if (!justOpened && !justFocused) return;
+
+		page(
+			pageviewPath,
+			classicyWindowPageTitle(currentApp?.name, title, pageviewPath),
+		);
+	}, [
+		currentWindow,
+		ws.closed,
+		ws.focused,
+		analyticsExclude,
+		pageviewPath,
+		currentApp?.name,
+		title,
+		page,
+	]);
 
 	const windowRegistered = useRef(false);
 	const lastMenuBarSignatureRef = useRef<string | undefined>(undefined);

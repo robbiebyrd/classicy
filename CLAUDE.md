@@ -130,6 +130,42 @@ bottom-left corner and italicize their label. System kinds (`drive`, `trash`,
 selected and open state styling automatically. Swap the artwork by registering
 your own `system.alias` entry via `registerClassicyIcons`.
 
+### Analytics
+
+`useClassicyAnalytics()` returns `track(eventName, payload)` and
+`page(path, title)`. Both are referentially stable, and both fall back to
+silent no-ops when no `AnalyticsProvider` is mounted. Event names are prefixed
+with `ClassicyAnalyticsPrefixContext` (default `classicy_`); **pageview paths
+are not** — a path is a URL namespace, not an event name.
+
+`ClassicyWindow` emits a pageview whenever a window becomes open (whether or
+not it is focused) and whenever an open window gains focus — there is no
+deduplication between the two. Emission waits until the window is actually
+registered in the store: a brand-new window's first render has no store entry
+yet, so nothing is emitted for that render; the first commit where the window
+is present in the store is what counts as "just opened", even though that
+commit already has the window focused (opening a window focuses it in the same
+store update), so that's a single emit, not two. A window that opens unfocused
+(e.g. several windows restored on reload) emits on open, then emits again when
+it's later focused. Closing and blurring emit nothing.
+
+```tsx
+<ClassicyWindow analyticsPath="/editor/compose" />  // override the derived path
+<ClassicyWindow analyticsExclude />                 // no pageview at all
+```
+
+Paths are derived by `ClassicyAnalyticsPath.ts` as `/<app>/<window>`: the
+`appId` minus a trailing `.app`, plus the window id with any redundant app
+prefix stripped. **A window id containing a filesystem separator (`:` or `/`)
+is treated as user data** and collapses to `/file` or `/folder` — `ClassicyApp`
+builds file-window ids as `` `${id}_file_${filePath}` `` and Finder keys its
+windows by folder path, so slugifying either would leak user file names into GA
+and make path cardinality unbounded.
+
+The window *title* is sent to GA verbatim, including titles derived from user
+file names. That is a deliberate trade-off for readable content reports; the
+path is what stays free of user data.
+
 ### Balloon Help
 
 `ClassicyBalloonHelp` is a Mac OS 8-style tooltip component. Wrap any element with it to show a speech-bubble tooltip after a delay:

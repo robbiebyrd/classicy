@@ -200,6 +200,7 @@ export const QuickTimePictureViewer: FunctionalComponent = () => {
 			id={appId}
 			name={appName}
 			icon={appIcon}
+			showDesktopIcon={false}
 			handlesFileTypes={[ClassicyFileSystemEntryFileType.Image]}
 			handlesOwnFiles={true}
 		>

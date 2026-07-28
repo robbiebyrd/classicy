@@ -61,7 +61,7 @@ vi.mock(
 vi.mock(
 	"@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics",
 	() => ({
-		useClassicyAnalytics: () => ({ track: vi.fn() }),
+		useClassicyAnalytics: () => ({ track: vi.fn(), page: vi.fn() }),
 	}),
 );
 
@@ -102,7 +102,9 @@ describe("ClassicyWindow placard (#196)", () => {
 		});
 		const bar = container.querySelector(".classicyWindowPlacardBar");
 		expect(bar).not.toBeNull();
-		expect(bar?.querySelector("[data-testid='placard-content']")).not.toBeNull();
+		expect(
+			bar?.querySelector("[data-testid='placard-content']"),
+		).not.toBeNull();
 	});
 
 	// Backward compatible: no placard prop means no placard region.

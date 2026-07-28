@@ -419,6 +419,7 @@ export const ClassicyFileDialog: FunctionalComponent<
 				initialSize={[440, 400]}
 				initialPosition={[180, 120]}
 				onCloseFunc={() => onCancelFunc?.()}
+				analyticsExclude
 			>
 				{/* biome-ignore lint/a11y/noStaticElementInteractions: dialog-level keyboard shortcuts (Escape to cancel, Enter to open) */}
 				<div className={"classicyFileOpenDialogBody"} onKeyDown={handleKeyDown}>
