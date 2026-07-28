@@ -129,10 +129,14 @@ are not** — a path is a URL namespace, not an event name.
 
 `ClassicyWindow` emits a pageview whenever a window becomes open (whether or
 not it is focused) and whenever an open window gains focus — there is no
-deduplication between the two. A window that opens already focused only sees
-one commit (open+focus together), so that's a single emit; a window that
-opens unfocused and is focused later emits twice. Closing and blurring emit
-nothing.
+deduplication between the two. Emission waits until the window is actually
+registered in the store: a brand-new window's first render has no store entry
+yet, so nothing is emitted for that render; the first commit where the window
+is present in the store is what counts as "just opened", even though that
+commit already has the window focused (opening a window focuses it in the same
+store update), so that's a single emit, not two. A window that opens unfocused
+(e.g. several windows restored on reload) emits on open, then emits again when
+it's later focused. Closing and blurring emit nothing.
 
 ```tsx
 <ClassicyWindow analyticsPath="/editor/compose" />  // override the derived path

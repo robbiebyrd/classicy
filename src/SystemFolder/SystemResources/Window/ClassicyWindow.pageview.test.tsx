@@ -5,7 +5,11 @@ const mockDispatch = vi.hoisted(() => vi.fn());
 const mockPlayer = vi.hoisted(() => vi.fn());
 const mockPage = vi.hoisted(() => vi.fn());
 const mockTrack = vi.hoisted(() => vi.fn());
-const windowState = vi.hoisted(() => ({ closed: false, focused: true }));
+const windowState = vi.hoisted(() => ({
+	closed: false,
+	focused: true,
+	registered: true,
+}));
 
 vi.mock(
 	"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils",
@@ -20,24 +24,26 @@ vi.mock(
 								TestApp: {
 									name: "Test App",
 									focused: windowState.focused,
-									windows: [
-										{
-											id: "TestApp_1",
-											appId: "TestApp",
-											collapsed: false,
-											focused: windowState.focused,
-											dragging: false,
-											moving: false,
-											resizing: false,
-											zoomed: false,
-											closed: windowState.closed,
-											size: [350, 200] as [number, number],
-											position: [110, 110] as [number, number],
-											minimumSize: [0, 0] as [number, number],
-											menuBar: [] as unknown[],
-											default: false,
-										},
-									],
+									windows: windowState.registered
+										? [
+												{
+													id: "TestApp_1",
+													appId: "TestApp",
+													collapsed: false,
+													focused: windowState.focused,
+													dragging: false,
+													moving: false,
+													resizing: false,
+													zoomed: false,
+													closed: windowState.closed,
+													size: [350, 200] as [number, number],
+													position: [110, 110] as [number, number],
+													minimumSize: [0, 0] as [number, number],
+													menuBar: [] as unknown[],
+													default: false,
+												},
+											]
+										: [],
 								},
 							},
 						},
@@ -89,6 +95,7 @@ describe("ClassicyWindow pageview", () => {
 		mockDispatch.mockClear();
 		windowState.closed = false;
 		windowState.focused = true;
+		windowState.registered = true;
 	});
 
 	it("emits once for a window that mounts open and focused", () => {
@@ -176,6 +183,29 @@ describe("ClassicyWindow pageview", () => {
 			</ClassicyWindow>,
 		);
 		expect(mockPage).toHaveBeenCalledTimes(2);
+	});
+
+	it("emits exactly once for a brand-new window absent from the store that registers focused", () => {
+		// A brand-new window's first render has no store entry yet (currentWindow
+		// is undefined, so the component falls back to an unfocused synthetic
+		// state). The registration effect then dispatches ClassicyWindowOpen,
+		// whose reducer focuses a genuinely new window — so the very next commit
+		// has the window present in the store AND focused. That must still be a
+		// single emit, not one for the pre-registration guess plus one for the
+		// real state.
+		windowState.registered = false;
+		windowState.closed = false;
+		windowState.focused = true;
+		const { rerender } = renderWindow();
+
+		windowState.registered = true;
+		rerender(
+			<ClassicyWindow id="TestApp_1" appId="TestApp" title="Untitled">
+				<p>content</p>
+			</ClassicyWindow>,
+		);
+
+		expect(mockPage).toHaveBeenCalledTimes(1);
 	});
 
 	it("uses analyticsPath instead of the derived path", () => {

@@ -42,16 +42,25 @@ switch. Without it, GA attributes the entire session to whichever window opened
 first, and "which window was the user actually on" is unanswerable.
 
 Opening a window normally focuses it, so both conditions fire in the same
-commit. `ClassicyWindow` tracks the previous commit's open/focus state in
+commit — but not the window's very first render. A brand-new window mounts
+before the store knows about it: `currentWindow` (the store's lookup by id) is
+undefined, so the emission effect returns immediately, before updating its
+tracking refs. Only once the registration effect's `ClassicyWindowOpen`
+dispatch lands does `currentWindow` become defined; that first commit already
+has the window focused (opening a window focuses it in the same store
+update), so it is treated as the window's first real state.
+
+`ClassicyWindow` tracks the previous commit's open/focus state in
 `wasOpenRef`/`wasFocusedRef` and derives `justOpened`/`justFocused` by
 comparing against the current commit; an emit fires when either is true. When
-open and focus land in the same commit (the common case — a window opens
-already focused), `justOpened` and `justFocused` are both true but the effect
-still runs once, producing a single emit, not two. When a window opens
-unfocused (e.g. several windows restored on reload with one focused), the open
-commit emits once; a later commit where the user focuses it emits again — by
-design, not a bug — two navigations for two distinct user-visible transitions.
-There is no dedupe by path and no ref that clears on blur.
+open and focus land in the same commit (the common case — a window's first
+commit once it's registered in the store), `justOpened` and `justFocused` are
+both true but the effect still runs once, producing a single emit, not two.
+When a window opens unfocused (e.g. several windows restored on reload with
+one focused), the open commit emits once; a later commit where the user
+focuses it emits again — by design, not a bug — two navigations for two
+distinct user-visible transitions. There is no dedupe by path and no ref that
+clears on blur.
 
 ### 2. Path derivation
 

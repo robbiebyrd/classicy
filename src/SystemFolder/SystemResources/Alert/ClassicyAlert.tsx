@@ -213,6 +213,7 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 			type={movable ? "default" : "error"}
 			initialSize={[0, 0]}
 			initialPosition={["center", "center"]}
+			analyticsExclude
 		>
 			<div
 				ref={contentRef}

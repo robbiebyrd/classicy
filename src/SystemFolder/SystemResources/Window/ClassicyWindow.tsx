@@ -373,13 +373,22 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 
 	// GA pageviews for a windowing UI: a window becoming open is a navigation
 	// in its own right, and an open window gaining focus is a second, distinct
-	// navigation — both emit, even when they land on the same path. A window
-	// that opens already focused only sees ONE commit (open+focus together),
-	// so that's a single emit, not two; a window that opens unfocused (e.g.
-	// several windows restored on reload) emits on open, then emits again
-	// whenever it's later focused. wasOpenRef/wasFocusedRef track the previous
-	// commit's state so repeats (no open/focus transition) stay silent.
+	// navigation — both emit, even when they land on the same path. Emission
+	// waits until the window is actually registered in the store: a brand-new
+	// window's first render has no store entry yet (currentWindow is
+	// undefined, ws falls back to an unfocused synthetic state), so the effect
+	// below returns before touching wasOpenRef/wasFocusedRef. That means the
+	// first commit where currentWindow is defined is what counts as "just
+	// opened" — a single emit, even though that commit already has the window
+	// focused (the ClassicyWindowOpen reducer focuses a genuinely new window,
+	// so registration and focus land in the same store update). A window that
+	// opens unfocused (e.g. several windows restored on reload) emits on open,
+	// then emits again whenever it's later focused. wasOpenRef/wasFocusedRef
+	// track the previous commit's state so repeats (no open/focus transition)
+	// stay silent.
 	useEffect(() => {
+		if (!currentWindow) return;
+
 		const isOpen = !ws.closed;
 		const isFocused = isOpen && ws.focused;
 		const justOpened = isOpen && !wasOpenRef.current;
@@ -395,6 +404,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			classicyWindowPageTitle(currentApp?.name, title, pageviewPath),
 		);
 	}, [
+		currentWindow,
 		ws.closed,
 		ws.focused,
 		analyticsExclude,
