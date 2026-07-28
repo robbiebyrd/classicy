@@ -250,6 +250,7 @@ export const ClassicyIcons = {
 		},
 	},
 	system: {
+		alias: icon("system/alias.png"),
 		appleBlackOnWhite: icon("system/apple-black-on-white.png"),
 		appleWhiteOnBlack: icon("system/apple-white-on-black.png"),
 		apple: icon("system/apple.png"),

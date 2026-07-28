@@ -114,6 +114,7 @@ export * from "./SystemFolder/SystemResources/Desktop/ClassicyDesktop";
 export * from "./SystemFolder/SystemResources/Desktop/ClassicyDesktopIcon";
 export * from "./SystemFolder/SystemResources/Desktop/ClassicyDesktopIconBalloons";
 export * from "./SystemFolder/SystemResources/Desktop/ClassicyDesktopIconContext";
+export * from "./SystemFolder/SystemResources/Desktop/ClassicyDesktopIconKinds";
 export * from "./SystemFolder/SystemResources/Desktop/ClassicyDesktopKeyNav";
 export * from "./SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
 export * from "./SystemFolder/SystemResources/Desktop/ClassicyDesktopWindowManagerContext";

@@ -116,3 +116,44 @@
     background: rgba(0, 0, 0, 0.5);
   }
 }
+
+.classicyDesktopIconImage {
+  position: relative;
+  width: fit-content;
+  margin: 0 auto;
+}
+
+.classicyDesktopIconAliasBadge {
+  // Measured off Mac OS 8: roughly a quarter of the icon, flush to the
+  // bottom-left of the icon's box and overlapping the artwork.
+  --alias-badge-size: calc(var(--desktop-icon-size) / 4);
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: var(--alias-badge-size);
+  height: var(--alias-badge-size);
+  margin: 0;
+
+  .classicyDesktopIconMask {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    // The base rule declares mask-size !important, so specificity alone
+    // cannot resize the badge's mask.
+    mask-size: 100% !important;
+  }
+
+  // Beats `.classicyDesktopIcon img` by source order — both are (0,1,1).
+  // `display: block` matters: an inline image reserves baseline descender
+  // space and would hang a couple of pixels below the badge's box.
+  img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+  }
+}
+
+.classicyDesktopIconAlias > p {
+  font-style: italic;
+}

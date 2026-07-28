@@ -119,6 +119,17 @@ Applications — pass `showInApplicationsFolder={false}` for that.
 The Trash and drive icons carry stock balloon help automatically
 (`ClassicyDesktopIconBalloons.ts`), resolved by icon kind at render time.
 
+#### Alias Badging
+
+Desktop icons whose `kind` is `app_shortcut` or `shortcut` — every icon
+`ClassicyApp` registers — render the Mac OS 8 alias arrow over the icon's
+bottom-left corner and italicize their label. System kinds (`drive`, `trash`,
+`directory`, `file`, `icon`) get neither. The predicate lives in
+`ClassicyDesktopIconKinds.ts`; the badge is a second mask pair reusing
+`classicyDesktopIconMaskOuter`/`classicyDesktopIconMask`, so it inherits the
+selected and open state styling automatically. Swap the artwork by registering
+your own `system.alias` entry via `registerClassicyIcons`.
+
 ### Balloon Help
 
 `ClassicyBalloonHelp` is a Mac OS 8-style tooltip component. Wrap any element with it to show a speech-bubble tooltip after a delay:
