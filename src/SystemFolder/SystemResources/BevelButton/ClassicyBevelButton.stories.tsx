@@ -29,6 +29,16 @@ export const BevelLarge: Story = {
 	args: { bevelWidth: "large", children: "Large bevel" },
 };
 
+// Square is for icon-only controls in a palette: a fixed box that lines up with
+// ClassicyButton's square shape, so a mixed toolbar stays on one grid.
+export const Square: Story = {
+	args: { square: true, children: "⌘" },
+};
+
+export const SquareToggleOn: Story = {
+	args: { square: true, mode: "toggle", on: true, children: "B" },
+};
+
 export const ToggleOn: Story = {
 	args: { mode: "toggle", on: true, children: "Bold" },
 };

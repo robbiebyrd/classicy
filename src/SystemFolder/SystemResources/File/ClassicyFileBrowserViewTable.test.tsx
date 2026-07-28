@@ -311,3 +311,85 @@ describe("ClassicyFileBrowserViewTable keyboard navigation", () => {
 		expect(fileOnClickFunc).toHaveBeenCalledWith("Documents:apple.pdf");
 	});
 });
+
+describe("ClassicyFileBrowserViewTable opening disclosed rows", () => {
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	// Documents/Reports/q1.pdf — q1.pdf is only reachable by disclosing Reports,
+	// so its real path is two levels below the table's `path` prop.
+	const makeNestedFs = () =>
+		new ClassicyFileSystem("test-table-open-nested", {
+			_type: "directory",
+			Documents: {
+				_type: ClassicyFileSystemEntryFileType.Directory,
+				Reports: {
+					_type: ClassicyFileSystemEntryFileType.Directory,
+					"q1.pdf": {
+						_type: ClassicyFileSystemEntryFileType.Pdf,
+						_url: "https://example.com/q1.pdf",
+					},
+				},
+				"top.pdf": {
+					_type: ClassicyFileSystemEntryFileType.Pdf,
+					_url: "https://example.com/top.pdf",
+				},
+			},
+		});
+
+	const discloseReports = async (
+		user: ReturnType<typeof userEvent.setup>,
+		fileOnClickFunc: (path: string) => void,
+		dirOnClickFunc: (path: string) => void,
+	) => {
+		const cfs = makeNestedFs();
+		vi.spyOn(cfs, "size").mockResolvedValue(100);
+		render(
+			<ClassicyFileBrowserViewTable
+				fs={cfs}
+				path="Documents"
+				appId="Finder.app"
+				fileOnClickFunc={fileOnClickFunc}
+				dirOnClickFunc={dirOnClickFunc}
+			/>,
+		);
+		await screen.findByText("Reports");
+		await user.click(screen.getByRole("button"));
+		await screen.findByText("q1.pdf");
+	};
+
+	it("double-clicking a top-level row opens its full path", async () => {
+		const user = userEvent.setup();
+		const fileOnClickFunc = vi.fn();
+		const dirOnClickFunc = vi.fn();
+		await discloseReports(user, fileOnClickFunc, dirOnClickFunc);
+
+		await user.dblClick(screen.getByText("top.pdf"));
+
+		expect(fileOnClickFunc).toHaveBeenCalledWith("Documents:top.pdf");
+	});
+
+	it("double-clicking a disclosed child opens its real path, not one rebuilt from the table root", async () => {
+		const user = userEvent.setup();
+		const fileOnClickFunc = vi.fn();
+		const dirOnClickFunc = vi.fn();
+		await discloseReports(user, fileOnClickFunc, dirOnClickFunc);
+
+		await user.dblClick(screen.getByText("q1.pdf"));
+
+		expect(fileOnClickFunc).toHaveBeenCalledWith("Documents:Reports:q1.pdf");
+	});
+
+	it("opens a disclosed child's real path on Enter too", async () => {
+		const user = userEvent.setup();
+		const fileOnClickFunc = vi.fn();
+		const dirOnClickFunc = vi.fn();
+		await discloseReports(user, fileOnClickFunc, dirOnClickFunc);
+
+		await user.click(screen.getByText("q1.pdf"));
+		await user.keyboard("{Enter}");
+
+		expect(fileOnClickFunc).toHaveBeenCalledWith("Documents:Reports:q1.pdf");
+	});
+});

@@ -1,3 +1,4 @@
+import sampleMovie from "@vid/quicktime/sample.mp4?no-inline";
 import {
 	type FC as FunctionalComponent,
 	useCallback,
@@ -5,12 +6,12 @@ import {
 	useMemo,
 	useRef,
 } from "react";
-import sampleMovie from "@vid/quicktime/sample.mp4?no-inline";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { classicyWindowPagePath } from "@/SystemFolder/SystemResources/Analytics/ClassicyAnalyticsPath";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import {
 	useClassicyAboutMenu,
@@ -28,8 +29,8 @@ import { useResolvedMediaSource } from "@/SystemFolder/SystemResources/File/useR
 import { QuickTimeVideoEmbed } from "@/SystemFolder/SystemResources/QuickTime/QuickTimeMovieEmbed";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 import {
-	MoviePlayerAppInfo,
 	isMoviePlayerData,
+	MoviePlayerAppInfo,
 	type MoviePlayerOpenFile,
 } from "./MoviePlayerUtils";
 
@@ -217,7 +218,15 @@ export const MoviePlayer: FunctionalComponent = () => {
 				menuChildren: [aboutMenuItem],
 			},
 		],
-		[appId, appName, appIcon, closeWindow, closeDocAction, windowEntries, aboutMenuItem],
+		[
+			appId,
+			appName,
+			appIcon,
+			closeWindow,
+			closeDocAction,
+			windowEntries,
+			aboutMenuItem,
+		],
 	);
 
 	return (
@@ -248,6 +257,13 @@ export const MoviePlayer: FunctionalComponent = () => {
 					initialSize={[400, 100]}
 					initialPosition={[300, 50]}
 					modal={true}
+					// windowId embeds doc.key, which is a filesystem path or a
+					// consumer-supplied URL. A relative URL carries no separator for
+					// the path deriver's collapse rule to catch, so the document
+					// name would land in the analytics path. Only this component
+					// knows that segment is user data, so it overrides the path with
+					// a code-authored token.
+					analyticsPath={classicyWindowPagePath(appId, doc.type)}
 					appMenu={buildAppMenu(windowId, doc)}
 					onCloseFunc={() =>
 						doc.path

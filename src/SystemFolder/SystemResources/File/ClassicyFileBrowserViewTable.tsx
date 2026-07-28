@@ -88,15 +88,17 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 				undefined,
 			);
 
+			// Takes the row's own full path rather than rebuilding one from the
+			// table's `path` prop: disclosed rows can sit several levels below it,
+			// and rebuilding would drop the intervening directories.
 			const openFileOrFolder = (
 				properties: ClassicyFileSystemEntryMetadata,
-				path: string,
-				filename: string,
+				entryPath: string,
 			) => {
 				if (properties._type === "directory") {
-					return dirOnClickFunc(`${path}:${filename}`);
+					return dirOnClickFunc(entryPath);
 				}
-				return fileOnClickFunc(`${path}:${filename}`);
+				return fileOnClickFunc(entryPath);
 			};
 
 			// Folder sizes resolve asynchronously; cache them by path so a rebuild of
@@ -379,7 +381,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 						if (curIndex >= 0) {
 							e.preventDefault();
 							const row = rows[curIndex];
-							openFileOrFolder(row.original, path, row.original._name ?? "");
+							openFileOrFolder(row.original, row.original._path ?? "");
 						}
 						return;
 					}
@@ -505,11 +507,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 											: null,
 									)}
 									onDoubleClick={() =>
-										openFileOrFolder(
-											row.original,
-											path,
-											row.original._name ?? "",
-										)
+										openFileOrFolder(row.original, row.original._path ?? "")
 									}
 									onClick={() => setSelectedRow(row.id)}
 								>

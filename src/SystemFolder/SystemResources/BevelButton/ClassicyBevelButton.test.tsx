@@ -136,4 +136,33 @@ describe("ClassicyBevelButton", () => {
 		);
 		expect(screen.getByAltText("Cut")).toBeInTheDocument();
 	});
+
+	it("adds the square class only when square is set", () => {
+		const { rerender } = render(
+			<ClassicyBevelButton>Tool</ClassicyBevelButton>,
+		);
+		expect(screen.getByRole("button")).not.toHaveClass(
+			"classicyBevelButtonSquare",
+		);
+
+		rerender(<ClassicyBevelButton square>Tool</ClassicyBevelButton>);
+		expect(screen.getByRole("button")).toHaveClass("classicyBevelButtonSquare");
+	});
+
+	it("keeps the bevel width and mode classes on a square button", () => {
+		render(
+			<ClassicyBevelButton square bevelWidth="large" mode="toggle">
+				Tool
+			</ClassicyBevelButton>,
+		);
+		const button = screen.getByRole("button");
+		expect(button).toHaveClass("classicyBevelButtonSquare");
+		expect(button).toHaveClass("classicyBevelButtonBevelLarge");
+		expect(button).toHaveClass("classicyBevelButtonModeToggle");
+	});
+
+	it("still renders an icon inside a square button", () => {
+		render(<ClassicyBevelButton square icon="/icons/cut.png" iconAlt="Cut" />);
+		expect(screen.getByAltText("Cut")).toBeInTheDocument();
+	});
 });

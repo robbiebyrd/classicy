@@ -47,6 +47,22 @@
     --bevel-w: var(--hig-bevel-lg, 4px);
   }
 
+  // --- Square (icon) buttons ---
+  // The explicit width gives aspect-ratio a definite basis: without one the box
+  // sizes to its content first — including the asymmetric horizontal padding —
+  // so the "square" would grow with the label. Dropping the padding keeps an
+  // icon centred in the box. Sized to match .classicyButtonShapeSquare so
+  // square bevel buttons line up with square ClassicyButtons in a palette.
+  &.classicyBevelButtonSquare {
+    width: calc(var(--window-control-size) * 4);
+    padding: 0;
+    aspect-ratio: 1 / 1 !important;
+
+    img {
+      width: 100%;
+    }
+  }
+
   // --- On / pressed: bevel inverts (pushed-in) and the fill darkens. Under
   //     platinum pressed-was-off and pressed-was-on look identical. ---
   &[data-state="on"],

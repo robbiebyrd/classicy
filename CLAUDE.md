@@ -162,6 +162,15 @@ builds file-window ids as `` `${id}_file_${filePath}` `` and Finder keys its
 windows by folder path, so slugifying either would leak user file names into GA
 and make path cardinality unbounded.
 
+That collapse is a *syntactic* rule — it can only catch user data that happens
+to carry a separator. **If your app builds a window id from user or consumer
+data, pass `analyticsPath` explicitly**; only the app knows that a segment is
+user data. Movie Player and Picture Viewer do this, because their window ids
+embed a document key that may be a bare relative URL (`clip.mp4`) with no
+separator to catch. Build the override with
+`classicyWindowPagePath(appId, "<safe-token>")` rather than hand-writing the
+path, so the app segment stays in sync with `appId`.
+
 The window *title* is sent to GA verbatim, including titles derived from user
 file names. That is a deliberate trade-off for readable content reports; the
 path is what stays free of user data.

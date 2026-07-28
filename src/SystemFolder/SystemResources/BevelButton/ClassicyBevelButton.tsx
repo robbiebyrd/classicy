@@ -41,6 +41,10 @@ type ClassicyBevelButtonProps = PropsWithChildren<{
 	mode?: ClassicyBevelButtonMode;
 	/** Optional icon/picture source rendered before the label. */
 	icon?: string;
+	/** Force a fixed square box for icon-only controls, sized to match
+	 *  `ClassicyButton`'s square shape. Drops the button's padding, so a label
+	 *  longer than a glyph or two will overflow. */
+	square?: boolean;
 	/** Alt text for the icon image. */
 	iconAlt?: string;
 	/** Controlled on-state for `toggle`/`radio` modes. */
@@ -88,6 +92,7 @@ export const ClassicyBevelButton: FunctionalComponent<
 	icon,
 	iconAlt = "",
 	on,
+	square,
 	mixed = false,
 	disabled = false,
 	onClickFunc,
@@ -144,6 +149,7 @@ export const ClassicyBevelButton: FunctionalComponent<
 			aria-haspopup={mode === "popup" ? "menu" : undefined}
 			className={classNames(
 				"classicyBevelButton",
+				square && "classicyBevelButtonSquare",
 				bevelWidthClass[bevelWidth],
 				`classicyBevelButtonMode${mode.charAt(0).toUpperCase()}${mode.slice(1)}`,
 			)}
