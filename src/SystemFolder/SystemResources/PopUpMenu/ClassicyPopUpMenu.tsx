@@ -13,11 +13,16 @@ import {
 	useCallback,
 	useEffect,
 	useId,
+	useLayoutEffect,
 	useRef,
 	useState,
 } from "react";
 import { createPortal } from "react-dom";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
+import {
+	type ClassicyPopUpMenuPlacementResult,
+	classicyPopUpMenuPlacement,
+} from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenuPlacement";
 
 const PLACEHOLDER_VALUE = "__classicy_placeholder__";
 // HIG checkmark drawn against the current selection in the open menu.
@@ -73,6 +78,10 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 	const [open, setOpen] = useState(false);
 	const [highlight, setHighlight] = useState<number>(-1);
 	const [menuRect, setMenuRect] = useState<DOMRect | null>(null);
+	// Null until the open menu has been measured; the first (unmeasured) paint
+	// falls back to growing downward under the stylesheet's height cap.
+	const [placement, setPlacement] =
+		useState<ClassicyPopUpMenuPlacementResult | null>(null);
 
 	const wrapperRef = useRef<HTMLDivElement>(null);
 	const buttonRef = useRef<HTMLButtonElement>(null);
@@ -121,6 +130,7 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 		setOpen(false);
 		setHighlight(-1);
 		setMenuRect(null);
+		setPlacement(null);
 	}, []);
 
 	const openMenu = useCallback(() => {
@@ -203,13 +213,47 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 			closeMenu();
 			buttonRef.current?.focus();
 		};
-		window.addEventListener("scroll", dismiss, true);
+		// Capture propagates window -> target even for non-bubbling `scroll`
+		// events, so this listener also sees the menu list scrolling its own
+		// overflow. Those scrolls must not dismiss it — the anchor hasn't moved,
+		// the user is just browsing the options.
+		const onScroll = (e: Event) => {
+			// A window/document-targeted scroll is an ancestor scrolling away, and
+			// `contains()` rejects a non-Node target, so check before asking.
+			const target = e.target;
+			if (target instanceof Node && listRef.current?.contains(target)) return;
+			dismiss();
+		};
+		window.addEventListener("scroll", onScroll, true);
 		window.addEventListener("resize", dismiss);
 		return () => {
-			window.removeEventListener("scroll", dismiss, true);
+			window.removeEventListener("scroll", onScroll, true);
 			window.removeEventListener("resize", dismiss);
 		};
 	}, [open, closeMenu]);
+
+	// Measure the rendered menu and decide which way it grows. A layout effect
+	// runs before paint, so the corrected placement is what the user sees (same
+	// approach as ClassicyContextualMenu's horizontal flip). `scrollHeight` is
+	// the unclamped content height, so it stays correct once maxHeight applies.
+	useLayoutEffect(() => {
+		if (!open || !menuRect) return;
+		const el = listRef.current;
+		if (!el) return;
+		setPlacement(
+			classicyPopUpMenuPlacement(menuRect, el.scrollHeight, window.innerHeight),
+		);
+	}, [open, menuRect]);
+
+	// Keyboard navigation moves a highlight, not focus (focus stays on the
+	// button for the combobox pattern), so nothing scrolls the active option
+	// into view automatically the way focus would.
+	useLayoutEffect(() => {
+		if (!open || highlight < 0) return;
+		const active = document.getElementById(`${reactId}-opt-${highlight}`);
+		// Optional call: jsdom does not implement scrollIntoView.
+		active?.scrollIntoView?.({ block: "nearest" });
+	}, [open, highlight, reactId]);
 
 	useEffect(
 		() => () => {
@@ -344,13 +388,22 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 							id={listId}
 							role="listbox"
 							aria-label={label ?? currentLabel}
-							className="classicyPopUpMenuList"
+							className={classNames(
+								"classicyPopUpMenuList",
+								placement?.above && "classicyPopUpMenuListAbove",
+							)}
 							style={{
 								position: "fixed",
-								top: `${menuRect.top}px`,
 								left: `${menuRect.left}px`,
 								minWidth: `${menuRect.width}px`,
 								zIndex: 5000,
+								// Anchor the edge the menu grows away from: its top to the
+								// button's top when growing down, its bottom to the button's
+								// bottom when growing up. Only one of the two is ever set.
+								...(placement?.above
+									? { bottom: `${window.innerHeight - menuRect.bottom}px` }
+									: { top: `${menuRect.top}px` }),
+								...(placement && { maxHeight: `${placement.maxHeight}px` }),
 							}}
 						>
 							{options.map((o, index) => {

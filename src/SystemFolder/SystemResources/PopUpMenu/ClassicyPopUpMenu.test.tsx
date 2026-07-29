@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, render, screen, userEvent, within } from "@/__tests__/test-utils";
 
 vi.mock(
@@ -24,6 +24,12 @@ const options = [
 	{ value: "banana", label: "Banana" },
 	{ value: "cherry", label: "Cherry" },
 ];
+
+// Long enough to overflow the menu's max-height and require scrolling.
+const many = Array.from({ length: 40 }, (_, i) => ({
+	value: `opt-${i}`,
+	label: `Option ${i}`,
+}));
 
 describe("ClassicyPopUpMenu", () => {
 	it("renders a trigger button showing the selected option", () => {
@@ -362,5 +368,107 @@ describe("ClassicyPopUpMenu", () => {
 			window.dispatchEvent(new Event("resize"));
 		});
 		expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+	});
+
+	it("stays open while scrolling inside its own list", async () => {
+		const user = userEvent.setup();
+		render(<ClassicyPopUpMenu id="fruit" options={many} selected="opt-0" />);
+		await user.click(screen.getByRole("combobox"));
+		const listbox = screen.getByRole("listbox");
+		// The dismiss-on-scroll listener is registered on `window` in the capture
+		// phase, so a scroll inside the list itself reaches it even though scroll
+		// events do not bubble. It must ignore scrolls that originate in the menu.
+		act(() => {
+			listbox.dispatchEvent(new Event("scroll", { bubbles: false }));
+		});
+		expect(screen.getByRole("listbox")).toBeInTheDocument();
+	});
+
+	it("keeps the highlighted option scrolled into view during keyboard navigation", async () => {
+		const user = userEvent.setup();
+		const scrollIntoView = vi.fn();
+		// jsdom does not implement scrollIntoView at all, so define it rather than spy.
+		Object.defineProperty(Element.prototype, "scrollIntoView", {
+			value: scrollIntoView,
+			configurable: true,
+			writable: true,
+		});
+		render(<ClassicyPopUpMenu id="fruit" options={many} selected="opt-0" />);
+		await user.click(screen.getByRole("combobox"));
+		scrollIntoView.mockClear();
+		await user.keyboard("{ArrowDown}");
+		expect(scrollIntoView).toHaveBeenCalled();
+	});
+
+	describe("viewport-aware placement", () => {
+		const layout = ({
+			top,
+			height = 20,
+			viewportHeight,
+			contentHeight,
+		}: {
+			top: number;
+			height?: number;
+			viewportHeight: number;
+			contentHeight: number;
+		}) => {
+			vi.spyOn(
+				HTMLButtonElement.prototype,
+				"getBoundingClientRect",
+			).mockReturnValue({
+				top,
+				bottom: top + height,
+				height,
+				left: 40,
+				right: 240,
+				width: 200,
+				x: 40,
+				y: top,
+				toJSON: () => ({}),
+			} as DOMRect);
+			vi.spyOn(Element.prototype, "scrollHeight", "get").mockReturnValue(
+				contentHeight,
+			);
+			window.innerHeight = viewportHeight;
+		};
+
+		afterEach(() => {
+			vi.restoreAllMocks();
+		});
+
+		it("anchors below the button when the menu fits below", async () => {
+			const user = userEvent.setup();
+			layout({ top: 100, viewportHeight: 800, contentHeight: 200 });
+			render(<ClassicyPopUpMenu id="fruit" options={many} selected="opt-0" />);
+			await user.click(screen.getByRole("combobox"));
+			const listbox = screen.getByRole("listbox");
+			expect(listbox.style.top).toBe("100px");
+			expect(listbox.style.bottom).toBe("");
+			expect(listbox).not.toHaveClass("classicyPopUpMenuListAbove");
+		});
+
+		it("expands above the button when there is not enough room below", async () => {
+			const user = userEvent.setup();
+			layout({ top: 700, viewportHeight: 800, contentHeight: 400 });
+			render(<ClassicyPopUpMenu id="fruit" options={many} selected="opt-0" />);
+			await user.click(screen.getByRole("combobox"));
+			const listbox = screen.getByRole("listbox");
+			// Grows upward from the button's bottom edge (720) -> 80px from the
+			// viewport bottom, with `top` released so the list extends upward.
+			expect(listbox.style.bottom).toBe("80px");
+			expect(listbox.style.top).toBe("");
+			expect(listbox).toHaveClass("classicyPopUpMenuListAbove");
+		});
+
+		it("clamps max-height to the available space so the list scrolls instead of overflowing", async () => {
+			const user = userEvent.setup();
+			layout({ top: 600, viewportHeight: 700, contentHeight: 5000 });
+			render(<ClassicyPopUpMenu id="fruit" options={many} selected="opt-0" />);
+			await user.click(screen.getByRole("combobox"));
+			const listbox = screen.getByRole("listbox");
+			const maxHeight = Number.parseInt(listbox.style.maxHeight, 10);
+			expect(maxHeight).toBeGreaterThan(0);
+			expect(maxHeight).toBeLessThanOrEqual(window.innerHeight);
+		});
 	});
 });

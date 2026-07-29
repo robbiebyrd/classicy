@@ -125,12 +125,18 @@
 .classicyPopUpMenuList {
   // Position, min-width and z-index are applied inline by the portal
   // (see ClassicyPopUpMenu.tsx) so the menu escapes the window's overflow.
+  // So is max-height, once the menu has been measured: the value below governs
+  // only the single measuring pass and must stay in sync with
+  // POPUP_MENU_MAX_HEIGHT in ClassicyPopUpMenuPlacement.ts.
   margin: 0;
   padding: var(--window-border-size);
   list-style: none;
   max-height: 300px;
   overflow-x: hidden;
   overflow-y: auto;
+  // Let the list consume wheel gestures instead of handing them to the desktop
+  // once it hits an end stop, which would scroll the surface behind the menu.
+  overscroll-behavior: contain;
 
   color: var(--color-black);
   background-color: var(--color-system-02);

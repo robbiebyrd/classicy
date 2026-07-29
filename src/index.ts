@@ -156,6 +156,7 @@ export * from "./SystemFolder/SystemResources/Menu/ClassicyMenuProvider";
 export * from "./SystemFolder/SystemResources/Pager/ClassicyPager";
 export * from "./SystemFolder/SystemResources/Placard/ClassicyPlacard";
 export * from "./SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
+export * from "./SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenuPlacement";
 export * from "./SystemFolder/SystemResources/ProgressBar/ClassicyProgressBar";
 export * from "./SystemFolder/SystemResources/QuickTime/QuickTimeCaptionsOverlay";
 export * from "./SystemFolder/SystemResources/QuickTime/QuickTimeFullscreenButton";
