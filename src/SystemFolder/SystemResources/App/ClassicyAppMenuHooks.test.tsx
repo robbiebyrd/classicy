@@ -5,6 +5,7 @@ import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyA
 import {
 	useClassicyAboutMenu,
 	useClassicyEditMenu,
+	useClassicyHelpMenu,
 	useClassicyWindowClose,
 } from "@/SystemFolder/SystemResources/App/ClassicyAppMenuHooks";
 
@@ -158,5 +159,28 @@ describe("useClassicyEditMenu", () => {
 		for (const c of shortcutItems) {
 			expect(c.nativeShortcut).toBe(true);
 		}
+	});
+});
+
+describe("useClassicyHelpMenu", () => {
+	it("registers items under the app id on mount", () => {
+		const items = [{ id: "Weather.app_about_data", title: "About Weather…" }];
+		renderHook(() => useClassicyHelpMenu("Weather.app", items));
+
+		expect(useAppManager.getState().System.Manager.Desktop.helpMenu).toEqual({
+			"Weather.app": items,
+		});
+	});
+
+	it("removes its items on unmount", () => {
+		const items = [{ id: "Weather.app_about_data", title: "About Weather…" }];
+		const { unmount } = renderHook(() =>
+			useClassicyHelpMenu("Weather.app", items),
+		);
+		unmount();
+
+		expect(
+			useAppManager.getState().System.Manager.Desktop.helpMenu?.["Weather.app"],
+		).toBeUndefined();
 	});
 });

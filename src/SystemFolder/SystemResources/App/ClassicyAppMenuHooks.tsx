@@ -72,6 +72,36 @@ export function useClassicyAboutMenu(
 }
 
 /**
+ * Publishes app-specific items into the standard Help menu (HIG Ch. 4), where
+ * the menu bar renders them for the focused app only. Unlike an About entry in
+ * the app's own `appMenu`, items registered here are never hoisted into the
+ * Apple menu.
+ *
+ * `items` must be referentially stable — memoize it with `useMemo`, as apps
+ * already do for `appMenu`. An array rebuilt every render re-fires this effect
+ * every render.
+ */
+export function useClassicyHelpMenu(
+	appId: string,
+	items: ClassicyMenuItem[],
+): void {
+	const dispatch = useAppManagerDispatch();
+	useEffect(() => {
+		dispatch({
+			type: "ClassicyDesktopHelpMenuAdd",
+			app: { id: appId },
+			helpItems: items,
+		});
+		return () => {
+			dispatch({
+				type: "ClassicyDesktopHelpMenuRemove",
+				app: { id: appId },
+			});
+		};
+	}, [dispatch, appId, items]);
+}
+
+/**
  * Builds a standard HIG Edit menu (Undo / Cut / Copy / Paste / Clear / Select
  * All) whose commands act on the last-focused text field. Keyboard equivalents
  * are handled natively by the browser in the focused field (the items are
