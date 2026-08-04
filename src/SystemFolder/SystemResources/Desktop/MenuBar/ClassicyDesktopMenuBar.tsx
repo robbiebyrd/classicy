@@ -123,6 +123,9 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
 	const disableBalloonHelp = useAppManager(
 		(s) => s.System.Manager.Desktop.disableBalloonHelp,
 	);
+	// Optional per-app Help entries, keyed by appId. Read defensively so the bar
+	// works whether or not a consumer has populated the slot.
+	const helpMenus = useAppManager((s) => s.System.Manager.Desktop?.helpMenu);
 	const desktopEventDispatch = useAppManagerDispatch();
 	const { closeAll } = useContext(ClassicyMenuContext);
 	const navRef = useRef<HTMLElement>(null);
@@ -171,6 +174,21 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
 		// biome-ignore lint/correctness/useExhaustiveDependencies: setActiveApp is defined inline and recreated each render; including it would cause infinite loops
 	}, [appSwitcherData, setActiveApp]);
 
+	// The app whose menus the bar is showing. Extensions (e.g. Apple Guide) can
+	// take window focus but must never be treated as "the focused app" here —
+	// mirrors appSwitcherAppsFrom, which excludes them for the same reason.
+	// Consumed by both the Apple menu (About <app>) and the Help menu (per-app
+	// items). Distinct from the `focusedAppId` memo further down, which feeds
+	// shortcut-scope registration and intentionally does not exclude extensions.
+	const focusedMenuApp = useMemo(() => {
+		const appList = Object.values(apps);
+		return (
+			appList.find((a) => a.focused === true && !a.extension) ??
+			apps["Finder.app"] ??
+			appList[0]
+		);
+	}, [apps]);
+
 	// Standard Help menu (HIG Ch. 4 "Menu Bar"): rightmost of the standard
 	// menus. About Balloon Help, a Show/Hide Balloons toggle wired to the
 	// existing balloon-help store flag, and a slot for app-supplied help items.
@@ -193,29 +211,27 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
 				eventData: { disableBalloonHelp: !disableBalloonHelp },
 			},
 		];
+		const appHelpMenu = focusedMenuApp?.id
+			? helpMenus?.[focusedMenuApp.id]
+			: undefined;
+		if (appHelpMenu && appHelpMenu.length > 0) {
+			helpChildren.push({ id: "spacer" }, ...appHelpMenu);
+		}
 		return {
 			id: "help-menu",
 			title: "Help",
 			className: "classicyDesktopMenuHelp",
 			menuChildren: helpChildren,
 		};
-	}, [disableBalloonHelp]);
+	}, [disableBalloonHelp, helpMenus, focusedMenuApp]);
 
 	// HIG #209: the first Apple-menu item is "About <the focused app>". Resolve
 	// the focused app (fallback Finder), *move* its About entry out of the app's
 	// published menu into the Apple menu — then splice in the rest of the system
 	// menu with its own "About This Computer" entry removed to avoid two Abouts.
 	const { appleMenuItem, strippedAppMenu } = useMemo(() => {
-		const appList = Object.values(apps);
-		// Extensions (e.g. Apple Guide) can take window focus but must never be
-		// treated as "the focused app" here — mirrors appSwitcherAppsFrom, which
-		// excludes extensions from the App Switcher for the same reason.
-		const focusedApp =
-			appList.find((a) => a.focused === true && !a.extension) ??
-			apps["Finder.app"] ??
-			appList[0];
-		const focusedAppId = focusedApp?.id ?? "Finder.app";
-		const appName = focusedApp?.name ?? "Finder";
+		const focusedAppId = focusedMenuApp?.id ?? "Finder.app";
+		const appName = focusedMenuApp?.name ?? "Finder";
 
 		const aboutItem = findAppAboutItem(appMenu, focusedAppId);
 
@@ -253,7 +269,7 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
 			strippedAppMenu:
 				aboutItem && appMenu ? stripAboutItem(appMenu, aboutItem) : appMenu,
 		};
-	}, [apps, appMenu, systemMenu]);
+	}, [focusedMenuApp, appMenu, systemMenu]);
 
 	const defaultMenuItems: ClassicyMenuItem[] = useMemo(() => {
 		const items = [appleMenuItem] as ClassicyMenuItem[];
