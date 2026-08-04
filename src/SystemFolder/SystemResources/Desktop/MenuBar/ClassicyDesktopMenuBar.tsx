@@ -123,9 +123,11 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
 	const disableBalloonHelp = useAppManager(
 		(s) => s.System.Manager.Desktop.disableBalloonHelp,
 	);
-	// Optional per-app Help entries. Read defensively so the bar works whether or
-	// not a consumer has populated a `helpMenu` slot on the desktop store.
-	const appHelpMenu = useAppManager((s) => s.System.Manager.Desktop?.helpMenu);
+	// Optional per-app Help entries, keyed by appId. Placeholder: Task 2 will
+	// update this to render only the focused app's entries.
+	const appHelpMenu = useAppManager(
+		(s) => s.System.Manager.Desktop?.helpMenu,
+	) as unknown as ClassicyMenuItem[] | undefined;
 	const desktopEventDispatch = useAppManagerDispatch();
 	const { closeAll } = useContext(ClassicyMenuContext);
 	const navRef = useRef<HTMLElement>(null);

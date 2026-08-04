@@ -136,6 +136,13 @@ export function hasMenuBar(m: Msg): m is Msg & { menuBar: ClassicyMenuItem[] } {
 	return Array.isArray(m.menuBar);
 }
 
+/** Action has `app.id: string` and `helpItems: ClassicyMenuItem[]` */
+export function hasAppAndHelpItems(
+	m: Msg,
+): m is Msg & { app: { id: string }; helpItems: ClassicyMenuItem[] } {
+	return hasApp(m) && Array.isArray(m.helpItems);
+}
+
 // ─── Desktop app reference ────────────────────────────────────────────────────
 
 /** Action has `app.id`, `app.name`, and `app.icon` all as strings */

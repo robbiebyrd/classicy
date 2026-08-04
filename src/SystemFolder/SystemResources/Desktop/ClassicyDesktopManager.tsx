@@ -4,6 +4,7 @@ import {
 	hasActiveTheme,
 	hasAlertSound,
 	hasApp,
+	hasAppAndHelpItems,
 	hasAvailableThemes,
 	hasBackgroundImage,
 	hasBackgroundPosition,
@@ -67,8 +68,12 @@ export interface ClassicyStoreSystemDesktopManager
 	/** When true, double-clicking a window's title bar collapses it (Appearance
 	 * control-panel option). Defaults to true. */
 	doubleClickTitleToCollapse?: boolean;
-	/** Optional app-supplied items appended to the standard Help menu. */
-	helpMenu?: ClassicyMenuItem[];
+	/** Optional app-supplied items appended to the standard Help menu, keyed by
+	 * the owning app's id. Written by `useClassicyHelpMenu`; the menu bar renders
+	 * only the focused app's entries. Entries here are NOT searched by
+	 * `findAppAboutItem`, so an "About <App>…" item registered through this slot
+	 * is deliberately immune to the Apple-menu About hoist. */
+	helpMenu?: Record<string, ClassicyMenuItem[]>;
 	errorDialog?: { title?: string; message: string } | null;
 	/** Bumped when the filesystem tree is replaced out-of-band (adapter
 	 * reconcile) so useClassicyFileSystem rebuilds from localStorage. */
@@ -124,6 +129,21 @@ export const classicyDesktopEventHandler = (
 			if (exists >= 0) {
 				ds.System.Manager.Desktop.systemMenu.splice(exists, 1);
 			}
+			break;
+		}
+		case "ClassicyDesktopHelpMenuAdd": {
+			if (!hasAppAndHelpItems(action)) break;
+			if (!ds.System.Manager.Desktop.helpMenu) {
+				ds.System.Manager.Desktop.helpMenu = {};
+			}
+			ds.System.Manager.Desktop.helpMenu[action.app.id] = action.helpItems;
+			break;
+		}
+		case "ClassicyDesktopHelpMenuRemove": {
+			if (!hasApp(action)) break;
+			const helpMenu = ds.System.Manager.Desktop.helpMenu;
+			if (!helpMenu) break;
+			delete helpMenu[action.app.id];
 			break;
 		}
 		case "ClassicyDesktopFocus": {
