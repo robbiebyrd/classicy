@@ -55,12 +55,7 @@
   // square bevel buttons line up with square ClassicyButtons in a palette.
   &.classicyBevelButtonSquare {
     width: calc(var(--window-control-size) * 4);
-    padding: 0;
     aspect-ratio: 1 / 1 !important;
-
-    img {
-      width: 100%;
-    }
   }
 
   // --- On / pressed: bevel inverts (pushed-in) and the fill darkens. Under
