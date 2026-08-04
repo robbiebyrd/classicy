@@ -123,11 +123,6 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
 	const disableBalloonHelp = useAppManager(
 		(s) => s.System.Manager.Desktop.disableBalloonHelp,
 	);
-	// Optional per-app Help entries, keyed by appId. Placeholder: Task 2 will
-	// update this to render only the focused app's entries.
-	const appHelpMenu = useAppManager(
-		(s) => s.System.Manager.Desktop?.helpMenu,
-	) as unknown as ClassicyMenuItem[] | undefined;
 	const desktopEventDispatch = useAppManagerDispatch();
 	const { closeAll } = useContext(ClassicyMenuContext);
 	const navRef = useRef<HTMLElement>(null);
@@ -198,16 +193,13 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
 				eventData: { disableBalloonHelp: !disableBalloonHelp },
 			},
 		];
-		if (appHelpMenu && appHelpMenu.length > 0) {
-			helpChildren.push({ id: "spacer" }, ...appHelpMenu);
-		}
 		return {
 			id: "help-menu",
 			title: "Help",
 			className: "classicyDesktopMenuHelp",
 			menuChildren: helpChildren,
 		};
-	}, [disableBalloonHelp, appHelpMenu]);
+	}, [disableBalloonHelp]);
 
 	// HIG #209: the first Apple-menu item is "About <the focused app>". Resolve
 	// the focused app (fallback Finder), *move* its About entry out of the app's
