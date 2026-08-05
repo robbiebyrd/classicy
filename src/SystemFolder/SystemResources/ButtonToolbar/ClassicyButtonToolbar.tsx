@@ -75,6 +75,7 @@ export const ClassicyButtonToolbar: FunctionalComponent<
 					// Interleaving BETWEEN rendered children is what makes the
 					// leading/trailing/single-group cases correct without
 					// special-casing any of them.
+					// biome-ignore lint/suspicious/noArrayIndexKey: Children.toArray already keyed each child; this Fragment's index only marks the interleaved separator's position, which is structurally static per render and never reordered.
 					<Fragment key={`${index}`}>
 						{index > 0 && <ClassicySeparator orientation="vertical" />}
 						{child}
