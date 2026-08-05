@@ -40,6 +40,8 @@ type ClassicyAppManagerProviderProps = {
 	disableMoviePlayer?: boolean;
 	disablePictureViewer?: boolean;
 	disableHyperCard?: boolean;
+	/** Boot with sound off. First-mount default only; user can unmute at runtime. */
+	defaultMuted?: boolean;
 };
 
 const getOrCreateUserId = (storageKey: string): string => {
@@ -71,6 +73,7 @@ export const ClassicyAppManagerProvider: FunctionalComponent<
 	disableMoviePlayer,
 	disablePictureViewer,
 	disableHyperCard,
+	defaultMuted,
 }) => {
 	const seeded = useRef(false);
 	useEffect(() => {
@@ -130,7 +133,7 @@ export const ClassicyAppManagerProvider: FunctionalComponent<
 			<ClassicyDefaultFileSystemContext.Provider value={fsContextValue}>
 				<ClassicyDefaultAppsContext.Provider value={defaultAppsContextValue}>
 					<AnalyticsProvider instance={analytics}>
-						<ClassicySoundManagerProvider>
+						<ClassicySoundManagerProvider defaultMuted={defaultMuted}>
 							{children}
 						</ClassicySoundManagerProvider>
 					</AnalyticsProvider>

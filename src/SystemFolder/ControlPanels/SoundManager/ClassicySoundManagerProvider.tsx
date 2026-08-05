@@ -14,10 +14,22 @@ import {
 
 export const ClassicySoundManagerProvider: FunctionalComponent<{
 	children: ReactNode;
-}> = ({ children }) => {
+	/**
+	 * Boot with sound off. First-mount default only — mirrors React's
+	 * `defaultChecked`/`defaultValue` convention, so changing it later does
+	 * nothing and the menu bar widget stays free to unmute at runtime.
+	 * Not persisted; sound state is per-mount.
+	 */
+	defaultMuted?: boolean;
+}> = ({ children, defaultMuted }) => {
+	// Muting is the `"*"` wildcard in `disabled` — the same flag the menu bar
+	// widget and Sound control panel toggle, and the one `playerCanPlay` gates
+	// on. The lazy initializer seeds it exactly once per mount and copies
+	// `initialPlayer` rather than mutating that module-level singleton.
 	const [sound, soundDispatch] = useReducer(
 		ClassicySoundStateEventReducer,
 		initialPlayer,
+		(base) => (defaultMuted ? { ...base, disabled: ["*"] } : base),
 	);
 
 	// Bridge the persisted Appearance selection (Zustand) into the sound state

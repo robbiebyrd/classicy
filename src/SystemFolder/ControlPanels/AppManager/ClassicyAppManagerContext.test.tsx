@@ -167,6 +167,39 @@ describe("ClassicyAppManagerProvider defaultFileSystem", () => {
 	});
 });
 
+describe("ClassicyAppManagerProvider defaultMuted", () => {
+	/** Reads the sound state the nested ClassicySoundManagerProvider seeded. */
+	async function renderAndCaptureDisabled(
+		defaultMuted?: boolean,
+	): Promise<string[] | undefined> {
+		const ctx = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext"
+		);
+		const soundCtx = await import(
+			"@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext"
+		);
+		let captured: string[] | undefined;
+		function Capture(): null {
+			captured = useContext(soundCtx.ClassicySoundManagerContext).disabled;
+			return null;
+		}
+		render(
+			<ctx.ClassicyAppManagerProvider defaultMuted={defaultMuted}>
+				<Capture />
+			</ctx.ClassicyAppManagerProvider>,
+		);
+		return captured;
+	}
+
+	it("boots unmuted when defaultMuted is omitted", async () => {
+		expect(await renderAndCaptureDisabled()).toEqual([]);
+	});
+
+	it("forwards defaultMuted to the sound provider", async () => {
+		expect(await renderAndCaptureDisabled(true)).toEqual(["*"]);
+	});
+});
+
 describe("ClassicyAppManagerProvider default apps", () => {
 	it("defaults all four disableX props to false", async () => {
 		const ctx = await import(
