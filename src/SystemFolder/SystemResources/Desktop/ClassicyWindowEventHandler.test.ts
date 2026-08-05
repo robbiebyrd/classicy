@@ -44,6 +44,7 @@ function makeStore(
 					disableBalloonHelp: false,
 				},
 				Applications: {
+					focusedAppId: "Finder.app",
 					apps: {
 						"Finder.app": {
 							id: "Finder.app",
@@ -787,6 +788,97 @@ describe("ClassicyWindowOpen persists windowType", () => {
 			(w) => w.id === "doc",
 		);
 		expect(win?.windowType).toBeUndefined();
+	});
+});
+
+describe("ClassicyWindowDestroy", () => {
+	function makeFocusedApp() {
+		const ds = makeStoreWithWindows();
+		// makeStoreWithWindows leaves Finder holding global focus; modal
+		// succession only runs for the app that actually owns focus.
+		ds.System.Manager.Applications.focusedAppId = "TestApp";
+		ds.System.Manager.Applications.apps.TestApp.focused = true;
+		ds.System.Manager.Applications.apps["Finder.app"].focused = false;
+		return ds;
+	}
+
+	it("removes the window record", () => {
+		const ds = makeFocusedApp();
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowDestroy",
+			app: { id: "TestApp" },
+			window: { id: "w2" },
+		});
+		const windows = ds.System.Manager.Applications.apps.TestApp.windows;
+		expect(windows).toHaveLength(1);
+		expect(windows.find((w) => w.id === "w2")).toBeUndefined();
+	});
+
+	it("focuses a surviving sibling when the destroyed window held focus", () => {
+		const ds = makeFocusedApp();
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowDestroy",
+			app: { id: "TestApp" },
+			window: { id: "w2" },
+		});
+		const w1 = ds.System.Manager.Applications.apps.TestApp.windows.find(
+			(w) => w.id === "w1",
+		);
+		expect(w1?.focused).toBe(true);
+		expect(ds.System.Manager.Applications.focusedAppId).toBe("TestApp");
+	});
+
+	it("leaves focus alone when the destroyed window did not hold it", () => {
+		const ds = makeFocusedApp();
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowDestroy",
+			app: { id: "TestApp" },
+			window: { id: "w1" },
+		});
+		const w2 = ds.System.Manager.Applications.apps.TestApp.windows.find(
+			(w) => w.id === "w2",
+		);
+		expect(w2?.focused).toBe(true);
+	});
+
+	it("does not steal focus when the app is not the focused app", () => {
+		const ds = makeStoreWithWindows(); // Finder holds focus
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowDestroy",
+			app: { id: "TestApp" },
+			window: { id: "w2" },
+		});
+		expect(ds.System.Manager.Applications.focusedAppId).toBe("Finder.app");
+	});
+
+	it("leaves the app focused with no focused window when none survive", () => {
+		const ds = makeFocusedApp();
+		ds.System.Manager.Applications.apps.TestApp.windows =
+			ds.System.Manager.Applications.apps.TestApp.windows.filter(
+				(w) => w.id === "w2",
+			);
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowDestroy",
+			app: { id: "TestApp" },
+			window: { id: "w2" },
+		});
+		expect(ds.System.Manager.Applications.apps.TestApp.focused).toBe(true);
+		expect(ds.System.Manager.Applications.apps.TestApp.windows).toHaveLength(0);
+	});
+
+	it("does not choose a utility window as the successor", () => {
+		const ds = makeFocusedApp();
+		ds.System.Manager.Applications.apps.TestApp.windows[0].windowType =
+			"utility";
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowDestroy",
+			app: { id: "TestApp" },
+			window: { id: "w2" },
+		});
+		const w1 = ds.System.Manager.Applications.apps.TestApp.windows.find(
+			(w) => w.id === "w1",
+		);
+		expect(w1?.focused).toBe(false);
 	});
 });
 

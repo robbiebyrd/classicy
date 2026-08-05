@@ -8,7 +8,10 @@ import {
 	hasWindowResizing,
 	hasWindowZoomed,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
-import { focusWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
+import {
+	focusApp,
+	focusWindow,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
 import type {
 	ActionMessage,
 	ClassicyStore,
@@ -221,11 +224,28 @@ export const classicyWindowEventHandler = (
 		case "ClassicyWindowDestroy": {
 			if (!hasAppAndWindow(action)) break;
 			if (!ds.System.Manager.Applications.apps[action.app.id]) break;
+			// Capture focus ownership BEFORE the record is filtered out — once
+			// the window is gone there is no way to tell it held focus, and a
+			// modal unmounting would leave focus dangling on a window that no
+			// longer exists (#223).
+			const destroyed = ds.System.Manager.Applications.apps[
+				action.app.id
+			].windows.find((w) => w.id === action.window.id);
+			const heldFocus =
+				destroyed?.focused === true &&
+				ds.System.Manager.Applications.focusedAppId === action.app.id;
 			ds = updateWindow(action.app.id, action.window.id, { closed: true });
 			ds.System.Manager.Applications.apps[action.app.id].windows =
 				ds.System.Manager.Applications.apps[action.app.id].windows
 					.map((w) => (w.id === action.window.id ? null : w))
 					.filter(notEmpty);
+			// Hand focus to a surviving sibling using the same succession rules
+			// as ClassicyWindowClose (lastAccessed → highest zOrder → default,
+			// skipping utility palettes). Removal happens first so the destroyed
+			// window can never select itself.
+			if (heldFocus) {
+				focusApp(ds, action.app.id);
+			}
 			break;
 		}
 		case "ClassicyWindowMenu": {
