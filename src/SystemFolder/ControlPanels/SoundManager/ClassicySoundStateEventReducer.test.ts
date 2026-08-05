@@ -430,3 +430,34 @@ describe("ClassicySoundPlayError fallback", () => {
 		expect(ss.soundPlayer?.play).toHaveBeenCalledWith("ClassicyAlertBonk");
 	});
 });
+
+// ---------------------------------------------------------------------------
+// ClassicySoundPlayInterrupt vs ClassicySoundPlay while sounding
+// ---------------------------------------------------------------------------
+
+describe("ClassicySoundPlayInterrupt vs ClassicySoundPlay while sounding", () => {
+	it("plays even when another sound is already sounding", () => {
+		const player = makePlayer();
+		(player.playing as ReturnType<typeof vi.fn>).mockReturnValue(true);
+		const ss = makeSoundState({ soundPlayer: player });
+		ClassicySoundStateEventReducer(ss, {
+			type: "ClassicySoundPlayInterrupt" as ClassicySoundActionTypes,
+			sound: "ClassicyBeep",
+		});
+		expect(ss.soundPlayer?.play).toHaveBeenCalledWith("ClassicyBeep");
+	});
+
+	it("is still suppressed when the sound is disabled", () => {
+		const player = makePlayer();
+		(player.playing as ReturnType<typeof vi.fn>).mockReturnValue(true);
+		const ss = makeSoundState({
+			soundPlayer: player,
+			disabled: ["ClassicyBeep"],
+		});
+		ClassicySoundStateEventReducer(ss, {
+			type: "ClassicySoundPlayInterrupt" as ClassicySoundActionTypes,
+			sound: "ClassicyBeep",
+		});
+		expect(ss.soundPlayer?.play).not.toHaveBeenCalled();
+	});
+});

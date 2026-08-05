@@ -156,9 +156,15 @@ export const HyperCard: FunctionalComponent = () => {
 			if (playedRef.current.has(e.id)) continue;
 			playedRef.current.add(e.id);
 			if (e.kind === "beep") {
-				player({ type: "ClassicySoundPlay", sound: "ClassicyBeep" });
+				// PlayInterrupt, not Play: ClassicySoundPlay is gated on total
+				// silence, and the button's own ClassicyButtonClickUp is still
+				// sounding when the script's beep lands in the same tick — so a
+				// plain Play is silently dropped (#220). Interrupt stops all
+				// audio first, which is the right call for script-driven sound:
+				// the most recently requested sound is the intended one.
+				player({ type: "ClassicySoundPlayInterrupt", sound: "ClassicyBeep" });
 			} else if (e.kind === "play") {
-				player({ type: "ClassicySoundPlay", sound: e.sound });
+				player({ type: "ClassicySoundPlayInterrupt", sound: e.sound });
 			} else if (e.kind === "openApp") {
 				// ClassicyAppOpen's predicate requires { id, name, icon }; stacks
 				// author only the app id, so resolve the registered app record.
