@@ -438,9 +438,21 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	// record on unmount is what lets each modal open take focus (#222) and each
 	// dismissal hand focus back (#223). Document windows are excluded — their
 	// records hold position/size that must survive an unmount and a reload.
+	//
+	// The ref reset is required for StrictMode correctness: React's dev-mode
+	// double-invoke tears this effect down immediately after first mount,
+	// reusing the same component instance (refs survive that phantom cycle).
+	// Without resetting windowRegistered here, the registration effect above
+	// sees it already `true` on the StrictMode re-run and skips re-dispatching
+	// ClassicyWindowOpen, so the just-destroyed record never comes back even
+	// though the window stays mounted and visible. Resetting the ref keeps the
+	// two effects symmetric: destroying the record un-registers the instance,
+	// so registration is allowed to fire again — whether that's a StrictMode
+	// phantom remount or a genuine one. Do not remove this reset.
 	useEffect(() => {
 		if (!modal) return;
 		return () => {
+			windowRegistered.current = false;
 			desktopEventDispatch({
 				type: "ClassicyWindowDestroy",
 				window: { id },
