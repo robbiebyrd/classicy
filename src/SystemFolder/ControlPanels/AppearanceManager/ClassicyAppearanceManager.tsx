@@ -62,10 +62,12 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 	);
 	const windowClose = useClassicyWindowClose(APP_ID);
 	const editMenu = useClassicyEditMenu(APP_ID);
+	// Theme backgrounds are resolved to loadable URLs before they reach the
+	// store, so the current one can seed the picker directly; only a
+	// colour-only theme needs a stand-in to select.
 	const [bg, setBg] = useState<string>(
-		appearanceState.activeTheme.desktop.backgroundImage.startsWith("data:")
-			? appearanceState.activeTheme.desktop.backgroundImage
-			: ClassicyDefaultWallpaper,
+		appearanceState.activeTheme.desktop.backgroundImage ||
+			ClassicyDefaultWallpaper,
 	);
 
 	const themesList = useMemo(

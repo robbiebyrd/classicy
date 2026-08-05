@@ -10,6 +10,40 @@ const wp = (filename: string): string => {
 
 export const ClassicyDefaultWallpaper = wp("default.png");
 
+/**
+ * Turn a theme's `desktop.backgroundImage` into a URL the browser can actually
+ * load.
+ *
+ * Bundled wallpapers must be referenced by name, never by path: `themes.json`
+ * is imported as data, so Vite's asset pipeline never sees the strings inside
+ * it and any path written there ships verbatim. Under `vite dev` such a path
+ * happens to resolve (the file is served from the project root), but a built
+ * library inlines wallpapers as `data:` URIs and emits no `/assets` directory
+ * at all — so the literal path 404s in every consuming app.
+ *
+ * Values that are already loadable — `data:` URIs and remote URLs, including
+ * a background the user set themselves — pass through untouched, which also
+ * makes this idempotent and therefore safe to re-apply to persisted state.
+ */
+export const resolveWallpaper = (value: string): string => {
+	if (!value) {
+		return "";
+	}
+	if (/^(data:|blob:|https?:\/\/|\/\/)/.test(value)) {
+		return value;
+	}
+
+	const filename = value.split("/").pop() ?? "";
+	const resolved = wp(filename);
+	if (!resolved) {
+		console.warn(
+			"[ClassicyWallpapers] Unknown wallpaper; falling back to no background image.",
+			{ value },
+		);
+	}
+	return resolved;
+};
+
 export const ClassicyWallpapers = [
 	{ label: "Azul Dark", value: wp("azul_dark.png") },
 	{ label: "Azul Extra Light", value: wp("azul_extra_light.png") },
