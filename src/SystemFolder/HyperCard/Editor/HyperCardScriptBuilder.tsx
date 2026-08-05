@@ -7,6 +7,7 @@
 
 import type { ChangeEvent, FC as FunctionalComponent } from "react";
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { useSound } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import type { HCScriptTarget } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorUtils";
 import {
 	HC_EVENT_NAMES,
@@ -34,6 +35,11 @@ const num = (key: string, label?: string): HCOptionField => ({
 	label: label ?? key,
 	kind: "number",
 });
+const sound = (key: string, label?: string): HCOptionField => ({
+	key,
+	label: label ?? key,
+	kind: "sound",
+});
 
 /** Flat editable params per built-in verb (nested lists handled structurally). */
 export const BUILTIN_ACTION_SPECS: Record<string, HCOptionField[]> = {
@@ -47,7 +53,7 @@ export const BUILTIN_ACTION_SPECS: Record<string, HCOptionField[]> = {
 	show: [text("part")],
 	hide: [text("part")],
 	beep: [],
-	play: [text("sound")],
+	play: [sound("sound")],
 	answer: [
 		text("message"),
 		{ key: "buttons", label: "buttons", kind: "choices" },
@@ -306,6 +312,39 @@ const ActionField: FunctionalComponent<{
 	value: unknown;
 	onCommit: (value: unknown) => void;
 }> = ({ id, field, value, onCommit }) => {
+	// Called unconditionally, before any early return: ActionField returns
+	// early per field kind, and a hook behind one of those branches would
+	// change hook order between renders.
+	const { labels } = useSound();
+
+	if (field.kind === "sound") {
+		const current = typeof value === "string" ? value : "";
+		const registered = [...labels]
+			.sort(
+				(a, b) =>
+					a.group.localeCompare(b.group) || a.label.localeCompare(b.label),
+			)
+			.map((s) => ({ value: s.id, label: `${s.group} — ${s.label}` }));
+		// A sound the stack already names but that isn't registered (a plugin
+		// sound, or a hand-authored stack) is appended rather than dropped, so
+		// selecting nothing can never silently rewrite authored data.
+		const options =
+			current && !registered.some((o) => o.value === current)
+				? [...registered, { value: current, label: current }]
+				: registered;
+		return (
+			<ClassicyPopUpMenu
+				id={id}
+				label={field.label}
+				options={options}
+				selected={current}
+				onChangeFunc={(e: ChangeEvent<HTMLSelectElement>) =>
+					onCommit(e.target.value || undefined)
+				}
+			/>
+		);
+	}
+
 	if (field.kind === "choices") {
 		const seeded = Array.isArray(value) ? (value as string[]).join(", ") : "";
 		let latest = seeded;
