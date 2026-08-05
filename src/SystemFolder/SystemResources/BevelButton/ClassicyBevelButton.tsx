@@ -6,11 +6,13 @@ import {
 	type MouseEvent,
 	type MouseEventHandler,
 	type PropsWithChildren,
+	useContext,
 	useEffect,
 	useState,
 } from "react";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
+import { ClassicyButtonToolbarContext } from "@/SystemFolder/SystemResources/ButtonToolbar/ClassicyButtonToolbarContext";
 
 /** HIG bevel widths: small = 2px, medium = 3px, large = 4px. */
 export type ClassicyBevelWidth = "small" | "medium" | "large";
@@ -104,6 +106,12 @@ export const ClassicyBevelButton: FunctionalComponent<
 }) => {
 	const player = useSoundDispatch();
 	const { track } = useClassicyAnalytics();
+	const inToolbar = useContext(ClassicyButtonToolbarContext);
+	// Inside a toolbar an icon-only control takes the square box by default;
+	// a control with text keeps its rectangular shape. `square` is destructured
+	// with no default, so an explicitly passed value — including false — always
+	// wins over the toolbar's preference.
+	const isSquare = square ?? (inToolbar && !!icon && !children);
 
 	const [pressed, setPressed] = useState(false);
 	// Uncontrolled on-state for toggle/radio; synced when the `on` prop changes.
@@ -149,7 +157,7 @@ export const ClassicyBevelButton: FunctionalComponent<
 			aria-haspopup={mode === "popup" ? "menu" : undefined}
 			className={classNames(
 				"classicyBevelButton",
-				square && "classicyBevelButtonSquare",
+				isSquare && "classicyBevelButtonSquare",
 				bevelWidthClass[bevelWidth],
 				`classicyBevelButtonMode${mode.charAt(0).toUpperCase()}${mode.slice(1)}`,
 			)}
