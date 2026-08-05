@@ -114,8 +114,12 @@ text children.
 A co-located `ClassicyButtonToolbar.scss`, per the project's SCSS convention
 (no inline styles for layout or presentation):
 
-- `.classicyButtonToolbar` — `display: flex`, row, vertically centered items,
-  with the separator given small horizontal margins so groups read as distinct.
+- `.classicyButtonToolbar` — `display: flex`, row, vertically centered items.
+  It deliberately sets no separator spacing itself: the vertical
+  `ClassicySeparator` already carries its own horizontal margins and stretch
+  behavior (`ClassicySeparator`'s own styles), so groups read as distinct
+  without the toolbar duplicating that spacing. See
+  `ClassicyButtonToolbar.scss:3-5`.
 - `.classicyButtonToolbarGroup` — `display: flex`, `gap: 0` (**R1**).
 
 Existing theme CSS variables carry the colors; the toolbar introduces no new

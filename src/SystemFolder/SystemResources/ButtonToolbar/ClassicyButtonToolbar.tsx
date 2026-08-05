@@ -4,6 +4,7 @@ import {
 	Children,
 	Fragment,
 	type FC as FunctionalComponent,
+	isValidElement,
 	type ReactNode,
 } from "react";
 import { ClassicyButtonToolbarContext } from "@/SystemFolder/SystemResources/ButtonToolbar/ClassicyButtonToolbarContext";
@@ -71,16 +72,25 @@ export const ClassicyButtonToolbar: FunctionalComponent<
 	return (
 		<ClassicyButtonToolbarContext.Provider value={true}>
 			<div className={classNames("classicyButtonToolbar", className)}>
-				{items.map((child, index) => (
-					// Interleaving BETWEEN rendered children is what makes the
-					// leading/trailing/single-group cases correct without
-					// special-casing any of them.
-					// biome-ignore lint/suspicious/noArrayIndexKey: Children.toArray already keyed each child; this Fragment's index only marks the interleaved separator's position, which is structurally static per render and never reordered.
-					<Fragment key={`${index}`}>
-						{index > 0 && <ClassicySeparator orientation="vertical" />}
-						{child}
-					</Fragment>
-				))}
+				{items.map((child, index) => {
+					// Children.toArray already assigned every element a stable key;
+					// reuse it so the Fragment carries the child's own identity instead
+					// of its position. Only a keyless child (not a valid element — e.g.
+					// a bare string/number) falls back to the index, which is safe
+					// because toArray's output order is structurally static per render
+					// and never reordered.
+					const key =
+						isValidElement(child) && child.key != null ? child.key : `${index}`;
+					return (
+						// Interleaving BETWEEN rendered children is what makes the
+						// leading/trailing/single-group cases correct without
+						// special-casing any of them.
+						<Fragment key={key}>
+							{index > 0 && <ClassicySeparator orientation="vertical" />}
+							{child}
+						</Fragment>
+					);
+				})}
 			</div>
 		</ClassicyButtonToolbarContext.Provider>
 	);

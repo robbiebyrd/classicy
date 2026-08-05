@@ -883,6 +883,20 @@ describe("ClassicyWindowDestroy", () => {
 
 	it("refocuses a modal on every reopen, not just the first (#222)", () => {
 		const ds = makeFocusedApp();
+		// Give w1/w2 explicit, distinct zOrder so pickWindowToRestore's
+		// highest-zOrder succession branch is what selects w2 below — without
+		// this, neither window carries a zOrder and the picker falls through to
+		// candidates[candidates.length - 1], which also happens to be w2 but
+		// only because of its array position, not because it was the actual
+		// focus successor.
+		const w1 = ds.System.Manager.Applications.apps.TestApp.windows.find(
+			(w) => w.id === "w1",
+		);
+		const w2 = ds.System.Manager.Applications.apps.TestApp.windows.find(
+			(w) => w.id === "w2",
+		);
+		if (w1) w1.zOrder = 10;
+		if (w2) w2.zOrder = 20;
 		const openDialog = () =>
 			classicyWindowEventHandler(ds, {
 				type: "ClassicyWindowOpen",
