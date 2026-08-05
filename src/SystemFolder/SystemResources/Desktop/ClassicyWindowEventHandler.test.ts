@@ -880,6 +880,42 @@ describe("ClassicyWindowDestroy", () => {
 		);
 		expect(w1?.focused).toBe(false);
 	});
+
+	it("refocuses a modal on every reopen, not just the first (#222)", () => {
+		const ds = makeFocusedApp();
+		const openDialog = () =>
+			classicyWindowEventHandler(ds, {
+				type: "ClassicyWindowOpen",
+				app: { id: "TestApp" },
+				window: {
+					id: "dialog",
+					minimumSize: [100, 100],
+					size: [360, 120],
+					position: [0, 0],
+				},
+			});
+		const closeDialog = () =>
+			classicyWindowEventHandler(ds, {
+				type: "ClassicyWindowDestroy",
+				app: { id: "TestApp" },
+				window: { id: "dialog" },
+			});
+		const focusedId = () =>
+			ds.System.Manager.Applications.apps.TestApp.windows.find((w) => w.focused)
+				?.id;
+
+		openDialog();
+		expect(focusedId()).toBe("dialog");
+		closeDialog();
+		expect(focusedId()).toBe("w2");
+
+		// Before the fix this second open hit the known-id branch and never
+		// focused, leaving w2 active behind a visible modal.
+		openDialog();
+		expect(focusedId()).toBe("dialog");
+		closeDialog();
+		expect(focusedId()).toBe("w2");
+	});
 });
 
 describe("ClassicyWindowClose skips utility windows when promoting a sibling", () => {
