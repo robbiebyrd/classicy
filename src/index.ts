@@ -91,6 +91,8 @@ export * from "./SystemFolder/SystemResources/Boot/ClassicyDefaultParadeIcons";
 export * from "./SystemFolder/SystemResources/Boot/ClassicyStartupScreen";
 export * from "./SystemFolder/SystemResources/Boot/ClassicyStartupScreenSession";
 export * from "./SystemFolder/SystemResources/Button/ClassicyButton";
+export * from "./SystemFolder/SystemResources/ButtonToolbar/ClassicyButtonToolbar";
+export * from "./SystemFolder/SystemResources/ButtonToolbar/ClassicyButtonToolbarContext";
 export * from "./SystemFolder/SystemResources/Checkbox/ClassicyCheckbox";
 export * from "./SystemFolder/SystemResources/ColorPicker/ClassicyColorPicker";
 export * from "./SystemFolder/SystemResources/ColorPicker/ClassicyColorPickerCMYK";
