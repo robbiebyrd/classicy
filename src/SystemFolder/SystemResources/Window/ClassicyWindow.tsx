@@ -432,6 +432,23 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		}
 	}, [appId, ws, desktopEventDispatch]);
 
+	// A modal window is ephemeral: it carries no persisted geometry, and
+	// leaving its record in the store makes the next open a "known id", which
+	// the ClassicyWindowOpen handler deliberately does not focus. Dropping the
+	// record on unmount is what lets each modal open take focus (#222) and each
+	// dismissal hand focus back (#223). Document windows are excluded — their
+	// records hold position/size that must survive an unmount and a reload.
+	useEffect(() => {
+		if (!modal) return;
+		return () => {
+			desktopEventDispatch({
+				type: "ClassicyWindowDestroy",
+				window: { id },
+				app: { id: appId },
+			});
+		};
+	}, [modal, id, appId, desktopEventDispatch]);
+
 	useEffect(() => {
 		if (!appMenu) return;
 		// Guard the record write behind a structural signature: inline appMenu
