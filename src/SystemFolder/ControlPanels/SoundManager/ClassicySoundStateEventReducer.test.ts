@@ -154,6 +154,23 @@ describe("ClassicySoundPlayInterrupt", () => {
 		expect(ss.soundPlayer?.stop).not.toHaveBeenCalled();
 		expect(ss.soundPlayer?.play).not.toHaveBeenCalled();
 	});
+
+	// HyperCard's `play` action effect (HyperCard.tsx) dispatches
+	// ClassicySoundPlayInterrupt with whatever `sound` the authored/edited
+	// action carries, including undefined for a cleared or hand-authored
+	// action with no sound. Howler's `Howl.play()` called with no argument
+	// plays the ENTIRE sprite sheet rather than a single sprite, so this guard
+	// (action.sound must be truthy before either stop() or play() fires) is
+	// what keeps a missing sound from being dangerous.
+	it("does NOT stop or play when sound is undefined (would play the whole sprite sheet otherwise)", () => {
+		const ss = makeSoundState();
+		ClassicySoundStateEventReducer(ss, {
+			type: "ClassicySoundPlayInterrupt" as ClassicySoundActionTypes,
+			sound: undefined,
+		});
+		expect(ss.soundPlayer?.stop).not.toHaveBeenCalled();
+		expect(ss.soundPlayer?.play).not.toHaveBeenCalled();
+	});
 });
 
 // ---------------------------------------------------------------------------

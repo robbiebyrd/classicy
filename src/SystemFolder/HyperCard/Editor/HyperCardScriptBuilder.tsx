@@ -339,10 +339,17 @@ const SoundField: FunctionalComponent<{
 	// A sound the stack already names but that isn't registered (a plugin
 	// sound, or a hand-authored stack) is appended rather than dropped, so
 	// selecting nothing can never silently rewrite authored data.
-	const options =
+	const withUnregistered =
 		current && !registered.some((o) => o.value === current)
 			? [...registered, { value: current, label: current }]
 			: registered;
+	// Explicit "None" (empty value) restores the clear affordance the old text
+	// field had: picking it drives onChangeFunc's target.value to "", which
+	// onCommit below turns into `undefined`. Safe to expose — the play-sound
+	// consumer (HyperCard.tsx's effect loop -> ClassicySoundPlayInterrupt)
+	// guards on `action.sound` being truthy before ever calling
+	// `soundPlayer.play()`, so a cleared/missing sound never reaches Howler.
+	const options = [{ value: "", label: "None" }, ...withUnregistered];
 	return (
 		<ClassicyPopUpMenu
 			id={id}

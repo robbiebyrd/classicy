@@ -5,10 +5,25 @@ import type { ClassicySoundState } from "@/SystemFolder/ControlPanels/SoundManag
 
 const dispatch = vi.fn();
 
+// Spread the real module and override only the dispatch double — any other
+// export a rendered field/control starts calling later (ClassicyPopUpMenu,
+// ClassicyButton, ClassicyInput currently call none of them) still gets a
+// working real implementation instead of "X is not a function".
 vi.mock(
 	"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils",
-	() => ({ useAppManagerDispatch: () => dispatch }),
+	async (importOriginal) => ({
+		...(await importOriginal<
+			typeof import("@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils")
+		>()),
+		useAppManagerDispatch: () => dispatch,
+	}),
 );
+// NOT spread from the real module here (unlike the mock above): this test's
+// whole point is dictating exactly what useSound() returns (a fixed 2-label
+// fixture, asserted on below), and the real module's `initialPlayer`
+// construction plus the full `soundLabels` registry would both defeat that —
+// the "General — Click" / "System — Beep" fixture would compete with 41 real
+// labels. Keep it narrow and hand-written.
 vi.mock(
 	"@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext",
 	() => ({
@@ -68,7 +83,7 @@ describe("script builder sound field", () => {
 		).toBe("System — Beep");
 	});
 
-	it("lists registered sounds sorted by group once opened", () => {
+	it("lists registered sounds sorted by group once opened, with a leading clear option", () => {
 		const { container } = renderPlay("ClassicyBeep");
 		const combobox = container.querySelector(
 			'[role="combobox"]',
@@ -82,8 +97,9 @@ describe("script builder sound field", () => {
 			.getAllByRole("option")
 			.map((o) => o.textContent);
 		// The current selection ("ClassicyBeep" -> "System — Beep") is rendered
-		// with a leading HIG checkmark inside the open menu.
-		expect(options).toEqual(["General — Click", "✓System — Beep"]);
+		// with a leading HIG checkmark inside the open menu. "None" is the clear
+		// affordance (parity with the old text field's empty-string clear).
+		expect(options).toEqual(["None", "General — Click", "✓System — Beep"]);
 	});
 
 	it("keeps an unregistered sound as the selected option", () => {
@@ -91,5 +107,20 @@ describe("script builder sound field", () => {
 		expect(
 			container.querySelector(".classicyPopUpMenuValue")?.textContent,
 		).toBe("myPluginSound");
+	});
+
+	it("clears the sound by picking 'None', dropping the sound key entirely", () => {
+		const { container } = renderPlay("ClassicyBeep");
+		const combobox = container.querySelector(
+			'[role="combobox"]',
+		) as HTMLElement;
+		fireEvent.click(combobox);
+		fireEvent.click(screen.getByRole("option", { name: "None" }));
+		expect(dispatch).toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: "ClassicyAppHCEditSetScript",
+				handlers: { onMouseUp: [{ do: "play" }] },
+			}),
+		);
 	});
 });
