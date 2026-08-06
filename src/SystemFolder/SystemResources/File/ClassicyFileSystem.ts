@@ -32,6 +32,17 @@ const SUMMABLE_FILE_TYPES = new Set<string>([
 	ClassicyFileSystemEntryFileType.Stack,
 ]);
 
+// Path segments that, if traversed as an object key, can reach or rewrite
+// Object.prototype (prototype pollution). pathArray() is the single
+// chokepoint that rejects them — every path-consuming method (resolve,
+// writeFile, mkDir) routes through it, so none of them need their own copy
+// of this check.
+const FORBIDDEN_PATH_SEGMENTS = new Set([
+	"__proto__",
+	"constructor",
+	"prototype",
+]);
+
 export type ClassicyPathOrFileSystemEntry = string | ClassicyFileSystemEntry;
 
 export class ClassicyFileSystem {
@@ -253,12 +264,43 @@ export class ClassicyFileSystem {
 		return false;
 	}
 
-	pathArray = (path: string) => {
-		return [...path.split(this.separator)].filter((v) => v !== "");
+	/**
+	 * Split a colon-separated path into segments, dropping empty ones.
+	 * Returns null — rejecting the whole path — if any segment is a
+	 * prototype-pollution vector (__proto__, constructor, prototype), rather
+	 * than silently dropping just that segment (which would let the
+	 * remainder of the path still resolve to something real).
+	 */
+	pathArray = (path: string): string[] | null => {
+		const segments = path.split(this.separator).filter((v) => v !== "");
+		if (segments.some((segment) => FORBIDDEN_PATH_SEGMENTS.has(segment))) {
+			return null;
+		}
+		return segments;
 	};
 
 	resolve(path: string): ClassicyFileSystemEntry {
-		return this.pathArray(path).reduce((prev, curr) => prev?.[curr], this.fs);
+		const parts = this.pathArray(path);
+		// undefined, NOT {}: every caller guards with `if (!entry)` or `?.`, so a
+		// truthy empty object makes a rejected path look like a real entry —
+		// setMetadata would report success for a write it never performed, and
+		// writeFile's parent-existence check would silently pass. A missing path
+		// already resolves to undefined via the reduce below, so returning
+		// undefined here keeps one consistent contract for "no such entry".
+		//
+		// The declared return type omits `| undefined` — pre-existing, and only
+		// compiles because `strict` is off. Widening it belongs to the strict-mode
+		// subtask, which has to fix every call site at once.
+		if (parts === null) return undefined as unknown as ClassicyFileSystemEntry;
+		// Object.hasOwn (rather than `prev?.[curr]`) guarantees the reduce can
+		// only step onto own, enumerable properties of the tree — never up the
+		// prototype chain — even for a segment that isn't in
+		// FORBIDDEN_PATH_SEGMENTS but happens to be inherited (e.g. toString).
+		return parts.reduce(
+			(prev, curr) =>
+				prev && Object.hasOwn(prev, curr) ? prev[curr] : undefined,
+			this.fs,
+		);
 	}
 
 	formatSize(
@@ -460,13 +502,13 @@ export class ClassicyFileSystem {
 		data: string,
 		metaData?: Partial<ClassicyFileSystemEntryMetadata>,
 	): boolean {
-		// Prevent prototype pollution via special property names anywhere in the path
-		const FORBIDDEN = new Set(["__proto__", "constructor", "prototype"]);
+		// pathArray() is the chokepoint: it returns null for a path containing
+		// __proto__/constructor/prototype anywhere, so no separate guard is
+		// needed here.
 		const parts = this.pathArray(path);
+		if (parts === null) return false;
 		const name = parts.pop();
-		if (!name || FORBIDDEN.has(name) || parts.some((p) => FORBIDDEN.has(p))) {
-			return false;
-		}
+		if (!name) return false;
 
 		const parentPath = parts.join(this.separator);
 		if (parts.length > 0 && !this.resolve(parentPath)) {
@@ -496,7 +538,11 @@ export class ClassicyFileSystem {
 	}
 
 	mkDir(path: string) {
-		const parts: string[] = this.pathArray(path);
+		// pathArray() is the chokepoint: it returns null for a path containing
+		// __proto__/constructor/prototype anywhere, so nothing is built or
+		// journaled for a forbidden path.
+		const parts = this.pathArray(path);
+		if (parts === null) return;
 
 		const newDirectoryObject = () => {
 			return {
