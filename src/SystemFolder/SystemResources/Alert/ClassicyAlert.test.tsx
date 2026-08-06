@@ -187,4 +187,35 @@ describe("ClassicyAlert", () => {
 		expect(screen.getAllByRole("button")).toHaveLength(4);
 		expect(screen.queryByRole("button", { name: "E" })).not.toBeInTheDocument();
 	});
+
+	// ClassicyAlert is always modal={true} — ClassicyWindow's cleanup effect
+	// must dispatch ClassicyWindowDestroy for it on unmount (#222/#223). A real
+	// in-repo caller passes a real app id (not the "ClassicyAlert" default), so
+	// this pins that shape too.
+	it("dispatches ClassicyWindowDestroy for itself on unmount", () => {
+		const { unmount } = render(
+			<ClassicyAlert
+				id="confirm-delete"
+				appId="Finder.app"
+				alertType="caution"
+				label="Delete this file?"
+			/>,
+		);
+		const destroyCallsBeforeUnmount = mockDispatch.mock.calls.filter(
+			(c) => (c[0] as { type: string }).type === "ClassicyWindowDestroy",
+		);
+		expect(destroyCallsBeforeUnmount).toHaveLength(0);
+
+		unmount();
+
+		const destroyCalls = mockDispatch.mock.calls.filter(
+			(c) => (c[0] as { type: string }).type === "ClassicyWindowDestroy",
+		);
+		expect(destroyCalls).toHaveLength(1);
+		expect(destroyCalls[0][0]).toMatchObject({
+			type: "ClassicyWindowDestroy",
+			app: { id: "Finder.app" },
+			window: { id: "confirm-delete" },
+		});
+	});
 });

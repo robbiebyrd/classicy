@@ -390,7 +390,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		if (!currentWindow) return;
 
 		const isOpen = !ws.closed;
-		const isFocused = isOpen && ws.focused;
+		const isFocused = isOpen && !!ws.focused;
 		const justOpened = isOpen && !wasOpenRef.current;
 		const justFocused = isFocused && !wasFocusedRef.current;
 		wasOpenRef.current = isOpen;
@@ -431,6 +431,35 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			});
 		}
 	}, [appId, ws, desktopEventDispatch]);
+
+	// A modal window is ephemeral: it carries no persisted geometry, and
+	// leaving its record in the store makes the next open a "known id", which
+	// the ClassicyWindowOpen handler deliberately does not focus. Dropping the
+	// record on unmount is what lets each modal open take focus (#222) and each
+	// dismissal hand focus back (#223). Document windows are excluded — their
+	// records hold position/size that must survive an unmount and a reload.
+	//
+	// The ref reset is required for StrictMode correctness: React's dev-mode
+	// double-invoke tears this effect down immediately after first mount,
+	// reusing the same component instance (refs survive that phantom cycle).
+	// Without resetting windowRegistered here, the registration effect above
+	// sees it already `true` on the StrictMode re-run and skips re-dispatching
+	// ClassicyWindowOpen, so the just-destroyed record never comes back even
+	// though the window stays mounted and visible. Resetting the ref keeps the
+	// two effects symmetric: destroying the record un-registers the instance,
+	// so registration is allowed to fire again — whether that's a StrictMode
+	// phantom remount or a genuine one. Do not remove this reset.
+	useEffect(() => {
+		if (!modal) return;
+		return () => {
+			windowRegistered.current = false;
+			desktopEventDispatch({
+				type: "ClassicyWindowDestroy",
+				window: { id },
+				app: { id: appId },
+			});
+		};
+	}, [modal, id, appId, desktopEventDispatch]);
 
 	useEffect(() => {
 		if (!appMenu) return;
@@ -894,7 +923,15 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	};
 
 	const setResize = (toResize: boolean) => {
-		if (resizable) {
+		// Guard where the rect is read, not in the SCSS: while collapsed, the
+		// window's DOM height is forced to the ~24px title-bar height by
+		// .classicyWindowCollapsed (ClassicyWindow.scss), so ANY mouseup here
+		// (this fires on every release, not just an actual resize — see
+		// stopChangeWindow) would measure that collapsed height and persist it
+		// as the window's real size. Skipping the dispatch entirely while
+		// collapsed leaves the last expanded size in the store untouched, so it
+		// survives a collapse/expand cycle intact.
+		if (resizable && !ws.collapsed) {
 			desktopEventDispatch({
 				type: "ClassicyWindowResize",
 				resizing: toResize,
@@ -1012,6 +1049,13 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				scrollable ? "" : "classicyWindowNoScroll",
 			)}
 			onMouseMove={changeWindow}
+			// Bound ONLY here, at the outermost element, rather than on the frame
+			// edges/title bar/resizer too: those are all descendants, so a mouseup
+			// on any of them bubbles up and would re-fire the handler a second
+			// time (duplicate "halt" analytics, sound, and resize/move dispatches
+			// per release). stopChangeWindow itself never reads e.target or
+			// calls stopPropagation, so it doesn't matter which descendant was
+			// actually released on — binding once here is behavior-preserving.
 			onMouseUp={stopChangeWindow}
 			onClick={setActive}
 			onContextMenu={onContextMenuHandler}
@@ -1029,7 +1073,9 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 						)}
 						role="presentation"
 						onMouseDown={startMoveWindow}
-						onMouseUp={stopChangeWindow}
+						// stopChangeWindow is bound once, on the root classicyWindow
+						// element (below); mouseup here bubbles to it, so a second
+						// binding on this descendant would double-invoke the handler.
 					></div>
 				))}
 			<div
@@ -1057,7 +1103,8 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 					className={"classicyWindowTitle"}
 					role="presentation"
 					onMouseDown={startMoveWindow}
-					onMouseUp={stopChangeWindow}
+					// stopChangeWindow is bound once, on the root classicyWindow
+					// element; mouseup here bubbles to it (see comment there).
 					onDoubleClick={
 						doubleClickTitleToCollapse ? toggleCollapse : undefined
 					}
@@ -1178,7 +1225,8 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 					)}
 					role="presentation"
 					onMouseDown={startResizeWindow}
-					onMouseUp={stopChangeWindow}
+					// stopChangeWindow is bound once, on the root classicyWindow
+					// element; mouseup here bubbles to it (see comment there).
 					onMouseEnter={() => setCursor("resizeLr")}
 					onMouseLeave={() => setCursor()}
 				></div>

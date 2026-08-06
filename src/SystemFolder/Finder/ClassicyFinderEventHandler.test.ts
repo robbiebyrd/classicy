@@ -417,7 +417,8 @@ describe("classicyFinderEventHandler — ClassicyAppFinderOpenFile with a system
 
 	it("does not affect non-system files with no registered handler for their type", () => {
 		const ds = makeStore();
-		delete ds.System.Manager.Applications.fileTypeHandlers[
+		// fileTypeHandlers is a typed Record, so use a cast to any to allow deletion in tests
+		delete (ds.System.Manager.Applications.fileTypeHandlers as any)[
 			ClassicyFileSystemEntryFileType.File
 		];
 

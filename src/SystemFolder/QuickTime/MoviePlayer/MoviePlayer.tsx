@@ -256,7 +256,7 @@ export const MoviePlayer: FunctionalComponent = () => {
 					collapsable={false}
 					initialSize={[400, 100]}
 					initialPosition={[300, 50]}
-					modal={true}
+					modal={false}
 					// windowId embeds doc.key, which is a filesystem path or a
 					// consumer-supplied URL. A relative URL carries no separator for
 					// the path deriver's collapse rule to catch, so the document

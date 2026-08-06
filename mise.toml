@@ -11,9 +11,18 @@ BIN_PATH = "{{ config_root }}/node_modules/.bin"
 
 NODE_ENV = "{{ env.NODE_ENV | default(value='development') }}"
 
+# ffmpeg is built from source (prebuilt binaries were inconsistent and missing
+# features). The codec set is shared by macOS and Linux; the development headers
+# each option needs are installed by bin/ffmpeg-deps.sh, which must be kept in sync
+# with this list.
 ASDF_FFMPEG_ENABLE="gpl libaom fontconfig libfreetype frei0r libmp3lame libass libvorbis libvpx libopus sdl2 libsnappy libtheora libx264 libx265 lzma"
-ASDF_FFMPEG_OPTIONS_EXTRA="--extra-cflags=-I/opt/homebrew/include --extra-ldflags=-L/opt/homebrew/lib"
-PKG_CONFIG_PATH="/opt/homebrew/lib/pkgconfig"
+
+# Homebrew's prefix is /opt/homebrew on Apple Silicon but /usr/local on Intel, and
+# does not exist at all on Linux -- so ask brew where it lives, and render these to
+# an empty string anywhere but macOS. Note that a `{% if %}` may only wrap a value,
+# never a whole TOML line: mise parses the TOML before rendering the template.
+ASDF_FFMPEG_OPTIONS_EXTRA="{% if os() == 'macos' %}--extra-cflags=-I{{ exec(command='brew --prefix') }}/include --extra-ldflags=-L{{ exec(command='brew --prefix') }}/lib{% endif %}"
+PKG_CONFIG_PATH="{% if os() == 'macos' %}{{ exec(command='brew --prefix') }}/lib/pkgconfig{% endif %}"
 
 [tool_alias]
 ffmpeg = "asdf:https://github.com/acj/asdf-ffmpeg.git"
@@ -28,4 +37,12 @@ node = "{{ env['NODE_VERSION'] | default(value='24') }}"
 "npm:nodemon" = "latest"
 "npm:concurrently" = "latest"
 "npm:audiosprite" = "latest"
-"ffmpeg" = "8.0.1"
+
+# Built from source on macOS and Linux only; Windows is not supported.
+"ffmpeg" = { version = "8.0.1", os = ["linux", "macos"] }
+
+[hooks]
+# Fires before every `mise install`, so the script exits immediately when the
+# system libraries are already present -- it only reaches for brew/apt (and sudo)
+# on a machine that is genuinely missing something.
+preinstall = "{{ config_root }}/bin/ffmpeg-deps.sh"

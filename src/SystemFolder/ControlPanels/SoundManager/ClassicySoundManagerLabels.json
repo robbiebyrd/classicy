@@ -18,6 +18,12 @@
 		"description": ""
 	},
 	{
+		"id": "ClassicyThump",
+		"group": "System",
+		"label": "Thump",
+		"description": ""
+	},
+	{
 		"id": "ClassicyAlertIndigo",
 		"group": "Alert",
 		"label": "Indigo",
@@ -42,6 +48,24 @@
 		"description": ""
 	},
 	{
+		"id": "ClassicyAlertBonk",
+		"group": "Alert",
+		"label": "Bonk",
+		"description": ""
+	},
+	{
+		"id": "ClassicyAlertGrowl",
+		"group": "Alert",
+		"label": "Growl",
+		"description": ""
+	},
+	{
+		"id": "ClassicyAlertTabitha",
+		"group": "Alert",
+		"label": "Tabitha",
+		"description": ""
+	},
+	{
 		"id": "ClassicyButtonClickDown",
 		"group": "Buttons",
 		"label": "Button Click (Press)",
@@ -63,6 +87,30 @@
 		"id": "ClassicyInputRadioClickUp",
 		"group": "Inputs",
 		"label": "Radio Button (Up)",
+		"description": ""
+	},
+	{
+		"id": "ClassicyEmailMailError",
+		"group": "Email",
+		"label": "Mail Error",
+		"description": ""
+	},
+	{
+		"id": "ClassicyEmailMailSent",
+		"group": "Email",
+		"label": "Mail Sent",
+		"description": ""
+	},
+	{
+		"id": "ClassicyEmailNewMail",
+		"group": "Email",
+		"label": "New Mail",
+		"description": ""
+	},
+	{
+		"id": "ClassicyEmailNoMail",
+		"group": "Email",
+		"label": "No Mail",
 		"description": ""
 	},
 	{
@@ -93,6 +141,24 @@
 		"id": "ClassicyWindowClose",
 		"group": "Menus",
 		"label": "Window Close",
+		"description": ""
+	},
+	{
+		"id": "ClassicyTabClick",
+		"group": "Tabs",
+		"label": "Tab Click",
+		"description": ""
+	},
+	{
+		"id": "ClassicyTabClickDown",
+		"group": "Tabs",
+		"label": "Tab Click (Press)",
+		"description": ""
+	},
+	{
+		"id": "ClassicyTabClickUp",
+		"group": "Tabs",
+		"label": "Tab Click (Up)",
 		"description": ""
 	},
 	{

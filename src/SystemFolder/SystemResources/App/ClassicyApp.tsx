@@ -10,6 +10,7 @@ import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { ClassicyAppIdContext } from "@/SystemFolder/SystemResources/App/ClassicyAppIdContext";
 import type { ClassicyIconBalloonHelp } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
 import { normalizeIconBalloonHelp } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconBalloons";
 import type { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
@@ -300,42 +301,44 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 	);
 
 	return (
-		// biome-ignore lint/a11y/useKeyWithClickEvents: application container captures focus for the app; keyboard users interact with child windows directly
-		<div role="application" onClick={onFocus}>
-			{isAppOpen() && (
-				<>
-					{children}
-					{!handlesOwnFiles &&
-						openFiles.map((filePath: string, idx: number) => (
+		<ClassicyAppIdContext.Provider value={id}>
+			{/* biome-ignore lint/a11y/useKeyWithClickEvents: application container captures focus for the app; keyboard users interact with child windows directly */}
+			<div role="application" onClick={onFocus}>
+				{isAppOpen() && (
+					<>
+						{children}
+						{!handlesOwnFiles &&
+							openFiles.map((filePath: string, idx: number) => (
+								<ClassicyWindow
+									key={`${id}_file_${filePath}`}
+									id={`${id}_file_${filePath}`}
+									title={filePath.split(":").pop() || filePath}
+									appId={id}
+									initialSize={[400, 200]}
+									initialPosition={[100 + idx * 30, 100 + idx * 30]}
+									onCloseFunc={() => closeFile(filePath)}
+								>
+									<span>{filePath}</span>
+								</ClassicyWindow>
+							))}
+						{debug && (
 							<ClassicyWindow
-								key={`${id}_file_${filePath}`}
-								id={`${id}_file_${filePath}`}
-								title={filePath.split(":").pop() || filePath}
+								initialSize={[400, 300]}
+								initialPosition={[100, 200]}
+								title={`DEBUG ${name}`}
+								id={`${id}_debugger`}
 								appId={id}
-								initialSize={[400, 200]}
-								initialPosition={[100 + idx * 30, 100 + idx * 30]}
-								onCloseFunc={() => closeFile(filePath)}
+								appMenu={[{ id: "Debug", title: "Debug" }]}
 							>
-								<span>{filePath}</span>
+								<h1>Providers</h1>
+								<hr />
+								<h2>desktopContext</h2>
+								<JSONTree data={appContext} theme={debuggerJSONTheme} />
 							</ClassicyWindow>
-						))}
-					{debug && (
-						<ClassicyWindow
-							initialSize={[400, 300]}
-							initialPosition={[100, 200]}
-							title={`DEBUG ${name}`}
-							id={`${id}_debugger`}
-							appId={id}
-							appMenu={[{ id: "Debug", title: "Debug" }]}
-						>
-							<h1>Providers</h1>
-							<hr />
-							<h2>desktopContext</h2>
-							<JSONTree data={appContext} theme={debuggerJSONTheme} />
-						</ClassicyWindow>
-					)}
-				</>
-			)}
-		</div>
+						)}
+					</>
+				)}
+			</div>
+		</ClassicyAppIdContext.Provider>
 	);
 };

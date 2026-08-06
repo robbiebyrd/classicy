@@ -1,5 +1,6 @@
 import { castDraft, produce } from "immer";
 import { create, type StoreApi, type UseBoundStore } from "zustand";
+import type { ClassicyActionTrust } from "./ClassicyActionTrust";
 import { resolveWallpaper } from "../AppearanceManager/ClassicyWallpapers";
 import {
 	type ActionMessage,
@@ -90,19 +91,32 @@ export const useAppManager: UseBoundStore<StoreApi<ClassicyStore>> =
 		...getInitialState(),
 	}));
 
-export const dispatch = (action: ActionMessage): void => {
+/**
+ * Dispatch an action to the store. `trust` defaults to `"trusted"` — the
+ * existing, unrestricted behavior every current call site relies on.
+ * Passing `"untrusted"` is strictly opt-in and causes the reducer to reject
+ * the action before any handler runs if its type falls under a guarded
+ * route (see ClassicyActionTrust.ts).
+ */
+export const dispatch = (
+	action: ActionMessage,
+	trust: ClassicyActionTrust = "trusted",
+): void => {
 	useAppManager.setState((currentState) =>
 		produce(currentState, (draft) => {
 			classicyDesktopStateEventReducer(
 				castDraft(draft) as ClassicyStore,
 				action,
+				trust,
 			);
 		}),
 	);
 };
 
-export const useAppManagerDispatch = (): ((action: ActionMessage) => void) =>
-	dispatch;
+export const useAppManagerDispatch = (): ((
+	action: ActionMessage,
+	trust?: ClassicyActionTrust,
+) => void) => dispatch;
 
 // Persist to localStorage with a 500ms debounce on every state change
 let unsubscribeFn: (() => void) | null = null;

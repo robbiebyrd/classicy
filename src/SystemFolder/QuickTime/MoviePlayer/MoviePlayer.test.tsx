@@ -84,3 +84,43 @@ describe("MoviePlayer — demo auto-load", () => {
 		expect(getOpenFiles()).toEqual(["Macintosh HD:Videos:existing.mp4"]);
 	});
 });
+
+describe("MoviePlayer — document window survives unmount", () => {
+	beforeEach(() => {
+		useAppManager.setState(DefaultAppManagerState, true);
+	});
+
+	// Regression for the modal={true} mislabeling: MoviePlayer document windows
+	// are resizable/zoomable/draggable with persisted geometry, not dialogs.
+	// ClassicyWindow dispatches ClassicyWindowDestroy on unmount for modal
+	// windows only, so a document window's store record (and its resized/moved
+	// geometry) must still be present in the store after the component
+	// unmounts — quitting the app or closing the app's other windows must not
+	// wipe it.
+	it("keeps the window's store record after the app component unmounts", async () => {
+		const { unmount } = render(<MoviePlayer />);
+
+		updateApp((app) => {
+			app.open = true;
+			app.data = { openFiles: ["Macintosh HD:Videos:existing.mp4"] };
+		});
+
+		let windowId: string | undefined;
+		await waitFor(() => {
+			const app =
+				useAppManager.getState().System.Manager.Applications.apps[
+					MoviePlayerAppInfo.id
+				];
+			windowId = app?.windows.find((w) => w.id.includes("MoviePlayer"))?.id;
+			expect(windowId).toBeDefined();
+		});
+
+		unmount();
+
+		const app =
+			useAppManager.getState().System.Manager.Applications.apps[
+				MoviePlayerAppInfo.id
+			];
+		expect(app?.windows.some((w) => w.id === windowId)).toBe(true);
+	});
+});

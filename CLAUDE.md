@@ -16,7 +16,7 @@ pnpm build:source         # TypeScript + Vite build only (fastest iteration)
 pnpm build                # Full build (audio sprites + source)
 pnpm build:audio          # Generate audio sprites from assets/sounds/
 pnpm build:watch          # Watch mode: rebuilds source + audio on file changes
-pnpm lint                 # Run ESLint
+pnpm lint                 # Run Biome (`biome check .`); lint:fix writes changes
 pnpm preview              # Full build → run example app
 pnpm storybook            # Run the component showcase (Storybook) dev server
 pnpm build:storybook      # Build static Storybook to storybook/storybook-static/
@@ -231,6 +231,54 @@ local-wins. Derived folders (Applications, Extensions) are applied via
 `applyDerivedTree()` and never journal. Design spec:
 `docs/superpowers/specs/2026-07-20-filesystem-adapter-design.md`.
 
+### Untrusted Action Allowlist
+
+`classicyDesktopStateEventReducer` takes an optional trust argument
+(`ClassicyActionTrust`, default `"trusted"`). Dispatching an action with
+`"untrusted"` — e.g. an effect produced by an interpreted HyperCard stack
+script — makes it clear **two** checks in
+`src/SystemFolder/ControlPanels/AppManager/ClassicyActionTrust.ts` before any
+handler, built-in or plugin, sees it:
+
+1. **The guarded-route floor** (`isActionTrustGuarded`) — `ClassicyDesktop*`,
+   `ClassicyWindow*`, `ClassicyAppFinderEmptyTrash`, `ClassicyAppHCEditSetScript`
+   are unreachable to untrusted actions, unconditionally. Nothing can opt back in.
+2. **The deny-by-default allowlist** — an untrusted action must *also* be an
+   allowlisted type. Clearing the floor is necessary but not sufficient.
+
+Both are enforced **in the kernel**, not only at call sites. That is deliberate:
+the guarantee must not depend on every dispatch site remembering to check, so a
+call site that forgets still cannot reach a non-allowlisted route. There is a
+single definition of the rule — `isActionTrustPermitted("untrusted", …)`
+delegates to `isUntrustedActionAllowed`, so a call-site check and the kernel's
+own check can never disagree.
+
+Call sites should still consult the gate explicitly, because for something like
+a HyperCard effect the action `type` itself is script-authored data — checking
+first lets the caller drop the effect quietly instead of dispatching a doomed
+action and tripping the reducer's warning:
+
+```ts
+import {
+    isUntrustedActionAllowed,
+    registerClassicyUntrustedActionAllowlist,
+} from 'classicy/SystemFolder/ControlPanels/AppManager/ClassicyActionTrust'
+
+registerClassicyUntrustedActionAllowlist('ClassicyAppMyCustomEffect')
+
+// at the dispatch call site:
+if (!isUntrustedActionAllowed(actionType)) return // drop the effect quietly
+dispatch(action, 'untrusted') // the kernel re-checks the same rule anyway
+```
+
+The default allowlist holds exactly one entry, `ClassicyAppOpen` — HyperCard's
+core function, so a stack opens apps with zero host configuration. Every other
+type must be registered explicitly. Registering can never grant a type past the
+floor: `isUntrustedActionAllowed` ANDs allowlist membership with
+`!isActionTrustGuarded(...)`, so allowlisting e.g. `ClassicyDesktopSetTheme` has
+no effect. Registering the same type twice is a no-op, matching
+`registerAppEventHandler`.
+
 ### Theming
 
 Themes are JSON-based (`src/SystemFolder/ControlPanels/AppearanceManager/styles/themes.json`) and control:
@@ -241,10 +289,12 @@ Themes are JSON-based (`src/SystemFolder/ControlPanels/AppearanceManager/styles/
 ## Build Notes
 
 - Uses **mise** for tool version management (`mise.toml`) — Node 24, ffmpeg 8.0.1
+- ffmpeg is **built from source** on macOS and Linux (prebuilt binaries were inconsistent and missing codecs). `mise install` runs `bin/ffmpeg-deps.sh` via a `preinstall` hook, which installs the required development libraries with `brew` or `apt-get` — on Linux that means an **automatic `sudo` prompt** the first time. The script is a fast no-op once the libraries are present. Run `bin/ffmpeg-deps.sh --check` to see what's missing without installing. Its package lists must stay in sync with `ASDF_FFMPEG_ENABLE` in `mise.toml`; it must stay executable (mise runs hooks via `sh`, so the `#!/bin/bash` shebang is what provides bash semantics). Non-apt Linux distros are reported, not automated. CI deliberately still uses the distro `ffmpeg` package.
 - `pnpm build:source` runs `generate-barrels` first — barrelsby auto-generates all `index.ts` barrel files. Don't manually edit barrel files.
 - Audio sprites generated via audiosprite from `assets/sounds/` directories
 - Library outputs to `dist/` as `classicy.es.js` and `classicy.umd.js`
 - Consumers must import the CSS separately: `import 'classicy/dist/classicy.css'`
+- **Breaking change**: bundled `@font-face` rules (base64-embedded fonts) no longer ship inside `classicy.css` — they're extracted at build time (see the `splitFontFacesPlugin` in `vite.config.ts`) into a separate, opt-in stylesheet. Consumers who want the bundled fonts must additionally `import 'classicy/dist/fonts.css'`; consumers who supply their own fonts, or don't need the bundled ones, can skip it and avoid the payload entirely. Both stylesheets are exposed via `package.json`'s `exports` map.
 - All styling uses SCSS files co-located with components — no Tailwind or inline styles for layout/presentation
 
 @.claude/wiz-claude.md

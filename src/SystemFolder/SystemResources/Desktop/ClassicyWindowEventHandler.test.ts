@@ -44,6 +44,7 @@ function makeStore(
 					disableBalloonHelp: false,
 				},
 				Applications: {
+					focusedAppId: "Finder.app",
 					apps: {
 						"Finder.app": {
 							id: "Finder.app",
@@ -787,6 +788,176 @@ describe("ClassicyWindowOpen persists windowType", () => {
 			(w) => w.id === "doc",
 		);
 		expect(win?.windowType).toBeUndefined();
+	});
+});
+
+describe("ClassicyWindowDestroy", () => {
+	function makeFocusedApp() {
+		const ds = makeStoreWithWindows();
+		// makeStoreWithWindows leaves Finder holding global focus; modal
+		// succession only runs for the app that actually owns focus.
+		ds.System.Manager.Applications.focusedAppId = "TestApp";
+		ds.System.Manager.Applications.apps.TestApp.focused = true;
+		ds.System.Manager.Applications.apps["Finder.app"].focused = false;
+		return ds;
+	}
+
+	it("removes the window record", () => {
+		const ds = makeFocusedApp();
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowDestroy",
+			app: { id: "TestApp" },
+			window: { id: "w2" },
+		});
+		const windows = ds.System.Manager.Applications.apps.TestApp.windows;
+		expect(windows).toHaveLength(1);
+		expect(windows.find((w) => w.id === "w2")).toBeUndefined();
+	});
+
+	it("focuses a surviving sibling when the destroyed window held focus", () => {
+		const ds = makeFocusedApp();
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowDestroy",
+			app: { id: "TestApp" },
+			window: { id: "w2" },
+		});
+		const w1 = ds.System.Manager.Applications.apps.TestApp.windows.find(
+			(w) => w.id === "w1",
+		);
+		expect(w1?.focused).toBe(true);
+		expect(ds.System.Manager.Applications.focusedAppId).toBe("TestApp");
+	});
+
+	it("leaves focus alone when the destroyed window did not hold it", () => {
+		const ds = makeFocusedApp();
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowDestroy",
+			app: { id: "TestApp" },
+			window: { id: "w1" },
+		});
+		const w2 = ds.System.Manager.Applications.apps.TestApp.windows.find(
+			(w) => w.id === "w2",
+		);
+		expect(w2?.focused).toBe(true);
+	});
+
+	it("does not steal focus when the app is not the focused app", () => {
+		const ds = makeStoreWithWindows(); // Finder holds focus
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowDestroy",
+			app: { id: "TestApp" },
+			window: { id: "w2" },
+		});
+		expect(ds.System.Manager.Applications.focusedAppId).toBe("Finder.app");
+	});
+
+	it("leaves the app focused with no focused window when none survive", () => {
+		const ds = makeFocusedApp();
+		ds.System.Manager.Applications.apps.TestApp.windows =
+			ds.System.Manager.Applications.apps.TestApp.windows.filter(
+				(w) => w.id === "w2",
+			);
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowDestroy",
+			app: { id: "TestApp" },
+			window: { id: "w2" },
+		});
+		expect(ds.System.Manager.Applications.apps.TestApp.focused).toBe(true);
+		expect(ds.System.Manager.Applications.apps.TestApp.windows).toHaveLength(0);
+	});
+
+	it("does not choose a utility window as the successor", () => {
+		const ds = makeFocusedApp();
+		ds.System.Manager.Applications.apps.TestApp.windows[0].windowType =
+			"utility";
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowDestroy",
+			app: { id: "TestApp" },
+			window: { id: "w2" },
+		});
+		const w1 = ds.System.Manager.Applications.apps.TestApp.windows.find(
+			(w) => w.id === "w1",
+		);
+		expect(w1?.focused).toBe(false);
+	});
+
+	it("clears lastAccessedWindowId when it named the destroyed window", () => {
+		const ds = makeFocusedApp();
+		// w1 does not hold focus (w2 does, per makeStoreWithWindows), so
+		// destroying it triggers no succession — isolating the clear itself
+		// from focusApp's own lastAccessedWindowId write.
+		ds.System.Manager.Applications.apps.TestApp.lastAccessedWindowId = "w1";
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowDestroy",
+			app: { id: "TestApp" },
+			window: { id: "w1" },
+		});
+		expect(
+			ds.System.Manager.Applications.apps.TestApp.lastAccessedWindowId,
+		).toBeUndefined();
+	});
+
+	it("leaves lastAccessedWindowId alone when it names a surviving window", () => {
+		const ds = makeFocusedApp();
+		ds.System.Manager.Applications.apps.TestApp.lastAccessedWindowId = "w1";
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowDestroy",
+			app: { id: "TestApp" },
+			window: { id: "w2" },
+		});
+		expect(
+			ds.System.Manager.Applications.apps.TestApp.lastAccessedWindowId,
+		).toBe("w1");
+	});
+
+	it("refocuses a modal on every reopen, not just the first (#222)", () => {
+		const ds = makeFocusedApp();
+		// Give w1/w2 explicit, distinct zOrder so pickWindowToRestore's
+		// highest-zOrder succession branch is what selects w2 below — without
+		// this, neither window carries a zOrder and the picker falls through to
+		// candidates[candidates.length - 1], which also happens to be w2 but
+		// only because of its array position, not because it was the actual
+		// focus successor.
+		const w1 = ds.System.Manager.Applications.apps.TestApp.windows.find(
+			(w) => w.id === "w1",
+		);
+		const w2 = ds.System.Manager.Applications.apps.TestApp.windows.find(
+			(w) => w.id === "w2",
+		);
+		if (w1) w1.zOrder = 10;
+		if (w2) w2.zOrder = 20;
+		const openDialog = () =>
+			classicyWindowEventHandler(ds, {
+				type: "ClassicyWindowOpen",
+				app: { id: "TestApp" },
+				window: {
+					id: "dialog",
+					minimumSize: [100, 100],
+					size: [360, 120],
+					position: [0, 0],
+				},
+			});
+		const closeDialog = () =>
+			classicyWindowEventHandler(ds, {
+				type: "ClassicyWindowDestroy",
+				app: { id: "TestApp" },
+				window: { id: "dialog" },
+			});
+		const focusedId = () =>
+			ds.System.Manager.Applications.apps.TestApp.windows.find((w) => w.focused)
+				?.id;
+
+		openDialog();
+		expect(focusedId()).toBe("dialog");
+		closeDialog();
+		expect(focusedId()).toBe("w2");
+
+		// Before the fix this second open hit the known-id branch and never
+		// focused, leaving w2 active behind a visible modal.
+		openDialog();
+		expect(focusedId()).toBe("dialog");
+		closeDialog();
+		expect(focusedId()).toBe("w2");
 	});
 });
 

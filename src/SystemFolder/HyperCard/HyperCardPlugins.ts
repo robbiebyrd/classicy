@@ -183,7 +183,7 @@ export function getRegisteredStacks(): {
 export interface HCOptionField {
 	key: string;
 	label: string;
-	kind: "text" | "number" | "checkbox" | "choices" | "json";
+	kind: "text" | "number" | "checkbox" | "choices" | "json" | "sound";
 	default?: unknown;
 }
 

@@ -15,6 +15,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { isUntrustedActionAllowed } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionTrust";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -156,22 +157,58 @@ export const HyperCard: FunctionalComponent = () => {
 			if (playedRef.current.has(e.id)) continue;
 			playedRef.current.add(e.id);
 			if (e.kind === "beep") {
-				player({ type: "ClassicySoundPlay", sound: "ClassicyBeep" });
+				// PlayInterrupt, not Play: ClassicySoundPlay is gated on total
+				// silence, and the button's own ClassicyButtonClickUp is still
+				// sounding when the script's beep lands in the same tick — so a
+				// plain Play is silently dropped (#220). Interrupt stops all
+				// audio first, which is the right call for script-driven sound:
+				// the most recently requested sound is the intended one.
+				player({ type: "ClassicySoundPlayInterrupt", sound: "ClassicyBeep" });
 			} else if (e.kind === "play") {
-				player({ type: "ClassicySoundPlay", sound: e.sound });
+				player({ type: "ClassicySoundPlayInterrupt", sound: e.sound });
 			} else if (e.kind === "openApp") {
 				// ClassicyAppOpen's predicate requires { id, name, icon }; stacks
 				// author only the app id, so resolve the registered app record.
 				const target =
 					useAppManager.getState().System.Manager.Applications.apps[e.appId];
-				dispatch({
-					type: e.event ?? "ClassicyAppOpen",
-					app: target
-						? { id: target.id, name: target.name, icon: target.icon }
-						: { id: e.appId },
-					...(e.data ?? {}),
-				});
+				// `e.event` is stack-authored JSON (validateStack checks shape, not
+				// authority), so it can name literally any action type, not just
+				// ClassicyAppOpen — this dispatch is UNTRUSTED content. Consult the
+				// deny-by-default allowlist first (only "ClassicyAppOpen" passes with
+				// zero host configuration) and drop the effect entirely if the type
+				// isn't allowlisted, then dispatch as "untrusted" so the reducer's
+				// kernel floor (isActionTrustPermitted) also applies underneath as
+				// defense-in-depth, per the pattern in ClassicyActionTrust.ts.
+				const actionType = e.event ?? "ClassicyAppOpen";
+				if (isUntrustedActionAllowed(actionType)) {
+					dispatch(
+						{
+							type: actionType,
+							app: target
+								? { id: target.id, name: target.name, icon: target.icon }
+								: { id: e.appId },
+							...(e.data ?? {}),
+						},
+						"untrusted",
+					);
+				}
 			} else if (e.kind === "custom") {
+				// The three dispatches below (ClassicyAppHyperCardResolveCommand,
+				// ClassicyAppHyperCardCommitField, ClassicyAppHyperCardSetVariable)
+				// stay at the default TRUSTED level, deliberately, unlike the
+				// openApp branch above. The distinction is what the untrusted gate
+				// actually protects: the dispatched action's `type` (the route), not
+				// its payload. Here `type` is always one of these three hardcoded
+				// string literals written in this file — it is never derived from
+				// `e.name` or any other stack-authored string — so there is no
+				// script-controlled route for an untrusted gate to police. `e.name`
+				// only selects which host-registered handler (getHyperCardEffectHandler)
+				// runs; the resolve/setField/setVariable callbacks below are that
+				// handler's own continuation mechanism back into the engine, not
+				// stack script reaching the reducer directly. Marking these
+				// untrusted would gain nothing (their types aren't guarded routes
+				// either) while risking a false allowlist-miss silently breaking the
+				// engine's resume/continuation flow.
 				const handler = getHyperCardEffectHandler(e.name);
 				const token = e.token;
 				const sid = activeStackId;

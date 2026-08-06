@@ -106,7 +106,7 @@
   text-overflow: ellipsis;
 }
 
-.classicyFileBrowserViewTableRowSelected td:first-of-type div span {
+.classicyFileBrowserViewTableRowSelected td:nth-of-type(2) div span {
   color: var(--color-white);
   background: var(--color-system-07);
 }
@@ -127,7 +127,7 @@
 .classicyFileBrowserViewTableDisclosure {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center;
   height: 100%;
 }
 

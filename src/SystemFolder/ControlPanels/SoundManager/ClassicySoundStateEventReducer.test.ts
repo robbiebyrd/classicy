@@ -154,6 +154,23 @@ describe("ClassicySoundPlayInterrupt", () => {
 		expect(ss.soundPlayer?.stop).not.toHaveBeenCalled();
 		expect(ss.soundPlayer?.play).not.toHaveBeenCalled();
 	});
+
+	// HyperCard's `play` action effect (HyperCard.tsx) dispatches
+	// ClassicySoundPlayInterrupt with whatever `sound` the authored/edited
+	// action carries, including undefined for a cleared or hand-authored
+	// action with no sound. Howler's `Howl.play()` called with no argument
+	// plays the ENTIRE sprite sheet rather than a single sprite, so this guard
+	// (action.sound must be truthy before either stop() or play() fires) is
+	// what keeps a missing sound from being dangerous.
+	it("does NOT stop or play when sound is undefined (would play the whole sprite sheet otherwise)", () => {
+		const ss = makeSoundState();
+		ClassicySoundStateEventReducer(ss, {
+			type: "ClassicySoundPlayInterrupt" as ClassicySoundActionTypes,
+			sound: undefined,
+		});
+		expect(ss.soundPlayer?.stop).not.toHaveBeenCalled();
+		expect(ss.soundPlayer?.play).not.toHaveBeenCalled();
+	});
 });
 
 // ---------------------------------------------------------------------------
@@ -428,5 +445,36 @@ describe("ClassicySoundPlayError fallback", () => {
 			sound: "ClassicyAlertBonk",
 		});
 		expect(ss.soundPlayer?.play).toHaveBeenCalledWith("ClassicyAlertBonk");
+	});
+});
+
+// ---------------------------------------------------------------------------
+// ClassicySoundPlayInterrupt vs ClassicySoundPlay while sounding
+// ---------------------------------------------------------------------------
+
+describe("ClassicySoundPlayInterrupt vs ClassicySoundPlay while sounding", () => {
+	it("plays even when another sound is already sounding", () => {
+		const player = makePlayer();
+		(player.playing as ReturnType<typeof vi.fn>).mockReturnValue(true);
+		const ss = makeSoundState({ soundPlayer: player });
+		ClassicySoundStateEventReducer(ss, {
+			type: "ClassicySoundPlayInterrupt" as ClassicySoundActionTypes,
+			sound: "ClassicyBeep",
+		});
+		expect(ss.soundPlayer?.play).toHaveBeenCalledWith("ClassicyBeep");
+	});
+
+	it("is still suppressed when the sound is disabled", () => {
+		const player = makePlayer();
+		(player.playing as ReturnType<typeof vi.fn>).mockReturnValue(true);
+		const ss = makeSoundState({
+			soundPlayer: player,
+			disabled: ["ClassicyBeep"],
+		});
+		ClassicySoundStateEventReducer(ss, {
+			type: "ClassicySoundPlayInterrupt" as ClassicySoundActionTypes,
+			sound: "ClassicyBeep",
+		});
+		expect(ss.soundPlayer?.play).not.toHaveBeenCalled();
 	});
 });

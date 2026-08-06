@@ -9,7 +9,7 @@ describe("defaultBalloonForKind", () => {
 		const balloon = defaultBalloonForKind("trash", "Trash");
 		expect(balloon?.title).toBe("Trash");
 		expect(balloon?.content).toBe(
-			"This is the Trash. Drag items here to get them out of the way. To remove them permanently, choose Empty Trash from the Special menu.",
+			"This is the Trash. To reset Classicy to its default state, double click the Trash icon or choose Empty Trash from the Special menu.",
 		);
 	});
 
