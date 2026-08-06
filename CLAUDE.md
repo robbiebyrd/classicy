@@ -289,6 +289,7 @@ Themes are JSON-based (`src/SystemFolder/ControlPanels/AppearanceManager/styles/
 ## Build Notes
 
 - Uses **mise** for tool version management (`mise.toml`) — Node 24, ffmpeg 8.0.1
+- ffmpeg is **built from source** on macOS and Linux (prebuilt binaries were inconsistent and missing codecs). `mise install` runs `bin/ffmpeg-deps.sh` via a `preinstall` hook, which installs the required development libraries with `brew` or `apt-get` — on Linux that means an **automatic `sudo` prompt** the first time. The script is a fast no-op once the libraries are present. Run `bin/ffmpeg-deps.sh --check` to see what's missing without installing. Its package lists must stay in sync with `ASDF_FFMPEG_ENABLE` in `mise.toml`; it must stay executable (mise runs hooks via `sh`, so the `#!/bin/bash` shebang is what provides bash semantics). Non-apt Linux distros are reported, not automated. CI deliberately still uses the distro `ffmpeg` package.
 - `pnpm build:source` runs `generate-barrels` first — barrelsby auto-generates all `index.ts` barrel files. Don't manually edit barrel files.
 - Audio sprites generated via audiosprite from `assets/sounds/` directories
 - Library outputs to `dist/` as `classicy.es.js` and `classicy.umd.js`
