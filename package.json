@@ -3,7 +3,7 @@
 	"module": "./dist/classicy.es.js",
 	"types": "./dist/types/src/index.d.ts",
 	"name": "classicy",
-	"version": "0.69.3",
+	"version": "0.70.0",
 	"release": "Dawn of Buster",
 	"repository": {
 		"type": "git",
@@ -48,7 +48,10 @@
 		"dist",
 		"src/SystemFolder/ControlPanels/AppearanceManager/styles"
 	],
-	"sideEffects": ["**/*.css", "**/*.scss"],
+	"sideEffects": [
+		"**/*.css",
+		"**/*.scss"
+	],
 	"style": "./dist/classicy.css",
 	"exports": {
 		".": {
