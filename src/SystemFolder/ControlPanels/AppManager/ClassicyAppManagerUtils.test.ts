@@ -258,6 +258,59 @@ describe("getInitialState — localStorage behaviour (via module re-import)", ()
 		).toBeDefined();
 	});
 
+	/** Hydrate a fresh store from a persisted `activeTheme.desktop.backgroundImage`. */
+	async function hydrateBackground(backgroundImage: string): Promise<string> {
+		const stored = makeValidStoredState();
+		(
+			stored.System as Record<string, unknown> & {
+				Manager: { Appearance: Record<string, unknown> };
+			}
+		).Manager.Appearance = {
+			activeTheme: { id: "default", desktop: { backgroundImage } },
+			availableThemes: [],
+		};
+		localStorage.setItem("classicyDesktopState", JSON.stringify(stored));
+
+		vi.resetModules();
+		const { useAppManager, stopAppManagerPersistence } = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils"
+		);
+		stopAppManagerPersistence();
+
+		return useAppManager.getState().System.Manager.Appearance.activeTheme
+			.desktop.backgroundImage;
+	}
+
+	// Persisted state merges *over* the defaults, so a background saved by an
+	// older build — when themes carried a literal path no consuming app serves —
+	// would outlive the fix and keep 404ing without healing on hydration.
+	//
+	// These inputs are deliberately chosen so that input !== resolved output in
+	// BOTH environments. Under vitest a bundled asset resolves to its own source
+	// path, so asserting against a stored "/assets/img/wallpapers/*.png" would
+	// hold whether or not healing ran — the same dev/production aliasing that hid
+	// the original bug.
+	it("re-resolves a stale wallpaper path persisted by an older build", async () => {
+		const { resolveWallpaper } = await import(
+			"@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers"
+		);
+		expect(await hydrateBackground("/legacy/wallpapers/default.png")).toBe(
+			resolveWallpaper("default.png"),
+		);
+	});
+
+	it("blanks a persisted wallpaper that no longer ships, rather than 404ing", async () => {
+		const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+		expect(await hydrateBackground("retired_wallpaper.png")).toBe("");
+		warnSpy.mockRestore();
+	});
+
+	it("keeps a background URL the user set themselves", async () => {
+		expect(
+			await hydrateBackground("https://example.com/my-wallpaper.png"),
+		).toBe("https://example.com/my-wallpaper.png");
+	});
+
 	it("falls back to DefaultAppManagerState and calls console.error for malformed JSON", async () => {
 		localStorage.setItem("classicyDesktopState", "{not valid json{{");
 		const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});

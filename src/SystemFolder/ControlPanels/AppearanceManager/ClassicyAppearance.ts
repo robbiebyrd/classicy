@@ -3,6 +3,7 @@ import {
 	intToPct,
 	intToPx,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicySize";
+import { resolveWallpaper } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 import type { ClassicyStoreSystemManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import type { ClassicyThemeSound } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import themesData from "../AppearanceManager/styles/themes.json";
@@ -197,13 +198,28 @@ export const getThemeVars = (theme: ClassicyTheme) => {
 	};
 };
 
+/**
+ * `themes.json` names its wallpapers; the bundler owns the URLs. Resolving once
+ * here means every reader of a theme — `getTheme`, `getAllThemes`, and the
+ * default app-manager state — gets a background image that actually loads.
+ */
+const resolvedThemes = (themesData as unknown as ClassicyTheme[]).map(
+	(theme) => ({
+		...theme,
+		desktop: {
+			...theme.desktop,
+			backgroundImage: resolveWallpaper(theme.desktop.backgroundImage),
+		},
+	}),
+);
+
 export const getAllThemes = (): ClassicyTheme[] => {
-	return themesData as unknown as ClassicyTheme[];
+	return resolvedThemes;
 };
 
 export const getTheme = (theme: string, overrides?: object) => {
 	const namedThemeData =
-		themesData.find((t) => t.id === theme) || themesData[0];
+		resolvedThemes.find((t) => t.id === theme) || resolvedThemes[0];
 	const updatedTheme = overrides
 		? mergeDeep(
 				structuredClone(namedThemeData) as Record<string, unknown>,

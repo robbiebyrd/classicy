@@ -64,7 +64,7 @@
     "desktop": {
       "iconSize": 48,
       "iconFontSize": 12,
-      "backgroundImage": "/assets/img/wallpapers/default.png",
+      "backgroundImage": "default.png",
       "backgroundColor": 6710988,
       "backgroundRepeat": "repeat",
       "backgroundPosition": "center",
@@ -136,7 +136,7 @@
     "desktop": {
       "iconSize": 48,
       "iconFontSize": 12,
-      "backgroundImage": "/assets/img/wallpapers/azul_dark.png",
+      "backgroundImage": "azul_dark.png",
       "backgroundColor": 4876697,
       "backgroundRepeat": "repeat",
       "backgroundPosition": "center",
@@ -208,7 +208,7 @@
     "desktop": {
       "iconSize": 48,
       "iconFontSize": 12,
-      "backgroundImage": "/assets/img/wallpapers/waves_bondi.png",
+      "backgroundImage": "waves_bondi.png",
       "backgroundColor": 17739,
       "backgroundRepeat": "repeat",
       "backgroundPosition": "center",

@@ -1,7 +1,7 @@
 import {
 	type ClassicyStoreSystemAppearanceManager,
-	type ClassicyTheme,
 	getAllThemes,
+	getTheme,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import {
@@ -43,7 +43,6 @@ import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import type { DeepPartial } from "@/SystemFolder/SystemResources/Utils/deepMerge";
 import { deepMergeReplacingArrays } from "@/SystemFolder/SystemResources/Utils/deepMerge";
-import themesData from "../AppearanceManager/styles/themes.json";
 
 const macosIcon = ClassicyIcons.system.macos;
 
@@ -575,9 +574,9 @@ export const DefaultAppManagerState: ClassicyStore = {
 			},
 			Appearance: {
 				availableThemes: getAllThemes(),
-				activeTheme: themesData.find(
-					(t) => t.id === "default",
-				) as unknown as ClassicyTheme,
+				// Via getTheme, not themesData: the raw JSON names its wallpaper
+				// rather than carrying a loadable URL.
+				activeTheme: getTheme("default"),
 				alertSound: DEFAULT_ALERT_SOUND,
 			},
 			Boot: {

@@ -1,6 +1,7 @@
 import { castDraft, produce } from "immer";
 import { create, type StoreApi, type UseBoundStore } from "zustand";
 import type { ClassicyActionTrust } from "./ClassicyActionTrust";
+import { resolveWallpaper } from "../AppearanceManager/ClassicyWallpapers";
 import {
 	type ActionMessage,
 	type ClassicyStore,
@@ -11,6 +12,35 @@ import {
 } from "./ClassicyAppManager";
 
 let hydratedFromStorage = false;
+
+/**
+ * Re-resolve theme wallpapers coming out of localStorage.
+ *
+ * Persisted state is merged *over* the defaults, so a background saved by an
+ * older build — when themes carried a literal `/assets/img/wallpapers/*.png`
+ * path that no consuming app serves — would otherwise outlive the fix and keep
+ * 404ing forever. `resolveWallpaper` is idempotent and passes user-set `data:`
+ * and remote URLs through, so a background the user actually chose survives.
+ */
+function healThemeWallpapers(state: ClassicyStore): ClassicyStore {
+	const appearance = state.System?.Manager?.Appearance;
+	if (!appearance) {
+		return state;
+	}
+	if (appearance.activeTheme?.desktop) {
+		appearance.activeTheme.desktop.backgroundImage = resolveWallpaper(
+			appearance.activeTheme.desktop.backgroundImage,
+		);
+	}
+	for (const theme of appearance.availableThemes ?? []) {
+		if (theme?.desktop) {
+			theme.desktop.backgroundImage = resolveWallpaper(
+				theme.desktop.backgroundImage,
+			);
+		}
+	}
+	return state;
+}
 
 /** True iff the module store initialized from valid persisted localStorage state. */
 export const wasHydratedFromStorage = (): boolean => hydratedFromStorage;
@@ -39,9 +69,11 @@ function getInitialState(): ClassicyStore {
 				// Merge persisted state on top of current defaults so any new fields
 				// added since the state was saved get their default values instead of
 				// being undefined (e.g. new typography.monoSize / digitalSize keys).
-				return mergeClassicyState(
-					DefaultAppManagerState,
-					parsed as DeepPartial<ClassicyStore>,
+				return healThemeWallpapers(
+					mergeClassicyState(
+						DefaultAppManagerState,
+						parsed as DeepPartial<ClassicyStore>,
+					),
 				);
 			}
 		} catch (error) {
