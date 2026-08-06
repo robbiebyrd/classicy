@@ -5,6 +5,7 @@ import {
 	DefaultAppManagerState,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { ClassicyAppIdContext } from "@/SystemFolder/SystemResources/App/ClassicyAppIdContext";
 import { ClassicyColorPickerDialog } from "@/SystemFolder/SystemResources/ColorPicker/ClassicyColorPickerDialog";
 
 const mockPlayer = vi.hoisted(() => vi.fn());
@@ -31,10 +32,7 @@ function makeTestApp(id: string): ClassicyStoreSystemApp {
 	};
 }
 
-function seedApps(
-	apps: Record<string, ClassicyStoreSystemApp>,
-	focusedAppId: string | undefined,
-) {
+function seedApps(apps: Record<string, ClassicyStoreSystemApp>) {
 	useAppManager.setState(DefaultAppManagerState, true);
 	useAppManager.setState((state) => ({
 		...state,
@@ -48,7 +46,6 @@ function seedApps(
 						...state.System.Manager.Applications.apps,
 						...apps,
 					},
-					focusedAppId,
 				},
 			},
 		},
@@ -66,7 +63,7 @@ describe("ClassicyColorPickerDialog appId resolution", () => {
 	});
 
 	it("registers the window under a registered appId and removes it on unmount", () => {
-		seedApps({ "TestApp.app": makeTestApp("TestApp.app") }, undefined);
+		seedApps({ "TestApp.app": makeTestApp("TestApp.app") });
 
 		const { unmount } = render(
 			<ClassicyColorPickerDialog
@@ -83,40 +80,45 @@ describe("ClassicyColorPickerDialog appId resolution", () => {
 		expect(windowIdsFor("TestApp.app")).not.toContain("test-dialog");
 	});
 
-	it("prefers an explicitly passed appId over the focused app", () => {
-		seedApps(
-			{
-				"FocusedApp.app": makeTestApp("FocusedApp.app"),
-				"ExplicitApp.app": makeTestApp("ExplicitApp.app"),
-			},
-			"FocusedApp.app",
-		);
+	// The maintainer's instruction was "it should copy the id of the app that
+	// called it" — lexical, via ClassicyAppIdContext (what ClassicyApp
+	// provides to everything it renders), never the store's global focused
+	// app. An explicit `appId` prop still wins over that context when both
+	// are present.
+	it("prefers an explicitly passed appId over the enclosing context", () => {
+		seedApps({
+			"ContextApp.app": makeTestApp("ContextApp.app"),
+			"ExplicitApp.app": makeTestApp("ExplicitApp.app"),
+		});
 
 		render(
-			<ClassicyColorPickerDialog
-				id="explicit-dialog"
-				appId="ExplicitApp.app"
-				open={true}
-			/>,
+			<ClassicyAppIdContext.Provider value="ContextApp.app">
+				<ClassicyColorPickerDialog
+					id="explicit-dialog"
+					appId="ExplicitApp.app"
+					open={true}
+				/>
+			</ClassicyAppIdContext.Provider>,
 		);
 
 		expect(windowIdsFor("ExplicitApp.app")).toContain("explicit-dialog");
-		expect(windowIdsFor("FocusedApp.app")).not.toContain("explicit-dialog");
+		expect(windowIdsFor("ContextApp.app")).not.toContain("explicit-dialog");
 	});
 
-	it("falls back to the focused app when no appId prop is given", () => {
-		seedApps(
-			{ "FocusedApp.app": makeTestApp("FocusedApp.app") },
-			"FocusedApp.app",
+	it("falls back to the lexically enclosing app id when no appId prop is given", () => {
+		seedApps({ "ContextApp.app": makeTestApp("ContextApp.app") });
+
+		render(
+			<ClassicyAppIdContext.Provider value="ContextApp.app">
+				<ClassicyColorPickerDialog id="context-dialog" open={true} />
+			</ClassicyAppIdContext.Provider>,
 		);
 
-		render(<ClassicyColorPickerDialog id="focused-dialog" open={true} />);
-
-		expect(windowIdsFor("FocusedApp.app")).toContain("focused-dialog");
+		expect(windowIdsFor("ContextApp.app")).toContain("context-dialog");
 	});
 
-	it("does not throw and still renders when there is no appId and no focused app", () => {
-		seedApps({}, undefined);
+	it("does not throw and still renders when there is no appId prop and no enclosing context", () => {
+		seedApps({});
 
 		expect(() =>
 			render(<ClassicyColorPickerDialog id="orphan-dialog" open={true} />),

@@ -9,6 +9,7 @@ import {
 	type KeyboardEvent,
 	type ReactNode,
 	useCallback,
+	useEffect,
 	useLayoutEffect,
 	useRef,
 	useState,
@@ -130,18 +131,55 @@ export const ClassicyButtonToolbar: FunctionalComponent<
 		);
 	}, []);
 
-	// Applies the roving tabindex imperatively on every render: the control at
-	// activeIndex (clamped, in case controls were added/removed) gets
-	// tabIndex=0, every other control gets -1. Runs against the live DOM
-	// rather than through props, since the toolbar doesn't own its children.
-	useLayoutEffect(() => {
+	// Read inside a ref so the MutationObserver callback below (created once,
+	// long-lived) always sees the current activeIndex instead of the value
+	// captured when the observer was set up.
+	const activeIndexRef = useRef(activeIndex);
+	activeIndexRef.current = activeIndex;
+
+	// Applies the roving tabindex imperatively: the control at activeIndex
+	// (clamped, in case controls were added/removed) gets tabIndex=0, every
+	// other control gets -1. Runs against the live DOM rather than through
+	// props, since the toolbar doesn't own its children.
+	const applyRovingTabIndex = useCallback(() => {
 		const controls = getControls();
 		if (controls.length === 0) return;
-		const clamped = Math.min(activeIndex, controls.length - 1);
+		const clamped = Math.min(activeIndexRef.current, controls.length - 1);
 		controls.forEach((el, i) => {
 			el.tabIndex = i === clamped ? 0 : -1;
 		});
+	}, [getControls]);
+
+	// Runs on every render so controls added/removed by React stay in sync.
+	useLayoutEffect(() => {
+		applyRovingTabIndex();
 	});
+
+	// A child can toggle its own `disabled` attribute directly on the DOM
+	// (e.g. imperatively, or via a library that bypasses React's render for
+	// that one attribute) without causing the toolbar to re-render. The
+	// layout effect above only reruns on the toolbar's own renders, so that
+	// case would leave a newly-enabled control with no tabIndex assigned
+	// (implicit 0) sitting alongside the real tab stop — two stops in the
+	// page's Tab sequence. A MutationObserver watching `disabled` across the
+	// toolbar subtree catches exactly that case, proactively, the moment the
+	// attribute actually changes — cheaper and more correct than recomputing
+	// on every focus-in, which would only paper over a control the user
+	// happens to tab onto and would still leave two stops visible to a
+	// screen reader's virtual cursor until then. Set up once (not on every
+	// activeIndex change) since the callback reads the latest value via
+	// activeIndexRef.
+	useEffect(() => {
+		const root = toolbarRef.current;
+		if (!root) return;
+		const observer = new MutationObserver(applyRovingTabIndex);
+		observer.observe(root, {
+			attributes: true,
+			attributeFilter: ["disabled"],
+			subtree: true,
+		});
+		return () => observer.disconnect();
+	}, [applyRovingTabIndex]);
 
 	const focusIndex = useCallback(
 		(index: number) => {
@@ -157,10 +195,26 @@ export const ClassicyButtonToolbar: FunctionalComponent<
 	// Left/Right/Home/End roving-tabindex navigation. Only fires when the
 	// event bubbles from inside the toolbar (a focused descendant control),
 	// so arrow keys pressed while focus is elsewhere are never intercepted.
+	//
+	// Children are arbitrary (R7), so this must not claim every arrow/Home/End
+	// press that bubbles up — only ones that genuinely belong to a roving
+	// control:
+	//   - a control that already handled the key (e.g. ClassicyPopUpMenu
+	//     calling preventDefault() for Home/End while its listbox is open)
+	//     is left alone, or the toolbar would move focus to a sibling button
+	//     while that menu is still expanded, orphaning it;
+	//   - a modifier combo (Alt/Ctrl/Cmd+Arrow) is reserved for the browser/
+	//     OS (e.g. history navigation) and must fall through;
+	//   - the event's target has to actually be one of the toolbar's own
+	//     controls — an `<input>` child relies on ArrowLeft/Home for caret
+	//     movement, not focus roving.
 	const handleKeyDown = useCallback(
 		(e: KeyboardEvent<HTMLDivElement>) => {
+			if (e.defaultPrevented) return;
+			if (e.altKey || e.ctrlKey || e.metaKey) return;
 			const controls = getControls();
 			if (controls.length === 0) return;
+			if (!controls.includes(e.target as HTMLButtonElement)) return;
 			const current = controls.indexOf(
 				document.activeElement as HTMLButtonElement,
 			);

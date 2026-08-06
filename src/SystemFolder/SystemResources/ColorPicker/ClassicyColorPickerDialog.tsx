@@ -1,7 +1,13 @@
 import "./ClassicyColorPicker.scss";
-import { type CSSProperties, type FC, useEffect, useState } from "react";
+import {
+	type CSSProperties,
+	type FC,
+	useContext,
+	useEffect,
+	useState,
+} from "react";
 import { intToHex } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyColors";
-import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { ClassicyAppIdContext } from "@/SystemFolder/SystemResources/App/ClassicyAppIdContext";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 import { ClassicyColorPickerCMYK } from "./ClassicyColorPickerCMYK";
@@ -19,6 +25,15 @@ const PICKER_MODES: PickerMode[] = ["Crayons", "RGB", "HSV", "HLS", "CMYK"];
 
 interface ClassicyColorPickerDialogProps {
 	id: string;
+	/** The app this dialog's window registers under. Precedence: this prop,
+	 *  then the lexically enclosing {@link ClassicyAppIdContext}, then
+	 *  unregistered (the window opens without an app record — today's
+	 *  behavior when neither is available). Deliberately NOT derived from
+	 *  the store's global focused app: that would register the dialog under
+	 *  whichever app happens to be focused, which can be the wrong app (the
+	 *  owner is open but unfocused) or can migrate mid-session (a focus
+	 *  change elsewhere while the dialog stays open), stealing focus either
+	 *  way. */
 	appId?: string;
 	open: boolean;
 	initialColor?: number;
@@ -38,10 +53,10 @@ export const ClassicyColorPickerDialog: FC<ClassicyColorPickerDialogProps> = ({
 }) => {
 	const [pendingColor, setPendingColor] = useState(initialColor);
 	const [mode, setMode] = useState<PickerMode>("Crayons");
-	const focusedAppId = useAppManager(
-		(s) => s.System.Manager.Applications.focusedAppId,
-	);
-	const resolvedAppId = appId ?? focusedAppId;
+	// Lexical, not global: see the `appId` doc comment above for why this
+	// must not fall back to the store's focused app.
+	const contextAppId = useContext(ClassicyAppIdContext);
+	const resolvedAppId = appId ?? contextAppId;
 
 	// Reset to initialColor whenever the dialog is freshly opened.
 	// eslint-disable-next-line react-hooks/exhaustive-deps

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { render, screen, userEvent } from "@/__tests__/test-utils";
+import { render, screen, userEvent, waitFor } from "@/__tests__/test-utils";
 import { ClassicyBevelButton } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButton";
 import {
 	ClassicyButtonToolbar,
@@ -299,5 +299,125 @@ describe("ClassicyButtonToolbar roving tabindex", () => {
 		expect(outside).toHaveFocus();
 		// The toolbar's own roving tabindex is untouched by the stray key press.
 		expect(a).toHaveAttribute("tabIndex", "0");
+	});
+
+	// Finding 1: the toolbar's children are arbitrary (R7). handleKeyDown must
+	// not claim arrow/Home/End presses that genuinely belong to a nested
+	// control — an <input>'s caret navigation, or a control that has already
+	// preventDefault()'d the key itself (e.g. an open ClassicyPopUpMenu).
+	// Mounting a real ClassicyPopUpMenu here would exercise the same
+	// defaultPrevented mechanism as the second test below via a heavier
+	// component, so it isn't duplicated separately.
+	it("does not steal focus from an input's caret navigation on ArrowLeft", async () => {
+		const user = userEvent.setup();
+		const { container, getByTestId } = render(
+			<ClassicyButtonToolbar>
+				<ClassicyButtonToolbarGroup>
+					<button type="button">A</button>
+					<input data-testid="toolbar-input" defaultValue="hello" />
+					<button type="button">C</button>
+				</ClassicyButtonToolbarGroup>
+			</ClassicyButtonToolbar>,
+		);
+		const input = getByTestId("toolbar-input") as HTMLInputElement;
+		const buttons = getButtons(container);
+		input.focus();
+		await user.keyboard("{ArrowLeft}");
+		expect(input).toHaveFocus();
+		expect(buttons.every((b) => !b.matches(":focus"))).toBe(true);
+	});
+
+	it("does not steal focus from an input's caret navigation on Home", async () => {
+		const user = userEvent.setup();
+		const { getByTestId } = render(
+			<ClassicyButtonToolbar>
+				<ClassicyButtonToolbarGroup>
+					<button type="button">A</button>
+					<input data-testid="toolbar-input" defaultValue="hello" />
+					<button type="button">C</button>
+				</ClassicyButtonToolbarGroup>
+			</ClassicyButtonToolbar>,
+		);
+		const input = getByTestId("toolbar-input") as HTMLInputElement;
+		input.focus();
+		await user.keyboard("{Home}");
+		expect(input).toHaveFocus();
+	});
+
+	it("does not act on a control that already called preventDefault for the key", async () => {
+		const user = userEvent.setup();
+		const { container } = render(
+			<ClassicyButtonToolbar>
+				<ClassicyButtonToolbarGroup>
+					<button type="button">A</button>
+					<button
+						type="button"
+						onKeyDown={(e) => {
+							// Mirrors ClassicyPopUpMenu, which preventDefault()s Home/End/
+							// ArrowRight while its own listbox is open so the toolbar
+							// doesn't move focus out from under it.
+							if (e.key === "ArrowRight") e.preventDefault();
+						}}
+					>
+						B
+					</button>
+					<button type="button">C</button>
+				</ClassicyButtonToolbarGroup>
+			</ClassicyButtonToolbar>,
+		);
+		const [, b, c] = getButtons(container);
+		b.focus();
+		await user.keyboard("{ArrowRight}");
+		expect(b).toHaveFocus();
+		expect(c).not.toHaveFocus();
+	});
+
+	it("does not intercept Cmd/Ctrl+ArrowRight (reserved for browser history nav)", async () => {
+		const user = userEvent.setup();
+		const { container } = render(threeButtonToolbar());
+		const [a, b] = getButtons(container);
+		a.focus();
+		await user.keyboard("{Control>}{ArrowRight}{/Control}");
+		expect(a).toHaveFocus();
+		expect(b).not.toHaveFocus();
+	});
+
+	// Finding 3: a child that toggles its own `disabled` attribute directly on
+	// the DOM (bypassing React, so the toolbar never re-renders) must not be
+	// left with two tab stops — the toolbar's real tab stop plus the newly
+	// enabled control's implicit tabIndex=0.
+	it("keeps exactly one tab stop when a child's disabled toggles without a toolbar re-render", async () => {
+		const { container } = render(
+			<ClassicyButtonToolbar>
+				<ClassicyButtonToolbarGroup>
+					<button type="button">A</button>
+					<button type="button" disabled>
+						B
+					</button>
+					<button type="button">C</button>
+				</ClassicyButtonToolbarGroup>
+			</ClassicyButtonToolbar>,
+		);
+		// jsdom's `tabIndex` property getter doesn't model "disabled elements
+		// are unfocusable" the way real browsers do, so this reads the
+		// "tabindex" content attribute directly — a missing attribute on a
+		// non-disabled button is the implicit tabIndex=0 the bug produces.
+		const isTabStop = (el: HTMLButtonElement) => {
+			if (el.disabled) return false;
+			const attr = el.getAttribute("tabindex");
+			return attr === null || attr === "0";
+		};
+		const tabStops = () => getButtons(container).filter(isTabStop);
+		const [a, b] = getButtons(container);
+		expect(tabStops()).toEqual([a]);
+
+		// Flip `disabled` directly on the DOM node — no setState, no re-render —
+		// so only a MutationObserver (or equivalent) can catch this.
+		b.disabled = false;
+
+		await waitFor(() => {
+			expect(tabStops()).toHaveLength(1);
+		});
+		expect(tabStops()).toEqual([a]);
 	});
 });

@@ -77,6 +77,7 @@ export * from "./SystemFolder/SystemResources/Alert/ClassicyAlert";
 export * from "./SystemFolder/SystemResources/Analytics/ClassicyAnalyticsPath";
 export * from "./SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 export * from "./SystemFolder/SystemResources/App/ClassicyApp";
+export * from "./SystemFolder/SystemResources/App/ClassicyAppIdContext";
 export * from "./SystemFolder/SystemResources/App/ClassicyAppMenuHooks";
 export * from "./SystemFolder/SystemResources/App/ClassicyAppUtils";
 export * from "./SystemFolder/SystemResources/App/ClassicyDefaultAppsContext";
