@@ -18,6 +18,22 @@ import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/Clas
 import { ClassicyLittleArrows } from "@/SystemFolder/SystemResources/TimePicker/ClassicyLittleArrows";
 
 type ClassicyTimePart = "hour" | "minutes" | "seconds";
+type ClassicyPeriod = "am" | "pm";
+
+/**
+ * Converts a 12-hour-clock hour (1-12) plus its am/pm period into the
+ * 24-hour hour value `Date#setHours` expects. This is the single source of
+ * truth for that conversion -- every call site in this file that turns the
+ * visible hour field + period into a value for `setHours` must route
+ * through here, so the two boundary cases can't drift out of sync between
+ * call sites the way they previously did:
+ *   - 12 AM -> 0  (midnight, not noon)
+ *   - 12 PM -> 12 (noon, not midnight)
+ */
+function to24h(hour12: number, period: ClassicyPeriod): number {
+	const base = hour12 % 12; // 12 -> 0, 1-11 unchanged
+	return period === "pm" ? base + 12 : base;
+}
 
 interface ClassicyTimePickerProps {
 	id: string;
@@ -30,6 +46,9 @@ interface ClassicyTimePickerProps {
 	disabled?: boolean;
 	labelDisabled?: boolean;
 	isDefault?: boolean;
+	// Forwarded to the hours input only (the first field and the natural
+	// focus target) -- the minutes and seconds inputs are never bound to
+	// this ref, so `ref.current` always resolves to the hours <input>.
 	ref?: ForwardedRef<HTMLInputElement>;
 	minValue?: Date;
 	maxValue?: Date;
@@ -59,8 +78,12 @@ export const ClassicyTimePicker: FunctionalComponent<ClassicyTimePickerProps> =
 			}
 
 			const [selectedDate, setSelectedDate] = useState<Date>(prefillValue);
+			// Normalized to the 12-hour range (1-12) up front so `hour` state is
+			// always in the same representation `stepTimePart`/`handleTimePartChange`
+			// expect -- `getHours()` returns 0-23, and `0 -> 12` is the midnight
+			// boundary case (`x % 12 || 12` maps both 0 and 12 to 12).
 			const [hour, setHour] = useState<string>(
-				prefillValue.getHours().toString(),
+				(prefillValue.getHours() % 12 || 12).toString(),
 			);
 			const [minutes, setMinutes] = useState<string>(
 				prefillValue.getMinutes().toString(),
@@ -68,7 +91,7 @@ export const ClassicyTimePicker: FunctionalComponent<ClassicyTimePickerProps> =
 			const [seconds, setSeconds] = useState<string>(
 				prefillValue.getSeconds().toString(),
 			);
-			const [period, setPeriod] = useState<string>(
+			const [period, setPeriod] = useState<ClassicyPeriod>(
 				prefillValue.getHours() < 12 ? "am" : "pm",
 			);
 			// Which field the visible little-arrows (and Up/Down keys) act on.
@@ -99,20 +122,12 @@ export const ClassicyTimePicker: FunctionalComponent<ClassicyTimePickerProps> =
 			};
 
 			const handlePeriodChange = (e: ChangeEvent<HTMLSelectElement>) => {
-				setPeriod(e.target.value);
+				const nextPeriod: ClassicyPeriod =
+					e.target.value === "pm" ? "pm" : "am";
+				setPeriod(nextPeriod);
 
 				const updatedDate = new Date(selectedDate);
-				let hours = parseInt(hour, 10);
-
-				if (e.target.value === "pm") {
-					hours += 12;
-				}
-
-				if (hours >= 24) {
-					hours = 0;
-				}
-
-				updatedDate.setHours(hours);
+				updatedDate.setHours(to24h(parseInt(hour, 10), nextPeriod));
 				setSelectedDate(updatedDate);
 				handleDateChange(updatedDate);
 			};
@@ -121,7 +136,7 @@ export const ClassicyTimePicker: FunctionalComponent<ClassicyTimePickerProps> =
 				e: ChangeEvent<HTMLInputElement>,
 				part: "hour" | "minutes" | "seconds",
 			) => {
-				let inputValue = parseInt(e.currentTarget.value, 10);
+				const inputValue = parseInt(e.currentTarget.value, 10);
 				const updatedDate = new Date(selectedDate);
 
 				if (Number.isNaN(inputValue)) {
@@ -133,12 +148,7 @@ export const ClassicyTimePicker: FunctionalComponent<ClassicyTimePickerProps> =
 						if (inputValue < 1 || inputValue > 12) {
 							return;
 						}
-						if (period === "pm") {
-							inputValue = inputValue < 12 ? inputValue + 12 : inputValue;
-						} else {
-							inputValue = inputValue === 12 ? 0 : inputValue;
-						}
-						updatedDate.setHours(inputValue);
+						updatedDate.setHours(to24h(inputValue, period));
 						setHour(e.currentTarget.value);
 						break;
 					case "minutes":
@@ -172,7 +182,7 @@ export const ClassicyTimePicker: FunctionalComponent<ClassicyTimePickerProps> =
 						if (currentHour > 12 || currentHour <= 0) {
 							return;
 						}
-						updatedDate.setHours(currentHour);
+						updatedDate.setHours(to24h(currentHour, period));
 						setHour(currentHour.toString());
 						break;
 					}
@@ -235,6 +245,9 @@ export const ClassicyTimePicker: FunctionalComponent<ClassicyTimePickerProps> =
 								tabIndex={0}
 								name={`${id}_hour`}
 								type="text"
+								// The forwarded ref lands here only -- see the `ref` doc
+								// comment on ClassicyTimePickerProps above. Minutes and
+								// seconds are deliberately unref'd.
 								ref={ref}
 								disabled={disabled}
 								placeholder={placeholder}
@@ -255,7 +268,6 @@ export const ClassicyTimePicker: FunctionalComponent<ClassicyTimePickerProps> =
 								tabIndex={0}
 								name={`${id}_minutes`}
 								type="text"
-								ref={ref}
 								disabled={disabled}
 								value={String(minutes)}
 								onClick={(e) => e.currentTarget.select()}
@@ -272,7 +284,6 @@ export const ClassicyTimePicker: FunctionalComponent<ClassicyTimePickerProps> =
 								tabIndex={0}
 								name={`${id}_seconds`}
 								type="text"
-								ref={ref}
 								disabled={disabled}
 								value={String(seconds)}
 								onClick={(e) => e.currentTarget.select()}
