@@ -66,6 +66,23 @@ export default defineConfig({
 	],
 	build: {
 		sourcemap: true,
+		// NOTE: `assetsInlineLimit` is deliberately NOT set here — it would do
+		// nothing. Because `build.lib` is set below (umd/es dual-format output),
+		// Vite's asset pipeline short-circuits to "always inline" BEFORE it ever
+		// reads that option. From Vite's docs: "If you specify build.lib,
+		// build.assetsInlineLimit will be ignored and assets will always be
+		// inlined, regardless of file size." Verified empirically too — adding
+		// the option changed dist/classicy.es.js by 1.4 kB (the config line
+		// itself) and removed no data URIs.
+		//
+		// That is why ~78% of the JS bundle is base64: a 1.79 MB audio sprite,
+		// a 1.67 MB inlined worker, and 384 PNGs. The only supported opt-out is
+		// a per-import `?no-inline` query at each asset's import site
+		// (PDFViewerDocument.tsx's pdf.worker URL, ClassicySounds.ts's sprite
+		// `new URL(...)`, every @img import) — a source-wide change with real
+		// runtime risk, since it moves worker/audio URL resolution from an
+		// unconditional data: URI to a path the consumer's bundler must resolve.
+		// jsdom tests cannot catch a regression there. Not attempted here.
 		lib: {
 			entry: resolve(__dirname, "src/index.ts"),
 			formats: ["umd", "es"],
