@@ -82,6 +82,19 @@ function splitFontFacesPlugin(): Plugin {
 // realm) or that are large enough to not belong inlined in a UI library.
 // Matched by exact specifier or "<pkg>/<subpath>" so subpath imports (e.g.
 // zustand/middleware, react-player/lazy providers) are externalized too.
+//
+// DO NOT add "@mdxeditor/editor" here. It pulls in @lexical/code -> prismjs,
+// and prismjs's language files (prism-clike.js et al) are plain scripts that
+// mutate a *global* `Prism` which only prism.js's CommonJS tail installs.
+// Rollup (this build, Vite 7) injects a `global` shim, so that tail runs and
+// the global exists: `typeof jt < "u" && (jt.Prism = q)`. Rolldown (Vite 8,
+// what rt911 builds with) leaves the bare identifier -- `typeof global < "u"
+// && (global.Prism = n)` -- which is false in a browser, so the global is
+// never set and the first language file throws "Prism is not defined" at
+// module-evaluation time, white-screening the whole consumer app.
+// Externalizing this package hands that chain to the consumer's bundler and
+// took 911realtime.org down (classicy 0.70.0/0.70.1). Keeping it bundled
+// keeps prismjs inside a Rollup build that handles it correctly.
 const externalPackages = [
 	"react",
 	"react-dom",
@@ -90,7 +103,6 @@ const externalPackages = [
 	"immer",
 	"react-player",
 	"pdfjs-dist",
-	"@mdxeditor/editor",
 	"@tanstack/react-table",
 ];
 
