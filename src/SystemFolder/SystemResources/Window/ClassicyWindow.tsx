@@ -1049,6 +1049,13 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				scrollable ? "" : "classicyWindowNoScroll",
 			)}
 			onMouseMove={changeWindow}
+			// Bound ONLY here, at the outermost element, rather than on the frame
+			// edges/title bar/resizer too: those are all descendants, so a mouseup
+			// on any of them bubbles up and would re-fire the handler a second
+			// time (duplicate "halt" analytics, sound, and resize/move dispatches
+			// per release). stopChangeWindow itself never reads e.target or
+			// calls stopPropagation, so it doesn't matter which descendant was
+			// actually released on — binding once here is behavior-preserving.
 			onMouseUp={stopChangeWindow}
 			onClick={setActive}
 			onContextMenu={onContextMenuHandler}
@@ -1066,7 +1073,9 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 						)}
 						role="presentation"
 						onMouseDown={startMoveWindow}
-						onMouseUp={stopChangeWindow}
+						// stopChangeWindow is bound once, on the root classicyWindow
+						// element (below); mouseup here bubbles to it, so a second
+						// binding on this descendant would double-invoke the handler.
 					></div>
 				))}
 			<div
@@ -1094,7 +1103,8 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 					className={"classicyWindowTitle"}
 					role="presentation"
 					onMouseDown={startMoveWindow}
-					onMouseUp={stopChangeWindow}
+					// stopChangeWindow is bound once, on the root classicyWindow
+					// element; mouseup here bubbles to it (see comment there).
 					onDoubleClick={
 						doubleClickTitleToCollapse ? toggleCollapse : undefined
 					}
@@ -1215,7 +1225,8 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 					)}
 					role="presentation"
 					onMouseDown={startResizeWindow}
-					onMouseUp={stopChangeWindow}
+					// stopChangeWindow is bound once, on the root classicyWindow
+					// element; mouseup here bubbles to it (see comment there).
 					onMouseEnter={() => setCursor("resizeLr")}
 					onMouseLeave={() => setCursor()}
 				></div>
