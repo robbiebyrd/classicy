@@ -923,7 +923,15 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	};
 
 	const setResize = (toResize: boolean) => {
-		if (resizable) {
+		// Guard where the rect is read, not in the SCSS: while collapsed, the
+		// window's DOM height is forced to the ~24px title-bar height by
+		// .classicyWindowCollapsed (ClassicyWindow.scss), so ANY mouseup here
+		// (this fires on every release, not just an actual resize — see
+		// stopChangeWindow) would measure that collapsed height and persist it
+		// as the window's real size. Skipping the dispatch entirely while
+		// collapsed leaves the last expanded size in the store untouched, so it
+		// survives a collapse/expand cycle intact.
+		if (resizable && !ws.collapsed) {
 			desktopEventDispatch({
 				type: "ClassicyWindowResize",
 				resizing: toResize,
