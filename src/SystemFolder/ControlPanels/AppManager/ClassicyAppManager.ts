@@ -12,6 +12,10 @@ import {
 	hasDesktopAppRef,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
 import {
+	type ClassicyActionTrust,
+	isActionTrustPermitted,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionTrust";
+import {
 	activateApp,
 	closeApp,
 	deFocusApps,
@@ -427,6 +431,7 @@ export const classicyShortcutEventHandler = (
 export const classicyDesktopStateEventReducer = (
 	ds: ClassicyStore,
 	action: ActionMessage,
+	trust: ClassicyActionTrust = "trusted",
 ) => {
 	if ("debug" in action && process.env.NODE_ENV !== "production") {
 		console.group("Desktop Event");
@@ -435,7 +440,19 @@ export const classicyDesktopStateEventReducer = (
 	}
 
 	if ("type" in action) {
-		if (action.type.startsWith("ClassicyWindow")) {
+		// Kernel trust guard: an untrusted action (e.g. dispatched on behalf of
+		// a HyperCard stack script) is rejected before ANY handler — built-in or
+		// plugin — sees it, if its type falls under a guarded route. This must
+		// run before the prefix routing below, since plugin handlers are also a
+		// route into the reducer and are not otherwise distinguishable here.
+		if (!isActionTrustPermitted(trust, action.type)) {
+			if (process.env.NODE_ENV !== "production") {
+				console.warn(
+					"[ClassicyDesktopStateEventReducer] Rejected untrusted action",
+					{ type: action.type },
+				);
+			}
+		} else if (action.type.startsWith("ClassicyWindow")) {
 			ds = classicyWindowEventHandler(ds, action);
 		} else if (action.type.startsWith("ClassicyDesktopIcon")) {
 			ds = classicyDesktopIconEventHandler(ds, action);

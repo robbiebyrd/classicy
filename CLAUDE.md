@@ -231,6 +231,54 @@ local-wins. Derived folders (Applications, Extensions) are applied via
 `applyDerivedTree()` and never journal. Design spec:
 `docs/superpowers/specs/2026-07-20-filesystem-adapter-design.md`.
 
+### Untrusted Action Allowlist
+
+`classicyDesktopStateEventReducer` takes an optional trust argument
+(`ClassicyActionTrust`, default `"trusted"`). Dispatching an action with
+`"untrusted"` — e.g. an effect produced by an interpreted HyperCard stack
+script — makes it clear **two** checks in
+`src/SystemFolder/ControlPanels/AppManager/ClassicyActionTrust.ts` before any
+handler, built-in or plugin, sees it:
+
+1. **The guarded-route floor** (`isActionTrustGuarded`) — `ClassicyDesktop*`,
+   `ClassicyWindow*`, `ClassicyAppFinderEmptyTrash`, `ClassicyAppHCEditSetScript`
+   are unreachable to untrusted actions, unconditionally. Nothing can opt back in.
+2. **The deny-by-default allowlist** — an untrusted action must *also* be an
+   allowlisted type. Clearing the floor is necessary but not sufficient.
+
+Both are enforced **in the kernel**, not only at call sites. That is deliberate:
+the guarantee must not depend on every dispatch site remembering to check, so a
+call site that forgets still cannot reach a non-allowlisted route. There is a
+single definition of the rule — `isActionTrustPermitted("untrusted", …)`
+delegates to `isUntrustedActionAllowed`, so a call-site check and the kernel's
+own check can never disagree.
+
+Call sites should still consult the gate explicitly, because for something like
+a HyperCard effect the action `type` itself is script-authored data — checking
+first lets the caller drop the effect quietly instead of dispatching a doomed
+action and tripping the reducer's warning:
+
+```ts
+import {
+    isUntrustedActionAllowed,
+    registerClassicyUntrustedActionAllowlist,
+} from 'classicy/SystemFolder/ControlPanels/AppManager/ClassicyActionTrust'
+
+registerClassicyUntrustedActionAllowlist('ClassicyAppMyCustomEffect')
+
+// at the dispatch call site:
+if (!isUntrustedActionAllowed(actionType)) return // drop the effect quietly
+dispatch(action, 'untrusted') // the kernel re-checks the same rule anyway
+```
+
+The default allowlist holds exactly one entry, `ClassicyAppOpen` — HyperCard's
+core function, so a stack opens apps with zero host configuration. Every other
+type must be registered explicitly. Registering can never grant a type past the
+floor: `isUntrustedActionAllowed` ANDs allowlist membership with
+`!isActionTrustGuarded(...)`, so allowlisting e.g. `ClassicyDesktopSetTheme` has
+no effect. Registering the same type twice is a no-op, matching
+`registerAppEventHandler`.
+
 ### Theming
 
 Themes are JSON-based (`src/SystemFolder/ControlPanels/AppearanceManager/styles/themes.json`) and control:

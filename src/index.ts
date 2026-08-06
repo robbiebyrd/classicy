@@ -1,5 +1,6 @@
 export * from "./SystemFolder/ControlPanels/ClassicyControlPanels";
 export * from "./SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
+export * from "./SystemFolder/ControlPanels/AppManager/ClassicyActionTrust";
 export * from "./SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
 export * from "./SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 export * from "./SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext";
