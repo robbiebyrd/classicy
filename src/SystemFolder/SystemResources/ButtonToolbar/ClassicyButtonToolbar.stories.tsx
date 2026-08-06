@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { useState } from "react";
 import { ClassicyBevelButton } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButton";
 import {
 	ClassicyButtonToolbar,
@@ -62,18 +63,38 @@ export const MixedIconAndText: Story = {
 	),
 };
 
+// `ClassicyBevelButton` mode="radio" only ever turns itself ON — it has no
+// notion of the sibling buttons in its group, so nothing makes them mutually
+// exclusive automatically. A real radio *group* has to be driven by a shared
+// selection, wiring each button's `on`/`onChangeFunc` to one state value —
+// exactly like a plain HTML radio group needs a shared `name`. This story
+// does that wiring so "Center" actually turns "Left" off, instead of the
+// naive per-button `on` default that would leave both lit.
+const alignments = ["Left", "Center", "Right"] as const;
+
 export const ToggleAndRadioGroups: Story = {
-	render: () => (
-		<ClassicyButtonToolbar>
-			<ClassicyButtonToolbarGroup>
-				<ClassicyBevelButton mode="toggle" icon={icon} iconAlt="Bold" />
-				<ClassicyBevelButton mode="toggle" icon={icon} iconAlt="Italic" />
-			</ClassicyButtonToolbarGroup>
-			<ClassicyButtonToolbarGroup>
-				<ClassicyBevelButton mode="radio" on icon={icon} iconAlt="Left" />
-				<ClassicyBevelButton mode="radio" icon={icon} iconAlt="Center" />
-				<ClassicyBevelButton mode="radio" icon={icon} iconAlt="Right" />
-			</ClassicyButtonToolbarGroup>
-		</ClassicyButtonToolbar>
-	),
+	render: () => {
+		const [alignment, setAlignment] =
+			useState<(typeof alignments)[number]>("Left");
+		return (
+			<ClassicyButtonToolbar>
+				<ClassicyButtonToolbarGroup>
+					<ClassicyBevelButton mode="toggle" icon={icon} iconAlt="Bold" />
+					<ClassicyBevelButton mode="toggle" icon={icon} iconAlt="Italic" />
+				</ClassicyButtonToolbarGroup>
+				<ClassicyButtonToolbarGroup>
+					{alignments.map((label) => (
+						<ClassicyBevelButton
+							key={label}
+							mode="radio"
+							icon={icon}
+							iconAlt={label}
+							on={alignment === label}
+							onChangeFunc={() => setAlignment(label)}
+						/>
+					))}
+				</ClassicyButtonToolbarGroup>
+			</ClassicyButtonToolbar>
+		);
+	},
 };

@@ -74,6 +74,13 @@ const bevelWidthClass = {
 	large: "classicyBevelButtonBevelLarge",
 } as const;
 
+// `!children`/`children &&` both treat numeric `0` as absent, which is wrong:
+// `<ClassicyBevelButton icon={x}>{0}</ClassicyBevelButton>` has real content.
+// Shared by the `isSquare` derivation and the render guard so they can never
+// drift apart.
+const hasRenderableContent = (children: unknown): boolean =>
+	children != null && children !== "" && children !== false;
+
 const computeState = (
 	disabled: boolean,
 	mixed: boolean,
@@ -111,7 +118,8 @@ export const ClassicyBevelButton: FunctionalComponent<
 	// a control with text keeps its rectangular shape. `square` is destructured
 	// with no default, so an explicitly passed value — including false — always
 	// wins over the toolbar's preference.
-	const isSquare = square ?? (inToolbar && !!icon && !children);
+	const isSquare =
+		square ?? (inToolbar && !!icon && !hasRenderableContent(children));
 
 	const [pressed, setPressed] = useState(false);
 	// Uncontrolled on-state for toggle/radio; synced when the `on` prop changes.
@@ -183,7 +191,9 @@ export const ClassicyBevelButton: FunctionalComponent<
 					draggable={false}
 				/>
 			)}
-			{children && <span className="classicyBevelButtonLabel">{children}</span>}
+			{hasRenderableContent(children) && (
+				<span className="classicyBevelButtonLabel">{children}</span>
+			)}
 			{showArrow && (
 				<span
 					className={classNames(

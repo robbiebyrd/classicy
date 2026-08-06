@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { render } from "@/__tests__/test-utils";
+import { render, screen } from "@/__tests__/test-utils";
 import { ClassicyBevelButton } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButton";
 import {
 	ClassicyButtonToolbar,
@@ -88,6 +88,17 @@ describe("ClassicyButtonToolbar", () => {
 			</ClassicyButtonToolbar>,
 		);
 		expect(getByText("label")).toBeInTheDocument();
+	});
+
+	it("exposes role=toolbar on the root element", () => {
+		render(
+			<ClassicyButtonToolbar>
+				<ClassicyButtonToolbarGroup>
+					<button type="button">A</button>
+				</ClassicyButtonToolbarGroup>
+			</ClassicyButtonToolbar>,
+		);
+		expect(screen.getByRole("toolbar")).toBeInTheDocument();
 	});
 
 	it("merges an extra className onto the toolbar", () => {

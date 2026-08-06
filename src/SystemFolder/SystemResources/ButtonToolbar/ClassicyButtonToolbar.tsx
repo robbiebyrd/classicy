@@ -50,7 +50,16 @@ export const ClassicyButtonToolbarGroup: FunctionalComponent<
  *
  * Inside a toolbar, an icon-only `ClassicyBevelButton` defaults to a square
  * box; a button with text keeps its rectangular shape. Passing `square`
- * explicitly always wins.
+ * explicitly always wins — see {@link ClassicyButtonToolbarContext} for how
+ * that default is delivered and where it can leak.
+ *
+ * The root element carries `role="toolbar"`. The `<hr role="separator">`
+ * dividers between groups stay in the accessibility tree on purpose: inside
+ * a `toolbar`, a `separator` is a meaningful child (it tells assistive tech
+ * where one control group ends and the next begins), unlike a decorative
+ * `<hr>` in a document. No roving-tabindex/arrow-key behavior is implemented
+ * — every button keeps its own tab stop — so full ARIA toolbar keyboard
+ * semantics remain a possible follow-up.
  *
  * @example
  * <ClassicyButtonToolbar>
@@ -71,7 +80,10 @@ export const ClassicyButtonToolbar: FunctionalComponent<
 	const items = Children.toArray(children);
 	return (
 		<ClassicyButtonToolbarContext.Provider value={true}>
-			<div className={classNames("classicyButtonToolbar", className)}>
+			<div
+				role="toolbar"
+				className={classNames("classicyButtonToolbar", className)}
+			>
 				{items.map((child, index) => {
 					// Children.toArray already assigned every element a stable key;
 					// reuse it so the Fragment carries the child's own identity instead

@@ -165,4 +165,35 @@ describe("ClassicyBevelButton", () => {
 		render(<ClassicyBevelButton square icon="/icons/cut.png" iconAlt="Cut" />);
 		expect(screen.getByAltText("Cut")).toBeInTheDocument();
 	});
+
+	it("treats numeric 0 children as real content, not absent", () => {
+		render(<ClassicyBevelButton icon="/i.png">{0}</ClassicyBevelButton>);
+		const btn = screen.getByRole("button");
+		// The "0" must render inside the label span, not as a bare text node
+		// sitting directly under the button.
+		const label = btn.querySelector(".classicyBevelButtonLabel");
+		expect(label).toHaveTextContent("0");
+		expect(btn).toHaveTextContent("0");
+	});
+});
+
+describe("ClassicyBevelButton square default with numeric 0 children", () => {
+	it("does NOT go square inside a toolbar when children is 0", async () => {
+		const { ClassicyButtonToolbar, ClassicyButtonToolbarGroup } = await import(
+			"@/SystemFolder/SystemResources/ButtonToolbar/ClassicyButtonToolbar"
+		);
+		const { container } = render(
+			<ClassicyButtonToolbar>
+				<ClassicyButtonToolbarGroup>
+					<ClassicyBevelButton icon="/i.png" iconAlt="Count">
+						{0}
+					</ClassicyBevelButton>
+				</ClassicyButtonToolbarGroup>
+			</ClassicyButtonToolbar>,
+		);
+		const btn = container.querySelector(".classicyBevelButton");
+		expect(btn).not.toHaveClass("classicyBevelButtonSquare");
+		const label = btn?.querySelector(".classicyBevelButtonLabel");
+		expect(label).toHaveTextContent("0");
+	});
 });
