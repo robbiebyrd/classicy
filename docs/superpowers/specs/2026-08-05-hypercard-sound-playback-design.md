@@ -93,6 +93,15 @@ stopping) was considered and rejected as unnecessary library surface for this
 issue. If a stack ever needs layered audio, a mixing action can be added later
 without revisiting this change.
 
+This also shifts which effect wins when several land in the same consumer
+pass — e.g. a `repeat` loop issuing rapid `play` actions queues all of them
+into `pendingEffects` before HyperCard's effect consumer runs once. Under the
+old `ClassicySoundPlay` gate, `playerCanPlay` dropped every effect after the
+first (the player was already busy). Under `ClassicySoundPlayInterrupt`, each
+effect stops the prior and plays, so the LAST one wins instead. Both outcomes
+are single-voice and neither is worse, but it is an observable behavior
+change worth recording here.
+
 ### R4–R6: a `sound` option-field kind
 
 **Type change.** Extend the public union at `HyperCardPlugins.ts:186`:
@@ -101,9 +110,16 @@ without revisiting this change.
 kind: "text" | "number" | "checkbox" | "choices" | "json" | "sound";
 ```
 
-Because `HCOptionField` is exported and used by `HyperCardCommandEditorMeta`
-and `HyperCardPartEditorMeta`, registered custom commands and parts get the
-picker for free (R6).
+Because `HCOptionField` is exported and used by `HyperCardCommandEditorMeta`,
+registered custom commands get the picker for free (R6): the field kind
+reaches the script builder's command fields via `ActionField`.
+
+`HyperCardPartEditorMeta` also accepts `kind: "sound"` in its type, but
+`HyperCardInspector.renderOptionField` (`HyperCardInspector.tsx:213-296`) has
+no `"sound"` branch, so a plugin part's `optionsSchema: [{ kind: "sound" }]`
+currently falls through to a plain text field there. Extending the inspector
+to render the picker for part options is noted as a follow-up, not part of
+this change.
 
 **Spec change.** Add a `sound` field helper beside the existing `text`/`num`
 helpers in `HyperCardScriptBuilder.tsx:27-36`, and redeclare the verb:

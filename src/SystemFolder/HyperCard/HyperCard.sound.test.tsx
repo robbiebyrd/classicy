@@ -120,6 +120,13 @@ describe("HyperCard sound effects", () => {
 	it("plays each queued effect id only once", () => {
 		mockState = stateWithEffects([{ id: 3, kind: "beep" }]);
 		const { rerender } = render(<HyperCard />);
+		// Reassign to a FRESH object carrying the SAME effect id before the
+		// rerender, so the effect's dependency array is not Object.is-equal to
+		// the previous render's and the effect body genuinely re-runs. Reusing
+		// the same `mockState` reference here would make this assertion
+		// unfalsifiable — it would pass even with the `playedRef` dedup guard
+		// disabled, because the effect body would never run a second time.
+		mockState = stateWithEffects([{ id: 3, kind: "beep" }]);
 		rerender(<HyperCard />);
 		expect(soundCalls().filter((c) => c.sound === "ClassicyBeep")).toHaveLength(
 			1,

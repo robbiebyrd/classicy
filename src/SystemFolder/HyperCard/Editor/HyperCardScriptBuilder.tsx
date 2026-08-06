@@ -306,42 +306,66 @@ const ActionList: FunctionalComponent<{
 	);
 };
 
+/**
+ * Sound-kind field: the only field kind that needs `useSound()`. Kept in its
+ * own component (rather than a branch inside `ActionField`, called after an
+ * unconditional `useSound()`) so the hook only subscribes rows that actually
+ * render a sound picker to sound-state churn. `ClassicySoundStateEventReducer`
+ * returns a fresh object for every dispatch — including plays the player
+ * refuses (e.g. `playerCanPlay` denying a busy `ClassicySoundPlay`) — so any
+ * sound anywhere re-renders every `useSound()` consumer. Text/number/choices
+ * fields are uncontrolled (`ClassicyInput` owns the DOM value; a closure
+ * local tracks the latest typed value until blur), so a stray re-render
+ * between typing and blur used to reset that local and silently drop the
+ * edit. Typing into a text field then clicking any button — including the
+ * row's own reorder/delete controls, which play a sound on mousedown, before
+ * the field's blur fires — reproduced this when `useSound()` sat above
+ * `ActionField`'s early returns.
+ */
+const SoundField: FunctionalComponent<{
+	id: string;
+	field: HCOptionField;
+	value: unknown;
+	onCommit: (value: unknown) => void;
+}> = ({ id, field, value, onCommit }) => {
+	const { labels } = useSound();
+	const current = typeof value === "string" ? value : "";
+	const registered = [...labels]
+		.sort(
+			(a, b) =>
+				a.group.localeCompare(b.group) || a.label.localeCompare(b.label),
+		)
+		.map((s) => ({ value: s.id, label: `${s.group} — ${s.label}` }));
+	// A sound the stack already names but that isn't registered (a plugin
+	// sound, or a hand-authored stack) is appended rather than dropped, so
+	// selecting nothing can never silently rewrite authored data.
+	const options =
+		current && !registered.some((o) => o.value === current)
+			? [...registered, { value: current, label: current }]
+			: registered;
+	return (
+		<ClassicyPopUpMenu
+			id={id}
+			label={field.label}
+			placeholder={"sound…"}
+			options={options}
+			selected={current}
+			onChangeFunc={(e: ChangeEvent<HTMLSelectElement>) =>
+				onCommit(e.target.value || undefined)
+			}
+		/>
+	);
+};
+
 const ActionField: FunctionalComponent<{
 	id: string;
 	field: HCOptionField;
 	value: unknown;
 	onCommit: (value: unknown) => void;
 }> = ({ id, field, value, onCommit }) => {
-	// Called unconditionally, before any early return: ActionField returns
-	// early per field kind, and a hook behind one of those branches would
-	// change hook order between renders.
-	const { labels } = useSound();
-
 	if (field.kind === "sound") {
-		const current = typeof value === "string" ? value : "";
-		const registered = [...labels]
-			.sort(
-				(a, b) =>
-					a.group.localeCompare(b.group) || a.label.localeCompare(b.label),
-			)
-			.map((s) => ({ value: s.id, label: `${s.group} — ${s.label}` }));
-		// A sound the stack already names but that isn't registered (a plugin
-		// sound, or a hand-authored stack) is appended rather than dropped, so
-		// selecting nothing can never silently rewrite authored data.
-		const options =
-			current && !registered.some((o) => o.value === current)
-				? [...registered, { value: current, label: current }]
-				: registered;
 		return (
-			<ClassicyPopUpMenu
-				id={id}
-				label={field.label}
-				options={options}
-				selected={current}
-				onChangeFunc={(e: ChangeEvent<HTMLSelectElement>) =>
-					onCommit(e.target.value || undefined)
-				}
-			/>
+			<SoundField id={id} field={field} value={value} onCommit={onCommit} />
 		);
 	}
 
