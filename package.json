@@ -57,6 +57,7 @@
 			"require": "./dist/classicy.umd.js"
 		},
 		"./dist/classicy.css": "./dist/classicy.css",
+		"./dist/fonts.css": "./dist/fonts.css",
 		"./dist/*": "./dist/*",
 		"./scss/*": "./src/SystemFolder/ControlPanels/AppearanceManager/styles/*"
 	},

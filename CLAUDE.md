@@ -293,6 +293,7 @@ Themes are JSON-based (`src/SystemFolder/ControlPanels/AppearanceManager/styles/
 - Audio sprites generated via audiosprite from `assets/sounds/` directories
 - Library outputs to `dist/` as `classicy.es.js` and `classicy.umd.js`
 - Consumers must import the CSS separately: `import 'classicy/dist/classicy.css'`
+- **Breaking change**: bundled `@font-face` rules (base64-embedded fonts) no longer ship inside `classicy.css` — they're extracted at build time (see the `splitFontFacesPlugin` in `vite.config.ts`) into a separate, opt-in stylesheet. Consumers who want the bundled fonts must additionally `import 'classicy/dist/fonts.css'`; consumers who supply their own fonts, or don't need the bundled ones, can skip it and avoid the payload entirely. Both stylesheets are exposed via `package.json`'s `exports` map.
 - All styling uses SCSS files co-located with components — no Tailwind or inline styles for layout/presentation
 
 @.claude/wiz-claude.md

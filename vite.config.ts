@@ -1,9 +1,81 @@
 import path, { resolve } from "node:path";
 import react from "@vitejs/plugin-react";
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import dts from "vite-plugin-dts";
 import VitePluginImageTools from "vite-plugin-image-tools";
 import richSvg from "vite-plugin-react-rich-svg";
+
+// dist/classicy.css is dominated by base64 @font-face `src:` data URIs (the
+// bundled fonts in AppearanceManager/styles/fonts.scss) -- every consumer
+// downloads every bundled font whether or not their theme uses them. Those
+// rules are pulled in via a plain `import "...fonts.scss"` deep inside the
+// component tree (ClassicyDesktop.tsx), so by the time Rollup gets to CSS
+// output they're indistinguishable from any other stylesheet content -- and
+// because this is `build.lib` with `formats: ["umd", "es"]`, UMD forbids a
+// second entry point (Rollup errors if `lib.entry` isn't a single module for
+// non-ESM formats), so "give fonts.scss its own rollup input" isn't
+// available here without dropping UMD or a second build pass.
+// Splitting therefore happens post-render instead: this plugin's
+// `generateBundle` hook runs once per output format, finds the emitted CSS
+// asset(s), regex-extracts every `@font-face` block whose `src` is a
+// `data:` URI into a sibling `fonts.css` asset (emitted via `emitFile`, same
+// mechanism Rollup uses for any other build-time asset), and rewrites the
+// original CSS asset's `source` with those blocks removed. `@font-face`
+// rules never nest braces, so a non-greedy-free `[^}]*` scan between `{`/`}`
+// is a safe, complete parse of each rule -- no CSS parser dependency needed.
+// While a rule is in hand, it also backfills `font-display: swap` on faces
+// that don't already declare it, so extracting these into an opt-in
+// stylesheet doesn't newly block text rendering on whether a consumer
+// happened to load fonts.css yet.
+function splitFontFacesPlugin(): Plugin {
+	const FONT_FACE_RE = /@font-face\s*\{[^}]*\}/g;
+
+	return {
+		name: "classicy-split-font-faces",
+		// MUST be "post". Vite's own `vite:css-post` plugin is what actually
+		// adds the bundled .css asset, and it does so in its generateBundle.
+		// An unordered user plugin's generateBundle runs BEFORE that, so the
+		// bundle contains no .css asset yet, the loop below matches nothing,
+		// and the split silently no-ops — which is exactly what happened
+		// before this was added.
+		enforce: "post",
+		generateBundle(_options, bundle) {
+			for (const fileName of Object.keys(bundle)) {
+				const output = bundle[fileName];
+				if (output.type !== "asset" || !fileName.endsWith(".css")) continue;
+
+				const source =
+					typeof output.source === "string"
+						? output.source
+						: new TextDecoder().decode(output.source);
+
+				const extractedFaces: string[] = [];
+				const remainingCss = source.replace(FONT_FACE_RE, (rule) => {
+					// Leave any non-inlined @font-face (e.g. a future system-font
+					// fallback) in the primary stylesheet -- only base64 payloads
+					// are the size problem this split exists to solve.
+					if (!rule.includes("data:")) return rule;
+
+					const ruleWithDisplay = /font-display\s*:/.test(rule)
+						? rule
+						: rule.replace("{", "{\n  font-display: swap;");
+
+					extractedFaces.push(ruleWithDisplay);
+					return "";
+				});
+
+				if (extractedFaces.length === 0) continue;
+
+				output.source = remainingCss;
+				this.emitFile({
+					type: "asset",
+					fileName: "fonts.css",
+					source: extractedFaces.join("\n\n"),
+				});
+			}
+		},
+	};
+}
 
 // Packages that must resolve to a single shared instance in the consumer's
 // app (zustand, most notably -- bundling it would create a second store
@@ -63,6 +135,7 @@ export default defineConfig({
 			enableDev: true,
 			enableDevWebp: true,
 		}),
+		splitFontFacesPlugin(),
 	],
 	build: {
 		sourcemap: true,
