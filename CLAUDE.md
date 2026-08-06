@@ -16,7 +16,7 @@ pnpm build:source         # TypeScript + Vite build only (fastest iteration)
 pnpm build                # Full build (audio sprites + source)
 pnpm build:audio          # Generate audio sprites from assets/sounds/
 pnpm build:watch          # Watch mode: rebuilds source + audio on file changes
-pnpm lint                 # Run ESLint
+pnpm lint                 # Run Biome (`biome check .`); lint:fix writes changes
 pnpm preview              # Full build → run example app
 pnpm storybook            # Run the component showcase (Storybook) dev server
 pnpm build:storybook      # Build static Storybook to storybook/storybook-static/
