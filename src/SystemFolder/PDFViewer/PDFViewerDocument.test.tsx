@@ -316,8 +316,8 @@ describe("PDFViewerDocument", () => {
 		expect(getDocumentMock).toHaveBeenCalledTimes(1);
 		const calledWith = getDocumentMock.mock.calls[0][0];
 		expect(calledWith).toHaveProperty("data");
-		expect(calledWith.data).toBeInstanceOf(Uint8Array);
-		expect(new TextDecoder().decode(calledWith.data)).toBe(
+		expect(calledWith?.data).toBeInstanceOf(Uint8Array);
+		expect(new TextDecoder().decode(calledWith?.data)).toBe(
 			"fake pdf bytes for testing",
 		);
 	});

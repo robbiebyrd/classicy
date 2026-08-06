@@ -52,3 +52,4 @@ example/timemachine/cache
 .history
 .worktrees
 .superpowers/
+.oac.json

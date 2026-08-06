@@ -67,14 +67,14 @@ describe("useResolvedMediaSource", () => {
 
 	it("revokes the previous object URL when the source changes", async () => {
 		const { rerender } = renderHook(
-			({ data }: { data: string | undefined }) =>
+			({ data }: { data?: string }) =>
 				useResolvedMediaSource(undefined, data, "image/jpeg"),
 			{ initialProps: { data: "fake-compressed-data" } },
 		);
 
 		await waitFor(() => expect(URL.createObjectURL).toHaveBeenCalledTimes(1));
 
-		rerender({ data: undefined });
+		rerender({ data: (undefined as unknown as string) });
 
 		expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:mock-url");
 	});

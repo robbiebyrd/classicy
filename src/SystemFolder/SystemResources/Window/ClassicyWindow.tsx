@@ -390,7 +390,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		if (!currentWindow) return;
 
 		const isOpen = !ws.closed;
-		const isFocused = isOpen && ws.focused;
+		const isFocused = isOpen && !!ws.focused;
 		const justOpened = isOpen && !wasOpenRef.current;
 		const justFocused = isFocused && !wasFocusedRef.current;
 		wasOpenRef.current = isOpen;

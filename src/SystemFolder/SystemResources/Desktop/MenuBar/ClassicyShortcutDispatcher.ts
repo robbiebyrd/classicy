@@ -48,7 +48,7 @@ export const useClassicyShortcutDispatcher = (
 			const candidates = canonicalChordsFromEvent(event);
 			if (candidates.length === 0) return;
 
-			const appClaims = keyboard.app[focusedAppId] ?? [];
+			const appClaims = focusedAppId ? keyboard.app[focusedAppId] ?? [] : [];
 			const claimsChord = (list: string[]) =>
 				candidates.some((c) => list.includes(c));
 
