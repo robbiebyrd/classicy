@@ -94,7 +94,20 @@ const externalPackages = [
 	"@tanstack/react-table",
 ];
 
+// Asset imports carrying a Vite query (`?url`, `?raw`, `?worker`, ...) are
+// NOT module imports and must never be externalized, even when they live
+// under an external package: the query is a Vite *source* convention with no
+// meaning to a consumer's resolver. Externalizing one emits it verbatim into
+// dist, where it breaks every consumer path that doesn't run vite:asset --
+// `vite dev` (rolldown pre-bundles deps, "No such file or directory") and
+// vitest (externalizes node_modules to Node ESM, "does not provide an export
+// named 'default'"). `vite build` still works, so the breakage is invisible
+// here. Let vite:asset claim these and inline them instead.
+const isAssetQuery = (id: string) =>
+	/\?(?:.*&)?(?:url|raw|worker|inline)\b/.test(id);
+
 const isExternal = (id: string) =>
+	!isAssetQuery(id) &&
 	externalPackages.some((pkg) => id === pkg || id.startsWith(`${pkg}/`));
 
 export default defineConfig({
