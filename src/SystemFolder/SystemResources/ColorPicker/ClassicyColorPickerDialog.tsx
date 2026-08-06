@@ -1,6 +1,7 @@
 import "./ClassicyColorPicker.scss";
 import { type CSSProperties, type FC, useEffect, useState } from "react";
 import { intToHex } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyColors";
+import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 import { ClassicyColorPickerCMYK } from "./ClassicyColorPickerCMYK";
@@ -18,6 +19,7 @@ const PICKER_MODES: PickerMode[] = ["Crayons", "RGB", "HSV", "HLS", "CMYK"];
 
 interface ClassicyColorPickerDialogProps {
 	id: string;
+	appId?: string;
 	open: boolean;
 	initialColor?: number;
 	crayons?: ClassicyCrayon[];
@@ -27,6 +29,7 @@ interface ClassicyColorPickerDialogProps {
 
 export const ClassicyColorPickerDialog: FC<ClassicyColorPickerDialogProps> = ({
 	id,
+	appId,
 	open,
 	initialColor = 0x000000,
 	crayons = MAC_OS_8_CRAYONS,
@@ -35,6 +38,10 @@ export const ClassicyColorPickerDialog: FC<ClassicyColorPickerDialogProps> = ({
 }) => {
 	const [pendingColor, setPendingColor] = useState(initialColor);
 	const [mode, setMode] = useState<PickerMode>("Crayons");
+	const focusedAppId = useAppManager(
+		(s) => s.System.Manager.Applications.focusedAppId,
+	);
+	const resolvedAppId = appId ?? focusedAppId;
 
 	// Reset to initialColor whenever the dialog is freshly opened.
 	// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -92,7 +99,7 @@ export const ClassicyColorPickerDialog: FC<ClassicyColorPickerDialogProps> = ({
 	return (
 		<ClassicyWindow
 			id={id}
-			appId={id}
+			appId={resolvedAppId ?? id}
 			title="Color Picker"
 			modal={true}
 			closable={true}

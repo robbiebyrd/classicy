@@ -41,16 +41,15 @@ describe("ClassicyColorPickerDialog modal unmount lifecycle", () => {
 	// (#222/#223). This asserts the dispatch itself, which is the component's
 	// actual contract.
 	//
-	// NOTE: ClassicyColorPickerDialog is passed `appId={id}`, and its only
-	// caller (ClassicyColorPicker) supplies `id={`${id}-dialog`}` with no
-	// separate app registered under that id. Because no app with that id ever
-	// exists in the store, the real classicyWindowEventHandler's
-	// `!apps[action.app.id]` guard makes both ClassicyWindowOpen and
-	// ClassicyWindowDestroy no-ops for this dialog — the window record is
-	// never actually written or removed from the store. That is out of scope
-	// here (fixing the appId would change real behavior); this test only pins
-	// that the dispatch is emitted, which is what ClassicyWindow guarantees
-	// regardless of what the reducer does with it.
+	// NOTE: this test mocks useAppManager's `apps` selector to an empty
+	// object, so the real classicyWindowEventHandler's `!apps[action.app.id]`
+	// guard is irrelevant here — dispatch is asserted directly against the
+	// mock, not against reducer-driven store state. ClassicyColorPickerDialog
+	// now resolves a real `appId` (an explicit prop, falling back to the
+	// focused app — see ClassicyColorPickerDialog.appId.test.tsx), so when a
+	// caller supplies an `appId` naming a registered app, ClassicyWindowOpen
+	// and ClassicyWindowDestroy are no longer no-ops and the window record is
+	// genuinely written to and removed from the store.
 	it("dispatches ClassicyWindowDestroy for the dialog window on unmount", () => {
 		const { unmount } = render(
 			<ClassicyColorPickerDialog id="theme-accent-dialog" open={true} />,

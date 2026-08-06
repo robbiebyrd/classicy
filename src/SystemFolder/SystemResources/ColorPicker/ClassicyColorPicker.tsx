@@ -13,6 +13,7 @@ import type { ClassicyCrayon } from "./ClassicyColorPickerCrayons";
 
 interface ClassicyColorPickerProps {
   id: string;
+  appId?: string;
   value?: number;
   defaultValue?: number;
   crayons?: ClassicyCrayon[];
@@ -25,6 +26,7 @@ interface ClassicyColorPickerProps {
 
 export const ClassicyColorPicker: FC<ClassicyColorPickerProps> = ({
   id,
+  appId,
   value: controlledValue,
   defaultValue = 0x000000,
   crayons,
@@ -71,6 +73,7 @@ export const ClassicyColorPicker: FC<ClassicyColorPickerProps> = ({
       </div>
       <ClassicyColorPickerDialog
         id={`${id}-dialog`}
+        appId={appId}
         open={open}
         initialColor={value}
         crayons={crayons}
