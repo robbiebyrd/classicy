@@ -73,7 +73,7 @@ export const MixedIconAndText: Story = {
 const alignments = ["Left", "Center", "Right"] as const;
 
 export const ToggleAndRadioGroups: Story = {
-	render: () => {
+	render: function Render() {
 		const [alignment, setAlignment] =
 			useState<(typeof alignments)[number]>("Left");
 		return (
