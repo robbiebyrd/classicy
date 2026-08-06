@@ -31,10 +31,13 @@ const DIST = "dist";
 async function bundles() {
 	if (argv.slice(2).length) return argv.slice(2);
 	const entries = await readdir(DIST);
-	// Every emitted chunk, not just the entry -- a dynamic import (pdfjs) is
-	// code-split into its own file, which can carry its own bad specifiers.
+	// Every emitted file: not just the entry (a dynamic import like pdfjs is
+	// code-split into its own chunk) and not just the ESM build. The UMD build
+	// is published too, and 0.70.2's carried a bare `import("pdfjs-dist")` --
+	// a `require()` scan alone would have missed it, because Rollup keeps the
+	// externalized *dynamic* import as an import() even in UMD output.
 	return entries
-		.filter((f) => f.endsWith(".js") && !f.endsWith(".umd.js"))
+		.filter((f) => f.endsWith(".js"))
 		.sort()
 		.map((f) => join(DIST, f));
 }
@@ -51,6 +54,14 @@ const IMPORT = /\s*import\s*(?:[^"';]*from\s*)?"([^"]*)"\s*;?/y;
 // Minified output quotes with " or ` depending on the chunk, so accept both.
 const DYNAMIC_IMPORT = /\bimport\(\s*(["'`])([^"'`]*)\1\s*\)/g;
 
+// UMD lists its static externals as require() calls in the factory header.
+const REQUIRE = /\brequire\(\s*(["'`])([^"'`]*)\1\s*\)/g;
+
+// Our own emitted chunks, and specifiers the bundler computes at runtime
+// (`import(`${v}`)`), are not external packages.
+const isExternalSpecifier = (s) =>
+	!s.startsWith(".") && !s.startsWith("/") && !s.includes("${");
+
 async function specifiersOf(file) {
 	const source = await readFile(file, "utf8");
 	const specifiers = [];
@@ -61,9 +72,10 @@ async function specifiersOf(file) {
 		specifiers.push(match[1]);
 		match = IMPORT.exec(source);
 	}
-	for (const m of source.matchAll(DYNAMIC_IMPORT)) {
-		// Relative specifiers are our own emitted chunks, not externals.
-		if (!m[2].startsWith(".") && !m[2].startsWith("/")) specifiers.push(m[2]);
+	for (const re of [DYNAMIC_IMPORT, REQUIRE]) {
+		for (const m of source.matchAll(re)) {
+			if (isExternalSpecifier(m[2])) specifiers.push(m[2]);
+		}
 	}
 	return specifiers;
 }
