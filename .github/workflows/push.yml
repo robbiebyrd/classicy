@@ -8,6 +8,17 @@ on:
       - 'src/**'
       - 'assets/**'
       - '!src/**/*.stories.tsx'
+      # Build config changes the published artifact just as much as source
+      # does. Both 0.70.1 and 0.70.2 were vite.config.ts-only fixes for
+      # consumer-breaking bugs and neither triggered a release -- they had to
+      # be dispatched by hand, which is exactly the step a hotfix skips.
+      - 'vite.config.ts'
+      - 'bin/**'
+      # NOT package.json: this workflow commits its own version bump, and
+      # `gh-action-bump-version` does NOT add [skip ci] to it (only the
+      # follow-up codename commit carries the tag). Listing package.json here
+      # would make every release retrigger the release. Verified against the
+      # 0.70.0/0.70.1 bump commits.
   workflow_dispatch:
 
 concurrency:

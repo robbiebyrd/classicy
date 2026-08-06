@@ -95,6 +95,17 @@ function splitFontFacesPlugin(): Plugin {
 // Externalizing this package hands that chain to the consumer's bundler and
 // took 911realtime.org down (classicy 0.70.0/0.70.1). Keeping it bundled
 // keeps prismjs inside a Rollup build that handles it correctly.
+//
+// DO NOT add "pdfjs-dist" here either, for an unrelated reason: because
+// build.lib forces asset inlining, PDFViewerDocument's `?url` import bakes
+// *this repo's* pdf.worker into dist as a data: URI. pdf.js refuses to run
+// when the worker and the API disagree on version, so externalizing the
+// library while still inlining the worker means the consumer supplies the API
+// from their own node_modules and the two drift apart on the next release.
+// That shipped: classicy inlined the 6.1.200 worker while rt911 resolved the
+// 6.2.108 API, and every PDF failed with "Couldn't load this PDF." The two
+// halves have to come from one place, and the worker is already pinned here,
+// so the library belongs here too.
 const externalPackages = [
 	"react",
 	"react-dom",
@@ -102,7 +113,6 @@ const externalPackages = [
 	"zustand",
 	"immer",
 	"react-player",
-	"pdfjs-dist",
 	"@tanstack/react-table",
 ];
 
@@ -197,8 +207,6 @@ export default defineConfig({
 					zustand: "zustand",
 					immer: "immer",
 					"react-player": "ReactPlayer",
-					"pdfjs-dist": "pdfjsLib",
-					"@mdxeditor/editor": "MDXEditor",
 					"@tanstack/react-table": "ReactTable",
 				},
 			},

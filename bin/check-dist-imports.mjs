@@ -1,28 +1,55 @@
 #!/usr/bin/env node
-// Fails if the published ES bundle keeps an import specifier carrying a Vite
-// query (`?url`, `?raw`, `?worker`, ...).
+// Two invariants on the *published* bundle, both of which have shipped broken
+// and neither of which any other signal catches. `vite build` in a consumer app
+// succeeds either way, and jsdom tests never load our own dist -- these only
+// surfaced as production outages.
 //
-// Those queries are a Vite *source* convention. They are meaningful only while
-// a file is being transformed by vite:asset; a consumer resolving our dist gets
-// a specifier that does not name a real module. This leaks whenever a
-// rollupOptions.external predicate matches an asset import -- see isExternal in
-// vite.config.ts.
+// 1. NO IMPORT SPECIFIER MAY CARRY A VITE QUERY (`?url`, `?raw`, `?worker`).
+//    Those queries are a Vite *source* convention, meaningful only while a file
+//    is being transformed by vite:asset. A consumer resolving our dist gets a
+//    specifier that names no real module. This leaks whenever a
+//    rollupOptions.external predicate matches an asset import -- see isExternal
+//    in vite.config.ts. Shipped in 0.70.0: rt911's dev server refused to boot
+//    (rolldown: "No such file or directory") and its vitest failed to collect
+//    62 suites ("does not provide an export named 'default'").
 //
-// It needs its own check because no other signal catches it: `vite build` in a
-// consumer app resolves the query and succeeds, and jsdom tests never load the
-// bundle's own dist. It surfaced only as a consumer's dev server refusing to
-// boot and a consumer's vitest failing to collect (classicy 0.70.0, the
-// pdfjs-dist worker).
+// 2. pdfjs-dist MUST NOT BE EXTERNAL. build.lib forces asset inlining, so
+//    PDFViewerDocument's `?url` import bakes *this repo's* pdf.worker into dist
+//    as a data: URI. pdf.js refuses to run when the worker and API disagree on
+//    version, so externalizing the library lets the consumer supply a different
+//    API and the two drift. Shipped in 0.70.0-0.70.2: classicy inlined the
+//    6.1.200 worker while rt911 resolved the 6.2.108 API, and every PDF failed
+//    with "Couldn't load this PDF." -- caught and rendered as UI text, so no
+//    console error and no failing test anywhere.
 
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { argv, exit } from "node:process";
 
-const BUNDLES = argv.slice(2).length ? argv.slice(2) : ["dist/classicy.es.js"];
+const DIST = "dist";
 
-// One ESM static import at the head of the bundle. An import clause can never
+async function bundles() {
+	if (argv.slice(2).length) return argv.slice(2);
+	const entries = await readdir(DIST);
+	// Every emitted chunk, not just the entry -- a dynamic import (pdfjs) is
+	// code-split into its own file, which can carry its own bad specifiers.
+	return entries
+		.filter((f) => f.endsWith(".js") && !f.endsWith(".umd.js"))
+		.sort()
+		.map((f) => join(DIST, f));
+}
+
+// One ESM static import at the head of a bundle. An import clause can never
 // contain a quote or a semicolon, so [^"';]* consumes it without risking a
 // match against a string literal deeper in the file.
 const IMPORT = /\s*import\s*(?:[^"';]*from\s*)?"([^"]*)"\s*;?/y;
+
+// Dynamic imports are NOT in the prologue and are the form that actually
+// mattered: PDFViewerDocument loads pdfjs lazily, so an externalized
+// `import("pdfjs-dist")` sits in the middle of the minified body. Checking only
+// static imports passed 0.70.2 clean while every PDF was broken in production.
+// Minified output quotes with " or ` depending on the chunk, so accept both.
+const DYNAMIC_IMPORT = /\bimport\(\s*(["'`])([^"'`]*)\1\s*\)/g;
 
 async function specifiersOf(file) {
 	const source = await readFile(file, "utf8");
@@ -34,26 +61,46 @@ async function specifiersOf(file) {
 		specifiers.push(match[1]);
 		match = IMPORT.exec(source);
 	}
+	for (const m of source.matchAll(DYNAMIC_IMPORT)) {
+		// Relative specifiers are our own emitted chunks, not externals.
+		if (!m[2].startsWith(".") && !m[2].startsWith("/")) specifiers.push(m[2]);
+	}
 	return specifiers;
 }
 
+const MUST_BE_BUNDLED = ["pdfjs-dist"];
+
 let failed = false;
-for (const file of BUNDLES) {
+for (const file of await bundles()) {
 	const specifiers = await specifiersOf(file);
+
 	const queried = specifiers.filter((s) => s.includes("?"));
 	if (queried.length) {
 		failed = true;
 		console.error(`${file}: ${queried.length} import(s) carry a Vite query:`);
 		for (const s of queried) console.error(`  import "${s}"`);
-	} else {
-		console.log(`${file}: ${specifiers.length} import(s), none queried`);
+		console.error(
+			"  -> an asset import must stay bundled so vite:asset can inline it; " +
+				"exclude the query from isExternal in vite.config.ts.",
+		);
+	}
+
+	const leaked = specifiers.filter((s) =>
+		MUST_BE_BUNDLED.some((p) => s === p || s.startsWith(`${p}/`)),
+	);
+	if (leaked.length) {
+		failed = true;
+		console.error(`${file}: externalized a package that must stay bundled:`);
+		for (const s of leaked) console.error(`  import "${s}"`);
+		console.error(
+			"  -> its worker is inlined here at build time; the consumer would " +
+				"supply a mismatched API version and every PDF would fail to load.",
+		);
+	}
+
+	if (!queried.length && !leaked.length) {
+		console.log(`${file}: ${specifiers.length} import(s), clean`);
 	}
 }
 
-if (failed) {
-	console.error(
-		"\nAdd the package to neither side of isExternal, or exclude the query -- " +
-			"an asset import must stay bundled so vite:asset can inline it.",
-	);
-	exit(1);
-}
+if (failed) exit(1);
