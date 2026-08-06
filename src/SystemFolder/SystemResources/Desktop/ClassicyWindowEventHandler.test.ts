@@ -881,6 +881,35 @@ describe("ClassicyWindowDestroy", () => {
 		expect(w1?.focused).toBe(false);
 	});
 
+	it("clears lastAccessedWindowId when it named the destroyed window", () => {
+		const ds = makeFocusedApp();
+		// w1 does not hold focus (w2 does, per makeStoreWithWindows), so
+		// destroying it triggers no succession — isolating the clear itself
+		// from focusApp's own lastAccessedWindowId write.
+		ds.System.Manager.Applications.apps.TestApp.lastAccessedWindowId = "w1";
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowDestroy",
+			app: { id: "TestApp" },
+			window: { id: "w1" },
+		});
+		expect(
+			ds.System.Manager.Applications.apps.TestApp.lastAccessedWindowId,
+		).toBeUndefined();
+	});
+
+	it("leaves lastAccessedWindowId alone when it names a surviving window", () => {
+		const ds = makeFocusedApp();
+		ds.System.Manager.Applications.apps.TestApp.lastAccessedWindowId = "w1";
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowDestroy",
+			app: { id: "TestApp" },
+			window: { id: "w2" },
+		});
+		expect(
+			ds.System.Manager.Applications.apps.TestApp.lastAccessedWindowId,
+		).toBe("w1");
+	});
+
 	it("refocuses a modal on every reopen, not just the first (#222)", () => {
 		const ds = makeFocusedApp();
 		// Give w1/w2 explicit, distinct zOrder so pickWindowToRestore's

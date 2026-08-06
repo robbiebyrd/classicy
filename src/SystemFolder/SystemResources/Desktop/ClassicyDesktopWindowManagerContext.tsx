@@ -239,6 +239,19 @@ export const classicyWindowEventHandler = (
 				ds.System.Manager.Applications.apps[action.app.id].windows
 					.map((w) => (w.id === action.window.id ? null : w))
 					.filter(notEmpty);
+			// Tidiness, not correctness: pickWindowToRestore already filters
+			// lastAccessedWindowId against surviving windows, and the next focus
+			// succession overwrites it anyway, so a stale pointer here is
+			// harmless. Clear it so the field doesn't linger naming a window that
+			// no longer exists, before focus succession runs below.
+			if (
+				ds.System.Manager.Applications.apps[action.app.id]
+					.lastAccessedWindowId === action.window.id
+			) {
+				ds.System.Manager.Applications.apps[
+					action.app.id
+				].lastAccessedWindowId = undefined;
+			}
 			// Hand focus to a surviving sibling using the same succession rules
 			// as ClassicyWindowClose (lastAccessed → highest zOrder → default,
 			// skipping utility palettes). Removal happens first so the destroyed
