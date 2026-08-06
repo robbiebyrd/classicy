@@ -22,8 +22,8 @@
 		"resolveJsonModule": true,
 		//    "noImplicitReturns": true,
 		"noImplicitAny": true,
-		//    /* Linting */
-		//    "strict": true,
+		/* Linting */
+		"strict": true,
 		//    "noUnusedLocals": true,
 		//    "noUnusedParameters": true,
 		////    "erasableSyntaxOnly": true,
