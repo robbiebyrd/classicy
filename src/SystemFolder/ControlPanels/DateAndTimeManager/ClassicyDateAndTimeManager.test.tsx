@@ -1,4 +1,10 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+	cleanup,
+	fireEvent,
+	render,
+	screen,
+	within,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import {
 	dispatch,
@@ -200,5 +206,69 @@ describe("ClassicyDateAndTimeManager — Sync button", () => {
 		) as HTMLInputElement;
 		expect(yearInput).not.toBeNull();
 		expect(yearInput.value).toBe(currentYear);
+	});
+});
+
+// Selects a timezone option from the standalone timezone ClassicyPopUpMenu
+// (id="timezone") by opening it and clicking the option with the given label.
+function selectTimeZone(container: HTMLElement, label: string) {
+	fireEvent.click(container.querySelector("#timezone") as HTMLButtonElement);
+	fireEvent.click(
+		within(screen.getByRole("listbox")).getByRole("option", { name: label }),
+	);
+}
+
+describe("ClassicyDateAndTimeManager — timezone changes must not corrupt the AM/PM period state", () => {
+	// Regression test for updateSystemTimeZone previously calling
+	// setPeriod(e.target.value), writing an offset string (e.g. "-6") into
+	// state typed for 'am' | 'pm'. updateSystemTime then branched on
+	// `period === "am"`, which went false after any timezone change, silently
+	// adding 12 hours to every subsequent time edit.
+	it("does not shift the dispatched dateTime hour by 12 after changing the timezone and then editing the time", () => {
+		dispatch({ type: "ClassicyManagerDateTimeTZSet", tzOffset: "0" });
+		dispatch({
+			type: "ClassicyManagerDateTimeSet",
+			// 08:00 under tzOffset "0" — unambiguously AM, no boundary edge cases.
+			dateTime: new Date("1997-03-04T08:00:00.000Z"),
+		});
+		const { container } = renderOpen();
+
+		// Change the timezone — this alone must not corrupt any AM/PM state.
+		selectTimeZone(container, "America/Denver");
+		expect(
+			useAppManager.getState().System.Manager.DateAndTime.timeZoneOffset,
+		).toBe("-6");
+
+		// Edit the hour field directly (still displaying "8", unaffected by the
+		// timezone change since the pickers only re-seed on an explicit Sync).
+		const hourInput = container.querySelector("#time_hour") as HTMLInputElement;
+		expect(hourInput).not.toBeNull();
+		fireEvent.change(hourInput, { target: { value: "9" } });
+
+		// Local hour 9 in tz -6 is UTC 15 (9 - (-6)). The pre-fix bug computed
+		// hoursToSet = 9 + 12 = 21, i.e. UTC 27 -> wraps to hour 3 the next day.
+		const dispatchedHour = new Date(
+			useAppManager.getState().System.Manager.DateAndTime.dateTime,
+		).getUTCHours();
+		expect(dispatchedHour).toBe(15);
+		expect(dispatchedHour).not.toBe((15 + 12) % 24);
+	});
+
+	it("keeps the AM/PM popup showing the correct period after a timezone change", () => {
+		dispatch({ type: "ClassicyManagerDateTimeTZSet", tzOffset: "0" });
+		dispatch({
+			type: "ClassicyManagerDateTimeSet",
+			dateTime: new Date("1997-03-04T08:00:00.000Z"),
+		});
+		const { container } = renderOpen();
+
+		const amPm = container.querySelector("#am-pm") as HTMLButtonElement;
+		expect(amPm).not.toBeNull();
+		expect(amPm).toHaveTextContent("am");
+
+		selectTimeZone(container, "America/Denver");
+
+		// The timezone change must not reset or corrupt the AM/PM control.
+		expect(amPm).toHaveTextContent("am");
 	});
 });

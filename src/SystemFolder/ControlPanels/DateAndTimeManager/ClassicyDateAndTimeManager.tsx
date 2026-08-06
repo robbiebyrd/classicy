@@ -70,7 +70,11 @@ const TIMEZONES = [
 ];
 
 export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
-	const [period, setPeriod] = useState<string>("am");
+	// Narrowed to the literal union (rather than `string`) so any future
+	// assignment of a non-am/pm value — e.g. reintroducing the timezone-offset
+	// bug this file was fixed for — is a compile error, not a silent 12-hour
+	// shift in updateSystemTime below.
+	const [period] = useState<"am" | "pm">("am");
 	// Bumped only by syncClock below, and used as part of the pickers' `key` so
 	// they remount and re-seed from the fresh prefillValue on an explicit Sync
 	// click. ClassicyDatePicker/ClassicyTimePicker seed useState from
@@ -150,7 +154,11 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
 	};
 
 	const updateSystemTimeZone = (e: ChangeEvent<HTMLSelectElement>) => {
-		setPeriod(e.target.value);
+		// Changing the timezone must never touch `period` — it holds the AM/PM
+		// state consumed by updateSystemTime above, not a timezone offset. A
+		// stray setPeriod(e.target.value) here used to write offset strings like
+		// "-7" into it, which made `period === "am"` false and silently added
+		// 12 hours to every subsequent time edit.
 		desktopEventDispatch({
 			type: "ClassicyManagerDateTimeTZSet",
 			tzOffset: e.target.value,
