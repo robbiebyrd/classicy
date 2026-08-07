@@ -23,7 +23,8 @@ export const ClassicyOpenUrlController: FC = () => {
 		(s) => s.System.Manager.Desktop.openUrlRequestId ?? 0,
 	);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: requestId is the intentional trigger; the request itself is read fresh via getState
+	// requestId is the intentional trigger; the request itself is read fresh via
+	// getState rather than subscribed to, so the deps below are already complete.
 	useEffect(() => {
 		if (requestId === 0) return;
 		const request =
