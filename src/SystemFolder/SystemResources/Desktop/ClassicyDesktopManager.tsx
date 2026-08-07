@@ -358,6 +358,13 @@ export const classicyDesktopEventHandler = (
 			// isValidHttpUrl("") already returns false, so an empty string
 			// falls into the existing "cannot be opened" error dialog below
 			// instead of vanishing with no error and no action.
+			//
+			// Side effect, noted deliberately rather than left incidental: a
+			// non-string `url` (e.g. `url: 123`) used to fail hasUrl and break
+			// silently too, the same as "no url field". It now coerces to ""
+			// the same as an empty string and surfaces the same error dialog —
+			// an improvement, and in keeping with "present but useless" being
+			// treated the same regardless of exactly how it's useless.
 			if (!("url" in action)) break;
 			const url = typeof action.url === "string" ? action.url : "";
 
