@@ -17,6 +17,7 @@ describe("ClassicyDefaultAppsContext", () => {
 			disableMoviePlayer: false,
 			disablePictureViewer: false,
 			disableHyperCard: false,
+			disableWebViewer: false,
 		});
 	});
 });

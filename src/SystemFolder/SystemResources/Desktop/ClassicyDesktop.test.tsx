@@ -1,8 +1,11 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { ClassicyAppManagerProvider } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext";
-import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import {
+	dispatch,
+	useAppManager,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyDesktop } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktop";
 
 // The bundled apps pass showDesktopIcon={false}, so they register HIDDEN
@@ -82,6 +85,47 @@ describe("ClassicyDesktop default apps", () => {
 		// The desktop itself is gone — the boundary replaced it entirely.
 		expect(container.querySelector("#classicyDesktop")).toBeNull();
 		consoleError.mockRestore();
+	});
+});
+
+// The "classicy" disposition only works because ClassicyDesktop imports
+// WebViewer STATICALLY: WebViewer.tsx pulls in WebViewerContext, whose module
+// body self-registers the "ClassicyAppWebViewer" plugin handler that the
+// ClassicyDesktopOpenUrl reducer routes through. That registration is a
+// module-graph side effect, not a mount side effect — so this is the only test
+// that can prove the production wiring. Swap the import for lazy()/import() and
+// nothing registers, the reducer's dispatchToPlugin falls through, and this
+// test fails while the reducer's own unit test (which imports WebViewerContext
+// itself) keeps passing.
+describe("ClassicyDesktop open-URL wiring", () => {
+	beforeEach(() => {
+		localStorage.clear();
+		sessionStorage.clear();
+		useAppManager.setState(DefaultAppManagerState, true);
+	});
+
+	it("opens a Web Viewer window for the classicy disposition", async () => {
+		const { container } = render(
+			<ClassicyAppManagerProvider>
+				<ClassicyDesktop startupScreen={false} />
+			</ClassicyAppManagerProvider>,
+		);
+
+		dispatch({
+			type: "ClassicyDesktopOpenUrl",
+			url: "/press",
+			disposition: "classicy",
+			title: "Press Room",
+		});
+
+		await waitFor(() =>
+			expect(
+				container
+					.querySelector<HTMLIFrameElement>(".classicyWebViewerFrame")
+					?.getAttribute("src"),
+			).toBe("/press"),
+		);
+		expect(screen.getByTitle("Press Room")).toBeInTheDocument();
 	});
 });
 

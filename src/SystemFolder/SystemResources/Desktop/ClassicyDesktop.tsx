@@ -23,6 +23,13 @@ import {
 	useClassicyContextualMenu,
 } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 import { ClassicyCrashScreen } from "@/SystemFolder/SystemResources/CrashScreen/ClassicyCrashScreen";
+// Static, never lazy: WebViewer.tsx registers the "ClassicyAppWebViewer" plugin
+// handler as a module-graph side effect (it imports ./WebViewerContext), not a
+// mount side effect. A static import means the handler exists even when
+// disableWebViewer is set — matching disableMoviePlayer — whereas a lazy import
+// would make the "classicy" disposition a silent no-op until something else
+// happened to pull the module in.
+import { WebViewer } from "@/SystemFolder/WebViewer/WebViewer";
 import "./ClassicyDesktop.scss";
 import classNames from "classnames";
 import {
@@ -48,6 +55,7 @@ import {
 	nearestIconInDirection,
 	typeaheadMatch,
 } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopKeyNav";
+import { ClassicyOpenUrlController } from "@/SystemFolder/SystemResources/Desktop/ClassicyOpenUrlController";
 import { ClassicyDesktopMenuBar } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
@@ -127,6 +135,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 		disableMoviePlayer,
 		disablePictureViewer,
 		disableHyperCard,
+		disableWebViewer,
 	} = useContext(ClassicyDefaultAppsContext);
 
 	const emptyTrash = useCallback(() => {
@@ -487,6 +496,8 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 			{!disableHyperCard && <HyperCard />}
 			{!disableMoviePlayer && <MoviePlayer />}
 			{!disablePictureViewer && <QuickTimePictureViewer />}
+			{!disableWebViewer && <WebViewer />}
+			<ClassicyOpenUrlController />
 			<ClassicyControlPanels />
 			{showAbout
 				? getClassicyAboutWindow({

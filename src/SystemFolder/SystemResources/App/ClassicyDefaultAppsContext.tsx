@@ -6,6 +6,7 @@ export type ClassicyDefaultAppsContextValue = {
 	disableMoviePlayer: boolean;
 	disablePictureViewer: boolean;
 	disableHyperCard: boolean;
+	disableWebViewer: boolean;
 };
 
 export const ClassicyDefaultAppsContext =
@@ -15,4 +16,5 @@ export const ClassicyDefaultAppsContext =
 		disableMoviePlayer: false,
 		disablePictureViewer: false,
 		disableHyperCard: false,
+		disableWebViewer: false,
 	});

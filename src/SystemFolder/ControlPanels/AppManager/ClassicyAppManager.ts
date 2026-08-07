@@ -218,6 +218,15 @@ export function dispatchToPlugin(
 	if (plugin) {
 		return plugin.handler(ds, action);
 	}
+	// Without this the caller's action vanishes silently — the symptom is "the
+	// feature did nothing at all", with nothing to grep for. Almost always means
+	// the owning app's context module was never pulled into the module graph.
+	if (process.env.NODE_ENV !== "production") {
+		console.warn("[dispatchToPlugin] No handler registered for prefix", {
+			prefix,
+			type: action.type,
+		});
+	}
 	return ds;
 }
 
