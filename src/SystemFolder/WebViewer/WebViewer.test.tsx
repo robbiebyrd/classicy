@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { ClassicyAppManagerProvider } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext";
 import {
@@ -74,6 +74,24 @@ describe("WebViewer", () => {
 		openUrl("/press", "Press Room");
 		expect(await screen.findByTitle("Press Room")).toBeInTheDocument();
 		dispatch({ type: "ClassicyAppWebViewerCloseUrl", url: "/press" });
+		await waitFor(() =>
+			expect(screen.queryByTitle("Press Room")).not.toBeInTheDocument(),
+		);
+	});
+
+	// The tests above close a URL via a direct dispatch, which proves the
+	// reducer works but not that ClassicyWindow's close box is actually wired
+	// to onCloseFunc={() => closeUrl(entry.url)}. Drive the real close box
+	// instead, the way a user would.
+	it("closes the frame when the window's close box is clicked", async () => {
+		renderViewer();
+		openUrl("/press", "Press Room");
+		await screen.findByTitle("Press Room");
+		const windowEl = screen.getByRole("application", { name: "Press Room" });
+		// biome-ignore lint/style/noNonNullAssertion: closeBox is asserted present below
+		const closeBox = windowEl.querySelector(".classicyWindowCloseBox")!;
+		expect(closeBox).not.toBeNull();
+		fireEvent.click(closeBox);
 		await waitFor(() =>
 			expect(screen.queryByTitle("Press Room")).not.toBeInTheDocument(),
 		);
