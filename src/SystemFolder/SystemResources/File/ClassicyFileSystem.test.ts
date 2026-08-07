@@ -132,6 +132,62 @@ describe("ClassicyFileSystem.filterByType", () => {
 		expect(Object.keys(filtered)).toEqual(["Press"]);
 	});
 
+	it('a bare-string byType of "app_shortcut" does not substring-match Shortcut entries', () => {
+		// Regression: byType.includes(a._type) with a bare string hits
+		// String.prototype.includes (substring match), and
+		// "app_shortcut".includes("shortcut") is true, so a Shortcut entry
+		// would wrongly be returned when only AppShortcut was requested.
+		const cfs = new ClassicyFileSystem(
+			"test-filter-by-type-app-shortcut-collision",
+			{
+				_type: "directory",
+				"Macintosh HD": {
+					_type: "drive",
+					Desktop: {
+						_type: "directory",
+						TV: {
+							_type: ClassicyFileSystemEntryFileType.AppShortcut,
+							_creator: "TV.app",
+						},
+						Press: {
+							_type: ClassicyFileSystemEntryFileType.Shortcut,
+							_url: "https://911realtime.org/press",
+						},
+					},
+				},
+			},
+		);
+
+		const filtered = cfs.filterByType("Macintosh HD:Desktop", "app_shortcut");
+
+		expect(Object.keys(filtered)).toEqual(["TV"]);
+	});
+
+	it('a bare-string byType of "text_file" does not substring-match File entries', () => {
+		// Regression: byType.includes(a._type) with a bare string hits
+		// String.prototype.includes (substring match), and
+		// "text_file".includes("file") is true, so a File entry would
+		// wrongly be returned when only TextFile was requested.
+		const cfs = new ClassicyFileSystem(
+			"test-filter-by-type-text-file-collision",
+			{
+				_type: "directory",
+				"Macintosh HD": {
+					_type: "drive",
+					Documents: {
+						_type: "directory",
+						"Read Me.txt": { _type: ClassicyFileSystemEntryFileType.TextFile },
+						"Data.bin": { _type: ClassicyFileSystemEntryFileType.File },
+					},
+				},
+			},
+		);
+
+		const filtered = cfs.filterByType("Macintosh HD:Documents", "text_file");
+
+		expect(Object.keys(filtered)).toEqual(["Read Me.txt"]);
+	});
+
 	it("includes every ClassicyFileSystemEntryFileType except Drive in a default listing — derived from the enum, not hand-listed, so a type never named in this test still shows up", () => {
 		// Deliberately does not spell out any individual type name (besides
 		// Drive) so this test keeps covering the invariant automatically as

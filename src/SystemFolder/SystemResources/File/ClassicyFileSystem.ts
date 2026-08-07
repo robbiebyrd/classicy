@@ -381,6 +381,14 @@ export class ClassicyFileSystem {
 	): ClassicyFileSystemEntry {
 		const filteredItems = {} as ClassicyFileSystemEntry;
 		if (!this.resolve(path)) return filteredItems;
+		// `byType` accepts a bare string for callers that only need one type.
+		// Array.prototype.includes is exact-match, but String.prototype.includes
+		// is a *substring* match — so testing a bare string directly against
+		// `a._type` would let unrelated types leak through wherever one enum
+		// value is a substring of another, e.g. "app_shortcut".includes("shortcut")
+		// or "text_file".includes("file"). Normalizing to an array up front makes
+		// every check go through the exact-match Array.prototype.includes.
+		const types = Array.isArray(byType) ? byType : [byType];
 		Object.entries(this.resolve(path)).forEach(([b, a]) => {
 			if (a._invisible === true && !showInvisible) {
 				return;
@@ -388,7 +396,7 @@ export class ClassicyFileSystem {
 			if (this.isCreatedAfter(a, notCreatedAfter)) {
 				return;
 			}
-			if (byType.includes(a._type)) {
+			if (types.includes(a._type)) {
 				filteredItems[b] = a;
 			}
 		});
