@@ -497,16 +497,36 @@
 .classicyWindowPlacardBar {
   position: absolute;
   z-index: 998; // just below the resizer (999) so the corner grip stays usable
-  left: calc(var(--window-padding-size) + var(--window-border-size));
-  bottom: calc(var(--window-padding-size) + var(--window-border-size) * -1);
+  // Same inset as the resizer at the other end of this line: the frame ring,
+  // plus the .classicyWindowContents border the gutter sits inside of. Derived
+  // from --window-padding-size instead, the bar sat 1.2px high and 1.2px right
+  // of the gutter, and the margin-bottom below existed to paper over it.
+  left: calc(var(--window-frame-inset) + var(--window-border-size));
+  bottom: calc(var(--window-frame-inset) + var(--window-border-size));
   display: flex;
   align-items: center;
   // leave the bottom-right corner free for the resizer / horizontal scroll bar
   max-width: calc(100% - var(--window-control-size) * 3.5);
   height: var(--window-scrollbar-size);
-  // pull the placard up by the frame width so its top bevel meets the
-  // horizontal scroll bar's outer line rather than overlapping it
-  margin-bottom: var(--hig-frame-width);
+
+  // A placard is an 18px --hig-control-height control on its own, but on this
+  // line it is one of the scroll bar gutter's occupants and takes the gutter's
+  // height — otherwise it stands 2px proud of the bar it sits in.
+  //
+  // The holder has to carry the height as well as the control: it is the flex
+  // item here, and being inline-block it has an `auto` height that a percentage
+  // on the control alone would resolve against. Making it a flex container also
+  // drops the line box its inline-flex child would otherwise sit on, which was
+  // pushing the control a further pixel down onto the baseline.
+  .classicyPlacardHolder {
+    display: flex;
+    height: 100%;
+  }
+
+  .classicyPlacard {
+    min-height: 0;
+    height: 100%;
+  }
 }
 
 .classicyWindowPlacardBarDimmed {

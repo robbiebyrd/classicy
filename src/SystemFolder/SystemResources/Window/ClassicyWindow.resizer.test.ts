@@ -162,6 +162,37 @@ describe("window resizer / scroll bar alignment", () => {
 		);
 	});
 
+	it("pins the placard bar to the same line at the other end", () => {
+		// The placard shares the scroll bar gutter with the resizer, and had the
+		// same drift: derived from --window-padding-size it sat 1.2px high and
+		// 1.2px right of the gutter, with a margin-bottom papering over it.
+		const placardBar = rule(".classicyWindowPlacardBar");
+		expect(px(placardBar.height)).toBe(gutter);
+		expect(px(placardBar.left)).toBe(innerCornerInset);
+		expect(px(placardBar.bottom)).toBe(innerCornerInset);
+		expect(placardBar["margin-bottom"]).toBeUndefined();
+	});
+
+	it("shrinks a placard control to the gutter it sits in", () => {
+		// .classicyPlacard is an 18px --hig-control-height control standalone;
+		// both it and its inline-block holder have to take the bar's height, or
+		// it stands proud of the line.
+		for (const selector of [
+			".classicyWindowPlacardBar .classicyPlacardHolder",
+			".classicyWindowPlacardBar .classicyPlacard",
+		]) {
+			expect(rule(selector).height).toBe("100%");
+		}
+		expect(
+			rule(".classicyWindowPlacardBar .classicyPlacard")["min-height"],
+		).toBe("0");
+		// The holder must not stay inline-block: an inline-flex control inside it
+		// would sit on a line box and drop a further pixel onto the baseline.
+		expect(
+			rule(".classicyWindowPlacardBar .classicyPlacardHolder").display,
+		).toBe("flex");
+	});
+
 	it("tracks a windoid's narrower gutter without a size override", () => {
 		// .classicyWindowUtility narrows --window-scrollbar-size; because the
 		// resizer is sized from that variable, it must follow automatically.
