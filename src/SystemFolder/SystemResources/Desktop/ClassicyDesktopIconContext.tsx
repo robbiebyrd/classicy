@@ -235,16 +235,16 @@ export const classicyDesktopIconEventHandler = (
 					}
 					// Icons persist to localStorage, so a shortcut whose target
 					// changed between releases would keep the stale URL forever.
-					// These are code-derived, not user state, so they refresh.
-					if (typeof action.event === "string") {
-						existing.event = action.event;
-					}
-					if (
-						typeof action.eventData === "object" &&
-						action.eventData !== null
-					) {
-						existing.eventData = action.eventData as Record<string, unknown>;
-					}
+					// These are code-derived, not user state, so they are reset
+					// unconditionally on every re-add — including back to
+					// undefined when the action no longer supplies them (e.g. a
+					// shortcut converted into a real app under the same appId).
+					existing.event =
+						typeof action.event === "string" ? action.event : undefined;
+					existing.eventData =
+						typeof action.eventData === "object" && action.eventData !== null
+							? (action.eventData as Record<string, unknown>)
+							: undefined;
 					existing.noLaunch = action.noLaunch === true ? true : undefined;
 					const nextHidden = action.hidden === true ? true : undefined;
 					const hiddenChanged = existing.hidden !== nextHidden;

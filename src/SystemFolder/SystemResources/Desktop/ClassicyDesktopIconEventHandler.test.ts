@@ -646,6 +646,26 @@ describe("shortcut desktop icons", () => {
 		});
 	});
 
+	// A shortcut converted into a real app under the same appId must not keep
+	// firing the old URL alongside launching the app.
+	it("clears event, eventData and noLaunch on re-add when the action omits them", () => {
+		let ds = classicyDesktopIconEventHandler(
+			makeStoreForDesktop(),
+			addShortcut("/press"),
+		);
+		ds = classicyDesktopIconEventHandler(ds, {
+			type: "ClassicyDesktopIconAdd",
+			app: { id: "shortcut_press", name: "Press Room", icon: "icon.png" },
+			kind: "app",
+		});
+		const icon = ds.System.Manager.Desktop.icons.find(
+			(i) => i.appId === "shortcut_press",
+		);
+		expect(icon?.event).toBeUndefined();
+		expect(icon?.eventData).toBeUndefined();
+		expect(icon?.noLaunch).toBeUndefined();
+	});
+
 	// location is user state — a re-add must not yank a dragged icon back.
 	it("leaves a user-moved location alone on re-add", () => {
 		let ds = classicyDesktopIconEventHandler(
