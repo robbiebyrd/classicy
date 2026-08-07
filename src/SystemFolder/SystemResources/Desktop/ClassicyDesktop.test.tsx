@@ -129,6 +129,60 @@ describe("ClassicyDesktop open-URL wiring", () => {
 	});
 });
 
+// ClassicyDesktopIconEventHandler's own unit tests cover the noLaunch field
+// in isolation. Nothing rendered ClassicyDesktop itself to prove it actually
+// reads that field: ClassicyDesktop passes
+// noLaunch={i.noLaunch ?? i.appId === "Trash"} down to ClassicyDesktopIcon,
+// whose launchIcon only skips the ClassicyDesktopIconOpen dispatch when that
+// prop is truthy. A regression in that wiring (e.g. the prop being dropped or
+// mistyped) would slip past every reducer-level test.
+describe("ClassicyDesktop shortcut icon noLaunch wiring", () => {
+	beforeEach(() => {
+		localStorage.clear();
+		sessionStorage.clear();
+		useAppManager.setState(DefaultAppManagerState, true);
+	});
+
+	it("does not create an app entry when a noLaunch shortcut icon is double-clicked", async () => {
+		render(
+			<ClassicyAppManagerProvider>
+				<ClassicyDesktop startupScreen={false} />
+			</ClassicyAppManagerProvider>,
+		);
+		dispatch({
+			type: "ClassicyDesktopIconAdd",
+			app: {
+				id: "shortcut_example",
+				name: "Example Site",
+				icon: "icon.png",
+			},
+			kind: "shortcut",
+			noLaunch: true,
+			event: "ClassicyDesktopOpenUrl",
+			eventData: {
+				url: "https://example.com/",
+				disposition: "browser-new",
+			},
+		});
+
+		fireEvent.doubleClick(await screen.findByAltText("Example Site"));
+
+		expect(iconFor("shortcut_example")).toBeDefined();
+		expect(
+			useAppManager.getState().System.Manager.Applications.apps[
+				"shortcut_example"
+			],
+		).toBeUndefined();
+		// The double-click was still handled — its wired event/eventData fired
+		// and ClassicyOpenUrlController already consumed the request (clearing
+		// openUrlRequest but not the id) — which rules out the icon simply not
+		// being reachable by the click.
+		expect(
+			useAppManager.getState().System.Manager.Desktop.openUrlRequestId,
+		).toBeGreaterThan(0);
+	});
+});
+
 describe("ClassicyDesktop startup screen", () => {
 	beforeEach(() => {
 		localStorage.clear();
