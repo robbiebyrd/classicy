@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { ClassicyShortcutDisposition } from "@/SystemFolder/SystemResources/Shortcut/ClassicyShortcut";
 
 export enum ClassicyFileSystemEntryFileType {
 	File = "file",
@@ -31,6 +32,10 @@ export type ClassicyFileSystemEntryMetadata = {
 
 	// The URL to fetch this entry's content from (also used for shortcut targets)
 	_url?: string;
+
+	// For _type: Shortcut — how _url opens. Absent means "classicy", the
+	// in-desktop iframe window; see readShortcutDisposition.
+	_openIn?: ClassicyShortcutDisposition;
 
 	// Icon data
 	_icon?: string;
