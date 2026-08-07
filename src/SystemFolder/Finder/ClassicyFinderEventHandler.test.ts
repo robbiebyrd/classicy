@@ -606,4 +606,19 @@ describe("opening a shortcut entry", () => {
 			/could not be found/i,
 		);
 	});
+
+	// Distinct from "no target" above: _url is present but empty, not missing.
+	// The guard checks `!== "string" || === ""`, so this must hit the same
+	// error rather than falling through to classicyDesktopEventHandler with an
+	// empty url.
+	it("errors on a shortcut with an empty-string target", () => {
+		const ds = classicyFinderEventHandler(makeStore(), {
+			type: "ClassicyAppFinderOpenFile",
+			path: "Macintosh HD:Broken",
+			file: { _type: ClassicyFileSystemEntryFileType.Shortcut, _url: "" },
+		});
+		expect(ds.System.Manager.Desktop.errorDialog?.message).toMatch(
+			/could not be found/i,
+		);
+	});
 });
