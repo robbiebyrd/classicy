@@ -29,6 +29,17 @@ export const ClassicyOpenUrlController: FC = () => {
 		if (requestId === 0) return;
 		const request =
 			useAppManager.getState().System.Manager.Desktop.openUrlRequest;
+		// This null check — not the requestId === 0 check above — is what
+		// actually prevents a spurious window.open/location.assign on mount.
+		// openUrlRequestId is NOT cleared by sanitizeStateForPersistence (only
+		// Boot.paradeIcons and Keyboard are), so it persists to localStorage:
+		// after any page reload this effect runs on mount with a non-zero
+		// persisted id, making the requestId === 0 guard dead. What saves us is
+		// that the clear dispatch below lands within the same React commit that
+		// consumes a request, while persistence is debounced 500ms, so `request`
+		// is reliably undefined again by the time of a real reload. Do not
+		// remove this check as "redundant" with the one above — doing so turns
+		// every page reload into an unrequested navigation.
 		if (!request) return;
 		dispatch({ type: "ClassicyDesktopClearOpenUrlRequest" });
 
