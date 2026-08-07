@@ -24,6 +24,18 @@ import { deepMergeReplacingArrays } from "@/SystemFolder/SystemResources/Utils/d
 
 const directoryIcon = ClassicyIcons.system.folders.directory;
 
+// filterByType's default allow-list: every ClassicyFileSystemEntryFileType
+// except Drive, derived from the enum so a newly added type is included
+// automatically — no per-type hand-listing to forget (see 5762949a, which
+// fixed exactly that failure mode for Shortcut). Drive stays excluded
+// deliberately: drives live at the filesystem root and are surfaced as
+// desktop icons through a dedicated call (Finder.tsx, ClassicyDriveSetupUtils.ts
+// both pass byType: "drive"/ClassicyFileSystemEntryFileType.Drive explicitly),
+// not as rows inside a folder listing. Do not "fix" this by adding Drive back.
+const DEFAULT_FILTER_BY_TYPES: string[] = Object.values(
+	ClassicyFileSystemEntryFileType,
+).filter((type) => type !== ClassicyFileSystemEntryFileType.Drive);
+
 const SUMMABLE_FILE_TYPES = new Set<string>([
 	ClassicyFileSystemEntryFileType.File,
 	ClassicyFileSystemEntryFileType.TextFile,
@@ -349,20 +361,7 @@ export class ClassicyFileSystem {
 
 	filterByType(
 		path: string,
-		byType: string | string[] = [
-			ClassicyFileSystemEntryFileType.File,
-			ClassicyFileSystemEntryFileType.Directory,
-			ClassicyFileSystemEntryFileType.TextFile,
-			ClassicyFileSystemEntryFileType.Markdown,
-			ClassicyFileSystemEntryFileType.Pdf,
-			ClassicyFileSystemEntryFileType.Image,
-			ClassicyFileSystemEntryFileType.Video,
-			ClassicyFileSystemEntryFileType.Audio,
-			ClassicyFileSystemEntryFileType.AppShortcut,
-			ClassicyFileSystemEntryFileType.Extension,
-			ClassicyFileSystemEntryFileType.Stack,
-			ClassicyFileSystemEntryFileType.Shortcut,
-		],
+		byType: string | string[] = DEFAULT_FILTER_BY_TYPES,
 		showInvisible: boolean = true,
 		// When set, entries whose `_createdOn` is strictly after this moment are
 		// omitted from the listing. Apps pass the current Classicy date/time here

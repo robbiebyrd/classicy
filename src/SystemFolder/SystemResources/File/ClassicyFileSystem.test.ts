@@ -131,6 +131,53 @@ describe("ClassicyFileSystem.filterByType", () => {
 
 		expect(Object.keys(filtered)).toEqual(["Press"]);
 	});
+
+	it("includes every ClassicyFileSystemEntryFileType except Drive in a default listing — derived from the enum, not hand-listed, so a type never named in this test still shows up", () => {
+		// Deliberately does not spell out any individual type name (besides
+		// Drive) so this test keeps covering the invariant automatically as
+		// ClassicyFileSystemEntryFileType grows — the whole point of the
+		// denylist inversion. A test that only re-asserted a specific type
+		// (e.g. Shortcut) would reproduce the per-type whack-a-mole this
+		// change exists to end.
+		const nonDriveTypes = Object.values(ClassicyFileSystemEntryFileType).filter(
+			(type) => type !== ClassicyFileSystemEntryFileType.Drive,
+		);
+		expect(nonDriveTypes.length).toBeGreaterThan(0);
+
+		const documents: ClassicyFileSystemEntry = {
+			_type: ClassicyFileSystemEntryFileType.Directory,
+		};
+		nonDriveTypes.forEach((type, index) => {
+			documents[`Entry-${index}`] = { _type: type } as ClassicyFileSystemEntry;
+		});
+
+		const cfs = new ClassicyFileSystem("test-filter-by-type-all-non-drive", {
+			_type: "directory",
+			"Macintosh HD": {
+				_type: "drive",
+				Documents: documents,
+			},
+		});
+
+		const filtered = cfs.filterByType("Macintosh HD:Documents");
+
+		expect(Object.keys(filtered)).toHaveLength(nonDriveTypes.length);
+		nonDriveTypes.forEach((_type, index) => {
+			expect(filtered[`Entry-${index}`]).toBeDefined();
+		});
+	});
+
+	it("excludes Drive entries from a default listing", () => {
+		const cfs = new ClassicyFileSystem("test-filter-by-type-drive-excluded", {
+			_type: "directory",
+			"Macintosh HD": { _type: ClassicyFileSystemEntryFileType.Drive },
+			"Read Me.txt": { _type: ClassicyFileSystemEntryFileType.TextFile },
+		});
+
+		const filtered = cfs.filterByType("");
+
+		expect(Object.keys(filtered)).toEqual(["Read Me.txt"]);
+	});
 });
 
 describe("ClassicyFileSystem.filterByType — notCreatedAfter", () => {
