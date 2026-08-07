@@ -3,8 +3,8 @@
 	"module": "./dist/classicy.es.js",
 	"types": "./dist/types/src/index.d.ts",
 	"name": "classicy",
-	"version": "0.71.3",
-	"release": "Perihelion",
+	"version": "0.71.5",
+	"release": "Solstice",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/robbiebyrd/classicy"
