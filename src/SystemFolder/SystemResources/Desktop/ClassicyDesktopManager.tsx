@@ -18,14 +18,18 @@ import {
 	hasFontSize,
 	hasMenuBar,
 	hasMouseEvent,
+	hasUrl,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
 import type {
 	ActionMessage,
 	ClassicyStore,
 	ClassicyStoreSystemManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { dispatchToPlugin } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import type { ClassicyIconBalloonHelp } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import { readShortcutDisposition } from "@/SystemFolder/SystemResources/Shortcut/ClassicyShortcut";
+import { isValidHttpUrl } from "@/SystemFolder/SystemResources/Utils/urlValidation";
 
 export interface ClassicyStoreSystemDesktopManagerIcon {
 	appId: string;
@@ -87,6 +91,17 @@ export interface ClassicyStoreSystemDesktopManager
 	/** Bumped on each Drive Setup request so the controller's effect re-fires
 	 * even for a repeated identical request. */
 	driveSetupRequestId?: number;
+	/** Pending "open this URL in the real browser" request, set by
+	 *  ClassicyDesktopOpenUrl and consumed by ClassicyOpenUrlController. Only
+	 *  the browser dispositions land here — the "classicy" disposition is a
+	 *  pure store mutation and is applied in the reducer directly. */
+	openUrlRequest?: {
+		url: string;
+		disposition: "browser" | "browser-new";
+	} | null;
+	/** Bumped on each request so the controller's effect re-fires even for a
+	 *  repeated identical request. */
+	openUrlRequestId?: number;
 }
 
 export const classicyDesktopEventHandler = (
@@ -326,6 +341,56 @@ export const classicyDesktopEventHandler = (
 		}
 		case "ClassicyDesktopDriveSetupClearRequest": {
 			ds.System.Manager.Desktop.driveSetupRequest = null;
+			break;
+		}
+		case "ClassicyDesktopOpenUrl": {
+			if (!hasUrl(action)) break;
+			// Shortcut targets are untrusted data: they persist to localStorage
+			// and, in consumers that sync the file system, to a remote store.
+			if (!isValidHttpUrl(action.url)) {
+				ds.System.Manager.Desktop.errorDialog = {
+					message: "This shortcut points to an address that cannot be opened.",
+				};
+				break;
+			}
+
+			const disposition = readShortcutDisposition(action.disposition);
+			if (disposition === "classicy") {
+				// Opening an in-desktop window is a pure store mutation, so it
+				// needs no side-effect rail. Dispatching in-reducer follows the
+				// pattern Finder uses to hand a file to its owning app: route
+				// through the plugin registry (dispatchToPlugin) rather than
+				// importing classicyWebViewerEventHandler directly, since
+				// ClassicyAppManager already imports this module — a direct
+				// import back would be circular. This relies on WebViewerContext
+				// having self-registered via its own import elsewhere in the
+				// module graph (WebViewer.tsx does this for the running app); a
+				// deliberate eager import of WebViewerContext here, instead, was
+				// tried and reproducibly throws "Cannot access
+				// 'pluginEventHandlers' before initialization" under the full
+				// suite, because it forces ClassicyAppManager's module body to
+				// resume mid-evaluation, before its own `pluginEventHandlers`
+				// const is initialized.
+				ds = dispatchToPlugin(ds, "ClassicyAppWebViewer", {
+					type: "ClassicyAppWebViewerOpenUrl",
+					url: action.url,
+					title: typeof action.title === "string" ? action.title : action.url,
+				});
+				break;
+			}
+
+			// window.open and location.assign are side effects and must not run
+			// inside a reducer; the controller performs them.
+			ds.System.Manager.Desktop.openUrlRequest = {
+				url: action.url,
+				disposition,
+			};
+			ds.System.Manager.Desktop.openUrlRequestId =
+				(ds.System.Manager.Desktop.openUrlRequestId ?? 0) + 1;
+			break;
+		}
+		case "ClassicyDesktopClearOpenUrlRequest": {
+			ds.System.Manager.Desktop.openUrlRequest = null;
 			break;
 		}
 	}

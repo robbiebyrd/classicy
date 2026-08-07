@@ -299,6 +299,11 @@ export function hasPaths(m: Msg): m is Msg & { paths: unknown[] } {
 	return Array.isArray(m.paths);
 }
 
+/** Action has `url: string` */
+export function hasUrl(m: Msg): m is Msg & { url: string } {
+	return typeof m.url === "string" && m.url.length > 0;
+}
+
 /** Action has `file` as a non-null object */
 export function hasFinderFile(
 	m: Msg,
