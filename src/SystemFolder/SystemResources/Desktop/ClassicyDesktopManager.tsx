@@ -18,7 +18,6 @@ import {
 	hasFontSize,
 	hasMenuBar,
 	hasMouseEvent,
-	hasUrl,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
 import type {
 	ActionMessage,
@@ -349,10 +348,22 @@ export const classicyDesktopEventHandler = (
 			break;
 		}
 		case "ClassicyDesktopOpenUrl": {
-			if (!hasUrl(action)) break;
+			// No `url` key at all is ignored, as before hasUrl narrowed both
+			// cases together. But `url` present as "" must not be silently
+			// dropped the same way: hasUrl's `.length > 0` check makes it true
+			// for "no url field" and "empty url" alike, so it can't tell them
+			// apart on its own (its contract is unchanged; other call sites may
+			// rely on that). Coercing to "" here and routing it through the
+			// same isValidHttpUrl check as any other bad URL is deliberate:
+			// isValidHttpUrl("") already returns false, so an empty string
+			// falls into the existing "cannot be opened" error dialog below
+			// instead of vanishing with no error and no action.
+			if (!("url" in action)) break;
+			const url = typeof action.url === "string" ? action.url : "";
+
 			// Shortcut targets are untrusted data: they persist to localStorage
 			// and, in consumers that sync the file system, to a remote store.
-			if (!isValidHttpUrl(action.url)) {
+			if (!isValidHttpUrl(url)) {
 				ds.System.Manager.Desktop.errorDialog = {
 					message: "This shortcut points to an address that cannot be opened.",
 				};
@@ -378,8 +389,8 @@ export const classicyDesktopEventHandler = (
 				// const is initialized.
 				ds = dispatchToPlugin(ds, "ClassicyAppWebViewer", {
 					type: "ClassicyAppWebViewerOpenUrl",
-					url: action.url,
-					title: typeof action.title === "string" ? action.title : action.url,
+					url,
+					title: typeof action.title === "string" ? action.title : url,
 				});
 				break;
 			}
@@ -387,7 +398,7 @@ export const classicyDesktopEventHandler = (
 			// window.open and location.assign are side effects and must not run
 			// inside a reducer; the controller performs them.
 			ds.System.Manager.Desktop.openUrlRequest = {
-				url: action.url,
+				url,
 				disposition,
 			};
 			ds.System.Manager.Desktop.openUrlRequestId =

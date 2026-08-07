@@ -116,6 +116,20 @@ describe("ClassicyDesktopOpenUrl", () => {
 		expect(desktopOf(ds).errorDialog ?? null).toBeNull();
 	});
 
+	// hasUrl treats "no url field" and "url: ''" identically (both fail its
+	// `.length > 0` check), which used to make an empty url vanish with no
+	// error and no action. It must instead hit the same "cannot be opened"
+	// error dialog as any other invalid URL.
+	it("shows the error dialog for an empty-string url, unlike a missing url", () => {
+		const ds = classicyDesktopEventHandler(makeStore(), {
+			type: "ClassicyDesktopOpenUrl",
+			url: "",
+			disposition: "browser-new",
+		});
+		expect(desktopOf(ds).errorDialog?.message).toMatch(/cannot be opened/i);
+		expect(desktopOf(ds).openUrlRequest ?? null).toBeNull();
+	});
+
 	it("clears a pending request", () => {
 		let ds = classicyDesktopEventHandler(makeStore(), {
 			type: "ClassicyDesktopOpenUrl",
