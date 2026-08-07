@@ -239,7 +239,7 @@ describe("classicyDesktopIconEventHandler — ClassicyDesktopIconAdd", () => {
 		expect(ds.System.Manager.Desktop.icons[0].appName).toBe("SimpleText");
 	});
 
-	it("is a no-op when an icon with the same appId already exists", () => {
+	it("does not duplicate an icon with the same appId, but refreshes its name", () => {
 		const ds = makeStoreWithIcons();
 		const countBefore = ds.System.Manager.Desktop.icons.length;
 
@@ -250,11 +250,13 @@ describe("classicyDesktopIconEventHandler — ClassicyDesktopIconAdd", () => {
 		});
 
 		expect(ds.System.Manager.Desktop.icons).toHaveLength(countBefore);
-		// The existing icon name must not be overwritten
+		// appName is code-derived, like event/eventData/noLaunch/contextMenu
+		// below — not user state like location/label — so it refreshes on
+		// every re-add the same way they do.
 		expect(
 			ds.System.Manager.Desktop.icons.find((i) => i.appId === "Notes.app")
 				?.appName,
-		).toBe("Notes");
+		).toBe("Notes Duplicate");
 	});
 
 	it("assigns the provided kind to the new icon", () => {
@@ -587,6 +589,12 @@ describe("classicyDesktopIconEventHandler — ClassicyDesktopIconAdd new fields"
 		// either duplicating it or (the bug) leaving it untouched.
 		expect(icons).toHaveLength(1);
 		expect(icons[0].hidden).toBe(true);
+		// The name itself must refresh too — it's code-derived like the other
+		// fields updated above, not user state. Leaving it stale here would be
+		// a new half-updated state that the appId-only lookup fix made
+		// reachable (previously this branch was never entered for a changed
+		// appName at all, so nothing updated, name included).
+		expect(icons[0].appName).toBe("Television");
 	});
 
 	it("preserves a user-moved location across a re-add", () => {

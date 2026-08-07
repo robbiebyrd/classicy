@@ -236,6 +236,17 @@ export const classicyDesktopIconEventHandler = (
 					(i) => i.appId === action.app.id,
 				);
 				if (existing) {
+					// appName is code-derived (it's whatever the app/shortcut
+					// registration says its name is), not user state like
+					// location/label, so — by the same rule the fields below
+					// follow — it refreshes on every re-add too. Left stale, this
+					// would be a regression the appId-only lookup fix above
+					// introduces: before that fix, a re-add with a changed
+					// appName never reached this block at all, so nothing was
+					// stale because nothing updated; now other fields refresh
+					// but the name — the icon's alt text and, absent a `label`,
+					// its caption — would silently keep lagging behind.
+					existing.appName = action.app.name;
 					if (Array.isArray(action.contextMenu)) {
 						existing.contextMenu = action.contextMenu as ClassicyMenuItem[];
 					}
