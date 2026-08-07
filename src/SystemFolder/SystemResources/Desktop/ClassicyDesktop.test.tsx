@@ -144,6 +144,14 @@ describe("ClassicyDesktop shortcut icon noLaunch wiring", () => {
 	});
 
 	it("does not create an app entry when a noLaunch shortcut icon is double-clicked", async () => {
+		// jsdom doesn't implement window.open; unstubbed, the real click
+		// (disposition: "browser-new") reaches it and jsdom logs
+		// "Not implemented: Window's open() method" to stderr on every run.
+		// Stubbing it also lets the test assert the navigation attempt
+		// directly instead of inferring it happened from openUrlRequestId
+		// having incremented.
+		const windowOpen = vi.spyOn(window, "open").mockReturnValue(null);
+
 		render(
 			<ClassicyAppManagerProvider>
 				<ClassicyDesktop startupScreen={false} />
@@ -173,13 +181,16 @@ describe("ClassicyDesktop shortcut icon noLaunch wiring", () => {
 				"shortcut_example"
 			],
 		).toBeUndefined();
-		// The double-click was still handled — its wired event/eventData fired
-		// and ClassicyOpenUrlController already consumed the request (clearing
-		// openUrlRequest but not the id) — which rules out the icon simply not
-		// being reachable by the click.
-		expect(
-			useAppManager.getState().System.Manager.Desktop.openUrlRequestId,
-		).toBeGreaterThan(0);
+		// The double-click was still handled — its wired event/eventData fired,
+		// reaching ClassicyOpenUrlController and actually navigating — which
+		// rules out the icon simply not being reachable by the click.
+		expect(windowOpen).toHaveBeenCalledWith(
+			"https://example.com/",
+			"_blank",
+			"noopener,noreferrer",
+		);
+
+		windowOpen.mockRestore();
 	});
 });
 
