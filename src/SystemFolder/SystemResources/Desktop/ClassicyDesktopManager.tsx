@@ -350,7 +350,7 @@ export const classicyDesktopEventHandler = (
 		case "ClassicyDesktopOpenUrl": {
 			// No `url` key at all is ignored, as before hasUrl narrowed both
 			// cases together. But `url` present as "" must not be silently
-			// dropped the same way: hasUrl's `.length > 0` check makes it true
+			// dropped the same way: hasUrl's `.length > 0` check makes it false
 			// for "no url field" and "empty url" alike, so it can't tell them
 			// apart on its own (its contract is unchanged; other call sites may
 			// rely on that). Coercing to "" here and routing it through the
