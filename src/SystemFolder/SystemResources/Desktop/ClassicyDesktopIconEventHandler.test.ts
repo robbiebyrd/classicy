@@ -710,4 +710,36 @@ describe("shortcut desktop icons", () => {
 				?.location,
 		).toEqual([111, 222]);
 	});
+
+	// The case above only covers hidden staying unchanged (undefined both
+	// times), which is why the location survives — hiddenChanged is false, so
+	// cleanupDesktopIcons never runs. Flipping hidden DOES re-run it, and
+	// cleanupDesktopIcons assigns every now-visible icon a fresh grid position
+	// unconditionally (it has no notion of "user already moved this"), so
+	// un-hiding an icon silently overwrites wherever it had been dragged. This
+	// documents the current (surprising) behavior; it is not an assertion that
+	// this is desirable.
+	it("relocates a user-moved icon when a re-add un-hides it", () => {
+		let ds = classicyDesktopIconEventHandler(makeStoreForDesktop(), {
+			...addShortcut("/press"),
+			hidden: true,
+		});
+		ds = classicyDesktopIconEventHandler(ds, {
+			type: "ClassicyDesktopIconMove",
+			app: { id: "shortcut_press" },
+			location: [111, 222],
+		});
+		expect(
+			ds.System.Manager.Desktop.icons.find((i) => i.appId === "shortcut_press")
+				?.location,
+		).toEqual([111, 222]);
+
+		// Re-add omitting `hidden` flips it true -> undefined.
+		ds = classicyDesktopIconEventHandler(ds, addShortcut("/press"));
+		const icon = ds.System.Manager.Desktop.icons.find(
+			(i) => i.appId === "shortcut_press",
+		);
+		expect(icon?.hidden).toBeUndefined();
+		expect(icon?.location).not.toEqual([111, 222]);
+	});
 });
