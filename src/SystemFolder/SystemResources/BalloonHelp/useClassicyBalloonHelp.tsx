@@ -152,6 +152,16 @@ export const resolveBalloonPosition = (
 	return `${vertical}-${horizontal}` as ClassicyBalloonPosition;
 };
 
+// Viewport size, guarded so the hook stays safe to import and run in an
+// SSR/pre-rendered context (where `window` is undefined). Off-browser it reports
+// a zero viewport, which the placement resolver reads as "no room" — a harmless
+// fallback, since the measuring layout effect and the portal only ever run in
+// the browser after mount.
+const getViewport = (): { width: number; height: number } =>
+	typeof window === "undefined"
+		? { width: 0, height: 0 }
+		: { width: window.innerWidth, height: window.innerHeight };
+
 // Container is position:fixed in a portal so it is never clipped by a parent.
 // The balloon begins at the element's edge minus --window-control-size so the
 // tail tip lands slightly inside the wrapped element.
@@ -164,10 +174,11 @@ const containerPortalStyle = (
 		"top" | "bottom",
 		"left" | "center" | "right",
 	];
+	const viewport = getViewport();
 
 	return {
 		...(vertical === "top"
-			? { bottom: `${window.innerHeight - rect.top}px` }
+			? { bottom: `${viewport.height - rect.top}px` }
 			: { top: `${rect.bottom}px` }),
 		...(horizontal === "left" && { left: `${rect.right - controlSize}px` }),
 		...(horizontal === "center" && {
@@ -175,7 +186,7 @@ const containerPortalStyle = (
 			transform: "translateX(-50%)",
 		}),
 		...(horizontal === "right" && {
-			right: `${window.innerWidth - rect.left - controlSize}px`,
+			right: `${viewport.width - rect.left - controlSize}px`,
 		}),
 	};
 };
@@ -300,7 +311,7 @@ export const useClassicyBalloonHelp = (
 			rect,
 			{ width, height },
 			controlSize,
-			{ width: window.innerWidth, height: window.innerHeight },
+			getViewport(),
 		);
 		setPlaced((current) => (current === next ? current : next));
 	}, [visible, rect, position, controlSize]);
