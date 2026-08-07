@@ -728,6 +728,23 @@ describe("shortcut desktop icons", () => {
 	// documents the current (surprising) behavior; it is not an assertion that
 	// this is desirable.
 	it("relocates a user-moved icon when a re-add un-hides it", () => {
+		// Reference point: cleanupDesktopIcons assigns grid slots by walking the
+		// icons array in order, so a lone non-hidden icon always lands on the
+		// same first slot. Asserting equality against this — not just
+		// inequality against the dragged location — pins down WHAT the icon
+		// becomes, not just that it stopped being [111, 222]; `undefined` (an
+		// icon that lost its location outright) would also satisfy a bare
+		// `not.toEqual([111, 222])` but is a different bug than this test means
+		// to document.
+		const reference = classicyDesktopIconEventHandler(
+			makeStoreForDesktop(),
+			addShortcut("/press"),
+		);
+		const freshSlotLocation = reference.System.Manager.Desktop.icons.find(
+			(i) => i.appId === "shortcut_press",
+		)?.location;
+		expect(freshSlotLocation).toBeDefined();
+
 		let ds = classicyDesktopIconEventHandler(makeStoreForDesktop(), {
 			...addShortcut("/press"),
 			hidden: true,
@@ -748,6 +765,9 @@ describe("shortcut desktop icons", () => {
 			(i) => i.appId === "shortcut_press",
 		);
 		expect(icon?.hidden).toBeUndefined();
-		expect(icon?.location).not.toEqual([111, 222]);
+		// Not just "no longer [111, 222]" — specifically back to the same slot a
+		// brand-new icon would get, proving cleanupDesktopIcons overwrote it
+		// rather than, say, clearing it.
+		expect(icon?.location).toEqual(freshSlotLocation);
 	});
 });
