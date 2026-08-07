@@ -495,6 +495,24 @@ describe("ClassicyFileSystem.size", () => {
 		expect(fetchMock).not.toHaveBeenCalled();
 	});
 
+	// Regression test: the pre-fix code cached a resolved HEAD Content-Length
+	// onto entry._size (and statFile persists that onto the live filesystem
+	// node), so a Shortcut fetched once under the old code carries a stale
+	// cached _size — the actual mechanism behind rt911 shortcuts showing
+	// "666 Bytes". The Shortcut check must win even when _size is already set.
+	it("returns 0 for a Shortcut even when a stale _size is already cached", async () => {
+		const fetchMock = vi.fn();
+		vi.stubGlobal("fetch", fetchMock);
+		const cfs = new ClassicyFileSystem("test-size-shortcut-stale-cache");
+		const entry: ClassicyFileSystemEntry = {
+			_type: ClassicyFileSystemEntryFileType.Shortcut,
+			_url: "https://example.com/press",
+			_size: 666,
+		};
+		await expect(cfs.size(entry)).resolves.toBe(0);
+		expect(fetchMock).not.toHaveBeenCalled();
+	});
+
 	it("resolves size via HEAD for a _url entry with no _size, and caches it onto the entry", async () => {
 		const fetchMock = vi.fn().mockResolvedValue({
 			ok: true,

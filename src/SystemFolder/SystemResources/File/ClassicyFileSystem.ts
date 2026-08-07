@@ -448,22 +448,24 @@ export class ClassicyFileSystem {
 			}
 		}
 
-		if (typeof entry._size === "number") {
-			return entry._size;
-		}
-
 		// A Shortcut's `_url` is the thing it points at, not where its own
 		// bytes live — unlike every other type that sets `_url` (File,
 		// TextFile, Markdown, Pdf, Image, Video, Audio, Extension), where
-		// `_url` genuinely is the content location. Falling into the fetch
-		// branch below for a Shortcut fires a HEAD request at the target on
-		// every listing (an unannounced privacy/traffic cost for a feature
-		// whose whole point is linking off-site) and reports the target's
-		// Content-Length as if it were the shortcut's own size (e.g. an SPA's
-		// HTML shell size for every route). A shortcut has no content of its
-		// own, so its size is always 0.
+		// `_url` genuinely is the content location. This has to come before
+		// the `_size` check below, not just before the `_url` fetch branch:
+		// the pre-fix code cached a resolved HEAD size back onto `entry._size`
+		// (and `statFile` writes that onto the live filesystem node, which
+		// persists to localStorage), so a Shortcut that was fetched once under
+		// the old code carries a stale, meaningless cached _size — the actual
+		// source of the "666 Bytes" symptom users saw for rt911's SPA-routed
+		// shortcuts. A shortcut has no content of its own, so its size is
+		// always 0, regardless of any `_size` a prior run may have recorded.
 		if (entry._type === ClassicyFileSystemEntryFileType.Shortcut) {
 			return 0;
+		}
+
+		if (typeof entry._size === "number") {
+			return entry._size;
 		}
 
 		if (typeof entry._url === "string") {
