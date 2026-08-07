@@ -17,9 +17,7 @@ describe("useFinderFolderSize", () => {
 			},
 		});
 
-		const { result } = renderHook(() =>
-			useFinderFolderSize("Documents", cfs),
-		);
+		const { result } = renderHook(() => useFinderFolderSize("Documents", cfs));
 
 		expect(result.current).toBeUndefined();
 
@@ -31,7 +29,10 @@ describe("useFinderFolderSize", () => {
 			_type: "directory",
 			Documents: {
 				_type: ClassicyFileSystemEntryFileType.Directory,
-				"a.txt": { _type: ClassicyFileSystemEntryFileType.File, _data: "hello" },
+				"a.txt": {
+					_type: ClassicyFileSystemEntryFileType.File,
+					_data: "hello",
+				},
 			},
 			Downloads: {
 				_type: ClassicyFileSystemEntryFileType.Directory,

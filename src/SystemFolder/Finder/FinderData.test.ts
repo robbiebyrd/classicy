@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-	isFinderData,
 	type FinderData,
+	isFinderData,
 } from "@/SystemFolder/Finder/FinderContext";
 
 describe("isFinderData", () => {
@@ -29,7 +29,9 @@ describe("isFinderData", () => {
 	});
 
 	it("returns false for null", () => {
-		expect(isFinderData(null as unknown as Record<string, unknown>)).toBe(false);
+		expect(isFinderData(null as unknown as Record<string, unknown>)).toBe(
+			false,
+		);
 	});
 
 	it("narrows the type so openPaths is accessible without casting", () => {

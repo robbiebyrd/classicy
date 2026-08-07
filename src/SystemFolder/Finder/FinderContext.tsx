@@ -17,6 +17,7 @@ import {
 	registerAppEventHandler,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { MoviePlayerAppInfo } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerUtils";
+import { classicyDesktopEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { isValidHttpUrl } from "@/SystemFolder/SystemResources/Utils/urlValidation";
 
@@ -176,6 +177,28 @@ export const classicyFinderEventHandler = (
 							"The application that created this item could not be found.",
 					};
 				}
+			} else if (
+				file &&
+				file._type === ClassicyFileSystemEntryFileType.Shortcut
+			) {
+				// A URL shortcut. Routed explicitly rather than through
+				// fileTypeHandlers so the entry's own _openIn decides where it
+				// opens — the generic fallback would ignore it.
+				if (typeof file._url !== "string" || file._url === "") {
+					ds.System.Manager.Desktop.errorDialog = {
+						message: "The original item for this shortcut could not be found.",
+					};
+					return ds;
+				}
+				const name = hasPath(action)
+					? (action.path.split(":").pop() ?? action.path)
+					: file._url;
+				ds = classicyDesktopEventHandler(ds, {
+					type: "ClassicyDesktopOpenUrl",
+					url: file._url,
+					disposition: file._openIn,
+					title: typeof file._label === "string" ? file._label : name,
+				});
 			} else if (file && hasPath(action)) {
 				// Route to the default app registered for this file type
 				const fileType = file._type as ClassicyFileSystemEntryFileType;

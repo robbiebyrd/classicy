@@ -8,6 +8,13 @@ import {
 	isFinderData,
 } from "@/SystemFolder/Finder/FinderContext";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+// Side-effect import: registers the "ClassicyAppWebViewer" plugin handler so
+// classicyDesktopEventHandler's dispatchToPlugin call (reached via the
+// shortcut-routing branch below) can find it. In the running app this
+// registration happens because WebViewer.tsx imports WebViewerContext.tsx;
+// this test exercises the reducer in isolation, so it triggers that same
+// registration directly instead — see ClassicyDesktopOpenUrl.test.ts.
+import "@/SystemFolder/WebViewer/WebViewerContext";
 
 function makeStore(
 	overrides: Partial<{
@@ -536,5 +543,67 @@ describe("classicyFinderEventHandler — ClassicyAppFinderOpenFile (Extension)",
 				"This file adds functionality to your computer. It cannot be opened.",
 		});
 		expect(ds.System.Manager.Applications.apps["ClockExt.app"]).toBeUndefined();
+	});
+});
+
+describe("opening a shortcut entry", () => {
+	it("routes to the Web Viewer for the classicy disposition", () => {
+		const ds = classicyFinderEventHandler(makeStore(), {
+			type: "ClassicyAppFinderOpenFile",
+			path: "Macintosh HD:Press Room",
+			file: {
+				_type: ClassicyFileSystemEntryFileType.Shortcut,
+				_url: "/press",
+				_openIn: "classicy",
+				_label: "Press Room",
+			},
+		});
+		const app = ds.System.Manager.Applications.apps["WebViewer.app"];
+		expect(app.open).toBe(true);
+		expect(app.data?.openUrls).toEqual([
+			{ url: "/press", title: "Press Room" },
+		]);
+	});
+
+	it("queues a browser request for the browser-new disposition", () => {
+		const ds = classicyFinderEventHandler(makeStore(), {
+			type: "ClassicyAppFinderOpenFile",
+			path: "Macintosh HD:Press Room",
+			file: {
+				_type: ClassicyFileSystemEntryFileType.Shortcut,
+				_url: "/press",
+				_openIn: "browser-new",
+			},
+		});
+		expect(ds.System.Manager.Desktop.openUrlRequest).toEqual({
+			url: "/press",
+			disposition: "browser-new",
+		});
+	});
+
+	// The entry name is the path's last segment; _label wins when present.
+	it("titles the window from the entry name when _label is absent", () => {
+		const ds = classicyFinderEventHandler(makeStore(), {
+			type: "ClassicyAppFinderOpenFile",
+			path: "Macintosh HD:For Teachers",
+			file: {
+				_type: ClassicyFileSystemEntryFileType.Shortcut,
+				_url: "/teachers",
+			},
+		});
+		expect(
+			ds.System.Manager.Applications.apps["WebViewer.app"].data?.openUrls,
+		).toEqual([{ url: "/teachers", title: "For Teachers" }]);
+	});
+
+	it("errors on a shortcut with no target", () => {
+		const ds = classicyFinderEventHandler(makeStore(), {
+			type: "ClassicyAppFinderOpenFile",
+			path: "Macintosh HD:Broken",
+			file: { _type: ClassicyFileSystemEntryFileType.Shortcut },
+		});
+		expect(ds.System.Manager.Desktop.errorDialog?.message).toMatch(
+			/could not be found/i,
+		);
 	});
 });
