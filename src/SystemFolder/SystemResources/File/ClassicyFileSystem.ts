@@ -452,6 +452,20 @@ export class ClassicyFileSystem {
 			return entry._size;
 		}
 
+		// A Shortcut's `_url` is the thing it points at, not where its own
+		// bytes live — unlike every other type that sets `_url` (File,
+		// TextFile, Markdown, Pdf, Image, Video, Audio, Extension), where
+		// `_url` genuinely is the content location. Falling into the fetch
+		// branch below for a Shortcut fires a HEAD request at the target on
+		// every listing (an unannounced privacy/traffic cost for a feature
+		// whose whole point is linking off-site) and reports the target's
+		// Content-Length as if it were the shortcut's own size (e.g. an SPA's
+		// HTML shell size for every route). A shortcut has no content of its
+		// own, so its size is always 0.
+		if (entry._type === ClassicyFileSystemEntryFileType.Shortcut) {
+			return 0;
+		}
+
 		if (typeof entry._url === "string") {
 			try {
 				const response = await fetch(entry._url, {

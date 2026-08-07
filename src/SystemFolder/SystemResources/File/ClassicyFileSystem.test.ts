@@ -483,6 +483,18 @@ describe("ClassicyFileSystem.size", () => {
 		expect(fetchMock).not.toHaveBeenCalled();
 	});
 
+	it("returns 0 for a Shortcut's _url without calling fetch", async () => {
+		const fetchMock = vi.fn();
+		vi.stubGlobal("fetch", fetchMock);
+		const cfs = new ClassicyFileSystem("test-size-shortcut-url");
+		const entry: ClassicyFileSystemEntry = {
+			_type: ClassicyFileSystemEntryFileType.Shortcut,
+			_url: "https://example.com/press",
+		};
+		await expect(cfs.size(entry)).resolves.toBe(0);
+		expect(fetchMock).not.toHaveBeenCalled();
+	});
+
 	it("resolves size via HEAD for a _url entry with no _size, and caches it onto the entry", async () => {
 		const fetchMock = vi.fn().mockResolvedValue({
 			ok: true,
