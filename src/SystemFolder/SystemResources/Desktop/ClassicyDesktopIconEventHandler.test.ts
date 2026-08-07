@@ -562,6 +562,33 @@ describe("classicyDesktopIconEventHandler — ClassicyDesktopIconAdd new fields"
 		expect(icon?.balloonHelp?.content).toBe("New text.");
 	});
 
+	// appId alone is identity everywhere else an icon is looked up (Move
+	// matches on appId alone; Remove treats appName as optional), so the
+	// update lookup requiring appId && appName was the outlier: an add whose
+	// appName had changed took the "already exists" branch (the presence
+	// check above also filters on appId alone) but then found no `existing`,
+	// silently updating nothing.
+	it("updates an existing icon on re-add even when appName changed", () => {
+		let ds = classicyDesktopIconEventHandler(
+			makeStoreForDesktop(),
+			addAction(),
+		);
+		ds = classicyDesktopIconEventHandler(
+			ds,
+			addAction({
+				app: { id: "TV.app", name: "Television", icon: "/icons/tv.png" },
+				hidden: true,
+			}),
+		);
+		const icons = ds.System.Manager.Desktop.icons.filter(
+			(i) => i.appId === "TV.app",
+		);
+		// Still exactly one record — the re-add updated it in place rather than
+		// either duplicating it or (the bug) leaving it untouched.
+		expect(icons).toHaveLength(1);
+		expect(icons[0].hidden).toBe(true);
+	});
+
 	it("preserves a user-moved location across a re-add", () => {
 		let ds = classicyDesktopIconEventHandler(
 			makeStoreForDesktop(),

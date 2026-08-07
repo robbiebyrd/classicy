@@ -226,8 +226,14 @@ export const classicyDesktopIconEventHandler = (
 				// changed between sessions would otherwise keep its stale record
 				// forever. Serializable, code-derived fields are refreshed on every
 				// re-add; location and label are user state and are left alone.
+				// appId alone is identity everywhere else that looks an icon up
+				// (Move matches on appId alone; Remove treats appName as
+				// optional), so requiring appName here too was the outlier: a
+				// re-add whose appName changed took this "already exists" branch
+				// (the presence check above also filters on appId alone) and then
+				// found no `existing`, silently updating nothing.
 				const existing = ds.System.Manager.Desktop.icons.find(
-					(i) => i.appId === action.app.id && i.appName === action.app.name,
+					(i) => i.appId === action.app.id,
 				);
 				if (existing) {
 					if (Array.isArray(action.contextMenu)) {
