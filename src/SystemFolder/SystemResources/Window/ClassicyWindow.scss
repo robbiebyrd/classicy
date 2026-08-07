@@ -68,14 +68,18 @@
 }
 
 .classicyWindowResizerDimmed {
-  border-top: var(--window-border-size) solid var(--color-system-05) !important;
-  border-left: var(--window-border-size) solid var(--color-system-05) !important;
   background-image: none !important;
-  // Flat, like ::-webkit-scrollbar-corner under scrollbars-inactive(). The old
-  // outer shadow painted frame grey up and to the left to mask the gap the
-  // misaligned grip left behind; there is no gap to mask now, and an outer
-  // shadow would cover the inactive scroll bars' edges.
-  box-shadow: none !important;
+
+  // The grip's two edges live on ::before (see .classicyWindowResizer).
+  &::before {
+    border-top: var(--window-border-size) solid var(--color-system-05) !important;
+    border-left: var(--window-border-size) solid var(--color-system-05) !important;
+    // Flat, like ::-webkit-scrollbar-corner under scrollbars-inactive(). The old
+    // outer shadow painted frame grey up and to the left to mask the gap the
+    // misaligned grip left behind; there is no gap to mask now, and an outer
+    // shadow would cover the inactive scroll bars' edges.
+    box-shadow: none !important;
+  }
 }
 
 .classicyWindowActive {
@@ -352,34 +356,38 @@
     }
   }
 
-  // The grow box IS the scroll bars' corner: exactly one gutter square, pinned
-  // to the inner bottom-right corner of .classicyWindowContents, so its top and
-  // left edges continue the horizontal and vertical scroll bars' outer lines
-  // instead of floating beside them.
+  // The grow box is the scroll bars' corner, and only its top and left edges are
+  // drawn: those two continue the horizontal and vertical scroll bars' outer
+  // lines. It is NOT enclosed by the contents frame — in Mac OS 8 the grip's
+  // grey runs straight out over the contents border and the frame ring to the
+  // window's inner bevel, which is why the scroll bar's black line stops where
+  // the grip begins rather than wrapping under it.
   //
-  // Both the size and the inset must come from the same variables the scroll
-  // bars themselves use. Deriving them from --window-padding-size instead gave
-  // the box its own geometry chain, and at the default theme the two had drifted
+  // So the box is anchored by its TOP-LEFT corner (which must land exactly on
+  // the gutter corner, alongside the scroll bars) and sized outward from there
+  // to the frame. Deriving any of it from --window-padding-size gave the grip a
+  // geometry chain of its own, and at the default theme the two had drifted
   // apart: a 17.5x17 grip against a 16x16 gutter, sitting ~2px low and ~2px
   // right of the corner it was meant to fill.
   .classicyWindowResizer {
     position: absolute;
     z-index: 999;
     box-sizing: border-box;
-    // The frame ring, plus the 1px .classicyWindowContents border that the
-    // scroll bar gutter sits inside of.
-    right: calc(var(--window-frame-inset) + var(--window-border-size));
-    bottom: calc(var(--window-frame-inset) + var(--window-border-size));
-    width: var(--window-scrollbar-size);
-    height: var(--window-scrollbar-size);
+    // Stop 1px short of the window's padding box so platinumWindowBoxShadow's
+    // inset bevel — the frame's own bottom-right shading — still reads.
+    right: var(--window-border-size);
+    bottom: var(--window-border-size);
+    // Back to the gutter's far corner: the gutter, plus the contents border and
+    // frame ring it covers on the way out, less the 1px bevel left above.
+    width: calc(var(--window-scrollbar-size) + var(--window-frame-inset));
+    height: calc(var(--window-scrollbar-size) + var(--window-frame-inset));
     padding: 0;
     user-select: none;
-    // --color-black, not --color-system-07: these two edges are a continuation
-    // of the scroll bar track's own outer line, which ::-webkit-scrollbar-track
-    // and ::-webkit-scrollbar-corner both draw in --color-black. At #202020 the
-    // line visibly changed shade at the junction.
-    border-top: var(--window-border-size) solid var(--color-black);
-    border-left: var(--window-border-size) solid var(--color-black);
+    // Flat frame grey, no edges of its own: past the gutter this box exists only
+    // to cover the contents box's border and bevel, which would otherwise draw a
+    // black line and a white line along the grip's bottom and right and box it
+    // in. Nothing is enclosed on those two sides.
+    border: none;
     background-color: var(--color-system-03);
     background-image: assets.$resizer;
     background-repeat: no-repeat;
@@ -387,10 +395,36 @@
     background-size: calc(
       var(--window-control-size) - (var(--window-border-size) * 2)
     );
-    // Inset, matching ::-webkit-scrollbar-corner. An *outer* shadow would spill
-    // frame grey over the scroll bars' black edges now that the box lands flush
-    // against them.
-    box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-white);
+    box-shadow: none;
+
+    // The drawn part: one gutter square in the top-left, carrying the two edges
+    // that belong to the scroll bars. They stop where the scroll bars stop, so
+    // they cannot run on into the frame ring the parent covers.
+    //
+    // Offset out by one border so those edges land ON the pixel where each track
+    // closes itself off, rather than beside it — ::-webkit-scrollbar-track draws
+    // a border on all four sides, so an abutting grip reads as a 2px line where
+    // Platinum has 1px. Drawing the edge here rather than leaning on the track's
+    // keeps the grip outlined on a window that has no scroll bars at all.
+    &::before {
+      content: "";
+      position: absolute;
+      top: calc(var(--window-border-size) * -1);
+      left: calc(var(--window-border-size) * -1);
+      box-sizing: border-box;
+      width: calc(var(--window-scrollbar-size) + var(--window-border-size));
+      height: calc(var(--window-scrollbar-size) + var(--window-border-size));
+      // --color-black, not --color-system-07: these two edges are a continuation
+      // of the scroll bar track's own outer line, which ::-webkit-scrollbar-track
+      // and ::-webkit-scrollbar-corner both draw in --color-black. At #202020 the
+      // line visibly changed shade at the junction.
+      border-top: var(--window-border-size) solid var(--color-black);
+      border-left: var(--window-border-size) solid var(--color-black);
+      // Inset, matching ::-webkit-scrollbar-corner. An *outer* shadow would spill
+      // frame grey over the scroll bars' black edges now that the box lands flush
+      // against them.
+      box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-white);
+    }
   }
 
   .classicyWindowContents {

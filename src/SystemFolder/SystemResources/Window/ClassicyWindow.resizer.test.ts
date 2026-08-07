@@ -4,14 +4,18 @@ import { describe, expect, it } from "vitest";
 import themes from "@/SystemFolder/ControlPanels/AppearanceManager/styles/themes.json";
 
 /**
- * The window's grow box is the scroll bars' corner square. Its size and its
- * inset therefore have to be derived from the same variables the scroll bars
- * are, or the two drift apart as soon as a theme changes one of them — which is
- * exactly what happened when the resizer sized itself off --window-padding-size:
- * a 17.5x17 grip against a 16x16 gutter, sitting ~2px low and ~2px right of the
- * corner it was meant to fill.
+ * Everything on the window's bottom line — the horizontal scroll bar, the grow
+ * box at one end, the placard at the other — has to agree on where that line
+ * is. Derived from --window-padding-size rather than from the variables the
+ * scroll bars actually use, they drifted: a 17.5x17 grip against a 16x16
+ * gutter, sitting ~2px low and ~2px right of the corner it was meant to fill.
  *
- * jsdom does no layout, so this asserts the invariant on the compiled
+ * The grow box is also open on its bottom and right. It reaches past the
+ * contents box's border and out over the frame ring, so neither draws a line
+ * boxing it in — in Platinum the scroll bar's black frame stops where the grip
+ * begins instead of wrapping under it.
+ *
+ * jsdom does no layout, so this asserts those invariants on the compiled
  * stylesheet instead: resolve the declarations against the default theme's
  * measurements and check the numbers a browser would compute.
  */
@@ -126,38 +130,65 @@ describe("window resizer / scroll bar alignment", () => {
 	const innerCornerInset =
 		px(window_.padding) + px(`var(--window-border-size)`);
 
-	it("is exactly one scroll bar gutter square", () => {
-		expect(px(resizer.width)).toBe(gutter);
-		expect(px(resizer.height)).toBe(gutter);
-	});
+	const grip = rule(".classicyWindow .classicyWindowResizer::before");
+	const border = px("var(--window-border-size)");
 
-	it("counts its border inside that square, not on top of it", () => {
-		// Without border-box the 1px top/left borders would push the grip a
-		// pixel wider and taller than the gutter it has to match.
+	it("anchors its top-left corner on the gutter corner", () => {
+		// This is the alignment that matters: wherever the box ends up reaching to
+		// on the outside, the corner it shares with the two scroll bars has to sit
+		// exactly one gutter in from the contents box's inner edge.
+		expect(px(resizer.right) + px(resizer.width)).toBe(
+			innerCornerInset + gutter,
+		);
+		expect(px(resizer.bottom) + px(resizer.height)).toBe(
+			innerCornerInset + gutter,
+		);
 		expect(resizer["box-sizing"]).toBe("border-box");
 	});
 
-	it("sits flush in the contents box's inner bottom-right corner", () => {
-		expect(px(resizer.right)).toBe(innerCornerInset);
-		expect(px(resizer.bottom)).toBe(innerCornerInset);
+	it("reaches past the contents frame to the window's bevel", () => {
+		// The grip is not enclosed on its bottom and right: it covers the contents
+		// box's border and the frame ring so neither draws a line along those two
+		// sides, stopping one border short of the window's own inset bevel.
+		expect(px(resizer.right)).toBeLessThan(innerCornerInset);
+		expect(px(resizer.right)).toBe(border);
+		expect(px(resizer.bottom)).toBe(border);
 	});
 
-	it("does not offset itself with a margin", () => {
+	it("draws no edge of its own on the sides that open into the frame", () => {
+		// Any border or outer shadow here would box the grip in on the bottom and
+		// right, which is exactly what it exists to prevent.
+		expect(resizer.border).toBe("none");
+		expect(resizer["box-shadow"]).toBe("none");
 		expect(resizer.margin).toBeUndefined();
+	});
+
+	it("puts its two drawn edges on the scroll bars' own lines", () => {
+		// One gutter square plus a border, pulled out by that border, so the black
+		// edges land on the pixel where each track closes itself off instead of
+		// beside it — abutting would render 1px of Platinum as 2px.
+		expect(px(grip.width)).toBe(gutter + border);
+		expect(px(grip.height)).toBe(gutter + border);
+		expect(px(grip.top)).toBe(-border);
+		expect(px(grip.left)).toBe(-border);
+		expect(grip["box-sizing"]).toBe("border-box");
 	});
 
 	it("continues the scroll bar track's line rather than restating a shade", () => {
 		// ::-webkit-scrollbar-track and ::-webkit-scrollbar-corner both draw this
 		// line in --color-black; anything else changes shade at the junction.
-		expect(resizer["border-top"]).toContain("var(--color-black)");
-		expect(resizer["border-left"]).toContain("var(--color-black)");
+		expect(grip["border-top"]).toContain("var(--color-black)");
+		expect(grip["border-left"]).toContain("var(--color-black)");
+		// ...and only those two: a bottom or right edge would re-enclose the grip.
+		expect(grip["border-bottom"]).toBeUndefined();
+		expect(grip["border-right"]).toBeUndefined();
 	});
 
 	it("keeps its bevel inside its own box", () => {
 		// An outer shadow would spill over the scroll bars' black edges now that
 		// the grip lands flush against them.
-		expect(resizer["box-shadow"]).toContain("inset");
-		expect(rule(".classicyWindowResizerDimmed")["box-shadow"]).toBe(
+		expect(grip["box-shadow"]).toContain("inset");
+		expect(rule(".classicyWindowResizerDimmed::before")["box-shadow"]).toBe(
 			"none !important",
 		);
 	});
