@@ -600,3 +600,67 @@ describe("classicyDesktopIconEventHandler — ClassicyDesktopIconAdd new fields"
 		expect(findIcon(ds, "Beta.app")?.location).not.toEqual(betaBefore);
 	});
 });
+
+describe("shortcut desktop icons", () => {
+	const addShortcut = (url: string) => ({
+		type: "ClassicyDesktopIconAdd",
+		app: { id: "shortcut_press", name: "Press Room", icon: "icon.png" },
+		kind: "shortcut",
+		noLaunch: true,
+		event: "ClassicyDesktopOpenUrl",
+		eventData: { url, disposition: "browser-new" },
+	});
+
+	it("stores noLaunch, event and eventData", () => {
+		const ds = classicyDesktopIconEventHandler(
+			makeStoreForDesktop(),
+			addShortcut("/press"),
+		);
+		const icon = ds.System.Manager.Desktop.icons.find(
+			(i) => i.appId === "shortcut_press",
+		);
+		expect(icon?.noLaunch).toBe(true);
+		expect(icon?.kind).toBe("shortcut");
+		expect(icon?.event).toBe("ClassicyDesktopOpenUrl");
+		expect(icon?.eventData).toEqual({
+			url: "/press",
+			disposition: "browser-new",
+		});
+	});
+
+	// Icons persist to localStorage, so a target that changed between releases
+	// would otherwise stay stale forever for a returning visitor.
+	it("refreshes event and eventData when an icon is re-added", () => {
+		let ds = classicyDesktopIconEventHandler(
+			makeStoreForDesktop(),
+			addShortcut("/press"),
+		);
+		ds = classicyDesktopIconEventHandler(ds, addShortcut("/press-room"));
+		const icons = ds.System.Manager.Desktop.icons.filter(
+			(i) => i.appId === "shortcut_press",
+		);
+		expect(icons).toHaveLength(1);
+		expect(icons[0].eventData).toEqual({
+			url: "/press-room",
+			disposition: "browser-new",
+		});
+	});
+
+	// location is user state — a re-add must not yank a dragged icon back.
+	it("leaves a user-moved location alone on re-add", () => {
+		let ds = classicyDesktopIconEventHandler(
+			makeStoreForDesktop(),
+			addShortcut("/press"),
+		);
+		ds = classicyDesktopIconEventHandler(ds, {
+			type: "ClassicyDesktopIconMove",
+			app: { id: "shortcut_press" },
+			location: [111, 222],
+		});
+		ds = classicyDesktopIconEventHandler(ds, addShortcut("/press"));
+		expect(
+			ds.System.Manager.Desktop.icons.find((i) => i.appId === "shortcut_press")
+				?.location,
+		).toEqual([111, 222]);
+	});
+});

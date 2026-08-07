@@ -208,6 +208,7 @@ export const classicyDesktopIconEventHandler = (
 						typeof action.eventData === "object" && action.eventData !== null
 							? (action.eventData as Record<string, unknown>)
 							: undefined,
+					noLaunch: action.noLaunch === true ? true : undefined,
 					contextMenu: Array.isArray(action.contextMenu)
 						? (action.contextMenu as ClassicyMenuItem[])
 						: undefined,
@@ -232,6 +233,19 @@ export const classicyDesktopIconEventHandler = (
 					if (Array.isArray(action.contextMenu)) {
 						existing.contextMenu = action.contextMenu as ClassicyMenuItem[];
 					}
+					// Icons persist to localStorage, so a shortcut whose target
+					// changed between releases would keep the stale URL forever.
+					// These are code-derived, not user state, so they refresh.
+					if (typeof action.event === "string") {
+						existing.event = action.event;
+					}
+					if (
+						typeof action.eventData === "object" &&
+						action.eventData !== null
+					) {
+						existing.eventData = action.eventData as Record<string, unknown>;
+					}
+					existing.noLaunch = action.noLaunch === true ? true : undefined;
 					const nextHidden = action.hidden === true ? true : undefined;
 					const hiddenChanged = existing.hidden !== nextHidden;
 					existing.hidden = nextHidden;

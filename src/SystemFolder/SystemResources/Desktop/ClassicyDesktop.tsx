@@ -524,7 +524,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 							? () => setShowEmptyTrashDialog(true)
 							: undefined
 					}
-					noLaunch={i.appId === "Trash"}
+					noLaunch={i.noLaunch ?? i.appId === "Trash"}
 				/>
 			))}
 			{showEmptyTrashDialog ? (

@@ -41,6 +41,11 @@ export interface ClassicyStoreSystemDesktopManagerIcon {
 	onClickFunc?: (event: MouseEvent) => void;
 	event?: string;
 	eventData?: Record<string, unknown>;
+	/** When true, double-clicking fires only `event` and does NOT also dispatch
+	 *  ClassicyDesktopIconOpen. Required for icons whose appId is not a
+	 *  registered app — a URL shortcut, say — because ClassicyDesktopIconOpen
+	 *  calls openApp(), which would conjure a phantom app entry for it. */
+	noLaunch?: boolean;
 	contextMenu?: ClassicyMenuItem[];
 	/** When true, the icon exists in the store (so it populates the derived
 	 * Applications folder) but is NOT drawn on the desktop. Used by apps that

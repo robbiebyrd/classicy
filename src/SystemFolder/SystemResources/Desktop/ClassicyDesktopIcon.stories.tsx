@@ -1,6 +1,7 @@
 import { desktopParameters, SB_ICON } from "@sb/helpers";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useEffect } from "react";
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyDesktopIcon } from "./ClassicyDesktopIcon";
 
@@ -64,4 +65,30 @@ const AddAliasIcon = () => {
 
 export const Alias: Story = {
 	render: () => <AddAliasIcon />,
+};
+
+const AddWebShortcutIcon = () => {
+	const dispatch = useAppManagerDispatch();
+	useEffect(() => {
+		dispatch({
+			type: "ClassicyDesktopIconAdd",
+			app: {
+				id: "shortcut_example",
+				name: "Example Site",
+				icon: ClassicyIcons.applications.internetExplorer.documentShortcut,
+			},
+			kind: "shortcut",
+			noLaunch: true,
+			event: "ClassicyDesktopOpenUrl",
+			eventData: {
+				url: "https://example.com/",
+				disposition: "classicy",
+			},
+		});
+	}, [dispatch]);
+	return null;
+};
+
+export const WebShortcut: Story = {
+	render: () => <AddWebShortcutIcon />,
 };
