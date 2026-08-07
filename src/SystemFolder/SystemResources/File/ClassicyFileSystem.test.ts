@@ -111,6 +111,26 @@ describe("ClassicyFileSystem.filterByType", () => {
 
 		expect(Object.keys(filtered)).toEqual(["Clock"]);
 	});
+
+	it("includes Shortcut entries by default so web-URL shortcuts are browsable in Finder", () => {
+		const cfs = new ClassicyFileSystem("test-filter-by-type-shortcut", {
+			_type: "directory",
+			"Macintosh HD": {
+				_type: "drive",
+				Desktop: {
+					_type: "directory",
+					Press: {
+						_type: ClassicyFileSystemEntryFileType.Shortcut,
+						_url: "https://911realtime.org/press",
+					},
+				},
+			},
+		});
+
+		const filtered = cfs.filterByType("Macintosh HD:Desktop");
+
+		expect(Object.keys(filtered)).toEqual(["Press"]);
+	});
 });
 
 describe("ClassicyFileSystem.filterByType — notCreatedAfter", () => {

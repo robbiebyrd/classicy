@@ -361,6 +361,7 @@ export class ClassicyFileSystem {
 			ClassicyFileSystemEntryFileType.AppShortcut,
 			ClassicyFileSystemEntryFileType.Extension,
 			ClassicyFileSystemEntryFileType.Stack,
+			ClassicyFileSystemEntryFileType.Shortcut,
 		],
 		showInvisible: boolean = true,
 		// When set, entries whose `_createdOn` is strictly after this moment are
