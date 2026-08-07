@@ -14,6 +14,13 @@
   position: fixed;
   z-index: 100000;
   pointer-events: none;
+  // Size from the content, not from whatever room is left between the anchor
+  // and the edge of the screen. Being position:fixed, a shrink-to-fit container
+  // is measured against the viewport, so a balloon opening near an edge would
+  // wrap itself thin — and that squeezed width is what decides which way it
+  // flips. max-content makes the measurement the same wherever it opens; the
+  // bubble's own max-width still caps it.
+  width: max-content;
 }
 
 // The bubble itself — normal block flow inside the container.
