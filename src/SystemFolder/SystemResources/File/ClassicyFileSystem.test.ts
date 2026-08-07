@@ -142,7 +142,9 @@ describe("ClassicyFileSystem.filterByType", () => {
 		const nonDriveTypes = Object.values(ClassicyFileSystemEntryFileType).filter(
 			(type) => type !== ClassicyFileSystemEntryFileType.Drive,
 		);
-		expect(nonDriveTypes.length).toBeGreaterThan(0);
+		expect(nonDriveTypes.length).toBe(
+			Object.values(ClassicyFileSystemEntryFileType).length - 1,
+		);
 
 		const documents: ClassicyFileSystemEntry = {
 			_type: ClassicyFileSystemEntryFileType.Directory,

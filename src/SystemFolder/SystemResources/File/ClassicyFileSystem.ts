@@ -32,9 +32,18 @@ const directoryIcon = ClassicyIcons.system.folders.directory;
 // desktop icons through a dedicated call (Finder.tsx, ClassicyDriveSetupUtils.ts
 // both pass byType: "drive"/ClassicyFileSystemEntryFileType.Drive explicitly),
 // not as rows inside a folder listing. Do not "fix" this by adding Drive back.
-const DEFAULT_FILTER_BY_TYPES: string[] = Object.values(
-	ClassicyFileSystemEntryFileType,
-).filter((type) => type !== ClassicyFileSystemEntryFileType.Drive);
+// Object.values() is safe here only because ClassicyFileSystemEntryFileType is
+// a string enum — Object.values on a numeric enum also returns the
+// reverse-mapped member names, which would silently double the list.
+// Frozen because every default call shares this one array instance (not a
+// fresh literal per call); nothing mutates it today, but an unfrozen shared
+// array is one stray `byType.push(...)` away from poisoning every default
+// listing process-wide.
+const DEFAULT_FILTER_BY_TYPES: string[] = Object.freeze(
+	Object.values(ClassicyFileSystemEntryFileType).filter(
+		(type) => type !== ClassicyFileSystemEntryFileType.Drive,
+	),
+) as string[];
 
 const SUMMABLE_FILE_TYPES = new Set<string>([
 	ClassicyFileSystemEntryFileType.File,
