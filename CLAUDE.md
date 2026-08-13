@@ -91,6 +91,30 @@ const dispatch = useAppManagerDispatch();
 dispatch({ type: 'ClassicyAppOpen', app: { id, name, icon } });
 ```
 
+#### App Manifests
+
+Apps register through `registerApp` (`ClassicyAppManifest.ts`) — one call
+declaring routing, actions, and state shape as zod schemas with `.describe()`
+commentary:
+
+- `actions`: per-type `{ description, params?, scriptable? }`. `scriptable:
+  true` exposes the action to HyperCard stack scripts (delegates to the
+  untrusted-action allowlist; the guarded-route floor still applies, and
+  script-authored args are validated against `params` before dispatch).
+- `state`: a `z.looseObject` describing `apps[id].data`. MUST be loose (the
+  kernel writes undeclared keys like `openFiles` queues) with `.optional()`
+  top-level fields. In dev builds the kernel warns (never rejects) when a
+  routed app's data fails its schema.
+- Re-registering an id merges additively (HyperCard.app spans two modules:
+  player and editor prefixes); the same prefix twice is a no-op, actions
+  merge first-wins, and the first `state` schema wins.
+- Read side: `getAppManifest`, `listAppManifests`, `listScriptableActions`,
+  `describeAppAction`/`describeAppState` (balloon-ready `{title, content}`),
+  and `parseAppData` (typed guard replacing hand-rolled `isXData` functions).
+
+`registerAppEventHandler` and `registerClassicyUntrustedActionAllowlist` are
+deprecated in favor of `registerApp` but keep working unchanged.
+
 #### App Icon Visibility
 
 `ClassicyApp` controls its two icon surfaces independently. Both default to on;

@@ -117,6 +117,12 @@ const untrustedActionAllowlist = new Set<string>(
 );
 
 /**
+ * @deprecated For app-owned actions, prefer declaring `scriptable: true` on
+ * the action's manifest entry in `registerApp` (ClassicyAppManifest.ts),
+ * which delegates here. Direct registration remains supported for action
+ * types without a manifest (e.g. host-reviewed custom effects) and behaves
+ * exactly as before — including the kernel floor it can never override.
+ *
  * Register an action type as safe to dispatch `untrusted` — e.g. a custom
  * HyperCard stack-script effect a host application has reviewed. Call at
  * app entry, mirroring `registerClassicyFileSystemAdapter` /
