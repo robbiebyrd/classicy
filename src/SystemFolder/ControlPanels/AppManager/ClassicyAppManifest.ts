@@ -12,7 +12,7 @@
  * dev-mode kernel state validation all read it. See
  * docs/superpowers/specs/2026-08-13-app-manifest-registry-design.md.
  */
-import type { z } from "zod";
+import { z } from "zod";
 import {
 	isActionTrustGuarded,
 	registerClassicyUntrustedActionAllowlist,
@@ -68,6 +68,9 @@ export interface ClassicyAppManifest {
 
 const manifests = new Map<string, ClassicyAppManifest>();
 
+/** Routing prefix → owning appId, maintained by `registerApp`. */
+const prefixIndex = new Map<string, string>();
+
 /**
  * Register an app: routing, manifest, and scriptable exposure in one call.
  * Call at module load from the app's context file, replacing direct use of
@@ -117,15 +120,22 @@ export function registerApp(def: ClassicyAppManifestDefinition): void {
 	}
 	if (def.prefix && def.handler && !manifest.prefixes.includes(def.prefix)) {
 		manifest.prefixes.push(def.prefix);
+		prefixIndex.set(def.prefix, def.id);
 		registerAppEventHandler(def.prefix, def.handler);
 	}
+	let addedScriptableAction = false;
 	for (const [type, entry] of Object.entries(def.actions ?? {})) {
 		if (manifest.actions[type]) continue;
 		manifest.actions[type] = entry;
-		scriptableIndex = null;
 		if (entry.scriptable) {
+			addedScriptableAction = true;
 			registerClassicyUntrustedActionAllowlist(type);
 		}
+	}
+	// The discovery index only ever contains scriptable entries, so only a
+	// scriptable addition can change it.
+	if (addedScriptableAction) {
+		invalidateScriptableIndex();
 	}
 }
 
@@ -148,6 +158,10 @@ export interface ClassicyScriptableAction {
 }
 
 let scriptableIndex: Map<string, ClassicyScriptableAction> | null = null;
+
+function invalidateScriptableIndex(): void {
+	scriptableIndex = null;
+}
 
 function buildScriptableIndex(): Map<string, ClassicyScriptableAction> {
 	if (scriptableIndex) return scriptableIndex;
@@ -192,15 +206,20 @@ export function getScriptableAction(
 
 /**
  * Strip wrapper schemas (optional/nullable/default/readonly) to reach the
- * described inner schema. Zod stores wrappers' inner type on `def.innerType`.
+ * described inner schema, using only zod's public wrapper classes and their
+ * `.unwrap()` methods — no reliance on internal `def` shapes.
  */
 function unwrapSchema(schema: z.ZodType): z.ZodType {
 	let current = schema;
-	for (;;) {
-		const def = current.def as { innerType?: z.ZodType };
-		if (!def.innerType) return current;
-		current = def.innerType;
+	while (
+		current instanceof z.ZodOptional ||
+		current instanceof z.ZodNullable ||
+		current instanceof z.ZodDefault ||
+		current instanceof z.ZodReadonly
+	) {
+		current = current.unwrap() as z.ZodType;
 	}
+	return current;
 }
 
 /** Read a schema's `.describe()` text, looking through wrappers. */
@@ -236,9 +255,8 @@ export function describeAppState(
 	let current: z.ZodType = state;
 	for (const segment of segments) {
 		const unwrapped = unwrapSchema(current);
-		const shape = (unwrapped.def as { shape?: Record<string, z.ZodType> })
-			.shape;
-		const next = shape?.[segment];
+		if (!(unwrapped instanceof z.ZodObject)) return undefined;
+		const next = (unwrapped.shape as Record<string, z.ZodType>)[segment];
 		if (!next) return undefined;
 		current = next;
 	}
@@ -286,21 +304,24 @@ export function validateAppStateForAction(
 	}
 }
 
-/** Longest matching registered prefix wins; generic route falls back to action.app.id. */
+/**
+ * Longest matching registered prefix wins; generic route falls back to
+ * action.app.id. Resolution walks the flat prefix index (a handful of
+ * entries) rather than every manifest; callers only reach this on the
+ * dev-only validation path, never in production dispatch.
+ */
 function resolveManifestForAction(
 	action: ActionMessage,
 ): ClassicyAppManifest | undefined {
-	let best: ClassicyAppManifest | undefined;
+	let bestAppId: string | undefined;
 	let bestLength = 0;
-	for (const manifest of manifests.values()) {
-		for (const prefix of manifest.prefixes) {
-			if (action.type.startsWith(prefix) && prefix.length > bestLength) {
-				best = manifest;
-				bestLength = prefix.length;
-			}
+	for (const [prefix, appId] of prefixIndex) {
+		if (action.type.startsWith(prefix) && prefix.length > bestLength) {
+			bestAppId = appId;
+			bestLength = prefix.length;
 		}
 	}
-	if (best) return best;
+	if (bestAppId) return manifests.get(bestAppId);
 	if (action.type.startsWith("ClassicyApp")) {
 		const app = action.app as { id?: unknown } | undefined;
 		if (app && typeof app.id === "string") return manifests.get(app.id);
