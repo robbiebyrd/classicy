@@ -173,17 +173,17 @@ export const HyperCard: FunctionalComponent = () => {
 					useAppManager.getState().System.Manager.Applications.apps[e.appId];
 				// `e.event` is stack-authored JSON (validateStack checks shape, not
 				// authority), so it can name literally any action type, not just
-				// ClassicyAppOpen — this dispatch is UNTRUSTED content. Consult the
-				// deny-by-default allowlist first (only "ClassicyAppOpen" passes with
-				// zero host configuration) and drop the effect entirely if the type
-				// isn't allowlisted, then dispatch as "untrusted" so the reducer's
-				// kernel floor (isActionTrustPermitted) also applies underneath as
-				// defense-in-depth, per the pattern in ClassicyActionTrust.ts.
-				// Manifest layer (evaluateScriptEffect): when the owning app declared
-				// a `params` schema for this action, script-authored args are
-				// validated BEFORE the trust gate — a malformed-but-allowed call is
+				// ClassicyAppOpen — this dispatch is UNTRUSTED content. It must clear
+				// evaluateScriptEffect's two ordered checks: (1) when the owning app
+				// declared a `params` schema for this action in its manifest, the
+				// script-authored args must pass it — a malformed-but-allowed call is
 				// dropped with a dev warning naming the bad param instead of
-				// dispatching a doomed action.
+				// dispatching a doomed action; (2) the deny-by-default allowlist
+				// (only "ClassicyAppOpen" passes with zero host configuration). On
+				// either failure the effect is dropped entirely; otherwise dispatch
+				// as "untrusted" so the reducer's kernel floor
+				// (isActionTrustPermitted) also applies underneath as
+				// defense-in-depth, per the pattern in ClassicyActionTrust.ts.
 				const actionType = e.event ?? "ClassicyAppOpen";
 				if (
 					evaluateScriptEffect(actionType, e.data ?? {}).kind === "dispatch"
