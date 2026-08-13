@@ -15,7 +15,9 @@
 import type { z } from "zod";
 import { registerClassicyUntrustedActionAllowlist } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionTrust";
 import {
+	type ActionMessage,
 	type AppEventHandler,
+	type ClassicyStore,
 	registerAppEventHandler,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 
@@ -233,4 +235,52 @@ export function parseAppData<T>(appId: string, raw: unknown): T | undefined {
 	if (!state) return undefined;
 	const result = state.safeParse(raw ?? {});
 	return result.success ? (result.data as T) : undefined;
+}
+
+/**
+ * Dev-mode kernel check: after `action` has been reduced, validate the
+ * routed app's `data` against its registered state schema. WARN ONLY — the
+ * store is never rejected or rolled back; a failure is a bug in the manifest
+ * or the handler, never grounds to discard user state. Silent for apps
+ * without a manifest or state schema, and in production builds.
+ */
+export function validateAppStateForAction(
+	ds: ClassicyStore,
+	action: ActionMessage,
+): void {
+	if (process.env.NODE_ENV === "production") return;
+	const manifest = resolveManifestForAction(action);
+	if (!manifest?.state) return;
+	const app = ds.System.Manager.Applications.apps[manifest.id];
+	if (!app) return;
+	const result = manifest.state.safeParse(app.data ?? {});
+	if (!result.success) {
+		console.warn("[registerApp] App state failed its manifest schema", {
+			appId: manifest.id,
+			actionType: action.type,
+			issues: result.error.issues,
+		});
+	}
+}
+
+/** Longest matching registered prefix wins; generic route falls back to action.app.id. */
+function resolveManifestForAction(
+	action: ActionMessage,
+): ClassicyAppManifest | undefined {
+	let best: ClassicyAppManifest | undefined;
+	let bestLength = 0;
+	for (const manifest of manifests.values()) {
+		for (const prefix of manifest.prefixes) {
+			if (action.type.startsWith(prefix) && prefix.length > bestLength) {
+				best = manifest;
+				bestLength = prefix.length;
+			}
+		}
+	}
+	if (best) return best;
+	if (action.type.startsWith("ClassicyApp")) {
+		const app = action.app as { id?: unknown } | undefined;
+		if (app && typeof app.id === "string") return manifests.get(app.id);
+	}
+	return undefined;
 }
