@@ -1,3 +1,4 @@
+import { z } from "zod";
 import {
 	hasFinderFile,
 	hasPath,
@@ -14,31 +15,35 @@ import type {
 import {
 	classicyAppEventHandler,
 	dispatchToPlugin,
-	registerAppEventHandler,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import {
+	parseAppData,
+	registerApp,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
 import { MoviePlayerAppInfo } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerUtils";
 import { classicyDesktopEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { isValidHttpUrl } from "@/SystemFolder/SystemResources/Utils/urlValidation";
 
-export type FinderData = {
-	openPaths?: string[];
-	showAboutThisComputer?: boolean;
-};
+export const FinderDataSchema = z.looseObject({
+	openPaths: z
+		.array(z.string())
+		.optional()
+		.describe("Folder paths with an open Finder window, in open order."),
+	showAboutThisComputer: z
+		.boolean()
+		.optional()
+		.describe("Whether the About This Computer window is open."),
+});
+
+export type FinderData = z.infer<typeof FinderDataSchema>;
 
 export const FINDER_ABOUT_THIS_COMPUTER_WINDOW_ID =
 	"finder_about_this_computer";
 
+/** @deprecated Use `parseAppData<FinderData>("Finder.app", d)` — kept for existing consumers and tests. */
 export function isFinderData(d: Record<string, unknown>): d is FinderData {
-	if (d === null || typeof d !== "object") return false;
-	if ("openPaths" in d && !Array.isArray(d.openPaths)) return false;
-	if (
-		"showAboutThisComputer" in d &&
-		typeof d.showAboutThisComputer !== "boolean" &&
-		d.showAboutThisComputer !== undefined
-	)
-		return false;
-	return true;
+	return FinderDataSchema.safeParse(d).success;
 }
 
 export const classicyFinderEventHandler = (
@@ -48,7 +53,7 @@ export const classicyFinderEventHandler = (
 	const appId = "Finder.app";
 	if (!ds.System.Manager.Applications.apps[appId]) return ds;
 	const raw = ds.System.Manager.Applications.apps[appId].data ?? {};
-	let appData: FinderData = isFinderData(raw) ? { ...raw } : {};
+	let appData: FinderData = parseAppData<FinderData>(appId, raw) ?? { ...raw };
 
 	switch (action.type) {
 		case "ClassicyAppFinderOpenFolder": {
@@ -238,5 +243,58 @@ export const classicyFinderEventHandler = (
 };
 
 // Self-register so the kernel router can dispatch ClassicyAppFinder* events
-// without a hard-wired import.
-registerAppEventHandler("ClassicyAppFinder", classicyFinderEventHandler);
+// without a hard-wired import. registerApp also records the manifest: action
+// and state shapes with written commentary, consumed by balloon help,
+// HyperCard discovery, and dev-mode kernel state validation.
+registerApp({
+	id: "Finder.app",
+	description: "The system file browser: desktop, folders, and the Trash.",
+	prefix: "ClassicyAppFinder",
+	handler: classicyFinderEventHandler,
+	actions: {
+		ClassicyAppFinderOpenFolder: {
+			description: "Open a Finder window at the given folder path.",
+			params: z.object({
+				path: z.string().describe("Absolute path of the folder to open."),
+			}),
+		},
+		ClassicyAppFinderOpenFolders: {
+			description: "Open Finder windows for several folder paths at once.",
+			params: z.object({
+				paths: z
+					.array(z.string())
+					.describe("Absolute paths of the folders to open."),
+			}),
+		},
+		ClassicyAppFinderCloseFolder: {
+			description: "Close the Finder window showing the given folder path.",
+			params: z.object({
+				path: z.string().describe("Absolute path of the folder to close."),
+			}),
+		},
+		ClassicyAppFinderAboutThisComputerOpen: {
+			description: "Open the About This Computer window.",
+		},
+		ClassicyAppFinderAboutThisComputerClose: {
+			description: "Close the About This Computer window.",
+		},
+		ClassicyAppFinderEmptyTrash: {
+			description:
+				"Empty the Trash. Guarded route: never reachable by untrusted dispatch.",
+		},
+		ClassicyAppFinderOpenFile: {
+			description:
+				"Open a file with its default app, resolved by the entry's file type.",
+			params: z.object({
+				file: z
+					.looseObject({})
+					.describe("The ClassicyFileSystem entry being opened."),
+				path: z
+					.string()
+					.optional()
+					.describe("Filesystem path of the entry, when known."),
+			}),
+		},
+	},
+	state: FinderDataSchema,
+});

@@ -7,6 +7,7 @@
  * which is stripped before persistence (see sanitizeStateForPersistence).
  */
 
+import { z } from "zod";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import type {
 	HCAction,
@@ -26,6 +27,33 @@ export const HyperCardAppInfo = {
 
 /** Prefix for all HyperCard action types routed to the app reducer. */
 export const HYPERCARD_EVENT_PREFIX = "ClassicyAppHyperCard";
+
+/**
+ * Shallow manifest schema for HyperCard.app's data. Covers BOTH writers of
+ * `apps["HyperCard.app"].data`: the player (activeStackId/openStacks/
+ * openFiles, HyperCardContext) and the editor (`edits`,
+ * Editor/HyperCardEditorContext) — one app id, one state schema, per the
+ * manifest registry's first-schema-wins merge rule. Interpreter runtime
+ * inside each open stack is deliberately loose-typed.
+ */
+export const HyperCardStateSchema = z.looseObject({
+	activeStackId: z
+		.string()
+		.optional()
+		.describe("Stack id of the frontmost stack window."),
+	openStacks: z
+		.record(z.string(), z.looseObject({}))
+		.optional()
+		.describe("Runtime state of every open stack, keyed by stack id."),
+	openFiles: z
+		.array(z.string())
+		.optional()
+		.describe("Paths of .stack documents awaiting load."),
+	edits: z
+		.record(z.string(), z.looseObject({}))
+		.optional()
+		.describe("Editor state per stack id, present while Edit mode is active."),
+});
 
 // ---------------------------------------------------------------------------
 // Interpreter runtime (ephemeral — never persisted)

@@ -1,7 +1,7 @@
 import { castDraft, produce } from "immer";
 import { create, type StoreApi, type UseBoundStore } from "zustand";
-import type { ClassicyActionTrust } from "./ClassicyActionTrust";
 import { resolveWallpaper } from "../AppearanceManager/ClassicyWallpapers";
+import type { ClassicyActionTrust } from "./ClassicyActionTrust";
 import {
 	type ActionMessage,
 	type ClassicyStore,
@@ -10,6 +10,7 @@ import {
 	DefaultAppManagerState,
 	mergeClassicyState,
 } from "./ClassicyAppManager";
+import { validateAppStateForAction } from "./ClassicyAppManifest";
 
 let hydratedFromStorage = false;
 
@@ -111,6 +112,13 @@ export const dispatch = (
 			);
 		}),
 	);
+	// Kernel-enforced manifest validation (dev-only, warn-only): every real
+	// dispatch crosses this boundary, so enforcement here does not depend on
+	// call-site discipline. Lives outside the reducer to keep the module
+	// graph acyclic (ClassicyAppManifest imports ClassicyAppManager).
+	if (process.env.NODE_ENV !== "production") {
+		validateAppStateForAction(useAppManager.getState(), action);
+	}
 };
 
 export const useAppManagerDispatch = (): ((

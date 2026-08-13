@@ -1,13 +1,15 @@
+import { z } from "zod";
 import {
 	loadApp,
 	openApp,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
-import { registerAppEventHandler } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { registerApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
 import {
 	isWebViewerData,
 	WebViewerAppInfo,
 	type WebViewerData,
+	WebViewerDataSchema,
 } from "@/SystemFolder/WebViewer/WebViewerUtils";
 
 type ClassicyWebViewerEvent = {
@@ -57,5 +59,31 @@ export const classicyWebViewerEventHandler = (
 };
 
 // Self-register so the kernel router can dispatch ClassicyAppWebViewer* events
-// without a hard-wired import.
-registerAppEventHandler("ClassicyAppWebViewer", classicyWebViewerEventHandler);
+// without a hard-wired import. registerApp also records the manifest (action
+// and state shapes with commentary) for balloon help, discovery, and dev-mode
+// kernel state validation.
+registerApp({
+	id: WebViewerAppInfo.id,
+	description: "Embedded web page viewer for URL shortcuts.",
+	prefix: "ClassicyAppWebViewer",
+	handler: classicyWebViewerEventHandler,
+	actions: {
+		ClassicyAppWebViewerOpenUrl: {
+			description: "Open a URL in a Web Viewer window.",
+			params: z.object({
+				url: z.string().describe("The URL to open — the window identity."),
+				title: z
+					.string()
+					.optional()
+					.describe("Window title to display; defaults to the URL."),
+			}),
+		},
+		ClassicyAppWebViewerCloseUrl: {
+			description: "Close the Web Viewer window showing a URL.",
+			params: z.object({
+				url: z.string().describe("The URL whose window should close."),
+			}),
+		},
+	},
+	state: WebViewerDataSchema,
+});

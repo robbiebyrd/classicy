@@ -12,7 +12,9 @@ describe("isMoviePlayerData", () => {
 
 	it("returns true when openFiles contains documents", () => {
 		const data: MoviePlayerData = {
-			openFiles: [{ url: "http://example.com/a.mp4", name: "Movie", type: "video" }],
+			openFiles: [
+				{ url: "http://example.com/a.mp4", name: "Movie", type: "video" },
+			],
 		};
 		expect(isMoviePlayerData(data)).toBe(true);
 	});
@@ -26,7 +28,9 @@ describe("isMoviePlayerData", () => {
 	});
 
 	it("returns false for null", () => {
-		expect(isMoviePlayerData(null as unknown as Record<string, unknown>)).toBe(false);
+		expect(isMoviePlayerData(null as unknown as Record<string, unknown>)).toBe(
+			false,
+		);
 	});
 
 	it("returns false for a plain string value", () => {

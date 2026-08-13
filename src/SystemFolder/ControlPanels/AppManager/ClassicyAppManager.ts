@@ -190,6 +190,13 @@ const pluginEventHandlers: Array<{
 }> = [];
 
 /**
+ * @deprecated Prefer `registerApp` (ClassicyAppManifest.ts), which registers
+ * the handler AND the app's manifest (action/state schemas, commentary,
+ * scriptable exposure) in one call. This remains the underlying primitive
+ * `registerApp` delegates to; direct use keeps working but records no
+ * manifest, so balloon help, HyperCard discovery, and dev-mode state
+ * validation see nothing for the app.
+ *
  * Register an event handler for a given action type prefix.
  * Call this at module load time from your app's context file.
  * Handlers are checked before the generic ClassicyApp* handler.

@@ -26,7 +26,9 @@ describe("isPictureViewerData", () => {
 	});
 
 	it("returns false for null", () => {
-		expect(isPictureViewerData(null as unknown as Record<string, unknown>)).toBe(false);
+		expect(
+			isPictureViewerData(null as unknown as Record<string, unknown>),
+		).toBe(false);
 	});
 
 	it("narrows the type so openFiles is accessible without casting", () => {

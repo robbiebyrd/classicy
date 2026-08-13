@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+	describeAppState,
+	getAppManifest,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
+import {
 	type FinderData,
 	isFinderData,
 } from "@/SystemFolder/Finder/FinderContext";
@@ -42,5 +46,29 @@ describe("isFinderData", () => {
 		} else {
 			throw new Error("Expected isFinderData to return true");
 		}
+	});
+});
+
+describe("Finder manifest", () => {
+	it("registers Finder.app with prefix, actions, and state schema", () => {
+		const manifest = getAppManifest("Finder.app");
+		expect(manifest?.prefixes).toContain("ClassicyAppFinder");
+		expect(
+			manifest?.actions.ClassicyAppFinderOpenFolder?.description,
+		).toBeTruthy();
+		expect(manifest?.state).toBeDefined();
+	});
+
+	it("exposes balloon-ready state commentary", () => {
+		const balloon = describeAppState("Finder.app", "showAboutThisComputer");
+		expect(balloon?.title).toBe("showAboutThisComputer");
+		expect(balloon?.content).toMatch(/About This Computer/);
+	});
+
+	it("keeps ClassicyAppFinderEmptyTrash off the scriptable surface (guarded route)", async () => {
+		const { isUntrustedActionAllowed } = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyActionTrust"
+		);
+		expect(isUntrustedActionAllowed("ClassicyAppFinderEmptyTrash")).toBe(false);
 	});
 });

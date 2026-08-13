@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 
 const appIcon = ClassicyIcons.system.quicktime.player;
@@ -42,6 +43,34 @@ export function isMoviePlayerData(
 		Array.isArray(d.openFiles)
 	);
 }
+
+/** Manifest schema for one open file: a filesystem path or a media document. */
+export const MoviePlayerOpenFileSchema = z.union([
+	z.string().describe("A ClassicyFileSystem path to a media file."),
+	z
+		.looseObject({
+			url: z.string().describe("Source URL of the media document."),
+			name: z.string().optional().describe("Display name of the document."),
+			type: z
+				.enum(["audio", "video", "image"])
+				.optional()
+				.describe("Media kind, when known."),
+			icon: z.string().optional().describe("Icon shown for the document."),
+			subtitlesUrl: z
+				.string()
+				.optional()
+				.describe("URL of an optional subtitle track."),
+		})
+		.describe("A manually opened media document."),
+]);
+
+/** Manifest schema for MoviePlayer.app's `data` (see registerApp). */
+export const MoviePlayerDataSchema = z.looseObject({
+	openFiles: z
+		.array(MoviePlayerOpenFileSchema)
+		.optional()
+		.describe("Media documents currently open in Movie Player."),
+});
 
 export const MoviePlayerAppInfo = {
 	name: "Movie Player",

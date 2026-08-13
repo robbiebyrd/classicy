@@ -366,9 +366,7 @@ describe("PDFViewerDocument", () => {
 		// it has no text or role of its own, so class lookup is the only
 		// stable way to grab it.
 		const getWrapper = (container: HTMLElement) =>
-			container.querySelector(
-				".pdfViewerDocumentCanvasWrapper",
-			) as HTMLElement;
+			container.querySelector(".pdfViewerDocumentCanvasWrapper") as HTMLElement;
 
 		it('relabels the step-zoom buttons "+" and "-", keeping accessible names', async () => {
 			render(<PDFViewerDocument url="http://example.com/sample.pdf" />);
@@ -417,8 +415,16 @@ describe("PDFViewerDocument", () => {
 			);
 			await screen.findByText("Page 1 of 3");
 			const wrapper = getWrapper(container);
-			fireEvent.pointerDown(wrapper, { pointerId: 1, clientX: 100, clientY: 100 });
-			fireEvent.pointerMove(wrapper, { pointerId: 1, clientX: 80, clientY: 70 });
+			fireEvent.pointerDown(wrapper, {
+				pointerId: 1,
+				clientX: 100,
+				clientY: 100,
+			});
+			fireEvent.pointerMove(wrapper, {
+				pointerId: 1,
+				clientX: 80,
+				clientY: 70,
+			});
 			// Dragging left/up by (20, 30) scrolls the content right/down by the
 			// same amount — the document follows the hand.
 			expect(wrapper.scrollLeft).toBe(20);
@@ -437,8 +443,16 @@ describe("PDFViewerDocument", () => {
 			await screen.findByText("Page 1 of 3");
 			await user.click(screen.getByRole("button", { name: "Zoom Tool" }));
 			const wrapper = getWrapper(container);
-			fireEvent.pointerDown(wrapper, { pointerId: 1, clientX: 100, clientY: 100 });
-			fireEvent.pointerMove(wrapper, { pointerId: 1, clientX: 50, clientY: 50 });
+			fireEvent.pointerDown(wrapper, {
+				pointerId: 1,
+				clientX: 100,
+				clientY: 100,
+			});
+			fireEvent.pointerMove(wrapper, {
+				pointerId: 1,
+				clientX: 50,
+				clientY: 50,
+			});
 			expect(wrapper.scrollLeft).toBe(0);
 			expect(wrapper.scrollTop).toBe(0);
 		});

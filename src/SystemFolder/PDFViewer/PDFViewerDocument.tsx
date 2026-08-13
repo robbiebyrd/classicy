@@ -1,4 +1,6 @@
 import "./PDFViewerDocument.scss";
+import zoomToolIcon from "@img/icons/system/sherlock/search.png";
+import panToolIcon from "@img/ui/cursors/cursor-hand.png";
 import classNames from "classnames";
 import type {
 	PDFDocumentLoadingTask,
@@ -14,8 +16,6 @@ import {
 	useRef,
 	useState,
 } from "react";
-import zoomToolIcon from "@img/icons/system/sherlock/search.png";
-import panToolIcon from "@img/ui/cursors/cursor-hand.png";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import { decompressFromBase64 } from "@/SystemFolder/SystemResources/Utils/base64Compression";

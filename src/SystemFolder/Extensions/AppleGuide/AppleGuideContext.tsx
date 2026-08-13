@@ -1,9 +1,10 @@
+import { z } from "zod";
 import { focusWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
 import type {
 	ActionMessage,
 	ClassicyStore,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
-import { registerAppEventHandler } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { registerApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
 import {
 	appleGuideWindowId,
 	getAppleGuideTopic,
@@ -26,6 +27,18 @@ export type AppleGuideData = {
 	/** Current zero-based page index per topic id. */
 	pages?: Record<string, number>;
 };
+
+/** Manifest schema for AppleGuide.app's `data` (see registerApp). */
+export const AppleGuideDataSchema = z.looseObject({
+	openTopics: z
+		.array(z.string())
+		.optional()
+		.describe("Topic ids with an open window, in the order they were opened."),
+	pages: z
+		.record(z.string(), z.number())
+		.optional()
+		.describe("Current zero-based page index per topic id."),
+});
 
 export function isAppleGuideData(
 	d: Record<string, unknown>,
@@ -137,7 +150,35 @@ export const classicyAppleGuideEventHandler = (
 	return ds;
 };
 
-registerAppEventHandler(
-	"ClassicyAppAppleGuide",
-	classicyAppleGuideEventHandler,
-);
+// Self-register so the kernel router can dispatch ClassicyAppAppleGuide*
+// events without a hard-wired import. registerApp also records the manifest
+// (action and state shapes with commentary) for balloon help, discovery, and
+// dev-mode kernel state validation.
+registerApp({
+	id: APPLE_GUIDE_APP_ID,
+	description: "Step-by-step system help topics (Apple Guide).",
+	prefix: "ClassicyAppAppleGuide",
+	handler: classicyAppleGuideEventHandler,
+	actions: {
+		[APPLE_GUIDE_SHOW_TOPIC_EVENT]: {
+			description: "Open (or re-focus) the window for a guide topic.",
+			params: z.object({
+				topicId: z.string().describe("Id of the registered topic to show."),
+			}),
+		},
+		ClassicyAppAppleGuideCloseTopic: {
+			description: "Close the window for an open guide topic.",
+			params: z.object({
+				topicId: z.string().describe("Id of the topic to close."),
+			}),
+		},
+		ClassicyAppAppleGuideSetPage: {
+			description: "Jump an open guide topic to a page (clamped to range).",
+			params: z.object({
+				topicId: z.string().describe("Id of the topic to page."),
+				page: z.number().describe("Zero-based page index to show."),
+			}),
+		},
+	},
+	state: AppleGuideDataSchema,
+});

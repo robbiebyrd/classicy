@@ -15,7 +15,6 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { isUntrustedActionAllowed } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionTrust";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -45,6 +44,7 @@ import {
 	getRegisteredStacks,
 } from "@/SystemFolder/HyperCard/HyperCardPlugins";
 import { HyperCardBuiltInStacks } from "@/SystemFolder/HyperCard/HyperCardSampleStack";
+import { evaluateScriptEffect } from "@/SystemFolder/HyperCard/HyperCardScriptEffects";
 import { HyperCardTransition } from "@/SystemFolder/HyperCard/HyperCardTransition";
 import {
 	getCard,
@@ -173,21 +173,31 @@ export const HyperCard: FunctionalComponent = () => {
 					useAppManager.getState().System.Manager.Applications.apps[e.appId];
 				// `e.event` is stack-authored JSON (validateStack checks shape, not
 				// authority), so it can name literally any action type, not just
-				// ClassicyAppOpen — this dispatch is UNTRUSTED content. Consult the
-				// deny-by-default allowlist first (only "ClassicyAppOpen" passes with
-				// zero host configuration) and drop the effect entirely if the type
-				// isn't allowlisted, then dispatch as "untrusted" so the reducer's
-				// kernel floor (isActionTrustPermitted) also applies underneath as
+				// ClassicyAppOpen — this dispatch is UNTRUSTED content. It must clear
+				// evaluateScriptEffect's two ordered checks: (1) when the owning app
+				// declared a `params` schema for this action in its manifest, the
+				// script-authored args must pass it — a malformed-but-allowed call is
+				// dropped with a dev warning naming the bad param instead of
+				// dispatching a doomed action; (2) the deny-by-default allowlist
+				// (only "ClassicyAppOpen" passes with zero host configuration). On
+				// either failure the effect is dropped entirely; otherwise dispatch
+				// as "untrusted" so the reducer's kernel floor
+				// (isActionTrustPermitted) also applies underneath as
 				// defense-in-depth, per the pattern in ClassicyActionTrust.ts.
 				const actionType = e.event ?? "ClassicyAppOpen";
-				if (isUntrustedActionAllowed(actionType)) {
+				const decision = evaluateScriptEffect(actionType, e.data ?? {});
+				if (decision.kind === "dispatch") {
+					// Dispatch the SANITIZED args (zod's parsed output when a schema
+					// exists), and pin `type`/`app` AFTER the spread so script-authored
+					// keys can never override the gated action type or the
+					// host-resolved app record.
 					dispatch(
 						{
+							...decision.args,
 							type: actionType,
 							app: target
 								? { id: target.id, name: target.name, icon: target.icon }
 								: { id: e.appId },
-							...(e.data ?? {}),
 						},
 						"untrusted",
 					);

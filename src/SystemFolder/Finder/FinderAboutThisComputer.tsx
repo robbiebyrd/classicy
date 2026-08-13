@@ -3,7 +3,9 @@ import type { FC as FunctionalComponent } from "react";
 import { useEffect, useState } from "react";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { describeAppAction } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
 import { FINDER_ABOUT_THIS_COMPUTER_WINDOW_ID } from "@/SystemFolder/Finder/FinderContext";
+import { ClassicyBalloonHelp } from "@/SystemFolder/SystemResources/BalloonHelp/ClassicyBalloonHelp";
 import { ClassicyProgressBar } from "@/SystemFolder/SystemResources/ProgressBar/ClassicyProgressBar";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 import packageJson from "../../../package.json";
@@ -46,6 +48,13 @@ export const FinderAboutThisComputer: FunctionalComponent = () => {
 
 	const largestUnusedMb = BUILT_IN_MEMORY_MB - osUsedMb;
 
+	// Balloon content comes from the Finder manifest — live metadata, not a
+	// hardcoded string — proving the registerApp commentary round-trip.
+	const aboutBalloon = describeAppAction(
+		"Finder.app",
+		"ClassicyAppFinderAboutThisComputerOpen",
+	);
+
 	const versionLabel = release
 		? `Classicy ${version} (${release})`
 		: `Classicy ${version}`;
@@ -83,7 +92,16 @@ export const FinderAboutThisComputer: FunctionalComponent = () => {
 					</div>
 					<div className="finderAboutThisComputerVersion">
 						<img src={ClassicyIcons.system.macos} alt="Classicy" />
-						<span>{versionLabel}</span>
+						{aboutBalloon ? (
+							<ClassicyBalloonHelp
+								title={aboutBalloon.title}
+								content={aboutBalloon.content}
+							>
+								<span>{versionLabel}</span>
+							</ClassicyBalloonHelp>
+						) : (
+							<span>{versionLabel}</span>
+						)}
 					</div>
 				</div>
 				<div className="finderAboutThisComputerInfo">
