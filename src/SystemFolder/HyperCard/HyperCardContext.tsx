@@ -5,12 +5,13 @@
  * a hard import (see MoviePlayerContext for the same pattern).
  */
 
+import { z } from "zod";
 import { openApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
-import {
-	type ActionMessage,
-	type ClassicyStore,
-	registerAppEventHandler,
+import type {
+	ActionMessage,
+	ClassicyStore,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { registerApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
 import {
 	consumeEffects,
 	resumeCustom,
@@ -33,6 +34,7 @@ import {
 	HYPERCARD_EVENT_PREFIX,
 	HyperCardAppInfo,
 	type HyperCardData,
+	HyperCardStateSchema,
 	isHyperCardData,
 	makeInitialRuntime,
 } from "@/SystemFolder/HyperCard/HyperCardUtils";
@@ -279,5 +281,36 @@ export const classicyHyperCardEventHandler = (
 	return ds;
 };
 
-// Self-register so the kernel router dispatches ClassicyAppHyperCard* events here.
-registerAppEventHandler(HYPERCARD_EVENT_PREFIX, classicyHyperCardEventHandler);
+// Self-register so the kernel router dispatches ClassicyAppHyperCard* events
+// here. registerApp also records the manifest; the editor module registers a
+// second prefix (ClassicyAppHCEdit*) under the SAME app id, merging into this
+// manifest additively — this registration owns the (shared) state schema.
+// The interpreter-lifecycle actions (Event, CommitField, DialogResponse,
+// WaitComplete, TransitionComplete, ConsumeEffects, ResolveCommand,
+// SetVariable, OpenFileConsumed, OpenFileFailed) are internal plumbing
+// between the component and the reducer; only the user-meaningful actions
+// are documented here — a deliberate scoping, not an omission.
+registerApp({
+	id: HyperCardAppInfo.id,
+	description: "HyperCard stack player: opens and runs .stack documents.",
+	prefix: HYPERCARD_EVENT_PREFIX,
+	handler: classicyHyperCardEventHandler,
+	actions: {
+		ClassicyAppHyperCardOpenStack: {
+			description: "Open a stack in a player window.",
+		},
+		ClassicyAppHyperCardCloseStack: {
+			description: "Close an open stack's player window.",
+		},
+		ClassicyAppHyperCardNavigate: {
+			description: "Go to another card in an open stack.",
+		},
+		ClassicyAppHyperCardOpenFile: {
+			description: "Queue a .stack file path for loading.",
+			params: z.object({
+				path: z.string().describe("Path of the .stack file to open."),
+			}),
+		},
+	},
+	state: HyperCardStateSchema,
+});

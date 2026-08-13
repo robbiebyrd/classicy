@@ -8,11 +8,12 @@
  * NOT start with "ClassicyAppHyperCard" (the player would swallow every action).
  */
 
-import {
-	type ActionMessage,
-	type ClassicyStore,
-	registerAppEventHandler,
+import { z } from "zod";
+import type {
+	ActionMessage,
+	ClassicyStore,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { registerApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
 import {
 	applyEdit,
 	getPartDescriptor,
@@ -563,8 +564,35 @@ export const classicyHyperCardEditorEventHandler = (
 	return ds;
 };
 
-// Self-register so the kernel router dispatches ClassicyAppHCEdit* events here.
-registerAppEventHandler(
-	HYPERCARD_EDIT_EVENT_PREFIX,
-	classicyHyperCardEditorEventHandler,
-);
+// Self-register so the kernel router dispatches ClassicyAppHCEdit* events
+// here. Registers under the SAME app id as the player (HyperCard.app): the
+// manifest registry merges additively, appending this prefix and these
+// actions. Deliberately registers NO state schema — the player module's
+// registration owns the shared one (first-schema-wins), and it already
+// covers the editor's `edits` key. As with the player, only user-meaningful
+// actions are documented; the remaining ClassicyAppHCEdit* editing plumbing
+// is internal by design.
+registerApp({
+	id: APP_ID,
+	description: "HyperCard's built-in stack editor (merged into HyperCard.app).",
+	prefix: HYPERCARD_EDIT_EVENT_PREFIX,
+	handler: classicyHyperCardEditorEventHandler,
+	actions: {
+		ClassicyAppHCEditEnter: {
+			description: "Enter Edit mode for an open stack.",
+			params: z.object({
+				stackId: z.string().describe("Id of the stack to edit."),
+			}),
+		},
+		ClassicyAppHCEditExit: {
+			description: "Leave Edit mode and return to browsing.",
+			params: z.object({
+				stackId: z.string().describe("Id of the stack being edited."),
+			}),
+		},
+		ClassicyAppHCEditSetScript: {
+			description:
+				"Replace a script in the edited stack. Guarded route: never reachable by untrusted dispatch.",
+		},
+	},
+});
