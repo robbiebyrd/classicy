@@ -185,16 +185,19 @@ export const HyperCard: FunctionalComponent = () => {
 				// (isActionTrustPermitted) also applies underneath as
 				// defense-in-depth, per the pattern in ClassicyActionTrust.ts.
 				const actionType = e.event ?? "ClassicyAppOpen";
-				if (
-					evaluateScriptEffect(actionType, e.data ?? {}).kind === "dispatch"
-				) {
+				const decision = evaluateScriptEffect(actionType, e.data ?? {});
+				if (decision.kind === "dispatch") {
+					// Dispatch the SANITIZED args (zod's parsed output when a schema
+					// exists), and pin `type`/`app` AFTER the spread so script-authored
+					// keys can never override the gated action type or the
+					// host-resolved app record.
 					dispatch(
 						{
+							...decision.args,
 							type: actionType,
 							app: target
 								? { id: target.id, name: target.name, icon: target.icon }
 								: { id: e.appId },
-							...(e.data ?? {}),
 						},
 						"untrusted",
 					);

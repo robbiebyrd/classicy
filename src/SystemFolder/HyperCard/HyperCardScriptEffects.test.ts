@@ -14,6 +14,7 @@ describe("evaluateScriptEffect", () => {
 	it("dispatches the default allowlist entry with no manifest (parity with today)", () => {
 		expect(evaluateScriptEffect("ClassicyAppOpen", {})).toEqual({
 			kind: "dispatch",
+			args: {},
 		});
 	});
 
@@ -30,7 +31,7 @@ describe("evaluateScriptEffect", () => {
 			},
 		});
 		expect(evaluateScriptEffect("ClassicyAppT5ScoreSet", { score: 7 })).toEqual(
-			{ kind: "dispatch" },
+			{ kind: "dispatch", args: { score: 7 } },
 		);
 		const bad = evaluateScriptEffect("ClassicyAppT5ScoreSet", {
 			score: "seven",
@@ -55,6 +56,35 @@ describe("evaluateScriptEffect", () => {
 		});
 		expect(
 			evaluateScriptEffect("ClassicyAppT5NoParamsGo", { anything: true }),
-		).toEqual({ kind: "dispatch" });
+		).toEqual({ kind: "dispatch", args: { anything: true } });
+	});
+
+	it("strips script-smuggled type/app keys via the parsed output", () => {
+		const decision = evaluateScriptEffect("ClassicyAppT5ScoreSet", {
+			score: 3,
+			type: "ClassicyDesktopSetTheme",
+			app: { id: "smuggled" },
+		});
+		expect(decision).toEqual({ kind: "dispatch", args: { score: 3 } });
+	});
+
+	it("strips extra keys the schema does not declare", () => {
+		registerApp({
+			id: "T5Strip.app",
+			description: "Strip test app.",
+			actions: {
+				ClassicyAppT5StripGo: {
+					description: "Go with strict args.",
+					params: z.object({ level: z.number().describe("Level.") }),
+					scriptable: true,
+				},
+			},
+		});
+		expect(
+			evaluateScriptEffect("ClassicyAppT5StripGo", {
+				level: 2,
+				smuggled: "key",
+			}),
+		).toEqual({ kind: "dispatch", args: { level: 2 } });
 	});
 });

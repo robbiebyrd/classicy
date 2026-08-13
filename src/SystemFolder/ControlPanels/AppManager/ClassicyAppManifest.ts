@@ -13,7 +13,10 @@
  * docs/superpowers/specs/2026-08-13-app-manifest-registry-design.md.
  */
 import type { z } from "zod";
-import { registerClassicyUntrustedActionAllowlist } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionTrust";
+import {
+	isActionTrustGuarded,
+	registerClassicyUntrustedActionAllowlist,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionTrust";
 import {
 	type ActionMessage,
 	type AppEventHandler,
@@ -77,6 +80,18 @@ const manifests = new Map<string, ClassicyAppManifest>();
  * and the first `state` schema wins.
  */
 export function registerApp(def: ClassicyAppManifestDefinition): void {
+	// `prefix` and `handler` only register routing together; one without the
+	// other silently registers nothing, which is a footgun for adopters —
+	// surface it in dev instead of ignoring it.
+	if (
+		Boolean(def.prefix) !== Boolean(def.handler) &&
+		process.env.NODE_ENV !== "production"
+	) {
+		console.warn(
+			"[registerApp] prefix and handler must be provided together — routing was NOT registered",
+			{ appId: def.id, prefix: def.prefix, hasHandler: Boolean(def.handler) },
+		);
+	}
 	let manifest = manifests.get(def.id);
 	if (!manifest) {
 		manifest = {
@@ -139,7 +154,15 @@ function buildScriptableIndex(): Map<string, ClassicyScriptableAction> {
 	scriptableIndex = new Map();
 	for (const manifest of manifests.values()) {
 		for (const [type, entry] of Object.entries(manifest.actions)) {
-			if (!entry.scriptable || scriptableIndex.has(type)) continue;
+			// Guarded routes are excluded even when declared scriptable: the
+			// kernel floor makes them undispatchable, and a discovery surface
+			// that advertises them would be lying to stack authors.
+			if (
+				!entry.scriptable ||
+				isActionTrustGuarded(type) ||
+				scriptableIndex.has(type)
+			)
+				continue;
 			scriptableIndex.set(type, {
 				appId: manifest.id,
 				type,

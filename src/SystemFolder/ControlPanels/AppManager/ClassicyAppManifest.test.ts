@@ -144,6 +144,27 @@ describe("scriptable actions", () => {
 		expect(isUntrustedActionAllowed("ClassicyDesktopSetTheme")).toBe(false);
 	});
 
+	it("excludes guarded routes from the discovery index (they can never dispatch)", () => {
+		expect(getScriptableAction("ClassicyDesktopSetTheme")).toBeUndefined();
+		expect(
+			listScriptableActions().some((a) => a.type === "ClassicyDesktopSetTheme"),
+		).toBe(false);
+	});
+
+	it("dev-warns when prefix is passed without handler (routing not registered)", async () => {
+		const { vi } = await import("vitest");
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+		registerApp({
+			id: "T2Lonely.app",
+			description: "Prefix without handler.",
+			prefix: "ClassicyAppT2Lonely",
+		});
+		expect(warn).toHaveBeenCalledTimes(1);
+		expect(warn.mock.calls[0][1]).toMatchObject({ appId: "T2Lonely.app" });
+		expect(getAppManifest("T2Lonely.app")?.prefixes).toEqual([]);
+		warn.mockRestore();
+	});
+
 	it("index invalidates when a later registration adds actions", () => {
 		listScriptableActions(); // force index build
 		registerApp({

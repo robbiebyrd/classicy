@@ -17,7 +17,17 @@ import { isUntrustedActionAllowed } from "@/SystemFolder/ControlPanels/AppManage
 import { getScriptableAction } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
 
 export type ScriptEffectDecision =
-	| { kind: "dispatch" }
+	| {
+			kind: "dispatch";
+			/**
+			 * The args the caller must dispatch: zod's parsed output when the
+			 * action declared a `params` schema (unknown keys stripped by plain
+			 * `z.object` schemas), the original args otherwise. Dispatching
+			 * these — never the raw script args — is what makes "validated"
+			 * and "dispatched" the same payload.
+			 */
+			args: Record<string, unknown>;
+	  }
 	| {
 			kind: "drop";
 			reason: "not-allowlisted" | "invalid-params";
@@ -29,6 +39,7 @@ export function evaluateScriptEffect(
 	args: Record<string, unknown>,
 ): ScriptEffectDecision {
 	const entry = getScriptableAction(actionType);
+	let sanitized = args;
 	if (entry?.params) {
 		const parsed = entry.params.safeParse(args);
 		if (!parsed.success) {
@@ -44,9 +55,10 @@ export function evaluateScriptEffect(
 				issues: parsed.error.issues,
 			};
 		}
+		sanitized = parsed.data as Record<string, unknown>;
 	}
 	if (!isUntrustedActionAllowed(actionType)) {
 		return { kind: "drop", reason: "not-allowlisted" };
 	}
-	return { kind: "dispatch" };
+	return { kind: "dispatch", args: sanitized };
 }
