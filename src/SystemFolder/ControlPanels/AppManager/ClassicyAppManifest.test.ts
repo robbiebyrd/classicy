@@ -1,12 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
+import {
+	isUntrustedActionAllowed,
+	isUntrustedActionAllowlisted,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionTrust";
 import type {
 	ActionMessage,
 	ClassicyStore,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	getAppManifest,
+	getScriptableAction,
 	listAppManifests,
+	listScriptableActions,
 	registerApp,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
 
@@ -88,5 +94,64 @@ describe("registerApp", () => {
 			type: "ClassicyAppT1RoutePing",
 		});
 		expect(seen).toEqual(["ClassicyAppT1RoutePing"]);
+	});
+});
+
+describe("scriptable actions", () => {
+	it("scriptable: true reaches the untrusted allowlist", () => {
+		registerApp({
+			id: "T2Script.app",
+			description: "Scriptable test app.",
+			actions: {
+				ClassicyAppT2ScriptWave: {
+					description: "Wave hello.",
+					params: z.object({ times: z.number().describe("Wave count.") }),
+					scriptable: true,
+				},
+				ClassicyAppT2ScriptHidden: { description: "Not scriptable." },
+			},
+		});
+		expect(isUntrustedActionAllowed("ClassicyAppT2ScriptWave")).toBe(true);
+		expect(isUntrustedActionAllowed("ClassicyAppT2ScriptHidden")).toBe(false);
+	});
+
+	it("lists and indexes scriptable actions across apps", () => {
+		const wave = getScriptableAction("ClassicyAppT2ScriptWave");
+		expect(wave?.appId).toBe("T2Script.app");
+		expect(wave?.description).toBe("Wave hello.");
+		expect(wave?.params).toBeDefined();
+		expect(getScriptableAction("ClassicyAppT2ScriptHidden")).toBeUndefined();
+		expect(
+			listScriptableActions().some((a) => a.type === "ClassicyAppT2ScriptWave"),
+		).toBe(true);
+	});
+
+	it("a scriptable guarded route is allowlisted but stays inert (kernel floor wins)", () => {
+		registerApp({
+			id: "T2Guarded.app",
+			description: "Tries to script a guarded route.",
+			actions: {
+				ClassicyDesktopSetTheme: {
+					description: "Should never be script-reachable.",
+					scriptable: true,
+				},
+			},
+		});
+		expect(isUntrustedActionAllowlisted("ClassicyDesktopSetTheme")).toBe(true);
+		expect(isUntrustedActionAllowed("ClassicyDesktopSetTheme")).toBe(false);
+	});
+
+	it("index invalidates when a later registration adds actions", () => {
+		listScriptableActions(); // force index build
+		registerApp({
+			id: "T2Late.app",
+			description: "Late registration.",
+			actions: {
+				ClassicyAppT2LateGo: { description: "Late action.", scriptable: true },
+			},
+		});
+		expect(getScriptableAction("ClassicyAppT2LateGo")?.appId).toBe(
+			"T2Late.app",
+		);
 	});
 });

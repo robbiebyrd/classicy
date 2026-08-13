@@ -105,6 +105,7 @@ export function registerApp(def: ClassicyAppManifestDefinition): void {
 	for (const [type, entry] of Object.entries(def.actions ?? {})) {
 		if (manifest.actions[type]) continue;
 		manifest.actions[type] = entry;
+		scriptableIndex = null;
 		if (entry.scriptable) {
 			registerClassicyUntrustedActionAllowlist(type);
 		}
@@ -119,4 +120,47 @@ export function getAppManifest(appId: string): ClassicyAppManifest | undefined {
 /** Snapshot of all registered manifests. */
 export function listAppManifests(): ClassicyAppManifest[] {
 	return [...manifests.values()];
+}
+
+/** One script-callable action, flattened for discovery. */
+export interface ClassicyScriptableAction {
+	appId: string;
+	type: string;
+	description: string;
+	params?: z.ZodType;
+}
+
+let scriptableIndex: Map<string, ClassicyScriptableAction> | null = null;
+
+function buildScriptableIndex(): Map<string, ClassicyScriptableAction> {
+	if (scriptableIndex) return scriptableIndex;
+	scriptableIndex = new Map();
+	for (const manifest of manifests.values()) {
+		for (const [type, entry] of Object.entries(manifest.actions)) {
+			if (!entry.scriptable || scriptableIndex.has(type)) continue;
+			scriptableIndex.set(type, {
+				appId: manifest.id,
+				type,
+				description: entry.description,
+				params: entry.params,
+			});
+		}
+	}
+	return scriptableIndex;
+}
+
+/**
+ * Every action any app has declared `scriptable`, flattened. HyperCard's
+ * discovery surface: what a stack script may attempt to dispatch. (The trust
+ * gate still decides what actually runs.)
+ */
+export function listScriptableActions(): ClassicyScriptableAction[] {
+	return [...buildScriptableIndex().values()];
+}
+
+/** The scriptable entry for an exact action type, or undefined. */
+export function getScriptableAction(
+	type: string,
+): ClassicyScriptableAction | undefined {
+	return buildScriptableIndex().get(type);
 }
