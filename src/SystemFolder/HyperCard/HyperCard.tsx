@@ -15,7 +15,6 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { isUntrustedActionAllowed } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionTrust";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -45,6 +44,7 @@ import {
 	getRegisteredStacks,
 } from "@/SystemFolder/HyperCard/HyperCardPlugins";
 import { HyperCardBuiltInStacks } from "@/SystemFolder/HyperCard/HyperCardSampleStack";
+import { evaluateScriptEffect } from "@/SystemFolder/HyperCard/HyperCardScriptEffects";
 import { HyperCardTransition } from "@/SystemFolder/HyperCard/HyperCardTransition";
 import {
 	getCard,
@@ -179,8 +179,15 @@ export const HyperCard: FunctionalComponent = () => {
 				// isn't allowlisted, then dispatch as "untrusted" so the reducer's
 				// kernel floor (isActionTrustPermitted) also applies underneath as
 				// defense-in-depth, per the pattern in ClassicyActionTrust.ts.
+				// Manifest layer (evaluateScriptEffect): when the owning app declared
+				// a `params` schema for this action, script-authored args are
+				// validated BEFORE the trust gate — a malformed-but-allowed call is
+				// dropped with a dev warning naming the bad param instead of
+				// dispatching a doomed action.
 				const actionType = e.event ?? "ClassicyAppOpen";
-				if (isUntrustedActionAllowed(actionType)) {
+				if (
+					evaluateScriptEffect(actionType, e.data ?? {}).kind === "dispatch"
+				) {
 					dispatch(
 						{
 							type: actionType,
