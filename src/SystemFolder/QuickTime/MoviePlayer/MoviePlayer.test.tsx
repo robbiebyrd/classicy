@@ -22,11 +22,16 @@ function getOpenFiles(): unknown[] {
 	return data?.openFiles ?? [];
 }
 
-function updateApp(mutator: (app: ClassicyStore["System"]["Manager"]["Applications"]["apps"][string]) => void) {
+function updateApp(
+	mutator: (
+		app: ClassicyStore["System"]["Manager"]["Applications"]["apps"][string],
+	) => void,
+) {
 	act(() => {
 		useAppManager.setState((state) =>
 			produce(state, (draft) => {
-				const app = draft.System.Manager.Applications.apps[MoviePlayerAppInfo.id];
+				const app =
+					draft.System.Manager.Applications.apps[MoviePlayerAppInfo.id];
 				if (app) mutator(app);
 			}),
 		);

@@ -1,14 +1,17 @@
+import { z } from "zod";
 import {
 	loadApp,
 	openApp,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
-import { registerAppEventHandler } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { registerApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
 import type { ClassicyQuickTimeDocument } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerContext";
 import {
-	PictureViewerAppInfo,
 	isPictureViewerData,
+	PictureViewerAppInfo,
 	type PictureViewerData,
+	PictureViewerDataSchema,
+	PictureViewerOpenFileSchema,
 } from "@/SystemFolder/QuickTime/PictureViewer/PictureViewerUtils";
 
 type classicyQuickTimeEvent = {
@@ -97,9 +100,7 @@ export const classicyQuickTimePictureViewerEventHandler = (
 			break;
 		}
 		case "ClassicyAppPictureViewerCloseFile": {
-			appData.openFiles = appData.openFiles.filter(
-				(p) => p !== action.path,
-			);
+			appData.openFiles = appData.openFiles.filter((p) => p !== action.path);
 			break;
 		}
 	}
@@ -107,8 +108,51 @@ export const classicyQuickTimePictureViewerEventHandler = (
 };
 
 // Self-register so the kernel router can dispatch ClassicyAppPictureViewer* events
-// without a hard-wired import.
-registerAppEventHandler(
-	"ClassicyAppPictureViewer",
-	classicyQuickTimePictureViewerEventHandler,
-);
+// without a hard-wired import. registerApp also records the manifest (action
+// and state shapes with commentary) for balloon help, discovery, and dev-mode
+// kernel state validation.
+registerApp({
+	id: PictureViewerAppInfo.id,
+	description: "QuickTime still-image viewer.",
+	prefix: "ClassicyAppPictureViewer",
+	handler: classicyQuickTimePictureViewerEventHandler,
+	actions: {
+		ClassicyAppPictureViewerOpenDocument: {
+			description: "Open an image document in a new viewer window.",
+			params: z.object({
+				document: PictureViewerOpenFileSchema.describe(
+					"The image document to open.",
+				),
+			}),
+		},
+		ClassicyAppPictureViewerOpenDocuments: {
+			description: "Open several image documents at once.",
+			params: z.object({
+				documents: z
+					.array(PictureViewerOpenFileSchema)
+					.describe("The image documents to open."),
+			}),
+		},
+		ClassicyAppPictureViewerCloseDocument: {
+			description: "Close the viewer window for an image document.",
+			params: z.object({
+				document: PictureViewerOpenFileSchema.describe(
+					"The image document to close, matched by url.",
+				),
+			}),
+		},
+		ClassicyAppPictureViewerOpenFile: {
+			description: "Open an image file from the file system by path.",
+			params: z.object({
+				path: z.string().describe("Path of the image file to open."),
+			}),
+		},
+		ClassicyAppPictureViewerCloseFile: {
+			description: "Close the viewer window for a file-system path.",
+			params: z.object({
+				path: z.string().describe("Path of the image file to close."),
+			}),
+		},
+	},
+	state: PictureViewerDataSchema,
+});

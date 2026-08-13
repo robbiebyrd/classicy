@@ -1,10 +1,13 @@
+import { z } from "zod";
 import { openApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
-import { registerAppEventHandler } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { registerApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
 import {
-	MoviePlayerAppInfo,
 	isMoviePlayerData,
+	MoviePlayerAppInfo,
 	type MoviePlayerData,
+	MoviePlayerDataSchema,
+	MoviePlayerOpenFileSchema,
 } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerUtils";
 
 export type ClassicyQuickTimeDocument = {
@@ -108,8 +111,51 @@ export const classicyQuickTimeMoviePlayerEventHandler = (
 };
 
 // Self-register so the kernel router can dispatch ClassicyAppMoviePlayer* events
-// without a hard-wired import.
-registerAppEventHandler(
-	"ClassicyAppMoviePlayer",
-	classicyQuickTimeMoviePlayerEventHandler,
-);
+// without a hard-wired import. registerApp also records the manifest (action
+// and state shapes with commentary) for balloon help, discovery, and dev-mode
+// kernel state validation.
+registerApp({
+	id: MoviePlayerAppInfo.id,
+	description: "QuickTime movie and audio player.",
+	prefix: "ClassicyAppMoviePlayer",
+	handler: classicyQuickTimeMoviePlayerEventHandler,
+	actions: {
+		ClassicyAppMoviePlayerOpenDocument: {
+			description: "Open a media document in a new player window.",
+			params: z.object({
+				document: MoviePlayerOpenFileSchema.describe(
+					"The media document to open.",
+				),
+			}),
+		},
+		ClassicyAppMoviePlayerOpenDocuments: {
+			description: "Open several media documents at once.",
+			params: z.object({
+				documents: z
+					.array(MoviePlayerOpenFileSchema)
+					.describe("The media documents to open."),
+			}),
+		},
+		ClassicyAppMoviePlayerCloseDocument: {
+			description: "Close the player window for a media document.",
+			params: z.object({
+				document: MoviePlayerOpenFileSchema.describe(
+					"The media document to close, matched by url.",
+				),
+			}),
+		},
+		ClassicyAppMoviePlayerOpenFile: {
+			description: "Open a media file from the file system by path.",
+			params: z.object({
+				path: z.string().describe("Path of the media file to open."),
+			}),
+		},
+		ClassicyAppMoviePlayerCloseFile: {
+			description: "Close the player window for a file-system path.",
+			params: z.object({
+				path: z.string().describe("Path of the media file to close."),
+			}),
+		},
+	},
+	state: MoviePlayerDataSchema,
+});
