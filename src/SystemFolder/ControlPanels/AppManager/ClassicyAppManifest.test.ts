@@ -9,10 +9,13 @@ import type {
 	ClassicyStore,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
+	describeAppAction,
+	describeAppState,
 	getAppManifest,
 	getScriptableAction,
 	listAppManifests,
 	listScriptableActions,
+	parseAppData,
 	registerApp,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
 
@@ -153,5 +156,79 @@ describe("scriptable actions", () => {
 		expect(getScriptableAction("ClassicyAppT2LateGo")?.appId).toBe(
 			"T2Late.app",
 		);
+	});
+});
+
+describe("manifest metadata walkers", () => {
+	const stateSchema = z.looseObject({
+		openPaths: z
+			.array(z.string())
+			.optional()
+			.describe("Folder paths with an open window."),
+		prefs: z
+			.looseObject({
+				sortBy: z.string().optional().describe("Active sort column."),
+			})
+			.optional()
+			.describe("Per-user view preferences."),
+		undescribed: z.number().optional(),
+	});
+
+	it("registers the walker fixture app", () => {
+		registerApp({
+			id: "T3Walk.app",
+			description: "Walker test app.",
+			actions: {
+				ClassicyAppT3WalkGo: { description: "Go somewhere." },
+			},
+			state: stateSchema,
+		});
+		expect(getAppManifest("T3Walk.app")).toBeDefined();
+	});
+
+	it("describeAppAction returns balloon-ready title/content", () => {
+		expect(describeAppAction("T3Walk.app", "ClassicyAppT3WalkGo")).toEqual({
+			title: "ClassicyAppT3WalkGo",
+			content: "Go somewhere.",
+		});
+		expect(
+			describeAppAction("T3Walk.app", "ClassicyAppT3WalkNope"),
+		).toBeUndefined();
+		expect(
+			describeAppAction("T3None.app", "ClassicyAppT3WalkGo"),
+		).toBeUndefined();
+	});
+
+	it("describeAppState resolves top-level and nested dot paths", () => {
+		expect(describeAppState("T3Walk.app", "openPaths")).toEqual({
+			title: "openPaths",
+			content: "Folder paths with an open window.",
+		});
+		expect(describeAppState("T3Walk.app", "prefs.sortBy")).toEqual({
+			title: "sortBy",
+			content: "Active sort column.",
+		});
+	});
+
+	it("describeAppState returns undefined for unknowns and undescribed fields", () => {
+		expect(describeAppState("T3Walk.app", "nope")).toBeUndefined();
+		expect(describeAppState("T3Walk.app", "prefs.nope")).toBeUndefined();
+		expect(describeAppState("T3Walk.app", "undescribed")).toBeUndefined();
+		expect(describeAppState("T3None.app", "openPaths")).toBeUndefined();
+	});
+
+	it("parseAppData validates, passes unknown keys through, and rejects malformed data", () => {
+		type T3Data = { openPaths?: string[] };
+		const good = parseAppData<T3Data & { extra?: string }>("T3Walk.app", {
+			openPaths: ["/a"],
+			extra: "kernel-written",
+		});
+		expect(good?.openPaths).toEqual(["/a"]);
+		expect(good?.extra).toBe("kernel-written");
+		expect(
+			parseAppData<T3Data>("T3Walk.app", { openPaths: "not-an-array" }),
+		).toBeUndefined();
+		expect(parseAppData<T3Data>("T3None.app", {})).toBeUndefined();
+		expect(parseAppData<T3Data>("T3Walk.app", undefined)).toEqual({});
 	});
 });

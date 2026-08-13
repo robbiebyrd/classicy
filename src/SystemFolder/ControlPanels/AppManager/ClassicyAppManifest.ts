@@ -164,3 +164,73 @@ export function getScriptableAction(
 ): ClassicyScriptableAction | undefined {
 	return buildScriptableIndex().get(type);
 }
+
+/**
+ * Strip wrapper schemas (optional/nullable/default/readonly) to reach the
+ * described inner schema. Zod stores wrappers' inner type on `def.innerType`.
+ */
+function unwrapSchema(schema: z.ZodType): z.ZodType {
+	let current = schema;
+	for (;;) {
+		const def = current.def as { innerType?: z.ZodType };
+		if (!def.innerType) return current;
+		current = def.innerType;
+	}
+}
+
+/** Read a schema's `.describe()` text, looking through wrappers. */
+function schemaDescription(schema: z.ZodType): string | undefined {
+	return schema.description ?? unwrapSchema(schema).description;
+}
+
+/**
+ * Balloon-ready `{ title, content }` for one of an app's declared actions.
+ * Feed directly to `ClassicyBalloonHelp`; undefined means "show no balloon".
+ */
+export function describeAppAction(
+	appId: string,
+	type: string,
+): { title: string; content: string } | undefined {
+	const entry = manifests.get(appId)?.actions[type];
+	if (!entry) return undefined;
+	return { title: type, content: entry.description };
+}
+
+/**
+ * Balloon-ready `{ title, content }` for a field of an app's state schema.
+ * `fieldPath` uses dot notation (`"prefs.sortBy"`). Undefined when the app,
+ * path, or a `.describe()` on the resolved field is missing.
+ */
+export function describeAppState(
+	appId: string,
+	fieldPath: string,
+): { title: string; content: string } | undefined {
+	const state = manifests.get(appId)?.state;
+	if (!state) return undefined;
+	const segments = fieldPath.split(".");
+	let current: z.ZodType = state;
+	for (const segment of segments) {
+		const unwrapped = unwrapSchema(current);
+		const shape = (unwrapped.def as { shape?: Record<string, z.ZodType> })
+			.shape;
+		const next = shape?.[segment];
+		if (!next) return undefined;
+		current = next;
+	}
+	const content = schemaDescription(current);
+	if (!content) return undefined;
+	return { title: segments[segments.length - 1], content };
+}
+
+/**
+ * Validated, typed read of an app's `apps[id].data` — the replacement for
+ * hand-rolled guards like `isFinderData`. Returns undefined when the app has
+ * no state schema or the data fails it; callers fall back to a default
+ * (`parseAppData<FinderData>(id, raw) ?? {}`).
+ */
+export function parseAppData<T>(appId: string, raw: unknown): T | undefined {
+	const state = manifests.get(appId)?.state;
+	if (!state) return undefined;
+	const result = state.safeParse(raw ?? {});
+	return result.success ? (result.data as T) : undefined;
+}
