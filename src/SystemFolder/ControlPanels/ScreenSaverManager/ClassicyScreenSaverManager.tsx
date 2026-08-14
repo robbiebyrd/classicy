@@ -91,6 +91,7 @@ export function ClassicyScreenSaverManager() {
 				initialSize={[420, 0]}
 				initialPosition={[320, 80]}
 				modal={false}
+				backgroundColor="var(--color-system-03)"
 				appMenu={[
 					{
 						id: `${APP_ID}_file`,
@@ -99,74 +100,76 @@ export function ClassicyScreenSaverManager() {
 					},
 				]}
 			>
-				<ClassicyControlGroup label="Screen Saver">
-					<ClassicyCheckbox
-						id="ScreenSaverManager_enabled"
-						label="Start screen saver when idle"
-						checked={isScreenSaverEnabled(saverData)}
-						onClickFunc={(checked) =>
-							dispatch({
-								type: "ClassicyAppScreenSaverSetEnabled",
-								enabled: checked,
-							})
-						}
-					/>
-					<ClassicyPopUpMenu
-						id="ScreenSaverManager_saver"
-						label="Screen saver"
-						labelPosition="left"
-						options={savers.map((s) => ({ value: s.id, label: s.name }))}
-						selected={selectedId}
-						onChangeFunc={(e) =>
-							dispatch({
-								type: "ClassicyAppScreenSaverSetSaver",
-								saverId: e.target.value,
-							})
-						}
-					/>
-					<ClassicySpinner
-						id="ScreenSaverManager_timeout"
-						labelTitle="Minutes of inactivity"
-						labelPosition="left"
-						minValue={SCREEN_SAVER_MIN_TIMEOUT_MINUTES}
-						maxValue={SCREEN_SAVER_MAX_TIMEOUT_MINUTES}
-						prefillValue={screenSaverTimeoutMinutes(saverData)}
-						onChangeFunc={(e) => {
-							const minutes = Number.parseInt(e.target.value, 10);
-							if (Number.isFinite(minutes)) {
+				<div style={{ padding: "var(--window-padding-size)" }}>
+					<ClassicyControlGroup label="Screen Saver">
+						<ClassicyCheckbox
+							id="ScreenSaverManager_enabled"
+							label="Start screen saver when idle"
+							checked={isScreenSaverEnabled(saverData)}
+							onClickFunc={(checked) =>
 								dispatch({
-									type: "ClassicyAppScreenSaverSetTimeout",
-									minutes,
-								});
+									type: "ClassicyAppScreenSaverSetEnabled",
+									enabled: checked,
+								})
 							}
-						}}
-					/>
-					<ClassicyButton
-						onClickFunc={() => dispatch({ type: SCREEN_SAVER_ACTIVATE_EVENT })}
-					>
-						Test
-					</ClassicyButton>
-				</ClassicyControlGroup>
-				{selected && (
-					// Keyed by saver id so option controls remount (and re-prefill)
-					// when a different saver is chosen.
-					<ClassicyControlGroup
-						key={selected.id}
-						label={`Options for ${selected.name}`}
-					>
-						{OptionsComponent ? (
-							<OptionsComponent config={config} onChange={onConfigChange} />
-						) : selected.configSchema ? (
-							<ClassicyScreenSaverConfigForm
-								saver={selected}
-								config={config}
-								onChange={onConfigChange}
-							/>
-						) : (
-							<span>This screen saver has no options.</span>
-						)}
+						/>
+						<ClassicyPopUpMenu
+							id="ScreenSaverManager_saver"
+							label="Screen saver"
+							labelPosition="left"
+							options={savers.map((s) => ({ value: s.id, label: s.name }))}
+							selected={selectedId}
+							onChangeFunc={(e) =>
+								dispatch({
+									type: "ClassicyAppScreenSaverSetSaver",
+									saverId: e.target.value,
+								})
+							}
+						/>
+						<ClassicySpinner
+							id="ScreenSaverManager_timeout"
+							labelTitle="Minutes of inactivity"
+							labelPosition="left"
+							minValue={SCREEN_SAVER_MIN_TIMEOUT_MINUTES}
+							maxValue={SCREEN_SAVER_MAX_TIMEOUT_MINUTES}
+							prefillValue={screenSaverTimeoutMinutes(saverData)}
+							onChangeFunc={(e) => {
+								const minutes = Number.parseInt(e.target.value, 10);
+								if (Number.isFinite(minutes)) {
+									dispatch({
+										type: "ClassicyAppScreenSaverSetTimeout",
+										minutes,
+									});
+								}
+							}}
+						/>
+						<ClassicyButton
+							onClickFunc={() => dispatch({ type: SCREEN_SAVER_ACTIVATE_EVENT })}
+						>
+							Test
+						</ClassicyButton>
 					</ClassicyControlGroup>
-				)}
+					{selected && (
+						// Keyed by saver id so option controls remount (and re-prefill)
+						// when a different saver is chosen.
+						<ClassicyControlGroup
+							key={selected.id}
+							label={`Options for ${selected.name}`}
+						>
+							{OptionsComponent ? (
+								<OptionsComponent config={config} onChange={onConfigChange} />
+							) : selected.configSchema ? (
+								<ClassicyScreenSaverConfigForm
+									saver={selected}
+									config={config}
+									onChange={onConfigChange}
+								/>
+							) : (
+								<span>This screen saver has no options.</span>
+							)}
+						</ClassicyControlGroup>
+					)}
+				</div>
 			</ClassicyWindow>
 		</ClassicyApp>
 	);
