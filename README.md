@@ -78,7 +78,7 @@ The proxy runs on `http://localhost:8765` by default. Enable it in the Browser a
 |          |                     | *Subject to change* |
 
 - Desktop
-    - ℹ️ The ubiquitous Finder
+    - ✅ The ubiquitous Finder
     - Menubar
         - ✅ System Menu
         - ✅ App Switcher
@@ -93,10 +93,10 @@ The proxy runs on `http://localhost:8765` by default. Enable it in the Browser a
     - ✅ Sound Provider
     - ✅ Load sound theme from JSON
     - ✅ Audio Sprites support
-    - ℹ️ Sound Manager Control Panel
-        - ℹ️ Sound Event Handler
+    - ✅ Sound Manager Control Panel
+        - ✅ Sound Event Handler
             - ✅ Event dispatcher/player
-            - ℹ️ Automatic event intercept and play for known events (map audio sprites to events)
+            - ✅ Automatic event intercept and play for known events (map audio sprites to events)
 - Appearance Manager Control Panel (Theme Manager)
     - ✅ Appearance Manager Control Panel
     - ✅ System
@@ -110,15 +110,15 @@ The proxy runs on `http://localhost:8765` by default. Enable it in the Browser a
         - ✅ Configurable color variables
     - ✅ Color Theme-able components
 - App Template
-    - ⚠️ App Context/Event Handler
-    - App Switcher
+    - ✅ App Context/Event Handler
+    - ✅ App Switcher
 - Window
     - Controls
         - ✅ Zoom
         - ✅ Resize
         - ✅ Collapse
         - ✅ Close
-        - Placard
+        - ✅ Placard
         - ✅ Header
     - Dialog
         - Modal
@@ -127,7 +127,7 @@ The proxy runs on `http://localhost:8765` by default. Enable it in the Browser a
                 - ✅ Non-movable
             - Alert
                 - ✅ Movable
-                - Non-movable
+                - ✅ Non-movable
         - ✅ Modeless
     - ✅ Standard
 - System
@@ -143,8 +143,8 @@ The proxy runs on `http://localhost:8765` by default. Enable it in the Browser a
     - Multi-select menu
     - ✅ Checkbox
     - ✅ Bevel Button
-    - Slider
-    - Spinner
+    - ✅ Slider
+    - ✅ Spinner
     - ✅ Date Picker
     - ✅ Time Picker
     - ✅ Expandable (Disclosure)
@@ -152,11 +152,12 @@ The proxy runs on `http://localhost:8765` by default. Enable it in the Browser a
     - ✅ Separator
     - ✅ Progress
     - ✅ Balloon Help (tooltip)
-    - Menu
-        - Contextual Menu
-        - Submenu
+    - ✅ Menu
+        - ✅ Desktop Menu
+        - ✅ Contextual Menu
+        - ✅ Submenu
     - Gallery Picker (Slider)
-    - Color Picker
+    - ✅ Color Picker
 
 ## Component Reference
 
@@ -165,6 +166,8 @@ All components are exported from the `classicy` package. Import them by name:
 ```tsx
 import { ClassicyWindow, ClassicyButton, ClassicyBalloonHelp } from 'classicy';
 ```
+
+> **Using an AI coding agent?** A complete machine-oriented reference to the public API — every component's props, app/event/icon registration, theming, analytics, sound, and the untrusted-action rules — ships with the package at [`docs/AGENT-REFERENCE.md`](docs/AGENT-REFERENCE.md) (`node_modules/classicy/docs/AGENT-REFERENCE.md`). Point your agent at it.
 
 ### Application Shell
 
