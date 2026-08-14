@@ -52,7 +52,8 @@
 	],
 	"sideEffects": [
 		"**/*.css",
-		"**/*.scss"
+		"**/*.scss",
+		"./src/SystemFolder/Extensions/ScreenSaver/savers/ClassicyScreenSaverBuiltIns.tsx"
 	],
 	"style": "./dist/classicy.css",
 	"exports": {
