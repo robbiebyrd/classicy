@@ -1,0 +1,31 @@
+.classicySaverLogo {
+	position: absolute;
+	inset: 0;
+}
+
+.classicySaverLogoMark {
+	/* 145px x 54px */
+	display: block;
+	position: absolute;
+	animation:
+		classicySaverLogoMoveX 5s linear 0s infinite alternate,
+		classicySaverLogoMoveY 6.3s linear 0s infinite alternate;
+}
+
+@keyframes classicySaverLogoMoveX {
+	from {
+		left: 0;
+	}
+	to {
+		left: calc(100% - 145px);
+	}
+}
+
+@keyframes classicySaverLogoMoveY {
+	from {
+		top: calc(100% - 54px);
+	}
+	to {
+		top: 0;
+	}
+}

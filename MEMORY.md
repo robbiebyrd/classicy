@@ -41,6 +41,14 @@
 - `minPaneSize` px (default 48) → clamped in exported pure fn `computeSplitViewSizes`
 - Mouse + keyboard only (no touch/pointer events); 29 tests, Storybook stories included
 
+## ScreenSaver Extension (added 2026-08-14)
+- `src/SystemFolder/Extensions/ScreenSaver/` — extension `ScreenSaver.app` + registry (`registerClassicyScreenSaver`, replace-on-reregister) + `savers/` (12 After Dark ports; CSS MIT, images © Berkeley Systems — user accepted as fair use)
+- Idle monitor: wall-clock refs + capture-phase listeners; NO store writes per event; transient `active` stripped in `sanitizeStateForPersistence`
+- Actions: `ClassicyAppScreenSaver{Activate(scriptable),Deactivate,SetSaver,SetTimeout,SetEnabled,SetConfig}`; config validated vs saver zod schema
+- Options UI two-tier: `configComponent` custom else schema-derived `ClassicyScreenSaverConfigForm` (number→spinner, bool→checkbox, enum→popup, string→input)
+- Control panel `ControlPanels/ScreenSaverManager/`; overlay z-index 100001; `transparentBackground` savers reveal live desktop
+- Gotcha: component vs registry type name collided in flat barrel → type is `ClassicyScreenSaverDefinition`
+
 ## Known Gaps / Potential Issues
 - No `useShallow` usage anywhere in the codebase — some selectors returning objects could benefit from it
 - Persistence writes synchronously on every state change — no debounce; could be improved for high-frequency events (window dragging, resizing)

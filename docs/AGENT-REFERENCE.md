@@ -800,6 +800,7 @@ Add a key to `ClassicySounds` and reference it from a theme, or dispatch
 |---|---|
 | `registerHyperCardPart` / `registerHyperCardCommand` / `registerHyperCardEffectHandler` / `registerHyperCardStack` / `registerHyperCardSaveProvider` (+ `registerHyperCardPartEditorMeta`, `registerHyperCardCommandEditorMeta`) | Extend HyperCard with custom parts, script commands, effects, preloaded stacks, and save backends |
 | `registerAppleGuideTopic(topic: HelpTopic)` | Add help topics to Apple Guide; open one programmatically by dispatching the exported `APPLE_GUIDE_SHOW_TOPIC_EVENT` action type; `getAppleGuideTopic(id)` reads back |
+| `registerClassicyScreenSaver(def)` | Add screensavers to the idle-activated Screen Saver extension (see "Screen savers" below) |
 | `ClassicyMenuBarExtension` | Add menu bar items (see §4.5) |
 | `classicyEditCommands`, `ensureEditTracker` | Programmatic Undo/Cut/Copy/Paste/Clear/Select All acting on the last-focused text field (native editing + Clipboard API); this is what `useClassicyEditMenu` uses — call directly from custom menus/toolbars |
 | `useFinderFolderSize`, `FinderContext` | Finder integration points |
@@ -825,6 +826,62 @@ Validate with `validateStack(raw)` →
 `HyperCardBuiltInStacks` as references. Save-provider authors can reuse
 `serializeStack`, `stackFileName`, `downloadStack`, or
 `registerDownloadSaveProvider()`.
+
+### Screen savers
+
+`ClassicyDesktop` auto-mounts the `ScreenSaver.app` extension: after
+`timeoutMinutes` of real-world inactivity (wall clock — independent of the
+Date & Time virtual clock) it covers the desktop with the selected
+screensaver; any input wakes it (the waking keystroke/click is swallowed).
+Twelve After Dark-style savers ship built in (ids: `bouncing-ball`,
+`fade-out`, `fish`, `flying-toasters`, `globe`, `hard-rain`, `logo`,
+`messages`, `messages2`, `rainstorm`, `spotlight`, `warp`). The "Screen
+Saver" control panel (part of `ClassicyControlPanels`) exposes saver choice,
+timeout, on/off, and per-saver options.
+
+Register your own at module scope (re-registering an id replaces it, so
+built-ins can be swapped out):
+
+```tsx
+import { registerClassicyScreenSaver } from 'classicy'
+import { z } from 'zod'
+
+registerClassicyScreenSaver({
+    id: 'matrix',
+    name: 'Matrix Rain',
+    component: MatrixRain,            // FC<{ config }>: full-viewport visuals
+    configSchema: z.looseObject({     // fields drive the auto-generated options form
+        columns: z.number().int().min(10).max(80).default(40)
+            .describe('Number of falling columns.'),
+    }),
+    configComponent: MatrixOptions,   // optional custom options UI (FC<{ config, onChange }>)
+    transparentBackground: false,     // true = reveal the live desktop (e.g. spotlight effects)
+})
+```
+
+Options UI is two-tier: a saver's `configComponent` wins; otherwise a form is
+derived from `configSchema` (number → spinner, boolean → checkbox, enum →
+pop-up menu, string → input, `.describe()` text as labels). `onChange`
+patches are dispatched as `ClassicyAppScreenSaverSetConfig` and validated
+against the schema; saved configs persist in
+`apps["ScreenSaver.app"].data.saverConfigs`.
+
+Commands (all trusted-dispatch; `Activate` is also scriptable from HyperCard
+stacks):
+
+| Action | Payload | Effect |
+|---|---|---|
+| `ClassicyAppScreenSaverActivate` | — | start the saver now (ignored while disabled) |
+| `ClassicyAppScreenSaverDeactivate` | — | dismiss it |
+| `ClassicyAppScreenSaverSetSaver` | `{ saverId }` | choose a registered saver |
+| `ClassicyAppScreenSaverSetTimeout` | `{ minutes }` | idle timeout (clamped 1–240) |
+| `ClassicyAppScreenSaverSetEnabled` | `{ enabled }` | master switch (off also dismisses) |
+| `ClassicyAppScreenSaverSetConfig` | `{ saverId, config }` | merge validated option values |
+
+Registry read side: `getClassicyScreenSaver(id)`,
+`listClassicyScreenSavers()` (name-sorted),
+`resolveScreenSaverConfig(saver, saved?)`. The `active` flag is transient and
+never persists — a reload always wakes up.
 
 ---
 

@@ -321,6 +321,7 @@ export const ClassicyIcons = {
 			quickdraw: icon("system/extensions/quickdraw.png"),
 			quicktime: icon("system/extensions/quicktime.png"),
 			quicktimeMpeg: icon("system/extensions/quicktime-mpeg.png"),
+			screensaver: icon("system/extensions/screensaver.png"),
 			soundManager: icon("system/extensions/sound-manager.png"),
 		},
 		files: {

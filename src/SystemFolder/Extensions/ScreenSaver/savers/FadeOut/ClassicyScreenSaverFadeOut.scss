@@ -1,0 +1,16 @@
+.classicySaverFadeOut {
+	position: absolute;
+	inset: 0;
+	background-color: black;
+	opacity: 0;
+	animation: classicySaverFadeOutFade 40s ease-out 1 forwards;
+}
+
+@keyframes classicySaverFadeOutFade {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}

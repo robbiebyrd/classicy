@@ -215,6 +215,37 @@ path is what stays free of user data.
 - The wrapper is `position: relative; display: inline-block`. If that would break your layout (e.g. an absolutely positioned element), use the `useClassicyBalloonHelp(ref, config)` hook instead — it returns `{ handlers, balloon }` to spread onto an element you already own, adding no DOM. `ClassicyDesktopIcon` does this.
 - Globally disabled by `System.Manager.Desktop.disableBalloonHelp` (Zustand store). Toggle with event `ClassicyDesktopSetBalloonHelp` — e.g. `dispatch({ type: 'ClassicyDesktopSetBalloonHelp', disableBalloonHelp: true })`
 
+### Screen Saver
+
+`ScreenSaver.app` (`src/SystemFolder/Extensions/ScreenSaver/`) is an extension
+mounted by `ClassicyDesktop` that idle-activates a full-viewport screensaver.
+Idle detection is **wall-clock** (document-level activity listeners + refs;
+independent of the Classicy virtual clock, and never writes the store per
+event — only the activate/deactivate transitions dispatch). The waking
+keystroke/click is swallowed in the capture phase.
+
+- State in `apps["ScreenSaver.app"].data`: `enabled` (default true),
+  `timeoutMinutes` (default 5, clamped 1–240), `selectedSaver` (default
+  `bouncing-ball`), `saverConfigs` (per-saver options), and transient `active`
+  (stripped in `sanitizeStateForPersistence`).
+- Actions (prefix `ClassicyAppScreenSaver`): `Activate` (scriptable),
+  `Deactivate`, `SetSaver { saverId }`, `SetTimeout { minutes }`,
+  `SetEnabled { enabled }`, `SetConfig { saverId, config }` (validated against
+  the saver's zod schema).
+- Register savers at module scope:
+  `registerClassicyScreenSaver({ id, name, component, configSchema?, defaultConfig?, configComponent?, transparentBackground? })`
+  (`ClassicyScreenSaverRegistry.tsx`). Re-registering an id replaces it.
+  Options UI is two-tier: a custom `configComponent`, else a form derived from
+  `configSchema` (`ClassicyScreenSaverConfigForm`). `transparentBackground`
+  savers (Fade Out, Spotlight) reveal the live desktop through the overlay.
+- 12 built-ins ported from bryanbraun/after-dark-css (`savers/`; CSS is MIT,
+  sprite art © Berkeley Systems). Keyframes/classes are prefixed
+  `classicySaver*` to avoid bundle-level CSS collisions.
+- The Screen Saver control panel
+  (`ControlPanels/ScreenSaverManager/`) is part of `ClassicyControlPanels`.
+- Overlay z-index is 100001 (above dialog overlay 99999 and startup 100000);
+  reduced-motion users get a paused (static) saver.
+
 ### Split Views
 
 `ClassicySplitView` (`src/SystemFolder/SystemResources/SplitView/`) is a

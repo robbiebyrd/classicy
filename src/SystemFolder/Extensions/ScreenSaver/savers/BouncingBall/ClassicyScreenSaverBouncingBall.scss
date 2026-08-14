@@ -1,0 +1,31 @@
+.classicySaverBouncingBall {
+	position: absolute;
+	inset: 0;
+}
+
+.classicySaverBouncingBallBall {
+	position: absolute;
+	display: block;
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	background-color: white;
+}
+
+@keyframes classicySaverBallMoveX {
+	from {
+		left: calc(100% - 40px);
+	}
+	to {
+		left: 0;
+	}
+}
+
+@keyframes classicySaverBallMoveY {
+	from {
+		top: 0;
+	}
+	to {
+		top: calc(100% - 40px);
+	}
+}

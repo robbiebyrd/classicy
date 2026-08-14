@@ -1,0 +1,45 @@
+.classicySaverGlobe {
+	position: absolute;
+	inset: 0;
+}
+
+.classicySaverGlobeBall {
+	display: block;
+	width: 240px;
+	height: 240px;
+	position: absolute;
+	background-color: black;
+	background-image: var(--classicy-saver-globe);
+	border-radius: 50%;
+	animation:
+		classicySaverGlobeMoveX 3s linear 0s infinite alternate,
+		classicySaverGlobeMoveY 3.4s linear 0s infinite alternate,
+		classicySaverGlobeSpin 1.4s steps(21) infinite;
+}
+
+@keyframes classicySaverGlobeMoveX {
+	from {
+		left: calc(100% - 240px);
+	}
+	to {
+		left: 0;
+	}
+}
+
+@keyframes classicySaverGlobeMoveY {
+	from {
+		top: calc(100% - 240px);
+	}
+	to {
+		top: 0;
+	}
+}
+
+@keyframes classicySaverGlobeSpin {
+	from {
+		background-position: -5040px;
+	}
+	to {
+		background-position: 0px;
+	}
+}

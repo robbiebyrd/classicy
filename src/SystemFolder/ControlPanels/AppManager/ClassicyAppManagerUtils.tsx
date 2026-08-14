@@ -177,6 +177,13 @@ export function sanitizeStateForPersistence(
 				}
 			}
 		}
+		// The screensaver's `active` flag is session-only: persisting it would
+		// boot a reloaded desktop straight into a running screensaver.
+		const screenSaverApp =
+			draft.System.Manager.Applications.apps["ScreenSaver.app"];
+		if (screenSaverApp?.data && "active" in screenSaverApp.data) {
+			delete (screenSaverApp.data as Record<string, unknown>).active;
+		}
 		// Boot parade icons are session-only: owners re-register them on every
 		// mount, so persisting them would resurrect icons whose owner removed
 		// its bootIcon prop.

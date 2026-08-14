@@ -97,6 +97,10 @@ The proxy runs on `http://localhost:8765` by default. Enable it in the Browser a
         - ✅ Sound Event Handler
             - ✅ Event dispatcher/player
             - ✅ Automatic event intercept and play for known events (map audio sprites to events)
+- Screen Saver
+    - ✅ Idle-activated full-screen screensavers (After Dark CSS ports: Flying Toasters, Fish, Warp, and 9 more)
+    - ✅ Screen Saver Control Panel (pick saver, timeout, per-saver options)
+    - ✅ `registerClassicyScreenSaver` API with custom or schema-derived options UI
 - Appearance Manager Control Panel (Theme Manager)
     - ✅ Appearance Manager Control Panel
     - ✅ System
@@ -178,6 +182,7 @@ import { ClassicyWindow, ClassicyButton, ClassicyBalloonHelp } from 'classicy';
 | `ClassicyApp` | Application container. Props: `id`, `name`, `icon`, `defaultWindow` |
 | `ClassicyWindow` | Window chrome with title bar and controls. Props: `id`, `appId`, `title`, `closable`, `zoomable`, `collapsable`, `resizable`, `modal`, `initialSize`, `initialPosition`, `minimumSize` |
 | `ClassicyBoot` | Boot screen shown on first load |
+| `ClassicyScreenSaver` | Idle-activated screensaver extension (auto-mounted by `ClassicyDesktop`); register your own savers with `registerClassicyScreenSaver` |
 | `ClassicyAboutWindow` | Standard "About This App" dialog. Props: `appId`, `appName`, `appIcon` |
 
 ### Inputs

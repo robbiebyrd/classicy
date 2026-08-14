@@ -1,0 +1,33 @@
+.classicySaverWarp {
+	position: absolute;
+	inset: 0;
+}
+
+.classicySaverWarpStars {
+	position: absolute;
+	inset: 0;
+	background: var(--classicy-saver-warp-stars) no-repeat center center;
+	background-size: cover;
+	animation: classicySaverWarpZoom 2s infinite;
+	opacity: 0;
+}
+
+@keyframes classicySaverWarpZoom {
+	0% {
+		opacity: 0;
+		transform: scale(0.5);
+		animation-timing-function: ease-in;
+	}
+	50% {
+		opacity: 1;
+	}
+	85% {
+		opacity: 1;
+		transform: scale(2.8);
+		animation-timing-function: linear;
+	}
+	100% {
+		opacity: 0;
+		transform: scale(3.5);
+	}
+}

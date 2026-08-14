@@ -1,0 +1,29 @@
+.classicySaverSpotlight {
+	position: absolute;
+	inset: 0;
+}
+
+.classicySaverSpotlightMask {
+	position: absolute;
+	animation:
+		classicySaverSpotlightMoveX 5s linear 0s infinite alternate,
+		classicySaverSpotlightMoveY 5.6s linear 0s infinite alternate;
+}
+
+@keyframes classicySaverSpotlightMoveX {
+	from {
+		left: -2370px;
+	}
+	to {
+		left: calc(100% - 2630px);
+	}
+}
+
+@keyframes classicySaverSpotlightMoveY {
+	from {
+		top: -1570px;
+	}
+	to {
+		top: calc(100% - 1830px);
+	}
+}

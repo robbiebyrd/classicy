@@ -1,0 +1,148 @@
+.classicySaverFish {
+	position: absolute;
+	inset: 0;
+	background-color: black;
+	background-image: var(--classicy-saver-fish-seafloor);
+	background-position: bottom;
+	background-repeat: repeat-x;
+}
+
+.classicySaverFishBubbles {
+	position: absolute;
+	bottom: -60px;
+	display: block;
+	width: 50px;
+	height: 56px;
+	background-repeat: no-repeat;
+	background-image: var(--classicy-saver-fish-bubbles);
+	animation:
+		classicySaverFishRise 13s linear infinite,
+		classicySaverFishReappear 39s steps(3) linear infinite,
+		classicySaverFishBubbleAlt 0.2s steps(2) infinite;
+}
+
+.classicySaverFishFish {
+	position: absolute;
+	width: 145px;
+	height: 145px;
+	/* off-canvas starting position */
+	left: -50%;
+}
+
+/* Routes: direction, speed, and delay variants from the original. */
+.classicySaverFishRoute-ltr {
+	animation:
+		classicySaverFishLtr 26s linear infinite,
+		classicySaverFishToggle 0.2s steps(2) infinite;
+}
+.classicySaverFishRoute-ltrDelay1 {
+	animation:
+		classicySaverFishLtr 26s 4s linear infinite,
+		classicySaverFishToggle 0.2s steps(2) infinite;
+}
+.classicySaverFishRoute-ltrDelay2 {
+	animation:
+		classicySaverFishLtr 26s 8s linear infinite,
+		classicySaverFishToggle 0.2s steps(2) infinite;
+}
+.classicySaverFishRoute-ltrFast {
+	animation:
+		classicySaverFishLtr 17s linear infinite,
+		classicySaverFishToggle 0.2s steps(2) infinite;
+}
+.classicySaverFishRoute-rtl {
+	animation:
+		classicySaverFishRtl 26s linear infinite,
+		classicySaverFishToggle 0.2s steps(2) infinite;
+}
+.classicySaverFishRoute-rtlDelay1 {
+	animation:
+		classicySaverFishRtl 26s 4s linear infinite,
+		classicySaverFishToggle 0.2s steps(2) infinite;
+}
+.classicySaverFishRoute-rtlDelay2 {
+	animation:
+		classicySaverFishRtl 26s 7s linear infinite,
+		classicySaverFishToggle 0.2s steps(2) infinite;
+}
+.classicySaverFishRoute-rtlFast {
+	animation:
+		classicySaverFishRtl 17s linear infinite,
+		classicySaverFishToggle 0.2s steps(2) infinite;
+}
+
+/* Swim across, flip at the far edge, swim back. */
+@keyframes classicySaverFishLtr {
+	0% {
+		left: -30%;
+	}
+	50% {
+		left: 110%;
+	}
+	51% {
+		transform: rotateY(0);
+	}
+	52% {
+		transform: rotateY(180deg);
+	}
+	100% {
+		transform: rotateY(180deg);
+		left: -30%;
+	}
+}
+
+@keyframes classicySaverFishRtl {
+	0% {
+		transform: rotateY(180deg);
+		left: 110%;
+	}
+	50% {
+		left: -30%;
+	}
+	51% {
+		transform: rotateY(180deg);
+	}
+	52% {
+		transform: rotateY(0);
+	}
+	100% {
+		left: 110%;
+	}
+}
+
+@keyframes classicySaverFishRise {
+	from {
+		transform: translate(0, 0);
+	}
+	to {
+		transform: translate(0, -1800px);
+	}
+}
+
+@keyframes classicySaverFishReappear {
+	from {
+		left: 20%;
+	}
+	to {
+		left: 80%;
+	}
+}
+
+@keyframes classicySaverFishBubbleAlt {
+	from {
+		background-position: 0;
+	}
+	to {
+		background-position: -100px;
+	}
+}
+
+/* Two-frame sprite strips, 145px per frame. */
+@keyframes classicySaverFishToggle {
+	from {
+		background-position: 0;
+	}
+	to {
+		background-position: -290px;
+	}
+}

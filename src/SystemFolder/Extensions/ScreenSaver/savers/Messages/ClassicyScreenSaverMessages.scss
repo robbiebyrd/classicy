@@ -1,0 +1,37 @@
+.classicySaverMessages {
+	position: absolute;
+	inset: 0;
+}
+
+.classicySaverMessagesText {
+	display: block;
+	width: 100%;
+	white-space: nowrap;
+	overflow: hidden;
+	animation:
+		classicySaverMessagesMarquee var(--classicy-saver-messages-speed, 10s)
+			linear infinite,
+		classicySaverMessagesMove 30s steps(3) infinite;
+	font-family: var(--ui-font, "Times New Roman", serif);
+	font-size: 20px;
+	color: white;
+	position: absolute;
+}
+
+@keyframes classicySaverMessagesMarquee {
+	0% {
+		text-indent: 100%;
+	}
+	100% {
+		text-indent: -150px;
+	}
+}
+
+@keyframes classicySaverMessagesMove {
+	from {
+		top: 20%;
+	}
+	to {
+		top: 100%;
+	}
+}

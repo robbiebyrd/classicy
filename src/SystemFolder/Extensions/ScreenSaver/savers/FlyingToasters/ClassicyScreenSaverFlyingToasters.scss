@@ -1,0 +1,100 @@
+.classicySaverFlyingToasters {
+	position: absolute;
+	inset: 0;
+}
+
+.classicySaverFlyingToastersToaster {
+	position: absolute;
+	width: 64px;
+	height: 64px;
+	background-image: var(--classicy-saver-toaster);
+}
+
+.classicySaverFlyingToastersToast {
+	position: absolute;
+	width: 64px;
+	height: 64px;
+	background-image: var(--classicy-saver-toast);
+}
+
+/**
+ * Toaster speed variants: t1 fastest, t2 mid (flapping out of phase), t3 the
+ * common speed, t4–t9 delayed waves. Toast (tst*) glides without flapping.
+ */
+.classicySaverFlyingToastersVariant-t1 {
+	animation:
+		classicySaverFlyingToastersFlap 0.2s steps(4) infinite alternate,
+		classicySaverFlyingToastersFly 10s linear infinite;
+}
+.classicySaverFlyingToastersVariant-t2 {
+	animation:
+		classicySaverFlyingToastersFlap 0.2s steps(4) infinite alternate-reverse,
+		classicySaverFlyingToastersFly 16s linear infinite;
+}
+.classicySaverFlyingToastersVariant-t3 {
+	animation:
+		classicySaverFlyingToastersFlap 0.2s steps(4) infinite alternate,
+		classicySaverFlyingToastersFly 24s linear infinite;
+}
+.classicySaverFlyingToastersVariant-t4 {
+	animation:
+		classicySaverFlyingToastersFlap 0.2s steps(4) infinite alternate,
+		classicySaverFlyingToastersFly 10s 5s linear infinite;
+}
+.classicySaverFlyingToastersVariant-t5 {
+	animation:
+		classicySaverFlyingToastersFlap 0.2s steps(4) infinite alternate-reverse,
+		classicySaverFlyingToastersFly 24s 4s linear infinite;
+}
+.classicySaverFlyingToastersVariant-t6 {
+	animation:
+		classicySaverFlyingToastersFlap 0.2s steps(4) infinite alternate,
+		classicySaverFlyingToastersFly 24s 8s linear infinite;
+}
+.classicySaverFlyingToastersVariant-t7 {
+	animation:
+		classicySaverFlyingToastersFlap 0.2s steps(4) infinite alternate-reverse,
+		classicySaverFlyingToastersFly 24s 12s linear infinite;
+}
+.classicySaverFlyingToastersVariant-t8 {
+	animation:
+		classicySaverFlyingToastersFlap 0.2s steps(4) infinite alternate,
+		classicySaverFlyingToastersFly 24s 16s linear infinite;
+}
+.classicySaverFlyingToastersVariant-t9 {
+	animation:
+		classicySaverFlyingToastersFlap 0.2s steps(4) infinite alternate-reverse,
+		classicySaverFlyingToastersFly 24s 20s linear infinite;
+}
+
+.classicySaverFlyingToastersVariant-tst1 {
+	animation: classicySaverFlyingToastersFly 10s linear infinite;
+}
+.classicySaverFlyingToastersVariant-tst2 {
+	animation: classicySaverFlyingToastersFly 16s linear infinite;
+}
+.classicySaverFlyingToastersVariant-tst3 {
+	animation: classicySaverFlyingToastersFly 24s linear infinite;
+}
+.classicySaverFlyingToastersVariant-tst4 {
+	animation: classicySaverFlyingToastersFly 24s 12s linear infinite;
+}
+
+@keyframes classicySaverFlyingToastersFlap {
+	from {
+		background-position: 0px;
+	}
+	to {
+		background-position: -256px;
+	}
+}
+
+/* Glide 1600px down-left to accommodate large screens. */
+@keyframes classicySaverFlyingToastersFly {
+	from {
+		transform: translate(0, 0);
+	}
+	to {
+		transform: translate(-1600px, 1600px);
+	}
+}

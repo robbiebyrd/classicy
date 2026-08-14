@@ -1,0 +1,49 @@
+.classicySaverRainstorm {
+	position: absolute;
+	inset: 0;
+	overflow: hidden;
+	background: black;
+}
+
+.classicySaverRainstormLightning {
+	animation: classicySaverRainstormFlash linear 8s infinite;
+}
+
+.classicySaverRainstormRain {
+	position: absolute;
+	width: 3004px; /* (2560 + 1244) */
+	height: 4800px;
+	top: -4800px;
+	left: -1244px;
+	background: var(--classicy-saver-rain-tile) repeat;
+	animation-name: classicySaverRainstormFall;
+	animation-timing-function: linear;
+	animation-iteration-count: infinite;
+}
+
+/**
+ * Assumes a max screen of 2560x1600: the sheet falls its own height plus the
+ * screen height (4800 + 1600), drifting 1244px sideways to keep the angle.
+ */
+@keyframes classicySaverRainstormFall {
+	from {
+		transform: translate(0, 0);
+	}
+	to {
+		transform: translate(1244px, 6400px);
+	}
+}
+
+@keyframes classicySaverRainstormFlash {
+	0% {
+	}
+	98% {
+		background: black;
+	}
+	99% {
+		background: white;
+	}
+	100% {
+		background: black;
+	}
+}

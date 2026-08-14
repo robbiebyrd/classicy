@@ -1,0 +1,24 @@
+.classicyScreenSaverOverlay {
+	position: fixed;
+	inset: 0;
+	/* Above the dialog overlay (99999) and startup screen (100000): the saver
+	   covers everything a user could otherwise read while away. */
+	z-index: 100001;
+	overflow: hidden;
+	cursor: none;
+	background: var(--color-black, #000);
+	user-select: none;
+}
+
+/* Savers that dim or reveal the live desktop (Fade Out, Spotlight). */
+.classicyScreenSaverOverlayTransparent {
+	background: transparent;
+}
+
+/* A frozen screensaver is still a screensaver; honor reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+	.classicyScreenSaverOverlay *,
+	.classicyScreenSaverOverlay {
+		animation-play-state: paused !important;
+	}
+}

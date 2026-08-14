@@ -8,6 +8,7 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyControlPanels } from "@/SystemFolder/ControlPanels/ClassicyControlPanels";
 import { AppleGuide } from "@/SystemFolder/Extensions/AppleGuide/AppleGuide";
+import { ClassicyScreenSaver } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaver";
 import { Finder } from "@/SystemFolder/Finder/Finder";
 import { HyperCard } from "@/SystemFolder/HyperCard/HyperCard";
 import { PDFViewer } from "@/SystemFolder/PDFViewer/PDFViewer";
@@ -491,6 +492,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 			<ClassicyDesktopMenuBar />
 			<Finder />
 			<AppleGuide />
+			<ClassicyScreenSaver />
 			{!disableSimpleText && <SimpleText />}
 			{!disablePDFViewer && <PDFViewer />}
 			{!disableHyperCard && <HyperCard />}
