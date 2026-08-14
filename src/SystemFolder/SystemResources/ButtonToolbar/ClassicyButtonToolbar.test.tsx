@@ -421,3 +421,62 @@ describe("ClassicyButtonToolbar roving tabindex", () => {
 		expect(tabStops()).toEqual([a]);
 	});
 });
+
+describe("ClassicyButtonToolbar size", () => {
+	const toolbar = (container: HTMLElement) =>
+		container.querySelector(".classicyButtonToolbar") as HTMLElement;
+
+	it("renders no size modifier class by default (large)", () => {
+		const { container } = render(
+			<ClassicyButtonToolbar>
+				<button type="button">A</button>
+			</ClassicyButtonToolbar>,
+		);
+		expect(toolbar(container).className).toBe("classicyButtonToolbar");
+	});
+
+	it("renders no size modifier class for an explicit size=large", () => {
+		const { container } = render(
+			<ClassicyButtonToolbar size="large">
+				<button type="button">A</button>
+			</ClassicyButtonToolbar>,
+		);
+		expect(toolbar(container).className).toBe("classicyButtonToolbar");
+	});
+
+	it("adds the medium modifier class for size=medium", () => {
+		const { container } = render(
+			<ClassicyButtonToolbar size="medium">
+				<button type="button">A</button>
+			</ClassicyButtonToolbar>,
+		);
+		expect(toolbar(container)).toHaveClass(
+			"classicyButtonToolbar",
+			"classicyButtonToolbarSizeMedium",
+		);
+	});
+
+	it("adds the small modifier class for size=small", () => {
+		const { container } = render(
+			<ClassicyButtonToolbar size="small">
+				<button type="button">A</button>
+			</ClassicyButtonToolbar>,
+		);
+		expect(toolbar(container)).toHaveClass(
+			"classicyButtonToolbar",
+			"classicyButtonToolbarSizeSmall",
+		);
+	});
+
+	it("merges a size modifier with a consumer className", () => {
+		const { container } = render(
+			<ClassicyButtonToolbar size="small" className="myToolbar">
+				<button type="button">A</button>
+			</ClassicyButtonToolbar>,
+		);
+		expect(toolbar(container)).toHaveClass(
+			"classicyButtonToolbarSizeSmall",
+			"myToolbar",
+		);
+	});
+});

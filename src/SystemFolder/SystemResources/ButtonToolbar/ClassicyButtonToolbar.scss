@@ -10,6 +10,44 @@
   flex-wrap: nowrap;
 }
 
+// --- Size variants -----------------------------------------------------------
+// The toolbar sizes its controls as a unit; individual buttons don't take a
+// size prop. `large` is the unmodified base style (no class). All metrics
+// derive from the same theme tokens the base control styles use, so the
+// variants track the theme. Square boxes step 4x / 3x / 2x of
+// --window-control-size; `small` deliberately matches ClassicyButton's small
+// metrics (2x box, --ui-font-size / 1.5) so small toolbars line up with small
+// buttons. Bevel width is NOT scaled here — that stays the per-button
+// `bevelWidth` prop, since CSS can't tell an explicit `medium` from the
+// default.
+.classicyButtonToolbarSizeMedium {
+  .classicyBevelButton {
+    gap: calc(var(--window-padding-size) / 3);
+    padding: calc(var(--window-padding-size) / 3)
+      calc(var(--window-padding-size) / 1.5);
+    font-size: calc(var(--ui-font-size) / 1.2);
+
+    &.classicyBevelButtonSquare {
+      width: calc(var(--window-control-size) * 3);
+      padding: calc(var(--window-padding-size) / 3);
+    }
+  }
+}
+
+.classicyButtonToolbarSizeSmall {
+  .classicyBevelButton {
+    gap: calc(var(--window-padding-size) / 4);
+    padding: calc(var(--window-padding-size) / 4)
+      calc(var(--window-padding-size) / 2);
+    font-size: calc(var(--ui-font-size) / 1.5);
+
+    &.classicyBevelButtonSquare {
+      width: calc(var(--window-control-size) * 2);
+      padding: calc(var(--window-padding-size) / 4);
+    }
+  }
+}
+
 .classicyButtonToolbarGroup {
   display: flex;
   flex-direction: row;

@@ -98,3 +98,23 @@ export const ToggleAndRadioGroups: Story = {
 		);
 	},
 };
+
+// All three sizes stacked for comparison. `large` is the default; `medium`
+// and `small` scale every control in the toolbar as a unit.
+export const Sizes: Story = {
+	render: () => (
+		<div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+			{(["large", "medium", "small"] as const).map((size) => (
+				<ClassicyButtonToolbar key={size} size={size}>
+					<ClassicyButtonToolbarGroup>
+						<ClassicyBevelButton icon={icon} iconAlt="Back" />
+						<ClassicyBevelButton icon={icon} iconAlt="Forward" />
+					</ClassicyButtonToolbarGroup>
+					<ClassicyButtonToolbarGroup>
+						<ClassicyBevelButton>Subscribe</ClassicyBevelButton>
+					</ClassicyButtonToolbarGroup>
+				</ClassicyButtonToolbar>
+			))}
+		</div>
+	),
+};

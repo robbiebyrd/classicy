@@ -28,9 +28,19 @@ import { ClassicySeparator } from "@/SystemFolder/SystemResources/Separator/Clas
  */
 const TOOLBAR_CONTROL_SELECTOR = "button:not(:disabled)";
 
+/**
+ * Control sizing for every button in the toolbar. `large` is the classic
+ * toolbar look and the default; `medium` and `small` shrink the controls'
+ * box, padding, and type. Small matches `ClassicyButton`'s small metrics so
+ * a small toolbar lines up with small buttons in the same window.
+ */
+export type ClassicyButtonToolbarSize = "large" | "medium" | "small";
+
 export type ClassicyButtonToolbarProps = {
 	/** Extra class names merged onto the toolbar element. */
 	className?: string;
+	/** Button sizing; see {@link ClassicyButtonToolbarSize}. Default `large`. */
+	size?: ClassicyButtonToolbarSize;
 	children: ReactNode;
 };
 
@@ -65,6 +75,11 @@ export const ClassicyButtonToolbarGroup: FunctionalComponent<
  * Children are normally `ClassicyButtonToolbarGroup`s, but any element works.
  * A control placed directly in the toolbar is treated as its own group, so it
  * gets dividers on both sides.
+ *
+ * `size` scales every control in the toolbar as a unit (`large` default,
+ * `medium`, `small`) — sizing is per-toolbar, not per-button, so a toolbar's
+ * controls always match. It's applied in CSS off theme tokens, so arbitrary
+ * children are scaled without the toolbar touching them.
  *
  * Inside a toolbar, an icon-only `ClassicyBevelButton` defaults to a square
  * box; a button with text keeps its rectangular shape. Passing `square`
@@ -109,9 +124,18 @@ export const ClassicyButtonToolbarGroup: FunctionalComponent<
  *     </ClassicyButtonToolbarGroup>
  * </ClassicyButtonToolbar>
  */
+// `large` is the unmodified base style, so only the non-default sizes carry a
+// modifier class — same shape as ClassicyButton's buttonSize handling.
+const toolbarSizeClass: Record<ClassicyButtonToolbarSize, string | undefined> =
+	{
+		large: undefined,
+		medium: "classicyButtonToolbarSizeMedium",
+		small: "classicyButtonToolbarSizeSmall",
+	};
+
 export const ClassicyButtonToolbar: FunctionalComponent<
 	ClassicyButtonToolbarProps
-> = ({ className, children }) => {
+> = ({ className, size = "large", children }) => {
 	// toArray drops null/undefined/booleans and assigns stable keys, so a
 	// conditionally-rendered group never leaves a stray divider behind.
 	const items = Children.toArray(children);
@@ -260,7 +284,11 @@ export const ClassicyButtonToolbar: FunctionalComponent<
 				ref={toolbarRef}
 				role="toolbar"
 				aria-orientation="horizontal"
-				className={classNames("classicyButtonToolbar", className)}
+				className={classNames(
+					"classicyButtonToolbar",
+					toolbarSizeClass[size],
+					className,
+				)}
 				onKeyDown={handleKeyDown}
 				onFocus={handleFocus}
 			>
