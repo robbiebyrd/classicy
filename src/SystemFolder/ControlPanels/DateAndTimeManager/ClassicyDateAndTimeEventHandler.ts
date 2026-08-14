@@ -6,6 +6,7 @@ import type {
 	ActionMessage,
 	ClassicyStore,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 /**
  * Clamp `date` into the configured [minDateTime, maxDateTime] window, store it
@@ -37,8 +38,10 @@ export const classicyDateTimeManagerEventHandler = (
 	switch (action.type) {
 		case "ClassicyManagerDateTimeSet": {
 			if (!hasDateTime(action)) {
-				console.error(
-					"[classicyDateTimeManagerEventHandler] Expected a Date for dateTime",
+				classicyLog(
+					"error",
+					"classicyDateTimeManagerEventHandler",
+					"Expected a Date for dateTime",
 					{ received: action.dateTime, receivedType: typeof action.dateTime },
 				);
 				break;
@@ -48,16 +51,20 @@ export const classicyDateTimeManagerEventHandler = (
 		}
 		case "ClassicyManagerDateTimeTZSet": {
 			if (!hasTzOffset(action)) {
-				console.error(
-					"[classicyDateTimeManagerEventHandler] Invalid tzOffset:",
+				classicyLog(
+					"error",
+					"classicyDateTimeManagerEventHandler",
+					"Invalid tzOffset:",
 					action.tzOffset,
 				);
 				break;
 			}
 			const offset = Number(action.tzOffset);
 			if (!Number.isFinite(offset) || offset < -12 || offset > 14) {
-				console.error(
-					"[classicyDateTimeManagerEventHandler] Invalid tzOffset:",
+				classicyLog(
+					"error",
+					"classicyDateTimeManagerEventHandler",
+					"Invalid tzOffset:",
 					action.tzOffset,
 				);
 				break;

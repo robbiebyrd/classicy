@@ -23,6 +23,7 @@ import {
 import { MoviePlayerAppInfo } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerUtils";
 import { classicyDesktopEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import { isValidHttpUrl } from "@/SystemFolder/SystemResources/Utils/urlValidation";
 
 export const FinderDataSchema = z.looseObject({
@@ -141,10 +142,15 @@ export const classicyFinderEventHandler = (
 							? JSON.parse(file._data)
 							: file._data;
 				} catch (error: unknown) {
-					console.warn("ClassicyFinder: failed to parse QuickTime file data", {
-						error,
-						file,
-					});
+					classicyLog(
+						"warn",
+						"ClassicyFinder",
+						"failed to parse QuickTime file data",
+						{
+							error,
+							file,
+						},
+					);
 				}
 				if (
 					typeof document === "object" &&

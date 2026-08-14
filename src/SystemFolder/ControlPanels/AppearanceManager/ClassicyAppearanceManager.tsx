@@ -1,3 +1,4 @@
+import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import "./ClassicyAppearanceManager.scss";
 import {
 	type ChangeEvent,
@@ -83,9 +84,14 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 			const soundTheme = getTheme(themeName).sound;
 			const data = ClassicySounds[soundTheme.name];
 			if (!data) {
-				console.error("[ClassicyAppearanceManager] Sound theme not found", {
-					name: soundTheme.name,
-				});
+				classicyLog(
+					"error",
+					"ClassicyAppearanceManager",
+					"Sound theme not found",
+					{
+						name: soundTheme.name,
+					},
+				);
 				return;
 			}
 			player({

@@ -19,6 +19,7 @@ import {
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { isValidFileSystemEntry } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemValidation";
 import { DefaultFSContent } from "@/SystemFolder/SystemResources/File/DefaultClassicyFileSystem";
+import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import { decompressFromBase64 } from "@/SystemFolder/SystemResources/Utils/base64Compression";
 import { deepMergeReplacingArrays } from "@/SystemFolder/SystemResources/Utils/deepMerge";
 
@@ -96,12 +97,19 @@ export class ClassicyFileSystem {
 				if (isValidFileSystemEntry(parsed)) {
 					this.fs = parsed;
 				} else {
-					console.warn(
-						"[ClassicyFileSystem] localStorage data failed validation, using defaults",
+					classicyLog(
+						"warn",
+						"ClassicyFileSystem",
+						"localStorage data failed validation, using defaults",
 					);
 				}
 			} catch (e) {
-				console.error("Failed to parse localStorage data, using defaults:", e);
+				classicyLog(
+					"error",
+					"ClassicyFileSystem",
+					"Failed to parse localStorage data, using defaults:",
+					e,
+				);
 			}
 		}
 
@@ -123,8 +131,10 @@ export class ClassicyFileSystem {
 			this.fs = parsed;
 			this.notifyMutation("load", "");
 		} catch (error) {
-			console.error(
-				"[ClassicyFileSystem] Failed to parse data in load()",
+			classicyLog(
+				"error",
+				"ClassicyFileSystem",
+				"Failed to parse data in load()",
 				error,
 			);
 			throw error;
@@ -140,8 +150,10 @@ export class ClassicyFileSystem {
 		try {
 			localStorage.setItem(this.storageKey, this.snapshot());
 		} catch (error) {
-			console.error(
-				"[ClassicyFileSystem] Failed to persist filesystem to localStorage.",
+			classicyLog(
+				"error",
+				"ClassicyFileSystem",
+				"Failed to persist filesystem to localStorage.",
 				error,
 			);
 		}
@@ -267,8 +279,10 @@ export class ClassicyFileSystem {
 				const result = await adapter.reconcile(local);
 				if (result?.action !== "replace") continue;
 				if (!isValidFileSystemEntry(result.tree)) {
-					console.error(
-						`[ClassicyFileSystem] adapter "${adapter.id}" reconcile returned an invalid tree; keeping local`,
+					classicyLog(
+						"error",
+						"ClassicyFileSystem",
+						`adapter "${adapter.id}" reconcile returned an invalid tree; keeping local`,
 					);
 					continue;
 				}
@@ -276,8 +290,10 @@ export class ClassicyFileSystem {
 				this.flushNow();
 				return true;
 			} catch (error) {
-				console.error(
-					`[ClassicyFileSystem] adapter "${adapter.id}" failed in reconcile`,
+				classicyLog(
+					"error",
+					"ClassicyFileSystem",
+					`adapter "${adapter.id}" failed in reconcile`,
 					error,
 				);
 			}

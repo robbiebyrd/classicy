@@ -8,6 +8,7 @@ import {
 	type SoundData,
 	SoundDataSchema,
 } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundSchema";
+import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import { DEFAULT_ALERT_SOUND } from "./ClassicyAlertSounds";
 import soundLabels from "./ClassicySoundManagerLabels.json";
 
@@ -91,18 +92,27 @@ export const createSoundPlayer = ({
 			>,
 			...options,
 			onloaderror: (_id: number, err: unknown) => {
-				console.error("[ClassicySoundManager] Failed to load audio sprite", {
-					src: soundData.src,
+				classicyLog(
+					"error",
+					"ClassicySoundManager",
+					"Failed to load audio sprite",
+					{
+						src: soundData.src,
+						error: err,
+					},
+				);
+			},
+			onplayerror: (_id: number, err: unknown) => {
+				classicyLog("warn", "ClassicySoundManager", "Audio play error", {
 					error: err,
 				});
 			},
-			onplayerror: (_id: number, err: unknown) => {
-				console.warn("[ClassicySoundManager] Audio play error", { error: err });
-			},
 		});
 	}
-	console.error(
-		"[ClassicySoundManager] createSoundPlayer: soundData is missing src or sprite",
+	classicyLog(
+		"error",
+		"ClassicySoundManager",
+		"createSoundPlayer: soundData is missing src or sprite",
 		{ soundData },
 	);
 	return null;
@@ -256,11 +266,14 @@ export const ClassicySoundStateEventReducer = (
 		}
 		default: {
 			next = { ...ss };
-			if (process.env.NODE_ENV !== "production") {
-				console.warn("[ClassicySoundStateEventReducer] Unhandled action type", {
+			classicyLog(
+				"warn",
+				"ClassicySoundStateEventReducer",
+				"Unhandled action type",
+				{
 					type: action.type,
-				});
-			}
+				},
+			);
 			break;
 		}
 	}

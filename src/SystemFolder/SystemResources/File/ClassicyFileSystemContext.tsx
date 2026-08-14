@@ -14,6 +14,7 @@ import {
 import { withExtensionsFolder } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemExtensions";
 import type { ClassicyFileSystemTree } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { DefaultFSContent } from "@/SystemFolder/SystemResources/File/DefaultClassicyFileSystem";
+import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 export type ClassicyDefaultFileSystemMode = "merge" | "exclusive";
 
@@ -148,8 +149,10 @@ export function useClassicyFileSystem(
 				}
 			})
 			.catch((error) => {
-				console.error(
-					"[ClassicyFileSystem] boot reconciliation failed; keeping local",
+				classicyLog(
+					"error",
+					"ClassicyFileSystem",
+					"boot reconciliation failed; keeping local",
 					error,
 				);
 			});

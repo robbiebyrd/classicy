@@ -97,6 +97,8 @@ The proxy runs on `http://localhost:8765` by default. Enable it in the Browser a
         - ✅ Sound Event Handler
             - ✅ Event dispatcher/player
             - ✅ Automatic event intercept and play for known events (map audio sprites to events)
+- Logging & Diagnostics
+    - ✅ `registerClassicyLogSink` — host apps receive Classicy logs, errors, and crash reports (production builds included)
 - Screen Saver
     - ✅ Idle-activated full-screen screensavers (After Dark CSS ports: Flying Toasters, Fish, Warp, and 9 more)
     - ✅ Screen Saver Control Panel (pick saver, timeout, per-saver options)

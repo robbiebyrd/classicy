@@ -40,6 +40,7 @@ import {
 } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
 import { classicyWindowEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopWindowManagerContext";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import type { DeepPartial } from "@/SystemFolder/SystemResources/Utils/deepMerge";
 import { deepMergeReplacingArrays } from "@/SystemFolder/SystemResources/Utils/deepMerge";
@@ -228,12 +229,10 @@ export function dispatchToPlugin(
 	// Without this the caller's action vanishes silently — the symptom is "the
 	// feature did nothing at all", with nothing to grep for. Almost always means
 	// the owning app's context module was never pulled into the module graph.
-	if (process.env.NODE_ENV !== "production") {
-		console.warn("[dispatchToPlugin] No handler registered for prefix", {
-			prefix,
-			type: action.type,
-		});
-	}
+	classicyLog("warn", "dispatchToPlugin", "No handler registered for prefix", {
+		prefix,
+		type: action.type,
+	});
 	return ds;
 }
 
@@ -409,12 +408,12 @@ export const classicyShortcutEventHandler = (
 				typeof action.event === "string"
 			) {
 				if (kb.global[action.chord]) {
-					if (process.env.NODE_ENV !== "production") {
-						console.warn(
-							"[ClassicyShortcut] global chord already registered; ignoring",
-							{ chord: action.chord, by: action.appId },
-						);
-					}
+					classicyLog(
+						"warn",
+						"ClassicyShortcut",
+						"global chord already registered; ignoring",
+						{ chord: action.chord, by: action.appId },
+					);
 				} else {
 					kb.global[action.chord] = {
 						appId: String(action.appId ?? ""),
@@ -461,12 +460,12 @@ export const classicyDesktopStateEventReducer = (
 		// run before the prefix routing below, since plugin handlers are also a
 		// route into the reducer and are not otherwise distinguishable here.
 		if (!isActionTrustPermitted(trust, action.type)) {
-			if (process.env.NODE_ENV !== "production") {
-				console.warn(
-					"[ClassicyDesktopStateEventReducer] Rejected untrusted action",
-					{ type: action.type },
-				);
-			}
+			classicyLog(
+				"warn",
+				"ClassicyDesktopStateEventReducer",
+				"Rejected untrusted action",
+				{ type: action.type },
+			);
 		} else if (action.type.startsWith("ClassicyWindow")) {
 			ds = classicyWindowEventHandler(ds, action);
 		} else if (action.type.startsWith("ClassicyDesktopIcon")) {
@@ -487,9 +486,11 @@ export const classicyDesktopStateEventReducer = (
 				ds = plugin.handler(ds, action);
 			} else if (action.type.startsWith("ClassicyApp")) {
 				ds = classicyAppEventHandler(ds, action);
-			} else if (process.env.NODE_ENV !== "production") {
-				console.warn(
-					"[ClassicyDesktopStateEventReducer] Unhandled action type",
+			} else {
+				classicyLog(
+					"warn",
+					"ClassicyDesktopStateEventReducer",
+					"Unhandled action type",
 					{ type: action.type },
 				);
 			}

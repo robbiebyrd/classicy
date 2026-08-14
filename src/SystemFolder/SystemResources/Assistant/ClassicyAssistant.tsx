@@ -1,3 +1,4 @@
+import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import "./ClassicyAssistant.scss";
 import {
 	type FC as FunctionalComponent,
@@ -87,8 +88,10 @@ export const ClassicyAssistant: FunctionalComponent<ClassicyAssistantProps> = ({
 	// Per-page buttons win over the global default; cap at 3 (no silent truncation).
 	const resolvedButtons = (activePage.buttons ?? buttons ?? []).slice();
 	if (resolvedButtons.length > MAX_FOOTER_BUTTONS) {
-		console.warn(
-			`ClassicyAssistant: page "${activePage.title}" has ${resolvedButtons.length} footer buttons; only the first ${MAX_FOOTER_BUTTONS} are shown.`,
+		classicyLog(
+			"warn",
+			"ClassicyAssistant",
+			`page "${activePage.title}" has ${resolvedButtons.length} footer buttons; only the first ${MAX_FOOTER_BUTTONS} are shown.`,
 		);
 		resolvedButtons.length = MAX_FOOTER_BUTTONS;
 	}

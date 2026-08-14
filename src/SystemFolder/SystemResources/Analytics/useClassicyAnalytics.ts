@@ -1,6 +1,7 @@
 import type { AnalyticsInstance } from "analytics";
 import { createContext, useContext, useMemo } from "react";
 import { useAnalytics } from "use-analytics";
+import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 export const ClassicyAnalyticsPrefixContext =
 	createContext<string>("classicy_");
@@ -54,11 +55,11 @@ export const useClassicyAnalytics = () => {
 	return useMemo(() => {
 		// If analytics is not available (no provider), return a safe default
 		if (!analytics) {
-			if (process.env.NODE_ENV !== "production") {
-				console.warn(
-					"[ClassicyAnalytics] No analytics provider found. Using no-op fallback. Wrap your app in AnalyticsProvider to enable tracking.",
-				);
-			}
+			classicyLog(
+				"warn",
+				"ClassicyAnalytics",
+				"No analytics provider found. Using no-op fallback. Wrap your app in AnalyticsProvider to enable tracking.",
+			);
 			return { ...noOpAnalytics, page: noOpPage };
 		}
 

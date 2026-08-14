@@ -174,6 +174,7 @@ export * from "./SystemFolder/SystemResources/Icon/ClassicyIcon";
 export * from "./SystemFolder/SystemResources/ImageWell/ClassicyImageWell";
 export * from "./SystemFolder/SystemResources/Input/ClassicyInput";
 export * from "./SystemFolder/SystemResources/Keyboard/useKeyboardEquivalents";
+export * from "./SystemFolder/SystemResources/Log/ClassicyLog";
 export * from "./SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
 export * from "./SystemFolder/SystemResources/Menu/ClassicyMenu";
 export * from "./SystemFolder/SystemResources/Menu/ClassicyMenuContext";

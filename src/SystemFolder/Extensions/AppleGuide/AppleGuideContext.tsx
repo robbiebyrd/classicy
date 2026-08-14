@@ -9,6 +9,7 @@ import {
 	appleGuideWindowId,
 	getAppleGuideTopic,
 } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideTopics";
+import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 export const APPLE_GUIDE_APP_ID = "AppleGuide.app";
 export const APPLE_GUIDE_APP_NAME = "Apple Guide";
@@ -104,9 +105,7 @@ export const classicyAppleGuideEventHandler = (
 		case APPLE_GUIDE_SHOW_TOPIC_EVENT: {
 			if (!topicId) break;
 			if (!getAppleGuideTopic(topicId)) {
-				if (process.env.NODE_ENV !== "production") {
-					console.warn("[AppleGuide] Unknown topic id", topicId);
-				}
+				classicyLog("warn", "AppleGuide", "Unknown topic id", topicId);
 				break;
 			}
 			const open = appData.openTopics ?? [];

@@ -801,6 +801,7 @@ Add a key to `ClassicySounds` and reference it from a theme, or dispatch
 | `registerHyperCardPart` / `registerHyperCardCommand` / `registerHyperCardEffectHandler` / `registerHyperCardStack` / `registerHyperCardSaveProvider` (+ `registerHyperCardPartEditorMeta`, `registerHyperCardCommandEditorMeta`) | Extend HyperCard with custom parts, script commands, effects, preloaded stacks, and save backends |
 | `registerAppleGuideTopic(topic: HelpTopic)` | Add help topics to Apple Guide; open one programmatically by dispatching the exported `APPLE_GUIDE_SHOW_TOPIC_EVENT` action type; `getAppleGuideTopic(id)` reads back |
 | `registerClassicyScreenSaver(def)` | Add screensavers to the idle-activated Screen Saver extension (see "Screen savers" below) |
+| `registerClassicyLogSink(sink)` | Receive Classicy's logs, errors, and crash reports in the host app (see "Logging & diagnostics" below) |
 | `ClassicyMenuBarExtension` | Add menu bar items (see §4.5) |
 | `classicyEditCommands`, `ensureEditTracker` | Programmatic Undo/Cut/Copy/Paste/Clear/Select All acting on the last-focused text field (native editing + Clipboard API); this is what `useClassicyEditMenu` uses — call directly from custom menus/toolbars |
 | `useFinderFolderSize`, `FinderContext` | Finder integration points |
@@ -882,6 +883,46 @@ Registry read side: `getClassicyScreenSaver(id)`,
 `listClassicyScreenSavers()` (name-sorted),
 `resolveScreenSaverConfig(saver, saved?)`. The `active` flag is transient and
 never persists — a reload always wakes up.
+
+### Logging & diagnostics
+
+All of Classicy's internal diagnostics flow through one pipeline that hosts
+can tap. Register a sink at app entry (capability-based — implement any
+subset; re-registering an id replaces it):
+
+```ts
+import { registerClassicyLogSink } from 'classicy'
+
+registerClassicyLogSink({
+    id: 'my-telemetry',
+    onLog: (entry) => {},               // every entry, all levels
+    onError: (entry) => sendToSentry(entry),  // error-level only (also passed to onLog)
+    onCrash: (error, componentStack) => {},   // desktop render crashes (Sad Mac)
+})
+```
+
+`ClassicyLogEntry`: `{ level: "debug" | "info" | "warn" | "error", subsystem,
+message, details: unknown[], timestamp }` — `subsystem` matches the bracket
+prefix Classicy has always printed (`registerApp`, `ClassicyFileSystem`,
+`ClassicyShortcut`, `ScreenSaver`, …).
+
+Delivery rules, chosen deliberately:
+
+- **Sinks receive every entry in production builds too** — that is the point
+  of the facility. Only the *console mirror* stays quiet in production for
+  `debug`/`info`/`warn`; `error` always prints, so a production console is
+  never silent about real failures.
+- A throwing sink is isolated (logged to the console, never re-entered
+  through the pipeline) and cannot starve other sinks or break Classicy.
+- Crash reports (`onCrash`) come from the desktop's error boundary; the Sad
+  Mac screen still appears and the boundary keeps its own `console.error`.
+- The `debug: true` action-dispatch dumps (`console.group` state diffs)
+  remain console-only dev tooling and do not flow through sinks.
+
+Also exported: `unregisterClassicyLogSink(id)`, `getClassicyLogSinks()`, and
+`classicyLog(level, subsystem, message, ...details)` — the emitter itself,
+usable by consumer apps that want their own diagnostics in the same pipeline
+their sinks already collect.
 
 ---
 

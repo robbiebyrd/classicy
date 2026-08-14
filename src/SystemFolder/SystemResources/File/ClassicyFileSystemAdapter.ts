@@ -1,3 +1,4 @@
+import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 /**
  * ClassicyFileSystem sync adapter API — lets a host application mirror the
  * browser-local filesystem to a backend of its choosing. Capability-based:
@@ -107,8 +108,10 @@ export function invokeClassicyFileSystemAdapterHook(
 		| undefined;
 	if (!fn) return;
 	const logFailure = (error: unknown) =>
-		console.error(
-			`[ClassicyFileSystem] adapter "${adapter.id}" failed in ${hook}`,
+		classicyLog(
+			"error",
+			"ClassicyFileSystem",
+			`adapter "${adapter.id}" failed in ${hook}`,
 			error,
 		);
 	try {

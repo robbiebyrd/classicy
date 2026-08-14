@@ -1,6 +1,7 @@
 import "./ClassicyCrashScreen.scss";
 import sadMac from "@img/ui/sad-mac.png";
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import { emitClassicyCrash } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 interface ClassicyCrashScreenProps {
 	children?: ReactNode;
@@ -31,6 +32,7 @@ export class ClassicyCrashScreen extends Component<
 
 	componentDidCatch(error: Error, info: ErrorInfo): void {
 		console.error("Classicy crashed:", error, info.componentStack);
+		emitClassicyCrash(error, info.componentStack ?? undefined);
 	}
 
 	componentDidMount(): void {

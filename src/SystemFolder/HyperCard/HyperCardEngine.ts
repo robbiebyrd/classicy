@@ -1,3 +1,4 @@
+import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 /**
  * HyperCard interpreter engine.
  *
@@ -326,8 +327,12 @@ function execAction(open: HCOpenStack, action: EngineAction): void {
 			const cmd = getHyperCardCommand(pluginAction.do);
 			if (cmd) {
 				cmd.run(makeCommandContext(open), pluginAction);
-			} else if (process.env.NODE_ENV !== "production") {
-				console.warn(`[HyperCard] Unknown command "${pluginAction.do}"`);
+			} else {
+				classicyLog(
+					"warn",
+					"HyperCard",
+					`Unknown command "${pluginAction.do}"`,
+				);
 			}
 			break;
 		}

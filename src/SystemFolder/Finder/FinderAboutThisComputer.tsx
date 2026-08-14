@@ -1,3 +1,4 @@
+import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import "./FinderAboutThisComputer.scss";
 import type { FC as FunctionalComponent } from "react";
 import { useEffect, useState } from "react";
@@ -38,11 +39,19 @@ export const FinderAboutThisComputer: FunctionalComponent = () => {
 				.measureUserAgentSpecificMemory()
 				.then((result) => setOsUsedMb(result.bytes / (1024 * 1024)))
 				.catch(() => {
-					console.log("Could not measure memory usage, using default value");
+					classicyLog(
+						"info",
+						"Finder",
+						"Could not measure memory usage, using default value",
+					);
 					// API unavailable (e.g. missing cross-origin isolation) — keep default
 				});
 		} else {
-			console.log("Memory measurement API not available, using default value");
+			classicyLog(
+				"info",
+				"Finder",
+				"Memory measurement API not available, using default value",
+			);
 		}
 	}, []);
 

@@ -15,6 +15,7 @@
  */
 import { isUntrustedActionAllowed } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionTrust";
 import { getScriptableAction } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
+import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 export type ScriptEffectDecision =
 	| {
@@ -43,12 +44,12 @@ export function evaluateScriptEffect(
 	if (entry?.params) {
 		const parsed = entry.params.safeParse(args);
 		if (!parsed.success) {
-			if (process.env.NODE_ENV !== "production") {
-				console.warn(
-					"[HyperCard] Dropped script effect: args failed the app's manifest schema",
-					{ actionType, issues: parsed.error.issues },
-				);
-			}
+			classicyLog(
+				"warn",
+				"HyperCard",
+				"Dropped script effect: args failed the app's manifest schema",
+				{ actionType, issues: parsed.error.issues },
+			);
 			return {
 				kind: "drop",
 				reason: "invalid-params",

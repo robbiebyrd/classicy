@@ -1,3 +1,4 @@
+import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 /**
  * HyperCard.app — a JSON-driven HyperCard stack player for Classicy.
  *
@@ -262,7 +263,13 @@ export const HyperCard: FunctionalComponent = () => {
 								}),
 						}),
 					).catch((err) => {
-						console.error("[HyperCard] effect handler error", e.name, err);
+						classicyLog(
+							"error",
+							"HyperCard",
+							"effect handler error",
+							e.name,
+							err,
+						);
 						resolveEmpty();
 					});
 				} else {

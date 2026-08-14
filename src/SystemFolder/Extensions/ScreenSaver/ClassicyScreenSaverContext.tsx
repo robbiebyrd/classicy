@@ -8,6 +8,7 @@ import {
 	type ClassicyScreenSaverConfig,
 	getClassicyScreenSaver,
 } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverRegistry";
+import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 export const SCREEN_SAVER_APP_ID = "ScreenSaver.app";
 export const SCREEN_SAVER_APP_NAME = "Screen Saver";
@@ -78,10 +79,8 @@ export function screenSaverTimeoutMinutes(data: ScreenSaverData): number {
 	);
 }
 
-const devWarn = (...args: unknown[]) => {
-	if (process.env.NODE_ENV !== "production") {
-		console.warn("[ScreenSaver]", ...args);
-	}
+const devWarn = (message: string, ...details: unknown[]) => {
+	classicyLog("warn", "ScreenSaver", message, ...details);
 };
 
 export const classicyScreenSaverEventHandler = (

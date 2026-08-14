@@ -1,5 +1,6 @@
 import { castDraft, produce } from "immer";
 import { create, type StoreApi, type UseBoundStore } from "zustand";
+import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import { resolveWallpaper } from "../AppearanceManager/ClassicyWallpapers";
 import type { ClassicyActionTrust } from "./ClassicyActionTrust";
 import {
@@ -61,8 +62,10 @@ function getInitialState(): ClassicyStore {
 					!parsed.System?.Manager?.Desktop ||
 					!parsed.System?.Manager?.Appearance?.activeTheme
 				) {
-					console.warn(
-						"[ClassicyAppManager] Persisted state schema mismatch; falling back to defaults.",
+					classicyLog(
+						"warn",
+						"ClassicyAppManager",
+						"Persisted state schema mismatch; falling back to defaults.",
 					);
 					return DefaultAppManagerState;
 				}
@@ -78,8 +81,10 @@ function getInitialState(): ClassicyStore {
 				);
 			}
 		} catch (error) {
-			console.error(
-				"[ClassicyAppManager] Failed to parse persisted desktop state; falling back to defaults.",
+			classicyLog(
+				"error",
+				"ClassicyAppManager",
+				"Failed to parse persisted desktop state; falling back to defaults.",
 				error,
 			);
 		}
@@ -208,8 +213,10 @@ export function startAppManagerPersistence(): () => void {
 					JSON.stringify(stateToSave),
 				);
 			} catch (error) {
-				console.error(
-					"[ClassicyAppManager] Failed to persist desktop state to localStorage. Storage quota may be exceeded.",
+				classicyLog(
+					"error",
+					"ClassicyAppManager",
+					"Failed to persist desktop state to localStorage. Storage quota may be exceeded.",
 					error,
 				);
 			}

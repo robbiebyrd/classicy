@@ -1,6 +1,7 @@
 import { parse } from "@plussub/srt-vtt-parser";
 import type { ParsedResult } from "@plussub/srt-vtt-parser/dist/types";
 import { useCallback, useEffect, useState } from "react";
+import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import { isValidHttpUrl } from "@/SystemFolder/SystemResources/Utils/urlValidation";
 
 /**
@@ -27,7 +28,7 @@ export function useQuickTimeSubtitles(subtitlesUrl?: string): {
 			.then((result) => setSubtitlesData(result))
 			.catch((error) => {
 				if (error.name === "AbortError") return;
-				console.error("[QuickTime] Subtitle fetch failed", {
+				classicyLog("error", "QuickTime", "Subtitle fetch failed", {
 					subtitlesUrl,
 					error,
 				});

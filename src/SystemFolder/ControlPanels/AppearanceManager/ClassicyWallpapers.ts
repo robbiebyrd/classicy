@@ -1,3 +1,5 @@
+import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
+
 const wallpaperModules = import.meta.glob(
 	"../../../../assets/img/wallpapers/*.png",
 	{ eager: true, import: "default" },
@@ -36,8 +38,10 @@ export const resolveWallpaper = (value: string): string => {
 	const filename = value.split("/").pop() ?? "";
 	const resolved = wp(filename);
 	if (!resolved) {
-		console.warn(
-			"[ClassicyWallpapers] Unknown wallpaper; falling back to no background image.",
+		classicyLog(
+			"warn",
+			"ClassicyWallpapers",
+			"Unknown wallpaper; falling back to no background image.",
 			{ value },
 		);
 	}

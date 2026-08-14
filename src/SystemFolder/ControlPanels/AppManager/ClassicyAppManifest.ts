@@ -23,6 +23,7 @@ import {
 	type ClassicyStore,
 	registerAppEventHandler,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 /** One action an app handles: written commentary plus optional param schema. */
 export interface ClassicyAppActionManifestEntry {
@@ -86,12 +87,11 @@ export function registerApp(def: ClassicyAppManifestDefinition): void {
 	// `prefix` and `handler` only register routing together; one without the
 	// other silently registers nothing, which is a footgun for adopters —
 	// surface it in dev instead of ignoring it.
-	if (
-		Boolean(def.prefix) !== Boolean(def.handler) &&
-		process.env.NODE_ENV !== "production"
-	) {
-		console.warn(
-			"[registerApp] prefix and handler must be provided together — routing was NOT registered",
+	if (Boolean(def.prefix) !== Boolean(def.handler)) {
+		classicyLog(
+			"warn",
+			"registerApp",
+			"prefix and handler must be provided together — routing was NOT registered",
 			{ appId: def.id, prefix: def.prefix, hasHandler: Boolean(def.handler) },
 		);
 	}
@@ -108,12 +108,11 @@ export function registerApp(def: ClassicyAppManifestDefinition): void {
 	} else if (def.state) {
 		if (!manifest.state) {
 			manifest.state = def.state;
-		} else if (
-			def.state !== manifest.state &&
-			process.env.NODE_ENV !== "production"
-		) {
-			console.warn(
-				"[registerApp] Ignoring second state schema for app — the first registration's schema wins",
+		} else if (def.state !== manifest.state) {
+			classicyLog(
+				"warn",
+				"registerApp",
+				"Ignoring second state schema for app — the first registration's schema wins",
 				{ appId: def.id },
 			);
 		}
@@ -296,7 +295,7 @@ export function validateAppStateForAction(
 	if (!app) return;
 	const result = manifest.state.safeParse(app.data ?? {});
 	if (!result.success) {
-		console.warn("[registerApp] App state failed its manifest schema", {
+		classicyLog("warn", "registerApp", "App state failed its manifest schema", {
 			appId: manifest.id,
 			actionType: action.type,
 			issues: result.error.issues,

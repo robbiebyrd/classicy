@@ -215,6 +215,24 @@ path is what stays free of user data.
 - The wrapper is `position: relative; display: inline-block`. If that would break your layout (e.g. an absolutely positioned element), use the `useClassicyBalloonHelp(ref, config)` hook instead — it returns `{ handlers, balloon }` to spread onto an element you already own, adding no DOM. `ClassicyDesktopIcon` does this.
 - Globally disabled by `System.Manager.Desktop.disableBalloonHelp` (Zustand store). Toggle with event `ClassicyDesktopSetBalloonHelp` — e.g. `dispatch({ type: 'ClassicyDesktopSetBalloonHelp', disableBalloonHelp: true })`
 
+### Logging & Diagnostics
+
+All internal diagnostics go through `classicyLog(level, subsystem, message,
+...details)` (`src/SystemFolder/SystemResources/Log/ClassicyLog.ts`) — never
+call `console.warn/error` directly in library code (the only exceptions: the
+`debug`-flag `console.group` state dumps, the crash boundary's own
+`console.error`, and ClassicyLog's sink-failure report). Hosts subscribe via
+`registerClassicyLogSink({ id, onLog?, onError?, onCrash? })`.
+
+- Sinks get every entry **including in production**; the console mirror is
+  dev-only for `debug/info/warn` and unconditional for `error`.
+- Console format is `[Subsystem] message` — byte-identical to the pre-pipeline
+  bracket prefixes, so tests asserting console output keep passing.
+- `onCrash` is fed by `ClassicyCrashScreen.componentDidCatch` via
+  `emitClassicyCrash`.
+- Sink exceptions are isolated and reported straight to the console (never
+  back through the pipeline — recursion).
+
 ### Screen Saver
 
 `ScreenSaver.app` (`src/SystemFolder/Extensions/ScreenSaver/`) is an extension

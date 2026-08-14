@@ -1,3 +1,4 @@
+import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import "./ClassicySplitView.scss";
 import classNames from "classnames";
 import type {
@@ -115,8 +116,10 @@ export const ClassicySplitView: FunctionalComponent<ClassicySplitViewProps> = ({
 	const warnedRef = useRef(false);
 	if (allChildren.length > MAX_PANES && !warnedRef.current) {
 		warnedRef.current = true;
-		console.warn(
-			`ClassicySplitView supports at most ${MAX_PANES} content areas; ` +
+		classicyLog(
+			"warn",
+			"ClassicySplitView",
+			`supports at most ${MAX_PANES} content areas; ` +
 				`ignoring ${allChildren.length - MAX_PANES} extra child(ren). ` +
 				"Nest another ClassicySplitView inside a pane for more regions.",
 		);

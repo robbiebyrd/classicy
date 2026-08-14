@@ -49,6 +49,12 @@
 - Control panel `ControlPanels/ScreenSaverManager/`; overlay z-index 100001; `transparentBackground` savers reveal live desktop
 - Gotcha: component vs registry type name collided in flat barrel → type is `ClassicyScreenSaverDefinition`
 
+## ClassicyLog Facility (added 2026-08-14)
+- `src/SystemFolder/SystemResources/Log/ClassicyLog.ts`: `classicyLog(level, subsystem, message, ...details)` + `registerClassicyLogSink({id, onLog?, onError?, onCrash?})` (replace-on-reregister) + `emitClassicyCrash`
+- Swept ~40 console.* sites across 22 files to classicyLog; kept: debug-flag console.group dumps, CrashScreen console.error, sink-failure report
+- Policy: sinks always delivered (prod too); console mirror dev-only for debug/info/warn, always for error; format `[Subsystem] message` (concatenated — 23 tests broke when prefix was a separate arg)
+- Dev-gated console.error sites (DateTime handler) were promoted to always-console — deliberate
+
 ## Known Gaps / Potential Issues
 - No `useShallow` usage anywhere in the codebase — some selectors returning objects could benefit from it
 - Persistence writes synchronously on every state change — no debounce; could be improved for high-frequency events (window dragging, resizing)

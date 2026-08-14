@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 /** A single help topic shown in an Apple Guide window. */
 export type HelpTopic = {
@@ -22,8 +23,13 @@ const topics = new Map<string, HelpTopic>();
  * so consumers may override a built-in one.
  */
 export function registerAppleGuideTopic(topic: HelpTopic): void {
-	if (topics.has(topic.id) && process.env.NODE_ENV !== "production") {
-		console.warn("[AppleGuide] Replacing already-registered topic", topic.id);
+	if (topics.has(topic.id)) {
+		classicyLog(
+			"warn",
+			"AppleGuide",
+			"Replacing already-registered topic",
+			topic.id,
+		);
 	}
 	topics.set(topic.id, topic);
 }
