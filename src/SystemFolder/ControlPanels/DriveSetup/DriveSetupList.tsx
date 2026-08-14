@@ -2,6 +2,7 @@ import "./DriveSetupList.scss";
 import classNames from "classnames";
 import type { FC } from "react";
 import type { DriveRow } from "./ClassicyDriveSetupUtils";
+import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 
 type DriveSetupListProps = {
 	drives: DriveRow[];
@@ -16,7 +17,7 @@ export const DriveSetupList: FC<DriveSetupListProps> = ({
 }) => {
 	return (
 		<div className="driveSetupList">
-			<h2 className="driveSetupList__header">List of Drives</h2>
+			<ClassicyControlLabel label="List of Drives" />
 			<div className="driveSetupList__tableContainer">
 				<table className="driveSetupList__table">
 					<thead className="driveSetupList__head">

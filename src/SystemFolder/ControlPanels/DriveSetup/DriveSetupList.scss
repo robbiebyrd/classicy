@@ -1,7 +1,11 @@
+@use "../AppearanceManager/styles/appearance";
+
 .driveSetupList {
 	display: flex;
 	flex-direction: column;
 	gap: var(--window-padding-size, 8px);
+	font-family: var(--ui-font, sans-serif);
+	font-size: var(--ui-font-size, 12px);
 
 	&__header {
 		font-family: var(--header-font, sans-serif);
@@ -14,6 +18,7 @@
 		background: var(--color-white, #fff);
 		overflow-y: auto;
 		max-height: 180px;
+		min-height: calc(var(--window-control-size) * 8);
 	}
 
 	&__table {
@@ -54,15 +59,17 @@
 		}
 	}
 
-	&__head {
-		font-weight: bold;
-
-		th {
-			position: sticky;
-			top: 0;
-			background: var(--color-system-2, #ccc);
-			border-bottom: 1px solid var(--color-black, #000);
-		}
+	// Match the Finder list view column headers
+	// (.classicyFileBrowserViewTableColumnHeader).
+	&__head th {
+		position: sticky;
+		top: 0;
+		font-size: calc(var(--ui-font-size) * 0.8);
+		font-weight: normal;
+		font-stretch: condensed;
+		padding: var(--window-padding-size);
+		background: var(--color-system-03);
+		@include appearance.platinumWindowBoxShadow;
 	}
 
 	&__row {

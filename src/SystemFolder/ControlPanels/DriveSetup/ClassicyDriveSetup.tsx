@@ -10,8 +10,6 @@ import {
 	useClassicyWindowClose,
 } from "@/SystemFolder/SystemResources/App/ClassicyAppMenuHooks";
 import {
-	closeWindowMenuItemHelper,
-	quitAppHelper,
 	quitMenuItemHelper,
 } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
@@ -21,6 +19,7 @@ import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWi
 import { getDriveRows, isDriveSyncConnected } from "./ClassicyDriveSetupUtils";
 import { DriveSetupController } from "./DriveSetupController";
 import { DriveSetupList } from "./DriveSetupList";
+import "./ClassicyDriveSetup.scss";
 
 const APP_ID = "DriveSetup.app";
 const APP_NAME = "Drive Setup";
@@ -90,9 +89,6 @@ export const ClassicyDriveSetup: FC = () => {
 			title: "File",
 			menuChildren: [
 				{ ...aboutMenuItem, title: `About ${APP_NAME}` },
-				closeWindowMenuItemHelper(`${APP_ID}_close_window`, () =>
-					windowClose(WINDOW_ID, quitAppHelper(APP_ID, APP_NAME, appIcon)),
-				),
 				{ id: "spacer" },
 				quitMenuItemHelper(APP_ID, APP_NAME, appIcon),
 			],
@@ -126,6 +122,7 @@ export const ClassicyDriveSetup: FC = () => {
 					initialPosition={[120, 80]}
 					modal={false}
 					appMenu={appMenu}
+					backgroundColor="var(--color-system-03)"
 				>
 					<div className="driveSetupContent">
 						<DriveSetupList
