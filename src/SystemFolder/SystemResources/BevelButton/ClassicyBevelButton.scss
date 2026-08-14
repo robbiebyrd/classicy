@@ -108,8 +108,8 @@
 
 .classicyBevelButtonIcon {
   display: block;
-  width: var(--window-control-size);
-  height: var(--window-control-size);
+  width: 100%;
+  height: 100%;
   object-fit: contain;
   pointer-events: none;
 }

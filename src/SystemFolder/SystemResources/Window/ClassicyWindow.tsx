@@ -637,7 +637,17 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	};
 
 	const stopChangeWindow = (e: MouseEvent<HTMLDivElement>) => {
-		track("halt", { type: "ClassicyWindow", ...analyticsArgs });
+		// Bound to onMouseUp on the window ROOT, so this runs on every release
+		// anywhere in the window -- most of which are plain clicks, not gestures.
+		// Report only a gesture that actually happened, or "halt" degenerates
+		// into "clicked" (it was 24% of all analytics volume in production).
+		// Gate on the refs rather than ws.*: ws is the store's async echo, while
+		// isDraggingRef is set only past dragThreshold and isResizingRef only on
+		// resize start -- the same signal docUpHandlerRef already trusts. Both
+		// are cleared further down, so this must stay above that reset.
+		if (isDraggingRef.current || isResizingRef.current) {
+			track("halt", { type: "ClassicyWindow", ...analyticsArgs });
+		}
 		// Only prevent default when actually stopping a drag or resize.
 		// Unconditional preventDefault() breaks Safari's native range input
 		// release, causing the page to freeze after slider interactions.
@@ -705,8 +715,13 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 
 	const setActive = useCallback(
 		(_e?: MouseEvent<HTMLDivElement>) => {
-			track("focus", { type: "ClassicyWindow", ...analyticsArgs });
 			if (!ws.focused) {
+				// Inside the guard so "focus" means the window BECAME focused.
+				// The root binds both onMouseUp (which calls setActive) and
+				// onClick (which calls it again), so tracking above this line
+				// billed one ordinary click as two focus events -- and kept
+				// firing for clicks in a window that was already focused.
+				track("focus", { type: "ClassicyWindow", ...analyticsArgs });
 				player({ type: "ClassicySoundPlay", sound: "ClassicyWindowFocus" });
 				desktopEventDispatch({
 					type: "ClassicyWindowFocus",

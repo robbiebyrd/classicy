@@ -101,7 +101,13 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 					didDragRef.current = false;
 					return;
 				}
-				track("focus", { type: "ClassicyDesktopIcon", ...analyticsArgs });
+				// Only when selection actually changes, so "focus" means the icon
+				// BECAME selected rather than "an icon was clicked". The dispatch
+				// below stays unconditional -- clicking an already-selected icon
+				// still collapses a multi-icon selection down to this one.
+				if (!isSelected) {
+					track("focus", { type: "ClassicyDesktopIcon", ...analyticsArgs });
+				}
 				desktopEventDispatch({
 					type: "ClassicyDesktopIconFocus",
 					iconId: appId,
@@ -168,7 +174,15 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			};
 
 			const stopChangeIcon = () => {
-				track("halt", { type: "ClassicyDesktopIcon", ...analyticsArgs });
+				// Bound to onMouseUp, so this runs on every release on the icon.
+				// Report only a drag that actually happened. didDragRef -- not
+				// the `dragging` state -- is the signal: setDragging(true) runs
+				// in startDrag on mousedown, so `dragging` is already true for a
+				// plain click, while didDragRef is set in changeIcon only once
+				// the pointer moved while held down.
+				if (didDragRef.current) {
+					track("halt", { type: "ClassicyDesktopIcon", ...analyticsArgs });
+				}
 				setDragging(false);
 				setClickPosition([0, 0]);
 			};
