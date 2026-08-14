@@ -690,6 +690,49 @@ and the integer colors themes use. `ClassicyWallpapers` is the stock
 wallpaper catalog and `resolveWallpaper(name)` maps a wallpaper name (as used
 in `desktop.backgroundImage` / `ClassicyDesktopChangeBackground`) to its URL.
 
+### CSS custom properties
+
+The active theme is materialized as CSS custom properties by
+`getThemeVars(theme)` and applied inline on the desktop root by
+`ClassicyDesktop` — so they are available to (and only to) elements rendered
+inside the desktop. **Style your own components with these variables**, never
+hard-coded colors/sizes, and they will follow theme changes automatically:
+
+```css
+.myPanel {
+    background: var(--color-system-03);
+    border: var(--hig-frame-width) solid var(--color-window-border);
+    font-family: var(--ui-font);
+    font-size: var(--ui-font-size);
+}
+```
+
+Theme-driven variables (values change per theme):
+
+| Family | Variables |
+|---|---|
+| Core palette | `--color-black`, `--color-white`, `--color-alert`, `--color-error`, `--color-outline`, `--color-select`, `--color-highlight` |
+| System grays | `--color-system-01` … `--color-system-07` (light → dark; `03` is the standard control-surface gray) |
+| Theme accents | `--color-theme-01` … `--color-theme-07` (light → dark accent ramp) |
+| Window chrome | `--color-window-border`, `--color-window-border-outset`, `--color-window-border-inset`, `--color-window-frame`, `--color-window-title`, `--color-window-document` |
+| Window metrics | `--window-control-size`, `--window-border-size`, `--window-padding-size`, `--window-scrollbar-size`, `--window-scrollbar-arrow-size` |
+| Typography | `--header-font`/`--header-font-size`, `--body-font`/`--body-font-size`, `--ui-font`/`--ui-font-size`, `--mono-font`/`--mono-font-size`, `--digital-font`/`--digital-font-size` |
+| Desktop | `--desktop-icon-size`, `--desktop-icon-font-size`, `--desktop-background-image`, `--desktop-background-color`, `--desktop-background-repeat`, `--desktop-background-position`, `--desktop-background-size`; fixed: `--icon-small-size` (16px), `--icon-size-regular` (32px) |
+
+HIG metric variables (`--hig-*`) encode Apple's Platinum Human Interface
+Guidelines measurements. They are fixed px constants (not theme-driven) but
+exposed as variables so custom components share the system's spacing:
+
+| Group | Variables (value) |
+|---|---|
+| Buttons | `--hig-button-height` (20), `--hig-button-min-width` (58, standard OK/Cancel), `--hig-button-text-padding` (8), `--hig-button-default-ring` (3), `--hig-button-gap-h` (12), `--hig-button-gap-v` (10), `--hig-dialog-edge` (12) |
+| Spacing | `--hig-item-gap` (4), `--hig-item-gap-focus` (6), `--hig-group-gap` (16) |
+| Controls | `--hig-control-box` (12), `--hig-control-height` (18), `--hig-control-label-gap` (5), `--hig-popup-height` (20), `--hig-editfield-height` (22) |
+| Group boxes | `--hig-groupbox-margin-side` (10), `--hig-groupbox-margin-top` (12), `--hig-groupbox-margin-bottom` (10), `--hig-groupbox-title-pad` (3) |
+| Misc | `--hig-progress-height` (12), `--hig-static-text-height` (16), `--hig-disclosure-text-gap` (5), `--hig-help-button-width` (20), `--hig-help-button-height` (21) |
+| Frames & bevels | `--hig-frame-width` (2), `--hig-bevel-sm` (2), `--hig-bevel-md` (3), `--hig-bevel-lg` (4) |
+| Title bars | `--hig-titlebar-height` (19, document), `--hig-titlebar-height-utility` (10, utility/tool palette) |
+
 ---
 
 ## 9. Analytics
