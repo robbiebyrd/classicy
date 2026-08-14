@@ -9,6 +9,7 @@ import type {
 	ReactNode,
 } from "react";
 import { Children, Fragment, useRef, useState } from "react";
+import { useClassicyCursor } from "@/SystemFolder/SystemResources/Cursor/useClassicyCursor";
 
 /**
  * Axis along which the panes are arranged. `"horizontal"` (default) lays the
@@ -23,6 +24,18 @@ const MAX_PANES = 3;
 
 // Percentage points a focused divider moves per arrow-key press.
 const KEYBOARD_STEP_PCT = 1;
+
+// Direction of travel during a divider drag, stamped on the root as
+// `data-drag-direction` so the stylesheet can swap in the matching Mac OS 8
+// directional resize cursor (bar-and-arrow, e.g. cursor-resize-u.png).
+type ClassicySplitViewDragDirection = "u" | "d" | "l" | "r";
+
+const dragCursorName = {
+	u: "resizeU",
+	d: "resizeD",
+	l: "resizeL",
+	r: "resizeR",
+} as const;
 
 /**
  * Redistribute pane sizes (percentages) after a divider drag. Only the two
@@ -128,6 +141,13 @@ export const ClassicySplitView: FunctionalComponent<ClassicySplitViewProps> = ({
 	const paneCount = panes.length;
 
 	const rootRef = useRef<HTMLDivElement>(null);
+	const setCursor = useClassicyCursor();
+	// The live drag's direction of travel, or null when no drag is running.
+	// Drives both the body-wide cursor (via useClassicyCursor, for wherever a
+	// fast drag takes the pointer) and the root's data-drag-direction stamp
+	// (for the dividers themselves, whose own hover cursor beats body's).
+	const [dragDirection, setDragDirection] =
+		useState<ClassicySplitViewDragDirection | null>(null);
 	const [sizes, setSizes] = useState<number[]>(() =>
 		initialSizes(defaultSizes, paneCount),
 	);
@@ -164,8 +184,29 @@ export const ClassicySplitView: FunctionalComponent<ClassicySplitViewProps> = ({
 			// The gesture's running result, committed once on release. A press
 			// with no movement commits nothing.
 			let latestSizes: number[] | null = null;
+			// Until the pointer actually travels, the divider's hover cursor
+			// (double-headed lr/ud) stays; after that the cursor follows the
+			// *instantaneous* direction of travel, so reversing mid-drag flips
+			// it even while the panes sit clamped at a minimum.
+			let lastPos = startPos;
+			let lastDirection: ClassicySplitViewDragDirection | null = null;
 			const moveHandler = (ev: MouseEvent) => {
 				const pos = horizontal ? ev.clientX : ev.clientY;
+				if (pos !== lastPos) {
+					const direction: ClassicySplitViewDragDirection = horizontal
+						? pos > lastPos
+							? "r"
+							: "l"
+						: pos > lastPos
+							? "d"
+							: "u";
+					lastPos = pos;
+					if (direction !== lastDirection) {
+						lastDirection = direction;
+						setDragDirection(direction);
+						setCursor(dragCursorName[direction]);
+					}
+				}
 				const deltaPct = ((pos - startPos) / total) * 100;
 				latestSizes = computeSplitViewSizes(
 					startSizes,
@@ -178,6 +219,8 @@ export const ClassicySplitView: FunctionalComponent<ClassicySplitViewProps> = ({
 			const upHandler = () => {
 				document.removeEventListener("mousemove", moveHandler);
 				document.removeEventListener("mouseup", upHandler);
+				setDragDirection(null);
+				setCursor();
 				if (latestSizes) onResizeCommit?.(latestSizes);
 			};
 			document.addEventListener("mousemove", moveHandler);
@@ -215,6 +258,7 @@ export const ClassicySplitView: FunctionalComponent<ClassicySplitViewProps> = ({
 	return (
 		<div
 			ref={rootRef}
+			data-drag-direction={dragDirection ?? undefined}
 			className={classNames(
 				"classicySplitView",
 				horizontal

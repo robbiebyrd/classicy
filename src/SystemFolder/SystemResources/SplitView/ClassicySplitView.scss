@@ -42,12 +42,34 @@
   }
 }
 
+// Hotspot 8 8 = the center of the 16px Platinum resize cursors, where the
+// bar meets the arrow.
 .classicySplitViewHorizontal > .classicySplitViewDivider {
   width: var(--window-padding-size);
-  cursor: col-resize;
+  cursor:
+    url('../../../../assets/img/ui/cursors/cursor-resize-lr.png') 8 8,
+    col-resize;
 }
 
 .classicySplitViewVertical > .classicySplitViewDivider {
   height: var(--window-padding-size);
-  cursor: row-resize;
+  cursor:
+    url('../../../../assets/img/ui/cursors/cursor-resize-ud.png') 8 8,
+    row-resize;
+}
+
+// Mid-drag the cursor tracks the direction of travel (Mac OS 8 window-edge
+// idiom: the bar is the edge, the arrow is where it's headed). The component
+// stamps the direction on the root while a drag is live; matching on the root
+// overrides every divider's own hover cursor, since document.body's inline
+// cursor (set for everywhere else by useClassicyCursor) loses to it.
+@each $dir, $img, $fallback in ('u', 'cursor-resize-u', n-resize),
+  ('d', 'cursor-resize-d', s-resize), ('l', 'cursor-resize-l', w-resize),
+  ('r', 'cursor-resize-r', e-resize)
+{
+  .classicySplitView[data-drag-direction='#{$dir}'] .classicySplitViewDivider {
+    cursor:
+      url('../../../../assets/img/ui/cursors/#{$img}.png') 8 8,
+      $fallback;
+  }
 }

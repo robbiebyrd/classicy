@@ -431,3 +431,65 @@ describe("ClassicySplitView", () => {
 		);
 	});
 });
+
+describe("ClassicySplitView drag cursors", () => {
+	afterEach(() => {
+		document.body.style.cursor = "";
+	});
+
+	const setup = (direction: "horizontal" | "vertical") => {
+		const { container } = render(
+			<ClassicySplitView direction={direction}>
+				<div>One</div>
+				<div>Two</div>
+			</ClassicySplitView>,
+		);
+		const root = mockRootRect(container, 400, 300);
+		const divider = container.querySelector(
+			".classicySplitViewDivider",
+		) as HTMLElement;
+		return { root, divider };
+	};
+
+	it("keeps the hover cursor until the pointer actually moves", () => {
+		const { root, divider } = setup("horizontal");
+		fireEvent.mouseDown(divider, { clientX: 200 });
+		expect(root).not.toHaveAttribute("data-drag-direction");
+		expect(document.body.style.cursor).toBe("");
+		fireEvent.mouseUp(document);
+	});
+
+	it("tracks travel direction on a horizontal split, flipping mid-drag", () => {
+		const { root, divider } = setup("horizontal");
+		fireEvent.mouseDown(divider, { clientX: 200 });
+		fireEvent.mouseMove(document, { clientX: 240 });
+		expect(root).toHaveAttribute("data-drag-direction", "r");
+		expect(document.body.style.cursor).toContain("cursor-resize-r.png");
+		// Still right of the start position, but now traveling left.
+		fireEvent.mouseMove(document, { clientX: 220 });
+		expect(root).toHaveAttribute("data-drag-direction", "l");
+		expect(document.body.style.cursor).toContain("cursor-resize-l.png");
+		fireEvent.mouseUp(document);
+	});
+
+	it("tracks travel direction on a vertical split", () => {
+		const { root, divider } = setup("vertical");
+		fireEvent.mouseDown(divider, { clientY: 150 });
+		fireEvent.mouseMove(document, { clientY: 180 });
+		expect(root).toHaveAttribute("data-drag-direction", "d");
+		expect(document.body.style.cursor).toContain("cursor-resize-d.png");
+		fireEvent.mouseMove(document, { clientY: 120 });
+		expect(root).toHaveAttribute("data-drag-direction", "u");
+		expect(document.body.style.cursor).toContain("cursor-resize-u.png");
+		fireEvent.mouseUp(document);
+	});
+
+	it("clears the direction stamp and body cursor on release", () => {
+		const { root, divider } = setup("horizontal");
+		fireEvent.mouseDown(divider, { clientX: 200 });
+		fireEvent.mouseMove(document, { clientX: 260 });
+		fireEvent.mouseUp(document);
+		expect(root).not.toHaveAttribute("data-drag-direction");
+		expect(document.body.style.cursor).toBe("");
+	});
+});
