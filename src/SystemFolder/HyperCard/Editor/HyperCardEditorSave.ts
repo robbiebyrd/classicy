@@ -19,10 +19,17 @@ export function serializeStack(stack: HCStack): string {
 }
 
 export function stackFileName(stack: HCStack): string {
+	// The split/filter/join pass trims leading/trailing hyphens in linear
+	// time — the first replace already collapsed runs, so the only empty
+	// pieces are at the ends. Stack names arrive from untrusted .stack.json
+	// files, and an anchored trim regex like /^-+|-+$/g backtracks
+	// quadratically on long hyphen runs.
 	const slug = stack.name
 		.toLowerCase()
 		.replace(/[^a-z0-9]+/g, "-")
-		.replace(/^-+|-+$/g, "");
+		.split("-")
+		.filter(Boolean)
+		.join("-");
 	return `${slug || "untitled"}.stack.json`;
 }
 

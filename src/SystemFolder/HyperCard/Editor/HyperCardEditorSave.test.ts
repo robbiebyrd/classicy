@@ -90,3 +90,25 @@ describe("downloadSaveProvider", () => {
 		);
 	});
 });
+
+describe("stackFileName hyphen trimming", () => {
+	// The trim step is split/filter/join (linear) instead of an anchored
+	// regex (quadratic on hyphen runs); same output as the old regex.
+	it("trims leading and trailing punctuation runs", () => {
+		expect(
+			stackFileName({ name: "---My Stack---", cards: [{ id: "c" }] }),
+		).toBe("my-stack.stack.json");
+	});
+
+	it("falls back to untitled for all-punctuation names", () => {
+		expect(stackFileName({ name: "!!!***!!!", cards: [{ id: "c" }] })).toBe(
+			"untitled.stack.json",
+		);
+	});
+
+	it("handles a hostile hyphen-run name without stalling", () => {
+		expect(
+			stackFileName({ name: `${"-".repeat(100_000)}x`, cards: [{ id: "c" }] }),
+		).toBe("x.stack.json");
+	});
+});

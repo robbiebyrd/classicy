@@ -5,11 +5,17 @@
  * rule below is unit-testable on its own.
  */
 
+// The split/filter/join pass trims leading/trailing hyphens in linear time —
+// the first replace already collapsed runs, so the only empty pieces are at
+// the ends. (An anchored trim regex like /^-+|-+$/g backtracks quadratically
+// on long hyphen runs.)
 const slugify = (value: string): string =>
 	value
 		.toLowerCase()
 		.replace(/[^a-z0-9]+/g, "-")
-		.replace(/^-+|-+$/g, "");
+		.split("-")
+		.filter(Boolean)
+		.join("-");
 
 // A window id holding one of these is a filesystem path, not a route.
 const FILESYSTEM_SEPARATOR = /[:/]/;

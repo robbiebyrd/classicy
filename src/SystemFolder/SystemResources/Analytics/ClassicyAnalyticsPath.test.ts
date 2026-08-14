@@ -105,3 +105,17 @@ describe("classicyWindowPageTitle", () => {
 		expect(classicyWindowPageTitle("   ", "  ", "/x")).toBe("/x");
 	});
 });
+
+describe("classicyWindowPagePath slug trimming", () => {
+	// slugify's trim step is split/filter/join (linear) instead of an
+	// anchored regex (quadratic on hyphen runs); same output as before.
+	it("trims leading and trailing punctuation from both segments", () => {
+		expect(classicyWindowPagePath("--Mail--.app", "--Mail--_3")).toBe(
+			"/mail/window-3",
+		);
+	});
+
+	it("keeps the app fallback when the id is all punctuation", () => {
+		expect(classicyWindowPagePath("###.app", "notes")).toBe("/app/notes");
+	});
+});

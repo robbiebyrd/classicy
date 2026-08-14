@@ -82,12 +82,20 @@ export interface HCActionPath {
 	hops: { index: number; branch: "then" | "else" | "body" }[];
 }
 
+// Runtime mirror of the HCActionPath branch union. The union is compile-time
+// only; every current caller builds paths in the editor UI, but this guard
+// keeps a future caller that parses paths from stack data (untrusted) from
+// turning the bracket assignments below into a prototype-pollution sink.
+const isHCBranch = (branch: string): branch is "then" | "else" | "body" =>
+	branch === "then" || branch === "else" || branch === "body";
+
 export function listAt(
 	handlers: HCEventHandlers,
 	path: HCActionPath,
 ): HCAction[] {
 	let list: HCAction[] = handlers[path.event] ?? [];
 	for (const hop of path.hops) {
+		if (!isHCBranch(hop.branch)) return [];
 		const parent = list[hop.index] as unknown as Record<string, HCAction[]>;
 		list = parent?.[hop.branch] ?? [];
 	}
@@ -107,11 +115,15 @@ export function withListAt(
 	}
 	let list = clone[path.event] ?? [];
 	for (const hop of path.hops.slice(0, -1)) {
+		// A path with a non-branch hop can't address anything; return the
+		// clone unchanged rather than index with an arbitrary key.
+		if (!isHCBranch(hop.branch)) return clone;
 		list = (list[hop.index] as unknown as Record<string, HCAction[]>)[
 			hop.branch
 		];
 	}
 	const last = path.hops[path.hops.length - 1];
+	if (!isHCBranch(last.branch)) return clone;
 	(list[last.index] as unknown as Record<string, HCAction[]>)[last.branch] =
 		next;
 	return clone;

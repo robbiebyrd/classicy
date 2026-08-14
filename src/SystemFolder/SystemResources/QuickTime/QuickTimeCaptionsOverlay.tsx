@@ -27,6 +27,28 @@ export type QuickTimeCaptionStyle = {
 
 // ::cue-style custom properties don't cascade into computed inline styles, so
 // resolve the font var against the desktop root at effect time.
+/**
+ * Strips caption markup (VTT tags like `<i>`, `<c.class>`) so the cue renders
+ * as plain text. Cosmetic only — the result is rendered as a React text child,
+ * so it is escaped regardless; this never needs to be a security sanitizer.
+ * Matches `text.replace(/<[^>]*>/g, "")` exactly (an unclosed `<` stays
+ * literal) but runs in linear time, so a hostile subtitle cue packed with `<`
+ * can't stall the render the way the backtracking regex could.
+ */
+export function stripCaptionTags(text: string): string {
+	let out = "";
+	let i = 0;
+	while (i < text.length) {
+		const open = text.indexOf("<", i);
+		if (open === -1) return out + text.slice(i);
+		const close = text.indexOf(">", open + 1);
+		if (close === -1) return out + text.slice(i);
+		out += text.slice(i, open);
+		i = close + 1;
+	}
+	return out;
+}
+
 function resolveCssVar(name: string): string {
 	const el =
 		document.getElementById("classicyDesktop") ?? document.documentElement;
@@ -56,7 +78,7 @@ export const QuickTimeCaptionsOverlay: FunctionalComponent<{
 	}, [captionStyle]);
 
 	if (!text) return null;
-	const plain = text.replace(/<[^>]*>/g, "");
+	const plain = stripCaptionTags(text);
 	if (!plain) return null;
 
 	return (
