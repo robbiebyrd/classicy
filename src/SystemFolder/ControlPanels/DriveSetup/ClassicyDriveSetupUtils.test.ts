@@ -22,7 +22,7 @@ describe("getDriveRows", () => {
 		const rows = getDriveRows(fs);
 		expect(rows.map((r) => r.name)).toEqual(["Macintosh HD", "Backup Disk"]);
 		expect(rows[0]).toMatchObject({
-			type: "Macintosh Volume",
+			type: "Classicy Volume",
 			bus: "ATA",
 			id: "0",
 			lun: "0",

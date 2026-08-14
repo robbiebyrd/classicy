@@ -5,14 +5,14 @@ import { DriveSetupList } from "./DriveSetupList";
 const drives = [
 	{
 		name: "Macintosh HD",
-		type: "Macintosh Volume",
+		type: "Classicy Volume",
 		bus: "ATA",
 		id: "0",
 		lun: "0",
 	},
 	{
 		name: "Backup Disk",
-		type: "Macintosh Volume",
+		type: "Classicy Volume",
 		bus: "ATA",
 		id: "1",
 		lun: "0",

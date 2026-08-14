@@ -22,7 +22,7 @@ export function getDriveRows(fs: ClassicyFileSystem): DriveRow[] {
 	const drives = fs.filterByType("", ClassicyFileSystemEntryFileType.Drive);
 	return Object.entries(drives).map(([name, meta], index) => ({
 		name,
-		type: typeof meta._driveType === "string" ? meta._driveType : "Macintosh Volume",
+		type: typeof meta._driveType === "string" ? meta._driveType : "Classicy Volume",
 		bus: typeof meta._bus === "string" ? meta._bus : "ATA",
 		id: typeof meta._scsiId === "string" ? meta._scsiId : String(index),
 		lun: typeof meta._lun === "string" ? meta._lun : "0",
