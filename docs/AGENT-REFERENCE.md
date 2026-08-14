@@ -146,6 +146,10 @@ dispatch({ type: 'ClassicyAppOpen', app: { id: 'MyApp.app', name: 'My App', icon
 `classicyDesktopStateEventReducer` inside an immer `produce`. The optional
 second argument is `"trusted"` (default) or `"untrusted"` (see §6).
 
+The same `dispatch` function is also exported at module level (the hook just
+returns it) — use the bare import in non-React code such as module-scope
+registration, file-system adapters, or engine callbacks.
+
 ### Event routing (by `type` prefix, in this exact order)
 
 1. Trust gate — untrusted actions that fail the gate are rejected before any handler runs.
@@ -321,8 +325,8 @@ manager. Must be a descendant of `ClassicyApp`.
 | `closable` / `zoomable` / `collapsable` / `resizable` / `scrollable` | `boolean` | all `true` |
 | `modal` | `boolean` | `false` |
 | `defaultWindow` | `boolean` | `false` |
-| `initialSize` / `minimumSize` | `[w, h]` | `[350, 0]` / `[300, 0]` (0 = auto) |
-| `initialPosition` | `[x, y]` | `[110, 110]` |
+| `initialSize` / `minimumSize` | `[w, h]`, each `number \| "\${number}%"` | `[350, 0]` / `[300, 0]` (0 = auto) |
+| `initialPosition` | `[x, y]` — x: `number \| "left" \| "center" \| "right"`, y: `number \| "top" \| "center" \| "bottom"` | `[110, 110]` |
 | `windowType` | `"document" \| "utility"` | `"document"` |
 | `zoomMode` | `"full" \| "horizontal" \| "vertical"` | `"full"` |
 | `headerVariant` | `"standard" \| "list"` | `"standard"` |
@@ -376,6 +380,7 @@ usable pre-boot): `title?`, `children` *, `className?`, `width?`.
 | `ClassicyTabs` | `tabs` * (`{title?, icon?, children}[]`) | |
 | `ClassicyTree` | `nodes` *, `selectionMode? ("none"\|"single"\|"multi")`, `selectedIds?`, `onSelectNode?`, `onActivateNode?`, `onToggleNode?` | hierarchical list |
 | `ClassicyPager` | `page` *, `pageCount` *, `onPageChange` * | Apple Guide page control |
+| `ClassicySplitView` | `children` * (2–3 panes), `direction? ("horizontal"\|"vertical")`, `defaultSizes? (number[], pct, normalized)`, `minPaneSize? (48 px)`, `onResize?(sizes)`, `onResizeCommit?(sizes)` | resizable pane container; divider is draggable and keyboard-operable (ARIA separator, arrow keys). Max 3 panes — nest split views for grids. Uncontrolled after mount: persist via `onResizeCommit`, restore via `defaultSizes` |
 | `ClassicySpinner` | see inputs | |
 | `ClassicyIcon` | `appId` *, `name` *, `icon` *, `label?`, `initialPosition?`, `holder?`, `invisible?` | draggable icon (non-desktop surfaces) |
 
@@ -412,8 +417,9 @@ Keyboard shortcut helpers: `parseKeyboardShortcut`, `formatKeyboardShortcut`,
 | `ClassicyAboutWindow` | `appId` *, `appName` *, `appIcon` *, `hideFunc` * | standard About box |
 | `ClassicyAssistant` | `pages` * (`{title, content, buttons?, canAdvance?}[]`), `buttons?`, `page?`/`onPageChange?` | setup-assistant flow |
 
-File dialog volumes: build with `desktopVolume()` or `fileSystemVolume()`
-(both exported), or implement `ClassicyFileDialogVolume { id, label, icon?, list(path), write?(), mkDir?() }`.
+File dialog volumes: build with `desktopVolume(fs)` or
+`fileSystemVolume(fs, drive)` (both exported), or implement
+`ClassicyFileDialogVolume { id, label, icon?, list(path), write?(), mkDir?() }`.
 
 Color sub-pickers are individually exported (`ClassicyColorPickerRGB`, `HSV`,
 `HLS`, `CMYK`, `Crayon`, `ClassicyColorWheel`) along with conversion utils
@@ -467,24 +473,60 @@ optional: `subtitlesUrl`, `autoPlay`, `hideControls`, `controlsDocked`,
 `QuickTimeVolumeControl`, `QuickTimeCaptionsOverlay`, and hooks
 `useQuickTimePlayback`, `useQuickTimeSubtitles`, `useControllableState`.
 
-### 4.10 Built-in apps (mount as children of `ClassicyDesktop`)
+### 4.10 Built-in apps
 
-| Component | Purpose | Props |
+**Do NOT mount these yourself** — `ClassicyDesktop` renders all of them
+automatically (`FinderAboutThisComputer` is mounted by Finder). Mounting them
+as children would double-mount every app. They are listed here so you know
+what exists and what the `ClassicyAppManagerProvider` `disable*` props turn
+off:
+
+| Component | Purpose | Disable via provider prop |
 |---|---|---|
-| `Finder` | The Finder (file browsing, trash, Applications) | none |
-| `ClassicyControlPanels` | Mounts Appearance, Date & Time, Drive Setup, Sound panels | none |
-| `SimpleText` | Text editor | none |
-| `HyperCard` | Stack player (+ `HyperCard/Editor/*` authoring UI) | none |
-| `PDFViewer` | PDF viewer | none |
-| `MoviePlayer` | QuickTime movie player | none |
-| `QuickTimePictureViewer` | Picture viewer | none |
-| `WebViewer` | Web browser | none |
-| `AppleGuide` | Help system extension | none |
-| `FinderAboutThisComputer` | About This Computer window | none |
+| `Finder` | The Finder (file browsing, trash, Applications) | always on |
+| `ClassicyControlPanels` | Appearance, Date & Time, Drive Setup, Sound panels | always on |
+| `SimpleText` | Text editor | `disableSimpleText` |
+| `HyperCard` | Stack player (+ `HyperCard/Editor/*` authoring UI) | `disableHyperCard` |
+| `PDFViewer` | PDF viewer | `disablePDFViewer` |
+| `MoviePlayer` | QuickTime movie player | `disableMoviePlayer` |
+| `QuickTimePictureViewer` | Picture viewer | `disablePictureViewer` |
+| `WebViewer` | Web browser | `disableWebViewer` |
+| `AppleGuide` | Help system extension | always on |
 
-`ClassicyAppManagerProvider` mounts SimpleText, PDF Viewer, Movie Player,
-Picture Viewer, HyperCard, and Web Viewer support automatically — the
-`disable*` provider props turn them off.
+The components are still individually exported (all take no props) for
+advanced setups that build their own desktop shell. The four control panels
+are also individually exported (`ClassicyAppearanceManager`,
+`ClassicyDateAndTimeManager`, `ClassicyDriveSetup`, `ClassicySoundManager`),
+and `PDFViewerDocument` (`{ url, data? }` — data = gzip+base64url bytes) is a
+standalone PDF renderer with zoom/pan usable inside any consumer window.
+
+#### Driving the built-in apps by dispatch
+
+Each media app exports an `*AppInfo` constant (`{ id, name, icon }` — ready
+for `ClassicyAppOpen`) and open/close actions. One dispatch opens a document:
+
+```ts
+import { MoviePlayerAppInfo } from 'classicy'
+dispatch({
+    type: 'ClassicyAppMoviePlayerOpenDocument',
+    document: { url: 'https://example.com/clip.mp4', name: 'Clip', type: 'video' },
+})
+```
+
+| App (`*AppInfo` id) | Action | Payload |
+|---|---|---|
+| Movie Player (`MoviePlayer.app`) | `ClassicyAppMoviePlayerOpenDocument` / `OpenDocuments` / `CloseDocument` | `document` (or `documents[]`): FS path string OR `{ url*, name?, type? ("audio"\|"video"\|"image"), icon?, subtitlesUrl? }`; deduped/matched by `url` |
+| | `ClassicyAppMoviePlayerOpenFile` / `CloseFile` | `{ path: string }` (ClassicyFileSystem path) |
+| Picture Viewer (`PictureViewer.app`) | `ClassicyAppPictureViewerOpenDocument` / `OpenDocuments` / `CloseDocument` | `document`: path string OR `{ url*, name?, icon? }` |
+| | `ClassicyAppPictureViewerOpenFile` / `CloseFile` | `{ path: string }` |
+| PDF Viewer (`PDFViewer.app`) | `ClassicyAppPDFViewerOpenFile` / `CloseFile` | `{ path: string }` (FS path only) |
+| Web Viewer (`WebViewer.app`) | `ClassicyAppWebViewerOpenUrl` / `CloseUrl` | `{ url*: string, title?: string }`; `url` is the window identity — re-opening focuses the existing window |
+
+Exported zod schemas / types / guards: `MoviePlayerOpenFileSchema`,
+`MoviePlayerData`/`isMoviePlayerData`, `PictureViewerOpenFileSchema`,
+`isPictureViewerData`, `PDFViewerData`/`isPDFViewerData`,
+`WebViewerOpenUrlSchema`, `WebViewerData`/`isWebViewerData` (prefer
+`parseAppData` for new code).
 
 ---
 
@@ -551,6 +593,34 @@ colon-separated paths (`Macintosh HD:Documents:note.txt`). Access it with the
 `mkDir`, `rmDir`, `load`, `setMetadata`) — never touch `fs.fs` or entries
 directly.
 
+### Entry format
+
+An entry is a plain object: underscore-prefixed keys are metadata
+(`ClassicyFileSystemEntryMetadata`), non-underscore keys are children.
+`_type` is required; everything else optional:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `_type` * | `ClassicyFileSystemEntryFileType` | one of `file, shortcut, app_shortcut, extension, drive, directory, text_file, markdown, pdf, image, video, audio, stack` |
+| `_mimeType` | `string` | MIME type |
+| `_creator` / `_format` | `string` | select the opening application for the file |
+| `_label` / `_comments` | `string` | standard Mac metadata fields |
+| `_url` | `string` | URL to fetch content from; also the target of a `shortcut` |
+| `_openIn` | `"classicy" \| "browser" \| "browser-new"` | how a shortcut's `_url` opens (absent = `"classicy"`, the in-desktop WebViewer window) |
+| `_data` | `unknown` | file contents; a string read via `resolveFileSystemEntrySource` is gzip+base64url bytes and takes precedence over `_url` |
+| `_icon` / `_badge` | `string` / `ReactNode` | icon URL / badge overlay |
+| `_createdOn` / `_modifiedOn` | `Date` | timestamps |
+| `_readOnly` / `_nameLocked` / `_trashed` / `_system` / `_invisible` | `boolean` | content locked / name locked / in Trash / system file / hidden |
+| `_versions` | `ClassicyFileSystemEntry[]` | prior versions |
+
+Content helpers: `useResolvedMediaSource(url, data, mimeType)` turns an
+entry's `_url`/`_data` into a src usable by `<img>`/`<video>` (decompresses
+`_data` into an object URL, revoked on unmount);
+`resolveFileSystemEntrySource` is the non-hook equivalent;
+`compressToBase64` / `decompressFromBase64` produce/consume the `_data`
+format. Seed-tree helpers for the provider's `defaultFileSystem` prop:
+`DefaultFSContent` (the stock tree) and `mergeClassicyFileSystemEntries`.
+
 Browse UI: `ClassicyFileBrowser` (`fs` *, `path` *, `appId` *,
 `display? ("icons"|"list")`, `dirOnClickFunc?`, `fileOnClickFunc?`), with
 `ClassicyFileBrowserViewIcons` / `ClassicyFileBrowserViewTable` as the
@@ -615,6 +685,11 @@ dispatch({ type: 'ClassicyDesktopChangeTheme', activeTheme: 'myTheme' })  // no-
 returns the CSS custom-property map. Raw SCSS partials are importable via
 `classicy/scss/*`.
 
+Theme-authoring helpers: `hexToInt` / `intToHex` convert between hex strings
+and the integer colors themes use. `ClassicyWallpapers` is the stock
+wallpaper catalog and `resolveWallpaper(name)` maps a wallpaper name (as used
+in `desktop.backgroundImage` / `ClassicyDesktopChangeBackground`) to its URL.
+
 ---
 
 ## 9. Analytics
@@ -667,22 +742,98 @@ Action types (string enum `ClassicySoundActionTypes`): `ClassicySoundPlay`
 Alert sound options: `CLASSICY_ALERT_SOUNDS` (Bonk, Growl, Indigo, Quack,
 Sosumi, Tabitha, Wild Eep); default `DEFAULT_ALERT_SOUND = "ClassicyAlertSosumi"`.
 
+**Custom sound themes**: a theme's `sound.name` keys into the exported
+mutable registry `ClassicySounds: Record<string, SoundData | null>` (stock
+key: `"platinum"`). `SoundData` (zod: `SoundDataSchema`) is the Howler
+audiosprite format: `{ src: string[], sprite: Record<string, [offsetMs, durationMs, loop?]> }`.
+Add a key to `ClassicySounds` and reference it from a theme, or dispatch
+`{ type: 'ClassicySoundLoad', file: soundData, disabled: [] }` directly.
+
 ---
 
 ## 11. Other Extension Seams
 
 | API | Purpose |
 |---|---|
-| `registerHyperCardPart` / `registerHyperCardCommand` / `registerHyperCardEffectHandler` / `registerHyperCardStack` / `registerHyperCardSaveProvider` (+ `*EditorMeta` variants) | Extend HyperCard with custom parts, script commands, effects, preloaded stacks, and save backends |
-| `registerAppleGuideTopic(topic)` | Add help topics to the Apple Guide system |
+| `registerHyperCardPart` / `registerHyperCardCommand` / `registerHyperCardEffectHandler` / `registerHyperCardStack` / `registerHyperCardSaveProvider` (+ `registerHyperCardPartEditorMeta`, `registerHyperCardCommandEditorMeta`) | Extend HyperCard with custom parts, script commands, effects, preloaded stacks, and save backends |
+| `registerAppleGuideTopic(topic: HelpTopic)` | Add help topics to Apple Guide; open one programmatically by dispatching the exported `APPLE_GUIDE_SHOW_TOPIC_EVENT` action type; `getAppleGuideTopic(id)` reads back |
 | `ClassicyMenuBarExtension` | Add menu bar items (see §4.5) |
+| `classicyEditCommands`, `ensureEditTracker` | Programmatic Undo/Cut/Copy/Paste/Clear/Select All acting on the last-focused text field (native editing + Clipboard API); this is what `useClassicyEditMenu` uses — call directly from custom menus/toolbars |
 | `useFinderFolderSize`, `FinderContext` | Finder integration points |
 | `useClassicyCursor()` | Platinum cursor management |
 | `mergeClassicyState(base, overrides)`, `DefaultAppManagerState`, `sanitizeStateForPersistence` | Building custom `defaultState` for the provider |
+| `wasHydratedFromStorage()`, `startAppManagerPersistence()`, `stopAppManagerPersistence()` | Persistence lifecycle control (tests, SSR, demos) |
+| `resetStartupScreenSession()` (+ `hasShownStartupScreenThisSession`, `markStartupScreenShownThisSession`) | The startup screen shows once per browser session; reset in tests/demos |
+
+### Authoring HyperCard stacks
+
+A stack is plain JSON (`HCStack`): `{ name*: string, version?: "1" | "2",
+size?: [w, h] (default [512, 342]), variables?: Record<string, string | number>,
+backgrounds?: HCBackground[], cards*: HCCard[] (non-empty), stackScript?: HCEventHandlers }`.
+Event handler keys (`HC_EVENT_NAMES`): `onOpenStack`, `onCloseStack`,
+`onOpenCard`, `onCloseCard`, `onOpenBackground`, `onMouseUp`, `onMouseDown`,
+`onIdle` — each an `HCAction[]`, discriminated by `do`: `go, put, add,
+subtract, multiply, divide, set, show, hide, beep, play, answer, ask, visual,
+wait, if, repeat, openApp` (plus registered plugin commands).
+
+Validate with `validateStack(raw)` →
+`{ ok: true, stack } | { ok: false, errors: string[] }`, preload via
+`registerHyperCardStack`, and study the exported `HyperCardWelcomeStack` /
+`HyperCardBuiltInStacks` as references. Save-provider authors can reuse
+`serializeStack`, `stackFileName`, `downloadStack`, or
+`registerDownloadSaveProvider()`.
 
 ---
 
-## 12. Rules & Gotchas for Agents
+## 12. Date & Time (Virtual Clock)
+
+The desktop runs a virtual clock (pausable, offsettable, boundable —
+persisted in `System.Manager.DateAndTime`). Read and control it with:
+
+```ts
+import { useClassicyDateTime } from 'classicy'
+
+const { localDate, localHMS, tzOffset, paused, boundaryLocked,
+        setDateTime, setTzOffset, pause, resume } = useClassicyDateTime({ tick: true })
+```
+
+`tick: true` (default `false`) makes `localDate` (TZ-adjusted `Date`) and
+`localHMS` (`"HH:MM:SS"`) advance every second, drift-free. Actions (all
+routed via the `ClassicyManagerDateTime*` prefix):
+
+| Type | Payload | Effect |
+|---|---|---|
+| `ClassicyManagerDateTimeSet` | `{ dateTime: Date }` (a real `Date` instance) | set the clock; clamped into `[minDateTime, maxDateTime]` |
+| `ClassicyManagerDateTimeTZSet` | `{ tzOffset: string }` (numeric, −12…14) | set timezone offset |
+| `ClassicyManagerDateTimeSync` | — | adopt host machine time + offset (honors bounds) |
+| `ClassicyManagerDateTimePause` / `Resume` | — | freeze/unfreeze (`Resume` is a no-op while `boundaryLocked`) |
+| `ClassicyManagerDateTimeLock` / `Unlock` | — | lock the control panel UI |
+
+Pure helpers: `toLocalDate(iso, tzOffsetHours)`, `toLocalHMS(iso, tzOffsetHours)`.
+
+---
+
+## 13. URL Opening & Web Shortcuts
+
+File-system entries with `_type: "shortcut"` carry `_url` plus `_openIn`, a
+`ClassicyShortcutDisposition`:
+
+- `"classicy"` (default, and the fallback for any invalid value) — opens in an in-desktop WebViewer window; `isSameOriginUrl(url)` decides iframe sandboxing
+- `"browser"` — replaces the current page
+- `"browser-new"` — new tab (`noopener,noreferrer`)
+
+Programmatic navigation dispatches
+`{ type: 'ClassicyDesktopOpenUrl', url: string, disposition?: ClassicyShortcutDisposition }`.
+Invalid/non-http URLs raise the desktop error dialog; browser dispositions
+are executed exactly once by the auto-mounted `ClassicyOpenUrlController`.
+Note the action is on the guarded `ClassicyDesktop*` floor — it can never be
+dispatched untrusted (stack scripts cannot navigate the page), so dispatch it
+trusted from your own code. `readShortcutDisposition(value)` normalizes
+untrusted disposition strings.
+
+---
+
+## 14. Rules & Gotchas for Agents
 
 1. **Always select** when reading the store: `useAppManager(s => s.System.Manager.Applications.apps[id])`. The app slice is `Applications`, not `App`.
 2. **Never mutate app/file-system state directly.** Apps change state only by dispatching actions handled by their registered handler; file system changes only via `fs.writeFile`/`mkDir`/`rmDir`/`setMetadata`.
@@ -695,3 +846,4 @@ Sosumi, Tabitha, Wild Eep); default `DEFAULT_ALERT_SOUND = "ClassicyAlertSosumi"
 9. **Colors are integers** (`0xRRGGBB`), not hex strings, throughout themes and color pickers.
 10. **CSS is not auto-imported** — `classicy/dist/classicy.css` is required; `fonts.css` is opt-in.
 11. Deprecated (still working, avoid in new code): `noDesktopIcon`, `inApplicationsFolder`, `registerAppEventHandler`, `registerClassicyUntrustedActionAllowlist` for app-owned actions, `isXData`-style hand-rolled guards (use `parseAppData`).
+12. **Never mount the built-in apps yourself** (`Finder`, `SimpleText`, `HyperCard`, the viewers, `ClassicyControlPanels`, `AppleGuide`) — `ClassicyDesktop` renders them all automatically; mounting them as children double-mounts them. Use the provider's `disable*` props to remove the optional ones.

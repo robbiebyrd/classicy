@@ -208,6 +208,7 @@ import { ClassicyWindow, ClassicyButton, ClassicyBalloonHelp } from 'classicy';
 | `ClassicyDisclosure` | Collapsible section (expand/collapse). Props: `label`, `open` |
 | `ClassicyControlGroup` | Labeled fieldset grouping form controls. Props: `label` |
 | `ClassicyControlLabel` | Inline label for a control. Props: `label` |
+| `ClassicySplitView` | Resizable two- or three-pane container with a draggable, keyboard-accessible divider. Props: `direction`, `defaultSizes`, `minPaneSize`, `onResize`, `onResizeCommit` |
 
 ### Menus
 

@@ -34,6 +34,13 @@
 - `ClassicyWindow.tsx` selects entire app object then calls `.find()` outside selector — avoids returning new reference from selector
 - Arrays selected directly: `useAppManager(s => s.System.Manager.Applications.apps["Finder.app"]?.windows)` — potential re-render risk if windows array reference changes on unrelated mutations
 
+## ClassicySplitView (added 2026-08-14, commit d9a71b4f)
+- `src/SystemFolder/SystemResources/SplitView/ClassicySplitView.tsx` — resizable 2–3 pane container, one axis (`direction: "horizontal" | "vertical"`); nest for grids
+- Uncontrolled after mount: `defaultSizes` (pct, normalized) initial only; `onResize` per drag step, `onResizeCommit` once per gesture (persist seam)
+- Divider = ARIA window-splitter (`role="separator"`, tabIndex 0, arrow keys ±1%); mouse drag uses document-level listeners (same idiom as ClassicyWindow)
+- `minPaneSize` px (default 48) → clamped in exported pure fn `computeSplitViewSizes`
+- Mouse + keyboard only (no touch/pointer events); 29 tests, Storybook stories included
+
 ## Known Gaps / Potential Issues
 - No `useShallow` usage anywhere in the codebase — some selectors returning objects could benefit from it
 - Persistence writes synchronously on every state change — no debounce; could be improved for high-frequency events (window dragging, resizing)

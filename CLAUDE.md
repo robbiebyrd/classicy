@@ -215,6 +215,31 @@ path is what stays free of user data.
 - The wrapper is `position: relative; display: inline-block`. If that would break your layout (e.g. an absolutely positioned element), use the `useClassicyBalloonHelp(ref, config)` hook instead — it returns `{ handlers, balloon }` to spread onto an element you already own, adding no DOM. `ClassicyDesktopIcon` does this.
 - Globally disabled by `System.Manager.Desktop.disableBalloonHelp` (Zustand store). Toggle with event `ClassicyDesktopSetBalloonHelp` — e.g. `dispatch({ type: 'ClassicyDesktopSetBalloonHelp', disableBalloonHelp: true })`
 
+### Split Views
+
+`ClassicySplitView` (`src/SystemFolder/SystemResources/SplitView/`) is a
+resizable container splitting two or three content areas along one axis:
+
+```tsx
+<ClassicySplitView direction="horizontal" defaultSizes={[30, 70]} onResizeCommit={saveSizes}>
+  <Sidebar />
+  <Content />
+</ClassicySplitView>
+```
+
+- `direction` (`"horizontal"` default = side-by-side), `minPaneSize` (px,
+  default 48), `defaultSizes` (percentages, normalized to 100; equal split
+  when the length doesn't match the pane count).
+- Max **3 panes** per component (extras dropped with a dev warning) — nest a
+  split view inside a pane to combine directions.
+- Sizes are uncontrolled after mount. `onResize` fires per drag step;
+  `onResizeCommit` fires once per gesture (mouse release / arrow-key
+  release) — persist there and feed the saved sizes back as `defaultSizes`.
+- The divider follows the ARIA window-splitter pattern (`role="separator"`,
+  focusable, arrow keys nudge by 1%) and uses the same document-level drag
+  listener idiom as `ClassicyWindow`. Pure resize math is exported as
+  `computeSplitViewSizes` for tests.
+
 ### Contextual Menus
 
 Right-click menus resolve target-based, innermost wins: a `ClassicyContextualMenuTarget`-wrapped control > the window's `contextMenu` prop > the app's `contextMenu` prop (`ClassicyApp`) > the desktop default menu (empty desktop only). Desktop icons take an optional `contextMenu` prop. A single `ClassicyContextualMenuProvider` (mounted by `ClassicyDesktop`) renders the one open menu via portal.
