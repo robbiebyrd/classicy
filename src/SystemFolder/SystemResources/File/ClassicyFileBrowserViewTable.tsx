@@ -206,40 +206,22 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 				});
 			}, []);
 
-			// Reserve enough width in the disclosure column for the deepest disclosed
-			// level so the indented triangles are never clipped.
-			const maxDepth = useMemo(() => {
-				let deepest = 0;
-				const walk = (rows: FileRow[], depth: number) => {
-					rows.forEach((row) => {
-						if (depth > deepest) deepest = depth;
-						if (row.subRows) walk(row.subRows, depth + 1);
-					});
-				};
-				walk(data, 0);
-				return deepest;
-			}, [data]);
-
 			const columns = useMemo(
 				() => [
-					columnHelper.display({
-						id: "_disclosure",
-						enableResizing: false,
-						enableSorting: false,
-						size: 28 + maxDepth * 12,
-						header: () => null,
-						cell: ({ row }) => {
-							const isDirectory =
-								row.original._type ===
-								ClassicyFileSystemEntryFileType.Directory;
-							return (
-								<div
-									className={"classicyFileBrowserViewTableDisclosure"}
-									style={{
-										paddingLeft: `calc(var(--window-control-size) * ${row.depth})`,
-									}}
-								>
-									{isDirectory && (
+					columnHelper.accessor((row) => row._name, {
+						id: "_name",
+						cell: (info) => (
+							<div
+								className={"classicyFileBrowserViewTableRowContainer"}
+								style={{
+									paddingLeft: `calc(var(--window-control-size) * ${info.row.depth})`,
+								}}
+							>
+								{/* Fixed-width gutter so files line up with folders at the
+								    same depth; only folders put a triangle in it. */}
+								<span className={"classicyFileBrowserViewTableDisclosure"}>
+									{info.row.original._type ===
+										ClassicyFileSystemEntryFileType.Directory && (
 										// biome-ignore lint/a11y/noStaticElementInteractions: swallows the click so toggling disclosure never doubles as a row selection
 										// biome-ignore lint/a11y/useKeyWithClickEvents: the triangle itself owns keyboard toggling; this wrapper only stops mouse bubbling
 										<span
@@ -250,26 +232,14 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 										>
 											<ClassicyTriangle
 												direction={"right"}
-												open={expandedPaths.has(row.original._path ?? "")}
+												open={expandedPaths.has(info.row.original._path ?? "")}
 												onToggle={() =>
-													toggleExpanded(row.original._path ?? "")
+													toggleExpanded(info.row.original._path ?? "")
 												}
 											/>
 										</span>
 									)}
-								</div>
-							);
-						},
-					}),
-					columnHelper.accessor((row) => row._name, {
-						id: "_name",
-						cell: (info) => (
-							<div
-								className={"classicyFileBrowserViewTableRowContainer"}
-								style={{
-									paddingLeft: `calc(var(--window-control-size) * ${info.row.depth})`,
-								}}
-							>
+								</span>
 								<img
 									src={
 										info.row.original._icon ||
@@ -311,7 +281,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 						enableResizing: true,
 					}),
 				],
-				[fs, iconSize, maxDepth, expandedPaths, toggleExpanded],
+				[fs, iconSize, expandedPaths, toggleExpanded],
 			);
 
 			const table = useReactTable({

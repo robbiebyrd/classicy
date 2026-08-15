@@ -56,6 +56,11 @@
 .classicyFileBrowserViewTableHeader {
   position: sticky;
   top: 0;
+  // The disclosure triangles carry a CSS transform (their open/closed
+  // rotation), which promotes them into the positioned paint layer — without
+  // an explicit z-index here, rows scrolling under the sticky header would
+  // draw their triangles ON TOP of it.
+  z-index: 1;
   border: none !important;
 }
 
@@ -106,12 +111,12 @@
   text-overflow: ellipsis;
 }
 
-.classicyFileBrowserViewTableRowSelected td:nth-of-type(2) div span {
+.classicyFileBrowserViewTableRowSelected .classicyFileBrowserViewTableRowIconLabel {
   color: var(--color-white);
   background: var(--color-system-07);
 }
 
-.classicyFileBrowserViewTableRowSelected td:first-of-type div img {
+.classicyFileBrowserViewTableRowSelected .classicyFileBrowserViewTableRowIcon {
   filter: contrast(0.75) brightness(0.5);
 }
 
@@ -122,13 +127,21 @@
   overflow: hidden;
 }
 
-// Leading gutter holding a folder's disclosure triangle. Its left padding grows
-// by --window-control-size per nesting level so disclosed rows step inward.
+// Fixed-width gutter at the head of the Filename cell holding a folder's
+// disclosure triangle (empty for files, so icons align across rows). The
+// per-level indent lives on the row container's padding, not here.
 .classicyFileBrowserViewTableDisclosure {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 100%;
+  flex: 0 0 calc(var(--window-control-size) + var(--window-padding-size));
+
+  // The triangle's built-in negative margin exists for ClassicyTree
+  // alignment; inside this centered gutter it would just pull the glyph
+  // off-center (and off the cell's left edge at depth 0).
+  .classicyTriangle {
+    margin-left: 0;
+  }
 }
 
 .classicyFileBrowserViewTableDisclosureTriangle {

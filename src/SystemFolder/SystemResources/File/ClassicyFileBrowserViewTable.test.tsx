@@ -155,6 +155,27 @@ describe("ClassicyFileBrowserViewTable disclosure tree", () => {
 		expect(screen.getAllByRole("button")).toHaveLength(1);
 	});
 
+	it("renders the disclosure triangle inside the Filename column, not its own column", async () => {
+		const cfs = makeNestedFs();
+		vi.spyOn(cfs, "size").mockResolvedValue(100);
+
+		const { container } = render(
+			<ClassicyFileBrowserViewTable
+				fs={cfs}
+				path="Documents"
+				appId="Finder.app"
+			/>,
+		);
+
+		await screen.findByText("Reports");
+		// Exactly three columns: Filename, File Type, Size — no leading
+		// disclosure-only column.
+		expect(container.querySelectorAll("thead th")).toHaveLength(3);
+		// The folder's triangle shares the Filename cell with its label.
+		const nameCell = screen.getByText("Reports").closest("td") as HTMLElement;
+		expect(nameCell).toContainElement(screen.getByRole("button"));
+	});
+
 	it("expands a folder inline when its triangle is clicked and collapses again", async () => {
 		const user = userEvent.setup();
 		const cfs = makeNestedFs();
