@@ -311,6 +311,66 @@ throughout:
 - `ClassicyMenuItem = { id, title?, icon?, disabled?, checked?, keyboardShortcut?, event?, eventData?, onClickFunc?, menuChildren?, balloon?, ... }`
 - `ClassicyIconBalloonHelp = { title?, content, position?, delay? }`
 
+### 4.0 HTML element ⇄ Classicy component map
+
+Inside a Classicy desktop, always prefer the Platinum-styled component over
+the raw HTML element it replaces — the component brings theming (CSS
+variables), UI sounds, balloon help, keyboard behavior, and store integration
+for free. When you would reach for one of these elements, use the component
+instead:
+
+| Instead of raw HTML… | Use | Notes |
+|---|---|---|
+| `<button>` | `ClassicyButton` | renders a real `<button>`. Latching/toggle/radio/popup buttons: `ClassicyBevelButton` |
+| `<input type="checkbox">` | `ClassicyCheckbox` | button-shaped checkbox: `ClassicyBevelButton mode="toggle"` |
+| `<input type="radio">` | `ClassicyRadioInput` | one component renders the whole group |
+| `<input>` (text, password, email, url, …) | `ClassicyInput` | the `type` prop passes through to the native `<input>` |
+| `<input type="number">` | `ClassicySpinner` | `ClassicyLittleArrows` is the bare stepper without the field |
+| `<input type="range">` | `ClassicySlider` | |
+| `<input type="file">` | `ClassicyFileInput` | inline control (host files); to pick from the Classicy file system use `ClassicyFileOpenDialog` / `ClassicyFileSaveDialog` |
+| `<input type="date">` | `ClassicyDatePicker` | |
+| `<input type="time">` | `ClassicyTimePicker` | |
+| `<input type="color">` | `ClassicyColorPicker` | swatch control that opens `ClassicyColorPickerDialog` |
+| `<textarea>` | `ClassicyTextEditor` | renders a real `<textarea>`; markdown/rich editing: `ClassicyRichTextEditor` |
+| `<select>` / `<option>` | `ClassicyPopUpMenu` | wraps a real `<select>`; single-select only (see gaps below) |
+| `<label>` | `ClassicyControlLabel` | |
+| `<fieldset>` / `<legend>` | `ClassicyControlGroup` | renders a real `<fieldset>` + `<legend>` |
+| `<hr>` | `ClassicySeparator` | renders a real `<hr>`; also vertical |
+| `<progress>` | `ClassicyProgressBar` | adds indeterminate barber-pole / chasing arrows |
+| `<details>` / `<summary>` | `ClassicyDisclosure` | `ClassicyTriangle` is the bare disclosure marker |
+| nested `<ul>` / `<li>` (interactive) | `ClassicyTree` | for plain static lists keep raw `<ul>` / `<ol>` |
+| `<dialog>` (modal) / `window.alert()` | `ClassicyAlert` | app-specific modal dialogs: `ClassicyWindow modal`; About boxes: `ClassicyAboutWindow` |
+| `<dialog>` (non-modal) | `ClassicyWindow` | |
+| `<menu>` / the old `contextmenu` attribute | `ClassicyMenu`, `ClassicyContextualMenuTarget` | menu-bar items: `ClassicyMenuBarExtension` |
+| `title` attribute (tooltip) | `ClassicyBalloonHelp` | |
+| `<video>` / `<audio>` | `QuickTimeVideoEmbed` | `type: "video" \| "audio"` |
+| `<img>` (droppable image slot) | `ClassicyImageWell` | plain static images: keep raw `<img>` |
+| `<img>` + caption (icon with label) | `ClassicyIcon` / `ClassicyDesktopIcon` | |
+| `<nav>` (top-level chrome) | `ClassicyDesktopMenuBar` | mounted automatically by `ClassicyDesktop` |
+
+**Classicy-only components with no HTML counterpart** (the desktop metaphor —
+there is no raw element to replace): `ClassicyDesktop`, `ClassicyApp`,
+`ClassicyWindowFrame`, `ClassicyTabs` (the ARIA `role="tablist"` pattern),
+`ClassicySplitView` (nearest ancestor is the obsolete `<frameset>`),
+`ClassicyButtonToolbar` / `ClassicyButtonToolbarGroup` (`role="toolbar"`),
+`ClassicyPlacard`, `ClassicyPager`, `ClassicyAssistant`,
+`ClassicyCrashScreen`, `ClassicyFileBrowser`, `ClassicyBoot` /
+`ClassicyStartupScreen`, and the screen savers.
+
+**HTML with no Classicy equivalent** — use the raw element, styled with the
+theme CSS variables (§8) so it follows theme changes:
+
+- `<a>` — no link component (file-system `shortcut` entries cover desktop-style links only)
+- `<table>` — no general-purpose data table (`ClassicyFileBrowserViewTable` is Finder-specific)
+- `<select multiple>` — `ClassicyPopUpMenu` is single-select
+- `<optgroup>` — `ClassicyPopUpMenu` options are a flat list
+- `<datalist>` — no combobox/autocomplete
+- `<meter>`, `<output>`, `<form>`
+- `<canvas>`, `<svg>`
+- `<iframe>` — the Web Viewer is a built-in app, not an embeddable component
+- `<kbd>` — `formatKeyboardShortcut` returns display text, but there is no component
+- Prose & sectioning: `<h1>`–`<h6>`, `<p>`, `<blockquote>`, `<pre>` / `<code>`, plain `<ul>` / `<ol>`, `<header>` / `<footer>` / `<section>` / `<article>` / `<aside>`
+
 ### 4.1 Windows
 
 **`ClassicyWindow`** — a full Platinum window, registered with the window

@@ -175,81 +175,87 @@ import { ClassicyWindow, ClassicyButton, ClassicyBalloonHelp } from 'classicy';
 
 > **Using an AI coding agent?** A complete machine-oriented reference to the public API — every component's props, app/event/icon registration, theming, analytics, sound, and the untrusted-action rules — ships with the package at [`docs/AGENT-REFERENCE.md`](docs/AGENT-REFERENCE.md) (`node_modules/classicy/docs/AGENT-REFERENCE.md`). Point your agent at it.
 
+Each table below lists the raw HTML element the component replaces — inside a
+Classicy desktop, prefer the component over the raw tag (e.g. `ClassicyButton`
+instead of `<button>`) to get theming, sounds, and balloon help for free. The
+full two-way map, including HTML elements that have **no** Classicy equivalent,
+is in [`docs/AGENT-REFERENCE.md` §4.0](docs/AGENT-REFERENCE.md).
+
 ### Application Shell
 
-| Component | Description |
-|-----------|-------------|
-| `ClassicyDesktop` | Root desktop surface — icons, menu bar, wallpaper, drag-select |
-| `ClassicyDesktopMenuBar` | Top menu bar with system menu, app menu, and widget tray |
-| `ClassicyApp` | Application container. Props: `id`, `name`, `icon`, `defaultWindow` |
-| `ClassicyWindow` | Window chrome with title bar and controls. Props: `id`, `appId`, `title`, `closable`, `zoomable`, `collapsable`, `resizable`, `modal`, `initialSize`, `initialPosition`, `minimumSize` |
-| `ClassicyBoot` | Boot screen shown on first load |
-| `ClassicyScreenSaver` | Idle-activated screensaver extension (auto-mounted by `ClassicyDesktop`); register your own savers with `registerClassicyScreenSaver` |
-| `ClassicyAboutWindow` | Standard "About This App" dialog. Props: `appId`, `appName`, `appIcon` |
+| Component | Description | HTML equivalent |
+|-----------|-------------|-----------------|
+| `ClassicyDesktop` | Root desktop surface — icons, menu bar, wallpaper, drag-select | — (desktop metaphor) |
+| `ClassicyDesktopMenuBar` | Top menu bar with system menu, app menu, and widget tray | `<nav>` |
+| `ClassicyApp` | Application container. Props: `id`, `name`, `icon`, `defaultWindow` | — |
+| `ClassicyWindow` | Window chrome with title bar and controls. Props: `id`, `appId`, `title`, `closable`, `zoomable`, `collapsable`, `resizable`, `modal`, `initialSize`, `initialPosition`, `minimumSize` | `<dialog>` (non-modal; `modal` prop for modal) |
+| `ClassicyBoot` | Boot screen shown on first load | — |
+| `ClassicyScreenSaver` | Idle-activated screensaver extension (auto-mounted by `ClassicyDesktop`); register your own savers with `registerClassicyScreenSaver` | — |
+| `ClassicyAboutWindow` | Standard "About This App" dialog. Props: `appId`, `appName`, `appIcon` | `<dialog>` |
 
 ### Inputs
 
-| Component | Description |
-|-----------|-------------|
-| `ClassicyButton` | Push button. Accepts children as label |
-| `ClassicyCheckbox` | Checkbox with optional label. Props: `checked`, `label`, `onChangeFunc` |
-| `ClassicyRadioInput` | Radio button group. Props: `label`, `options` (array of `{ label, value }`) |
-| `ClassicyInput` | Single-line text field. Props: `placeholder`, `value`, `onChangeFunc` |
-| `ClassicySpinner` | Numeric stepper (up/down arrows). Props: `value`, `min`, `max`, `step` |
-| `ClassicyPopUpMenu` | Drop-down selector. Props: `label`, `options` (array of `{ label, value }`), `value` |
-| `ClassicyDatePicker` | Date input with calendar picker. Props: `value`, `placeholder`, `onChangeFunc` |
-| `ClassicyTimePicker` | Time input with clock picker. Props: `value`, `placeholder`, `onChangeFunc` |
+| Component | Description | HTML equivalent |
+|-----------|-------------|-----------------|
+| `ClassicyButton` | Push button. Accepts children as label | `<button>` |
+| `ClassicyCheckbox` | Checkbox with optional label. Props: `checked`, `label`, `onChangeFunc` | `<input type="checkbox">` |
+| `ClassicyRadioInput` | Radio button group. Props: `label`, `options` (array of `{ label, value }`) | `<input type="radio">` group |
+| `ClassicyInput` | Single-line text field. Props: `placeholder`, `value`, `onChangeFunc` | `<input type="text">` (any text-like `type`) |
+| `ClassicySpinner` | Numeric stepper (up/down arrows). Props: `value`, `min`, `max`, `step` | `<input type="number">` |
+| `ClassicyPopUpMenu` | Drop-down selector. Props: `label`, `options` (array of `{ label, value }`), `value` | `<select>` / `<option>` |
+| `ClassicyDatePicker` | Date input with calendar picker. Props: `value`, `placeholder`, `onChangeFunc` | `<input type="date">` |
+| `ClassicyTimePicker` | Time input with clock picker. Props: `value`, `placeholder`, `onChangeFunc` | `<input type="time">` |
 
 ### Text Editing
 
-| Component | Description |
-|-----------|-------------|
-| `ClassicyTextEditor` | Plain-text editor area. Props: `content`, `onChangeFunc` |
-| `ClassicyRichTextEditor` | Rich-text editor (bold, italic, lists). Props: `content`, `onChangeFunc` |
+| Component | Description | HTML equivalent |
+|-----------|-------------|-----------------|
+| `ClassicyTextEditor` | Plain-text editor area. Props: `content`, `onChangeFunc` | `<textarea>` |
+| `ClassicyRichTextEditor` | Rich-text editor (bold, italic, lists). Props: `content`, `onChangeFunc` | `contenteditable` region |
 
 ### Layout & Structure
 
-| Component | Description |
-|-----------|-------------|
-| `ClassicyTabs` | Tabbed container. Children must be `ClassicyTab` items with a `title` prop |
-| `ClassicyDisclosure` | Collapsible section (expand/collapse). Props: `label`, `open` |
-| `ClassicyControlGroup` | Labeled fieldset grouping form controls. Props: `label` |
-| `ClassicyControlLabel` | Inline label for a control. Props: `label` |
-| `ClassicySplitView` | Resizable two- or three-pane container with a draggable, keyboard-accessible divider. Props: `direction`, `defaultSizes`, `minPaneSize`, `onResize`, `onResizeCommit` |
+| Component | Description | HTML equivalent |
+|-----------|-------------|-----------------|
+| `ClassicyTabs` | Tabbed container. Children must be `ClassicyTab` items with a `title` prop | — (ARIA `role="tablist"` pattern) |
+| `ClassicyDisclosure` | Collapsible section (expand/collapse). Props: `label`, `open` | `<details>` / `<summary>` |
+| `ClassicyControlGroup` | Labeled fieldset grouping form controls. Props: `label` | `<fieldset>` / `<legend>` |
+| `ClassicyControlLabel` | Inline label for a control. Props: `label` | `<label>` |
+| `ClassicySplitView` | Resizable two- or three-pane container with a draggable, keyboard-accessible divider. Props: `direction`, `defaultSizes`, `minPaneSize`, `onResize`, `onResizeCommit` | — (nearest: obsolete `<frameset>`) |
 
 ### Menus
 
-| Component | Description |
-|-----------|-------------|
-| `ClassicyMenu` | Drop-down menu used in the menu bar. Props: `id`, `title`, `menuChildren` |
-| `ClassicyContextualMenu` | Right-click context menu. Renders at pointer position |
+| Component | Description | HTML equivalent |
+|-----------|-------------|-----------------|
+| `ClassicyMenu` | Drop-down menu used in the menu bar. Props: `id`, `title`, `menuChildren` | `<menu>` |
+| `ClassicyContextualMenu` | Right-click context menu. Renders at pointer position | `<menu>` (the old `contextmenu` attribute) |
 
 ### Feedback & Display
 
-| Component | Description |
-|-----------|-------------|
-| `ClassicyProgressBar` | Determinate progress bar. Props: `value`, `max`, `label` |
-| `ClassicyBalloonHelp` | Mac OS 8-style speech-bubble tooltip. Wraps any element. Props: `content`, `title`, `position`, `delay` |
-| `ClassicyIcon` | System icon image with optional label. Props: `src`, `label` |
+| Component | Description | HTML equivalent |
+|-----------|-------------|-----------------|
+| `ClassicyProgressBar` | Determinate progress bar. Props: `value`, `max`, `label` | `<progress>` |
+| `ClassicyBalloonHelp` | Mac OS 8-style speech-bubble tooltip. Wraps any element. Props: `content`, `title`, `position`, `delay` | `title` attribute (tooltip) |
+| `ClassicyIcon` | System icon image with optional label. Props: `src`, `label` | `<img>` + caption |
 
 ### File System
 
-| Component | Description |
-|-----------|-------------|
-| `ClassicyFileBrowser` | File browser with icon and list views. Props: `path`, `onSelect` |
+| Component | Description | HTML equivalent |
+|-----------|-------------|-----------------|
+| `ClassicyFileBrowser` | File browser with icon and list views. Props: `path`, `onSelect` | — |
 
 ### Media
 
-| Component | Description |
-|-----------|-------------|
-| `QuickTimeMovieEmbed` | Embedded QuickTime-style video player. Props: `url` |
+| Component | Description | HTML equivalent |
+|-----------|-------------|-----------------|
+| `QuickTimeMovieEmbed` | Embedded QuickTime-style video player. Props: `url` | `<video>` / `<audio>` |
 
 ### Menu Bar Widgets
 
-| Component | Description |
-|-----------|-------------|
-| `ClassicyDesktopMenuWidgetTime` | Clock widget for the menu bar |
-| `ClassicyDesktopMenuWidgetSound` | Volume widget for the menu bar |
+| Component | Description | HTML equivalent |
+|-----------|-------------|-----------------|
+| `ClassicyDesktopMenuWidgetTime` | Clock widget for the menu bar | — |
+| `ClassicyDesktopMenuWidgetSound` | Volume widget for the menu bar | — |
 
 ---
 
