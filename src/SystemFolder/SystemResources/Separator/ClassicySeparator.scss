@@ -26,7 +26,11 @@
 .classicySeparatorVertical {
   box-sizing: border-box;
   width: var(--hig-frame-width); // 2px total: 1px line + 1px highlight
-  height: 100%;
+  // Full height comes from `align-self: stretch` alone — an explicit
+  // `height: 100%` would opt the item OUT of stretching, and inside a
+  // content-sized flex row (ClassicyButtonToolbar) the percentage has no
+  // definite height to resolve against, collapsing the line to its
+  // min-height floor beside full-size controls.
   min-height: var(--window-control-size);
   align-self: stretch;
   margin: 0 calc(var(--window-padding-size) / 2);
