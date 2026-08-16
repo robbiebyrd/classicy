@@ -129,7 +129,6 @@ export const ClassicyButton = forwardRef<
 				ref={ref}
 				type={buttonType}
 				tabIndex={0}
-				role={buttonType}
 				className={classNames(
 					"classicyButton",
 					isDefault ? "classicyButtonDefault" : "",
