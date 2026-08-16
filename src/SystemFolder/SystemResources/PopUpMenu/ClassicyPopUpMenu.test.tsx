@@ -472,3 +472,123 @@ describe("ClassicyPopUpMenu", () => {
 		});
 	});
 });
+
+describe("ClassicyPopUpMenu — option groups (<optgroup> equivalent)", () => {
+	const grouped = [
+		{ value: "loose", label: "Loose" },
+		{
+			groupLabel: "Citrus",
+			options: [
+				{ value: "lemon", label: "Lemon" },
+				{ value: "lime", label: "Lime" },
+			],
+		},
+		{
+			groupLabel: "Stone",
+			options: [{ value: "peach", label: "Peach" }],
+		},
+	];
+
+	it("renders group headers as non-selectable presentation rows", async () => {
+		const user = userEvent.setup();
+		render(<ClassicyPopUpMenu id="fruit" options={grouped} selected="lemon" />);
+		await user.click(screen.getByRole("combobox"));
+		const listbox = screen.getByRole("listbox");
+		// Only real options carry the option role — headers are invisible to AT.
+		expect(within(listbox).getAllByRole("option")).toHaveLength(4);
+		const header = within(listbox).getByText("Citrus");
+		expect(header).toHaveAttribute("role", "presentation");
+		expect(header).toHaveClass("classicyPopUpMenuGroupHeader");
+	});
+
+	it("indents group members and marks them grouped", async () => {
+		const user = userEvent.setup();
+		render(<ClassicyPopUpMenu id="fruit" options={grouped} selected="lemon" />);
+		await user.click(screen.getByRole("combobox"));
+		const listbox = screen.getByRole("listbox");
+		expect(within(listbox).getByRole("option", { name: "Lime" })).toHaveClass(
+			"classicyPopUpMenuListItemGrouped",
+		);
+		expect(
+			within(listbox).getByRole("option", { name: "Loose" }),
+		).not.toHaveClass("classicyPopUpMenuListItemGrouped");
+	});
+
+	it("clicking a group header neither selects nor closes", async () => {
+		const user = userEvent.setup();
+		const onChange = vi.fn();
+		render(
+			<ClassicyPopUpMenu
+				id="fruit"
+				options={grouped}
+				selected="lemon"
+				onChangeFunc={onChange}
+			/>,
+		);
+		await user.click(screen.getByRole("combobox"));
+		await user.click(screen.getByText("Citrus"));
+		expect(onChange).not.toHaveBeenCalled();
+		expect(screen.getByRole("listbox")).toBeInTheDocument();
+	});
+
+	it("arrow keys walk options straight across group boundaries", async () => {
+		const user = userEvent.setup();
+		render(<ClassicyPopUpMenu id="fruit" options={grouped} selected="loose" />);
+		const button = screen.getByRole("combobox");
+		await user.click(button);
+		// Highlight starts on the current option ("Loose", flat index 0);
+		// one ArrowDown lands on "Lemon", skipping the "Citrus" header.
+		await user.keyboard("{ArrowDown}");
+		const active = document.getElementById(
+			button.getAttribute("aria-activedescendant") as string,
+		);
+		expect(active).toHaveTextContent("Lemon");
+	});
+
+	it("End jumps to the last option, not the last row", async () => {
+		const user = userEvent.setup();
+		render(<ClassicyPopUpMenu id="fruit" options={grouped} selected="loose" />);
+		const button = screen.getByRole("combobox");
+		await user.click(button);
+		await user.keyboard("{End}");
+		const active = document.getElementById(
+			button.getAttribute("aria-activedescendant") as string,
+		);
+		expect(active).toHaveTextContent("Peach");
+	});
+
+	it("type-ahead matches option labels, never header labels", async () => {
+		const user = userEvent.setup();
+		render(<ClassicyPopUpMenu id="fruit" options={grouped} selected="loose" />);
+		const button = screen.getByRole("combobox");
+		await user.click(button);
+		// "C" is the "Citrus" header's initial; no option starts with it, so the
+		// highlight must not move.
+		const before = button.getAttribute("aria-activedescendant");
+		await user.keyboard("c");
+		expect(button.getAttribute("aria-activedescendant")).toBe(before);
+		// "P" jumps to the option "Peach" inside a group.
+		await user.keyboard("p");
+		const active = document.getElementById(
+			button.getAttribute("aria-activedescendant") as string,
+		);
+		expect(active).toHaveTextContent("Peach");
+	});
+
+	it("commits a grouped option by keyboard", async () => {
+		const user = userEvent.setup();
+		const onChange = vi.fn();
+		render(
+			<ClassicyPopUpMenu
+				id="fruit"
+				options={grouped}
+				selected="loose"
+				onChangeFunc={onChange}
+			/>,
+		);
+		await user.click(screen.getByRole("combobox"));
+		await user.keyboard("{ArrowDown}{Enter}");
+		expect(onChange).toHaveBeenCalledTimes(1);
+		expect(onChange.mock.calls[0][0].target.value).toBe("lemon");
+	});
+});

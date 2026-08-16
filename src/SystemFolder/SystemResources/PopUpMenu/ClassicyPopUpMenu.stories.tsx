@@ -42,3 +42,30 @@ export const Placeholder: Story = {
 export const Disabled: Story = {
 	args: { id: "popup-disabled", selected: "charcoal", disabled: true },
 };
+
+// <optgroup> equivalent: titled, non-selectable groups of options.
+export const Grouped: Story = {
+	args: {
+		id: "popup-grouped",
+		label: "Sound:",
+		selected: "sosumi",
+		options: [
+			{ value: "none", label: "None" },
+			{
+				groupLabel: "Alert Sounds",
+				options: [
+					{ value: "sosumi", label: "Sosumi" },
+					{ value: "quack", label: "Quack" },
+					{ value: "wild-eep", label: "Wild Eep" },
+				],
+			},
+			{
+				groupLabel: "System Sounds",
+				options: [
+					{ value: "boot", label: "Boot Chime" },
+					{ value: "beep", label: "Simple Beep" },
+				],
+			},
+		],
+	},
+};

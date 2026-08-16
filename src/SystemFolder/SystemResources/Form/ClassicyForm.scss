@@ -1,0 +1,17 @@
+.classicyForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hig-item-gap);
+}
+
+// A form filling a modal window gets the HIG dialog inset.
+.classicyFormDialog {
+  padding: var(--hig-dialog-edge);
+}
+
+.classicyFormButtonRow {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--hig-button-gap-h);
+  margin-top: var(--hig-group-gap);
+}

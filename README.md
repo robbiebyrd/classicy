@@ -146,6 +146,8 @@ The proxy runs on `http://localhost:8765` by default. Enable it in the Browser a
     - ✅ Tabs
     - ✅ Radio Button
     - ✅ Drop-down menu
+    - ✅ Drop-down menu groups (optgroup)
+    - ✅ Form (dialog layout, safe submit)
     - Multi-select menu
     - ✅ Checkbox
     - ✅ Bevel Button
@@ -206,7 +208,7 @@ is in [`docs/AGENT-REFERENCE.md` §4.0](docs/AGENT-REFERENCE.md).
 | `ClassicyRadioInput` | Radio button group. Props: `label`, `options` (array of `{ label, value }`) | `<input type="radio">` group |
 | `ClassicyInput` | Single-line text field. Props: `placeholder`, `value`, `onChangeFunc` | `<input type="text">` (any text-like `type`) |
 | `ClassicySpinner` | Numeric stepper (up/down arrows). Props: `value`, `min`, `max`, `step` | `<input type="number">` |
-| `ClassicyPopUpMenu` | Drop-down selector. Props: `label`, `options` (array of `{ label, value }`), `value` | `<select>` / `<option>` |
+| `ClassicyPopUpMenu` | Drop-down selector. Props: `label`, `options` (`{ label, value }` items or `{ groupLabel, options }` groups), `value` | `<select>` / `<option>` / `<optgroup>` |
 | `ClassicyDatePicker` | Date input with calendar picker. Props: `value`, `placeholder`, `onChangeFunc` | `<input type="date">` |
 | `ClassicyTimePicker` | Time input with clock picker. Props: `value`, `placeholder`, `onChangeFunc` | `<input type="time">` |
 
@@ -226,6 +228,7 @@ is in [`docs/AGENT-REFERENCE.md` §4.0](docs/AGENT-REFERENCE.md).
 | `ClassicyControlGroup` | Labeled fieldset grouping form controls. Props: `label` | `<fieldset>` / `<legend>` |
 | `ClassicyControlLabel` | Inline label for a control. Props: `label` | `<label>` |
 | `ClassicySplitView` | Resizable two- or three-pane container with a draggable, keyboard-accessible divider. Props: `direction`, `defaultSizes`, `minPaneSize`, `onResize`, `onResizeCommit` | — (nearest: obsolete `<frameset>`) |
+| `ClassicyForm` | Form wrapper with HIG row/dialog spacing; submit never navigates. Props: `onSubmitFunc`, `layout`. Pair with `ClassicyFormButtonRow` for the Cancel/OK row | `<form>` |
 
 ### Menus
 

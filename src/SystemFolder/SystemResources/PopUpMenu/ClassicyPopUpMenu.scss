@@ -183,3 +183,20 @@
   flex: 1 1 auto;
   font-family: var(--ui-font);
 }
+
+// Non-selectable <optgroup>-equivalent title. Platinum menus render group
+// titles like disabled items: grayed, never highlighted, default cursor.
+.classicyPopUpMenuGroupHeader {
+  padding: calc(var(--window-padding-size) / 3) calc(var(--window-padding-size) / 1.5);
+  color: var(--color-system-05);
+  font-family: var(--ui-font);
+  white-space: nowrap;
+  cursor: default;
+  user-select: none;
+}
+
+// Members of a group indent past the checkmark gutter so the header reads
+// as their title.
+.classicyPopUpMenuListItemGrouped {
+  padding-left: calc(var(--window-padding-size) * 1.5);
+}

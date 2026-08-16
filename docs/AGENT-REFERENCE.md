@@ -333,7 +333,9 @@ instead:
 | `<input type="time">` | `ClassicyTimePicker` | |
 | `<input type="color">` | `ClassicyColorPicker` | swatch control that opens `ClassicyColorPickerDialog` |
 | `<textarea>` | `ClassicyTextEditor` | renders a real `<textarea>`; markdown/rich editing: `ClassicyRichTextEditor` |
-| `<select>` / `<option>` | `ClassicyPopUpMenu` | wraps a real `<select>`; single-select only (see gaps below) |
+| `<select>` / `<option>` | `ClassicyPopUpMenu` | ARIA combobox + listbox (no native `<select>` under the hood); single-select only (see gaps below) |
+| `<optgroup>` | `ClassicyPopUpMenu` | pass `{ groupLabel, options }` entries in `options` — titled, non-selectable groups |
+| `<form>` | `ClassicyForm` | real `<form>`; navigation always prevented, HIG row/dialog layout; `ClassicyFormButtonRow` is the right-aligned Cancel/OK row |
 | `<label>` | `ClassicyControlLabel` | |
 | `<fieldset>` / `<legend>` | `ClassicyControlGroup` | renders a real `<fieldset>` + `<legend>` |
 | `<hr>` | `ClassicySeparator` | renders a real `<hr>`; also vertical |
@@ -366,9 +368,7 @@ theme CSS variables (§8) so it follows theme changes:
 
 - `<table>` — no general-purpose data table (`ClassicyFileBrowserViewTable` is Finder-specific)
 - `<select multiple>` — `ClassicyPopUpMenu` is single-select
-- `<optgroup>` — `ClassicyPopUpMenu` options are a flat list
 - `<datalist>` — no combobox/autocomplete
-- `<form>`
 - `<canvas>`, `<svg>`
 - `<iframe>` — the Web Viewer is a built-in app, not an embeddable component
 - Prose & sectioning: `<h1>`–`<h6>`, `<p>`, `<blockquote>`, `<pre>` / `<code>`, plain `<ul>` / `<ol>`, `<header>` / `<footer>` / `<section>` / `<article>` / `<aside>`
@@ -428,7 +428,7 @@ usable pre-boot): `title?`, `children` *, `className?`, `width?`.
 | `ClassicyFileInput` | `id` *, `accept?`, `multiple?`, `maxFiles?`, `maxFileSizeMb?`, `onChangeFunc?(files: File[])` | forwardRef handle `{ addFiles(File[]) }` |
 | `ClassicyDatePicker` | `id` *, `onChangeFunc?(date)`, `prefillValue?`, `minValue?/maxValue?` | defaults to store date/time |
 | `ClassicyTimePicker` | `id` *, `onChangeFunc?(date)`, `prefillValue?`, `minValue?/maxValue?` | |
-| `ClassicyPopUpMenu` | `id` *, `options` * (`{value, label, icon?}[]`), `selected?`, `onChangeFunc?`, `size? (incl. "mini")`, `label?`, `disabled?` | Platinum select |
+| `ClassicyPopUpMenu` | `id` *, `options` * (`{value, label, icon?}` or `{groupLabel, options}` entries), `selected?`, `onChangeFunc?`, `size? (incl. "mini")`, `label?`, `disabled?` | Platinum select; group entries render `<optgroup>`-style titled, non-selectable runs |
 
 ### 4.4 Labels, grouping, display
 
@@ -436,6 +436,8 @@ usable pre-boot): `title?`, `children` *, `className?`, `width?`.
 |---|---|---|
 | `ClassicyControlLabel` | `label?`, `labelFor?`, `labelSize?`, `icon?`, `direction?`, `disabled?` | renders nothing when label empty |
 | `ClassicyControlGroup` | `children` *, `label?`, `variant? ("primary"\|"secondary")`, `checkboxTitle?`, `popUpMenuTitle?`, `columns?`, `layout? ("default"\|"form")` | fieldset-style group; title can be a checkbox or popup |
+| `ClassicyForm` | `onSubmitFunc?`, `layout? ("default"\|"dialog")`, children * | real `<form>`; always calls `preventDefault` (never navigates); make the confirming button `isDefault buttonType="submit"` so Enter submits |
+| `ClassicyFormButtonRow` | `children` * | HIG dialog button row: right-aligned, `--hig-button-gap-h`, group-gap above |
 | `ClassicySeparator` | `orientation?` | |
 | `ClassicyPlacard` | `menuItems?`, `onSelect?(id)`, `onClick?` | window-corner placard |
 | `ClassicyImageWell` | `src?`, `onDrop?(files, e)`, `selected?`, `enabled?` | drag-and-drop image slot |

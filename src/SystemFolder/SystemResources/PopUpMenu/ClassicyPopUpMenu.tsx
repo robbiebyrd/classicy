@@ -14,6 +14,7 @@ import {
 	useEffect,
 	useId,
 	useLayoutEffect,
+	useMemo,
 	useRef,
 	useState,
 } from "react";
@@ -30,10 +31,67 @@ const CHECKMARK = "✓";
 
 export type ClassicyPopUpMenuSize = ClassicyControlLabelSize | "mini";
 
-type classicyPopUpMenuOptions = {
+export type ClassicyPopUpMenuOption = {
 	value: string;
 	label: string;
 	icon?: string;
+};
+
+/** The `<optgroup>` equivalent: a titled, non-selectable run of options. */
+export type ClassicyPopUpMenuOptionGroup = {
+	groupLabel: string;
+	options: ClassicyPopUpMenuOption[];
+};
+
+export type ClassicyPopUpMenuEntry =
+	| ClassicyPopUpMenuOption
+	| ClassicyPopUpMenuOptionGroup;
+
+const isOptionGroup = (
+	entry: ClassicyPopUpMenuEntry,
+): entry is ClassicyPopUpMenuOptionGroup => "groupLabel" in entry;
+
+// Rendering walks display rows (headers interleaved with options); every
+// other piece of logic — highlight, type-ahead, commit, Home/End — indexes
+// the flat option list, so group headers can never be highlighted or
+// selected and the keyboard math is identical to the ungrouped case.
+type ClassicyPopUpMenuRow =
+	| { kind: "header"; label: string }
+	| {
+			kind: "option";
+			option: ClassicyPopUpMenuOption;
+			flatIndex: number;
+			grouped: boolean;
+	  };
+
+const normalizeEntries = (
+	entries: ClassicyPopUpMenuEntry[],
+): { rows: ClassicyPopUpMenuRow[]; flatOptions: ClassicyPopUpMenuOption[] } => {
+	const rows: ClassicyPopUpMenuRow[] = [];
+	const flatOptions: ClassicyPopUpMenuOption[] = [];
+	for (const entry of entries) {
+		if (isOptionGroup(entry)) {
+			rows.push({ kind: "header", label: entry.groupLabel });
+			for (const option of entry.options) {
+				rows.push({
+					kind: "option",
+					option,
+					flatIndex: flatOptions.length,
+					grouped: true,
+				});
+				flatOptions.push(option);
+			}
+		} else {
+			rows.push({
+				kind: "option",
+				option: entry,
+				flatIndex: flatOptions.length,
+				grouped: false,
+			});
+			flatOptions.push(entry);
+		}
+	}
+	return { rows, flatOptions };
 };
 
 type classicyPopUpMenuProps = {
@@ -41,7 +99,7 @@ type classicyPopUpMenuProps = {
 	label?: string;
 	labelPosition?: ClassicyLabelPosition;
 	labelSize?: ClassicyControlLabelSize;
-	options: classicyPopUpMenuOptions[];
+	options: ClassicyPopUpMenuEntry[];
 	selected?: string;
 	placeholder?: string;
 	size?: ClassicyPopUpMenuSize;
@@ -92,11 +150,16 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 
 	const { track } = useClassicyAnalytics();
 
-	const selectedOption = options.find((o) => o.value === selectedItem);
+	const { rows, flatOptions } = useMemo(
+		() => normalizeEntries(options),
+		[options],
+	);
+
+	const selectedOption = flatOptions.find((o) => o.value === selectedItem);
 	const currentLabel = selectedOption
 		? selectedOption.label
 		: (placeholder ?? "");
-	const currentIndex = options.findIndex((o) => o.value === selectedItem);
+	const currentIndex = flatOptions.findIndex((o) => o.value === selectedItem);
 
 	const optionId = (index: number) => `${reactId}-opt-${index}`;
 	const listId = `${reactId}-list`;
@@ -156,14 +219,14 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 			}, 250);
 
 			const buffer = typeaheadBufferRef.current.toLowerCase();
-			let index = options.findIndex((o) =>
+			let index = flatOptions.findIndex((o) =>
 				o.label.toLowerCase().startsWith(buffer),
 			);
 			// If the accumulated buffer no longer matches, fall back to the
 			// latest char alone (re-locates the first option with that initial).
 			if (index < 0) {
 				const last = char.toLowerCase();
-				index = options.findIndex((o) =>
+				index = flatOptions.findIndex((o) =>
 					o.label.toLowerCase().startsWith(last),
 				);
 			}
@@ -173,20 +236,20 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 			setHighlight(index);
 			return true;
 		},
-		[options, open, openMenu],
+		[flatOptions, open, openMenu],
 	);
 
 	// Commit a menu selection (mouse or keyboard). Matches native <select>
 	// semantics: re-picking the current value simply closes with no onChange.
 	const commitIndex = useCallback(
 		(index: number) => {
-			const option = options[index];
+			const option = flatOptions[index];
 			closeMenu();
 			buttonRef.current?.focus();
 			if (!option || option.value === selectedItem) return;
 			emitChange(option.value);
 		},
-		[options, selectedItem, emitChange, closeMenu],
+		[flatOptions, selectedItem, emitChange, closeMenu],
 	);
 
 	// Close on outside pointer-down (release outside = no change).
@@ -270,7 +333,7 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 				if (!open) {
 					openMenu();
 				} else {
-					setHighlight((h) => Math.min(options.length - 1, h + 1));
+					setHighlight((h) => Math.min(flatOptions.length - 1, h + 1));
 				}
 				break;
 			case "ArrowUp":
@@ -306,7 +369,7 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 			case "End":
 				if (open) {
 					e.preventDefault();
-					setHighlight(options.length - 1);
+					setHighlight(flatOptions.length - 1);
 				}
 				break;
 			default: {
@@ -406,7 +469,20 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 								...(placement && { maxHeight: `${placement.maxHeight}px` }),
 							}}
 						>
-							{options.map((o, index) => {
+							{rows.map((row, rowIndex) => {
+								if (row.kind === "header") {
+									return (
+										<div
+											// biome-ignore lint/suspicious/noArrayIndexKey: rows derive 1:1 from the options prop; the index disambiguates duplicate group labels and rows never reorder independently
+											key={`${id}-group-${row.label}-${rowIndex}`}
+											role="presentation"
+											className="classicyPopUpMenuGroupHeader"
+										>
+											{row.label}
+										</div>
+									);
+								}
+								const { option: o, flatIndex: index, grouped } = row;
 								const isSelected = o.value === selectedItem;
 								return (
 									<div
@@ -417,6 +493,7 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 										aria-selected={isSelected}
 										className={classNames(
 											"classicyPopUpMenuListItem",
+											grouped && "classicyPopUpMenuListItemGrouped",
 											index === highlight &&
 												"classicyPopUpMenuListItemHighlight",
 										)}
