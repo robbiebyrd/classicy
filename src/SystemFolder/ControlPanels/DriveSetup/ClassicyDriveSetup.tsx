@@ -21,7 +21,9 @@ import { DriveSetupController } from "./DriveSetupController";
 import { DriveSetupList } from "./DriveSetupList";
 import "./ClassicyDriveSetup.scss";
 
-const APP_ID = "DriveSetup.app";
+import { DRIVE_SETUP_APP_ID } from "@/SystemFolder/ControlPanels/DriveSetup/ClassicyDriveSetupManifest";
+
+const APP_ID = DRIVE_SETUP_APP_ID;
 const APP_NAME = "Drive Setup";
 const WINDOW_ID = "DriveSetup_1";
 const appIcon = ClassicyIcons.system.drives.disk;

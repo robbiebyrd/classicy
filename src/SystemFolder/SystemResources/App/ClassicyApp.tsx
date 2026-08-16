@@ -6,6 +6,7 @@ import {
 } from "react";
 import { JSONTree } from "react-json-tree";
 import { intToHex } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyColors";
+import { getAppManifest } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -37,7 +38,9 @@ export interface ClassicyAppProps {
 	 *  but not in Applications, or the reverse. Ignored for `extension` apps. */
 	showInApplicationsFolder?: boolean;
 	/** Balloon help for this app's desktop icon. A bare string supplies the
-	 *  content and titles the balloon with the app's name. */
+	 *  content and titles the balloon with the app's name. When omitted, the
+	 *  app's registered manifest description (`registerApp`) is used, so a
+	 *  registered app's icon carries purpose copy with no extra wiring. */
 	desktopIconBalloonHelp?: string | ClassicyIconBalloonHelp;
 	/** @deprecated Use `showDesktopIcon={false}`. */
 	noDesktopIcon?: boolean;
@@ -128,10 +131,18 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 	const drawDesktopIcon = showDesktopIcon ?? !noDesktopIcon;
 	const listInApplications =
 		showInApplicationsFolder ?? inApplicationsFolder ?? true;
+	// An explicit prop wins; otherwise the app's registered manifest
+	// description supplies the balloon. Resolved at render, not stored copy:
+	// manifests register at module import, before anything mounts, and revised
+	// description text ships with the app rather than staying frozen in a
+	// persisted icon record.
 	// Serialized so the effect's dependency list is stable across renders that
 	// pass an inline object literal.
 	const balloonHelpKey = JSON.stringify(
-		normalizeIconBalloonHelp(desktopIconBalloonHelp, name) ?? null,
+		normalizeIconBalloonHelp(
+			desktopIconBalloonHelp ?? getAppManifest(id)?.description,
+			name,
+		) ?? null,
 	);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: contextMenu is intentionally omitted to prevent re-firing with inline menu literals

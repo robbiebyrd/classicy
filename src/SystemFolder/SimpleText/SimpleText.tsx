@@ -21,8 +21,10 @@ import { ClassicyRichTextEditor } from "@/SystemFolder/SystemResources/RichTextE
 import { ClassicyTextEditor } from "@/SystemFolder/SystemResources/TextEditor/ClassicyTextEditor";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
+import { SIMPLE_TEXT_APP_ID } from "@/SystemFolder/SimpleText/SimpleTextManifest";
+
 const appName = "SimpleText";
-const appId = "SimpleText.app";
+const appId = SIMPLE_TEXT_APP_ID;
 const appIcon = ClassicyIcons.applications.simpletext.app;
 
 export const SimpleText = () => {

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render } from "@/__tests__/test-utils";
+import { registerApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 
 const mockDispatch = vi.hoisted(() => vi.fn());
@@ -140,6 +141,50 @@ describe("ClassicyApp icon visibility", () => {
 		expect(iconAddActions()[0].balloonHelp).toEqual({
 			title: "TV",
 			content: "Watch TV.",
+		});
+	});
+
+	it("attaches no balloon for an app with neither prop nor manifest", () => {
+		render(
+			<ClassicyApp id="Plain.app" name="Plain" icon="/icons/plain.png" />,
+		);
+		expect(iconAddActions()[0].balloonHelp).toBeUndefined();
+	});
+
+	it("falls back to the registered manifest description when no prop is given", () => {
+		registerApp({
+			id: "Described.app",
+			description: "Does described things.",
+		});
+		render(
+			<ClassicyApp
+				id="Described.app"
+				name="Described"
+				icon="/icons/described.png"
+			/>,
+		);
+		expect(iconAddActions()[0].balloonHelp).toEqual({
+			title: "Described",
+			content: "Does described things.",
+		});
+	});
+
+	it("lets an explicit prop win over the manifest description", () => {
+		registerApp({
+			id: "Explicit.app",
+			description: "Manifest copy.",
+		});
+		render(
+			<ClassicyApp
+				id="Explicit.app"
+				name="Explicit"
+				icon="/icons/explicit.png"
+				desktopIconBalloonHelp="Prop copy."
+			/>,
+		);
+		expect(iconAddActions()[0].balloonHelp).toEqual({
+			title: "Explicit",
+			content: "Prop copy.",
 		});
 	});
 

@@ -41,7 +41,9 @@ import { useThemesTab } from "./ClassicyAppearanceManager.Themes";
 import { ClassicyDefaultWallpaper } from "./ClassicyWallpapers";
 import appIcon from "./resources/app.png";
 
-const APP_ID = "AppearanceManager.app";
+import { APPEARANCE_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManagerManifest";
+
+const APP_ID = APPEARANCE_MANAGER_APP_ID;
 const APP_NAME = "Appearance Manager";
 const WINDOW_ID = "AppearanceManager_1";
 

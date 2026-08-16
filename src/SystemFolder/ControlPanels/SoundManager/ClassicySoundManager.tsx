@@ -27,7 +27,9 @@ import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabe
 import { ClassicyDisclosure } from "@/SystemFolder/SystemResources/Disclosure/ClassicyDisclosure";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
-const APP_ID = "SoundManager.app";
+import { SOUND_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerManifest";
+
+const APP_ID = SOUND_MANAGER_APP_ID;
 const APP_NAME = "Sound Manager";
 const WINDOW_ID = "SoundManager_1";
 

@@ -32,7 +32,9 @@ import { ClassicyRadioInput } from "@/SystemFolder/SystemResources/RadioInput/Cl
 import { ClassicyTimePicker } from "@/SystemFolder/SystemResources/TimePicker/ClassicyTimePicker";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
-const APP_ID = "DateAndTimeManager.app";
+import { DATE_AND_TIME_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeManagerManifest";
+
+const APP_ID = DATE_AND_TIME_MANAGER_APP_ID;
 const APP_NAME = "Date and Time Manager";
 const WINDOW_ID = "DateAndTimeManager_1";
 

@@ -134,7 +134,12 @@ deprecated in favor of `registerApp` but keep working unchanged.
   Applications folder. Independent of `showDesktopIcon`, so all four
   combinations are reachable; turning both off removes any icon record.
 - `desktopIconBalloonHelp` — `string` (titled with the app name) or
-  `{ title?, content, position?, delay? }`.
+  `{ title?, content, position?, delay? }`. When omitted, the app's registered
+  manifest description (`registerApp`) is the balloon, so every registered app
+  — bundled apps included — carries purpose copy with no extra wiring. Every
+  bundled app registers a described manifest; apps without a reducer use a
+  description-only `*Manifest.ts` module (pinned by
+  `ClassicyBundledAppManifests.test.ts`).
 
 `noDesktopIcon` and `inApplicationsFolder` are deprecated aliases. Note the
 behavior change: `noDesktopIcon` alone no longer keeps an app out of

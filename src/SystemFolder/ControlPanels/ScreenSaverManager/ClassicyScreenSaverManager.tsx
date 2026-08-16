@@ -28,7 +28,9 @@ import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/Clas
 import { ClassicySpinner } from "@/SystemFolder/SystemResources/Spinner/ClassicySpinner";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
-const APP_ID = "ScreenSaverManager.app";
+import { SCREEN_SAVER_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/ScreenSaverManager/ClassicyScreenSaverManagerManifest";
+
+const APP_ID = SCREEN_SAVER_MANAGER_APP_ID;
 const APP_NAME = "Screen Saver";
 const WINDOW_ID = "ScreenSaverManager_1";
 
