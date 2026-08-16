@@ -124,9 +124,9 @@ describe("ClassicyDateAndTimeManager — dateTimeLocked", () => {
 	it("editors — including the AM/PM popup — are enabled when not locked, and the timezone picker is always enabled", () => {
 		const { container } = renderOpen();
 		// Scoped to the date/time columns (the "editors" this feature controls) —
-		// the separate Time Format control group has its own permanently
-		// disabled "Military Time" radio (24-hour not yet implemented), which
-		// is unrelated to dateTimeLocked and must not affect this assertion.
+		// the separate Time Format control group has its own 12-Hour / Military
+		// Time radios, which are unrelated to dateTimeLocked and must not affect
+		// this assertion.
 		const dateColumn = container.querySelector(
 			".classicyDateAndTimeManagerDateColumn",
 		);
