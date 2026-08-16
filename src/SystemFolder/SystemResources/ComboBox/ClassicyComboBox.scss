@@ -1,0 +1,33 @@
+// The Platinum "combination box": an editable field with a pop-up arrow.
+// The field reuses .classicyInput and the arrow/list reuse the PopUpMenu
+// classes, so this file only owns the composition.
+.classicyComboBox {
+  display: flex;
+  align-items: stretch;
+
+  .classicyComboBoxInput {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+}
+
+// Neutralize the native button chrome; the PopUpMenu indicator class paints
+// the arrow and the raised tab.
+.classicyComboBoxIndicator {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-left: var(--window-border-size) solid var(--color-system-05);
+  background-color: var(--color-system-03);
+  cursor: pointer;
+
+  &:disabled {
+    cursor: default;
+    background-color: var(--color-system-02);
+  }
+}
+
+.classicyComboBoxNoMatches {
+  color: var(--color-system-05);
+  cursor: default;
+}

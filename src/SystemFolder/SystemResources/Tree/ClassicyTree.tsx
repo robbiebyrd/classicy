@@ -8,10 +8,10 @@ import {
 	type ReactNode,
 	useCallback,
 	useMemo,
-	useRef,
 	useState,
 } from "react";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
+import { useListNavigation } from "@/SystemFolder/SystemResources/Keyboard/useListNavigation";
 import {
 	ClassicyTriangle,
 	type ClassicyTriangleDirection,
@@ -334,9 +334,6 @@ const ClassicyTreeNodeItem: FunctionalComponent<ClassicyTreeNodeItemProps> = ({
 	);
 };
 
-const isPrintableChar = (e: ReactKeyboardEvent): boolean =>
-	e.key.length === 1 && !e.metaKey && !e.ctrlKey && !e.altKey;
-
 export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 	nodes,
 	direction = "right",
@@ -349,37 +346,21 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 	const [openSet, setOpenSet] = useState<Set<string>>(() =>
 		collectDefaultOpen(nodes),
 	);
-	// The row currently driving the roving tabindex — see the SharedRowContext
-	// comment above for why this is kept separate from `selectedIds`.
-	const [activeId, setActiveId] = useState<string | undefined>();
-
-	const rowRefs = useRef<Map<string, HTMLDivElement>>(new Map());
-	const typeBuffer = useRef("");
-	const typeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
-		undefined,
-	);
 
 	const visible = useMemo(
 		() => flattenVisible(nodes, openSet),
 		[nodes, openSet],
 	);
 
-	const registerRef = useCallback((id: string, el: HTMLDivElement | null) => {
-		if (el) rowRefs.current.set(id, el);
-		else rowRefs.current.delete(id);
-	}, []);
-
-	const focusRow = useCallback((id: string) => {
-		rowRefs.current.get(id)?.focus();
-	}, []);
-
-	const selectRow = useCallback(
-		(id: string) => {
-			setActiveId(id);
-			focusRow(id);
-		},
-		[focusRow],
+	// Roving tabindex + arrow/Home/End/type-select over the visible rows —
+	// see the SharedRowContext comment above for why the active row is kept
+	// separate from `selectedIds`.
+	const navRows = useMemo(
+		() => visible.map((r) => ({ id: r.id, label: r.node.label })),
+		[visible],
 	);
+	const { activeId, setActiveId, tabStopId, registerRef, handleNavKey } =
+		useListNavigation(navRows);
 
 	const setOpen = useCallback(
 		(id: string, open: boolean) => {
@@ -401,10 +382,6 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 		[openSet, setOpen],
 	);
 
-	// The first visible row is the tab stop until the user selects one, so the
-	// list is reachable with a single Tab and then driven by the arrow keys.
-	const tabStopId = activeId ?? visible[0]?.id;
-
 	const resolvedSelectedIds = selectedIds ?? [];
 
 	const ctx: SharedRowContext = {
@@ -420,59 +397,18 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 		onActivateNode,
 	};
 
-	const typeSelect = useCallback(
-		(ch: string, fromIndex: number) => {
-			if (typeTimer.current) clearTimeout(typeTimer.current);
-			typeBuffer.current += ch.toLowerCase();
-			typeTimer.current = setTimeout(() => {
-				typeBuffer.current = "";
-			}, 700);
-			const buf = typeBuffer.current;
-			const start = fromIndex < 0 ? 0 : fromIndex;
-			// Search forward from the row after the current one, wrapping around.
-			const order = [
-				...visible.slice(start + 1),
-				...visible.slice(0, start + 1),
-			];
-			const match = order.find((r) =>
-				r.node.label.toLowerCase().startsWith(buf),
-			);
-			if (match) selectRow(match.id);
-		},
-		[visible, selectRow],
-	);
-
 	const handleKeyDown = useCallback(
 		(e: ReactKeyboardEvent<HTMLUListElement>) => {
 			if (visible.length === 0) return;
+			// Arrow/Home/End/type-select are the shared list-navigation keys;
+			// everything after this is tree-specific (expansion, selection).
+			if (handleNavKey(e) !== null) return;
 			const curIndex = activeId
 				? visible.findIndex((r) => r.id === activeId)
 				: -1;
 			const current = curIndex >= 0 ? visible[curIndex] : undefined;
 
 			switch (e.key) {
-				case "ArrowDown": {
-					e.preventDefault();
-					const ni = Math.min(curIndex + 1, visible.length - 1);
-					selectRow(visible[ni < 0 ? 0 : ni].id);
-					return;
-				}
-				case "ArrowUp": {
-					e.preventDefault();
-					const ni = curIndex < 0 ? 0 : Math.max(curIndex - 1, 0);
-					selectRow(visible[ni].id);
-					return;
-				}
-				case "Home": {
-					e.preventDefault();
-					selectRow(visible[0].id);
-					return;
-				}
-				case "End": {
-					e.preventDefault();
-					selectRow(visible[visible.length - 1].id);
-					return;
-				}
 				case "ArrowRight": {
 					// Command-Right: open the focused branch (HIG list-view equivalent).
 					if (
@@ -528,20 +464,14 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 					}
 					return;
 				}
-				default: {
-					if (isPrintableChar(e) && e.key !== " ") {
-						typeSelect(e.key, curIndex);
-					}
-				}
 			}
 		},
 		[
 			visible,
 			activeId,
-			selectRow,
+			handleNavKey,
 			setOpen,
 			toggle,
-			typeSelect,
 			selectionMode,
 			onSelectNode,
 		],

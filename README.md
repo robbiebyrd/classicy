@@ -148,7 +148,8 @@ The proxy runs on `http://localhost:8765` by default. Enable it in the Browser a
     - ✅ Drop-down menu
     - ✅ Drop-down menu groups (optgroup)
     - ✅ Form (dialog layout, safe submit)
-    - Multi-select menu
+    - ✅ Multi-select menu (List Box)
+    - ✅ Combo box (autocomplete)
     - ✅ Checkbox
     - ✅ Bevel Button
     - ✅ Slider
@@ -209,6 +210,8 @@ is in [`docs/AGENT-REFERENCE.md` §4.0](docs/AGENT-REFERENCE.md).
 | `ClassicyInput` | Single-line text field. Props: `placeholder`, `value`, `onChangeFunc` | `<input type="text">` (any text-like `type`) |
 | `ClassicySpinner` | Numeric stepper (up/down arrows). Props: `value`, `min`, `max`, `step` | `<input type="number">` |
 | `ClassicyPopUpMenu` | Drop-down selector. Props: `label`, `options` (`{ label, value }` items or `{ groupLabel, options }` groups), `value` | `<select>` / `<option>` / `<optgroup>` |
+| `ClassicyListBox` | Scrolling list with single or multi selection (⌘-toggle, Shift-range). Props: `options`, `selectionMode`, `selected`, `onChangeFunc`, `visibleRows` | `<select multiple>` |
+| `ClassicyComboBox` | Editable field with filtering suggestions and a pop-up arrow. Props: `options`, `filter`, `freeText`, `onSelectFunc` | `<datalist>` |
 | `ClassicyDatePicker` | Date input with calendar picker. Props: `value`, `placeholder`, `onChangeFunc` | `<input type="date">` |
 | `ClassicyTimePicker` | Time input with clock picker. Props: `value`, `placeholder`, `onChangeFunc` | `<input type="time">` |
 

@@ -1,0 +1,57 @@
+@use '../../ControlPanels/AppearanceManager/styles/appearance';
+
+// Platinum List Manager scrolling list: inset white box, fixed-height rows.
+.classicyListBox {
+  --classicy-listbox-row-height: calc(var(--hig-control-height) + var(--window-border-size));
+
+  box-sizing: border-box;
+  overflow-y: auto;
+  max-height: calc(var(--classicy-listbox-visible-rows, 8) * var(--classicy-listbox-row-height));
+  background: var(--color-white);
+  @include appearance.platinumWindowInnerBorder;
+}
+
+.classicyListBoxOption {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  gap: calc(var(--window-padding-size) / 2);
+  height: var(--classicy-listbox-row-height);
+  padding: 0 calc(var(--window-padding-size) / 1.5);
+  font-family: var(--ui-font);
+  font-size: var(--ui-font-size);
+  color: var(--color-black);
+  white-space: nowrap;
+  cursor: pointer;
+  outline: none;
+}
+
+.classicyListBoxOptionSelected {
+  color: var(--color-white);
+  background-color: var(--color-theme-04);
+}
+
+.classicyListBoxOptionDisabled {
+  color: var(--color-system-05);
+  cursor: default;
+}
+
+.classicyListBoxDisabled {
+  background: var(--color-system-02);
+
+  .classicyListBoxOption {
+    color: var(--color-system-05);
+    cursor: default;
+  }
+}
+
+.classicyListBoxOptionIcon {
+  flex: 0 0 auto;
+  width: 1.25em;
+  height: 1.25em;
+  object-fit: contain;
+}
+
+.classicyListBoxOptionLabel {
+  flex: 1 1 auto;
+}
