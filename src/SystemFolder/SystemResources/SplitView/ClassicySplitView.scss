@@ -29,6 +29,8 @@
 // piece of window chrome rather than a plain rule.
 .classicySplitViewDivider {
   flex: 0 0 auto;
+  margin: var(--window-padding-size) 0;
+
   background-color: var(--color-window-frame);
   @include appearance.platinumWindowBorder;
   @include appearance.no-select;

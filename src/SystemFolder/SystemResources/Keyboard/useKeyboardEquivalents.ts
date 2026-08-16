@@ -112,9 +112,9 @@ export const useFocusTrap = ({
 		if (!container) return;
 
 		const focusable = () =>
-			Array.from(
-				container.querySelectorAll<HTMLElement>(FOCUSABLE),
-			).filter((el) => el.offsetParent !== null || el === document.activeElement);
+			Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
+				(el) => el.offsetParent !== null || el === document.activeElement,
+			);
 
 		if (autoFocus) {
 			const first = focusable()[0];
