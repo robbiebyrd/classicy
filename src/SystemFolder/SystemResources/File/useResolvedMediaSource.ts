@@ -31,7 +31,9 @@ export function useResolvedMediaSource(
 				bytes.byteOffset,
 				bytes.byteOffset + bytes.byteLength,
 			) as ArrayBuffer;
-			const blob = new Blob([buffer], { type: mimeType || "application/octet-stream" });
+			const blob = new Blob([buffer], {
+				type: mimeType || "application/octet-stream",
+			});
 			objectUrl = URL.createObjectURL(blob);
 			setResolved(objectUrl);
 		});

@@ -74,7 +74,7 @@ describe("useResolvedMediaSource", () => {
 
 		await waitFor(() => expect(URL.createObjectURL).toHaveBeenCalledTimes(1));
 
-		rerender({ data: (undefined as unknown as string) });
+		rerender({ data: undefined as unknown as string });
 
 		expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:mock-url");
 	});

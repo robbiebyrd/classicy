@@ -45,3 +45,28 @@ export const PickOnly: Story = {
 		options: cities,
 	},
 };
+
+// Grouped suggestions: groups filter with their members and vanish when empty.
+export const GroupedSuggestions: Story = {
+	args: {
+		id: "combo-grouped",
+		label: "Font:",
+		options: [
+			{
+				groupLabel: "Serif",
+				options: [
+					{ value: "new-york", label: "New York" },
+					{ value: "palatino", label: "Palatino" },
+				],
+			},
+			{
+				groupLabel: "Sans Serif",
+				options: [
+					{ value: "chicago", label: "Chicago" },
+					{ value: "charcoal", label: "Charcoal" },
+					{ value: "geneva", label: "Geneva" },
+				],
+			},
+		],
+	},
+};

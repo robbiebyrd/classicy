@@ -389,3 +389,54 @@ describe("ClassicyTable — tree rows (expansion)", () => {
 		);
 	});
 });
+
+describe("ClassicyTable — Command+Arrow expansion shortcuts", () => {
+	type Node = { id: string; name: string; children?: Node[] };
+	const tree: Node[] = [
+		{
+			id: "docs",
+			name: "Documents",
+			children: [{ id: "q1", name: "q1.pdf" }],
+		},
+		{ id: "top", name: "top.pdf" },
+	];
+	const cols: ClassicyTableColumn<Node>[] = [
+		{ id: "name", title: "Name", accessor: (n) => n.name },
+	];
+
+	it("Cmd+Right expands the cursor row and Cmd+Left collapses it", () => {
+		const { container } = render(
+			<ClassicyTable
+				columns={cols}
+				rows={tree}
+				getRowId={(n) => n.id}
+				getSubRows={(n) => n.children}
+			/>,
+		);
+		const box = container.querySelector(
+			".classicyTableContainer",
+		) as HTMLElement;
+		fireEvent.click(screen.getByText("Documents"));
+		fireEvent.keyDown(box, { key: "ArrowRight", metaKey: true });
+		expect(screen.getByText("q1.pdf")).toBeInTheDocument();
+		fireEvent.keyDown(box, { key: "ArrowLeft", metaKey: true });
+		expect(screen.queryByText("q1.pdf")).toBeNull();
+	});
+
+	it("plain arrows never toggle expansion", () => {
+		const { container } = render(
+			<ClassicyTable
+				columns={cols}
+				rows={tree}
+				getRowId={(n) => n.id}
+				getSubRows={(n) => n.children}
+			/>,
+		);
+		const box = container.querySelector(
+			".classicyTableContainer",
+		) as HTMLElement;
+		fireEvent.click(screen.getByText("Documents"));
+		fireEvent.keyDown(box, { key: "ArrowRight" });
+		expect(screen.queryByText("q1.pdf")).toBeNull();
+	});
+});

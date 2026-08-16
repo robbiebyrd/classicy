@@ -335,7 +335,7 @@ instead:
 | `<textarea>` | `ClassicyTextEditor` | renders a real `<textarea>`; markdown/rich editing: `ClassicyRichTextEditor` |
 | `<select>` / `<option>` | `ClassicyPopUpMenu` | ARIA combobox + listbox (no native `<select>` under the hood); single-select |
 | `<select multiple>` / `<select size>` | `ClassicyListBox` | Platinum List Manager scrolling list; `selectionMode "single" \| "multi"` with ⌘-toggle / Shift-range |
-| `<datalist>` (combobox/autocomplete) | `ClassicyComboBox` | editable field + pop-up arrow; filters as you type (`startsWith` \| `contains` \| off), `freeText` off = may only hold an option label |
+| `<datalist>` (combobox/autocomplete) | `ClassicyComboBox` | editable field + pop-up arrow; filters as you type (`startsWith` \| `contains` \| off), grouped entries supported, `freeText` off = may only hold an option label |
 | `<optgroup>` | `ClassicyPopUpMenu` | pass `{ groupLabel, options }` entries in `options` — titled, non-selectable groups |
 | `<form>` | `ClassicyForm` | real `<form>`; navigation always prevented, HIG row/dialog layout; `ClassicyFormButtonRow` is the right-aligned Cancel/OK row |
 | `<label>` | `ClassicyControlLabel` | |
@@ -430,7 +430,7 @@ usable pre-boot): `title?`, `children` *, `className?`, `width?`.
 | `ClassicyTimePicker` | `id` *, `onChangeFunc?(date)`, `prefillValue?`, `minValue?/maxValue?` | |
 | `ClassicyPopUpMenu` | `id` *, `options` * (`{value, label, icon?}` or `{groupLabel, options}` entries), `selected?`, `onChangeFunc?`, `size? (incl. "mini")`, `label?`, `disabled?` | Platinum select; group entries render `<optgroup>`-style titled, non-selectable runs |
 | `ClassicyListBox` | `id` *, `options` * (`{value, label, icon?, disabled?}[]`), `selectionMode? ("single"\|"multi")`, `selected?: string[]`, `onChangeFunc?(values)`, `onActivateFunc?(value)` (double-click/Enter), `visibleRows?`, `label?`, `disabled?` | List Manager scrolling list; multi = plain-click replaces, ⌘/Ctrl-click toggles, Shift-click/Shift-arrows extend; selection follows the keyboard |
-| `ClassicyComboBox` | `id` *, `options` * (flat options), `prefillValue?`, `filter? ("startsWith"\|"contains"\|false)`, `freeText? (true)`, `onChangeFunc?(text)`, `onSelectFunc?(value, option)`, `placeholder?`, `label?`, `disabled?` | editable field + arrow; suggestion menu reuses the PopUpMenu look/flip logic; focus stays in the input (`aria-activedescendant`) |
+| `ClassicyComboBox` | `id` *, `options` * (flat options and/or `{groupLabel, options}` groups), `prefillValue?`, `filter? ("startsWith"\|"contains"\|false)`, `freeText? (true)`, `onChangeFunc?(text)`, `onSelectFunc?(value, option)`, `placeholder?`, `label?`, `disabled?` | editable field + arrow; suggestion menu reuses the PopUpMenu look/flip logic; focus stays in the input (`aria-activedescendant`) |
 
 ### 4.4 Labels, grouping, display
 

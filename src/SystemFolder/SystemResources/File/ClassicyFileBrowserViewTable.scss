@@ -1,101 +1,23 @@
-@use '../../ControlPanels/AppearanceManager/styles/appearance';
+// The Finder list view renders through the generic ClassicyTable, which owns
+// the table frame, header, sort arrows, resizers, and row basics. This file
+// keeps only the Finder-specific looks: the filename cell's icon/label/
+// disclosure layout, the label-only selection highlight, and overrides where
+// the Finder diverges from the generic table.
 
-.resizer {
+.classicyFileBrowserViewTableContainer.classicyTableContainer {
   position: absolute;
-  z-index: 500;
-  top: 0;
-  right: 0;
-  width: 15px;
   height: 100%;
-  cursor: col-resize;
-
-  &:hover {
-  }
-}
-
-.isResizing {
-}
-
-
-// Reusable HIG list-box frame: a 2 px black rule around the scrolling list so
-// the frame's inner edge coincides with the outer edge of the scroll bar/track.
-// box-sizing keeps the border inside the element so it aligns with the scroll
-// area rather than expanding the box.
-%classicyListBoxFrame {
-  box-sizing: border-box;
-  border: var(--hig-frame-width, 2px) solid var(--color-black);
-}
-
-.classicyListBoxFrame {
-  @extend %classicyListBoxFrame;
-  background: var(--color-white);
-}
-
-.classicyFileBrowserViewTableContainer {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  background: var(--color-system-01);
   border: 0 !important;
-  outline: 0 !important;
-
-  &:focus {
-    outline: var(--color-outline) solid var(--window-border-size);
-    outline-offset: calc(var(--window-border-size) * -1);
-  }
 }
 
-.classicyFileBrowserViewTable {
-  font-family: var(--body-font);
-  font-weight: 100;
-  width: 100%;
-  table-layout: fixed;
-  border-collapse: collapse;
+.classicyFileBrowserViewTableContainer .classicyTableCell {
+  padding: 0;
 }
 
-.classicyFileBrowserViewTableHeader {
-  position: sticky;
-  top: 0;
-  // The disclosure triangles carry a CSS transform (their open/closed
-  // rotation), which promotes them into the positioned paint layer — without
-  // an explicit z-index here, rows scrolling under the sticky header would
-  // draw their triangles ON TOP of it.
-  z-index: 1;
-  border: none !important;
-}
-
-.classicyFileBrowserViewTableContent {
-  font-size: calc(var(--ui-font-size) * 0.8);
-  font-weight: normal;
-}
-
-.classicyFileBrowserViewTableColumnHeader {
-  font-size: calc(var(--ui-font-size) * 0.8);
-  font-weight: normal;
-  font-stretch: condensed;
-  display: table-cell;
-
-  align-items: center;
-  position: relative;
-  padding: var(--window-padding-size);
-
-  @include appearance.platinumWindowBoxShadow;
-}
-
-.classicyFileBrowserViewTableColumnHeaderSelected {
-  @include appearance.platinumWindowHeaderBorderDepressed;
-  background-color: var(--color-system-04);
-}
-
-.classicyFileBrowserViewTableColumnHeaderGroup {
-  display: table-row;
-  flex-direction: row;
-  background: var(--color-system-03);
-}
-
-.classicyFileBrowserViewTableRow {
-  border-top: var(--window-border-size) solid var(--color-white);
-  border-bottom: var(--window-border-size) solid var(--color-white);
+// The Finder highlights only the filename label (rules below), never the
+// whole row — neutralize the generic row highlight.
+.classicyFileBrowserViewTableContainer .classicyTableRowSelected {
+  color: inherit;
   background: var(--color-system-01);
 }
 
@@ -150,56 +72,8 @@
   cursor: pointer;
 }
 
-.classicyFileBrowserViewTableHeaderCellContent {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-}
-
-.classicyFileBrowserViewTableSortArrow {
-  margin: 0 var(--window-padding-size);
-  height: calc(var(--ui-font-size) * 0.5);
-}
-
-.classicyFileBrowserViewTableSortArrowAscending {
-  transform: rotate(180deg);
-}
-
-.classicyFileBrowserViewTableCell {
-  margin: 0;
-  padding: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.classicyFileBrowserViewTableSpacer {
-  height: 1rem;
-}
-
 .classicyFileBrowserFill {
   position: absolute;
   width: 100%;
   height: 100%;
-}
-
-// ---- Rebased on ClassicyTable ---------------------------------------------
-// The view now renders through the generic Platinum list view; these
-// overrides restore the Finder-specific look where it diverges.
-
-.classicyFileBrowserViewTableContainer.classicyTableContainer {
-  position: absolute;
-  height: 100%;
-  border: 0 !important;
-}
-
-.classicyFileBrowserViewTableContainer .classicyTableCell {
-  padding: 0;
-}
-
-// The Finder highlights only the filename label (see the RowIconLabel rules
-// above), never the whole row — neutralize the generic row highlight.
-.classicyFileBrowserViewTableContainer .classicyTableRowSelected {
-  color: inherit;
-  background: var(--color-system-01);
 }

@@ -167,3 +167,68 @@ describe("ClassicyComboBox", () => {
 		expect(screen.queryByRole("listbox")).toBeNull();
 	});
 });
+
+describe("ClassicyComboBox — grouped options", () => {
+	const grouped = [
+		{ value: "none", label: "None" },
+		{
+			groupLabel: "Citrus",
+			options: [
+				{ value: "lemon", label: "Lemon" },
+				{ value: "lime", label: "Lime" },
+			],
+		},
+		{
+			groupLabel: "Stone",
+			options: [{ value: "peach", label: "Peach" }],
+		},
+	];
+
+	it("renders group headers as presentation rows via the arrow button", async () => {
+		const user = userEvent.setup();
+		render(<ClassicyComboBox id="fruit" options={grouped} />);
+		await user.click(screen.getByRole("button", { name: "Show options" }));
+		const listbox = screen.getByRole("listbox");
+		expect(within(listbox).getAllByRole("option")).toHaveLength(4);
+		expect(within(listbox).getByText("Citrus")).toHaveAttribute(
+			"role",
+			"presentation",
+		);
+	});
+
+	it("filtering keeps only groups with matching members, headers included", async () => {
+		const user = userEvent.setup();
+		render(<ClassicyComboBox id="fruit" options={grouped} />);
+		await user.type(screen.getByRole("combobox"), "l");
+		const listbox = screen.getByRole("listbox");
+		const items = within(listbox).getAllByRole("option");
+		expect(items.map((i) => i.textContent)).toEqual(["Lemon", "Lime"]);
+		expect(within(listbox).getByText("Citrus")).toBeInTheDocument();
+		expect(within(listbox).queryByText("Stone")).toBeNull();
+	});
+
+	it("commits a grouped suggestion by keyboard, skipping headers", async () => {
+		const user = userEvent.setup();
+		const onSelect = vi.fn();
+		render(
+			<ClassicyComboBox id="fruit" options={grouped} onSelectFunc={onSelect} />,
+		);
+		const input = screen.getByRole("combobox");
+		await user.type(input, "l");
+		await user.keyboard("{ArrowDown}{Enter}");
+		expect(onSelect).toHaveBeenCalledWith(
+			"lime",
+			expect.objectContaining({ value: "lime" }),
+		);
+		expect(input).toHaveValue("Lime");
+	});
+
+	it("freeText=false settles against grouped members too", async () => {
+		const user = userEvent.setup();
+		render(<ClassicyComboBox id="fruit" options={grouped} freeText={false} />);
+		const input = screen.getByRole("combobox");
+		await user.type(input, "peach");
+		fireEvent.mouseDown(document.body);
+		expect(input).toHaveValue("Peach");
+	});
+});

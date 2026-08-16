@@ -47,15 +47,18 @@ export type ClassicyPopUpMenuEntry =
 	| ClassicyPopUpMenuOption
 	| ClassicyPopUpMenuOptionGroup;
 
-const isOptionGroup = (
+export const isClassicyPopUpMenuOptionGroup = (
 	entry: ClassicyPopUpMenuEntry,
 ): entry is ClassicyPopUpMenuOptionGroup => "groupLabel" in entry;
+
+const isOptionGroup = isClassicyPopUpMenuOptionGroup;
 
 // Rendering walks display rows (headers interleaved with options); every
 // other piece of logic — highlight, type-ahead, commit, Home/End — indexes
 // the flat option list, so group headers can never be highlighted or
 // selected and the keyboard math is identical to the ungrouped case.
-type ClassicyPopUpMenuRow =
+// ClassicyComboBox renders the same rows, so this is shared.
+export type ClassicyPopUpMenuRow =
 	| { kind: "header"; label: string }
 	| {
 			kind: "option";
@@ -64,7 +67,7 @@ type ClassicyPopUpMenuRow =
 			grouped: boolean;
 	  };
 
-const normalizeEntries = (
+export const normalizeClassicyPopUpMenuEntries = (
 	entries: ClassicyPopUpMenuEntry[],
 ): { rows: ClassicyPopUpMenuRow[]; flatOptions: ClassicyPopUpMenuOption[] } => {
 	const rows: ClassicyPopUpMenuRow[] = [];
@@ -151,7 +154,7 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 	const { track } = useClassicyAnalytics();
 
 	const { rows, flatOptions } = useMemo(
-		() => normalizeEntries(options),
+		() => normalizeClassicyPopUpMenuEntries(options),
 		[options],
 	);
 

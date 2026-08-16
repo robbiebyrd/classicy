@@ -286,6 +286,29 @@ export function ClassicyTable<T>({
 				moveCursorTo(visual[visual.length - 1].id, shiftMods);
 				return;
 			}
+			case "ArrowRight": {
+				// Command-Right: expand the cursor row (HIG list-view
+				// equivalent, matching ClassicyTree).
+				if ((e.metaKey || e.ctrlKey) && curIndex >= 0) {
+					const row = visual[curIndex];
+					if (row.getCanExpand() && !row.getIsExpanded()) {
+						e.preventDefault();
+						toggleRow(row.id);
+					}
+				}
+				return;
+			}
+			case "ArrowLeft": {
+				// Command-Left: collapse it.
+				if ((e.metaKey || e.ctrlKey) && curIndex >= 0) {
+					const row = visual[curIndex];
+					if (row.getCanExpand() && row.getIsExpanded()) {
+						e.preventDefault();
+						toggleRow(row.id);
+					}
+				}
+				return;
+			}
 			case "Enter": {
 				if (curIndex >= 0) {
 					e.preventDefault();

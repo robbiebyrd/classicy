@@ -22,7 +22,12 @@ import {
 	type ClassicyLabelPosition,
 	labelPositionClass,
 } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
-import type { ClassicyPopUpMenuOption } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
+import {
+	type ClassicyPopUpMenuEntry,
+	type ClassicyPopUpMenuOption,
+	isClassicyPopUpMenuOptionGroup,
+	normalizeClassicyPopUpMenuEntries,
+} from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
 import {
 	type ClassicyPopUpMenuPlacementResult,
 	classicyPopUpMenuPlacement,
@@ -34,7 +39,8 @@ export type ClassicyComboBoxFilter = "startsWith" | "contains" | false;
 
 type ClassicyComboBoxProps = {
 	id: string;
-	options: ClassicyPopUpMenuOption[];
+	/** Flat options and/or `{ groupLabel, options }` groups, like ClassicyPopUpMenu. */
+	options: ClassicyPopUpMenuEntry[];
 	prefillValue?: string;
 	placeholder?: string;
 	label?: string;
@@ -102,15 +108,40 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 
 	const { track } = useClassicyAnalytics();
 
-	const filtered = useMemo(() => {
+	// Filter group-aware: a group survives with only its matching members; an
+	// emptied group disappears, header included.
+	const filteredEntries = useMemo(() => {
 		if (bypassFilter || filter === false || text === "") return options;
 		const t = text.toLowerCase();
-		return options.filter((o) =>
+		const matches = (o: ClassicyPopUpMenuOption) =>
 			filter === "contains"
 				? o.label.toLowerCase().includes(t)
-				: o.label.toLowerCase().startsWith(t),
-		);
+				: o.label.toLowerCase().startsWith(t);
+		const out: ClassicyPopUpMenuEntry[] = [];
+		for (const entry of options) {
+			if (isClassicyPopUpMenuOptionGroup(entry)) {
+				const kept = entry.options.filter(matches);
+				if (kept.length > 0) {
+					out.push({ groupLabel: entry.groupLabel, options: kept });
+				}
+			} else if (matches(entry)) {
+				out.push(entry);
+			}
+		}
+		return out;
 	}, [options, text, filter, bypassFilter]);
+
+	const { rows, flatOptions: filtered } = useMemo(
+		() => normalizeClassicyPopUpMenuEntries(filteredEntries),
+		[filteredEntries],
+	);
+
+	// Every option regardless of the filter — for settling text and locating
+	// the committed value when the arrow button opens the full list.
+	const allOptions = useMemo(
+		() => normalizeClassicyPopUpMenuEntries(options).flatOptions,
+		[options],
+	);
 
 	// The stored highlight can outlive a shrinking filter result; clamp at
 	// render time so it always points at a real suggestion.
@@ -159,7 +190,7 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 	// freeText=false: a dismissed combo may only hold an option label.
 	const settleText = useCallback(() => {
 		if (freeText) return;
-		const match = options.find(
+		const match = allOptions.find(
 			(o) => o.label.toLowerCase() === text.toLowerCase(),
 		);
 		if (match) {
@@ -169,7 +200,7 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 		} else {
 			setText(committedLabel.current ?? "");
 		}
-	}, [freeText, options, text]);
+	}, [freeText, allOptions, text]);
 
 	const dismiss = useCallback(() => {
 		closeList();
@@ -329,7 +360,7 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 							return;
 						}
 						openList(true);
-						const index = options.findIndex(
+						const index = allOptions.findIndex(
 							(o) => o.value === committedValue.current,
 						);
 						setHighlight(index >= 0 ? index : 0);
@@ -371,7 +402,20 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 								No matches
 							</div>
 						)}
-						{filtered.map((o, index) => {
+						{rows.map((row, rowIndex) => {
+							if (row.kind === "header") {
+								return (
+									<div
+										// biome-ignore lint/suspicious/noArrayIndexKey: rows derive 1:1 from the filtered options; the index disambiguates duplicate group labels and rows never reorder independently
+										key={`${id}-group-${row.label}-${rowIndex}`}
+										role="presentation"
+										className="classicyPopUpMenuGroupHeader"
+									>
+										{row.label}
+									</div>
+								);
+							}
+							const { option: o, flatIndex: index, grouped } = row;
 							const isSelected = o.value === committedValue.current;
 							return (
 								<div
@@ -382,6 +426,7 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 									aria-selected={isSelected}
 									className={classNames(
 										"classicyPopUpMenuListItem",
+										grouped && "classicyPopUpMenuListItemGrouped",
 										index === effectiveHighlight &&
 											"classicyPopUpMenuListItemHighlight",
 									)}
