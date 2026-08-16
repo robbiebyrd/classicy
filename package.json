@@ -3,7 +3,7 @@
 	"module": "./dist/classicy.es.js",
 	"types": "./dist/types/src/index.d.ts",
 	"name": "classicy",
-	"version": "0.72.11",
+	"version": "0.73.0",
 	"release": "Gershwin's Ghost",
 	"repository": {
 		"type": "git",
