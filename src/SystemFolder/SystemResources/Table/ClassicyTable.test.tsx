@@ -243,3 +243,149 @@ describe("ClassicyTable", () => {
 		);
 	});
 });
+
+describe("ClassicyTable — tree rows (expansion)", () => {
+	type Node = { id: string; name: string; children?: Node[] };
+	const tree: Node[] = [
+		{
+			id: "docs",
+			name: "Documents",
+			children: [{ id: "q1", name: "q1.pdf" }],
+		},
+		{ id: "top", name: "top.pdf" },
+	];
+	const treeColumns: ClassicyTableColumn<Node>[] = [
+		{
+			id: "name",
+			title: "Name",
+			accessor: (n) => n.name,
+			render: (n, expansion) => (
+				<span data-depth={expansion.depth}>
+					{expansion.canExpand && (
+						<button type="button" onClick={expansion.toggle}>
+							{expansion.isExpanded ? "▼" : "▶"}
+						</button>
+					)}
+					{n.name}
+				</span>
+			),
+		},
+	];
+
+	it("renders children only while their parent is expanded (uncontrolled)", () => {
+		render(
+			<ClassicyTable
+				columns={treeColumns}
+				rows={tree}
+				getRowId={(n) => n.id}
+				getSubRows={(n) => n.children}
+			/>,
+		);
+		expect(screen.queryByText("q1.pdf")).toBeNull();
+		fireEvent.click(screen.getByText("▶"));
+		expect(screen.getByText("q1.pdf")).toBeInTheDocument();
+		fireEvent.click(screen.getByText("▼"));
+		expect(screen.queryByText("q1.pdf")).toBeNull();
+	});
+
+	it("reports depth and expandability through the cell context", () => {
+		render(
+			<ClassicyTable
+				columns={treeColumns}
+				rows={tree}
+				getRowId={(n) => n.id}
+				getSubRows={(n) => n.children}
+				expanded={["docs"]}
+			/>,
+		);
+		expect(screen.getByText("q1.pdf")).toHaveAttribute("data-depth", "1");
+		expect(screen.getByText("top.pdf")).toHaveAttribute("data-depth", "0");
+		// Only the branch row got a disclosure control from the render.
+		expect(screen.getAllByRole("button")).toHaveLength(1);
+	});
+
+	it("rowCanExpand marks lazily-materialized rows expandable before children exist", () => {
+		const lazy: Node[] = [{ id: "docs", name: "Documents" }];
+		render(
+			<ClassicyTable
+				columns={treeColumns}
+				rows={lazy}
+				getRowId={(n) => n.id}
+				getSubRows={(n) => n.children}
+				rowCanExpand={(n) => n.id === "docs"}
+			/>,
+		);
+		expect(screen.getByText("▶")).toBeInTheDocument();
+	});
+
+	it("controlled expansion fires onToggleRow and follows the prop", () => {
+		const onToggle = vi.fn();
+		const { rerender } = render(
+			<ClassicyTable
+				columns={treeColumns}
+				rows={tree}
+				getRowId={(n) => n.id}
+				getSubRows={(n) => n.children}
+				expanded={[]}
+				onToggleRow={onToggle}
+			/>,
+		);
+		fireEvent.click(screen.getByText("▶"));
+		expect(onToggle).toHaveBeenCalledWith("docs", true);
+		// Controlled: nothing appears until the prop changes.
+		expect(screen.queryByText("q1.pdf")).toBeNull();
+		rerender(
+			<ClassicyTable
+				columns={treeColumns}
+				rows={tree}
+				getRowId={(n) => n.id}
+				getSubRows={(n) => n.children}
+				expanded={["docs"]}
+				onToggleRow={onToggle}
+			/>,
+		);
+		expect(screen.getByText("q1.pdf")).toBeInTheDocument();
+	});
+
+	it("keyboard navigation walks expanded children in visual order", () => {
+		const onSelection = vi.fn();
+		const { container } = render(
+			<ClassicyTable
+				columns={treeColumns}
+				rows={tree}
+				getRowId={(n) => n.id}
+				getSubRows={(n) => n.children}
+				expanded={["docs"]}
+				onSelectionChange={onSelection}
+			/>,
+		);
+		const box = container.querySelector(
+			".classicyTableContainer",
+		) as HTMLElement;
+		fireEvent.keyDown(box, { key: "ArrowDown" });
+		expect(onSelection).toHaveBeenLastCalledWith(["docs"]);
+		fireEvent.keyDown(box, { key: "ArrowDown" });
+		expect(onSelection).toHaveBeenLastCalledWith(["q1"]);
+		fireEvent.keyDown(box, { key: "ArrowDown" });
+		expect(onSelection).toHaveBeenLastCalledWith(["top"]);
+	});
+
+	it("applies rowClassName alongside the generic classes", () => {
+		const { container } = render(
+			<ClassicyTable
+				columns={treeColumns}
+				rows={tree}
+				getRowId={(n) => n.id}
+				rowClassName={(_n, isSelected) =>
+					isSelected ? "legacySelected" : "legacyRow"
+				}
+			/>,
+		);
+		fireEvent.click(screen.getByText("top.pdf"));
+		const selected = container.querySelector(".classicyTableRowSelected");
+		expect(selected).toHaveClass("legacySelected");
+		expect(container.querySelector(".legacyRow")).toHaveClass(
+			"classicyTableRow",
+		);
+	});
+});

@@ -1,9 +1,12 @@
 import "./ClassicyTable.scss";
 import {
 	type ColumnDef,
+	type ExpandedState,
 	flexRender,
 	getCoreRowModel,
+	getExpandedRowModel,
 	getSortedRowModel,
+	type Row,
 	useReactTable,
 } from "@tanstack/react-table";
 import classNames from "classnames";
@@ -11,6 +14,7 @@ import {
 	type KeyboardEvent,
 	type ReactElement,
 	type ReactNode,
+	useCallback,
 	useMemo,
 	useRef,
 	useState,
@@ -19,13 +23,25 @@ import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/Cl
 
 const arrowUpIcon = ClassicyIcons.ui.menuDropdownArrowUp;
 
+/**
+ * Expansion facts handed to every cell `render`, so a column (typically the
+ * first) can draw its own disclosure affordance and depth indent. All-zero /
+ * no-op when the table has no `getSubRows`.
+ */
+export type ClassicyTableCellContext = {
+	depth: number;
+	canExpand: boolean;
+	isExpanded: boolean;
+	toggle: () => void;
+};
+
 export type ClassicyTableColumn<T> = {
 	id: string;
 	title: string;
 	/** Value used for sorting, type-select, and the default cell text. */
 	accessor: (row: T) => string | number | null | undefined;
 	/** Custom cell renderer; defaults to the accessor value as text. */
-	render?: (row: T) => ReactNode;
+	render?: (row: T, expansion: ClassicyTableCellContext) => ReactNode;
 	/** Default true. */
 	sortable?: boolean;
 	/** Default true. */
@@ -51,6 +67,20 @@ type ClassicyTableProps<T> = {
 	/** Default true: the header stays pinned while the container scrolls. */
 	stickyHeader?: boolean;
 	className?: string;
+	/** Extra class(es) for a row — e.g. legacy class names a consumer's CSS keys on. */
+	rowClassName?: (row: T, isSelected: boolean) => string | undefined;
+	/**
+	 * Enables tree rows: children of an expanded row render beneath it,
+	 * depth-first, and keyboard navigation walks them in visual order.
+	 * Materializing children lazily is fine — pair with `rowCanExpand` so
+	 * collapsed rows still show as expandable.
+	 */
+	getSubRows?: (row: T) => T[] | undefined;
+	/** Whether a row can expand even before its children are materialized. */
+	rowCanExpand?: (row: T) => boolean;
+	/** Controlled expansion, by row id. Omit for uncontrolled. */
+	expanded?: string[];
+	onToggleRow?: (id: string, open: boolean) => void;
 };
 
 type SortingState = { id: string; desc: boolean }[];
@@ -84,9 +114,31 @@ export function ClassicyTable<T>({
 	defaultSort,
 	stickyHeader = true,
 	className,
+	rowClassName,
+	getSubRows,
+	rowCanExpand,
+	expanded,
+	onToggleRow,
 }: ClassicyTableProps<T>): ReactElement {
 	const [sorting, setSorting] = useState<SortingState>(
 		defaultSort ? [{ id: defaultSort.columnId, desc: !!defaultSort.desc }] : [],
+	);
+	const [internalExpanded, setInternalExpanded] = useState<string[]>([]);
+	const expandedIds = expanded ?? internalExpanded;
+	const expandedState = useMemo<ExpandedState>(
+		() => Object.fromEntries(expandedIds.map((id) => [id, true])),
+		[expandedIds],
+	);
+
+	const toggleRow = useCallback(
+		(id: string) => {
+			const open = !expandedIds.includes(id);
+			setInternalExpanded(
+				open ? [...expandedIds, id] : expandedIds.filter((v) => v !== id),
+			);
+			onToggleRow?.(id, open);
+		},
+		[expandedIds, onToggleRow],
 	);
 	const [internalSelected, setInternalSelected] = useState<string[]>([]);
 	// The keyboard cursor row — where arrows continue from. Kept separate from
@@ -116,7 +168,12 @@ export function ClassicyTable<T>({
 				header: () => <span>{c.title}</span>,
 				cell: (info) =>
 					c.render ? (
-						c.render(info.row.original)
+						c.render(info.row.original, {
+							depth: info.row.depth,
+							canExpand: info.row.getCanExpand(),
+							isExpanded: info.row.getIsExpanded(),
+							toggle: () => toggleRow(info.row.id),
+						})
 					) : (
 						<span>{`${info.getValue() ?? ""}`}</span>
 					),
@@ -124,16 +181,21 @@ export function ClassicyTable<T>({
 				enableResizing: c.resizable !== false,
 				...(c.width !== undefined ? { size: c.width } : {}),
 			})),
-		[columns],
+		[columns, toggleRow],
 	);
 
 	const table = useReactTable({
 		data: rows,
 		columns: columnDefs,
 		getRowId,
+		getSubRows,
+		...(rowCanExpand
+			? { getRowCanExpand: (row: Row<T>) => rowCanExpand(row.original) }
+			: {}),
 		getCoreRowModel: getCoreRowModel(),
 		getSortedRowModel: getSortedRowModel(),
-		state: { sorting },
+		getExpandedRowModel: getExpandedRowModel(),
+		state: { sorting, expanded: expandedState },
 		onSortingChange: setSorting,
 		columnResizeMode: "onChange",
 	});
@@ -367,6 +429,10 @@ export function ClassicyTable<T>({
 								effectiveSelected.includes(row.id)
 									? "classicyTableRowSelected"
 									: null,
+								rowClassName?.(
+									row.original,
+									effectiveSelected.includes(row.id),
+								),
 							)}
 							onClick={(e) => {
 								setCursorId(row.id);
