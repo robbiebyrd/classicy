@@ -1,5 +1,6 @@
 import {
 	hasDateTime,
+	hasMilitaryTime,
 	hasTzOffset,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
 import type {
@@ -105,6 +106,22 @@ export const classicyDateTimeManagerEventHandler = (
 
 			dt.timeZoneOffset = String(newTz);
 			applyDateTimeWithBounds(ds, new Date(localMs - newTz * 3600000));
+			break;
+		}
+		case "ClassicyManagerDateTimeFormatSet": {
+			if (!hasMilitaryTime(action)) {
+				classicyLog(
+					"error",
+					"classicyDateTimeManagerEventHandler",
+					"Expected a boolean for militaryTime",
+					{
+						received: action.militaryTime,
+						receivedType: typeof action.militaryTime,
+					},
+				);
+				break;
+			}
+			ds.System.Manager.DateAndTime.militaryTime = action.militaryTime;
 			break;
 		}
 		case "ClassicyManagerDateTimePause": {

@@ -472,6 +472,42 @@ describe("classicyDateTimeManagerEventHandler — ClassicyManagerDateTimeLock/Un
 	});
 });
 
+describe("classicyDateTimeManagerEventHandler — ClassicyManagerDateTimeFormatSet", () => {
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	it("enables military time", () => {
+		const ds = makeStore();
+		classicyDateTimeManagerEventHandler(ds, {
+			type: "ClassicyManagerDateTimeFormatSet",
+			militaryTime: true,
+		});
+		expect(ds.System.Manager.DateAndTime.militaryTime).toBe(true);
+	});
+
+	it("disables military time", () => {
+		const ds = makeStore();
+		ds.System.Manager.DateAndTime.militaryTime = true;
+		classicyDateTimeManagerEventHandler(ds, {
+			type: "ClassicyManagerDateTimeFormatSet",
+			militaryTime: false,
+		});
+		expect(ds.System.Manager.DateAndTime.militaryTime).toBe(false);
+	});
+
+	it("ignores a non-boolean militaryTime and logs an error", () => {
+		const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+		const ds = makeStore();
+		classicyDateTimeManagerEventHandler(ds, {
+			type: "ClassicyManagerDateTimeFormatSet",
+			militaryTime: "yes" as unknown as boolean,
+		});
+		expect(errorSpy).toHaveBeenCalled();
+		expect(ds.System.Manager.DateAndTime.militaryTime).toBe(false);
+	});
+});
+
 describe("UTC de-shift for bounds comparison", () => {
 	it("correctly computes utcNowMs by subtracting tzOffset from virtualNowMs", () => {
 		// Virtual anchor is UTC+5: 12:00 UTC displayed as 17:00 local

@@ -287,6 +287,11 @@ export function hasTzOffset(m: Msg): m is Msg & { tzOffset: string } {
 	return typeof m.tzOffset === "string";
 }
 
+/** Action has `militaryTime: boolean` */
+export function hasMilitaryTime(m: Msg): m is Msg & { militaryTime: boolean } {
+	return typeof m.militaryTime === "boolean";
+}
+
 // ─── Finder fields ────────────────────────────────────────────────────────────
 
 /** Action has `path: string` */
