@@ -1,0 +1,25 @@
+@use '../../ControlPanels/AppearanceManager/styles/appearance';
+
+.classicyOutput {
+  display: inline-block;
+  box-sizing: border-box;
+  font-family: var(--ui-font);
+  font-size: var(--ui-font-size);
+  color: var(--color-black);
+  min-height: var(--hig-static-text-height);
+  line-height: var(--hig-static-text-height);
+}
+
+// The white beveled read-only result well.
+.classicyOutputInset {
+  min-height: var(--hig-editfield-height);
+  line-height: var(--hig-editfield-height);
+  padding: 0 calc(var(--window-padding-size) / 2);
+  background: var(--color-white);
+  @include appearance.platinumWindowInnerBorder;
+}
+
+.classicyOutputMono {
+  font-family: var(--mono-font);
+  font-size: var(--mono-font-size);
+}

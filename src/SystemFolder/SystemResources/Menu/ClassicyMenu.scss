@@ -135,7 +135,8 @@
     -webkit-user-drag: none;
   }
 
-  p {
+  p,
+  kbd {
     display: flex;
     float: left;
     align-content: flex-start;
@@ -207,7 +208,8 @@
     background-color: transparent !important;
   }
 
-  p {
+  p,
+  kbd {
     color: var(--color-system-05);
   }
 }

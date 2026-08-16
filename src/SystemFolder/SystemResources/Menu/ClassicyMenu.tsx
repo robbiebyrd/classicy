@@ -20,7 +20,7 @@ import {
 	ClassicyBalloonHelp,
 	type ClassicyBalloonPosition,
 } from "@/SystemFolder/SystemResources/BalloonHelp/ClassicyBalloonHelp";
-import { formatKeyboardShortcut } from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
+import { ClassicyKbd } from "@/SystemFolder/SystemResources/Kbd/ClassicyKbd";
 import { ClassicyMenuContext } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuContext";
 import { ClassicySeparator } from "@/SystemFolder/SystemResources/Separator/ClassicySeparator";
 
@@ -307,9 +307,11 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 						))}
 				</p>
 				{menuItem.keyboardShortcut && (
-					<p className={"classicyMenuItemKeyboardShortcut"}>
-						{formatKeyboardShortcut(menuItem.keyboardShortcut)}
-					</p>
+					<ClassicyKbd
+						variant="inline"
+						shortcut={menuItem.keyboardShortcut}
+						className="classicyMenuItemKeyboardShortcut"
+					/>
 				)}
 
 				{hasChildren && (

@@ -154,6 +154,21 @@ describe("ClassicyMenu", () => {
 		expect(screen.getByText("⇧⌘S")).toBeInTheDocument();
 	});
 
+	it("renders the shortcut as a semantic <kbd> via ClassicyKbd", () => {
+		const items = [
+			{ id: "save-as", title: "Save As", keyboardShortcut: "Cmd+Shift+S" },
+			{ id: "plain", title: "Plain" },
+		];
+		const { container } = render(
+			<ClassicyMenu name="test-menu" menuItems={items} />,
+		);
+		const kbds = container.querySelectorAll("kbd");
+		expect(kbds).toHaveLength(1);
+		expect(kbds[0]).toHaveTextContent("⇧⌘S");
+		// The menu's layout class stays on the element for CSS compatibility.
+		expect(kbds[0]).toHaveClass("classicyMenuItemKeyboardShortcut");
+	});
+
 	it("renders a nested submenu for items with menuChildren", () => {
 		const items = [
 			{

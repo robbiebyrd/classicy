@@ -1,0 +1,38 @@
+.classicyKbd {
+  font-family: var(--ui-font);
+  margin: 0;
+}
+
+// The glyph-run form used by menu items — sized by its context (the menu
+// supplies .classicyMenuItemKeyboardShortcut for layout), so only the
+// typeface is pinned here.
+.classicyKbdInline {
+  font-size: inherit;
+}
+
+// One raised Platinum key cap per key in the chord.
+.classicyKbdKeycaps {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--window-padding-size) / 2);
+}
+
+.classicyKbdKeycap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: var(--hig-popup-height);
+  height: var(--hig-popup-height);
+  padding: 0 calc(var(--window-padding-size) / 2);
+  font-family: var(--ui-font);
+  font-size: calc(var(--ui-font-size) * 0.75);
+  color: var(--color-black);
+  background: var(--color-system-02);
+  border-top: var(--hig-bevel-sm) solid var(--color-system-01);
+  border-left: var(--hig-bevel-sm) solid var(--color-system-01);
+  border-bottom: var(--hig-bevel-sm) solid var(--color-system-05);
+  border-right: var(--hig-bevel-sm) solid var(--color-system-05);
+  border-radius: 2px;
+  outline: 1px solid var(--color-outline);
+}

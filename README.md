@@ -158,6 +158,10 @@ The proxy runs on `http://localhost:8765` by default. Enable it in the Browser a
     - ✅ Separator
     - ✅ Progress
     - ✅ Balloon Help (tooltip)
+    - ✅ Link (desktop-routed hyperlink)
+    - ✅ Meter (gauge with zones)
+    - ✅ Output (read-only result)
+    - ✅ Keyboard shortcut display (kbd)
     - ✅ Menu
         - ✅ Desktop Menu
         - ✅ Contextual Menu
@@ -235,6 +239,10 @@ is in [`docs/AGENT-REFERENCE.md` §4.0](docs/AGENT-REFERENCE.md).
 | Component | Description | HTML equivalent |
 |-----------|-------------|-----------------|
 | `ClassicyProgressBar` | Determinate progress bar. Props: `value`, `max`, `label` | `<progress>` |
+| `ClassicyMeter` | Gauge with native meter zone semantics (theme accent / alert / error). Props: `value`, `low`, `high`, `optimum`, `segments` | `<meter>` |
+| `ClassicyOutput` | Read-only calculation result — static text or inset well. Props: `value`, `htmlFor`, `variant` | `<output>` |
+| `ClassicyKbd` | Keyboard shortcut display in Platinum glyph order (⇧⌘S), inline or as key caps. Props: `shortcut`, `variant` | `<kbd>` |
+| `ClassicyLink` | Themed hyperlink routed through the desktop URL opener (WebViewer, browser, or new tab). Props: `href`, `disposition`, `event` | `<a>` |
 | `ClassicyBalloonHelp` | Mac OS 8-style speech-bubble tooltip. Wraps any element. Props: `content`, `title`, `position`, `delay` | `title` attribute (tooltip) |
 | `ClassicyIcon` | System icon image with optional label. Props: `src`, `label` | `<img>` + caption |
 

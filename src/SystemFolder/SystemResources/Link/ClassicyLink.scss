@@ -1,0 +1,23 @@
+.classicyLink {
+  color: var(--color-theme-06);
+  text-decoration: underline;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--color-theme-07);
+  }
+
+  &:active {
+    color: var(--color-select);
+  }
+
+  &:focus-visible {
+    outline: 1px dotted var(--color-outline);
+    outline-offset: 1px;
+  }
+}
+
+.classicyLinkDisabled {
+  color: var(--color-system-05);
+  cursor: default;
+}

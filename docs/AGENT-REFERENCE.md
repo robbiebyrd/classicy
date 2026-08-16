@@ -321,6 +321,7 @@ instead:
 
 | Instead of raw HTML… | Use | Notes |
 |---|---|---|
+| `<a>` | `ClassicyLink` | renders a real `<a>`; routes clicks through `ClassicyDesktopOpenUrl` with a `disposition` prop (§13); also takes `event`/`eventData` for internal actions |
 | `<button>` | `ClassicyButton` | renders a real `<button>`. Latching/toggle/radio/popup buttons: `ClassicyBevelButton` |
 | `<input type="checkbox">` | `ClassicyCheckbox` | button-shaped checkbox: `ClassicyBevelButton mode="toggle"` |
 | `<input type="radio">` | `ClassicyRadioInput` | one component renders the whole group |
@@ -337,6 +338,9 @@ instead:
 | `<fieldset>` / `<legend>` | `ClassicyControlGroup` | renders a real `<fieldset>` + `<legend>` |
 | `<hr>` | `ClassicySeparator` | renders a real `<hr>`; also vertical |
 | `<progress>` | `ClassicyProgressBar` | adds indeterminate barber-pole / chasing arrows |
+| `<meter>` | `ClassicyMeter` | native gauge semantics (`low`/`high`/`optimum` zones), themed; optional LED `segments` |
+| `<output>` | `ClassicyOutput` | renders a real `<output>`; `plain` static text or `inset` result well |
+| `<kbd>` | `ClassicyKbd` | renders a real `<kbd>`; takes a `shortcut` string in `parseKeyboardShortcut` syntax; `inline` glyph run (what menu items render) or `keycaps` |
 | `<details>` / `<summary>` | `ClassicyDisclosure` | `ClassicyTriangle` is the bare disclosure marker |
 | nested `<ul>` / `<li>` (interactive) | `ClassicyTree` | for plain static lists keep raw `<ul>` / `<ol>` |
 | `<dialog>` (modal) / `window.alert()` | `ClassicyAlert` | app-specific modal dialogs: `ClassicyWindow modal`; About boxes: `ClassicyAboutWindow` |
@@ -360,15 +364,13 @@ there is no raw element to replace): `ClassicyDesktop`, `ClassicyApp`,
 **HTML with no Classicy equivalent** — use the raw element, styled with the
 theme CSS variables (§8) so it follows theme changes:
 
-- `<a>` — no link component (file-system `shortcut` entries cover desktop-style links only)
 - `<table>` — no general-purpose data table (`ClassicyFileBrowserViewTable` is Finder-specific)
 - `<select multiple>` — `ClassicyPopUpMenu` is single-select
 - `<optgroup>` — `ClassicyPopUpMenu` options are a flat list
 - `<datalist>` — no combobox/autocomplete
-- `<meter>`, `<output>`, `<form>`
+- `<form>`
 - `<canvas>`, `<svg>`
 - `<iframe>` — the Web Viewer is a built-in app, not an embeddable component
-- `<kbd>` — `formatKeyboardShortcut` returns display text, but there is no component
 - Prose & sectioning: `<h1>`–`<h6>`, `<p>`, `<blockquote>`, `<pre>` / `<code>`, plain `<ul>` / `<ol>`, `<header>` / `<footer>` / `<section>` / `<article>` / `<aside>`
 
 ### 4.1 Windows
@@ -411,6 +413,7 @@ usable pre-boot): `title?`, `children` *, `className?`, `width?`.
 | `ClassicyRadioInput` | `name` *, `inputs` * (`{id, label?, checked?, disabled?}[]`), `onClickFunc?(id)`, `align? ("rows"\|"columns")`, `label?` | |
 | `ClassicyDisclosure` | `direction?`, `label?`, `children` | collapsible section |
 | `ClassicyTriangle` | `direction?`, `open?`, `defaultOpen?`, `onToggle?`, `interactive?` | disclosure triangle primitive |
+| `ClassicyLink` | `href?`, `disposition? ("classicy"\|"browser"\|"browser-new")`, `event?`/`eventData?`, `onClickFunc?`, `disabled?` | real `<a>`; plain clicks dispatch `ClassicyDesktopOpenUrl`, modifier/middle clicks fall through to the browser; `event` form dispatches an internal action instead (anchor gets `role="button"`) |
 
 ### 4.3 Text & value inputs
 
@@ -437,6 +440,9 @@ usable pre-boot): `title?`, `children` *, `className?`, `width?`.
 | `ClassicyPlacard` | `menuItems?`, `onSelect?(id)`, `onClick?` | window-corner placard |
 | `ClassicyImageWell` | `src?`, `onDrop?(files, e)`, `selected?`, `enabled?` | drag-and-drop image slot |
 | `ClassicyProgressBar` | `value?`, `max? (100)`, `indeterminate?`, `chasingArrows?`, `label?` | barber-pole when indeterminate |
+| `ClassicyMeter` | `value` *, `min?/max? (0/100)`, `low?/high?/optimum?`, `segments?`, `showValue?`, `label?` | native `<meter>` zone semantics: the region holding `optimum` is optimal (theme accent), adjacent is suboptimal (`--color-alert`), two away is bad (`--color-error`); `meterZone()` exported |
+| `ClassicyOutput` | `id` *, `value?` or children, `htmlFor?: string[]`, `variant? ("plain"\|"inset")`, `mono?`, `label?` | real `<output>`; `inset` is the white beveled result well |
+| `ClassicyKbd` | `shortcut?` (any `parseKeyboardShortcut` spelling) or children, `variant? ("inline"\|"keycaps")` | real `<kbd>` in canonical glyph order (⌃⌥⇧⌘ + key); menu items render their `keyboardShortcut` through it |
 | `ClassicyTabs` | `tabs` * (`{title?, icon?, children}[]`) | |
 | `ClassicyTree` | `nodes` *, `selectionMode? ("none"\|"single"\|"multi")`, `selectedIds?`, `onSelectNode?`, `onActivateNode?`, `onToggleNode?` | hierarchical list |
 | `ClassicyPager` | `page` *, `pageCount` *, `onPageChange` * | Apple Guide page control |

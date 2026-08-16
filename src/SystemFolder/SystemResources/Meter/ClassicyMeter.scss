@@ -1,0 +1,64 @@
+@use '../../ControlPanels/AppearanceManager/styles/appearance';
+
+// Zone → fill paint, as a custom property so the continuous fill and the
+// segmented LEDs share one source of truth.
+.classicyMeterOptimal {
+  --classicy-meter-fill: linear-gradient(
+                  to bottom,
+                  var(--color-theme-07),
+                  var(--color-theme-04),
+                  var(--color-theme-01),
+                  var(--color-theme-04),
+                  var(--color-theme-07)
+  );
+}
+
+.classicyMeterSuboptimal {
+  --classicy-meter-fill: var(--color-alert);
+}
+
+.classicyMeterBad {
+  --classicy-meter-fill: var(--color-error);
+}
+
+.classicyMeter {
+  display: flex;
+  align-items: stretch;
+  box-sizing: border-box;
+  width: 100%;
+  height: var(--hig-progress-height);
+  background: var(--color-system-04);
+  @include appearance.platinumWindowInnerBorder;
+}
+
+.classicyMeterFill {
+  background: var(--classicy-meter-fill);
+}
+
+.classicyMeterSegmented {
+  gap: var(--hig-frame-width);
+  padding: var(--hig-frame-width);
+}
+
+.classicyMeterSegment {
+  flex: 1;
+  background: transparent;
+}
+
+.classicyMeterSegmentOn {
+  background: var(--classicy-meter-fill);
+}
+
+.classicyMeterRow {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--window-padding-size) / 2);
+}
+
+.classicyMeterValue {
+  font-family: var(--ui-font);
+  font-size: calc(var(--ui-font-size) * 0.75);
+  color: var(--color-black);
+  min-width: 2em;
+  text-align: right;
+}
