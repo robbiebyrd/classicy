@@ -209,6 +209,7 @@ export * from "./SystemFolder/SystemResources/Shortcut/ClassicyShortcut";
 export * from "./SystemFolder/SystemResources/Slider/ClassicySlider";
 export * from "./SystemFolder/SystemResources/Spinner/ClassicySpinner";
 export * from "./SystemFolder/SystemResources/SplitView/ClassicySplitView";
+export * from "./SystemFolder/SystemResources/Table/ClassicyTable";
 export * from "./SystemFolder/SystemResources/Tabs/ClassicyTabs";
 export * from "./SystemFolder/SystemResources/TextEditor/ClassicyTextEditor";
 export * from "./SystemFolder/SystemResources/TimePicker/ClassicyLittleArrows";

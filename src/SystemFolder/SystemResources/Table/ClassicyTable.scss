@@ -1,0 +1,109 @@
+@use '../../ControlPanels/AppearanceManager/styles/appearance';
+
+// The generic Platinum list view — same look as the Finder's list mode
+// (ClassicyFileBrowserViewTable), minus the file-specific parts.
+
+.classicyTableContainer {
+  position: relative;
+  width: 100%;
+  overflow: auto;
+  background: var(--color-system-01);
+  outline: 0;
+
+  &:focus {
+    outline: var(--color-outline) solid var(--window-border-size);
+    outline-offset: calc(var(--window-border-size) * -1);
+  }
+}
+
+.classicyTable {
+  font-family: var(--body-font);
+  font-weight: 100;
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.classicyTableHeaderSticky {
+  position: sticky;
+  top: 0;
+  // Transformed descendants in scrolling rows (rotated triangles, etc.)
+  // promote themselves into the positioned paint layer — without an explicit
+  // z-index here they would draw ON TOP of the sticky header.
+  z-index: 1;
+}
+
+.classicyTableHeader {
+  border: none !important;
+}
+
+.classicyTableContent {
+  font-size: calc(var(--ui-font-size) * 0.8);
+  font-weight: normal;
+}
+
+.classicyTableColumnHeader {
+  font-size: calc(var(--ui-font-size) * 0.8);
+  font-weight: normal;
+  font-stretch: condensed;
+  display: table-cell;
+  align-items: center;
+  position: relative;
+  padding: var(--window-padding-size);
+
+  @include appearance.platinumWindowBoxShadow;
+}
+
+.classicyTableColumnHeaderSelected {
+  @include appearance.platinumWindowHeaderBorderDepressed;
+  background-color: var(--color-system-04);
+}
+
+.classicyTableHeaderGroup {
+  display: table-row;
+  background: var(--color-system-03);
+}
+
+.classicyTableRow {
+  border-top: var(--window-border-size) solid var(--color-white);
+  border-bottom: var(--window-border-size) solid var(--color-white);
+  background: var(--color-system-01);
+}
+
+.classicyTableRowSelected {
+  color: var(--color-white);
+  background: var(--color-system-07);
+}
+
+.classicyTableHeaderCellContent {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.classicyTableSortArrow {
+  margin: 0 var(--window-padding-size);
+  height: calc(var(--ui-font-size) * 0.5);
+}
+
+.classicyTableSortArrowAscending {
+  transform: rotate(180deg);
+}
+
+.classicyTableCell {
+  margin: 0;
+  padding: var(--window-border-size) var(--window-padding-size);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.resizer {
+  position: absolute;
+  z-index: 500;
+  top: 0;
+  right: 0;
+  width: 15px;
+  height: 100%;
+  cursor: col-resize;
+}

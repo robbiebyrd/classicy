@@ -150,6 +150,7 @@ The proxy runs on `http://localhost:8765` by default. Enable it in the Browser a
     - ✅ Form (dialog layout, safe submit)
     - ✅ Multi-select menu (List Box)
     - ✅ Combo box (autocomplete)
+    - ✅ Table (Platinum list view)
     - ✅ Checkbox
     - ✅ Bevel Button
     - ✅ Slider
@@ -232,6 +233,7 @@ is in [`docs/AGENT-REFERENCE.md` §4.0](docs/AGENT-REFERENCE.md).
 | `ClassicyControlLabel` | Inline label for a control. Props: `label` | `<label>` |
 | `ClassicySplitView` | Resizable two- or three-pane container with a draggable, keyboard-accessible divider. Props: `direction`, `defaultSizes`, `minPaneSize`, `onResize`, `onResizeCommit` | — (nearest: obsolete `<frameset>`) |
 | `ClassicyForm` | Form wrapper with HIG row/dialog spacing; submit never navigates. Props: `onSubmitFunc`, `layout`. Pair with `ClassicyFormButtonRow` for the Cancel/OK row | `<form>` |
+| `ClassicyTable` | Platinum list view over arbitrary data: sortable/resizable columns, Mac row selection, keyboard navigation. Props: `columns`, `rows`, `getRowId`, `selectionMode`, `onActivateRow` | `<table>` |
 
 ### Menus
 

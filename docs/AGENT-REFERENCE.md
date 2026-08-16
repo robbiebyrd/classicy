@@ -341,6 +341,7 @@ instead:
 | `<label>` | `ClassicyControlLabel` | |
 | `<fieldset>` / `<legend>` | `ClassicyControlGroup` | renders a real `<fieldset>` + `<legend>` |
 | `<hr>` | `ClassicySeparator` | renders a real `<hr>`; also vertical |
+| `<table>` (interactive data table) | `ClassicyTable` | Platinum list view: sortable/resizable columns, Mac selection conventions; purely presentational tables can stay raw `<table>` styled with theme variables |
 | `<progress>` | `ClassicyProgressBar` | adds indeterminate barber-pole / chasing arrows |
 | `<meter>` | `ClassicyMeter` | native gauge semantics (`low`/`high`/`optimum` zones), themed; optional LED `segments` |
 | `<output>` | `ClassicyOutput` | renders a real `<output>`; `plain` static text or `inset` result well |
@@ -368,7 +369,6 @@ there is no raw element to replace): `ClassicyDesktop`, `ClassicyApp`,
 **HTML with no Classicy equivalent** — use the raw element, styled with the
 theme CSS variables (§8) so it follows theme changes:
 
-- `<table>` — no general-purpose data table (`ClassicyFileBrowserViewTable` is Finder-specific)
 - `<canvas>`, `<svg>`
 - `<iframe>` — the Web Viewer is a built-in app, not an embeddable component
 - Prose & sectioning: `<h1>`–`<h6>`, `<p>`, `<blockquote>`, `<pre>` / `<code>`, plain `<ul>` / `<ol>`, `<header>` / `<footer>` / `<section>` / `<article>` / `<aside>`
@@ -449,6 +449,7 @@ usable pre-boot): `title?`, `children` *, `className?`, `width?`.
 | `ClassicyKbd` | `shortcut?` (any `parseKeyboardShortcut` spelling) or children, `variant? ("inline"\|"keycaps")` | real `<kbd>` in canonical glyph order (⌃⌥⇧⌘ + key); menu items render their `keyboardShortcut` through it |
 | `ClassicyTabs` | `tabs` * (`{title?, icon?, children}[]`) | |
 | `ClassicyTree` | `nodes` *, `selectionMode? ("none"\|"single"\|"multi")`, `selectedIds?`, `onSelectNode?`, `onActivateNode?`, `onToggleNode?` | hierarchical list |
+| `ClassicyTable` | `columns` * (`{id, title, accessor, render?, sortable?, resizable?, width?, align?}[]`), `rows` *, `getRowId` *, `selectionMode? ("none"\|"single"\|"multi")`, `selected?: string[]`, `onSelectionChange?`, `onActivateRow?`, `defaultSort?`, `stickyHeader? (true)` | generic Platinum list view over `@tanstack/react-table` (already a peer dep); semantic `<table>` + `aria-sort`; Shift/⌘ selection over the current sorted order; arrows/Home/End/Enter/type-select keyboard |
 | `ClassicyPager` | `page` *, `pageCount` *, `onPageChange` * | Apple Guide page control |
 | `ClassicySplitView` | `children` * (2–3 panes), `direction? ("horizontal"\|"vertical")`, `defaultSizes? (number[], pct, normalized)`, `minPaneSize? (48 px)`, `onResize?(sizes)`, `onResizeCommit?(sizes)` | resizable pane container; divider is draggable and keyboard-operable (ARIA separator, arrow keys). Max 3 panes — nest split views for grids. Uncontrolled after mount: persist via `onResizeCommit`, restore via `defaultSizes` |
 | `ClassicySpinner` | see inputs | |
