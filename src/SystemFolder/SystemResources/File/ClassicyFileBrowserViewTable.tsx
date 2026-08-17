@@ -12,6 +12,11 @@ import {
 	useMemo,
 	useState,
 } from "react";
+import type { FinderListViewOptions } from "@/SystemFolder/Finder/FinderContext";
+import {
+	asFinderDate,
+	formatFinderDate,
+} from "@/SystemFolder/Finder/FinderViewOptions";
 import type { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import {
 	ClassicyFileSystemEntryFileType,
@@ -32,6 +37,21 @@ type FileRow = ClassicyFileSystemEntryMetadata & {
 	subRows?: FileRow[];
 };
 
+// Hoisted so its identity is stable across renders: the columns useMemo below
+// keys on this object, and a fresh literal on every render (the omitted-prop
+// case, when the component still re-renders on every size resolution) would
+// invalidate the memo constantly — the same DOM-remount hazard fixed for
+// renderers by 99fc5dd2.
+const DEFAULT_LIST_COLUMN_FLAGS: FinderListViewOptions["columns"] = {
+	modified: false,
+	created: false,
+	size: true,
+	kind: true,
+	label: false,
+	comments: false,
+	version: false,
+};
+
 type ClassicyFileBrowserViewTableProps = {
 	fs: ClassicyFileSystem;
 	path: string;
@@ -41,6 +61,10 @@ type ClassicyFileBrowserViewTableProps = {
 	fileOnClickFunc?: (path: string) => void;
 	holderRef?: RefObject<HTMLDivElement | null>;
 	hideFilesCreatedAfter?: Date | string | number | null;
+	listViewOptions?: FinderListViewOptions;
+	/** The in-world "now" for relative dates, already converted to the
+	 *  virtual clock's local frame. Omitted means real time. */
+	now?: Date;
 };
 
 export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrowserViewTableProps> =
@@ -53,7 +77,24 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 			dirOnClickFunc = () => {},
 			fileOnClickFunc = () => {},
 			hideFilesCreatedAfter = null,
+			listViewOptions,
+			now,
 		}) => {
+			// Derive the effective options once, so an omitted prop reproduces
+			// today's rendering — three columns, sizes computed, no dates.
+			const columnFlags = listViewOptions?.columns ?? DEFAULT_LIST_COLUMN_FLAGS;
+			const computeFolderSizes = listViewOptions?.calculateFolderSizes ?? true;
+			const relativeDates = listViewOptions?.useRelativeDate ?? true;
+			// A fresh `Date` on every render (when `now` is omitted) would
+			// invalidate the columns useMemo constantly — see 99fc5dd2. Guard it
+			// to a stable Date keyed only on the caller-supplied instant.
+			const nowMs = now?.getTime();
+			// eslint-disable-next-line react-hooks/exhaustive-deps
+			const effectiveNow = useMemo(
+				() => (nowMs === undefined ? new Date() : new Date(nowMs)),
+				[nowMs],
+			);
+
 			// Which directories are disclosed, keyed by full path. Controlled here
 			// (not inside ClassicyTable) because the lazily-materialized `subRows`
 			// below depend on it.
@@ -124,6 +165,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 			// Resolve sizes for any visible row we don't have a size for yet, keyed by
 			// path so newly-disclosed folders pick up their sizes too.
 			useEffect(() => {
+				if (!computeFolderSizes) return;
 				let cancelled = false;
 				const pending: string[] = [];
 				const collect = (rows: FileRow[]) => {
@@ -155,10 +197,10 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 				return () => {
 					cancelled = true;
 				};
-			}, [data, fs, sizes]);
+			}, [data, fs, sizes, computeFolderSizes]);
 
-			const columns = useMemo<ClassicyTableColumn<FileRow>[]>(
-				() => [
+			const columns = useMemo<ClassicyTableColumn<FileRow>[]>(() => {
+				const cols: ClassicyTableColumn<FileRow>[] = [
 					{
 						id: "_name",
 						title: "Filename",
@@ -202,29 +244,100 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 							</div>
 						),
 					},
-					{
-						id: "_type",
-						title: "File Type",
-						accessor: (row) => row._type,
-						render: (row) => <span>{fileTypeDisplayName(row._type)}</span>,
-					},
-					{
+				];
+				if (columnFlags.modified) {
+					cols.push({
+						id: "_modifiedOn",
+						title: "Date Modified",
+						// asFinderDate on BOTH paths: the tree round-trips through JSON,
+						// so this field is an ISO string at runtime, not a Date.
+						accessor: (row) => asFinderDate(row._modifiedOn)?.getTime() ?? 0,
+						render: (row) => (
+							<span>
+								{formatFinderDate(
+									asFinderDate(row._modifiedOn),
+									effectiveNow,
+									relativeDates,
+								)}
+							</span>
+						),
+					});
+				}
+				if (columnFlags.created) {
+					cols.push({
+						id: "_createdOn",
+						title: "Date Created",
+						accessor: (row) => asFinderDate(row._createdOn)?.getTime() ?? 0,
+						render: (row) => (
+							<span>
+								{formatFinderDate(
+									asFinderDate(row._createdOn),
+									effectiveNow,
+									relativeDates,
+								)}
+							</span>
+						),
+					});
+				}
+				if (columnFlags.size) {
+					cols.push({
 						id: "_size",
 						title: "Size",
 						accessor: (row) => row._size,
 						render: (row) => (
 							<span>
 								{row._size === undefined
-									? "Calculating…"
+									? computeFolderSizes
+										? "Calculating…"
+										: "—"
 									: row._size === -1
 										? "—"
 										: fs.formatSize(row._size)}
 							</span>
 						),
-					},
-				],
-				[fs, iconSize],
-			);
+					});
+				}
+				if (columnFlags.kind) {
+					cols.push({
+						id: "_type",
+						title: "Kind",
+						accessor: (row) => row._type,
+						render: (row) => <span>{fileTypeDisplayName(row._type)}</span>,
+					});
+				}
+				if (columnFlags.label) {
+					cols.push({
+						id: "_label",
+						title: "Label",
+						accessor: (row) => row._label ?? "",
+						render: (row) => <span>{row._label ?? "—"}</span>,
+					});
+				}
+				if (columnFlags.comments) {
+					cols.push({
+						id: "_comments",
+						title: "Comments",
+						accessor: (row) => row._comments ?? "",
+						render: (row) => <span>{row._comments ?? "—"}</span>,
+					});
+				}
+				if (columnFlags.version) {
+					cols.push({
+						id: "_version",
+						title: "Version",
+						accessor: (row) => row._version ?? "",
+						render: (row) => <span>{row._version ?? "—"}</span>,
+					});
+				}
+				return cols;
+			}, [
+				fs,
+				iconSize,
+				columnFlags,
+				effectiveNow,
+				relativeDates,
+				computeFolderSizes,
+			]);
 
 			return (
 				<ClassicyTable<FileRow>
