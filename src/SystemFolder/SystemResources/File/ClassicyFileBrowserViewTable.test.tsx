@@ -473,6 +473,11 @@ describe("ClassicyFileBrowserViewTable configurable columns", () => {
 		expect(screen.queryByText("Size")).not.toBeInTheDocument();
 		expect(screen.queryByText("Kind")).not.toBeInTheDocument();
 		expect(screen.queryByText("Label")).not.toBeInTheDocument();
+		expect(screen.queryByText("Date Created")).not.toBeInTheDocument();
+		expect(screen.queryByText("Comments")).not.toBeInTheDocument();
+		expect(screen.queryByText("Version")).not.toBeInTheDocument();
+		// Only Filename (unconditional) + Date Modified (the one enabled flag).
+		expect(screen.getAllByRole("columnheader")).toHaveLength(2);
 	});
 
 	it("renders Kind rather than the old File Type header", () => {
@@ -611,5 +616,11 @@ describe("ClassicyFileBrowserViewTable configurable columns", () => {
 		expect(screen.getByText("Size")).toBeInTheDocument();
 		expect(screen.getByText("Kind")).toBeInTheDocument();
 		expect(screen.queryByText("Date Modified")).not.toBeInTheDocument();
+		expect(screen.queryByText("Date Created")).not.toBeInTheDocument();
+		expect(screen.queryByText("Label")).not.toBeInTheDocument();
+		expect(screen.queryByText("Comments")).not.toBeInTheDocument();
+		expect(screen.queryByText("Version")).not.toBeInTheDocument();
+		// Filename, Size, Kind — no more, no fewer.
+		expect(screen.getAllByRole("columnheader")).toHaveLength(3);
 	});
 });
