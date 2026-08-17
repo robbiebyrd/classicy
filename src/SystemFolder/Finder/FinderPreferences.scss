@@ -17,6 +17,18 @@
   font-weight: bold;
 }
 
+.finderPreferencesFooter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.finderPreferencesHelpIcon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+
 .finderPreferencesNote {
   margin: 0;
   font-style: italic;

@@ -150,6 +150,18 @@ describe("FinderPreferences", () => {
 		).not.toBeDisabled();
 	});
 
+	it("renders the footer note beside a help icon", () => {
+		withFinderData({});
+		render(<FinderPreferences />);
+		expect(
+			screen.getByText(/Changes are applied to all folders/),
+		).toBeInTheDocument();
+		const help = screen.getByAltText("Help");
+		expect(help).toBeInTheDocument();
+		// Static badge, not a control — the dialog wires nothing to it.
+		expect(help.closest("button")).toBeNull();
+	});
+
 	it("dispatches Close when the window closes", () => {
 		withFinderData({});
 		render(<FinderPreferences />);

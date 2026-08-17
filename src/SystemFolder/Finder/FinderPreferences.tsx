@@ -1,6 +1,7 @@
 import "./FinderPreferences.scss";
 import type { FC as FunctionalComponent } from "react";
 import { useMemo } from "react";
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -15,6 +16,7 @@ import { ClassicyTabs } from "@/SystemFolder/SystemResources/Tabs/ClassicyTabs";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
 const appId = "Finder.app";
+const helpIcon = ClassicyIcons.system.help;
 
 export const FinderPreferences: FunctionalComponent = () => {
 	const dispatch = useAppManagerDispatch();
@@ -47,10 +49,20 @@ export const FinderPreferences: FunctionalComponent = () => {
 		>
 			<div className={"finderPreferences"}>
 				<ClassicyTabs tabs={tabs} />
-				<p className={"finderPreferencesNote"}>
-					Changes are applied to all folders that are set to Standard views.
-					Other folders are not affected.
-				</p>
+				{/* Static, exactly as in the Mac OS 8 dialog: the badge marks the
+				    note as explanatory help, it is not a control. Nothing here
+				    opens Apple Guide, so it is deliberately not a button. */}
+				<div className={"finderPreferencesFooter"}>
+					<img
+						className={"finderPreferencesHelpIcon"}
+						src={helpIcon}
+						alt={"Help"}
+					/>
+					<p className={"finderPreferencesNote"}>
+						Changes are applied to all folders that are set to Standard views.
+						Other folders are not affected.
+					</p>
+				</div>
 			</div>
 		</ClassicyWindow>
 	);
