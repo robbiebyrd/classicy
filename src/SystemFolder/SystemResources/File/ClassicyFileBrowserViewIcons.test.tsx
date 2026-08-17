@@ -114,9 +114,22 @@ describe("ClassicyFileBrowserViewIcons arrangement", () => {
 			...ICONS_BASE,
 			arrangement: "sorted",
 		});
-		const icon = screen.getAllByRole("img")[0].closest("div");
-		fireEvent.mouseDown(icon as HTMLElement);
-		expect(icon?.className).not.toContain("classicyIconDragging");
+		// firstIconRoot(), not `.closest("div")`: the <img>'s nearest div ancestor
+		// is div.classicyIconMask, but "classicyIconDragging" is only ever applied
+		// to the root div.classicyIcon. Asserting on the mask made this pass for
+		// every possible implementation — including one with no locking at all.
+		const icon = firstIconRoot();
+		fireEvent.mouseDown(icon);
+		expect(icon.className).not.toContain("classicyIconDragging");
+	});
+
+	it("does enter the dragging state when not locked", () => {
+		// The counterweight to the assertion above: without this, a root-level
+		// assertion would still pass if the class simply never appeared.
+		renderIcons("test-icons-unlocked", ICONS_BASE);
+		const icon = firstIconRoot();
+		fireEvent.mouseDown(icon);
+		expect(icon.className).toContain("classicyIconDragging");
 	});
 
 	// jsdom has no layout engine, so every getBoundingClientRect() is zeros:
