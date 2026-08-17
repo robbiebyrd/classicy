@@ -119,6 +119,55 @@ describe("ClassicyFileBrowserViewIcons arrangement", () => {
 		expect(icon?.className).not.toContain("classicyIconDragging");
 	});
 
+	// jsdom has no layout engine, so every getBoundingClientRect() is zeros:
+	// ClassicyIcon's drag math reduces to position = [clientX, clientY], and the
+	// assertions below read the inline style the component itself sets rather
+	// than any computed geometry.
+	it("snaps a dragged icon onto the lattice the layout uses", () => {
+		renderIcons("test-icons-grid", { ...ICONS_BASE, arrangement: "grid" });
+		const icon = firstIconRoot();
+
+		fireEvent.mouseDown(icon);
+		fireEvent.mouseMove(icon, { clientX: 140, clientY: 140 });
+		fireEvent.mouseUp(icon);
+
+		// Theme base 48 → padding 12, cell 96. Cell (1, 1) is at 12 + 96 = 108,
+		// exactly where cleanupIcon lays out that cell. The pre-fix snap (pitch
+		// 48, origin 0) would have produced 144 — a half-row the layout never
+		// uses, overlapping the row above.
+		expect(icon.style.left).toBe("108px");
+		expect(icon.style.top).toBe("108px");
+	});
+
+	it("snaps small icons onto the smaller lattice", () => {
+		renderIcons("test-icons-grid-small", {
+			...ICONS_BASE,
+			arrangement: "grid",
+			iconSize: "small",
+		});
+		const icon = firstIconRoot();
+
+		fireEvent.mouseDown(icon);
+		fireEvent.mouseMove(icon, { clientX: 70, clientY: 70 });
+		fireEvent.mouseUp(icon);
+
+		// 0.5 x 48 = 24 → cell 48, origin still the theme's 12: 12 + 48 = 60.
+		expect(icon.style.left).toBe("60px");
+		expect(icon.style.top).toBe("60px");
+	});
+
+	it("does not snap when the arrangement is not grid", () => {
+		renderIcons("test-icons-nogrid", ICONS_BASE);
+		const icon = firstIconRoot();
+
+		fireEvent.mouseDown(icon);
+		fireEvent.mouseMove(icon, { clientX: 140, clientY: 140 });
+		fireEvent.mouseUp(icon);
+
+		expect(icon.style.left).toBe("140px");
+		expect(icon.style.top).toBe("140px");
+	});
+
 	it("re-lays-out an already-mounted component when the arrangement option changes", () => {
 		// Same `fs` instance reused across both renders below (not a fresh
 		// makeFs() call per render) — every other prop is held identical too,

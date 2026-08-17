@@ -17,6 +17,7 @@ import {
 import { getIconSize } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconContext";
 import {
 	cleanupIcon,
+	iconGridLattice,
 	iconImageByType,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserUtils";
 import type { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
@@ -44,6 +45,7 @@ type iconType = {
 	initialPosition: [number, number];
 	size?: number;
 	snapTo?: [number, number];
+	snapOrigin?: [number, number];
 	positionLocked?: boolean;
 };
 
@@ -140,8 +142,13 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 				const iconSize = iconSizeStep
 					? iconViewIconSize(getIconSize(activeTheme)[0], iconSizeStep)
 					: undefined;
-				const pitch: [number, number] | undefined =
-					arrangement === "grid" && iconSize ? [iconSize, iconSize] : undefined;
+				// Same lattice `cleanupIcon` lays the icons out on — pitch AND origin
+				// both come from `iconGridLattice`, so a snapped icon lands exactly
+				// where the layout would have put it. Passing only the pitch (or
+				// passing `iconSize` instead of the full cell width) puts drops on
+				// half-rows that overlap the row above.
+				const lattice = iconGridLattice(activeTheme, iconSize);
+				const snapTo = arrangement === "grid" ? lattice.pitch : undefined;
 				// "sorted" ("Keep arranged by…") derives both order and position from
 				// the sort key, so dragging is disabled entirely. "grid" ("Snap to
 				// grid") still allows free dragging; it only rounds the drop point
@@ -164,7 +171,8 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 							iconSize,
 						),
 						size: iconSize,
-						snapTo: pitch,
+						snapTo,
+						snapOrigin: lattice.origin,
 						positionLocked,
 					};
 				});
