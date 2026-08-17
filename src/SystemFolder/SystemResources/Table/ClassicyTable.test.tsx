@@ -423,6 +423,44 @@ describe("ClassicyTable — Command+Arrow expansion shortcuts", () => {
 		expect(screen.queryByText("q1.pdf")).toBeNull();
 	});
 
+	// A cell's DOM has to SURVIVE an ordinary re-render. The browser only
+	// synthesizes a `click` when the node that received `mousedown` is still
+	// attached once `mouseup` has finished dispatching — and React runs its own
+	// handlers during `mouseup`. So if a re-render mid-press (a consumer passing
+	// fresh inline callbacks, a store update on window focus) tears down and
+	// rebuilds the nodes inside a cell, every click that lands on real cell
+	// content — a filename label, an icon, a disclosure triangle — is silently
+	// swallowed, while clicks on a cell's empty padding still register.
+	it("keeps cell and header DOM nodes across a re-render with fresh callbacks", () => {
+		const marked: ClassicyTableColumn<Album>[] = [
+			{
+				id: "title",
+				title: "Title",
+				accessor: (a) => a.title,
+				render: (a) => <em>{a.title}</em>,
+			},
+		];
+		const view = (onToggleRow: (id: string, open: boolean) => void) => (
+			<ClassicyTable
+				columns={marked}
+				rows={albums}
+				getRowId={(a) => a.id}
+				onToggleRow={onToggleRow}
+			/>
+		);
+		const { container, rerender } = render(view(() => {}));
+		const cellBefore = container.querySelector("tbody em");
+		const headerBefore = container.querySelector("thead th span");
+		expect(cellBefore).not.toBeNull();
+		expect(headerBefore).not.toBeNull();
+
+		// A brand-new inline callback, exactly as consumers pass one.
+		rerender(view(() => {}));
+
+		expect(container.querySelector("tbody em")).toBe(cellBefore);
+		expect(container.querySelector("thead th span")).toBe(headerBefore);
+	});
+
 	it("plain arrows never toggle expansion", () => {
 		const { container } = render(
 			<ClassicyTable

@@ -2,7 +2,6 @@ import "./ClassicyTable.scss";
 import {
 	type ColumnDef,
 	type ExpandedState,
-	flexRender,
 	getCoreRowModel,
 	getExpandedRowModel,
 	getSortedRowModel,
@@ -160,28 +159,21 @@ export function ClassicyTable<T>({
 		[columns],
 	);
 
+	// Column definitions carry only the table model (values, sorting, sizing) —
+	// never the header/cell renderers. TanStack's flexRender treats a renderer
+	// function as a COMPONENT TYPE, and React reconciles types by identity, so a
+	// renderer re-created on any render would unmount and rebuild every cell's
+	// DOM. The renderers live below instead, called for their returned nodes.
 	const columnDefs = useMemo<ColumnDef<T>[]>(
 		() =>
 			columns.map((c) => ({
 				id: c.id,
 				accessorFn: (row: T) => c.accessor(row),
-				header: () => <span>{c.title}</span>,
-				cell: (info) =>
-					c.render ? (
-						c.render(info.row.original, {
-							depth: info.row.depth,
-							canExpand: info.row.getCanExpand(),
-							isExpanded: info.row.getIsExpanded(),
-							toggle: () => toggleRow(info.row.id),
-						})
-					) : (
-						<span>{`${info.getValue() ?? ""}`}</span>
-					),
 				enableSorting: c.sortable !== false,
 				enableResizing: c.resizable !== false,
 				...(c.width !== undefined ? { size: c.width } : {}),
 			})),
-		[columns, toggleRow],
+		[columns],
 	);
 
 	const table = useReactTable({
@@ -406,11 +398,9 @@ export function ClassicyTable<T>({
 										}}
 									>
 										<div className="classicyTableHeaderCellContent">
-											{!header.isPlaceholder &&
-												flexRender(
-													header.column.columnDef.header,
-													header.getContext(),
-												)}
+											{!header.isPlaceholder && (
+												<span>{columnById.get(header.id)?.title ?? ""}</span>
+											)}
 											{isSorted && (
 												<img
 													src={`${arrowUpIcon}`}
@@ -463,18 +453,30 @@ export function ClassicyTable<T>({
 							}}
 							onDoubleClick={() => onActivateRow?.(row.id, row.original)}
 						>
-							{row.getVisibleCells().map((cell) => (
-								<td
-									key={cell.id}
-									className="classicyTableCell"
-									style={{
-										width: cell.column.getSize(),
-										textAlign: columnById.get(cell.column.id)?.align ?? "left",
-									}}
-								>
-									{flexRender(cell.column.columnDef.cell, cell.getContext())}
-								</td>
-							))}
+							{row.getVisibleCells().map((cell) => {
+								const column = columnById.get(cell.column.id);
+								return (
+									<td
+										key={cell.id}
+										className="classicyTableCell"
+										style={{
+											width: cell.column.getSize(),
+											textAlign: column?.align ?? "left",
+										}}
+									>
+										{column?.render ? (
+											column.render(row.original, {
+												depth: row.depth,
+												canExpand: row.getCanExpand(),
+												isExpanded: row.getIsExpanded(),
+												toggle: () => toggleRow(row.id),
+											})
+										) : (
+											<span>{`${cell.getValue() ?? ""}`}</span>
+										)}
+									</td>
+								);
+							})}
 						</tr>
 					))}
 				</tbody>
