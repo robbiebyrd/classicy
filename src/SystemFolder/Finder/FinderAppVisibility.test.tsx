@@ -5,17 +5,17 @@ import {
 	dispatch,
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { HyperCard } from "@/SystemFolder/HyperCard/HyperCard";
 import { HyperCardAppInfo } from "@/SystemFolder/HyperCard/HyperCardUtils";
-import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import { WebViewer } from "@/SystemFolder/WebViewer/WebViewer";
 import { WebViewerAppInfo } from "@/SystemFolder/WebViewer/WebViewerUtils";
 
 // The app-manager store is module-level and survives between tests in this
 // file, so state changes must be cleaned up. Both Web Viewer and HyperCard
 // tests dispatch icon records (Web Viewer's persisted-case test explicitly,
-// HyperCard's direct ClassicyApp render implicitly from showDesktopIcon={false}
-// defaulting listInApplications to true), and HyperCard's test also adds a
-// systemMenu entry.
+// HyperCard's mount implicitly from showDesktopIcon={false} defaulting
+// listInApplications to true), and HyperCard's test also adds a systemMenu
+// entry.
 afterEach(() => {
 	dispatch({
 		type: "ClassicyDesktopIconRemove",
@@ -81,6 +81,12 @@ describe("Web Viewer visibility", () => {
 
 describe("HyperCard Apple-menu visibility", () => {
 	it("removes a persisted systemMenu entry when it mounts without addSystemMenu", () => {
+		// The real <HyperCard/>, not a bare <ClassicyApp> standing in for it:
+		// a stand-in only proves ClassicyApp's `else` branch clears the entry,
+		// and re-adding `addSystemMenu` to HyperCard's own call site would
+		// reinstate the bug with this suite still green. It renders here with
+		// no mocks at all.
+		//
 		// Stand in for state restored from localStorage: the entry is already
 		// there before the app mounts.
 		dispatch({ type: "ClassicyDesktopAppMenuAdd", app: HyperCardAppInfo });
@@ -94,14 +100,7 @@ describe("HyperCard Apple-menu visibility", () => {
 
 		render(
 			<ClassicyAppManagerProvider>
-				<ClassicyApp
-					id={HyperCardAppInfo.id}
-					name={HyperCardAppInfo.name}
-					icon={HyperCardAppInfo.icon}
-					showDesktopIcon={false}
-				>
-					<div />
-				</ClassicyApp>
+				<HyperCard />
 			</ClassicyAppManagerProvider>,
 		);
 
