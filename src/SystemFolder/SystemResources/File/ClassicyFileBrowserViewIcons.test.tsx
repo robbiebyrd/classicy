@@ -59,6 +59,15 @@ const renderedNames = (): string[] =>
 		.map((img) => img.getAttribute("alt") ?? "")
 		.filter((name) => name.length > 0);
 
+// Every size-driven rule in ClassicyIcon.scss (the container, the mask, the
+// mask outer, and the <img> itself) reads --desktop-icon-size from the
+// outermost ".classicyIcon" element, so that is the element an override has
+// to land on to have any visual effect — a width/height attribute on the
+// <img> is inert because the CSS declarations on it always win over HTML
+// presentational attributes.
+const firstIconRoot = (): HTMLElement =>
+	screen.getAllByRole("img")[0].closest(".classicyIcon") as HTMLElement;
+
 describe("ClassicyFileBrowserViewIcons arrangement", () => {
 	it("keeps listing order when the arrangement is none", () => {
 		renderIcons("test-icons-none", ICONS_BASE);
@@ -78,10 +87,26 @@ describe("ClassicyFileBrowserViewIcons arrangement", () => {
 		expect(renderedNames()).toEqual(["zebra.pdf", "apple.pdf", "mango.pdf"]);
 	});
 
-	it("sizes icons from the theme base and the chosen step", () => {
+	it("sets --desktop-icon-size from the theme base and the chosen step", () => {
 		renderIcons("test-icons-small", { ...ICONS_BASE, iconSize: "small" });
 		// 0.5 x the 48px theme base.
-		expect(screen.getAllByRole("img")[0]).toHaveAttribute("width", "24");
+		expect(firstIconRoot().style.getPropertyValue("--desktop-icon-size")).toBe(
+			"24px",
+		);
+	});
+
+	it("scales the custom property differently for the small and large steps", () => {
+		renderIcons("test-icons-large", { ...ICONS_BASE, iconSize: "large" });
+		const large = firstIconRoot().style.getPropertyValue("--desktop-icon-size");
+		expect(large).toBe("48px");
+		expect(large).not.toBe("24px");
+	});
+
+	it("leaves --desktop-icon-size unset when no options are passed", () => {
+		renderIcons("test-icons-default");
+		expect(firstIconRoot().style.getPropertyValue("--desktop-icon-size")).toBe(
+			"",
+		);
 	});
 
 	it("does not enter the dragging state when locked", () => {

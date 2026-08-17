@@ -133,11 +133,7 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 			style={{ "--classicy-icon-mask": `url(${icon})` } as CSSProperties}
 		>
 			<div className={"classicyIconMask"}>
-				<img
-					src={icon}
-					alt={name}
-					{...(size === undefined ? {} : { width: size, height: size })}
-				/>
+				<img src={icon} alt={name} />
 			</div>
 		</div>
 	);
@@ -156,10 +152,22 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 				active ? "classicyIconActive" : "",
 				labelPositionClass(labelPosition),
 			)}
-			style={{
-				left: `${position[0]}px`,
-				top: `${position[1]}px`,
-			}}
+			style={
+				{
+					left: `${position[0]}px`,
+					top: `${position[1]}px`,
+					// Every rule in ClassicyIcon.scss that sizes this icon — the
+					// container itself, the mask, the mask outer, and the <img> —
+					// derives from --desktop-icon-size via var()/calc(), and this
+					// element is their common ancestor (custom properties cascade
+					// to descendants, not upward), so overriding it here scales
+					// all of them together and keeps cleanupIcon's `iconSize * 2`
+					// spacing math in sync with what's actually on screen. Omitted
+					// when `size` is undefined so the theme's value keeps cascading
+					// exactly as it did before this prop existed.
+					...(size === undefined ? {} : { "--desktop-icon-size": `${size}px` }),
+				} as CSSProperties
+			}
 			onClick={toggleFocus}
 			onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
 				if (e.key === "Enter" || e.key === " ") {
