@@ -178,6 +178,39 @@ describe("Finder preferences reducers", () => {
 		});
 	});
 
+	it("keeps earlier folder choices when a new folder is set", () => {
+		let ds = classicyFinderEventHandler(makeStore(), {
+			type: "ClassicyAppFinderSetFolderView",
+			path: "Macintosh HD:Documents",
+			viewType: "icons",
+		});
+		ds = classicyFinderEventHandler(ds, {
+			type: "ClassicyAppFinderSetFolderView",
+			path: "Macintosh HD:System Folder",
+			viewType: "list",
+		});
+		expect(finderData(ds).folderViews).toEqual({
+			"Macintosh HD:Documents": "icons",
+			"Macintosh HD:System Folder": "list",
+		});
+	});
+
+	it("overwrites a folder's own previous choice", () => {
+		let ds = classicyFinderEventHandler(makeStore(), {
+			type: "ClassicyAppFinderSetFolderView",
+			path: "Macintosh HD:Documents",
+			viewType: "icons",
+		});
+		ds = classicyFinderEventHandler(ds, {
+			type: "ClassicyAppFinderSetFolderView",
+			path: "Macintosh HD:Documents",
+			viewType: "list",
+		});
+		expect(finderData(ds).folderViews).toEqual({
+			"Macintosh HD:Documents": "list",
+		});
+	});
+
 	it("resolves defaults for absent preference state", () => {
 		const views = resolveStandardViews({});
 		expect(views.icons.iconSize).toBe("large");
