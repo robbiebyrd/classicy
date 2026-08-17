@@ -22,6 +22,7 @@ import {
 	type FinderData,
 	isFinderData,
 } from "@/SystemFolder/Finder/FinderContext";
+import { FinderPreferences } from "@/SystemFolder/Finder/FinderPreferences";
 import { useFinderFolderSize } from "@/SystemFolder/Finder/useFinderFolderSize";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import {
@@ -65,6 +66,8 @@ type FinderWindowProps = {
 	disableBalloonHelp: boolean;
 	toggleBalloonHelp: () => void;
 	aboutMenuItem: ClassicyMenuItem;
+	openPreferences: () => void;
+	viewType: "icons" | "list";
 };
 
 const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
@@ -84,6 +87,8 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 	disableBalloonHelp,
 	toggleBalloonHelp,
 	aboutMenuItem,
+	openPreferences,
+	viewType,
 }) => {
 	const appMenu = useMemo(
 		() => [
@@ -98,6 +103,31 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 						`${appId}_${op}_file_closews`,
 						closeAllFolders,
 					),
+				],
+			},
+			// Built inline rather than from useClassicyEditMenu: that hook's Select
+			// All calls classicyEditCommands.selectAll, which acts on the focused
+			// text field — correct for SimpleText, wrong for a file browser. Do
+			// not consolidate the two.
+			{
+				id: `${appId}_${op}_edit`,
+				title: "Edit",
+				menuChildren: [
+					{
+						id: `${appId}_${op}_edit_select_all`,
+						title: "Select All",
+						keyboardShortcut: "⌘A",
+						// Icons-view selection is a separate slice; until it exists the
+						// command has nothing to act on there.
+						disabled: viewType !== "list",
+						onClickFunc: () => {},
+					},
+					{ id: "spacer" },
+					{
+						id: `${appId}_${op}_edit_preferences`,
+						title: "Preferences…",
+						onClickFunc: openPreferences,
+					},
 				],
 			},
 			{
@@ -142,6 +172,8 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 			disableBalloonHelp,
 			toggleBalloonHelp,
 			aboutMenuItem,
+			openPreferences,
+			viewType,
 		],
 	);
 
@@ -321,6 +353,10 @@ export const Finder = () => {
 		});
 	}, [closeWindow, finderData.openPaths]);
 
+	const openPreferences = useCallback(() => {
+		desktopEventDispatch({ type: "ClassicyAppFinderPreferencesOpen" });
+	}, [desktopEventDispatch]);
+
 	useEffect(() => {
 		const drives = fs.filterByType("", "drive");
 		const addedDriveNames: string[] = [];
@@ -409,6 +445,8 @@ export const Finder = () => {
 							disableBalloonHelp={disableBalloonHelp}
 							toggleBalloonHelp={toggleBalloonHelp}
 							aboutMenuItem={aboutMenuItem}
+							openPreferences={openPreferences}
+							viewType={pathSettings[p]?._viewType ?? "list"}
 						/>
 					))
 				: null}
@@ -416,6 +454,7 @@ export const Finder = () => {
 			{appState.data?.showAboutThisComputer ? (
 				<FinderAboutThisComputer />
 			) : null}
+			{finderData.showPreferences ? <FinderPreferences /> : null}
 		</ClassicyApp>
 	);
 };

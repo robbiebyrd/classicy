@@ -1,0 +1,23 @@
+.finderPreferences {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+}
+
+.finderPreferencesViews,
+.finderPreferencesPane {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.finderPreferencesGroupHeading {
+  margin: 4px 0 0;
+  font-weight: bold;
+}
+
+.finderPreferencesNote {
+  margin: 0;
+  font-style: italic;
+}
