@@ -84,25 +84,61 @@ export const DriveSetupController: FC = () => {
 					}),
 				);
 		} else if (request.action === "backup") {
-			fs.flushNow();
-			setFeedback({
-				label: "Backup complete",
-				message: "The filesystem was pushed to the server.",
-				type: "note",
-			});
+			void fs.flushNowAsync().then((pushed) =>
+				setFeedback(
+					pushed
+						? {
+								label: "Backup complete",
+								message: "The filesystem was pushed to the server.",
+								type: "note",
+							}
+						: {
+								label: "Backup failed",
+								message:
+									"Could not push your files to the server. Your local data is unchanged.",
+								type: "stop",
+							},
+				),
+			);
 		}
 	}, [requestId]);
 
-	const confirmInitialize = () => {
+	const confirmInitialize = async () => {
 		const drive = pendingInitialize;
 		setPendingInitialize(null);
 		if (!drive) return;
 		const resolved = resolveDefaultFileSystem(defaultFileSystem, mode);
-		const currentTree = JSON.parse(fs.snapshot());
-		const nextTree = resetDriveInTree(currentTree, drive, resolved);
+		// Keep the pre-erase tree verbatim: it is the rollback if the push fails.
+		const previousTree = fs.snapshot();
+		const nextTree = resetDriveInTree(
+			JSON.parse(previousTree),
+			drive,
+			resolved,
+		);
 		fs.load(JSON.stringify(nextTree));
+
+		if (!isDriveSyncConnected()) {
+			// Anonymous: localStorage is the only store, so there is nothing to
+			// await and no way for the erase to be undone behind the user's back.
+			fs.flushNow();
+			window.location.reload();
+			return;
+		}
+
+		// Await the push. A fire-and-forget flush would still be in flight when
+		// reload() tears the page down, and the next boot's reconcile would pull
+		// the pre-erase tree straight back — silently undoing the erase.
+		if (await fs.flushNowAsync()) {
+			window.location.reload();
+			return;
+		}
+		fs.load(previousTree);
 		fs.flushNow();
-		window.location.reload();
+		setFeedback({
+			label: "Could not initialize",
+			message: `“${drive}” was not initialized: the server could not be reached. Your files have not been changed.`,
+			type: "stop",
+		});
 	};
 
 	return (
@@ -122,7 +158,7 @@ export const DriveSetupController: FC = () => {
 								id: "initialize",
 								label: "Initialize",
 								role: "normal",
-								onClick: confirmInitialize,
+								onClick: () => void confirmInitialize(),
 							},
 						]}
 						onClose={() => setPendingInitialize(null)}

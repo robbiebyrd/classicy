@@ -300,6 +300,118 @@ describe("debounced persist + snapshot", () => {
 	});
 });
 
+describe("flushNowAsync", () => {
+	const persistedDrive = (storageKey: string) =>
+		JSON.parse(localStorage.getItem(storageKey) ?? "{}")["Macintosh HD"];
+
+	it("resolves true and persists when every adapter's onSnapshot resolves", async () => {
+		const snapshots: unknown[] = [];
+		registerClassicyFileSystemAdapter({
+			id: "async-ok",
+			onSnapshot: async (snapshot) => {
+				snapshots.push(snapshot);
+			},
+		});
+		const cfs = new ClassicyFileSystem("test-flush-async-ok", seedTree());
+		cfs.mkDir("Macintosh HD:Fresh");
+
+		await expect(cfs.flushNowAsync()).resolves.toBe(true);
+		expect(snapshots).toHaveLength(1);
+		expect(persistedDrive("test-flush-async-ok").Fresh).toBeDefined();
+	});
+
+	it("does not resolve until a slow onSnapshot settles", async () => {
+		// The whole point of flushNowAsync: a caller that is about to destroy the
+		// page must not proceed while the push is still in flight.
+		let release!: () => void;
+		const inFlight = new Promise<void>((resolve) => {
+			release = resolve;
+		});
+		registerClassicyFileSystemAdapter({
+			id: "async-slow",
+			onSnapshot: () => inFlight,
+		});
+		const cfs = new ClassicyFileSystem("test-flush-async-slow", seedTree());
+		cfs.mkDir("Macintosh HD:Fresh");
+
+		let settled = false;
+		const flush = cfs.flushNowAsync().then((ok) => {
+			settled = true;
+			return ok;
+		});
+		// Drain the microtask queue — the push is still pending, so must the flush be.
+		await Promise.resolve();
+		await Promise.resolve();
+		expect(settled).toBe(false);
+
+		release();
+		await expect(flush).resolves.toBe(true);
+	});
+
+	it("resolves false when an adapter's onSnapshot rejects, but still persists locally", async () => {
+		vi.spyOn(console, "error").mockImplementation(() => undefined);
+		registerClassicyFileSystemAdapter({
+			id: "async-fail",
+			onSnapshot: async () => {
+				throw new Error("directus down");
+			},
+		});
+		const cfs = new ClassicyFileSystem("test-flush-async-fail", seedTree());
+		cfs.mkDir("Macintosh HD:Fresh");
+
+		await expect(cfs.flushNowAsync()).resolves.toBe(false);
+		// localStorage stays primary — a failed remote push never blocks the local write.
+		expect(persistedDrive("test-flush-async-fail").Fresh).toBeDefined();
+	});
+
+	it("resolves false if any adapter fails, and still delivers to the others", async () => {
+		vi.spyOn(console, "error").mockImplementation(() => undefined);
+		const delivered: string[] = [];
+		registerClassicyFileSystemAdapter({
+			id: "async-mixed-fail",
+			onSnapshot: async () => {
+				throw new Error("boom");
+			},
+		});
+		registerClassicyFileSystemAdapter({
+			id: "async-mixed-ok",
+			onSnapshot: async () => {
+				delivered.push("async-mixed-ok");
+			},
+		});
+		const cfs = new ClassicyFileSystem("test-flush-async-mixed", seedTree());
+		cfs.mkDir("Macintosh HD:Fresh");
+
+		await expect(cfs.flushNowAsync()).resolves.toBe(false);
+		expect(delivered).toEqual(["async-mixed-ok"]);
+	});
+
+	it("resolves true when no adapters are registered", async () => {
+		const cfs = new ClassicyFileSystem("test-flush-async-none", seedTree());
+		cfs.mkDir("Macintosh HD:Fresh");
+
+		await expect(cfs.flushNowAsync()).resolves.toBe(true);
+		expect(persistedDrive("test-flush-async-none").Fresh).toBeDefined();
+	});
+
+	it("cancels the pending debounce so the snapshot is delivered once", async () => {
+		const snapshots: unknown[] = [];
+		registerClassicyFileSystemAdapter({
+			id: "async-once",
+			onSnapshot: async (snapshot) => {
+				snapshots.push(snapshot);
+			},
+		});
+		const cfs = new ClassicyFileSystem("test-flush-async-once", seedTree());
+		cfs.mkDir("Macintosh HD:Fresh");
+
+		await expect(cfs.flushNowAsync()).resolves.toBe(true);
+		expect(snapshots).toHaveLength(1);
+		vi.advanceTimersByTime(500);
+		expect(snapshots).toHaveLength(1);
+	});
+});
+
 describe("reconcileWithAdapters", () => {
 	const remoteTree = () => ({
 		_type: ClassicyFileSystemEntryFileType.Directory,
