@@ -1,5 +1,5 @@
 import "./ClassicyFileBrowserViewTable.scss";
-import { type FC as FunctionalComponent, useRef } from "react";
+import { type FC as FunctionalComponent, type RefObject, useRef } from "react";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import type {
 	FinderIconViewOptions,
@@ -9,6 +9,7 @@ import { listViewIconSize } from "@/SystemFolder/Finder/FinderViewOptions";
 import { ClassicyFileBrowserViewIcons } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewIcons";
 import { ClassicyFileBrowserViewTable } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewTable";
 import type { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
+import type { ClassicyTableSelectionApi } from "@/SystemFolder/SystemResources/Table/ClassicyTable";
 
 type ClassicyFileBrowserProps = {
 	fs: ClassicyFileSystem;
@@ -25,6 +26,10 @@ type ClassicyFileBrowserProps = {
 	/** The in-world "now" for relative dates, already converted to the
 	 *  virtual clock's local frame. Omitted means real time. */
 	now?: Date;
+	selectionApiRef?: RefObject<ClassicyTableSelectionApi | null>;
+	/** Controlled selection by row path. Omit for uncontrolled. */
+	selectedPaths?: string[];
+	onSelectionChange?: (paths: string[]) => void;
 };
 
 // Define stable default functions outside component to prevent re-creation
@@ -44,6 +49,9 @@ export const ClassicyFileBrowser: FunctionalComponent<
 	listViewOptions,
 	iconViewOptions,
 	now,
+	selectionApiRef,
+	selectedPaths,
+	onSelectionChange,
 }) => {
 	const holderRef = useRef<HTMLDivElement>(null);
 	const themeIconSize = useAppManager(
@@ -71,6 +79,9 @@ export const ClassicyFileBrowser: FunctionalComponent<
 					hideFilesCreatedAfter={hideFilesCreatedAfter}
 					listViewOptions={listViewOptions}
 					now={now}
+					selectionApiRef={selectionApiRef}
+					selectedPaths={selectedPaths}
+					onSelectionChange={onSelectionChange}
 				/>
 			) : (
 				<ClassicyFileBrowserViewIcons

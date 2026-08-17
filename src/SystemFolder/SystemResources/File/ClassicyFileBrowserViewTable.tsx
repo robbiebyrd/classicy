@@ -25,6 +25,7 @@ import {
 import {
 	ClassicyTable,
 	type ClassicyTableColumn,
+	type ClassicyTableSelectionApi,
 } from "@/SystemFolder/SystemResources/Table/ClassicyTable";
 import { ClassicyTriangle } from "@/SystemFolder/SystemResources/Triangle/ClassicyTriangle";
 
@@ -65,6 +66,10 @@ type ClassicyFileBrowserViewTableProps = {
 	/** The in-world "now" for relative dates, already converted to the
 	 *  virtual clock's local frame. Omitted means real time. */
 	now?: Date;
+	selectionApiRef?: RefObject<ClassicyTableSelectionApi | null>;
+	/** Controlled selection by row path. Omit for uncontrolled. */
+	selectedPaths?: string[];
+	onSelectionChange?: (paths: string[]) => void;
 };
 
 export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrowserViewTableProps> =
@@ -79,6 +84,9 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 			hideFilesCreatedAfter = null,
 			listViewOptions,
 			now,
+			selectionApiRef,
+			selectedPaths,
+			onSelectionChange,
 		}) => {
 			// Derive the effective options once, so an omitted prop reproduces
 			// today's rendering — three columns, sizes computed, no dates.
@@ -364,6 +372,10 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 							isSelected ? "classicyFileBrowserViewTableRowSelected" : null,
 						)
 					}
+					selectionMode={"multi"}
+					selectionApiRef={selectionApiRef}
+					selected={selectedPaths}
+					onSelectionChange={onSelectionChange}
 				/>
 			);
 		},

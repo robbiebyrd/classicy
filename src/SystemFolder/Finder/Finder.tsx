@@ -41,6 +41,7 @@ import type {
 	ClassicyFileSystemEntryMetadata,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import type { ClassicyTableSelectionApi } from "@/SystemFolder/SystemResources/Table/ClassicyTable";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
 const appIcon = ClassicyIcons.system.mac;
@@ -90,6 +91,10 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 	openPreferences,
 	viewType,
 }) => {
+	// One handle per open folder window: a single shared ref would make every
+	// window's Select All drive whichever table mounted last.
+	const selectionApiRef = useRef<ClassicyTableSelectionApi | null>(null);
+
 	const appMenu = useMemo(
 		() => [
 			{
@@ -120,7 +125,7 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 						// Icons-view selection is a separate slice; until it exists the
 						// command has nothing to act on there.
 						disabled: viewType !== "list",
-						onClickFunc: () => {},
+						onClickFunc: () => selectionApiRef.current?.selectAll(),
 					},
 					{ id: "spacer" },
 					{
@@ -198,6 +203,7 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 				dirOnClickFunc={openFolder}
 				fileOnClickFunc={openFile}
 				display={pathSettings[op]?._viewType || "list"}
+				selectionApiRef={selectionApiRef}
 			/>
 		</ClassicyWindow>
 	);
