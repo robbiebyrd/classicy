@@ -116,8 +116,8 @@ export const WebViewer: FunctionalComponent = () => {
 			id={appId}
 			name={appName}
 			icon={appIcon}
-			handlesOwnFiles={true}
 			showDesktopIcon={false}
+			showInApplicationsFolder={false}
 		>
 			{openUrls.map((entry, idx) => {
 				const windowId = `${appId}_url_${entry.url}`;
