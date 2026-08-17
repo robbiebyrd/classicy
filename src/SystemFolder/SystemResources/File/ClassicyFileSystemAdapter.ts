@@ -97,27 +97,37 @@ export function getClassicyFileSystemSnapshotDebounceMs(): number {
 /**
  * Run an adapter hook, isolating synchronous throws and async rejections so a
  * faulty adapter can never block local filesystem operation or other adapters.
+ *
+ * Resolves true when the hook completed (or the adapter doesn't implement it),
+ * false when it threw or rejected. Callers that must not outlive the hook —
+ * see ClassicyFileSystem.flushNowAsync — await this; the debounced and
+ * pagehide paths deliberately drop it on the floor and stay non-blocking.
  */
 export function invokeClassicyFileSystemAdapterHook(
 	adapter: ClassicyFileSystemAdapter,
 	hook: "onChange" | "onSnapshot",
 	payload: ClassicyFileSystemJournalEntry | ClassicyFileSystemSnapshot,
-): void {
+): Promise<boolean> {
 	const fn = adapter[hook] as
 		| ((payload: unknown) => void | Promise<void>)
 		| undefined;
-	if (!fn) return;
-	const logFailure = (error: unknown) =>
+	if (!fn) return Promise.resolve(true);
+	const logFailure = (error: unknown) => {
 		classicyLog(
 			"error",
 			"ClassicyFileSystem",
 			`adapter "${adapter.id}" failed in ${hook}`,
 			error,
 		);
+		return false;
+	};
 	try {
-		void Promise.resolve(fn.call(adapter, payload)).catch(logFailure);
+		return Promise.resolve(fn.call(adapter, payload)).then(
+			() => true,
+			logFailure,
+		);
 	} catch (error) {
-		logFailure(error);
+		return Promise.resolve(logFailure(error));
 	}
 }
 

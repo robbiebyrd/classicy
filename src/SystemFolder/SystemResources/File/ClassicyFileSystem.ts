@@ -195,7 +195,9 @@ export class ClassicyFileSystem {
 			...extra,
 		};
 		for (const adapter of getClassicyFileSystemAdapters()) {
-			invokeClassicyFileSystemAdapterHook(adapter, "onChange", entry);
+			// Journal delivery is fire-and-forget by design; the hook swallows its
+			// own failures, so there is never a rejection to handle here.
+			void invokeClassicyFileSystemAdapterHook(adapter, "onChange", entry);
 		}
 		this.scheduleFlush();
 	}
@@ -236,20 +238,48 @@ export class ClassicyFileSystem {
 	}
 
 	/**
-	 * Persist to localStorage and deliver onSnapshot immediately, cancelling any
-	 * pending debounce. Arrow property so pagehide can call it detached.
+	 * Cancel any pending debounce, persist to localStorage, and return the
+	 * snapshot to hand to adapters. The synchronous half shared by flushNow and
+	 * flushNowAsync, so localStorage is written identically either way.
 	 */
-	flushNow = () => {
+	private prepareFlush(): ClassicyFileSystemSnapshot {
 		if (this.flushTimer !== null) {
 			clearTimeout(this.flushTimer);
 			this.flushTimer = null;
 		}
 		unregisterClassicyFileSystemPendingFlush(this.flushNow);
 		this.persist();
-		const snapshot = this.buildSnapshot();
+		return this.buildSnapshot();
+	}
+
+	/**
+	 * Persist to localStorage and deliver onSnapshot immediately, cancelling any
+	 * pending debounce. Adapter delivery is fire-and-forget — a slow or broken
+	 * backend must never stall the filesystem. Arrow property so pagehide can
+	 * call it detached.
+	 */
+	flushNow = () => {
+		const snapshot = this.prepareFlush();
 		for (const adapter of getClassicyFileSystemAdapters()) {
-			invokeClassicyFileSystemAdapterHook(adapter, "onSnapshot", snapshot);
+			void invokeClassicyFileSystemAdapterHook(adapter, "onSnapshot", snapshot);
 		}
+	};
+
+	/**
+	 * flushNow, but resolving only once every adapter's onSnapshot has settled;
+	 * false if any of them failed. For the rare caller that is about to destroy
+	 * the page — Drive Setup's Initialize reloads the window, and a fire-and-
+	 * forget push would be aborted in flight, letting the next boot's reconcile
+	 * pull the pre-erase tree back. Everything else should keep using flushNow.
+	 */
+	flushNowAsync = async (): Promise<boolean> => {
+		const snapshot = this.prepareFlush();
+		const results = await Promise.all(
+			getClassicyFileSystemAdapters().map((adapter) =>
+				invokeClassicyFileSystemAdapterHook(adapter, "onSnapshot", snapshot),
+			),
+		);
+		return results.every(Boolean);
 	};
 
 	/** Deep-copied tree + sha256 hash + seq — the consistency envelope. */

@@ -90,6 +90,49 @@ describe("invokeClassicyFileSystemAdapterHook", () => {
 		).not.toThrow();
 	});
 
+	it("resolves true when the hook completes", async () => {
+		await expect(
+			invokeClassicyFileSystemAdapterHook(
+				{ id: "ok", onChange: () => {} },
+				"onChange",
+				entry,
+			),
+		).resolves.toBe(true);
+	});
+
+	it("resolves true when the adapter does not implement the hook", async () => {
+		await expect(
+			invokeClassicyFileSystemAdapterHook({ id: "none" }, "onChange", entry),
+		).resolves.toBe(true);
+	});
+
+	it("resolves false when the hook throws synchronously", async () => {
+		vi.spyOn(console, "error").mockImplementation(() => undefined);
+		await expect(
+			invokeClassicyFileSystemAdapterHook(
+				{
+					id: "thrower",
+					onChange: () => {
+						throw new Error("boom");
+					},
+				},
+				"onChange",
+				entry,
+			),
+		).resolves.toBe(false);
+	});
+
+	it("resolves false when the hook rejects", async () => {
+		vi.spyOn(console, "error").mockImplementation(() => undefined);
+		await expect(
+			invokeClassicyFileSystemAdapterHook(
+				{ id: "rejector", onChange: () => Promise.reject(new Error("boom")) },
+				"onChange",
+				entry,
+			),
+		).resolves.toBe(false);
+	});
+
 	it("catches synchronous throws and logs them", () => {
 		const errorSpy = vi
 			.spyOn(console, "error")
