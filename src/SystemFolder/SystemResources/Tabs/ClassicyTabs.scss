@@ -5,6 +5,11 @@
 // The original has ~3 px bezier curves at the top corners; straight lines are
 // indistinguishable at screen size.
 // Top-left x offset: 10.32 / 75.31 ≈ 13.70%   Top-right: 64.98 / 75.31 ≈ 86.30%
+//
+// The slant is proportional rather than a fixed pixel run, so it holds its
+// character across all three sizes: on a `small` tab it works out to roughly
+// the 5 px-over-14 px rise of the reference art, and it stays aligned with the
+// stretched border SVG below, which a fixed-px slant would not.
 $tab-shape: polygon(13.70% 0%, 86.30% 0%, 100% 100%, 0% 100%);
 
 // ── Tab border SVG ────────────────────────────────────────────────────────────
@@ -12,21 +17,61 @@ $tab-shape: polygon(13.70% 0%, 86.30% 0%, 100% 100%, 0% 100%);
 // 2 px centered stroke → 1 px visible inside after clip-path crops the outer half.
 // preserveAspectRatio='none' is required so the SVG stretches to exactly fill the
 // element — otherwise the browser letterboxes it and the stroke drifts off the clip edges.
+// vector-effect='non-scaling-stroke' is what keeps that stretch from also
+// stretching the stroke: without it the 2 px stroke is scaled by the viewBox
+// mapping, so on a `small` tab (16 px against a 23.44-unit box) the top edge
+// thins to ~0.7 px and vanishes into antialiasing. Non-scaling keeps it 2 px in
+// device space at every size, leaving a true 1 px line after the clip.
 // Path: bottom-left → top-left → top-right → bottom-right (open, no closing line).
-$_tab-border-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 75.31 23.44' preserveAspectRatio='none'%3E%3Cpath d='M0,23.44 L10.32,0 H64.98 L75.31,23.44' fill='none' stroke='black' stroke-width='2'/%3E%3C/svg%3E");
+$_tab-border-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 75.31 23.44' preserveAspectRatio='none'%3E%3Cpath d='M0,23.44 L10.32,0 H64.98 L75.31,23.44' fill='none' stroke='black' stroke-width='2' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
 
 .classicyTabContainer {
+  // Scroll-arrow triangle size. Declared on the container, not on the glyph
+  // itself, so the size modifiers below can override it by inheritance — a
+  // declaration on the glyph would always beat an inherited ancestor value.
+  --tab-scroll-glyph-size: calc(var(--window-control-size) / 3);
 }
 
 .classicyTabsHolder {
   border: var(--window-border-size) solid var(--color-black);
 }
 
+// The strip and its two scroll arrows.
+//
+// The -1px bottom overhang that merges the active tab into the panel's top
+// border lives here, on the row, and not on .classicyButtonsHolder — the
+// holder now sits inside an overflow container, and CSS cannot scroll one axis
+// while leaving the other visible, so an overhang set inside the scroller
+// would be clipped off and the tab would read as detached from its panel.
+.classicyTabButtonsRow {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  margin-bottom: calc(var(--window-border-size) * -1);
+  margin-left: calc(var(--window-control-size) * 1);
+}
+
+.classicyTabScroller {
+  // Establishes the offsetParent the arrow stepping measures tab offsets against.
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0; // without this a flex item refuses to shrink below its content
+  overflow-x: auto;
+  // The arrow tabs are the scroll affordance. A scrollbar under a strip this
+  // short would eat most of it; wheel and trackpad scrolling still work.
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 .classicyButtonsHolder {
   display: flex;
   flex-direction: row;
-  margin-bottom: calc(var(--window-border-size) * -1);
-  margin-left: calc(var(--window-control-size) * 1);
+  // Hold the tabs at their intrinsic widths so the strip overflows (and the
+  // arrows appear) instead of squeezing every tab narrower.
+  width: max-content;
   gap: calc(var(--window-padding-size) * 2);
 }
 
@@ -34,6 +79,7 @@ $_tab-border-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/s
 // All visual shaping lives here on the wrapper <div> instead.
 // Active fill is detected via :has() so the button element stays transparent.
 .classicyTabButtonWrapper {
+  flex: 0 0 auto;
   height: calc(var(--window-control-size) * 2);
   clip-path: $tab-shape;
   // SVG layer (top): 3-sided border tracing the tab outline via stroke.
@@ -84,6 +130,47 @@ $_tab-border-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/s
   // .classicyTabButtonWrapper:has(.classicyTabButtonActive) above.
 }
 
+// ── Scroll arrows ─────────────────────────────────────────────────────────────
+// Drawn as tabs themselves (they reuse .classicyTabButtonWrapper for the
+// trapezoid and fill) but they are never selectable, so they never pick up the
+// active fill and sit permanently in the inactive color.
+.classicyTabScrollButton {
+  min-width: calc(var(--window-control-size) * 3);
+  padding-inline: var(--window-padding-size);
+  cursor: pointer;
+
+  &:disabled {
+    cursor: default;
+  }
+}
+
+// A CSS triangle: two transparent block-axis borders squeezing one colored
+// inline-axis border to a point. The unset inline side has no border-style and
+// so contributes no width.
+.classicyTabScrollGlyph {
+  width: 0;
+  height: 0;
+  border-block: var(--tab-scroll-glyph-size) solid transparent;
+}
+
+.classicyTabScrollButtonLeft .classicyTabScrollGlyph {
+  border-inline-end: var(--tab-scroll-glyph-size) solid var(--color-system-07);
+}
+
+.classicyTabScrollButtonRight .classicyTabScrollGlyph {
+  border-inline-start: var(--tab-scroll-glyph-size) solid var(--color-system-07);
+}
+
+// Only the colored side is recolored when disabled — a blanket `border-color`
+// would paint the two transparent block borders and square the triangle off.
+.classicyTabScrollButtonLeft:disabled .classicyTabScrollGlyph {
+  border-inline-end-color: var(--color-system-05);
+}
+
+.classicyTabScrollButtonRight:disabled .classicyTabScrollGlyph {
+  border-inline-start-color: var(--color-system-05);
+}
+
 .classicyTabHiddenContent {
   display: none;
   padding: var(--window-padding-size);
@@ -93,4 +180,75 @@ $_tab-border-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/s
   display: block;
   padding: var(--window-padding-size);
   background-color: var(--color-system-02);
+}
+
+// ── Sizes ─────────────────────────────────────────────────────────────────────
+// `medium` is the unmodified base above and carries no class. Both modifiers
+// scale the box and the type together on the same ~1.7:1 ratio the base uses
+// (24 px box / 14 px type on the default theme), so the tabs stay in
+// proportion rather than just gaining or losing padding.
+
+// Small: 16 px box and ~9 px type against the default theme, matching the
+// reference art. `/1.5` on the type is the same divisor ClassicyButtonToolbar
+// uses for its small size, so small tabs line up with small toolbars.
+.classicyTabsSizeSmall {
+  // Glyph size is deliberately *not* scaled down with the box: the reference
+  // art keeps the arrow chunky inside a 16 px tab, and a proportionally
+  // shrunken triangle reads as a smudge rather than a direction.
+
+  .classicyTabButtonsRow {
+    margin-left: calc(var(--window-control-size) / 2);
+  }
+
+  // The reference art butts adjacent tabs together; where two trapezoids meet
+  // with no gap their slanted edges form the notch between them.
+  .classicyButtonsHolder {
+    gap: 0;
+  }
+
+  .classicyTabButtonWrapper,
+  .classicyTabButton {
+    height: calc(var(--window-control-size) * 4 / 3);
+  }
+
+  .classicyTabButton {
+    font-size: calc(var(--ui-font-size) / 1.5);
+    min-width: calc(var(--window-control-size) * 4);
+    padding: calc(var(--window-padding-size) / 3) calc(var(--window-padding-size) * 2) calc(var(--window-padding-size) / 1.5) calc(var(--window-padding-size) * 2);
+  }
+
+  .classicyTabButtonIcon {
+    width: calc(var(--window-control-size) * 0.75);
+    height: calc(var(--window-control-size) * 0.75);
+  }
+
+  .classicyTabScrollButton {
+    min-width: calc(var(--window-control-size) * 2);
+    padding-inline: calc(var(--window-padding-size) / 2);
+  }
+}
+
+// Large: type up half again, box scaled to match.
+.classicyTabsSizeLarge {
+  --tab-scroll-glyph-size: calc(var(--window-control-size) / 2.25);
+
+  .classicyTabButtonWrapper,
+  .classicyTabButton {
+    height: calc(var(--window-control-size) * 3);
+  }
+
+  .classicyTabButton {
+    font-size: calc(var(--ui-font-size) * 1.5);
+    min-width: calc(var(--window-control-size) * 9);
+    padding: calc(var(--window-padding-size) * 0.75) calc(var(--window-padding-size) * 4) calc(var(--window-padding-size) * 1.5) calc(var(--window-padding-size) * 4);
+  }
+
+  .classicyTabButtonIcon {
+    width: calc(var(--window-control-size) * 1.5);
+    height: calc(var(--window-control-size) * 1.5);
+  }
+
+  .classicyTabScrollButton {
+    min-width: calc(var(--window-control-size) * 4);
+  }
 }

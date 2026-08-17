@@ -43,6 +43,44 @@ const folderIcon =
 const gearIcon =
 	"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Ccircle cx='8' cy='8' r='4' fill='none' stroke='%23000' stroke-width='2'/%3E%3C/svg%3E";
 
+const sizeTabs = [
+	{ title: "General", children: <p>General settings.</p> },
+	{ title: "Sharing", children: <p>Sharing settings.</p> },
+	{ title: "Memory", children: <p>Memory settings.</p> },
+];
+
+export const Small: Story = {
+	args: { size: "small", tabs: sizeTabs },
+};
+
+export const Large: Story = {
+	args: { size: "large", tabs: sizeTabs },
+};
+
+// Narrow enough that the strip cannot fit every tab, so the scroll arrows
+// appear at both ends. Arrows show at any size, not only `small`.
+export const Overflowing: Story = {
+	args: {
+		size: "small",
+		tabs: [
+			"Design",
+			"Prototype",
+			"Inspect",
+			"Layout",
+			"Typography",
+			"Effects",
+			"Export",
+		].map((title) => ({ title, children: <p>{title} panel.</p> })),
+	},
+	decorators: [
+		(Story) => (
+			<div style={{ width: 320 }}>
+				<Story />
+			</div>
+		),
+	],
+};
+
 export const WithIcons: Story = {
 	args: {
 		tabs: [
