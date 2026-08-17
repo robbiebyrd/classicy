@@ -116,6 +116,7 @@ export const WebViewer: FunctionalComponent = () => {
 			id={appId}
 			name={appName}
 			icon={appIcon}
+			handlesOwnFiles={true}
 			showDesktopIcon={false}
 			showInApplicationsFolder={false}
 		>
