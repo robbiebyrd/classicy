@@ -131,19 +131,22 @@ describe("FinderPreferences", () => {
 		});
 	});
 
+	// The sort pop-up carries no `label` of its own (the adjacent radio item
+	// already says "Keep arranged:"; a second copy would collide as an
+	// accessible name). Its aria-label falls back to the current selection's
+	// label instead — "by Name" in both cases below, since neither test
+	// changes `keepArrangedBy` from its default.
 	it("disables the sort pop-up unless Keep arranged is chosen", () => {
 		withFinderData({});
 		render(<FinderPreferences />);
-		expect(
-			screen.getByRole("combobox", { name: "Keep arranged:" }),
-		).toBeDisabled();
+		expect(screen.getByRole("combobox", { name: "by Name" })).toBeDisabled();
 	});
 
 	it("enables the sort pop-up when the arrangement is sorted", () => {
 		withFinderData({ standardViews: { icons: { arrangement: "sorted" } } });
 		render(<FinderPreferences />);
 		expect(
-			screen.getByRole("combobox", { name: "Keep arranged:" }),
+			screen.getByRole("combobox", { name: "by Name" }),
 		).not.toBeDisabled();
 	});
 

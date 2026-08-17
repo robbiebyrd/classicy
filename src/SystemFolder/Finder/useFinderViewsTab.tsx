@@ -97,10 +97,16 @@ export const useFinderViewsTab = (
 									},
 								]}
 							/>
+							{/* No `label` here on purpose: the adjacent radio item already
+							    carries the text "Keep arranged:" — a `label` prop would
+							    render it a second time immediately to the right, both
+							    visually (Mac OS 8's original dialog shows only the value,
+							    e.g. "by Name", beside the radio) and for assistive tech
+							    (two controls both announced as "Keep arranged:"). With no
+							    `label`, ClassicyPopUpMenu's aria-label falls back to the
+							    current selection's own label. */}
 							<ClassicyPopUpMenu
 								id={"finder_prefs_icon_sort"}
-								label={"Keep arranged:"}
-								labelPosition={"left"}
 								disabled={icons.arrangement !== "sorted"}
 								selected={icons.keepArrangedBy}
 								options={SORT_OPTIONS}
