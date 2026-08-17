@@ -26,7 +26,26 @@ interface ClassicyIconProps {
 	holder?: RefObject<HTMLElement | null>;
 	onClickFunc?: () => void;
 	invisible?: boolean;
+	/** Explicit icon size in px. Falls back to the theme's desktop icon size. */
+	size?: number;
+	/** Grid pitch. When set, a dropped icon rounds to the nearest cell. */
+	snapTo?: [number, number];
+	/** Disables dragging — used by "Keep arranged", where position is derived. */
+	positionLocked?: boolean;
 }
+
+/**
+ * Rounds a dropped icon's position to the nearest grid cell. Exported so the
+ * rounding can be unit-tested directly — jsdom has no layout engine, so a
+ * simulated drag would only ever measure zeros.
+ */
+export const snapToGrid = (
+	position: [number, number],
+	pitch: [number, number],
+): [number, number] => [
+	Math.round(position[0] / pitch[0]) * pitch[0],
+	Math.round(position[1] / pitch[1]) * pitch[1],
+];
 
 export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	appId,
@@ -38,6 +57,9 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	holder,
 	onClickFunc,
 	invisible = false,
+	size,
+	snapTo,
+	positionLocked = false,
 }) => {
 	const [position, setPosition] = useState<[number, number]>(initialPosition);
 	const [dragging, setDragging] = useState<boolean>(false);
@@ -72,10 +94,12 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	};
 
 	const stopChangeIcon = () => {
+		if (snapTo) setPosition((p) => snapToGrid(p, snapTo));
 		setDragging(false);
 	};
 
 	const startDrag = () => {
+		if (positionLocked) return;
 		setDragging(true);
 	};
 
@@ -109,7 +133,11 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 			style={{ "--classicy-icon-mask": `url(${icon})` } as CSSProperties}
 		>
 			<div className={"classicyIconMask"}>
-				<img src={icon} alt={name} />
+				<img
+					src={icon}
+					alt={name}
+					{...(size === undefined ? {} : { width: size, height: size })}
+				/>
 			</div>
 		</div>
 	);

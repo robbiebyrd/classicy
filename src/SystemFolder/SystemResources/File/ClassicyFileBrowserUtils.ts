@@ -52,8 +52,10 @@ export const cleanupIcon = (
 	iconIndex: number,
 	_iconTotal: number,
 	containerMeasure: [number, number],
+	iconSizeOverride?: number,
 ): [number, number] => {
-	const [iconSize, iconPadding] = getIconSize(theme);
+	const [themeIconSize, iconPadding] = getIconSize(theme);
+	const iconSize = iconSizeOverride ?? themeIconSize;
 	const grid = createGrid(iconSize, iconPadding, containerMeasure);
 	const [startX, startY] = getGridPosition(iconIndex, grid);
 

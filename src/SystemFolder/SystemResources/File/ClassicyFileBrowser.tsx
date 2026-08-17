@@ -1,7 +1,10 @@
 import "./ClassicyFileBrowserViewTable.scss";
 import { type FC as FunctionalComponent, useRef } from "react";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
-import type { FinderListViewOptions } from "@/SystemFolder/Finder/FinderContext";
+import type {
+	FinderIconViewOptions,
+	FinderListViewOptions,
+} from "@/SystemFolder/Finder/FinderContext";
 import { listViewIconSize } from "@/SystemFolder/Finder/FinderViewOptions";
 import { ClassicyFileBrowserViewIcons } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewIcons";
 import { ClassicyFileBrowserViewTable } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewTable";
@@ -18,6 +21,7 @@ type ClassicyFileBrowserProps = {
 	// listing. Pass the current Classicy date/time to hide "future" files.
 	hideFilesCreatedAfter?: Date | string | number | null;
 	listViewOptions?: FinderListViewOptions;
+	iconViewOptions?: FinderIconViewOptions;
 	/** The in-world "now" for relative dates, already converted to the
 	 *  virtual clock's local frame. Omitted means real time. */
 	now?: Date;
@@ -38,6 +42,7 @@ export const ClassicyFileBrowser: FunctionalComponent<
 	fileOnClickFunc,
 	hideFilesCreatedAfter = null,
 	listViewOptions,
+	iconViewOptions,
 	now,
 }) => {
 	const holderRef = useRef<HTMLDivElement>(null);
@@ -76,6 +81,7 @@ export const ClassicyFileBrowser: FunctionalComponent<
 					appId={appId}
 					holderRef={holderRef}
 					hideFilesCreatedAfter={hideFilesCreatedAfter}
+					iconViewOptions={iconViewOptions}
 				/>
 			)}
 		</div>

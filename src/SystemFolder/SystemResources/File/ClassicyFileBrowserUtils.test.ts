@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
+import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
 	capitalizeFirst,
+	cleanupIcon,
 	createGrid,
 	fileTypeDisplayName,
 	getGridPosition,
@@ -68,5 +70,23 @@ describe("getGridPosition", () => {
 
 	it("maps index 15 to the sixth column in the second row", () => {
 		expect(getGridPosition(15, [10, 6])).toEqual([5, 1]);
+	});
+});
+
+describe("cleanupIcon size override", () => {
+	const theme = { desktop: { iconSize: 48 } } as ClassicyTheme;
+
+	it("uses the theme size when no override is given", () => {
+		// Padding is iconSize / 4 = 12; index 0 sits at [12, 12].
+		expect(cleanupIcon(theme, 0, 1, [500, 500])).toEqual([12, 12]);
+	});
+
+	it("spaces columns by the override, not the theme size", () => {
+		// A 24px override halves the horizontal step: 12 + 24 * 2 * 1 = 60.
+		expect(cleanupIcon(theme, 1, 2, [500, 500], 24)).toEqual([60, 12]);
+	});
+
+	it("keeps padding derived from the theme so the origin is unchanged", () => {
+		expect(cleanupIcon(theme, 0, 1, [500, 500], 24)).toEqual([12, 12]);
 	});
 });
