@@ -1,8 +1,10 @@
+import { createRef } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@/__tests__/test-utils";
+import { act, fireEvent, render, screen } from "@/__tests__/test-utils";
 import {
 	ClassicyTable,
 	type ClassicyTableColumn,
+	type ClassicyTableSelectionApi,
 } from "@/SystemFolder/SystemResources/Table/ClassicyTable";
 
 vi.mock("@/SystemFolder/SystemResources/Table/ClassicyTable.scss", () => ({}));
@@ -476,5 +478,114 @@ describe("ClassicyTable — Command+Arrow expansion shortcuts", () => {
 		fireEvent.click(screen.getByText("Documents"));
 		fireEvent.keyDown(box, { key: "ArrowRight" });
 		expect(screen.queryByText("q1.pdf")).toBeNull();
+	});
+});
+
+describe("ClassicyTable — Select All", () => {
+	type TreeNode = { id: string; name: string; subRows?: TreeNode[] };
+	const treeRows: TreeNode[] = [
+		{
+			id: "parent",
+			name: "Parent",
+			subRows: [{ id: "child", name: "Child" }],
+		},
+	];
+	const treeColumns: ClassicyTableColumn<TreeNode>[] = [
+		{ id: "name", title: "Name", accessor: (n) => n.name },
+	];
+
+	it("selects every visible row through the selection API", () => {
+		const onSelectionChange = vi.fn();
+		const apiRef = createRef<ClassicyTableSelectionApi>();
+		render(
+			<ClassicyTable
+				columns={columns}
+				rows={albums}
+				getRowId={(a) => a.id}
+				selectionMode={"multi"}
+				onSelectionChange={onSelectionChange}
+				selectionApiRef={apiRef}
+			/>,
+		);
+		act(() => apiRef.current?.selectAll());
+		expect(onSelectionChange).toHaveBeenCalledWith(albums.map((a) => a.id));
+	});
+
+	it("includes rows disclosed under an expanded parent", () => {
+		const onSelectionChange = vi.fn();
+		const apiRef = createRef<ClassicyTableSelectionApi>();
+		render(
+			<ClassicyTable
+				columns={treeColumns}
+				rows={treeRows}
+				getRowId={(n) => n.id}
+				getSubRows={(n) => n.subRows}
+				expanded={["parent"]}
+				selectionMode={"multi"}
+				onSelectionChange={onSelectionChange}
+				selectionApiRef={apiRef}
+			/>,
+		);
+		act(() => apiRef.current?.selectAll());
+		const ids = onSelectionChange.mock.calls[0][0];
+		expect(ids).toContain("parent");
+		expect(ids).toContain("child");
+	});
+
+	it("selects all on Command-A in multi mode", () => {
+		const onSelectionChange = vi.fn();
+		const { container } = render(
+			<ClassicyTable
+				columns={columns}
+				rows={albums}
+				getRowId={(a) => a.id}
+				selectionMode={"multi"}
+				onSelectionChange={onSelectionChange}
+			/>,
+		);
+		const grid = container.querySelector("[tabindex='0']") as HTMLElement;
+		grid.focus();
+		fireEvent.keyDown(grid, { key: "a", metaKey: true });
+		expect(onSelectionChange).toHaveBeenCalledWith(albums.map((a) => a.id));
+	});
+
+	it("ignores Command-A in single-selection mode", () => {
+		const onSelectionChange = vi.fn();
+		const { container } = render(
+			<ClassicyTable
+				columns={columns}
+				rows={albums}
+				getRowId={(a) => a.id}
+				selectionMode={"single"}
+				onSelectionChange={onSelectionChange}
+			/>,
+		);
+		const grid = container.querySelector("[tabindex='0']") as HTMLElement;
+		fireEvent.keyDown(grid, { key: "a", metaKey: true });
+		expect(onSelectionChange).not.toHaveBeenCalled();
+	});
+
+	// Ruling 5: the ⌘A switch case must `break`, not `return`, on a bare "a"
+	// so it falls through into the type-select logic below the switch. This
+	// proves that fallthrough actually reaches it.
+	it("still type-selects on a bare 'a' keypress after the Select-All switch case", () => {
+		const onSelectionChange = vi.fn();
+		const localAlbums = [
+			{ id: "abbey", title: "Abbey Road", year: 1969 },
+			{ id: "rubber", title: "Rubber Soul", year: 1965 },
+		];
+		const { container } = render(
+			<ClassicyTable
+				columns={columns}
+				rows={localAlbums}
+				getRowId={(a) => a.id}
+				onSelectionChange={onSelectionChange}
+			/>,
+		);
+		const box = container.querySelector(
+			".classicyTableContainer",
+		) as HTMLElement;
+		fireEvent.keyDown(box, { key: "a" });
+		expect(onSelectionChange).toHaveBeenLastCalledWith(["abbey"]);
 	});
 });

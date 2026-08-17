@@ -60,7 +60,10 @@ export * from "./SystemFolder/Extensions/ScreenSaver/savers/Warp/ClassicyScreenS
 export * from "./SystemFolder/Finder/Finder";
 export * from "./SystemFolder/Finder/FinderAboutThisComputer";
 export * from "./SystemFolder/Finder/FinderContext";
+export * from "./SystemFolder/Finder/FinderPreferences";
+export * from "./SystemFolder/Finder/FinderViewOptions";
 export * from "./SystemFolder/Finder/useFinderFolderSize";
+export * from "./SystemFolder/Finder/useFinderViewsTab";
 export * from "./SystemFolder/HyperCard/HyperCard";
 export * from "./SystemFolder/HyperCard/HyperCardCard";
 export * from "./SystemFolder/HyperCard/HyperCardContext";

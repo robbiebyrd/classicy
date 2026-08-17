@@ -26,7 +26,34 @@ interface ClassicyIconProps {
 	holder?: RefObject<HTMLElement | null>;
 	onClickFunc?: () => void;
 	invisible?: boolean;
+	/** Explicit icon size in px. Falls back to the theme's desktop icon size. */
+	size?: number;
+	/** Grid pitch. When set, a *dragged* icon rounds to the nearest cell. */
+	snapTo?: [number, number];
+	/**
+	 * Top-left of the lattice `snapTo` repeats over. Defaults to the origin, but
+	 * the file browser's layout starts one padding in, so a snap that ignored it
+	 * would round onto cells the layout never uses.
+	 */
+	snapOrigin?: [number, number];
+	/** Disables dragging — used by "Keep arranged", where position is derived. */
+	positionLocked?: boolean;
 }
+
+/**
+ * Rounds a dropped icon's position to the nearest cell of the lattice with the
+ * given `pitch` and `origin`. Exported so the rounding can be unit-tested
+ * directly — jsdom has no layout engine, so a simulated drag would only ever
+ * measure zeros.
+ */
+export const snapToGrid = (
+	position: [number, number],
+	pitch: [number, number],
+	origin: [number, number] = [0, 0],
+): [number, number] => [
+	origin[0] + Math.round((position[0] - origin[0]) / pitch[0]) * pitch[0],
+	origin[1] + Math.round((position[1] - origin[1]) / pitch[1]) * pitch[1],
+];
 
 export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	appId,
@@ -38,10 +65,19 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	holder,
 	onClickFunc,
 	invisible = false,
+	size,
+	snapTo,
+	snapOrigin,
+	positionLocked = false,
 }) => {
 	const [position, setPosition] = useState<[number, number]>(initialPosition);
 	const [dragging, setDragging] = useState<boolean>(false);
 	const [active, setActive] = useState<boolean>(false);
+
+	// Whether the pointer actually moved the icon between mousedown and mouseup.
+	// A ref, not state: it must be readable inside the same mouseup that clears
+	// it, and it never affects what is rendered.
+	const movedWhileDragging = useRef<boolean>(false);
 
 	const iconRef = useRef<HTMLDivElement>(null);
 
@@ -72,15 +108,24 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	};
 
 	const stopChangeIcon = () => {
+		// Gated on a real drag: mouseup also ends a bare click, and Mac OS 8 never
+		// moved an icon you only clicked to select it.
+		if (snapTo && movedWhileDragging.current) {
+			setPosition((p) => snapToGrid(p, snapTo, snapOrigin));
+		}
+		movedWhileDragging.current = false;
 		setDragging(false);
 	};
 
 	const startDrag = () => {
+		if (positionLocked) return;
+		movedWhileDragging.current = false;
 		setDragging(true);
 	};
 
 	const changeIcon = (e: MouseEvent<HTMLDivElement>) => {
 		if (holder?.current && dragging && iconRef.current) {
+			movedWhileDragging.current = true;
 			setFocus(true);
 			setPosition([
 				e.clientX -
@@ -128,10 +173,22 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 				active ? "classicyIconActive" : "",
 				labelPositionClass(labelPosition),
 			)}
-			style={{
-				left: `${position[0]}px`,
-				top: `${position[1]}px`,
-			}}
+			style={
+				{
+					left: `${position[0]}px`,
+					top: `${position[1]}px`,
+					// Every rule in ClassicyIcon.scss that sizes this icon — the
+					// container itself, the mask, the mask outer, and the <img> —
+					// derives from --desktop-icon-size via var()/calc(), and this
+					// element is their common ancestor (custom properties cascade
+					// to descendants, not upward), so overriding it here scales
+					// all of them together and keeps cleanupIcon's `iconSize * 2`
+					// spacing math in sync with what's actually on screen. Omitted
+					// when `size` is undefined so the theme's value keeps cascading
+					// exactly as it did before this prop existed.
+					...(size === undefined ? {} : { "--desktop-icon-size": `${size}px` }),
+				} as CSSProperties
+			}
 			onClick={toggleFocus}
 			onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
 				if (e.key === "Enter" || e.key === " ") {

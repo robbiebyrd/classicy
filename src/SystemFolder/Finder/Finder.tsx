@@ -5,7 +5,6 @@ import {
 	useEffect,
 	useMemo,
 	useRef,
-	useState,
 } from "react";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import type { ActionMessage } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
@@ -13,6 +12,7 @@ import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { toLocalDate } from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeManagerUtils";
 import {
 	buildDriveContextMenu,
 	isDriveSyncConnected,
@@ -20,8 +20,12 @@ import {
 import { FinderAboutThisComputer } from "@/SystemFolder/Finder/FinderAboutThisComputer";
 import {
 	type FinderData,
+	type FinderIconViewOptions,
+	type FinderListViewOptions,
 	isFinderData,
+	resolveStandardViews,
 } from "@/SystemFolder/Finder/FinderContext";
+import { FinderPreferences } from "@/SystemFolder/Finder/FinderPreferences";
 import { useFinderFolderSize } from "@/SystemFolder/Finder/useFinderFolderSize";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import {
@@ -40,13 +44,10 @@ import type {
 	ClassicyFileSystemEntryMetadata,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import type { ClassicyTableSelectionApi } from "@/SystemFolder/SystemResources/Table/ClassicyTable";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
 const appIcon = ClassicyIcons.system.mac;
-
-type PathSettingsProps = {
-	_viewType: "list" | "icons";
-};
 
 type FinderWindowProps = {
 	appId: string;
@@ -56,15 +57,19 @@ type FinderWindowProps = {
 	closeFolder: (path: string) => void;
 	closeAllFolders: () => void;
 	closeWindow: (windowId: string, appCleanupAction: ActionMessage) => void;
-	handlePathSettingsChange: (path: string, settings: PathSettingsProps) => void;
+	setFolderView: (path: string, viewType: "icons" | "list") => void;
 	openFolder: (path: string) => void;
 	openFile: (path: string) => void;
-	pathSettings: Record<string, PathSettingsProps>;
 	getHeaderString: (dir: ClassicyFileSystemEntryMetadata) => string;
 	fs: ClassicyFileSystem;
 	disableBalloonHelp: boolean;
 	toggleBalloonHelp: () => void;
 	aboutMenuItem: ClassicyMenuItem;
+	openPreferences: () => void;
+	viewType: "icons" | "list";
+	iconViewOptions: FinderIconViewOptions;
+	listViewOptions: FinderListViewOptions;
+	now: Date;
 };
 
 const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
@@ -75,16 +80,24 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 	closeFolder,
 	closeAllFolders,
 	closeWindow,
-	handlePathSettingsChange,
+	setFolderView,
 	openFolder,
 	openFile,
-	pathSettings,
 	getHeaderString,
 	fs,
 	disableBalloonHelp,
 	toggleBalloonHelp,
 	aboutMenuItem,
+	openPreferences,
+	viewType,
+	iconViewOptions,
+	listViewOptions,
+	now,
 }) => {
+	// One handle per open folder window: a single shared ref would make every
+	// window's Select All drive whichever table mounted last.
+	const selectionApiRef = useRef<ClassicyTableSelectionApi | null>(null);
+
 	const appMenu = useMemo(
 		() => [
 			{
@@ -100,6 +113,31 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 					),
 				],
 			},
+			// Built inline rather than from useClassicyEditMenu: that hook's Select
+			// All calls classicyEditCommands.selectAll, which acts on the focused
+			// text field — correct for SimpleText, wrong for a file browser. Do
+			// not consolidate the two.
+			{
+				id: `${appId}_${op}_edit`,
+				title: "Edit",
+				menuChildren: [
+					{
+						id: `${appId}_${op}_edit_select_all`,
+						title: "Select All",
+						keyboardShortcut: "⌘A",
+						// Icons-view selection is a separate slice; until it exists the
+						// command has nothing to act on there.
+						disabled: viewType !== "list",
+						onClickFunc: () => selectionApiRef.current?.selectAll(),
+					},
+					{ id: "spacer" },
+					{
+						id: `${appId}_${op}_edit_preferences`,
+						title: "Preferences…",
+						onClickFunc: openPreferences,
+					},
+				],
+			},
 			{
 				id: `${appId}_view`,
 				title: "View",
@@ -107,14 +145,12 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 					{
 						id: `${appId}_${op}_view_as_icons`,
 						title: "View as Icons",
-						onClickFunc: () =>
-							handlePathSettingsChange(op, { _viewType: "icons" }),
+						onClickFunc: () => setFolderView(op, "icons"),
 					},
 					{
 						id: `${appId}_${op}_view_as_list`,
 						title: "View as List",
-						onClickFunc: () =>
-							handlePathSettingsChange(op, { _viewType: "list" }),
+						onClickFunc: () => setFolderView(op, "list"),
 					},
 				],
 			},
@@ -138,10 +174,12 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 			op,
 			closeWindow,
 			closeAllFolders,
-			handlePathSettingsChange,
+			setFolderView,
 			disableBalloonHelp,
 			toggleBalloonHelp,
 			aboutMenuItem,
+			openPreferences,
+			viewType,
 		],
 	);
 
@@ -165,7 +203,11 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 				path={op}
 				dirOnClickFunc={openFolder}
 				fileOnClickFunc={openFile}
-				display={pathSettings[op]?._viewType || "list"}
+				display={viewType}
+				iconViewOptions={iconViewOptions}
+				listViewOptions={listViewOptions}
+				now={now}
+				selectionApiRef={selectionApiRef}
 			/>
 		</ClassicyWindow>
 	);
@@ -218,9 +260,18 @@ export const Finder = () => {
 		});
 	}, [desktopEventDispatch, disableBalloonHelp]);
 
-	const [pathSettings, setPathSettings] = useState<
-		Record<string, PathSettingsProps>
-	>({});
+	const dateAndTime = useAppManager((s) => s.System.Manager.DateAndTime);
+	// Memoized on the primitive fields, not the DateAndTime object's identity —
+	// a fresh Date or a new object every render would invalidate the memos the
+	// icon/list views depend on for `now`.
+	const now = useMemo(
+		() =>
+			toLocalDate(
+				dateAndTime.dateTime,
+				parseInt(dateAndTime.timeZoneOffset, 10),
+			),
+		[dateAndTime.dateTime, dateAndTime.timeZoneOffset],
+	);
 
 	const fs = useClassicyFileSystem();
 	const closeWindow = useClassicyWindowClose(appId);
@@ -253,14 +304,15 @@ export const Finder = () => {
 		});
 	}, [desktopEventDispatch, appState.data]);
 
-	const handlePathSettingsChange = useCallback(
-		(path: string, settings: PathSettingsProps) => {
-			setPathSettings((prevPathSettings) => ({
-				...prevPathSettings,
-				[path]: settings,
-			}));
+	const setFolderView = useCallback(
+		(path: string, viewType: "icons" | "list") => {
+			desktopEventDispatch({
+				type: "ClassicyAppFinderSetFolderView",
+				path,
+				viewType,
+			});
 		},
-		[],
+		[desktopEventDispatch],
 	);
 
 	const openFolder = useCallback(
@@ -321,6 +373,10 @@ export const Finder = () => {
 		});
 	}, [closeWindow, finderData.openPaths]);
 
+	const openPreferences = useCallback(() => {
+		desktopEventDispatch({ type: "ClassicyAppFinderPreferencesOpen" });
+	}, [desktopEventDispatch]);
+
 	useEffect(() => {
 		const drives = fs.filterByType("", "drive");
 		const addedDriveNames: string[] = [];
@@ -377,6 +433,11 @@ export const Finder = () => {
 		[fs],
 	);
 
+	const standardViews = useMemo(
+		() => resolveStandardViews(finderData),
+		[finderData],
+	);
+
 	return (
 		<ClassicyApp
 			id={appId}
@@ -400,15 +461,24 @@ export const Finder = () => {
 							closeFolder={closeFolder}
 							closeAllFolders={closeAllFolders}
 							closeWindow={closeWindow}
-							handlePathSettingsChange={handlePathSettingsChange}
+							setFolderView={setFolderView}
 							openFolder={openFolder}
 							openFile={openFile}
-							pathSettings={pathSettings}
 							getHeaderString={getHeaderString}
 							fs={fs}
 							disableBalloonHelp={disableBalloonHelp}
 							toggleBalloonHelp={toggleBalloonHelp}
 							aboutMenuItem={aboutMenuItem}
+							openPreferences={openPreferences}
+							// A path absent from folderViews follows the standard views'
+							// appearance but still opens in list — the standard-view
+							// options configure how each view looks, not which view a
+							// new window opens in. A default-view-type preference is an
+							// explicit non-goal of this design.
+							viewType={finderData.folderViews?.[p] ?? "list"}
+							iconViewOptions={standardViews.icons}
+							listViewOptions={standardViews.list}
+							now={now}
 						/>
 					))
 				: null}
@@ -416,6 +486,7 @@ export const Finder = () => {
 			{appState.data?.showAboutThisComputer ? (
 				<FinderAboutThisComputer />
 			) : null}
+			{finderData.showPreferences ? <FinderPreferences /> : null}
 		</ClassicyApp>
 	);
 };

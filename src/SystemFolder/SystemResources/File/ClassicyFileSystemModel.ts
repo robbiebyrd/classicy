@@ -45,6 +45,9 @@ export type ClassicyFileSystemEntryMetadata = {
 	_createdOn?: Date;
 	_modifiedOn?: Date;
 	_versions?: ClassicyFileSystemEntry[];
+	/** Display string for the Version column. `_versions` holds entry history,
+	 *  not a version number, so the column needs its own field. */
+	_version?: string;
 
 	// Entry Settings
 	_readOnly?: boolean; // The file cannot be modified. It's name can be changed.

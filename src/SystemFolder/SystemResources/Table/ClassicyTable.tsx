@@ -13,7 +13,9 @@ import {
 	type KeyboardEvent,
 	type ReactElement,
 	type ReactNode,
+	type RefObject,
 	useCallback,
+	useEffect,
 	useMemo,
 	useRef,
 	useState,
@@ -52,6 +54,9 @@ export type ClassicyTableColumn<T> = {
 
 export type ClassicyTableSelectionMode = "none" | "single" | "multi";
 
+/** Imperative operations a menu command needs, e.g. Edit → Select All. */
+export type ClassicyTableSelectionApi = { selectAll: () => void };
+
 type ClassicyTableProps<T> = {
 	columns: ClassicyTableColumn<T>[];
 	rows: T[];
@@ -80,6 +85,10 @@ type ClassicyTableProps<T> = {
 	/** Controlled expansion, by row id. Omit for uncontrolled. */
 	expanded?: string[];
 	onToggleRow?: (id: string, open: boolean) => void;
+	/** Imperative hooks a menu command needs. Prop-shaped rather than a
+	 *  forwardRef because this component is generic and forwardRef would
+	 *  erase the type parameter. */
+	selectionApiRef?: RefObject<ClassicyTableSelectionApi | null>;
 };
 
 type SortingState = { id: string; desc: boolean }[];
@@ -118,6 +127,7 @@ export function ClassicyTable<T>({
 	rowCanExpand,
 	expanded,
 	onToggleRow,
+	selectionApiRef,
 }: ClassicyTableProps<T>): ReactElement {
 	const [sorting, setSorting] = useState<SortingState>(
 		defaultSort ? [{ id: defaultSort.columnId, desc: !!defaultSort.desc }] : [],
@@ -192,10 +202,31 @@ export function ClassicyTable<T>({
 		columnResizeMode: "onChange",
 	});
 
-	const commit = (ids: string[]) => {
-		setInternalSelected(ids);
-		onSelectionChange?.(ids);
-	};
+	// Wrapped in useCallback (rather than left as a plain function) so
+	// `selectAll` below gets a stable dependency — otherwise the effect that
+	// assigns `selectionApiRef` would re-run on every render.
+	const commit = useCallback(
+		(ids: string[]) => {
+			setInternalSelected(ids);
+			onSelectionChange?.(ids);
+		},
+		[onSelectionChange],
+	);
+
+	const selectAll = useCallback(() => {
+		if (selectionMode !== "multi") return;
+		commit(table.getRowModel().rows.map((r) => r.id));
+	}, [selectionMode, commit, table]);
+
+	// Assigned in an effect rather than during render so a parent that reads
+	// the handle in its own effect always sees the current closure.
+	useEffect(() => {
+		if (!selectionApiRef) return;
+		selectionApiRef.current = { selectAll };
+		return () => {
+			selectionApiRef.current = null;
+		};
+	}, [selectionApiRef, selectAll]);
 
 	// Selection semantics over the CURRENT visual (sorted) order.
 	const applySelection = (rowId: string, mods: SelectionModifiers) => {
@@ -309,38 +340,49 @@ export function ClassicyTable<T>({
 				}
 				return;
 			}
-			default: {
-				const isPrintable =
-					e.key.length === 1 &&
-					e.key !== " " &&
-					!e.metaKey &&
-					!e.ctrlKey &&
-					!e.altKey;
-				if (!isPrintable) return;
-				if (typeTimer.current) clearTimeout(typeTimer.current);
-				typeBuffer.current += e.key.toLowerCase();
-				typeTimer.current = setTimeout(() => {
-					typeBuffer.current = "";
-				}, 700);
-				const buf = typeBuffer.current;
-				const first = columns[0];
-				if (!first) return;
-				const start = curIndex < 0 ? 0 : curIndex;
-				const order = [
-					...visual.slice(start + 1),
-					...visual.slice(0, start + 1),
-				];
-				const match = order.find((r) =>
-					`${first.accessor(r.original) ?? ""}`.toLowerCase().startsWith(buf),
-				);
-				if (match) {
-					moveCursorTo(match.id, {
-						shiftKey: false,
-						metaKey: false,
-						ctrlKey: false,
-					});
+			case "a":
+			case "A": {
+				if ((e.metaKey || e.ctrlKey) && selectionMode === "multi") {
+					e.preventDefault();
+					selectAll();
+					return;
 				}
+				break; // fall out of the switch into type-select below
 			}
+			default:
+				break;
+		}
+
+		// Type-select: typing leading characters of the first column's value
+		// jumps to the first matching row. Lives after the switch (rather than
+		// only in `default`) so an unmodified "a" — which the switch above
+		// intercepts to check for ⌘A — still reaches it via `break`.
+		const isPrintable =
+			e.key.length === 1 &&
+			e.key !== " " &&
+			!e.metaKey &&
+			!e.ctrlKey &&
+			!e.altKey;
+		if (!isPrintable) return;
+		if (typeTimer.current) clearTimeout(typeTimer.current);
+		typeBuffer.current += e.key.toLowerCase();
+		typeTimer.current = setTimeout(() => {
+			typeBuffer.current = "";
+		}, 700);
+		const buf = typeBuffer.current;
+		const first = columns[0];
+		if (!first) return;
+		const start = curIndex < 0 ? 0 : curIndex;
+		const order = [...visual.slice(start + 1), ...visual.slice(0, start + 1)];
+		const match = order.find((r) =>
+			`${first.accessor(r.original) ?? ""}`.toLowerCase().startsWith(buf),
+		);
+		if (match) {
+			moveCursorTo(match.id, {
+				shiftKey: false,
+				metaKey: false,
+				ctrlKey: false,
+			});
 		}
 	};
 

@@ -414,3 +414,213 @@ describe("ClassicyFileBrowserViewTable opening disclosed rows", () => {
 		expect(fileOnClickFunc).toHaveBeenCalledWith("Documents:Reports:q1.pdf");
 	});
 });
+
+const OPTIONS_BASE = {
+	useRelativeDate: true,
+	calculateFolderSizes: false,
+	iconSize: "medium" as const,
+	columns: {
+		modified: false,
+		created: false,
+		size: false,
+		kind: false,
+		label: false,
+		comments: false,
+		version: false,
+	},
+};
+
+const makeFs = (key: string) =>
+	new ClassicyFileSystem(key, {
+		_type: "directory",
+		Documents: {
+			_type: ClassicyFileSystemEntryFileType.Directory,
+			"a.pdf": {
+				_type: ClassicyFileSystemEntryFileType.Pdf,
+				_url: "https://example.com/a.pdf",
+				_size: 2048,
+				// Seeded as an ISO string on purpose: the tree round-trips through
+				// JSON, so this is the shape the component actually receives.
+				_modifiedOn: "2001-09-11T12:46:00.000Z",
+				_label: "Hot",
+				_comments: "A note",
+				_version: "1.0.1",
+			},
+		},
+	});
+
+describe("ClassicyFileBrowserViewTable configurable columns", () => {
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	it("shows only the columns the options enable", () => {
+		render(
+			<ClassicyFileBrowserViewTable
+				fs={makeFs("test-cols-modified-only")}
+				path="Documents"
+				appId="Finder.app"
+				listViewOptions={{
+					...OPTIONS_BASE,
+					columns: { ...OPTIONS_BASE.columns, modified: true },
+				}}
+				now={new Date(2001, 8, 11, 9, 3)}
+			/>,
+		);
+		// Filename is unconditional; everything else follows the flags.
+		expect(screen.getByText("Filename")).toBeInTheDocument();
+		expect(screen.getByText("Date Modified")).toBeInTheDocument();
+		expect(screen.queryByText("Size")).not.toBeInTheDocument();
+		expect(screen.queryByText("Kind")).not.toBeInTheDocument();
+		expect(screen.queryByText("Label")).not.toBeInTheDocument();
+		expect(screen.queryByText("Date Created")).not.toBeInTheDocument();
+		expect(screen.queryByText("Comments")).not.toBeInTheDocument();
+		expect(screen.queryByText("Version")).not.toBeInTheDocument();
+		// Only Filename (unconditional) + Date Modified (the one enabled flag).
+		expect(screen.getAllByRole("columnheader")).toHaveLength(2);
+	});
+
+	it("renders Kind rather than the old File Type header", () => {
+		render(
+			<ClassicyFileBrowserViewTable
+				fs={makeFs("test-cols-kind")}
+				path="Documents"
+				appId="Finder.app"
+				listViewOptions={{
+					...OPTIONS_BASE,
+					columns: { ...OPTIONS_BASE.columns, kind: true },
+				}}
+			/>,
+		);
+		expect(screen.getByText("Kind")).toBeInTheDocument();
+		expect(screen.queryByText("File Type")).not.toBeInTheDocument();
+	});
+
+	it("renders the label, comments, and version columns when enabled", () => {
+		render(
+			<ClassicyFileBrowserViewTable
+				fs={makeFs("test-cols-extras")}
+				path="Documents"
+				appId="Finder.app"
+				listViewOptions={{
+					...OPTIONS_BASE,
+					columns: {
+						...OPTIONS_BASE.columns,
+						label: true,
+						comments: true,
+						version: true,
+					},
+				}}
+			/>,
+		);
+		expect(screen.getByText("Hot")).toBeInTheDocument();
+		expect(screen.getByText("A note")).toBeInTheDocument();
+		expect(screen.getByText("1.0.1")).toBeInTheDocument();
+	});
+
+	it("does not compute folder sizes when the option is off", async () => {
+		const cfs = makeFs("test-sizes-off");
+		const sizeSpy = vi.spyOn(cfs, "size");
+		render(
+			<ClassicyFileBrowserViewTable
+				fs={cfs}
+				path="Documents"
+				appId="Finder.app"
+				listViewOptions={{
+					...OPTIONS_BASE,
+					calculateFolderSizes: false,
+					columns: { ...OPTIONS_BASE.columns, size: true },
+				}}
+			/>,
+		);
+		await waitFor(() =>
+			expect(screen.getByText("Filename")).toBeInTheDocument(),
+		);
+		expect(sizeSpy).not.toHaveBeenCalled();
+		// And the size cell must not sit on a permanent "Calculating…".
+		expect(screen.queryByText("Calculating…")).not.toBeInTheDocument();
+	});
+
+	it("computes folder sizes when the option is on", async () => {
+		const cfs = new ClassicyFileSystem("test-sizes-on", {
+			_type: "directory",
+			Documents: {
+				_type: ClassicyFileSystemEntryFileType.Directory,
+				Nested: { _type: ClassicyFileSystemEntryFileType.Directory },
+			},
+		});
+		const sizeSpy = vi.spyOn(cfs, "size").mockResolvedValue(4096);
+		render(
+			<ClassicyFileBrowserViewTable
+				fs={cfs}
+				path="Documents"
+				appId="Finder.app"
+				listViewOptions={{
+					...OPTIONS_BASE,
+					calculateFolderSizes: true,
+					columns: { ...OPTIONS_BASE.columns, size: true },
+				}}
+			/>,
+		);
+		await waitFor(() => expect(sizeSpy).toHaveBeenCalled());
+	});
+
+	it("formats the modified column against the supplied in-world now", async () => {
+		render(
+			<ClassicyFileBrowserViewTable
+				fs={makeFs("test-relative-date")}
+				path="Documents"
+				appId="Finder.app"
+				listViewOptions={{
+					...OPTIONS_BASE,
+					useRelativeDate: true,
+					columns: { ...OPTIONS_BASE.columns, modified: true },
+				}}
+				// Same in-world day as the fixture's _modifiedOn, in UTC.
+				now={new Date("2001-09-11T14:03:00.000Z")}
+			/>,
+		);
+		// The fixture seeds an ISO STRING, so this also proves the component
+		// revives it rather than calling Date methods on a string.
+		expect(
+			await screen.findByText(/^Today, \d{1,2}:\d{2} (AM|PM)$/),
+		).toBeInTheDocument();
+	});
+
+	it("renders an absolute date when relative dates are off", async () => {
+		render(
+			<ClassicyFileBrowserViewTable
+				fs={makeFs("test-absolute-date")}
+				path="Documents"
+				appId="Finder.app"
+				listViewOptions={{
+					...OPTIONS_BASE,
+					useRelativeDate: false,
+					columns: { ...OPTIONS_BASE.columns, modified: true },
+				}}
+				now={new Date("2001-09-11T14:03:00.000Z")}
+			/>,
+		);
+		expect(await screen.findByText(/Sep 11, 2001/)).toBeInTheDocument();
+	});
+
+	it("keeps today's three columns when no options are passed", () => {
+		render(
+			<ClassicyFileBrowserViewTable
+				fs={makeFs("test-cols-default")}
+				path="Documents"
+				appId="Finder.app"
+			/>,
+		);
+		expect(screen.getByText("Filename")).toBeInTheDocument();
+		expect(screen.getByText("Size")).toBeInTheDocument();
+		expect(screen.getByText("Kind")).toBeInTheDocument();
+		expect(screen.queryByText("Date Modified")).not.toBeInTheDocument();
+		expect(screen.queryByText("Date Created")).not.toBeInTheDocument();
+		expect(screen.queryByText("Label")).not.toBeInTheDocument();
+		expect(screen.queryByText("Comments")).not.toBeInTheDocument();
+		expect(screen.queryByText("Version")).not.toBeInTheDocument();
+		// Filename, Size, Kind — no more, no fewer.
+		expect(screen.getAllByRole("columnheader")).toHaveLength(3);
+	});
+});
