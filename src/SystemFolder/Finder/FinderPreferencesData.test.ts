@@ -127,6 +127,24 @@ describe("Finder preferences reducers", () => {
 		expect(columns.version).toBe(false);
 	});
 
+	it("preserves a previously-customized sibling when writing another nested flag", () => {
+		let ds = classicyFinderEventHandler(makeStore(), {
+			type: "ClassicyAppFinderSetStandardViewOption",
+			view: "list",
+			option: "columns.label",
+			value: true,
+		});
+		ds = classicyFinderEventHandler(ds, {
+			type: "ClassicyAppFinderSetStandardViewOption",
+			view: "list",
+			option: "columns.created",
+			value: true,
+		});
+		const columns = resolveStandardViews(finderData(ds)).list.columns;
+		expect(columns.label).toBe(true);
+		expect(columns.created).toBe(true);
+	});
+
 	it("rejects an invalid value rather than writing it", () => {
 		const ds = classicyFinderEventHandler(makeStore(), {
 			type: "ClassicyAppFinderSetStandardViewOption",
