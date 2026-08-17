@@ -26,6 +26,76 @@ import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import { isValidHttpUrl } from "@/SystemFolder/SystemResources/Utils/urlValidation";
 
+export const FinderViewTypeSchema = z.enum(["icons", "list"]);
+export const FinderIconSizeSchema = z.enum(["small", "medium", "large"]);
+export const FinderArrangementSchema = z.enum(["none", "grid", "sorted"]);
+export const FinderSortKeySchema = z.enum([
+	"name",
+	"modified",
+	"created",
+	"size",
+	"kind",
+	"label",
+]);
+
+export const FinderIconViewOptionsSchema = z.object({
+	arrangement: FinderArrangementSchema.default("none"),
+	keepArrangedBy: FinderSortKeySchema.default("name"),
+	iconSize: FinderIconSizeSchema.default("large"),
+});
+
+export const FinderListColumnsSchema = z.object({
+	modified: z.boolean().default(true),
+	created: z.boolean().default(false),
+	size: z.boolean().default(true),
+	kind: z.boolean().default(true),
+	label: z.boolean().default(false),
+	comments: z.boolean().default(false),
+	version: z.boolean().default(false),
+});
+
+export const FinderListViewOptionsSchema = z.object({
+	useRelativeDate: z.boolean().default(true),
+	calculateFolderSizes: z.boolean().default(false),
+	iconSize: FinderIconSizeSchema.default("medium"),
+	// Precomputed (not `.default({})`): under Zod 4, a `.default()` value is
+	// substituted verbatim when the key is absent from the input, without
+	// being re-parsed — so a bare `{}` would skip FinderListColumnsSchema's
+	// own per-column defaults instead of filling them in.
+	columns: FinderListColumnsSchema.default(FinderListColumnsSchema.parse({})),
+});
+
+export const FinderStandardViewsSchema = z.object({
+	// Same reasoning as `columns` above, one level up.
+	icons: FinderIconViewOptionsSchema.default(
+		FinderIconViewOptionsSchema.parse({}),
+	),
+	list: FinderListViewOptionsSchema.default(
+		FinderListViewOptionsSchema.parse({}),
+	),
+});
+
+export type FinderViewType = z.infer<typeof FinderViewTypeSchema>;
+export type FinderIconSize = z.infer<typeof FinderIconSizeSchema>;
+export type FinderArrangement = z.infer<typeof FinderArrangementSchema>;
+export type FinderSortKey = z.infer<typeof FinderSortKeySchema>;
+export type FinderIconViewOptions = z.infer<typeof FinderIconViewOptionsSchema>;
+export type FinderListViewOptions = z.infer<typeof FinderListViewOptionsSchema>;
+export type FinderStandardViews = z.infer<typeof FinderStandardViewsSchema>;
+
+export const FINDER_PREFERENCES_WINDOW_ID = "finder_preferences";
+
+/**
+ * Standard-view options with every default filled in. Parsing rather than
+ * spreading means a partially-written or hand-edited persisted value still
+ * yields a complete, valid object instead of `undefined` holes reaching the
+ * view components.
+ */
+export const resolveStandardViews = (data: FinderData): FinderStandardViews => {
+	const parsed = FinderStandardViewsSchema.safeParse(data.standardViews ?? {});
+	return parsed.success ? parsed.data : FinderStandardViewsSchema.parse({});
+};
+
 export const FinderDataSchema = z.looseObject({
 	openPaths: z
 		.array(z.string())
@@ -35,6 +105,19 @@ export const FinderDataSchema = z.looseObject({
 		.boolean()
 		.optional()
 		.describe("Whether the About This Computer window is open."),
+	showPreferences: z
+		.boolean()
+		.optional()
+		.describe("Whether the Finder Preferences window is open."),
+	standardViews: FinderStandardViewsSchema.optional().describe(
+		"Default view options applied to folders using standard views.",
+	),
+	folderViews: z
+		.record(z.string(), FinderViewTypeSchema)
+		.optional()
+		.describe(
+			"Explicit per-folder view type. A path absent from this map follows the standard views.",
+		),
 });
 
 export type FinderData = z.infer<typeof FinderDataSchema>;
@@ -108,6 +191,70 @@ export const classicyFinderEventHandler = (
 		}
 		case "ClassicyAppFinderAboutThisComputerClose": {
 			appData = { ...appData, showAboutThisComputer: false };
+			break;
+		}
+		case "ClassicyAppFinderPreferencesOpen": {
+			appData = { ...appData, showPreferences: true };
+			// Same reason as AboutThisComputer above: this window persists as
+			// closed after its first open, so ClassicyWindowOpen will not focus
+			// it again and it would render behind its siblings forever.
+			ds = focusWindow(ds, appId, FINDER_PREFERENCES_WINDOW_ID);
+			break;
+		}
+		case "ClassicyAppFinderPreferencesClose": {
+			appData = { ...appData, showPreferences: false };
+			break;
+		}
+		case "ClassicyAppFinderSetStandardViewOption": {
+			const { view, option, value } = action as {
+				view?: unknown;
+				option?: unknown;
+				value?: unknown;
+			};
+			if (view !== "icons" && view !== "list") break;
+			if (typeof option !== "string") break;
+
+			const parts = option.split(".");
+			// One level of nesting only — `columns.created`, never deeper.
+			if (parts.length > 2) break;
+
+			const current = resolveStandardViews(appData);
+			const viewOptions = current[view] as Record<string, unknown>;
+
+			let nextViewOptions: Record<string, unknown>;
+			if (parts.length === 1) {
+				nextViewOptions = { ...viewOptions, [parts[0]]: value };
+			} else {
+				const nested = viewOptions[parts[0]];
+				if (typeof nested !== "object" || nested === null) break;
+				nextViewOptions = {
+					...viewOptions,
+					[parts[0]]: {
+						...(nested as Record<string, unknown>),
+						[parts[1]]: value,
+					},
+				};
+			}
+
+			// Validate the merged result, so a bad path or value is rejected
+			// rather than written and then read back as garbage.
+			const candidate = { ...current, [view]: nextViewOptions };
+			const parsed = FinderStandardViewsSchema.safeParse(candidate);
+			if (!parsed.success) break;
+			appData = { ...appData, standardViews: parsed.data };
+			break;
+		}
+		case "ClassicyAppFinderSetFolderView": {
+			if (!hasPath(action)) break;
+			const viewType = (action as { viewType?: unknown }).viewType;
+			if (viewType !== "icons" && viewType !== "list") break;
+			appData = {
+				...appData,
+				folderViews: {
+					...(appData.folderViews ?? {}),
+					[action.path]: viewType,
+				},
+			};
 			break;
 		}
 		case "ClassicyAppFinderEmptyTrash": {
@@ -283,6 +430,31 @@ registerApp({
 		},
 		ClassicyAppFinderAboutThisComputerClose: {
 			description: "Close the About This Computer window.",
+		},
+		ClassicyAppFinderPreferencesOpen: {
+			description: "Open the Finder Preferences window.",
+		},
+		ClassicyAppFinderPreferencesClose: {
+			description: "Close the Finder Preferences window.",
+		},
+		ClassicyAppFinderSetStandardViewOption: {
+			description:
+				"Set one standard-view option for the icon or list view. `option` is a dotted path at most one level deep, e.g. `columns.created`.",
+			params: z.object({
+				view: FinderViewTypeSchema.describe("Which view's options to change."),
+				option: z
+					.string()
+					.describe("Dotted option path within that view, max one level deep."),
+				value: z.unknown().describe("New value; validated against the schema."),
+			}),
+		},
+		ClassicyAppFinderSetFolderView: {
+			description:
+				"Remember an explicit view type for one folder, overriding the standard views.",
+			params: z.object({
+				path: z.string().describe("Absolute path of the folder."),
+				viewType: FinderViewTypeSchema.describe("The view to use for it."),
+			}),
 		},
 		ClassicyAppFinderEmptyTrash: {
 			description:
