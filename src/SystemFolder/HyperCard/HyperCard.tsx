@@ -764,7 +764,6 @@ export const HyperCard: FunctionalComponent = () => {
 			name={appName}
 			icon={appIcon}
 			showDesktopIcon={false}
-			addSystemMenu={true}
 			defaultWindow={"hypercard_main"}
 			handlesFileTypes={[ClassicyFileSystemEntryFileType.Stack]}
 			handlesOwnFiles={true}
