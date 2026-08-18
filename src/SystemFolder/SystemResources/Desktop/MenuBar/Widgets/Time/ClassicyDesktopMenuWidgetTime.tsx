@@ -4,6 +4,19 @@ import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/Cl
 
 const appIcon = ClassicyIcons.controlPanels.dateTimeManager.dateTimeManager;
 
+// Shared by the resync effect and the tick interval so the two can never
+// drift into computing the rendered shape differently.
+const computeDisplayTime = (localDate: Date) => ({
+	year: localDate.getUTCFullYear(),
+	month: localDate.getUTCMonth(),
+	date: localDate.getUTCDate(),
+	day: localDate.getUTCDay(),
+	minutes: localDate.getUTCMinutes(),
+	hours: localDate.getUTCHours() === 0 ? 12 : localDate.getUTCHours(),
+	seconds: localDate.getUTCSeconds(),
+	period: localDate.getUTCHours() < 12 ? " AM" : " PM",
+});
+
 import classNames from "classnames";
 import {
 	type FC as FunctionalComponent,
@@ -69,7 +82,9 @@ export const ClassicyDesktopMenuWidgetTime: FunctionalComponent = () => {
 	const pausedRef = useRef(dateAndTime.paused);
 
 	// When the store changes (user sets new time/tz), reset both anchors and
-	// the second/minute refs so the next tick always updates from the new baseline.
+	// the second/minute refs so the next tick always updates from the new baseline,
+	// and update the rendered display immediately — this must not wait for the
+	// tick interval, since that interval no-ops while paused.
 	useEffect(() => {
 		const newVirtualMs =
 			new Date(dateAndTime.dateTime).getTime() +
@@ -79,6 +94,7 @@ export const ClassicyDesktopMenuWidgetTime: FunctionalComponent = () => {
 		const d = new Date(newVirtualMs);
 		prevSecondsRef.current = d.getUTCSeconds();
 		prevMinutesRef.current = d.getUTCMinutes();
+		setTime(computeDisplayTime(d));
 	}, [dateAndTime.dateTime, dateAndTime.timeZoneOffset]);
 
 	useEffect(() => {
@@ -124,16 +140,7 @@ export const ClassicyDesktopMenuWidgetTime: FunctionalComponent = () => {
 
 			const newMinutes = localDate.getUTCMinutes();
 
-			setTime({
-				year: localDate.getUTCFullYear(),
-				month: localDate.getUTCMonth(),
-				date: localDate.getUTCDate(),
-				day: localDate.getUTCDay(),
-				minutes: newMinutes,
-				hours: localDate.getUTCHours() === 0 ? 12 : localDate.getUTCHours(),
-				seconds: newSeconds,
-				period: localDate.getUTCHours() < 12 ? " AM" : " PM",
-			});
+			setTime(computeDisplayTime(localDate));
 
 			if (newMinutes !== prevMinutesRef.current) {
 				prevMinutesRef.current = newMinutes;
