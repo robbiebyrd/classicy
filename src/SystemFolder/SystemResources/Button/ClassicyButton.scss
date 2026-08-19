@@ -4,6 +4,8 @@
   font-family: var(--ui-font);
   font-size: calc(var(--ui-font-size));
 
+  align-self: center;
+
   border-radius: calc(var(--window-padding-size)/2);
 
   // Mac OS 8 HIG push-button metrics (theme tokens, injected at runtime).
