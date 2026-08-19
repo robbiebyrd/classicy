@@ -2,6 +2,10 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { HCEditState } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorUtils";
 import { HyperCardInspector } from "@/SystemFolder/HyperCard/Editor/HyperCardInspector";
+import {
+	registerHyperCardOptionPicker,
+	registerHyperCardPartEditorMeta,
+} from "@/SystemFolder/HyperCard/HyperCardPlugins";
 
 const dispatch = vi.fn();
 vi.mock(
@@ -144,5 +148,60 @@ describe("HyperCardInspector", () => {
 			name: "score",
 			value: 5,
 		});
+	});
+
+	it("renders a registered picker component for a picker-kind option field, and commits its onChange", () => {
+		registerHyperCardPartEditorMeta("pickerTestPart", {
+			label: "Picker Test Part",
+			optionsSchema: [{ key: "pickme", label: "Pick", kind: "picker", pickerId: "testPicker" }],
+		});
+		registerHyperCardOptionPicker("testPicker", ({ value, onChange }) => (
+			<button
+				type="button"
+				data-testid="test-picker-button"
+				onClick={() => onChange("picked-value")}
+			>
+				current: {String(value)}
+			</button>
+		));
+		const edit = makeEdit({ selectedPartId: "slider1" });
+		const card = edit.draft.cards[0];
+		const part = card?.parts?.[0];
+		if (card?.parts && part) {
+			card.parts[0] = {
+				...part,
+				type: "pickerTestPart",
+				options: { pickme: "before" },
+			};
+		}
+		render(<HyperCardInspector stackId={"demo"} edit={edit} />);
+		expect(screen.getByText("current: before")).toBeTruthy();
+		fireEvent.click(screen.getByTestId("test-picker-button"));
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "ClassicyAppHCEditSetPartOption",
+			stackId: "demo",
+			partId: "slider1",
+			key: "pickme",
+			value: "picked-value",
+		});
+	});
+
+	it("falls back to a plain text input when a picker field's pickerId isn't registered", () => {
+		registerHyperCardPartEditorMeta("pickerTestPartUnregistered", {
+			label: "Picker Test Part",
+			optionsSchema: [{ key: "pickme", label: "Pick", kind: "picker", pickerId: "nope" }],
+		});
+		const edit = makeEdit({ selectedPartId: "slider1" });
+		const card = edit.draft.cards[0];
+		const part = card?.parts?.[0];
+		if (card?.parts && part) {
+			card.parts[0] = {
+				...part,
+				type: "pickerTestPartUnregistered",
+				options: { pickme: "before" },
+			};
+		}
+		render(<HyperCardInspector stackId={"demo"} edit={edit} />);
+		expect(screen.getByDisplayValue("before")).toBeTruthy();
 	});
 });

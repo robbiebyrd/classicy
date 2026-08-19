@@ -14,7 +14,10 @@ import {
 	peekLayerParts,
 } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorUtils";
 import type { HCPart, HCRect } from "@/SystemFolder/HyperCard/HyperCardModel";
-import type { HCOptionField } from "@/SystemFolder/HyperCard/HyperCardPlugins";
+import {
+	getHyperCardOptionPicker,
+	type HCOptionField,
+} from "@/SystemFolder/HyperCard/HyperCardPlugins";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyCheckbox } from "@/SystemFolder/SystemResources/Checkbox/ClassicyCheckbox";
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
@@ -280,6 +283,13 @@ export const HyperCardInspector: FunctionalComponent<
 					}}
 				/>
 			);
+		}
+		if (field.kind === "picker" && field.pickerId) {
+			const Picker = getHyperCardOptionPicker(field.pickerId);
+			if (Picker) {
+				return <Picker key={key} value={current} onChange={commit} />;
+			}
+			// Unregistered pickerId: fall through to the plain text field below.
 		}
 		return (
 			<CommitField
