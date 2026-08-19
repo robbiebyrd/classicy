@@ -8,17 +8,20 @@ import {
 	getHyperCardCommand,
 	getHyperCardCommandEditorMeta,
 	getHyperCardEffectHandler,
+	getHyperCardOptionPicker,
 	getHyperCardPart,
 	getHyperCardPartEditorMeta,
 	getHyperCardSaveProviders,
 	getRegisteredEditorCommands,
 	getRegisteredEditorPartTypes,
 	getRegisteredStacks,
+	type HyperCardOptionPickerComponent,
 	type HyperCardPartComponent,
 	type HyperCardSaveProvider,
 	registerHyperCardCommand,
 	registerHyperCardCommandEditorMeta,
 	registerHyperCardEffectHandler,
+	registerHyperCardOptionPicker,
 	registerHyperCardPart,
 	registerHyperCardPartEditorMeta,
 	registerHyperCardSaveProvider,
@@ -51,6 +54,13 @@ describe("HyperCardPlugins registries", () => {
 		registerHyperCardPart("testPart", Comp);
 		expect(getHyperCardPart("testPart")).toBe(Comp);
 		expect(getHyperCardPart("nope")).toBeUndefined();
+	});
+
+	it("registers and retrieves an option picker component", () => {
+		const Picker: HyperCardOptionPickerComponent = () => null;
+		registerHyperCardOptionPicker("testPicker", Picker);
+		expect(getHyperCardOptionPicker("testPicker")).toBe(Picker);
+		expect(getHyperCardOptionPicker("nope")).toBeUndefined();
 	});
 
 	it("registers and retrieves an effect handler", () => {

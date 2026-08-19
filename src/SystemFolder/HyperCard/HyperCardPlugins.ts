@@ -107,12 +107,22 @@ export type HyperCardEffectHandler = (
 ) => void | Promise<void>;
 
 // ---------------------------------------------------------------------------
+// Option pickers (UI components for "picker" field kind)
+// ---------------------------------------------------------------------------
+
+export type HyperCardOptionPickerComponent = FC<{
+	value: unknown;
+	onChange: (value: unknown) => void;
+}>;
+
+// ---------------------------------------------------------------------------
 // Registries
 // ---------------------------------------------------------------------------
 
 const partRegistry = new Map<string, HyperCardPartComponent>();
 const commandRegistry = new Map<string, HCCommandSpec>();
 const effectRegistry = new Map<string, HyperCardEffectHandler>();
+const optionPickerRegistry = new Map<string, HyperCardOptionPickerComponent>();
 const stackRegistry = new Map<
 	string,
 	{ id: string; name: string; stack: HCStack }
@@ -158,6 +168,20 @@ export function getHyperCardEffectHandler(
 	return effectRegistry.get(name);
 }
 
+/** Register a component that replaces the bare input for a "picker"-kind option field. */
+export function registerHyperCardOptionPicker(
+	id: string,
+	component: HyperCardOptionPickerComponent,
+): void {
+	optionPickerRegistry.set(id, component);
+}
+
+export function getHyperCardOptionPicker(
+	id: string,
+): HyperCardOptionPickerComponent | undefined {
+	return optionPickerRegistry.get(id);
+}
+
 /** Register a stack so it appears in HyperCard's File → Open menu. */
 export function registerHyperCardStack(
 	id: string,
@@ -179,12 +203,14 @@ export function getRegisteredStacks(): {
 // Editor metadata (additive; the player never reads these)
 // ---------------------------------------------------------------------------
 
-/** One typed field in an inspector/builder form. `choices` edits a string list; `json` edits raw JSON. */
+/** One typed field in an inspector/builder form. `choices` edits a string list; `json` edits raw JSON; `picker` renders a registered component in place of the bare input. */
 export interface HCOptionField {
 	key: string;
 	label: string;
-	kind: "text" | "number" | "checkbox" | "choices" | "json" | "sound";
+	kind: "text" | "number" | "checkbox" | "choices" | "json" | "sound" | "picker";
 	default?: unknown;
+	/** Required when kind === "picker" — looked up via getHyperCardOptionPicker. */
+	pickerId?: string;
 }
 
 /** How the stack EDITOR presents a registered custom part. */
