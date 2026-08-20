@@ -16,6 +16,8 @@
   background-position: var(--desktop-background-position);
   background-size: var(--desktop-background-size);
   -webkit-user-drag: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   @include appearance.no-select;
 
   &,
