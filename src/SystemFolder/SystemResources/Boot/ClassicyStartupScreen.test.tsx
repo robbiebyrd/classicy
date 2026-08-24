@@ -77,6 +77,14 @@ describe("ClassicyStartupScreen", () => {
 		expect(screen.getByText("Starting Up…")).toBeInTheDocument();
 	});
 
+	it("renders a custom logo and wordmark when provided", () => {
+		render(<ClassicyStartupScreen logo="/brand.svg" wordmark="Acme OS" />);
+		const img = screen.getByAltText("Acme OS");
+		expect(img).toHaveAttribute("src", "/brand.svg");
+		expect(screen.getByText("Acme OS")).toBeInTheDocument();
+		expect(screen.queryByText("Classicy")).not.toBeInTheDocument();
+	});
+
 	it("plays the ClassicyBoot chime on mount", () => {
 		render(<ClassicyStartupScreen />);
 		expect(mockPlayer).toHaveBeenCalledWith({

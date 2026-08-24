@@ -77,6 +77,18 @@ interface ClassicyDesktopProps {
 	 * Shown once per browser-tab session, like the startup screen.
 	 */
 	preBootScreen?: (powerOn: () => void) => ReactNode;
+	/** Overrides the logo image on the default startup screen. Ignored when `bootScreen` is supplied. */
+	startupLogo?: string;
+	/** Overrides the wordmark text on the default startup screen. Ignored when `bootScreen` is supplied. */
+	startupWordmark?: string;
+	/**
+	 * Replaces the default startup screen entirely. Rendered as-is in place of
+	 * the built-in splash — it owns its own visuals, timing, and (if desired)
+	 * session-once gating via the exported
+	 * `hasShownStartupScreenThisSession`/`markStartupScreenShownThisSession`
+	 * helpers. Still subject to the `startupScreen` gate.
+	 */
+	bootScreen?: ReactNode;
 }
 
 const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
@@ -84,6 +96,9 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	startupScreen = true,
 	startupDuration = 4000,
 	preBootScreen,
+	startupLogo,
+	startupWordmark,
+	bootScreen,
 }) => {
 	const [showAbout, setShowAbout] = useState(false);
 	const [showEmptyTrashDialog, setShowEmptyTrashDialog] = useState(false);
@@ -576,6 +591,9 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 				startupScreen={startupScreen}
 				startupDuration={startupDuration}
 				preBootScreen={preBootScreen}
+				startupLogo={startupLogo}
+				startupWordmark={startupWordmark}
+				bootScreen={bootScreen}
 			/>
 		</div>
 	);
@@ -586,6 +604,9 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 	startupScreen,
 	startupDuration,
 	preBootScreen,
+	startupLogo,
+	startupWordmark,
+	bootScreen,
 }) => (
 	<ClassicyCrashScreen>
 		<ClassicyContextualMenuProvider>
@@ -593,6 +614,9 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 				startupScreen={startupScreen}
 				startupDuration={startupDuration}
 				preBootScreen={preBootScreen}
+				startupLogo={startupLogo}
+				startupWordmark={startupWordmark}
+				bootScreen={bootScreen}
 			>
 				{children}
 			</ClassicyDesktopInner>

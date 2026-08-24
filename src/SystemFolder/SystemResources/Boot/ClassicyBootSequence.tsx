@@ -16,6 +16,18 @@ interface ClassicyBootSequenceProps {
 	startupScreen?: boolean;
 	startupDuration?: number;
 	preBootScreen?: (powerOn: () => void) => ReactNode;
+	/** Overrides the logo image on the default startup screen. Ignored when `bootScreen` is supplied. */
+	startupLogo?: string;
+	/** Overrides the wordmark text on the default startup screen. Ignored when `bootScreen` is supplied. */
+	startupWordmark?: string;
+	/**
+	 * Replaces the default startup screen entirely. Rendered as-is in place of
+	 * `ClassicyStartupScreen` — it owns its own visuals, timing, and (if
+	 * desired) session-once gating via the exported
+	 * `hasShownStartupScreenThisSession`/`markStartupScreenShownThisSession`
+	 * helpers. Still subject to the `startupScreen` gate.
+	 */
+	bootScreen?: ReactNode;
 }
 
 /**
@@ -29,7 +41,14 @@ interface ClassicyBootSequenceProps {
  */
 export const ClassicyBootSequence: FunctionalComponent<
 	ClassicyBootSequenceProps
-> = ({ startupScreen = true, startupDuration = 4000, preBootScreen }) => {
+> = ({
+	startupScreen = true,
+	startupDuration = 4000,
+	preBootScreen,
+	startupLogo,
+	startupWordmark,
+	bootScreen,
+}) => {
 	const [phase, setPhase] = useState<"powerOn" | "startup">(() =>
 		preBootScreen && !hasShownStartupScreenThisSession()
 			? "powerOn"
@@ -61,7 +80,14 @@ export const ClassicyBootSequence: FunctionalComponent<
 		);
 	}
 
-	return startupScreen ? (
-		<ClassicyStartupScreen duration={startupDuration} />
-	) : null;
+	if (!startupScreen) return null;
+	return (
+		bootScreen ?? (
+			<ClassicyStartupScreen
+				duration={startupDuration}
+				logo={startupLogo}
+				wordmark={startupWordmark}
+			/>
+		)
+	);
 };

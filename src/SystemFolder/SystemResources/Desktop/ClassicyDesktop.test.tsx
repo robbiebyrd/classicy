@@ -233,6 +233,18 @@ describe("ClassicyDesktop startup screen", () => {
 		expect(container.querySelector(".classicyStartupScreen")).toBeNull();
 	});
 
+	it("forwards a custom bootScreen down to the boot sequence", () => {
+		const { container } = render(
+			<ClassicyAppManagerProvider>
+				<ClassicyDesktop
+					bootScreen={<div data-testid="custom-boot">Custom</div>}
+				/>
+			</ClassicyAppManagerProvider>,
+		);
+		expect(screen.getByTestId("custom-boot")).toBeInTheDocument();
+		expect(container.querySelector(".classicyStartupScreen")).toBeNull();
+	});
+
 	it("clears the session key when the trash is emptied, so the splash replays after reload", () => {
 		sessionStorage.setItem("classicyStartupScreenShown", "true");
 		const reload = vi.fn();

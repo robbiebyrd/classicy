@@ -59,7 +59,9 @@ describe("ClassicyBootSequence", () => {
 	it("goes straight to the startup screen (chime fires) with no preBootScreen", () => {
 		const { container } = render(<ClassicyBootSequence />);
 		expect(container.querySelector(".classicyPreBootScreen")).toBeNull();
-		expect(container.querySelector(".classicyStartupScreen")).toBeInTheDocument();
+		expect(
+			container.querySelector(".classicyStartupScreen"),
+		).toBeInTheDocument();
 		expect(mockPlayer).toHaveBeenCalledWith({
 			type: "ClassicySoundPlay",
 			sound: "ClassicyBoot",
@@ -98,7 +100,9 @@ describe("ClassicyBootSequence", () => {
 			fireEvent.click(screen.getByText("POWER ON"));
 		});
 		expect(container.querySelector(".classicyPreBootScreen")).toBeNull();
-		expect(container.querySelector(".classicyStartupScreen")).toBeInTheDocument();
+		expect(
+			container.querySelector(".classicyStartupScreen"),
+		).toBeInTheDocument();
 		expect(mockPlayer).toHaveBeenCalledWith({
 			type: "ClassicySoundPlay",
 			sound: "ClassicyBoot",
@@ -134,9 +138,44 @@ describe("ClassicyBootSequence", () => {
 		expect(mockPlayer).not.toHaveBeenCalled();
 	});
 
+	it("forwards startupLogo and startupWordmark to the startup screen", () => {
+		render(
+			<ClassicyBootSequence
+				startupLogo="/brand.svg"
+				startupWordmark="Brand OS"
+			/>,
+		);
+		const img = screen.getByAltText("Brand OS");
+		expect(img).toHaveAttribute("src", "/brand.svg");
+	});
+
+	it("renders a custom bootScreen instead of the default startup screen", () => {
+		const { container } = render(
+			<ClassicyBootSequence
+				bootScreen={<div data-testid="custom-boot">Custom</div>}
+			/>,
+		);
+		expect(screen.getByTestId("custom-boot")).toBeInTheDocument();
+		expect(container.querySelector(".classicyStartupScreen")).toBeNull();
+		expect(mockPlayer).not.toHaveBeenCalled();
+	});
+
+	it("does not render bootScreen when startupScreen is false", () => {
+		render(
+			<ClassicyBootSequence
+				startupScreen={false}
+				bootScreen={<div data-testid="custom-boot">Custom</div>}
+			/>,
+		);
+		expect(screen.queryByTestId("custom-boot")).not.toBeInTheDocument();
+	});
+
 	it("marks the session on POWER ON with startupScreen=false so a reload skips the gate", () => {
 		const { unmount } = render(
-			<ClassicyBootSequence startupScreen={false} preBootScreen={powerOnScreen} />,
+			<ClassicyBootSequence
+				startupScreen={false}
+				preBootScreen={powerOnScreen}
+			/>,
 		);
 		act(() => {
 			fireEvent.click(screen.getByText("POWER ON"));
@@ -146,10 +185,11 @@ describe("ClassicyBootSequence", () => {
 		// Simulate a reload within the same tab session: a brand-new mount.
 		unmount();
 		const second = render(
-			<ClassicyBootSequence startupScreen={false} preBootScreen={powerOnScreen} />,
+			<ClassicyBootSequence
+				startupScreen={false}
+				preBootScreen={powerOnScreen}
+			/>,
 		);
-		expect(
-			second.container.querySelector(".classicyPreBootScreen"),
-		).toBeNull();
+		expect(second.container.querySelector(".classicyPreBootScreen")).toBeNull();
 	});
 });

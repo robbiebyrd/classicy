@@ -16,6 +16,10 @@ import { ClassicyProgressBar } from "@/SystemFolder/SystemResources/ProgressBar/
 
 interface ClassicyStartupScreenProps {
 	duration?: number;
+	/** Overrides the logo image shown above the wordmark. Defaults to the Classicy mac icon. */
+	logo?: string;
+	/** Overrides the wordmark text shown next to the logo. Defaults to "Classicy". */
+	wordmark?: string;
 }
 
 /**
@@ -26,7 +30,11 @@ interface ClassicyStartupScreenProps {
  */
 export const ClassicyStartupScreen: FunctionalComponent<
 	ClassicyStartupScreenProps
-> = ({ duration = 4000 }) => {
+> = ({
+	duration = 4000,
+	logo = ClassicyIcons.system.macosSvg,
+	wordmark = "Classicy",
+}) => {
 	const [visible, setVisible] = useState(
 		() => !hasShownStartupScreenThisSession(),
 	);
@@ -99,8 +107,8 @@ export const ClassicyStartupScreen: FunctionalComponent<
 		<div className="classicyStartupScreen" role="status">
 			<div className="classicyStartupScreenPanel">
 				<div className="classicyStartupScreenLogo">
-					<img src={ClassicyIcons.system.macosSvg} alt="Classicy" />
-					<span className="classicyStartupScreenWordmark">Classicy</span>
+					<img src={logo} alt={wordmark} />
+					<span className="classicyStartupScreenWordmark">{wordmark}</span>
 				</div>
 				<div className="classicyStartupScreenProgress">
 					<ClassicyProgressBar
