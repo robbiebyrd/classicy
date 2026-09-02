@@ -37,8 +37,9 @@ export interface HCEditState {
 	/**
 	 * Deep copy of the stack as it was when the edit session was entered.
 	 * Optional so sessions persisted before this field existed don't crash on
-	 * rehydrate. Restored onto the player's open stack on a discarding Exit so
-	 * a Browse-preview overwrite doesn't leak into "Stop Editing (Discard)".
+	 * rehydrate. Restored onto the player's open stack on a discarding Exit
+	 * (#236: the unsaved-changes guard's "Don't Save" button) so a
+	 * Browse-preview overwrite doesn't leak into the discarded session.
 	 */
 	pristine?: HCStack;
 	/** Which layer edits target: the card's own parts or its background's. */

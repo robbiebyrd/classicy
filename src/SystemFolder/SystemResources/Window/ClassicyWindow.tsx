@@ -155,6 +155,17 @@ interface ClassicyWindowProps {
 	analyticsExclude?: boolean;
 	dimContents?: boolean;
 	onCloseFunc?: (id: string) => void;
+	/**
+	 * Close veto hook (#236). Called before a close actually happens — from the
+	 * close box, Escape/Cmd-. on a modal, or any other path that funnels through
+	 * this component's internal `close()`. Return (or resolve) `false` to cancel
+	 * the close; anything else lets it proceed. Runs BEFORE `onCloseFunc`, the
+	 * close sound/analytics, and the `ClassicyWindowClose` dispatch — none of
+	 * those fire when the veto cancels. A promise-returning callback is awaited,
+	 * so an app can show its own confirmation UI (e.g. a save-changes alert)
+	 * before deciding.
+	 */
+	onBeforeClose?: (id: string) => boolean | Promise<boolean>;
 	children?: ReactNode;
 	type?: string;
 	/**
@@ -228,6 +239,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	analyticsPath,
 	analyticsExclude,
 	onCloseFunc,
+	onBeforeClose,
 	children,
 	windowType = "document",
 	alwaysOnTop = false,
@@ -1066,8 +1078,14 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		}
 	};
 
-	const close = () => {
-		setActive();
+	// #236: onBeforeClose is a veto, not a notification — it runs first, and a
+	// `false` (sync or resolved) result stops everything below it: no sound, no
+	// analytics, no ClassicyWindowClose dispatch, no onCloseFunc. setActive()
+	// still runs unconditionally first, matching the pre-existing behavior of
+	// focusing a window before closing it (including when the close is later
+	// vetoed — the window ends up focused, which is the right state for the
+	// user to act on whatever the veto is asking about).
+	const finishClose = () => {
 		track("close", { type: "ClassicyWindow", show: true, ...analyticsArgs });
 		player({ type: "ClassicySoundPlay", sound: "ClassicyWindowClose" });
 		desktopEventDispatch({
@@ -1080,6 +1098,26 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		if (typeof onCloseFunc === "function") {
 			onCloseFunc(id);
 		}
+	};
+
+	const close = () => {
+		setActive();
+		if (typeof onBeforeClose !== "function") {
+			finishClose();
+			return;
+		}
+		const result = onBeforeClose(id);
+		if (
+			typeof result === "object" &&
+			result !== null &&
+			typeof (result as Promise<boolean>).then === "function"
+		) {
+			void (result as Promise<boolean>).then((proceed) => {
+				if (proceed) finishClose();
+			});
+			return;
+		}
+		if (result) finishClose();
 	};
 
 	// #194/#197: a modal window dismisses on Escape / Command-period (Cancel).
