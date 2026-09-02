@@ -54,8 +54,12 @@ import {
 	type HyperCardData,
 	isHyperCardData,
 } from "@/SystemFolder/HyperCard/HyperCardUtils";
+import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
-import { quitMenuItemHelper } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
+import {
+	quitAppHelper,
+	quitMenuItemHelper,
+} from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import { resolveFileSystemEntrySource } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContentResolver";
 import { useClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
@@ -125,6 +129,142 @@ export const HyperCard: FunctionalComponent = () => {
 				(w) => w.id === "hypercard_inspector",
 			)?.closed ?? false,
 	);
+
+	// #236: unsaved-changes guard. A single alert (Save/Discard/Cancel) is
+	// shared by the single-window close path (onBeforeClose below) and the
+	// Quit cascade (handleQuit below) — both just await confirmDirtyStack for
+	// whichever stack needs confirming and never show more than one alert at
+	// once. `closeGuardResolveRef` carries the in-flight promise's resolver
+	// across renders since a click on one of the alert's buttons happens in a
+	// later render than the one that created the promise.
+	const [closeGuardStackId, setCloseGuardStackId] = useState<string | null>(
+		null,
+	);
+	const closeGuardResolveRef = useRef<((proceed: boolean) => void) | null>(
+		null,
+	);
+	const closeGuardEdit = useAppManager((s) => {
+		const d = s.System.Manager.Applications.apps[appId]?.data as
+			| HyperCardEditorData
+			| undefined;
+		return closeGuardStackId ? d?.edits?.[closeGuardStackId] : undefined;
+	});
+
+	const confirmDirtyStack = useCallback((stackId: string): Promise<boolean> => {
+		return new Promise<boolean>((resolve) => {
+			closeGuardResolveRef.current = resolve;
+			setCloseGuardStackId(stackId);
+		});
+	}, []);
+
+	const resolveCloseGuard = useCallback((proceed: boolean) => {
+		const resolve = closeGuardResolveRef.current;
+		closeGuardResolveRef.current = null;
+		setCloseGuardStackId(null);
+		resolve?.(proceed);
+	}, []);
+
+	// The alert's Save button. Reads the edit session fresh (not the `edit`
+	// closed over from render) because the Quit cascade below can reach this
+	// for a stack that isn't the active one, and because this same closure is
+	// reused across every iteration of that cascade's loop. Mirrors the
+	// provider.save flow the File menu's "Save a Copy…"/"Save to X" items use
+	// (see the File menu below) so a failed save behaves identically: an
+	// OpenFileFailed dispatch and the close/quit is aborted rather than
+	// silently discarding the user's edits.
+	const saveDirtyStack = useCallback(
+		(stackId: string) => {
+			const freshEdit = (
+				useAppManager.getState().System.Manager.Applications.apps[appId]
+					?.data as HyperCardEditorData | undefined
+			)?.edits?.[stackId];
+			if (!freshEdit) {
+				resolveCloseGuard(true);
+				return;
+			}
+			// The most-recently-registered save-capable provider: the built-in
+			// "download" provider registers first (at this module's load), so a
+			// host that registers its own provider (e.g. a real cloud save) takes
+			// priority over the generic browser download for this single Save
+			// button — unlike the File menu below, which lists every provider
+			// separately and lets the user pick.
+			const canSaveProviders = getHyperCardSaveProviders().filter((p) =>
+				p.canSave(),
+			);
+			const provider = canSaveProviders[canSaveProviders.length - 1];
+			if (!provider) {
+				dispatch({ type: "ClassicyAppHCEditMarkSaved", stackId });
+				resolveCloseGuard(true);
+				return;
+			}
+			void provider
+				.save(freshEdit.draft, { stackId })
+				.then((result) => {
+					if ("error" in result) {
+						dispatch({
+							type: "ClassicyAppHyperCardOpenFileFailed",
+							path: "",
+							message: `The stack can’t be saved: ${result.error}`,
+						});
+						resolveCloseGuard(false);
+						return;
+					}
+					dispatch({ type: "ClassicyAppHCEditMarkSaved", stackId });
+					if (result.ref) {
+						const newStackId = `saved:${provider.id}:${result.ref.id}`;
+						if (newStackId !== stackId) {
+							dispatch({
+								type: "ClassicyAppHCEditRebindStack",
+								stackId,
+								newStackId,
+							});
+						}
+					}
+					resolveCloseGuard(true);
+				})
+				.catch((err: unknown) => {
+					dispatch({
+						type: "ClassicyAppHyperCardOpenFileFailed",
+						path: "",
+						message: `The stack can’t be saved: ${err instanceof Error ? err.message : String(err)}`,
+					});
+					resolveCloseGuard(false);
+				});
+		},
+		[dispatch, resolveCloseGuard],
+	);
+
+	// Single-window close: the main window's own close box/Escape funnel
+	// through ClassicyWindow's onBeforeClose. Only the active stack is in
+	// scope here — the Quit cascade below is what walks every open stack.
+	const onBeforeCloseMain = useCallback((): boolean | Promise<boolean> => {
+		if (!activeStackId || !edit?.dirty) return true;
+		return confirmDirtyStack(activeStackId);
+	}, [activeStackId, edit?.dirty, confirmDirtyStack]);
+
+	// Quit: walks every dirty edit session one at a time (stable insertion
+	// order of the `edits` map — HyperCard has a single visible document
+	// window, so there's no window stacking order to key off; the order
+	// stacks were opened/entered edit mode in is the closest analog). Cancel
+	// on any one alert aborts the whole quit immediately; Save/Discard
+	// resolves that stack and the loop re-reads the freshest state to find
+	// the next remaining dirty stack, repeating until none are left.
+	const handleQuit = useCallback(() => {
+		const runCascade = async (): Promise<void> => {
+			for (;;) {
+				const freshData = useAppManager.getState().System.Manager.Applications
+					.apps[appId]?.data as HyperCardEditorData | undefined;
+				const dirtyStackId = Object.keys(freshData?.edits ?? {}).find(
+					(id) => freshData?.edits?.[id]?.dirty,
+				);
+				if (!dirtyStackId) break;
+				const proceed = await confirmDirtyStack(dirtyStackId);
+				if (!proceed) return;
+			}
+			dispatch(quitAppHelper(appId, appName, appIcon));
+		};
+		void runCascade();
+	}, [confirmDirtyStack, dispatch]);
 
 	// Browse-preview: entering the browse tool pushes the draft into the player.
 	const editTool = edit?.tool;
@@ -549,21 +689,44 @@ export const HyperCard: FunctionalComponent = () => {
 						title: "Open Saved Stack…",
 						onClickFunc: () => setSavedStacksOpen(true),
 					},
+					// #236: a non-destructive Browse/Edit toggle — mirrors the toolbar's
+					// Browse/Pointer tool buttons (ClassicyAppHCEditSetTool), which only
+					// flip edit.tool and never touch the edit session (draft, dirty,
+					// undo/redo). This item used to dispatch ClassicyAppHCEditExit,
+					// which discards the whole session; that's still available for a
+					// real discard-and-exit path, just no longer bound here.
 					...(activeStackId && edit
 						? [
-								{
-									id: "stop_editing",
-									title: "Stop Editing (Discard)",
-									onClickFunc: () =>
-										dispatch({
-											type: "ClassicyAppHCEditExit",
-											stackId: activeStackId,
-										}),
-								},
+								editingActive
+									? {
+											id: "toggle_edit_mode",
+											title: "Browse",
+											onClickFunc: () =>
+												dispatch({
+													type: "ClassicyAppHCEditSetTool",
+													stackId: activeStackId,
+													tool: "browse",
+												}),
+										}
+									: {
+											id: "toggle_edit_mode",
+											title: "Edit",
+											onClickFunc: () =>
+												dispatch({
+													type: "ClassicyAppHCEditSetTool",
+													stackId: activeStackId,
+													tool: "pointer",
+												}),
+										},
 							]
 						: []),
 					...(activeStackId ? [{ id: "file_sep_2", title: "-" }] : []),
-					quitMenuItemHelper(appId, appName, appIcon),
+					// #236: Quit walks every dirty stack (Save/Discard/Cancel) before
+					// actually dispatching ClassicyAppClose — see handleQuit above.
+					{
+						...quitMenuItemHelper(appId, appName, appIcon),
+						onClickFunc: handleQuit,
+					},
 				],
 			},
 			{
@@ -723,10 +886,12 @@ export const HyperCard: FunctionalComponent = () => {
 		stackEntries,
 		activeStackId,
 		edit,
+		editingActive,
 		palettesMounted,
 		toolsClosed,
 		infoClosed,
 		dispatch,
+		handleQuit,
 	]);
 
 	// Keep the menu bar in sync with the dynamic edit-mode menus. Focus
@@ -784,6 +949,7 @@ export const HyperCard: FunctionalComponent = () => {
 				resizable={true}
 				initialSize={open ? [(open.stack.size?.[0] ?? 420) + 4, 0] : [420, 320]}
 				initialPosition={["center", 80]}
+				onBeforeClose={onBeforeCloseMain}
 			>
 				{open && activeStackId ? (
 					editingActive && edit ? (
@@ -914,6 +1080,56 @@ export const HyperCard: FunctionalComponent = () => {
 			{open && activeStackId && runtime?.dialog ? (
 				<HyperCardDialog dialog={runtime.dialog} stackId={activeStackId} />
 			) : null}
+
+			{closeGuardStackId
+				? (() => {
+						// Narrow to a stable non-null id for the closures below — this
+						// IIFE just gives TypeScript a local const to capture.
+						const guardStackId = closeGuardStackId;
+						return (
+							<ClassicyAlert
+								id={"hypercard_close_guard"}
+								appId={appId}
+								alertType={"caution"}
+								title={"Save changes?"}
+								label={`Save changes to “${closeGuardEdit?.draft.name ?? "this stack"}” before closing?`}
+								message={"If you don’t save, your changes will be lost."}
+								defaultButtonId={"save"}
+								buttons={[
+									{
+										id: "cancel",
+										label: "Cancel",
+										role: "cancel",
+										onClick: () => resolveCloseGuard(false),
+									},
+									{
+										id: "discard",
+										label: "Don’t Save",
+										// Discarding here really does mean discard: exit the
+										// edit session and restore the stack's pristine copy
+										// (the same ClassicyAppHCEditExit the old "Stop Editing
+										// (Discard)" menu item used to fire unconditionally).
+										// The difference is this only runs after the user
+										// explicitly confirmed losing the changes.
+										onClick: () => {
+											dispatch({
+												type: "ClassicyAppHCEditExit",
+												stackId: guardStackId,
+											});
+											resolveCloseGuard(true);
+										},
+									},
+									{
+										id: "save",
+										label: "Save",
+										role: "default",
+										onClick: () => saveDirtyStack(guardStackId),
+									},
+								]}
+							/>
+						);
+					})()
+				: null}
 		</ClassicyApp>
 	);
 };

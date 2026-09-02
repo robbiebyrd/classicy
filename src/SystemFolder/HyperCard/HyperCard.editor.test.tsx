@@ -1,4 +1,10 @@
-import { act, cleanup, render, waitFor } from "@testing-library/react";
+import {
+	act,
+	cleanup,
+	fireEvent,
+	render,
+	waitFor,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { HCEditState } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorUtils";
 import { registerHyperCardSaveProvider } from "@/SystemFolder/HyperCard/HyperCardPlugins";
@@ -6,6 +12,10 @@ import { registerHyperCardSaveProvider } from "@/SystemFolder/HyperCard/HyperCar
 const dispatch = vi.fn();
 let mockState: Record<string, unknown> = {};
 const capturedMenus: Record<string, unknown[]> = {};
+const capturedOnBeforeClose: Record<
+	string,
+	((id: string) => boolean | Promise<boolean>) | undefined
+> = {};
 let capturedOpenDialogProps:
 	| {
 			open: boolean;
@@ -41,13 +51,16 @@ vi.mock("@/SystemFolder/SystemResources/Window/ClassicyWindow", () => ({
 		title,
 		id,
 		appMenu,
+		onBeforeClose,
 	}: {
 		children: React.ReactNode;
 		title?: string;
 		id: string;
 		appMenu?: unknown[];
+		onBeforeClose?: (id: string) => boolean | Promise<boolean>;
 	}) => {
 		capturedMenus[id] = (appMenu as unknown[]) ?? [];
+		capturedOnBeforeClose[id] = onBeforeClose;
 		return (
 			<div
 				data-window-id={id}
@@ -120,6 +133,9 @@ beforeEach(() => {
 	for (const k of Object.keys(capturedMenus)) {
 		delete capturedMenus[k];
 	}
+	for (const k of Object.keys(capturedOnBeforeClose)) {
+		delete capturedOnBeforeClose[k];
+	}
 });
 
 function stateWith(edit?: HCEditState, windows: unknown[] = []) {
@@ -185,6 +201,77 @@ function makeEdit(overrides: Partial<HCEditState> = {}): HCEditState {
 		dirty: false,
 		...overrides,
 	};
+}
+
+/** Like stateWith, but supports several simultaneously open stacks — needed
+ * for the #236 Quit cascade, which walks every dirty edit session. */
+function stateWithStacks(
+	stacks: { id: string; edit?: HCEditState }[],
+	activeStackId: string = stacks[0]?.id ?? "demo",
+) {
+	const openStacks: Record<string, unknown> = {};
+	const edits: Record<string, HCEditState> = {};
+	for (const s of stacks) {
+		const draft = s.edit?.draft ?? {
+			name: s.id,
+			cards: [{ id: "c1", parts: [] }],
+		};
+		openStacks[s.id] = {
+			stackSource: s.id,
+			stack: draft,
+			currentCardId: "c1",
+			history: [] as unknown[],
+			variables: {},
+			fieldValues: {},
+			partVisibility: {},
+			fieldRev: {},
+		};
+		if (s.edit) edits[s.id] = s.edit;
+	}
+	return {
+		System: {
+			Manager: {
+				Desktop: { appMenu: [] as unknown[] },
+				Applications: {
+					focusedAppId: "HyperCard.app",
+					apps: {
+						"HyperCard.app": {
+							id: "HyperCard.app",
+							name: "HyperCard",
+							icon: "i.png",
+							windows: [] as unknown[],
+							open: true,
+							data: {
+								activeStackId,
+								openStacks,
+								...(Object.keys(edits).length ? { edits } : {}),
+							},
+						},
+					},
+				},
+			},
+		},
+	};
+}
+
+/** Deletes a stack's edit session from a stateWith/stateWithStacks mockState,
+ * simulating what the real ClassicyAppHCEditExit reducer case does — the
+ * mocked dispatch() is a spy only, so tests drive this by hand. */
+function dropEditSession(state: unknown, stackId: string): void {
+	const edits = (
+		(
+			state as {
+				System: {
+					Manager: {
+						Applications: { apps: Record<string, { data?: unknown }> };
+					};
+				};
+			}
+		).System.Manager.Applications.apps["HyperCard.app"].data as
+			| { edits?: Record<string, unknown> }
+			| undefined
+	)?.edits;
+	if (edits) delete edits[stackId];
 }
 
 function menuItem(
@@ -332,10 +419,16 @@ describe("HyperCard editor integration", () => {
 			stackId: "demo",
 			layer: "background",
 		});
-		menuItem(menus, "file", "stop_editing")?.onClickFunc?.();
+		// #236: the old "Stop Editing (Discard)" item was replaced with a
+		// non-destructive Browse/Edit toggle mirroring the toolbar buttons.
+		// makeEdit() defaults to tool "pointer" (editing), so this is showing
+		// "Browse" and toggling to the browse tool.
+		expect(menuItem(menus, "file", "toggle_edit_mode")?.title).toBe("Browse");
+		menuItem(menus, "file", "toggle_edit_mode")?.onClickFunc?.();
 		expect(dispatch).toHaveBeenCalledWith({
-			type: "ClassicyAppHCEditExit",
+			type: "ClassicyAppHCEditSetTool",
 			stackId: "demo",
+			tool: "browse",
 		});
 		menuItem(menus, "edit", "edit_script")?.onClickFunc?.();
 		expect(dispatch).toHaveBeenCalledWith({
@@ -678,5 +771,195 @@ describe("HyperCard editor integration", () => {
 			"view_hypercard_inspector",
 		);
 		expect(info?.checked).toBe(true);
+	});
+});
+
+describe("HyperCard unsaved-changes guard (#236)", () => {
+	it("shows 'Edit' in the File menu while browsing", () => {
+		mockState = stateWith(makeEdit({ tool: "browse" }));
+		render(<HyperCard />);
+		expect(
+			menuItem(capturedMenus.hypercard_main, "file", "toggle_edit_mode")?.title,
+		).toBe("Edit");
+	});
+
+	it("shows 'Browse' in the File menu while editing", () => {
+		mockState = stateWith(makeEdit({ tool: "pointer" }));
+		render(<HyperCard />);
+		expect(
+			menuItem(capturedMenus.hypercard_main, "file", "toggle_edit_mode")?.title,
+		).toBe("Browse");
+	});
+
+	it("closing a clean stack's window proceeds immediately, with no alert", () => {
+		mockState = stateWith(makeEdit({ dirty: false }));
+		render(<HyperCard />);
+		const result = capturedOnBeforeClose.hypercard_main?.("hypercard_main");
+		expect(result).toBe(true);
+	});
+
+	it("closing a dirty stack's window shows the Save/Discard/Cancel alert instead of closing", () => {
+		mockState = stateWith(makeEdit({ dirty: true }));
+		const { getByText } = render(<HyperCard />);
+		let result: boolean | Promise<boolean> | undefined;
+		act(() => {
+			result = capturedOnBeforeClose.hypercard_main?.("hypercard_main");
+		});
+		expect(result).toBeInstanceOf(Promise);
+		expect(getByText(/Save changes to/)).toBeTruthy();
+		expect(getByText("Cancel")).toBeTruthy();
+		expect(getByText("Don’t Save")).toBeTruthy();
+		expect(getByText("Save")).toBeTruthy();
+	});
+
+	it("Cancel in the guard alert aborts the close and dismisses the alert", async () => {
+		mockState = stateWith(makeEdit({ dirty: true }));
+		const { getByText, queryByText } = render(<HyperCard />);
+		let result: boolean | Promise<boolean> | undefined;
+		act(() => {
+			result = capturedOnBeforeClose.hypercard_main?.("hypercard_main");
+		});
+		act(() => {
+			fireEvent.click(getByText("Cancel"));
+		});
+		await expect(result).resolves.toBe(false);
+		expect(queryByText(/Save changes to/)).toBeNull();
+	});
+
+	it("Don’t Save discards the edit session (ClassicyAppHCEditExit) and lets the close proceed", async () => {
+		mockState = stateWith(makeEdit({ dirty: true }));
+		const { getByText } = render(<HyperCard />);
+		let result: boolean | Promise<boolean> | undefined;
+		act(() => {
+			result = capturedOnBeforeClose.hypercard_main?.("hypercard_main");
+		});
+		act(() => {
+			fireEvent.click(getByText("Don’t Save"));
+		});
+		await expect(result).resolves.toBe(true);
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "ClassicyAppHCEditExit",
+			stackId: "demo",
+		});
+	});
+
+	it("Save saves through the registered provider, marks the stack saved, and lets the close proceed", async () => {
+		registerHyperCardSaveProvider({
+			id: "guard-provider",
+			label: "Guard",
+			canSave: () => true,
+			save: async () => ({ ok: true }),
+		});
+		mockState = stateWith(makeEdit({ dirty: true }));
+		const { getByText } = render(<HyperCard />);
+		let result: boolean | Promise<boolean> | undefined;
+		act(() => {
+			result = capturedOnBeforeClose.hypercard_main?.("hypercard_main");
+		});
+		act(() => {
+			fireEvent.click(getByText("Save"));
+		});
+		await expect(result).resolves.toBe(true);
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "ClassicyAppHCEditMarkSaved",
+			stackId: "demo",
+		});
+	});
+
+	it("a failing Save reports the error and keeps the close from proceeding", async () => {
+		registerHyperCardSaveProvider({
+			id: "guard-fail-provider",
+			label: "GuardFail",
+			canSave: () => true,
+			save: async () => ({ ok: false, error: "disk full" }),
+		});
+		mockState = stateWith(makeEdit({ dirty: true }));
+		const { getByText } = render(<HyperCard />);
+		let result: boolean | Promise<boolean> | undefined;
+		act(() => {
+			result = capturedOnBeforeClose.hypercard_main?.("hypercard_main");
+		});
+		act(() => {
+			fireEvent.click(getByText("Save"));
+		});
+		await expect(result).resolves.toBe(false);
+		expect(dispatch).toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: "ClassicyAppHyperCardOpenFileFailed",
+				message: "The stack can’t be saved: disk full",
+			}),
+		);
+	});
+
+	it("Quit shows the guard for the first dirty stack; Cancel aborts the whole quit with no ClassicyAppClose", () => {
+		mockState = stateWithStacks([
+			{ id: "alpha", edit: makeEdit({ dirty: true }) },
+			{ id: "beta", edit: makeEdit({ dirty: true }) },
+		]);
+		const { getByText, queryByText } = render(<HyperCard />);
+		act(() => {
+			menuItem(
+				capturedMenus.hypercard_main,
+				"file",
+				"HyperCard.app_quit",
+			)?.onClickFunc?.();
+		});
+		expect(getByText(/Save changes to/)).toBeTruthy();
+		act(() => {
+			fireEvent.click(getByText("Cancel"));
+		});
+		expect(queryByText(/Save changes to/)).toBeNull();
+		expect(dispatch).not.toHaveBeenCalledWith(
+			expect.objectContaining({ type: "ClassicyAppClose" }),
+		);
+	});
+
+	it("Quit cascades: resolving each dirty stack in turn advances to the next, then quits once none remain", async () => {
+		mockState = stateWithStacks([
+			{
+				id: "alpha",
+				edit: makeEdit({
+					dirty: true,
+					draft: { name: "alpha", cards: [{ id: "c1", parts: [] }] },
+				}),
+			},
+			{
+				id: "beta",
+				edit: makeEdit({
+					dirty: true,
+					draft: { name: "beta", cards: [{ id: "c1", parts: [] }] },
+				}),
+			},
+		]);
+		const { getByText, queryByText } = render(<HyperCard />);
+		act(() => {
+			menuItem(
+				capturedMenus.hypercard_main,
+				"file",
+				"HyperCard.app_quit",
+			)?.onClickFunc?.();
+		});
+		expect(getByText(/Save changes to “alpha”/)).toBeTruthy();
+
+		act(() => {
+			fireEvent.click(getByText("Don’t Save"));
+		});
+		// The mocked dispatch doesn't run the real reducer — simulate its
+		// ClassicyAppHCEditExit effect so the cascade's next freshest-state
+		// read no longer sees "alpha" as dirty.
+		dropEditSession(mockState, "alpha");
+
+		await waitFor(() =>
+			expect(getByText(/Save changes to “beta”/)).toBeTruthy(),
+		);
+		act(() => {
+			fireEvent.click(getByText("Don’t Save"));
+		});
+		dropEditSession(mockState, "beta");
+
+		await waitFor(() => expect(queryByText(/Save changes to/)).toBeNull());
+		expect(dispatch).toHaveBeenCalledWith(
+			expect.objectContaining({ type: "ClassicyAppClose" }),
+		);
 	});
 });
