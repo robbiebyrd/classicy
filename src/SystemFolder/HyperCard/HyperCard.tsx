@@ -762,44 +762,6 @@ export const HyperCard: FunctionalComponent = () => {
 					},
 				],
 			},
-			{
-				id: "go",
-				title: "Go",
-				menuChildren: [
-					{
-						id: "go_first",
-						title: "First",
-						onClickFunc: () => navigate("first"),
-					},
-					{ id: "go_prev", title: "Prev", onClickFunc: () => navigate("prev") },
-					{ id: "go_next", title: "Next", onClickFunc: () => navigate("next") },
-					{ id: "go_last", title: "Last", onClickFunc: () => navigate("last") },
-					{ id: "go_sep", title: "-" },
-					{ id: "go_back", title: "Back", onClickFunc: () => navigate("back") },
-				],
-			},
-			{
-				id: "view",
-				title: "View",
-				menuChildren: [
-					paletteToggle(
-						"hypercard_tools",
-						"Tools",
-						"Ctrl+T",
-						toolsClosed,
-						[130, 0],
-						[8, 100],
-					),
-					paletteToggle(
-						"hypercard_inspector",
-						"Info",
-						"Ctrl+I",
-						infoClosed,
-						[240, 0],
-						[8, 360],
-					),
-				],
-			},
 			...(activeStackId && edit
 				? [
 						{
@@ -871,6 +833,48 @@ export const HyperCard: FunctionalComponent = () => {
 								},
 							],
 						},
+					]
+				: []),
+			{
+				id: "view",
+				title: "View",
+				menuChildren: [
+					paletteToggle(
+						"hypercard_tools",
+						"Tools",
+						"Ctrl+T",
+						toolsClosed,
+						[130, 0],
+						[8, 100],
+					),
+					paletteToggle(
+						"hypercard_inspector",
+						"Info",
+						"Ctrl+I",
+						infoClosed,
+						[240, 0],
+						[8, 360],
+					),
+				],
+			},
+			{
+				id: "go",
+				title: "Go",
+				menuChildren: [
+					{
+						id: "go_first",
+						title: "First",
+						onClickFunc: () => navigate("first"),
+					},
+					{ id: "go_prev", title: "Prev", onClickFunc: () => navigate("prev") },
+					{ id: "go_next", title: "Next", onClickFunc: () => navigate("next") },
+					{ id: "go_last", title: "Last", onClickFunc: () => navigate("last") },
+					{ id: "go_sep", title: "-" },
+					{ id: "go_back", title: "Back", onClickFunc: () => navigate("back") },
+				],
+			},
+			...(activeStackId && edit
+				? [
 						{
 							id: "objects",
 							title: "Objects",
@@ -915,7 +919,7 @@ export const HyperCard: FunctionalComponent = () => {
 			// A separate top-level menu (not a File submenu) for host-registered
 			// stacks -- positioned after Objects while editing (Objects only
 			// exists in edit mode, so this is simply the array's last entry,
-			// and falls after View in browse mode). Omitted entirely when no
+			// and falls after Go in browse mode). Omitted entirely when no
 			// host has registered a stack, so it never shows as an empty menu.
 			...(registeredStacks.length > 0
 				? [
