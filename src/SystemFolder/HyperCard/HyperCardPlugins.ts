@@ -10,7 +10,7 @@
  *   - registerHyperCardPart(type, Component)          custom display parts
  *   - registerHyperCardCommand(name, { run })          custom logic (sync or blocking)
  *   - registerHyperCardEffectHandler(name, handler)    async side-effects (fetch, play, …)
- *   - registerHyperCardStack(id, name, stack)          add a stack to File → Open
+ *   - registerHyperCardStack(id, name, stack)          add a stack to the Examples menu
  */
 
 import type { FC } from "react";
@@ -182,7 +182,7 @@ export function getHyperCardOptionPicker(
 	return optionPickerRegistry.get(id);
 }
 
-/** Register a stack so it appears in HyperCard's File → Open menu. */
+/** Register a stack so it appears in HyperCard's top-level Examples menu. */
 export function registerHyperCardStack(
 	id: string,
 	name: string,

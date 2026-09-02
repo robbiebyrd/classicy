@@ -44,7 +44,6 @@ import {
 	getHyperCardSaveProviders,
 	getRegisteredStacks,
 } from "@/SystemFolder/HyperCard/HyperCardPlugins";
-import { HyperCardBuiltInStacks } from "@/SystemFolder/HyperCard/HyperCardSampleStack";
 import { evaluateScriptEffect } from "@/SystemFolder/HyperCard/HyperCardScriptEffects";
 import { HyperCardTransition } from "@/SystemFolder/HyperCard/HyperCardTransition";
 import {
@@ -86,6 +85,32 @@ function useHyperCardData(): HyperCardData | undefined {
 		const raw = s.System.Manager.Applications.apps[appId]?.data;
 		return raw && isHyperCardData(raw) ? raw : undefined;
 	});
+}
+
+/**
+ * A fresh id for a File → New Stack… stack, unique against currently-open
+ * stacks. `Date.now()` collisions are effectively impossible in practice, but
+ * a numeric suffix keeps the id stable if one ever occurs (e.g. two rapid
+ * clicks in a test with a mocked clock).
+ */
+function generateUntitledStackId(
+	openStacks: Record<string, unknown> | undefined,
+): string {
+	const base = `untitled-${Date.now()}`;
+	if (!openStacks?.[base]) return base;
+	let suffix = 2;
+	while (openStacks[`${base}-${suffix}`]) suffix += 1;
+	return `${base}-${suffix}`;
+}
+
+/** A blank stack seeded for File → New Stack… — one empty card, no parts. */
+function makeBlankStack(): HCStack {
+	return {
+		name: "Untitled Stack",
+		version: "2",
+		size: [420, 300],
+		cards: [{ id: "card1" }],
+	};
 }
 
 export const HyperCard: FunctionalComponent = () => {
@@ -531,18 +556,26 @@ export const HyperCard: FunctionalComponent = () => {
 		[dispatch],
 	);
 
-	// Built-in stacks plus any a host app registered via registerHyperCardStack.
-	const stackEntries = useMemo(
-		() => [
-			...Object.values(HyperCardBuiltInStacks).map((e) => ({
-				id: e.id,
-				name: e.stack.name,
-				stack: e.stack,
-			})),
-			...getRegisteredStacks(),
-		],
-		[],
-	);
+	// File → New Stack…: open a blank stack and land directly in edit mode —
+	// a blank stack isn't useful in browse/run mode.
+	const newStack = useCallback(() => {
+		const openStacks = (
+			useAppManager.getState().System.Manager.Applications.apps[appId]
+				?.data as HyperCardData | undefined
+		)?.openStacks;
+		const id = generateUntitledStackId(openStacks);
+		dispatch({
+			type: "ClassicyAppHyperCardOpenStack",
+			stackId: id,
+			stack: makeBlankStack(),
+		});
+		dispatch({ type: "ClassicyAppHCEditEnter", stackId: id });
+	}, [dispatch]);
+
+	// Stacks a host app registered via registerHyperCardStack — surfaced in
+	// the top-level Examples menu, not File (the bundled sample stacks were
+	// removed from File entirely; see HyperCard.editor.test.tsx).
+	const registeredStacks = useMemo(() => getRegisteredStacks(), []);
 
 	const navigate = useCallback(
 		(to: string) => {
@@ -610,11 +643,11 @@ export const HyperCard: FunctionalComponent = () => {
 				id: "file",
 				title: "File",
 				menuChildren: [
-					...stackEntries.map((entry) => ({
-						id: `open_${entry.id}`,
-						title: `Open “${entry.name}”`,
-						onClickFunc: () => openStack(entry.id, entry.stack),
-					})),
+					{
+						id: "new_stack",
+						title: "New Stack…",
+						onClickFunc: newStack,
+					},
 					{ id: "file_sep", title: "-" },
 					...(activeStackId && !edit
 						? [
@@ -879,11 +912,30 @@ export const HyperCard: FunctionalComponent = () => {
 						},
 					]
 				: []),
+			// A separate top-level menu (not a File submenu) for host-registered
+			// stacks -- positioned after Objects while editing (Objects only
+			// exists in edit mode, so this is simply the array's last entry,
+			// and falls after View in browse mode). Omitted entirely when no
+			// host has registered a stack, so it never shows as an empty menu.
+			...(registeredStacks.length > 0
+				? [
+						{
+							id: "examples",
+							title: "Examples",
+							menuChildren: registeredStacks.map((entry) => ({
+								id: `open_${entry.id}`,
+								title: `Open “${entry.name}”`,
+								onClickFunc: () => openStack(entry.id, entry.stack),
+							})),
+						},
+					]
+				: []),
 		];
 	}, [
 		navigate,
 		openStack,
-		stackEntries,
+		newStack,
+		registeredStacks,
 		activeStackId,
 		edit,
 		editingActive,
