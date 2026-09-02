@@ -704,7 +704,7 @@ describe("HyperCard editor integration", () => {
 		).toBeUndefined();
 	});
 
-	it("has a View menu placed immediately after Go", () => {
+	it("has a View menu placed immediately before Go", () => {
 		mockState = stateWith(makeEdit(), [
 			{ id: "hypercard_tools", closed: false },
 			{ id: "hypercard_inspector", closed: false },
@@ -713,9 +713,38 @@ describe("HyperCard editor integration", () => {
 		const menus = capturedMenus.hypercard_main as { id: string }[];
 		const ids = menus.map((m) => m.id);
 		expect(ids).toContain("view");
-		expect(ids.indexOf("view")).toBe(ids.indexOf("go") + 1);
+		expect(ids.indexOf("go")).toBe(ids.indexOf("view") + 1);
 		expect(menuItem(menus, "view", "view_hypercard_tools")).toBeDefined();
 		expect(menuItem(menus, "view", "view_hypercard_inspector")).toBeDefined();
+	});
+
+	it("orders top-level menus File, View, Go, Examples in browse mode", () => {
+		const stack = { name: "Host Demo", cards: [{ id: "hc1" }] };
+		registerHyperCardStack("order-demo", "Order Demo", stack);
+		mockState = stateWith();
+		render(<HyperCard />);
+		const ids = (capturedMenus.hypercard_main as { id: string }[]).map(
+			(m) => m.id,
+		);
+		expect(ids).toEqual(["file", "view", "go", "examples"]);
+	});
+
+	it("orders top-level menus File, Edit, View, Go, Objects, Examples in edit mode", () => {
+		const stack = { name: "Host Demo", cards: [{ id: "hc1" }] };
+		registerHyperCardStack("order-demo-edit", "Order Demo Edit", stack);
+		mockState = stateWith(makeEdit());
+		render(<HyperCard />);
+		const ids = (capturedMenus.hypercard_main as { id: string }[]).map(
+			(m) => m.id,
+		);
+		expect(ids).toEqual([
+			"file",
+			"edit",
+			"view",
+			"go",
+			"objects",
+			"examples",
+		]);
 	});
 
 	it("View items are disabled and unchecked outside edit mode", () => {
