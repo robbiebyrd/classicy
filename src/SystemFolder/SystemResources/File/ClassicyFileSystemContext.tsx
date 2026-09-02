@@ -13,6 +13,7 @@ import {
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
 import { withExtensionsFolder } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemExtensions";
 import type { ClassicyFileSystemTree } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import type { ClassicyFileSystemSeedMigration } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemSeedMigrations";
 import { DefaultFSContent } from "@/SystemFolder/SystemResources/File/DefaultClassicyFileSystem";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
@@ -21,6 +22,7 @@ export type ClassicyDefaultFileSystemMode = "merge" | "exclusive";
 type ClassicyDefaultFileSystemContextValue = {
 	defaultFileSystem?: ClassicyFileSystemTree;
 	mode: ClassicyDefaultFileSystemMode;
+	seedMigrations?: ClassicyFileSystemSeedMigration[];
 };
 
 export const ClassicyDefaultFileSystemContext =
@@ -71,7 +73,7 @@ export function useClassicyFileSystem(
 	storageKey?: string,
 	separator?: string,
 ): ClassicyFileSystem {
-	const { defaultFileSystem, mode } = useContext(
+	const { defaultFileSystem, mode, seedMigrations } = useContext(
 		ClassicyDefaultFileSystemContext,
 	);
 
@@ -102,7 +104,12 @@ export function useClassicyFileSystem(
 	// biome-ignore lint/correctness/useExhaustiveDependencies: appShortcutsKey and extensionAppsKey are intentional invalidation keys — the icon/app sets are read via getState() so moves/focus don't re-render
 	const fs = useMemo(() => {
 		const resolved = resolveDefaultFileSystem(defaultFileSystem, mode);
-		const fs = new ClassicyFileSystem(storageKey, resolved, separator);
+		const fs = new ClassicyFileSystem(
+			storageKey,
+			resolved,
+			separator,
+			seedMigrations,
+		);
 		// Overlay the derived Applications folder after construction so it is
 		// live-only: the constructor's localStorage persist has already run,
 		// and returning visitors' persisted trees can't shadow newly added
@@ -128,6 +135,7 @@ export function useClassicyFileSystem(
 	}, [
 		defaultFileSystem,
 		mode,
+		seedMigrations,
 		storageKey,
 		separator,
 		appShortcutsKey,

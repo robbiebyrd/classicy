@@ -17,6 +17,10 @@ import {
 	type ClassicyFileSystemEntryMetadata,
 	type ClassicyFileSystemTree,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import {
+	applyClassicyFileSystemSeedMigrations,
+	type ClassicyFileSystemSeedMigration,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileSystemSeedMigrations";
 import { isValidFileSystemEntry } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemValidation";
 import { DefaultFSContent } from "@/SystemFolder/SystemResources/File/DefaultClassicyFileSystem";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
@@ -79,6 +83,13 @@ export class ClassicyFileSystem {
 		// biome-ignore lint/suspicious/noExplicitAny: DefaultFSContent doesn't conform to ClassicyFileSystemEntry at root level
 		defaultFS: any = DefaultFSContent,
 		separator: string = ":",
+		// One-time, idempotent corrections for stale content already persisted
+		// in a returning visitor's localStorage tree — see
+		// ClassicyFileSystemSeedMigrations.ts. Applied unconditionally below
+		// (not just when loaded from storage): every op is a guarded no-op once
+		// it no longer applies, so running it against an already-current tree
+		// is harmless.
+		seedMigrations: ClassicyFileSystemSeedMigration[] = [],
 	) {
 		// Drain any predecessor instance's pending debounced flush so we never
 		// seed from a localStorage snapshot that is about to be overwritten.
@@ -122,6 +133,7 @@ export class ClassicyFileSystem {
 		} catch {
 			// non-browser environment — seq stays in-memory
 		}
+		applyClassicyFileSystemSeedMigrations(this.fs, seedMigrations, separator);
 		this.persist();
 	}
 

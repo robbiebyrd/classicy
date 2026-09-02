@@ -26,6 +26,7 @@ import {
 	type ClassicyDefaultFileSystemMode,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
 import type { ClassicyFileSystemTree } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import type { ClassicyFileSystemSeedMigration } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemSeedMigrations";
 
 type ClassicyAppManagerProviderProps = {
 	gaMeasurementIds?: string[];
@@ -35,6 +36,9 @@ type ClassicyAppManagerProviderProps = {
 	defaultState?: DeepPartial<ClassicyStore>;
 	defaultFileSystem?: ClassicyFileSystemTree;
 	defaultFileSystemMode?: ClassicyDefaultFileSystemMode;
+	/** One-time corrections applied to a returning visitor's persisted
+	 *  filesystem tree — see ClassicyFileSystemSeedMigrations.ts. */
+	defaultFileSystemSeedMigrations?: ClassicyFileSystemSeedMigration[];
 	disableSimpleText?: boolean;
 	disablePDFViewer?: boolean;
 	disableMoviePlayer?: boolean;
@@ -69,6 +73,7 @@ export const ClassicyAppManagerProvider: FunctionalComponent<
 	defaultState,
 	defaultFileSystem,
 	defaultFileSystemMode,
+	defaultFileSystemSeedMigrations,
 	disableSimpleText,
 	disablePDFViewer,
 	disableMoviePlayer,
@@ -90,8 +95,9 @@ export const ClassicyAppManagerProvider: FunctionalComponent<
 		() => ({
 			defaultFileSystem,
 			mode: defaultFileSystemMode ?? ("merge" as const),
+			seedMigrations: defaultFileSystemSeedMigrations,
 		}),
-		[defaultFileSystem, defaultFileSystemMode],
+		[defaultFileSystem, defaultFileSystemMode, defaultFileSystemSeedMigrations],
 	);
 
 	const defaultAppsContextValue = useMemo(
