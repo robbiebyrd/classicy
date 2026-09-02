@@ -45,7 +45,7 @@ export type ClassicyWindowPositionX = number | "left" | "center" | "right";
 export type ClassicyWindowPositionY = number | "top" | "center" | "bottom";
 export type ClassicyWindowSizeDimension = number | `${number}%`;
 
-function resolveSize(
+export function resolveSize(
 	size: [ClassicyWindowSizeDimension, ClassicyWindowSizeDimension],
 ): [number, number] {
 	const menuBarHeight = 30;
@@ -71,7 +71,7 @@ function resolveSize(
 	return [resolve(size[0], dw), resolve(size[1], dh)];
 }
 
-function resolvePosition(
+export function resolvePosition(
 	pos: [ClassicyWindowPositionX, ClassicyWindowPositionY],
 	windowSize: [number, number],
 ): [number, number] {
@@ -100,6 +100,30 @@ function resolvePosition(
 	} else {
 		y = Math.max(menuBarHeight, (vh - windowSize[1]) / 2);
 	}
+
+	return [x, y];
+}
+
+/**
+ * #248: clamp a window rect so it stays fully inside the viewport when it
+ * fits; for a window larger than the viewport itself, only the top-left
+ * corner is guaranteed on-screen — the title bar and its close box may still
+ * render off-screen in that case. Pure and exported so it's unit-testable
+ * without a real ResizeObserver.
+ */
+export function clampWindowPositionToViewport(
+	position: [number, number],
+	windowSize: [number, number],
+): [number, number] {
+	const menuBarHeight = 30;
+	const vw = typeof window !== "undefined" ? window.innerWidth : 800;
+	const vh = typeof window !== "undefined" ? window.innerHeight : 600;
+
+	const maxX = Math.max(0, vw - windowSize[0]);
+	const maxY = Math.max(menuBarHeight, vh - windowSize[1]);
+
+	const x = Math.min(Math.max(position[0], 0), maxX);
+	const y = Math.min(Math.max(position[1], menuBarHeight), maxY);
 
 	return [x, y];
 }
@@ -287,6 +311,11 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const pendingSizeRef = useRef<[number, number] | null>(null);
 	const isDraggingRef = useRef(false);
 	const isResizingRef = useRef(false);
+	// #248: once the user has manually dragged or resized the window, the
+	// content-resize observer below must never silently move it again — an
+	// async re-layout (e.g. an image finishing load) must not undo a manual
+	// move.
+	const userRepositionedRef = useRef(false);
 	const pendingDragRef = useRef(false);
 	const dragStartPointRef = useRef<[number, number]>([0, 0]);
 	const clickPositionRef = useRef<[number, number]>([0, 0]);
@@ -314,8 +343,24 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	}, []);
 
 	const resolvedPosition = useMemo(
-		() => resolvePosition(initialPosition, resolvedSize),
-		[initialPosition, resolvedSize],
+		() =>
+			// Clamp against `size` (the actual rendered/persisted dimensions),
+			// not `resolvedSize` (derived from the initialSize prop alone) — a
+			// resizable window's real size can already differ from its initial
+			// default by the time this runs.
+			clampWindowPositionToViewport(
+				resolvePosition(initialPosition, resolvedSize),
+				size,
+			),
+		[initialPosition, resolvedSize, size],
+	);
+
+	// #248: only a symbolic position (e.g. "center") should ever re-center as
+	// content resizes after mount — a window opened at explicit numeric
+	// coordinates must never silently move.
+	const hasSymbolicPosition = useMemo(
+		() => initialPosition.some((value) => typeof value === "string"),
+		[initialPosition],
 	);
 
 	const ws = useMemo(() => {
@@ -338,7 +383,18 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		};
 
 		if (currentWindow) {
-			return currentWindow;
+			// A window restored from persisted store state may have been saved
+			// with an off-screen position (e.g. from a since-shrunk viewport, or
+			// content that grew after that position was saved) — clamp it using
+			// the window's own persisted size, not resolvedSize, since a
+			// resized-and-persisted window's real size can exceed its default.
+			return {
+				...currentWindow,
+				position: clampWindowPositionToViewport(
+					currentWindow.position,
+					currentWindow.size,
+				),
+			};
 		}
 
 		return {
@@ -363,6 +419,52 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	useEffect(() => {
 		wsPositionRef.current = ws.position as [number, number];
 	}, [ws.position]);
+
+	// #248: correct on first paint (resolvedPosition above), but an alert
+	// sized [0, 0] (auto) centers against a phantom empty box — any async
+	// content growth after mount (e.g. an <img> finishing load) needs to
+	// re-run centering against the box's real, current size and re-clamp to
+	// the viewport. Updated every render so the observer's stable callback
+	// (see the mount-only effect below) always sees fresh state — the same
+	// indirection docMoveHandlerRef/docUpHandlerRef use above.
+	const handleContentResizeRef = useRef<() => void>(() => {});
+	handleContentResizeRef.current = () => {
+		if (!hasSymbolicPosition) return;
+		// An in-progress or already-committed manual move/resize wins; an
+		// async re-layout must never undo it.
+		if (userRepositionedRef.current) return;
+		if (isDraggingRef.current || isResizingRef.current) return;
+		const el = windowRef.current;
+		if (!el) return;
+		const rect = el.getBoundingClientRect();
+		const measuredSize: [number, number] = [rect.width, rect.height];
+		const recentered = clampWindowPositionToViewport(
+			resolvePosition(initialPosition, measuredSize),
+			measuredSize,
+		);
+		if (
+			Math.round(recentered[0]) === Math.round(wsPositionRef.current[0]) &&
+			Math.round(recentered[1]) === Math.round(wsPositionRef.current[1])
+		) {
+			return;
+		}
+		setMoving(false, recentered);
+	};
+
+	// jsdom has no ResizeObserver (same guard as ClassicyTabs); the observer
+	// simply never fires there, which is a no-op unless the helper above is
+	// unit-tested directly against a mocked ResizeObserver. Re-attached
+	// whenever the window opens/closes so a window that starts hidden picks
+	// up observation once its content actually mounts.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: ws.closed isn't read in the effect body — it's an intentional re-attachment trigger so a window that starts hidden re-observes once it becomes visible
+	useEffect(() => {
+		if (typeof ResizeObserver === "undefined") return;
+		const el = windowRef.current;
+		if (!el) return;
+		const observer = new ResizeObserver(() => handleContentResizeRef.current());
+		observer.observe(el);
+		return () => observer.disconnect();
+	}, [ws.closed]);
 
 	const pageviewPath = useMemo(
 		() => analyticsPath ?? classicyWindowPagePath(appId, id),
@@ -516,6 +618,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	docUpHandlerRef.current = (_e: globalThis.MouseEvent) => {
 		pendingDragRef.current = false;
 		if (!isDraggingRef.current && !isResizingRef.current) return;
+		userRepositionedRef.current = true;
 		isDraggingRef.current = false;
 		isResizingRef.current = false;
 
@@ -647,6 +750,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		// are cleared further down, so this must stay above that reset.
 		if (isDraggingRef.current || isResizingRef.current) {
 			track("halt", { type: "ClassicyWindow", ...analyticsArgs });
+			userRepositionedRef.current = true;
 		}
 		// Only prevent default when actually stopping a drag or resize.
 		// Unconditional preventDefault() breaks Safari's native range input
