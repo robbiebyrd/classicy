@@ -104,6 +104,29 @@ function resolvePosition(
 	return [x, y];
 }
 
+/**
+ * #248: clamp a window rect so it always stays fully inside the viewport —
+ * the title bar (and its close box) can never render off-screen, even on a
+ * small viewport or when content grows the box after mount. Pure and
+ * exported so it's unit-testable without a real ResizeObserver.
+ */
+export function clampWindowPositionToViewport(
+	position: [number, number],
+	windowSize: [number, number],
+): [number, number] {
+	const menuBarHeight = 30;
+	const vw = typeof window !== "undefined" ? window.innerWidth : 800;
+	const vh = typeof window !== "undefined" ? window.innerHeight : 600;
+
+	const maxX = Math.max(0, vw - windowSize[0]);
+	const maxY = Math.max(menuBarHeight, vh - windowSize[1]);
+
+	const x = Math.min(Math.max(position[0], 0), maxX);
+	const y = Math.min(Math.max(position[1], menuBarHeight), maxY);
+
+	return [x, y];
+}
+
 interface ClassicyWindowProps {
 	title?: string;
 	id: string;
@@ -287,6 +310,11 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const pendingSizeRef = useRef<[number, number] | null>(null);
 	const isDraggingRef = useRef(false);
 	const isResizingRef = useRef(false);
+	// #248: once the user has manually dragged or resized the window, the
+	// content-resize observer below must never silently move it again — an
+	// async re-layout (e.g. an image finishing load) must not undo a manual
+	// move.
+	const userRepositionedRef = useRef(false);
 	const pendingDragRef = useRef(false);
 	const dragStartPointRef = useRef<[number, number]>([0, 0]);
 	const clickPositionRef = useRef<[number, number]>([0, 0]);
@@ -314,7 +342,11 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	}, []);
 
 	const resolvedPosition = useMemo(
-		() => resolvePosition(initialPosition, resolvedSize),
+		() =>
+			clampWindowPositionToViewport(
+				resolvePosition(initialPosition, resolvedSize),
+				resolvedSize,
+			),
 		[initialPosition, resolvedSize],
 	);
 
@@ -516,6 +548,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	docUpHandlerRef.current = (_e: globalThis.MouseEvent) => {
 		pendingDragRef.current = false;
 		if (!isDraggingRef.current && !isResizingRef.current) return;
+		userRepositionedRef.current = true;
 		isDraggingRef.current = false;
 		isResizingRef.current = false;
 
@@ -647,6 +680,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		// are cleared further down, so this must stay above that reset.
 		if (isDraggingRef.current || isResizingRef.current) {
 			track("halt", { type: "ClassicyWindow", ...analyticsArgs });
+			userRepositionedRef.current = true;
 		}
 		// Only prevent default when actually stopping a drag or resize.
 		// Unconditional preventDefault() breaks Safari's native range input
