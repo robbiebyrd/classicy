@@ -20,6 +20,7 @@ import {
 	resolveScreenSaverConfig,
 } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverRegistry";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
+import { useClassicyAboutMenu } from "@/SystemFolder/SystemResources/App/ClassicyAppMenuHooks";
 import { quitMenuItemHelper } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyCheckbox } from "@/SystemFolder/SystemResources/Checkbox/ClassicyCheckbox";
@@ -43,6 +44,11 @@ const WINDOW_ID = "ScreenSaverManager_1";
 export function ClassicyScreenSaverManager() {
 	const dispatch = useAppManagerDispatch();
 	const appIcon = ClassicyIcons.system.extensions.screensaver;
+	const { aboutMenuItem, aboutWindow } = useClassicyAboutMenu(
+		APP_ID,
+		APP_NAME,
+		appIcon,
+	);
 
 	const data = useAppManager(
 		(s) =>
@@ -98,7 +104,11 @@ export function ClassicyScreenSaverManager() {
 					{
 						id: `${APP_ID}_file`,
 						title: "File",
-						menuChildren: [quitMenuItemHelper(APP_ID, APP_NAME, appIcon)],
+						menuChildren: [
+							{ ...aboutMenuItem, title: `About ${APP_NAME}` },
+							{ id: "spacer" },
+							quitMenuItemHelper(APP_ID, APP_NAME, appIcon),
+						],
 					},
 				]}
 			>
@@ -173,6 +183,7 @@ export function ClassicyScreenSaverManager() {
 					)}
 				</div>
 			</ClassicyWindow>
+			{aboutWindow}
 		</ClassicyApp>
 	);
 }

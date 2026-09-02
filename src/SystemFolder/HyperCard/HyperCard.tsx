@@ -55,6 +55,7 @@ import {
 } from "@/SystemFolder/HyperCard/HyperCardUtils";
 import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
+import { useClassicyAboutMenu } from "@/SystemFolder/SystemResources/App/ClassicyAppMenuHooks";
 import {
 	quitAppHelper,
 	quitMenuItemHelper,
@@ -116,6 +117,11 @@ function makeBlankStack(): HCStack {
 export const HyperCard: FunctionalComponent = () => {
 	const dispatch = useAppManagerDispatch();
 	const player = useSoundDispatch();
+	const { aboutMenuItem, aboutWindow } = useClassicyAboutMenu(
+		appId,
+		appName,
+		appIcon,
+	);
 
 	const [savedStacksOpen, setSavedStacksOpen] = useState(false);
 	const [saveStackOpen, setSaveStackOpen] = useState(false);
@@ -643,6 +649,8 @@ export const HyperCard: FunctionalComponent = () => {
 				id: "file",
 				title: "File",
 				menuChildren: [
+					{ ...aboutMenuItem, title: `About ${appName}` },
+					{ id: "file_sep_about", title: "-" },
 					{
 						id: "new_stack",
 						title: "New Stack…",
@@ -943,6 +951,7 @@ export const HyperCard: FunctionalComponent = () => {
 		toolsClosed,
 		infoClosed,
 		dispatch,
+		aboutMenuItem,
 		handleQuit,
 	]);
 
@@ -1182,6 +1191,8 @@ export const HyperCard: FunctionalComponent = () => {
 						);
 					})()
 				: null}
+
+			{aboutWindow}
 		</ClassicyApp>
 	);
 };
