@@ -1,7 +1,10 @@
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { HCEditState } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorUtils";
-import { registerHyperCardSaveProvider } from "@/SystemFolder/HyperCard/HyperCardPlugins";
+import {
+	registerHyperCardSaveProvider,
+	registerHyperCardStack,
+} from "@/SystemFolder/HyperCard/HyperCardPlugins";
 
 const dispatch = vi.fn();
 let mockState: Record<string, unknown> = {};
@@ -478,6 +481,72 @@ describe("HyperCard editor integration", () => {
 		expect(dispatch).not.toHaveBeenCalledWith(
 			expect.objectContaining({ type: "ClassicyAppHyperCardOpenFile" }),
 		);
+	});
+
+	it("File → New Stack… is in the File menu", () => {
+		mockState = stateWith();
+		render(<HyperCard />);
+		expect(
+			menuItem(capturedMenus.hypercard_main, "file", "new_stack")?.title,
+		).toBe("New Stack…");
+	});
+
+	it("File → New Stack… opens a blank stack and immediately enters edit mode for it", () => {
+		mockState = stateWith();
+		render(<HyperCard />);
+		act(() => {
+			menuItem(
+				capturedMenus.hypercard_main,
+				"file",
+				"new_stack",
+			)?.onClickFunc?.();
+		});
+		const openCall = dispatch.mock.calls
+			.map(([action]) => action as Record<string, unknown>)
+			.find((a) => a.type === "ClassicyAppHyperCardOpenStack");
+		expect(openCall).toBeDefined();
+		const stack = openCall?.stack as {
+			name: string;
+			cards: { id: string; parts?: unknown[] }[];
+		};
+		expect(stack.name).toBe("Untitled Stack");
+		expect(stack.cards).toHaveLength(1);
+		expect(stack.cards[0].parts ?? []).toHaveLength(0);
+		const stackId = openCall?.stackId as string;
+		expect(stackId).toBeTruthy();
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "ClassicyAppHCEditEnter",
+			stackId,
+		});
+	});
+
+	it("does not show an Examples menu when no stack has been registered", () => {
+		mockState = stateWith();
+		render(<HyperCard />);
+		expect(
+			(capturedMenus.hypercard_main as { id: string }[]).some(
+				(m) => m.id === "examples",
+			),
+		).toBe(false);
+	});
+
+	it("Examples menu lists host-registered stacks; Open dispatches OpenStack", () => {
+		const stack = { name: "Host Demo", cards: [{ id: "hc1" }] };
+		registerHyperCardStack("host-demo", "Host Demo", stack);
+		mockState = stateWith();
+		render(<HyperCard />);
+		const item = menuItem(
+			capturedMenus.hypercard_main,
+			"examples",
+			"open_host-demo",
+		);
+		expect(item?.title).toBe("Open “Host Demo”");
+		item?.onClickFunc?.();
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "ClassicyAppHyperCardOpenStack",
+			stackId: "host-demo",
+			stack,
+		});
 	});
 
 	it("Go menu navigates the edit session while editing", () => {
