@@ -1,6 +1,10 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, userEvent } from "@/__tests__/test-utils";
 import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
+import {
+	clampWindowPositionToViewport,
+	resolvePosition,
+} from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
 const mockDispatch = vi.hoisted(() => vi.fn());
 const mockPlayer = vi.hoisted(() => vi.fn());
@@ -216,6 +220,116 @@ describe("ClassicyAlert", () => {
 			type: "ClassicyWindowDestroy",
 			app: { id: "Finder.app" },
 			window: { id: "confirm-delete" },
+		});
+	});
+
+	// #248: an alert auto-sizes ([0, 0] handed to ClassicyWindow) and centers
+	// against that phantom box at mount. Async content growth -- an <img> in
+	// the message finishing load -- must re-run centering against the real,
+	// current size and re-clamp to the viewport, not leave the box pinned
+	// near the pre-image midpoint.
+	describe("re-centers when the message grows after mount (#248)", () => {
+		// jsdom has no ResizeObserver; this captures the callback ClassicyWindow
+		// registers so the test can invoke it manually once the image "loads" --
+		// the standard workaround given jsdom can't itself report a layout change.
+		class MockResizeObserver {
+			static instances: MockResizeObserver[] = [];
+			callback: () => void;
+			constructor(callback: () => void) {
+				this.callback = callback;
+				MockResizeObserver.instances.push(this);
+			}
+			observe = vi.fn();
+			unobserve = vi.fn();
+			disconnect = vi.fn();
+		}
+
+		const originalWidth = window.innerWidth;
+		const originalHeight = window.innerHeight;
+
+		beforeEach(() => {
+			MockResizeObserver.instances = [];
+			vi.stubGlobal("ResizeObserver", MockResizeObserver);
+			Object.defineProperty(window, "innerWidth", {
+				configurable: true,
+				value: 1000,
+			});
+			Object.defineProperty(window, "innerHeight", {
+				configurable: true,
+				value: 800,
+			});
+		});
+
+		afterEach(() => {
+			vi.unstubAllGlobals();
+			Object.defineProperty(window, "innerWidth", {
+				configurable: true,
+				value: originalWidth,
+			});
+			Object.defineProperty(window, "innerHeight", {
+				configurable: true,
+				value: originalHeight,
+			});
+		});
+
+		it("dispatches a re-centered, re-clamped position once the image finishes loading", () => {
+			render(
+				<ClassicyAlert
+					id="img-alert"
+					appId="Finder.app"
+					alertType="note"
+					label="Loading"
+					message={<img src="pic.png" alt="pic" />}
+				/>,
+			);
+
+			expect(MockResizeObserver.instances).toHaveLength(1);
+
+			// The alert's window id is `${appId}_${id}`; getElementById sidesteps
+			// escaping the "." in "Finder.app" for a CSS selector.
+			const windowEl = document.getElementById(
+				"Finder.app_img-alert",
+			) as HTMLElement;
+			expect(windowEl).toBeTruthy();
+
+			const img = screen.getByAltText("pic");
+			fireEvent.load(img);
+
+			// Simulate the box having actually grown to a real measured size (in
+			// place of the [0, 0] it was centered against at mount) -- what a real
+			// browser's ResizeObserver would report once the image lays out.
+			vi.spyOn(windowEl, "getBoundingClientRect").mockReturnValue({
+				width: 500,
+				height: 400,
+				top: 0,
+				left: 0,
+				right: 500,
+				bottom: 400,
+				x: 0,
+				y: 0,
+				toJSON: () => ({}),
+			} as DOMRect);
+
+			mockDispatch.mockClear();
+			MockResizeObserver.instances[0].callback();
+
+			const moves = mockDispatch.mock.calls
+				.map(
+					(call) =>
+						call[0] as {
+							type: string;
+							moving?: boolean;
+							position?: [number, number];
+						},
+				)
+				.filter((action) => action.type === "ClassicyWindowMove");
+			expect(moves).toHaveLength(1);
+
+			const expected = clampWindowPositionToViewport(
+				resolvePosition(["center", "center"], [500, 400]),
+				[500, 400],
+			);
+			expect(moves[0]?.position).toEqual(expected);
 		});
 	});
 });
