@@ -52,19 +52,31 @@ export function useClassicyAboutMenu(
 	appIcon: string,
 ): ClassicyAboutMenu {
 	const [showAbout, setShowAbout] = useState(false);
+	const hideAbout = useCallback(() => setShowAbout(false), []);
 
-	const aboutMenuItem: ClassicyMenuItem = {
-		id: `${appId}_about`,
-		title: "About",
-		onClickFunc: () => setShowAbout(true),
-	};
+	// Every caller documents (see useClassicyHelpMenu above) that a menu array
+	// must be referentially stable or it re-fires consuming effects every
+	// render. aboutMenuItem is exactly that kind of dependency for any app that
+	// folds it into its own memoized appMenu (every built-in app does) — an
+	// unmemoized literal here silently defeated that memoization and, for
+	// HyperCard specifically, fed back into ClassicyWindowMenu/desktopMenu
+	// sync effects that dispatch whenever their input's identity changes,
+	// producing an infinite render loop (issue: HyperCard crash on open).
+	const aboutMenuItem: ClassicyMenuItem = useMemo(
+		() => ({
+			id: `${appId}_about`,
+			title: "About",
+			onClickFunc: () => setShowAbout(true),
+		}),
+		[appId],
+	);
 
 	const aboutWindow = showAbout ? (
 		<ClassicyAboutWindow
 			appId={appId}
 			appName={appName}
 			appIcon={appIcon}
-			hideFunc={() => setShowAbout(false)}
+			hideFunc={hideAbout}
 		/>
 	) : null;
 
