@@ -181,6 +181,8 @@ All components are exported from the `classicy` package. Import them by name:
 import { ClassicyWindow, ClassicyButton, ClassicyBalloonHelp } from 'classicy';
 ```
 
+> **Building an app?** [`docs/BUILDING-APPS.md`](docs/BUILDING-APPS.md) is the step-by-step guide: `ClassicyApp` and `ClassicyWindow` prop-by-prop, manifests, reducers, menus, icons, files, dialogs, balloon help, sound, analytics, extensions, persistence, and testing — plus the traps that cost the most time. It ships with the package at `node_modules/classicy/docs/BUILDING-APPS.md`.
+>
 > **Using an AI coding agent?** A complete machine-oriented reference to the public API — every component's props, app/event/icon registration, theming, analytics, sound, and the untrusted-action rules — ships with the package at [`docs/AGENT-REFERENCE.md`](docs/AGENT-REFERENCE.md) (`node_modules/classicy/docs/AGENT-REFERENCE.md`). Point your agent at it.
 
 Each table below lists the raw HTML element the component replaces — inside a
@@ -278,16 +280,25 @@ is in [`docs/AGENT-REFERENCE.md` §4.0](docs/AGENT-REFERENCE.md).
 ## Architecture
 ### Component Organization
 
-* `<ClassicyDesktopProvider>`
+* `<ClassicyAppManagerProvider>`
     * `<ClassicyDesktop>`
         * `<ClassicyDesktopMenuBar>`
         * `<ClassicyDesktopIcon?>`
         * `<YourClassicyApp>`
-            * `<ClassicyAppContext>`
-                * `<ClassicyApp>`
-                    * `<ClassicyWindow?>`
-                        * `<ClassicyUIControls?>`
-                        * `<OtherReactNodes?>`
+            * `<ClassicyApp>`
+                * `<ClassicyWindow?>`
+                    * `<ClassicyUIControls?>`
+                    * `<OtherReactNodes?>`
+
+`ClassicyDesktop` must be imported **eagerly**. Mounting it lazily, a tick after
+`ClassicyAppManagerProvider`, corrupts manager state: early dispatches reach a
+reducer whose state the desktop has not seeded yet, and every dispatch after
+that throws.
+
+Writing an app? Start with
+[`docs/BUILDING-APPS.md`](docs/BUILDING-APPS.md) — a step-by-step guide covering
+`ClassicyApp`, `ClassicyWindow`, manifests, reducers, menus, files, dialogs,
+sound, analytics, persistence, and testing.
 
 ### Seeding default state
 
@@ -352,12 +363,17 @@ Like `defaultState`, filesystem trees are seed-only. To force a filesystem
 value on every load regardless of saved state, clear `localStorage["classicyStorage"]`
 or rebuild the filesystem at runtime.
 
+To correct a **returning** visitor's already-persisted tree — renaming a seeded
+file, fixing a bad URL — pass `defaultFileSystemSeedMigrations`, a list of
+one-time corrections applied against stored state (see
+`ClassicyFileSystemSeedMigrations.ts`).
+
 ### Default apps
 
-`ClassicyDesktop` automatically mounts four built-in apps — `SimpleText`,
-`PDFViewer`, `MoviePlayer`, and `PictureViewer` — the same way it always
-mounts `Finder`. Each can be disabled individually via a prop on
-`ClassicyAppManagerProvider`:
+`ClassicyDesktop` automatically mounts six built-in apps — `SimpleText`,
+`PDFViewer`, `MoviePlayer`, `PictureViewer`, `HyperCard`, and `WebViewer` — the
+same way it always mounts `Finder`. Each can be disabled individually via a prop
+on `ClassicyAppManagerProvider`:
 
 ```tsx
 <ClassicyAppManagerProvider
@@ -365,6 +381,8 @@ mounts `Finder`. Each can be disabled individually via a prop on
   disablePDFViewer={false}     // default: false (loads)
   disableMoviePlayer={true}    // opt out of Movie Player
   disablePictureViewer={true}  // opt out of Picture Viewer
+  disableHyperCard={true}      // opt out of HyperCard
+  disableWebViewer={true}      // opt out of Web Viewer
 >
   <ClassicyDesktop />
 </ClassicyAppManagerProvider>
