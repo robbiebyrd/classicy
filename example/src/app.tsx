@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./app.css";
 import "classicy/dist/classicy.css";
+import "classicy/dist/fonts.css";
 import {
 	ClassicyAppManagerProvider,
 	ClassicyDesktop,
