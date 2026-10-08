@@ -48,7 +48,7 @@ export function focusWindow(
 	return ds;
 }
 
-function pickWindowToRestore(app: ClassicyStoreSystemApp) {
+export function pickWindowToRestore(app: ClassicyStoreSystemApp) {
 	// Utility (tool-palette) windows float and never become the active document
 	// window, so they are never a succession target. When only utility windows
 	// remain, candidates is empty and focusApp keeps the app focused with no
@@ -125,6 +125,7 @@ export function openApp(
 		findApp.open = true;
 		findApp.windows.forEach((w) => {
 			w.closed = false;
+			w.closedThisSession = false;
 		});
 		focusApp(ds, appId);
 	} else {

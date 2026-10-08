@@ -6,11 +6,12 @@ import {
 } from "react";
 import { JSONTree } from "react-json-tree";
 import { intToHex } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyColors";
-import { getAppManifest } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
+import { pickWindowToRestore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
 import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { getAppManifest } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
 import { ClassicyAppIdContext } from "@/SystemFolder/SystemResources/App/ClassicyAppIdContext";
 import type { ClassicyIconBalloonHelp } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
 import { normalizeIconBalloonHelp } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconBalloons";
@@ -271,31 +272,37 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 		};
 	}, [extension, globalShortcutsKey, id, desktopEventDispatch]);
 
+	// When the app holds focus but none of its open windows does, hand focus
+	// to the window that had it most recently (falling back to defaultWindow).
+	// Reads the live store rather than this render's snapshot: windows that
+	// register or take focus in the same commit (a dialog opened by a click)
+	// have already updated the store by the time this effect runs, and acting
+	// on the stale snapshot would raise the old window over the new one.
 	useEffect(() => {
-		if (appContext?.focused && defaultWindow) {
-			const anyWindowFocused = appContext?.windows?.some((w) => w.focused);
-			const defaultWin = appContext?.windows?.find(
-				(w) => w.id === defaultWindow,
-			);
-			if (!anyWindowFocused && defaultWin && !defaultWin.closed) {
-				desktopEventDispatch({
-					type: "ClassicyWindowFocus",
-					app: {
-						id: id,
-					},
-					window: {
-						id: defaultWindow,
-					},
-				});
-			}
-		}
-	}, [
-		appContext?.focused,
-		defaultWindow,
-		desktopEventDispatch,
-		id,
-		appContext?.windows,
-	]);
+		if (!defaultWindow) return;
+		const app =
+			typeof useAppManager.getState === "function"
+				? useAppManager.getState().System.Manager.Applications.apps[id]
+				: appContext;
+		if (!app?.focused) return;
+		if (app.windows.some((w) => w.focused && !w.closed)) return;
+		const defaultWin = app.windows.find(
+			(w) => w.id === defaultWindow && !w.closed,
+		);
+		const target = pickWindowToRestore(app) ?? defaultWin;
+		if (!target) return;
+		desktopEventDispatch({
+			type: "ClassicyWindowFocus",
+			app: {
+				id: id,
+			},
+			window: {
+				id: target.id,
+			},
+		});
+		// appContext is the re-run trigger (any change to this app's record);
+		// the body reads the live store.
+	}, [appContext, defaultWindow, desktopEventDispatch, id]);
 
 	const rawOpenFiles = appContext?.data?.openFiles;
 	const openFiles: string[] = Array.isArray(rawOpenFiles) ? rawOpenFiles : [];

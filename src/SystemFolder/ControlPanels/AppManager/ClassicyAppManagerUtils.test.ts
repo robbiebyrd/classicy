@@ -627,6 +627,39 @@ describe("sanitizeStateForPersistence — Keyboard registry", () => {
 	});
 });
 
+describe("sanitizeStateForPersistence — closedThisSession", () => {
+	it("strips the session-only reopen marker from every window", async () => {
+		const { sanitizeStateForPersistence } = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils"
+		);
+		const { DefaultAppManagerState } = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager"
+		);
+		const state = structuredClone(DefaultAppManagerState);
+		state.System.Manager.Applications.apps["X.app"] = {
+			id: "X.app",
+			name: "X",
+			icon: "",
+			open: true,
+			data: {},
+			windows: [
+				{
+					id: "w",
+					closed: true,
+					closedThisSession: true,
+					size: [100, 100],
+					position: [0, 0],
+					minimumSize: [0, 0],
+				},
+			],
+		};
+		const out = sanitizeStateForPersistence(state);
+		const win = out.System.Manager.Applications.apps["X.app"].windows[0];
+		expect(win.closed).toBe(true);
+		expect("closedThisSession" in win).toBe(false);
+	});
+});
+
 // ─── wasHydratedFromStorage ───────────────────────────────────────────────────
 
 describe("wasHydratedFromStorage", () => {

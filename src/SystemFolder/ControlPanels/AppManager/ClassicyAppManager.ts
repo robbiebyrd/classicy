@@ -100,6 +100,11 @@ export interface ClassicyStoreSystemAppWindow {
 	modal?: boolean;
 	menuBar?: ClassicyMenuItem[];
 	zOrder?: number;
+	// Session-only: set when the window is closed during this page session, so
+	// a later ClassicyWindowOpen for it counts as a reopen and brings it to the
+	// front. Stripped before persistence, so a reload's re-registration of a
+	// closed window never steals focus.
+	closedThisSession?: boolean;
 	// Platinum window class (#205). Utility (tool-palette) windows are excluded
 	// from automatic focus succession; absent ⇒ treated as "document".
 	windowType?: "document" | "utility";

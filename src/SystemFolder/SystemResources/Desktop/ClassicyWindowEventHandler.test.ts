@@ -1053,3 +1053,58 @@ describe("ClassicyWindowClose skips utility windows when promoting a sibling", (
 		expect(ds.System.Manager.Applications.focusedAppId).toBe("TestApp");
 	});
 });
+
+describe("ClassicyWindowOpen — reopening a window closed this session", () => {
+	const reopen = (ds: ClassicyStore) =>
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowOpen",
+			app: { id: "TestApp" },
+			window: {
+				id: "w1",
+				minimumSize: [100, 100],
+				size: [400, 300],
+				position: [100, 100],
+			},
+		});
+
+	it("brings the reopened window to the front and focuses it", () => {
+		const ds = makeStoreWithWindows();
+		ds.System.Manager.Applications.focusedAppId = "TestApp";
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowClose",
+			app: { id: "TestApp" },
+			window: { id: "w1" },
+		});
+		const w1 = () =>
+			ds.System.Manager.Applications.apps.TestApp.windows.find(
+				(w) => w.id === "w1",
+			);
+		expect(w1()?.closedThisSession).toBe(true);
+
+		reopen(ds);
+
+		const wins = ds.System.Manager.Applications.apps.TestApp.windows;
+		expect(w1()?.closed).toBe(false);
+		expect(w1()?.closedThisSession).toBe(false);
+		expect(w1()?.focused).toBe(true);
+		expect(wins.find((w) => w.id === "w2")?.focused).toBe(false);
+		expect(
+			ds.System.Manager.Applications.apps.TestApp.lastAccessedWindowId,
+		).toBe("w1");
+	});
+
+	it("does NOT steal focus for a closed window re-registering after a reload", () => {
+		const ds = makeStoreWithWindows();
+		ds.System.Manager.Applications.focusedAppId = "Finder.app";
+		// Persisted as closed, but the session marker was stripped on save.
+		ds.System.Manager.Applications.apps.TestApp.windows[0].closed = true;
+
+		reopen(ds);
+
+		const wins = ds.System.Manager.Applications.apps.TestApp.windows;
+		expect(wins.find((w) => w.id === "w1")?.closed).toBe(false);
+		expect(wins.find((w) => w.id === "w1")?.focused).toBe(false);
+		expect(wins.find((w) => w.id === "w2")?.focused).toBe(true);
+		expect(ds.System.Manager.Applications.focusedAppId).toBe("Finder.app");
+	});
+});

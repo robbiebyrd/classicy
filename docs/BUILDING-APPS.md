@@ -164,7 +164,7 @@ interface ClassicyAppProps {
 | `id` | — | Unique app id. Convention: `MyApp.app`. |
 | `name` | — | Display name. Also builds file-open action types — prefer one word. |
 | `icon` | — | Icon URL. Required even for extensions, which never render it. |
-| `defaultWindow` | — | Window id refocused when the app is focused but no window is. |
+| `defaultWindow` | — | Enables focus restore: when the app is focused but none of its open windows is, the most recently focused one is refocused (this window if none has been). |
 | `showDesktopIcon` | `true` | Draw an icon on the desktop. |
 | `showInApplicationsFolder` | `true` | List the app in the derived Applications folder. Independent of the above. |
 | `desktopIconBalloonHelp` | manifest `description` | Balloon help for the desktop icon. A bare string is titled with the app name. |
@@ -307,6 +307,26 @@ show a save-changes alert and then decide:
     }}
 >
 ```
+
+### Window order and focus
+
+Windows stack by when they were last opened or focused, and focus follows the
+same history, so a dialog an app shows and hides needs no focus bookkeeping:
+
+- **Opening a window brings it to the front.** That applies to a brand-new
+  window and to one reopened after being closed earlier in the session,
+  whether it was closed with its close box or by the app no longer rendering
+  it. A persisted window re-registering after a page reload does not steal
+  focus.
+- **Unmounting a window closes it.** A non-modal window the app stops
+  rendering (e.g. a Settings dialog's Cancel button) is marked closed, exactly
+  as if its close box had been clicked.
+- **Closing a window refocuses the one focused before it.** Focus passes to
+  the app's most recently focused open window (utility palettes excluded).
+
+To raise a window that is already open but sitting behind others, for example
+when its menu command is chosen again, dispatch `ClassicyWindowFocus` for it.
+That is safe in the same click that first renders the window.
 
 ### Opening a window programmatically
 

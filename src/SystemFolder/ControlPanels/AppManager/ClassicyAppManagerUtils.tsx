@@ -197,6 +197,13 @@ export function sanitizeStateForPersistence(
 		// re-register on every mount. Persisting it would resurrect claims whose
 		// owner is gone (and can hold non-serializable intent). Reset to empty.
 		draft.System.Manager.Keyboard = { app: {}, system: [], global: {} };
+		// "Closed this session" is what makes a re-registering window a reopen
+		// that takes focus; after a reload no window has been closed yet.
+		for (const app of Object.values(draft.System.Manager.Applications.apps)) {
+			for (const w of app.windows) {
+				delete w.closedThisSession;
+			}
+		}
 	});
 }
 

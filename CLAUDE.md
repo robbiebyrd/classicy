@@ -165,6 +165,25 @@ bottom-left corner and italicize their label. System kinds (`drive`, `trash`,
 selected and open state styling automatically. Swap the artwork by registering
 your own `system.alias` entry via `registerClassicyIcons`.
 
+### Window Order & Focus Succession
+
+Windows stack and refocus by recency (`zOrder` = last open/focus time;
+`lastAccessedWindowId` = last focused):
+
+- `ClassicyWindowOpen` focuses a brand-new window, and a window **reopened**
+  after being closed this session (`closedThisSession`, set by
+  `ClassicyWindowClose`, stripped in `sanitizeStateForPersistence`). A window
+  re-registering after a reload never steals focus.
+- A non-modal `ClassicyWindow` that unmounts while its record is open
+  dispatches `ClassicyWindowClose` on the next tick, unless a window with the
+  same app+id has mounted again by then (StrictMode's phantom remount, or a
+  replacement instance). Modal windows are destroyed instead, as before.
+- `ClassicyWindowClose` promotes the app's highest-`zOrder` open sibling.
+- `ClassicyApp` (with `defaultWindow` set) refocuses the last-focused open
+  window via `pickWindowToRestore` when the app is focused but no window is,
+  reading the **live** store, not the render snapshot, so a window that
+  registered or took focus in the same commit is never covered back up.
+
 ### Analytics
 
 `useClassicyAnalytics()` returns `track(eventName, payload)` and
