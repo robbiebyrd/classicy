@@ -28,7 +28,7 @@
     background-color: var(--color-system-02);
     box-shadow:
       inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-white),
-      inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 0 var(--color-system-04);
+      inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 0 var(--color-system-05);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -68,8 +68,9 @@
 
 // A field paired with its arrows (ClassicySpinner, ClassicyDatePicker,
 // ClassicyTimePicker): two separate boxes with a small gap, the arrows
-// stretched to the field's height. Unfocused, the arrows are grayed; while
-// anything inside has focus, one theme-colored ring wraps field, gap and
+// stretched to the field's height. Unfocused, the arrows box goes flat and
+// gray (border, divider and glyphs); while anything inside has focus it is
+// drawn black and beveled, and one theme-colored ring wraps field, gap and
 // arrows together.
 .classicyLittleArrowsGroup {
   display: inline-flex;
@@ -82,16 +83,25 @@
     align-self: stretch;
   }
 
-  .classicyLittleArrowsButton img {
-    opacity: 0.45;
+  &:not(:focus-within) > .classicyLittleArrows {
+    border-color: var(--color-system-04);
+    box-shadow: none;
+
+    .classicyLittleArrowsButton {
+      box-shadow: none;
+
+      &:first-child {
+        border-bottom-color: var(--color-system-04);
+      }
+
+      img {
+        opacity: 0.4;
+      }
+    }
   }
 
   &:focus-within {
     background-color: var(--color-theme-04);
     box-shadow: 0 0 0 calc(var(--window-border-size) * 2) var(--color-theme-04);
-
-    .classicyLittleArrowsButton:not(:disabled) img {
-      opacity: 1;
-    }
   }
 }
