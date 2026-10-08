@@ -18,7 +18,6 @@
   align-items: baseline;
   flex-direction: row;
   background-color: var(--color-white);
-  margin-right: var(--window-padding-size);
 
   input {
     margin: 0;
@@ -58,12 +57,5 @@
 }
 
 .classicyTimePickerField {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-}
-
-.classicyTimePickerArrows {
-  align-self: center;
   margin-right: var(--window-padding-size);
 }

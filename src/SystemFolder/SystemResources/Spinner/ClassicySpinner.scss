@@ -18,15 +18,18 @@ input[type=number] {
 
 .classicySpinner {
   font-family: var(--ui-font), sans-serif;
-  border: none;
-  box-shadow: none;
+  min-height: calc(var(--window-control-size) * 2);
+  padding: 0 calc(var(--window-padding-size) / 2);
+  border: var(--window-border-size) solid var(--color-black);
+  box-shadow:
+    calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 0 var(--color-system-05),
+    calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) 0 0 var(--color-system-04);
   outline: none;
   width: var(--classicy-spinner-width);
   background-color: var(--classicy-spinner-background, var(--color-white));
 
   &:focus-visible {
     outline: none;
-    box-shadow: none;
   }
 }
 
@@ -35,59 +38,4 @@ input[type=number] {
 
 .classicySpinnerHolder {
   align-self: center;
-}
-
-.classicySpinnerInputGroup {
-  display: inline-flex;
-  flex-direction: row;
-  border: var(--window-border-size) solid var(--color-black);
-  box-shadow:
-    calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 0 var(--color-system-05),
-    calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) 0 0 var(--color-system-04);
-
-  &:focus-within {
-    box-shadow: 0 0 0 calc(var(--window-border-size) * 2) var(--color-theme-04);
-    outline: var(--color-theme-04) var(--window-border-size) solid;
-
-    .classicySpinnerButtons {
-      background-color: var(--color-theme-02);
-      outline: var(--color-theme-04) var(--window-border-size) solid;
-      .classicySpinnerButton {
-        background-color: var(--theme-color-02);
-      }
-    }
-  }
-}
-
-.classicySpinnerButtons {
-  display: flex;
-  flex-direction: column;
-  border-left: var(--window-border-size) solid var(--color-system-04);
-  width: calc(var(--window-control-size) * 0.75);
-  background-color: var(--color-system-02);
-
-  .classicySpinnerButton {
-    flex: 1;
-    margin: 0;
-    padding: 0;
-    border: none;
-    border-radius: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-
-    &:first-child {
-      border-bottom: var(--window-border-size) solid var(--color-system-04);
-    }
-
-    img {
-      height: auto;
-      width: 100%;
-    }
-
-    // The decrement button reuses the up-arrow icon, flipped vertically.
-    &:last-child img {
-      transform: scaleY(-1);
-    }
-  }
 }

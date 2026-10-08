@@ -1,45 +1,61 @@
 @use '../../ControlPanels/AppearanceManager/styles/appearance';
 
-// Little-arrows widget: a boxed, beveled stack of up/down arrows that attaches
-// to a separate content area (clock field, etc.). Mirrors the spinner arrows.
+// Little-arrows widget: a beveled box holding a stacked pair of up/down arrow
+// buttons, shared by every stepper control.
+//
+// Sized off --window-control-size so the arrows stay legible: each button is
+// at least a control-size tall, so the pair never collapses to the arrow
+// artwork's intrinsic height.
 .classicyLittleArrows {
   display: inline-flex;
   flex-direction: column;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  width: calc(var(--window-control-size) * 1.25);
   border: var(--window-border-size) solid var(--color-black);
   box-shadow:
     calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 0 var(--color-system-05),
     calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) 0 0 var(--color-system-04);
-  width: calc(var(--window-control-size) * 0.9);
   background-color: var(--color-system-02);
 
   .classicyLittleArrowsButton {
     flex: 1;
+    min-height: var(--window-control-size);
     margin: 0;
-    padding: 0 calc(var(--window-border-size));
+    padding: 0;
     border: none;
     border-radius: 0;
     background-color: var(--color-system-02);
+    box-shadow:
+      inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-white),
+      inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 0 var(--color-system-04);
     display: flex;
     justify-content: center;
     align-items: center;
     cursor: pointer;
 
     &:first-child {
-      border-bottom: var(--window-border-size) solid var(--color-system-04);
+      border-bottom: var(--window-border-size) solid var(--color-black);
     }
 
-    &:active {
-      background-color: var(--color-theme-04);
+    &:active:not(:disabled) {
+      background-color: var(--color-system-04);
+      box-shadow:
+        inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-05),
+        inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 0 var(--color-system-03);
     }
 
     &:disabled {
       cursor: not-allowed;
-      filter: contrast(0.5);
+
+      img {
+        opacity: 0.4;
+      }
     }
 
     img {
+      width: 65%;
       height: auto;
-      width: 100%;
       pointer-events: none;
     }
   }
@@ -47,5 +63,35 @@
   // The decrement button reuses the up-arrow icon, flipped vertically.
   .classicyLittleArrowsButtonDown img {
     transform: scaleY(-1);
+  }
+}
+
+// A field paired with its arrows (ClassicySpinner, ClassicyDatePicker,
+// ClassicyTimePicker): two separate boxes with a small gap, the arrows
+// stretched to the field's height. Unfocused, the arrows are grayed; while
+// anything inside has focus, one theme-colored ring wraps field, gap and
+// arrows together.
+.classicyLittleArrowsGroup {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: calc(var(--window-border-size) * 3);
+  width: fit-content;
+
+  > .classicyLittleArrows {
+    align-self: stretch;
+  }
+
+  .classicyLittleArrowsButton img {
+    opacity: 0.45;
+  }
+
+  &:focus-within {
+    background-color: var(--color-theme-04);
+    box-shadow: 0 0 0 calc(var(--window-border-size) * 2) var(--color-theme-04);
+
+    .classicyLittleArrowsButton:not(:disabled) img {
+      opacity: 1;
+    }
   }
 }
