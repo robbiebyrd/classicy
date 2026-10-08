@@ -233,7 +233,7 @@ export const ClassicyTimePicker: FunctionalComponent<ClassicyTimePickerProps> =
 							disabled={labelDisabled ?? disabled}
 						></ClassicyControlLabel>
 					)}
-					<div className="classicyTimePickerField">
+					<div className="classicyTimePickerField classicyLittleArrowsGroup">
 						<div
 							className={classNames(
 								"classicyTimePicker",
@@ -296,7 +296,6 @@ export const ClassicyTimePicker: FunctionalComponent<ClassicyTimePickerProps> =
 							></input>
 						</div>
 						<ClassicyLittleArrows
-							className="classicyTimePickerArrows"
 							disabled={disabled}
 							upLabel="Increment time"
 							downLabel="Decrement time"

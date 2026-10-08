@@ -48,6 +48,7 @@
 	"files": [
 		"dist",
 		"docs/AGENT-REFERENCE.md",
+		"docs/BUILDING-APPS.md",
 		"src/SystemFolder/ControlPanels/AppearanceManager/styles"
 	],
 	"sideEffects": [

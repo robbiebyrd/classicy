@@ -75,16 +75,22 @@ State persists to localStorage (key: `classicyDesktopState`) via Zustand's `subs
 
 ### Creating Apps
 
+Full narrative guide: [`docs/BUILDING-APPS.md`](docs/BUILDING-APPS.md). Flat API
+dump: [`docs/AGENT-REFERENCE.md`](docs/AGENT-REFERENCE.md).
+
 Apps follow this pattern:
 1. Use `ClassicyApp` wrapper with id, name, icon props
 2. Use `useAppManager(selector)` to read state with a selector for performance
 3. Use `useAppManagerDispatch()` to get the dispatch function for events
 4. Wrap content in `ClassicyWindow` components
-5. Create an event handler in `ClassicyAppManager.ts` if the app needs custom state
+5. Register a manifest with `registerApp` (`ClassicyAppManifest.ts`) — including a
+   reducer, if the app needs custom state
+
+The app slice is **`System.Manager.Applications`**, not `System.Manager.App`.
 
 ```tsx
 // Reading state — always use a selector to avoid unnecessary re-renders
-const appState = useAppManager(state => state.System.Manager.App.apps[id]);
+const appState = useAppManager(state => state.System.Manager.Applications.apps[id]);
 
 // Dispatching actions
 const dispatch = useAppManagerDispatch();

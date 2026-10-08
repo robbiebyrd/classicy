@@ -55,3 +55,6 @@ example/timemachine/cache
 .oac.json
 .tmp
 docs/superpowers
+.codex/**
+.mdkb/**
+.wiz/**

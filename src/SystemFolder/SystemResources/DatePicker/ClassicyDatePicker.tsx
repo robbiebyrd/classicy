@@ -225,7 +225,7 @@ export const ClassicyDatePicker: FunctionalComponent<ClassicyDatePickerProps> =
 							disabled={labelDisabled ?? disabled}
 						></ClassicyControlLabel>
 					)}
-					<div className="classicyDatePickerField">
+					<div className="classicyDatePickerField classicyLittleArrowsGroup">
 						<div
 							className={classNames(
 								"classicyDatePicker",
@@ -284,7 +284,6 @@ export const ClassicyDatePicker: FunctionalComponent<ClassicyDatePickerProps> =
 							></input>
 						</div>
 						<ClassicyLittleArrows
-							className="classicyDatePickerArrows"
 							disabled={disabled}
 							upLabel="Increment date"
 							downLabel="Decrement date"

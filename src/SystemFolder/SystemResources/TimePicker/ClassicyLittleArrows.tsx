@@ -3,24 +3,30 @@ import classNames from "classnames";
 import { type FC as FunctionalComponent, useEffect, useRef } from "react";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 
-// Continuous single-unit repeat while held — the HIG's little-arrows behavior
-// (no ×10 acceleration; that is a spinner-only affordance).
+// Continuous repeat while held — the HIG's little-arrows behavior. Callers that
+// want acceleration (ClassicySpinner's ×10 escalation) derive it from `heldMs`.
 const REPEAT_INTERVAL_MS = 120;
 
 interface ClassicyLittleArrowsProps {
-	/** Called once immediately on press and then repeatedly while held. */
-	onStep: (direction: 1 | -1) => void;
+	/**
+	 * Called once immediately on press (`heldMs` 0) and then repeatedly while
+	 * held, with the time elapsed since the press.
+	 */
+	onStep: (direction: 1 | -1, heldMs: number) => void;
 	disabled?: boolean;
 	upLabel?: string;
 	downLabel?: string;
 	className?: string;
+	/** Delay between repeats while held, in ms. */
+	repeatIntervalMs?: number;
 }
 
 /**
  * The Mac OS 8 "little arrows" widget — a stacked up/down arrow pair that
- * increments an adjacent content area on click, and repeats while held. Split
- * out from `ClassicySpinner` (which fuses arrows with its own number field) so
- * it can attach to a separate content area such as a clock control.
+ * increments an adjacent content area on click, and repeats while held. It is
+ * shared by `ClassicySpinner` and the date and time pickers, so every stepper
+ * control draws the same arrows. Pair it with its field inside a
+ * `classicyLittleArrowsGroup` element for the standard spacing and focus ring.
  */
 export const ClassicyLittleArrows: FunctionalComponent<
 	ClassicyLittleArrowsProps
@@ -30,6 +36,7 @@ export const ClassicyLittleArrows: FunctionalComponent<
 	upLabel = "Increment",
 	downLabel = "Decrement",
 	className,
+	repeatIntervalMs = REPEAT_INTERVAL_MS,
 }) => {
 	// Keep the callback in a ref so the interval always calls the latest closure.
 	const onStepRef = useRef(onStep);
@@ -52,11 +59,12 @@ export const ClassicyLittleArrows: FunctionalComponent<
 
 	const start = (direction: 1 | -1) => {
 		if (disabled) return;
-		onStepRef.current(direction);
+		onStepRef.current(direction, 0);
 		stop();
+		const pressedAt = Date.now();
 		intervalRef.current = setInterval(() => {
-			onStepRef.current(direction);
-		}, REPEAT_INTERVAL_MS);
+			onStepRef.current(direction, Date.now() - pressedAt);
+		}, repeatIntervalMs);
 	};
 
 	return (

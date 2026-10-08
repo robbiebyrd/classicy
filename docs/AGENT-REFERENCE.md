@@ -15,6 +15,12 @@ PDF Viewer, Movie Player, Picture Viewer, Web Viewer).
 - Peer dependencies you must install: `react` (18 or 19), `react-dom`,
   `zustand@^5`, `immer@^11`, `@tanstack/react-table@^8`, `react-player@^3`
 
+**Writing an app rather than looking up an API?** Read
+[`BUILDING-APPS.md`](BUILDING-APPS.md) instead — it is the narrative,
+step-by-step version of §3 here, and covers the failure modes (prefix
+collisions, menu memoization, window id collisions, persistence) that this
+reference only names.
+
 ---
 
 ## 1. Installation & Setup
@@ -86,7 +92,8 @@ All optional:
 | `eventPrefix` | `string` | `"classicy_"` | Prefix applied to analytics `track()` event names (not pageview paths) |
 | `defaultState` | `DeepPartial<ClassicyStore>` | — | Initial store overrides; applied ONCE, and only when nothing was hydrated from localStorage |
 | `defaultFileSystem` | `ClassicyFileSystemTree` | — | Seed file system tree |
-| `defaultFileSystemMode` | `"merge" \| ...` | `"merge"` | How the seed combines with stored state |
+| `defaultFileSystemMode` | `"merge" \| "exclusive"` | `"merge"` | How the seed combines with stored state |
+| `defaultFileSystemSeedMigrations` | `ClassicyFileSystemSeedMigration[]` | — | One-time corrections applied to a **returning** visitor's persisted tree (see `ClassicyFileSystemSeedMigrations.ts`) |
 | `disableSimpleText`, `disablePDFViewer`, `disableMoviePlayer`, `disablePictureViewer`, `disableHyperCard`, `disableWebViewer` | `boolean` | `false` | Turn off individual built-in apps |
 | `defaultMuted` | `boolean` | `false` | Boot with sound off (first mount only; not persisted) |
 
