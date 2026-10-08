@@ -18,8 +18,8 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
+import { ClassicyLittleArrows } from "@/SystemFolder/SystemResources/TimePicker/ClassicyLittleArrows";
 
 const REPEAT_INTERVAL_MS = 100;
 const STEP_ESCALATION_MS = 3000;
@@ -101,16 +101,6 @@ export const ClassicySpinner: FunctionalComponent<ClassicySpinnerProps> =
 			}
 		}, [prefillValue]); // eslint-disable-line react-hooks/exhaustive-deps
 
-		const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-		const mouseDownTimeRef = useRef<number>(0);
-
-		// Cleanup interval on unmount
-		useEffect(() => {
-			return () => {
-				if (intervalRef.current !== null) clearInterval(intervalRef.current);
-			};
-		}, []);
-
 		const inputWidth = (() => {
 			const candidates = [String(minValue)];
 			if (maxValue !== undefined) candidates.push(String(maxValue));
@@ -131,27 +121,10 @@ export const ClassicySpinner: FunctionalComponent<ClassicySpinnerProps> =
 			notifyChange(next);
 		};
 
-		const stopRepeat = () => {
-			if (intervalRef.current !== null) {
-				clearInterval(intervalRef.current);
-				intervalRef.current = null;
-			}
-		};
-
-		const startRepeat = (direction: 1 | -1) => {
-			mouseDownTimeRef.current = Date.now();
-			intervalRef.current = setInterval(() => {
-				const elapsed = Date.now() - mouseDownTimeRef.current;
-				const magnitude = Math.floor(elapsed / STEP_ESCALATION_MS);
-				const step = 10 ** magnitude;
-				applyDelta(direction, step);
-			}, REPEAT_INTERVAL_MS);
-		};
-
-		const handleButtonMouseDown = (direction: 1 | -1) => {
-			if (disabled) return;
-			applyDelta(direction, 1);
-			startRepeat(direction);
+		// The step grows ×10 for every STEP_ESCALATION_MS the arrow is held.
+		const handleStep = (direction: 1 | -1, heldMs: number) => {
+			const magnitude = Math.floor(heldMs / STEP_ESCALATION_MS);
+			applyDelta(direction, 10 ** magnitude);
 		};
 
 		const handleOnChangeFunc: ChangeEventHandler<HTMLInputElement> = (e) => {
@@ -186,7 +159,7 @@ export const ClassicySpinner: FunctionalComponent<ClassicySpinnerProps> =
 						disabled={labelDisabled ?? disabled}
 					/>
 				)}
-				<div className={"classicySpinnerInputGroup"}>
+				<div className="classicySpinnerInputGroup classicyLittleArrowsGroup">
 					<input
 						id={id}
 						tabIndex={0}
@@ -212,33 +185,11 @@ export const ClassicySpinner: FunctionalComponent<ClassicySpinnerProps> =
 							} as CSSProperties
 						}
 					/>
-					<div className={"classicySpinnerButtons"}>
-						<button
-							className="classicySpinnerButton"
-							type="button"
-							aria-label="Increment"
-							disabled={disabled}
-							onMouseDown={() => handleButtonMouseDown(1)}
-							onMouseUp={stopRepeat}
-							onMouseLeave={stopRepeat}
-						>
-							<img src={ClassicyIcons.ui.menuDropdownArrowUp} alt="Increment" />
-						</button>
-						<button
-							className="classicySpinnerButton"
-							type="button"
-							aria-label="Decrement"
-							disabled={disabled}
-							onMouseDown={() => handleButtonMouseDown(-1)}
-							onMouseUp={stopRepeat}
-							onMouseLeave={stopRepeat}
-						>
-							<img
-								src={ClassicyIcons.ui.menuDropdownArrowUp}
-								alt="Decrement"
-							/>
-						</button>
-					</div>
+					<ClassicyLittleArrows
+						disabled={disabled}
+						repeatIntervalMs={REPEAT_INTERVAL_MS}
+						onStep={handleStep}
+					/>
 				</div>
 			</div>
 		);

@@ -44,21 +44,38 @@ const formatArchiveTime = (time: string): string => {
 	});
 };
 
-const extractOriginalUrl = (href: string, proxyHost: string): string | null => {
-	// Proxy URL — extract the url query param (match on hostname, since default
-	// ports like 443 are omitted by URL parser, making port comparison unreliable)
+export const extractOriginalUrl = (
+	href: string,
+	proxyHost: string,
+): string | null => {
+	// Proxy URL (match on hostname, since default ports like 443 are omitted by
+	// URL parser, making port comparison unreliable)
 	try {
 		const parsed = new URL(href);
-		if (parsed.hostname === proxyHost && parsed.searchParams.has("url")) {
-			return parsed.searchParams.get("url");
+		if (parsed.hostname === proxyHost) {
+			// Fetch form — extract the url query param
+			if (parsed.searchParams.has("url")) {
+				return parsed.searchParams.get("url");
+			}
+			// Rewritten page link — the proxy points links in served pages back at
+			// itself as /web/[<timestamp>/]<original url>. Keep the original's own
+			// query string and fragment, which the URL parser split off.
+			const rewritten =
+				`${parsed.pathname}${parsed.search}${parsed.hash}`.match(
+					/^\/web\/(?:\d+[a-z_]*\*?\/)?(.+)$/i,
+				);
+			if (rewritten) return rewritten[1];
 		}
 	} catch {
 		/* not a valid URL, fall through */
 	}
 
-	// Archive.org link — extract the original URL after the timestamp
-	const match = href.match(/\/web\/\d+\*?\/(.+)/);
-	return match ? match[1] : null;
+	// Archive.org link — extract the original URL after the timestamp. Also
+	// catches a timestamp-less proxy rewrite served under a hostname other than
+	// the configured one (e.g. behind a reverse proxy), but only when what
+	// follows /web/ is itself an http(s) URL.
+	const match = href.match(/\/web\/(?:\d+[a-z_]*\*?\/(.+)|(https?:\/\/.+))/i);
+	return match ? (match[1] ?? match[2]) : null;
 };
 
 const isNavigableUrl = (href: string): boolean => {

@@ -25,8 +25,8 @@ describe("ClassicyLittleArrows", () => {
 		fireEvent.mouseUp(upBtn());
 		fireEvent.mouseDown(downBtn());
 		fireEvent.mouseUp(downBtn());
-		expect(onStep).toHaveBeenNthCalledWith(1, 1);
-		expect(onStep).toHaveBeenNthCalledWith(2, -1);
+		expect(onStep).toHaveBeenNthCalledWith(1, 1, 0);
+		expect(onStep).toHaveBeenNthCalledWith(2, -1, 0);
 	});
 
 	it("honours custom aria labels", () => {
@@ -67,6 +67,22 @@ describe("ClassicyLittleArrows", () => {
 			// 1 immediate + several repeats, every one a +1 step (never accelerates).
 			expect(onStep.mock.calls.length).toBeGreaterThan(1);
 			expect(onStep.mock.calls.every(([dir]) => dir === 1)).toBe(true);
+		});
+
+		it("reports the held time and honours a custom repeat interval", () => {
+			const onStep = vi.fn();
+			render(<ClassicyLittleArrows onStep={onStep} repeatIntervalMs={100} />);
+			fireEvent.mouseDown(upBtn());
+			act(() => {
+				vi.advanceTimersByTime(300);
+			});
+			fireEvent.mouseUp(upBtn());
+			expect(onStep.mock.calls).toEqual([
+				[1, 0],
+				[1, 100],
+				[1, 200],
+				[1, 300],
+			]);
 		});
 
 		it("stops repeating on mouse up", () => {
