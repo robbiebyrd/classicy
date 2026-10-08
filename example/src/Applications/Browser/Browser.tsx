@@ -195,13 +195,32 @@ export const Browser = () => {
 		setFocusRequest({ windowId: "browser_settings" });
 	}, [proxyConfig]);
 
+	// Every way out of Settings hands focus back to the main browser window.
+	// The close box has already dispatched ClassicyWindowClose by the time it
+	// calls onCloseFunc; Cancel and Save have not, so they mark the record
+	// closed here rather than leaving it "open" behind an unmounted window.
+	const closeSettings = useCallback(
+		(alreadyClosed = false) => {
+			if (!alreadyClosed) {
+				desktopEventDispatch({
+					type: "ClassicyWindowClose",
+					app: { id: appId },
+					window: { id: "browser_settings" },
+				});
+			}
+			setShowSettings(false);
+			setFocusRequest({ windowId: "browser" });
+		},
+		[desktopEventDispatch],
+	);
+
 	const saveSettings = useCallback(() => {
 		desktopEventDispatch({
 			type: "ClassicyAppBrowserUpdateProxyConfig",
 			proxyConfig: settingsForm,
 		});
-		setShowSettings(false);
-	}, [settingsForm, desktopEventDispatch]);
+		closeSettings();
+	}, [settingsForm, desktopEventDispatch, closeSettings]);
 
 	const showError = useCallback(() => {
 		setUrlError(true);
@@ -320,7 +339,7 @@ export const Browser = () => {
 					initialSize={[350, 0]}
 					initialPosition={[250, 150]}
 					appMenu={appMenu}
-					onCloseFunc={() => setShowSettings(false)}
+					onCloseFunc={() => closeSettings(true)}
 				>
 					<div className="browserSettings">
 						<ClassicyControlGroup label="TimeMachine Proxy">
@@ -419,7 +438,7 @@ export const Browser = () => {
 							/>
 						</ClassicyControlGroup>
 						<div className="browserSettingsButtons">
-							<ClassicyButton onClickFunc={() => setShowSettings(false)}>
+							<ClassicyButton onClickFunc={() => closeSettings()}>
 								Cancel
 							</ClassicyButton>
 							<ClassicyButton isDefault={true} onClickFunc={saveSettings}>
