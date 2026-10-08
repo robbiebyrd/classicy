@@ -24,9 +24,9 @@ import {
 import "./Browser.scss";
 import "./BrowserContext";
 import {
-	isBrowserData,
 	type BrowserData,
 	type BrowserFavorite,
+	isBrowserData,
 } from "./BrowserContext";
 import {
 	DEFAULT_PROXY_CONFIG,
@@ -169,16 +169,31 @@ export const Browser = () => {
 	const [settingsForm, setSettingsForm] =
 		useState<TimeMachineProxyConfig>(proxyConfig);
 
+	// Focus is requested from an effect, after the target window has mounted
+	// and registered itself. Dispatching ClassicyWindowFocus in the same click
+	// that first renders the window targets a record that doesn't exist yet:
+	// the reducer unfocuses every window and focuses nothing, and ClassicyApp's
+	// default-window fallback then raises the main browser window over it. A
+	// fresh object per request re-fires the effect even if the window is
+	// already showing (e.g. Settings… chosen while it sits behind the browser).
+	const [focusRequest, setFocusRequest] = useState<{ windowId: string } | null>(
+		null,
+	);
+	useEffect(() => {
+		if (!focusRequest) return;
+		desktopEventDispatch({
+			type: "ClassicyWindowFocus",
+			app: { id: appId },
+			window: { id: focusRequest.windowId },
+		});
+	}, [focusRequest, desktopEventDispatch]);
+
 	// Re-sync form when settings window opens
 	const openSettings = useCallback(() => {
 		setSettingsForm(proxyConfig);
 		setShowSettings(true);
-		desktopEventDispatch({
-			type: "ClassicyWindowFocus",
-			app: { id: appId },
-			window: { id: "browser_settings" },
-		});
-	}, [proxyConfig, desktopEventDispatch]);
+		setFocusRequest({ windowId: "browser_settings" });
+	}, [proxyConfig]);
 
 	const saveSettings = useCallback(() => {
 		desktopEventDispatch({
@@ -190,12 +205,8 @@ export const Browser = () => {
 
 	const showError = useCallback(() => {
 		setUrlError(true);
-		desktopEventDispatch({
-			type: "ClassicyWindowFocus",
-			app: { id: appId },
-			window: { id: "browser_error" },
-		});
-	}, [desktopEventDispatch]);
+		setFocusRequest({ windowId: "browser_error" });
+	}, []);
 
 	const recordVisit = useCallback(
 		(url: string) => {
