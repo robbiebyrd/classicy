@@ -306,7 +306,6 @@ export const Demo = () => {
 				collapsable={false}
 				initialSize={["40%", 500]}
 				initialPosition={[300, 50]}
-				modal={true}
 				appMenu={appMenu}
 			>
 				<ClassicyTabs tabs={tabs} />
