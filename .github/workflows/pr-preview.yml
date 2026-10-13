@@ -100,7 +100,8 @@ jobs:
           preview-branch: gh-pages
           umbrella-dir: pr-preview
           # Custom domain, so the comment links to demo.classicy.ing/pr-preview/…
-          pages-base-url: demo.classicy.ing/
+          # (no trailing slash — the action appends the umbrella path).
+          pages-base-url: demo.classicy.ing
           # Deploy on open/sync, remove on close. pages.yml (triggered by this
           # workflow's completion) performs the actual GitHub Pages deploy; this
           # action only updates the gh-pages store.
