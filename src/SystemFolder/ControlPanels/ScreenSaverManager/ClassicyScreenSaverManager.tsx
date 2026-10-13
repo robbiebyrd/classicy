@@ -3,6 +3,7 @@ import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { SCREEN_SAVER_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/ScreenSaverManager/ClassicyScreenSaverManagerManifest";
 import { ClassicyScreenSaverConfigForm } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverConfigForm";
 import {
 	isScreenSaverEnabled,
@@ -36,8 +37,6 @@ import { ClassicyControlGroup } from "@/SystemFolder/SystemResources/ControlGrou
 import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
 import { ClassicySpinner } from "@/SystemFolder/SystemResources/Spinner/ClassicySpinner";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
-
-import { SCREEN_SAVER_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/ScreenSaverManager/ClassicyScreenSaverManagerManifest";
 
 const APP_ID = SCREEN_SAVER_MANAGER_APP_ID;
 const APP_NAME = "Screen Saver";

@@ -350,7 +350,7 @@ Normative checklist (HIGOS8 Ch.6):
 
 | # | Severity | Finding | Component | Status |
 | --- | --- | --- | --- | --- |
-| 6.1 | HIGH | Screen Saver panel had no `About` command or About box (never brought into the earlier §35 pass) | `ScreenSaverManager` | 🔧 Fixed |
+| 6.1 | HIGH | Screen Saver panel's `About` command / About box | `ScreenSaverManager` | ✅ Already present on `main` |
 | 6.2 | HIGH | Screen Saver panel lacked an Edit menu despite having edit-text fields (timeout spinner, options form) | `ScreenSaverManager` | 🔧 Fixed |
 | 6.3 | MEDIUM | Screen Saver File menu lacked `Close Window` + the required divider before `Quit` | `ScreenSaverManager` | 🔧 Fixed |
 | 6.4 | MEDIUM | Drive Setup File menu lacked `Close Window` (the `windowClose` handler was built but unused) | `DriveSetup` | 🔧 Fixed |
@@ -361,11 +361,11 @@ Normative checklist (HIGOS8 Ch.6):
 
 **Details & fixes**
 
-- **6.1–6.3** (`ScreenSaverManager.tsx`): added `useClassicyAboutMenu`,
-  `useClassicyEditMenu`, and `useClassicyWindowClose`; the File menu now reads
-  `About Screen Saver` · `Close Window (⌥W)` · `—` · `Quit (⌥Q)`, an `Edit` menu
-  is appended, and `{aboutWindow}` is rendered. Locked in by a new
-  `ClassicyScreenSaverManager.hig.test.tsx`.
+- **6.2–6.3** (`ScreenSaverManager.tsx`): the About command/box (6.1) is already
+  present on `main`, so this adds `useClassicyEditMenu` and `useClassicyWindowClose`
+  — the File menu now reads `About Screen Saver` · `Close Window (⌥W)` · `—` ·
+  `Quit (⌥Q)`, and an `Edit` menu is appended (the panel has edit-text fields).
+  Locked in by a new `ClassicyScreenSaverManager.hig.test.tsx`.
   _HIGOS8 Ch.6 "Standard Menus" (p.118), "The About Box" (p.126)._
 - **6.4, 6.6, 6.7** (`DriveSetup.tsx`): `Close Window (⌥W)` inserted before the
   divider; `Quit` given `⌥Q`; `collapsable={false}` for family consistency.
@@ -388,14 +388,16 @@ This pass audited every Classicy control, dialog, menu, window and control panel
 against HIGOS8 (chapters 2–6), applied the fixes below, and recorded the rest as
 intentional web adaptations or deferred follow-ups.
 
-| Chapter | 🔧 Fixed | ⚠️ Deferred | ✅ Intentional / shipped-OS | Commit |
-| --- | --- | --- | --- | --- |
-| 2 — Controls | 10 | 2 | — | `7b10d2f`, `16338a3bb` |
-| 3 — Dialog Boxes | 3 | 1 | — | `d208aac` |
-| 4 — Menus | 3 | 1 | 2 | `c530cda` |
-| 5 — Windows | 1 | 1 | — | `30e4aea` |
-| 6 — Control Panels | 7 | — | 1 | `898670f` |
-| **Total** | **24** | **5** | **3** | |
+| Chapter | 🔧 Fixed | ⚠️ Deferred | ✅ Intentional / shipped-OS |
+| --- | --- | --- | --- |
+| 2 — Controls | 10 | 2 | — |
+| 3 — Dialog Boxes | 3 | 1 | — |
+| 4 — Menus | 3 | 1 | 2 |
+| 5 — Windows | 1 | 1 | — |
+| 6 — Control Panels | 6 | — | 1 |
+| **Total** | **23** | **5** | **3** |
+
+(The per-chapter changes are the commits of this PR, one commit per chapter.)
 
 All fixes keep the full suite green (`pnpm lint`, `pnpm exec tsc --noEmit`, and
 the vitest suite), and each fixed or changed behavior is covered by a new or

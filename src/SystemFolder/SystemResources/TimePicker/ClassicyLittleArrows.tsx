@@ -79,7 +79,7 @@ export const ClassicyLittleArrows: FunctionalComponent<
 		if (disabled) return;
 		if (e.key === "Enter" || e.key === " ") {
 			e.preventDefault();
-			onStepRef.current(direction);
+			onStepRef.current(direction, 0);
 		}
 	};
 

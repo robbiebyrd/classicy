@@ -24,6 +24,7 @@ import {
 
 const appIcon = ClassicyIcons.controlPanels.dateTimeManager.dateTimeManager;
 
+import { DATE_AND_TIME_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeManagerManifest";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyControlGroup } from "@/SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup";
 import { ClassicyDatePicker } from "@/SystemFolder/SystemResources/DatePicker/ClassicyDatePicker";
@@ -31,8 +32,6 @@ import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/Clas
 import { ClassicyRadioInput } from "@/SystemFolder/SystemResources/RadioInput/ClassicyRadioInput";
 import { ClassicyTimePicker } from "@/SystemFolder/SystemResources/TimePicker/ClassicyTimePicker";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
-
-import { DATE_AND_TIME_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeManagerManifest";
 
 const APP_ID = DATE_AND_TIME_MANAGER_APP_ID;
 const APP_NAME = "Date and Time Manager";
