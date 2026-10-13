@@ -405,10 +405,23 @@ existing test. Deferred items are visual-fidelity or larger-refactor follow-ups
 documented in each chapter's findings; the intentional items are the browser
 `⌥W`/`⌥Q` adaptation and the shipped-OS "About Balloon Help…" ellipsis.
 
-### Deferred follow-ups (recommended next pass)
+### Deferred follow-ups
 
-- **2.5** — align the pop-up list's current item at the button level.
-- **2.10** — a 12/10pt tab-label type scale (needs a type-scale decision).
-- **3.4** — turn the New Folder prompt into a movable-modal dialog (not an alert).
-- **4.6** — context-aware "Undo <action>" / "Can't Undo" labelling.
-- **5.2** — split the grouped Platinum scroll arrows to opposite ends.
+Addressed in a follow-up pass (separate PR):
+
+- **3.4** — ✅ done. New Folder now uses a reusable movable-modal input dialog
+  (`ClassicyInputDialog`) instead of an alert carrying a text field.
+- **4.6** — ✅ done. Edit → Undo now names the pending action ("Undo Typing")
+  and dims to "Can't Undo" when there is nothing to undo, driven by a per-field
+  undo-state tracker.
+- **5.2** — ✅ done, and generalized: the real Mac OS 8 "Smart Scrolling"
+  Appearance option now toggles arrow placement. ON (default) groups both arrows
+  at the end of each bar (the authentic OS 8.0 default); OFF splits them to
+  opposite ends.
+
+Still open:
+
+- **2.5** — align the pop-up list's current item at the button level (tracked in
+  its own branch/PR for isolated preview testing).
+- **2.10** — a 12/10pt tab-label type scale. Won't fix for now (needs a
+  project-wide type-scale decision).
