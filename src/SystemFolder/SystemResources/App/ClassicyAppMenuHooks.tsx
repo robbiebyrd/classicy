@@ -4,6 +4,7 @@ import {
 	useEffect,
 	useMemo,
 	useState,
+	useSyncExternalStore,
 } from "react";
 import type { ActionMessage } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
@@ -11,6 +12,9 @@ import { ClassicyAboutWindow } from "@/SystemFolder/SystemResources/AboutWindow/
 import {
 	classicyEditCommands,
 	ensureEditTracker,
+	getUndoStateServerSnapshot,
+	getUndoStateSnapshot,
+	subscribeUndoState,
 } from "@/SystemFolder/SystemResources/App/ClassicyEditCommands";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
@@ -134,6 +138,21 @@ export function useClassicyEditMenu(
 		ensureEditTracker();
 	}, []);
 
+	// Context-aware Undo (HIG 4.6): name the pending action ("Undo Typing") and
+	// dim to "Can't Undo" when the focused/last field has nothing to undo. The
+	// snapshot only changes when the wording would, so this doesn't re-render on
+	// every keystroke.
+	const undoState = useSyncExternalStore(
+		subscribeUndoState,
+		getUndoStateSnapshot,
+		getUndoStateServerSnapshot,
+	);
+	const undoTitle = undoState.canUndo
+		? undoState.label
+			? `Undo ${undoState.label}`
+			: "Undo"
+		: "Can't Undo";
+
 	return useMemo(
 		() => ({
 			id: `${idPrefix}_edit`,
@@ -141,7 +160,8 @@ export function useClassicyEditMenu(
 			menuChildren: [
 				{
 					id: `${idPrefix}_undo`,
-					title: "Undo",
+					title: undoTitle,
+					disabled: !undoState.canUndo,
 					keyboardShortcut: "⌘Z",
 					nativeShortcut: true,
 					onClickFunc: classicyEditCommands.undo,
@@ -189,6 +209,6 @@ export function useClassicyEditMenu(
 					: []),
 			],
 		}),
-		[idPrefix, preferencesItem],
+		[idPrefix, preferencesItem, undoTitle, undoState.canUndo],
 	);
 }
