@@ -6,6 +6,14 @@ name: Deploy to GitHub Pages
 # (actions/deploy-pages) — the Pages source does NOT need to be switched to a
 # branch; gh-pages is only where the combined tree is assembled so previews
 # survive a main-site redeploy.
+#
+# This is the ONLY workflow that deploys to the github-pages environment. It runs
+# on the default branch (on push, on Release Package completion, and on PR Preview
+# completion), so it satisfies the environment's deployment-branch policy — a job
+# on a PR branch cannot. The `workflow_run` trigger fires even though the upstream
+# pushes used GITHUB_TOKEN, which is why it is used to chain the PR-preview store
+# update to this deploy. Each run rebuilds the main site and republishes the whole
+# assembled tree (main + every open preview), preserving pr-preview/ throughout.
 
 on:
   push:
@@ -16,12 +24,14 @@ on:
       - 'storybook/**'
       - 'src/**/*.stories.tsx'
   workflow_run:
+    # NOTE: no `branches` filter — it matches the TRIGGERING run's branch, and a
+    # PR Preview run is on the PR branch, so filtering to main would drop it. The
+    # job's `if` below gates on the upstream conclusion instead.
     workflows:
       - Release Package
+      - PR Preview
     types:
       - completed
-    branches:
-      - main
   workflow_dispatch:
 
 permissions:
