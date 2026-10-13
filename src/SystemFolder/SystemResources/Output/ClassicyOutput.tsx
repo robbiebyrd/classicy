@@ -25,6 +25,11 @@ type ClassicyOutputProps = PropsWithChildren<{
 	variant?: "plain" | "inset";
 	/** Render in the mono font — for tabular or numeric results. */
 	mono?: boolean;
+	/**
+	 * Dim the field. HIGOS8 Ch.2 "Static Text Fields" (p.42): a static text
+	 * field may be active or disabled, the disabled state shown dimmed.
+	 */
+	disabled?: boolean;
 }>;
 
 export const ClassicyOutput: FunctionalComponent<ClassicyOutputProps> = ({
@@ -36,6 +41,7 @@ export const ClassicyOutput: FunctionalComponent<ClassicyOutputProps> = ({
 	labelAlign = "left",
 	variant = "plain",
 	mono,
+	disabled,
 	children,
 }) => {
 	const content = (
@@ -46,6 +52,7 @@ export const ClassicyOutput: FunctionalComponent<ClassicyOutputProps> = ({
 				"classicyOutput",
 				variant === "inset" ? "classicyOutputInset" : "classicyOutputPlain",
 				mono ? "classicyOutputMono" : "",
+				disabled ? "classicyOutputDisabled" : "",
 			)}
 		>
 			{value ?? children}
@@ -61,7 +68,7 @@ export const ClassicyOutput: FunctionalComponent<ClassicyOutputProps> = ({
 				labelAlignClass(labelAlign),
 			)}
 		>
-			<ClassicyControlLabel label={label} labelFor={id} />
+			<ClassicyControlLabel label={label} labelFor={id} disabled={disabled} />
 			{content}
 		</div>
 	);

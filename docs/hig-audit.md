@@ -76,7 +76,64 @@ Normative checklist (HIGOS8 Ch.2) and component mapping:
 
 ### Findings — Chapter 2
 
-_To be filled during the Chapter 2 audit._
+| # | Severity | Finding | Component | Status |
+| --- | --- | --- | --- | --- |
+| 2.1 | MEDIUM | On-state mark was reversed: `×` by default, checkmark only when `isDefault`. The checkmark is the standard mark; `×` is a localization opt-in. | `Checkbox` | 🔧 Fixed |
+| 2.2 | LOW | Mixed state only painted its dash when also `:checked`; mixed is a distinct third state and must always show. | `Checkbox` | 🔧 Fixed |
+| 2.3 | LOW | A radio group could render with zero buttons on when none was pre-marked. | `RadioInput` | 🔧 Fixed |
+| 2.4 | LOW | Little-arrow buttons responded only to the mouse; Enter/Space did nothing. | `TimePicker/ClassicyLittleArrows` | 🔧 Fixed |
+| 2.8 | MEDIUM | Multi-line edit field suppressed all focus indication (`outline:none;box-shadow:none`). | `TextEditor` | 🔧 Fixed |
+| 2.9 | LOW | Static-text output had no disabled (dimmed) appearance. | `Output` | 🔧 Fixed |
+| 2.11 | LOW | Edit fields rounded their corners on focus and carried an invalid `outline` shorthand; the Rich editor also grew by 2em margin+padding on focus. | `Input`, `RichTextEditor` | 🔧 Fixed |
+| 2.12 | LOW | Table row selection used a fixed near-black instead of the Appearance selection color. | `Table` | 🔧 Fixed |
+| 2.5 | LOW | Pop-up list opens below/above the button rather than aligning the current item at the button level. | `PopUpMenu` | ⚠️ Deferred |
+| 2.6 | MEDIUM | List box frame is 1px (`--window-border-size`) vs the documented 2px `--hig-frame-width`. | `ListBox` | ⚠️ Deferred |
+| 2.7 | MEDIUM | Edit-text frame is 1px vs the documented 2px `--hig-frame-width`. | `Input`,`TextEditor`,`RichTextEditor` | ⚠️ Deferred |
+| 2.10 | LOW | Tab labels use the 14px app UI font, not the HIG 12pt/10pt sizes. | `Tabs` | ⚠️ Deferred |
+
+**Details & fixes**
+
+- **2.1/2.2** (`ClassicyCheckbox.scss`, `.tsx`): base `:checked` mark is now the
+  checkmark `✓`; the `×` moved to an opt-in `.classicyCheckboxX` variant exposed
+  via a new `mark?: "check" | "x"` prop; the mixed dash now paints on the class
+  alone (compound selector wins on source order) so it shows whether or not the
+  box is also checked. _HIGOS8 Ch.2 "Checkboxes" (p.27-28)._
+- **2.3** (`ClassicyRadioInput.tsx`): initial selection falls back to the first
+  button when none is pre-marked, and the native `<input>` is now controlled
+  from the `check` state so the native checked state matches the Platinum ring.
+  _HIGOS8 Ch.2 "Radio Buttons" (p.24)._ New test added.
+- **2.4** (`ClassicyLittleArrows.tsx`): Enter/Space on a focused arrow steps the
+  value (OS key-repeat handles holding). _HIGOS8 Ch.2 "Little Arrows" (p.35)._
+- **2.8** (`ClassicyTextEditor.scss`): focus now draws an inset ring instead of
+  suppressing all focus indication. _HIGOS8 Ch.2 "Edit Text Fields" (p.41)._
+- **2.9** (`ClassicyOutput.tsx/.scss`): added a `disabled` prop that dims the
+  field (and its label). _HIGOS8 Ch.2 "Static Text Fields" (p.42)._
+- **2.11** (`ClassicyInput.scss`, `ClassicyRichTextEditor.scss`): focus keeps the
+  field rectangular and drops the invalid `outline` shorthand; the Rich editor no
+  longer reflows by 2em on focus. _HIGOS8 Ch.2 "Edit Text Fields" (p.41)._
+- **2.12** (`ClassicyTable.scss`): selected rows use `--color-select` (matching
+  `ClassicyTree`) so selection tracks the Appearance accent color. _HIGOS8 Ch.2._
+
+**Deferred (visual-fidelity / risk — recommended as a design-reviewed follow-up)**
+
+- **2.6, 2.7**: the library already defines `--hig-frame-width: 2px`, documented
+  as the frame shared by list box, edit text, image well, group box and
+  separator — and image well / group box / separator already use it, so list box
+  and edit text are the outliers at 1px. The change is low-ambiguity but shifts
+  input sizing app-wide and the current 1px rendering is still a legitimate
+  Platinum bevel, so it is deferred for a pass with visual verification.
+- **2.5**: the current combobox-style drop is a reasonable, if non-literal,
+  rendering; literal current-item alignment is a larger change for little gain.
+- **2.10**: Classicy uses a consistent 14px UI type scale throughout; forcing
+  12/10px tabs would clash with the app's own scale — needs a type-scale decision.
+
+**Verified already-compliant:** Push Buttons (58×20 min, default ring, 3 states,
+Return/Esc/⌘. delegated to the dialog layer), Bevel Buttons (2/3/4px bevels, all
+seven states), Sliders (ghost indicator, labelled ticks, live drag), Pop-up
+(current selection + double triangle + checkmark), Clock Controls, Disclosure
+Triangles (right=closed/down=open, ⌘←/⌘→), Placard, Image Well, Group Boxes
+(primary 2px etched / secondary 1px, all four title styles), Separator (2px
+engraved), Progress Indicators (determinate / indeterminate / chasing arrows).
 
 ---
 

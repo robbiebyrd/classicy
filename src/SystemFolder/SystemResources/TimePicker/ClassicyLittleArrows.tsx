@@ -1,6 +1,11 @@
 import "./ClassicyLittleArrows.scss";
 import classNames from "classnames";
-import { type FC as FunctionalComponent, useEffect, useRef } from "react";
+import {
+	type FC as FunctionalComponent,
+	type KeyboardEvent as ReactKeyboardEvent,
+	useEffect,
+	useRef,
+} from "react";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 
 // Continuous repeat while held — the HIG's little-arrows behavior. Callers that
@@ -67,6 +72,17 @@ export const ClassicyLittleArrows: FunctionalComponent<
 		}, repeatIntervalMs);
 	};
 
+	// Keyboard operability (HIGOS8 Ch.2 "Little Arrows"/"Clock Controls", p.35-36):
+	// Enter/Space on a focused arrow steps the value once; the OS key-repeat of
+	// held keydowns gives the press-and-hold repeat without a second interval.
+	const stepKey = (e: ReactKeyboardEvent, direction: 1 | -1) => {
+		if (disabled) return;
+		if (e.key === "Enter" || e.key === " ") {
+			e.preventDefault();
+			onStepRef.current(direction);
+		}
+	};
+
 	return (
 		<div className={classNames("classicyLittleArrows", className)}>
 			<button
@@ -77,6 +93,7 @@ export const ClassicyLittleArrows: FunctionalComponent<
 				onMouseDown={() => start(1)}
 				onMouseUp={stop}
 				onMouseLeave={stop}
+				onKeyDown={(e) => stepKey(e, 1)}
 			>
 				<img src={ClassicyIcons.ui.menuDropdownArrowUp} alt="" />
 			</button>
@@ -88,6 +105,7 @@ export const ClassicyLittleArrows: FunctionalComponent<
 				onMouseDown={() => start(-1)}
 				onMouseUp={stop}
 				onMouseLeave={stop}
+				onKeyDown={(e) => stepKey(e, -1)}
 			>
 				<img src={ClassicyIcons.ui.menuDropdownArrowUp} alt="" />
 			</button>

@@ -9,9 +9,11 @@
   calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) 0 0 var(--color-system-04);
   width: 100%;
 
+  // HIGOS8 Ch.2 "Edit Text Fields and Frames" (p.41): the field stays a
+  // rectangular 2px frame in all states; focus adds a ring without changing the
+  // frame's shape. (Previously a border-radius rounded the corners on focus and
+  // an invalid `outline` shorthand rendered nothing.)
   &:focus-visible {
-    border-radius: calc(var(--ui-font-size) * 0.1905);
-    outline: 0 0 0 calc(var(--window-border-size) * 2) var(--color-outline) !important;
     box-shadow: 0 0 0 calc(var(--window-border-size) * 2) var(--color-theme-04),
     0 0 var(--window-border-size) calc(var(--window-border-size) * 2) var(--color-theme-04);
   }

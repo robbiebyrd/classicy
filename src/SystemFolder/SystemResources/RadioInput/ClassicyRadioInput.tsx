@@ -30,6 +30,13 @@ type ClassicyRadioInputValueProps = {
 	label?: string;
 };
 
+// HIGOS8 Ch.2 "Radio Buttons" (p.24): a radio group always has exactly one
+// button on. When no input is pre-marked, fall back to the first button so the
+// group is never rendered with zero selection. Presentational only — selecting
+// the fallback does not dispatch onClickFunc, matching the prior mount behavior.
+const initialRadioCheck = (list: ClassicyRadioInputValueProps[]): string =>
+	list.findLast((input) => input.checked === true)?.id ?? list[0]?.id ?? "";
+
 export const ClassicyRadioInput: FunctionalComponent<
 	ClassicyRadioInputProps
 > = ({
@@ -42,11 +49,9 @@ export const ClassicyRadioInput: FunctionalComponent<
 	onClickFunc,
 	inputs,
 }) => {
-	const [check, setCheck] = useState<string>(
-		inputs.findLast((input) => input.checked === true)?.id || "",
-	);
+	const [check, setCheck] = useState<string>(() => initialRadioCheck(inputs));
 	useEffect(() => {
-		setCheck(inputs.findLast((input) => input.checked === true)?.id || "");
+		setCheck(initialRadioCheck(inputs));
 	}, [inputs]);
 	const player = useSoundDispatch();
 
@@ -92,7 +97,9 @@ export const ClassicyRadioInput: FunctionalComponent<
 							)}
 							type={"radio"}
 							value={item.id}
-							defaultChecked={item.checked}
+							// Controlled from `check` so the native checked state matches
+							// the visual ring (and the group always has exactly one on).
+							checked={check === item.id}
 							tabIndex={0}
 							onChange={() => !item.disabled && handleOnChange(item.id)}
 							onMouseDown={() => {

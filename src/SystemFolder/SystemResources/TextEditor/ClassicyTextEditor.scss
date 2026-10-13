@@ -31,10 +31,14 @@
   padding: var(--window-padding-size);
   border: none;
   overflow-y: auto;
+  // HIGOS8 Ch.2 "Edit Text Fields and Frames" (p.41): a focused edit-text field
+  // shows a focus ring. The border lives on .classicyTextEditorBorder, so draw
+  // an inset ring on the textarea (not clipped by its own overflow) instead of
+  // suppressing all focus indication.
   &:focus-visible {
-    border-radius: 0 !important;
-    outline: none !important;
-    box-shadow: none !important;
+    border-radius: 0;
+    outline: none;
+    box-shadow: inset 0 0 0 calc(var(--window-border-size) * 2) var(--color-theme-04);
   }
 }
 
