@@ -1,0 +1,5 @@
+import{q as s,j as e}from"./iframe-CSEAVB6p.js";import"./preload-helper-UyWNs-m6.js";const n={title:"System/CrashScreen",component:s,parameters:{layout:"fullscreen"}},o=()=>{throw new Error("Storybook demo crash — this error is intentional.")},r={render:()=>e.jsx(s,{children:e.jsx(o,{})})};r.parameters={...r.parameters,docs:{...r.parameters?.docs,source:{originalSource:`{
+  render: () => <ClassicyCrashScreen>
+            <Bomb />
+        </ClassicyCrashScreen>
+}`,...r.parameters?.docs?.source}}};const c=["Crashed"];export{r as Crashed,c as __namedExportsOrder,n as default};
