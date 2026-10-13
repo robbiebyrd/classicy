@@ -1,5 +1,20 @@
 name: Deploy to GitHub Pages
 
+# The published site lives on the `gh-pages` branch as internal storage: the main
+# site at the root, plus each open PR's preview under pr-preview/pr-<N>/ (managed
+# by pr-preview.yml). GitHub Pages still deploys via the Actions flow
+# (actions/deploy-pages) — the Pages source does NOT need to be switched to a
+# branch; gh-pages is only where the combined tree is assembled so previews
+# survive a main-site redeploy.
+#
+# This is the ONLY workflow that deploys to the github-pages environment. It runs
+# on the default branch (on push, on Release Package completion, and on PR Preview
+# completion), so it satisfies the environment's deployment-branch policy — a job
+# on a PR branch cannot. The `workflow_run` trigger fires even though the upstream
+# pushes used GITHUB_TOKEN, which is why it is used to chain the PR-preview store
+# update to this deploy. Each run rebuilds the main site and republishes the whole
+# assembled tree (main + every open preview), preserving pr-preview/ throughout.
+
 on:
   push:
     branches:
@@ -9,27 +24,34 @@ on:
       - 'storybook/**'
       - 'src/**/*.stories.tsx'
   workflow_run:
+    # NOTE: no `branches` filter — it matches the TRIGGERING run's branch, and a
+    # PR Preview run is on the PR branch, so filtering to main would drop it. The
+    # job's `if` below gates on the upstream conclusion instead.
     workflows:
       - Release Package
+      - PR Preview
     types:
       - completed
-    branches:
-      - main
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write # push the assembled site to the gh-pages store
   pages: write
   id-token: write
 
+# Shared with pr-preview.yml so main-site and preview deploys never race on the
+# gh-pages store or the github-pages environment.
 concurrency:
-  group: pages-${{ github.run_id }}
+  group: pages-publish
   cancel-in-progress: false
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -61,23 +83,32 @@ jobs:
       - name: Build Storybook
         run: pnpm --filter classicy-storybook build
 
-      - name: Merge Storybook into Pages artifact
+      - name: Merge Storybook into the site
         run: |
           mv storybook/storybook-static example/dist/storybook
           cp -r assets/. example/dist/assets/
 
+      - name: Publish the main site to the gh-pages store (keep PR previews)
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages
+          folder: example/dist
+          # Replace the root but keep pr-preview/ (the open PR previews).
+          clean: true
+          clean-exclude: |
+            pr-preview/
+
+      - name: Checkout the assembled site (gh-pages)
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: published
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: example/dist
+          path: published
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

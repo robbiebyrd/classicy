@@ -96,6 +96,14 @@ export type UseFocusTrapOptions = {
 	enabled?: boolean;
 	/** Focus the first focusable element (or the container) on activation. */
 	autoFocus?: boolean;
+	/**
+	 * Element to focus on activation instead of the first focusable one. Use it
+	 * to give initial focus to a dialog's default button (HIG Ch.3 "Keyboard
+	 * Navigation and Focus"): the default button should be focused so Return
+	 * activates it and focus coincides with the default ring. Falls back to the
+	 * first focusable element when the ref is empty.
+	 */
+	initialFocusRef?: RefObject<HTMLElement | null>;
 };
 
 const FOCUSABLE =
@@ -105,6 +113,7 @@ export const useFocusTrap = ({
 	ref,
 	enabled = true,
 	autoFocus = true,
+	initialFocusRef,
 }: UseFocusTrapOptions): void => {
 	useEffect(() => {
 		if (!enabled) return;
@@ -117,8 +126,8 @@ export const useFocusTrap = ({
 			);
 
 		if (autoFocus) {
-			const first = focusable()[0];
-			(first ?? container).focus?.();
+			const preferred = initialFocusRef?.current;
+			(preferred ?? focusable()[0] ?? container).focus?.();
 		}
 
 		const handler = (e: KeyboardEvent) => {
@@ -139,5 +148,5 @@ export const useFocusTrap = ({
 
 		container.addEventListener("keydown", handler);
 		return () => container.removeEventListener("keydown", handler);
-	}, [ref, enabled, autoFocus]);
+	}, [ref, enabled, autoFocus, initialFocusRef]);
 };

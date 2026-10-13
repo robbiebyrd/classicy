@@ -37,6 +37,15 @@ describe("ClassicyRadioInput", () => {
 		expect(radios).toHaveLength(3);
 	});
 
+	// HIGOS8 Ch.2 "Radio Buttons" (p.24): a radio group always has exactly one
+	// button on, so a group with nothing pre-marked defaults to the first.
+	it("selects the first button when no input is pre-marked checked", () => {
+		render(<ClassicyRadioInput name="test-group" inputs={baseInputs} />);
+		expect(screen.getByRole("radio", { name: "Option A" })).toBeChecked();
+		expect(screen.getByRole("radio", { name: "Option B" })).not.toBeChecked();
+		expect(screen.getByRole("radio", { name: "Option C" })).not.toBeChecked();
+	});
+
 	it("renders label when label prop is provided", () => {
 		render(
 			<ClassicyRadioInput

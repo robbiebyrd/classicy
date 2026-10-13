@@ -1,0 +1,108 @@
+name: PR Preview
+
+# Builds a full preview of each pull request — the example desktop app at the
+# preview root and Storybook under /storybook — and stores it on the gh-pages
+# branch under pr-preview/pr-<number>/, so it can be served at
+# https://demo.classicy.ing/pr-preview/pr-<number>/ alongside the live site.
+#
+# How it fits the Actions-based Pages setup (no Pages-source switch):
+#   1. This workflow only WRITES the preview into the gh-pages STORE
+#      (rossjrw/pr-preview-action — it also comments the URL and removes the dir
+#      when the PR closes). It does NOT deploy: a PR-branch job is blocked by the
+#      github-pages environment's deployment-branch policy (default branch only).
+#   2. The actual publish is done by the "Deploy to GitHub Pages" workflow
+#      (pages.yml), which this workflow's completion triggers via `workflow_run`.
+#      That deploy job runs in the default-branch context, so it is allowed into
+#      the github-pages environment and publishes the whole assembled gh-pages
+#      tree (main site at root + every open preview) through actions/deploy-pages.
+#      workflow_run is used because GITHUB_TOKEN pushes can't trigger a deploy any
+#      other way.
+#
+# Previews from FORKED repositories are skipped — a fork's token cannot write to
+# gh-pages. Previews work for branches pushed to this repository.
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - closed
+
+permissions:
+  contents: write # push the preview into the gh-pages store
+  pull-requests: write # rossjrw comments the preview URL
+
+# Shared with pages.yml so the preview push and the main-site deploy never race
+# on the gh-pages store.
+concurrency:
+  group: pages-publish
+  cancel-in-progress: false
+
+# Served from the custom domain root, so the preview base is just the sub-path.
+env:
+  BASE_PATH: /pr-preview/pr-${{ github.event.number }}/
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        if: github.event.action != 'closed'
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        if: github.event.action != 'closed'
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24.x'
+          cache: 'pnpm'
+
+      - name: Install FFMpeg
+        if: github.event.action != 'closed'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Install dependencies
+        if: github.event.action != 'closed'
+        run: pnpm install --frozen-lockfile
+
+      - name: Build library
+        if: github.event.action != 'closed'
+        run: pnpm build
+
+      - name: Build example app (scoped to the preview sub-path)
+        if: github.event.action != 'closed'
+        working-directory: example
+        run: pnpm exec vite build --base "$BASE_PATH"
+
+      - name: Build Storybook (scoped to the preview sub-path)
+        if: github.event.action != 'closed'
+        env:
+          STORYBOOK_BASE: ${{ env.BASE_PATH }}storybook/
+        run: pnpm --filter classicy-storybook build
+
+      - name: Merge Storybook into the preview
+        if: github.event.action != 'closed'
+        run: |
+          mv storybook/storybook-static example/dist/storybook
+          cp -r assets/. example/dist/assets/
+
+      - name: Update the preview in the gh-pages store (and remove it on close)
+        uses: rossjrw/pr-preview-action@v1
+        with:
+          source-dir: example/dist
+          preview-branch: gh-pages
+          umbrella-dir: pr-preview
+          # Custom domain, so the comment links to demo.classicy.ing/pr-preview/…
+          # (no trailing slash — the action appends the umbrella path).
+          pages-base-url: demo.classicy.ing
+          # Deploy on open/sync, remove on close. pages.yml (triggered by this
+          # workflow's completion) performs the actual GitHub Pages deploy; this
+          # action only updates the gh-pages store.
+          action: auto

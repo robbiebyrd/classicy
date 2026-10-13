@@ -364,9 +364,12 @@ describe("ClassicyDesktopMenuBar — shortcut auto-registration (Keyboard regist
 			render(<ClassicyDesktopMenuBar />);
 		});
 
-		expect(useAppManager.getState().System.Manager.Keyboard.system).toEqual(
-			expect.arrayContaining(["control+s", "option+h"]),
-		);
+		const system = useAppManager.getState().System.Manager.Keyboard.system;
+		// option+h = Show/Hide Balloons (a real working equivalent).
+		expect(system).toEqual(expect.arrayContaining(["option+h"]));
+		// "About This Computer" has no keyboard equivalent in the real Mac OS, so
+		// the previously-invented control+s chord must not be registered.
+		expect(system).not.toContain("control+s");
 	});
 });
 

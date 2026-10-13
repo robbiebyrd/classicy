@@ -23,3 +23,9 @@
   font-family: var(--mono-font);
   font-size: var(--mono-font-size);
 }
+
+// Disabled static text is dimmed (HIGOS8 Ch.2 "Static Text Fields", p.42),
+// matching ClassicyControlLabel's disabled treatment.
+.classicyOutputDisabled {
+  color: var(--color-system-05);
+}

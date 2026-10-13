@@ -188,6 +188,15 @@ interface ClassicyWindowProps {
 	 */
 	zoomMode?: "full" | "horizontal" | "vertical";
 	/**
+	 * The window's "standard state" size for a full zoom (HIGOS8 Ch.5 "Zoom
+	 * Boxes", p.104): the size best suited to the content. When set, a full zoom
+	 * targets this size (clamped to the available desktop) rather than filling the
+	 * screen — the HIG is explicit that an app "should never simply assume that
+	 * the standard state should be as large as the screen." When omitted, the zoom
+	 * fits the current content, falling back to the available desktop.
+	 */
+	idealSize?: [ClassicyWindowSizeDimension, ClassicyWindowSizeDimension];
+	/**
 	 * Window header styling (#183). `"list"` removes the header's bottom
 	 * separator line (list-view column header); `"standard"` keeps the bevel.
 	 */
@@ -244,6 +253,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	windowType = "document",
 	alwaysOnTop = false,
 	zoomMode = "full",
+	idealSize,
 	headerVariant = "standard",
 	contentFrame = false,
 	placard,
@@ -973,9 +983,40 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				size: [curW, stdH],
 			};
 		}
+
+		// Full zoom targets the "standard state" — the size best suited to the
+		// content — NOT the whole screen (HIGOS8 Ch.5, p.104). Prefer an explicit
+		// idealSize; otherwise fit the current content (its inner scroll extent
+		// plus the window's chrome); fall back to filling the desktop only when no
+		// usable measurement is available. Everything is clamped to [min, desktop].
+		const clamp = (v: number, lo: number, hi: number) =>
+			Math.min(Math.max(v, lo), Math.max(lo, hi));
+		let targetW = stdW;
+		let targetH = stdH;
+		if (idealSize) {
+			const [iw, ih] = resolveSize(idealSize);
+			targetW = clamp(iw, resolvedMinimumSize[0], stdW);
+			targetH = clamp(ih, resolvedMinimumSize[1], stdH);
+		} else {
+			const inner = windowRef.current?.querySelector<HTMLElement>(
+				".classicyWindowContentsInner",
+			);
+			if (inner) {
+				const chromeW = curW - inner.clientWidth;
+				const chromeH = curH - inner.clientHeight;
+				const fitW = inner.scrollWidth + chromeW;
+				const fitH = inner.scrollHeight + chromeH;
+				if (Number.isFinite(fitW) && fitW > 0) {
+					targetW = clamp(fitW, resolvedMinimumSize[0], stdW);
+				}
+				if (Number.isFinite(fitH) && fitH > 0) {
+					targetH = clamp(fitH, resolvedMinimumSize[1], stdH);
+				}
+			}
+		}
 		return {
 			position: [margin, menuBarHeight + margin],
-			size: [stdW, stdH],
+			size: [targetW, targetH],
 		};
 	};
 

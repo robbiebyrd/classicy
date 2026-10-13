@@ -31,11 +31,15 @@ export interface ClassicyMenuItem {
 	disabled?: boolean;
 	/**
 	 * When defined, this item is a checkable menu item: it renders a Mac OS 8
-	 * checkmark (✓) in the left icon gutter when true, and an empty (but
-	 * reserved) gutter when false — keeping checked/unchecked siblings aligned.
-	 * A checkable item never also shows an icon/image (the checkmark wins).
+	 * checkmark (✓) in the left icon gutter when true, a dash (–) when "mixed",
+	 * and an empty (but reserved) gutter when false — keeping siblings aligned.
+	 * A checkable item never also shows an icon/image (the mark wins).
+	 *
+	 * `"mixed"` is the HIG dash (HIGOS7 "Checkmarks and Dashes in Menus"): use it
+	 * when an accumulating attribute applies to only PART of the selection (vs. a
+	 * checkmark, which means it applies to the whole selection).
 	 */
-	checked?: boolean;
+	checked?: boolean | "mixed";
 	icon?: string;
 	keyboardShortcut?: string;
 	/**
@@ -281,7 +285,7 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 				<p>
 					{menuItem.checked !== undefined ? (
 						<span className={"classicyMenuItemCheck"} aria-hidden={"true"}>
-							{menuItem.checked ? "✓" : ""}
+							{menuItem.checked === "mixed" ? "–" : menuItem.checked ? "✓" : ""}
 						</span>
 					) : menuItem.image ? (
 						<img src={menuItem.image} alt={menuItem.title} />

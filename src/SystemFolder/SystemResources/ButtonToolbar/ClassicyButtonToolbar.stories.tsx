@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { ClassicyBevelButton } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButton";
 import {
 	ClassicyButtonToolbar,
@@ -14,9 +15,10 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// Storybook serves the repo's assets/ at /assets
-// (storybook/.storybook/main.ts:17 → staticDirs).
-const icon = "/assets/img/icons/system/info.png";
+// Use a bundled icon (Vite rewrites the URL against the build base) rather than
+// an absolute "/assets/..." path, so the story renders correctly when Storybook
+// is served from a sub-path (e.g. a PR preview at /<repo>/pr-preview/pr-N/).
+const icon = ClassicyIcons.system.info;
 
 export const SingleGroup: Story = {
 	render: () => (

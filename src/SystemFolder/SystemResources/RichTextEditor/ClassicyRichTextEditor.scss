@@ -1,16 +1,19 @@
 .classicyRichTextEditor {
+  // HIGOS8 Ch.2 "Edit Text Fields and Frames" (p.41): 2px recessed frame, as on
+  // the image well — 1px black border + 2px inset bevel.
   border: var(--window-border-size) solid var(--color-black);
-  box-shadow: calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 0 var(--color-system-05),
-  calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) 0 0 var(--color-system-04);
+  box-shadow:
+    inset var(--hig-frame-width) var(--hig-frame-width) 0 0 var(--color-system-05),
+    inset calc(var(--hig-frame-width) * -1) calc(var(--hig-frame-width) * -1) 0 0 var(--color-white);
   min-height: calc(100% - var(--window-border-size)*2);
   display: flex;
   flex-direction: column;
 
+  // Focus adds a ring without changing the frame's shape or box metrics
+  // (HIGOS8 Ch.2 "Edit Text Fields and Frames", p.41). Previously this grew the
+  // editor by 2em of margin+padding on focus, rounded its corners, and carried
+  // an invalid `outline` shorthand.
   &:focus-visible {
-    margin: 2em;
-    padding: 2em;
-    border-radius: calc(var(--ui-font-size) * 0.1905);
-    outline: 0 0 0 calc(var(--window-border-size) * 2) var(--color-outline) !important;
     box-shadow: 0 0 0 calc(var(--window-border-size) * 2) var(--color-theme-04),
     0 0 var(--window-border-size) calc(var(--window-border-size) * 2) var(--color-theme-04);
   }

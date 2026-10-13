@@ -24,6 +24,7 @@ import {
 
 const appIcon = ClassicyIcons.controlPanels.dateTimeManager.dateTimeManager;
 
+import { DATE_AND_TIME_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeManagerManifest";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyControlGroup } from "@/SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup";
 import { ClassicyDatePicker } from "@/SystemFolder/SystemResources/DatePicker/ClassicyDatePicker";
@@ -32,16 +33,9 @@ import { ClassicyRadioInput } from "@/SystemFolder/SystemResources/RadioInput/Cl
 import { ClassicyTimePicker } from "@/SystemFolder/SystemResources/TimePicker/ClassicyTimePicker";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
-import { DATE_AND_TIME_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeManagerManifest";
-
 const APP_ID = DATE_AND_TIME_MANAGER_APP_ID;
 const APP_NAME = "Date and Time Manager";
 const WINDOW_ID = "DateAndTimeManager_1";
-
-const TIME_FORMAT_INPUTS = [
-	{ id: "12", label: "12-Hour", checked: true },
-	{ id: "24", label: "Military Time", disabled: true },
-];
 
 const TIMEZONES = [
 	{ label: "Pacific/Midway", value: "-11" },
@@ -166,6 +160,28 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
 			tzOffset: e.target.value,
 		});
 	};
+
+	// "24" selects Military Time; "12" reverts to the AM/PM display. The internal
+	// clock display functions (the menu-bar Time widget and useClassicyDateTime)
+	// read System.Manager.DateAndTime.militaryTime, so toggling this flips them all.
+	const updateTimeFormat = (id: string) => {
+		desktopEventDispatch({
+			type: "ClassicyManagerDateTimeFormatSet",
+			militaryTime: id === "24",
+		});
+	};
+
+	// Built from state so the selection reflects the current format and stays in
+	// sync if it is changed elsewhere. ClassicyRadioInput re-seeds its checked
+	// item from `inputs` whenever this array changes.
+	const timeFormatInputs = [
+		{ id: "12", label: "12-Hour", checked: !dateAndTimeState.militaryTime },
+		{
+			id: "24",
+			label: "Military Time",
+			checked: dateAndTimeState.militaryTime,
+		},
+	];
 
 	// Mac OS 8 HIG control-panel menu bar (audit ch. 6 §35): Apple / File / Edit.
 	// The About entry is discovery data for the desktop menu bar (HIG #209):
@@ -293,8 +309,9 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
 					<div className={"classicyDateAndTimeManagerColumn"}>
 						<ClassicyControlGroup label={"Time Format"}>
 							<ClassicyRadioInput
-								inputs={TIME_FORMAT_INPUTS}
+								inputs={timeFormatInputs}
 								name={"period_selector"}
+								onClickFunc={updateTimeFormat}
 							/>
 						</ClassicyControlGroup>
 					</div>

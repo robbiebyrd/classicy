@@ -10,14 +10,16 @@
   background: var(--color-system-03);
   appearance: none;
 
+  // HIGOS8 Ch.2 "Checkboxes" (p.28): the checkmark is the standard on-state
+  // mark. (The "X" is only a localization opt-in — see .classicyCheckboxX.)
   &:checked {
     &:after {
       font-family: var(--ui-font), sans-serif;
-      font-size: calc(var(--ui-font-size) * 1.25);
-      line-height: calc(var(--ui-font-size) * 0.65);
+      font-size: calc(var(--ui-font-size) * 1);
+      line-height: calc(var(--ui-font-size) * 0.75);
       display: flex;
       justify-content: center;
-      content: '\00D7';
+      content: '\2713';
       text-shadow: var(--color-system-05) var(--window-border-size) var(--window-border-size) calc(var(--window-border-size) * 2);
     }
   }
@@ -45,35 +47,35 @@
 }
 
 
-.classicyCheckboxDefault {
-  &:checked,
-  &:active {
-    &:after {
-      font-family: var(--ui-font), sans-serif;
-      font-size: calc(var(--ui-font-size) * 1);
-      line-height: calc(var(--ui-font-size) * 0.75);
-      display: flex;
-      justify-content: center;
-      content: '\2713';
-      text-shadow: var(--color-system-05) var(--window-border-size) var(--window-border-size) calc(var(--window-border-size) * 2);
-    }
-  }
-}
+// `isDefault` is retained for API stability and emphasis styling, but no longer
+// changes the on-state mark — per the HIG the checkmark is the mark for every
+// checkbox, not just the dialog's default control.
 
 .classicyCheckboxHolder {
   display: flex;
 }
 
-.classicyCheckboxMixed {
-  &:checked {
-    &:after {
-      font-family: var(--ui-font), sans-serif;
-      font-size: calc(var(--ui-font-size) * 1);
-      line-height: calc(var(--ui-font-size) * 0.75);
-      display: flex;
-      justify-content: center;
-      content: '-';
-      text-shadow: var(--color-system-05) var(--window-border-size) var(--window-border-size) calc(var(--window-border-size) * 2);
-    }
+// Localization opt-in (HIGOS8 Ch.2 "Checkboxes", p.28): where the checkmark is
+// not culturally acceptable, the familiar "X" may be used instead. Compound
+// selector so it overrides the base checkmark on source order.
+.classicyCheckbox.classicyCheckboxX {
+  &:checked:after {
+    font-size: calc(var(--ui-font-size) * 1.25);
+    line-height: calc(var(--ui-font-size) * 0.65);
+    content: '\00D7';
   }
+}
+
+// The mixed state is a distinct third state (neither on nor off): it must show
+// its dash regardless of the on/off value, so gate on the class alone. The
+// compound selector ties the `:checked` rule's specificity and wins on source
+// order, so a mixed checkbox shows the dash whether or not it is also checked.
+.classicyCheckbox.classicyCheckboxMixed:after {
+  font-family: var(--ui-font), sans-serif;
+  font-size: calc(var(--ui-font-size) * 1);
+  line-height: calc(var(--ui-font-size) * 0.75);
+  display: flex;
+  justify-content: center;
+  content: '-';
+  text-shadow: var(--color-system-05) var(--window-border-size) var(--window-border-size) calc(var(--window-border-size) * 2);
 }
