@@ -187,10 +187,11 @@ describe("window resizer / scroll bar alignment", () => {
 		expect(grip["border-right"]).toBeUndefined();
 	});
 
-	it("keeps its bevel inside its own box", () => {
-		// An outer shadow would spill over the scroll bars' black edges now that
-		// the grip lands flush against them.
-		expect(grip["box-shadow"]).toContain("inset");
+	it("draws no highlight bevel that would seam against the scroll bars", () => {
+		// A white inset highlight here reads as a 1px white seam between the grow
+		// box's grey and the scroll bars' black borders; the grip's grey must meet
+		// those borders directly. The dimmed variant likewise carries no shadow.
+		expect(grip["box-shadow"]).toBeUndefined();
 		expect(rule(".classicyWindowResizerDimmed::before")["box-shadow"]).toBe(
 			"none !important",
 		);

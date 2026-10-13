@@ -422,10 +422,9 @@
       // line visibly changed shade at the junction.
       border-top: var(--window-border-size) solid var(--color-black);
       border-left: var(--window-border-size) solid var(--color-black);
-      // Inset, matching ::-webkit-scrollbar-corner. An *outer* shadow would spill
-      // frame grey over the scroll bars' black edges now that the box lands flush
-      // against them.
-      box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-white);
+      // No inset highlight: a white bevel here reads as a 1px white seam between
+      // the grow box and the scroll bars. The grip's grey must meet the bars'
+      // black borders directly (matches Mac OS 8's grow box).
     }
   }
 
