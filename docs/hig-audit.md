@@ -52,27 +52,27 @@ Normative checklist (HIGOS8 Ch.2) and component mapping:
 
 | Control | HIG rule (summary) | Classicy component | Status |
 | --- | --- | --- | --- |
-| Push Buttons (p.21) | Min width (OK/Cancel 58×20px); default ring (outset 3px); normal/pressed/disabled; Return/Enter = default; ⌘. / Esc = Cancel; 8-tick highlight on key activation; ≥8px text-to-edge | `Button/` | _pending_ |
-| Radio Buttons (p.24) | Groups of 2–7; exactly one on; on/off/mixed; click label activates; never initiates action | `RadioInput/` | _pending_ |
-| Pop-Up Menu Buttons (p.26) | Shows current selection; double triangle; checkmark on current item; menu width ≥ widest label | `PopUpMenu/` | _pending_ |
-| Checkboxes (p.27) | on/off/mixed; checkmark (or localizable X); avoid negative labels; click label toggles | `Checkbox/` | _pending_ |
-| Bevel Buttons (p.29) | Bevels 2/3/4px (small/med/large); 7 states; can act as push/radio/checkbox/pop-up | `BevelButton/` | _pending_ |
-| Sliders & Tick Marks (p.34) | Horizontal/vertical; directional or nondirectional indicator; ghost indicator; labeled ticks; live drag; not a scroll bar substitute | `Slider/` | _pending_ |
-| Little Arrows (p.35) | Two opposed arrows; labelled; click = ±1 unit; press-hold auto-repeats; highlight while pressed | `TimePicker/ClassicyLittleArrows` | _pending_ |
-| Clock Controls (p.36) | Edit-text + little arrows; ↑/↓ keys inc/dec focused field; can be inactive (display-only) | `DatePicker/`, `TimePicker/` | _pending_ |
-| Disclosure Triangles (p.37) | Right = closed, down = open; ⌘→ opens / ⌘← closes in list views; rotate reveals detail | `Disclosure/`, `Triangle/` | _pending_ |
-| List Boxes & Frames (p.39) | 2px frame; white bg; arrow-key nav; type-selection | `ListBox/` | _pending_ |
-| Scroll Bars (p.40) | Position (not settings); solid-black active arrows; indicator uses accent color | `Window/` scrollbars | _pending_ |
-| Edit Text Fields (p.41) | 2px frame; enabled/disabled; focus ring; password support | `Input/`, `TextEditor/`, `RichTextEditor/` | _pending_ |
-| Static Text Fields (p.42) | Active vs disabled appearance | `ControlLabel/`, `Output/` | _pending_ |
-| Tab Controls (p.42) | One row along top; 12/10pt labels; tucked 1px (panel) or inset 2px (modal dialog); global vs per-pane controls clearly labelled | `Tabs/` | _pending_ |
-| Placards (p.46) | normal/pressed/disabled; info panel, bottom-left near h-scrollbar | `Placard/` | _pending_ |
-| Image Wells (p.47) | 2px recessed frame; white fill; enabled/selected; drag-drop target; not a button | `ImageWell/` | _pending_ |
-| Group Boxes (p.47) | Primary = 2px etched; secondary = 1px; titles: none/text/pop-up/checkbox | `ControlGroup/`, `Form/` | _pending_ |
-| Separator Lines (p.50) | 2px engraved (line pixel + engrave pixel) | `Separator/` | _pending_ |
-| Window Headers (p.50) | Beveled rectangle; list-view variant drops the content divider | `Window/` | _pending_ |
-| Modeless Dialog Frames (p.51) | 2px border; active/inactive states | `Window/` | _pending_ |
-| Progress Indicators (p.52) | Determinate (L→R) vs indeterminate (spinning striped cylinder); fixed height; switch indet→det when scope known; async/chasing arrows for background work | `ProgressBar/`, `Spinner/` | _pending_ |
+| Push Buttons (p.21) | Min width (OK/Cancel 58×20px); default ring (outset 3px); normal/pressed/disabled; Return/Enter = default; ⌘. / Esc = Cancel; 8-tick highlight on key activation; ≥8px text-to-edge | `Button/` | see Findings |
+| Radio Buttons (p.24) | Groups of 2–7; exactly one on; on/off/mixed; click label activates; never initiates action | `RadioInput/` | see Findings |
+| Pop-Up Menu Buttons (p.26) | Shows current selection; double triangle; checkmark on current item; menu width ≥ widest label | `PopUpMenu/` | see Findings |
+| Checkboxes (p.27) | on/off/mixed; checkmark (or localizable X); avoid negative labels; click label toggles | `Checkbox/` | see Findings |
+| Bevel Buttons (p.29) | Bevels 2/3/4px (small/med/large); 7 states; can act as push/radio/checkbox/pop-up | `BevelButton/` | see Findings |
+| Sliders & Tick Marks (p.34) | Horizontal/vertical; directional or nondirectional indicator; ghost indicator; labeled ticks; live drag; not a scroll bar substitute | `Slider/` | see Findings |
+| Little Arrows (p.35) | Two opposed arrows; labelled; click = ±1 unit; press-hold auto-repeats; highlight while pressed | `TimePicker/ClassicyLittleArrows` | see Findings |
+| Clock Controls (p.36) | Edit-text + little arrows; ↑/↓ keys inc/dec focused field; can be inactive (display-only) | `DatePicker/`, `TimePicker/` | see Findings |
+| Disclosure Triangles (p.37) | Right = closed, down = open; ⌘→ opens / ⌘← closes in list views; rotate reveals detail | `Disclosure/`, `Triangle/` | see Findings |
+| List Boxes & Frames (p.39) | 2px frame; white bg; arrow-key nav; type-selection | `ListBox/` | see Findings |
+| Scroll Bars (p.40) | Position (not settings); solid-black active arrows; indicator uses accent color | `Window/` scrollbars | see Findings |
+| Edit Text Fields (p.41) | 2px frame; enabled/disabled; focus ring; password support | `Input/`, `TextEditor/`, `RichTextEditor/` | see Findings |
+| Static Text Fields (p.42) | Active vs disabled appearance | `ControlLabel/`, `Output/` | see Findings |
+| Tab Controls (p.42) | One row along top; 12/10pt labels; tucked 1px (panel) or inset 2px (modal dialog); global vs per-pane controls clearly labelled | `Tabs/` | see Findings |
+| Placards (p.46) | normal/pressed/disabled; info panel, bottom-left near h-scrollbar | `Placard/` | see Findings |
+| Image Wells (p.47) | 2px recessed frame; white fill; enabled/selected; drag-drop target; not a button | `ImageWell/` | see Findings |
+| Group Boxes (p.47) | Primary = 2px etched; secondary = 1px; titles: none/text/pop-up/checkbox | `ControlGroup/`, `Form/` | see Findings |
+| Separator Lines (p.50) | 2px engraved (line pixel + engrave pixel) | `Separator/` | see Findings |
+| Window Headers (p.50) | Beveled rectangle; list-view variant drops the content divider | `Window/` | see Findings |
+| Modeless Dialog Frames (p.51) | 2px border; active/inactive states | `Window/` | see Findings |
+| Progress Indicators (p.52) | Determinate (L→R) vs indeterminate (spinning striped cylinder); fixed height; switch indet→det when scope known; async/chasing arrows for background work | `ProgressBar/`, `Spinner/` | see Findings |
 
 ### Findings — Chapter 2
 
@@ -381,4 +381,31 @@ immediate settings application, and the existing §35 / #209 About-hoist work.
 
 ## Summary
 
-_Counts and commit references filled on completion._
+This pass audited every Classicy control, dialog, menu, window and control panel
+against HIGOS8 (chapters 2–6), applied the fixes below, and recorded the rest as
+intentional web adaptations or deferred follow-ups.
+
+| Chapter | 🔧 Fixed | ⚠️ Deferred | ✅ Intentional / shipped-OS | Commit |
+| --- | --- | --- | --- | --- |
+| 2 — Controls | 8 | 4 | — | `7b10d2f` |
+| 3 — Dialog Boxes | 3 | 1 | — | `d208aac` |
+| 4 — Menus | 3 | 1 | 2 | `c530cda` |
+| 5 — Windows | 1 | 1 | — | `30e4aea` |
+| 6 — Control Panels | 7 | — | 1 | `898670f` |
+| **Total** | **22** | **7** | **3** | |
+
+All fixes keep the full suite green (`pnpm lint`, `pnpm exec tsc --noEmit`, and
+the vitest suite), and each fixed or changed behavior is covered by a new or
+existing test. Deferred items are visual-fidelity or larger-refactor follow-ups
+documented in each chapter's findings; the intentional items are the browser
+`⌥W`/`⌥Q` adaptation and the shipped-OS "About Balloon Help…" ellipsis.
+
+### Deferred follow-ups (recommended next pass)
+
+- **2.6 / 2.7** — adopt the 2px `--hig-frame-width` for list box and edit-text
+  frames (needs visual verification of input sizing).
+- **2.5** — align the pop-up list's current item at the button level.
+- **2.10** — a 12/10pt tab-label type scale (needs a type-scale decision).
+- **3.4** — turn the New Folder prompt into a movable-modal dialog (not an alert).
+- **4.6** — context-aware "Undo <action>" / "Can't Undo" labelling.
+- **5.2** — split the grouped Platinum scroll arrows to opposite ends.
