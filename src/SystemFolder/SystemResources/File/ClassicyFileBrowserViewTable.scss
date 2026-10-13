@@ -70,6 +70,10 @@
   display: inline-flex;
   align-items: center;
   cursor: pointer;
+
+  svg {
+    height: calc(var(--window-control-size) * 1.25);
+  }
 }
 
 .classicyFileBrowserFill {
