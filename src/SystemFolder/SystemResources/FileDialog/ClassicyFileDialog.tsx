@@ -11,6 +11,7 @@ import {
 import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyInput } from "@/SystemFolder/SystemResources/Input/ClassicyInput";
+import { ClassicyInputDialog } from "@/SystemFolder/SystemResources/InputDialog/ClassicyInputDialog";
 import { useKeyboardEquivalents } from "@/SystemFolder/SystemResources/Keyboard/useKeyboardEquivalents";
 import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
 import {
@@ -110,7 +111,6 @@ export const ClassicyFileDialog: FunctionalComponent<
 	// final file name (extension included) awaiting the Replace confirmation
 	const [replacePrompt, setReplacePrompt] = useState<string | null>(null);
 	const [newFolderOpen, setNewFolderOpen] = useState(false);
-	const [newFolderName, setNewFolderName] = useState("");
 	const [errorPrompt, setErrorPrompt] = useState<
 		"save" | "folder" | "folderCollision" | null
 	>(null);
@@ -375,17 +375,17 @@ export const ClassicyFileDialog: FunctionalComponent<
 		}
 	};
 
-	const handleCreateFolder = async () => {
+	const handleCreateFolder = async (rawName: string) => {
 		if (props.mode !== "save") return;
 		if (!activeVolume?.mkDir) return;
-		const name = newFolderName.trim();
+		const name = rawName.trim();
 		if (name.length === 0 || name.includes(":")) return;
 		const path = selectedFolderPath;
 		try {
 			await activeVolume.mkDir(path, name);
 			loadFolder(activeVolume, path);
 			setSelectedIds([cacheKey(activeVolume.id, [...path, name])]);
-			setNewFolderName("");
+			setNewFolderOpen(false);
 		} catch (error) {
 			setErrorPrompt("folder");
 			props.onErrorFunc?.(error);
@@ -568,39 +568,19 @@ export const ClassicyFileDialog: FunctionalComponent<
 				/>
 			)}
 			{newFolderOpen && (
-				<ClassicyAlert
+				// A name prompt is a dialog, not an alert (HIG Ch.3: alerts hold only
+				// icon/text/buttons). The reusable movable-modal input dialog owns the
+				// field and hands back the final name on confirm.
+				<ClassicyInputDialog
 					id={`${id}-new-folder`}
 					appId={appId}
-					alertType={"note"}
-					movable={true}
 					title={"New Folder"}
-					label={"Name of new folder:"}
-					message={
-						<ClassicyInput
-							id={`${id}-new-folder-name`}
-							placeholder={"untitled folder"}
-							prefillValue={newFolderName}
-							onChangeFunc={(e) => setNewFolderName(e.target.value)}
-						/>
-					}
-					buttons={[
-						{
-							id: "cancel",
-							label: "Cancel",
-							role: "cancel",
-							onClick: () => setNewFolderName(""),
-						},
-						{
-							id: "create",
-							label: "Create",
-							role: "default",
-							disabled:
-								newFolderName.trim().length === 0 ||
-								newFolderName.includes(":"),
-							onClick: () => void handleCreateFolder(),
-						},
-					]}
-					onClose={() => setNewFolderOpen(false)}
+					prompt={"Name of new folder:"}
+					placeholder={"untitled folder"}
+					confirmLabel={"Create"}
+					validate={(name) => name.trim().length > 0 && !name.includes(":")}
+					onConfirm={(name) => void handleCreateFolder(name)}
+					onCancel={() => setNewFolderOpen(false)}
 				/>
 			)}
 			{errorPrompt !== null && (

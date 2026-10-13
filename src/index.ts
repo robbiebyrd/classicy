@@ -183,6 +183,7 @@ export * from "./SystemFolder/SystemResources/Form/ClassicyForm";
 export * from "./SystemFolder/SystemResources/Icon/ClassicyIcon";
 export * from "./SystemFolder/SystemResources/ImageWell/ClassicyImageWell";
 export * from "./SystemFolder/SystemResources/Input/ClassicyInput";
+export * from "./SystemFolder/SystemResources/InputDialog/ClassicyInputDialog";
 export * from "./SystemFolder/SystemResources/Kbd/ClassicyKbd";
 export * from "./SystemFolder/SystemResources/Keyboard/useKeyboardEquivalents";
 export * from "./SystemFolder/SystemResources/Keyboard/useListNavigation";
