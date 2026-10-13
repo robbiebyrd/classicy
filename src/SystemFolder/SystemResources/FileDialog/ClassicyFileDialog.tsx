@@ -11,6 +11,7 @@ import {
 import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyInput } from "@/SystemFolder/SystemResources/Input/ClassicyInput";
+import { useKeyboardEquivalents } from "@/SystemFolder/SystemResources/Keyboard/useKeyboardEquivalents";
 import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
 import {
 	ClassicyTree,
@@ -89,6 +90,7 @@ export const ClassicyFileDialog: FunctionalComponent<
 	ClassicyFileDialogProps
 > = (props) => {
 	const { id, appId, open, volumes, onCancelFunc } = props;
+	const dialogBodyRef = useRef<HTMLDivElement | null>(null);
 	const mode = props.mode;
 	const title = props.title ?? (mode === "open" ? "Open" : "Save");
 	const selectionMode =
@@ -390,15 +392,23 @@ export const ClassicyFileDialog: FunctionalComponent<
 		}
 	};
 
-	// Escape-to-cancel is handled by ClassicyWindow itself for modal windows
-	// (see #194/#197's onModalCancel/useKeyboardEquivalents) — handling it here
-	// too would fire onCancelFunc twice for a single Escape keypress.
 	const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
 		if (mode === "open" && e.key === "Enter" && liveSelectedIds.length > 0) {
 			e.preventDefault();
 			commitOpen(liveSelectedIds);
 		}
 	};
+
+	// Escape / Command-period cancel the dialog. Because this is a movable modal
+	// with no close box (HIG Ch.3 p.59), the window's own onModalCancel would
+	// just beep, so cancel is handled here: this inner listener is a descendant
+	// of the window's, so it fires first and preventDefaults the beep. Scoped to
+	// the dialog body and gated on `open` so a closed dialog binds nothing.
+	useKeyboardEquivalents({
+		enabled: open,
+		onCancel: () => onCancelFunc?.(),
+		targetRef: dialogBodyRef,
+	});
 
 	if (!open) {
 		return null;
@@ -411,18 +421,25 @@ export const ClassicyFileDialog: FunctionalComponent<
 				appId={appId}
 				title={title}
 				modal={true}
-				closable={true}
+				// HIGOS8 Ch.3 "Movable Modal Dialog Boxes" (p.59): a movable modal
+				// dialog has no close box (nor zoom box). The standard file dialog is
+				// dismissed only via its Cancel button or Escape / Command-period
+				// (handled by handleKeyDown below / the window's modal-cancel).
+				closable={false}
 				zoomable={false}
 				collapsable={false}
 				resizable={false}
 				scrollable={false}
 				initialSize={[440, 400]}
 				initialPosition={[180, 120]}
-				onCloseFunc={() => onCancelFunc?.()}
 				analyticsExclude
 			>
 				{/* biome-ignore lint/a11y/noStaticElementInteractions: dialog-level keyboard shortcuts (Escape to cancel, Enter to open) */}
-				<div className={"classicyFileOpenDialogBody"} onKeyDown={handleKeyDown}>
+				<div
+					ref={dialogBodyRef}
+					className={"classicyFileOpenDialogBody"}
+					onKeyDown={handleKeyDown}
+				>
 					<ClassicyPopUpMenu
 						id={`${id}-volume`}
 						label={"Volume"}

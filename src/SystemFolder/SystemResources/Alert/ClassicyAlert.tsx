@@ -130,6 +130,7 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 }) => {
 	const player = useSoundDispatch();
 	const contentRef = useRef<HTMLDivElement | null>(null);
+	const defaultButtonRef = useRef<HTMLButtonElement | null>(null);
 
 	const resolvedButtons = useMemo(
 		() =>
@@ -185,8 +186,15 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 		targetRef: contentRef,
 	});
 
-	// Keep Tab focus inside the alert and focus the default button on open.
-	useFocusTrap({ ref: contentRef, autoFocus: true });
+	// Keep Tab focus inside the alert and focus the DEFAULT button on open (HIG
+	// Ch.3 "Keyboard Navigation and Focus"): focus must coincide with the default
+	// ring, otherwise Return activates whichever button happens to be first in the
+	// DOM (e.g. Cancel in a caution alert) rather than the default.
+	useFocusTrap({
+		ref: contentRef,
+		autoFocus: true,
+		initialFocusRef: defaultButtonRef,
+	});
 
 	// The non-movable variant is an error-typed window, so ClassicyWindow already
 	// plays the alert sound. The movable variant is a plain modal, so play here.
@@ -240,6 +248,9 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 					{resolvedButtons.map((button) => (
 						<ClassicyButton
 							key={button.id}
+							ref={
+								button.id === defaultButton?.id ? defaultButtonRef : undefined
+							}
 							isDefault={button.id === defaultButton?.id}
 							disabled={button.disabled}
 							onClickFunc={() => handleButton(button)}

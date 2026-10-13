@@ -159,7 +159,44 @@ Normative checklist (HIGOS8 Ch.3):
 
 ### Findings — Chapter 3
 
-_To be filled during the Chapter 3 audit._
+| # | Severity | Finding | Component | Status |
+| --- | --- | --- | --- | --- |
+| 3.1 | HIGH | Alert focused the first button (Cancel in a caution alert) while the default ring was on Continue, so Return fired Cancel. | `Alert` + `useFocusTrap` | 🔧 Fixed |
+| 3.2 | MEDIUM | The standard (movable-modal) file dialog rendered a title-bar close box. | `FileDialog` | 🔧 Fixed |
+| 3.3 | MEDIUM | The About box had no default button and no key dismissed it. | `AboutWindow` | 🔧 Fixed |
+| 3.4 | LOW | The "New Folder" prompt is a `ClassicyAlert` containing a text input — alerts may contain only icon/text/buttons. | `FileDialog` | ⚠️ Deferred |
+
+**Details & fixes**
+
+- **3.1** (`ClassicyAlert.tsx`, `useKeyboardEquivalents.ts`): `useFocusTrap` gained
+  an `initialFocusRef`, and the alert now focuses the resolved default button on
+  open so focus coincides with the default ring and Return activates the default.
+  New test: a caution alert focuses Continue, not Cancel. _HIGOS8 Ch.3 "Keyboard
+  Navigation and Focus" (p.66), "Default Buttons" (p.23)._
+- **3.2** (`ClassicyFileDialog.tsx`): the window is now `closable={false}` (no
+  close box). Because the window couples close-box rendering to modal-Escape
+  (`onModalCancel` only cancels when closable), Escape/⌘-period cancel is handled
+  by an inner, `open`-gated `useKeyboardEquivalents` on the dialog body — it fires
+  before the window's handler and `preventDefault`s the beep (the same pattern
+  alerts use). The existing "cancels on Escape" test still passes. _HIGOS8 Ch.3
+  "Movable Modal Dialog Boxes" (p.59)._
+- **3.3** (`ClassicyAboutWindow.tsx`): OK is now the default button and Return /
+  Escape dismiss the box (routed through the OK button's own click). New tests.
+  _HIGOS8 Ch.3 (p.23/p.57)._
+
+**Deferred**
+
+- **3.4**: turning the New Folder prompt into a proper movable-modal dialog
+  (edit field + Cancel/Create) is a self-contained follow-up; it currently works
+  as an alert-with-input, which is the HIG-shape violation to revisit.
+
+**Verified already-compliant:** the `--hig-*` spacing tokens (12px button gap,
+10px vertical stack, 12px dialog edge, 4/6/16px item/focus/group gaps, 20px
+button height, 58px OK/Cancel, 3px default ring, 8px text padding); alert
+severity icons (note=info, caution=triangle, stop=octagon); right-aligned button
+rows with the default rightmost; the Replace caution alert making Cancel the
+default per the data-loss rule; Tab/Shift-Tab focus trapping; movable alerts'
+red title bar vs non-movable alerts' red content border.
 
 ---
 

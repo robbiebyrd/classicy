@@ -138,6 +138,15 @@ describe("ClassicyAlert", () => {
 		expect(onDefault).toHaveBeenCalledTimes(1);
 	});
 
+	it("gives initial focus to the default button, not the first (Cancel) button", () => {
+		// HIGOS8 Ch.3 "Keyboard Navigation and Focus": focus must coincide with
+		// the default ring so Return activates the default. In a caution alert the
+		// default is Continue even though Cancel comes first in the DOM.
+		render(<ClassicyAlert alertType="caution" label="c" />);
+		expect(screen.getByRole("button", { name: "Continue" })).toHaveFocus();
+		expect(screen.getByRole("button", { name: "Cancel" })).not.toHaveFocus();
+	});
+
 	it("triggers the Cancel button on Escape", () => {
 		const onCancel = vi.fn();
 		render(

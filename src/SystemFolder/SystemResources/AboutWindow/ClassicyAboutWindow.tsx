@@ -3,10 +3,12 @@ import {
 	type FC as FunctionalComponent,
 	type MouseEventHandler,
 	useEffect,
+	useRef,
 } from "react";
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
+import { useKeyboardEquivalents } from "@/SystemFolder/SystemResources/Keyboard/useKeyboardEquivalents";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
@@ -23,6 +25,20 @@ export const ClassicyAboutWindow: FunctionalComponent<
 > = ({ appId, appName, appIcon, hideFunc, appMenu }) => {
 	const { track } = useClassicyAnalytics();
 	const desktopEventDispatch = useAppManagerDispatch();
+	const contentRef = useRef<HTMLDivElement | null>(null);
+	const okButtonRef = useRef<HTMLButtonElement | null>(null);
+
+	// HIGOS8 Ch.3 (p.23/p.57): the About box's OK is the default button — it gets
+	// the ring and Return activates it. Escape also dismisses (a single-OK info
+	// box has no separate Cancel). Clicking the OK button (rather than calling
+	// hideFunc with a synthetic event) routes through its real handler; the inner
+	// listener fires before the window's modal-cancel so no beep. onDefault is
+	// suppressed when OK itself is focused, so Return there activates it natively.
+	useKeyboardEquivalents({
+		onDefault: () => okButtonRef.current?.click(),
+		onCancel: () => okButtonRef.current?.click(),
+		targetRef: contentRef,
+	});
 
 	useEffect(() => {
 		desktopEventDispatch({
@@ -54,13 +70,17 @@ export const ClassicyAboutWindow: FunctionalComponent<
 			modal={true}
 			appMenu={appMenu}
 		>
-			<div className={"aboutWindow"}>
+			<div ref={contentRef} className={"aboutWindow"}>
 				<img src={appIcon} alt="About" />
 				<h1>{appName}</h1>
-				<h5>
-					Not Copyright &copy; 1997 Apple Computer, Inc.
-				</h5>
-				<ClassicyButton onClickFunc={hideFunc}>OK</ClassicyButton>
+				<h5>Not Copyright &copy; 1997 Apple Computer, Inc.</h5>
+				<ClassicyButton
+					ref={okButtonRef}
+					isDefault={true}
+					onClickFunc={hideFunc}
+				>
+					OK
+				</ClassicyButton>
 			</div>
 		</ClassicyWindow>
 	);
