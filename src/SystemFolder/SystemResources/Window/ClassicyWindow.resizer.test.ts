@@ -164,12 +164,15 @@ describe("window resizer / scroll bar alignment", () => {
 	});
 
 	it("puts its two drawn edges on the scroll bars' own lines", () => {
-		// One gutter square plus a border, pulled out by that border, so the black
-		// edges land on the pixel where each track closes itself off instead of
-		// beside it — abutting would render 1px of Platinum as 2px.
-		expect(px(grip.width)).toBe(gutter + border);
-		expect(px(grip.height)).toBe(gutter + border);
-		expect(px(grip.top)).toBe(-border);
+		// Both scroll bars are always drawn now (contents overflow: scroll), so the
+		// grip is exactly one gutter square flush to the resizer's top-left — its
+		// top and left edges land on the same pixels as the scroll bars' own
+		// borders. The right gutter renders one border wider than the bottom one,
+		// so the left edge is nudged out by that border while the top is flush.
+		// (Verified against the live layout: both edges land dead on the tracks.)
+		expect(px(grip.width)).toBe(gutter);
+		expect(px(grip.height)).toBe(gutter);
+		expect(px(grip.top)).toBe(0);
 		expect(px(grip.left)).toBe(-border);
 		expect(grip["box-sizing"]).toBe("border-box");
 	});
@@ -184,10 +187,11 @@ describe("window resizer / scroll bar alignment", () => {
 		expect(grip["border-right"]).toBeUndefined();
 	});
 
-	it("keeps its bevel inside its own box", () => {
-		// An outer shadow would spill over the scroll bars' black edges now that
-		// the grip lands flush against them.
-		expect(grip["box-shadow"]).toContain("inset");
+	it("draws no highlight bevel that would seam against the scroll bars", () => {
+		// A white inset highlight here reads as a 1px white seam between the grow
+		// box's grey and the scroll bars' black borders; the grip's grey must meet
+		// those borders directly. The dimmed variant likewise carries no shadow.
+		expect(grip["box-shadow"]).toBeUndefined();
 		expect(rule(".classicyWindowResizerDimmed::before")["box-shadow"]).toBe(
 			"none !important",
 		);

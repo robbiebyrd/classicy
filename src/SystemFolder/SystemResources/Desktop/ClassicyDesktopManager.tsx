@@ -18,6 +18,7 @@ import {
 	hasFontSize,
 	hasMenuBar,
 	hasMouseEvent,
+	hasSmartScrolling,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
 import type {
 	ActionMessage,
@@ -244,6 +245,11 @@ export const classicyDesktopEventHandler = (
 		case "ClassicyDesktopChangeAlertSound": {
 			if (!hasAlertSound(action)) break;
 			ds.System.Manager.Appearance.alertSound = action.alertSound;
+			break;
+		}
+		case "ClassicyDesktopSetSmartScrolling": {
+			if (!hasSmartScrolling(action)) break;
+			ds.System.Manager.Appearance.smartScrolling = action.smartScrolling;
 			break;
 		}
 		case "ClassicyDesktopChangeFont": {

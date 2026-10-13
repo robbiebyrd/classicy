@@ -1,0 +1,60 @@
+// Mac OS 8 HIG movable-modal input dialog (Ch. 3 "Dialog Boxes"). Layout mirrors
+// the alert's icon/body/buttons grid, but the body hosts an editable field
+// instead of a static two-tier text block.
+.classicyInputDialog {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hig-group-gap, 16px);
+  padding: var(--hig-dialog-edge, 12px);
+  min-width: 300px;
+  max-width: 460px;
+  font-family: var(--ui-font), sans-serif;
+
+  .classicyInputDialogTop {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: var(--hig-group-gap, 16px);
+  }
+
+  // Optional leading icon: fixed 32px square, matching the alert icon column.
+  .classicyInputDialogIcon {
+    flex: 0 0 auto;
+    width: var(--icon-size-regular, 32px);
+    height: var(--icon-size-regular, 32px);
+
+    img {
+      width: var(--icon-size-regular, 32px);
+      height: var(--icon-size-regular, 32px);
+      display: block;
+    }
+  }
+
+  .classicyInputDialogBody {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--hig-item-gap-focus, 6px);
+  }
+
+  // Prompt label above the field.
+  .classicyInputDialogPrompt {
+    font-family: var(--ui-font), sans-serif;
+    margin: 0;
+    line-height: 1.2;
+  }
+
+  // Buttons row: right-aligned, default rightmost (matches the alert).
+  .classicyInputDialogButtons {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: var(--hig-button-gap-h, 12px);
+  }
+}
+
+// Movable modal: the window is draggable (not error-typed). Paint the standard
+// (non-red) title bar — ClassicyWindow already provides it; nothing extra is
+// needed here beyond the content styling above.

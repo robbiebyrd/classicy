@@ -119,6 +119,13 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	const activeTheme = useAppManager(
 		(s) => s.System.Manager.Appearance.activeTheme,
 	);
+	// Mac OS 8 Smart Scrolling (Appearance control panel). Defaults to on when
+	// unset (persisted stores from before this setting existed). Off adds the
+	// split-arrows modifier class, which cascades scrollbar styling to every
+	// scrollable surface below the desktop root.
+	const smartScrolling = useAppManager(
+		(s) => s.System.Manager.Appearance.smartScrolling,
+	);
 	const allDesktopIcons = useAppManager((s) => s.System.Manager.Desktop.icons);
 	// Hidden icons exist only to populate the derived Applications folder; they
 	// must never be drawn on, or navigable within, the desktop.
@@ -131,9 +138,6 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	);
 	const errorDialog = useAppManager(
 		(s) => s.System.Manager.Desktop.errorDialog,
-	);
-	const disableBalloonHelp = useAppManager(
-		(s) => s.System.Manager.Desktop.disableBalloonHelp,
 	);
 	const focusedAppId = useAppManager(
 		(s) => s.System.Manager.Applications.focusedAppId,
@@ -445,7 +449,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 				],
 			},
 		],
-		[desktopEventDispatch, disableBalloonHelp],
+		[desktopEventDispatch],
 	);
 
 	// When focus settles on the desktop — Finder is the focused app (or nothing
@@ -480,7 +484,9 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 			ref={desktopRef}
 			tabIndex={-1}
 			style={currentTheme as CSSProperties}
-			className={classNames("classicyDesktop")}
+			className={classNames("classicyDesktop", {
+				classicyDesktopSplitArrows: smartScrolling === false,
+			})}
 			onMouseMove={resizeSelectBox}
 			onContextMenu={toggleDesktopContextMenu}
 			onMouseUp={clearSelectBox}

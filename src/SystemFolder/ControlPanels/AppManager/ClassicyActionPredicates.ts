@@ -220,6 +220,13 @@ export function hasAlertSound(m: Msg): m is Msg & { alertSound: string } {
 	return typeof m.alertSound === "string";
 }
 
+/** Action has `smartScrolling: boolean` (Mac OS 8 Smart Scrolling toggle) */
+export function hasSmartScrolling(
+	m: Msg,
+): m is Msg & { smartScrolling: boolean } {
+	return typeof m.smartScrolling === "boolean";
+}
+
 /** Action has `availableThemes: unknown[]` */
 export function hasAvailableThemes(
 	m: Msg,

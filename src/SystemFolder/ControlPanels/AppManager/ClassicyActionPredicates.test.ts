@@ -26,6 +26,7 @@ import {
 	hasMouseEvent,
 	hasPath,
 	hasPaths,
+	hasSmartScrolling,
 	hasSortBy,
 	hasTzOffset,
 	hasWindow,
@@ -775,5 +776,22 @@ describe("hasFinderFile", () => {
 	it("returns false when file is null", () => {
 		const m: Msg = { type: "X", file: null };
 		expect(hasFinderFile(m)).toBe(false);
+	});
+});
+
+// ─── hasSmartScrolling ────────────────────────────────────────────────────────
+
+describe("hasSmartScrolling", () => {
+	it("returns true when smartScrolling is a boolean", () => {
+		expect(hasSmartScrolling({ type: "X", smartScrolling: true })).toBe(true);
+		expect(hasSmartScrolling({ type: "X", smartScrolling: false })).toBe(true);
+	});
+
+	it("returns false when smartScrolling is missing", () => {
+		expect(hasSmartScrolling({ type: "X" })).toBe(false);
+	});
+
+	it("returns false when smartScrolling is not a boolean", () => {
+		expect(hasSmartScrolling({ type: "X", smartScrolling: "yes" })).toBe(false);
 	});
 });

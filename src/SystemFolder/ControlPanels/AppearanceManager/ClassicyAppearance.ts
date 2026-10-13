@@ -14,6 +14,13 @@ export interface ClassicyStoreSystemAppearanceManager
 	activeTheme: ClassicyTheme;
 	/** Sprite key of the user's default alert sound (a `ClassicyAlert*` sound). */
 	alertSound?: string;
+	/**
+	 * Mac OS 8 "Smart Scrolling" (Appearance control panel). When `true`
+	 * (default), both scroll arrows are grouped together at the end of each
+	 * scrollbar; when `false`, they split to opposite ends (the classic
+	 * arrangement). A global preference, not a per-theme setting.
+	 */
+	smartScrolling?: boolean;
 }
 
 export type ClassicyThemeColorPalette = [

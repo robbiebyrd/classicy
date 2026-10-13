@@ -8,6 +8,7 @@ import {
 	useClassicyHelpMenu,
 	useClassicyWindowClose,
 } from "@/SystemFolder/SystemResources/App/ClassicyAppMenuHooks";
+import { __resetUndoTrackingForTests } from "@/SystemFolder/SystemResources/App/ClassicyEditCommands";
 
 function seedTestApp() {
 	useAppManager.setState(DefaultAppManagerState, true);
@@ -134,14 +135,43 @@ describe("useClassicyEditMenu", () => {
 		const titles = (edit.menuChildren ?? [])
 			.filter((c) => c.id !== "spacer")
 			.map((c) => c.title);
+		// Undo reads "Can't Undo" with no editable field focused and no history
+		// (HIG 4.6: it is dimmed and names its unavailability).
 		expect(titles).toEqual([
-			"Undo",
+			"Can't Undo",
 			"Cut",
 			"Copy",
 			"Paste",
 			"Clear",
 			"Select All",
 		]);
+	});
+
+	it("names the pending action and enables Undo after an edit", () => {
+		__resetUndoTrackingForTests();
+		const input = document.createElement("input");
+		document.body.appendChild(input);
+
+		const { result } = renderHook(() => useClassicyEditMenu("TestApp.app"));
+		const undoOf = () =>
+			(result.current.menuChildren ?? []).find((c) => c.id?.endsWith("_undo"));
+
+		// Nothing to undo yet.
+		expect(undoOf()?.title).toBe("Can't Undo");
+		expect(undoOf()?.disabled).toBe(true);
+
+		act(() => {
+			input.focus();
+			input.dispatchEvent(
+				new InputEvent("input", { inputType: "insertText", bubbles: true }),
+			);
+		});
+
+		expect(undoOf()?.title).toBe("Undo Typing");
+		expect(undoOf()?.disabled).toBe(false);
+
+		input.remove();
+		__resetUndoTrackingForTests();
 	});
 
 	it("wires every command to a click handler and flags editing shortcuts native", () => {

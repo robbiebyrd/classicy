@@ -596,6 +596,9 @@ export const DefaultAppManagerState: ClassicyStore = {
 				// rather than carrying a loadable URL.
 				activeTheme: getTheme("default"),
 				alertSound: DEFAULT_ALERT_SOUND,
+				// Mac OS 8.0 shipped with Smart Scrolling on (arrows grouped at
+				// the end of each bar).
+				smartScrolling: true,
 			},
 			Boot: {
 				paradeIcons: [],

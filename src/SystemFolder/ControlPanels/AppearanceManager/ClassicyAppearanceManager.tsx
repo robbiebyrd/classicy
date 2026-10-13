@@ -12,6 +12,7 @@ import {
 	type ClassicyTheme,
 	getTheme,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { APPEARANCE_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManagerManifest";
 import { ClassicySounds } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicySounds";
 import {
 	useAppManager,
@@ -40,8 +41,6 @@ import { useSoundTab } from "./ClassicyAppearanceManager.Sound";
 import { useThemesTab } from "./ClassicyAppearanceManager.Themes";
 import { ClassicyDefaultWallpaper } from "./ClassicyWallpapers";
 import appIcon from "./resources/app.png";
-
-import { APPEARANCE_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManagerManifest";
 
 const APP_ID = APPEARANCE_MANAGER_APP_ID;
 const APP_NAME = "Appearance Manager";
@@ -117,6 +116,18 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 			applySoundTheme(themeId);
 		},
 		[desktopEventDispatch, applySoundTheme],
+	);
+
+	const toggleSmartScrolling = useCallback(
+		(checked: boolean) => {
+			startTransition(() => {
+				desktopEventDispatch({
+					type: "ClassicyDesktopSetSmartScrolling",
+					smartScrolling: checked,
+				});
+			});
+		},
+		[desktopEventDispatch],
 	);
 
 	const changeBackground = useCallback(
@@ -264,6 +275,9 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		themesList,
 		switchTheme,
 		activeThemeId: appearanceState.activeTheme.id,
+		// Default to on when unset (persisted stores predating this setting).
+		smartScrolling: appearanceState.smartScrolling !== false,
+		toggleSmartScrolling,
 	});
 
 	const desktopTab = useDesktopTab({

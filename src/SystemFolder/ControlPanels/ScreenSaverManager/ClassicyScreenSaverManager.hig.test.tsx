@@ -69,7 +69,16 @@ describe("ClassicyScreenSaverManager — HIG menu structure (audit ch. 6 §35)",
 		const edit = windowMenuBar().find((m) => m.title === "Edit");
 		expect(edit).toBeDefined();
 		const titles = childTitles(edit);
-		for (const cmd of ["Undo", "Cut", "Copy", "Paste", "Clear", "Select All"]) {
+		// Undo is context-aware (HIG 4.6): with no field focused it reads
+		// "Can't Undo" rather than the bare "Undo".
+		for (const cmd of [
+			"Can't Undo",
+			"Cut",
+			"Copy",
+			"Paste",
+			"Clear",
+			"Select All",
+		]) {
 			expect(titles).toContain(cmd);
 		}
 	});

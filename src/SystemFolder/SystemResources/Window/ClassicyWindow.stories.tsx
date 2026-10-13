@@ -331,3 +331,45 @@ export const WithPlacard: Story = {
 		</StoryApp>
 	),
 };
+
+/**
+ * Vertical-only scroll in a resizable window: the vertical scroll bar runs the
+ * full height and its bottom arrow sits next to the grow box. Used to verify the
+ * Smart Scrolling end-arrow clears the resizer.
+ */
+export const ScrollVertical: Story = {
+	render: () => (
+		<StoryApp id="storybook.app" name="Storybook">
+			<ClassicyWindow
+				id="scrollv"
+				appId="storybook.app"
+				title="Vertical Scroll"
+				initialSize={[260, 220]}
+				initialPosition={[80, 60]}
+			>
+				<div style={{ width: 180, height: 900, padding: "1em" }}>
+					Tall content — vertical scroll bar only.
+				</div>
+			</ClassicyWindow>
+		</StoryApp>
+	),
+};
+
+/** Both-axes scroll in a resizable window (vertical + horizontal + corner). */
+export const ScrollBoth: Story = {
+	render: () => (
+		<StoryApp id="storybook.app" name="Storybook">
+			<ClassicyWindow
+				id="scrollb"
+				appId="storybook.app"
+				title="Both Scroll"
+				initialSize={[320, 240]}
+				initialPosition={[80, 60]}
+			>
+				<div style={{ width: 900, height: 900, padding: "1em" }}>
+					Large content — both scroll bars and the grow-box corner.
+				</div>
+			</ClassicyWindow>
+		</StoryApp>
+	),
+};

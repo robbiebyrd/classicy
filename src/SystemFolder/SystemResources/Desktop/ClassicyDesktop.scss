@@ -45,6 +45,19 @@
   *::selection {
     background: var(--color-theme-02) !important;
   }
+
+  // Mac OS 8 "Smart Scrolling" OFF (Appearance control panel): classic split
+  // scroll arrows, one at each end of the bar. Added as a modifier on the
+  // desktop root so the two-class selector outranks the grouped default from
+  // scrollbars() and cascades to every scrollable surface (windows, list
+  // boxes, tables, windoids) at once. Smart Scrolling ON is the default and
+  // needs no class.
+  &.classicyDesktopSplitArrows {
+    &,
+    & * {
+      @include scrollbars.scrollbars-split-arrows;
+    }
+  }
 }
 
 .classicyDesktopSelect {

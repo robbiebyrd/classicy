@@ -1432,7 +1432,11 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		</div>
 	);
 
-	if (modal && desktopRoot) {
+	// Only a mounted-and-open modal draws its scrim. A closed modal that stays
+	// mounted (e.g. an error dialog hidden via ClassicyWindowClose rather than
+	// unmounted) must drop the scrim too — otherwise the input-blocking backdrop
+	// outlives the window and locks the whole page.
+	if (modal && desktopRoot && !ws.closed) {
 		// #197: modal windows render an input-blocking scrim; clicking it beeps.
 		const modalScrim = (
 			// biome-ignore lint/a11y/noStaticElementInteractions: scrim is a mouse-only backdrop
