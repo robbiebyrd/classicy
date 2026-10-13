@@ -86,9 +86,9 @@ Normative checklist (HIGOS8 Ch.2) and component mapping:
 | 2.9 | LOW | Static-text output had no disabled (dimmed) appearance. | `Output` | 🔧 Fixed |
 | 2.11 | LOW | Edit fields rounded their corners on focus and carried an invalid `outline` shorthand; the Rich editor also grew by 2em margin+padding on focus. | `Input`, `RichTextEditor` | 🔧 Fixed |
 | 2.12 | LOW | Table row selection used a fixed near-black instead of the Appearance selection color. | `Table` | 🔧 Fixed |
+| 2.6 | MEDIUM | List box frame was a 1px bevel vs the documented 2px `--hig-frame-width`. | `ListBox` | 🔧 Fixed |
+| 2.7 | MEDIUM | Edit-text frame was 1px vs the documented 2px `--hig-frame-width`. | `Input`,`TextEditor`,`RichTextEditor` | 🔧 Fixed |
 | 2.5 | LOW | Pop-up list opens below/above the button rather than aligning the current item at the button level. | `PopUpMenu` | ⚠️ Deferred |
-| 2.6 | MEDIUM | List box frame is 1px (`--window-border-size`) vs the documented 2px `--hig-frame-width`. | `ListBox` | ⚠️ Deferred |
-| 2.7 | MEDIUM | Edit-text frame is 1px vs the documented 2px `--hig-frame-width`. | `Input`,`TextEditor`,`RichTextEditor` | ⚠️ Deferred |
 | 2.10 | LOW | Tab labels use the 14px app UI font, not the HIG 12pt/10pt sizes. | `Tabs` | ⚠️ Deferred |
 
 **Details & fixes**
@@ -113,15 +113,18 @@ Normative checklist (HIGOS8 Ch.2) and component mapping:
   longer reflows by 2em on focus. _HIGOS8 Ch.2 "Edit Text Fields" (p.41)._
 - **2.12** (`ClassicyTable.scss`): selected rows use `--color-select` (matching
   `ClassicyTree`) so selection tracks the Appearance accent color. _HIGOS8 Ch.2._
+- **2.6, 2.7** (`ClassicyListBox.scss`, `ClassicyInput.scss`,
+  `ClassicyTextEditor.scss`, `ClassicyRichTextEditor.scss`): the list box and
+  edit-text controls now carry the same 2px recessed frame as the image well
+  (1px black border + a 2px **inset** bevel using `--hig-frame-width`), so they
+  match the controls the token was designed for. Verified by screenshot against
+  the ImageWell reference in Storybook (preinstalled Chromium): the frame reads
+  as a proper Platinum recess and — because the extra depth is an `inset`
+  box-shadow, not a wider border — there is **no layout shift**. _HIGOS8 Ch.2
+  "List Boxes and Frames" (p.39), "Edit Text Fields and Frames" (p.41)._
 
-**Deferred (visual-fidelity / risk — recommended as a design-reviewed follow-up)**
+**Deferred (recommended as a design-reviewed follow-up)**
 
-- **2.6, 2.7**: the library already defines `--hig-frame-width: 2px`, documented
-  as the frame shared by list box, edit text, image well, group box and
-  separator — and image well / group box / separator already use it, so list box
-  and edit text are the outliers at 1px. The change is low-ambiguity but shifts
-  input sizing app-wide and the current 1px rendering is still a legitimate
-  Platinum bevel, so it is deferred for a pass with visual verification.
 - **2.5**: the current combobox-style drop is a reasonable, if non-literal,
   rendering; literal current-item alignment is a larger change for little gain.
 - **2.10**: Classicy uses a consistent 14px UI type scale throughout; forcing
@@ -387,12 +390,12 @@ intentional web adaptations or deferred follow-ups.
 
 | Chapter | 🔧 Fixed | ⚠️ Deferred | ✅ Intentional / shipped-OS | Commit |
 | --- | --- | --- | --- | --- |
-| 2 — Controls | 8 | 4 | — | `7b10d2f` |
+| 2 — Controls | 10 | 2 | — | `7b10d2f`, `16338a3bb` |
 | 3 — Dialog Boxes | 3 | 1 | — | `d208aac` |
 | 4 — Menus | 3 | 1 | 2 | `c530cda` |
 | 5 — Windows | 1 | 1 | — | `30e4aea` |
 | 6 — Control Panels | 7 | — | 1 | `898670f` |
-| **Total** | **22** | **7** | **3** | |
+| **Total** | **24** | **5** | **3** | |
 
 All fixes keep the full suite green (`pnpm lint`, `pnpm exec tsc --noEmit`, and
 the vitest suite), and each fixed or changed behavior is covered by a new or
@@ -402,8 +405,6 @@ documented in each chapter's findings; the intentional items are the browser
 
 ### Deferred follow-ups (recommended next pass)
 
-- **2.6 / 2.7** — adopt the 2px `--hig-frame-width` for list box and edit-text
-  frames (needs visual verification of input sizing).
 - **2.5** — align the pop-up list's current item at the button level.
 - **2.10** — a 12/10pt tab-label type scale (needs a type-scale decision).
 - **3.4** — turn the New Folder prompt into a movable-modal dialog (not an alert).
