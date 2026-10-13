@@ -285,7 +285,35 @@ Normative checklist (HIGOS8 Ch.5):
 
 ### Findings — Chapter 5
 
-_To be filled during the Chapter 5 audit._
+| # | Severity | Finding | Component | Status |
+| --- | --- | --- | --- | --- |
+| 5.1 | MEDIUM | A full zoom filled the whole desktop (maximize) rather than zooming to an ideal/standard size. | `Window` | 🔧 Fixed |
+| 5.2 | LOW | Platinum scroll arrows render grouped at one end rather than split to opposite ends. | `AppearanceManager/scrollbars.scss` | ⚠️ Deferred |
+
+**Details & fixes**
+
+- **5.1** (`ClassicyWindow.tsx`): the HIG is explicit that an app "should never
+  simply assume that the standard state should be as large as the screen."
+  `computeStandardRect`'s full-zoom branch now (a) uses a new optional
+  `idealSize` prop when provided, else (b) fits the current content (inner scroll
+  extent + the window's chrome), and only (c) falls back to filling the desktop
+  when no usable measurement exists — all clamped to `[minimum, desktop]`. The
+  un-zoom restore path is unchanged. New test. _HIGOS8 Ch.5 "Zoom Boxes" (p.104)._
+
+**Deferred**
+
+- **5.2**: both scroll arrows are declared on `::-webkit-scrollbar-button:start`,
+  so they stack at one end. Splitting them to opposite ends is constrained by
+  WebKit's pseudo-element model, and the grouped arrangement is itself a
+  legitimate (if non-default) Platinum Appearance option — low value, revisit
+  with the broader scrollbar styling.
+
+**Verified already-compliant:** close box on the LEFT; zoom box on the RIGHT just
+left of the collapse box; title-bar pinstripes only when active; inactive windows
+dim their controls/title and flatten scroll bars; the collapse box (plus
+option-click-all and double-click-title) reduces the window to its title bar;
+un-zoom restores the pre-zoom user rect; the grow handle sits bottom-right; scroll
+bars render on the right and bottom.
 
 ---
 

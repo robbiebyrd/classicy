@@ -183,6 +183,23 @@ describe("ClassicyWindow HIG dialog behaviors", () => {
 		);
 	});
 
+	// HIGOS8 Ch.5 "Zoom Boxes" (p.104): a full zoom targets the standard state
+	// (here an explicit idealSize), NOT the whole screen.
+	it("full-zooms to idealSize, not the whole desktop", () => {
+		const { container } = renderWindow({
+			zoomable: true,
+			idealSize: [500, 400],
+		});
+		const win = container.querySelector(".classicyWindow") as HTMLElement;
+		const zoomBox = container.querySelector(
+			".classicyWindowZoomBox",
+		) as HTMLElement;
+		fireEvent.click(zoomBox);
+		// Sized to the ideal, clamped to the window minimum / desktop — not filled.
+		expect(win.style.width).toBe("500px");
+		expect(win.style.height).toBe("400px");
+	});
+
 	// #205: renders four draggable frame-edge handles on an expanded window.
 	it("renders draggable frame edges on all four sides", () => {
 		const { container } = renderWindow();
