@@ -10,6 +10,8 @@ import {
 	useClassicyWindowClose,
 } from "@/SystemFolder/SystemResources/App/ClassicyAppMenuHooks";
 import {
+	closeWindowMenuItemHelper,
+	quitAppHelper,
 	quitMenuItemHelper,
 } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
@@ -91,8 +93,17 @@ export const ClassicyDriveSetup: FC = () => {
 			title: "File",
 			menuChildren: [
 				{ ...aboutMenuItem, title: `About ${APP_NAME}` },
+				{
+					...closeWindowMenuItemHelper(`${APP_ID}_close_window`, () =>
+						windowClose(WINDOW_ID, quitAppHelper(APP_ID, APP_NAME, appIcon)),
+					),
+					keyboardShortcut: "⌥W",
+				},
 				{ id: "spacer" },
-				quitMenuItemHelper(APP_ID, APP_NAME, appIcon),
+				{
+					...quitMenuItemHelper(APP_ID, APP_NAME, appIcon),
+					keyboardShortcut: "⌥Q",
+				},
 			],
 		},
 		functionsMenu,
@@ -119,7 +130,7 @@ export const ClassicyDriveSetup: FC = () => {
 					resizable={false}
 					zoomable={false}
 					scrollable={false}
-					collapsable={true}
+					collapsable={false}
 					initialSize={[440, 0]}
 					initialPosition={[120, 80]}
 					modal={false}

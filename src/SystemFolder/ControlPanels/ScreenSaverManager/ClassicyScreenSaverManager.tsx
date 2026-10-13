@@ -20,8 +20,16 @@ import {
 	resolveScreenSaverConfig,
 } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverRegistry";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
-import { useClassicyAboutMenu } from "@/SystemFolder/SystemResources/App/ClassicyAppMenuHooks";
-import { quitMenuItemHelper } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
+import {
+	useClassicyAboutMenu,
+	useClassicyEditMenu,
+	useClassicyWindowClose,
+} from "@/SystemFolder/SystemResources/App/ClassicyAppMenuHooks";
+import {
+	closeWindowMenuItemHelper,
+	quitAppHelper,
+	quitMenuItemHelper,
+} from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyCheckbox } from "@/SystemFolder/SystemResources/Checkbox/ClassicyCheckbox";
 import { ClassicyControlGroup } from "@/SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup";
@@ -44,11 +52,19 @@ const WINDOW_ID = "ScreenSaverManager_1";
 export function ClassicyScreenSaverManager() {
 	const dispatch = useAppManagerDispatch();
 	const appIcon = ClassicyIcons.system.extensions.screensaver;
+
+	// Mac OS 8 HIG control-panel menu bar (audit ch. 6 §35): Apple / File / Edit.
+	// The About entry is discovery data for the desktop menu bar (HIG #209):
+	// ClassicyDesktopMenuBar hoists it into the Apple menu and strips it from
+	// File before rendering. The Edit menu is required because this panel has
+	// edit-text fields (the timeout spinner and the derived options form).
 	const { aboutMenuItem, aboutWindow } = useClassicyAboutMenu(
 		APP_ID,
 		APP_NAME,
 		appIcon,
 	);
+	const windowClose = useClassicyWindowClose(APP_ID);
+	const editMenu = useClassicyEditMenu(APP_ID);
 
 	const data = useAppManager(
 		(s) =>
@@ -106,10 +122,25 @@ export function ClassicyScreenSaverManager() {
 						title: "File",
 						menuChildren: [
 							{ ...aboutMenuItem, title: `About ${APP_NAME}` },
+							{
+								...closeWindowMenuItemHelper(`${APP_ID}_close_window`, () =>
+									windowClose(
+										WINDOW_ID,
+										quitAppHelper(APP_ID, APP_NAME, appIcon),
+									),
+								),
+								keyboardShortcut: "⌥W",
+							},
 							{ id: "spacer" },
-							quitMenuItemHelper(APP_ID, APP_NAME, appIcon),
+							{
+								...quitMenuItemHelper(APP_ID, APP_NAME, appIcon),
+								keyboardShortcut: "⌥Q",
+							},
 						],
 					},
+					// Edit menu — this panel has edit-text fields (timeout spinner,
+					// per-saver options). Commands act on the focused field.
+					editMenu,
 				]}
 			>
 				<div style={{ padding: "var(--window-padding-size)" }}>
@@ -156,7 +187,9 @@ export function ClassicyScreenSaverManager() {
 							}}
 						/>
 						<ClassicyButton
-							onClickFunc={() => dispatch({ type: SCREEN_SAVER_ACTIVATE_EVENT })}
+							onClickFunc={() =>
+								dispatch({ type: SCREEN_SAVER_ACTIVATE_EVENT })
+							}
 						>
 							Test
 						</ClassicyButton>
