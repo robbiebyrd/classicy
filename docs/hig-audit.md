@@ -220,7 +220,47 @@ Normative checklist (HIGOS8 Ch.4 + HIGOS7 menu detail):
 
 ### Findings — Chapter 4
 
-_To be filled during the Chapter 4 audit._
+| # | Severity | Finding | Component | Status |
+| --- | --- | --- | --- | --- |
+| 4.1 | MEDIUM | The standard Edit-menu builder had no way to place a Preferences command at the bottom (OS 8 standardized that position). | `useClassicyEditMenu` | 🔧 Fixed |
+| 4.5 | LOW | Menu items supported only a boolean checkmark — no dash for a partial/mixed attribute. | `ClassicyMenu` | 🔧 Fixed |
+| 4.4 | LOW | "About This Computer" carried an invented `⌃S` keyboard equivalent. | `AppManager` systemMenu | 🔧 Fixed |
+| 4.2 | MEDIUM | Close/Quit display `⌥W`/`⌥Q` rather than `⌘W`/`⌘Q`. | all control panels | ✅ Intentional (web adaptation) |
+| 4.3 | LOW | "About Balloon Help…" carries a trailing ellipsis though it only opens an info window. | Help menu | ✅ Matches shipped OS 8.0 |
+| 4.6 | LOW | Edit-menu Undo is always enabled and never names the action. | `useClassicyEditMenu` | ⚠️ Deferred |
+
+**Details & fixes**
+
+- **4.1** (`ClassicyAppMenuHooks.tsx`): `useClassicyEditMenu(idPrefix,
+  preferencesItem?)` now appends a divider + the supplied Preferences item at the
+  bottom of the Edit menu. Additive — existing callers are unchanged. _HIGOS8
+  Ch.4 "Menu Bar Changes" (p.91)._
+- **4.5** (`ClassicyMenu.tsx`): `checked` widened to `boolean | "mixed"`; a mixed
+  item renders the HIG dash (–). _HIGOS7 "Checkmarks and Dashes in Menus"._
+- **4.4** (`ClassicyAppManager.ts`): removed the invented `⌃S` from the Apple-menu
+  About item (real Mac OS has none); the chord is no longer registered. Menu-bar
+  test updated to assert its absence. _HIGOS8 Ch.4._
+
+**Intentional / not changed**
+
+- **4.2**: `⌥W`/`⌥Q` is the documented web adaptation (⌘W/⌘Q are browser-reserved)
+  — see the web-platform note at the top.
+- **4.3**: Mac OS 8.0 actually shipped "About Balloon Help…" with the ellipsis, so
+  this is kept to match the real OS (and existing tests assert it). The HIG-prose
+  "no ellipsis on info windows" rule yields to the shipping-OS precedent here.
+
+**Deferred**
+
+- **4.6**: a context-aware "Undo <action>" / dimmed "Can't Undo" rides the
+  browser's native field undo, which doesn't expose the pending action; a
+  faithful relabel needs an undo model and is out of scope for this pass.
+
+**Verified already-compliant:** sticky-menu behavior (click-to-open, click-out
+dismiss, 15s auto-close), Edit-menu item set & order, keyboard-glyph formatting
+and modifier order (⌃⌥⇧⌘), dimmed disabled items, contextual-menu offset /
+overflow-flip / mandatory disabled Help first item / no default item / no
+cross-activation, HIG #209 About-in-Apple-menu hoisting, ellipsis present on
+"Open…/Save As…" and absent on About/Close/Quit.
 
 ---
 

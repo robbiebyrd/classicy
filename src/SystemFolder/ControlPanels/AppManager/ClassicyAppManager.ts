@@ -548,9 +548,10 @@ export const DefaultAppManagerState: ClassicyStore = {
 				icons: [],
 				systemMenu: [
 					{
+						// Apple-menu "About This Computer" carries no keyboard equivalent
+						// in the real Mac OS (HIGOS8 Ch.4); the earlier ⌃S was invented.
 						id: "about",
 						title: "About This Computer",
-						keyboardShortcut: "⌃S",
 						event: "ClassicyAppFinderAboutThisComputerOpen",
 						eventData: {},
 					},

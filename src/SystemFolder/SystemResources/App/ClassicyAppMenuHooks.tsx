@@ -120,8 +120,16 @@ export function useClassicyHelpMenu(
  * flagged `nativeShortcut`), so their glyphs render but the app-wide dispatcher
  * leaves the keystrokes to the browser; the click handlers drive the same
  * actions for mouse users.
+ *
+ * `preferencesItem`, when supplied, is appended after a divider at the BOTTOM of
+ * the Edit menu — the position Mac OS 8 standardized for the Preferences command
+ * (HIGOS8 Ch.4 "Menu Bar Changes", p.91). Give it a title ending in an ellipsis
+ * (e.g. "Preferences…") since it opens a further dialog.
  */
-export function useClassicyEditMenu(idPrefix: string): ClassicyMenuItem {
+export function useClassicyEditMenu(
+	idPrefix: string,
+	preferencesItem?: ClassicyMenuItem,
+): ClassicyMenuItem {
 	useEffect(() => {
 		ensureEditTracker();
 	}, []);
@@ -174,8 +182,13 @@ export function useClassicyEditMenu(idPrefix: string): ClassicyMenuItem {
 					nativeShortcut: true,
 					onClickFunc: classicyEditCommands.selectAll,
 				},
+				// Mac OS 8 moved Preferences to the bottom of the Edit menu, after a
+				// divider (HIGOS8 Ch.4, p.91). Only present when a host supplies it.
+				...(preferencesItem
+					? [{ id: "spacer" } as ClassicyMenuItem, preferencesItem]
+					: []),
 			],
 		}),
-		[idPrefix],
+		[idPrefix, preferencesItem],
 	);
 }
