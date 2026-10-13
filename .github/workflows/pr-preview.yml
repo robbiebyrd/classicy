@@ -1,22 +1,20 @@
 name: PR Preview
 
 # Builds a full preview of each pull request — the example desktop app at the
-# root and Storybook under /storybook — and publishes it to the gh-pages branch
-# under pr-preview/pr-<number>/, so reviewers get a live URL to click through the
-# changes. The preview is removed automatically when the PR is closed/merged.
+# preview root and Storybook under /storybook — and serves it at
+# https://demo.classicy.ing/pr-preview/pr-<number>/ alongside the live site.
 #
-# Requires: Settings → Pages → Source = "Deploy from a branch", branch "gh-pages"
-# (/ root). The main site (pages.yml) deploys to the same branch's root and keeps
-# the pr-preview/ directory intact.
+# How it fits the Actions-based Pages setup (no Pages-source switch):
+#   1. the preview is written into the gh-pages STORE under pr-preview/pr-<N>/
+#      (rossjrw/pr-preview-action — it also comments the URL and removes the dir
+#      when the PR closes),
+#   2. the assembled gh-pages tree (main site at root + all previews) is then
+#      published through the same actions/deploy-pages flow as the main site.
+# The deploy runs in this same job because GITHUB_TOKEN cannot reliably trigger
+# the main deploy workflow.
 #
-# Classicy's assets are base-relative already (wallpapers inline as data: URIs,
-# icons/wallpapers come from import.meta.glob, sounds from
-# new URL(..., import.meta.url)), so building the example app and Storybook with
-# the preview sub-path as their base is enough for the full desktop — wallpaper,
-# icons and sounds included — to render under pr-preview/pr-<N>/.
-#
-# Note: previews from FORKED repositories are skipped — a fork's token cannot
-# push to gh-pages. Previews work for branches pushed to this repository.
+# Previews from FORKED repositories are skipped — a fork's token cannot write to
+# gh-pages. Previews work for branches pushed to this repository.
 
 on:
   pull_request:
@@ -28,23 +26,27 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
   pull-requests: write
 
+# Shared with pages.yml so preview and main-site deploys never race on the
+# gh-pages store or the github-pages environment.
 concurrency:
-  group: pr-preview-${{ github.event.number }}
-  cancel-in-progress: true
+  group: pages-publish
+  cancel-in-progress: false
 
-# Served at <pages-root>/pr-preview/pr-<N>/. If this repo's Pages uses a custom
-# domain served at the ROOT, change this to /pr-preview/pr-${{ github.event.number }}/.
+# Served from the custom domain root, so the preview base is just the sub-path.
 env:
-  BASE_PATH: /${{ github.event.repository.name }}/pr-preview/pr-${{ github.event.number }}/
+  BASE_PATH: /pr-preview/pr-${{ github.event.number }}/
 
 jobs:
   preview:
     runs-on: ubuntu-latest
-    # Skip previews for pull requests opened from a fork (no write access to the
-    # gh-pages branch); same-repo branches build normally.
     if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -91,9 +93,26 @@ jobs:
           mv storybook/storybook-static example/dist/storybook
           cp -r assets/. example/dist/assets/
 
-      - name: Deploy / update / remove the PR preview
+      - name: Update the preview in the gh-pages store (and remove it on close)
         uses: rossjrw/pr-preview-action@v1
         with:
           source-dir: example/dist
           preview-branch: gh-pages
           umbrella-dir: pr-preview
+          # Custom domain, so the comment links to demo.classicy.ing/pr-preview/…
+          pages-base-url: demo.classicy.ing/
+
+      - name: Checkout the assembled site (gh-pages)
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: published
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: published
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
