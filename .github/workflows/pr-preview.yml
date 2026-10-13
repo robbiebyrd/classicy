@@ -1,0 +1,81 @@
+name: PR Preview (Storybook)
+
+# Builds Storybook for each pull request and publishes it to the gh-pages branch
+# under pr-preview/pr-<number>/, so reviewers get a live URL to click through the
+# changes. The preview is removed automatically when the PR is closed/merged.
+#
+# Requires: Settings → Pages → Source = "Deploy from a branch", branch "gh-pages"
+# (root). The main site (pages.yml) deploys to the same branch's root and keeps
+# the pr-preview/ directory intact.
+#
+# Note: previews from FORKED repositories are skipped — a fork's token cannot
+# push to gh-pages. Previews work for branches pushed to this repository.
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - closed
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: pr-preview-${{ github.event.number }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    # Skip previews for pull requests opened from a fork (no write access to the
+    # gh-pages branch); same-repo branches build normally.
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        if: github.event.action != 'closed'
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        if: github.event.action != 'closed'
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24.x'
+          cache: 'pnpm'
+
+      - name: Install FFMpeg
+        if: github.event.action != 'closed'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Install dependencies
+        if: github.event.action != 'closed'
+        run: pnpm install --frozen-lockfile
+
+      # Generate audio sprites the components import at build time.
+      - name: Build audio sprites
+        if: github.event.action != 'closed'
+        run: pnpm build:audio
+
+      - name: Build Storybook (scoped to the preview sub-path)
+        if: github.event.action != 'closed'
+        # The preview is served at <pages-root>/pr-preview/pr-<N>/. Vite rewrites
+        # glob-imported asset URLs against this base so component icons resolve.
+        # If this repo's Pages uses a custom domain served at the ROOT, change
+        # STORYBOOK_BASE to "/pr-preview/pr-${{ github.event.number }}/".
+        env:
+          STORYBOOK_BASE: /${{ github.event.repository.name }}/pr-preview/pr-${{ github.event.number }}/
+        run: pnpm --filter classicy-storybook build
+
+      - name: Deploy / update / remove the PR preview
+        uses: rossjrw/pr-preview-action@v1
+        with:
+          source-dir: storybook/storybook-static
+          preview-branch: gh-pages
+          umbrella-dir: pr-preview

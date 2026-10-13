@@ -17,17 +17,18 @@ on:
       - main
   workflow_dispatch:
 
+# Publishing to the gh-pages branch needs write access to repo contents.
+# (PR previews live in the same branch under pr-preview/ — see pr-preview.yml —
+# so this job must NOT wipe that directory when it redeploys the main site.)
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
-  group: pages-${{ github.run_id }}
+  group: pages-deploy
   cancel-in-progress: false
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
     steps:
@@ -61,23 +62,18 @@ jobs:
       - name: Build Storybook
         run: pnpm --filter classicy-storybook build
 
-      - name: Merge Storybook into Pages artifact
+      - name: Merge Storybook into the site
         run: |
           mv storybook/storybook-static example/dist/storybook
           cp -r assets/. example/dist/assets/
 
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Deploy to the gh-pages branch
+        uses: JamesIves/github-pages-deploy-action@v4
         with:
-          path: example/dist
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          branch: gh-pages
+          folder: example/dist
+          # Keep per-PR previews (published by pr-preview.yml) intact when the
+          # main site redeploys. Everything else at the root is replaced.
+          clean: true
+          clean-exclude: |
+            pr-preview/
