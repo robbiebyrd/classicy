@@ -1,7 +1,10 @@
 .classicyRichTextEditor {
+  // HIGOS8 Ch.2 "Edit Text Fields and Frames" (p.41): 2px recessed frame, as on
+  // the image well — 1px black border + 2px inset bevel.
   border: var(--window-border-size) solid var(--color-black);
-  box-shadow: calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 0 var(--color-system-05),
-  calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) 0 0 var(--color-system-04);
+  box-shadow:
+    inset var(--hig-frame-width) var(--hig-frame-width) 0 0 var(--color-system-05),
+    inset calc(var(--hig-frame-width) * -1) calc(var(--hig-frame-width) * -1) 0 0 var(--color-white);
   min-height: calc(100% - var(--window-border-size)*2);
   display: flex;
   flex-direction: column;

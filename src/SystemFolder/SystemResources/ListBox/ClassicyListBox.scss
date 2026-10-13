@@ -8,7 +8,13 @@
   overflow-y: auto;
   max-height: calc(var(--classicy-listbox-visible-rows, 8) * var(--classicy-listbox-row-height));
   background: var(--color-white);
-  @include appearance.platinumWindowInnerBorder;
+  // HIGOS8 Ch.2 "List Boxes and Frames" (p.39): a 2px frame whose inside lines
+  // share the scroll bar's, matching the image well / edit text — 1px black
+  // border + 2px inset bevel (was a 1px platinumWindowInnerBorder).
+  border: var(--window-border-size) solid var(--color-black);
+  box-shadow:
+    inset var(--hig-frame-width) var(--hig-frame-width) 0 0 var(--color-system-05),
+    inset calc(var(--hig-frame-width) * -1) calc(var(--hig-frame-width) * -1) 0 0 var(--color-white);
 }
 
 .classicyListBoxOption {
