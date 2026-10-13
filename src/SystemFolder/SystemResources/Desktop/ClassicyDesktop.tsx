@@ -139,9 +139,6 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	const errorDialog = useAppManager(
 		(s) => s.System.Manager.Desktop.errorDialog,
 	);
-	const disableBalloonHelp = useAppManager(
-		(s) => s.System.Manager.Desktop.disableBalloonHelp,
-	);
 	const focusedAppId = useAppManager(
 		(s) => s.System.Manager.Applications.focusedAppId,
 	);
@@ -452,7 +449,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 				],
 			},
 		],
-		[desktopEventDispatch, disableBalloonHelp],
+		[desktopEventDispatch],
 	);
 
 	// When focus settles on the desktop — Finder is the focused app (or nothing
