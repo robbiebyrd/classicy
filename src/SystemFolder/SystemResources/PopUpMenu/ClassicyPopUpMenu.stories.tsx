@@ -43,6 +43,37 @@ export const Disabled: Story = {
 	args: { id: "popup-disabled", selected: "charcoal", disabled: true },
 };
 
+// Long enough to scroll: opening it should put the *selected* item right over
+// the button (Mac OS 8 aligned pop-up, HIG Ch.2) and scroll the list so that
+// selection lands on the pointer, rather than always opening from the top.
+const MONTHS = [
+	"January",
+	"February",
+	"March",
+	"April",
+	"May",
+	"June",
+	"July",
+	"August",
+	"September",
+	"October",
+	"November",
+	"December",
+];
+
+export const AlignedLongList: Story = {
+	args: {
+		id: "popup-aligned",
+		label: "Month:",
+		labelPosition: "left",
+		selected: "september",
+		options: MONTHS.map((month) => ({
+			value: month.toLowerCase(),
+			label: month,
+		})),
+	},
+};
+
 // <optgroup> equivalent: titled, non-selectable groups of options.
 export const Grouped: Story = {
 	args: {
