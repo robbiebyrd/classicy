@@ -300,6 +300,34 @@ resizable container splitting two or three content areas along one axis:
   listener idiom as `ClassicyWindow`. Pure resize math is exported as
   `computeSplitViewSizes` for tests.
 
+### Pop-Up Bevel Buttons
+
+`ClassicyBevelButton` opens a Platinum menu (`menuItems`) in a fixed-position
+portal (z-index 5000), built from the shared `ClassicyMenu`/`ClassicyMenuProvider`:
+
+- Placement: `popupDirection`'s arrow picks the side — vertical opens below
+  (left edges aligned), horizontal opens to the right (tops aligned); flips to
+  the other side when there is no room (`classicyBevelPopupPlacement`).
+- `popupTrigger="click"` (default in `popup` mode): a quick click leaves the
+  menu open (sticky); a press held past `popupHoldDelayMs` (500) is a standard
+  menu — a document `mouseup` over an item `click()`s it.
+- `popupTrigger="hold"` (default in other modes): the click keeps the mode's
+  behaviour and only a long press opens the menu; the click ending that
+  press is swallowed (`suppressClickRef`).
+- Keyboard: a click with `detail === 0` (Enter/Space) toggles a click-trigger
+  menu; Down Arrow opens either kind with the first item focused.
+
+### Keyboard Equivalents
+
+`ClassicyKeyboardEquivalentField` (HIGOS8 pp.120–122) captures a new
+combination in `ClassicyKeyboardEquivalentDialog`, which listens on `window`
+in the **capture phase** and `preventDefault`s, so the menu-shortcut
+dispatcher and dialog keyboard hooks (both skip `defaultPrevented`) never act
+on a recorded key. Recorded shortcuts use the menu-item form (`"⌃⌘S"`, via
+`keyboardShortcutFromEvent`) and round-trip through `shortcutMatchesEvent`.
+Rules live in `checkKeyboardEquivalent` (needs ⌘ or a function key unless
+`requireCommandKey={false}`; `inUse` conflicts name their owner).
+
 ### Contextual Menus
 
 Right-click menus resolve target-based, innermost wins: a `ClassicyContextualMenuTarget`-wrapped control > the window's `contextMenu` prop > the app's `contextMenu` prop (`ClassicyApp`) > the desktop default menu (empty desktop only). Desktop icons take an optional `contextMenu` prop. A single `ClassicyContextualMenuProvider` (mounted by `ClassicyDesktop`) renders the one open menu via portal.
