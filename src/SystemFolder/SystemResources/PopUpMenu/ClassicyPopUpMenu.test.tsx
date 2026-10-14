@@ -429,6 +429,14 @@ describe("ClassicyPopUpMenu", () => {
 			vi.spyOn(Element.prototype, "scrollHeight", "get").mockReturnValue(
 				contentHeight,
 			);
+			// jsdom does no layout, so an option's offsetTop/offsetHeight are 0.
+			// The aligned placement reads the *selected* row's geometry; these tests
+			// select opt-0, which really does sit at offsetTop 0, so only its height
+			// needs standing in for.
+			vi.spyOn(HTMLElement.prototype, "offsetTop", "get").mockReturnValue(0);
+			vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(
+				20,
+			);
 			window.innerHeight = viewportHeight;
 		};
 
@@ -436,27 +444,33 @@ describe("ClassicyPopUpMenu", () => {
 			vi.restoreAllMocks();
 		});
 
-		it("anchors below the button when the menu fits below", async () => {
+		it("opens the selected item over the button", async () => {
 			const user = userEvent.setup();
 			layout({ top: 100, viewportHeight: 800, contentHeight: 200 });
 			render(<ClassicyPopUpMenu id="fruit" options={many} selected="opt-0" />);
 			await user.click(screen.getByRole("combobox"));
 			const listbox = screen.getByRole("listbox");
+			// Button centre 110, selected row centre 10 -> top 100 puts the current
+			// choice directly over the button (classic Platinum aligned pop-up).
 			expect(listbox.style.top).toBe("100px");
 			expect(listbox.style.bottom).toBe("");
+			// opt-0 sits at the top, so the menu grows downward from the button and
+			// is not flagged as opening above.
 			expect(listbox).not.toHaveClass("classicyPopUpMenuListAbove");
 		});
 
-		it("expands above the button when there is not enough room below", async () => {
+		it("lifts the aligned menu back on screen when the button is near the bottom", async () => {
 			const user = userEvent.setup();
 			layout({ top: 700, viewportHeight: 800, contentHeight: 400 });
 			render(<ClassicyPopUpMenu id="fruit" options={many} selected="opt-0" />);
 			await user.click(screen.getByRole("combobox"));
 			const listbox = screen.getByRole("listbox");
-			// Grows upward from the button's bottom edge (720) -> 80px from the
-			// viewport bottom, with `top` released so the list extends upward.
-			expect(listbox.style.bottom).toBe("80px");
-			expect(listbox.style.top).toBe("");
+			// Aligning opt-0 over the button would put the 300px-capped menu at
+			// top 700, overflowing the 800px viewport; it's clamped up to 496
+			// (800 - margin 4 - 300) and still positioned by `top`, not `bottom`.
+			expect(listbox.style.top).toBe("496px");
+			expect(listbox.style.bottom).toBe("");
+			// Its top now sits above the button, so it's flagged as opening above.
 			expect(listbox).toHaveClass("classicyPopUpMenuListAbove");
 		});
 

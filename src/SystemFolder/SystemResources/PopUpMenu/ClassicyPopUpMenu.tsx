@@ -298,18 +298,45 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 		};
 	}, [open, closeMenu]);
 
-	// Measure the rendered menu and decide which way it grows. A layout effect
-	// runs before paint, so the corrected placement is what the user sees (same
-	// approach as ClassicyContextualMenu's horizontal flip). `scrollHeight` is
-	// the unclamped content height, so it stays correct once maxHeight applies.
+	// Measure the rendered menu and place it. A layout effect runs before paint,
+	// so the corrected placement is what the user sees (same approach as
+	// ClassicyContextualMenu's horizontal flip). `scrollHeight` is the unclamped
+	// content height, so it stays correct once maxHeight applies. When there is a
+	// current selection, its measured geometry drives the Mac OS 8 aligned
+	// placement (the selected item opens over the button); with none (placeholder),
+	// `selectedMetrics` is null and the menu grows downward as before.
 	useLayoutEffect(() => {
 		if (!open || !menuRect) return;
 		const el = listRef.current;
 		if (!el) return;
+		let selectedMetrics: { offsetTop: number; height: number } | null = null;
+		if (currentIndex >= 0) {
+			const selEl = document.getElementById(`${reactId}-opt-${currentIndex}`);
+			if (selEl) {
+				selectedMetrics = {
+					offsetTop: selEl.offsetTop,
+					height: selEl.offsetHeight,
+				};
+			}
+		}
 		setPlacement(
-			classicyPopUpMenuPlacement(menuRect, el.scrollHeight, window.innerHeight),
+			classicyPopUpMenuPlacement(
+				menuRect,
+				el.scrollHeight,
+				window.innerHeight,
+				selectedMetrics,
+			),
 		);
-	}, [open, menuRect]);
+	}, [open, menuRect, currentIndex, reactId]);
+
+	// Apply the aligning scroll once the menu has its final height, so the
+	// selected item lands on the button (classic Platinum pop-up). Runs after the
+	// placement commit above, so it wins over the highlight's scroll-into-view.
+	useLayoutEffect(() => {
+		if (!open || !placement) return;
+		const el = listRef.current;
+		if (el) el.scrollTop = placement.scrollTop;
+	}, [open, placement]);
 
 	// Keyboard navigation moves a highlight, not focus (focus stays on the
 	// button for the combobox pattern), so nothing scrolls the active option
@@ -463,12 +490,15 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 								left: `${menuRect.left}px`,
 								minWidth: `${menuRect.width}px`,
 								zIndex: 5000,
-								// Anchor the edge the menu grows away from: its top to the
-								// button's top when growing down, its bottom to the button's
-								// bottom when growing up. Only one of the two is ever set.
-								...(placement?.above
-									? { bottom: `${window.innerHeight - menuRect.bottom}px` }
-									: { top: `${menuRect.top}px` }),
+								// Aligned placement gives an explicit top (the selected item
+								// sits over the button). Otherwise anchor the edge the menu
+								// grows away from: its top to the button's top when growing
+								// down, its bottom to the button's bottom when growing up.
+								...(placement?.top != null
+									? { top: `${placement.top}px` }
+									: placement?.above
+										? { bottom: `${window.innerHeight - menuRect.bottom}px` }
+										: { top: `${menuRect.top}px` }),
 								...(placement && { maxHeight: `${placement.maxHeight}px` }),
 							}}
 						>

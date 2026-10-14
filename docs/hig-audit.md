@@ -88,7 +88,7 @@ Normative checklist (HIGOS8 Ch.2) and component mapping:
 | 2.12 | LOW | Table row selection used a fixed near-black instead of the Appearance selection color. | `Table` | 🔧 Fixed |
 | 2.6 | MEDIUM | List box frame was a 1px bevel vs the documented 2px `--hig-frame-width`. | `ListBox` | 🔧 Fixed |
 | 2.7 | MEDIUM | Edit-text frame was 1px vs the documented 2px `--hig-frame-width`. | `Input`,`TextEditor`,`RichTextEditor` | 🔧 Fixed |
-| 2.5 | LOW | Pop-up list opens below/above the button rather than aligning the current item at the button level. | `PopUpMenu` | ⚠️ Deferred |
+| 2.5 | LOW | Pop-up list opens below/above the button rather than aligning the current item at the button level. | `PopUpMenu` | 🔧 Fixed |
 | 2.10 | LOW | Tab labels use the 14px app UI font, not the HIG 12pt/10pt sizes. | `Tabs` | ⚠️ Deferred |
 
 **Details & fixes**
@@ -113,6 +113,14 @@ Normative checklist (HIGOS8 Ch.2) and component mapping:
   longer reflows by 2em on focus. _HIGOS8 Ch.2 "Edit Text Fields" (p.41)._
 - **2.12** (`ClassicyTable.scss`): selected rows use `--color-select` (matching
   `ClassicyTree`) so selection tracks the Appearance accent color. _HIGOS8 Ch.2._
+- **2.5** (`ClassicyPopUpMenuPlacement.ts`, `ClassicyPopUpMenu.tsx`): a pop-up
+  with a current selection now opens so that item sits over the button — items
+  before it extend upward, items after it downward — and, when the list is
+  longer than the viewport, it scrolls so the selection still lands on the
+  button (clamped to stay on screen). Placeholder pop-ups and `ClassicyComboBox`
+  (no selection to align on) keep the grow-down/flip-up behavior. The placement
+  math is unit-tested in isolation and the wiring in the component tests.
+  _HIGOS8 Ch.2 "Pop-up Menus" (p.33)._
 - **2.6, 2.7** (`ClassicyListBox.scss`, `ClassicyInput.scss`,
   `ClassicyTextEditor.scss`, `ClassicyRichTextEditor.scss`): the list box and
   edit-text controls now carry the same 2px recessed frame as the image well
@@ -125,8 +133,6 @@ Normative checklist (HIGOS8 Ch.2) and component mapping:
 
 **Deferred (recommended as a design-reviewed follow-up)**
 
-- **2.5**: the current combobox-style drop is a reasonable, if non-literal,
-  rendering; literal current-item alignment is a larger change for little gain.
 - **2.10**: Classicy uses a consistent 14px UI type scale throughout; forcing
   12/10px tabs would clash with the app's own scale — needs a type-scale decision.
 
@@ -419,9 +425,11 @@ Addressed in a follow-up pass (separate PR):
   at the end of each bar (the authentic OS 8.0 default); OFF splits them to
   opposite ends.
 
+- **2.5** — ✅ done: a pop-up with a current selection opens that item over the
+  button and scrolls a long list so the selection lands on the pointer;
+  placeholder pop-ups and combo boxes keep growing down/flipping up.
+
 Still open:
 
-- **2.5** — align the pop-up list's current item at the button level (tracked in
-  its own branch/PR for isolated preview testing).
 - **2.10** — a 12/10pt tab-label type scale. Won't fix for now (needs a
   project-wide type-scale decision).
