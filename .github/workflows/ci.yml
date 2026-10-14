@@ -1,0 +1,59 @@
+name: CI
+
+# Lint, type check and test every pull request (any base branch) and every push
+# to main, so Biome errors and broken tests are caught before merge rather than
+# at release time (#276). push.yml ("Release Package") still runs its own
+# `pnpm test` before publishing; that is deliberate release safety, not a
+# duplicate to remove.
+#
+# No `paths` filter: this is meant to be a required status check, and a required
+# check skipped by a path filter stays "pending" and blocks the merge.
+#
+# No ffmpeg / audio sprite build: the generated sprites
+# (assets/sounds/platinum/platinum.*) are committed, and the test suite only
+# reads platinum.json. Nothing here invokes ffmpeg.
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+# A new push to the same PR (or to main) supersedes the run in progress.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Lint, type check and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24.x'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint (Biome)
+        run: pnpm lint
+
+      - name: Type check
+        run: pnpm exec tsc --noEmit -p .
+
+      - name: Run tests
+        run: pnpm test
