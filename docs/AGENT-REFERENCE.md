@@ -185,6 +185,7 @@ Common built-in actions:
 | `ClassicyDesktopChangeTheme` | `{ activeTheme: "<themeId>" }` | Switch theme (built-ins, then custom themes) |
 | `ClassicyDesktopChangeColor` | `{ colorKey, index?, color }` | Set one theme colour (forks a built-in into "Custom"; see §8) |
 | `ClassicyDesktopLoadThemes` | `{ availableThemes: ClassicyTheme[] }` | Replace the theme list |
+| `ClassicyDesktopImportTheme` | `{ theme: ClassicyTheme }` | Add a (schema-validated) theme to `customThemes` with a fresh id and activate it (see §8 "Theme files") |
 | `ClassicyDesktopChangeBackground` | `{ backgroundImage }` | Set wallpaper |
 | `ClassicyDesktopSetBalloonHelp` | `{ disableBalloonHelp: boolean }` | Toggle balloon help globally |
 | `ClassicyDesktopSetDoubleClickTitleToCollapse` | `{ doubleClickTitleToCollapse: boolean }` | Toggle whether double-clicking a window's title bar collapses it (`System.Manager.Desktop.doubleClickTitleToCollapse`, default `true`; the Appearance control panel's checkbox) |
@@ -852,7 +853,85 @@ returns the CSS custom-property map. Raw SCSS partials are importable via
 Theme-authoring helpers: `hexToInt` / `intToHex` convert between hex strings
 and the integer colors themes use. `ClassicyWallpapers` is the stock
 wallpaper catalog and `resolveWallpaper(name)` maps a wallpaper name (as used
-in `desktop.backgroundImage` / `ClassicyDesktopChangeBackground`) to its URL.
+in `desktop.backgroundImage` / `ClassicyDesktopChangeBackground`) to its URL;
+`classicyWallpaperFilename(value)` is its inverse (bundled filename for a
+filename or a resolved URL / inlined `data:` URI, else `undefined`).
+
+### Theme files (save / load)
+
+The Appearance Manager's Themes tab has **Save Theme…** (downloads the
+*active* theme, built-in or custom) and **Load Theme…** (picks a `.json`
+file, imports it, selects it). A load error shows a stop alert with the
+reason. Helpers live in `ClassicyThemeFile.ts`; the schema in
+`ClassicyThemeSchema.ts`.
+
+File format — a versioned envelope, saved as `<theme-name>.classicy-theme.json`:
+
+```json
+{ "format": "classicy-theme", "version": 1, "theme": { "id": "azul", "name": "Azul", "color": {…}, … } }
+```
+
+- Loading also accepts a **bare theme object** (no envelope), e.g. an entry
+  copied from `themes.json`. A `format` other than `"classicy-theme"`, a
+  missing version, or a version other than `1` is rejected (a higher version
+  reports "saved by a newer version of Classicy").
+- `desktop.backgroundImage` is written as the bundled wallpaper's **filename**
+  (`"azul_dark.png"`) — the URL a build resolves it to (dev path, inlined
+  `data:` URI) is build-specific — and resolved back on load. A plain http(s)
+  URL is kept; anything else (custom `data:`/`blob:` URL, relative path) is
+  written as `""` (no image).
+
+`ClassicyThemeSchema` (zod) mirrors `ClassicyTheme` (checked both ways at
+compile time). Unknown keys are **stripped**, not rejected (a newer file with
+an extra optional field still loads; nothing undeclared reaches the store).
+Types are strict:
+
+| Field | Rule |
+|---|---|
+| colours (incl. `desktop.backgroundColor`) | integer `0x000000`–`0xFFFFFF` |
+| `color.system` / `color.theme` | exactly 7 colours |
+| `name` | 1–64 chars after trimming |
+| typography sizes, `desktop.iconSize`/`iconFontSize` | positive, ≤ 512 |
+| `measurements.window.*` | ≥ 0, ≤ 512 |
+| font stacks | letters, digits, spaces, `"` `'` `,` `.` `_` `-` only |
+| `backgroundRepeat`, string `backgroundPosition`/`backgroundSize` | CSS keyword chars (`A-Za-z0-9 % . -`) |
+| `desktop.backgroundImage` | `""`, a bundled wallpaper (filename or resolved URL), or an absolute http(s) URL with no whitespace, quotes, `()`, `\`, `;`, `<>`, `{}` — it is interpolated unquoted into `url(…)` (`isSafeClassicyThemeBackgroundImage`) |
+| `sound.name` | a key of `ClassicySounds` (e.g. `"platinum"`) |
+
+```ts
+import {
+    exportClassicyTheme,      // (theme) => JSON string (envelope, portable wallpaper)
+    downloadClassicyTheme,    // (theme) => { ok: true } | { ok: false, error } — round-trip checked first
+    parseClassicyThemeFile,   // (text) => { ok: true, theme } | { ok: false, error }
+    readClassicyTheme,        // (unknown) => same result; validate + make loadable (no envelope)
+    classicyThemeFileName,    // ({ name }) => "french-blue.classicy-theme.json"
+    assignImportedClassicyThemeIdentity, // (theme, existingThemes) => theme with unique id/name
+} from 'classicy'
+
+const result = parseClassicyThemeFile(await file.text())
+if (result.ok) dispatch({ type: 'ClassicyDesktopImportTheme', theme: result.theme })
+else showError(result.error)  // e.g. "This theme has invalid settings: color.system: …"
+```
+
+`ClassicyDesktopImportTheme { theme }` — the payload is untrusted:
+`hasImportableTheme` validates it against the schema (invalid → ignored),
+then the reducer strips undeclared keys, resolves the wallpaper, assigns a
+fresh identity, **appends** it to `customThemes` and activates a copy (the
+same copy-on-activate as `ChangeTheme`; the caller loads its sound theme).
+Identity rules (`assignImportedClassicyThemeIdentity`):
+
+- The file's `id` is ignored. The id is `custom-<slug of the name>`
+  (`custom-theme` if the slug is empty), with `-2`, `-3`, … on collision with
+  any built-in or custom id — and never `"custom"`, the fork slot the next
+  edit on a built-in would overwrite. So an import can never overwrite an
+  existing theme, and re-importing the same file adds a second entry.
+- The name is kept unless a theme already has it (case-insensitive); then
+  `" 2"`, `" 3"`, … is appended, counting up from an existing trailing number
+  (`"Azul 2"` → `"Azul 3"`).
+
+An imported theme is a custom theme, so edits modify it in place (no fork).
+Like every `ClassicyDesktop*` action it is unreachable to untrusted
+(HyperCard) dispatches.
 
 ### CSS custom properties
 
