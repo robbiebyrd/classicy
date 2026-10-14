@@ -3,16 +3,22 @@ import classNames from "classnames";
 import {
 	type ButtonHTMLAttributes,
 	type FC as FunctionalComponent,
+	type KeyboardEvent,
 	type MouseEvent,
 	type MouseEventHandler,
 	type PropsWithChildren,
+	useCallback,
 	useContext,
 	useEffect,
+	useId,
+	useRef,
 	useState,
 } from "react";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
+import { ClassicyBevelButtonPopup } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopup";
 import { ClassicyButtonToolbarContext } from "@/SystemFolder/SystemResources/ButtonToolbar/ClassicyButtonToolbarContext";
+import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
 /** HIG bevel widths: small = 2px, medium = 3px, large = 4px. */
 export type ClassicyBevelWidth = "small" | "medium" | "large";
@@ -26,6 +32,18 @@ export type ClassicyBevelWidth = "small" | "medium" | "large";
  */
 export type ClassicyBevelButtonMode = "push" | "toggle" | "radio" | "popup";
 
+/**
+ * How a bevel button's pop-up surface opens (HIGOS8 p.32–33):
+ * - `click` — pressing the button shows it. A quick click leaves it open (a
+ *   sticky menu); pressing past the double-click interval makes it a standard
+ *   menu, where releasing over an item chooses it and releasing anywhere else
+ *   closes it.
+ * - `hold`  — a click does the button's own job (turns on a tool, say); only
+ *   holding it past the double-click interval shows the surface, which then
+ *   behaves as a standard menu. The HIG's option sets in tool palettes.
+ */
+export type ClassicyBevelPopupTrigger = "click" | "hold";
+
 /** The seven HIG visual states, exposed on `data-state` for styling/testing. */
 export type ClassicyBevelButtonState =
 	| "off"
@@ -35,6 +53,15 @@ export type ClassicyBevelButtonState =
 	| "mixed"
 	| "disabled-off"
 	| "disabled-on";
+
+/**
+ * Stand-in for the user's double-click time, which separates a sticky click
+ * from a held press. Mac OS 8's middle Double-Click Speed was 32 ticks
+ * (~0.53 s).
+ */
+const DEFAULT_HOLD_DELAY_MS = 500;
+
+const MENU_ITEM_SELECTOR = 'li[role="menuitem"]:not(.classicyMenuItemDisabled)';
 
 type ClassicyBevelButtonProps = PropsWithChildren<{
 	/** Bevel width; sets the apparent 3-D height. Default `medium` (3px). */
@@ -58,10 +85,27 @@ type ClassicyBevelButtonProps = PropsWithChildren<{
 	onClickFunc?: MouseEventHandler<HTMLButtonElement>;
 	/** Fired with the new on-state for `toggle`/`radio` modes. */
 	onChangeFunc?: (on: boolean) => void;
-	/** For `popup` mode: show a pop-up arrow. Size of the arrow glyph. */
+	/** Show a pop-up arrow, at this size. */
 	popupArrow?: "small" | "large";
-	/** For `popup` mode: arrow orientation. Horizontal points right, vertical points down. */
+	/**
+	 * Arrow orientation, which also picks where the pop-up surface opens:
+	 * horizontal points right and opens to the right; vertical points down and
+	 * opens below. Default `vertical`.
+	 */
 	popupDirection?: "horizontal" | "vertical";
+	/**
+	 * The menu this button reveals (HIGOS8 Figure 2-15). Items take the full
+	 * `ClassicyMenuItem` shape, so `checked` marks the current choice.
+	 */
+	menuItems?: ClassicyMenuItem[];
+	/**
+	 * When the surface opens; see {@link ClassicyBevelPopupTrigger}. Defaults to
+	 * `click` in `popup` mode and `hold` in every other mode, so a toggle or
+	 * radio tool keeps its click and offers its options on a long press.
+	 */
+	popupTrigger?: ClassicyBevelPopupTrigger;
+	/** The double-click interval, in ms, that separates a click from a hold. */
+	popupHoldDelayMs?: number;
 }> &
 	Omit<
 		ButtonHTMLAttributes<HTMLButtonElement>,
@@ -108,6 +152,9 @@ export const ClassicyBevelButton: FunctionalComponent<
 	onChangeFunc,
 	popupArrow,
 	popupDirection = "vertical",
+	menuItems,
+	popupTrigger,
+	popupHoldDelayMs = DEFAULT_HOLD_DELAY_MS,
 	children,
 	className,
 	...rest
@@ -129,11 +176,104 @@ export const ClassicyBevelButton: FunctionalComponent<
 		if (on !== undefined) setOnState(on);
 	}, [on]);
 
-	const showArrow = mode === "popup" && popupArrow !== undefined;
-	const state = computeState(disabled, mixed, pressed, onState);
+	// --- Pop-up surface -------------------------------------------------------
+	const hasSurface = menuItems !== undefined;
+	const trigger: ClassicyBevelPopupTrigger =
+		popupTrigger ?? (mode === "popup" ? "click" : "hold");
+	const popupId = `${useId()}-popup`;
+	const buttonRef = useRef<HTMLButtonElement>(null);
+	const [popupAnchor, setPopupAnchor] = useState<DOMRect | null>(null);
+	const [focusFirstItem, setFocusFirstItem] = useState(false);
+	const popupOpen = popupAnchor !== null;
+	const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	// Set when a long press opened the surface, so the click that follows the
+	// release does not also run the button's own action.
+	const suppressClickRef = useRef(false);
+	const releaseListenerRef = useRef<
+		((e: globalThis.MouseEvent) => void) | null
+	>(null);
+
+	const clearHoldTimer = useCallback(() => {
+		if (holdTimerRef.current !== null) {
+			clearTimeout(holdTimerRef.current);
+			holdTimerRef.current = null;
+		}
+	}, []);
+
+	const detachReleaseListener = useCallback(() => {
+		if (releaseListenerRef.current) {
+			document.removeEventListener("mouseup", releaseListenerRef.current);
+			releaseListenerRef.current = null;
+		}
+	}, []);
+
+	const openPopup = (byKeyboard: boolean) => {
+		const rect = buttonRef.current?.getBoundingClientRect();
+		if (!rect) return;
+		setFocusFirstItem(byKeyboard);
+		setPopupAnchor(rect);
+		player({ type: "ClassicySoundPlay", sound: "ClassicyMenuOpen" });
+		track("open", { type: "ClassicyBevelButton", mode, trigger });
+	};
+
+	const closePopup = useCallback(() => {
+		detachReleaseListener();
+		setPopupAnchor(null);
+		setFocusFirstItem(false);
+		// Hand focus back if it was inside the surface (keyboard use, Escape).
+		const surface = document.getElementById(popupId);
+		if (surface?.contains(document.activeElement)) buttonRef.current?.focus();
+	}, [detachReleaseListener, popupId]);
+
+	// Standard (non-sticky) menu semantics for a press that was held: releasing
+	// over an item chooses it, releasing anywhere else closes the menu.
+	const listenForRelease = (pressedAt: number) => {
+		detachReleaseListener();
+		const onRelease = (e: globalThis.MouseEvent) => {
+			detachReleaseListener();
+			const target = e.target instanceof Element ? e.target : null;
+			// mouseup reaches the document before the click it produces. Only a
+			// release on the button itself is followed by a click there, so only
+			// then does a long press still owe a suppressed click.
+			if (!target || !buttonRef.current?.contains(target)) {
+				suppressClickRef.current = false;
+			}
+			if (Date.now() - pressedAt < popupHoldDelayMs) return; // sticky
+			const item = target?.closest<HTMLElement>(MENU_ITEM_SELECTOR);
+			if (item && document.getElementById(popupId)?.contains(item)) {
+				item.click();
+			} else {
+				closePopup();
+			}
+		};
+		releaseListenerRef.current = onRelease;
+		document.addEventListener("mouseup", onRelease);
+	};
+
+	useEffect(
+		() => () => {
+			clearHoldTimer();
+			detachReleaseListener();
+		},
+		[clearHoldTimer, detachReleaseListener],
+	);
+
+	const showArrow =
+		(mode === "popup" || hasSurface) && popupArrow !== undefined;
+	const state = computeState(disabled, mixed, pressed || popupOpen, onState);
 
 	const onHandleFunc = (e: MouseEvent<HTMLButtonElement>) => {
 		if (disabled) return;
+		if (suppressClickRef.current) {
+			suppressClickRef.current = false;
+			return;
+		}
+		// A click with no pointer behind it (detail 0) is Enter or Space: with a
+		// click trigger that is how the keyboard opens and closes the surface.
+		if (hasSurface && trigger === "click" && e.detail === 0) {
+			if (popupOpen) closePopup();
+			else openPopup(true);
+		}
 		let next = onState;
 		if (mode === "toggle") next = !onState;
 		else if (mode === "radio") next = true;
@@ -145,73 +285,133 @@ export const ClassicyBevelButton: FunctionalComponent<
 		if (onClickFunc) onClickFunc(e);
 	};
 
-	return (
-		// biome-ignore lint/a11y/useAriaPropsSupportedByRole: aria-checked is only set when role="radio" (mode="radio"); the role is dynamic so static analysis can't prove it
-		<button
-			{...rest}
-			type="button"
-			tabIndex={0}
-			disabled={disabled}
-			data-state={state}
-			data-mode={mode}
-			aria-pressed={
-				mode === "toggle" || mode === "push"
-					? mixed
-						? "mixed"
-						: onState
-					: undefined
+	const onPopupMouseDown = (e: MouseEvent<HTMLButtonElement>) => {
+		if (!hasSurface || e.button !== 0) return;
+		suppressClickRef.current = false;
+		clearHoldTimer();
+		const pressedAt = Date.now();
+		if (trigger === "click") {
+			// Pressing the button again dismisses a menu left open by a click.
+			if (popupOpen) {
+				closePopup();
+				return;
 			}
-			aria-checked={mode === "radio" ? onState : undefined}
-			role={mode === "radio" ? "radio" : "button"}
-			aria-haspopup={mode === "popup" ? "menu" : undefined}
-			className={classNames(
-				"classicyBevelButton",
-				isSquare && "classicyBevelButtonSquare",
-				bevelWidthClass[bevelWidth],
-				`classicyBevelButtonMode${mode.charAt(0).toUpperCase()}${mode.slice(1)}`,
-				// Merged last rather than spread with `rest`, which the computed
-				// className above would otherwise silently overwrite.
-				className,
-			)}
-			onClick={onHandleFunc}
-			onMouseDown={() => {
-				if (disabled) return;
-				setPressed(true);
-				player({ type: "ClassicySoundPlay", sound: "ClassicyButtonClickDown" });
-			}}
-			onMouseUp={() => {
-				if (disabled) return;
-				setPressed(false);
-				player({ type: "ClassicySoundPlay", sound: "ClassicyButtonClickUp" });
-			}}
-			// If the pointer leaves while held, a push button reverts to off.
-			onMouseLeave={() => setPressed(false)}
-		>
-			{icon && (
-				<img
-					className="classicyBevelButtonIcon"
-					src={icon}
-					alt={iconAlt}
-					draggable={false}
+			openPopup(false);
+			listenForRelease(pressedAt);
+			return;
+		}
+		holdTimerRef.current = setTimeout(() => {
+			holdTimerRef.current = null;
+			suppressClickRef.current = true;
+			openPopup(false);
+			listenForRelease(pressedAt);
+		}, popupHoldDelayMs);
+	};
+
+	// Down Arrow opens the surface from the keyboard under either trigger —
+	// the only keyboard route to a hold-triggered menu.
+	const onKeyDown = (e: KeyboardEvent<HTMLButtonElement>) => {
+		if (!hasSurface || disabled || popupOpen || e.key !== "ArrowDown") return;
+		e.preventDefault();
+		openPopup(true);
+	};
+
+	return (
+		<>
+			{/* biome-ignore lint/a11y/useAriaPropsSupportedByRole: aria-checked is only set when role="radio" (mode="radio"); the role is dynamic so static analysis can't prove it */}
+			<button
+				{...rest}
+				ref={buttonRef}
+				type="button"
+				tabIndex={0}
+				disabled={disabled}
+				data-state={state}
+				data-mode={mode}
+				aria-pressed={
+					mode === "toggle" || mode === "push"
+						? mixed
+							? "mixed"
+							: onState
+						: undefined
+				}
+				aria-checked={mode === "radio" ? onState : undefined}
+				role={mode === "radio" ? "radio" : "button"}
+				aria-haspopup={hasSurface || mode === "popup" ? "menu" : undefined}
+				aria-expanded={hasSurface ? popupOpen : undefined}
+				aria-controls={popupOpen ? popupId : undefined}
+				className={classNames(
+					"classicyBevelButton",
+					isSquare && "classicyBevelButtonSquare",
+					bevelWidthClass[bevelWidth],
+					`classicyBevelButtonMode${mode.charAt(0).toUpperCase()}${mode.slice(1)}`,
+					// Merged last rather than spread with `rest`, which the computed
+					// className above would otherwise silently overwrite.
+					className,
+				)}
+				onClick={onHandleFunc}
+				onKeyDown={onKeyDown}
+				onMouseDown={(e) => {
+					if (disabled) return;
+					setPressed(true);
+					player({
+						type: "ClassicySoundPlay",
+						sound: "ClassicyButtonClickDown",
+					});
+					onPopupMouseDown(e);
+				}}
+				onMouseUp={() => {
+					if (disabled) return;
+					clearHoldTimer();
+					setPressed(false);
+					player({ type: "ClassicySoundPlay", sound: "ClassicyButtonClickUp" });
+				}}
+				// If the pointer leaves while held, a push button reverts to off. A
+				// pending hold keeps running: dragging off toward the menu is part of
+				// the gesture.
+				onMouseLeave={() => setPressed(false)}
+			>
+				{icon && (
+					<img
+						className="classicyBevelButtonIcon"
+						src={icon}
+						alt={iconAlt}
+						draggable={false}
+					/>
+				)}
+				{hasRenderableContent(children) && (
+					<span className="classicyBevelButtonLabel">{children}</span>
+				)}
+				{showArrow && (
+					<span
+						className={classNames(
+							"classicyBevelButtonArrow",
+							`classicyBevelButtonArrow${popupArrow === "large" ? "Large" : "Small"}`,
+							popupDirection === "horizontal"
+								? "classicyBevelButtonArrowHorizontal"
+								: "classicyBevelButtonArrowVertical",
+						)}
+						aria-hidden={true}
+					>
+						{popupDirection === "horizontal" ? "▸" : "▾"}
+					</span>
+				)}
+			</button>
+			{popupAnchor && menuItems && (
+				<ClassicyBevelButtonPopup
+					id={popupId}
+					anchor={popupAnchor}
+					direction={popupDirection}
+					menuItems={menuItems}
+					label={
+						rest["aria-label"] ||
+						iconAlt ||
+						(typeof children === "string" ? children : undefined)
+					}
+					focusFirstItem={focusFirstItem}
+					buttonRef={buttonRef}
+					onClose={closePopup}
 				/>
 			)}
-			{hasRenderableContent(children) && (
-				<span className="classicyBevelButtonLabel">{children}</span>
-			)}
-			{showArrow && (
-				<span
-					className={classNames(
-						"classicyBevelButtonArrow",
-						`classicyBevelButtonArrow${popupArrow === "large" ? "Large" : "Small"}`,
-						popupDirection === "horizontal"
-							? "classicyBevelButtonArrowHorizontal"
-							: "classicyBevelButtonArrowVertical",
-					)}
-					aria-hidden={true}
-				>
-					{popupDirection === "horizontal" ? "▸" : "▾"}
-				</span>
-			)}
-		</button>
+		</>
 	);
 };

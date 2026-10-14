@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { useState } from "react";
 import { fn } from "storybook/test";
+import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { ClassicyBevelButton } from "./ClassicyBevelButton";
 
 const meta = {
@@ -63,20 +65,78 @@ export const DisabledOn: Story = {
 	args: { disabled: true, on: true, mode: "toggle", children: "Disabled on" },
 };
 
+/** A checkable menu whose checkmark follows the current choice. */
+const useChoiceMenu = (choices: string[], initial: string) => {
+	const [current, setCurrent] = useState(initial);
+	const menuItems: ClassicyMenuItem[] = choices.map((choice) => ({
+		id: choice,
+		title: choice,
+		checked: choice === current,
+		onClickFunc: () => setCurrent(choice),
+	}));
+	return { current, menuItems };
+};
+
+// HIGOS8 p.32: clicking shows the menu directly below a down-arrow button. A
+// quick click leaves it open (sticky); press and drag to choose in one motion.
 export const PopupVertical: Story = {
-	args: {
-		mode: "popup",
-		popupArrow: "large",
-		popupDirection: "vertical",
-		children: "100%",
+	args: { mode: "popup", popupArrow: "large", popupDirection: "vertical" },
+	render: (args) => {
+		const { current, menuItems } = useChoiceMenu(
+			["50%", "75%", "100%", "150%", "200%"],
+			"100%",
+		);
+		return (
+			<ClassicyBevelButton {...args} menuItems={menuItems}>
+				{current}
+			</ClassicyBevelButton>
+		);
 	},
 };
 
+// A right-arrow button opens its menu to the right.
 export const PopupHorizontal: Story = {
-	args: {
-		mode: "popup",
-		popupArrow: "small",
-		popupDirection: "horizontal",
-		children: "More",
+	args: { mode: "popup", popupArrow: "small", popupDirection: "horizontal" },
+	render: (args) => {
+		const { menuItems } = useChoiceMenu(
+			["Ascending", "Descending"],
+			"Ascending",
+		);
+		return (
+			<ClassicyBevelButton {...args} menuItems={menuItems}>
+				Sort
+			</ClassicyBevelButton>
+		);
+	},
+};
+
+// HIGOS8 Figure 2-15 and p.33: in a tool palette, a click picks the tool and
+// holding it past the double-click interval offers that tool's options.
+export const ToolPaletteHoldForOptions: Story = {
+	args: { onClickFunc: fn(), onChangeFunc: fn() },
+	render: () => {
+		const [tool, setTool] = useState("Marquee");
+		const marquee = useChoiceMenu(["Shrink", "No Shrink"], "Shrink");
+		const lasso = useChoiceMenu(["Lasso", "See Thru Lasso"], "Lasso");
+		const tools = [
+			{ name: "Marquee", menu: marquee },
+			{ name: "Lasso", menu: lasso },
+		];
+		return (
+			<div role="radiogroup" aria-label="Tools" style={{ display: "flex" }}>
+				{tools.map(({ name, menu }) => (
+					<ClassicyBevelButton
+						key={name}
+						mode="radio"
+						on={tool === name}
+						popupArrow="small"
+						menuItems={menu.menuItems}
+						onChangeFunc={() => setTool(name)}
+					>
+						{`${name}: ${menu.current}`}
+					</ClassicyBevelButton>
+				))}
+			</div>
+		);
 	},
 };

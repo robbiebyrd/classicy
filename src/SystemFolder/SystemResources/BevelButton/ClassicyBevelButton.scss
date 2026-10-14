@@ -137,3 +137,16 @@
 .classicyBevelButtonArrowLarge {
   font-size: var(--ui-font-size);
 }
+
+// --- Pop-up surface (HIGOS8 "Bevel Buttons as Pop-up Buttons", p.32) ---
+// Fixed beside the button by ClassicyBevelButtonPopup; layered with the other
+// pop-up menus (5000) so it clears windows, palettes and modal dialogs. The
+// menu draws itself with the shared `.classicyContextMenu` list styles.
+.classicyBevelButtonPopup {
+  position: fixed;
+  z-index: 5000;
+  display: inline-block;
+  margin: 0;
+  padding: 0;
+  @include appearance.platinumWindowBoxShadow;
+}

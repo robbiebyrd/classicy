@@ -114,6 +114,8 @@ export * from "./SystemFolder/SystemResources/Assistant/ClassicyAssistant";
 export * from "./SystemFolder/SystemResources/BalloonHelp/ClassicyBalloonHelp";
 export * from "./SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
 export * from "./SystemFolder/SystemResources/BevelButton/ClassicyBevelButton";
+export * from "./SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopup";
+export * from "./SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopupPlacement";
 export * from "./SystemFolder/SystemResources/Boot/ClassicyBootManager";
 export * from "./SystemFolder/SystemResources/Boot/ClassicyBootSequence";
 export * from "./SystemFolder/SystemResources/Boot/ClassicyDefaultParadeIcons";
