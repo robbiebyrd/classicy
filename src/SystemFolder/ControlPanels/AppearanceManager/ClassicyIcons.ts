@@ -206,6 +206,16 @@ export const ClassicyIcons = {
 	},
 	system: {
 		alias: icon("system/alias.png"),
+		// 16 × 16 Control Strip module icons, lifted pixel-for-pixel from
+		// HIGOS8 Figure 6-15.
+		controlStrip: {
+			cd: icon("system/control-strip/cd.png"),
+			fileSharing: icon("system/control-strip/file-sharing.png"),
+			sleep: icon("system/control-strip/sleep.png"),
+			sound: icon("system/control-strip/sound.png"),
+			// The same speaker with its sound waves removed: sound is off.
+			soundOff: icon("system/control-strip/sound-off.png"),
+		},
 		appleBlackOnWhite: icon("system/apple-black-on-white.png"),
 		appleWhiteOnBlack: icon("system/apple-white-on-black.png"),
 		apple: icon("system/apple.png"),

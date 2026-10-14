@@ -25,9 +25,11 @@ const resetClassicyStore = (themeId: string) => {
 
 const ClassicyDesktopFrame = ({
 	themeId,
+	controlStrip,
 	children,
 }: {
 	themeId: string;
+	controlStrip: boolean;
 	children: ReactNode;
 }) => {
 	const [ready, setReady] = useState(false);
@@ -40,7 +42,9 @@ const ClassicyDesktopFrame = ({
 	if (!ready) return null;
 	return (
 		<ClassicyAppManagerProvider>
-			<ClassicyDesktop startupScreen={false}>{children}</ClassicyDesktop>
+			<ClassicyDesktop startupScreen={false} controlStrip={controlStrip}>
+				{children}
+			</ClassicyDesktop>
 		</ClassicyAppManagerProvider>
 	);
 };
@@ -61,6 +65,8 @@ export const withClassicy: Decorator = (Story, context) => {
 				<ClassicyDesktopFrame
 					key={`${context.id}-${themeId}`}
 					themeId={themeId}
+					// Stories that mount their own strip set `controlStrip: false`.
+					controlStrip={context.parameters.classicy?.controlStrip ?? true}
 				>
 					<Story />
 				</ClassicyDesktopFrame>

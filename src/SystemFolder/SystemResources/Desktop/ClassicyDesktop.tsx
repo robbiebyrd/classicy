@@ -50,6 +50,10 @@ import {
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
 import { ClassicyDefaultParadeIcons } from "@/SystemFolder/SystemResources/Boot/ClassicyDefaultParadeIcons";
+import {
+	ClassicyControlStrip,
+	type ClassicyControlStripProps,
+} from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStrip";
 import { ClassicyDesktopIcon } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIcon";
 import {
 	type ArrowDirection,
@@ -89,6 +93,12 @@ interface ClassicyDesktopProps {
 	 * helpers. Still subject to the `startupScreen` gate.
 	 */
 	bootScreen?: ReactNode;
+	/**
+	 * The Control Strip (HIGOS8 Figure 6-15) along the bottom left of the
+	 * desktop — home of the Sound control. Shown by default with the built-in
+	 * modules; pass its props to configure it, or `false` to hide it.
+	 */
+	controlStrip?: boolean | ClassicyControlStripProps;
 }
 
 const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
@@ -99,6 +109,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	startupLogo,
 	startupWordmark,
 	bootScreen,
+	controlStrip = true,
 }) => {
 	const [showAbout, setShowAbout] = useState(false);
 	const [showEmptyTrashDialog, setShowEmptyTrashDialog] = useState(false);
@@ -522,6 +533,11 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 			{!disableWebViewer && <WebViewer />}
 			<ClassicyOpenUrlController />
 			<ClassicyControlPanels />
+			{controlStrip !== false && (
+				<ClassicyControlStrip
+					{...(controlStrip === true ? {} : controlStrip)}
+				/>
+			)}
 			{showAbout
 				? getClassicyAboutWindow({
 						appId: "Finder.app",
@@ -613,6 +629,7 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 	startupLogo,
 	startupWordmark,
 	bootScreen,
+	controlStrip,
 }) => (
 	<ClassicyCrashScreen>
 		<ClassicyContextualMenuProvider>
@@ -623,6 +640,7 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 				startupLogo={startupLogo}
 				startupWordmark={startupWordmark}
 				bootScreen={bootScreen}
+				controlStrip={controlStrip}
 			>
 				{children}
 			</ClassicyDesktopInner>

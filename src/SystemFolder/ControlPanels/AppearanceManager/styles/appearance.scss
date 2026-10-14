@@ -3,6 +3,14 @@
 @use 'sass:list';
 @use 'assets';
 
+// A 1 px-exact rectangle of `$color` at (`$x`, `$y`) sized `$w` × `$h`, as one
+// background layer. Stacks of these draw bevels whose 1 px corner notches a
+// border or box-shadow can't express (HIGOS8 figures are pixel-exact).
+@function px-rect($color, $x, $y, $w, $h) {
+  // Interpolated so Sass keeps the "/" literal instead of dividing $y by $w.
+  @return linear-gradient($color, $color) #{$x} #{$y} / #{$w} #{$h} no-repeat;
+}
+
 @mixin platinumWindowBoxShadow {
   box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05),
   inset var(--window-border-size) var(--window-border-size) var(--color-window-border-outset),

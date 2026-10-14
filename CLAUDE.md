@@ -302,20 +302,25 @@ resizable container splitting two or three content areas along one axis:
 
 ### Pop-Up Bevel Buttons
 
-`ClassicyBevelButton` opens a Platinum menu (`menuItems`) in a fixed-position
-portal (z-index 5000), built from the shared `ClassicyMenu`/`ClassicyMenuProvider`:
+`ClassicyBevelButton` opens a Platinum menu (`menuItems`) or any other surface
+(`popupContent`, e.g. `ClassicyPopUpSlider`) in a fixed-position portal
+(z-index 5000), built from the shared `ClassicyMenu`/`ClassicyMenuProvider`:
 
-- Placement: `popupDirection`'s arrow picks the side — vertical opens below
-  (left edges aligned), horizontal opens to the right (tops aligned); flips to
-  the other side when there is no room (`classicyBevelPopupPlacement`).
+- Placement: `popupPlacement` `"below"` or `"right"`, defaulting to where
+  `popupDirection`'s arrow points; flips to the other side when there is no
+  room (`classicyBevelPopupPlacement`). `popupAlign` `"start"` (default: left
+  edges / tops aligned) or `"center"`; `popupAnchorInset` shifts the edges the
+  surface is placed against (the Control Strip overlaps the strip by 3 px).
+- Both surfaces share the HIGOS8 Figure 2-16/6-15 frame: 1 px black border and
+  a 1 px `system-07` shadow on the right and bottom starting 2 px in.
 - `popupTrigger="click"` (default in `popup` mode): a quick click leaves the
   menu open (sticky); a press held past `popupHoldDelayMs` (500) is a standard
   menu — a document `mouseup` over an item `click()`s it.
 - `popupTrigger="hold"` (default in other modes): the click keeps the mode's
-  behaviour and only a long press opens the menu; the click ending that
+  behaviour and only a long press opens the surface; the click ending that
   press is swallowed (`suppressClickRef`).
 - Keyboard: a click with `detail === 0` (Enter/Space) toggles a click-trigger
-  menu; Down Arrow opens either kind with the first item focused.
+  surface; Down Arrow opens either kind with the first item focused.
 
 ### Keyboard Equivalents
 
@@ -327,6 +332,24 @@ on a recorded key. Recorded shortcuts use the menu-item form (`"⌃⌘S"`, via
 `keyboardShortcutFromEvent`) and round-trip through `shortcutMatchesEvent`.
 Rules live in `checkKeyboardEquivalent` (needs ⌘ or a function key unless
 `requireCommandKey={false}`; `inUse` conflicts name their owner).
+
+### Control Strip
+
+`ClassicyDesktop` mounts a `ClassicyControlStrip` at its lower left — the home
+of the Sound control (the menu bar has no speaker widget). Its `controlStrip`
+prop takes the strip's props (`modules`, `defaultCollapsed`, `defaultWidth`) or
+`false` to hide it; Storybook desktop stories opt out with
+`parameters.classicy.controlStrip: false`. Modules are
+`{ id, icon, label, menuItems?, content? }` rendered as pop-up bevel buttons
+opening `below` (which flips above the strip). With no `modules` it shows the
+built-ins from `useClassicyDefaultControlStripModules` (Sound, Screen Saver).
+HIG p.125: a module for a control panel must include an "Open … Control Panel"
+command.
+
+The strip is pixel-matched to HIGOS8 Figure 6-15: bevels are `px-rect`
+background layers (`appearance.scss`), and the tab, arrows and slider are
+`ClassicyPixelArt` (rows of theme tokens rendered as SVG runs), so every pixel
+follows the theme. Widths snap to whole modules (31 px with the separator).
 
 ### Contextual Menus
 

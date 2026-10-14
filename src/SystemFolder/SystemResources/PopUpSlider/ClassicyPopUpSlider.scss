@@ -1,0 +1,33 @@
+// HIGOS8 Figure 2-16: the pop-up slider fills the 17 × 73 inside of its
+// 19 × 75 pop-up frame. Offsets are the figure's, in that inner box.
+.classicyPopUpSlider {
+  position: relative;
+  width: 17px;
+  height: 73px;
+  outline: none;
+  cursor: default;
+
+  &:focus-visible {
+    outline: 1px solid var(--color-outline);
+    outline-offset: -1px;
+  }
+
+  svg {
+    display: block;
+  }
+}
+
+.classicyPopUpSliderTrack {
+  position: absolute;
+  left: 4px;
+  top: 3px;
+}
+
+.classicyPopUpSliderThumb {
+  position: absolute;
+  left: 1px;
+}
+
+.classicyPopUpSliderDisabled {
+  opacity: 0.5;
+}
