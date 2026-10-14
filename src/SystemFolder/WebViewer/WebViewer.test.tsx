@@ -88,7 +88,6 @@ describe("WebViewer", () => {
 		openUrl("/press", "Press Room");
 		await screen.findByTitle("Press Room");
 		const windowEl = screen.getByRole("application", { name: "Press Room" });
-		// biome-ignore lint/style/noNonNullAssertion: closeBox is asserted present below
 		const closeBox = windowEl.querySelector(".classicyWindowCloseBox")!;
 		expect(closeBox).not.toBeNull();
 		fireEvent.click(closeBox);

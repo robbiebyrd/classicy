@@ -75,7 +75,7 @@ export function focusApp(ds: ClassicyStore, appId: string) {
 	// A closed app can never take focus: in-window controls that quit their
 	// own app bubble a ClassicyAppActivate after the ClassicyAppClose, and
 	// honoring it would leave a closed app owning the menu bar.
-	if (!app || !app.open) return;
+	if (!app?.open) return;
 	const restore = pickWindowToRestore(app);
 	if (restore) {
 		focusWindow(ds, appId, restore.id);

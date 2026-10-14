@@ -136,7 +136,7 @@ export const QuickTimePictureViewer: FunctionalComponent = () => {
 				path,
 			});
 		},
-		[desktopEventDispatch, appId, appName],
+		[desktopEventDispatch],
 	);
 
 	const windowEntries = useMemo(
@@ -145,7 +145,7 @@ export const QuickTimePictureViewer: FunctionalComponent = () => {
 				doc,
 				windowId: `${appId}_PictureViewer_${doc.key}`,
 			})),
-		[openDocuments, appId],
+		[openDocuments],
 	);
 
 	const closeWindow = useClassicyWindowClose(appId);
@@ -167,7 +167,7 @@ export const QuickTimePictureViewer: FunctionalComponent = () => {
 						type: "ClassicyAppPictureViewerCloseDocument",
 						document: { url: doc.url, name: doc.title, icon: doc.icon },
 					},
-		[appId],
+		[],
 	);
 
 	const buildAppMenu = useCallback(
@@ -180,9 +180,9 @@ export const QuickTimePictureViewer: FunctionalComponent = () => {
 						closeWindow(windowId, closeDocAction(doc)),
 					),
 					closeAllWindowsMenuItemHelper(`${appId}_close_all_windows`, () => {
-						windowEntries.forEach((entry) =>
-							closeWindow(entry.windowId, closeDocAction(entry.doc)),
-						);
+						for (const entry of windowEntries) {
+							closeWindow(entry.windowId, closeDocAction(entry.doc));
+						}
 					}),
 					quitMenuItemHelper(appId, appName, appIcon),
 				],
@@ -193,15 +193,7 @@ export const QuickTimePictureViewer: FunctionalComponent = () => {
 				menuChildren: [aboutMenuItem],
 			},
 		],
-		[
-			appId,
-			appName,
-			appIcon,
-			closeWindow,
-			closeDocAction,
-			windowEntries,
-			aboutMenuItem,
-		],
+		[closeWindow, closeDocAction, windowEntries, aboutMenuItem],
 	);
 
 	return (

@@ -1,5 +1,5 @@
 {
-	"$schema": "https://biomejs.dev/schemas/2.4.10/schema.json",
+	"$schema": "https://biomejs.dev/schemas/2.5.0/schema.json",
 	"vcs": {
 		"enabled": true,
 		"clientKind": "git",
@@ -14,7 +14,10 @@
 			"bin/**",
 			"assets/**",
 			"!!src/index.ts",
-			"!!example/src/Applications/TV/testdata.json"
+			"!!example/src/Applications/TV/testdata.json",
+			"!!**/*.svg",
+			"!!assets/sounds/**/*.json",
+			"!!resources/app-icons/index.json"
 		]
 	},
 	"formatter": {
@@ -24,7 +27,7 @@
 	"linter": {
 		"enabled": true,
 		"rules": {
-			"recommended": true
+			"preset": "recommended"
 		}
 	},
 	"javascript": {
@@ -41,6 +44,16 @@
 		}
 	},
 	"overrides": [
+		{
+			"includes": ["**/*.test.ts", "**/*.test.tsx"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noNonNullAssertion": "off"
+					}
+				}
+			}
+		},
 		{
 			"includes": ["src/SystemFolder/HyperCard/**"],
 			"linter": {

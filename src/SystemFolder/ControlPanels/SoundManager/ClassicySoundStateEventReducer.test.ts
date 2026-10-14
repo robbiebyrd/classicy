@@ -4,7 +4,7 @@
 import type { Howl } from "howler";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-	ClassicySoundActionTypes,
+	type ClassicySoundActionTypes,
 	type ClassicySoundState,
 	ClassicySoundStateEventReducer,
 } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerUtils";

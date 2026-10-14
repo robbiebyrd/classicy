@@ -313,6 +313,10 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 					/>
 				</ClassicyButton>
 			</div>
+			{/* Pointer-only tools on the page surface: the Zoom In / Zoom Out
+			    buttons above and the window's scrollbars are their keyboard paths. */}
+			{/* biome-ignore lint/a11y/noStaticElementInteractions: see above */}
+			{/* biome-ignore lint/a11y/useKeyWithClickEvents: see above */}
 			<div
 				ref={wrapperRef}
 				className={classNames(

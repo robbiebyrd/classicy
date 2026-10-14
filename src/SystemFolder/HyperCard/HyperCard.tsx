@@ -566,8 +566,9 @@ export const HyperCard: FunctionalComponent = () => {
 	// a blank stack isn't useful in browse/run mode.
 	const newStack = useCallback(() => {
 		const openStacks = (
-			useAppManager.getState().System.Manager.Applications.apps[appId]
-				?.data as HyperCardData | undefined
+			useAppManager.getState().System.Manager.Applications.apps[appId]?.data as
+				| HyperCardData
+				| undefined
 		)?.openStacks;
 		const id = generateUntitledStackId(openStacks);
 		dispatch({

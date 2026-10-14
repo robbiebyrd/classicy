@@ -1,7 +1,7 @@
 import "./ClassicyScreenSaverGlobe.scss";
-import globeSprite from "./globe_240.webp";
 import type { CSSProperties, FC as FunctionalComponent } from "react";
 import type { ClassicyScreenSaverProps } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverRegistry";
+import globeSprite from "./globe_240.webp";
 
 /**
  * Port of After Dark in CSS "Globe" (MIT): a spinning Earth (21-frame sprite

@@ -1,8 +1,8 @@
 import "./DriveSetupList.scss";
 import classNames from "classnames";
 import type { FC } from "react";
-import type { DriveRow } from "./ClassicyDriveSetupUtils";
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
+import type { DriveRow } from "./ClassicyDriveSetupUtils";
 
 type DriveSetupListProps = {
 	drives: DriveRow[];

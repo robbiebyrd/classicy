@@ -1,10 +1,10 @@
 import "./ClassicyScreenSaverRainstorm.scss";
-import rainDistant from "./rain-tile-distant.webp";
-import rainMid from "./rain-tile-mid.webp";
-import rainNear from "./rain-tile-near.webp";
 import type { CSSProperties, FC as FunctionalComponent } from "react";
 import { z } from "zod";
 import type { ClassicyScreenSaverProps } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverRegistry";
+import rainDistant from "./rain-tile-distant.webp";
+import rainMid from "./rain-tile-mid.webp";
+import rainNear from "./rain-tile-near.webp";
 
 export const RainstormConfigSchema = z.looseObject({
 	intensity: z
