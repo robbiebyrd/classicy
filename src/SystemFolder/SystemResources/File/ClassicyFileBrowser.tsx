@@ -30,6 +30,13 @@ type ClassicyFileBrowserProps = {
 	/** Controlled selection by row path. Omit for uncontrolled. */
 	selectedPaths?: string[];
 	onSelectionChange?: (paths: string[]) => void;
+	/**
+	 * Receives the element keyboard navigation acts on — the list view's
+	 * focusable list box — so a hosting window can focus it (pass the same ref
+	 * as ClassicyWindow's `initialFocusRef`). The icon view has no single
+	 * keyboard target, so the ref stays `null` there.
+	 */
+	focusTargetRef?: RefObject<HTMLDivElement | null>;
 };
 
 // Define stable default functions outside component to prevent re-creation
@@ -52,6 +59,7 @@ export const ClassicyFileBrowser: FunctionalComponent<
 	selectionApiRef,
 	selectedPaths,
 	onSelectionChange,
+	focusTargetRef,
 }) => {
 	const holderRef = useRef<HTMLDivElement>(null);
 	const themeIconSize = useAppManager(
@@ -82,6 +90,7 @@ export const ClassicyFileBrowser: FunctionalComponent<
 					selectionApiRef={selectionApiRef}
 					selectedPaths={selectedPaths}
 					onSelectionChange={onSelectionChange}
+					focusTargetRef={focusTargetRef}
 				/>
 			) : (
 				<ClassicyFileBrowserViewIcons

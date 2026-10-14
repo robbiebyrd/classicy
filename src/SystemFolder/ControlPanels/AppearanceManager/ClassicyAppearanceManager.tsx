@@ -6,10 +6,10 @@ import {
 	startTransition,
 	useCallback,
 	useMemo,
-	useState,
 } from "react";
 import {
 	type ClassicyTheme,
+	type ClassicyThemeTypography,
 	getTheme,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { APPEARANCE_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManagerManifest";
@@ -46,6 +46,7 @@ import { useDesktopTab } from "./ClassicyAppearanceManager.Desktop";
 import { useFontsTab } from "./ClassicyAppearanceManager.Fonts";
 import { useSoundTab } from "./ClassicyAppearanceManager.Sound";
 import { useThemesTab } from "./ClassicyAppearanceManager.Themes";
+import { withPrimaryFontFamily } from "./ClassicyFontStack";
 import { ClassicyDefaultWallpaper } from "./ClassicyWallpapers";
 import appIcon from "./resources/app.png";
 
@@ -61,6 +62,10 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 	const appearanceState = useAppManager(
 			(state) => state.System.Manager.Appearance,
 		),
+		// Lives on the Desktop slice (ClassicyWindow reads it from there).
+		doubleClickTitleToCollapse = useAppManager(
+			(state) => state.System.Manager.Desktop?.doubleClickTitleToCollapse,
+		),
 		desktopEventDispatch = useAppManagerDispatch(),
 		player = useSoundDispatch();
 
@@ -72,12 +77,13 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 	const windowClose = useClassicyWindowClose(APP_ID);
 	const editMenu = useClassicyEditMenu(APP_ID);
 	// Theme backgrounds are resolved to loadable URLs before they reach the
-	// store, so the current one can seed the picker directly; only a
-	// colour-only theme needs a stand-in to select.
-	const [bg, setBg] = useState<string>(
+	// store, so the current one drives the picker directly; only a
+	// colour-only theme needs a stand-in to select. Derived from the store on
+	// every render (never seeded into local state) so a theme switch or a
+	// background change from elsewhere is reflected immediately.
+	const bg =
 		appearanceState.activeTheme.desktop.backgroundImage ||
-			ClassicyDefaultWallpaper,
-	);
+		ClassicyDefaultWallpaper;
 
 	// Built-in themes, then the user's custom themes (e.g. "Custom").
 	const themesList = useMemo(
@@ -145,9 +151,20 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		[desktopEventDispatch],
 	);
 
+	const toggleDoubleClickTitleToCollapse = useCallback(
+		(checked: boolean) => {
+			startTransition(() => {
+				desktopEventDispatch({
+					type: "ClassicyDesktopSetDoubleClickTitleToCollapse",
+					doubleClickTitleToCollapse: checked,
+				});
+			});
+		},
+		[desktopEventDispatch],
+	);
+
 	const changeBackground = useCallback(
 		(e: ChangeEvent<HTMLSelectElement>) => {
-			setBg(e.target.value);
 			startTransition(() => {
 				desktopEventDispatch({
 					type: "ClassicyDesktopChangeBackground",
@@ -161,7 +178,6 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 	const setBackgroundURL = useCallback(
 		(e: ChangeEvent<HTMLInputElement>) => {
 			if (isValidUrlWithRegex(e.target.value)) {
-				setBg(e.target.value);
 				startTransition(() => {
 					desktopEventDispatch({
 						type: "ClassicyDesktopChangeBackground",
@@ -209,17 +225,26 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		[desktopEventDispatch],
 	);
 
+	const typography = appearanceState.activeTheme.typography;
 	const changeFont = useCallback(
-		(e: ChangeEvent<HTMLSelectElement>) => {
+		(fontType: string, family: string) => {
+			// The menus offer bare family names; the theme stores a full CSS
+			// stack. Put the chosen family first and keep the rest of the
+			// current stack as fallbacks.
+			const current = typography[fontType as keyof ClassicyThemeTypography];
+			const font = withPrimaryFontFamily(
+				typeof current === "string" ? current : "",
+				family,
+			);
 			startTransition(() => {
 				desktopEventDispatch({
 					type: "ClassicyDesktopChangeFont",
-					font: e.target.value,
-					fontType: e.target.id,
+					fontType,
+					font,
 				});
 			});
 		},
-		[desktopEventDispatch],
+		[desktopEventDispatch, typography],
 	);
 
 	const changeColor = useCallback(
@@ -246,6 +271,28 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		[desktopEventDispatch, player],
 	);
 
+	const changeAlertVolume = useCallback(
+		(alertVolume: number) => {
+			desktopEventDispatch({
+				type: "ClassicyDesktopChangeAlertVolume",
+				alertVolume,
+			});
+		},
+		[desktopEventDispatch],
+	);
+
+	// Audition the alert at the committed level, as the Volume slider in the
+	// Sound control panel does. The level is handed to the sound state directly
+	// (ahead of the store→sound bridge) so the preview never plays at the
+	// previous level.
+	const previewAlertVolume = useCallback(
+		(alertVolume: number) => {
+			player({ type: "ClassicySoundSetAlertVolume", alertVolume });
+			player({ type: "ClassicyAlertSound" });
+		},
+		[player],
+	);
+
 	const changeFontSize = useCallback(
 		(fontType: string, size: number) => {
 			startTransition(() => {
@@ -269,8 +316,8 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 	// "About <name>" and strips it from this menu before rendering, so it never
 	// shows under File — but it must stay published or the Apple menu loses it.
 	//
-	// Note: ClassicyMenu only renders an <hr> divider for items whose id is
-	// exactly "spacer" and keys items by id, so at most one divider per menu.
+	// A divider is an item with id "spacer"; ClassicyMenu keys dividers by
+	// position, so a menu may hold any number of them.
 	const appMenu = [
 		{
 			id: `${APP_ID}_file`,
@@ -302,10 +349,16 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		// Default to on when unset (persisted stores predating this setting).
 		smartScrolling: appearanceState.smartScrolling !== false,
 		toggleSmartScrolling,
+		// Same on-when-unset default ClassicyWindow applies when reading it.
+		doubleClickTitleToCollapse: doubleClickTitleToCollapse !== false,
+		toggleDoubleClickTitleToCollapse,
 	});
 
 	const desktopTab = useDesktopTab({
 		bg,
+		bgPosition: appearanceState.activeTheme.desktop.backgroundPosition,
+		bgRepeat: appearanceState.activeTheme.desktop.backgroundRepeat,
+		bgSize: appearanceState.activeTheme.desktop.backgroundSize,
 		changeBackground,
 		setBackgroundURL,
 		alignBackground,
@@ -321,7 +374,7 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 	});
 
 	const fontsTab = useFontsTab({
-		typography: appearanceState.activeTheme.typography,
+		typography,
 		changeFont,
 		changeFontSize,
 	});
@@ -329,6 +382,9 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 	const soundTab = useSoundTab({
 		alertSound: appearanceState.alertSound ?? DEFAULT_ALERT_SOUND,
 		changeAlertSound,
+		alertVolume: appearanceState.alertVolume ?? 100,
+		changeAlertVolume,
+		previewAlertVolume,
 	});
 
 	const tabs = useMemo(

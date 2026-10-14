@@ -184,6 +184,11 @@ export const SimpleText = () => {
 						initialPosition={[200 + idx * 30, 100 + idx * 30]}
 						appMenu={buildAppMenu(filePath, fileType)}
 						onCloseFunc={() => closeFile(filePath)}
+						// A plain-text file edits in a full-window <textarea>, which
+						// scrolls itself; letting the window scroll too drew a second
+						// set of bars beside it (#271). The Markdown editor grows with
+						// its content instead, so the window stays its scroller.
+						scrollable={fileType === ClassicyFileSystemEntryFileType.Markdown}
 					>
 						{fileType === ClassicyFileSystemEntryFileType.Markdown ? (
 							<ClassicyRichTextEditor content={content} />

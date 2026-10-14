@@ -4,10 +4,35 @@
 // disclosure layout, the label-only selection highlight, and overrides where
 // the Finder diverges from the generic table.
 
+// #271: the hosting ClassicyWindow's contents box is the list's ONLY scroller.
+// Windows always draw both scroll bars (`overflow: scroll`, #262), so a
+// generic table container that also scrolled (`overflow: auto`, absolutely
+// filling the window) drew a second, inner set of bars. Here the container
+// grows with its rows instead — at least as tall as the window, so its
+// background and click/focus target still fill an empty folder — and the
+// overflow lands on the window. The sticky column header now pins to the
+// window contents box, its nearest scrolling ancestor.
 .classicyFileBrowserViewTableContainer.classicyTableContainer {
-  position: absolute;
-  height: 100%;
+  position: relative;
+  height: auto;
+  min-height: 100%;
+  overflow: visible;
   border: 0 !important;
+
+  // The generic list-box focus ring is drawn on the scroller's edge; with the
+  // window as the scroller it would ring the whole (possibly off-screen)
+  // content instead. The active window's chrome already marks where keys go.
+  &:focus {
+    outline: 0;
+  }
+}
+
+// Keyboard selection scrolls the row into view with `block: "nearest"`; the
+// sticky header covers the top of the scrollport, so reserve its height or Up
+// Arrow would stop with the selected row hidden underneath it. (One line of
+// header text plus its padding — erring slightly tall is harmless.)
+.classicyFileBrowserViewTableRow {
+  scroll-margin-top: calc(var(--ui-font-size) + var(--window-padding-size) * 2);
 }
 
 .classicyFileBrowserViewTableContainer .classicyTableCell {

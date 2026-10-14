@@ -203,6 +203,30 @@ describe("ClassicyFileBrowserViewTable disclosure tree", () => {
 		);
 	});
 
+	it("keeps the column header sticky after a folder is expanded (#271)", async () => {
+		const user = userEvent.setup();
+		const cfs = makeNestedFs();
+		vi.spyOn(cfs, "size").mockResolvedValue(100);
+
+		const { container } = render(
+			<ClassicyFileBrowserViewTable
+				fs={cfs}
+				path="Documents"
+				appId="Finder.app"
+			/>,
+		);
+
+		await screen.findByText("Reports");
+		await user.click(screen.getByRole("button"));
+		await screen.findByText("q1.pdf");
+
+		// The header pins to the window contents box now that the Finder
+		// container no longer scrolls itself — it must still be sticky.
+		expect(container.querySelector("thead")).toHaveClass(
+			"classicyTableHeaderSticky",
+		);
+	});
+
 	it("indents disclosed children by --window-control-size per level", async () => {
 		const user = userEvent.setup();
 		const cfs = makeNestedFs();

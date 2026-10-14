@@ -95,6 +95,10 @@ export interface ClassicyStoreSystemAppWindow {
 	resizing?: boolean;
 	zoomed?: boolean;
 	collapsed?: boolean;
+	// Mirrors the window's `collapsable` prop (#278). Absent ⇒ collapsable;
+	// only an explicit `false` opts the window out of Option-click
+	// collapse-all / expand-all.
+	collapsable?: boolean;
 	dragging?: boolean;
 	moving?: boolean;
 	modal?: boolean;
@@ -597,6 +601,8 @@ export const DefaultAppManagerState: ClassicyStore = {
 				activeTheme: getTheme("default"),
 				customThemes: [],
 				alertSound: DEFAULT_ALERT_SOUND,
+				// Alerts play at the full system volume until the user lowers it.
+				alertVolume: 100,
 				// Mac OS 8.0 shipped with Smart Scrolling on (arrows grouped at
 				// the end of each bar).
 				smartScrolling: true,

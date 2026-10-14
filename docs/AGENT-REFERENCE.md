@@ -127,7 +127,7 @@ interface ClassicyStore {
             Desktop:      // icons, menus, selectBox, disableBalloonHelp, fsVersion, ...
             Sound:        // volume, labels, disabled[]
             Applications: // apps: Record<appId, app>, fileTypeHandlers, focusedAppId
-            Appearance:   // availableThemes, customThemes, activeTheme, alertSound
+            Appearance:   // availableThemes, customThemes, activeTheme, alertSound, alertVolume
             DateAndTime:  // dateTime, timeZoneOffset, display flags, bounds
             Boot:         // paradeIcons
             Keyboard:     // app/system/global shortcut registries
@@ -187,6 +187,9 @@ Common built-in actions:
 | `ClassicyDesktopLoadThemes` | `{ availableThemes: ClassicyTheme[] }` | Replace the theme list |
 | `ClassicyDesktopChangeBackground` | `{ backgroundImage }` | Set wallpaper |
 | `ClassicyDesktopSetBalloonHelp` | `{ disableBalloonHelp: boolean }` | Toggle balloon help globally |
+| `ClassicyDesktopSetDoubleClickTitleToCollapse` | `{ doubleClickTitleToCollapse: boolean }` | Toggle whether double-clicking a window's title bar collapses it (`System.Manager.Desktop.doubleClickTitleToCollapse`, default `true`; the Appearance control panel's checkbox) |
+| `ClassicyDesktopChangeAlertSound` | `{ alertSound: string }` | Set the default alert sound (a `ClassicyAlert*` key) |
+| `ClassicyDesktopChangeAlertVolume` | `{ alertVolume: number }` | Set the alert level, 0–100 (clamped, rounded; non-finite ignored) |
 
 Helper functions (exported, callable inside custom handlers): `openApp`,
 `closeApp`, `focusApp` / `activateApp`, `deFocusApps`, `focusWindow`,
@@ -406,6 +409,23 @@ manager. Must be a descendant of `ClassicyApp`.
 | `analyticsPath` / `analyticsExclude` | `string` / `boolean` | derived / `false` (see §9) |
 | `onCloseFunc` | `(id: string) => void` | — |
 | `backgroundColor` | `string` | — |
+| `initialFocusRef` | `RefObject<HTMLElement \| null>` | — (nothing focused) |
+
+`initialFocusRef` names the element that takes keyboard focus whenever the
+window *becomes* the focused window (the store's `focused` flag turning true
+while open and expanded — not on every render, so of several restored
+windows only the focused one takes it). It is skipped when focus is already
+inside the window (an input the user clicked keeps it), re-applied on a
+title-bar press in the already-focused window, and focused with
+`preventScroll`. For a `modal` window it is the focus trap's initial target
+instead. Finder passes its list view's list box (via
+`ClassicyFileBrowser`'s `focusTargetRef` / `ClassicyTable`'s `containerRef`)
+so arrows and Return work as soon as a folder opens.
+
+A scrollable window always draws both scroll bars. Content that fills the
+window and scrolls itself (a full-window `<textarea>`, `ClassicySplitView`
+panes, a pan surface) must pass `scrollable={false}`, or the window shows a
+second, empty set of bars beside the inner ones.
 
 **`ClassicyWindowFrame`** — presentational chrome only (no store coupling;
 usable pre-boot): `title?`, `children` *, `className?`, `width?`.
@@ -458,7 +478,7 @@ usable pre-boot): `title?`, `children` *, `className?`, `width?`.
 | `ClassicyKbd` | `shortcut?` (any `parseKeyboardShortcut` spelling) or children, `variant? ("inline"\|"keycaps")` | real `<kbd>` in canonical glyph order (⌃⌥⇧⌘ + key); menu items render their `keyboardShortcut` through it |
 | `ClassicyTabs` | `tabs` * (`{title?, icon?, children}[]`) | |
 | `ClassicyTree` | `nodes` *, `selectionMode? ("none"\|"single"\|"multi")`, `selectedIds?`, `onSelectNode?`, `onActivateNode?`, `onToggleNode?` | hierarchical list |
-| `ClassicyTable` | `columns` * (`{id, title, accessor, render?, sortable?, resizable?, width?, align?}[]`), `rows` *, `getRowId` *, `selectionMode? ("none"\|"single"\|"multi")`, `selected?: string[]`, `onSelectionChange?`, `onActivateRow?`, `defaultSort?`, `stickyHeader? (true)`, `rowClassName?`; tree rows: `getSubRows?`, `rowCanExpand?`, `expanded?: string[]`, `onToggleRow?` | generic Platinum list view over `@tanstack/react-table` (already a peer dep); semantic `<table>` + `aria-sort`; Shift/⌘ selection over the current sorted order; arrows/Home/End/Enter/type-select keyboard. `render(row, expansion)` receives `{ depth, canExpand, isExpanded, toggle }` so a column can draw its own disclosure (this is how the Finder list view is built) |
+| `ClassicyTable` | `columns` * (`{id, title, accessor, render?, sortable?, resizable?, width?, align?}[]`), `rows` *, `getRowId` *, `selectionMode? ("none"\|"single"\|"multi")`, `selected?: string[]`, `onSelectionChange?`, `onActivateRow?`, `defaultSort?`, `stickyHeader? (true)`, `rowClassName?`; tree rows: `getSubRows?`, `rowCanExpand?`, `expanded?: string[]`, `onToggleRow?`; handles: `selectionApiRef?` (`{ selectAll }`), `containerRef?` (the focusable list box, e.g. for a window's `initialFocusRef`) | generic Platinum list view over `@tanstack/react-table` (already a peer dep); semantic `<table>` + `aria-sort`; Shift/⌘ selection over the current sorted order; arrows/Home/End/Enter/type-select keyboard. `render(row, expansion)` receives `{ depth, canExpand, isExpanded, toggle }` so a column can draw its own disclosure (this is how the Finder list view is built) |
 | `ClassicyPager` | `page` *, `pageCount` *, `onPageChange` * | Apple Guide page control |
 | `ClassicySplitView` | `children` * (2–3 panes), `direction? ("horizontal"\|"vertical")`, `defaultSizes? (number[], pct, normalized)`, `minPaneSize? (48 px)`, `onResize?(sizes)`, `onResizeCommit?(sizes)` | resizable pane container; divider is draggable and keyboard-operable (ARIA separator, arrow keys). Max 3 panes — nest split views for grids. Uncontrolled after mount: persist via `onResizeCommit`, restore via `defaultSizes` |
 | `ClassicySpinner` | see inputs | |
@@ -522,7 +542,8 @@ plain integers (`0xRRGGBB`).
 | `ClassicyDesktopIcon` | `appId` *, `appName` *, `icon` *, `kind?`, `label?`, `event?`/`eventData?`, `onClickFunc?`, `noLaunch?`, `contextMenu?`, `balloonHelp?` | usually created for you by `ClassicyApp` |
 | `ClassicyCrashScreen` | `children?` | error boundary → Sad Mac screen; wrap your desktop in it |
 | `ClassicyBoot` / `ClassicyBootSequence` / `ClassicyStartupScreen` | see source | boot parade; normally managed by `ClassicyDesktop` |
-| `ClassicyDesktopMenuWidgetSound` / `ClassicyDesktopMenuWidgetTime` | `hide?` / none | stock menu bar widgets; the menu bar shows only Time — Sound moved to the Control Strip |
+| `ClassicyDesktopMenuWidgetTime` | none | stock menu bar clock widget; the menu bar shows only Time |
+| `ClassicyDesktopMenuWidgetSound` | `hide?` | **deprecated** — menu-bar mute toggle, no longer mounted. Use the Control Strip's built-in Sound module (`useClassicySoundControlStripModule`, configured via `ClassicyDesktop`'s `controlStrip` prop). Still exported; logs a one-time `classicyLog` warning in dev builds when mounted |
 | `ClassicyControlStrip` | `modules?` (`{id, icon, label, menuItems?, content?}[]`), `defaultCollapsed?`, `defaultWidth?` | Mac OS 8 Control Strip (HIGOS8 p.125, Figure 6-15): floating strip at the desktop's lower left — collapse box, scroll arrows, modules, draggable tab; widths snap to whole modules. `ClassicyDesktop` mounts it (`controlStrip` prop: its props, or `false` to hide). Each module is a pop-up bevel button whose menu opens above the strip; a disabled item with class `classicyControlStripStatus` is a black italic status line. A module for a control panel should include an "Open … Control Panel" command. Defaults to the built-in Sound module (Figure 2-16: pops up a `ClassicyPopUpSlider` for the system volume; raising it unmutes) and Screen Saver module (`useClassicyDefaultControlStripModules`, or each via `useClassicySoundControlStripModule` / `useClassicyScreenSaverControlStripModule`) |
 | `ClassicyPopUpSlider` | `value` *, `onChange(value)` *, `ariaLabel` *, `min? (0)`, `max? (100)`, `step? (1)`, `disabled?` | HIGOS8 Figure 2-16's vertical slider (17 × 73) for a bevel button's `popupContent`; drag/click, arrows, Page Up/Down, Home/End |
 | `ClassicyPixelArt` | `rows` * (`string[]` of palette tokens, `.` transparent), `className?` | themed, pixel-exact inline-SVG art (tokens `K W 1–7 b c d m n` map to theme colours) |
@@ -927,7 +948,14 @@ Action types (string enum `ClassicySoundActionTypes`): `ClassicySoundPlay`
 `EnableOne`/`DisableOne` `"*"` to keep per-sound choices), `ClassicyVolumeSet`
 (`{ volume }` 0–100, clamped and rounded; the player's gain, kept across
 theme loads),
-`ClassicyAlertSound`, `ClassicySoundSetAlertSound`. `useSound()` reads state.
+`ClassicyAlertSound`, `ClassicySoundSetAlertSound`, `ClassicySoundSetAlertVolume`
+(`{ alertVolume }` 0–100, clamped and rounded). `useSound()` reads state.
+**Alert volume**: the persisted `Appearance.alertVolume` (default 100, set by
+`ClassicyDesktopChangeAlertVolume` from the Appearance Manager's Sound tab) is
+mirrored into sound state by the provider. Alerts — `ClassicyAlertSound` and
+the sound `ClassicySoundPlayError` plays — play at system volume × alert
+volume (set on that Howler sound id only); every other sound plays at the
+system volume.
 Alert sound options: `CLASSICY_ALERT_SOUNDS` (Bonk, Growl, Indigo, Quack,
 Sosumi, Tabitha, Wild Eep); default `DEFAULT_ALERT_SOUND = "ClassicyAlertSosumi"`.
 

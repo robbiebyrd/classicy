@@ -236,11 +236,24 @@ export function hasAlertSound(m: Msg): m is Msg & { alertSound: string } {
 	return typeof m.alertSound === "string";
 }
 
+/** Action has `alertVolume: number` (finite; a 0–100 alert sound level) */
+export function hasAlertVolume(m: Msg): m is Msg & { alertVolume: number } {
+	return typeof m.alertVolume === "number" && Number.isFinite(m.alertVolume);
+}
+
 /** Action has `smartScrolling: boolean` (Mac OS 8 Smart Scrolling toggle) */
 export function hasSmartScrolling(
 	m: Msg,
 ): m is Msg & { smartScrolling: boolean } {
 	return typeof m.smartScrolling === "boolean";
+}
+
+/** Action has `doubleClickTitleToCollapse: boolean` (Mac OS 8 Appearance
+ * "Double-click title bar to collapse windows" toggle) */
+export function hasDoubleClickTitleToCollapse(
+	m: Msg,
+): m is Msg & { doubleClickTitleToCollapse: boolean } {
+	return typeof m.doubleClickTitleToCollapse === "boolean";
 }
 
 /** Action has `availableThemes: unknown[]` */

@@ -16,6 +16,7 @@ export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManagerManifest";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyColors";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
+export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyFontStack";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicySize";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicySounds";

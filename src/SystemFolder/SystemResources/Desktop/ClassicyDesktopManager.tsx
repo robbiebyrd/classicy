@@ -9,6 +9,7 @@ import { setThemeColor } from "@/SystemFolder/ControlPanels/AppearanceManager/Cl
 import {
 	hasActiveTheme,
 	hasAlertSound,
+	hasAlertVolume,
 	hasApp,
 	hasAppAndHelpItems,
 	hasAvailableThemes,
@@ -18,6 +19,7 @@ import {
 	hasBackgroundSize,
 	hasDesktopAppRef,
 	hasDisableBalloonHelp,
+	hasDoubleClickTitleToCollapse,
 	hasDrive,
 	hasErrorDialogMessage,
 	hasFont,
@@ -273,6 +275,14 @@ export const classicyDesktopEventHandler = (
 			ds.System.Manager.Appearance.alertSound = action.alertSound;
 			break;
 		}
+		case "ClassicyDesktopChangeAlertVolume": {
+			// A whole-number percentage, clamped like ClassicyVolumeSet.
+			if (!hasAlertVolume(action)) break;
+			ds.System.Manager.Appearance.alertVolume = Math.round(
+				Math.min(100, Math.max(0, action.alertVolume)),
+			);
+			break;
+		}
 		case "ClassicyDesktopSetSmartScrolling": {
 			if (!hasSmartScrolling(action)) break;
 			ds.System.Manager.Appearance.smartScrolling = action.smartScrolling;
@@ -317,6 +327,12 @@ export const classicyDesktopEventHandler = (
 		case "ClassicyDesktopSetBalloonHelp": {
 			if (!hasDisableBalloonHelp(action)) break;
 			ds.System.Manager.Desktop.disableBalloonHelp = action.disableBalloonHelp;
+			break;
+		}
+		case "ClassicyDesktopSetDoubleClickTitleToCollapse": {
+			if (!hasDoubleClickTitleToCollapse(action)) break;
+			ds.System.Manager.Desktop.doubleClickTitleToCollapse =
+				action.doubleClickTitleToCollapse;
 			break;
 		}
 		case "ClassicyDesktopShowErrorDialog": {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
 	hasActiveTheme,
+	hasAlertVolume,
 	hasApp,
 	hasAppAndFileType,
 	hasAppAndFileTypes,
@@ -14,6 +15,7 @@ import {
 	hasDateTime,
 	hasDesktopAppRef,
 	hasDisableBalloonHelp,
+	hasDoubleClickTitleToCollapse,
 	hasDrive,
 	hasErrorDialogMessage,
 	hasFinderFile,
@@ -503,6 +505,22 @@ describe("hasFont", () => {
 	});
 });
 
+// ─── hasAlertVolume ───────────────────────────────────────────────────────────
+
+describe("hasAlertVolume", () => {
+	it("returns true for a finite number, including 0", () => {
+		expect(hasAlertVolume({ type: "X", alertVolume: 0 })).toBe(true);
+		expect(hasAlertVolume({ type: "X", alertVolume: 55.5 })).toBe(true);
+	});
+
+	it("returns false when alertVolume is missing or not a finite number", () => {
+		expect(hasAlertVolume({ type: "X" })).toBe(false);
+		expect(hasAlertVolume({ type: "X", alertVolume: "50" })).toBe(false);
+		expect(hasAlertVolume({ type: "X", alertVolume: Number.NaN })).toBe(false);
+		expect(hasAlertVolume({ type: "X", alertVolume: Infinity })).toBe(false);
+	});
+});
+
 // ─── hasAvailableThemes ───────────────────────────────────────────────────────
 
 describe("hasThemeColorChange", () => {
@@ -836,5 +854,37 @@ describe("hasSmartScrolling", () => {
 
 	it("returns false when smartScrolling is not a boolean", () => {
 		expect(hasSmartScrolling({ type: "X", smartScrolling: "yes" })).toBe(false);
+	});
+});
+
+// ─── hasDoubleClickTitleToCollapse ───────────────────────────────────────────
+
+describe("hasDoubleClickTitleToCollapse", () => {
+	it("returns true when doubleClickTitleToCollapse is a boolean", () => {
+		expect(
+			hasDoubleClickTitleToCollapse({
+				type: "X",
+				doubleClickTitleToCollapse: true,
+			}),
+		).toBe(true);
+		expect(
+			hasDoubleClickTitleToCollapse({
+				type: "X",
+				doubleClickTitleToCollapse: false,
+			}),
+		).toBe(true);
+	});
+
+	it("returns false when doubleClickTitleToCollapse is missing", () => {
+		expect(hasDoubleClickTitleToCollapse({ type: "X" })).toBe(false);
+	});
+
+	it("returns false when doubleClickTitleToCollapse is not a boolean", () => {
+		expect(
+			hasDoubleClickTitleToCollapse({
+				type: "X",
+				doubleClickTitleToCollapse: 1,
+			}),
+		).toBe(false);
 	});
 });
