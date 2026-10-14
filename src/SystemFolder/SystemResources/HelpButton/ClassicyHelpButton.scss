@@ -1,0 +1,21 @@
+// Help button (HIGOS8 Ch.3 p.86): a fixed 20 × 21 px bevel button. The size
+// is a HIG metric, not a theme measurement, so it comes from the --hig-*
+// tokens and does not scale with the UI font. Two classes so this outranks the
+// bevel button's own padding and minimum size.
+.classicyBevelButton.classicyHelpButton {
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  width: var(--hig-help-button-width, 20px);
+  height: var(--hig-help-button-height, 21px);
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+
+  // The glyph is 14 px pixel art cut from the HIG figure; keep it at its
+  // native size and crisp rather than letting the icon rule stretch it.
+  .classicyBevelButtonIcon {
+    width: 14px;
+    height: 14px;
+    image-rendering: pixelated;
+  }
+}

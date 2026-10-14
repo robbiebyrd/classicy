@@ -34,6 +34,21 @@ describe("ClassicyBevelButton", () => {
 		expect(btn).toHaveClass("classicyBevelButtonBevelMedium");
 	});
 
+	it("merges a consumer className instead of dropping it", () => {
+		// `className` used to ride in with the spread props and then be
+		// overwritten by the computed class list.
+		render(
+			<ClassicyBevelButton className="myTool" bevelWidth="small">
+				Tool
+			</ClassicyBevelButton>,
+		);
+		expect(screen.getByRole("button", { name: "Tool" })).toHaveClass(
+			"classicyBevelButton",
+			"classicyBevelButtonBevelSmall",
+			"myTool",
+		);
+	});
+
 	it("maps bevelWidth to the correct class", () => {
 		render(<ClassicyBevelButton bevelWidth="small">S</ClassicyBevelButton>);
 		expect(screen.getByRole("button", { name: "S" })).toHaveClass(

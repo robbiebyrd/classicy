@@ -11,6 +11,7 @@ import {
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
+import { ClassicyHelpButton } from "@/SystemFolder/SystemResources/HelpButton/ClassicyHelpButton";
 import {
 	useFocusTrap,
 	useKeyboardEquivalents,
@@ -46,7 +47,8 @@ export type ClassicyAlertButton = {
 	/**
 	 * default → Return/Enter triggers it and it gets the default ring.
 	 * cancel  → Escape / Command-period triggers it; laid out left of default.
-	 * help    → pushed to the far left (a "?" affordance).
+	 * help    → a ClassicyHelpButton pushed to the far left; `label` becomes
+	 *           its accessible name ("Help" when it is empty or "?").
 	 * normal  → an ordinary optional button.
 	 */
 	role?: ClassicyAlertButtonRole;
@@ -245,22 +247,33 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 					</div>
 				</div>
 				<div className={"classicyAlertButtons"}>
-					{resolvedButtons.map((button) => (
-						<ClassicyButton
-							key={button.id}
-							ref={
-								button.id === defaultButton?.id ? defaultButtonRef : undefined
-							}
-							isDefault={button.id === defaultButton?.id}
-							disabled={button.disabled}
-							onClickFunc={() => handleButton(button)}
-							className={classNames(
-								button.role === "help" ? "classicyAlertHelpButton" : "",
-							)}
-						>
-							{button.role === "help" ? button.label || "?" : button.label}
-						</ClassicyButton>
-					))}
+					{resolvedButtons.map((button) =>
+						button.role === "help" ? (
+							// HIGOS8 p.86: alert boxes place the Help button lower left
+							// automatically — the bevel-button glyph, not a text "?".
+							<ClassicyHelpButton
+								key={button.id}
+								label={
+									button.label && button.label !== "?" ? button.label : "Help"
+								}
+								disabled={button.disabled}
+								onClickFunc={() => handleButton(button)}
+								className="classicyAlertHelpButton"
+							/>
+						) : (
+							<ClassicyButton
+								key={button.id}
+								ref={
+									button.id === defaultButton?.id ? defaultButtonRef : undefined
+								}
+								isDefault={button.id === defaultButton?.id}
+								disabled={button.disabled}
+								onClickFunc={() => handleButton(button)}
+							>
+								{button.label}
+							</ClassicyButton>
+						),
+					)}
 				</div>
 			</div>
 		</ClassicyWindow>

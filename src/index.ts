@@ -180,6 +180,7 @@ export * from "./SystemFolder/SystemResources/FileDialog/ClassicyFileOpenDialog"
 export * from "./SystemFolder/SystemResources/FileDialog/ClassicyFileSaveDialog";
 export * from "./SystemFolder/SystemResources/FileInput/ClassicyFileInput";
 export * from "./SystemFolder/SystemResources/Form/ClassicyForm";
+export * from "./SystemFolder/SystemResources/HelpButton/ClassicyHelpButton";
 export * from "./SystemFolder/SystemResources/Icon/ClassicyIcon";
 export * from "./SystemFolder/SystemResources/ImageWell/ClassicyImageWell";
 export * from "./SystemFolder/SystemResources/Input/ClassicyInput";

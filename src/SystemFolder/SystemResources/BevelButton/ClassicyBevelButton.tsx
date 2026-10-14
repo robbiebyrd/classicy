@@ -109,6 +109,7 @@ export const ClassicyBevelButton: FunctionalComponent<
 	popupArrow,
 	popupDirection = "vertical",
 	children,
+	className,
 	...rest
 }) => {
 	const player = useSoundDispatch();
@@ -168,6 +169,9 @@ export const ClassicyBevelButton: FunctionalComponent<
 				isSquare && "classicyBevelButtonSquare",
 				bevelWidthClass[bevelWidth],
 				`classicyBevelButtonMode${mode.charAt(0).toUpperCase()}${mode.slice(1)}`,
+				// Merged last rather than spread with `rest`, which the computed
+				// className above would otherwise silently overwrite.
+				className,
 			)}
 			onClick={onHandleFunc}
 			onMouseDown={() => {
