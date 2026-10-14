@@ -27,7 +27,9 @@ describe("ClassicyTextEditor", () => {
 		);
 		expect(container.querySelector("textarea")?.value).toBe("Loading…");
 
-		rerender(<ClassicyTextEditor id="t" prefillValue="the real body" disabled />);
+		rerender(
+			<ClassicyTextEditor id="t" prefillValue="the real body" disabled />,
+		);
 		expect(container.querySelector("textarea")?.value).toBe("the real body");
 	});
 
@@ -41,7 +43,9 @@ describe("ClassicyTextEditor", () => {
 	it("calls onChangeFunc when the textarea content changes", () => {
 		const onChange = vi.fn();
 		render(<ClassicyTextEditor id="te-1" onChangeFunc={onChange} />);
-		fireEvent.change(screen.getByRole("textbox"), { target: { value: "new text" } });
+		fireEvent.change(screen.getByRole("textbox"), {
+			target: { value: "new text" },
+		});
 		expect(onChange).toHaveBeenCalledOnce();
 		expect(onChange.mock.calls[0][0].target.value).toBe("new text");
 	});
@@ -49,7 +53,7 @@ describe("ClassicyTextEditor", () => {
 	it("does not throw when onChangeFunc is omitted", () => {
 		render(<ClassicyTextEditor id="te-1" />);
 		expect(() =>
-			fireEvent.change(screen.getByRole("textbox"), { target: { value: "x" } })
+			fireEvent.change(screen.getByRole("textbox"), { target: { value: "x" } }),
 		).not.toThrow();
 	});
 

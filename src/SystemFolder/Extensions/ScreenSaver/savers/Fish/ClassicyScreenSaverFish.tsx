@@ -1,4 +1,7 @@
 import "./ClassicyScreenSaverFish.scss";
+import type { CSSProperties, FC as FunctionalComponent } from "react";
+import { z } from "zod";
+import type { ClassicyScreenSaverProps } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverRegistry";
 import bubbles from "./bubbles_50.webp";
 import fishAngel from "./fish-angel.webp";
 import fishButterfly from "./fish-butterfly.webp";
@@ -10,9 +13,6 @@ import fishRed from "./fish-red.webp";
 import fishSeahorse from "./fish-seahorse.webp";
 import fishStriped from "./fish-striped.webp";
 import seafloor from "./seafloor.webp";
-import type { CSSProperties, FC as FunctionalComponent } from "react";
-import { z } from "zod";
-import type { ClassicyScreenSaverProps } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverRegistry";
 
 export const FishConfigSchema = z.looseObject({
 	fish: z

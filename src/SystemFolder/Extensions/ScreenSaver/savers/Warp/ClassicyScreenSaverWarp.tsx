@@ -1,11 +1,11 @@
 import "./ClassicyScreenSaverWarp.scss";
+import type { CSSProperties, FC as FunctionalComponent } from "react";
+import { z } from "zod";
+import type { ClassicyScreenSaverProps } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverRegistry";
 import stars1 from "./stars1.webp";
 import stars2 from "./stars2.webp";
 import stars3 from "./stars3.webp";
 import stars4 from "./stars4.webp";
-import type { CSSProperties, FC as FunctionalComponent } from "react";
-import { z } from "zod";
-import type { ClassicyScreenSaverProps } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverRegistry";
 
 export const WarpConfigSchema = z.looseObject({
 	layers: z

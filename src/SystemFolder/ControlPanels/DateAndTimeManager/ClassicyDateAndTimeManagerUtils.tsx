@@ -157,19 +157,24 @@ export function useClassicyDateTime(options?: {
 					: null;
 
 			if (minMs !== null && utcNowMs < minMs) {
-				dispatch({ type: "ClassicyManagerDateTimeSet", dateTime: new Date(minMs) });
+				dispatch({
+					type: "ClassicyManagerDateTimeSet",
+					dateTime: new Date(minMs),
+				});
 				return;
 			}
 
 			if (maxMs !== null && utcNowMs >= maxMs) {
-				dispatch({ type: "ClassicyManagerDateTimeSet", dateTime: new Date(maxMs) });
+				dispatch({
+					type: "ClassicyManagerDateTimeSet",
+					dateTime: new Date(maxMs),
+				});
 				return;
 			}
 
 			setLocalDate((prev) => {
 				if (
-					Math.floor(prev.getTime() / 1000) ===
-					Math.floor(virtualNowMs / 1000)
+					Math.floor(prev.getTime() / 1000) === Math.floor(virtualNowMs / 1000)
 				) {
 					return prev;
 				}

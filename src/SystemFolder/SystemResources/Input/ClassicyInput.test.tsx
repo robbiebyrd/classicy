@@ -87,7 +87,10 @@ describe("ClassicyInput", () => {
 
 	it("defaults the input type to text", () => {
 		render(<ClassicyInput id="typed-default" />);
-		expect(document.getElementById("typed-default")).toHaveAttribute("type", "text");
+		expect(document.getElementById("typed-default")).toHaveAttribute(
+			"type",
+			"text",
+		);
 	});
 
 	it("passes a custom type through to the input", () => {

@@ -58,7 +58,12 @@ $cp-wheel-degree-marks: 0, 60, 120, 180, 240, 300;
   background: var(--color-white);
   overflow-y: auto;
 
-  li {
+  &:focus-visible {
+    outline: 1px solid var(--color-outline);
+    outline-offset: -3px;
+  }
+
+  .classicyColorPickerModeListItem {
     padding: 3px 6px;
     font-family: var(--ui-font);
     font-size: var(--ui-font-size);

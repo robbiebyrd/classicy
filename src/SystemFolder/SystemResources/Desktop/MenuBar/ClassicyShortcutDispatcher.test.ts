@@ -2,18 +2,24 @@ import { fireEvent, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 const dispatch = vi.fn();
-let store: any;
+// A partial store: only the slices the dispatcher reads are seeded.
+let store: unknown;
 vi.mock(
 	"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils",
 	() => ({
-		useAppManager: (sel: (s: any) => unknown) => sel(store),
+		useAppManager: (sel: (s: unknown) => unknown) => sel(store),
 		useAppManagerDispatch: () => dispatch,
 	}),
 );
 
 import { useClassicyShortcutDispatcher } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyShortcutDispatcher";
 
-const seed = (over: any) => {
+const seed = (over: {
+	focusedAppId?: string;
+	app?: Record<string, unknown>;
+	system?: unknown[];
+	global?: Record<string, unknown>;
+}) => {
 	store = {
 		System: {
 			Manager: {

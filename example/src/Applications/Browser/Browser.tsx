@@ -141,6 +141,9 @@ export const Browser = () => {
 		icon: DEFAULT_HOME_ICON,
 	};
 
+	// Seed defaults once the app's state exists. Not keyed on the fields
+	// themselves: clearing one later must not silently re-seed it.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: see above
 	useEffect(() => {
 		if (!appState) return;
 		if (!browserData.favorites) {
@@ -374,7 +377,7 @@ export const Browser = () => {
 								disabled={!settingsForm.enabled}
 								onChangeFunc={(e) => {
 									const val = parseInt(e.target.value, 10);
-									if (!isNaN(val) && val > 0 && val <= 65535) {
+									if (!Number.isNaN(val) && val > 0 && val <= 65535) {
 										setSettingsForm((s) => ({ ...s, port: val }));
 									}
 								}}

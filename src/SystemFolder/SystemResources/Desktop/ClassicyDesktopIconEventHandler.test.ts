@@ -184,7 +184,7 @@ describe("classicyDesktopIconEventHandler — ClassicyDesktopIconFocus", () => {
 
 	it("focuses Finder.app and defocuses the previously-focused app", () => {
 		const ds = makeStoreWithIcons();
-		ds.System.Manager.Applications.apps["SomeApp"] = {
+		ds.System.Manager.Applications.apps.SomeApp = {
 			id: "SomeApp",
 			name: "Some App",
 			icon: "",
@@ -206,7 +206,7 @@ describe("classicyDesktopIconEventHandler — ClassicyDesktopIconFocus", () => {
 		expect(ds.System.Manager.Applications.apps["Finder.app"].focused).toBe(
 			true,
 		);
-		expect(ds.System.Manager.Applications.apps["SomeApp"].focused).toBe(false);
+		expect(ds.System.Manager.Applications.apps.SomeApp.focused).toBe(false);
 	});
 });
 

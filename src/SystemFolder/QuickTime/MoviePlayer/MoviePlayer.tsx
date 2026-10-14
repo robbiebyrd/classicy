@@ -161,7 +161,7 @@ export const MoviePlayer: FunctionalComponent = () => {
 				path,
 			});
 		},
-		[desktopEventDispatch, appId, appName],
+		[desktopEventDispatch],
 	);
 
 	const windowEntries = useMemo(
@@ -170,7 +170,7 @@ export const MoviePlayer: FunctionalComponent = () => {
 				doc,
 				windowId: `${appId}_MoviePlayer_${doc.key}`,
 			})),
-		[openDocuments, appId],
+		[openDocuments],
 	);
 
 	const closeWindow = useClassicyWindowClose(appId);
@@ -192,7 +192,7 @@ export const MoviePlayer: FunctionalComponent = () => {
 						type: "ClassicyAppMoviePlayerCloseDocument",
 						document: { url: doc.url, name: doc.title, icon: doc.icon },
 					},
-		[appId],
+		[],
 	);
 
 	const buildAppMenu = useCallback(
@@ -205,9 +205,9 @@ export const MoviePlayer: FunctionalComponent = () => {
 						closeWindow(windowId, closeDocAction(doc)),
 					),
 					closeAllWindowsMenuItemHelper(`${appId}_close_all_windows`, () => {
-						windowEntries.forEach((entry) =>
-							closeWindow(entry.windowId, closeDocAction(entry.doc)),
-						);
+						for (const entry of windowEntries) {
+							closeWindow(entry.windowId, closeDocAction(entry.doc));
+						}
 					}),
 					quitMenuItemHelper(appId, appName, appIcon),
 				],
@@ -218,15 +218,7 @@ export const MoviePlayer: FunctionalComponent = () => {
 				menuChildren: [aboutMenuItem],
 			},
 		],
-		[
-			appId,
-			appName,
-			appIcon,
-			closeWindow,
-			closeDocAction,
-			windowEntries,
-			aboutMenuItem,
-		],
+		[closeWindow, closeDocAction, windowEntries, aboutMenuItem],
 	);
 
 	return (

@@ -177,9 +177,8 @@ describe("ClassicyDesktop shortcut icon noLaunch wiring", () => {
 
 		expect(iconFor("shortcut_example")).toBeDefined();
 		expect(
-			useAppManager.getState().System.Manager.Applications.apps[
-				"shortcut_example"
-			],
+			useAppManager.getState().System.Manager.Applications.apps
+				.shortcut_example,
 		).toBeUndefined();
 		// The double-click was still handled — its wired event/eventData fired,
 		// reaching ClassicyOpenUrlController and actually navigating — which

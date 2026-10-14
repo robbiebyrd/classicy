@@ -1,7 +1,7 @@
 import "./ClassicyScreenSaverSpotlight.scss";
-import spotlightBg from "./spotlight_bg.webp";
 import type { FC as FunctionalComponent } from "react";
 import type { ClassicyScreenSaverProps } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverRegistry";
+import spotlightBg from "./spotlight_bg.webp";
 
 /**
  * Port of After Dark in CSS "Spotlight" (MIT): a huge black PNG with a

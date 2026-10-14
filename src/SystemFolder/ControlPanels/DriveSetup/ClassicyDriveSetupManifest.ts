@@ -8,5 +8,6 @@ export const DRIVE_SETUP_APP_ID = "DriveSetup.app";
 // manifest-driven surface.
 registerApp({
 	id: DRIVE_SETUP_APP_ID,
-	description: "Disk utility: initialize the startup disk or sync it with its backend.",
+	description:
+		"Disk utility: initialize the startup disk or sync it with its backend.",
 });

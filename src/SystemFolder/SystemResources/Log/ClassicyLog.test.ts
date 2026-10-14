@@ -9,7 +9,10 @@ import {
 } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 const cleanupIds: string[] = [];
-const sink = (id: string, hooks: Partial<Parameters<typeof registerClassicyLogSink>[0]>) => {
+const sink = (
+	id: string,
+	hooks: Partial<Parameters<typeof registerClassicyLogSink>[0]>,
+) => {
 	cleanupIds.push(id);
 	registerClassicyLogSink({ id, ...hooks });
 };

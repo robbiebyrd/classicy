@@ -1,6 +1,10 @@
 import "./ClassicyWindowFrame.scss";
 import classNames from "classnames";
-import type { CSSProperties, FC as FunctionalComponent, ReactNode } from "react";
+import type {
+	CSSProperties,
+	FC as FunctionalComponent,
+	ReactNode,
+} from "react";
 
 interface ClassicyWindowFrameProps {
 	title?: string;

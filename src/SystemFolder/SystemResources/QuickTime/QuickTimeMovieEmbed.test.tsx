@@ -2,7 +2,11 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { QuickTimeVideoEmbed } from "@/SystemFolder/SystemResources/QuickTime/QuickTimeMovieEmbed";
 
-function setMediaProperty(video: HTMLVideoElement, prop: "currentTime" | "duration", value: number) {
+function setMediaProperty(
+	video: HTMLVideoElement,
+	prop: "currentTime" | "duration",
+	value: number,
+) {
 	Object.defineProperty(video, prop, {
 		configurable: true,
 		get: () => value,
@@ -12,7 +16,12 @@ function setMediaProperty(video: HTMLVideoElement, prop: "currentTime" | "durati
 describe("QuickTimeVideoEmbed — playback progress", () => {
 	it("updates the time label as the video plays, not just on pause/seek", async () => {
 		const { container } = render(
-			<QuickTimeVideoEmbed appId="TestApp.app" name="Test" url="test.mp4" type="video" />,
+			<QuickTimeVideoEmbed
+				appId="TestApp.app"
+				name="Test"
+				url="test.mp4"
+				type="video"
+			/>,
 		);
 
 		const video = await waitFor(() => {
@@ -27,12 +36,19 @@ describe("QuickTimeVideoEmbed — playback progress", () => {
 		setMediaProperty(video, "currentTime", 42);
 		video.dispatchEvent(new Event("timeupdate"));
 
-		await waitFor(() => expect(screen.getByText("0:00:42")).toBeInTheDocument());
+		await waitFor(() =>
+			expect(screen.getByText("0:00:42")).toBeInTheDocument(),
+		);
 	});
 
 	it("keeps the progress bar in sync with playback position", async () => {
 		const { container } = render(
-			<QuickTimeVideoEmbed appId="TestApp.app" name="Test" url="test.mp4" type="video" />,
+			<QuickTimeVideoEmbed
+				appId="TestApp.app"
+				name="Test"
+				url="test.mp4"
+				type="video"
+			/>,
 		);
 
 		const video = await waitFor(() => {

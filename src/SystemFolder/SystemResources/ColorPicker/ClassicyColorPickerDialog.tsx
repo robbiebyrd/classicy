@@ -1,9 +1,12 @@
 import "./ClassicyColorPicker.scss";
+import classNames from "classnames";
 import {
 	type CSSProperties,
 	type FC,
+	type KeyboardEvent,
 	useContext,
 	useEffect,
+	useId,
 	useState,
 } from "react";
 import { intToHex } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyColors";
@@ -52,6 +55,7 @@ export const ClassicyColorPickerDialog: FC<ClassicyColorPickerDialogProps> = ({
 	onCancelFunc,
 }) => {
 	const [pendingColor, setPendingColor] = useState(initialColor);
+	const listId = useId();
 	const [mode, setMode] = useState<PickerMode>("Crayons");
 	// Lexical, not global: see the `appId` doc comment above for why this
 	// must not fall back to the store's focused app.
@@ -59,10 +63,27 @@ export const ClassicyColorPickerDialog: FC<ClassicyColorPickerDialogProps> = ({
 	const resolvedAppId = appId ?? contextAppId;
 
 	// Reset to initialColor whenever the dialog is freshly opened.
-	// eslint-disable-next-line react-hooks/exhaustive-deps
+	// biome-ignore lint/correctness/useExhaustiveDependencies: a new initialColor while open must not discard the user's pending choice
 	useEffect(() => {
 		if (open) setPendingColor(initialColor);
 	}, [open]);
+
+	const onModeKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+		const at = PICKER_MODES.indexOf(mode);
+		const next =
+			e.key === "ArrowDown"
+				? Math.min(at + 1, PICKER_MODES.length - 1)
+				: e.key === "ArrowUp"
+					? Math.max(at - 1, 0)
+					: e.key === "Home"
+						? 0
+						: e.key === "End"
+							? PICKER_MODES.length - 1
+							: null;
+		if (next === null) return;
+		e.preventDefault();
+		setMode(PICKER_MODES[next]);
+	};
 
 	if (!open) return null;
 
@@ -128,27 +149,36 @@ export const ClassicyColorPickerDialog: FC<ClassicyColorPickerDialogProps> = ({
 			analyticsExclude
 		>
 			<div className="classicyColorPickerDialogBody">
-				<ul
+				{/* A single-select listbox: focus stays on the list and the arrow
+				    keys move the selection (aria-activedescendant). */}
+				<div
 					className="classicyColorPickerModeList"
 					role="listbox"
 					aria-label="Color picker mode"
+					tabIndex={0}
+					aria-activedescendant={`${listId}_${mode}`}
+					onKeyDown={onModeKeyDown}
 				>
 					{PICKER_MODES.map((m) => (
-						<li
+						// Options take no focus of their own: the listbox holds focus
+						// and handles the keys (aria-activedescendant).
+						// biome-ignore lint/a11y/useFocusableInteractive: see above
+						// biome-ignore lint/a11y/useKeyWithClickEvents: see above
+						<div
 							key={m}
+							id={`${listId}_${m}`}
 							role="option"
 							aria-selected={m === mode}
-							className={
-								m === mode
-									? "classicyColorPickerModeListItemSelected"
-									: undefined
-							}
+							className={classNames(
+								"classicyColorPickerModeListItem",
+								m === mode && "classicyColorPickerModeListItemSelected",
+							)}
 							onClick={() => setMode(m)}
 						>
 							{m}
-						</li>
+						</div>
 					))}
-				</ul>
+				</div>
 				<div className="classicyColorPickerActivePanel">{activePanel}</div>
 			</div>
 			<div
@@ -158,6 +188,7 @@ export const ClassicyColorPickerDialog: FC<ClassicyColorPickerDialogProps> = ({
 						"--classicy-preview-color": intToHex(pendingColor),
 					} as CSSProperties
 				}
+				role="img"
 				aria-label={`Selected color: ${intToHex(pendingColor)}`}
 			/>
 			<div className="classicyColorPickerDialogFooter">

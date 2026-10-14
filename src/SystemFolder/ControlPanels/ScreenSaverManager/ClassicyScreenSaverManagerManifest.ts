@@ -8,5 +8,6 @@ export const SCREEN_SAVER_MANAGER_APP_ID = "ScreenSaverManager.app";
 // manifest-driven surface.
 registerApp({
 	id: SCREEN_SAVER_MANAGER_APP_ID,
-	description: "Control panel for the screen saver: pick a module and set idle timing.",
+	description:
+		"Control panel for the screen saver: pick a module and set idle timing.",
 });
