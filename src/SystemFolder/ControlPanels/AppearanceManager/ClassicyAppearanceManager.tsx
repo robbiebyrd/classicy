@@ -13,7 +13,13 @@ import {
 	getTheme,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { APPEARANCE_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManagerManifest";
+import {
+	findClassicyTheme,
+	isCustomThemeActive,
+	listClassicyThemes,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
 import { ClassicySounds } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicySounds";
+import type { ClassicyThemeColorChange } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorTargets";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -35,6 +41,7 @@ import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyBu
 import { ClassicyTabs } from "@/SystemFolder/SystemResources/Tabs/ClassicyTabs";
 import { isValidHttpUrl } from "@/SystemFolder/SystemResources/Utils/urlValidation";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
+import { useColorsTab } from "./ClassicyAppearanceManager.Colors";
 import { useDesktopTab } from "./ClassicyAppearanceManager.Desktop";
 import { useFontsTab } from "./ClassicyAppearanceManager.Fonts";
 import { useSoundTab } from "./ClassicyAppearanceManager.Sound";
@@ -72,17 +79,25 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 			ClassicyDefaultWallpaper,
 	);
 
+	// Built-in themes, then the user's custom themes (e.g. "Custom").
 	const themesList = useMemo(
 		() =>
-			appearanceState.availableThemes?.map((a: ClassicyTheme) =>
-				(({ id, name }) => ({ value: id, label: name }))(a),
-			),
-		[appearanceState.availableThemes],
+			listClassicyThemes({
+				availableThemes: appearanceState.availableThemes,
+				customThemes: appearanceState.customThemes,
+			}).map((a: ClassicyTheme) => ({ value: a.id, label: a.name })),
+		[appearanceState.availableThemes, appearanceState.customThemes],
 	);
 
 	const applySoundTheme = useCallback(
 		(themeName: string) => {
-			const soundTheme = getTheme(themeName).sound;
+			// A custom theme carries the sound theme of the built-in it forked.
+			const soundTheme = (
+				findClassicyTheme(
+					useAppManager.getState().System.Manager.Appearance,
+					themeName,
+				) ?? getTheme(themeName)
+			).sound;
 			const data = ClassicySounds[soundTheme.name];
 			if (!data) {
 				classicyLog(
@@ -207,6 +222,15 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		[desktopEventDispatch],
 	);
 
+	const changeColor = useCallback(
+		(change: ClassicyThemeColorChange) => {
+			startTransition(() => {
+				desktopEventDispatch({ type: "ClassicyDesktopChangeColor", ...change });
+			});
+		},
+		[desktopEventDispatch],
+	);
+
 	const changeAlertSound = useCallback(
 		(e: ChangeEvent<HTMLSelectElement>) => {
 			const value = e.target.value;
@@ -289,6 +313,13 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		backgroundSize,
 	});
 
+	const colorsTab = useColorsTab({
+		theme: appearanceState.activeTheme,
+		editingCustomTheme: isCustomThemeActive(appearanceState),
+		changeColor,
+		appId: APP_ID,
+	});
+
 	const fontsTab = useFontsTab({
 		typography: appearanceState.activeTheme.typography,
 		changeFont,
@@ -301,8 +332,10 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 	});
 
 	const tabs = useMemo(
-		() => [themesTab, desktopTab, fontsTab, soundTab],
-		[themesTab, desktopTab, fontsTab, soundTab],
+		// Colors sits between Desktop and Fonts: Mac OS 8.5's Appearance panel
+		// puts its colour tab ahead of Fonts.
+		() => [themesTab, desktopTab, colorsTab, fontsTab, soundTab],
+		[themesTab, desktopTab, colorsTab, fontsTab, soundTab],
 	);
 
 	return (
