@@ -458,6 +458,9 @@ Themes are JSON-based (`src/SystemFolder/ControlPanels/AppearanceManager/styles/
 - Colors (system palette, theme accent colors)
 - Desktop appearance (background, patterns)
 
+Built-in themes are never mutated: the first colour/font/desktop edit on one (`ClassicyDesktopChangeColor { colorKey, index?, color }`, `ChangeFont*`, `ChangeBackground*`) forks it into the single "Custom" theme (`id: "custom"`) in `Appearance.customThemes` and activates it; later edits modify the active custom theme (`editActiveClassicyTheme`, `ClassicyCustomTheme.ts`). `ChangeTheme` searches built-ins, then customs. Customs live outside `availableThemes` because persisted arrays replace defaults on load.
+The 28 editable colours are defined once in `CLASSICY_THEME_COLOR_TARGETS` (`ClassicyThemeColorTargets.ts`), which drives the reducer's validation and the Appearance Manager's Colors tab. Details: `docs/AGENT-REFERENCE.md` §8.
+
 ## Build Notes
 
 - Uses **mise** for tool version management (`mise.toml`) — Node 24, ffmpeg 8.0.1

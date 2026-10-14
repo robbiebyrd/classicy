@@ -1,6 +1,12 @@
 import type { MouseEvent } from "react";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
+	cloneClassicyTheme,
+	editActiveClassicyTheme,
+	findClassicyTheme,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
+import { setThemeColor } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorTargets";
+import {
 	hasActiveTheme,
 	hasAlertSound,
 	hasAlertVolume,
@@ -21,6 +27,7 @@ import {
 	hasMenuBar,
 	hasMouseEvent,
 	hasSmartScrolling,
+	hasThemeColorChange,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
 import type {
 	ActionMessage,
@@ -211,37 +218,56 @@ export const classicyDesktopEventHandler = (
 		}
 		case "ClassicyDesktopChangeTheme": {
 			if (!hasActiveTheme(action)) break;
-			const foundTheme = ds.System.Manager.Appearance.availableThemes?.find(
-				(a) => a.id === action.activeTheme,
+			// Built-ins first, then custom themes. Activate a copy, so edits to
+			// the active theme can never alias the stored entry.
+			const foundTheme = findClassicyTheme(
+				ds.System.Manager.Appearance,
+				action.activeTheme,
 			);
 			if (foundTheme) {
-				ds.System.Manager.Appearance.activeTheme = foundTheme;
+				ds.System.Manager.Appearance.activeTheme =
+					cloneClassicyTheme(foundTheme);
 			}
+			break;
+		}
+		// Every theme edit below goes through editActiveClassicyTheme: the first
+		// edit made on a built-in forks it into the "Custom" theme (built-ins are
+		// never mutated), later edits modify the active custom theme in place.
+		case "ClassicyDesktopChangeColor": {
+			if (!hasThemeColorChange(action)) break;
+			const target = action;
+			editActiveClassicyTheme(ds.System.Manager.Appearance, (theme) =>
+				setThemeColor(theme, target, target.color),
+			);
 			break;
 		}
 		case "ClassicyDesktopChangeBackground": {
 			if (!hasBackgroundImage(action)) break;
-			ds.System.Manager.Appearance.activeTheme.desktop.backgroundImage =
-				action.backgroundImage;
-			ds.System.Manager.Appearance.activeTheme.desktop.backgroundSize = "auto";
+			editActiveClassicyTheme(ds.System.Manager.Appearance, (theme) => {
+				theme.desktop.backgroundImage = action.backgroundImage;
+				theme.desktop.backgroundSize = "auto";
+			});
 			break;
 		}
 		case "ClassicyDesktopChangeBackgroundPosition": {
 			if (!hasBackgroundPosition(action)) break;
-			ds.System.Manager.Appearance.activeTheme.desktop.backgroundPosition =
-				action.backgroundPosition;
+			editActiveClassicyTheme(ds.System.Manager.Appearance, (theme) => {
+				theme.desktop.backgroundPosition = action.backgroundPosition;
+			});
 			break;
 		}
 		case "ClassicyDesktopChangeBackgroundRepeat": {
 			if (!hasBackgroundRepeat(action)) break;
-			ds.System.Manager.Appearance.activeTheme.desktop.backgroundRepeat =
-				action.backgroundRepeat;
+			editActiveClassicyTheme(ds.System.Manager.Appearance, (theme) => {
+				theme.desktop.backgroundRepeat = action.backgroundRepeat;
+			});
 			break;
 		}
 		case "ClassicyDesktopChangeBackgroundSize": {
 			if (!hasBackgroundSize(action)) break;
-			ds.System.Manager.Appearance.activeTheme.desktop.backgroundSize =
-				action.backgroundSize;
+			editActiveClassicyTheme(ds.System.Manager.Appearance, (theme) => {
+				theme.desktop.backgroundSize = action.backgroundSize;
+			});
 			break;
 		}
 		case "ClassicyDesktopChangeAlertSound": {
@@ -264,53 +290,32 @@ export const classicyDesktopEventHandler = (
 		}
 		case "ClassicyDesktopChangeFont": {
 			if (!hasFont(action)) break;
-			switch (action.fontType) {
-				case "body":
-					ds.System.Manager.Appearance.activeTheme.typography.body =
-						action.font;
-					break;
-				case "ui":
-					ds.System.Manager.Appearance.activeTheme.typography.ui = action.font;
-					break;
-				case "header":
-					ds.System.Manager.Appearance.activeTheme.typography.header =
-						action.font;
-					break;
-				case "mono":
-					ds.System.Manager.Appearance.activeTheme.typography.mono =
-						action.font;
-					break;
-				case "digital":
-					ds.System.Manager.Appearance.activeTheme.typography.digital =
-						action.font;
-					break;
-			}
+			editActiveClassicyTheme(ds.System.Manager.Appearance, (theme) => {
+				switch (action.fontType) {
+					case "body":
+					case "ui":
+					case "header":
+					case "mono":
+					case "digital":
+						theme.typography[action.fontType] = action.font;
+						break;
+				}
+			});
 			break;
 		}
 		case "ClassicyDesktopChangeFontSize": {
 			if (!hasFontSize(action)) break;
-			switch (action.fontType) {
-				case "uiSize":
-					ds.System.Manager.Appearance.activeTheme.typography.uiSize =
-						action.fontSize;
-					break;
-				case "bodySize":
-					ds.System.Manager.Appearance.activeTheme.typography.bodySize =
-						action.fontSize;
-					break;
-				case "headerSize":
-					ds.System.Manager.Appearance.activeTheme.typography.headerSize =
-						action.fontSize;
-					break;
-				case "monoSize":
-					ds.System.Manager.Appearance.activeTheme.typography.monoSize =
-						action.fontSize;
-					break;
-				case "digitalSize":
-					ds.System.Manager.Appearance.activeTheme.typography.digitalSize =
-						action.fontSize;
-					break;
-			}
+			editActiveClassicyTheme(ds.System.Manager.Appearance, (theme) => {
+				switch (action.fontType) {
+					case "uiSize":
+					case "bodySize":
+					case "headerSize":
+					case "monoSize":
+					case "digitalSize":
+						theme.typography[action.fontType] = action.fontSize;
+						break;
+				}
+			});
 			break;
 		}
 		case "ClassicyDesktopLoadThemes": {

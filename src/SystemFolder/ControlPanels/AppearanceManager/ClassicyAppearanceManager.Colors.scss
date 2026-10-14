@@ -1,0 +1,37 @@
+// Colors tab: 28 swatches in six labelled groups. The window is capped at the
+// 492px HIG control-panel width, so groups wrap (the 7-swatch palettes take a
+// row each) and the group stack scrolls inside a fixed-height region instead
+// of growing the window past the 340px HIG height ceiling.
+.classicyAppearanceManagerColors {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hig-item-gap-focus);
+}
+
+.classicyAppearanceManagerColorsScroll {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: var(--hig-item-gap-focus) 0;
+  max-height: 210px;
+  overflow-y: auto;
+  // Room for the swatch bevel and the scroll bar to sit clear of the groups.
+  padding: var(--hig-item-gap) var(--hig-item-gap) var(--hig-item-gap) 0;
+}
+
+.classicyAppearanceManagerColorsGroup {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.classicyAppearanceManagerColorsGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hig-item-gap) var(--hig-button-gap-h);
+
+  // Center each short label over its swatch.
+  .classicyColorPickerSwatchWrapper {
+    align-items: center;
+    gap: calc(var(--hig-item-gap) / 2);
+  }
+}

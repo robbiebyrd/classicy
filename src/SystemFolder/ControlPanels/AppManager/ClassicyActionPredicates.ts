@@ -12,6 +12,11 @@
  *   it actually needs.
  */
 
+import {
+	type ClassicyThemeColorChange,
+	isThemeColorTarget,
+	isValidThemeColor,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorTargets";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
 type Msg = Record<string, unknown> & { type: string };
@@ -213,6 +218,17 @@ export function hasFontSize(
 	m: Msg,
 ): m is Msg & { fontType: string; fontSize: number } {
 	return typeof m.fontType === "string" && typeof m.fontSize === "number";
+}
+
+/**
+ * Action is a valid theme colour edit: `colorKey` names one of the 28 theme
+ * colours (`index` 0–6 required for `system`/`theme`, absent otherwise) and
+ * `color` is a 24-bit RGB integer (0x000000–0xFFFFFF).
+ */
+export function hasThemeColorChange(
+	m: Msg,
+): m is Msg & ClassicyThemeColorChange {
+	return isThemeColorTarget(m) && isValidThemeColor(m.color);
 }
 
 /** Action has `alertSound: string` (a `ClassicyAlert*` sprite key) */

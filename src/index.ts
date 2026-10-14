@@ -7,6 +7,7 @@ export * from "./SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext
 export * from "./SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 export * from "./SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Colors";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Desktop";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Fonts";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Sound";
@@ -14,10 +15,12 @@ export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManagerManifest";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyColors";
+export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyFontStack";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicySize";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicySounds";
+export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorTargets";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 export * from "./SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeEventHandler";
 export * from "./SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeManager";

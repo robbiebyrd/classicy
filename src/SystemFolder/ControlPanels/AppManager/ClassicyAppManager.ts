@@ -599,6 +599,7 @@ export const DefaultAppManagerState: ClassicyStore = {
 				// Via getTheme, not themesData: the raw JSON names its wallpaper
 				// rather than carrying a loadable URL.
 				activeTheme: getTheme("default"),
+				customThemes: [],
 				alertSound: DEFAULT_ALERT_SOUND,
 				// Alerts play at the full system volume until the user lowers it.
 				alertVolume: 100,

@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, renderHook, screen, userEvent } from "@/__tests__/test-utils";
+import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { useThemesTab } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Themes";
+import { listClassicyThemes } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
 
 const baseProps = {
 	themesList: [{ value: "default", label: "Platinum" }],
@@ -64,6 +66,44 @@ describe("useThemesTab — Smart Scrolling", () => {
 		);
 		await user.click(smartScrollingBox());
 		expect(toggleSmartScrolling).toHaveBeenCalledWith(true);
+	});
+});
+
+describe("useThemesTab — custom themes", () => {
+	it("shows Custom as the selected theme when it is active", () => {
+		render(
+			<Host
+				themesList={[
+					{ value: "default", label: "Platinum" },
+					{ value: "custom", label: "Custom" },
+				]}
+				activeThemeId="custom"
+			/>,
+		);
+		expect(
+			screen.getByRole("combobox", { name: "Selected Theme" }),
+		).toHaveTextContent("Custom");
+	});
+});
+
+describe("listClassicyThemes", () => {
+	const theme = (id: string) => ({ id, name: id }) as unknown as ClassicyTheme;
+
+	it("lists built-ins first, then custom themes", () => {
+		expect(
+			listClassicyThemes({
+				availableThemes: [theme("default"), theme("azul")],
+				customThemes: [theme("custom")],
+			}).map((t) => t.id),
+		).toEqual(["default", "azul", "custom"]);
+	});
+
+	it("tolerates state without customThemes", () => {
+		expect(
+			listClassicyThemes({ availableThemes: [theme("default")] }).map(
+				(t) => t.id,
+			),
+		).toEqual(["default"]);
 	});
 });
 
