@@ -93,13 +93,14 @@ export const ClassicySpinner: FunctionalComponent<ClassicySpinnerProps> =
 		const [value, setValue] = useState<number>(initialValue);
 		const valueRef = useRef<number>(initialValue);
 
+		// biome-ignore lint/correctness/useExhaustiveDependencies: clamp reads only refs, so it is current on every call; re-sync only when the prefill changes
 		useEffect(() => {
 			if (prefillValue !== undefined) {
 				const clamped = clamp(prefillValue);
 				valueRef.current = clamped;
 				setValue(clamped);
 			}
-		}, [prefillValue]); // eslint-disable-line react-hooks/exhaustive-deps
+		}, [prefillValue]);
 
 		const inputWidth = (() => {
 			const candidates = [String(minValue)];

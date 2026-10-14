@@ -737,14 +737,7 @@ describe("HyperCard editor integration", () => {
 		const ids = (capturedMenus.hypercard_main as { id: string }[]).map(
 			(m) => m.id,
 		);
-		expect(ids).toEqual([
-			"file",
-			"edit",
-			"view",
-			"go",
-			"objects",
-			"examples",
-		]);
+		expect(ids).toEqual(["file", "edit", "view", "go", "objects", "examples"]);
 	});
 
 	it("View items are disabled and unchecked outside edit mode", () => {

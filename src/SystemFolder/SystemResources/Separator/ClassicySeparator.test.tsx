@@ -19,9 +19,7 @@ describe("ClassicySeparator", () => {
 	});
 
 	it("applies the vertical orientation when requested", () => {
-		const { container } = render(
-			<ClassicySeparator orientation="vertical" />,
-		);
+		const { container } = render(<ClassicySeparator orientation="vertical" />);
 		const hr = container.querySelector("hr");
 		expect(hr).toHaveClass("classicySeparatorVertical");
 		expect(hr).not.toHaveClass("classicySeparatorHorizontal");

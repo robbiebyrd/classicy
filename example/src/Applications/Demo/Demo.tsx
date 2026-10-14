@@ -19,8 +19,8 @@ import {
 	quitMenuItemHelper,
 	useAppManagerDispatch,
 } from "classicy";
-import { AppIcons } from "../../app";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { AppIcons } from "../../app";
 
 const RADIO_INPUTS = [
 	{

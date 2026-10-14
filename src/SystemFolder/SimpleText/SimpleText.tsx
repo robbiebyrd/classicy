@@ -4,6 +4,7 @@ import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { SIMPLE_TEXT_APP_ID } from "@/SystemFolder/SimpleText/SimpleTextManifest";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import {
 	useClassicyAboutMenu,
@@ -20,8 +21,6 @@ import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/
 import { ClassicyRichTextEditor } from "@/SystemFolder/SystemResources/RichTextEditor/ClassicyRichTextEditor";
 import { ClassicyTextEditor } from "@/SystemFolder/SystemResources/TextEditor/ClassicyTextEditor";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
-
-import { SIMPLE_TEXT_APP_ID } from "@/SystemFolder/SimpleText/SimpleTextManifest";
 
 const appName = "SimpleText";
 const appId = SIMPLE_TEXT_APP_ID;

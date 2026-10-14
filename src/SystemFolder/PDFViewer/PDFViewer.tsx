@@ -65,13 +65,13 @@ export const PDFViewer: FunctionalComponent = () => {
 						}),
 					),
 					closeAllWindowsMenuItemHelper(`${appId}_close_all_windows`, () => {
-						openFiles.forEach((p) =>
+						for (const p of openFiles) {
 							closeWindow(`${appId}_file_${p}`, {
 								type: `ClassicyApp${appName}CloseFile`,
 								app: { id: appId },
 								path: p,
-							}),
-						);
+							});
+						}
 					}),
 					quitMenuItemHelper(appId, appName, appIcon),
 				],
@@ -82,7 +82,7 @@ export const PDFViewer: FunctionalComponent = () => {
 				menuChildren: [aboutMenuItem],
 			},
 		],
-		[appId, appName, appIcon, closeWindow, openFiles, aboutMenuItem],
+		[closeWindow, openFiles, aboutMenuItem],
 	);
 
 	return (

@@ -1,6 +1,13 @@
 import "./ClassicyTextEditor.scss";
 import classNames from "classnames";
-import { type ChangeEvent, type ChangeEventHandler, type FC as FunctionalComponent, useCallback, useEffect, useState } from "react";
+import {
+	type ChangeEvent,
+	type ChangeEventHandler,
+	type FC as FunctionalComponent,
+	useCallback,
+	useEffect,
+	useState,
+} from "react";
 import {
 	ClassicyControlLabel,
 	type ClassicyControlLabelSize,

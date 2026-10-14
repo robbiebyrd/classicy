@@ -6,11 +6,11 @@ import {
 } from "react";
 import { JSONTree } from "react-json-tree";
 import { intToHex } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyColors";
-import { getAppManifest } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
 import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { getAppManifest } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
 import { ClassicyAppIdContext } from "@/SystemFolder/SystemResources/App/ClassicyAppIdContext";
 import type { ClassicyIconBalloonHelp } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
 import { normalizeIconBalloonHelp } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconBalloons";

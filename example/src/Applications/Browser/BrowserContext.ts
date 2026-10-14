@@ -28,11 +28,13 @@ export interface BrowserData {
 	showFavoritesBar?: boolean;
 }
 
-export function isBrowserData(
-	d: unknown,
-): d is BrowserData {
+export function isBrowserData(d: unknown): d is BrowserData {
 	if (d === null || typeof d !== "object") return false;
-	if ("favorites" in d && !Array.isArray(d.favorites) && d.favorites !== undefined)
+	if (
+		"favorites" in d &&
+		!Array.isArray(d.favorites) &&
+		d.favorites !== undefined
+	)
 		return false;
 	if ("history" in d && !Array.isArray(d.history) && d.history !== undefined)
 		return false;

@@ -35,10 +35,7 @@ export const useFontsTab = ({
 				<div className={"classicyAppearanceManagerFontsColumn"}>
 					<div className={"classicyAppearanceManagerFontsRow"}>
 						<div className={"classicyAppearanceManagerFontsLabel"}>
-							<ClassicyControlLabel
-								label={"System Font"}
-								direction={"left"}
-							/>
+							<ClassicyControlLabel label={"System Font"} direction={"left"} />
 						</div>
 						<ClassicyPopUpMenu
 							id={"ui"}
