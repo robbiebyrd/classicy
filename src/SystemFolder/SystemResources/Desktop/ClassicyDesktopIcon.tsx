@@ -26,6 +26,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { getAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 
 interface ClassicyDesktopIconProps {
 	appId: string;
@@ -74,9 +75,17 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			const isOpen = useAppManager(
 				(s) => !!s.System.Manager.Applications.apps[appId]?.open,
 			);
-			const finderWindows = useAppManager(
-				(s) => s.System.Manager.Applications.apps["Finder.app"]?.windows,
-			);
+			// Only Finder folder icons care about a window: true while the Finder
+			// window for this icon's folder path is registered and not closed.
+			const finderPathWindowOpen = useAppManager((s) => {
+				if (!appId.startsWith("Finder.app")) return false;
+				const path = eventData?.path;
+				const w = getAppWindow(
+					s.System.Manager.Applications.apps["Finder.app"],
+					typeof path === "string" ? path : undefined,
+				);
+				return w !== undefined && !w.closed;
+			});
 			const desktopEventDispatch = useAppManagerDispatch();
 			const { showContextMenu } = useClassicyContextualMenu();
 
@@ -162,13 +171,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			const isLaunched = () => {
 				// Check if a Finder window is open
 				if (appId.startsWith("Finder.app")) {
-					if (!finderWindows) {
-						return false;
-					}
-					const pathCount = finderWindows.findIndex(
-						(w) => w.id === eventData?.path && !w.closed,
-					);
-					return pathCount >= 0;
+					return finderPathWindowOpen;
 				}
 				return isOpen;
 			};

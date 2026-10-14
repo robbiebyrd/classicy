@@ -20,6 +20,7 @@ import {
 	parseAppData,
 	registerApp,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
+import { updateAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { MoviePlayerAppInfo } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerUtils";
 import { classicyDesktopEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
@@ -173,11 +174,10 @@ export const classicyFinderEventHandler = (
 			};
 
 			// Sync the window closed state so the desktop icon doesn't show as open
-			const windows = ds.System.Manager.Applications.apps[appId].windows;
-			const winIdx = windows.findIndex((w) => w.id === action.path);
-			if (winIdx !== -1) {
-				windows[winIdx] = { ...windows[winIdx], closed: true, focused: false };
-			}
+			updateAppWindow(ds.System.Manager.Applications.apps[appId], action.path, {
+				closed: true,
+				focused: false,
+			});
 			break;
 		}
 		case "ClassicyAppFinderAboutThisComputerOpen": {

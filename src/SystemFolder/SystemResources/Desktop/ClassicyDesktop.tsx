@@ -48,6 +48,7 @@ import {
 	useState,
 } from "react";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { listAppWindows } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
 import { ClassicyDefaultParadeIcons } from "@/SystemFolder/SystemResources/Boot/ClassicyDefaultParadeIcons";
 import {
@@ -154,7 +155,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 		(s) => s.System.Manager.Applications.focusedAppId,
 	);
 	const finderHasOpenWindow = useAppManager((s) =>
-		(s.System.Manager.Applications.apps["Finder.app"]?.windows ?? []).some(
+		listAppWindows(s.System.Manager.Applications.apps["Finder.app"]).some(
 			(w) => !w.closed,
 		),
 	);
