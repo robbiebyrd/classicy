@@ -17,7 +17,7 @@ import {
 } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStrip";
 
 const sound = vi.hoisted(() => ({
-	state: { disabled: [] as string[] },
+	state: { disabled: [] as string[], volume: 100 as number | undefined },
 	player: vi.fn(),
 }));
 
@@ -254,6 +254,7 @@ describe("ClassicyControlStrip (HIGOS8 Figure 6-15)", () => {
 describe("built-in control strip modules", () => {
 	beforeEach(() => {
 		sound.state.disabled = [];
+		sound.state.volume = 100;
 		sound.player.mockClear();
 	});
 
@@ -265,7 +266,8 @@ describe("built-in control strip modules", () => {
 		).toBeInTheDocument();
 	});
 
-	it("Sound shows the current state and turns sound off", async () => {
+	it("Sound pops up the volume slider (Figure 2-16) and sets the volume", () => {
+		sound.state.volume = 60;
 		renderWithProviders(<ClassicyControlStrip />);
 		const button = screen.getByRole("button", { name: "Sound" });
 		expect(button.querySelector("img")).toHaveAttribute(
@@ -273,20 +275,44 @@ describe("built-in control strip modules", () => {
 			ClassicyIcons.system.controlStrip.sound,
 		);
 		click(button);
-		expect(
-			screen.getByRole("menuitem", { name: "Sound On" }),
-		).toHaveTextContent("✓");
-		expect(
-			screen.getByRole("menuitem", { name: "Open Sound Control Panel" }),
-		).toBeInTheDocument();
-		fireEvent.click(screen.getByRole("menuitem", { name: "Sound Off" }));
-		completeMenuItemFlash("sound-off");
-		await waitFor(() =>
-			expect(sound.player).toHaveBeenCalledWith({
-				type: "ClassicySoundDisable",
-				disabled: ["*"],
-			}),
+		const slider = screen.getByRole("slider", { name: "Volume" });
+		expect(slider).toHaveAttribute("aria-valuenow", "60");
+		fireEvent.keyDown(slider, { key: "ArrowUp" });
+		expect(sound.player).toHaveBeenCalledWith({
+			type: "ClassicyVolumeSet",
+			volume: 61,
+		});
+		// Sound is on, so the mute flag is left alone.
+		expect(sound.player).not.toHaveBeenCalledWith(
+			expect.objectContaining({ type: "ClassicySoundEnableOne" }),
 		);
+	});
+
+	it("raising the volume while sound is off turns sound back on", () => {
+		sound.state.disabled = ["*", "ClassicyWindowOpen"];
+		sound.state.volume = 60;
+		renderWithProviders(<ClassicyControlStrip />);
+		click(screen.getByRole("button", { name: "Sound" }));
+		const slider = screen.getByRole("slider", { name: "Volume" });
+		expect(slider).toHaveAttribute("aria-valuenow", "0"); // reads as silent
+		fireEvent.keyDown(slider, { key: "End" });
+		expect(sound.player).toHaveBeenCalledWith({
+			type: "ClassicyVolumeSet",
+			volume: 100,
+		});
+		// Only the "*" flag: per-sound choices stay disabled.
+		expect(sound.player).toHaveBeenCalledWith({
+			type: "ClassicySoundEnableOne",
+			enabled: "*",
+		});
+	});
+
+	it("Sound shows the speaker without its waves at zero volume", () => {
+		sound.state.volume = 0;
+		renderWithProviders(<ClassicyControlStrip />);
+		expect(
+			screen.getByRole("button", { name: "Sound" }).querySelector("img"),
+		).toHaveAttribute("src", ClassicyIcons.system.controlStrip.soundOff);
 	});
 
 	it("Sound shows the speaker without its waves while sound is off", () => {

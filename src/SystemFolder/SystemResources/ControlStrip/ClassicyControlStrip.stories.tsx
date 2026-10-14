@@ -3,7 +3,6 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { fn } from "storybook/test";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
-import { ClassicyPopUpSlider } from "@/SystemFolder/SystemResources/PopUpSlider/ClassicyPopUpSlider";
 import {
 	ClassicyControlStrip,
 	type ClassicyControlStripModule,
@@ -23,18 +22,20 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** The built-in Sound and Screen Saver modules. */
+/**
+ * The built-in modules: Sound pops up Figure 2-16's volume slider; Screen
+ * Saver is a menu.
+ */
 export const Default: Story = {};
 
 /**
  * HIGOS8 Figure 6-15: a File Sharing module whose menu leads with an italic
- * status line and offers a command that opens its control panel, beside a
- * volume module that pops up a slider instead of a menu (Figure 2-16).
+ * status line and offers a command that opens its control panel, and a CD
+ * module, ahead of the built-ins.
  */
 export const CustomModules: Story = {
 	render: () => {
 		const [sharing, setSharing] = useState(false);
-		const [volume, setVolume] = useState(70);
 		const builtIns = useClassicyDefaultControlStripModules();
 		const modules: ClassicyControlStripModule[] = [
 			{
@@ -61,18 +62,6 @@ export const CustomModules: Story = {
 						onClickFunc: () => setSharing((s) => !s),
 					},
 				],
-			},
-			{
-				id: "volume",
-				label: "Volume",
-				icon: ClassicyIcons.system.controlStrip.sound,
-				content: (
-					<ClassicyPopUpSlider
-						ariaLabel="Volume"
-						value={volume}
-						onChange={setVolume}
-					/>
-				),
 			},
 			{
 				id: "cd",

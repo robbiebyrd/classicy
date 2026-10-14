@@ -103,3 +103,33 @@ describe("ClassicySoundManagerProvider defaultMuted", () => {
 		expect(initialPlayer.disabled).toEqual([]);
 	});
 });
+
+const VolumeProbe = () => {
+	const sound = useSound();
+	const dispatch = useSoundDispatch();
+	return (
+		<button
+			type="button"
+			onClick={() => dispatch({ type: "ClassicyVolumeSet", volume: 40 })}
+		>
+			{`gain-${sound.volume}`}
+		</button>
+	);
+};
+
+describe("ClassicySoundManagerProvider volume", () => {
+	it("applies the system volume to the player as its gain", () => {
+		const player = initialPlayer.soundPlayer as unknown as {
+			volume: ReturnType<typeof vi.fn>;
+		};
+		player.volume.mockClear();
+		render(
+			<ClassicySoundManagerProvider>
+				<VolumeProbe />
+			</ClassicySoundManagerProvider>,
+		);
+		expect(player.volume).toHaveBeenLastCalledWith(1);
+		fireEvent.click(screen.getByRole("button", { name: "gain-100" }));
+		expect(player.volume).toHaveBeenLastCalledWith(0.4);
+	});
+});

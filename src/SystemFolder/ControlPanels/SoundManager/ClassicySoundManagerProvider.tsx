@@ -9,6 +9,7 @@ import {
 	ClassicySoundDispatchContext,
 	ClassicySoundManagerContext,
 	ClassicySoundStateEventReducer,
+	classicySoundGain,
 	initialPlayer,
 } from "./ClassicySoundManagerUtils";
 
@@ -43,6 +44,13 @@ export const ClassicySoundManagerProvider: FunctionalComponent<{
 			soundDispatch({ type: "ClassicySoundSetAlertSound", sound: alertSound });
 		}
 	}, [alertSound]);
+
+	// The system volume (ClassicyVolumeSet) is the player's gain. Re-applied
+	// when a sound theme loads a new player, so the level carries over.
+	const { soundPlayer, volume } = sound;
+	useEffect(() => {
+		soundPlayer?.volume(classicySoundGain(volume));
+	}, [soundPlayer, volume]);
 
 	return (
 		<ClassicySoundManagerContext.Provider value={sound}>
