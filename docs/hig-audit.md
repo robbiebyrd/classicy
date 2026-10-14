@@ -247,6 +247,7 @@ Normative checklist (HIGOS8 Ch.4 + HIGOS7 menu detail):
 | 4.2 | MEDIUM | Close/Quit display `⌥W`/`⌥Q` rather than `⌘W`/`⌘Q`. | all control panels | ✅ Intentional (web adaptation) |
 | 4.3 | LOW | "About Balloon Help…" carries a trailing ellipsis though it only opens an info window. | Help menu | ✅ Matches shipped OS 8.0 |
 | 4.6 | LOW | Edit-menu Undo is always enabled and never names the action. | `useClassicyEditMenu` | ⚠️ Deferred |
+| 4.7 | LOW | Menus drew a 2 px solid-black drop shadow and a system-05 inner edge, and dividers were system-04 over system-01. | all menus | 🔧 Fixed |
 
 **Details & fixes**
 
@@ -259,6 +260,13 @@ Normative checklist (HIGOS8 Ch.4 + HIGOS7 menu detail):
 - **4.4** (`ClassicyAppManager.ts`): removed the invented `⌃S` from the Apple-menu
   About item (real Mac OS has none); the chord is no longer registered. Menu-bar
   test updated to assert its absence. _HIGOS8 Ch.4._
+- **4.7** (`appearance.scss` `platinumMenuFrame` / `platinumMenuDivider`): menu
+  bar dropdowns, contextual menus, their submenus and pop-up bevel menus now
+  share Figure 6-15's frame, matched pixel for pixel: 1 px black border; white
+  highlight on the inside top and left and a system-04 edge on the bottom and
+  right, meeting at face-coloured corners; and a 1 px system-07 shadow that
+  starts 2 px in from the corner. Dividers are a system-05 line over a white
+  one across the full inner width. _HIGOS8 Ch.6 Figure 6-15._
 
 **Intentional / not changed**
 
@@ -450,7 +458,7 @@ Still open:
 The chapter audits above check components Classicy already had. A later pass
 compared the HIG's own table of contents and figure list against the
 component library to find HIG elements with **no** Classicy component. Four
-turned up. Three are added; the Control Strip follows in a separate change.
+turned up, and all four were added.
 Little Arrows, which already existed but lived inside `TimePicker/`, moved to
 its own `LittleArrows/` folder.
 
@@ -459,7 +467,7 @@ its own `LittleArrows/` folder.
 | Pop-up bevel button menu | HIGOS8 Ch.2 "Bevel Buttons as Pop-up Buttons" (pp.32–33), Figure 2-15 | `popup` mode drew the arrow but opened nothing | `ClassicyBevelButton` takes `menuItems`. The menu opens below or to the right, flipping when there is no room. A quick click leaves it open (sticky); a press held past the double-click interval makes it a standard menu. The `hold` trigger keeps a tool's click and offers its options on a long press |
 | Help button | HIGOS8 Ch.3 "Help Button Layout" (p.86), Figures 3-36, 3-37 | only an alert button role drawing a text "?" | `ClassicyHelpButton`: 20 × 21 small-bevel button with the help glyph lifted from Figure 3-36. `ClassicyAlert`'s `help` role renders it |
 | User-definable keyboard equivalents | HIGOS8 Ch.6 "Keyboard Equivalent Support" (pp.120–122), Figures 6-8 to 6-11 | nothing | `ClassicyKeyboardEquivalentField` and its capture dialog. A combination without a command key (or function key), or one already in use, is refused with an alert that names the owner |
-| Control Strip | HIGOS8 Ch.6 "Persistent Access" (p.125), Figure 6-15 | nothing (folder icon only) | ⚠️ In progress — separate change (with Figure 2-16's pop-up volume slider) |
+| Control Strip | HIGOS8 Ch.6 "Persistent Access" (p.125), Figure 6-15; Figure 2-16 | nothing (folder icon only) | `ClassicyControlStrip`, mounted by `ClassicyDesktop`: collapse box, scroll arrows, pop-up modules and a draggable tab, pixel-matched to Figure 6-15 (module icons lifted from it). The built-in Sound module is Figure 2-16: it pops up `ClassicyPopUpSlider` (pixel-exact) to set the system volume, which the Sound Manager applies to playback; the Screen Saver module ends in "Open … Control Panel". The menu bar's speaker widget is gone |
 
 Not counted as gaps: window headers (p.50) are a `header` prop on
 `ClassicyWindow`, which matches the HIG treating them as part of the window.

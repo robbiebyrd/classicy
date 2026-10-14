@@ -120,6 +120,10 @@ export const createSoundPlayer = ({
 
 const defaultSoundData = ClassicySounds.platinum;
 
+/** The system volume as a 0–1 gain for the player (100 when unset). */
+export const classicySoundGain = (volume: number | undefined): number =>
+	(volume ?? 100) / 100;
+
 export const initialPlayer: ClassicySoundState = {
 	soundPlayer: defaultSoundData
 		? createSoundPlayer({ soundData: defaultSoundData })
@@ -222,7 +226,15 @@ export const ClassicySoundStateEventReducer = (
 			break;
 		}
 		case ClassicySoundActionTypes.ClassicyVolumeSet: {
-			next = { ...ss, volume: action.volume };
+			// A whole-number percentage. ClassicySoundManagerProvider applies it to
+			// the player (and to any player loaded later).
+			next =
+				typeof action.volume === "number" && Number.isFinite(action.volume)
+					? {
+							...ss,
+							volume: Math.round(Math.min(100, Math.max(0, action.volume))),
+						}
+					: ss;
 			break;
 		}
 		case ClassicySoundActionTypes.ClassicySoundDisable: {

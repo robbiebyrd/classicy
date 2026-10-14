@@ -313,3 +313,44 @@ describe("ClassicyDesktop default parade icons", () => {
 		).toHaveLength(11);
 	});
 });
+
+describe("ClassicyDesktop Control Strip", () => {
+	beforeEach(() => {
+		localStorage.clear();
+		sessionStorage.clear();
+		useAppManager.setState(DefaultAppManagerState, true);
+	});
+
+	it("mounts the Control Strip with the built-in Sound module by default", () => {
+		render(
+			<ClassicyAppManagerProvider>
+				<ClassicyDesktop startupScreen={false} />
+			</ClassicyAppManagerProvider>,
+		);
+		const strip = screen.getByRole("toolbar", { name: "Control Strip" });
+		expect(strip).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Sound" })).toBeInTheDocument();
+	});
+
+	it("passes its props through, and hides it with controlStrip={false}", () => {
+		const { unmount } = render(
+			<ClassicyAppManagerProvider>
+				<ClassicyDesktop
+					startupScreen={false}
+					controlStrip={{ defaultCollapsed: true }}
+				/>
+			</ClassicyAppManagerProvider>,
+		);
+		expect(
+			screen.getByRole("button", { name: "Expand Control Strip" }),
+		).toBeInTheDocument();
+		unmount();
+
+		render(
+			<ClassicyAppManagerProvider>
+				<ClassicyDesktop startupScreen={false} controlStrip={false} />
+			</ClassicyAppManagerProvider>,
+		);
+		expect(screen.queryByRole("toolbar", { name: "Control Strip" })).toBeNull();
+	});
+});

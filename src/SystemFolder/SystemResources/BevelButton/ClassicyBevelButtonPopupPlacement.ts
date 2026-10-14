@@ -1,14 +1,27 @@
 // Where a pop-up bevel button's menu goes (HIGOS8 Ch.2 "Bevel Buttons as
 // Pop-up Buttons", p.32): "directly below or to the right of the button".
-// The arrow orientation picks the side — a vertical (down) arrow opens below,
-// left edges aligned; a horizontal (right) arrow opens to the right, top edges
-// aligned. When that side has no room the menu flips to the opposite side of
-// the button (HIG Figure 2-16 shows a Control Strip pop-up opening upward),
-// and as a last resort it is clamped onto the screen.
+// Below, the menu's left edge lines up with the button's; to the right, the
+// top edges line up. When that side has no room the menu flips to the
+// opposite side of the button (HIG Figure 2-16 shows a Control Strip pop-up
+// opening upward), and as a last resort it is clamped onto the screen.
 
-export type ClassicyBevelPopupDirection = "horizontal" | "vertical";
+export type ClassicyBevelPopupSide = "below" | "right";
 
-type Rect = { top: number; bottom: number; left: number; right: number };
+/**
+ * How the popup lines up along the button: `start` puts the edges together
+ * (left edges below, tops to the right); `center` centres it on the button,
+ * rounding up — HIGOS8 Figure 2-16's slider sits centred on its module.
+ */
+export type ClassicyBevelPopupAlign = "start" | "center";
+
+export type ClassicyBevelPopupRect = {
+	top: number;
+	bottom: number;
+	left: number;
+	right: number;
+};
+
+type Rect = ClassicyBevelPopupRect;
 type Size = { width: number; height: number };
 
 const clamp = (value: number, size: number, viewport: number) =>
@@ -18,16 +31,25 @@ export const classicyBevelPopupPlacement = (
 	anchor: Rect,
 	popup: Size,
 	viewport: Size,
-	direction: ClassicyBevelPopupDirection,
+	side: ClassicyBevelPopupSide,
+	align: ClassicyBevelPopupAlign = "start",
 ): { left: number; top: number } => {
-	if (direction === "horizontal") {
+	const centred = (start: number, end: number, size: number) =>
+		start + Math.ceil((end - start - size) / 2);
+	if (side === "right") {
 		let left = anchor.right;
 		if (left + popup.width > viewport.width && anchor.left >= popup.width) {
 			left = anchor.left - popup.width;
 		}
 		return {
 			left: clamp(left, popup.width, viewport.width),
-			top: clamp(anchor.top, popup.height, viewport.height),
+			top: clamp(
+				align === "center"
+					? centred(anchor.top, anchor.bottom, popup.height)
+					: anchor.top,
+				popup.height,
+				viewport.height,
+			),
 		};
 	}
 	let top = anchor.bottom;
@@ -35,7 +57,13 @@ export const classicyBevelPopupPlacement = (
 		top = anchor.top - popup.height;
 	}
 	return {
-		left: clamp(anchor.left, popup.width, viewport.width),
+		left: clamp(
+			align === "center"
+				? centred(anchor.left, anchor.right, popup.width)
+				: anchor.left,
+			popup.width,
+			viewport.width,
+		),
 		top: clamp(top, popup.height, viewport.height),
 	};
 };

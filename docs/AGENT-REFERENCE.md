@@ -414,7 +414,7 @@ usable pre-boot): `title?`, `children` *, `className?`, `width?`.
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
 | `ClassicyButton` | `isDefault?`, `disabled?`, `onClickFunc?`, `buttonShape? ("rectangle"\|"square")`, `buttonSize? ("medium"\|"small")`, `buttonType?`, `padding?/margin? ("sm"\|"md"\|"lg"\|"xl")` | forwardRef to `<button>`; accepts remaining button HTML attrs |
-| `ClassicyBevelButton` | `mode? ("push"\|"toggle"\|"radio"\|"popup")`, `bevelWidth? ("small"\|"medium"\|"large")`, `icon?`, `on?`, `mixed?`, `onChangeFunc?(on)`, `popupArrow? ("small"\|"large")`, `popupDirection? ("horizontal"\|"vertical")`, `menuItems?` (`ClassicyMenuItem[]`), `popupTrigger? ("click"\|"hold")`, `popupHoldDelayMs? (500)`, `className?` | auto-squares inside a toolbar. With `menuItems` it opens a Platinum menu below (vertical arrow) or to the right (horizontal arrow) of itself (HIGOS8 p.32), flipping when there is no room. `click` trigger (default in `popup` mode): quick click = sticky menu, press held past the hold delay = standard press-drag-release menu. `hold` trigger (default in other modes): click keeps the button's own behaviour, a long press shows the options (tool palettes). Enter/Space or Down Arrow open it from the keyboard |
+| `ClassicyBevelButton` | `mode? ("push"\|"toggle"\|"radio"\|"popup")`, `bevelWidth? ("small"\|"medium"\|"large")`, `icon?`, `on?`, `mixed?`, `onChangeFunc?(on)`, `popupArrow? ("small"\|"large")`, `popupDirection? ("horizontal"\|"vertical")`, `menuItems?` (`ClassicyMenuItem[]`), `popupContent?`, `popupTrigger? ("click"\|"hold")`, `popupPlacement? ("below"\|"right")`, `popupAlign? ("start"\|"center")`, `popupAnchorInset?` (`{top?, bottom?, left?, right?}`), `popupHoldDelayMs? (500)`, `className?` | auto-squares inside a toolbar. With `menuItems` (or `popupContent`, e.g. `ClassicyPopUpSlider`) it opens a Platinum menu below or to the right of itself (HIGOS8 p.32), flipping when there is no room. `click` trigger (default in `popup` mode): quick click = sticky menu, press held past the hold delay = standard press-drag-release menu. `hold` trigger (default in other modes): click keeps the button's own behaviour, a long press shows the options (tool palettes). Enter/Space or Down Arrow open it from the keyboard |
 | `ClassicyHelpButton` | `onClickFunc?`, `label? ("Help")`, `disabled?`, `id?`, `className?` | HIG Help button (HIGOS8 p.86): 20 × 21 small-bevel button with the help glyph (`ClassicyIcons.ui.helpButton`); `label` is the accessible name. Place it lower left aligned with the push buttons (`margin-right: auto` in a right-aligned row), else upper right. `ClassicyAlert`'s `help` button role renders it |
 | `ClassicyButtonToolbar` / `ClassicyButtonToolbarGroup` | `children` *, `className?` | auto dividers between groups; roving-tabindex keyboard nav |
 | `ClassicyCheckbox` | `id` *, `checked?`, `mixed?`, `disabled?`, `onClickFunc?(checked)`, `label?`, `labelPosition?` | |
@@ -521,7 +521,10 @@ plain integers (`0xRRGGBB`).
 | `ClassicyDesktopIcon` | `appId` *, `appName` *, `icon` *, `kind?`, `label?`, `event?`/`eventData?`, `onClickFunc?`, `noLaunch?`, `contextMenu?`, `balloonHelp?` | usually created for you by `ClassicyApp` |
 | `ClassicyCrashScreen` | `children?` | error boundary → Sad Mac screen; wrap your desktop in it |
 | `ClassicyBoot` / `ClassicyBootSequence` / `ClassicyStartupScreen` | see source | boot parade; normally managed by `ClassicyDesktop` |
-| `ClassicyDesktopMenuWidgetSound` / `ClassicyDesktopMenuWidgetTime` | `hide?` / none | stock menu bar widgets |
+| `ClassicyDesktopMenuWidgetSound` / `ClassicyDesktopMenuWidgetTime` | `hide?` / none | stock menu bar widgets; the menu bar shows only Time — Sound moved to the Control Strip |
+| `ClassicyControlStrip` | `modules?` (`{id, icon, label, menuItems?, content?}[]`), `defaultCollapsed?`, `defaultWidth?` | Mac OS 8 Control Strip (HIGOS8 p.125, Figure 6-15): floating strip at the desktop's lower left — collapse box, scroll arrows, modules, draggable tab; widths snap to whole modules. `ClassicyDesktop` mounts it (`controlStrip` prop: its props, or `false` to hide). Each module is a pop-up bevel button whose menu opens above the strip; a disabled item with class `classicyControlStripStatus` is a black italic status line. A module for a control panel should include an "Open … Control Panel" command. Defaults to the built-in Sound module (Figure 2-16: pops up a `ClassicyPopUpSlider` for the system volume; raising it unmutes) and Screen Saver module (`useClassicyDefaultControlStripModules`, or each via `useClassicySoundControlStripModule` / `useClassicyScreenSaverControlStripModule`) |
+| `ClassicyPopUpSlider` | `value` *, `onChange(value)` *, `ariaLabel` *, `min? (0)`, `max? (100)`, `step? (1)`, `disabled?` | HIGOS8 Figure 2-16's vertical slider (17 × 73) for a bevel button's `popupContent`; drag/click, arrows, Page Up/Down, Home/End |
+| `ClassicyPixelArt` | `rows` * (`string[]` of palette tokens, `.` transparent), `className?` | themed, pixel-exact inline-SVG art (tokens `K W 1–7 b c d m n` map to theme colours) |
 
 Desktop icon `kind` values (sort order): `drive`, `directory`, `app_shortcut`,
 `shortcut`, `trash`, `file`, `icon`. Kinds `app_shortcut` and `shortcut` get
@@ -867,7 +870,10 @@ Action types (string enum `ClassicySoundActionTypes`): `ClassicySoundPlay`
 (skipped if muted, per-sound disabled, or already playing),
 `ClassicySoundPlayInterrupt`, `ClassicySoundPlayError`, `ClassicySoundStop`,
 `ClassicySoundDisable` / `ClassicySoundDisableOne` / `ClassicySoundEnableOne`
-(muting = the `"*"` wildcard in `disabled`), `ClassicyVolumeSet`,
+(muting = the `"*"` wildcard in `disabled`; toggle just the mute with
+`EnableOne`/`DisableOne` `"*"` to keep per-sound choices), `ClassicyVolumeSet`
+(`{ volume }` 0–100, clamped and rounded; the player's gain, kept across
+theme loads),
 `ClassicyAlertSound`, `ClassicySoundSetAlertSound`. `useSound()` reads state.
 Alert sound options: `CLASSICY_ALERT_SOUNDS` (Bonk, Growl, Indigo, Quack,
 Sosumi, Tabitha, Wild Eep); default `DEFAULT_ALERT_SOUND = "ClassicyAlertSosumi"`.
