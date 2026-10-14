@@ -280,6 +280,9 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 
 	const desktopTab = useDesktopTab({
 		bg,
+		bgPosition: appearanceState.activeTheme.desktop.backgroundPosition,
+		bgRepeat: appearanceState.activeTheme.desktop.backgroundRepeat,
+		bgSize: appearanceState.activeTheme.desktop.backgroundSize,
 		changeBackground,
 		setBackgroundURL,
 		alignBackground,

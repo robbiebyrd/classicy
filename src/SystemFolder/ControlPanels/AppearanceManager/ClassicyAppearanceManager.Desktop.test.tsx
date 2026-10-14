@@ -1,7 +1,10 @@
 import type { ChangeEvent } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { render, renderHook, screen, userEvent } from "@/__tests__/test-utils";
-import { useDesktopTab } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Desktop";
+import {
+	classicyBackgroundSizeOption,
+	useDesktopTab,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Desktop";
 import {
 	ClassicyDefaultWallpaper,
 	ClassicyWallpapers,
@@ -80,5 +83,100 @@ describe("useDesktopTab — Patterns", () => {
 			"src",
 			wallpaper("Rio Azul").value,
 		);
+	});
+});
+
+// Align, Repeat and Size follow Patterns in DOM order.
+const alignMenu = () => screen.getAllByRole("combobox")[1];
+const repeatMenu = () => screen.getAllByRole("combobox")[2];
+const sizeMenu = () => screen.getAllByRole("combobox")[3];
+
+describe("classicyBackgroundSizeOption", () => {
+	it.each([
+		["auto", "auto"],
+		["100%", "auto"],
+		[100, "auto"],
+		[50, "auto"],
+		["", "auto"],
+		[undefined, "auto"],
+		["240px", "auto"],
+		["cover", "cover"],
+		["contain", "contain"],
+	] as const)("maps %j to %j", (stored, option) => {
+		expect(classicyBackgroundSizeOption(stored)).toBe(option);
+	});
+});
+
+describe("useDesktopTab — Size", () => {
+	it.each([
+		"auto",
+		"100%",
+		100,
+	] as const)("shows 'Normal' for a stored size of %j", (bgSize) => {
+		render(<Host bgSize={bgSize} />);
+		expect(sizeMenu()).toHaveTextContent("Normal");
+	});
+
+	it("shows 'Normal' when no size is passed", () => {
+		render(<Host />);
+		expect(sizeMenu()).toHaveTextContent("Normal");
+	});
+
+	it("shows 'Stretch' for cover and 'Fill' for contain", () => {
+		const { rerender } = render(<Host bgSize="cover" />);
+		expect(sizeMenu()).toHaveTextContent("Stretch");
+		rerender(<Host bgSize="contain" />);
+		expect(sizeMenu()).toHaveTextContent("Fill");
+	});
+
+	it("dispatches the CSS keyword 'auto' for Normal", async () => {
+		const backgroundSize = vi.fn();
+		const user = userEvent.setup();
+		render(<Host bgSize="cover" backgroundSize={backgroundSize} />);
+		await user.click(sizeMenu());
+		await user.click(screen.getByRole("option", { name: "Normal" }));
+		expect(backgroundSize).toHaveBeenCalledOnce();
+		expect(backgroundSize.mock.calls[0][0].target.value).toBe("auto");
+	});
+
+	it("gives every element on the tab a distinct id", () => {
+		const { container } = render(<Host />);
+		const ids = Array.from(container.querySelectorAll("[id]")).map(
+			(el) => el.id,
+		);
+		expect(new Set(ids).size).toBe(ids.length);
+	});
+});
+
+describe("useDesktopTab — Align and Repeat", () => {
+	it("shows the stored position", () => {
+		render(<Host bgPosition="top right" />);
+		expect(alignMenu()).toHaveTextContent("Top Right");
+	});
+
+	it("defaults Align to Center", () => {
+		render(<Host />);
+		expect(alignMenu()).toHaveTextContent("Center");
+	});
+
+	it("shows the stored repeat", () => {
+		render(<Host bgRepeat="no-repeat" />);
+		expect(repeatMenu()).toHaveTextContent("No Repeat");
+	});
+
+	it("defaults Repeat to Repeat", () => {
+		render(<Host />);
+		expect(repeatMenu()).toHaveTextContent("Repeat");
+	});
+
+	it("passes the chosen repeat value to the callback", async () => {
+		const repeatBackground = vi.fn();
+		const user = userEvent.setup();
+		render(<Host repeatBackground={repeatBackground} />);
+		await user.click(repeatMenu());
+		await user.click(
+			screen.getByRole("option", { name: "Repeat Horizontally" }),
+		);
+		expect(repeatBackground.mock.calls[0][0].target.value).toBe("repeat-x");
 	});
 });

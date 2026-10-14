@@ -5,8 +5,32 @@ import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/Clas
 import type { TabIndividual } from "@/SystemFolder/SystemResources/Tabs/ClassicyTabs";
 import { ClassicyWallpapers } from "./ClassicyWallpapers";
 
+/**
+ * The Size pop-up's three choices. "auto" is the CSS keyword for an image
+ * at its natural size ("Normal"); the old "normal" value was not valid CSS.
+ */
+export type ClassicyBackgroundSizeOption = "auto" | "cover" | "contain";
+
+/**
+ * Map a stored `desktop.backgroundSize` onto a Size pop-up choice. Only the
+ * `cover`/`contain` keywords have their own entries; everything else —
+ * "auto", the "100%" many bundled themes ship with, numeric percentages,
+ * or any other CSS length — reads as "Normal".
+ */
+export const classicyBackgroundSizeOption = (
+	size: number | string | undefined,
+): ClassicyBackgroundSizeOption =>
+	size === "cover" || size === "contain" ? size : "auto";
+
 interface DesktopTabProps {
+	/** Current background image URL (resolved), or a stand-in for none. */
 	bg: string;
+	/** Current `desktop.backgroundPosition`. */
+	bgPosition?: string | number;
+	/** Current `desktop.backgroundRepeat`. */
+	bgRepeat?: string;
+	/** Current `desktop.backgroundSize` (any stored form). */
+	bgSize?: number | string;
 	changeBackground: (e: ChangeEvent<HTMLSelectElement>) => void;
 	setBackgroundURL: (e: ChangeEvent<HTMLInputElement>) => void;
 	alignBackground: (e: ChangeEvent<HTMLSelectElement>) => void;
@@ -16,13 +40,17 @@ interface DesktopTabProps {
 
 export const useDesktopTab = ({
 	bg,
+	bgPosition = "center",
+	bgRepeat = "repeat",
+	bgSize = "auto",
 	changeBackground,
 	setBackgroundURL,
 	alignBackground,
 	repeatBackground,
 	backgroundSize,
-}: DesktopTabProps): TabIndividual =>
-	useMemo(
+}: DesktopTabProps): TabIndividual => {
+	const sizeOption = classicyBackgroundSizeOption(bgSize);
+	return useMemo(
 		() => ({
 			title: "Desktop",
 			children: (
@@ -69,7 +97,8 @@ export const useDesktopTab = ({
 											{ value: "bottom center", label: "Bottom Center" },
 											// { value: 'tile', label: 'Tile on Screen' },
 										]}
-										selected={"center"}
+										selected={String(bgPosition)}
+										placeholder={"Custom"}
 									/>
 								</div>
 								<div className={"classicyAppearanceManagerDesktopOptionsRow"}>
@@ -83,20 +112,21 @@ export const useDesktopTab = ({
 											{ value: "repeat-y", label: "Repeat Vertically" },
 											{ value: "no-repeat", label: "No Repeat" },
 										]}
-										selected={"repeat"}
+										selected={bgRepeat}
+										placeholder={"Custom"}
 									/>
 								</div>
 								<div className={"classicyAppearanceManagerDesktopOptionsRow"}>
 									<ClassicyControlLabel label={"Size"} direction={"left"} />
 									<ClassicyPopUpMenu
 										onChangeFunc={backgroundSize}
-										id={"repeat_background_image"}
+										id={"size_background_image"}
 										options={[
-											{ value: "normal", label: "Normal" },
+											{ value: "auto", label: "Normal" },
 											{ value: "cover", label: "Stretch" },
 											{ value: "contain", label: "Fill" },
 										]}
-										selected={"repeat"}
+										selected={sizeOption}
 									/>
 								</div>
 							</div>
@@ -107,6 +137,9 @@ export const useDesktopTab = ({
 		}),
 		[
 			bg,
+			bgPosition,
+			bgRepeat,
+			sizeOption,
 			changeBackground,
 			setBackgroundURL,
 			alignBackground,
@@ -114,3 +147,4 @@ export const useDesktopTab = ({
 			backgroundSize,
 		],
 	);
+};
