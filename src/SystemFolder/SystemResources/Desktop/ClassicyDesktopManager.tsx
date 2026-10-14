@@ -12,6 +12,7 @@ import {
 	hasBackgroundSize,
 	hasDesktopAppRef,
 	hasDisableBalloonHelp,
+	hasDoubleClickTitleToCollapse,
 	hasDrive,
 	hasErrorDialogMessage,
 	hasFont,
@@ -312,6 +313,12 @@ export const classicyDesktopEventHandler = (
 		case "ClassicyDesktopSetBalloonHelp": {
 			if (!hasDisableBalloonHelp(action)) break;
 			ds.System.Manager.Desktop.disableBalloonHelp = action.disableBalloonHelp;
+			break;
+		}
+		case "ClassicyDesktopSetDoubleClickTitleToCollapse": {
+			if (!hasDoubleClickTitleToCollapse(action)) break;
+			ds.System.Manager.Desktop.doubleClickTitleToCollapse =
+				action.doubleClickTitleToCollapse;
 			break;
 		}
 		case "ClassicyDesktopShowErrorDialog": {

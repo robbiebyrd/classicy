@@ -4,7 +4,10 @@ import {
 	type ClassicyStoreSystemApp,
 	DefaultAppManagerState,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
-import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import {
+	dispatch,
+	useAppManager,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
 // #278: Option-click collapse-all / expand-all. Unlike
@@ -172,5 +175,51 @@ describe("ClassicyWindow Option-click collapse-all (#278)", () => {
 		expect(windowRecord("plain")?.collapsed).toBe(false);
 		expect(windowRecord("fixed")?.collapsed).toBe(false);
 		expect(windowRecord("dialog")?.collapsed).toBe(false);
+	});
+});
+
+// #280: end to end through the real store — the Appearance checkbox's action
+// reaches the window's title-bar double-click handler.
+describe("ClassicyDesktopSetDoubleClickTitleToCollapse (#280)", () => {
+	beforeEach(() => {
+		mockPlayer.mockClear();
+		seedApp();
+	});
+
+	const titleBarOf = (container: HTMLElement) =>
+		container.querySelector(
+			`[id="${APP}_clicked"] .classicyWindowTitle`,
+		) as HTMLElement;
+
+	it("a title-bar double-click is ignored once the setting is turned off", () => {
+		const { container } = renderWindows();
+		act(() => {
+			dispatch({
+				type: "ClassicyDesktopSetDoubleClickTitleToCollapse",
+				doubleClickTitleToCollapse: false,
+			});
+		});
+
+		fireEvent.dblClick(titleBarOf(container));
+
+		expect(windowRecord("clicked")?.collapsed).toBe(false);
+	});
+
+	it("a title-bar double-click collapses when the setting is back on", () => {
+		const { container } = renderWindows();
+		act(() => {
+			dispatch({
+				type: "ClassicyDesktopSetDoubleClickTitleToCollapse",
+				doubleClickTitleToCollapse: false,
+			});
+			dispatch({
+				type: "ClassicyDesktopSetDoubleClickTitleToCollapse",
+				doubleClickTitleToCollapse: true,
+			});
+		});
+
+		fireEvent.dblClick(titleBarOf(container));
+
+		expect(windowRecord("clicked")?.collapsed).toBe(true);
 	});
 });

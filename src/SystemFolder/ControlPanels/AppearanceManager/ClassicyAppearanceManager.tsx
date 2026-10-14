@@ -54,6 +54,10 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 	const appearanceState = useAppManager(
 			(state) => state.System.Manager.Appearance,
 		),
+		// Lives on the Desktop slice (ClassicyWindow reads it from there).
+		doubleClickTitleToCollapse = useAppManager(
+			(state) => state.System.Manager.Desktop?.doubleClickTitleToCollapse,
+		),
 		desktopEventDispatch = useAppManagerDispatch(),
 		player = useSoundDispatch();
 
@@ -124,6 +128,18 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 				desktopEventDispatch({
 					type: "ClassicyDesktopSetSmartScrolling",
 					smartScrolling: checked,
+				});
+			});
+		},
+		[desktopEventDispatch],
+	);
+
+	const toggleDoubleClickTitleToCollapse = useCallback(
+		(checked: boolean) => {
+			startTransition(() => {
+				desktopEventDispatch({
+					type: "ClassicyDesktopSetDoubleClickTitleToCollapse",
+					doubleClickTitleToCollapse: checked,
 				});
 			});
 		},
@@ -278,6 +294,9 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		// Default to on when unset (persisted stores predating this setting).
 		smartScrolling: appearanceState.smartScrolling !== false,
 		toggleSmartScrolling,
+		// Same on-when-unset default ClassicyWindow applies when reading it.
+		doubleClickTitleToCollapse: doubleClickTitleToCollapse !== false,
+		toggleDoubleClickTitleToCollapse,
 	});
 
 	const desktopTab = useDesktopTab({
