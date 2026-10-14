@@ -1,11 +1,14 @@
 import type { MouseEvent } from "react";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
+	assignImportedClassicyThemeIdentity,
 	cloneClassicyTheme,
 	editActiveClassicyTheme,
 	findClassicyTheme,
+	listClassicyThemes,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
 import { setThemeColor } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorTargets";
+import { readClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFile";
 import {
 	hasActiveTheme,
 	hasAlertSound,
@@ -24,6 +27,7 @@ import {
 	hasErrorDialogMessage,
 	hasFont,
 	hasFontSize,
+	hasImportableTheme,
 	hasMenuBar,
 	hasMouseEvent,
 	hasSmartScrolling,
@@ -228,6 +232,27 @@ export const classicyDesktopEventHandler = (
 				ds.System.Manager.Appearance.activeTheme =
 					cloneClassicyTheme(foundTheme);
 			}
+			break;
+		}
+		case "ClassicyDesktopImportTheme": {
+			// The payload is untrusted (it came from a file): the predicate
+			// validates it against ClassicyThemeSchema, and readClassicyTheme
+			// strips undeclared keys and resolves the wallpaper for this build.
+			if (!hasImportableTheme(action)) break;
+			const read = readClassicyTheme(action.theme);
+			if (!read.ok) break;
+			const appearance = ds.System.Manager.Appearance;
+			// Always a new entry: the payload's id is ignored, so an import
+			// can never overwrite an existing custom theme or shadow a built-in.
+			const imported = assignImportedClassicyThemeIdentity(
+				read.theme,
+				listClassicyThemes(appearance),
+			);
+			if (!appearance.customThemes) appearance.customThemes = [];
+			appearance.customThemes.push(imported);
+			// Activate a copy, exactly as ChangeTheme does; being a custom theme,
+			// later edits modify it in place rather than forking.
+			appearance.activeTheme = cloneClassicyTheme(imported);
 			break;
 		}
 		// Every theme edit below goes through editActiveClassicyTheme: the first

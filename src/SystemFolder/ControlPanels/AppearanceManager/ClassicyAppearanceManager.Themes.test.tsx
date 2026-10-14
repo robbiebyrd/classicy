@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, renderHook, screen, userEvent } from "@/__tests__/test-utils";
+import {
+	fireEvent,
+	render,
+	renderHook,
+	screen,
+	userEvent,
+} from "@/__tests__/test-utils";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { useThemesTab } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Themes";
 import { listClassicyThemes } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
@@ -12,6 +18,8 @@ const baseProps = {
 	toggleSmartScrolling: vi.fn(),
 	doubleClickTitleToCollapse: true,
 	toggleDoubleClickTitleToCollapse: vi.fn(),
+	saveTheme: vi.fn(),
+	loadThemeFile: vi.fn(),
 };
 
 const Host = (props: Partial<typeof baseProps>) => {
@@ -154,5 +162,58 @@ describe("useThemesTab — Double-click title bar to collapse", () => {
 		);
 		await user.click(doubleClickBox());
 		expect(toggleDoubleClickTitleToCollapse).toHaveBeenCalledWith(true);
+	});
+});
+
+// #269: save the active theme to a file, and load one back.
+describe("useThemesTab — Save Theme… / Load Theme…", () => {
+	const fileInput = () =>
+		screen.getByTestId("appearance_theme_file_input") as HTMLInputElement;
+
+	it("renders both buttons and a hidden JSON file input", () => {
+		render(<Host />);
+		expect(
+			screen.getByRole("button", { name: "Save Theme…" }),
+		).toBeInTheDocument();
+		expect(
+			screen.getByRole("button", { name: "Load Theme…" }),
+		).toBeInTheDocument();
+		expect(fileInput().type).toBe("file");
+		expect(fileInput().accept).toBe("application/json,.json");
+		expect(fileInput()).not.toBeVisible();
+	});
+
+	it("Save Theme… calls saveTheme", async () => {
+		const saveTheme = vi.fn();
+		const user = userEvent.setup();
+		render(<Host saveTheme={saveTheme} />);
+		await user.click(screen.getByRole("button", { name: "Save Theme…" }));
+		expect(saveTheme).toHaveBeenCalledTimes(1);
+	});
+
+	it("Load Theme… opens the file picker", async () => {
+		const user = userEvent.setup();
+		render(<Host />);
+		const click = vi.spyOn(fileInput(), "click");
+		await user.click(screen.getByRole("button", { name: "Load Theme…" }));
+		expect(click).toHaveBeenCalledTimes(1);
+	});
+
+	it("hands the picked file to loadThemeFile and clears the input", () => {
+		const loadThemeFile = vi.fn();
+		render(<Host loadThemeFile={loadThemeFile} />);
+		const file = new File(["{}"], "ocean.classicy-theme.json", {
+			type: "application/json",
+		});
+		fireEvent.change(fileInput(), { target: { files: [file] } });
+		expect(loadThemeFile).toHaveBeenCalledWith(file);
+		expect(fileInput().value).toBe("");
+	});
+
+	it("ignores a cancelled pick", () => {
+		const loadThemeFile = vi.fn();
+		render(<Host loadThemeFile={loadThemeFile} />);
+		fireEvent.change(fileInput(), { target: { files: [] } });
+		expect(loadThemeFile).not.toHaveBeenCalled();
 	});
 });

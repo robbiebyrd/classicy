@@ -91,3 +91,60 @@ export const editActiveClassicyTheme = (
 	appearance.activeTheme = cloneClassicyTheme(next);
 	return true;
 };
+
+/** Prefix of every imported theme's id. */
+export const CLASSICY_IMPORTED_THEME_ID_PREFIX = "custom-";
+
+/**
+ * Lower-case, hyphen-separated slug of a theme name ("Azul 2" → "azul-2").
+ * Runs in linear time: the split/filter/join pass trims stray hyphens without
+ * an anchored regex, which would backtrack on long hyphen runs in an
+ * untrusted name.
+ */
+export const slugifyClassicyThemeName = (name: string): string =>
+	name
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, "-")
+		.split("-")
+		.filter(Boolean)
+		.join("-")
+		.slice(0, 48)
+		.replace(/-$/, "");
+
+/**
+ * Gives an imported theme an identity that cannot collide with any existing
+ * theme. Returns a copy; `theme` is not mutated.
+ *
+ * - **Name**: kept, unless a theme (built-in or custom) already has it,
+ *   ignoring case — then " 2", " 3", … is appended (a trailing number already
+ *   on the name is counted up from instead of stacking: "Azul 2" → "Azul 3").
+ * - **Id**: `custom-<slug of the final name>` (`custom-theme` for a name with
+ *   no letters or digits), with "-2", "-3", … appended on collision. The id in
+ *   the file is ignored — it is untrusted, and honouring it could overwrite an
+ *   existing custom theme or shadow a built-in. Never `"custom"`: that is the
+ *   fork slot, which the next edit made on a built-in overwrites.
+ */
+export const assignImportedClassicyThemeIdentity = (
+	theme: ClassicyTheme,
+	existing: ClassicyTheme[],
+): ClassicyTheme => {
+	const names = new Set(existing.map((t) => t.name.toLowerCase()));
+	let name = theme.name;
+	if (names.has(name.toLowerCase())) {
+		const numbered = /^(.*\S) (\d+)$/.exec(name);
+		const base = numbered ? numbered[1] : name;
+		let n = numbered ? Number(numbered[2]) + 1 : 2;
+		// Names are capped at 64 characters; leave room for the suffix.
+		const stem = base.slice(0, 58).trimEnd();
+		while (names.has(`${stem} ${n}`.toLowerCase())) n++;
+		name = `${stem} ${n}`;
+	}
+
+	const ids = new Set(existing.map((t) => t.id));
+	ids.add(CLASSICY_CUSTOM_THEME_ID);
+	const baseId = `${CLASSICY_IMPORTED_THEME_ID_PREFIX}${slugifyClassicyThemeName(name) || "theme"}`;
+	let id = baseId;
+	for (let n = 2; ids.has(id); n++) id = `${baseId}-${n}`;
+
+	return { ...cloneClassicyTheme(theme), id, name };
+};
