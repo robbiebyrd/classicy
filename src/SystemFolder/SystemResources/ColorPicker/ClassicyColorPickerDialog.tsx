@@ -148,54 +148,58 @@ export const ClassicyColorPickerDialog: FC<ClassicyColorPickerDialogProps> = ({
 			onCloseFunc={() => onCancelFunc?.()}
 			analyticsExclude
 		>
-			<div className="classicyColorPickerDialogBody">
-				{/* A single-select listbox: focus stays on the list and the arrow
+			{/* A full-height column so the body takes the space left over and the
+			    preview and OK/Cancel footer always stay inside the window. */}
+			<div className="classicyColorPickerDialog">
+				<div className="classicyColorPickerDialogBody">
+					{/* A single-select listbox: focus stays on the list and the arrow
 				    keys move the selection (aria-activedescendant). */}
-				<div
-					className="classicyColorPickerModeList"
-					role="listbox"
-					aria-label="Color picker mode"
-					tabIndex={0}
-					aria-activedescendant={`${listId}_${mode}`}
-					onKeyDown={onModeKeyDown}
-				>
-					{PICKER_MODES.map((m) => (
-						// Options take no focus of their own: the listbox holds focus
-						// and handles the keys (aria-activedescendant).
-						// biome-ignore lint/a11y/useFocusableInteractive: see above
-						// biome-ignore lint/a11y/useKeyWithClickEvents: see above
-						<div
-							key={m}
-							id={`${listId}_${m}`}
-							role="option"
-							aria-selected={m === mode}
-							className={classNames(
-								"classicyColorPickerModeListItem",
-								m === mode && "classicyColorPickerModeListItemSelected",
-							)}
-							onClick={() => setMode(m)}
-						>
-							{m}
-						</div>
-					))}
+					<div
+						className="classicyColorPickerModeList"
+						role="listbox"
+						aria-label="Color picker mode"
+						tabIndex={0}
+						aria-activedescendant={`${listId}_${mode}`}
+						onKeyDown={onModeKeyDown}
+					>
+						{PICKER_MODES.map((m) => (
+							// Options take no focus of their own: the listbox holds focus
+							// and handles the keys (aria-activedescendant).
+							// biome-ignore lint/a11y/useFocusableInteractive: see above
+							// biome-ignore lint/a11y/useKeyWithClickEvents: see above
+							<div
+								key={m}
+								id={`${listId}_${m}`}
+								role="option"
+								aria-selected={m === mode}
+								className={classNames(
+									"classicyColorPickerModeListItem",
+									m === mode && "classicyColorPickerModeListItemSelected",
+								)}
+								onClick={() => setMode(m)}
+							>
+								{m}
+							</div>
+						))}
+					</div>
+					<div className="classicyColorPickerActivePanel">{activePanel}</div>
 				</div>
-				<div className="classicyColorPickerActivePanel">{activePanel}</div>
-			</div>
-			<div
-				className="classicyColorPickerPreview"
-				style={
-					{
-						"--classicy-preview-color": intToHex(pendingColor),
-					} as CSSProperties
-				}
-				role="img"
-				aria-label={`Selected color: ${intToHex(pendingColor)}`}
-			/>
-			<div className="classicyColorPickerDialogFooter">
-				<ClassicyButton onClickFunc={onCancelFunc}>Cancel</ClassicyButton>
-				<ClassicyButton isDefault={true} onClickFunc={handleOK}>
-					OK
-				</ClassicyButton>
+				<div
+					className="classicyColorPickerPreview"
+					style={
+						{
+							"--classicy-preview-color": intToHex(pendingColor),
+						} as CSSProperties
+					}
+					role="img"
+					aria-label={`Selected color: ${intToHex(pendingColor)}`}
+				/>
+				<div className="classicyColorPickerDialogFooter">
+					<ClassicyButton onClickFunc={onCancelFunc}>Cancel</ClassicyButton>
+					<ClassicyButton isDefault={true} onClickFunc={handleOK}>
+						OK
+					</ClassicyButton>
+				</div>
 			</div>
 		</ClassicyWindow>
 	);

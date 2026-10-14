@@ -366,7 +366,8 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 				appMenu={appMenu}
 			>
 				<div className={"classicyAppearanceManagerContent"}>
-					<ClassicyTabs tabs={tabs} />
+					{/* Five tabs need the compact strip to fit the 480 px panel. */}
+					<ClassicyTabs tabs={tabs} size="small" />
 					<ClassicyButton onClickFunc={quitApp}>Quit</ClassicyButton>
 				</div>
 			</ClassicyWindow>
