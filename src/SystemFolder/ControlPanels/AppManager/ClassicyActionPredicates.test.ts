@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
 	hasActiveTheme,
 	hasAlertVolume,
@@ -24,6 +25,7 @@ import {
 	hasIconId,
 	hasIconIds,
 	hasIconLocation,
+	hasImportableTheme,
 	hasMenuBar,
 	hasMouseEvent,
 	hasPath,
@@ -886,5 +888,26 @@ describe("hasDoubleClickTitleToCollapse", () => {
 				doubleClickTitleToCollapse: 1,
 			}),
 		).toBe(false);
+	});
+});
+
+describe("hasImportableTheme", () => {
+	const msg = (theme: unknown): Msg => ({
+		type: "ClassicyDesktopImportTheme",
+		theme,
+	});
+
+	it("accepts a theme that passes ClassicyThemeSchema", () => {
+		expect(hasImportableTheme(msg(getTheme("azul")))).toBe(true);
+	});
+
+	it("rejects a missing, malformed or unsafe theme", () => {
+		expect(hasImportableTheme({ type: "ClassicyDesktopImportTheme" })).toBe(
+			false,
+		);
+		expect(hasImportableTheme(msg("azul"))).toBe(false);
+		const bad = structuredClone(getTheme("azul"));
+		bad.desktop.backgroundImage = "javascript:alert(1)";
+		expect(hasImportableTheme(msg(bad))).toBe(false);
 	});
 });

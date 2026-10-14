@@ -12,11 +12,13 @@
  *   it actually needs.
  */
 
+import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
 	type ClassicyThemeColorChange,
 	isThemeColorTarget,
 	isValidThemeColor,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorTargets";
+import { ClassicyThemeSchema } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
 type Msg = Record<string, unknown> & { type: string };
@@ -261,6 +263,17 @@ export function hasAvailableThemes(
 	m: Msg,
 ): m is Msg & { availableThemes: unknown[] } {
 	return Array.isArray(m.availableThemes);
+}
+
+/**
+ * Action has `theme: ClassicyTheme`, validated against `ClassicyThemeSchema`
+ * (an imported theme is untrusted data: colours in range, safe CSS strings, a
+ * bundled-wallpaper or http(s) `backgroundImage`, a known sound theme).
+ */
+export function hasImportableTheme(
+	m: Msg,
+): m is Msg & { theme: ClassicyTheme } {
+	return ClassicyThemeSchema.safeParse(m.theme).success;
 }
 
 /** Action has `disableBalloonHelp: boolean` */
