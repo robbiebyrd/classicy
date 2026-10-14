@@ -88,8 +88,8 @@ Normative checklist (HIGOS8 Ch.2) and component mapping:
 | 2.12 | LOW | Table row selection used a fixed near-black instead of the Appearance selection color. | `Table` | 🔧 Fixed |
 | 2.6 | MEDIUM | List box frame was a 1px bevel vs the documented 2px `--hig-frame-width`. | `ListBox` | 🔧 Fixed |
 | 2.7 | MEDIUM | Edit-text frame was 1px vs the documented 2px `--hig-frame-width`. | `Input`,`TextEditor`,`RichTextEditor` | 🔧 Fixed |
-| 2.5 | LOW | Pop-up list opens below/above the button rather than aligning the current item at the button level. | `PopUpMenu` | 🔧 Fixed |
-| 2.10 | LOW | Tab labels use the 14px app UI font, not the HIG 12pt/10pt sizes. | `Tabs` | 🔧 Fixed |
+| 2.5 | LOW | Pop-up list opened below/above the button rather than aligning the current item at the button level. | `PopUpMenu` | 🔧 Fixed (#263) |
+| 2.10 | LOW | Tab labels used the 14px app UI font, not the HIG 12pt/10pt sizes. | `Tabs` | 🔧 Fixed (#264) |
 
 **Details & fixes**
 
@@ -120,7 +120,7 @@ Normative checklist (HIGOS8 Ch.2) and component mapping:
   button (clamped to stay on screen). Placeholder pop-ups and `ClassicyComboBox`
   (no selection to align on) keep the grow-down/flip-up behavior. The placement
   math is unit-tested in isolation and the wiring in the component tests.
-  _HIGOS8 Ch.2 "Pop-up Menus" (p.33)._
+  _HIGOS8 Ch.2 "Pop-up Menus" (p.33)._ Fixed in #263.
 - **2.6, 2.7** (`ClassicyListBox.scss`, `ClassicyInput.scss`,
   `ClassicyTextEditor.scss`, `ClassicyRichTextEditor.scss`): the list box and
   edit-text controls now carry the same 2px recessed frame as the image well
@@ -140,11 +140,7 @@ Normative checklist (HIGOS8 Ch.2) and component mapping:
   scaled by the HIG's own 10:12 ratio (≈11.7 px on the default theme, up from
   the over-shrunk ~9.3 px). `large` is unchanged (a Classicy extension with no
   HIG equivalent). Pinned by a compiled-CSS test. _HIGOS8 Ch.2 "Tabs" (p.42)._
-
-**Deferred (recommended as a design-reviewed follow-up)**
-
-- _None — 2.5 (pop-up current-item alignment) and 2.10 (tab-label type scale)
-  are now addressed; see the details above._
+  Fixed in #264.
 
 **Verified already-compliant:** Push Buttons (58×20 min, default ring, 3 states,
 Return/Esc/⌘. delegated to the dialog layer), Bevel Buttons (2/3/4px bevels, all
@@ -183,7 +179,7 @@ Normative checklist (HIGOS8 Ch.3):
 | 3.1 | HIGH | Alert focused the first button (Cancel in a caution alert) while the default ring was on Continue, so Return fired Cancel. | `Alert` + `useFocusTrap` | 🔧 Fixed |
 | 3.2 | MEDIUM | The standard (movable-modal) file dialog rendered a title-bar close box. | `FileDialog` | 🔧 Fixed |
 | 3.3 | MEDIUM | The About box had no default button and no key dismissed it. | `AboutWindow` | 🔧 Fixed |
-| 3.4 | LOW | The "New Folder" prompt is a `ClassicyAlert` containing a text input — alerts may contain only icon/text/buttons. | `FileDialog` | ⚠️ Deferred |
+| 3.4 | LOW | The "New Folder" prompt was a `ClassicyAlert` containing a text input — alerts may contain only icon/text/buttons. | `FileDialog`, `InputDialog` | 🔧 Fixed (#262) |
 
 **Details & fixes**
 
@@ -202,12 +198,11 @@ Normative checklist (HIGOS8 Ch.3):
 - **3.3** (`ClassicyAboutWindow.tsx`): OK is now the default button and Return /
   Escape dismiss the box (routed through the OK button's own click). New tests.
   _HIGOS8 Ch.3 (p.23/p.57)._
-
-**Deferred**
-
-- **3.4**: turning the New Folder prompt into a proper movable-modal dialog
-  (edit field + Cancel/Create) is a self-contained follow-up; it currently works
-  as an alert-with-input, which is the HIG-shape violation to revisit.
+- **3.4** (`ClassicyInputDialog.tsx`, `ClassicyFileDialog.tsx`): New Folder now
+  uses a reusable movable-modal input dialog (`ClassicyInputDialog`) instead of
+  an alert carrying a text field, so the alert shape is back to icon, text and
+  buttons only. _HIGOS8 Ch.3 "Movable Modal Dialog Boxes" (p.59), "Alert Boxes"
+  (p.60)._ Fixed in #262.
 
 **Verified already-compliant:** the `--hig-*` spacing tokens (12px button gap,
 10px vertical stack, 12px dialog edge, 4/6/16px item/focus/group gaps, 20px
@@ -246,7 +241,7 @@ Normative checklist (HIGOS8 Ch.4 + HIGOS7 menu detail):
 | 4.4 | LOW | "About This Computer" carried an invented `⌃S` keyboard equivalent. | `AppManager` systemMenu | 🔧 Fixed |
 | 4.2 | MEDIUM | Close/Quit display `⌥W`/`⌥Q` rather than `⌘W`/`⌘Q`. | all control panels | ✅ Intentional (web adaptation) |
 | 4.3 | LOW | "About Balloon Help…" carries a trailing ellipsis though it only opens an info window. | Help menu | ✅ Matches shipped OS 8.0 |
-| 4.6 | LOW | Edit-menu Undo is always enabled and never names the action. | `useClassicyEditMenu` | ⚠️ Deferred |
+| 4.6 | LOW | Edit-menu Undo was always enabled and never named the action. | `useClassicyEditMenu` | 🔧 Fixed (#262) |
 | 4.7 | LOW | Menus drew a 2 px solid-black drop shadow and a system-05 inner edge, and dividers were system-04 over system-01. | all menus | 🔧 Fixed |
 
 **Details & fixes**
@@ -267,6 +262,12 @@ Normative checklist (HIGOS8 Ch.4 + HIGOS7 menu detail):
   right, meeting at face-coloured corners; and a 1 px system-07 shadow that
   starts 2 px in from the corner. Dividers are a system-05 line over a white
   one across the full inner width. _HIGOS8 Ch.6 Figure 6-15._
+- **4.6** (`ClassicyEditCommands.ts`, `ClassicyAppMenuHooks.tsx`): Edit → Undo
+  now names the pending action ("Undo Typing") and dims to "Can't Undo" when
+  there is nothing to undo, driven by a per-field undo-state tracker. The browser
+  exposes no undo API, so the tracker approximates undo depth and the action
+  label from `InputEvent.inputType`; engines without it fall back to a generic
+  enabled "Undo" after any edit. _HIGOS8 Ch.4._ Fixed in #262.
 
 **Intentional / not changed**
 
@@ -275,12 +276,6 @@ Normative checklist (HIGOS8 Ch.4 + HIGOS7 menu detail):
 - **4.3**: Mac OS 8.0 actually shipped "About Balloon Help…" with the ellipsis, so
   this is kept to match the real OS (and existing tests assert it). The HIG-prose
   "no ellipsis on info windows" rule yields to the shipping-OS precedent here.
-
-**Deferred**
-
-- **4.6**: a context-aware "Undo <action>" / dimmed "Can't Undo" rides the
-  browser's native field undo, which doesn't expose the pending action; a
-  faithful relabel needs an undo model and is out of scope for this pass.
 
 **Verified already-compliant:** sticky-menu behavior (click-to-open, click-out
 dismiss, 15s auto-close), Edit-menu item set & order, keyboard-glyph formatting
@@ -315,7 +310,7 @@ Normative checklist (HIGOS8 Ch.5):
 | # | Severity | Finding | Component | Status |
 | --- | --- | --- | --- | --- |
 | 5.1 | MEDIUM | A full zoom filled the whole desktop (maximize) rather than zooming to an ideal/standard size. | `Window` | 🔧 Fixed |
-| 5.2 | LOW | Platinum scroll arrows render grouped at one end rather than split to opposite ends. | `AppearanceManager/scrollbars.scss` | ⚠️ Deferred |
+| 5.2 | LOW | Platinum scroll arrows rendered grouped at the start of each bar (an arrangement Mac OS 8 never shipped), with no way to split them to opposite ends. | `AppearanceManager/scrollbars.scss` | 🔧 Fixed (#262) |
 
 **Details & fixes**
 
@@ -326,14 +321,13 @@ Normative checklist (HIGOS8 Ch.5):
   extent + the window's chrome), and only (c) falls back to filling the desktop
   when no usable measurement exists — all clamped to `[minimum, desktop]`. The
   un-zoom restore path is unchanged. New test. _HIGOS8 Ch.5 "Zoom Boxes" (p.104)._
-
-**Deferred**
-
-- **5.2**: both scroll arrows are declared on `::-webkit-scrollbar-button:start`,
-  so they stack at one end. Splitting them to opposite ends is constrained by
-  WebKit's pseudo-element model, and the grouped arrangement is itself a
-  legitimate (if non-default) Platinum Appearance option — low value, revisit
-  with the broader scrollbar styling.
+- **5.2** (`scrollbars.scss`, `ClassicyDesktop.tsx`, Appearance control panel):
+  fixed and generalized — the real Mac OS 8 "Smart Scrolling" Appearance option
+  now toggles arrow placement. ON (default) groups both arrows at the end of each
+  bar (the authentic OS 8.0 default); OFF splits them to opposite ends. The
+  setting is a checkbox on the Appearance Themes tab (event
+  `ClassicyDesktopSetSmartScrolling`). WebKit/Blink only; Firefox draws no scroll
+  buttons either way. _HIGOS8 Ch.5._ Fixed in #262.
 
 **Verified already-compliant:** close box on the LEFT; zoom box on the RIGHT just
 left of the collapse box; title-bar pinstripes only when active; inactive windows
@@ -410,28 +404,31 @@ immediate settings application, and the existing §35 / #209 About-hoist work.
 
 This pass audited every Classicy control, dialog, menu, window and control panel
 against HIGOS8 (chapters 2–6), applied the fixes below, and recorded the rest as
-intentional web adaptations or deferred follow-ups.
+intentional web adaptations. Every finding first recorded as deferred has since
+been fixed (see "Deferred follow-ups").
 
 | Chapter | 🔧 Fixed | ⚠️ Deferred | ✅ Intentional / shipped-OS |
 | --- | --- | --- | --- |
-| 2 — Controls | 10 | 2 | — |
-| 3 — Dialog Boxes | 3 | 1 | — |
-| 4 — Menus | 3 | 1 | 2 |
-| 5 — Windows | 1 | 1 | — |
+| 2 — Controls | 12 | — | — |
+| 3 — Dialog Boxes | 4 | — | — |
+| 4 — Menus | 5 | — | 2 |
+| 5 — Windows | 2 | — | — |
 | 6 — Control Panels | 6 | — | 1 |
-| **Total** | **23** | **5** | **3** |
+| **Total** | **29** | **0** | **3** |
 
 (The per-chapter changes are the commits of this PR, one commit per chapter.)
 
 All fixes keep the full suite green (`pnpm lint`, `pnpm exec tsc --noEmit`, and
 the vitest suite), and each fixed or changed behavior is covered by a new or
-existing test. Deferred items are visual-fidelity or larger-refactor follow-ups
-documented in each chapter's findings; the intentional items are the browser
-`⌥W`/`⌥Q` adaptation and the shipped-OS "About Balloon Help…" ellipsis.
+existing test. No items remain deferred: the five originally deferred (2.5,
+2.10, 3.4, 4.6, 5.2) were fixed in follow-up PRs #262, #263 and #264. The
+intentional items are the browser `⌥W`/`⌥Q` adaptation and the shipped-OS
+"About Balloon Help…" ellipsis.
 
 ### Deferred follow-ups
 
-Addressed in a follow-up pass (separate PR):
+Addressed in follow-up PRs (#262 for 3.4, 4.6 and 5.2; #263 for 2.5; #264
+for 2.10):
 
 - **3.4** — ✅ done. New Folder now uses a reusable movable-modal input dialog
   (`ClassicyInputDialog`) instead of an alert carrying a text field.
