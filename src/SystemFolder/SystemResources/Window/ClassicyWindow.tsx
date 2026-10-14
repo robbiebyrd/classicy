@@ -76,6 +76,33 @@ export function resolveSize(
 	return [resolve(size[0], dw), resolve(size[1], dh)];
 }
 
+/**
+ * The size a window applies as its inline `width`/`height`, measured off the
+ * DOM. `.classicyWindow` is content-box, so its frame padding and border sit
+ * outside that box while a bounding rect includes them. Storing the rect made
+ * the window draw that much larger on every remount (#291), so any size the
+ * window persists is measured here.
+ */
+export function classicyWindowContentSize(el: HTMLElement): [number, number] {
+	const rect = el.getBoundingClientRect();
+	const style = getComputedStyle(el);
+	const px = (value: string) => Number.parseFloat(value) || 0;
+	const chromeWidth =
+		px(style.paddingLeft) +
+		px(style.paddingRight) +
+		px(style.borderLeftWidth) +
+		px(style.borderRightWidth);
+	const chromeHeight =
+		px(style.paddingTop) +
+		px(style.paddingBottom) +
+		px(style.borderTopWidth) +
+		px(style.borderBottomWidth);
+	return [
+		Math.max(0, rect.width - chromeWidth),
+		Math.max(0, rect.height - chromeHeight),
+	];
+}
+
 export function resolvePosition(
 	pos: [ClassicyWindowPositionX, ClassicyWindowPositionY],
 	windowSize: [number, number],
@@ -685,6 +712,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	docUpHandlerRef.current = (_e: globalThis.MouseEvent) => {
 		pendingDragRef.current = false;
 		if (!isDraggingRef.current && !isResizingRef.current) return;
+		const wasResizing = isResizingRef.current;
 		userRepositionedRef.current = true;
 		isDraggingRef.current = false;
 		isResizingRef.current = false;
@@ -694,7 +722,9 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			sound: "ClassicyWindowMoveStop",
 		});
 		setActive();
-		setResize(false);
+		if (wasResizing || ws.resizing) {
+			endResize();
+		}
 		if (pendingSizeRef.current) {
 			setSize(pendingSizeRef.current);
 			pendingSizeRef.current = null;
@@ -722,12 +752,17 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			window: ws,
 			position: [left, top],
 		});
-		setResize(true);
+		// Seed the gesture with the size the window is drawn at, in the same
+		// (content) box its inline width/height use — clientWidth would add the
+		// frame padding and make the window jump on mousedown (#291).
+		const applied = appliedWindowSize();
+		const startSize: [number, number] = [
+			applied?.[0] || resolvedSize[0],
+			applied?.[1] || resolvedSize[1],
+		];
+		setResize(true, startSize);
 		setZoom(false);
-		setSize([
-			windowRef?.current?.clientWidth || resolvedSize[0],
-			windowRef?.current?.clientHeight || resolvedSize[1],
-		]);
+		setSize(startSize);
 	};
 
 	const startMoveWindow = (e: MouseEvent<HTMLDivElement>) => {
@@ -838,13 +873,18 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				sound: "ClassicyWindowMoveStop",
 			});
 		}
+		const wasResizing = isResizingRef.current;
 		// Clear refs so the document-level mouseup handler knows this event
 		// was already handled by the element and skips double-processing.
 		pendingDragRef.current = false;
 		isDraggingRef.current = false;
 		isResizingRef.current = false;
 		setActive();
-		setResize(false);
+		// Most releases are plain clicks: they must not write a size at all, or
+		// the store drifts from the size the window is actually drawn at (#291).
+		if (wasResizing || ws.resizing) {
+			endResize();
+		}
 		if (pendingSizeRef.current) {
 			setSize(pendingSizeRef.current);
 			pendingSizeRef.current = null;
@@ -1120,12 +1160,16 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			const standard = computeStandardRect();
 			setZoomFlag(true);
 			setSize(standard.size);
+			// Persist the size the window is now drawn at — clicks no longer
+			// write one as a side effect (#291).
+			setResize(false, standard.size);
 			setMoving(false, standard.position);
 		} else {
 			setZoomFlag(false);
 			const previous = userStateRef.current;
 			if (previous) {
 				setSize(previous.size);
+				setResize(false, previous.size);
 				setMoving(false, previous.position);
 				userStateRef.current = null;
 			}
@@ -1154,29 +1198,45 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		}
 	};
 
-	const setResize = (toResize: boolean) => {
-		// Guard where the rect is read, not in the SCSS: while collapsed, the
+	// The size the window's inline width/height apply. A known size is used
+	// as-is; only an "auto" (0) dimension is measured off the DOM, because a
+	// measurement picks up the browser's sub-pixel layout rounding (#291).
+	const appliedWindowSize = (): [number, number] | undefined => {
+		if (size[0] && size[1]) return size;
+		if (!windowRef.current) return undefined;
+		const measured = classicyWindowContentSize(windowRef.current);
+		return [size[0] || measured[0], size[1] || measured[1]];
+	};
+
+	// `nextSize` is in the window's content box (what its inline width/height
+	// apply); omitted, the window's applied size is used (#291).
+	const setResize = (toResize: boolean, nextSize?: [number, number]) => {
+		// Guard where the size is read, not in the SCSS: while collapsed, the
 		// window's DOM height is forced to the ~24px title-bar height by
-		// .classicyWindowCollapsed (ClassicyWindow.scss), so ANY mouseup here
-		// (this fires on every release, not just an actual resize — see
-		// stopChangeWindow) would measure that collapsed height and persist it
-		// as the window's real size. Skipping the dispatch entirely while
-		// collapsed leaves the last expanded size in the store untouched, so it
-		// survives a collapse/expand cycle intact.
-		if (resizable && !ws.collapsed) {
-			desktopEventDispatch({
-				type: "ClassicyWindowResize",
-				resizing: toResize,
-				window: ws,
-				size: [
-					windowRef.current?.getBoundingClientRect().width,
-					windowRef.current?.getBoundingClientRect().height,
-				],
-				app: {
-					id: appId,
-				},
-			});
-		}
+		// .classicyWindowCollapsed (ClassicyWindow.scss), so a measurement here
+		// would persist that collapsed height as the window's real size.
+		// Skipping the dispatch entirely while collapsed leaves the last
+		// expanded size in the store untouched, so it survives a
+		// collapse/expand cycle intact.
+		if (!resizable || ws.collapsed) return;
+		const resolved = nextSize ?? appliedWindowSize();
+		if (!resolved) return;
+		desktopEventDispatch({
+			type: "ClassicyWindowResize",
+			resizing: toResize,
+			window: ws,
+			size: resolved,
+			app: {
+				id: appId,
+			},
+		});
+	};
+
+	// Ends a resize gesture with the size the window is about to be drawn at:
+	// the last pointer-derived size (already written to the inline style), or,
+	// for a gesture that never moved, its current applied size.
+	const endResize = () => {
+		setResize(false, pendingSizeRef.current ?? undefined);
 	};
 
 	// #236: onBeforeClose is a veto, not a notification — it runs first, and a
