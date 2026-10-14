@@ -222,6 +222,28 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		[desktopEventDispatch, player],
 	);
 
+	const changeAlertVolume = useCallback(
+		(alertVolume: number) => {
+			desktopEventDispatch({
+				type: "ClassicyDesktopChangeAlertVolume",
+				alertVolume,
+			});
+		},
+		[desktopEventDispatch],
+	);
+
+	// Audition the alert at the committed level, as the Volume slider in the
+	// Sound control panel does. The level is handed to the sound state directly
+	// (ahead of the store→sound bridge) so the preview never plays at the
+	// previous level.
+	const previewAlertVolume = useCallback(
+		(alertVolume: number) => {
+			player({ type: "ClassicySoundSetAlertVolume", alertVolume });
+			player({ type: "ClassicyAlertSound" });
+		},
+		[player],
+	);
+
 	const changeFontSize = useCallback(
 		(fontType: string, size: number) => {
 			startTransition(() => {
@@ -298,6 +320,9 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 	const soundTab = useSoundTab({
 		alertSound: appearanceState.alertSound ?? DEFAULT_ALERT_SOUND,
 		changeAlertSound,
+		alertVolume: appearanceState.alertVolume ?? 100,
+		changeAlertVolume,
+		previewAlertVolume,
 	});
 
 	const tabs = useMemo(

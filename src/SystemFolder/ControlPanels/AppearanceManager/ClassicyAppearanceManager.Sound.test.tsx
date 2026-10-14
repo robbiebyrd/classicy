@@ -1,6 +1,7 @@
 import type { ChangeEvent } from "react";
 import { describe, expect, it, vi } from "vitest";
 import {
+	fireEvent,
 	render,
 	renderHook,
 	screen,
@@ -14,41 +15,38 @@ vi.mock(
 	() => ({ useSoundDispatch: () => vi.fn() }),
 );
 
+type SoundTabProps = Parameters<typeof useSoundTab>[0];
+
+const baseProps = (): SoundTabProps => ({
+	alertSound: "ClassicyAlertSosumi",
+	changeAlertSound: vi.fn() as (e: ChangeEvent<HTMLSelectElement>) => void,
+	alertVolume: 100,
+	changeAlertVolume: vi.fn(),
+	previewAlertVolume: vi.fn(),
+});
+
 // ClassicyPopUpMenu is a custom combobox: role="combobox" trigger shows the
 // selected label; clicking opens a role="listbox" of role="option" entries;
 // picking one fires onChangeFunc with { target: { value } }.
-const Host = ({
-	alertSound,
-	changeAlertSound,
-}: {
-	alertSound: string;
-	changeAlertSound: (e: ChangeEvent<HTMLSelectElement>) => void;
-}) => {
-	const tab = useSoundTab({ alertSound, changeAlertSound });
+const Host = (props: SoundTabProps) => {
+	const tab = useSoundTab(props);
 	return <div>{tab.children}</div>;
 };
 
 describe("useSoundTab", () => {
 	it("is titled 'Sound'", () => {
-		const { result } = renderHook(() =>
-			useSoundTab({
-				alertSound: "ClassicyAlertSosumi",
-				changeAlertSound: vi.fn(),
-			}),
-		);
+		const { result } = renderHook(() => useSoundTab(baseProps()));
 		expect(result.current.title).toBe("Sound");
 	});
 
 	it("shows the current selection on the trigger", () => {
-		render(<Host alertSound="ClassicyAlertQuack" changeAlertSound={vi.fn()} />);
+		render(<Host {...baseProps()} alertSound="ClassicyAlertQuack" />);
 		expect(screen.getByRole("combobox")).toHaveTextContent("Quack");
 	});
 
 	it("lists all seven alert options when opened", async () => {
 		const user = userEvent.setup();
-		render(
-			<Host alertSound="ClassicyAlertSosumi" changeAlertSound={vi.fn()} />,
-		);
+		render(<Host {...baseProps()} />);
 		await user.click(screen.getByRole("combobox"));
 		expect(
 			within(screen.getByRole("listbox")).getAllByRole("option"),
@@ -56,19 +54,46 @@ describe("useSoundTab", () => {
 	});
 
 	it("fires changeAlertSound with the chosen value", async () => {
-		const changeAlertSound = vi.fn();
+		const props = baseProps();
 		const user = userEvent.setup();
-		render(
-			<Host
-				alertSound="ClassicyAlertSosumi"
-				changeAlertSound={changeAlertSound}
-			/>,
-		);
+		render(<Host {...props} />);
 		await user.click(screen.getByRole("combobox"));
 		await user.click(screen.getByRole("option", { name: "Quack" }));
+		const changeAlertSound = props.changeAlertSound as ReturnType<typeof vi.fn>;
 		expect(changeAlertSound).toHaveBeenCalledOnce();
 		expect(changeAlertSound.mock.calls[0][0].target.value).toBe(
 			"ClassicyAlertQuack",
 		);
+	});
+});
+
+describe("useSoundTab — Alert Volume", () => {
+	it("renders a labelled 0–100 slider at the stored level", () => {
+		render(<Host {...baseProps()} alertVolume={35} />);
+		const slider = screen.getByRole("slider", { name: "Alert Volume" });
+		expect(slider).toHaveValue("35");
+		expect(slider).toHaveAttribute("min", "0");
+		expect(slider).toHaveAttribute("max", "100");
+		expect(screen.getByText("35%")).toBeInTheDocument();
+	});
+
+	it("reports each step through changeAlertVolume as a number", () => {
+		const props = baseProps();
+		render(<Host {...props} />);
+		fireEvent.change(screen.getByRole("slider", { name: "Alert Volume" }), {
+			target: { value: "60" },
+		});
+		expect(props.changeAlertVolume).toHaveBeenCalledWith(60);
+		expect(props.previewAlertVolume).not.toHaveBeenCalled();
+	});
+
+	it("previews the alert once the slider is released", () => {
+		const props = baseProps();
+		render(<Host {...props} />);
+		const slider = screen.getByRole("slider", { name: "Alert Volume" });
+		fireEvent.change(slider, { target: { value: "25" } });
+		fireEvent.pointerUp(slider);
+		expect(props.previewAlertVolume).toHaveBeenCalledOnce();
+		expect(props.previewAlertVolume).toHaveBeenCalledWith(25);
 	});
 });

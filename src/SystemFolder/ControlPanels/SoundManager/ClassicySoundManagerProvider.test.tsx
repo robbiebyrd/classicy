@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@/__tests__/test-utils";
 import {
 	initialPlayer,
@@ -16,25 +16,40 @@ vi.mock("howler", () => ({
 	},
 }));
 
-// Feed a fixed selection through the Zustand hook the provider reads.
+// Feed a fixed selection through the Zustand hook the provider reads. The
+// Appearance slice is hoisted so individual tests can vary it.
+const { mockAppearance } = vi.hoisted(() => ({
+	mockAppearance: {
+		alertSound: "ClassicyAlertQuack",
+		alertVolume: undefined as number | undefined,
+	},
+}));
+
 vi.mock(
 	"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils",
 	() => ({
 		useAppManager: (selector: (s: unknown) => unknown): unknown =>
 			selector({
-				System: {
-					Manager: { Appearance: { alertSound: "ClassicyAlertQuack" } },
-				},
+				System: { Manager: { Appearance: mockAppearance } },
 			}),
 	}),
 );
 
 const Probe = () => {
 	const sound = useSound();
-	return <span data-testid="sel">{sound.alertSound}</span>;
+	return (
+		<>
+			<span data-testid="sel">{sound.alertSound}</span>
+			<span data-testid="alertVolume">{String(sound.alertVolume)}</span>
+		</>
+	);
 };
 
 describe("ClassicySoundManagerProvider alert bridge", () => {
+	afterEach(() => {
+		mockAppearance.alertVolume = undefined;
+	});
+
 	it("mirrors the Zustand alertSound selection into sound state", () => {
 		render(
 			<ClassicySoundManagerProvider>
@@ -42,6 +57,25 @@ describe("ClassicySoundManagerProvider alert bridge", () => {
 			</ClassicySoundManagerProvider>,
 		);
 		expect(screen.getByTestId("sel").textContent).toBe("ClassicyAlertQuack");
+	});
+
+	it("mirrors the Zustand alertVolume into sound state, including 0", () => {
+		mockAppearance.alertVolume = 0;
+		render(
+			<ClassicySoundManagerProvider>
+				<Probe />
+			</ClassicySoundManagerProvider>,
+		);
+		expect(screen.getByTestId("alertVolume").textContent).toBe("0");
+	});
+
+	it("keeps the 100% default when the store has no alertVolume", () => {
+		render(
+			<ClassicySoundManagerProvider>
+				<Probe />
+			</ClassicySoundManagerProvider>,
+		);
+		expect(screen.getByTestId("alertVolume").textContent).toBe("100");
 	});
 });
 
