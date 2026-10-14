@@ -191,6 +191,12 @@ export const ClassicyBevelButton: FunctionalComponent<
 	popupHoldDelayMs = DEFAULT_HOLD_DELAY_MS,
 	children,
 	className,
+	// The disclosure ARIA is Classicy's to describe only while the button owns
+	// a pop-up surface; otherwise it is the caller's (e.g. a collapsible
+	// section's ▸/▾ toggle), so pull it out of `rest` and fall back to it below.
+	"aria-haspopup": callerAriaHasPopup,
+	"aria-expanded": callerAriaExpanded,
+	"aria-controls": callerAriaControls,
 	...rest
 }) => {
 	const player = useSoundDispatch();
@@ -384,10 +390,12 @@ export const ClassicyBevelButton: FunctionalComponent<
 							: "dialog"
 						: mode === "popup"
 							? "menu"
-							: undefined
+							: callerAriaHasPopup
 				}
-				aria-expanded={hasSurface ? popupOpen : undefined}
-				aria-controls={popupOpen ? popupId : undefined}
+				aria-expanded={hasSurface ? popupOpen : callerAriaExpanded}
+				aria-controls={
+					hasSurface ? (popupOpen ? popupId : undefined) : callerAriaControls
+				}
 				className={classNames(
 					"classicyBevelButton",
 					isSquare && "classicyBevelButtonSquare",

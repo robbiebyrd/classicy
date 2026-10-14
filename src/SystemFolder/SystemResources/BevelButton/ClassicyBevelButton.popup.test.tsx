@@ -85,6 +85,31 @@ describe("ClassicyBevelButton pop-up menu (HIGOS8 p.32)", () => {
 		expect(shrink).toHaveTextContent("✓");
 	});
 
+	it("keeps describing its own pop-up even when a caller passes disclosure ARIA", () => {
+		render(
+			<ClassicyBevelButton
+				mode="popup"
+				aria-label="Marquee"
+				aria-expanded={true}
+				aria-controls="somewhere-else"
+				aria-haspopup="listbox"
+				menuItems={lassoItems(vi.fn())}
+				popupHoldDelayMs={10_000}
+			/>,
+		);
+		const button = screen.getByRole("button", { name: "Marquee" });
+		// The button owns this menu, so its real state wins over the caller's.
+		expect(button).toHaveAttribute("aria-haspopup", "menu");
+		expect(button).toHaveAttribute("aria-expanded", "false");
+		expect(button).not.toHaveAttribute("aria-controls");
+
+		quickClick(button);
+
+		const menu = screen.getByRole("menu", { name: "Marquee" });
+		expect(button).toHaveAttribute("aria-expanded", "true");
+		expect(button).toHaveAttribute("aria-controls", menu.id);
+	});
+
 	it("runs the chosen item and closes", async () => {
 		const onPick = vi.fn();
 		render(
