@@ -89,7 +89,7 @@ Normative checklist (HIGOS8 Ch.2) and component mapping:
 | 2.6 | MEDIUM | List box frame was a 1px bevel vs the documented 2px `--hig-frame-width`. | `ListBox` | 🔧 Fixed |
 | 2.7 | MEDIUM | Edit-text frame was 1px vs the documented 2px `--hig-frame-width`. | `Input`,`TextEditor`,`RichTextEditor` | 🔧 Fixed |
 | 2.5 | LOW | Pop-up list opens below/above the button rather than aligning the current item at the button level. | `PopUpMenu` | 🔧 Fixed |
-| 2.10 | LOW | Tab labels use the 14px app UI font, not the HIG 12pt/10pt sizes. | `Tabs` | ⚠️ Deferred |
+| 2.10 | LOW | Tab labels use the 14px app UI font, not the HIG 12pt/10pt sizes. | `Tabs` | 🔧 Fixed |
 
 **Details & fixes**
 
@@ -130,11 +130,21 @@ Normative checklist (HIGOS8 Ch.2) and component mapping:
   as a proper Platinum recess and — because the extra depth is an `inset`
   box-shadow, not a wider border — there is **no layout shift**. _HIGOS8 Ch.2
   "List Boxes and Frames" (p.39), "Edit Text Fields and Frames" (p.41)._
+- **2.10** (`ClassicyTabs.scss`): tab labels now follow the HIG's 12 pt / 10 pt
+  tab type scale instead of the flat 14 px body font. Resolved in favor of the
+  codebase's existing "size = ratio of `--ui-font-size`" convention rather than
+  absolute pixels (which would clash with the app's type scale and not track a
+  theme's UI size): the standard (`medium`) tab is `--ui-font-size` — Classicy's
+  stand-in for the 12 pt system font, matching how Mac OS 8 drew tab text at the
+  same size as the surrounding UI — and the compact (`small`) tab is that size
+  scaled by the HIG's own 10:12 ratio (≈11.7 px on the default theme, up from
+  the over-shrunk ~9.3 px). `large` is unchanged (a Classicy extension with no
+  HIG equivalent). Pinned by a compiled-CSS test. _HIGOS8 Ch.2 "Tabs" (p.42)._
 
 **Deferred (recommended as a design-reviewed follow-up)**
 
-- **2.10**: Classicy uses a consistent 14px UI type scale throughout; forcing
-  12/10px tabs would clash with the app's own scale — needs a type-scale decision.
+- _None — 2.5 (pop-up current-item alignment) and 2.10 (tab-label type scale)
+  are now addressed; see the details above._
 
 **Verified already-compliant:** Push Buttons (58×20 min, default ring, 3 states,
 Return/Esc/⌘. delegated to the dialog layer), Bevel Buttons (2/3/4px bevels, all
@@ -424,12 +434,13 @@ Addressed in a follow-up pass (separate PR):
   Appearance option now toggles arrow placement. ON (default) groups both arrows
   at the end of each bar (the authentic OS 8.0 default); OFF splits them to
   opposite ends.
-
 - **2.5** — ✅ done: a pop-up with a current selection opens that item over the
   button and scrolls a long list so the selection lands on the pointer;
   placeholder pop-ups and combo boxes keep growing down/flipping up.
+- **2.10** — ✅ done: tab labels follow the HIG's 12 pt / 10 pt type scale,
+  pegged to `--ui-font-size` so they stay consistent with the app's type scale
+  (standard tab = system font, compact tab = ×10/12). `large` unchanged.
 
 Still open:
 
-- **2.10** — a 12/10pt tab-label type scale. Won't fix for now (needs a
-  project-wide type-scale decision).
+- _None — every item from the original audit is now addressed._

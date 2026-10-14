@@ -57,6 +57,20 @@ export const Large: Story = {
 	args: { size: "large", tabs: sizeTabs },
 };
 
+// All three sizes stacked so the HIG tab type scale is easy to compare: the
+// standard (medium) label is the system UI font, the compact (small) label is
+// that size scaled by the HIG's 10:12 ratio, and large is the Classicy
+// extension above it.
+export const SizeComparison: Story = {
+	render: () => (
+		<div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+			<ClassicyTabs size="small" tabs={sizeTabs} />
+			<ClassicyTabs size="medium" tabs={sizeTabs} />
+			<ClassicyTabs size="large" tabs={sizeTabs} />
+		</div>
+	),
+};
+
 // Narrow enough that the strip cannot fit every tab, so the scroll arrows
 // appear at both ends. Arrows show at any size, not only `small`.
 export const Overflowing: Story = {
