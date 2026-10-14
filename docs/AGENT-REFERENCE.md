@@ -406,6 +406,11 @@ manager. Must be a descendant of `ClassicyApp`.
 | `onCloseFunc` | `(id: string) => void` | — |
 | `backgroundColor` | `string` | — |
 
+A scrollable window always draws both scroll bars. Content that fills the
+window and scrolls itself (a full-window `<textarea>`, `ClassicySplitView`
+panes, a pan surface) must pass `scrollable={false}`, or the window shows a
+second, empty set of bars beside the inner ones.
+
 **`ClassicyWindowFrame`** — presentational chrome only (no store coupling;
 usable pre-boot): `title?`, `children` *, `className?`, `width?`.
 
