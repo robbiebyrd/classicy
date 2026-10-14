@@ -4,7 +4,7 @@
 import type { Howl } from "howler";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-	ClassicySoundActionTypes,
+	type ClassicySoundActionTypes,
 	type ClassicySoundState,
 	ClassicySoundStateEventReducer,
 } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerUtils";
@@ -270,6 +270,19 @@ describe("ClassicyVolumeSet", () => {
 			volume: 42,
 		});
 		expect(next.volume).toBe(42);
+	});
+
+	it("clamps to 0–100 and rounds to a whole percentage", () => {
+		const set = (volume: number | undefined) =>
+			ClassicySoundStateEventReducer(makeSoundState({ volume: 50 }), {
+				type: "ClassicyVolumeSet" as ClassicySoundActionTypes,
+				volume,
+			}).volume;
+		expect(set(150)).toBe(100);
+		expect(set(-5)).toBe(0);
+		expect(set(33.6)).toBe(34);
+		expect(set(Number.NaN)).toBe(50); // ignored
+		expect(set(undefined)).toBe(50); // ignored
 	});
 });
 

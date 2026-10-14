@@ -9,7 +9,6 @@ import {
 	useSound,
 	useSoundDispatch,
 } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
-import { SOUND_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerManifest";
 import {
 	SCREEN_SAVER_ACTIVATE_EVENT,
 	SCREEN_SAVER_APP_ID,
@@ -18,6 +17,7 @@ import {
 } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverContext";
 import type { ClassicyControlStripModule } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStrip";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import { ClassicyPopUpSlider } from "@/SystemFolder/SystemResources/PopUpSlider/ClassicyPopUpSlider";
 
 const SEPARATOR: ClassicyMenuItem = { id: "spacer" };
 
@@ -36,47 +36,43 @@ const openControlPanelItem = (
 	onClickFunc: () => dispatch({ type: "ClassicyAppOpen", app }),
 });
 
-/** Sound: turn sound on or off, or open the Sound control panel. */
+/**
+ * Sound: Figure 2-16's volume module. The speaker pops up a vertical slider
+ * that sets the system volume (ClassicyVolumeSet); raising it while sound is
+ * off turns sound back on. The speaker loses its waves while sound is off or
+ * the volume is at the bottom.
+ */
 export const useClassicySoundControlStripModule =
 	(): ClassicyControlStripModule => {
-		const { disabled } = useSound();
+		const { disabled, volume = 100 } = useSound();
 		const player = useSoundDispatch();
-		const dispatch = useAppManagerDispatch();
 		const muted = disabled.includes("*");
 
 		return useMemo(() => {
-			const setMuted = (mute: boolean) =>
-				player({ type: "ClassicySoundDisable", disabled: mute ? ["*"] : [] });
-			const icons = ClassicyIcons.controlPanels.soundManager;
+			const setVolume = (next: number) => {
+				player({ type: "ClassicyVolumeSet", volume: next });
+				// Only the "*" mute flag: per-sound choices in the Sound control
+				// panel stay as they are.
+				if (muted && next > 0)
+					player({ type: "ClassicySoundEnableOne", enabled: "*" });
+			};
+			const silent = muted || volume === 0;
 			return {
 				id: "classicy-sound",
 				label: "Sound",
-				// 16 px strip art (Figure 6-15's speaker); waves gone when muted.
-				icon: muted
+				// 16 px strip art (Figure 6-15's speaker); waves gone when silent.
+				icon: silent
 					? ClassicyIcons.system.controlStrip.soundOff
 					: ClassicyIcons.system.controlStrip.sound,
-				menuItems: [
-					{
-						id: "sound-on",
-						title: "Sound On",
-						checked: !muted,
-						onClickFunc: () => setMuted(false),
-					},
-					{
-						id: "sound-off",
-						title: "Sound Off",
-						checked: muted,
-						onClickFunc: () => setMuted(true),
-					},
-					SEPARATOR,
-					openControlPanelItem(dispatch, "Sound", {
-						id: SOUND_MANAGER_APP_ID,
-						name: "Sound Manager",
-						icon: icons.app,
-					}),
-				],
+				content: (
+					<ClassicyPopUpSlider
+						ariaLabel="Volume"
+						value={muted ? 0 : volume}
+						onChange={setVolume}
+					/>
+				),
 			};
-		}, [muted, player, dispatch]);
+		}, [muted, volume, player]);
 	};
 
 /**

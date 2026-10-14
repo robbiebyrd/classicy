@@ -25,6 +25,7 @@ import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyBu
 import { ClassicyCheckbox } from "@/SystemFolder/SystemResources/Checkbox/ClassicyCheckbox";
 import { ClassicyControlGroup } from "@/SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup";
 import { ClassicyDisclosure } from "@/SystemFolder/SystemResources/Disclosure/ClassicyDisclosure";
+import { ClassicySlider } from "@/SystemFolder/SystemResources/Slider/ClassicySlider";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
 const APP_ID = SOUND_MANAGER_APP_ID;
@@ -44,12 +45,17 @@ export const ClassicySoundManager: FunctionalComponent = () => {
 	);
 	const windowClose = useClassicyWindowClose(APP_ID);
 
+	// Toggles only the "*" mute flag, so the per-sound choices below survive
+	// turning interface sounds off and on again.
 	const changeSounds = (checked: boolean) => {
-		player({
-			type: "ClassicySoundDisable",
-			disabled: checked ? [] : ["*"],
-		});
+		player(
+			checked
+				? { type: "ClassicySoundEnableOne", enabled: "*" }
+				: { type: "ClassicySoundDisableOne", disabled: "*" },
+		);
 	};
+
+	const volume = playerState.volume ?? 100;
 
 	// Per-sound enable/disable (audit ch. 6 §35). Playback honours each sound's
 	// own entry in `disabled` (see playerCanPlayInterrupt), so toggling a sound
@@ -150,6 +156,23 @@ export const ClassicySoundManager: FunctionalComponent = () => {
 						label={"Enable Interface Sounds"}
 						onClickFunc={changeSounds}
 						checked={!playerState.disabled.includes("*")}
+					/>
+					<ClassicySlider
+						id={"sound_volume"}
+						labelTitle={"Volume:"}
+						labelPosition={"left"}
+						value={volume}
+						min={0}
+						max={100}
+						valueLabel={`${volume}%`}
+						onChangeFunc={(e) =>
+							player({
+								type: "ClassicyVolumeSet",
+								volume: Number(e.target.value),
+							})
+						}
+						// Play the alert at the new level, as the Mac OS Sound panel does.
+						onCommitFunc={() => player({ type: "ClassicyAlertSound" })}
 					/>
 					<ClassicyDisclosure label={"Disable Sounds"}>
 						<div className={"soundManagerControlGroupHolder"}>

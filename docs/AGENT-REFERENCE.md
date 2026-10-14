@@ -522,7 +522,7 @@ plain integers (`0xRRGGBB`).
 | `ClassicyCrashScreen` | `children?` | error boundary → Sad Mac screen; wrap your desktop in it |
 | `ClassicyBoot` / `ClassicyBootSequence` / `ClassicyStartupScreen` | see source | boot parade; normally managed by `ClassicyDesktop` |
 | `ClassicyDesktopMenuWidgetSound` / `ClassicyDesktopMenuWidgetTime` | `hide?` / none | stock menu bar widgets; the menu bar shows only Time — Sound moved to the Control Strip |
-| `ClassicyControlStrip` | `modules?` (`{id, icon, label, menuItems?, content?}[]`), `defaultCollapsed?`, `defaultWidth?` | Mac OS 8 Control Strip (HIGOS8 p.125, Figure 6-15): floating strip at the desktop's lower left — collapse box, scroll arrows, modules, draggable tab; widths snap to whole modules. `ClassicyDesktop` mounts it (`controlStrip` prop: its props, or `false` to hide). Each module is a pop-up bevel button whose menu opens above the strip; a disabled item with class `classicyControlStripStatus` is a black italic status line. A module for a control panel should include an "Open … Control Panel" command. Defaults to the built-in Sound and Screen Saver modules (`useClassicyDefaultControlStripModules`, or each via `useClassicySoundControlStripModule` / `useClassicyScreenSaverControlStripModule`) |
+| `ClassicyControlStrip` | `modules?` (`{id, icon, label, menuItems?, content?}[]`), `defaultCollapsed?`, `defaultWidth?` | Mac OS 8 Control Strip (HIGOS8 p.125, Figure 6-15): floating strip at the desktop's lower left — collapse box, scroll arrows, modules, draggable tab; widths snap to whole modules. `ClassicyDesktop` mounts it (`controlStrip` prop: its props, or `false` to hide). Each module is a pop-up bevel button whose menu opens above the strip; a disabled item with class `classicyControlStripStatus` is a black italic status line. A module for a control panel should include an "Open … Control Panel" command. Defaults to the built-in Sound module (Figure 2-16: pops up a `ClassicyPopUpSlider` for the system volume; raising it unmutes) and Screen Saver module (`useClassicyDefaultControlStripModules`, or each via `useClassicySoundControlStripModule` / `useClassicyScreenSaverControlStripModule`) |
 | `ClassicyPopUpSlider` | `value` *, `onChange(value)` *, `ariaLabel` *, `min? (0)`, `max? (100)`, `step? (1)`, `disabled?` | HIGOS8 Figure 2-16's vertical slider (17 × 73) for a bevel button's `popupContent`; drag/click, arrows, Page Up/Down, Home/End |
 | `ClassicyPixelArt` | `rows` * (`string[]` of palette tokens, `.` transparent), `className?` | themed, pixel-exact inline-SVG art (tokens `K W 1–7 b c d m n` map to theme colours) |
 
@@ -870,7 +870,10 @@ Action types (string enum `ClassicySoundActionTypes`): `ClassicySoundPlay`
 (skipped if muted, per-sound disabled, or already playing),
 `ClassicySoundPlayInterrupt`, `ClassicySoundPlayError`, `ClassicySoundStop`,
 `ClassicySoundDisable` / `ClassicySoundDisableOne` / `ClassicySoundEnableOne`
-(muting = the `"*"` wildcard in `disabled`), `ClassicyVolumeSet`,
+(muting = the `"*"` wildcard in `disabled`; toggle just the mute with
+`EnableOne`/`DisableOne` `"*"` to keep per-sound choices), `ClassicyVolumeSet`
+(`{ volume }` 0–100, clamped and rounded; the player's gain, kept across
+theme loads),
 `ClassicyAlertSound`, `ClassicySoundSetAlertSound`. `useSound()` reads state.
 Alert sound options: `CLASSICY_ALERT_SOUNDS` (Bonk, Growl, Indigo, Quack,
 Sosumi, Tabitha, Wild Eep); default `DEFAULT_ALERT_SOUND = "ClassicyAlertSosumi"`.

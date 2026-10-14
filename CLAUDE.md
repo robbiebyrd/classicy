@@ -53,7 +53,7 @@ Uses **Zustand** for app/desktop state with the existing event reducer for domai
 - **`useAppManager(selector)`** - Zustand hook to read state. Use selectors for performance.
 - **`useAppManagerDispatch()`** - Returns the dispatch function from the Zustand store
 - **classicyDesktopStateEventReducer** (`ClassicyAppManager.ts`) - Still routes events by prefix to domain-specific handlers (called inside Zustand's `set()`)
-- **SoundManager** still uses React Context/useReducer (not migrated to Zustand)
+- **SoundManager** still uses React Context/useReducer (not migrated to Zustand). Its `volume` (0–100, `ClassicyVolumeSet`) is the Howl player's gain, applied by `ClassicySoundManagerProvider` and re-applied when a sound theme loads; it is per-mount, like the mute flag (`"*"` in `disabled`)
 
 Event routing by prefix (unchanged):
 - `ClassicyWindow*` → Window operations (focus, move, resize, collapse, zoom)
@@ -351,7 +351,8 @@ prop takes the strip's props (`modules`, `defaultCollapsed`, `defaultWidth`) or
 `parameters.classicy.controlStrip: false`. Modules are
 `{ id, icon, label, menuItems?, content? }` rendered as pop-up bevel buttons
 opening `below` (which flips above the strip). With no `modules` it shows the
-built-ins from `useClassicyDefaultControlStripModules` (Sound, Screen Saver).
+built-ins from `useClassicyDefaultControlStripModules`: Sound (Figure 2-16's
+volume slider) and Screen Saver.
 HIG p.125: a module for a control panel must include an "Open … Control Panel"
 command.
 
