@@ -60,6 +60,34 @@ describe("ClassicyMenu", () => {
 		expect(separator).toHaveClass("classicySeparatorHorizontal");
 	});
 
+	it("renders every divider when a menu holds more than one spacer, with no duplicate-key warning", () => {
+		// Dividers all share id "spacer"; ClassicyMenu keys them by position, so
+		// a menu may hold any number. Pin that so a one-divider limit can't
+		// come back unnoticed.
+		const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+		try {
+			const items = [
+				{ id: "item-1", title: "New" },
+				{ id: "spacer" },
+				{ id: "item-2", title: "Open" },
+				{ id: "spacer" },
+				{ id: "item-3", title: "Quit" },
+			];
+			render(<ClassicyMenu name="test-menu" menuItems={items} />);
+			expect(screen.getAllByRole("separator")).toHaveLength(2);
+			const keyWarnings = errorSpy.mock.calls.filter((args) =>
+				args.some(
+					(arg) =>
+						typeof arg === "string" &&
+						arg.includes("Encountered two children with the same key"),
+				),
+			);
+			expect(keyWarnings).toEqual([]);
+		} finally {
+			errorSpy.mockRestore();
+		}
+	});
+
 	it("renders keyboard shortcut text when keyboardShortcut is provided", () => {
 		const items = [
 			{ id: "item-1", title: "Save", keyboardShortcut: "&#8984;S" },

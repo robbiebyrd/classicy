@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import {
+	type ClassicyTheme,
+	getThemeVars,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { withPrimaryFontFamily } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyFontStack";
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { classicyDesktopEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
@@ -342,6 +346,50 @@ describe("classicyDesktopEventHandler — ClassicyDesktopChangeFont", () => {
 		expect(ds.System.Manager.Appearance.activeTheme.typography.header).toBe(
 			"Charcoal",
 		);
+	});
+
+	it.each(["mono", "digital"] as const)("sets %s font", (fontType) => {
+		const ds = makeStoreForDesktop();
+		classicyDesktopEventHandler(ds, {
+			type: "ClassicyDesktopChangeFont",
+			fontType,
+			font: '"Geneva", "Monaco"',
+		});
+
+		expect(ds.System.Manager.Appearance.activeTheme.typography[fontType]).toBe(
+			'"Geneva", "Monaco"',
+		);
+	});
+
+	it("applies the Appearance Manager's fallback-preserving stack to the CSS vars", () => {
+		const ds = makeStoreForDesktop();
+		ds.System.Manager.Appearance.activeTheme.typography.ui =
+			'"Charcoal", "ChicagoFLF", "Geneva", sans-serif';
+		const font = withPrimaryFontFamily(
+			ds.System.Manager.Appearance.activeTheme.typography.ui,
+			"Geneva",
+		);
+		classicyDesktopEventHandler(ds, {
+			type: "ClassicyDesktopChangeFont",
+			fontType: "ui",
+			font,
+		});
+
+		expect(
+			getThemeVars(ds.System.Manager.Appearance.activeTheme)["--ui-font"],
+		).toBe('"Geneva", "Charcoal", "ChicagoFLF", sans-serif');
+	});
+
+	it("ignores a font change without a fontType (the old pop-up event shape)", () => {
+		const ds = makeStoreForDesktop();
+		const before = { ...ds.System.Manager.Appearance.activeTheme.typography };
+		classicyDesktopEventHandler(ds, {
+			type: "ClassicyDesktopChangeFont",
+			fontType: undefined,
+			font: "Geneva",
+		});
+
+		expect(ds.System.Manager.Appearance.activeTheme.typography).toEqual(before);
 	});
 });
 

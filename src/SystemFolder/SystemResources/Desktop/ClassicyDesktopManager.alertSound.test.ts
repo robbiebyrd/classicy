@@ -39,3 +39,42 @@ describe("classicyDesktopEventHandler — ClassicyDesktopChangeAlertSound", () =
 		);
 	});
 });
+
+describe("classicyDesktopEventHandler — ClassicyDesktopChangeAlertVolume", () => {
+	const setAlertVolume = (ds: ClassicyStore, alertVolume?: unknown) =>
+		classicyDesktopEventHandler(ds, {
+			type: "ClassicyDesktopChangeAlertVolume",
+			alertVolume,
+		});
+
+	it("writes the alert volume into Appearance state", () => {
+		const ds = makeStore();
+		setAlertVolume(ds, 35);
+		expect(ds.System.Manager.Appearance.alertVolume).toBe(35);
+	});
+
+	it("clamps to 0–100 and rounds to a whole percentage", () => {
+		const ds = makeStore();
+		setAlertVolume(ds, 140);
+		expect(ds.System.Manager.Appearance.alertVolume).toBe(100);
+		setAlertVolume(ds, -3);
+		expect(ds.System.Manager.Appearance.alertVolume).toBe(0);
+		setAlertVolume(ds, 49.5);
+		expect(ds.System.Manager.Appearance.alertVolume).toBe(50);
+	});
+
+	it("ignores a missing, non-numeric or non-finite payload", () => {
+		const ds = makeStore();
+		ds.System.Manager.Appearance.alertVolume = 70;
+		for (const bad of [undefined, "50", Number.NaN, Infinity]) {
+			setAlertVolume(ds, bad);
+			expect(ds.System.Manager.Appearance.alertVolume).toBe(70);
+		}
+	});
+
+	it("seeds a 100% alert volume in the initial store", () => {
+		expect(DefaultAppManagerState.System.Manager.Appearance.alertVolume).toBe(
+			100,
+		);
+	});
+});

@@ -3,6 +3,7 @@ import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManag
 import {
 	hasActiveTheme,
 	hasAlertSound,
+	hasAlertVolume,
 	hasApp,
 	hasAppAndHelpItems,
 	hasAvailableThemes,
@@ -246,6 +247,14 @@ export const classicyDesktopEventHandler = (
 		case "ClassicyDesktopChangeAlertSound": {
 			if (!hasAlertSound(action)) break;
 			ds.System.Manager.Appearance.alertSound = action.alertSound;
+			break;
+		}
+		case "ClassicyDesktopChangeAlertVolume": {
+			// A whole-number percentage, clamped like ClassicyVolumeSet.
+			if (!hasAlertVolume(action)) break;
+			ds.System.Manager.Appearance.alertVolume = Math.round(
+				Math.min(100, Math.max(0, action.alertVolume)),
+			);
 			break;
 		}
 		case "ClassicyDesktopSetSmartScrolling": {

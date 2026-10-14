@@ -253,7 +253,7 @@ Every prop, with its default:
 | `zoomable` | `boolean` | `true` | Draw the zoom box. |
 | `collapsable` | `boolean` | `true` | Draw the collapse (windowshade) box. |
 | `resizable` | `boolean` | `true` | Draw the grow box. |
-| `scrollable` | `boolean` | `true` | Give the content region scroll bars. |
+| `scrollable` | `boolean` | `true` | Give the content region scroll bars (always both, Mac OS 8 style). Pass `false` when the content scrolls itself — a full-window `<textarea>`, a `ClassicySplitView`, a pan surface — or it gets a second set of bars. |
 | `growable` | `boolean` | — | Let content drive the window size. |
 | `modal` | `boolean` | `false` | Modal dialog. Destroyed on unmount, so each open takes focus. |
 | `defaultWindow` | `boolean` | `false` | Mark this as the app's default window. |
@@ -273,6 +273,7 @@ Every prop, with its default:
 | `dimContents` | `boolean` | `true` | Dim contents when the window is inactive. |
 | `analyticsPath` | `string` | derived | Override the generated pageview path. |
 | `analyticsExclude` | `boolean` | — | Emit no pageview at all. |
+| `initialFocusRef` | `RefObject<HTMLElement \| null>` | — | Element focused when the window becomes the focused window (unless focus is already inside it), so its keyboard navigation works without a click. A modal's focus trap starts there instead. |
 | `onCloseFunc` | `(id) => void` | — | Runs after a close is allowed. |
 | `onBeforeClose` | `(id) => boolean \| Promise<boolean>` | — | Close veto. Return `false` to cancel. |
 | `type` | `string` | `"default"` | Free-form class hook. |

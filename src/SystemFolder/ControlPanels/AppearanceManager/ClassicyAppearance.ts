@@ -15,6 +15,12 @@ export interface ClassicyStoreSystemAppearanceManager
 	/** Sprite key of the user's default alert sound (a `ClassicyAlert*` sound). */
 	alertSound?: string;
 	/**
+	 * Maximum level of alert sounds, as a whole-number percentage (0–100,
+	 * default 100). Scales the system volume for alerts only: an alert plays
+	 * at system volume × alert volume.
+	 */
+	alertVolume?: number;
+	/**
 	 * Mac OS 8 "Smart Scrolling" (Appearance control panel). When `true`
 	 * (default), both scroll arrows are grouped together at the end of each
 	 * scrollbar; when `false`, they split to opposite ends (the classic
