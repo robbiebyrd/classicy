@@ -546,15 +546,17 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			// A genuinely new window is focused by the ClassicyWindowOpen handler;
 			// a persisted window re-registering must not steal focus. Menu-closure
 			// refresh for the focused window happens in the ws.focused effect below.
+			// #278: collapsable/modal come from props, not `ws` — a persisted
+			// record restored into `ws` may predate them or be stale.
 			desktopEventDispatch({
 				type: "ClassicyWindowOpen",
-				window: ws,
+				window: { ...ws, collapsable, modal },
 				app: {
 					id: appId,
 				},
 			});
 		}
-	}, [appId, ws, desktopEventDispatch]);
+	}, [appId, ws, collapsable, modal, desktopEventDispatch]);
 
 	// A modal window is ephemeral: it carries no persisted geometry, and
 	// leaving its record in the store makes the next open a "known id", which
@@ -893,6 +895,12 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			app.windows?.forEach((w) => {
 				if (w.closed) return;
 				if (w.collapsed === toCollapse) return;
+				// #278: other windows that opted out of collapsing (no collapse
+				// box to undo it) and modal dialogs are left as they are. The
+				// clicked window itself is exempt — its own collapse box is what
+				// was clicked, so its behaviour is unchanged.
+				const isClicked = appKey === appId && w.id === id;
+				if (!isClicked && (w.collapsable === false || w.modal)) return;
 				desktopEventDispatch({
 					type: toCollapse ? "ClassicyWindowCollapse" : "ClassicyWindowExpand",
 					window: w,
