@@ -1,0 +1,1 @@
+.classicyPopUpSlider{position:relative;width:17px;height:73px;outline:none;cursor:default}.classicyPopUpSlider:focus-visible{outline:1px solid var(--color-outline);outline-offset:-1px}.classicyPopUpSlider svg{display:block}.classicyPopUpSliderTrack{position:absolute;left:4px;top:3px}.classicyPopUpSliderThumb{position:absolute;left:1px}.classicyPopUpSliderDisabled{opacity:.5}
