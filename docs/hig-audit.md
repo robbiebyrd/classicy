@@ -247,6 +247,7 @@ Normative checklist (HIGOS8 Ch.4 + HIGOS7 menu detail):
 | 4.2 | MEDIUM | Close/Quit display `⌥W`/`⌥Q` rather than `⌘W`/`⌘Q`. | all control panels | ✅ Intentional (web adaptation) |
 | 4.3 | LOW | "About Balloon Help…" carries a trailing ellipsis though it only opens an info window. | Help menu | ✅ Matches shipped OS 8.0 |
 | 4.6 | LOW | Edit-menu Undo is always enabled and never names the action. | `useClassicyEditMenu` | ⚠️ Deferred |
+| 4.7 | LOW | Menus drew a 2 px solid-black drop shadow and a system-05 inner edge, and dividers were system-04 over system-01. | all menus | 🔧 Fixed |
 
 **Details & fixes**
 
@@ -259,6 +260,13 @@ Normative checklist (HIGOS8 Ch.4 + HIGOS7 menu detail):
 - **4.4** (`ClassicyAppManager.ts`): removed the invented `⌃S` from the Apple-menu
   About item (real Mac OS has none); the chord is no longer registered. Menu-bar
   test updated to assert its absence. _HIGOS8 Ch.4._
+- **4.7** (`appearance.scss` `platinumMenuFrame` / `platinumMenuDivider`): menu
+  bar dropdowns, contextual menus, their submenus and pop-up bevel menus now
+  share Figure 6-15's frame, matched pixel for pixel: 1 px black border; white
+  highlight on the inside top and left and a system-04 edge on the bottom and
+  right, meeting at face-coloured corners; and a 1 px system-07 shadow that
+  starts 2 px in from the corner. Dividers are a system-05 line over a white
+  one across the full inner width. _HIGOS8 Ch.6 Figure 6-15._
 
 **Intentional / not changed**
 

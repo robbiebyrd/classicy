@@ -5,7 +5,6 @@
   z-index: 900;
   display: inline-block;
   margin: 0;
-
-  @include appearance.platinumWindowBoxShadow;
   padding: 0;
+  // The menu inside draws its own frame and shadow (platinumMenuFrame).
 }
