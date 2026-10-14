@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { fn } from "storybook/test";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import { ClassicySlider } from "@/SystemFolder/SystemResources/Slider/ClassicySlider";
 import { ClassicyBevelButton } from "./ClassicyBevelButton";
 
 const meta = {
@@ -105,6 +106,36 @@ export const PopupHorizontal: Story = {
 		return (
 			<ClassicyBevelButton {...args} menuItems={menuItems}>
 				Sort
+			</ClassicyBevelButton>
+		);
+	},
+};
+
+// HIGOS8 Figure 2-16: a pop-up bevel button can show a control other than a
+// menu — here a volume slider.
+export const PopupSlider: Story = {
+	args: { mode: "popup", popupArrow: "large", popupDirection: "horizontal" },
+	render: (args) => {
+		const [level, setLevel] = useState(60);
+		return (
+			<ClassicyBevelButton
+				{...args}
+				aria-label="Volume"
+				popupContent={
+					// A vertical slider fills its container's height, so give it one;
+					// the padding holds the value readout drawn beneath the track.
+					<div style={{ height: 120, paddingBottom: 20 }}>
+						<ClassicySlider
+							id="bevel-popup-volume"
+							ariaLabel="Volume level"
+							orientation="vertical"
+							value={level}
+							onChangeFunc={(e) => setLevel(Number(e.target.value))}
+						/>
+					</div>
+				}
+			>
+				Volume {level}
 			</ClassicyBevelButton>
 		);
 	},

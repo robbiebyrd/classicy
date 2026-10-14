@@ -1,0 +1,144 @@
+@use '../../ControlPanels/AppearanceManager/styles/appearance';
+
+// Mac OS 8 Control Strip (HIGOS8 Figure 6-15): collapse box, scroll arrow,
+// modules, scroll arrow, tab — one bevelled row pinned to the lower left of
+// the desktop. It floats over application windows and palettes (350) but
+// stays under the modal-dialog scrim (360), so a modal dialog blocks it.
+
+$strip-height: calc(var(--window-control-size) * 2);
+$end-width: calc(var(--window-control-size) * 1.25);
+
+.classicyControlStrip {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  z-index: 355;
+  display: flex;
+  align-items: stretch;
+  height: $strip-height;
+  box-sizing: border-box;
+  border: var(--window-border-size) solid var(--color-black);
+  border-left: none;
+  background-color: var(--color-system-03);
+  font-family: var(--ui-font), sans-serif;
+}
+
+// Shared bevel for the strip's own fixed parts (the modules are bevel buttons).
+@mixin strip-cell {
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  width: $end-width;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-right: var(--window-border-size) solid var(--color-system-05);
+  background-color: var(--color-system-03);
+  box-shadow:
+    inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-white),
+    inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 0 var(--color-system-05);
+  cursor: default;
+
+  &:active:not(:disabled) {
+    background-color: var(--color-system-05);
+    box-shadow: inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-06);
+  }
+
+  &:focus-visible {
+    outline: var(--color-outline) solid calc(var(--window-border-size) * 2);
+    outline-offset: calc(var(--window-border-size) * -2);
+  }
+}
+
+// The collapse box: a small square inset in its cell.
+.classicyControlStripCollapseBox {
+  @include strip-cell;
+  position: relative;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 30%;
+    border: var(--window-border-size) solid var(--color-system-06);
+    background-color: var(--color-system-04);
+  }
+}
+
+// Scroll arrows: hollow triangles pointing out toward the hidden modules.
+.classicyControlStripScroll {
+  @include strip-cell;
+  position: relative;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-block: calc(var(--window-control-size) / 3) solid transparent;
+    transform: translate(-50%, -50%);
+  }
+
+  &:disabled::before {
+    opacity: 0.35;
+  }
+}
+
+.classicyControlStripScrollLeft::before {
+  border-inline-end: calc(var(--window-control-size) / 2.5) solid var(--color-system-07);
+}
+
+.classicyControlStripScrollRight::before {
+  border-inline-start: calc(var(--window-control-size) / 2.5) solid var(--color-system-07);
+}
+
+// The modules scroll under the arrows; the inline width (set by dragging the
+// tab) clips them, and the arrows move scrollLeft one module at a time.
+.classicyControlStripModules {
+  display: flex;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.classicyBevelButton.classicyControlStripModule {
+  flex: 0 0 auto;
+  height: 100%;
+  min-height: 0;
+  padding: 0 calc(var(--window-padding-size) / 2);
+  gap: calc(var(--window-padding-size) / 3);
+  border-top: none;
+  border-bottom: none;
+  border-left: none;
+
+  .classicyBevelButtonIcon {
+    width: var(--icon-small-size, 16px);
+    height: var(--icon-small-size, 16px);
+  }
+}
+
+// The tab: rounded right end with a dotted grip, dragged to size the strip.
+.classicyControlStripTab {
+  @include strip-cell;
+  width: calc(var(--window-control-size) * 1.5);
+  border-right: none;
+  border-radius: 0 calc(var(--window-control-size) * 0.75) calc(var(--window-control-size) * 0.75) 0;
+  outline-offset: 0;
+  // Grip dots over the content box only; the face colour fills the rest.
+  padding: 4px 5px 4px 3px;
+  background:
+    radial-gradient(circle, var(--color-system-06) 0.75px, transparent 1.25px)
+      center / 4px 4px repeat content-box,
+    var(--color-system-03);
+  cursor: ew-resize;
+}
+
+// Collapsed: only the tab remains at the screen edge.
+.classicyControlStripCollapsed .classicyControlStripTab {
+  cursor: default;
+}
+
+// An italic status line in a module menu (Figure 6-15: "No Users Connected").
+.classicyMenuItem.classicyControlStripStatus {
+  font-style: italic;
+}

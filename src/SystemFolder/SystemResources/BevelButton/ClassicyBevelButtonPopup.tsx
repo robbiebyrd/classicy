@@ -1,7 +1,9 @@
 import "@/SystemFolder/SystemResources/Menu/ClassicyMenu.scss";
+import classNames from "classnames";
 import {
 	type FC as FunctionalComponent,
 	type KeyboardEvent,
+	type ReactNode,
 	type RefObject,
 	useEffect,
 	useLayoutEffect,
@@ -10,7 +12,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import {
-	type ClassicyBevelPopupDirection,
+	type ClassicyBevelPopupSide,
 	classicyBevelPopupPlacement,
 } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopupPlacement";
 import {
@@ -24,10 +26,12 @@ const MENU_ITEM_SELECTOR = 'li[role="menuitem"]:not(.classicyMenuItemDisabled)';
 type ClassicyBevelButtonPopupProps = {
 	id: string;
 	anchor: DOMRect;
-	direction: ClassicyBevelPopupDirection;
-	/** The menu to show (HIG Figure 2-15). */
-	menuItems: ClassicyMenuItem[];
-	/** Accessible name for the menu. */
+	side: ClassicyBevelPopupSide;
+	/** A menu (HIG Figure 2-15)… */
+	menuItems?: ClassicyMenuItem[];
+	/** …or any other surface, such as a slider (HIG Figure 2-16). */
+	content?: ReactNode;
+	/** Accessible name for the menu or panel. */
 	label?: string;
 	/** Move focus onto the first enabled item — set when opened by keyboard. */
 	focusFirstItem?: boolean;
@@ -39,7 +43,7 @@ type ClassicyBevelButtonPopupProps = {
 /**
  * The surface a pop-up bevel button reveals: a Platinum menu built from the
  * shared menu components (checkmarks, separators, submenus and the sticky-menu
- * idle close all come with them). Rendered into a
+ * idle close all come with them), or an arbitrary panel. Rendered into a
  * fixed-position portal beside the button and dismissed by a press outside,
  * Escape, scrolling or resizing — the same rules as ClassicyPopUpMenu.
  */
@@ -48,8 +52,9 @@ export const ClassicyBevelButtonPopup: FunctionalComponent<
 > = ({
 	id,
 	anchor,
-	direction,
+	side,
 	menuItems,
+	content,
 	label,
 	focusFirstItem = false,
 	buttonRef,
@@ -72,10 +77,10 @@ export const ClassicyBevelButtonPopup: FunctionalComponent<
 				anchor,
 				{ width, height },
 				{ width: window.innerWidth, height: window.innerHeight },
-				direction,
+				side,
 			),
 		);
-	}, [anchor, direction]);
+	}, [anchor, side]);
 
 	useLayoutEffect(() => {
 		if (!focusFirstItem || !position) return;
@@ -148,7 +153,7 @@ export const ClassicyBevelButtonPopup: FunctionalComponent<
 		visibility: position ? undefined : ("hidden" as const),
 	};
 
-	const surface = (
+	const surface = menuItems ? (
 		<ClassicyMenuProvider onClose={onClose} startActive={true}>
 			<div
 				ref={wrapperRef}
@@ -167,6 +172,20 @@ export const ClassicyBevelButtonPopup: FunctionalComponent<
 				/>
 			</div>
 		</ClassicyMenuProvider>
+	) : (
+		<div
+			ref={wrapperRef}
+			id={id}
+			role="dialog"
+			aria-label={label}
+			className={classNames(
+				"classicyBevelButtonPopup",
+				"classicyBevelButtonPopupPanel",
+			)}
+			style={style}
+		>
+			{content}
+		</div>
 	);
 
 	return createPortal(

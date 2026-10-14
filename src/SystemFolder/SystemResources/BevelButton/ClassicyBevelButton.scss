@@ -140,8 +140,8 @@
 
 // --- Pop-up surface (HIGOS8 "Bevel Buttons as Pop-up Buttons", p.32) ---
 // Fixed beside the button by ClassicyBevelButtonPopup; layered with the other
-// pop-up menus (5000) so it clears windows, palettes and modal dialogs. The
-// menu draws itself with the shared `.classicyContextMenu` list styles.
+// pop-up menus (5000) so it clears windows, palettes and modal dialogs. A menu
+// surface draws itself with the shared `.classicyContextMenu` list styles.
 .classicyBevelButtonPopup {
   position: fixed;
   z-index: 5000;
@@ -149,4 +149,12 @@
   margin: 0;
   padding: 0;
   @include appearance.platinumWindowBoxShadow;
+}
+
+// A non-menu surface (Figure 2-16's slider) takes the menu's frame and fill.
+.classicyBevelButtonPopupPanel {
+  @include appearance.platinumWindowBorder;
+  padding: var(--window-padding-size);
+  color: var(--color-black);
+  background-color: var(--color-system-02);
 }

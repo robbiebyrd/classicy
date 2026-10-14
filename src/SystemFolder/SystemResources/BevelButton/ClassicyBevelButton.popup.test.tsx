@@ -222,6 +222,24 @@ describe("ClassicyBevelButton pop-up menu (HIGOS8 p.32)", () => {
 		expect(screen.getByRole("menu")).toBeInTheDocument();
 	});
 
+	it("reveals arbitrary content instead of a menu (Figure 2-16)", () => {
+		render(
+			<ClassicyBevelButton
+				mode="popup"
+				aria-label="Volume"
+				popupDirection="horizontal"
+				popupContent={<input type="range" aria-label="Level" />}
+				popupHoldDelayMs={10_000}
+			/>,
+		);
+		const button = screen.getByRole("button", { name: "Volume" });
+		expect(button).toHaveAttribute("aria-haspopup", "dialog");
+		quickClick(button);
+		const panel = screen.getByRole("dialog", { name: "Volume" });
+		expect(panel).toHaveClass("classicyBevelButtonPopupPanel");
+		expect(screen.getByRole("slider", { name: "Level" })).toBeInTheDocument();
+	});
+
 	it("does nothing while disabled", () => {
 		render(
 			<ClassicyBevelButton
@@ -300,5 +318,57 @@ describe("ClassicyBevelButton press-and-hold options (HIGOS8 p.33)", () => {
 		fireEvent.mouseUp(screen.getByText("No Shrink"));
 		fireEvent.click(tool, { detail: 0 });
 		expect(onClick).toHaveBeenCalledTimes(1);
+	});
+});
+
+describe("ClassicyBevelButton pop-up placement", () => {
+	const at = { top: 100, bottom: 120, left: 50, right: 90 };
+	const mockButtonRect = () =>
+		vi
+			.spyOn(HTMLButtonElement.prototype, "getBoundingClientRect")
+			.mockReturnValue({
+				...at,
+				width: 40,
+				height: 20,
+				x: at.left,
+				y: at.top,
+				toJSON: () => ({}),
+			} as DOMRect);
+
+	it("opens where the arrow points by default", () => {
+		const spy = mockButtonRect();
+		render(
+			<ClassicyBevelButton
+				mode="popup"
+				aria-label="More"
+				popupDirection="horizontal"
+				menuItems={lassoItems(vi.fn())}
+				popupHoldDelayMs={10_000}
+			/>,
+		);
+		quickClick(screen.getByRole("button", { name: "More" }));
+		const menu = screen.getByRole("menu");
+		expect(menu.style.left).toBe("90px"); // to the right
+		expect(menu.style.top).toBe("100px");
+		spy.mockRestore();
+	});
+
+	it("popupPlacement overrides it — a right arrow can open below", () => {
+		const spy = mockButtonRect();
+		render(
+			<ClassicyBevelButton
+				mode="popup"
+				aria-label="Module"
+				popupDirection="horizontal"
+				popupPlacement="below"
+				menuItems={lassoItems(vi.fn())}
+				popupHoldDelayMs={10_000}
+			/>,
+		);
+		quickClick(screen.getByRole("button", { name: "Module" }));
+		const menu = screen.getByRole("menu");
+		expect(menu.style.left).toBe("50px"); // left edges aligned
+		expect(menu.style.top).toBe("120px"); // under the button
+		spy.mockRestore();
 	});
 });

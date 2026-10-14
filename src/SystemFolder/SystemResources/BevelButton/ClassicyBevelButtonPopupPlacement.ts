@@ -1,12 +1,11 @@
 // Where a pop-up bevel button's menu goes (HIGOS8 Ch.2 "Bevel Buttons as
 // Pop-up Buttons", p.32): "directly below or to the right of the button".
-// The arrow orientation picks the side — a vertical (down) arrow opens below,
-// left edges aligned; a horizontal (right) arrow opens to the right, top edges
-// aligned. When that side has no room the menu flips to the opposite side of
-// the button (HIG Figure 2-16 shows a Control Strip pop-up opening upward),
-// and as a last resort it is clamped onto the screen.
+// Below, the menu's left edge lines up with the button's; to the right, the
+// top edges line up. When that side has no room the menu flips to the
+// opposite side of the button (HIG Figure 2-16 shows a Control Strip pop-up
+// opening upward), and as a last resort it is clamped onto the screen.
 
-export type ClassicyBevelPopupDirection = "horizontal" | "vertical";
+export type ClassicyBevelPopupSide = "below" | "right";
 
 type Rect = { top: number; bottom: number; left: number; right: number };
 type Size = { width: number; height: number };
@@ -18,9 +17,9 @@ export const classicyBevelPopupPlacement = (
 	anchor: Rect,
 	popup: Size,
 	viewport: Size,
-	direction: ClassicyBevelPopupDirection,
+	side: ClassicyBevelPopupSide,
 ): { left: number; top: number } => {
-	if (direction === "horizontal") {
+	if (side === "right") {
 		let left = anchor.right;
 		if (left + popup.width > viewport.width && anchor.left >= popup.width) {
 			left = anchor.left - popup.width;

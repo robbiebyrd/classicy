@@ -141,6 +141,8 @@ export * from "./SystemFolder/SystemResources/ContextualMenu/ClassicyContextualM
 export * from "./SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuTarget";
 export * from "./SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup";
 export * from "./SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
+export * from "./SystemFolder/SystemResources/ControlStrip/ClassicyControlStrip";
+export * from "./SystemFolder/SystemResources/ControlStrip/ClassicyControlStripModules";
 export * from "./SystemFolder/SystemResources/CrashScreen/ClassicyCrashScreen";
 export * from "./SystemFolder/SystemResources/Cursor/useClassicyCursor";
 export * from "./SystemFolder/SystemResources/DatePicker/ClassicyDatePicker";

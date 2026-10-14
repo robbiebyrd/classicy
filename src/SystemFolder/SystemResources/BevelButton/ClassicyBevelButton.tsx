@@ -7,6 +7,7 @@ import {
 	type MouseEvent,
 	type MouseEventHandler,
 	type PropsWithChildren,
+	type ReactNode,
 	useCallback,
 	useContext,
 	useEffect,
@@ -17,6 +18,7 @@ import {
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import { ClassicyBevelButtonPopup } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopup";
+import type { ClassicyBevelPopupSide } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopupPlacement";
 import { ClassicyButtonToolbarContext } from "@/SystemFolder/SystemResources/ButtonToolbar/ClassicyButtonToolbarContext";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
@@ -88,16 +90,29 @@ type ClassicyBevelButtonProps = PropsWithChildren<{
 	/** Show a pop-up arrow, at this size. */
 	popupArrow?: "small" | "large";
 	/**
-	 * Arrow orientation, which also picks where the pop-up surface opens:
-	 * horizontal points right and opens to the right; vertical points down and
-	 * opens below. Default `vertical`.
+	 * Arrow orientation: horizontal points right, vertical points down.
+	 * Default `vertical`. Unless `popupPlacement` says otherwise, the surface
+	 * opens where the arrow points.
 	 */
 	popupDirection?: "horizontal" | "vertical";
+	/**
+	 * Where the surface opens: directly below the button or to its right
+	 * (HIGOS8 p.32), flipping to the opposite side when there is no room.
+	 * Defaults to the side the arrow points to. A Control Strip module keeps a
+	 * right-pointing arrow but opens below — which, at the bottom of the
+	 * screen, flips it above the strip.
+	 */
+	popupPlacement?: ClassicyBevelPopupSide;
 	/**
 	 * The menu this button reveals (HIGOS8 Figure 2-15). Items take the full
 	 * `ClassicyMenuItem` shape, so `checked` marks the current choice.
 	 */
 	menuItems?: ClassicyMenuItem[];
+	/**
+	 * Any other surface to reveal instead of a menu — HIGOS8 Figure 2-16 shows a
+	 * slider. Ignored when `menuItems` is set.
+	 */
+	popupContent?: ReactNode;
 	/**
 	 * When the surface opens; see {@link ClassicyBevelPopupTrigger}. Defaults to
 	 * `click` in `popup` mode and `hold` in every other mode, so a toggle or
@@ -152,7 +167,9 @@ export const ClassicyBevelButton: FunctionalComponent<
 	onChangeFunc,
 	popupArrow,
 	popupDirection = "vertical",
+	popupPlacement,
 	menuItems,
+	popupContent,
 	popupTrigger,
 	popupHoldDelayMs = DEFAULT_HOLD_DELAY_MS,
 	children,
@@ -177,7 +194,7 @@ export const ClassicyBevelButton: FunctionalComponent<
 	}, [on]);
 
 	// --- Pop-up surface -------------------------------------------------------
-	const hasSurface = menuItems !== undefined;
+	const hasSurface = menuItems !== undefined || popupContent !== undefined;
 	const trigger: ClassicyBevelPopupTrigger =
 		popupTrigger ?? (mode === "popup" ? "click" : "hold");
 	const popupId = `${useId()}-popup`;
@@ -336,7 +353,15 @@ export const ClassicyBevelButton: FunctionalComponent<
 				}
 				aria-checked={mode === "radio" ? onState : undefined}
 				role={mode === "radio" ? "radio" : "button"}
-				aria-haspopup={hasSurface || mode === "popup" ? "menu" : undefined}
+				aria-haspopup={
+					hasSurface
+						? menuItems
+							? "menu"
+							: "dialog"
+						: mode === "popup"
+							? "menu"
+							: undefined
+				}
 				aria-expanded={hasSurface ? popupOpen : undefined}
 				aria-controls={popupOpen ? popupId : undefined}
 				className={classNames(
@@ -396,12 +421,16 @@ export const ClassicyBevelButton: FunctionalComponent<
 					</span>
 				)}
 			</button>
-			{popupAnchor && menuItems && (
+			{popupAnchor && (
 				<ClassicyBevelButtonPopup
 					id={popupId}
 					anchor={popupAnchor}
-					direction={popupDirection}
+					side={
+						popupPlacement ??
+						(popupDirection === "horizontal" ? "right" : "below")
+					}
 					menuItems={menuItems}
+					content={popupContent}
 					label={
 						rest["aria-label"] ||
 						iconAlt ||
