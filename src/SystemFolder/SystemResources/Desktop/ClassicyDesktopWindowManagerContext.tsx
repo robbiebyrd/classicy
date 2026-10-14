@@ -45,6 +45,8 @@ export type ClassicyWindowAction =
 				position: [number, number];
 				menuBar?: ClassicyMenuItem[];
 				windowType?: "document" | "utility";
+				collapsable?: boolean;
+				modal?: boolean;
 			};
 	  }
 	// Focus a Window
@@ -147,7 +149,16 @@ export const classicyWindowEventHandler = (
 				size: [number, number];
 				menuBar?: ClassicyMenuItem[];
 				windowType?: "document" | "utility";
+				collapsable?: unknown;
+				modal?: unknown;
 			};
+			// #278: persist the window's collapsable/modal props so Option-click
+			// collapse-all can skip windows that opted out. Only real booleans
+			// are written — a malformed payload leaves the record untouched.
+			const flags: Partial<ClassicyStoreSystemAppWindow> = {};
+			if (typeof win.collapsable === "boolean")
+				flags.collapsable = win.collapsable;
+			if (typeof win.modal === "boolean") flags.modal = win.modal;
 			const window = ds.System.Manager.Applications.apps[
 				action.app.id
 			].windows.findIndex((w) => w.id === win.id);
@@ -169,12 +180,15 @@ export const classicyWindowEventHandler = (
 					hidden: false,
 					menuBar: win.menuBar,
 					windowType: win.windowType,
+					...flags,
 				} as ClassicyStoreSystemAppWindow);
 				// A genuinely new window opens focused (Mac behavior); re-registered
 				// persisted windows must not steal focus.
 				ds = focusWindow(ds, action.app.id, win.id);
 			} else {
-				ds = updateWindow(action.app.id, win.id, { closed: false });
+				// A persisted record may predate #278 (no flags) or the props may
+				// have changed since; the mounting component's props win.
+				ds = updateWindow(action.app.id, win.id, { closed: false, ...flags });
 			}
 			break;
 		}

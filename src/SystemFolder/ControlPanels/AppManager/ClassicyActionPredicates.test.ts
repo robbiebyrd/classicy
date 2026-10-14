@@ -15,6 +15,7 @@ import {
 	hasDateTime,
 	hasDesktopAppRef,
 	hasDisableBalloonHelp,
+	hasDoubleClickTitleToCollapse,
 	hasDrive,
 	hasErrorDialogMessage,
 	hasFinderFile,
@@ -810,5 +811,37 @@ describe("hasSmartScrolling", () => {
 
 	it("returns false when smartScrolling is not a boolean", () => {
 		expect(hasSmartScrolling({ type: "X", smartScrolling: "yes" })).toBe(false);
+	});
+});
+
+// ─── hasDoubleClickTitleToCollapse ───────────────────────────────────────────
+
+describe("hasDoubleClickTitleToCollapse", () => {
+	it("returns true when doubleClickTitleToCollapse is a boolean", () => {
+		expect(
+			hasDoubleClickTitleToCollapse({
+				type: "X",
+				doubleClickTitleToCollapse: true,
+			}),
+		).toBe(true);
+		expect(
+			hasDoubleClickTitleToCollapse({
+				type: "X",
+				doubleClickTitleToCollapse: false,
+			}),
+		).toBe(true);
+	});
+
+	it("returns false when doubleClickTitleToCollapse is missing", () => {
+		expect(hasDoubleClickTitleToCollapse({ type: "X" })).toBe(false);
+	});
+
+	it("returns false when doubleClickTitleToCollapse is not a boolean", () => {
+		expect(
+			hasDoubleClickTitleToCollapse({
+				type: "X",
+				doubleClickTitleToCollapse: 1,
+			}),
+		).toBe(false);
 	});
 });

@@ -95,6 +95,10 @@ export interface ClassicyStoreSystemAppWindow {
 	resizing?: boolean;
 	zoomed?: boolean;
 	collapsed?: boolean;
+	// Mirrors the window's `collapsable` prop (#278). Absent ⇒ collapsable;
+	// only an explicit `false` opts the window out of Option-click
+	// collapse-all / expand-all.
+	collapsable?: boolean;
 	dragging?: boolean;
 	moving?: boolean;
 	modal?: boolean;

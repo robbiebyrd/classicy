@@ -11,6 +11,8 @@ interface ThemesTabProps {
 	activeThemeId: string;
 	smartScrolling: boolean;
 	toggleSmartScrolling: (checked: boolean) => void;
+	doubleClickTitleToCollapse: boolean;
+	toggleDoubleClickTitleToCollapse: (checked: boolean) => void;
 }
 
 export const useThemesTab = ({
@@ -19,6 +21,8 @@ export const useThemesTab = ({
 	activeThemeId,
 	smartScrolling,
 	toggleSmartScrolling,
+	doubleClickTitleToCollapse,
+	toggleDoubleClickTitleToCollapse,
 }: ThemesTabProps): TabIndividual =>
 	useMemo(
 		() => ({
@@ -50,6 +54,14 @@ export const useThemesTab = ({
 						checked={smartScrolling}
 						onClickFunc={toggleSmartScrolling}
 					/>
+					{/* Its Options-tab neighbour: a title-bar double-click collapses
+					    the window (WindowShade) when on. */}
+					<ClassicyCheckbox
+						id={"appearance_double_click_title_to_collapse"}
+						label={"Double-click title bar to collapse windows"}
+						checked={doubleClickTitleToCollapse}
+						onClickFunc={toggleDoubleClickTitleToCollapse}
+					/>
 				</>
 			),
 		}),
@@ -59,5 +71,7 @@ export const useThemesTab = ({
 			activeThemeId,
 			smartScrolling,
 			toggleSmartScrolling,
+			doubleClickTitleToCollapse,
+			toggleDoubleClickTitleToCollapse,
 		],
 	);

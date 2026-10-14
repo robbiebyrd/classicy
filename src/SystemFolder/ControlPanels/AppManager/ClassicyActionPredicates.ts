@@ -232,6 +232,14 @@ export function hasSmartScrolling(
 	return typeof m.smartScrolling === "boolean";
 }
 
+/** Action has `doubleClickTitleToCollapse: boolean` (Mac OS 8 Appearance
+ * "Double-click title bar to collapse windows" toggle) */
+export function hasDoubleClickTitleToCollapse(
+	m: Msg,
+): m is Msg & { doubleClickTitleToCollapse: boolean } {
+	return typeof m.doubleClickTitleToCollapse === "boolean";
+}
+
 /** Action has `availableThemes: unknown[]` */
 export function hasAvailableThemes(
 	m: Msg,

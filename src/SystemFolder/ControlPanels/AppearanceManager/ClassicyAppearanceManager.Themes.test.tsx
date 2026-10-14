@@ -8,12 +8,21 @@ const baseProps = {
 	activeThemeId: "default",
 	smartScrolling: true,
 	toggleSmartScrolling: vi.fn(),
+	doubleClickTitleToCollapse: true,
+	toggleDoubleClickTitleToCollapse: vi.fn(),
 };
 
 const Host = (props: Partial<typeof baseProps>) => {
 	const tab = useThemesTab({ ...baseProps, ...props });
 	return <div>{tab.children}</div>;
 };
+
+const smartScrollingBox = () =>
+	screen.getByRole("checkbox", { name: /Smart Scrolling/ });
+const doubleClickBox = () =>
+	screen.getByRole("checkbox", {
+		name: "Double-click title bar to collapse windows",
+	});
 
 describe("useThemesTab — Smart Scrolling", () => {
 	it("is titled 'Themes'", () => {
@@ -23,12 +32,12 @@ describe("useThemesTab — Smart Scrolling", () => {
 
 	it("renders the Smart Scrolling checkbox checked when on", () => {
 		render(<Host smartScrolling={true} />);
-		expect(screen.getByRole("checkbox")).toBeChecked();
+		expect(smartScrollingBox()).toBeChecked();
 	});
 
 	it("renders the Smart Scrolling checkbox unchecked when off", () => {
 		render(<Host smartScrolling={false} />);
-		expect(screen.getByRole("checkbox")).not.toBeChecked();
+		expect(smartScrollingBox()).not.toBeChecked();
 	});
 
 	it("fires toggleSmartScrolling(false) when unchecked", async () => {
@@ -40,7 +49,7 @@ describe("useThemesTab — Smart Scrolling", () => {
 				toggleSmartScrolling={toggleSmartScrolling}
 			/>,
 		);
-		await user.click(screen.getByRole("checkbox"));
+		await user.click(smartScrollingBox());
 		expect(toggleSmartScrolling).toHaveBeenCalledWith(false);
 	});
 
@@ -53,7 +62,57 @@ describe("useThemesTab — Smart Scrolling", () => {
 				toggleSmartScrolling={toggleSmartScrolling}
 			/>,
 		);
-		await user.click(screen.getByRole("checkbox"));
+		await user.click(smartScrollingBox());
 		expect(toggleSmartScrolling).toHaveBeenCalledWith(true);
+	});
+});
+
+// #280: Smart Scrolling's neighbour on the Mac OS 8 Appearance Options tab.
+describe("useThemesTab — Double-click title bar to collapse", () => {
+	it("renders the checkbox checked when on", () => {
+		render(<Host doubleClickTitleToCollapse={true} />);
+		expect(doubleClickBox()).toBeChecked();
+	});
+
+	it("renders the checkbox unchecked when off", () => {
+		render(<Host doubleClickTitleToCollapse={false} />);
+		expect(doubleClickBox()).not.toBeChecked();
+	});
+
+	it("sits directly after the Smart Scrolling checkbox", () => {
+		render(<Host />);
+		const boxes = screen.getAllByRole("checkbox");
+		expect(boxes.indexOf(doubleClickBox())).toBe(
+			boxes.indexOf(smartScrollingBox()) + 1,
+		);
+	});
+
+	it("fires toggleDoubleClickTitleToCollapse(false) when unchecked", async () => {
+		const toggleDoubleClickTitleToCollapse = vi.fn();
+		const toggleSmartScrolling = vi.fn();
+		const user = userEvent.setup();
+		render(
+			<Host
+				doubleClickTitleToCollapse={true}
+				toggleDoubleClickTitleToCollapse={toggleDoubleClickTitleToCollapse}
+				toggleSmartScrolling={toggleSmartScrolling}
+			/>,
+		);
+		await user.click(doubleClickBox());
+		expect(toggleDoubleClickTitleToCollapse).toHaveBeenCalledWith(false);
+		expect(toggleSmartScrolling).not.toHaveBeenCalled();
+	});
+
+	it("fires toggleDoubleClickTitleToCollapse(true) when checked", async () => {
+		const toggleDoubleClickTitleToCollapse = vi.fn();
+		const user = userEvent.setup();
+		render(
+			<Host
+				doubleClickTitleToCollapse={false}
+				toggleDoubleClickTitleToCollapse={toggleDoubleClickTitleToCollapse}
+			/>,
+		);
+		await user.click(doubleClickBox());
+		expect(toggleDoubleClickTitleToCollapse).toHaveBeenCalledWith(true);
 	});
 });

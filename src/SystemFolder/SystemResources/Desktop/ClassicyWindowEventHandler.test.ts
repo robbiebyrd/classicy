@@ -791,6 +791,72 @@ describe("ClassicyWindowOpen persists windowType", () => {
 	});
 });
 
+// #278: collapse-all reads these flags off the store record.
+describe("ClassicyWindowOpen persists collapsable and modal", () => {
+	const findWin = (ds: ReturnType<typeof makeStoreWithWindows>, id: string) =>
+		ds.System.Manager.Applications.apps.TestApp.windows.find(
+			(w) => w.id === id,
+		);
+
+	it("stores collapsable and modal on a newly opened window", () => {
+		const ds = makeStoreWithWindows();
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowOpen",
+			app: { id: "TestApp" },
+			window: {
+				id: "dialog",
+				minimumSize: [100, 100],
+				size: [300, 200],
+				position: [150, 150],
+				collapsable: false,
+				modal: true,
+			},
+		});
+		const win = findWin(ds, "dialog");
+		expect(win?.collapsable).toBe(false);
+		expect(win?.modal).toBe(true);
+	});
+
+	it("updates the flags when an existing record re-registers", () => {
+		const ds = makeStoreWithWindows();
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowOpen",
+			app: { id: "TestApp" },
+			window: {
+				id: "w1",
+				minimumSize: [100, 100],
+				size: [400, 300],
+				position: [100, 100],
+				collapsable: false,
+				modal: false,
+			},
+		});
+		const win = findWin(ds, "w1");
+		expect(win?.collapsable).toBe(false);
+		expect(win?.modal).toBe(false);
+	});
+
+	it("ignores non-boolean flags", () => {
+		const ds = makeStoreWithWindows();
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowOpen",
+			app: { id: "TestApp" },
+			window: {
+				id: "odd",
+				minimumSize: [100, 100],
+				size: [300, 200],
+				position: [150, 150],
+				collapsable: "no",
+				modal: 1,
+			},
+		});
+		const win = findWin(ds, "odd");
+		expect(win).toBeDefined();
+		expect(win?.collapsable).toBeUndefined();
+		expect(win?.modal).toBeUndefined();
+	});
+});
+
 describe("ClassicyWindowDestroy", () => {
 	function makeFocusedApp() {
 		const ds = makeStoreWithWindows();
