@@ -179,6 +179,9 @@ export const ClassicyIcons = {
 			platinum: icon("control-panels/appearance-manager/platinum.png"),
 			preferences: icon("control-panels/appearance-manager/preferences.png"),
 		},
+		controlStripManager: {
+			app: icon("control-panels/control-strip/app.png"),
+		},
 		dateTimeManager: {
 			dateTimeManager: icon(
 				"control-panels/date-time-manager/date-time-manager.png",
@@ -211,6 +214,11 @@ export const ClassicyIcons = {
 		controlStrip: {
 			cd: icon("system/control-strip/cd.png"),
 			fileSharing: icon("system/control-strip/file-sharing.png"),
+			// 32 × 32: a module's file in System Folder:Control Strip Modules,
+			// for modules that register no `fileIcon` of their own.
+			moduleFile: icon("system/control-strip/module-file.png"),
+			// The Screen Saver module: a monitor with a starry screen.
+			screenSaver: icon("system/control-strip/screen-saver.png"),
 			sleep: icon("system/control-strip/sleep.png"),
 			sound: icon("system/control-strip/sound.png"),
 			// The same speaker with its sound waves removed: sound is off.

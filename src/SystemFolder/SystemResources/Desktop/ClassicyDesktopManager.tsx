@@ -20,6 +20,7 @@ import {
 	hasBackgroundPosition,
 	hasBackgroundRepeat,
 	hasBackgroundSize,
+	hasCollapsed,
 	hasDesktopAppRef,
 	hasDisableBalloonHelp,
 	hasDoubleClickTitleToCollapse,
@@ -29,9 +30,13 @@ import {
 	hasFontSize,
 	hasImportableTheme,
 	hasMenuBar,
+	hasModuleHidden,
+	hasModuleOrder,
 	hasMouseEvent,
 	hasSmartScrolling,
+	hasStripWidth,
 	hasThemeColorChange,
+	hasVisible,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
 import type {
 	ActionMessage,
@@ -44,6 +49,25 @@ import type { ClassicyIconBalloonHelp } from "@/SystemFolder/SystemResources/Bal
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { readShortcutDisposition } from "@/SystemFolder/SystemResources/Shortcut/ClassicyShortcut";
 import { isValidHttpUrl } from "@/SystemFolder/SystemResources/Utils/urlValidation";
+
+/**
+ * The Control Strip's persisted state. The modules themselves are runtime
+ * registrations (`registerClassicyControlStripModule`); this holds only the
+ * user's arrangement of them, keyed by module id, so settings for a module
+ * that is not registered right now are kept for when it returns.
+ */
+export interface ClassicyStoreControlStrip {
+	/** Shown or hidden from the Control Strip control panel. */
+	visible: boolean;
+	/** Unset until the user collapses or expands it (`defaultCollapsed` applies). */
+	collapsed?: boolean;
+	/** Module area width in px; unset until the user sizes it (`defaultWidth` applies). */
+	width?: number | null;
+	/** Module ids the user has hidden. */
+	hiddenModules: string[];
+	/** The user's module order; listed ids lead, in this order. */
+	moduleOrder: string[];
+}
 
 export interface ClassicyStoreSystemDesktopManagerIcon {
 	appId: string;
@@ -88,6 +112,9 @@ export interface ClassicyStoreSystemDesktopManager
 		active: boolean;
 	};
 	disableBalloonHelp: boolean;
+	/** The Control Strip's persisted arrangement. Optional for state built
+	 * by hand; the defaults always carry it. */
+	controlStrip?: ClassicyStoreControlStrip;
 	/** When true, double-clicking a window's title bar collapses it (Appearance
 	 * control-panel option). Defaults to true. */
 	doubleClickTitleToCollapse?: boolean;
@@ -122,6 +149,19 @@ export interface ClassicyStoreSystemDesktopManager
 	 *  repeated identical request. */
 	openUrlRequestId?: number;
 }
+
+/** The default Control Strip arrangement: shown, nothing hidden or reordered. */
+export const defaultClassicyControlStripState =
+	(): ClassicyStoreControlStrip => ({
+		visible: true,
+		hiddenModules: [],
+		moduleOrder: [],
+	});
+
+const controlStripState = (ds: ClassicyStore): ClassicyStoreControlStrip => {
+	ds.System.Manager.Desktop.controlStrip ??= defaultClassicyControlStripState();
+	return ds.System.Manager.Desktop.controlStrip;
+};
 
 export const classicyDesktopEventHandler = (
 	ds: ClassicyStore,
@@ -353,6 +393,38 @@ export const classicyDesktopEventHandler = (
 		case "ClassicyDesktopSetBalloonHelp": {
 			if (!hasDisableBalloonHelp(action)) break;
 			ds.System.Manager.Desktop.disableBalloonHelp = action.disableBalloonHelp;
+			break;
+		}
+		case "ClassicyDesktopControlStripSetVisible": {
+			if (!hasVisible(action)) break;
+			controlStripState(ds).visible = action.visible;
+			break;
+		}
+		case "ClassicyDesktopControlStripSetCollapsed": {
+			if (!hasCollapsed(action)) break;
+			controlStripState(ds).collapsed = action.collapsed;
+			break;
+		}
+		case "ClassicyDesktopControlStripSetWidth": {
+			if (!hasStripWidth(action)) break;
+			controlStripState(ds).width =
+				action.width === null ? null : Math.round(action.width);
+			break;
+		}
+		case "ClassicyDesktopControlStripSetModuleHidden": {
+			if (!hasModuleHidden(action)) break;
+			const strip = controlStripState(ds);
+			const others = strip.hiddenModules.filter((id) => id !== action.moduleId);
+			strip.hiddenModules = action.hidden
+				? [...others, action.moduleId]
+				: others;
+			break;
+		}
+		case "ClassicyDesktopControlStripSetModuleOrder": {
+			if (!hasModuleOrder(action)) break;
+			controlStripState(ds).moduleOrder = Array.from(
+				new Set(action.moduleOrder),
+			);
 			break;
 		}
 		case "ClassicyDesktopSetDoubleClickTitleToCollapse": {

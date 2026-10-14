@@ -1,20 +1,35 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+	act,
 	fireEvent,
 	renderWithProviders,
 	screen,
 	waitFor,
 } from "@/__tests__/test-utils";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	dispatch,
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { CONTROL_STRIP_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/ControlStripManager/ClassicyControlStripManagerManifest";
 import { SCREEN_SAVER_APP_ID } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverContext";
+import { markClassicyAppMounted } from "@/SystemFolder/SystemResources/App/ClassicyMountedApps";
+import { ClassicyContextualMenuProvider } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 import {
 	ClassicyControlStrip,
-	type ClassicyControlStripModule,
+	type ClassicyControlStripProps,
 } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStrip";
+import {
+	CLASSICY_CONTROL_STRIP_MODULE_IDS,
+	type ClassicyControlStripModuleDefinition,
+	registerClassicyControlStripModule,
+	unregisterClassicyControlStripModule,
+	useClassicyControlStripDisabledModules,
+} from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripRegistry";
+// The built-in modules register when their owners' modules load.
+import "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundControlStripModule";
+import "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverControlStripModule";
 
 const sound = vi.hoisted(() => ({
 	state: { disabled: [] as string[], volume: 100 as number | undefined },
@@ -53,7 +68,11 @@ const click = (el: Element) => {
 const tab = () =>
 	document.querySelector(".classicyControlStripTab") as HTMLButtonElement;
 
-const testModules = (onOpen = vi.fn()): ClassicyControlStripModule[] => [
+const BUILT_INS = Object.values(CLASSICY_CONTROL_STRIP_MODULE_IDS);
+
+const testModules = (
+	onOpen = vi.fn(),
+): ClassicyControlStripModuleDefinition[] => [
 	{
 		id: "sharing",
 		label: "File Sharing",
@@ -77,9 +96,41 @@ const testModules = (onOpen = vi.fn()): ClassicyControlStripModule[] => [
 		id: "volume",
 		label: "Volume",
 		icon: "volume.png",
-		content: <input type="range" aria-label="Level" />,
+		content: () => <input type="range" aria-label="Level" />,
 	},
 ];
+
+let registered: string[] = [];
+const register = (...modules: ClassicyControlStripModuleDefinition[]) => {
+	for (const module of modules) {
+		registerClassicyControlStripModule(module);
+		registered.push(module.id);
+	}
+};
+
+/** The strip with only the test's own modules: the built-ins host-disabled. */
+const renderStrip = (props: ClassicyControlStripProps = {}) =>
+	renderWithProviders(
+		<ClassicyControlStrip disabledModules={BUILT_INS} {...props} />,
+	);
+
+const moduleNames = () =>
+	Array.from(
+		document.querySelectorAll(".classicyControlStripModules button"),
+	).map((b) => b.getAttribute("aria-label"));
+
+const storedStrip = () =>
+	useAppManager.getState().System.Manager.Desktop.controlStrip;
+
+beforeEach(() => {
+	useAppManager.setState(structuredClone(DefaultAppManagerState), true);
+});
+
+afterEach(() => {
+	for (const id of registered) unregisterClassicyControlStripModule(id);
+	registered = [];
+	vi.restoreAllMocks();
+});
 
 describe("ClassicyControlStrip (HIGOS8 Figure 6-15)", () => {
 	beforeEach(() => {
@@ -89,7 +140,8 @@ describe("ClassicyControlStrip (HIGOS8 Figure 6-15)", () => {
 	afterEach(() => vi.restoreAllMocks());
 
 	it("lays out collapse box, scroll arrows, a button per module and the tab", () => {
-		renderWithProviders(<ClassicyControlStrip modules={testModules()} />);
+		register(...testModules());
+		renderStrip();
 		const strip = screen.getByRole("toolbar", { name: "Control Strip" });
 		const names = Array.from(strip.querySelectorAll("button")).map((b) =>
 			b.getAttribute("aria-label"),
@@ -106,7 +158,8 @@ describe("ClassicyControlStrip (HIGOS8 Figure 6-15)", () => {
 
 	it("opens a module's menu, with its italic status line and control panel command", async () => {
 		const onOpen = vi.fn();
-		renderWithProviders(<ClassicyControlStrip modules={testModules(onOpen)} />);
+		register(...testModules(onOpen));
+		renderStrip();
 		click(screen.getByRole("button", { name: "File Sharing" }));
 		const status = screen.getByRole("menuitem", { name: "No Users Connected" });
 		expect(status).toHaveClass(
@@ -121,13 +174,15 @@ describe("ClassicyControlStrip (HIGOS8 Figure 6-15)", () => {
 	});
 
 	it("pops up a module's own surface instead of a menu (Figure 2-16)", () => {
-		renderWithProviders(<ClassicyControlStrip modules={testModules()} />);
+		register(...testModules());
+		renderStrip();
 		click(screen.getByRole("button", { name: "Volume" }));
 		expect(screen.getByRole("slider", { name: "Level" })).toBeInTheDocument();
 	});
 
 	it("collapses to the tab and expands again from it", () => {
-		renderWithProviders(<ClassicyControlStrip modules={testModules()} />);
+		register(...testModules());
+		renderStrip();
 		fireEvent.click(
 			screen.getByRole("button", { name: "Collapse Control Strip" }),
 		);
@@ -152,7 +207,8 @@ describe("ClassicyControlStrip (HIGOS8 Figure 6-15)", () => {
 	});
 
 	it("toggles from the keyboard: Enter or Space on the tab", () => {
-		renderWithProviders(<ClassicyControlStrip modules={testModules()} />);
+		register(...testModules());
+		renderStrip();
 		fireEvent.click(tab(), { detail: 0 });
 		expect(
 			screen.getByRole("button", { name: "Expand Control Strip" }),
@@ -164,9 +220,8 @@ describe("ClassicyControlStrip (HIGOS8 Figure 6-15)", () => {
 	});
 
 	it("starts collapsed when asked", () => {
-		renderWithProviders(
-			<ClassicyControlStrip modules={testModules()} defaultCollapsed />,
-		);
+		register(...testModules());
+		renderStrip({ defaultCollapsed: true });
 		expect(
 			screen.getByRole("button", { name: "Expand Control Strip" }),
 		).toBeInTheDocument();
@@ -185,7 +240,8 @@ describe("ClassicyControlStrip (HIGOS8 Figure 6-15)", () => {
 		});
 
 		it("steps through them one module at a time with the scroll arrows", () => {
-			renderWithProviders(<ClassicyControlStrip modules={testModules()} />);
+			register(...testModules());
+			renderStrip();
 			const left = screen.getByRole("button", {
 				name: "Scroll Control Strip left",
 			});
@@ -204,7 +260,8 @@ describe("ClassicyControlStrip (HIGOS8 Figure 6-15)", () => {
 		});
 
 		it("is sized by dragging the tab, between one module and all of them", () => {
-			renderWithProviders(<ClassicyControlStrip modules={testModules()} />);
+			register(...testModules());
+			renderStrip();
 			const viewport = document.querySelector(
 				".classicyControlStripModules",
 			) as HTMLElement;
@@ -228,7 +285,8 @@ describe("ClassicyControlStrip (HIGOS8 Figure 6-15)", () => {
 		});
 
 		it("is sized a module at a time from the keyboard with the arrow keys on the tab", () => {
-			renderWithProviders(<ClassicyControlStrip modules={testModules()} />);
+			register(...testModules());
+			renderStrip();
 			const viewport = document.querySelector(
 				".classicyControlStripModules",
 			) as HTMLElement;
@@ -240,9 +298,8 @@ describe("ClassicyControlStrip (HIGOS8 Figure 6-15)", () => {
 		});
 
 		it("snaps a starting width to whole modules", () => {
-			renderWithProviders(
-				<ClassicyControlStrip modules={testModules()} defaultWidth={100} />,
-			);
+			register(...testModules());
+			renderStrip({ defaultWidth: 100 });
 			const viewport = document.querySelector(
 				".classicyControlStripModules",
 			) as HTMLElement;
@@ -258,12 +315,16 @@ describe("built-in control strip modules", () => {
 		sound.player.mockClear();
 	});
 
-	it("defaults to the Sound and Screen Saver modules", () => {
+	it("shows Sound always, and Screen Saver while its extension is mounted", () => {
 		renderWithProviders(<ClassicyControlStrip />);
-		expect(screen.getByRole("button", { name: "Sound" })).toBeInTheDocument();
-		expect(
-			screen.getByRole("button", { name: "Screen Saver" }),
-		).toBeInTheDocument();
+		expect(moduleNames()).toEqual(["Sound"]);
+		let unmount = () => {};
+		act(() => {
+			unmount = markClassicyAppMounted(SCREEN_SAVER_APP_ID);
+		});
+		expect(moduleNames()).toEqual(["Sound", "Screen Saver"]);
+		act(() => unmount());
+		expect(moduleNames()).toEqual(["Sound"]);
 	});
 
 	it("Sound pops up the volume slider (Figure 2-16) and sets the volume", () => {
@@ -332,6 +393,7 @@ describe("built-in control strip modules", () => {
 			type: "ClassicyAppOpen",
 			app: { id: SCREEN_SAVER_APP_ID, name: "Screen Saver", icon: "" },
 		});
+		const unmount = markClassicyAppMounted(SCREEN_SAVER_APP_ID);
 		renderWithProviders(<ClassicyControlStrip />);
 		click(screen.getByRole("button", { name: "Screen Saver" }));
 		expect(
@@ -353,5 +415,244 @@ describe("built-in control strip modules", () => {
 				)?.enabled,
 			).toBe(false),
 		);
+		unmount();
+	});
+});
+
+describe("Control Strip module registration", () => {
+	const plain = (
+		id: string,
+		extra: Partial<ClassicyControlStripModuleDefinition> = {},
+	): ClassicyControlStripModuleDefinition => ({
+		id,
+		label: id,
+		icon: `${id}.png`,
+		menuItems: [{ id: `${id}-item`, title: id }],
+		...extra,
+	});
+
+	it("shows registered modules alongside the built-ins", () => {
+		register(plain("Extra"));
+		renderWithProviders(<ClassicyControlStrip />);
+		expect(moduleNames()).toEqual(["Sound", "Extra"]);
+	});
+
+	it("updates live when a module is registered or unregistered after mount", () => {
+		renderStrip();
+		expect(moduleNames()).toEqual([]);
+		act(() => register(plain("Late")));
+		expect(moduleNames()).toEqual(["Late"]);
+		act(() => {
+			unregisterClassicyControlStripModule("Late");
+		});
+		expect(moduleNames()).toEqual([]);
+	});
+
+	it("orders by `order`, then registration order", () => {
+		register(plain("C"), plain("A", { order: 5 }), plain("B"));
+		renderStrip();
+		expect(moduleNames()).toEqual(["A", "C", "B"]);
+	});
+
+	it("lets the owner replace a module, and ignores another owner's claim", () => {
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+		register(plain("Mine", { appId: "Host.app" }), plain("Other"));
+		const unmount = markClassicyAppMounted("Host.app");
+		renderStrip();
+		expect(moduleNames()).toEqual(["Mine", "Other"]);
+
+		act(() => {
+			registerClassicyControlStripModule(
+				plain("Mine", { appId: "Host.app", label: "Mine v2" }),
+			);
+		});
+		// Replaced in place: same position, new label.
+		expect(moduleNames()).toEqual(["Mine v2", "Other"]);
+
+		const result = registerClassicyControlStripModule(
+			plain("Mine", { appId: "Intruder.app", label: "Stolen" }),
+		);
+		expect(result.label).toBe("Mine v2");
+		expect(moduleNames()).toEqual(["Mine v2", "Other"]);
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringContaining(
+				'Module "Mine" is already registered by Host.app',
+			),
+		);
+		act(() => unmount());
+	});
+
+	it("shows a module with an appId only while that app is mounted", () => {
+		register(plain("Owned", { appId: "Owner.app" }));
+		renderStrip();
+		expect(moduleNames()).toEqual([]);
+		let unmount = () => {};
+		act(() => {
+			unmount = markClassicyAppMounted("Owner.app");
+		});
+		expect(moduleNames()).toEqual(["Owned"]);
+		act(() => unmount());
+		expect(moduleNames()).toEqual([]);
+	});
+
+	it("runs hook forms inside the providers and follows their state", () => {
+		register({
+			id: "Hooked",
+			label: "Hooked",
+			icon: () =>
+				useAppManager((s) =>
+					s.System.Manager.Desktop.disableBalloonHelp ? "off.png" : "on.png",
+				),
+			menuItems: () => [
+				{
+					id: "hooked-status",
+					title: useAppManager(
+						(s) => s.System.Manager.Desktop.disableBalloonHelp,
+					)
+						? "Balloons Off"
+						: "Balloons On",
+				},
+			],
+		});
+		renderStrip();
+		const button = screen.getByRole("button", { name: "Hooked" });
+		expect(button.querySelector("img")).toHaveAttribute("src", "on.png");
+		act(() =>
+			dispatch({
+				type: "ClassicyDesktopSetBalloonHelp",
+				disableBalloonHelp: true,
+			}),
+		);
+		expect(button.querySelector("img")).toHaveAttribute("src", "off.png");
+		click(button);
+		expect(
+			screen.getByRole("menuitem", { name: "Balloons Off" }),
+		).toBeInTheDocument();
+	});
+
+	it("leaves out host-disabled modules and publishes them for the control panel", () => {
+		register(plain("Kept"), plain("Dropped"));
+		const Probe = () => (
+			<output aria-label="disabled">
+				{useClassicyControlStripDisabledModules().join(",")}
+			</output>
+		);
+		const { unmount } = renderWithProviders(
+			<>
+				<ClassicyControlStrip disabledModules={[...BUILT_INS, "Dropped"]} />
+				<Probe />
+			</>,
+		);
+		expect(moduleNames()).toEqual(["Kept"]);
+		expect(screen.getByLabelText("disabled")).toHaveTextContent(
+			[...BUILT_INS, "Dropped"].join(","),
+		);
+		unmount();
+		renderWithProviders(<Probe />);
+		expect(screen.getByLabelText("disabled")).toHaveTextContent("");
+	});
+});
+
+describe("Control Strip persisted state", () => {
+	it("stores collapsing and expanding", () => {
+		register(...testModules());
+		renderStrip();
+		fireEvent.click(
+			screen.getByRole("button", { name: "Collapse Control Strip" }),
+		);
+		expect(storedStrip()?.collapsed).toBe(true);
+		click(tab());
+		expect(storedStrip()?.collapsed).toBe(false);
+	});
+
+	it("prefers the stored collapsed state over defaultCollapsed", () => {
+		register(...testModules());
+		dispatch({
+			type: "ClassicyDesktopControlStripSetCollapsed",
+			collapsed: false,
+		});
+		renderStrip({ defaultCollapsed: true });
+		expect(
+			screen.getByRole("button", { name: "File Sharing" }),
+		).toBeInTheDocument();
+	});
+
+	it("stores the width the user drags to, and starts from it", () => {
+		vi.spyOn(HTMLElement.prototype, "scrollWidth", "get").mockReturnValue(300);
+		vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(100);
+		vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(30);
+		register(...testModules());
+		const { unmount } = renderStrip({ defaultWidth: 300 });
+		// A starting width is not a choice the user made: nothing is stored.
+		expect(storedStrip()?.width).toBeUndefined();
+		fireEvent.mouseDown(tab(), { button: 0, clientX: 200 });
+		fireEvent.mouseMove(document, { clientX: 160 });
+		fireEvent.mouseUp(document);
+		expect(storedStrip()?.width).toBe(60);
+		unmount();
+
+		renderStrip({ defaultWidth: 300 });
+		const viewport = document.querySelector(
+			".classicyControlStripModules",
+		) as HTMLElement;
+		expect(viewport.style.width).toBe("60px");
+	});
+
+	it("leaves out modules the user hid, in the user's order", () => {
+		register(...testModules(), {
+			id: "third",
+			label: "Third",
+			icon: "third.png",
+			menuItems: [],
+		});
+		dispatch({
+			type: "ClassicyDesktopControlStripSetModuleOrder",
+			moduleOrder: ["third", "sharing"],
+		});
+		dispatch({
+			type: "ClassicyDesktopControlStripSetModuleHidden",
+			moduleId: "volume",
+			hidden: true,
+		});
+		renderStrip();
+		expect(moduleNames()).toEqual(["Third", "File Sharing"]);
+	});
+
+	it("draws nothing while hidden from the control panel", () => {
+		register(...testModules());
+		dispatch({ type: "ClassicyDesktopControlStripSetVisible", visible: false });
+		renderStrip();
+		expect(screen.queryByRole("toolbar", { name: "Control Strip" })).toBeNull();
+	});
+
+	it("offers Hide Control Strip and its control panel from its contextual menu", async () => {
+		register(...testModules());
+		renderWithProviders(
+			<ClassicyContextualMenuProvider>
+				<ClassicyControlStrip disabledModules={BUILT_INS} />
+			</ClassicyContextualMenuProvider>,
+		);
+		fireEvent.contextMenu(tab(), { clientX: 10, clientY: 10 });
+		fireEvent.click(
+			screen.getByRole("menuitem", {
+				name: "Open Control Strip Control Panel",
+			}),
+		);
+		completeMenuItemFlash("control-strip-open-control-panel");
+		await waitFor(() =>
+			expect(
+				useAppManager.getState().System.Manager.Applications.apps[
+					CONTROL_STRIP_MANAGER_APP_ID
+				]?.open,
+			).toBe(true),
+		);
+
+		fireEvent.contextMenu(tab(), { clientX: 10, clientY: 10 });
+		fireEvent.click(
+			screen.getByRole("menuitem", { name: "Hide Control Strip" }),
+		);
+		completeMenuItemFlash("control-strip-hide");
+		await waitFor(() => expect(storedStrip()?.visible).toBe(false));
+		expect(screen.queryByRole("toolbar", { name: "Control Strip" })).toBeNull();
 	});
 });

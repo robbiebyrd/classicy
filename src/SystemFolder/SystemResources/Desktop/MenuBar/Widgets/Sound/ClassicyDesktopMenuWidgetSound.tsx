@@ -22,8 +22,8 @@ const soundOnImg = ClassicyIcons.controlPanels.soundManager.soundOn;
 /**
  * @deprecated The menu-bar speaker widget is no longer mounted by
  * `ClassicyDesktop`; system volume lives on the Control Strip. Use the Control
- * Strip's built-in Sound module (`useClassicySoundControlStripModule`),
- * configured through `ClassicyDesktop`'s `controlStrip` prop.
+ * Strip's built-in Sound module (`classicy-sound`), which shows unless
+ * `ClassicyDesktop`'s `controlStrip` prop lists it in `disabledModules`.
  */
 type ClassicyDesktopMenuWidgetSoundProps = {
 	hide?: boolean;
@@ -37,9 +37,9 @@ let deprecationWarned = false;
  * Menu-bar speaker that toggles the global mute flag.
  *
  * @deprecated Sound moved to the Control Strip (HIGOS8 p.125, Figure 2-16).
- * Use the Control Strip's built-in Sound module
- * (`useClassicySoundControlStripModule`), which `ClassicyDesktop` mounts by
- * default and configures through its `controlStrip` prop. That module sets the
+ * Use the Control Strip's built-in Sound module (`classicy-sound`), which
+ * `ClassicyDesktop`'s Control Strip shows by default (its `controlStrip` prop
+ * can disable it). That module sets the
  * system volume (`ClassicyVolumeSet`); this widget only toggles mute. Still
  * exported so existing consumers keep working.
  */
@@ -52,7 +52,7 @@ export const ClassicyDesktopMenuWidgetSound: FunctionalComponent<
 		classicyLog(
 			"warn",
 			"ClassicyDesktopMenuWidgetSound",
-			"ClassicyDesktopMenuWidgetSound is deprecated: Sound lives on the Control Strip. Use its built-in Sound module (useClassicySoundControlStripModule) via ClassicyDesktop's controlStrip prop.",
+			"ClassicyDesktopMenuWidgetSound is deprecated: Sound lives on the Control Strip. Use its built-in Sound module (classicy-sound), shown by ClassicyDesktop's controlStrip.",
 		);
 	}, []);
 

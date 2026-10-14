@@ -16,6 +16,7 @@ import {
 	listAppWindows,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { ClassicyAppIdContext } from "@/SystemFolder/SystemResources/App/ClassicyAppIdContext";
+import { markClassicyAppMounted } from "@/SystemFolder/SystemResources/App/ClassicyMountedApps";
 import type { ClassicyIconBalloonHelp } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
 import { normalizeIconBalloonHelp } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconBalloons";
 import type { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
@@ -231,6 +232,10 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 		name,
 		icon,
 	]);
+
+	// Runtime presence, separate from the persisted app record: Control Strip
+	// modules registered with this app's id show only while it is mounted.
+	useEffect(() => markClassicyAppMounted(id), [id]);
 
 	const handlesFileTypesKey = handlesFileTypes?.slice().sort().join(",") ?? "";
 	useEffect(() => {

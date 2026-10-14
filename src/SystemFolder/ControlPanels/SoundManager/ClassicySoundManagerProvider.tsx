@@ -1,3 +1,6 @@
+// Side-effect import: registers the Sound Control Strip module, which needs
+// this provider's context.
+import "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundControlStripModule";
 import {
 	type FC as FunctionalComponent,
 	type ReactNode,

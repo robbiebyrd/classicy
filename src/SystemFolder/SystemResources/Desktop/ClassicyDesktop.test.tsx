@@ -332,6 +332,21 @@ describe("ClassicyDesktop Control Strip", () => {
 		expect(screen.getByRole("button", { name: "Sound" })).toBeInTheDocument();
 	});
 
+	it("shows the Screen Saver extension's module, and drops host-disabled ones", () => {
+		render(
+			<ClassicyAppManagerProvider>
+				<ClassicyDesktop
+					startupScreen={false}
+					controlStrip={{ disabledModules: ["classicy-sound"] }}
+				/>
+			</ClassicyAppManagerProvider>,
+		);
+		expect(
+			screen.getByRole("button", { name: "Screen Saver" }),
+		).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "Sound" })).toBeNull();
+	});
+
 	it("passes its props through, and hides it with controlStrip={false}", () => {
 		const { unmount } = render(
 			<ClassicyAppManagerProvider>

@@ -349,15 +349,46 @@ Rules live in `checkKeyboardEquivalent` (needs ⌘ or a function key unless
 
 `ClassicyDesktop` mounts a `ClassicyControlStrip` at its lower left — the home
 of the Sound control (the menu bar has no speaker widget). Its `controlStrip`
-prop takes the strip's props (`modules`, `defaultCollapsed`, `defaultWidth`) or
-`false` to hide it; Storybook desktop stories opt out with
-`parameters.classicy.controlStrip: false`. Modules are
-`{ id, icon, label, menuItems?, content? }` rendered as pop-up bevel buttons
-opening `below` (which flips above the strip). With no `modules` it shows the
-built-ins from `useClassicyDefaultControlStripModules`: Sound (Figure 2-16's
-volume slider) and Screen Saver.
+prop takes the strip's props (`disabledModules`, `defaultCollapsed`,
+`defaultWidth`) or `false` to hide it; Storybook desktop stories opt out with
+`parameters.classicy.controlStrip: false`.
+
+Modules come only from `registerClassicyControlStripModule`
+(`ClassicyControlStripRegistry.ts`) — `{ id, label, icon, appId?, order?,
+menuItems?, content?, fileIcon? }`, called at module scope. There is no
+`modules` prop. The registry is live (`useSyncExternalStore`), so the strip,
+the control panel and the file system follow registrations made after mount.
+
+- Function forms of `icon`/`menuItems` and the `content` component are hooks
+  run inside the providers (each module is its own component, keyed by
+  `id:revision`).
+- `appId` ties a module to a mounted `ClassicyApp` — runtime presence via
+  `ClassicyMountedApps.ts` (`ClassicyApp` marks itself on mount), never the
+  persisted `apps[id]` record. Same `appId` re-registering replaces; another
+  `appId` is ignored with a `classicyLog` warning.
+- Built-ins register like any module: Sound (`classicy-sound`, order 10, no
+  owner) from `ClassicySoundManagerProvider`'s import graph; Screen Saver
+  (`classicy-screen-saver`, order 20, owner `ScreenSaver.app`) from the
+  extension. Both files are in `package.json` `sideEffects`.
+- System and registered modules **always show** unless the host lists them in
+  `disabledModules` (not drawn, not offered in the control panel — published
+  for it via `setClassicyControlStripDisabledModules`) or the user hides them.
+- Persisted state: `System.Manager.Desktop.controlStrip` `{ visible, collapsed?,
+  width?, hiddenModules, moduleOrder }`, written by
+  `ClassicyDesktopControlStrip{SetVisible,SetCollapsed,SetWidth,SetModuleHidden,SetModuleOrder}`.
+  `defaultCollapsed`/`defaultWidth` apply only until the user changes them.
+  Ids in `moduleOrder` lead; the rest follow in declared order. Settings for
+  unregistered ids are kept.
+- The Control Strip control panel (`ControlPanels/ControlStripManager/`,
+  `ControlStripManager.app`) edits all of it; the strip's contextual menu
+  offers Hide Control Strip and Open Control Strip Control Panel.
+- Each installed module is a read-only file (Extension type, so Finder won't
+  open it) in the derived `Macintosh HD:System Folder:Control Strip Modules`
+  (`ClassicyFileSystemControlStripModules.ts`), built like the Extensions
+  folder and never persisted.
+
 HIG p.125: a module for a control panel must include an "Open … Control Panel"
-command.
+command (`classicyControlStripOpenControlPanelItem`).
 
 The strip is pixel-matched to HIGOS8 Figure 6-15: bevels are `px-rect`
 background layers (`appearance.scss`), and the tab, arrows and slider are

@@ -96,8 +96,10 @@ interface ClassicyDesktopProps {
 	bootScreen?: ReactNode;
 	/**
 	 * The Control Strip (HIGOS8 Figure 6-15) along the bottom left of the
-	 * desktop — home of the Sound control. Shown by default with the built-in
-	 * modules; pass its props to configure it, or `false` to hide it.
+	 * desktop — home of the Sound control. Shown by default with every
+	 * registered module (`registerClassicyControlStripModule`); pass its props
+	 * to configure it (`disabledModules`, `defaultCollapsed`, `defaultWidth`),
+	 * or `false` to hide it.
 	 */
 	controlStrip?: boolean | ClassicyControlStripProps;
 }

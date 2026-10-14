@@ -24,7 +24,7 @@ version, aimed at a person writing an app for the first time.
 13. [Balloon help](#13-balloon-help)
 14. [Sound](#14-sound)
 15. [Analytics](#15-analytics)
-16. [Extensions and global shortcuts](#16-extensions-and-global-shortcuts)
+16. [Extensions, global shortcuts and Control Strip modules](#16-extensions-global-shortcuts-and-control-strip-modules)
 17. [Persistence](#17-persistence)
 18. [Testing](#18-testing)
 19. [Checklist and known traps](#19-checklist-and-known-traps)
@@ -1141,7 +1141,7 @@ deliberate trade for readable content reports; the path is what stays clean.
 
 ---
 
-## 16. Extensions and global shortcuts
+## 16. Extensions, global shortcuts and Control Strip modules
 
 An extension is a background app: always open, no desktop icon, no Applications
 entry, no Apple-menu entry, never focused, usually no window. Use one for a
@@ -1177,6 +1177,65 @@ Global keyboard shortcuts are honored **only** for extensions:
 
 Each is canonicalized and registered on mount (first registrant wins) and
 unregistered on unmount.
+
+### Control Strip modules
+
+An app or extension adds a button to the Control Strip (HIGOS8 Figure 6-15)
+with `registerClassicyControlStripModule`. Call it **once, at module scope**,
+next to your `registerApp` call:
+
+```tsx
+import {
+    classicyControlStripOpenControlPanelItem,
+    registerClassicyControlStripModule,
+    useAppManager,
+    useAppManagerDispatch,
+} from 'classicy'
+
+registerClassicyControlStripModule({
+    id: 'com.example.vpn',
+    appId: 'MyBridge.app',     // shows only while <ClassicyApp id="MyBridge.app"> is mounted
+    label: 'VPN',              // accessible name, and its name in the control panel
+    icon: vpnIcon16,           // 16 × 16; or a hook returning one
+    fileIcon: vpnIcon32,       // its file in System Folder:Control Strip Modules
+    order: 50,                 // lower first; default 100 (after the built-ins)
+    menuItems: () => {         // a hook: runs inside the providers
+        const connected = useAppManager((s) => s.System.Manager.Applications.apps['MyBridge.app']?.data?.connected === true)
+        const dispatch = useAppManagerDispatch()
+        return [
+            { id: 'vpn-status', title: connected ? 'Connected' : 'Not Connected', disabled: true, className: 'classicyControlStripStatus' },
+            { id: 'spacer' },
+            { id: 'vpn-toggle', title: connected ? 'Disconnect' : 'Connect', event: 'ClassicyAppMyBridgeToggle' },
+            { id: 'spacer' },
+            classicyControlStripOpenControlPanelItem(dispatch, 'VPN', { id: 'VPNPanel.app', name: 'VPN', icon: panelIcon }),
+        ]
+    },
+})
+```
+
+- **A menu or a surface.** `menuItems` (an array, or a hook returning one) pops
+  up a menu; a disabled item with class `classicyControlStripStatus` is the
+  italic status line. `content` (a component) pops up anything else — the Sound
+  module's slider is one. `content` is ignored when `menuItems` is set.
+- **Hooks.** Each module renders as its own component, so the function forms of
+  `icon` and `menuItems`, and `content`, may call hooks. Keep their hook calls
+  unconditional.
+- **Ownership.** With an `appId`, the module shows (and its file is listed) only
+  while a `ClassicyApp` with that id is mounted. That is runtime presence
+  (`useClassicyMountedApps`), not the persisted `apps[id]` record. Without an
+  `appId`, it shows while registered.
+- **Re-registering.** The same `appId` replaces the module in place; a different
+  `appId` is ignored with a warning. `unregisterClassicyControlStripModule(id)`
+  removes one. The strip updates live either way.
+- **Always shown unless turned off.** Built-in and registered modules always
+  show. The host turns one off with
+  `<ClassicyDesktop controlStrip={{ disabledModules: [CLASSICY_CONTROL_STRIP_MODULE_IDS.sound] }} />`
+  (it is then neither drawn nor offered to the user); the user hides one, or
+  reorders them, in the Control Strip control panel.
+- **HIG p.125.** A module that belongs to a control panel includes an
+  "Open … Control Panel" command (`classicyControlStripOpenControlPanelItem`).
+- Every installed module is listed as a read-only file in
+  `Macintosh HD:System Folder:Control Strip Modules`.
 
 ---
 
@@ -1306,4 +1365,6 @@ the vitest setup file — Classicy uses all three.
 | An icon persists after the app is removed | Icons persist to `localStorage`; turning both icon surfaces off dispatches the removal. |
 | State change is ignored after reload | Persisted state beats `defaultState`. Clear `classicyDesktopState`. |
 | A desktop icon has no balloon help | The manifest has no `description`. |
+| A Control Strip module never appears | Its `appId` app is not mounted, the host lists it in `disabledModules`, or the user hid it in the Control Strip control panel. |
+| A Control Strip registration is ignored | Another `appId` already registered that module id. |
 | Schema warnings in the console | Dev-only manifest validation. Warn-only — state is never rejected. |

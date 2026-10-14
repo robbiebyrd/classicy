@@ -1,6 +1,8 @@
 import "./ClassicyScreenSaver.scss";
 // Side-effect import: registers the built-in After Dark savers.
 import "@/SystemFolder/Extensions/ScreenSaver/savers/ClassicyScreenSaverBuiltIns";
+// Side-effect import: registers the Screen Saver Control Strip module.
+import "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverControlStripModule";
 import type { FC as FunctionalComponent } from "react";
 import { useEffect, useRef } from "react";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
