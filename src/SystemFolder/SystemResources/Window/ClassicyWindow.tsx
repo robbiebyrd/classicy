@@ -85,21 +85,30 @@ export function resolveSize(
  */
 export function classicyWindowContentSize(el: HTMLElement): [number, number] {
 	const rect = el.getBoundingClientRect();
-	const style = getComputedStyle(el);
-	const px = (value: string) => Number.parseFloat(value) || 0;
-	const chromeWidth =
-		px(style.paddingLeft) +
-		px(style.paddingRight) +
-		px(style.borderLeftWidth) +
-		px(style.borderRightWidth);
-	const chromeHeight =
-		px(style.paddingTop) +
-		px(style.paddingBottom) +
-		px(style.borderTopWidth) +
-		px(style.borderBottomWidth);
+	const [chromeWidth, chromeHeight] = classicyWindowChromeSize(el);
 	return [
 		Math.max(0, rect.width - chromeWidth),
 		Math.max(0, rect.height - chromeHeight),
+	];
+}
+
+/**
+ * The window's chrome — frame padding plus border, both sides — that sits
+ * outside its content-box size. Room on the desktop is outer space, so a
+ * target derived from it must drop this before it is applied as a size.
+ */
+export function classicyWindowChromeSize(el: HTMLElement): [number, number] {
+	const style = getComputedStyle(el);
+	const px = (value: string) => Number.parseFloat(value) || 0;
+	return [
+		px(style.paddingLeft) +
+			px(style.paddingRight) +
+			px(style.borderLeftWidth) +
+			px(style.borderRightWidth),
+		px(style.paddingTop) +
+			px(style.paddingBottom) +
+			px(style.borderTopWidth) +
+			px(style.borderBottomWidth),
 	];
 }
 
@@ -1062,15 +1071,21 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		const dh =
 			desktop?.clientHeight ??
 			(typeof window !== "undefined" ? window.innerHeight : 600);
-		const stdW = Math.max(resolvedMinimumSize[0], dw - margin * 2);
+		// Every size returned here is applied as the window's content-box
+		// width/height, so the desktop's outer room loses the window's chrome
+		// first, and the current size is the content size, not the rect (#291).
+		const el = windowRef.current;
+		const [chromeW, chromeH] = el ? classicyWindowChromeSize(el) : [0, 0];
+		const stdW = Math.max(resolvedMinimumSize[0], dw - margin * 2 - chromeW);
 		const stdH = Math.max(
 			resolvedMinimumSize[1],
-			dh - menuBarHeight - margin * 2,
+			dh - menuBarHeight - margin * 2 - chromeH,
 		);
 
-		const rect = windowRef.current?.getBoundingClientRect();
-		const curW = Math.round(rect?.width ?? size[0] ?? resolvedSize[0]);
-		const curH = Math.round(rect?.height ?? size[1] ?? resolvedSize[1]);
+		// The axis a one-way zoom keeps is the size the window already applies,
+		// so it is carried over exactly rather than re-measured.
+		const [curW, curH] = appliedWindowSize() ?? resolvedSize;
+		const rect = el?.getBoundingClientRect();
 		const curLeft = Math.round(rect?.left ?? ws.position[0]);
 		const curTop = Math.round(rect?.top ?? ws.position[1]);
 
@@ -1086,9 +1101,10 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 
 		// Full zoom targets the "standard state" — the size best suited to the
 		// content — NOT the whole screen (HIGOS8 Ch.5, p.104). Prefer an explicit
-		// idealSize; otherwise fit the current content (its inner scroll extent
-		// plus the window's chrome); fall back to filling the desktop only when no
-		// usable measurement is available. Everything is clamped to [min, desktop].
+		// idealSize (a content-box size, like initialSize); otherwise fit the
+		// current content (its inner scroll extent plus what surrounds it); fall
+		// back to filling the desktop only when no usable measurement is
+		// available. Everything is clamped to [min, desktop].
 		const clamp = (v: number, lo: number, hi: number) =>
 			Math.min(Math.max(v, lo), Math.max(lo, hi));
 		let targetW = stdW;
@@ -1098,14 +1114,22 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			targetW = clamp(iw, resolvedMinimumSize[0], stdW);
 			targetH = clamp(ih, resolvedMinimumSize[1], stdH);
 		} else {
-			const inner = windowRef.current?.querySelector<HTMLElement>(
+			const inner = el?.querySelector<HTMLElement>(
 				".classicyWindowContentsInner",
 			);
-			if (inner) {
-				const chromeW = curW - inner.clientWidth;
-				const chromeH = curH - inner.clientHeight;
-				const fitW = inner.scrollWidth + chromeW;
-				const fitH = inner.scrollHeight + chromeH;
+			if (el && inner) {
+				// Everything in the window's content box around the inner
+				// scroller (title bar, headers, scroll bars), measured against the
+				// same layout pass as inner.clientWidth/Height.
+				// Rounded: the extents are whole pixels, and the measurement
+				// carries the layout's sub-pixel error (649.994 for 650).
+				const [drawnW, drawnH] = classicyWindowContentSize(el);
+				const fitW = Math.round(
+					inner.scrollWidth + (drawnW - inner.clientWidth),
+				);
+				const fitH = Math.round(
+					inner.scrollHeight + (drawnH - inner.clientHeight),
+				);
 				if (Number.isFinite(fitW) && fitW > 0) {
 					targetW = clamp(fitW, resolvedMinimumSize[0], stdW);
 				}

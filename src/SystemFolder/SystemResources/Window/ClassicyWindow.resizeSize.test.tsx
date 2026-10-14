@@ -101,7 +101,9 @@ const resizeDispatches = () =>
 		)
 		.filter((action) => action.type === "ClassicyWindowResize");
 
-const renderWindow = () => {
+const renderWindow = (
+	props: Partial<Parameters<typeof ClassicyWindow>[0]> = {},
+) => {
 	const result = render(
 		<ClassicyWindow
 			id="TestWindow"
@@ -109,6 +111,7 @@ const renderWindow = () => {
 			title="Test"
 			resizable
 			zoomable
+			{...props}
 		>
 			<p>content</p>
 		</ClassicyWindow>,
@@ -253,5 +256,73 @@ describe("ClassicyWindow stored size (#291)", () => {
 			Number.parseFloat(root.style.width),
 			Number.parseFloat(root.style.height),
 		]);
+	});
+
+	// The zoom target is applied as the content-box size, so it must be worked
+	// out in that box: desktop room minus the chrome, and the current content
+	// size rather than the rect.
+	describe("zoom target", () => {
+		// No #classicyDesktop is mounted, so the window falls back to the
+		// viewport: 8 px margins all round, below a 30 px menu bar.
+		const roomW = () => window.innerWidth - 16 - CHROME;
+		const roomH = () => window.innerHeight - 30 - 16 - CHROME;
+		const zoom = (container: HTMLElement) =>
+			fireEvent.click(
+				container.querySelector(".classicyWindowZoomBox") as HTMLElement,
+			);
+		const setInnerExtent = (
+			container: HTMLElement,
+			extent: Record<string, number>,
+		) => {
+			const inner = container.querySelector(
+				".classicyWindowContentsInner",
+			) as HTMLElement;
+			for (const [key, value] of Object.entries(extent)) {
+				Object.defineProperty(inner, key, { configurable: true, value });
+			}
+		};
+
+		it("fills the desktop's room without overflowing it by the chrome", () => {
+			const { container, root } = renderWindow();
+			// Content far larger than the desktop, so the fit clamps to the room.
+			setInnerExtent(container, {
+				clientWidth: 400,
+				clientHeight: 250,
+				scrollWidth: 5000,
+				scrollHeight: 5000,
+			});
+			zoom(container);
+			expect(Number.parseFloat(root.style.width)).toBeCloseTo(roomW());
+			expect(Number.parseFloat(root.style.height)).toBeCloseTo(roomH());
+		});
+
+		it("keeps the height exactly on a horizontal zoom", () => {
+			const { container, root } = renderWindow({ zoomMode: "horizontal" });
+			zoom(container);
+			expect(Number.parseFloat(root.style.width)).toBeCloseTo(roomW());
+			expect(root.style.height).toBe("300px");
+		});
+
+		it("keeps the width exactly on a vertical zoom", () => {
+			const { container, root } = renderWindow({ zoomMode: "vertical" });
+			zoom(container);
+			expect(root.style.width).toBe("425px");
+			expect(Number.parseFloat(root.style.height)).toBeCloseTo(roomH());
+		});
+
+		it("fits the content without adding the chrome to the fit", () => {
+			const { container, root } = renderWindow();
+			// Drawn at 425×300, the inner scroller shows 400×250 of 600×280.
+			setInnerExtent(container, {
+				clientWidth: 400,
+				clientHeight: 250,
+				scrollWidth: 600,
+				scrollHeight: 280,
+			});
+			zoom(container);
+			// 600 + (425 − 400) by 280 + (300 − 250).
+			expect(root.style.width).toBe("625px");
+			expect(root.style.height).toBe("330px");
+		});
 	});
 });
