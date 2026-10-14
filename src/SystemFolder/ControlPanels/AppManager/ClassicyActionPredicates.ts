@@ -220,6 +220,11 @@ export function hasAlertSound(m: Msg): m is Msg & { alertSound: string } {
 	return typeof m.alertSound === "string";
 }
 
+/** Action has `alertVolume: number` (finite; a 0–100 alert sound level) */
+export function hasAlertVolume(m: Msg): m is Msg & { alertVolume: number } {
+	return typeof m.alertVolume === "number" && Number.isFinite(m.alertVolume);
+}
+
 /** Action has `smartScrolling: boolean` (Mac OS 8 Smart Scrolling toggle) */
 export function hasSmartScrolling(
 	m: Msg,

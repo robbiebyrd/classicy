@@ -127,7 +127,7 @@ interface ClassicyStore {
             Desktop:      // icons, menus, selectBox, disableBalloonHelp, fsVersion, ...
             Sound:        // volume, labels, disabled[]
             Applications: // apps: Record<appId, app>, fileTypeHandlers, focusedAppId
-            Appearance:   // availableThemes, activeTheme, alertSound
+            Appearance:   // availableThemes, activeTheme, alertSound, alertVolume
             DateAndTime:  // dateTime, timeZoneOffset, display flags, bounds
             Boot:         // paradeIcons
             Keyboard:     // app/system/global shortcut registries
@@ -186,6 +186,8 @@ Common built-in actions:
 | `ClassicyDesktopLoadThemes` | `{ availableThemes: ClassicyTheme[] }` | Replace the theme list |
 | `ClassicyDesktopChangeBackground` | `{ backgroundImage }` | Set wallpaper |
 | `ClassicyDesktopSetBalloonHelp` | `{ disableBalloonHelp: boolean }` | Toggle balloon help globally |
+| `ClassicyDesktopChangeAlertSound` | `{ alertSound: string }` | Set the default alert sound (a `ClassicyAlert*` key) |
+| `ClassicyDesktopChangeAlertVolume` | `{ alertVolume: number }` | Set the alert level, 0–100 (clamped, rounded; non-finite ignored) |
 
 Helper functions (exported, callable inside custom handlers): `openApp`,
 `closeApp`, `focusApp` / `activateApp`, `deFocusApps`, `focusWindow`,
@@ -874,7 +876,14 @@ Action types (string enum `ClassicySoundActionTypes`): `ClassicySoundPlay`
 `EnableOne`/`DisableOne` `"*"` to keep per-sound choices), `ClassicyVolumeSet`
 (`{ volume }` 0–100, clamped and rounded; the player's gain, kept across
 theme loads),
-`ClassicyAlertSound`, `ClassicySoundSetAlertSound`. `useSound()` reads state.
+`ClassicyAlertSound`, `ClassicySoundSetAlertSound`, `ClassicySoundSetAlertVolume`
+(`{ alertVolume }` 0–100, clamped and rounded). `useSound()` reads state.
+**Alert volume**: the persisted `Appearance.alertVolume` (default 100, set by
+`ClassicyDesktopChangeAlertVolume` from the Appearance Manager's Sound tab) is
+mirrored into sound state by the provider. Alerts — `ClassicyAlertSound` and
+the sound `ClassicySoundPlayError` plays — play at system volume × alert
+volume (set on that Howler sound id only); every other sound plays at the
+system volume.
 Alert sound options: `CLASSICY_ALERT_SOUNDS` (Bonk, Growl, Indigo, Quack,
 Sosumi, Tabitha, Wild Eep); default `DEFAULT_ALERT_SOUND = "ClassicyAlertSosumi"`.
 

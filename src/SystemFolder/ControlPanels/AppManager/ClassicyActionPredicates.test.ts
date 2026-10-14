@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
 	hasActiveTheme,
+	hasAlertVolume,
 	hasApp,
 	hasAppAndFileType,
 	hasAppAndFileTypes,
@@ -499,6 +500,22 @@ describe("hasFont", () => {
 	it("returns false when font is missing", () => {
 		const m: Msg = { type: "X", fontType: "body" };
 		expect(hasFont(m)).toBe(false);
+	});
+});
+
+// ─── hasAlertVolume ───────────────────────────────────────────────────────────
+
+describe("hasAlertVolume", () => {
+	it("returns true for a finite number, including 0", () => {
+		expect(hasAlertVolume({ type: "X", alertVolume: 0 })).toBe(true);
+		expect(hasAlertVolume({ type: "X", alertVolume: 55.5 })).toBe(true);
+	});
+
+	it("returns false when alertVolume is missing or not a finite number", () => {
+		expect(hasAlertVolume({ type: "X" })).toBe(false);
+		expect(hasAlertVolume({ type: "X", alertVolume: "50" })).toBe(false);
+		expect(hasAlertVolume({ type: "X", alertVolume: Number.NaN })).toBe(false);
+		expect(hasAlertVolume({ type: "X", alertVolume: Infinity })).toBe(false);
 	});
 });
 

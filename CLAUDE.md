@@ -53,7 +53,7 @@ Uses **Zustand** for app/desktop state with the existing event reducer for domai
 - **`useAppManager(selector)`** - Zustand hook to read state. Use selectors for performance.
 - **`useAppManagerDispatch()`** - Returns the dispatch function from the Zustand store
 - **classicyDesktopStateEventReducer** (`ClassicyAppManager.ts`) - Still routes events by prefix to domain-specific handlers (called inside Zustand's `set()`)
-- **SoundManager** still uses React Context/useReducer (not migrated to Zustand). Its `volume` (0–100, `ClassicyVolumeSet`) is the Howl player's gain, applied by `ClassicySoundManagerProvider` and re-applied when a sound theme loads; it is per-mount, like the mute flag (`"*"` in `disabled`)
+- **SoundManager** still uses React Context/useReducer (not migrated to Zustand). Its `volume` (0–100, `ClassicyVolumeSet`) is the Howl player's gain, applied by `ClassicySoundManagerProvider` and re-applied when a sound theme loads; it is per-mount, like the mute flag (`"*"` in `disabled`); alerts (`ClassicyAlertSound`/`ClassicySoundPlayError`) play at that gain × the persisted `Appearance.alertVolume` (0–100, `ClassicyDesktopChangeAlertVolume`)
 
 Event routing by prefix (unchanged):
 - `ClassicyWindow*` → Window operations (focus, move, resize, collapse, zoom)
