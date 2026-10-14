@@ -89,8 +89,8 @@ export const ClassicySoundManager: FunctionalComponent = () => {
 	// this menu before rendering, so it must stay published but never shows here.
 	// No Edit menu — this panel has no text-entry fields.
 	//
-	// ClassicyMenu renders an <hr> divider only for id === "spacer" and keys by
-	// id, so at most one divider per menu.
+	// A divider is an item with id "spacer"; ClassicyMenu keys dividers by
+	// position, so a menu may hold any number of them.
 	const appMenu = [
 		{
 			id: `${APP_ID}_file`,

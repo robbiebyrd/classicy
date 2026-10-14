@@ -267,8 +267,8 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 	// "About <name>" and strips it from this menu before rendering, so it never
 	// shows under File — but it must stay published or the Apple menu loses it.
 	//
-	// Note: ClassicyMenu only renders an <hr> divider for items whose id is
-	// exactly "spacer" and keys items by id, so at most one divider per menu.
+	// A divider is an item with id "spacer"; ClassicyMenu keys dividers by
+	// position, so a menu may hold any number of them.
 	const appMenu = [
 		{
 			id: `${APP_ID}_file`,

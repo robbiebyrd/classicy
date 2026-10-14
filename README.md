@@ -273,7 +273,7 @@ is in [`docs/AGENT-REFERENCE.md` §4.0](docs/AGENT-REFERENCE.md).
 | Component | Description | HTML equivalent |
 |-----------|-------------|-----------------|
 | `ClassicyDesktopMenuWidgetTime` | Clock widget for the menu bar | — |
-| `ClassicyDesktopMenuWidgetSound` | Volume widget for the menu bar (no longer mounted by default — Sound lives on the Control Strip) | — |
+| `ClassicyDesktopMenuWidgetSound` | **Deprecated.** Mute toggle for the menu bar, no longer mounted by default. Use the Control Strip's built-in Sound module instead (`useClassicySoundControlStripModule`, configured through `ClassicyDesktop`'s `controlStrip` prop). Still exported; logs a one-time dev warning when mounted | — |
 
 ### Control Strip
 
