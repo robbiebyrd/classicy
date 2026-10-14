@@ -273,7 +273,14 @@ is in [`docs/AGENT-REFERENCE.md` §4.0](docs/AGENT-REFERENCE.md).
 | Component | Description | HTML equivalent |
 |-----------|-------------|-----------------|
 | `ClassicyDesktopMenuWidgetTime` | Clock widget for the menu bar | — |
-| `ClassicyDesktopMenuWidgetSound` | Volume widget for the menu bar | — |
+| `ClassicyDesktopMenuWidgetSound` | Volume widget for the menu bar (no longer mounted by default — Sound lives on the Control Strip) | — |
+
+### Control Strip
+
+| Component | Description | HTML equivalent |
+|-----------|-------------|-----------------|
+| `ClassicyControlStrip` | Mac OS 8 Control Strip at the desktop's lower left, with Sound and Screen Saver modules. Mounted by `ClassicyDesktop`; configure with its `controlStrip` prop, or pass `false` to hide it | `role="toolbar"` |
+| `ClassicyPopUpSlider` | Compact vertical slider for a pop-up bevel button (the Control Strip volume slider). Props: `value`, `onChange`, `ariaLabel` | `<input type="range">` |
 
 ---
 

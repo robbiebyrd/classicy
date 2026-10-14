@@ -16,11 +16,11 @@ describe("ClassicyDesktopMenuBar — extensions region", () => {
 		).toBeTruthy();
 	});
 
-	it("still renders the clock and sound widgets", () => {
+	it("renders the clock but no sound widget (sound lives on the Control Strip)", () => {
 		const { container } = render(<ClassicyDesktopMenuBar />);
 		expect(container.querySelector(".classicyDesktopMenuTime")).toBeTruthy();
 		expect(
 			container.querySelector(".classicyDesktopMenuWidgetSound"),
-		).toBeTruthy();
+		).toBeNull();
 	});
 });

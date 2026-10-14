@@ -12,8 +12,18 @@ import {
 	useState,
 } from "react";
 import { ClassicyBevelButton } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButton";
+import {
+	controlStripCollapseGlyph,
+	controlStripModuleArrow,
+	controlStripScrollLeft,
+	controlStripScrollLeftDisabled,
+	controlStripScrollRight,
+	controlStripScrollRightDisabled,
+	controlStripTab,
+} from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripArt";
 import { useClassicyDefaultControlStripModules } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripModules";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import { ClassicyPixelArt } from "@/SystemFolder/SystemResources/PixelArt/ClassicyPixelArt";
 
 /**
  * One control strip module: a small button that pops up a menu of status and
@@ -37,7 +47,7 @@ export type ClassicyControlStripModule = {
 	content?: ReactNode;
 };
 
-type ClassicyControlStripProps = {
+export type ClassicyControlStripProps = {
 	/**
 	 * Modules to show, left to right. Defaults to the built-in modules for
 	 * Classicy's own control panels (`useClassicyDefaultControlStripModules`).
@@ -53,22 +63,36 @@ type ClassicyControlStripProps = {
 	className?: string;
 };
 
+// HIGOS8 Figure 6-15: a module's surface overlaps the strip by 3 px (its bottom
+// border lands two rows into the module) and a menu's left edge sits on the
+// module's left separator.
+const MODULE_POPUP_INSET = { top: 3, left: -1 };
+
 // Pixels a press on the tab may travel and still count as a click.
 const TAB_CLICK_SLOP = 3;
-// How far an arrow key on the tab resizes the strip.
-const TAB_KEY_STEP = 24;
+// A module and its separator (30 + 1 px), for when nothing can be measured.
+const MODULE_STEP_FALLBACK = 31;
 
-/** One module's width: the scroll arrows' step and the strip's narrowest size. */
+/**
+ * One module's width with its separator: the scroll arrows' step, the tab's
+ * resize step, and the strip's narrowest size.
+ */
 const moduleStepOf = (viewport: HTMLElement | null): number =>
 	viewport?.querySelector<HTMLElement>(".classicyControlStripModule")
-		?.offsetWidth || TAB_KEY_STEP;
+		?.offsetWidth || MODULE_STEP_FALLBACK;
 
-/** Keep a dragged width between one module and all of them. */
-const clampStripWidth = (viewport: HTMLElement | null, next: number): number =>
-	Math.max(
-		moduleStepOf(viewport),
-		Math.min(next, viewport?.scrollWidth || next),
-	);
+/**
+ * Snap a requested width to whole modules — the strip never shows part of
+ * one — between one module and all of them.
+ */
+const clampStripWidth = (
+	viewport: HTMLElement | null,
+	next: number,
+): number => {
+	const step = moduleStepOf(viewport);
+	const snapped = Math.round(next / step) * step;
+	return Math.max(step, Math.min(snapped, viewport?.scrollWidth || snapped));
+};
 
 /**
  * The Mac OS 8 Control Strip (HIGOS8 Ch.6 "Persistent Access", p.125, Figure
@@ -82,7 +106,7 @@ const clampStripWidth = (viewport: HTMLElement | null, next: number): number =>
  * pop-up bevel button, so its menu opens above the strip and behaves as a
  * standard or sticky menu.
  *
- * Mount it as a child of ClassicyDesktop.
+ * ClassicyDesktop mounts one (its `controlStrip` prop configures or hides it).
  */
 export const ClassicyControlStrip: FunctionalComponent<
 	ClassicyControlStripProps
@@ -108,6 +132,13 @@ export const ClassicyControlStrip: FunctionalComponent<
 		setCanScroll((prev) =>
 			prev.left === left && prev.right === right ? prev : { left, right },
 		);
+	}, []);
+
+	// A starting width snaps to whole modules once they can be measured.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: snaps the initial width once, on mount
+	useLayoutEffect(() => {
+		if (defaultWidth !== undefined)
+			setWidth(clampStripWidth(viewportRef.current, defaultWidth));
 	}, []);
 
 	// Re-measure whenever the strip changes shape or its modules change.
@@ -163,7 +194,7 @@ export const ClassicyControlStrip: FunctionalComponent<
 		};
 	}, [collapsed]);
 
-	// Left and Right Arrow size the strip from the keyboard; Enter and Space
+	// Left and Right Arrow size the strip a module at a time; Enter and Space
 	// reach the tab as a click (below).
 	const onTabKeyDown = (e: KeyboardEvent<HTMLButtonElement>) => {
 		if (collapsed || (e.key !== "ArrowLeft" && e.key !== "ArrowRight")) return;
@@ -173,7 +204,7 @@ export const ClassicyControlStrip: FunctionalComponent<
 		setWidth(
 			clampStripWidth(
 				el,
-				current + (e.key === "ArrowRight" ? 1 : -1) * TAB_KEY_STEP,
+				current + (e.key === "ArrowRight" ? 1 : -1) * moduleStepOf(el),
 			),
 		);
 	};
@@ -192,17 +223,27 @@ export const ClassicyControlStrip: FunctionalComponent<
 				<>
 					<button
 						type="button"
-						className="classicyControlStripCollapseBox"
+						className="classicyControlStripCell classicyControlStripCollapseBox"
 						aria-label="Collapse Control Strip"
 						onClick={() => setCollapsed(true)}
-					/>
+					>
+						<ClassicyPixelArt rows={controlStripCollapseGlyph} />
+					</button>
 					<button
 						type="button"
-						className="classicyControlStripScroll classicyControlStripScrollLeft"
+						className="classicyControlStripCell classicyControlStripScroll"
 						aria-label="Scroll Control Strip left"
 						disabled={!canScroll.left}
 						onClick={() => scrollBy(-1)}
-					/>
+					>
+						<ClassicyPixelArt
+							rows={
+								canScroll.left
+									? controlStripScrollLeft
+									: controlStripScrollLeftDisabled
+							}
+						/>
+					</button>
 					<div
 						ref={viewportRef}
 						className="classicyControlStripModules"
@@ -213,25 +254,37 @@ export const ClassicyControlStrip: FunctionalComponent<
 							<ClassicyBevelButton
 								key={module.id}
 								mode="popup"
-								bevelWidth="small"
 								className="classicyControlStripModule"
 								icon={module.icon}
 								aria-label={module.label}
-								popupArrow="small"
 								popupDirection="horizontal"
 								popupPlacement="below"
+								// Figure 6-15's menus start at the module's edge; Figure
+								// 2-16's slider is centred on it.
+								popupAlign={module.menuItems ? "start" : "center"}
+								popupAnchorInset={MODULE_POPUP_INSET}
 								menuItems={module.menuItems}
 								popupContent={module.content}
-							/>
+							>
+								<ClassicyPixelArt rows={controlStripModuleArrow} />
+							</ClassicyBevelButton>
 						))}
 					</div>
 					<button
 						type="button"
-						className="classicyControlStripScroll classicyControlStripScrollRight"
+						className="classicyControlStripCell classicyControlStripScroll"
 						aria-label="Scroll Control Strip right"
 						disabled={!canScroll.right}
 						onClick={() => scrollBy(1)}
-					/>
+					>
+						<ClassicyPixelArt
+							rows={
+								canScroll.right
+									? controlStripScrollRight
+									: controlStripScrollRightDisabled
+							}
+						/>
+					</button>
 				</>
 			)}
 			<button
@@ -250,7 +303,9 @@ export const ClassicyControlStrip: FunctionalComponent<
 					if (e.detail === 0) setCollapsed((c) => !c);
 				}}
 				onKeyDown={onTabKeyDown}
-			/>
+			>
+				<ClassicyPixelArt rows={controlStripTab} />
+			</button>
 		</div>
 	);
 };

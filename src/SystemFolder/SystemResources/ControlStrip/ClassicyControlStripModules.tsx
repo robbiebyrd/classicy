@@ -51,7 +51,10 @@ export const useClassicySoundControlStripModule =
 			return {
 				id: "classicy-sound",
 				label: "Sound",
-				icon: muted ? icons.soundOff : icons.soundOn,
+				// 16 px strip art (Figure 6-15's speaker); waves gone when muted.
+				icon: muted
+					? ClassicyIcons.system.controlStrip.soundOff
+					: ClassicyIcons.system.controlStrip.sound,
 				menuItems: [
 					{
 						id: "sound-on",
@@ -98,7 +101,8 @@ export const useClassicyScreenSaverControlStripModule =
 			return {
 				id: "classicy-screen-saver",
 				label: "Screen Saver",
-				icon,
+				// Figure 6-15's 16 px sleep module art.
+				icon: ClassicyIcons.system.controlStrip.sleep,
 				menuItems: [
 					{
 						id: "screen-saver-status",

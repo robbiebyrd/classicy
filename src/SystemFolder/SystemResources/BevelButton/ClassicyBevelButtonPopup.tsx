@@ -12,6 +12,8 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import {
+	type ClassicyBevelPopupAlign,
+	type ClassicyBevelPopupRect,
 	type ClassicyBevelPopupSide,
 	classicyBevelPopupPlacement,
 } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopupPlacement";
@@ -21,12 +23,18 @@ import {
 } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { ClassicyMenuProvider } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuProvider";
 
+// A panel (non-menu surface) gives keyboard focus to its first control.
+const PANEL_FOCUS_SELECTOR =
+	'[tabindex]:not([tabindex="-1"]), input, button, select, textarea';
+
 const MENU_ITEM_SELECTOR = 'li[role="menuitem"]:not(.classicyMenuItemDisabled)';
 
 type ClassicyBevelButtonPopupProps = {
 	id: string;
-	anchor: DOMRect;
+	/** The rect to place against (the button's, adjusted by any anchor inset). */
+	anchor: ClassicyBevelPopupRect;
 	side: ClassicyBevelPopupSide;
+	align?: ClassicyBevelPopupAlign;
 	/** A menu (HIG Figure 2-15)… */
 	menuItems?: ClassicyMenuItem[];
 	/** …or any other surface, such as a slider (HIG Figure 2-16). */
@@ -53,6 +61,7 @@ export const ClassicyBevelButtonPopup: FunctionalComponent<
 	id,
 	anchor,
 	side,
+	align = "start",
 	menuItems,
 	content,
 	label,
@@ -78,16 +87,18 @@ export const ClassicyBevelButtonPopup: FunctionalComponent<
 				{ width, height },
 				{ width: window.innerWidth, height: window.innerHeight },
 				side,
+				align,
 			),
 		);
-	}, [anchor, side]);
+	}, [anchor, side, align]);
 
 	useLayoutEffect(() => {
 		if (!focusFirstItem || !position) return;
-		const first =
-			wrapperRef.current?.querySelector<HTMLElement>(MENU_ITEM_SELECTOR);
+		const first = wrapperRef.current?.querySelector<HTMLElement>(
+			menuItems ? MENU_ITEM_SELECTOR : PANEL_FOCUS_SELECTOR,
+		);
 		first?.focus();
-	}, [focusFirstItem, position]);
+	}, [focusFirstItem, position, menuItems]);
 
 	useEffect(() => {
 		const onPointerDown = (e: MouseEvent) => {

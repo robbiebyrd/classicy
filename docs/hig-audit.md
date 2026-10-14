@@ -450,7 +450,7 @@ Still open:
 The chapter audits above check components Classicy already had. A later pass
 compared the HIG's own table of contents and figure list against the
 component library to find HIG elements with **no** Classicy component. Four
-turned up. Three are added; the Control Strip follows in a separate change.
+turned up, and all four were added.
 Little Arrows, which already existed but lived inside `TimePicker/`, moved to
 its own `LittleArrows/` folder.
 
@@ -459,7 +459,7 @@ its own `LittleArrows/` folder.
 | Pop-up bevel button menu | HIGOS8 Ch.2 "Bevel Buttons as Pop-up Buttons" (pp.32–33), Figure 2-15 | `popup` mode drew the arrow but opened nothing | `ClassicyBevelButton` takes `menuItems`. The menu opens below or to the right, flipping when there is no room. A quick click leaves it open (sticky); a press held past the double-click interval makes it a standard menu. The `hold` trigger keeps a tool's click and offers its options on a long press |
 | Help button | HIGOS8 Ch.3 "Help Button Layout" (p.86), Figures 3-36, 3-37 | only an alert button role drawing a text "?" | `ClassicyHelpButton`: 20 × 21 small-bevel button with the help glyph lifted from Figure 3-36. `ClassicyAlert`'s `help` role renders it |
 | User-definable keyboard equivalents | HIGOS8 Ch.6 "Keyboard Equivalent Support" (pp.120–122), Figures 6-8 to 6-11 | nothing | `ClassicyKeyboardEquivalentField` and its capture dialog. A combination without a command key (or function key), or one already in use, is refused with an alert that names the owner |
-| Control Strip | HIGOS8 Ch.6 "Persistent Access" (p.125), Figure 6-15 | nothing (folder icon only) | ⚠️ In progress — separate change (with Figure 2-16's pop-up volume slider) |
+| Control Strip | HIGOS8 Ch.6 "Persistent Access" (p.125), Figure 6-15; Figure 2-16 | nothing (folder icon only) | `ClassicyControlStrip`, mounted by `ClassicyDesktop`: collapse box, scroll arrows, pop-up modules and a draggable tab, pixel-matched to Figure 6-15 (module icons lifted from it). Built-in Sound and Screen Saver modules each end in "Open … Control Panel"; the menu bar's speaker widget is gone. `ClassicyPopUpSlider` is Figure 2-16's volume slider, pixel-exact, for a module's `popupContent` |
 
 Not counted as gaps: window headers (p.50) are a `header` prop on
 `ClassicyWindow`, which matches the HIG treating them as part of the window.

@@ -3,7 +3,6 @@ import {
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import "./ClassicyDesktopMenuBar.scss";
-import { ClassicyDesktopMenuWidgetSound } from "@/SystemFolder/SystemResources/Desktop/MenuBar/Widgets/Sound/ClassicyDesktopMenuWidgetSound";
 import { ClassicyDesktopMenuWidgetTime } from "@/SystemFolder/SystemResources/Desktop/MenuBar/Widgets/Time/ClassicyDesktopMenuWidgetTime";
 import {
 	ClassicyMenu,
@@ -339,10 +338,10 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
 				navClass={"classicyDesktopMenu"}
 				subNavClass={"classicySubMenu"}
 			>
-				<ClassicyDesktopMenuWidgetSound />
+				{/* Sound lives on the Control Strip (ClassicyDesktop mounts it). */}
 				<ClassicyDesktopMenuWidgetTime />
 				{/* Portal target for app Menu Bar Extensions. Rendered last so its
-				    float:right lands it to the LEFT of the Sound/Time widgets. */}
+				    float:right lands it to the LEFT of the Time widget. */}
 				<ul
 					id={"classicyDesktopMenuExtensions"}
 					className={"classicyDesktopMenuExtensions"}

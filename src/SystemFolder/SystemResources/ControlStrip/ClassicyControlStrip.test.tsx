@@ -211,6 +211,11 @@ describe("ClassicyControlStrip (HIGOS8 Figure 6-15)", () => {
 			fireEvent.mouseDown(tab(), { button: 0, clientX: 200 });
 			fireEvent.mouseMove(document, { clientX: 160 });
 			expect(viewport.style.width).toBe("60px");
+			// Widths snap to whole modules: 72 px shows two, 78 px three.
+			fireEvent.mouseMove(document, { clientX: 172 });
+			expect(viewport.style.width).toBe("60px");
+			fireEvent.mouseMove(document, { clientX: 178 });
+			expect(viewport.style.width).toBe("90px");
 			fireEvent.mouseMove(document, { clientX: 0 });
 			expect(viewport.style.width).toBe("30px"); // never narrower than a module
 			fireEvent.mouseMove(document, { clientX: 900 });
@@ -222,15 +227,26 @@ describe("ClassicyControlStrip (HIGOS8 Figure 6-15)", () => {
 			).toBeInTheDocument();
 		});
 
-		it("is sized from the keyboard with the arrow keys on the tab", () => {
+		it("is sized a module at a time from the keyboard with the arrow keys on the tab", () => {
 			renderWithProviders(<ClassicyControlStrip modules={testModules()} />);
 			const viewport = document.querySelector(
 				".classicyControlStripModules",
 			) as HTMLElement;
+			// From the measured 100 px: 130 snaps to four modules, 70 to two.
 			fireEvent.keyDown(tab(), { key: "ArrowRight" });
-			expect(viewport.style.width).toBe("124px");
+			expect(viewport.style.width).toBe("120px");
 			fireEvent.keyDown(tab(), { key: "ArrowLeft" });
-			expect(viewport.style.width).toBe("76px");
+			expect(viewport.style.width).toBe("60px");
+		});
+
+		it("snaps a starting width to whole modules", () => {
+			renderWithProviders(
+				<ClassicyControlStrip modules={testModules()} defaultWidth={100} />,
+			);
+			const viewport = document.querySelector(
+				".classicyControlStripModules",
+			) as HTMLElement;
+			expect(viewport.style.width).toBe("90px");
 		});
 	});
 });
@@ -254,7 +270,7 @@ describe("built-in control strip modules", () => {
 		const button = screen.getByRole("button", { name: "Sound" });
 		expect(button.querySelector("img")).toHaveAttribute(
 			"src",
-			ClassicyIcons.controlPanels.soundManager.soundOn,
+			ClassicyIcons.system.controlStrip.sound,
 		);
 		click(button);
 		expect(
@@ -270,6 +286,16 @@ describe("built-in control strip modules", () => {
 				type: "ClassicySoundDisable",
 				disabled: ["*"],
 			}),
+		);
+	});
+
+	it("Sound shows the speaker without its waves while sound is off", () => {
+		sound.state.disabled = ["*"];
+		renderWithProviders(<ClassicyControlStrip />);
+		const button = screen.getByRole("button", { name: "Sound" });
+		expect(button.querySelector("img")).toHaveAttribute(
+			"src",
+			ClassicyIcons.system.controlStrip.soundOff,
 		);
 	});
 

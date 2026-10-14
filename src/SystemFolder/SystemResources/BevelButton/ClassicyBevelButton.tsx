@@ -18,7 +18,11 @@ import {
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import { ClassicyBevelButtonPopup } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopup";
-import type { ClassicyBevelPopupSide } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopupPlacement";
+import type {
+	ClassicyBevelPopupAlign,
+	ClassicyBevelPopupRect,
+	ClassicyBevelPopupSide,
+} from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopupPlacement";
 import { ClassicyButtonToolbarContext } from "@/SystemFolder/SystemResources/ButtonToolbar/ClassicyButtonToolbarContext";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
@@ -104,6 +108,17 @@ type ClassicyBevelButtonProps = PropsWithChildren<{
 	 */
 	popupPlacement?: ClassicyBevelPopupSide;
 	/**
+	 * Line the surface up with the button's edge (`start`, default) or centre it
+	 * on the button (`center`, as Figure 2-16's slider sits on its module).
+	 */
+	popupAlign?: ClassicyBevelPopupAlign;
+	/**
+	 * Pixels to move each edge of the rect the surface is placed against, inward
+	 * positive. The Control Strip uses it so a module's surface overlaps the
+	 * strip and meets the module's separator, as in Figure 6-15.
+	 */
+	popupAnchorInset?: Partial<ClassicyBevelPopupRect>;
+	/**
 	 * The menu this button reveals (HIGOS8 Figure 2-15). Items take the full
 	 * `ClassicyMenuItem` shape, so `checked` marks the current choice.
 	 */
@@ -168,6 +183,8 @@ export const ClassicyBevelButton: FunctionalComponent<
 	popupArrow,
 	popupDirection = "vertical",
 	popupPlacement,
+	popupAlign = "start",
+	popupAnchorInset,
 	menuItems,
 	popupContent,
 	popupTrigger,
@@ -199,7 +216,9 @@ export const ClassicyBevelButton: FunctionalComponent<
 		popupTrigger ?? (mode === "popup" ? "click" : "hold");
 	const popupId = `${useId()}-popup`;
 	const buttonRef = useRef<HTMLButtonElement>(null);
-	const [popupAnchor, setPopupAnchor] = useState<DOMRect | null>(null);
+	const [popupAnchor, setPopupAnchor] = useState<ClassicyBevelPopupRect | null>(
+		null,
+	);
 	const [focusFirstItem, setFocusFirstItem] = useState(false);
 	const popupOpen = popupAnchor !== null;
 	const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -228,7 +247,12 @@ export const ClassicyBevelButton: FunctionalComponent<
 		const rect = buttonRef.current?.getBoundingClientRect();
 		if (!rect) return;
 		setFocusFirstItem(byKeyboard);
-		setPopupAnchor(rect);
+		setPopupAnchor({
+			top: rect.top + (popupAnchorInset?.top ?? 0),
+			bottom: rect.bottom - (popupAnchorInset?.bottom ?? 0),
+			left: rect.left + (popupAnchorInset?.left ?? 0),
+			right: rect.right - (popupAnchorInset?.right ?? 0),
+		});
 		player({ type: "ClassicySoundPlay", sound: "ClassicyMenuOpen" });
 		track("open", { type: "ClassicyBevelButton", mode, trigger });
 	};
@@ -429,6 +453,7 @@ export const ClassicyBevelButton: FunctionalComponent<
 						popupPlacement ??
 						(popupDirection === "horizontal" ? "right" : "below")
 					}
+					align={popupAlign}
 					menuItems={menuItems}
 					content={popupContent}
 					label={

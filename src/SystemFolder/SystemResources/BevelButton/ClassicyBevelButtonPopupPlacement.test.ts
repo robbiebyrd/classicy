@@ -19,6 +19,16 @@ describe("classicyBevelPopupPlacement (HIGOS8 p.32)", () => {
 		).toEqual({ left: 132, top: 100 });
 	});
 
+	it("centres on the button when aligned to the centre, rounding right", () => {
+		const slider = { width: 21, height: 77 };
+		expect(
+			classicyBevelPopupPlacement(button, slider, viewport, "below", "center"),
+		).toEqual({ left: 106, top: 132 });
+		expect(
+			classicyBevelPopupPlacement(button, slider, viewport, "right", "center"),
+		).toEqual({ left: 132, top: 78 });
+	});
+
 	it("flips above when there is no room below (Figure 2-16)", () => {
 		const low = { top: 560, bottom: 592, left: 100, right: 132 };
 		expect(classicyBevelPopupPlacement(low, menu, viewport, "below")).toEqual({

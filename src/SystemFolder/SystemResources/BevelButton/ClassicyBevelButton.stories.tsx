@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { fn } from "storybook/test";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
-import { ClassicySlider } from "@/SystemFolder/SystemResources/Slider/ClassicySlider";
+import { ClassicyPopUpSlider } from "@/SystemFolder/SystemResources/PopUpSlider/ClassicyPopUpSlider";
 import { ClassicyBevelButton } from "./ClassicyBevelButton";
 
 const meta = {
@@ -121,18 +121,13 @@ export const PopupSlider: Story = {
 			<ClassicyBevelButton
 				{...args}
 				aria-label="Volume"
+				popupAlign="center"
 				popupContent={
-					// A vertical slider fills its container's height, so give it one;
-					// the padding holds the value readout drawn beneath the track.
-					<div style={{ height: 120, paddingBottom: 20 }}>
-						<ClassicySlider
-							id="bevel-popup-volume"
-							ariaLabel="Volume level"
-							orientation="vertical"
-							value={level}
-							onChangeFunc={(e) => setLevel(Number(e.target.value))}
-						/>
-					</div>
+					<ClassicyPopUpSlider
+						ariaLabel="Volume level"
+						value={level}
+						onChange={setLevel}
+					/>
 				}
 			>
 				Volume {level}

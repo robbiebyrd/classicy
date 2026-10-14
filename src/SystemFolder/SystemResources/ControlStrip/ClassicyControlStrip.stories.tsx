@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { fn } from "storybook/test";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
-import { ClassicySlider } from "@/SystemFolder/SystemResources/Slider/ClassicySlider";
+import { ClassicyPopUpSlider } from "@/SystemFolder/SystemResources/PopUpSlider/ClassicyPopUpSlider";
 import {
 	ClassicyControlStrip,
 	type ClassicyControlStripModule,
@@ -13,7 +13,11 @@ import { useClassicyDefaultControlStripModules } from "./ClassicyControlStripMod
 const meta = {
 	title: "Desktop/ControlStrip",
 	component: ClassicyControlStrip,
-	parameters: desktopParameters,
+	parameters: {
+		...desktopParameters,
+		// Each story mounts its own strip in place of the desktop's.
+		classicy: { desktop: true, controlStrip: false },
+	},
 } satisfies Meta<typeof ClassicyControlStrip>;
 
 export default meta;
@@ -36,7 +40,7 @@ export const CustomModules: Story = {
 			{
 				id: "file-sharing",
 				label: "File Sharing",
-				icon: ClassicyIcons.system.extensions.appleShare,
+				icon: ClassicyIcons.system.controlStrip.fileSharing,
 				menuItems: [
 					{
 						id: "file-sharing-status",
@@ -61,20 +65,27 @@ export const CustomModules: Story = {
 			{
 				id: "volume",
 				label: "Volume",
-				icon: ClassicyIcons.controlPanels.soundManager.sound66,
+				icon: ClassicyIcons.system.controlStrip.sound,
 				content: (
-					// A vertical slider fills its container's height; the padding
-					// holds the value readout under the track.
-					<div style={{ height: 110, paddingBottom: 20 }}>
-						<ClassicySlider
-							id="control-strip-volume"
-							ariaLabel="Volume"
-							orientation="vertical"
-							value={volume}
-							onChangeFunc={(e) => setVolume(Number(e.target.value))}
-						/>
-					</div>
+					<ClassicyPopUpSlider
+						ariaLabel="Volume"
+						value={volume}
+						onChange={setVolume}
+					/>
 				),
+			},
+			{
+				id: "cd",
+				label: "CD",
+				icon: ClassicyIcons.system.controlStrip.cd,
+				menuItems: [
+					{
+						id: "cd-status",
+						title: "No Audio CD",
+						disabled: true,
+						className: "classicyControlStripStatus",
+					},
+				],
 			},
 			...builtIns,
 		];
