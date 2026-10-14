@@ -183,14 +183,19 @@ $_tab-border-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/s
 }
 
 // ── Sizes ─────────────────────────────────────────────────────────────────────
-// `medium` is the unmodified base above and carries no class. Both modifiers
-// scale the box and the type together on the same ~1.7:1 ratio the base uses
-// (24 px box / 14 px type on the default theme), so the tabs stay in
-// proportion rather than just gaining or losing padding.
+// `medium` is the unmodified base above and carries no class. It is the
+// standard HIG tab: its label is the system UI font (`--ui-font-size`), the
+// stand-in for the 12 pt system font the HIG specifies for tab labels (Mac OS 8
+// drew tab text at the same size as the surrounding UI, so the standard tab
+// tracks the body scale rather than dropping below it). Both modifiers keep the
+// box in proportion to that base.
 
-// Small: 16 px box and ~9 px type against the default theme, matching the
-// reference art. `/1.5` on the type is the same divisor ClassicyButtonToolbar
-// uses for its small size, so small tabs line up with small toolbars.
+// Small: the HIG's smaller 10 pt tab. The two documented tab-label sizes are
+// 12 pt and 10 pt, so the small label is the system font scaled by that 10:12
+// relationship (`* 10 / 12`) rather than an arbitrary divisor — it holds the
+// authentic ratio to the standard tab and scales with the theme's UI size. The
+// box is 16 px against the default theme; an ~11.7 px label clears it with
+// room to spare.
 .classicyTabsSizeSmall {
   // Glyph size is deliberately *not* scaled down with the box: the reference
   // art keeps the arrow chunky inside a 16 px tab, and a proportionally
@@ -212,7 +217,8 @@ $_tab-border-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/s
   }
 
   .classicyTabButton {
-    font-size: calc(var(--ui-font-size) / 1.5);
+    // HIG 10 pt tab label = system font × (10 / 12); see the size note above.
+    font-size: calc(var(--ui-font-size) * 10 / 12);
     min-width: calc(var(--window-control-size) * 4);
     padding: calc(var(--window-padding-size) / 3) calc(var(--window-padding-size) * 2) calc(var(--window-padding-size) / 1.5) calc(var(--window-padding-size) * 2);
   }
