@@ -273,13 +273,15 @@ is in [`docs/AGENT-REFERENCE.md` §4.0](docs/AGENT-REFERENCE.md).
 | Component | Description | HTML equivalent |
 |-----------|-------------|-----------------|
 | `ClassicyDesktopMenuWidgetTime` | Clock widget for the menu bar | — |
-| `ClassicyDesktopMenuWidgetSound` | **Deprecated.** Mute toggle for the menu bar, no longer mounted by default. Use the Control Strip's built-in Sound module instead (`useClassicySoundControlStripModule`, configured through `ClassicyDesktop`'s `controlStrip` prop). Still exported; logs a one-time dev warning when mounted | — |
+| `ClassicyDesktopMenuWidgetSound` | **Deprecated.** Mute toggle for the menu bar, no longer mounted by default. Use the Control Strip's built-in Sound module instead (`classicy-sound`; turn it off with `ClassicyDesktop`'s `controlStrip={{ disabledModules }}`). Still exported; logs a one-time dev warning when mounted | — |
 
 ### Control Strip
 
 | Component | Description | HTML equivalent |
 |-----------|-------------|-----------------|
-| `ClassicyControlStrip` | Mac OS 8 Control Strip at the desktop's lower left, with Sound and Screen Saver modules. Mounted by `ClassicyDesktop`; configure with its `controlStrip` prop, or pass `false` to hide it | `role="toolbar"` |
+| `ClassicyControlStrip` | Mac OS 8 Control Strip at the desktop's lower left, showing every registered module — the built-in Sound and Screen Saver modules plus any an app or extension registers. Mounted by `ClassicyDesktop`; configure with its `controlStrip` prop (`disabledModules`, `defaultCollapsed`, `defaultWidth`), or pass `false` to hide it. Its collapsed state, width, and the user's module choices persist | `role="toolbar"` |
+| `registerClassicyControlStripModule` | Adds a module (`id`, `label`, 16 px `icon`, `menuItems` or `content`, optional owning `appId` and `order`). Call at module scope; the strip updates live. Each module is also listed in `System Folder:Control Strip Modules` | — |
+| `ClassicyControlStripManager` | The Control Strip control panel: show or hide the strip, and show, hide or reorder its modules | — |
 | `ClassicyPopUpSlider` | Compact vertical slider for a pop-up bevel button (the Control Strip volume slider). Props: `value`, `onChange`, `ariaLabel` | `<input type="range">` |
 
 ---

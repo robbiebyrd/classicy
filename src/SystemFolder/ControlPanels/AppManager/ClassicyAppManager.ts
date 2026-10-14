@@ -581,6 +581,11 @@ export const DefaultAppManagerState: ClassicyStore = {
 					active: false,
 				},
 				disableBalloonHelp: false,
+				controlStrip: {
+					visible: true,
+					hiddenModules: [],
+					moduleOrder: [],
+				},
 				doubleClickTitleToCollapse: true,
 				errorDialog: null,
 				fsVersion: 0,

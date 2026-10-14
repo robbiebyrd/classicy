@@ -54,7 +54,10 @@
 	"sideEffects": [
 		"**/*.css",
 		"**/*.scss",
-		"./src/SystemFolder/Extensions/ScreenSaver/savers/ClassicyScreenSaverBuiltIns.tsx"
+		"./src/SystemFolder/Extensions/ScreenSaver/savers/ClassicyScreenSaverBuiltIns.tsx",
+		"./src/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverControlStripModule.ts",
+		"./src/SystemFolder/ControlPanels/SoundManager/ClassicySoundControlStripModule.tsx",
+		"./src/SystemFolder/ControlPanels/ControlStripManager/ClassicyControlStripManagerManifest.ts"
 	],
 	"style": "./dist/classicy.css",
 	"exports": {

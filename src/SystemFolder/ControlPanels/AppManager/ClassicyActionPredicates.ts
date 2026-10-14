@@ -283,6 +283,39 @@ export function hasDisableBalloonHelp(
 	return typeof m.disableBalloonHelp === "boolean";
 }
 
+/** Action has `visible: boolean` */
+export function hasVisible(m: Msg): m is Msg & { visible: boolean } {
+	return typeof m.visible === "boolean";
+}
+
+/** Action has `collapsed: boolean` */
+export function hasCollapsed(m: Msg): m is Msg & { collapsed: boolean } {
+	return typeof m.collapsed === "boolean";
+}
+
+/** Action has `width`: a finite, non-negative number, or `null` to clear it */
+export function hasStripWidth(m: Msg): m is Msg & { width: number | null } {
+	return (
+		m.width === null ||
+		(typeof m.width === "number" && Number.isFinite(m.width) && m.width >= 0)
+	);
+}
+
+/** Action has `moduleId: string` and `hidden: boolean` */
+export function hasModuleHidden(
+	m: Msg,
+): m is Msg & { moduleId: string; hidden: boolean } {
+	return typeof m.moduleId === "string" && typeof m.hidden === "boolean";
+}
+
+/** Action has `moduleOrder: string[]` */
+export function hasModuleOrder(m: Msg): m is Msg & { moduleOrder: string[] } {
+	return (
+		Array.isArray(m.moduleOrder) &&
+		m.moduleOrder.every((id) => typeof id === "string")
+	);
+}
+
 /** Action has `drive: string` */
 export function hasDrive(m: Msg): m is Msg & { drive: string } {
 	return typeof m.drive === "string";

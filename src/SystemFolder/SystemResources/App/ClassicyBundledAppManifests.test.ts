@@ -18,6 +18,7 @@ import "@/SystemFolder/QuickTime/PictureViewer/PictureViewerContext";
 import "@/SystemFolder/WebViewer/WebViewerContext";
 import "@/SystemFolder/SimpleText/SimpleTextManifest";
 import "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManagerManifest";
+import "@/SystemFolder/ControlPanels/ControlStripManager/ClassicyControlStripManagerManifest";
 import "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeManagerManifest";
 import "@/SystemFolder/ControlPanels/DriveSetup/ClassicyDriveSetupManifest";
 import "@/SystemFolder/ControlPanels/ScreenSaverManager/ClassicyScreenSaverManagerManifest";
@@ -26,6 +27,7 @@ import "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerManifest";
 const BUNDLED_APP_IDS = [
 	"AppleGuide.app",
 	"AppearanceManager.app",
+	"ControlStripManager.app",
 	"DateAndTimeManager.app",
 	"DriveSetup.app",
 	"Finder.app",

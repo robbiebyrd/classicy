@@ -1,8 +1,14 @@
 import { createContext, useContext, useEffect, useMemo } from "react";
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import {
 	dispatch,
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { useClassicyMountedApps } from "@/SystemFolder/SystemResources/App/ClassicyMountedApps";
+import {
+	arrangeClassicyControlStripModules,
+	useClassicyControlStripRegistrations,
+} from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripRegistry";
 import {
 	ClassicyFileSystem,
 	mergeClassicyFileSystemEntries,
@@ -11,6 +17,10 @@ import {
 	APP_SHORTCUT_ICON_KIND,
 	withApplicationsFolder,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
+import {
+	type ClassicyControlStripModuleFile,
+	withControlStripModulesFolder,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileSystemControlStripModules";
 import { withExtensionsFolder } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemExtensions";
 import type { ClassicyFileSystemTree } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import type { ClassicyFileSystemSeedMigration } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemSeedMigrations";
@@ -95,6 +105,25 @@ export function useClassicyFileSystem(
 			.join("\u0001"),
 	);
 
+	// Stable key over the installed Control Strip modules: registrations whose
+	// owning app (if any) is mounted. Read from the module registry and the
+	// mounted-app set, both runtime-only, so the derived folder follows them.
+	const registrations = useClassicyControlStripRegistrations();
+	const mountedApps = useClassicyMountedApps();
+	// Serialized so an unrelated app mounting (which changes mountedApps)
+	// doesn't rebuild the file system.
+	const controlStripModulesKey = JSON.stringify(
+		arrangeClassicyControlStripModules(registrations, { mountedApps }).map(
+			({ definition }): ClassicyControlStripModuleFile => ({
+				id: definition.id,
+				name: definition.label,
+				icon:
+					definition.fileIcon ?? ClassicyIcons.system.controlStrip.moduleFile,
+				appId: definition.appId,
+			}),
+		),
+	);
+
 	// Invalidation key: bumped after an adapter reconcile replaces the tree, so
 	// the fs rebuilds through the normal seed-from-localStorage path.
 	const fsVersion = useAppManager(
@@ -131,8 +160,16 @@ export function useClassicyFileSystem(
 				),
 			),
 		);
+		// System Folder/Control Strip Modules: one file per installed module.
+		fs.applyDerivedTree(
+			withControlStripModulesFolder(
+				fs.fs,
+				JSON.parse(controlStripModulesKey) as ClassicyControlStripModuleFile[],
+			),
+		);
 		return fs;
 	}, [
+		controlStripModulesKey,
 		defaultFileSystem,
 		mode,
 		seedMigrations,

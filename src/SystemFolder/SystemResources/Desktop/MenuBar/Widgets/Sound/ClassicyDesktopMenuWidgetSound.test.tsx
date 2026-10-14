@@ -66,7 +66,7 @@ describe("ClassicyDesktopMenuWidgetSound deprecation notice", () => {
 		const warnings = deprecationWarnings();
 		expect(warnings).toHaveLength(1);
 		expect(warnings[0].message).toMatch(/deprecated/);
-		expect(warnings[0].message).toMatch(/useClassicySoundControlStripModule/);
+		expect(warnings[0].message).toMatch(/classicy-sound/);
 		expect(warnings[0].message).toMatch(/controlStrip/);
 	});
 

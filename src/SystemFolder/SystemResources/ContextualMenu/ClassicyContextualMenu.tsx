@@ -28,17 +28,24 @@ export const ClassicyContextualMenu: FunctionalComponent<ClassicyMenuProps> = ({
 	onClose,
 }) => {
 	const wrapperRef = useRef<HTMLDivElement>(null);
-	// Start at the requested x; the layout effect flips the root menu leftward
-	// if it would overflow the right edge of the viewport (HIG contextual menus).
+	// Start at the requested point; the layout effect flips the root menu
+	// leftward if it would overflow the right edge of the viewport, and upward
+	// if it would overflow the bottom (a click on the Control Strip, say) — HIG
+	// contextual menus.
 	const [left, setLeft] = useState<number>(position[0]);
+	const [top, setTop] = useState<number>(position[1]);
 
 	useLayoutEffect(() => {
 		setLeft(position[0]);
+		setTop(position[1]);
 		const el = wrapperRef.current;
 		if (!el) return;
-		const width = el.getBoundingClientRect().width;
+		const { width, height } = el.getBoundingClientRect();
 		if (position[0] + width > window.innerWidth) {
 			setLeft(Math.max(0, position[0] - width));
+		}
+		if (position[1] + height > window.innerHeight) {
+			setTop(Math.max(0, position[1] - height));
 		}
 	}, [position[0], position[1]]);
 
@@ -64,7 +71,7 @@ export const ClassicyContextualMenu: FunctionalComponent<ClassicyMenuProps> = ({
 			<div
 				ref={wrapperRef}
 				className={"classicyContextMenuWrapper"}
-				style={{ left, top: position[1] }}
+				style={{ left, top }}
 			>
 				<ClassicyMenu
 					name={name}

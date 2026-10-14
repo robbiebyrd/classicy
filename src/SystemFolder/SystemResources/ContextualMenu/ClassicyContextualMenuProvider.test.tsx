@@ -162,6 +162,48 @@ describe("ClassicyContextualMenuProvider", () => {
 		rectSpy.mockRestore();
 	});
 
+	it("flips the root menu upward when it would overflow the bottom edge", () => {
+		const rectSpy = vi
+			.spyOn(Element.prototype, "getBoundingClientRect")
+			.mockReturnValue({
+				width: 100,
+				height: 200,
+				top: 0,
+				bottom: 0,
+				left: 0,
+				right: 0,
+				x: 0,
+				y: 0,
+				toJSON: () => ({}),
+			} as DOMRect);
+		const LowTrigger = () => {
+			const { showContextMenu } = useClassicyContextualMenu();
+			return (
+				<button
+					type="button"
+					onClick={() => showContextMenu(menuA, [10, window.innerHeight - 5])}
+				>
+					show-low
+				</button>
+			);
+		};
+		render(
+			<ClassicyContextualMenuProvider>
+				<LowTrigger />
+			</ClassicyContextualMenuProvider>,
+		);
+		fireEvent.click(screen.getByText("show-low"));
+		const wrapper = document.querySelector(
+			".classicyContextMenuWrapper",
+		) as HTMLElement;
+		// top was innerHeight-5+1; a 200px menu overflows, so it opens above
+		// the click: (clickY - height), clamped to >= 0.
+		const expected = Math.max(0, window.innerHeight - 5 + 1 - 200);
+		expect(wrapper.style.top).toBe(`${expected}px`);
+		expect(wrapper.style.left).toBe("11px");
+		rectSpy.mockRestore();
+	});
+
 	it("hook is a no-op without a provider", () => {
 		render(<Trigger items={menuA} label="show-a" />);
 		fireEvent.click(screen.getByText("show-a"));
