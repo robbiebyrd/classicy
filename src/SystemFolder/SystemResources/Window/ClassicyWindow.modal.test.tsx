@@ -1,6 +1,6 @@
-import { StrictMode } from "react";
+import { StrictMode, useRef } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render } from "@/__tests__/test-utils";
+import { render, screen } from "@/__tests__/test-utils";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
 const mockDispatch = vi.hoisted(() => vi.fn());
@@ -129,5 +129,37 @@ describe("ClassicyWindow modal lifecycle under StrictMode", () => {
 			"ClassicyWindowDestroy",
 			"ClassicyWindowOpen",
 		]);
+	});
+});
+
+describe("ClassicyWindow modal initialFocusRef (#270)", () => {
+	beforeEach(() => {
+		mockDispatch.mockClear();
+		mockPlayer.mockClear();
+	});
+
+	it("hands the focus trap's initial focus to initialFocusRef", () => {
+		const Dialog = () => {
+			const defaultRef = useRef<HTMLButtonElement | null>(null);
+			return (
+				<ClassicyWindow
+					id="TestWindow"
+					appId="TestApp"
+					title="Dialog"
+					modal
+					initialFocusRef={defaultRef}
+				>
+					<button type="button">Cancel</button>
+					<button type="button" ref={defaultRef}>
+						OK
+					</button>
+				</ClassicyWindow>
+			);
+		};
+		render(<Dialog />);
+
+		expect(document.activeElement).toBe(
+			screen.getByRole("button", { name: "OK" }),
+		);
 	});
 });

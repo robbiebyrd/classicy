@@ -18,6 +18,7 @@ import {
 	type KeyboardEvent,
 	type MouseEvent,
 	type ReactNode,
+	type RefObject,
 	useCallback,
 	useEffect,
 	useMemo,
@@ -220,6 +221,17 @@ interface ClassicyWindowProps {
 	 * `--color-window-frame` for modal windows).
 	 */
 	backgroundColor?: string;
+	/**
+	 * The element that should take keyboard focus when this window becomes the
+	 * focused window (#270) — e.g. a list box, so arrow keys work without a
+	 * click first. Focused (without scrolling) on each transition of the
+	 * store's `focused` flag to true while the window is open and expanded,
+	 * unless focus is already somewhere inside the window (an input the user
+	 * just clicked keeps it). Also re-applied when the title bar of the
+	 * already-focused window is clicked. For a modal it is the focus trap's
+	 * initial target instead. Opt-in: omitted, nothing is focused.
+	 */
+	initialFocusRef?: RefObject<HTMLElement | null>;
 }
 
 export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
@@ -258,6 +270,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	contentFrame = false,
 	placard,
 	backgroundColor,
+	initialFocusRef,
 }) => {
 	const icon = iconProp || fileIcon;
 
@@ -538,6 +551,32 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		page,
 	]);
 
+	// #270: hand keyboard focus to the window's content when the window
+	// becomes the focused one, so its keyboard navigation works without a
+	// click first. Never steals focus from something already inside the window
+	// — clicking an input in a background window focuses the input on
+	// mousedown, before the click focuses the window.
+	const focusInitialTarget = useCallback(() => {
+		const target = initialFocusRef?.current;
+		if (!target) return;
+		if (windowRef.current?.contains(document.activeElement)) return;
+		target.focus({ preventScroll: true });
+	}, [initialFocusRef]);
+
+	// Tracks the previous commit's "owns the keyboard" state so only the
+	// false→true TRANSITION of the store's focused flag moves DOM focus — not
+	// every render, and not mount: of several windows restored together only
+	// the one the store has focused ever transitions. Separate from the
+	// analytics wasFocusedRef, whose semantics (open counts, collapse doesn't
+	// matter) differ. Modals are left to the focus trap below.
+	const wasKeyboardFocusedRef = useRef(false);
+	useEffect(() => {
+		const ownsKeyboard = !modal && !ws.closed && !ws.collapsed && !!ws.focused;
+		const becameFocused = ownsKeyboard && !wasKeyboardFocusedRef.current;
+		wasKeyboardFocusedRef.current = ownsKeyboard;
+		if (becameFocused) focusInitialTarget();
+	}, [modal, ws.closed, ws.collapsed, ws.focused, focusInitialTarget]);
+
 	const windowRegistered = useRef(false);
 	const lastMenuBarSignatureRef = useRef<string | undefined>(undefined);
 	useEffect(() => {
@@ -702,6 +741,15 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		clickPositionRef.current = [offsetX, offsetY];
 		dragStartPointRef.current = [e.clientX, e.clientY];
 		pendingDragRef.current = true;
+	};
+
+	// #270: a title-bar click on the ALREADY-focused window is no focus
+	// transition, so re-apply the initial focus here (e.g. after a menu click
+	// left the document body focused). An unfocused window gets it from the
+	// focused-transition effect once the click focuses it.
+	const onTitleMouseDown = (e: MouseEvent<HTMLDivElement>) => {
+		startMoveWindow(e);
+		if (ws.focused && !modal) focusInitialTarget();
 	};
 
 	const promoteDragIfNeeded = (clientX: number, clientY: number) => {
@@ -1181,7 +1229,12 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	// #194/#197: modal windows trap Tab focus within themselves and bind the
 	// dialog-wide Cancel equivalent. Scoped to this window so stacked modals
 	// don't cross-fire.
-	useFocusTrap({ ref: windowRef, enabled: modal, autoFocus: modal });
+	useFocusTrap({
+		ref: windowRef,
+		enabled: modal,
+		autoFocus: modal,
+		initialFocusRef,
+	});
 	useKeyboardEquivalents({
 		enabled: modal,
 		targetRef: windowRef,
@@ -1300,7 +1353,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				<div
 					className={"classicyWindowTitle"}
 					role="presentation"
-					onMouseDown={startMoveWindow}
+					onMouseDown={onTitleMouseDown}
 					// stopChangeWindow is bound once, on the root classicyWindow
 					// element; mouseup here bubbles to it (see comment there).
 					onDoubleClick={

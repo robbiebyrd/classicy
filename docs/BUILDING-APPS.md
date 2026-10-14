@@ -273,6 +273,7 @@ Every prop, with its default:
 | `dimContents` | `boolean` | `true` | Dim contents when the window is inactive. |
 | `analyticsPath` | `string` | derived | Override the generated pageview path. |
 | `analyticsExclude` | `boolean` | — | Emit no pageview at all. |
+| `initialFocusRef` | `RefObject<HTMLElement \| null>` | — | Element focused when the window becomes the focused window (unless focus is already inside it), so its keyboard navigation works without a click. A modal's focus trap starts there instead. |
 | `onCloseFunc` | `(id) => void` | — | Runs after a close is allowed. |
 | `onBeforeClose` | `(id) => boolean \| Promise<boolean>` | — | Close veto. Return `false` to cancel. |
 | `type` | `string` | `"default"` | Free-form class hook. |

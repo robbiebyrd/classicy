@@ -89,6 +89,10 @@ type ClassicyTableProps<T> = {
 	 *  forwardRef because this component is generic and forwardRef would
 	 *  erase the type parameter. */
 	selectionApiRef?: RefObject<ClassicyTableSelectionApi | null>;
+	/** Receives the focusable list-box element (the keyboard target), e.g. so
+	 *  a hosting window can give it initial focus. Prop-shaped for the same
+	 *  reason as `selectionApiRef`. */
+	containerRef?: RefObject<HTMLDivElement | null>;
 };
 
 type SortingState = { id: string; desc: boolean }[];
@@ -128,6 +132,7 @@ export function ClassicyTable<T>({
 	expanded,
 	onToggleRow,
 	selectionApiRef,
+	containerRef: externalContainerRef,
 }: ClassicyTableProps<T>): ReactElement {
 	const [sorting, setSorting] = useState<SortingState>(
 		defaultSort ? [{ id: defaultSort.columnId, desc: !!defaultSort.desc }] : [],
@@ -159,6 +164,15 @@ export function ClassicyTable<T>({
 	// An id (not an index) so re-sorting between clicks keeps it meaningful.
 	const anchorId = useRef<string | undefined>(undefined);
 	const containerRef = useRef<HTMLDivElement>(null);
+	// Attached in the commit phase (not an effect), so an ancestor's effect
+	// that focuses `externalContainerRef` on the same commit already sees it.
+	const setContainerRef = useCallback(
+		(el: HTMLDivElement | null) => {
+			containerRef.current = el;
+			if (externalContainerRef) externalContainerRef.current = el;
+		},
+		[externalContainerRef],
+	);
 	const typeBuffer = useRef("");
 	const typeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
 		undefined,
@@ -389,7 +403,7 @@ export function ClassicyTable<T>({
 	return (
 		// biome-ignore lint/a11y/noStaticElementInteractions: list box is a focusable scroll region driven by arrow keys and type-selection; rows remain the click targets
 		<div
-			ref={containerRef}
+			ref={setContainerRef}
 			tabIndex={selectionMode === "none" ? undefined : 0}
 			onKeyDown={handleKeyDown}
 			className={classNames("classicyTableContainer", className)}

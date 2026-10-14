@@ -97,6 +97,32 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 	// One handle per open folder window: a single shared ref would make every
 	// window's Select All drive whichever table mounted last.
 	const selectionApiRef = useRef<ClassicyTableSelectionApi | null>(null);
+	// #270: likewise one keyboard target per window — the list view's list
+	// box (null in icon view). The window focuses it whenever it becomes the
+	// focused window, so arrows/Return work without clicking the list first.
+	const focusTargetRef = useRef<HTMLDivElement | null>(null);
+	const windowFocused = useAppManager(
+		(state) =>
+			!!state.System.Manager.Applications.apps[appId]?.windows?.find(
+				(w) => w.id === op,
+			)?.focused,
+	);
+
+	// Switching View as Icons/List swaps the browser's content but is no
+	// window-focus transition, so ClassicyWindow won't refocus on its own.
+	// Hand the freshly mounted list box focus when this window is the focused
+	// one and focus isn't already on something else inside it.
+	const prevViewTypeRef = useRef(viewType);
+	useEffect(() => {
+		if (prevViewTypeRef.current === viewType) return;
+		prevViewTypeRef.current = viewType;
+		if (!windowFocused) return;
+		const target = focusTargetRef.current;
+		if (!target) return;
+		const active = document.activeElement;
+		if (active && target.closest(".classicyWindow")?.contains(active)) return;
+		target.focus({ preventScroll: true });
+	}, [viewType, windowFocused]);
 
 	const appMenu = useMemo(
 		() => [
@@ -196,6 +222,7 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 			header={<span>{getHeaderString(dir)}</span>}
 			onCloseFunc={closeFolder}
 			appMenu={appMenu}
+			initialFocusRef={focusTargetRef}
 		>
 			<ClassicyFileBrowser
 				appId={appId}
@@ -208,6 +235,7 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 				listViewOptions={listViewOptions}
 				now={now}
 				selectionApiRef={selectionApiRef}
+				focusTargetRef={focusTargetRef}
 			/>
 		</ClassicyWindow>
 	);
