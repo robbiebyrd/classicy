@@ -58,7 +58,7 @@ Normative checklist (HIGOS8 Ch.2) and component mapping:
 | Checkboxes (p.27) | on/off/mixed; checkmark (or localizable X); avoid negative labels; click label toggles | `Checkbox/` | see Findings |
 | Bevel Buttons (p.29) | Bevels 2/3/4px (small/med/large); 7 states; can act as push/radio/checkbox/pop-up | `BevelButton/` | see Findings |
 | Sliders & Tick Marks (p.34) | Horizontal/vertical; directional or nondirectional indicator; ghost indicator; labeled ticks; live drag; not a scroll bar substitute | `Slider/` | see Findings |
-| Little Arrows (p.35) | Two opposed arrows; labelled; click = ±1 unit; press-hold auto-repeats; highlight while pressed | `TimePicker/ClassicyLittleArrows` | see Findings |
+| Little Arrows (p.35) | Two opposed arrows; labelled; click = ±1 unit; press-hold auto-repeats; highlight while pressed | `LittleArrows/ClassicyLittleArrows` | see Findings |
 | Clock Controls (p.36) | Edit-text + little arrows; ↑/↓ keys inc/dec focused field; can be inactive (display-only) | `DatePicker/`, `TimePicker/` | see Findings |
 | Disclosure Triangles (p.37) | Right = closed, down = open; ⌘→ opens / ⌘← closes in list views; rotate reveals detail | `Disclosure/`, `Triangle/` | see Findings |
 | List Boxes & Frames (p.39) | 2px frame; white bg; arrow-key nav; type-selection | `ListBox/` | see Findings |
@@ -81,7 +81,7 @@ Normative checklist (HIGOS8 Ch.2) and component mapping:
 | 2.1 | MEDIUM | On-state mark was reversed: `×` by default, checkmark only when `isDefault`. The checkmark is the standard mark; `×` is a localization opt-in. | `Checkbox` | 🔧 Fixed |
 | 2.2 | LOW | Mixed state only painted its dash when also `:checked`; mixed is a distinct third state and must always show. | `Checkbox` | 🔧 Fixed |
 | 2.3 | LOW | A radio group could render with zero buttons on when none was pre-marked. | `RadioInput` | 🔧 Fixed |
-| 2.4 | LOW | Little-arrow buttons responded only to the mouse; Enter/Space did nothing. | `TimePicker/ClassicyLittleArrows` | 🔧 Fixed |
+| 2.4 | LOW | Little-arrow buttons responded only to the mouse; Enter/Space did nothing. | `LittleArrows/ClassicyLittleArrows` | 🔧 Fixed |
 | 2.8 | MEDIUM | Multi-line edit field suppressed all focus indication (`outline:none;box-shadow:none`). | `TextEditor` | 🔧 Fixed |
 | 2.9 | LOW | Static-text output had no disabled (dimmed) appearance. | `Output` | 🔧 Fixed |
 | 2.11 | LOW | Edit fields rounded their corners on focus and carried an invalid `outline` shorthand; the Rich editor also grew by 2em margin+padding on focus. | `Input`, `RichTextEditor` | 🔧 Fixed |

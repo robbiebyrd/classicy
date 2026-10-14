@@ -15,7 +15,7 @@ vi.mock(
 	() => ({}),
 );
 vi.mock(
-	"@/SystemFolder/SystemResources/TimePicker/ClassicyLittleArrows.scss",
+	"@/SystemFolder/SystemResources/LittleArrows/ClassicyLittleArrows.scss",
 	() => ({}),
 );
 vi.mock(

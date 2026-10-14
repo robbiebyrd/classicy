@@ -19,7 +19,7 @@ import {
 	useState,
 } from "react";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
-import { ClassicyLittleArrows } from "@/SystemFolder/SystemResources/TimePicker/ClassicyLittleArrows";
+import { ClassicyLittleArrows } from "@/SystemFolder/SystemResources/LittleArrows/ClassicyLittleArrows";
 
 const REPEAT_INTERVAL_MS = 100;
 const STEP_ESCALATION_MS = 3000;
