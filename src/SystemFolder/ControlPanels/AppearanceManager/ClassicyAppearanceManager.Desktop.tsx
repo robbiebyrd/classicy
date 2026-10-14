@@ -40,8 +40,12 @@ export const useDesktopTab = ({
 								id={"bg"}
 								options={ClassicyWallpapers}
 								onChangeFunc={changeBackground}
-								selected={bg.split("/").pop()}
-							></ClassicyPopUpMenu>
+								// Option values are the full resolved wallpaper URLs, so
+								// the stored URL matches one directly. A user-supplied
+								// picture matches none and shows the placeholder.
+								selected={bg}
+								placeholder={"Custom"}
+							/>
 							<br />
 							<ClassicyControlLabel label={"Picture"} direction={"left"} />
 							<ClassicyInput
