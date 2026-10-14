@@ -58,7 +58,7 @@ Normative checklist (HIGOS8 Ch.2) and component mapping:
 | Checkboxes (p.27) | on/off/mixed; checkmark (or localizable X); avoid negative labels; click label toggles | `Checkbox/` | see Findings |
 | Bevel Buttons (p.29) | Bevels 2/3/4px (small/med/large); 7 states; can act as push/radio/checkbox/pop-up | `BevelButton/` | see Findings |
 | Sliders & Tick Marks (p.34) | Horizontal/vertical; directional or nondirectional indicator; ghost indicator; labeled ticks; live drag; not a scroll bar substitute | `Slider/` | see Findings |
-| Little Arrows (p.35) | Two opposed arrows; labelled; click = ±1 unit; press-hold auto-repeats; highlight while pressed | `TimePicker/ClassicyLittleArrows` | see Findings |
+| Little Arrows (p.35) | Two opposed arrows; labelled; click = ±1 unit; press-hold auto-repeats; highlight while pressed | `LittleArrows/ClassicyLittleArrows` | see Findings |
 | Clock Controls (p.36) | Edit-text + little arrows; ↑/↓ keys inc/dec focused field; can be inactive (display-only) | `DatePicker/`, `TimePicker/` | see Findings |
 | Disclosure Triangles (p.37) | Right = closed, down = open; ⌘→ opens / ⌘← closes in list views; rotate reveals detail | `Disclosure/`, `Triangle/` | see Findings |
 | List Boxes & Frames (p.39) | 2px frame; white bg; arrow-key nav; type-selection | `ListBox/` | see Findings |
@@ -81,7 +81,7 @@ Normative checklist (HIGOS8 Ch.2) and component mapping:
 | 2.1 | MEDIUM | On-state mark was reversed: `×` by default, checkmark only when `isDefault`. The checkmark is the standard mark; `×` is a localization opt-in. | `Checkbox` | 🔧 Fixed |
 | 2.2 | LOW | Mixed state only painted its dash when also `:checked`; mixed is a distinct third state and must always show. | `Checkbox` | 🔧 Fixed |
 | 2.3 | LOW | A radio group could render with zero buttons on when none was pre-marked. | `RadioInput` | 🔧 Fixed |
-| 2.4 | LOW | Little-arrow buttons responded only to the mouse; Enter/Space did nothing. | `TimePicker/ClassicyLittleArrows` | 🔧 Fixed |
+| 2.4 | LOW | Little-arrow buttons responded only to the mouse; Enter/Space did nothing. | `LittleArrows/ClassicyLittleArrows` | 🔧 Fixed |
 | 2.8 | MEDIUM | Multi-line edit field suppressed all focus indication (`outline:none;box-shadow:none`). | `TextEditor` | 🔧 Fixed |
 | 2.9 | LOW | Static-text output had no disabled (dimmed) appearance. | `Output` | 🔧 Fixed |
 | 2.11 | LOW | Edit fields rounded their corners on focus and carried an invalid `outline` shorthand; the Rich editor also grew by 2em margin+padding on focus. | `Input`, `RichTextEditor` | 🔧 Fixed |
@@ -444,3 +444,28 @@ Addressed in a follow-up pass (separate PR):
 Still open:
 
 - _None — every item from the original audit is now addressed._
+
+## Missing components
+
+The chapter audits above check components Classicy already had. A later pass
+compared the HIG's own table of contents and figure list against the
+component library to find HIG elements with **no** Classicy component. Four
+turned up. Three are added; the Control Strip follows in a separate change.
+Little Arrows, which already existed but lived inside `TimePicker/`, moved to
+its own `LittleArrows/` folder.
+
+| HIG element | Source | Was | Now |
+| --- | --- | --- | --- |
+| Pop-up bevel button menu | HIGOS8 Ch.2 "Bevel Buttons as Pop-up Buttons" (pp.32–33), Figure 2-15 | `popup` mode drew the arrow but opened nothing | `ClassicyBevelButton` takes `menuItems`. The menu opens below or to the right, flipping when there is no room. A quick click leaves it open (sticky); a press held past the double-click interval makes it a standard menu. The `hold` trigger keeps a tool's click and offers its options on a long press |
+| Help button | HIGOS8 Ch.3 "Help Button Layout" (p.86), Figures 3-36, 3-37 | only an alert button role drawing a text "?" | `ClassicyHelpButton`: 20 × 21 small-bevel button with the help glyph lifted from Figure 3-36. `ClassicyAlert`'s `help` role renders it |
+| User-definable keyboard equivalents | HIGOS8 Ch.6 "Keyboard Equivalent Support" (pp.120–122), Figures 6-8 to 6-11 | nothing | `ClassicyKeyboardEquivalentField` and its capture dialog. A combination without a command key (or function key), or one already in use, is refused with an alert that names the owner |
+| Control Strip | HIGOS8 Ch.6 "Persistent Access" (p.125), Figure 6-15 | nothing (folder icon only) | ⚠️ In progress — separate change (with Figure 2-16's pop-up volume slider) |
+
+Not counted as gaps: window headers (p.50) are a `header` prop on
+`ClassicyWindow`, which matches the HIG treating them as part of the window.
+The multi-pane control panel navigation patterns (Figures 6-1 to 6-4) are
+layouts built from existing tabs, push buttons, list boxes and pop-up menus.
+
+The Help button's glyph matches the HIG pixel for pixel, but its frame uses
+the library-wide bevel button style: a black outline on a lighter face, where
+the HIG figure has a dark-grey frame on `#ccc`.

@@ -1,10 +1,10 @@
 import { act, fireEvent } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@/__tests__/test-utils";
-import { ClassicyLittleArrows } from "@/SystemFolder/SystemResources/TimePicker/ClassicyLittleArrows";
+import { ClassicyLittleArrows } from "@/SystemFolder/SystemResources/LittleArrows/ClassicyLittleArrows";
 
 vi.mock(
-	"@/SystemFolder/SystemResources/TimePicker/ClassicyLittleArrows.scss",
+	"@/SystemFolder/SystemResources/LittleArrows/ClassicyLittleArrows.scss",
 	() => ({}),
 );
 

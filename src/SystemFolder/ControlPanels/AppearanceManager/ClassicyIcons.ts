@@ -489,6 +489,9 @@ export const ClassicyIcons = {
 		},
 	},
 	ui: {
+		// The "standard help icon" a Help button wears (HIGOS8 Ch.3 p.86): the
+		// Apple Guide lightbulb "?", lifted pixel-for-pixel from Figure 3-36.
+		helpButton: ui("help-button.png"),
 		halftoneLarge: ui("halftone-large.png"),
 		halftoneSmall: ui("halftone-small.png"),
 		menuDropdownArrowUp: ui("menu-dropdown-arrow-up.svg"),

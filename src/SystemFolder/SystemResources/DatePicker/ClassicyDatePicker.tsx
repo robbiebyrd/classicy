@@ -22,7 +22,7 @@ import {
 	validateDayOfMonth,
 	validateMonth,
 } from "@/SystemFolder/SystemResources/DatePicker/ClassicyDatePickerUtils";
-import { ClassicyLittleArrows } from "@/SystemFolder/SystemResources/TimePicker/ClassicyLittleArrows";
+import { ClassicyLittleArrows } from "@/SystemFolder/SystemResources/LittleArrows/ClassicyLittleArrows";
 
 type ClassicyDatePart = "month" | "day" | "year";
 
