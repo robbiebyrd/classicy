@@ -595,6 +595,7 @@ export const DefaultAppManagerState: ClassicyStore = {
 				// Via getTheme, not themesData: the raw JSON names its wallpaper
 				// rather than carrying a loadable URL.
 				activeTheme: getTheme("default"),
+				customThemes: [],
 				alertSound: DEFAULT_ALERT_SOUND,
 				// Mac OS 8.0 shipped with Smart Scrolling on (arrows grouped at
 				// the end of each bar).

@@ -10,7 +10,17 @@ import themesData from "../AppearanceManager/styles/themes.json";
 
 export interface ClassicyStoreSystemAppearanceManager
 	extends ClassicyStoreSystemManager {
+	/** Built-in themes. Never mutated by edits — see `customThemes`. */
 	availableThemes?: ClassicyTheme[];
+	/**
+	 * User-editable themes, kept apart from `availableThemes` so a persisted
+	 * list never shadows the built-ins shipped by a newer build. The first
+	 * colour/font/desktop edit made on a built-in forks it here as "Custom"
+	 * (id `"custom"`); see `ClassicyCustomTheme.ts`. Absent in state persisted
+	 * before custom themes existed.
+	 */
+	customThemes?: ClassicyTheme[];
+	/** The theme in effect: a copy of a built-in or of a custom theme. */
 	activeTheme: ClassicyTheme;
 	/** Sprite key of the user's default alert sound (a `ClassicyAlert*` sound). */
 	alertSound?: string;

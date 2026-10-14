@@ -23,6 +23,7 @@ let hydratedFromStorage = false;
  * path that no consuming app serves — would otherwise outlive the fix and keep
  * 404ing forever. `resolveWallpaper` is idempotent and passes user-set `data:`
  * and remote URLs through, so a background the user actually chose survives.
+ * Custom themes are healed too: a fork copies its built-in's wallpaper path.
  */
 function healThemeWallpapers(state: ClassicyStore): ClassicyStore {
 	const appearance = state.System?.Manager?.Appearance;
@@ -34,7 +35,10 @@ function healThemeWallpapers(state: ClassicyStore): ClassicyStore {
 			appearance.activeTheme.desktop.backgroundImage,
 		);
 	}
-	for (const theme of appearance.availableThemes ?? []) {
+	for (const theme of [
+		...(appearance.availableThemes ?? []),
+		...(appearance.customThemes ?? []),
+	]) {
 		if (theme?.desktop) {
 			theme.desktop.backgroundImage = resolveWallpaper(
 				theme.desktop.backgroundImage,

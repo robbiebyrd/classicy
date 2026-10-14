@@ -28,6 +28,7 @@ import {
 	hasPaths,
 	hasSmartScrolling,
 	hasSortBy,
+	hasThemeColorChange,
 	hasTzOffset,
 	hasWindow,
 	hasWindowDragging,
@@ -503,6 +504,48 @@ describe("hasFont", () => {
 });
 
 // ─── hasAvailableThemes ───────────────────────────────────────────────────────
+
+describe("hasThemeColorChange", () => {
+	const msg = (fields: Record<string, unknown>): Msg => ({
+		type: "ClassicyDesktopChangeColor",
+		...fields,
+	});
+
+	it("accepts a scalar key with an in-range integer colour", () => {
+		expect(hasThemeColorChange(msg({ colorKey: "outline", color: 0 }))).toBe(
+			true,
+		);
+		expect(
+			hasThemeColorChange(
+				msg({ colorKey: "desktopBackground", color: 0xffffff }),
+			),
+		).toBe(true);
+	});
+
+	it("accepts a palette key with an index 0-6", () => {
+		expect(
+			hasThemeColorChange(msg({ colorKey: "system", index: 0, color: 1 })),
+		).toBe(true);
+		expect(
+			hasThemeColorChange(msg({ colorKey: "theme", index: 6, color: 1 })),
+		).toBe(true);
+	});
+
+	it("rejects bad keys, indices and colours", () => {
+		for (const fields of [
+			{ colorKey: "nope", color: 0 },
+			{ colorKey: "system", color: 0 },
+			{ colorKey: "system", index: 7, color: 0 },
+			{ colorKey: "outline", index: 0, color: 0 },
+			{ colorKey: "outline", color: -1 },
+			{ colorKey: "outline", color: 0x1000000 },
+			{ colorKey: "outline", color: 2.5 },
+			{ colorKey: "outline", color: "0" },
+		]) {
+			expect(hasThemeColorChange(msg(fields))).toBe(false);
+		}
+	});
+});
 
 describe("hasAvailableThemes", () => {
 	it("returns true when availableThemes is an array", () => {
