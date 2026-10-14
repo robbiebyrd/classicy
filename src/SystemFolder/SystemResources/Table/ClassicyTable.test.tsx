@@ -589,3 +589,53 @@ describe("ClassicyTable — Select All", () => {
 		expect(onSelectionChange).toHaveBeenLastCalledWith(["abbey"]);
 	});
 });
+
+describe("ClassicyTable containerRef (#270)", () => {
+	it("receives the focusable list-box container", () => {
+		const containerRef = createRef<HTMLDivElement>();
+		const { container } = render(
+			<ClassicyTable
+				columns={columns}
+				rows={albums}
+				getRowId={(a) => a.id}
+				containerRef={containerRef}
+			/>,
+		);
+		expect(containerRef.current).toBe(
+			container.querySelector(".classicyTableContainer"),
+		);
+		expect(containerRef.current?.tabIndex).toBe(0);
+	});
+
+	it("still drives keyboard selection when focused through the ref", () => {
+		const onSelectionChange = vi.fn();
+		const containerRef = createRef<HTMLDivElement>();
+		render(
+			<ClassicyTable
+				columns={columns}
+				rows={albums}
+				getRowId={(a) => a.id}
+				onSelectionChange={onSelectionChange}
+				containerRef={containerRef}
+			/>,
+		);
+		const box = containerRef.current as HTMLDivElement;
+		act(() => box.focus());
+		fireEvent.keyDown(box, { key: "ArrowDown" });
+		expect(onSelectionChange).toHaveBeenLastCalledWith(["rubber"]);
+	});
+
+	it("clears the ref on unmount", () => {
+		const containerRef = createRef<HTMLDivElement>();
+		const { unmount } = render(
+			<ClassicyTable
+				columns={columns}
+				rows={albums}
+				getRowId={(a) => a.id}
+				containerRef={containerRef}
+			/>,
+		);
+		unmount();
+		expect(containerRef.current).toBeNull();
+	});
+});
