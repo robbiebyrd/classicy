@@ -1,9 +1,10 @@
-import { type ChangeEvent, useMemo } from "react";
+import { useMemo } from "react";
 import type { ClassicyThemeTypography } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
 import { ClassicySpinner } from "@/SystemFolder/SystemResources/Spinner/ClassicySpinner";
 import type { TabIndividual } from "@/SystemFolder/SystemResources/Tabs/ClassicyTabs";
+import { primaryFontFamily } from "./ClassicyFontStack";
 
 const ClassicyFonts = [
 	{ label: "Charcoal", value: "Charcoal" },
@@ -19,7 +20,11 @@ const FONT_MAX_SIZE = 72;
 
 interface FontsTabProps {
 	typography: ClassicyThemeTypography;
-	changeFont: (e: ChangeEvent<HTMLSelectElement>) => void;
+	/**
+	 * Called with the typography key (`ui`, `body`, `header`, `mono`,
+	 * `digital`) and the bare family name the user picked.
+	 */
+	changeFont: (fontType: string, font: string) => void;
 	changeFontSize: (fontType: string, size: number) => void;
 }
 
@@ -40,8 +45,9 @@ export const useFontsTab = ({
 						<ClassicyPopUpMenu
 							id={"ui"}
 							options={ClassicyFonts}
-							selected={typography.ui}
-							onChangeFunc={changeFont}
+							selected={primaryFontFamily(typography.ui)}
+							placeholder={"Custom"}
+							onChangeFunc={(e) => changeFont("ui", e.target.value)}
 						/>
 						<ClassicySpinner
 							id={"uiSize"}
@@ -63,8 +69,9 @@ export const useFontsTab = ({
 						<ClassicyPopUpMenu
 							id={"body"}
 							options={ClassicyFonts}
-							selected={typography.body}
-							onChangeFunc={changeFont}
+							selected={primaryFontFamily(typography.body)}
+							placeholder={"Custom"}
+							onChangeFunc={(e) => changeFont("body", e.target.value)}
 						/>
 						<ClassicySpinner
 							id={"bodySize"}
@@ -83,8 +90,9 @@ export const useFontsTab = ({
 						<ClassicyPopUpMenu
 							id={"header"}
 							options={ClassicyFonts}
-							selected={typography.header}
-							onChangeFunc={changeFont}
+							selected={primaryFontFamily(typography.header)}
+							placeholder={"Custom"}
+							onChangeFunc={(e) => changeFont("header", e.target.value)}
 						/>
 						<ClassicySpinner
 							id={"headerSize"}
@@ -106,8 +114,9 @@ export const useFontsTab = ({
 						<ClassicyPopUpMenu
 							id={"mono"}
 							options={ClassicyFonts}
-							selected={typography.mono}
-							onChangeFunc={changeFont}
+							selected={primaryFontFamily(typography.mono)}
+							placeholder={"Custom"}
+							onChangeFunc={(e) => changeFont("mono", e.target.value)}
 						/>
 						<ClassicySpinner
 							id={"monoSize"}
@@ -126,8 +135,9 @@ export const useFontsTab = ({
 						<ClassicyPopUpMenu
 							id={"digital"}
 							options={ClassicyFonts}
-							selected={typography.digital}
-							onChangeFunc={changeFont}
+							selected={primaryFontFamily(typography.digital)}
+							placeholder={"Custom"}
+							onChangeFunc={(e) => changeFont("digital", e.target.value)}
 						/>
 						<ClassicySpinner
 							id={"digitalSize"}

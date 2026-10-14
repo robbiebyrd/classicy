@@ -9,6 +9,7 @@ import {
 } from "react";
 import {
 	type ClassicyTheme,
+	type ClassicyThemeTypography,
 	getTheme,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { APPEARANCE_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManagerManifest";
@@ -38,6 +39,7 @@ import { useDesktopTab } from "./ClassicyAppearanceManager.Desktop";
 import { useFontsTab } from "./ClassicyAppearanceManager.Fonts";
 import { useSoundTab } from "./ClassicyAppearanceManager.Sound";
 import { useThemesTab } from "./ClassicyAppearanceManager.Themes";
+import { withPrimaryFontFamily } from "./ClassicyFontStack";
 import { ClassicyDefaultWallpaper } from "./ClassicyWallpapers";
 import appIcon from "./resources/app.png";
 
@@ -192,17 +194,26 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		[desktopEventDispatch],
 	);
 
+	const typography = appearanceState.activeTheme.typography;
 	const changeFont = useCallback(
-		(e: ChangeEvent<HTMLSelectElement>) => {
+		(fontType: string, family: string) => {
+			// The menus offer bare family names; the theme stores a full CSS
+			// stack. Put the chosen family first and keep the rest of the
+			// current stack as fallbacks.
+			const current = typography[fontType as keyof ClassicyThemeTypography];
+			const font = withPrimaryFontFamily(
+				typeof current === "string" ? current : "",
+				family,
+			);
 			startTransition(() => {
 				desktopEventDispatch({
 					type: "ClassicyDesktopChangeFont",
-					font: e.target.value,
-					fontType: e.target.id,
+					fontType,
+					font,
 				});
 			});
 		},
-		[desktopEventDispatch],
+		[desktopEventDispatch, typography],
 	);
 
 	const changeAlertSound = useCallback(
@@ -291,7 +302,7 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 	});
 
 	const fontsTab = useFontsTab({
-		typography: appearanceState.activeTheme.typography,
+		typography,
 		changeFont,
 		changeFontSize,
 	});
