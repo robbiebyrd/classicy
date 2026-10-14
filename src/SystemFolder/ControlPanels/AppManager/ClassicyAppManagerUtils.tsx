@@ -12,6 +12,7 @@ import {
 	mergeClassicyState,
 } from "./ClassicyAppManager";
 import { validateAppStateForAction } from "./ClassicyAppManifest";
+import { migrateClassicyState } from "./ClassicyStateMigrations";
 
 let hydratedFromStorage = false;
 
@@ -77,10 +78,16 @@ function getInitialState(): ClassicyStore {
 				// Merge persisted state on top of current defaults so any new fields
 				// added since the state was saved get their default values instead of
 				// being undefined (e.g. new typography.monoSize / digitalSize keys).
+				// Migrate AFTER the merge: arrays replace defaults wholesale, so a
+				// 0.x `windows` array survives the merge and is converted here.
+				// (mergeClassicyState already migrates its result; the explicit,
+				// idempotent pass keeps this load path correct on its own.)
 				return healThemeWallpapers(
-					mergeClassicyState(
-						DefaultAppManagerState,
-						parsed as DeepPartial<ClassicyStore>,
+					migrateClassicyState(
+						mergeClassicyState(
+							DefaultAppManagerState,
+							parsed as DeepPartial<ClassicyStore>,
+						),
 					),
 				);
 			}

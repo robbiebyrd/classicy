@@ -9,7 +9,7 @@ const app = (
 	id,
 	name: id.replace(".app", ""),
 	icon: `/icons/${id}.png`,
-	windows: [],
+	windows: {},
 	open: true,
 	data: {},
 	...overrides,

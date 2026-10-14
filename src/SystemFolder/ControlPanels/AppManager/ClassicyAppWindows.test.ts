@@ -1,5 +1,6 @@
 import { produce } from "immer";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { windowsRecord } from "@/__tests__/windowsRecord";
 import type {
 	ClassicyStoreSystemApp,
 	ClassicyStoreSystemAppWindow,
@@ -10,6 +11,7 @@ import {
 	hasAppWindow,
 	listAppWindows,
 	mostRecentAppWindow,
+	normalizeClassicyAppWindows,
 	removeAppWindow,
 	setAppWindow,
 	updateAppWindow,
@@ -37,7 +39,7 @@ function makeApp(
 		name: "Test",
 		icon: "",
 		open: true,
-		windows,
+		windows: windowsRecord(...windows),
 	};
 }
 
@@ -226,5 +228,100 @@ describe("mostRecentAppWindow", () => {
 
 	it("returns undefined for no windows", () => {
 		expect(mostRecentAppWindow([])).toBeUndefined();
+	});
+});
+
+describe("record-specific behaviour", () => {
+	it("looks up ids that shadow Object.prototype members as plain keys", () => {
+		const app = makeApp(makeWindow("toString"));
+		expect(getAppWindow(app, "toString")?.id).toBe("toString");
+		expect(getAppWindow(app, "constructor")).toBeUndefined();
+		expect(hasAppWindow(app, "hasOwnProperty")).toBe(false);
+	});
+
+	it("never stores a window under __proto__", () => {
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+		const app = makeApp(makeWindow("a"));
+		setAppWindow(app, makeWindow("__proto__"));
+		expect(countAppWindows(app)).toBe(1);
+		expect(Object.getPrototypeOf(app.windows)).toBe(Object.prototype);
+		expect(warn).toHaveBeenCalledWith(
+			"[ClassicyAppWindows] Ignoring reserved window id",
+			expect.anything(),
+		);
+		warn.mockRestore();
+	});
+
+	it("keeps a replaced window in its original position", () => {
+		const app = makeApp(makeWindow("a"), makeWindow("b"));
+		setAppWindow(app, makeWindow("a", { title: "again" }));
+		expect(listAppWindows(app).map((w) => w.id)).toEqual(["a", "b"]);
+	});
+});
+
+describe("normalizeClassicyAppWindows", () => {
+	it("keys a 0.x array by window id, in array order", () => {
+		const a = makeWindow("a");
+		const b = makeWindow("b");
+		const record = normalizeClassicyAppWindows([a, b]);
+		expect(Object.keys(record)).toEqual(["a", "b"]);
+		expect(record.a).toBe(a);
+	});
+
+	it("lets the later entry win on a duplicate id", () => {
+		const record = normalizeClassicyAppWindows([
+			makeWindow("dup", { title: "first" }),
+			makeWindow("dup", { title: "second" }),
+		]);
+		expect(Object.keys(record)).toEqual(["dup"]);
+		expect(record.dup.title).toBe("second");
+	});
+
+	it("drops array entries without a non-empty string id", () => {
+		const record = normalizeClassicyAppWindows([
+			{ closed: false },
+			{ id: 1 },
+			{ id: "" },
+			{ id: "__proto__" },
+			null,
+			"a",
+			[makeWindow("nested")],
+			makeWindow("kept"),
+		]);
+		expect(Object.keys(record)).toEqual(["kept"]);
+	});
+
+	it("returns a valid record as the same reference", () => {
+		const record = windowsRecord(makeWindow("a"), makeWindow("b"));
+		expect(normalizeClassicyAppWindows(record)).toBe(record);
+		expect(normalizeClassicyAppWindows({})).toEqual({});
+	});
+
+	it("copies a record without its invalid entries", () => {
+		const input = {
+			good: makeWindow("good"),
+			misfiled: makeWindow("elsewhere"),
+			noId: { closed: false },
+			junk: 4,
+		};
+		const record = normalizeClassicyAppWindows(input);
+		expect(record).not.toBe(input);
+		expect(Object.keys(record)).toEqual(["good"]);
+		expect(Object.keys(input)).toHaveLength(4);
+	});
+
+	it("turns anything else into an empty record", () => {
+		for (const value of [undefined, null, 0, 3, "windows", true, new Date()]) {
+			expect(normalizeClassicyAppWindows(value)).toEqual({});
+		}
+	});
+
+	it("is idempotent", () => {
+		const once = normalizeClassicyAppWindows([
+			makeWindow("a"),
+			{ id: 5 },
+			makeWindow("b"),
+		]);
+		expect(normalizeClassicyAppWindows(once)).toBe(once);
 	});
 });

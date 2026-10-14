@@ -30,7 +30,7 @@ const makeStore = (data: ScreenSaverData = {}): ClassicyStore =>
 							name: "Screen Saver",
 							icon: "",
 							open: true,
-							windows: [],
+							windows: {},
 							data: data as Record<string, unknown>,
 						},
 					},

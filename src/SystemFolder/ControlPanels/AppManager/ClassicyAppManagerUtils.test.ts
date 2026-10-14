@@ -241,7 +241,7 @@ describe("getInitialState — localStorage behaviour (via module re-import)", ()
 			id: "Persisted.app",
 			name: "Persisted",
 			icon: "",
-			windows: [],
+			windows: {},
 			open: true,
 		};
 		localStorage.setItem("classicyDesktopState", JSON.stringify(stored));
@@ -668,5 +668,345 @@ describe("wasHydratedFromStorage", () => {
 		);
 		expect(mod.wasHydratedFromStorage()).toBe(false);
 		mod.stopAppManagerPersistence();
+	});
+});
+
+// ─── 0.x → 1.0 migration: apps[id].windows array → record ─────────────────────
+
+describe("windows record migration (0.x saved state)", () => {
+	type UtilsModule =
+		typeof import("@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils");
+
+	function legacyWindow(id: string, extra: Record<string, unknown> = {}) {
+		return {
+			id,
+			closed: false,
+			size: [400, 300],
+			position: [20, 20],
+			minimumSize: [100, 100],
+			...extra,
+		};
+	}
+
+	/** Persist a 0.x-shaped state whose apps carry `windows` arrays. */
+	function storeLegacyApps(apps: Record<string, unknown>) {
+		const stored = makeValidStoredState();
+		(
+			stored.System as { Manager: { Applications: { apps: unknown } } }
+		).Manager.Applications.apps = apps;
+		localStorage.setItem("classicyDesktopState", JSON.stringify(stored));
+	}
+
+	async function loadStore(): Promise<UtilsModule> {
+		vi.resetModules();
+		const mod = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils"
+		);
+		mod.stopAppManagerPersistence();
+		return mod;
+	}
+
+	afterEach(() => {
+		vi.resetModules();
+		localStorage.clear();
+		vi.useRealTimers();
+	});
+
+	it("converts a persisted windows array into a record keyed by id", async () => {
+		storeLegacyApps({
+			"Finder.app": {
+				id: "Finder.app",
+				name: "Finder",
+				icon: "",
+				open: true,
+				windows: [legacyWindow("Macintosh HD:")],
+			},
+			"Notes.app": {
+				id: "Notes.app",
+				name: "Notes",
+				icon: "",
+				open: true,
+				windows: [
+					legacyWindow("notes_main", { zOrder: 5 }),
+					legacyWindow("notes_prefs", { closed: true }),
+				],
+			},
+		});
+
+		const { useAppManager } = await loadStore();
+		const apps = useAppManager.getState().System.Manager.Applications.apps;
+
+		expect(Array.isArray(apps["Notes.app"].windows)).toBe(false);
+		expect(Object.keys(apps["Notes.app"].windows)).toEqual([
+			"notes_main",
+			"notes_prefs",
+		]);
+		expect(apps["Notes.app"].windows.notes_main).toMatchObject({
+			id: "notes_main",
+			zOrder: 5,
+		});
+		expect(apps["Notes.app"].windows.notes_prefs.closed).toBe(true);
+		// Finder's array replaced the default `{}` wholesale during the merge;
+		// the migration pass still converts it.
+		expect(Object.keys(apps["Finder.app"].windows)).toEqual(["Macintosh HD:"]);
+	});
+
+	it("keeps the last entry when a persisted array repeats an id", async () => {
+		storeLegacyApps({
+			"Notes.app": {
+				id: "Notes.app",
+				name: "Notes",
+				icon: "",
+				open: true,
+				windows: [
+					legacyWindow("dup", { title: "first" }),
+					legacyWindow("other"),
+					legacyWindow("dup", { title: "second" }),
+				],
+			},
+		});
+
+		const { useAppManager } = await loadStore();
+		const windows =
+			useAppManager.getState().System.Manager.Applications.apps["Notes.app"]
+				.windows;
+
+		expect(Object.keys(windows)).toEqual(["dup", "other"]);
+		expect(windows.dup.title).toBe("second");
+	});
+
+	it("drops array entries without a usable string id", async () => {
+		storeLegacyApps({
+			"Notes.app": {
+				id: "Notes.app",
+				name: "Notes",
+				icon: "",
+				open: true,
+				windows: [
+					legacyWindow("kept"),
+					{ closed: false },
+					{ id: 42, closed: false },
+					{ id: "", closed: false },
+					null,
+					"window",
+					7,
+					[legacyWindow("nested")],
+				],
+			},
+		});
+
+		const { useAppManager } = await loadStore();
+		const windows =
+			useAppManager.getState().System.Manager.Applications.apps["Notes.app"]
+				.windows;
+
+		expect(Object.keys(windows)).toEqual(["kept"]);
+	});
+
+	it("replaces a garbage windows value with an empty record", async () => {
+		storeLegacyApps({
+			"A.app": { id: "A.app", name: "A", icon: "", open: true, windows: "x" },
+			"B.app": { id: "B.app", name: "B", icon: "", open: true, windows: 3 },
+			"C.app": { id: "C.app", name: "C", icon: "", open: true, windows: null },
+			"D.app": { id: "D.app", name: "D", icon: "", open: true },
+		});
+
+		const { useAppManager } = await loadStore();
+		const apps = useAppManager.getState().System.Manager.Applications.apps;
+
+		for (const id of ["A.app", "B.app", "C.app", "D.app"]) {
+			expect(apps[id].windows).toEqual({});
+		}
+	});
+
+	it("loads state already saved as a record unchanged", async () => {
+		const windows = {
+			notes_main: legacyWindow("notes_main", { zOrder: 9 }),
+			"Macintosh HD:Docs": legacyWindow("Macintosh HD:Docs"),
+		};
+		storeLegacyApps({
+			"Notes.app": {
+				id: "Notes.app",
+				name: "Notes",
+				icon: "",
+				open: true,
+				windows,
+			},
+		});
+
+		const { useAppManager } = await loadStore();
+
+		expect(
+			useAppManager.getState().System.Manager.Applications.apps["Notes.app"]
+				.windows,
+		).toEqual(windows);
+	});
+
+	it("saves the migrated record and reloads it identically", async () => {
+		storeLegacyApps({
+			"Notes.app": {
+				id: "Notes.app",
+				name: "Notes",
+				icon: "",
+				open: true,
+				windows: [legacyWindow("a", { zOrder: 1 }), legacyWindow("b")],
+			},
+		});
+
+		vi.useFakeTimers();
+		const first = await loadStore();
+		first.startAppManagerPersistence();
+		first.dispatch({
+			type: "ClassicyWindowMove",
+			app: { id: "Notes.app" },
+			window: { id: "b" },
+			position: [70, 80],
+			moving: false,
+		});
+		vi.advanceTimersByTime(500);
+		first.stopAppManagerPersistence();
+
+		const saved = JSON.parse(
+			localStorage.getItem("classicyDesktopState") ?? "",
+		);
+		const savedWindows =
+			saved.System.Manager.Applications.apps["Notes.app"].windows;
+		expect(Array.isArray(savedWindows)).toBe(false);
+		expect(Object.keys(savedWindows)).toEqual(["a", "b"]);
+		expect(savedWindows.b.position).toEqual([70, 80]);
+
+		const second = await loadStore();
+		const reloaded = second.useAppManager.getState();
+		expect(reloaded.System.Manager.Applications.apps).toEqual(
+			first.useAppManager.getState().System.Manager.Applications.apps,
+		);
+		expect(
+			JSON.parse(JSON.stringify(second.sanitizeStateForPersistence(reloaded))),
+		).toEqual(saved);
+	});
+});
+
+describe("migrateClassicyState", () => {
+	it("is idempotent and returns current-shape state by reference", async () => {
+		const { DefaultAppManagerState } = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager"
+		);
+		const { migrateClassicyState } = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyStateMigrations"
+		);
+
+		expect(migrateClassicyState(DefaultAppManagerState)).toBe(
+			DefaultAppManagerState,
+		);
+
+		const legacy = structuredClone(DefaultAppManagerState);
+		(
+			legacy.System.Manager.Applications.apps["Finder.app"] as {
+				windows: unknown;
+			}
+		).windows = [
+			{
+				id: "w",
+				closed: false,
+				size: [1, 1],
+				position: [0, 0],
+				minimumSize: [0, 0],
+			},
+		];
+		const once = migrateClassicyState(legacy);
+		const twice = migrateClassicyState(once);
+
+		expect(once).not.toBe(legacy);
+		expect(twice).toBe(once);
+		expect(
+			Object.keys(once.System.Manager.Applications.apps["Finder.app"].windows),
+		).toEqual(["w"]);
+		// Copy-on-write: the input is left as it was.
+		expect(
+			Array.isArray(
+				legacy.System.Manager.Applications.apps["Finder.app"].windows,
+			),
+		).toBe(true);
+	});
+
+	it("tolerates state without an apps map", async () => {
+		const { migrateClassicyState } = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyStateMigrations"
+		);
+		const odd = { System: { Manager: {} } } as unknown as Parameters<
+			typeof migrateClassicyState
+		>[0];
+		expect(migrateClassicyState(odd)).toBe(odd);
+	});
+});
+
+describe("mergeClassicyState with window overrides", () => {
+	it("normalises a 0.x windows array in the overrides", async () => {
+		const { DefaultAppManagerState, mergeClassicyState } = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager"
+		);
+		const merged = mergeClassicyState(DefaultAppManagerState, {
+			System: {
+				Manager: {
+					Applications: {
+						apps: {
+							"Finder.app": {
+								windows: [
+									{ id: "one", closed: false },
+									{ id: "two", closed: true },
+								],
+							},
+						},
+					},
+				},
+			},
+		} as never);
+
+		const finder = merged.System.Manager.Applications.apps["Finder.app"];
+		expect(Array.isArray(finder.windows)).toBe(false);
+		expect(Object.keys(finder.windows)).toEqual(["one", "two"]);
+		expect(finder.windows.two.closed).toBe(true);
+		// The rest of the Finder app still comes from the base.
+		expect(finder.name).toBe("Finder");
+	});
+
+	it("merges a windows record per window id", async () => {
+		const { DefaultAppManagerState, mergeClassicyState } = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager"
+		);
+		const window = (id: string) => ({
+			id,
+			closed: false,
+			size: [1, 1] as [number, number],
+			position: [0, 0] as [number, number],
+			minimumSize: [0, 0] as [number, number],
+		});
+		const base = mergeClassicyState(DefaultAppManagerState, {
+			System: {
+				Manager: {
+					Applications: {
+						apps: { "Finder.app": { windows: { a: window("a") } } },
+					},
+				},
+			},
+		});
+		const merged = mergeClassicyState(base, {
+			System: {
+				Manager: {
+					Applications: {
+						apps: {
+							"Finder.app": {
+								windows: { a: { closed: true }, b: window("b") },
+							},
+						},
+					},
+				},
+			},
+		});
+
+		const windows =
+			merged.System.Manager.Applications.apps["Finder.app"].windows;
+		expect(Object.keys(windows)).toEqual(["a", "b"]);
+		expect(windows.a).toMatchObject({ id: "a", closed: true, size: [1, 1] });
 	});
 });

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render } from "@/__tests__/test-utils";
+import { windowsRecord } from "@/__tests__/windowsRecord";
 import {
 	type ClassicyStoreSystemApp,
 	DefaultAppManagerState,
@@ -8,6 +9,10 @@ import {
 	dispatch,
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import {
+	getAppWindow,
+	listAppWindows,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
 // #278: Option-click collapse-all / expand-all. Unlike
@@ -51,7 +56,7 @@ function seedApp() {
 		icon: "",
 		open: true,
 		focused: true,
-		windows: [],
+		windows: {},
 	};
 	useAppManager.setState(DefaultAppManagerState, true);
 	useAppManager.setState((state) => ({
@@ -70,9 +75,10 @@ function seedApp() {
 }
 
 const windowRecord = (id: string) =>
-	useAppManager
-		.getState()
-		.System.Manager.Applications.apps[APP]?.windows.find((w) => w.id === id);
+	getAppWindow(
+		useAppManager.getState().System.Manager.Applications.apps[APP],
+		id,
+	);
 
 function setCollapsed(ids: string[], collapsed: boolean) {
 	act(() => {
@@ -90,8 +96,10 @@ function setCollapsed(ids: string[], collapsed: boolean) {
 								...state.System.Manager.Applications.apps,
 								[APP]: {
 									...app,
-									windows: app.windows.map((w) =>
-										ids.includes(w.id) ? { ...w, collapsed } : w,
+									windows: windowsRecord(
+										...listAppWindows(app).map((w) =>
+											ids.includes(w.id) ? { ...w, collapsed } : w,
+										),
 									),
 								},
 							},

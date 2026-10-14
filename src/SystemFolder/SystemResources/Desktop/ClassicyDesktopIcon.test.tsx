@@ -17,7 +17,7 @@ vi.mock(
 						},
 						Applications: {
 							apps: {
-								"Finder.app": { windows: [] as unknown[] },
+								"Finder.app": { windows: {} as Record<string, unknown> },
 								TestApp: { open: false },
 							},
 						},

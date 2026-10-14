@@ -26,6 +26,7 @@ import {
 	openApp,
 	pickSuccessorApp,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
+import { migrateClassicyState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyStateMigrations";
 import { classicyDateTimeManagerEventHandler } from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeEventHandler";
 import { DEFAULT_ALERT_SOUND } from "@/SystemFolder/ControlPanels/SoundManager/ClassicyAlertSounds";
 import type { ClassicyStoreSystemSoundManager } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
@@ -63,7 +64,9 @@ export interface ClassicyStoreSystemApp {
 	id: string;
 	name: string;
 	icon: string;
-	windows: ClassicyStoreSystemAppWindow[];
+	/** The app's windows keyed by window id. Read and write it through the
+	 *  ClassicyAppWindows helpers (getAppWindow, listAppWindows, …). */
+	windows: ClassicyStoreSystemAppWindows;
 	open: boolean;
 	data?: Record<string, unknown>;
 	focused?: boolean;
@@ -109,6 +112,12 @@ export interface ClassicyStoreSystemAppWindow {
 	windowType?: "document" | "utility";
 	options?: Record<string, JsonValue>[];
 }
+
+/** An app's windows, keyed by window id (each entry's `id` equals its key). */
+export type ClassicyStoreSystemAppWindows = Record<
+	string,
+	ClassicyStoreSystemAppWindow
+>;
 
 export interface ClassicyStore {
 	System: ClassicyStoreSystem;
@@ -513,13 +522,17 @@ export const classicyDesktopStateEventReducer = (
  * Deep-merge `overrides` onto a structural clone of `base`.
  * Plain objects merge recursively; arrays and primitives from `overrides`
  * replace the base value wholesale; `undefined` override values are skipped;
- * `base` is never mutated.
+ * `base` is never mutated. An app's `windows` record merges per window id.
+ *
+ * The result is passed through `migrateClassicyState`, so an override in an
+ * older shape (e.g. a 0.x `windows` array, which replaces the base record
+ * wholesale) comes out in the current shape.
  */
 export function mergeClassicyState(
 	base: ClassicyStore,
 	overrides: DeepPartial<ClassicyStore>,
 ): ClassicyStore {
-	return deepMergeReplacingArrays(base, overrides);
+	return migrateClassicyState(deepMergeReplacingArrays(base, overrides));
 }
 
 export const DefaultAppManagerState: ClassicyStore = {
@@ -579,7 +592,7 @@ export const DefaultAppManagerState: ClassicyStore = {
 						id: "Finder.app",
 						name: "Finder",
 						icon: macosIcon,
-						windows: [],
+						windows: {},
 						open: true,
 						focused: true,
 						noDesktopIcon: true,

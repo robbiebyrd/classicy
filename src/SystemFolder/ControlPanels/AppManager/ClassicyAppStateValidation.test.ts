@@ -16,7 +16,7 @@ function storeWithAppData(
 		id: appId,
 		name: appId,
 		icon: "",
-		windows: [],
+		windows: {},
 		open: true,
 		data,
 	};

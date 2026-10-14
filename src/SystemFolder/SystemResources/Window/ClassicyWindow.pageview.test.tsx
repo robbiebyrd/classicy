@@ -25,8 +25,8 @@ vi.mock(
 									name: "Test App",
 									focused: windowState.focused,
 									windows: windowState.registered
-										? [
-												{
+										? {
+												TestApp_1: {
 													id: "TestApp_1",
 													appId: "TestApp",
 													collapsed: false,
@@ -42,8 +42,8 @@ vi.mock(
 													menuBar: [] as unknown[],
 													default: false,
 												},
-											]
-										: [],
+											}
+										: {},
 								},
 							},
 						},

@@ -42,7 +42,7 @@ function makeStore(): ClassicyStore {
 							id: "Finder.app",
 							name: "Finder",
 							icon: "",
-							windows: [],
+							windows: {},
 							open: true,
 							focused: true,
 							noDesktopIcon: true,
@@ -75,7 +75,7 @@ function makeStoreWithPDFViewer(): ClassicyStore {
 		icon: "pdf-icon.png",
 		open: false,
 		focused: false,
-		windows: [],
+		windows: {},
 		data: { openFiles: [] },
 	};
 	return ds;

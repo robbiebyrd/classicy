@@ -62,9 +62,11 @@ export function focusWindow(
  * 4. the most recently registered candidate.
  *
  * Steps 1-3 are decided by window data alone. Only the ties inside step 2
- * (equal zOrder) and step 4 fall back to registration order, as reported by
- * `listAppWindows`, and step 4 is reachable only from hand-built state:
- * opening a window focuses it, which stamps a zOrder.
+ * (equal zOrder) and step 4 fall back to the windows record's insertion order
+ * (`listAppWindows`), and step 4 is reachable only from hand-built state:
+ * opening a window focuses it, which stamps a zOrder. Insertion order is
+ * registration order except for integer-like ids ("2"), which JavaScript
+ * always enumerates first.
  */
 function pickWindowToRestore(app: ClassicyStoreSystemApp) {
 	// Utility (tool-palette) windows float and never become the active document
@@ -148,7 +150,7 @@ export function openApp(
 			id: appId,
 			name: appName,
 			icon: appIcon,
-			windows: [],
+			windows: {},
 			open: true,
 			data: {},
 		};
@@ -169,7 +171,7 @@ export function loadApp(
 			id: appId,
 			name: appName,
 			icon: appIcon,
-			windows: [],
+			windows: {},
 			// Extensions run in the background from the moment they load; their
 			// windows can only render while the app is open. They never take
 			// focus on load.

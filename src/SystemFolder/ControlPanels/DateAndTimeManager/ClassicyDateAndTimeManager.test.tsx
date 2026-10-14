@@ -10,6 +10,7 @@ import {
 	dispatch,
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { getAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { ClassicyDateAndTimeManager } from "./ClassicyDateAndTimeManager";
 
@@ -17,11 +18,10 @@ const APP_ID = "DateAndTimeManager.app";
 const WINDOW_ID = "DateAndTimeManager_1";
 
 function windowMenuBar(): ClassicyMenuItem[] {
-	const window = useAppManager
-		.getState()
-		.System.Manager.Applications.apps[APP_ID]?.windows.find(
-			(w) => w.id === WINDOW_ID,
-		);
+	const window = getAppWindow(
+		useAppManager.getState().System.Manager.Applications.apps[APP_ID],
+		WINDOW_ID,
+	);
 	return (window?.menuBar as ClassicyMenuItem[]) ?? [];
 }
 

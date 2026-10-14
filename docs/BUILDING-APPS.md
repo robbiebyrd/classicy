@@ -341,7 +341,7 @@ interface ClassicyStoreSystemApp {
     id: string
     name: string
     icon: string
-    windows: ClassicyStoreSystemAppWindow[]
+    windows: ClassicyStoreSystemAppWindows  // Record<windowId, window>
     open: boolean
     data?: Record<string, unknown>     // your app's state lives here
     focused?: boolean
@@ -384,6 +384,43 @@ useAppManager((s) => s.System.Manager.Desktop.disableBalloonHelp)
 ```
 
 Outside React, read imperatively with `useAppManager.getState()`.
+
+### Windows
+
+`apps[id].windows` is a record keyed by window id
+(`ClassicyStoreSystemAppWindows = Record<string, ClassicyStoreSystemAppWindow>`;
+each entry's `id` equals its key). Go through the helpers rather than indexing
+it yourself — they accept a missing app, so a selector can pass
+`apps[appId]` straight in:
+
+```tsx
+import { getAppWindow, listAppWindows } from "classicy"
+
+// one window's flag — a primitive, so the component re-renders only when it changes
+const inspectorOpen = useAppManager((s) =>
+    getAppWindow(s.System.Manager.Applications.apps[appId], "myapp_inspector")?.closed === false,
+)
+
+// any open window?
+const anyOpen = useAppManager((s) =>
+    listAppWindows(s.System.Manager.Applications.apps[appId]).some((w) => !w.closed),
+)
+```
+
+| Helper | Does |
+|---|---|
+| `getAppWindow(app, id)` | the window, or `undefined` |
+| `listAppWindows(app)` | a fresh array of every window (insertion order) |
+| `hasAppWindow(app, id)` | membership |
+| `countAppWindows(app)` | number of registered windows, open or closed |
+| `setAppWindow(app, window)` | insert or replace by `window.id` (reducers only) |
+| `removeAppWindow(app, id)` | delete; returns whether it existed (reducers only) |
+| `updateAppWindow(app, id, patch \| (w) => void)` | merge a patch or run a mutator (reducers only) |
+| `mostRecentAppWindow(windows)` | highest `zOrder` of a list |
+
+The write helpers mutate, so call them on the immer draft inside your event
+handler. Decide on window data (`zOrder`, `default`, `closed`), never on list
+position: JavaScript lists integer-like keys (`"2"`) before all others.
 
 ### Dispatching
 
@@ -1163,6 +1200,11 @@ Consequences for an app author:
 - **Persisted state beats `defaultState`.** To reset during development, clear
   `localStorage["classicyDesktopState"]` — or drag the desktop's Trash icon,
   which does exactly that and reloads.
+- **Old saved state is migrated on load.** `migrateClassicyState` runs on the
+  loaded state after it is merged over the defaults, and on every
+  `mergeClassicyState` result (so a `defaultState` written for 0.x is
+  converted too). It detects old shapes rather than reading a version number,
+  so it is idempotent. Today it converts 0.x `windows` arrays into records.
 
 ---
 

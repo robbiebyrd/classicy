@@ -86,7 +86,7 @@ describe("classicyWebViewerEventHandler", () => {
 			id: WebViewerAppInfo.id,
 			name: WebViewerAppInfo.name,
 			icon: WebViewerAppInfo.icon,
-			windows: [],
+			windows: {},
 			open: false,
 			data: { openUrls: "not-an-array" },
 		};

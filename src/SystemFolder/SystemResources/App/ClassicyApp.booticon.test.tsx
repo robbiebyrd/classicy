@@ -19,7 +19,7 @@ vi.mock(
 									icon: "/icons/paint.png",
 									open: true,
 									focused: false,
-									windows: [] as never[],
+									windows: {} as never[],
 									data: {},
 								},
 							},

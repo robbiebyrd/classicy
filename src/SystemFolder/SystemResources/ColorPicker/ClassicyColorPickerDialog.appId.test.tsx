@@ -5,6 +5,7 @@ import {
 	DefaultAppManagerState,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { listAppWindows } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { ClassicyAppIdContext } from "@/SystemFolder/SystemResources/App/ClassicyAppIdContext";
 import { ClassicyColorPickerDialog } from "@/SystemFolder/SystemResources/ColorPicker/ClassicyColorPickerDialog";
 
@@ -28,7 +29,7 @@ function makeTestApp(id: string): ClassicyStoreSystemApp {
 		icon: "",
 		open: true,
 		focused: false,
-		windows: [],
+		windows: {},
 	};
 }
 
@@ -54,7 +55,7 @@ function seedApps(apps: Record<string, ClassicyStoreSystemApp>) {
 
 const windowIdsFor = (appId: string) => {
 	const app = useAppManager.getState().System.Manager.Applications.apps[appId];
-	return (app?.windows ?? []).map((w) => w.id);
+	return listAppWindows(app).map((w) => w.id);
 };
 
 describe("ClassicyColorPickerDialog appId resolution", () => {

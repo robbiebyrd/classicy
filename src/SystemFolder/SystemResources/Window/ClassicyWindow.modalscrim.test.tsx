@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { render } from "@/__tests__/test-utils";
+import { windowsRecord } from "@/__tests__/windowsRecord";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
 const mockDispatch = vi.hoisted(() => vi.fn());
@@ -21,24 +22,22 @@ vi.mock(
 								TestApp: {
 									id: "TestApp",
 									focused: false,
-									windows: [
-										{
-											id: "ClosedModal",
-											appId: "TestApp",
-											collapsed: false,
-											focused: false,
-											dragging: false,
-											moving: false,
-											resizing: false,
-											zoomed: false,
-											closed: true,
-											size: [320, 160] as [number, number],
-											position: [100, 100] as [number, number],
-											minimumSize: [0, 0] as [number, number],
-											menuBar: [] as unknown[],
-											default: false,
-										},
-									],
+									windows: windowsRecord({
+										id: "ClosedModal",
+										appId: "TestApp",
+										collapsed: false,
+										focused: false,
+										dragging: false,
+										moving: false,
+										resizing: false,
+										zoomed: false,
+										closed: true,
+										size: [320, 160] as [number, number],
+										position: [100, 100] as [number, number],
+										minimumSize: [0, 0] as [number, number],
+										menuBar: [] as unknown[],
+										default: false,
+									}),
 								},
 							},
 						},

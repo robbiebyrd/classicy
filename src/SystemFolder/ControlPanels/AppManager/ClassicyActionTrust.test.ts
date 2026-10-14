@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { windowsRecord } from "@/__tests__/windowsRecord";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
 	type ClassicyStore,
@@ -9,6 +10,10 @@ import {
 	dispatch,
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import {
+	getAppWindow,
+	listAppWindows,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import {
 	isActionTrustGuarded,
@@ -58,16 +63,14 @@ function makeStore(): ClassicyStore {
 							id: "Finder.app",
 							name: "Finder",
 							icon: "",
-							windows: [
-								{
-									id: "w1",
-									closed: false,
-									size: [400, 300],
-									position: [0, 0],
-									minimumSize: [100, 100],
-									focused: false,
-								},
-							],
+							windows: windowsRecord({
+								id: "w1",
+								closed: false,
+								size: [400, 300],
+								position: [0, 0],
+								minimumSize: [100, 100],
+								focused: false,
+							}),
 							open: true,
 							focused: true,
 							noDesktopIcon: true,
@@ -159,7 +162,8 @@ describe("classicyDesktopStateEventReducer — trust guard", () => {
 			"untrusted",
 		);
 		expect(
-			ds.System.Manager.Applications.apps["Finder.app"].windows[0].focused,
+			listAppWindows(ds.System.Manager.Applications.apps["Finder.app"])[0]
+				.focused,
 		).toBe(false);
 	});
 
@@ -314,9 +318,10 @@ describe("dispatch — trust defaults through the public API", () => {
 			},
 		});
 		const state = useAppManager.getState();
-		const win = state.System.Manager.Applications.apps[
-			"Finder.app"
-		]?.windows.find((w) => w.id === "trust-default-w1");
+		const win = getAppWindow(
+			state.System.Manager.Applications.apps["Finder.app"],
+			"trust-default-w1",
+		);
 		expect(win).toBeDefined();
 	});
 
@@ -335,9 +340,10 @@ describe("dispatch — trust defaults through the public API", () => {
 			"untrusted",
 		);
 		const state = useAppManager.getState();
-		const win = state.System.Manager.Applications.apps[
-			"Finder.app"
-		]?.windows.find((w) => w.id === "trust-untrusted-w1");
+		const win = getAppWindow(
+			state.System.Manager.Applications.apps["Finder.app"],
+			"trust-untrusted-w1",
+		);
 		expect(win).toBeUndefined();
 	});
 });
