@@ -275,3 +275,67 @@ export const collectMenuChords = (items: ClassicyMenuItem[]): string[] => {
 	walk(items);
 	return [...acc];
 };
+
+/** F1–F24. HIG: a keyboard equivalent needs a command key or a function key. */
+export const isFunctionKey = (key: string): boolean =>
+	/^f([1-9]|1\d|2[0-4])$/i.test(key);
+
+/**
+ * A shortcut broken into its displayed parts in HIG order, modifier glyphs
+ * then the key: "Ctrl+Cmd+S" -> ["⌃", "⌘", "S"]. Joined with " + " this is the
+ * spelled-out form a keyboard-equivalent field shows ("⌃ + ⌘ + S", HIGOS8
+ * Figure 6-8), where a menu shows the compact "⌃⌘S".
+ */
+export const keyboardShortcutParts = (raw: string | undefined): string[] => {
+	const p = parseKeyboardShortcut(raw);
+	if (!p.key) return [];
+	const parts: string[] = [];
+	if (p.control) parts.push(MODIFIER_GLYPHS.control);
+	if (p.option) parts.push(MODIFIER_GLYPHS.option);
+	if (p.shift) parts.push(MODIFIER_GLYPHS.shift);
+	if (p.command) parts.push(MODIFIER_GLYPHS.command);
+	parts.push(p.key);
+	return parts;
+};
+
+/** Is the host a Mac? See `keyboardShortcutFromEvent` for why it matters. */
+export const isClassicyMacPlatform = (): boolean => {
+	if (typeof navigator === "undefined") return false;
+	const nav = navigator as Navigator & {
+		userAgentData?: { platform?: string };
+	};
+	const platform =
+		nav.userAgentData?.platform || nav.platform || nav.userAgent || "";
+	return /mac/i.test(platform);
+};
+
+/**
+ * Record a keydown as a shortcut in display form ("⌃⌘S", "⇧⌘?", "F5"), or ""
+ * while only modifiers are down. The result round-trips through
+ * `shortcutMatchesEvent`, so it can go straight into a menu item's
+ * `keyboardShortcut`.
+ *
+ * Command is the Meta key. Off a Mac, Classicy's ⌘ shortcuts already answer to
+ * Ctrl (see `shortcutMatchesEvent`), so a physical Ctrl press records as ⌘
+ * there; on a Mac it records as Control (⌃).
+ */
+export const keyboardShortcutFromEvent = (
+	e: KeyboardEvent,
+	{ mac = isClassicyMacPlatform() }: { mac?: boolean } = {},
+): string => {
+	const key = keyFromEvent(e);
+	if (!key) return "";
+	let display: string;
+	if (key === "space") display = "Space";
+	else if (key.length === 1 || isFunctionKey(key)) display = key.toUpperCase();
+	else display = e.key;
+	const command = e.metaKey || (!mac && e.ctrlKey);
+	const control = mac && e.ctrlKey;
+	return (
+		(control ? MODIFIER_GLYPHS.control : "") +
+		(e.altKey ? MODIFIER_GLYPHS.option : "") +
+		(e.shiftKey ? MODIFIER_GLYPHS.shift : "") +
+		(command ? MODIFIER_GLYPHS.command : "") +
+		display
+	);
+};
