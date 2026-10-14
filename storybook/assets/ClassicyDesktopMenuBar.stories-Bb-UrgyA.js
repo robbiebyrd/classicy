@@ -1,1 +1,0 @@
-import{y as r}from"./iframe-D2XmTs5i.js";import"./preload-helper-PPVm8Dsz.js";const o={title:"Desktop/MenuBar",component:r},e={};e.parameters={...e.parameters,docs:{...e.parameters?.docs,source:{originalSource:"{}",...e.parameters?.docs?.source}}};const s=["Default"];export{e as Default,s as __namedExportsOrder,o as default};
