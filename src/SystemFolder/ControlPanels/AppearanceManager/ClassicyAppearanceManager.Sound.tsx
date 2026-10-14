@@ -27,7 +27,11 @@ export const useSoundTab = ({
 		() => ({
 			title: "Sound",
 			children: (
-				<div className={"classicyAppearanceManagerFontsColumn"}>
+				<div
+					className={
+						"classicyAppearanceManagerFontsColumn classicyAppearanceManagerSoundColumn"
+					}
+				>
 					<div className={"classicyAppearanceManagerFontsRow"}>
 						<div className={"classicyAppearanceManagerFontsLabel"}>
 							<ClassicyControlLabel label={"Alert Sound"} direction={"left"} />
