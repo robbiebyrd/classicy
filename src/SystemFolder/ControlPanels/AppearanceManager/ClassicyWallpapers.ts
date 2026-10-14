@@ -13,6 +13,36 @@ const wp = (filename: string): string => {
 export const ClassicyDefaultWallpaper = wp("default.png");
 
 /**
+ * Index of bundled wallpapers by every form a theme may hold them in: the
+ * bare filename (`themes.json`'s portable reference) and the bundler's URL for
+ * it (a `/assets/...` path under `vite dev`, an inlined `data:` URI in a
+ * library build). Pure, so it can be exercised with any module map.
+ */
+export const buildClassicyWallpaperIndex = (
+	modules: Record<string, string>,
+): Map<string, string> => {
+	const index = new Map<string, string>();
+	for (const [path, url] of Object.entries(modules)) {
+		const filename = path.split("/").pop();
+		if (!filename || !url) continue;
+		index.set(filename, filename);
+		index.set(url, filename);
+	}
+	return index;
+};
+
+const wallpaperIndex = buildClassicyWallpaperIndex(wallpaperModules);
+
+/**
+ * The bundled wallpaper's filename for a `backgroundImage` value — its
+ * filename or the URL the bundler resolved it to — or `undefined` when the
+ * value is not a bundled wallpaper. The inverse of `resolveWallpaper`, used to
+ * write a portable reference into exported theme files.
+ */
+export const classicyWallpaperFilename = (value: string): string | undefined =>
+	wallpaperIndex.get(value);
+
+/**
  * Turn a theme's `desktop.backgroundImage` into a URL the browser can actually
  * load.
  *
