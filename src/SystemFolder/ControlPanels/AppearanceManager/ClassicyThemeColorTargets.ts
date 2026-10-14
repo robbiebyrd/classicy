@@ -213,6 +213,21 @@ export const getThemeColor = (
 	}
 };
 
+/**
+ * A palette position as a guaranteed in-range integer index (0–6). Throws on
+ * anything else rather than writing to an arbitrary key.
+ */
+const paletteSlot = (index: number): number => {
+	if (
+		!Number.isInteger(index) ||
+		index < 0 ||
+		index >= CLASSICY_THEME_COLOR_PALETTE_SIZE
+	) {
+		throw new RangeError(`Palette index out of range: ${index}`);
+	}
+	return index;
+};
+
 /** Writes `color` to the slot a target addresses, mutating `theme`. */
 export const setThemeColor = (
 	theme: ClassicyTheme,
@@ -220,19 +235,37 @@ export const setThemeColor = (
 	color: number,
 ): void => {
 	const c = theme.color;
+	// Every write names its property literally. The payload is validated
+	// against an allowlist first (isThemeColorTarget), but spelling each slot
+	// out means no part of an incoming action is ever used as a property name,
+	// so not even a validation bug could reach `__proto__` or `constructor`.
 	switch (target.colorKey) {
 		case "system":
+			c.system[paletteSlot(target.index)] = color;
+			return;
 		case "theme":
-			c[target.colorKey][target.index] = color;
+			c.theme[paletteSlot(target.index)] = color;
 			return;
 		case "black":
+			c.black = color;
+			return;
 		case "white":
+			c.white = color;
+			return;
 		case "alert":
+			c.alert = color;
+			return;
 		case "error":
+			c.error = color;
+			return;
 		case "outline":
+			c.outline = color;
+			return;
 		case "select":
+			c.select = color;
+			return;
 		case "highlight":
-			c[target.colorKey] = color;
+			c.highlight = color;
 			return;
 		case "windowBorder":
 			c.window.border = color;
