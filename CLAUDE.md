@@ -311,8 +311,7 @@ resizable container splitting two or three content areas along one axis:
   room (`classicyBevelPopupPlacement`). `popupAlign` `"start"` (default: left
   edges / tops aligned) or `"center"`; `popupAnchorInset` shifts the edges the
   surface is placed against (the Control Strip overlaps the strip by 3 px).
-- Both surfaces share the HIGOS8 Figure 2-16/6-15 frame: 1 px black border and
-  a 1 px `system-07` shadow on the right and bottom starting 2 px in.
+- Both surfaces share the Platinum menu frame (below).
 - `popupTrigger="click"` (default in `popup` mode): a quick click leaves the
   menu open (sticky); a press held past `popupHoldDelayMs` (500) is a standard
   menu — a document `mouseup` over an item `click()`s it.
@@ -321,6 +320,16 @@ resizable container splitting two or three content areas along one axis:
   press is swallowed (`suppressClickRef`).
 - Keyboard: a click with `detail === 0` (Enter/Space) toggles a click-trigger
   surface; Down Arrow opens either kind with the first item focused.
+
+### Menu Frame
+
+Every menu — menu bar dropdowns, contextual menus, submenus, pop-up bevel
+menus — draws the HIGOS8 Figure 6-15 frame from the `platinumMenuFrame` mixin
+(`appearance.scss`): 1 px black border, white/system-04 inner bevel with
+face-coloured corners, and a 1 px `system-07` shadow on the right and bottom
+starting 2 px in, drawn by `::before`/`::after` (so the menu list must be
+positioned). Dividers (`platinumMenuDivider`) are system-05 over white across
+the full inner width. Bevel-button panels (`popupContent`) reuse the frame.
 
 ### Keyboard Equivalents
 

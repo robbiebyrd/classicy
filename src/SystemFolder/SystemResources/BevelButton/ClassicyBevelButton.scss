@@ -140,63 +140,24 @@
 
 // --- Pop-up surface (HIGOS8 "Bevel Buttons as Pop-up Buttons", p.32) ---
 // Fixed beside the button by ClassicyBevelButtonPopup; layered with the other
-// pop-up menus (5000) so it clears windows, palettes and modal dialogs.
-//
-// Both kinds of surface share the frame of HIGOS8 Figures 2-16 and 6-15: a
-// 1 px black border and a 1 px dark shadow on the right and bottom that starts
-// 2 px in from the corner. No padding: the content brings its own size.
+// pop-up menus (5000) so it clears windows, palettes and modal dialogs. A menu
+// is the shared `.classicyContextMenu` list, which draws the Platinum menu
+// frame of Figure 6-15 itself.
 .classicyBevelButtonPopup {
   position: fixed;
   z-index: 5000;
   display: inline-block;
-  box-sizing: content-box;
   margin: 0;
   padding: 0;
-  border: 1px solid var(--color-black);
-  color: var(--color-black);
-
-  &::before,
-  &::after {
-    content: "";
-    position: absolute;
-    background-color: var(--color-system-07);
-    pointer-events: none;
-  }
-
-  // Right shadow: from 2 px below the top edge to 1 px past the bottom.
-  &::after {
-    top: 1px;
-    right: -2px;
-    bottom: -2px;
-    width: 1px;
-  }
-
-  // Bottom shadow: from 2 px in from the left edge to 1 px past the right.
-  &::before {
-    left: 1px;
-    right: -2px;
-    bottom: -2px;
-    height: 1px;
-  }
-
-  // A menu (Figure 6-15) uses the shared `.classicyContextMenu` list, minus its
-  // own frame: inside the border, a white highlight on the top and left and a
-  // system-04 edge on the bottom and right, meeting at face-coloured corners.
-  .classicyContextMenu {
-    border: none;
-    box-shadow: none;
-    background:
-      appearance.px-rect(var(--color-white), 0, 0, calc(100% - 1px), 1px),
-      appearance.px-rect(var(--color-white), 0, 0, 1px, calc(100% - 1px)),
-      appearance.px-rect(var(--color-system-04), 100%, 1px, 1px, calc(100% - 1px)),
-      appearance.px-rect(var(--color-system-04), 1px, 100%, calc(100% - 1px), 1px),
-      var(--color-system-02);
-  }
 }
 
-// Any other surface (Figure 2-16's volume slider): the control face with the
-// white highlight on the inside top and left.
+// Any other surface (Figure 2-16's volume slider) shares that frame — border
+// and offset shadow — around the control face with a white highlight on the
+// inside top and left. No padding: the content brings its own size.
 .classicyBevelButtonPopup.classicyBevelButtonPopupPanel {
-  background-color: var(--color-system-03);
+  @include appearance.platinumMenuFrame;
+  box-sizing: content-box;
+  color: var(--color-black);
+  background: var(--color-system-03);
   box-shadow: inset 1px 1px 0 0 var(--color-white);
 }
