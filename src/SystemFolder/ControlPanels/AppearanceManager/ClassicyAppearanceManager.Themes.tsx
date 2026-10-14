@@ -1,4 +1,5 @@
-import { type ChangeEvent, useMemo } from "react";
+import { type ChangeEvent, useCallback, useMemo, useRef } from "react";
+import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyCheckbox } from "@/SystemFolder/SystemResources/Checkbox/ClassicyCheckbox";
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
@@ -13,6 +14,10 @@ interface ThemesTabProps {
 	toggleSmartScrolling: (checked: boolean) => void;
 	doubleClickTitleToCollapse: boolean;
 	toggleDoubleClickTitleToCollapse: (checked: boolean) => void;
+	/** Saves the active theme (built-in or custom) as a theme file. */
+	saveTheme: () => void;
+	/** Loads the theme file the user picked. */
+	loadThemeFile: (file: File) => void;
 }
 
 export const useThemesTab = ({
@@ -23,8 +28,25 @@ export const useThemesTab = ({
 	toggleSmartScrolling,
 	doubleClickTitleToCollapse,
 	toggleDoubleClickTitleToCollapse,
-}: ThemesTabProps): TabIndividual =>
-	useMemo(
+	saveTheme,
+	loadThemeFile,
+}: ThemesTabProps): TabIndividual => {
+	// A plain hidden file input, opened by the Load button: one file per pick
+	// and nothing to show, so ClassicyFileInput's running file list would only
+	// get in the way.
+	const fileInputRef = useRef<HTMLInputElement>(null);
+	const openFilePicker = useCallback(() => fileInputRef.current?.click(), []);
+	const onFilePicked = useCallback(
+		(e: ChangeEvent<HTMLInputElement>) => {
+			const file = e.currentTarget.files?.[0];
+			// Clear the input so picking the same file again still fires change.
+			e.currentTarget.value = "";
+			if (file) loadThemeFile(file);
+		},
+		[loadThemeFile],
+	);
+
+	return useMemo(
 		() => ({
 			title: "Themes",
 			children: (
@@ -44,7 +66,20 @@ export const useThemesTab = ({
 							selected={activeThemeId || "default"}
 						/>
 					)}
-					<br />
+					<div className={"classicyAppearanceManagerThemeFileRow"}>
+						<ClassicyButton onClickFunc={saveTheme}>Save Theme…</ClassicyButton>
+						<ClassicyButton onClickFunc={openFilePicker}>
+							Load Theme…
+						</ClassicyButton>
+						<input
+							ref={fileInputRef}
+							type="file"
+							accept="application/json,.json"
+							hidden
+							data-testid="appearance_theme_file_input"
+							onChange={onFilePicked}
+						/>
+					</div>
 					{/* Mac OS 8 Appearance "Options" tab: Smart Scrolling groups both
 					    scroll arrows at the end of each bar; off splits them to
 					    opposite ends. */}
@@ -73,5 +108,9 @@ export const useThemesTab = ({
 			toggleSmartScrolling,
 			doubleClickTitleToCollapse,
 			toggleDoubleClickTitleToCollapse,
+			saveTheme,
+			openFilePicker,
+			onFilePicked,
 		],
 	);
+};

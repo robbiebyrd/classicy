@@ -8,6 +8,14 @@
   box-sizing: border-box;
 }
 
+// Save Theme… / Load Theme… sit side by side under the theme pop-up.
+.classicyAppearanceManagerThemeFileRow {
+  display: flex;
+  flex-direction: row;
+  gap: var(--hig-button-gap-h);
+  margin: var(--hig-item-gap-focus) 0;
+}
+
 .classicyAppearanceManagerDesktopRow {
   display: flex;
   flex-direction: row;

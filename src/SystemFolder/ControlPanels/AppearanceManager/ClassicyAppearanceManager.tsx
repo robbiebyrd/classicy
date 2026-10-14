@@ -6,6 +6,7 @@ import {
 	startTransition,
 	useCallback,
 	useMemo,
+	useState,
 } from "react";
 import {
 	type ClassicyTheme,
@@ -21,11 +22,19 @@ import {
 import { ClassicySounds } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicySounds";
 import type { ClassicyThemeColorChange } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorTargets";
 import {
+	downloadClassicyTheme,
+	parseClassicyThemeFile,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFile";
+import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { DEFAULT_ALERT_SOUND } from "@/SystemFolder/ControlPanels/SoundManager/ClassicyAlertSounds";
-import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
+import {
+	type ClassicyThemeSound,
+	useSoundDispatch,
+} from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
+import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import {
 	useClassicyAboutMenu,
@@ -53,6 +62,7 @@ import appIcon from "./resources/app.png";
 const APP_ID = APPEARANCE_MANAGER_APP_ID;
 const APP_NAME = "Appearance Manager";
 const WINDOW_ID = "AppearanceManager_1";
+const THEME_FILE_ALERT_ID = "AppearanceManager_theme_file_alert";
 
 function isValidUrlWithRegex(url: string): boolean {
 	return isValidHttpUrl(url);
@@ -95,15 +105,14 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		[appearanceState.availableThemes, appearanceState.customThemes],
 	);
 
-	const applySoundTheme = useCallback(
-		(themeName: string) => {
-			// A custom theme carries the sound theme of the built-in it forked.
-			const soundTheme = (
-				findClassicyTheme(
-					useAppManager.getState().System.Manager.Appearance,
-					themeName,
-				) ?? getTheme(themeName)
-			).sound;
+	// Why a theme file could not be saved or loaded, shown in a stop alert.
+	const [themeFileError, setThemeFileError] = useState<{
+		label: string;
+		message: string;
+	} | null>(null);
+
+	const loadSoundTheme = useCallback(
+		(soundTheme: ClassicyThemeSound) => {
 			const data = ClassicySounds[soundTheme.name];
 			if (!data) {
 				classicyLog(
@@ -123,6 +132,66 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 			});
 		},
 		[player],
+	);
+
+	const applySoundTheme = useCallback(
+		(themeName: string) => {
+			// A custom theme carries the sound theme of the built-in it forked.
+			loadSoundTheme(
+				(
+					findClassicyTheme(
+						useAppManager.getState().System.Manager.Appearance,
+						themeName,
+					) ?? getTheme(themeName)
+				).sound,
+			);
+		},
+		[loadSoundTheme],
+	);
+
+	// Saves the ACTIVE theme — a built-in or a custom one — as a theme file.
+	const saveTheme = useCallback(() => {
+		const result = downloadClassicyTheme(
+			useAppManager.getState().System.Manager.Appearance.activeTheme,
+		);
+		if (!result.ok) {
+			setThemeFileError({
+				label: "The theme could not be saved.",
+				message: result.error,
+			});
+		}
+	}, []);
+
+	const loadThemeFile = useCallback(
+		async (file: File) => {
+			let text: string;
+			try {
+				text = await file.text();
+			} catch {
+				setThemeFileError({
+					label: `“${file.name}” could not be loaded.`,
+					message: "The file could not be read.",
+				});
+				return;
+			}
+			const result = parseClassicyThemeFile(text);
+			if (!result.ok) {
+				setThemeFileError({
+					label: `“${file.name}” could not be loaded.`,
+					message: result.error,
+				});
+				return;
+			}
+			// The reducer re-validates the theme, gives it a unique id and name,
+			// adds it to the custom themes and makes it the active theme, which
+			// selects it in the theme pop-up.
+			desktopEventDispatch({
+				type: "ClassicyDesktopImportTheme",
+				theme: result.theme,
+			});
+			loadSoundTheme(result.theme.sound);
+		},
+		[desktopEventDispatch, loadSoundTheme],
 	);
 
 	const switchTheme = useCallback(
@@ -352,6 +421,8 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		// Same on-when-unset default ClassicyWindow applies when reading it.
 		doubleClickTitleToCollapse: doubleClickTitleToCollapse !== false,
 		toggleDoubleClickTitleToCollapse,
+		saveTheme,
+		loadThemeFile,
 	});
 
 	const desktopTab = useDesktopTab({
@@ -428,6 +499,16 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 				</div>
 			</ClassicyWindow>
 			{aboutWindow}
+			{themeFileError && (
+				<ClassicyAlert
+					id={THEME_FILE_ALERT_ID}
+					appId={APP_ID}
+					alertType={"stop"}
+					label={themeFileError.label}
+					message={themeFileError.message}
+					onClose={() => setThemeFileError(null)}
+				/>
+			)}
 		</ClassicyApp>
 	);
 };
