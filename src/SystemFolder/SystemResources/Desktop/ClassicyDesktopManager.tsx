@@ -39,6 +39,7 @@ import type {
 	ClassicyStoreSystemManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { dispatchToPlugin } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { listAppWindows } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import type { ClassicyIconBalloonHelp } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { readShortcutDisposition } from "@/SystemFolder/SystemResources/Shortcut/ClassicyShortcut";
@@ -186,7 +187,7 @@ export const classicyDesktopEventHandler = (
 			) {
 				for (const app of Object.values(ds.System.Manager.Applications.apps)) {
 					app.focused = false;
-					for (const w of app.windows) w.focused = false;
+					for (const w of listAppWindows(app)) w.focused = false;
 				}
 
 				ds.System.Manager.Applications.apps["Finder.app"].focused = true;

@@ -1,7 +1,9 @@
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
+import { windowsRecord } from "@/__tests__/windowsRecord";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { listAppWindows } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import {
 	useClassicyAboutMenu,
 	useClassicyEditMenu,
@@ -28,17 +30,15 @@ function seedTestApp() {
 							icon: "",
 							open: true,
 							focused: true,
-							windows: [
-								{
-									id: "win-1",
-									closed: false,
-									focused: true,
-									zOrder: 0,
-									size: [100, 100],
-									position: [0, 0],
-									minimumSize: [50, 50],
-								},
-							],
+							windows: windowsRecord({
+								id: "win-1",
+								closed: false,
+								focused: true,
+								zOrder: 0,
+								size: [100, 100],
+								position: [0, 0],
+								minimumSize: [50, 50],
+							}),
 							data: { openFiles: ["test-path"] },
 						},
 					},
@@ -66,7 +66,7 @@ describe("useClassicyWindowClose", () => {
 
 		const app =
 			useAppManager.getState().System.Manager.Applications.apps["TestApp.app"];
-		expect(app.windows[0].closed).toBe(true);
+		expect(listAppWindows(app)[0].closed).toBe(true);
 	});
 
 	it("also dispatches the app cleanup action", () => {

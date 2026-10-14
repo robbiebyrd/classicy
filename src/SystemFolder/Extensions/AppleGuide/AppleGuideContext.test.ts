@@ -48,7 +48,7 @@ function makeStore(): ClassicyStore {
 							id: APPLE_GUIDE_APP_ID,
 							name: "Apple Guide",
 							icon: "",
-							windows: [],
+							windows: {},
 							open: true,
 							focused: false,
 							noDesktopIcon: true,

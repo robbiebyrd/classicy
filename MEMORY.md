@@ -32,7 +32,7 @@
 - Object slices: `useAppManager(s => s.System.Manager.Applications.apps[appId])` — returns whole app object; re-renders on any change to that app (Immer makes new reference on mutation)
 - `.find()` in selector: `ClassicyDesktopIcon.tsx` uses `icons.find(i => i.appId === appId)` returning `icon?.location ?? null` (primitive) — safe
 - `ClassicyWindow.tsx` selects entire app object then calls `.find()` outside selector — avoids returning new reference from selector
-- Arrays selected directly: `useAppManager(s => s.System.Manager.Applications.apps["Finder.app"]?.windows)` — potential re-render risk if windows array reference changes on unrelated mutations
+- Window lookups: `apps[id].windows` is a record (1.0); selectors derive a primitive through `getAppWindow`/`listAppWindows` (e.g. `ClassicyDesktopIcon`'s Finder-window-open flag, `QuickTimeMovieEmbed`'s player-focused flag) instead of selecting the whole collection
 
 ## ClassicySplitView (added 2026-08-14, commit d9a71b4f)
 - `src/SystemFolder/SystemResources/SplitView/ClassicySplitView.tsx` — resizable 2–3 pane container, one axis (`direction: "horizontal" | "vertical"`); nest for grids

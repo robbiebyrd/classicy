@@ -28,6 +28,10 @@ import {
 import { createPortal } from "react-dom";
 
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import {
+	getAppWindow,
+	listAppWindows,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 
 const fileIcon = ClassicyIcons.system.files.file;
 
@@ -284,7 +288,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		useAppManager(
 			(state) => state.System.Manager.Desktop?.doubleClickTitleToCollapse,
 		) ?? true;
-	const currentWindow = currentApp?.windows.find((w) => w.id === id);
+	const currentWindow = getAppWindow(currentApp, id);
 	const desktopEventDispatch = useAppManagerDispatch();
 	const player = useSoundDispatch();
 	const { showContextMenu } = useClassicyContextualMenu();
@@ -940,7 +944,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			sound: toCollapse ? "ClassicyWindowCollapse" : "ClassicyWindowExpand",
 		});
 		Object.entries(apps).forEach(([appKey, app]) => {
-			app.windows?.forEach((w) => {
+			listAppWindows(app).forEach((w) => {
 				if (w.closed) return;
 				if (w.collapsed === toCollapse) return;
 				// #278: other windows that opted out of collapsing (no collapse

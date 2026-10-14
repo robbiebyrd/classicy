@@ -36,7 +36,7 @@ function makeApp(id: string, focused: boolean): ClassicyStoreSystemApp {
 		id,
 		name: id,
 		icon: "/icons/app.png",
-		windows: [],
+		windows: {},
 		open: true,
 		focused,
 		data: {},

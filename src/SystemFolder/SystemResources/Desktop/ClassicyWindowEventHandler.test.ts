@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
+import { windowsRecord } from "@/__tests__/windowsRecord";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import {
+	countAppWindows,
+	getAppWindow,
+	listAppWindows,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { classicyWindowEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopWindowManagerContext";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 
@@ -50,7 +56,7 @@ function makeStore(
 							id: "Finder.app",
 							name: "Finder",
 							icon: "",
-							windows: [],
+							windows: {},
 							open: true,
 							focused: true,
 							noDesktopIcon: true,
@@ -83,7 +89,7 @@ function makeStoreWithWindows() {
 		icon: "",
 		open: true,
 		focused: false,
-		windows: [
+		windows: windowsRecord(
 			{
 				id: "w1",
 				closed: false,
@@ -110,7 +116,7 @@ function makeStoreWithWindows() {
 				position: [200, 200],
 				minimumSize: [100, 100],
 			},
-		],
+		),
 		data: {},
 	};
 	return ds;
@@ -129,7 +135,7 @@ describe("ClassicyWindowOpen", () => {
 				position: [150, 150],
 			},
 		});
-		const windows = ds.System.Manager.Applications.apps.TestApp.windows;
+		const windows = listAppWindows(ds.System.Manager.Applications.apps.TestApp);
 		expect(windows).toHaveLength(3);
 		expect(windows.find((w) => w.id === "w3")).toBeDefined();
 	});
@@ -146,7 +152,7 @@ describe("ClassicyWindowOpen", () => {
 				position: [50, 50],
 			},
 		});
-		const windows = ds.System.Manager.Applications.apps.TestApp.windows;
+		const windows = listAppWindows(ds.System.Manager.Applications.apps.TestApp);
 		expect(windows).toHaveLength(2);
 		// Original size is unchanged
 		expect(windows.find((w) => w.id === "w1")?.size).toEqual([400, 300]);
@@ -164,9 +170,7 @@ describe("ClassicyWindowOpen", () => {
 				position: [0, 0],
 			},
 		});
-		const w3 = ds.System.Manager.Applications.apps.TestApp.windows.find(
-			(w) => w.id === "w3",
-		);
+		const w3 = getAppWindow(ds.System.Manager.Applications.apps.TestApp, "w3");
 		expect(w3?.position[0]).toBeGreaterThan(0);
 		expect(w3?.position[1]).toBeGreaterThan(0);
 	});
@@ -195,7 +199,7 @@ describe("ClassicyWindowFocus", () => {
 			app: { id: "TestApp" },
 			window: { id: "w1", menuBar: [] },
 		});
-		const windows = ds.System.Manager.Applications.apps.TestApp.windows;
+		const windows = listAppWindows(ds.System.Manager.Applications.apps.TestApp);
 		expect(windows.find((w) => w.id === "w1")?.focused).toBe(true);
 		expect(windows.find((w) => w.id === "w2")?.focused).toBe(false);
 	});
@@ -242,9 +246,7 @@ describe("ClassicyWindowClose", () => {
 			window: { id: "w1" },
 		});
 		expect(
-			ds.System.Manager.Applications.apps.TestApp.windows.find(
-				(w) => w.id === "w1",
-			)?.closed,
+			getAppWindow(ds.System.Manager.Applications.apps.TestApp, "w1")?.closed,
 		).toBe(true);
 	});
 
@@ -256,9 +258,7 @@ describe("ClassicyWindowClose", () => {
 			window: { id: "w1" },
 		});
 		expect(
-			ds.System.Manager.Applications.apps.TestApp.windows.find(
-				(w) => w.id === "w2",
-			)?.closed,
+			getAppWindow(ds.System.Manager.Applications.apps.TestApp, "w2")?.closed,
 		).toBe(false);
 	});
 });
@@ -271,7 +271,7 @@ describe("ClassicyWindowDestroy", () => {
 			app: { id: "TestApp" },
 			window: { id: "w1" },
 		});
-		const windows = ds.System.Manager.Applications.apps.TestApp.windows;
+		const windows = listAppWindows(ds.System.Manager.Applications.apps.TestApp);
 		expect(windows).toHaveLength(1);
 		expect(windows.find((w) => w.id === "w1")).toBeUndefined();
 	});
@@ -284,9 +284,7 @@ describe("ClassicyWindowDestroy", () => {
 			window: { id: "w1" },
 		});
 		expect(
-			ds.System.Manager.Applications.apps.TestApp.windows.find(
-				(w) => w.id === "w2",
-			),
+			getAppWindow(ds.System.Manager.Applications.apps.TestApp, "w2"),
 		).toBeDefined();
 	});
 });
@@ -306,7 +304,7 @@ describe("ClassicyWindowMenu", () => {
 describe("ClassicyWindowSetMenuBar", () => {
 	it("refreshes the stored window record's menuBar", () => {
 		const ds = makeStoreWithWindows();
-		ds.System.Manager.Applications.apps.TestApp.windows[0].menuBar = [];
+		listAppWindows(ds.System.Manager.Applications.apps.TestApp)[0].menuBar = [];
 		const menu = [{ id: "file", title: "File" }];
 		classicyWindowEventHandler(ds, {
 			type: "ClassicyWindowSetMenuBar",
@@ -315,15 +313,13 @@ describe("ClassicyWindowSetMenuBar", () => {
 			menuBar: menu,
 		});
 		expect(
-			ds.System.Manager.Applications.apps.TestApp.windows.find(
-				(w) => w.id === "w1",
-			)?.menuBar,
+			getAppWindow(ds.System.Manager.Applications.apps.TestApp, "w1")?.menuBar,
 		).toBe(menu);
 	});
 
 	it("is a no-op for an unknown windowId", () => {
 		const ds = makeStoreWithWindows();
-		ds.System.Manager.Applications.apps.TestApp.windows[0].menuBar = [];
+		listAppWindows(ds.System.Manager.Applications.apps.TestApp)[0].menuBar = [];
 		const menu = [{ id: "file", title: "File" }];
 		classicyWindowEventHandler(ds, {
 			type: "ClassicyWindowSetMenuBar",
@@ -332,9 +328,7 @@ describe("ClassicyWindowSetMenuBar", () => {
 			menuBar: menu,
 		});
 		expect(
-			ds.System.Manager.Applications.apps.TestApp.windows.find(
-				(w) => w.id === "w1",
-			)?.menuBar,
+			getAppWindow(ds.System.Manager.Applications.apps.TestApp, "w1")?.menuBar,
 		).toEqual([]);
 	});
 });
@@ -349,9 +343,7 @@ describe("ClassicyWindowResize", () => {
 			resizing: true,
 			size: [800, 600],
 		});
-		const w1 = ds.System.Manager.Applications.apps.TestApp.windows.find(
-			(w) => w.id === "w1",
-		);
+		const w1 = getAppWindow(ds.System.Manager.Applications.apps.TestApp, "w1");
 		expect(w1?.size).toEqual([800, 600]);
 		expect(w1?.resizing).toBe(true);
 	});
@@ -366,9 +358,7 @@ describe("ClassicyWindowResize", () => {
 			size: [400, 300],
 		});
 		expect(
-			ds.System.Manager.Applications.apps.TestApp.windows.find(
-				(w) => w.id === "w1",
-			)?.resizing,
+			getAppWindow(ds.System.Manager.Applications.apps.TestApp, "w1")?.resizing,
 		).toBe(false);
 	});
 });
@@ -383,9 +373,7 @@ describe("ClassicyWindowDrag", () => {
 			dragging: true,
 		});
 		expect(
-			ds.System.Manager.Applications.apps.TestApp.windows.find(
-				(w) => w.id === "w1",
-			)?.dragging,
+			getAppWindow(ds.System.Manager.Applications.apps.TestApp, "w1")?.dragging,
 		).toBe(true);
 	});
 
@@ -398,9 +386,7 @@ describe("ClassicyWindowDrag", () => {
 			dragging: false,
 		});
 		expect(
-			ds.System.Manager.Applications.apps.TestApp.windows.find(
-				(w) => w.id === "w1",
-			)?.dragging,
+			getAppWindow(ds.System.Manager.Applications.apps.TestApp, "w1")?.dragging,
 		).toBe(false);
 	});
 });
@@ -415,9 +401,7 @@ describe("ClassicyWindowZoom", () => {
 			zoomed: true,
 		});
 		expect(
-			ds.System.Manager.Applications.apps.TestApp.windows.find(
-				(w) => w.id === "w1",
-			)?.zoomed,
+			getAppWindow(ds.System.Manager.Applications.apps.TestApp, "w1")?.zoomed,
 		).toBe(true);
 	});
 
@@ -430,9 +414,7 @@ describe("ClassicyWindowZoom", () => {
 			zoomed: false,
 		});
 		expect(
-			ds.System.Manager.Applications.apps.TestApp.windows.find(
-				(w) => w.id === "w1",
-			)?.zoomed,
+			getAppWindow(ds.System.Manager.Applications.apps.TestApp, "w1")?.zoomed,
 		).toBe(false);
 	});
 });
@@ -446,9 +428,8 @@ describe("ClassicyWindowCollapse", () => {
 			window: { id: "w1" },
 		});
 		expect(
-			ds.System.Manager.Applications.apps.TestApp.windows.find(
-				(w) => w.id === "w1",
-			)?.collapsed,
+			getAppWindow(ds.System.Manager.Applications.apps.TestApp, "w1")
+				?.collapsed,
 		).toBe(true);
 	});
 
@@ -460,9 +441,8 @@ describe("ClassicyWindowCollapse", () => {
 			window: { id: "w1" },
 		});
 		expect(
-			ds.System.Manager.Applications.apps.TestApp.windows.find(
-				(w) => w.id === "w2",
-			)?.collapsed,
+			getAppWindow(ds.System.Manager.Applications.apps.TestApp, "w2")
+				?.collapsed,
 		).toBe(false);
 	});
 });
@@ -471,7 +451,8 @@ describe("ClassicyWindowExpand", () => {
 	it("sets collapsed=false on a previously collapsed window", () => {
 		const ds = makeStoreWithWindows();
 		// First collapse w1
-		ds.System.Manager.Applications.apps.TestApp.windows[0].collapsed = true;
+		listAppWindows(ds.System.Manager.Applications.apps.TestApp)[0].collapsed =
+			true;
 
 		classicyWindowEventHandler(ds, {
 			type: "ClassicyWindowExpand",
@@ -479,16 +460,17 @@ describe("ClassicyWindowExpand", () => {
 			window: { id: "w1" },
 		});
 		expect(
-			ds.System.Manager.Applications.apps.TestApp.windows.find(
-				(w) => w.id === "w1",
-			)?.collapsed,
+			getAppWindow(ds.System.Manager.Applications.apps.TestApp, "w1")
+				?.collapsed,
 		).toBe(false);
 	});
 
 	it("does not affect other windows", () => {
 		const ds = makeStoreWithWindows();
-		ds.System.Manager.Applications.apps.TestApp.windows[0].collapsed = true;
-		ds.System.Manager.Applications.apps.TestApp.windows[1].collapsed = true;
+		listAppWindows(ds.System.Manager.Applications.apps.TestApp)[0].collapsed =
+			true;
+		listAppWindows(ds.System.Manager.Applications.apps.TestApp)[1].collapsed =
+			true;
 
 		classicyWindowEventHandler(ds, {
 			type: "ClassicyWindowExpand",
@@ -496,9 +478,8 @@ describe("ClassicyWindowExpand", () => {
 			window: { id: "w1" },
 		});
 		expect(
-			ds.System.Manager.Applications.apps.TestApp.windows.find(
-				(w) => w.id === "w2",
-			)?.collapsed,
+			getAppWindow(ds.System.Manager.Applications.apps.TestApp, "w2")
+				?.collapsed,
 		).toBe(true);
 	});
 });
@@ -513,9 +494,7 @@ describe("ClassicyWindowMove", () => {
 			position: [300, 250],
 			moving: true,
 		});
-		const w1 = ds.System.Manager.Applications.apps.TestApp.windows.find(
-			(w) => w.id === "w1",
-		);
+		const w1 = getAppWindow(ds.System.Manager.Applications.apps.TestApp, "w1");
 		expect(w1?.position).toEqual([300, 250]);
 		expect(w1?.moving).toBe(true);
 	});
@@ -530,9 +509,7 @@ describe("ClassicyWindowMove", () => {
 			moving: false,
 		});
 		expect(
-			ds.System.Manager.Applications.apps.TestApp.windows.find(
-				(w) => w.id === "w1",
-			)?.moving,
+			getAppWindow(ds.System.Manager.Applications.apps.TestApp, "w1")?.moving,
 		).toBe(false);
 	});
 
@@ -546,9 +523,7 @@ describe("ClassicyWindowMove", () => {
 			moving: true,
 		});
 		expect(
-			ds.System.Manager.Applications.apps.TestApp.windows.find(
-				(w) => w.id === "w2",
-			)?.position,
+			getAppWindow(ds.System.Manager.Applications.apps.TestApp, "w2")?.position,
 		).toEqual([200, 200]);
 	});
 });
@@ -562,9 +537,7 @@ describe("ClassicyWindowPosition", () => {
 			window: { id: "w1" },
 			position: [450, 350],
 		});
-		const w1 = ds.System.Manager.Applications.apps.TestApp.windows.find(
-			(w) => w.id === "w1",
-		);
+		const w1 = getAppWindow(ds.System.Manager.Applications.apps.TestApp, "w1");
 		expect(w1?.position).toEqual([450, 350]);
 		expect(w1?.moving).toBe(false);
 	});
@@ -578,9 +551,7 @@ describe("ClassicyWindowPosition", () => {
 			position: [450, 350],
 		});
 		expect(
-			ds.System.Manager.Applications.apps.TestApp.windows.find(
-				(w) => w.id === "w2",
-			)?.position,
+			getAppWindow(ds.System.Manager.Applications.apps.TestApp, "w2")?.position,
 		).toEqual([200, 200]);
 	});
 });
@@ -590,21 +561,19 @@ describe("ClassicyWindowFocus — global invariant", () => {
 		const ds = makeStoreWithWindows();
 		// Finder starts focused with a focused window (cross-app state)
 		ds.System.Manager.Applications.focusedAppId = "Finder.app";
-		ds.System.Manager.Applications.apps["Finder.app"].windows = [
-			{
-				id: "finder-w",
-				closed: false,
-				collapsed: false,
-				dragging: false,
-				moving: false,
-				resizing: false,
-				zoomed: false,
-				focused: true,
-				size: [400, 300],
-				position: [0, 0],
-				minimumSize: [100, 100],
-			},
-		];
+		ds.System.Manager.Applications.apps["Finder.app"].windows = windowsRecord({
+			id: "finder-w",
+			closed: false,
+			collapsed: false,
+			dragging: false,
+			moving: false,
+			resizing: false,
+			zoomed: false,
+			focused: true,
+			size: [400, 300],
+			position: [0, 0],
+			minimumSize: [100, 100],
+		});
 
 		classicyWindowEventHandler(ds, {
 			type: "ClassicyWindowFocus",
@@ -614,11 +583,11 @@ describe("ClassicyWindowFocus — global invariant", () => {
 
 		const apps = ds.System.Manager.Applications.apps;
 		expect(apps["Finder.app"].focused).toBe(false);
-		expect(apps["Finder.app"].windows[0].focused).toBe(false);
+		expect(listAppWindows(apps["Finder.app"])[0].focused).toBe(false);
 		expect(apps.TestApp.focused).toBe(true);
 		expect(ds.System.Manager.Applications.focusedAppId).toBe("TestApp");
 		const focusedWindows = Object.values(apps)
-			.flatMap((a) => a.windows)
+			.flatMap((a) => listAppWindows(a))
 			.filter((w) => w.focused);
 		expect(focusedWindows).toHaveLength(1);
 		expect(focusedWindows[0].id).toBe("w1");
@@ -657,14 +626,12 @@ describe("ClassicyWindowOpen — focus of new windows", () => {
 		});
 
 		const apps = ds.System.Manager.Applications.apps;
-		expect(apps.TestApp.windows.find((w) => w.id === "w3")?.focused).toBe(true);
+		expect(getAppWindow(apps.TestApp, "w3")?.focused).toBe(true);
 		expect(apps.TestApp.focused).toBe(true);
 		expect(ds.System.Manager.Applications.focusedAppId).toBe("TestApp");
 		expect(apps["Finder.app"].focused).toBe(false);
 		// w2 was focused in the fixture; the new window took over
-		expect(apps.TestApp.windows.find((w) => w.id === "w2")?.focused).toBe(
-			false,
-		);
+		expect(getAppWindow(apps.TestApp, "w2")?.focused).toBe(false);
 	});
 
 	it("does NOT steal focus when re-registering an existing window", () => {
@@ -684,9 +651,7 @@ describe("ClassicyWindowOpen — focus of new windows", () => {
 
 		// w2 keeps its focus from the fixture; focusedAppId untouched
 		expect(
-			ds.System.Manager.Applications.apps.TestApp.windows.find(
-				(w) => w.id === "w2",
-			)?.focused,
+			getAppWindow(ds.System.Manager.Applications.apps.TestApp, "w2")?.focused,
 		).toBe(true);
 		expect(ds.System.Manager.Applications.focusedAppId).toBe("Finder.app");
 	});
@@ -697,8 +662,8 @@ describe("ClassicyWindowClose — focus promotion", () => {
 		const ds = makeStoreWithWindows();
 		const testApp = ds.System.Manager.Applications.apps.TestApp;
 		testApp.focused = true;
-		testApp.windows[0].zOrder = 1000; // w1
-		testApp.windows[1].zOrder = 2000; // w2 (focused in fixture)
+		listAppWindows(testApp)[0].zOrder = 1000; // w1
+		listAppWindows(testApp)[1].zOrder = 2000; // w2 (focused in fixture)
 		ds.System.Manager.Applications.apps["Finder.app"].focused = false;
 		ds.System.Manager.Applications.focusedAppId = "TestApp";
 		return ds;
@@ -714,8 +679,8 @@ describe("ClassicyWindowClose — focus promotion", () => {
 		});
 
 		const testApp = ds.System.Manager.Applications.apps.TestApp;
-		expect(testApp.windows.find((w) => w.id === "w2")?.closed).toBe(true);
-		expect(testApp.windows.find((w) => w.id === "w1")?.focused).toBe(true);
+		expect(getAppWindow(testApp, "w2")?.closed).toBe(true);
+		expect(getAppWindow(testApp, "w1")?.focused).toBe(true);
 		// Promotion goes through focusWindow, so recency bookkeeping updates too
 		expect(testApp.lastAccessedWindowId).toBe("w1");
 		expect(ds.System.Manager.Applications.focusedAppId).toBe("TestApp");
@@ -740,7 +705,7 @@ describe("ClassicyWindowClose — focus promotion", () => {
 		);
 		// No TestApp window was promoted to focused
 		expect(
-			ds.System.Manager.Applications.apps.TestApp.windows.some(
+			listAppWindows(ds.System.Manager.Applications.apps.TestApp).some(
 				(w) => w.focused,
 			),
 		).toBe(false);
@@ -761,8 +726,9 @@ describe("ClassicyWindowOpen persists windowType", () => {
 				windowType: "utility",
 			},
 		});
-		const win = ds.System.Manager.Applications.apps.TestApp.windows.find(
-			(w) => w.id === "palette",
+		const win = getAppWindow(
+			ds.System.Manager.Applications.apps.TestApp,
+			"palette",
 		);
 		expect(win?.windowType).toBe("utility");
 	});
@@ -784,8 +750,9 @@ describe("ClassicyWindowOpen persists windowType", () => {
 				position: [150, 150],
 			},
 		});
-		const win = ds.System.Manager.Applications.apps.TestApp.windows.find(
-			(w) => w.id === "doc",
+		const win = getAppWindow(
+			ds.System.Manager.Applications.apps.TestApp,
+			"doc",
 		);
 		expect(win?.windowType).toBeUndefined();
 	});
@@ -794,9 +761,7 @@ describe("ClassicyWindowOpen persists windowType", () => {
 // #278: collapse-all reads these flags off the store record.
 describe("ClassicyWindowOpen persists collapsable and modal", () => {
 	const findWin = (ds: ReturnType<typeof makeStoreWithWindows>, id: string) =>
-		ds.System.Manager.Applications.apps.TestApp.windows.find(
-			(w) => w.id === id,
-		);
+		getAppWindow(ds.System.Manager.Applications.apps.TestApp, id);
 
 	it("stores collapsable and modal on a newly opened window", () => {
 		const ds = makeStoreWithWindows();
@@ -875,7 +840,7 @@ describe("ClassicyWindowDestroy", () => {
 			app: { id: "TestApp" },
 			window: { id: "w2" },
 		});
-		const windows = ds.System.Manager.Applications.apps.TestApp.windows;
+		const windows = listAppWindows(ds.System.Manager.Applications.apps.TestApp);
 		expect(windows).toHaveLength(1);
 		expect(windows.find((w) => w.id === "w2")).toBeUndefined();
 	});
@@ -887,9 +852,7 @@ describe("ClassicyWindowDestroy", () => {
 			app: { id: "TestApp" },
 			window: { id: "w2" },
 		});
-		const w1 = ds.System.Manager.Applications.apps.TestApp.windows.find(
-			(w) => w.id === "w1",
-		);
+		const w1 = getAppWindow(ds.System.Manager.Applications.apps.TestApp, "w1");
 		expect(w1?.focused).toBe(true);
 		expect(ds.System.Manager.Applications.focusedAppId).toBe("TestApp");
 	});
@@ -901,9 +864,7 @@ describe("ClassicyWindowDestroy", () => {
 			app: { id: "TestApp" },
 			window: { id: "w1" },
 		});
-		const w2 = ds.System.Manager.Applications.apps.TestApp.windows.find(
-			(w) => w.id === "w2",
-		);
+		const w2 = getAppWindow(ds.System.Manager.Applications.apps.TestApp, "w2");
 		expect(w2?.focused).toBe(true);
 	});
 
@@ -919,31 +880,32 @@ describe("ClassicyWindowDestroy", () => {
 
 	it("leaves the app focused with no focused window when none survive", () => {
 		const ds = makeFocusedApp();
-		ds.System.Manager.Applications.apps.TestApp.windows =
-			ds.System.Manager.Applications.apps.TestApp.windows.filter(
+		ds.System.Manager.Applications.apps.TestApp.windows = windowsRecord(
+			...listAppWindows(ds.System.Manager.Applications.apps.TestApp).filter(
 				(w) => w.id === "w2",
-			);
+			),
+		);
 		classicyWindowEventHandler(ds, {
 			type: "ClassicyWindowDestroy",
 			app: { id: "TestApp" },
 			window: { id: "w2" },
 		});
 		expect(ds.System.Manager.Applications.apps.TestApp.focused).toBe(true);
-		expect(ds.System.Manager.Applications.apps.TestApp.windows).toHaveLength(0);
+		expect(countAppWindows(ds.System.Manager.Applications.apps.TestApp)).toBe(
+			0,
+		);
 	});
 
 	it("does not choose a utility window as the successor", () => {
 		const ds = makeFocusedApp();
-		ds.System.Manager.Applications.apps.TestApp.windows[0].windowType =
+		listAppWindows(ds.System.Manager.Applications.apps.TestApp)[0].windowType =
 			"utility";
 		classicyWindowEventHandler(ds, {
 			type: "ClassicyWindowDestroy",
 			app: { id: "TestApp" },
 			window: { id: "w2" },
 		});
-		const w1 = ds.System.Manager.Applications.apps.TestApp.windows.find(
-			(w) => w.id === "w1",
-		);
+		const w1 = getAppWindow(ds.System.Manager.Applications.apps.TestApp, "w1");
 		expect(w1?.focused).toBe(false);
 	});
 
@@ -981,15 +943,11 @@ describe("ClassicyWindowDestroy", () => {
 		// Give w1/w2 explicit, distinct zOrder so pickWindowToRestore's
 		// highest-zOrder succession branch is what selects w2 below — without
 		// this, neither window carries a zOrder and the picker falls through to
-		// candidates[candidates.length - 1], which also happens to be w2 but
-		// only because of its array position, not because it was the actual
+		// the last-registered candidate, which also happens to be w2 but only
+		// because of its registration order, not because it was the actual
 		// focus successor.
-		const w1 = ds.System.Manager.Applications.apps.TestApp.windows.find(
-			(w) => w.id === "w1",
-		);
-		const w2 = ds.System.Manager.Applications.apps.TestApp.windows.find(
-			(w) => w.id === "w2",
-		);
+		const w1 = getAppWindow(ds.System.Manager.Applications.apps.TestApp, "w1");
+		const w2 = getAppWindow(ds.System.Manager.Applications.apps.TestApp, "w2");
 		if (w1) w1.zOrder = 10;
 		if (w2) w2.zOrder = 20;
 		const openDialog = () =>
@@ -1010,8 +968,9 @@ describe("ClassicyWindowDestroy", () => {
 				window: { id: "dialog" },
 			});
 		const focusedId = () =>
-			ds.System.Manager.Applications.apps.TestApp.windows.find((w) => w.focused)
-				?.id;
+			listAppWindows(ds.System.Manager.Applications.apps.TestApp).find(
+				(w) => w.focused,
+			)?.id;
 
 		openDialog();
 		expect(focusedId()).toBe("dialog");
@@ -1037,7 +996,7 @@ describe("ClassicyWindowClose skips utility windows when promoting a sibling", (
 			icon: "",
 			open: true,
 			focused: true,
-			windows: [
+			windows: windowsRecord(
 				{
 					id: "doc",
 					closed: false,
@@ -1081,7 +1040,7 @@ describe("ClassicyWindowClose skips utility windows when promoting a sibling", (
 					zOrder: 99,
 					windowType: "utility",
 				},
-			],
+			),
 			data: {},
 		};
 		return ds;
@@ -1094,7 +1053,7 @@ describe("ClassicyWindowClose skips utility windows when promoting a sibling", (
 			app: { id: "TestApp" },
 			window: { id: "doc" },
 		});
-		const wins = ds.System.Manager.Applications.apps.TestApp.windows;
+		const wins = listAppWindows(ds.System.Manager.Applications.apps.TestApp);
 		// "palette" has the highest zOrder but is utility → "doc2" wins.
 		expect(wins.find((w) => w.id === "doc2")?.focused).toBe(true);
 		expect(wins.find((w) => w.id === "palette")?.focused).toBe(false);
@@ -1113,7 +1072,7 @@ describe("ClassicyWindowClose skips utility windows when promoting a sibling", (
 			app: { id: "TestApp" },
 			window: { id: "doc2" },
 		});
-		const wins = ds.System.Manager.Applications.apps.TestApp.windows;
+		const wins = listAppWindows(ds.System.Manager.Applications.apps.TestApp);
 		expect(wins.some((w) => w.focused === true)).toBe(false);
 		// App keeps focus / menu-bar ownership.
 		expect(ds.System.Manager.Applications.focusedAppId).toBe("TestApp");

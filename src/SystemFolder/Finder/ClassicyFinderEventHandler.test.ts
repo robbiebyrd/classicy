@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { classicyDesktopStateEventReducer } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { listAppWindows } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import {
 	classicyFinderEventHandler,
 	FINDER_ABOUT_THIS_COMPUTER_WINDOW_ID,
@@ -15,6 +16,7 @@ import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/
 // this test exercises the reducer in isolation, so it triggers that same
 // registration directly instead — see ClassicyDesktopOpenUrl.test.ts.
 import "@/SystemFolder/WebViewer/WebViewerContext";
+import { windowsRecord } from "@/__tests__/windowsRecord";
 
 function makeStore(
 	overrides: Partial<{
@@ -61,7 +63,7 @@ function makeStore(
 							id: "Finder.app",
 							name: "Finder",
 							icon: "",
-							windows: [],
+							windows: {},
 							open: true,
 							focused: true,
 							noDesktopIcon: true,
@@ -246,16 +248,20 @@ describe("classicyFinderEventHandler — ClassicyAppFinderCloseFolder", () => {
 		ds.System.Manager.Applications.apps["Finder.app"].data = {
 			openPaths: ["/Users/a"],
 		};
-		ds.System.Manager.Applications.apps["Finder.app"].windows = [
-			{ id: "/Users/a", closed: false, focused: true } as never,
-		];
+		ds.System.Manager.Applications.apps["Finder.app"].windows = windowsRecord({
+			id: "/Users/a",
+			closed: false,
+			focused: true,
+		} as never);
 
 		classicyFinderEventHandler(ds, {
 			type: "ClassicyAppFinderCloseFolder",
 			path: "/Users/a",
 		});
 
-		const win = ds.System.Manager.Applications.apps["Finder.app"].windows[0];
+		const win = listAppWindows(
+			ds.System.Manager.Applications.apps["Finder.app"],
+		)[0];
 		expect(win.closed).toBe(true);
 		expect(win.focused).toBe(false);
 	});
@@ -265,16 +271,20 @@ describe("classicyFinderEventHandler — ClassicyAppFinderCloseFolder", () => {
 		ds.System.Manager.Applications.apps["Finder.app"].data = {
 			openPaths: ["/Users/a", "/Users/b"],
 		};
-		ds.System.Manager.Applications.apps["Finder.app"].windows = [
-			{ id: "/Users/b", closed: false, focused: false } as never,
-		];
+		ds.System.Manager.Applications.apps["Finder.app"].windows = windowsRecord({
+			id: "/Users/b",
+			closed: false,
+			focused: false,
+		} as never);
 
 		classicyFinderEventHandler(ds, {
 			type: "ClassicyAppFinderCloseFolder",
 			path: "/Users/a",
 		});
 
-		const win = ds.System.Manager.Applications.apps["Finder.app"].windows[0];
+		const win = listAppWindows(
+			ds.System.Manager.Applications.apps["Finder.app"],
+		)[0];
 		expect(win.closed).toBe(false);
 	});
 });
@@ -299,9 +309,11 @@ describe("classicyFinderEventHandler — ClassicyAppFinderAboutThisComputerOpen"
 		const ds = makeStore();
 		ds.System.Manager.Applications.focusedAppId = "SimpleText.app";
 		ds.System.Manager.Applications.apps["Finder.app"].focused = false;
-		ds.System.Manager.Applications.apps["Finder.app"].windows = [
-			{ id: aboutWindowId, closed: true, focused: false } as never,
-		];
+		ds.System.Manager.Applications.apps["Finder.app"].windows = windowsRecord({
+			id: aboutWindowId,
+			closed: true,
+			focused: false,
+		} as never);
 
 		classicyFinderEventHandler(ds, {
 			type: "ClassicyAppFinderAboutThisComputerOpen",
@@ -310,7 +322,7 @@ describe("classicyFinderEventHandler — ClassicyAppFinderAboutThisComputerOpen"
 		const app = ds.System.Manager.Applications.apps["Finder.app"];
 		expect(app.focused).toBe(true);
 		expect(ds.System.Manager.Applications.focusedAppId).toBe("Finder.app");
-		expect(app.windows[0].focused).toBe(true);
+		expect(listAppWindows(app)[0].focused).toBe(true);
 	});
 
 	it("focuses Finder on first open, before the window has registered", () => {
@@ -374,7 +386,7 @@ describe("classicyFinderEventHandler — ClassicyAppFinderOpenFile with a system
 			id: "SimpleText.app",
 			name: "SimpleText",
 			icon: "",
-			windows: [],
+			windows: {},
 			open: false,
 			focused: false,
 			data: {},
@@ -450,17 +462,15 @@ describe("classicyFinderEventHandler — ClassicyAppFinderOpenFile with an app s
 			id: "TV.app",
 			name: "TV",
 			icon: "/icons/tv.png",
-			windows: [
-				{
-					id: "tv_main",
-					default: true,
-					closed: !open,
-					focused: false,
-					size: [400, 300] as [number, number],
-					position: [0, 0] as [number, number],
-					minimumSize: [0, 0] as [number, number],
-				},
-			],
+			windows: windowsRecord({
+				id: "tv_main",
+				default: true,
+				closed: !open,
+				focused: false,
+				size: [400, 300] as [number, number],
+				position: [0, 0] as [number, number],
+				minimumSize: [0, 0] as [number, number],
+			}),
 			open,
 			focused: false,
 			data: {},
@@ -487,7 +497,7 @@ describe("classicyFinderEventHandler — ClassicyAppFinderOpenFile with an app s
 		const app = ds.System.Manager.Applications.apps["TV.app"];
 		expect(app.open).toBe(true);
 		expect(app.focused).toBe(true);
-		expect(app.windows[0].closed).toBe(false);
+		expect(listAppWindows(app)[0].closed).toBe(false);
 		expect(ds.System.Manager.Desktop.errorDialog).toBeUndefined();
 	});
 
@@ -499,7 +509,7 @@ describe("classicyFinderEventHandler — ClassicyAppFinderOpenFile with an app s
 
 		const app = ds.System.Manager.Applications.apps["TV.app"];
 		expect(app.focused).toBe(true);
-		expect(app.windows[0].focused).toBe(true);
+		expect(listAppWindows(app)[0].focused).toBe(true);
 		expect(ds.System.Manager.Applications.focusedAppId).toBe("TV.app");
 	});
 

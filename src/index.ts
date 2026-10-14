@@ -6,6 +6,8 @@ export * from "./SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 export * from "./SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext";
 export * from "./SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 export * from "./SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
+export * from "./SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
+export * from "./SystemFolder/ControlPanels/AppManager/ClassicyStateMigrations";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Colors";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Desktop";

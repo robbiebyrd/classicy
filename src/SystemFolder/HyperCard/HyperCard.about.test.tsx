@@ -85,7 +85,7 @@ function stateWith() {
 							id: "HyperCard.app",
 							name: "HyperCard",
 							icon: "i.png",
-							windows: [] as unknown[],
+							windows: {} as Record<string, unknown>,
 							open: true,
 							data: {
 								activeStackId: "demo",

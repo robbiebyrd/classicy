@@ -11,6 +11,10 @@ import {
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { getAppManifest } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
+import {
+	getAppWindow,
+	listAppWindows,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { ClassicyAppIdContext } from "@/SystemFolder/SystemResources/App/ClassicyAppIdContext";
 import type { ClassicyIconBalloonHelp } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
 import { normalizeIconBalloonHelp } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconBalloons";
@@ -271,13 +275,12 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 		};
 	}, [extension, globalShortcutsKey, id, desktopEventDispatch]);
 
+	const anyWindowFocused = listAppWindows(appContext).some((w) => w.focused);
+	const defaultWin = getAppWindow(appContext, defaultWindow);
+	const defaultWindowOpen = defaultWin !== undefined && !defaultWin.closed;
 	useEffect(() => {
 		if (appContext?.focused && defaultWindow) {
-			const anyWindowFocused = appContext?.windows?.some((w) => w.focused);
-			const defaultWin = appContext?.windows?.find(
-				(w) => w.id === defaultWindow,
-			);
-			if (!anyWindowFocused && defaultWin && !defaultWin.closed) {
+			if (!anyWindowFocused && defaultWindowOpen) {
 				desktopEventDispatch({
 					type: "ClassicyWindowFocus",
 					app: {
@@ -291,10 +294,11 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 		}
 	}, [
 		appContext?.focused,
+		anyWindowFocused,
 		defaultWindow,
+		defaultWindowOpen,
 		desktopEventDispatch,
 		id,
-		appContext?.windows,
 	]);
 
 	const rawOpenFiles = appContext?.data?.openFiles;

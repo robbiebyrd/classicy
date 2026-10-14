@@ -137,8 +137,41 @@ interface ClassicyStore {
 ```
 
 Note: the app slice is `System.Manager.Applications` (not `.App`). Each app is
-`{ id, name, icon, windows[], open, focused?, data?: Record<string, unknown>, ... }` —
+`{ id, name, icon, windows, open, focused?, data?: Record<string, unknown>, ... }` —
 `data` is your app's private state bag, written by your event handler.
+
+`windows` is a `Record<windowId, ClassicyStoreSystemAppWindow>` (exported alias
+`ClassicyStoreSystemAppWindows`; each entry's `id` equals its key). Read and
+write it through the helpers in `ClassicyAppWindows.ts`, all exported from
+`classicy`. Read helpers accept `undefined` for a missing app:
+
+```ts
+getAppWindow(app, id): ClassicyStoreSystemAppWindow | undefined
+listAppWindows(app): ClassicyStoreSystemAppWindow[]        // fresh array, insertion order
+hasAppWindow(app, id): boolean
+countAppWindows(app): number
+setAppWindow(app, window): void                            // upsert by window.id; mutates
+removeAppWindow(app, id): boolean                          // mutates
+updateAppWindow(app, id, patch | ((w) => void)): window | undefined   // mutates
+mostRecentAppWindow(windows): window | undefined           // highest zOrder, first on ties
+normalizeClassicyAppWindows(value: unknown): ClassicyStoreSystemAppWindows
+migrateClassicyState(state): ClassicyStore                 // idempotent, copy-on-write
+```
+
+Never branch on list position: integer-like ids (`"2"`) are enumerated first.
+
+#### Upgrading from 0.x
+
+`windows` was an array in 0.x. Replace `app.windows.find((w) => w.id === id)`
+with `getAppWindow(app, id)`, iteration with `listAppWindows(app)`,
+`.length` with `countAppWindows(app)`, and `push`/`filter`/`map` writes with
+`setAppWindow`/`removeAppWindow`/`updateAppWindow`. Saved state needs no
+action: on load, `migrateClassicyState` converts every `windows` array into a
+record keyed by `id` (entries without a non-empty string id are dropped; on a
+duplicate id the later entry wins; anything else becomes `{}`). The same pass
+runs on `mergeClassicyState` results, so a 0.x-shaped `defaultState` still
+works. There is no array compatibility shim at runtime: hand-built state set
+directly with `useAppManager.setState` must use the record.
 
 ### Dispatching
 

@@ -4,6 +4,7 @@ import classNames from "classnames";
 import { type FC as FunctionalComponent, useCallback, useEffect } from "react";
 import ReactPlayer from "react-player";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { getAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import {
 	type QuickTimeCaptionStyle,
 	QuickTimeCaptionsOverlay,
@@ -71,8 +72,14 @@ export const QuickTimeVideoEmbed: FunctionalComponent<
 	crossOrigin,
 	playsInline,
 }) => {
-	const appWindows = useAppManager(
-		(s) => s.System.Manager.Applications.apps[appId]?.windows,
+	// Keyboard shortcuts only act while this movie's MoviePlayer window is the
+	// focused one.
+	const playerWindowFocused = useAppManager(
+		(s) =>
+			getAppWindow(
+				s.System.Manager.Applications.apps[appId],
+				`${appId}_MoviePlayer_${url}`,
+			)?.focused === true,
 	);
 
 	const playback = useQuickTimePlayback({
@@ -120,11 +127,7 @@ export const QuickTimeVideoEmbed: FunctionalComponent<
 			return;
 		}
 		const handleKeyDown = (event: KeyboardEvent) => {
-			if (!appWindows) {
-				return;
-			}
-			const a = appWindows.find((w) => w.id === `${appId}_MoviePlayer_${url}`);
-			if (!a?.focused) {
+			if (!playerWindowFocused) {
 				return;
 			}
 			switch (event.key) {
@@ -161,15 +164,13 @@ export const QuickTimeVideoEmbed: FunctionalComponent<
 	}, [
 		hideControls,
 		handlePlayPause,
-		appWindows,
+		playerWindowFocused,
 		seekForward,
 		seekBackward,
 		toggleFullscreen,
 		type,
 		loop,
 		setLoop,
-		appId,
-		url,
 		escapeFullscreen,
 	]);
 

@@ -12,6 +12,7 @@ import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { getAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { toLocalDate } from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeManagerUtils";
 import {
 	buildDriveContextMenu,
@@ -103,9 +104,8 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 	const focusTargetRef = useRef<HTMLDivElement | null>(null);
 	const windowFocused = useAppManager(
 		(state) =>
-			!!state.System.Manager.Applications.apps[appId]?.windows?.find(
-				(w) => w.id === op,
-			)?.focused,
+			!!getAppWindow(state.System.Manager.Applications.apps[appId], op)
+				?.focused,
 	);
 
 	// Switching View as Icons/List swaps the browser's content but is no
@@ -343,6 +343,9 @@ export const Finder = () => {
 		[desktopEventDispatch],
 	);
 
+	// Depend on the window collection, not the whole app record, so the
+	// callback (passed to every folder window) is stable across data changes.
+	const finderWindows = appState.windows;
 	const openFolder = useCallback(
 		(path: string) => {
 			desktopEventDispatch({
@@ -350,8 +353,7 @@ export const Finder = () => {
 				path,
 			});
 
-			const windowIndex = appState.windows.findIndex((w) => w.id === path);
-			const ws = appState.windows[windowIndex];
+			const ws = getAppWindow({ windows: finderWindows }, path);
 			if (ws) {
 				desktopEventDispatch({
 					type: "ClassicyWindowOpen",
@@ -369,7 +371,7 @@ export const Finder = () => {
 				});
 			}
 		},
-		[desktopEventDispatch, appState.windows],
+		[desktopEventDispatch, finderWindows],
 	);
 
 	const openFile = useCallback(

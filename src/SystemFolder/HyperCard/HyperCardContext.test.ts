@@ -21,7 +21,7 @@ function makeStore(): ClassicyStore {
 							id: APP_ID,
 							name: "HyperCard",
 							icon: "icon.png",
-							windows: [],
+							windows: {},
 							open: false,
 							data: {},
 						},

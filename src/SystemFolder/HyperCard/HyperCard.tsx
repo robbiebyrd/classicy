@@ -75,6 +75,7 @@ import "./HyperCardContext";
 // Side-effect import: registers the ClassicyAppHCEdit* reducer.
 import "./Editor/HyperCardEditorContext";
 import "./HyperCard.scss";
+import { getAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 
 // Registers the built-in Download save provider under the save-provider registry.
 registerDownloadSaveProvider();
@@ -150,14 +151,14 @@ export const HyperCard: FunctionalComponent = () => {
 	// checkmarks stay in sync no matter how a palette was hidden.
 	const toolsClosed = useAppManager(
 		(s) =>
-			s.System.Manager.Applications.apps[appId]?.windows.find(
-				(w) => w.id === "hypercard_tools",
-			)?.closed ?? false,
+			getAppWindow(s.System.Manager.Applications.apps[appId], "hypercard_tools")
+				?.closed ?? false,
 	);
 	const infoClosed = useAppManager(
 		(s) =>
-			s.System.Manager.Applications.apps[appId]?.windows.find(
-				(w) => w.id === "hypercard_inspector",
+			getAppWindow(
+				s.System.Manager.Applications.apps[appId],
+				"hypercard_inspector",
 			)?.closed ?? false,
 	);
 
