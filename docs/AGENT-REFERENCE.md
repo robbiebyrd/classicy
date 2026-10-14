@@ -127,7 +127,7 @@ interface ClassicyStore {
             Desktop:      // icons, menus, selectBox, disableBalloonHelp, fsVersion, ...
             Sound:        // volume, labels, disabled[]
             Applications: // apps: Record<appId, app>, fileTypeHandlers, focusedAppId
-            Appearance:   // availableThemes, activeTheme, alertSound
+            Appearance:   // availableThemes, customThemes, activeTheme, alertSound
             DateAndTime:  // dateTime, timeZoneOffset, display flags, bounds
             Boot:         // paradeIcons
             Keyboard:     // app/system/global shortcut registries
@@ -182,7 +182,8 @@ Common built-in actions:
 | `ClassicyAppClose` | `{ app: { id } }` | Close an app |
 | `ClassicyAppFocus` | `{ app: { id } }` | Focus an app |
 | `ClassicyWindowFocus` | `{ app: { id }, window: { id } }` | Focus a window |
-| `ClassicyDesktopChangeTheme` | `{ activeTheme: "<themeId>" }` | Switch theme |
+| `ClassicyDesktopChangeTheme` | `{ activeTheme: "<themeId>" }` | Switch theme (built-ins, then custom themes) |
+| `ClassicyDesktopChangeColor` | `{ colorKey, index?, color }` | Set one theme colour (forks a built-in into "Custom"; see §8) |
 | `ClassicyDesktopLoadThemes` | `{ availableThemes: ClassicyTheme[] }` | Replace the theme list |
 | `ClassicyDesktopChangeBackground` | `{ backgroundImage }` | Set wallpaper |
 | `ClassicyDesktopSetBalloonHelp` | `{ disableBalloonHelp: boolean }` | Toggle balloon help globally |
@@ -770,6 +771,58 @@ import { getAllThemes, getTheme, getThemeVars } from 'classicy'
 dispatch({ type: 'ClassicyDesktopLoadThemes', availableThemes: [...getAllThemes(), myTheme] })
 dispatch({ type: 'ClassicyDesktopChangeTheme', activeTheme: 'myTheme' })  // no-op if id unknown
 ```
+
+### Custom themes and colour edits
+
+Built-in themes (`Appearance.availableThemes`) are never mutated. Every theme
+edit — `ClassicyDesktopChangeColor`, `ChangeFont`, `ChangeFontSize`,
+`ChangeBackground`, `ChangeBackgroundPosition`/`Repeat`/`Size` — goes through
+`editActiveClassicyTheme` (`ClassicyCustomTheme.ts`):
+
+- **First edit while a built-in is active** deep-copies it into the single
+  "Custom" slot (`id: "custom"`, `name: "Custom"`; constants
+  `CLASSICY_CUSTOM_THEME_ID` / `CLASSICY_CUSTOM_THEME_NAME`) in
+  `Appearance.customThemes`, overwriting any previous Custom, makes it active,
+  and applies the edit there.
+- **Edits while a custom theme is active** modify it in place (the active copy
+  and its `customThemes` entry stay in sync).
+- An edit that changes nothing (same value, unknown font slot) does not fork.
+- `ClassicyDesktopChangeTheme` looks the id up in `availableThemes`, then
+  `customThemes`, and activates a copy, so switching to a built-in and back to
+  `"custom"` restores the edits. `ClassicyDesktopLoadThemes` leaves
+  `customThemes` alone.
+
+`customThemes` is persisted separately from `availableThemes` because persisted
+arrays replace their defaults on load — a custom entry inside
+`availableThemes` would freeze the built-in list. State saved before custom
+themes existed loads with `customThemes: []`. Read helpers:
+`listClassicyThemes(appearance)` (built-ins then customs, the theme menu's
+order), `findClassicyTheme(appearance, id)`, `isCustomThemeActive(appearance)`.
+
+`ClassicyDesktopChangeColor` addresses one of the 28 colour variables:
+
+```ts
+// Scalars: no index.
+dispatch({ type: 'ClassicyDesktopChangeColor', colorKey: 'select', color: 0x3366cc })
+// Palettes: index 0–6 maps to --color-system-01 … -07 / --color-theme-01 … -07.
+dispatch({ type: 'ClassicyDesktopChangeColor', colorKey: 'theme', index: 2, color: 0x9999ff })
+```
+
+| `colorKey` | CSS variable |
+|---|---|
+| `black`, `white`, `alert`, `error`, `outline`, `select`, `highlight` | `--color-<key>` |
+| `system` / `theme` + `index` 0–6 | `--color-system-0N` / `--color-theme-0N` |
+| `windowBorder`, `windowBorderOutset`, `windowBorderInset`, `windowFrame`, `windowTitle`, `windowDocument` | `--color-window-border`, `-border-outset`, `-border-inset`, `-frame`, `-title`, `-document` |
+| `desktopBackground` | `--desktop-background-color` |
+
+`color` must be an integer 0x000000–0xFFFFFF; `index` is required for the
+palettes and must be absent otherwise. Invalid payloads are ignored
+(`hasThemeColorChange`). `CLASSICY_THEME_COLOR_TARGETS` lists all 28 targets
+with their CSS variable, label and group; `getThemeColor(theme, target)` /
+`setThemeColor(theme, target, color)` read and write one. The Appearance
+Manager's Colors tab (`useColorsTab`) is built from that table. Like every
+`ClassicyDesktop*` action, these are unreachable to untrusted (HyperCard)
+dispatches.
 
 `getTheme(id, overrides?)` returns a deep-merged clone; `getThemeVars(theme)`
 returns the CSS custom-property map. Raw SCSS partials are importable via
