@@ -133,6 +133,32 @@ jobs:
         with:
           token: ${{ secrets.NPM_TOKEN }}
 
+      # The registry lists a new version several minutes after the publish
+      # call returns (2.0.0 and 2.0.1 each took 8–10 minutes), and npm-publish
+      # can log "already published" even when the publish went through. The
+      # downstream bumps install `latest`, so dispatching before the version is
+      # listed pulls in the PREVIOUS release (rt911#598 bumped to 2.0.0 for
+      # v2.0.1). Wait until `latest` really is this version.
+      - name: Wait for the release to appear on npm
+        if: steps.bump_version.outputs.newTag != ''
+        env:
+          TAG: ${{ steps.bump_version.outputs.newTag }}
+        run: |
+          set -euo pipefail
+          VERSION="${TAG#v}"
+          NAME="$(node -p 'require("./package.json").name')"
+          for attempt in $(seq 1 60); do
+            LATEST="$(npm view "$NAME" dist-tags.latest --prefer-online 2>/dev/null || true)"
+            if [ "$LATEST" = "$VERSION" ]; then
+              echo "$NAME@$VERSION is live on npm (attempt $attempt)."
+              exit 0
+            fi
+            echo "Waiting for $NAME@$VERSION on npm (latest: ${LATEST:-none}), attempt $attempt/60"
+            sleep 30
+          done
+          echo "::error::$NAME@$VERSION was not listed as latest on npm within 30 minutes; not dispatching downstream deploys."
+          exit 1
+
       - name: Trigger classicy-web deploy
         if: steps.bump_version.outputs.newTag != ''
         env:
