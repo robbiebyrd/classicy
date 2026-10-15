@@ -1,0 +1,5 @@
+import{I as i,j as s,J as c,d as p}from"./iframe-D4iYCz_Q.js";import{d,S as l}from"./helpers-C6I8lBCg.js";import"./preload-helper-n0BjH_e4.js";const{fn:t}=__STORYBOOK_MODULE_TEST__,y={title:"Desktop/FileBrowser",component:i,parameters:d},a=({display:o})=>{const n=c(`storybookFS-${o}`);return s.jsx(l,{id:"storybook.app",name:"Storybook",children:s.jsx(p,{id:`browser-${o}`,appId:"storybook.app",title:"Macintosh HD",initialSize:[480,320],initialPosition:[80,60],scrollable:!0,children:s.jsx(i,{fs:n,path:"Macintosh HD",appId:"storybook.app",display:o,dirOnClickFunc:t(),fileOnClickFunc:t()})})})},r={render:()=>s.jsx(a,{display:"icons"})},e={render:()=>s.jsx(a,{display:"list"})};r.parameters={...r.parameters,docs:{...r.parameters?.docs,source:{originalSource:`{
+  render: () => <BrowserWindow display="icons" />
+}`,...r.parameters?.docs?.source}}};e.parameters={...e.parameters,docs:{...e.parameters?.docs,source:{originalSource:`{
+  render: () => <BrowserWindow display="list" />
+}`,...e.parameters?.docs?.source}}};const S=["IconView","ListView"];export{r as IconView,e as ListView,S as __namedExportsOrder,y as default};
