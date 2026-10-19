@@ -409,6 +409,10 @@ interface ClassicyWindowProps {
 	initialFocusRef?: RefObject<HTMLElement | null>;
 }
 
+// Mounted document windows by app + window id, so an unmount can tell whether
+// the same window has mounted again before its deferred close runs.
+const mountedWindowKeys = new Map<string, number>();
+
 /**
  * A Mac OS 8 Platinum window (HIGOS8 Ch.5, p.99): title bar with close box on
  * the left and zoom and collapse boxes on the right (p.101), a draggable frame,
@@ -824,6 +828,39 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				window: { id },
 				app: { id: appId },
 			});
+		};
+	}, [modal, id, appId, desktopEventDispatch]);
+
+	// A document window that unmounts while its record is still open — an app
+	// hiding it by no longer rendering it (a settings window's Cancel button)
+	// rather than through the close box — is closed in the store, so focus
+	// passes to the app's most recently focused window and a later remount
+	// counts as a reopen. Deferred a tick and skipped if a window with this id
+	// is mounted again by then — StrictMode's phantom teardown remounts
+	// synchronously, and a remount (same instance or a new one) must not have
+	// its record closed out from under it.
+	useEffect(() => {
+		if (modal) return;
+		const key = `${appId}\u0000${id}`;
+		mountedWindowKeys.set(key, (mountedWindowKeys.get(key) ?? 0) + 1);
+		return () => {
+			const remaining = (mountedWindowKeys.get(key) ?? 1) - 1;
+			if (remaining > 0) mountedWindowKeys.set(key, remaining);
+			else mountedWindowKeys.delete(key);
+			setTimeout(() => {
+				if (mountedWindowKeys.has(key)) return;
+				if (typeof useAppManager.getState !== "function") return;
+				const record = getAppWindow(
+					useAppManager.getState().System.Manager.Applications.apps[appId],
+					id,
+				);
+				if (!record || record.closed) return;
+				desktopEventDispatch({
+					type: "ClassicyWindowClose",
+					app: { id: appId },
+					window: { id },
+				});
+			}, 0);
 		};
 	}, [modal, id, appId, desktopEventDispatch]);
 

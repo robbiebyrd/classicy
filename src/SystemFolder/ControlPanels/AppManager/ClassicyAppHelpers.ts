@@ -43,7 +43,14 @@ export function focusWindow(
 	const win = getAppWindow(app, windowId);
 	if (win) {
 		win.focused = true;
-		win.zOrder = Date.now();
+		// Strictly above every sibling, not just Date.now(): two focuses in the
+		// same millisecond would otherwise tie, and succession would break the
+		// tie by record order rather than recency.
+		const topZOrder = Math.max(
+			0,
+			...listAppWindows(app).map((w) => w.zOrder ?? 0),
+		);
+		win.zOrder = Math.max(Date.now(), topZOrder + 1);
 		app.lastAccessedWindowId = windowId;
 		const menu = menuBar ?? win.menuBar;
 		if (menu) {
@@ -68,7 +75,7 @@ export function focusWindow(
  * registration order except for integer-like ids ("2"), which JavaScript
  * always enumerates first.
  */
-function pickWindowToRestore(app: ClassicyStoreSystemApp) {
+export function pickWindowToRestore(app: ClassicyStoreSystemApp) {
 	// Utility (tool-palette) windows float and never become the active document
 	// window, so they are never a succession target. When only utility windows
 	// remain, candidates is empty and focusApp keeps the app focused with no
@@ -143,6 +150,7 @@ export function openApp(
 		findApp.open = true;
 		for (const w of listAppWindows(findApp)) {
 			w.closed = false;
+			w.closedThisSession = false;
 		}
 		focusApp(ds, appId);
 	} else {

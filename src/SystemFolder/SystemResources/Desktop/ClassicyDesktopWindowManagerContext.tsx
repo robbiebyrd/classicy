@@ -193,9 +193,23 @@ export const classicyWindowEventHandler = (
 				// persisted windows must not steal focus.
 				ds = focusWindow(ds, action.app.id, win.id);
 			} else {
+				const existing = getAppWindow(app, win.id);
+				// A window closed earlier this session and now registering again
+				// is being reopened (e.g. a dialog the app unmounts on Cancel and
+				// mounts again later): bring it to the front like a new window.
+				// Anything else is a persisted window re-registering after a
+				// reload or remount, which must not steal focus.
+				const reopening = !!existing?.closed && !!existing?.closedThisSession;
 				// A persisted record may predate #278 (no flags) or the props may
 				// have changed since; the mounting component's props win.
-				ds = updateWindow(action.app.id, win.id, { closed: false, ...flags });
+				ds = updateWindow(action.app.id, win.id, {
+					closed: false,
+					closedThisSession: false,
+					...flags,
+				});
+				if (reopening) {
+					ds = focusWindow(ds, action.app.id, win.id);
+				}
 			}
 			break;
 		}
@@ -220,6 +234,7 @@ export const classicyWindowEventHandler = (
 			if (!hasAppAndWindow(action)) break;
 			ds = updateWindow(action.app.id, action.window.id, {
 				closed: true,
+				closedThisSession: true,
 				focused: false,
 			});
 			// Promote a sibling only when this app holds focus — closing a

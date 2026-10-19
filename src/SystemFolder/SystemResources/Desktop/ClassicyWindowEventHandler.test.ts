@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { windowsRecord } from "@/__tests__/windowsRecord";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
@@ -1076,5 +1076,101 @@ describe("ClassicyWindowClose skips utility windows when promoting a sibling", (
 		expect(wins.some((w) => w.focused === true)).toBe(false);
 		// App keeps focus / menu-bar ownership.
 		expect(ds.System.Manager.Applications.focusedAppId).toBe("TestApp");
+	});
+});
+
+describe("ClassicyWindowOpen — reopening a window closed this session", () => {
+	const reopen = (ds: ClassicyStore) =>
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowOpen",
+			app: { id: "TestApp" },
+			window: {
+				id: "w1",
+				minimumSize: [100, 100],
+				size: [400, 300],
+				position: [100, 100],
+			},
+		});
+
+	it("brings the reopened window to the front and focuses it", () => {
+		const ds = makeStoreWithWindows();
+		ds.System.Manager.Applications.focusedAppId = "TestApp";
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowClose",
+			app: { id: "TestApp" },
+			window: { id: "w1" },
+		});
+		const w1 = () =>
+			getAppWindow(ds.System.Manager.Applications.apps.TestApp, "w1");
+		expect(w1()?.closedThisSession).toBe(true);
+
+		reopen(ds);
+
+		const testApp = ds.System.Manager.Applications.apps.TestApp;
+		expect(w1()?.closed).toBe(false);
+		expect(w1()?.closedThisSession).toBe(false);
+		expect(w1()?.focused).toBe(true);
+		expect(getAppWindow(testApp, "w2")?.focused).toBe(false);
+		expect(
+			ds.System.Manager.Applications.apps.TestApp.lastAccessedWindowId,
+		).toBe("w1");
+	});
+
+	it("does NOT steal focus for a closed window re-registering after a reload", () => {
+		const ds = makeStoreWithWindows();
+		ds.System.Manager.Applications.focusedAppId = "Finder.app";
+		// Persisted as closed, but the session marker was stripped on save.
+		const testApp = ds.System.Manager.Applications.apps.TestApp;
+		const persisted = getAppWindow(testApp, "w1");
+		if (persisted) persisted.closed = true;
+
+		reopen(ds);
+
+		expect(getAppWindow(testApp, "w1")?.closed).toBe(false);
+		expect(getAppWindow(testApp, "w1")?.focused).toBe(false);
+		expect(getAppWindow(testApp, "w2")?.focused).toBe(true);
+		expect(ds.System.Manager.Applications.focusedAppId).toBe("Finder.app");
+	});
+});
+
+describe("focus recency within a single millisecond", () => {
+	it("promotes the most recently focused sibling even when focuses share a timestamp", () => {
+		const nowSpy = vi.spyOn(Date, "now").mockReturnValue(5000);
+		try {
+			const ds = makeStoreWithWindows();
+			const focus = (id: string) =>
+				classicyWindowEventHandler(ds, {
+					type: "ClassicyWindowFocus",
+					app: { id: "TestApp" },
+					window: { id },
+				});
+			focus("w1");
+			focus("w2");
+			classicyWindowEventHandler(ds, {
+				type: "ClassicyWindowOpen",
+				app: { id: "TestApp" },
+				window: {
+					id: "w3",
+					minimumSize: [100, 100],
+					size: [300, 200],
+					position: [10, 10],
+				},
+			});
+			const testApp = ds.System.Manager.Applications.apps.TestApp;
+			const z = (id: string) => getAppWindow(testApp, id)?.zOrder ?? 0;
+			expect(z("w2")).toBeGreaterThan(z("w1"));
+			expect(z("w3")).toBeGreaterThan(z("w2"));
+
+			classicyWindowEventHandler(ds, {
+				type: "ClassicyWindowClose",
+				app: { id: "TestApp" },
+				window: { id: "w3" },
+			});
+
+			expect(getAppWindow(testApp, "w2")?.focused).toBe(true);
+			expect(getAppWindow(testApp, "w1")?.focused).toBe(false);
+		} finally {
+			nowSpy.mockRestore();
+		}
 	});
 });
