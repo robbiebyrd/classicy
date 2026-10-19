@@ -301,6 +301,21 @@ export function hasStripWidth(m: Msg): m is Msg & { width: number | null } {
 	);
 }
 
+/**
+ * Action has `edge: "left" | "right"` and `bottom`: a finite, non-negative
+ * distance in px from the desktop's bottom edge.
+ */
+export function hasStripPosition(
+	m: Msg,
+): m is Msg & { edge: "left" | "right"; bottom: number } {
+	return (
+		(m.edge === "left" || m.edge === "right") &&
+		typeof m.bottom === "number" &&
+		Number.isFinite(m.bottom) &&
+		m.bottom >= 0
+	);
+}
+
 /** Action has `moduleId: string` and `hidden: boolean` */
 export function hasModuleHidden(
 	m: Msg,

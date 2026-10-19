@@ -34,6 +34,7 @@ import {
 	hasModuleOrder,
 	hasMouseEvent,
 	hasSmartScrolling,
+	hasStripPosition,
 	hasStripWidth,
 	hasThemeColorChange,
 	hasVisible,
@@ -67,7 +68,19 @@ export interface ClassicyStoreControlStrip {
 	hiddenModules: string[];
 	/** The user's module order; listed ids lead, in this order. */
 	moduleOrder: string[];
+	/**
+	 * The screen edge the strip is docked to; unset until the user Control-drags
+	 * it (the lower left applies).
+	 */
+	edge?: ClassicyControlStripEdge;
+	/**
+	 * Distance in px from the desktop's bottom edge to the strip's; unset until
+	 * the user Control-drags it (0, the bottom, applies).
+	 */
+	bottom?: number;
 }
+
+export type ClassicyControlStripEdge = "left" | "right";
 
 export interface ClassicyStoreSystemDesktopManagerIcon {
 	appId: string;
@@ -409,6 +422,13 @@ export const classicyDesktopEventHandler = (
 			if (!hasStripWidth(action)) break;
 			controlStripState(ds).width =
 				action.width === null ? null : Math.round(action.width);
+			break;
+		}
+		case "ClassicyDesktopControlStripSetPosition": {
+			if (!hasStripPosition(action)) break;
+			const strip = controlStripState(ds);
+			strip.edge = action.edge;
+			strip.bottom = Math.round(action.bottom);
 			break;
 		}
 		case "ClassicyDesktopControlStripSetModuleHidden": {

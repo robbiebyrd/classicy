@@ -374,11 +374,22 @@ the control panel and the file system follow registrations made after mount.
   `disabledModules` (not drawn, not offered in the control panel — published
   for it via `setClassicyControlStripDisabledModules`) or the user hides them.
 - Persisted state: `System.Manager.Desktop.controlStrip` `{ visible, collapsed?,
-  width?, hiddenModules, moduleOrder }`, written by
-  `ClassicyDesktopControlStrip{SetVisible,SetCollapsed,SetWidth,SetModuleHidden,SetModuleOrder}`.
+  width?, hiddenModules, moduleOrder, edge?, bottom? }`, written by
+  `ClassicyDesktopControlStrip{SetVisible,SetCollapsed,SetWidth,SetModuleHidden,SetModuleOrder,SetPosition}`.
   `defaultCollapsed`/`defaultWidth` apply only until the user changes them.
   Ids in `moduleOrder` lead; the rest follow in declared order. Settings for
   unregistered ids are kept.
+- Moving it (#298, #299): Control-dragging the collapse box carries the strip
+  up and down and docks it to the edge on the pointer's half of the desktop
+  (`computeClassicyControlStripPosition`), between the desktop's bottom and
+  the menu bar's underside; release stores `SetPosition { edge: "left" |
+  "right", bottom }` (px above the desktop's bottom). The collapse box claims
+  the Control-click's `contextmenu` and swallows the click, so it never
+  collapses or raises the strip's menu. Docked right, the strip mirrors via
+  CSS `order` (tab first, flipped; collapse box last), and the tab widens it
+  when dragged — or arrowed — left. The offset is a CSS custom property
+  (`--classicy-control-strip-bottom`), capped in SCSS so a shrunken desktop
+  never pushes the strip off the top.
 - The Control Strip control panel (`ControlPanels/ControlStripManager/`,
   `ControlStripManager.app`) edits all of it; the strip's contextual menu
   offers Hide Control Strip and Open Control Strip Control Panel.
