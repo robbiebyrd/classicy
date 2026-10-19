@@ -15,12 +15,18 @@ export type ClassicySeparatorProps = {
 };
 
 /**
- * A standalone 2px engraved separator line for dialog content regions.
+ * A standalone 2px engraved separator line for dialog content regions
+ * (HIGOS8 Ch.2 "Separator Lines", p.50) — use it instead of a raw `<hr>`.
  *
  * The engraving is the Platinum menu-`<hr>` treatment: a 1px dark line on the
  * leading edge with a 1px light highlight on the trailing edge, giving the
  * incised look. Rendered as a semantic `<hr>` (role="separator") with an
  * explicit `aria-orientation`.
+ *
+ * `horizontal` fills the width of its container; `vertical` stretches to the
+ * height of the flex row it sits in (never shorter than one control), so use
+ * it as a flex item.
+ * `ClassicyButtonToolbar` draws vertical ones between its groups for you.
  */
 export const ClassicySeparator: FunctionalComponent<ClassicySeparatorProps> = ({
 	orientation = "horizontal",

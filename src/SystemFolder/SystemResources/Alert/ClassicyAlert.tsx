@@ -19,28 +19,17 @@ import {
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
 /**
- * Mac OS 8 HIG Alert Box (Human Interface Guidelines, Ch. 3 §"Alert Boxes").
- *
- * A special modal dialog that conveys a warning/error with a severity icon,
- * a two-tier text block (bold label + plain narrative), and up to four
- * buttons. Alerts contain ONLY an icon, text, and buttons — no other controls.
- *
- * Three severities, each with its own system icon (from `ClassicyIcons`):
- *   - note    — info icon; typically OK only (+ optional Help)
- *   - caution — warn icon; OK/Continue + Cancel (+ optional Help)
- *   - stop    — error icon; OK only (+ optional Help)
- *
- * Movable alert     = red title-bar highlight (draggable).
- * Non-movable alert = red border around the content region (`.classicyWindowRed`).
+ * Alert severity: `note` (information), `caution` (an action with consequences
+ * the user should confirm), or `stop` (a problem that prevents an action).
  */
-
 export type ClassicyAlertType = "note" | "caution" | "stop";
 
 /** How a button participates in the alert's keyboard/layout semantics. */
 export type ClassicyAlertButtonRole = "default" | "cancel" | "help" | "normal";
 
+/** One button in a `ClassicyAlert`'s button row. */
 export type ClassicyAlertButton = {
-	/** Stable id, used to resolve the default button. */
+	/** Stable id, used as the React key and to resolve the default button. */
 	id: string;
 	/** Button text — HIG asks for a specific verb (e.g. "Delete", not "OK"). */
 	label: string;
@@ -52,40 +41,49 @@ export type ClassicyAlertButton = {
 	 * normal  → an ordinary optional button.
 	 */
 	role?: ClassicyAlertButtonRole;
+	/** Dims the button; a disabled button ignores clicks and keyboard equivalents. */
 	disabled?: boolean;
+	/** Called when the button is activated, before the alert's `onClose`. */
 	onClick?: () => void;
 };
 
 export type ClassicyAlertProps = {
-	/** Window id (unique per open alert). */
+	/** Window id; must be unique per open alert. Defaults to `"alert"`. */
 	id?: string;
-	/** Owning app id. */
+	/** Id of the owning app (the enclosing `ClassicyApp`). Defaults to `"ClassicyAlert"`. */
 	appId?: string;
-	/** Severity — selects the icon and default button semantics. */
+	/** Severity — selects the icon and the generated default buttons. Defaults to `"note"`. */
 	alertType?: ClassicyAlertType;
-	/** Title-bar text (shown on the movable variant). */
+	/** Title-bar text, shown on the movable variant. Defaults to `""`. */
 	title?: string;
-	/** Bold system-font heading (tier 1). */
+	/** Bold system-font heading (tier 1); also the dialog's accessible name. */
 	label: string;
-	/** Plain small-system-font narrative (tier 2). */
+	/** Plain small-system-font narrative (tier 2). Omitted when empty. */
 	message?: ReactNode;
 	/**
-	 * Up to four buttons. When omitted, a sensible default set is generated
-	 * from `alertType` (note/stop → OK; caution → Cancel + Continue).
+	 * Up to four buttons (extras are dropped), laid out left to right in array
+	 * order. When omitted or empty, a default set is generated from `alertType`:
+	 * note/stop → OK; caution → Cancel + Continue.
 	 */
 	buttons?: ClassicyAlertButton[];
 	/**
 	 * Overrides which button is the default (its `id`). HIG: a caution alert's
 	 * default is OK/Continue UNLESS the action risks data loss, in which case
 	 * the safe choice (Cancel) should be the default — set this to the Cancel id.
+	 * Without it, the button with role `default` wins, else the last button
+	 * that is neither `cancel` nor `help`.
 	 */
 	defaultButtonId?: string;
 	/**
 	 * Movable alert (draggable, red title-bar highlight) when true; otherwise a
-	 * non-movable alert with a red content-region border. Defaults to false.
+	 * non-movable alert with a red content-region border. Defaults to `false`.
 	 */
 	movable?: boolean;
-	/** Called after any button is clicked (in addition to that button's onClick). */
+	/**
+	 * Called after any enabled button is activated (in addition to that
+	 * button's `onClick`). The alert does not unmount itself — stop rendering
+	 * it here.
+	 */
 	onClose?: () => void;
 };
 
@@ -118,6 +116,42 @@ const defaultButtonsForType = (
 	return [{ id: "ok", label: "OK", role: "default" }];
 };
 
+/**
+ * Mac OS 8 alert box (HIGOS8 Ch.3 "Alert Boxes", p.60): a modal window holding
+ * only a severity icon, a two-tier text block (bold `label` + plain `message`)
+ * and up to four buttons — no other controls. Use it in place of
+ * `window.alert()` or a modal `<dialog>`; for a prompt that needs a text
+ * field use `ClassicyInputDialog`, and for other app-specific modals use
+ * `ClassicyWindow modal`.
+ *
+ * - **Severity** (`alertType`): `note` (info icon, OK), `caution` (warning
+ *   triangle, Cancel + Continue) or `stop` (stop icon, OK).
+ * - **Variants**: the default non-movable alert has a red border around its
+ *   content; `movable` gives a draggable window with a red title bar
+ *   (HIGOS8 p.57). Either way it plays the system alert sound on open.
+ * - **Keyboard**: the default button is focused on open and Tab is trapped
+ *   inside; Return/Enter fires the default button and Escape or Command-period
+ *   fires the `cancel`-role button (if any).
+ * - **Help**: a `help`-role button renders as `ClassicyHelpButton`, placed
+ *   lower left (HIGOS8 p.86).
+ *
+ * It renders a `ClassicyWindow`, so it must sit inside a `ClassicyApp`. Show it
+ * by mounting it and hide it by unmounting it from `onClose`:
+ *
+ * ```tsx
+ * {confirming && (
+ *   <ClassicyAlert
+ *     id="empty-trash" appId={appId} alertType="caution"
+ *     label="Are you sure you want to empty the Trash?"
+ *     buttons={[
+ *       { id: "cancel", label: "Cancel", role: "cancel" },
+ *       { id: "ok", label: "Empty Trash", role: "default", onClick: emptyTrash },
+ *     ]}
+ *     onClose={() => setConfirming(false)}
+ *   />
+ * )}
+ * ```
+ */
 export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 	id = "alert",
 	appId = "ClassicyAlert",

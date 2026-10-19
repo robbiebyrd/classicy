@@ -9,13 +9,23 @@ import {
 	labelPositionClass,
 } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 
+/** Which colour band a meter value falls in, as `<meter>` defines them. */
 export type ClassicyMeterZone = "optimal" | "suboptimal" | "bad";
 
+/** The native `<meter>` range and zone thresholds. */
 export interface ClassicyMeterBounds {
+	/** Lower end of the gauge. Defaults to `0`. */
 	min?: number;
+	/** Upper end of the gauge. Defaults to `100`. */
 	max?: number;
+	/** Values below this are in the low region. Omit for no low region. */
 	low?: number;
+	/** Values above this are in the high region. Omit for no high region. */
 	high?: number;
+	/**
+	 * The ideal value: the region (low / middle / high) holding it is optimal.
+	 * Omitted, the middle region is optimal.
+	 */
 	optimum?: number;
 }
 
@@ -29,6 +39,10 @@ const regionOf = (value: number, low?: number, high?: number): number => {
 	return 1;
 };
 
+/**
+ * The zone `value` falls in: optimal in `optimum`'s region, suboptimal one
+ * region away, bad two away. Exported so consumers can match the gauge colour.
+ */
 export const meterZone = (
 	value: number,
 	{ low, high, optimum }: ClassicyMeterBounds = {},
@@ -49,9 +63,13 @@ const zoneClass: Record<ClassicyMeterZone, string> = {
 };
 
 interface ClassicyMeterProps extends ClassicyMeterBounds {
+	/** The measured value; drawn clamped to `min`…`max`. */
 	value: number;
+	/** Visible label text; also the gauge's accessible name. */
 	label?: string;
+	/** Where the label sits relative to the gauge. Defaults to `"above"`. */
 	labelPosition?: ClassicyLabelPosition;
+	/** Horizontal alignment of the label. Defaults to `"left"`. */
 	labelAlign?: ClassicyLabelAlign;
 	/** Print the numeric value beside the gauge. */
 	showValue?: boolean;
@@ -62,6 +80,19 @@ interface ClassicyMeterProps extends ClassicyMeterBounds {
 	segments?: number;
 }
 
+/**
+ * The `<meter>` equivalent: a themed gauge for a scalar within a known range
+ * (disk usage, battery, signal level) — not for task progress, which is
+ * `ClassicyProgressBar`'s job. It follows the native `<meter>` zone semantics:
+ * `low` and `high` split the range into up to three regions, the region
+ * holding `optimum` is optimal (theme accent), an adjacent one suboptimal
+ * (`--color-alert`), and one two away bad (`--color-error`).
+ *
+ * Renders a continuous bar, or `segments` discrete LED-style cells for a
+ * level-meter look; `showValue` prints the number beside it. It exposes
+ * `role="meter"` with `aria-valuenow`/`min`/`max` rather than a native
+ * `<meter>`, which cannot be Platinum-styled across browsers.
+ */
 export const ClassicyMeter: FunctionalComponent<ClassicyMeterProps> = ({
 	value,
 	min = 0,

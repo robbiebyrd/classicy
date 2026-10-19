@@ -80,7 +80,10 @@ const initialSizes = (
 };
 
 interface ClassicySplitViewProps {
-	/** Pane arrangement axis; `"horizontal"` (default) is side-by-side. */
+	/**
+	 * Pane arrangement axis: `"horizontal"` is side-by-side, `"vertical"` is
+	 * stacked. Defaults to `"horizontal"`.
+	 */
 	direction?: ClassicySplitViewDirection;
 	/**
 	 * Initial pane sizes as percentages, one per child (normalized to 100).
@@ -89,7 +92,10 @@ interface ClassicySplitViewProps {
 	 * `onResize` to observe changes.
 	 */
 	defaultSizes?: number[];
-	/** Smallest a pane may get, in pixels, while dragging a divider. */
+	/**
+	 * Smallest a pane may get, in pixels, while dragging or nudging a divider
+	 * (also applied as each pane's CSS minimum). Defaults to `48`.
+	 */
 	minPaneSize?: number;
 	/** Fired with the new percentage sizes on every divider drag step. */
 	onResize?: (sizes: number[]) => void;
@@ -115,6 +121,24 @@ interface ClassicySplitViewProps {
  * bevel) and is dragged to trade space between the two panes it separates —
  * dragging toward the leading side grows the trailing pane and shrinks the
  * leading one, exactly like a window frame edge being pushed.
+ *
+ * There is no HTML equivalent (the nearest ancestor is the obsolete
+ * `<frameset>`). The root fills its parent, so give the parent a size; each
+ * pane scrolls its own overflow. At most three panes per component — nest a split view
+ * inside a pane to combine directions. Each divider follows the ARIA
+ * window-splitter pattern (`role="separator"`, focusable, arrow keys along
+ * the split axis nudge it by 1%), and a drag swaps the body cursor for the
+ * Mac OS 8 directional resize cursor. Sizes are uncontrolled after mount:
+ * persist them from `onResizeCommit` and feed them back as `defaultSizes`.
+ * A window whose content is a split view should pass `scrollable={false}`,
+ * since the panes scroll themselves.
+ *
+ * ```tsx
+ * <ClassicySplitView direction="horizontal" defaultSizes={[30, 70]} onResizeCommit={saveSizes}>
+ *     <Sidebar />
+ *     <Content />
+ * </ClassicySplitView>
+ * ```
  */
 export const ClassicySplitView: FunctionalComponent<ClassicySplitViewProps> = ({
 	direction = "horizontal",

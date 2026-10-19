@@ -1,17 +1,10 @@
-import { desktopParameters, StoryApp } from "@sb/helpers";
+import { desktopParameters, SB_ICON, StoryApp } from "@sb/helpers";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fn } from "storybook/test";
 import { ClassicyInputDialog } from "./ClassicyInputDialog";
 
 const APP_ID = "storybook.app";
 
-/**
- * Movable-modal text prompt (HIGOS8 Ch.3 "Movable Modal Dialog Boxes", p.59):
- * a title bar with no close box, a prompt, one edit field and a Cancel /
- * default-button pair. The field is focused with its text selected on open;
- * Return fires the default button and Escape or Command-period fires Cancel.
- * The dialog has no close box, so OK and Cancel are its only exits.
- */
 const meta = {
 	title: "Dialogs/InputDialog",
 	component: ClassicyInputDialog,
@@ -67,5 +60,22 @@ export const Validation: Story = {
 		confirmLabel: "Rename",
 		validate: (name: string) =>
 			name.trim().length > 0 && name.length <= 31 && !name.includes(":"),
+	},
+};
+
+/**
+ * A password prompt: `inputType: "password"` passes through to the native
+ * `<input>`, masking the text, and `icon` adds a leading icon beside the
+ * prompt. `cancelLabel` and `confirmLabel` rename both buttons.
+ */
+export const PasswordWithIcon: Story = {
+	args: {
+		id: "input-dialog-password",
+		title: "Connect to Server",
+		prompt: "Password for “Macintosh HD”:",
+		inputType: "password",
+		icon: SB_ICON,
+		cancelLabel: "Don’t Connect",
+		confirmLabel: "Connect",
 	},
 };

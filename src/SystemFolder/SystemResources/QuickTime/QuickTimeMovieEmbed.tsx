@@ -20,31 +20,89 @@ import { useQuickTimeSubtitles } from "@/SystemFolder/SystemResources/QuickTime/
 const ccIcon = ClassicyIcons.system.quicktime.cc;
 
 type QuickTimeVideoEmbedProps = {
+	/**
+	 * Id of the owning app. Keyboard shortcuts only act while that app's
+	 * `${appId}_MoviePlayer_${url}` window is focused.
+	 */
 	appId: string;
+	/** Name of the media; used to build the seek bar's element id. */
 	name: string;
+	/** Media URL, handed to `react-player` (files, streams, YouTube, …). */
 	url: string;
+	/** `"audio"` hides the fullscreen button and the F shortcut. */
 	type: "audio" | "video";
+	/** Passed through to `react-player` as its `config`. */
 	options?: object;
+	/**
+	 * SRT or VTT subtitle file (an http(s) URL or a root-relative path).
+	 * Adds a CC button that toggles the caption overlay.
+	 */
 	subtitlesUrl?: string;
+	/** Initial playing state when `playing` is uncontrolled. Defaults to `false`. */
 	autoPlay?: boolean;
+	/**
+	 * Hide the controller bar and disable the keyboard shortcuts, for
+	 * consumers that drive transport themselves (`playing`, `onMediaElement`).
+	 */
 	hideControls?: boolean;
+	/**
+	 * Pin the controller bar to the bottom of the nearest positioned ancestor
+	 * (the window, in Movie Player), with the picture shortened to leave room
+	 * for it. When off, the bar flows directly beneath the picture.
+	 */
 	controlsDocked?: boolean;
+	/** Mute playback (forces the effective volume to 0). */
 	muted?: boolean;
+	/** Controlled playing state; omit to let the play/pause button own it. */
 	playing?: boolean;
+	/** Fired with the requested playing state on every toggle. */
 	onPlayingChange?: (playing: boolean) => void;
+	/** Controlled volume, 0–1; uncontrolled it starts at 0.5. */
 	volume?: number;
+	/** Fired with the new volume (0–1) when the volume slider moves. */
 	onVolumeChange?: (volume: number) => void;
+	/** Controlled caption visibility; uncontrolled it starts off. */
 	captionsEnabled?: boolean;
+	/** Fired when the CC button toggles captions. */
 	onCaptionsEnabledChange?: (enabled: boolean) => void;
+	/** Caption font, colours, opacity and size; theme defaults when omitted. */
 	captionStyle?: QuickTimeCaptionStyle;
+	/** Receives the underlying media element on mount (and `null` on unmount). */
 	onMediaElement?: (el: HTMLVideoElement | null) => void;
+	/** Fired when the media is ready to play. */
 	onReady?: () => void;
+	/** Fired when playback stalls waiting for data. */
 	onWaiting?: () => void;
+	/** Fired when playback starts or resumes. */
 	onPlaying?: () => void;
+	/** CORS mode for the media element, e.g. for remote captions or canvas reads. */
 	crossOrigin?: "" | "anonymous" | "use-credentials";
+	/** Play inline on iOS rather than forcing native fullscreen. */
 	playsInline?: boolean;
 };
 
+/**
+ * A QuickTime-style movie player: the picture plus a Platinum controller bar
+ * (play/pause, seek bar with elapsed time, ±10 s skip, optional CC toggle,
+ * volume pop-up and fullscreen). It is the Classicy replacement for raw
+ * `<video>` / `<audio>` (set `type`), plays anything `react-player` can,
+ * and is what the built-in Movie Player app renders.
+ *
+ * Playing state, volume and caption visibility are each controlled when
+ * their prop is passed and uncontrolled otherwise. Keyboard shortcuts —
+ * Space play/pause, ←/→ skip 10 s, F fullscreen, L loop, Escape leave
+ * fullscreen — are only live while the Movie Player window for this
+ * `appId`/`url` (`${appId}_MoviePlayer_${url}`) is focused, so an embed in any
+ * other window gets none; `hideControls` turns them off entirely. The
+ * individual controls (`QuickTimePlayPauseButton`, `QuickTimeSeekBar`,
+ * `QuickTimeVolumeControl`, `QuickTimeFullscreenButton`,
+ * `QuickTimeCaptionsOverlay`) and hooks (`useQuickTimePlayback`,
+ * `useQuickTimeSubtitles`) are exported for building a custom player.
+ *
+ * ```tsx
+ * <QuickTimeVideoEmbed appId={appId} name="Intro" url={movieUrl} type="video" controlsDocked />
+ * ```
+ */
 export const QuickTimeVideoEmbed: FunctionalComponent<
 	QuickTimeVideoEmbedProps
 > = ({

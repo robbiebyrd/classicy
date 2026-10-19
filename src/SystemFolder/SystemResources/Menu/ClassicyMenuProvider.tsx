@@ -16,14 +16,23 @@ import { ClassicyMenuContext } from "@/SystemFolder/SystemResources/Menu/Classic
  */
 const DEFAULT_IDLE_TIMEOUT_MS = 15000;
 
+/**
+ * Open/close state for a tree of `ClassicyMenu`s: which submenu is open,
+ * whether the menu is active (so hovering opens sibling menus), and HIG sticky
+ * menus — an open menu auto-closes after `idleTimeoutMs` of inactivity.
+ * `ClassicyDesktopMenuBar` and `ClassicyContextualMenu` each mount one; wrap a
+ * standalone `ClassicyMenu` in one.
+ */
 export const ClassicyMenuProvider: FunctionalComponent<{
+	/** The menus that share this state. */
 	children: ReactNode;
+	/** Called whenever the menus close (a selection, `closeAll`, or the idle timeout). */
 	onClose?: () => void;
-	/** Milliseconds of inactivity before an open menu auto-closes. 0 disables. */
+	/** Milliseconds of inactivity before an open menu auto-closes. 0 disables. Defaults to `15000`. */
 	idleTimeoutMs?: number;
 	/**
 	 * Treat the menu as already open on mount (contextual menus are shown
-	 * immediately rather than via a menu-bar click).
+	 * immediately rather than via a menu-bar click). Defaults to `false`.
 	 */
 	startActive?: boolean;
 }> = ({

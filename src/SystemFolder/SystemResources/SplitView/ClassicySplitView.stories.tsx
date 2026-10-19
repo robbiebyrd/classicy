@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { useState } from "react";
 import { ClassicySplitView } from "./ClassicySplitView";
 
 const meta = {
@@ -14,6 +15,11 @@ const paneStyle = {
 	fontFamily: "var(--body-font), sans-serif",
 } as const;
 
+/**
+ * Two side-by-side panes split equally (no `defaultSizes`). Drag the divider,
+ * or focus it with Tab and press ←/→ to nudge it 1% at a time; neither pane
+ * shrinks below `minPaneSize` (48 px).
+ */
 export const TwoPanesHorizontal: Story = {
 	args: {
 		direction: "horizontal",
@@ -36,6 +42,7 @@ export const TwoPanesHorizontal: Story = {
 	],
 };
 
+/** `direction="vertical"` stacks the panes; ↑/↓ nudge the focused divider. */
 export const TwoPanesVertical: Story = {
 	args: {
 		direction: "vertical",
@@ -57,6 +64,10 @@ export const TwoPanesVertical: Story = {
 	],
 };
 
+/**
+ * Three panes, the maximum per component, with `defaultSizes` as
+ * percentages. Each divider only trades space between its two neighbours.
+ */
 export const ThreePanesWithDefaultSizes: Story = {
 	args: {
 		direction: "horizontal",
@@ -82,7 +93,10 @@ export const ThreePanesWithDefaultSizes: Story = {
 	],
 };
 
-// Combining directions is done by nesting, never by a grid mode.
+/**
+ * Combining directions is done by nesting a split view inside a pane, never
+ * by a grid mode: here a sidebar beside a vertically split main area.
+ */
 export const NestedSplits: Story = {
 	render: () => (
 		<div style={{ width: 640, height: 360 }}>
@@ -97,23 +111,34 @@ export const NestedSplits: Story = {
 	),
 };
 
-// The persistence round trip: onResizeCommit fires once per gesture with the
-// final sizes (save these to app state); pass them back as defaultSizes on the
-// next mount to restore the user's split.
-export const CommitOnRelease: Story = {
-	render: () => (
+const CommitDemo = () => {
+	const [live, setLive] = useState<number[]>([40, 60]);
+	const [committed, setCommitted] = useState<number[]>([40, 60]);
+	const format = (sizes: number[]) =>
+		sizes.map((s) => `${Math.round(s)}%`).join(" / ");
+	return (
 		<div style={{ width: 480, height: 240 }}>
 			<ClassicySplitView
 				defaultSizes={[40, 60]}
-				onResizeCommit={(sizes) =>
-					console.log("save these sizes to app state:", sizes)
-				}
+				onResize={setLive}
+				onResizeCommit={setCommitted}
 			>
 				<div style={paneStyle}>Drag the divider, then release.</div>
 				<div style={paneStyle}>
-					The committed sizes are logged to the console once per gesture.
+					<p>onResize (every step): {format(live)}</p>
+					<p>onResizeCommit (once per gesture): {format(committed)}</p>
 				</div>
 			</ClassicySplitView>
 		</div>
-	),
+	);
+};
+
+/**
+ * The persistence round trip: `onResize` fires on every drag step, while
+ * `onResizeCommit` fires once per gesture (mouse release or arrow-key
+ * release) with the final sizes — save those to app state and pass them back
+ * as `defaultSizes` on the next mount to restore the user's split.
+ */
+export const CommitOnRelease: Story = {
+	render: () => <CommitDemo />,
 };

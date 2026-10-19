@@ -16,11 +16,18 @@ interface OpenContextMenu {
 	position: [number, number];
 }
 
+/** The imperative contextual-menu API returned by `useClassicyContextualMenu`. */
 export interface ClassicyContextualMenuAPI {
+	/**
+	 * Open `items` as the contextual menu, 1 px below and right of `clickAt`
+	 * (viewport `[x, y]`), replacing any menu already open. A disabled Help
+	 * item is put first unless the items include one.
+	 */
 	showContextMenu: (
 		items: ClassicyMenuItem[],
 		clickAt: [number, number],
 	) => void;
+	/** Close the open contextual menu, if any. */
 	hideContextMenu: () => void;
 }
 
@@ -31,6 +38,11 @@ const ClassicyContextualMenuContext = createContext<ClassicyContextualMenuAPI>({
 	hideContextMenu: noop,
 });
 
+/**
+ * Opens and closes the desktop's single contextual menu from code, e.g. in a
+ * custom `onContextMenu` handler. Outside a `ClassicyContextualMenuProvider`
+ * both functions are no-ops.
+ */
 export const useClassicyContextualMenu = (): ClassicyContextualMenuAPI =>
 	useContext(ClassicyContextualMenuContext);
 
@@ -53,6 +65,17 @@ const withHelpItem = (items: ClassicyMenuItem[]): ClassicyMenuItem[] => {
 	return [{ id: HELP_ITEM_ID, title: "Help", disabled: true }, ...items];
 };
 
+/**
+ * Owns the desktop's one open contextual menu and renders it, via a portal into
+ * `#classicyDesktop`, as a `ClassicyContextualMenu`. `ClassicyDesktop` mounts
+ * it, so apps only need it to render menu targets outside a desktop (as the
+ * Storybook story for `ClassicyContextualMenuTarget` does).
+ *
+ * Every menu opened through it (`ClassicyContextualMenuTarget`, window, app,
+ * desktop icon and desktop menus, `useClassicyContextualMenu`) opens 1 px down
+ * and right of the click and gets the HIG's leading Help item (HIGOS8 p.93) —
+ * a disabled placeholder when the caller supplied none.
+ */
 export const ClassicyContextualMenuProvider: FunctionalComponent<
 	PropsWithChildren
 > = ({ children }) => {

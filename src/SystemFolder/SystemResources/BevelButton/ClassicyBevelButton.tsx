@@ -70,32 +70,66 @@ const DEFAULT_HOLD_DELAY_MS = 500;
 const MENU_ITEM_SELECTOR = 'li[role="menuitem"]:not(.classicyMenuItemDisabled)';
 
 type ClassicyBevelButtonProps = PropsWithChildren<{
-	/** Bevel width; sets the apparent 3-D height. Default `medium` (3px). */
+	/**
+	 * Bevel width (HIGOS8 p.29): `small` 2px, `medium` 3px, `large` 4px; sets
+	 * the apparent 3-D height. Defaults to `medium`.
+	 */
 	bevelWidth?: ClassicyBevelWidth;
-	/** Interaction mode. Default `push`. */
+	/**
+	 * Interaction mode: `push` (momentary), `toggle` (checkbox-like, flips and
+	 * holds `on`), `radio` (turns on and holds; clicking an on button does
+	 * nothing) or `popup` (pop-up menu button; click-triggered surface).
+	 * Defaults to `push`.
+	 */
 	mode?: ClassicyBevelButtonMode;
 	/** Optional icon/picture source rendered before the label. */
 	icon?: string;
-	/** Force a fixed square box for icon-only controls, sized to match
-	 *  `ClassicyButton`'s square shape. Drops the button's padding, so a label
-	 *  longer than a glyph or two will overflow. */
+	/**
+	 * Force a fixed square box for icon-only controls, sized to match
+	 * `ClassicyButton`'s square shape. Drops the button's padding, so a label
+	 * longer than a glyph or two will overflow. Unset, it is on for an
+	 * icon-only button inside a `ClassicyButtonToolbar` and off elsewhere; an
+	 * explicit value (including `false`) always wins.
+	 */
 	square?: boolean;
-	/** Alt text for the icon image. */
+	/**
+	 * Alt text for the icon image. Defaults to `""` (decorative). For an
+	 * icon-only button set this (or `aria-label`): it is the accessible name,
+	 * and the pop-up surface's label.
+	 */
 	iconAlt?: string;
-	/** Controlled on-state for `toggle`/`radio` modes. */
+	/**
+	 * On-state for `toggle`/`radio` modes. Seeds the button's own state and
+	 * re-syncs it whenever the prop changes; the button still flips itself on
+	 * click, so drive it from state via `onChangeFunc` to keep the two in step.
+	 */
 	on?: boolean;
-	/** Mixed state (a range containing both on and off values). */
+	/**
+	 * Mixed state — a selection containing both on and off values. Drawn over
+	 * the on/off look and, in `push`/`toggle` modes, announced as
+	 * `aria-pressed="mixed"`. Defaults to `false`.
+	 */
 	mixed?: boolean;
+	/** Dims the button and ignores presses. Defaults to `false`. */
 	disabled?: boolean;
-	/** Fired on click (all modes). */
+	/**
+	 * Fired on click (all modes), after `onChangeFunc`. Skipped for the click
+	 * that ends a long press which opened the pop-up surface.
+	 */
 	onClickFunc?: MouseEventHandler<HTMLButtonElement>;
-	/** Fired with the new on-state for `toggle`/`radio` modes. */
+	/**
+	 * Fired with the new on-state when a `toggle`/`radio` click changes it (so
+	 * never for a click on an already-on radio button).
+	 */
 	onChangeFunc?: (on: boolean) => void;
-	/** Show a pop-up arrow, at this size. */
+	/**
+	 * Show a pop-up arrow, at this size. Drawn only in `popup` mode or when
+	 * the button has a surface (`menuItems`/`popupContent`); unset, no arrow.
+	 */
 	popupArrow?: "small" | "large";
 	/**
 	 * Arrow orientation: horizontal points right, vertical points down.
-	 * Default `vertical`. Unless `popupPlacement` says otherwise, the surface
+	 * Defaults to `vertical`. Unless `popupPlacement` says otherwise, the surface
 	 * opens where the arrow points.
 	 */
 	popupDirection?: "horizontal" | "vertical";
@@ -108,8 +142,9 @@ type ClassicyBevelButtonProps = PropsWithChildren<{
 	 */
 	popupPlacement?: ClassicyBevelPopupSide;
 	/**
-	 * Line the surface up with the button's edge (`start`, default) or centre it
-	 * on the button (`center`, as Figure 2-16's slider sits on its module).
+	 * Line the surface up with the button's edge (`start`) or centre it on the
+	 * button (`center`, as Figure 2-16's slider sits on its module). Defaults
+	 * to `start`.
 	 */
 	popupAlign?: ClassicyBevelPopupAlign;
 	/**
@@ -134,7 +169,10 @@ type ClassicyBevelButtonProps = PropsWithChildren<{
 	 * radio tool keeps its click and offers its options on a long press.
 	 */
 	popupTrigger?: ClassicyBevelPopupTrigger;
-	/** The double-click interval, in ms, that separates a click from a hold. */
+	/**
+	 * The double-click interval, in ms, that separates a click from a hold.
+	 * Defaults to `500` (Mac OS 8's middle Double-Click Speed, 32 ticks).
+	 */
 	popupHoldDelayMs?: number;
 }> &
 	Omit<
@@ -167,6 +205,39 @@ const computeState = (
 	return on ? "on" : "off";
 };
 
+/**
+ * The Platinum bevel button (HIGOS8 Ch.2 "Bevel Buttons", p.29): a
+ * square-cornered button with a 2/3/4px bevel that can hold a label, an icon or
+ * both, and can act as a push button, a checkbox (`toggle`), a radio button
+ * (`radio`) or a pop-up button (`popup`). Reach for it for tool palettes,
+ * toolbars, latching or icon buttons, and as the button-shaped alternative
+ * to `ClassicyCheckbox`; for an ordinary dialog push button use
+ * `ClassicyButton`. It renders a real `<button>` and passes other `<button>`
+ * attributes through.
+ *
+ * All seven HIG states are exposed on `data-state` (`off`, `pressed-off`,
+ * `on`, `pressed-on`, `mixed`, `disabled-off`, `disabled-on`). Presses play
+ * the theme's click sounds and are reported to analytics. A radio button only
+ * ever turns itself on: mutual exclusion is the caller's job, by wiring a
+ * group's `on`/`onChangeFunc` to one shared value.
+ *
+ * Given `menuItems` (a Platinum menu, HIGOS8 Figure 2-15) or `popupContent`
+ * (any other surface, e.g. `ClassicyPopUpSlider`, Figure 2-16), it opens that
+ * surface in a fixed-position portal below or to the right of itself
+ * (pp.32–33), flipping when there is no room, and plays the menu-open sound.
+ * With the `click` trigger (default in `popup` mode) a quick click leaves the
+ * menu open and a press held past `popupHoldDelayMs` is a press-drag-release
+ * menu; with `hold` (default in other modes) a click keeps the button's own
+ * behaviour and only a long press shows the surface. Enter/Space toggles a
+ * click-trigger surface and Down Arrow opens either kind with the first item
+ * focused; Escape, an outside press, scrolling or resizing closes it.
+ *
+ * ```tsx
+ * <ClassicyBevelButton mode="popup" popupArrow="large" menuItems={zoomItems}>
+ *     100%
+ * </ClassicyBevelButton>
+ * ```
+ */
 export const ClassicyBevelButton: FunctionalComponent<
 	ClassicyBevelButtonProps
 > = ({

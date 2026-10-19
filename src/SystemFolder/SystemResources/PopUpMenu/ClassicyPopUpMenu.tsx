@@ -29,17 +29,24 @@ const PLACEHOLDER_VALUE = "__classicy_placeholder__";
 // HIG checkmark drawn against the current selection in the open menu.
 const CHECKMARK = "✓";
 
+/** Control size: the label sizes plus a menu-only `"mini"`. */
 export type ClassicyPopUpMenuSize = ClassicyControlLabelSize | "mini";
 
+/** One selectable item of a pop-up menu (the `<option>` equivalent). */
 export type ClassicyPopUpMenuOption = {
+	/** Value reported to `onChangeFunc` and matched by `selected`. */
 	value: string;
+	/** Item text, shown in the menu and on the button when selected. */
 	label: string;
+	/** Optional small icon (URL or data URI) drawn before the label in the menu. */
 	icon?: string;
 };
 
 /** The `<optgroup>` equivalent: a titled, non-selectable run of options. */
 export type ClassicyPopUpMenuOptionGroup = {
+	/** Group title, drawn as a non-selectable header. */
 	groupLabel: string;
+	/** The group's options, indented under its title. */
 	options: ClassicyPopUpMenuOption[];
 };
 
@@ -98,19 +105,62 @@ export const normalizeClassicyPopUpMenuEntries = (
 };
 
 type classicyPopUpMenuProps = {
+	/** Id of the pop-up button (the control itself); links the label to it. */
 	id: string;
+	/** Visible label text; also the button's accessible name. */
 	label?: string;
+	/** Where the label sits relative to the button. Defaults to `"above"`. */
 	labelPosition?: ClassicyLabelPosition;
+	/**
+	 * Label text size. Omit it to follow `size` (`"mini"` → `"small"`). Note:
+	 * currently any value given renders the `"small"` label.
+	 */
 	labelSize?: ClassicyControlLabelSize;
+	/** Options and/or `{ groupLabel, options }` groups (`<optgroup>`-style titled runs). */
 	options: ClassicyPopUpMenuEntry[];
+	/**
+	 * Value of the current item. Seeds the menu's own selection and re-syncs it
+	 * whenever this prop changes.
+	 */
 	selected?: string;
+	/** Text shown on the button until an item is chosen (no item is checked). */
 	placeholder?: string;
+	/** Button size. Defaults to `"medium"`. */
 	size?: ClassicyPopUpMenuSize;
+	/**
+	 * Called when the user picks a different item (re-picking the current one
+	 * is not a change). Receives a synthesized `{ target: { value } }` event, so
+	 * handlers written for a native `<select>` keep working.
+	 */
 	onChangeFunc?: (e: ChangeEvent<HTMLSelectElement>) => void;
+	/** Extra class on the pop-up wrapper. */
 	className?: string;
+	/** Disables the button. Defaults to `false`. */
 	disabled?: boolean;
 };
 
+/**
+ * The `<select>` / `<option>` equivalent: a Platinum pop-up menu button
+ * (HIGOS8 Ch.2 "Pop-Up Menu Buttons", p.26) showing the current choice and
+ * the double-triangle indicator. It is an ARIA combobox + listbox — there is
+ * no native `<select>` underneath — rendered through a portal into
+ * `#classicyDesktop`, so the menu is never clipped by its window.
+ *
+ * Opening it puts the current (checkmarked) item over the button, scrolling a
+ * long list so the selection still lands there (Mac OS 8 aligned pop-up,
+ * HIGOS8 p.33); a placeholder menu grows down, or flips up when there is no
+ * room. Keyboard: Space/Enter/arrows open it, arrows/Home/End move the
+ * highlight, Enter/Space commit, Escape closes, and typing jumps to a
+ * matching label (type-ahead). Each change is reported to analytics as a
+ * `selected` event. Single-select only — use `ClassicyListBox` for several
+ * values, or `ClassicyComboBox` when the user may type their own.
+ *
+ * ```tsx
+ * <ClassicyPopUpMenu id="font" label="Font:" labelPosition="left"
+ *     selected={font} options={fonts}
+ *     onChangeFunc={(e) => setFont(e.target.value)} />
+ * ```
+ */
 export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 	id,
 	label,

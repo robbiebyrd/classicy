@@ -12,13 +12,16 @@ import {
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 
 export type ClassicyPlacardMenuItem = {
+	/** Value passed to `onSelect` when the item is chosen. */
 	id: string;
+	/** Item label. */
 	title: string;
+	/** Dimmed and not choosable. */
 	disabled?: boolean;
 };
 
 type ClassicyPlacardProps = PropsWithChildren<{
-	/** Disabled placards dim and ignore interaction. */
+	/** Disabled placards dim and ignore interaction. Defaults to `false`. */
 	disabled?: boolean;
 	/**
 	 * When provided the placard behaves as a pop-up affordance: it shows a
@@ -31,6 +34,28 @@ type ClassicyPlacardProps = PropsWithChildren<{
 	onSelect?: (id: string) => void;
 }>;
 
+/**
+ * A Platinum placard (HIGOS8 Ch.2 "Placards", p.46): a small beveled
+ * information panel, normally pinned to a document window's bottom-left
+ * corner beside the horizontal scroll bar — pass it as `ClassicyWindow`'s
+ * `placard` prop to put it there. Its children are the displayed text, such
+ * as an item count or the current magnification.
+ *
+ * It has three looks: normal, pressed and disabled. A plain placard is
+ * static information (a `<div>`). Given `onClick` or `menuItems` it becomes
+ * a `<button>` that plays the button click sounds; with `menuItems` it shows
+ * a down-arrow and opens a small menu (closed by an outside click) whose
+ * choice is reported through `onSelect`.
+ *
+ * ```tsx
+ * <ClassicyWindow
+ *     id="doc" appId={appId}
+ *     placard={
+ *         <ClassicyPlacard menuItems={zoomItems} onSelect={setZoom}>100%</ClassicyPlacard>
+ *     }
+ * />
+ * ```
+ */
 export const ClassicyPlacard: FunctionalComponent<ClassicyPlacardProps> = ({
 	disabled = false,
 	menuItems,

@@ -17,13 +17,44 @@ import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/u
 type ClassicyDisclosureTriangleDirections = "up" | "right" | "down" | "left";
 
 type ClassicyDisclosureProps = {
+	/**
+	 * Which way the triangle points while closed (see `ClassicyTriangle`).
+	 * Defaults to `right`, the HIG's closed state.
+	 */
 	direction?: ClassicyDisclosureTriangleDirections;
+	/** Header text beside the triangle — HIGOS8 p.115 asks for a labelled triangle. Defaults to `""` (no text). */
 	label?: string;
+	/** Header text size. Defaults to `medium`. */
 	labelSize?: ClassicyControlLabelSize;
+	/**
+	 * `left` puts the header text before the triangle; any other value puts
+	 * it after. Defaults to `right`.
+	 */
 	labelPosition?: ClassicyLabelPosition;
+	/** The content revealed while open; not displayed while closed. */
 	children?: ReactNode;
 };
 
+/**
+ * A collapsible section headed by a labelled disclosure triangle (HIGOS8 Ch.2
+ * "Disclosure Triangles", p.37) — the Classicy replacement for
+ * `<details>`/`<summary>`, and the HIG's "expand/contract" pattern for showing
+ * optional detail in a dialog. It always starts closed and manages its own
+ * open state.
+ *
+ * The whole header row is a focusable `role="button"` with `aria-expanded`:
+ * click it, or press Enter/Space, to toggle; ⌘→ (Ctrl→ off a Mac) opens and
+ * ⌘← closes (the HIG's list-view equivalents). Each toggle is reported to
+ * analytics.
+ * While closed the content is not displayed (it stays mounted, so its state
+ * survives). For just the triangle, use `ClassicyTriangle`.
+ *
+ * ```tsx
+ * <ClassicyDisclosure label="Advanced Options">
+ *     <ClassicyCheckbox id="verbose" label="Verbose logging" />
+ * </ClassicyDisclosure>
+ * ```
+ */
 export const ClassicyDisclosure: FunctionalComponent<
 	ClassicyDisclosureProps
 > = ({

@@ -1,10 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { fn } from "storybook/test";
 import { ClassicyComboBox } from "./ClassicyComboBox";
 
 const meta = {
 	title: "Controls/ComboBox",
 	component: ClassicyComboBox,
 	decorators: [(Story) => <div style={{ width: 260 }}>{<Story />}</div>],
+	args: { onChangeFunc: fn(), onSelectFunc: fn() },
 } satisfies Meta<typeof ClassicyComboBox>;
 
 export default meta;
@@ -18,6 +20,10 @@ const cities = [
 	{ value: "new-york", label: "New York" },
 ];
 
+/**
+ * The default filter: typing "c" narrows the list to the labels that start with
+ * it. The arrow button always shows the full list.
+ */
 export const StartsWith: Story = {
 	args: {
 		id: "combo-starts",
@@ -27,6 +33,7 @@ export const StartsWith: Story = {
 	},
 };
 
+/** `filter="contains"` matches anywhere in a label, so typing "york" finds New York. */
 export const Contains: Story = {
 	args: {
 		id: "combo-contains",
@@ -36,7 +43,10 @@ export const Contains: Story = {
 	},
 };
 
-// The field may only hold an option label — junk snaps back on dismiss.
+/**
+ * `freeText={false}`: the field may only hold an option label. Text that
+ * matches none snaps back to the last committed choice on dismiss.
+ */
 export const PickOnly: Story = {
 	args: {
 		id: "combo-pick",
@@ -46,7 +56,10 @@ export const PickOnly: Story = {
 	},
 };
 
-// Grouped suggestions: groups filter with their members and vanish when empty.
+/**
+ * Grouped suggestions (`{ groupLabel, options }` entries): groups filter with
+ * their members and vanish, header included, when none match.
+ */
 export const GroupedSuggestions: Story = {
 	args: {
 		id: "combo-grouped",
@@ -68,5 +81,30 @@ export const GroupedSuggestions: Story = {
 				],
 			},
 		],
+	},
+};
+
+/**
+ * `filter={false}` never narrows the list, so it works as a "recent values"
+ * menu beside a free-form field. Prefilled text seeds the field.
+ */
+export const NoFilter: Story = {
+	args: {
+		id: "combo-no-filter",
+		label: "City:",
+		filter: false,
+		prefillValue: "Cupertino",
+		options: cities,
+	},
+};
+
+/** A disabled combo box: neither the field nor the arrow responds. */
+export const Disabled: Story = {
+	args: {
+		id: "combo-disabled",
+		label: "City:",
+		prefillValue: "Monaco",
+		disabled: true,
+		options: cities,
 	},
 };

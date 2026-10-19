@@ -12,7 +12,11 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** Note — talking-face icon, single OK button. */
+/**
+ * A `note` alert with no `buttons` prop: the note icon and the generated single
+ * OK button. Use a note to report something the user should know but need not
+ * decide on.
+ */
 export const Note: Story = {
 	render: () => (
 		<StoryApp id="storybook.app" name="Storybook">
@@ -28,7 +32,11 @@ export const Note: Story = {
 	),
 };
 
-/** Caution — triangle + "!", Cancel + default Continue. */
+/**
+ * A `caution` alert with explicit buttons: Cancel (`role: "cancel"`, fired by
+ * Escape / Command-period) and a specific verb as the default (fired by
+ * Return). HIG: name the action ("Empty Trash"), not "OK".
+ */
 export const Caution: Story = {
 	render: () => (
 		<StoryApp id="storybook.app" name="Storybook">
@@ -49,8 +57,9 @@ export const Caution: Story = {
 };
 
 /**
- * Caution that risks data loss — the safe choice (Cancel) is made default via
- * `defaultButtonId`, per the HIG.
+ * A caution that risks data loss: `defaultButtonId` makes the safe choice
+ * (Cancel) the default button, so a reflexive Return cannot destroy work
+ * (HIGOS8 p.60).
  */
 export const CautionDataLoss: Story = {
 	render: () => (
@@ -72,7 +81,10 @@ export const CautionDataLoss: Story = {
 	),
 };
 
-/** Stop — octagon + hand, single OK button. */
+/**
+ * A `stop` alert: the stop icon and a single OK button, for a problem that
+ * prevented the action. Explain what happened and, where possible, what to do.
+ */
 export const Stop: Story = {
 	render: () => (
 		<StoryApp id="storybook.app" name="Storybook">
@@ -88,7 +100,11 @@ export const Stop: Story = {
 	),
 };
 
-/** Full four-button caution with a Help ("?") button and an optional third action. */
+/**
+ * The four-button maximum: a `help`-role button (drawn as `ClassicyHelpButton`
+ * at the far left), an optional third action, Cancel and the default. A `"?"`
+ * label becomes the accessible name "Help".
+ */
 export const WithHelpButton: Story = {
 	render: () => (
 		<StoryApp id="storybook.app" name="Storybook">
@@ -110,7 +126,11 @@ export const WithHelpButton: Story = {
 	),
 };
 
-/** Movable variant — draggable window with a red title-bar highlight. */
+/**
+ * The movable variant (`movable`): a draggable window whose title bar carries
+ * the red highlight and shows `title`, instead of the fixed alert's red
+ * content border (HIGOS8 p.57). It plays the alert sound itself on open.
+ */
 export const Movable: Story = {
 	render: () => (
 		<StoryApp id="storybook.app" name="Storybook">
@@ -126,6 +146,26 @@ export const Movable: Story = {
 					{ id: "cancel", label: "Cancel", role: "cancel", onClick: fn() },
 					{ id: "replace", label: "Replace", role: "default", onClick: fn() },
 				]}
+				onClose={fn()}
+			/>
+		</StoryApp>
+	),
+};
+
+/**
+ * A `caution` alert with no `buttons` prop: the generated Cancel + Continue
+ * pair, with Continue as the default. Pass `buttons` to name the action
+ * instead, as the Caution story does.
+ */
+export const CautionDefaultButtons: Story = {
+	render: () => (
+		<StoryApp id="storybook.app" name="Storybook">
+			<ClassicyAlert
+				id="alert-caution-defaults"
+				appId="storybook.app"
+				alertType="caution"
+				label="The disk is almost full."
+				message="Continuing may leave too little space to save your work."
 				onClose={fn()}
 			/>
 		</StoryApp>

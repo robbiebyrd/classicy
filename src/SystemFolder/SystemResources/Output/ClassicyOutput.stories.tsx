@@ -9,6 +9,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+/** Plain static text with its label to the left — a "Total: 42 items" row. */
 export const Plain: Story = {
 	args: {
 		id: "total",
@@ -17,6 +18,7 @@ export const Plain: Story = {
 	},
 };
 
+/** `variant="inset"`: the white beveled result well, like a calculator display. */
 export const InsetWell: Story = {
 	args: {
 		id: "result",
@@ -27,6 +29,7 @@ export const InsetWell: Story = {
 	decorators: [(Story) => <div style={{ width: 220 }}>{<Story />}</div>],
 };
 
+/** `mono` sets the result in the monospaced font, for numeric or tabular values. */
 export const MonoResult: Story = {
 	args: {
 		id: "checksum",
@@ -36,4 +39,33 @@ export const MonoResult: Story = {
 		value: "0x3F2A9C",
 	},
 	decorators: [(Story) => <div style={{ width: 260 }}>{<Story />}</div>],
+};
+
+/** `disabled` dims the field and its label — the HIG's inactive static text. */
+export const Disabled: Story = {
+	args: {
+		id: "estimate",
+		label: "Estimated time",
+		value: "About 2 minutes",
+		disabled: true,
+	},
+};
+
+/**
+ * The result passed as `children`, with `htmlFor` naming the inputs that
+ * produced it (rendered as the `<output>`'s `for` attribute).
+ */
+export const FromChildren: Story = {
+	args: {
+		id: "sum",
+		label: "Sum",
+		variant: "inset",
+		htmlFor: ["sum-a", "sum-b"],
+		children: (
+			<>
+				<b>12</b> + <b>30</b> = <b>42</b>
+			</>
+		),
+	},
+	decorators: [(Story) => <div style={{ width: 220 }}>{<Story />}</div>],
 };

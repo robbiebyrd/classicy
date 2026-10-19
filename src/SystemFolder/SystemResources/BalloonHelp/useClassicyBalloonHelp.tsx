@@ -14,9 +14,13 @@ export type ClassicyBalloonPosition =
 /** Serializable balloon help description. Stored on desktop icon records, so
  *  every field must survive a JSON round-trip through localStorage. */
 export interface ClassicyIconBalloonHelp {
+	/** Optional bold heading above the content. */
 	title?: string;
+	/** The help text. */
 	content: string;
+	/** Preferred placement; flipped when off screen. Defaults to `"top-left"`. */
 	position?: ClassicyBalloonPosition;
+	/** Hover delay in ms before the balloon appears. Defaults to `600`. */
 	delay?: number;
 }
 
@@ -249,6 +253,17 @@ const BalloonTail: FC<{ className: string }> = ({ className }) => (
  * bound to an element the caller already owns. Callers that can accept an extra
  * wrapper element should use `ClassicyBalloonHelp` instead; this hook exists for
  * callers that cannot, such as absolutely positioned desktop icons.
+ *
+ * Spread `handlers` (`onMouseEnter`/`onMouseLeave`) onto the element that
+ * `anchorRef` points at and render `balloon` anywhere (it portals itself).
+ * With no `config`, or while balloon help is globally disabled, `balloon` is
+ * always `null`.
+ *
+ * ```tsx
+ * const ref = useRef<HTMLDivElement>(null);
+ * const { handlers, balloon } = useClassicyBalloonHelp(ref, { content: "Hi", position: "top-right" });
+ * return <div ref={ref} {...handlers}>target{balloon}</div>;
+ * ```
  */
 export const useClassicyBalloonHelp = (
 	anchorRef: RefObject<HTMLElement | null>,

@@ -72,8 +72,15 @@ import "../../ControlPanels/AppearanceManager/styles/fonts.scss";
 import "../../../index.css";
 
 interface ClassicyDesktopProps {
+	/** Your apps (`ClassicyApp`) and anything else to mount on the desktop. */
 	children?: ReactNode;
+	/**
+	 * Show the startup screen (chime, progress bar and extension parade) once
+	 * per browser-tab session. `false` skips it, along with a
+	 * custom `bootScreen`. Defaults to `true`.
+	 */
 	startupScreen?: boolean;
+	/** How long the default startup screen runs, in ms. Defaults to `4000`. */
 	startupDuration?: number;
 	/**
 	 * Optional pre-boot "power on" screen shown before the startup sequence.
@@ -624,6 +631,28 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	);
 };
 
+/**
+ * The Mac OS 8 desktop: the root surface every Classicy app renders on, with
+ * no HTML counterpart. Mount it once inside `ClassicyAppManagerProvider`, with
+ * your `ClassicyApp`s as children.
+ *
+ * It mounts the whole shell for you: the menu bar (`ClassicyDesktopMenuBar`),
+ * the Control Strip, Finder, the built-in apps and control panels, the Trash
+ * and the other desktop icons, the contextual-menu provider, a crash boundary
+ * (`ClassicyCrashScreen`) and the startup sequence. The empty desktop supports
+ * rubber-band icon selection, arrow-key and type-to-select icon navigation,
+ * and a right-click menu (Clean Up, Arrange, Empty Trash…). It applies the
+ * active theme as CSS variables on its root `#classicyDesktop` element, where
+ * windows, menus and balloons portal.
+ *
+ * ```tsx
+ * <ClassicyAppManagerProvider>
+ *   <ClassicyDesktop controlStrip={{ defaultCollapsed: true }}>
+ *     <MyApp />
+ *   </ClassicyDesktop>
+ * </ClassicyAppManagerProvider>
+ * ```
+ */
 export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 	children,
 	startupScreen,

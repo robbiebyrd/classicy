@@ -17,9 +17,11 @@ export type QuickTimeCaptionStyle = {
 	font: string;
 	/** 24-bit int text color (see intToRgb). */
 	color: number;
+	/** Text opacity, 0–1. */
 	colorOpacity: number;
 	/** 24-bit int background color. */
 	bgColor: number;
+	/** Background opacity, 0–1. */
 	bgOpacity: number;
 	/** Font size in percent (100 = theme default). */
 	size: number;
@@ -55,8 +57,15 @@ function resolveCssVar(name: string): string {
 	return getComputedStyle(el).getPropertyValue(name).trim();
 }
 
+/**
+ * Bottom-centred caption text over the picture. Cue markup (`<i>`,
+ * `<c.class>`, …) is stripped to plain text, and nothing renders when there
+ * is no active cue. `captionStyle` overrides the theme's caption look.
+ */
 export const QuickTimeCaptionsOverlay: FunctionalComponent<{
+	/** The active cue's text, or `null` for none. */
 	text: string | null;
+	/** Optional font/colour/size override; theme styling when omitted. */
 	captionStyle?: QuickTimeCaptionStyle;
 }> = ({ text, captionStyle }) => {
 	const [overrideStyle, setOverrideStyle] = useState<CSSProperties>({});

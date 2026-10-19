@@ -13,7 +13,13 @@ export type ClassicyPixelArtRows = readonly string[];
 // palette follows the theme without inline styles.
 
 type ClassicyPixelArtProps = {
+	/**
+	 * The image, top row first, one palette token per pixel: `K` black, `W`
+	 * white, `1`–`7` the system greys, `b` `c` `d` theme accents 02–04, `m` and
+	 * `n` mixed shades, `.` transparent. Width comes from the first row.
+	 */
 	rows: ClassicyPixelArtRows;
+	/** Class(es) for the `<svg>`, e.g. to position or scale it. */
 	className?: string;
 };
 
@@ -21,6 +27,18 @@ type ClassicyPixelArtProps = {
  * Renders pixel art as an inline SVG at its native size, one `rect` per run of
  * same-token pixels, with crisp edges. Inline (not an `<img>`) so the token
  * classes resolve against the current theme. Decorative.
+ *
+ * Use it for HIG artwork that must be pixel-exact yet recolour with the
+ * Appearance theme — the Control Strip's tab, collapse box and arrows
+ * (HIGOS8 Figure 6-15) and `ClassicyPopUpSlider` (Figure 2-16) are drawn with
+ * it. Each token maps to a theme colour token in `ClassicyPixelArt.scss`, so
+ * switching themes repaints the art with no re-render. The SVG is
+ * `aria-hidden`; give the surrounding control its accessible name.
+ *
+ * ```tsx
+ * const glyph: ClassicyPixelArtRows = ["KKKK", "K33K", "K33K", "KKKK"];
+ * <ClassicyPixelArt rows={glyph} />
+ * ```
  */
 export const ClassicyPixelArt: FunctionalComponent<ClassicyPixelArtProps> = ({
 	rows,

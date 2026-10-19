@@ -27,21 +27,53 @@ import { ClassicyLittleArrows } from "@/SystemFolder/SystemResources/LittleArrow
 type ClassicyDatePart = "month" | "day" | "year";
 
 interface ClassicyDatePickerProps {
+	/**
+	 * Base id. The month, day and year fields get `${id}_month`, `${id}_day`
+	 * and `${id}_year`. (The label's `for` is the bare `id`, so it is not tied
+	 * to any one field.)
+	 */
 	id: string;
+	/** Called with the new (range-clamped) `Date` after every edit or step. */
 	onChangeFunc?: (date: Date) => void;
+	/** Visible label text. Omit for no label. */
 	labelTitle?: string;
+	/** Label text size. Defaults to `"medium"`. */
 	labelSize?: ClassicyControlLabelSize;
+	/** Where the label sits relative to the field. Defaults to `"above"`. */
 	labelPosition?: ClassicyLabelPosition;
+	/** Not used — the fields always show a date. Kept for API symmetry. */
 	placeholder?: string;
+	/**
+	 * Initial date. Defaults to the Classicy virtual clock
+	 * (`System.Manager.DateAndTime.dateTime`). Read on mount only.
+	 */
 	prefillValue?: Date;
+	/** Disables the fields and little arrows (and dims the label). Defaults to `false`. */
 	disabled?: boolean;
+	/** Dims the label independently of the fields. Defaults to `disabled`. */
 	labelDisabled?: boolean;
+	/** Adds the `classicyDatePickerDefault` class (no built-in styling). */
 	isDefault?: boolean;
+	/** Forwarded to the month field (the first field). */
 	ref?: ForwardedRef<HTMLInputElement>;
+	/** Earliest allowed date; earlier edits snap to it. */
 	minValue?: Date;
+	/** Latest allowed date; later edits snap to it. */
 	maxValue?: Date;
 }
 
+/**
+ * The `<input type="date">` equivalent: a Mac OS 8 clock control (HIGOS8
+ * Ch.2 "Clock Controls", p.36) — month / day / year edit fields with shared
+ * little arrows. Click a field to select it; Up/Down (or the arrows) step the
+ * focused part, with the day kept valid for the month and year.
+ *
+ * The control keeps its own date: it seeds from `prefillValue` (else the
+ * Classicy virtual clock in the store, so it must render inside
+ * `ClassicyAppManagerProvider`) and reports every change through
+ * `onChangeFunc`, clamped to `minValue`/`maxValue`. Pair it with
+ * `ClassicyTimePicker` for a full date and time.
+ */
 export const ClassicyDatePicker: FunctionalComponent<ClassicyDatePickerProps> =
 	forwardRef<HTMLInputElement, ClassicyDatePickerProps>(
 		function ClassicyDatePicker(

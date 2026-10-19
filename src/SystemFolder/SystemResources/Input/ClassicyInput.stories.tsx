@@ -5,16 +5,18 @@ import { ClassicyInput } from "./ClassicyInput";
 const meta = {
 	title: "Controls/Input",
 	component: ClassicyInput,
-	args: { onChangeFunc: fn() },
+	args: { onChangeFunc: fn(), onEnterFunc: fn() },
 } satisfies Meta<typeof ClassicyInput>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+/** An empty edit text field with its label above — the default layout. */
 export const Default: Story = {
 	args: { id: "input-default", labelTitle: "Computer Name" },
 };
 
+/** Placeholder text shows in the empty field and disappears once the user types. */
 export const Placeholder: Story = {
 	args: {
 		id: "input-placeholder",
@@ -23,6 +25,10 @@ export const Placeholder: Story = {
 	},
 };
 
+/**
+ * A label to the left of a prefilled field, the usual dialog-row layout. The
+ * field stays editable: `prefillValue` only seeds (and later resets) the text.
+ */
 export const LabelLeft: Story = {
 	args: {
 		id: "input-left",
@@ -32,6 +38,18 @@ export const LabelLeft: Story = {
 	},
 };
 
+/** `type` passes through to the native `<input>`, so a password field masks its text. */
+export const Password: Story = {
+	args: {
+		id: "input-password",
+		labelTitle: "Password:",
+		labelPosition: "left",
+		type: "password",
+		prefillValue: "sosumi",
+	},
+};
+
+/** A disabled field: not editable, with field and label dimmed. */
 export const Disabled: Story = {
 	args: { id: "input-disabled", labelTitle: "Serial Number", disabled: true },
 };

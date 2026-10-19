@@ -20,6 +20,11 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+/**
+ * A basic menu: enabled items with keyboard equivalents, a disabled item, and
+ * a submenu (click Export to open it). Choosing an item flashes it, closes the
+ * menu and calls its `onClickFunc`.
+ */
 export const Default: Story = {
 	args: {
 		name: "storybook_menu",
@@ -39,9 +44,12 @@ export const Default: Story = {
 	},
 };
 
-// Free-form modifier spellings (Cmd, Option, Ctrl, Shift, or entities) are
-// parsed and rendered as platinum modifier glyphs (⌃ ⌥ ⇧ ⌘). Pressing the
-// matching command-key also fires the item and closes the menu.
+/**
+ * Free-form modifier spellings (Cmd, Option, Ctrl, Shift, or entities) are
+ * parsed and rendered as Platinum modifier glyphs (⌃ ⌥ ⇧ ⌘) in canonical order.
+ * A standalone menu only displays them; the chords fire app-wide for menus
+ * published to the menu bar (a window's `appMenu`).
+ */
 export const ModifierGlyphShortcuts: Story = {
 	args: {
 		name: "storybook_menu_glyphs",
@@ -74,6 +82,30 @@ export const ModifierGlyphShortcuts: Story = {
 				id: "help-key",
 				title: "Help",
 				keyboardShortcut: "F1",
+				onClickFunc: fn(),
+			},
+		],
+	},
+};
+
+/**
+ * Checkable items and dividers. `checked: true` draws a checkmark, `"mixed"`
+ * the HIG dash for an attribute that applies to only part of the selection,
+ * and `false` reserves the gutter so the column stays aligned. `{ id:
+ * "spacer" }` is a divider, and the last item carries `balloon` help.
+ */
+export const CheckmarksAndDividers: Story = {
+	args: {
+		name: "storybook_menu_checks",
+		menuItems: [
+			{ id: "plain", title: "Plain Text", checked: true, onClickFunc: fn() },
+			{ id: "bold", title: "Bold", checked: "mixed", onClickFunc: fn() },
+			{ id: "italic", title: "Italic", checked: false, onClickFunc: fn() },
+			{ id: "spacer" },
+			{
+				id: "styles",
+				title: "Show Styles…",
+				balloon: { content: "Opens the style sheet." },
 				onClickFunc: fn(),
 			},
 		],

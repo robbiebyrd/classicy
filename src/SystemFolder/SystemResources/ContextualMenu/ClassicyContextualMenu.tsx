@@ -15,12 +15,38 @@ import {
 } from "react";
 
 interface ClassicyMenuProps {
+	/** Menu name, used to key the rendered list. */
 	name: string;
+	/**
+	 * Top-left corner `[x, y]` in viewport pixels. The menu flips left or up
+	 * when it would overflow the right or bottom edge of the viewport.
+	 */
 	position: number[];
+	/** The items to show. Rendered as given — no Help item is added here. */
 	menuItems: ClassicyMenuItem[];
+	/** Called when the menu should close: an item was chosen, the idle timeout passed, or the user clicked outside. Unmount the menu here. */
 	onClose?: () => void;
 }
 
+/**
+ * A Platinum pop-up menu rendered at a fixed point — the low-level surface
+ * behind contextual menus and menu bar extension dropdowns. It opens already
+ * active (sticky, HIGOS8 p.92), flips to stay inside the viewport, and calls
+ * `onClose` on a selection, a click outside or 15 seconds idle.
+ *
+ * For right-click menus you usually don't render it yourself: wrap a control
+ * in `ClassicyContextualMenuTarget`, pass `contextMenu` to a window or app, or
+ * call `useClassicyContextualMenu().showContextMenu`. Those go through the
+ * desktop's `ClassicyContextualMenuProvider`, which also adds the HIG's leading
+ * Help item. Render it directly to open a menu at an arbitrary point:
+ *
+ * ```tsx
+ * {open && (
+ *   <ClassicyContextualMenu name="myapp_dropdown" position={[x, y]}
+ *     menuItems={items} onClose={() => setOpen(false)} />
+ * )}
+ * ```
+ */
 export const ClassicyContextualMenu: FunctionalComponent<ClassicyMenuProps> = ({
 	name,
 	menuItems,

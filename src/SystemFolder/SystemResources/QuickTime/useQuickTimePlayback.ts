@@ -8,6 +8,15 @@ import {
 import screenfull from "screenfull";
 import { useControllableState } from "@/SystemFolder/SystemResources/QuickTime/useControllableState";
 
+/**
+ * The playback state behind `QuickTimeVideoEmbed`, for building a custom
+ * player: playing (controlled via `playing`/`onPlayingChange`, else seeded
+ * from `autoPlay`), volume (controlled via `volume`/`onVolumeChange`, else
+ * 0.5), loop, the current time mirrored from the media element's
+ * `timeupdate`, seeking (absolute, by fraction, or ±10 s) and fullscreen.
+ * Attach `attachMediaRef` as the media element's ref and
+ * `handleTimeUpdate` as its time-update handler.
+ */
 export function useQuickTimePlayback(options: {
 	autoPlay?: boolean;
 	playing?: boolean;

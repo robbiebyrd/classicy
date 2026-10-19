@@ -12,6 +12,10 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+/**
+ * The About box for an open app. Press Return or Escape, or click OK, to call
+ * `hideFunc` (logged in the Actions panel); the story never unmounts it.
+ */
 export const Default: Story = {
 	render: () => (
 		<StoryApp id="storybook.app" name="Storybook">

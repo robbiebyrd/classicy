@@ -3,7 +3,12 @@ import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/Cl
 
 const fullscreenButton = ClassicyIcons.system.quicktime.fullscreenButton;
 
+/**
+ * The controller bar's fullscreen button (an icon button labelled "Enter
+ * fullscreen"). `QuickTimeVideoEmbed` shows it for `type="video"` only.
+ */
 export const QuickTimeFullscreenButton: FunctionalComponent<{
+	/** Fired on click; typically `useQuickTimePlayback().toggleFullscreen`. */
 	onToggle: () => void;
 }> = ({ onToggle }) => (
 	<button

@@ -20,6 +20,10 @@ type Story = StoryObj<typeof meta>;
 // is served from a sub-path (e.g. a PR preview at /<repo>/pr-preview/pr-N/).
 const icon = ClassicyIcons.system.info;
 
+/**
+ * One group of icon-only bevel buttons: squared by the toolbar, packed flush,
+ * and no divider, since dividers only go between groups.
+ */
 export const SingleGroup: Story = {
 	render: () => (
 		<ClassicyButtonToolbar>
@@ -32,6 +36,11 @@ export const SingleGroup: Story = {
 	),
 };
 
+/**
+ * Three groups with dividers drawn automatically between them. Tab into the
+ * toolbar once, then use the arrow keys (wrapping) and Home/End to move
+ * between buttons across groups.
+ */
 export const MultipleGroups: Story = {
 	render: () => (
 		<ClassicyButtonToolbar>
@@ -50,6 +59,10 @@ export const MultipleGroups: Story = {
 	),
 };
 
+/**
+ * Icon-only buttons go square inside a toolbar; buttons with a text label keep
+ * their rectangular shape.
+ */
 export const MixedIconAndText: Story = {
 	render: () => (
 		<ClassicyButtonToolbar>
@@ -65,15 +78,15 @@ export const MixedIconAndText: Story = {
 	),
 };
 
-// `ClassicyBevelButton` mode="radio" only ever turns itself ON — it has no
-// notion of the sibling buttons in its group, so nothing makes them mutually
-// exclusive automatically. A real radio *group* has to be driven by a shared
-// selection, wiring each button's `on`/`onChangeFunc` to one state value —
-// exactly like a plain HTML radio group needs a shared `name`. This story
-// does that wiring so "Center" actually turns "Left" off, instead of the
-// naive per-button `on` default that would leave both lit.
 const alignments = ["Left", "Center", "Right"] as const;
 
+/**
+ * A toggle group (Bold/Italic) beside a radio group (alignment). A
+ * `mode="radio"` bevel button only ever turns itself on — it knows nothing of
+ * its siblings — so the group is driven by one shared state value wired to
+ * each button's `on`/`onChangeFunc`, just as an HTML radio group needs a
+ * shared `name`.
+ */
 export const ToggleAndRadioGroups: Story = {
 	render: function Render() {
 		const [alignment, setAlignment] =
@@ -101,8 +114,10 @@ export const ToggleAndRadioGroups: Story = {
 	},
 };
 
-// All three sizes stacked for comparison. `large` is the default; `medium`
-// and `small` scale every control in the toolbar as a unit.
+/**
+ * All three `size`s stacked for comparison. `large` is the default; `medium`
+ * and `small` scale every control in the toolbar as a unit.
+ */
 export const Sizes: Story = {
 	render: () => (
 		<div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>

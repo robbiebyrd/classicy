@@ -1,5 +1,8 @@
 import { desktopParameters, StoryApp } from "@sb/helpers";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { useRef } from "react";
+import { fn } from "storybook/test";
+import { ClassicyCheckbox } from "@/SystemFolder/SystemResources/Checkbox/ClassicyCheckbox";
 import { ClassicyPlacard } from "@/SystemFolder/SystemResources/Placard/ClassicyPlacard";
 import { ClassicyWindow } from "./ClassicyWindow";
 
@@ -12,6 +15,11 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+/**
+ * A standard document window: close box on the left, zoom and collapse boxes on
+ * the right, a draggable frame and a grow box. Drag, resize, collapse and zoom
+ * it to hear the window sounds; its geometry lives in the window manager store.
+ */
 export const Default: Story = {
 	render: () => (
 		<StoryApp id="storybook.app" name="Storybook">
@@ -30,6 +38,11 @@ export const Default: Story = {
 	),
 };
 
+/**
+ * The minimal modal dialog: `modal` portals the window above an input-blocking
+ * scrim, traps Tab focus and drops the zoom box. Escape or Command-period
+ * closes it because it is `closable`.
+ */
 export const Modal: Story = {
 	render: () => (
 		<StoryApp id="storybook.app" name="Storybook">
@@ -49,6 +62,11 @@ export const Modal: Story = {
 	),
 };
 
+/**
+ * `resizable={false}` and `zoomable={false}` remove the grow box and zoom box,
+ * for windows whose layout has one right size. A non-resizable window always
+ * opens at `initialSize`, ignoring any persisted size.
+ */
 export const FixedSize: Story = {
 	render: () => (
 		<StoryApp id="storybook.app" name="Storybook">
@@ -274,7 +292,8 @@ export const FixedModal: Story = {
 /**
  * #208 — zoom modes. `zoomMode` controls whether the zoom box grows both axes
  * (`full`), only the width (`horizontal`), or only the height (`vertical`). The
- * user's pre-zoom rect is remembered and restored on un-zoom.
+ * user's pre-zoom rect is remembered and restored on un-zoom; click the zoom
+ * box again to return to it.
  */
 export const HorizontalZoom: Story = {
 	render: () => (
@@ -372,4 +391,95 @@ export const ScrollBoth: Story = {
 			</ClassicyWindow>
 		</StoryApp>
 	),
+};
+
+/**
+ * #208 / HIGOS8 p.104 — a full zoom to the window's "standard state".
+ * `idealSize` is a content-box size, like `initialSize`; the zoom box toggles
+ * between it (clamped to the desktop) and the user's own size, rather than
+ * maximizing to fill the screen.
+ */
+export const IdealSizeZoom: Story = {
+	render: () => (
+		<StoryApp id="storybook.app" name="Storybook">
+			<ClassicyWindow
+				id="ideal-zoom"
+				appId="storybook.app"
+				title="Ideal Size"
+				initialSize={[260, 160]}
+				minimumSize={[200, 0]}
+				idealSize={[520, 320]}
+				initialPosition={[80, 60]}
+			>
+				<p style={{ padding: "1em" }}>
+					Click the zoom box: the window zooms to its 520 × 320 ideal size, then
+					back to this one.
+				</p>
+			</ClassicyWindow>
+		</StoryApp>
+	),
+};
+
+/**
+ * A window-level `contextMenu`. Right-clicking anywhere in the window focuses
+ * it and opens this menu, with the HIG's Help item placed first. A
+ * `ClassicyContextualMenuTarget` inside the window would win over it, and the
+ * app's `contextMenu` is the fallback when a window has none.
+ */
+export const WithContextMenu: Story = {
+	render: () => (
+		<StoryApp id="storybook.app" name="Storybook">
+			<ClassicyWindow
+				id="context-menu"
+				appId="storybook.app"
+				title="Right-Click Me"
+				initialSize={[360, 200]}
+				initialPosition={[80, 60]}
+				contextMenu={[
+					{ id: "get-info", title: "Get Info", onClickFunc: fn() },
+					{ id: "spacer" },
+					{ id: "close-window", title: "Close Window", onClickFunc: fn() },
+				]}
+			>
+				<p style={{ padding: "1em" }}>
+					Right-click inside this window for its contextual menu.
+				</p>
+			</ClassicyWindow>
+		</StoryApp>
+	),
+};
+
+const CloseVetoWindow = () => {
+	const allowCloseRef = useRef(false);
+	return (
+		<StoryApp id="storybook.app" name="Storybook">
+			<ClassicyWindow
+				id="close-veto"
+				appId="storybook.app"
+				title="Unsaved Changes"
+				initialSize={[360, 160]}
+				initialPosition={[80, 60]}
+				onBeforeClose={() => allowCloseRef.current}
+			>
+				<div style={{ padding: "1em" }}>
+					<ClassicyCheckbox
+						id="allow-close"
+						label="Allow this window to close"
+						onClickFunc={(checked) => {
+							allowCloseRef.current = checked;
+						}}
+					/>
+				</div>
+			</ClassicyWindow>
+		</StoryApp>
+	);
+};
+
+/**
+ * #236 — `onBeforeClose` vetoes a close. The close box does nothing until the
+ * checkbox is ticked, because the hook returns `false`; a vetoed close plays
+ * no sound and dispatches nothing. Return a promise to ask the user first.
+ */
+export const CloseVeto: Story = {
+	render: () => <CloseVetoWindow />,
 };

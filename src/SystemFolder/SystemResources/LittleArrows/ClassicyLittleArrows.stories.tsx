@@ -12,15 +12,19 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+/** The bare arrow pair. Press an arrow to fire `onStep` once, then repeatedly while held. */
 export const Default: Story = {};
 
+/** Both arrows natively disabled: they leave the tab order and `onStep` never fires. */
 export const Disabled: Story = {
 	args: { disabled: true },
 };
 
-// The HIG pairs little arrows with the content they change (p.35). Wrapping
-// both in `classicyLittleArrowsGroup` gives the standard spacing; click to step
-// by one, or hold to repeat.
+/**
+ * The HIG pairs little arrows with the content they change (p.35). Wrapping
+ * both in `classicyLittleArrowsGroup` gives the standard spacing; click to step
+ * by one, or hold to repeat. The value (clamped to 0–99) lives in the caller.
+ */
 export const WithValue: Story = {
 	render: (args) => {
 		const [value, setValue] = useState(5);

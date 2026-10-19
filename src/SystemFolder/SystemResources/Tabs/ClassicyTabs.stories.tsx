@@ -11,6 +11,11 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+/**
+ * A standard (`medium`) tab control with three panes holding ordinary
+ * controls. Click a tab, or focus the strip and use the arrow keys, Home and
+ * End; text typed on the General tab survives switching away and back.
+ */
 export const Default: Story = {
 	args: {
 		tabs: [
@@ -49,18 +54,25 @@ const sizeTabs = [
 	{ title: "Memory", children: <p>Memory settings.</p> },
 ];
 
+/**
+ * The compact `small` strip, for windows with more tabs than room. Its label
+ * is the standard size scaled by the HIG's 10:12 ratio.
+ */
 export const Small: Story = {
 	args: { size: "small", tabs: sizeTabs },
 };
 
+/** The `large` size, a Classicy extension that scales the type up by half. */
 export const Large: Story = {
 	args: { size: "large", tabs: sizeTabs },
 };
 
-// All three sizes stacked so the HIG tab type scale is easy to compare: the
-// standard (medium) label is the system UI font, the compact (small) label is
-// that size scaled by the HIG's 10:12 ratio, and large is the Classicy
-// extension above it.
+/**
+ * All three sizes stacked so the HIG tab type scale is easy to compare: the
+ * standard (`medium`) label is the system UI font, the compact (`small`) label
+ * is that size scaled by the HIG's 10:12 ratio, and `large` is the Classicy
+ * extension above it.
+ */
 export const SizeComparison: Story = {
 	render: () => (
 		<div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -71,8 +83,11 @@ export const SizeComparison: Story = {
 	),
 };
 
-// Narrow enough that the strip cannot fit every tab, so the scroll arrows
-// appear at both ends. Arrows show at any size, not only `small`.
+/**
+ * Narrow enough that the strip cannot fit every tab, so scroll arrows appear
+ * at both ends; each click advances by a whole tab. Arrows show at any size,
+ * not only `small`, and keyboard traversal scrolls the selected tab into view.
+ */
 export const Overflowing: Story = {
 	args: {
 		size: "small",
@@ -95,6 +110,10 @@ export const Overflowing: Story = {
 	],
 };
 
+/**
+ * Tabs can carry an icon beside the title, or an icon alone (the third tab).
+ * Icons are decorative, so an icon-only tab has no accessible name of its own.
+ */
 export const WithIcons: Story = {
 	args: {
 		tabs: [

@@ -26,24 +26,30 @@ const MODIFIER_KEYS = new Set(["Meta", "Control", "Shift", "Alt", "OS"]);
 
 export type ClassicyKeyboardEquivalentDialogProps =
 	ClassicyKeyboardEquivalentRuleOptions & {
-		/** Window id (unique per open dialog). */
+		/** Window id (unique per open dialog). Defaults to "keyboardEquivalentDialog". */
 		id?: string;
-		/** Owning app id. */
+		/**
+		 * Owning app id — pass your app's so the dialog opens as one of its
+		 * windows. Defaults to "ClassicyKeyboardEquivalentDialog".
+		 */
 		appId?: string;
-		/** Title-bar text. */
+		/** Title-bar text. Defaults to `""` (an untitled title bar). */
 		title?: string;
-		/** Bold instruction above the feedback field. */
+		/** Bold instruction above the feedback field. Defaults to the HIG wording. */
 		prompt?: ReactNode;
 		/** What the equivalent does, shown under the field (HIG Figure 6-9). */
 		description?: ReactNode;
 		/** Equivalent shown when the dialog opens; typing replaces it. */
 		initialValue?: string;
+		/** Label of the confirming (default) button. Defaults to "OK". */
 		confirmLabel?: string;
+		/** Label of the cancel button. Defaults to "Cancel". */
 		cancelLabel?: string;
 		/** Adds a Help button to the invalid-combination alert. */
 		onHelp?: () => void;
 		/** Called with the new equivalent, in display form ("⌃⌘S"). */
 		onConfirm: (shortcut: string) => void;
+		/** Called by Cancel, Escape or ⌘-period. The caller closes the dialog. */
 		onCancel?: () => void;
 	};
 

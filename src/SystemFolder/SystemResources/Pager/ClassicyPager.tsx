@@ -3,9 +3,14 @@ import classNames from "classnames";
 import type { FC as FunctionalComponent } from "react";
 
 type ClassicyPagerProps = {
-	/** Zero-based current page. */
+	/** Zero-based current page; the cell shows it one-based. */
 	page: number;
+	/** Total number of pages; the forward arrow disables on the last one. */
 	pageCount: number;
+	/**
+	 * Fired with the requested adjacent page (`page - 1` or `page + 1`) when an
+	 * enabled arrow is clicked. Update `page` here to accept the move.
+	 */
 	onPageChange: (page: number) => void;
 	/**
 	 * Extra class for the page-number cell. Surfaces that shipped their own
@@ -23,6 +28,17 @@ type ClassicyPagerProps = {
  *
  * Controlled only: it holds no index of its own and reports the requested
  * page through `onPageChange`, so the owner decides whether the move happens.
+ * The arrows are real buttons ("Previous page" / "Next page"), so they are
+ * keyboard-operable; the pager itself plays no sounds. `ClassicyAssistant`
+ * uses it for its footer navigation.
+ *
+ * Disabled arrows are drawn hollow by punching their centre out in the colour
+ * of the band behind the pager. That colour defaults to `--color-system-01`;
+ * on any other background set `--classicy-pager-band` on an ancestor.
+ *
+ * ```tsx
+ * <ClassicyPager page={page} pageCount={topics.length} onPageChange={setPage} />
+ * ```
  */
 export const ClassicyPager: FunctionalComponent<ClassicyPagerProps> = ({
 	page,

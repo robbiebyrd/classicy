@@ -12,15 +12,17 @@ export type ClassicyKeyboardEquivalentFieldProps = Omit<
 	ClassicyKeyboardEquivalentDialogProps,
 	"id" | "initialValue" | "current" | "onConfirm" | "onCancel"
 > & {
+	/** Id of the button; the display gets `${id}-value` and the dialog window `${id}-dialog`. */
 	id: string;
-	/** Group-box title. */
+	/** Group-box title (and the display's accessible name). Defaults to "Current keyboard equivalent". */
 	label?: string;
 	/** The current keyboard equivalent, in any form `parseKeyboardShortcut` reads. */
 	value?: string;
 	/** Called with the newly defined equivalent, in display form ("⌃⌘S"). */
 	onChange: (shortcut: string) => void;
-	/** Label of the button that opens the dialog. */
+	/** Label of the button that opens the dialog. Defaults to "Change keyboard equivalent…". */
 	buttonLabel?: string;
+	/** Disables the button so the equivalent cannot be changed. Defaults to `false`. */
 	disabled?: boolean;
 };
 
@@ -33,6 +35,14 @@ export type ClassicyKeyboardEquivalentFieldProps = Omit<
  *
  * Pass the owning app's id as `appId`: the dialog is a window of that app, and
  * only an open app's windows are positioned (and centred) by the store.
+ *
+ * The field is controlled — it shows `value` spelled out (`⌃ + ⌘ + S`) and
+ * reports the new equivalent in menu-item form (`"⌃⌘S"`), ready for a
+ * `ClassicyMenuItem`'s `keyboardShortcut`. The dialog's rules come through
+ * too: a combination without ⌘ (or a function key) is refused unless
+ * `requireCommandKey={false}`, `inUse` conflicts are refused naming their
+ * owner (build it from your menus with `keyboardEquivalentsInUse`), and
+ * `validate` adds rules of your own.
  */
 export const ClassicyKeyboardEquivalentField: FunctionalComponent<
 	ClassicyKeyboardEquivalentFieldProps

@@ -13,6 +13,11 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+/**
+ * The stock splash with a 30-second `duration` so it stays up long enough to
+ * inspect. The story resets the once-per-session flag before rendering;
+ * without that, the splash would render nothing after its first showing.
+ */
 export const Default: Story = {
 	render: () => {
 		resetStartupScreenSession();
@@ -20,6 +25,11 @@ export const Default: Story = {
 	},
 };
 
+/**
+ * The extension parade: five extension apps registered with `ClassicyAppLoad`
+ * (`extension: true`) appear one at a time along the bottom, spaced so the
+ * last lands before the progress bar fills.
+ */
 export const WithExtensions: Story = {
 	render: () => {
 		resetStartupScreenSession();
@@ -46,5 +56,35 @@ export const WithExtensions: Story = {
 			dispatch({ type: "ClassicyAppLoad", app, extension: true });
 		}
 		return <ClassicyStartupScreen duration={15000} />;
+	},
+};
+
+/**
+ * Rebranded via `logo` and `wordmark` (on a desktop: `startupLogo` /
+ * `startupWordmark`), with parade icons injected by `ClassicyBootParadeIconAdd`
+ * — no extension app needed. Injected icons lead the parade.
+ */
+export const CustomBranding: Story = {
+	render: () => {
+		resetStartupScreenSession();
+		dispatch({
+			type: "ClassicyBootParadeIconAdd",
+			id: "storybook-colors",
+			name: "Colors",
+			icon: ClassicyIcons.system.colors.extension,
+		});
+		dispatch({
+			type: "ClassicyBootParadeIconAdd",
+			id: "storybook-mac",
+			name: "Mac",
+			icon: ClassicyIcons.system.mac,
+		});
+		return (
+			<ClassicyStartupScreen
+				duration={15000}
+				logo={ClassicyIcons.system.macWink}
+				wordmark="My Product"
+			/>
+		);
 	},
 };
