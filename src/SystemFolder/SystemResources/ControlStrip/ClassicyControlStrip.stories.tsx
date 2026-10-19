@@ -3,6 +3,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useEffect, useState } from "react";
 import { fn } from "storybook/test";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import { ClassicyControlStrip } from "./ClassicyControlStrip";
 import {
@@ -169,4 +170,30 @@ export const Scrolling: Story = {
 
 export const Collapsed: Story = {
 	args: { defaultCollapsed: true },
+};
+
+/**
+ * Control-drag the collapse box to move the strip: it follows the pointer up
+ * and down and docks to the edge on the pointer's half of the desktop. Docked
+ * right it is mirrored — the tab leads and points left. This story starts it
+ * there, part-way up, and puts it back at the lower left when it closes.
+ */
+export const DockedRight: Story = {
+	render: (args) => {
+		const dispatch = useAppManagerDispatch();
+		useEffect(() => {
+			dispatch({
+				type: "ClassicyDesktopControlStripSetPosition",
+				edge: "right",
+				bottom: 160,
+			});
+			return () =>
+				dispatch({
+					type: "ClassicyDesktopControlStripSetPosition",
+					edge: "left",
+					bottom: 0,
+				});
+		}, [dispatch]);
+		return <ClassicyControlStrip {...args} />;
+	},
 };

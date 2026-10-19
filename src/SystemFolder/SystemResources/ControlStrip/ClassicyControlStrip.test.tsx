@@ -19,6 +19,7 @@ import { ClassicyContextualMenuProvider } from "@/SystemFolder/SystemResources/C
 import {
 	ClassicyControlStrip,
 	type ClassicyControlStripProps,
+	computeClassicyControlStripPosition,
 } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStrip";
 import {
 	CLASSICY_CONTROL_STRIP_MODULE_IDS,
@@ -654,5 +655,232 @@ describe("Control Strip persisted state", () => {
 		completeMenuItemFlash("control-strip-hide");
 		await waitFor(() => expect(storedStrip()?.visible).toBe(false));
 		expect(screen.queryByRole("toolbar", { name: "Control Strip" })).toBeNull();
+	});
+});
+
+describe("computeClassicyControlStripPosition (#298, #299)", () => {
+	const desktop = { left: 0, top: 0, width: 800, height: 600 };
+	const at = (x: number, y: number, topInset = 0) =>
+		computeClassicyControlStripPosition({
+			pointer: [x, y],
+			grabOffsetY: 12,
+			desktop,
+			stripHeight: 24,
+			topInset,
+		});
+
+	it("docks to the edge on the pointer's half of the desktop", () => {
+		expect(at(399, 300).edge).toBe("left");
+		expect(at(400, 300).edge).toBe("right");
+	});
+
+	it("keeps the strip's height where the pointer carries it", () => {
+		// Strip top = 300 − 12 = 288; bottom = 600 − 288 − 24 = 288.
+		expect(at(100, 300).bottom).toBe(288);
+	});
+
+	it("stops at the desktop's bottom and under the menu bar", () => {
+		expect(at(100, 900).bottom).toBe(0);
+		expect(at(100, -50).bottom).toBe(576);
+		expect(at(100, -50, 20).bottom).toBe(556);
+	});
+
+	it("measures against the desktop's own offset on the page", () => {
+		expect(
+			computeClassicyControlStripPosition({
+				pointer: [450, 400],
+				grabOffsetY: 12,
+				desktop: { left: 100, top: 100, width: 800, height: 600 },
+				stripHeight: 24,
+			}),
+			// x 450 is 350 into the desktop (its left half); the strip's top is
+			// 400 − 12 − 100 = 288 into it, so 600 − 288 − 24 = 288 above its bottom.
+		).toEqual({ edge: "left", bottom: 288 });
+	});
+});
+
+describe("Control-dragging the Control Strip (#298, #299)", () => {
+	const DESKTOP = { left: 0, top: 0, width: 800, height: 600 };
+	const STRIP_TOP = 576;
+	let desktop: HTMLElement;
+
+	beforeEach(() => {
+		desktop = document.createElement("div");
+		document.body.appendChild(desktop);
+		// jsdom runs no layout: stand in the desktop as the strip's offset
+		// parent, with the strip at its bottom edge.
+		vi.spyOn(HTMLElement.prototype, "offsetParent", "get").mockReturnValue(
+			desktop,
+		);
+		vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(24);
+		vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(
+			function (this: Element) {
+				const rect =
+					this === desktop
+						? DESKTOP
+						: { left: 0, top: STRIP_TOP, width: 200, height: 24 };
+				return {
+					...rect,
+					right: rect.left + rect.width,
+					bottom: rect.top + rect.height,
+					x: rect.left,
+					y: rect.top,
+					toJSON: () => {},
+				} as DOMRect;
+			},
+		);
+	});
+
+	afterEach(() => desktop.remove());
+
+	const collapseBox = () =>
+		screen.getByRole("button", { name: "Collapse Control Strip" });
+	const strip = () => screen.getByRole("toolbar", { name: "Control Strip" });
+	// Grabbed 12 px below its top edge.
+	const controlPress = () =>
+		fireEvent.mouseDown(collapseBox(), {
+			button: 0,
+			ctrlKey: true,
+			clientX: 5,
+			clientY: STRIP_TOP + 12,
+		});
+
+	it("moves the strip up and docks it right, storing the position on release", () => {
+		register(...testModules());
+		renderStrip();
+		controlPress();
+		fireEvent.mouseMove(document, { clientX: 700, clientY: 300 });
+
+		// It follows the drag before anything is stored.
+		expect(strip()).toHaveClass("classicyControlStripRight");
+		expect(
+			strip().style.getPropertyValue("--classicy-control-strip-bottom"),
+		).toBe("288px");
+		expect(storedStrip()?.edge).toBeUndefined();
+
+		fireEvent.mouseUp(document);
+		fireEvent.click(collapseBox(), { detail: 1, ctrlKey: true });
+		expect(storedStrip()).toMatchObject({ edge: "right", bottom: 288 });
+		// The press was a move: the strip did not collapse.
+		expect(storedStrip()?.collapsed).toBeUndefined();
+		expect(strip()).not.toHaveClass("classicyControlStripCollapsed");
+	});
+
+	it("docks back to the left when dropped on the left half", () => {
+		register(...testModules());
+		dispatch({
+			type: "ClassicyDesktopControlStripSetPosition",
+			edge: "right",
+			bottom: 100,
+		});
+		renderStrip();
+		controlPress();
+		fireEvent.mouseMove(document, { clientX: 120, clientY: 500 });
+		fireEvent.mouseUp(document);
+		expect(storedStrip()).toMatchObject({ edge: "left", bottom: 88 });
+		expect(strip()).not.toHaveClass("classicyControlStripRight");
+	});
+
+	it("starts where it was left", () => {
+		register(...testModules());
+		dispatch({
+			type: "ClassicyDesktopControlStripSetPosition",
+			edge: "right",
+			bottom: 140,
+		});
+		renderStrip();
+		expect(strip()).toHaveClass("classicyControlStripRight");
+		expect(
+			strip().style.getPropertyValue("--classicy-control-strip-bottom"),
+		).toBe("140px");
+	});
+
+	it("does nothing for a Control-click that does not move", () => {
+		register(...testModules());
+		renderStrip();
+		controlPress();
+		fireEvent.mouseUp(document);
+		fireEvent.click(collapseBox(), { detail: 1, ctrlKey: true });
+		expect(storedStrip()?.edge).toBeUndefined();
+		expect(storedStrip()?.collapsed).toBeUndefined();
+	});
+
+	it("still collapses on a plain click after a move", () => {
+		register(...testModules());
+		renderStrip();
+		controlPress();
+		fireEvent.mouseMove(document, { clientX: 700, clientY: 300 });
+		fireEvent.mouseUp(document);
+		click(collapseBox());
+		expect(storedStrip()?.collapsed).toBe(true);
+	});
+
+	it("moves nothing on a drag without Control", () => {
+		register(...testModules());
+		renderStrip();
+		fireEvent.mouseDown(collapseBox(), {
+			button: 0,
+			clientX: 5,
+			clientY: STRIP_TOP + 12,
+		});
+		fireEvent.mouseMove(document, { clientX: 700, clientY: 300 });
+		fireEvent.mouseUp(document);
+		expect(storedStrip()?.edge).toBeUndefined();
+		expect(strip()).not.toHaveClass("classicyControlStripRight");
+	});
+
+	it("keeps the Control-click from raising the strip's contextual menu", () => {
+		register(...testModules());
+		renderWithProviders(
+			<ClassicyContextualMenuProvider>
+				<ClassicyControlStrip disabledModules={BUILT_INS} />
+			</ClassicyContextualMenuProvider>,
+		);
+		controlPress();
+		fireEvent.contextMenu(collapseBox(), { ctrlKey: true });
+		expect(
+			screen.queryByRole("menuitem", { name: "Hide Control Strip" }),
+		).toBeNull();
+		fireEvent.mouseUp(document);
+
+		// A plain right-click there still offers it.
+		fireEvent.contextMenu(collapseBox(), { button: 2, clientX: 5 });
+		expect(
+			screen.getByRole("menuitem", { name: "Hide Control Strip" }),
+		).toBeInTheDocument();
+	});
+
+	it("widens toward the tab when docked right", () => {
+		vi.spyOn(HTMLElement.prototype, "scrollWidth", "get").mockReturnValue(300);
+		vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(100);
+		vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(30);
+		register(...testModules());
+		dispatch({
+			type: "ClassicyDesktopControlStripSetPosition",
+			edge: "right",
+			bottom: 0,
+		});
+		renderStrip();
+		// The tab leads on the right edge; dragging it left widens the strip.
+		fireEvent.mouseDown(tab(), { button: 0, clientX: 200 });
+		fireEvent.mouseMove(document, { clientX: 140 });
+		fireEvent.mouseUp(document);
+		expect(storedStrip()?.width).toBe(150);
+
+		fireEvent.keyDown(tab(), { key: "ArrowLeft" });
+		expect(storedStrip()?.width).toBe(120);
+	});
+
+	it("ignores a malformed position", () => {
+		for (const bad of [
+			{ edge: "top", bottom: 10 },
+			{ edge: "left", bottom: -1 },
+			{ edge: "right", bottom: Number.NaN },
+			{ edge: "right" },
+		]) {
+			dispatch({ type: "ClassicyDesktopControlStripSetPosition", ...bad });
+		}
+		expect(storedStrip()?.edge).toBeUndefined();
+		expect(storedStrip()?.bottom).toBeUndefined();
 	});
 });

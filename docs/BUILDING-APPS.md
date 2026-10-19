@@ -1234,6 +1234,10 @@ registerClassicyControlStripModule({
   reorders them, in the Control Strip control panel.
 - **HIG p.125.** A module that belongs to a control panel includes an
   "Open … Control Panel" command (`classicyControlStripOpenControlPanelItem`).
+- **Anywhere on screen.** The user can Control-drag the strip's collapse box
+  to dock it on the left or right edge at any height, so don't assume it sits
+  at the lower left: a module's menu or `content` opens beside the module and
+  flips to whichever side has room.
 - Every installed module is listed as a read-only file in
   `Macintosh HD:System Folder:Control Strip Modules`.
 

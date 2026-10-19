@@ -77,10 +77,16 @@ $module-width: 30px;
   }
 }
 
+// Docked lower left until Control-dragged (#298, #299): the component sets
+// --classicy-control-strip-bottom to the stored height above the desktop's
+// bottom edge, capped here so a shrunken desktop never pushes it off the top.
 .classicyControlStrip {
   position: absolute;
   left: 0;
-  bottom: 0;
+  bottom: min(
+    var(--classicy-control-strip-bottom, 0px),
+    calc(100% - #{$cell-height + 2px})
+  );
   z-index: 355;
   display: flex;
   align-items: flex-start;
@@ -88,6 +94,39 @@ $module-width: 30px;
 
   svg {
     display: block;
+  }
+}
+
+// Docked right, the strip is mirrored: the tab leads and points left, and the
+// collapse box closes the right end, so the left scroll arrow becomes the
+// first cell and takes the left border. The arrows keep their directions.
+.classicyControlStripRight {
+  left: auto;
+  right: 0;
+
+  .classicyControlStripTab {
+    order: -1;
+
+    svg {
+      transform: scaleX(-1);
+    }
+  }
+
+  .classicyControlStripCollapseBox {
+    order: 1;
+    border-left: none;
+  }
+
+  .classicyControlStripScrollStart {
+    border-left: 1px solid var(--color-black);
+  }
+}
+
+.classicyControlStripMoving {
+  cursor: move;
+
+  * {
+    cursor: move;
   }
 }
 
