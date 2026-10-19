@@ -170,31 +170,149 @@ export function clampWindowPositionToViewport(
 }
 
 interface ClassicyWindowProps {
+	/**
+	 * Title-bar text. Also the window's accessible name and the analytics
+	 * pageview title. Utility windows draw no title. Defaults to `""`.
+	 */
 	title?: string;
+	/**
+	 * Window id, unique within its app. Keys the window's record in
+	 * `apps[appId].windows` (persisted position, size, collapsed/zoomed state)
+	 * and, with `appId`, forms the DOM id `${appId}_${id}`.
+	 */
 	id: string;
+	/** Id of the owning `ClassicyApp`. The window must render inside that app. */
 	appId: string;
+	/**
+	 * Icon drawn beside the title of a titled document window. Defaults to the
+	 * generic file icon.
+	 */
 	icon?: string;
+	/** Hide the title-bar icon. Defaults to `false`. */
 	hideIcon?: boolean;
+	/**
+	 * Register the window closed. Only the first registration reads it: once
+	 * the window has a store record, that record's `closed` flag wins. A closed
+	 * window renders nothing. Defaults to `false`.
+	 */
 	hidden?: boolean;
+	/**
+	 * Draw the close box at the left of the title bar (HIGOS8 p.101). On a
+	 * `modal` window it also decides Escape / Command-period: a closable modal
+	 * closes, a non-closable one beeps. Defaults to `true`.
+	 */
 	closable?: boolean;
+	/**
+	 * Draw the zoom box (HIGOS8 p.104), left of the collapse box. Never drawn
+	 * on `modal` windows. See `zoomMode` and `idealSize`. Defaults to `true`.
+	 */
 	zoomable?: boolean;
+	/**
+	 * Draw the collapse (window-shade) box at the far right of the title bar
+	 * (HIGOS8 p.103). Option-click collapses or expands every open window;
+	 * windows with `collapsable={false}` and modals are skipped when another
+	 * window's box is Option-clicked. Double-clicking the title bar collapses
+	 * too, when the desktop's `doubleClickTitleToCollapse` preference is on.
+	 * Defaults to `true`.
+	 */
 	collapsable?: boolean;
+	/**
+	 * Draw the grow box at the bottom-right corner. A non-resizable window
+	 * ignores any persisted size and always opens at `initialSize`. Defaults to
+	 * `true`.
+	 */
 	resizable?: boolean;
+	/**
+	 * Scroll the contents with Platinum scroll bars. A scrollable window always
+	 * draws both bars, so content that fills the window and scrolls itself (a
+	 * full-window text area, `ClassicySplitView` panes) must pass `false` to
+	 * avoid a second, empty set. Defaults to `true`.
+	 */
 	scrollable?: boolean;
+	/**
+	 * Make this a modal dialog (HIGOS8 p.57). The window portals into the
+	 * desktop above an input-blocking scrim (clicking outside beeps), traps Tab
+	 * focus, cancels on Escape / Command-period, and draws no zoom box. It stays
+	 * movable unless `type="error"`. Its store record is dropped on unmount, so
+	 * a modal keeps no geometry between openings. Defaults to `false`.
+	 */
 	modal?: boolean;
+	/**
+	 * Stretch the inner content area to the full height of the window, for
+	 * content that should fill it rather than size to itself. Defaults to off.
+	 */
 	growable?: boolean;
+	/**
+	 * Mark this as the app's default window: when the app is focused with no
+	 * last-accessed or previously focused window to restore, this one is
+	 * focused. Defaults to `false`.
+	 */
 	defaultWindow?: boolean;
+	/**
+	 * Opening content-box size `[width, height]`; the frame padding and border
+	 * sit outside it. Each dimension is pixels or a `"${number}%"` of the
+	 * desktop (height measured below the menu bar); `0` sizes that axis to its
+	 * content. A resizable window opens at its persisted size instead once it
+	 * has one. Defaults to `[350, 0]`.
+	 */
 	initialSize?: [ClassicyWindowSizeDimension, ClassicyWindowSizeDimension];
+	/**
+	 * Opening position `[x, y]`, in pixels or as `"left" | "center" | "right"`
+	 * and `"top" | "center" | "bottom"`. A window at a symbolic position
+	 * re-centres as its content resizes after mount, until the user moves or
+	 * resizes it; a numeric one never moves on its own. Either is clamped to the
+	 * viewport, and a persisted position wins once the window has one. Defaults
+	 * to `[110, 110]`.
+	 */
 	initialPosition?: [ClassicyWindowPositionX, ClassicyWindowPositionY];
+	/**
+	 * Minimum content-box size, in the same units as `initialSize`; `0` sets no
+	 * minimum on that axis. Also the lower bound for a zoom. Defaults to
+	 * `[300, 0]`.
+	 */
 	minimumSize?: [ClassicyWindowSizeDimension, ClassicyWindowSizeDimension];
+	/**
+	 * Content for the window header, a beveled strip between the title bar and
+	 * the contents (HIGOS8 p.50), e.g. a toolbar or list column headings. Hidden
+	 * while collapsed. See `headerVariant`.
+	 */
 	header?: ReactNode;
+	/**
+	 * The menus this window publishes to the menu bar while it is focused, and
+	 * whose keyboard equivalents fire app-wide. Memoize it: an inline literal
+	 * defeats the store-write guard. Omitting it does not clear the bar — the
+	 * window's last stored menu stays.
+	 */
 	appMenu?: ClassicyMenuItem[];
+	/**
+	 * Right-click menu for this window. Resolution is innermost-first: a
+	 * `ClassicyContextualMenuTarget` inside the window wins, then this prop,
+	 * then the app's `contextMenu`. With neither, right-click shows nothing (the
+	 * browser's menu stays suppressed). Right-clicking focuses the window first.
+	 */
 	contextMenu?: ClassicyMenuItem[];
-	/** Override the generated analytics pageview path for this window. */
+	/**
+	 * Override the generated analytics pageview path, otherwise
+	 * `/<app>/<window>` from `classicyWindowPagePath(appId, id)`. Pass one
+	 * whenever the window id is built from user or consumer data (a file name,
+	 * a URL), building it with `classicyWindowPagePath(appId, "<safe-token>")`.
+	 */
 	analyticsPath?: string;
-	/** Suppress this window's analytics pageview entirely. */
+	/**
+	 * Suppress this window's analytics pageviews entirely. Interaction events
+	 * (move, zoom, close, …) are still tracked. Defaults to `false`.
+	 */
 	analyticsExclude?: boolean;
+	/**
+	 * Fade the contents while the window is inactive (not applied to modals).
+	 * `false` uses a contrast-only inactive treatment instead. Defaults to
+	 * `true`.
+	 */
 	dimContents?: boolean;
+	/**
+	 * Called with the window id after the window closes (after the
+	 * `ClassicyWindowClose` dispatch). Not called when `onBeforeClose` vetoes.
+	 */
 	onCloseFunc?: (id: string) => void;
 	/**
 	 * Close veto hook (#236). Called before a close actually happens — from the
@@ -207,51 +325,68 @@ interface ClassicyWindowProps {
 	 * before deciding.
 	 */
 	onBeforeClose?: (id: string) => boolean | Promise<boolean>;
+	/** The window's contents. */
 	children?: ReactNode;
+	/**
+	 * Dialog flavour. `"error"` on a `modal` window makes a fixed alert: it
+	 * cannot be dragged, beeps when it opens, and stacks in the red error band
+	 * above other modals. Has no visual effect on non-modal windows. Defaults
+	 * to `"default"`.
+	 */
 	type?: string;
 	/**
 	 * Platinum window class (#205). `"document"` (default) uses the standard
 	 * 19px HIG title bar; `"utility"` renders a tool-palette style crosshatch
-	 * top drag region.
+	 * top drag region with no title. A utility window always draws its active
+	 * chrome, even while a document window has focus. Defaults to
+	 * `"document"`.
 	 */
 	windowType?: "document" | "utility";
 	/**
 	 * Utility-only. When true, a `windowType="utility"` palette floats above
 	 * every app's windows — even when its own app is backgrounded — instead of
 	 * dropping behind the focused app (the default #234 behavior). Still sits
-	 * below error modals. No-op on document windows.
+	 * below error modals. No-op on document windows. Defaults to `false`.
 	 */
 	alwaysOnTop?: boolean;
 	/**
-	 * Zoom-box behavior (#208). `"full"` zooms both axes to the standard state,
-	 * `"horizontal"` only the width, `"vertical"` only the height. The user's
-	 * pre-zoom rect is remembered and restored on un-zoom.
+	 * Zoom-box behavior (#208, HIGOS8 p.104). `"full"` zooms both axes to the
+	 * standard state (see `idealSize`); `"horizontal"` widens to the desktop
+	 * keeping the current height; `"vertical"` heightens to the desktop keeping
+	 * the current width. Zoom targets are content-box sizes, clamped between
+	 * `minimumSize` and the room on the desktop. The user's pre-zoom rect is
+	 * remembered and restored on un-zoom. Defaults to `"full"`.
 	 */
 	zoomMode?: "full" | "horizontal" | "vertical";
 	/**
 	 * The window's "standard state" size for a full zoom (HIGOS8 Ch.5 "Zoom
-	 * Boxes", p.104): the size best suited to the content. When set, a full zoom
-	 * targets this size (clamped to the available desktop) rather than filling the
-	 * screen — the HIG is explicit that an app "should never simply assume that
-	 * the standard state should be as large as the screen." When omitted, the zoom
-	 * fits the current content, falling back to the available desktop.
+	 * Boxes", p.104): the size best suited to the content. A content-box size,
+	 * like `initialSize`, in the same pixel or percentage units. When set, a
+	 * full zoom targets this size (clamped to the available desktop) rather than
+	 * filling the screen — the HIG is explicit that an app "should never simply
+	 * assume that the standard state should be as large as the screen." When
+	 * omitted, the zoom fits the current content, falling back to the available
+	 * desktop.
 	 */
 	idealSize?: [ClassicyWindowSizeDimension, ClassicyWindowSizeDimension];
 	/**
-	 * Window header styling (#183). `"list"` removes the header's bottom
-	 * separator line (list-view column header); `"standard"` keeps the bevel.
+	 * Window header styling (#183, HIGOS8 p.50). `"list"` removes the header's
+	 * bottom separator line (list-view column header); `"standard"` keeps the
+	 * bevel. Defaults to `"standard"`.
 	 */
 	headerVariant?: "standard" | "list";
 	/**
 	 * Draw a 2px active/inactive content-region frame around the window body
-	 * (#203), used to distinguish a modeless dialog from a plain window.
+	 * (#203, HIGOS8 p.51), used to distinguish a modeless dialog from a plain
+	 * window. Defaults to `false`.
 	 */
 	contentFrame?: boolean;
 	/**
-	 * Optional Platinum placard (#196). When provided, this node is mounted in a
-	 * status region at the window's bottom-left edge — to the LEFT of the
-	 * horizontal scroll bar, where the HIG places a placard (often a
-	 * magnification/status pop-up). It is hidden while the window is collapsed.
+	 * Optional Platinum placard (#196, HIGOS8 p.46). When provided, this node
+	 * is mounted in a status region at the window's bottom-left edge — to the
+	 * LEFT of the horizontal scroll bar, where the HIG places a placard (often a
+	 * magnification/status pop-up such as `ClassicyPlacard`). It is hidden while
+	 * the window is collapsed.
 	 */
 	placard?: ReactNode;
 	/**
@@ -274,6 +409,32 @@ interface ClassicyWindowProps {
 	initialFocusRef?: RefObject<HTMLElement | null>;
 }
 
+/**
+ * A Mac OS 8 Platinum window (HIGOS8 Ch.5, p.99): title bar with close box on
+ * the left and zoom and collapse boxes on the right (p.101), a draggable frame,
+ * Platinum scroll bars and a grow box. It is the component for any app window
+ * or non-modal `<dialog>`; with `modal` it becomes an app-specific modal dialog
+ * (for plain alerts prefer `ClassicyAlert`, for About boxes
+ * `ClassicyAboutWindow`).
+ *
+ * A window must render inside its `ClassicyApp` and registers itself in the
+ * window manager (`apps[appId].windows[id]`) on mount, which persists its
+ * position, size and collapsed/zoomed state. That stored size is the
+ * content-box size its inline `width`/`height` apply — the frame padding and
+ * border sit outside it — and zoom targets are content-box sizes too. Moving,
+ * focusing, collapsing, zooming and closing dispatch `ClassicyWindow*` events
+ * and play the theme's window sounds; opening and focusing emit analytics
+ * pageviews (see `analyticsPath`).
+ *
+ * ```tsx
+ * <ClassicyApp id="TV.app" name="TV" icon={icon} defaultWindow="main">
+ *   <ClassicyWindow id="main" appId="TV.app" title="TV" appMenu={appMenu}
+ *     initialSize={[400, 300]} initialPosition={["center", "center"]}>
+ *     …
+ *   </ClassicyWindow>
+ * </ClassicyApp>
+ * ```
+ */
 export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	id,
 	title = "",

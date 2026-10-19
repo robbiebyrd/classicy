@@ -25,23 +25,58 @@ const REPEAT_INTERVAL_MS = 100;
 const STEP_ESCALATION_MS = 3000;
 
 interface ClassicySpinnerProps {
+	/** Id (and `name`) of the native number `<input>`; links the label to it. */
 	id: string;
+	/**
+	 * Called on every change — typing or a little-arrow step. Arrow steps send
+	 * a minimal `{ target: { value } }` event carrying the clamped value as a
+	 * string; typed changes pass the native event (before clamping).
+	 */
 	onChangeFunc?: ChangeEventHandler<HTMLInputElement>;
+	/** Called when Enter is pressed in the field. */
 	onEnterFunc?: () => void;
+	/** Visible label text. Omit for no label. */
 	labelTitle?: string;
+	/** Label text size. Defaults to `"medium"`. */
 	labelSize?: ClassicyControlLabelSize;
+	/** Where the label sits relative to the field. Defaults to `"above"`. */
 	labelPosition?: ClassicyLabelPosition;
+	/**
+	 * Native placeholder. Rarely visible: the field always holds a number
+	 * (`prefillValue`, else `minValue`).
+	 */
 	placeholder?: number;
+	/** Initial value, clamped to the range; the field resets to it whenever it changes. */
 	prefillValue?: number;
+	/** Lowest allowed value. Defaults to `0`. */
 	minValue?: number;
+	/** Highest allowed value. Unbounded when omitted. */
 	maxValue?: number;
+	/** Disables the field and its little arrows (and dims the label). Defaults to `false`. */
 	disabled?: boolean;
+	/** Dims the label independently of the field. Defaults to `disabled`. */
 	labelDisabled?: boolean;
+	/** Adds the `classicySpinnerDefault` class (no built-in styling). */
 	isDefault?: boolean;
+	/** Field fill colour (any CSS colour). Defaults to the theme's white. */
 	backgroundColor?: string;
+	/** Forwarded to the native `<input>`. */
 	ref?: ForwardedRef<HTMLInputElement>;
 }
 
+/**
+ * The `<input type="number">` equivalent: an edit text field paired with
+ * Platinum little arrows (HIGOS8 Ch.2 "Little Arrows", p.35). Every value —
+ * typed or stepped — is clamped to `minValue`…`maxValue`, and the field is
+ * sized to fit the longer bound.
+ *
+ * Clicking an arrow steps by 1; holding it auto-repeats, and the step grows
+ * tenfold for every 3 seconds the arrow stays held (1, 10, 100…) so large
+ * ranges are quick to cross. The field keeps its own value and resets to
+ * `prefillValue` when that prop changes; typed changes are reported to
+ * analytics as `selected` events. For a stepper without the field, use
+ * `ClassicyLittleArrows` directly.
+ */
 export const ClassicySpinner: FunctionalComponent<ClassicySpinnerProps> =
 	forwardRef<HTMLInputElement, ClassicySpinnerProps>(function ClassicySpinner(
 		{

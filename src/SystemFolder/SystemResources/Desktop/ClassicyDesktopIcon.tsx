@@ -29,19 +29,82 @@ import {
 import { getAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 
 interface ClassicyDesktopIconProps {
+	/**
+	 * Id of the app (or other target) the icon stands for. Keys the icon's
+	 * store record (position, selection) and forms the DOM id
+	 * `${appId}.shortcut`.
+	 */
 	appId: string;
+	/** App name, used as the label when `label` is unset and as the image alt text. */
 	appName: string;
+	/** Icon image (URL or data URI). */
 	icon: string;
+	/** Text under the icon. Defaults to `appName`. */
 	label?: string;
+	/**
+	 * Icon kind: `drive`, `directory`, `app_shortcut`, `shortcut`, `trash`,
+	 * `file` or `icon` (also the desktop's sort order). `app_shortcut` and
+	 * `shortcut` draw the alias arrow and an italic label; `trash` and `drive`
+	 * get stock balloon help. Defaults to `"app_shortcut"`.
+	 */
 	kind: string;
+	/** Called when the icon is opened (double-click, or Enter/Space when focused). */
 	onClickFunc?: () => void;
+	/**
+	 * Action type dispatched when the icon is opened, with `eventData` spread
+	 * in. Dispatched only when `eventData` is also set.
+	 */
 	event?: string;
+	/** Fields spread into the `event` action. */
 	eventData?: Record<string, unknown>;
+	/**
+	 * Skip the default open (`ClassicyDesktopIconOpen`, which opens the app)
+	 * so only `onClickFunc` and `event` run — e.g. a web shortcut that
+	 * dispatches `ClassicyDesktopOpenUrl`. Defaults to `false`.
+	 */
 	noLaunch?: boolean;
+	/**
+	 * Right-click menu for this icon. Right-clicking selects the icon first;
+	 * with no menu it shows nothing.
+	 */
 	contextMenu?: ClassicyMenuItem[];
+	/**
+	 * Balloon help, `{ title?, content, position?, delay? }`. When omitted,
+	 * `trash` and `drive` icons use stock copy titled with the label; other
+	 * kinds show no balloon. (`ClassicyApp` fills this from its
+	 * `desktopIconBalloonHelp` or registered manifest description.)
+	 */
 	balloonHelp?: ClassicyIconBalloonHelp;
 }
 
+/**
+ * A Mac OS 8 desktop icon: image plus label, positioned on the desktop. Click
+ * selects it, drag moves it (dragging a selected icon moves the whole
+ * selection), and double-click — or Enter/Space when focused — opens it. The
+ * icon of an open app, or of a folder with an open Finder window, draws in the
+ * shaded "open" state.
+ *
+ * Icons whose `kind` is `app_shortcut` or `shortcut` — every icon `ClassicyApp`
+ * registers — render the alias arrow over the bottom-left corner and an
+ * italic label (`isAliasKind`); system kinds get neither. Swap the arrow art by
+ * registering your own `system.alias` icon with `registerClassicyIcons`.
+ *
+ * You rarely render this directly: `ClassicyDesktop` draws one for each record
+ * in `System.Manager.Desktop.icons`, which `ClassicyApp` and the
+ * `ClassicyDesktopIconAdd` action populate. Reads selection, position and
+ * open state from the store, so it must render inside a desktop.
+ *
+ * ```ts
+ * dispatch({
+ *   type: "ClassicyDesktopIconAdd",
+ *   app: { id: "example_site", name: "Example", icon },
+ *   kind: "shortcut",
+ *   noLaunch: true,
+ *   event: "ClassicyDesktopOpenUrl",
+ *   eventData: { url: "https://example.com/", disposition: "classicy" },
+ * });
+ * ```
+ */
 export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> =
 	memo(
 		({

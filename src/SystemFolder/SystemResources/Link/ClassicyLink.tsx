@@ -13,12 +13,15 @@ import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/u
 import type { ClassicyShortcutDisposition } from "@/SystemFolder/SystemResources/Shortcut/ClassicyShortcut";
 
 type ClassicyLinkProps = PropsWithChildren<{
-	/** The target URL. Routed through `ClassicyDesktopOpenUrl` (see §13). */
+	/**
+	 * The target URL. A plain click dispatches `ClassicyDesktopOpenUrl` with
+	 * it; modifier and middle clicks use the browser's own link handling.
+	 */
 	href?: string;
 	/**
 	 * Where the target opens — same semantics as file-system shortcuts:
-	 * `"classicy"` (default, in-desktop WebViewer window), `"browser"`
-	 * (replaces the page), `"browser-new"` (new tab).
+	 * `"classicy"` (in-desktop WebViewer window), `"browser"` (replaces the
+	 * page) or `"browser-new"` (new tab). Defaults to `"classicy"`.
 	 */
 	disposition?: ClassicyShortcutDisposition;
 	/**
@@ -26,8 +29,18 @@ type ClassicyLinkProps = PropsWithChildren<{
 	 * Mutually exclusive with `href` (when both are set, `event` wins).
 	 */
 	event?: string;
+	/** Extra fields spread into the `event` action: `{ type: event, ...eventData }`. */
 	eventData?: Record<string, unknown>;
+	/**
+	 * Called on click before the built-in behaviour; call `e.preventDefault()`
+	 * in it to cancel that behaviour. Not called for keyboard activation of an
+	 * `event`-only link.
+	 */
 	onClickFunc?: MouseEventHandler<HTMLAnchorElement>;
+	/**
+	 * Greys the link, removes it from the tab order and swallows clicks
+	 * (`aria-disabled`). Defaults to `false`.
+	 */
 	disabled?: boolean;
 }> &
 	Omit<
@@ -35,6 +48,26 @@ type ClassicyLinkProps = PropsWithChildren<{
 		"href" | "onClick" | "onKeyDown"
 	>;
 
+/**
+ * A Platinum-styled hyperlink — use it instead of a raw `<a>`, which it
+ * renders (other anchor attributes pass through). A plain click on an `href`
+ * link dispatches `ClassicyDesktopOpenUrl`, so by default the page opens in
+ * the desktop's own WebViewer window; `disposition` sends it to the browser
+ * instead. Modifier and middle clicks keep the browser's native behaviour
+ * (open in a new tab, …). Invalid or non-http URLs raise the desktop error
+ * dialog.
+ *
+ * With `event` (and `eventData`) it instead dispatches an internal action,
+ * like a menu item, and the anchor takes `role="button"` and activates on
+ * Enter/Space. Opening a URL needs a mounted `ClassicyDesktop`: its WebViewer
+ * and URL controller are what act on the dispatch.
+ *
+ * ```tsx
+ * <ClassicyLink href="https://example.com">Example</ClassicyLink>
+ * <ClassicyLink href="https://example.com" disposition="browser-new">New tab</ClassicyLink>
+ * <ClassicyLink event="ClassicyAppScreenSaverActivate">Start the screen saver</ClassicyLink>
+ * ```
+ */
 export const ClassicyLink: FunctionalComponent<ClassicyLinkProps> = ({
 	href,
 	disposition = "classicy",

@@ -16,29 +16,46 @@ import {
 } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import { useListNavigation } from "@/SystemFolder/SystemResources/Keyboard/useListNavigation";
 
+/** One row of a `ClassicyListBox`. */
 export type ClassicyListBoxOption = {
+	/** Stable value reported in selections; also the row's React key. */
 	value: string;
+	/** Row text; also what type-selection matches against. */
 	label: string;
+	/** Optional small icon (URL or data URI) drawn before the label. */
 	icon?: string;
+	/** Dimmed and unselectable; skipped by Shift-range selection. */
 	disabled?: boolean;
 };
 
+/** `single` keeps at most one value selected; `multi` follows the Mac conventions. */
 export type ClassicyListBoxSelectionMode = "single" | "multi";
 
 type ClassicyListBoxProps = {
+	/** Id of the `role="listbox"` element; links the label to it. */
 	id: string;
+	/** The rows, in display order. */
 	options: ClassicyListBoxOption[];
+	/** Single or multiple selection. Defaults to `"single"`. */
 	selectionMode?: ClassicyListBoxSelectionMode;
 	/** Controlled selection. Omit for uncontrolled use with `onChangeFunc`. */
 	selected?: string[];
+	/** Called with the full new selection (array of values) after every change. */
 	onChangeFunc?: (values: string[]) => void;
 	/** Double-click or Enter on an option — the "open it" gesture. */
 	onActivateFunc?: (value: string) => void;
-	/** Fixed row height × this = the box's max height (scrolls past it). */
+	/**
+	 * Fixed row height × this = the box's max height (scrolls past it).
+	 * Defaults to 8 rows.
+	 */
 	visibleRows?: number;
+	/** Visible label text; also the list's accessible name. */
 	label?: string;
+	/** Where the label sits relative to the list. Defaults to `"above"`. */
 	labelPosition?: ClassicyLabelPosition;
+	/** Label text size. */
 	labelSize?: ClassicyControlLabelSize;
+	/** Dims the list and ignores clicks and keys. Defaults to `false`. */
 	disabled?: boolean;
 };
 
@@ -49,12 +66,19 @@ type SelectionModifiers = {
 };
 
 /**
- * The `<select multiple>` equivalent: a Platinum List Manager scrolling list
- * (inset white box, highlight selection). Single or multi selection; multi
- * follows the Mac conventions — plain click replaces, ⌘/Ctrl-click toggles,
- * Shift-click (or Shift-arrows) extends a range from the last plain
- * selection. Keyboard navigation is the shared `useListNavigation` roving
- * tabindex, and selection follows the keyboard as Platinum lists do.
+ * The `<select multiple>` / `<select size>` equivalent: a Platinum List
+ * Manager scrolling list (HIGOS8 Ch.2 "List Boxes and Frames", p.39 — 2 px
+ * recessed frame, white fill, highlight selection). Single or multi
+ * selection; multi follows the Mac conventions — plain click replaces,
+ * ⌘/Ctrl-click toggles, Shift-click (or Shift-arrows) extends a range from
+ * the last plain selection. Keyboard navigation is the shared
+ * `useListNavigation` roving tabindex (arrows, Home/End, type-selection), and
+ * selection follows the keyboard as Platinum lists do.
+ *
+ * Enter or a double-click calls `onActivateFunc` (Space selects). Pass
+ * `selected` to control the selection, or leave it out and read changes from
+ * `onChangeFunc`. For a single choice from a short list in a dialog row, a
+ * `ClassicyPopUpMenu` is usually the better fit.
  */
 export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 	id,

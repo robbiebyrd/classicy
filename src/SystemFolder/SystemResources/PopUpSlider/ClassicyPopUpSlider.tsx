@@ -21,15 +21,23 @@ const THUMB_TOP_MIN_TRAVEL = 60; // thumb bottom on the track's lower cap
 const TRAVEL = THUMB_TOP_MIN_TRAVEL - THUMB_TOP_MAX_TRAVEL;
 
 type ClassicyPopUpSliderProps = {
+	/** Current value (clamped to `min`…`max`); the slider is fully controlled. */
 	value: number;
+	/** Called with each new value (snapped to `step`) while dragging, clicking or keying. */
 	onChange: (value: number) => void;
 	/** Accessible name ("Volume"). */
 	ariaLabel: string;
+	/** Value at the bottom of the track. Defaults to `0`. */
 	min?: number;
+	/** Value at the top of the track. Defaults to `100`. */
 	max?: number;
+	/** Value increment; Page Up/Down move ten steps. Defaults to `1`. */
 	step?: number;
+	/** Dims the slider and removes it from the tab order. Defaults to `false`. */
 	disabled?: boolean;
+	/** Id of the `role="slider"` element. */
 	id?: string;
+	/** Extra class on the slider. */
 	className?: string;
 };
 
@@ -45,6 +53,19 @@ const clamp = (value: number, lo: number, hi: number) =>
  *
  * Drag the thumb or click the track to set the value; Up/Down (or Right/Left)
  * step it, Page Up/Down step by ten, Home/End jump to the ends.
+ *
+ * Fully controlled: it draws `value` and reports changes through `onChange`,
+ * so keep the value in state. Host it as a `ClassicyBevelButton`'s
+ * `popupContent` (or a Control Strip module's `content`, as the built-in
+ * Sound module does); for a slider in a window, use `ClassicySlider`.
+ *
+ * ```tsx
+ * <ClassicyBevelButton mode="popup" aria-label="Volume" popupAlign="center"
+ *     popupContent={
+ *         <ClassicyPopUpSlider ariaLabel="Volume" value={level} onChange={setLevel} />
+ *     }
+ * />
+ * ```
  */
 export const ClassicyPopUpSlider: FunctionalComponent<
 	ClassicyPopUpSliderProps

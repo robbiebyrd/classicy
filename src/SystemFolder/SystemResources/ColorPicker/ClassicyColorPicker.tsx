@@ -12,18 +12,47 @@ import type { ClassicyCrayon } from "./ClassicyColorPickerCrayons";
 import { ClassicyColorPickerDialog } from "./ClassicyColorPickerDialog";
 
 interface ClassicyColorPickerProps {
+	/** Id of the swatch button; the dialog's window id is `${id}-dialog`. */
 	id: string;
+	/**
+	 * App the dialog's window registers under. Defaults to the enclosing
+	 * `ClassicyApp` (via `ClassicyAppIdContext`).
+	 */
 	appId?: string;
+	/** Controlled colour as a 24-bit `0xRRGGBB` integer. Omit for uncontrolled use. */
 	value?: number;
+	/** Initial colour when uncontrolled, as `0xRRGGBB`. Defaults to `0x000000` (black). */
 	defaultValue?: number;
+	/** Palette for the dialog's Crayons panel. Defaults to the Mac OS 8 crayon box. */
 	crayons?: ClassicyCrayon[];
+	/** Visible label text. Omit for no label. */
 	labelTitle?: string;
+	/** Where the label sits relative to the swatch. Defaults to `"left"`. */
 	labelPosition?: ClassicyLabelPosition;
+	/** Label text size. Defaults to `"medium"`. */
 	labelSize?: ClassicyControlLabelSize;
+	/** Disables the swatch (and dims the label). Defaults to `false`. */
 	disabled?: boolean;
+	/** Called with the chosen colour (`0xRRGGBB`) when the dialog's OK is clicked. */
 	onChangeFunc?: (color: number) => void;
 }
 
+/**
+ * The `<input type="color">` equivalent: a swatch button showing the current
+ * colour that opens `ClassicyColorPickerDialog`, the Mac OS 8 Color Picker
+ * (Crayons, RGB, HSV, HLS and CMYK panels). The colour only changes when the
+ * user clicks OK; Cancel or the close box leaves it as it was.
+ *
+ * Colours are 24-bit integers (`0xRRGGBB`). Pass `value` + `onChangeFunc` to
+ * control it, or `defaultValue` alone to let the swatch keep its own. The
+ * dialog is a modal `ClassicyWindow`, so render the picker inside a
+ * `ClassicyApp` (or pass `appId`).
+ *
+ * ```tsx
+ * <ClassicyColorPicker id="hilite" labelTitle="Highlight color:"
+ *     value={color} onChangeFunc={setColor} />
+ * ```
+ */
 export const ClassicyColorPicker: FC<ClassicyColorPickerProps> = ({
 	id,
 	appId,

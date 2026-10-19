@@ -24,12 +24,17 @@ import type {
 	ClassicyFileDialogVolume,
 } from "./ClassicyFileDialogVolume";
 
+/** One chosen file, as handed to `onOpenFunc`. */
 export type ClassicyFileOpenSelection = {
+	/** Id of the volume the file lives on. */
 	volumeId: string;
+	/** Folder names from the volume root to the file's parent folder. */
 	path: string[];
+	/** The file's listing entry, including any opaque `meta` the volume attached. */
 	entry: ClassicyFileDialogEntry;
 };
 
+/** One choice in a save dialog's Format pop-up. */
 export type ClassicyFileSaveFormat = {
 	/** Shown in the Format pop-up, e.g. "HyperCard Stack". */
 	label: string;
@@ -43,40 +48,82 @@ export type ClassicyFileSaveFormat = {
 	data: () => string | Promise<string>;
 };
 
+/** What was written, as handed to `onSaveFunc`. */
 export type ClassicyFileSaveResult = {
+	/** Id of the volume written to. */
 	volumeId: string;
+	/** Folder names from the volume root to the target folder (`[]` = root). */
 	path: string[];
-	/** Includes the extension. */
+	/** The committed file name; includes the extension. */
 	fileName: string;
+	/** The format the user chose. */
 	format: ClassicyFileSaveFormat;
 };
 
 type ClassicyFileDialogSharedProps = {
+	/** Window id; must be unique per dialog. Also prefixes the ids of its controls. */
 	id: string;
+	/** Id of the owning app (the enclosing `ClassicyApp`). */
 	appId: string;
+	/**
+	 * Shows the dialog when true; renders nothing when false. Each false → true
+	 * transition starts a fresh session (selection, name and folder caches reset).
+	 * The dialog never closes itself — set this false from your callbacks.
+	 */
 	open: boolean;
+	/** Title-bar text. Defaults to `"Open"` or `"Save"` by mode. */
 	title?: string;
+	/**
+	 * Volumes offered in the Volume pop-up; the first is shown on open. Build
+	 * them with `desktopVolume(fs)` / `fileSystemVolume(fs, drive)` or implement
+	 * `ClassicyFileDialogVolume`. Keep the array stable (e.g. `useMemo`).
+	 */
 	volumes: ClassicyFileDialogVolume[];
+	/** Called when Cancel, Escape or Command-period fires. */
 	onCancelFunc?: () => void;
 };
 
 export type ClassicyFileDialogOpenProps = ClassicyFileDialogSharedProps & {
+	/** Selects open mode; set for you by `ClassicyFileOpenDialog`. */
 	mode: "open";
+	/**
+	 * `"single"` picks one file; `"multi"` adds Command/Ctrl-click to toggle and
+	 * Shift-click to extend within one folder. Defaults to `"single"`.
+	 */
 	selectionMode?: "single" | "multi";
+	/**
+	 * Entries for the Show pop-up (shown only when non-empty); the first is
+	 * active on open. `types` lists the `fileType`s that stay selectable —
+	 * `null` means all; other files are dimmed. Folders are never filtered.
+	 */
 	fileTypeFilters?: { label: string; types: string[] | null }[];
+	/**
+	 * Called with the chosen files when Open is clicked, Return is pressed or a
+	 * file is double-clicked. Never called with an empty array.
+	 */
 	onOpenFunc: (selections: ClassicyFileOpenSelection[]) => void;
 };
 
 export type ClassicyFileDialogSaveProps = ClassicyFileDialogSharedProps & {
+	/** Selects save mode; set for you by `ClassicyFileSaveDialog`. */
 	mode: "save";
-	/** At least one; the first is the default selection. */
+	/**
+	 * At least one; the first is the default selection. The Format pop-up is
+	 * shown only when there is more than one.
+	 */
 	formats: ClassicyFileSaveFormat[];
-	/** Pre-filled name, extension NOT included. */
+	/** Pre-filled name, extension NOT included. Defaults to `""`. */
 	defaultFileName?: string;
+	/** Called after the active volume's `write` succeeds. */
 	onSaveFunc: (saved: ClassicyFileSaveResult) => void;
+	/**
+	 * Called with the thrown error when a save or New Folder fails; the dialog
+	 * also shows its own stop alert.
+	 */
 	onErrorFunc?: (error: unknown) => void;
 };
 
+/** Props for `ClassicyFileDialog`: open or save mode, discriminated by `mode`. */
 export type ClassicyFileDialogProps =
 	| ClassicyFileDialogOpenProps
 	| ClassicyFileDialogSaveProps;
@@ -87,6 +134,16 @@ type FolderState = ClassicyFileDialogEntry[] | "loading" | "error";
 const cacheKey = (volumeId: string, path: string[]) =>
 	[volumeId, ...path].join(SEP);
 
+/**
+ * The standard Mac OS 8 file dialog, a movable modal window (HIGOS8 Ch.3
+ * "Movable Modal Dialog Boxes", p.59: no close box) that browses the
+ * Classicy file system — or any `ClassicyFileDialogVolume` — in open or save
+ * mode. Prefer the `ClassicyFileOpenDialog` / `ClassicyFileSaveDialog`
+ * wrappers, which fix `mode`.
+ *
+ * Folders load lazily as they are expanded. Escape / Command-period cancel.
+ * The dialog is controlled by `open` and never closes itself.
+ */
 export const ClassicyFileDialog: FunctionalComponent<
 	ClassicyFileDialogProps
 > = (props) => {
@@ -424,7 +481,7 @@ export const ClassicyFileDialog: FunctionalComponent<
 				// HIGOS8 Ch.3 "Movable Modal Dialog Boxes" (p.59): a movable modal
 				// dialog has no close box (nor zoom box). The standard file dialog is
 				// dismissed only via its Cancel button or Escape / Command-period
-				// (handled by handleKeyDown below / the window's modal-cancel).
+				// (handled by the dialog-body useKeyboardEquivalents above).
 				closable={false}
 				zoomable={false}
 				collapsable={false}

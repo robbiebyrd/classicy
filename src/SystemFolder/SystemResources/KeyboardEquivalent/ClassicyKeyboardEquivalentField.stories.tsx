@@ -55,8 +55,10 @@ const InControlPanel = ({
 	);
 };
 
-// HIGOS8 Figures 6-8 to 6-10: click the button, type a combination with the
-// command key, then OK. A combination without one is refused with an alert.
+/**
+ * HIGOS8 Figures 6-8 to 6-10: click the button, type a combination with the
+ * command key, then OK. A combination without one is refused with an alert.
+ */
 export const Default: Story = {
 	render: (args) => (
 		<InControlPanel
@@ -67,8 +69,11 @@ export const Default: Story = {
 	),
 };
 
-// The second HIG alert case: the combination is already in use. These menu
-// commands are passed as `inUse`, so typing ⌘N or ⌘O names its owner.
+/**
+ * The second HIG alert case: the combination is already in use. These menu
+ * commands are passed as `inUse` (via `keyboardEquivalentsInUse`), so typing
+ * ⌘N or ⌘O names its owner; `onHelp` adds a Help button to that alert.
+ */
 export const WithMenuConflicts: Story = {
 	render: (args) => (
 		<InControlPanel
@@ -83,6 +88,22 @@ export const WithMenuConflicts: Story = {
 	),
 };
 
+/** A disabled field: the current equivalent is shown but cannot be changed. */
 export const Disabled: Story = {
 	render: (args) => <InControlPanel {...args} initial="⌘K" disabled />,
+};
+
+/**
+ * `requireCommandKey={false}` lifts the command-key rule, e.g. for web
+ * shortcuts built on Option (⌥), which the browser reserves far less than ⌘.
+ */
+export const WithoutCommandKeyRule: Story = {
+	render: (args) => (
+		<InControlPanel
+			{...args}
+			initial="⌥K"
+			requireCommandKey={false}
+			description="Option-based combinations are accepted here."
+		/>
+	),
 };

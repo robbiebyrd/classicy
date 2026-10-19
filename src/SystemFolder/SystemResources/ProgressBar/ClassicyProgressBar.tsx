@@ -10,8 +10,14 @@ import {
 } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 
 interface ClassicyProgressProps {
+	/** Amount done, out of `max`. Ignored while indeterminate. Defaults to `0`. */
 	value?: number;
+	/** The value that means "complete". Defaults to `100`. */
 	max?: number;
+	/**
+	 * Draws the barber-pole (striped, moving) bar for a task whose length is
+	 * not yet known. See `autoSwitch`.
+	 */
 	indeterminate?: boolean;
 	/**
 	 * Renders the asynchronous "chasing arrows" indicator — the small spinning
@@ -26,8 +32,11 @@ interface ClassicyProgressProps {
 	 * bar without the consumer swapping the `indeterminate` flag.
 	 */
 	autoSwitch?: boolean;
+	/** Visible label text (e.g. "Copying files…"); names the chasing arrows for assistive tech. */
 	label?: string;
+	/** Where the label sits relative to the bar. Defaults to `"above"`. */
 	labelPosition?: ClassicyLabelPosition;
+	/** Horizontal alignment of the label. Defaults to `"left"`. */
 	labelAlign?: ClassicyLabelAlign;
 }
 
@@ -52,6 +61,19 @@ const ChasingArrows: FunctionalComponent = () => (
 	</svg>
 );
 
+/**
+ * The `<progress>` equivalent: a Platinum progress indicator (HIGOS8 Ch.2
+ * "Progress Indicators", p.52). A determinate bar fills left to right as
+ * `value` approaches `max`; an `indeterminate` bar shows the striped
+ * barber-pole for work of unknown length; `chasingArrows` swaps the bar for
+ * the small spinning arrows the HIG prescribes for background work.
+ *
+ * The HIG says to switch from indeterminate to determinate once the scope of
+ * a task is known — `autoSwitch` does that as soon as a `value` arrives, so
+ * the same element can carry a task from start to finish. The bar has a
+ * fixed height and takes its colour from the theme accent. For a measurement
+ * within a range (disk use, battery) use `ClassicyMeter` instead.
+ */
 export const ClassicyProgressBar: FunctionalComponent<
 	ClassicyProgressProps
 > = ({

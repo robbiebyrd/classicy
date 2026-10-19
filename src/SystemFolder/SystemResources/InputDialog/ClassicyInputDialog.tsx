@@ -15,58 +15,88 @@ import {
 } from "@/SystemFolder/SystemResources/Keyboard/useKeyboardEquivalents";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
-/**
- * Mac OS 8 HIG movable-modal **input dialog** (Human Interface Guidelines,
- * Ch. 3 §"Dialog Boxes"). Unlike an alert — which may contain only an icon,
- * text, and buttons — a dialog may host editable controls. This one presents a
- * single text field with a prompt and a default/cancel button pair, the shape
- * of the classic "New Folder", "Rename", and "Save As…" name prompts.
- *
- * Behaviour (HIG Ch. 3 "Keyboard Navigation and Focus"):
- *   - the text field is focused and its contents selected on open, so the user
- *     can type a replacement immediately;
- *   - Return / Enter triggers the default button (single-line field, so Return
- *     is free to mean "confirm");
- *   - Escape / Command-period triggers Cancel;
- *   - the default button is disabled while the value fails `validate`.
- *
- * The dialog owns the field's text; callers receive the final value through
- * `onConfirm` and do not need to track keystrokes themselves.
- */
+/** Props for `ClassicyInputDialog`. */
 export type ClassicyInputDialogProps = {
-	/** Window id (unique per open dialog). */
+	/**
+	 * Window id; must be unique per open dialog. The text field's id is
+	 * `${id}-field`. Defaults to `"inputDialog"`.
+	 */
 	id?: string;
-	/** Owning app id. */
+	/**
+	 * Id of the owning app (the enclosing `ClassicyApp`). Defaults to
+	 * `"ClassicyInputDialog"`.
+	 */
 	appId?: string;
-	/** Title-bar text. */
+	/** Title-bar text; also the dialog's accessible name. Defaults to `""`. */
 	title?: string;
-	/** Prompt shown above the field (e.g. "Name of new folder:"). */
+	/** Prompt shown above the field as its `<label>` (e.g. "Name of new folder:"). */
 	prompt?: ReactNode;
-	/** Initial field value; its text is selected on open. */
+	/** Initial field value; its text is selected on open. Defaults to `""`. */
 	initialValue?: string;
 	/** Placeholder shown when the field is empty. */
 	placeholder?: string;
-	/** Native input type (e.g. "text", "password"). Defaults to "text". */
+	/** Native input type (e.g. `"text"`, `"password"`). Defaults to `"text"`. */
 	inputType?: string;
-	/** Default-button label. Defaults to "OK". */
+	/** Default-button label. Defaults to `"OK"`. */
 	confirmLabel?: string;
-	/** Cancel-button label. Defaults to "Cancel". */
+	/** Cancel-button label. Defaults to `"Cancel"`. */
 	cancelLabel?: string;
 	/**
 	 * Returns true when the current value may be confirmed. Defaults to
 	 * "non-empty after trimming". Drives the default button's disabled state and
-	 * blocks Return.
+	 * blocks Return. Runs on every render, so keep it cheap and pure.
 	 */
 	validate?: (value: string) => boolean;
-	/** Optional leading icon (dialogs may include one; omit for a plain prompt). */
+	/** Optional leading icon URL (dialogs may have one; omit for a plain prompt). */
 	icon?: string;
-	/** Called with the field value when the default button fires. */
+	/**
+	 * Called with the (untrimmed) field value when the default button or Return
+	 * fires on a valid value. The dialog does not unmount itself.
+	 */
 	onConfirm: (value: string) => void;
-	/** Called when Cancel / Escape fires. */
+	/**
+	 * Called when Cancel, Escape or Command-period fires. The dialog does not
+	 * unmount itself.
+	 */
 	onCancel?: () => void;
 };
 
 const defaultValidate = (value: string): boolean => value.trim().length > 0;
+
+/**
+ * Mac OS 8 movable-modal **input dialog** (HIGOS8 Ch.3 "Movable Modal Dialog
+ * Boxes", p.59): a title bar with no close box, an optional icon, a prompt,
+ * one text field and a Cancel / default-button pair — the shape of the classic
+ * "New Folder" and "Rename" prompts. Unlike `ClassicyAlert`, which may hold
+ * only an icon, text and buttons (p.60), a dialog may host editable controls;
+ * use this instead of `window.prompt()`.
+ *
+ * Behaviour (HIGOS8 Ch.3 "Keyboard Navigation and Focus", p.66):
+ *   - the field is focused with its contents selected on open, so the user
+ *     can type a replacement immediately, and Tab is trapped in the dialog;
+ *   - Return / Enter triggers the default button (single-line field, so Return
+ *     is free to mean "confirm");
+ *   - Escape / Command-period triggers Cancel;
+ *   - the default button is dimmed, and Return ignored, while the value fails
+ *     `validate`.
+ *
+ * The dialog owns the field's text; callers receive the final value through
+ * `onConfirm` and need not track keystrokes. It renders a `ClassicyWindow`, so
+ * it must sit inside a `ClassicyApp`; show it by mounting it and dismiss it by
+ * unmounting it from `onConfirm` / `onCancel`.
+ *
+ * ```tsx
+ * {naming && (
+ *   <ClassicyInputDialog
+ *     id="new-folder" appId={appId} title="New Folder"
+ *     prompt="Name of new folder:" initialValue="untitled folder"
+ *     confirmLabel="Create"
+ *     onConfirm={(name) => { createFolder(name); setNaming(false); }}
+ *     onCancel={() => setNaming(false)}
+ *   />
+ * )}
+ * ```
+ */
 
 export const ClassicyInputDialog: FunctionalComponent<
 	ClassicyInputDialogProps

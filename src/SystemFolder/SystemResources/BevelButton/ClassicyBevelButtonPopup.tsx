@@ -30,10 +30,13 @@ const PANEL_FOCUS_SELECTOR =
 const MENU_ITEM_SELECTOR = 'li[role="menuitem"]:not(.classicyMenuItemDisabled)';
 
 type ClassicyBevelButtonPopupProps = {
+	/** DOM id of the surface; the button points `aria-controls` at it. */
 	id: string;
 	/** The rect to place against (the button's, adjusted by any anchor inset). */
 	anchor: ClassicyBevelPopupRect;
+	/** Preferred side (`below` or `right`); flips when there is no room. */
 	side: ClassicyBevelPopupSide;
+	/** Edge alignment against the anchor (`start` or `center`). */
 	align?: ClassicyBevelPopupAlign;
 	/** A menu (HIG Figure 2-15)… */
 	menuItems?: ClassicyMenuItem[];
@@ -45,6 +48,7 @@ type ClassicyBevelButtonPopupProps = {
 	focusFirstItem?: boolean;
 	/** The owning button: a press on it toggles the popup, so it is not "outside". */
 	buttonRef: RefObject<HTMLButtonElement | null>;
+	/** Called when the surface should close (item chosen, Escape, outside press, scroll, resize). */
 	onClose: () => void;
 };
 

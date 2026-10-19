@@ -17,24 +17,54 @@ import {
 	labelPositionClass,
 } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 
+/** Imperative handle exposed through `ClassicyFileInput`'s ref. */
 export interface ClassicyFileInputHandle {
+	/**
+	 * Adds files programmatically (e.g. from a drop zone), applying the same
+	 * `maxFiles` / `maxFileSizeMb` checks as the Choose button. `accept` is a
+	 * hint to the browser's file dialog only and is not applied here.
+	 */
 	addFiles: (incoming: File[]) => void;
 }
 
 interface ClassicyFileInputProps {
+	/** Id of the hidden native `<input type="file">`; links the label to it. */
 	id: string;
+	/** Native `accept` filter for the browser's file dialog (e.g. `"image/*"`). */
 	accept?: string;
+	/** Allow choosing several files; the button reads "Choose Files…". Defaults to `false`. */
 	multiple?: boolean;
+	/** Maximum number of files in the list; an addition that would exceed it is refused with an error. */
 	maxFiles?: number;
+	/** Maximum size of each file in MB; an oversized file is refused with an error. */
 	maxFileSizeMb?: number;
+	/** Disables the Choose and Remove buttons (and dims the label). Defaults to `false`. */
 	disabled?: boolean;
+	/** Visible label text. Omit for no label. */
 	labelTitle?: string;
+	/** Where the label sits relative to the control. Defaults to `"above"`. */
 	labelPosition?: ClassicyLabelPosition;
+	/** Label text size. Defaults to `"medium"`. */
 	labelSize?: ClassicyControlLabelSize;
+	/** Dims the label independently of the control. Defaults to `disabled`. */
 	labelDisabled?: boolean;
+	/** Called with the complete current file list after every add or remove. */
 	onChangeFunc?: (files: File[]) => void;
 }
 
+/**
+ * The `<input type="file">` equivalent: a Platinum "Choose File…" push button
+ * over a hidden native file input, followed by the list of chosen files, each
+ * with a small remove (✕) button. It picks files from the host computer; to
+ * pick from the Classicy file system use `ClassicyFileOpenDialog` /
+ * `ClassicyFileSaveDialog` instead.
+ *
+ * The list is uncontrolled and accumulates: every choice is appended, and
+ * `onChangeFunc` receives the whole list. An addition that breaks `maxFiles`
+ * or `maxFileSizeMb` is refused as a whole and shown as an inline error
+ * (`role="alert"`). The ref exposes `{ addFiles(files) }` so a drop target
+ * (e.g. a `ClassicyImageWell`) can feed the same list.
+ */
 export const ClassicyFileInput = forwardRef<
 	ClassicyFileInputHandle,
 	ClassicyFileInputProps

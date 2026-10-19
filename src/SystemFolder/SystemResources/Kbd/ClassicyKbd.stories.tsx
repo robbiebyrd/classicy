@@ -9,6 +9,10 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+/**
+ * The default `inline` variant inside running text: "Cmd+Shift+S" is
+ * normalised to the glyph run ⇧⌘S.
+ */
 export const Inline: Story = {
 	args: {
 		shortcut: "Cmd+Shift+S",
@@ -22,6 +26,7 @@ export const Inline: Story = {
 	],
 };
 
+/** `variant="keycaps"` draws one raised key cap per key, in canonical ⌃⌥⇧⌘ order. */
 export const Keycaps: Story = {
 	args: {
 		shortcut: "Ctrl+Opt+Cmd+P",
@@ -29,6 +34,7 @@ export const Keycaps: Story = {
 	},
 };
 
+/** A key with no chord passed as `children` (no `shortcut`), rendered verbatim. */
 export const BareKey: Story = {
 	args: {
 		variant: "keycaps",
@@ -36,8 +42,10 @@ export const BareKey: Story = {
 	},
 };
 
-// The menu-item form: the same component ClassicyMenu renders for
-// `keyboardShortcut` entries.
+/**
+ * The menu-item form: the same component `ClassicyMenu` renders for
+ * `keyboardShortcut` entries, right-aligned beside the command name.
+ */
 export const InAMenuRow: Story = {
 	render: () => (
 		<div

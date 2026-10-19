@@ -17,14 +17,30 @@ import {
 } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 
 interface ClassicyIconProps {
+	/** Owning app id; prefixes the element's DOM id (`<appId>.shortcut-…`). */
 	appId: string;
+	/** Item name: the image's alt text, and the caption when `label` is unset. */
 	name: string;
+	/** Icon image URL (e.g. a `ClassicyIcons` entry). Also used as the selection mask. */
 	icon: string;
+	/** Caption under the icon. Defaults to `name`. */
 	label?: string;
+	/** Caption placement relative to the image. Defaults to `below`. */
 	labelPosition?: ClassicyLabelPosition;
+	/** Starting `[left, top]` in px within the positioned container. Defaults to `[0, 0]`. */
 	initialPosition?: [number, number];
+	/**
+	 * The positioned container the icon lives in. Drag coordinates are
+	 * measured against it, so without it the icon cannot be dragged.
+	 */
 	holder?: RefObject<HTMLElement | null>;
+	/** "Open" action: called on double-click, or Enter/Space while focused. A single click only selects. */
 	onClickFunc?: () => void;
+	/**
+	 * Draws the icon and caption faded (45% opacity) — the file browser sets it
+	 * for entries marked `_invisible` when invisible files are shown. Defaults
+	 * to `false`.
+	 */
 	invisible?: boolean;
 	/** Explicit icon size in px. Falls back to the theme's desktop icon size. */
 	size?: number;
@@ -36,7 +52,7 @@ interface ClassicyIconProps {
 	 * would round onto cells the layout never uses.
 	 */
 	snapOrigin?: [number, number];
-	/** Disables dragging — used by "Keep arranged", where position is derived. */
+	/** Disables dragging — used by "Keep arranged", where position is derived. Defaults to `false`. */
 	positionLocked?: boolean;
 }
 
@@ -55,6 +71,27 @@ export const snapToGrid = (
 	origin[1] + Math.round((position[1] - origin[1]) / pitch[1]) * pitch[1],
 ];
 
+/**
+ * An icon with a caption that can be selected, dragged and opened — the
+ * Finder-style icon used on surfaces other than the desktop, such as
+ * `ClassicyFileBrowser`'s icon view (desktop icons are `ClassicyDesktopIcon`,
+ * normally created for you by `ClassicyApp`). Use it in place of an `<img>`
+ * plus caption when the picture stands for an openable item.
+ *
+ * The icon is absolutely positioned at `initialPosition` inside a positioned
+ * container; pass that container as `holder` to make it draggable, and
+ * `snapTo` (with `snapOrigin`) to round drops onto a grid. A single click
+ * toggles the selected (highlighted) look; double-click or Enter/Space calls
+ * `onClickFunc`. Position and selection are local state — nothing is written
+ * to the store. Size follows the theme's `--desktop-icon-size` unless `size`
+ * is set.
+ *
+ * ```tsx
+ * <div ref={holderRef} style={{ position: "relative", height: 200 }}>
+ *     <ClassicyIcon appId="Demo.app" name="Read Me" icon={docIcon} holder={holderRef} />
+ * </div>
+ * ```
+ */
 export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	appId,
 	name,

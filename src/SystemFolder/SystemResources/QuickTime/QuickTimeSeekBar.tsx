@@ -5,12 +5,24 @@ import { timeFriendly } from "@/SystemFolder/SystemResources/QuickTime/QuickTime
 const backwardButton = ClassicyIcons.system.quicktime.backwardButton;
 const forwardButton = ClassicyIcons.system.quicktime.forwardButton;
 
+/**
+ * The controller bar's transport section: a range slider showing the
+ * playhead as a fraction of the duration, the elapsed time as `h:mm:ss`, and
+ * the skip-back / skip-forward buttons (10 seconds each in
+ * `useQuickTimePlayback`).
+ */
 export const QuickTimeSeekBar: FunctionalComponent<{
+	/** Id of the range input. */
 	id: string;
+	/** Playhead position, in seconds. */
 	currentTime: number;
+	/** Media length, in seconds; a falsy value is treated as 1. */
 	duration: number;
+	/** Fired while scrubbing with the new position as a fraction (0–1). */
 	onSeekToPct: (pct: number) => void;
+	/** Fired by the skip-forward button. */
 	onSeekForward: () => void;
+	/** Fired by the skip-backward button. */
 	onSeekBackward: () => void;
 }> = ({
 	id,

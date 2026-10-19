@@ -4,6 +4,7 @@ import { Component, type ErrorInfo, type ReactNode } from "react";
 import { emitClassicyCrash } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 interface ClassicyCrashScreenProps {
+	/** The tree to guard — normally the whole desktop. Rendered unchanged until a descendant throws. */
 	children?: ReactNode;
 }
 
@@ -12,8 +13,26 @@ interface ClassicyCrashScreenState {
 }
 
 /**
- * Error boundary that replaces the desktop with a full-screen Sad Mac when
- * any descendant throws during render. Click or press any key to reload.
+ * Error boundary that replaces the desktop with a full-screen Sad Mac — the
+ * classic Macintosh startup-failure icon — when any descendant throws while
+ * rendering (or in a lifecycle method). Clicking it or pressing any key
+ * reloads the page. Like any React error boundary, it does not catch errors
+ * thrown in event handlers or async code.
+ *
+ * `ClassicyDesktop` already wraps itself in one, so a typical app gets it for
+ * free; wrap your own tree in it only when building a custom shell.
+ *
+ * On a crash it logs `Classicy crashed:` with the component stack to
+ * `console.error` and calls `emitClassicyCrash`, which feeds the `onCrash`
+ * hook of every sink registered with `registerClassicyLogSink` — the place to
+ * forward crashes to telemetry:
+ *
+ * ```ts
+ * registerClassicyLogSink({
+ *   id: "telemetry",
+ *   onCrash: (error, componentStack) => report(error, componentStack),
+ * });
+ * ```
  *
  * The fallback render is deliberately self-contained: no Classicy state,
  * theme, or sound managers — those providers may be the very thing that

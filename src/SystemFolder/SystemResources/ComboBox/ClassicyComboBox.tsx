@@ -35,25 +35,39 @@ import {
 
 const CHECKMARK = "✓";
 
+/**
+ * How typing narrows the suggestions: by label prefix, by label substring, or
+ * (`false`) not at all. Matching is case-insensitive.
+ */
 export type ClassicyComboBoxFilter = "startsWith" | "contains" | false;
 
 type ClassicyComboBoxProps = {
+	/** Id (and `name`) of the text `<input>`; links the label to it. */
 	id: string;
 	/** Flat options and/or `{ groupLabel, options }` groups, like ClassicyPopUpMenu. */
 	options: ClassicyPopUpMenuEntry[];
+	/** Initial text. The field resets to it whenever it changes. */
 	prefillValue?: string;
+	/** Native placeholder text shown while the field is empty. */
 	placeholder?: string;
+	/** Visible label text; also the suggestion list's accessible name. */
 	label?: string;
+	/** Where the label sits relative to the field. Defaults to `"above"`. */
 	labelPosition?: ClassicyLabelPosition;
+	/** Label text size. */
 	labelSize?: ClassicyControlLabelSize;
-	/** How typing narrows the suggestions. `false` never filters. */
+	/**
+	 * How typing narrows the suggestions. `false` never filters. Defaults to
+	 * `"startsWith"`.
+	 */
 	filter?: ClassicyComboBoxFilter;
 	/**
 	 * When false, dismissing the combo with text that matches no option
 	 * reverts to the last committed selection — the field can only ever hold
-	 * an option label.
+	 * an option label. Defaults to `true`.
 	 */
 	freeText?: boolean;
+	/** Disables the field and its arrow (and dims the label). Defaults to `false`. */
 	disabled?: boolean;
 	/** Fired for every text change (typing or committing a suggestion). */
 	onChangeFunc?: (text: string) => void;
@@ -67,6 +81,19 @@ type ClassicyComboBoxProps = {
  * type. Focus stays in the input (ARIA combobox pattern with
  * `aria-activedescendant`); the suggestion list reuses the PopUpMenu's menu
  * styling and placement so both drop-downs look and flip identically.
+ *
+ * Typing opens the filtered list; the arrow button shows the full list
+ * regardless of the text (it is a pointer affordance, not a tab stop). Down/Up
+ * move the highlight, Enter commits it, Escape or Tab dismiss. Unlike the
+ * pop-up menu, the list hangs below the field (or sits fully above it when
+ * there is no room) instead of aligning a selection over it, and it is
+ * dismissed by an outside click, an ancestor scroll or a window resize. Set
+ * `freeText={false}` when the field must hold one of the option labels.
+ *
+ * ```tsx
+ * <ClassicyComboBox id="city" label="City:" options={cities}
+ *     onSelectFunc={(value) => setCity(value)} />
+ * ```
  */
 export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 	id,

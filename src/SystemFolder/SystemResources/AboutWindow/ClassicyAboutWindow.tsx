@@ -13,13 +13,36 @@ import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/Class
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
 export type ClassicyAboutWindowProps = {
+	/** Id of the owning app. The box registers as window `${appId}_about`. */
 	appId: string;
+	/** App name, shown as the box's heading. */
 	appName: string;
+	/** App icon (URL or data URI), shown above the name. */
 	appIcon: string;
+	/** Called when OK is clicked, or Return / Escape pressed — unmount the box
+	 *  here (e.g. clear the flag that renders it). */
 	hideFunc: MouseEventHandler<HTMLButtonElement>;
+	/** Menus to publish to the menu bar while the box is focused. */
 	appMenu?: ClassicyMenuItem[];
 };
 
+/**
+ * The standard About box (HIGOS8 Ch.6 "The About Box", p.126): a modal,
+ * fixed-size window showing the app's icon, name and a credit line above a
+ * default OK button. Use it instead of a hand-built `<dialog>` for an app's
+ * About command.
+ *
+ * OK is the default button (HIGOS8 p.23): it carries the default ring, and
+ * Return or Escape activates it, so every dismissal runs `hideFunc`. The box
+ * has no close, zoom or collapse box and cannot be resized; it takes focus
+ * when it mounts. Most apps get it from `useClassicyAboutMenu`, which returns
+ * the About menu item and this window, wired together:
+ *
+ * ```tsx
+ * const { aboutMenuItem, aboutWindow } = useClassicyAboutMenu(appId, appName, appIcon);
+ * // put aboutMenuItem in the File menu; render {aboutWindow} inside ClassicyApp
+ * ```
+ */
 export const ClassicyAboutWindow: FunctionalComponent<
 	ClassicyAboutWindowProps
 > = ({ appId, appName, appIcon, hideFunc, appMenu }) => {
