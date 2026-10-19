@@ -718,7 +718,9 @@ describe("Control-dragging the Control Strip (#298, #299)", () => {
 				const rect =
 					this === desktop
 						? DESKTOP
-						: { left: 0, top: STRIP_TOP, width: 200, height: 24 };
+						: this.classList.contains("classicyDesktopMenuBar")
+							? { left: 0, top: 0, width: 800, height: 20 }
+							: { left: 0, top: STRIP_TOP, width: 200, height: 24 };
 				return {
 					...rect,
 					right: rect.left + rect.width,
@@ -872,6 +874,11 @@ describe("Control-dragging the Control Strip (#298, #299)", () => {
 	});
 
 	it("ignores a malformed position", () => {
+		dispatch({
+			type: "ClassicyDesktopControlStripSetPosition",
+			edge: "right",
+			bottom: 42,
+		});
 		for (const bad of [
 			{ edge: "top", bottom: 10 },
 			{ edge: "left", bottom: -1 },
@@ -880,7 +887,45 @@ describe("Control-dragging the Control Strip (#298, #299)", () => {
 		]) {
 			dispatch({ type: "ClassicyDesktopControlStripSetPosition", ...bad });
 		}
-		expect(storedStrip()?.edge).toBeUndefined();
-		expect(storedStrip()?.bottom).toBeUndefined();
+		// The valid position stands; none of the malformed ones replaced it.
+		expect(storedStrip()).toMatchObject({ edge: "right", bottom: 42 });
+	});
+
+	it("collapses from the keyboard right after a drag that ended elsewhere", () => {
+		register(...testModules());
+		renderStrip();
+		controlPress();
+		fireEvent.mouseMove(document, { clientX: 700, clientY: 300 });
+		// Released away from the collapse box: no click of its own follows.
+		fireEvent.mouseUp(document);
+		fireEvent.click(collapseBox(), { detail: 0 });
+		expect(storedStrip()?.collapsed).toBe(true);
+	});
+
+	it("collapses on the next mouse click once a drag that ended elsewhere is over", async () => {
+		register(...testModules());
+		renderStrip();
+		controlPress();
+		fireEvent.mouseMove(document, { clientX: 700, clientY: 300 });
+		fireEvent.mouseUp(document);
+		await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
+		fireEvent.click(collapseBox(), { detail: 1 });
+		expect(storedStrip()?.collapsed).toBe(true);
+	});
+
+	it("caps its height under the menu bar, which it measures", () => {
+		const menuBar = document.createElement("nav");
+		menuBar.className = "classicyDesktopMenuBar";
+		desktop.appendChild(menuBar);
+		register(...testModules());
+		dispatch({
+			type: "ClassicyDesktopControlStripSetPosition",
+			edge: "left",
+			bottom: 140,
+		});
+		renderStrip();
+		expect(
+			strip().style.getPropertyValue("--classicy-control-strip-top-inset"),
+		).toBe("20px");
 	});
 });

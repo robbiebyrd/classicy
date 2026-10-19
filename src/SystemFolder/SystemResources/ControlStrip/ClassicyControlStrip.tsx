@@ -97,6 +97,20 @@ export type ClassicyControlStripPosition = {
 };
 
 /**
+ * The depth of the desktop's menu bar below the top of `desktop`, the area the
+ * strip may not enter; 0 when there is no menu bar.
+ */
+const menuBarInsetOf = (desktop: HTMLElement): number => {
+	const menuBar = desktop.querySelector(".classicyDesktopMenuBar");
+	if (!menuBar) return 0;
+	return Math.max(
+		0,
+		menuBar.getBoundingClientRect().bottom -
+			desktop.getBoundingClientRect().top,
+	);
+};
+
+/**
  * Where a Control-dragged strip docks (#298, #299): to the edge on the
  * pointer's half of the desktop, at the height the pointer carries it to —
  * kept between the desktop's bottom and the underside of the menu bar.
@@ -164,11 +178,13 @@ const ClassicyControlStripModuleButton: FunctionalComponent<{
 
 /**
  * The Mac OS 8 Control Strip (HIGOS8 Ch.6 "Persistent Access", p.125, Figure
- * 6-15): a floating strip pinned to the lower left of the desktop that keeps
- * small module buttons within reach while their control panels are closed.
+ * 6-15): a floating strip, docked to the lower left of the desktop until the
+ * user moves it, that keeps small module buttons within reach while their
+ * control panels are closed.
  *
- * From left to right: a collapse box, a scroll arrow, the modules, a scroll
- * arrow and the tab. The collapse box tucks the strip down to the tab; a click
+ * Docked left, from left to right: a collapse box, a scroll arrow, the
+ * modules, a scroll arrow and the tab. The collapse box tucks the strip down to
+ * the tab; a click
  * on the tab collapses or expands it, and dragging the tab sizes it. When the
  * modules do not fit, the scroll arrows step through them. Each module is a
  * pop-up bevel button, so its menu opens above the strip and behaves as a
@@ -291,6 +307,21 @@ export const ClassicyControlStrip: FunctionalComponent<
 		updateScrollState();
 	}, [width, collapsed, shown.length, updateScrollState]);
 
+	// The menu bar's depth, kept current so the SCSS cap on a stored height
+	// stops under the menu bar, not just at the desktop's top edge, when the
+	// desktop shrinks.
+	const [topInset, setTopInset] = useState(0);
+	useLayoutEffect(() => {
+		const measure = () => {
+			const desktop = stripRef.current?.offsetParent;
+			const next = desktop instanceof HTMLElement ? menuBarInsetOf(desktop) : 0;
+			setTopInset((prev) => (prev === next ? prev : next));
+		};
+		measure();
+		window.addEventListener("resize", measure);
+		return () => window.removeEventListener("resize", measure);
+	}, []);
+
 	const scrollBy = (direction: 1 | -1) => {
 		const el = viewportRef.current;
 		if (!el) return;
@@ -359,24 +390,26 @@ export const ClassicyControlStrip: FunctionalComponent<
 			)
 				return;
 			move.moved = true;
-			const area = desktop.getBoundingClientRect();
-			const menuBar = desktop.querySelector(".classicyDesktopMenuBar");
-			const topInset = menuBar
-				? Math.max(0, menuBar.getBoundingClientRect().bottom - area.top)
-				: 0;
 			move.position = computeClassicyControlStripPosition({
 				pointer: [e.clientX, e.clientY],
 				grabOffsetY: move.grabOffsetY,
-				desktop: area,
+				desktop: desktop.getBoundingClientRect(),
 				stripHeight: strip.offsetHeight,
-				topInset,
+				topInset: menuBarInsetOf(desktop),
 			});
 			setMovePreview(move.position);
 		};
 		const onUp = () => {
 			const move = moveRef.current;
 			moveRef.current = null;
-			if (!move?.position) return;
+			if (!move) return;
+			// The press's own click, if it lands on the collapse box, fires right
+			// after this release; any later activation must collapse normally,
+			// even when the drag ended elsewhere and no click followed.
+			setTimeout(() => {
+				suppressCollapseClickRef.current = false;
+			}, 0);
+			if (!move.position) return;
 			dispatch({
 				type: "ClassicyDesktopControlStripSetPosition",
 				...move.position,
@@ -483,6 +516,7 @@ export const ClassicyControlStrip: FunctionalComponent<
 					? undefined
 					: ({
 							"--classicy-control-strip-bottom": `${bottom}px`,
+							"--classicy-control-strip-top-inset": `${topInset}px`,
 						} as CSSProperties)
 			}
 		>
@@ -494,8 +528,9 @@ export const ClassicyControlStrip: FunctionalComponent<
 						aria-label="Collapse Control Strip"
 						onMouseDown={onCollapseBoxMouseDown}
 						onContextMenu={onCollapseBoxContextMenu}
-						onClick={() => {
-							if (suppressCollapseClickRef.current) {
+						onClick={(e) => {
+							// Enter or Space (detail 0) is never the end of a press.
+							if (suppressCollapseClickRef.current && e.detail !== 0) {
 								suppressCollapseClickRef.current = false;
 								return;
 							}

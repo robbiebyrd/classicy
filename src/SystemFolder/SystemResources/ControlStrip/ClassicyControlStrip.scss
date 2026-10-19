@@ -79,13 +79,20 @@ $module-width: 30px;
 
 // Docked lower left until Control-dragged (#298, #299): the component sets
 // --classicy-control-strip-bottom to the stored height above the desktop's
-// bottom edge, capped here so a shrunken desktop never pushes it off the top.
+// bottom edge and --classicy-control-strip-top-inset to the menu bar's depth,
+// so a shrunken desktop caps the strip just under the menu bar.
 .classicyControlStrip {
   position: absolute;
   left: 0;
-  bottom: min(
-    var(--classicy-control-strip-bottom, 0px),
-    calc(100% - #{$cell-height + 2px})
+  bottom: max(
+    0px,
+    min(
+      var(--classicy-control-strip-bottom, 0px),
+      calc(
+        100% - #{$cell-height + 2px} -
+          var(--classicy-control-strip-top-inset, 0px)
+      )
+    )
   );
   z-index: 355;
   display: flex;
