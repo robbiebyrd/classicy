@@ -1,4 +1,6 @@
+import { desktopParameters } from "@sb/helpers";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { fn } from "storybook/test";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { ClassicyMenuBarExtension } from "./ClassicyMenuBarExtension";
 
@@ -14,6 +16,11 @@ type Story = StoryObj<typeof meta>;
 // into #classicyDesktop, so the story provides both, plus a black bar strip.
 const userIcon = ClassicyIcons.system.network.userDirectory;
 
+/**
+ * An icon item with a dropdown menu, in a stand-in menu bar strip (the story
+ * supplies the `#classicyDesktopMenuExtensions` region and `#classicyDesktop`
+ * the component portals into). Click the icon to drop the menu below it.
+ */
 export const UserMenu: Story = {
 	render: () => (
 		<div id="classicyDesktop" style={{ position: "relative", minHeight: 200 }}>
@@ -42,5 +49,19 @@ export const UserMenu: Story = {
 				]}
 			/>
 		</div>
+	),
+};
+
+/**
+ * On a real desktop, the item lands in the menu bar to the left of the clock.
+ * Here it shows custom `children` in place of an icon and has no menu, so a
+ * click only calls `onClick`.
+ */
+export const OnDesktop: Story = {
+	parameters: desktopParameters,
+	render: () => (
+		<ClassicyMenuBarExtension id="status" title="Status" onClick={fn()}>
+			<span style={{ padding: "0 4px" }}>Online</span>
+		</ClassicyMenuBarExtension>
 	),
 };

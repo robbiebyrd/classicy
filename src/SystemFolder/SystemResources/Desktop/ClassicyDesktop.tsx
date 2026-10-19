@@ -48,8 +48,13 @@ import {
 	useState,
 } from "react";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { listAppWindows } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
 import { ClassicyDefaultParadeIcons } from "@/SystemFolder/SystemResources/Boot/ClassicyDefaultParadeIcons";
+import {
+	ClassicyControlStrip,
+	type ClassicyControlStripProps,
+} from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStrip";
 import { ClassicyDesktopIcon } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIcon";
 import {
 	type ArrowDirection,
@@ -67,8 +72,15 @@ import "../../ControlPanels/AppearanceManager/styles/fonts.scss";
 import "../../../index.css";
 
 interface ClassicyDesktopProps {
+	/** Your apps (`ClassicyApp`) and anything else to mount on the desktop. */
 	children?: ReactNode;
+	/**
+	 * Show the startup screen (chime, progress bar and extension parade) once
+	 * per browser-tab session. `false` skips it, along with a
+	 * custom `bootScreen`. Defaults to `true`.
+	 */
 	startupScreen?: boolean;
+	/** How long the default startup screen runs, in ms. Defaults to `4000`. */
 	startupDuration?: number;
 	/**
 	 * Optional pre-boot "power on" screen shown before the startup sequence.
@@ -89,6 +101,14 @@ interface ClassicyDesktopProps {
 	 * helpers. Still subject to the `startupScreen` gate.
 	 */
 	bootScreen?: ReactNode;
+	/**
+	 * The Control Strip (HIGOS8 Figure 6-15) along the bottom left of the
+	 * desktop — home of the Sound control. Shown by default with every
+	 * registered module (`registerClassicyControlStripModule`); pass its props
+	 * to configure it (`disabledModules`, `defaultCollapsed`, `defaultWidth`),
+	 * or `false` to hide it.
+	 */
+	controlStrip?: boolean | ClassicyControlStripProps;
 }
 
 const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
@@ -99,6 +119,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	startupLogo,
 	startupWordmark,
 	bootScreen,
+	controlStrip = true,
 }) => {
 	const [showAbout, setShowAbout] = useState(false);
 	const [showEmptyTrashDialog, setShowEmptyTrashDialog] = useState(false);
@@ -119,6 +140,13 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	const activeTheme = useAppManager(
 		(s) => s.System.Manager.Appearance.activeTheme,
 	);
+	// Mac OS 8 Smart Scrolling (Appearance control panel). Defaults to on when
+	// unset (persisted stores from before this setting existed). Off adds the
+	// split-arrows modifier class, which cascades scrollbar styling to every
+	// scrollable surface below the desktop root.
+	const smartScrolling = useAppManager(
+		(s) => s.System.Manager.Appearance.smartScrolling,
+	);
 	const allDesktopIcons = useAppManager((s) => s.System.Manager.Desktop.icons);
 	// Hidden icons exist only to populate the derived Applications folder; they
 	// must never be drawn on, or navigable within, the desktop.
@@ -132,14 +160,11 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	const errorDialog = useAppManager(
 		(s) => s.System.Manager.Desktop.errorDialog,
 	);
-	const disableBalloonHelp = useAppManager(
-		(s) => s.System.Manager.Desktop.disableBalloonHelp,
-	);
 	const focusedAppId = useAppManager(
 		(s) => s.System.Manager.Applications.focusedAppId,
 	);
 	const finderHasOpenWindow = useAppManager((s) =>
-		(s.System.Manager.Applications.apps["Finder.app"]?.windows ?? []).some(
+		listAppWindows(s.System.Manager.Applications.apps["Finder.app"]).some(
 			(w) => !w.closed,
 		),
 	);
@@ -445,7 +470,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 				],
 			},
 		],
-		[desktopEventDispatch, disableBalloonHelp],
+		[desktopEventDispatch],
 	);
 
 	// When focus settles on the desktop — Finder is the focused app (or nothing
@@ -480,7 +505,9 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 			ref={desktopRef}
 			tabIndex={-1}
 			style={currentTheme as CSSProperties}
-			className={classNames("classicyDesktop")}
+			className={classNames("classicyDesktop", {
+				classicyDesktopSplitArrows: smartScrolling === false,
+			})}
 			onMouseMove={resizeSelectBox}
 			onContextMenu={toggleDesktopContextMenu}
 			onMouseUp={clearSelectBox}
@@ -516,6 +543,11 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 			{!disableWebViewer && <WebViewer />}
 			<ClassicyOpenUrlController />
 			<ClassicyControlPanels />
+			{controlStrip !== false && (
+				<ClassicyControlStrip
+					{...(controlStrip === true ? {} : controlStrip)}
+				/>
+			)}
 			{showAbout
 				? getClassicyAboutWindow({
 						appId: "Finder.app",
@@ -599,6 +631,28 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	);
 };
 
+/**
+ * The Mac OS 8 desktop: the root surface every Classicy app renders on, with
+ * no HTML counterpart. Mount it once inside `ClassicyAppManagerProvider`, with
+ * your `ClassicyApp`s as children.
+ *
+ * It mounts the whole shell for you: the menu bar (`ClassicyDesktopMenuBar`),
+ * the Control Strip, Finder, the built-in apps and control panels, the Trash
+ * and the other desktop icons, the contextual-menu provider, a crash boundary
+ * (`ClassicyCrashScreen`) and the startup sequence. The empty desktop supports
+ * rubber-band icon selection, arrow-key and type-to-select icon navigation,
+ * and a right-click menu (Clean Up, Arrange, Empty Trash…). It applies the
+ * active theme as CSS variables on its root `#classicyDesktop` element, where
+ * windows, menus and balloons portal.
+ *
+ * ```tsx
+ * <ClassicyAppManagerProvider>
+ *   <ClassicyDesktop controlStrip={{ defaultCollapsed: true }}>
+ *     <MyApp />
+ *   </ClassicyDesktop>
+ * </ClassicyAppManagerProvider>
+ * ```
+ */
 export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 	children,
 	startupScreen,
@@ -607,6 +661,7 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 	startupLogo,
 	startupWordmark,
 	bootScreen,
+	controlStrip,
 }) => (
 	<ClassicyCrashScreen>
 		<ClassicyContextualMenuProvider>
@@ -617,6 +672,7 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 				startupLogo={startupLogo}
 				startupWordmark={startupWordmark}
 				bootScreen={bootScreen}
+				controlStrip={controlStrip}
 			>
 				{children}
 			</ClassicyDesktopInner>

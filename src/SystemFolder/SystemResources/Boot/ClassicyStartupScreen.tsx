@@ -15,18 +15,37 @@ import {
 import { ClassicyProgressBar } from "@/SystemFolder/SystemResources/ProgressBar/ClassicyProgressBar";
 
 interface ClassicyStartupScreenProps {
+	/**
+	 * How long the splash stays up, in milliseconds; the progress bar fills and
+	 * the extension parade completes over this span. Defaults to `4000`.
+	 */
 	duration?: number;
-	/** Overrides the logo image shown above the wordmark. Defaults to the Classicy mac icon. */
+	/**
+	 * Overrides the logo image shown beside the wordmark (`wordmark` is its alt
+	 * text). Defaults to `ClassicyIcons.system.macosSvg`.
+	 */
 	logo?: string;
-	/** Overrides the wordmark text shown next to the logo. Defaults to "Classicy". */
+	/** Overrides the wordmark text shown next to the logo. Defaults to `"Classicy"`. */
 	wordmark?: string;
 }
 
 /**
- * Classicy boot splash: covers the already-mounted desktop, plays the boot
- * chime, fills a progress bar over `duration` ms, then removes itself.
- * Shows once per browser-tab session. Deliberately self-contained — it does
- * not touch the window manager, app registration, or focus system.
+ * The Classicy boot splash: covers the already-mounted desktop, plays the boot
+ * chime (`ClassicyBoot`), fills a "Starting Up…" progress bar over `duration`
+ * ms, then removes itself.
+ *
+ * Along the bottom, an extension parade reveals one icon at a time: icons
+ * added with `ClassicyBootParadeIconAdd` (e.g. by `ClassicyApp`'s `bootIcon`)
+ * first, then every `extension` app, each in registration order — the last
+ * lands before the bar completes.
+ *
+ * Shows once per browser-tab session (sessionStorage); call
+ * `resetStartupScreenSession()` to show it again in tests or demos. You rarely
+ * mount it yourself: `ClassicyDesktop` does (through `ClassicyBootSequence`),
+ * configured by its `startupScreen`, `startupDuration`, `startupLogo` and
+ * `startupWordmark` props; its `bootScreen` prop replaces this component.
+ * Deliberately self-contained — it does not touch the window manager, app
+ * registration, or focus system.
  */
 export const ClassicyStartupScreen: FunctionalComponent<
 	ClassicyStartupScreenProps

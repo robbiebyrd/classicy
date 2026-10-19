@@ -2,6 +2,11 @@ import type {
 	ClassicyStore,
 	ClassicyStoreSystemApp,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import {
+	getAppWindow,
+	listAppWindows,
+	mostRecentAppWindow,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import type { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
@@ -15,9 +20,9 @@ export function getDefaultAppForFileType(
 export function deFocusApps(ds: ClassicyStore) {
 	for (const app of Object.values(ds.System.Manager.Applications.apps)) {
 		app.focused = false;
-		app.windows.forEach((w) => {
+		for (const w of listAppWindows(app)) {
 			w.focused = false;
-		});
+		}
 	}
 	ds.System.Manager.Applications.focusedAppId = undefined;
 	return ds;
@@ -35,7 +40,7 @@ export function focusWindow(
 	app.focused = true;
 	app.lastFocusedAt = Date.now();
 	ds.System.Manager.Applications.focusedAppId = appId;
-	const win = app.windows.find((w) => w.id === windowId);
+	const win = getAppWindow(app, windowId);
 	if (win) {
 		win.focused = true;
 		win.zOrder = Date.now();
@@ -48,12 +53,27 @@ export function focusWindow(
 	return ds;
 }
 
+/**
+ * Which window an app re-focuses when it is activated. In priority order:
+ *
+ * 1. the last-accessed window (`lastAccessedWindowId`), if still a candidate;
+ * 2. the most recently focused candidate (highest `zOrder`);
+ * 3. the app's `default` window;
+ * 4. the most recently registered candidate.
+ *
+ * Steps 1-3 are decided by window data alone. Only the ties inside step 2
+ * (equal zOrder) and step 4 fall back to the windows record's insertion order
+ * (`listAppWindows`), and step 4 is reachable only from hand-built state:
+ * opening a window focuses it, which stamps a zOrder. Insertion order is
+ * registration order except for integer-like ids ("2"), which JavaScript
+ * always enumerates first.
+ */
 export function pickWindowToRestore(app: ClassicyStoreSystemApp) {
 	// Utility (tool-palette) windows float and never become the active document
 	// window, so they are never a succession target. When only utility windows
 	// remain, candidates is empty and focusApp keeps the app focused with no
 	// focused window.
-	const candidates = app.windows.filter(
+	const candidates = listAppWindows(app).filter(
 		(w) => !w.closed && w.windowType !== "utility",
 	);
 	if (candidates.length === 0) return undefined;
@@ -63,11 +83,9 @@ export function pickWindowToRestore(app: ClassicyStoreSystemApp) {
 	if (lastAccessed) return lastAccessed;
 	const withZOrder = candidates.filter((w) => w.zOrder !== undefined);
 	if (withZOrder.length > 0) {
-		return withZOrder.reduce((best, w) =>
-			(w.zOrder ?? 0) > (best.zOrder ?? 0) ? w : best,
-		);
+		return mostRecentAppWindow(withZOrder);
 	}
-	return candidates.find((w) => w.default) ?? candidates[candidates.length - 1];
+	return candidates.find((w) => w.default) ?? candidates.at(-1);
 }
 
 export function focusApp(ds: ClassicyStore, appId: string) {
@@ -75,7 +93,7 @@ export function focusApp(ds: ClassicyStore, appId: string) {
 	// A closed app can never take focus: in-window controls that quit their
 	// own app bubble a ClassicyAppActivate after the ClassicyAppClose, and
 	// honoring it would leave a closed app owning the menu bar.
-	if (!app || !app.open) return;
+	if (!app?.open) return;
 	const restore = pickWindowToRestore(app);
 	if (restore) {
 		focusWindow(ds, appId, restore.id);
@@ -123,17 +141,17 @@ export function openApp(
 	const findApp = ds.System.Manager.Applications.apps[appId];
 	if (findApp) {
 		findApp.open = true;
-		findApp.windows.forEach((w) => {
+		for (const w of listAppWindows(findApp)) {
 			w.closed = false;
 			w.closedThisSession = false;
-		});
+		}
 		focusApp(ds, appId);
 	} else {
 		ds.System.Manager.Applications.apps[appId] = {
 			id: appId,
 			name: appName,
 			icon: appIcon,
-			windows: [],
+			windows: {},
 			open: true,
 			data: {},
 		};
@@ -154,7 +172,7 @@ export function loadApp(
 			id: appId,
 			name: appName,
 			icon: appIcon,
-			windows: [],
+			windows: {},
 			// Extensions run in the background from the moment they load; their
 			// windows can only render while the app is open. They never take
 			// focus on load.
@@ -188,9 +206,9 @@ export function closeApp(ds: ClassicyStore, appId: string) {
 	if (findApp) {
 		findApp.open = false;
 		findApp.focused = false;
-		findApp.windows?.forEach((w) => {
+		for (const w of listAppWindows(findApp)) {
 			w.closed = true;
-		});
+		}
 	}
 }
 

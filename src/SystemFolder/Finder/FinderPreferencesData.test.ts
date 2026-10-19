@@ -54,7 +54,7 @@ function makeStore(
 							id: "Finder.app",
 							name: "Finder",
 							icon: "",
-							windows: [],
+							windows: {},
 							open: true,
 							focused: true,
 							noDesktopIcon: true,

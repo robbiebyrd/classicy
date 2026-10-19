@@ -6,6 +6,7 @@ import {
 	waitFor,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { windowsRecord } from "@/__tests__/windowsRecord";
 import type { HCEditState } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorUtils";
 import {
 	registerHyperCardSaveProvider,
@@ -141,7 +142,10 @@ beforeEach(() => {
 	}
 });
 
-function stateWith(edit?: HCEditState, windows: unknown[] = []) {
+function stateWith(
+	edit?: HCEditState,
+	windows: Array<{ id: string; closed: boolean }> = [],
+) {
 	const stack = {
 		name: "Demo",
 		cards: [
@@ -159,7 +163,7 @@ function stateWith(edit?: HCEditState, windows: unknown[] = []) {
 							id: "HyperCard.app",
 							name: "HyperCard",
 							icon: "i.png",
-							windows: windows,
+							windows: windowsRecord(...windows),
 							open: true,
 							data: {
 								activeStackId: "demo",
@@ -242,7 +246,7 @@ function stateWithStacks(
 							id: "HyperCard.app",
 							name: "HyperCard",
 							icon: "i.png",
-							windows: [] as unknown[],
+							windows: {} as Record<string, unknown>,
 							open: true,
 							data: {
 								activeStackId,
@@ -737,14 +741,7 @@ describe("HyperCard editor integration", () => {
 		const ids = (capturedMenus.hypercard_main as { id: string }[]).map(
 			(m) => m.id,
 		);
-		expect(ids).toEqual([
-			"file",
-			"edit",
-			"view",
-			"go",
-			"objects",
-			"examples",
-		]);
+		expect(ids).toEqual(["file", "edit", "view", "go", "objects", "examples"]);
 	});
 
 	it("View items are disabled and unchecked outside edit mode", () => {

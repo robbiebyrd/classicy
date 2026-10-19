@@ -6,6 +6,7 @@ import {
 	DefaultAppManagerState,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { listAppWindows } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { MoviePlayer } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayer";
 // Side-effect import: registers classicyQuickTimeMoviePlayerEventHandler for
 // ClassicyAppMoviePlayer* actions. In the real app this happens via the
@@ -116,7 +117,9 @@ describe("MoviePlayer — document window survives unmount", () => {
 				useAppManager.getState().System.Manager.Applications.apps[
 					MoviePlayerAppInfo.id
 				];
-			windowId = app?.windows.find((w) => w.id.includes("MoviePlayer"))?.id;
+			windowId = listAppWindows(app).find((w) =>
+				w.id.includes("MoviePlayer"),
+			)?.id;
 			expect(windowId).toBeDefined();
 		});
 
@@ -126,6 +129,6 @@ describe("MoviePlayer — document window survives unmount", () => {
 			useAppManager.getState().System.Manager.Applications.apps[
 				MoviePlayerAppInfo.id
 			];
-		expect(app?.windows.some((w) => w.id === windowId)).toBe(true);
+		expect(listAppWindows(app).some((w) => w.id === windowId)).toBe(true);
 	});
 });

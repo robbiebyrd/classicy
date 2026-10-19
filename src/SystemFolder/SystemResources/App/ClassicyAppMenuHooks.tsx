@@ -4,6 +4,7 @@ import {
 	useEffect,
 	useMemo,
 	useState,
+	useSyncExternalStore,
 } from "react";
 import type { ActionMessage } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
@@ -11,6 +12,9 @@ import { ClassicyAboutWindow } from "@/SystemFolder/SystemResources/AboutWindow/
 import {
 	classicyEditCommands,
 	ensureEditTracker,
+	getUndoStateServerSnapshot,
+	getUndoStateSnapshot,
+	subscribeUndoState,
 } from "@/SystemFolder/SystemResources/App/ClassicyEditCommands";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
@@ -120,11 +124,34 @@ export function useClassicyHelpMenu(
  * flagged `nativeShortcut`), so their glyphs render but the app-wide dispatcher
  * leaves the keystrokes to the browser; the click handlers drive the same
  * actions for mouse users.
+ *
+ * `preferencesItem`, when supplied, is appended after a divider at the BOTTOM of
+ * the Edit menu — the position Mac OS 8 standardized for the Preferences command
+ * (HIGOS8 Ch.4 "Menu Bar Changes", p.91). Give it a title ending in an ellipsis
+ * (e.g. "Preferences…") since it opens a further dialog.
  */
-export function useClassicyEditMenu(idPrefix: string): ClassicyMenuItem {
+export function useClassicyEditMenu(
+	idPrefix: string,
+	preferencesItem?: ClassicyMenuItem,
+): ClassicyMenuItem {
 	useEffect(() => {
 		ensureEditTracker();
 	}, []);
+
+	// Context-aware Undo (HIG 4.6): name the pending action ("Undo Typing") and
+	// dim to "Can't Undo" when the focused/last field has nothing to undo. The
+	// snapshot only changes when the wording would, so this doesn't re-render on
+	// every keystroke.
+	const undoState = useSyncExternalStore(
+		subscribeUndoState,
+		getUndoStateSnapshot,
+		getUndoStateServerSnapshot,
+	);
+	const undoTitle = undoState.canUndo
+		? undoState.label
+			? `Undo ${undoState.label}`
+			: "Undo"
+		: "Can't Undo";
 
 	return useMemo(
 		() => ({
@@ -133,7 +160,8 @@ export function useClassicyEditMenu(idPrefix: string): ClassicyMenuItem {
 			menuChildren: [
 				{
 					id: `${idPrefix}_undo`,
-					title: "Undo",
+					title: undoTitle,
+					disabled: !undoState.canUndo,
 					keyboardShortcut: "⌘Z",
 					nativeShortcut: true,
 					onClickFunc: classicyEditCommands.undo,
@@ -174,8 +202,13 @@ export function useClassicyEditMenu(idPrefix: string): ClassicyMenuItem {
 					nativeShortcut: true,
 					onClickFunc: classicyEditCommands.selectAll,
 				},
+				// Mac OS 8 moved Preferences to the bottom of the Edit menu, after a
+				// divider (HIGOS8 Ch.4, p.91). Only present when a host supplies it.
+				...(preferencesItem
+					? [{ id: "spacer" } as ClassicyMenuItem, preferencesItem]
+					: []),
 			],
 		}),
-		[idPrefix],
+		[idPrefix, preferencesItem, undoTitle, undoState.canUndo],
 	);
 }

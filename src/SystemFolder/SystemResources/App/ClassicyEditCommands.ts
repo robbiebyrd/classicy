@@ -25,13 +25,99 @@ const isEditable = (el: EventTarget | null): el is EditableElement => {
 let lastEditable: EditableElement | null = null;
 let trackerInstalled = false;
 
+// --- Undo-state tracking (HIG 4.6: context-aware "Undo <action>" / "Can't Undo").
+//
+// The browser exposes no reliable API for "is there anything to undo?" or "what
+// was the last edit?", so we approximate from input events: each
+// content-changing input deepens a field's undo stack; a `historyUndo` shallows
+// it and a `historyRedo` deepens it again. Depth + the last action's label are
+// tracked per element (WeakMap, so detached fields are collected), and a coarse
+// snapshot (canUndo + label) is published for the focused/last field. The
+// snapshot's identity changes only when canUndo or the label actually changes —
+// never on every keystroke — so a `useSyncExternalStore` consumer re-renders
+// just when the menu wording would differ.
+type UndoInfo = { depth: number; label?: string };
+const undoByElement = new WeakMap<EditableElement, UndoInfo>();
+
+export type ClassicyUndoState = { canUndo: boolean; label?: string };
+let undoSnapshot: ClassicyUndoState = { canUndo: false };
+const undoListeners = new Set<() => void>();
+
+/** Map an InputEvent `inputType` to a human action name for the Undo label. */
+const inputTypeLabel = (inputType: string): string | undefined => {
+	if (inputType.startsWith("insertFromPaste")) return "Paste";
+	if (inputType === "deleteByCut") return "Cut";
+	if (inputType.startsWith("insert")) return "Typing";
+	if (inputType.startsWith("delete")) return "Delete";
+	if (inputType.startsWith("format")) return "Formatting";
+	return undefined;
+};
+
+const recomputeUndoSnapshot = (): void => {
+	const el = resolveTarget();
+	const info = el ? undoByElement.get(el) : undefined;
+	const canUndo = !!info && info.depth > 0;
+	const label = canUndo ? info?.label : undefined;
+	if (canUndo !== undoSnapshot.canUndo || label !== undoSnapshot.label) {
+		undoSnapshot = { canUndo, label };
+		for (const cb of undoListeners) cb();
+	}
+};
+
+const recordInput = (el: EditableElement, inputType: string): void => {
+	const info = undoByElement.get(el) ?? { depth: 0 };
+	if (inputType === "historyUndo") {
+		info.depth = Math.max(0, info.depth - 1);
+	} else if (inputType === "historyRedo") {
+		info.depth += 1;
+	} else {
+		info.depth += 1;
+		info.label = inputTypeLabel(inputType) ?? info.label ?? "Typing";
+	}
+	undoByElement.set(el, info);
+	recomputeUndoSnapshot();
+};
+
 /** Begin remembering the last-focused text field. Idempotent; safe on the server. */
 export const ensureEditTracker = (): void => {
 	if (trackerInstalled || typeof document === "undefined") return;
 	trackerInstalled = true;
 	document.addEventListener("focusin", (e) => {
-		if (isEditable(e.target)) lastEditable = e.target as EditableElement;
+		if (isEditable(e.target)) {
+			lastEditable = e.target as EditableElement;
+			recomputeUndoSnapshot();
+		}
 	});
+	document.addEventListener("input", (e) => {
+		if (!isEditable(e.target)) return;
+		// `inputType` is empty on engines without InputEvent; treat as a generic edit.
+		const inputType = (e as InputEvent).inputType ?? "";
+		recordInput(e.target as EditableElement, inputType);
+	});
+};
+
+/** Subscribe to undo-state changes (for useSyncExternalStore). Installs the tracker. */
+export const subscribeUndoState = (cb: () => void): (() => void) => {
+	ensureEditTracker();
+	undoListeners.add(cb);
+	return () => {
+		undoListeners.delete(cb);
+	};
+};
+
+/** Current coarse undo state for the focused/last-edited field. Stable identity between changes. */
+export const getUndoStateSnapshot = (): ClassicyUndoState => undoSnapshot;
+
+/** Server render has no editable field and no history. */
+export const getUndoStateServerSnapshot = (): ClassicyUndoState => ({
+	canUndo: false,
+});
+
+/** Test-only: forget all tracked undo state. */
+export const __resetUndoTrackingForTests = (): void => {
+	undoSnapshot = { canUndo: false };
+	undoListeners.clear();
+	lastEditable = null;
 };
 
 /** The field to act on: the active element if editable, else the last one. */

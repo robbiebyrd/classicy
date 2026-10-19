@@ -207,7 +207,14 @@ export function getRegisteredStacks(): {
 export interface HCOptionField {
 	key: string;
 	label: string;
-	kind: "text" | "number" | "checkbox" | "choices" | "json" | "sound" | "picker";
+	kind:
+		| "text"
+		| "number"
+		| "checkbox"
+		| "choices"
+		| "json"
+		| "sound"
+		| "picker";
 	default?: unknown;
 	/** Required when kind === "picker" — looked up via getHyperCardOptionPicker. */
 	pickerId?: string;

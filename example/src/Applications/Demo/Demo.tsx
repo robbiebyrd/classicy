@@ -19,8 +19,8 @@ import {
 	quitMenuItemHelper,
 	useAppManagerDispatch,
 } from "classicy";
-import { AppIcons } from "../../app";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { AppIcons } from "../../app";
 
 const RADIO_INPUTS = [
 	{
@@ -306,7 +306,6 @@ export const Demo = () => {
 				collapsable={false}
 				initialSize={["40%", 500]}
 				initialPosition={[300, 50]}
-				modal={true}
 				appMenu={appMenu}
 			>
 				<ClassicyTabs tabs={tabs} />

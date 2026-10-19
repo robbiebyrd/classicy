@@ -7,6 +7,10 @@ import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import {
+	getAppWindow,
+	listAppWindows,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
@@ -17,13 +21,12 @@ import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWi
 let appCounter = 0;
 const nextAppId = () => `FocusTest${++appCounter}.app`;
 
-const windowsOf = (appId: string) =>
-	useAppManager.getState().System.Manager.Applications.apps[appId]?.windows ??
-	[];
+const appRecord = (appId: string) =>
+	useAppManager.getState().System.Manager.Applications.apps[appId];
 const focusedWindowId = (appId: string) =>
-	windowsOf(appId).find((w) => w.focused)?.id;
+	listAppWindows(appRecord(appId)).find((w) => w.focused)?.id;
 const windowRecord = (appId: string, windowId: string) =>
-	windowsOf(appId).find((w) => w.id === windowId);
+	getAppWindow(appRecord(appId), windowId);
 
 // Lets the deferred close a window schedules on unmount run.
 const flushDeferredClose = () =>

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@/__tests__/test-utils";
+import { windowsRecord } from "@/__tests__/windowsRecord";
 import { ClassicyContextualMenuProvider } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
@@ -26,24 +27,22 @@ vi.mock(
 									id: "Test.app",
 									focused: true,
 									contextMenu: mockAppState.contextMenu,
-									windows: [
-										{
-											id: "test_window",
-											appId: "Test.app",
-											collapsed: false,
-											focused: true,
-											dragging: false,
-											moving: false,
-											resizing: false,
-											zoomed: false,
-											closed: false,
-											size: [350, 200] as [number, number],
-											position: [110, 110] as [number, number],
-											minimumSize: [0, 0] as [number, number],
-											menuBar: [] as unknown[],
-											default: false,
-										},
-									],
+									windows: windowsRecord({
+										id: "test_window",
+										appId: "Test.app",
+										collapsed: false,
+										focused: true,
+										dragging: false,
+										moving: false,
+										resizing: false,
+										zoomed: false,
+										closed: false,
+										size: [350, 200] as [number, number],
+										position: [110, 110] as [number, number],
+										minimumSize: [0, 0] as [number, number],
+										menuBar: [] as unknown[],
+										default: false,
+									}),
 								},
 							},
 						},

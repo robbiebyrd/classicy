@@ -38,6 +38,12 @@ export type ClassicySoundState = {
 	volume?: number;
 	/** Sprite key of the user's selected default alert sound. */
 	alertSound?: string;
+	/**
+	 * Alert sound level as a 0–100 percentage of the system volume (default
+	 * 100). Applied only to the alert played by ClassicyAlertSound and
+	 * ClassicySoundPlayError.
+	 */
+	alertVolume?: number;
 };
 
 export enum ClassicySoundActionTypes {
@@ -53,6 +59,7 @@ export enum ClassicySoundActionTypes {
 	ClassicyVolumeSet = "ClassicyVolumeSet",
 	ClassicyAlertSound = "ClassicyAlertSound",
 	ClassicySoundSetAlertSound = "ClassicySoundSetAlertSound",
+	ClassicySoundSetAlertVolume = "ClassicySoundSetAlertVolume",
 }
 
 export interface ClassicySoundAction {
@@ -63,6 +70,8 @@ export interface ClassicySoundAction {
 	enabled?: string | string[];
 	soundPlayer?: Howl;
 	volume?: number;
+	/** ClassicySoundSetAlertVolume: the alert level, 0–100. */
+	alertVolume?: number;
 }
 
 export type { SoundData };
@@ -120,6 +129,10 @@ export const createSoundPlayer = ({
 
 const defaultSoundData = ClassicySounds.platinum;
 
+/** The system volume as a 0–1 gain for the player (100 when unset). */
+export const classicySoundGain = (volume: number | undefined): number =>
+	(volume ?? 100) / 100;
+
 export const initialPlayer: ClassicySoundState = {
 	soundPlayer: defaultSoundData
 		? createSoundPlayer({ soundData: defaultSoundData })
@@ -128,6 +141,7 @@ export const initialPlayer: ClassicySoundState = {
 	labels: soundLabels,
 	volume: 100,
 	alertSound: DEFAULT_ALERT_SOUND,
+	alertVolume: 100,
 };
 
 export const loadSoundTheme = (soundTheme: SoundData): Howl | null => {
@@ -145,6 +159,29 @@ const playerCanPlayInterrupt = (
 	sound: string,
 ) => {
 	return !disabled.includes("*") && !disabled.includes(sound) && soundPlayer;
+};
+
+/** Clamp a 0–100 percentage to a whole number; `undefined` when not finite. */
+const clampPercent = (value: number | undefined): number | undefined =>
+	typeof value === "number" && Number.isFinite(value)
+		? Math.round(Math.min(100, Math.max(0, value)))
+		: undefined;
+
+/**
+ * Play the alert `sound`, then scale just that instance to system volume ×
+ * alert volume. Howler's per-id `volume(v, id)` is absolute (it replaces the
+ * player gain for that sound rather than multiplying it), so the product is
+ * computed here. Other sounds keep the plain player gain.
+ */
+const playAlert = (ss: ClassicySoundState, sound: string) => {
+	ss.soundPlayer?.stop();
+	const id = ss.soundPlayer?.play(sound);
+	if (typeof id === "number") {
+		ss.soundPlayer?.volume(
+			classicySoundGain(ss.volume) * classicySoundGain(ss.alertVolume),
+			id,
+		);
+	}
 };
 
 const playerCanPlay = (ss: ClassicySoundState, sound: string) => {
@@ -185,24 +222,24 @@ export const ClassicySoundStateEventReducer = (
 		}
 		case ClassicySoundActionTypes.ClassicySoundPlayError: {
 			const sound = action.sound ?? ss.alertSound ?? DEFAULT_ALERT_SOUND;
-			if (playerCanPlayInterrupt(ss, sound)) {
-				ss.soundPlayer?.stop();
-				ss.soundPlayer?.play(sound);
-			}
+			if (playerCanPlayInterrupt(ss, sound)) playAlert(ss, sound);
 			next = { ...ss };
 			break;
 		}
 		case ClassicySoundActionTypes.ClassicyAlertSound: {
 			const sound = ss.alertSound ?? DEFAULT_ALERT_SOUND;
-			if (playerCanPlayInterrupt(ss, sound)) {
-				ss.soundPlayer?.stop();
-				ss.soundPlayer?.play(sound);
-			}
+			if (playerCanPlayInterrupt(ss, sound)) playAlert(ss, sound);
 			next = { ...ss };
 			break;
 		}
 		case ClassicySoundActionTypes.ClassicySoundSetAlertSound: {
 			next = { ...ss, alertSound: action.sound ?? ss.alertSound };
+			break;
+		}
+		case ClassicySoundActionTypes.ClassicySoundSetAlertVolume: {
+			// Mirrored from Appearance.alertVolume by ClassicySoundManagerProvider.
+			const alertVolume = clampPercent(action.alertVolume);
+			next = alertVolume === undefined ? ss : { ...ss, alertVolume };
 			break;
 		}
 		case ClassicySoundActionTypes.ClassicySoundLoad: {
@@ -222,7 +259,10 @@ export const ClassicySoundStateEventReducer = (
 			break;
 		}
 		case ClassicySoundActionTypes.ClassicyVolumeSet: {
-			next = { ...ss, volume: action.volume };
+			// A whole-number percentage. ClassicySoundManagerProvider applies it to
+			// the player (and to any player loaded later).
+			const volume = clampPercent(action.volume);
+			next = volume === undefined ? ss : { ...ss, volume };
 			break;
 		}
 		case ClassicySoundActionTypes.ClassicySoundDisable: {

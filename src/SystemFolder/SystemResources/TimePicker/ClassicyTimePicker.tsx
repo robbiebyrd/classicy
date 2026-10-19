@@ -14,8 +14,8 @@ import {
 	type ClassicyLabelPosition,
 	labelPositionClass,
 } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
+import { ClassicyLittleArrows } from "@/SystemFolder/SystemResources/LittleArrows/ClassicyLittleArrows";
 import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
-import { ClassicyLittleArrows } from "@/SystemFolder/SystemResources/TimePicker/ClassicyLittleArrows";
 
 type ClassicyTimePart = "hour" | "minutes" | "seconds";
 type ClassicyPeriod = "am" | "pm";
@@ -36,24 +36,59 @@ function to24h(hour12: number, period: ClassicyPeriod): number {
 }
 
 interface ClassicyTimePickerProps {
+	/**
+	 * Base id. The hour, minute and second fields get `${id}_hour`,
+	 * `${id}_minutes` and `${id}_seconds`. (The label's `for` is the bare `id`,
+	 * so it is not tied to any one field.)
+	 */
 	id: string;
+	/** Called with the new (range-clamped) `Date` after every edit, step or am/pm change. */
 	onChangeFunc?: (updatedDate: Date) => void;
+	/** Visible label text. Omit for no label. */
 	labelTitle?: string;
+	/** Label text size. Defaults to `"medium"`. */
 	labelSize?: ClassicyControlLabelSize;
+	/** Where the label sits relative to the field. Defaults to `"above"`. */
 	labelPosition?: ClassicyLabelPosition;
+	/** Native placeholder on the hour field (rarely visible: it always holds a value). */
 	placeholder?: string;
+	/**
+	 * Initial time; its date part is carried through to `onChangeFunc`.
+	 * Defaults to the browser's current time (`new Date()`), not the Classicy
+	 * virtual clock. Read on mount only.
+	 */
 	prefillValue?: Date;
+	/** Disables the fields, little arrows and am/pm pop-up (and dims the label). Defaults to `false`. */
 	disabled?: boolean;
+	/** Dims the label independently of the fields. Defaults to `disabled`. */
 	labelDisabled?: boolean;
+	/** Adds the `classicyTimePickerDefault` class (no built-in styling). */
 	isDefault?: boolean;
-	// Forwarded to the hours input only (the first field and the natural
-	// focus target) -- the minutes and seconds inputs are never bound to
-	// this ref, so `ref.current` always resolves to the hours <input>.
+	/**
+	 * Forwarded to the hours input only (the first field and the natural
+	 * focus target) -- the minutes and seconds inputs are never bound to
+	 * this ref, so `ref.current` always resolves to the hours `<input>`.
+	 */
 	ref?: ForwardedRef<HTMLInputElement>;
+	/** Earliest allowed date-time; earlier edits snap to it. */
 	minValue?: Date;
+	/** Latest allowed date-time; later edits snap to it. */
 	maxValue?: Date;
 }
 
+/**
+ * The `<input type="time">` equivalent: a Mac OS 8 clock control (HIGOS8
+ * Ch.2 "Clock Controls", p.36) — hour : minute : second edit fields on a
+ * 12-hour clock with shared little arrows, plus an am/pm `ClassicyPopUpMenu`.
+ * Click a field to select it; Up/Down (or the arrows) step the focused part
+ * within its range (hours 1–12, minutes and seconds 0–59, no wrap-around).
+ *
+ * The control keeps its own time, seeded from `prefillValue`, and reports a
+ * full `Date` through `onChangeFunc` on every change, clamped to
+ * `minValue`/`maxValue` (compared as full date-times, so give them the same
+ * date as `prefillValue`). Pair it with `ClassicyDatePicker` for a full date
+ * and time.
+ */
 export const ClassicyTimePicker: FunctionalComponent<ClassicyTimePickerProps> =
 	forwardRef<HTMLInputElement, ClassicyTimePickerProps>(
 		function ClassicyTimePicker(

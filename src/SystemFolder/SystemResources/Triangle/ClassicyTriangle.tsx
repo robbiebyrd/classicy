@@ -10,14 +10,43 @@ import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/u
 export type ClassicyTriangleDirection = "up" | "right" | "down" | "left";
 
 type ClassicyTriangleProps = {
+	/**
+	 * Which way the triangle points while closed. Opening turns it to point
+	 * down (or up, for `down`). Defaults to `right`, the HIG's closed state.
+	 */
 	direction?: ClassicyTriangleDirection;
+	/** Controlled open state. When set, the triangle only reports clicks through `onToggle`. */
 	open?: boolean;
+	/** Initial open state when uncontrolled. Defaults to `false`. */
 	defaultOpen?: boolean;
+	/** Called with the new open state on click, Enter or Space. */
 	onToggle?: (open: boolean) => void;
+	/**
+	 * `true` wraps the triangle in a focusable `role="button"` with
+	 * `aria-expanded`; `false` renders the bare SVG, for a parent row that
+	 * handles the toggling itself. Defaults to `true`.
+	 */
 	interactive?: boolean;
+	/** Extra class names: on the button wrapper, or on the SVG when not interactive. */
 	className?: string;
 };
 
+/**
+ * The Mac OS 8 disclosure triangle (HIGOS8 Ch.2 "Disclosure Triangles",
+ * p.37): points right when closed and turns down when open to reveal more
+ * detail. This is the bare marker — for a labelled collapsible section (the
+ * `<details>`/`<summary>` replacement) use `ClassicyDisclosure`, and for
+ * hierarchical lists `ClassicyTree`, which both draw it.
+ *
+ * Works controlled (`open` + `onToggle`) or uncontrolled (`defaultOpen`). When
+ * `interactive` it is a focusable button toggled by click, Enter or Space,
+ * with `aria-expanded` and an analytics `click` event; set
+ * `interactive={false}` to draw it inside a row that owns the interaction.
+ *
+ * ```tsx
+ * <ClassicyTriangle open={expanded} onToggle={setExpanded} />
+ * ```
+ */
 export const ClassicyTriangle: FunctionalComponent<ClassicyTriangleProps> = ({
 	direction = "right",
 	open,

@@ -70,6 +70,9 @@ type ClassicyFileBrowserViewTableProps = {
 	/** Controlled selection by row path. Omit for uncontrolled. */
 	selectedPaths?: string[];
 	onSelectionChange?: (paths: string[]) => void;
+	/** Receives the list's focusable keyboard target (see ClassicyTable's
+	 *  `containerRef`), e.g. for a window's `initialFocusRef`. */
+	focusTargetRef?: RefObject<HTMLDivElement | null>;
 };
 
 export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrowserViewTableProps> =
@@ -87,6 +90,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 			selectionApiRef,
 			selectedPaths,
 			onSelectionChange,
+			focusTargetRef,
 		}) => {
 			// Derive the effective options once, so an omitted prop reproduces
 			// today's rendering — three columns, sizes computed, no dates.
@@ -376,6 +380,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 					selectionApiRef={selectionApiRef}
 					selected={selectedPaths}
 					onSelectionChange={onSelectionChange}
+					containerRef={focusTargetRef}
 				/>
 			);
 		},

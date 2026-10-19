@@ -14,30 +14,49 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+/** A standard push button with its default (medium) size and spacing. */
 export const Default: Story = {};
 
+/**
+ * `isDefault` draws the thick default-button ring that marks the dialog's most
+ * likely action (HIGOS8 p.23). The ring is visual; the dialog or form wires
+ * Return/Enter to it.
+ */
 export const DefaultAction: Story = {
 	args: { isDefault: true, children: "Save" },
 };
 
+/** A dimmed, unclickable button: no click, sound or analytics event fires. */
 export const Disabled: Story = {
 	args: { disabled: true, children: "Disabled" },
 };
 
+/**
+ * `depressed` holds the pressed look (and `aria-pressed`) — for a button that
+ * stands for an ongoing mode, or to show the pressed state for reference.
+ */
 export const Depressed: Story = {
 	args: { depressed: true, children: "Pressed" },
 };
 
+/** `buttonSize="small"` — the compact size for dense palettes and toolbars. */
 export const Small: Story = {
 	args: { buttonSize: "small", children: "Small" },
 };
 
+/**
+ * `buttonShape="square"` gives a fixed square box for a single glyph or icon;
+ * `ClassicyBevelButton square` matches it, so the two line up on one grid.
+ */
 export const Square: Story = {
 	args: { buttonShape: "square", children: "▸" },
 };
 
-// Short-labelled buttons still honor the HIG minimum width (58px), so an
-// "OK"/"Cancel" pair lines up at a consistent size.
+/**
+ * Short-labelled buttons still honor the HIG minimum width (58px), so an
+ * "OK"/"Cancel" pair lines up at a consistent size. In a real dialog, wrap the
+ * pair in `ClassicyFormButtonRow` for the HIG spacing.
+ */
 export const OkCancelRow: Story = {
 	render: (args) => (
 		<div style={{ display: "flex" }}>
@@ -52,8 +71,11 @@ export const OkCancelRow: Story = {
 	args: { children: "OK" },
 };
 
-// Focus the button and press Return/Enter (or Space) to see the ~8-tick
-// keyboard-activation highlight.
+/**
+ * Focus the button and press Return/Enter (or Space) to see the ~8-tick
+ * keyboard-activation highlight and hear the click sounds, matching a mouse
+ * press.
+ */
 export const KeyboardActivation: Story = {
 	args: { isDefault: true, children: "Press Return" },
 };

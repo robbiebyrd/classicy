@@ -22,16 +22,27 @@ import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/u
 export type ClassicyTabsSize = "small" | "medium" | "large";
 
 export interface TabProps {
+	/**
+	 * The tabs, left to right. The first tab is selected on mount. Each title
+	 * doubles as the tab's React key and DOM id stem, so keep titles unique.
+	 */
 	tabs: TabIndividual[];
-	/** Tab sizing; see {@link ClassicyTabsSize}. Default `medium`. */
+	/** Tab sizing; see {@link ClassicyTabsSize}. Defaults to `"medium"`. */
 	size?: ClassicyTabsSize;
 }
 
 export interface TabIndividual {
-	/** Text label for the tab. Optional when an icon is supplied. */
+	/**
+	 * Text label for the tab. Optional when an icon is supplied; untitled tabs
+	 * fall back to a positional id (`tab-<index>`).
+	 */
 	title?: string;
-	/** Icon shown on the tab, alongside the title or on its own. */
+	/** Icon URL shown on the tab, alongside the title or on its own. Decorative. */
 	icon?: string;
+	/**
+	 * The tab's panel content. Inactive panels stay mounted (only `hidden`), so
+	 * form state inside them survives switching tabs.
+	 */
 	children: ReactNode;
 }
 
@@ -82,6 +93,29 @@ const NO_OVERFLOW: ScrollState = {
 	atEnd: true,
 };
 
+/**
+ * The Mac OS 8 tab control (HIGOS8 Ch.2 "Tab Controls", p.42): one row of tabs
+ * along the top of a panel, each switching the content pane below it — the
+ * standard way to split a control panel or dialog into pages. There is no raw
+ * HTML equivalent; it implements the ARIA `role="tablist"` pattern.
+ *
+ * Uncontrolled: it always opens on the first tab and keeps the selection
+ * itself. Pressing a tab plays `ClassicyTabClickDown`, releasing it plays
+ * `ClassicyTabClickUp` and selects it (both also send analytics events of
+ * type `ClassicyTab`). The tab strip is a roving-tabindex group:
+ * Left/Up and Right/Down move (wrapping) and Home/End jump, with activation
+ * following focus. When the tabs do not fit, scroll arrows appear at both
+ * ends and step the strip by whole tabs.
+ *
+ * ```tsx
+ * <ClassicyTabs
+ *     tabs={[
+ *         { title: "General", children: <GeneralPane /> },
+ *         { title: "Sharing", children: <SharingPane /> },
+ *     ]}
+ * />
+ * ```
+ */
 export const ClassicyTabs: FunctionalComponent<TabProps> = ({
 	tabs,
 	size = "medium",

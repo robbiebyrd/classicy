@@ -72,7 +72,7 @@ export const BlueBox = () => {
 							width="640"
 							height="480"
 							allow="cross-origin-isolated"
-						sandbox="allow-scripts allow-same-origin allow-forms"
+							sandbox="allow-scripts allow-same-origin allow-forms"
 						></iframe>
 					</div>
 				</div>

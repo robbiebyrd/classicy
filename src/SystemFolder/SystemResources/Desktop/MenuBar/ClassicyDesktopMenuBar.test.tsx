@@ -27,7 +27,7 @@ const pdfApp: ClassicyStoreSystemApp = {
 	id: "PDFViewer.app",
 	name: "PDFViewer",
 	icon: "/icons/pdf.png",
-	windows: [],
+	windows: {},
 	open: true,
 	focused: true,
 	data: {},
@@ -60,7 +60,7 @@ describe("ClassicyDesktopMenuBar — About <app> in the Apple menu (HIG #209)", 
 					id: "Finder.app",
 					name: "Finder",
 					icon: "/icons/finder.png",
-					windows: [],
+					windows: {},
 					open: true,
 					focused: false,
 					data: {},
@@ -336,7 +336,7 @@ describe("ClassicyDesktopMenuBar — shortcut auto-registration (Keyboard regist
 					id: "HyperCard.app",
 					name: "HyperCard",
 					icon: "/icons/hypercard.png",
-					windows: [],
+					windows: {},
 					open: true,
 					focused: true,
 					data: {},
@@ -364,9 +364,12 @@ describe("ClassicyDesktopMenuBar — shortcut auto-registration (Keyboard regist
 			render(<ClassicyDesktopMenuBar />);
 		});
 
-		expect(useAppManager.getState().System.Manager.Keyboard.system).toEqual(
-			expect.arrayContaining(["control+s", "option+h"]),
-		);
+		const system = useAppManager.getState().System.Manager.Keyboard.system;
+		// option+h = Show/Hide Balloons (a real working equivalent).
+		expect(system).toEqual(expect.arrayContaining(["option+h"]));
+		// "About This Computer" has no keyboard equivalent in the real Mac OS, so
+		// the previously-invented control+s chord must not be registered.
+		expect(system).not.toContain("control+s");
 	});
 });
 
@@ -383,7 +386,7 @@ describe("ClassicyDesktopMenuBar — App Switcher width stability", () => {
 		id,
 		name,
 		icon: `/icons/${name}.png`,
-		windows: [],
+		windows: {},
 		open: true,
 		focused: false,
 		data: {},

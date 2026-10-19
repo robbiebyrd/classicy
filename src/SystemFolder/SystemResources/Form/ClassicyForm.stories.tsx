@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { fn } from "storybook/test";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyCheckbox } from "@/SystemFolder/SystemResources/Checkbox/ClassicyCheckbox";
 import { ClassicyInput } from "@/SystemFolder/SystemResources/Input/ClassicyInput";
@@ -8,17 +9,22 @@ import { ClassicyForm, ClassicyFormButtonRow } from "./ClassicyForm";
 const meta = {
 	title: "Controls/Form",
 	component: ClassicyForm,
+	args: { onSubmitFunc: fn() },
 } satisfies Meta<typeof ClassicyForm>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// A dialog-style settings form: HIG row spacing, right-aligned button row,
-// Enter triggers the default (submit) button.
+/**
+ * A dialog-style settings form: HIG row spacing and a right-aligned button
+ * row. Enter in the name field (or clicking Save) triggers the default submit
+ * button; the submit is logged in the Actions panel and the page never
+ * navigates.
+ */
 export const DialogForm: Story = {
-	render: () => (
+	render: (args) => (
 		<div style={{ width: 340 }}>
-			<ClassicyForm layout="dialog" onSubmitFunc={() => window.alert("Saved!")}>
+			<ClassicyForm layout="dialog" onSubmitFunc={args.onSubmitFunc}>
 				<ClassicyInput
 					id="form-name"
 					labelTitle="Name:"
@@ -39,6 +45,30 @@ export const DialogForm: Story = {
 					<ClassicyButton>Cancel</ClassicyButton>
 					<ClassicyButton isDefault buttonType="submit">
 						Save
+					</ClassicyButton>
+				</ClassicyFormButtonRow>
+			</ClassicyForm>
+		</div>
+	),
+};
+
+/**
+ * The `default` layout: rows stacked with the HIG item gap and no dialog edge
+ * inset, for a form embedded in a larger window.
+ */
+export const DefaultLayout: Story = {
+	render: (args) => (
+		<div style={{ width: 340 }}>
+			<ClassicyForm onSubmitFunc={args.onSubmitFunc}>
+				<ClassicyInput
+					id="form-search"
+					labelTitle="Find:"
+					labelPosition="left"
+					placeholder="Search for…"
+				/>
+				<ClassicyFormButtonRow>
+					<ClassicyButton isDefault buttonType="submit">
+						Find
 					</ClassicyButton>
 				</ClassicyFormButtonRow>
 			</ClassicyForm>

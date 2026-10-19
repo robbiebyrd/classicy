@@ -145,9 +145,7 @@ describe("ClassicyApp icon visibility", () => {
 	});
 
 	it("attaches no balloon for an app with neither prop nor manifest", () => {
-		render(
-			<ClassicyApp id="Plain.app" name="Plain" icon="/icons/plain.png" />,
-		);
+		render(<ClassicyApp id="Plain.app" name="Plain" icon="/icons/plain.png" />);
 		expect(iconAddActions()[0].balloonHelp).toBeUndefined();
 	});
 

@@ -10,6 +10,7 @@ import {
 	dispatch,
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { getAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { ClassicyDateAndTimeManager } from "./ClassicyDateAndTimeManager";
 
@@ -17,11 +18,10 @@ const APP_ID = "DateAndTimeManager.app";
 const WINDOW_ID = "DateAndTimeManager_1";
 
 function windowMenuBar(): ClassicyMenuItem[] {
-	const window = useAppManager
-		.getState()
-		.System.Manager.Applications.apps[APP_ID]?.windows.find(
-			(w) => w.id === WINDOW_ID,
-		);
+	const window = getAppWindow(
+		useAppManager.getState().System.Manager.Applications.apps[APP_ID],
+		WINDOW_ID,
+	);
 	return (window?.menuBar as ClassicyMenuItem[]) ?? [];
 }
 
@@ -81,7 +81,16 @@ describe("ClassicyDateAndTimeManager — HIG menu structure (audit ch. 6 §35)",
 		const edit = windowMenuBar().find((m) => m.title === "Edit");
 		expect(edit).toBeDefined();
 		const titles = childTitles(edit);
-		for (const cmd of ["Undo", "Cut", "Copy", "Paste", "Clear", "Select All"]) {
+		// Undo is context-aware (HIG 4.6): with no field focused it reads
+		// "Can't Undo" rather than the bare "Undo".
+		for (const cmd of [
+			"Can't Undo",
+			"Cut",
+			"Copy",
+			"Paste",
+			"Clear",
+			"Select All",
+		]) {
 			expect(titles).toContain(cmd);
 		}
 	});
@@ -124,9 +133,9 @@ describe("ClassicyDateAndTimeManager — dateTimeLocked", () => {
 	it("editors — including the AM/PM popup — are enabled when not locked, and the timezone picker is always enabled", () => {
 		const { container } = renderOpen();
 		// Scoped to the date/time columns (the "editors" this feature controls) —
-		// the separate Time Format control group has its own permanently
-		// disabled "Military Time" radio (24-hour not yet implemented), which
-		// is unrelated to dateTimeLocked and must not affect this assertion.
+		// the separate Time Format control group has its own 12-Hour / Military
+		// Time radios, which are unrelated to dateTimeLocked and must not affect
+		// this assertion.
 		const dateColumn = container.querySelector(
 			".classicyDateAndTimeManagerDateColumn",
 		);

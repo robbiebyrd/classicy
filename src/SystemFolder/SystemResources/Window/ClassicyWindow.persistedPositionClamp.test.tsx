@@ -9,6 +9,7 @@
 // user-resized and persisted.
 import { describe, expect, it, vi } from "vitest";
 import { render } from "@/__tests__/test-utils";
+import { windowsRecord } from "@/__tests__/windowsRecord";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
 const mockDispatch = vi.hoisted(() => vi.fn());
@@ -25,21 +26,19 @@ vi.mock(
 						Applications: {
 							apps: {
 								TestApp: {
-									windows: [
-										{
-											id: "TestWindow",
-											appId: "TestApp",
-											closed: false,
-											// The window's real, current size — larger than
-											// initialSize below, as it would be after a user
-											// resize was persisted to the store.
-											size: [500, 500],
-											// Off-screen for an 800x600 viewport regardless of
-											// which size is used to compute the clamp bound.
-											position: [700, 700],
-											minimumSize: [0, 0],
-										},
-									],
+									windows: windowsRecord({
+										id: "TestWindow",
+										appId: "TestApp",
+										closed: false,
+										// The window's real, current size — larger than
+										// initialSize below, as it would be after a user
+										// resize was persisted to the store.
+										size: [500, 500],
+										// Off-screen for an 800x600 viewport regardless of
+										// which size is used to compute the clamp bound.
+										position: [700, 700],
+										minimumSize: [0, 0],
+									}),
 								},
 							},
 						},

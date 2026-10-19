@@ -24,9 +24,8 @@
   min-width: calc(var(--window-control-size) * 15);
   margin: 0;
   padding: var(--window-border-size);
-  @include appearance.platinumWindowBorder;
+  @include appearance.platinumMenuFrame;
   list-style: none;
-  background-color: var(--color-system-02);
 
   div {
     ul {
@@ -45,16 +44,11 @@
   display: none;
   flex-direction: column;
   min-width: calc(var(--window-control-size) * 15);
-  @include appearance.platinumWindowBorder;
+  @include appearance.platinumMenuFrame;
   margin: 0 0 0 calc(var(--window-padding-size) * -1);
   padding: var(--window-border-size);
   list-style: none;
   color: var(--color-black);
-  background: var(--color-system-02);
-  background-color: var(--color-system-02);
-
-  li {
-  }
 }
 
 // A submenu nested inside another submenu (third level and deeper from the
@@ -74,16 +68,17 @@
 .classicyContextMenu {
   // Mirrors `.classicySubMenu` (vertical, bordered, system-02 surface) but stays
   // visible: a contextual menu's root is shown immediately, not on hover. Fixed
-  // positioning + shadow are handled by `.classicyContextMenuWrapper`.
+  // positioning is handled by its wrapper; relative here anchors the frame's
+  // shadow.
+  position: relative;
   display: flex;
   flex-direction: column;
   min-width: calc(var(--window-control-size) * 15);
-  @include appearance.platinumWindowBorder;
+  @include appearance.platinumMenuFrame;
   margin: 0;
   padding: var(--window-border-size);
   list-style: none;
   color: var(--color-black);
-  background-color: var(--color-system-02);
 }
 
 .classicyContextSubMenu {
@@ -97,13 +92,21 @@
   display: none;
   flex-direction: column;
   min-width: calc(var(--window-control-size) * 15);
-  @include appearance.platinumWindowBorder;
+  @include appearance.platinumMenuFrame;
   margin: calc(var(--window-padding-size) * -4) calc(var(--window-padding-size) * -2);
   padding: var(--window-border-size);
   list-style: none;
   color: var(--color-black);
-  background: var(--color-system-02);
-  background-color: var(--color-system-02);
+}
+
+// Dividers in every menu (Figure 6-15).
+.classicyMenu,
+.classicySubMenu,
+.classicyContextMenu,
+.classicyContextSubMenu {
+  .classicySeparatorHorizontal {
+    @include appearance.platinumMenuDivider;
+  }
 }
 
 .classicyMenuItem {

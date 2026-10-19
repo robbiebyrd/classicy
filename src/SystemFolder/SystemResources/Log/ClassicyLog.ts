@@ -103,10 +103,7 @@ export function classicyLog(
  * `componentDidCatch`; the boundary keeps its own `console.error`, so this
  * only fans out to hosts.
  */
-export function emitClassicyCrash(
-	error: Error,
-	componentStack?: string,
-): void {
+export function emitClassicyCrash(error: Error, componentStack?: string): void {
 	for (const sink of sinks.values()) {
 		if (sink.onCrash) {
 			invokeSink(sink, () => sink.onCrash?.(error, componentStack));

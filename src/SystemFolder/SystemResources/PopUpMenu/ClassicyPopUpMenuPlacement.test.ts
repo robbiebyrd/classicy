@@ -62,4 +62,61 @@ describe("classicyPopUpMenuPlacement", () => {
 		const placement = classicyPopUpMenuPlacement(anchor(2000), 400, 100);
 		expect(placement.maxHeight).toBeGreaterThan(0);
 	});
+
+	it("grows (top is null) when there is no selection to align", () => {
+		const placement = classicyPopUpMenuPlacement(anchor(100), 200, 800);
+		expect(placement.top).toBeNull();
+		expect(placement.scrollTop).toBe(0);
+	});
+});
+
+describe("classicyPopUpMenuPlacement — aligned (selected item over the button)", () => {
+	it("opens the selected item centred on the button", () => {
+		// Button centre 110; selected row centre 50 -> menu top 60 lines them up.
+		const placement = classicyPopUpMenuPlacement(anchor(100), 200, 800, {
+			offsetTop: 40,
+			height: 20,
+		});
+		expect(placement.top).toBe(60);
+		expect(placement.maxHeight).toBe(200);
+		expect(placement.scrollTop).toBe(0);
+	});
+
+	it("clamps to the viewport top and scrolls when the selection is near the end", () => {
+		// Long list, selection deep: can't lift the menu that far, so pin it to the
+		// top margin and scroll as far as the content allows.
+		const placement = classicyPopUpMenuPlacement(anchor(100), 800, 800, {
+			offsetTop: 760,
+			height: 20,
+		});
+		expect(placement.top).toBe(POPUP_MENU_VIEWPORT_MARGIN);
+		expect(placement.maxHeight).toBe(POPUP_MENU_MAX_HEIGHT);
+		// Scrolled to the bottom of the scrollable range (contentHeight - maxHeight).
+		expect(placement.scrollTop).toBe(800 - POPUP_MENU_MAX_HEIGHT);
+	});
+
+	it("scrolls a long list so the selection still lands on the button", () => {
+		// Button centre 410; selection centre 510; capped menu pinned to the top
+		// (top=4) then scrolled 104px so 510 appears at 410.
+		const placement = classicyPopUpMenuPlacement(anchor(400), 900, 800, {
+			offsetTop: 500,
+			height: 20,
+		});
+		expect(placement.top).toBe(POPUP_MENU_VIEWPORT_MARGIN);
+		expect(placement.scrollTop).toBe(104);
+		// The selection lands exactly on the button centre.
+		expect((placement.top ?? 0) + 510 - placement.scrollTop).toBe(410);
+	});
+
+	it("keeps the whole menu on screen when the selection is at the very top", () => {
+		// First item selected, button high: menu grows down from the button, no
+		// scroll needed.
+		const placement = classicyPopUpMenuPlacement(anchor(100), 150, 800, {
+			offsetTop: 0,
+			height: 20,
+		});
+		expect(placement.top).toBe(100); // button centre 110 - selection centre 10
+		expect(placement.scrollTop).toBe(0);
+		expect((placement.top ?? 0) + placement.maxHeight).toBeLessThanOrEqual(800);
+	});
 });

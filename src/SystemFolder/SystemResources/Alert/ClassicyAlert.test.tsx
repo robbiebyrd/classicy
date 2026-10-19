@@ -43,7 +43,10 @@ vi.mock("@/SystemFolder/SystemResources/Cursor/useClassicyCursor", () => ({
 }));
 
 vi.mock("@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons", () => ({
-	ClassicyIcons: { system: { files: { file: "file.png" } } },
+	ClassicyIcons: {
+		system: { files: { file: "file.png" } },
+		ui: { helpButton: "help-button.png" },
+	},
 }));
 
 vi.mock("@/SystemFolder/SystemResources/Alert/ClassicyAlert.scss", () => ({}));
@@ -138,6 +141,15 @@ describe("ClassicyAlert", () => {
 		expect(onDefault).toHaveBeenCalledTimes(1);
 	});
 
+	it("gives initial focus to the default button, not the first (Cancel) button", () => {
+		// HIGOS8 Ch.3 "Keyboard Navigation and Focus": focus must coincide with
+		// the default ring so Return activates the default. In a caution alert the
+		// default is Continue even though Cancel comes first in the DOM.
+		render(<ClassicyAlert alertType="caution" label="c" />);
+		expect(screen.getByRole("button", { name: "Continue" })).toHaveFocus();
+		expect(screen.getByRole("button", { name: "Cancel" })).not.toHaveFocus();
+	});
+
 	it("triggers the Cancel button on Escape", () => {
 		const onCancel = vi.fn();
 		render(
@@ -190,6 +202,28 @@ describe("ClassicyAlert", () => {
 		);
 		expect(screen.getAllByRole("button")).toHaveLength(4);
 		expect(screen.queryByRole("button", { name: "E" })).not.toBeInTheDocument();
+	});
+
+	it("draws the help role as the HIG Help button, first in the row", async () => {
+		// HIGOS8 p.86: alert boxes put the 20 × 21 bevel Help button lower left
+		// automatically — the glyph button, not a push button reading "?".
+		const onHelp = vi.fn();
+		render(
+			<ClassicyAlert
+				alertType="caution"
+				label="c"
+				buttons={[
+					{ id: "cancel", label: "Cancel", role: "cancel" },
+					{ id: "ok", label: "OK", role: "default" },
+					{ id: "help", label: "?", role: "help", onClick: onHelp },
+				]}
+			/>,
+		);
+		const help = screen.getByRole("button", { name: "Help" });
+		expect(help).toHaveClass("classicyHelpButton", "classicyAlertHelpButton");
+		expect(help).toHaveTextContent("");
+		await userEvent.setup().click(help);
+		expect(onHelp).toHaveBeenCalledTimes(1);
 	});
 
 	// ClassicyAlert is always modal={true} — ClassicyWindow's cleanup effect

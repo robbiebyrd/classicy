@@ -95,7 +95,7 @@ function makeStore(
 							id: "Finder.app",
 							name: "Finder",
 							icon: "",
-							windows: [],
+							windows: {},
 							open: true,
 							focused: true,
 							noDesktopIcon: true,
@@ -128,7 +128,7 @@ function makeStoreWithPictureViewer(): ClassicyStore {
 		icon: "picture-icon.png",
 		open: false,
 		focused: false,
-		windows: [],
+		windows: {},
 		data: { openFiles: [] },
 	};
 	return ds;

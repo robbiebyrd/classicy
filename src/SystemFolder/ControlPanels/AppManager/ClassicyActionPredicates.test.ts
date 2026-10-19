@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
 	hasActiveTheme,
+	hasAlertVolume,
 	hasApp,
 	hasAppAndFileType,
 	hasAppAndFileTypes,
@@ -14,6 +16,7 @@ import {
 	hasDateTime,
 	hasDesktopAppRef,
 	hasDisableBalloonHelp,
+	hasDoubleClickTitleToCollapse,
 	hasDrive,
 	hasErrorDialogMessage,
 	hasFinderFile,
@@ -22,11 +25,14 @@ import {
 	hasIconId,
 	hasIconIds,
 	hasIconLocation,
+	hasImportableTheme,
 	hasMenuBar,
 	hasMouseEvent,
 	hasPath,
 	hasPaths,
+	hasSmartScrolling,
 	hasSortBy,
+	hasThemeColorChange,
 	hasTzOffset,
 	hasWindow,
 	hasWindowDragging,
@@ -501,7 +507,65 @@ describe("hasFont", () => {
 	});
 });
 
+// ─── hasAlertVolume ───────────────────────────────────────────────────────────
+
+describe("hasAlertVolume", () => {
+	it("returns true for a finite number, including 0", () => {
+		expect(hasAlertVolume({ type: "X", alertVolume: 0 })).toBe(true);
+		expect(hasAlertVolume({ type: "X", alertVolume: 55.5 })).toBe(true);
+	});
+
+	it("returns false when alertVolume is missing or not a finite number", () => {
+		expect(hasAlertVolume({ type: "X" })).toBe(false);
+		expect(hasAlertVolume({ type: "X", alertVolume: "50" })).toBe(false);
+		expect(hasAlertVolume({ type: "X", alertVolume: Number.NaN })).toBe(false);
+		expect(hasAlertVolume({ type: "X", alertVolume: Infinity })).toBe(false);
+	});
+});
+
 // ─── hasAvailableThemes ───────────────────────────────────────────────────────
+
+describe("hasThemeColorChange", () => {
+	const msg = (fields: Record<string, unknown>): Msg => ({
+		type: "ClassicyDesktopChangeColor",
+		...fields,
+	});
+
+	it("accepts a scalar key with an in-range integer colour", () => {
+		expect(hasThemeColorChange(msg({ colorKey: "outline", color: 0 }))).toBe(
+			true,
+		);
+		expect(
+			hasThemeColorChange(
+				msg({ colorKey: "desktopBackground", color: 0xffffff }),
+			),
+		).toBe(true);
+	});
+
+	it("accepts a palette key with an index 0-6", () => {
+		expect(
+			hasThemeColorChange(msg({ colorKey: "system", index: 0, color: 1 })),
+		).toBe(true);
+		expect(
+			hasThemeColorChange(msg({ colorKey: "theme", index: 6, color: 1 })),
+		).toBe(true);
+	});
+
+	it("rejects bad keys, indices and colours", () => {
+		for (const fields of [
+			{ colorKey: "nope", color: 0 },
+			{ colorKey: "system", color: 0 },
+			{ colorKey: "system", index: 7, color: 0 },
+			{ colorKey: "outline", index: 0, color: 0 },
+			{ colorKey: "outline", color: -1 },
+			{ colorKey: "outline", color: 0x1000000 },
+			{ colorKey: "outline", color: 2.5 },
+			{ colorKey: "outline", color: "0" },
+		]) {
+			expect(hasThemeColorChange(msg(fields))).toBe(false);
+		}
+	});
+});
 
 describe("hasAvailableThemes", () => {
 	it("returns true when availableThemes is an array", () => {
@@ -775,5 +839,75 @@ describe("hasFinderFile", () => {
 	it("returns false when file is null", () => {
 		const m: Msg = { type: "X", file: null };
 		expect(hasFinderFile(m)).toBe(false);
+	});
+});
+
+// ─── hasSmartScrolling ────────────────────────────────────────────────────────
+
+describe("hasSmartScrolling", () => {
+	it("returns true when smartScrolling is a boolean", () => {
+		expect(hasSmartScrolling({ type: "X", smartScrolling: true })).toBe(true);
+		expect(hasSmartScrolling({ type: "X", smartScrolling: false })).toBe(true);
+	});
+
+	it("returns false when smartScrolling is missing", () => {
+		expect(hasSmartScrolling({ type: "X" })).toBe(false);
+	});
+
+	it("returns false when smartScrolling is not a boolean", () => {
+		expect(hasSmartScrolling({ type: "X", smartScrolling: "yes" })).toBe(false);
+	});
+});
+
+// ─── hasDoubleClickTitleToCollapse ───────────────────────────────────────────
+
+describe("hasDoubleClickTitleToCollapse", () => {
+	it("returns true when doubleClickTitleToCollapse is a boolean", () => {
+		expect(
+			hasDoubleClickTitleToCollapse({
+				type: "X",
+				doubleClickTitleToCollapse: true,
+			}),
+		).toBe(true);
+		expect(
+			hasDoubleClickTitleToCollapse({
+				type: "X",
+				doubleClickTitleToCollapse: false,
+			}),
+		).toBe(true);
+	});
+
+	it("returns false when doubleClickTitleToCollapse is missing", () => {
+		expect(hasDoubleClickTitleToCollapse({ type: "X" })).toBe(false);
+	});
+
+	it("returns false when doubleClickTitleToCollapse is not a boolean", () => {
+		expect(
+			hasDoubleClickTitleToCollapse({
+				type: "X",
+				doubleClickTitleToCollapse: 1,
+			}),
+		).toBe(false);
+	});
+});
+
+describe("hasImportableTheme", () => {
+	const msg = (theme: unknown): Msg => ({
+		type: "ClassicyDesktopImportTheme",
+		theme,
+	});
+
+	it("accepts a theme that passes ClassicyThemeSchema", () => {
+		expect(hasImportableTheme(msg(getTheme("azul")))).toBe(true);
+	});
+
+	it("rejects a missing, malformed or unsafe theme", () => {
+		expect(hasImportableTheme({ type: "ClassicyDesktopImportTheme" })).toBe(
+			false,
+		);
+		expect(hasImportableTheme(msg("azul"))).toBe(false);
+		const bad = structuredClone(getTheme("azul"));
+		bad.desktop.backgroundImage = "javascript:alert(1)";
+		expect(hasImportableTheme(msg(bad))).toBe(false);
 	});
 });

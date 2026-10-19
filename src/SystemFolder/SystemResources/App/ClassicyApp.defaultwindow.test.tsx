@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render } from "@/__tests__/test-utils";
+import { windowsRecord } from "@/__tests__/windowsRecord";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 
 const mockDispatch = vi.hoisted(() => vi.fn());
@@ -22,16 +23,14 @@ vi.mock(
 									icon: "",
 									open: true,
 									focused: true,
-									windows: [
-										{
-											id: "main",
-											closed: mockAppState.defaultWindowClosed,
-											focused: false,
-											size: [350, 200] as [number, number],
-											position: [110, 110] as [number, number],
-											minimumSize: [0, 0] as [number, number],
-										},
-									],
+									windows: windowsRecord({
+										id: "main",
+										closed: mockAppState.defaultWindowClosed,
+										focused: false,
+										size: [350, 200] as [number, number],
+										position: [110, 110] as [number, number],
+										minimumSize: [0, 0] as [number, number],
+									}),
 									data: {},
 								},
 							},

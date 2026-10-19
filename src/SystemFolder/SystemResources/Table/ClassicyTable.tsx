@@ -30,25 +30,32 @@ const arrowUpIcon = ClassicyIcons.ui.menuDropdownArrowUp;
  * no-op when the table has no `getSubRows`.
  */
 export type ClassicyTableCellContext = {
+	/** Nesting level of the row; 0 for top-level rows. */
 	depth: number;
+	/** Whether the row has (or, per `rowCanExpand`, may have) children. */
 	canExpand: boolean;
+	/** Whether the row is currently expanded. */
 	isExpanded: boolean;
+	/** Expand or collapse the row (fires `onToggleRow`). */
 	toggle: () => void;
 };
 
 export type ClassicyTableColumn<T> = {
+	/** Stable column id; also what `defaultSort.columnId` names. */
 	id: string;
+	/** Header label. */
 	title: string;
 	/** Value used for sorting, type-select, and the default cell text. */
 	accessor: (row: T) => string | number | null | undefined;
 	/** Custom cell renderer; defaults to the accessor value as text. */
 	render?: (row: T, expansion: ClassicyTableCellContext) => ReactNode;
-	/** Default true. */
+	/** Whether clicking the header sorts by this column. Defaults to `true`. */
 	sortable?: boolean;
-	/** Default true. */
+	/** Whether the header shows a drag handle to resize the column. Defaults to `true`. */
 	resizable?: boolean;
 	/** Initial column width in px. */
 	width?: number;
+	/** Horizontal alignment of the header and cells. Defaults to `"left"`. */
 	align?: "left" | "center" | "right";
 };
 
@@ -58,18 +65,29 @@ export type ClassicyTableSelectionMode = "none" | "single" | "multi";
 export type ClassicyTableSelectionApi = { selectAll: () => void };
 
 type ClassicyTableProps<T> = {
+	/** Column definitions, left to right. The first column drives type-select. */
 	columns: ClassicyTableColumn<T>[];
+	/** Row data, in unsorted order (top-level rows only when using `getSubRows`). */
 	rows: T[];
+	/** Stable, unique id for a row; selection, expansion and callbacks use it. */
 	getRowId: (row: T) => string;
+	/**
+	 * `"none"` disables selection and keyboard handling (the list box is not
+	 * focusable; double-click still activates), `"single"` selects one row, `"multi"` adds ⌘/Ctrl-click toggle,
+	 * Shift-click/Shift-arrow ranges and ⌘A. Defaults to `"single"`.
+	 */
 	selectionMode?: ClassicyTableSelectionMode;
 	/** Controlled selection. Omit for uncontrolled use with `onSelectionChange`. */
 	selected?: string[];
+	/** Fired with the full new list of selected row ids after every change. */
 	onSelectionChange?: (ids: string[]) => void;
 	/** Double-click or Enter on a row — the "open it" gesture. */
 	onActivateRow?: (id: string, row: T) => void;
+	/** Initial sort column (ascending unless `desc`). Unsorted when omitted. */
 	defaultSort?: { columnId: string; desc?: boolean };
-	/** Default true: the header stays pinned while the container scrolls. */
+	/** The header stays pinned while the container scrolls. Defaults to `true`. */
 	stickyHeader?: boolean;
+	/** Extra class(es) for the scrolling container. */
 	className?: string;
 	/** Extra class(es) for a row — e.g. legacy class names a consumer's CSS keys on. */
 	rowClassName?: (row: T, isSelected: boolean) => string | undefined;
@@ -84,11 +102,16 @@ type ClassicyTableProps<T> = {
 	rowCanExpand?: (row: T) => boolean;
 	/** Controlled expansion, by row id. Omit for uncontrolled. */
 	expanded?: string[];
+	/** Fired when a row is expanded or collapsed (via `toggle` or ⌘→ / ⌘←). */
 	onToggleRow?: (id: string, open: boolean) => void;
 	/** Imperative hooks a menu command needs. Prop-shaped rather than a
 	 *  forwardRef because this component is generic and forwardRef would
 	 *  erase the type parameter. */
 	selectionApiRef?: RefObject<ClassicyTableSelectionApi | null>;
+	/** Receives the focusable list-box element (the keyboard target), e.g. so
+	 *  a hosting window can give it initial focus. Prop-shaped for the same
+	 *  reason as `selectionApiRef`. */
+	containerRef?: RefObject<HTMLDivElement | null>;
 };
 
 type SortingState = { id: string; desc: boolean }[];
@@ -105,7 +128,27 @@ type SelectionModifiers = {
  * resizable columns; single or multi row selection with the Mac conventions
  * (plain click replaces, ⌘/Ctrl-click toggles, Shift extends a range over
  * the current visual order); HIG list-box keyboard behavior (arrows,
- * Home/End, Enter opens, type-selection on the first column).
+ * Home/End, Enter opens, type-selection on the first column). Use it for
+ * interactive data tables; purely presentational tables can stay raw
+ * `<table>` styled with theme variables.
+ *
+ * Built on `@tanstack/react-table` and rendered as a semantic `<table>` with
+ * `aria-sort`. Selection and expansion are each controlled when `selected` /
+ * `expanded` are passed, otherwise uncontrolled. With `getSubRows` it shows
+ * tree rows: each cell `render` receives `{ depth, canExpand, isExpanded,
+ * toggle }` so a column draws its own disclosure triangle and indent (this is
+ * how the Finder list view is built), and ⌘→ / ⌘← expand and collapse the
+ * keyboard row.
+ *
+ * ```tsx
+ * <ClassicyTable
+ *     columns={[{ id: "name", title: "Name", accessor: (f) => f.name }]}
+ *     rows={files}
+ *     getRowId={(f) => f.path}
+ *     selectionMode="multi"
+ *     onActivateRow={(id) => open(id)}
+ * />
+ * ```
  *
  * The sticky header keeps an explicit z-index and nothing in the scroll
  * container is transformed — transformed descendants create stacking
@@ -128,6 +171,7 @@ export function ClassicyTable<T>({
 	expanded,
 	onToggleRow,
 	selectionApiRef,
+	containerRef: externalContainerRef,
 }: ClassicyTableProps<T>): ReactElement {
 	const [sorting, setSorting] = useState<SortingState>(
 		defaultSort ? [{ id: defaultSort.columnId, desc: !!defaultSort.desc }] : [],
@@ -159,6 +203,15 @@ export function ClassicyTable<T>({
 	// An id (not an index) so re-sorting between clicks keeps it meaningful.
 	const anchorId = useRef<string | undefined>(undefined);
 	const containerRef = useRef<HTMLDivElement>(null);
+	// Attached in the commit phase (not an effect), so an ancestor's effect
+	// that focuses `externalContainerRef` on the same commit already sees it.
+	const setContainerRef = useCallback(
+		(el: HTMLDivElement | null) => {
+			containerRef.current = el;
+			if (externalContainerRef) externalContainerRef.current = el;
+		},
+		[externalContainerRef],
+	);
 	const typeBuffer = useRef("");
 	const typeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
 		undefined,
@@ -389,7 +442,7 @@ export function ClassicyTable<T>({
 	return (
 		// biome-ignore lint/a11y/noStaticElementInteractions: list box is a focusable scroll region driven by arrow keys and type-selection; rows remain the click targets
 		<div
-			ref={containerRef}
+			ref={setContainerRef}
 			tabIndex={selectionMode === "none" ? undefined : 0}
 			onKeyDown={handleKeyDown}
 			className={classNames("classicyTableContainer", className)}

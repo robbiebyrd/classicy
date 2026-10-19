@@ -34,6 +34,21 @@ describe("ClassicyBevelButton", () => {
 		expect(btn).toHaveClass("classicyBevelButtonBevelMedium");
 	});
 
+	it("merges a consumer className instead of dropping it", () => {
+		// `className` used to ride in with the spread props and then be
+		// overwritten by the computed class list.
+		render(
+			<ClassicyBevelButton className="myTool" bevelWidth="small">
+				Tool
+			</ClassicyBevelButton>,
+		);
+		expect(screen.getByRole("button", { name: "Tool" })).toHaveClass(
+			"classicyBevelButton",
+			"classicyBevelButtonBevelSmall",
+			"myTool",
+		);
+	});
+
 	it("maps bevelWidth to the correct class", () => {
 		render(<ClassicyBevelButton bevelWidth="small">S</ClassicyBevelButton>);
 		expect(screen.getByRole("button", { name: "S" })).toHaveClass(
@@ -126,6 +141,46 @@ describe("ClassicyBevelButton", () => {
 		const btn = screen.getByRole("button", { name: "100%" });
 		expect(btn).toHaveAttribute("aria-haspopup", "menu");
 		expect(btn.querySelector(".classicyBevelButtonArrow")).toBeInTheDocument();
+	});
+
+	// A bevel button with no pop-up surface can still be a disclosure trigger
+	// (a collapsible section's ▸/▾ toggle): the caller owns its expanded state,
+	// so the button must pass the caller's disclosure ARIA through untouched.
+	it("passes a caller's aria-expanded and aria-controls through when it has no pop-up", () => {
+		const { rerender } = render(
+			<ClassicyBevelButton
+				aria-label="Expand lane"
+				aria-expanded={false}
+				aria-controls="lane-body"
+			>
+				▸
+			</ClassicyBevelButton>,
+		);
+		const btn = screen.getByRole("button", { name: "Expand lane" });
+		expect(btn).toHaveAttribute("aria-expanded", "false");
+		expect(btn).toHaveAttribute("aria-controls", "lane-body");
+
+		rerender(
+			<ClassicyBevelButton
+				aria-label="Expand lane"
+				aria-expanded={true}
+				aria-controls="lane-body"
+			>
+				▾
+			</ClassicyBevelButton>,
+		);
+		expect(btn).toHaveAttribute("aria-expanded", "true");
+	});
+
+	it("passes a caller's aria-haspopup through when it has no pop-up", () => {
+		render(
+			<ClassicyBevelButton aria-label="Pick a colour" aria-haspopup="dialog">
+				Colour
+			</ClassicyBevelButton>,
+		);
+		expect(
+			screen.getByRole("button", { name: "Pick a colour" }),
+		).toHaveAttribute("aria-haspopup", "dialog");
 	});
 
 	it("renders an icon image when icon is provided", () => {

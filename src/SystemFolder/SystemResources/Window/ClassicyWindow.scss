@@ -397,33 +397,34 @@
     );
     box-shadow: none;
 
-    // The drawn part: one gutter square in the top-left, carrying the two edges
-    // that belong to the scroll bars. They stop where the scroll bars stop, so
-    // they cannot run on into the frame ring the parent covers.
-    //
-    // Offset out by one border so those edges land ON the pixel where each track
-    // closes itself off, rather than beside it — ::-webkit-scrollbar-track draws
-    // a border on all four sides, so an abutting grip reads as a 2px line where
-    // Platinum has 1px. Drawing the edge here rather than leaning on the track's
-    // keeps the grip outlined on a window that has no scroll bars at all.
+    // The drawn part: one scrollbar-gutter square in the top-left, carrying the
+    // top and left black edges that continue the two scroll bars' outer lines
+    // into the grow box. Sized exactly to the gutter (not gutter + border) and
+    // flush to the resizer's top-left, so those edges land on the same pixels as
+    // the scroll bars' own borders and the three meet seamlessly. (Both scroll
+    // bars are always drawn now — see .classicyWindowContents overflow — so the
+    // grip never has to stand in for a missing track.)
     &::before {
       content: "";
       position: absolute;
-      top: calc(var(--window-border-size) * -1);
+      // The right scroll-bar gutter is one border wider than the bottom one
+      // (border accounting differs per axis), so nudge the grip's left edge out
+      // by that border to land exactly on the vertical bar's border while the
+      // top already lines up with the horizontal bar's.
+      top: 0;
       left: calc(var(--window-border-size) * -1);
       box-sizing: border-box;
-      width: calc(var(--window-scrollbar-size) + var(--window-border-size));
-      height: calc(var(--window-scrollbar-size) + var(--window-border-size));
+      width: var(--window-scrollbar-size);
+      height: var(--window-scrollbar-size);
       // --color-black, not --color-system-07: these two edges are a continuation
       // of the scroll bar track's own outer line, which ::-webkit-scrollbar-track
       // and ::-webkit-scrollbar-corner both draw in --color-black. At #202020 the
       // line visibly changed shade at the junction.
       border-top: var(--window-border-size) solid var(--color-black);
       border-left: var(--window-border-size) solid var(--color-black);
-      // Inset, matching ::-webkit-scrollbar-corner. An *outer* shadow would spill
-      // frame grey over the scroll bars' black edges now that the box lands flush
-      // against them.
-      box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-white);
+      // No inset highlight: a white bevel here reads as a 1px white seam between
+      // the grow box and the scroll bars. The grip's grey must meet the bars'
+      // black borders directly (matches Mac OS 8's grow box).
     }
   }
 
@@ -431,7 +432,11 @@
     position: relative;
     display: block;
     @include appearance.platinumWindowInnerBorder;
-    overflow: auto;
+    // Mac OS 8 document windows always draw BOTH scroll bars (the non-scrolling
+    // axis shows an empty, thumb-less track). `scroll` — not `auto` — reserves
+    // both gutters and the grow-box corner at the bottom-right, so the end-arrow
+    // scroll buttons always meet the resizer cleanly instead of running under it.
+    overflow: scroll;
     height: calc(100% - (var(--window-control-size) * 1) - var(--window-padding-size) * 1.5);
     background-color: var(--classicy-window-contents-bg, var(--color-window-document));
   }
@@ -439,9 +444,17 @@
   .classicyWindowContentsWithHeader {
     position: relative;
     display: block;
-    overflow: auto;
+    overflow: scroll;
     height: calc(100% - (var(--window-control-size) * 3) - (var(--window-padding-size))) !important;
     background-color: var(--classicy-window-contents-bg, var(--color-window-document));
+  }
+
+  // A non-scrollable window (scrollable={false}) draws no bars at all.
+  &.classicyWindowNoScroll {
+    .classicyWindowContents,
+    .classicyWindowContentsWithHeader {
+      overflow: hidden;
+    }
   }
 }
 

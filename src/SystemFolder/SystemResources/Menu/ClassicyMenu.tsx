@@ -24,19 +24,39 @@ import { ClassicyKbd } from "@/SystemFolder/SystemResources/Kbd/ClassicyKbd";
 import { ClassicyMenuContext } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuContext";
 import { ClassicySeparator } from "@/SystemFolder/SystemResources/Separator/ClassicySeparator";
 
+/**
+ * One menu entry, shared by the menu bar, contextual menus, pop-up bevel
+ * buttons and menu bar extensions. Menus are plain data: an item with
+ * `menuChildren` opens a submenu, and `{ id: "spacer" }` is a divider.
+ */
 export interface ClassicyMenuItem {
+	/** Unique id within the menu (the DOM id). `"spacer"` renders a divider. */
 	id: string;
+	/** Item text. HTML entities are decoded. */
 	title?: string;
+	/** Image drawn before the title (takes precedence over `icon`). */
 	image?: string;
+	/** Dim the item; it cannot be chosen and its keyboard equivalent does not fire. */
 	disabled?: boolean;
 	/**
 	 * When defined, this item is a checkable menu item: it renders a Mac OS 8
-	 * checkmark (✓) in the left icon gutter when true, and an empty (but
-	 * reserved) gutter when false — keeping checked/unchecked siblings aligned.
-	 * A checkable item never also shows an icon/image (the checkmark wins).
+	 * checkmark (✓) in the left icon gutter when true, a dash (–) when "mixed",
+	 * and an empty (but reserved) gutter when false — keeping siblings aligned.
+	 * A checkable item never also shows an icon/image (the mark wins).
+	 *
+	 * `"mixed"` is the HIG dash (HIGOS7 "Checkmarks and Dashes in Menus"): use it
+	 * when an accumulating attribute applies to only PART of the selection (vs. a
+	 * checkmark, which means it applies to the whole selection).
 	 */
-	checked?: boolean;
+	checked?: boolean | "mixed";
+	/** Icon drawn before the title. */
 	icon?: string;
+	/**
+	 * Keyboard equivalent, in any `parseKeyboardShortcut` spelling (`"⌘S"`,
+	 * `"Cmd+Shift+S"`, `"F1"`), drawn right-aligned in glyph form. Items of the
+	 * menu bar's menus fire on the chord app-wide; a standalone menu only
+	 * displays it.
+	 */
 	keyboardShortcut?: string;
 	/**
 	 * When true, the `keyboardShortcut` is handled natively by the browser (e.g.
@@ -53,12 +73,23 @@ export interface ClassicyMenuItem {
 	 * layout around it. Slack sits to the right of the title.
 	 */
 	titleWidthSamples?: string[];
+	/** Not acted on by the menu (choosing the item does not navigate); only reported in analytics. */
 	link?: string;
+	/**
+	 * Action type dispatched when the item is chosen, with `eventData` spread
+	 * in. Used only when there is no `onClickFunc`, and only with `eventData`
+	 * set.
+	 */
 	event?: string;
+	/** Fields spread into the `event` action. */
 	eventData?: Record<string, unknown>;
+	/** Called when the item is chosen. Takes precedence over `event`. */
 	onClickFunc?: () => void;
+	/** Submenu items. The submenu opens to the right, flipping left at the viewport edge. */
 	menuChildren?: ClassicyMenuItem[];
+	/** Extra class names for the item's `<li>`. */
 	className?: string;
+	/** Balloon help for the item, shown while balloons are on. */
 	balloon?: {
 		title?: string;
 		content: string;
@@ -67,10 +98,15 @@ export interface ClassicyMenuItem {
 }
 
 interface ClassicyMenuProps {
+	/** Menu name, used to key the rendered list. */
 	name: string;
+	/** The items to render. An empty array renders nothing. */
 	menuItems: ClassicyMenuItem[];
+	/** Class names for the root `<ul>` (e.g. `classicyDesktopMenu`, `classicyContextMenu`). */
 	navClass?: string;
+	/** Class names for every nested submenu `<ul>`. */
 	subNavClass?: string;
+	/** Extra nodes appended inside the root `<ul>`, after the items (the menu bar's clock). */
 	children?: ReactNode;
 	/**
 	 * Internal: set on the nested menus rendered for `menuChildren`. Consumers
@@ -80,6 +116,21 @@ interface ClassicyMenuProps {
 	isSubmenu?: boolean;
 }
 
+/**
+ * Renders a Platinum menu list from `ClassicyMenuItem` data — the building
+ * block of the menu bar, contextual menus and pop-up bevel menus, drawn in the
+ * shared Platinum menu frame. Items support checkmarks and dashes, keyboard
+ * equivalents, icons, dividers, balloon help and nested submenus (which flip
+ * left at the viewport edge).
+ *
+ * Choosing an item flashes it, plays the menu sounds, closes the menu and then
+ * runs `onClickFunc` (or dispatches `event` with `eventData`). Disabled items
+ * ignore clicks. Render it under a `ClassicyMenuProvider`, which supplies the
+ * close and sticky-menu state (without one, choosing an item never closes an
+ * open submenu). Most code renders menus through `ClassicyWindow`'s
+ * `appMenu`, `ClassicyContextualMenuTarget` or `ClassicyBevelButton` instead
+ * of using this directly.
+ */
 export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 	name,
 	menuItems,
@@ -281,7 +332,7 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 				<p>
 					{menuItem.checked !== undefined ? (
 						<span className={"classicyMenuItemCheck"} aria-hidden={"true"}>
-							{menuItem.checked ? "✓" : ""}
+							{menuItem.checked === "mixed" ? "–" : menuItem.checked ? "✓" : ""}
 						</span>
 					) : menuItem.image ? (
 						<img src={menuItem.image} alt={menuItem.title} />

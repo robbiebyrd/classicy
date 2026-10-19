@@ -10,6 +10,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+/** The default horizontal rule, spanning the width of its container between two blocks of content. */
 export const Horizontal: Story = {
 	args: {
 		orientation: "horizontal",
@@ -25,6 +26,7 @@ export const Horizontal: Story = {
 	],
 };
 
+/** `orientation="vertical"` stretches to the height of a flex row to divide side-by-side content. */
 export const Vertical: Story = {
 	args: {
 		orientation: "vertical",
@@ -48,7 +50,7 @@ export const Vertical: Story = {
 	],
 };
 
-// Separating groups of controls inside a dialog content region.
+/** Separating two rows of controls inside a dialog content region. */
 export const BetweenControlRows: Story = {
 	render: () => (
 		<div style={{ width: 260, padding: 16 }}>

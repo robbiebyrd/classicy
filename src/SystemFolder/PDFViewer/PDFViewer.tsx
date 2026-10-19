@@ -65,13 +65,13 @@ export const PDFViewer: FunctionalComponent = () => {
 						}),
 					),
 					closeAllWindowsMenuItemHelper(`${appId}_close_all_windows`, () => {
-						openFiles.forEach((p) =>
+						for (const p of openFiles) {
 							closeWindow(`${appId}_file_${p}`, {
 								type: `ClassicyApp${appName}CloseFile`,
 								app: { id: appId },
 								path: p,
-							}),
-						);
+							});
+						}
 					}),
 					quitMenuItemHelper(appId, appName, appIcon),
 				],
@@ -82,7 +82,7 @@ export const PDFViewer: FunctionalComponent = () => {
 				menuChildren: [aboutMenuItem],
 			},
 		],
-		[appId, appName, appIcon, closeWindow, openFiles, aboutMenuItem],
+		[closeWindow, openFiles, aboutMenuItem],
 	);
 
 	return (
@@ -110,6 +110,10 @@ export const PDFViewer: FunctionalComponent = () => {
 						initialPosition={[200 + idx * 30, 80 + idx * 30]}
 						appMenu={buildAppMenu(windowId, filePath)}
 						onCloseFunc={() => closeFile(filePath)}
+						// The page surface below the toolbar is its own scroller (the
+						// Hand tool pans it, Zoom re-anchors its offsets), so the
+						// window must not draw a second, empty set of bars (#271).
+						scrollable={false}
 					>
 						<PDFViewerDocument
 							url={source.kind === "url" ? source.url : ""}

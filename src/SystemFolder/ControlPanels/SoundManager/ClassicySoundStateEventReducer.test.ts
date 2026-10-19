@@ -4,7 +4,7 @@
 import type { Howl } from "howler";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-	ClassicySoundActionTypes,
+	type ClassicySoundActionTypes,
 	type ClassicySoundState,
 	ClassicySoundStateEventReducer,
 } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerUtils";
@@ -271,6 +271,19 @@ describe("ClassicyVolumeSet", () => {
 		});
 		expect(next.volume).toBe(42);
 	});
+
+	it("clamps to 0–100 and rounds to a whole percentage", () => {
+		const set = (volume: number | undefined) =>
+			ClassicySoundStateEventReducer(makeSoundState({ volume: 50 }), {
+				type: "ClassicyVolumeSet" as ClassicySoundActionTypes,
+				volume,
+			}).volume;
+		expect(set(150)).toBe(100);
+		expect(set(-5)).toBe(0);
+		expect(set(33.6)).toBe(34);
+		expect(set(Number.NaN)).toBe(50); // ignored
+		expect(set(undefined)).toBe(50); // ignored
+	});
 });
 
 // ---------------------------------------------------------------------------
@@ -476,5 +489,110 @@ describe("ClassicySoundPlayInterrupt vs ClassicySoundPlay while sounding", () =>
 			sound: "ClassicyBeep",
 		});
 		expect(ss.soundPlayer?.play).not.toHaveBeenCalled();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Alert volume: ClassicySoundSetAlertVolume + per-alert gain
+// ---------------------------------------------------------------------------
+
+// A player whose play() hands back a Howler sound id, as the real one does.
+function makePlayerReturningId(id: number) {
+	const player = makePlayer();
+	(player.play as ReturnType<typeof vi.fn>).mockReturnValue(id);
+	return player;
+}
+
+describe("ClassicySoundSetAlertVolume", () => {
+	it("stores a whole-number alert volume", () => {
+		const next = ClassicySoundStateEventReducer(makeSoundState(), {
+			type: "ClassicySoundSetAlertVolume" as ClassicySoundActionTypes,
+			alertVolume: 42,
+		});
+		expect(next.alertVolume).toBe(42);
+	});
+
+	it("clamps to 0–100 and rounds", () => {
+		const set = (alertVolume: number) =>
+			ClassicySoundStateEventReducer(makeSoundState(), {
+				type: "ClassicySoundSetAlertVolume" as ClassicySoundActionTypes,
+				alertVolume,
+			}).alertVolume;
+		expect(set(150)).toBe(100);
+		expect(set(-5)).toBe(0);
+		expect(set(33.6)).toBe(34);
+	});
+
+	it("ignores a missing or non-finite level", () => {
+		const ss = makeSoundState({ alertVolume: 60 });
+		for (const alertVolume of [undefined, Number.NaN, Infinity]) {
+			const next = ClassicySoundStateEventReducer(ss, {
+				type: "ClassicySoundSetAlertVolume" as ClassicySoundActionTypes,
+				alertVolume,
+			});
+			expect(next).toBe(ss);
+		}
+	});
+});
+
+describe("alert volume scaling", () => {
+	it("ClassicyAlertSound sets that sound's gain to system × alert volume", () => {
+		const ss = makeSoundState({
+			soundPlayer: makePlayerReturningId(7),
+			volume: 80,
+			alertVolume: 50,
+		});
+		ClassicySoundStateEventReducer(ss, {
+			type: "ClassicyAlertSound" as ClassicySoundActionTypes,
+		});
+		expect(ss.soundPlayer?.volume).toHaveBeenCalledWith(0.4, 7);
+	});
+
+	it("ClassicySoundPlayError scales the alert it plays the same way", () => {
+		const ss = makeSoundState({
+			soundPlayer: makePlayerReturningId(3),
+			volume: 50,
+			alertVolume: 20,
+		});
+		ClassicySoundStateEventReducer(ss, {
+			type: "ClassicySoundPlayError" as ClassicySoundActionTypes,
+		});
+		expect(ss.soundPlayer?.volume).toHaveBeenCalledWith(0.1, 3);
+	});
+
+	it("treats an unset alert volume as 100% (alerts at system volume)", () => {
+		const ss = makeSoundState({
+			soundPlayer: makePlayerReturningId(9),
+			volume: 60,
+			alertVolume: undefined,
+		});
+		ClassicySoundStateEventReducer(ss, {
+			type: "ClassicyAlertSound" as ClassicySoundActionTypes,
+		});
+		expect(ss.soundPlayer?.volume).toHaveBeenCalledWith(0.6, 9);
+	});
+
+	it("leaves the gain alone when play() returns no sound id", () => {
+		const ss = makeSoundState({ alertVolume: 50 });
+		ClassicySoundStateEventReducer(ss, {
+			type: "ClassicyAlertSound" as ClassicySoundActionTypes,
+		});
+		expect(ss.soundPlayer?.volume).not.toHaveBeenCalled();
+	});
+
+	it("does not touch the volume of ordinary interface sounds", () => {
+		const ss = makeSoundState({
+			soundPlayer: makePlayerReturningId(5),
+			alertVolume: 10,
+		});
+		ClassicySoundStateEventReducer(ss, {
+			type: "ClassicySoundPlayInterrupt" as ClassicySoundActionTypes,
+			sound: "ClassicyBeep",
+		});
+		ClassicySoundStateEventReducer(ss, {
+			type: "ClassicySoundPlay" as ClassicySoundActionTypes,
+			sound: "ClassicyBeep",
+		});
+		expect(ss.soundPlayer?.volume).not.toHaveBeenCalled();
 	});
 });

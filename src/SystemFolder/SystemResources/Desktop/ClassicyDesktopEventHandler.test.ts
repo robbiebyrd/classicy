@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
-import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { windowsRecord } from "@/__tests__/windowsRecord";
+import {
+	type ClassicyTheme,
+	getThemeVars,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { withPrimaryFontFamily } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyFontStack";
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { listAppWindows } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { classicyDesktopEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 
@@ -49,7 +55,7 @@ function makeStore(
 							id: "Finder.app",
 							name: "Finder",
 							icon: "",
-							windows: [],
+							windows: {},
 							open: true,
 							focused: true,
 							noDesktopIcon: true,
@@ -343,6 +349,50 @@ describe("classicyDesktopEventHandler — ClassicyDesktopChangeFont", () => {
 			"Charcoal",
 		);
 	});
+
+	it.each(["mono", "digital"] as const)("sets %s font", (fontType) => {
+		const ds = makeStoreForDesktop();
+		classicyDesktopEventHandler(ds, {
+			type: "ClassicyDesktopChangeFont",
+			fontType,
+			font: '"Geneva", "Monaco"',
+		});
+
+		expect(ds.System.Manager.Appearance.activeTheme.typography[fontType]).toBe(
+			'"Geneva", "Monaco"',
+		);
+	});
+
+	it("applies the Appearance Manager's fallback-preserving stack to the CSS vars", () => {
+		const ds = makeStoreForDesktop();
+		ds.System.Manager.Appearance.activeTheme.typography.ui =
+			'"Charcoal", "ChicagoFLF", "Geneva", sans-serif';
+		const font = withPrimaryFontFamily(
+			ds.System.Manager.Appearance.activeTheme.typography.ui,
+			"Geneva",
+		);
+		classicyDesktopEventHandler(ds, {
+			type: "ClassicyDesktopChangeFont",
+			fontType: "ui",
+			font,
+		});
+
+		expect(
+			getThemeVars(ds.System.Manager.Appearance.activeTheme)["--ui-font"],
+		).toBe('"Geneva", "Charcoal", "ChicagoFLF", sans-serif');
+	});
+
+	it("ignores a font change without a fontType (the old pop-up event shape)", () => {
+		const ds = makeStoreForDesktop();
+		const before = { ...ds.System.Manager.Appearance.activeTheme.typography };
+		classicyDesktopEventHandler(ds, {
+			type: "ClassicyDesktopChangeFont",
+			fontType: undefined,
+			font: "Geneva",
+		});
+
+		expect(ds.System.Manager.Appearance.activeTheme.typography).toEqual(before);
+	});
 });
 
 describe("classicyDesktopEventHandler — ClassicyDesktopLoadThemes", () => {
@@ -370,16 +420,14 @@ describe("classicyDesktopEventHandler — ClassicyDesktopFocus", () => {
 			id: "Notes.app",
 			name: "Notes",
 			icon: "",
-			windows: [
-				{
-					id: "notes-win-1",
-					closed: false,
-					size: [400, 300],
-					position: [0, 0],
-					minimumSize: [100, 100],
-					focused: true,
-				},
-			],
+			windows: windowsRecord({
+				id: "notes-win-1",
+				closed: false,
+				size: [400, 300],
+				position: [0, 0],
+				minimumSize: [100, 100],
+				focused: true,
+			}),
 			open: true,
 			focused: true,
 		};
@@ -397,7 +445,8 @@ describe("classicyDesktopEventHandler — ClassicyDesktopFocus", () => {
 			false,
 		);
 		expect(
-			ds.System.Manager.Applications.apps["Notes.app"].windows[0].focused,
+			listAppWindows(ds.System.Manager.Applications.apps["Notes.app"])[0]
+				.focused,
 		).toBe(false);
 		expect(ds.System.Manager.Desktop.selectedIcons).toEqual([]);
 		expect(ds.System.Manager.Desktop.selectBox.active).toBe(true);
@@ -410,7 +459,7 @@ describe("classicyDesktopEventHandler — ClassicyDesktopFocus", () => {
 			id: "Notes.app",
 			name: "Notes",
 			icon: "",
-			windows: [],
+			windows: {},
 			open: true,
 			focused: true,
 		};

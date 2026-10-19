@@ -1,9 +1,9 @@
 import "./ClassicyScreenSaverFlyingToasters.scss";
-import toastImage from "./toast1.webp";
-import toasterSprite from "./toaster-sprite.webp";
 import type { CSSProperties, FC as FunctionalComponent } from "react";
 import { z } from "zod";
 import type { ClassicyScreenSaverProps } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverRegistry";
+import toastImage from "./toast1.webp";
+import toasterSprite from "./toaster-sprite.webp";
 
 export const FlyingToastersConfigSchema = z.looseObject({
 	toasters: z

@@ -1,9 +1,12 @@
 import "./ClassicyColorPicker.scss";
+import classNames from "classnames";
 import {
 	type CSSProperties,
 	type FC,
+	type KeyboardEvent,
 	useContext,
 	useEffect,
+	useId,
 	useState,
 } from "react";
 import { intToHex } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyColors";
@@ -24,6 +27,7 @@ type PickerMode = "Crayons" | "RGB" | "HSV" | "HLS" | "CMYK";
 const PICKER_MODES: PickerMode[] = ["Crayons", "RGB", "HSV", "HLS", "CMYK"];
 
 interface ClassicyColorPickerDialogProps {
+	/** Id of the dialog's window. */
 	id: string;
 	/** The app this dialog's window registers under. Precedence: this prop,
 	 *  then the lexically enclosing {@link ClassicyAppIdContext}, then
@@ -35,13 +39,27 @@ interface ClassicyColorPickerDialogProps {
 	 *  change elsewhere while the dialog stays open), stealing focus either
 	 *  way. */
 	appId?: string;
+	/** Shows the dialog. Each time it opens, the pending colour resets to `initialColor`. */
 	open: boolean;
+	/** Colour the dialog opens with, as `0xRRGGBB`. Defaults to `0x000000`. */
 	initialColor?: number;
+	/** Palette for the Crayons panel. Defaults to `MAC_OS_8_CRAYONS`. */
 	crayons?: ClassicyCrayon[];
+	/** Called with the pending colour when OK is clicked. The caller closes the dialog. */
 	onSelectFunc?: (color: number) => void;
+	/** Called by Cancel or the close box. The caller closes the dialog. */
 	onCancelFunc?: () => void;
 }
 
+/**
+ * The Mac OS 8 Color Picker dialog on its own: a modal, fixed-size
+ * `ClassicyWindow` with a mode list (Crayons, RGB, HSV, HLS, CMYK — Up/Down
+ * switch modes), the active panel, a preview of the pending colour and
+ * Cancel / OK buttons. The dialog is controlled by `open`; it never closes
+ * itself, so close it from `onSelectFunc` and `onCancelFunc`.
+ * `ClassicyColorPicker` wraps it in a swatch button — use the dialog directly
+ * when something else (a menu command, a toolbar button) should open it.
+ */
 export const ClassicyColorPickerDialog: FC<ClassicyColorPickerDialogProps> = ({
 	id,
 	appId,
@@ -52,6 +70,7 @@ export const ClassicyColorPickerDialog: FC<ClassicyColorPickerDialogProps> = ({
 	onCancelFunc,
 }) => {
 	const [pendingColor, setPendingColor] = useState(initialColor);
+	const listId = useId();
 	const [mode, setMode] = useState<PickerMode>("Crayons");
 	// Lexical, not global: see the `appId` doc comment above for why this
 	// must not fall back to the store's focused app.
@@ -59,10 +78,27 @@ export const ClassicyColorPickerDialog: FC<ClassicyColorPickerDialogProps> = ({
 	const resolvedAppId = appId ?? contextAppId;
 
 	// Reset to initialColor whenever the dialog is freshly opened.
-	// eslint-disable-next-line react-hooks/exhaustive-deps
+	// biome-ignore lint/correctness/useExhaustiveDependencies: a new initialColor while open must not discard the user's pending choice
 	useEffect(() => {
 		if (open) setPendingColor(initialColor);
 	}, [open]);
+
+	const onModeKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+		const at = PICKER_MODES.indexOf(mode);
+		const next =
+			e.key === "ArrowDown"
+				? Math.min(at + 1, PICKER_MODES.length - 1)
+				: e.key === "ArrowUp"
+					? Math.max(at - 1, 0)
+					: e.key === "Home"
+						? 0
+						: e.key === "End"
+							? PICKER_MODES.length - 1
+							: null;
+		if (next === null) return;
+		e.preventDefault();
+		setMode(PICKER_MODES[next]);
+	};
 
 	if (!open) return null;
 
@@ -127,44 +163,58 @@ export const ClassicyColorPickerDialog: FC<ClassicyColorPickerDialogProps> = ({
 			onCloseFunc={() => onCancelFunc?.()}
 			analyticsExclude
 		>
-			<div className="classicyColorPickerDialogBody">
-				<ul
-					className="classicyColorPickerModeList"
-					role="listbox"
-					aria-label="Color picker mode"
-				>
-					{PICKER_MODES.map((m) => (
-						<li
-							key={m}
-							role="option"
-							aria-selected={m === mode}
-							className={
-								m === mode
-									? "classicyColorPickerModeListItemSelected"
-									: undefined
-							}
-							onClick={() => setMode(m)}
-						>
-							{m}
-						</li>
-					))}
-				</ul>
-				<div className="classicyColorPickerActivePanel">{activePanel}</div>
-			</div>
-			<div
-				className="classicyColorPickerPreview"
-				style={
-					{
-						"--classicy-preview-color": intToHex(pendingColor),
-					} as CSSProperties
-				}
-				aria-label={`Selected color: ${intToHex(pendingColor)}`}
-			/>
-			<div className="classicyColorPickerDialogFooter">
-				<ClassicyButton onClickFunc={onCancelFunc}>Cancel</ClassicyButton>
-				<ClassicyButton isDefault={true} onClickFunc={handleOK}>
-					OK
-				</ClassicyButton>
+			{/* A full-height column so the body takes the space left over and the
+			    preview and OK/Cancel footer always stay inside the window. */}
+			<div className="classicyColorPickerDialog">
+				<div className="classicyColorPickerDialogBody">
+					{/* A single-select listbox: focus stays on the list and the arrow
+				    keys move the selection (aria-activedescendant). */}
+					<div
+						className="classicyColorPickerModeList"
+						role="listbox"
+						aria-label="Color picker mode"
+						tabIndex={0}
+						aria-activedescendant={`${listId}_${mode}`}
+						onKeyDown={onModeKeyDown}
+					>
+						{PICKER_MODES.map((m) => (
+							// Options take no focus of their own: the listbox holds focus
+							// and handles the keys (aria-activedescendant).
+							// biome-ignore lint/a11y/useFocusableInteractive: see above
+							// biome-ignore lint/a11y/useKeyWithClickEvents: see above
+							<div
+								key={m}
+								id={`${listId}_${m}`}
+								role="option"
+								aria-selected={m === mode}
+								className={classNames(
+									"classicyColorPickerModeListItem",
+									m === mode && "classicyColorPickerModeListItemSelected",
+								)}
+								onClick={() => setMode(m)}
+							>
+								{m}
+							</div>
+						))}
+					</div>
+					<div className="classicyColorPickerActivePanel">{activePanel}</div>
+				</div>
+				<div
+					className="classicyColorPickerPreview"
+					style={
+						{
+							"--classicy-preview-color": intToHex(pendingColor),
+						} as CSSProperties
+					}
+					role="img"
+					aria-label={`Selected color: ${intToHex(pendingColor)}`}
+				/>
+				<div className="classicyColorPickerDialogFooter">
+					<ClassicyButton onClickFunc={onCancelFunc}>Cancel</ClassicyButton>
+					<ClassicyButton isDefault={true} onClickFunc={handleOK}>
+						OK
+					</ClassicyButton>
+				</div>
 			</div>
 		</ClassicyWindow>
 	);

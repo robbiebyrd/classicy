@@ -1,6 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { useRef } from "react";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyBalloonHelp } from "./ClassicyBalloonHelp";
+import { useClassicyBalloonHelp } from "./useClassicyBalloonHelp";
 
 const meta = {
 	title: "Controls/BalloonHelp",
@@ -10,6 +12,10 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+/**
+ * A titled balloon at the default `top-left` position and 600 ms delay: rest
+ * the pointer on the button until it appears, move away to dismiss it.
+ */
 export const Default: Story = {
 	args: {
 		title: "Do Nothing",
@@ -26,6 +32,11 @@ export const Default: Story = {
 	],
 };
 
+/**
+ * An untitled balloon pointing up from below (`bottom-center`) with a short
+ * 200 ms `delay`. Balloons can open in six positions, and flip on either
+ * axis when the preferred one has no room on screen.
+ */
 export const BottomCenter: Story = {
 	args: {
 		content: "Balloons can point in six directions.",
@@ -40,4 +51,43 @@ export const BottomCenter: Story = {
 			</div>
 		),
 	],
+};
+
+const HookTarget = () => {
+	const ref = useRef<HTMLDivElement>(null);
+	const { handlers, balloon } = useClassicyBalloonHelp(ref, {
+		title: "Pinned Badge",
+		content: "This element is absolutely positioned; the hook adds no wrapper.",
+		position: "top-right",
+		delay: 300,
+	});
+	return (
+		<div style={{ position: "relative", width: 320, height: 160 }}>
+			<div
+				ref={ref}
+				{...handlers}
+				style={{
+					position: "absolute",
+					right: 16,
+					bottom: 16,
+					padding: "4px 8px",
+					border: "1px solid var(--color-black)",
+					background: "var(--color-white)",
+				}}
+			>
+				Hover me
+				{balloon}
+			</div>
+		</div>
+	);
+};
+
+/**
+ * `useClassicyBalloonHelp(ref, config)` attaches the same behaviour to an
+ * element you already own — here an absolutely positioned badge that the
+ * component's inline-block wrapper would disturb. Spread `handlers` onto the
+ * element and render `balloon` inside it.
+ */
+export const WithHook: Story = {
+	render: () => <HookTarget />,
 };

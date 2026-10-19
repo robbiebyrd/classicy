@@ -1,8 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+	__resetUndoTrackingForTests,
 	classicyEditCommands,
 	ensureEditTracker,
+	getUndoStateSnapshot,
+	subscribeUndoState,
 } from "@/SystemFolder/SystemResources/App/ClassicyEditCommands";
+
+/** Dispatch a bubbling InputEvent the document-level tracker will see. */
+const fireInput = (el: HTMLElement, inputType: string): void => {
+	el.dispatchEvent(new InputEvent("input", { inputType, bubbles: true }));
+};
 
 describe("classicyEditCommands", () => {
 	let input: HTMLInputElement;
@@ -78,5 +86,62 @@ describe("classicyEditCommands", () => {
 		});
 		await expect(classicyEditCommands.paste()).resolves.toBeUndefined();
 		expect(input.value).toBe("hello world");
+	});
+});
+
+describe("undo-state tracking (HIG 4.6)", () => {
+	let input: HTMLInputElement;
+
+	beforeEach(() => {
+		ensureEditTracker();
+		__resetUndoTrackingForTests();
+		input = document.createElement("input");
+		document.body.appendChild(input);
+	});
+
+	afterEach(() => {
+		input.remove();
+		__resetUndoTrackingForTests();
+	});
+
+	it("reports nothing to undo for a field with no edits", () => {
+		input.focus();
+		expect(getUndoStateSnapshot().canUndo).toBe(false);
+	});
+
+	it("names the last action after an edit", () => {
+		input.focus();
+		fireInput(input, "insertText");
+		expect(getUndoStateSnapshot()).toEqual({ canUndo: true, label: "Typing" });
+
+		fireInput(input, "insertFromPaste");
+		expect(getUndoStateSnapshot().label).toBe("Paste");
+	});
+
+	it("drops back to Can't Undo once history is exhausted", () => {
+		input.focus();
+		fireInput(input, "insertText");
+		expect(getUndoStateSnapshot().canUndo).toBe(true);
+		fireInput(input, "historyUndo");
+		expect(getUndoStateSnapshot().canUndo).toBe(false);
+	});
+
+	it("notifies subscribers only when the wording changes", () => {
+		input.focus();
+		const cb = vi.fn();
+		const unsubscribe = subscribeUndoState(cb);
+
+		fireInput(input, "insertText"); // Can't Undo -> Undo Typing
+		expect(cb).toHaveBeenCalledTimes(1);
+
+		fireInput(input, "insertText"); // still Undo Typing — no change
+		expect(cb).toHaveBeenCalledTimes(1);
+
+		fireInput(input, "deleteContentBackward"); // Undo Typing -> Undo Delete
+		expect(cb).toHaveBeenCalledTimes(2);
+
+		unsubscribe();
+		fireInput(input, "insertText");
+		expect(cb).toHaveBeenCalledTimes(2);
 	});
 });

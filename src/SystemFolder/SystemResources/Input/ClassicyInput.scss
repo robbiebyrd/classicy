@@ -4,14 +4,20 @@
 
 .classicyInput {
   font-family: var(--ui-font), sans-serif;
+  // HIGOS8 Ch.2 "Edit Text Fields and Frames" (p.41): a 2px recessed frame,
+  // consistent with the image well / group box / separator (--hig-frame-width):
+  // a 1px black border + a 2px inset bevel (dark top-left, light bottom-right).
   border: var(--window-border-size) solid var(--color-black);
-  box-shadow: calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 0 var(--color-system-05),
-  calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) 0 0 var(--color-system-04);
+  box-shadow:
+    inset var(--hig-frame-width) var(--hig-frame-width) 0 0 var(--color-system-05),
+    inset calc(var(--hig-frame-width) * -1) calc(var(--hig-frame-width) * -1) 0 0 var(--color-white);
   width: 100%;
 
+  // HIGOS8 Ch.2 "Edit Text Fields and Frames" (p.41): the field stays a
+  // rectangular 2px frame in all states; focus adds a ring without changing the
+  // frame's shape. (Previously a border-radius rounded the corners on focus and
+  // an invalid `outline` shorthand rendered nothing.)
   &:focus-visible {
-    border-radius: calc(var(--ui-font-size) * 0.1905);
-    outline: 0 0 0 calc(var(--window-border-size) * 2) var(--color-outline) !important;
     box-shadow: 0 0 0 calc(var(--window-border-size) * 2) var(--color-theme-04),
     0 0 var(--window-border-size) calc(var(--window-border-size) * 2) var(--color-theme-04);
   }

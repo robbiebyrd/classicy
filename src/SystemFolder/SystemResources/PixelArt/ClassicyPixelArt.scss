@@ -1,0 +1,21 @@
+// ClassicyPixelArt palette. The HIG figures are 8-bit screenshots of the
+// Platinum palette, so each of their greys and accent blues maps onto the theme
+// token it was quantized from (#c6c6c6 -> system-03, #848484 -> system-05,
+// #ceceff -> theme-02, ...). Two figure shades fall between theme steps and are
+// mixed from their neighbours.
+.classicyPixelK { fill: var(--color-black); }
+.classicyPixelW { fill: var(--color-white); }
+.classicyPixel1 { fill: var(--color-system-01); }
+.classicyPixel2 { fill: var(--color-system-02); }
+.classicyPixel3 { fill: var(--color-system-03); }
+.classicyPixel4 { fill: var(--color-system-04); }
+.classicyPixel5 { fill: var(--color-system-05); }
+// #525252: between system-05 and system-06.
+.classicyPixelm { fill: color-mix(in srgb, var(--color-system-05), var(--color-system-06)); }
+.classicyPixel6 { fill: var(--color-system-06); }
+.classicyPixel7 { fill: var(--color-system-07); }
+.classicyPixelb { fill: var(--color-theme-02); }
+.classicyPixelc { fill: var(--color-theme-03); }
+.classicyPixeld { fill: var(--color-theme-04); }
+// #313163, the slider track's dark inner line: a darkened theme-05.
+.classicyPixeln { fill: color-mix(in srgb, var(--color-theme-05) 60%, var(--color-system-07)); }

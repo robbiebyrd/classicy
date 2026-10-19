@@ -12,7 +12,12 @@ import {
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { getAppManifest } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
+import {
+	getAppWindow,
+	listAppWindows,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { ClassicyAppIdContext } from "@/SystemFolder/SystemResources/App/ClassicyAppIdContext";
+import { markClassicyAppMounted } from "@/SystemFolder/SystemResources/App/ClassicyMountedApps";
 import type { ClassicyIconBalloonHelp } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
 import { normalizeIconBalloonHelp } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconBalloons";
 import type { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
@@ -20,16 +25,26 @@ import { canonicalChord } from "@/SystemFolder/SystemResources/Menu/ClassicyKeyb
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
+/** A keyboard chord an `extension` app registers app-wide (`globalShortcuts`). */
 export type ClassicyGlobalShortcut = {
+	/** The chord, in any `parseKeyboardShortcut` spelling (e.g. `"⌃⌘S"`). */
 	shortcut: string;
+	/** Action type dispatched when the chord fires. */
 	event: string;
+	/** Extra fields spread into the dispatched action. */
 	eventData?: Record<string, unknown>;
 };
 
 export interface ClassicyAppProps {
+	/** Unique app id; the `.app` suffix is convention (`"TV.app"`). Keys
+	 *  `System.Manager.Applications.apps[id]`. */
 	id: string;
+	/** Display name: desktop icon label, App Switcher and About menu entries. */
 	name: string;
+	/** App icon (URL or data URI), used for the desktop icon and menus. */
 	icon: string;
+	/** Id of the window to focus when the app is focused and none of its
+	 *  windows is, provided that window is open. */
 	defaultWindow?: string;
 	/** Draw an icon for this app on the desktop. Defaults to true. Ignored for
 	 *  `extension` apps, which are background-only. */
@@ -38,18 +53,26 @@ export interface ClassicyAppProps {
 	 *  is independent of `showDesktopIcon` — an app can appear on the desktop
 	 *  but not in Applications, or the reverse. Ignored for `extension` apps. */
 	showInApplicationsFolder?: boolean;
-	/** Balloon help for this app's desktop icon. A bare string supplies the
-	 *  content and titles the balloon with the app's name. When omitted, the
-	 *  app's registered manifest description (`registerApp`) is used, so a
-	 *  registered app's icon carries purpose copy with no extra wiring. */
+	/** Balloon help for this app's desktop icon: a string or
+	 *  `{ title?, content, position?, delay? }`. A bare string (or an object
+	 *  without a title) is titled with the app's name. When omitted, the app's
+	 *  registered manifest description (`registerApp`) is used, so a registered
+	 *  app's icon carries purpose copy with no extra wiring. */
 	desktopIconBalloonHelp?: string | ClassicyIconBalloonHelp;
-	/** @deprecated Use `showDesktopIcon={false}`. */
+	/** @deprecated Use `showDesktopIcon={false}`. Unlike before, this alone no
+	 *  longer keeps the app out of Applications — pass
+	 *  `showInApplicationsFolder={false}` for that. */
 	noDesktopIcon?: boolean;
 	/** @deprecated Use `showInApplicationsFolder`. Note that this no longer
 	 *  needs to accompany `noDesktopIcon` — Applications membership now
 	 *  defaults to true on its own. */
 	inApplicationsFolder?: boolean;
+	/** Add the app to the Apple (system) menu. Ignored for `extension` apps. */
 	addSystemMenu?: boolean;
+	/** Background-only app (e.g. Apple Guide, Screen Saver): no desktop icon,
+	 *  no Applications listing, no Apple-menu entry, never treated as the
+	 *  focused app by the menu bar; it parades at startup and may register
+	 *  `globalShortcuts`. */
 	extension?: boolean;
 	/** Global keyboard shortcuts, honored only for `extension` apps. Each is
 	 *  registered into the shortcut registry on mount (first-registrant wins)
@@ -60,13 +83,48 @@ export interface ClassicyAppProps {
 	 *  ClassicyIcons.* values) shows that icon instead. Ignored when
 	 *  `extension` is set — extensions already parade. */
 	bootIcon?: boolean | string;
+	/** Also render a "DEBUG <name>" window showing the app's store record.
+	 *  Defaults to `false`. */
 	debug?: boolean;
+	/** File types Finder may open with this app. Opening one dispatches
+	 *  `` `ClassicyApp${name}OpenFile` ``; unless the app handles that action
+	 *  itself, the path is queued in `apps[id].data.openFiles`. */
 	handlesFileTypes?: ClassicyFileSystemEntryFileType[];
+	/** Render your own windows for queued `openFiles`. When `false`, the app
+	 *  renders one plain window per queued path whose close dispatches
+	 *  `` `ClassicyApp${name}CloseFile` ``. Defaults to `false`. */
 	handlesOwnFiles?: boolean;
+	/** App-level right-click menu: the fallback for any of this app's windows
+	 *  without its own `contextMenu` (a `ClassicyContextualMenuTarget` inside a
+	 *  window wins over both). Sent with `ClassicyAppLoad`, which does not
+	 *  re-run when only this array changes. */
 	contextMenu?: ClassicyMenuItem[];
+	/** The app's windows (`ClassicyWindow`) and other UI. Rendered only while
+	 *  the app is open. */
 	children?: ReactNode;
 }
 
+/**
+ * The container for one Classicy application — the desktop metaphor's
+ * equivalent of a running program, with no HTML counterpart. On mount it loads
+ * the app into the window manager (`ClassicyAppLoad`), registers its desktop
+ * icon (an `app_shortcut`, drawn with the alias badge) and Applications-folder
+ * entry, and optionally an Apple-menu item and a startup-parade icon. Its
+ * children render only while the app is open, which a double-click on its icon
+ * or a `ClassicyAppOpen` dispatch does.
+ *
+ * Every `ClassicyWindow` must render inside its app, with `appId` set to the
+ * app's `id`. Clicking anywhere in the app activates it (`ClassicyAppActivate`).
+ * Register a manifest with `registerApp` for custom state and actions; its
+ * description also becomes the desktop icon's balloon help.
+ *
+ * ```tsx
+ * <ClassicyApp id="TV.app" name="TV" icon={icon} defaultWindow="main"
+ *   showDesktopIcon={false} desktopIconBalloonHelp="Double-click to watch TV.">
+ *   <ClassicyWindow id="main" appId="TV.app" title="TV">…</ClassicyWindow>
+ * </ClassicyApp>
+ * ```
+ */
 export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 	id,
 	icon,
@@ -229,6 +287,10 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 		icon,
 	]);
 
+	// Runtime presence, separate from the persisted app record: Control Strip
+	// modules registered with this app's id show only while it is mounted.
+	useEffect(() => markClassicyAppMounted(id), [id]);
+
 	const handlesFileTypesKey = handlesFileTypes?.slice().sort().join(",") ?? "";
 	useEffect(() => {
 		if (handlesFileTypesKey) {
@@ -285,11 +347,11 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 				? useAppManager.getState().System.Manager.Applications.apps[id]
 				: appContext;
 		if (!app?.focused) return;
-		if (app.windows.some((w) => w.focused && !w.closed)) return;
-		const defaultWin = app.windows.find(
-			(w) => w.id === defaultWindow && !w.closed,
-		);
-		const target = pickWindowToRestore(app) ?? defaultWin;
+		if (listAppWindows(app).some((w) => w.focused && !w.closed)) return;
+		const defaultWin = getAppWindow(app, defaultWindow);
+		const target =
+			pickWindowToRestore(app) ??
+			(defaultWin && !defaultWin.closed ? defaultWin : undefined);
 		if (!target) return;
 		desktopEventDispatch({
 			type: "ClassicyWindowFocus",

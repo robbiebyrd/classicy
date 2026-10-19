@@ -14,9 +14,7 @@ describe("ClassicyWindowFrame", () => {
 				<p>About text</p>
 			</ClassicyWindowFrame>,
 		);
-		expect(
-			container.querySelector(".classicyWindowFrame"),
-		).toBeInTheDocument();
+		expect(container.querySelector(".classicyWindowFrame")).toBeInTheDocument();
 		expect(screen.getByText("9/11 in Realtime")).toBeInTheDocument();
 		expect(screen.getByText("About text")).toBeInTheDocument();
 	});
@@ -27,9 +25,7 @@ describe("ClassicyWindowFrame", () => {
 				<span>body</span>
 			</ClassicyWindowFrame>,
 		);
-		expect(
-			container.querySelector(".classicyWindowFrameTitleText"),
-		).toBeNull();
+		expect(container.querySelector(".classicyWindowFrameTitleText")).toBeNull();
 	});
 
 	it("applies a custom className to the root", () => {
@@ -49,9 +45,7 @@ describe("ClassicyWindowFrame", () => {
 				<span>body</span>
 			</ClassicyWindowFrame>,
 		);
-		const root = container.querySelector(
-			".classicyWindowFrame",
-		) as HTMLElement;
+		const root = container.querySelector(".classicyWindowFrame") as HTMLElement;
 		expect(root.style.getPropertyValue("--classicy-window-frame-width")).toBe(
 			"480px",
 		);

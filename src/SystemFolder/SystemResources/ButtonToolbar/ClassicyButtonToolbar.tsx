@@ -39,14 +39,23 @@ export type ClassicyButtonToolbarSize = "large" | "medium" | "small";
 export type ClassicyButtonToolbarProps = {
 	/** Extra class names merged onto the toolbar element. */
 	className?: string;
-	/** Button sizing; see {@link ClassicyButtonToolbarSize}. Default `large`. */
+	/**
+	 * Sizing for every control in the toolbar, as a unit: `large` (the classic
+	 * toolbar look), `medium`, or `small` (matches `ClassicyButton`'s small
+	 * metrics). Defaults to `large`.
+	 */
 	size?: ClassicyButtonToolbarSize;
+	/**
+	 * The toolbar's groups — normally `ClassicyButtonToolbarGroup`s. Any other
+	 * child counts as a group of its own. Dividers are inserted between them.
+	 */
 	children: ReactNode;
 };
 
 export type ClassicyButtonToolbarGroupProps = {
 	/** Extra class names merged onto the group element. */
 	className?: string;
+	/** The controls in this run, packed flush with no gaps between them. */
 	children: ReactNode;
 };
 
@@ -54,7 +63,8 @@ export type ClassicyButtonToolbarGroupProps = {
  * A run of controls packed flush against each other, with no gaps.
  *
  * Groups are the unit the toolbar counts when placing dividers; a group has no
- * behavior of its own.
+ * behavior of its own. Keyboard navigation belongs to the enclosing
+ * `ClassicyButtonToolbar` and crosses group boundaries.
  */
 export const ClassicyButtonToolbarGroup: FunctionalComponent<
 	ClassicyButtonToolbarGroupProps
@@ -64,9 +74,20 @@ export const ClassicyButtonToolbarGroup: FunctionalComponent<
 	</div>
 );
 
+// `large` is the unmodified base style, so only the non-default sizes carry a
+// modifier class — same shape as ClassicyButton's buttonSize handling.
+const toolbarSizeClass: Record<ClassicyButtonToolbarSize, string | undefined> =
+	{
+		large: undefined,
+		medium: "classicyButtonToolbarSizeMedium",
+		small: "classicyButtonToolbarSizeSmall",
+	};
+
 /**
  * A Mac OS 8 control bar: buttons flush together, arranged into groups
- * separated by a vertical engraved divider.
+ * separated by a vertical engraved divider. Use it for a window's row of
+ * tool or command buttons — normally `ClassicyBevelButton`s — instead of a
+ * hand-built flex row; there is no HTML element it replaces.
  *
  * Dividers are drawn automatically **between** children — never leading,
  * never trailing, and not at all for a single group — so consumers never place
@@ -83,8 +104,9 @@ export const ClassicyButtonToolbarGroup: FunctionalComponent<
  *
  * Inside a toolbar, an icon-only `ClassicyBevelButton` defaults to a square
  * box; a button with text keeps its rectangular shape. Passing `square`
- * explicitly always wins — see {@link ClassicyButtonToolbarContext} for how
- * that default is delivered and where it can leak.
+ * explicitly always wins. The default is delivered through
+ * `ClassicyButtonToolbarContext`, which follows the React tree, so it also
+ * reaches a bevel button portalled out of the toolbar.
  *
  * The root element carries `role="toolbar"`. The `<hr role="separator">`
  * dividers between groups stay in the accessibility tree on purpose: inside
@@ -98,22 +120,22 @@ export const ClassicyButtonToolbarGroup: FunctionalComponent<
  * toolbar as a single stop, not through every button. Once focus is inside:
  *   - **ArrowRight/ArrowLeft** move focus between controls and **wrap** at the
  *     ends (Right from the last control goes to the first, and vice versa).
- *     Wrapping matches {@link ClassicyTabs} — the other horizontal
+ *     Wrapping matches `ClassicyTabs` — the other horizontal
  *     roving-tabindex widget in this codebase — for consistency; the APG
  *     permits either choice and this toolbar picks the one already
  *     established here.
  *   - **Home/End** jump to the first/last control.
  *   - The control that last had focus becomes (and remains) the tab stop, so
  *     tabbing back into the toolbar later returns to where the user left off.
- *   - A disabled control is never a stop and is skipped by arrow navigation —
- *     see {@link TOOLBAR_CONTROL_SELECTOR}.
+ *   - A disabled control is never a stop and is skipped by arrow navigation,
+ *     even when its `disabled` attribute is toggled outside React.
  *
  * Controls are discovered by querying the rendered DOM (`button:not(:disabled)`
  * under the toolbar root) rather than by inspecting or cloning React children,
- * so arbitrary children (R7) keep working unchanged and `tabIndex` is set
+ * so arbitrary children keep working unchanged and `tabIndex` is set
  * directly on the DOM nodes the toolbar doesn't own.
  *
- * @example
+ * ```tsx
  * <ClassicyButtonToolbar>
  *     <ClassicyButtonToolbarGroup>
  *         <ClassicyBevelButton icon={back} iconAlt="Back" />
@@ -123,16 +145,8 @@ export const ClassicyButtonToolbarGroup: FunctionalComponent<
  *         <ClassicyBevelButton icon={zoom} iconAlt="Zoom" />
  *     </ClassicyButtonToolbarGroup>
  * </ClassicyButtonToolbar>
+ * ```
  */
-// `large` is the unmodified base style, so only the non-default sizes carry a
-// modifier class — same shape as ClassicyButton's buttonSize handling.
-const toolbarSizeClass: Record<ClassicyButtonToolbarSize, string | undefined> =
-	{
-		large: undefined,
-		medium: "classicyButtonToolbarSizeMedium",
-		small: "classicyButtonToolbarSizeSmall",
-	};
-
 export const ClassicyButtonToolbar: FunctionalComponent<
 	ClassicyButtonToolbarProps
 > = ({ className, size = "large", children }) => {

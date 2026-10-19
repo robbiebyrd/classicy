@@ -179,6 +179,9 @@ export const ClassicyIcons = {
 			platinum: icon("control-panels/appearance-manager/platinum.png"),
 			preferences: icon("control-panels/appearance-manager/preferences.png"),
 		},
+		controlStripManager: {
+			app: icon("control-panels/control-strip/app.png"),
+		},
 		dateTimeManager: {
 			dateTimeManager: icon(
 				"control-panels/date-time-manager/date-time-manager.png",
@@ -206,6 +209,21 @@ export const ClassicyIcons = {
 	},
 	system: {
 		alias: icon("system/alias.png"),
+		// 16 × 16 Control Strip module icons, lifted pixel-for-pixel from
+		// HIGOS8 Figure 6-15.
+		controlStrip: {
+			cd: icon("system/control-strip/cd.png"),
+			fileSharing: icon("system/control-strip/file-sharing.png"),
+			// 32 × 32: a module's file in System Folder:Control Strip Modules,
+			// for modules that register no `fileIcon` of their own.
+			moduleFile: icon("system/control-strip/module-file.png"),
+			// The Screen Saver module: a monitor with a starry screen.
+			screenSaver: icon("system/control-strip/screen-saver.png"),
+			sleep: icon("system/control-strip/sleep.png"),
+			sound: icon("system/control-strip/sound.png"),
+			// The same speaker with its sound waves removed: sound is off.
+			soundOff: icon("system/control-strip/sound-off.png"),
+		},
 		appleBlackOnWhite: icon("system/apple-black-on-white.png"),
 		appleWhiteOnBlack: icon("system/apple-white-on-black.png"),
 		apple: icon("system/apple.png"),
@@ -489,6 +507,9 @@ export const ClassicyIcons = {
 		},
 	},
 	ui: {
+		// The "standard help icon" a Help button wears (HIGOS8 Ch.3 p.86): the
+		// Apple Guide lightbulb "?", lifted pixel-for-pixel from Figure 3-36.
+		helpButton: ui("help-button.png"),
 		halftoneLarge: ui("halftone-large.png"),
 		halftoneSmall: ui("halftone-small.png"),
 		menuDropdownArrowUp: ui("menu-dropdown-arrow-up.svg"),

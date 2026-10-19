@@ -11,6 +11,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+/** A titled primary group box holding a text field and a checkbox. */
 export const Default: Story = {
 	args: {
 		label: "Connection",
@@ -23,7 +24,7 @@ export const Default: Story = {
 	},
 };
 
-// Primary = 2px etched frame (the default look).
+/** `variant="primary"`: the 2px etched frame — the default look. */
 export const Primary: Story = {
 	args: {
 		label: "File Sharing",
@@ -38,7 +39,7 @@ export const Primary: Story = {
 	},
 };
 
-// Secondary = single 1px line, for lighter nested grouping.
+/** `variant="secondary"`: a single 1px line, for lighter or nested grouping. */
 export const Secondary: Story = {
 	args: {
 		label: "Access Privileges",
@@ -49,7 +50,7 @@ export const Secondary: Story = {
 	},
 };
 
-// Untitled group box (no legend).
+/** An untitled group box: with no title prop set, no `<legend>` is rendered. */
 export const Untitled: Story = {
 	args: {
 		children: (
@@ -58,7 +59,11 @@ export const Untitled: Story = {
 	},
 };
 
-// Checkbox title: the legend itself is a checkbox that enables the group.
+/**
+ * `checkboxTitle`: the title is a `ClassicyCheckbox` (props passed through).
+ * By HIG convention it governs the group's controls; wiring that enablement
+ * is up to the caller.
+ */
 export const CheckboxTitle: Story = {
 	args: {
 		checkboxTitle: {
@@ -75,7 +80,11 @@ export const CheckboxTitle: Story = {
 	},
 };
 
-// Pop-up-menu title: the legend is a pop-up menu that scopes the group.
+/**
+ * `popUpMenuTitle`: the title is a `ClassicyPopUpMenu` (props passed through)
+ * whose choice decides what the group shows; swapping the content is up to the
+ * caller.
+ */
 export const PopUpMenuTitle: Story = {
 	args: {
 		popUpMenuTitle: {
@@ -96,6 +105,10 @@ export const PopUpMenuTitle: Story = {
 	},
 };
 
+/**
+ * `columns` lets a group grow to fill its flex row, so groups placed side by
+ * side share the width as columns.
+ */
 export const Columns: Story = {
 	args: {
 		label: "Options",
@@ -108,8 +121,21 @@ export const Columns: Story = {
 			</>
 		),
 	},
+	render: (args) => (
+		<div style={{ display: "flex", width: 420 }}>
+			<ClassicyControlGroup {...args} />
+			<ClassicyControlGroup label="Feedback" columns={true}>
+				<ClassicyCheckbox id="cg-d" checked={true} label="Flash menu bar" />
+				<ClassicyCheckbox id="cg-e" label="Speak alerts" />
+			</ClassicyControlGroup>
+		</div>
+	),
 };
 
+/**
+ * `backgroundColor` must match the surface the group sits on, because the
+ * title paints it to mask the frame line — here a white surface.
+ */
 export const CustomBackground: Story = {
 	args: {
 		label: "On a White Surface",
@@ -125,4 +151,39 @@ export const CustomBackground: Story = {
 			</div>
 		),
 	],
+};
+
+/**
+ * `layout="form"` turns the content into a two-column grid: each
+ * `ClassicyInput`'s label and field become one row, so the fields line up.
+ */
+export const FormLayout: Story = {
+	args: {
+		label: "Server",
+		layout: "form",
+		children: (
+			<>
+				<ClassicyInput
+					id="cg-form-host"
+					labelTitle="Host"
+					labelPosition="left"
+				/>
+				<ClassicyInput
+					id="cg-form-user"
+					labelTitle="User name"
+					labelPosition="left"
+				/>
+			</>
+		),
+	},
+};
+
+/** `title` takes any node — here a bold run — when plain text is not enough. */
+export const RichTitle: Story = {
+	args: {
+		title: <strong>Startup Disk</strong>,
+		children: (
+			<ClassicyCheckbox id="cg-rich" checked={true} label="Verify on startup" />
+		),
+	},
 };

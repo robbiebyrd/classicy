@@ -38,6 +38,20 @@ $cp-wheel-degree-marks: 0, 60, 120, 180, 240, 300;
 
 // ── Dialog layout ────────────────────────────────────────────────────────────
 
+// The dialog's content column. The window contents box is a plain block, so
+// without this the body's `flex: 1` never applies and the crayon box pushes the
+// preview and footer below the window's bottom edge.
+.classicyColorPickerDialog {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  box-sizing: border-box;
+  // The modal contents box runs a few px past the window frame (its inner
+  // padding sits on top of a 100% height), so leave room under the footer for
+  // the OK button's default ring.
+  padding-bottom: var(--window-padding-size);
+}
+
 .classicyColorPickerDialogBody {
   display: flex;
   gap: var(--window-padding-size);
@@ -58,7 +72,12 @@ $cp-wheel-degree-marks: 0, 60, 120, 180, 240, 300;
   background: var(--color-white);
   overflow-y: auto;
 
-  li {
+  &:focus-visible {
+    outline: 1px solid var(--color-outline);
+    outline-offset: -3px;
+  }
+
+  .classicyColorPickerModeListItem {
     padding: 3px 6px;
     font-family: var(--ui-font);
     font-size: var(--ui-font-size);

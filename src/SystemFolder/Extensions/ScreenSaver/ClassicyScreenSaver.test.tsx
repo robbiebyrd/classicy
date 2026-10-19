@@ -24,7 +24,7 @@ vi.mock(
 									icon: "/icons/screensaver.png",
 									open: true,
 									extension: true,
-									windows: [] as never[],
+									windows: {} as never[],
 									data: mockData.current,
 								},
 							},

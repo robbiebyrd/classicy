@@ -11,25 +11,82 @@ import { type FC as FunctionalComponent, useEffect, useState } from "react";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
 type ClassicyRadioInputProps = {
+	/** Shared native `name` for every button in the group. */
 	name: string;
+	/** Optional group title shown beside the buttons (e.g. "Mouse Speed:"). */
 	label?: string;
+	/** Size of the group title. Defaults to `medium`. */
 	labelSize?: ClassicyControlLabelSize;
+	/** Where the group title sits relative to the buttons. Defaults to `above`. */
 	labelPosition?: ClassicyLabelPosition;
+	/**
+	 * Button layout: `columns` stacks the buttons in one vertical column;
+	 * `rows` lays them out side by side in one row. Defaults to `columns`.
+	 */
 	align?: "rows" | "columns";
+	/**
+	 * Dims the group title only. It does not disable the buttons — set
+	 * `disabled` on each entry in `inputs` for that. Defaults to `false`.
+	 */
 	disabled?: boolean;
+	/** Called with the `id` of the button the user turns on. */
 	onClickFunc?: (id: string) => void;
+	/**
+	 * The buttons, in order. The last entry with `checked: true` starts on; if
+	 * none is, the first button does. Passing a new array re-applies that rule.
+	 */
 	inputs: ClassicyRadioInputValueProps[];
 };
 
 type ClassicyRadioInputValueProps = {
+	/** DOM id and value of this button; also what `onClickFunc` receives. */
 	id: string;
+	/** Starts this button on. */
 	checked?: boolean;
+	/** Draws the mixed-state dash (a selection spanning several values). */
 	mixed?: boolean;
+	/** Rings the button in the theme accent colour while on or pressed. */
 	isDefault?: boolean;
+	/** Dims this button and its label and ignores clicks. */
 	disabled?: boolean;
+	/** Text label; clicking it selects the button. */
 	label?: string;
 };
 
+// HIGOS8 Ch.2 "Radio Buttons" (p.24): a radio group always has exactly one
+// button on. When no input is pre-marked, fall back to the first button so the
+// group is never rendered with zero selection. Presentational only — selecting
+// the fallback does not dispatch onClickFunc, matching the prior mount behavior.
+const initialRadioCheck = (list: ClassicyRadioInputValueProps[]): string =>
+	list.findLast((input) => input.checked === true)?.id ?? list[0]?.id ?? "";
+
+/**
+ * A Platinum radio-button group (HIGOS8 Ch.2 "Radio Buttons", p.24) — use it
+ * instead of raw `<input type="radio">` elements. One component renders the
+ * whole group from `inputs`, sharing one `name`, and keeps exactly one button
+ * on, as the HIG requires: if no entry is `checked` the first one starts on.
+ * Radio buttons choose a setting; they never start an action.
+ *
+ * Clicking a button or its label turns it on, plays the radio click sounds,
+ * reports to analytics and calls `onClickFunc` with that entry's `id`. The
+ * selection is held internally and re-derived from `inputs` whenever a new
+ * array is passed: keep `inputs` stable (memoised) or rebuild it with the
+ * current `checked` flags, since a fresh inline array on every parent render
+ * resets the user's choice. For button-shaped radios (a palette or toolbar)
+ * use `ClassicyBevelButton mode="radio"`.
+ *
+ * ```tsx
+ * <ClassicyRadioInput
+ *     name="speed"
+ *     label="Mouse Speed"
+ *     inputs={[
+ *         { id: "slow", label: "Slow" },
+ *         { id: "fast", label: "Fast", checked: true },
+ *     ]}
+ *     onClickFunc={setSpeed}
+ * />
+ * ```
+ */
 export const ClassicyRadioInput: FunctionalComponent<
 	ClassicyRadioInputProps
 > = ({
@@ -42,11 +99,9 @@ export const ClassicyRadioInput: FunctionalComponent<
 	onClickFunc,
 	inputs,
 }) => {
-	const [check, setCheck] = useState<string>(
-		inputs.findLast((input) => input.checked === true)?.id || "",
-	);
+	const [check, setCheck] = useState<string>(() => initialRadioCheck(inputs));
 	useEffect(() => {
-		setCheck(inputs.findLast((input) => input.checked === true)?.id || "");
+		setCheck(initialRadioCheck(inputs));
 	}, [inputs]);
 	const player = useSoundDispatch();
 
@@ -92,7 +147,9 @@ export const ClassicyRadioInput: FunctionalComponent<
 							)}
 							type={"radio"}
 							value={item.id}
-							defaultChecked={item.checked}
+							// Controlled from `check` so the native checked state matches
+							// the visual ring (and the group always has exactly one on).
+							checked={check === item.id}
 							tabIndex={0}
 							onChange={() => !item.disabled && handleOnChange(item.id)}
 							onMouseDown={() => {

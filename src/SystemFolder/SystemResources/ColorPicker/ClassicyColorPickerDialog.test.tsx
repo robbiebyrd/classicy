@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render } from "@/__tests__/test-utils";
+import { fireEvent, render, screen } from "@/__tests__/test-utils";
 import { ClassicyColorPickerDialog } from "@/SystemFolder/SystemResources/ColorPicker/ClassicyColorPickerDialog";
 
 const mockDispatch = vi.hoisted(() => vi.fn());
@@ -65,5 +65,31 @@ describe("ClassicyColorPickerDialog modal unmount lifecycle", () => {
 			app: { id: "theme-accent-dialog" },
 			window: { id: "theme-accent-dialog" },
 		});
+	});
+});
+
+describe("ClassicyColorPickerDialog mode list", () => {
+	it("is a listbox whose selection the arrow keys, Home and End move", () => {
+		render(<ClassicyColorPickerDialog id="mode-list-dialog" open={true} />);
+		const list = screen.getByRole("listbox", { name: "Color picker mode" });
+		const selected = () =>
+			screen
+				.getAllByRole("option", { selected: true })
+				.filter((o) => list.contains(o))
+				.map((o) => o.textContent);
+		expect(selected()).toEqual(["Crayons"]);
+		fireEvent.keyDown(list, { key: "ArrowDown" });
+		expect(selected()).toEqual(["RGB"]);
+		expect(list.getAttribute("aria-activedescendant")).toBe(
+			screen.getByRole("option", { name: "RGB" }).id,
+		);
+		fireEvent.keyDown(list, { key: "End" });
+		expect(selected()).toEqual(["CMYK"]);
+		fireEvent.keyDown(list, { key: "ArrowDown" });
+		expect(selected()).toEqual(["CMYK"]); // stays on the last mode
+		fireEvent.keyDown(list, { key: "Home" });
+		expect(selected()).toEqual(["Crayons"]);
+		fireEvent.click(screen.getByRole("option", { name: "HSV" }));
+		expect(selected()).toEqual(["HSV"]);
 	});
 });

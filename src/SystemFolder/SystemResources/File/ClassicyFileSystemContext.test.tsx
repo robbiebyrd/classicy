@@ -6,6 +6,11 @@ import {
 	dispatch,
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { markClassicyAppMounted } from "@/SystemFolder/SystemResources/App/ClassicyMountedApps";
+import {
+	registerClassicyControlStripModule,
+	unregisterClassicyControlStripModule,
+} from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripRegistry";
 import {
 	getClassicyFileSystemAdapters,
 	registerClassicyFileSystemAdapter,
@@ -279,6 +284,91 @@ describe("useClassicyFileSystem Extensions overlay", () => {
 		expect(
 			JSON.parse(persisted as string)["Macintosh HD"]["System Folder"]
 				.Extensions,
+		).toBeUndefined();
+	});
+});
+
+describe("useClassicyFileSystem Control Strip Modules overlay", () => {
+	const drive = () => ({
+		"Macintosh HD": {
+			_type: ClassicyFileSystemEntryFileType.Drive,
+			"System Folder": { _type: ClassicyFileSystemEntryFileType.Directory },
+		},
+	});
+	const folder = "Macintosh HD:System Folder:Control Strip Modules";
+
+	beforeEach(() => {
+		localStorage.clear();
+		useAppManager.setState(DefaultAppManagerState, true);
+	});
+	afterEach(() => {
+		unregisterClassicyControlStripModule("fs-test-module");
+	});
+
+	it("lists each registered module as a file, following registration", () => {
+		const { result } = renderHook(
+			() => useClassicyFileSystem("test-strip-overlay"),
+			{
+				wrapper: wrapperFor({ defaultFileSystem: drive(), mode: "exclusive" }),
+			},
+		);
+		act(() => {
+			registerClassicyControlStripModule({
+				id: "fs-test-module",
+				label: "Weather",
+				icon: "/weather-16.png",
+				fileIcon: "/weather-32.png",
+			});
+		});
+		const entry = result.current.resolve(`${folder}:Weather`);
+		expect(entry._type).toBe(ClassicyFileSystemEntryFileType.Extension);
+		expect(entry._icon).toBe("/weather-32.png");
+
+		act(() => {
+			unregisterClassicyControlStripModule("fs-test-module");
+		});
+		expect(result.current.resolve(`${folder}:Weather`)).toBeUndefined();
+	});
+
+	it("lists a module with an appId only while its app is mounted", () => {
+		registerClassicyControlStripModule({
+			id: "fs-test-module",
+			appId: "FsOwner.app",
+			label: "Owned",
+			icon: "/owned.png",
+		});
+		const { result } = renderHook(
+			() => useClassicyFileSystem("test-strip-overlay-owner"),
+			{
+				wrapper: wrapperFor({ defaultFileSystem: drive(), mode: "exclusive" }),
+			},
+		);
+		expect(result.current.resolve(`${folder}:Owned`)).toBeUndefined();
+		let unmount = () => {};
+		act(() => {
+			unmount = markClassicyAppMounted("FsOwner.app");
+		});
+		expect(result.current.resolve(`${folder}:Owned`)._creator).toBe(
+			"FsOwner.app",
+		);
+		act(() => unmount());
+		expect(result.current.resolve(`${folder}:Owned`)).toBeUndefined();
+	});
+
+	it("does not persist the overlay to localStorage", () => {
+		registerClassicyControlStripModule({
+			id: "fs-test-module",
+			label: "Weather",
+			icon: "/weather.png",
+		});
+		renderHook(() => useClassicyFileSystem("test-strip-overlay-persist"), {
+			wrapper: wrapperFor({ defaultFileSystem: drive(), mode: "exclusive" }),
+		});
+		const persisted = localStorage.getItem("test-strip-overlay-persist");
+		expect(
+			JSON.parse(persisted as string)["Macintosh HD"]["System Folder"][
+				"Control Strip Modules"
+			],
 		).toBeUndefined();
 	});
 });

@@ -24,17 +24,31 @@ const capturedSelectionRefByPath: Record<
 	RefObject<ClassicyTableSelectionApi | null> | undefined
 > = {};
 
+// #270: the window's initialFocusRef and the browser's focusTargetRef must be
+// the SAME ref object, or the window focuses a handle the list never fills.
+const capturedInitialFocusRefByWindow: Record<
+	string,
+	RefObject<HTMLElement | null> | undefined
+> = {};
+const capturedFocusTargetRefByPath: Record<
+	string,
+	RefObject<HTMLDivElement | null> | undefined
+> = {};
+
 vi.mock("@/SystemFolder/SystemResources/Window/ClassicyWindow", () => ({
 	ClassicyWindow: ({
 		id,
 		appMenu,
+		initialFocusRef,
 		children,
 	}: {
 		id: string;
 		appMenu?: ClassicyMenuItem[];
+		initialFocusRef?: RefObject<HTMLElement | null>;
 		children?: ReactNode;
 	}) => {
 		capturedMenuByWindow[id] = appMenu;
+		capturedInitialFocusRefByWindow[id] = initialFocusRef;
 		return <div data-testid={`classicy-window-${id}`}>{children}</div>;
 	},
 }));
@@ -43,11 +57,14 @@ vi.mock("@/SystemFolder/SystemResources/File/ClassicyFileBrowser", () => ({
 	ClassicyFileBrowser: ({
 		path,
 		selectionApiRef,
+		focusTargetRef,
 	}: {
 		path: string;
 		selectionApiRef?: RefObject<ClassicyTableSelectionApi | null>;
+		focusTargetRef?: RefObject<HTMLDivElement | null>;
 	}) => {
 		capturedSelectionRefByPath[path] = selectionApiRef;
+		capturedFocusTargetRefByPath[path] = focusTargetRef;
 		return <div data-testid={`classicy-file-browser-${path}`} />;
 	},
 }));
@@ -82,6 +99,12 @@ afterEach(() => {
 	}
 	for (const key of Object.keys(capturedSelectionRefByPath)) {
 		delete capturedSelectionRefByPath[key];
+	}
+	for (const key of Object.keys(capturedInitialFocusRefByWindow)) {
+		delete capturedInitialFocusRefByWindow[key];
+	}
+	for (const key of Object.keys(capturedFocusTargetRefByPath)) {
+		delete capturedFocusTargetRefByPath[key];
 	}
 	dispatch({ type: "ClassicyAppFinderPreferencesClose" });
 	dispatch({ type: "ClassicyAppFinderCloseFolder", path: DOCUMENTS_PATH });
@@ -172,5 +195,16 @@ describe("Finder folder-window menu bar", () => {
 		await waitFor(() => {
 			expect(editItem("Select All")?.disabled).toBe(false);
 		});
+	});
+});
+
+describe("Finder folder-window keyboard focus (#270)", () => {
+	it("hands the window and the browser the same focus-target ref", async () => {
+		await openDocuments();
+		const initialFocusRef = capturedInitialFocusRefByWindow[DOCUMENTS_PATH];
+		const focusTargetRef = capturedFocusTargetRefByPath[DOCUMENTS_PATH];
+
+		expect(initialFocusRef).toBeDefined();
+		expect(focusTargetRef).toBe(initialFocusRef);
 	});
 });

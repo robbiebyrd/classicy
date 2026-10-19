@@ -20,14 +20,13 @@ import {
 
 const appIcon = ClassicyIcons.controlPanels.soundManager.app;
 
+import { SOUND_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerManifest";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyCheckbox } from "@/SystemFolder/SystemResources/Checkbox/ClassicyCheckbox";
 import { ClassicyControlGroup } from "@/SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup";
-import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import { ClassicyDisclosure } from "@/SystemFolder/SystemResources/Disclosure/ClassicyDisclosure";
+import { ClassicySlider } from "@/SystemFolder/SystemResources/Slider/ClassicySlider";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
-
-import { SOUND_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerManifest";
 
 const APP_ID = SOUND_MANAGER_APP_ID;
 const APP_NAME = "Sound Manager";
@@ -46,19 +45,23 @@ export const ClassicySoundManager: FunctionalComponent = () => {
 	);
 	const windowClose = useClassicyWindowClose(APP_ID);
 
+	// Toggles only the "*" mute flag, so the per-sound choices below survive
+	// turning interface sounds off and on again.
 	const changeSounds = (checked: boolean) => {
-		player({
-			type: "ClassicySoundDisable",
-			disabled: checked ? [] : ["*"],
-		});
+		player(
+			checked
+				? { type: "ClassicySoundEnableOne", enabled: "*" }
+				: { type: "ClassicySoundDisableOne", disabled: "*" },
+		);
 	};
 
-	// TODO(audit ch. 6 §35): the per-sound disable UI is non-functional. The
-	// checkboxes below all bind their `checked` state to the global
-	// `disabled.includes("*")` flag rather than to each sound's own entry, and
-	// while this dispatches ClassicySoundEnableOne/DisableOne the checkbox never
-	// reflects an individual sound's disabled state. Wire per-sound state
-	// (and its checked binding) before advertising this as working.
+	const volume = playerState.volume ?? 100;
+
+	// Per-sound enable/disable (audit ch. 6 §35). Playback honours each sound's
+	// own entry in `disabled` (see playerCanPlayInterrupt), so toggling a sound
+	// here takes effect immediately per the HIGOS8 Ch.6 "Settings" rule that
+	// control-panel changes apply at once. The checkbox is checked when the
+	// sound is neither globally muted ("*") nor individually disabled.
 	const disableSounds = useCallback(
 		(checked: boolean, sound: string) => {
 			if (checked) {
@@ -86,8 +89,8 @@ export const ClassicySoundManager: FunctionalComponent = () => {
 	// this menu before rendering, so it must stay published but never shows here.
 	// No Edit menu — this panel has no text-entry fields.
 	//
-	// ClassicyMenu renders an <hr> divider only for id === "spacer" and keys by
-	// id, so at most one divider per menu.
+	// A divider is an item with id "spacer"; ClassicyMenu keys dividers by
+	// position, so a menu may hold any number of them.
 	const appMenu = [
 		{
 			id: `${APP_ID}_file`,
@@ -154,10 +157,24 @@ export const ClassicySoundManager: FunctionalComponent = () => {
 						onClickFunc={changeSounds}
 						checked={!playerState.disabled.includes("*")}
 					/>
+					<ClassicySlider
+						id={"sound_volume"}
+						labelTitle={"Volume:"}
+						labelPosition={"left"}
+						value={volume}
+						min={0}
+						max={100}
+						valueLabel={`${volume}%`}
+						onChangeFunc={(e) =>
+							player({
+								type: "ClassicyVolumeSet",
+								volume: Number(e.target.value),
+							})
+						}
+						// Play the alert at the new level, as the Mac OS Sound panel does.
+						onCommitFunc={() => player({ type: "ClassicyAlertSound" })}
+					/>
 					<ClassicyDisclosure label={"Disable Sounds"}>
-						<ClassicyControlLabel
-							label={"These settings are not currently connected."}
-						/>
 						<div className={"soundManagerControlGroupHolder"}>
 							{[...groupedLabels.entries()].map(([group, items]) => (
 								<ClassicyControlGroup
@@ -170,7 +187,10 @@ export const ClassicySoundManager: FunctionalComponent = () => {
 											key={`${APP_ID}_${group}${item.id}`}
 											id={`enable_sound_${item.id}`}
 											label={item.label}
-											checked={!playerState.disabled.includes("*")}
+											checked={
+												!playerState.disabled.includes("*") &&
+												!playerState.disabled.includes(item.id)
+											}
 											onClickFunc={(checked: boolean) =>
 												disableSounds(checked, item.id)
 											}

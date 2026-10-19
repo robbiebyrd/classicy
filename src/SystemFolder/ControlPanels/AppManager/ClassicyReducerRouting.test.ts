@@ -2,10 +2,12 @@ import { describe, expect, it, vi } from "vitest";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { classicyDesktopStateEventReducer } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { getAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 // Side-effect imports: register app plugins so ClassicyAppFinder* and
 // ClassicyAppMoviePlayer* events are handled by classicyDesktopStateEventReducer.
 import "@/SystemFolder/Finder/FinderContext";
 import "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerContext";
+import { windowsRecord } from "@/__tests__/windowsRecord";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 
 vi.mock("@img/icons/system/quicktime/player.png", () => ({
@@ -58,7 +60,7 @@ function makeStore(
 							id: "Finder.app",
 							name: "Finder",
 							icon: "",
-							windows: [],
+							windows: {},
 							open: true,
 							focused: true,
 							noDesktopIcon: true,
@@ -89,7 +91,7 @@ function makeStore(
 describe("prefix routing: ClassicyWindow*", () => {
 	it("ClassicyWindowFocus routes to window handler — target window becomes focused", () => {
 		const ds = makeStore();
-		ds.System.Manager.Applications.apps["Finder.app"].windows = [
+		ds.System.Manager.Applications.apps["Finder.app"].windows = windowsRecord(
 			{
 				id: "w1",
 				closed: false,
@@ -106,7 +108,7 @@ describe("prefix routing: ClassicyWindow*", () => {
 				position: [0, 0],
 				minimumSize: [100, 100],
 			},
-		];
+		);
 
 		const result = classicyDesktopStateEventReducer(ds, {
 			type: "ClassicyWindowFocus",
@@ -114,28 +116,28 @@ describe("prefix routing: ClassicyWindow*", () => {
 			window: { id: "w1" },
 		});
 
-		const w1 = result.System.Manager.Applications.apps[
-			"Finder.app"
-		].windows.find((w) => w.id === "w1");
-		const w2 = result.System.Manager.Applications.apps[
-			"Finder.app"
-		].windows.find((w) => w.id === "w2");
+		const w1 = getAppWindow(
+			result.System.Manager.Applications.apps["Finder.app"],
+			"w1",
+		);
+		const w2 = getAppWindow(
+			result.System.Manager.Applications.apps["Finder.app"],
+			"w2",
+		);
 		expect(w1?.focused).toBe(true);
 		expect(w2?.focused).toBe(false);
 	});
 
 	it("ClassicyWindowClose routes to window handler — target window is marked closed", () => {
 		const ds = makeStore();
-		ds.System.Manager.Applications.apps["Finder.app"].windows = [
-			{
-				id: "w1",
-				closed: false,
-				focused: true,
-				size: [400, 300],
-				position: [0, 0],
-				minimumSize: [100, 100],
-			},
-		];
+		ds.System.Manager.Applications.apps["Finder.app"].windows = windowsRecord({
+			id: "w1",
+			closed: false,
+			focused: true,
+			size: [400, 300],
+			position: [0, 0],
+			minimumSize: [100, 100],
+		});
 
 		const result = classicyDesktopStateEventReducer(ds, {
 			type: "ClassicyWindowClose",
@@ -143,9 +145,10 @@ describe("prefix routing: ClassicyWindow*", () => {
 			window: { id: "w1" },
 		});
 
-		const w1 = result.System.Manager.Applications.apps[
-			"Finder.app"
-		].windows.find((w) => w.id === "w1");
+		const w1 = getAppWindow(
+			result.System.Manager.Applications.apps["Finder.app"],
+			"w1",
+		);
 		expect(w1?.closed).toBe(true);
 	});
 });
@@ -289,7 +292,7 @@ describe("prefix routing: ClassicyApp*", () => {
 			icon: "",
 			open: true,
 			focused: true,
-			windows: [],
+			windows: {},
 			data: {},
 		};
 
@@ -466,7 +469,7 @@ describe("ClassicyAppFinderOpenFile file-type routing", () => {
 			name: "SimpleText",
 			icon: "",
 			open: false,
-			windows: [],
+			windows: {},
 			data: {},
 		};
 		ds.System.Manager.Applications.fileTypeHandlers[
@@ -494,7 +497,7 @@ describe("ClassicyAppFinderOpenFile file-type routing", () => {
 			name: "SimpleText",
 			icon: "",
 			open: false,
-			windows: [],
+			windows: {},
 			data: {},
 		};
 		ds.System.Manager.Applications.fileTypeHandlers[

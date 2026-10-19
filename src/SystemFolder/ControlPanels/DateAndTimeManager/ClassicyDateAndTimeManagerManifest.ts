@@ -8,5 +8,6 @@ export const DATE_AND_TIME_MANAGER_APP_ID = "DateAndTimeManager.app";
 // manifest-driven surface.
 registerApp({
 	id: DATE_AND_TIME_MANAGER_APP_ID,
-	description: "Control panel for the desktop clock's date, time, and time zone.",
+	description:
+		"Control panel for the desktop clock's date, time, and time zone.",
 });

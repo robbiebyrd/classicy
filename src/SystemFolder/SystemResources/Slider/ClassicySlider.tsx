@@ -26,6 +26,11 @@ export interface ClassicySliderTicks {
 // At most one tick per 2% of the value range (≤ 51 marks, endpoints included).
 const MAX_TICKS_PER_RANGE = 50;
 
+/**
+ * Tick positions for a `tickInterval` over `[min, max]` (exported for tests):
+ * `"center"` is a single midpoint tick, a number is a tick every that many
+ * value units from `min`, density-capped at one tick per 2% of the range.
+ */
 export const computeSliderTicks = (
 	tickInterval: number | "center" | undefined,
 	min: number,
@@ -72,16 +77,30 @@ const indicatorClassMap: Record<ClassicySliderIndicatorDirection, string> = {
 };
 
 interface ClassicySliderProps {
+	/** Id of the native `<input type="range">`; links the label to it. */
 	id: string;
+	/** Visible label text. Omit for no label (then pass `ariaLabel`). */
 	labelTitle?: string;
+	/** Size of the label and of the value readout. Defaults to `"medium"`. */
 	labelSize?: ClassicyControlLabelSize;
+	/** Where the label sits relative to the slider. Defaults to `"above"`. */
 	labelPosition?: ClassicyLabelPosition;
+	/**
+	 * The slider's value. The thumb follows changes to this prop, and the
+	 * readout beside the track shows it, so feed `onChangeFunc` back into it.
+	 */
 	value: number;
+	/** Lowest value. Defaults to `0`. */
 	min?: number;
+	/** Highest value. Defaults to `100`. */
 	max?: number;
+	/** Value increment; overridden by `snapToTicks`. Defaults to `1`. */
 	step?: number;
+	/** Disables the slider and dims its label and ticks. Defaults to `false`. */
 	disabled?: boolean;
+	/** Draws the thumb in the theme accent colour. Defaults to `false`. */
 	highlighted?: boolean;
+	/** Text for the readout beside the track (e.g. `"40 %"`). Defaults to `value`. */
 	valueLabel?: string;
 	/**
 	 * Accessible name for the slider's input. Use when the slider has no visible
@@ -105,6 +124,7 @@ interface ClassicySliderProps {
 	 * the user drags, echoing the Mac OS 8 shadow indicator. Off by default.
 	 */
 	ghost?: boolean;
+	/** Called with the native change event on every intermediate value. */
 	onChangeFunc?: ChangeEventHandler<HTMLInputElement>;
 	/**
 	 * Fired once when the user finishes adjusting the slider — on pointer release
@@ -136,6 +156,27 @@ interface ClassicySliderProps {
 	snapToTicks?: boolean;
 }
 
+/**
+ * The Platinum slider (HIGOS8 Ch.2 "Sliders and Tick Marks", p.34) — the
+ * `<input type="range">` equivalent, and it renders a real one. Horizontal
+ * or vertical, with a directional or nondirectional indicator, optional
+ * labelled tick marks, an optional ghost indicator that trails the pointer
+ * while dragging, and a value readout beside the track. Use it to set a
+ * value; never as a stand-in for a scroll bar.
+ *
+ * The native input is uncontrolled and only re-synced when `value` changes
+ * from outside (this avoids a Safari freeze while dragging), so treat the
+ * component as controlled: `onChangeFunc` fires live on every step and the
+ * readout shows the `value` you pass back. `onCommitFunc` fires once when the
+ * pointer or key is released — the place for persistence or store
+ * dispatches. Without a visible `labelTitle`, give it an `ariaLabel`.
+ *
+ * ```tsx
+ * <ClassicySlider id="vol" labelTitle="Volume" value={volume}
+ *     onChangeFunc={(e) => setVolume(Number(e.target.value))}
+ *     onCommitFunc={saveVolume} />
+ * ```
+ */
 export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 	id,
 	labelTitle,

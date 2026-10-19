@@ -3,7 +3,6 @@ import {
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import "./ClassicyDesktopMenuBar.scss";
-import { ClassicyDesktopMenuWidgetSound } from "@/SystemFolder/SystemResources/Desktop/MenuBar/Widgets/Sound/ClassicyDesktopMenuWidgetSound";
 import { ClassicyDesktopMenuWidgetTime } from "@/SystemFolder/SystemResources/Desktop/MenuBar/Widgets/Time/ClassicyDesktopMenuWidgetTime";
 import {
 	ClassicyMenu,
@@ -108,6 +107,24 @@ const stripAboutItem = (
 		return [{ ...item, menuChildren }];
 	});
 
+/**
+ * The Mac OS 8 menu bar (HIGOS8 Ch.4, p.91) across the top of the desktop —
+ * Classicy's top-level `<nav>`. `ClassicyDesktop` mounts it; it takes no props
+ * and reads everything from the store.
+ *
+ * From left to right it shows the Apple menu (the system menu, led by "About
+ * <focused app>" when that app publishes an About item — the item is moved
+ * out of the app's own menus), the focused window's `appMenu`, the standard
+ * Help menu (always the rightmost: About Balloon Help…, Show/Hide Balloons
+ * ⌥H, then the focused app's `useClassicyHelpMenu` items), then, at the far
+ * right, menu bar extensions (`ClassicyMenuBarExtension`), the clock and the
+ * App Switcher. Menus are sticky (HIGOS8 p.92): a click leaves one open, and
+ * it closes after 15 seconds idle or on a click outside the bar.
+ *
+ * It also runs the app-wide keyboard-equivalent dispatcher: a chord fires the
+ * matching item of the focused app's menus, then the system menus, then an
+ * extension's global shortcut — whether or not a menu is open.
+ */
 export const ClassicyDesktopMenuBar: FunctionalComponent = () => {
 	return (
 		<ClassicyMenuProvider>
@@ -339,10 +356,10 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
 				navClass={"classicyDesktopMenu"}
 				subNavClass={"classicySubMenu"}
 			>
-				<ClassicyDesktopMenuWidgetSound />
+				{/* Sound lives on the Control Strip (ClassicyDesktop mounts it). */}
 				<ClassicyDesktopMenuWidgetTime />
 				{/* Portal target for app Menu Bar Extensions. Rendered last so its
-				    float:right lands it to the LEFT of the Sound/Time widgets. */}
+				    float:right lands it to the LEFT of the Time widget. */}
 				<ul
 					id={"classicyDesktopMenuExtensions"}
 					className={"classicyDesktopMenuExtensions"}

@@ -127,7 +127,7 @@ interface ClassicyStore {
             Desktop:      // icons, menus, selectBox, disableBalloonHelp, fsVersion, ...
             Sound:        // volume, labels, disabled[]
             Applications: // apps: Record<appId, app>, fileTypeHandlers, focusedAppId
-            Appearance:   // availableThemes, activeTheme, alertSound
+            Appearance:   // availableThemes, customThemes, activeTheme, alertSound, alertVolume
             DateAndTime:  // dateTime, timeZoneOffset, display flags, bounds
             Boot:         // paradeIcons
             Keyboard:     // app/system/global shortcut registries
@@ -137,8 +137,41 @@ interface ClassicyStore {
 ```
 
 Note: the app slice is `System.Manager.Applications` (not `.App`). Each app is
-`{ id, name, icon, windows[], open, focused?, data?: Record<string, unknown>, ... }` —
+`{ id, name, icon, windows, open, focused?, data?: Record<string, unknown>, ... }` —
 `data` is your app's private state bag, written by your event handler.
+
+`windows` is a `Record<windowId, ClassicyStoreSystemAppWindow>` (exported alias
+`ClassicyStoreSystemAppWindows`; each entry's `id` equals its key). Read and
+write it through the helpers in `ClassicyAppWindows.ts`, all exported from
+`classicy`. Read helpers accept `undefined` for a missing app:
+
+```ts
+getAppWindow(app, id): ClassicyStoreSystemAppWindow | undefined
+listAppWindows(app): ClassicyStoreSystemAppWindow[]        // fresh array, insertion order
+hasAppWindow(app, id): boolean
+countAppWindows(app): number
+setAppWindow(app, window): void                            // upsert by window.id; mutates
+removeAppWindow(app, id): boolean                          // mutates
+updateAppWindow(app, id, patch | ((w) => void)): window | undefined   // mutates
+mostRecentAppWindow(windows): window | undefined           // highest zOrder, first on ties
+normalizeClassicyAppWindows(value: unknown): ClassicyStoreSystemAppWindows
+migrateClassicyState(state): ClassicyStore                 // idempotent, copy-on-write
+```
+
+Never branch on list position: integer-like ids (`"2"`) are enumerated first.
+
+#### Upgrading from 0.x
+
+`windows` was an array in 0.x. Replace `app.windows.find((w) => w.id === id)`
+with `getAppWindow(app, id)`, iteration with `listAppWindows(app)`,
+`.length` with `countAppWindows(app)`, and `push`/`filter`/`map` writes with
+`setAppWindow`/`removeAppWindow`/`updateAppWindow`. Saved state needs no
+action: on load, `migrateClassicyState` converts every `windows` array into a
+record keyed by `id` (entries without a non-empty string id are dropped; on a
+duplicate id the later entry wins; anything else becomes `{}`). The same pass
+runs on `mergeClassicyState` results, so a 0.x-shaped `defaultState` still
+works. There is no array compatibility shim at runtime: hand-built state set
+directly with `useAppManager.setState` must use the record.
 
 ### Dispatching
 
@@ -182,10 +215,15 @@ Common built-in actions:
 | `ClassicyAppClose` | `{ app: { id } }` | Close an app |
 | `ClassicyAppFocus` | `{ app: { id } }` | Focus an app |
 | `ClassicyWindowFocus` | `{ app: { id }, window: { id } }` | Focus a window |
-| `ClassicyDesktopChangeTheme` | `{ activeTheme: "<themeId>" }` | Switch theme |
+| `ClassicyDesktopChangeTheme` | `{ activeTheme: "<themeId>" }` | Switch theme (built-ins, then custom themes) |
+| `ClassicyDesktopChangeColor` | `{ colorKey, index?, color }` | Set one theme colour (forks a built-in into "Custom"; see §8) |
 | `ClassicyDesktopLoadThemes` | `{ availableThemes: ClassicyTheme[] }` | Replace the theme list |
+| `ClassicyDesktopImportTheme` | `{ theme: ClassicyTheme }` | Add a (schema-validated) theme to `customThemes` with a fresh id and activate it (see §8 "Theme files") |
 | `ClassicyDesktopChangeBackground` | `{ backgroundImage }` | Set wallpaper |
 | `ClassicyDesktopSetBalloonHelp` | `{ disableBalloonHelp: boolean }` | Toggle balloon help globally |
+| `ClassicyDesktopSetDoubleClickTitleToCollapse` | `{ doubleClickTitleToCollapse: boolean }` | Toggle whether double-clicking a window's title bar collapses it (`System.Manager.Desktop.doubleClickTitleToCollapse`, default `true`; the Appearance control panel's checkbox) |
+| `ClassicyDesktopChangeAlertSound` | `{ alertSound: string }` | Set the default alert sound (a `ClassicyAlert*` key) |
+| `ClassicyDesktopChangeAlertVolume` | `{ alertVolume: number }` | Set the alert level, 0–100 (clamped, rounded; non-finite ignored) |
 
 Helper functions (exported, callable inside custom handlers): `openApp`,
 `closeApp`, `focusApp` / `activateApp`, `deFocusApps`, `focusWindow`,
@@ -405,6 +443,23 @@ manager. Must be a descendant of `ClassicyApp`.
 | `analyticsPath` / `analyticsExclude` | `string` / `boolean` | derived / `false` (see §9) |
 | `onCloseFunc` | `(id: string) => void` | — |
 | `backgroundColor` | `string` | — |
+| `initialFocusRef` | `RefObject<HTMLElement \| null>` | — (nothing focused) |
+
+`initialFocusRef` names the element that takes keyboard focus whenever the
+window *becomes* the focused window (the store's `focused` flag turning true
+while open and expanded — not on every render, so of several restored
+windows only the focused one takes it). It is skipped when focus is already
+inside the window (an input the user clicked keeps it), re-applied on a
+title-bar press in the already-focused window, and focused with
+`preventScroll`. For a `modal` window it is the focus trap's initial target
+instead. Finder passes its list view's list box (via
+`ClassicyFileBrowser`'s `focusTargetRef` / `ClassicyTable`'s `containerRef`)
+so arrows and Return work as soon as a folder opens.
+
+A scrollable window always draws both scroll bars. Content that fills the
+window and scrolls itself (a full-window `<textarea>`, `ClassicySplitView`
+panes, a pan surface) must pass `scrollable={false}`, or the window shows a
+second, empty set of bars beside the inner ones.
 
 **`ClassicyWindowFrame`** — presentational chrome only (no store coupling;
 usable pre-boot): `title?`, `children` *, `className?`, `width?`.
@@ -414,7 +469,8 @@ usable pre-boot): `title?`, `children` *, `className?`, `width?`.
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
 | `ClassicyButton` | `isDefault?`, `disabled?`, `onClickFunc?`, `buttonShape? ("rectangle"\|"square")`, `buttonSize? ("medium"\|"small")`, `buttonType?`, `padding?/margin? ("sm"\|"md"\|"lg"\|"xl")` | forwardRef to `<button>`; accepts remaining button HTML attrs |
-| `ClassicyBevelButton` | `mode? ("push"\|"toggle"\|"radio"\|"popup")`, `bevelWidth? ("small"\|"medium"\|"large")`, `icon?`, `on?`, `mixed?`, `onChangeFunc?(on)`, `popupArrow?`, `popupDirection?` | auto-squares inside a toolbar |
+| `ClassicyBevelButton` | `mode? ("push"\|"toggle"\|"radio"\|"popup")`, `bevelWidth? ("small"\|"medium"\|"large")`, `icon?`, `on?`, `mixed?`, `onChangeFunc?(on)`, `popupArrow? ("small"\|"large")`, `popupDirection? ("horizontal"\|"vertical")`, `menuItems?` (`ClassicyMenuItem[]`), `popupContent?`, `popupTrigger? ("click"\|"hold")`, `popupPlacement? ("below"\|"right")`, `popupAlign? ("start"\|"center")`, `popupAnchorInset?` (`{top?, bottom?, left?, right?}`), `popupHoldDelayMs? (500)`, `className?` | auto-squares inside a toolbar. With `menuItems` (or `popupContent`, e.g. `ClassicyPopUpSlider`) it opens a Platinum menu below or to the right of itself (HIGOS8 p.32), flipping when there is no room. `click` trigger (default in `popup` mode): quick click = sticky menu, press held past the hold delay = standard press-drag-release menu. `hold` trigger (default in other modes): click keeps the button's own behaviour, a long press shows the options (tool palettes). Enter/Space or Down Arrow open it from the keyboard |
+| `ClassicyHelpButton` | `onClickFunc?`, `label? ("Help")`, `disabled?`, `id?`, `className?` | HIG Help button (HIGOS8 p.86): 20 × 21 small-bevel button with the help glyph (`ClassicyIcons.ui.helpButton`); `label` is the accessible name. Place it lower left aligned with the push buttons (`margin-right: auto` in a right-aligned row), else upper right. `ClassicyAlert`'s `help` button role renders it |
 | `ClassicyButtonToolbar` / `ClassicyButtonToolbarGroup` | `children` *, `className?` | auto dividers between groups; roving-tabindex keyboard nav |
 | `ClassicyCheckbox` | `id` *, `checked?`, `mixed?`, `disabled?`, `onClickFunc?(checked)`, `label?`, `labelPosition?` | |
 | `ClassicyRadioInput` | `name` *, `inputs` * (`{id, label?, checked?, disabled?}[]`), `onClickFunc?(id)`, `align? ("rows"\|"columns")`, `label?` | |
@@ -428,7 +484,7 @@ usable pre-boot): `title?`, `children` *, `className?`, `width?`.
 |---|---|---|
 | `ClassicyInput` | `id` *, `onChangeFunc?`, `onEnterFunc?`, `labelTitle?`, `labelPosition?`, `placeholder?`, `prefillValue?`, `type?`, `disabled?` | forwardRef to `<input>` |
 | `ClassicySpinner` | `id` *, `minValue? (0)`, `maxValue?`, `prefillValue?`, `onChangeFunc?` | number field with little arrows |
-| `ClassicyLittleArrows` | `onStep(dir: 1\|-1)` *, `disabled?` | standalone stepper, press-and-hold repeat |
+| `ClassicyLittleArrows` | `onStep(dir: 1\|-1, heldMs)` *, `disabled?`, `upLabel?`, `downLabel?`, `repeatIntervalMs? (120)` | standalone stepper, press-and-hold repeat; pair with its content inside a `classicyLittleArrowsGroup` element |
 | `ClassicySlider` | `id` *, `value` *, `min?/max?/step?`, `orientation?`, `onChangeFunc?`, `onCommitFunc?(value)`, `tickInterval?`, `tickLabels?`, `snapToTicks?`, `ghost?` | |
 | `ClassicyTextEditor` | `content?`, `prefillValue?`, `onChangeFunc?`, `autoHeight?`, `border?`, `labelTitle?` | plain textarea |
 | `ClassicyRichTextEditor` | `content` *, `onChangeFunc?(markdown)`, `editorRef?` | MDXEditor-backed markdown |
@@ -456,7 +512,7 @@ usable pre-boot): `title?`, `children` *, `className?`, `width?`.
 | `ClassicyKbd` | `shortcut?` (any `parseKeyboardShortcut` spelling) or children, `variant? ("inline"\|"keycaps")` | real `<kbd>` in canonical glyph order (⌃⌥⇧⌘ + key); menu items render their `keyboardShortcut` through it |
 | `ClassicyTabs` | `tabs` * (`{title?, icon?, children}[]`) | |
 | `ClassicyTree` | `nodes` *, `selectionMode? ("none"\|"single"\|"multi")`, `selectedIds?`, `onSelectNode?`, `onActivateNode?`, `onToggleNode?` | hierarchical list |
-| `ClassicyTable` | `columns` * (`{id, title, accessor, render?, sortable?, resizable?, width?, align?}[]`), `rows` *, `getRowId` *, `selectionMode? ("none"\|"single"\|"multi")`, `selected?: string[]`, `onSelectionChange?`, `onActivateRow?`, `defaultSort?`, `stickyHeader? (true)`, `rowClassName?`; tree rows: `getSubRows?`, `rowCanExpand?`, `expanded?: string[]`, `onToggleRow?` | generic Platinum list view over `@tanstack/react-table` (already a peer dep); semantic `<table>` + `aria-sort`; Shift/⌘ selection over the current sorted order; arrows/Home/End/Enter/type-select keyboard. `render(row, expansion)` receives `{ depth, canExpand, isExpanded, toggle }` so a column can draw its own disclosure (this is how the Finder list view is built) |
+| `ClassicyTable` | `columns` * (`{id, title, accessor, render?, sortable?, resizable?, width?, align?}[]`), `rows` *, `getRowId` *, `selectionMode? ("none"\|"single"\|"multi")`, `selected?: string[]`, `onSelectionChange?`, `onActivateRow?`, `defaultSort?`, `stickyHeader? (true)`, `rowClassName?`; tree rows: `getSubRows?`, `rowCanExpand?`, `expanded?: string[]`, `onToggleRow?`; handles: `selectionApiRef?` (`{ selectAll }`), `containerRef?` (the focusable list box, e.g. for a window's `initialFocusRef`) | generic Platinum list view over `@tanstack/react-table` (already a peer dep); semantic `<table>` + `aria-sort`; Shift/⌘ selection over the current sorted order; arrows/Home/End/Enter/type-select keyboard. `render(row, expansion)` receives `{ depth, canExpand, isExpanded, toggle }` so a column can draw its own disclosure (this is how the Finder list view is built) |
 | `ClassicyPager` | `page` *, `pageCount` *, `onPageChange` * | Apple Guide page control |
 | `ClassicySplitView` | `children` * (2–3 panes), `direction? ("horizontal"\|"vertical")`, `defaultSizes? (number[], pct, normalized)`, `minPaneSize? (48 px)`, `onResize?(sizes)`, `onResizeCommit?(sizes)` | resizable pane container; divider is draggable and keyboard-operable (ARIA separator, arrow keys). Max 3 panes — nest split views for grids. Uncontrolled after mount: persist via `onResizeCommit`, restore via `defaultSizes` |
 | `ClassicySpinner` | see inputs | |
@@ -487,13 +543,21 @@ Keyboard shortcut helpers: `parseKeyboardShortcut`, `formatKeyboardShortcut`,
 
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
-| `ClassicyAlert` | `label` *, `alertType? ("note"\|"caution"\|"stop")`, `title?`, `message?`, `buttons?` (max 4, `{id, label, role?, onClick?}`), `movable?`, `onClose?` | modal alert window; plays the alert sound |
+| `ClassicyAlert` | `label` *, `alertType? ("note"\|"caution"\|"stop")`, `title?`, `message?`, `buttons?` (max 4, `{id, label, role?, onClick?}`), `movable?`, `onClose?` | modal alert window; plays the alert sound. A `role: "help"` button renders as `ClassicyHelpButton`, far left |
+| `ClassicyKeyboardEquivalentField` | `id` *, `onChange(shortcut)` *, `value?`, `label? ("Current keyboard equivalent")`, `buttonLabel?`, `appId?`, `inUse?` (`{shortcut, name}[]`), `requireCommandKey? (true)`, `validate?(shortcut) → string\|null`, `prompt?`, `description?`, `onHelp?`, `disabled?` | user-definable keyboard equivalent (HIGOS8 pp.120–122): group box showing the equivalent spelled out (`⌃ + ⌘ + S`) and a button opening `ClassicyKeyboardEquivalentDialog`, which captures the next combination. A combination without ⌘ (or a function key), or one in `inUse`, is refused with an alert naming the owner. Pass your app's `appId`. Emits the menu-item form (`"⌃⌘S"`) |
+| `ClassicyKeyboardEquivalentDialog` | `onConfirm(shortcut)` *, `onCancel?`, `initialValue?`, plus the field's rule/text props | the capture dialog on its own |
 | `ClassicyFileOpenDialog` | `id` *, `appId` *, `open` *, `volumes` *, `onOpenFunc(selections)` *, `selectionMode?`, `fileTypeFilters?`, `onCancelFunc?` | |
 | `ClassicyFileSaveDialog` | `id` *, `appId` *, `open` *, `volumes` *, `formats` *, `onSaveFunc(saved)` *, `defaultFileName?`, `onErrorFunc?` | |
 | `ClassicyColorPickerDialog` | `id` *, `open` *, `initialColor?`, `onSelectFunc?(color: number)`, `onCancelFunc?`, `crayons?` | |
 | `ClassicyColorPicker` | `id` *, `value?`/`defaultValue?` (int color), `onChangeFunc?(color)`, `labelTitle?` | swatch control that opens the dialog |
 | `ClassicyAboutWindow` | `appId` *, `appName` *, `appIcon` *, `hideFunc` * | standard About box |
 | `ClassicyAssistant` | `pages` * (`{title, content, buttons?, canAdvance?}[]`), `buttons?`, `page?`/`onPageChange?` | setup-assistant flow |
+
+Keyboard-equivalent helpers: `checkKeyboardEquivalent(shortcut, {inUse,
+requireCommandKey, current, validate})` (the HIG rules, `null` = OK),
+`keyboardEquivalentsInUse(menuItems)` (collect an app's menu shortcuts for
+`inUse`), `spellKeyboardEquivalent`, and `keyboardShortcutFromEvent(e)`
+(record a keydown as `"⌃⌘S"`; Ctrl records as ⌘ off a Mac).
 
 File dialog volumes: build with `desktopVolume(fs)` or
 `fileSystemVolume(fs, drive)` (both exported), or implement
@@ -512,7 +576,13 @@ plain integers (`0xRRGGBB`).
 | `ClassicyDesktopIcon` | `appId` *, `appName` *, `icon` *, `kind?`, `label?`, `event?`/`eventData?`, `onClickFunc?`, `noLaunch?`, `contextMenu?`, `balloonHelp?` | usually created for you by `ClassicyApp` |
 | `ClassicyCrashScreen` | `children?` | error boundary → Sad Mac screen; wrap your desktop in it |
 | `ClassicyBoot` / `ClassicyBootSequence` / `ClassicyStartupScreen` | see source | boot parade; normally managed by `ClassicyDesktop` |
-| `ClassicyDesktopMenuWidgetSound` / `ClassicyDesktopMenuWidgetTime` | `hide?` / none | stock menu bar widgets |
+| `ClassicyDesktopMenuWidgetTime` | none | stock menu bar clock widget; the menu bar shows only Time |
+| `ClassicyDesktopMenuWidgetSound` | `hide?` | **deprecated** — menu-bar mute toggle, no longer mounted. Use the Control Strip's built-in Sound module (`classicy-sound`, registered by `ClassicySoundManagerProvider`). Still exported; logs a one-time `classicyLog` warning in dev builds when mounted |
+| `ClassicyControlStrip` | `disabledModules?` (module ids), `defaultCollapsed?`, `defaultWidth?`, `className?` | Mac OS 8 Control Strip (HIGOS8 p.125, Figure 6-15): floating strip at the desktop's lower left — collapse box, scroll arrows, modules, draggable tab; widths snap to whole modules. Control-dragging the collapse box moves it up or down and docks it to the left or right edge (the pointer's half of the desktop; mirrored when docked right), stored as `edge`/`bottom` via `ClassicyDesktopControlStripSetPosition {edge: "left"\|"right", bottom}` (px above the desktop's bottom; `computeClassicyControlStripPosition` is the pure placement). `ClassicyDesktop` mounts it (`controlStrip` prop: its props, or `false` to hide). Shows every registered module (below) not in `disabledModules` and not hidden by the user. Collapsed state, width, user-hidden ids and user order persist in `System.Manager.Desktop.controlStrip` (`ClassicyDesktopControlStripSetVisible {visible}`, `…SetCollapsed {collapsed}`, `…SetWidth {width\|null}`, `…SetModuleHidden {moduleId, hidden}`, `…SetModuleOrder {moduleOrder}`); the defaults apply until the user changes them. Its contextual menu: Hide Control Strip, Open Control Strip Control Panel |
+| `registerClassicyControlStripModule(def)` | `id` *, `label` *, `icon` * (string or hook), `appId?`, `order? (100)`, `menuItems?` (array or hook), `content?` (component), `fileIcon?` | adds a module; call at module scope. Live (`useSyncExternalStore`). Same `appId` re-registering replaces; another `appId` is ignored with a warning. With `appId`, shown only while that `ClassicyApp` is mounted (`useClassicyMountedApps`). Each module also appears as a file in `System Folder:Control Strip Modules`. Also `unregisterClassicyControlStripModule(id)`, `getClassicyControlStripModule(id)`, `listClassicyControlStripModules()`, `arrangeClassicyControlStripModules(registrations, {disabledModules?, moduleOrder?, mountedApps})`, `classicyControlStripOpenControlPanelItem(dispatch, panelName, app)` (HIG p.125 "Open … Control Panel"). Built-in ids: `CLASSICY_CONTROL_STRIP_MODULE_IDS` (`sound` → `classicy-sound`, order 10; `screenSaver` → `classicy-screen-saver`, order 20, owned by `ScreenSaver.app`) |
+| `ClassicyControlStripManager` | none | the Control Strip control panel (`ControlStripManager.app`, in `ClassicyControlPanels`): show/hide the strip; show/hide and reorder each module the host has not disabled |
+| `ClassicyPopUpSlider` | `value` *, `onChange(value)` *, `ariaLabel` *, `min? (0)`, `max? (100)`, `step? (1)`, `disabled?` | HIGOS8 Figure 2-16's vertical slider (17 × 73) for a bevel button's `popupContent`; drag/click, arrows, Page Up/Down, Home/End |
+| `ClassicyPixelArt` | `rows` * (`string[]` of palette tokens, `.` transparent), `className?` | themed, pixel-exact inline-SVG art (tokens `K W 1–7 b c d m n` map to theme colours) |
 
 Desktop icon `kind` values (sort order): `drive`, `directory`, `app_shortcut`,
 `shortcut`, `trash`, `file`, `icon`. Kinds `app_shortcut` and `shortcut` get
@@ -759,6 +829,58 @@ dispatch({ type: 'ClassicyDesktopLoadThemes', availableThemes: [...getAllThemes(
 dispatch({ type: 'ClassicyDesktopChangeTheme', activeTheme: 'myTheme' })  // no-op if id unknown
 ```
 
+### Custom themes and colour edits
+
+Built-in themes (`Appearance.availableThemes`) are never mutated. Every theme
+edit — `ClassicyDesktopChangeColor`, `ChangeFont`, `ChangeFontSize`,
+`ChangeBackground`, `ChangeBackgroundPosition`/`Repeat`/`Size` — goes through
+`editActiveClassicyTheme` (`ClassicyCustomTheme.ts`):
+
+- **First edit while a built-in is active** deep-copies it into the single
+  "Custom" slot (`id: "custom"`, `name: "Custom"`; constants
+  `CLASSICY_CUSTOM_THEME_ID` / `CLASSICY_CUSTOM_THEME_NAME`) in
+  `Appearance.customThemes`, overwriting any previous Custom, makes it active,
+  and applies the edit there.
+- **Edits while a custom theme is active** modify it in place (the active copy
+  and its `customThemes` entry stay in sync).
+- An edit that changes nothing (same value, unknown font slot) does not fork.
+- `ClassicyDesktopChangeTheme` looks the id up in `availableThemes`, then
+  `customThemes`, and activates a copy, so switching to a built-in and back to
+  `"custom"` restores the edits. `ClassicyDesktopLoadThemes` leaves
+  `customThemes` alone.
+
+`customThemes` is persisted separately from `availableThemes` because persisted
+arrays replace their defaults on load — a custom entry inside
+`availableThemes` would freeze the built-in list. State saved before custom
+themes existed loads with `customThemes: []`. Read helpers:
+`listClassicyThemes(appearance)` (built-ins then customs, the theme menu's
+order), `findClassicyTheme(appearance, id)`, `isCustomThemeActive(appearance)`.
+
+`ClassicyDesktopChangeColor` addresses one of the 28 colour variables:
+
+```ts
+// Scalars: no index.
+dispatch({ type: 'ClassicyDesktopChangeColor', colorKey: 'select', color: 0x3366cc })
+// Palettes: index 0–6 maps to --color-system-01 … -07 / --color-theme-01 … -07.
+dispatch({ type: 'ClassicyDesktopChangeColor', colorKey: 'theme', index: 2, color: 0x9999ff })
+```
+
+| `colorKey` | CSS variable |
+|---|---|
+| `black`, `white`, `alert`, `error`, `outline`, `select`, `highlight` | `--color-<key>` |
+| `system` / `theme` + `index` 0–6 | `--color-system-0N` / `--color-theme-0N` |
+| `windowBorder`, `windowBorderOutset`, `windowBorderInset`, `windowFrame`, `windowTitle`, `windowDocument` | `--color-window-border`, `-border-outset`, `-border-inset`, `-frame`, `-title`, `-document` |
+| `desktopBackground` | `--desktop-background-color` |
+
+`color` must be an integer 0x000000–0xFFFFFF; `index` is required for the
+palettes and must be absent otherwise. Invalid payloads are ignored
+(`hasThemeColorChange`). `CLASSICY_THEME_COLOR_TARGETS` lists all 28 targets
+with their CSS variable, label and group; `getThemeColor(theme, target)` /
+`setThemeColor(theme, target, color)` read and write one. The Appearance
+Manager's Colors tab (`useColorsTab`) is built from that table. Like every
+`ClassicyDesktop*` action, these are unreachable to untrusted (HyperCard)
+dispatches.
+
 `getTheme(id, overrides?)` returns a deep-merged clone; `getThemeVars(theme)`
 returns the CSS custom-property map. Raw SCSS partials are importable via
 `classicy/scss/*`.
@@ -766,7 +888,85 @@ returns the CSS custom-property map. Raw SCSS partials are importable via
 Theme-authoring helpers: `hexToInt` / `intToHex` convert between hex strings
 and the integer colors themes use. `ClassicyWallpapers` is the stock
 wallpaper catalog and `resolveWallpaper(name)` maps a wallpaper name (as used
-in `desktop.backgroundImage` / `ClassicyDesktopChangeBackground`) to its URL.
+in `desktop.backgroundImage` / `ClassicyDesktopChangeBackground`) to its URL;
+`classicyWallpaperFilename(value)` is its inverse (bundled filename for a
+filename or a resolved URL / inlined `data:` URI, else `undefined`).
+
+### Theme files (save / load)
+
+The Appearance Manager's Themes tab has **Save Theme…** (downloads the
+*active* theme, built-in or custom) and **Load Theme…** (picks a `.json`
+file, imports it, selects it). A load error shows a stop alert with the
+reason. Helpers live in `ClassicyThemeFile.ts`; the schema in
+`ClassicyThemeSchema.ts`.
+
+File format — a versioned envelope, saved as `<theme-name>.classicy-theme.json`:
+
+```json
+{ "format": "classicy-theme", "version": 1, "theme": { "id": "azul", "name": "Azul", "color": {…}, … } }
+```
+
+- Loading also accepts a **bare theme object** (no envelope), e.g. an entry
+  copied from `themes.json`. A `format` other than `"classicy-theme"`, a
+  missing version, or a version other than `1` is rejected (a higher version
+  reports "saved by a newer version of Classicy").
+- `desktop.backgroundImage` is written as the bundled wallpaper's **filename**
+  (`"azul_dark.png"`) — the URL a build resolves it to (dev path, inlined
+  `data:` URI) is build-specific — and resolved back on load. A plain http(s)
+  URL is kept; anything else (custom `data:`/`blob:` URL, relative path) is
+  written as `""` (no image).
+
+`ClassicyThemeSchema` (zod) mirrors `ClassicyTheme` (checked both ways at
+compile time). Unknown keys are **stripped**, not rejected (a newer file with
+an extra optional field still loads; nothing undeclared reaches the store).
+Types are strict:
+
+| Field | Rule |
+|---|---|
+| colours (incl. `desktop.backgroundColor`) | integer `0x000000`–`0xFFFFFF` |
+| `color.system` / `color.theme` | exactly 7 colours |
+| `name` | 1–64 chars after trimming |
+| typography sizes, `desktop.iconSize`/`iconFontSize` | positive, ≤ 512 |
+| `measurements.window.*` | ≥ 0, ≤ 512 |
+| font stacks | letters, digits, spaces, `"` `'` `,` `.` `_` `-` only |
+| `backgroundRepeat`, string `backgroundPosition`/`backgroundSize` | CSS keyword chars (`A-Za-z0-9 % . -`) |
+| `desktop.backgroundImage` | `""`, a bundled wallpaper (filename or resolved URL), or an absolute http(s) URL with no whitespace, quotes, `()`, `\`, `;`, `<>`, `{}` — it is interpolated unquoted into `url(…)` (`isSafeClassicyThemeBackgroundImage`) |
+| `sound.name` | a key of `ClassicySounds` (e.g. `"platinum"`) |
+
+```ts
+import {
+    exportClassicyTheme,      // (theme) => JSON string (envelope, portable wallpaper)
+    downloadClassicyTheme,    // (theme) => { ok: true } | { ok: false, error } — round-trip checked first
+    parseClassicyThemeFile,   // (text) => { ok: true, theme } | { ok: false, error }
+    readClassicyTheme,        // (unknown) => same result; validate + make loadable (no envelope)
+    classicyThemeFileName,    // ({ name }) => "french-blue.classicy-theme.json"
+    assignImportedClassicyThemeIdentity, // (theme, existingThemes) => theme with unique id/name
+} from 'classicy'
+
+const result = parseClassicyThemeFile(await file.text())
+if (result.ok) dispatch({ type: 'ClassicyDesktopImportTheme', theme: result.theme })
+else showError(result.error)  // e.g. "This theme has invalid settings: color.system: …"
+```
+
+`ClassicyDesktopImportTheme { theme }` — the payload is untrusted:
+`hasImportableTheme` validates it against the schema (invalid → ignored),
+then the reducer strips undeclared keys, resolves the wallpaper, assigns a
+fresh identity, **appends** it to `customThemes` and activates a copy (the
+same copy-on-activate as `ChangeTheme`; the caller loads its sound theme).
+Identity rules (`assignImportedClassicyThemeIdentity`):
+
+- The file's `id` is ignored. The id is `custom-<slug of the name>`
+  (`custom-theme` if the slug is empty), with `-2`, `-3`, … on collision with
+  any built-in or custom id — and never `"custom"`, the fork slot the next
+  edit on a built-in would overwrite. So an import can never overwrite an
+  existing theme, and re-importing the same file adds a second entry.
+- The name is kept unless a theme already has it (case-insensitive); then
+  `" 2"`, `" 3"`, … is appended, counting up from an existing trailing number
+  (`"Azul 2"` → `"Azul 3"`).
+
+An imported theme is a custom theme, so edits modify it in place (no fork).
+Like every `ClassicyDesktop*` action it is unreachable to untrusted
+(HyperCard) dispatches.
 
 ### CSS custom properties
 
@@ -858,8 +1058,18 @@ Action types (string enum `ClassicySoundActionTypes`): `ClassicySoundPlay`
 (skipped if muted, per-sound disabled, or already playing),
 `ClassicySoundPlayInterrupt`, `ClassicySoundPlayError`, `ClassicySoundStop`,
 `ClassicySoundDisable` / `ClassicySoundDisableOne` / `ClassicySoundEnableOne`
-(muting = the `"*"` wildcard in `disabled`), `ClassicyVolumeSet`,
-`ClassicyAlertSound`, `ClassicySoundSetAlertSound`. `useSound()` reads state.
+(muting = the `"*"` wildcard in `disabled`; toggle just the mute with
+`EnableOne`/`DisableOne` `"*"` to keep per-sound choices), `ClassicyVolumeSet`
+(`{ volume }` 0–100, clamped and rounded; the player's gain, kept across
+theme loads),
+`ClassicyAlertSound`, `ClassicySoundSetAlertSound`, `ClassicySoundSetAlertVolume`
+(`{ alertVolume }` 0–100, clamped and rounded). `useSound()` reads state.
+**Alert volume**: the persisted `Appearance.alertVolume` (default 100, set by
+`ClassicyDesktopChangeAlertVolume` from the Appearance Manager's Sound tab) is
+mirrored into sound state by the provider. Alerts — `ClassicyAlertSound` and
+the sound `ClassicySoundPlayError` plays — play at system volume × alert
+volume (set on that Howler sound id only); every other sound plays at the
+system volume.
 Alert sound options: `CLASSICY_ALERT_SOUNDS` (Bonk, Growl, Indigo, Quack,
 Sosumi, Tabitha, Wild Eep); default `DEFAULT_ALERT_SOUND = "ClassicyAlertSosumi"`.
 

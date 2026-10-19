@@ -22,8 +22,10 @@ type ClassicyKbdProps = PropsWithChildren<{
 	/**
 	 * `inline` renders the whole glyph run as one `<kbd>` (the menu-item look);
 	 * `keycaps` renders one raised Platinum key cap per key in the chord.
+	 * Defaults to `inline`.
 	 */
 	variant?: "inline" | "keycaps";
+	/** Extra class names merged onto the outer `<kbd>`. */
 	className?: string;
 }>;
 
@@ -42,6 +44,22 @@ const shortcutParts = (shortcut: string): string[] => {
 	return parts;
 };
 
+/**
+ * A keyboard shortcut or key, drawn the Platinum way — use it instead of a raw
+ * `<kbd>`, which it renders. Pass `shortcut` in any spelling
+ * `parseKeyboardShortcut` understands ("Cmd+Shift+S", "Command-O", "⌘N") and
+ * it is normalised to the canonical glyph order ⌃⌥⇧⌘ + key, so the same
+ * string always reads the same; or pass `children` for a bare key ("Esc").
+ *
+ * `inline` (default) is the menu-item glyph run — `ClassicyMenu` renders each
+ * item's `keyboardShortcut` through this component — and `keycaps` draws one
+ * raised key cap per key, for help text and documentation. It renders nothing
+ * when the shortcut parses to no keys or there is nothing to show.
+ *
+ * ```tsx
+ * <p>Save a copy with <ClassicyKbd shortcut="Cmd+Shift+S" />.</p>
+ * ```
+ */
 export const ClassicyKbd: FunctionalComponent<ClassicyKbdProps> = ({
 	shortcut,
 	variant = "inline",

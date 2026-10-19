@@ -5,6 +5,9 @@ import {
 	collectMenuChords,
 	findMenuItemByShortcut,
 	formatKeyboardShortcut,
+	isFunctionKey,
+	keyboardShortcutFromEvent,
+	keyboardShortcutParts,
 	parseKeyboardShortcut,
 	runMenuItemAction,
 	shortcutMatchesEvent,
@@ -320,5 +323,92 @@ describe("collectMenuChords", () => {
 		expect(out).toContain("command+f");
 		expect(out).not.toContain("command+z"); // native excluded
 		expect(out).toHaveLength(2);
+	});
+});
+
+describe("keyboardShortcutFromEvent (recording a keyboard equivalent)", () => {
+	const ev = (init: KeyboardEventInit & { key: string }) =>
+		new KeyboardEvent("keydown", init);
+
+	it("records Command as the Meta key, letters upper-cased", () => {
+		expect(
+			keyboardShortcutFromEvent(ev({ key: "k", code: "KeyK", metaKey: true }), {
+				mac: true,
+			}),
+		).toBe("⌘K");
+	});
+
+	it("records Control separately on a Mac, in HIG modifier order", () => {
+		expect(
+			keyboardShortcutFromEvent(
+				ev({ key: "s", code: "KeyS", metaKey: true, ctrlKey: true }),
+				{ mac: true },
+			),
+		).toBe("⌃⌘S");
+	});
+
+	it("records Ctrl as Command off a Mac, where ⌘ shortcuts answer to Ctrl", () => {
+		expect(
+			keyboardShortcutFromEvent(ev({ key: "s", code: "KeyS", ctrlKey: true }), {
+				mac: false,
+			}),
+		).toBe("⌘S");
+	});
+
+	it("reads the physical key when Option composes a character", () => {
+		expect(
+			keyboardShortcutFromEvent(
+				ev({ key: "ß", code: "KeyS", altKey: true, shiftKey: true }),
+				{ mac: true },
+			),
+		).toBe("⌥⇧S");
+	});
+
+	it("records function keys and named keys", () => {
+		expect(keyboardShortcutFromEvent(ev({ key: "F5", code: "F5" }))).toBe("F5");
+		expect(
+			keyboardShortcutFromEvent(ev({ key: " ", code: "Space", metaKey: true })),
+		).toBe("⌘Space");
+		expect(
+			keyboardShortcutFromEvent(
+				ev({ key: "ArrowUp", code: "ArrowUp", metaKey: true }),
+			),
+		).toBe("⌘ArrowUp");
+	});
+
+	it("returns nothing while only modifiers are down", () => {
+		expect(
+			keyboardShortcutFromEvent(
+				ev({ key: "Meta", code: "MetaLeft", metaKey: true }),
+			),
+		).toBe("");
+	});
+
+	it("round-trips: the recorded shortcut matches the event that made it", () => {
+		const e = ev({ key: "s", code: "KeyS", metaKey: true, shiftKey: true });
+		expect(shortcutMatchesEvent(keyboardShortcutFromEvent(e), e)).toBe(true);
+	});
+});
+
+describe("keyboardShortcutParts", () => {
+	it("splits a shortcut into glyphs and key in HIG order", () => {
+		expect(keyboardShortcutParts("Cmd+Ctrl+S")).toEqual(["⌃", "⌘", "S"]);
+		expect(keyboardShortcutParts("⇧⌘?")).toEqual(["⇧", "⌘", "?"]);
+	});
+
+	it("is empty for a modifier-only or missing shortcut", () => {
+		expect(keyboardShortcutParts("⌘")).toEqual([]);
+		expect(keyboardShortcutParts(undefined)).toEqual([]);
+	});
+});
+
+describe("isFunctionKey", () => {
+	it("accepts F1 to F24 only", () => {
+		expect(isFunctionKey("F1")).toBe(true);
+		expect(isFunctionKey("f12")).toBe(true);
+		expect(isFunctionKey("F24")).toBe(true);
+		expect(isFunctionKey("F25")).toBe(false);
+		expect(isFunctionKey("F")).toBe(false);
+		expect(isFunctionKey("S")).toBe(false);
 	});
 });

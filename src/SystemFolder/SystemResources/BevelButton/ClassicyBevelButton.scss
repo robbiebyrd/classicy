@@ -137,3 +137,27 @@
 .classicyBevelButtonArrowLarge {
   font-size: var(--ui-font-size);
 }
+
+// --- Pop-up surface (HIGOS8 "Bevel Buttons as Pop-up Buttons", p.32) ---
+// Fixed beside the button by ClassicyBevelButtonPopup; layered with the other
+// pop-up menus (5000) so it clears windows, palettes and modal dialogs. A menu
+// is the shared `.classicyContextMenu` list, which draws the Platinum menu
+// frame of Figure 6-15 itself.
+.classicyBevelButtonPopup {
+  position: fixed;
+  z-index: 5000;
+  display: inline-block;
+  margin: 0;
+  padding: 0;
+}
+
+// Any other surface (Figure 2-16's volume slider) shares that frame — border
+// and offset shadow — around the control face with a white highlight on the
+// inside top and left. No padding: the content brings its own size.
+.classicyBevelButtonPopup.classicyBevelButtonPopupPanel {
+  @include appearance.platinumMenuFrame;
+  box-sizing: content-box;
+  color: var(--color-black);
+  background: var(--color-system-03);
+  box-shadow: inset 1px 1px 0 0 var(--color-white);
+}

@@ -1,8 +1,18 @@
 import type { MouseEvent } from "react";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
+	assignImportedClassicyThemeIdentity,
+	cloneClassicyTheme,
+	editActiveClassicyTheme,
+	findClassicyTheme,
+	listClassicyThemes,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
+import { setThemeColor } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorTargets";
+import { readClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFile";
+import {
 	hasActiveTheme,
 	hasAlertSound,
+	hasAlertVolume,
 	hasApp,
 	hasAppAndHelpItems,
 	hasAvailableThemes,
@@ -10,14 +20,24 @@ import {
 	hasBackgroundPosition,
 	hasBackgroundRepeat,
 	hasBackgroundSize,
+	hasCollapsed,
 	hasDesktopAppRef,
 	hasDisableBalloonHelp,
+	hasDoubleClickTitleToCollapse,
 	hasDrive,
 	hasErrorDialogMessage,
 	hasFont,
 	hasFontSize,
+	hasImportableTheme,
 	hasMenuBar,
+	hasModuleHidden,
+	hasModuleOrder,
 	hasMouseEvent,
+	hasSmartScrolling,
+	hasStripPosition,
+	hasStripWidth,
+	hasThemeColorChange,
+	hasVisible,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
 import type {
 	ActionMessage,
@@ -25,10 +45,42 @@ import type {
 	ClassicyStoreSystemManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { dispatchToPlugin } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { listAppWindows } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import type { ClassicyIconBalloonHelp } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { readShortcutDisposition } from "@/SystemFolder/SystemResources/Shortcut/ClassicyShortcut";
 import { isValidHttpUrl } from "@/SystemFolder/SystemResources/Utils/urlValidation";
+
+/**
+ * The Control Strip's persisted state. The modules themselves are runtime
+ * registrations (`registerClassicyControlStripModule`); this holds only the
+ * user's arrangement of them, keyed by module id, so settings for a module
+ * that is not registered right now are kept for when it returns.
+ */
+export interface ClassicyStoreControlStrip {
+	/** Shown or hidden from the Control Strip control panel. */
+	visible: boolean;
+	/** Unset until the user collapses or expands it (`defaultCollapsed` applies). */
+	collapsed?: boolean;
+	/** Module area width in px; unset until the user sizes it (`defaultWidth` applies). */
+	width?: number | null;
+	/** Module ids the user has hidden. */
+	hiddenModules: string[];
+	/** The user's module order; listed ids lead, in this order. */
+	moduleOrder: string[];
+	/**
+	 * The screen edge the strip is docked to; unset until the user Control-drags
+	 * it (the lower left applies).
+	 */
+	edge?: ClassicyControlStripEdge;
+	/**
+	 * Distance in px from the desktop's bottom edge to the strip's; unset until
+	 * the user Control-drags it (0, the bottom, applies).
+	 */
+	bottom?: number;
+}
+
+export type ClassicyControlStripEdge = "left" | "right";
 
 export interface ClassicyStoreSystemDesktopManagerIcon {
 	appId: string;
@@ -73,6 +125,9 @@ export interface ClassicyStoreSystemDesktopManager
 		active: boolean;
 	};
 	disableBalloonHelp: boolean;
+	/** The Control Strip's persisted arrangement. Optional for state built
+	 * by hand; the defaults always carry it. */
+	controlStrip?: ClassicyStoreControlStrip;
 	/** When true, double-clicking a window's title bar collapses it (Appearance
 	 * control-panel option). Defaults to true. */
 	doubleClickTitleToCollapse?: boolean;
@@ -107,6 +162,19 @@ export interface ClassicyStoreSystemDesktopManager
 	 *  repeated identical request. */
 	openUrlRequestId?: number;
 }
+
+/** The default Control Strip arrangement: shown, nothing hidden or reordered. */
+export const defaultClassicyControlStripState =
+	(): ClassicyStoreControlStrip => ({
+		visible: true,
+		hiddenModules: [],
+		moduleOrder: [],
+	});
+
+const controlStripState = (ds: ClassicyStore): ClassicyStoreControlStrip => {
+	ds.System.Manager.Desktop.controlStrip ??= defaultClassicyControlStripState();
+	return ds.System.Manager.Desktop.controlStrip;
+};
 
 export const classicyDesktopEventHandler = (
 	ds: ClassicyStore,
@@ -172,7 +240,7 @@ export const classicyDesktopEventHandler = (
 			) {
 				for (const app of Object.values(ds.System.Manager.Applications.apps)) {
 					app.focused = false;
-					for (const w of app.windows) w.focused = false;
+					for (const w of listAppWindows(app)) w.focused = false;
 				}
 
 				ds.System.Manager.Applications.apps["Finder.app"].focused = true;
@@ -208,37 +276,77 @@ export const classicyDesktopEventHandler = (
 		}
 		case "ClassicyDesktopChangeTheme": {
 			if (!hasActiveTheme(action)) break;
-			const foundTheme = ds.System.Manager.Appearance.availableThemes?.find(
-				(a) => a.id === action.activeTheme,
+			// Built-ins first, then custom themes. Activate a copy, so edits to
+			// the active theme can never alias the stored entry.
+			const foundTheme = findClassicyTheme(
+				ds.System.Manager.Appearance,
+				action.activeTheme,
 			);
 			if (foundTheme) {
-				ds.System.Manager.Appearance.activeTheme = foundTheme;
+				ds.System.Manager.Appearance.activeTheme =
+					cloneClassicyTheme(foundTheme);
 			}
+			break;
+		}
+		case "ClassicyDesktopImportTheme": {
+			// The payload is untrusted (it came from a file): the predicate
+			// validates it against ClassicyThemeSchema, and readClassicyTheme
+			// strips undeclared keys and resolves the wallpaper for this build.
+			if (!hasImportableTheme(action)) break;
+			const read = readClassicyTheme(action.theme);
+			if (!read.ok) break;
+			const appearance = ds.System.Manager.Appearance;
+			// Always a new entry: the payload's id is ignored, so an import
+			// can never overwrite an existing custom theme or shadow a built-in.
+			const imported = assignImportedClassicyThemeIdentity(
+				read.theme,
+				listClassicyThemes(appearance),
+			);
+			if (!appearance.customThemes) appearance.customThemes = [];
+			appearance.customThemes.push(imported);
+			// Activate a copy, exactly as ChangeTheme does; being a custom theme,
+			// later edits modify it in place rather than forking.
+			appearance.activeTheme = cloneClassicyTheme(imported);
+			break;
+		}
+		// Every theme edit below goes through editActiveClassicyTheme: the first
+		// edit made on a built-in forks it into the "Custom" theme (built-ins are
+		// never mutated), later edits modify the active custom theme in place.
+		case "ClassicyDesktopChangeColor": {
+			if (!hasThemeColorChange(action)) break;
+			const target = action;
+			editActiveClassicyTheme(ds.System.Manager.Appearance, (theme) =>
+				setThemeColor(theme, target, target.color),
+			);
 			break;
 		}
 		case "ClassicyDesktopChangeBackground": {
 			if (!hasBackgroundImage(action)) break;
-			ds.System.Manager.Appearance.activeTheme.desktop.backgroundImage =
-				action.backgroundImage;
-			ds.System.Manager.Appearance.activeTheme.desktop.backgroundSize = "auto";
+			editActiveClassicyTheme(ds.System.Manager.Appearance, (theme) => {
+				theme.desktop.backgroundImage = action.backgroundImage;
+				theme.desktop.backgroundSize = "auto";
+			});
 			break;
 		}
 		case "ClassicyDesktopChangeBackgroundPosition": {
 			if (!hasBackgroundPosition(action)) break;
-			ds.System.Manager.Appearance.activeTheme.desktop.backgroundPosition =
-				action.backgroundPosition;
+			editActiveClassicyTheme(ds.System.Manager.Appearance, (theme) => {
+				theme.desktop.backgroundPosition = action.backgroundPosition;
+			});
 			break;
 		}
 		case "ClassicyDesktopChangeBackgroundRepeat": {
 			if (!hasBackgroundRepeat(action)) break;
-			ds.System.Manager.Appearance.activeTheme.desktop.backgroundRepeat =
-				action.backgroundRepeat;
+			editActiveClassicyTheme(ds.System.Manager.Appearance, (theme) => {
+				theme.desktop.backgroundRepeat = action.backgroundRepeat;
+			});
 			break;
 		}
 		case "ClassicyDesktopChangeBackgroundSize": {
 			if (!hasBackgroundSize(action)) break;
-			ds.System.Manager.Appearance.activeTheme.desktop.backgroundSize =
-				action.backgroundSize;
+			editActiveClassicyTheme(ds.System.Manager.Appearance, (theme) => {
+				theme.desktop.backgroundSize = action.backgroundSize;
+			});
 			break;
 		}
 		case "ClassicyDesktopChangeAlertSound": {
@@ -246,55 +354,47 @@ export const classicyDesktopEventHandler = (
 			ds.System.Manager.Appearance.alertSound = action.alertSound;
 			break;
 		}
+		case "ClassicyDesktopChangeAlertVolume": {
+			// A whole-number percentage, clamped like ClassicyVolumeSet.
+			if (!hasAlertVolume(action)) break;
+			ds.System.Manager.Appearance.alertVolume = Math.round(
+				Math.min(100, Math.max(0, action.alertVolume)),
+			);
+			break;
+		}
+		case "ClassicyDesktopSetSmartScrolling": {
+			if (!hasSmartScrolling(action)) break;
+			ds.System.Manager.Appearance.smartScrolling = action.smartScrolling;
+			break;
+		}
 		case "ClassicyDesktopChangeFont": {
 			if (!hasFont(action)) break;
-			switch (action.fontType) {
-				case "body":
-					ds.System.Manager.Appearance.activeTheme.typography.body =
-						action.font;
-					break;
-				case "ui":
-					ds.System.Manager.Appearance.activeTheme.typography.ui = action.font;
-					break;
-				case "header":
-					ds.System.Manager.Appearance.activeTheme.typography.header =
-						action.font;
-					break;
-				case "mono":
-					ds.System.Manager.Appearance.activeTheme.typography.mono =
-						action.font;
-					break;
-				case "digital":
-					ds.System.Manager.Appearance.activeTheme.typography.digital =
-						action.font;
-					break;
-			}
+			editActiveClassicyTheme(ds.System.Manager.Appearance, (theme) => {
+				switch (action.fontType) {
+					case "body":
+					case "ui":
+					case "header":
+					case "mono":
+					case "digital":
+						theme.typography[action.fontType] = action.font;
+						break;
+				}
+			});
 			break;
 		}
 		case "ClassicyDesktopChangeFontSize": {
 			if (!hasFontSize(action)) break;
-			switch (action.fontType) {
-				case "uiSize":
-					ds.System.Manager.Appearance.activeTheme.typography.uiSize =
-						action.fontSize;
-					break;
-				case "bodySize":
-					ds.System.Manager.Appearance.activeTheme.typography.bodySize =
-						action.fontSize;
-					break;
-				case "headerSize":
-					ds.System.Manager.Appearance.activeTheme.typography.headerSize =
-						action.fontSize;
-					break;
-				case "monoSize":
-					ds.System.Manager.Appearance.activeTheme.typography.monoSize =
-						action.fontSize;
-					break;
-				case "digitalSize":
-					ds.System.Manager.Appearance.activeTheme.typography.digitalSize =
-						action.fontSize;
-					break;
-			}
+			editActiveClassicyTheme(ds.System.Manager.Appearance, (theme) => {
+				switch (action.fontType) {
+					case "uiSize":
+					case "bodySize":
+					case "headerSize":
+					case "monoSize":
+					case "digitalSize":
+						theme.typography[action.fontType] = action.fontSize;
+						break;
+				}
+			});
 			break;
 		}
 		case "ClassicyDesktopLoadThemes": {
@@ -306,6 +406,51 @@ export const classicyDesktopEventHandler = (
 		case "ClassicyDesktopSetBalloonHelp": {
 			if (!hasDisableBalloonHelp(action)) break;
 			ds.System.Manager.Desktop.disableBalloonHelp = action.disableBalloonHelp;
+			break;
+		}
+		case "ClassicyDesktopControlStripSetVisible": {
+			if (!hasVisible(action)) break;
+			controlStripState(ds).visible = action.visible;
+			break;
+		}
+		case "ClassicyDesktopControlStripSetCollapsed": {
+			if (!hasCollapsed(action)) break;
+			controlStripState(ds).collapsed = action.collapsed;
+			break;
+		}
+		case "ClassicyDesktopControlStripSetWidth": {
+			if (!hasStripWidth(action)) break;
+			controlStripState(ds).width =
+				action.width === null ? null : Math.round(action.width);
+			break;
+		}
+		case "ClassicyDesktopControlStripSetPosition": {
+			if (!hasStripPosition(action)) break;
+			const strip = controlStripState(ds);
+			strip.edge = action.edge;
+			strip.bottom = Math.round(action.bottom);
+			break;
+		}
+		case "ClassicyDesktopControlStripSetModuleHidden": {
+			if (!hasModuleHidden(action)) break;
+			const strip = controlStripState(ds);
+			const others = strip.hiddenModules.filter((id) => id !== action.moduleId);
+			strip.hiddenModules = action.hidden
+				? [...others, action.moduleId]
+				: others;
+			break;
+		}
+		case "ClassicyDesktopControlStripSetModuleOrder": {
+			if (!hasModuleOrder(action)) break;
+			controlStripState(ds).moduleOrder = Array.from(
+				new Set(action.moduleOrder),
+			);
+			break;
+		}
+		case "ClassicyDesktopSetDoubleClickTitleToCollapse": {
+			if (!hasDoubleClickTitleToCollapse(action)) break;
+			ds.System.Manager.Desktop.doubleClickTitleToCollapse =
+				action.doubleClickTitleToCollapse;
 			break;
 		}
 		case "ClassicyDesktopShowErrorDialog": {

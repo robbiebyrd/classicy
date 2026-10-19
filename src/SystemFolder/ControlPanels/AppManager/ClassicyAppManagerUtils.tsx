@@ -12,6 +12,7 @@ import {
 	mergeClassicyState,
 } from "./ClassicyAppManager";
 import { validateAppStateForAction } from "./ClassicyAppManifest";
+import { migrateClassicyState } from "./ClassicyStateMigrations";
 
 let hydratedFromStorage = false;
 
@@ -23,6 +24,7 @@ let hydratedFromStorage = false;
  * path that no consuming app serves — would otherwise outlive the fix and keep
  * 404ing forever. `resolveWallpaper` is idempotent and passes user-set `data:`
  * and remote URLs through, so a background the user actually chose survives.
+ * Custom themes are healed too: a fork copies its built-in's wallpaper path.
  */
 function healThemeWallpapers(state: ClassicyStore): ClassicyStore {
 	const appearance = state.System?.Manager?.Appearance;
@@ -34,7 +36,10 @@ function healThemeWallpapers(state: ClassicyStore): ClassicyStore {
 			appearance.activeTheme.desktop.backgroundImage,
 		);
 	}
-	for (const theme of appearance.availableThemes ?? []) {
+	for (const theme of [
+		...(appearance.availableThemes ?? []),
+		...(appearance.customThemes ?? []),
+	]) {
 		if (theme?.desktop) {
 			theme.desktop.backgroundImage = resolveWallpaper(
 				theme.desktop.backgroundImage,
@@ -73,10 +78,16 @@ function getInitialState(): ClassicyStore {
 				// Merge persisted state on top of current defaults so any new fields
 				// added since the state was saved get their default values instead of
 				// being undefined (e.g. new typography.monoSize / digitalSize keys).
+				// Migrate AFTER the merge: arrays replace defaults wholesale, so a
+				// 0.x `windows` array survives the merge and is converted here.
+				// (mergeClassicyState already migrates its result; the explicit,
+				// idempotent pass keeps this load path correct on its own.)
 				return healThemeWallpapers(
-					mergeClassicyState(
-						DefaultAppManagerState,
-						parsed as DeepPartial<ClassicyStore>,
+					migrateClassicyState(
+						mergeClassicyState(
+							DefaultAppManagerState,
+							parsed as DeepPartial<ClassicyStore>,
+						),
 					),
 				);
 			}
@@ -200,7 +211,7 @@ export function sanitizeStateForPersistence(
 		// "Closed this session" is what makes a re-registering window a reopen
 		// that takes focus; after a reload no window has been closed yet.
 		for (const app of Object.values(draft.System.Manager.Applications.apps)) {
-			for (const w of app.windows) {
+			for (const w of Object.values(app.windows ?? {})) {
 				delete w.closedThisSession;
 			}
 		}

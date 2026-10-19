@@ -12,6 +12,7 @@ import type {
 	ClassicyStore,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { registerApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
+import { updateAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import {
 	consumeEffects,
 	resumeCustom,
@@ -105,10 +106,11 @@ export const classicyHyperCardEventHandler = (
 			// width. The component keys the window on activeStackId, so it
 			// remounts and re-reads this record; height 0 = auto, matching the
 			// initialSize used when a stack is preloaded at mount.
-			const win = ds.System.Manager.Applications.apps[APP_ID].windows?.find(
-				(w) => w.id === "hypercard_main",
+			updateAppWindow(
+				ds.System.Manager.Applications.apps[APP_ID],
+				"hypercard_main",
+				{ size: [(stack.size?.[0] ?? 420) + 4, 0] },
 			);
-			if (win) win.size = [(stack.size?.[0] ?? 420) + 4, 0];
 
 			if (!data.openStacks[stackId]) {
 				const open: HCOpenStack = {

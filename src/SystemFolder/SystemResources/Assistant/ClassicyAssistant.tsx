@@ -25,23 +25,42 @@ const accessorySizeClass = {
 } as const;
 
 export interface ClassicyAssistantButton {
+	/** Button label. */
 	title: string;
+	/** Fired when the button is clicked. */
 	onClick: () => void;
+	/** Dims the button and ignores clicks. */
 	disabled?: boolean;
 }
 
 export interface ClassicyAssistantPage {
+	/** Page heading, shown in the header band (and the page's accessible name). */
 	title: string;
+	/** Small icon to the left of the title. */
 	labelIcon?: string;
+	/** Decorative icon at the right of the header, e.g. the assistant's own icon. */
 	accessoryIcon?: string;
+	/** Size of `accessoryIcon`. Defaults to `"sm"`; `"lg"` overflows the header. */
 	accessoryIconSize?: "sm" | "md" | "lg";
+	/** The page body. */
 	content: ReactNode;
+	/** Footer buttons for this page, replacing the assistant-wide `buttons`. */
 	buttons?: ClassicyAssistantButton[];
+	/**
+	 * Gate for moving forward: when it returns `false` the forward arrow
+	 * (and →) plays the error sound instead of advancing. Going back is never
+	 * gated.
+	 */
 	canAdvance?: () => boolean;
 }
 
 export interface ClassicyAssistantProps {
+	/** The pages, in order. Renders nothing when empty. */
 	pages: ClassicyAssistantPage[];
+	/**
+	 * Default footer buttons (e.g. Cancel) for pages without their own
+	 * `buttons`. At most three are shown; extras are dropped with a warning.
+	 */
 	buttons?: ClassicyAssistantButton[];
 	/**
 	 * Uncontrolled starting page (zero-based), clamped to the page range.
@@ -56,12 +75,41 @@ export interface ClassicyAssistantProps {
 	 * behaviour, where the assistant tracks the page itself from `initialPage`.
 	 */
 	page?: number;
+	/**
+	 * Fired with the requested zero-based page index on every navigation,
+	 * controlled or not (only after `canAdvance` allows a forward move).
+	 */
 	onPageChange?: (index: number) => void;
 }
 
 const clamp = (value: number, min: number, max: number): number =>
 	Math.min(Math.max(value, min), max);
 
+/**
+ * A paged assistant in the style of the Mac OS Setup Assistant and Apple
+ * Guide: a header band with the page title and optional icons, the page
+ * content, and a footer with up to three push buttons and a `ClassicyPager`
+ * (back arrow, page number, forward arrow). Place it inside a
+ * `ClassicyWindow`; Classicy's own Apple Guide window (`AppleGuideWindow`,
+ * the Help menu's "About Balloon Help…") is built on it.
+ *
+ * Page changes play `ClassicyTabClickUp`; the → and ← keys page while focus
+ * is inside the assistant. A page's `canAdvance` can refuse a forward move,
+ * which plays the error sound instead. Uncontrolled by default (starting at
+ * `initialPage`); pass `page` + `onPageChange` to own the current page.
+ *
+ * ```tsx
+ * <ClassicyWindow id="setup" appId={appId} title="Setup Assistant">
+ *     <ClassicyAssistant
+ *         buttons={[{ title: "Cancel", onClick: close }]}
+ *         pages={[
+ *             { title: "Introduction", content: <p>Welcome!</p> },
+ *             { title: "Conclusion", content: <p>Done.</p>, buttons: [{ title: "Done", onClick: close }] },
+ *         ]}
+ *     />
+ * </ClassicyWindow>
+ * ```
+ */
 export const ClassicyAssistant: FunctionalComponent<ClassicyAssistantProps> = ({
 	pages,
 	buttons,

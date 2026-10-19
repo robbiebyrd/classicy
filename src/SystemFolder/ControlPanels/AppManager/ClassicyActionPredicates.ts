@@ -12,6 +12,13 @@
  *   it actually needs.
  */
 
+import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import {
+	type ClassicyThemeColorChange,
+	isThemeColorTarget,
+	isValidThemeColor,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorTargets";
+import { ClassicyThemeSchema } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
 type Msg = Record<string, unknown> & { type: string };
@@ -215,9 +222,40 @@ export function hasFontSize(
 	return typeof m.fontType === "string" && typeof m.fontSize === "number";
 }
 
+/**
+ * Action is a valid theme colour edit: `colorKey` names one of the 28 theme
+ * colours (`index` 0–6 required for `system`/`theme`, absent otherwise) and
+ * `color` is a 24-bit RGB integer (0x000000–0xFFFFFF).
+ */
+export function hasThemeColorChange(
+	m: Msg,
+): m is Msg & ClassicyThemeColorChange {
+	return isThemeColorTarget(m) && isValidThemeColor(m.color);
+}
+
 /** Action has `alertSound: string` (a `ClassicyAlert*` sprite key) */
 export function hasAlertSound(m: Msg): m is Msg & { alertSound: string } {
 	return typeof m.alertSound === "string";
+}
+
+/** Action has `alertVolume: number` (finite; a 0–100 alert sound level) */
+export function hasAlertVolume(m: Msg): m is Msg & { alertVolume: number } {
+	return typeof m.alertVolume === "number" && Number.isFinite(m.alertVolume);
+}
+
+/** Action has `smartScrolling: boolean` (Mac OS 8 Smart Scrolling toggle) */
+export function hasSmartScrolling(
+	m: Msg,
+): m is Msg & { smartScrolling: boolean } {
+	return typeof m.smartScrolling === "boolean";
+}
+
+/** Action has `doubleClickTitleToCollapse: boolean` (Mac OS 8 Appearance
+ * "Double-click title bar to collapse windows" toggle) */
+export function hasDoubleClickTitleToCollapse(
+	m: Msg,
+): m is Msg & { doubleClickTitleToCollapse: boolean } {
+	return typeof m.doubleClickTitleToCollapse === "boolean";
 }
 
 /** Action has `availableThemes: unknown[]` */
@@ -227,11 +265,70 @@ export function hasAvailableThemes(
 	return Array.isArray(m.availableThemes);
 }
 
+/**
+ * Action has `theme: ClassicyTheme`, validated against `ClassicyThemeSchema`
+ * (an imported theme is untrusted data: colours in range, safe CSS strings, a
+ * bundled-wallpaper or http(s) `backgroundImage`, a known sound theme).
+ */
+export function hasImportableTheme(
+	m: Msg,
+): m is Msg & { theme: ClassicyTheme } {
+	return ClassicyThemeSchema.safeParse(m.theme).success;
+}
+
 /** Action has `disableBalloonHelp: boolean` */
 export function hasDisableBalloonHelp(
 	m: Msg,
 ): m is Msg & { disableBalloonHelp: boolean } {
 	return typeof m.disableBalloonHelp === "boolean";
+}
+
+/** Action has `visible: boolean` */
+export function hasVisible(m: Msg): m is Msg & { visible: boolean } {
+	return typeof m.visible === "boolean";
+}
+
+/** Action has `collapsed: boolean` */
+export function hasCollapsed(m: Msg): m is Msg & { collapsed: boolean } {
+	return typeof m.collapsed === "boolean";
+}
+
+/** Action has `width`: a finite, non-negative number, or `null` to clear it */
+export function hasStripWidth(m: Msg): m is Msg & { width: number | null } {
+	return (
+		m.width === null ||
+		(typeof m.width === "number" && Number.isFinite(m.width) && m.width >= 0)
+	);
+}
+
+/**
+ * Action has `edge: "left" | "right"` and `bottom`: a finite, non-negative
+ * distance in px from the desktop's bottom edge.
+ */
+export function hasStripPosition(
+	m: Msg,
+): m is Msg & { edge: "left" | "right"; bottom: number } {
+	return (
+		(m.edge === "left" || m.edge === "right") &&
+		typeof m.bottom === "number" &&
+		Number.isFinite(m.bottom) &&
+		m.bottom >= 0
+	);
+}
+
+/** Action has `moduleId: string` and `hidden: boolean` */
+export function hasModuleHidden(
+	m: Msg,
+): m is Msg & { moduleId: string; hidden: boolean } {
+	return typeof m.moduleId === "string" && typeof m.hidden === "boolean";
+}
+
+/** Action has `moduleOrder: string[]` */
+export function hasModuleOrder(m: Msg): m is Msg & { moduleOrder: string[] } {
+	return (
+		Array.isArray(m.moduleOrder) &&
+		m.moduleOrder.every((id) => typeof id === "string")
+	);
 }
 
 /** Action has `drive: string` */
@@ -285,6 +382,11 @@ export function hasDateTime(m: Msg): m is Msg & { dateTime: Date } {
 /** Action has `tzOffset: string` */
 export function hasTzOffset(m: Msg): m is Msg & { tzOffset: string } {
 	return typeof m.tzOffset === "string";
+}
+
+/** Action has `militaryTime: boolean` */
+export function hasMilitaryTime(m: Msg): m is Msg & { militaryTime: boolean } {
+	return typeof m.militaryTime === "boolean";
 }
 
 // ─── Finder fields ────────────────────────────────────────────────────────────

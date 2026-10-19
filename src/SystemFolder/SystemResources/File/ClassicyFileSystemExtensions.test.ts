@@ -18,7 +18,7 @@ const app = (
 	id,
 	name,
 	icon: `/icons/${id}.png`,
-	windows: [],
+	windows: {},
 	open: true,
 	data: {},
 	...(extension ? { extension: true } : {}),

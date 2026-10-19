@@ -48,15 +48,21 @@ export type ClassicyTreeNode = {
 	rightIcon?: string;
 	/** Child nodes. A node with children is a branch; otherwise it is a leaf. */
 	children?: ClassicyTreeNode[];
-	/** Whether a branch node starts expanded. */
+	/**
+	 * Whether a branch node starts expanded. Read once on mount; later
+	 * expansion is tracked by the tree itself.
+	 */
 	defaultOpen?: boolean;
-	/** Leaf-only: a single small button (kept for back-compat; `buttons` wins if both set). */
+	/**
+	 * Leaf-only: a single small button (kept for back-compat; `buttons` wins if
+	 * both set). `button: b` renders the same as `buttons: [b]`.
+	 */
 	button?: ClassicyTreeNodeButton;
 	/** Leaf-only: multiple small buttons rendered right of the label. */
 	buttons?: ClassicyTreeNodeButton[];
 	/** Grayed out; not clickable; branches also refuse to toggle. */
 	disabled?: boolean;
-	/** Leaf-only: opt out of selection while staying enabled-looking. Default true. */
+	/** Leaf-only: opt out of selection while staying enabled-looking. Defaults to `true`. */
 	selectable?: boolean;
 	/**
 	 * Branch-only: single-click fires onSelectNode (like a leaf) instead of
@@ -68,18 +74,31 @@ export type ClassicyTreeNode = {
 };
 
 type ClassicyTreeProps = {
+	/** The top-level nodes; each may nest further nodes in `children`. */
 	nodes: ClassicyTreeNode[];
-	/** Direction the disclosure triangle points when collapsed. */
+	/** Direction the disclosure triangle points when collapsed. Defaults to `"right"`. */
 	direction?: ClassicyTriangleDirection;
 	/** Fired whenever a branch node is expanded or collapsed. */
 	onToggleNode?: (id: string, open: boolean) => void;
+	/**
+	 * `"none"` (the default) makes rows navigation-only. `"single"` and
+	 * `"multi"` both make enabled leaves (and `branchSelectable` branches)
+	 * report clicks and Enter/Space through `onSelectNode`; the tree does not
+	 * enforce the difference — the owner decides how to update `selectedIds`.
+	 */
 	selectionMode?: ClassicyTreeSelectionMode;
+	/**
+	 * Ids of the highlighted nodes. Fully controlled: the tree keeps no
+	 * selection of its own, so update this from `onSelectNode`.
+	 */
 	selectedIds?: string[];
+	/** Fired when a selectable node is clicked or chosen with Enter/Space. */
 	onSelectNode?: (
 		id: string,
 		node: ClassicyTreeNode,
 		e: ReactMouseEvent | ReactKeyboardEvent,
 	) => void;
+	/** Fired when a selectable leaf is double-clicked — the "open it" gesture. */
 	onActivateNode?: (id: string, node: ClassicyTreeNode) => void;
 };
 
@@ -334,6 +353,31 @@ const ClassicyTreeNodeItem: FunctionalComponent<ClassicyTreeNodeItemProps> = ({
 	);
 };
 
+/**
+ * A hierarchical outline list: branches with Mac OS 8 disclosure triangles
+ * (pointing right when closed, down when open — HIGOS8 Ch.2 "Disclosure
+ * Triangles", p.37) and leaves that can carry icons and small push buttons.
+ * Use it in place of an interactive nested `<ul>` / `<li>`; plain static lists
+ * can stay raw HTML. For multi-column data with sortable headers use
+ * `ClassicyTable` with `getSubRows` instead.
+ *
+ * Expansion is uncontrolled (seeded from each node's `defaultOpen`, reported
+ * through `onToggleNode`); selection is fully controlled through
+ * `selectedIds`. Clicking a branch toggles it unless it is
+ * `branchSelectable`, in which case a click selects and a double-click
+ * toggles. Keyboard: Up/Down, Home/End and type-select move focus through
+ * the visible rows (without selecting), ⌘→ / ⌘← open and close the focused
+ * branch, and Enter/Space toggles a branch or selects a leaf.
+ *
+ * ```tsx
+ * <ClassicyTree
+ *     nodes={nodes}
+ *     selectionMode="single"
+ *     selectedIds={selected}
+ *     onSelectNode={(id) => setSelected([id])}
+ * />
+ * ```
+ */
 export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 	nodes,
 	direction = "right",

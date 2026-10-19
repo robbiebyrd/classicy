@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render } from "@/__tests__/test-utils";
+import { windowsRecord } from "@/__tests__/windowsRecord";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
 const mockPlayer = vi.hoisted(() => vi.fn());
@@ -41,24 +42,22 @@ vi.mock(
 								TestApp: {
 									id: "TestApp",
 									focused: false,
-									windows: [
-										{
-											id: "TestWindow",
-											appId: "TestApp",
-											collapsed: mockWindowState.collapsed,
-											focused: false,
-											dragging: false,
-											moving: false,
-											resizing: false,
-											zoomed: false,
-											closed: false,
-											size: mockWindowState.size,
-											position: [110, 110] as [number, number],
-											minimumSize: [0, 0] as [number, number],
-											menuBar: [] as unknown[],
-											default: false,
-										},
-									],
+									windows: windowsRecord({
+										id: "TestWindow",
+										appId: "TestApp",
+										collapsed: mockWindowState.collapsed,
+										focused: false,
+										dragging: false,
+										moving: false,
+										resizing: false,
+										zoomed: false,
+										closed: false,
+										size: mockWindowState.size,
+										position: [110, 110] as [number, number],
+										minimumSize: [0, 0] as [number, number],
+										menuBar: [] as unknown[],
+										default: false,
+									}),
 								},
 							},
 						},
@@ -210,13 +209,13 @@ describe("ClassicyWindow collapsed-size persistence (#11)", () => {
 		const root = container.querySelector(".classicyWindow") as HTMLElement;
 		expect(root.classList.contains("classicyWindowCollapsed")).toBe(false);
 
-		// Simulate a completed resize drag: the component writes the live
-		// dimensions to the root's inline style during a drag (see
-		// docMoveHandlerRef), then reads them back via getBoundingClientRect()
-		// on release.
-		root.style.width = "400px";
-		root.style.height = "260px";
-
+		// A grow-box drag: the window sits at [110, 110], and the document-level
+		// move handler sizes it to the pointer's distance from that corner + 5.
+		const resizer = container.querySelector(
+			".classicyWindowResizer",
+		) as HTMLElement;
+		fireEvent.mouseDown(resizer, { clientX: 460, clientY: 310 });
+		fireEvent.mouseMove(document.body, { clientX: 505, clientY: 365 });
 		fireEvent.mouseUp(root);
 
 		const dispatches = resizeDispatches();

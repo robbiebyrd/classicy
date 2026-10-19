@@ -3,13 +3,18 @@ import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyBu
 import { ClassicyWindowFrame } from "@/SystemFolder/SystemResources/Window/ClassicyWindowFrame";
 
 const meta: Meta<typeof ClassicyWindowFrame> = {
-	title: "SystemResources/WindowFrame",
+	title: "Desktop/WindowFrame",
 	component: ClassicyWindowFrame,
 };
 export default meta;
 
 type Story = StoryObj<typeof ClassicyWindowFrame>;
 
+/**
+ * The frame as a `preBootScreen` uses it: a titled, store-free window holding a
+ * power-on prompt. `width` caps the frame's width; narrower content stays
+ * narrower.
+ */
 export const PowerOn: Story = {
 	render: () => (
 		<ClassicyWindowFrame title="9/11 in Realtime" width={560}>
@@ -19,6 +24,17 @@ export const PowerOn: Story = {
 				on.
 			</p>
 			<ClassicyButton onClickFunc={() => {}}>POWER ON</ClassicyButton>
+		</ClassicyWindowFrame>
+	),
+};
+
+/**
+ * Without a `title` the title bar is pinstripes only, with no title chip.
+ */
+export const Untitled: Story = {
+	render: () => (
+		<ClassicyWindowFrame width={360}>
+			<p>A frame with no title.</p>
 		</ClassicyWindowFrame>
 	),
 };

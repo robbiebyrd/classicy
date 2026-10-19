@@ -17,6 +17,15 @@ import type {
 	ClassicyStore,
 	ClassicyStoreSystemAppWindow,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import {
+	countAppWindows,
+	getAppWindow,
+	listAppWindows,
+	mostRecentAppWindow,
+	removeAppWindow,
+	setAppWindow,
+	updateAppWindow,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
 const initialWindowState = {
@@ -28,8 +37,6 @@ const initialWindowState = {
 	sounding: false,
 	zoomed: false,
 };
-
-const notEmpty = <T,>(value: T | null | undefined): value is T => value != null;
 
 export type ClassicyWindowAction =
 	// Open the Window's Context Menu
@@ -45,6 +52,8 @@ export type ClassicyWindowAction =
 				position: [number, number];
 				menuBar?: ClassicyMenuItem[];
 				windowType?: "document" | "utility";
+				collapsable?: boolean;
+				modal?: boolean;
 			};
 	  }
 	// Focus a Window
@@ -122,24 +131,28 @@ export const classicyWindowEventHandler = (
 	ds: ClassicyStore,
 	action: ActionMessage,
 ) => {
+	// The single write path for every per-window update below. A missing app
+	// or window is a no-op.
 	const updateWindow = (
 		appId: string,
 		windowId: string,
-		updates: Partial<ClassicyStoreSystemAppWindow>,
+		update:
+			| Partial<ClassicyStoreSystemAppWindow>
+			| ((w: ClassicyStoreSystemAppWindow) => void),
 	) => {
-		if (!ds.System.Manager.Applications.apps[appId]) return ds;
-		ds.System.Manager.Applications.apps[appId].windows =
-			ds.System.Manager.Applications.apps[appId].windows.map(
-				(w: ClassicyStoreSystemAppWindow) =>
-					w.id === windowId ? { ...w, ...updates } : w,
-			);
+		updateAppWindow(
+			ds.System.Manager.Applications.apps[appId],
+			windowId,
+			update,
+		);
 		return ds;
 	};
 
 	switch (action.type) {
 		case "ClassicyWindowOpen": {
 			if (!hasAppAndWindow(action)) break;
-			if (!ds.System.Manager.Applications.apps[action.app.id]) break;
+			const app = ds.System.Manager.Applications.apps[action.app.id];
+			if (!app) break;
 			const win = action.window as {
 				id: string;
 				position: [number, number];
@@ -147,19 +160,24 @@ export const classicyWindowEventHandler = (
 				size: [number, number];
 				menuBar?: ClassicyMenuItem[];
 				windowType?: "document" | "utility";
+				collapsable?: unknown;
+				modal?: unknown;
 			};
-			const window = ds.System.Manager.Applications.apps[
-				action.app.id
-			].windows.findIndex((w) => w.id === win.id);
-			if (window < 0) {
+			// #278: persist the window's collapsable/modal props so Option-click
+			// collapse-all can skip windows that opted out. Only real booleans
+			// are written — a malformed payload leaves the record untouched.
+			const flags: Partial<ClassicyStoreSystemAppWindow> = {};
+			if (typeof win.collapsable === "boolean")
+				flags.collapsable = win.collapsable;
+			if (typeof win.modal === "boolean") flags.modal = win.modal;
+			if (!getAppWindow(app, win.id)) {
 				let paddedPosition: [number, number] = win.position;
 				if (win.position[0] === 0 && win.position[1] === 0) {
-					const length =
-						ds.System.Manager.Applications.apps[action.app.id].windows.length *
-						10;
-					paddedPosition = [30 + length, 30 + length];
+					// Cascade new windows by the number already registered.
+					const offset = countAppWindows(app) * 10;
+					paddedPosition = [30 + offset, 30 + offset];
 				}
-				ds.System.Manager.Applications.apps[action.app.id].windows.push({
+				setAppWindow(app, {
 					...initialWindowState,
 					id: win.id,
 					minimumSize: win.minimumSize,
@@ -169,22 +187,25 @@ export const classicyWindowEventHandler = (
 					hidden: false,
 					menuBar: win.menuBar,
 					windowType: win.windowType,
+					...flags,
 				} as ClassicyStoreSystemAppWindow);
 				// A genuinely new window opens focused (Mac behavior); re-registered
 				// persisted windows must not steal focus.
 				ds = focusWindow(ds, action.app.id, win.id);
 			} else {
-				const existing =
-					ds.System.Manager.Applications.apps[action.app.id].windows[window];
+				const existing = getAppWindow(app, win.id);
 				// A window closed earlier this session and now registering again
 				// is being reopened (e.g. a dialog the app unmounts on Cancel and
 				// mounts again later): bring it to the front like a new window.
 				// Anything else is a persisted window re-registering after a
 				// reload or remount, which must not steal focus.
-				const reopening = existing.closed && existing.closedThisSession;
+				const reopening = !!existing?.closed && !!existing?.closedThisSession;
+				// A persisted record may predate #278 (no flags) or the props may
+				// have changed since; the mounting component's props win.
 				ds = updateWindow(action.app.id, win.id, {
 					closed: false,
 					closedThisSession: false,
+					...flags,
 				});
 				if (reopening) {
 					ds = focusWindow(ds, action.app.id, win.id);
@@ -221,16 +242,17 @@ export const classicyWindowEventHandler = (
 			if (ds.System.Manager.Applications.focusedAppId !== action.app.id) {
 				break;
 			}
-			const openWindows = ds.System.Manager.Applications.apps[
-				action.app.id
-			]?.windows.filter(
-				(w) =>
-					!w.closed && w.id !== action.window.id && w.windowType !== "utility",
+			const nextFocus = mostRecentAppWindow(
+				listAppWindows(
+					ds.System.Manager.Applications.apps[action.app.id],
+				).filter(
+					(w) =>
+						!w.closed &&
+						w.id !== action.window.id &&
+						w.windowType !== "utility",
+				),
 			);
-			if (openWindows?.length) {
-				const nextFocus = openWindows.reduce((best, w) =>
-					(w.zOrder ?? 0) > (best.zOrder ?? 0) ? w : best,
-				);
+			if (nextFocus) {
 				ds = focusWindow(ds, action.app.id, nextFocus.id);
 			}
 			break;
@@ -243,17 +265,17 @@ export const classicyWindowEventHandler = (
 			// the window is gone there is no way to tell it held focus, and a
 			// modal unmounting would leave focus dangling on a window that no
 			// longer exists (#223).
-			const destroyed = ds.System.Manager.Applications.apps[
-				action.app.id
-			].windows.find((w) => w.id === action.window.id);
+			const destroyed = getAppWindow(
+				ds.System.Manager.Applications.apps[action.app.id],
+				action.window.id,
+			);
 			const heldFocus =
 				destroyed?.focused === true &&
 				ds.System.Manager.Applications.focusedAppId === action.app.id;
-			ds = updateWindow(action.app.id, action.window.id, { closed: true });
-			ds.System.Manager.Applications.apps[action.app.id].windows =
-				ds.System.Manager.Applications.apps[action.app.id].windows
-					.map((w) => (w.id === action.window.id ? null : w))
-					.filter(notEmpty);
+			removeAppWindow(
+				ds.System.Manager.Applications.apps[action.app.id],
+				action.window.id,
+			);
 			// Tidiness, not correctness: pickWindowToRestore already filters
 			// lastAccessedWindowId against surviving windows, and the next focus
 			// succession overwrites it anyway, so a stale pointer here is
@@ -289,99 +311,57 @@ export const classicyWindowEventHandler = (
 				typeof (action as { windowId?: unknown }).windowId === "string"
 			) {
 				const windowId = (action as { windowId?: unknown }).windowId as string;
-				if (!ds.System.Manager.Applications.apps[action.app.id]) break;
-				const win = ds.System.Manager.Applications.apps[
-					action.app.id
-				].windows.find((w) => w.id === windowId);
-				if (win) win.menuBar = action.menuBar;
+				const menuBar = action.menuBar;
+				updateWindow(action.app.id, windowId, (w) => {
+					w.menuBar = menuBar;
+				});
 			}
 			break;
 		}
 
 		case "ClassicyWindowResize": {
 			if (!hasWindowResizing(action)) break;
-			if (!ds.System.Manager.Applications.apps[action.app.id]) break;
-			ds.System.Manager.Applications.apps[action.app.id].windows =
-				ds.System.Manager.Applications.apps[action.app.id].windows.map((w) => {
-					if (w.id === action.window.id) {
-						w.resizing = action.resizing;
-						w.size = action.size;
-					}
-					return w;
-				});
+			updateWindow(action.app.id, action.window.id, {
+				resizing: action.resizing,
+				size: action.size,
+			});
 			break;
 		}
 		case "ClassicyWindowDrag": {
 			if (!hasWindowDragging(action)) break;
-			if (!ds.System.Manager.Applications.apps[action.app.id]) break;
-			ds.System.Manager.Applications.apps[action.app.id].windows =
-				ds.System.Manager.Applications.apps[action.app.id].windows.map((w) => {
-					if (w.id === action.window.id) {
-						w.dragging = action.dragging;
-					}
-					return w;
-				});
+			updateWindow(action.app.id, action.window.id, {
+				dragging: action.dragging,
+			});
 			break;
 		}
 		case "ClassicyWindowZoom": {
 			if (!hasWindowZoomed(action)) break;
-			if (!ds.System.Manager.Applications.apps[action.app.id]) break;
-			ds.System.Manager.Applications.apps[action.app.id].windows =
-				ds.System.Manager.Applications.apps[action.app.id].windows.map((w) => {
-					if (w.id === action.window.id) {
-						w.zoomed = action.zoomed;
-					}
-					return w;
-				});
+			updateWindow(action.app.id, action.window.id, { zoomed: action.zoomed });
 			break;
 		}
 		case "ClassicyWindowCollapse": {
 			if (!hasAppAndWindow(action)) break;
-			if (!ds.System.Manager.Applications.apps[action.app.id]) break;
-			ds.System.Manager.Applications.apps[action.app.id].windows =
-				ds.System.Manager.Applications.apps[action.app.id].windows.map((w) => {
-					if (w.id === action.window.id) {
-						w.collapsed = true;
-					}
-					return w;
-				});
+			updateWindow(action.app.id, action.window.id, { collapsed: true });
 			break;
 		}
 		case "ClassicyWindowExpand": {
 			if (!hasAppAndWindow(action)) break;
-			if (!ds.System.Manager.Applications.apps[action.app.id]) break;
-			ds.System.Manager.Applications.apps[action.app.id].windows =
-				ds.System.Manager.Applications.apps[action.app.id].windows.map((w) => {
-					if (w.id === action.window.id) {
-						w.collapsed = false;
-					}
-					return w;
-				});
+			updateWindow(action.app.id, action.window.id, { collapsed: false });
 			break;
 		}
 		case "ClassicyWindowMove": {
 			if (!hasWindowMove(action)) break;
-			if (!ds.System.Manager.Applications.apps[action.app.id]) break;
-			ds.System.Manager.Applications.apps[action.app.id].windows =
-				ds.System.Manager.Applications.apps[action.app.id].windows.map((w) => {
-					if (w.id === action.window.id) {
-						w.position = action.position;
-						w.moving = action.moving;
-					}
-					return w;
-				});
+			updateWindow(action.app.id, action.window.id, {
+				position: action.position,
+				moving: action.moving,
+			});
 			break;
 		}
 		case "ClassicyWindowPosition": {
 			if (!hasWindowPosition(action)) break;
-			if (!ds.System.Manager.Applications.apps[action.app.id]) break;
-			ds.System.Manager.Applications.apps[action.app.id].windows =
-				ds.System.Manager.Applications.apps[action.app.id].windows.map((w) => {
-					if (w.id === action.window.id) {
-						w.position = action.position;
-					}
-					return w;
-				});
+			updateWindow(action.app.id, action.window.id, {
+				position: action.position,
+			});
 			break;
 		}
 	}

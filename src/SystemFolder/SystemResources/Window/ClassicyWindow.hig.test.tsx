@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render } from "@/__tests__/test-utils";
+import { windowsRecord } from "@/__tests__/windowsRecord";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
 const mockDispatch = vi.hoisted(() => vi.fn());
@@ -18,24 +19,22 @@ vi.mock(
 								TestApp: {
 									id: "TestApp",
 									focused: false,
-									windows: [
-										{
-											id: "TestWindow",
-											appId: "TestApp",
-											collapsed: false,
-											focused: false,
-											dragging: false,
-											moving: false,
-											resizing: false,
-											zoomed: false,
-											closed: false,
-											size: [350, 200] as [number, number],
-											position: [110, 110] as [number, number],
-											minimumSize: [0, 0] as [number, number],
-											menuBar: [] as unknown[],
-											default: false,
-										},
-									],
+									windows: windowsRecord({
+										id: "TestWindow",
+										appId: "TestApp",
+										collapsed: false,
+										focused: false,
+										dragging: false,
+										moving: false,
+										resizing: false,
+										zoomed: false,
+										closed: false,
+										size: [350, 200] as [number, number],
+										position: [110, 110] as [number, number],
+										minimumSize: [0, 0] as [number, number],
+										menuBar: [] as unknown[],
+										default: false,
+									}),
 								},
 							},
 						},
@@ -181,6 +180,23 @@ describe("ClassicyWindow HIG dialog behaviors", () => {
 				position: [8, 38],
 			}),
 		);
+	});
+
+	// HIGOS8 Ch.5 "Zoom Boxes" (p.104): a full zoom targets the standard state
+	// (here an explicit idealSize), NOT the whole screen.
+	it("full-zooms to idealSize, not the whole desktop", () => {
+		const { container } = renderWindow({
+			zoomable: true,
+			idealSize: [500, 400],
+		});
+		const win = container.querySelector(".classicyWindow") as HTMLElement;
+		const zoomBox = container.querySelector(
+			".classicyWindowZoomBox",
+		) as HTMLElement;
+		fireEvent.click(zoomBox);
+		// Sized to the ideal, clamped to the window minimum / desktop — not filled.
+		expect(win.style.width).toBe("500px");
+		expect(win.style.height).toBe("400px");
 	});
 
 	// #205: renders four draggable frame-edge handles on an expanded window.

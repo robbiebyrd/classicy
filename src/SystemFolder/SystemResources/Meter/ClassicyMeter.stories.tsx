@@ -10,6 +10,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+/** No thresholds: the whole range is optimal, drawn in the theme accent, with the value printed beside it. */
 export const Basic: Story = {
 	args: {
 		value: 60,
@@ -18,7 +19,7 @@ export const Basic: Story = {
 	},
 };
 
-// Battery-style: optimum sits in the high region, so a low value goes red.
+/** Battery-style: `optimum` sits in the high region, so a low value (two regions away) is bad. */
 export const BatteryLow: Story = {
 	args: {
 		value: 12,
@@ -30,7 +31,19 @@ export const BatteryLow: Story = {
 	},
 };
 
-// Disk-usage-style: optimum sits low, so a nearly-full disk goes red.
+/** The same battery at half charge: one region from `optimum`, so it is suboptimal (`--color-alert`). */
+export const BatteryHalf: Story = {
+	args: {
+		value: 50,
+		low: 20,
+		high: 80,
+		optimum: 100,
+		label: "Battery",
+		showValue: true,
+	},
+};
+
+/** Disk-usage-style: `optimum` sits low, so a nearly-full disk (two regions away) is bad. */
 export const DiskNearlyFull: Story = {
 	args: {
 		value: 95,
@@ -42,6 +55,7 @@ export const DiskNearlyFull: Story = {
 	},
 };
 
+/** `segments` draws discrete LED-style cells — the audio level-meter look. */
 export const SegmentedLevel: Story = {
 	args: {
 		value: 7,

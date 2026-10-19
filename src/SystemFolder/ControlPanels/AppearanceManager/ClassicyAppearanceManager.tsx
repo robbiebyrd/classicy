@@ -10,15 +10,31 @@ import {
 } from "react";
 import {
 	type ClassicyTheme,
+	type ClassicyThemeTypography,
 	getTheme,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { APPEARANCE_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManagerManifest";
+import {
+	findClassicyTheme,
+	isCustomThemeActive,
+	listClassicyThemes,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
 import { ClassicySounds } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicySounds";
+import type { ClassicyThemeColorChange } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorTargets";
+import {
+	downloadClassicyTheme,
+	parseClassicyThemeFile,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFile";
 import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { DEFAULT_ALERT_SOUND } from "@/SystemFolder/ControlPanels/SoundManager/ClassicyAlertSounds";
-import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
+import {
+	type ClassicyThemeSound,
+	useSoundDispatch,
+} from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
+import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import {
 	useClassicyAboutMenu,
@@ -34,18 +50,19 @@ import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyBu
 import { ClassicyTabs } from "@/SystemFolder/SystemResources/Tabs/ClassicyTabs";
 import { isValidHttpUrl } from "@/SystemFolder/SystemResources/Utils/urlValidation";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
+import { useColorsTab } from "./ClassicyAppearanceManager.Colors";
 import { useDesktopTab } from "./ClassicyAppearanceManager.Desktop";
 import { useFontsTab } from "./ClassicyAppearanceManager.Fonts";
 import { useSoundTab } from "./ClassicyAppearanceManager.Sound";
 import { useThemesTab } from "./ClassicyAppearanceManager.Themes";
+import { withPrimaryFontFamily } from "./ClassicyFontStack";
 import { ClassicyDefaultWallpaper } from "./ClassicyWallpapers";
 import appIcon from "./resources/app.png";
-
-import { APPEARANCE_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManagerManifest";
 
 const APP_ID = APPEARANCE_MANAGER_APP_ID;
 const APP_NAME = "Appearance Manager";
 const WINDOW_ID = "AppearanceManager_1";
+const THEME_FILE_ALERT_ID = "AppearanceManager_theme_file_alert";
 
 function isValidUrlWithRegex(url: string): boolean {
 	return isValidHttpUrl(url);
@@ -54,6 +71,10 @@ function isValidUrlWithRegex(url: string): boolean {
 export const ClassicyAppearanceManager: FunctionalComponent = () => {
 	const appearanceState = useAppManager(
 			(state) => state.System.Manager.Appearance,
+		),
+		// Lives on the Desktop slice (ClassicyWindow reads it from there).
+		doubleClickTitleToCollapse = useAppManager(
+			(state) => state.System.Manager.Desktop?.doubleClickTitleToCollapse,
 		),
 		desktopEventDispatch = useAppManagerDispatch(),
 		player = useSoundDispatch();
@@ -66,24 +87,32 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 	const windowClose = useClassicyWindowClose(APP_ID);
 	const editMenu = useClassicyEditMenu(APP_ID);
 	// Theme backgrounds are resolved to loadable URLs before they reach the
-	// store, so the current one can seed the picker directly; only a
-	// colour-only theme needs a stand-in to select.
-	const [bg, setBg] = useState<string>(
+	// store, so the current one drives the picker directly; only a
+	// colour-only theme needs a stand-in to select. Derived from the store on
+	// every render (never seeded into local state) so a theme switch or a
+	// background change from elsewhere is reflected immediately.
+	const bg =
 		appearanceState.activeTheme.desktop.backgroundImage ||
-			ClassicyDefaultWallpaper,
-	);
+		ClassicyDefaultWallpaper;
 
+	// Built-in themes, then the user's custom themes (e.g. "Custom").
 	const themesList = useMemo(
 		() =>
-			appearanceState.availableThemes?.map((a: ClassicyTheme) =>
-				(({ id, name }) => ({ value: id, label: name }))(a),
-			),
-		[appearanceState.availableThemes],
+			listClassicyThemes({
+				availableThemes: appearanceState.availableThemes,
+				customThemes: appearanceState.customThemes,
+			}).map((a: ClassicyTheme) => ({ value: a.id, label: a.name })),
+		[appearanceState.availableThemes, appearanceState.customThemes],
 	);
 
-	const applySoundTheme = useCallback(
-		(themeName: string) => {
-			const soundTheme = getTheme(themeName).sound;
+	// Why a theme file could not be saved or loaded, shown in a stop alert.
+	const [themeFileError, setThemeFileError] = useState<{
+		label: string;
+		message: string;
+	} | null>(null);
+
+	const loadSoundTheme = useCallback(
+		(soundTheme: ClassicyThemeSound) => {
 			const data = ClassicySounds[soundTheme.name];
 			if (!data) {
 				classicyLog(
@@ -105,6 +134,66 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		[player],
 	);
 
+	const applySoundTheme = useCallback(
+		(themeName: string) => {
+			// A custom theme carries the sound theme of the built-in it forked.
+			loadSoundTheme(
+				(
+					findClassicyTheme(
+						useAppManager.getState().System.Manager.Appearance,
+						themeName,
+					) ?? getTheme(themeName)
+				).sound,
+			);
+		},
+		[loadSoundTheme],
+	);
+
+	// Saves the ACTIVE theme — a built-in or a custom one — as a theme file.
+	const saveTheme = useCallback(() => {
+		const result = downloadClassicyTheme(
+			useAppManager.getState().System.Manager.Appearance.activeTheme,
+		);
+		if (!result.ok) {
+			setThemeFileError({
+				label: "The theme could not be saved.",
+				message: result.error,
+			});
+		}
+	}, []);
+
+	const loadThemeFile = useCallback(
+		async (file: File) => {
+			let text: string;
+			try {
+				text = await file.text();
+			} catch {
+				setThemeFileError({
+					label: `“${file.name}” could not be loaded.`,
+					message: "The file could not be read.",
+				});
+				return;
+			}
+			const result = parseClassicyThemeFile(text);
+			if (!result.ok) {
+				setThemeFileError({
+					label: `“${file.name}” could not be loaded.`,
+					message: result.error,
+				});
+				return;
+			}
+			// The reducer re-validates the theme, gives it a unique id and name,
+			// adds it to the custom themes and makes it the active theme, which
+			// selects it in the theme pop-up.
+			desktopEventDispatch({
+				type: "ClassicyDesktopImportTheme",
+				theme: result.theme,
+			});
+			loadSoundTheme(result.theme.sound);
+		},
+		[desktopEventDispatch, loadSoundTheme],
+	);
+
 	const switchTheme = useCallback(
 		(e: ChangeEvent<HTMLSelectElement>) => {
 			const themeId = e.currentTarget.value;
@@ -119,9 +208,32 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		[desktopEventDispatch, applySoundTheme],
 	);
 
+	const toggleSmartScrolling = useCallback(
+		(checked: boolean) => {
+			startTransition(() => {
+				desktopEventDispatch({
+					type: "ClassicyDesktopSetSmartScrolling",
+					smartScrolling: checked,
+				});
+			});
+		},
+		[desktopEventDispatch],
+	);
+
+	const toggleDoubleClickTitleToCollapse = useCallback(
+		(checked: boolean) => {
+			startTransition(() => {
+				desktopEventDispatch({
+					type: "ClassicyDesktopSetDoubleClickTitleToCollapse",
+					doubleClickTitleToCollapse: checked,
+				});
+			});
+		},
+		[desktopEventDispatch],
+	);
+
 	const changeBackground = useCallback(
 		(e: ChangeEvent<HTMLSelectElement>) => {
-			setBg(e.target.value);
 			startTransition(() => {
 				desktopEventDispatch({
 					type: "ClassicyDesktopChangeBackground",
@@ -135,7 +247,6 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 	const setBackgroundURL = useCallback(
 		(e: ChangeEvent<HTMLInputElement>) => {
 			if (isValidUrlWithRegex(e.target.value)) {
-				setBg(e.target.value);
 				startTransition(() => {
 					desktopEventDispatch({
 						type: "ClassicyDesktopChangeBackground",
@@ -183,14 +294,32 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		[desktopEventDispatch],
 	);
 
+	const typography = appearanceState.activeTheme.typography;
 	const changeFont = useCallback(
-		(e: ChangeEvent<HTMLSelectElement>) => {
+		(fontType: string, family: string) => {
+			// The menus offer bare family names; the theme stores a full CSS
+			// stack. Put the chosen family first and keep the rest of the
+			// current stack as fallbacks.
+			const current = typography[fontType as keyof ClassicyThemeTypography];
+			const font = withPrimaryFontFamily(
+				typeof current === "string" ? current : "",
+				family,
+			);
 			startTransition(() => {
 				desktopEventDispatch({
 					type: "ClassicyDesktopChangeFont",
-					font: e.target.value,
-					fontType: e.target.id,
+					fontType,
+					font,
 				});
+			});
+		},
+		[desktopEventDispatch, typography],
+	);
+
+	const changeColor = useCallback(
+		(change: ClassicyThemeColorChange) => {
+			startTransition(() => {
+				desktopEventDispatch({ type: "ClassicyDesktopChangeColor", ...change });
 			});
 		},
 		[desktopEventDispatch],
@@ -209,6 +338,28 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 			player({ type: "ClassicySoundPlayInterrupt", sound: value });
 		},
 		[desktopEventDispatch, player],
+	);
+
+	const changeAlertVolume = useCallback(
+		(alertVolume: number) => {
+			desktopEventDispatch({
+				type: "ClassicyDesktopChangeAlertVolume",
+				alertVolume,
+			});
+		},
+		[desktopEventDispatch],
+	);
+
+	// Audition the alert at the committed level, as the Volume slider in the
+	// Sound control panel does. The level is handed to the sound state directly
+	// (ahead of the store→sound bridge) so the preview never plays at the
+	// previous level.
+	const previewAlertVolume = useCallback(
+		(alertVolume: number) => {
+			player({ type: "ClassicySoundSetAlertVolume", alertVolume });
+			player({ type: "ClassicyAlertSound" });
+		},
+		[player],
 	);
 
 	const changeFontSize = useCallback(
@@ -234,8 +385,8 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 	// "About <name>" and strips it from this menu before rendering, so it never
 	// shows under File — but it must stay published or the Apple menu loses it.
 	//
-	// Note: ClassicyMenu only renders an <hr> divider for items whose id is
-	// exactly "spacer" and keys items by id, so at most one divider per menu.
+	// A divider is an item with id "spacer"; ClassicyMenu keys dividers by
+	// position, so a menu may hold any number of them.
 	const appMenu = [
 		{
 			id: `${APP_ID}_file`,
@@ -264,10 +415,21 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		themesList,
 		switchTheme,
 		activeThemeId: appearanceState.activeTheme.id,
+		// Default to on when unset (persisted stores predating this setting).
+		smartScrolling: appearanceState.smartScrolling !== false,
+		toggleSmartScrolling,
+		// Same on-when-unset default ClassicyWindow applies when reading it.
+		doubleClickTitleToCollapse: doubleClickTitleToCollapse !== false,
+		toggleDoubleClickTitleToCollapse,
+		saveTheme,
+		loadThemeFile,
 	});
 
 	const desktopTab = useDesktopTab({
 		bg,
+		bgPosition: appearanceState.activeTheme.desktop.backgroundPosition,
+		bgRepeat: appearanceState.activeTheme.desktop.backgroundRepeat,
+		bgSize: appearanceState.activeTheme.desktop.backgroundSize,
 		changeBackground,
 		setBackgroundURL,
 		alignBackground,
@@ -275,8 +437,15 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		backgroundSize,
 	});
 
+	const colorsTab = useColorsTab({
+		theme: appearanceState.activeTheme,
+		editingCustomTheme: isCustomThemeActive(appearanceState),
+		changeColor,
+		appId: APP_ID,
+	});
+
 	const fontsTab = useFontsTab({
-		typography: appearanceState.activeTheme.typography,
+		typography,
 		changeFont,
 		changeFontSize,
 	});
@@ -284,11 +453,16 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 	const soundTab = useSoundTab({
 		alertSound: appearanceState.alertSound ?? DEFAULT_ALERT_SOUND,
 		changeAlertSound,
+		alertVolume: appearanceState.alertVolume ?? 100,
+		changeAlertVolume,
+		previewAlertVolume,
 	});
 
 	const tabs = useMemo(
-		() => [themesTab, desktopTab, fontsTab, soundTab],
-		[themesTab, desktopTab, fontsTab, soundTab],
+		// Colors sits between Desktop and Fonts: Mac OS 8.5's Appearance panel
+		// puts its colour tab ahead of Fonts.
+		() => [themesTab, desktopTab, colorsTab, fontsTab, soundTab],
+		[themesTab, desktopTab, colorsTab, fontsTab, soundTab],
 	);
 
 	return (
@@ -319,11 +493,22 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 				appMenu={appMenu}
 			>
 				<div className={"classicyAppearanceManagerContent"}>
-					<ClassicyTabs tabs={tabs} />
+					{/* Five tabs need the compact strip to fit the 480 px panel. */}
+					<ClassicyTabs tabs={tabs} size="small" />
 					<ClassicyButton onClickFunc={quitApp}>Quit</ClassicyButton>
 				</div>
 			</ClassicyWindow>
 			{aboutWindow}
+			{themeFileError && (
+				<ClassicyAlert
+					id={THEME_FILE_ALERT_ID}
+					appId={APP_ID}
+					alertType={"stop"}
+					label={themeFileError.label}
+					message={themeFileError.message}
+					onClose={() => setThemeFileError(null)}
+				/>
+			)}
 		</ClassicyApp>
 	);
 };

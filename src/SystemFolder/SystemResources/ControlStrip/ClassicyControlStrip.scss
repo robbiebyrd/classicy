@@ -1,0 +1,273 @@
+// Mac OS 8 Control Strip, pixel-for-pixel from HIGOS8 Figure 6-15.
+//
+// The strip is 24 px tall: a 1 px black top and bottom with 22 px cells
+// between, each cell closed on its right by a 1 px black separator (the first
+// also on its left). Cells: collapse box 13 px, scroll arrow 13 px, modules
+// 30 px each, scroll arrow 13 px, then the 17 px tab. Colours are the theme
+// tokens the figure's 8-bit greys were quantized from (#c6c6c6 face ->
+// system-03, #a5a5a5 -> system-04, #848484 -> system-05, #424242 ->
+// system-06).
+//
+// It floats over application windows and palettes (350) but stays under the
+// modal-dialog scrim (360), so a modal dialog blocks it.
+
+@use "../../ControlPanels/AppearanceManager/styles/appearance" as *;
+
+$cell-height: 22px;
+$narrow-cell: 13px;
+$module-width: 30px;
+
+
+// Raised (normal) cell: face ring, white highlight 1 px in on the top and left,
+// #a5a5a5 then #848484 on the bottom and right.
+@mixin bevel-raised {
+  background:
+    px-rect(var(--color-white), 1px, 1px, calc(100% - 3px), 1px),
+    px-rect(var(--color-white), 1px, 1px, 1px, calc(100% - 3px)),
+    px-rect(var(--color-system-04), calc(100% - 1px), 2px, 1px, calc(100% - 4px)),
+    px-rect(var(--color-system-04), 2px, calc(100% - 1px), calc(100% - 3px), 1px),
+    px-rect(var(--color-system-05), 100%, 1px, 1px, calc(100% - 1px)),
+    px-rect(var(--color-system-05), 1px, 100%, calc(100% - 1px), 1px),
+    var(--color-system-03);
+}
+
+// Recessed (the disabled scroll arrow cell): dark top and left, white bottom
+// and right, face corners.
+@mixin bevel-recessed {
+  background:
+    px-rect(var(--color-system-05), 0, 0, 1px, calc(100% - 1px)),
+    px-rect(var(--color-system-05), 0, 0, calc(100% - 1px), 1px),
+    px-rect(var(--color-white), 100%, 1px, 1px, calc(100% - 1px)),
+    px-rect(var(--color-white), 1px, 100%, calc(100% - 1px), 1px),
+    var(--color-system-03);
+}
+
+// Pressed (a module with its menu open): 2 px dark top and left, 2 px light
+// bottom and right, on the darker face.
+@mixin bevel-pressed {
+  background:
+    px-rect(var(--color-system-06), 0, 0, calc(100% - 1px), 1px),
+    px-rect(var(--color-system-06), 0, 1px, calc(100% - 2px), 1px),
+    px-rect(var(--color-system-06), 0, 0, 1px, calc(100% - 1px)),
+    px-rect(var(--color-system-06), 1px, 0, 1px, calc(100% - 2px)),
+    px-rect(var(--color-system-03), 100%, 1px, 1px, calc(100% - 1px)),
+    px-rect(var(--color-system-03), calc(100% - 1px), 1px, 1px, calc(100% - 1px)),
+    px-rect(var(--color-system-03), 1px, calc(100% - 1px), calc(100% - 1px), 1px),
+    px-rect(var(--color-system-03), 1px, 100%, calc(100% - 1px), 1px),
+    var(--color-system-05);
+}
+
+@mixin strip-cell($width) {
+  position: relative;
+  flex: 0 0 auto;
+  box-sizing: content-box;
+  width: $width;
+  height: $cell-height;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--color-black);
+  border-left: none;
+  font-size: 0;
+  line-height: 0;
+  cursor: default;
+
+  &:focus-visible {
+    outline: 1px solid var(--color-outline);
+    outline-offset: -3px;
+  }
+}
+
+// Docked lower left until Control-dragged (#298, #299): the component sets
+// --classicy-control-strip-bottom to the stored height above the desktop's
+// bottom edge and --classicy-control-strip-top-inset to the menu bar's depth,
+// so a shrunken desktop caps the strip just under the menu bar.
+.classicyControlStrip {
+  position: absolute;
+  left: 0;
+  bottom: max(
+    0px,
+    min(
+      var(--classicy-control-strip-bottom, 0px),
+      calc(
+        100% - #{$cell-height + 2px} -
+          var(--classicy-control-strip-top-inset, 0px)
+      )
+    )
+  );
+  z-index: 355;
+  display: flex;
+  align-items: flex-start;
+  height: $cell-height + 2px;
+
+  svg {
+    display: block;
+  }
+}
+
+// Docked right, the strip is mirrored: the tab leads and points left, and the
+// collapse box closes the right end, so the left scroll arrow becomes the
+// first cell and takes the left border. The arrows keep their directions.
+.classicyControlStripRight {
+  left: auto;
+  right: 0;
+
+  .classicyControlStripTab {
+    order: -1;
+
+    svg {
+      transform: scaleX(-1);
+    }
+  }
+
+  .classicyControlStripCollapseBox {
+    order: 1;
+    border-left: none;
+  }
+
+  .classicyControlStripScrollStart {
+    border-left: 1px solid var(--color-black);
+  }
+}
+
+.classicyControlStripMoving {
+  cursor: move;
+
+  * {
+    cursor: move;
+  }
+}
+
+// --- Collapse box and scroll arrows ----------------------------------------
+
+.classicyControlStripCell {
+  @include strip-cell($narrow-cell);
+  @include bevel-raised;
+
+  svg {
+    position: absolute;
+  }
+
+  &:active:not(:disabled) {
+    @include bevel-pressed;
+  }
+}
+
+// The first cell closes the strip on the left.
+.classicyControlStripCollapseBox {
+  border-left: 1px solid var(--color-black);
+
+  svg {
+    left: 2px;
+    top: 7px;
+  }
+
+  &:active svg {
+    left: 3px;
+    top: 8px;
+  }
+}
+
+.classicyControlStripScroll {
+  svg {
+    left: 2px;
+    top: 6px;
+  }
+
+  &:active:not(:disabled) svg {
+    left: 3px;
+    top: 7px;
+  }
+
+  &:disabled {
+    @include bevel-recessed;
+  }
+}
+
+// --- Modules ---------------------------------------------------------------
+
+// The modules scroll under the arrows; the inline width (set by dragging the
+// tab) clips them, and the arrows move scrollLeft one module at a time.
+.classicyControlStripModules {
+  display: flex;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+// Each module is a pop-up bevel button restyled to the figure: icon at (2, 3),
+// arrow at (22, 7); pressed, both move down and right by 1 px.
+.classicyControlStrip .classicyBevelButton.classicyControlStripModule {
+  @include strip-cell($module-width);
+  @include bevel-raised;
+  display: block;
+  min-width: 0;
+  min-height: 0;
+  gap: 0;
+  box-shadow: none;
+
+  .classicyBevelButtonIcon {
+    position: absolute;
+    left: 2px;
+    top: 3px;
+    width: var(--icon-small-size, 16px);
+    height: var(--icon-small-size, 16px);
+    image-rendering: pixelated;
+  }
+
+  .classicyBevelButtonLabel {
+    position: absolute;
+    left: 22px;
+    top: 7px;
+    line-height: 0;
+  }
+
+  &[data-state="pressed-off"],
+  &[data-state="pressed-on"],
+  &[aria-expanded="true"] {
+    @include bevel-pressed;
+    box-shadow: none;
+
+    .classicyBevelButtonIcon {
+      left: 3px;
+      top: 4px;
+    }
+
+    .classicyBevelButtonLabel {
+      left: 23px;
+      top: 8px;
+    }
+  }
+}
+
+// --- Tab -------------------------------------------------------------------
+
+// Pixel art: grip dots and the pointed end, with transparent pixels outside
+// its outline so the desktop shows through.
+.classicyControlStripTab {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  line-height: 0;
+  cursor: ew-resize;
+
+  &:focus-visible {
+    outline: 1px solid var(--color-outline);
+    outline-offset: -3px;
+  }
+}
+
+.classicyControlStripCollapsed .classicyControlStripTab {
+  cursor: default;
+}
+
+// A status line in a module menu (Figure 6-15: "No Users Connected"): italic
+// and black, though it is a disabled item, since it reports rather than acts.
+.classicyMenuItem.classicyControlStripStatus {
+  font-style: italic;
+
+  p {
+    color: var(--color-black);
+  }
+}

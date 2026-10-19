@@ -4,12 +4,199 @@ import { Meta } from "@storybook/addon-docs/blocks";
 
 # Classicy
 
-A React/TypeScript UI framework replicating the Mac OS 8 (Platinum) interface.
+A React/TypeScript UI framework that replicates the Mac OS 8 **Platinum**
+interface, from single controls up to a complete desktop with windows, menus,
+a Finder and control panels. Classicy follows Apple's _Mac OS 8 Human Interface
+Guidelines_ (HIGOS8) closely, and its components cite the page or figure they
+reproduce.
 
-Browse the sidebar to explore every component in `SystemResources`. Use the
-**Theme** toolbar menu to preview any component in each of Classicy's 21
-appearance themes.
+[Website](https://classicy.ing) ·
+[Live demo](https://robbiebyrd.github.io/classicy/) ·
+[GitHub](https://github.com/robbiebyrd/classicy) ·
+[npm](https://www.npmjs.com/package/classicy)
 
-- **Controls** — buttons, inputs, pickers, and other standalone widgets
-- **Desktop** — windows, menus, icons, and the desktop environment
-- **System** — boot, startup, and crash screens
+## Using this Storybook
+
+Each component has a **Docs** page with a description, every story, and a
+props table you can edit through **Controls**. The sidebar groups them:
+
+- **Controls**: standalone widgets, such as buttons, inputs, pop-up menus,
+  sliders, pickers, tabs, tables, trees and editors.
+- **Dialogs**: alerts, input dialogs, the Assistant (a paged wizard), and the
+  Open and Save file dialogs.
+- **Desktop**: the desktop, windows, the menu bar, menus, desktop icons, the
+  Control Strip, and apps.
+- **System**: startup and crash screens, cursors, and pixel art.
+- **Extensions**: Apple Guide and the screen savers.
+
+While you browse:
+
+- **Themes.** The **Theme** menu in the toolbar (the paintbrush) switches every
+  story between Classicy's 21 appearance themes, from _Default_ (Platinum) and
+  _Bondi_ to _Sunny_.
+- **Desktop stories.** Stories under **Desktop** render inside a real
+  `ClassicyDesktop`, with its store, sounds and menu bar. On their Docs pages
+  they show in a framed preview.
+- **State persists.** Like a real Classicy desktop, the store saves to
+  `localStorage` (key `classicyDesktopState`). If a story looks stuck in an
+  odd state, clear that key and reload.
+
+## Install
+
+```sh
+npm install classicy
+# peer dependencies
+npm install react react-dom zustand immer @tanstack/react-table react-player
+```
+
+Import the stylesheet once at your app's entry. The bundled fonts (ChicagoFLF,
+Charcoal, Geneva, Monaco and more, base64-embedded) are a separate, optional
+stylesheet. Skip it if you supply your own fonts.
+
+```ts
+import "classicy/dist/classicy.css";
+import "classicy/dist/fonts.css"; // optional: the bundled fonts
+```
+
+## Quick start
+
+A desktop lives inside `ClassicyAppManagerProvider`. Apps are children of
+`ClassicyDesktop`, and each app is a `ClassicyApp` holding `ClassicyWindow`s.
+
+```tsx
+import {
+  ClassicyApp,
+  ClassicyAppManagerProvider,
+  ClassicyButton,
+  ClassicyDesktop,
+  ClassicyWindow,
+} from "classicy";
+import appIcon from "./my-app.png";
+
+export const MyApp = () => (
+  <ClassicyApp id="MyApp.app" name="MyApp" icon={appIcon} defaultWindow="myapp_main">
+    <ClassicyWindow
+      id="myapp_main"
+      appId="MyApp.app"
+      title="My App"
+      icon={appIcon}
+      initialSize={[400, 300]}
+      initialPosition={["center", "center"]}
+    >
+      <ClassicyButton onClickFunc={() => alert("Hi")}>Click me</ClassicyButton>
+    </ClassicyWindow>
+  </ClassicyApp>
+);
+
+export const Root = () => (
+  <ClassicyAppManagerProvider>
+    <ClassicyDesktop>
+      <MyApp />
+    </ClassicyDesktop>
+  </ClassicyAppManagerProvider>
+);
+```
+
+That app already has a desktop icon, an entry in the Applications folder and
+the Apple menu, and a draggable, resizable window with close, zoom and collapse
+boxes. It also has window sounds, theming, and a window position that survives
+a reload. Mount `ClassicyDesktop` eagerly, not lazily: it seeds the store that
+every later dispatch relies on.
+
+## Core concepts
+
+### Apps, windows and state
+
+- **One store.** App and desktop state lives in a single Zustand store. Read it
+  with `useAppManager(selector)`, always through a selector, and change it by
+  dispatching actions from `useAppManagerDispatch()`.
+- **Apps.** Each app's slice is
+  `state.System.Manager.Applications.apps[id]`. Its windows form a record keyed
+  by window id, read and written through `getAppWindow`, `listAppWindows`,
+  `setAppWindow`, `updateAppWindow` and their siblings. The free-form `data` bag
+  holds the app's own state.
+- **Actions route by prefix.** `ClassicyWindow*` actions go to windows,
+  `ClassicyDesktop*` to the desktop, `ClassicyApp*` to app lifecycle. An app
+  claims its own prefix through its manifest.
+- **Manifests.** `registerApp({ … })` declares an app's description, its reducer,
+  its actions (as zod schemas), and the shape of its `data`. The description
+  doubles as the app icon's balloon help. Actions marked `scriptable` are
+  available to HyperCard stack scripts.
+- **Persistence.** State saves to `localStorage` on every change. Saved state
+  from older versions is migrated automatically when it loads.
+
+```tsx
+const appState = useAppManager((s) => s.System.Manager.Applications.apps["MyApp.app"]);
+const dispatch = useAppManagerDispatch();
+dispatch({ type: "ClassicyAppOpen", app: { id: "MyApp.app", name: "MyApp", icon } });
+```
+
+### The desktop
+
+- **Menus.** The menu bar shows the focused window's `appMenu`, with the Apple
+  menu, the Help menu and the app switcher. Right-click menus resolve innermost
+  first: a `ClassicyContextualMenuTarget`, then the window's `contextMenu`, then
+  the app's, then the desktop's. Every menu draws the Platinum menu frame
+  (HIGOS8 Figure 6-15).
+- **Balloon Help.** Wrap any element in `ClassicyBalloonHelp`, or use the
+  `useClassicyBalloonHelp` hook on an element you already own. The user can
+  turn balloons off globally.
+- **Control Strip.** The floating strip at the lower left holds small module
+  buttons: Sound and Screen Saver are built in, and apps add more with
+  `registerClassicyControlStripModule`. Users show, hide and reorder modules in
+  its control panel.
+- **Screen savers.** Twelve After Dark-style savers start after an idle timeout.
+  Register your own with `registerClassicyScreenSaver`.
+- **Files.** `ClassicyFileSystem` is a browser-local file tree behind Finder,
+  the Open and Save dialogs, and `ClassicyFileBrowser`. A registered adapter
+  can mirror it to a backend.
+- **Sound.** Interface sounds play from audio sprites by event name, with a
+  system volume and a separate alert volume.
+
+### Theming
+
+Themes are JSON and set typography, the system palette, accent colours and the
+desktop pattern or picture. The **Appearance** control panel switches themes
+and edits colours, fonts and the desktop. The first edit to a built-in theme
+forks it into a _Custom_ theme, so built-ins never change. Themes save to and
+load from `.json` theme files.
+
+### Diagnostics and safety
+
+- **Logging.** Internal diagnostics go through `classicyLog`. Host apps receive
+  logs, errors and crash reports, in production too, with
+  `registerClassicyLogSink`.
+- **Analytics.** Pass `gaMeasurementIds` or `gtmContainerId` to
+  `ClassicyAppManagerProvider`. Windows then send a pageview when they open or
+  gain focus, and `useClassicyAnalytics()` sends your own events. With neither
+  set, nothing is sent.
+- **Untrusted actions.** Actions from untrusted sources, such as HyperCard stack
+  scripts, must clear a fixed guard and a deny-by-default allowlist in the
+  store itself. A script can open apps, but it can never reach desktop or
+  window internals.
+
+## Developing Classicy
+
+The repository is a pnpm workspace: the library at its root, plus an `example/`
+app that consumes it.
+
+```sh
+pnpm install           # library + example workspace
+pnpm build:source      # build the library (fastest)
+pnpm preview           # build, then run the example desktop
+pnpm storybook         # this component showcase
+pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test   # what CI runs
+```
+
+## Further reading
+
+- [Building a Classicy App](https://github.com/robbiebyrd/classicy/blob/main/docs/BUILDING-APPS.md):
+  the step-by-step guide to apps, windows, manifests, reducers, menus, files,
+  dialogs, sound, persistence and testing, with the traps that cost the most
+  time. It also ships in the package at
+  `node_modules/classicy/docs/BUILDING-APPS.md`.
+- [Agent Reference](https://github.com/robbiebyrd/classicy/blob/main/docs/AGENT-REFERENCE.md):
+  every public component, prop, action and registry in one flat, searchable
+  reference, written for AI coding agents and handy for people too.
+- [README](https://github.com/robbiebyrd/classicy#readme): the feature list,
+  the full component table, and acknowledgements.

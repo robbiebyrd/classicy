@@ -24,7 +24,7 @@ version, aimed at a person writing an app for the first time.
 13. [Balloon help](#13-balloon-help)
 14. [Sound](#14-sound)
 15. [Analytics](#15-analytics)
-16. [Extensions and global shortcuts](#16-extensions-and-global-shortcuts)
+16. [Extensions, global shortcuts and Control Strip modules](#16-extensions-global-shortcuts-and-control-strip-modules)
 17. [Persistence](#17-persistence)
 18. [Testing](#18-testing)
 19. [Checklist and known traps](#19-checklist-and-known-traps)
@@ -253,7 +253,7 @@ Every prop, with its default:
 | `zoomable` | `boolean` | `true` | Draw the zoom box. |
 | `collapsable` | `boolean` | `true` | Draw the collapse (windowshade) box. |
 | `resizable` | `boolean` | `true` | Draw the grow box. |
-| `scrollable` | `boolean` | `true` | Give the content region scroll bars. |
+| `scrollable` | `boolean` | `true` | Give the content region scroll bars (always both, Mac OS 8 style). Pass `false` when the content scrolls itself — a full-window `<textarea>`, a `ClassicySplitView`, a pan surface — or it gets a second set of bars. |
 | `growable` | `boolean` | — | Let content drive the window size. |
 | `modal` | `boolean` | `false` | Modal dialog. Destroyed on unmount, so each open takes focus. |
 | `defaultWindow` | `boolean` | `false` | Mark this as the app's default window. |
@@ -273,6 +273,7 @@ Every prop, with its default:
 | `dimContents` | `boolean` | `true` | Dim contents when the window is inactive. |
 | `analyticsPath` | `string` | derived | Override the generated pageview path. |
 | `analyticsExclude` | `boolean` | — | Emit no pageview at all. |
+| `initialFocusRef` | `RefObject<HTMLElement \| null>` | — | Element focused when the window becomes the focused window (unless focus is already inside it), so its keyboard navigation works without a click. A modal's focus trap starts there instead. |
 | `onCloseFunc` | `(id) => void` | — | Runs after a close is allowed. |
 | `onBeforeClose` | `(id) => boolean \| Promise<boolean>` | — | Close veto. Return `false` to cancel. |
 | `type` | `string` | `"default"` | Free-form class hook. |
@@ -360,7 +361,7 @@ interface ClassicyStoreSystemApp {
     id: string
     name: string
     icon: string
-    windows: ClassicyStoreSystemAppWindow[]
+    windows: ClassicyStoreSystemAppWindows  // Record<windowId, window>
     open: boolean
     data?: Record<string, unknown>     // your app's state lives here
     focused?: boolean
@@ -403,6 +404,43 @@ useAppManager((s) => s.System.Manager.Desktop.disableBalloonHelp)
 ```
 
 Outside React, read imperatively with `useAppManager.getState()`.
+
+### Windows
+
+`apps[id].windows` is a record keyed by window id
+(`ClassicyStoreSystemAppWindows = Record<string, ClassicyStoreSystemAppWindow>`;
+each entry's `id` equals its key). Go through the helpers rather than indexing
+it yourself — they accept a missing app, so a selector can pass
+`apps[appId]` straight in:
+
+```tsx
+import { getAppWindow, listAppWindows } from "classicy"
+
+// one window's flag — a primitive, so the component re-renders only when it changes
+const inspectorOpen = useAppManager((s) =>
+    getAppWindow(s.System.Manager.Applications.apps[appId], "myapp_inspector")?.closed === false,
+)
+
+// any open window?
+const anyOpen = useAppManager((s) =>
+    listAppWindows(s.System.Manager.Applications.apps[appId]).some((w) => !w.closed),
+)
+```
+
+| Helper | Does |
+|---|---|
+| `getAppWindow(app, id)` | the window, or `undefined` |
+| `listAppWindows(app)` | a fresh array of every window (insertion order) |
+| `hasAppWindow(app, id)` | membership |
+| `countAppWindows(app)` | number of registered windows, open or closed |
+| `setAppWindow(app, window)` | insert or replace by `window.id` (reducers only) |
+| `removeAppWindow(app, id)` | delete; returns whether it existed (reducers only) |
+| `updateAppWindow(app, id, patch \| (w) => void)` | merge a patch or run a mutator (reducers only) |
+| `mostRecentAppWindow(windows)` | highest `zOrder` of a list |
+
+The write helpers mutate, so call them on the immer draft inside your event
+handler. Decide on window data (`zOrder`, `default`, `closed`), never on list
+position: JavaScript lists integer-like keys (`"2"`) before all others.
 
 ### Dispatching
 
@@ -1123,7 +1161,7 @@ deliberate trade for readable content reports; the path is what stays clean.
 
 ---
 
-## 16. Extensions and global shortcuts
+## 16. Extensions, global shortcuts and Control Strip modules
 
 An extension is a background app: always open, no desktop icon, no Applications
 entry, no Apple-menu entry, never focused, usually no window. Use one for a
@@ -1160,6 +1198,69 @@ Global keyboard shortcuts are honored **only** for extensions:
 Each is canonicalized and registered on mount (first registrant wins) and
 unregistered on unmount.
 
+### Control Strip modules
+
+An app or extension adds a button to the Control Strip (HIGOS8 Figure 6-15)
+with `registerClassicyControlStripModule`. Call it **once, at module scope**,
+next to your `registerApp` call:
+
+```tsx
+import {
+    classicyControlStripOpenControlPanelItem,
+    registerClassicyControlStripModule,
+    useAppManager,
+    useAppManagerDispatch,
+} from 'classicy'
+
+registerClassicyControlStripModule({
+    id: 'com.example.vpn',
+    appId: 'MyBridge.app',     // shows only while <ClassicyApp id="MyBridge.app"> is mounted
+    label: 'VPN',              // accessible name, and its name in the control panel
+    icon: vpnIcon16,           // 16 × 16; or a hook returning one
+    fileIcon: vpnIcon32,       // its file in System Folder:Control Strip Modules
+    order: 50,                 // lower first; default 100 (after the built-ins)
+    menuItems: () => {         // a hook: runs inside the providers
+        const connected = useAppManager((s) => s.System.Manager.Applications.apps['MyBridge.app']?.data?.connected === true)
+        const dispatch = useAppManagerDispatch()
+        return [
+            { id: 'vpn-status', title: connected ? 'Connected' : 'Not Connected', disabled: true, className: 'classicyControlStripStatus' },
+            { id: 'spacer' },
+            { id: 'vpn-toggle', title: connected ? 'Disconnect' : 'Connect', event: 'ClassicyAppMyBridgeToggle' },
+            { id: 'spacer' },
+            classicyControlStripOpenControlPanelItem(dispatch, 'VPN', { id: 'VPNPanel.app', name: 'VPN', icon: panelIcon }),
+        ]
+    },
+})
+```
+
+- **A menu or a surface.** `menuItems` (an array, or a hook returning one) pops
+  up a menu; a disabled item with class `classicyControlStripStatus` is the
+  italic status line. `content` (a component) pops up anything else — the Sound
+  module's slider is one. `content` is ignored when `menuItems` is set.
+- **Hooks.** Each module renders as its own component, so the function forms of
+  `icon` and `menuItems`, and `content`, may call hooks. Keep their hook calls
+  unconditional.
+- **Ownership.** With an `appId`, the module shows (and its file is listed) only
+  while a `ClassicyApp` with that id is mounted. That is runtime presence
+  (`useClassicyMountedApps`), not the persisted `apps[id]` record. Without an
+  `appId`, it shows while registered.
+- **Re-registering.** The same `appId` replaces the module in place; a different
+  `appId` is ignored with a warning. `unregisterClassicyControlStripModule(id)`
+  removes one. The strip updates live either way.
+- **Always shown unless turned off.** Built-in and registered modules always
+  show. The host turns one off with
+  `<ClassicyDesktop controlStrip={{ disabledModules: [CLASSICY_CONTROL_STRIP_MODULE_IDS.sound] }} />`
+  (it is then neither drawn nor offered to the user); the user hides one, or
+  reorders them, in the Control Strip control panel.
+- **HIG p.125.** A module that belongs to a control panel includes an
+  "Open … Control Panel" command (`classicyControlStripOpenControlPanelItem`).
+- **Anywhere on screen.** The user can Control-drag the strip's collapse box
+  to dock it on the left or right edge at any height, so don't assume it sits
+  at the lower left: a module's menu or `content` opens beside the module and
+  flips to whichever side has room.
+- Every installed module is listed as a read-only file in
+  `Macintosh HD:System Folder:Control Strip Modules`.
+
 ---
 
 ## 17. Persistence
@@ -1182,6 +1283,11 @@ Consequences for an app author:
 - **Persisted state beats `defaultState`.** To reset during development, clear
   `localStorage["classicyDesktopState"]` — or drag the desktop's Trash icon,
   which does exactly that and reloads.
+- **Old saved state is migrated on load.** `migrateClassicyState` runs on the
+  loaded state after it is merged over the defaults, and on every
+  `mergeClassicyState` result (so a `defaultState` written for 0.x is
+  converted too). It detects old shapes rather than reading a version number,
+  so it is idempotent. Today it converts 0.x `windows` arrays into records.
 
 ---
 
@@ -1283,4 +1389,6 @@ the vitest setup file — Classicy uses all three.
 | An icon persists after the app is removed | Icons persist to `localStorage`; turning both icon surfaces off dispatches the removal. |
 | State change is ignored after reload | Persisted state beats `defaultState`. Clear `classicyDesktopState`. |
 | A desktop icon has no balloon help | The manifest has no `description`. |
+| A Control Strip module never appears | Its `appId` app is not mounted, the host lists it in `disabledModules`, or the user hid it in the Control Strip control panel. |
+| A Control Strip registration is ignored | Another `appId` already registered that module id. |
 | Schema warnings in the console | Dev-only manifest validation. Warn-only — state is never rejected. |

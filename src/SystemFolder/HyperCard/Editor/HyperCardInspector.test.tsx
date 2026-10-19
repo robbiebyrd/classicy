@@ -153,7 +153,14 @@ describe("HyperCardInspector", () => {
 	it("renders a registered picker component for a picker-kind option field, and commits its onChange", () => {
 		registerHyperCardPartEditorMeta("pickerTestPart", {
 			label: "Picker Test Part",
-			optionsSchema: [{ key: "pickme", label: "Pick", kind: "picker", pickerId: "testPicker" }],
+			optionsSchema: [
+				{
+					key: "pickme",
+					label: "Pick",
+					kind: "picker",
+					pickerId: "testPicker",
+				},
+			],
 		});
 		registerHyperCardOptionPicker("testPicker", ({ value, onChange }) => (
 			<button
@@ -189,7 +196,9 @@ describe("HyperCardInspector", () => {
 	it("falls back to a plain text input when a picker field's pickerId isn't registered", () => {
 		registerHyperCardPartEditorMeta("pickerTestPartUnregistered", {
 			label: "Picker Test Part",
-			optionsSchema: [{ key: "pickme", label: "Pick", kind: "picker", pickerId: "nope" }],
+			optionsSchema: [
+				{ key: "pickme", label: "Pick", kind: "picker", pickerId: "nope" },
+			],
 		});
 		const edit = makeEdit({ selectedPartId: "slider1" });
 		const card = edit.draft.cards[0];

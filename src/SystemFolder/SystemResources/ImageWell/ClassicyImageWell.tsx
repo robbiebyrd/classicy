@@ -8,23 +8,34 @@ import {
 } from "react";
 
 type ClassicyImageWellProps = PropsWithChildren<{
-	/** Image source to display in the well. */
+	/** Image source to display in the well. When set, it replaces `children`. */
 	src?: string;
-	/** Alt text for the displayed image. */
+	/** Alt text for the displayed image. Defaults to `""`. */
 	alt?: string;
-	/** Whether the well is enabled. Default `true`. */
+	/** Whether the well is enabled; a disabled well is dimmed and ignores drops. Defaults to `true`. */
 	enabled?: boolean;
-	/** Whether the well is selected (shows an accent frame). */
+	/** Whether the well is selected (shows an accent frame). Defaults to `false`. */
 	selected?: boolean;
 	/**
 	 * Optional drop handler. Providing it makes the well a drag-and-drop target;
 	 * receives the dropped files and the raw drag event.
 	 */
 	onDrop?: (files: FileList, e: DragEvent<HTMLDivElement>) => void;
-	/** Accessible label for the well. */
+	/** Accessible label for the well (falls back to `alt`). Not drawn. */
 	label?: string;
 }>;
 
+/**
+ * The Platinum image well (HIGOS8 Ch.2 "Image Wells", p.47): a 2 px recessed
+ * frame with a white fill that displays an image — the droppable-image-slot
+ * equivalent of `<img>` (keep a raw `<img>` for plain static pictures). Show
+ * `src`, or any custom `children` (a placeholder, an icon) when there is none.
+ *
+ * Passing `onDrop` turns the well into a drag-and-drop target: it highlights
+ * while files are dragged over it and hands them over as a `FileList`. It is
+ * not a button — it takes no clicks or keyboard focus — and it does not load
+ * the dropped file itself; read it and pass the result back as `src`.
+ */
 export const ClassicyImageWell: FunctionalComponent<ClassicyImageWellProps> = ({
 	src,
 	alt = "",

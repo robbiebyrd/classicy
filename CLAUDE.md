@@ -22,6 +22,8 @@ pnpm storybook            # Run the component showcase (Storybook) dev server
 pnpm build:storybook      # Build static Storybook to storybook/storybook-static/
 ```
 
+**CI** (`.github/workflows/ci.yml`) runs `pnpm lint`, `pnpm exec tsc --noEmit -p .` and `pnpm test` on every pull request and push to `main`; run the same three locally before pushing.
+
 **Local dev workflow**: `pnpm build:source` to (re)build the library; the `example/` app resolves it automatically through the workspace symlink. For live iteration use `pnpm build:watch` (or `pnpm preview`, which builds then runs the example dev server with the source watcher).
 
 ## Path Aliases
@@ -53,7 +55,8 @@ Uses **Zustand** for app/desktop state with the existing event reducer for domai
 - **`useAppManager(selector)`** - Zustand hook to read state. Use selectors for performance.
 - **`useAppManagerDispatch()`** - Returns the dispatch function from the Zustand store
 - **classicyDesktopStateEventReducer** (`ClassicyAppManager.ts`) - Still routes events by prefix to domain-specific handlers (called inside Zustand's `set()`)
-- **SoundManager** still uses React Context/useReducer (not migrated to Zustand)
+- **App windows** — `apps[id].windows` is a `Record<windowId, ClassicyStoreSystemAppWindow>` (1.0; an array in 0.x). Read/write it only through `getAppWindow`, `listAppWindows`, `hasAppWindow`, `countAppWindows`, `setAppWindow`, `removeAppWindow`, `updateAppWindow` (`ClassicyAppWindows.ts`); never branch on key order. `migrateClassicyState` (`ClassicyStateMigrations.ts`) converts 0.x arrays on load (after the merge over defaults) and on every `mergeClassicyState` result; it is shape-detecting and idempotent — there is no state version number
+- **SoundManager** still uses React Context/useReducer (not migrated to Zustand). Its `volume` (0–100, `ClassicyVolumeSet`) is the Howl player's gain, applied by `ClassicySoundManagerProvider` and re-applied when a sound theme loads; it is per-mount, like the mute flag (`"*"` in `disabled`); alerts (`ClassicyAlertSound`/`ClassicySoundPlayError`) play at that gain × the persisted `Appearance.alertVolume` (0–100, `ClassicyDesktopChangeAlertVolume`)
 
 Event routing by prefix (unchanged):
 - `ClassicyWindow*` → Window operations (focus, move, resize, collapse, zoom)
@@ -319,6 +322,109 @@ resizable container splitting two or three content areas along one axis:
   listener idiom as `ClassicyWindow`. Pure resize math is exported as
   `computeSplitViewSizes` for tests.
 
+### Pop-Up Bevel Buttons
+
+`ClassicyBevelButton` opens a Platinum menu (`menuItems`) or any other surface
+(`popupContent`, e.g. `ClassicyPopUpSlider`) in a fixed-position portal
+(z-index 5000), built from the shared `ClassicyMenu`/`ClassicyMenuProvider`:
+
+- Placement: `popupPlacement` `"below"` or `"right"`, defaulting to where
+  `popupDirection`'s arrow points; flips to the other side when there is no
+  room (`classicyBevelPopupPlacement`). `popupAlign` `"start"` (default: left
+  edges / tops aligned) or `"center"`; `popupAnchorInset` shifts the edges the
+  surface is placed against (the Control Strip overlaps the strip by 3 px).
+- Both surfaces share the Platinum menu frame (below).
+- `popupTrigger="click"` (default in `popup` mode): a quick click leaves the
+  menu open (sticky); a press held past `popupHoldDelayMs` (500) is a standard
+  menu — a document `mouseup` over an item `click()`s it.
+- `popupTrigger="hold"` (default in other modes): the click keeps the mode's
+  behaviour and only a long press opens the surface; the click ending that
+  press is swallowed (`suppressClickRef`).
+- Keyboard: a click with `detail === 0` (Enter/Space) toggles a click-trigger
+  surface; Down Arrow opens either kind with the first item focused.
+
+### Menu Frame
+
+Every menu — menu bar dropdowns, contextual menus, submenus, pop-up bevel
+menus — draws the HIGOS8 Figure 6-15 frame from the `platinumMenuFrame` mixin
+(`appearance.scss`): 1 px black border, white/system-04 inner bevel with
+face-coloured corners, and a 1 px `system-07` shadow on the right and bottom
+starting 2 px in, drawn by `::before`/`::after` (so the menu list must be
+positioned). Dividers (`platinumMenuDivider`) are system-05 over white across
+the full inner width. Bevel-button panels (`popupContent`) reuse the frame.
+
+### Keyboard Equivalents
+
+`ClassicyKeyboardEquivalentField` (HIGOS8 pp.120–122) captures a new
+combination in `ClassicyKeyboardEquivalentDialog`, which listens on `window`
+in the **capture phase** and `preventDefault`s, so the menu-shortcut
+dispatcher and dialog keyboard hooks (both skip `defaultPrevented`) never act
+on a recorded key. Recorded shortcuts use the menu-item form (`"⌃⌘S"`, via
+`keyboardShortcutFromEvent`) and round-trip through `shortcutMatchesEvent`.
+Rules live in `checkKeyboardEquivalent` (needs ⌘ or a function key unless
+`requireCommandKey={false}`; `inUse` conflicts name their owner).
+
+### Control Strip
+
+`ClassicyDesktop` mounts a `ClassicyControlStrip` at its lower left — the home
+of the Sound control (the menu bar has no speaker widget). Its `controlStrip`
+prop takes the strip's props (`disabledModules`, `defaultCollapsed`,
+`defaultWidth`) or `false` to hide it; Storybook desktop stories opt out with
+`parameters.classicy.controlStrip: false`.
+
+Modules come only from `registerClassicyControlStripModule`
+(`ClassicyControlStripRegistry.ts`) — `{ id, label, icon, appId?, order?,
+menuItems?, content?, fileIcon? }`, called at module scope. There is no
+`modules` prop. The registry is live (`useSyncExternalStore`), so the strip,
+the control panel and the file system follow registrations made after mount.
+
+- Function forms of `icon`/`menuItems` and the `content` component are hooks
+  run inside the providers (each module is its own component, keyed by
+  `id:revision`).
+- `appId` ties a module to a mounted `ClassicyApp` — runtime presence via
+  `ClassicyMountedApps.ts` (`ClassicyApp` marks itself on mount), never the
+  persisted `apps[id]` record. Same `appId` re-registering replaces; another
+  `appId` is ignored with a `classicyLog` warning.
+- Built-ins register like any module: Sound (`classicy-sound`, order 10, no
+  owner) from `ClassicySoundManagerProvider`'s import graph; Screen Saver
+  (`classicy-screen-saver`, order 20, owner `ScreenSaver.app`) from the
+  extension. Both files are in `package.json` `sideEffects`.
+- System and registered modules **always show** unless the host lists them in
+  `disabledModules` (not drawn, not offered in the control panel — published
+  for it via `setClassicyControlStripDisabledModules`) or the user hides them.
+- Persisted state: `System.Manager.Desktop.controlStrip` `{ visible, collapsed?,
+  width?, hiddenModules, moduleOrder, edge?, bottom? }`, written by
+  `ClassicyDesktopControlStrip{SetVisible,SetCollapsed,SetWidth,SetModuleHidden,SetModuleOrder,SetPosition}`.
+  `defaultCollapsed`/`defaultWidth` apply only until the user changes them.
+  Ids in `moduleOrder` lead; the rest follow in declared order. Settings for
+  unregistered ids are kept.
+- Moving it (#298, #299): Control-dragging the collapse box carries the strip
+  up and down and docks it to the edge on the pointer's half of the desktop
+  (`computeClassicyControlStripPosition`), between the desktop's bottom and
+  the menu bar's underside; release stores `SetPosition { edge: "left" |
+  "right", bottom }` (px above the desktop's bottom). The collapse box claims
+  the Control-click's `contextmenu` and swallows the click, so it never
+  collapses or raises the strip's menu. Docked right, the strip mirrors via
+  CSS `order` (tab first, flipped; collapse box last), and the tab widens it
+  when dragged — or arrowed — left. The offset is a CSS custom property
+  (`--classicy-control-strip-bottom`), capped in SCSS so a shrunken desktop
+  never pushes the strip off the top.
+- The Control Strip control panel (`ControlPanels/ControlStripManager/`,
+  `ControlStripManager.app`) edits all of it; the strip's contextual menu
+  offers Hide Control Strip and Open Control Strip Control Panel.
+- Each installed module is a read-only file (Extension type, so Finder won't
+  open it) in the derived `Macintosh HD:System Folder:Control Strip Modules`
+  (`ClassicyFileSystemControlStripModules.ts`), built like the Extensions
+  folder and never persisted.
+
+HIG p.125: a module for a control panel must include an "Open … Control Panel"
+command (`classicyControlStripOpenControlPanelItem`).
+
+The strip is pixel-matched to HIGOS8 Figure 6-15: bevels are `px-rect`
+background layers (`appearance.scss`), and the tab, arrows and slider are
+`ClassicyPixelArt` (rows of theme tokens rendered as SVG runs), so every pixel
+follows the theme. Widths snap to whole modules (31 px with the separator).
+
 ### Contextual Menus
 
 Right-click menus resolve target-based, innermost wins: a `ClassicyContextualMenuTarget`-wrapped control > the window's `contextMenu` prop > the app's `contextMenu` prop (`ClassicyApp`) > the desktop default menu (empty desktop only). Desktop icons take an optional `contextMenu` prop. A single `ClassicyContextualMenuProvider` (mounted by `ClassicyDesktop`) renders the one open menu via portal.
@@ -413,6 +519,10 @@ Themes are JSON-based (`src/SystemFolder/ControlPanels/AppearanceManager/styles/
 - Typography (body, ui, header fonts)
 - Colors (system palette, theme accent colors)
 - Desktop appearance (background, patterns)
+
+Built-in themes are never mutated: the first colour/font/desktop edit on one (`ClassicyDesktopChangeColor { colorKey, index?, color }`, `ChangeFont*`, `ChangeBackground*`) forks it into the single "Custom" theme (`id: "custom"`) in `Appearance.customThemes` and activates it; later edits modify the active custom theme (`editActiveClassicyTheme`, `ClassicyCustomTheme.ts`). `ChangeTheme` searches built-ins, then customs. Customs live outside `availableThemes` because persisted arrays replace defaults on load.
+The 28 editable colours are defined once in `CLASSICY_THEME_COLOR_TARGETS` (`ClassicyThemeColorTargets.ts`), which drives the reducer's validation and the Appearance Manager's Colors tab. Details: `docs/AGENT-REFERENCE.md` §8.
+Theme files (`ClassicyThemeFile.ts`, Themes tab "Save Theme…"/"Load Theme…") are `{ format: "classicy-theme", version: 1, theme }`, validated by the zod `ClassicyThemeSchema` (strips unknown keys; `backgroundImage` must be a bundled wallpaper or a plain http(s) URL because it lands unquoted in `url(…)`). Export writes wallpapers by filename. `ClassicyDesktopImportTheme { theme }` re-validates, always appends a new custom theme (`custom-<slug>` id, de-duplicated name, never `"custom"`) and activates it.
 
 ## Build Notes
 

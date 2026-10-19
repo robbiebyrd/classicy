@@ -15,17 +15,35 @@ import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/Clas
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
 type ClassicyButtonProps = PropsWithChildren<{
+	/**
+	 * Draws the default-button ring (HIGOS8 "Default Buttons", p.23) — the
+	 * dialog's most likely action. Visual only: Return/Enter triggering it is
+	 * the dialog's job (`ClassicyForm` with `buttonType="submit"`,
+	 * `ClassicyAlert`). Defaults to `false`.
+	 */
 	isDefault?: boolean;
+	/** Dims the button and blocks clicks, sounds and the key flash. Defaults to `false`. */
 	disabled?: boolean;
+	/** Click handler (mouse, or Return/Space on the focused button). */
 	onClickFunc?: MouseEventHandler<HTMLButtonElement>;
+	/**
+	 * `rectangle` is the standard rounded push button; `square` is a fixed
+	 * square box for a glyph or icon (padding variants are ignored). Defaults
+	 * to `rectangle`.
+	 */
 	buttonShape?: "rectangle" | "square";
+	/** `small` shrinks the box and type; unset is the standard (medium) size. */
 	buttonSize?: "medium" | "small";
+	/**
+	 * Native `type` of the underlying `<button>`. Use `submit` for the
+	 * confirming button inside a `ClassicyForm`. Defaults to `button`.
+	 */
 	buttonType?: "button" | "submit" | "reset";
-	/** When true, holds the button in its pressed/active visual state. */
+	/** When true, holds the button in its pressed/active visual state. Defaults to `false`. */
 	depressed?: boolean;
-	/** Inner spacing variant; scales off --window-padding-size. Ignored for square buttons. */
+	/** Inner spacing variant; scales off --window-padding-size. Ignored for square buttons. Defaults to `md`. */
 	padding?: "sm" | "md" | "lg" | "xl";
-	/** Outer spacing variant; scales off --window-padding-size. */
+	/** Outer spacing variant; scales off --window-padding-size. Defaults to `md`. */
 	margin?: "sm" | "md" | "lg" | "xl";
 }> &
 	Omit<
@@ -56,6 +74,27 @@ const KEY_ACTIVE_MS = 125;
 const isActivationKey = (key: string): boolean =>
 	key === "Enter" || key === " " || key === "Spacebar";
 
+/**
+ * The Platinum push button (HIGOS8 Ch.2 "Push Buttons", p.21) — use it
+ * wherever you would reach for a raw `<button>`; it renders a real `<button>`
+ * and forwards its ref. Short labels still get the HIG minimum width, so an
+ * OK/Cancel pair lines up.
+ *
+ * Pressing plays the theme's click-down/click-up sounds, and activating the
+ * focused button with Return/Enter or Space flashes the pressed state for
+ * about 8 ticks, as the HIG describes. Every click is reported to analytics
+ * as `click`. Any other `<button>` attribute (`aria-*`, `id`, `title`, …)
+ * passes through; `onClick`, `type`, `onMouseDown` and `onMouseUp` are owned
+ * by the component — use `onClickFunc` and `buttonType` instead.
+ *
+ * For latching, toggle, radio, icon or pop-up buttons use
+ * `ClassicyBevelButton`; for the "?" help button use `ClassicyHelpButton`.
+ *
+ * ```tsx
+ * <ClassicyButton onClickFunc={cancel}>Cancel</ClassicyButton>
+ * <ClassicyButton isDefault buttonType="submit">OK</ClassicyButton>
+ * ```
+ */
 export const ClassicyButton = forwardRef<
 	HTMLButtonElement,
 	ClassicyButtonProps

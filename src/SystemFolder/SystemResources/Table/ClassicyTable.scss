@@ -70,9 +70,12 @@
   background: var(--color-system-01);
 }
 
+// Finder-style list selection tracks the user's Appearance selection color
+// (HIGOS8 Ch.2 — the selection/accent color is user-set in the Appearance
+// control panel), matching ClassicyTree rather than a fixed near-black.
 .classicyTableRowSelected {
   color: var(--color-white);
-  background: var(--color-system-07);
+  background: var(--color-select);
 }
 
 .classicyTableHeaderCellContent {

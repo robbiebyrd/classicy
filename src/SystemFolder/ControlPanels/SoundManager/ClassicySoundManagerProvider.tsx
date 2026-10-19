@@ -1,3 +1,6 @@
+// Side-effect import: registers the Sound Control Strip module, which needs
+// this provider's context.
+import "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundControlStripModule";
 import {
 	type FC as FunctionalComponent,
 	type ReactNode,
@@ -9,6 +12,7 @@ import {
 	ClassicySoundDispatchContext,
 	ClassicySoundManagerContext,
 	ClassicySoundStateEventReducer,
+	classicySoundGain,
 	initialPlayer,
 } from "./ClassicySoundManagerUtils";
 
@@ -43,6 +47,22 @@ export const ClassicySoundManagerProvider: FunctionalComponent<{
 			soundDispatch({ type: "ClassicySoundSetAlertSound", sound: alertSound });
 		}
 	}, [alertSound]);
+	const alertVolume = useAppManager(
+		(s) => s.System.Manager.Appearance?.alertVolume,
+	);
+	useEffect(() => {
+		// 0 is a real level, so test for a number rather than truthiness.
+		if (typeof alertVolume === "number") {
+			soundDispatch({ type: "ClassicySoundSetAlertVolume", alertVolume });
+		}
+	}, [alertVolume]);
+
+	// The system volume (ClassicyVolumeSet) is the player's gain. Re-applied
+	// when a sound theme loads a new player, so the level carries over.
+	const { soundPlayer, volume } = sound;
+	useEffect(() => {
+		soundPlayer?.volume(classicySoundGain(volume));
+	}, [soundPlayer, volume]);
 
 	return (
 		<ClassicySoundManagerContext.Provider value={sound}>

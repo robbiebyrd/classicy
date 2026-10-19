@@ -18,6 +18,7 @@ import {
 	type KeyboardEvent,
 	type MouseEvent,
 	type ReactNode,
+	type RefObject,
 	useCallback,
 	useEffect,
 	useMemo,
@@ -27,6 +28,10 @@ import {
 import { createPortal } from "react-dom";
 
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import {
+	getAppWindow,
+	listAppWindows,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 
 const fileIcon = ClassicyIcons.system.files.file;
 
@@ -69,6 +74,42 @@ export function resolveSize(
 	};
 
 	return [resolve(size[0], dw), resolve(size[1], dh)];
+}
+
+/**
+ * The size a window applies as its inline `width`/`height`, measured off the
+ * DOM. `.classicyWindow` is content-box, so its frame padding and border sit
+ * outside that box while a bounding rect includes them. Storing the rect made
+ * the window draw that much larger on every remount (#291), so any size the
+ * window persists is measured here.
+ */
+export function classicyWindowContentSize(el: HTMLElement): [number, number] {
+	const rect = el.getBoundingClientRect();
+	const [chromeWidth, chromeHeight] = classicyWindowChromeSize(el);
+	return [
+		Math.max(0, rect.width - chromeWidth),
+		Math.max(0, rect.height - chromeHeight),
+	];
+}
+
+/**
+ * The window's chrome — frame padding plus border, both sides — that sits
+ * outside its content-box size. Room on the desktop is outer space, so a
+ * target derived from it must drop this before it is applied as a size.
+ */
+export function classicyWindowChromeSize(el: HTMLElement): [number, number] {
+	const style = getComputedStyle(el);
+	const px = (value: string) => Number.parseFloat(value) || 0;
+	return [
+		px(style.paddingLeft) +
+			px(style.paddingRight) +
+			px(style.borderLeftWidth) +
+			px(style.borderRightWidth),
+		px(style.paddingTop) +
+			px(style.paddingBottom) +
+			px(style.borderTopWidth) +
+			px(style.borderBottomWidth),
+	];
 }
 
 export function resolvePosition(
@@ -129,31 +170,149 @@ export function clampWindowPositionToViewport(
 }
 
 interface ClassicyWindowProps {
+	/**
+	 * Title-bar text. Also the window's accessible name and the analytics
+	 * pageview title. Utility windows draw no title. Defaults to `""`.
+	 */
 	title?: string;
+	/**
+	 * Window id, unique within its app. Keys the window's record in
+	 * `apps[appId].windows` (persisted position, size, collapsed/zoomed state)
+	 * and, with `appId`, forms the DOM id `${appId}_${id}`.
+	 */
 	id: string;
+	/** Id of the owning `ClassicyApp`. The window must render inside that app. */
 	appId: string;
+	/**
+	 * Icon drawn beside the title of a titled document window. Defaults to the
+	 * generic file icon.
+	 */
 	icon?: string;
+	/** Hide the title-bar icon. Defaults to `false`. */
 	hideIcon?: boolean;
+	/**
+	 * Register the window closed. Only the first registration reads it: once
+	 * the window has a store record, that record's `closed` flag wins. A closed
+	 * window renders nothing. Defaults to `false`.
+	 */
 	hidden?: boolean;
+	/**
+	 * Draw the close box at the left of the title bar (HIGOS8 p.101). On a
+	 * `modal` window it also decides Escape / Command-period: a closable modal
+	 * closes, a non-closable one beeps. Defaults to `true`.
+	 */
 	closable?: boolean;
+	/**
+	 * Draw the zoom box (HIGOS8 p.104), left of the collapse box. Never drawn
+	 * on `modal` windows. See `zoomMode` and `idealSize`. Defaults to `true`.
+	 */
 	zoomable?: boolean;
+	/**
+	 * Draw the collapse (window-shade) box at the far right of the title bar
+	 * (HIGOS8 p.103). Option-click collapses or expands every open window;
+	 * windows with `collapsable={false}` and modals are skipped when another
+	 * window's box is Option-clicked. Double-clicking the title bar collapses
+	 * too, when the desktop's `doubleClickTitleToCollapse` preference is on.
+	 * Defaults to `true`.
+	 */
 	collapsable?: boolean;
+	/**
+	 * Draw the grow box at the bottom-right corner. A non-resizable window
+	 * ignores any persisted size and always opens at `initialSize`. Defaults to
+	 * `true`.
+	 */
 	resizable?: boolean;
+	/**
+	 * Scroll the contents with Platinum scroll bars. A scrollable window always
+	 * draws both bars, so content that fills the window and scrolls itself (a
+	 * full-window text area, `ClassicySplitView` panes) must pass `false` to
+	 * avoid a second, empty set. Defaults to `true`.
+	 */
 	scrollable?: boolean;
+	/**
+	 * Make this a modal dialog (HIGOS8 p.57). The window portals into the
+	 * desktop above an input-blocking scrim (clicking outside beeps), traps Tab
+	 * focus, cancels on Escape / Command-period, and draws no zoom box. It stays
+	 * movable unless `type="error"`. Its store record is dropped on unmount, so
+	 * a modal keeps no geometry between openings. Defaults to `false`.
+	 */
 	modal?: boolean;
+	/**
+	 * Stretch the inner content area to the full height of the window, for
+	 * content that should fill it rather than size to itself. Defaults to off.
+	 */
 	growable?: boolean;
+	/**
+	 * Mark this as the app's default window: when the app is focused with no
+	 * last-accessed or previously focused window to restore, this one is
+	 * focused. Defaults to `false`.
+	 */
 	defaultWindow?: boolean;
+	/**
+	 * Opening content-box size `[width, height]`; the frame padding and border
+	 * sit outside it. Each dimension is pixels or a `"${number}%"` of the
+	 * desktop (height measured below the menu bar); `0` sizes that axis to its
+	 * content. A resizable window opens at its persisted size instead once it
+	 * has one. Defaults to `[350, 0]`.
+	 */
 	initialSize?: [ClassicyWindowSizeDimension, ClassicyWindowSizeDimension];
+	/**
+	 * Opening position `[x, y]`, in pixels or as `"left" | "center" | "right"`
+	 * and `"top" | "center" | "bottom"`. A window at a symbolic position
+	 * re-centres as its content resizes after mount, until the user moves or
+	 * resizes it; a numeric one never moves on its own. Either is clamped to the
+	 * viewport, and a persisted position wins once the window has one. Defaults
+	 * to `[110, 110]`.
+	 */
 	initialPosition?: [ClassicyWindowPositionX, ClassicyWindowPositionY];
+	/**
+	 * Minimum content-box size, in the same units as `initialSize`; `0` sets no
+	 * minimum on that axis. Also the lower bound for a zoom. Defaults to
+	 * `[300, 0]`.
+	 */
 	minimumSize?: [ClassicyWindowSizeDimension, ClassicyWindowSizeDimension];
+	/**
+	 * Content for the window header, a beveled strip between the title bar and
+	 * the contents (HIGOS8 p.50), e.g. a toolbar or list column headings. Hidden
+	 * while collapsed. See `headerVariant`.
+	 */
 	header?: ReactNode;
+	/**
+	 * The menus this window publishes to the menu bar while it is focused, and
+	 * whose keyboard equivalents fire app-wide. Memoize it: an inline literal
+	 * defeats the store-write guard. Omitting it does not clear the bar — the
+	 * window's last stored menu stays.
+	 */
 	appMenu?: ClassicyMenuItem[];
+	/**
+	 * Right-click menu for this window. Resolution is innermost-first: a
+	 * `ClassicyContextualMenuTarget` inside the window wins, then this prop,
+	 * then the app's `contextMenu`. With neither, right-click shows nothing (the
+	 * browser's menu stays suppressed). Right-clicking focuses the window first.
+	 */
 	contextMenu?: ClassicyMenuItem[];
-	/** Override the generated analytics pageview path for this window. */
+	/**
+	 * Override the generated analytics pageview path, otherwise
+	 * `/<app>/<window>` from `classicyWindowPagePath(appId, id)`. Pass one
+	 * whenever the window id is built from user or consumer data (a file name,
+	 * a URL), building it with `classicyWindowPagePath(appId, "<safe-token>")`.
+	 */
 	analyticsPath?: string;
-	/** Suppress this window's analytics pageview entirely. */
+	/**
+	 * Suppress this window's analytics pageviews entirely. Interaction events
+	 * (move, zoom, close, …) are still tracked. Defaults to `false`.
+	 */
 	analyticsExclude?: boolean;
+	/**
+	 * Fade the contents while the window is inactive (not applied to modals).
+	 * `false` uses a contrast-only inactive treatment instead. Defaults to
+	 * `true`.
+	 */
 	dimContents?: boolean;
+	/**
+	 * Called with the window id after the window closes (after the
+	 * `ClassicyWindowClose` dispatch). Not called when `onBeforeClose` vetoes.
+	 */
 	onCloseFunc?: (id: string) => void;
 	/**
 	 * Close veto hook (#236). Called before a close actually happens — from the
@@ -166,42 +325,68 @@ interface ClassicyWindowProps {
 	 * before deciding.
 	 */
 	onBeforeClose?: (id: string) => boolean | Promise<boolean>;
+	/** The window's contents. */
 	children?: ReactNode;
+	/**
+	 * Dialog flavour. `"error"` on a `modal` window makes a fixed alert: it
+	 * cannot be dragged, beeps when it opens, and stacks in the red error band
+	 * above other modals. Has no visual effect on non-modal windows. Defaults
+	 * to `"default"`.
+	 */
 	type?: string;
 	/**
 	 * Platinum window class (#205). `"document"` (default) uses the standard
 	 * 19px HIG title bar; `"utility"` renders a tool-palette style crosshatch
-	 * top drag region.
+	 * top drag region with no title. A utility window always draws its active
+	 * chrome, even while a document window has focus. Defaults to
+	 * `"document"`.
 	 */
 	windowType?: "document" | "utility";
 	/**
 	 * Utility-only. When true, a `windowType="utility"` palette floats above
 	 * every app's windows — even when its own app is backgrounded — instead of
 	 * dropping behind the focused app (the default #234 behavior). Still sits
-	 * below error modals. No-op on document windows.
+	 * below error modals. No-op on document windows. Defaults to `false`.
 	 */
 	alwaysOnTop?: boolean;
 	/**
-	 * Zoom-box behavior (#208). `"full"` zooms both axes to the standard state,
-	 * `"horizontal"` only the width, `"vertical"` only the height. The user's
-	 * pre-zoom rect is remembered and restored on un-zoom.
+	 * Zoom-box behavior (#208, HIGOS8 p.104). `"full"` zooms both axes to the
+	 * standard state (see `idealSize`); `"horizontal"` widens to the desktop
+	 * keeping the current height; `"vertical"` heightens to the desktop keeping
+	 * the current width. Zoom targets are content-box sizes, clamped between
+	 * `minimumSize` and the room on the desktop. The user's pre-zoom rect is
+	 * remembered and restored on un-zoom. Defaults to `"full"`.
 	 */
 	zoomMode?: "full" | "horizontal" | "vertical";
 	/**
-	 * Window header styling (#183). `"list"` removes the header's bottom
-	 * separator line (list-view column header); `"standard"` keeps the bevel.
+	 * The window's "standard state" size for a full zoom (HIGOS8 Ch.5 "Zoom
+	 * Boxes", p.104): the size best suited to the content. A content-box size,
+	 * like `initialSize`, in the same pixel or percentage units. When set, a
+	 * full zoom targets this size (clamped to the available desktop) rather than
+	 * filling the screen — the HIG is explicit that an app "should never simply
+	 * assume that the standard state should be as large as the screen." When
+	 * omitted, the zoom fits the current content, falling back to the available
+	 * desktop.
+	 */
+	idealSize?: [ClassicyWindowSizeDimension, ClassicyWindowSizeDimension];
+	/**
+	 * Window header styling (#183, HIGOS8 p.50). `"list"` removes the header's
+	 * bottom separator line (list-view column header); `"standard"` keeps the
+	 * bevel. Defaults to `"standard"`.
 	 */
 	headerVariant?: "standard" | "list";
 	/**
 	 * Draw a 2px active/inactive content-region frame around the window body
-	 * (#203), used to distinguish a modeless dialog from a plain window.
+	 * (#203, HIGOS8 p.51), used to distinguish a modeless dialog from a plain
+	 * window. Defaults to `false`.
 	 */
 	contentFrame?: boolean;
 	/**
-	 * Optional Platinum placard (#196). When provided, this node is mounted in a
-	 * status region at the window's bottom-left edge — to the LEFT of the
-	 * horizontal scroll bar, where the HIG places a placard (often a
-	 * magnification/status pop-up). It is hidden while the window is collapsed.
+	 * Optional Platinum placard (#196, HIGOS8 p.46). When provided, this node
+	 * is mounted in a status region at the window's bottom-left edge — to the
+	 * LEFT of the horizontal scroll bar, where the HIG places a placard (often a
+	 * magnification/status pop-up such as `ClassicyPlacard`). It is hidden while
+	 * the window is collapsed.
 	 */
 	placard?: ReactNode;
 	/**
@@ -211,12 +396,49 @@ interface ClassicyWindowProps {
 	 * `--color-window-frame` for modal windows).
 	 */
 	backgroundColor?: string;
+	/**
+	 * The element that should take keyboard focus when this window becomes the
+	 * focused window (#270) — e.g. a list box, so arrow keys work without a
+	 * click first. Focused (without scrolling) on each transition of the
+	 * store's `focused` flag to true while the window is open and expanded,
+	 * unless focus is already somewhere inside the window (an input the user
+	 * just clicked keeps it). Also re-applied when the title bar of the
+	 * already-focused window is clicked. For a modal it is the focus trap's
+	 * initial target instead. Opt-in: omitted, nothing is focused.
+	 */
+	initialFocusRef?: RefObject<HTMLElement | null>;
 }
 
 // Mounted document windows by app + window id, so an unmount can tell whether
 // the same window has mounted again before its deferred close runs.
 const mountedWindowKeys = new Map<string, number>();
 
+/**
+ * A Mac OS 8 Platinum window (HIGOS8 Ch.5, p.99): title bar with close box on
+ * the left and zoom and collapse boxes on the right (p.101), a draggable frame,
+ * Platinum scroll bars and a grow box. It is the component for any app window
+ * or non-modal `<dialog>`; with `modal` it becomes an app-specific modal dialog
+ * (for plain alerts prefer `ClassicyAlert`, for About boxes
+ * `ClassicyAboutWindow`).
+ *
+ * A window must render inside its `ClassicyApp` and registers itself in the
+ * window manager (`apps[appId].windows[id]`) on mount, which persists its
+ * position, size and collapsed/zoomed state. That stored size is the
+ * content-box size its inline `width`/`height` apply — the frame padding and
+ * border sit outside it — and zoom targets are content-box sizes too. Moving,
+ * focusing, collapsing, zooming and closing dispatch `ClassicyWindow*` events
+ * and play the theme's window sounds; opening and focusing emit analytics
+ * pageviews (see `analyticsPath`).
+ *
+ * ```tsx
+ * <ClassicyApp id="TV.app" name="TV" icon={icon} defaultWindow="main">
+ *   <ClassicyWindow id="main" appId="TV.app" title="TV" appMenu={appMenu}
+ *     initialSize={[400, 300]} initialPosition={["center", "center"]}>
+ *     …
+ *   </ClassicyWindow>
+ * </ClassicyApp>
+ * ```
+ */
 export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	id,
 	title = "",
@@ -248,10 +470,12 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	windowType = "document",
 	alwaysOnTop = false,
 	zoomMode = "full",
+	idealSize,
 	headerVariant = "standard",
 	contentFrame = false,
 	placard,
 	backgroundColor,
+	initialFocusRef,
 }) => {
 	const icon = iconProp || fileIcon;
 
@@ -265,7 +489,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		useAppManager(
 			(state) => state.System.Manager.Desktop?.doubleClickTitleToCollapse,
 		) ?? true;
-	const currentWindow = currentApp?.windows.find((w) => w.id === id);
+	const currentWindow = getAppWindow(currentApp, id);
 	const desktopEventDispatch = useAppManagerDispatch();
 	const player = useSoundDispatch();
 	const { showContextMenu } = useClassicyContextualMenu();
@@ -532,6 +756,32 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		page,
 	]);
 
+	// #270: hand keyboard focus to the window's content when the window
+	// becomes the focused one, so its keyboard navigation works without a
+	// click first. Never steals focus from something already inside the window
+	// — clicking an input in a background window focuses the input on
+	// mousedown, before the click focuses the window.
+	const focusInitialTarget = useCallback(() => {
+		const target = initialFocusRef?.current;
+		if (!target) return;
+		if (windowRef.current?.contains(document.activeElement)) return;
+		target.focus({ preventScroll: true });
+	}, [initialFocusRef]);
+
+	// Tracks the previous commit's "owns the keyboard" state so only the
+	// false→true TRANSITION of the store's focused flag moves DOM focus — not
+	// every render, and not mount: of several windows restored together only
+	// the one the store has focused ever transitions. Separate from the
+	// analytics wasFocusedRef, whose semantics (open counts, collapse doesn't
+	// matter) differ. Modals are left to the focus trap below.
+	const wasKeyboardFocusedRef = useRef(false);
+	useEffect(() => {
+		const ownsKeyboard = !modal && !ws.closed && !ws.collapsed && !!ws.focused;
+		const becameFocused = ownsKeyboard && !wasKeyboardFocusedRef.current;
+		wasKeyboardFocusedRef.current = ownsKeyboard;
+		if (becameFocused) focusInitialTarget();
+	}, [modal, ws.closed, ws.collapsed, ws.focused, focusInitialTarget]);
+
 	const windowRegistered = useRef(false);
 	const lastMenuBarSignatureRef = useRef<string | undefined>(undefined);
 	useEffect(() => {
@@ -540,15 +790,17 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			// A genuinely new window is focused by the ClassicyWindowOpen handler;
 			// a persisted window re-registering must not steal focus. Menu-closure
 			// refresh for the focused window happens in the ws.focused effect below.
+			// #278: collapsable/modal come from props, not `ws` — a persisted
+			// record restored into `ws` may predate them or be stale.
 			desktopEventDispatch({
 				type: "ClassicyWindowOpen",
-				window: ws,
+				window: { ...ws, collapsable, modal },
 				app: {
 					id: appId,
 				},
 			});
 		}
-	}, [appId, ws, desktopEventDispatch]);
+	}, [appId, ws, collapsable, modal, desktopEventDispatch]);
 
 	// A modal window is ephemeral: it carries no persisted geometry, and
 	// leaving its record in the store makes the next open a "known id", which
@@ -598,11 +850,10 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			setTimeout(() => {
 				if (mountedWindowKeys.has(key)) return;
 				if (typeof useAppManager.getState !== "function") return;
-				const record = useAppManager
-					.getState()
-					.System.Manager.Applications.apps[appId]?.windows.find(
-						(w) => w.id === id,
-					);
+				const record = getAppWindow(
+					useAppManager.getState().System.Manager.Applications.apps[appId],
+					id,
+				);
 				if (!record || record.closed) return;
 				desktopEventDispatch({
 					type: "ClassicyWindowClose",
@@ -668,6 +919,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	docUpHandlerRef.current = (_e: globalThis.MouseEvent) => {
 		pendingDragRef.current = false;
 		if (!isDraggingRef.current && !isResizingRef.current) return;
+		const wasResizing = isResizingRef.current;
 		userRepositionedRef.current = true;
 		isDraggingRef.current = false;
 		isResizingRef.current = false;
@@ -677,7 +929,9 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			sound: "ClassicyWindowMoveStop",
 		});
 		setActive();
-		setResize(false);
+		if (wasResizing || ws.resizing) {
+			endResize();
+		}
 		if (pendingSizeRef.current) {
 			setSize(pendingSizeRef.current);
 			pendingSizeRef.current = null;
@@ -705,12 +959,17 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			window: ws,
 			position: [left, top],
 		});
-		setResize(true);
+		// Seed the gesture with the size the window is drawn at, in the same
+		// (content) box its inline width/height use — clientWidth would add the
+		// frame padding and make the window jump on mousedown (#291).
+		const applied = appliedWindowSize();
+		const startSize: [number, number] = [
+			applied?.[0] || resolvedSize[0],
+			applied?.[1] || resolvedSize[1],
+		];
+		setResize(true, startSize);
 		setZoom(false);
-		setSize([
-			windowRef?.current?.clientWidth || resolvedSize[0],
-			windowRef?.current?.clientHeight || resolvedSize[1],
-		]);
+		setSize(startSize);
 	};
 
 	const startMoveWindow = (e: MouseEvent<HTMLDivElement>) => {
@@ -730,6 +989,15 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		clickPositionRef.current = [offsetX, offsetY];
 		dragStartPointRef.current = [e.clientX, e.clientY];
 		pendingDragRef.current = true;
+	};
+
+	// #270: a title-bar click on the ALREADY-focused window is no focus
+	// transition, so re-apply the initial focus here (e.g. after a menu click
+	// left the document body focused). An unfocused window gets it from the
+	// focused-transition effect once the click focuses it.
+	const onTitleMouseDown = (e: MouseEvent<HTMLDivElement>) => {
+		startMoveWindow(e);
+		if (ws.focused && !modal) focusInitialTarget();
 	};
 
 	const promoteDragIfNeeded = (clientX: number, clientY: number) => {
@@ -812,13 +1080,18 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				sound: "ClassicyWindowMoveStop",
 			});
 		}
+		const wasResizing = isResizingRef.current;
 		// Clear refs so the document-level mouseup handler knows this event
 		// was already handled by the element and skips double-processing.
 		pendingDragRef.current = false;
 		isDraggingRef.current = false;
 		isResizingRef.current = false;
 		setActive();
-		setResize(false);
+		// Most releases are plain clicks: they must not write a size at all, or
+		// the store drifts from the size the window is actually drawn at (#291).
+		if (wasResizing || ws.resizing) {
+			endResize();
+		}
 		if (pendingSizeRef.current) {
 			setSize(pendingSizeRef.current);
 			pendingSizeRef.current = null;
@@ -918,9 +1191,15 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			sound: toCollapse ? "ClassicyWindowCollapse" : "ClassicyWindowExpand",
 		});
 		Object.entries(apps).forEach(([appKey, app]) => {
-			app.windows?.forEach((w) => {
+			listAppWindows(app).forEach((w) => {
 				if (w.closed) return;
 				if (w.collapsed === toCollapse) return;
+				// #278: other windows that opted out of collapsing (no collapse
+				// box to undo it) and modal dialogs are left as they are. The
+				// clicked window itself is exempt — its own collapse box is what
+				// was clicked, so its behaviour is unchanged.
+				const isClicked = appKey === appId && w.id === id;
+				if (!isClicked && (w.collapsable === false || w.modal)) return;
 				desktopEventDispatch({
 					type: toCollapse ? "ClassicyWindowCollapse" : "ClassicyWindowExpand",
 					window: w,
@@ -990,15 +1269,21 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		const dh =
 			desktop?.clientHeight ??
 			(typeof window !== "undefined" ? window.innerHeight : 600);
-		const stdW = Math.max(resolvedMinimumSize[0], dw - margin * 2);
+		// Every size returned here is applied as the window's content-box
+		// width/height, so the desktop's outer room loses the window's chrome
+		// first, and the current size is the content size, not the rect (#291).
+		const el = windowRef.current;
+		const [chromeW, chromeH] = el ? classicyWindowChromeSize(el) : [0, 0];
+		const stdW = Math.max(resolvedMinimumSize[0], dw - margin * 2 - chromeW);
 		const stdH = Math.max(
 			resolvedMinimumSize[1],
-			dh - menuBarHeight - margin * 2,
+			dh - menuBarHeight - margin * 2 - chromeH,
 		);
 
-		const rect = windowRef.current?.getBoundingClientRect();
-		const curW = Math.round(rect?.width ?? size[0] ?? resolvedSize[0]);
-		const curH = Math.round(rect?.height ?? size[1] ?? resolvedSize[1]);
+		// The axis a one-way zoom keeps is the size the window already applies,
+		// so it is carried over exactly rather than re-measured.
+		const [curW, curH] = appliedWindowSize() ?? resolvedSize;
+		const rect = el?.getBoundingClientRect();
 		const curLeft = Math.round(rect?.left ?? ws.position[0]);
 		const curTop = Math.round(rect?.top ?? ws.position[1]);
 
@@ -1011,9 +1296,49 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				size: [curW, stdH],
 			};
 		}
+
+		// Full zoom targets the "standard state" — the size best suited to the
+		// content — NOT the whole screen (HIGOS8 Ch.5, p.104). Prefer an explicit
+		// idealSize (a content-box size, like initialSize); otherwise fit the
+		// current content (its inner scroll extent plus what surrounds it); fall
+		// back to filling the desktop only when no usable measurement is
+		// available. Everything is clamped to [min, desktop].
+		const clamp = (v: number, lo: number, hi: number) =>
+			Math.min(Math.max(v, lo), Math.max(lo, hi));
+		let targetW = stdW;
+		let targetH = stdH;
+		if (idealSize) {
+			const [iw, ih] = resolveSize(idealSize);
+			targetW = clamp(iw, resolvedMinimumSize[0], stdW);
+			targetH = clamp(ih, resolvedMinimumSize[1], stdH);
+		} else {
+			const inner = el?.querySelector<HTMLElement>(
+				".classicyWindowContentsInner",
+			);
+			if (el && inner) {
+				// Everything in the window's content box around the inner
+				// scroller (title bar, headers, scroll bars), measured against the
+				// same layout pass as inner.clientWidth/Height.
+				// Rounded: the extents are whole pixels, and the measurement
+				// carries the layout's sub-pixel error (649.994 for 650).
+				const [drawnW, drawnH] = classicyWindowContentSize(el);
+				const fitW = Math.round(
+					inner.scrollWidth + (drawnW - inner.clientWidth),
+				);
+				const fitH = Math.round(
+					inner.scrollHeight + (drawnH - inner.clientHeight),
+				);
+				if (Number.isFinite(fitW) && fitW > 0) {
+					targetW = clamp(fitW, resolvedMinimumSize[0], stdW);
+				}
+				if (Number.isFinite(fitH) && fitH > 0) {
+					targetH = clamp(fitH, resolvedMinimumSize[1], stdH);
+				}
+			}
+		}
 		return {
 			position: [margin, menuBarHeight + margin],
-			size: [stdW, stdH],
+			size: [targetW, targetH],
 		};
 	};
 
@@ -1057,12 +1382,16 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			const standard = computeStandardRect();
 			setZoomFlag(true);
 			setSize(standard.size);
+			// Persist the size the window is now drawn at — clicks no longer
+			// write one as a side effect (#291).
+			setResize(false, standard.size);
 			setMoving(false, standard.position);
 		} else {
 			setZoomFlag(false);
 			const previous = userStateRef.current;
 			if (previous) {
 				setSize(previous.size);
+				setResize(false, previous.size);
 				setMoving(false, previous.position);
 				userStateRef.current = null;
 			}
@@ -1091,29 +1420,45 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		}
 	};
 
-	const setResize = (toResize: boolean) => {
-		// Guard where the rect is read, not in the SCSS: while collapsed, the
+	// The size the window's inline width/height apply. A known size is used
+	// as-is; only an "auto" (0) dimension is measured off the DOM, because a
+	// measurement picks up the browser's sub-pixel layout rounding (#291).
+	const appliedWindowSize = (): [number, number] | undefined => {
+		if (size[0] && size[1]) return size;
+		if (!windowRef.current) return undefined;
+		const measured = classicyWindowContentSize(windowRef.current);
+		return [size[0] || measured[0], size[1] || measured[1]];
+	};
+
+	// `nextSize` is in the window's content box (what its inline width/height
+	// apply); omitted, the window's applied size is used (#291).
+	const setResize = (toResize: boolean, nextSize?: [number, number]) => {
+		// Guard where the size is read, not in the SCSS: while collapsed, the
 		// window's DOM height is forced to the ~24px title-bar height by
-		// .classicyWindowCollapsed (ClassicyWindow.scss), so ANY mouseup here
-		// (this fires on every release, not just an actual resize — see
-		// stopChangeWindow) would measure that collapsed height and persist it
-		// as the window's real size. Skipping the dispatch entirely while
-		// collapsed leaves the last expanded size in the store untouched, so it
-		// survives a collapse/expand cycle intact.
-		if (resizable && !ws.collapsed) {
-			desktopEventDispatch({
-				type: "ClassicyWindowResize",
-				resizing: toResize,
-				window: ws,
-				size: [
-					windowRef.current?.getBoundingClientRect().width,
-					windowRef.current?.getBoundingClientRect().height,
-				],
-				app: {
-					id: appId,
-				},
-			});
-		}
+		// .classicyWindowCollapsed (ClassicyWindow.scss), so a measurement here
+		// would persist that collapsed height as the window's real size.
+		// Skipping the dispatch entirely while collapsed leaves the last
+		// expanded size in the store untouched, so it survives a
+		// collapse/expand cycle intact.
+		if (!resizable || ws.collapsed) return;
+		const resolved = nextSize ?? appliedWindowSize();
+		if (!resolved) return;
+		desktopEventDispatch({
+			type: "ClassicyWindowResize",
+			resizing: toResize,
+			window: ws,
+			size: resolved,
+			app: {
+				id: appId,
+			},
+		});
+	};
+
+	// Ends a resize gesture with the size the window is about to be drawn at:
+	// the last pointer-derived size (already written to the inline style), or,
+	// for a gesture that never moved, its current applied size.
+	const endResize = () => {
+		setResize(false, pendingSizeRef.current ?? undefined);
 	};
 
 	// #236: onBeforeClose is a veto, not a notification — it runs first, and a
@@ -1178,7 +1523,12 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	// #194/#197: modal windows trap Tab focus within themselves and bind the
 	// dialog-wide Cancel equivalent. Scoped to this window so stacked modals
 	// don't cross-fire.
-	useFocusTrap({ ref: windowRef, enabled: modal, autoFocus: modal });
+	useFocusTrap({
+		ref: windowRef,
+		enabled: modal,
+		autoFocus: modal,
+		initialFocusRef,
+	});
 	useKeyboardEquivalents({
 		enabled: modal,
 		targetRef: windowRef,
@@ -1297,7 +1647,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				<div
 					className={"classicyWindowTitle"}
 					role="presentation"
-					onMouseDown={startMoveWindow}
+					onMouseDown={onTitleMouseDown}
 					// stopChangeWindow is bound once, on the root classicyWindow
 					// element; mouseup here bubbles to it (see comment there).
 					onDoubleClick={
@@ -1429,7 +1779,11 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		</div>
 	);
 
-	if (modal && desktopRoot) {
+	// Only a mounted-and-open modal draws its scrim. A closed modal that stays
+	// mounted (e.g. an error dialog hidden via ClassicyWindowClose rather than
+	// unmounted) must drop the scrim too — otherwise the input-blocking backdrop
+	// outlives the window and locks the whole page.
+	if (modal && desktopRoot && !ws.closed) {
 		// #197: modal windows render an input-blocking scrim; clicking it beeps.
 		const modalScrim = (
 			// biome-ignore lint/a11y/noStaticElementInteractions: scrim is a mouse-only backdrop

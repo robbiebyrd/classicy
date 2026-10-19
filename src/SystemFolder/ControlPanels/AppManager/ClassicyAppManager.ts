@@ -26,6 +26,7 @@ import {
 	openApp,
 	pickSuccessorApp,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
+import { migrateClassicyState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyStateMigrations";
 import { classicyDateTimeManagerEventHandler } from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeEventHandler";
 import { DEFAULT_ALERT_SOUND } from "@/SystemFolder/ControlPanels/SoundManager/ClassicyAlertSounds";
 import type { ClassicyStoreSystemSoundManager } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
@@ -63,7 +64,9 @@ export interface ClassicyStoreSystemApp {
 	id: string;
 	name: string;
 	icon: string;
-	windows: ClassicyStoreSystemAppWindow[];
+	/** The app's windows keyed by window id. Read and write it through the
+	 *  ClassicyAppWindows helpers (getAppWindow, listAppWindows, …). */
+	windows: ClassicyStoreSystemAppWindows;
 	open: boolean;
 	data?: Record<string, unknown>;
 	focused?: boolean;
@@ -95,6 +98,10 @@ export interface ClassicyStoreSystemAppWindow {
 	resizing?: boolean;
 	zoomed?: boolean;
 	collapsed?: boolean;
+	// Mirrors the window's `collapsable` prop (#278). Absent ⇒ collapsable;
+	// only an explicit `false` opts the window out of Option-click
+	// collapse-all / expand-all.
+	collapsable?: boolean;
 	dragging?: boolean;
 	moving?: boolean;
 	modal?: boolean;
@@ -110,6 +117,12 @@ export interface ClassicyStoreSystemAppWindow {
 	windowType?: "document" | "utility";
 	options?: Record<string, JsonValue>[];
 }
+
+/** An app's windows, keyed by window id (each entry's `id` equals its key). */
+export type ClassicyStoreSystemAppWindows = Record<
+	string,
+	ClassicyStoreSystemAppWindow
+>;
 
 export interface ClassicyStore {
 	System: ClassicyStoreSystem;
@@ -514,13 +527,17 @@ export const classicyDesktopStateEventReducer = (
  * Deep-merge `overrides` onto a structural clone of `base`.
  * Plain objects merge recursively; arrays and primitives from `overrides`
  * replace the base value wholesale; `undefined` override values are skipped;
- * `base` is never mutated.
+ * `base` is never mutated. An app's `windows` record merges per window id.
+ *
+ * The result is passed through `migrateClassicyState`, so an override in an
+ * older shape (e.g. a 0.x `windows` array, which replaces the base record
+ * wholesale) comes out in the current shape.
  */
 export function mergeClassicyState(
 	base: ClassicyStore,
 	overrides: DeepPartial<ClassicyStore>,
 ): ClassicyStore {
-	return deepMergeReplacingArrays(base, overrides);
+	return migrateClassicyState(deepMergeReplacingArrays(base, overrides));
 }
 
 export const DefaultAppManagerState: ClassicyStore = {
@@ -553,9 +570,10 @@ export const DefaultAppManagerState: ClassicyStore = {
 				icons: [],
 				systemMenu: [
 					{
+						// Apple-menu "About This Computer" carries no keyboard equivalent
+						// in the real Mac OS (HIGOS8 Ch.4); the earlier ⌃S was invented.
 						id: "about",
 						title: "About This Computer",
-						keyboardShortcut: "⌃S",
 						event: "ClassicyAppFinderAboutThisComputerOpen",
 						eventData: {},
 					},
@@ -568,6 +586,11 @@ export const DefaultAppManagerState: ClassicyStore = {
 					active: false,
 				},
 				disableBalloonHelp: false,
+				controlStrip: {
+					visible: true,
+					hiddenModules: [],
+					moduleOrder: [],
+				},
 				doubleClickTitleToCollapse: true,
 				errorDialog: null,
 				fsVersion: 0,
@@ -579,7 +602,7 @@ export const DefaultAppManagerState: ClassicyStore = {
 						id: "Finder.app",
 						name: "Finder",
 						icon: macosIcon,
-						windows: [],
+						windows: {},
 						open: true,
 						focused: true,
 						noDesktopIcon: true,
@@ -599,7 +622,13 @@ export const DefaultAppManagerState: ClassicyStore = {
 				// Via getTheme, not themesData: the raw JSON names its wallpaper
 				// rather than carrying a loadable URL.
 				activeTheme: getTheme("default"),
+				customThemes: [],
 				alertSound: DEFAULT_ALERT_SOUND,
+				// Alerts play at the full system volume until the user lowers it.
+				alertVolume: 100,
+				// Mac OS 8.0 shipped with Smart Scrolling on (arrows grouped at
+				// the end of each bar).
+				smartScrolling: true,
 			},
 			Boot: {
 				paradeIcons: [],
