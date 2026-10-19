@@ -43,7 +43,14 @@ export function focusWindow(
 	const win = getAppWindow(app, windowId);
 	if (win) {
 		win.focused = true;
-		win.zOrder = Date.now();
+		// Strictly above every sibling, not just Date.now(): two focuses in the
+		// same millisecond would otherwise tie, and succession would break the
+		// tie by record order rather than recency.
+		const topZOrder = Math.max(
+			0,
+			...listAppWindows(app).map((w) => w.zOrder ?? 0),
+		);
+		win.zOrder = Math.max(Date.now(), topZOrder + 1);
 		app.lastAccessedWindowId = windowId;
 		const menu = menuBar ?? win.menuBar;
 		if (menu) {

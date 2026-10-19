@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { windowsRecord } from "@/__tests__/windowsRecord";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
@@ -1130,5 +1130,47 @@ describe("ClassicyWindowOpen — reopening a window closed this session", () => 
 		expect(getAppWindow(testApp, "w1")?.focused).toBe(false);
 		expect(getAppWindow(testApp, "w2")?.focused).toBe(true);
 		expect(ds.System.Manager.Applications.focusedAppId).toBe("Finder.app");
+	});
+});
+
+describe("focus recency within a single millisecond", () => {
+	it("promotes the most recently focused sibling even when focuses share a timestamp", () => {
+		const nowSpy = vi.spyOn(Date, "now").mockReturnValue(5000);
+		try {
+			const ds = makeStoreWithWindows();
+			const focus = (id: string) =>
+				classicyWindowEventHandler(ds, {
+					type: "ClassicyWindowFocus",
+					app: { id: "TestApp" },
+					window: { id },
+				});
+			focus("w1");
+			focus("w2");
+			classicyWindowEventHandler(ds, {
+				type: "ClassicyWindowOpen",
+				app: { id: "TestApp" },
+				window: {
+					id: "w3",
+					minimumSize: [100, 100],
+					size: [300, 200],
+					position: [10, 10],
+				},
+			});
+			const testApp = ds.System.Manager.Applications.apps.TestApp;
+			const z = (id: string) => getAppWindow(testApp, id)?.zOrder ?? 0;
+			expect(z("w2")).toBeGreaterThan(z("w1"));
+			expect(z("w3")).toBeGreaterThan(z("w2"));
+
+			classicyWindowEventHandler(ds, {
+				type: "ClassicyWindowClose",
+				app: { id: "TestApp" },
+				window: { id: "w3" },
+			});
+
+			expect(getAppWindow(testApp, "w2")?.focused).toBe(true);
+			expect(getAppWindow(testApp, "w1")?.focused).toBe(false);
+		} finally {
+			nowSpy.mockRestore();
+		}
 	});
 });
