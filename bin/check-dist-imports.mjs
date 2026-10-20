@@ -21,6 +21,12 @@
 //    6.1.200 worker while rt911 resolved the 6.2.108 API, and every PDF failed
 //    with "Couldn't load this PDF." -- caught and rendered as UI text, so no
 //    console error and no failing test anywhere.
+//
+// 3. EACH ENTRY BUNDLE MUST INJECT THE STYLESHEET (#303), and without the
+//    base64 fonts. `import "classicy"` is supposed to be enough for a styled
+//    desktop; if injectCssPlugin stopped matching the CSS asset (it is found
+//    by name), the bundles would silently ship unstyled. And if it ran before
+//    the font split, every consumer would download several MB of fonts.
 
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -112,6 +118,28 @@ for (const file of await bundles()) {
 
 	if (!queried.length && !leaked.length) {
 		console.log(`${file}: ${specifiers.length} import(s), clean`);
+	}
+}
+
+// Invariant 3: the stylesheet injector is appended to the two entry bundles.
+const STYLE_ID = '"classicy-styles"';
+for (const entry of ["classicy.es.js", "classicy.umd.js"]) {
+	const file = join(DIST, entry);
+	if (argv.slice(2).length && !argv.slice(2).includes(file)) continue;
+	const source = await readFile(file, "utf8");
+	const at = source.lastIndexOf(`document.getElementById(${STYLE_ID})`);
+	if (at === -1) {
+		failed = true;
+		console.error(
+			`${file}: does not inject its stylesheet -> check injectCssPlugin in vite.config.ts.`,
+		);
+	} else if (/@font-face[^}]*data:/.test(source.slice(at))) {
+		failed = true;
+		console.error(
+			`${file}: the injected stylesheet carries base64 @font-face rules -> injectCssPlugin must run after splitFontFacesPlugin.`,
+		);
+	} else {
+		console.log(`${file}: injects its stylesheet, without bundled fonts`);
 	}
 }
 
