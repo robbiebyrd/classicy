@@ -22,9 +22,16 @@ const ccIcon = ClassicyIcons.system.quicktime.cc;
 type QuickTimeVideoEmbedProps = {
 	/**
 	 * Id of the owning app. Keyboard shortcuts only act while that app's
-	 * `${appId}_MoviePlayer_${url}` window is focused.
+	 * `windowId` window is focused.
 	 */
 	appId: string;
+	/**
+	 * The window whose focus turns the keyboard shortcuts on. Defaults to
+	 * `${appId}_MoviePlayer_${url}`; pass the real id when the window is not
+	 * named after `url` — Movie Player names its windows after the document's
+	 * key (a file path), while `url` is the resolved source.
+	 */
+	windowId?: string;
 	/** Name of the media; used to build the seek bar's element id. */
 	name: string;
 	/** Media URL, handed to `react-player` (files, streams, YouTube, …). */
@@ -91,9 +98,9 @@ type QuickTimeVideoEmbedProps = {
  * Playing state, volume and caption visibility are each controlled when
  * their prop is passed and uncontrolled otherwise. Keyboard shortcuts —
  * Space play/pause, ←/→ skip 10 s, F fullscreen, L loop, Escape leave
- * fullscreen — are only live while the Movie Player window for this
- * `appId`/`url` (`${appId}_MoviePlayer_${url}`) is focused, so an embed in any
- * other window gets none; `hideControls` turns them off entirely. The
+ * fullscreen — are only live while the `windowId` window of `appId` (by
+ * default `${appId}_MoviePlayer_${url}`) is focused, so an embed in any other
+ * window gets none; `hideControls` turns them off entirely. The
  * individual controls (`QuickTimePlayPauseButton`, `QuickTimeSeekBar`,
  * `QuickTimeVolumeControl`, `QuickTimeFullscreenButton`,
  * `QuickTimeCaptionsOverlay`) and hooks (`useQuickTimePlayback`,
@@ -107,6 +114,7 @@ export const QuickTimeVideoEmbed: FunctionalComponent<
 	QuickTimeVideoEmbedProps
 > = ({
 	appId,
+	windowId,
 	name,
 	url,
 	options,
@@ -130,14 +138,12 @@ export const QuickTimeVideoEmbed: FunctionalComponent<
 	crossOrigin,
 	playsInline,
 }) => {
-	// Keyboard shortcuts only act while this movie's MoviePlayer window is the
-	// focused one.
+	// Keyboard shortcuts only act while this movie's window is the focused one.
+	const shortcutWindowId = windowId ?? `${appId}_MoviePlayer_${url}`;
 	const playerWindowFocused = useAppManager(
 		(s) =>
-			getAppWindow(
-				s.System.Manager.Applications.apps[appId],
-				`${appId}_MoviePlayer_${url}`,
-			)?.focused === true,
+			getAppWindow(s.System.Manager.Applications.apps[appId], shortcutWindowId)
+				?.focused === true,
 	);
 
 	const playback = useQuickTimePlayback({
