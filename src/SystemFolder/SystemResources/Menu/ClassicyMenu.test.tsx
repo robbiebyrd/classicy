@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@/__tests__/test-utils";
+import { fireEvent, render, screen, waitFor } from "@/__tests__/test-utils";
 
 vi.mock(
 	"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils",
@@ -292,5 +292,47 @@ describe("ClassicyMenu — titleWidthSamples (reserved title width)", () => {
 		);
 		expect(container.querySelector(".classicyMenuItemTitleSizer")).toBeNull();
 		expect(screen.getByText("File")).toBeInTheDocument();
+	});
+
+	// A leaf item's action runs when its flash finishes. In the real app that is
+	// the flash `animationend`; jsdom never animates, so without the fallback
+	// timer the action would never run and nothing driven through a menu — Save,
+	// Open, New — could be exercised in a unit test. Pin that it fires anyway.
+	it("runs a leaf item's action on click even when animationend never fires", async () => {
+		const onClickFunc = vi.fn();
+		render(
+			<ClassicyMenu
+				name="test-menu"
+				menuItems={[{ id: "save", title: "Save", onClickFunc }]}
+			/>,
+		);
+		fireEvent.click(screen.getByText("Save"));
+		await waitFor(() => expect(onClickFunc).toHaveBeenCalledTimes(1), {
+			timeout: 2000,
+		});
+	});
+
+	// The fallback timer and `animationend` both call finishFlash; whichever
+	// fires first must win exactly once. Fire the animationend after the click so
+	// both paths run, and assert the action still executes a single time.
+	it("runs a leaf item's action exactly once when animationend also fires", async () => {
+		const onClickFunc = vi.fn();
+		render(
+			<ClassicyMenu
+				name="test-menu"
+				menuItems={[{ id: "save", title: "Save", onClickFunc }]}
+			/>,
+		);
+		const item = screen.getByRole("menuitem");
+		fireEvent.click(item);
+		fireEvent.animationEnd(item, {
+			animationName: "classicyMenuItemFlashKeyframes",
+		});
+		await waitFor(() => expect(onClickFunc).toHaveBeenCalledTimes(1), {
+			timeout: 2000,
+		});
+		// Give the fallback timer a chance to (not) fire a second time.
+		await new Promise((resolve) => setTimeout(resolve, 600));
+		expect(onClickFunc).toHaveBeenCalledTimes(1);
 	});
 });
