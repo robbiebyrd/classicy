@@ -1,4 +1,5 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { ClassicyAppManagerProvider } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext";
@@ -8,16 +9,29 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyDesktop } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktop";
 
-// Regression test for a dispatch loop introduced in 7687143: ClassicyWindow's
-// focused-menu effect dispatched ClassicyWindowSetMenuBar (which writes the
-// Applications.apps[appId] slice) on every appMenu *identity* change. SimpleText's
-// default "Untitled" window passes an inline appMenu array literal (a new identity
-// every render) and SimpleText itself selects `apps["SimpleText.app"]` wholesale via
-// useAppManager, so the write-triggered re-render produced a new appMenu identity,
-// which re-fired the effect, which dispatched again — an unbounded render loop
-// ("Maximum update depth exceeded") the instant the window actually renders (i.e.
-// once the app is open; a closed app's window subtree isn't mounted, which is why
-// the existing ClassicyDesktop icon-only tests didn't already catch this).
+const SIMPLE_TEXT = { id: "SimpleText.app", name: "SimpleText", icon: "" };
+
+const renderDesktop = () =>
+	render(
+		<ClassicyAppManagerProvider>
+			<ClassicyDesktop />
+		</ClassicyAppManagerProvider>,
+	);
+
+const openSimpleText = () =>
+	act(() => {
+		dispatch({ type: "ClassicyAppOpen", app: SIMPLE_TEXT });
+	});
+
+const openFileInSimpleText = (path: string) =>
+	act(() => {
+		dispatch({
+			type: "ClassicyAppSimpleTextOpenFile",
+			app: { id: SIMPLE_TEXT.id },
+			path,
+		});
+	});
+
 describe("SimpleText", () => {
 	beforeEach(() => {
 		localStorage.clear();
@@ -25,25 +39,43 @@ describe("SimpleText", () => {
 		useAppManager.setState(DefaultAppManagerState, true);
 	});
 
+	// Regression test for a dispatch loop (7687143): the default window passes an
+	// inline appMenu literal and SimpleText selects its whole app slice, so a
+	// menuBar-write re-render used to re-fire the focused-menu effect forever.
 	it("opens its default Untitled window without an infinite menuBar dispatch loop", async () => {
-		render(
-			<ClassicyAppManagerProvider>
-				<ClassicyDesktop />
-			</ClassicyAppManagerProvider>,
-		);
-
-		// SimpleText passes showDesktopIcon={false}, so there is no icon to
-		// double-click. How the app gets opened is incidental to this
-		// regression — what matters is that its window actually renders.
-		act(() => {
-			dispatch({
-				type: "ClassicyAppOpen",
-				app: { id: "SimpleText.app", name: "SimpleText", icon: "" },
-			});
-		});
-
+		renderDesktop();
+		openSimpleText();
 		await waitFor(() => {
 			expect(screen.getByText("Untitled")).toBeInTheDocument();
 		});
+	});
+
+	it("opens a plain-text document from the file system showing its content", async () => {
+		renderDesktop();
+		openFileInSimpleText("Macintosh HD:Documents:Read Me.txt");
+
+		// Window title is the file name…
+		await waitFor(() => {
+			expect(screen.getByText("Read Me.txt")).toBeInTheDocument();
+		});
+		// …and the editor is seeded with the file's complete contents.
+		const textbox = screen.getByRole("textbox") as HTMLTextAreaElement;
+		expect(textbox.value).toBe(
+			"Welcome to Classicy!\n\nThis is a plain text file opened in SimpleText.",
+		);
+	});
+
+	it("keeps a reopened document's edited content as a working copy", async () => {
+		const user = userEvent.setup();
+		renderDesktop();
+		openFileInSimpleText("Macintosh HD:Documents:Read Me.txt");
+		await waitFor(() => {
+			expect(screen.getByText("Read Me.txt")).toBeInTheDocument();
+		});
+
+		const textbox = screen.getByRole("textbox") as HTMLTextAreaElement;
+		await user.clear(textbox);
+		await user.type(textbox, "edited body");
+		expect(textbox.value).toBe("edited body");
 	});
 });
