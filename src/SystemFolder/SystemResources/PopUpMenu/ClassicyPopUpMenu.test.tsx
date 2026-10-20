@@ -606,3 +606,43 @@ describe("ClassicyPopUpMenu — option groups (<optgroup> equivalent)", () => {
 		expect(onChange.mock.calls[0][0].target.value).toBe("lemon");
 	});
 });
+
+describe("ClassicyPopUpMenu label size (#305)", () => {
+	const labelClass = (container: HTMLElement) =>
+		container.querySelector("[class*='classicyControlLabelSize']")?.className ??
+		"";
+
+	it("uses labelSize when given, whatever the menu size", () => {
+		const { container } = render(
+			<ClassicyPopUpMenu
+				id="fruit"
+				label="Fruit"
+				options={options}
+				size="small"
+				labelSize="large"
+			/>,
+		);
+		expect(labelClass(container)).toContain("classicyControlLabelSizeLarge");
+	});
+
+	it("follows size when labelSize is omitted, with mini mapping to small", () => {
+		const { container, rerender } = render(
+			<ClassicyPopUpMenu
+				id="fruit"
+				label="Fruit"
+				options={options}
+				size="large"
+			/>,
+		);
+		expect(labelClass(container)).toContain("classicyControlLabelSizeLarge");
+		rerender(
+			<ClassicyPopUpMenu
+				id="fruit"
+				label="Fruit"
+				options={options}
+				size="mini"
+			/>,
+		);
+		expect(labelClass(container)).toContain("classicyControlLabelSizeSmall");
+	});
+});

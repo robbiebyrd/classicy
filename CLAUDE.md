@@ -617,7 +617,7 @@ Theme files (`ClassicyThemeFile.ts`, Themes tab "Save Theme…"/"Load Theme…")
 - `pnpm build:source` runs `generate-barrels` first — barrelsby auto-generates all `index.ts` barrel files. Don't manually edit barrel files.
 - Audio sprites generated via audiosprite from `assets/sounds/` directories
 - Library outputs to `dist/` as `classicy.es.js` and `classicy.umd.js`
-- Consumers must import the CSS separately: `import 'classicy/dist/classicy.css'`
+- **Styles ship inside the JS** (#303): `injectCssPlugin` (`vite.config.ts`, after the font split) appends `bin/classicyStyleInjector.ts`'s code to both entry bundles, which inserts `classicy.css` as `<style id="classicy-styles">` at the top of `<head>` on first import (once; skipped without a `document`). `dist/classicy.css` is still emitted for strict-CSP hosts; `verify:dist` fails the build if a bundle stops injecting or injects base64 fonts.
 - **Breaking change**: bundled `@font-face` rules (base64-embedded fonts) no longer ship inside `classicy.css` — they're extracted at build time (see the `splitFontFacesPlugin` in `vite.config.ts`) into a separate, opt-in stylesheet. Consumers who want the bundled fonts must additionally `import 'classicy/dist/fonts.css'`; consumers who supply their own fonts, or don't need the bundled ones, can skip it and avoid the payload entirely. Both stylesheets are exposed via `package.json`'s `exports` map.
 - All styling uses SCSS files co-located with components — no Tailwind or inline styles for layout/presentation
 

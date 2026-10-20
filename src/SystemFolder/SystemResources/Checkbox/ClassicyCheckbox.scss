@@ -47,9 +47,15 @@
 }
 
 
-// `isDefault` is retained for API stability and emphasis styling, but no longer
-// changes the on-state mark — per the HIG the checkmark is the mark for every
-// checkbox, not just the dialog's default control.
+// `isDefault` emphasises the box with the theme accent while it is on or
+// pressed — the same treatment as a default radio button. It leaves the mark
+// alone: per the HIG the checkmark is the mark for every checkbox.
+.classicyCheckbox.classicyCheckboxDefault {
+  &:checked,
+  &:active {
+    border-color: var(--color-theme-06);
+  }
+}
 
 .classicyCheckboxHolder {
   display: flex;

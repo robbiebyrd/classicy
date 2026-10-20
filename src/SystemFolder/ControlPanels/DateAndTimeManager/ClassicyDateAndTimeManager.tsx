@@ -3,6 +3,7 @@ import {
 	type ChangeEvent,
 	type FC as FunctionalComponent,
 	useCallback,
+	useMemo,
 	useState,
 } from "react";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
@@ -71,14 +72,13 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
 	// bug this file was fixed for — is a compile error, not a silent 12-hour
 	// shift in updateSystemTime below.
 	const [period] = useState<"am" | "pm">("am");
-	// Bumped only by syncClock below, and used as part of the pickers' `key` so
-	// they remount and re-seed from the fresh prefillValue on an explicit Sync
-	// click. ClassicyDatePicker/ClassicyTimePicker seed useState from
-	// prefillValue once on mount and ignore later prop changes, so a plain
-	// dispatch alone never updates their displayed fields. Deliberately NOT
-	// keyed on dateAndTimeState.dateTime — that value advances every minute
-	// from the menu-bar clock widget and would remount (and wipe out) a
-	// half-typed entry on every tick.
+	// Bumped only by syncClock below. The pickers show `pickerDate`, which is
+	// captured per generation, and are keyed on it: an explicit Sync click
+	// re-seeds them with the fresh time. Deliberately NOT following
+	// dateAndTimeState.dateTime — that value advances every minute from the
+	// menu-bar clock widget, and the pickers re-sync whenever their
+	// prefillValue changes, so following it would wipe out a half-typed entry
+	// on every tick.
 	const [syncGeneration, setSyncGeneration] = useState(0);
 
 	const dateAndTimeState = useAppManager(
@@ -225,6 +225,10 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
 			new Date().getTimezoneOffset() * 60000,
 	);
 
+	// What the pickers show: `date` as of the last Sync (see syncGeneration).
+	// biome-ignore lint/correctness/useExhaustiveDependencies: syncGeneration is the deliberate re-capture key; `date` is read at that moment only
+	const pickerDate = useMemo(() => date, [syncGeneration]);
+
 	const adjustToDisplay = (isoString: string): Date =>
 		new Date(
 			new Date(isoString).getTime() +
@@ -272,7 +276,7 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
 									key={syncGeneration}
 									id={"date"}
 									labelTitle={""}
-									prefillValue={date}
+									prefillValue={pickerDate}
 									onChangeFunc={updateSystemDate}
 									minValue={minValue}
 									maxValue={maxValue}
@@ -288,7 +292,7 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
 									labelTitle={""}
 									labelPosition="left"
 									onChangeFunc={updateSystemTime}
-									prefillValue={date}
+									prefillValue={pickerDate}
 									minValue={minValue}
 									maxValue={maxValue}
 									disabled={dateAndTimeState.dateTimeLocked}

@@ -6,6 +6,7 @@ import {
 	type ReactNode,
 	useCallback,
 	useEffect,
+	useId,
 	useLayoutEffect,
 	useRef,
 	useState,
@@ -24,7 +25,8 @@ export type ClassicyTabsSize = "small" | "medium" | "large";
 export interface TabProps {
 	/**
 	 * The tabs, left to right. The first tab is selected on mount. Each title
-	 * doubles as the tab's React key and DOM id stem, so keep titles unique.
+	 * is the tab's React key, so keep titles unique within one strip; DOM ids
+	 * are per instance, so two strips may share titles.
 	 */
 	tabs: TabIndividual[];
 	/** Tab sizing; see {@link ClassicyTabsSize}. Defaults to `"medium"`. */
@@ -61,7 +63,7 @@ const SIZE_CLASS: Record<ClassicyTabsSize, string> = {
  */
 const EDGE_TOLERANCE = 1;
 
-/** Stable identity for a tab, used for React keys and DOM ids. */
+/** Stable identity for a tab within its strip, used as its React key. */
 const tabKey = (tab: TabIndividual, index: number): string =>
 	tab.title && tab.title.length > 0 ? tab.title : `tab-${index}`;
 
@@ -121,6 +123,12 @@ export const ClassicyTabs: FunctionalComponent<TabProps> = ({
 	size = "medium",
 }) => {
 	const [activeTab, setActiveTab] = useState(0);
+	// Tab and panel DOM ids are unique per instance (#309): two strips with a
+	// "General" tab must not share ids, or aria-controls points at the wrong
+	// panel.
+	const instanceId = useId();
+	const tabDomId = (index: number) => `${instanceId}-tab-${index}`;
+	const panelDomId = (index: number) => `${instanceId}-panel-${index}`;
 	const player = useSoundDispatch();
 	const { track } = useClassicyAnalytics();
 	const analyticsArgs = { tabs: tabs.map((t) => t.title) };
@@ -312,9 +320,9 @@ export const ClassicyTabs: FunctionalComponent<TabProps> = ({
 									<button
 										type="button"
 										role="tab"
-										id={`${key}-tab`}
+										id={tabDomId(index)}
 										aria-selected={isActive}
-										aria-controls={`${key}-panel`}
+										aria-controls={panelDomId(index)}
 										tabIndex={isActive ? 0 : -1}
 										ref={(el) => {
 											buttonRefs.current[index] = el;
@@ -355,10 +363,10 @@ export const ClassicyTabs: FunctionalComponent<TabProps> = ({
 					const isActive = index === activeTab;
 					return (
 						<div
-							id={`${key}-panel`}
+							id={panelDomId(index)}
 							key={key}
 							role="tabpanel"
-							aria-labelledby={`${key}-tab`}
+							aria-labelledby={tabDomId(index)}
 							hidden={!isActive}
 							className={
 								isActive

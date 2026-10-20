@@ -24,8 +24,9 @@ export type ClassicyCheckboxProps = {
 	 */
 	mixed?: boolean;
 	/**
-	 * Legacy flag kept for API stability: adds the `classicyCheckboxDefault`
-	 * class but no longer changes the on-state mark (see `mark`).
+	 * Rings the box in the theme accent colour while it is on or pressed, as
+	 * `isDefault` does for a radio button. It does not change the on-state
+	 * mark (see `mark`).
 	 */
 	isDefault?: boolean;
 	/** Dims the checkbox and its label and ignores clicks. */

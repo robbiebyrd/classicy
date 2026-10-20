@@ -111,14 +111,15 @@ export const ClassicyLink: FunctionalComponent<ClassicyLinkProps> = ({
 		dispatch({ type: "ClassicyDesktopOpenUrl", url: href, disposition });
 	};
 
-	// An event-only link has no href, so the anchor gets button semantics and
-	// must activate from the keyboard itself.
+	// A link without an href has button semantics and must activate from the
+	// keyboard itself. It does so by clicking the anchor, so Enter and Space
+	// take exactly the mouse path: `onClickFunc` runs (and may cancel with
+	// preventDefault), then `event` dispatches.
 	const handleKeyDown = (e: KeyboardEvent<HTMLAnchorElement>) => {
 		if (e.key !== "Enter" && e.key !== " " && e.key !== "Spacebar") return;
 		e.preventDefault();
 		if (disabled) return;
-		track("click", { type: "ClassicyLink", event });
-		if (event) dispatch({ type: event, ...(eventData ?? {}) });
+		e.currentTarget.click();
 	};
 
 	return (

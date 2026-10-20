@@ -107,3 +107,39 @@ describe("ClassicyRadioInput", () => {
 		expect(onClickFunc).not.toHaveBeenCalled();
 	});
 });
+
+describe("ClassicyRadioInput group disabled (#308)", () => {
+	it("disables every button, and selection never changes", async () => {
+		const onClickFunc = vi.fn();
+		render(
+			<ClassicyRadioInput
+				name="group-disabled"
+				label="Speed"
+				disabled
+				inputs={baseInputs}
+				onClickFunc={onClickFunc}
+			/>,
+		);
+		const radios = screen.getAllByRole("radio");
+		for (const radio of radios) expect(radio).toBeDisabled();
+		await userEvent.click(radios[1]);
+		await userEvent.click(screen.getByText("Option C"));
+		expect(onClickFunc).not.toHaveBeenCalled();
+		expect(radios[0]).toBeChecked();
+	});
+
+	it("keeps an entry's own disabled when the group is enabled", () => {
+		render(
+			<ClassicyRadioInput
+				name="group-enabled"
+				inputs={[
+					...baseInputs.slice(0, 2),
+					{ id: "option-c", label: "Option C", disabled: true },
+				]}
+			/>,
+		);
+		const radios = screen.getAllByRole("radio");
+		expect(radios[0]).toBeEnabled();
+		expect(radios[2]).toBeDisabled();
+	});
+});

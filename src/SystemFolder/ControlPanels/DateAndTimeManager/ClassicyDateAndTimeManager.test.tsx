@@ -1,4 +1,5 @@
 import {
+	act,
 	cleanup,
 	fireEvent,
 	render,
@@ -119,7 +120,7 @@ describe("ClassicyDateAndTimeManager — dateTimeLocked", () => {
 		// must be disabled too, otherwise a user can still flip AM/PM and shift
 		// the clock 12 hours while "locked". The pop-up's visible control (a
 		// <button>) carries the id and reflects disabled via the attribute.
-		const amPm = container.querySelector("#am-pm") as HTMLButtonElement;
+		const amPm = container.querySelector("#time_ampm") as HTMLButtonElement;
 		expect(amPm).not.toBeNull();
 		expect(amPm.disabled).toBe(true);
 
@@ -150,7 +151,7 @@ describe("ClassicyDateAndTimeManager — dateTimeLocked", () => {
 				expect((input as HTMLInputElement).disabled).toBe(false);
 		}
 
-		const amPm = container.querySelector("#am-pm") as HTMLButtonElement;
+		const amPm = container.querySelector("#time_ampm") as HTMLButtonElement;
 		expect(amPm).not.toBeNull();
 		expect(amPm.disabled).toBe(false);
 
@@ -271,7 +272,7 @@ describe("ClassicyDateAndTimeManager — timezone changes must not corrupt the A
 		});
 		const { container } = renderOpen();
 
-		const amPm = container.querySelector("#am-pm") as HTMLButtonElement;
+		const amPm = container.querySelector("#time_ampm") as HTMLButtonElement;
 		expect(amPm).not.toBeNull();
 		expect(amPm).toHaveTextContent("am");
 
@@ -279,5 +280,37 @@ describe("ClassicyDateAndTimeManager — timezone changes must not corrupt the A
 
 		// The timezone change must not reset or corrupt the AM/PM control.
 		expect(amPm).toHaveTextContent("am");
+	});
+});
+
+describe("ClassicyDateAndTimeManager — clock ticks don't reset the pickers", () => {
+	it("keeps a half-typed time when the store's clock advances", () => {
+		renderOpen();
+		const minutes = document.getElementById("time_minutes") as HTMLInputElement;
+		fireEvent.change(minutes, { target: { value: "4" } });
+		// The menu-bar clock widget advances the stored time once a minute.
+		const next = new Date(
+			new Date(
+				useAppManager.getState().System.Manager.DateAndTime.dateTime,
+			).getTime() + 60_000,
+		);
+		act(() => {
+			useAppManager.setState((s) => ({
+				...s,
+				System: {
+					...s.System,
+					Manager: {
+						...s.System.Manager,
+						DateAndTime: {
+							...s.System.Manager.DateAndTime,
+							dateTime: next.toISOString(),
+						},
+					},
+				},
+			}));
+		});
+		expect(
+			(document.getElementById("time_minutes") as HTMLInputElement).value,
+		).toBe("4");
 	});
 });

@@ -102,7 +102,6 @@ export const ClassicyControlGroup: FunctionalComponent<
 	const hasLegend = legendContent != null;
 
 	const contentClass = classNames(
-		columns && "classicyControlGroupContentColumns",
 		layout === "form" && "classicyControlGroupFormContent",
 	);
 	return (

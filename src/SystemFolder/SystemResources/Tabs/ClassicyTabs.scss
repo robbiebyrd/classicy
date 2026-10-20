@@ -19,7 +19,7 @@ $tab-shape: polygon(13.70% 0%, 86.30% 0%, 100% 100%, 0% 100%);
 // element — otherwise the browser letterboxes it and the stroke drifts off the clip edges.
 // vector-effect='non-scaling-stroke' is what keeps that stretch from also
 // stretching the stroke: without it the 2 px stroke is scaled by the viewBox
-// mapping, so on a `small` tab (16 px against a 23.44-unit box) the top edge
+// mapping, so on a `small` tab (19.2 px against a 23.44-unit box) the top edge
 // thins to ~0.7 px and vanishes into antialiasing. Non-scaling keeps it 2 px in
 // device space at every size, leaving a true 1 px line after the clip.
 // Path: bottom-left → top-left → top-right → bottom-right (open, no closing line).
@@ -194,11 +194,11 @@ $_tab-border-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/s
 // 12 pt and 10 pt, so the small label is the system font scaled by that 10:12
 // relationship (`* 10 / 12`) rather than an arbitrary divisor — it holds the
 // authentic ratio to the standard tab and scales with the theme's UI size. The
-// box is 16 px against the default theme; an ~11.7 px label clears it with
-// room to spare.
+// box is the control size × 4 / 2.5 — 19.2 px against the default theme — so
+// an ~11.7 px label sits in it with room above and below.
 .classicyTabsSizeSmall {
   // Glyph size is deliberately *not* scaled down with the box: the reference
-  // art keeps the arrow chunky inside a 16 px tab, and a proportionally
+  // art keeps the arrow chunky inside a small tab, and a proportionally
   // shrunken triangle reads as a smudge rather than a direction.
 
   .classicyTabButtonsRow {
@@ -213,7 +213,7 @@ $_tab-border-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/s
 
   .classicyTabButtonWrapper,
   .classicyTabButton {
-    height: calc(var(--window-control-size) * 4 / 3);
+    height: calc(var(--window-control-size) * 4 / 2.5);
   }
 
   .classicyTabButton {

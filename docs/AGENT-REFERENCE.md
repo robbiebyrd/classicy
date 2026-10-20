@@ -29,20 +29,25 @@ reference only names.
 npm install classicy react react-dom zustand immer @tanstack/react-table react-player
 ```
 
-Every export comes from the package root (a flat barrel). CSS must be imported
-separately:
+Every export comes from the package root (a flat barrel). Importing it also
+installs the stylesheet: the bundle injects `classicy.css` as a
+`<style id="classicy-styles">` at the top of `<head>` on first import (once; not
+during SSR), so host stylesheets still win on equal specificity. Only the bundled
+fonts are a separate import:
 
 ```ts
-import 'classicy/dist/classicy.css'  // required styles
 import 'classicy/dist/fonts.css'     // OPT-IN: bundled base64 fonts. Skip if you supply your own fonts.
 ```
+
+Under a Content-Security-Policy that forbids inline `<style>`, link
+`classicy/dist/classicy.css` instead (importing it as well is harmless).
 
 Package `exports` map:
 
 | Specifier | Resolves to |
 |---|---|
 | `classicy` | ES/UMD bundle + types |
-| `classicy/dist/classicy.css` | Required stylesheet |
+| `classicy/dist/classicy.css` | The stylesheet the bundle injects; link it yourself only under a strict CSP |
 | `classicy/dist/fonts.css` | Opt-in bundled `@font-face` rules |
 | `classicy/dist/*` | Anything in dist |
 | `classicy/scss/*` | Raw SCSS partials (theme styles) |
@@ -50,8 +55,7 @@ Package `exports` map:
 ### Minimal app
 
 ```tsx
-import 'classicy/dist/classicy.css'
-import 'classicy/dist/fonts.css'
+import 'classicy/dist/fonts.css'   // optional: the bundled fonts
 import {
     ClassicyAppManagerProvider,
     ClassicyDesktop,
@@ -509,8 +513,8 @@ usable pre-boot): `title?`, `children` *, `className?`, `width?`.
 | `ClassicyTextEditor` | `content?`, `prefillValue?`, `onChangeFunc?`, `autoHeight?`, `border?`, `labelTitle?` | plain textarea |
 | `ClassicyRichTextEditor` | `content` *, `onChangeFunc?(markdown)`, `editorRef?` | MDXEditor-backed markdown |
 | `ClassicyFileInput` | `id` *, `accept?`, `multiple?`, `maxFiles?`, `maxFileSizeMb?`, `onChangeFunc?(files: File[])` | forwardRef handle `{ addFiles(File[]) }` |
-| `ClassicyDatePicker` | `id` *, `onChangeFunc?(date)`, `prefillValue?`, `minValue?/maxValue?` | defaults to store date/time |
-| `ClassicyTimePicker` | `id` *, `onChangeFunc?(date)`, `prefillValue?`, `minValue?/maxValue?` | |
+| `ClassicyDatePicker` | `id` *, `onChangeFunc?(date)`, `prefillValue?`, `minValue?/maxValue?` | defaults to the Classicy virtual clock (`DateAndTime.dateTime`); re-syncs when `prefillValue` changes to a different moment |
+| `ClassicyTimePicker` | `id` *, `onChangeFunc?(date)`, `prefillValue?`, `minValue?/maxValue?` | defaults to the Classicy virtual clock, like the date picker; re-syncs when `prefillValue` changes to a different moment |
 | `ClassicyPopUpMenu` | `id` *, `options` * (`{value, label, icon?}` or `{groupLabel, options}` entries), `selected?`, `onChangeFunc?`, `size? (incl. "mini")`, `label?`, `disabled?` | Platinum select; group entries render `<optgroup>`-style titled, non-selectable runs |
 | `ClassicyListBox` | `id` *, `options` * (`{value, label, icon?, disabled?}[]`), `selectionMode? ("single"\|"multi")`, `selected?: string[]`, `onChangeFunc?(values)`, `onActivateFunc?(value)` (double-click/Enter), `visibleRows?`, `label?`, `disabled?` | List Manager scrolling list; multi = plain-click replaces, ⌘/Ctrl-click toggles, Shift-click/Shift-arrows extend; selection follows the keyboard |
 | `ClassicyComboBox` | `id` *, `options` * (flat options and/or `{groupLabel, options}` groups), `prefillValue?`, `filter? ("startsWith"\|"contains"\|false)`, `freeText? (true)`, `onChangeFunc?(text)`, `onSelectFunc?(value, option)`, `placeholder?`, `label?`, `disabled?` | editable field + arrow; suggestion menu reuses the PopUpMenu look/flip logic; focus stays in the input (`aria-activedescendant`) |
@@ -519,7 +523,7 @@ usable pre-boot): `title?`, `children` *, `className?`, `width?`.
 
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
-| `ClassicyControlLabel` | `label?`, `labelFor?`, `labelSize?`, `icon?`, `direction?`, `disabled?` | renders nothing when label empty |
+| `ClassicyControlLabel` | `label?`, `labelFor?`, `id?` (the `<label>`'s id, for `aria-labelledby`), `labelSize?`, `icon?`, `direction?`, `disabled?`, `onClickFunc?` | renders nothing when label empty; the row is a focusable `role="button"` only with `onClickFunc` |
 | `ClassicyControlGroup` | `children` *, `label?`, `title?` (`ReactNode`; overrides `label`), `backgroundColor?` (painted behind the title so it masks the frame line; match the surface the group sits on; default `var(--color-system-03)`), `variant? ("primary"\|"secondary")`, `checkboxTitle?`, `popUpMenuTitle?`, `columns?`, `layout? ("default"\|"form")` | fieldset-style group; title can be a checkbox or popup |
 | `ClassicyForm` | `onSubmitFunc?`, `layout? ("default"\|"dialog")`, children * | real `<form>`; always calls `preventDefault` (never navigates); make the confirming button `isDefault buttonType="submit"` so Enter submits |
 | `ClassicyFormButtonRow` | `children` * | HIG dialog button row: right-aligned, `--hig-button-gap-h`, group-gap above |
@@ -639,7 +643,9 @@ return <div ref={myRef} {...handlers}>target{balloon}</div>
 ### 4.9 QuickTime media primitives
 
 `QuickTimeVideoEmbed` (required: `appId`, `name`, `url`, `type: "audio"|"video"`;
-optional: `subtitlesUrl`, `autoPlay`, `hideControls`, `controlsDocked`,
+optional: `windowId` (the window whose focus enables the keyboard shortcuts;
+default `${appId}_MoviePlayer_${url}`), `subtitlesUrl`, `autoPlay`,
+`hideControls`, `controlsDocked`,
 `muted`, `playing`/`onPlayingChange`, `volume`/`onVolumeChange`,
 `captionsEnabled`/`onCaptionsEnabledChange`, `captionStyle`, `onMediaElement`,
 `crossOrigin`, `playsInline`) plus the individual controls:
@@ -1354,6 +1360,6 @@ untrusted disposition strings.
 7. **`defaultState` only applies on first boot** (nothing hydrated). During development, clear `localStorage["classicyDesktopState"]` to see provider default changes.
 8. **Window ids are data**: they feed analytics paths and persistence. Keep them stable and free of user content, or set `analyticsPath` explicitly.
 9. **Colors are integers** (`0xRRGGBB`), not hex strings, throughout themes and color pickers.
-10. **CSS is not auto-imported** — `classicy/dist/classicy.css` is required; `fonts.css` is opt-in.
+10. **Styles come with the import** — the bundle injects `classicy.css` into `<head>`; only `fonts.css` is a separate, opt-in import. Link `classicy.css` yourself only if a CSP blocks inline `<style>`.
 11. Deprecated (still working, avoid in new code): `noDesktopIcon`, `inApplicationsFolder`, `registerAppEventHandler`, `registerClassicyUntrustedActionAllowlist` for app-owned actions, `isXData`-style hand-rolled guards (use `parseAppData`).
 12. **Never mount the built-in apps yourself** (`Finder`, `SimpleText`, `HyperCard`, the viewers, `ClassicyControlPanels`, `AppleGuide`) — `ClassicyDesktop` renders them all automatically; mounting them as children double-mounts them. Use the provider's `disable*` props to remove the optional ones.
