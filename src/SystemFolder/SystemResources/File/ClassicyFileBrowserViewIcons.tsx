@@ -68,6 +68,7 @@ type iconType = {
 	snapOrigin?: [number, number];
 	positionLocked?: boolean;
 	dropFolderPath?: string;
+	filePath: string;
 	onFileDrag: (
 		target: ClassicyFileDropTarget | null,
 		point: [number, number],
@@ -185,6 +186,7 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 				const updatedIcons = ordered.map(([filename, properties], index) => {
 					const itemPath = `${path}${fs.separator}${filename}`;
 					return {
+						filePath: itemPath,
 						dropFolderPath:
 							properties._type === "directory" ? itemPath : undefined,
 						// Let go in this same folder: rearrange (return false). Over

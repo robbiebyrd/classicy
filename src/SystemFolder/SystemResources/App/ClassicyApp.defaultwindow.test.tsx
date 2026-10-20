@@ -86,4 +86,18 @@ describe("ClassicyApp default-window focus effect", () => {
 		renderApp();
 		expect(focusDispatches().length).toBeGreaterThan(0);
 	});
+
+	it("leaves every window alone when restoreWindowFocus is off (Finder's desktop)", () => {
+		mockAppState.defaultWindowClosed = false;
+		render(
+			<ClassicyApp
+				id="TestApp"
+				name="Test"
+				icon=""
+				defaultWindow="main"
+				restoreWindowFocus={false}
+			/>,
+		);
+		expect(focusDispatches()).toHaveLength(0);
+	});
 });

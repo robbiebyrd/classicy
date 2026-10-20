@@ -95,9 +95,16 @@ export const formatKeyboardShortcut = (raw: string | undefined): string => {
  * composed/dead-key character (Option+E → "Dead"/"´"), but `e.code` stays
  * `KeyE`, so only a code match survives.
  */
+// Key glyphs a shortcut may be written with, and the `KeyboardEvent.key` each
+// stands for: Mac OS's Delete (⌫, "Move To Trash ⌃⌫") is the Backspace key.
+const KEY_GLYPH_NAMES: Readonly<Record<string, string>> = {
+	"⌫": "backspace",
+	"⌦": "delete",
+};
+
 const keyMatchesEvent = (key: string, e: KeyboardEvent): boolean => {
 	if (!key) return false;
-	const k = key.toLowerCase();
+	const k = KEY_GLYPH_NAMES[key] ?? key.toLowerCase();
 	if (e.key.toLowerCase() === k) return true;
 	if (k === "space" && (e.code === "Space" || e.key === " ")) return true;
 	if (/^[a-z]$/.test(k) && e.code === `Key${k.toUpperCase()}`) return true;
@@ -208,7 +215,7 @@ const buildChord = (
 export const canonicalChord = (raw: string | undefined): string => {
 	const p = parseKeyboardShortcut(raw);
 	if (!p.key) return "";
-	return buildChord(p, p.key.toLowerCase());
+	return buildChord(p, KEY_GLYPH_NAMES[p.key] ?? p.key.toLowerCase());
 };
 
 const keyFromEvent = (e: KeyboardEvent): string => {

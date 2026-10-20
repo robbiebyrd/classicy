@@ -412,3 +412,37 @@ describe("isFunctionKey", () => {
 		expect(isFunctionKey("S")).toBe(false);
 	});
 });
+
+describe("the Delete key glyph (⌃⌫, Move To Trash)", () => {
+	const backspace = makeKeyEvent({
+		ctrlKey: true,
+		key: "Backspace",
+		code: "Backspace",
+	});
+
+	it("matches the Backspace key", () => {
+		expect(shortcutMatchesEvent("⌃⌫", backspace)).toBe(true);
+		expect(
+			shortcutMatchesEvent(
+				"⌃⌫",
+				makeKeyEvent({ ctrlKey: true, key: "Delete", code: "Delete" }),
+			),
+		).toBe(false);
+		// Control, not Command: the browser keeps ⌘.
+		expect(
+			shortcutMatchesEvent(
+				"⌃⌫",
+				makeKeyEvent({ metaKey: true, key: "Backspace", code: "Backspace" }),
+			),
+		).toBe(false);
+	});
+
+	it("is the same chord the dispatcher derives from the event", () => {
+		expect(canonicalChord("⌃⌫")).toBe("control+backspace");
+		expect(canonicalChordsFromEvent(backspace)).toContain(canonicalChord("⌃⌫"));
+	});
+
+	it("displays as the glyph", () => {
+		expect(formatKeyboardShortcut("⌃⌫")).toBe("⌃⌫");
+	});
+});

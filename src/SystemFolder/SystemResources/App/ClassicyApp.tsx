@@ -46,6 +46,11 @@ export interface ClassicyAppProps {
 	/** Id of the window to focus when the app is focused and none of its
 	 *  windows is, provided that window is open. */
 	defaultWindow?: string;
+	/** When the app is focused with none of its windows focused, raise the
+	 *  most recent one (else `defaultWindow`). Defaults to true. Finder turns it
+	 *  off: with no Finder window focused, its desktop is the active surface,
+	 *  and clicking a desktop icon must not bring a window forward. */
+	restoreWindowFocus?: boolean;
 	/** Draw an icon for this app on the desktop. Defaults to true. Ignored for
 	 *  `extension` apps, which are background-only. */
 	showDesktopIcon?: boolean;
@@ -139,6 +144,7 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 	globalShortcuts,
 	bootIcon,
 	defaultWindow,
+	restoreWindowFocus = true,
 	debug = false,
 	handlesFileTypes,
 	handlesOwnFiles = false,
@@ -341,7 +347,7 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 	// have already updated the store by the time this effect runs, and acting
 	// on the stale snapshot would raise the old window over the new one.
 	useEffect(() => {
-		if (!defaultWindow) return;
+		if (!defaultWindow || !restoreWindowFocus) return;
 		const app =
 			typeof useAppManager.getState === "function"
 				? useAppManager.getState().System.Manager.Applications.apps[id]
@@ -364,7 +370,7 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 		});
 		// appContext is the re-run trigger (any change to this app's record);
 		// the body reads the live store.
-	}, [appContext, defaultWindow, desktopEventDispatch, id]);
+	}, [appContext, defaultWindow, restoreWindowFocus, desktopEventDispatch, id]);
 
 	const rawOpenFiles = appContext?.data?.openFiles;
 	const openFiles: string[] = Array.isArray(rawOpenFiles) ? rawOpenFiles : [];

@@ -487,6 +487,39 @@ get `.classicyFileDropTarget` (darkened icon/row, framed window).
 - Dropped back in its own folder, an icon-view icon repositions by the pointer's
   travel (snapping when the arrangement is a grid).
 
+### Trash
+
+The Trash is a folder at the **root** of the tree (`CLASSICY_TRASH_PATH =
+"Trash"`, beside the drives; `_system`, `_invisible`), created by
+`ensureClassicyTrash` (Finder runs it on mount). `ClassicyTrash.ts` holds the
+fs-only operations; `ClassicyFileMove.ts` the dispatching wrappers.
+
+- **In:** `trashClassicyFileSystemItems` / `moveClassicyItemsToTrash` move items
+  with `fs.move(path, "Trash", { name, metadata })`, recording `_trashed`,
+  `_trashedFrom` (parent folder), `_trashedName` (when renumbered — clashes
+  become "Plan 2.txt") and, for desktop items, `_trashedLocation` (icon spot).
+  Locked items are refused with an alert. Routes: drag onto the Trash icon or
+  a Trash window (`moveClassicyFileSystemItems` delegates for destination
+  `"Trash"`), File ▸ Move To Trash **⌃⌫**, Delete/⌃⌫ in a file browser
+  (`onDeleteItems`) or on the desktop (selected file/folder icons).
+- **Out:** Restore (right-click an item in the Trash window via
+  `ClassicyFileBrowser`'s `itemContextMenu`, or File ▸ Restore there) moves it
+  back under its original name (`restoreClassicyTrashItems`; refuses
+  `no-origin`/`exists`) and re-places desktop icons. Dragging an item out of
+  the Trash clears its trash metadata.
+- **Empty:** Special ▸ Empty Trash… (desktop and every Finder window, plus the
+  Trash icon's contextual menu) → `ClassicyDesktopShowSystemDialog { dialog:
+  "emptyTrash" }` → `ClassicyEmptyTrashAlert` warning → `emptyClassicyTrash`.
+  Special ▸ **Reset PRAM…** (`dialog: "resetPram"`) is the old "clear saved
+  state and reload". `Desktop.systemDialog` is stripped from persistence.
+- Finder owns the Trash desktop icon (`filePath: "Trash"`, full/empty art; a
+  re-add refreshes `icon`). Finder's `ClassicyApp` passes
+  `restoreWindowFocus={false}` so clicking the desktop doesn't raise a Finder
+  window (the desktop is Finder's surface).
+
+**Keyboard equivalents use Control (⌃) or Option (⌥), not Command** — the
+browser keeps ⌘. `⌫`/`⌦` in a shortcut string mean Backspace/Delete.
+
 ### File System Sync Adapters
 
 `ClassicyFileSystem` is browser-local (localStorage-primary), but consumers can

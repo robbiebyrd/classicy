@@ -23,6 +23,8 @@ import {
 	drawClassicyDragOutline,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDragOutline";
 
+/** The attribute a file item (an icon, a list row's name) carries its path in. */
+export const CLASSICY_FILE_PATH_ATTRIBUTE = "data-classicy-file-path";
 export const CLASSICY_DROP_FOLDER_ATTRIBUTE = "data-classicy-drop-folder";
 export const CLASSICY_DROP_DESKTOP_ATTRIBUTE = "data-classicy-drop-desktop";
 

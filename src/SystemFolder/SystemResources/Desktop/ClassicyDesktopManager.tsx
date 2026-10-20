@@ -82,6 +82,9 @@ export interface ClassicyStoreControlStrip {
 
 export type ClassicyControlStripEdge = "left" | "right";
 
+/** The Special menu's confirmation alerts (see `systemDialog`). */
+export type ClassicyDesktopSystemDialog = "emptyTrash" | "resetPram";
+
 export interface ClassicyStoreSystemDesktopManagerIcon {
 	appId: string;
 	appName: string;
@@ -145,6 +148,10 @@ export interface ClassicyStoreSystemDesktopManager
 	 * is deliberately immune to the Apple-menu About hoist. */
 	helpMenu?: Record<string, ClassicyMenuItem[]>;
 	errorDialog?: { title?: string; message: string } | null;
+	/** The Special menu's confirmation alert on screen, if any: Empty Trash or
+	 * Reset PRAM (`ClassicyDesktopShowSystemDialog`). Session-only — never
+	 * persisted. */
+	systemDialog?: ClassicyDesktopSystemDialog | null;
 	/** Bumped when the filesystem tree is replaced out-of-band (adapter
 	 * reconcile) so useClassicyFileSystem rebuilds from localStorage. */
 	fsVersion?: number;
@@ -470,6 +477,14 @@ export const classicyDesktopEventHandler = (
 		}
 		case "ClassicyDesktopCloseErrorDialog": {
 			ds.System.Manager.Desktop.errorDialog = null;
+			break;
+		}
+		case "ClassicyDesktopShowSystemDialog": {
+			// Unknown values close the dialog rather than open a blank one.
+			ds.System.Manager.Desktop.systemDialog =
+				action.dialog === "emptyTrash" || action.dialog === "resetPram"
+					? action.dialog
+					: null;
 			break;
 		}
 		case "ClassicyDesktopFileSystemVersionBump": {

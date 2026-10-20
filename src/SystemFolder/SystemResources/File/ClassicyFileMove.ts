@@ -1,4 +1,5 @@
 import type { ActionMessage } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { iconImageByType } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserUtils";
 import type { ClassicyFileDropDestination } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
 import type {
@@ -6,6 +7,14 @@ import type {
 	ClassicyFileSystemMoveRefusal,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import {
+	CLASSICY_TRASH_PATH,
+	CLASSICY_UNTRASHED_METADATA,
+	type ClassicyTrashRefusal,
+	isClassicyTrashItem,
+	restoreClassicyFileSystemItems,
+	trashClassicyFileSystemItems,
+} from "@/SystemFolder/SystemResources/File/ClassicyTrash";
 
 /**
  * The folder whose contents are the desktop's files and folders — Mac OS 8's
@@ -144,6 +153,12 @@ export function moveClassicyFileSystemItems(
 	dispatch: Dispatch,
 	{ desktopLocation, desktopStep = 72 }: ClassicyFileMoveOptions = {},
 ): { from: string; to: string }[] {
+	if (
+		destination.kind === "folder" &&
+		destination.path === CLASSICY_TRASH_PATH
+	) {
+		return moveClassicyItemsToTrash(fs, paths, dispatch);
+	}
 	const folder =
 		destination.kind === "desktop"
 			? ensureClassicyDesktopFolder(fs)
@@ -156,7 +171,14 @@ export function moveClassicyFileSystemItems(
 	for (const path of paths) {
 		// A folder let go on itself is a short drag, not a request: no alert.
 		if (path === folder) continue;
-		const result = fs.move(path, folder);
+		// Dragged out of the Trash: it is no longer trashed.
+		const result = fs.move(
+			path,
+			folder,
+			isClassicyTrashItem(fs, path)
+				? { metadata: CLASSICY_UNTRASHED_METADATA }
+				: {},
+		);
 		if (result.ok) {
 			moves.push({ from: path, to: result.path });
 		} else if (result.reason !== "same-folder" && !refusal) {
@@ -188,6 +210,117 @@ export function moveClassicyFileSystemItems(
 		dispatch({
 			type: "ClassicyDesktopShowErrorDialog",
 			message: refusalMessage(refusal.reason, refusal.name, folderName),
+		});
+	}
+	return moves;
+}
+
+const trashRefusalMessage = (
+	reason: ClassicyTrashRefusal,
+	name: string,
+): string => {
+	switch (reason) {
+		case "locked":
+			return `“${name}” can’t be moved to the Trash, because it is locked or used by the system software.`;
+		default:
+			return `“${name}” could not be moved to the Trash.`;
+	}
+};
+
+/** The desktop icon position of each Desktop Folder item among `paths`. */
+const desktopIconLocations = (
+	paths: string[],
+): Record<string, [number, number] | undefined> => {
+	const wanted = new Set(paths);
+	const locations: Record<string, [number, number] | undefined> = {};
+	for (const icon of useAppManager.getState().System.Manager.Desktop.icons) {
+		if (icon.filePath && wanted.has(icon.filePath) && icon.location) {
+			locations[icon.filePath] = icon.location;
+		}
+	}
+	return locations;
+};
+
+/**
+ * Move `paths` to the Trash (Finder's Move To Trash, ⌃⌫/Delete, or a drop on
+ * the Trash): Finder windows follow trashed folders, desktop items remember
+ * where their icons were, and the first refusal is reported in an alert.
+ * Returns the moves that happened.
+ */
+export function moveClassicyItemsToTrash(
+	fs: ClassicyFileSystem,
+	paths: string[],
+	dispatch: Dispatch,
+): { from: string; to: string }[] {
+	const { moves, refusal } = trashClassicyFileSystemItems(
+		fs,
+		paths,
+		desktopIconLocations(paths),
+	);
+	if (moves.length > 0) {
+		dispatch({ type: "ClassicyAppFinderPathsMoved", moves });
+	}
+	if (refusal) {
+		dispatch({
+			type: "ClassicyDesktopShowErrorDialog",
+			message: trashRefusalMessage(refusal.reason, refusal.name),
+		});
+	}
+	return moves;
+}
+
+const restoreRefusalMessage = (
+	reason: ClassicyTrashRefusal,
+	name: string,
+): string => {
+	switch (reason) {
+		case "no-origin":
+			return `“${name}” can’t be restored, because the folder it came from no longer exists. Drag it out of the Trash instead.`;
+		case "exists":
+			return `“${name}” can’t be restored, because an item with that name is already where it came from.`;
+		default:
+			return `“${name}” could not be restored.`;
+	}
+};
+
+/**
+ * Restore Trash items to the folders they came from (the Trash window's
+ * Restore command). Items that were on the desktop get their icons back where
+ * they were. The first refusal is reported in an alert. Returns the moves.
+ */
+export function restoreClassicyTrashItems(
+	fs: ClassicyFileSystem,
+	paths: string[],
+	dispatch: Dispatch,
+): { from: string; to: string }[] {
+	// Read before the restore clears it.
+	const locations = Object.fromEntries(
+		paths.map((path) => [path, fs.resolve(path)?._trashedLocation]),
+	);
+	const { moves, refusal } = restoreClassicyFileSystemItems(fs, paths);
+	if (moves.length > 0) {
+		dispatch({ type: "ClassicyAppFinderPathsMoved", moves });
+		const desktopFolder = classicyDesktopFolderPath(fs);
+		for (const { from, to } of moves) {
+			const location = locations[from];
+			if (
+				!desktopFolder ||
+				to.split(fs.separator).slice(0, -1).join(fs.separator) !== desktopFolder
+			) {
+				continue;
+			}
+			const action = classicyDesktopItemIconAction(
+				fs,
+				to,
+				Array.isArray(location) ? location : undefined,
+			);
+			if (action) dispatch(action);
+		}
+	}
+	if (refusal) {
+		dispatch({
+			type: "ClassicyDesktopShowErrorDialog",
+			message: restoreRefusalMessage(refusal.reason, refusal.name),
 		});
 	}
 	return moves;

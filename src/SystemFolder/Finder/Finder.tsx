@@ -37,7 +37,11 @@ import {
 	closeAllWindowsMenuItemHelper,
 	closeWindowMenuItemHelper,
 } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
-import { ClassicyFileBrowser } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowser";
+import { classicySpecialMenuItems } from "@/SystemFolder/SystemResources/Desktop/ClassicySpecialMenu";
+import {
+	ClassicyFileBrowser,
+	type ClassicyFileBrowserCommands,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileBrowser";
 import type { ClassicyFileBrowserMoveItems } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewIcons";
 import {
 	CLASSICY_DESKTOP_ITEM_ICON_PREFIX,
@@ -45,6 +49,8 @@ import {
 	classicyDesktopFolderPath,
 	classicyDesktopItemIconAction,
 	moveClassicyFileSystemItems,
+	moveClassicyItemsToTrash,
+	restoreClassicyTrashItems,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileMove";
 import type { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import { useClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
@@ -52,6 +58,13 @@ import type {
 	ClassicyFileSystemEntry,
 	ClassicyFileSystemEntryMetadata,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import {
+	CLASSICY_TRASH_PATH,
+	ensureClassicyTrash,
+	isClassicyTrashItem,
+	isInClassicyTrash,
+	listClassicyTrashItems,
+} from "@/SystemFolder/SystemResources/File/ClassicyTrash";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import type { ClassicyTableSelectionApi } from "@/SystemFolder/SystemResources/Table/ClassicyTable";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
@@ -80,6 +93,12 @@ type FinderWindowProps = {
 	listViewOptions: FinderListViewOptions;
 	now: Date;
 	onMoveItems: ClassicyFileBrowserMoveItems;
+	trashItems: (paths: string[]) => void;
+	restoreItems: (paths: string[]) => void;
+	itemContextMenu: (
+		path: string,
+		selectedPaths: string[],
+	) => ClassicyMenuItem[] | undefined;
 };
 
 const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
@@ -104,7 +123,14 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 	listViewOptions,
 	now,
 	onMoveItems,
+	trashItems,
+	restoreItems,
+	itemContextMenu,
 }) => {
+	const desktopEventDispatch = useAppManagerDispatch();
+	// The browser's selection, for File ▸ Move To Trash and Restore.
+	const commandsRef = useRef<ClassicyFileBrowserCommands | null>(null);
+	const inTrash = isInClassicyTrash(fs, op);
 	// One handle per open folder window: a single shared ref would make every
 	// window's Select All drive whichever table mounted last.
 	const selectionApiRef = useRef<ClassicyTableSelectionApi | null>(null);
@@ -147,6 +173,25 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 						`${appId}_${op}_file_closews`,
 						closeAllFolders,
 					),
+					{ id: "spacer" },
+					{
+						id: `${appId}_${op}_file_move_to_trash`,
+						title: "Move To Trash",
+						keyboardShortcut: "⌃⌫",
+						disabled: inTrash,
+						onClickFunc: () =>
+							trashItems(commandsRef.current?.selectedPaths() ?? []),
+					},
+					...(op === CLASSICY_TRASH_PATH
+						? [
+								{
+									id: `${appId}_${op}_file_restore`,
+									title: "Restore",
+									onClickFunc: () =>
+										restoreItems(commandsRef.current?.selectedPaths() ?? []),
+								},
+							]
+						: []),
 				],
 			},
 			// Built inline rather than from useClassicyEditMenu: that hook's Select
@@ -191,6 +236,14 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 				],
 			},
 			{
+				id: `${appId}_${op}_special`,
+				title: "Special",
+				menuChildren: classicySpecialMenuItems(
+					desktopEventDispatch,
+					`${appId}_${op}`,
+				),
+			},
+			{
 				id: `${appId}_${op}_help`,
 				title: "Help",
 				menuChildren: [
@@ -216,6 +269,10 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 			aboutMenuItem,
 			openPreferences,
 			viewType,
+			inTrash,
+			trashItems,
+			restoreItems,
+			desktopEventDispatch,
 		],
 	);
 
@@ -247,6 +304,9 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 				selectionApiRef={selectionApiRef}
 				focusTargetRef={focusTargetRef}
 				onMoveItems={onMoveItems}
+				onDeleteItems={inTrash ? undefined : trashItems}
+				itemContextMenu={itemContextMenu}
+				commandsRef={commandsRef}
 			/>
 		</ClassicyWindow>
 	);
@@ -484,6 +544,95 @@ export const Finder = () => {
 		[fs, desktopEventDispatch],
 	);
 
+	// The Trash: a folder at the root of the tree, opened by the desktop's
+	// Trash icon — which shows full while anything is in it.
+	useEffect(() => {
+		ensureClassicyTrash(fs);
+	}, [fs]);
+	const trashFull = listClassicyTrashItems(fs).length > 0;
+	useEffect(() => {
+		desktopEventDispatch({
+			type: "ClassicyDesktopIconAdd",
+			app: {
+				id: "Trash",
+				name: "Trash",
+				icon: trashFull
+					? ClassicyIcons.system.desktop.trashFull
+					: ClassicyIcons.system.desktop.trashEmpty,
+			},
+			kind: "trash",
+			filePath: CLASSICY_TRASH_PATH,
+			noLaunch: true,
+			event: "ClassicyAppFinderOpenFolder",
+			eventData: { path: CLASSICY_TRASH_PATH },
+			contextMenu: [
+				{
+					id: "finder_trash_open",
+					title: "Open",
+					onClickFunc: () =>
+						desktopEventDispatch({
+							type: "ClassicyAppFinderOpenFolder",
+							path: CLASSICY_TRASH_PATH,
+						}),
+				},
+				{
+					id: "finder_trash_empty",
+					title: "Empty Trash\u2026",
+					onClickFunc: () =>
+						desktopEventDispatch({
+							type: "ClassicyDesktopShowSystemDialog",
+							dialog: "emptyTrash",
+						}),
+				},
+			],
+		});
+	}, [trashFull, desktopEventDispatch]);
+
+	const trashItems = useCallback(
+		(paths: string[]) => {
+			// A list's remembered selection can name items moved away since.
+			const present = paths.filter((path) => fs.resolve(path));
+			if (present.length > 0) {
+				moveClassicyItemsToTrash(fs, present, desktopEventDispatch);
+			}
+		},
+		[fs, desktopEventDispatch],
+	);
+	const restoreItems = useCallback(
+		(paths: string[]) => {
+			const items = paths.filter((path) => isClassicyTrashItem(fs, path));
+			if (items.length > 0) {
+				restoreClassicyTrashItems(fs, items, desktopEventDispatch);
+			}
+		},
+		[fs, desktopEventDispatch],
+	);
+	// Right-click on an item: Restore in the Trash, Move To Trash elsewhere —
+	// acting on the whole selection when the item is part of it.
+	const itemContextMenu = useCallback(
+		(path: string, selectedPaths: string[]): ClassicyMenuItem[] | undefined => {
+			const targets = selectedPaths.includes(path) ? selectedPaths : [path];
+			if (isClassicyTrashItem(fs, path)) {
+				return [
+					{
+						id: "finder_item_restore",
+						title: "Restore",
+						onClickFunc: () => restoreItems(targets),
+					},
+				];
+			}
+			if (isInClassicyTrash(fs, path)) return undefined;
+			return [
+				{
+					id: "finder_item_move_to_trash",
+					title: "Move To Trash",
+					onClickFunc: () => trashItems(targets),
+				},
+			];
+		},
+		[fs, restoreItems, trashItems],
+	);
+
 	// Mirror the Desktop Folder onto the desktop: an icon for each item in it,
 	// none for items that have left it. Runs again whenever the tree changes
 	// (`fs` is handed out afresh on every change), so icons follow items
@@ -542,6 +691,9 @@ export const Finder = () => {
 			icon={appIcon}
 			showDesktopIcon={false}
 			showInApplicationsFolder={false}
+			// The desktop is Finder's own surface: clicking it, or an icon on it,
+			// leaves Finder focused with no window active — don't raise one.
+			restoreWindowFocus={false}
 			defaultWindow={
 				finderData.openPaths?.length
 					? finderData.openPaths.at(0)
@@ -577,6 +729,9 @@ export const Finder = () => {
 							listViewOptions={standardViews.list}
 							now={now}
 							onMoveItems={onMoveItems}
+							trashItems={trashItems}
+							restoreItems={restoreItems}
+							itemContextMenu={itemContextMenu}
 						/>
 					))
 				: null}

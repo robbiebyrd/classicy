@@ -170,6 +170,7 @@ export * from "./SystemFolder/SystemResources/Desktop/ClassicyDesktopKeyNav";
 export * from "./SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
 export * from "./SystemFolder/SystemResources/Desktop/ClassicyDesktopWindowManagerContext";
 export * from "./SystemFolder/SystemResources/Desktop/ClassicyOpenUrlController";
+export * from "./SystemFolder/SystemResources/Desktop/ClassicySpecialMenu";
 export * from "./SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
 export * from "./SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar";
 export * from "./SystemFolder/SystemResources/Desktop/MenuBar/ClassicyMenuBarExtension";
@@ -194,6 +195,7 @@ export * from "./SystemFolder/SystemResources/File/ClassicyFileSystemExtensions"
 export * from "./SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 export * from "./SystemFolder/SystemResources/File/ClassicyFileSystemSeedMigrations";
 export * from "./SystemFolder/SystemResources/File/ClassicyFileSystemValidation";
+export * from "./SystemFolder/SystemResources/File/ClassicyTrash";
 export * from "./SystemFolder/SystemResources/File/DefaultClassicyFileSystem";
 export * from "./SystemFolder/SystemResources/File/useResolvedMediaSource";
 export * from "./SystemFolder/SystemResources/FileDialog/ClassicyFileDialog";

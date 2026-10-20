@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+	act,
+	fireEvent,
+	render,
+	screen,
+	waitFor,
+} from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { ClassicyAppManagerProvider } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext";
@@ -244,7 +250,7 @@ describe("ClassicyDesktop startup screen", () => {
 		expect(container.querySelector(".classicyStartupScreen")).toBeNull();
 	});
 
-	it("clears the session key when the trash is emptied, so the splash replays after reload", () => {
+	it("clears the session key on Reset PRAM, so the splash replays after reload", () => {
 		sessionStorage.setItem("classicyStartupScreenShown", "true");
 		const reload = vi.fn();
 		vi.stubGlobal("location", { ...window.location, reload });
@@ -253,8 +259,13 @@ describe("ClassicyDesktop startup screen", () => {
 				<ClassicyDesktop />
 			</ClassicyAppManagerProvider>,
 		);
-		fireEvent.doubleClick(screen.getByAltText("Trash"));
-		// The reset confirmation is now a caution ClassicyAlert; its confirm
+		act(() => {
+			dispatch({
+				type: "ClassicyDesktopShowSystemDialog",
+				dialog: "resetPram",
+			});
+		});
+		// The reset confirmation is a caution ClassicyAlert; its confirm
 		// button is the HIG-specific verb "Reset" (Cancel is the safe default).
 		fireEvent.click(screen.getByText("Reset"));
 		expect(sessionStorage.getItem("classicyStartupScreenShown")).toBeNull();

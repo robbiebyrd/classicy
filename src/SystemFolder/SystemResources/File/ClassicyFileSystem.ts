@@ -737,14 +737,35 @@ export class ClassicyFileSystem {
 	 *   Applications/Extensions items), or anything inside a read-only folder,
 	 *   moving out — and any read-only destination;
 	 * - `exists`: the destination already holds an entry with that name.
+	 *
+	 * `options.name` gives the entry a new name in the destination (the Trash
+	 * renames clashing items); `options.metadata` is patched onto the entry in
+	 * the same journaled mutation, a key set to `undefined` being removed (the
+	 * Trash records, and later clears, where an item came from).
 	 */
-	move(fromPath: string, toFolderPath: string): ClassicyFileSystemMoveResult {
+	move(
+		fromPath: string,
+		toFolderPath: string,
+		options: {
+			name?: string;
+			metadata?: Partial<ClassicyFileSystemEntryMetadata>;
+		} = {},
+	): ClassicyFileSystemMoveResult {
 		const fromParts = this.pathArray(fromPath);
 		const toParts = this.pathArray(toFolderPath);
 		if (fromParts === null || toParts === null || fromParts.length < 1) {
 			return { ok: false, reason: "missing" };
 		}
-		const name = fromParts[fromParts.length - 1];
+		const oldName = fromParts[fromParts.length - 1];
+		const name = options.name ?? oldName;
+		if (
+			name === "" ||
+			name.startsWith("_") ||
+			name.includes(this.separator) ||
+			FORBIDDEN_PATH_SEGMENTS.has(name)
+		) {
+			return { ok: false, reason: "missing" };
+		}
 		const fromParentParts = fromParts.slice(0, -1);
 		const entry = this.resolve(fromPath);
 		const fromParent =
@@ -764,7 +785,7 @@ export class ClassicyFileSystem {
 		}
 		const fromParentPath = fromParentParts.join(this.separator);
 		const toPath = toParts.join(this.separator);
-		if (fromParentPath === toPath) {
+		if (fromParentPath === toPath && name === oldName) {
 			return { ok: false, reason: "same-folder" };
 		}
 		if (
@@ -786,11 +807,21 @@ export class ClassicyFileSystem {
 			return { ok: false, reason: "exists" };
 		}
 
+		delete fromParent[oldName];
 		target[name] = entry;
-		delete fromParent[name];
+		if (options.metadata) {
+			for (const [key, value] of Object.entries(options.metadata)) {
+				if (value === undefined) {
+					delete entry[key];
+				} else {
+					entry[key] = value;
+				}
+			}
+		}
 		const newPath = [...toParts, name].join(this.separator);
 		this.notifyMutation("move", fromParts.join(this.separator), {
 			to: newPath,
+			...(options.metadata ? { metadata: options.metadata } : {}),
 		});
 		return { ok: true, path: newPath };
 	}
