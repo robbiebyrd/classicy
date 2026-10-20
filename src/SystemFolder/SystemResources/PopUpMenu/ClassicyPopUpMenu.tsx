@@ -111,10 +111,7 @@ type classicyPopUpMenuProps = {
 	label?: string;
 	/** Where the label sits relative to the button. Defaults to `"above"`. */
 	labelPosition?: ClassicyLabelPosition;
-	/**
-	 * Label text size. Omit it to follow `size` (`"mini"` → `"small"`). Note:
-	 * currently any value given renders the `"small"` label.
-	 */
+	/** Label text size. Omit it to follow `size` (`"mini"` → `"small"`). */
 	labelSize?: ClassicyControlLabelSize;
 	/** Options and/or `{ groupLabel, options }` groups (`<optgroup>`-style titled runs). */
 	options: ClassicyPopUpMenuEntry[];
@@ -176,7 +173,7 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 }) => {
 	// For the control label, "mini" maps to "small" — "mini" is a menu-only size
 	const controlLabelSize: ClassicyControlLabelSize =
-		labelSize || size === "mini" ? "small" : size;
+		labelSize ?? (size === "mini" ? "small" : size);
 
 	const [selectedItem, setSelectedItem] = useState(
 		selected ?? (placeholder ? PLACEHOLDER_VALUE : undefined),

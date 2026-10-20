@@ -141,7 +141,7 @@ $cp-wheel-degree-marks: 0, 60, 120, 180, 240, 300;
   box-shadow:
     inset calc(var(--window-border-size) * 2) calc(var(--window-border-size) * 2) 0 rgba(255, 255, 255, 0.06),
     inset calc(var(--window-border-size) * -2) calc(var(--window-border-size) * -2) 0 rgba(0, 0, 0, 0.55);
-  padding: 6px 8px 0;
+  padding: 0;
   overflow: hidden;
 }
 
@@ -152,13 +152,14 @@ $cp-wheel-degree-marks: 0, 60, 120, 180, 240, 300;
 
 // Each row overlaps the one behind it; ascending z-index ensures front (later)
 // rows paint on top of back rows. The negative margin slides each row up by
-// (96 - 28)px so only the 28px tip of each back row remains visible.
+// (90 - 28)px — crayons are 90px tall — so only the 28px tip of each back row
+// remains visible.
 .classicyColorPickerCrayonRow {
   display: flex;
   position: relative;
 
   &:not(:first-child) {
-    margin-top: -68px;
+    margin-top: -62px;
   }
 
   // Covers up to 16 rows (128 crayons at 8 per row) for custom palettes.

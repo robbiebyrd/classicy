@@ -116,3 +116,60 @@ describe("ClassicyLink", () => {
 		expect(trackMock).not.toHaveBeenCalled();
 	});
 });
+
+describe("ClassicyLink keyboard activation without an href (#307)", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
+
+	it("runs onClickFunc on Enter and Space for an event link, then dispatches", () => {
+		const onClickFunc = vi.fn();
+		render(
+			<ClassicyLink event="ClassicyAppDemoGo" onClickFunc={onClickFunc}>
+				Go
+			</ClassicyLink>,
+		);
+		fireEvent.keyDown(screen.getByText("Go"), { key: "Enter" });
+		fireEvent.keyDown(screen.getByText("Go"), { key: " " });
+		expect(onClickFunc).toHaveBeenCalledTimes(2);
+		expect(dispatchMock).toHaveBeenCalledTimes(2);
+		expect(dispatchMock).toHaveBeenCalledWith({ type: "ClassicyAppDemoGo" });
+	});
+
+	it("lets onClickFunc cancel the event from the keyboard, as it can from a click", () => {
+		render(
+			<ClassicyLink
+				event="ClassicyAppDemoGo"
+				onClickFunc={(e) => e.preventDefault()}
+			>
+				Go
+			</ClassicyLink>,
+		);
+		fireEvent.keyDown(screen.getByText("Go"), { key: "Enter" });
+		expect(dispatchMock).not.toHaveBeenCalled();
+	});
+
+	it("runs onClickFunc on Enter for a link with neither href nor event", () => {
+		const onClickFunc = vi.fn();
+		render(<ClassicyLink onClickFunc={onClickFunc}>Do it</ClassicyLink>);
+		fireEvent.keyDown(screen.getByText("Do it"), { key: "Enter" });
+		expect(onClickFunc).toHaveBeenCalledOnce();
+		expect(dispatchMock).not.toHaveBeenCalled();
+	});
+
+	it("does nothing from the keyboard when disabled", () => {
+		const onClickFunc = vi.fn();
+		render(
+			<ClassicyLink
+				event="ClassicyAppDemoGo"
+				onClickFunc={onClickFunc}
+				disabled
+			>
+				Go
+			</ClassicyLink>,
+		);
+		fireEvent.keyDown(screen.getByText("Go"), { key: "Enter" });
+		expect(onClickFunc).not.toHaveBeenCalled();
+		expect(dispatchMock).not.toHaveBeenCalled();
+	});
+});

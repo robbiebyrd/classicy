@@ -42,19 +42,15 @@ export const Rows: Story = {
 	},
 };
 
-/**
- * A fully disabled group. The group-level `disabled` only dims the title, so
- * each entry in `inputs` is disabled too — that is what dims the buttons and
- * blocks clicks.
- */
+/** A fully disabled group: the group-level `disabled` dims every button and blocks clicks. */
 export const Disabled: Story = {
 	args: {
 		name: "speed-disabled",
 		disabled: true,
 		inputs: [
-			{ id: "slow-disabled", label: "Slow", disabled: true },
-			{ id: "medium-disabled", label: "Medium", checked: true, disabled: true },
-			{ id: "fast-disabled", label: "Fast", disabled: true },
+			{ id: "slow-disabled", label: "Slow" },
+			{ id: "medium-disabled", label: "Medium", checked: true },
+			{ id: "fast-disabled", label: "Fast" },
 		],
 	},
 };
