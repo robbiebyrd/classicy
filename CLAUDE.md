@@ -346,8 +346,11 @@ resizable container splitting two or three content areas along one axis:
 ### Menu Frame
 
 Every menu — menu bar dropdowns, contextual menus, submenus, pop-up bevel
-menus — draws the HIGOS8 Figure 6-15 frame from the `platinumMenuFrame` mixin
-(`appearance.scss`): 1 px black border, white/system-04 inner bevel with
+menus — draws the Platinum frame from the `platinumMenuFrame` mixin
+(`appearance.scss`). HIGOS8 Ch.4 (p.91) describes it only in words ("beveled
+edges", "etched" dividers); the pixels are matched to the open Control Strip
+menu in Figure 6-15 (p.126), so the same figure is cited here and for the
+Control Strip. The frame: 1 px black border, white/system-04 inner bevel with
 face-coloured corners, and a 1 px `system-07` shadow on the right and bottom
 starting 2 px in, drawn by `::before`/`::after` (so the menu list must be
 positioned). Dividers (`platinumMenuDivider`) are system-05 over white across

@@ -51,9 +51,10 @@ interface ClassicyDesktopIconProps {
 	 * Icon kind: `drive`, `directory`, `app_shortcut`, `shortcut`, `trash`,
 	 * `file` or `icon` (also the desktop's sort order). `app_shortcut` and
 	 * `shortcut` draw the alias arrow and an italic label; `trash` and `drive`
-	 * get stock balloon help. Defaults to `"app_shortcut"`.
+	 * get stock balloon help. Defaults to `"icon"`, the same default
+	 * `ClassicyDesktopIconAdd` gives a record without one.
 	 */
-	kind: string;
+	kind?: string;
 	/** Called when the icon is opened (double-click, or Enter/Space when focused). */
 	onClickFunc?: () => void;
 	/**
@@ -145,7 +146,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			appName,
 			icon,
 			label,
-			kind = "app_shortcut",
+			kind = "icon",
 			onClickFunc,
 			event,
 			eventData,
