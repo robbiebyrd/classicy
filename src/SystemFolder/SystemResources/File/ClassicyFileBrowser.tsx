@@ -54,6 +54,13 @@ type ClassicyFileBrowserProps = {
 	 */
 	hideFilesCreatedAfter?: Date | string | number | null;
 	/**
+	 * List entries marked `_invisible` — drawn dimmed in the icon view.
+	 * Defaults to true. Finder passes false: as in Mac OS 8, invisible items
+	 * such as the Desktop Folder don't appear in its windows, whose header
+	 * counts them as hidden instead.
+	 */
+	showInvisible?: boolean;
+	/**
 	 * List view options (Finder's View Options: columns, relative dates, folder
 	 * sizes, icon size). Omitted means Name, Size and Kind columns, calculated
 	 * folder sizes and 18 px icons.
@@ -154,6 +161,7 @@ export const ClassicyFileBrowser: FunctionalComponent<
 	dirOnClickFunc,
 	fileOnClickFunc,
 	hideFilesCreatedAfter = null,
+	showInvisible = true,
 	listViewOptions,
 	iconViewOptions,
 	now,
@@ -251,6 +259,7 @@ export const ClassicyFileBrowser: FunctionalComponent<
 					}
 					holderRef={holderRef}
 					hideFilesCreatedAfter={hideFilesCreatedAfter}
+					showInvisible={showInvisible}
 					listViewOptions={listViewOptions}
 					now={now}
 					selectionApiRef={selectionApiRef}
@@ -268,6 +277,7 @@ export const ClassicyFileBrowser: FunctionalComponent<
 					appId={appId}
 					holderRef={holderRef}
 					hideFilesCreatedAfter={hideFilesCreatedAfter}
+					showInvisible={showInvisible}
 					iconViewOptions={iconViewOptions}
 				/>
 			)}
