@@ -1,11 +1,14 @@
-import { act, render, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, waitFor } from "@testing-library/react";
 import { produce } from "immer";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
 	type ClassicyStore,
 	DefaultAppManagerState,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
-import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import {
+	dispatch,
+	useAppManager,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { listAppWindows } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { MoviePlayer } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayer";
 // Side-effect import: registers classicyQuickTimeMoviePlayerEventHandler for
@@ -13,6 +16,8 @@ import { MoviePlayer } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayer";
 // package barrel; MoviePlayer.tsx itself never imports its context module.
 import "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerContext";
 import { MoviePlayerAppInfo } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerUtils";
+import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
+import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 
 function getOpenFiles(): unknown[] {
 	const app =
@@ -130,5 +135,52 @@ describe("MoviePlayer — document window survives unmount", () => {
 				MoviePlayerAppInfo.id
 			];
 		expect(listAppWindows(app).some((w) => w.id === windowId)).toBe(true);
+	});
+});
+
+describe("MoviePlayer — keyboard shortcuts for a movie opened from the file system (#306)", () => {
+	beforeEach(() => {
+		useAppManager.setState(DefaultAppManagerState, true);
+	});
+
+	it("plays on Space in the movie's focused window", async () => {
+		// The window is named after this path, while the embed plays the URL
+		// the file resolves to — the two never matched before the fix.
+		const path = "Macintosh HD:Videos:clip.mov";
+		const fs = new ClassicyFileSystem();
+		fs.writeFile(path, "", {
+			_type: ClassicyFileSystemEntryFileType.Video,
+			_url: "https://example.com/clip.mp4",
+		});
+		const { container } = render(<MoviePlayer />);
+		updateApp((app) => {
+			app.open = true;
+			app.data = { openFiles: [path] };
+		});
+
+		const windowId = `${MoviePlayerAppInfo.id}_MoviePlayer_${path}`;
+		await waitFor(() => {
+			const app =
+				useAppManager.getState().System.Manager.Applications.apps[
+					MoviePlayerAppInfo.id
+				];
+			expect(listAppWindows(app).some((w) => w.id === windowId)).toBe(true);
+		});
+		act(() => {
+			dispatch({
+				type: "ClassicyWindowFocus",
+				app: { id: MoviePlayerAppInfo.id },
+				window: { id: windowId },
+			});
+		});
+		await waitFor(() =>
+			expect(container.querySelector('img[alt="Play"]')).not.toBeNull(),
+		);
+
+		fireEvent.keyDown(window, { key: " " });
+
+		await waitFor(() =>
+			expect(container.querySelector('img[alt="Pause"]')).not.toBeNull(),
+		);
 	});
 });

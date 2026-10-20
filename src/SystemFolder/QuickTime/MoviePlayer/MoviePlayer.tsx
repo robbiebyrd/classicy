@@ -83,6 +83,8 @@ function resolveMovieDocument(
 
 const MoviePlayerVideo: FunctionalComponent<{
 	appId: string;
+	/** The document's window, whose focus turns the embed's shortcuts on. */
+	windowId: string;
 	name: string;
 	url?: string;
 	data?: string;
@@ -90,7 +92,17 @@ const MoviePlayerVideo: FunctionalComponent<{
 	type: "audio" | "video";
 	options?: object;
 	subtitlesUrl?: string;
-}> = ({ appId, name, url, data, mimeType, type, options, subtitlesUrl }) => {
+}> = ({
+	appId,
+	windowId,
+	name,
+	url,
+	data,
+	mimeType,
+	type,
+	options,
+	subtitlesUrl,
+}) => {
 	const src = useResolvedMediaSource(url, data, mimeType);
 	if (!src) {
 		return null;
@@ -98,6 +110,10 @@ const MoviePlayerVideo: FunctionalComponent<{
 	return (
 		<QuickTimeVideoEmbed
 			appId={appId}
+			// The window is named after the document's key (#306); `src` is the
+			// resolved URL — an object or data URL for a file — so the default
+			// id built from it would never match and the shortcuts never fire.
+			windowId={windowId}
 			name={name}
 			url={src}
 			options={options}
@@ -268,6 +284,7 @@ export const MoviePlayer: FunctionalComponent = () => {
 				>
 					<MoviePlayerVideo
 						appId={appId}
+						windowId={windowId}
 						name={doc.title}
 						url={doc.url}
 						data={doc.data}

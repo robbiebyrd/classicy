@@ -615,7 +615,9 @@ return <div ref={myRef} {...handlers}>target{balloon}</div>
 ### 4.9 QuickTime media primitives
 
 `QuickTimeVideoEmbed` (required: `appId`, `name`, `url`, `type: "audio"|"video"`;
-optional: `subtitlesUrl`, `autoPlay`, `hideControls`, `controlsDocked`,
+optional: `windowId` (the window whose focus enables the keyboard shortcuts;
+default `${appId}_MoviePlayer_${url}`), `subtitlesUrl`, `autoPlay`,
+`hideControls`, `controlsDocked`,
 `muted`, `playing`/`onPlayingChange`, `volume`/`onVolumeChange`,
 `captionsEnabled`/`onCaptionsEnabledChange`, `captionStyle`, `onMediaElement`,
 `crossOrigin`, `playsInline`) plus the individual controls:
