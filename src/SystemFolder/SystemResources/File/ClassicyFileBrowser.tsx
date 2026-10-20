@@ -1,19 +1,38 @@
 import "./ClassicyFileBrowserViewTable.scss";
-import { type FC as FunctionalComponent, type RefObject, useRef } from "react";
+import {
+	type FC as FunctionalComponent,
+	type KeyboardEvent,
+	type MouseEvent,
+	type RefObject,
+	useCallback,
+	useImperativeHandle,
+	useRef,
+} from "react";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import type {
 	FinderIconViewOptions,
 	FinderListViewOptions,
 } from "@/SystemFolder/Finder/FinderContext";
 import { listViewIconSize } from "@/SystemFolder/Finder/FinderViewOptions";
+import { useClassicyContextualMenu } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 import {
 	type ClassicyFileBrowserMoveItems,
 	ClassicyFileBrowserViewIcons,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewIcons";
 import { ClassicyFileBrowserViewTable } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewTable";
-import { CLASSICY_DROP_FOLDER_ATTRIBUTE } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
+import {
+	CLASSICY_DROP_FOLDER_ATTRIBUTE,
+	CLASSICY_FILE_PATH_ATTRIBUTE,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
 import type { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
+import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import type { ClassicyTableSelectionApi } from "@/SystemFolder/SystemResources/Table/ClassicyTable";
+
+/** Commands a host (e.g. a window's menu) can run on a file browser. */
+export type ClassicyFileBrowserCommands = {
+	/** Paths of the selected items: highlighted icons, or selected list rows. */
+	selectedPaths(): string[];
+};
 
 type ClassicyFileBrowserProps = {
 	/** The file system to list (e.g. from `useClassicyFileSystem`). */
@@ -69,6 +88,23 @@ type ClassicyFileBrowserProps = {
 	 * itself always accepts drops into `path`.
 	 */
 	onMoveItems?: ClassicyFileBrowserMoveItems;
+	/**
+	 * Delete the selected items — called with their paths when Delete
+	 * (Backspace) or ⌃⌫ is pressed in the browser. Finder moves them to the
+	 * Trash. Without it the keys do nothing.
+	 */
+	onDeleteItems?: (paths: string[]) => void;
+	/**
+	 * The contextual menu for an item, built when it is right-clicked: given
+	 * its path and the current selection's paths. Return nothing to fall back
+	 * to the window's or app's menu. Finder offers Restore in the Trash.
+	 */
+	itemContextMenu?: (
+		path: string,
+		selectedPaths: string[],
+	) => ClassicyMenuItem[] | undefined;
+	/** Receives `{ selectedPaths() }`, for menu commands that act on the selection. */
+	commandsRef?: RefObject<ClassicyFileBrowserCommands | null>;
 };
 
 // Define stable default functions outside component to prevent re-creation
@@ -91,6 +127,10 @@ const defaultFileOnClick = () => {};
  * and letting go over another folder or the desktop calls `onMoveItems`
  * (letting go in the same icon view just moves the icon). The browser marks
  * itself, and each folder in it, as a drop target for drags from elsewhere.
+ *
+ * Delete (Backspace) or ⌃⌫ calls `onDeleteItems` with the selection, and a
+ * right-click on an item shows `itemContextMenu(path, selection)`; Finder uses
+ * them for Move To Trash and the Trash's Restore.
  *
  * The browser does not navigate on its own: opening an item (double-click,
  * or Return in the list view) calls `dirOnClickFunc` / `fileOnClickFunc` with
@@ -122,16 +162,76 @@ export const ClassicyFileBrowser: FunctionalComponent<
 	onSelectionChange,
 	focusTargetRef,
 	onMoveItems,
+	onDeleteItems,
+	itemContextMenu,
+	commandsRef,
 }) => {
 	const holderRef = useRef<HTMLDivElement>(null);
+	const rootRef = useRef<HTMLDivElement>(null);
+	const { showContextMenu } = useClassicyContextualMenu();
+
+	// The list view reports its selection; the icon view's lives in each icon
+	// (highlighted ones carry classicyIconActive), so it is read from the DOM.
+	const listSelectionRef = useRef<string[]>(selectedPaths ?? []);
+	const trackListSelection = useCallback(
+		(paths: string[]) => {
+			listSelectionRef.current = paths;
+			onSelectionChange?.(paths);
+		},
+		[onSelectionChange],
+	);
+	const currentSelection = useCallback((): string[] => {
+		if (display === "list") return listSelectionRef.current;
+		return Array.from(
+			rootRef.current?.querySelectorAll(
+				`.classicyIconActive[${CLASSICY_FILE_PATH_ATTRIBUTE}]`,
+			) ?? [],
+			(el) => el.getAttribute(CLASSICY_FILE_PATH_ATTRIBUTE) ?? "",
+		).filter(Boolean);
+	}, [display]);
+	useImperativeHandle(
+		commandsRef,
+		() => ({ selectedPaths: currentSelection }),
+		[currentSelection],
+	);
+
+	const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+		if (!onDeleteItems || e.defaultPrevented) return;
+		if (e.key !== "Backspace" && e.key !== "Delete") return;
+		if (e.altKey || e.shiftKey) return;
+		const target = e.target as HTMLElement;
+		if (target.closest("input, textarea, [contenteditable='true']")) return;
+		const paths = currentSelection();
+		if (paths.length === 0) return;
+		// Handled here, so the menu bar's ⌃⌫ doesn't act a second time.
+		e.preventDefault();
+		onDeleteItems(paths);
+	};
+
+	const onContextMenu = (e: MouseEvent<HTMLDivElement>) => {
+		if (!itemContextMenu || e.defaultPrevented) return;
+		const item = (e.target as Element).closest(
+			`[${CLASSICY_FILE_PATH_ATTRIBUTE}]`,
+		);
+		const path = item?.getAttribute(CLASSICY_FILE_PATH_ATTRIBUTE);
+		if (!item || !path || !rootRef.current?.contains(item)) return;
+		const menu = itemContextMenu(path, currentSelection());
+		if (!menu || menu.length === 0) return;
+		e.preventDefault();
+		showContextMenu(menu, [e.clientX, e.clientY]);
+	};
 	const themeIconSize = useAppManager(
 		(s) => s.System.Manager.Appearance.activeTheme.desktop.iconSize,
 	);
 
 	return (
+		// biome-ignore lint/a11y/noStaticElementInteractions: keys and right-clicks bubble here from the focusable list box and icons
 		<div
+			ref={rootRef}
 			className={"classicyFileBrowserFill"}
 			{...{ [CLASSICY_DROP_FOLDER_ATTRIBUTE]: path }}
+			onKeyDown={onKeyDown}
+			onContextMenu={onContextMenu}
 		>
 			{display === "list" ? (
 				<ClassicyFileBrowserViewTable
@@ -155,7 +255,7 @@ export const ClassicyFileBrowser: FunctionalComponent<
 					now={now}
 					selectionApiRef={selectionApiRef}
 					selectedPaths={selectedPaths}
-					onSelectionChange={onSelectionChange}
+					onSelectionChange={trackListSelection}
 					focusTargetRef={focusTargetRef}
 				/>
 			) : (

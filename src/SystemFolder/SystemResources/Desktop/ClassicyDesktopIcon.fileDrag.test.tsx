@@ -58,7 +58,7 @@ describe("ClassicyDesktopIcon — file-backed icons", () => {
 		useAppManager.setState(DefaultAppManagerState, true);
 	});
 
-	it("marks folder and drive icons with a path as drop targets, and nothing else", () => {
+	it("marks folder, drive and Trash icons with a path as drop targets, and nothing else", () => {
 		const { container } = render(
 			<>
 				<ClassicyDesktopIcon
@@ -74,6 +74,13 @@ describe("ClassicyDesktopIcon — file-backed icons", () => {
 					icon="/f.png"
 					kind="directory"
 					filePath="HD:Desktop Folder:F"
+				/>
+				<ClassicyDesktopIcon
+					appId="t"
+					appName="Trash"
+					icon="/t.png"
+					kind="trash"
+					filePath="Trash"
 				/>
 				<ClassicyDesktopIcon
 					appId="p"
@@ -93,7 +100,7 @@ describe("ClassicyDesktopIcon — file-backed icons", () => {
 		const targets = [
 			...container.querySelectorAll("[data-classicy-drop-folder]"),
 		].map((el) => el.getAttribute("data-classicy-drop-folder"));
-		expect(targets).toEqual(["HD", "HD:Desktop Folder:F"]);
+		expect(targets).toEqual(["HD", "HD:Desktop Folder:F", "Trash"]);
 	});
 
 	it("drags an outline and moves the icon by the pointer's travel when let go on the desktop", () => {

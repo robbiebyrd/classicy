@@ -962,7 +962,7 @@ In an event handler that should not re-render on every change, use
 | `readFile(path)` | Contents, or `undefined`. |
 | `writeFile(path, data, metadata?)` | Returns `false` on a rejected path. |
 | `mkDir(path)` / `rmDir(path)` | Create / remove a folder. |
-| `move(path, toFolderPath)` | Move a file or folder into another folder or drive. Returns `{ ok: true, path }` (the new path) or `{ ok: false, reason }`: `missing`, `not-a-folder`, `same-folder`, `into-itself`, `locked` (drives, `_system` and read-only items or folders), `exists` (name clash — nothing is replaced). |
+| `move(path, toFolderPath, { name?, metadata? })` | Move a file or folder into another folder or drive (optionally renaming it and patching metadata in the same journaled move). Returns `{ ok: true, path }` (the new path) or `{ ok: false, reason }`: `missing`, `not-a-folder`, `same-folder`, `into-itself`, `locked` (drives, `_system` and read-only items or folders), `exists` (name clash — nothing is replaced). |
 | `setMetadata(path, patch)` | The **only** way to change metadata. Returns `false` if the path does not resolve. |
 | `resolve(path)` | The entry. Returns `undefined` on a miss despite its declared type. |
 | `statFile(path)` / `statDir(path)` | Async entry info. |
@@ -1015,7 +1015,8 @@ registerClassicyFileSystemAdapter({
 
 All methods are optional. Errors always degrade to local-wins. Journal `op`s are
 `write`, `mkdir`, `rmdir`, `meta`, `load` and `move` (the old path in `path`, the
-new one in `to`). Derived folders (Applications, Extensions, Control Strip
+new one in `to`; metadata it set in `metadata`, keys it removed in
+`unsetMetadata`). Derived folders (Applications, Extensions, Control Strip
 Modules) are applied through `applyDerivedTree()` and never journal.
 
 ---

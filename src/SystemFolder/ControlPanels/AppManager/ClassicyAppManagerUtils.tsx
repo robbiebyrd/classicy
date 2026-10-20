@@ -200,6 +200,11 @@ export function sanitizeStateForPersistence(
 		if (screenSaverApp?.data && "active" in screenSaverApp.data) {
 			delete (screenSaverApp.data as Record<string, unknown>).active;
 		}
+		// The Special menu's confirmation alert belongs to the session that
+		// opened it; a reload must not greet the user with Empty Trash.
+		if (draft.System.Manager.Desktop) {
+			draft.System.Manager.Desktop.systemDialog = null;
+		}
 		// Boot parade icons are session-only: owners re-register them on every
 		// mount, so persisting them would resurrect icons whose owner removed
 		// its bootIcon prop.

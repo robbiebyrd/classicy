@@ -17,6 +17,7 @@ import {
 } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import {
 	CLASSICY_DROP_FOLDER_ATTRIBUTE,
+	CLASSICY_FILE_PATH_ATTRIBUTE,
 	type ClassicyFileDropTarget,
 	startClassicyFileDrag,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
@@ -68,6 +69,12 @@ interface ClassicyIconProps {
 	 * `ClassicyFileDrag`.
 	 */
 	dropFolderPath?: string;
+	/**
+	 * The file system path the icon stands for, carried in
+	 * `data-classicy-file-path` — how a file browser finds its selected items
+	 * and the item under a right-click.
+	 */
+	filePath?: string;
 	/**
 	 * Drag the icon as a Finder item: a dotted outline follows the pointer
 	 * across windows and the desktop (`startClassicyFileDrag`) instead of the
@@ -134,6 +141,7 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	snapOrigin,
 	positionLocked = false,
 	dropFolderPath,
+	filePath,
 	onFileDrag,
 }) => {
 	const [position, setPosition] = useState<[number, number]>(initialPosition);
@@ -260,6 +268,9 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 			{...(dropFolderPath === undefined
 				? {}
 				: { [CLASSICY_DROP_FOLDER_ATTRIBUTE]: dropFolderPath })}
+			{...(filePath === undefined
+				? {}
+				: { [CLASSICY_FILE_PATH_ATTRIBUTE]: filePath })}
 			className={classNames(
 				"classicyIcon",
 				dragging ? "classicyIconDragging" : "",

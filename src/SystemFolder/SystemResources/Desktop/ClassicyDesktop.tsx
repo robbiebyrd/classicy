@@ -62,18 +62,30 @@ import {
 	typeaheadMatch,
 } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopKeyNav";
 import { ClassicyOpenUrlController } from "@/SystemFolder/SystemResources/Desktop/ClassicyOpenUrlController";
+import {
+	ClassicyEmptyTrashAlert,
+	classicySpecialMenuItems,
+	SYSTEM_DIALOG_WINDOW_IDS,
+} from "@/SystemFolder/SystemResources/Desktop/ClassicySpecialMenu";
 import { ClassicyDesktopMenuBar } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar";
 import {
 	CLASSICY_DROP_DESKTOP_ATTRIBUTE,
 	type ClassicyFileDropDestination,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
-import { moveClassicyFileSystemItems } from "@/SystemFolder/SystemResources/File/ClassicyFileMove";
+import {
+	moveClassicyFileSystemItems,
+	moveClassicyItemsToTrash,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileMove";
 import { useClassicyFileSystemAccessor } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import {
+	CLASSICY_TRASH_PATH,
+	emptyClassicyTrash,
+	listClassicyTrashItems,
+} from "@/SystemFolder/SystemResources/File/ClassicyTrash";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
 const macosIcon = ClassicyIcons.system.macos;
-const trashIcon = ClassicyIcons.system.desktop.trashEmpty;
 
 import "../../ControlPanels/AppearanceManager/styles/fonts.scss";
 import "../../../index.css";
@@ -129,7 +141,6 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	controlStrip = true,
 }) => {
 	const [showAbout, setShowAbout] = useState(false);
-	const [showEmptyTrashDialog, setShowEmptyTrashDialog] = useState(false);
 
 	const [selectBoxStart, setSelectBoxStart] = useState([0, 0]);
 	const [selectBoxSize, setSelectBoxSize] = useState([0, 0]);
@@ -167,6 +178,9 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	const errorDialog = useAppManager(
 		(s) => s.System.Manager.Desktop.errorDialog,
 	);
+	const systemDialog = useAppManager(
+		(s) => s.System.Manager.Desktop.systemDialog ?? null,
+	);
 	const focusedAppId = useAppManager(
 		(s) => s.System.Manager.Applications.focusedAppId,
 	);
@@ -186,35 +200,71 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 		disableWebViewer,
 	} = useContext(ClassicyDefaultAppsContext);
 
-	const emptyTrash = useCallback(() => {
+	// Special ▸ Reset PRAM: forget every saved setting and start over.
+	const resetPram = useCallback(() => {
 		localStorage.removeItem("classicyDesktopState");
 		resetStartupScreenSession();
 		window.location.reload();
 	}, []);
 
-	// Focus the Empty Trash dialog when it opens
+	const closeSystemDialog = useCallback(() => {
+		desktopEventDispatch({
+			type: "ClassicyDesktopShowSystemDialog",
+			dialog: null,
+		});
+	}, [desktopEventDispatch]);
+
+	// Focus the Special menu's alert when it opens
 	useEffect(() => {
-		if (showEmptyTrashDialog) {
+		if (systemDialog) {
 			desktopEventDispatch({
 				type: "ClassicyWindowFocus",
 				app: { id: "Finder.app" },
-				window: { id: "empty_trash" },
+				window: { id: SYSTEM_DIALOG_WINDOW_IDS[systemDialog] },
 			});
 		}
-	}, [showEmptyTrashDialog, desktopEventDispatch]);
+	}, [systemDialog, desktopEventDispatch]);
 
-	// Add Trash icon to desktop on mount
-	useEffect(() => {
-		desktopEventDispatch({
-			type: "ClassicyDesktopIconAdd",
-			app: {
-				id: "Trash",
-				name: "Trash",
-				icon: trashIcon,
-			},
-			kind: "trash",
-		});
-	}, [desktopEventDispatch]);
+	// Desktop items (Desktop Folder files and folders) and the Trash are read
+	// through the shared file system at the moment of the event — the desktop
+	// itself doesn't re-render on file system changes.
+	const getFileSystem = useClassicyFileSystemAccessor();
+
+	// Special ▸ Empty Trash, once confirmed: remove the Trash's contents for
+	// good, and close any Finder window open on a folder inside it.
+	const emptyTrash = useCallback(() => {
+		emptyClassicyTrash(getFileSystem());
+		const finder =
+			useAppManager.getState().System.Manager.Applications.apps["Finder.app"];
+		const openPaths = (finder?.data as { openPaths?: unknown } | undefined)
+			?.openPaths;
+		for (const path of Array.isArray(openPaths) ? openPaths : []) {
+			if (
+				typeof path === "string" &&
+				path.startsWith(`${CLASSICY_TRASH_PATH}:`)
+			) {
+				desktopEventDispatch({ type: "ClassicyAppFinderCloseFolder", path });
+			}
+		}
+	}, [getFileSystem, desktopEventDispatch]);
+
+	// File ▸ Move To Trash, ⌃⌫ or Delete on the desktop: trash the items of
+	// the selected file and folder icons (not drives, apps or the Trash).
+	const trashSelectedDesktopItems = useCallback(() => {
+		const desktop = useAppManager.getState().System.Manager.Desktop;
+		const selected = new Set(desktop.selectedIcons ?? []);
+		const paths = desktop.icons.flatMap((i) =>
+			selected.has(i.appId) &&
+			i.filePath !== undefined &&
+			i.kind !== "drive" &&
+			i.kind !== "trash"
+				? [i.filePath]
+				: [],
+		);
+		if (paths.length === 0) return false;
+		moveClassicyItemsToTrash(getFileSystem(), paths, desktopEventDispatch);
+		return true;
+	}, [getFileSystem, desktopEventDispatch]);
 
 	// Register the classic extension icons in the boot parade on mount.
 	// Adds dedup by id, so a remount never duplicates entries.
@@ -264,7 +314,14 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 
 			const arrowKeys = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
 
-			if (arrowKeys.includes(e.key)) {
+			if (
+				(e.key === "Backspace" || e.key === "Delete") &&
+				!e.altKey &&
+				!e.shiftKey
+			) {
+				// Delete, or ⌃⌫ (handled here so the menu bar doesn't run it twice).
+				if (trashSelectedDesktopItems()) e.preventDefault();
+			} else if (arrowKeys.includes(e.key)) {
 				e.preventDefault();
 				const currentId = selectedIcons[0];
 				if (!currentId) return;
@@ -300,7 +357,12 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 				}
 			}
 		},
-		[desktopIcons, selectedIcons, desktopEventDispatch],
+		[
+			desktopIcons,
+			selectedIcons,
+			desktopEventDispatch,
+			trashSelectedDesktopItems,
+		],
 	);
 
 	const startSelectBox = (e: MouseEvent<HTMLDivElement>) => {
@@ -421,7 +483,16 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 			{
 				id: "finder_file",
 				title: "File",
-				disabled: true,
+				menuChildren: [
+					{
+						id: "finder_file_move_to_trash",
+						title: "Move To Trash",
+						keyboardShortcut: "⌃⌫",
+						onClickFunc: () => {
+							trashSelectedDesktopItems();
+						},
+					},
+				],
 			},
 			{
 				id: "finder_edit",
@@ -466,18 +537,10 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 			{
 				id: "finder_special",
 				title: "Special",
-				menuChildren: [
-					{
-						id: "finder_special_empty_trash",
-						title: "Empty Trash\u2026",
-						onClickFunc: () => {
-							setShowEmptyTrashDialog(true);
-						},
-					},
-				],
+				menuChildren: classicySpecialMenuItems(desktopEventDispatch, "finder"),
 			},
 		],
-		[desktopEventDispatch],
+		[desktopEventDispatch, trashSelectedDesktopItems],
 	);
 
 	// When focus settles on the desktop — Finder is the focused app (or nothing
@@ -505,10 +568,6 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 
 	const currentTheme = useMemo(() => getThemeVars(activeTheme), [activeTheme]);
 
-	// Desktop items (Desktop Folder files and folders) open and move through
-	// the shared file system, read at the moment of the event — the desktop
-	// itself doesn't re-render on file system changes.
-	const getFileSystem = useClassicyFileSystemAccessor();
 	const openDesktopItem = useCallback(
 		(path: string) => {
 			const entry = getFileSystem().resolve(path);
@@ -611,26 +670,30 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 					eventData={i.eventData}
 					contextMenu={i.contextMenu}
 					balloonHelp={i.balloonHelp}
-					onClickFunc={
-						i.appId === "Trash"
-							? () => setShowEmptyTrashDialog(true)
-							: undefined
-					}
 					noLaunch={i.noLaunch ?? i.appId === "Trash"}
 					filePath={i.filePath}
 					onMoveFilePaths={moveDesktopItems}
 					onOpenFilePath={openDesktopItem}
 				/>
 			))}
-			{showEmptyTrashDialog ? (
+			{systemDialog === "emptyTrash" ? (
+				<div className={"classicyDesktopDialogOverlay"}>
+					<ClassicyEmptyTrashAlert
+						itemCount={listClassicyTrashItems(getFileSystem()).length}
+						onEmpty={emptyTrash}
+						onClose={closeSystemDialog}
+					/>
+				</div>
+			) : null}
+			{systemDialog === "resetPram" ? (
 				<div className={"classicyDesktopDialogOverlay"}>
 					<ClassicyAlert
-						id={"empty_trash"}
+						id={SYSTEM_DIALOG_WINDOW_IDS.resetPram}
 						appId={"Finder.app"}
 						alertType={"caution"}
-						label={"Are you sure you want to reset your desktop?"}
+						label={"Are you sure you want to reset PRAM?"}
 						message={
-							"This will clear all saved state and reload the application. This action cannot be undone."
+							"This clears all saved settings — windows, icons, appearance — and restarts Classicy. Files on your disks are kept. This action cannot be undone."
 						}
 						defaultButtonId={"cancel"}
 						buttons={[
@@ -639,10 +702,10 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 								id: "reset",
 								label: "Reset",
 								role: "normal",
-								onClick: emptyTrash,
+								onClick: resetPram,
 							},
 						]}
-						onClose={() => setShowEmptyTrashDialog(false)}
+						onClose={closeSystemDialog}
 					/>
 				</div>
 			) : null}

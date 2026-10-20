@@ -255,6 +255,8 @@ export const classicyDesktopIconEventHandler = (
 					// but the name — the icon's alt text and, absent a `label`,
 					// its caption — would silently keep lagging behind.
 					existing.appName = action.app.name;
+					// Code-derived too: the Trash swaps between empty and full.
+					existing.icon = action.app.icon;
 					if (Array.isArray(action.contextMenu)) {
 						existing.contextMenu = action.contextMenu as ClassicyMenuItem[];
 					}

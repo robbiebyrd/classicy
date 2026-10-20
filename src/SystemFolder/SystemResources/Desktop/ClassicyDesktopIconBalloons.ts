@@ -8,7 +8,7 @@ import type { ClassicyIconBalloonHelp } from "@/SystemFolder/SystemResources/Bal
  */
 const DEFAULT_BALLOON_CONTENT: Record<string, string> = {
 	trash:
-		"This is the Trash. To reset Classicy to its default state, double click the Trash icon or choose Empty Trash from the Special menu.",
+		"This is the Trash. To throw an item away, drag it here. To see what's in the Trash, double-click it. To remove its contents for good, choose Empty Trash from the Special menu.",
 	drive:
 		"This is a disk icon. To see what's on the disk, double-click the icon.",
 };

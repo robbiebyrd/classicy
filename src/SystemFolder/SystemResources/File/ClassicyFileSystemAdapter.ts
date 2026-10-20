@@ -25,12 +25,17 @@ export interface ClassicyFileSystemJournalEntry {
 	 * the entry's path before the move.
 	 */
 	path: string;
-	/** For op 'move': the entry's new colon-separated path (it keeps its name). */
+	/** For op 'move': the entry's new colon-separated path (its name may change). */
 	to?: string;
 	/** File contents, for op 'write'. */
 	data?: string;
-	/** Metadata patch, for op 'meta'. */
+	/** Metadata patch, for op 'meta' — and for 'move', the keys it set. */
 	metadata?: Partial<ClassicyFileSystemEntryMetadata>;
+	/**
+	 * For op 'move': metadata keys the move removed from the entry (e.g. the
+	 * Trash markers on Restore). Listed by name, so the removal survives JSON.
+	 */
+	unsetMetadata?: string[];
 	/** ISO 8601. */
 	timestamp: string;
 }

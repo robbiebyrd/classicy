@@ -82,9 +82,9 @@ interface ClassicyDesktopIconProps {
 	 */
 	balloonHelp?: ClassicyIconBalloonHelp;
 	/**
-	 * The file system path the icon stands for (a drive, or an item in the
-	 * Desktop Folder). A drive or `directory` icon with a path is a drop target
-	 * for Finder drags. Any other kind but `drive` is itself dragged as a
+	 * The file system path the icon stands for (a drive, the Trash, or an item
+	 * in the Desktop Folder). A drive, `trash` or `directory` icon with a path
+	 * is a drop target for Finder drags. Any other kind is itself dragged as a
 	 * file: its dotted outline can be let go on the desktop (the icon moves
 	 * there) or on a folder (`onMoveFilePaths`).
 	 */
@@ -106,9 +106,9 @@ interface ClassicyDesktopIconProps {
 	onOpenFilePath?: (path: string) => void;
 }
 
-/** File-backed icons drag as files; drives only take drops. */
+/** File-backed icons drag as files; drives and the Trash only take drops. */
 const draggedAsFile = (kind: string, filePath: string | undefined) =>
-	filePath !== undefined && kind !== "drive";
+	filePath !== undefined && kind !== "drive" && kind !== "trash";
 
 /**
  * A Mac OS 8 desktop icon: image plus label, positioned on the desktop. Click
@@ -226,6 +226,9 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 					type: "ClassicyDesktopIconFocus",
 					iconId: appId,
 				});
+				// Take keyboard focus from whatever window had it, so Delete and
+				// the arrow keys act on the desktop's selection.
+				iconRef.current?.focus({ preventScroll: true });
 			};
 
 			const changeIcon = (e: MouseEvent<HTMLDivElement>) => {
@@ -380,7 +383,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 							return;
 						}
 						const paths = dragged.flatMap((i) =>
-							i.filePath !== undefined && i.kind !== "drive"
+							i.filePath !== undefined && draggedAsFile(i.kind, i.filePath)
 								? [i.filePath]
 								: [],
 						);
@@ -417,7 +420,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 					onDoubleClick={launchIcon}
 					draggable={false}
 					{...(filePath !== undefined &&
-					(kind === "drive" || kind === "directory")
+					(kind === "drive" || kind === "directory" || kind === "trash")
 						? { [CLASSICY_DROP_FOLDER_ATTRIBUTE]: filePath }
 						: {})}
 					onClick={clickFocus}

@@ -261,6 +261,7 @@ Full props:
 | `name` | `string` | — | **required** |
 | `icon` | `string` | — | **required** (URL/data URI) |
 | `defaultWindow` | `string` | — | window id opened on launch |
+| `restoreWindowFocus` | `boolean` | `true` | when the app is focused with no window focused, raise its most recent window (else `defaultWindow`); Finder turns it off so the desktop stays active |
 | `showDesktopIcon` | `boolean` | `true` | ignored for extensions (they never get icons) |
 | `showInApplicationsFolder` | `boolean` | `true` | independent of `showDesktopIcon` |
 | `desktopIconBalloonHelp` | `string \| ClassicyIconBalloonHelp` | — | string form is titled with the app name |
@@ -516,7 +517,8 @@ usable pre-boot): `title?`, `children` *, `className?`, `width?`.
 | `ClassicyPager` | `page` *, `pageCount` *, `onPageChange` * | Apple Guide page control |
 | `ClassicySplitView` | `children` * (2–3 panes), `direction? ("horizontal"\|"vertical")`, `defaultSizes? (number[], pct, normalized)`, `minPaneSize? (48 px)`, `onResize?(sizes)`, `onResizeCommit?(sizes)` | resizable pane container; divider is draggable and keyboard-operable (ARIA separator, arrow keys). Max 3 panes — nest split views for grids. Uncontrolled after mount: persist via `onResizeCommit`, restore via `defaultSizes` |
 | `ClassicySpinner` | see inputs | |
-| `ClassicyIcon` | `appId` *, `name` *, `icon` *, `label?`, `initialPosition?`, `holder?`, `invisible?`, `snapTo?`/`snapOrigin?`, `positionLocked?`, `dropFolderPath?`, `onFileDrag?(target, point, outlineTopLeft) → handled` | draggable icon (non-desktop surfaces). With `onFileDrag` it drags as a file (dotted outline, can leave its window); return `false` to have it reposition in place instead. `dropFolderPath` makes it a drop target |
+| `ClassicyIcon` | `appId` *, `name` *, `icon` *, `label?`, `initialPosition?`, `holder?`, `invisible?`, `snapTo?`/`snapOrigin?`, `positionLocked?`, `dropFolderPath?`, `filePath?`
+(→ `data-classicy-file-path`), `onFileDrag?(target, point, outlineTopLeft) → handled` | draggable icon (non-desktop surfaces). With `onFileDrag` it drags as a file (dotted outline, can leave its window); return `false` to have it reposition in place instead. `dropFolderPath` makes it a drop target |
 
 ### 4.5 Menus
 
@@ -573,7 +575,7 @@ plain integers (`0xRRGGBB`).
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
 | `ClassicyDesktop` | `children?`, `startupScreen? (true)`, `startupDuration? (4000)`, `preBootScreen?((powerOn) => ReactNode)` | the desktop surface; mounts menu bar + contextual menu provider |
-| `ClassicyDesktopIcon` | `appId` *, `appName` *, `icon` *, `kind?`, `label?`, `event?`/`eventData?`, `onClickFunc?`, `noLaunch?`, `contextMenu?`, `balloonHelp?`, `filePath?`, `onMoveFilePaths?`, `onOpenFilePath?` | usually created for you by `ClassicyApp`. With `filePath` (icon records carry it, `ClassicyDesktopIconAdd { filePath }`): drive/`directory` icons are drop targets; other kinds drag as files — let go on the desktop they move, on a folder `onMoveFilePaths(paths, destination)` moves the selection's items. `ClassicyDesktop` wires both callbacks |
+| `ClassicyDesktopIcon` | `appId` *, `appName` *, `icon` *, `kind?`, `label?`, `event?`/`eventData?`, `onClickFunc?`, `noLaunch?`, `contextMenu?`, `balloonHelp?`, `filePath?`, `onMoveFilePaths?`, `onOpenFilePath?` | usually created for you by `ClassicyApp`. With `filePath` (icon records carry it, `ClassicyDesktopIconAdd { filePath }`): drive/`directory`/`trash` icons are drop targets; other kinds drag as files — let go on the desktop they move, on a folder `onMoveFilePaths(paths, destination)` moves the selection's items. `ClassicyDesktop` wires both callbacks |
 | `ClassicyCrashScreen` | `children?` | error boundary → Sad Mac screen; wrap your desktop in it |
 | `ClassicyBoot` / `ClassicyBootSequence` / `ClassicyStartupScreen` | see source | boot parade; normally managed by `ClassicyDesktop` |
 | `ClassicyDesktopMenuWidgetTime` | none | stock menu bar clock widget; the menu bar shows only Time |
@@ -751,7 +753,10 @@ that shouldn't re-render. `System.Manager.Desktop.fsVersion`
 (`ClassicyDesktopFileSystemVersionBump`) is only a reload token, for when the
 *stored* tree is replaced behind the live one (adapter reconcile, Drive Setup).
 
-`fs.move(path, toFolderPath)` → `{ ok: true, path }` | `{ ok: false, reason }`,
+`fs.move(path, toFolderPath, { name?, metadata? })` → `{ ok: true, path }` |
+`{ ok: false, reason }` (`name` renames into the destination; `metadata` is
+patched onto the entry in the same journaled move, `undefined` values removing
+keys),
 reason one of `missing`, `not-a-folder`, `same-folder`, `into-itself`, `locked`
 (drive, `_system`, `_readOnly` item, or read-only source/target folder),
 `exists` (never replaces). `moveClassicyFileSystemItems(fs, paths, destination,
@@ -759,6 +764,19 @@ dispatch, { desktopLocation? })` (`ClassicyFileMove.ts`) is the Finder's
 wrapper: moves, dispatches `ClassicyAppFinderPathsMoved { moves: {from, to}[] }`
 (Finder windows follow moved folders), places desktop icons, and shows an alert
 for the first refusal.
+
+**Trash** (`ClassicyTrash.ts`): a root-level folder `CLASSICY_TRASH_PATH`
+(`"Trash"`), made by `ensureClassicyTrash(fs)`. `trashClassicyFileSystemItems(fs,
+paths, locations?)` records `_trashed`/`_trashedFrom`/`_trashedName`/
+`_trashedLocation` and numbers clashing names; `restoreClassicyFileSystemItems`
+puts items back (refusals add `no-origin`); `emptyClassicyTrash`;
+`listClassicyTrashItems`, `isInClassicyTrash`, `isClassicyTrashItem`. Finder
+wrappers with alerts and icon handling: `moveClassicyItemsToTrash(fs, paths,
+dispatch)`, `restoreClassicyTrashItems(fs, paths, dispatch)`. A drop on the
+Trash routes through `moveClassicyFileSystemItems`. Special menu:
+`ClassicyDesktopShowSystemDialog { dialog: "emptyTrash" | "resetPram" | null }`
+(`Desktop.systemDialog`, never persisted); `classicySpecialMenuItems(dispatch,
+idPrefix)` and `ClassicyEmptyTrashAlert` are the shared pieces.
 
 ### Entry format
 
@@ -791,7 +809,10 @@ format. Seed-tree helpers for the provider's `defaultFileSystem` prop:
 
 Browse UI: `ClassicyFileBrowser` (`fs` *, `path` *, `appId` *,
 `display? ("icons"|"list")`, `dirOnClickFunc?`, `fileOnClickFunc?`,
-`onMoveItems?(paths, destination, outlineTopLeft)`), with
+`onMoveItems?(paths, destination, outlineTopLeft)`,
+`onDeleteItems?(paths)` — Delete/⌃⌫ with a selection,
+`itemContextMenu?(path, selectedPaths) → ClassicyMenuItem[] | undefined` —
+right-click on an item, `commandsRef?` — `{ selectedPaths() }`), with
 `ClassicyFileBrowserViewIcons` / `ClassicyFileBrowserViewTable` as the
 individual views. With `onMoveItems`, items drag as Mac OS 8 Finder items: a
 dotted outline (icon shape ∪ label box) follows the pointer; let go on a folder
@@ -812,7 +833,7 @@ import { registerClassicyFileSystemAdapter } from 'classicy'
 registerClassicyFileSystemAdapter({
     id: 'my-backend',
     // journal mode: every mutation, with a persisted monotonic seq (gap = missed delivery)
-    onChange: (entry) => { /* { seq, op: "write"|"mkdir"|"rmdir"|"meta"|"load"|"move", path, to? (move), data?, metadata?, timestamp } */ },
+    onChange: (entry) => { /* { seq, op: "write"|"mkdir"|"rmdir"|"meta"|"load"|"move", path, to? (move), data?, metadata?, unsetMetadata? (move: removed keys), timestamp } */ },
     // snapshot mode: debounced full tree + sha256 hash
     onSnapshot: (snapshot) => { /* { tree, hash, seq, storageKey, timestamp } */ },
     // two-way boot sync; errors degrade to local-wins

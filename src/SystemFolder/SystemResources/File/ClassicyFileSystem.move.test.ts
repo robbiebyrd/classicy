@@ -189,4 +189,58 @@ describe("ClassicyFileSystem.move", () => {
 			fs.move("Macintosh HD:Documents:Read Me.txt", "Macintosh HD:constructor"),
 		).toEqual({ ok: false, reason: "missing" });
 	});
+
+	it("renames and patches metadata in the same journaled move", () => {
+		const entries: ClassicyFileSystemJournalEntry[] = [];
+		registerClassicyFileSystemAdapter({
+			id: "move-rename-test",
+			onChange: (entry) => {
+				entries.push(entry);
+			},
+		});
+		const fs = makeFs();
+		fs.setMetadata("Macintosh HD:Documents:Read Me.txt", { _label: "old" });
+		entries.length = 0;
+		expect(
+			fs.move("Macintosh HD:Documents:Read Me.txt", "Macintosh HD:Archive", {
+				name: "Old Read Me.txt",
+				metadata: { _comments: "kept", _label: undefined },
+			}),
+		).toEqual({ ok: true, path: "Macintosh HD:Archive:Old Read Me.txt" });
+		const moved = fs.resolve("Macintosh HD:Archive:Old Read Me.txt");
+		expect(moved?._comments).toBe("kept");
+		expect(moved && "_label" in moved).toBe(false);
+		expect(entries).toHaveLength(1);
+		expect(entries[0]).toMatchObject({
+			op: "move",
+			to: "Macintosh HD:Archive:Old Read Me.txt",
+			metadata: { _comments: "kept" },
+			unsetMetadata: ["_label"],
+		});
+		// The removal survives an adapter's JSON round trip.
+		expect(JSON.parse(JSON.stringify(entries[0])).unsetMetadata).toEqual([
+			"_label",
+		]);
+		expect(entries[0].metadata).not.toHaveProperty("_label");
+	});
+
+	it("renames in place, and refuses names that aren't plain names", () => {
+		const fs = makeFs();
+		expect(
+			fs.move("Macintosh HD:Documents:Read Me.txt", "Macintosh HD:Documents", {
+				name: "Read Me 2.txt",
+			}),
+		).toEqual({ ok: true, path: "Macintosh HD:Documents:Read Me 2.txt" });
+		for (const name of ["", "_type", "a:b", "__proto__"]) {
+			expect(
+				fs.move(
+					"Macintosh HD:Documents:Read Me 2.txt",
+					"Macintosh HD:Archive",
+					{
+						name,
+					},
+				),
+			).toEqual({ ok: false, reason: "missing" });
+		}
+	});
 });

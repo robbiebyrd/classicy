@@ -1,7 +1,17 @@
-import { act, cleanup, render, waitFor } from "@testing-library/react";
+import {
+	act,
+	cleanup,
+	fireEvent,
+	render,
+	waitFor,
+} from "@testing-library/react";
 import { createRef } from "react";
-import { afterEach, describe, expect, it } from "vitest";
-import { ClassicyFileBrowser } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowser";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { ClassicyAppManagerProvider } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext";
+import {
+	ClassicyFileBrowser,
+	type ClassicyFileBrowserCommands,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileBrowser";
 import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import type { ClassicyTableSelectionApi } from "@/SystemFolder/SystemResources/Table/ClassicyTable";
@@ -118,5 +128,91 @@ describe("ClassicyFileBrowser selection handle", () => {
 			/>,
 		);
 		await waitFor(() => expect(apiRef.current).toBeNull());
+	});
+});
+
+describe("ClassicyFileBrowser delete key and item menus", () => {
+	it("hands the list selection to onDeleteItems on Delete and ⌃⌫", async () => {
+		const onDeleteItems = vi.fn();
+		const { container } = render(
+			<ClassicyFileBrowser
+				fs={makeFs("test-browser-delete")}
+				path="Documents"
+				appId="Finder.app"
+				display="list"
+				onDeleteItems={onDeleteItems}
+			/>,
+		);
+		const box = container.querySelector(
+			".classicyFileBrowserViewTableContainer",
+		) as HTMLElement;
+		// Nothing selected: nothing to delete, and the key isn't consumed.
+		expect(fireEvent.keyDown(box, { key: "Delete" })).toBe(true);
+		expect(onDeleteItems).not.toHaveBeenCalled();
+
+		const row = container.querySelector(
+			'tr[data-row-id="Documents:mango.pdf"]',
+		) as HTMLElement;
+		fireEvent.mouseDown(row);
+		fireEvent.click(row);
+		await waitFor(() =>
+			expect(row.classList.contains("classicyTableRowSelected")).toBe(true),
+		);
+		expect(fireEvent.keyDown(box, { key: "Delete" })).toBe(false);
+		fireEvent.keyDown(box, { key: "Backspace", ctrlKey: true });
+		expect(onDeleteItems.mock.calls).toEqual([
+			[["Documents:mango.pdf"]],
+			[["Documents:mango.pdf"]],
+		]);
+	});
+
+	it("reads the icon view's highlighted icons as its selection", () => {
+		const commandsRef = createRef<ClassicyFileBrowserCommands>();
+		const { container } = render(
+			<ClassicyAppManagerProvider>
+				<ClassicyFileBrowser
+					fs={makeFs("test-browser-icons-selection")}
+					path="Documents"
+					appId="Finder.app"
+					display="icons"
+					commandsRef={commandsRef}
+				/>
+			</ClassicyAppManagerProvider>,
+		);
+		expect(commandsRef.current?.selectedPaths()).toEqual([]);
+		const zebra = container.querySelector(
+			'[data-classicy-file-path="Documents:zebra.pdf"]',
+		) as HTMLElement;
+		fireEvent.click(zebra);
+		expect(commandsRef.current?.selectedPaths()).toEqual([
+			"Documents:zebra.pdf",
+		]);
+	});
+
+	it("asks itemContextMenu for the right-clicked item's menu", () => {
+		const itemContextMenu = vi.fn(() => [{ id: "restore", title: "Restore" }]);
+		const { container } = render(
+			<ClassicyAppManagerProvider>
+				<ClassicyFileBrowser
+					fs={makeFs("test-browser-item-menu")}
+					path="Documents"
+					appId="Finder.app"
+					display="icons"
+					itemContextMenu={itemContextMenu}
+				/>
+			</ClassicyAppManagerProvider>,
+		);
+		const apple = container.querySelector(
+			'[data-classicy-file-path="Documents:apple.pdf"]',
+		) as HTMLElement;
+		const notPrevented = fireEvent.contextMenu(apple);
+		expect(itemContextMenu).toHaveBeenCalledWith("Documents:apple.pdf", []);
+		expect(notPrevented).toBe(false);
+		// Off any item: the window's own menu applies.
+		itemContextMenu.mockClear();
+		fireEvent.contextMenu(
+			container.querySelector(".classicyFileBrowserFill") as HTMLElement,
+		);
+		expect(itemContextMenu).not.toHaveBeenCalled();
 	});
 });

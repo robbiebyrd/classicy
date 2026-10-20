@@ -23,6 +23,7 @@ import {
 import type { ClassicyFileBrowserMoveItems } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewIcons";
 import {
 	CLASSICY_DROP_FOLDER_ATTRIBUTE,
+	CLASSICY_FILE_PATH_ATTRIBUTE,
 	startClassicyFileDrag,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
 import type { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
@@ -87,7 +88,6 @@ type ClassicyFileBrowserViewTableProps = {
 
 // Marks a row's name cell with its path, so a drag can find every dragged
 // row's icon and name to outline them.
-const FILE_PATH_ATTRIBUTE = "data-classicy-file-path";
 
 export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrowserViewTableProps> =
 	memo(
@@ -132,8 +132,11 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 					const cells = paths
 						.map((p) =>
 							Array.from(
-								table?.querySelectorAll(`[${FILE_PATH_ATTRIBUTE}]`) ?? [],
-							).find((el) => el.getAttribute(FILE_PATH_ATTRIBUTE) === p),
+								table?.querySelectorAll(`[${CLASSICY_FILE_PATH_ATTRIBUTE}]`) ??
+									[],
+							).find(
+								(el) => el.getAttribute(CLASSICY_FILE_PATH_ATTRIBUTE) === p,
+							),
 						)
 						.filter((el): el is Element => el !== undefined);
 					startClassicyFileDrag({
@@ -288,7 +291,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 							// biome-ignore lint/a11y/noStaticElementInteractions: a press here may start a drag; keyboard users move items through the table's own selection
 							<div
 								className={"classicyFileBrowserViewTableRowContainer"}
-								{...{ [FILE_PATH_ATTRIBUTE]: row._path }}
+								{...{ [CLASSICY_FILE_PATH_ATTRIBUTE]: row._path }}
 								{...(row._type === ClassicyFileSystemEntryFileType.Directory &&
 								row._path
 									? { [CLASSICY_DROP_FOLDER_ATTRIBUTE]: row._path }

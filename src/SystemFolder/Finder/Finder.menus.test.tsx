@@ -125,6 +125,7 @@ describe("Finder folder-window menu bar", () => {
 			"File",
 			"Edit",
 			"View",
+			"Special",
 			"Help",
 		]);
 	});
