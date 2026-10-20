@@ -119,7 +119,7 @@ describe("ClassicyDateAndTimeManager — dateTimeLocked", () => {
 		// must be disabled too, otherwise a user can still flip AM/PM and shift
 		// the clock 12 hours while "locked". The pop-up's visible control (a
 		// <button>) carries the id and reflects disabled via the attribute.
-		const amPm = container.querySelector("#am-pm") as HTMLButtonElement;
+		const amPm = container.querySelector("#time_ampm") as HTMLButtonElement;
 		expect(amPm).not.toBeNull();
 		expect(amPm.disabled).toBe(true);
 
@@ -150,7 +150,7 @@ describe("ClassicyDateAndTimeManager — dateTimeLocked", () => {
 				expect((input as HTMLInputElement).disabled).toBe(false);
 		}
 
-		const amPm = container.querySelector("#am-pm") as HTMLButtonElement;
+		const amPm = container.querySelector("#time_ampm") as HTMLButtonElement;
 		expect(amPm).not.toBeNull();
 		expect(amPm.disabled).toBe(false);
 
@@ -271,7 +271,7 @@ describe("ClassicyDateAndTimeManager — timezone changes must not corrupt the A
 		});
 		const { container } = renderOpen();
 
-		const amPm = container.querySelector("#am-pm") as HTMLButtonElement;
+		const amPm = container.querySelector("#time_ampm") as HTMLButtonElement;
 		expect(amPm).not.toBeNull();
 		expect(amPm).toHaveTextContent("am");
 

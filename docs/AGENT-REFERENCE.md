@@ -500,7 +500,7 @@ usable pre-boot): `title?`, `children` *, `className?`, `width?`.
 
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
-| `ClassicyControlLabel` | `label?`, `labelFor?`, `labelSize?`, `icon?`, `direction?`, `disabled?` | renders nothing when label empty |
+| `ClassicyControlLabel` | `label?`, `labelFor?`, `id?` (the `<label>`'s id, for `aria-labelledby`), `labelSize?`, `icon?`, `direction?`, `disabled?`, `onClickFunc?` | renders nothing when label empty; the row is a focusable `role="button"` only with `onClickFunc` |
 | `ClassicyControlGroup` | `children` *, `label?`, `variant? ("primary"\|"secondary")`, `checkboxTitle?`, `popUpMenuTitle?`, `columns?`, `layout? ("default"\|"form")` | fieldset-style group; title can be a checkbox or popup |
 | `ClassicyForm` | `onSubmitFunc?`, `layout? ("default"\|"dialog")`, children * | real `<form>`; always calls `preventDefault` (never navigates); make the confirming button `isDefault buttonType="submit"` so Enter submits |
 | `ClassicyFormButtonRow` | `children` * | HIG dialog button row: right-aligned, `--hig-button-gap-h`, group-gap above |

@@ -1,5 +1,5 @@
 import type { CSSProperties, FC, ReactNode, RefObject } from "react";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 
@@ -269,12 +269,19 @@ export const useClassicyBalloonHelp = (
 	anchorRef: RefObject<HTMLElement | null>,
 	config?: ClassicyIconBalloonHelp,
 ): {
-	handlers: { onMouseEnter: () => void; onMouseLeave: () => void };
+	handlers: {
+		onMouseEnter: () => void;
+		onMouseLeave: () => void;
+		/** The balloon's id while it is showing, so the target is described by it. */
+		"aria-describedby"?: string;
+	};
 	balloon: ReactNode;
 } => {
 	const disableBalloonHelp = useAppManager(
 		(s) => s.System.Manager.Desktop.disableBalloonHelp,
 	);
+	// The balloon is the tooltip (#310); the target points at it while shown.
+	const balloonId = useId();
 	const [visible, setVisible] = useState(false);
 	const [rect, setRect] = useState<DOMRect | null>(null);
 	const [controlSize, setControlSize] = useState(0);
@@ -340,7 +347,7 @@ export const useClassicyBalloonHelp = (
 						className="classicyBalloonHelpContainer"
 						style={containerPortalStyle(placed ?? position, rect, controlSize)}
 					>
-						<div className="classicyBalloonHelp">
+						<div className="classicyBalloonHelp" id={balloonId} role="tooltip">
 							{config.title && (
 								<p className="classicyBalloonHelpTitle">{config.title}</p>
 							)}
@@ -351,5 +358,12 @@ export const useClassicyBalloonHelp = (
 					document.getElementById("classicyDesktop") ?? document.body,
 				);
 
-	return { handlers: { onMouseEnter: show, onMouseLeave: hide }, balloon };
+	return {
+		handlers: {
+			onMouseEnter: show,
+			onMouseLeave: hide,
+			"aria-describedby": balloon ? balloonId : undefined,
+		},
+		balloon,
+	};
 };
