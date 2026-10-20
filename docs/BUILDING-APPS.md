@@ -949,11 +949,20 @@ const fs = useClassicyFileSystem()     // default key "classicyStorage", separat
 
 Paths use colons: `"Macintosh HD:Documents:Read Me"`.
 
+Every `ClassicyFileSystem` for a storage key shares one live tree. A change made
+through any of them — your app's `writeFile`, a Finder drag, a Save dialog's New
+Folder — is visible at once through all of them, and `useClassicyFileSystem`
+re-renders its component with a fresh `fs` (subscribed via
+`subscribeClassicyFileSystem`), so anything memoized on `fs` re-reads the tree.
+In an event handler that should not re-render on every change, use
+`useClassicyFileSystemAccessor()`, which returns a stable `() => fs`.
+
 | Method | Purpose |
 |---|---|
 | `readFile(path)` | Contents, or `undefined`. |
 | `writeFile(path, data, metadata?)` | Returns `false` on a rejected path. |
 | `mkDir(path)` / `rmDir(path)` | Create / remove a folder. |
+| `move(path, toFolderPath)` | Move a file or folder into another folder or drive. Returns `{ ok: true, path }` (the new path) or `{ ok: false, reason }`: `missing`, `not-a-folder`, `same-folder`, `into-itself`, `locked` (drives, `_system` and read-only items or folders), `exists` (name clash — nothing is replaced). |
 | `setMetadata(path, patch)` | The **only** way to change metadata. Returns `false` if the path does not resolve. |
 | `resolve(path)` | The entry. Returns `undefined` on a miss despite its declared type. |
 | `statFile(path)` / `statDir(path)` | Async entry info. |
@@ -1004,9 +1013,10 @@ registerClassicyFileSystemAdapter({
 }, { snapshotDebounceMs: 500 })
 ```
 
-All methods are optional. Errors always degrade to local-wins. Derived folders
-(Applications, Extensions) are applied through `applyDerivedTree()` and never
-journal.
+All methods are optional. Errors always degrade to local-wins. Journal `op`s are
+`write`, `mkdir`, `rmdir`, `meta`, `load` and `move` (the old path in `path`, the
+new one in `to`). Derived folders (Applications, Extensions, Control Strip
+Modules) are applied through `applyDerivedTree()` and never journal.
 
 ---
 

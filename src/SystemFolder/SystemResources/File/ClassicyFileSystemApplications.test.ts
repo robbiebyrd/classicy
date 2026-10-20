@@ -37,6 +37,7 @@ describe("buildApplicationsFolder", () => {
 			_creator: "TV.app",
 			_readOnly: true,
 			_nameLocked: true,
+			_derived: true,
 		});
 		expect(folder.News._creator).toBe("News.app");
 	});
@@ -72,6 +73,7 @@ describe("buildApplicationsFolder", () => {
 			_creator: "DriveSetup.app",
 			_readOnly: true,
 			_nameLocked: true,
+			_derived: true,
 		});
 	});
 });

@@ -40,6 +40,7 @@ describe("buildExtensionsFolder", () => {
 			_creator: "ClockExt.app",
 			_readOnly: true,
 			_nameLocked: true,
+			_derived: true,
 		});
 		expect(folder.Network._creator).toBe("NetExt.app");
 	});

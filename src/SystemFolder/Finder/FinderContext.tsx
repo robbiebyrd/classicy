@@ -20,7 +20,12 @@ import {
 	parseAppData,
 	registerApp,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
-import { updateAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
+import {
+	getAppWindow,
+	removeAppWindow,
+	setAppWindow,
+	updateAppWindow,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { MoviePlayerAppInfo } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerUtils";
 import { classicyDesktopEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
@@ -130,6 +135,21 @@ export const FINDER_ABOUT_THIS_COMPUTER_WINDOW_ID =
 export function isFinderData(d: Record<string, unknown>): d is FinderData {
 	return FinderDataSchema.safeParse(d).success;
 }
+
+/** The `{ from, to }` pairs of a `ClassicyAppFinderPathsMoved`, validated. */
+const readPathMoves = (
+	action: ActionMessage,
+): { from: string; to: string }[] =>
+	Array.isArray(action.moves)
+		? action.moves.filter(
+				(m): m is { from: string; to: string } =>
+					typeof m === "object" &&
+					m !== null &&
+					typeof (m as { from?: unknown }).from === "string" &&
+					typeof (m as { to?: unknown }).to === "string" &&
+					(m as { from: string }).from !== "",
+			)
+		: [];
 
 export const classicyFinderEventHandler = (
 	ds: ClassicyStore,
@@ -254,6 +274,48 @@ export const classicyFinderEventHandler = (
 					...(appData.folderViews ?? {}),
 					[action.path]: viewType,
 				},
+			};
+			break;
+		}
+		case "ClassicyAppFinderPathsMoved": {
+			// Items were dragged to a new folder. A moved folder that has a window
+			// open (or contains folders that do) keeps its window: the open path,
+			// the remembered view type and the window record — position, size,
+			// zoom — all follow it to the new path.
+			const moves = readPathMoves(action);
+			if (moves.length === 0) break;
+			const rename = (p: string): string => {
+				for (const { from, to } of moves) {
+					if (p === from) return to;
+					if (p.startsWith(`${from}:`)) return to + p.slice(from.length);
+				}
+				return p;
+			};
+			const app = ds.System.Manager.Applications.apps[appId];
+			for (const oldPath of appData.openPaths ?? []) {
+				const newPath = rename(oldPath);
+				if (newPath === oldPath) continue;
+				const record = getAppWindow(app, oldPath);
+				if (record) {
+					removeAppWindow(app, oldPath);
+					setAppWindow(app, { ...record, id: newPath });
+				}
+			}
+			appData = {
+				...appData,
+				...(appData.openPaths
+					? { openPaths: appData.openPaths.map(rename) }
+					: {}),
+				...(appData.folderViews
+					? {
+							folderViews: Object.fromEntries(
+								Object.entries(appData.folderViews).map(([p, view]) => [
+									rename(p),
+									view,
+								]),
+							),
+						}
+					: {}),
 			};
 			break;
 		}
@@ -454,6 +516,20 @@ registerApp({
 			params: z.object({
 				path: z.string().describe("Absolute path of the folder."),
 				viewType: FinderViewTypeSchema.describe("The view to use for it."),
+			}),
+		},
+		ClassicyAppFinderPathsMoved: {
+			description:
+				"Items were moved to another folder (a Finder drag): open windows on moved folders, and their remembered view types, follow them to the new paths. Sent after the move; it does not move anything itself.",
+			params: z.object({
+				moves: z
+					.array(
+						z.object({
+							from: z.string().describe("Path before the move."),
+							to: z.string().describe("Path after the move."),
+						}),
+					)
+					.describe("Each moved item's old and new path."),
 			}),
 		},
 		ClassicyAppFinderEmptyTrash: {

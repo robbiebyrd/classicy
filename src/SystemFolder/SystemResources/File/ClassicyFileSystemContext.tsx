@@ -1,4 +1,11 @@
-import { createContext, useContext, useEffect, useMemo } from "react";
+import {
+	createContext,
+	useCallback,
+	useContext,
+	useEffect,
+	useMemo,
+	useSyncExternalStore,
+} from "react";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import {
 	dispatch,
@@ -11,7 +18,9 @@ import {
 } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripRegistry";
 import {
 	ClassicyFileSystem,
+	getClassicyFileSystemVersion,
 	mergeClassicyFileSystemEntries,
+	subscribeClassicyFileSystem,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import {
 	APP_SHORTCUT_ICON_KIND,
@@ -78,6 +87,11 @@ export function resolveDefaultFileSystem(
  * present. Seed-only behavior (a fresh visitor sees the resolved tree, a
  * returning visitor keeps their persisted state) comes from
  * ClassicyFileSystem's own constructor — no extra hydration tracking here.
+ *
+ * Every instance for a storage key shares one live tree, and the hook
+ * subscribes to it: any mutation, through any instance (a Finder drag, a Save
+ * dialog's New Folder), hands every consumer a fresh `ClassicyFileSystem`, so
+ * memoized views keyed on it re-read the tree.
  */
 export function useClassicyFileSystem(
 	storageKey?: string,
@@ -124,13 +138,27 @@ export function useClassicyFileSystem(
 		),
 	);
 
-	// Invalidation key: bumped after an adapter reconcile replaces the tree, so
-	// the fs rebuilds through the normal seed-from-localStorage path.
+	// Reload token: bumped after the stored tree is replaced behind the live
+	// one's back (adapter reconcile, Drive Setup), so the shared tree is read
+	// afresh from localStorage — see the ClassicyFileSystem constructor's epoch.
 	const fsVersion = useAppManager(
 		(s) => s.System.Manager.Desktop.fsVersion ?? 0,
 	);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: appShortcutsKey and extensionAppsKey are intentional invalidation keys — the icon/app sets are read via getState() so moves/focus don't re-render
+	// Mutation counter of the shared tree: changes on every journaled write.
+	const resolvedStorageKey = storageKey ?? "classicyStorage";
+	const subscribe = useCallback(
+		(listener: () => void) =>
+			subscribeClassicyFileSystem(resolvedStorageKey, listener),
+		[resolvedStorageKey],
+	);
+	const treeVersion = useSyncExternalStore(
+		subscribe,
+		() => getClassicyFileSystemVersion(resolvedStorageKey),
+		() => 0,
+	);
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: appShortcutsKey, extensionAppsKey and treeVersion are intentional invalidation keys — the icon/app sets are read via getState() so moves/focus don't re-render, and the tree is read through the shared instance
 	const fs = useMemo(() => {
 		const resolved = resolveDefaultFileSystem(defaultFileSystem, mode);
 		const fs = new ClassicyFileSystem(
@@ -138,6 +166,7 @@ export function useClassicyFileSystem(
 			resolved,
 			separator,
 			seedMigrations,
+			fsVersion,
 		);
 		// Overlay the derived Applications folder after construction so it is
 		// live-only: the constructor's localStorage persist has already run,
@@ -178,6 +207,7 @@ export function useClassicyFileSystem(
 		appShortcutsKey,
 		extensionAppsKey,
 		fsVersion,
+		treeVersion,
 	]);
 
 	// Two-way boot sync: offer the local snapshot to reconciling adapters once
@@ -204,4 +234,34 @@ export function useClassicyFileSystem(
 	}, [fs]);
 
 	return fs;
+}
+
+/**
+ * A stable function returning a `ClassicyFileSystem` on the shared live tree
+ * for `storageKey`, without subscribing to it — for event handlers (a drop, an
+ * open) that need the file system but shouldn't re-render their component on
+ * every change to it, as `useClassicyFileSystem` does. Each call attaches to
+ * the tree current at that moment.
+ */
+export function useClassicyFileSystemAccessor(
+	storageKey?: string,
+	separator?: string,
+): () => ClassicyFileSystem {
+	const { defaultFileSystem, mode, seedMigrations } = useContext(
+		ClassicyDefaultFileSystemContext,
+	);
+	const fsVersion = useAppManager(
+		(s) => s.System.Manager.Desktop.fsVersion ?? 0,
+	);
+	return useCallback(
+		() =>
+			new ClassicyFileSystem(
+				storageKey,
+				resolveDefaultFileSystem(defaultFileSystem, mode),
+				separator,
+				seedMigrations,
+				fsVersion,
+			),
+		[defaultFileSystem, mode, seedMigrations, storageKey, separator, fsVersion],
+	);
 }

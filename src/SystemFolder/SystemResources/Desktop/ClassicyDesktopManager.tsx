@@ -97,6 +97,13 @@ export interface ClassicyStoreSystemDesktopManagerIcon {
 	 *  registered app — a URL shortcut, say — because ClassicyDesktopIconOpen
 	 *  calls openApp(), which would conjure a phantom app entry for it. */
 	noLaunch?: boolean;
+	/**
+	 * The file system item the icon stands for: a drive, or an item in the
+	 * Desktop Folder (`classicyDesktopItemIconAction`). A drive or folder icon
+	 * with one accepts Finder drags; a Desktop Folder item opens through the
+	 * file system and can be dragged back into a window.
+	 */
+	filePath?: string;
 	contextMenu?: ClassicyMenuItem[];
 	/** When true, the icon exists in the store (so it populates the derived
 	 * Applications folder) but is NOT drawn on the desktop. Used by apps that

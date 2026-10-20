@@ -2,6 +2,7 @@ import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/Cl
 import {
 	type ClassicyFileSystemEntry,
 	ClassicyFileSystemEntryFileType,
+	withoutDerivedEntries,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 
 const SYSTEM_FOLDER_NAME = "System Folder";
@@ -48,6 +49,7 @@ export const buildControlStripModulesFolder = (
 			_format: "ControlStripModule",
 			_readOnly: true,
 			_nameLocked: true,
+			_derived: true,
 		};
 	}
 
@@ -58,34 +60,35 @@ export const buildControlStripModulesFolder = (
  * Returns a copy of the tree with the derived Control Strip Modules folder
  * merged into "System Folder" on its first drive (creating System Folder when
  * a custom tree lacks one). Static children of the folder are kept; derived
- * entries win on name collisions. The input is not mutated, and a tree with no
- * drive — or no modules — passes through unchanged.
+ * entries win on name collisions, and entries from an earlier build whose
+ * module is gone are dropped. The input is not mutated, and a tree with no
+ * drive — or with nothing to add or drop — passes through unchanged.
  */
 export const withControlStripModulesFolder = (
 	tree: ClassicyFileSystemEntry,
 	modules: readonly ClassicyControlStripModuleFile[],
 ): ClassicyFileSystemEntry => {
-	if (modules.length === 0) return tree;
-
 	const driveKey = Object.keys(tree).find(
 		(key) => tree[key]?._type === ClassicyFileSystemEntryFileType.Drive,
 	);
 	if (!driveKey) return tree;
 
-	const systemFolder = tree[driveKey][SYSTEM_FOLDER_NAME] ?? {
-		_type: ClassicyFileSystemEntryFileType.Directory,
-	};
-	const existing = systemFolder[CONTROL_STRIP_MODULES_FOLDER_NAME];
+	const systemFolder = tree[driveKey][SYSTEM_FOLDER_NAME];
+	const current = systemFolder?.[CONTROL_STRIP_MODULES_FOLDER_NAME];
+	const kept = withoutDerivedEntries(current);
+	const hasSources = modules.length > 0;
+	if (!hasSources && kept === current) return tree;
 	return {
 		...tree,
 		[driveKey]: {
 			...tree[driveKey],
 			[SYSTEM_FOLDER_NAME]: {
-				...systemFolder,
-				[CONTROL_STRIP_MODULES_FOLDER_NAME]: {
-					...existing,
-					...buildControlStripModulesFolder(modules),
-				},
+				...(systemFolder ?? {
+					_type: ClassicyFileSystemEntryFileType.Directory,
+				}),
+				[CONTROL_STRIP_MODULES_FOLDER_NAME]: hasSources
+					? { ...kept, ...buildControlStripModulesFolder(modules) }
+					: (kept as ClassicyFileSystemEntry),
 			},
 		},
 	};

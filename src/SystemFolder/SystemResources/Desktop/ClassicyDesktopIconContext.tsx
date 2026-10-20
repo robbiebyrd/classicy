@@ -190,6 +190,7 @@ export const classicyDesktopIconEventHandler = (
 			);
 
 			if (icon.length === 0) {
+				const placed = Array.isArray(action.location);
 				ds.System.Manager.Desktop.icons.push({
 					icon: action.app.icon,
 					appId: action.app.id,
@@ -209,6 +210,8 @@ export const classicyDesktopIconEventHandler = (
 							? (action.eventData as Record<string, unknown>)
 							: undefined,
 					noLaunch: action.noLaunch === true ? true : undefined,
+					filePath:
+						typeof action.filePath === "string" ? action.filePath : undefined,
 					contextMenu: Array.isArray(action.contextMenu)
 						? (action.contextMenu as ClassicyMenuItem[])
 						: undefined,
@@ -217,10 +220,15 @@ export const classicyDesktopIconEventHandler = (
 					balloonHelp: readBalloonHelp(action.balloonHelp),
 				});
 
-				ds.System.Manager.Desktop.icons = cleanupDesktopIcons(
-					ds.System.Manager.Appearance.activeTheme,
-					sortDesktopIcons(ds.System.Manager.Desktop.icons, "kind"),
-				);
+				// An icon added at a location — an item dropped on the desktop —
+				// goes exactly there and leaves the others where the user put
+				// them. Otherwise the whole desktop is laid out afresh.
+				if (!placed) {
+					ds.System.Manager.Desktop.icons = cleanupDesktopIcons(
+						ds.System.Manager.Appearance.activeTheme,
+						sortDesktopIcons(ds.System.Manager.Desktop.icons, "kind"),
+					);
+				}
 			} else {
 				// Icons persist to localStorage, so an app whose registration
 				// changed between sessions would otherwise keep its stale record
@@ -263,6 +271,8 @@ export const classicyDesktopIconEventHandler = (
 							? (action.eventData as Record<string, unknown>)
 							: undefined;
 					existing.noLaunch = action.noLaunch === true ? true : undefined;
+					existing.filePath =
+						typeof action.filePath === "string" ? action.filePath : undefined;
 					const nextHidden = action.hidden === true ? true : undefined;
 					const hiddenChanged = existing.hidden !== nextHidden;
 					existing.hidden = nextHidden;

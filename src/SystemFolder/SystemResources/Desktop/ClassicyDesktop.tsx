@@ -63,6 +63,13 @@ import {
 } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopKeyNav";
 import { ClassicyOpenUrlController } from "@/SystemFolder/SystemResources/Desktop/ClassicyOpenUrlController";
 import { ClassicyDesktopMenuBar } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar";
+import {
+	CLASSICY_DROP_DESKTOP_ATTRIBUTE,
+	type ClassicyFileDropDestination,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
+import { moveClassicyFileSystemItems } from "@/SystemFolder/SystemResources/File/ClassicyFileMove";
+import { useClassicyFileSystemAccessor } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
+import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
 const macosIcon = ClassicyIcons.system.macos;
@@ -498,6 +505,41 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 
 	const currentTheme = useMemo(() => getThemeVars(activeTheme), [activeTheme]);
 
+	// Desktop items (Desktop Folder files and folders) open and move through
+	// the shared file system, read at the moment of the event — the desktop
+	// itself doesn't re-render on file system changes.
+	const getFileSystem = useClassicyFileSystemAccessor();
+	const openDesktopItem = useCallback(
+		(path: string) => {
+			const entry = getFileSystem().resolve(path);
+			if (!entry) return;
+			if (
+				entry._type === ClassicyFileSystemEntryFileType.Directory ||
+				entry._type === ClassicyFileSystemEntryFileType.Drive
+			) {
+				desktopEventDispatch({ type: "ClassicyAppFinderOpenFolder", path });
+			} else {
+				desktopEventDispatch({
+					type: "ClassicyAppFinderOpenFile",
+					file: entry,
+					path,
+				});
+			}
+		},
+		[getFileSystem, desktopEventDispatch],
+	);
+	const moveDesktopItems = useCallback(
+		(paths: string[], destination: ClassicyFileDropDestination) => {
+			moveClassicyFileSystemItems(
+				getFileSystem(),
+				paths,
+				destination,
+				desktopEventDispatch,
+			);
+		},
+		[getFileSystem, desktopEventDispatch],
+	);
+
 	return (
 		<div
 			role="application"
@@ -513,6 +555,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 			onMouseUp={clearSelectBox}
 			onMouseDown={startSelectBox}
 			onKeyDown={handleKeyDown}
+			{...{ [CLASSICY_DROP_DESKTOP_ATTRIBUTE]: "" }}
 		>
 			{selectBox && (
 				<div
@@ -574,6 +617,9 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 							: undefined
 					}
 					noLaunch={i.noLaunch ?? i.appId === "Trash"}
+					filePath={i.filePath}
+					onMoveFilePaths={moveDesktopItems}
+					onOpenFilePath={openDesktopItem}
 				/>
 			))}
 			{showEmptyTrashDialog ? (

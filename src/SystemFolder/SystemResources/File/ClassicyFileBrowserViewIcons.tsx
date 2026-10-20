@@ -20,6 +20,10 @@ import {
 	iconGridLattice,
 	iconImageByType,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserUtils";
+import type {
+	ClassicyFileDropDestination,
+	ClassicyFileDropTarget,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
 import type { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import type { ClassicyFileSystemEntryMetadata } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { ClassicyIcon } from "@/SystemFolder/SystemResources/Icon/ClassicyIcon";
@@ -33,7 +37,23 @@ export type ClassicyFileBrowserViewIconsProps = {
 	holderRef?: RefObject<HTMLDivElement | null>;
 	hideFilesCreatedAfter?: Date | string | number | null;
 	iconViewOptions?: FinderIconViewOptions;
+	/**
+	 * Move dragged items into another folder or the desktop (see
+	 * `ClassicyFileBrowser`). Without it, icons can only be rearranged here.
+	 */
+	onMoveItems?: ClassicyFileBrowserMoveItems;
 };
+
+/**
+ * Called when items are dragged out of a file browser and let go over another
+ * folder or the desktop. `outlineTopLeft` is where their outline was released
+ * (client px), for placing them on the desktop.
+ */
+export type ClassicyFileBrowserMoveItems = (
+	paths: string[],
+	destination: ClassicyFileDropDestination,
+	outlineTopLeft: [number, number],
+) => void;
 
 type iconType = {
 	appId: string;
@@ -47,6 +67,12 @@ type iconType = {
 	snapTo?: [number, number];
 	snapOrigin?: [number, number];
 	positionLocked?: boolean;
+	dropFolderPath?: string;
+	onFileDrag: (
+		target: ClassicyFileDropTarget | null,
+		point: [number, number],
+		outlineTopLeft: [number, number],
+	) => boolean;
 };
 
 export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrowserViewIconsProps> =
@@ -60,6 +86,7 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 			holderRef,
 			hideFilesCreatedAfter = null,
 			iconViewOptions,
+			onMoveItems,
 		}) => {
 			const activeTheme = useAppManager(
 				(s) => s.System.Manager.Appearance.activeTheme,
@@ -156,7 +183,29 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 				const positionLocked = arrangement === "sorted";
 
 				const updatedIcons = ordered.map(([filename, properties], index) => {
+					const itemPath = `${path}${fs.separator}${filename}`;
 					return {
+						dropFolderPath:
+							properties._type === "directory" ? itemPath : undefined,
+						// Let go in this same folder: rearrange (return false). Over
+						// another folder or the desktop: move it there. Anywhere
+						// else: it stays put.
+						onFileDrag: (
+							target: ClassicyFileDropTarget | null,
+							_point: [number, number],
+							outlineTopLeft: [number, number],
+						) => {
+							if (
+								target?.destination.kind === "folder" &&
+								target.destination.path === path
+							) {
+								return false;
+							}
+							if (target && onMoveItems) {
+								onMoveItems([itemPath], target.destination, outlineTopLeft);
+							}
+							return true;
+						},
 						appId: appId,
 						name: filename,
 						invisible: properties._invisible,
@@ -190,6 +239,7 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 				arrangement,
 				keepArrangedBy,
 				iconSizeStep,
+				onMoveItems,
 			]);
 
 			return (

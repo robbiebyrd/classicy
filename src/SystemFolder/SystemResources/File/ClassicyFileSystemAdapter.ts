@@ -19,9 +19,14 @@ import type {
 export interface ClassicyFileSystemJournalEntry {
 	/** Monotonic sequence number, persisted across sessions (gap = missed delivery). */
 	seq: number;
-	op: "write" | "mkdir" | "rmdir" | "meta" | "load";
-	/** Colon-separated path; '' for 'load' (wholesale replacement). */
+	op: "write" | "mkdir" | "rmdir" | "meta" | "load" | "move";
+	/**
+	 * Colon-separated path; '' for 'load' (wholesale replacement). For 'move',
+	 * the entry's path before the move.
+	 */
 	path: string;
+	/** For op 'move': the entry's new colon-separated path (it keeps its name). */
+	to?: string;
 	/** File contents, for op 'write'. */
 	data?: string;
 	/** Metadata patch, for op 'meta'. */

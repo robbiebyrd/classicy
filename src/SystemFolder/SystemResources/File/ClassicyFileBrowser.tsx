@@ -6,8 +6,12 @@ import type {
 	FinderListViewOptions,
 } from "@/SystemFolder/Finder/FinderContext";
 import { listViewIconSize } from "@/SystemFolder/Finder/FinderViewOptions";
-import { ClassicyFileBrowserViewIcons } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewIcons";
+import {
+	type ClassicyFileBrowserMoveItems,
+	ClassicyFileBrowserViewIcons,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewIcons";
 import { ClassicyFileBrowserViewTable } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewTable";
+import { CLASSICY_DROP_FOLDER_ATTRIBUTE } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
 import type { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import type { ClassicyTableSelectionApi } from "@/SystemFolder/SystemResources/Table/ClassicyTable";
 
@@ -57,6 +61,14 @@ type ClassicyFileBrowserProps = {
 	 * keyboard target, so the ref stays `null` there.
 	 */
 	focusTargetRef?: RefObject<HTMLDivElement | null>;
+	/**
+	 * Move items dragged out of this browser — onto another file browser, a
+	 * folder icon or row, a desktop folder or drive, or the desktop. Finder
+	 * passes one built on `moveClassicyFileSystemItems`. Without it, items can
+	 * still be rearranged within the icon view but not moved. The browser
+	 * itself always accepts drops into `path`.
+	 */
+	onMoveItems?: ClassicyFileBrowserMoveItems;
 };
 
 // Define stable default functions outside component to prevent re-creation
@@ -74,6 +86,11 @@ const defaultFileOnClick = () => {};
  * - `display="list"`: a `ClassicyTable` list view with sortable columns,
  *   disclosure triangles that expand folders in place, multi-selection
  *   (Shift / Command-click) and full keyboard navigation.
+ *
+ * Items drag like the Mac OS 8 Finder's: a dotted outline follows the pointer,
+ * and letting go over another folder or the desktop calls `onMoveItems`
+ * (letting go in the same icon view just moves the icon). The browser marks
+ * itself, and each folder in it, as a drop target for drags from elsewhere.
  *
  * The browser does not navigate on its own: opening an item (double-click,
  * or Return in the list view) calls `dirOnClickFunc` / `fileOnClickFunc` with
@@ -104,6 +121,7 @@ export const ClassicyFileBrowser: FunctionalComponent<
 	selectedPaths,
 	onSelectionChange,
 	focusTargetRef,
+	onMoveItems,
 }) => {
 	const holderRef = useRef<HTMLDivElement>(null);
 	const themeIconSize = useAppManager(
@@ -111,9 +129,13 @@ export const ClassicyFileBrowser: FunctionalComponent<
 	);
 
 	return (
-		<div className={"classicyFileBrowserFill"}>
+		<div
+			className={"classicyFileBrowserFill"}
+			{...{ [CLASSICY_DROP_FOLDER_ATTRIBUTE]: path }}
+		>
 			{display === "list" ? (
 				<ClassicyFileBrowserViewTable
+					onMoveItems={onMoveItems}
 					fileOnClickFunc={fileOnClickFunc ?? defaultFileOnClick}
 					dirOnClickFunc={dirOnClickFunc ?? defaultDirOnClick}
 					fs={fs}
@@ -138,6 +160,7 @@ export const ClassicyFileBrowser: FunctionalComponent<
 				/>
 			) : (
 				<ClassicyFileBrowserViewIcons
+					onMoveItems={onMoveItems}
 					fileOnClickFunc={fileOnClickFunc ?? defaultFileOnClick}
 					dirOnClickFunc={dirOnClickFunc ?? defaultDirOnClick}
 					fs={fs}

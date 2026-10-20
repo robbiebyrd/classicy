@@ -439,6 +439,54 @@ Right-click menus resolve target-based, innermost wins: a `ClassicyContextualMen
 - If neither a window nor its app defines a menu, right-click shows nothing (the native browser menu stays suppressed inside the desktop).
 - Right-clicking a window focuses it first, so the active menu always tracks focus.
 
+### File System: Shared Live Tree
+
+Every `ClassicyFileSystem` for a storage key shares **one live tree**
+(`sharedTrees` in `ClassicyFileSystem.ts`); `fs` is a getter onto it. Every
+journaled mutation bumps a version and notifies
+`subscribeClassicyFileSystem(storageKey, listener)`; `useClassicyFileSystem`
+subscribes with `useSyncExternalStore`, so consumers get a fresh `fs` (and
+re-render) on any change made through any instance — no store event needed.
+`useClassicyFileSystemAccessor()` gives handlers a stable `() => fs` without
+subscribing. `fsVersion` (`ClassicyDesktopFileSystemVersionBump`) is now only a
+reload *epoch*: an instance constructed under a different epoch re-reads
+localStorage into the shared record (adapter reconcile replace, Drive Setup).
+Tests reset the trees in `src/__tests__/setup.ts`.
+
+Derived overlays (Applications, Extensions, Control Strip Modules) mark their
+entries `_derived: true`; each rebuild drops the previous build's entries
+(`withoutDerivedEntries`) so removed apps/modules don't linger in the shared
+tree. Because `fs` changes identity on every mutation, effects keyed on `fs`
+must be idempotent — key non-idempotent ones on a derived value (Finder's
+drive icons key on `drivesKey`).
+
+### Finder Drag and Drop
+
+Finder items (icon and list views) and the desktop's file icons drag as Mac OS
+8 does: a 1-px dotted outline of the icon's opaque shape ∪ its label box
+(`drawClassicyDragOutline`, canvas contour walk) follows the pointer in a
+body-level ghost (`startClassicyFileDrag`, `ClassicyFileDrag.ts`; 4 px threshold,
+Escape cancels). Targets are hit-tested with `elementsFromPoint` against
+`data-classicy-drop-folder="<path>"` (folder/drive icons, list rows' name cells,
+each file browser's root) and `data-classicy-drop-desktop` (the desktop root);
+`.classicyWindow`, the menu bar, Control Strip and dialogs block. Folder targets
+get `.classicyFileDropTarget` (darkened icon/row, framed window).
+
+- `fs.move(path, toFolder)` does the move (refusals: `missing`, `not-a-folder`,
+  `same-folder`, `into-itself`, `locked`, `exists`; journal op `"move"` with
+  `to`). `moveClassicyFileSystemItems` (`ClassicyFileMove.ts`) wraps it:
+  `ClassicyAppFinderPathsMoved { moves }` (Finder renames open paths, window
+  records and folder views), desktop icon placement, and an alert for the first
+  refusal.
+- The desktop's files live in the invisible `Desktop Folder` on the startup disk
+  (created on first drop). Finder mirrors it as desktop icons with appId
+  `classicy-desktop-item:<path>`, `kind` `file`/`directory`, and `filePath`;
+  `ClassicyDesktopIconAdd` with a `location` places the icon there without
+  re-laying-out the desktop. `ClassicyDesktop` opens and moves them through the
+  accessor.
+- Dropped back in its own folder, an icon-view icon repositions by the pointer's
+  travel (snapping when the arrangement is a grid).
+
 ### File System Sync Adapters
 
 `ClassicyFileSystem` is browser-local (localStorage-primary), but consumers can

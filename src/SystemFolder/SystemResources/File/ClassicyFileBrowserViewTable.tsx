@@ -6,10 +6,13 @@ import "./ClassicyFileBrowserViewTable.scss";
 import classNames from "classnames";
 import {
 	type FC as FunctionalComponent,
+	type MouseEvent,
 	memo,
 	type RefObject,
+	useCallback,
 	useEffect,
 	useMemo,
+	useRef,
 	useState,
 } from "react";
 import type { FinderListViewOptions } from "@/SystemFolder/Finder/FinderContext";
@@ -17,6 +20,11 @@ import {
 	asFinderDate,
 	formatFinderDate,
 } from "@/SystemFolder/Finder/FinderViewOptions";
+import type { ClassicyFileBrowserMoveItems } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewIcons";
+import {
+	CLASSICY_DROP_FOLDER_ATTRIBUTE,
+	startClassicyFileDrag,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
 import type { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import {
 	ClassicyFileSystemEntryFileType,
@@ -73,7 +81,13 @@ type ClassicyFileBrowserViewTableProps = {
 	/** Receives the list's focusable keyboard target (see ClassicyTable's
 	 *  `containerRef`), e.g. for a window's `initialFocusRef`. */
 	focusTargetRef?: RefObject<HTMLDivElement | null>;
+	/** Move items dragged out of the list (see `ClassicyFileBrowser`). */
+	onMoveItems?: ClassicyFileBrowserMoveItems;
 };
+
+// Marks a row's name cell with its path, so a drag can find every dragged
+// row's icon and name to outline them.
+const FILE_PATH_ATTRIBUTE = "data-classicy-file-path";
 
 export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrowserViewTableProps> =
 	memo(
@@ -91,7 +105,60 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 			selectedPaths,
 			onSelectionChange,
 			focusTargetRef,
+			onMoveItems,
 		}) => {
+			// The latest selection, so a drag that starts on a selected row
+			// carries every selected row (Mac OS 8 list views did).
+			const selectionRef = useRef<string[]>(selectedPaths ?? []);
+			useEffect(() => {
+				if (selectedPaths) selectionRef.current = selectedPaths;
+			}, [selectedPaths]);
+			const trackSelection = useCallback(
+				(paths: string[]) => {
+					selectionRef.current = paths;
+					onSelectionChange?.(paths);
+				},
+				[onSelectionChange],
+			);
+
+			const startRowDrag = useCallback(
+				(e: MouseEvent<HTMLDivElement>, rowPath: string) => {
+					if (e.button !== 0 || !onMoveItems) return;
+					const selection = selectionRef.current;
+					const paths = selection.includes(rowPath) ? selection : [rowPath];
+					const table = (e.currentTarget as HTMLElement).closest(
+						".classicyFileBrowserViewTableContainer",
+					);
+					const cells = paths
+						.map((p) =>
+							Array.from(
+								table?.querySelectorAll(`[${FILE_PATH_ATTRIBUTE}]`) ?? [],
+							).find((el) => el.getAttribute(FILE_PATH_ATTRIBUTE) === p),
+						)
+						.filter((el): el is Element => el !== undefined);
+					startClassicyFileDrag({
+						start: { clientX: e.clientX, clientY: e.clientY },
+						parts: cells.map((cell) => ({
+							image: cell.querySelector("img"),
+							label: cell.querySelector(
+								".classicyFileBrowserViewTableRowIconLabel",
+							),
+						})),
+						source: e.currentTarget,
+						onDrop: (target, _point, outlineTopLeft) => {
+							if (!target) return;
+							if (
+								target.destination.kind === "folder" &&
+								target.destination.path === path
+							) {
+								return;
+							}
+							onMoveItems(paths, target.destination, outlineTopLeft);
+						},
+					});
+				},
+				[onMoveItems, path],
+			);
 			// Derive the effective options once, so an omitted prop reproduces
 			// today's rendering — three columns, sizes computed, no dates.
 			const columnFlags = listViewOptions?.columns ?? DEFAULT_LIST_COLUMN_FLAGS;
@@ -218,8 +285,15 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 						title: "Filename",
 						accessor: (row) => row._name ?? "",
 						render: (row, expansion) => (
+							// biome-ignore lint/a11y/noStaticElementInteractions: a press here may start a drag; keyboard users move items through the table's own selection
 							<div
 								className={"classicyFileBrowserViewTableRowContainer"}
+								{...{ [FILE_PATH_ATTRIBUTE]: row._path }}
+								{...(row._type === ClassicyFileSystemEntryFileType.Directory &&
+								row._path
+									? { [CLASSICY_DROP_FOLDER_ATTRIBUTE]: row._path }
+									: {})}
+								onMouseDown={(e) => row._path && startRowDrag(e, row._path)}
 								style={{
 									paddingLeft: `calc(var(--window-control-size) * ${expansion.depth})`,
 								}}
@@ -235,6 +309,8 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 												"classicyFileBrowserViewTableDisclosureTriangle"
 											}
 											onClick={(e) => e.stopPropagation()}
+											// A press on the triangle toggles; it never starts a drag.
+											onMouseDown={(e) => e.stopPropagation()}
 										>
 											<ClassicyTriangle
 												direction={"right"}
@@ -349,6 +425,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 				effectiveNow,
 				relativeDates,
 				computeFolderSizes,
+				startRowDrag,
 			]);
 
 			return (
@@ -379,7 +456,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 					selectionMode={"multi"}
 					selectionApiRef={selectionApiRef}
 					selected={selectedPaths}
-					onSelectionChange={onSelectionChange}
+					onSelectionChange={trackSelection}
 					containerRef={focusTargetRef}
 				/>
 			);

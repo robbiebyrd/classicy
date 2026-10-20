@@ -1,0 +1,52 @@
+// Finder drag-and-drop (ClassicyFileDrag.ts).
+
+// The dotted outline that follows the pointer: a canvas drawn once at drag
+// start, moved with a transform. It never takes the pointer, so hit-testing
+// sees what's beneath it. Above windows and palettes, below dialog overlays.
+.classicyFileDragGhost {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 99000;
+  pointer-events: none;
+
+  canvas {
+    display: block;
+    image-rendering: pixelated;
+  }
+}
+
+// No text selection while a drag crosses windows.
+body.classicyFileDragging,
+body.classicyFileDragging * {
+  user-select: none;
+}
+
+// The folder under the pointer: a window's contents get a frame, a folder
+// icon or list row is darkened, as in the Mac OS 8 Finder.
+.classicyFileDropTarget {
+  outline: 2px solid var(--color-black);
+  outline-offset: -2px;
+}
+
+// A window's contents are covered by the list or icons, which would paint
+// over an outline: draw the frame on an overlay above them instead.
+.classicyFileBrowserFill.classicyFileDropTarget {
+  outline: none;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    border: 2px solid var(--color-black);
+    pointer-events: none;
+  }
+}
+
+.classicyIcon.classicyFileDropTarget,
+.classicyDesktopIcon.classicyFileDropTarget,
+.classicyFileBrowserViewTableRowContainer.classicyFileDropTarget {
+  outline: none;
+  filter: brightness(0.55);
+}
