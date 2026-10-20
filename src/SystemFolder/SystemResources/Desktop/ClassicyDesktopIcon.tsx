@@ -12,6 +12,12 @@ import {
 import { useClassicyContextualMenu } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 import { defaultBalloonForKind } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconBalloons";
 import { isAliasKind } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconKinds";
+import {
+	CLASSICY_DROP_FOLDER_ATTRIBUTE,
+	type ClassicyFileDropDestination,
+	startClassicyFileDrag,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
+import type { ClassicyFileDragOutlinePart } from "@/SystemFolder/SystemResources/File/ClassicyFileDragOutline";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
 import "./ClassicyDesktopIcon.scss";
@@ -75,7 +81,34 @@ interface ClassicyDesktopIconProps {
 	 * `desktopIconBalloonHelp` or registered manifest description.)
 	 */
 	balloonHelp?: ClassicyIconBalloonHelp;
+	/**
+	 * The file system path the icon stands for (a drive, or an item in the
+	 * Desktop Folder). A drive or `directory` icon with a path is a drop target
+	 * for Finder drags. Any other kind but `drive` is itself dragged as a
+	 * file: its dotted outline can be let go on the desktop (the icon moves
+	 * there) or on a folder (`onMoveFilePaths`).
+	 */
+	filePath?: string;
+	/**
+	 * Move file-backed desktop icons' items into a folder. Called with the
+	 * paths of every selected file-backed icon when the outline is let go on a
+	 * folder, a drive or a Finder window. `ClassicyDesktop` supplies it.
+	 */
+	onMoveFilePaths?: (
+		paths: string[],
+		destination: ClassicyFileDropDestination,
+	) => void;
+	/**
+	 * Open a file-backed icon's item (a folder in Finder, a file in its app).
+	 * Called with `filePath` when a non-drive file-backed icon is opened, in
+	 * addition to `onClickFunc`/`event`. `ClassicyDesktop` supplies it.
+	 */
+	onOpenFilePath?: (path: string) => void;
 }
+
+/** File-backed icons drag as files; drives only take drops. */
+const draggedAsFile = (kind: string, filePath: string | undefined) =>
+	filePath !== undefined && kind !== "drive";
 
 /**
  * A Mac OS 8 desktop icon: image plus label, positioned on the desktop. Click
@@ -119,6 +152,9 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			noLaunch = false,
 			contextMenu,
 			balloonHelp,
+			filePath,
+			onMoveFilePaths,
+			onOpenFilePath,
 		}) => {
 			const [clickPosition, setClickPosition] = useState<[number, number]>([
 				0, 0,
@@ -138,11 +174,17 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			const isOpen = useAppManager(
 				(s) => !!s.System.Manager.Applications.apps[appId]?.open,
 			);
-			// Only Finder folder icons care about a window: true while the Finder
-			// window for this icon's folder path is registered and not closed.
+			// Only Finder folder icons — drives, and folders in the Desktop
+			// Folder — care about a window: true while the Finder window for this
+			// icon's folder path is registered and not closed.
+			const finderFolderPath = appId.startsWith("Finder.app")
+				? eventData?.path
+				: kind === "directory"
+					? filePath
+					: undefined;
 			const finderPathWindowOpen = useAppManager((s) => {
-				if (!appId.startsWith("Finder.app")) return false;
-				const path = eventData?.path;
+				if (finderFolderPath === undefined) return false;
+				const path = finderFolderPath;
 				const w = getAppWindow(
 					s.System.Manager.Applications.apps["Finder.app"],
 					typeof path === "string" ? path : undefined,
@@ -206,6 +248,9 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 				if (onClickFunc) {
 					onClickFunc();
 				}
+				if (filePath !== undefined && draggedAsFile(kind, filePath)) {
+					onOpenFilePath?.(filePath);
+				}
 				if (event && eventData) {
 					desktopEventDispatch({
 						type: event,
@@ -233,7 +278,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 
 			const isLaunched = () => {
 				// Check if a Finder window is open
-				if (appId.startsWith("Finder.app")) {
+				if (finderFolderPath !== undefined) {
 					return finderPathWindowOpen;
 				}
 				return isOpen;
@@ -269,10 +314,79 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 					});
 				}
 
+				if (draggedAsFile(kind, filePath)) {
+					if (e.button === 0) startFileDrag(e);
+					return;
+				}
+
 				const rect = iconRef.current.getBoundingClientRect();
 				setClickPosition([e.clientX - rect.left, e.clientY - rect.top]);
 
 				setDragging(true);
+			};
+
+			// A file-backed icon drags as Finder items do: a dotted outline of every
+			// selected icon follows the pointer, and the icons stay put until it is
+			// let go — on the desktop they move there, on a folder their items move
+			// into it.
+			const startFileDrag = (e: MouseEvent<HTMLDivElement>) => {
+				const desktop = useAppManager.getState().System.Manager.Desktop;
+				const selected = new Set(desktop.selectedIcons ?? []);
+				selected.add(appId);
+				const dragged = desktop.icons.filter(
+					(i) =>
+						selected.has(i.appId) &&
+						(i.appId === appId || draggedAsFile(i.kind, i.filePath)),
+				);
+				const parts: ClassicyFileDragOutlinePart[] = dragged.flatMap((i) => {
+					const el =
+						i.appId === appId
+							? iconRef.current
+							: document.getElementById(`${i.appId}.shortcut`);
+					return el
+						? [
+								{
+									image: el.querySelector<HTMLImageElement>(
+										".classicyDesktopIconMask img",
+									),
+									label: el.querySelector("p"),
+								},
+							]
+						: [];
+				});
+				const start: [number, number] = [e.clientX, e.clientY];
+				startClassicyFileDrag({
+					start: { clientX: start[0], clientY: start[1] },
+					parts,
+					source: iconRef.current,
+					onDrop: (target, point) => {
+						if (!target) return;
+						track("halt", { type: "ClassicyDesktopIcon", ...analyticsArgs });
+						if (target.destination.kind === "desktop") {
+							// Moving one icon moves the selection with it (see the
+							// ClassicyDesktopIconMove reducer).
+							const from = useAppManager
+								.getState()
+								.System.Manager.Desktop.icons.find((i) => i.appId === appId)
+								?.location ?? [0, 0];
+							desktopEventDispatch({
+								type: "ClassicyDesktopIconMove",
+								app: { id: appId },
+								location: [
+									from[0] + point[0] - start[0],
+									from[1] + point[1] - start[1],
+								],
+							});
+							return;
+						}
+						const paths = dragged.flatMap((i) =>
+							i.filePath !== undefined && i.kind !== "drive"
+								? [i.filePath]
+								: [],
+						);
+						onMoveFilePaths?.(paths, target.destination);
+					},
+				});
 			};
 
 			const getClass = () => {
@@ -302,6 +416,10 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 					onMouseUp={stopChangeIcon}
 					onDoubleClick={launchIcon}
 					draggable={false}
+					{...(filePath !== undefined &&
+					(kind === "drive" || kind === "directory")
+						? { [CLASSICY_DROP_FOLDER_ATTRIBUTE]: filePath }
+						: {})}
 					onClick={clickFocus}
 					onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
 						if (e.key === "Enter" || e.key === " ") {

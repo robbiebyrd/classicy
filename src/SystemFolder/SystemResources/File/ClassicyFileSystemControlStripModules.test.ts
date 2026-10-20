@@ -30,6 +30,7 @@ describe("buildControlStripModulesFolder", () => {
 			_format: "ControlStripModule",
 			_readOnly: true,
 			_nameLocked: true,
+			_derived: true,
 		});
 		expect(folder["Screen Saver"]._creator).toBe("ScreenSaver.app");
 	});
@@ -69,5 +70,39 @@ describe("withControlStripModulesFolder", () => {
 		expect(withControlStripModulesFolder(tree, [])).toBe(tree);
 		const noDrive = {} as ClassicyFileSystemEntry;
 		expect(withControlStripModulesFolder(noDrive, [sound])).toBe(noDrive);
+	});
+});
+
+describe("withControlStripModulesFolder rebuilds", () => {
+	it("drops a module file once its module is gone, keeping static files", () => {
+		const tree = {
+			_type: "directory",
+			HD: {
+				_type: ClassicyFileSystemEntryFileType.Drive,
+				"System Folder": {
+					_type: ClassicyFileSystemEntryFileType.Directory,
+					"Control Strip Modules": {
+						_type: ClassicyFileSystemEntryFileType.Directory,
+						"Static Module": {
+							_type: ClassicyFileSystemEntryFileType.Extension,
+						},
+					},
+				},
+			},
+		} as unknown as Parameters<typeof withControlStripModulesFolder>[0];
+		const sound = { id: "s", name: "Sound", icon: "/s.png" };
+		const clock = { id: "c", name: "Clock", icon: "/c.png" };
+		const folder = (t: typeof tree) =>
+			Object.keys(t.HD["System Folder"]["Control Strip Modules"]).filter(
+				(k) => !k.startsWith("_"),
+			);
+
+		const first = withControlStripModulesFolder(tree, [sound, clock]);
+		expect(folder(first)).toEqual(["Static Module", "Sound", "Clock"]);
+		const second = withControlStripModulesFolder(first, [sound]);
+		expect(folder(second)).toEqual(["Static Module", "Sound"]);
+		const none = withControlStripModulesFolder(second, []);
+		expect(folder(none)).toEqual(["Static Module"]);
+		expect(withControlStripModulesFolder(none, [])).toBe(none);
 	});
 });

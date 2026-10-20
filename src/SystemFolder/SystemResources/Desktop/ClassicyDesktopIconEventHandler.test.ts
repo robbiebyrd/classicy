@@ -771,3 +771,50 @@ describe("shortcut desktop icons", () => {
 		expect(icon?.location).toEqual(freshSlotLocation);
 	});
 });
+
+describe("classicyDesktopIconEventHandler — ClassicyDesktopIconAdd for Desktop Folder items", () => {
+	it("keeps a placed icon where it was dropped instead of relaying out the desktop", () => {
+		const ds = makeStoreWithIcons();
+		const before = ds.System.Manager.Desktop.icons.map((i) => i.location);
+
+		classicyDesktopIconEventHandler(ds, {
+			type: "ClassicyDesktopIconAdd",
+			app: {
+				id: "classicy-desktop-item:HD:Desktop Folder:Plan.txt",
+				name: "Plan.txt",
+				icon: "doc.png",
+			},
+			kind: "file",
+			filePath: "HD:Desktop Folder:Plan.txt",
+			noLaunch: true,
+			location: [321, 123],
+		});
+
+		const icons = ds.System.Manager.Desktop.icons;
+		const added = icons.find((i) => i.appName === "Plan.txt");
+		expect(added?.location).toEqual([321, 123]);
+		expect(added?.filePath).toBe("HD:Desktop Folder:Plan.txt");
+		expect(icons.slice(0, before.length).map((i) => i.location)).toEqual(
+			before,
+		);
+	});
+
+	it("refreshes the file path of an icon that is already on the desktop", () => {
+		const ds = makeStoreWithIcons();
+		const add = (filePath: string) =>
+			classicyDesktopIconEventHandler(ds, {
+				type: "ClassicyDesktopIconAdd",
+				app: { id: "classicy-desktop-item:x", name: "x", icon: "x.png" },
+				kind: "file",
+				filePath,
+				location: [10, 10],
+			});
+		add("HD:Desktop Folder:x");
+		add("HD:Desktop Folder:y");
+		const icon = ds.System.Manager.Desktop.icons.find(
+			(i) => i.appId === "classicy-desktop-item:x",
+		);
+		expect(icon?.filePath).toBe("HD:Desktop Folder:y");
+		expect(icon?.location).toEqual([10, 10]);
+	});
+});

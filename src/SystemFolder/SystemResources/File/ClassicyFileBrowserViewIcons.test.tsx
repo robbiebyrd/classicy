@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ClassicyAppManagerProvider } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext";
 import type { FinderIconViewOptions } from "@/SystemFolder/Finder/FinderContext";
 import { ClassicyFileBrowserViewIcons } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewIcons";
@@ -123,62 +123,94 @@ describe("ClassicyFileBrowserViewIcons arrangement", () => {
 		expect(icon.className).not.toContain("classicyIconDragging");
 	});
 
-	it("does enter the dragging state when not locked", () => {
-		// The counterweight to the assertion above: without this, a root-level
-		// assertion would still pass if the class simply never appeared.
+	it("drags an outline, not the icon, once the pointer has moved", () => {
+		// The counterweight to the assertion above: an unlocked icon in a file
+		// browser drags as a file — a dotted outline in a body-level ghost that
+		// can leave the window — while the icon itself stays where it is.
 		renderIcons("test-icons-unlocked", ICONS_BASE);
 		const icon = firstIconRoot();
-		fireEvent.mouseDown(icon);
-		expect(icon.className).toContain("classicyIconDragging");
+		const left = icon.style.left;
+		fireEvent.mouseDown(icon, { button: 0, clientX: 0, clientY: 0 });
+		fireEvent.mouseMove(document, { clientX: 40, clientY: 40 });
+		expect(document.querySelector(".classicyFileDragGhost")).not.toBeNull();
+		expect(document.body).toHaveClass("classicyFileDragging");
+		expect(icon.style.left).toBe(left);
+		fireEvent.keyDown(document, { key: "Escape" });
+		expect(document.querySelector(".classicyFileDragGhost")).toBeNull();
 	});
 
-	// jsdom has no layout engine, so every getBoundingClientRect() is zeros:
-	// ClassicyIcon's drag math reduces to position = [clientX, clientY], and the
-	// assertions below read the inline style the component itself sets rather
-	// than any computed geometry.
+	// jsdom has no layout engine and no elementsFromPoint. These give every
+	// element a 400 px box — so the layout has columns to place icons in (a
+	// zero-width holder lays them out at NaN) — and drop the outline back on its
+	// own folder by stubbing the hit-test to the folder's drop element. Dropped
+	// in place, an icon moves as far as the pointer did, from where it was
+	// laid out.
+	const withLayout = () =>
+		vi
+			.spyOn(HTMLElement.prototype, "getBoundingClientRect")
+			.mockReturnValue(new DOMRect(0, 0, 400, 400));
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	const dragWithinFolder = (icon: HTMLElement, to: [number, number]) => {
+		const folder = document.createElement("div");
+		folder.setAttribute("data-classicy-drop-folder", "Documents");
+		const original = document.elementsFromPoint;
+		document.elementsFromPoint = () => [folder];
+		try {
+			fireEvent.mouseDown(icon, { button: 0, clientX: 0, clientY: 0 });
+			fireEvent.mouseMove(document, { clientX: to[0], clientY: to[1] });
+			fireEvent.mouseUp(document, { clientX: to[0], clientY: to[1] });
+		} finally {
+			document.elementsFromPoint = original;
+		}
+	};
+
 	it("snaps a dragged icon onto the lattice the layout uses", () => {
+		withLayout();
 		renderIcons("test-icons-grid", { ...ICONS_BASE, arrangement: "grid" });
 		const icon = firstIconRoot();
+		// Laid out in cell (0, 0): theme base 48 → padding 12.
+		expect(icon.style.left).toBe("12px");
 
-		fireEvent.mouseDown(icon);
-		fireEvent.mouseMove(icon, { clientX: 140, clientY: 140 });
-		fireEvent.mouseUp(icon);
+		dragWithinFolder(icon, [140, 140]);
 
-		// Theme base 48 → padding 12, cell 96. Cell (1, 1) is at 12 + 96 = 108,
-		// exactly where cleanupIcon lays out that cell. The pre-fix snap (pitch
-		// 48, origin 0) would have produced 144 — a half-row the layout never
-		// uses, overlapping the row above.
+		// 12 + 140 = 152 → cell 96 from origin 12 → cell (1, 1) at 12 + 96 = 108,
+		// exactly where cleanupIcon lays out that cell. A snap with pitch 48 and
+		// origin 0 would have produced 144 — a half-row the layout never uses.
 		expect(icon.style.left).toBe("108px");
 		expect(icon.style.top).toBe("108px");
 	});
 
 	it("snaps small icons onto the smaller lattice", () => {
+		withLayout();
 		renderIcons("test-icons-grid-small", {
 			...ICONS_BASE,
 			arrangement: "grid",
 			iconSize: "small",
 		});
 		const icon = firstIconRoot();
+		expect(icon.style.left).toBe("12px");
 
-		fireEvent.mouseDown(icon);
-		fireEvent.mouseMove(icon, { clientX: 70, clientY: 70 });
-		fireEvent.mouseUp(icon);
+		dragWithinFolder(icon, [70, 70]);
 
-		// 0.5 x 48 = 24 → cell 48, origin still the theme's 12: 12 + 48 = 60.
+		// 0.5 x 48 = 24 → cell 48, origin still the theme's 12: 12 + 70 = 82
+		// rounds to 12 + 48 = 60.
 		expect(icon.style.left).toBe("60px");
 		expect(icon.style.top).toBe("60px");
 	});
 
 	it("does not snap when the arrangement is not grid", () => {
+		withLayout();
 		renderIcons("test-icons-nogrid", ICONS_BASE);
 		const icon = firstIconRoot();
+		expect(icon.style.left).toBe("12px");
 
-		fireEvent.mouseDown(icon);
-		fireEvent.mouseMove(icon, { clientX: 140, clientY: 140 });
-		fireEvent.mouseUp(icon);
+		dragWithinFolder(icon, [140, 140]);
 
-		expect(icon.style.left).toBe("140px");
-		expect(icon.style.top).toBe("140px");
+		expect(icon.style.left).toBe("152px");
+		expect(icon.style.top).toBe("152px");
 	});
 
 	it("re-lays-out an already-mounted component when the arrangement option changes", () => {

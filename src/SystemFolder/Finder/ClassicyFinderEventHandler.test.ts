@@ -634,3 +634,73 @@ describe("opening a shortcut entry", () => {
 		);
 	});
 });
+
+describe("classicyFinderEventHandler — ClassicyAppFinderPathsMoved", () => {
+	const finderWindow = (id: string) => ({
+		id,
+		closed: false,
+		focused: false,
+		size: [300, 200] as [number, number],
+		position: [40, 60] as [number, number],
+		minimumSize: [0, 0] as [number, number],
+	});
+
+	it("moves open windows, their nested windows and view types with the folder", () => {
+		const ds = makeStore();
+		const finder = ds.System.Manager.Applications.apps["Finder.app"];
+		finder.windows = windowsRecord(
+			finderWindow("HD:Docs:Projects"),
+			finderWindow("HD:Docs:Projects:2026"),
+			finderWindow("HD:Docs"),
+		);
+		finder.data = {
+			openPaths: ["HD:Docs:Projects", "HD:Docs:Projects:2026", "HD:Docs"],
+			folderViews: { "HD:Docs:Projects": "list" },
+		};
+
+		classicyFinderEventHandler(ds, {
+			type: "ClassicyAppFinderPathsMoved",
+			moves: [{ from: "HD:Docs:Projects", to: "HD:Archive:Projects" }],
+		});
+
+		expect(openPaths(ds)).toEqual([
+			"HD:Archive:Projects",
+			"HD:Archive:Projects:2026",
+			"HD:Docs",
+		]);
+		const ids = listAppWindows(
+			ds.System.Manager.Applications.apps["Finder.app"],
+		).map((w) => w.id);
+		expect(ids).toEqual(
+			expect.arrayContaining([
+				"HD:Archive:Projects",
+				"HD:Archive:Projects:2026",
+				"HD:Docs",
+			]),
+		);
+		expect(ids).not.toContain("HD:Docs:Projects");
+		const moved = listAppWindows(
+			ds.System.Manager.Applications.apps["Finder.app"],
+		).find((w) => w.id === "HD:Archive:Projects");
+		expect(moved?.position).toEqual([40, 60]);
+		expect(
+			(
+				ds.System.Manager.Applications.apps["Finder.app"].data as {
+					folderViews: Record<string, string>;
+				}
+			).folderViews,
+		).toEqual({ "HD:Archive:Projects": "list" });
+	});
+
+	it("leaves paths that merely share a prefix alone", () => {
+		const ds = makeStore();
+		ds.System.Manager.Applications.apps["Finder.app"].data = {
+			openPaths: ["HD:Docs:Projects 2"],
+		};
+		classicyFinderEventHandler(ds, {
+			type: "ClassicyAppFinderPathsMoved",
+			moves: [{ from: "HD:Docs:Projects", to: "HD:Archive:Projects" }],
+		});
+		expect(openPaths(ds)).toEqual(["HD:Docs:Projects 2"]);
+	});
+});

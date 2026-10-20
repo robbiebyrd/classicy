@@ -71,13 +71,94 @@ const FORBIDDEN_PATH_SEGMENTS = new Set([
 
 export type ClassicyPathOrFileSystemEntry = string | ClassicyFileSystemEntry;
 
+/** Why `ClassicyFileSystem.move` refused a move (see its documentation). */
+export type ClassicyFileSystemMoveRefusal =
+	| "missing"
+	| "not-a-folder"
+	| "same-folder"
+	| "into-itself"
+	| "locked"
+	| "exists";
+
+/** The outcome of `ClassicyFileSystem.move`: the entry's new path, or why not. */
+export type ClassicyFileSystemMoveResult =
+	| { ok: true; path: string }
+	| { ok: false; reason: ClassicyFileSystemMoveRefusal };
+
+/**
+ * One live tree per storage key, shared by every `ClassicyFileSystem` built for
+ * that key — so a change made through one (a Finder drag, a Save dialog's New
+ * Folder) is at once visible through all of them, and subscribers hear of it.
+ * `version` counts journaled mutations; `epoch` is the reload token the tree
+ * was last read from localStorage under (see the constructor).
+ */
+type ClassicyFileSystemSharedTree = {
+	tree: ClassicyFileSystemEntry;
+	version: number;
+	epoch?: number;
+};
+
+const sharedTrees = new Map<string, ClassicyFileSystemSharedTree>();
+const treeListeners = new Map<string, Set<() => void>>();
+
+/**
+ * Be told whenever the tree stored under `storageKey` changes (every journaled
+ * mutation: write, mkdir, rmdir, meta, move, load). Returns an unsubscribe
+ * function. Shaped for `useSyncExternalStore`, with
+ * `getClassicyFileSystemVersion` as the snapshot.
+ */
+export function subscribeClassicyFileSystem(
+	storageKey: string,
+	listener: () => void,
+): () => void {
+	let listeners = treeListeners.get(storageKey);
+	if (!listeners) {
+		listeners = new Set();
+		treeListeners.set(storageKey, listeners);
+	}
+	listeners.add(listener);
+	return () => {
+		listeners.delete(listener);
+	};
+}
+
+/** The number of mutations the tree under `storageKey` has seen (0 if none yet). */
+export function getClassicyFileSystemVersion(storageKey: string): number {
+	return sharedTrees.get(storageKey)?.version ?? 0;
+}
+
+/**
+ * Forget every shared tree, so the next `ClassicyFileSystem` reads its
+ * storage afresh. For tests, which reset localStorage between cases.
+ */
+export function resetClassicyFileSystemSharedTrees(): void {
+	sharedTrees.clear();
+}
+
 export class ClassicyFileSystem {
 	storageKey: string;
-	fs: ClassicyFileSystemEntry;
 	separator: string;
 	private seq: number = 0;
 	private flushTimer: ReturnType<typeof setTimeout> | null = null;
+	private shared!: ClassicyFileSystemSharedTree;
 
+	/** The live tree — shared with every instance for this storage key. */
+	get fs(): ClassicyFileSystemEntry {
+		return this.shared.tree;
+	}
+
+	set fs(tree: ClassicyFileSystemEntry) {
+		this.shared.tree = tree;
+	}
+
+	/**
+	 * The first instance for a storage key reads the tree from localStorage (or
+	 * seeds it from `defaultFS`); later ones attach to that same live tree and
+	 * ignore `defaultFS`. `epoch` forces a fresh read when it differs from the
+	 * one the tree was read under — `useClassicyFileSystem` passes the store's
+	 * `fsVersion`, bumped after the tree is replaced behind the instances' backs
+	 * (adapter reconcile, Drive Setup's Initialize). Omit it to just attach.
+	 */
 	constructor(
 		storageKey: string = "classicyStorage",
 		// biome-ignore lint/suspicious/noExplicitAny: DefaultFSContent doesn't conform to ClassicyFileSystemEntry at root level
@@ -90,12 +171,34 @@ export class ClassicyFileSystem {
 		// it no longer applies, so running it against an already-current tree
 		// is harmless.
 		seedMigrations: ClassicyFileSystemSeedMigration[] = [],
+		epoch?: number,
 	) {
+		this.storageKey = storageKey;
+		this.separator = separator;
+		try {
+			const storedSeq = Number(localStorage.getItem(`${this.storageKey}:seq`));
+			if (Number.isFinite(storedSeq) && storedSeq > 0) {
+				this.seq = storedSeq;
+			}
+		} catch {
+			// non-browser environment — seq stays in-memory
+		}
+
+		const existing = sharedTrees.get(storageKey);
+		if (existing && (epoch === undefined || existing.epoch === epoch)) {
+			this.shared = existing;
+			return;
+		}
+
 		// Drain any predecessor instance's pending debounced flush so we never
 		// seed from a localStorage snapshot that is about to be overwritten.
 		flushClassicyFileSystemPendingForStorageKey(storageKey);
 
-		this.storageKey = storageKey;
+		// A reload replaces the tree in place, so instances already holding this
+		// record see the reloaded tree too.
+		this.shared = existing ?? { tree: defaultFS, version: 0 };
+		this.shared.epoch = epoch;
+		sharedTrees.set(storageKey, this.shared);
 		this.fs = defaultFS;
 
 		const retrieved =
@@ -124,15 +227,6 @@ export class ClassicyFileSystem {
 			}
 		}
 
-		this.separator = separator;
-		try {
-			const storedSeq = Number(localStorage.getItem(`${this.storageKey}:seq`));
-			if (Number.isFinite(storedSeq) && storedSeq > 0) {
-				this.seq = storedSeq;
-			}
-		} catch {
-			// non-browser environment — seq stays in-memory
-		}
 		applyClassicyFileSystemSeedMigrations(this.fs, seedMigrations, separator);
 		this.persist();
 	}
@@ -197,7 +291,10 @@ export class ClassicyFileSystem {
 	private notifyMutation(
 		op: ClassicyFileSystemJournalEntry["op"],
 		path: string,
-		extra: Pick<ClassicyFileSystemJournalEntry, "data" | "metadata"> = {},
+		extra: Pick<
+			ClassicyFileSystemJournalEntry,
+			"data" | "metadata" | "to"
+		> = {},
 	) {
 		const entry: ClassicyFileSystemJournalEntry = {
 			seq: this.nextSeq(),
@@ -212,6 +309,11 @@ export class ClassicyFileSystem {
 			void invokeClassicyFileSystemAdapterHook(adapter, "onChange", entry);
 		}
 		this.scheduleFlush();
+		// Every view of this tree re-reads it (useClassicyFileSystem subscribes).
+		this.shared.version += 1;
+		for (const listener of treeListeners.get(this.storageKey) ?? []) {
+			listener();
+		}
 	}
 
 	/**
@@ -620,6 +722,77 @@ export class ClassicyFileSystem {
 
 		this.notifyMutation("write", path, { data, metadata: metaData });
 		return true;
+	}
+
+	/**
+	 * Move the entry at `fromPath` into the folder (or drive) at `toFolderPath`,
+	 * keeping its name — the Finder's drag-to-move. Journaled as one 'move'
+	 * mutation. Nothing changes when the move is refused:
+	 *
+	 * - `missing`: the source or the destination does not exist;
+	 * - `not-a-folder`: the destination is a file;
+	 * - `same-folder`: the entry is already there (a no-op, not an error);
+	 * - `into-itself`: a folder dropped on itself or one of its own folders;
+	 * - `locked`: a drive, a system file, a read-only entry (such as the derived
+	 *   Applications/Extensions items), or anything inside a read-only folder,
+	 *   moving out — and any read-only destination;
+	 * - `exists`: the destination already holds an entry with that name.
+	 */
+	move(fromPath: string, toFolderPath: string): ClassicyFileSystemMoveResult {
+		const fromParts = this.pathArray(fromPath);
+		const toParts = this.pathArray(toFolderPath);
+		if (fromParts === null || toParts === null || fromParts.length < 1) {
+			return { ok: false, reason: "missing" };
+		}
+		const name = fromParts[fromParts.length - 1];
+		const fromParentParts = fromParts.slice(0, -1);
+		const entry = this.resolve(fromPath);
+		const fromParent =
+			fromParentParts.length === 0
+				? this.fs
+				: this.resolve(fromParentParts.join(this.separator));
+		const target =
+			toParts.length === 0 ? undefined : this.resolve(toFolderPath);
+		if (!entry || !fromParent || !target) {
+			return { ok: false, reason: "missing" };
+		}
+		if (
+			target._type !== ClassicyFileSystemEntryFileType.Directory &&
+			target._type !== ClassicyFileSystemEntryFileType.Drive
+		) {
+			return { ok: false, reason: "not-a-folder" };
+		}
+		const fromParentPath = fromParentParts.join(this.separator);
+		const toPath = toParts.join(this.separator);
+		if (fromParentPath === toPath) {
+			return { ok: false, reason: "same-folder" };
+		}
+		if (
+			toParts.length >= fromParts.length &&
+			fromParts.every((part, i) => toParts[i] === part)
+		) {
+			return { ok: false, reason: "into-itself" };
+		}
+		if (
+			entry._type === ClassicyFileSystemEntryFileType.Drive ||
+			entry._system === true ||
+			entry._readOnly === true ||
+			fromParent._readOnly === true ||
+			target._readOnly === true
+		) {
+			return { ok: false, reason: "locked" };
+		}
+		if (Object.hasOwn(target, name)) {
+			return { ok: false, reason: "exists" };
+		}
+
+		target[name] = entry;
+		delete fromParent[name];
+		const newPath = [...toParts, name].join(this.separator);
+		this.notifyMutation("move", fromParts.join(this.separator), {
+			to: newPath,
+		});
+		return { ok: true, path: newPath };
 	}
 
 	rmDir(path: string) {

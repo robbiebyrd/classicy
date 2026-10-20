@@ -3,6 +3,7 @@ import type { ClassicyStoreSystemDesktopManagerIcon } from "@/SystemFolder/Syste
 import {
 	type ClassicyFileSystemEntry,
 	ClassicyFileSystemEntryFileType,
+	withoutDerivedEntries,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 
 export const APP_SHORTCUT_ICON_KIND = "app_shortcut";
@@ -39,6 +40,7 @@ export const buildApplicationsFolder = (
 			_creator: icon.appId,
 			_readOnly: true,
 			_nameLocked: true,
+			_derived: true,
 		};
 	}
 
@@ -48,27 +50,30 @@ export const buildApplicationsFolder = (
 /**
  * Returns a copy of the tree with the derived Applications folder merged into
  * its first drive. Consumer-provided static Applications children are kept;
- * derived entries win on name collisions. The input tree is not mutated, and
- * a tree with no drive — or a desktop with no app-shortcut icons — passes
- * through unchanged.
+ * derived entries win on name collisions, and entries from an earlier build
+ * whose app is gone are dropped. The input tree is not mutated, and a tree
+ * with no drive — or with nothing to add or drop — passes through unchanged.
  */
 export const withApplicationsFolder = (
 	tree: ClassicyFileSystemEntry,
 	icons: ClassicyStoreSystemDesktopManagerIcon[],
 ): ClassicyFileSystemEntry => {
-	if (!icons.some(isApplicationsEntry)) return tree;
-
 	const driveKey = Object.keys(tree).find(
 		(key) => tree[key]?._type === ClassicyFileSystemEntryFileType.Drive,
 	);
 	if (!driveKey) return tree;
 
-	const existing = tree[driveKey].Applications;
+	const current = tree[driveKey].Applications;
+	const kept = withoutDerivedEntries(current);
+	const hasApps = icons.some(isApplicationsEntry);
+	if (!hasApps && kept === current) return tree;
 	return {
 		...tree,
 		[driveKey]: {
 			...tree[driveKey],
-			Applications: { ...existing, ...buildApplicationsFolder(icons) },
+			Applications: hasApps
+				? { ...kept, ...buildApplicationsFolder(icons) }
+				: (kept as ClassicyFileSystemEntry),
 		},
 	};
 };

@@ -51,7 +51,7 @@ New file `src/SystemFolder/SystemResources/File/ClassicyFileSystemAdapter.ts`:
 ```ts
 export interface ClassicyFileSystemJournalEntry {
     seq: number                                          // monotonic, persisted across sessions
-    op: 'write' | 'mkdir' | 'rmdir' | 'meta' | 'load'
+    op: 'write' | 'mkdir' | 'rmdir' | 'meta' | 'load' | 'move'
     path: string                                         // colon-separated; '' for 'load'
     data?: string                                        // file contents for 'write'
     metadata?: Partial<ClassicyFileSystemEntryMetadata>  // for 'meta'
@@ -107,6 +107,7 @@ Every `ClassicyFileSystem` mutation flows through a private notifier:
 | `rmDir(path)` | `{op: 'rmdir', path}` |
 | `load(data)` | `{op: 'load', path: ''}` |
 | `setMetadata(path, patch)` *(new)* | `{op: 'meta', path, metadata: patch}` |
+| `move(path, toFolderPath)` *(added later)* | `{op: 'move', path, to: newPath}` |
 
 The notifier, per mutation:
 

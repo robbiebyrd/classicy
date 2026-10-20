@@ -38,6 +38,14 @@ import {
 	closeWindowMenuItemHelper,
 } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
 import { ClassicyFileBrowser } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowser";
+import type { ClassicyFileBrowserMoveItems } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewIcons";
+import {
+	CLASSICY_DESKTOP_ITEM_ICON_PREFIX,
+	classicyDesktopDropLocation,
+	classicyDesktopFolderPath,
+	classicyDesktopItemIconAction,
+	moveClassicyFileSystemItems,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileMove";
 import type { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import { useClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
 import type {
@@ -71,6 +79,7 @@ type FinderWindowProps = {
 	iconViewOptions: FinderIconViewOptions;
 	listViewOptions: FinderListViewOptions;
 	now: Date;
+	onMoveItems: ClassicyFileBrowserMoveItems;
 };
 
 const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
@@ -94,6 +103,7 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 	iconViewOptions,
 	listViewOptions,
 	now,
+	onMoveItems,
 }) => {
 	// One handle per open folder window: a single shared ref would make every
 	// window's Select All drive whichever table mounted last.
@@ -236,6 +246,7 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 				now={now}
 				selectionApiRef={selectionApiRef}
 				focusTargetRef={focusTargetRef}
+				onMoveItems={onMoveItems}
 			/>
 		</ClassicyWindow>
 	);
@@ -407,11 +418,20 @@ export const Finder = () => {
 		desktopEventDispatch({ type: "ClassicyAppFinderPreferencesOpen" });
 	}, [desktopEventDispatch]);
 
+	// The drives (name and icon), so the icons below follow drives being added
+	// or removed — not every change to the tree, which hands out a new `fs`.
+	const drivesKey = JSON.stringify(
+		Object.entries(fs.filterByType("", "drive")).map(([path, metadata]) => [
+			path,
+			metadata._icon,
+		]),
+	);
+
 	useEffect(() => {
-		const drives = fs.filterByType("", "drive");
+		const drives = JSON.parse(drivesKey) as [string, string | undefined][];
 		const addedDriveNames: string[] = [];
 
-		Object.entries(drives).forEach(([path, metadata]) => {
+		drives.forEach(([path, driveIcon]) => {
 			const alreadyExists = useAppManager
 				.getState()
 				.System.Manager.Desktop.icons.some(
@@ -425,11 +445,13 @@ export const Finder = () => {
 				app: {
 					id: appId,
 					name: path,
-					icon: metadata._icon,
+					icon: driveIcon,
 				},
 				event: "ClassicyAppFinderOpenFolder",
 				eventData: { path },
 				kind: "drive",
+				// Marks the drive icon as a drop target for Finder drags.
+				filePath: path,
 				contextMenu: buildDriveContextMenu(path, isDriveSyncConnected()),
 			});
 		});
@@ -442,6 +464,51 @@ export const Finder = () => {
 				});
 			});
 		};
+	}, [drivesKey, desktopEventDispatch]);
+
+	// Finder drags: move dragged items into a folder, a drive or the desktop
+	// (its Desktop Folder), with icons dropped on the desktop placed where
+	// their outline was let go.
+	const onMoveItems = useCallback<ClassicyFileBrowserMoveItems>(
+		(paths, destination, outlineTopLeft) => {
+			moveClassicyFileSystemItems(
+				fs,
+				paths,
+				destination,
+				desktopEventDispatch,
+				{
+					desktopLocation: classicyDesktopDropLocation(outlineTopLeft),
+				},
+			);
+		},
+		[fs, desktopEventDispatch],
+	);
+
+	// Mirror the Desktop Folder onto the desktop: an icon for each item in it,
+	// none for items that have left it. Runs again whenever the tree changes
+	// (`fs` is handed out afresh on every change), so icons follow items
+	// dragged in or out.
+	useEffect(() => {
+		const folder = classicyDesktopFolderPath(fs);
+		const items = folder ? fs.filterByType(folder, undefined, false) : {};
+		const paths = new Set(
+			Object.keys(items).map((name) => `${folder}${fs.separator}${name}`),
+		);
+		for (const path of paths) {
+			const action = classicyDesktopItemIconAction(fs, path);
+			if (action) desktopEventDispatch(action);
+		}
+		for (const icon of useAppManager.getState().System.Manager.Desktop.icons) {
+			if (
+				icon.appId.startsWith(CLASSICY_DESKTOP_ITEM_ICON_PREFIX) &&
+				!paths.has(icon.appId.slice(CLASSICY_DESKTOP_ITEM_ICON_PREFIX.length))
+			) {
+				desktopEventDispatch({
+					type: "ClassicyDesktopIconRemove",
+					app: { id: icon.appId },
+				});
+			}
+		}
 	}, [fs, desktopEventDispatch]);
 
 	const getHeaderString = useCallback(
@@ -509,6 +576,7 @@ export const Finder = () => {
 							iconViewOptions={standardViews.icons}
 							listViewOptions={standardViews.list}
 							now={now}
+							onMoveItems={onMoveItems}
 						/>
 					))
 				: null}

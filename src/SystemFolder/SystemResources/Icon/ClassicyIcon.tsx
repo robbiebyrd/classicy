@@ -15,6 +15,11 @@ import {
 	type ClassicyLabelPosition,
 	labelPositionClass,
 } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
+import {
+	CLASSICY_DROP_FOLDER_ATTRIBUTE,
+	type ClassicyFileDropTarget,
+	startClassicyFileDrag,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
 
 interface ClassicyIconProps {
 	/** Owning app id; prefixes the element's DOM id (`<appId>.shortcut-…`). */
@@ -52,8 +57,30 @@ interface ClassicyIconProps {
 	 * would round onto cells the layout never uses.
 	 */
 	snapOrigin?: [number, number];
-	/** Disables dragging — used by "Keep arranged", where position is derived. Defaults to `false`. */
+	/**
+	 * Disables repositioning — used by "Keep arranged", where position is
+	 * derived. An icon with `onFileDrag` can still be dragged *out* to another
+	 * folder. Defaults to `false`.
+	 */
 	positionLocked?: boolean;
+	/**
+	 * Marks the icon as a folder the Finder can drop items into (its path): see
+	 * `ClassicyFileDrag`.
+	 */
+	dropFolderPath?: string;
+	/**
+	 * Drag the icon as a Finder item: a dotted outline follows the pointer
+	 * across windows and the desktop (`startClassicyFileDrag`) instead of the
+	 * icon itself. Called on release with the drop target (null when there is
+	 * none); return `false` to have the icon move to where its outline was let
+	 * go — a drop back in its own folder — or `true` when the drop was handled
+	 * (or refused) elsewhere and the icon stays put.
+	 */
+	onFileDrag?: (
+		target: ClassicyFileDropTarget | null,
+		point: [number, number],
+		outlineTopLeft: [number, number],
+	) => boolean;
 }
 
 /**
@@ -106,6 +133,8 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	snapTo,
 	snapOrigin,
 	positionLocked = false,
+	dropFolderPath,
+	onFileDrag,
 }) => {
 	const [position, setPosition] = useState<[number, number]>(initialPosition);
 	const [dragging, setDragging] = useState<boolean>(false);
@@ -154,7 +183,31 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 		setDragging(false);
 	};
 
-	const startDrag = () => {
+	const startDrag = (e: MouseEvent<HTMLDivElement>) => {
+		if (onFileDrag) {
+			if (e.button !== 0) return;
+			const el = iconRef.current;
+			startClassicyFileDrag({
+				start: { clientX: e.clientX, clientY: e.clientY },
+				parts: [
+					{ image: el?.querySelector("img"), label: el?.querySelector("p") },
+				],
+				source: el,
+				onDrop: (target, point, outlineTopLeft) => {
+					if (onFileDrag(target, point, outlineTopLeft)) return;
+					if (positionLocked) return;
+					// Dropped back in its own folder: the icon goes where its
+					// outline was let go, i.e. it moves as far as the pointer did.
+					const next: [number, number] = [
+						position[0] + point[0] - e.clientX,
+						position[1] + point[1] - e.clientY,
+					];
+					setPosition(snapTo ? snapToGrid(next, snapTo, snapOrigin) : next);
+					setFocus(true);
+				},
+			});
+			return;
+		}
 		if (positionLocked) return;
 		movedWhileDragging.current = false;
 		setDragging(true);
@@ -204,6 +257,9 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 			ref={iconRef}
 			id={`${id}-${iconId}`}
 			draggable={false}
+			{...(dropFolderPath === undefined
+				? {}
+				: { [CLASSICY_DROP_FOLDER_ATTRIBUTE]: dropFolderPath })}
 			className={classNames(
 				"classicyIcon",
 				dragging ? "classicyIconDragging" : "",
