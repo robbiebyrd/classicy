@@ -27,6 +27,11 @@
 //    desktop; if injectCssPlugin stopped matching the CSS asset (it is found
 //    by name), the bundles would silently ship unstyled. And if it ran before
 //    the font split, every consumer would download several MB of fonts.
+//
+// 4. dist/fonts.js MUST INJECT THE BUNDLED FONTS, and stay self-contained.
+//    `import "classicy/fonts"` is the opt-in for them; it is an emitted asset,
+//    not a Rollup chunk, so nothing else notices if it goes missing, injects
+//    an empty stylesheet, or picks up an import a consumer can't resolve.
 
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -140,6 +145,33 @@ for (const entry of ["classicy.es.js", "classicy.umd.js"]) {
 		);
 	} else {
 		console.log(`${file}: injects its stylesheet, without bundled fonts`);
+	}
+}
+
+// Invariant 4: the opt-in fonts entry.
+const fontsEntry = join(DIST, "fonts.js");
+if (!argv.slice(2).length || argv.slice(2).includes(fontsEntry)) {
+	const source = await readFile(fontsEntry, "utf8").catch(() => null);
+	if (source === null) {
+		failed = true;
+		console.error(
+			`${fontsEntry}: missing -> check injectCssPlugin in vite.config.ts.`,
+		);
+	} else if (!source.includes('document.getElementById("classicy-fonts")')) {
+		failed = true;
+		console.error(`${fontsEntry}: does not inject the fonts stylesheet.`);
+	} else if (!/@font-face[^}]*data:/.test(source)) {
+		failed = true;
+		console.error(
+			`${fontsEntry}: carries no bundled @font-face rules -> is splitFontFacesPlugin still emitting fonts.css?`,
+		);
+	} else if (/^\s*(?:import|export)\b/m.test(source)) {
+		failed = true;
+		console.error(
+			`${fontsEntry}: has an import/export; it must stay a self-contained script.`,
+		);
+	} else {
+		console.log(`${fontsEntry}: injects the bundled fonts`);
 	}
 }
 

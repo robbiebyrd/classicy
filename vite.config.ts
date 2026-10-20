@@ -4,7 +4,10 @@ import { defineConfig, type Plugin } from "vite";
 import dts from "vite-plugin-dts";
 import VitePluginImageTools from "vite-plugin-image-tools";
 import richSvg from "vite-plugin-react-rich-svg";
-import { classicyStyleInjector } from "./bin/classicyStyleInjector";
+import {
+	CLASSICY_FONTS_STYLE_ELEMENT_ID,
+	classicyStyleInjector,
+} from "./bin/classicyStyleInjector";
 
 // dist/classicy.css is dominated by base64 @font-face `src:` data URIs (the
 // bundled fonts in AppearanceManager/styles/fonts.scss) -- every consumer
@@ -95,6 +98,13 @@ function splitFontFacesPlugin(): Plugin {
 // file instead; importing it as well as the package is harmless (identical
 // rules). The code is inserted before the sourceMappingURL comment, after all
 // existing code, so the bundles' source maps stay aligned.
+//
+// The fonts get the same treatment, opt-in: `import "classicy/fonts"` loads
+// dist/fonts.js, which injects fonts.css as `<style id="classicy-fonts">`.
+// UMD allows only one entry (see splitFontFacesPlugin), so fonts.js is not a
+// Rollup input but an emitted asset: the injector is a self-contained script
+// with no imports or exports, which is valid as an ES module, as CommonJS and
+// as a classic <script>. dist/fonts.d.ts lets TypeScript resolve the import.
 function injectCssPlugin(): Plugin {
 	return {
 		name: "classicy-inject-css",
@@ -110,6 +120,25 @@ function injectCssPlugin(): Plugin {
 					? cssAsset.source
 					: new TextDecoder().decode(cssAsset.source);
 			const injector = classicyStyleInjector(css);
+
+			const fontsAsset = bundle["fonts.css"];
+			if (fontsAsset?.type === "asset") {
+				const fontsCss =
+					typeof fontsAsset.source === "string"
+						? fontsAsset.source
+						: new TextDecoder().decode(fontsAsset.source);
+				this.emitFile({
+					type: "asset",
+					fileName: "fonts.js",
+					source: `// Injects classicy's bundled fonts: import "classicy/fonts".\n${classicyStyleInjector(fontsCss, CLASSICY_FONTS_STYLE_ELEMENT_ID)}`,
+				});
+				this.emitFile({
+					type: "asset",
+					fileName: "fonts.d.ts",
+					source:
+						"// Side-effect module: importing it injects classicy's bundled fonts.\nexport {};\n",
+				});
+			}
 
 			for (const output of Object.values(bundle)) {
 				if (output.type !== "chunk" || !output.isEntry) continue;

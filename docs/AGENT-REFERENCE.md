@@ -33,14 +33,16 @@ Every export comes from the package root (a flat barrel). Importing it also
 installs the stylesheet: the bundle injects `classicy.css` as a
 `<style id="classicy-styles">` at the top of `<head>` on first import (once; not
 during SSR), so host stylesheets still win on equal specificity. Only the bundled
-fonts are a separate import:
+fonts are a separate import, injected the same way (as
+`<style id="classicy-fonts">`):
 
 ```ts
-import 'classicy/dist/fonts.css'     // OPT-IN: bundled base64 fonts. Skip if you supply your own fonts.
+import 'classicy/fonts'     // OPT-IN: bundled base64 fonts (~900 KB). Skip if you supply your own fonts.
 ```
 
 Under a Content-Security-Policy that forbids inline `<style>`, link
-`classicy/dist/classicy.css` instead (importing it as well is harmless).
+`classicy/dist/classicy.css` (and `classicy/dist/fonts.css`) instead; importing
+them as well is harmless.
 
 Package `exports` map:
 
@@ -48,14 +50,15 @@ Package `exports` map:
 |---|---|
 | `classicy` | ES/UMD bundle + types |
 | `classicy/dist/classicy.css` | The stylesheet the bundle injects; link it yourself only under a strict CSP |
-| `classicy/dist/fonts.css` | Opt-in bundled `@font-face` rules |
+| `classicy/fonts` | Opt-in: injects the bundled `@font-face` rules (side-effect import, no exports) |
+| `classicy/dist/fonts.css` | The same fonts as a stylesheet, for strict-CSP hosts or a CSS loader |
 | `classicy/dist/*` | Anything in dist |
 | `classicy/scss/*` | Raw SCSS partials (theme styles) |
 
 ### Minimal app
 
 ```tsx
-import 'classicy/dist/fonts.css'   // optional: the bundled fonts
+import 'classicy/fonts'   // optional: the bundled fonts
 import {
     ClassicyAppManagerProvider,
     ClassicyDesktop,
@@ -1360,6 +1363,6 @@ untrusted disposition strings.
 7. **`defaultState` only applies on first boot** (nothing hydrated). During development, clear `localStorage["classicyDesktopState"]` to see provider default changes.
 8. **Window ids are data**: they feed analytics paths and persistence. Keep them stable and free of user content, or set `analyticsPath` explicitly.
 9. **Colors are integers** (`0xRRGGBB`), not hex strings, throughout themes and color pickers.
-10. **Styles come with the import** — the bundle injects `classicy.css` into `<head>`; only `fonts.css` is a separate, opt-in import. Link `classicy.css` yourself only if a CSP blocks inline `<style>`.
+10. **Styles come with the import** — the bundle injects `classicy.css` into `<head>`; only the fonts are a separate, opt-in import (`classicy/fonts`), injected the same way. Link `classicy.css`/`fonts.css` yourself only if a CSP blocks inline `<style>`.
 11. Deprecated (still working, avoid in new code): `noDesktopIcon`, `inApplicationsFolder`, `registerAppEventHandler`, `registerClassicyUntrustedActionAllowlist` for app-owned actions, `isXData`-style hand-rolled guards (use `parseAppData`).
 12. **Never mount the built-in apps yourself** (`Finder`, `SimpleText`, `HyperCard`, the viewers, `ClassicyControlPanels`, `AppleGuide`) — `ClassicyDesktop` renders them all automatically; mounting them as children double-mounts them. Use the provider's `disable*` props to remove the optional ones.
