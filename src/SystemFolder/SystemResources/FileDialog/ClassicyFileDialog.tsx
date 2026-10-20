@@ -19,9 +19,10 @@ import {
 	type ClassicyTreeNode,
 } from "@/SystemFolder/SystemResources/Tree/ClassicyTree";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
-import type {
-	ClassicyFileDialogEntry,
-	ClassicyFileDialogVolume,
+import {
+	type ClassicyFileDialogEntry,
+	type ClassicyFileDialogVolume,
+	ClassicyFileExistsError,
 } from "./ClassicyFileDialogVolume";
 
 /** One chosen file, as handed to `onOpenFunc`. */
@@ -412,11 +413,30 @@ export const ClassicyFileDialog: FunctionalComponent<
 				}
 			}
 			const data = await activeFormat.data();
-			await activeVolume.write(path, targetName, {
-				data,
-				fileType: activeFormat.fileType,
-				icon: activeFormat.icon,
-			});
+			try {
+				// overwrite only when the user already confirmed a replace. The
+				// listing check above catches a collision that is already visible;
+				// passing overwrite=false here makes the write itself reject (atomically,
+				// inside the volume) a collision that appeared after that check — a
+				// concurrent save to the same path — so it re-prompts instead of
+				// silently clobbering.
+				await activeVolume.write(
+					path,
+					targetName,
+					{ data, fileType: activeFormat.fileType, icon: activeFormat.icon },
+					{ overwrite: confirmedName !== undefined },
+				);
+			} catch (error) {
+				if (error instanceof ClassicyFileExistsError) {
+					if (error.entryKind === "folder") {
+						setErrorPrompt("folderCollision");
+					} else {
+						setReplacePrompt(targetName);
+					}
+					return;
+				}
+				throw error;
+			}
 			loadFolder(activeVolume, path);
 			props.onSaveFunc({
 				volumeId: activeVolume.id,

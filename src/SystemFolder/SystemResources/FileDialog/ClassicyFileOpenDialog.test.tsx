@@ -46,7 +46,9 @@ vi.mock("@/SystemFolder/SystemResources/Cursor/useClassicyCursor", () => ({
 }));
 
 vi.mock("@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons", () => ({
-	ClassicyIcons: { system: { files: { file: "file.png" } } },
+	ClassicyIcons: {
+		system: { files: { file: "file.png" }, folders: { directory: "dir.png" } },
+	},
 }));
 
 // --- scss side-effect imports, mocked like every other consumer's tests --

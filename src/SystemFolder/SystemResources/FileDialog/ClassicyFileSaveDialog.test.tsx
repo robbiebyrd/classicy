@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { renderWithProviders, screen, userEvent } from "@/__tests__/test-utils";
-import type { ClassicyFileDialogVolume } from "@/SystemFolder/SystemResources/FileDialog/ClassicyFileDialogVolume";
+import {
+	type ClassicyFileDialogVolume,
+	ClassicyFileExistsError,
+} from "@/SystemFolder/SystemResources/FileDialog/ClassicyFileDialogVolume";
 import { ClassicyFileSaveDialog } from "@/SystemFolder/SystemResources/FileDialog/ClassicyFileSaveDialog";
 
 // Same harness as ClassicyFileOpenDialog.test.tsx: mock the AppManager store,
@@ -40,6 +43,7 @@ vi.mock("@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons", () => ({
 	ClassicyIcons: {
 		system: {
 			files: { file: "file.png" },
+			folders: { directory: "dir.png" },
 			warn: "warn.png",
 			error: "error.png",
 			info: "info.png",
@@ -243,11 +247,12 @@ describe("ClassicyFileSaveDialog", () => {
 		await user.type(screen.getByLabelText("Save As:"), "My File");
 		await user.click(screen.getByRole("button", { name: "Save" }));
 		expect(props.formats[0].data).toHaveBeenCalledTimes(1);
-		expect(vol.write).toHaveBeenCalledWith([], "My File.stack", {
-			data: "STACK-DATA",
-			fileType: "stack",
-			icon: undefined,
-		});
+		expect(vol.write).toHaveBeenCalledWith(
+			[],
+			"My File.stack",
+			{ data: "STACK-DATA", fileType: "stack", icon: undefined },
+			{ overwrite: false },
+		);
 		expect(props.onSaveFunc).toHaveBeenCalledTimes(1);
 		expect(props.onSaveFunc.mock.calls[0][0]).toMatchObject({
 			volumeId: "vol-a",
@@ -264,7 +269,12 @@ describe("ClassicyFileSaveDialog", () => {
 		await screen.findByText("Documents");
 		await user.type(screen.getByLabelText("Save As:"), "Deck.stack");
 		await user.click(screen.getByRole("button", { name: "Save" }));
-		expect(vol.write).toHaveBeenCalledWith([], "Deck.stack", expect.anything());
+		expect(vol.write).toHaveBeenCalledWith(
+			[],
+			"Deck.stack",
+			expect.anything(),
+			expect.anything(),
+		);
 	});
 
 	it("saves into the selected folder", async () => {
@@ -278,6 +288,7 @@ describe("ClassicyFileSaveDialog", () => {
 		expect(vol.write).toHaveBeenCalledWith(
 			["Documents"],
 			"My File.stack",
+			expect.anything(),
 			expect.anything(),
 		);
 	});
@@ -319,8 +330,60 @@ describe("ClassicyFileSaveDialog", () => {
 			[],
 			"Existing.stack",
 			expect.anything(),
+			{ overwrite: true },
 		);
 		expect(props.onSaveFunc).toHaveBeenCalledTimes(1);
+	});
+
+	it("re-prompts to replace when the write reports a race collision", async () => {
+		const user = userEvent.setup();
+		const props = makeProps();
+		// The listing shows no collision, but the first (overwrite:false) write
+		// rejects atomically as if a concurrent save beat us to the path. The
+		// dialog must raise the Replace prompt rather than report a save error.
+		const vol = makeVolume({
+			list: vi.fn(async () => []),
+			write: vi.fn(async (_p, _n, _f, options?: { overwrite?: boolean }) => {
+				if (!options?.overwrite) {
+					throw new ClassicyFileExistsError("My File.stack", "file");
+				}
+			}),
+		});
+		renderWithProviders(<ClassicyFileSaveDialog {...props} volumes={[vol]} />);
+		await screen.findByLabelText("Save As:");
+		await user.type(screen.getByLabelText("Save As:"), "My File");
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		expect(await screen.findByText(/Replace .*\?/)).toBeInTheDocument();
+		expect(props.onSaveFunc).not.toHaveBeenCalled();
+		await user.click(await screen.findByRole("button", { name: "Replace" }));
+		expect(vol.write).toHaveBeenLastCalledWith(
+			[],
+			"My File.stack",
+			expect.anything(),
+			{ overwrite: true },
+		);
+		expect(props.onSaveFunc).toHaveBeenCalledTimes(1);
+	});
+
+	it("refuses a race collision against a folder with the folder error", async () => {
+		const user = userEvent.setup();
+		const props = makeProps();
+		const vol = makeVolume({
+			list: vi.fn(async () => []),
+			write: vi.fn(async () => {
+				throw new ClassicyFileExistsError("My File.stack", "folder");
+			}),
+		});
+		renderWithProviders(<ClassicyFileSaveDialog {...props} volumes={[vol]} />);
+		await screen.findByLabelText("Save As:");
+		await user.type(screen.getByLabelText("Save As:"), "My File");
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		expect(
+			await screen.findByText(
+				"A folder with this name already exists in this location.",
+			),
+		).toBeInTheDocument();
+		expect(props.onSaveFunc).not.toHaveBeenCalled();
 	});
 
 	it("refuses to save over a same-named folder and never writes", async () => {
@@ -445,6 +508,7 @@ describe("ClassicyFileSaveDialog", () => {
 		expect(vol.write).toHaveBeenCalledWith(
 			["Projects"],
 			"My File.stack",
+			expect.anything(),
 			expect.anything(),
 		);
 	});

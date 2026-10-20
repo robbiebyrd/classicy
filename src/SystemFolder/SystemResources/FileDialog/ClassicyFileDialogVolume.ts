@@ -22,17 +22,50 @@ export type ClassicyFileDialogSaveFile = {
 	icon?: string;
 };
 
+/** Options for {@link ClassicyFileDialogVolume.write}. */
+export type ClassicyFileWriteOptions = {
+	/**
+	 * When false, the write is refused with a {@link ClassicyFileExistsError}
+	 * if an entry already exists at the target path (the caller should prompt
+	 * to replace). Defaults to true. A folder is never replaceable regardless.
+	 */
+	overwrite?: boolean;
+};
+
+/**
+ * Thrown by a volume's `write` when it would clobber an existing entry it was
+ * not allowed to: any folder, or a file when `overwrite` is false. The dialog
+ * catches it to raise the Replace prompt instead of silently overwriting — the
+ * check and the write happen synchronously inside `write`, so this also closes
+ * the race where a second save creates the file between the listing and the
+ * write.
+ */
+export class ClassicyFileExistsError extends Error {
+	readonly entryKind: "file" | "folder";
+	readonly entryName: string;
+	constructor(name: string, entryKind: "file" | "folder") {
+		super(`"${name}" already exists`);
+		this.name = "ClassicyFileExistsError";
+		this.entryKind = entryKind;
+		this.entryName = name;
+	}
+}
+
 export type ClassicyFileDialogVolume = {
 	id: string;
 	label: string;
 	icon?: string;
 	/** Lazy listing of one folder; called on expand. */
 	list(path: string[]): Promise<ClassicyFileDialogEntry[]>;
-	/** Create or replace a file. Absent on read-only volumes. */
+	/**
+	 * Create or replace a file. Absent on read-only volumes. Rejects with a
+	 * {@link ClassicyFileExistsError} when it may not overwrite the target.
+	 */
 	write?(
 		path: string[],
 		name: string,
 		file: ClassicyFileDialogSaveFile,
+		options?: ClassicyFileWriteOptions,
 	): Promise<void>;
 	/** Create a folder. Absent on read-only volumes. */
 	mkDir?(path: string[], name: string): Promise<void>;
@@ -88,15 +121,28 @@ function writeFsFile(
 	segments: string[],
 	name: string,
 	file: ClassicyFileDialogSaveFile,
+	overwrite: boolean,
 ) {
-	const wrote = fs.writeFile(
-		[...segments, name].join(fs.separator),
-		file.data,
-		{
-			_type: file.fileType as ClassicyFileSystemEntryFileType,
-			_icon: file.icon ?? iconImageByType(file.fileType),
-		},
-	);
+	const fullPath = [...segments, name].join(fs.separator);
+	// Atomic collision check: fs.resolve and fs.writeFile below run
+	// synchronously with no await between them, so no other save committing
+	// concurrently can create the entry in the gap. This is what makes the
+	// check-and-write race-free even though the dialog's earlier listing-based
+	// check is not. A folder is never replaceable (writeFile would overwrite
+	// the whole subtree with a file); a file is replaced only on overwrite.
+	const existing = fs.resolve(fullPath);
+	if (existing && typeof existing === "object" && "_type" in existing) {
+		if (FOLDER_TYPES.has(existing._type as string)) {
+			throw new ClassicyFileExistsError(name, "folder");
+		}
+		if (!overwrite) {
+			throw new ClassicyFileExistsError(name, "file");
+		}
+	}
+	const wrote = fs.writeFile(fullPath, file.data, {
+		_type: file.fileType as ClassicyFileSystemEntryFileType,
+		_icon: file.icon ?? iconImageByType(file.fileType),
+	});
 	if (!wrote) {
 		// writeFile() refused the path (empty name, or a prototype-pollution-
 		// prone segment) and silently wrote nothing — surface that as a
@@ -139,8 +185,8 @@ export function desktopVolume(
 		label: "Desktop",
 		icon: ClassicyIcons.system.mac,
 		list: (path) => Promise.resolve(listFsChildren(fs, path)),
-		write: async (path, name, file) => {
-			writeFsFile(fs, path, name, file);
+		write: async (path, name, file, options) => {
+			writeFsFile(fs, path, name, file, options?.overwrite ?? true);
 		},
 		mkDir: async (path, name) => {
 			fs.mkDir([...path, name].join(fs.separator));
@@ -160,8 +206,8 @@ export function fileSystemVolume(
 		icon:
 			(fs.resolve(drive)?._icon as string) ?? ClassicyIcons.system.drives.disk,
 		list: (path) => Promise.resolve(listFsChildren(fs, [drive, ...path])),
-		write: async (path, name, file) => {
-			writeFsFile(fs, [drive, ...path], name, file);
+		write: async (path, name, file, options) => {
+			writeFsFile(fs, [drive, ...path], name, file, options?.overwrite ?? true);
 		},
 		mkDir: async (path, name) => {
 			fs.mkDir([drive, ...path, name].join(fs.separator));
