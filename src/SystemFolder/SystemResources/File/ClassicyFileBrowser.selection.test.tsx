@@ -216,3 +216,46 @@ describe("ClassicyFileBrowser delete key and item menus", () => {
 		expect(itemContextMenu).not.toHaveBeenCalled();
 	});
 });
+
+describe("ClassicyFileBrowser invisible items", () => {
+	const makeFsWithInvisible = (key: string) => {
+		const fs = makeFs(key);
+		fs.mkDir("Documents:Desktop Folder");
+		fs.setMetadata("Documents:Desktop Folder", { _invisible: true });
+		return fs;
+	};
+	const listed = (container: HTMLElement) =>
+		Array.from(container.querySelectorAll("[data-classicy-file-path]"), (el) =>
+			el.getAttribute("data-classicy-file-path"),
+		);
+
+	it.each([
+		"icons",
+		"list",
+	] as const)("lists them by default and hides them with showInvisible={false} (%s view)", (display) => {
+		const { container, rerender } = render(
+			<ClassicyAppManagerProvider>
+				<ClassicyFileBrowser
+					fs={makeFsWithInvisible(`test-browser-invisible-${display}`)}
+					path="Documents"
+					appId="Finder.app"
+					display={display}
+				/>
+			</ClassicyAppManagerProvider>,
+		);
+		expect(listed(container)).toContain("Documents:Desktop Folder");
+		rerender(
+			<ClassicyAppManagerProvider>
+				<ClassicyFileBrowser
+					fs={makeFsWithInvisible(`test-browser-invisible-${display}`)}
+					path="Documents"
+					appId="Finder.app"
+					display={display}
+					showInvisible={false}
+				/>
+			</ClassicyAppManagerProvider>,
+		);
+		expect(listed(container)).not.toContain("Documents:Desktop Folder");
+		expect(listed(container)).toContain("Documents:apple.pdf");
+	});
+});

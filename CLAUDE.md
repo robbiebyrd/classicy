@@ -479,7 +479,9 @@ get `.classicyFileDropTarget` (darkened icon/row, framed window).
   records and folder views), desktop icon placement, and an alert for the first
   refusal.
 - The desktop's files live in the invisible `Desktop Folder` on the startup disk
-  (created on first drop). Finder mirrors it as desktop icons with appId
+  (created on first drop). Finder windows pass `showInvisible={false}` to
+  `ClassicyFileBrowser`, so it — like every `_invisible` entry — is hidden there
+  (the header counts it as hidden); other browsers list invisibles dimmed. Finder mirrors it as desktop icons with appId
   `classicy-desktop-item:<path>`, `kind` `file`/`directory`, and `filePath`;
   `ClassicyDesktopIconAdd` with a `location` places the icon there without
   re-laying-out the desktop. `ClassicyDesktop` opens and moves them through the

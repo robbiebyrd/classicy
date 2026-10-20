@@ -6,16 +6,20 @@ import { dispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppMan
 // actually receives, keyed by path — the one point in the render tree where
 // a stored folderViews entry either does or does not reach the screen.
 const capturedDisplayByPath: Record<string, string | undefined> = {};
+const capturedShowInvisibleByPath: Record<string, boolean | undefined> = {};
 
 vi.mock("@/SystemFolder/SystemResources/File/ClassicyFileBrowser", () => ({
 	ClassicyFileBrowser: ({
 		path,
 		display,
+		showInvisible,
 	}: {
 		path: string;
 		display?: string;
+		showInvisible?: boolean;
 	}) => {
 		capturedDisplayByPath[path] = display;
+		capturedShowInvisibleByPath[path] = showInvisible;
 		return <div data-testid={`classicy-file-browser-${path}`} />;
 	},
 }));
@@ -48,6 +52,18 @@ describe("Finder folder view persistence (store to screen)", () => {
 
 		await waitFor(() => {
 			expect(capturedDisplayByPath[DOCUMENTS_PATH]).toBe("icons");
+		});
+	});
+});
+
+describe("Finder folder windows and invisible items", () => {
+	it("keeps invisible items such as the Desktop Folder out of its windows", async () => {
+		dispatch({ type: "ClassicyAppFinderOpenFolder", path: DOCUMENTS_PATH });
+
+		render(<Finder />);
+
+		await waitFor(() => {
+			expect(capturedShowInvisibleByPath[DOCUMENTS_PATH]).toBe(false);
 		});
 	});
 });

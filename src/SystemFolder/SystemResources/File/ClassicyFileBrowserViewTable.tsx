@@ -71,6 +71,8 @@ type ClassicyFileBrowserViewTableProps = {
 	fileOnClickFunc?: (path: string) => void;
 	holderRef?: RefObject<HTMLDivElement | null>;
 	hideFilesCreatedAfter?: Date | string | number | null;
+	/** List entries marked `_invisible`. Defaults to true. */
+	showInvisible?: boolean;
 	listViewOptions?: FinderListViewOptions;
 	/** The in-world "now" for relative dates, already converted to the
 	 *  virtual clock's local frame. Omitted means real time. */
@@ -99,6 +101,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 			dirOnClickFunc = () => {},
 			fileOnClickFunc = () => {},
 			hideFilesCreatedAfter = null,
+			showInvisible = true,
 			listViewOptions,
 			now,
 			selectionApiRef,
@@ -213,7 +216,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 					const directoryItems = fs.filterByType(
 						dirPath,
 						undefined,
-						true,
+						showInvisible,
 						hideFilesCreatedAfter,
 					);
 					return Object.entries(directoryItems).map(([filename, metadata]) => {
@@ -242,7 +245,14 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 					});
 				};
 				return buildRows(path);
-			}, [fs, path, sizes, expandedPathSet, hideFilesCreatedAfter]);
+			}, [
+				fs,
+				path,
+				sizes,
+				expandedPathSet,
+				hideFilesCreatedAfter,
+				showInvisible,
+			]);
 
 			// Resolve sizes for any visible row we don't have a size for yet, keyed by
 			// path so newly-disclosed folders pick up their sizes too.

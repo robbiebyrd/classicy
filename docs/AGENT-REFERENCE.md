@@ -810,6 +810,7 @@ format. Seed-tree helpers for the provider's `defaultFileSystem` prop:
 Browse UI: `ClassicyFileBrowser` (`fs` *, `path` *, `appId` *,
 `display? ("icons"|"list")`, `dirOnClickFunc?`, `fileOnClickFunc?`,
 `onMoveItems?(paths, destination, outlineTopLeft)`,
+`showInvisible? (true)` — list `_invisible` entries (Finder passes false),
 `onDeleteItems?(paths)` — Delete/⌃⌫ with a selection,
 `itemContextMenu?(path, selectedPaths) → ClassicyMenuItem[] | undefined` —
 right-click on an item, `commandsRef?` — `{ selectedPaths() }`), with

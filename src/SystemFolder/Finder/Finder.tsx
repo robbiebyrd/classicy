@@ -304,6 +304,9 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 				selectionApiRef={selectionApiRef}
 				focusTargetRef={focusTargetRef}
 				onMoveItems={onMoveItems}
+				// Invisible items (the Desktop Folder) stay out of Finder windows,
+				// as in Mac OS 8; the header counts them as hidden.
+				showInvisible={false}
 				onDeleteItems={inTrash ? undefined : trashItems}
 				itemContextMenu={itemContextMenu}
 				commandsRef={commandsRef}

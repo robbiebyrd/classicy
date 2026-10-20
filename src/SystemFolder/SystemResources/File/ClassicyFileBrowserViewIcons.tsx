@@ -36,6 +36,8 @@ export type ClassicyFileBrowserViewIconsProps = {
 	fileOnClickFunc?: (path: string) => void;
 	holderRef?: RefObject<HTMLDivElement | null>;
 	hideFilesCreatedAfter?: Date | string | number | null;
+	/** List entries marked `_invisible` (drawn dimmed). Defaults to true. */
+	showInvisible?: boolean;
 	iconViewOptions?: FinderIconViewOptions;
 	/**
 	 * Move dragged items into another folder or the desktop (see
@@ -86,6 +88,7 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 			fileOnClickFunc,
 			holderRef,
 			hideFilesCreatedAfter = null,
+			showInvisible = true,
 			iconViewOptions,
 			onMoveItems,
 		}) => {
@@ -137,7 +140,12 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 					resolvedHolderRef.current.getBoundingClientRect().height,
 				];
 				const directoryListing: ClassicyFileSystemEntryMetadata | object =
-					fs.filterByType(path, undefined, true, hideFilesCreatedAfter);
+					fs.filterByType(
+						path,
+						undefined,
+						showInvisible,
+						hideFilesCreatedAfter,
+					);
 
 				const entries = Object.entries(directoryListing);
 				const ordered =
@@ -238,6 +246,7 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 				resolvedHolderRef.current,
 				resolvedHolderRef,
 				hideFilesCreatedAfter,
+				showInvisible,
 				arrangement,
 				keepArrangedBy,
 				iconSizeStep,
