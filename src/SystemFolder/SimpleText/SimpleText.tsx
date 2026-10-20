@@ -79,6 +79,10 @@ export const SimpleText = () => {
 	);
 
 	const fs = useClassicyFileSystem();
+	// The Classicy virtual clock, used to stamp Date Modified on a save.
+	const dateTime = useAppManager(
+		(state) => state.System.Manager.DateAndTime.dateTime,
+	);
 
 	const rawOpenFiles = appState?.data?.openFiles;
 	const openFiles: string[] = Array.isArray(rawOpenFiles) ? rawOpenFiles : [];
@@ -99,7 +103,6 @@ export const SimpleText = () => {
 	const [saveTarget, setSaveTarget] = useState<SaveTarget | null>(null);
 
 	const untitledCounter = useRef(0);
-	const wasOpenRef = useRef(false);
 
 	const makeUntitled = useCallback((): UntitledDoc => {
 		untitledCounter.current += 1;
@@ -110,20 +113,15 @@ export const SimpleText = () => {
 		};
 	}, []);
 
-	// Launching SimpleText with no document (e.g. from the Applications folder)
-	// opens a fresh Untitled window — the classic new-application behavior.
-	// Launching via a file leaves openFiles non-empty, so no stray window opens.
+	// Whenever SimpleText is open with nothing to show, open a fresh Untitled
+	// window. This is the classic new-application behavior, and it also keeps the
+	// app from stranding the user with no window — and therefore no menu bar to
+	// make one — after the last document window is closed. Launching via a file
+	// leaves openFiles non-empty, so no stray window opens in that case.
 	useEffect(() => {
-		const open = !!appState?.open;
-		if (
-			open &&
-			!wasOpenRef.current &&
-			openFiles.length === 0 &&
-			untitledDocs.length === 0
-		) {
+		if (appState?.open && openFiles.length === 0 && untitledDocs.length === 0) {
 			setUntitledDocs([makeUntitled()]);
 		}
-		wasOpenRef.current = open;
 	}, [appState?.open, openFiles.length, untitledDocs.length, makeUntitled]);
 
 	// Keep a working-content entry for every open path, seeding new ones from the
@@ -190,12 +188,32 @@ export const SimpleText = () => {
 	);
 
 	// Write a path-backed document's current text straight back to its entry,
-	// preserving the entry's other metadata (unlike a full writeFile).
+	// preserving the entry's other metadata (unlike a full writeFile) and
+	// stamping Date Modified. Refuses locked documents and reports a write that
+	// the file system rejects (e.g. the path no longer resolves).
 	const saveExisting = useCallback(
 		(path: string) => {
-			fs.setMetadata(path, { _data: pathContent[path] ?? "" });
+			const entry = fs.resolve(path);
+			if (entry?._readOnly || entry?._system) {
+				desktopEventDispatch({
+					type: "ClassicyDesktopShowErrorDialog",
+					message: "This document is locked and cannot be saved.",
+				});
+				return;
+			}
+			const wrote = fs.setMetadata(path, {
+				_data: pathContent[path] ?? "",
+				_modifiedOn: new Date(dateTime),
+			});
+			if (!wrote) {
+				desktopEventDispatch({
+					type: "ClassicyDesktopShowErrorDialog",
+					message:
+						"This document could not be saved. It may have been moved or deleted.",
+				});
+			}
 		},
-		[fs, pathContent],
+		[fs, pathContent, dateTime, desktopEventDispatch],
 	);
 
 	// Save writes straight to disk for a titled document; an untitled one has no
@@ -268,12 +286,20 @@ export const SimpleText = () => {
 				);
 				return;
 			}
+			const entry = fs.resolve(target.path);
+			if (entry?._readOnly || entry?._system) {
+				desktopEventDispatch({
+					type: "ClassicyDesktopShowErrorDialog",
+					message: "This document is locked and cannot be changed.",
+				});
+				return;
+			}
 			// Persist the format choice through the journaled mutation path and
 			// reflect it immediately in this session.
 			fs.setMetadata(target.path, { _type: nextType });
 			setPathTypeOverrides((prev) => ({ ...prev, [target.path]: nextType }));
 		},
-		[fs],
+		[fs, desktopEventDispatch],
 	);
 
 	// --- Assemble the open documents ---------------------------------------
@@ -426,8 +452,14 @@ export const SimpleText = () => {
 			: [plain, styled];
 	})();
 
+	// Strip SimpleText's own extension from the suggested name so the save
+	// dialog (which appends the chosen format's extension) doesn't double it —
+	// e.g. saving "Read Me.txt" as Styled Text should offer "Read Me", not
+	// "Read Me.txt.md".
 	const saveDefaultName =
-		saveTargetDoc?.target.kind === "path" ? saveTargetDoc.title : "untitled";
+		saveTargetDoc?.target.kind === "path"
+			? saveTargetDoc.title.replace(/\.(txt|md|markdown)$/i, "")
+			: "untitled";
 
 	return (
 		<ClassicyApp
@@ -496,6 +528,9 @@ export const SimpleText = () => {
 				title={"Open"}
 				volumes={volumes}
 				selectionMode={"single"}
+				// Only SimpleText's own types are selectable: opening some other
+				// file as text would render it garbled and a later Save would
+				// overwrite its data while keeping its original type, corrupting it.
 				fileTypeFilters={[
 					{
 						label: "Text Documents",
@@ -504,7 +539,6 @@ export const SimpleText = () => {
 							ClassicyFileSystemEntryFileType.Markdown,
 						],
 					},
-					{ label: "All Documents", types: null },
 				]}
 				onOpenFunc={openSelections}
 				onCancelFunc={() => setShowOpenDialog(false)}
