@@ -58,10 +58,10 @@ describe("SimpleText", () => {
 		await waitFor(() => {
 			expect(screen.getByText("Read Me.txt")).toBeInTheDocument();
 		});
-		// …and the editor is seeded with the file's contents.
+		// …and the editor is seeded with the file's complete contents.
 		const textbox = screen.getByRole("textbox") as HTMLTextAreaElement;
-		expect(textbox.value).toContain(
-			"This is a plain text file opened in SimpleText.",
+		expect(textbox.value).toBe(
+			"Welcome to Classicy!\n\nThis is a plain text file opened in SimpleText.",
 		);
 	});
 
