@@ -8,6 +8,9 @@ import {
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyDesktop } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktop";
+import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
+
+const READ_ME = "Macintosh HD:Documents:Read Me.txt";
 
 const SIMPLE_TEXT = { id: "SimpleText.app", name: "SimpleText", icon: "" };
 
@@ -77,5 +80,90 @@ describe("SimpleText", () => {
 		await user.clear(textbox);
 		await user.type(textbox, "edited body");
 		expect(textbox.value).toBe("edited body");
+	});
+
+	// Finding #8: prove the full save round-trip, not just the editor state.
+	// Edit the document, drive File → Save through the real menu, then read the
+	// file back from the file system and confirm the edit was written to disk.
+	// Every ClassicyFileSystem for a storage key shares one in-memory tree, so a
+	// fresh instance here observes exactly what SimpleText's Save wrote.
+	it("writes an edited document back to the file system on File → Save", async () => {
+		const user = userEvent.setup();
+		renderDesktop();
+		openFileInSimpleText(READ_ME);
+		await waitFor(() => {
+			expect(screen.getByText("Read Me.txt")).toBeInTheDocument();
+		});
+
+		const textbox = screen.getByRole("textbox") as HTMLTextAreaElement;
+		await user.clear(textbox);
+		await user.type(textbox, "ROUNDTRIP EDIT");
+		expect(textbox.value).toBe("ROUNDTRIP EDIT");
+
+		// The file still holds its original contents until Save runs.
+		const probe = new ClassicyFileSystem();
+		expect(probe.resolve(READ_ME)?._data).toBe(
+			"Welcome to Classicy!\n\nThis is a plain text file opened in SimpleText.",
+		);
+
+		// Click the File → Save menu item. Its action runs when the flash
+		// finishes; jsdom never animates, so the menu's fallback timer fires it.
+		await user.click(screen.getByText("Save", { exact: true }));
+
+		await waitFor(
+			() => {
+				expect(new ClassicyFileSystem().resolve(READ_ME)?._data).toBe(
+					"ROUNDTRIP EDIT",
+				);
+			},
+			{ timeout: 2000 },
+		);
+	});
+
+	// A reopened document re-seeds its editor from the file system, so after a
+	// Save the edit survives closing and reopening the window — the behavior a
+	// user relies on when they double-click the file again in the Finder.
+	it("shows the saved edit again after the document is closed and reopened", async () => {
+		const user = userEvent.setup();
+		renderDesktop();
+		openFileInSimpleText(READ_ME);
+		await waitFor(() => {
+			expect(screen.getByText("Read Me.txt")).toBeInTheDocument();
+		});
+
+		const textbox = screen.getByRole("textbox") as HTMLTextAreaElement;
+		await user.clear(textbox);
+		await user.type(textbox, "PERSISTED EDIT");
+		await user.click(screen.getByText("Save", { exact: true }));
+		await waitFor(
+			() => {
+				expect(new ClassicyFileSystem().resolve(READ_ME)?._data).toBe(
+					"PERSISTED EDIT",
+				);
+			},
+			{ timeout: 2000 },
+		);
+
+		// Close the document, dropping its in-memory working copy. (Closing the
+		// last document re-seeds an empty Untitled window, so assert on the
+		// document's own window going away rather than on textbox count.)
+		act(() => {
+			dispatch({
+				type: "ClassicyAppSimpleTextCloseFile",
+				app: { id: SIMPLE_TEXT.id },
+				path: READ_ME,
+			});
+		});
+		await waitFor(() => {
+			expect(screen.queryByText("Read Me.txt")).not.toBeInTheDocument();
+		});
+
+		// Reopen it: the editor seeds from the file system and shows the edit.
+		// getByDisplayValue targets the reopened document's textarea specifically,
+		// ignoring the empty Untitled editor.
+		openFileInSimpleText(READ_ME);
+		await waitFor(() => {
+			expect(screen.getByDisplayValue("PERSISTED EDIT")).toBeInTheDocument();
+		});
 	});
 });

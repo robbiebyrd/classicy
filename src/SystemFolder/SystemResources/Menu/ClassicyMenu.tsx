@@ -232,6 +232,11 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 		[menuItem.titleWidthSamples, menuItem.title],
 	);
 
+	// Fallback delay for running a leaf item's action when the flash's
+	// animationend never arrives; longer than the .25s flash so the animation
+	// wins in the normal case and only this fires when it doesn't.
+	const FLASH_ACTION_FALLBACK_MS = 400;
+
 	const executeAction = () => {
 		if (menuItem.onClickFunc) {
 			menuItem.onClickFunc();
@@ -244,9 +249,49 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 		}
 	};
 
-	// Ref ensures rAF callback always reads the latest executeAction
+	// Ref ensures the deferred callback always reads the latest executeAction
 	const executeActionRef = useRef(executeAction);
 	executeActionRef.current = executeAction;
+
+	// A leaf item's action runs when its flash finishes. `animationend` is the
+	// normal trigger, but it never fires where the flash animation doesn't
+	// actually run — an environment that drops it, an interrupted animation, or
+	// a non-animating test renderer (jsdom) — which would silently swallow the
+	// action. A fallback timer armed when the flash starts guarantees the action
+	// still runs; `actionRanRef` lets whichever fires first win exactly once.
+	const actionRanRef = useRef(false);
+	const flashTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+		undefined,
+	);
+
+	const finishFlash = () => {
+		if (actionRanRef.current) return;
+		actionRanRef.current = true;
+		if (flashTimerRef.current !== undefined) {
+			clearTimeout(flashTimerRef.current);
+			flashTimerRef.current = undefined;
+		}
+		setIsFlashing(false);
+		closeAll();
+		// Defer action execution so the close state propagates before the
+		// action triggers re-renders that could remount the menu tree.
+		requestAnimationFrame(() => {
+			executeActionRef.current();
+		});
+	};
+	// Ref so the fallback timer always calls the latest finishFlash.
+	const finishFlashRef = useRef(finishFlash);
+	finishFlashRef.current = finishFlash;
+
+	// Clear a pending fallback if the item unmounts mid-flash.
+	useEffect(
+		() => () => {
+			if (flashTimerRef.current !== undefined) {
+				clearTimeout(flashTimerRef.current);
+			}
+		},
+		[],
+	);
 
 	const handleClick = (e: MouseEvent) => {
 		e.stopPropagation();
@@ -261,8 +306,15 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 				player({ type: "ClassicySoundPlay", sound: "ClassicyMenuOpen" });
 			}
 		} else {
+			actionRanRef.current = false;
 			setIsFlashing(true);
 			player({ type: "ClassicySoundPlay", sound: "ClassicyMenuItemClick" });
+			if (flashTimerRef.current !== undefined) {
+				clearTimeout(flashTimerRef.current);
+			}
+			flashTimerRef.current = setTimeout(() => {
+				finishFlashRef.current();
+			}, FLASH_ACTION_FALLBACK_MS);
 		}
 	};
 
@@ -275,13 +327,7 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 
 	const handleAnimationEnd = (e: React.AnimationEvent) => {
 		if (e.animationName !== "classicyMenuItemFlashKeyframes") return;
-		setIsFlashing(false);
-		closeAll();
-		// Defer action execution so the close state propagates before
-		// the action triggers re-renders that could remount the menu tree
-		requestAnimationFrame(() => {
-			executeActionRef.current();
-		});
+		finishFlash();
 	};
 
 	const li =
