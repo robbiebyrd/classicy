@@ -36,6 +36,17 @@ describe("classicyStyleInjector (#303)", () => {
 		).toBe(css);
 	});
 
+	it("escapes </script> and line separators in the generated code", () => {
+		const css = '.a::after{content:"</script>\u2028\u2029"}';
+		const code = classicyStyleInjector(css);
+		expect(code).not.toContain("</script>");
+		expect(code).not.toMatch(/[\u2028\u2029]/);
+		run(css);
+		expect(
+			document.getElementById(CLASSICY_STYLE_ELEMENT_ID)?.textContent,
+		).toBe(css);
+	});
+
 	it("does nothing without a document", () => {
 		const code = classicyStyleInjector(".a{}");
 		expect(() => new Function("document", code)(undefined)).not.toThrow();
