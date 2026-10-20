@@ -215,7 +215,13 @@ describe("ClassicyFileSystem.move", () => {
 			op: "move",
 			to: "Macintosh HD:Archive:Old Read Me.txt",
 			metadata: { _comments: "kept" },
+			unsetMetadata: ["_label"],
 		});
+		// The removal survives an adapter's JSON round trip.
+		expect(JSON.parse(JSON.stringify(entries[0])).unsetMetadata).toEqual([
+			"_label",
+		]);
+		expect(entries[0].metadata).not.toHaveProperty("_label");
 	});
 
 	it("renames in place, and refuses names that aren't plain names", () => {

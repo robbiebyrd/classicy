@@ -107,7 +107,7 @@ Every `ClassicyFileSystem` mutation flows through a private notifier:
 | `rmDir(path)` | `{op: 'rmdir', path}` |
 | `load(data)` | `{op: 'load', path: ''}` |
 | `setMetadata(path, patch)` *(new)* | `{op: 'meta', path, metadata: patch}` |
-| `move(path, toFolderPath)` *(added later)* | `{op: 'move', path, to: newPath}` |
+| `move(path, toFolderPath, options?)` *(added later)* | `{op: 'move', path, to: newPath, metadata?, unsetMetadata?}` |
 
 The notifier, per mutation:
 

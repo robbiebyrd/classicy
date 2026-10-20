@@ -1015,7 +1015,8 @@ registerClassicyFileSystemAdapter({
 
 All methods are optional. Errors always degrade to local-wins. Journal `op`s are
 `write`, `mkdir`, `rmdir`, `meta`, `load` and `move` (the old path in `path`, the
-new one in `to`). Derived folders (Applications, Extensions, Control Strip
+new one in `to`; metadata it set in `metadata`, keys it removed in
+`unsetMetadata`). Derived folders (Applications, Extensions, Control Strip
 Modules) are applied through `applyDerivedTree()` and never journal.
 
 ---

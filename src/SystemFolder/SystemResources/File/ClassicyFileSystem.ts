@@ -293,7 +293,7 @@ export class ClassicyFileSystem {
 		path: string,
 		extra: Pick<
 			ClassicyFileSystemJournalEntry,
-			"data" | "metadata" | "to"
+			"data" | "metadata" | "to" | "unsetMetadata"
 		> = {},
 	) {
 		const entry: ClassicyFileSystemJournalEntry = {
@@ -809,19 +809,24 @@ export class ClassicyFileSystem {
 
 		delete fromParent[oldName];
 		target[name] = entry;
-		if (options.metadata) {
-			for (const [key, value] of Object.entries(options.metadata)) {
-				if (value === undefined) {
-					delete entry[key];
-				} else {
-					entry[key] = value;
-				}
+		// Removals are journaled by name: an `undefined` patch value would
+		// vanish when an adapter JSON-serializes the entry.
+		const setMetadata: Partial<ClassicyFileSystemEntryMetadata> = {};
+		const unsetMetadata: string[] = [];
+		for (const [key, value] of Object.entries(options.metadata ?? {})) {
+			if (value === undefined) {
+				delete entry[key];
+				unsetMetadata.push(key);
+			} else {
+				entry[key] = value;
+				(setMetadata as Record<string, unknown>)[key] = value;
 			}
 		}
 		const newPath = [...toParts, name].join(this.separator);
 		this.notifyMutation("move", fromParts.join(this.separator), {
 			to: newPath,
-			...(options.metadata ? { metadata: options.metadata } : {}),
+			...(Object.keys(setMetadata).length > 0 ? { metadata: setMetadata } : {}),
+			...(unsetMetadata.length > 0 ? { unsetMetadata } : {}),
 		});
 		return { ok: true, path: newPath };
 	}

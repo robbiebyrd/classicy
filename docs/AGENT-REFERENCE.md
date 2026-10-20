@@ -833,7 +833,7 @@ import { registerClassicyFileSystemAdapter } from 'classicy'
 registerClassicyFileSystemAdapter({
     id: 'my-backend',
     // journal mode: every mutation, with a persisted monotonic seq (gap = missed delivery)
-    onChange: (entry) => { /* { seq, op: "write"|"mkdir"|"rmdir"|"meta"|"load"|"move", path, to? (move), data?, metadata?, timestamp } */ },
+    onChange: (entry) => { /* { seq, op: "write"|"mkdir"|"rmdir"|"meta"|"load"|"move", path, to? (move), data?, metadata?, unsetMetadata? (move: removed keys), timestamp } */ },
     // snapshot mode: debounced full tree + sha256 hash
     onSnapshot: (snapshot) => { /* { tree, hash, seq, storageKey, timestamp } */ },
     // two-way boot sync; errors degrade to local-wins
