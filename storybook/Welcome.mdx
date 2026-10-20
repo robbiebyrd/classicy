@@ -137,8 +137,8 @@ dispatch({ type: "ClassicyAppOpen", app: { id: "MyApp.app", name: "MyApp", icon 
 - **Menus.** The menu bar shows the focused window's `appMenu`, with the Apple
   menu, the Help menu and the app switcher. Right-click menus resolve innermost
   first: a `ClassicyContextualMenuTarget`, then the window's `contextMenu`, then
-  the app's, then the desktop's. Every menu draws the Platinum menu frame
-  (HIGOS8 Figure 6-15).
+  the app's, then the desktop's. Every menu draws the Platinum menu frame,
+  matched to the open menu in HIGOS8 Figure 6-15.
 - **Balloon Help.** Wrap any element in `ClassicyBalloonHelp`, or use the
   `useClassicyBalloonHelp` hook on an element you already own. The user can
   turn balloons off globally.

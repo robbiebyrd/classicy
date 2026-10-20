@@ -73,7 +73,11 @@ export interface ClassicyMenuItem {
 	 * layout around it. Slack sits to the right of the title.
 	 */
 	titleWidthSamples?: string[];
-	/** Not acted on by the menu (choosing the item does not navigate); only reported in analytics. */
+	/**
+	 * Analytics only: reported with the item's analytics event. Choosing the
+	 * item does not navigate — use `onClickFunc` or `event:
+	 * "ClassicyDesktopOpenUrl"` for that.
+	 */
 	link?: string;
 	/**
 	 * Action type dispatched when the item is chosen, with `eventData` spread
@@ -109,9 +113,8 @@ interface ClassicyMenuProps {
 	/** Extra nodes appended inside the root `<ul>`, after the items (the menu bar's clock). */
 	children?: ReactNode;
 	/**
-	 * Internal: set on the nested menus rendered for `menuChildren`. Consumers
-	 * mark nested submenus so they can be styled/identified distinctly from the
-	 * root menu (menu bar / contextual menu).
+	 * @deprecated Ignored — never read. Nested menus are styled through
+	 * `subNavClass`. Kept so existing callers still type-check.
 	 */
 	isSubmenu?: boolean;
 }
@@ -370,7 +373,6 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 						name={`${menuItem.id}_subitem`}
 						menuItems={menuItem.menuChildren ?? []}
 						subNavClass={subNavClass}
-						isSubmenu={true}
 						navClass={classNames(
 							subNavClass,
 							submenuFlipped && "classicySubMenuFlipLeft",
