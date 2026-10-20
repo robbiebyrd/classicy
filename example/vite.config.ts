@@ -15,8 +15,9 @@ const root = path.resolve(__dirname, "..");
 // builds keep exercising the real published artifact.
 const liveSourceAliases = [
 	// Every component does `import "./X.scss"`, so the full stylesheet arrives
-	// through the source module graph as the barrel loads. The app's explicit
-	// dist-CSS import is redirected to an empty stub to avoid a stale copy.
+	// through the source module graph as the barrel loads. A dist-CSS import
+	// (the published bundle injects its stylesheet itself, so the app no
+	// longer has one) is redirected to an empty stub to avoid a stale copy.
 	{
 		find: /^classicy\/dist\/classicy\.css$/,
 		replacement: path.resolve(__dirname, "live-source.css"),

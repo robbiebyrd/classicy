@@ -4,6 +4,7 @@ import { defineConfig, type Plugin } from "vite";
 import dts from "vite-plugin-dts";
 import VitePluginImageTools from "vite-plugin-image-tools";
 import richSvg from "vite-plugin-react-rich-svg";
+import { classicyStyleInjector } from "./bin/classicyStyleInjector";
 
 // dist/classicy.css is dominated by base64 @font-face `src:` data URIs (the
 // bundled fonts in AppearanceManager/styles/fonts.scss) -- every consumer
@@ -72,6 +73,51 @@ function splitFontFacesPlugin(): Plugin {
 					fileName: "fonts.css",
 					source: extractedFaces.join("\n\n"),
 				});
+			}
+		},
+	};
+}
+
+// `import "classicy"` should be enough to get a styled desktop (#303): no CSS
+// loader to configure, no second import to remember. This plugin embeds the
+// primary stylesheet into each entry bundle (ES and UMD) as a string and
+// appends a few lines that, when the module first runs in a browser, insert
+// it as `<style id="classicy-styles">` at the *top* of <head> — so any
+// stylesheet the host app loads still wins on equal specificity, as it did
+// when hosts imported classicy.css themselves. It is guarded so it runs once
+// (a second copy of the library, or HMR, finds the element and stops) and
+// never in a non-browser environment (SSR, tests without a DOM).
+//
+// It runs after splitFontFacesPlugin (same "post" phase, later in the plugin
+// list), so the base64 fonts it moved to fonts.css stay out: they are several
+// MB and remain an opt-in import. dist/classicy.css is still emitted, for
+// hosts whose Content-Security-Policy forbids inline <style> and who link the
+// file instead; importing it as well as the package is harmless (identical
+// rules). The code is inserted before the sourceMappingURL comment, after all
+// existing code, so the bundles' source maps stay aligned.
+function injectCssPlugin(): Plugin {
+	return {
+		name: "classicy-inject-css",
+		enforce: "post",
+		generateBundle(_options, bundle) {
+			const cssAsset = Object.values(bundle).find(
+				(output) =>
+					output.type === "asset" && output.fileName === "classicy.css",
+			);
+			if (cssAsset?.type !== "asset") return;
+			const css =
+				typeof cssAsset.source === "string"
+					? cssAsset.source
+					: new TextDecoder().decode(cssAsset.source);
+			const injector = classicyStyleInjector(css);
+
+			for (const output of Object.values(bundle)) {
+				if (output.type !== "chunk" || !output.isEntry) continue;
+				const marker = output.code.lastIndexOf("\n//# sourceMappingURL=");
+				output.code =
+					marker === -1
+						? `${output.code}\n${injector}`
+						: `${output.code.slice(0, marker)}\n${injector}${output.code.slice(marker + 1)}`;
 			}
 		},
 	};
@@ -171,6 +217,8 @@ export default defineConfig({
 			enableDevWebp: true,
 		}),
 		splitFontFacesPlugin(),
+		// After the font split, so the injected CSS carries no base64 fonts.
+		injectCssPlugin(),
 	],
 	build: {
 		sourcemap: true,
