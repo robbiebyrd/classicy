@@ -42,8 +42,9 @@ interface ClassicySpinnerProps {
 	/** Where the label sits relative to the field. Defaults to `"above"`. */
 	labelPosition?: ClassicyLabelPosition;
 	/**
-	 * Native placeholder. Rarely visible: the field always holds a number
-	 * (`prefillValue`, else `minValue`).
+	 * @deprecated Has no effect: the field always holds a number
+	 * (`prefillValue`, else `minValue`), so a placeholder never shows. Removed
+	 * in the next major version.
 	 */
 	placeholder?: number;
 	/** Initial value, clamped to the range; the field resets to it whenever it changes. */
@@ -56,7 +57,10 @@ interface ClassicySpinnerProps {
 	disabled?: boolean;
 	/** Dims the label independently of the field. Defaults to `disabled`. */
 	labelDisabled?: boolean;
-	/** Adds the `classicySpinnerDefault` class (no built-in styling). */
+	/**
+	 * @deprecated Has no effect: Mac OS 8 text fields have no default state. Still adds the `classicySpinnerDefault` class
+	 * for any host styling that targets it; removed in the next major version.
+	 */
 	isDefault?: boolean;
 	/** Field fill colour (any CSS colour). Defaults to the theme's white. */
 	backgroundColor?: string;

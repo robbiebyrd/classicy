@@ -35,6 +35,19 @@ export const Disabled: Story = {
 };
 
 /**
+ * `isDefault` rings the box in the theme accent colour while it is on or
+ * pressed — the same emphasis a default radio button gets.
+ */
+export const Default: Story = {
+	args: {
+		id: "cb-default",
+		checked: true,
+		isDefault: true,
+		label: "Use as default",
+	},
+};
+
+/**
  * `mark="x"` swaps the checkmark for an "x" — the HIG's localization opt-in
  * (p.28) for locales where a checkmark is not culturally acceptable.
  */
