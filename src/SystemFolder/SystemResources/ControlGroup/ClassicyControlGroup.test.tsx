@@ -19,27 +19,25 @@ describe("ClassicyControlGroup", () => {
 		expect(screen.getByText("Child content")).toBeInTheDocument();
 	});
 
-	it("applies columns class when columns=true", () => {
+	it("marks the group as a column of a shared row when columns=true", () => {
 		const { container } = render(
 			<ClassicyControlGroup label="Group" columns={true}>
 				{null}
 			</ClassicyControlGroup>,
 		);
-		// The div wrapping children should have the columns class
-		const colDiv = container.querySelector(
-			".classicyControlGroupContentColumns",
-		);
-		expect(colDiv).toBeInTheDocument();
+		// The fieldset carries the class that lets it grow to share the row.
+		expect(
+			container.querySelector("fieldset.classicyControlGroupFieldsetColumns"),
+		).toBeInTheDocument();
 	});
 
-	it("does not apply columns class when columns=false (default)", () => {
+	it("does not mark the group as a column when columns=false (default)", () => {
 		const { container } = render(
 			<ClassicyControlGroup label="Group">{null}</ClassicyControlGroup>,
 		);
-		const colDiv = container.querySelector(
-			".classicyControlGroupContentColumns",
-		);
-		expect(colDiv).not.toBeInTheDocument();
+		expect(
+			container.querySelector(".classicyControlGroupFieldsetColumns"),
+		).not.toBeInTheDocument();
 	});
 
 	it("renders no legend element when label is empty string", () => {

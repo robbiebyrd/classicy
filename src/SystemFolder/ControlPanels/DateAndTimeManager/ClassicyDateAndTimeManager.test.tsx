@@ -1,4 +1,5 @@
 import {
+	act,
 	cleanup,
 	fireEvent,
 	render,
@@ -279,5 +280,37 @@ describe("ClassicyDateAndTimeManager — timezone changes must not corrupt the A
 
 		// The timezone change must not reset or corrupt the AM/PM control.
 		expect(amPm).toHaveTextContent("am");
+	});
+});
+
+describe("ClassicyDateAndTimeManager — clock ticks don't reset the pickers", () => {
+	it("keeps a half-typed time when the store's clock advances", () => {
+		renderOpen();
+		const minutes = document.getElementById("time_minutes") as HTMLInputElement;
+		fireEvent.change(minutes, { target: { value: "4" } });
+		// The menu-bar clock widget advances the stored time once a minute.
+		const next = new Date(
+			new Date(
+				useAppManager.getState().System.Manager.DateAndTime.dateTime,
+			).getTime() + 60_000,
+		);
+		act(() => {
+			useAppManager.setState((s) => ({
+				...s,
+				System: {
+					...s.System,
+					Manager: {
+						...s.System.Manager,
+						DateAndTime: {
+							...s.System.Manager.DateAndTime,
+							dateTime: next.toISOString(),
+						},
+					},
+				},
+			}));
+		});
+		expect(
+			(document.getElementById("time_minutes") as HTMLInputElement).value,
+		).toBe("4");
 	});
 });

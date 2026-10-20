@@ -44,7 +44,10 @@ interface ClassicyInputProps {
 	disabled?: boolean;
 	/** Dims the label independently of the field. Defaults to `disabled`. */
 	labelDisabled?: boolean;
-	/** Adds the `classicyInputDefault` class (no built-in styling). */
+	/**
+	 * @deprecated Has no effect: Mac OS 8 text fields have no default state. Still adds the `classicyInputDefault` class
+	 * for any host styling that targets it; removed in the next major version.
+	 */
 	isDefault?: boolean;
 	/** Field fill colour (any CSS colour). Defaults to the theme's white. */
 	backgroundColor?: string;

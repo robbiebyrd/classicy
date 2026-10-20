@@ -6,8 +6,10 @@ import {
 	type FC as FunctionalComponent,
 	forwardRef,
 	type KeyboardEvent,
+	useEffect,
 	useState,
 } from "react";
+import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import {
 	ClassicyControlLabel,
 	type ClassicyControlLabelSize,
@@ -54,16 +56,20 @@ interface ClassicyTimePickerProps {
 	/** Native placeholder on the hour field (rarely visible: it always holds a value). */
 	placeholder?: string;
 	/**
-	 * Initial time; its date part is carried through to `onChangeFunc`.
-	 * Defaults to the browser's current time (`new Date()`), not the Classicy
-	 * virtual clock. Read on mount only.
+	 * The time to show; its date part is carried through to `onChangeFunc`.
+	 * Defaults to the Classicy virtual clock
+	 * (`System.Manager.DateAndTime.dateTime`), as `ClassicyDatePicker` does.
+	 * The field re-syncs whenever a different time is passed.
 	 */
 	prefillValue?: Date;
 	/** Disables the fields, little arrows and am/pm pop-up (and dims the label). Defaults to `false`. */
 	disabled?: boolean;
 	/** Dims the label independently of the fields. Defaults to `disabled`. */
 	labelDisabled?: boolean;
-	/** Adds the `classicyTimePickerDefault` class (no built-in styling). */
+	/**
+	 * @deprecated Has no effect: Mac OS 8 clock controls have no default state. Still adds the `classicyTimePickerDefault` class
+	 * for any host styling that targets it; removed in the next major version.
+	 */
 	isDefault?: boolean;
 	/**
 	 * Forwarded to the hours input only (the first field and the natural
@@ -84,7 +90,9 @@ interface ClassicyTimePickerProps {
  * Click a field to select it; Up/Down (or the arrows) step the focused part
  * within its range (hours 1–12, minutes and seconds 0–59, no wrap-around).
  *
- * The control keeps its own time, seeded from `prefillValue`, and reports a
+ * The control keeps its own time, seeded from `prefillValue` (else the
+ * Classicy virtual clock in the store, so it must render inside
+ * `ClassicyAppManagerProvider`) and re-synced when that changes, and reports a
  * full `Date` through `onChangeFunc` on every change, clamped to
  * `minValue`/`maxValue` (compared as full date-times, so give them the same
  * date as `prefillValue`). Pair it with `ClassicyDatePicker` for a full date
@@ -109,27 +117,44 @@ export const ClassicyTimePicker: FunctionalComponent<ClassicyTimePickerProps> =
 			},
 			ref,
 		) {
-			if (!prefillValue) {
-				prefillValue = new Date();
-			}
+			const dateTime = useAppManager(
+				(s) => s.System.Manager.DateAndTime.dateTime,
+			);
+			// The virtual clock (#312), like DatePicker; `prefillValue` overrides it.
+			const seed = prefillValue ?? new Date(dateTime);
 
-			const [selectedDate, setSelectedDate] = useState<Date>(prefillValue);
+			const [selectedDate, setSelectedDate] = useState<Date>(seed);
 			// Normalized to the 12-hour range (1-12) up front so `hour` state is
 			// always in the same representation `stepTimePart`/`handleTimePartChange`
 			// expect -- `getHours()` returns 0-23, and `0 -> 12` is the midnight
 			// boundary case (`x % 12 || 12` maps both 0 and 12 to 12).
 			const [hour, setHour] = useState<string>(
-				(prefillValue.getHours() % 12 || 12).toString(),
+				(seed.getHours() % 12 || 12).toString(),
 			);
 			const [minutes, setMinutes] = useState<string>(
-				prefillValue.getMinutes().toString(),
+				seed.getMinutes().toString(),
 			);
 			const [seconds, setSeconds] = useState<string>(
-				prefillValue.getSeconds().toString(),
+				seed.getSeconds().toString(),
 			);
 			const [period, setPeriod] = useState<ClassicyPeriod>(
-				prefillValue.getHours() < 12 ? "am" : "pm",
+				seed.getHours() < 12 ? "am" : "pm",
 			);
+
+			// Re-sync when the parent passes a different time (#312), as
+			// ClassicyInput and ClassicySpinner do with their initial values.
+			// Keyed on the timestamp, so a new Date for the same moment (a
+			// parent re-render) leaves the user's edits alone.
+			const prefillTime = prefillValue?.getTime();
+			useEffect(() => {
+				if (prefillTime === undefined) return;
+				const next = new Date(prefillTime);
+				setSelectedDate(next);
+				setHour((next.getHours() % 12 || 12).toString());
+				setMinutes(next.getMinutes().toString());
+				setSeconds(next.getSeconds().toString());
+				setPeriod(next.getHours() < 12 ? "am" : "pm");
+			}, [prefillTime]);
 			// Which field the visible little-arrows (and Up/Down keys) act on.
 			const [focusedPart, setFocusedPart] = useState<ClassicyTimePart>("hour");
 

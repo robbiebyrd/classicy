@@ -15,6 +15,7 @@ import {
 	type KeyboardEvent,
 	type MouseEvent,
 	type MutableRefObject,
+	useEffect,
 	useRef,
 	useState,
 } from "react";
@@ -41,18 +42,25 @@ interface ClassicyDatePickerProps {
 	labelSize?: ClassicyControlLabelSize;
 	/** Where the label sits relative to the field. Defaults to `"above"`. */
 	labelPosition?: ClassicyLabelPosition;
-	/** Not used — the fields always show a date. Kept for API symmetry. */
+	/**
+	 * @deprecated Has no effect: the fields always show a date. Removed in the
+	 * next major version.
+	 */
 	placeholder?: string;
 	/**
-	 * Initial date. Defaults to the Classicy virtual clock
-	 * (`System.Manager.DateAndTime.dateTime`). Read on mount only.
+	 * The date to show. Defaults to the Classicy virtual clock
+	 * (`System.Manager.DateAndTime.dateTime`). The field re-syncs whenever a
+	 * different date is passed.
 	 */
 	prefillValue?: Date;
 	/** Disables the fields and little arrows (and dims the label). Defaults to `false`. */
 	disabled?: boolean;
 	/** Dims the label independently of the fields. Defaults to `disabled`. */
 	labelDisabled?: boolean;
-	/** Adds the `classicyDatePickerDefault` class (no built-in styling). */
+	/**
+	 * @deprecated Has no effect: Mac OS 8 clock controls have no default state. Still adds the `classicyDatePickerDefault` class
+	 * for any host styling that targets it; removed in the next major version.
+	 */
 	isDefault?: boolean;
 	/** Forwarded to the month field (the first field). */
 	ref?: ForwardedRef<HTMLInputElement>;
@@ -129,6 +137,20 @@ export const ClassicyDatePicker: FunctionalComponent<ClassicyDatePickerProps> =
 			);
 			// Which field the visible little-arrows (and Up/Down keys) act on.
 			const [focusedPart, setFocusedPart] = useState<ClassicyDatePart>("month");
+
+			// Re-sync when the parent passes a different date (#312), as
+			// ClassicyInput and ClassicySpinner do with their initial values.
+			// Keyed on the timestamp, so a new Date for the same moment (a
+			// parent re-render) leaves the user's edits alone.
+			const prefillTime = prefillValue?.getTime();
+			useEffect(() => {
+				if (prefillTime === undefined) return;
+				const next = new Date(prefillTime);
+				setSelectedDate(next);
+				setMonth((next.getMonth() + 1).toString());
+				setDay(next.getDate().toString());
+				setYear(next.getFullYear().toString());
+			}, [prefillTime]);
 
 			const selectText = (e: MouseEvent<HTMLInputElement>) => {
 				e.currentTarget.focus();
