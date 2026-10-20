@@ -88,7 +88,6 @@ export const ClassicyTriangle: FunctionalComponent<ClassicyTriangleProps> = ({
 
 	const svgElement = (
 		<svg
-			id="a"
 			xmlns="http://www.w3.org/2000/svg"
 			viewBox="0 0 6.44 11.12"
 			className={classNames(

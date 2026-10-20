@@ -120,8 +120,14 @@ export const ClassicyRadioInput: FunctionalComponent<
 		}
 	};
 
+	// The group is a radiogroup named by its title (#310); a <label for> can't
+	// name a group, and no element has the group's name as its id.
+	const titleId = label ? `${name}_label` : undefined;
 	const group = (
 		<div
+			role="radiogroup"
+			aria-labelledby={titleId}
+			aria-disabled={disabled || undefined}
 			className={classNames(
 				"classicyRadioInputGroup",
 				align === "columns" ? "classicyRadioInputGroupColumns" : "",
@@ -207,7 +213,7 @@ export const ClassicyRadioInput: FunctionalComponent<
 	return (
 		<div className={labelPositionClass(labelPosition)}>
 			<ClassicyControlLabel
-				labelFor={name}
+				id={titleId}
 				disabled={disabled}
 				labelSize={labelSize}
 				label={label}

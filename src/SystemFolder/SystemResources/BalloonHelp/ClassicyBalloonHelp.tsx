@@ -73,7 +73,6 @@ export const ClassicyBalloonHelp: FC<ClassicyBalloonHelpProps> = ({
 	return (
 		<div
 			ref={anchorRef}
-			role="tooltip"
 			className={["classicyBalloonHelpAnchor", className]
 				.filter(Boolean)
 				.join(" ")}

@@ -41,6 +41,11 @@ export function labelAlignClass(align: ClassicyLabelAlign): string {
 interface ClassicyControlLabelProps {
 	/** `id` of the control this labels (the `<label>`'s `htmlFor`). Clicking the text then activates that control. */
 	labelFor?: string;
+	/**
+	 * DOM id for the `<label>` itself, for `aria-labelledby` on a control that
+	 * is not one element — a group of fields, a radio group.
+	 */
+	id?: string;
 	/** The label text. When empty (the default) the component renders nothing at all. */
 	label?: string;
 	/** Text size: `small`, `medium` or `large` (double size). Defaults to `medium`. */
@@ -58,7 +63,12 @@ interface ClassicyControlLabelProps {
 	direction?: ClassicyControlLabelDirections;
 	/** Extra content (usually the control) rendered in the label's row. */
 	children?: ReactNode;
-	/** Click handler for the whole row; also run by Enter/Space while it is focused. Suppresses the default label action when set. */
+	/**
+	 * Click handler for the whole row; also run by Enter/Space while it is
+	 * focused. Suppresses the default label action when set. Only a label
+	 * with a handler is a focusable `role="button"`; without one the row is
+	 * plain text, so it never nests the controls inside it in a button.
+	 */
 	onClickFunc?: (e: MouseEvent) => void;
 	/** Mouse-down on the text itself (used by radio and checkbox labels for their click sounds). */
 	onMouseDown?: (e: MouseEvent) => void;
@@ -75,9 +85,9 @@ interface ClassicyControlLabelProps {
  * `label`/`labelTitle` props; reach for it directly when labelling your own
  * control.
  *
- * Gotchas: an empty `label` renders nothing (not even `children`); the
- * wrapper row is focusable with `role="button"` and runs `onClickFunc` on
- * click, Enter or Space; and the row is hidden below 480px viewport width.
+ * Gotchas: an empty `label` renders nothing (not even `children`); with
+ * `onClickFunc` the wrapper row is focusable with `role="button"` and runs it
+ * on click, Enter or Space; and the row is hidden below 480px viewport width.
  * Arrange a label around its control with `labelPositionClass(position)`
  * (`above`/`below`/`left`/`right`), as the built-in controls do.
  *
@@ -89,6 +99,7 @@ export const ClassicyControlLabel: FunctionalComponent<
 	ClassicyControlLabelProps
 > = ({
 	labelFor = "",
+	id,
 	label = "",
 	labelSize = "medium",
 	disabled = false,
@@ -122,38 +133,42 @@ export const ClassicyControlLabel: FunctionalComponent<
 
 	const isLeftOrBottom = ["left", "bottom"].includes(direction);
 
+	// Only a clickable row is a button (#310): otherwise the row would wrap the
+	// checkbox, radio or disclosure it labels in a focusable button.
+	const buttonProps = onClickFunc
+		? {
+				role: "button" as const,
+				tabIndex: 0,
+				onClick: (e: MouseEvent) => {
+					e.preventDefault();
+					onClickFunc(e);
+				},
+				onKeyDown: (e: KeyboardEvent) => {
+					if (e.key === "Enter" || e.key === " ") {
+						e.preventDefault();
+						onClickFunc(e as unknown as MouseEvent);
+					}
+				},
+			}
+		: {};
+
 	return (
-		// biome-ignore lint/a11y/useSemanticElements: contains <label> and block children that are incompatible with <button>
 		<div
-			role="button"
-			tabIndex={0}
+			{...buttonProps}
 			className={classNames(
 				"classicyControlLabelHolder",
 				isLeftOrBottom
 					? "classicyControlLabelHolderLeft"
 					: "classicyControlLabelHolderRight",
 			)}
-			onClick={(e) => {
-				if (onClickFunc) {
-					e.preventDefault();
-					onClickFunc(e);
-				}
-			}}
-			onKeyDown={(e: KeyboardEvent) => {
-				if (e.key === "Enter" || e.key === " ") {
-					e.preventDefault();
-					if (onClickFunc) {
-						onClickFunc(e as unknown as MouseEvent);
-					}
-				}
-			}}
 		>
 			{icon && <img src={icon} width={imageSize(iconSize)} alt={label} />}
 
 			{isLeftOrBottom && children}
 
 			<label
-				htmlFor={labelFor}
+				id={id}
+				htmlFor={labelFor || undefined}
 				className={classNames(
 					"classicyControlLabel",
 					sizeClassMap[labelSize],

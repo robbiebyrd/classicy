@@ -29,8 +29,8 @@ type ClassicyDatePart = "month" | "day" | "year";
 interface ClassicyDatePickerProps {
 	/**
 	 * Base id. The month, day and year fields get `${id}_month`, `${id}_day`
-	 * and `${id}_year`. (The label's `for` is the bare `id`, so it is not tied
-	 * to any one field.)
+	 * and `${id}_year`, and the label `${id}_label`. The label points at the
+	 * month field, and the fields form a group labelled by it.
 	 */
 	id: string;
 	/** Called with the new (range-clamped) `Date` after every edit or step. */
@@ -251,13 +251,19 @@ export const ClassicyDatePicker: FunctionalComponent<ClassicyDatePickerProps> =
 				>
 					{labelTitle && (
 						<ClassicyControlLabel
+							id={`${id}_label`}
 							label={labelTitle}
-							labelFor={id}
+							labelFor={`${id}_month`}
 							labelSize={labelSize}
 							disabled={labelDisabled ?? disabled}
 						></ClassicyControlLabel>
 					)}
-					<div className="classicyDatePickerField classicyLittleArrowsGroup">
+					{/* biome-ignore lint/a11y/useSemanticElements: a <fieldset> brings its own border, padding and min-width rules into this flex row; role="group" names the fields without them */}
+					<div
+						className="classicyDatePickerField classicyLittleArrowsGroup"
+						role="group"
+						aria-labelledby={labelTitle ? `${id}_label` : undefined}
+					>
 						<div
 							className={classNames(
 								"classicyDatePicker",

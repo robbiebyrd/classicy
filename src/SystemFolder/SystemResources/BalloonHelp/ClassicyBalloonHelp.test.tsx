@@ -19,6 +19,9 @@ vi.mock(
 
 import { ClassicyBalloonHelp } from "@/SystemFolder/SystemResources/BalloonHelp/ClassicyBalloonHelp";
 
+// The anchor wraps the hovered element; the tooltip role is the balloon's.
+const anchorOf = (child: HTMLElement) => child.parentElement as HTMLElement;
+
 describe("ClassicyBalloonHelp", () => {
 	it("renders its children inside an anchor element", () => {
 		mockState.disableBalloonHelp = false;
@@ -38,7 +41,9 @@ describe("ClassicyBalloonHelp", () => {
 				<button type="button">Open</button>
 			</ClassicyBalloonHelp>,
 		);
-		fireEvent.mouseEnter(screen.getByRole("tooltip"));
+		fireEvent.mouseEnter(
+			anchorOf(screen.getByRole("button", { name: "Open" })),
+		);
 		expect(await screen.findByText("Opens the file.")).toBeInTheDocument();
 		expect(screen.getByText("Open", { selector: "p" })).toBeInTheDocument();
 	});
@@ -50,7 +55,7 @@ describe("ClassicyBalloonHelp", () => {
 				<button type="button">Open</button>
 			</ClassicyBalloonHelp>,
 		);
-		const anchor = screen.getByRole("tooltip");
+		const anchor = anchorOf(screen.getByRole("button", { name: "Open" }));
 		fireEvent.mouseEnter(anchor);
 		expect(await screen.findByText("Opens the file.")).toBeInTheDocument();
 		fireEvent.mouseLeave(anchor);
@@ -64,7 +69,9 @@ describe("ClassicyBalloonHelp", () => {
 				<button type="button">Open</button>
 			</ClassicyBalloonHelp>,
 		);
-		fireEvent.mouseEnter(screen.getByRole("tooltip"));
+		fireEvent.mouseEnter(
+			anchorOf(screen.getByRole("button", { name: "Open" })),
+		);
 		expect(screen.queryByText("Opens the file.")).not.toBeInTheDocument();
 	});
 
@@ -75,8 +82,26 @@ describe("ClassicyBalloonHelp", () => {
 				<button type="button">Open</button>
 			</ClassicyBalloonHelp>,
 		);
-		fireEvent.mouseEnter(screen.getByRole("tooltip"));
+		fireEvent.mouseEnter(
+			anchorOf(screen.getByRole("button", { name: "Open" })),
+		);
 		await new Promise((resolve) => setTimeout(resolve, 10));
 		expect(screen.queryByText("Opens the file.")).not.toBeInTheDocument();
+	});
+
+	it("gives the tooltip role to the balloon and describes the target with it (#310)", async () => {
+		mockState.disableBalloonHelp = false;
+		render(
+			<ClassicyBalloonHelp content="Opens the file." delay={0}>
+				<button type="button">Open</button>
+			</ClassicyBalloonHelp>,
+		);
+		const anchor = anchorOf(screen.getByRole("button", { name: "Open" }));
+		expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+		expect(anchor).not.toHaveAttribute("aria-describedby");
+		fireEvent.mouseEnter(anchor);
+		const tooltip = await screen.findByRole("tooltip");
+		expect(tooltip).toHaveTextContent("Opens the file.");
+		expect(anchor).toHaveAttribute("aria-describedby", tooltip.id);
 	});
 });
