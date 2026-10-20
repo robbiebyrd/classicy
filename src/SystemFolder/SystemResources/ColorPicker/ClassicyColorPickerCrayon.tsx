@@ -13,13 +13,15 @@ const COLS = 8;
 
 // Crayon SVG: pointed tip with faceted shading + body with label band.
 // The body is mostly hidden behind the row in front; only the tip stays visible.
+// Drawn at 30 × 90 px; the 36 × 96 artwork is stretched to fill that box.
 const CrayonSVG: FC<{ fill: string }> = ({ fill }) => (
 	<svg
 		aria-hidden="true"
 		focusable="false"
-		width="36"
-		height="96"
+		width="30"
+		height="90"
 		viewBox="0 0 36 96"
+		preserveAspectRatio="none"
 		xmlns="http://www.w3.org/2000/svg"
 	>
 		{/* Tip base fill */}
