@@ -21,6 +21,7 @@ import {
 	type RefObject,
 	useCallback,
 	useEffect,
+	useLayoutEffect,
 	useMemo,
 	useRef,
 	useState,
@@ -223,10 +224,13 @@ interface ClassicyWindowProps {
 	 */
 	resizable?: boolean;
 	/**
-	 * Scroll the contents with Platinum scroll bars. A scrollable window always
-	 * draws both bars, so content that fills the window and scrolls itself (a
-	 * full-window text area, `ClassicySplitView` panes) must pass `false` to
-	 * avoid a second, empty set. Defaults to `true`.
+	 * Scroll the contents with Platinum scroll bars. The bars appear only
+	 * while the content overflows the window (or a `placard` needs the
+	 * bottom gutter), and then both are drawn, as in Mac OS 8 — the other
+	 * axis shows an empty track so the grow box keeps its corner. Content
+	 * that fills the window and scrolls itself (a full-window text area,
+	 * `ClassicySplitView` panes) must pass `false`, or that inner scrolling
+	 * counts as overflow and draws a second set of bars. Defaults to `true`.
 	 */
 	scrollable?: boolean;
 	/**
@@ -548,6 +552,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	]);
 
 	const windowRef = useRef<HTMLDivElement | null>(null);
+	const contentsRef = useRef<HTMLDivElement | null>(null);
 	const pendingSizeRef = useRef<[number, number] | null>(null);
 	const isDraggingRef = useRef(false);
 	const isResizingRef = useRef(false);
@@ -705,6 +710,57 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		observer.observe(el);
 		return () => observer.disconnect();
 	}, [ws.closed]);
+
+	// Scroll bars only while there is something to scroll. The contents box
+	// is `overflow: scroll` (both bars, Mac OS 8 style) only while its content
+	// overflows on either axis; otherwise it drops to `auto`, which draws
+	// nothing. Measured here rather than left to `overflow: auto` alone
+	// because `auto` is per-axis: a lone vertical bar would run the full
+	// height and its end arrows would sit under the grow box. Re-measured
+	// when the box resizes (ResizeObserver: window resize, bars appearing),
+	// when its subtree changes (MutationObserver), and when something inside
+	// finishes loading (an <img> growing after mount). Layout effect so the
+	// first paint already has the right bars. The 1px tolerance absorbs
+	// sub-pixel rounding between scrollHeight and clientHeight.
+	const [contentOverflows, setContentOverflows] = useState(false);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: ws.closed and ws.collapsed aren't read — they re-attach the observers once the contents box exists again
+	useLayoutEffect(() => {
+		if (!scrollable) return;
+		const el = contentsRef.current;
+		if (!el) return;
+		const measure = () => {
+			const next =
+				el.scrollHeight > el.clientHeight + 1 ||
+				el.scrollWidth > el.clientWidth + 1;
+			setContentOverflows((prev) => (prev === next ? prev : next));
+		};
+		measure();
+		// jsdom has neither observer; the mount measurement above still runs.
+		const resizeObserver =
+			typeof ResizeObserver === "undefined"
+				? undefined
+				: new ResizeObserver(measure);
+		resizeObserver?.observe(el);
+		const mutationObserver =
+			typeof MutationObserver === "undefined"
+				? undefined
+				: new MutationObserver(measure);
+		mutationObserver?.observe(el, {
+			childList: true,
+			subtree: true,
+			characterData: true,
+			attributes: true,
+		});
+		el.addEventListener("load", measure, true);
+		return () => {
+			resizeObserver?.disconnect();
+			mutationObserver?.disconnect();
+			el.removeEventListener("load", measure, true);
+		};
+	}, [scrollable, ws.closed, ws.collapsed]);
+	// A placard lives in the horizontal scroll bar's gutter (HIGOS8 p.46), so
+	// a window with one keeps its bars.
+	const showScrollBars = scrollable && (contentOverflows || Boolean(placard));
 
 	const pageviewPath = useMemo(
 		() => analyticsPath ?? classicyWindowPagePath(appId, id),
@@ -1592,6 +1648,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				modal && type !== "error" ? "classicyWindowModalFront" : "",
 				modal && type === "error" ? "classicyWindowRed" : "",
 				scrollable ? "" : "classicyWindowNoScroll",
+				scrollable && !showScrollBars ? "classicyWindowScrollBarsHidden" : "",
 			)}
 			onMouseMove={changeWindow}
 			// Bound ONLY here, at the outermost element, rather than on the frame
@@ -1712,6 +1769,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				</div>
 			)}
 			<div
+				ref={contentsRef}
 				className={classNames(
 					!modal && !isActive()
 						? dimContents

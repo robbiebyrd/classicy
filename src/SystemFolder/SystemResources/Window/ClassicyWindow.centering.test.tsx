@@ -113,6 +113,15 @@ class MockResizeObserver {
 	observe = vi.fn();
 	unobserve = vi.fn();
 	disconnect = vi.fn();
+	// The window also observes its contents box (scroll bars on overflow);
+	// the re-centering observer is the one watching the window element.
+	static watching(el: Element): MockResizeObserver {
+		const found = MockResizeObserver.instances.find((o) =>
+			o.observe.mock.calls.some((call) => call[0] === el),
+		);
+		if (!found) throw new Error("no ResizeObserver observes the window");
+		return found;
+	}
 }
 
 function mockRect(width: number, height: number): DOMRect {
@@ -241,8 +250,6 @@ describe("ClassicyWindow content-resize re-centering (#248)", () => {
 			</ClassicyWindow>,
 		);
 
-		expect(MockResizeObserver.instances).toHaveLength(1);
-
 		const el = container.querySelector("#TestApp_TestWindow") as HTMLElement;
 		expect(el).toBeTruthy();
 		// Simulate the box having actually grown (e.g. an <img> finishing load)
@@ -251,7 +258,7 @@ describe("ClassicyWindow content-resize re-centering (#248)", () => {
 		vi.spyOn(el, "getBoundingClientRect").mockReturnValue(mockRect(400, 300));
 
 		mockDispatch.mockClear();
-		MockResizeObserver.instances[0].callback();
+		MockResizeObserver.watching(el).callback();
 
 		const moves = moveDispatches();
 		expect(moves).toHaveLength(1);
@@ -275,7 +282,7 @@ describe("ClassicyWindow content-resize re-centering (#248)", () => {
 		vi.spyOn(el, "getBoundingClientRect").mockReturnValue(mockRect(900, 900));
 
 		mockDispatch.mockClear();
-		MockResizeObserver.instances[0].callback();
+		MockResizeObserver.watching(el).callback();
 
 		expect(moveDispatches()).toHaveLength(0);
 	});
@@ -308,7 +315,7 @@ describe("ClassicyWindow content-resize re-centering (#248)", () => {
 		vi.spyOn(el, "getBoundingClientRect").mockReturnValue(mockRect(400, 300));
 
 		mockDispatch.mockClear();
-		MockResizeObserver.instances[0].callback();
+		MockResizeObserver.watching(el).callback();
 
 		expect(moveDispatches()).toHaveLength(0);
 	});
