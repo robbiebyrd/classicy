@@ -483,10 +483,13 @@ window's full height instead of sizing it to its content. `type="error"` on a
 `modal` window makes a fixed alert: it cannot be dragged, beeps when it opens,
 and stacks in the red error band above other modals.
 
-A scrollable window always draws both scroll bars. Content that fills the
-window and scrolls itself (a full-window `<textarea>`, `ClassicySplitView`
-panes, a pan surface) must pass `scrollable={false}`, or the window shows a
-second, empty set of bars beside the inner ones.
+A scrollable window draws its scroll bars only while its content overflows
+(or it has a `placard`, which lives in the bottom gutter), and then draws both
+bars, as Mac OS 8 does — the non-scrolling axis shows an empty track so the
+grow box keeps its corner. Content that fills the window and scrolls itself (a
+full-window `<textarea>`, `ClassicySplitView` panes, a pan surface) must pass
+`scrollable={false}`, or its inner scrolling counts as overflow and the window
+shows a second set of bars beside the inner ones.
 
 **`ClassicyWindowFrame`** — presentational chrome only (no store coupling;
 usable pre-boot): `title?`, `children` *, `className?`, `width?`.

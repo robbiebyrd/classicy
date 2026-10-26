@@ -401,9 +401,9 @@
     // top and left black edges that continue the two scroll bars' outer lines
     // into the grow box. Sized exactly to the gutter (not gutter + border) and
     // flush to the resizer's top-left, so those edges land on the same pixels as
-    // the scroll bars' own borders and the three meet seamlessly. (Both scroll
-    // bars are always drawn now — see .classicyWindowContents overflow — so the
-    // grip never has to stand in for a missing track.)
+    // the scroll bars' own borders and the three meet seamlessly. (Whenever
+    // the bars are drawn, both are — see .classicyWindowContents overflow —
+    // so the grip never has to stand in for a missing track.)
     &::before {
       content: "";
       position: absolute;
@@ -432,10 +432,13 @@
     position: relative;
     display: block;
     @include appearance.platinumWindowInnerBorder;
-    // Mac OS 8 document windows always draw BOTH scroll bars (the non-scrolling
-    // axis shows an empty, thumb-less track). `scroll` — not `auto` — reserves
-    // both gutters and the grow-box corner at the bottom-right, so the end-arrow
-    // scroll buttons always meet the resizer cleanly instead of running under it.
+    // When a document window scrolls, Mac OS 8 draws BOTH scroll bars (the
+    // non-scrolling axis shows an empty, thumb-less track). `scroll` — not
+    // `auto` — reserves both gutters and the grow-box corner at the
+    // bottom-right, so the end-arrow scroll buttons always meet the resizer
+    // cleanly instead of running under it. ClassicyWindow measures the
+    // content and, while nothing overflows, adds classicyWindowScrollBarsHidden
+    // (below), which drops the bars altogether.
     overflow: scroll;
     height: calc(100% - (var(--window-control-size) * 1) - var(--window-padding-size) * 1.5);
     background-color: var(--classicy-window-contents-bg, var(--color-window-document));
@@ -454,6 +457,17 @@
     .classicyWindowContents,
     .classicyWindowContentsWithHeader {
       overflow: hidden;
+    }
+  }
+
+  // A scrollable window whose content currently fits: no bars, and the grow
+  // box sits over the content's corner as it does in a non-scrollable window.
+  // `auto` rather than `hidden` so that, should the measurement ever lag the
+  // content, nothing is unreachable — the browser still scrolls.
+  &.classicyWindowScrollBarsHidden {
+    .classicyWindowContents,
+    .classicyWindowContentsWithHeader {
+      overflow: auto;
     }
   }
 }

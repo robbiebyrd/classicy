@@ -5,9 +5,9 @@
 // the Finder diverges from the generic table.
 
 // #271: the hosting ClassicyWindow's contents box is the list's ONLY scroller.
-// Windows always draw both scroll bars (`overflow: scroll`, #262), so a
-// generic table container that also scrolled (`overflow: auto`, absolutely
-// filling the window) drew a second, inner set of bars. Here the container
+// A window draws its own bars once its content overflows (`overflow: scroll`,
+// #262), so a generic table container that also scrolled (`overflow: auto`,
+// absolutely filling the window) drew a second, inner set of bars. Here the container
 // grows with its rows instead — at least as tall as the window, so its
 // background and click/focus target still fill an empty folder — and the
 // overflow lands on the window. The sticky column header now pins to the

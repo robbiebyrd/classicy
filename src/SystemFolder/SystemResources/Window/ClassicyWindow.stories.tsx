@@ -352,6 +352,30 @@ export const WithPlacard: Story = {
 };
 
 /**
+ * Content that fits: a scrollable window draws no scroll bars until something
+ * overflows, and the grow box sits over the content's corner. Resize it
+ * smaller than the text to watch both bars appear.
+ */
+export const ScrollFits: Story = {
+	render: () => (
+		<StoryApp id="storybook.app" name="Storybook">
+			<ClassicyWindow
+				id="scrollfits"
+				appId="storybook.app"
+				title="Fits"
+				initialSize={[320, 200]}
+				initialPosition={[80, 60]}
+			>
+				<div style={{ padding: "1em" }}>
+					Short content — no scroll bars until the window is made smaller than
+					this text.
+				</div>
+			</ClassicyWindow>
+		</StoryApp>
+	),
+};
+
+/**
  * Vertical-only scroll in a resizable window: the vertical scroll bar runs the
  * full height and its bottom arrow sits next to the grow box. Used to verify the
  * Smart Scrolling end-arrow clears the resizer.
