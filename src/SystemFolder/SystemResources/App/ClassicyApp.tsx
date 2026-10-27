@@ -88,9 +88,6 @@ export interface ClassicyAppProps {
 	 *  ClassicyIcons.* values) shows that icon instead. Ignored when
 	 *  `extension` is set — extensions already parade. */
 	bootIcon?: boolean | string;
-	/** Also render a "DEBUG <name>" window showing the app's store record.
-	 *  Defaults to `false`. */
-	debug?: boolean;
 	/** File types Finder may open with this app. Opening one dispatches
 	 *  `` `ClassicyApp${name}OpenFile` ``; unless the app handles that action
 	 *  itself, the path is queued in `apps[id].data.openFiles`. */
@@ -145,7 +142,6 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 	bootIcon,
 	defaultWindow,
 	restoreWindowFocus = true,
-	debug = false,
 	handlesFileTypes,
 	handlesOwnFiles = false,
 	contextMenu,
@@ -160,25 +156,6 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 	const activeThemeData = useAppManager(
 		(state) => state.System.Manager.Appearance.activeTheme,
 	);
-
-	const debuggerJSONTheme = {
-		base00: intToHex(activeThemeData.color.white),
-		base01: intToHex(activeThemeData.color.black),
-		base02: intToHex(activeThemeData.color.system[3]),
-		base03: intToHex(activeThemeData.color.system[3]),
-		base04: intToHex(activeThemeData.color.system[3]),
-		base05: intToHex(activeThemeData.color.system[4]),
-		base06: intToHex(activeThemeData.color.system[5]),
-		base07: intToHex(activeThemeData.color.system[6]),
-		base08: intToHex(activeThemeData.color.error),
-		base09: intToHex(activeThemeData.color.theme[2]),
-		base0A: intToHex(activeThemeData.color.theme[1]),
-		base0B: intToHex(activeThemeData.color.theme[2]),
-		base0C: intToHex(activeThemeData.color.theme[3]),
-		base0D: intToHex(activeThemeData.color.theme[4]),
-		base0E: intToHex(activeThemeData.color.theme[5]),
-		base0F: intToHex(activeThemeData.color.theme[6]),
-	};
 
 	const isAppOpen = () => {
 		return appContext?.open;
@@ -407,21 +384,6 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 									<span>{filePath}</span>
 								</ClassicyWindow>
 							))}
-						{debug && (
-							<ClassicyWindow
-								initialSize={[400, 300]}
-								initialPosition={[100, 200]}
-								title={`DEBUG ${name}`}
-								id={`${id}_debugger`}
-								appId={id}
-								appMenu={[{ id: "Debug", title: "Debug" }]}
-							>
-								<h1>Providers</h1>
-								<hr />
-								<h2>desktopContext</h2>
-								<JSONTree data={appContext} theme={debuggerJSONTheme} />
-							</ClassicyWindow>
-						)}
 					</>
 				)}
 			</div>
