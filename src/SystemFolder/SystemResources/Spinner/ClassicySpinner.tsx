@@ -102,6 +102,14 @@ export const ClassicySpinner: FunctionalComponent<ClassicySpinnerProps> =
 		ref,
 	) {
 		const { track } = useClassicyAnalytics();
+		// The arrows need the field to hand focus to, and the consumer may want
+		// the same element, so one callback ref feeds both.
+		const inputRef = useRef<HTMLInputElement | null>(null);
+		const setInputRef = (el: HTMLInputElement | null) => {
+			inputRef.current = el;
+			if (typeof ref === "function") ref(el);
+			else if (ref) ref.current = el;
+		};
 		const analyticsArgs = {
 			id,
 			labelTitle,
@@ -207,7 +215,7 @@ export const ClassicySpinner: FunctionalComponent<ClassicySpinnerProps> =
 						onKeyDown={handleOnKeyDown}
 						name={id}
 						type="number"
-						ref={ref}
+						ref={setInputRef}
 						disabled={disabled}
 						value={value}
 						placeholder={placeholder ? String(placeholder) : undefined}
@@ -229,6 +237,7 @@ export const ClassicySpinner: FunctionalComponent<ClassicySpinnerProps> =
 						disabled={disabled}
 						repeatIntervalMs={REPEAT_INTERVAL_MS}
 						onStep={handleStep}
+						focusTarget={inputRef}
 					/>
 				</div>
 			</div>

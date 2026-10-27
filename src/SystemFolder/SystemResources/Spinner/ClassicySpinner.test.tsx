@@ -80,6 +80,30 @@ describe("ClassicySpinner", () => {
 		expect(screen.getByText("Count")).toBeInTheDocument();
 	});
 
+	it("keeps the field focused — and focuses it — when an arrow is clicked", () => {
+		// The focus ring around field and arrows is :focus-within on the group;
+		// a press that blurred the field would dim the arrows mid-click.
+		render(<ClassicySpinner id="test" prefillValue={3} />);
+		input().focus();
+		fireEvent.mouseDown(upBtn());
+		fireEvent.mouseUp(upBtn());
+		expect(document.activeElement).toBe(input());
+		expect(input().value).toBe("4");
+
+		input().blur();
+		expect(document.activeElement).not.toBe(input());
+		fireEvent.mouseDown(downBtn());
+		fireEvent.mouseUp(downBtn());
+		expect(document.activeElement).toBe(input());
+		expect(input().value).toBe("3");
+	});
+
+	it("passes a forwarded ref through to the field alongside its own", () => {
+		const ref = { current: null as HTMLInputElement | null };
+		render(<ClassicySpinner id="test" ref={ref} />);
+		expect(ref.current).toBe(input());
+	});
+
 	it("buttons are disabled when disabled prop is true", () => {
 		render(<ClassicySpinner id="test" disabled />);
 		expect(upBtn()).toBeDisabled();

@@ -3,6 +3,8 @@ import classNames from "classnames";
 import {
 	type FC as FunctionalComponent,
 	type KeyboardEvent as ReactKeyboardEvent,
+	type MouseEvent as ReactMouseEvent,
+	type RefObject,
 	useEffect,
 	useRef,
 } from "react";
@@ -28,6 +30,14 @@ interface ClassicyLittleArrowsProps {
 	className?: string;
 	/** Delay between repeats while held, in ms. Defaults to `120`. */
 	repeatIntervalMs?: number;
+	/**
+	 * The content area the arrows adjust. A mouse press on an arrow moves
+	 * focus there (if it is not there already) instead of to the arrow, so the
+	 * field keeps its insertion point and the group keeps its focus ring.
+	 * Without it, a press leaves focus wherever it is inside the group, and
+	 * only takes it for the arrow when nothing in the group is focused.
+	 */
+	focusTarget?: RefObject<HTMLElement | null>;
 }
 
 /**
@@ -61,6 +71,7 @@ export const ClassicyLittleArrows: FunctionalComponent<
 	downLabel = "Decrement",
 	className,
 	repeatIntervalMs = REPEAT_INTERVAL_MS,
+	focusTarget,
 }) => {
 	// Keep the callback in a ref so the interval always calls the latest closure.
 	const onStepRef = useRef(onStep);
@@ -81,7 +92,33 @@ export const ClassicyLittleArrows: FunctionalComponent<
 		};
 	}, []);
 
-	const start = (direction: 1 | -1) => {
+	// The group's focus ring and the arrows' own black bevel are :focus-within
+	// styles (ClassicyLittleArrows.scss), so a press must not move focus out of
+	// the field: a focused arrow would still count, but Safari and Firefox on
+	// macOS give a clicked <button> no focus at all, and the whole control went
+	// flat and gray on every click. Preventing the mousedown default keeps
+	// focus where it is; `focusTarget` goes further and puts it in the field.
+	const keepFocus = (e: ReactMouseEvent<HTMLButtonElement>) => {
+		const target = focusTarget?.current;
+		if (target) {
+			e.preventDefault();
+			if (document.activeElement !== target) target.focus();
+			return;
+		}
+		const group = e.currentTarget.closest(".classicyLittleArrowsGroup");
+		const active = document.activeElement;
+		if (
+			group &&
+			active &&
+			active !== e.currentTarget &&
+			group.contains(active)
+		) {
+			e.preventDefault();
+		}
+	};
+
+	const start = (e: ReactMouseEvent<HTMLButtonElement>, direction: 1 | -1) => {
+		keepFocus(e);
 		if (disabled) return;
 		onStepRef.current(direction, 0);
 		stop();
@@ -109,7 +146,7 @@ export const ClassicyLittleArrows: FunctionalComponent<
 				className="classicyLittleArrowsButton"
 				aria-label={upLabel}
 				disabled={disabled}
-				onMouseDown={() => start(1)}
+				onMouseDown={(e) => start(e, 1)}
 				onMouseUp={stop}
 				onMouseLeave={stop}
 				onKeyDown={(e) => stepKey(e, 1)}
@@ -121,7 +158,7 @@ export const ClassicyLittleArrows: FunctionalComponent<
 				className="classicyLittleArrowsButton classicyLittleArrowsButtonDown"
 				aria-label={downLabel}
 				disabled={disabled}
-				onMouseDown={() => start(-1)}
+				onMouseDown={(e) => start(e, -1)}
 				onMouseUp={stop}
 				onMouseLeave={stop}
 				onKeyDown={(e) => stepKey(e, -1)}
