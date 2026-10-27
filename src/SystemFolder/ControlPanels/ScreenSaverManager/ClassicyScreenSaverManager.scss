@@ -1,0 +1,6 @@
+// The panel body: a stack of group boxes (ClassicyControlGroupStack) inset by
+// the window padding — HIGOS8 Ch.3 "Spacing" (p.71): a consistent margin
+// between the window edge and its items.
+.classicyScreenSaverManagerContent {
+  padding: var(--window-padding-size);
+}

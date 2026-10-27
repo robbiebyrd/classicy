@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@/__tests__/test-utils";
-import { ClassicyControlGroup } from "@/SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup";
+import {
+	ClassicyControlGroup,
+	ClassicyControlGroupFormRow,
+	ClassicyControlGroupStack,
+} from "@/SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup";
 
 describe("ClassicyControlGroup", () => {
 	it("renders label as a legend element", () => {
@@ -182,5 +186,62 @@ describe("ClassicyControlGroup", () => {
 		expect(legend?.querySelector("input[type='checkbox']")).toBeInTheDocument();
 		// The pop-up-menu title is suppressed, so its control (id "popup") is absent.
 		expect(legend?.querySelector("#popup")).not.toBeInTheDocument();
+	});
+});
+
+// --- Form layout helpers (HIGOS8 Ch.3 "Layout Guidelines") ---
+
+describe("ClassicyControlGroup — form layout helpers", () => {
+	it("applies the form-content grid class when layout='form'", () => {
+		const { container } = render(
+			<ClassicyControlGroup label="Group" layout="form">
+				<span>Row</span>
+			</ClassicyControlGroup>,
+		);
+		expect(
+			container.querySelector("fieldset > .classicyControlGroupFormContent"),
+		).toBeInTheDocument();
+	});
+
+	it("renders a ClassicyControlGroupFormRow as a full-width row", () => {
+		const { container } = render(
+			<ClassicyControlGroup label="Group" layout="form">
+				<ClassicyControlGroupFormRow>
+					<span>Spans both columns</span>
+				</ClassicyControlGroupFormRow>
+			</ClassicyControlGroup>,
+		);
+		const row = container.querySelector(
+			".classicyControlGroupFormContent > .classicyControlGroupFormRow",
+		);
+		expect(row).toBeInTheDocument();
+		expect(row).not.toHaveClass("classicyControlGroupFormRowEnd");
+		expect(screen.getByText("Spans both columns")).toBeInTheDocument();
+	});
+
+	it("right-aligns a form row's content with justify='end'", () => {
+		const { container } = render(
+			<ClassicyControlGroupFormRow justify="end">
+				<button type="button">Test</button>
+			</ClassicyControlGroupFormRow>,
+		);
+		expect(container.querySelector(".classicyControlGroupFormRow")).toHaveClass(
+			"classicyControlGroupFormRowEnd",
+		);
+	});
+
+	it("stacks group boxes inside a ClassicyControlGroupStack", () => {
+		const { container } = render(
+			<ClassicyControlGroupStack className="extra">
+				<ClassicyControlGroup label="One">{null}</ClassicyControlGroup>
+				<ClassicyControlGroup label="Two">{null}</ClassicyControlGroup>
+			</ClassicyControlGroupStack>,
+		);
+		const stack = container.querySelector(".classicyControlGroupStack");
+		expect(stack).toBeInTheDocument();
+		expect(stack).toHaveClass("extra");
+		expect(
+			stack?.querySelectorAll(":scope > fieldset.classicyControlGroupFieldset"),
+		).toHaveLength(2);
 	});
 });

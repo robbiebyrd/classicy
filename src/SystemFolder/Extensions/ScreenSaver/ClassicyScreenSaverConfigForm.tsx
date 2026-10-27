@@ -5,6 +5,7 @@ import type {
 	ClassicyScreenSaverDefinition,
 } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverRegistry";
 import { ClassicyCheckbox } from "@/SystemFolder/SystemResources/Checkbox/ClassicyCheckbox";
+import { ClassicyControlGroupFormRow } from "@/SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup";
 import { ClassicyInput } from "@/SystemFolder/SystemResources/Input/ClassicyInput";
 import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
 import { ClassicySpinner } from "@/SystemFolder/SystemResources/Spinner/ClassicySpinner";
@@ -32,6 +33,15 @@ const unwrapField = (field: z.ZodType): UnwrappedField => {
  * boolean → checkbox, enum → pop-up menu, string → input. Field `.describe()`
  * text becomes the label. Savers wanting richer options supply a
  * `configComponent` instead; this is the zero-effort tier.
+ *
+ * The fields are rows of the Screen Saver control panel's
+ * `ClassicyControlGroup layout="form"` grid: labelled controls carry their
+ * label on the left so label and control fill the row's two columns; a
+ * checkbox — whose label follows its box — and a text field — whose value
+ * needs the width a sentence-long label would take — each get a full-width
+ * `ClassicyControlGroupFormRow` (the text field's label sits above it, HIGOS8
+ * Figure 3-34). A custom `configComponent` is laid out the same way, so it
+ * should render the same kinds of rows.
  */
 export const ClassicyScreenSaverConfigForm: FunctionalComponent<
 	{ saver: ClassicyScreenSaverDefinition } & ClassicyScreenSaverConfigProps
@@ -47,13 +57,14 @@ export const ClassicyScreenSaverConfigForm: FunctionalComponent<
 				const id = `ScreenSaver_${saver.id}_${key}`;
 				if (field instanceof z.ZodBoolean) {
 					return (
-						<ClassicyCheckbox
-							key={key}
-							id={id}
-							label={label}
-							checked={config[key] === true}
-							onClickFunc={(checked) => onChange({ [key]: checked })}
-						/>
+						<ClassicyControlGroupFormRow key={key}>
+							<ClassicyCheckbox
+								id={id}
+								label={label}
+								checked={config[key] === true}
+								onClickFunc={(checked) => onChange({ [key]: checked })}
+							/>
+						</ClassicyControlGroupFormRow>
 					);
 				}
 				if (field instanceof z.ZodNumber) {
@@ -92,13 +103,14 @@ export const ClassicyScreenSaverConfigForm: FunctionalComponent<
 				}
 				if (field instanceof z.ZodString) {
 					return (
-						<ClassicyInput
-							key={key}
-							id={id}
-							labelTitle={label}
-							prefillValue={String(config[key] ?? "")}
-							onChangeFunc={(e) => onChange({ [key]: e.target.value })}
-						/>
+						<ClassicyControlGroupFormRow key={key}>
+							<ClassicyInput
+								id={id}
+								labelTitle={label}
+								prefillValue={String(config[key] ?? "")}
+								onChangeFunc={(e) => onChange({ [key]: e.target.value })}
+							/>
+						</ClassicyControlGroupFormRow>
 					);
 				}
 				// Unsupported field types simply don't render a control; the

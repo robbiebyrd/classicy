@@ -116,6 +116,13 @@ describe("getThemeVars", () => {
 		expect(vars).toHaveProperty("--desktop-icon-size");
 	});
 
+	it("contains the HIG group-box spacing tokens (Figure 3-29)", () => {
+		const theme = getTheme("default");
+		const vars = getThemeVars(theme);
+		expect(vars["--hig-groupbox-gap-v"]).toBe("12px");
+		expect(vars["--hig-groupbox-gap-h"]).toBe("10px");
+	});
+
 	it("contains --hig-titlebar-height-utility set to 10px", () => {
 		const theme = getTheme("default");
 		const vars = getThemeVars(theme);

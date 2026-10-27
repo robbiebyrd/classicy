@@ -1,7 +1,14 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyCheckbox } from "@/SystemFolder/SystemResources/Checkbox/ClassicyCheckbox";
 import { ClassicyInput } from "@/SystemFolder/SystemResources/Input/ClassicyInput";
-import { ClassicyControlGroup } from "./ClassicyControlGroup";
+import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
+import { ClassicySpinner } from "@/SystemFolder/SystemResources/Spinner/ClassicySpinner";
+import {
+	ClassicyControlGroup,
+	ClassicyControlGroupFormRow,
+	ClassicyControlGroupStack,
+} from "./ClassicyControlGroup";
 
 const meta = {
 	title: "Controls/ControlGroup",
@@ -176,6 +183,83 @@ export const FormLayout: Story = {
 			</>
 		),
 	},
+};
+
+/**
+ * Rows that are not a label/control pair — a checkbox, a push button — go in a
+ * `ClassicyControlGroupFormRow`, which spans both columns; `justify="end"`
+ * puts a button at the group's lower right (HIGOS8 p.72). Mixed controls
+ * (pop-up, spinner, text field) share one control column.
+ */
+export const FormLayoutWithRows: Story = {
+	args: {
+		label: "Screen Saver",
+		layout: "form",
+		children: (
+			<>
+				<ClassicyControlGroupFormRow>
+					<ClassicyCheckbox
+						id="cg-rows-enabled"
+						checked={true}
+						label="Start screen saver when idle"
+					/>
+				</ClassicyControlGroupFormRow>
+				<ClassicyPopUpMenu
+					id="cg-rows-saver"
+					label="Screen saver"
+					labelPosition="left"
+					options={[
+						{ value: "toasters", label: "Flying Toasters" },
+						{ value: "fish", label: "Fish" },
+					]}
+					selected="toasters"
+				/>
+				<ClassicySpinner
+					id="cg-rows-minutes"
+					labelTitle="Minutes of inactivity"
+					labelPosition="left"
+					minValue={1}
+					maxValue={240}
+					prefillValue={5}
+				/>
+				<ClassicyControlGroupFormRow justify="end">
+					<ClassicyButton>Test</ClassicyButton>
+				</ClassicyControlGroupFormRow>
+			</>
+		),
+	},
+};
+
+/**
+ * `ClassicyControlGroupStack` stacks group boxes 12px frame to frame (HIGOS8
+ * Figure 3-29); a lower group's title overhangs into that gap instead of
+ * widening it.
+ */
+export const Stacked: Story = {
+	args: {
+		label: "General",
+		children: null,
+	},
+	render: () => (
+		<ClassicyControlGroupStack>
+			<ClassicyControlGroup label="General" layout="form">
+				<ClassicyInput
+					id="cg-stack-name"
+					labelTitle="Name"
+					labelPosition="left"
+				/>
+			</ClassicyControlGroup>
+			<ClassicyControlGroup label="Options" layout="form">
+				<ClassicyControlGroupFormRow>
+					<ClassicyCheckbox
+						id="cg-stack-verify"
+						checked={true}
+						label="Verify on startup"
+					/>
+				</ClassicyControlGroupFormRow>
+			</ClassicyControlGroup>
+		</ClassicyControlGroupStack>
+	),
 };
 
 /** `title` takes any node — here a bold run — when plain text is not enough. */

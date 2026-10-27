@@ -203,6 +203,8 @@ export const getThemeVars = (theme: ClassicyTheme) => {
 		"--hig-groupbox-margin-top": intToPx(12),
 		"--hig-groupbox-margin-bottom": intToPx(10),
 		"--hig-groupbox-title-pad": intToPx(3),
+		"--hig-groupbox-gap-v": intToPx(12), // frame-to-frame, stacked group boxes
+		"--hig-groupbox-gap-h": intToPx(10), // frame-to-frame, side-by-side group boxes
 		// Indicators & misc controls.
 		"--hig-progress-height": intToPx(12),
 		"--hig-static-text-height": intToPx(16),

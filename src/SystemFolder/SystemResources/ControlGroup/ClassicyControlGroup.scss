@@ -1,6 +1,11 @@
 @use '../../ControlPanels/AppearanceManager/styles/appearance';
 @use '../../ControlPanels/AppearanceManager/styles/assets';
 
+// Half the legend's line box: the part of a title that overhangs above the
+// frame. A labeled group reserves it above its border; a stack subtracts it
+// so the HIG frame-to-frame distance holds.
+$legend-overhang: calc(var(--ui-font-size) * 0.75 * 1.4 / 2);
+
 .classicyControlGroupFieldset {
   position: relative;
   flex-grow: 0;
@@ -34,7 +39,7 @@
 .classicyControlGroupFieldsetLabeled {
   // Reserve the space an in-flow legend used to occupy: half its line box
   // overhangs above the border, the rest displaces the content below.
-  margin-top: calc(var(--ui-font-size) * 0.75 * 1.4 / 2);
+  margin-top: $legend-overhang;
   // Content clears the legend overhanging the top border; keep the HIG 12px
   // top margin as the floor so short text titles still get headroom and
   // taller checkbox / pop-up titles are not clipped.
@@ -59,14 +64,85 @@
   white-space: nowrap;
 }
 
+// Form layout (HIGOS8 Ch.3 "Static Text Field Layout", p.84): labels in a
+// left-aligned column — the HIG's standard approach — and every control
+// starting at the same x. Each direct child dissolves (`display: contents`)
+// so its label and control become the row's two cells.
 .classicyControlGroupFormContent {
   display: grid;
   grid-template-columns: max-content 1fr;
   align-items: center;
-  column-gap: calc(var(--window-padding-size) * 2);
-  row-gap: var(--window-padding-size);
+  // 5px between a static text field and the item it defines (p.84).
+  column-gap: var(--hig-control-label-gap);
+  // 6px between stacked pop-ups / edit text fields (Figures 3-25, 3-30) and
+  // below a label's baseline (Figure 3-34).
+  row-gap: var(--hig-item-gap-focus);
 
-  > * {
+  // `:not(...)` lifts the specificity above a control's own wrapper rule
+  // (`.classicyPopUpMenuWrapper { display: flex }` and friends), so the
+  // dissolve does not depend on stylesheet order.
+  > :not(.classicyControlGroupFormRow) {
     display: contents;
+  }
+
+  // The label cell is the row's left edge: drop the indent a control label
+  // carries for its box/icon so labels align with the group title and with
+  // full-width rows (Figure 3-27), and keep them on one line — the column is
+  // sized to the longest label, so wrapping would only misalign the fields.
+  > * > .classicyControlLabelHolder {
+    white-space: nowrap;
+
+    > .classicyControlLabel {
+      margin-left: 0;
+    }
+  }
+
+  // Likewise for a label stacked above its control on a full-width row.
+  > .classicyControlGroupFormRow > .classicyLabelAbove > .classicyControlLabelHolder > .classicyControlLabel {
+    margin-left: 0;
+  }
+
+  // Edit text fields and pop-up menus are sized content-box, so `width: 100%`
+  // plus their frame would poke past the column (or the row) they fill and
+  // out of line with a right-aligned button below.
+  .classicyInput,
+  .classicyPopUpMenu {
+    box-sizing: border-box;
+  }
+
+  // A row that is not a label/control pair spans both columns.
+  > .classicyControlGroupFormRow {
+    display: flex;
+    align-items: center;
+    gap: var(--hig-item-gap);
+    grid-column: 1 / -1;
+  }
+
+  > .classicyControlGroupFormRowEnd {
+    justify-content: flex-end;
+  }
+
+  // The grid's gaps space the rows, so a push button's own outer margin would
+  // only push it off the group's edge and out of line with the controls
+  // above; side by side, buttons keep the HIG 12px between them (p.74).
+  > .classicyControlGroupFormRow > .classicyButton {
+    margin: 0;
+
+    + .classicyButton {
+      margin-left: calc(var(--hig-button-gap-h) - var(--hig-item-gap));
+    }
+  }
+}
+
+// A column of group boxes, 12px frame to frame (Figure 3-29). A following
+// labeled group's own `margin-top` only reserves its title's overhang; the
+// HIG gap is measured between the border lines, so the overhang sits inside
+// it — unless the title is taller than the gap, which still wins.
+.classicyControlGroupStack {
+  display: flex;
+  flex-direction: column;
+
+  > .classicyControlGroupFieldset + .classicyControlGroupFieldset {
+    margin-top: max(var(--hig-groupbox-gap-v), #{$legend-overhang});
   }
 }

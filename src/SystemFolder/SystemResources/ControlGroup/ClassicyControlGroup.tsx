@@ -39,9 +39,14 @@ type ClassicyControlGroupProps = {
 	 */
 	columns?: boolean;
 	/**
-	 * `form` lays the content out as a two-column label/control grid: each
-	 * child's own children (e.g. a `ClassicyInput`'s label and field) become
-	 * one row. Defaults to `default` (normal block flow).
+	 * `form` lays the content out as a two-column label/control grid (HIGOS8
+	 * Ch.3 "Static Text Field Layout", p.84): each child's own children (e.g. a
+	 * `ClassicyInput`'s label and field, with `labelPosition="left"`) become
+	 * one row, so every field starts at the same x. Labels sit 5px from their
+	 * fields and rows 6px apart. A child that is not a label/control pair — a
+	 * checkbox, a push button, a sentence — goes in a
+	 * `ClassicyControlGroupFormRow`, which spans both columns. Defaults to
+	 * `default` (normal block flow).
 	 */
 	layout?: "default" | "form";
 	/**
@@ -127,3 +132,78 @@ export const ClassicyControlGroup: FunctionalComponent<
 		</fieldset>
 	);
 };
+
+type ClassicyControlGroupFormRowProps = {
+	/**
+	 * Where the row's content sits. `start` (default) keeps it on the label
+	 * column's edge, so a checkbox's box lines up with the labels above and
+	 * below it (HIGOS8 Figure 3-27); `end` pushes it to the group's right
+	 * edge — the HIG's lower-right home for a push button (p.72).
+	 */
+	justify?: "start" | "end";
+	/** The row's content. */
+	children: ReactNode;
+};
+
+/**
+ * A full-width row inside a `ClassicyControlGroup layout="form"`. The form
+ * grid turns each direct child's own children into label and control cells,
+ * which is wrong for anything that is not such a pair: a `ClassicyCheckbox`
+ * (its label follows its box), a `ClassicyButton`, or plain text. Wrap those
+ * in this row and they span both columns instead. The grid's gaps do the
+ * spacing, so a `ClassicyButton` in a row drops its outer margin and sits
+ * flush with the controls' edges; side by side, buttons keep the HIG 12px.
+ *
+ * ```tsx
+ * <ClassicyControlGroup label="Screen Saver" layout="form">
+ *     <ClassicyControlGroupFormRow>
+ *         <ClassicyCheckbox id="on" label="Start screen saver when idle" />
+ *     </ClassicyControlGroupFormRow>
+ *     <ClassicyPopUpMenu id="saver" label="Screen saver" labelPosition="left" … />
+ *     <ClassicyControlGroupFormRow justify="end">
+ *         <ClassicyButton>Test</ClassicyButton>
+ *     </ClassicyControlGroupFormRow>
+ * </ClassicyControlGroup>
+ * ```
+ */
+export const ClassicyControlGroupFormRow: FunctionalComponent<
+	ClassicyControlGroupFormRowProps
+> = ({ justify = "start", children }) => (
+	<div
+		className={classNames(
+			"classicyControlGroupFormRow",
+			justify === "end" && "classicyControlGroupFormRowEnd",
+		)}
+	>
+		{children}
+	</div>
+);
+
+type ClassicyControlGroupStackProps = {
+	/** Extra class on the stack (e.g. for the panel's own padding). */
+	className?: string;
+	/** The group boxes, top to bottom. */
+	children: ReactNode;
+};
+
+/**
+ * Stacks group boxes vertically at the HIG distance: 12px from one frame to
+ * the next (HIGOS8 Figure 3-29, `--hig-groupbox-gap-v`), measured between
+ * the border lines, so a title overhanging the lower box's top edge sits
+ * inside that gap rather than adding to it. Use it as the content of a
+ * control panel or dialog that is a column of group boxes.
+ *
+ * ```tsx
+ * <ClassicyControlGroupStack className="myPanelContent">
+ *     <ClassicyControlGroup label="General">…</ClassicyControlGroup>
+ *     <ClassicyControlGroup label="Options">…</ClassicyControlGroup>
+ * </ClassicyControlGroupStack>
+ * ```
+ */
+export const ClassicyControlGroupStack: FunctionalComponent<
+	ClassicyControlGroupStackProps
+> = ({ className, children }) => (
+	<div className={classNames("classicyControlGroupStack", className)}>
+		{children}
+	</div>
+);

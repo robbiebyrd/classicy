@@ -530,7 +530,9 @@ usable pre-boot): `title?`, `children` *, `className?`, `width?`.
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
 | `ClassicyControlLabel` | `label?`, `labelFor?`, `id?` (the `<label>`'s id, for `aria-labelledby`), `labelSize?`, `icon?`, `direction?`, `disabled?`, `onClickFunc?` | renders nothing when label empty; the row is a focusable `role="button"` only with `onClickFunc` |
-| `ClassicyControlGroup` | `children` *, `label?`, `title?` (`ReactNode`; overrides `label`), `backgroundColor?` (painted behind the title so it masks the frame line; match the surface the group sits on; default `var(--color-system-03)`), `variant? ("primary"\|"secondary")`, `checkboxTitle?`, `popUpMenuTitle?`, `columns?`, `layout? ("default"\|"form")` | fieldset-style group; title can be a checkbox or popup |
+| `ClassicyControlGroup` | `children` *, `label?`, `title?` (`ReactNode`; overrides `label`), `backgroundColor?` (painted behind the title so it masks the frame line; match the surface the group sits on; default `var(--color-system-03)`), `variant? ("primary"\|"secondary")`, `checkboxTitle?`, `popUpMenuTitle?`, `columns?`, `layout? ("default"\|"form")` | fieldset-style group; title can be a checkbox or popup. `layout="form"` is the HIG two-column label/control grid (labels 5px from fields, rows 6px apart; give controls `labelPosition="left"`) |
+| `ClassicyControlGroupFormRow` | `children` *, `justify? ("start"\|"end")` | full-width row inside a `layout="form"` group for anything that is not a label/control pair (checkbox, push button, text); `end` puts a button at the group's lower right |
+| `ClassicyControlGroupStack` | `children` *, `className?` | column of group boxes 12px frame to frame (`--hig-groupbox-gap-v`); the content of a control panel that is a stack of groups |
 | `ClassicyForm` | `onSubmitFunc?`, `layout? ("default"\|"dialog")`, children * | real `<form>`; always calls `preventDefault` (never navigates); make the confirming button `isDefault buttonType="submit"` so Enter submits |
 | `ClassicyFormButtonRow` | `children` * | HIG dialog button row: right-aligned, `--hig-button-gap-h`, group-gap above |
 | `ClassicySeparator` | `orientation?` | |
@@ -1099,7 +1101,7 @@ exposed as variables so custom components share the system's spacing:
 | Buttons | `--hig-button-height` (20), `--hig-button-min-width` (58, standard OK/Cancel), `--hig-button-text-padding` (8), `--hig-button-default-ring` (3), `--hig-button-gap-h` (12), `--hig-button-gap-v` (10), `--hig-dialog-edge` (12) |
 | Spacing | `--hig-item-gap` (4), `--hig-item-gap-focus` (6), `--hig-group-gap` (16) |
 | Controls | `--hig-control-box` (12), `--hig-control-height` (18), `--hig-control-label-gap` (5), `--hig-popup-height` (20), `--hig-editfield-height` (22) |
-| Group boxes | `--hig-groupbox-margin-side` (10), `--hig-groupbox-margin-top` (12), `--hig-groupbox-margin-bottom` (10), `--hig-groupbox-title-pad` (3) |
+| Group boxes | `--hig-groupbox-margin-side` (10), `--hig-groupbox-margin-top` (12), `--hig-groupbox-margin-bottom` (10), `--hig-groupbox-title-pad` (3), `--hig-groupbox-gap-v` (12, frame to frame stacked), `--hig-groupbox-gap-h` (10, side by side) |
 | Misc | `--hig-progress-height` (12), `--hig-static-text-height` (16), `--hig-disclosure-text-gap` (5), `--hig-help-button-width` (20), `--hig-help-button-height` (21) |
 | Frames & bevels | `--hig-frame-width` (2), `--hig-bevel-sm` (2), `--hig-bevel-md` (3), `--hig-bevel-lg` (4) |
 | Title bars | `--hig-titlebar-height` (19, document), `--hig-titlebar-height-utility` (10, utility/tool palette) |

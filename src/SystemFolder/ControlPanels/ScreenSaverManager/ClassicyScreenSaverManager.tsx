@@ -33,10 +33,15 @@ import {
 } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyCheckbox } from "@/SystemFolder/SystemResources/Checkbox/ClassicyCheckbox";
-import { ClassicyControlGroup } from "@/SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup";
+import {
+	ClassicyControlGroup,
+	ClassicyControlGroupFormRow,
+	ClassicyControlGroupStack,
+} from "@/SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup";
 import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
 import { ClassicySpinner } from "@/SystemFolder/SystemResources/Spinner/ClassicySpinner";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
+import "./ClassicyScreenSaverManager.scss";
 
 const APP_ID = SCREEN_SAVER_MANAGER_APP_ID;
 const APP_NAME = "Screen Saver";
@@ -142,19 +147,26 @@ export function ClassicyScreenSaverManager() {
 					editMenu,
 				]}
 			>
-				<div style={{ padding: "var(--window-padding-size)" }}>
-					<ClassicyControlGroup label="Screen Saver">
-						<ClassicyCheckbox
-							id="ScreenSaverManager_enabled"
-							label="Start screen saver when idle"
-							checked={isScreenSaverEnabled(saverData)}
-							onClickFunc={(checked) =>
-								dispatch({
-									type: "ClassicyAppScreenSaverSetEnabled",
-									enabled: checked,
-								})
-							}
-						/>
+				{/* HIGOS8 Ch.3 layout: labels and their controls in two aligned
+				    columns (p.84), the checkbox and the push button on full-width
+				    rows so the box lines up with the labels (Figure 3-27) and the
+				    button sits at the group's lower right (p.72), and the two
+				    group boxes 12px apart (Figure 3-29). */}
+				<ClassicyControlGroupStack className="classicyScreenSaverManagerContent">
+					<ClassicyControlGroup label="Screen Saver" layout="form">
+						<ClassicyControlGroupFormRow>
+							<ClassicyCheckbox
+								id="ScreenSaverManager_enabled"
+								label="Start screen saver when idle"
+								checked={isScreenSaverEnabled(saverData)}
+								onClickFunc={(checked) =>
+									dispatch({
+										type: "ClassicyAppScreenSaverSetEnabled",
+										enabled: checked,
+									})
+								}
+							/>
+						</ClassicyControlGroupFormRow>
 						<ClassicyPopUpMenu
 							id="ScreenSaverManager_saver"
 							label="Screen saver"
@@ -185,13 +197,15 @@ export function ClassicyScreenSaverManager() {
 								}
 							}}
 						/>
-						<ClassicyButton
-							onClickFunc={() =>
-								dispatch({ type: SCREEN_SAVER_ACTIVATE_EVENT })
-							}
-						>
-							Test
-						</ClassicyButton>
+						<ClassicyControlGroupFormRow justify="end">
+							<ClassicyButton
+								onClickFunc={() =>
+									dispatch({ type: SCREEN_SAVER_ACTIVATE_EVENT })
+								}
+							>
+								Test
+							</ClassicyButton>
+						</ClassicyControlGroupFormRow>
 					</ClassicyControlGroup>
 					{selected && (
 						// Keyed by saver id so option controls remount (and re-prefill)
@@ -199,6 +213,7 @@ export function ClassicyScreenSaverManager() {
 						<ClassicyControlGroup
 							key={selected.id}
 							label={`Options for ${selected.name}`}
+							layout="form"
 						>
 							{OptionsComponent ? (
 								<OptionsComponent config={config} onChange={onConfigChange} />
@@ -209,11 +224,13 @@ export function ClassicyScreenSaverManager() {
 									onChange={onConfigChange}
 								/>
 							) : (
-								<span>This screen saver has no options.</span>
+								<ClassicyControlGroupFormRow>
+									<span>This screen saver has no options.</span>
+								</ClassicyControlGroupFormRow>
 							)}
 						</ClassicyControlGroup>
 					)}
-				</div>
+				</ClassicyControlGroupStack>
 			</ClassicyWindow>
 			{aboutWindow}
 		</ClassicyApp>
