@@ -652,13 +652,13 @@ export const HyperCard: FunctionalComponent = () => {
 				title: "File",
 				menuChildren: [
 					{ ...aboutMenuItem, title: `About ${appName}` },
-					{ id: "file_sep_about", title: "-" },
+					{ id: "spacer" },
 					{
 						id: "new_stack",
 						title: "New Stack…",
 						onClickFunc: newStack,
 					},
-					{ id: "file_sep", title: "-" },
+					{ id: "spacer" },
 					...(activeStackId && !edit
 						? [
 								{
@@ -763,7 +763,7 @@ export const HyperCard: FunctionalComponent = () => {
 										},
 							]
 						: []),
-					...(activeStackId ? [{ id: "file_sep_2", title: "-" }] : []),
+					...(activeStackId ? [{ id: "spacer" }] : []),
 					// #236: Quit walks every dirty stack (Save/Discard/Cancel) before
 					// actually dispatching ClassicyAppClose — see handleQuit above.
 					{
@@ -796,7 +796,7 @@ export const HyperCard: FunctionalComponent = () => {
 											stackId: activeStackId,
 										}),
 								},
-								{ id: "edit_sep", title: "-" },
+								{ id: "spacer" },
 								{
 									id: "copy_part",
 									title: "Copy Part",
@@ -828,7 +828,7 @@ export const HyperCard: FunctionalComponent = () => {
 											partId: edit.selectedPartId,
 										}),
 								},
-								{ id: "edit_sep_2", title: "-" },
+								{ id: "spacer" },
 								{
 									id: "edit_script",
 									title: "Edit Script…",
@@ -879,7 +879,7 @@ export const HyperCard: FunctionalComponent = () => {
 					{ id: "go_prev", title: "Prev", onClickFunc: () => navigate("prev") },
 					{ id: "go_next", title: "Next", onClickFunc: () => navigate("next") },
 					{ id: "go_last", title: "Last", onClickFunc: () => navigate("last") },
-					{ id: "go_sep", title: "-" },
+					{ id: "spacer" },
 					{ id: "go_back", title: "Back", onClickFunc: () => navigate("back") },
 				],
 			},
@@ -907,7 +907,7 @@ export const HyperCard: FunctionalComponent = () => {
 											stackId: activeStackId,
 										}),
 								},
-								{ id: "objects_sep", title: "-" },
+								{ id: "spacer" },
 								{
 									id: "toggle_layer",
 									title:

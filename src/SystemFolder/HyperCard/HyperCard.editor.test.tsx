@@ -1058,3 +1058,23 @@ describe("HyperCard unsaved-changes guard (#236)", () => {
 		);
 	});
 });
+
+describe("HyperCard menus — dividers", () => {
+	type Item = { id: string; title?: string; menuChildren?: Item[] };
+	const walk = (items: Item[]): Item[] =>
+		items.flatMap((i) => [i, ...walk(i.menuChildren ?? [])]);
+
+	// The only divider ClassicyMenu knows is `{ id: "spacer" }` (rendered as a
+	// ClassicySeparator). A `{ title: "-" }` item is a real, focusable,
+	// clickable menu item whose label is a dash — not a divider.
+	it.each([
+		["browsing", undefined],
+		["editing", makeEdit()],
+	])("uses { id: 'spacer' } for every divider while %s", (_label, edit) => {
+		mockState = stateWith(edit);
+		render(<HyperCard />);
+		const all = walk(capturedMenus.hypercard_main as Item[]);
+		expect(all.filter((i) => i.title === "-")).toEqual([]);
+		expect(all.filter((i) => i.id === "spacer").length).toBeGreaterThan(0);
+	});
+});
