@@ -53,4 +53,66 @@ describe("ClassicyColorPickerDialog layout", () => {
 		expect(rule(".classicyColorPickerDialogFooter")["flex-shrink"]).toBe("0");
 		expect(rule(".classicyColorPickerPreview")["flex-shrink"]).toBe("0");
 	});
+
+	// The dialog is a fixed 520×430 window whose panel area measures 413×309
+	// (Chromium, default theme). Every panel has to fit that box without the
+	// panel's own `overflow: auto` growing scrollbars: the crayon box used to
+	// run 49px too tall and the wheel panels 23px too wide.
+	describe("panels fit the fixed window", () => {
+		it("sizes crayons from the box width so the rows scale with the panel", () => {
+			const row = rule(".classicyColorPickerCrayonRow");
+			expect(row.display).toBe("grid");
+			expect(row["grid-template-columns"]).toBe(
+				"repeat(var(--cp-crayon-cols), 1fr)",
+			);
+			// Rows overlap by a share of the crayon height. A percentage top
+			// margin resolves against the containing block's WIDTH, which is
+			// what ties the overlap to the crayon width the grid hands out.
+			const overlap = rule(".classicyColorPickerCrayonRow:not(:first-child)")[
+				"margin-top"
+			];
+			expect(overlap).toContain("100% / var(--cp-crayon-cols)");
+			expect(overlap).toContain("var(--cp-crayon-aspect)");
+			const crayon = rule(".classicyColorPickerCrayon");
+			expect(crayon.width).toBe("100%");
+			expect(crayon["aspect-ratio"]).toBe("1/var(--cp-crayon-aspect)");
+			expect(rule(".classicyColorPickerCrayon svg").width).toBe("100%");
+			expect(rule(".classicyColorPickerCrayon svg").height).toBe("100%");
+		});
+
+		it("lets the wheel shrink to the room left beside its fields", () => {
+			const outer = rule(".classicyColorPickerWheelOuter");
+			expect(outer.width).toBe("100%");
+			expect(outer["max-width"]).toBe("240px");
+			expect(outer["aspect-ratio"]).toBe("1");
+			expect(outer.height).toBeUndefined();
+			// Room for the half of the 180° label that hangs off the square's
+			// left edge; without it the panel clipped the label to "80°".
+			expect(outer["margin-left"]).toBe("14px");
+			expect(outer["flex-shrink"]).toBeUndefined();
+			const canvas = rule(".classicyColorPickerWheelCanvas");
+			expect(canvas.width).toBe("100%");
+			expect(canvas.height).toBe("100%");
+			const wrapper = rule(".classicyColorPickerWheelCanvasWrapper");
+			expect(wrapper.inset).toBe("8.3333333333%");
+			// Degree labels ring the wheel in percentages of the square, not
+			// pixels of the old fixed 240px box.
+			const zero = rule(
+				'.classicyColorPickerWheelDegreeLabel[data-degree="0"]',
+			);
+			expect(zero.left).toBe("100%");
+			expect(zero.top).toBe("50%");
+			const fields = rule(".classicyColorPickerWheelFields");
+			expect(fields["flex-shrink"]).toBe("0");
+			expect(
+				rule(".classicyColorPickerWheelField label")["min-width"],
+			).toBeUndefined();
+		});
+
+		it("keeps the preview strip inside the dialog's width", () => {
+			expect(rule(".classicyColorPickerPreview")["box-sizing"]).toBe(
+				"border-box",
+			);
+		});
+	});
 });

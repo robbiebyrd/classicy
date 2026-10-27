@@ -5,6 +5,7 @@ import { ClassicyColorPickerCMYK } from "./ClassicyColorPickerCMYK";
 import { ClassicyColorPickerCrayon } from "./ClassicyColorPickerCrayon";
 import { MAC_OS_8_CRAYONS } from "./ClassicyColorPickerCrayons";
 import { ClassicyColorPickerRGB } from "./ClassicyColorPickerRGB";
+import { ClassicyColorWheel } from "./ClassicyColorWheel";
 
 // ── Module mocks (hoisted) ────────────────────────────────────────────────────
 
@@ -203,5 +204,56 @@ describe("ClassicyColorPickerCMYK — boundary values", () => {
 		const sliders = container.querySelectorAll('input[type="range"]');
 		fireEvent.change(sliders[3], { target: { value: "0" } }); // K=0, rest already 0
 		expect(onChange).toHaveBeenLastCalledWith(0xffffff);
+	});
+
+	it("lays the stock box out as four full rows of sixteen, told to CSS through --cp-crayon-cols", () => {
+		render(
+			<ClassicyColorPickerCrayon
+				color={0x000000}
+				crayons={MAC_OS_8_CRAYONS}
+				onChangeFunc={vi.fn()}
+			/>,
+		);
+		const rows = document.querySelectorAll(".classicyColorPickerCrayonRow");
+		expect(rows).toHaveLength(4);
+		for (const row of rows) expect(row.children).toHaveLength(16);
+		const rowsBox = document.querySelector(
+			".classicyColorPickerCrayonRows",
+		) as HTMLElement;
+		expect(rowsBox.style.getPropertyValue("--cp-crayon-cols")).toBe("16");
+	});
+});
+
+describe("ClassicyColorWheel — hit test", () => {
+	it("reads hue and saturation from the rendered size, not the bitmap size", () => {
+		// The canvas bitmap is `size` px square but CSS scales it to fit the
+		// panel; a pointer at the rendered right edge is still hue 0 / sat 100.
+		const onChangeFunc = vi.fn();
+		render(
+			<ClassicyColorWheel
+				hue={0}
+				saturation={0}
+				brightness={100}
+				mode="hsv"
+				size={200}
+				onChangeFunc={onChangeFunc}
+			/>,
+		);
+		const canvas = document.querySelector("canvas") as HTMLCanvasElement;
+		vi.spyOn(canvas, "getBoundingClientRect").mockReturnValue({
+			left: 0,
+			top: 0,
+			width: 100,
+			height: 100,
+			right: 100,
+			bottom: 100,
+			x: 0,
+			y: 0,
+			toJSON: () => ({}),
+		} as DOMRect);
+		fireEvent.pointerDown(canvas, { clientX: 100, clientY: 50, pointerId: 1 });
+		expect(onChangeFunc).toHaveBeenLastCalledWith(0, 100);
+		fireEvent.pointerDown(canvas, { clientX: 50, clientY: 75, pointerId: 1 });
+		expect(onChangeFunc).toHaveBeenLastCalledWith(90, 50);
 	});
 });

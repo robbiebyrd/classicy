@@ -81,13 +81,17 @@ export const ClassicyColorWheel: FC<ClassicyColorWheelProps> = ({
 		ctx.restore();
 	}, [size, hue, saturation, brightness, mode]);
 
+	// In rendered pixels, not bitmap pixels: the canvas is `size` square but
+	// the stylesheet scales it to the room the panel has, so the radius is
+	// whatever it is on screen.
 	const hitTest = (
 		e: PointerEvent<HTMLCanvasElement>,
 	): { h: number; s: number } | null => {
 		const canvas = canvasRef.current;
 		if (!canvas) return null;
 		const rect = canvas.getBoundingClientRect();
-		const radius = size / 2;
+		const radius = rect.width / 2;
+		if (radius <= 0) return null;
 		const dx = e.clientX - rect.left - radius;
 		const dy = e.clientY - rect.top - radius;
 		const dist = Math.min(Math.sqrt(dx * dx + dy * dy), radius);
@@ -98,7 +102,8 @@ export const ClassicyColorWheel: FC<ClassicyColorWheelProps> = ({
 
 	const onPointerDown = (e: PointerEvent<HTMLCanvasElement>) => {
 		dragging.current = true;
-		(e.target as HTMLCanvasElement).setPointerCapture(e.pointerId);
+		// Optional-called: jsdom has no pointer capture.
+		(e.target as HTMLCanvasElement).setPointerCapture?.(e.pointerId);
 		const hs = hitTest(e);
 		if (hs) onChangeFunc(hs.h, hs.s);
 	};

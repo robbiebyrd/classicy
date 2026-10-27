@@ -1,13 +1,25 @@
 @use '../../ControlPanels/AppearanceManager/styles/appearance';
 @use 'sass:math';
 
-// Wheel geometry — must match WHEEL_SIZE in ClassicyColorPickerHSV/HLS.tsx.
-// The degree labels ring the wheel at $cp-wheel-label-radius from its center.
-$cp-wheel-size: 200px;
-$cp-wheel-padding: 20px;
-$cp-wheel-radius: math.div($cp-wheel-size, 2);
-$cp-wheel-label-radius: $cp-wheel-radius + $cp-wheel-padding;
+// Wheel geometry. The wheel is drawn as a 200px bitmap (WHEEL_SIZE in
+// ClassicyColorPickerHSV/HLS.tsx) but laid out as a square that shrinks to
+// the room left beside its fields, up to $cp-wheel-max: the canvas is scaled
+// by CSS and the hit test reads its rendered size. Inside the square the wheel
+// sits $cp-wheel-inset in from each edge, and the degree labels ring it on the
+// square's edge — all in percentages, so the ring follows the wheel at any
+// size.
+$cp-wheel-max: 240px;
+$cp-wheel-inset: math.div(20px, $cp-wheel-max) * 100%;
 $cp-wheel-degree-marks: 0, 60, 120, 180, 240, 300;
+// The 0° and 180° labels straddle the square's side edges; this is the half
+// of a label that hangs outside, which the layout leaves room for on the
+// left (on the right it sits in the gap before the fields).
+$cp-wheel-label-overhang: 14px;
+
+// Crayon artwork: the SVG is 36 × 96, drawn at 1:3; its tip (the part a row
+// in front leaves visible) is the top 31%. Both feed the CSS below.
+$cp-crayon-aspect: 3;
+$cp-crayon-tip: 0.31;
 
 // ── Swatch button ────────────────────────────────────────────────────────────
 
@@ -107,6 +119,9 @@ $cp-wheel-degree-marks: 0, 60, 120, 180, 240, 300;
 .classicyColorPickerPreview {
   background-color: var(--classicy-preview-color);
   width: 100%;
+  // The borders would otherwise sit outside the 100% and run the whole
+  // dialog column 2px past its window.
+  box-sizing: border-box;
   height: var(--icon-size-regular);
   border: var(--window-border-size) solid var(--color-window-border);
   box-shadow:
@@ -145,21 +160,31 @@ $cp-wheel-degree-marks: 0, 60, 120, 180, 240, 300;
   overflow: hidden;
 }
 
+// The crayons are sized from the box, not the other way round: each row is a
+// grid of --cp-crayon-cols equal columns (set inline by the component), so a
+// crayon is 1/cols of the box width and $cp-crayon-aspect times as tall. The
+// stock 64-crayon box is four full rows of sixteen, which fits the dialog's
+// fixed panel with room to spare; eight columns made eight rows that ran 49px
+// past it.
 .classicyColorPickerCrayonRows {
   display: flex;
   flex-direction: column;
+  --cp-crayon-aspect: #{$cp-crayon-aspect};
 }
 
 // Each row overlaps the one behind it; ascending z-index ensures front (later)
 // rows paint on top of back rows. The negative margin slides each row up by
-// (90 - 28)px — crayons are 90px tall — so only the 28px tip of each back row
-// remains visible.
+// all but the tip of a crayon, so only the tip of each back row remains
+// visible. It is a percentage because a percentage margin-top resolves
+// against the containing block's WIDTH — the same width the grid hands out as
+// crayon width — so the overlap scales with the crayons.
 .classicyColorPickerCrayonRow {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(var(--cp-crayon-cols), 1fr);
   position: relative;
 
   &:not(:first-child) {
-    margin-top: -62px;
+    margin-top: calc(-1 * (100% / var(--cp-crayon-cols)) * var(--cp-crayon-aspect) * #{1 - $cp-crayon-tip});
   }
 
   // Covers up to 16 rows (128 crayons at 8 per row) for custom palettes.
@@ -173,6 +198,8 @@ $cp-wheel-degree-marks: 0, 60, 120, 180, 240, 300;
 .classicyColorPickerCrayon {
   display: flex;
   align-items: flex-start;
+  width: 100%;
+  aspect-ratio: 1 / var(--cp-crayon-aspect);
   cursor: pointer;
   background: none;
   border: none;
@@ -181,6 +208,12 @@ $cp-wheel-degree-marks: 0, 60, 120, 180, 240, 300;
   position: relative;
   z-index: 0;
   transition: transform 0.07s ease;
+
+  svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
 
   &:hover {
     transform: translateY(-8px);
@@ -254,21 +287,27 @@ $cp-wheel-degree-marks: 0, 60, 120, 180, 240, 300;
   align-items: flex-start;
 }
 
+// The square the wheel and its degree labels live in. It takes what is left
+// beside the (fixed-width) fields, up to the full-size wheel, and keeps
+// square through aspect-ratio — the fixed 240px box used to push the fields'
+// units 23px past the panel.
 .classicyColorPickerWheelOuter {
   position: relative;
-  flex-shrink: 0;
-  width: 240px;
-  height: 240px;
+  width: 100%;
+  max-width: $cp-wheel-max;
+  aspect-ratio: 1;
+  margin-left: $cp-wheel-label-overhang;
 }
 
 .classicyColorPickerWheelCanvasWrapper {
   position: absolute;
-  left: 20px;
-  top: 20px;
+  inset: $cp-wheel-inset;
 }
 
 .classicyColorPickerWheelCanvas {
   display: block;
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
   cursor: crosshair;
 }
@@ -284,15 +323,19 @@ $cp-wheel-degree-marks: 0, 60, 120, 180, 240, 300;
 
   @each $deg in $cp-wheel-degree-marks {
     &[data-degree='#{$deg}'] {
-      left: $cp-wheel-radius + $cp-wheel-padding + $cp-wheel-label-radius * math.cos($deg * 1deg);
-      top: $cp-wheel-radius + $cp-wheel-padding + $cp-wheel-label-radius * math.sin($deg * 1deg);
+      left: 50% + 50% * math.cos($deg * 1deg);
+      top: 50% + 50% * math.sin($deg * 1deg);
     }
   }
 }
 
+// Fixed-width column; the wheel yields to it. Labels right-align by growing
+// into the row's slack rather than by a fixed minimum width, so the column
+// is exactly as wide as its longest label plus the field.
 .classicyColorPickerWheelFields {
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
   gap: var(--window-padding-size);
 }
 
@@ -304,13 +347,15 @@ $cp-wheel-degree-marks: 0, 60, 120, 180, 240, 300;
   font-size: var(--ui-font-size);
 
   label {
+    flex: 1;
     text-align: right;
-    min-width: 90px;
+    white-space: nowrap;
     font-weight: bold;
   }
 
   input[type="number"] {
-    width: 52px;
+    // Three digits and a little air; the old 52px bought nothing but width.
+    width: 44px;
     font-family: var(--ui-font);
     font-size: var(--ui-font-size);
     border: var(--window-border-size) solid var(--color-window-border);

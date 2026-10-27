@@ -9,17 +9,18 @@ interface ClassicyColorPickerCrayonProps {
 	onChangeFunc: (color: number) => void;
 }
 
-const COLS = 8;
+// Sixteen across: the stock 64-crayon box is four full rows, which fits the
+// dialog's fixed panel. The stylesheet sizes each crayon from the box width
+// (`--cp-crayon-cols`), so the count is also what sets the crayon size.
+const COLS = 16;
 
 // Crayon SVG: pointed tip with faceted shading + body with label band.
 // The body is mostly hidden behind the row in front; only the tip stays visible.
-// Drawn at 30 × 90 px; the 36 × 96 artwork is stretched to fill that box.
+// Sized by the stylesheet (1:3); the 36 × 96 artwork is stretched to fill it.
 const CrayonSVG: FC<{ fill: string }> = ({ fill }) => (
 	<svg
 		aria-hidden="true"
 		focusable="false"
-		width="30"
-		height="90"
 		viewBox="0 0 36 96"
 		preserveAspectRatio="none"
 		xmlns="http://www.w3.org/2000/svg"
@@ -81,7 +82,10 @@ export const ClassicyColorPickerCrayon: FC<ClassicyColorPickerCrayonProps> = ({
 				role="listbox"
 				aria-label="Crayon colors"
 			>
-				<div className="classicyColorPickerCrayonRows">
+				<div
+					className="classicyColorPickerCrayonRows"
+					style={{ "--cp-crayon-cols": COLS } as CSSProperties}
+				>
 					{rows.map((row) => (
 						<div key={row[0].color} className="classicyColorPickerCrayonRow">
 							{row.map((crayon) => (
