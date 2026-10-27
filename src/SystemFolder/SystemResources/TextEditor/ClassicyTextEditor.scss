@@ -47,6 +47,6 @@
   // the image well — 1px black border + 2px inset bevel.
   border: var(--window-border-size) solid var(--color-black);
   box-shadow:
-    inset var(--hig-frame-width) var(--hig-frame-width) 0 0 var(--color-system-05),
-    inset calc(var(--hig-frame-width) * -1) calc(var(--hig-frame-width) * -1) 0 0 var(--color-white);
+    inset var(--control-frame-width) var(--control-frame-width) 0 0 var(--color-system-05),
+    inset calc(var(--control-frame-width) * -1) calc(var(--control-frame-width) * -1) 0 0 var(--color-white);
 }

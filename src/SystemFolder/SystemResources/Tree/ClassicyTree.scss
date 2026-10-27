@@ -7,7 +7,7 @@
 // the `.classicyTreeFramed` modifier) to a scrolling list container.
 .classicyListBoxFrame {
   box-sizing: border-box;
-  border: var(--hig-frame-width, 2px) solid var(--color-black);
+  border: var(--control-frame-width, 2px) solid var(--color-black);
   background: var(--color-white);
 }
 
@@ -22,7 +22,7 @@
 // Opt-in list-box frame for a tree used as a standalone scrolling list box.
 .classicyTreeFramed {
   box-sizing: border-box;
-  border: var(--hig-frame-width, 2px) solid var(--color-black);
+  border: var(--control-frame-width, 2px) solid var(--color-black);
   background: var(--color-white);
 }
 

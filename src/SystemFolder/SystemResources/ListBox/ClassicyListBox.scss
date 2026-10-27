@@ -2,7 +2,7 @@
 
 // Platinum List Manager scrolling list: inset white box, fixed-height rows.
 .classicyListBox {
-  --classicy-listbox-row-height: calc(var(--hig-control-height) + var(--window-border-size));
+  --classicy-listbox-row-height: calc(var(--control-row-height) + var(--window-border-size));
 
   box-sizing: border-box;
   overflow-y: auto;
@@ -13,8 +13,8 @@
   // border + 2px inset bevel (was a 1px platinumWindowInnerBorder).
   border: var(--window-border-size) solid var(--color-black);
   box-shadow:
-    inset var(--hig-frame-width) var(--hig-frame-width) 0 0 var(--color-system-05),
-    inset calc(var(--hig-frame-width) * -1) calc(var(--hig-frame-width) * -1) 0 0 var(--color-white);
+    inset var(--control-frame-width) var(--control-frame-width) 0 0 var(--color-system-05),
+    inset calc(var(--control-frame-width) * -1) calc(var(--control-frame-width) * -1) 0 0 var(--color-white);
 }
 
 .classicyListBoxOption {

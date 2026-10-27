@@ -17,7 +17,7 @@ $legend-overhang: calc(var(--ui-font-size) * 0.75 * 1.4 / 2);
   // a relayout, visibly collapsing the group.
   margin: 0 calc(var(--window-border-size) * 2);
   // HIG interior margins: 12px top, 10px sides, 10px bottom.
-  padding: var(--hig-groupbox-margin-top) var(--hig-groupbox-margin-side) var(--hig-groupbox-margin-bottom);
+  padding: var(--group-box-margin-top) var(--group-box-margin-side) var(--group-box-margin-bottom);
 
   &.classicyControlGroupFieldsetColumns {
     flex-grow: 1;
@@ -28,7 +28,7 @@ $legend-overhang: calc(var(--ui-font-size) * 0.75 * 1.4 / 2);
 // keyword paints exactly that light/dark pair; the width is pinned to the HIG
 // 2px frame token shared with list boxes, edit-text frames and image wells.
 .classicyControlGroupFieldsetPrimary {
-  border: var(--hig-frame-width) groove rgb(239, 239, 239);
+  border: var(--control-frame-width) groove rgb(239, 239, 239);
 }
 
 // Secondary group box: a single 1px line, no etch.
@@ -43,7 +43,7 @@ $legend-overhang: calc(var(--ui-font-size) * 0.75 * 1.4 / 2);
   // Content clears the legend overhanging the top border; keep the HIG 12px
   // top margin as the floor so short text titles still get headroom and
   // taller checkbox / pop-up titles are not clipped.
-  padding-top: max(var(--hig-groupbox-margin-top), calc(var(--ui-font-size) * 0.8));
+  padding-top: max(var(--group-box-margin-top), calc(var(--ui-font-size) * 0.8));
 }
 
 .classicyControlGroupLegend {
@@ -53,13 +53,13 @@ $legend-overhang: calc(var(--ui-font-size) * 0.75 * 1.4 / 2);
   margin: 0;
   // Horizontal padding extends the painted background slightly past the
   // title so it masks the frame on both sides (HIG 3px title padding).
-  padding: 0 var(--hig-groupbox-title-pad);
+  padding: 0 var(--group-box-title-pad);
 
   // Absolutely positioned so the browser does not treat this as a "rendered
   // legend" and never takes the engine-specific legend layout path.
   position: absolute;
   top: calc(var(--window-border-size) * -1); // center of the border
-  left: var(--hig-groupbox-margin-side); // align title with the interior side margin
+  left: var(--group-box-margin-side); // align title with the interior side margin
   transform: translateY(-50%);
   white-space: nowrap;
 }
@@ -73,10 +73,10 @@ $legend-overhang: calc(var(--ui-font-size) * 0.75 * 1.4 / 2);
   grid-template-columns: max-content 1fr;
   align-items: center;
   // 5px between a static text field and the item it defines (p.84).
-  column-gap: var(--hig-control-label-gap);
+  column-gap: var(--control-label-gap);
   // 6px between stacked pop-ups / edit text fields (Figures 3-25, 3-30) and
   // below a label's baseline (Figure 3-34).
-  row-gap: var(--hig-item-gap-focus);
+  row-gap: var(--layout-focus-gap);
 
   // `:not(...)` lifts the specificity above a control's own wrapper rule
   // (`.classicyPopUpMenuWrapper { display: flex }` and friends), so the
@@ -114,7 +114,7 @@ $legend-overhang: calc(var(--ui-font-size) * 0.75 * 1.4 / 2);
   > .classicyControlGroupFormRow {
     display: flex;
     align-items: center;
-    gap: var(--hig-item-gap);
+    gap: var(--layout-item-gap);
     grid-column: 1 / -1;
   }
 
@@ -129,7 +129,7 @@ $legend-overhang: calc(var(--ui-font-size) * 0.75 * 1.4 / 2);
     margin: 0;
 
     + .classicyButton {
-      margin-left: calc(var(--hig-button-gap-h) - var(--hig-item-gap));
+      margin-left: calc(var(--button-gap) - var(--layout-item-gap));
     }
   }
 }
@@ -143,6 +143,6 @@ $legend-overhang: calc(var(--ui-font-size) * 0.75 * 1.4 / 2);
   flex-direction: column;
 
   > .classicyControlGroupFieldset + .classicyControlGroupFieldset {
-    margin-top: max(var(--hig-groupbox-gap-v), #{$legend-overhang});
+    margin-top: max(var(--group-box-gap), #{$legend-overhang});
   }
 }

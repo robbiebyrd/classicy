@@ -4,8 +4,8 @@
 .classicyInputDialog {
   display: flex;
   flex-direction: column;
-  gap: var(--hig-group-gap, 16px);
-  padding: var(--hig-dialog-edge, 12px);
+  gap: var(--layout-group-gap, 16px);
+  padding: var(--layout-dialog-edge, 12px);
   min-width: 300px;
   max-width: 460px;
   font-family: var(--ui-font), sans-serif;
@@ -14,7 +14,7 @@
     display: flex;
     flex-direction: row;
     align-items: flex-start;
-    gap: var(--hig-group-gap, 16px);
+    gap: var(--layout-group-gap, 16px);
   }
 
   // Optional leading icon: fixed 32px square, matching the alert icon column.
@@ -34,7 +34,7 @@
     flex: 1 1 auto;
     display: flex;
     flex-direction: column;
-    gap: var(--hig-item-gap-focus, 6px);
+    gap: var(--layout-focus-gap, 6px);
   }
 
   // Prompt label above the field.
@@ -51,7 +51,7 @@
     align-items: center;
     justify-content: flex-end;
     flex-wrap: wrap;
-    gap: var(--hig-button-gap-h, 12px);
+    gap: var(--button-gap, 12px);
   }
 }
 

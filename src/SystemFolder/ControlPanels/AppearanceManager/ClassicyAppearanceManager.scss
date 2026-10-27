@@ -12,8 +12,8 @@
 .classicyAppearanceManagerThemeFileRow {
   display: flex;
   flex-direction: row;
-  gap: var(--hig-button-gap-h);
-  margin: var(--hig-item-gap-focus) 0;
+  gap: var(--button-gap);
+  margin: var(--layout-focus-gap) 0;
 }
 
 .classicyAppearanceManagerDesktopRow {
