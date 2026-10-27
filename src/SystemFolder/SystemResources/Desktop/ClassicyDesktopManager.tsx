@@ -9,6 +9,7 @@ import {
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
 import { setThemeColor } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorTargets";
 import { readClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFile";
+import { setThemeMetric } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricTargets";
 import {
 	hasActiveTheme,
 	hasAlertSound,
@@ -37,6 +38,7 @@ import {
 	hasStripPosition,
 	hasStripWidth,
 	hasThemeColorChange,
+	hasThemeMetricChange,
 	hasVisible,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
 import type {
@@ -331,6 +333,17 @@ export const classicyDesktopEventHandler = (
 			const target = action;
 			editActiveClassicyTheme(ds.System.Manager.Appearance, (theme) =>
 				setThemeColor(theme, target, target.color),
+			);
+			break;
+		}
+		// Same fork-on-first-edit semantics for the layout metrics
+		// (`measurements.<family>`); the payload is validated against
+		// CLASSICY_THEME_METRIC_TARGETS (key allowlist and min–max) first.
+		case "ClassicyDesktopChangeMetric": {
+			if (!hasThemeMetricChange(action)) break;
+			const target = action;
+			editActiveClassicyTheme(ds.System.Manager.Appearance, (theme) =>
+				setThemeMetric(theme, target, target.value),
 			);
 			break;
 		}

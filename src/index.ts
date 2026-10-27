@@ -24,6 +24,8 @@ export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicySize";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicySounds";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorTargets";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFile";
+export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricTargets";
+export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 export * from "./SystemFolder/ControlPanels/ControlStripManager/ClassicyControlStripManager";
