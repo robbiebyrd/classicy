@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { CLASSICY_DEFAULT_THEME_METRICS } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { classicyDesktopIconEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconContext";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
@@ -111,9 +112,9 @@ function makeStoreForDesktop(): ClassicyStore {
 			digitalSize: 12,
 		},
 		measurements: {
+			...CLASSICY_DEFAULT_THEME_METRICS,
 			window: {
-				borderSize: 1,
-				controlSize: 12,
+				...CLASSICY_DEFAULT_THEME_METRICS.window,
 				paddingSize: 4,
 				scrollbarSize: 16,
 			},

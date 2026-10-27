@@ -5,6 +5,7 @@ import {
 	getThemeVars,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { withPrimaryFontFamily } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyFontStack";
+import { CLASSICY_DEFAULT_THEME_METRICS } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { listAppWindows } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { classicyDesktopEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
@@ -117,9 +118,9 @@ function makeStoreForDesktop(): ClassicyStore {
 			digitalSize: 12,
 		},
 		measurements: {
+			...CLASSICY_DEFAULT_THEME_METRICS,
 			window: {
-				borderSize: 1,
-				controlSize: 12,
+				...CLASSICY_DEFAULT_THEME_METRICS.window,
 				paddingSize: 4,
 				scrollbarSize: 16,
 			},

@@ -3,6 +3,7 @@ import {
 	intToPct,
 	intToPx,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicySize";
+import { withDefaultThemeMetrics } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import { resolveWallpaper } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 import type { ClassicyStoreSystemManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import type { ClassicyThemeSound } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
@@ -84,15 +85,65 @@ export type ClassicyThemeTypography = {
 	digitalSize: number;
 };
 
+/**
+ * Theme metrics, grouped per control family. Every value is a whole number of
+ * CSS pixels. These are the *inputs*; `getThemeVars` derives the rest
+ * (frames, bevels, edit-field height, …) from them. Platinum defaults live in
+ * `CLASSICY_DEFAULT_THEME_METRICS` (`ClassicyThemeMetrics.ts`).
+ */
 export type ClassicyThemeMeasurementsWindow = {
 	borderSize: number;
 	controlSize: number;
 	paddingSize: number;
 	scrollbarSize: number;
+	/** Document-window title bar height (HIGOS8: 19). */
+	titleBarHeight: number;
+	/** Utility (tool-palette) window title bar height (HIGOS8: 10). */
+	utilityTitleBarHeight: number;
+};
+
+export type ClassicyThemeMeasurementsControl = {
+	/** Standard control height: push buttons, pop-up menus, help button (20). */
+	height: number;
+	/** Gap between a checkbox/radio box and its label (5). */
+	labelGap: number;
+	/** Height of a line of static text (16). */
+	staticTextHeight: number;
+};
+
+export type ClassicyThemeMeasurementsButton = {
+	/** Minimum width of a standard push button such as OK/Cancel (58). */
+	minWidth: number;
+	/** Minimum text-to-border padding on each side (8). */
+	textPadding: number;
+	/** Horizontal gap between adjacent buttons (12). */
+	gap: number;
+};
+
+export type ClassicyThemeMeasurementsGroupBox = {
+	marginSide: number;
+	marginTop: number;
+	marginBottom: number;
+	titlePad: number;
+	/** Frame-to-frame gap between stacked group boxes (12). */
+	gap: number;
+};
+
+export type ClassicyThemeMeasurementsLayout = {
+	/** Minimum gap between clickable items (4). */
+	itemGap: number;
+	/** Gap between groups of controls (16). */
+	groupGap: number;
+	/** Button-to-dialog-edge margin (12). */
+	dialogEdge: number;
 };
 
 export type ClassicyThemeMeasurements = {
 	window: ClassicyThemeMeasurementsWindow;
+	control: ClassicyThemeMeasurementsControl;
+	button: ClassicyThemeMeasurementsButton;
+	groupBox: ClassicyThemeMeasurementsGroupBox;
+	layout: ClassicyThemeMeasurementsLayout;
 };
 
 export type ClassicyThemeDesktop = {
@@ -228,8 +279,8 @@ export const getThemeVars = (theme: ClassicyTheme) => {
  * here means every reader of a theme — `getTheme`, `getAllThemes`, and the
  * default app-manager state — gets a background image that actually loads.
  */
-const resolvedThemes = (themesData as unknown as ClassicyTheme[]).map(
-	(theme) => ({
+const resolvedThemes = (themesData as unknown as ClassicyTheme[]).map((theme) =>
+	withDefaultThemeMetrics({
 		...theme,
 		desktop: {
 			...theme.desktop,
