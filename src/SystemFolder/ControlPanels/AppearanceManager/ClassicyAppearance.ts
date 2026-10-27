@@ -3,7 +3,10 @@ import {
 	intToPct,
 	intToPx,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicySize";
-import { withDefaultThemeMetrics } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
+import {
+	CLASSICY_DEPRECATED_METRIC_ALIASES,
+	withDefaultThemeMetrics,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import { resolveWallpaper } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 import type { ClassicyStoreSystemManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import type { ClassicyThemeSound } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
@@ -167,6 +170,8 @@ export type ClassicyTheme = {
 };
 
 export const getThemeVars = (theme: ClassicyTheme) => {
+	const m = theme.measurements;
+	const border = m.window.borderSize;
 	return {
 		"--color-black": intToHex(theme.color.black),
 		"--color-white": intToHex(theme.color.white),
@@ -227,50 +232,56 @@ export const getThemeVars = (theme: ClassicyTheme) => {
 			typeof theme.desktop.backgroundSize === "number"
 				? intToPct(theme.desktop.backgroundSize)
 				: theme.desktop.backgroundSize,
-		// --- HIG dialog layout metrics (Mac OS 8 HIG, Ch. 3 "Layout Guidelines").
-		// Fixed pixel values from the guidelines, exposed as tokens so controls
-		// and dialogs can lay out to the HIG grid instead of ad-hoc spacing.
-		// Push buttons.
-		"--hig-button-height": intToPx(20),
-		"--hig-button-min-width": intToPx(58), // standard OK/Cancel width
-		"--hig-button-text-padding": intToPx(8), // min text-to-border each side
-		"--hig-button-default-ring": intToPx(3), // default-button ring outset
-		"--hig-button-gap-h": intToPx(12), // horizontal gap between buttons
-		"--hig-button-gap-v": intToPx(10), // vertical stack gap between buttons
-		"--hig-dialog-edge": intToPx(12), // button-to-dialog-edge
-		// Generic spacing.
-		"--hig-item-gap": intToPx(4), // min gap between clickable items
-		"--hig-item-gap-focus": intToPx(6), // preferred gap when focus rings show
-		"--hig-group-gap": intToPx(16), // gap between groups of controls
-		// Checkboxes & radio buttons.
-		"--hig-control-box": intToPx(12), // 12x12 box / circle
-		"--hig-control-height": intToPx(18), // full control height
-		"--hig-control-label-gap": intToPx(5), // box-to-label
-		// Pop-up menus & edit fields.
-		"--hig-popup-height": intToPx(20),
-		"--hig-editfield-height": intToPx(22),
-		// Group boxes.
-		"--hig-groupbox-margin-side": intToPx(10),
-		"--hig-groupbox-margin-top": intToPx(12),
-		"--hig-groupbox-margin-bottom": intToPx(10),
-		"--hig-groupbox-title-pad": intToPx(3),
-		"--hig-groupbox-gap-v": intToPx(12), // frame-to-frame, stacked group boxes
-		"--hig-groupbox-gap-h": intToPx(10), // frame-to-frame, side-by-side group boxes
-		// Indicators & misc controls.
-		"--hig-progress-height": intToPx(12),
-		"--hig-static-text-height": intToPx(16),
-		"--hig-disclosure-text-gap": intToPx(5),
-		"--hig-help-button-width": intToPx(20),
-		"--hig-help-button-height": intToPx(21),
-		// Frames & bevels (2px frame shared by list box, edit text, image well,
-		// primary group box, separator, modeless dialog frame).
-		"--hig-frame-width": intToPx(2),
-		"--hig-bevel-sm": intToPx(2),
-		"--hig-bevel-md": intToPx(3),
-		"--hig-bevel-lg": intToPx(4),
+		// --- Layout metrics (theme inputs under `measurements.<family>`; the
+		// Platinum defaults are Mac OS 8 HIG Ch. 3 "Layout Guidelines").
 		// Windows.
-		"--hig-titlebar-height": intToPx(19), // document window title bar
-		"--hig-titlebar-height-utility": intToPx(10), // utility (tool-palette) title bar
+		"--window-title-bar-height": intToPx(m.window.titleBarHeight),
+		"--window-utility-title-bar-height": intToPx(
+			m.window.utilityTitleBarHeight,
+		),
+		// Controls.
+		"--control-height": intToPx(m.control.height),
+		"--control-label-gap": intToPx(m.control.labelGap),
+		"--control-static-text-height": intToPx(m.control.staticTextHeight),
+		// Push buttons (height is the standard control height).
+		"--button-height": intToPx(m.control.height),
+		"--button-min-width": intToPx(m.button.minWidth),
+		"--button-text-padding": intToPx(m.button.textPadding),
+		"--button-gap": intToPx(m.button.gap),
+		// Group boxes.
+		"--group-box-margin-side": intToPx(m.groupBox.marginSide),
+		"--group-box-margin-top": intToPx(m.groupBox.marginTop),
+		"--group-box-margin-bottom": intToPx(m.groupBox.marginBottom),
+		"--group-box-title-pad": intToPx(m.groupBox.titlePad),
+		"--group-box-gap": intToPx(m.groupBox.gap),
+		// Generic spacing.
+		"--layout-item-gap": intToPx(m.layout.itemGap),
+		"--layout-group-gap": intToPx(m.layout.groupGap),
+		"--layout-dialog-edge": intToPx(m.layout.dialogEdge),
+		// --- Derived metrics: structural relationships, computed from the
+		// inputs above so a theme that changes an input gets them for free.
+		// A frame is two borders; bevels are 2/3/4 borders deep.
+		"--control-frame-width": intToPx(border * 2),
+		"--control-bevel-sm": intToPx(border * 2),
+		"--control-bevel-md": intToPx(border * 3),
+		"--control-bevel-lg": intToPx(border * 4),
+		"--button-default-ring": intToPx(border * 3),
+		// Height of a one-line control row (placard, list-box row).
+		"--control-row-height": intToPx(m.window.controlSize * 1.5),
+		// An edit field is a control plus its frame.
+		"--edit-field-height": intToPx(m.control.height + border * 2),
+		"--progress-height": intToPx(m.window.controlSize),
+		"--help-button-width": intToPx(m.control.height),
+		"--help-button-height": intToPx(m.control.height + border),
+		// Preferred gap when focus rings show: the standard padding.
+		"--layout-focus-gap": intToPx(m.window.paddingSize),
+		// --- Deprecated `--hig-*` names, each a reference to its replacement.
+		...Object.fromEntries(
+			Object.entries(CLASSICY_DEPRECATED_METRIC_ALIASES).map(([old, next]) => [
+				old,
+				`var(${next})`,
+			]),
+		),
 	};
 };
 
