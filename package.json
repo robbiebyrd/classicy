@@ -3,7 +3,7 @@
 	"module": "./dist/classicy.es.js",
 	"types": "./dist/types/src/index.d.ts",
 	"name": "classicy",
-	"version": "2.0.15",
+	"version": "2.0.16",
 	"release": "Copland",
 	"repository": {
 		"type": "git",
