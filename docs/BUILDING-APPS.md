@@ -868,20 +868,25 @@ Props: `id`, `order` (default `0`), `icon`, `title`, `menuItems`, `onClick`,
 Register icons **once, at module scope**, before anything renders.
 
 ```tsx
-import { ClassicyIcons, registerClassicyIcons } from 'classicy'
+import { registerClassicyIcons, useClassicyAsset } from 'classicy'
 import appIconPng from './my-app.png'
 
-// registerClassicyIcons assigns shallowly, so spread the existing namespace to
-// keep the bundled app icons (and other apps' registrations) intact.
-const ICONS = registerClassicyIcons({
+// Registration deep-merges, so this keeps the bundled app icons (and other
+// apps' registrations) intact; no spreading of existing namespaces needed.
+registerClassicyIcons({
     applications: {
-        ...ClassicyIcons.applications,
         myApp: { app: appIconPng, doc: docPng },
     },
 })
 
-const appIcon = ICONS.applications.myApp.app
+// In a component, read it at render time so it follows the active package:
+const appIcon = useClassicyAsset('icons', 'applications.myApp.app') ?? ''
 ```
+
+Outside a component, read at call time with
+`resolveClassicyAsset('icons', 'applications.myApp.app')`. Don't capture an icon
+in a module-scope constant; a later registration or appearance-package switch
+would not reach it.
 
 Bundled icons are available directly:
 

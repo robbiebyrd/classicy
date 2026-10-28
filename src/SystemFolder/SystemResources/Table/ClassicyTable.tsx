@@ -20,9 +20,7 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
-
-const arrowUpIcon = ClassicyIcons.ui.menuDropdownArrowUp;
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 
 /**
  * Expansion facts handed to every cell `render`, so a column (typically the
@@ -173,6 +171,7 @@ export function ClassicyTable<T>({
 	selectionApiRef,
 	containerRef: externalContainerRef,
 }: ClassicyTableProps<T>): ReactElement {
+	const arrowUpIcon = useClassicyAsset("icons", "ui.menuDropdownArrowUp") ?? "";
 	const [sorting, setSorting] = useState<SortingState>(
 		defaultSort ? [{ id: defaultSort.columnId, desc: !!defaultSort.desc }] : [],
 	);

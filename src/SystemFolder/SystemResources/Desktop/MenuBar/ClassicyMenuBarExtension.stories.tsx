@@ -1,7 +1,7 @@
 import { desktopParameters } from "@sb/helpers";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fn } from "storybook/test";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { ClassicyMenuBarExtension } from "./ClassicyMenuBarExtension";
 
 const meta = {
@@ -14,7 +14,6 @@ type Story = StoryObj<typeof meta>;
 
 // The component portals into #classicyDesktopMenuExtensions and its dropdown
 // into #classicyDesktop, so the story provides both, plus a black bar strip.
-const userIcon = ClassicyIcons.system.network.userDirectory;
 
 /**
  * An icon item with a dropdown menu, in a stand-in menu bar strip (the story
@@ -41,7 +40,7 @@ export const UserMenu: Story = {
 			<ClassicyMenuBarExtension
 				id="user"
 				order={10}
-				icon={userIcon}
+				icon={resolveClassicyAsset("icons", "system.network.userDirectory")}
 				title="Account"
 				menuItems={[
 					{ id: "account", title: "Account…", onClickFunc: () => {} },

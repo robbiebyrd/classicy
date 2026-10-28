@@ -1,4 +1,6 @@
 import "./PictureViewer.scss";
+// Sample content, not system art: stays a direct import rather than a registry
+// read.
 import samplePicture from "@img/apps/quicktime/sample-picture.jpg?inline";
 import {
 	type FC as FunctionalComponent,
@@ -7,7 +9,7 @@ import {
 	useMemo,
 	useRef,
 } from "react";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -33,8 +35,6 @@ import { resolveFileSystemEntrySource } from "@/SystemFolder/SystemResources/Fil
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { useResolvedMediaSource } from "@/SystemFolder/SystemResources/File/useResolvedMediaSource";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
-
-const defaultDocumentIcon = ClassicyIcons.system.quicktime.movie;
 
 type ResolvedPictureDocument = {
 	key: string;
@@ -85,7 +85,11 @@ const PictureViewerImage: FunctionalComponent<{
 };
 
 export const QuickTimePictureViewer: FunctionalComponent = () => {
-	const { name: appName, id: appId, icon: appIcon } = PictureViewerAppInfo;
+	const { name: appName, id: appId } = PictureViewerAppInfo;
+	const appIcon =
+		useClassicyAsset("icons", "applications.pictureViewer.app") ?? "";
+	const defaultDocumentIcon =
+		useClassicyAsset("icons", "system.quicktime.movie") ?? "";
 
 	const desktopEventDispatch = useAppManagerDispatch();
 	const appData = useAppManager(
@@ -126,7 +130,12 @@ export const QuickTimePictureViewer: FunctionalComponent = () => {
 				documents: defaultDocs,
 			});
 		}
-	}, [appOpen, pictureData?.openFiles, desktopEventDispatch]);
+	}, [
+		appOpen,
+		pictureData?.openFiles,
+		desktopEventDispatch,
+		defaultDocumentIcon,
+	]);
 
 	const closeFile = useCallback(
 		(path: string) => {
@@ -193,7 +202,7 @@ export const QuickTimePictureViewer: FunctionalComponent = () => {
 				menuChildren: [aboutMenuItem],
 			},
 		],
-		[closeWindow, closeDocAction, windowEntries, aboutMenuItem],
+		[closeWindow, closeDocAction, windowEntries, aboutMenuItem, appIcon],
 	);
 
 	return (

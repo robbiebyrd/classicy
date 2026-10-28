@@ -1,7 +1,5 @@
 import { z } from "zod";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
-
-const appIcon = ClassicyIcons.system.files.document;
+import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 
 export type PDFViewerData = {
 	openFiles: string[];
@@ -29,5 +27,7 @@ export function isPDFViewerData(
 export const PDFViewerAppInfo = {
 	name: "PDF Viewer",
 	id: "PDFViewer.app",
-	icon: appIcon,
+	get icon() {
+		return resolveClassicyAsset("icons", "system.files.document") ?? "";
+	},
 };

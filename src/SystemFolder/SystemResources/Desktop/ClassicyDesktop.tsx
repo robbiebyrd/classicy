@@ -47,10 +47,10 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { listAppWindows } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
-import { ClassicyDefaultParadeIcons } from "@/SystemFolder/SystemResources/Boot/ClassicyDefaultParadeIcons";
+import { getClassicyDefaultParadeIcons } from "@/SystemFolder/SystemResources/Boot/ClassicyDefaultParadeIcons";
 import {
 	ClassicyControlStrip,
 	type ClassicyControlStripProps,
@@ -84,8 +84,6 @@ import {
 	listClassicyTrashItems,
 } from "@/SystemFolder/SystemResources/File/ClassicyTrash";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
-
-const macosIcon = ClassicyIcons.system.macos;
 
 import "../../ControlPanels/AppearanceManager/styles/fonts.scss";
 import "../../../index.css";
@@ -140,6 +138,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	bootScreen,
 	controlStrip = true,
 }) => {
+	const macosIcon = useClassicyAsset("icons", "system.macos") ?? "";
 	const [showAbout, setShowAbout] = useState(false);
 
 	const [selectBoxStart, setSelectBoxStart] = useState([0, 0]);
@@ -269,7 +268,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	// Register the classic extension icons in the boot parade on mount.
 	// Adds dedup by id, so a remount never duplicates entries.
 	useEffect(() => {
-		for (const entry of ClassicyDefaultParadeIcons) {
+		for (const entry of getClassicyDefaultParadeIcons()) {
 			desktopEventDispatch({ type: "ClassicyBootParadeIconAdd", ...entry });
 		}
 	}, [desktopEventDispatch]);

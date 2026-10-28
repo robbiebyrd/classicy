@@ -1,7 +1,5 @@
 import { z } from "zod";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
-
-const appIcon = ClassicyIcons.applications.pictureViewer.app;
+import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 
 export type QuickTimeImageDocument = {
 	url: string;
@@ -53,5 +51,9 @@ export const PictureViewerDataSchema = z.looseObject({
 export const PictureViewerAppInfo = {
 	name: "Picture Viewer",
 	id: "PictureViewer.app",
-	icon: appIcon,
+	get icon() {
+		return (
+			resolveClassicyAsset("icons", "applications.pictureViewer.app") ?? ""
+		);
+	},
 };

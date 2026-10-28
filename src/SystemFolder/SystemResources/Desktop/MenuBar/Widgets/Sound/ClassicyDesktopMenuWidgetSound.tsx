@@ -7,17 +7,13 @@ import type {
 	MouseEvent,
 } from "react";
 import { useEffect } from "react";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import {
 	useSound,
 	useSoundDispatch,
 } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
-
-const appIcon = ClassicyIcons.controlPanels.soundManager.app;
-const soundOffImg = ClassicyIcons.controlPanels.soundManager.soundOff;
-const soundOnImg = ClassicyIcons.controlPanels.soundManager.soundOn;
 
 /**
  * @deprecated The menu-bar speaker widget is no longer mounted by
@@ -46,6 +42,12 @@ let deprecationWarned = false;
 export const ClassicyDesktopMenuWidgetSound: FunctionalComponent<
 	ClassicyDesktopMenuWidgetSoundProps
 > = ({ hide = false }) => {
+	const appIcon =
+		useClassicyAsset("icons", "controlPanels.soundManager.app") ?? "";
+	const soundOffImg =
+		useClassicyAsset("icons", "controlPanels.soundManager.soundOff") ?? "";
+	const soundOnImg =
+		useClassicyAsset("icons", "controlPanels.soundManager.soundOn") ?? "";
 	useEffect(() => {
 		if (deprecationWarned || process.env.NODE_ENV === "production") return;
 		deprecationWarned = true;

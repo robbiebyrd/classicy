@@ -1,6 +1,4 @@
 import "./PDFViewerDocument.scss";
-import zoomToolIcon from "@img/icons/system/sherlock/search.png";
-import panToolIcon from "@img/ui/cursors/cursor-hand.png";
 import classNames from "classnames";
 import type {
 	PDFDocumentLoadingTask,
@@ -16,6 +14,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import { decompressFromBase64 } from "@/SystemFolder/SystemResources/Utils/base64Compression";
@@ -49,6 +48,9 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 	url,
 	data,
 }) => {
+	const zoomToolIcon =
+		useClassicyAsset("icons", "system.sherlock.search") ?? "";
+	const panToolIcon = useClassicyAsset("icons", "ui.cursors.hand") ?? "";
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const wrapperRef = useRef<HTMLDivElement>(null);
 	// Pan-drag bookkeeping. A ref, not state: pointermove happens dozens of

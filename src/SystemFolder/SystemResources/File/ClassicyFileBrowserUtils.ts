@@ -1,9 +1,6 @@
+import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { getIconSize } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconContext";
-
-const fileIcon = ClassicyIcons.system.files.file;
-const directoryIcon = ClassicyIcons.system.folders.directory;
 
 export const capitalizeFirst = (s: string) => {
 	return s && String(s[0]).toUpperCase() + String(s).slice(1);
@@ -21,10 +18,10 @@ export const fileTypeDisplayName = (fileType: string) => {
 export const iconImageByType = (byType: string) => {
 	switch (byType) {
 		case "directory": {
-			return directoryIcon;
+			return resolveClassicyAsset("icons", "system.folders.directory") ?? "";
 		}
 		default: {
-			return fileIcon;
+			return resolveClassicyAsset("icons", "system.files.file") ?? "";
 		}
 	}
 };

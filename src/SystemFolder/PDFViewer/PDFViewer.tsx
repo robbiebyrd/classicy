@@ -1,4 +1,5 @@
 import { type FC as FunctionalComponent, useCallback, useMemo } from "react";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -20,9 +21,10 @@ import { resolveFileSystemEntrySource } from "@/SystemFolder/SystemResources/Fil
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
-const { name: appName, id: appId, icon: appIcon } = PDFViewerAppInfo;
+const { name: appName, id: appId } = PDFViewerAppInfo;
 
 export const PDFViewer: FunctionalComponent = () => {
+	const appIcon = useClassicyAsset("icons", "system.files.document") ?? "";
 	const desktopEventDispatch = useAppManagerDispatch();
 	const appState = useAppManager(
 		(state) => state.System.Manager.Applications.apps[appId],
@@ -82,7 +84,7 @@ export const PDFViewer: FunctionalComponent = () => {
 				menuChildren: [aboutMenuItem],
 			},
 		],
-		[closeWindow, openFiles, aboutMenuItem],
+		[closeWindow, openFiles, aboutMenuItem, appIcon],
 	);
 
 	return (

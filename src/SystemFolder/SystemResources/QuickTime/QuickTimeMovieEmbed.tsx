@@ -3,7 +3,7 @@ import "./QuickTimeMovieEmbed.scss";
 import classNames from "classnames";
 import { type FC as FunctionalComponent, useCallback, useEffect } from "react";
 import ReactPlayer from "react-player";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { getAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import {
 	type QuickTimeCaptionStyle,
@@ -16,8 +16,6 @@ import { QuickTimeVolumeControl } from "@/SystemFolder/SystemResources/QuickTime
 import { useControllableState } from "@/SystemFolder/SystemResources/QuickTime/useControllableState";
 import { useQuickTimePlayback } from "@/SystemFolder/SystemResources/QuickTime/useQuickTimePlayback";
 import { useQuickTimeSubtitles } from "@/SystemFolder/SystemResources/QuickTime/useQuickTimeSubtitles";
-
-const ccIcon = ClassicyIcons.system.quicktime.cc;
 
 type QuickTimeVideoEmbedProps = {
 	/**
@@ -138,6 +136,7 @@ export const QuickTimeVideoEmbed: FunctionalComponent<
 	crossOrigin,
 	playsInline,
 }) => {
+	const ccIcon = useClassicyAsset("icons", "system.quicktime.cc");
 	// Keyboard shortcuts only act while this movie's window is the focused one.
 	const shortcutWindowId = windowId ?? `${appId}_MoviePlayer_${url}`;
 	const playerWindowFocused = useAppManager(

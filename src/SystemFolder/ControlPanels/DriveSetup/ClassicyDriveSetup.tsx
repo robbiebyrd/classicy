@@ -1,5 +1,5 @@
 import { type FC, useMemo, useState } from "react";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -28,9 +28,8 @@ import { DRIVE_SETUP_APP_ID } from "@/SystemFolder/ControlPanels/DriveSetup/Clas
 const APP_ID = DRIVE_SETUP_APP_ID;
 const APP_NAME = "Drive Setup";
 const WINDOW_ID = "DriveSetup_1";
-const appIcon = ClassicyIcons.system.drives.disk;
-
 export const ClassicyDriveSetup: FC = () => {
+	const appIcon = useClassicyAsset("icons", "system.drives.disk") ?? "";
 	const dispatch = useAppManagerDispatch();
 	const fs = useClassicyFileSystem();
 	const fsVersion = useAppManager(

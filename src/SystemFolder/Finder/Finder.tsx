@@ -6,6 +6,7 @@ import {
 	useMemo,
 	useRef,
 } from "react";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import type { ActionMessage } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
@@ -68,8 +69,6 @@ import {
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import type { ClassicyTableSelectionApi } from "@/SystemFolder/SystemResources/Table/ClassicyTable";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
-
-const appIcon = ClassicyIcons.system.mac;
 
 type FinderWindowProps = {
 	appId: string;
@@ -343,6 +342,7 @@ const FinderFolderWindow: FunctionalComponent<FinderFolderWindowProps> = ({
 const FinderFolderWindowMemo = memo(FinderFolderWindow);
 
 export const Finder = () => {
+	const appIcon = useClassicyAsset("icons", "system.mac") ?? "";
 	const appName: string = "Finder";
 	const appId: string = "Finder.app";
 	const desktopEventDispatch = useAppManagerDispatch();

@@ -28,13 +28,11 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	getAppWindow,
 	listAppWindows,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
-
-const fileIcon = ClassicyIcons.system.files.file;
 
 // Pixels the pointer must travel with the button held before a title bar
 // mousedown becomes a window drag; anything less is treated as a click.
@@ -481,6 +479,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	backgroundColor,
 	initialFocusRef,
 }) => {
+	const fileIcon = useClassicyAsset("icons", "system.files.file") ?? "";
 	const icon = iconProp || fileIcon;
 
 	const currentApp = useAppManager(

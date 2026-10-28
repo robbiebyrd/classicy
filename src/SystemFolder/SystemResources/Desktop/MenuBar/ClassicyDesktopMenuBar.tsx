@@ -19,14 +19,12 @@ import {
 	useRef,
 } from "react";
 
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { APPLE_GUIDE_SHOW_TOPIC_EVENT } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideContext";
 import { ABOUT_BALLOON_HELP_TOPIC_ID } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideTopics";
 import { appSwitcherAppsFrom } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
 import { useClassicyShortcutDispatcher } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyShortcutDispatcher";
 import { collectMenuChords } from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
-
-const appleMenuIcon = ClassicyIcons.system.apple;
 
 /**
  * Depth-first search of a menu tree for an app's "About" item. Apps publish
@@ -134,6 +132,7 @@ export const ClassicyDesktopMenuBar: FunctionalComponent = () => {
 };
 
 const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
+	const appleMenuIcon = useClassicyAsset("icons", "system.apple") ?? "";
 	const apps = useAppManager((s) => s.System.Manager.Applications.apps);
 	const systemMenu = useAppManager((s) => s.System.Manager.Desktop.systemMenu);
 	const appMenu = useAppManager((s) => s.System.Manager.Desktop.appMenu);
@@ -286,7 +285,7 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
 			strippedAppMenu:
 				aboutItem && appMenu ? stripAboutItem(appMenu, aboutItem) : appMenu,
 		};
-	}, [focusedMenuApp, appMenu, systemMenu]);
+	}, [focusedMenuApp, appMenu, systemMenu, appleMenuIcon]);
 
 	const defaultMenuItems: ClassicyMenuItem[] = useMemo(() => {
 		const items = [appleMenuItem] as ClassicyMenuItem[];

@@ -1,7 +1,7 @@
 import "./FinderPreferences.scss";
 import type { FC as FunctionalComponent } from "react";
 import { useMemo } from "react";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -16,9 +16,8 @@ import { ClassicyTabs } from "@/SystemFolder/SystemResources/Tabs/ClassicyTabs";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
 const appId = "Finder.app";
-const helpIcon = ClassicyIcons.system.help;
-
 export const FinderPreferences: FunctionalComponent = () => {
+	const helpIcon = useClassicyAsset("icons", "system.help") ?? "";
 	const dispatch = useAppManagerDispatch();
 	const rawData = useAppManager(
 		(state) => state.System.Manager.Applications.apps[appId]?.data,

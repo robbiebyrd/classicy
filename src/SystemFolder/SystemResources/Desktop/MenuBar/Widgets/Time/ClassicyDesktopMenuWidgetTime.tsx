@@ -1,8 +1,6 @@
 import "./ClassicyDesktopMenuWidgetTime.scss";
 import "@/SystemFolder/SystemResources/Menu/ClassicyMenu.scss";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
-
-const appIcon = ClassicyIcons.controlPanels.dateTimeManager.dateTimeManager;
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 
 // Shared by the resync effect and the tick interval so the two can never
 // drift into computing the rendered shape differently.
@@ -32,6 +30,11 @@ import {
 import { computeAnchoredTime } from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeManagerUtils";
 
 export const ClassicyDesktopMenuWidgetTime: FunctionalComponent = () => {
+	const appIcon =
+		useClassicyAsset(
+			"icons",
+			"controlPanels.dateTimeManager.dateTimeManager",
+		) ?? "";
 	const dateAndTime = useAppManager((s) => s.System.Manager.DateAndTime);
 	const desktopEventDispatch = useAppManagerDispatch();
 

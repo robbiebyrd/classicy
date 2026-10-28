@@ -1,3 +1,4 @@
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import "./ClassicyAppearanceManager.scss";
 import {
 	type ChangeEvent,
@@ -50,7 +51,6 @@ import { useSoundTab } from "./ClassicyAppearanceManager.Sound";
 import { useThemesTab } from "./ClassicyAppearanceManager.Themes";
 import { withPrimaryFontFamily } from "./ClassicyFontStack";
 import { ClassicyDefaultWallpaper } from "./ClassicyWallpapers";
-import appIcon from "./resources/app.png";
 
 const APP_ID = APPEARANCE_MANAGER_APP_ID;
 const APP_NAME = "Appearance Manager";
@@ -62,6 +62,8 @@ function isValidUrlWithRegex(url: string): boolean {
 }
 
 export const ClassicyAppearanceManager: FunctionalComponent = () => {
+	const appIcon =
+		useClassicyAsset("icons", "controlPanels.appearanceManager.app") ?? "";
 	const appearanceState = useAppManager(
 			(state) => state.System.Manager.Appearance,
 		),
