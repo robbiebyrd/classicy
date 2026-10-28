@@ -48,6 +48,7 @@ export * from "./SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerCon
 export * from "./SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerManifest";
 export * from "./SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerProvider";
 export * from "./SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerUtils";
+export * from "./SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
 export * from "./SystemFolder/ControlPanels/SoundManager/ClassicySoundSchema";
 export * from "./SystemFolder/Extensions/AppleGuide/AppleGuide";
 export * from "./SystemFolder/Extensions/AppleGuide/AppleGuideContext";

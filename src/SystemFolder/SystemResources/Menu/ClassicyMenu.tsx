@@ -362,12 +362,6 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 					track("hover", { type: "ClassicyMenuItem", ...analyticsArgs });
 					player({ type: "ClassicySoundPlay", sound: "ClassicyMenuItemHover" });
 				}}
-				onBlur={() => {
-					player({ type: "ClassicySoundPlay", sound: "ClassicyMenuItemBlur" });
-				}}
-				onMouseOut={() => {
-					player({ type: "ClassicySoundPlay", sound: "ClassicyMenuItemBlur" });
-				}}
 				className={classNames(
 					"classicyMenuItem",
 					menuItem.icon ? "" : "classicyMenuItemNoImage",
