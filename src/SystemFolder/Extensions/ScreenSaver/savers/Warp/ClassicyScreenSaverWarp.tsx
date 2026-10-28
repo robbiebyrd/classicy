@@ -8,13 +8,7 @@ import stars3 from "./stars3.webp";
 import stars4 from "./stars4.webp";
 
 export const WarpConfigSchema = z.looseObject({
-	layers: z
-		.number()
-		.int()
-		.min(3)
-		.max(9)
-		.default(9)
-		.describe("Star density"),
+	layers: z.number().int().min(3).max(9).default(9).describe("Star density"),
 });
 
 const starImages = [stars1, stars2, stars3, stars4].map(String);
