@@ -13,14 +13,20 @@ const platinumM4a = new URL("@snd/platinum/platinum.m4a", import.meta.url).href;
 const platinumMp3 = new URL("@snd/platinum/platinum.mp3", import.meta.url).href;
 const platinumAc3 = new URL("@snd/platinum/platinum.ac3", import.meta.url).href;
 
-const basename = (url: string) => url.split("/").pop();
-
-// Vite needs the four static `new URL` literals above; the generated JSON's
-// relative `src` must still name the same files, in the same order.
+// Vite needs the four static `new URL` literals above. In the library build
+// they are inlined as `data:` URIs, so the resolved URLs cannot be compared
+// with the JSON; instead the JSON's relative `src` must name exactly the four
+// bundled files, in the same order.
 const platinumUrls = [platinumOgg, platinumM4a, platinumMp3, platinumAc3];
+const PLATINUM_FILE_NAMES = [
+	"platinum.ogg",
+	"platinum.m4a",
+	"platinum.mp3",
+	"platinum.ac3",
+];
 if (
-	JSON.stringify(platinumJson.src.map(basename)) !==
-	JSON.stringify(platinumUrls.map(basename))
+	JSON.stringify(platinumJson.src.map((src) => src.split("/").pop())) !==
+	JSON.stringify(PLATINUM_FILE_NAMES)
 ) {
 	classicyLog(
 		"error",

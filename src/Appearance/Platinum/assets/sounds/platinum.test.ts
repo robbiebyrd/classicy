@@ -1,5 +1,5 @@
 import platinumJson from "@snd/platinum/platinum.json";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { platinumSoundPack } from "@/Appearance/Platinum/assets/sounds/platinum";
 import {
 	CLASSICY_SOUND_SPRITE_IDS,
@@ -49,5 +49,50 @@ describe("platinum sound pack", () => {
 			"./platinum.mp3",
 			"./platinum.ac3",
 		]);
+	});
+});
+
+describe("platinum sound pack src consistency check", () => {
+	const loadPlatinum = async (src: string[]) => {
+		vi.resetModules();
+		const log = vi.fn();
+		vi.doMock("@/SystemFolder/SystemResources/Log/ClassicyLog", () => ({
+			classicyLog: log,
+		}));
+		vi.doMock("@snd/platinum/platinum.json", () => ({
+			default: { ...platinumJson, src },
+		}));
+		await import("@/Appearance/Platinum/assets/sounds/platinum");
+		return log;
+	};
+
+	afterEach(() => {
+		vi.doUnmock("@/SystemFolder/SystemResources/Log/ClassicyLog");
+		vi.doUnmock("@snd/platinum/platinum.json");
+		vi.unstubAllGlobals();
+		vi.resetModules();
+	});
+
+	it("logs an error when the JSON names a file that is not bundled", async () => {
+		const log = await loadPlatinum([
+			"./platinum.ogg",
+			"./platinum.m4a",
+			"./platinum.mp3",
+			"./other.ac3",
+		]);
+		expect(log).toHaveBeenCalledWith(
+			"error",
+			"ClassicySoundPacks",
+			expect.stringContaining("platinum.json src does not match"),
+		);
+	});
+
+	it("stays silent when the bundler inlines the audio as data: URLs", async () => {
+		class InlinedURL {
+			href = "data:audio/ogg;base64,T2dnUwACAAAAAAAAAAA=";
+		}
+		vi.stubGlobal("URL", InlinedURL);
+		const log = await loadPlatinum(platinumJson.src);
+		expect(log).not.toHaveBeenCalled();
 	});
 });
