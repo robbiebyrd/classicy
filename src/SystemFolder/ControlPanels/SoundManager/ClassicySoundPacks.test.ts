@@ -12,6 +12,7 @@ import {
 import soundLabels from "./ClassicySoundManagerLabels.json";
 import {
 	CLASSICY_SOUND_SPRITE_IDS,
+	ClassicySoundPackSchema,
 	classicySoundPackMissingSprites,
 	getClassicySoundPack,
 	listClassicySoundPacks,
@@ -143,5 +144,20 @@ describe("ClassicySoundPacks", () => {
 		);
 		expect(missing).toHaveLength(40);
 		expect(missing).not.toContain("ClassicyBeep");
+	});
+
+	it("a pack JSON with relative src parses and a copy with https src validates identically", () => {
+		const remote = {
+			...platinumJson,
+			src: platinumJson.src.map(
+				(s) => `https://cdn.example.com/sounds/${s.split("/").pop()}`,
+			),
+		};
+		const relative = ClassicySoundPackSchema.safeParse(platinumJson);
+		const absolute = ClassicySoundPackSchema.safeParse(remote);
+		expect(relative.success).toBe(true);
+		expect(absolute.success).toBe(true);
+		if (relative.success && absolute.success)
+			expect(absolute.data.id).toBe(relative.data.id);
 	});
 });

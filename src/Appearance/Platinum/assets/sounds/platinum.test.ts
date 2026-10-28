@@ -1,3 +1,4 @@
+import platinumJson from "@snd/platinum/platinum.json";
 import { describe, expect, it } from "vitest";
 import { platinumSoundPack } from "@/Appearance/Platinum/assets/sounds/platinum";
 import {
@@ -37,5 +38,16 @@ describe("platinum sound pack", () => {
 		]) {
 			expect(platinumSoundPack.sprite[id][2]).toBe(true);
 		}
+	});
+
+	it("the committed pack JSON carries id, name and relative src", () => {
+		expect(platinumJson.id).toBe("platinum");
+		expect(platinumJson.name).toBe("Platinum");
+		expect(platinumJson.src).toEqual([
+			"./platinum.ogg",
+			"./platinum.m4a",
+			"./platinum.mp3",
+			"./platinum.ac3",
+		]);
 	});
 });
