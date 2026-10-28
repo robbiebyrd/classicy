@@ -1,6 +1,10 @@
 import "./ClassicyOutput.scss";
 import classNames from "classnames";
-import type { FC as FunctionalComponent, PropsWithChildren } from "react";
+import type {
+	CSSProperties,
+	FC as FunctionalComponent,
+	PropsWithChildren,
+} from "react";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import {
 	ClassicyControlLabel,
@@ -35,6 +39,10 @@ type ClassicyOutputProps = PropsWithChildren<{
 	 * field may be active or disabled, the disabled state shown dimmed.
 	 */
 	disabled?: boolean;
+	/** Extra class names, merged onto the outermost element (the label wrapper when there is a label) after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the outermost element (the label wrapper when there is a label) after the component's own. */
+	style?: CSSProperties;
 }>;
 
 /**
@@ -59,6 +67,8 @@ export const ClassicyOutput: FunctionalComponent<ClassicyOutputProps> = ({
 	mono,
 	disabled,
 	children,
+	className,
+	style,
 }) => {
 	const content = (
 		<output
@@ -69,7 +79,9 @@ export const ClassicyOutput: FunctionalComponent<ClassicyOutputProps> = ({
 				variant === "inset" ? "classicyOutputInset" : "classicyOutputPlain",
 				mono ? "classicyOutputMono" : "",
 				classicyStateClasses({ disabled }),
+				label ? "" : className,
 			)}
+			style={label ? undefined : style}
 		>
 			{value ?? children}
 		</output>
@@ -82,7 +94,9 @@ export const ClassicyOutput: FunctionalComponent<ClassicyOutputProps> = ({
 			className={classNames(
 				labelPositionClass(labelPosition),
 				labelAlignClass(labelAlign),
+				className,
 			)}
+			style={style}
 		>
 			<ClassicyControlLabel label={label} labelFor={id} disabled={disabled} />
 			{content}

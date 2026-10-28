@@ -50,6 +50,10 @@ interface ClassicyColorPickerDialogProps {
 	onSelectFunc?: (color: number) => void;
 	/** Called by Cancel or the close box. The caller closes the dialog. */
 	onCancelFunc?: () => void;
+	/** Extra class names, merged onto the dialog window after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the dialog window after the component's own. */
+	style?: CSSProperties;
 }
 
 /**
@@ -69,6 +73,8 @@ export const ClassicyColorPickerDialog: FC<ClassicyColorPickerDialogProps> = ({
 	crayons = MAC_OS_8_CRAYONS,
 	onSelectFunc,
 	onCancelFunc,
+	className,
+	style,
 }) => {
 	const [pendingColor, setPendingColor] = useState(initialColor);
 	const listId = useId();
@@ -161,6 +167,8 @@ export const ClassicyColorPickerDialog: FC<ClassicyColorPickerDialogProps> = ({
 			scrollable={false}
 			initialSize={[520, 430]}
 			initialPosition={[200, 100]}
+			className={className}
+			style={style}
 			onCloseFunc={() => onCancelFunc?.()}
 			analyticsExclude
 		>

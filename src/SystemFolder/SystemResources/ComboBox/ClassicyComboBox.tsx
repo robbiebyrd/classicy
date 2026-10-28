@@ -4,6 +4,7 @@ import "./ClassicyComboBox.scss";
 import classNames from "classnames";
 import {
 	type ChangeEvent,
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	type KeyboardEvent,
 	useCallback,
@@ -74,6 +75,10 @@ type ClassicyComboBoxProps = {
 	onChangeFunc?: (text: string) => void;
 	/** Fired when a suggestion is committed (click or Enter). */
 	onSelectFunc?: (value: string, option: ClassicyPopUpMenuOption) => void;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 };
 
 /**
@@ -109,6 +114,8 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 	disabled = false,
 	onChangeFunc,
 	onSelectFunc,
+	className,
+	style,
 }) => {
 	const [text, setText] = useState(prefillValue ?? "");
 	useEffect(() => {
@@ -335,7 +342,9 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 			className={classNames(
 				"classicyComboBoxWrapper",
 				labelPositionClass(labelPosition),
+				className,
 			)}
+			style={style}
 		>
 			{label && (
 				<ClassicyControlLabel

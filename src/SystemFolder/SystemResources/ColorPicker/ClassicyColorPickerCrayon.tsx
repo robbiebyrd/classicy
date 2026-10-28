@@ -8,6 +8,10 @@ interface ClassicyColorPickerCrayonProps {
 	color: number;
 	crayons: ClassicyCrayon[];
 	onChangeFunc: (color: number) => void;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 }
 
 // Sixteen across: the stock 64-crayon box is four full rows, which fits the
@@ -67,6 +71,8 @@ export const ClassicyColorPickerCrayon: FC<ClassicyColorPickerCrayonProps> = ({
 	color,
 	crayons,
 	onChangeFunc,
+	className,
+	style,
 }) => {
 	const [hovered, setHovered] = useState<number | null>(null);
 	const previewColor = hovered !== null ? hovered : color;
@@ -77,7 +83,10 @@ export const ClassicyColorPickerCrayon: FC<ClassicyColorPickerCrayonProps> = ({
 	}
 
 	return (
-		<div className="classicyColorPickerCrayonTab">
+		<div
+			className={classNames("classicyColorPickerCrayonTab", className)}
+			style={style}
+		>
 			<div
 				className="classicyColorPickerCrayonBox"
 				role="listbox"

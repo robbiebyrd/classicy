@@ -7,7 +7,12 @@ import {
 } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import "./ClassicyRadioInput.scss";
 import classNames from "classnames";
-import { type FC as FunctionalComponent, useEffect, useState } from "react";
+import {
+	type CSSProperties,
+	type FC as FunctionalComponent,
+	useEffect,
+	useState,
+} from "react";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
@@ -38,6 +43,10 @@ type ClassicyRadioInputProps = {
 	 * none is, the first button does. Passing a new array re-applies that rule.
 	 */
 	inputs: ClassicyRadioInputValueProps[];
+	/** Extra class names, merged onto the outermost element (the label wrapper when there is a label) after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the outermost element (the label wrapper when there is a label) after the component's own. */
+	style?: CSSProperties;
 };
 
 type ClassicyRadioInputValueProps = {
@@ -100,6 +109,8 @@ export const ClassicyRadioInput: FunctionalComponent<
 	disabled = false,
 	onClickFunc,
 	inputs,
+	className,
+	style,
 }) => {
 	const [check, setCheck] = useState<string>(() => initialRadioCheck(inputs));
 	useEffect(() => {
@@ -133,7 +144,9 @@ export const ClassicyRadioInput: FunctionalComponent<
 			className={classNames(
 				"classicyRadioInputGroup",
 				align === "columns" ? "classicyRadioInputGroupColumns" : "",
+				label ? "" : className,
 			)}
+			style={label ? undefined : style}
 		>
 			{inputs?.map((item) => {
 				const itemDisabled = disabled || item.disabled === true;
@@ -220,7 +233,10 @@ export const ClassicyRadioInput: FunctionalComponent<
 	if (!label) return group;
 
 	return (
-		<div className={labelPositionClass(labelPosition)}>
+		<div
+			className={classNames(labelPositionClass(labelPosition), className)}
+			style={style}
+		>
 			<ClassicyControlLabel
 				id={titleId}
 				disabled={disabled}

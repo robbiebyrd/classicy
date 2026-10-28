@@ -11,7 +11,9 @@ import {
 import { ClassicyMenuContext } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuContext";
 import { ClassicyMenuProvider } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuProvider";
 import "@/SystemFolder/SystemResources/Menu/ClassicyMenu.scss";
+import classNames from "classnames";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	useContext,
 	useEffect,
@@ -25,6 +27,13 @@ import { ABOUT_BALLOON_HELP_TOPIC_ID } from "@/SystemFolder/Extensions/AppleGuid
 import { appSwitcherAppsFrom } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
 import { useClassicyShortcutDispatcher } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyShortcutDispatcher";
 import { collectMenuChords } from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
+
+export type ClassicyDesktopMenuBarProps = {
+	/** Extra class names, merged onto the `<nav>` after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the `<nav>` after the component's own. */
+	style?: CSSProperties;
+};
 
 /**
  * Depth-first search of a menu tree for an app's "About" item. Apps publish
@@ -123,15 +132,19 @@ const stripAboutItem = (
  * matching item of the focused app's menus, then the system menus, then an
  * extension's global shortcut — whether or not a menu is open.
  */
-export const ClassicyDesktopMenuBar: FunctionalComponent = () => {
+export const ClassicyDesktopMenuBar: FunctionalComponent<
+	ClassicyDesktopMenuBarProps
+> = ({ className, style }) => {
 	return (
 		<ClassicyMenuProvider>
-			<ClassicyDesktopMenuBarContent />
+			<ClassicyDesktopMenuBarContent className={className} style={style} />
 		</ClassicyMenuProvider>
 	);
 };
 
-const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
+const ClassicyDesktopMenuBarContent: FunctionalComponent<
+	ClassicyDesktopMenuBarProps
+> = ({ className, style }) => {
 	const appleMenuIcon = useClassicyAsset("systemArt", "appleMenu") ?? "";
 	const apps = useAppManager((s) => s.System.Manager.Applications.apps);
 	const systemMenu = useAppManager((s) => s.System.Manager.Desktop.systemMenu);
@@ -348,7 +361,11 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
 	// needed here.
 
 	return (
-		<nav ref={navRef} className={"classicyDesktopMenuBar"}>
+		<nav
+			ref={navRef}
+			className={classNames("classicyDesktopMenuBar", className)}
+			style={style}
+		>
 			<ClassicyMenu
 				name={"desktopMenuBar"}
 				menuItems={defaultMenuItems}

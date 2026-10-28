@@ -1,6 +1,10 @@
 import "./ClassicyKbd.scss";
 import classNames from "classnames";
-import type { FC as FunctionalComponent, PropsWithChildren } from "react";
+import type {
+	CSSProperties,
+	FC as FunctionalComponent,
+	PropsWithChildren,
+} from "react";
 import { parseKeyboardShortcut } from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
 
 const MODIFIER_GLYPHS = {
@@ -27,6 +31,8 @@ type ClassicyKbdProps = PropsWithChildren<{
 	variant?: "inline" | "keycaps";
 	/** Extra class names merged onto the outer `<kbd>`. */
 	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 }>;
 
 /**
@@ -64,6 +70,7 @@ export const ClassicyKbd: FunctionalComponent<ClassicyKbdProps> = ({
 	shortcut,
 	variant = "inline",
 	className,
+	style,
 	children,
 }) => {
 	const parts = shortcut !== undefined ? shortcutParts(shortcut) : undefined;
@@ -77,6 +84,7 @@ export const ClassicyKbd: FunctionalComponent<ClassicyKbdProps> = ({
 		return (
 			<kbd
 				className={classNames("classicyKbd", "classicyKbdKeycaps", className)}
+				style={style}
 			>
 				{(parts ?? [children]).map((part, index) => (
 					<kbd
@@ -92,7 +100,10 @@ export const ClassicyKbd: FunctionalComponent<ClassicyKbdProps> = ({
 	}
 
 	return (
-		<kbd className={classNames("classicyKbd", "classicyKbdInline", className)}>
+		<kbd
+			className={classNames("classicyKbd", "classicyKbdInline", className)}
+			style={style}
+		>
 			{parts !== undefined ? parts.join("") : children}
 		</kbd>
 	);

@@ -1,5 +1,6 @@
 import "./ClassicyAboutWindow.scss";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	type MouseEventHandler,
 	useEffect,
@@ -24,6 +25,10 @@ export type ClassicyAboutWindowProps = {
 	hideFunc: MouseEventHandler<HTMLButtonElement>;
 	/** Menus to publish to the menu bar while the box is focused. */
 	appMenu?: ClassicyMenuItem[];
+	/** Extra class names, merged onto the About window after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the About window after the component's own. */
+	style?: CSSProperties;
 };
 
 /**
@@ -45,7 +50,7 @@ export type ClassicyAboutWindowProps = {
  */
 export const ClassicyAboutWindow: FunctionalComponent<
 	ClassicyAboutWindowProps
-> = ({ appId, appName, appIcon, hideFunc, appMenu }) => {
+> = ({ appId, appName, appIcon, hideFunc, appMenu, className, style }) => {
 	const { track } = useClassicyAnalytics();
 	const desktopEventDispatch = useAppManagerDispatch();
 	const contentRef = useRef<HTMLDivElement | null>(null);
@@ -82,6 +87,8 @@ export const ClassicyAboutWindow: FunctionalComponent<
 	return (
 		<ClassicyWindow
 			id={`${appId}_about`}
+			className={className}
+			style={style}
 			appId={appId}
 			closable={false}
 			resizable={false}

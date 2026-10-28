@@ -1,6 +1,7 @@
 import "./ClassicyLittleArrows.scss";
 import classNames from "classnames";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	type KeyboardEvent as ReactKeyboardEvent,
 	type MouseEvent as ReactMouseEvent,
@@ -28,6 +29,8 @@ interface ClassicyLittleArrowsProps {
 	downLabel?: string;
 	/** Extra class names merged onto the arrow pair's wrapper. */
 	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 	/** Delay between repeats while held, in ms. Defaults to `120`. */
 	repeatIntervalMs?: number;
 	/**
@@ -70,6 +73,7 @@ export const ClassicyLittleArrows: FunctionalComponent<
 	upLabel = "Increment",
 	downLabel = "Decrement",
 	className,
+	style,
 	repeatIntervalMs = REPEAT_INTERVAL_MS,
 	focusTarget,
 }) => {
@@ -141,7 +145,10 @@ export const ClassicyLittleArrows: FunctionalComponent<
 	};
 
 	return (
-		<div className={classNames("classicyLittleArrows", className)}>
+		<div
+			className={classNames("classicyLittleArrows", className)}
+			style={style}
+		>
 			<button
 				type="button"
 				className="classicyLittleArrowsButton"

@@ -1,6 +1,7 @@
 import "./ClassicyAlert.scss";
 import classNames from "classnames";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	type ReactNode,
 	useCallback,
@@ -85,6 +86,10 @@ export type ClassicyAlertProps = {
 	 * it here.
 	 */
 	onClose?: () => void;
+	/** Extra class names, merged onto the dialog window after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the dialog window after the component's own. */
+	style?: CSSProperties;
 };
 
 const AlertIcon: FunctionalComponent<{ alertType: ClassicyAlertType }> = ({
@@ -166,6 +171,8 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 	defaultButtonId,
 	movable = false,
 	onClose,
+	className,
+	style,
 }) => {
 	const player = useSoundDispatch();
 	const contentRef = useRef<HTMLDivElement | null>(null);
@@ -246,6 +253,8 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 	return (
 		<ClassicyWindow
 			id={id}
+			className={className}
+			style={style}
 			appId={appId}
 			title={title}
 			hideIcon={true}

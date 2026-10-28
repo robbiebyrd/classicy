@@ -58,6 +58,8 @@ export type ClassicyControlStripProps = {
 	 */
 	defaultWidth?: number;
 	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 };
 
 // HIGOS8 Figure 6-15: a module's surface overlaps the strip by 3 px (its bottom
@@ -212,6 +214,7 @@ export const ClassicyControlStrip: FunctionalComponent<
 	defaultCollapsed = false,
 	defaultWidth,
 	className,
+	style,
 }) => {
 	const dispatch = useAppManagerDispatch();
 	const stored = useAppManager((s) => s.System.Manager.Desktop.controlStrip);
@@ -515,14 +518,15 @@ export const ClassicyControlStrip: FunctionalComponent<
 				edge === "right" && "classicyControlStripRight",
 				className,
 			)}
-			style={
-				bottom === 0
-					? undefined
+			style={{
+				...(bottom === 0
+					? {}
 					: ({
 							"--classicy-control-strip-bottom": `${bottom}px`,
 							"--classicy-control-strip-top-inset": `${topInset}px`,
-						} as CSSProperties)
-			}
+						} as CSSProperties)),
+				...style,
+			}}
 		>
 			{!collapsed && (
 				<>

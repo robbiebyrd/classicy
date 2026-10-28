@@ -1,5 +1,6 @@
 import "./ClassicyKeyboardEquivalent.scss";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	type ReactNode,
 	useCallback,
@@ -51,6 +52,10 @@ export type ClassicyKeyboardEquivalentDialogProps =
 		onConfirm: (shortcut: string) => void;
 		/** Called by Cancel, Escape or ⌘-period. The caller closes the dialog. */
 		onCancel?: () => void;
+		/** Extra class names, merged onto the dialog window after the component's own. */
+		className?: string;
+		/** Inline style, merged onto the dialog window after the component's own. */
+		style?: CSSProperties;
 	};
 
 /**
@@ -86,6 +91,8 @@ export const ClassicyKeyboardEquivalentDialog: FunctionalComponent<
 	onHelp,
 	onConfirm,
 	onCancel,
+	className,
+	style,
 }) => {
 	const contentRef = useRef<HTMLDivElement | null>(null);
 	const [value, setValue] = useState(initialValue);
@@ -162,6 +169,8 @@ export const ClassicyKeyboardEquivalentDialog: FunctionalComponent<
 		<>
 			<ClassicyWindow
 				id={id}
+				className={className}
+				style={style}
 				appId={appId}
 				title={title}
 				hideIcon={true}

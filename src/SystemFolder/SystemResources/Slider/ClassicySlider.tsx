@@ -155,6 +155,10 @@ interface ClassicySliderProps {
 	 * overriding `step`. Ignored when `tickInterval` is absent or `"center"`.
 	 */
 	snapToTicks?: boolean;
+	/** Extra class names, merged onto the outermost element (the label wrapper when there is a label) after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the outermost element (the label wrapper when there is a label) after the component's own. */
+	style?: CSSProperties;
 }
 
 /**
@@ -199,6 +203,8 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 	tickInterval,
 	tickLabels,
 	snapToTicks = false,
+	className,
+	style,
 }) => {
 	const isVertical = orientation === "vertical";
 	const resolvedIndicator: ClassicySliderIndicatorDirection =
@@ -358,7 +364,9 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 			className={classNames(
 				"classicySliderTrackGroup",
 				isVertical && "classicySliderTrackGroupVertical",
+				labelTitle ? "" : className,
 			)}
+			style={labelTitle ? undefined : style}
 		>
 			{needsStack ? (
 				<div
@@ -388,7 +396,10 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 	if (!labelTitle) return slider;
 
 	return (
-		<div className={labelPositionClass(labelPosition)}>
+		<div
+			className={classNames(labelPositionClass(labelPosition), className)}
+			style={style}
+		>
 			<ClassicyControlLabel
 				label={labelTitle}
 				labelFor={id}

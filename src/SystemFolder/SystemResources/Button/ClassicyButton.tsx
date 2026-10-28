@@ -114,6 +114,7 @@ export const ClassicyButton = forwardRef<
 			children,
 			onKeyDown,
 			onKeyUp,
+			className,
 			...rest
 		},
 		ref,
@@ -180,6 +181,7 @@ export const ClassicyButton = forwardRef<
 					keyActive ? "classicyButtonKeyActive" : "",
 					buttonShape !== "square" ? paddingVariantClass[padding] : "",
 					marginVariantClass[margin],
+					className,
 				)}
 				aria-pressed={depressed || keyActive || undefined}
 				onClick={onHandleFunc}

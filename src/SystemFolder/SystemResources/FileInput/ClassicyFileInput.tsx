@@ -3,6 +3,7 @@ import "./ClassicyFileInput.scss";
 import classNames from "classnames";
 import {
 	type ChangeEvent,
+	type CSSProperties,
 	forwardRef,
 	useCallback,
 	useImperativeHandle,
@@ -51,6 +52,10 @@ interface ClassicyFileInputProps {
 	labelDisabled?: boolean;
 	/** Called with the complete current file list after every add or remove. */
 	onChangeFunc?: (files: File[]) => void;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 }
 
 /**
@@ -82,6 +87,8 @@ export const ClassicyFileInput = forwardRef<
 		labelSize = "medium",
 		labelDisabled,
 		onChangeFunc,
+		className,
+		style,
 	},
 	ref,
 ) {
@@ -153,7 +160,9 @@ export const ClassicyFileInput = forwardRef<
 			className={classNames(
 				"classicyFileInputHolder",
 				labelPositionClass(labelPosition),
+				className,
 			)}
+			style={style}
 		>
 			{labelTitle && (
 				<ClassicyControlLabel

@@ -36,6 +36,10 @@ interface ClassicyColorPickerProps {
 	disabled?: boolean;
 	/** Called with the chosen colour (`0xRRGGBB`) when the dialog's OK is clicked. */
 	onChangeFunc?: (color: number) => void;
+	/** Extra class names, merged onto the swatch wrapper (the dialog is a separate window) after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the swatch wrapper (the dialog is a separate window) after the component's own. */
+	style?: CSSProperties;
 }
 
 /**
@@ -65,6 +69,8 @@ export const ClassicyColorPicker: FC<ClassicyColorPickerProps> = ({
 	labelSize = "medium",
 	disabled = false,
 	onChangeFunc,
+	className,
+	style,
 }) => {
 	const [internalValue, setInternalValue] = useState(defaultValue);
 	const [open, setOpen] = useState(false);
@@ -77,7 +83,9 @@ export const ClassicyColorPicker: FC<ClassicyColorPickerProps> = ({
 				className={classNames(
 					"classicyColorPickerSwatchWrapper",
 					labelTitle && labelPositionClass(labelPosition),
+					className,
 				)}
+				style={style}
 			>
 				{labelTitle && (
 					<ClassicyControlLabel

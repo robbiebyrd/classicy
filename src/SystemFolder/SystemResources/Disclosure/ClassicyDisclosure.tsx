@@ -7,6 +7,7 @@ import { ClassicyTriangle } from "@/SystemFolder/SystemResources/Triangle/Classi
 import "./ClassicyDisclosure.scss";
 import classNames from "classnames";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	type KeyboardEvent,
 	type ReactNode,
@@ -34,6 +35,10 @@ type ClassicyDisclosureProps = {
 	labelPosition?: ClassicyLabelPosition;
 	/** The content revealed while open; not displayed while closed. */
 	children?: ReactNode;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 };
 
 /**
@@ -64,6 +69,8 @@ export const ClassicyDisclosure: FunctionalComponent<
 	labelSize = "medium",
 	labelPosition = "right",
 	children,
+	className,
+	style,
 }) => {
 	const [open, setOpen] = useState(false);
 	const { track } = useClassicyAnalytics();
@@ -102,7 +109,7 @@ export const ClassicyDisclosure: FunctionalComponent<
 	}
 
 	return (
-		<div className={classNames("classicyDisclosure")}>
+		<div className={classNames("classicyDisclosure", className)} style={style}>
 			{/* biome-ignore lint/a11y/useSemanticElements: disclosure header is a block container with svg child incompatible with <button> */}
 			<div
 				role="button"

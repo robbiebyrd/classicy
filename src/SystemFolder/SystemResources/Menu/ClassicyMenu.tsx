@@ -2,6 +2,7 @@ import "@/SystemFolder/SystemResources/Menu/ClassicyMenu.scss";
 import classNames from "classnames";
 import he from "he";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	type MouseEvent,
 	memo,
@@ -118,6 +119,10 @@ interface ClassicyMenuProps {
 	 * `subNavClass`. Kept so existing callers still type-check.
 	 */
 	isSubmenu?: boolean;
+	/** Extra class names, merged onto the `.classicyMenuWrapper` after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the `.classicyMenuWrapper` after the component's own. */
+	style?: CSSProperties;
 }
 
 /**
@@ -141,6 +146,8 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 	navClass,
 	subNavClass,
 	children,
+	className,
+	style,
 }) => {
 	const { closeSignal } = useContext(ClassicyMenuContext);
 	const [openChildId, setOpenChildId] = useState<string | null>(null);
@@ -154,7 +161,7 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 	const handleClose = useCallback(() => setOpenChildId(null), []);
 
 	return menuItems && menuItems.length > 0 ? (
-		<div className={"classicyMenuWrapper"}>
+		<div className={classNames("classicyMenuWrapper", className)} style={style}>
 			<ul className={classNames(navClass)} key={`${name}_menu`}>
 				{menuItems.map((item: ClassicyMenuItem, index: number) => (
 					<ClassicyMenuItemComponent

@@ -1,6 +1,10 @@
 import "./ClassicyHelpButton.scss";
 import classNames from "classnames";
-import type { FC as FunctionalComponent, MouseEventHandler } from "react";
+import type {
+	CSSProperties,
+	FC as FunctionalComponent,
+	MouseEventHandler,
+} from "react";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { ClassicyBevelButton } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButton";
 
@@ -18,6 +22,8 @@ type ClassicyHelpButtonProps = {
 	onClickFunc?: MouseEventHandler<HTMLButtonElement>;
 	/** Extra class names merged onto the button (e.g. for placement). */
 	className?: string;
+	/** Inline style, merged onto the button after the component's own. */
+	style?: CSSProperties;
 };
 
 /**
@@ -37,7 +43,14 @@ type ClassicyHelpButtonProps = {
  */
 export const ClassicyHelpButton: FunctionalComponent<
 	ClassicyHelpButtonProps
-> = ({ id, label = "Help", disabled = false, onClickFunc, className }) => {
+> = ({
+	id,
+	label = "Help",
+	disabled = false,
+	onClickFunc,
+	className,
+	style,
+}) => {
 	const helpIcon = useClassicyAsset("systemArt", "helpButton") ?? "";
 	return (
 		<ClassicyBevelButton
@@ -48,6 +61,7 @@ export const ClassicyHelpButton: FunctionalComponent<
 			disabled={disabled}
 			onClickFunc={onClickFunc}
 			className={classNames("classicyHelpButton", className)}
+			style={style}
 		/>
 	);
 };

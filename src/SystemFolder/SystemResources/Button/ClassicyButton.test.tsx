@@ -63,6 +63,20 @@ describe("ClassicyButton", () => {
 		expect(screen.getByRole("button", { name: "OK" })).toHaveClass("default");
 	});
 
+	it("merges a consumer className with its own and state classes instead of replacing them", () => {
+		render(
+			<ClassicyButton className="host" isDefault depressed>
+				Go
+			</ClassicyButton>,
+		);
+		expect(screen.getByRole("button")).toHaveClass(
+			"classicyButton",
+			"default",
+			"pressed",
+			"host",
+		);
+	});
+
 	it("does not add default class when isDefault=false (default)", () => {
 		render(<ClassicyButton>Cancel</ClassicyButton>);
 		expect(screen.getByRole("button", { name: "Cancel" })).not.toHaveClass(

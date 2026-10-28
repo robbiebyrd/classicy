@@ -1,6 +1,7 @@
 import "./ClassicyPopUpSlider.scss";
 import classNames from "classnames";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	type KeyboardEvent,
 	type MouseEvent,
@@ -40,6 +41,8 @@ type ClassicyPopUpSliderProps = {
 	id?: string;
 	/** Extra class on the slider. */
 	className?: string;
+	/** Inline style on the slider. */
+	style?: CSSProperties;
 };
 
 const clamp = (value: number, lo: number, hi: number) =>
@@ -80,6 +83,7 @@ export const ClassicyPopUpSlider: FunctionalComponent<
 	disabled = false,
 	id,
 	className,
+	style,
 }) => {
 	const sliderRef = useRef<HTMLDivElement>(null);
 	const dragCleanupRef = useRef<(() => void) | null>(null);
@@ -156,6 +160,7 @@ export const ClassicyPopUpSlider: FunctionalComponent<
 				classicyStateClasses({ disabled }),
 				className,
 			)}
+			style={style}
 			onMouseDown={onMouseDown}
 			onKeyDown={onKeyDown}
 		>

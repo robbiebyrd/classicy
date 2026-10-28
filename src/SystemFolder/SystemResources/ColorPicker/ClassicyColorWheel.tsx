@@ -1,4 +1,11 @@
-import { type FC, type PointerEvent, useEffect, useRef } from "react";
+import classNames from "classnames";
+import {
+	type CSSProperties,
+	type FC,
+	type PointerEvent,
+	useEffect,
+	useRef,
+} from "react";
 import { hlsToRgb, hsvToRgb } from "./ClassicyColorPickerUtils";
 
 interface ClassicyColorWheelProps {
@@ -8,6 +15,10 @@ interface ClassicyColorWheelProps {
 	mode: "hsv" | "hls";
 	size?: number;
 	onChangeFunc: (h: number, s: number) => void;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 }
 
 export const ClassicyColorWheel: FC<ClassicyColorWheelProps> = ({
@@ -17,6 +28,8 @@ export const ClassicyColorWheel: FC<ClassicyColorWheelProps> = ({
 	mode,
 	size = 200,
 	onChangeFunc,
+	className,
+	style,
 }) => {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const dragging = useRef(false);
@@ -123,7 +136,8 @@ export const ClassicyColorWheel: FC<ClassicyColorWheelProps> = ({
 			ref={canvasRef}
 			width={size}
 			height={size}
-			className="classicyColorPickerWheelCanvas"
+			className={classNames("classicyColorPickerWheelCanvas", className)}
+			style={style}
 			onPointerDown={onPointerDown}
 			onPointerMove={onPointerMove}
 			onPointerUp={onPointerUp}

@@ -1,6 +1,6 @@
 import "./ClassicySeparator.scss";
 import classNames from "classnames";
-import type { FC as FunctionalComponent } from "react";
+import type { CSSProperties, FC as FunctionalComponent } from "react";
 
 export type ClassicySeparatorOrientation = "horizontal" | "vertical";
 
@@ -12,6 +12,8 @@ export type ClassicySeparatorProps = {
 	orientation?: ClassicySeparatorOrientation;
 	/** Extra class names to merge onto the separator element. */
 	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 };
 
 /**
@@ -31,6 +33,7 @@ export type ClassicySeparatorProps = {
 export const ClassicySeparator: FunctionalComponent<ClassicySeparatorProps> = ({
 	orientation = "horizontal",
 	className,
+	style,
 }) => {
 	return (
 		<hr
@@ -41,6 +44,7 @@ export const ClassicySeparator: FunctionalComponent<ClassicySeparatorProps> = ({
 					: "classicySeparatorHorizontal",
 				className,
 			)}
+			style={style}
 			aria-orientation={orientation}
 		/>
 	);

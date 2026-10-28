@@ -1,5 +1,7 @@
 import "./ClassicyFileBrowserViewTable.scss";
+import classNames from "classnames";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	type KeyboardEvent,
 	type MouseEvent,
@@ -112,6 +114,10 @@ type ClassicyFileBrowserProps = {
 	) => ClassicyMenuItem[] | undefined;
 	/** Receives `{ selectedPaths() }`, for menu commands that act on the selection. */
 	commandsRef?: RefObject<ClassicyFileBrowserCommands | null>;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 };
 
 // Define stable default functions outside component to prevent re-creation
@@ -173,6 +179,8 @@ export const ClassicyFileBrowser: FunctionalComponent<
 	onDeleteItems,
 	itemContextMenu,
 	commandsRef,
+	className,
+	style,
 }) => {
 	const holderRef = useRef<HTMLDivElement>(null);
 	const rootRef = useRef<HTMLDivElement>(null);
@@ -236,7 +244,8 @@ export const ClassicyFileBrowser: FunctionalComponent<
 		// biome-ignore lint/a11y/noStaticElementInteractions: keys and right-clicks bubble here from the focusable list box and icons
 		<div
 			ref={rootRef}
-			className={"classicyFileBrowserFill"}
+			className={classNames("classicyFileBrowserFill", className)}
+			style={style}
 			{...{ [CLASSICY_DROP_FOLDER_ATTRIBUTE]: path }}
 			onKeyDown={onKeyDown}
 			onContextMenu={onContextMenu}

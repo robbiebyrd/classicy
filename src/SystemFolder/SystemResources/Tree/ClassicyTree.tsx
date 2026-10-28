@@ -1,6 +1,7 @@
 import "./ClassicyTree.scss";
 import classNames from "classnames";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	type MouseEventHandler,
 	type KeyboardEvent as ReactKeyboardEvent,
@@ -101,6 +102,10 @@ type ClassicyTreeProps = {
 	) => void;
 	/** Fired when a selectable leaf is double-clicked — the "open it" gesture. */
 	onActivateNode?: (id: string, node: ClassicyTreeNode) => void;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 };
 
 /** A single row in the flattened (currently-visible) view of the tree. */
@@ -385,6 +390,8 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 	selectedIds,
 	onSelectNode,
 	onActivateNode,
+	className,
+	style,
 }) => {
 	const [openSet, setOpenSet] = useState<Set<string>>(() =>
 		collectDefaultOpen(nodes),
@@ -521,7 +528,11 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 	);
 
 	return (
-		<ul className={classNames("classicyTree")} onKeyDown={handleKeyDown}>
+		<ul
+			className={classNames("classicyTree", className)}
+			style={style}
+			onKeyDown={handleKeyDown}
+		>
 			{nodes.map((node) => (
 				<ClassicyTreeNodeItem key={node.id} node={node} depth={0} ctx={ctx} />
 			))}

@@ -1,6 +1,7 @@
 import "./ClassicyPlacard.scss";
 import classNames from "classnames";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	type MouseEvent,
 	type MouseEventHandler,
@@ -33,6 +34,10 @@ type ClassicyPlacardProps = PropsWithChildren<{
 	onClick?: MouseEventHandler<HTMLElement>;
 	/** Fired with the id of a chosen pop-up menu item. */
 	onSelect?: (id: string) => void;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 }>;
 
 /**
@@ -63,6 +68,8 @@ export const ClassicyPlacard: FunctionalComponent<ClassicyPlacardProps> = ({
 	onClick,
 	onSelect,
 	children,
+	className,
+	style,
 }) => {
 	const player = useSoundDispatch();
 	const hasMenu = Array.isArray(menuItems) && menuItems.length > 0;
@@ -123,7 +130,11 @@ export const ClassicyPlacard: FunctionalComponent<ClassicyPlacardProps> = ({
 	);
 
 	return (
-		<div className="classicyPlacardHolder" ref={rootRef}>
+		<div
+			className={classNames("classicyPlacardHolder", className)}
+			style={style}
+			ref={rootRef}
+		>
 			{interactive ? (
 				<button
 					type="button"

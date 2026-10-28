@@ -1,6 +1,11 @@
 import "./ClassicyCheckbox.scss";
 import classNames from "classnames";
-import { type FC as FunctionalComponent, useEffect, useState } from "react";
+import {
+	type CSSProperties,
+	type FC as FunctionalComponent,
+	useEffect,
+	useState,
+} from "react";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import {
@@ -46,6 +51,10 @@ export type ClassicyCheckboxProps = {
 	 * checkmark is not culturally acceptable. Defaults to "check".
 	 */
 	mark?: "check" | "x";
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 };
 
 /**
@@ -81,6 +90,8 @@ export const ClassicyCheckbox: FunctionalComponent<ClassicyCheckboxProps> = ({
 	labelSize = "medium",
 	labelPosition = "right",
 	mark = "check",
+	className,
+	style,
 }) => {
 	const [check, setCheck] = useState<boolean>(checked || false);
 	useEffect(() => {
@@ -104,7 +115,9 @@ export const ClassicyCheckbox: FunctionalComponent<ClassicyCheckboxProps> = ({
 			className={classNames(
 				"classicyCheckboxHolder",
 				labelPositionClass(labelPosition),
+				className,
 			)}
+			style={style}
 		>
 			<ClassicyControlLabel
 				label={label}

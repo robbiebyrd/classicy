@@ -10,6 +10,7 @@ import {
 } from "@tanstack/react-table";
 import classNames from "classnames";
 import {
+	type CSSProperties,
 	type KeyboardEvent,
 	type ReactElement,
 	type ReactNode,
@@ -88,6 +89,8 @@ type ClassicyTableProps<T> = {
 	stickyHeader?: boolean;
 	/** Extra class(es) for the scrolling container. */
 	className?: string;
+	/** Inline style for the scrolling container. */
+	style?: CSSProperties;
 	/** Extra class(es) for a row — e.g. legacy class names a consumer's CSS keys on. */
 	rowClassName?: (row: T, isSelected: boolean) => string | undefined;
 	/**
@@ -164,6 +167,7 @@ export function ClassicyTable<T>({
 	defaultSort,
 	stickyHeader = true,
 	className,
+	style,
 	rowClassName,
 	getSubRows,
 	rowCanExpand,
@@ -446,6 +450,7 @@ export function ClassicyTable<T>({
 			tabIndex={selectionMode === "none" ? undefined : 0}
 			onKeyDown={handleKeyDown}
 			className={classNames("classicyTableContainer", className)}
+			style={style}
 		>
 			<table className="classicyTable">
 				<thead

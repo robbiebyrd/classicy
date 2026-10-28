@@ -1,6 +1,8 @@
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import "./ClassicyAssistant.scss";
+import classNames from "classnames";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	type KeyboardEvent,
 	type ReactNode,
@@ -80,6 +82,10 @@ export interface ClassicyAssistantProps {
 	 * controlled or not (only after `canAdvance` allows a forward move).
 	 */
 	onPageChange?: (index: number) => void;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 }
 
 const clamp = (value: number, min: number, max: number): number =>
@@ -116,6 +122,8 @@ export const ClassicyAssistant: FunctionalComponent<ClassicyAssistantProps> = ({
 	initialPage = 0,
 	page,
 	onPageChange,
+	className,
+	style,
 }) => {
 	const lastIndex = Math.max(0, pages.length - 1);
 	const [uncontrolledPage, setUncontrolledPage] = useState(() =>
@@ -174,8 +182,13 @@ export const ClassicyAssistant: FunctionalComponent<ClassicyAssistantProps> = ({
 
 	return (
 		// biome-ignore lint/a11y/noStaticElementInteractions: wizard container is a focusable arrow-key nav surface
-		// biome-ignore lint/a11y/noNoninteractiveTabindex: focusable so arrow keys work when focus is within the assistant
-		<div className={"classicyAssistant"} tabIndex={0} onKeyDown={onKeyDown}>
+		<div
+			className={classNames("classicyAssistant", className)}
+			style={style}
+			// biome-ignore lint/a11y/noNoninteractiveTabindex: focusable so arrow keys work when focus is within the assistant
+			tabIndex={0}
+			onKeyDown={onKeyDown}
+		>
 			<section
 				className={"classicyAssistantHeader"}
 				aria-live="polite"

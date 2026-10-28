@@ -1,6 +1,7 @@
 import "./ClassicyTabs.scss";
 import classNames from "classnames";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	type KeyboardEvent,
 	type ReactNode,
@@ -32,6 +33,10 @@ export interface TabProps {
 	tabs: TabIndividual[];
 	/** Tab sizing; see {@link ClassicyTabsSize}. Defaults to `"medium"`. */
 	size?: ClassicyTabsSize;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 }
 
 export interface TabIndividual {
@@ -122,6 +127,8 @@ const NO_OVERFLOW: ScrollState = {
 export const ClassicyTabs: FunctionalComponent<TabProps> = ({
 	tabs,
 	size = "medium",
+	className,
+	style,
 }) => {
 	const [activeTab, setActiveTab] = useState(0);
 	// Tab and panel DOM ids are unique per instance (#309): two strips with a
@@ -305,7 +312,14 @@ export const ClassicyTabs: FunctionalComponent<TabProps> = ({
 	};
 
 	return (
-		<div className={classNames("classicyTabContainer", SIZE_CLASS[size])}>
+		<div
+			className={classNames(
+				"classicyTabContainer",
+				SIZE_CLASS[size],
+				className,
+			)}
+			style={style}
+		>
 			<div className={"classicyTabButtonsRow"}>
 				{scroll.overflowing && scrollArrow(-1)}
 				<div className={"classicyTabScroller"} ref={scrollerRef}>

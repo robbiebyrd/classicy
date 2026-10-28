@@ -106,6 +106,10 @@ interface ClassicyDesktopIconProps {
 	 * addition to `onClickFunc`/`event`. `ClassicyDesktop` supplies it.
 	 */
 	onOpenFilePath?: (path: string) => void;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 }
 
 /** File-backed icons drag as files; drives and the Trash only take drops. */
@@ -159,6 +163,8 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			filePath,
 			onMoveFilePaths,
 			onOpenFilePath,
+			className,
+			style,
 		}) => {
 			const aliasBadge = useClassicyAsset("systemArt", "aliasBadge") ?? "";
 			const [clickPosition, setClickPosition] = useState<[number, number]>([
@@ -438,8 +444,9 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 							dragging,
 						}),
 						isAlias ? "classicyDesktopIconAlias" : "",
+						className,
 					)}
-					style={{ top: thisLocation[0], left: thisLocation[1] }}
+					style={{ top: thisLocation[0], left: thisLocation[1], ...style }}
 					{...balloonHandlers}
 				>
 					<div className={"classicyDesktopIconImage"}>

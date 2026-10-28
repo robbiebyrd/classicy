@@ -1,5 +1,5 @@
 import "./ClassicyPixelArt.scss";
-import type { FC as FunctionalComponent } from "react";
+import type { CSSProperties, FC as FunctionalComponent } from "react";
 
 /**
  * Pixel art as rows of palette tokens, one character per pixel; "." is
@@ -21,6 +21,8 @@ type ClassicyPixelArtProps = {
 	rows: ClassicyPixelArtRows;
 	/** Class(es) for the `<svg>`, e.g. to position or scale it. */
 	className?: string;
+	/** Inline style, merged onto the `<svg>` after the component's own. */
+	style?: CSSProperties;
 };
 
 /**
@@ -43,6 +45,7 @@ type ClassicyPixelArtProps = {
 export const ClassicyPixelArt: FunctionalComponent<ClassicyPixelArtProps> = ({
 	rows,
 	className,
+	style,
 }) => {
 	const width = rows[0]?.length ?? 0;
 	const rects = [];
@@ -71,6 +74,7 @@ export const ClassicyPixelArt: FunctionalComponent<ClassicyPixelArtProps> = ({
 	return (
 		<svg
 			className={className}
+			style={style}
 			width={width}
 			height={rows.length}
 			viewBox={`0 0 ${width} ${rows.length}`}

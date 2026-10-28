@@ -1,6 +1,6 @@
 import "./ClassicyBalloonHelp.scss";
 import type { FC, PropsWithChildren } from "react";
-import { useRef } from "react";
+import { type CSSProperties, useRef } from "react";
 import {
 	type ClassicyBalloonPosition,
 	useClassicyBalloonHelp,
@@ -23,6 +23,8 @@ interface ClassicyBalloonHelpProps extends PropsWithChildren {
 	position?: ClassicyBalloonPosition;
 	/** Extra class(es) for the wrapper element. */
 	className?: string;
+	/** Inline style, merged onto the anchor wrapper after the component's own. */
+	style?: CSSProperties;
 }
 
 /**
@@ -61,6 +63,7 @@ export const ClassicyBalloonHelp: FC<ClassicyBalloonHelpProps> = ({
 	delay,
 	position,
 	className,
+	style,
 }) => {
 	const anchorRef = useRef<HTMLDivElement>(null);
 	const { handlers, balloon } = useClassicyBalloonHelp(anchorRef, {
@@ -76,6 +79,7 @@ export const ClassicyBalloonHelp: FC<ClassicyBalloonHelpProps> = ({
 			className={["classicyBalloonHelpAnchor", className]
 				.filter(Boolean)
 				.join(" ")}
+			style={style}
 			{...handlers}
 		>
 			{children}

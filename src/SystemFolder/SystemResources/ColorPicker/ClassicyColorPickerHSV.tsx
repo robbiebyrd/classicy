@@ -1,3 +1,4 @@
+import classNames from "classnames";
 import type { ChangeEvent, CSSProperties, FC } from "react";
 import { ClassicySlider } from "@/SystemFolder/SystemResources/Slider/ClassicySlider";
 import {
@@ -14,11 +15,17 @@ const DEGREE_MARKS = [0, 60, 120, 180, 240, 300];
 interface ClassicyColorPickerHSVProps {
 	color: number;
 	onChangeFunc: (color: number) => void;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 }
 
 export const ClassicyColorPickerHSV: FC<ClassicyColorPickerHSVProps> = ({
 	color,
 	onChangeFunc,
+	className,
+	style,
 }) => {
 	const { r, g, b } = intToRgb(color);
 	const { h, s, v } = rgbToHsv(r, g, b);
@@ -60,7 +67,10 @@ export const ClassicyColorPickerHSV: FC<ClassicyColorPickerHSVProps> = ({
 	} as CSSProperties;
 
 	return (
-		<div className="classicyColorPickerWheelTab">
+		<div
+			className={classNames("classicyColorPickerWheelTab", className)}
+			style={style}
+		>
 			<div className="classicyColorPickerWheelLayout">
 				<div className="classicyColorPickerWheelOuter">
 					{/* Degree labels absolutely positioned around the wheel */}

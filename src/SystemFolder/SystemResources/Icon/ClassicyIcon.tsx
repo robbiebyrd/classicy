@@ -89,6 +89,10 @@ interface ClassicyIconProps {
 		point: [number, number],
 		outlineTopLeft: [number, number],
 	) => boolean;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 }
 
 /**
@@ -144,6 +148,8 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	dropFolderPath,
 	filePath,
 	onFileDrag,
+	className,
+	style,
 }) => {
 	const [position, setPosition] = useState<[number, number]>(initialPosition);
 	const [dragging, setDragging] = useState<boolean>(false);
@@ -276,6 +282,7 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 				"classicyIcon",
 				classicyStateClasses({ dragging, selected: active }),
 				labelPositionClass(labelPosition),
+				className,
 			)}
 			style={
 				{
@@ -291,6 +298,7 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 					// when `size` is undefined so the theme's value keeps cascading
 					// exactly as it did before this prop existed.
 					...(size === undefined ? {} : { "--desktop-icon-size": `${size}px` }),
+					...style,
 				} as CSSProperties
 			}
 			onClick={toggleFocus}

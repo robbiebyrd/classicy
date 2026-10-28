@@ -58,6 +58,10 @@ type ClassicyListBoxProps = {
 	labelSize?: ClassicyControlLabelSize;
 	/** Dims the list and ignores clicks and keys. Defaults to `false`. */
 	disabled?: boolean;
+	/** Extra class names, merged onto the outermost element (the label wrapper when there is a label) after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the outermost element (the label wrapper when there is a label) after the component's own. */
+	style?: CSSProperties;
 };
 
 type SelectionModifiers = {
@@ -93,6 +97,8 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 	labelPosition = "above",
 	labelSize,
 	disabled = false,
+	className,
+	style,
 }) => {
 	const [internal, setInternal] = useState<string[]>([]);
 	const effectiveSelected = selected ?? internal;
@@ -187,14 +193,16 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 			className={classNames(
 				"classicyListBox",
 				classicyStateClasses({ disabled }),
+				label ? "" : className,
 			)}
-			style={
-				visibleRows
+			style={{
+				...(visibleRows
 					? ({
 							"--classicy-listbox-visible-rows": visibleRows,
 						} as CSSProperties)
-					: undefined
-			}
+					: {}),
+				...(label ? {} : style),
+			}}
 			onKeyDown={handleKeyDown}
 		>
 			{options.map((o, index) => {
@@ -245,7 +253,10 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 	if (!label) return listbox;
 
 	return (
-		<div className={classNames(labelPositionClass(labelPosition))}>
+		<div
+			className={classNames(labelPositionClass(labelPosition), className)}
+			style={style}
+		>
 			<ClassicyControlLabel
 				label={label}
 				labelFor={id}

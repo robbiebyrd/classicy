@@ -114,6 +114,8 @@ interface ClassicySplitViewProps {
 	onResizeCommit?: (sizes: number[]) => void;
 	/** Extra class names to merge onto the root element. */
 	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 	/** Two or three content areas; extras are dropped with a dev warning. */
 	children: ReactNode;
 }
@@ -151,6 +153,7 @@ export const ClassicySplitView: FunctionalComponent<ClassicySplitViewProps> = ({
 	onResize,
 	onResizeCommit,
 	className,
+	style,
 	children,
 }) => {
 	const allChildren = Children.toArray(children);
@@ -294,6 +297,7 @@ export const ClassicySplitView: FunctionalComponent<ClassicySplitViewProps> = ({
 					: "classicySplitViewVertical",
 				className,
 			)}
+			style={style}
 		>
 			{panes.map((child, index) => (
 				// biome-ignore lint/suspicious/noArrayIndexKey: panes are positional; order is their identity

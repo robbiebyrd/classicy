@@ -410,6 +410,16 @@ interface ClassicyWindowProps {
 	 * initial target instead. Opt-in: omitted, nothing is focused.
 	 */
 	initialFocusRef?: RefObject<HTMLElement | null>;
+	/** Extra class names, merged onto the root `.classicyWindow` after the component's own. */
+	className?: string;
+	/**
+	 * Inline style for the root `.classicyWindow`. The window's own geometry
+	 * (`width`, `height`, `left`, `top`, `minWidth`, `minHeight`) always wins —
+	 * the stored position and size can be changed only through the window props
+	 * and the store, never by this style — so use it for everything else
+	 * (margins, opacity, custom properties).
+	 */
+	style?: CSSProperties;
 }
 
 // Mounted document windows by app + window id, so an unmount can tell whether
@@ -479,6 +489,8 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	placard,
 	backgroundColor,
 	initialFocusRef,
+	className,
+	style,
 }) => {
 	const fileIcon = useClassicyAsset("icons", "system.files.file") ?? "";
 	const icon = iconProp || fileIcon;
@@ -1623,7 +1635,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			ref={windowRef}
 			role="application"
 			aria-label={title || undefined}
-			style={windowStyle}
+			style={{ ...style, ...windowStyle }}
 			className={classNames(
 				"classicyWindow",
 				windowType === "utility"
@@ -1651,6 +1663,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				modal && type === "error" ? "classicyWindowRed" : "",
 				scrollable ? "" : "classicyWindowNoScroll",
 				scrollable && !showScrollBars ? "classicyWindowScrollBarsHidden" : "",
+				className,
 			)}
 			onMouseMove={changeWindow}
 			// Bound ONLY here, at the outermost element, rather than on the frame

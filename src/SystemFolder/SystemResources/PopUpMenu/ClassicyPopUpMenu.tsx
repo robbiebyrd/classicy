@@ -8,6 +8,7 @@ import "./ClassicyPopUpMenu.scss";
 import classNames from "classnames";
 import {
 	type ChangeEvent,
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	type KeyboardEvent,
 	useCallback,
@@ -133,6 +134,8 @@ type classicyPopUpMenuProps = {
 	onChangeFunc?: (e: ChangeEvent<HTMLSelectElement>) => void;
 	/** Extra class on the pop-up wrapper. */
 	className?: string;
+	/** Inline style on the same element as `className` (the pop-up box, not the outer label wrapper). */
+	style?: CSSProperties;
 	/** Disables the button. Defaults to `false`. */
 	disabled?: boolean;
 };
@@ -168,6 +171,7 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 	selected,
 	placeholder,
 	className: extraClassName,
+	style: extraStyle,
 	size = "medium",
 	onChangeFunc,
 	disabled = false,
@@ -490,6 +494,7 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 					classicyStateClasses({ disabled, open }),
 					extraClassName,
 				)}
+				style={extraStyle}
 			>
 				{/* The visible custom button IS the control: it carries the `id`
 				    so consumers/tests can target it, and reflects the disabled

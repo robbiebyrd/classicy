@@ -1,4 +1,5 @@
-import type { ChangeEvent, FC } from "react";
+import classNames from "classnames";
+import type { ChangeEvent, CSSProperties, FC } from "react";
 import { ClassicySlider } from "@/SystemFolder/SystemResources/Slider/ClassicySlider";
 import {
 	cmykToRgb,
@@ -10,11 +11,17 @@ import {
 interface ClassicyColorPickerCMYKProps {
 	color: number;
 	onChangeFunc: (color: number) => void;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 }
 
 export const ClassicyColorPickerCMYK: FC<ClassicyColorPickerCMYKProps> = ({
 	color,
 	onChangeFunc,
+	className,
+	style,
 }) => {
 	const { r, g, b } = intToRgb(color);
 	const { c, m, y, k } = rgbToCmyk(r, g, b);
@@ -33,7 +40,10 @@ export const ClassicyColorPickerCMYK: FC<ClassicyColorPickerCMYKProps> = ({
 			emit(channel, Number(e.target.value));
 
 	return (
-		<div className="classicyColorPickerSlidersTab">
+		<div
+			className={classNames("classicyColorPickerSlidersTab", className)}
+			style={style}
+		>
 			<div className="classicyColorPickerSliderCyan">
 				<ClassicySlider
 					id="cp-cmyk-c"

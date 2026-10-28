@@ -129,6 +129,10 @@ interface ClassicyDesktopProps {
 	 * or `false` to hide it.
 	 */
 	controlStrip?: boolean | ClassicyControlStripProps;
+	/** Extra class names, merged onto the `#classicyDesktop` surface (a style is merged after the theme custom properties) after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the `#classicyDesktop` surface (a style is merged after the theme custom properties) after the component's own. */
+	style?: CSSProperties;
 }
 
 const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
@@ -140,6 +144,8 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	startupWordmark,
 	bootScreen,
 	controlStrip = true,
+	className,
+	style,
 }) => {
 	const macosIcon = useClassicyAsset("icons", "system.macos") ?? "";
 	const [showAbout, setShowAbout] = useState(false);
@@ -571,8 +577,8 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	const currentTheme = useMemo(() => getThemeVars(activeTheme), [activeTheme]);
 	const assetVars = useClassicyAssetVars();
 	const rootStyle = useMemo(
-		() => ({ ...currentTheme, ...assetVars }) as CSSProperties,
-		[currentTheme, assetVars],
+		() => ({ ...currentTheme, ...assetVars, ...style }) as CSSProperties,
+		[currentTheme, assetVars, style],
 	);
 
 	const openDesktopItem = useCallback(
@@ -613,9 +619,11 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 			ref={desktopRef}
 			tabIndex={-1}
 			style={rootStyle}
-			className={classNames("classicyDesktop", {
-				classicyDesktopSplitArrows: smartScrolling === false,
-			})}
+			className={classNames(
+				"classicyDesktop",
+				{ classicyDesktopSplitArrows: smartScrolling === false },
+				className,
+			)}
 			onMouseMove={resizeSelectBox}
 			onContextMenu={toggleDesktopContextMenu}
 			onMouseUp={clearSelectBox}
@@ -778,6 +786,8 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 	startupWordmark,
 	bootScreen,
 	controlStrip,
+	className,
+	style,
 }) => (
 	<ClassicyCrashScreen>
 		<ClassicyContextualMenuProvider>
@@ -789,6 +799,8 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 				startupWordmark={startupWordmark}
 				bootScreen={bootScreen}
 				controlStrip={controlStrip}
+				className={className}
+				style={style}
 			>
 				{children}
 			</ClassicyDesktopInner>

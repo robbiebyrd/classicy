@@ -1,6 +1,7 @@
 import "./ClassicyControlLabel.scss";
 import classNames from "classnames";
 import type {
+	CSSProperties,
 	FC as FunctionalComponent,
 	KeyboardEvent,
 	MouseEvent,
@@ -75,6 +76,10 @@ interface ClassicyControlLabelProps {
 	onMouseDown?: (e: MouseEvent) => void;
 	/** Mouse-up on the text itself. */
 	onMouseUp?: (e: MouseEvent) => void;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 }
 
 /**
@@ -111,6 +116,8 @@ export const ClassicyControlLabel: FunctionalComponent<
 	onClickFunc,
 	onMouseDown,
 	onMouseUp,
+	className,
+	style,
 }) => {
 	if (label === "") {
 		return null;
@@ -161,7 +168,9 @@ export const ClassicyControlLabel: FunctionalComponent<
 				isLeftOrBottom
 					? "classicyControlLabelHolderLeft"
 					: "classicyControlLabelHolderRight",
+				className,
 			)}
+			style={style}
 		>
 			{icon && <img src={icon} width={imageSize(iconSize)} alt={label} />}
 

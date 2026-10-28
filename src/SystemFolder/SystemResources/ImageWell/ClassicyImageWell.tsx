@@ -1,6 +1,7 @@
 import "./ClassicyImageWell.scss";
 import classNames from "classnames";
 import {
+	type CSSProperties,
 	type DragEvent,
 	type FC as FunctionalComponent,
 	type PropsWithChildren,
@@ -24,6 +25,10 @@ type ClassicyImageWellProps = PropsWithChildren<{
 	onDrop?: (files: FileList, e: DragEvent<HTMLDivElement>) => void;
 	/** Accessible label for the well (falls back to `alt`). Not drawn. */
 	label?: string;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 }>;
 
 /**
@@ -45,6 +50,8 @@ export const ClassicyImageWell: FunctionalComponent<ClassicyImageWellProps> = ({
 	onDrop,
 	label,
 	children,
+	className,
+	style,
 }) => {
 	const isDropTarget = enabled && typeof onDrop === "function";
 	const [dragOver, setDragOver] = useState(false);
@@ -76,7 +83,9 @@ export const ClassicyImageWell: FunctionalComponent<ClassicyImageWellProps> = ({
 				"classicyImageWell",
 				classicyStateClasses({ disabled: !enabled, selected }),
 				{ classicyImageWellDragOver: dragOver },
+				className,
 			)}
+			style={style}
 			// When an inner <img> carries the image semantics, the frame stays a
 			// plain container; with custom children it presents as the image itself.
 			role={src ? "group" : "img"}

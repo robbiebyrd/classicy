@@ -13,6 +13,8 @@ interface ClassicyWindowFrameProps {
 	children: ReactNode;
 	/** Extra class names for the outer frame element. */
 	className?: string;
+	/** Inline style for the outer frame element; merged after the `width` custom property. */
+	style?: CSSProperties;
 	/** Caps the frame's max-width (number → px); content narrower than this stays narrower. */
 	width?: string | number;
 }
@@ -39,8 +41,8 @@ interface ClassicyWindowFrameProps {
  */
 export const ClassicyWindowFrame: FunctionalComponent<
 	ClassicyWindowFrameProps
-> = ({ title = "", children, className, width }) => {
-	const style =
+> = ({ title = "", children, className, style, width }) => {
+	const frameStyle =
 		width !== undefined
 			? ({
 					"--classicy-window-frame-width":
@@ -49,7 +51,10 @@ export const ClassicyWindowFrame: FunctionalComponent<
 			: undefined;
 
 	return (
-		<div className={classNames("classicyWindowFrame", className)} style={style}>
+		<div
+			className={classNames("classicyWindowFrame", className)}
+			style={{ ...frameStyle, ...style }}
+		>
 			<div className="classicyWindowFrameTitleBar">
 				{title !== "" && (
 					<span className="classicyWindowFrameTitleText">{title}</span>

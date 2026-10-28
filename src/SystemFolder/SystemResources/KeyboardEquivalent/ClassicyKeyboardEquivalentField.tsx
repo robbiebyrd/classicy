@@ -1,5 +1,9 @@
 import "./ClassicyKeyboardEquivalent.scss";
-import { type FC as FunctionalComponent, useState } from "react";
+import {
+	type CSSProperties,
+	type FC as FunctionalComponent,
+	useState,
+} from "react";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyControlGroup } from "@/SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup";
 import {
@@ -10,7 +14,13 @@ import { spellKeyboardEquivalent } from "@/SystemFolder/SystemResources/Keyboard
 
 export type ClassicyKeyboardEquivalentFieldProps = Omit<
 	ClassicyKeyboardEquivalentDialogProps,
-	"id" | "initialValue" | "current" | "onConfirm" | "onCancel"
+	| "id"
+	| "initialValue"
+	| "current"
+	| "onConfirm"
+	| "onCancel"
+	| "className"
+	| "style"
 > & {
 	/** Id of the button; the display gets `${id}-value` and the dialog window `${id}-dialog`. */
 	id: string;
@@ -24,6 +34,10 @@ export type ClassicyKeyboardEquivalentFieldProps = Omit<
 	buttonLabel?: string;
 	/** Disables the button so the equivalent cannot be changed. Defaults to `false`. */
 	disabled?: boolean;
+	/** Extra class names, merged onto the root control group (the recording dialog is a separate window) after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root control group (the recording dialog is a separate window) after the component's own. */
+	style?: CSSProperties;
 };
 
 /**
@@ -53,12 +67,14 @@ export const ClassicyKeyboardEquivalentField: FunctionalComponent<
 	onChange,
 	buttonLabel = "Change keyboard equivalent…",
 	disabled = false,
+	className,
+	style,
 	...dialogProps
 }) => {
 	const [editing, setEditing] = useState(false);
 
 	return (
-		<ClassicyControlGroup label={label}>
+		<ClassicyControlGroup label={label} className={className} style={style}>
 			<div className="classicyKeyboardEquivalentField">
 				<output
 					id={`${id}-value`}
