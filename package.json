@@ -76,7 +76,6 @@
 			"types": "./dist/fonts.d.ts",
 			"default": "./dist/fonts.js"
 		},
-		"./dist/fonts.css": "./dist/fonts.css",
 		"./dist/*": "./dist/*",
 		"./scss/*": "./src/SystemFolder/ControlPanels/AppearanceManager/styles/*"
 	},

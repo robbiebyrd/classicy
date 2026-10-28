@@ -32,17 +32,17 @@ npm install classicy react react-dom zustand immer @tanstack/react-table react-p
 Every export comes from the package root (a flat barrel). Importing it also
 installs the stylesheet: the bundle injects `classicy.css` as a
 `<style id="classicy-styles">` at the top of `<head>` on first import (once; not
-during SSR), so host stylesheets still win on equal specificity. Only the bundled
-fonts are a separate import, injected the same way (as
-`<style id="classicy-fonts">`):
+during SSR), so host stylesheets still win on equal specificity. The bundled
+fonts are files (`dist/assets/*.woff2`) that the Platinum appearance package
+registers at runtime, so there is nothing to import:
 
 ```ts
-import 'classicy/fonts'     // OPT-IN: bundled base64 fonts (~900 KB). Skip if you supply your own fonts.
+// no longer needed: the Platinum package registers its fonts; the import is a deprecated no-op
+// import 'classicy/fonts'
 ```
 
 Under a Content-Security-Policy that forbids inline `<style>`, link
-`classicy/dist/classicy.css` (and `classicy/dist/fonts.css`) instead; importing
-them as well is harmless.
+`classicy/dist/classicy.css` instead; importing it as well is harmless.
 
 Package `exports` map:
 
@@ -50,15 +50,13 @@ Package `exports` map:
 |---|---|
 | `classicy` | ES/UMD bundle + types |
 | `classicy/dist/classicy.css` | The stylesheet the bundle injects; link it yourself only under a strict CSP |
-| `classicy/fonts` | Opt-in: injects the bundled `@font-face` rules (side-effect import, no exports) |
-| `classicy/dist/fonts.css` | The same fonts as a stylesheet, for strict-CSP hosts or a CSS loader |
-| `classicy/dist/*` | Anything in dist |
+| `classicy/fonts` | Deprecated no-op kept so existing `import 'classicy/fonts'` lines keep resolving |
+| `classicy/dist/*` | Anything in dist; the fonts ship as `dist/assets/*.woff2` |
 | `classicy/scss/*` | Raw SCSS partials (theme styles) |
 
 ### Minimal app
 
 ```tsx
-import 'classicy/fonts'   // optional: the bundled fonts
 import {
     ClassicyAppManagerProvider,
     ClassicyDesktop,
@@ -1520,6 +1518,6 @@ untrusted disposition strings.
 7. **`defaultState` only applies on first boot** (nothing hydrated). During development, clear `localStorage["classicyDesktopState"]` to see provider default changes.
 8. **Window ids are data**: they feed analytics paths and persistence. Keep them stable and free of user content, or set `analyticsPath` explicitly.
 9. **Colors are integers** (`0xRRGGBB`), not hex strings, throughout themes and color pickers.
-10. **Styles come with the import** — the bundle injects `classicy.css` into `<head>`; only the fonts are a separate, opt-in import (`classicy/fonts`), injected the same way. Link `classicy.css`/`fonts.css` yourself only if a CSP blocks inline `<style>`.
+10. **Styles come with the import** — the bundle injects `classicy.css` into `<head>`; the fonts are files in `dist/assets/` registered by the Platinum package (`classicy/fonts` is a deprecated no-op). Link `classicy.css` yourself only if a CSP blocks inline `<style>`.
 11. Deprecated (still working, avoid in new code): `noDesktopIcon`, `inApplicationsFolder`, `registerAppEventHandler`, `registerClassicyUntrustedActionAllowlist` for app-owned actions, `isXData`-style hand-rolled guards (use `parseAppData`).
 12. **Never mount the built-in apps yourself** (`Finder`, `SimpleText`, `HyperCard`, the viewers, `ClassicyControlPanels`, `AppleGuide`) — `ClassicyDesktop` renders them all automatically; mounting them as children double-mounts them. Use the provider's `disable*` props to remove the optional ones.

@@ -22,16 +22,23 @@
 //    with "Couldn't load this PDF." -- caught and rendered as UI text, so no
 //    console error and no failing test anywhere.
 //
-// 3. EACH ENTRY BUNDLE MUST INJECT THE STYLESHEET (#303), and without the
-//    base64 fonts. `import "classicy"` is supposed to be enough for a styled
-//    desktop; if injectCssPlugin stopped matching the CSS asset (it is found
-//    by name), the bundles would silently ship unstyled. And if it ran before
-//    the font split, every consumer would download several MB of fonts.
+// 3. EACH ENTRY BUNDLE MUST INJECT THE STYLESHEET (#303), and carry no inlined
+//    fonts. `import "classicy"` is supposed to be enough for a styled desktop;
+//    if injectCssPlugin stopped matching the CSS asset (it is found by name),
+//    the bundles would silently ship unstyled. The Platinum fonts are files
+//    under src/Appearance, registered at runtime by registerClassicyFonts; if
+//    the `?no-inline` resolver stopped matching them, Vite's lib mode would
+//    base64 them into the bundle again (every consumer pays for every font).
 //
-// 4. dist/fonts.js MUST INJECT THE BUNDLED FONTS, and stay self-contained.
-//    `import "classicy/fonts"` is the opt-in for them; it is an emitted asset,
-//    not a Rollup chunk, so nothing else notices if it goes missing, injects
-//    an empty stylesheet, or picks up an import a consumer can't resolve.
+// 4. dist/fonts.js MUST STAY A SELF-CONTAINED NO-OP. `import "classicy/fonts"`
+//    is the deprecated opt-in from before the fonts became files; existing
+//    consumers still import it, so it has to keep resolving. It is an emitted
+//    asset, not a Rollup chunk, so nothing else notices if it goes missing or
+//    picks up an import a consumer can't resolve.
+//
+// 5. PACKAGE ASSETS MUST EMIT AS FILES. dist/assets/ holds exactly the 13
+//    Platinum .woff2 fonts plus the Platinum art (svg/png), and the ES bundle
+//    resolves them with `new URL("assets/...", import.meta.url)`.
 
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -126,29 +133,33 @@ for (const file of await bundles()) {
 	}
 }
 
-// Invariant 3: the stylesheet injector is appended to the two entry bundles.
+// Invariant 3: the stylesheet injector is appended to the two entry bundles,
+// and neither carries inlined fonts.
 const STYLE_ID = '"classicy-styles"';
+// A base64 payload, not the bare prefix: a bundled dependency builds
+// `data:font/opentype;base64,${...}` URLs at runtime and is not an inlined font.
+const INLINED_FONT =
+	/data:(?:font\/|application\/font-)[^,"'`]*;base64,[A-Za-z0-9+/=]{16}/;
 for (const entry of ["classicy.es.js", "classicy.umd.js"]) {
 	const file = join(DIST, entry);
 	if (argv.slice(2).length && !argv.slice(2).includes(file)) continue;
 	const source = await readFile(file, "utf8");
-	const at = source.lastIndexOf(`document.getElementById(${STYLE_ID})`);
-	if (at === -1) {
+	if (source.lastIndexOf(`document.getElementById(${STYLE_ID})`) === -1) {
 		failed = true;
 		console.error(
 			`${file}: does not inject its stylesheet -> check injectCssPlugin in vite.config.ts.`,
 		);
-	} else if (/@font-face[^}]*data:/.test(source.slice(at))) {
+	} else if (INLINED_FONT.test(source)) {
 		failed = true;
 		console.error(
-			`${file}: the injected stylesheet carries base64 @font-face rules -> injectCssPlugin must run after splitFontFacesPlugin.`,
+			`${file}: inlines fonts as data: URIs -> check noInlineAppearanceAssetsPlugin in vite.config.ts.`,
 		);
 	} else {
-		console.log(`${file}: injects its stylesheet, without bundled fonts`);
+		console.log(`${file}: injects its stylesheet, without inlined fonts`);
 	}
 }
 
-// Invariant 4: the opt-in fonts entry.
+// Invariant 4: the deprecated no-op fonts entry.
 const fontsEntry = join(DIST, "fonts.js");
 if (!argv.slice(2).length || argv.slice(2).includes(fontsEntry)) {
 	const source = await readFile(fontsEntry, "utf8").catch(() => null);
@@ -157,21 +168,48 @@ if (!argv.slice(2).length || argv.slice(2).includes(fontsEntry)) {
 		console.error(
 			`${fontsEntry}: missing -> check injectCssPlugin in vite.config.ts.`,
 		);
-	} else if (!source.includes('document.getElementById("classicy-fonts")')) {
-		failed = true;
-		console.error(`${fontsEntry}: does not inject the fonts stylesheet.`);
-	} else if (!/@font-face[^}]*data:/.test(source)) {
-		failed = true;
-		console.error(
-			`${fontsEntry}: carries no bundled @font-face rules -> is splitFontFacesPlugin still emitting fonts.css?`,
-		);
-	} else if (/^\s*(?:import|export)\b/m.test(source)) {
+	} else if (
+		/\b(?:import|require)\b/.test(source.replace(/^\s*\/\/.*$/gm, ""))
+	) {
 		failed = true;
 		console.error(
-			`${fontsEntry}: has an import/export; it must stay a self-contained script.`,
+			`${fontsEntry}: has an import/require; it must stay a self-contained script.`,
 		);
 	} else {
-		console.log(`${fontsEntry}: injects the bundled fonts`);
+		console.log(`${fontsEntry}: self-contained no-op shim`);
+	}
+}
+
+// Invariant 5: package assets are files in dist/assets, referenced relative to
+// the bundle. Skipped when the caller names specific files.
+if (!argv.slice(2).length) {
+	const assets = await readdir(join(DIST, "assets")).catch(() => []);
+	const fonts = assets.filter((f) => f.endsWith(".woff2"));
+	const art = assets.filter((f) => /\.(svg|png)$/.test(f));
+	if (fonts.length !== 13) {
+		failed = true;
+		console.error(
+			`${join(DIST, "assets")}: expected 13 .woff2 files, found ${fonts.length} -> check noInlineAppearanceAssetsPlugin in vite.config.ts.`,
+		);
+	} else if (art.length < 17) {
+		failed = true;
+		console.error(
+			`${join(DIST, "assets")}: expected at least 17 .svg/.png files from src/Appearance/Platinum/assets/art, found ${art.length}.`,
+		);
+	} else {
+		console.log(
+			`${join(DIST, "assets")}: ${fonts.length} .woff2 font(s), ${art.length} .svg/.png file(s)`,
+		);
+	}
+	const es = join(DIST, "classicy.es.js");
+	const esSource = await readFile(es, "utf8");
+	if (!esSource.includes('new URL("assets/')) {
+		failed = true;
+		console.error(
+			`${es}: no \`new URL("assets/\` reference -> package assets are not resolved relative to the bundle.`,
+		);
+	} else {
+		console.log(`${es}: resolves file assets relative to the bundle`);
 	}
 }
 
