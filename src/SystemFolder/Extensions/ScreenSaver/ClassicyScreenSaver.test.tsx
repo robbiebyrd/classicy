@@ -1,7 +1,10 @@
 import { fireEvent } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render } from "@/__tests__/test-utils";
-import { ClassicyScreenSaver } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaver";
+import {
+	ClassicyScreenSaver,
+	SCREEN_SAVER_ACTIVE_DOCUMENT_CLASS,
+} from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaver";
 import type { ScreenSaverData } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverContext";
 
 const mockDispatch = vi.hoisted(() => vi.fn());
@@ -108,6 +111,36 @@ describe("ClassicyScreenSaver overlay", () => {
 		setData({ active: true, enabled: false });
 		const { container } = render(<ClassicyScreenSaver />);
 		expect(container.querySelector(".classicyScreenSaverOverlay")).toBeNull();
+	});
+
+	it("hides the pointer document-wide while active and restores it on waking", () => {
+		const root = document.documentElement;
+		expect(root.classList.contains(SCREEN_SAVER_ACTIVE_DOCUMENT_CLASS)).toBe(
+			false,
+		);
+		setData({ active: true, selectedSaver: "logo" });
+		const { rerender, unmount } = render(<ClassicyScreenSaver />);
+		expect(root.classList.contains(SCREEN_SAVER_ACTIVE_DOCUMENT_CLASS)).toBe(
+			true,
+		);
+		// Waking clears `active`; the overlay unmounts and the class goes with it.
+		setData({ selectedSaver: "logo" });
+		rerender(<ClassicyScreenSaver />);
+		expect(root.classList.contains(SCREEN_SAVER_ACTIVE_DOCUMENT_CLASS)).toBe(
+			false,
+		);
+		unmount();
+	});
+
+	it("takes the pointer-hiding class off when the whole extension unmounts", () => {
+		setData({ active: true, selectedSaver: "logo" });
+		const { unmount } = render(<ClassicyScreenSaver />);
+		unmount();
+		expect(
+			document.documentElement.classList.contains(
+				SCREEN_SAVER_ACTIVE_DOCUMENT_CLASS,
+			),
+		).toBe(false);
 	});
 });
 

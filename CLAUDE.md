@@ -292,6 +292,15 @@ keystroke/click is swallowed in the capture phase.
 - 12 built-ins ported from bryanbraun/after-dark-css (`savers/`; CSS is MIT,
   sprite art © Berkeley Systems). Keyframes/classes are prefixed
   `classicySaver*` to avoid bundle-level CSS collisions.
+- The `logo` saver's image comes from its own live registry
+  (`savers/Logo/ClassicyScreenSaverLogoRegistry.ts`, in `sideEffects`):
+  `registerClassicyScreenSaverLogo({ id, name, src, width?, height? })` at
+  module scope; built-ins `berkeley-systems` (default), `classicy`,
+  `startup-screen` (`CLASSICY_SCREEN_SAVER_LOGO_IDS`). Config `{ logo: id }`
+  is picked in a custom `configComponent` pop-up (a schema enum could not
+  list logos registered later); an unregistered id draws the default. The
+  bounce keyframes read the mark's size from CSS custom properties, declared
+  or measured on load, so any image travels edge to edge.
 - The Screen Saver control panel
   (`ControlPanels/ScreenSaverManager/`) is part of `ClassicyControlPanels`.
 - Overlay z-index is 100001 (above dialog overlay 99999 and startup 100000);

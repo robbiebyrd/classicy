@@ -56,6 +56,7 @@
 		"**/*.scss",
 		"./dist/fonts.js",
 		"./src/SystemFolder/Extensions/ScreenSaver/savers/ClassicyScreenSaverBuiltIns.tsx",
+		"./src/SystemFolder/Extensions/ScreenSaver/savers/Logo/ClassicyScreenSaverLogoRegistry.ts",
 		"./src/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverControlStripModule.ts",
 		"./src/SystemFolder/ControlPanels/SoundManager/ClassicySoundControlStripModule.tsx",
 		"./src/SystemFolder/ControlPanels/ControlStripManager/ClassicyControlStripManagerManifest.ts"

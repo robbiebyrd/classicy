@@ -1319,6 +1319,32 @@ Registry read side: `getClassicyScreenSaver(id)`,
 `resolveScreenSaverConfig(saver, saved?)`. The `active` flag is transient and
 never persists — a reload always wakes up.
 
+**Logo saver images.** The `logo` saver bounces one of a registry of images,
+chosen in its options pop-up (config `{ logo: <id> }`). Three ship built in
+(`CLASSICY_SCREEN_SAVER_LOGO_IDS`): `berkeley-systems` (the After Dark mark,
+default), `classicy` (the Classicy wordmark) and `startup-screen` (the mark
+the startup screen shows). Add your own at module scope; the pop-up is live,
+and re-registering an id replaces that image in place:
+
+```tsx
+import { registerClassicyScreenSaverLogo } from 'classicy'
+import logo from './acme-logo.png'
+
+registerClassicyScreenSaverLogo({
+    id: 'acme',
+    name: 'Acme Corp',   // shown in the Logo pop-up
+    src: logo,           // URL or data URI, drawn on black
+    width: 160,          // optional px; omit both to use the natural size,
+    height: 60,          // give one to scale with the aspect kept
+})
+```
+
+Logos list in registration order (built-ins first). Read side:
+`getClassicyScreenSaverLogo(id)`, `listClassicyScreenSaverLogos()`,
+`resolveClassicyScreenSaverLogo(id)` (unknown → default),
+`useClassicyScreenSaverLogos()` (live), `unregisterClassicyScreenSaverLogo(id)`.
+A saved config naming a logo that is no longer registered draws the default.
+
 ### Logging & diagnostics
 
 All of Classicy's internal diagnostics flow through one pipeline that hosts
