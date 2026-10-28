@@ -3,10 +3,7 @@ import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManag
 import "@/Appearance/Platinum/assets/sounds/platinum";
 import { CLASSICY_DEFAULT_THEME_METRICS as METRICS } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import { classicyWallpaperFilename } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
-import {
-	getClassicySoundPack,
-	listClassicySoundPacks,
-} from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
+import { getClassicySoundPack } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
 
 /**
  * Runtime schema for `ClassicyTheme`, used wherever a theme arrives from
@@ -87,12 +84,12 @@ const backgroundImage = z.string().refine(isSafeClassicyThemeBackgroundImage, {
 	error: "must be a bundled wallpaper name or an http(s) URL",
 });
 
-const soundName = z
+// Evaluated per parse, so a pack registered after module load validates.
+const soundPack = z
 	.string()
-	.refine((name) => getClassicySoundPack(name) !== undefined, {
-		error: `must be a known sound theme (${listClassicySoundPacks()
-			.map((pack) => pack.id)
-			.join(", ")})`,
+	.max(64)
+	.refine((id) => getClassicySoundPack(id) !== undefined, {
+		error: "must be a registered sound pack",
 	});
 
 export const ClassicyThemeSchema = z.object({
@@ -188,7 +185,7 @@ export const ClassicyThemeSchema = z.object({
 		]),
 	}),
 	sound: z.object({
-		name: soundName,
+		pack: soundPack,
 		disabled: z.array(z.string().max(128)).max(256),
 	}),
 }) satisfies z.ZodType<ClassicyTheme>;

@@ -190,7 +190,7 @@ describe("ClassicyDesktopImportTheme", () => {
 			"an unknown sound",
 			(() => {
 				const t = fileTheme();
-				t.sound.name = "sosumi";
+				t.sound.pack = "sosumi";
 				return t;
 			})(),
 		],

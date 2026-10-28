@@ -120,11 +120,11 @@ describe("Appearance Manager — saving and loading theme files", () => {
 	it("reports schema problems from the file", async () => {
 		await openAppearanceManager();
 		const bad = oceanTheme();
-		bad.sound = { name: "sosumi", disabled: [] };
+		bad.sound = { pack: "sosumi", disabled: [] };
 		pickFile(themeFile(exportClassicyTheme(bad)));
 
 		const alert = await screen.findByRole("alertdialog");
-		expect(alert).toHaveTextContent("sound.name:");
+		expect(alert).toHaveTextContent("sound.pack:");
 		expect(appearance().customThemes ?? []).toHaveLength(0);
 	});
 

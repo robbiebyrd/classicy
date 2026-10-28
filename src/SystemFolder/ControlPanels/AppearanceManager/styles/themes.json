@@ -24,7 +24,7 @@
 			"theme": [15658734, 13421823, 10066431, 6710988, 3355545, 136, 85]
 		},
 		"sound": {
-			"name": "platinum",
+			"pack": "platinum",
 			"disabled": []
 		},
 		"typography": {
@@ -106,7 +106,7 @@
 			"theme": [11520511, 9680618, 7707088, 6719159, 4876697, 3163773, 2702442]
 		},
 		"sound": {
-			"name": "platinum",
+			"pack": "platinum",
 			"disabled": []
 		},
 		"typography": {
@@ -188,7 +188,7 @@
 			"theme": [13170921, 6806221, 5945773, 3182481, 881002, 17739, 13107]
 		},
 		"sound": {
-			"name": "platinum",
+			"pack": "platinum",
 			"disabled": []
 		},
 		"typography": {
@@ -272,7 +272,7 @@
 			]
 		},
 		"sound": {
-			"name": "platinum",
+			"pack": "platinum",
 			"disabled": []
 		},
 		"typography": {
@@ -356,7 +356,7 @@
 			]
 		},
 		"sound": {
-			"name": "platinum",
+			"pack": "platinum",
 			"disabled": []
 		},
 		"typography": {
@@ -438,7 +438,7 @@
 			"theme": [13434828, 6750105, 3394662, 3381606, 26163, 17408, 8704]
 		},
 		"sound": {
-			"name": "platinum",
+			"pack": "platinum",
 			"disabled": []
 		},
 		"typography": {
@@ -520,7 +520,7 @@
 			"theme": [13421823, 11579626, 8750524, 6710937, 5329276, 3355494, 2500173]
 		},
 		"sound": {
-			"name": "platinum",
+			"pack": "platinum",
 			"disabled": []
 		},
 		"typography": {
@@ -604,7 +604,7 @@
 			]
 		},
 		"sound": {
-			"name": "platinum",
+			"pack": "platinum",
 			"disabled": []
 		},
 		"typography": {
@@ -686,7 +686,7 @@
 			"theme": [13434828, 13434828, 6723942, 3368499, 13056, 8704, 4352]
 		},
 		"sound": {
-			"name": "platinum",
+			"pack": "platinum",
 			"disabled": []
 		},
 		"typography": {
@@ -768,7 +768,7 @@
 			"theme": [15658734, 13421823, 10066431, 6710988, 3355545, 136, 85]
 		},
 		"sound": {
-			"name": "platinum",
+			"pack": "platinum",
 			"disabled": []
 		},
 		"typography": {
@@ -852,7 +852,7 @@
 			]
 		},
 		"sound": {
-			"name": "platinum",
+			"pack": "platinum",
 			"disabled": []
 		},
 		"typography": {
@@ -936,7 +936,7 @@
 			]
 		},
 		"sound": {
-			"name": "platinum",
+			"pack": "platinum",
 			"disabled": []
 		},
 		"typography": {
@@ -1020,7 +1020,7 @@
 			]
 		},
 		"sound": {
-			"name": "platinum",
+			"pack": "platinum",
 			"disabled": []
 		},
 		"typography": {
@@ -1104,7 +1104,7 @@
 			]
 		},
 		"sound": {
-			"name": "platinum",
+			"pack": "platinum",
 			"disabled": []
 		},
 		"typography": {
@@ -1188,7 +1188,7 @@
 			]
 		},
 		"sound": {
-			"name": "platinum",
+			"pack": "platinum",
 			"disabled": []
 		},
 		"typography": {
@@ -1272,7 +1272,7 @@
 			]
 		},
 		"sound": {
-			"name": "platinum",
+			"pack": "platinum",
 			"disabled": []
 		},
 		"typography": {
@@ -1354,7 +1354,7 @@
 			"theme": [15658734, 10079487, 6724095, 3368703, 13260, 153, 153]
 		},
 		"sound": {
-			"name": "platinum",
+			"pack": "platinum",
 			"disabled": []
 		},
 		"typography": {
@@ -1438,7 +1438,7 @@
 			]
 		},
 		"sound": {
-			"name": "platinum",
+			"pack": "platinum",
 			"disabled": []
 		},
 		"typography": {
@@ -1520,7 +1520,7 @@
 			"theme": [12185326, 10079436, 6723993, 4684153, 3368550, 478284, 13107]
 		},
 		"sound": {
-			"name": "platinum",
+			"pack": "platinum",
 			"disabled": []
 		},
 		"typography": {
@@ -1602,7 +1602,7 @@
 			"theme": [13434879, 6750207, 52479, 39372, 26265, 13158, 34]
 		},
 		"sound": {
-			"name": "platinum",
+			"pack": "platinum",
 			"disabled": []
 		},
 		"typography": {
@@ -1686,7 +1686,7 @@
 			]
 		},
 		"sound": {
-			"name": "platinum",
+			"pack": "platinum",
 			"disabled": []
 		},
 		"typography": {

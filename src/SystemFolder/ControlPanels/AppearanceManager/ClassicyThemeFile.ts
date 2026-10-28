@@ -20,6 +20,9 @@ import {
  *
  *     { "format": "classicy-theme", "version": 1, "theme": { …ClassicyTheme } }
  *
+ * A theme names its sound pack as `sound: { pack, disabled }`; the pack must be
+ * registered (`registerClassicySoundPack`) when the file is loaded.
+ *
  * Loading also accepts a bare theme object (no envelope) — the shape of an
  * entry in `themes.json` or of `JSON.stringify(activeTheme)` — so themes
  * written by hand or copied out of the store load without wrapping.

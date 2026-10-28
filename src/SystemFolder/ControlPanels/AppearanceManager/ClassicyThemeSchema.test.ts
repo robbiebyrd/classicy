@@ -15,6 +15,7 @@ import {
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema";
 import { ClassicyDefaultWallpaper } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 import themesData from "@/SystemFolder/ControlPanels/AppearanceManager/styles/themes.json";
+import { registerClassicySoundPack } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
 
 const base = (): ClassicyTheme => structuredClone(getTheme("default"));
 
@@ -151,14 +152,41 @@ describe("ClassicyThemeSchema — rejects", () => {
 
 	it("an unknown sound theme", () => {
 		const parsed = ClassicyThemeSchema.safeParse(
-			withEdit((t) => Object.assign(t.sound, { name: "sosumi" })),
+			withEdit((t) => Object.assign(t.sound, { pack: "sosumi" })),
 		);
 		expect(parsed.success).toBe(false);
-		expect(parsed.error?.issues[0].path).toEqual(["sound", "name"]);
+		expect(parsed.error?.issues[0].path).toEqual(["sound", "pack"]);
 	});
 
-	it("a sound name inherited from Object.prototype", () => {
-		rejects(withEdit((t) => Object.assign(t.sound, { name: "toString" })));
+	it("a sound pack registered after module load validates", () => {
+		registerClassicySoundPack({
+			id: "late",
+			name: "Late",
+			src: ["https://x/l.ogg"],
+			sprite: { ClassicyBeep: [0, 1] },
+		});
+		const parsed = ClassicyThemeSchema.safeParse(
+			withEdit((t) => {
+				Object.assign(t.sound, { pack: "late" });
+			}),
+		);
+		expect(parsed.success).toBe(true);
+	});
+
+	it("a theme file still using sound.name is refused with a sound.pack issue", () => {
+		const parsed = ClassicyThemeSchema.safeParse(
+			withEdit((t) => {
+				const sound = t.sound as Record<string, unknown>;
+				delete sound.pack;
+				sound.name = "platinum";
+			}),
+		);
+		expect(parsed.success).toBe(false);
+		expect(parsed.error?.issues[0].path).toEqual(["sound", "pack"]);
+	});
+
+	it("a sound pack inherited from Object.prototype", () => {
+		rejects(withEdit((t) => Object.assign(t.sound, { pack: "toString" })));
 	});
 
 	it("font stacks carrying CSS syntax", () => {

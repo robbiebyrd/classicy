@@ -180,16 +180,16 @@ describe("parseClassicyThemeFile — errors", () => {
 	it("summarises schema issues with their paths", () => {
 		const t = theme("azul") as unknown as {
 			color: { select: number; system: number[] };
-			sound: { name: string };
+			sound: { pack: string };
 		};
 		t.color.select = -1;
 		t.color.system = [1, 2, 3];
-		t.sound.name = "sosumi";
+		t.sound.pack = "sosumi";
 		const error = parseError(envelope({ theme: t }));
 		expect(error).toMatch(/^This theme has invalid settings: /);
 		expect(error).toContain("color.select:");
 		expect(error).toContain("color.system:");
-		expect(error).toContain("sound.name:");
+		expect(error).toContain("sound.pack:");
 	});
 
 	it("lists only the first three issues, counting the rest", () => {
@@ -369,8 +369,8 @@ describe("downloadClassicyTheme", () => {
 
 	it("refuses a theme that would not load back, without downloading", () => {
 		const click = vi.spyOn(HTMLAnchorElement.prototype, "click");
-		const t = theme("azul") as unknown as { sound: { name: string } };
-		t.sound.name = "sosumi";
+		const t = theme("azul") as unknown as { sound: { pack: string } };
+		t.sound.pack = "sosumi";
 		const result = downloadClassicyTheme(t as unknown as ClassicyTheme);
 		expect(result.ok).toBe(false);
 		expect(click).not.toHaveBeenCalled();

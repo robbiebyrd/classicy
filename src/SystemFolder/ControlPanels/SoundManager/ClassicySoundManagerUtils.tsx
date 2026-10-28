@@ -24,7 +24,7 @@ export interface ClassicyStoreSystemSoundManager
 }
 
 export type ClassicyThemeSound = {
-	name: string;
+	pack: string;
 	disabled: string[];
 };
 

@@ -113,14 +113,14 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 
 	const loadSoundTheme = useCallback(
 		(soundTheme: ClassicyThemeSound) => {
-			const data = getClassicySoundPack(soundTheme.name);
+			const data = getClassicySoundPack(soundTheme.pack);
 			if (!data) {
 				classicyLog(
 					"error",
 					"ClassicyAppearanceManager",
 					"Sound theme not found",
 					{
-						name: soundTheme.name,
+						pack: soundTheme.pack,
 					},
 				);
 				return;

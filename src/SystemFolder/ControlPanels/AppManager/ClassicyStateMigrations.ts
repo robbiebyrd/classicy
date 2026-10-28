@@ -30,9 +30,11 @@ import { normalizeClassicyAppWindows } from "@/SystemFolder/ControlPanels/AppMan
  *   themes (`withDefaultThemeMetrics`). Built-ins matter: `availableThemes`
  *   is persisted and replaces the defaults wholesale, so without this the
  *   first theme switch after an upgrade would clone a metric-less theme.
+ * - 2.2: theme `sound.name` renamed to `sound.pack` (plan 0002-ldj Part D)
+ *   on the active, built-in and custom themes (`migrateThemeSoundPack`).
  */
 export function migrateClassicyState(state: ClassicyStore): ClassicyStore {
-	return migrateThemeMetrics(migrateAppWindows(state));
+	return migrateThemeSoundPack(migrateThemeMetrics(migrateAppWindows(state)));
 }
 
 function migrateAppWindows(state: ClassicyStore): ClassicyStore {
@@ -65,9 +67,12 @@ function migrateAppWindows(state: ClassicyStore): ClassicyStore {
 /** Copy-on-write fill of a theme list; the same array back when untouched. */
 function migrateThemeList(
 	themes: ClassicyTheme[] | undefined,
+	migrate: (
+		themes: ClassicyTheme[],
+	) => ClassicyTheme[] = withDefaultThemeMetricsList,
 ): ClassicyTheme[] | undefined {
 	if (!Array.isArray(themes)) return themes;
-	return withDefaultThemeMetricsList(themes);
+	return migrate(themes);
 }
 
 function migrateThemeMetrics(state: ClassicyStore): ClassicyStore {
@@ -80,6 +85,76 @@ function migrateThemeMetrics(state: ClassicyStore): ClassicyStore {
 			: appearance.activeTheme;
 	const availableThemes = migrateThemeList(appearance.availableThemes);
 	const customThemes = migrateThemeList(appearance.customThemes);
+	if (
+		activeTheme === appearance.activeTheme &&
+		availableThemes === appearance.availableThemes &&
+		customThemes === appearance.customThemes
+	) {
+		return state;
+	}
+
+	const { System } = state;
+	return {
+		...state,
+		System: {
+			...System,
+			Manager: {
+				...System.Manager,
+				Appearance: {
+					...appearance,
+					activeTheme,
+					availableThemes,
+					customThemes,
+				},
+			},
+		},
+	};
+}
+
+/** A theme whose `sound` still carries `name` (and no `pack`) becomes
+ * `{ pack: name, disabled }`; the same theme back otherwise. */
+function renameThemeSoundName(theme: ClassicyTheme): ClassicyTheme {
+	const sound = theme?.sound as
+		| { name?: unknown; pack?: unknown; disabled?: string[] }
+		| undefined;
+	if (!sound || typeof sound !== "object") return theme;
+	if (!Object.hasOwn(sound, "name") || Object.hasOwn(sound, "pack")) {
+		return theme;
+	}
+	if (typeof sound.name !== "string") return theme;
+	return {
+		...theme,
+		sound: { pack: sound.name, disabled: sound.disabled ?? [] },
+	};
+}
+
+function renameThemeListSoundName(themes: ClassicyTheme[]): ClassicyTheme[] {
+	let next: ClassicyTheme[] | undefined;
+	themes.forEach((theme, i) => {
+		const renamed = renameThemeSoundName(theme);
+		if (renamed === theme) return;
+		next ??= [...themes];
+		next[i] = renamed;
+	});
+	return next ?? themes;
+}
+
+function migrateThemeSoundPack(state: ClassicyStore): ClassicyStore {
+	const appearance = state?.System?.Manager?.Appearance;
+	if (!appearance || typeof appearance !== "object") return state;
+
+	const activeTheme =
+		appearance.activeTheme && typeof appearance.activeTheme === "object"
+			? renameThemeSoundName(appearance.activeTheme)
+			: appearance.activeTheme;
+	const availableThemes = migrateThemeList(
+		appearance.availableThemes,
+		renameThemeListSoundName,
+	);
+	const customThemes = migrateThemeList(
+		appearance.customThemes,
+		renameThemeListSoundName,
+	);
 	if (
 		activeTheme === appearance.activeTheme &&
 		availableThemes === appearance.availableThemes &&
