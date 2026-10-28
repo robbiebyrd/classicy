@@ -1,3 +1,5 @@
+export * from "./Appearance/ClassicyAssetRegistry";
+export * from "./Appearance/ClassicyAssetSource";
 export * from "./Appearance/Platinum/assets/sounds/platinum";
 export * from "./SystemFolder/ControlPanels/ClassicyControlPanels";
 export * from "./SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
