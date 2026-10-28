@@ -47,7 +47,11 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import {
+	useClassicyAsset,
+	useClassicyAssetVars,
+} from "@/Appearance/ClassicyAssetRegistry";
+import "@/Appearance/Platinum/assets/platinumAssets";
 import { listAppWindows } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
 import { getClassicyDefaultParadeIcons } from "@/SystemFolder/SystemResources/Boot/ClassicyDefaultParadeIcons";
@@ -566,6 +570,11 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	]);
 
 	const currentTheme = useMemo(() => getThemeVars(activeTheme), [activeTheme]);
+	const assetVars = useClassicyAssetVars();
+	const rootStyle = useMemo(
+		() => ({ ...currentTheme, ...assetVars }) as CSSProperties,
+		[currentTheme, assetVars],
+	);
 
 	const openDesktopItem = useCallback(
 		(path: string) => {
@@ -604,7 +613,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 			id={"classicyDesktop"}
 			ref={desktopRef}
 			tabIndex={-1}
-			style={currentTheme as CSSProperties}
+			style={rootStyle}
 			className={classNames("classicyDesktop", {
 				classicyDesktopSplitArrows: smartScrolling === false,
 			})}

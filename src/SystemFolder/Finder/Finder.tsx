@@ -552,10 +552,8 @@ export const Finder = () => {
 		ensureClassicyTrash(fs);
 	}, [fs]);
 	const trashFull = listClassicyTrashItems(fs).length > 0;
-	const trashFullIcon =
-		useClassicyAsset("icons", "system.desktop.trashFull") ?? "";
-	const trashEmptyIcon =
-		useClassicyAsset("icons", "system.desktop.trashEmpty") ?? "";
+	const trashFullIcon = useClassicyAsset("systemArt", "trashFull") ?? "";
+	const trashEmptyIcon = useClassicyAsset("systemArt", "trashEmpty") ?? "";
 	useEffect(() => {
 		desktopEventDispatch({
 			type: "ClassicyDesktopIconAdd",

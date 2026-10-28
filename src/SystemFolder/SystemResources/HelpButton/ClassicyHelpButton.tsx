@@ -32,13 +32,13 @@ type ClassicyHelpButtonProps = {
  *
  * It is a small-bevel `ClassicyBevelButton` in `push` mode, so it shares that
  * button's click sounds, analytics and keyboard behaviour; the glyph is
- * `ClassicyIcons.ui.helpButton`. In an alert, give a button `role: "help"` and `ClassicyAlert` renders this
+ * the registered `helpButton` system art. In an alert, give a button `role: "help"` and `ClassicyAlert` renders this
  * component, far left.
  */
 export const ClassicyHelpButton: FunctionalComponent<
 	ClassicyHelpButtonProps
 > = ({ id, label = "Help", disabled = false, onClickFunc, className }) => {
-	const helpIcon = useClassicyAsset("icons", "ui.helpButton") ?? "";
+	const helpIcon = useClassicyAsset("systemArt", "helpButton") ?? "";
 	return (
 		<ClassicyBevelButton
 			id={id}

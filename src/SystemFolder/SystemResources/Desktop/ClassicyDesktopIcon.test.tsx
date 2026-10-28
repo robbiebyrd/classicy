@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen } from "@/__tests__/test-utils";
 import {
-	ClassicyIcons,
-	registerClassicyIcons,
-} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+	registerClassicySystemArt,
+	resolveClassicyAsset,
+} from "@/Appearance/ClassicyAssetRegistry";
+import "@/Appearance/Platinum/assets/platinumAssets";
 import { ClassicyContextualMenuProvider } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 
 const mockDispatch = vi.hoisted(() => vi.fn());
@@ -200,14 +201,17 @@ describe("ClassicyDesktopIcon alias badging", () => {
 		);
 	});
 
-	describe("with a host-registered system.alias", () => {
-		const platinumAlias = ClassicyIcons.system.alias;
+	describe("with a host-registered aliasBadge", () => {
+		const platinumAlias = resolveClassicyAsset(
+			"systemArt",
+			"aliasBadge",
+		) as string;
 		afterEach(() => {
-			registerClassicyIcons({ system: { alias: platinumAlias } });
+			registerClassicySystemArt("platinum", { aliasBadge: platinumAlias });
 		});
 
 		it("draws the registered artwork on the badge", () => {
-			registerClassicyIcons({ system: { alias: "custom.png" } });
+			registerClassicySystemArt("platinum", { aliasBadge: "custom.png" });
 			const { container } = render(<ClassicyDesktopIcon {...defaultProps} />);
 			const badgeEl = badge(container) as HTMLElement;
 			expect(badgeEl.querySelector("img")).toHaveAttribute("src", "custom.png");
@@ -223,7 +227,7 @@ describe("ClassicyDesktopIcon alias badging", () => {
 				platinumAlias,
 			);
 			act(() => {
-				registerClassicyIcons({ system: { alias: "later.png" } });
+				registerClassicySystemArt("platinum", { aliasBadge: "later.png" });
 			});
 			expect(badge(container)?.querySelector("img")).toHaveAttribute(
 				"src",

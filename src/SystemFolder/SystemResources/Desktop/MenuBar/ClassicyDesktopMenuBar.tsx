@@ -132,7 +132,7 @@ export const ClassicyDesktopMenuBar: FunctionalComponent = () => {
 };
 
 const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
-	const appleMenuIcon = useClassicyAsset("icons", "system.apple") ?? "";
+	const appleMenuIcon = useClassicyAsset("systemArt", "appleMenu") ?? "";
 	const apps = useAppManager((s) => s.System.Manager.Applications.apps);
 	const systemMenu = useAppManager((s) => s.System.Manager.Desktop.systemMenu);
 	const appMenu = useAppManager((s) => s.System.Manager.Desktop.appMenu);

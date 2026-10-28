@@ -1,6 +1,6 @@
 import "./ClassicyCrashScreen.scss";
-import sadMac from "@img/ui/sad-mac.png";
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { emitClassicyCrash } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 interface ClassicyCrashScreenProps {
@@ -87,7 +87,7 @@ export class ClassicyCrashScreen extends Component<
 					onKeyDown={this.reload}
 				>
 					<img
-						src={sadMac as string}
+						src={resolveClassicyAsset("systemArt", "sadMac") ?? ""}
 						alt="Sad Mac — the system has crashed. Click or press any key to restart."
 					/>
 				</button>

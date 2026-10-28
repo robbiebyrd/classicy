@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, render, screen } from "@/__tests__/test-utils";
+import { registerClassicySystemArt } from "@/Appearance/ClassicyAssetRegistry";
 import { ClassicyStartupScreen } from "@/SystemFolder/SystemResources/Boot/ClassicyStartupScreen";
 import { resetStartupScreenSession } from "@/SystemFolder/SystemResources/Boot/ClassicyStartupScreenSession";
 
@@ -75,6 +76,22 @@ describe("ClassicyStartupScreen", () => {
 		expect(screen.getByAltText("Classicy")).toBeInTheDocument();
 		expect(screen.getByText("Classicy")).toBeInTheDocument();
 		expect(screen.getByText("Starting Up…")).toBeInTheDocument();
+	});
+
+	it("shows the registered startupLogo by default, including one made after mount", () => {
+		registerClassicySystemArt("platinum", { startupLogo: "boot-first.svg" });
+		render(<ClassicyStartupScreen />);
+		expect(screen.getByAltText("Classicy")).toHaveAttribute(
+			"src",
+			"boot-first.svg",
+		);
+		act(() => {
+			registerClassicySystemArt("platinum", { startupLogo: "boot-later.svg" });
+		});
+		expect(screen.getByAltText("Classicy")).toHaveAttribute(
+			"src",
+			"boot-later.svg",
+		);
 	});
 
 	it("renders a custom logo and wordmark when provided", () => {

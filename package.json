@@ -55,6 +55,7 @@
 		"**/*.css",
 		"**/*.scss",
 		"./dist/fonts.js",
+		"./src/Appearance/Platinum/assets/platinumAssets.ts",
 		"./src/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons.ts",
 		"./src/SystemFolder/Extensions/ScreenSaver/savers/ClassicyScreenSaverBuiltIns.tsx",
 		"./src/SystemFolder/Extensions/ScreenSaver/savers/Logo/ClassicyScreenSaverLogoRegistry.ts",

@@ -121,7 +121,8 @@ const draggedAsFile = (kind: string, filePath: string | undefined) =>
  * Icons whose `kind` is `app_shortcut` or `shortcut` — every icon `ClassicyApp`
  * registers — render the alias arrow over the bottom-left corner and an
  * italic label (`isAliasKind`); system kinds get neither. Swap the arrow art by
- * registering your own `system.alias` icon with `registerClassicyIcons`
+ * registering your own `aliasBadge` with
+ * `registerClassicySystemArt("<package>", { aliasBadge })`
  * (read at render time, so a later registration takes effect).
  *
  * You rarely render this directly: `ClassicyDesktop` draws one for each record
@@ -158,7 +159,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			onMoveFilePaths,
 			onOpenFilePath,
 		}) => {
-			const aliasBadge = useClassicyAsset("icons", "system.alias") ?? "";
+			const aliasBadge = useClassicyAsset("systemArt", "aliasBadge") ?? "";
 			const [clickPosition, setClickPosition] = useState<[number, number]>([
 				0, 0,
 			]);

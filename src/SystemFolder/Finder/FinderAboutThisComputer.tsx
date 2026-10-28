@@ -28,7 +28,7 @@ const release =
 
 export const FinderAboutThisComputer: FunctionalComponent = () => {
 	const classicyBg = useClassicyAsset("icons", "classicy.bg") ?? "";
-	const classicyLogo = useClassicyAsset("icons", "classicy.logo") ?? "";
+	const classicyLogo = useClassicyAsset("systemArt", "aboutLogo") ?? "";
 	const macosIcon = useClassicyAsset("icons", "system.macos") ?? "";
 	const macIcon = useClassicyAsset("icons", "system.mac") ?? "";
 	const dispatch = useAppManagerDispatch();

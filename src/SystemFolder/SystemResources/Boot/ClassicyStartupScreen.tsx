@@ -22,7 +22,7 @@ interface ClassicyStartupScreenProps {
 	duration?: number;
 	/**
 	 * Overrides the logo image shown beside the wordmark (`wordmark` is its alt
-	 * text). Defaults to `ClassicyIcons.system.macosSvg`.
+	 * text). Defaults to the registered `startupLogo` system art.
 	 */
 	logo?: string;
 	/** Overrides the wordmark text shown next to the logo. Defaults to `"Classicy"`. */
@@ -50,7 +50,7 @@ interface ClassicyStartupScreenProps {
 export const ClassicyStartupScreen: FunctionalComponent<
 	ClassicyStartupScreenProps
 > = ({ duration = 4000, logo, wordmark = "Classicy" }) => {
-	const defaultLogo = useClassicyAsset("icons", "system.macosSvg") ?? "";
+	const defaultLogo = useClassicyAsset("systemArt", "startupLogo") ?? "";
 	const [visible, setVisible] = useState(
 		() => !hasShownStartupScreenThisSession(),
 	);

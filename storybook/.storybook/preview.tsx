@@ -1,3 +1,4 @@
+import "@/Appearance/Platinum/assets/platinumAssets";
 import "@/SystemFolder/ControlPanels/AppearanceManager/styles/fonts.scss";
 import type { Preview } from "@storybook/react-vite";
 import themesData from "@/SystemFolder/ControlPanels/AppearanceManager/styles/themes.json";
