@@ -164,6 +164,16 @@ const createPlatinumPlayer = (): Howl | null => {
 	return platinum ? createSoundPlayer({ soundData: platinum }) : null;
 };
 
+/**
+ * Stop whatever either player is playing. A loop started on one player (the
+ * window-move loops) is ended by a sprite that may live on the other, so an
+ * interrupt must silence both.
+ */
+const stopAll = (ss: ClassicySoundState) => {
+	ss.soundPlayer?.stop();
+	ss.fallbackPlayer?.stop();
+};
+
 /** The player that owns `sound`: the active pack's, else the Platinum fallback. */
 const playerFor = (ss: ClassicySoundState, sound: string): Howl | null =>
 	ss.sprites.has(sound) ? ss.soundPlayer : ss.fallbackPlayer;
@@ -219,7 +229,7 @@ const clampPercent = (value: number | undefined): number | undefined =>
  */
 const playAlert = (ss: ClassicySoundState, sound: string) => {
 	const player = playerFor(ss, sound);
-	player?.stop();
+	stopAll(ss);
 	const id = player?.play(sound);
 	if (typeof id === "number") {
 		player?.volume(
@@ -230,7 +240,11 @@ const playAlert = (ss: ClassicySoundState, sound: string) => {
 };
 
 const playerCanPlay = (ss: ClassicySoundState, sound: string) => {
-	return playerCanPlayInterrupt(ss, sound) && !playerFor(ss, sound)?.playing();
+	return (
+		playerCanPlayInterrupt(ss, sound) &&
+		!ss.soundPlayer?.playing() &&
+		!ss.fallbackPlayer?.playing()
+	);
 };
 
 export const ClassicySoundStateEventReducer = (
@@ -246,7 +260,7 @@ export const ClassicySoundStateEventReducer = (
 	let next: ClassicySoundState;
 	switch (action.type) {
 		case ClassicySoundActionTypes.ClassicySoundStop: {
-			ss.soundPlayer?.stop();
+			stopAll(ss);
 			next = { ...ss };
 			break;
 		}
@@ -260,7 +274,7 @@ export const ClassicySoundStateEventReducer = (
 		case ClassicySoundActionTypes.ClassicySoundPlayInterrupt: {
 			if (action.sound && playerCanPlayInterrupt(ss, action.sound)) {
 				const player = playerFor(ss, action.sound);
-				player?.stop();
+				stopAll(ss);
 				player?.play(action.sound);
 			}
 			next = { ...ss };

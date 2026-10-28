@@ -692,3 +692,90 @@ describe("ClassicySoundLoad packs", () => {
 		expect(previous.unload).toHaveBeenCalledOnce();
 	});
 });
+
+describe("loops that span the active and fallback players", () => {
+	const stopPack = {
+		id: "stop-only",
+		name: "Stop only",
+		src: ["https://cdn.example.com/stop.ogg"],
+		sprite: { ClassicyWindowMoveStop: [0, 100] as [number, number] },
+	};
+	const movingPack = {
+		id: "moving-only",
+		name: "Moving only",
+		src: ["https://cdn.example.com/moving.ogg"],
+		sprite: {
+			ClassicyWindowMoveMoving: [0, 100, true] as [number, number, boolean],
+		},
+	};
+	const load = (pack: typeof stopPack | typeof movingPack) =>
+		ClassicySoundStateEventReducer(makeSoundState(), {
+			type: "ClassicySoundLoad" as ClassicySoundActionTypes,
+			pack,
+		});
+
+	it("a stop sprite on the active pack ends a loop playing on the fallback", () => {
+		const ss = load(stopPack);
+		ClassicySoundStateEventReducer(ss, {
+			type: "ClassicySoundPlay" as ClassicySoundActionTypes,
+			sound: "ClassicyWindowMoveIdle",
+		});
+		expect(ss.fallbackPlayer?.play).toHaveBeenCalledWith(
+			"ClassicyWindowMoveIdle",
+		);
+		ClassicySoundStateEventReducer(ss, {
+			type: "ClassicySoundPlayInterrupt" as ClassicySoundActionTypes,
+			sound: "ClassicyWindowMoveStop",
+		});
+		expect(ss.fallbackPlayer?.stop).toHaveBeenCalled();
+		expect(ss.soundPlayer?.play).toHaveBeenCalledWith("ClassicyWindowMoveStop");
+	});
+
+	it("a stop sprite on the fallback ends a loop playing on the active pack", () => {
+		const ss = load(movingPack);
+		ClassicySoundStateEventReducer(ss, {
+			type: "ClassicySoundPlay" as ClassicySoundActionTypes,
+			sound: "ClassicyWindowMoveMoving",
+		});
+		expect(ss.soundPlayer?.play).toHaveBeenCalledWith(
+			"ClassicyWindowMoveMoving",
+		);
+		ClassicySoundStateEventReducer(ss, {
+			type: "ClassicySoundPlayInterrupt" as ClassicySoundActionTypes,
+			sound: "ClassicyWindowMoveStop",
+		});
+		expect(ss.soundPlayer?.stop).toHaveBeenCalled();
+		expect(ss.fallbackPlayer?.play).toHaveBeenCalledWith(
+			"ClassicyWindowMoveStop",
+		);
+	});
+
+	it("ClassicySoundStop stops both players", () => {
+		const ss = load(stopPack);
+		ClassicySoundStateEventReducer(ss, {
+			type: "ClassicySoundStop" as ClassicySoundActionTypes,
+		});
+		expect(ss.soundPlayer?.stop).toHaveBeenCalledOnce();
+		expect(ss.fallbackPlayer?.stop).toHaveBeenCalledOnce();
+	});
+
+	it("an alert stops a loop on the other player", () => {
+		const ss = load(movingPack);
+		ClassicySoundStateEventReducer(ss, {
+			type: "ClassicySoundPlayError" as ClassicySoundActionTypes,
+			sound: "ClassicyAlertBonk",
+		});
+		expect(ss.soundPlayer?.stop).toHaveBeenCalled();
+		expect(ss.fallbackPlayer?.play).toHaveBeenCalledWith("ClassicyAlertBonk");
+	});
+
+	it("a sprite is not replayed while the other player is playing", () => {
+		const ss = load(stopPack);
+		(ss.soundPlayer?.playing as ReturnType<typeof vi.fn>).mockReturnValue(true);
+		ClassicySoundStateEventReducer(ss, {
+			type: "ClassicySoundPlay" as ClassicySoundActionTypes,
+			sound: "ClassicyWindowMoveIdle",
+		});
+		expect(ss.fallbackPlayer?.play).not.toHaveBeenCalled();
+	});
+});

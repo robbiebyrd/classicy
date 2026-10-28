@@ -7,6 +7,7 @@ import {
 import {
 	type ClassicyStore,
 	DefaultAppManagerState,
+	mergeClassicyState,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { migrateClassicyState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyStateMigrations";
 
@@ -92,5 +93,45 @@ describe("migrateClassicyState — theme sound pack", () => {
 			exportClassicyTheme(migrated.System.Manager.Appearance.activeTheme),
 		);
 		expect(parsed.ok).toBe(true);
+	});
+
+	it("drops a stray sound.name when the merge over defaults already supplied sound.pack", () => {
+		// The real load path: persisted { name, disabled } is deep-merged over the
+		// defaults' { pack, disabled } before migrating, leaving both keys.
+		const persisted = JSON.parse(
+			JSON.stringify(strippedState()),
+		) as ClassicyStore;
+		persisted.System.Manager.Appearance.activeTheme.sound = {
+			name: "platinum",
+			disabled: [],
+		} as unknown as ClassicyTheme["sound"];
+		// `never`: DeepPartial<ClassicyStore> is too deep for tsc to relate to a
+		// full store ("excessively deep"); the persisted blob is untyped anyway.
+		const merged = mergeClassicyState(
+			DefaultAppManagerState,
+			persisted as never,
+		);
+		const sound = merged.System.Manager.Appearance.activeTheme
+			.sound as unknown as { pack?: string };
+		expect(sound.pack).toBe("platinum");
+		expect(Object.hasOwn(sound, "name")).toBe(false);
+	});
+
+	it("is idempotent and copy-on-write for a theme carrying both name and pack", () => {
+		const state = JSON.parse(
+			JSON.stringify(DefaultAppManagerState),
+		) as ClassicyStore;
+		state.System.Manager.Appearance.activeTheme.sound = {
+			name: "platinum",
+			pack: "platinum",
+			disabled: [],
+		} as unknown as ClassicyTheme["sound"];
+		deepFreeze(state);
+		const once = migrateClassicyState(state);
+		expect(once.System.Manager.Appearance.activeTheme.sound).toEqual({
+			pack: "platinum",
+			disabled: [],
+		});
+		expect(migrateClassicyState(once)).toBe(once);
 	});
 });

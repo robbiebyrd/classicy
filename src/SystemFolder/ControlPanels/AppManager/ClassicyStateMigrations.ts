@@ -112,14 +112,18 @@ function migrateThemeMetrics(state: ClassicyStore): ClassicyStore {
 }
 
 /** A theme whose `sound` still carries `name` (and no `pack`) becomes
- * `{ pack: name, disabled }`; the same theme back otherwise. */
+ * `{ pack: name, disabled }`; one carrying both (the persisted `name` deep-merged
+ * over the defaults' `pack`) drops the stale `name`; the same theme back
+ * otherwise. */
 function renameThemeSoundName(theme: ClassicyTheme): ClassicyTheme {
 	const sound = theme?.sound as
 		| { name?: unknown; pack?: unknown; disabled?: string[] }
 		| undefined;
 	if (!sound || typeof sound !== "object") return theme;
-	if (!Object.hasOwn(sound, "name") || Object.hasOwn(sound, "pack")) {
-		return theme;
+	if (!Object.hasOwn(sound, "name")) return theme;
+	if (Object.hasOwn(sound, "pack")) {
+		const { name: _name, ...rest } = sound;
+		return { ...theme, sound: rest as ClassicyTheme["sound"] };
 	}
 	if (typeof sound.name !== "string") return theme;
 	return {
