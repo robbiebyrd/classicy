@@ -1,4 +1,3 @@
-import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import "./ClassicyAppearanceManager.scss";
 import {
 	type ChangeEvent,
@@ -8,14 +7,12 @@ import {
 	useMemo,
 	useState,
 } from "react";
-import {
-	type ClassicyTheme,
-	type ClassicyThemeTypography,
-	getTheme,
+import type {
+	ClassicyTheme,
+	ClassicyThemeTypography,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { APPEARANCE_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManagerManifest";
 import {
-	findClassicyTheme,
 	isCustomThemeActive,
 	listClassicyThemes,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
@@ -29,11 +26,7 @@ import {
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { DEFAULT_ALERT_SOUND } from "@/SystemFolder/ControlPanels/SoundManager/ClassicyAlertSounds";
-import {
-	type ClassicyThemeSound,
-	useSoundDispatch,
-} from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
-import { getClassicySoundPack } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
+import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import {
@@ -111,44 +104,6 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		message: string;
 	} | null>(null);
 
-	const loadSoundTheme = useCallback(
-		(soundTheme: ClassicyThemeSound) => {
-			const data = getClassicySoundPack(soundTheme.pack);
-			if (!data) {
-				classicyLog(
-					"error",
-					"ClassicyAppearanceManager",
-					"Sound theme not found",
-					{
-						pack: soundTheme.pack,
-					},
-				);
-				return;
-			}
-			player({
-				type: "ClassicySoundLoad",
-				file: data,
-				disabled: soundTheme.disabled,
-			});
-		},
-		[player],
-	);
-
-	const applySoundTheme = useCallback(
-		(themeName: string) => {
-			// A custom theme carries the sound theme of the built-in it forked.
-			loadSoundTheme(
-				(
-					findClassicyTheme(
-						useAppManager.getState().System.Manager.Appearance,
-						themeName,
-					) ?? getTheme(themeName)
-				).sound,
-			);
-		},
-		[loadSoundTheme],
-	);
-
 	// Saves the ACTIVE theme — a built-in or a custom one — as a theme file.
 	const saveTheme = useCallback(() => {
 		const result = downloadClassicyTheme(
@@ -189,9 +144,8 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 				type: "ClassicyDesktopImportTheme",
 				theme: result.theme,
 			});
-			loadSoundTheme(result.theme.sound);
 		},
-		[desktopEventDispatch, loadSoundTheme],
+		[desktopEventDispatch],
 	);
 
 	const switchTheme = useCallback(
@@ -203,9 +157,8 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 					activeTheme: themeId,
 				});
 			});
-			applySoundTheme(themeId);
 		},
-		[desktopEventDispatch, applySoundTheme],
+		[desktopEventDispatch],
 	);
 
 	const toggleSmartScrolling = useCallback(

@@ -23,7 +23,6 @@ export {
 	ClassicySoundStateEventReducer,
 	createSoundPlayer,
 	initialPlayer,
-	loadSoundTheme,
 } from "./ClassicySoundManagerUtils";
 
 export function useSound() {

@@ -32,6 +32,9 @@ vi.mock(
 		// on the soundPlayer/disabled properties.
 		useSound: (): ClassicySoundState => ({
 			soundPlayer: null,
+			packId: null,
+			sprites: new Set<string>(),
+			fallbackPlayer: null,
 			disabled: [],
 			labels: [
 				{ id: "ClassicyBeep", group: "System", label: "Beep", description: "" },
