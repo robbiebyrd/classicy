@@ -1226,7 +1226,11 @@ Sosumi, Tabitha, Wild Eep); default `DEFAULT_ALERT_SOUND = "ClassicyAlertSosumi"
 a kebab-case id; a theme selects one with `sound.pack`. The earlier theme field
 and the mutable sound-data record it keyed into no longer exist: persisted
 state is healed on load, and a theme file that still uses the old field is
-refused with a `sound.pack:` issue.
+refused with a `sound.pack:` issue. Removed public symbols and their
+replacements: `ClassicySounds` is now `registerClassicySoundPack` /
+`getClassicySoundPack`; `loadSoundTheme` is a theme's `sound.pack`;
+`ClassicySoundAction.file` is `ClassicySoundLoad { pack }`;
+`ClassicyThemeSound.name` is `ClassicyThemeSound.pack`.
 
 ```ts
 import { registerClassicySoundPack, CLASSICY_SOUND_SPRITE_IDS } from 'classicy'
@@ -1246,7 +1250,8 @@ registerClassicySoundPack({            // module scope, like the other registrie
   `src` entries must be resolvable by the page: `http(s)` URLs or `data:`
   URIs. The registry stores them as given and Howler resolves them against the
   page, never against the pack JSON. A pack JSON written by `pnpm build:audio`
-  holds paths relative to itself (`./platinum.ogg`), so resolve them first:
+  holds paths relative to itself (`./platinum.ogg`), so resolve them first.
+  The fetched JSON must carry `id`, `name` and `sprite` (plus `src`):
 
   ```ts
   const json = await (await fetch(jsonUrl)).json()
@@ -1262,13 +1267,22 @@ registerClassicySoundPack({            // module scope, like the other registrie
   the pack in place), `getClassicySoundPack(id)`, `listClassicySoundPacks()`
   (registration order), `subscribeClassicySoundPacks(listener)` and the live
   hook `useClassicySoundPacks()`. The stock `"platinum"` pack registers itself
-  from `src/Appearance/Platinum/assets/sounds/platinum.ts`.
+  from `src/Appearance/Platinum/assets/sounds/platinum.ts`. Re-registering the
+  id of the pack that is currently active updates the registry but does not
+  rebuild the playing Howl: the provider only reloads when the active pack id
+  changes.
 - **Sprite-id contract**: `CLASSICY_SOUND_SPRITE_IDS` lists the 41 sprite ids
   Classicy dispatches (it equals the Platinum sprite sheet's key set). A pack
   should define all of them. When a pack is loaded and lacks some, the manager
   logs a `warn` (`Sound pack is missing sprites; falling back to platinum`, with
   the missing ids) and plays those sprites from the Platinum pack; a sprite
   missing from both is not played.
+- **Single source of truth**: the active theme's `sound.pack` decides which
+  pack plays. A host switches packs by activating, or importing, a theme that
+  carries `sound.pack` (`ClassicyDesktopImportTheme`) until a dedicated
+  appearance-option action ships. `ClassicySoundLoad` is the provider's
+  internal action: dispatching it directly works only until the provider's next
+  sync, which reverts the player to the active theme's pack.
 - **Boot and switching**: `ClassicySoundManagerProvider` reads
   `System.Manager.Appearance.activeTheme.sound.pack` from the persisted store
   and boots with that pack's player already built (Platinum if the pack is not
@@ -1279,8 +1293,8 @@ registerClassicySoundPack({            // module scope, like the other registrie
   reload.
 - The reload is the reducer action `ClassicySoundLoad { pack, disabled }`
   (`pack` is the `ClassicySoundPack` object, not an id; `disabled` replaces the
-  disabled list and defaults to the current one). Every Howl is built inside
-  `createSoundPlayer`, reached only through that action.
+  disabled list and defaults to the current one). The provider builds its
+  Howls through `ClassicySoundLoad` (which calls `createSoundPlayer`).
 - `pnpm build:audio` (`bin/make_audio_sprites.sh`) runs audiosprite over each
   `assets/sounds/<name>/sprites/` directory and writes `<name>.json` plus the
   encoded files next to it; the JSON carries `id` (the directory name), `name`,
