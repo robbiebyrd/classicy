@@ -15,7 +15,7 @@
   padding: calc(var(--window-padding-size));
 }
 
-.classicyDisclosureInnerOpen {
+:where(.classicyDisclosureInner).open {
   display: block;
   height: 100%;
 }

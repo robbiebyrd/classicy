@@ -25,7 +25,7 @@
   white-space: nowrap;
 }
 
-.classicyFileInputError {
+:where(.classicyFileInputMessage).error {
   font-family: var(--ui-font), sans-serif;
   font-size: var(--ui-font-size);
   color: #c00;

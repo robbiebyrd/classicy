@@ -9,6 +9,7 @@ import type {
 	SyntheticEvent,
 } from "react";
 import { useEffect, useRef, useState } from "react";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import {
 	ClassicyControlLabel,
 	type ClassicyControlLabelSize,
@@ -281,7 +282,7 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 			className={classNames(
 				"classicySlider",
 				highlighted && "classicySliderHighlighted",
-				disabled && "classicySliderDisabled",
+				classicyStateClasses({ disabled }),
 				indicatorClassMap[resolvedIndicator],
 				isVertical && "classicySliderInputVertical",
 			)}
@@ -317,7 +318,7 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 			aria-hidden="true"
 			className={classNames(
 				"classicySliderTicks",
-				disabled && "classicySliderTicksDisabled",
+				classicyStateClasses({ disabled }),
 			)}
 		>
 			<div className="classicySliderTicksTrack">

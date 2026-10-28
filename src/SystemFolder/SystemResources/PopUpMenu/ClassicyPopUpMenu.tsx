@@ -19,6 +19,7 @@ import {
 	useState,
 } from "react";
 import { createPortal } from "react-dom";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import {
 	type ClassicyPopUpMenuPlacementResult,
@@ -486,8 +487,7 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 				className={classNames(
 					"classicyPopUpMenu",
 					sizeClass,
-					disabled && "select--disabled",
-					open && "classicyPopUpMenuOpen",
+					classicyStateClasses({ disabled, open }),
 					extraClassName,
 				)}
 			>
@@ -502,7 +502,7 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 					role="combobox"
 					className={classNames(
 						"classicyPopUpMenuButton",
-						disabled && "classicyPopUpMenuButtonDisabled",
+						classicyStateClasses({ disabled }),
 					)}
 					disabled={disabled}
 					aria-disabled={disabled}

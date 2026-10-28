@@ -8,6 +8,7 @@ import type {
 	MouseEventHandler,
 	PropsWithChildren,
 } from "react";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import type { ClassicyShortcutDisposition } from "@/SystemFolder/SystemResources/Shortcut/ClassicyShortcut";
@@ -131,7 +132,7 @@ export const ClassicyLink: FunctionalComponent<ClassicyLinkProps> = ({
 			aria-disabled={disabled || undefined}
 			className={classNames(
 				"classicyLink",
-				disabled ? "classicyLinkDisabled" : "",
+				classicyStateClasses({ disabled }),
 				className,
 			)}
 			onClick={activate}

@@ -27,7 +27,7 @@ import { ClassicyMenuProvider } from "@/SystemFolder/SystemResources/Menu/Classi
 const PANEL_FOCUS_SELECTOR =
 	'[tabindex]:not([tabindex="-1"]), input, button, select, textarea';
 
-const MENU_ITEM_SELECTOR = 'li[role="menuitem"]:not(.classicyMenuItemDisabled)';
+const MENU_ITEM_SELECTOR = 'li[role="menuitem"]:not(.disabled)';
 
 type ClassicyBevelButtonPopupProps = {
 	/** DOM id of the surface; the button points `aria-controls` at it. */

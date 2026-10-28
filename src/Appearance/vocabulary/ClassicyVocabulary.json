@@ -18,7 +18,6 @@
 		"Tabs": [
 			"classicyTabActiveContent",
 			"classicyTabButton",
-			"classicyTabButtonActive",
 			"classicyTabButtonIcon",
 			"classicyTabButtonLabel",
 			"classicyTabButtonWrapper",
@@ -102,8 +101,6 @@
 			"Square"
 		],
 		"Button": [
-			"Default",
-			"Depressed",
 			"KeyActive",
 			"MarginLg",
 			"MarginMd",
@@ -117,7 +114,7 @@
 			"Small"
 		],
 		"ButtonToolbar": ["Group", "SizeMedium", "SizeSmall"],
-		"Checkbox": ["Default", "Holder", "Mixed", "X"],
+		"Checkbox": ["Holder", "X"],
 		"ColorPicker": [
 			"ActivePanel",
 			"Crayon",
@@ -126,19 +123,23 @@
 			"CrayonPreviewStrip",
 			"CrayonRow",
 			"CrayonRows",
-			"CrayonSelected",
 			"CrayonTab",
 			"Dialog",
 			"DialogBody",
 			"DialogFooter",
 			"ModeList",
 			"ModeListItem",
-			"ModeListItemSelected",
 			"Preview",
 			"Slider",
+			"SliderBlack",
+			"SliderBlue",
+			"SliderCyan",
+			"SliderGreen",
+			"SliderMagenta",
+			"SliderRed",
+			"SliderYellow",
 			"SlidersTab",
 			"Swatch",
-			"SwatchDisabled",
 			"SwatchWrapper",
 			"ValueSlider",
 			"WheelCanvas",
@@ -151,7 +152,7 @@
 			"WheelTab",
 			"WheelUnit"
 		],
-		"ComboBox": ["Disabled", "NoMatches", "Wrapper"],
+		"ComboBox": ["NoMatches", "Wrapper"],
 		"ContextMenu": ["Wrapper"],
 		"ContextSubMenu": [],
 		"ContextualMenu": [],
@@ -169,7 +170,6 @@
 			"Stack"
 		],
 		"ControlLabel": [
-			"Disabled",
 			"Holder",
 			"HolderLeft",
 			"HolderRight",
@@ -228,7 +228,8 @@
 			"WidgetSound"
 		],
 		"DesktopMenuBar": [],
-		"Disclosure": ["Header", "Inner", "InnerClose", "InnerOpen"],
+		"Disclosure": ["Header", "Inner", "InnerClose"],
+		"DriveSetupList": ["Grid", "Head", "Header", "Row", "Table"],
 		"FileBrowser": [
 			"Fill",
 			"ViewTableContainer",
@@ -237,11 +238,10 @@
 			"ViewTableRow",
 			"ViewTableRowContainer",
 			"ViewTableRowIcon",
-			"ViewTableRowIconLabel",
-			"ViewTableRowSelected"
+			"ViewTableRowIconLabel"
 		],
 		"FileDialog": ["Extension", "NameRow"],
-		"FileInput": ["Body", "Error", "Holder", "Item", "List", "Native"],
+		"FileInput": ["Body", "Holder", "Item", "List", "Message", "Native"],
 		"FileOpenDialog": ["Actions", "Body", "Footer", "Well"],
 		"Form": ["ButtonRow", "Dialog"],
 		"HelpButton": [],
@@ -293,19 +293,17 @@
 			"Field",
 			"Prompt"
 		],
-		"Link": ["Disabled"],
-		"ListBox": ["Disabled", "Option", "OptionIcon", "OptionLabel"],
+		"Link": [],
+		"ListBox": ["Option", "OptionIcon", "OptionLabel"],
 		"LittleArrows": ["Button", "Group"],
 		"MenuItem": [
 			"BalloonAnchor",
 			"Check",
 			"ChildMenuIndicator",
-			"Disabled",
 			"Flash",
 			"FlashKeyframes",
 			"KeyboardShortcut",
 			"NoImage",
-			"Open",
 			"TitleSample",
 			"TitleSizer"
 		],
@@ -320,14 +318,13 @@
 			"Suboptimal",
 			"Value"
 		],
-		"Output": ["Disabled", "Inset", "Mono", "Plain"],
+		"Output": ["Inset", "Mono", "Plain"],
 		"Pager": ["Arrow", "Page"],
 		"PictureViewer": ["Image"],
 		"PixelArt": [],
 		"Placard": ["Arrow", "Content", "Holder", "Menu", "MenuItem"],
 		"PopUpMenu": [
 			"Button",
-			"ButtonDisabled",
 			"Check",
 			"GroupHeader",
 			"Indicator",
@@ -338,28 +335,17 @@
 			"ListItemHighlight",
 			"ListItemIcon",
 			"ListItemLabel",
-			"Open",
 			"Value",
 			"Wrapper"
 		],
-		"PopUpSlider": ["Disabled", "Thumb", "Track"],
+		"PopUpSlider": ["Thumb", "Track"],
 		"PreBootScreen": [],
 		"Progress": ["ChasingArrowsSpinner", "Determinate", "Indeterminate"],
-		"RadioInput": [
-			"Default",
-			"Group",
-			"GroupColumns",
-			"Margin",
-			"Mixed",
-			"Wrapper",
-			"WrapperChecked",
-			"WrapperDisabled"
-		],
+		"RadioInput": ["Group", "GroupColumns", "Margin", "Wrapper"],
 		"RichTextEditor": [],
 		"ScreenSaver": ["Active", "ManagerContent"],
 		"Separator": ["Horizontal", "Vertical"],
 		"Slider": [
-			"Disabled",
 			"Ghost",
 			"GhostHidden",
 			"Highlighted",
@@ -375,7 +361,6 @@
 			"TickLabel",
 			"TickLabels",
 			"Ticks",
-			"TicksDisabled",
 			"TicksTrack",
 			"TrackGroup",
 			"TrackGroupVertical",
@@ -391,7 +376,6 @@
 		"Table": [
 			"Cell",
 			"ColumnHeader",
-			"ColumnHeaderSelected",
 			"Container",
 			"Content",
 			"Header",
@@ -399,7 +383,6 @@
 			"HeaderGroup",
 			"HeaderSticky",
 			"Row",
-			"RowSelected",
 			"SortArrow",
 			"SortArrowAscending"
 		],

@@ -6,6 +6,7 @@ import type {
 	MouseEvent,
 	ReactNode,
 } from "react";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 
 type ClassicyControlLabelDirections = "left" | "right";
 export type ClassicyControlLabelSize = "small" | "medium" | "large";
@@ -172,7 +173,7 @@ export const ClassicyControlLabel: FunctionalComponent<
 				className={classNames(
 					"classicyControlLabel",
 					sizeClassMap[labelSize],
-					disabled && "classicyControlLabelDisabled",
+					classicyStateClasses({ disabled }),
 					direction === "right"
 						? "classicyControlLabelMarginRight"
 						: "classicyControlLabelMarginLeft",

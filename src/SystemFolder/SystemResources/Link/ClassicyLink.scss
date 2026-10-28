@@ -17,7 +17,7 @@
   }
 }
 
-.classicyLinkDisabled {
+:where(.classicyLink).disabled {
   color: var(--color-system-05);
   cursor: default;
 }

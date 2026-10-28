@@ -28,7 +28,7 @@
   min-width: var(--button-min-width);
 }
 
-.classicyButtonDefault {
+:where(.classicyButton).default {
   font-family: var(--ui-font), sans-serif;
   font-size: var(--ui-font-size);
 
@@ -52,7 +52,7 @@
   }
 }
 
-.classicyButtonDepressed {
+:where(.classicyButton).pressed {
   @include appearance.platinumWindowDepressed;
 }
 
@@ -63,7 +63,7 @@
   @include appearance.platinumWindowDepressed;
 }
 
-.classicyButtonDefault.classicyButtonKeyActive {
+:where(.classicyButton).default.classicyButtonKeyActive {
   @include appearance.platinumDepressableBoxShadowActive;
 }
 

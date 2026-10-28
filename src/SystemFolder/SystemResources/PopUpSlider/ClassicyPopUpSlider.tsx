@@ -7,6 +7,7 @@ import {
 	useEffect,
 	useRef,
 } from "react";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { ClassicyPixelArt } from "@/SystemFolder/SystemResources/PixelArt/ClassicyPixelArt";
 import {
 	popUpSliderThumb,
@@ -152,7 +153,7 @@ export const ClassicyPopUpSlider: FunctionalComponent<
 			aria-disabled={disabled || undefined}
 			className={classNames(
 				"classicyPopUpSlider",
-				disabled && "classicyPopUpSliderDisabled",
+				classicyStateClasses({ disabled }),
 				className,
 			)}
 			onMouseDown={onMouseDown}

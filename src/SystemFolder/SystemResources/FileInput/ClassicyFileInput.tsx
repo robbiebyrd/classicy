@@ -9,6 +9,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import {
 	ClassicyControlLabel,
@@ -180,7 +181,13 @@ export const ClassicyFileInput = forwardRef<
 					{multiple ? "Choose Files…" : "Choose File…"}
 				</ClassicyButton>
 				{error && (
-					<span role="alert" className="classicyFileInputError">
+					<span
+						role="alert"
+						className={classNames(
+							"classicyFileInputMessage",
+							classicyStateClasses({ error: true }),
+						)}
+					>
 						{error}
 					</span>
 				)}

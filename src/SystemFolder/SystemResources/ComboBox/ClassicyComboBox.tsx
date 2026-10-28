@@ -15,6 +15,7 @@ import {
 	useState,
 } from "react";
 import { createPortal } from "react-dom";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import {
 	ClassicyControlLabel,
@@ -348,7 +349,7 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 				ref={anchorRef}
 				className={classNames(
 					"classicyComboBox",
-					disabled && "classicyComboBoxDisabled",
+					classicyStateClasses({ disabled }),
 				)}
 			>
 				<input

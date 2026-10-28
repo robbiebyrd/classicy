@@ -1,6 +1,7 @@
 import "./ClassicyCheckbox.scss";
 import classNames from "classnames";
 import { type FC as FunctionalComponent, useEffect, useState } from "react";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import {
 	ClassicyControlLabel,
@@ -120,8 +121,12 @@ export const ClassicyCheckbox: FunctionalComponent<ClassicyCheckboxProps> = ({
 				disabled={disabled}
 				className={classNames(
 					"classicyCheckbox",
-					isDefault ? "classicyCheckboxDefault" : "",
-					mixed ? "classicyCheckboxMixed" : "",
+					classicyStateClasses({
+						default: isDefault,
+						mixed,
+						checked: check,
+						disabled,
+					}),
 					mark === "x" ? "classicyCheckboxX" : "",
 				)}
 			/>

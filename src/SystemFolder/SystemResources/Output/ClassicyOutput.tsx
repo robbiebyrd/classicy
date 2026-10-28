@@ -1,6 +1,7 @@
 import "./ClassicyOutput.scss";
 import classNames from "classnames";
 import type { FC as FunctionalComponent, PropsWithChildren } from "react";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import {
 	ClassicyControlLabel,
 	type ClassicyLabelAlign,
@@ -67,7 +68,7 @@ export const ClassicyOutput: FunctionalComponent<ClassicyOutputProps> = ({
 				"classicyOutput",
 				variant === "inset" ? "classicyOutputInset" : "classicyOutputPlain",
 				mono ? "classicyOutputMono" : "",
-				disabled ? "classicyOutputDisabled" : "",
+				classicyStateClasses({ disabled }),
 			)}
 		>
 			{value ?? children}

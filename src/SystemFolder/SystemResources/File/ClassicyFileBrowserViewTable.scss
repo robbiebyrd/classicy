@@ -41,7 +41,7 @@
 
 // The Finder highlights only the filename label (rules below), never the
 // whole row — neutralize the generic row highlight.
-.classicyFileBrowserViewTableContainer .classicyTableRowSelected {
+.classicyFileBrowserViewTableContainer :where(.classicyTableRow).selected {
   color: inherit;
   background: var(--color-system-01);
 }
@@ -58,12 +58,12 @@
   text-overflow: ellipsis;
 }
 
-.classicyFileBrowserViewTableRowSelected .classicyFileBrowserViewTableRowIconLabel {
+:where(.classicyFileBrowserViewTableRow).selected .classicyFileBrowserViewTableRowIconLabel {
   color: var(--color-white);
   background: var(--color-system-07);
 }
 
-.classicyFileBrowserViewTableRowSelected .classicyFileBrowserViewTableRowIcon {
+:where(.classicyFileBrowserViewTableRow).selected .classicyFileBrowserViewTableRowIcon {
   filter: contrast(0.75) brightness(0.5);
 }
 

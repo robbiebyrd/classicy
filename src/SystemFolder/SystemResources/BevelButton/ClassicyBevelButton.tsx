@@ -67,7 +67,7 @@ export type ClassicyBevelButtonState =
  */
 const DEFAULT_HOLD_DELAY_MS = 500;
 
-const MENU_ITEM_SELECTOR = 'li[role="menuitem"]:not(.classicyMenuItemDisabled)';
+const MENU_ITEM_SELECTOR = 'li[role="menuitem"]:not(.disabled)';
 
 type ClassicyBevelButtonProps = PropsWithChildren<{
 	/**

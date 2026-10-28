@@ -39,7 +39,7 @@
   box-shadow: 0 0 calc(var(--window-border-size) * 2) var(--color-system-07);
 }
 
-.classicyRadioInputWrapperChecked {
+:where(.classicyRadioInputWrapper).checked {
   background: radial-gradient(
                   at left top,
                   var(--color-system-07) 10%,
@@ -58,7 +58,7 @@
   }
 }
 
-.classicyRadioInputWrapperDisabled {
+:where(.classicyRadioInputWrapper).disabled {
   border: calc(var(--window-border-size)) solid var(--color-system-05) !important;
   background: var(--color-system-02) !important;
 }
@@ -88,7 +88,7 @@
   }
 }
 
-.classicyRadioInputMixed {
+:where(.classicyRadioInput).mixed {
   margin-top:calc(var(--window-control-size) / 2.5);
   width: calc(var(--window-control-size) / 1);
   height: calc(var(--window-control-size) / 4);
@@ -110,11 +110,7 @@
   margin-left: calc(var(--window-control-size) / 2);
 }
 
-.classicyRadioInputLabelDisabled {
-  color: var(--color-system-05);
-}
-
-.classicyRadioInputDefault {
+:where(.classicyRadioInput).default {
   //width: var(--window-control-size);
   //margin: 0;
   //

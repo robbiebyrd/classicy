@@ -1,5 +1,6 @@
 import classNames from "classnames";
 import { type CSSProperties, type FC, useState } from "react";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { intToHex } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyColors";
 import type { ClassicyCrayon } from "./ClassicyColorPickerCrayons";
 
@@ -98,8 +99,7 @@ export const ClassicyColorPickerCrayon: FC<ClassicyColorPickerCrayonProps> = ({
 									title={crayon.name}
 									className={classNames(
 										"classicyColorPickerCrayon",
-										crayon.color === color &&
-											"classicyColorPickerCrayonSelected",
+										classicyStateClasses({ selected: crayon.color === color }),
 									)}
 									onClick={() => onChangeFunc(crayon.color)}
 									onMouseEnter={() => setHovered(crayon.color)}

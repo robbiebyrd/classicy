@@ -26,6 +26,6 @@
 
 // Disabled static text is dimmed (HIGOS8 Ch.2 "Static Text Fields", p.42),
 // matching ClassicyControlLabel's disabled treatment.
-.classicyOutputDisabled {
+:where(.classicyOutput).disabled {
   color: var(--color-system-05);
 }

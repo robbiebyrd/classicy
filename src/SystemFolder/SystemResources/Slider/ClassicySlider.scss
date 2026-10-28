@@ -167,7 +167,7 @@ $_thumb-rect-shape: inset(0 round calc(var(--window-border-size) * 1.5));
 
 // ─── Disabled variant (Image 1 at 50% contrast) ───────────────────────────────
 
-.classicySliderDisabled {
+:where(.classicySlider).disabled {
   cursor: not-allowed;
   filter: contrast(0.5);
 
@@ -371,7 +371,7 @@ $_thumb-rect-shape: inset(0 round calc(var(--window-border-size) * 1.5));
   transform: translateX(-50%);
 }
 
-.classicySliderTicksDisabled {
+:where(.classicySliderTicks).disabled {
   filter: contrast(0.5);
 }
 

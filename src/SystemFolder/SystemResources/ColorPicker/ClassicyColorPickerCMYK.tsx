@@ -34,7 +34,7 @@ export const ClassicyColorPickerCMYK: FC<ClassicyColorPickerCMYKProps> = ({
 
 	return (
 		<div className="classicyColorPickerSlidersTab">
-			<div className="classicyColorPickerSlider--cyan">
+			<div className="classicyColorPickerSliderCyan">
 				<ClassicySlider
 					id="cp-cmyk-c"
 					labelTitle="Cyan:"
@@ -46,7 +46,7 @@ export const ClassicyColorPickerCMYK: FC<ClassicyColorPickerCMYKProps> = ({
 					onChangeFunc={onChange("c")}
 				/>
 			</div>
-			<div className="classicyColorPickerSlider--magenta">
+			<div className="classicyColorPickerSliderMagenta">
 				<ClassicySlider
 					id="cp-cmyk-m"
 					labelTitle="Magenta:"
@@ -58,7 +58,7 @@ export const ClassicyColorPickerCMYK: FC<ClassicyColorPickerCMYKProps> = ({
 					onChangeFunc={onChange("m")}
 				/>
 			</div>
-			<div className="classicyColorPickerSlider--yellow">
+			<div className="classicyColorPickerSliderYellow">
 				<ClassicySlider
 					id="cp-cmyk-y"
 					labelTitle="Yellow:"
@@ -70,7 +70,7 @@ export const ClassicyColorPickerCMYK: FC<ClassicyColorPickerCMYKProps> = ({
 					onChangeFunc={onChange("y")}
 				/>
 			</div>
-			<div className="classicyColorPickerSlider--black">
+			<div className="classicyColorPickerSliderBlack">
 				<ClassicySlider
 					id="cp-cmyk-k"
 					labelTitle="Black:"

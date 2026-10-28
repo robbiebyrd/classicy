@@ -172,7 +172,7 @@ describe("ClassicySlider", () => {
 			<ClassicySlider id="test" value={5} tickInterval={25} disabled={true} />,
 		);
 		expect(container.querySelector(".classicySliderTicks")).toHaveClass(
-			"classicySliderTicksDisabled",
+			"disabled",
 		);
 	});
 

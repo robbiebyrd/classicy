@@ -97,7 +97,7 @@
   margin-left: auto;
 }
 
-.classicyTreeNodeDisabled {
+:where(.classicyTreeNodeLabelHolder).disabled {
 	.classicyTreeNodeLabel {
 		color: var(--color-system-05);
 	}
@@ -112,7 +112,7 @@
 	cursor: pointer;
 }
 
-.classicyTreeNodeSelected {
+:where(.classicyTreeNodeLabelHolder).selected {
 	background: var(--color-select);
 	.classicyTreeNodeLabel {
 		color: var(--color-white);

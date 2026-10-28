@@ -12,6 +12,7 @@ import {
 	type ReactNode,
 	useState,
 } from "react";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
 type ClassicyDisclosureTriangleDirections = "up" | "right" | "down" | "left";
@@ -126,7 +127,8 @@ export const ClassicyDisclosure: FunctionalComponent<
 			<div
 				className={classNames(
 					"classicyDisclosureInner",
-					open ? "classicyDisclosureInnerOpen" : "classicyDisclosureInnerClose",
+					open ? "" : "classicyDisclosureInnerClose",
+					classicyStateClasses({ open }),
 				)}
 			>
 				{children}

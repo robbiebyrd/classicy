@@ -1,6 +1,7 @@
 import "./ClassicyColorPicker.scss";
 import classNames from "classnames";
 import { type CSSProperties, type FC, useState } from "react";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { intToHex } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyColors";
 import {
 	ClassicyControlLabel,
@@ -92,7 +93,7 @@ export const ClassicyColorPicker: FC<ClassicyColorPickerProps> = ({
 					data-testid="color-picker-swatch"
 					className={classNames(
 						"classicyColorPickerSwatch",
-						disabled && "classicyColorPickerSwatchDisabled",
+						classicyStateClasses({ disabled }),
 					)}
 					style={
 						{ "--classicy-preview-color": intToHex(value) } as CSSProperties

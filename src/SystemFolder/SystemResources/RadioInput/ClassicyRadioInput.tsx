@@ -8,6 +8,7 @@ import {
 import "./ClassicyRadioInput.scss";
 import classNames from "classnames";
 import { type FC as FunctionalComponent, useEffect, useState } from "react";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
 type ClassicyRadioInputProps = {
@@ -141,8 +142,10 @@ export const ClassicyRadioInput: FunctionalComponent<
 						<div
 							className={classNames(
 								"classicyRadioInputWrapper",
-								check === item.id ? "classicyRadioInputWrapperChecked" : "",
-								itemDisabled ? "classicyRadioInputWrapperDisabled" : "",
+								classicyStateClasses({
+									checked: check === item.id,
+									disabled: itemDisabled,
+								}),
 							)}
 						>
 							<input
@@ -151,8 +154,10 @@ export const ClassicyRadioInput: FunctionalComponent<
 								disabled={itemDisabled}
 								className={classNames(
 									"classicyRadioInput",
-									item.isDefault ? "classicyRadioInputDefault" : "",
-									item.mixed ? "classicyRadioInputMixed" : "",
+									classicyStateClasses({
+										default: item.isDefault,
+										mixed: item.mixed,
+									}),
 								)}
 								type={"radio"}
 								value={item.id}

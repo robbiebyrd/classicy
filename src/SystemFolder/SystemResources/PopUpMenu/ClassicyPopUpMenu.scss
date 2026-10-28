@@ -60,7 +60,7 @@
   cursor: pointer;
   user-select: none;
 
-  &.select--disabled {
+  &.disabled {
     cursor: not-allowed;
     background-color: var(--color-system-01);
     background-image: linear-gradient(to top, var(--color-system-02), var(--color-system-01) 33%);

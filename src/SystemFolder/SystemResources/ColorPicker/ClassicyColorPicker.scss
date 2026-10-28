@@ -36,7 +36,7 @@ $cp-crayon-tip: 0.31;
   padding: 0;
 
   &:disabled,
-  &.classicyColorPickerSwatchDisabled {
+  &.disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
@@ -103,7 +103,7 @@ $cp-crayon-tip: 0.31;
   }
 }
 
-.classicyColorPickerModeListItemSelected {
+:where(.classicyColorPickerModeListItem).selected {
   background: var(--color-select);
   color: var(--color-white);
 }
@@ -223,7 +223,7 @@ $cp-crayon-tip: 0.31;
   &:focus-visible { outline: calc(var(--window-border-size) * 2) solid var(--color-outline); }
 }
 
-.classicyColorPickerCrayonSelected {
+:where(.classicyColorPickerCrayon).selected {
   transform: translateY(-5px);
   z-index: 50;
 }
@@ -253,15 +253,13 @@ $cp-crayon-tip: 0.31;
   .classicySlider::-moz-range-track               { background: linear-gradient(to right, $from, $to); }
 }
 
-.classicyColorPickerSlider {
-  &--red     { @include color-track(#000000, #ff0000); }
-  &--green   { @include color-track(#000000, #00ff00); }
-  &--blue    { @include color-track(#000000, #0000ff); }
-  &--cyan    { @include color-track(#ffffff, #00ffff); }
-  &--magenta { @include color-track(#ffffff, #ff00ff); }
-  &--yellow  { @include color-track(#ffffff, #ffff00); }
-  &--black   { @include color-track(#ffffff, #000000); }
-}
+.classicyColorPickerSliderRed     { @include color-track(#000000, #ff0000); }
+.classicyColorPickerSliderGreen   { @include color-track(#000000, #00ff00); }
+.classicyColorPickerSliderBlue    { @include color-track(#000000, #0000ff); }
+.classicyColorPickerSliderCyan    { @include color-track(#ffffff, #00ffff); }
+.classicyColorPickerSliderMagenta { @include color-track(#ffffff, #ff00ff); }
+.classicyColorPickerSliderYellow  { @include color-track(#ffffff, #ffff00); }
+.classicyColorPickerSliderBlack   { @include color-track(#ffffff, #000000); }
 
 // ── RGB / CMYK layout ────────────────────────────────────────────────────────
 

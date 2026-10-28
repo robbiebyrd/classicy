@@ -219,7 +219,7 @@ describe("ClassicyFileOpenDialog", () => {
 		await choosePopUpOption(user, /show/i, "Movies");
 		const songHolder = screen.getByText("song.mp3").closest("li");
 		expect(
-			songHolder?.querySelector(".classicyTreeNodeDisabled"),
+			songHolder?.querySelector(".classicyTreeNodeLabelHolder.disabled"),
 		).not.toBeNull();
 		await user.click(screen.getByRole("button", { name: "Open" }));
 		expect(baseProps.onOpenFunc).not.toHaveBeenCalled(); // selection was pruned → Open disabled

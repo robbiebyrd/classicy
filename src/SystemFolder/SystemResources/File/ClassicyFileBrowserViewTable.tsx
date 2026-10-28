@@ -15,6 +15,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import type { FinderListViewOptions } from "@/SystemFolder/Finder/FinderContext";
 import {
 	asFinderDate,
@@ -463,7 +464,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 					rowClassName={(_, isSelected) =>
 						classNames(
 							"classicyFileBrowserViewTableRow",
-							isSelected ? "classicyFileBrowserViewTableRowSelected" : null,
+							classicyStateClasses({ selected: isSelected }),
 						)
 					}
 					selectionMode={"multi"}

@@ -51,12 +51,12 @@ describe("Finder folder window keyboard focus (#270)", () => {
 
 		await waitFor(() => {
 			expect(
-				container.querySelectorAll("tr.classicyTableRowSelected"),
+				container.querySelectorAll("tr.classicyTableRow.selected"),
 			).toHaveLength(1);
 		});
 		// The first row in the list's visual order.
 		const firstRow = container.querySelector("tbody tr");
-		expect(firstRow).toHaveClass("classicyTableRowSelected");
+		expect(firstRow).toHaveClass("selected");
 	});
 
 	it("re-focuses the list after switching the focused window back to list view", async () => {

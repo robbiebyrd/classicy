@@ -58,17 +58,15 @@ describe("ClassicyButton", () => {
 		expect(onClick).not.toHaveBeenCalled();
 	});
 
-	it("adds classicyButtonDefault class when isDefault=true", () => {
+	it("adds default class when isDefault=true", () => {
 		render(<ClassicyButton isDefault={true}>OK</ClassicyButton>);
-		expect(screen.getByRole("button", { name: "OK" })).toHaveClass(
-			"classicyButtonDefault",
-		);
+		expect(screen.getByRole("button", { name: "OK" })).toHaveClass("default");
 	});
 
-	it("does not add classicyButtonDefault class when isDefault=false (default)", () => {
+	it("does not add default class when isDefault=false (default)", () => {
 		render(<ClassicyButton>Cancel</ClassicyButton>);
 		expect(screen.getByRole("button", { name: "Cancel" })).not.toHaveClass(
-			"classicyButtonDefault",
+			"default",
 		);
 	});
 
@@ -134,7 +132,7 @@ describe("ClassicyButton", () => {
 			</ClassicyButton>,
 		);
 		expect(ref.current).toBeInstanceOf(HTMLButtonElement);
-		expect(ref.current).toHaveClass("classicyButtonDefault");
+		expect(ref.current).toHaveClass("default");
 	});
 
 	it("adds a transient keyboard-activation highlight on Enter and clears it (~8 ticks)", () => {

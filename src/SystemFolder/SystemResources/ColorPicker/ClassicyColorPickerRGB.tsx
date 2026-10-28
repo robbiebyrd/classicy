@@ -34,7 +34,7 @@ export const ClassicyColorPickerRGB: FC<ClassicyColorPickerRGBProps> = ({
 
 	return (
 		<div className="classicyColorPickerSlidersTab">
-			<div className="classicyColorPickerSlider--red">
+			<div className="classicyColorPickerSliderRed">
 				<ClassicySlider
 					id="cp-rgb-r"
 					labelTitle="Red:"
@@ -46,7 +46,7 @@ export const ClassicyColorPickerRGB: FC<ClassicyColorPickerRGBProps> = ({
 					onChangeFunc={onChange("r")}
 				/>
 			</div>
-			<div className="classicyColorPickerSlider--green">
+			<div className="classicyColorPickerSliderGreen">
 				<ClassicySlider
 					id="cp-rgb-g"
 					labelTitle="Green:"
@@ -58,7 +58,7 @@ export const ClassicyColorPickerRGB: FC<ClassicyColorPickerRGBProps> = ({
 					onChangeFunc={onChange("g")}
 				/>
 			</div>
-			<div className="classicyColorPickerSlider--blue">
+			<div className="classicyColorPickerSliderBlue">
 				<ClassicySlider
 					id="cp-rgb-b"
 					labelTitle="Blue:"

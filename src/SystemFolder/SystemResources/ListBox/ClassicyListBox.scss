@@ -32,17 +32,17 @@
   outline: none;
 }
 
-.classicyListBoxOptionSelected {
+:where(.classicyListBoxOption).selected {
   color: var(--color-white);
   background-color: var(--color-theme-04);
 }
 
-.classicyListBoxOptionDisabled {
+:where(.classicyListBoxOption).disabled {
   color: var(--color-system-05);
   cursor: default;
 }
 
-.classicyListBoxDisabled {
+:where(.classicyListBox).disabled {
   background: var(--color-system-02);
 
   .classicyListBoxOption {

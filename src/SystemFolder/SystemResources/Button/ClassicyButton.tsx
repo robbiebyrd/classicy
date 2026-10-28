@@ -11,6 +11,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
@@ -170,10 +171,12 @@ export const ClassicyButton = forwardRef<
 				tabIndex={0}
 				className={classNames(
 					"classicyButton",
-					isDefault ? "classicyButtonDefault" : "",
+					classicyStateClasses({
+						default: isDefault,
+						pressed: depressed || keyActive,
+					}),
 					buttonShape === "square" ? "classicyButtonShapeSquare" : "",
 					buttonSize === "small" ? "classicyButtonSmall" : "",
-					depressed ? "classicyButtonDepressed" : "",
 					keyActive ? "classicyButtonKeyActive" : "",
 					buttonShape !== "square" ? paddingVariantClass[padding] : "",
 					marginVariantClass[margin],

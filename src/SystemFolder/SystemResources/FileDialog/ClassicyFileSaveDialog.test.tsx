@@ -301,7 +301,7 @@ describe("ClassicyFileSaveDialog", () => {
 			"li",
 		);
 		expect(
-			fileHolder?.querySelector(".classicyTreeNodeDisabled"),
+			fileHolder?.querySelector(".classicyTreeNodeLabelHolder.disabled"),
 		).not.toBeNull();
 	});
 

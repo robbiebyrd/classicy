@@ -15,7 +15,7 @@
   font-family: var(--ui-font);
 }
 
-.classicyControlLabelDisabled {
+:where(.classicyControlLabel).disabled {
   color: var(--color-system-05);
 }
 

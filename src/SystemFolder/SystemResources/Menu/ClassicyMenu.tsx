@@ -13,6 +13,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
@@ -366,9 +367,11 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 					"classicyMenuItem",
 					menuItem.icon ? "" : "classicyMenuItemNoImage",
 					menuItem.className,
-					menuItem.disabled ? "classicyMenuItemDisabled" : "",
+					classicyStateClasses({
+						disabled: menuItem.disabled,
+						open: isOpen,
+					}),
 					hasChildren ? "classicyMenuItemChildMenuIndicator" : "",
-					isOpen ? "classicyMenuItemOpen" : "",
 					isFlashing ? "classicyMenuItemFlash" : "",
 				)}
 			>

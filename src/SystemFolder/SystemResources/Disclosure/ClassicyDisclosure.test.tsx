@@ -27,7 +27,7 @@ describe("ClassicyDisclosure", () => {
 		const { container } = render(<ClassicyDisclosure label="More info" />);
 		const inner = container.querySelector(".classicyDisclosureInner");
 		expect(inner).toHaveClass("classicyDisclosureInnerClose");
-		expect(inner).not.toHaveClass("classicyDisclosureInnerOpen");
+		expect(inner).not.toHaveClass("open");
 	});
 
 	it("toggles to open class when header is clicked", async () => {
@@ -38,7 +38,7 @@ describe("ClassicyDisclosure", () => {
 		) as HTMLElement;
 		await user.click(header);
 		const inner = container.querySelector(".classicyDisclosureInner");
-		expect(inner).toHaveClass("classicyDisclosureInnerOpen");
+		expect(inner).toHaveClass("open");
 		expect(inner).not.toHaveClass("classicyDisclosureInnerClose");
 	});
 
@@ -77,7 +77,7 @@ describe("ClassicyDisclosure", () => {
 		header.focus();
 		await user.keyboard("{Enter}");
 		const inner = container.querySelector(".classicyDisclosureInner");
-		expect(inner).toHaveClass("classicyDisclosureInnerOpen");
+		expect(inner).toHaveClass("open");
 	});
 
 	it("toggles open on Space key press", async () => {
@@ -89,7 +89,7 @@ describe("ClassicyDisclosure", () => {
 		header.focus();
 		await user.keyboard(" ");
 		const inner = container.querySelector(".classicyDisclosureInner");
-		expect(inner).toHaveClass("classicyDisclosureInnerOpen");
+		expect(inner).toHaveClass("open");
 	});
 
 	it("opens with Command-Right and closes with Command-Left", async () => {
@@ -101,7 +101,7 @@ describe("ClassicyDisclosure", () => {
 		header.focus();
 		await user.keyboard("{Meta>}{ArrowRight}{/Meta}");
 		const inner = container.querySelector(".classicyDisclosureInner");
-		expect(inner).toHaveClass("classicyDisclosureInnerOpen");
+		expect(inner).toHaveClass("open");
 		await user.keyboard("{Meta>}{ArrowLeft}{/Meta}");
 		expect(inner).toHaveClass("classicyDisclosureInnerClose");
 	});

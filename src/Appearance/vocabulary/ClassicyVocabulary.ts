@@ -53,6 +53,7 @@ export const CLASSICY_COMPONENT = {
 	DesktopMenu: "classicyDesktopMenu",
 	DesktopMenuBar: "classicyDesktopMenuBar",
 	Disclosure: "classicyDisclosure",
+	DriveSetupList: "classicyDriveSetupList",
 	FileBrowser: "classicyFileBrowser",
 	FileDialog: "classicyFileDialog",
 	FileInput: "classicyFileInput",

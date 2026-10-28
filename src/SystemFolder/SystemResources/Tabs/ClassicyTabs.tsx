@@ -11,6 +11,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
@@ -327,11 +328,10 @@ export const ClassicyTabs: FunctionalComponent<TabProps> = ({
 										ref={(el) => {
 											buttonRefs.current[index] = el;
 										}}
-										className={
-											"classicyTabButton" +
-											" " +
-											(isActive ? "classicyTabButtonActive" : "")
-										}
+										className={classNames(
+											"classicyTabButton",
+											classicyStateClasses({ selected: isActive }),
+										)}
 										onMouseDown={() => pressTab(index)}
 										onMouseUp={() => selectTab(index)}
 										onKeyDown={handleTabKeyDown}

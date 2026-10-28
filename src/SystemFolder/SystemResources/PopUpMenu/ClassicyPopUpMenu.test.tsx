@@ -59,7 +59,7 @@ describe("ClassicyPopUpMenu", () => {
 		expect(control).toHaveTextContent("Apple");
 		expect(control).toBeDisabled();
 		expect(control).toHaveAttribute("aria-disabled", "true");
-		expect(control).toHaveClass("classicyPopUpMenuButtonDisabled");
+		expect(control).toHaveClass("disabled");
 	});
 
 	it("opens the menu on click and marks the current item with a checkmark", async () => {

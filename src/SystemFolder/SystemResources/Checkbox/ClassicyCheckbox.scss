@@ -50,7 +50,7 @@
 // `isDefault` emphasises the box with the theme accent while it is on or
 // pressed — the same treatment as a default radio button. It leaves the mark
 // alone: per the HIG the checkmark is the mark for every checkbox.
-.classicyCheckbox.classicyCheckboxDefault {
+.classicyCheckbox.default {
   &:checked,
   &:active {
     border-color: var(--color-theme-06);
@@ -76,7 +76,7 @@
 // its dash regardless of the on/off value, so gate on the class alone. The
 // compound selector ties the `:checked` rule's specificity and wins on source
 // order, so a mixed checkbox shows the dash whether or not it is also checked.
-.classicyCheckbox.classicyCheckboxMixed:after {
+.classicyCheckbox.mixed:after {
   font-family: var(--ui-font), sans-serif;
   font-size: calc(var(--ui-font-size) * 1);
   line-height: calc(var(--ui-font-size) * 0.75);

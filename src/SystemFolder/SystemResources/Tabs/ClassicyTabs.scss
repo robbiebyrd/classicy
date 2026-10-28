@@ -89,7 +89,7 @@ $_tab-border-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/s
   background-repeat: no-repeat;
   background-color: var(--color-system-04);
 
-  &:has(.classicyTabButtonActive) {
+  &:has(.classicyTabButton.selected) {
     background-color: var(--color-system-02);
   }
 }
@@ -123,11 +123,6 @@ $_tab-border-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/s
 
 .classicyTabButtonLabel {
   text-wrap: nowrap;
-}
-
-.classicyTabButtonActive {
-  // Kept as a class flag — the visual active state is handled by
-  // .classicyTabButtonWrapper:has(.classicyTabButtonActive) above.
 }
 
 // ── Scroll arrows ─────────────────────────────────────────────────────────────

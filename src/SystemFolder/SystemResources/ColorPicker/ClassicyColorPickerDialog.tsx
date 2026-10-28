@@ -9,6 +9,7 @@ import {
 	useId,
 	useState,
 } from "react";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { intToHex } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyColors";
 import { ClassicyAppIdContext } from "@/SystemFolder/SystemResources/App/ClassicyAppIdContext";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
@@ -189,7 +190,7 @@ export const ClassicyColorPickerDialog: FC<ClassicyColorPickerDialogProps> = ({
 								aria-selected={m === mode}
 								className={classNames(
 									"classicyColorPickerModeListItem",
-									m === mode && "classicyColorPickerModeListItemSelected",
+									classicyStateClasses({ selected: m === mode }),
 								)}
 								onClick={() => setMode(m)}
 							>

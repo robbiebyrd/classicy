@@ -163,10 +163,7 @@ describe("ClassicyControlStrip (HIGOS8 Figure 6-15)", () => {
 		renderStrip();
 		click(screen.getByRole("button", { name: "File Sharing" }));
 		const status = screen.getByRole("menuitem", { name: "No Users Connected" });
-		expect(status).toHaveClass(
-			"classicyControlStripStatus",
-			"classicyMenuItemDisabled",
-		);
+		expect(status).toHaveClass("classicyControlStripStatus", "disabled");
 		fireEvent.click(
 			screen.getByRole("menuitem", { name: "Open File Sharing Control Panel" }),
 		);

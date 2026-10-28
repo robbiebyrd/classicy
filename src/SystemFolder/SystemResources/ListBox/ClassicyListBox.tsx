@@ -8,6 +8,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import {
 	ClassicyControlLabel,
 	type ClassicyControlLabelSize,
@@ -185,7 +186,7 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 			aria-disabled={disabled || undefined}
 			className={classNames(
 				"classicyListBox",
-				disabled && "classicyListBoxDisabled",
+				classicyStateClasses({ disabled }),
 			)}
 			style={
 				visibleRows
@@ -207,10 +208,13 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 						aria-disabled={o.disabled || undefined}
 						tabIndex={tabStopId === o.value && !disabled ? 0 : -1}
 						ref={(el) => registerRef(o.value, el)}
-						className={classNames("classicyListBoxOption", {
-							classicyListBoxOptionSelected: isSelected,
-							classicyListBoxOptionDisabled: o.disabled,
-						})}
+						className={classNames(
+							"classicyListBoxOption",
+							classicyStateClasses({
+								selected: isSelected,
+								disabled: o.disabled,
+							}),
+						)}
 						onClick={(e) => {
 							if (disabled || o.disabled) return;
 							// Focus the row too (browsers do this natively for

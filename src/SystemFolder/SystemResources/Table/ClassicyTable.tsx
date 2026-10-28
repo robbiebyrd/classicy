@@ -21,6 +21,7 @@ import {
 	useState,
 } from "react";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 
 /**
  * Expansion facts handed to every cell `render`, so a column (typically the
@@ -473,7 +474,7 @@ export function ClassicyTable<T>({
 										className={classNames(
 											"classicyTableColumnHeader",
 											header.column.getIsResizing() ? "isResizing" : "",
-											isSorted ? "classicyTableColumnHeaderSelected" : "",
+											classicyStateClasses({ selected: !!isSorted }),
 										)}
 										onClick={() => {
 											if (!header.column.getCanSort()) {
@@ -533,9 +534,9 @@ export function ClassicyTable<T>({
 							data-selected={effectiveSelected.includes(row.id) || undefined}
 							className={classNames(
 								"classicyTableRow",
-								effectiveSelected.includes(row.id)
-									? "classicyTableRowSelected"
-									: null,
+								classicyStateClasses({
+									selected: effectiveSelected.includes(row.id),
+								}),
 								rowClassName?.(
 									row.original,
 									effectiveSelected.includes(row.id),

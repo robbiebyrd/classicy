@@ -1,6 +1,7 @@
 import "./DriveSetupList.scss";
 import classNames from "classnames";
 import type { FC } from "react";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import type { DriveRow } from "./ClassicyDriveSetupUtils";
 
@@ -16,11 +17,11 @@ export const DriveSetupList: FC<DriveSetupListProps> = ({
 	onSelect,
 }) => {
 	return (
-		<div className="driveSetupList">
+		<div className="classicyDriveSetupList">
 			<ClassicyControlLabel label="List of Drives" />
-			<div className="driveSetupList__tableContainer">
-				<table className="driveSetupList__table">
-					<thead className="driveSetupList__head">
+			<div className="classicyDriveSetupListTable">
+				<table className="classicyDriveSetupListGrid">
+					<thead className="classicyDriveSetupListHead">
 						<tr>
 							<th>Volume Name(s)</th>
 							<th>Type</th>
@@ -34,9 +35,10 @@ export const DriveSetupList: FC<DriveSetupListProps> = ({
 							<tr
 								key={d.name}
 								aria-selected={selected === d.name}
-								className={classNames("driveSetupList__row", {
-									"driveSetupList__row--selected": selected === d.name,
-								})}
+								className={classNames(
+									"classicyDriveSetupListRow",
+									classicyStateClasses({ selected: selected === d.name }),
+								)}
 								onClick={() => onSelect(d.name)}
 							>
 								<td>{d.name}</td>

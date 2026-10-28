@@ -10,6 +10,7 @@ import {
 	useMemo,
 	useState,
 } from "react";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { useListNavigation } from "@/SystemFolder/SystemResources/Keyboard/useListNavigation";
 import {
@@ -247,10 +248,10 @@ const ClassicyTreeNodeItem: FunctionalComponent<ClassicyTreeNodeItemProps> = ({
 						ref={registerRef}
 						className={classNames(
 							"classicyTreeNodeLabelHolder classicyTreeNodeBranch",
-							{
-								classicyTreeNodeDisabled: node.disabled,
-								classicyTreeNodeSelected: canSelectBranch && isBranchSelected,
-							},
+							classicyStateClasses({
+								disabled: node.disabled,
+								selected: canSelectBranch && isBranchSelected,
+							}),
 						)}
 						onClick={(e) => {
 							if (node.disabled) return;
@@ -282,9 +283,7 @@ const ClassicyTreeNodeItem: FunctionalComponent<ClassicyTreeNodeItemProps> = ({
 							"classicyTreeNodeLabelHolder",
 							"classicyTreeNodeLeaf",
 							"classicyTreeNodeSelectable",
-							{
-								classicyTreeNodeSelected: isSelected,
-							},
+							classicyStateClasses({ selected: isSelected }),
 						)}
 						onClick={(e) => ctx.onSelectNode?.(node.id, node, e)}
 						onDoubleClick={() => ctx.onActivateNode?.(node.id, node)}
@@ -300,10 +299,10 @@ const ClassicyTreeNodeItem: FunctionalComponent<ClassicyTreeNodeItemProps> = ({
 						className={classNames(
 							"classicyTreeNodeLabelHolder",
 							"classicyTreeNodeLeaf",
-							{
-								classicyTreeNodeDisabled: node.disabled,
-								classicyTreeNodeSelected: isSelected,
-							},
+							classicyStateClasses({
+								disabled: node.disabled,
+								selected: isSelected,
+							}),
 						)}
 						onFocus={onFocus}
 					>
