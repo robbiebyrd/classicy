@@ -4,8 +4,6 @@ import {
 	useCallback,
 	useEffect,
 } from "react";
-import { JSONTree } from "react-json-tree";
-import { intToHex } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyColors";
 import { pickWindowToRestore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
 import {
 	useAppManager,
@@ -152,10 +150,6 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 	);
 
 	const desktopEventDispatch = useAppManagerDispatch();
-
-	const activeThemeData = useAppManager(
-		(state) => state.System.Manager.Appearance.activeTheme,
-	);
 
 	const isAppOpen = () => {
 		return appContext?.open;
