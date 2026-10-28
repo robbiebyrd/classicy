@@ -10,6 +10,8 @@ import { readFileSync, writeFileSync } from "node:fs";
 export type VocabularyInput = {
 	/** PascalCase component to root class, only where it deviates from `classicy<Component>`. */
 	roots?: Record<string, string>;
+	/** PascalCase component to full class names that are not `<root><Part>` (modifiers and fragments folded into the component). */
+	extraClasses?: Record<string, string[]>;
 	/** PascalCase component to the part suffixes appended to its root class. */
 	components: Record<string, string[]>;
 	states: string[];
@@ -36,6 +38,15 @@ export function validateVocabulary(input: VocabularyInput): string[] {
 			classes.set(`${root}${part}`.toLowerCase(), `part class ${root}${part}`);
 		}
 	}
+	for (const [component, extras] of Object.entries(input.extraClasses ?? {})) {
+		if (!(component in input.components)) {
+			errors.push(`extraClasses names unknown component "${component}"`);
+			continue;
+		}
+		for (const extra of extras) {
+			classes.set(extra.toLowerCase(), `extra class ${extra}`);
+		}
+	}
 	const seen = new Set<string>();
 	for (const state of input.states) {
 		if (seen.has(state)) {
@@ -55,8 +66,8 @@ export function validateVocabulary(input: VocabularyInput): string[] {
 	return errors;
 }
 
-const entries = (names: string[]): string =>
-	names.map((name) => `\t${name}: "${name}",\n`).join("");
+const entries = (pairs: [string, string][]): string =>
+	pairs.map(([key, value]) => `\t${key}: "${value}",\n`).join("");
 
 export function generateVocabulary(input: VocabularyInput): {
 	ts: string;
@@ -65,7 +76,7 @@ export function generateVocabulary(input: VocabularyInput): {
 	const ts = `${HEADER}
 
 export const CLASSICY_STATE = {
-${entries(input.states)}} as const;
+${entries(input.states.map((s) => [s, s]))}} as const;
 
 export type ClassicyState = keyof typeof CLASSICY_STATE;
 
@@ -77,7 +88,7 @@ export const classicyStateClasses = (
 		.join(" ");
 
 export const CLASSICY_COMPONENT = {
-${entries(Object.keys(input.components))}} as const;
+${entries(Object.keys(input.components).map((c) => [c, rootClass(input, c)]))}} as const;
 
 export type ClassicyComponentName = keyof typeof CLASSICY_COMPONENT;
 

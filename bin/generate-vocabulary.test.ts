@@ -23,7 +23,7 @@ describe("generateVocabulary", () => {
 		expect(ts).toContain(
 			"export type ClassicyState = keyof typeof CLASSICY_STATE",
 		);
-		expect(ts).toContain('Button: "Button"');
+		expect(ts).toContain('Button: "classicyButton"');
 		expect(ts.startsWith("// generated — do not edit")).toBe(true);
 	});
 
@@ -82,6 +82,30 @@ describe("generateVocabulary", () => {
 			}),
 		).toEqual([
 			'state "classicytabcontainerholder" collides with part class classicyTabContainerHolder',
+		]);
+	});
+
+	it("maps CLASSICY_COMPONENT to root classes, honoring roots", () => {
+		const { ts } = generateVocabulary({
+			roots: { Tabs: "classicyTabContainer" },
+			components: { Button: [], Tabs: [] },
+			states: ["pressed"],
+			attributes,
+		});
+		expect(ts).toContain('Button: "classicyButton"');
+		expect(ts).toContain('Tabs: "classicyTabContainer"');
+	});
+
+	it("rejects a state that equals an extra class", () => {
+		expect(
+			validateVocabulary({
+				components: { ControlLabel: [] },
+				extraClasses: { ControlLabel: ["classicyLabelAbove"] },
+				states: ["classicylabelabove"],
+				attributes,
+			}),
+		).toEqual([
+			'state "classicylabelabove" collides with extra class classicyLabelAbove',
 		]);
 	});
 

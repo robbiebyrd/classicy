@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
@@ -51,6 +51,34 @@ describe("ClassicyVocabulary", () => {
 		for (const name of ["Window", "Button", "Alert", "DesktopMenuBar"]) {
 			expect(CLASSICY_COMPONENT).toHaveProperty(name);
 		}
+	});
+
+	it("CLASSICY_COMPONENT values are root classes", () => {
+		expect(CLASSICY_COMPONENT.Button).toBe("classicyButton");
+		expect(CLASSICY_COMPONENT.Tabs).toBe("classicyTabContainer");
+	});
+
+	it("every classicy class literal in src resolves to the vocabulary", () => {
+		const known = new Set<string>();
+		for (const [name, parts] of Object.entries<string[]>(json.components)) {
+			const root: string = json.roots?.[name] ?? `classicy${name}`;
+			known.add(root);
+			for (const part of parts) known.add(`${root}${part}`);
+		}
+		for (const extras of Object.values<string[]>(json.extraClasses ?? {})) {
+			for (const extra of extras) known.add(extra);
+		}
+		const skipped = /(\.(test|stories)\.tsx$|__tests__|ScreenSaver\/savers\/)/;
+		const unknown = new Set<string>();
+		const src = resolve(process.cwd(), "src");
+		for (const rel of readdirSync(src, { recursive: true }) as string[]) {
+			if (!rel.endsWith(".tsx") || skipped.test(rel)) continue;
+			const text = readFileSync(resolve(src, rel), "utf8");
+			for (const match of text.matchAll(/"(classicy[A-Z]\w+)/g)) {
+				if (!known.has(match[1])) unknown.add(match[1]);
+			}
+		}
+		expect([...unknown].sort()).toEqual([]);
 	});
 
 	it("the committed outputs are fresh", () => {

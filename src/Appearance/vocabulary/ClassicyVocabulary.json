@@ -2,6 +2,39 @@
 	"roots": {
 		"Tabs": "classicyTabContainer"
 	},
+	"extraClasses": {
+		"Button": ["classicyButtonsHolder"],
+		"ControlLabel": [
+			"classicyLabelAbove",
+			"classicyLabelAlignCenter",
+			"classicyLabelAlignLeft",
+			"classicyLabelAlignRight",
+			"classicyLabelBelow",
+			"classicyLabelLeft",
+			"classicyLabelRight"
+		],
+		"MenuItem": ["classicyMenuWrapper"],
+		"PixelArt": ["classicyPixel3", "classicyPixelK", "classicyPixelW"],
+		"Tabs": [
+			"classicyTabActiveContent",
+			"classicyTabButton",
+			"classicyTabButtonActive",
+			"classicyTabButtonIcon",
+			"classicyTabButtonLabel",
+			"classicyTabButtonWrapper",
+			"classicyTabButtonsRow",
+			"classicyTabHiddenContent",
+			"classicyTabScrollButton",
+			"classicyTabScrollButtonLeft",
+			"classicyTabScrollButtonRight",
+			"classicyTabScrollGlyph",
+			"classicyTabScrollWrapper",
+			"classicyTabScroller",
+			"classicyTabsHolder",
+			"classicyTabsSizeLarge",
+			"classicyTabsSizeSmall"
+		]
+	},
 	"components": {
 		"Alert": [
 			"Body",
@@ -44,7 +77,6 @@
 			"Nav",
 			"PageIndicator"
 		],
-		"BackgroundSizeOption": [],
 		"BalloonHelp": [
 			"Anchor",
 			"Container",
@@ -65,7 +97,6 @@
 			"BevelSmall",
 			"Icon",
 			"Label",
-			"ModeToggle",
 			"Popup",
 			"PopupPanel",
 			"Square"
@@ -85,7 +116,6 @@
 			"ShapeSquare",
 			"Small"
 		],
-		"ButtonsHolder": [],
 		"ButtonToolbar": ["Group", "SizeMedium", "SizeSmall"],
 		"Checkbox": ["Default", "Holder", "Mixed", "X"],
 		"ColorPicker": [
@@ -156,7 +186,6 @@
 			"Modules",
 			"Moving",
 			"Right",
-			"Status",
 			"Tab"
 		],
 		"CrashScreen": [],
@@ -212,7 +241,6 @@
 			"ViewTableRowSelected"
 		],
 		"FileDialog": ["Extension", "NameRow"],
-		"FileDragging": [],
 		"FileInput": ["Body", "Error", "Holder", "Item", "List", "Native"],
 		"FileOpenDialog": ["Actions", "Body", "Footer", "Well"],
 		"Form": ["ButtonRow", "Dialog"],
@@ -253,7 +281,7 @@
 			"StageInner"
 		],
 		"Icon": ["Active", "Dragging", "Invisible", "Mask", "MaskOuter"],
-		"ImageWell": ["Image", "Selected"],
+		"ImageWell": ["Image"],
 		"Input": ["Default", "Holder"],
 		"InputDialog": ["Body", "Buttons", "Icon", "Prompt", "Top"],
 		"Kbd": ["Inline", "Keycap", "Keycaps"],
@@ -265,13 +293,6 @@
 			"Field",
 			"Prompt"
 		],
-		"LabelAbove": [],
-		"LabelAlignCenter": [],
-		"LabelAlignLeft": [],
-		"LabelAlignRight": [],
-		"LabelBelow": [],
-		"LabelLeft": [],
-		"LabelRight": [],
 		"Link": ["Disabled"],
 		"ListBox": ["Disabled", "Option", "OptionIcon", "OptionLabel"],
 		"LittleArrows": ["Button", "Group"],
@@ -288,7 +309,6 @@
 			"TitleSample",
 			"TitleSizer"
 		],
-		"MenuWrapper": [],
 		"Meter": [
 			"Bad",
 			"Fill",
@@ -303,9 +323,7 @@
 		"Output": ["Disabled", "Inset", "Mono", "Plain"],
 		"Pager": ["Arrow", "Page"],
 		"PictureViewer": ["Image"],
-		"Pixel3": [],
-		"PixelK": [],
-		"PixelW": [],
+		"PixelArt": [],
 		"Placard": ["Arrow", "Content", "Holder", "Menu", "MenuItem"],
 		"PopUpMenu": [
 			"Button",
@@ -326,12 +344,7 @@
 		],
 		"PopUpSlider": ["Disabled", "Thumb", "Track"],
 		"PreBootScreen": [],
-		"Progress": [
-			"ChasingArrows",
-			"ChasingArrowsSpinner",
-			"Determinate",
-			"Indeterminate"
-		],
+		"Progress": ["ChasingArrowsSpinner", "Determinate", "Indeterminate"],
 		"RadioInput": [
 			"Default",
 			"Group",
@@ -343,30 +356,7 @@
 			"WrapperDisabled"
 		],
 		"RichTextEditor": [],
-		"Saver": [
-			"BouncingBall",
-			"BouncingBallBall",
-			"FadeOut",
-			"Fish",
-			"FishBubbles",
-			"FlyingToasters",
-			"Globe",
-			"GlobeBall",
-			"HardRain",
-			"HardRainDrop",
-			"Logo",
-			"LogoMark",
-			"Messages",
-			"Messages2",
-			"Messages2Text",
-			"MessagesText",
-			"RainstormRain",
-			"Spotlight",
-			"SpotlightMask",
-			"Warp",
-			"WarpStars"
-		],
-		"ScreenSaver": ["Active", "EventHandler", "ManagerContent"],
+		"ScreenSaver": ["Active", "ManagerContent"],
 		"Separator": ["Horizontal", "Vertical"],
 		"Slider": [
 			"Disabled",
@@ -393,35 +383,11 @@
 			"Value"
 		],
 		"SoundManager": ["Content"],
-		"SpecialMenuItems": [],
 		"Spinner": ["Default", "Holder", "InputGroup"],
 		"SplitView": ["Divider", "Horizontal", "Pane", "Vertical"],
-		"StartupScreen": [
-			"Extensions",
-			"Logo",
-			"Panel",
-			"Progress",
-			"Shown",
-			"Wordmark"
-		],
+		"StartupScreen": ["Extensions", "Logo", "Panel", "Progress", "Wordmark"],
 		"Storage": [],
 		"SubMenu": ["FlipLeft"],
-		"Tab": [
-			"ActiveContent",
-			"Button",
-			"ButtonActive",
-			"ButtonIcon",
-			"ButtonLabel",
-			"ButtonWrapper",
-			"ButtonsRow",
-			"HiddenContent",
-			"ScrollButton",
-			"ScrollButtonLeft",
-			"ScrollButtonRight",
-			"ScrollGlyph",
-			"ScrollWrapper",
-			"Scroller"
-		],
 		"Table": [
 			"Cell",
 			"ColumnHeader",
@@ -438,9 +404,6 @@
 			"SortArrowAscending"
 		],
 		"Tabs": [],
-		"TabsHolder": [],
-		"TabsSizeLarge": [],
-		"TabsSizeSmall": [],
 		"TextEditor": [
 			"AutoHeight",
 			"Border",
@@ -460,21 +423,9 @@
 			"NodeLabelHolder",
 			"NodeLeaf",
 			"NodeRow",
-			"NodeSelectable",
-			"NodeSelected"
+			"NodeSelectable"
 		],
-		"Triangle": [
-			"DownClosed",
-			"DropShadow",
-			"Highlight",
-			"Inner",
-			"LeftClosed",
-			"Outline",
-			"RightClosed",
-			"RightOpen",
-			"Shadow",
-			"UpClosed"
-		],
+		"Triangle": ["DropShadow", "Highlight", "Inner", "Outline", "Shadow"],
 		"WebViewer": ["Frame"],
 		"Window": [
 			"Active",
@@ -483,7 +434,6 @@
 			"CloseBox",
 			"CollapseBox",
 			"Collapsed",
-			"ContentSize",
 			"Contents",
 			"ContentsDimmed",
 			"ContentsFramed",
