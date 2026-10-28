@@ -35,48 +35,6 @@ export const CLASSICY_DEFAULT_THEME_METRICS: Readonly<ClassicyThemeMeasurements>
 		layout: { itemGap: 4, groupGap: 16, dialogEdge: 12 },
 	};
 
-/**
- * The pre-2.1 `--hig-*` layout constants, mapped to the theme-driven variable
- * that replaced each. `getThemeVars` emits every old name as `var(<new>)` so
- * existing stylesheets keep working for one minor version; the names are
- * removed in the next major. Three tokens nothing ever read were dropped
- * outright: `--hig-button-gap-v`, `--hig-groupbox-gap-h`,
- * `--hig-disclosure-text-gap`.
- */
-export const CLASSICY_DEPRECATED_METRIC_ALIASES: Readonly<
-	Record<string, string>
-> = {
-	"--hig-button-height": "--button-height",
-	"--hig-button-min-width": "--button-min-width",
-	"--hig-button-text-padding": "--button-text-padding",
-	"--hig-button-default-ring": "--button-default-ring",
-	"--hig-button-gap-h": "--button-gap",
-	"--hig-dialog-edge": "--layout-dialog-edge",
-	"--hig-item-gap": "--layout-item-gap",
-	"--hig-item-gap-focus": "--layout-focus-gap",
-	"--hig-group-gap": "--layout-group-gap",
-	"--hig-control-box": "--window-control-size",
-	"--hig-control-height": "--control-row-height",
-	"--hig-control-label-gap": "--control-label-gap",
-	"--hig-popup-height": "--control-height",
-	"--hig-editfield-height": "--edit-field-height",
-	"--hig-groupbox-margin-side": "--group-box-margin-side",
-	"--hig-groupbox-margin-top": "--group-box-margin-top",
-	"--hig-groupbox-margin-bottom": "--group-box-margin-bottom",
-	"--hig-groupbox-title-pad": "--group-box-title-pad",
-	"--hig-groupbox-gap-v": "--group-box-gap",
-	"--hig-progress-height": "--progress-height",
-	"--hig-static-text-height": "--control-static-text-height",
-	"--hig-help-button-width": "--help-button-width",
-	"--hig-help-button-height": "--help-button-height",
-	"--hig-frame-width": "--control-frame-width",
-	"--hig-bevel-sm": "--control-bevel-sm",
-	"--hig-bevel-md": "--control-bevel-md",
-	"--hig-bevel-lg": "--control-bevel-lg",
-	"--hig-titlebar-height": "--window-title-bar-height",
-	"--hig-titlebar-height-utility": "--window-utility-title-bar-height",
-};
-
 /** A theme whose `measurements` may be missing groups or keys (persisted by
  * an older build, or read from an older theme file). */
 export type ClassicyThemeWithPartialMetrics = Omit<

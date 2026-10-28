@@ -3,10 +3,7 @@ import {
 	intToPct,
 	intToPx,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicySize";
-import {
-	CLASSICY_DEPRECATED_METRIC_ALIASES,
-	withDefaultThemeMetrics,
-} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
+import { withDefaultThemeMetrics } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import { resolveWallpaper } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 import type { ClassicyStoreSystemManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import type { ClassicyThemeSound } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
@@ -275,13 +272,6 @@ export const getThemeVars = (theme: ClassicyTheme) => {
 		"--help-button-height": intToPx(m.control.height + border),
 		// Preferred gap when focus rings show: the standard padding.
 		"--layout-focus-gap": intToPx(m.window.paddingSize),
-		// --- Deprecated `--hig-*` names, each a reference to its replacement.
-		...Object.fromEntries(
-			Object.entries(CLASSICY_DEPRECATED_METRIC_ALIASES).map(([old, next]) => [
-				old,
-				`var(${next})`,
-			]),
-		),
 	};
 };
 

@@ -6,7 +6,6 @@ import {
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
 	CLASSICY_DEFAULT_THEME_METRICS,
-	CLASSICY_DEPRECATED_METRIC_ALIASES,
 	withDefaultThemeMetrics,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 
@@ -171,24 +170,14 @@ describe("getThemeVars", () => {
 		expect(vars["--help-button-height"]).toBe("22px");
 	});
 
-	it("emits every deprecated --hig-* alias as a var() reference", () => {
-		const vars = getThemeVars(getTheme("default")) as Record<string, string>;
-		for (const [old, next] of Object.entries(
-			CLASSICY_DEPRECATED_METRIC_ALIASES,
-		)) {
-			expect(vars[old], old).toBe(`var(${next})`);
-			expect(vars, next).toHaveProperty(next);
+	// Owner decision D12 (docs/theming-audit.md §7): the --hig-* names are gone
+	// outright — no deprecated aliases, nothing emitted under the old names.
+	it("emits no --hig-* name at all", () => {
+		for (const theme of getAllThemes()) {
+			const higKeys = Object.keys(getThemeVars(theme)).filter((k) =>
+				k.startsWith("--hig-"),
+			);
+			expect(higKeys, theme.id).toEqual([]);
 		}
-	});
-
-	it("alias table covers every surviving --hig-* token (32 minus 3 deleted)", () => {
-		expect(Object.keys(CLASSICY_DEPRECATED_METRIC_ALIASES)).toHaveLength(29);
-	});
-
-	it("no longer emits the deleted tokens", () => {
-		const vars = getThemeVars(getTheme("default")) as Record<string, string>;
-		expect(vars["--hig-button-gap-v"]).toBeUndefined();
-		expect(vars["--hig-groupbox-gap-h"]).toBeUndefined();
-		expect(vars["--hig-disclosure-text-gap"]).toBeUndefined();
 	});
 });
