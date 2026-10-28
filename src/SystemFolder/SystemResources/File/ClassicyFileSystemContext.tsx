@@ -6,7 +6,7 @@ import {
 	useMemo,
 	useSyncExternalStore,
 } from "react";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	dispatch,
 	useAppManager,
@@ -132,7 +132,9 @@ export function useClassicyFileSystem(
 				id: definition.id,
 				name: definition.label,
 				icon:
-					definition.fileIcon ?? ClassicyIcons.system.controlStrip.moduleFile,
+					definition.fileIcon ??
+					resolveClassicyAsset("icons", "system.controlStrip.moduleFile") ??
+					"",
 				appId: definition.appId,
 			}),
 		),

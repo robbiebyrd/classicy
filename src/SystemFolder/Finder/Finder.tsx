@@ -7,7 +7,6 @@ import {
 	useRef,
 } from "react";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import type { ActionMessage } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	useAppManager,
@@ -553,15 +552,17 @@ export const Finder = () => {
 		ensureClassicyTrash(fs);
 	}, [fs]);
 	const trashFull = listClassicyTrashItems(fs).length > 0;
+	const trashFullIcon =
+		useClassicyAsset("icons", "system.desktop.trashFull") ?? "";
+	const trashEmptyIcon =
+		useClassicyAsset("icons", "system.desktop.trashEmpty") ?? "";
 	useEffect(() => {
 		desktopEventDispatch({
 			type: "ClassicyDesktopIconAdd",
 			app: {
 				id: "Trash",
 				name: "Trash",
-				icon: trashFull
-					? ClassicyIcons.system.desktop.trashFull
-					: ClassicyIcons.system.desktop.trashEmpty,
+				icon: trashFull ? trashFullIcon : trashEmptyIcon,
 			},
 			kind: "trash",
 			filePath: CLASSICY_TRASH_PATH,
@@ -589,7 +590,7 @@ export const Finder = () => {
 				},
 			],
 		});
-	}, [trashFull, desktopEventDispatch]);
+	}, [trashFull, trashFullIcon, trashEmptyIcon, desktopEventDispatch]);
 
 	const trashItems = useCallback(
 		(paths: string[]) => {

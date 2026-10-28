@@ -1,7 +1,7 @@
 import "./ClassicyHelpButton.scss";
 import classNames from "classnames";
 import type { FC as FunctionalComponent, MouseEventHandler } from "react";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { ClassicyBevelButton } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButton";
 
 type ClassicyHelpButtonProps = {
@@ -37,14 +37,17 @@ type ClassicyHelpButtonProps = {
  */
 export const ClassicyHelpButton: FunctionalComponent<
 	ClassicyHelpButtonProps
-> = ({ id, label = "Help", disabled = false, onClickFunc, className }) => (
-	<ClassicyBevelButton
-		id={id}
-		aria-label={label}
-		bevelWidth="small"
-		icon={ClassicyIcons.ui.helpButton}
-		disabled={disabled}
-		onClickFunc={onClickFunc}
-		className={classNames("classicyHelpButton", className)}
-	/>
-);
+> = ({ id, label = "Help", disabled = false, onClickFunc, className }) => {
+	const helpIcon = useClassicyAsset("icons", "ui.helpButton") ?? "";
+	return (
+		<ClassicyBevelButton
+			id={id}
+			aria-label={label}
+			bevelWidth="small"
+			icon={helpIcon}
+			disabled={disabled}
+			onClickFunc={onClickFunc}
+			className={classNames("classicyHelpButton", className)}
+		/>
+	);
+};

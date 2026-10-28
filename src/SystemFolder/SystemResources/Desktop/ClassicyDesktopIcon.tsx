@@ -1,4 +1,4 @@
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -121,7 +121,8 @@ const draggedAsFile = (kind: string, filePath: string | undefined) =>
  * Icons whose `kind` is `app_shortcut` or `shortcut` — every icon `ClassicyApp`
  * registers — render the alias arrow over the bottom-left corner and an
  * italic label (`isAliasKind`); system kinds get neither. Swap the arrow art by
- * registering your own `system.alias` icon with `registerClassicyIcons`.
+ * registering your own `system.alias` icon with `registerClassicyIcons`
+ * (read at render time, so a later registration takes effect).
  *
  * You rarely render this directly: `ClassicyDesktop` draws one for each record
  * in `System.Manager.Desktop.icons`, which `ClassicyApp` and the
@@ -157,6 +158,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			onMoveFilePaths,
 			onOpenFilePath,
 		}) => {
+			const aliasBadge = useClassicyAsset("icons", "system.alias") ?? "";
 			const [clickPosition, setClickPosition] = useState<[number, number]>([
 				0, 0,
 			]);
@@ -466,16 +468,12 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 								}
 								style={
 									{
-										"--classicy-icon-mask": `url(${ClassicyIcons.system.alias})`,
+										"--classicy-icon-mask": `url(${aliasBadge})`,
 									} as CSSProperties
 								}
 							>
 								<div className={"classicyDesktopIconMask"}>
-									<img
-										src={ClassicyIcons.system.alias}
-										alt=""
-										aria-hidden="true"
-									/>
+									<img src={aliasBadge} alt="" aria-hidden="true" />
 								</div>
 							</div>
 						)}

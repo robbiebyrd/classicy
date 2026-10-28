@@ -8,7 +8,7 @@ import {
 	useMemo,
 	useRef,
 } from "react";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyHelpButton } from "@/SystemFolder/SystemResources/HelpButton/ClassicyHelpButton";
@@ -90,16 +90,19 @@ export type ClassicyAlertProps = {
 const AlertIcon: FunctionalComponent<{ alertType: ClassicyAlertType }> = ({
 	alertType,
 }) => {
+	const warn = useClassicyAsset("icons", "system.warn") ?? "";
+	const error = useClassicyAsset("icons", "system.error") ?? "";
+	const info = useClassicyAsset("icons", "system.info") ?? "";
 	switch (alertType) {
 		case "caution":
 			// Classic caution triangle (system warn icon).
-			return <img src={ClassicyIcons.system.warn} alt="Caution" />;
+			return <img src={warn} alt="Caution" />;
 		case "stop":
 			// Classic stop octagon (system error icon).
-			return <img src={ClassicyIcons.system.error} alt="Error" />;
+			return <img src={error} alt="Error" />;
 		default:
 			// Classic note bubble (system info icon).
-			return <img src={ClassicyIcons.system.info} alt="Info" />;
+			return <img src={info} alt="Info" />;
 	}
 };
 

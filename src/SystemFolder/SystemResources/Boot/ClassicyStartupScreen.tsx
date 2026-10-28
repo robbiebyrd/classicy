@@ -5,7 +5,7 @@ import {
 	useMemo,
 	useState,
 } from "react";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import {
@@ -49,11 +49,8 @@ interface ClassicyStartupScreenProps {
  */
 export const ClassicyStartupScreen: FunctionalComponent<
 	ClassicyStartupScreenProps
-> = ({
-	duration = 4000,
-	logo = ClassicyIcons.system.macosSvg,
-	wordmark = "Classicy",
-}) => {
+> = ({ duration = 4000, logo, wordmark = "Classicy" }) => {
+	const defaultLogo = useClassicyAsset("icons", "system.macosSvg") ?? "";
 	const [visible, setVisible] = useState(
 		() => !hasShownStartupScreenThisSession(),
 	);
@@ -126,7 +123,7 @@ export const ClassicyStartupScreen: FunctionalComponent<
 		<div className="classicyStartupScreen" role="status">
 			<div className="classicyStartupScreenPanel">
 				<div className="classicyStartupScreenLogo">
-					<img src={logo} alt={wordmark} />
+					<img src={logo ?? defaultLogo} alt={wordmark} />
 					<span className="classicyStartupScreenWordmark">{wordmark}</span>
 				</div>
 				<div className="classicyStartupScreenProgress">

@@ -1,4 +1,4 @@
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { iconImageByType } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserUtils";
 import type { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
@@ -183,7 +183,7 @@ export function desktopVolume(
 	return {
 		id: "desktop",
 		label: "Desktop",
-		icon: ClassicyIcons.system.mac,
+		icon: resolveClassicyAsset("icons", "system.mac") ?? "",
 		list: (path) => Promise.resolve(listFsChildren(fs, path)),
 		write: async (path, name, file, options) => {
 			writeFsFile(fs, path, name, file, options?.overwrite ?? true);
@@ -204,7 +204,9 @@ export function fileSystemVolume(
 		id: `fs-${drive}`,
 		label: drive,
 		icon:
-			(fs.resolve(drive)?._icon as string) ?? ClassicyIcons.system.drives.disk,
+			(fs.resolve(drive)?._icon as string) ??
+			resolveClassicyAsset("icons", "system.drives.disk") ??
+			"",
 		list: (path) => Promise.resolve(listFsChildren(fs, [drive, ...path])),
 		write: async (path, name, file, options) => {
 			writeFsFile(fs, [drive, ...path], name, file, options?.overwrite ?? true);

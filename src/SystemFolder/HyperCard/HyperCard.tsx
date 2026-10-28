@@ -1,3 +1,4 @@
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 /**
  * HyperCard.app — a JSON-driven HyperCard stack player for Classicy.
@@ -80,7 +81,7 @@ import { getAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAp
 // Registers the built-in Download save provider under the save-provider registry.
 registerDownloadSaveProvider();
 
-const { id: appId, name: appName, icon: appIcon } = HyperCardAppInfo;
+const { id: appId, name: appName } = HyperCardAppInfo;
 
 function useHyperCardData(): HyperCardData | undefined {
 	return useAppManager((s) => {
@@ -116,6 +117,7 @@ function makeBlankStack(): HCStack {
 }
 
 export const HyperCard: FunctionalComponent = () => {
+	const appIcon = useClassicyAsset("icons", "system.files.application") ?? "";
 	const dispatch = useAppManagerDispatch();
 	const player = useSoundDispatch();
 	const { aboutMenuItem, aboutWindow } = useClassicyAboutMenu(
@@ -296,7 +298,7 @@ export const HyperCard: FunctionalComponent = () => {
 			dispatch(quitAppHelper(appId, appName, appIcon));
 		};
 		void runCascade();
-	}, [confirmDirtyStack, dispatch]);
+	}, [confirmDirtyStack, dispatch, appIcon]);
 
 	// Browse-preview: entering the browse tool pushes the draft into the player.
 	const editTool = edit?.tool;
@@ -959,6 +961,7 @@ export const HyperCard: FunctionalComponent = () => {
 		dispatch,
 		aboutMenuItem,
 		handleQuit,
+		appIcon,
 	]);
 
 	// Keep the menu bar in sync with the dynamic edit-mode menus. Focus

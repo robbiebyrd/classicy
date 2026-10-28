@@ -1,5 +1,9 @@
-import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@/__tests__/test-utils";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen } from "@/__tests__/test-utils";
+import {
+	ClassicyIcons,
+	registerClassicyIcons,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { ClassicyContextualMenuProvider } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 
 const mockDispatch = vi.hoisted(() => vi.fn());
@@ -194,6 +198,38 @@ describe("ClassicyDesktopIcon alias badging", () => {
 		expect(badgeEl.style.getPropertyValue("--classicy-icon-mask")).toMatch(
 			/^url\(.+\)$/,
 		);
+	});
+
+	describe("with a host-registered system.alias", () => {
+		const platinumAlias = ClassicyIcons.system.alias;
+		afterEach(() => {
+			registerClassicyIcons({ system: { alias: platinumAlias } });
+		});
+
+		it("draws the registered artwork on the badge", () => {
+			registerClassicyIcons({ system: { alias: "custom.png" } });
+			const { container } = render(<ClassicyDesktopIcon {...defaultProps} />);
+			const badgeEl = badge(container) as HTMLElement;
+			expect(badgeEl.querySelector("img")).toHaveAttribute("src", "custom.png");
+			expect(badgeEl.style.getPropertyValue("--classicy-icon-mask")).toBe(
+				"url(custom.png)",
+			);
+		});
+
+		it("re-renders the badge when the alias is registered after mount", () => {
+			const { container } = render(<ClassicyDesktopIcon {...defaultProps} />);
+			expect(badge(container)?.querySelector("img")).toHaveAttribute(
+				"src",
+				platinumAlias,
+			);
+			act(() => {
+				registerClassicyIcons({ system: { alias: "later.png" } });
+			});
+			expect(badge(container)?.querySelector("img")).toHaveAttribute(
+				"src",
+				"later.png",
+			);
+		});
 	});
 
 	it("hides the badge from assistive technology", () => {

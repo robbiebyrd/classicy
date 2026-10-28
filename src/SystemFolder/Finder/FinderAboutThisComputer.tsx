@@ -2,7 +2,7 @@ import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import "./FinderAboutThisComputer.scss";
 import type { FC as FunctionalComponent } from "react";
 import { useEffect, useState } from "react";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { describeAppAction } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
 import { FINDER_ABOUT_THIS_COMPUTER_WINDOW_ID } from "@/SystemFolder/Finder/FinderContext";
@@ -27,6 +27,10 @@ const release =
 	typeof pkgExtra.release === "string" ? pkgExtra.release : "Classicy";
 
 export const FinderAboutThisComputer: FunctionalComponent = () => {
+	const classicyBg = useClassicyAsset("icons", "classicy.bg") ?? "";
+	const classicyLogo = useClassicyAsset("icons", "classicy.logo") ?? "";
+	const macosIcon = useClassicyAsset("icons", "system.macos") ?? "";
+	const macIcon = useClassicyAsset("icons", "system.mac") ?? "";
 	const dispatch = useAppManagerDispatch();
 	const [osUsedMb, setOsUsedMb] = useState<number>(OS_USED_MB_DEFAULT);
 
@@ -92,15 +96,15 @@ export const FinderAboutThisComputer: FunctionalComponent = () => {
 						style={{
 							backgroundSize: "cover",
 							backgroundPosition: "bottom left",
-							backgroundImage: `url(${ClassicyIcons.classicy.bg})`,
+							backgroundImage: `url(${classicyBg})`,
 							backgroundRepeat: "no-repeat",
 						}}
 					>
-						<img src={ClassicyIcons.classicy.logo} alt="Classicy" />
+						<img src={classicyLogo} alt="Classicy" />
 						{/* <p>{release ?? "Classicy"}</p> */}
 					</div>
 					<div className="finderAboutThisComputerVersion">
-						<img src={ClassicyIcons.system.macos} alt="Classicy" />
+						<img src={macosIcon} alt="Classicy" />
 						{aboutBalloon ? (
 							<ClassicyBalloonHelp
 								title={aboutBalloon.title}
@@ -132,7 +136,7 @@ export const FinderAboutThisComputer: FunctionalComponent = () => {
 				</div>
 				<div className="finderAboutThisComputerUsage">
 					<div className="finderAboutThisComputerUsageItem">
-						<img src={ClassicyIcons.system.mac} alt="Classicy" />
+						<img src={macIcon} alt="Classicy" />
 						<span className="finderAboutThisComputerUsageName">Classicy</span>
 						<span className="finderAboutThisComputerUsageSize">
 							{osUsedMb.toFixed(1)} MB

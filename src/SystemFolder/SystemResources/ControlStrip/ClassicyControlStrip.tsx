@@ -11,7 +11,7 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -489,7 +489,11 @@ export const ClassicyControlStrip: FunctionalComponent<
 							app: {
 								id: CONTROL_STRIP_MANAGER_APP_ID,
 								name: CONTROL_STRIP_MANAGER_APP_NAME,
-								icon: ClassicyIcons.controlPanels.controlStripManager.app,
+								icon:
+									resolveClassicyAsset(
+										"icons",
+										"controlPanels.controlStripManager.app",
+									) ?? "",
 							},
 						}),
 				},

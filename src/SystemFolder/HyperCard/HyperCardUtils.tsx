@@ -8,7 +8,7 @@
  */
 
 import { z } from "zod";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import type {
 	HCAction,
 	HCBackground,
@@ -22,7 +22,9 @@ import type {
 export const HyperCardAppInfo = {
 	id: "HyperCard.app",
 	name: "HyperCard",
-	icon: ClassicyIcons.system.files.application,
+	get icon() {
+		return resolveClassicyAsset("icons", "system.files.application") ?? "";
+	},
 } as const;
 
 /** Prefix for all HyperCard action types routed to the app reducer. */

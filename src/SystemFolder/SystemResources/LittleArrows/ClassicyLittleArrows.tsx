@@ -8,7 +8,7 @@ import {
 	useEffect,
 	useRef,
 } from "react";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 
 // Continuous repeat while held — the HIG's little-arrows behavior. Callers that
 // want acceleration (ClassicySpinner's ×10 escalation) derive it from `heldMs`.
@@ -73,6 +73,7 @@ export const ClassicyLittleArrows: FunctionalComponent<
 	repeatIntervalMs = REPEAT_INTERVAL_MS,
 	focusTarget,
 }) => {
+	const arrowUp = useClassicyAsset("icons", "ui.menuDropdownArrowUp") ?? "";
 	// Keep the callback in a ref so the interval always calls the latest closure.
 	const onStepRef = useRef(onStep);
 	onStepRef.current = onStep;
@@ -151,7 +152,7 @@ export const ClassicyLittleArrows: FunctionalComponent<
 				onMouseLeave={stop}
 				onKeyDown={(e) => stepKey(e, 1)}
 			>
-				<img src={ClassicyIcons.ui.menuDropdownArrowUp} alt="" />
+				<img src={arrowUp} alt="" />
 			</button>
 			<button
 				type="button"
@@ -163,7 +164,7 @@ export const ClassicyLittleArrows: FunctionalComponent<
 				onMouseLeave={stop}
 				onKeyDown={(e) => stepKey(e, -1)}
 			>
-				<img src={ClassicyIcons.ui.menuDropdownArrowUp} alt="" />
+				<img src={arrowUp} alt="" />
 			</button>
 		</div>
 	);

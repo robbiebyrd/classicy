@@ -1,5 +1,6 @@
 import { useCallback } from "react";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import type { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 
 /** A Mac OS 8 cursor bundled in `ClassicyIcons.ui.cursors` (e.g. `"watch"`, `"hand"`, `"resizeLr"`). */
 type CursorName = keyof typeof ClassicyIcons.ui.cursors;
@@ -27,7 +28,7 @@ export const useClassicyCursor = () => {
 			document.body.style.cursor = "";
 			return;
 		}
-		const url = ClassicyIcons.ui.cursors[name];
+		const url = resolveClassicyAsset("icons", `ui.cursors.${name}`);
 		document.body.style.cursor = url ? `url(${url}), auto` : "";
 	}, []);
 

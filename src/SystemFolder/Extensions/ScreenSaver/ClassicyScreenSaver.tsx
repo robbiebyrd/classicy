@@ -5,7 +5,7 @@ import "@/SystemFolder/Extensions/ScreenSaver/savers/ClassicyScreenSaverBuiltIns
 import "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverControlStripModule";
 import type { FC as FunctionalComponent } from "react";
 import { useEffect, useRef } from "react";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -138,6 +138,8 @@ const ClassicyScreenSaverOverlay: FunctionalComponent<{
 };
 
 export const ClassicyScreenSaver: FunctionalComponent = () => {
+	const screenSaverIcon =
+		useClassicyAsset("icons", "system.extensions.screensaver") ?? "";
 	const data = useAppManager(
 		(s) =>
 			s.System.Manager.Applications.apps[SCREEN_SAVER_APP_ID]?.data as
@@ -153,7 +155,7 @@ export const ClassicyScreenSaver: FunctionalComponent = () => {
 			<ClassicyApp
 				id={SCREEN_SAVER_APP_ID}
 				name={SCREEN_SAVER_APP_NAME}
-				icon={ClassicyIcons.system.extensions.screensaver}
+				icon={screenSaverIcon}
 				extension
 			/>
 			{/* Rendered as a sibling, not a ClassicyApp child: extension children
