@@ -6,12 +6,12 @@ status: ready
 priority: "2"
 effort: XL
 created: "2026-10-28T18:07:39.758Z"
-updated: "2026-10-28T19:38:37.602Z"
+updated: "2026-10-28T20:46:56.281Z"
 links:
   repo:
     local: ~/classicy
   specs:
-    - ./docs/theming-audit.md
+    - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
     - ./docs/superpowers/specs/2026-10-27-theme-metrics-design.md
   plans:
     - ["0001-1t9", "depends"]
@@ -24,9 +24,9 @@ links:
 
 **Goal:** Classicy ships a Platinum Appearance Package and the machinery for a second package (Windows 3.11, IRIX) to replace every look, asset, sound, cursor, font and part arrangement at runtime, with no `!important`, no literal pixels and no literal colors anywhere in Classicy's own styles.
 
-**Problem:** `docs/theming-audit.md` §1–§6 found the Platinum look baked into the wrong layers: fixed SCSS multipliers and compile-time bevel mixins, base64 SVG art with baked hex, a shallow-merge icon registry and 39 module-scope asset captures, a sound manager that ignores the theme, JSX-fixed part order, 158 `!important`s and 333 pixel literals. Owner decisions D1–D24 (§7) and the target architecture (§8) are settled; §9 lists nine phases. Phase 0 (plan 0001-1t9) is merged. The remaining eight phases are too large for one plan and several can run concurrently.
+**Problem:** `docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md` (plan 0000-aud) §1–§6 found the Platinum look baked into the wrong layers: fixed SCSS multipliers and compile-time bevel mixins, base64 SVG art with baked hex, a shallow-merge icon registry and 39 module-scope asset captures, a sound manager that ignores the theme, JSX-fixed part order, 158 `!important`s and 333 pixel literals. Owner decisions D1–D24 (§7) and the target architecture (§8) are settled; §9 lists nine phases. Phase 0 (plan 0001-1t9) is merged. The remaining eight phases are too large for one plan and several can run concurrently.
 
-**Approach:** This design plan is the program's single source of names. It splits §9 into ten implementation plans (parts A–J), each a mind-palace plan linked back here with `parent`, and records the dependency graph so parts can be scheduled concurrently or consecutively. Every cross-part identifier (file path, export name, signature, CSS variable, attribute, store key, action type) is pinned in the Shared Contract below; part plans must use these names verbatim and may add names only inside their own files. **Where a part plan and this contract disagree, the "Contract amendments" section wins**: it was written after all ten parts and reconciles them.
+**Approach:** This design plan is the program's single source of names. It splits §9 into ten implementation plans (parts A–J), each a mind-palace plan linked back here with `parent`, and records the dependency graph so parts can be scheduled concurrently or consecutively. Every cross-part identifier (file path, export name, signature, CSS variable, attribute, store key, action type) is pinned in the Shared Contract below; part plans must use these names verbatim and may add names only inside their own files. **Where a part plan and this contract disagree, the "Contract amendments" section wins**: it was written after all ten parts and reconciles them. Each part plan is further broken into stories (one per plan section, chained with `depends` links in execution order); see the table at the end.
 
 ---
 
@@ -34,7 +34,7 @@ links:
 
 ## Current State
 
-See `docs/theming-audit.md` §1–§6 (findings) and §8 (target architecture); this plan does not restate them. Delta since the audit was written: plan 0001-1t9 landed on `main` (commits "refactor(theme): drop the deprecated --hig-* aliases outright" through "fix(theme): complete metric groups on themes handed to ClassicyDesktopLoadThemes"): `--hig-*` is gone, `measurements.<family>` inputs exist (`ClassicyThemeMetrics.ts`), `CLASSICY_THEME_METRIC_TARGETS` and `ClassicyDesktopChangeMetric` exist, title bar reads `--window-title-bar-height`. The screenshot parity procedure from that plan (Storybook `iframe.html?id=<id>&viewMode=story` at 1024×768, ImageMagick `compare -metric AE`) is the regression gate reused by every part below; its output lives in `.playwright-mcp/parity/` (gitignored), so each part re-shoots its own `before/` set at its start.
+See `docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md` (plan 0000-aud) §1–§6 (findings) and §8 (target architecture); this plan does not restate them. Delta since the audit was written: plan 0001-1t9 landed on `main` (commits "refactor(theme): drop the deprecated --hig-* aliases outright" through "fix(theme): complete metric groups on themes handed to ClassicyDesktopLoadThemes"): `--hig-*` is gone, `measurements.<family>` inputs exist (`ClassicyThemeMetrics.ts`), `CLASSICY_THEME_METRIC_TARGETS` and `ClassicyDesktopChangeMetric` exist, title bar reads `--window-title-bar-height`. The screenshot parity procedure from that plan (Storybook `iframe.html?id=<id>&viewMode=story` at 1024×768, ImageMagick `compare -metric AE`) is the regression gate reused by every part below; its output lives in `.playwright-mcp/parity/` (gitignored), so each part re-shoots its own `before/` set at its start.
 
 ## Decisions
 
@@ -44,6 +44,7 @@ See `docs/theming-audit.md` §1–§6 (findings) and §8 (target architecture); 
 - **Each part re-shoots its own parity baseline on its first day and must end pixel-identical for Platinum unless its plan names the visual change** — Nine phases of mechanical rewrites; a per-part gate localizes regressions.
 - **Breaking changes allowed everywhere (D16): `platinum*` mixin names, `registerClassicyIcons` shape, `sound.name`, theme-file layout** — Owner decision; no alias bridges are written.
 - **Package CSS may hold `--platinum-*` design constants; Classicy base CSS may not hold literals** — D10 forbids hard-coded colors in Classicy. A package *is* the look, so its CSS may define constants (e.g. stripe grays) as package-private custom properties, derived from theme tokens with `classicy-tint`/`classicy-shade` wherever the value is arithmetically reachable.
+- **One story per plan section, chained** — A story is the unit of tracked work; a plan section is already the smallest independently testable deliverable, so they map one to one. Phase 0 (parity baseline) and a trailing checklist-only phase get their own story, or fold into the neighboring section's story when that section already does the parity re-shoot.
 
 ### Rejected alternatives
 
@@ -192,22 +193,24 @@ Each line names the part plan whose text it corrects; executors apply the amendm
 - **0012-pt9 (J)**: Fonts tab and wallpaper picker reading the registries is Part C's deliverable; J re-tests, does not re-implement. The import refusal reuses `Desktop.errorDialog` from Part B.
 - **0003-7x7 (A)**: `./scss-platinum/*` is temporary and is deleted by Part B.
 
-### Part plans and dependency graph
+### Part plans, stories and dependency graph
 
-| Part | Plan | Audit §9 phase | Effort | Depends on | Can run beside |
-|---|---|---|---|---|---|
-| A | 0003-7x7 Vocabulary and cascade hygiene | 1 | XL | 0001-1t9 (done) | C, D, G |
-| B | 0005-1b3 Package core and the Platinum package | 2 | XL | A | C, D (B wires their registrations last) |
-| C | 0007-1sl Asset registries and system art | 3 | L | — | A, B, D, G |
-| D | 0008-j5l Sound packs | 4 | M | — | A, B, C, G |
-| E | 0009-agy Art extraction and title-bar unification | 5 items 1–5 | L | B, C | F, G, H, I |
-| F | 0010-743 Arrangement slots | 5 item 6 | L | A, B | E, G, H, I |
-| G | 0004-vqt Colors, derivations and JS geometry | 6 items 1, 2, 4 | L | A (directory only) | C, D, E, F |
-| H | 0011-v9t Pixel-literal purge | 6 item 3 | L | B, G | E, F, I |
-| I | 0006-dy6 Package events and display participation | 7 | L | B | E, F, H |
-| J | 0012-pt9 Appearance control panel | 8 | L | B, C, D | E, F, H, I |
+| Part | Plan | Stories | Audit §9 phase | Effort | Depends on | Can run beside |
+|---|---|---|---|---|---|---|
+| A | 0003-7x7 Vocabulary and cascade hygiene | 0001-cay … 0009-pat (9) | 1 | XL | 0001-1t9 (done) | C, D, G |
+| B | 0005-1b3 Package core and the Platinum package | 0033-f4o … 0041-dyu (9) | 2 | XL | A | C, D (B wires their registrations last) |
+| C | 0007-1sl Asset registries and system art | 0018-0zn … 0025-xns (8) | 3 | L | — | A, B, D, G |
+| D | 0008-j5l Sound packs | 0026-3a7 … 0032-ztu (7) | 4 | M | — | A, B, C, G |
+| E | 0009-agy Art extraction and title-bar unification | 0051-532 … 0058-83a (8) | 5 items 1–5 | L | B, C | F, G, H, I |
+| F | 0010-743 Arrangement slots | 0059-2t4 … 0066-874 (8) | 5 item 6 | L | A, B | E, G, H, I |
+| G | 0004-vqt Colors, derivations and JS geometry | 0010-f28 … 0017-ih7 (8) | 6 items 1, 2, 4 | L | A (directory only) | C, D, E, F |
+| H | 0011-v9t Pixel-literal purge | 0067-opx … 0074-zpv (8) | 6 item 3 | L | B, G | E, F, I |
+| I | 0006-dy6 Package events and display participation | 0042-pbp … 0050-ryq (9) | 7 | L | B | E, F, H |
+| J | 0012-pt9 Appearance control panel | 0075-uev … 0081-ww6 (7) | 8 | L | B, C, D | E, F, H, I |
 
-Critical path: A → B → {E, F, H, I, J}. Two people: one takes A then B; the other takes C, D, G in parallel, then joins the fan-out. Every part links here with `parent`; `depends` links mirror the fourth column.
+81 stories in `docs/stories/`. Each story links its plan with `included` and the section numbers it implements; within a part, every story `depends` on the previous one; a part's first story `depends` on the last story of each plan in the "Depends on" column. `story_list({ plan: "<plan id>" })` lists a part's stories; a plan's `progress` map does not back-reference them.
+
+Critical path: A → B → {E, F, H, I, J}. Two people: one takes A then B; the other takes C, D, G in parallel, then joins the fan-out. Every part links here with `parent`; `depends` links mirror the "Depends on" column.
 
 ## Testing
 
@@ -219,7 +222,7 @@ Named visual changes across the program (the only non-zero parity allowed): Part
 
 **In scope:**
 
-- Everything in `docs/theming-audit.md` §9 Phases 1–8, including arrangement (D21)
+- Everything in `docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md` (plan 0000-aud) §9 Phases 1–8, including arrangement (D21)
 - The shared contract above; part plans may not rename anything in it
 
 **Out of scope:**

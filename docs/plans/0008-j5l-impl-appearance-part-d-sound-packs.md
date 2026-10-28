@@ -11,7 +11,7 @@ links:
   repo:
     local: ~/classicy
   specs:
-    - ./docs/theming-audit.md
+    - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   plans:
     - ["0002-ldj", "parent"]
     - ["0000-aud", "included"]
@@ -304,7 +304,7 @@ it("a pack JSON with relative src parses and a copy with https src validates ide
 - Consumes: Everything above.
 - Produces: `AGENT-REFERENCE.md` line 913 `sound: { pack: string; disabled: string[] }`; line 1052 `| sound.pack | a registered sound pack id (e.g. "platinum") |`; §10 Sound: replace the "Custom sound themes" paragraph (1223-1228) with "Sound packs": `ClassicySoundPack` shape (`{ id, name, packageId?, src: string[], sprite }`, `src` may be relative to the pack JSON, http(s) or data:), `registerClassicySoundPack` / `getClassicySoundPack` / `listClassicySoundPacks` / `useClassicySoundPacks`, `CLASSICY_SOUND_SPRITE_IDS` as the 41-id contract with the rule that missing ids fall back to Platinum (with the warning), boot/switch behavior (persisted `activeTheme.sound.pack`, reload on change, volume kept), `ClassicySoundLoad { pack, disabled }`, and `pnpm build:audio` producing a pack JSON per `assets/sounds/<name>/`. `CLAUDE.md` SoundManager bullet gains one sentence: the Howl is loaded from the registered pack named by `activeTheme.sound.pack` (`ClassicySoundPacks.ts`), reloaded on change, with Platinum as the sprite fallback.
 
-- [ ] **Step 1: Write the docs** — Per the Interfaces block; `grep -rn 'sound\.name\|ClassicySounds\b' docs CLAUDE.md` then prints only the historical audit text in `docs/theming-audit.md`.
+- [ ] **Step 1: Write the docs** — Per the Interfaces block; `grep -rn 'sound\.name\|ClassicySounds\b' docs CLAUDE.md` then prints only the historical audit text in `docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md` (plan 0000-aud).
 - [ ] **Step 2: Shoot the parity set after and compare** — Same two ids into `.playwright-mcp/parity/part-D/after/`; `cd .playwright-mcp/parity/part-D && for f in before/*.png; do printf '%s ' "$(compare -metric AE "$f" "after/$(basename "$f")" null: 2>&1)"; echo "$f"; done`. Expected: `0` twice. Stop Storybook. — `pnpm storybook`
 - [ ] **Step 3: Full gate** — Expected: all PASS; `grep -c '"pack":"platinum"' dist/classicy.es.js` ≥ 21 (themes.json is bundled) and `grep -c 'ClassicySounds' dist/classicy.es.js` is 0. — `pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test && pnpm build:source`
 - [ ] **Step 4: Commit** — git add docs/AGENT-REFERENCE.md CLAUDE.md && git commit -m "docs(sound): sound packs, sound.pack and the sprite-id contract" (with the trailer).

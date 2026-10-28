@@ -1,0 +1,96 @@
+---
+id: 0080-xy4
+title: 'J 5.1: Presets from the active package; registry-backed fonts, wallpapers and sound packs'
+purpose: Re-point the Themes, Desktop, Fonts and Sound tabs at the active package's presets and the asset/sound registries, carry the package id through theme files, and refuse a theme file for an unregistered package with a stop alert.
+type: impr
+status: pending
+priority: "2"
+effort: M
+created: "2026-10-28T20:43:31.288Z"
+updated: "2026-10-28T20:43:31.288Z"
+links:
+  repo:
+    local: ~/classicy
+    files:
+      - src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Themes.tsx
+      - src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Desktop.tsx
+      - src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Fonts.tsx
+      - src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Sound.tsx
+      - src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.tsx
+      - src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Themes.test.tsx
+      - src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Desktop.test.tsx
+      - src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Fonts.test.tsx
+      - src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Sound.test.tsx
+      - src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.themeFile.test.tsx
+  specs:
+    - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
+  stories:
+    - ["0079-vn4", "depends"]
+  plans:
+    - ["0012-pt9", "included", ["5.1"]]
+progress:
+  "1":
+    status: pending
+  "2":
+    status: pending
+  "3":
+    status: pending
+  "4":
+    status: pending
+  "5":
+    status: pending
+---
+
+# J 5.1: Presets from the active package; registry-backed fonts, wallpapers and sound packs
+
+## Problem Statement
+
+Audit §9 Phase 8 item 3 (presets from the package; Save/Load carry the package id) and §4.3–§4.5: the Themes tab hard-codes the package name (`.Themes.tsx:55`), the Fonts tab lists a literal array (`.Fonts.tsx:9-16`), the Desktop tab imports the `ClassicyWallpapers` array (`.Desktop.tsx:6,69`), and the manager resolves sounds through the mutable `ClassicySounds` record (`ClassicyAppearanceManager.tsx:22,114-150,192,206`). Umbrella 0002-ldj pins `pkg.presets` (D24), theme `package`, `useClassicyAssetTree('fonts' | 'wallpapers')` and `useClassicySoundPacks()` with `sound.pack`.
+
+This section (plan 0012-pt9 §5.1) gives the Themes tab a `packageName` and a preset list filtered to the active package, pre-checks `getClassicyAppearancePackage(result.theme.package)` on load and shows the existing stop alert when the package is not installed, feeds the Desktop and Fonts tabs from the asset registries (Part C's Phase 3 item 5 may already have done this; the tests decide), adds a Sound Pack pop-up writing `sound.pack` through `ClassicyDesktopChangeAppearanceOption`, and deletes the `ClassicySounds` path from the manager.
+
+**Impact:** Without it a second package's presets never appear, a theme file saved for an uninstalled package is dispatched into the reducer instead of being refused in the panel, and the Sound tab cannot switch sound packs (Part D's registry stays unreachable from the UI).
+
+## Steps
+
+### 1: Write the failing tests
+
+Themes.test.tsx: `names the active package` (`packageName: 'Platinum'` → text `The current Appearance Package is Platinum`). themeFile.test.tsx: `refuses a theme file for an unregistered package with a stop alert and no dispatch` (file `{ format: 'classicy-theme', version: 1, theme: { ...getTheme('default'), package: 'irix' } }` → alert text contains `“irix” Appearance Package, which is not installed`; `ClassicyDesktopImportTheme` never dispatched); `lists presets of the active package and custom themes of that package only` (store with `customThemes: [{...custom, package: 'platinum'}, {...other, package: 'test-pack'}]` → the theme pop-up has 21 + 1 options). Desktop.test.tsx: `lists registered wallpapers` (`registerClassicyWallpapers('platinum', [{ name: 'Test Paper', src: 'https://example.com/t.png' }])` before render → option `Test Paper` with value `https://example.com/t.png`). Fonts.test.tsx: `lists registered font families` (`registerClassicyFonts('platinum', [{ family: 'TestFace', src: 'data:font/woff2;base64,AA==' }])` → each of the five menus has option `TestFace`); keep `shows the primary family of each of the default theme's stacks`. Sound.test.tsx: `lists sound packs and selects the theme's pack` (`soundPacks: [{ id: 'platinum', name: 'Platinum' }, { id: 'beep', name: 'Beep' }]`, `soundPack: 'beep'` → combobox `#soundPack` has value `beep`); `changeSoundPack fires on change` (fireEvent.change → called once with the event whose target value is `platinum`). Manager-level (themeFile.test.tsx harness): `selecting a sound pack dispatches ClassicyDesktopChangeAppearanceOption sound.pack` (spy on dispatch → `{ type: 'ClassicyDesktopChangeAppearanceOption', path: 'sound.pack', value: 'beep' }`).
+
+### 2: Run them to verify they fail
+
+`pnpm exec vitest run src/SystemFolder/ControlPanels/AppearanceManager` — Expected: the new tests FAIL (missing props/labels); the Fonts/Desktop registry tests may already PASS if Part C re-pointed them — note which.
+
+### 3: Implement the four tab changes and the manager handlers; delete the ClassicySounds path
+
+Themes: `ThemesTabProps` gains `packageName: string`; the label becomes `The current Appearance Package is ${packageName}`; `themesList` in the manager is `[...(activePackage.presets ?? []), ...(appearanceState.customThemes ?? []).filter(t => t.package === activePackage.id)].map(t => ({ value: t.id, label: t.name }))`. Load: `loadThemeFile` checks `getClassicyAppearancePackage(result.theme.package)` before dispatching; when undefined sets `themeFileError = { label: `“${file.name}” could not be loaded.`, message: `It was saved for the “${result.theme.package}” Appearance Package, which is not installed.` }` and dispatches nothing. Save: unchanged call (`downloadClassicyTheme` now writes `package`). Desktop: `DesktopTabProps` gains `wallpapers: { value: string; label: string }[]`; the manager builds it from `Object.entries(useClassicyAssetTree('wallpapers'))` as `{ value: src, label: name }` (string values only); the `ClassicyWallpapers` import is removed. Fonts: `FontsTabProps` gains `fonts: { value: string; label: string }[]` built from `Object.keys(useClassicyAssetTree('fonts'))` as `{ value: family, label: family }`; the literal `ClassicyFonts` array is deleted. Sound: `SoundTabProps` gains `soundPacks: { id: string; name: string }[]`, `soundPack: string`, `changeSoundPack: (e: ChangeEvent<HTMLSelectElement>) => void`; a first row `Sound Pack` pop-up (`id="soundPack"`, options `{ value: id, label: name }`, `selected={soundPack}`) above Alert Sound; the manager's `changeSoundPack` dispatches `{ type: 'ClassicyDesktopChangeAppearanceOption', path: 'sound.pack', value }` in a `startTransition`. Afterwards `grep -n 'ClassicySounds\|loadSoundTheme\|applySoundTheme' src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.tsx` → 0 (the `ClassicySoundManagerProvider` reloads on `sound.pack` change, Part D).
+
+### 4: Run tests to verify they pass
+
+`pnpm exec vitest run src/SystemFolder/ControlPanels/AppearanceManager src/SystemFolder/ControlPanels/SoundManager` — Expected: PASS.
+
+### 5: Lint, type-check, commit
+
+`pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test` then `git add src/SystemFolder/ControlPanels/AppearanceManager && git commit -m "feat(appearance): presets from the active package; fonts, wallpapers and sound packs from the registries"` (with the `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>` trailer).
+
+## Acceptance Criteria
+
+- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.themeFile.test.tsx src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Sound.test.tsx
+- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Themes.test.tsx src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Desktop.test.tsx src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Fonts.test.tsx
+- [ ] VERIFY: grep -c 'ClassicySounds\|loadSoundTheme\|applySoundTheme' src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.tsx  # expect 0
+- [ ] [MANUAL] In the example app the Sound tab lists Platinum as the sound pack and Load Theme… with a file whose `package` is `irix` shows the stop alert without changing the theme.
+
+## Files
+
+- `src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Themes.tsx` - modify: packageName label
+- `src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Desktop.tsx` - modify: wallpapers prop from the registry
+- `src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Fonts.tsx` - modify: fonts prop from the registry; literal array deleted
+- `src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Sound.tsx` - modify: Sound Pack pop-up
+- `src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.tsx` - modify: presets list, package pre-check on load, registry props, sound.pack dispatch; ClassicySounds path removed
+- `src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Themes.test.tsx` - modify: package name test
+- `src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Desktop.test.tsx` - modify: registered wallpapers test
+- `src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Fonts.test.tsx` - modify: registered fonts test
+- `src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Sound.test.tsx` - modify: sound pack tests
+- `src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.themeFile.test.tsx` - modify: unregistered-package refusal, preset list, sound.pack dispatch
+
+## Work Log

@@ -11,7 +11,7 @@ links:
   repo:
     local: ~/classicy
   specs:
-    - ./docs/theming-audit.md
+    - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   plans:
     - ["0002-ldj", "parent"]
     - ["0000-aud", "included"]
@@ -54,7 +54,7 @@ progress:
 
 # Part 2 — Implementation
 
-**Architecture:** Implements umbrella plan 0002-ldj (Shared Contract: colors and numbers — `_color.scss` helpers, named derivations `--<family>-<measure>` in `getThemeVars`) and docs/theming-audit.md §9 Phase 6 items 1, 2 and 4 (§2.1, §2.4, §3.1, §3.2; decisions D9–D11). Part H consumes the names pinned here for the pixel-literal purge; part B later moves `appearance.scss` (including the rewritten `theme-halftone`) into the Platinum package. For agentic workers: use superpowers:subagent-driven-development or superpowers:executing-plans task-by-task; steps use checkbox syntax.
+**Architecture:** Implements umbrella plan 0002-ldj (Shared Contract: colors and numbers — `_color.scss` helpers, named derivations `--<family>-<measure>` in `getThemeVars`) and docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md §9 Phase 6 items 1, 2 and 4 (§2.1, §2.4, §3.1, §3.2; decisions D9–D11). Part H consumes the names pinned here for the pixel-literal purge; part B later moves `appearance.scss` (including the rewritten `theme-halftone`) into the Platinum package. For agentic workers: use superpowers:subagent-driven-development or superpowers:executing-plans task-by-task; steps use checkbox syntax.
 
 **Tech Stack:** TypeScript 5, SCSS (sass 1.101; `color-mix()` emitted verbatim — baseline since 2023, Chromium 111+/Firefox 113+/Safari 16.2+), `getThemeVars` in `ClassicyAppearance.ts`, vitest 5 + jsdom (compiled-CSS tests via `sass.compile`, the ClassicyWindow.resizer.test.ts idiom), Biome, Storybook + Playwright + ImageMagick `compare`.
 
@@ -345,7 +345,7 @@ it("iconGridLattice with an override ignores the CSS cell", () => expect(iconGri
 - [ ] `for f in .playwright-mcp/parity/part-G/before/*.png; do n=$(compare -metric AE "$f" ".playwright-mcp/parity/part-G/after/$(basename "$f")" ".playwright-mcp/parity/part-G/diff/$(basename "$f")" 2>&1); echo "$n $(basename "$f")"; done | sort -n | tail -20` → every line is `0` except the error-styled alert stories named in 1.2 Step 7; for those, open `diff/<id>.png` and confirm the changed pixels lie inside the title bar only. List the non-zero ids and counts in the PR description under 'Named visual change'.
 - [ ] docs/AGENT-REFERENCE.md §8 'CSS custom properties': add a 'Color helpers' table (`classicy-tint/shade/alpha` → expansion → example), extend the 'Derived metrics' table (~line 1144-1162) with the 35 entries from `CLASSICY_THEME_DERIVATIONS` (name · formula · Platinum value · readers), and add 'Multipliers still in SCSS (part H inventory)' listing every remaining `calc(var(--x) * N)` site from 2.2 Step 4 with file:line.
 - [ ] CLAUDE.md Theming section: 'Colors: never a literal — use a `--color-*` token or `classicy-tint/shade/alpha("--color-x", pct)` from `src/Appearance/vocabulary/_color.scss`. Proportions: `getThemeVars` emits named derivations (`CLASSICY_THEME_DERIVATIONS`, `ClassicyThemeDerivations.ts`) such as `--window-collapsed-height`, `--menu-bar-height`, `--popup-height`, `--ui-font-size-small`; JS reads them with `readClassicyThemeVar` (`ClassicyThemeMetricReader.ts`), never a hard-coded number.'
-- [ ] docs/theming-audit.md §2.1: add 'Done (part G)'; §3.1 rows for :57/:120/:160/:1316, :958-959/:1098-1099, :1316-1317, :1492-1499: 'read from CSS (part G)'; §3.2 iconSize row likewise.
+- [ ] docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md §2.1: add 'Done (part G)'; §3.1 rows for :57/:120/:160/:1316, :958-959/:1098-1099, :1316-1317, :1492-1499: 'read from CSS (part G)'; §3.2 iconSize row likewise.
 - [ ] `pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test && pnpm build:source` → PASS; `grep -c 'color-mix' dist/classicy.css` ≥ 14; `grep -c '!important' …` is not this part's gate.
 - [ ] `verify` skill: run the example app; `getComputedStyle(document.querySelector('.classicyDesktop')).getPropertyValue('--menu-bar-height')` → `30px`; zoom a window (position lands at [8, 38]); collapse a window; open the Apple menu (min-width 180 px); no console errors.
 - [ ] Commit docs: `docs(theme): color helpers, named derivations and the metric reader` (with the trailer). Stop background dev servers.

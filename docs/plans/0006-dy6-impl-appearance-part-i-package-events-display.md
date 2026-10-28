@@ -11,7 +11,7 @@ links:
   repo:
     local: ~/classicy
   specs:
-    - ./docs/theming-audit.md
+    - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   plans:
     - ["0002-ldj", "parent"]
     - ["0005-1b3", "depends"]

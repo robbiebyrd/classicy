@@ -11,7 +11,7 @@ links:
   repo:
     local: ~/classicy
   specs:
-    - ./docs/theming-audit.md
+    - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   plans:
     - ["0002-ldj", "parent"]
     - ["0005-1b3", "depends"]
@@ -295,13 +295,13 @@ it('shows the fork notice for a built-in and the editing notice for Custom', …
 - Create: `src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.stories.tsx`
 - Modify: `docs/AGENT-REFERENCE.md`
 - Modify: `CLAUDE.md`
-- Modify: `docs/theming-audit.md`
+- Modify: `docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md` (plan 0000-aud)
 
 **Depends on:** 4.1, 5.1
 
 **Interfaces:**
 - Consumes: Storybook decorator `withClassicy` (`storybook/.storybook/ClassicyDecorators.tsx:52-75`): `parameters.classicy.desktop: true` mounts a `ClassicyDesktop` frame; existing `System/*` titles (`ClassicyStartupScreen`, `ClassicyCrashScreen`, `useClassicyCursor`, `ClassicyPixelArt`).
-- Produces: `ClassicyAppearanceManager.stories.tsx`: `title: 'System/AppearanceManager'`, `parameters: { classicy: { desktop: true } }`; story `Panel` renders `<ClassicyAppearanceManager />` (the app registers its window on mount); one story per tab — `Themes`, `Packages`, `Options`, `Desktop`, `Colors`, `Fonts`, `Metrics`, `Sound` — each a component that calls the matching `use<Name>Tab` with store-backed props (reading `useAppManager` and dispatching for real) and renders `<ClassicyWindow id="story_<tab>" appId="AppearanceManager.app" title="Appearance: <Tab>" initialSize={[480, 0]}>{tab.children}</ClassicyWindow>` inside `<ClassicyApp id="AppearanceManager.app" …>`; `Packages` registers a second package (`test-pack`, as in 3.1) at module scope so the list shows two rows. Docs: AGENT-REFERENCE gains `ClassicyDesktopChangeAppearanceOption { path, value }` (path rules), the `ClassicyDesktopChangeMetric` family form, a `ClassicySchemaForm` entry, and an 'Appearance Manager tabs' list; CLAUDE.md Balloon-Help-style paragraph: 'Schema-driven forms: `ClassicySchemaForm` (`SystemResources/SchemaForm/`) renders a nested zod object; the Screen Saver options and the Appearance Manager's Options tab both use it. The Appearance Manager has eight tabs (Themes, Packages, Options, Desktop, Colors, Fonts, Metrics, Sound); measurements write through `ClassicyDesktopChangeMetric` (`metricKey` or `{ family, key }`), everything else through `ClassicyDesktopChangeAppearanceOption { path, value }`.'; theming-audit §9 Phase 8 gets a 'Done <date>' line.
+- Produces: `ClassicyAppearanceManager.stories.tsx`: `title: 'System/AppearanceManager'`, `parameters: { classicy: { desktop: true } }`; story `Panel` renders `<ClassicyAppearanceManager />` (the app registers its window on mount); one story per tab — `Themes`, `Packages`, `Options`, `Desktop`, `Colors`, `Fonts`, `Metrics`, `Sound` — each a component that calls the matching `use<Name>Tab` with store-backed props (reading `useAppManager` and dispatching for real) and renders `<ClassicyWindow id="story_<tab>" appId="AppearanceManager.app" title="Appearance: <Tab>" initialSize={[480, 0]}>{tab.children}</ClassicyWindow>` inside `<ClassicyApp id="AppearanceManager.app" …>`; `Packages` registers a second package (`test-pack`, as in 3.1) at module scope so the list shows two rows. Docs: AGENT-REFERENCE gains `ClassicyDesktopChangeAppearanceOption { path, value }` (path rules), the `ClassicyDesktopChangeMetric` family form, a `ClassicySchemaForm` entry, and an 'Appearance Manager tabs' list; CLAUDE.md Balloon-Help-style paragraph: 'Schema-driven forms: `ClassicySchemaForm` (`SystemResources/SchemaForm/`) renders a nested zod object; the Screen Saver options and the Appearance Manager's Options tab both use it. The Appearance Manager has eight tabs (Themes, Packages, Options, Desktop, Colors, Fonts, Metrics, Sound); measurements write through `ClassicyDesktopChangeMetric` (`metricKey` or `{ family, key }`), everything else through `ClassicyDesktopChangeAppearanceOption { path, value }`.'; plan 0000-aud (the audit) §9 Phase 8 gets a 'Done <date>' line.
 
 - [ ] **Step 1: Write the stories** — Per the Interfaces block. `pnpm storybook` → every `system-appearancemanager--*` story renders without console errors (check the browser console via Playwright `page.on('console')`).
 - [ ] **Step 2: Shoot the new stories for the record** — `.playwright-mcp/parity/part-J/after/system-appearancemanager--<tab>.png` for each; no comparison (new surfaces).

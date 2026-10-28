@@ -52,7 +52,7 @@ progress:
 
 # Theme Metrics: fold --hig-* into theme measurements
 
-> **Status: complete (merged to `main` 2026-10-28, merge commit `4515f5096`).** This plan was amended during execution by the owner's decisions D12/D16 (`docs/theming-audit.md` §7): **no deprecated `--hig-*` aliases are emitted**. Lines below that mention aliases record the original plan; the *Outcome* section at the end records what shipped.
+> **Status: complete (merged to `main` 2026-10-28, merge commit `4515f5096`).** This plan was amended during execution by the owner's decisions D12/D16 (`docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md` (plan 0000-aud) §7): **no deprecated `--hig-*` aliases are emitted**. Lines below that mention aliases record the original plan; the *Outcome* section at the end records what shipped.
 
 ## Summary
 
@@ -146,7 +146,7 @@ progress:
 
 ### 7.1: Docs
 
-- [x] AGENT-REFERENCE §8: metric-input table (JSON path → variable → Platinum), derived-metrics table with formulas, `ClassicyDesktopChangeMetric` with its 20 keys; CLAUDE.md theming paragraph; hig-audit historical names. `docs/theming-audit.md` left to the owner (its §9 Phase 0 tracks this slice). Commit `195fca364`.
+- [x] AGENT-REFERENCE §8: metric-input table (JSON path → variable → Platinum), derived-metrics table with formulas, `ClassicyDesktopChangeMetric` with its 20 keys; CLAUDE.md theming paragraph; hig-audit historical names. `docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md` (plan 0000-aud) left to the owner (its §9 Phase 0 tracks this slice). Commit `195fca364`.
 
 ## Phase 8: Final verification
 
@@ -168,4 +168,4 @@ progress:
 
 - **Commits (merged into `main` via `4515f5096`):** `10db8fdd4` defaults/normalizer/schema · `a99f35aa4` emission · `251fc60d2` migration · `b5492d211` targets + action · `3a3b1dafb` SCSS rename + title bar · `48e759f1c` no aliases (D12) · `195fca364` docs · `74c142204` review fix (`ClassicyDesktopLoadThemes` completes metrics, copy-on-write via `withDefaultThemeMetricsList`). Follow-up on main: `9601617ee` lint cleanup of dead symbols left by an unrelated earlier commit.
 - **Fresh review:** 0 Critical, 1 Important (fixed, above), 5 Minor deferred: `isValidThemeMetric` accepts non-integers while docs say whole pixels; `migrateThemeMetrics` may add explicit `undefined` list keys when only `activeTheme` needed healing; the "every built-in theme is complete" test is tautological (assert against raw `themes.json`); `windowBorderSize` `min` is 0; AGENT-REFERENCE's quick-reference action table lacks a `ChangeMetric` row.
-- **Spec follow-ons (not this slice):** a Metrics tab in the Appearance control panel; reloading persisted built-in themes from the build on hydrate; the remaining ~100 `calc(var(--token) * N)` multipliers (seam S1 continues in `docs/theming-audit.md` §9 Phase 1+).
+- **Spec follow-ons (not this slice):** a Metrics tab in the Appearance control panel; reloading persisted built-in themes from the build on hydrate; the remaining ~100 `calc(var(--token) * N)` multipliers (seam S1 continues in `docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md` (plan 0000-aud) §9 Phase 1+).

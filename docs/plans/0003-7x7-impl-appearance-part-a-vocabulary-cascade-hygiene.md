@@ -11,7 +11,7 @@ links:
   repo:
     local: ~/classicy
   specs:
-    - ./docs/theming-audit.md
+    - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   plans:
     - ["0002-ldj", "parent"]
     - ["0000-aud", "included"]
@@ -60,7 +60,7 @@ progress:
 
 # Part 2 — Implementation
 
-**Architecture:** Implements umbrella plan 0002-ldj (Shared Contract: directories and exports; vocabulary names) and docs/theming-audit.md §9 Phase 1 (items 1–6), against §2.6, §2.8, §2.9, §5 and §8.6. Nothing here introduces package machinery (part B) or touches colors/numbers (part G); file sets are disjoint from C, D and G except `bin/classicyStyleInjector.ts` and `vite.config.ts`, which only A edits. For agentic workers: use superpowers:subagent-driven-development or superpowers:executing-plans task-by-task; steps use checkbox syntax.
+**Architecture:** Implements umbrella plan 0002-ldj (Shared Contract: directories and exports; vocabulary names) and docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md §9 Phase 1 (items 1–6), against §2.6, §2.8, §2.9, §5 and §8.6. Nothing here introduces package machinery (part B) or touches colors/numbers (part G); file sets are disjoint from C, D and G except `bin/classicyStyleInjector.ts` and `vite.config.ts`, which only A edits. For agentic workers: use superpowers:subagent-driven-development or superpowers:executing-plans task-by-task; steps use checkbox syntax.
 
 **Tech Stack:** TypeScript 5 (Node 24 native type stripping for bin scripts: erasable syntax only, `import type`), React 19, classnames, SCSS (sass 1.101, `@use`), Vite 7 plugin API (`transform` on compiled .scss ids), vitest 5 + jsdom + @testing-library, Biome, Storybook 9 (react-vite) + Playwright + ImageMagick `compare`.
 
@@ -418,7 +418,7 @@ Update the existing injector test `inserts the stylesheet once` expectation to t
 
 - [ ] Re-shoot every id in `.playwright-mcp/parity/part-A/stories.txt` into `.playwright-mcp/parity/part-A/after/` (same procedure as Phase 0; Storybook restarted after 5.1 so the layer plugin is active).
 - [ ] `for f in .playwright-mcp/parity/part-A/before/*.png; do n=$(compare -metric AE "$f" ".playwright-mcp/parity/part-A/after/$(basename "$f")" null: 2>&1); echo "$n $(basename "$f")"; done | sort -n | tail` → every line starts with `0`. Any non-zero: open both images, find the rule whose cascade changed (4.1/4.2 removed `!important`; 5.1 layered it under a host rule), fix the SCSS — never the screenshot — and re-run.
-- [ ] docs/AGENT-REFERENCE.md: new subsection under §4 'Vocabulary' (after 4.0): the 15 state classes with the `.classicyButton.pressed` idiom, `CLASSICY_STATE`/`classicyStateClasses`, `classicy-state()`, the three part attributes with their values, the `className`/`style` rule, and the `@layer` order (host CSS wins unlayered; a package targets `classicy.package`). Replace any `data-state` mention (`grep -n data-state docs/AGENT-REFERENCE.md`). Correct §9 item 6 of docs/theming-audit.md: `classicyWindowInvisible` is live (closed-but-mounted windows), only `classicyWindowZoomed` and `block` were dead.
+- [ ] docs/AGENT-REFERENCE.md: new subsection under §4 'Vocabulary' (after 4.0): the 15 state classes with the `.classicyButton.pressed` idiom, `CLASSICY_STATE`/`classicyStateClasses`, `classicy-state()`, the three part attributes with their values, the `className`/`style` rule, and the `@layer` order (host CSS wins unlayered; a package targets `classicy.package`). Replace any `data-state` mention (`grep -n data-state docs/AGENT-REFERENCE.md`). Correct §9 item 6 of docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md: `classicyWindowInvisible` is live (closed-but-mounted windows), only `classicyWindowZoomed` and `block` were dead.
 - [ ] CLAUDE.md after the Theming section: 'Vocabulary: shared state classes are bare and beside the root (`.classicyButton.pressed`), generated from `src/Appearance/vocabulary/ClassicyVocabulary.json` by `node bin/generate-vocabulary.ts` (run by `generate-barrels`; CI checks freshness). Part attributes `data-classicy-control|role|part`. Component CSS compiles into `@layer classicy.base`; no `!important` in src SCSS (test-enforced).'
 - [ ] `pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test && pnpm build:source` → all PASS; `grep -rn '!important' src --include=*.scss | wc -l` → 0; `node bin/generate-vocabulary.ts --check` → exit 0.
 - [ ] `verify` skill: run the example app; open a window, collapse it, open an error alert, open the Apple menu; no console errors; `document.querySelector('.classicyWindow.active')` exists; `document.querySelector('[data-classicy-control="close"]')` exists.
