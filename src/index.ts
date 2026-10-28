@@ -2,6 +2,7 @@ export * from "./Appearance/ClassicyAssetRegistry";
 export * from "./Appearance/ClassicyAssetSource";
 export * from "./Appearance/Platinum/assets/platinumAssets";
 export * from "./Appearance/Platinum/assets/sounds/platinum";
+export * from "./Appearance/vocabulary/ClassicyVocabulary";
 export * from "./SystemFolder/ControlPanels/ClassicyControlPanels";
 export * from "./SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
 export * from "./SystemFolder/ControlPanels/AppManager/ClassicyActionTrust";

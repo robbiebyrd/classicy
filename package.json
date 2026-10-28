@@ -23,7 +23,7 @@
 	"author": "Robbie Byrd <me@robbiebyrd.com>",
 	"license": "Unlicense",
 	"scripts": {
-		"generate-barrels": "barrelsby -c .ts-barrel.json",
+		"generate-barrels": "node bin/generate-vocabulary.ts && barrelsby -c .ts-barrel.json",
 		"dev": "pnpm build:source",
 		"build": "pnpm build:audio && pnpm build:source",
 		"build:source": "pnpm generate-barrels && tsc -b && vite build && pnpm verify:dist",
@@ -49,6 +49,7 @@
 		"dist",
 		"docs/AGENT-REFERENCE.md",
 		"docs/BUILDING-APPS.md",
+		"src/Appearance/vocabulary",
 		"src/SystemFolder/ControlPanels/AppearanceManager/styles"
 	],
 	"sideEffects": [
@@ -77,7 +78,8 @@
 			"default": "./dist/fonts.js"
 		},
 		"./dist/*": "./dist/*",
-		"./scss/*": "./src/SystemFolder/ControlPanels/AppearanceManager/styles/*"
+		"./scss/*": "./src/Appearance/vocabulary/*",
+		"./scss-platinum/*": "./src/SystemFolder/ControlPanels/AppearanceManager/styles/*"
 	},
 	"dependencies": {
 		"@analytics/google-tag-manager": "^0.6.0",

@@ -50,6 +50,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Check generated vocabulary is fresh
+        run: node bin/generate-vocabulary.ts --check
+
       - name: Lint (Biome)
         run: pnpm lint
 
