@@ -7,6 +7,7 @@ import type {
 } from "pdfjs-dist";
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	type MouseEvent,
 	type PointerEvent,
@@ -255,7 +256,14 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 	};
 
 	return (
-		<div className="pdfViewerDocument">
+		<div
+			className="pdfViewerDocument"
+			style={
+				{
+					"--classicy-pdf-zoom-cursor": `url("${zoomToolIcon}")`,
+				} as CSSProperties
+			}
+		>
 			<div className="pdfViewerDocumentToolbar">
 				<ClassicyButton
 					buttonSize="small"

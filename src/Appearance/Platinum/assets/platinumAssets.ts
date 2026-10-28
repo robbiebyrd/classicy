@@ -1,4 +1,7 @@
-import { registerClassicySystemArt } from "@/Appearance/ClassicyAssetRegistry";
+import {
+	registerClassicyCursors,
+	registerClassicySystemArt,
+} from "@/Appearance/ClassicyAssetRegistry";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 
 const PLATINUM = "platinum";
@@ -45,4 +48,21 @@ registerClassicySystemArt(PLATINUM, {
 	sliderThumb: art("slider-thumb.svg"),
 	sliderStrikes: art("slider-strikes.svg"),
 	tabOutline: art("tab-outline.svg"),
+});
+
+/**
+ * Platinum's cursors by role. `ibeam`, `crosshair`, `resizeNwse` and
+ * `resizeNesw` have no Platinum file and stay unregistered, so `setCursor`
+ * leaves the browser's own cursor for them.
+ */
+registerClassicyCursors(PLATINUM, {
+	arrow: art("cursor-arrow.svg"),
+	watch: ClassicyIcons.ui.cursors.watch,
+	hand: ClassicyIcons.ui.cursors.hand,
+	resizeLr: ClassicyIcons.ui.cursors.resizeLr,
+	resizeUd: ClassicyIcons.ui.cursors.resizeUd,
+	resizeU: ClassicyIcons.ui.cursors.resizeU,
+	resizeD: ClassicyIcons.ui.cursors.resizeD,
+	resizeL: ClassicyIcons.ui.cursors.resizeL,
+	resizeR: ClassicyIcons.ui.cursors.resizeR,
 });

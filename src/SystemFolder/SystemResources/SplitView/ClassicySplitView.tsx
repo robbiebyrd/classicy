@@ -9,6 +9,7 @@ import type {
 	ReactNode,
 } from "react";
 import { Children, Fragment, useRef, useState } from "react";
+import type { ClassicyCursorRole } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyCursor } from "@/SystemFolder/SystemResources/Cursor/useClassicyCursor";
 
 /**
@@ -30,12 +31,15 @@ const KEYBOARD_STEP_PCT = 1;
 // directional resize cursor (bar-and-arrow, e.g. cursor-resize-u.png).
 type ClassicySplitViewDragDirection = "u" | "d" | "l" | "r";
 
-const dragCursorName = {
+const dragCursorName: Record<
+	ClassicySplitViewDragDirection,
+	ClassicyCursorRole
+> = {
 	u: "resizeU",
 	d: "resizeD",
 	l: "resizeL",
 	r: "resizeR",
-} as const;
+};
 
 /**
  * Redistribute pane sizes (percentages) after a divider drag. Only the two

@@ -1,6 +1,7 @@
 import { fireEvent } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { render } from "@/__tests__/test-utils";
+import "@/Appearance/Platinum/assets/platinumAssets";
 import {
 	ClassicySplitView,
 	computeSplitViewSizes,
