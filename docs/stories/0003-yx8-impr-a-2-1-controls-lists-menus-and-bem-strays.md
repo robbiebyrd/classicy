@@ -3,11 +3,12 @@ id: 0003-yx8
 title: 'A 2.1: Controls, lists, menus and BEM strays'
 purpose: Replace component-specific state classes on controls, lists and menus with the bare shared state classes, and rename the BEM strays.
 type: impr
-status: pending
+status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T19:48:00.334Z"
-updated: "2026-10-28T19:48:00.334Z"
+updated: "2026-10-28T23:40:46.247Z"
+started: "2026-10-28T23:32:52.175Z"
 links:
   repo:
     local: ~/classicy
@@ -118,9 +119,9 @@ For each DELETE class, replace the selector with `.<root>.<state>` at the same n
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm exec vitest run src/Appearance/vocabulary/ClassicyStateClasses.controls.test.tsx
-- [ ] VERIFY: grep -rnE 'classicy(ButtonDefault|ButtonDepressed|CheckboxDefault|CheckboxMixed|RadioInputWrapperChecked|RadioInputWrapperDisabled|RadioInputLabelDisabled|RadioInputDefault|RadioInputMixed|MenuItemDisabled|MenuItemOpen|PopUpMenuOpen|PopUpMenuButtonDisabled|ListBoxDisabled|ListBoxOptionSelected|ListBoxOptionDisabled|TabButtonActive|TreeNodeSelected|TreeNodeDisabled|TableRowSelected|TableColumnHeaderSelected|FileBrowserViewTableRowSelected|LinkDisabled|OutputDisabled|ControlLabelDisabled|ComboBoxDisabled|PopUpSliderDisabled|SliderDisabled|SliderTicksDisabled|ColorPickerSwatchDisabled|ColorPickerCrayonSelected|ColorPickerModeListItemSelected|FileInputError|DisclosureInnerOpen)\b|select--disabled|Slider--(red|green|blue)|driveSetupList__' src example storybook/.storybook | wc -l   # 0
-- [ ] Every DELETE class in the mapping table is gone from TSX, SCSS and tests; every KEEP class (`classicyButtonKeyActive`, `classicySliderHighlighted`, `classicySliderGhostHidden`) still renders.
+- [x] VERIFY: pnpm exec vitest run src/Appearance/vocabulary/ClassicyStateClasses.controls.test.tsx
+- [x] VERIFY: grep -rnE 'classicy(ButtonDefault|ButtonDepressed|CheckboxDefault|CheckboxMixed|RadioInputWrapperChecked|RadioInputWrapperDisabled|RadioInputLabelDisabled|RadioInputDefault|RadioInputMixed|MenuItemDisabled|MenuItemOpen|PopUpMenuOpen|PopUpMenuButtonDisabled|ListBoxDisabled|ListBoxOptionSelected|ListBoxOptionDisabled|TabButtonActive|TreeNodeSelected|TreeNodeDisabled|TableRowSelected|TableColumnHeaderSelected|FileBrowserViewTableRowSelected|LinkDisabled|OutputDisabled|ControlLabelDisabled|ComboBoxDisabled|PopUpSliderDisabled|SliderDisabled|SliderTicksDisabled|ColorPickerSwatchDisabled|ColorPickerCrayonSelected|ColorPickerModeListItemSelected|FileInputError|DisclosureInnerOpen)\b|select--disabled|Slider--(red|green|blue)|driveSetupList__' src example storybook/.storybook | wc -l   # 0
+- [x] Every DELETE class in the mapping table is gone from TSX, SCSS and tests; every KEEP class (`classicyButtonKeyActive`, `classicySliderHighlighted`, `classicySliderGhostHidden`) still renders.
 - [ ] Each replaced SCSS selector has the same specificity and position as the one it replaced, so computed styles are unchanged (parity is checked in A 6).
 
 ## Files
@@ -168,3 +169,7 @@ For each DELETE class, replace the selector with `.<root>.<state>` at the same n
 - `src/Appearance/vocabulary/ClassicyStateClasses.controls.test.tsx` - create: DOM + compiled-CSS tests
 
 ## Work Log
+
+### 2026-10-28T23:35:30.251Z - Implemented in commits 4d7029c..e1133eb, task review clean. Criterion 4 left open: specificity is preserved by construction (single-class legacy rules became :where(.root).state) but the Tabs :has() selector rises to (0,3,0) and the DriveSetup row .selected rule to (0,2,0) (brief-mandated), and the computed-style parity check belongs to A 6, which has not run yet. Close once A 6 parity is AE 0.
+
+### 2026-10-28T23:40:46.246Z - Awaiting A Phase 6 parity re-shoot; reviewer found Tabs :has() (0,3,0) and DriveSetup row (0,2,0) specificity rises with no rendering change today

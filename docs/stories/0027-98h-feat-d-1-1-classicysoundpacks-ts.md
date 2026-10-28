@@ -3,11 +3,13 @@ id: 0027-98h
 title: 'D 1.1: ClassicySoundPacks.ts'
 purpose: Create the live sound-pack registry and pin the 41 sprite ids every pack must satisfy.
 type: feat
-status: pending
+status: complete
 priority: "2"
 effort: M
 created: "2026-10-28T20:05:25.358Z"
-updated: "2026-10-28T20:05:25.358Z"
+updated: "2026-10-28T23:47:35.774Z"
+started: "2026-10-28T23:34:32.128Z"
+completed: "2026-10-28T23:36:19.518Z"
 links:
   repo:
     local: ~/classicy
@@ -23,15 +25,15 @@ links:
     - ["0008-j5l", "included", ["1.1"]]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
   "5":
-    status: pending
+    status: complete
 ---
 
 # D 1.1: ClassicySoundPacks.ts
@@ -80,10 +82,10 @@ it("classicySoundPackMissingSprites lists contract ids a pack lacks") // pack() 
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks.test.ts
-- [ ] `CLASSICY_SOUND_SPRITE_IDS` has 41 entries equal to the Platinum sprite JSON key set, the labels JSON ids, the alert sounds and every `sound: "…"` literal in `src`.
-- [ ] `registerClassicySoundPack` validates with `ClassicySoundPackSchema`, logs a `classicyLog` warn and skips an invalid pack, replaces on re-register, and notifies `useClassicySoundPacks` subscribers.
-- [ ] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
+- [x] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks.test.ts
+- [x] `CLASSICY_SOUND_SPRITE_IDS` has 41 entries equal to the Platinum sprite JSON key set, the labels JSON ids, the alert sounds and every `sound: "…"` literal in `src`.
+- [x] `registerClassicySoundPack` validates with `ClassicySoundPackSchema`, logs a `classicyLog` warn and skips an invalid pack, replaces on re-register, and notifies `useClassicySoundPacks` subscribers.
+- [x] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
 
 ## Files
 
@@ -92,3 +94,9 @@ it("classicySoundPackMissingSprites lists contract ids a pack lacks") // pack() 
 - `src/index.ts` - barrel regenerated
 
 ## Work Log
+
+### 2026-10-28T23:35:50.980Z - pnpm lint blocked by pre-existing drift in untouched ClassicyScreenSaverWarp.tsx; fixed at part close-out (criterion 4 set not_applicable; tsc and pnpm test passed)
+
+### 2026-10-28T23:35:51.072Z - Completed: commits e9625ee..ebb87ac, task review clean
+
+### 2026-10-28T23:47:35.774Z - pnpm lint passes repo-wide after 88ff181e6 (criterion 4 changed from not_applicable to done; controller verified lint 0, tsc 0, 3357/3357 tests; merged a1a600a76)

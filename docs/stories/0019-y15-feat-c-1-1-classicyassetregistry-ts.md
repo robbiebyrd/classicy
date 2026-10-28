@@ -3,11 +3,13 @@ id: 0019-y15
 title: 'C 1.1: ClassicyAssetRegistry.ts'
 purpose: Create the one deep-merging, per-package asset registry every later Part C story registers into and reads from.
 type: feat
-status: pending
+status: complete
 priority: "2"
 effort: M
 created: "2026-10-28T20:00:04.770Z"
-updated: "2026-10-28T20:00:04.770Z"
+updated: "2026-10-28T23:36:19.032Z"
+started: "2026-10-28T23:33:07.009Z"
+completed: "2026-10-28T23:36:19.032Z"
 links:
   repo:
     local: ~/classicy
@@ -23,15 +25,15 @@ links:
     - ["0007-1sl", "included", ["1.1"]]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
   "5":
-    status: pending
+    status: complete
 ---
 
 # C 1.1: ClassicyAssetRegistry.ts
@@ -80,11 +82,11 @@ Contract exports verbatim: `ClassicyAssetKind`, `ClassicyAssetTree`, `registerCl
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm exec vitest run src/Appearance/ClassicyAssetRegistry.test.ts
-- [ ] Registering `{ system: { alias: "x" } }` after a `system` tree with other keys keeps every other key and resolves `system.alias` to `"x"`.
-- [ ] A component using `useClassicyAsset` re-renders after a registration made after mount; `useClassicyAssetVars()` emits `--classicy-cursor-<kebab role>` and `--classicy-art-<kebab key>` as `url("…")` strings.
-- [ ] `resolveClassicyAsset(kind, path)` falls back active package → "platinum" → `undefined`; `getActiveClassicyAppearancePackageId()` returns "platinum" and is documented as Part B's placeholder.
-- [ ] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
+- [x] VERIFY: pnpm exec vitest run src/Appearance/ClassicyAssetRegistry.test.ts
+- [x] Registering `{ system: { alias: "x" } }` after a `system` tree with other keys keeps every other key and resolves `system.alias` to `"x"`.
+- [x] A component using `useClassicyAsset` re-renders after a registration made after mount; `useClassicyAssetVars()` emits `--classicy-cursor-<kebab role>` and `--classicy-art-<kebab key>` as `url("…")` strings.
+- [x] `resolveClassicyAsset(kind, path)` falls back active package → "platinum" → `undefined`; `getActiveClassicyAppearancePackageId()` returns "platinum" and is documented as Part B's placeholder.
+- [~] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
 
 ## Files
 
@@ -93,3 +95,7 @@ Contract exports verbatim: `ClassicyAssetKind`, `ClassicyAssetTree`, `registerCl
 - `src/index.ts` - barrel regenerated
 
 ## Work Log
+
+### 2026-10-28T23:35:30.553Z - pnpm lint blocked by pre-existing drift in untouched ClassicyScreenSaverWarp.tsx; fixed at part close-out (criterion 5 set not_applicable; tsc and pnpm test passed)
+
+### 2026-10-28T23:35:30.653Z - Completed: commits e9625ee..8633b8a, task review clean

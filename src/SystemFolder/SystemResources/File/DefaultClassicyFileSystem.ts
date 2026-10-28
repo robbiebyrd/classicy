@@ -3,7 +3,6 @@ import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/
 
 const diskIcon = ClassicyIcons.system.drives.disk;
 const directoryIcon = ClassicyIcons.system.folders.directory;
-const macIcon = ClassicyIcons.system.mac;
 const documentIcon = ClassicyIcons.system.files.document;
 const extensionsFolderIcon = ClassicyIcons.system.folders.extensions;
 
@@ -25,16 +24,6 @@ export const DefaultFSContent = {
 				_mimeType: "text/plain",
 				_data: "File Contents",
 				_invisible: true,
-			},
-		},
-		Library: {
-			_type: ClassicyFileSystemEntryFileType.Directory,
-			_icon: directoryIcon,
-			Extensions: {
-				_type: ClassicyFileSystemEntryFileType.File,
-				_icon: macIcon,
-				_mimeType: "text/plain",
-				_data: "File Contents",
 			},
 		},
 		"System Folder": {

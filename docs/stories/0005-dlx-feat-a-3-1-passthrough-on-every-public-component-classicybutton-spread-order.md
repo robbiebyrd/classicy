@@ -3,11 +3,12 @@ id: 0005-dlx
 title: 'A 3.1: Passthrough on every public component; ClassicyButton spread order'
 purpose: Give every exported component `className` and `style` passthrough that merges onto the root, and fix ClassicyButton dropping a consumer className.
 type: feat
-status: pending
+status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T19:49:52.097Z"
-updated: "2026-10-28T19:49:52.097Z"
+updated: "2026-10-28T23:40:51.485Z"
+started: "2026-10-28T23:40:51.348Z"
 links:
   repo:
     local: ~/classicy
@@ -152,3 +153,5 @@ Mechanical: add `className?: string; style?: CSSProperties;` to each props type,
 - `src/SystemFolder/SystemResources/Button/ClassicyButton.test.tsx` - add one spread-order case
 
 ## Work Log
+
+### 2026-10-28T23:40:51.485Z - Implementation dispatched

@@ -3,11 +3,12 @@ id: 0004-l1f
 title: 'A 2.2: data-state users, windows, icons, Control Strip, menu-bar typo'
 purpose: Move BevelButton, Placard and ImageWell off `data-state`, and windows, icons, the Control Strip and the menu bar onto the bare shared state classes, fixing the doubled AppleMenu class and the dead window selectors.
 type: impr
-status: pending
+status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T19:49:01.956Z"
-updated: "2026-10-28T19:49:01.956Z"
+updated: "2026-10-28T23:40:48.958Z"
+started: "2026-10-28T23:32:52.303Z"
 links:
   repo:
     local: ~/classicy
@@ -46,19 +47,19 @@ links:
     - ["0003-7x7", "included", ["2.2"]]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
   "5":
-    status: pending
+    status: complete
   "6":
-    status: pending
+    status: complete
   "7":
-    status: pending
+    status: complete
 ---
 
 # A 2.2: data-state users, windows, icons, Control Strip, menu-bar typo
@@ -103,10 +104,10 @@ Window.tsx:1632-1643: Active→active, Inactive→inactive, Collapsed→collapse
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm exec vitest run src/Appearance/vocabulary/ClassicyStateClasses.surfaces.test.tsx src/SystemFolder/SystemResources/BevelButton src/SystemFolder/SystemResources/Window
-- [ ] VERIFY: grep -rn 'data-state' src | wc -l   # 0
-- [ ] BevelButton/Placard/ImageWell emit `checked`/`pressed`/`disabled`/`mixed`/`open`/`selected` combinations and no `data-state`; ControlStrip.scss has no `[aria-expanded]` selector; `aria-expanded` is still emitted.
-- [ ] `.classicyWindowZoomed`, the `block` class and `.hidden` are gone; `classicyWindowInvisible` still hides closed-but-mounted windows; MenuBar.scss has one `.classicyDesktopMenuApple` block.
+- [x] VERIFY: pnpm exec vitest run src/Appearance/vocabulary/ClassicyStateClasses.surfaces.test.tsx src/SystemFolder/SystemResources/BevelButton src/SystemFolder/SystemResources/Window
+- [~] VERIFY: grep -rn 'data-state' src | wc -l   # 0
+- [x] BevelButton/Placard/ImageWell emit `checked`/`pressed`/`disabled`/`mixed`/`open`/`selected` combinations and no `data-state`; ControlStrip.scss has no `[aria-expanded]` selector; `aria-expanded` is still emitted.
+- [x] `.classicyWindowZoomed`, the `block` class and `.hidden` are gone; `classicyWindowInvisible` still hides closed-but-mounted windows; MenuBar.scss has one `.classicyDesktopMenuApple` block.
 - [ ] Each replaced selector keeps its specificity and position (the `.selected.open` block follows `.selected` and `.open`), so computed styles are unchanged.
 
 ## Files
@@ -139,3 +140,11 @@ Window.tsx:1632-1643: Active→active, Inactive→inactive, Collapsed→collapse
 - `src/SystemFolder/SystemResources/ControlStrip/ClassicyControlStrip.test.tsx` - keeps passing (aria-expanded)
 
 ## Work Log
+
+### 2026-10-28T23:35:30.374Z - Implementation committed; task review in progress
+
+### 2026-10-28T23:40:46.946Z - Completed: commits e1133eb..a54ad22, task review clean (GREEN 200 tests, tsc and pnpm test passed; pnpm lint blocked by pre-existing drift in untouched ClassicyScreenSaverWarp.tsx)
+
+### 2026-10-28T23:40:47.085Z - Literal grep over-broad (15 hits, all negative data-state assertions and test names in *.test.ts(x)); narrowed grep excluding *.test.ts(x) = 0; intent met (controller ruling, applied by analogy)
+
+### 2026-10-28T23:40:47.248Z - Criterion 5 left open: awaiting A Phase 6 parity re-shoot. Implementer reasoned, did not measure, that specificity and position are preserved; deviations: Window contents rule uses :where(...).collapsed, and .selected.open restates background-blend-mode and resets

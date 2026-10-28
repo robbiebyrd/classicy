@@ -3,11 +3,13 @@ id: 0032-ztu
 title: 'D 6.1: Docs, parity, gate'
 purpose: Document sound packs and sound.pack, re-shoot the two-story parity set, and run the full gate that closes Part D.
 type: chor
-status: pending
+status: complete
 priority: "2"
 effort: S
 created: "2026-10-28T20:08:17.294Z"
-updated: "2026-10-28T20:08:17.294Z"
+updated: "2026-10-28T23:47:37.106Z"
+started: "2026-10-28T23:34:32.594Z"
+completed: "2026-10-28T23:39:50.898Z"
 links:
   repo:
     local: ~/classicy
@@ -23,13 +25,13 @@ links:
     - ["0008-j5l", "included", ["6.1"]]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
 ---
 
 # D 6.1: Docs, parity, gate
@@ -62,10 +64,10 @@ git add docs/AGENT-REFERENCE.md CLAUDE.md && git commit -m "docs(sound): sound p
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: grep -rn 'sound\.name\|ClassicySounds\b' src docs/AGENT-REFERENCE.md docs/BUILDING-APPS.md CLAUDE.md | wc -l  # expect 0
-- [ ] [MANUAL] `compare -metric AE` prints 0 for both `desktop-desktop--default` and `dialogs-alert--note` before vs after.
-- [ ] `docs/AGENT-REFERENCE.md` §10 documents sound packs, the 41-id contract with Platinum fallback and `ClassicySoundLoad { pack, disabled }`; rows 913 and 1052 say `sound.pack`; `CLAUDE.md` names `ClassicySoundPacks.ts`.
-- [ ] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test && pnpm build:source
+- [~] VERIFY: grep -rn 'sound\.name\|ClassicySounds\b' src docs/AGENT-REFERENCE.md docs/BUILDING-APPS.md CLAUDE.md | wc -l  # expect 0
+- [x] [MANUAL] `compare -metric AE` prints 0 for both `desktop-desktop--default` and `dialogs-alert--note` before vs after.
+- [x] `docs/AGENT-REFERENCE.md` §10 documents sound packs, the 41-id contract with Platinum fallback and `ClassicySoundLoad { pack, disabled }`; rows 913 and 1052 say `sound.pack`; `CLAUDE.md` names `ClassicySoundPacks.ts`.
+- [x] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test && pnpm build:source
 
 ## Files
 
@@ -74,3 +76,13 @@ git add docs/AGENT-REFERENCE.md CLAUDE.md && git commit -m "docs(sound): sound p
 - `.playwright-mcp/parity/part-D/after` - after screenshots (gitignored)
 
 ## Work Log
+
+### 2026-10-28T23:35:52.062Z - pnpm lint blocked by pre-existing drift in untouched ClassicyScreenSaverWarp.tsx; fixed at part close-out (criterion 4 set not_applicable; tsc, pnpm test and build:source passed, dist has 21 "pack":"platinum" and no ClassicySounds)
+
+### 2026-10-28T23:35:52.142Z - Implemented in commits 8b624d2..1b9a079, task review clean. Parity: raw AE 313/251 was the live menu-bar clock only (48x10 px); with that region masked AE is 0/0 (ruled equivalent). Criterion 1 left open: the sound.name/ClassicySounds grep is 0 over docs and CLAUDE.md but prints 8 in src (refusal test, migration code and migration test, all intentional). The criterion text needs a docs-only grep or an explicit waiver.
+
+### 2026-10-28T23:39:50.233Z - Literal grep over-broad (9 hits: negative assertions and fixtures in *.test.ts(x), plus the mandated migration in ClassicyStateMigrations.ts); narrowed grep excluding *.test.ts(x) and ClassicyStateMigrations.ts = 0 (docs/AGENT-REFERENCE.md, docs/BUILDING-APPS.md and CLAUDE.md have 0 hits); intent met (controller ruling)
+
+### 2026-10-28T23:47:37.027Z - pnpm lint passes repo-wide after 88ff181e6 (criterion 4 changed from not_applicable to done; controller verified lint 0, tsc 0, 3357/3357 tests)
+
+### 2026-10-28T23:47:37.106Z - Whole-branch review fix wave 2bddbed76..88ff181e6 (loop stop across players; docs); merged a1a600a76

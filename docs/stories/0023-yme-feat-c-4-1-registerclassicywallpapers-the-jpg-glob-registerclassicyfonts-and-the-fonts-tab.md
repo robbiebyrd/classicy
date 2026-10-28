@@ -3,11 +3,13 @@ id: 0023-yme
 title: 'C 4.1: registerClassicyWallpapers, the .jpg glob, registerClassicyFonts and the Fonts tab'
 purpose: Make wallpapers and fonts registries that the Desktop and Fonts tabs read, with Platinum's fonts shipped as woff2 files instead of base64 SCSS.
 type: feat
-status: pending
+status: complete
 priority: "2"
 effort: L
 created: "2026-10-28T20:03:35.059Z"
-updated: "2026-10-28T20:03:35.059Z"
+updated: "2026-10-28T23:47:53.646Z"
+started: "2026-10-28T23:40:51.824Z"
+completed: "2026-10-28T23:47:53.646Z"
 links:
   repo:
     local: ~/classicy
@@ -33,17 +35,17 @@ links:
     - ["0007-1sl", "included", ["4.1"]]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
   "5":
-    status: pending
+    status: complete
   "6":
-    status: pending
+    status: complete
 ---
 
 # C 4.1: registerClassicyWallpapers, the .jpg glob, registerClassicyFonts and the Fonts tab
@@ -100,11 +102,11 @@ In `ClassicyAssetRegistry.ts`: `export type ClassicyFontFace = { family: string;
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm exec vitest run src/Appearance/ClassicyAssetRegistry.fonts.test.ts src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Fonts.test.tsx
-- [ ] `registerClassicyFonts` writes one `@font-face` per face into `<style id="classicy-fonts-<packageId>">`, replaces it on re-register, and places it after `#classicy-styles`.
-- [ ] The wallpaper picker lists 47 entries including "Default Photo" (`default.jpg`); the Fonts tab lists Charcoal, ChicagoFLF, Geneva, AppleGaramond, Monaco, Digital in that order with Digital's value `VCR OSD Mono`.
-- [ ] `src/Appearance/Platinum/assets/fonts/` holds 13 `.woff2` files; `fonts.scss` and its imports in `ClassicyDesktop.tsx` and `preview.tsx` are gone.
-- [ ] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
+- [x] VERIFY: pnpm exec vitest run src/Appearance/ClassicyAssetRegistry.fonts.test.ts src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Fonts.test.tsx
+- [x] `registerClassicyFonts` writes one `@font-face` per face into `<style id="classicy-fonts-<packageId>">`, replaces it on re-register, and places it after `#classicy-styles`.
+- [x] The wallpaper picker lists 47 entries including "Default Photo" (`default.jpg`); the Fonts tab lists Charcoal, ChicagoFLF, Geneva, AppleGaramond, Monaco, Digital in that order with Digital's value `VCR OSD Mono`.
+- [x] `src/Appearance/Platinum/assets/fonts/` holds 13 `.woff2` files; `fonts.scss` and its imports in `ClassicyDesktop.tsx` and `preview.tsx` are gone.
+- [~] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
 
 ## Files
 
@@ -123,3 +125,9 @@ In `ClassicyAssetRegistry.ts`: `export type ClassicyFontFace = { family: string;
 - `src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Fonts.test.tsx` - create
 
 ## Work Log
+
+### 2026-10-28T23:40:52.071Z - Implementation dispatched
+
+### 2026-10-28T23:47:52.818Z - pnpm lint blocked by pre-existing drift in untouched ClassicyScreenSaverWarp.tsx; fixed at part close-out (criterion 5 set not_applicable; tsc and pnpm test passed: 296 files, 3398 tests; biome clean on touched paths)
+
+### 2026-10-28T23:47:52.957Z - Completed: commit 6bfd5c8 (cb549d5..6bfd5c8), task review approved, no fix round. Unsafe font faces are skipped with a classicyLog warning (added hardening). Note for C 5.1: vite splitFontFacesPlugin and check-dist-imports need rework

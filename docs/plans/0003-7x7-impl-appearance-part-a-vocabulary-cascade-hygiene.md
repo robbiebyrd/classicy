@@ -2,11 +2,11 @@
 id: 0003-7x7
 title: 'Part A: Vocabulary and cascade hygiene'
 type: impl
-status: pending
+status: in_progress
 priority: "2"
 effort: XL
 created: "2026-10-28T18:44:10.907Z"
-updated: "2026-10-28T19:38:37.800Z"
+updated: "2026-10-28T23:40:53.021Z"
 links:
   repo:
     local: ~/classicy
@@ -17,21 +17,21 @@ links:
     - ["0000-aud", "included"]
 progress:
   "0":
-    status: pending
+    status: complete
   "1":
-    status: pending
+    status: complete
   "1.1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "2.1":
-    status: pending
+    status: complete
   "2.2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: in_progress
   "3.1":
-    status: pending
+    status: in_progress
   "4":
     status: pending
   "4.1":

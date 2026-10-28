@@ -2,11 +2,12 @@
 id: 0008-j5l
 title: 'Part D: Sound packs'
 type: impl
-status: pending
+status: complete
 priority: "2"
 effort: M
 created: "2026-10-28T19:16:15.509Z"
-updated: "2026-10-28T19:38:38.909Z"
+updated: "2026-10-28T23:47:37.192Z"
+completed: "2026-10-28T23:47:37.192Z"
 links:
   repo:
     local: ~/classicy
@@ -17,31 +18,31 @@ links:
     - ["0000-aud", "included"]
 progress:
   "0":
-    status: pending
+    status: complete
   "1":
-    status: pending
+    status: complete
   "1.1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "2.1":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "3.1":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
   "4.1":
-    status: pending
+    status: complete
   "5":
-    status: pending
+    status: complete
   "5.1":
-    status: pending
+    status: complete
   "6":
-    status: pending
+    status: complete
   "6.1":
-    status: pending
+    status: complete
 ---
 
 # Part D: Sound packs

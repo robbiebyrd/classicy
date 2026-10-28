@@ -3,11 +3,13 @@ id: 0018-0zn
 title: 'C 0: Parity baseline'
 purpose: Capture the before-state screenshots of every surface Part C touches so the final pixel-identity gate has a reference.
 type: chor
-status: pending
+status: complete
 priority: "2"
 effort: XS
 created: "2026-10-28T19:59:21.641Z"
-updated: "2026-10-28T19:59:21.641Z"
+updated: "2026-10-28T23:36:06.056Z"
+started: "2026-10-28T23:33:06.932Z"
+completed: "2026-10-28T23:36:06.056Z"
 links:
   repo:
     local: ~/classicy
@@ -20,13 +22,13 @@ links:
     - ["0007-1sl", "included", ["0"]]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
 ---
 
 # C 0: Parity baseline
@@ -57,9 +59,9 @@ Playwright: for each id open `http://localhost:6006/iframe.html?id=<id>&viewMode
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: ls .playwright-mcp/parity/part-C/before/*.png | wc -l  # equals the line count of stories.txt
-- [ ] `stories.txt` lists one id per story under the 18 titles named in step 2 and every id has a PNG at 1024×768.
-- [ ] Nothing is committed; `.playwright-mcp/` stays gitignored.
+- [x] VERIFY: ls .playwright-mcp/parity/part-C/before/*.png | wc -l  # equals the line count of stories.txt
+- [x] `stories.txt` lists one id per story under the 18 titles named in step 2 and every id has a PNG at 1024×768.
+- [x] Nothing is committed; `.playwright-mcp/` stays gitignored.
 
 ## Files
 
@@ -67,3 +69,5 @@ Playwright: for each id open `http://localhost:6006/iframe.html?id=<id>&viewMode
 - `.playwright-mcp/parity/part-C/before` - baseline screenshots
 
 ## Work Log
+
+### 2026-10-28T23:35:30.483Z - Completed: commits e9625ee..8633b8a, task review clean

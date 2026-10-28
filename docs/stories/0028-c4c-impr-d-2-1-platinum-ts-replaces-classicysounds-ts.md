@@ -3,11 +3,13 @@ id: 0028-c4c
 title: 'D 2.1: platinum.ts replaces ClassicySounds.ts'
 purpose: Move the Platinum sound pack into the Platinum package tree as a self-registering module and delete the mutable ClassicySounds record.
 type: impr
-status: pending
+status: complete
 priority: "2"
 effort: S
 created: "2026-10-28T20:05:58.363Z"
-updated: "2026-10-28T20:05:58.363Z"
+updated: "2026-10-28T23:47:36.026Z"
+started: "2026-10-28T23:34:32.223Z"
+completed: "2026-10-28T23:36:33.879Z"
 links:
   repo:
     local: ~/classicy
@@ -29,15 +31,15 @@ links:
     - ["0008-j5l", "included", ["2.1"]]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
   "5":
-    status: pending
+    status: complete
 ---
 
 # D 2.1: platinum.ts replaces ClassicySounds.ts
@@ -81,10 +83,10 @@ it("keeps the four loop sprites flagged") // for ClassicyWindowMoveIdle, Classic
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm exec vitest run src/Appearance/Platinum/assets/sounds/platinum.test.ts && test ! -e src/SystemFolder/ControlPanels/AppearanceManager/ClassicySounds.ts
-- [ ] `getClassicySoundPack("platinum")` is `platinumSoundPack` after importing the module; it carries exactly the 41 contract sprites, four `src` URLs and the four loop flags.
-- [ ] `package.json` `sideEffects` lists `./src/Appearance/Platinum/assets/sounds/platinum.ts`; `grep -rn ClassicySounds src` is empty.
-- [ ] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
+- [x] VERIFY: pnpm exec vitest run src/Appearance/Platinum/assets/sounds/platinum.test.ts && test ! -e src/SystemFolder/ControlPanels/AppearanceManager/ClassicySounds.ts
+- [x] `getClassicySoundPack("platinum")` is `platinumSoundPack` after importing the module; it carries exactly the 41 contract sprites, four `src` URLs and the four loop flags.
+- [x] `package.json` `sideEffects` lists `./src/Appearance/Platinum/assets/sounds/platinum.ts`; `grep -rn ClassicySounds src` is empty.
+- [x] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
 
 ## Files
 
@@ -99,3 +101,9 @@ it("keeps the four loop sprites flagged") // for ClassicyWindowMoveIdle, Classic
 - `src/index.ts` - barrel regenerated
 
 ## Work Log
+
+### 2026-10-28T23:35:51.163Z - pnpm lint blocked by pre-existing drift in untouched ClassicyScreenSaverWarp.tsx; fixed at part close-out (criterion 4 set not_applicable; tsc and pnpm test passed)
+
+### 2026-10-28T23:35:51.265Z - Completed: commits ebb87ac..dff96cb, task review clean
+
+### 2026-10-28T23:47:36.026Z - pnpm lint passes repo-wide after 88ff181e6 (criterion 4 changed from not_applicable to done; controller verified lint 0, tsc 0, 3357/3357 tests; merged a1a600a76)

@@ -3,11 +3,13 @@ id: 0021-l6d
 title: 'C 3.1: registerClassicySystemArt and the Platinum art module'
 purpose: Register Platinum's system art under "platinum" from a side-effect module and have every consumer read it at render, exposing the art as --classicy-art-* variables on the desktop root.
 type: feat
-status: pending
+status: complete
 priority: "2"
 effort: L
 created: "2026-10-28T20:02:06.942Z"
-updated: "2026-10-28T20:02:06.942Z"
+updated: "2026-10-28T23:39:48.037Z"
+started: "2026-10-28T23:33:07.248Z"
+completed: "2026-10-28T23:39:48.037Z"
 links:
   repo:
     local: ~/classicy
@@ -35,17 +37,17 @@ links:
     - ["0007-1sl", "included", ["3.1"]]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
   "5":
-    status: pending
+    status: complete
   "6":
-    status: pending
+    status: complete
 ---
 
 # C 3.1: registerClassicySystemArt and the Platinum art module
@@ -96,11 +98,11 @@ it("spreads the asset variables onto the desktop root beside the theme vars") //
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm exec vitest run src/Appearance/Platinum/assets/platinumAssets.test.ts && grep -rn 'sad-mac\|@img/' src/SystemFolder --include=*.tsx | grep -v 'sample-picture' | wc -l  # expect 0
-- [ ] 21 of the 25 `ClassicySystemArtKey`s resolve to a non-empty source under "platinum"; `startupWordmark`, `paradeDefault`, `menuCheck`, `menuDash` resolve to `undefined`.
-- [ ] `#classicyDesktop` carries `--classicy-art-*` (and later `--classicy-cursor-*`) inline variables beside `--color-*`; `assets.scss`, `ClassicySlider.scss` and `ClassicyTabs.scss` are unchanged.
-- [ ] `src/Appearance/Platinum/assets/art/` holds 17 files that pass `xmllint --noout`; `package.json` `sideEffects` lists `platinumAssets.ts`.
-- [ ] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
+- [~] VERIFY: pnpm exec vitest run src/Appearance/Platinum/assets/platinumAssets.test.ts && grep -rn 'sad-mac\|@img/' src/SystemFolder --include=*.tsx | grep -v 'sample-picture' | wc -l  # expect 0
+- [x] 21 of the 25 `ClassicySystemArtKey`s resolve to a non-empty source under "platinum"; `startupWordmark`, `paradeDefault`, `menuCheck`, `menuDash` resolve to `undefined`.
+- [x] `#classicyDesktop` carries `--classicy-art-*` (and later `--classicy-cursor-*`) inline variables beside `--color-*`; `assets.scss`, `ClassicySlider.scss` and `ClassicyTabs.scss` are unchanged.
+- [x] `src/Appearance/Platinum/assets/art/` holds 17 files that pass `xmllint --noout`; `package.json` `sideEffects` lists `platinumAssets.ts`.
+- [~] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
 
 ## Files
 
@@ -121,3 +123,9 @@ it("spreads the asset variables onto the desktop root beside the theme vars") //
 - `package.json` - sideEffects entry
 
 ## Work Log
+
+### 2026-10-28T23:35:30.999Z - pnpm lint blocked by pre-existing drift in untouched ClassicyScreenSaverWarp.tsx; fixed at part close-out (criterion 5 set not_applicable; tsc, pnpm test and build:source passed)
+
+### 2026-10-28T23:35:31.105Z - Implemented in commits ab1a3b5..9694ce7, task review clean. Criterion 1 left open: platinumAssets tests pass (26) but the sad-mac/@img grep prints 4, not 0 (ClassicyTree.stories.tsx x3, vi.mock in ClassicyTabs.test.tsx), all outside this section's file list; the CrashScreen hit is gone. xmllint is not installed, so the 17 art files were validated as XML with Python minidom instead (criterion 4 counted as done on that evidence).
+
+### 2026-10-28T23:39:46.603Z - Literal grep over-broad (4 hits: ClassicyTree.stories.tsx x3, ClassicyTabs.test.tsx vi.mock); narrowed grep excluding *.stories.tsx and *.test.tsx = 0; intent met (controller ruling)

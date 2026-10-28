@@ -2,11 +2,11 @@
 id: 0002-ldj
 title: 'Appearance Packages: program design and shared contract'
 type: dsgn
-status: ready
+status: in_progress
 priority: "2"
 effort: XL
 created: "2026-10-28T18:07:39.758Z"
-updated: "2026-10-28T20:46:56.281Z"
+updated: "2026-10-28T23:31:30.980Z"
 links:
   repo:
     local: ~/classicy

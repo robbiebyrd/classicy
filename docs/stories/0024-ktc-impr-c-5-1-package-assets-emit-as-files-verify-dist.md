@@ -3,11 +3,12 @@ id: 0024-ktc
 title: 'C 5.1: Package assets emit as files; verify:dist'
 purpose: Stop lib-mode Vite from inlining src/Appearance/** assets so Platinum fonts and art ship as files, and make verify:dist guard the new invariants.
 type: impr
-status: pending
+status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T20:04:07.145Z"
-updated: "2026-10-28T20:04:07.145Z"
+updated: "2026-10-28T23:47:54.167Z"
+started: "2026-10-28T23:47:54.073Z"
 links:
   repo:
     local: ~/classicy
@@ -99,3 +100,5 @@ Edit `bin/check-dist-imports.mjs` first: invariant 3 becomes "each entry bundle 
 - `bin/classicyStyleInjector.test.ts` - unchanged, must still pass
 
 ## Work Log
+
+### 2026-10-28T23:47:54.167Z - Implementation dispatched

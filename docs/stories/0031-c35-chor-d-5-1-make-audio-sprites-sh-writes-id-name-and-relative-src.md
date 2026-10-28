@@ -3,11 +3,13 @@ id: 0031-c35
 title: 'D 5.1: make_audio_sprites.sh writes id, name and relative src'
 purpose: Make the sprite build emit a self-describing pack JSON with relative src so a pack can be hosted anywhere.
 type: chor
-status: pending
+status: complete
 priority: "2"
 effort: S
 created: "2026-10-28T20:07:53.293Z"
-updated: "2026-10-28T20:07:53.293Z"
+updated: "2026-10-28T23:47:36.755Z"
+started: "2026-10-28T23:34:32.515Z"
+completed: "2026-10-28T23:36:35.072Z"
 links:
   repo:
     local: ~/classicy
@@ -26,15 +28,15 @@ links:
     - ["0008-j5l", "included", ["5.1"]]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
   "5":
-    status: pending
+    status: complete
 ---
 
 # D 5.1: make_audio_sprites.sh writes id, name and relative src
@@ -78,10 +80,10 @@ After each `npx -y audiosprite …` call add a `node -e` post-processing step (t
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: python3 -I -c 'import json; d=json.load(open("assets/sounds/platinum/platinum.json")); assert d["id"]=="platinum" and all(s.startswith("./") for s in d["src"]) and len(d["sprite"])==41; print("ok")'
-- [ ] `assets/sounds/platinum/platinum.json` has `id: "platinum"`, `name: "Platinum"`, `./`-relative `src` in the order ogg, m4a, mp3, ac3, and an unchanged sprite map; a copy with `https://` `src` validates against `ClassicySoundPackSchema`.
-- [ ] VERIFY: bash -n bin/make_audio_sprites.sh
-- [ ] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
+- [x] VERIFY: python3 -I -c 'import json; d=json.load(open("assets/sounds/platinum/platinum.json")); assert d["id"]=="platinum" and all(s.startswith("./") for s in d["src"]) and len(d["sprite"])==41; print("ok")'
+- [x] `assets/sounds/platinum/platinum.json` has `id: "platinum"`, `name: "Platinum"`, `./`-relative `src` in the order ogg, m4a, mp3, ac3, and an unchanged sprite map; a copy with `https://` `src` validates against `ClassicySoundPackSchema`.
+- [x] VERIFY: bash -n bin/make_audio_sprites.sh
+- [x] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
 
 ## Files
 
@@ -93,3 +95,9 @@ After each `npx -y audiosprite …` call add a `node -e` post-processing step (t
 - `src/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks.test.ts` - https src test
 
 ## Work Log
+
+### 2026-10-28T23:35:51.878Z - pnpm lint blocked by pre-existing drift in untouched ClassicyScreenSaverWarp.tsx; fixed at part close-out (criterion 4 set not_applicable; tsc and pnpm test passed)
+
+### 2026-10-28T23:35:51.973Z - Completed: commits acc6de1..8b624d2, task review clean
+
+### 2026-10-28T23:47:36.755Z - pnpm lint passes repo-wide after 88ff181e6 (criterion 4 changed from not_applicable to done; controller verified lint 0, tsc 0, 3357/3357 tests; merged a1a600a76)

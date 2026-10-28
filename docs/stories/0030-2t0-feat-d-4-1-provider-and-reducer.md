@@ -3,11 +3,13 @@ id: 0030-2t0
 title: 'D 4.1: Provider and reducer'
 purpose: Boot the Sound manager from the persisted theme's pack, reload on pack change with the volume kept, and play sprites missing from the active pack on a Platinum fallback player.
 type: feat
-status: pending
+status: complete
 priority: "2"
 effort: L
 created: "2026-10-28T20:07:25.344Z"
-updated: "2026-10-28T20:07:25.344Z"
+updated: "2026-10-28T23:47:36.556Z"
+started: "2026-10-28T23:34:32.411Z"
+completed: "2026-10-28T23:36:34.626Z"
 links:
   repo:
     local: ~/classicy
@@ -26,19 +28,19 @@ links:
     - ["0008-j5l", "included", ["4.1"]]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
   "5":
-    status: pending
+    status: complete
   "6":
-    status: pending
+    status: complete
   "7":
-    status: pending
+    status: complete
 ---
 
 # D 4.1: Provider and reducer
@@ -98,11 +100,11 @@ Provider (`ClassicySoundManagerProvider.tsx:19-37`): `import "@/Appearance/Plati
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerProvider.packs.test.tsx src/SystemFolder/ControlPanels/SoundManager/ClassicySoundStateEventReducer.test.ts
-- [ ] The provider seeds its Howl from the persisted theme's pack before children's mount effects, loads a pack registered after mount, reloads on `sound.pack` change with the volume re-applied, and does not recreate the Howl on other theme edits.
-- [ ] A sprite missing from the active pack plays on the Platinum fallback player; `ClassicySoundLoad` logs one `classicyLog` warning naming the missing ids and unloads the previous player; `grep -rn "applySoundTheme\|loadSoundTheme" src` is empty.
-- [ ] [MANUAL] In the example app the boot chime plays once, Default → Azul → Default keeps button clicks sounding with no console warning, persisted state carries `"pack":"platinum"`, and a volume of 40 survives a theme switch.
-- [ ] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
+- [x] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerProvider.packs.test.tsx src/SystemFolder/ControlPanels/SoundManager/ClassicySoundStateEventReducer.test.ts
+- [x] The provider seeds its Howl from the persisted theme's pack before children's mount effects, loads a pack registered after mount, reloads on `sound.pack` change with the volume re-applied, and does not recreate the Howl on other theme edits.
+- [x] A sprite missing from the active pack plays on the Platinum fallback player; `ClassicySoundLoad` logs one `classicyLog` warning naming the missing ids and unloads the previous player; `grep -rn "applySoundTheme\|loadSoundTheme" src` is empty.
+- [~] [MANUAL] In the example app the boot chime plays once, Default → Azul → Default keeps button clicks sounding with no console warning, persisted state carries `"pack":"platinum"`, and a volume of 40 survives a theme switch.
+- [x] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
 
 ## Files
 
@@ -114,3 +116,13 @@ Provider (`ClassicySoundManagerProvider.tsx:19-37`): `import "@/Appearance/Plati
 - `src/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext.tsx` - :26 loadSoundTheme re-export removed
 
 ## Work Log
+
+### 2026-10-28T23:35:51.540Z - Manual example-app check (boot chime, button clicks across Default-Azul-Default, volume 40 surviving a theme switch) could not be run audibly in the headless environment (criterion 4 set not_applicable). D 6.1 verified headlessly that localStorage carries sound.pack platinum, a legacy sound.name state heals on reload, platinum.json/ogg are fetched, and the console shows no sound errors.
+
+### 2026-10-28T23:35:51.664Z - pnpm lint blocked by pre-existing drift in untouched ClassicyScreenSaverWarp.tsx; fixed at part close-out (criterion 5 set not_applicable; tsc and pnpm test passed)
+
+### 2026-10-28T23:35:51.774Z - Completed: commits 17fecf9..acc6de1, task review clean
+
+### 2026-10-28T23:47:36.438Z - pnpm lint passes repo-wide after 88ff181e6 (criterion 5 changed from not_applicable to done; controller verified lint 0, tsc 0, 3357/3357 tests)
+
+### 2026-10-28T23:47:36.556Z - Whole-branch review fix wave 2bddbed76..88ff181e6 (loop stop across players; docs); merged a1a600a76

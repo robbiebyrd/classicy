@@ -3,11 +3,13 @@ id: 0026-3a7
 title: 'D 0: Parity baseline'
 purpose: Shoot a two-story parity reference so Part D's no-visual-change claim can be checked at the end.
 type: chor
-status: pending
+status: complete
 priority: "2"
 effort: XS
 created: "2026-10-28T20:04:46.390Z"
-updated: "2026-10-28T20:04:46.390Z"
+updated: "2026-10-28T23:36:06.388Z"
+started: "2026-10-28T23:34:32.056Z"
+completed: "2026-10-28T23:36:06.388Z"
 links:
   repo:
     local: ~/classicy
@@ -20,13 +22,13 @@ links:
     - ["0008-j5l", "included", ["0"]]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
 ---
 
 # D 0: Parity baseline
@@ -57,9 +59,9 @@ Playwright: open `http://localhost:6006/iframe.html?id=<id>&viewMode=story` at 1
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: ls .playwright-mcp/parity/part-D/before/*.png | wc -l  # 2
-- [ ] `stories.txt` holds exactly `desktop-desktop--default` and `dialogs-alert--note`, both confirmed present in Storybook's `index.json`.
-- [ ] Nothing is committed; `.playwright-mcp/` stays gitignored.
+- [x] VERIFY: ls .playwright-mcp/parity/part-D/before/*.png | wc -l  # 2
+- [x] `stories.txt` holds exactly `desktop-desktop--default` and `dialogs-alert--note`, both confirmed present in Storybook's `index.json`.
+- [x] Nothing is committed; `.playwright-mcp/` stays gitignored.
 
 ## Files
 
@@ -67,3 +69,5 @@ Playwright: open `http://localhost:6006/iframe.html?id=<id>&viewMode=story` at 1
 - `.playwright-mcp/parity/part-D/before` - baseline screenshots
 
 ## Work Log
+
+### 2026-10-28T23:35:50.902Z - Completed: commits e9625ee..ebb87ac, task review clean

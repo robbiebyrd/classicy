@@ -3,11 +3,13 @@ id: 0001-cay
 title: 'A 0: Parity baseline'
 purpose: Capture the before-screenshots of every Controls, Desktop and Dialogs Storybook story so Part A's vocabulary and cascade changes can be proven pixel-identical.
 type: chor
-status: pending
+status: complete
 priority: "2"
 effort: S
 created: "2026-10-28T19:45:58.778Z"
-updated: "2026-10-28T19:45:58.778Z"
+updated: "2026-10-28T23:36:05.756Z"
+started: "2026-10-28T23:32:51.996Z"
+completed: "2026-10-28T23:36:05.756Z"
 links:
   repo:
     local: ~/classicy
@@ -17,13 +19,13 @@ links:
     - ["0003-7x7", "included", ["0"]]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
 ---
 
 # A 0: Parity baseline
@@ -56,8 +58,10 @@ Playwright: for each id open `http://localhost:<port>/iframe.html?id=<id>&viewMo
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: ls .playwright-mcp/parity/part-A/before/*.png | wc -l  # equals the stories.txt line count
-- [ ] [MANUAL] `.playwright-mcp/parity/part-A/stories.txt` lists every Controls/*, Desktop/* and Dialogs/* story id and each has a 1024×768 PNG under `before/`.
-- [ ] No repo file changed and nothing was committed.
+- [x] VERIFY: ls .playwright-mcp/parity/part-A/before/*.png | wc -l  # equals the stories.txt line count
+- [x] [MANUAL] `.playwright-mcp/parity/part-A/stories.txt` lists every Controls/*, Desktop/* and Dialogs/* story id and each has a 1024×768 PNG under `before/`.
+- [x] No repo file changed and nothing was committed.
 
 ## Work Log
+
+### 2026-10-28T23:35:30.052Z - Completed: commits e9625ee..4d7029c, task review clean

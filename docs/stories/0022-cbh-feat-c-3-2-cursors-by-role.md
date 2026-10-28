@@ -3,11 +3,12 @@ id: 0022-cbh
 title: 'C 3.2: Cursors by role'
 purpose: Register Platinum's cursors by role, add the default arrow, and replace every relative cursor url() in SCSS with a --classicy-cursor-* variable.
 type: feat
-status: pending
+status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T20:02:45.335Z"
-updated: "2026-10-28T20:02:45.335Z"
+updated: "2026-10-28T23:40:50.985Z"
+started: "2026-10-28T23:33:07.360Z"
 links:
   repo:
     local: ~/classicy
@@ -28,17 +29,17 @@ links:
     - ["0007-1sl", "included", ["3.2"]]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
   "5":
-    status: pending
+    status: complete
   "6":
-    status: pending
+    status: complete
 ---
 
 # C 3.2: Cursors by role
@@ -86,11 +87,11 @@ it("every role SplitView drags with is registered") // for u,d,l,r: resolveClass
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: grep -rn "assets/img/ui/cursors" src --include=*.scss | wc -l  # expect 0
-- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Cursor
-- [ ] `resolveClassicyAsset("cursors", role)` is defined for `arrow`, `watch`, `hand`, `resizeLr`, `resizeUd`, `resizeU`, `resizeD`, `resizeL`, `resizeR` under "platinum"; `setCursor()` with no role clears the body cursor exactly as before.
+- [x] VERIFY: grep -rn "assets/img/ui/cursors" src --include=*.scss | wc -l  # expect 0
+- [x] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Cursor
+- [x] `resolveClassicyAsset("cursors", role)` is defined for `arrow`, `watch`, `hand`, `resizeLr`, `resizeUd`, `resizeU`, `resizeD`, `resizeL`, `resizeR` under "platinum"; `setCursor()` with no role clears the body cursor exactly as before.
 - [ ] [MANUAL] In the example app a SplitView divider shows the Mac resize cursor on hover and the directional cursor mid-drag; the PDF viewer's pan and zoom tools show the hand and magnifier cursors.
-- [ ] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
+- [~] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
 
 ## Files
 
@@ -104,3 +105,11 @@ it("every role SplitView drags with is registered") // for u,d,l,r: resolveClass
 - `src/SystemFolder/PDFViewer/PDFViewerDocument.tsx` - sets --classicy-pdf-zoom-cursor on its root
 
 ## Work Log
+
+### 2026-10-28T23:35:31.235Z - Implementation committed; task review in progress
+
+### 2026-10-28T23:40:49.781Z - pnpm lint blocked by pre-existing drift in untouched ClassicyScreenSaverWarp.tsx; fixed at part close-out (criterion 5 set not_applicable; tsc and pnpm test passed)
+
+### 2026-10-28T23:40:49.885Z - Completed: commits 9694ce7..cb549d5, task review clean (one fix round: classic Mac arrow cursor art with full white outline; cursors scss grep = 0)
+
+### 2026-10-28T23:40:49.993Z - Criterion 4 left open: the manual example-app check (SplitView divider cursors, PDF pan and zoom cursors) has no evidence in the task report; only var() fallback behavior was checked in headless Chromium. Needs a manual check or a controller waiver

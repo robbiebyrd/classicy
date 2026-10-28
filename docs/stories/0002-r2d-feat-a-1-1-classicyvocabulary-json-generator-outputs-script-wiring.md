@@ -3,11 +3,13 @@ id: 0002-r2d
 title: 'A 1.1: ClassicyVocabulary.json, generator, outputs, script wiring'
 purpose: Generate the shared JS/SCSS vocabulary (state classes, component names, part attributes) from one JSON source wired into the build.
 type: feat
-status: pending
+status: complete
 priority: "2"
 effort: M
 created: "2026-10-28T19:46:47.320Z"
-updated: "2026-10-28T19:46:47.320Z"
+updated: "2026-10-28T23:36:18.550Z"
+started: "2026-10-28T23:32:52.063Z"
+completed: "2026-10-28T23:36:18.550Z"
 links:
   repo:
     local: ~/classicy
@@ -32,19 +34,19 @@ links:
     - ["0003-7x7", "included", ["1.1"]]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
   "5":
-    status: pending
+    status: complete
   "6":
-    status: pending
+    status: complete
   "7":
-    status: pending
+    status: complete
 ---
 
 # A 1.1: ClassicyVocabulary.json, generator, outputs, script wiring
@@ -89,10 +91,10 @@ In `.github/workflows/ci.yml` add a step after install: `node bin/generate-vocab
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: node bin/generate-vocabulary.ts --check && pnpm exec vitest run bin src/Appearance
-- [ ] `CLASSICY_STATE.pressed === "pressed"`, `classicyStateClasses({ pressed: true, active: true }) === "active pressed"`, and `classicy-state(bogus)` errors at Sass compile time.
-- [ ] `validateVocabulary` rejects a state equal to any root or part class, duplicates and malformed names; both generated files start with `// generated — do not edit`.
-- [ ] `package.json` `./scss/*` points at `./src/Appearance/vocabulary/*`; `generate-barrels` runs the generator first; CI runs `--check`.
+- [x] VERIFY: node bin/generate-vocabulary.ts --check && pnpm exec vitest run bin src/Appearance
+- [x] `CLASSICY_STATE.pressed === "pressed"`, `classicyStateClasses({ pressed: true, active: true }) === "active pressed"`, and `classicy-state(bogus)` errors at Sass compile time.
+- [x] `validateVocabulary` rejects a state equal to any root or part class, duplicates and malformed names; both generated files start with `// generated — do not edit`.
+- [x] `package.json` `./scss/*` points at `./src/Appearance/vocabulary/*`; `generate-barrels` runs the generator first; CI runs `--check`.
 
 ## Files
 
@@ -110,3 +112,5 @@ In `.github/workflows/ci.yml` add a step after install: `node bin/generate-vocab
 - `example/src/Applications/Browser/Browser.scss` - @use classicy/scss-platinum/appearance
 
 ## Work Log
+
+### 2026-10-28T23:35:30.122Z - Completed: commits e9625ee..4d7029c, task review clean

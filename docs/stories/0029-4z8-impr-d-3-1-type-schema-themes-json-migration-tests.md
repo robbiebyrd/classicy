@@ -3,11 +3,13 @@ id: 0029-4z8
 title: 'D 3.1: Type, schema, themes.json, migration, tests'
 purpose: Replace the theme's sound.name with sound.pack everywhere, validate it against the live registry, and heal persisted state copy-on-write.
 type: impr
-status: pending
+status: complete
 priority: "2"
 effort: M
 created: "2026-10-28T20:06:38.056Z"
-updated: "2026-10-28T20:06:38.056Z"
+updated: "2026-10-28T23:47:36.232Z"
+started: "2026-10-28T23:34:32.312Z"
+completed: "2026-10-28T23:39:49.918Z"
 links:
   repo:
     local: ~/classicy
@@ -32,17 +34,17 @@ links:
     - ["0008-j5l", "included", ["3.1"]]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
   "5":
-    status: pending
+    status: complete
   "6":
-    status: pending
+    status: complete
 ---
 
 # D 3.1: Type, schema, themes.json, migration, tests
@@ -94,10 +96,10 @@ it("a theme file still using sound.name is refused with a sound.pack issue") // 
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/AppManager/ClassicyStateMigrations.soundPack.test.ts && grep -rn 'sound\.name\|name: "platinum"' src --include=*.ts --include=*.tsx --include=*.json | wc -l  # expect 0
-- [ ] All 21 built-in themes carry `sound.pack: "platinum"`; a theme with `sound.name` fails the schema at path `["sound","pack"]`; a pack registered after module load validates.
-- [ ] Persisted state with `sound.name` is migrated copy-on-write on `activeTheme`, `availableThemes` and `customThemes`, returns the same reference when nothing changes, and the migrated theme exports and parses as a theme file.
-- [ ] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
+- [~] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/AppManager/ClassicyStateMigrations.soundPack.test.ts && grep -rn 'sound\.name\|name: "platinum"' src --include=*.ts --include=*.tsx --include=*.json | wc -l  # expect 0
+- [x] All 21 built-in themes carry `sound.pack: "platinum"`; a theme with `sound.name` fails the schema at path `["sound","pack"]`; a pack registered after module load validates.
+- [x] Persisted state with `sound.name` is migrated copy-on-write on `activeTheme`, `availableThemes` and `customThemes`, returns the same reference when nothing changes, and the migrated theme exports and parses as a theme file.
+- [x] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
 
 ## Files
 
@@ -115,3 +117,11 @@ it("a theme file still using sound.name is refused with a sound.pack issue") // 
 - `src/SystemFolder/SystemResources/Desktop/ClassicyDesktopEventHandler.test.ts` - :137 fixture
 
 ## Work Log
+
+### 2026-10-28T23:35:51.346Z - pnpm lint blocked by pre-existing drift in untouched ClassicyScreenSaverWarp.tsx; fixed at part close-out (criterion 4 set not_applicable; tsc and pnpm test passed)
+
+### 2026-10-28T23:35:51.431Z - Implemented in commits dff96cb..17fecf9, task review clean. Criterion 1 left open: the migration tests pass but the 'sound.name|name: "platinum"' grep prints 9, not 0; all 9 are intentional (migrateThemeSoundPack code and doc line, the migration test fixture, and the schema test that refuses a sound.name file). Ledger ruling accepted these as unreachable under the brief's own mandated migration and refusal tests; the criterion text needs a narrower grep or an explicit waiver.
+
+### 2026-10-28T23:39:48.477Z - Literal grep over-broad (12 hits across the three file types: 3 in ClassicyStateMigrations.ts, 8 in ClassicyStateMigrations.soundPack.test.ts, 1 in ClassicyThemeSchema.test.ts, all mandated migration code or negative assertions); narrowed grep excluding *.test.ts(x) and ClassicyStateMigrations.ts = 0; intent met (controller ruling)
+
+### 2026-10-28T23:47:36.232Z - pnpm lint passes repo-wide after 88ff181e6 (criterion 4 changed from not_applicable to done; controller verified lint 0, tsc 0, 3357/3357 tests; merged a1a600a76)
