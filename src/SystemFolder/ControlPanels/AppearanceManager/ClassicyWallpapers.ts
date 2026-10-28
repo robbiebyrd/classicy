@@ -1,7 +1,7 @@
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 const wallpaperModules = import.meta.glob(
-	"../../../../assets/img/wallpapers/*.png",
+	"../../../../assets/img/wallpapers/*.{png,jpg}",
 	{ eager: true, import: "default" },
 ) as Record<string, string>;
 
@@ -97,6 +97,7 @@ export const ClassicyWallpapers = [
 	{ label: "Candy Bar Pistachio", value: wp("candy_bar_pistachio.png") },
 	{ label: "Candy Bar Sunny", value: wp("candy_bar_sunny.png") },
 	{ label: "Default", value: wp("default.png") },
+	{ label: "Default Photo", value: wp("default.jpg") },
 	{ label: "Diagonals Bondi", value: wp("diagonals_bondi.png") },
 	{ label: "Diagonals Bondi Dark", value: wp("diagonals_bondi_dark.png") },
 	{ label: "Diagonals Poppy", value: wp("diagonals_poppy.png") },

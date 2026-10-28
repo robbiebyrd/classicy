@@ -1,6 +1,9 @@
+import { act } from "@testing-library/react";
 import type { ChangeEvent } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { render, renderHook, screen, userEvent } from "@/__tests__/test-utils";
+import "@/Appearance/Platinum/assets/platinumAssets";
+import { registerClassicyWallpapers } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	classicyBackgroundSizeOption,
 	useDesktopTab,
@@ -58,6 +61,31 @@ describe("useDesktopTab — Patterns", () => {
 		expect(patternsMenu()).toHaveTextContent("Poppy");
 		rerender(<Host bg={wallpaper("Waves Bondi").value} />);
 		expect(patternsMenu()).toHaveTextContent("Waves Bondi");
+	});
+
+	it("lists every bundled wallpaper from the registry, including the jpg", async () => {
+		const user = userEvent.setup();
+		render(<Host />);
+		await user.click(patternsMenu());
+		expect(screen.getAllByRole("option")).toHaveLength(
+			ClassicyWallpapers.length,
+		);
+		expect(
+			screen.getByRole("option", { name: "Default Photo" }),
+		).toBeInTheDocument();
+	});
+
+	it("a wallpaper registered after mount appears (a name may contain a dot)", async () => {
+		const user = userEvent.setup();
+		render(<Host />);
+		act(() =>
+			registerClassicyWallpapers("platinum", [
+				{ name: "Mac OS 8.5", src: "https://example.com/8-5.png" },
+			]),
+		);
+		await user.click(patternsMenu());
+		await user.click(screen.getByRole("option", { name: "Mac OS 8.5" }));
+		expect(baseProps.changeBackground).toHaveBeenCalled();
 	});
 
 	it("shows 'Custom' for a picture that matches no pattern", () => {

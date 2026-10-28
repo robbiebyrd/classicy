@@ -89,7 +89,6 @@ import {
 } from "@/SystemFolder/SystemResources/File/ClassicyTrash";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
-import "../../ControlPanels/AppearanceManager/styles/fonts.scss";
 import "../../../index.css";
 
 interface ClassicyDesktopProps {

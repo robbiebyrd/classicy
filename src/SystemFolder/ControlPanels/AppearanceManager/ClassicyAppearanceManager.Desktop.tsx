@@ -1,9 +1,9 @@
 import { type ChangeEvent, useMemo } from "react";
+import { useClassicyAssetTree } from "@/Appearance/ClassicyAssetRegistry";
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import { ClassicyInput } from "@/SystemFolder/SystemResources/Input/ClassicyInput";
 import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
 import type { TabIndividual } from "@/SystemFolder/SystemResources/Tabs/ClassicyTabs";
-import { ClassicyWallpapers } from "./ClassicyWallpapers";
 
 /**
  * The Size pop-up's three choices. "auto" is the CSS keyword for an image
@@ -50,6 +50,14 @@ export const useDesktopTab = ({
 	backgroundSize,
 }: DesktopTabProps): TabIndividual => {
 	const sizeOption = classicyBackgroundSizeOption(bgSize);
+	const wallpapers = useClassicyAssetTree("wallpapers");
+	const wallpaperOptions = useMemo(
+		() =>
+			Object.entries(wallpapers)
+				.filter(([, value]) => typeof value === "string")
+				.map(([label, value]) => ({ label, value: value as string })),
+		[wallpapers],
+	);
 	return useMemo(
 		() => ({
 			title: "Desktop",
@@ -66,7 +74,7 @@ export const useDesktopTab = ({
 							<ClassicyControlLabel label={"Patterns"} direction={"left"} />
 							<ClassicyPopUpMenu
 								id={"bg"}
-								options={ClassicyWallpapers}
+								options={wallpaperOptions}
 								onChangeFunc={changeBackground}
 								// Option values are the full resolved wallpaper URLs, so
 								// the stored URL matches one directly. A user-supplied
@@ -145,6 +153,7 @@ export const useDesktopTab = ({
 			alignBackground,
 			repeatBackground,
 			backgroundSize,
+			wallpaperOptions,
 		],
 	);
 };

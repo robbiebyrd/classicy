@@ -1,8 +1,12 @@
 import {
+	type ClassicyFontFace,
 	registerClassicyCursors,
+	registerClassicyFonts,
 	registerClassicySystemArt,
+	registerClassicyWallpapers,
 } from "@/Appearance/ClassicyAssetRegistry";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { ClassicyWallpapers } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 
 const PLATINUM = "platinum";
 
@@ -66,3 +70,46 @@ registerClassicyCursors(PLATINUM, {
 	resizeL: ClassicyIcons.ui.cursors.resizeL,
 	resizeR: ClassicyIcons.ui.cursors.resizeR,
 });
+
+registerClassicyWallpapers(
+	PLATINUM,
+	ClassicyWallpapers.map((w) => ({ name: w.label, src: w.value })),
+);
+
+const fontModules = import.meta.glob("./fonts/*.woff2", {
+	eager: true,
+	import: "default",
+}) as Record<string, string>;
+
+const font = (
+	family: string,
+	file: string,
+	weight?: string,
+	style?: string,
+): ClassicyFontFace => ({
+	family,
+	src: fontModules[`./fonts/${file}.woff2`] ?? "",
+	weight,
+	style,
+});
+
+/**
+ * Platinum's thirteen bundled faces, woff2 only (baseline in every supported
+ * browser). Registration order is the Fonts tab's order: Charcoal, ChicagoFLF,
+ * Geneva, AppleGaramond, Monaco, then VCR OSD Mono ("Digital").
+ */
+registerClassicyFonts(PLATINUM, [
+	font("Charcoal", "Charcoal-normal-normal"),
+	font("ChicagoFLF", "ChicagoFLF-normal-normal"),
+	font("Geneva", "Geneva-normal-normal"),
+	font("Geneva", "Geneva-bold-normal", "bold"),
+	font("Geneva", "Geneva-normal-italic", "normal", "italic"),
+	font("AppleGaramond", "AppleGaramond-normal-normal"),
+	font("AppleGaramond", "AppleGaramond-bold-normal", "bold"),
+	font("AppleGaramond", "AppleGaramond-bold-italic", "bold", "italic"),
+	font("AppleGaramond", "AppleGaramond-normal-italic", "normal", "italic"),
+	font("AppleGaramond", "AppleGaramond-300-normal", "300"),
+	font("AppleGaramond", "AppleGaramond-300-italic", "300", "italic"),
+	font("Monaco", "Monaco-normal-normal"),
+	font("VCR OSD Mono", "VCROSDMono-normal-normal"),
+]);

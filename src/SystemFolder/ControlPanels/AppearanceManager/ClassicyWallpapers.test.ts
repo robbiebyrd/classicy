@@ -5,6 +5,7 @@ import {
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
 	ClassicyDefaultWallpaper,
+	ClassicyWallpapers,
 	resolveWallpaper,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 import themesData from "@/SystemFolder/ControlPanels/AppearanceManager/styles/themes.json";
@@ -49,6 +50,19 @@ describe("resolveWallpaper", () => {
 		expect(resolveWallpaper("no_such_wallpaper.png")).toBe("");
 		expect(warn).toHaveBeenCalled();
 		warn.mockRestore();
+	});
+});
+
+describe("jpg wallpapers", () => {
+	it("includes the jpg wallpaper", () => {
+		expect(
+			ClassicyWallpapers.some(
+				(w) =>
+					w.label === "Default Photo" &&
+					(w.value.endsWith(".jpg") || w.value.startsWith("data:image/jpeg")),
+			),
+		).toBe(true);
+		expect(resolveWallpaper("default.jpg")).not.toBe("");
 	});
 });
 

@@ -1,6 +1,9 @@
 import { useSyncExternalStore } from "react";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
-import type { ClassicyAssetSource } from "./ClassicyAssetSource";
+import {
+	type ClassicyAssetSource,
+	isClassicyAssetSource,
+} from "./ClassicyAssetSource";
 
 const PLATINUM = "platinum";
 const SUBSYSTEM = "ClassicyAssetRegistry";
@@ -78,6 +81,21 @@ export type ClassicySystemArtKey =
 	| "triangle"
 	| "downArrow";
 
+export type ClassicyFontFace = {
+	family: string;
+	/** One source, or fallback sources in order (the first is the primary). */
+	src: ClassicyAssetSource | ClassicyAssetSource[];
+	weight?: string;
+	style?: string;
+};
+
+type StoredFontFace = {
+	family: string;
+	sources: ClassicyAssetSource[];
+	weight: string;
+	style: string;
+};
+
 /**
  * Placeholder until plan 0002-ldj Part B reads
  * System.Manager.Appearance.packageId; Part B replaces the body, not the name.
@@ -85,6 +103,8 @@ export type ClassicySystemArtKey =
 export const getActiveClassicyAppearancePackageId = (): string => PLATINUM;
 
 const trees = new Map<ClassicyAssetKind, Map<string, ClassicyAssetTree>>();
+/** Every registered face per package, with its full fallback source list. */
+const fontFaces = new Map<string, Map<string, StoredFontFace>>();
 let version = 0;
 const listeners = new Set<() => void>();
 
@@ -163,6 +183,7 @@ export const registerClassicyAssets = (
 /** Test-only: clears every package tree and bumps the version. */
 export const resetClassicyAssets = (): void => {
 	trees.clear();
+	fontFaces.clear();
 	notify();
 };
 
@@ -286,3 +307,100 @@ export const registerClassicyWallpapers = (
 		packageId,
 		Object.fromEntries(list.map((w) => [w.name, w.src])),
 	);
+
+const FONT_FORMATS: Record<string, string> = {
+	woff2: "woff2",
+	woff: "woff",
+	ttf: "truetype",
+	truetype: "truetype",
+	otf: "opentype",
+	opentype: "opentype",
+};
+
+const SAFE_FONT_NAME = /^[^"'\\\r\n;{}]+$/;
+const SAFE_FONT_DESCRIPTOR = /^[A-Za-z0-9 .%-]+$/;
+
+/** ` format("…")` from a data: mime or the file extension; empty if unknown. */
+const fontFormat = (src: ClassicyAssetSource): string => {
+	const ext = src.startsWith("data:")
+		? /^data:(?:font\/|application\/font-)([a-z0-9]+)/i.exec(src)?.[1]
+		: /\.([a-z0-9]+)(?:[?#]|$)/i.exec(src)?.[1];
+	const key = ext?.toLowerCase();
+	return key && Object.hasOwn(FONT_FORMATS, key)
+		? ` format("${FONT_FORMATS[key]}")`
+		: "";
+};
+
+const fontFaceRule = (face: StoredFontFace): string => {
+	const sources = face.sources
+		.map((src) => `url("${src}")${fontFormat(src)}`)
+		.join(",");
+	return `@font-face{font-family:"${face.family}";src:${sources};font-weight:${face.weight};font-style:${face.style};font-display:swap}`;
+};
+
+/** Rewrites `<style id="classicy-fonts-<packageId>">` from that package's faces. */
+const writeClassicyFontFaces = (packageId: string): void => {
+	if (typeof document === "undefined") return;
+	const id = `classicy-fonts-${packageId}`;
+	let style = document.getElementById(id);
+	if (!style) {
+		style = document.createElement("style");
+		style.id = id;
+		const base = document.getElementById("classicy-styles");
+		if (base) base.after(style);
+		else document.head.prepend(style);
+	}
+	style.textContent = [...(fontFaces.get(packageId)?.values() ?? [])]
+		.map(fontFaceRule)
+		.join("\n");
+};
+
+/**
+ * Registers font faces under `fonts.<family>.<weight>-<style>` and writes their
+ * `@font-face` rules into `<style id="classicy-fonts-<packageId>">`. A face
+ * with an unsafe family, descriptor or source is skipped with a warning.
+ */
+export const registerClassicyFonts = (
+	packageId: string,
+	fonts: ClassicyFontFace[],
+): void => {
+	let faces = fontFaces.get(packageId);
+	if (!faces) {
+		faces = new Map();
+		fontFaces.set(packageId, faces);
+	}
+	const tree: ClassicyAssetTree = {};
+	for (const font of fonts) {
+		const weight = font.weight ?? "normal";
+		const style = font.style ?? "normal";
+		const sources = Array.isArray(font.src) ? font.src : [font.src];
+		if (
+			!SAFE_FONT_NAME.test(font.family) ||
+			!SAFE_FONT_DESCRIPTOR.test(weight) ||
+			!SAFE_FONT_DESCRIPTOR.test(style) ||
+			sources.length === 0 ||
+			!sources.every(isClassicyAssetSource)
+		) {
+			classicyLog(
+				"warn",
+				SUBSYSTEM,
+				`Ignored font face "${font.family}" ${weight} ${style}: unsafe family, descriptor or source`,
+			);
+			continue;
+		}
+		const key = `${weight}-${style}`;
+		const family = Object.hasOwn(tree, font.family)
+			? (tree[font.family] as ClassicyAssetTree)
+			: {};
+		family[key] = sources[0];
+		tree[font.family] = family;
+		faces.set(`${font.family}|${key}`, {
+			family: font.family,
+			sources,
+			weight,
+			style,
+		});
+	}
+	registerClassicyAssets("fonts", packageId, tree);
+	writeClassicyFontFaces(packageId);
+};
