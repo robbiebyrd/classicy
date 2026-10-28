@@ -70,7 +70,7 @@ describe("ClassicyHelpButton", () => {
 
 describe("ClassicyHelpButton geometry (HIGOS8 p.86)", () => {
 	// jsdom does no layout, so check the compiled rule instead: the box is the
-	// HIG's fixed 20 × 21, read from the --hig-* tokens, with no padding or
+	// HIG's 20 × 21, read from the theme's help-button metrics, with no padding or
 	// minimum size from the bevel button left to push it off that size.
 	const css = sass.compile(
 		path.resolve(
@@ -104,10 +104,10 @@ describe("ClassicyHelpButton geometry (HIGOS8 p.86)", () => {
 		);
 	};
 
-	it("is sized by the HIG help-button tokens", () => {
+	it("is sized by the theme's help-button metrics", () => {
 		const box = rule(".classicyBevelButton.classicyHelpButton");
-		expect(box.width).toBe("var(--hig-help-button-width, 20px)");
-		expect(box.height).toBe("var(--hig-help-button-height, 21px)");
+		expect(box.width).toBe("var(--help-button-width, 20px)");
+		expect(box.height).toBe("var(--help-button-height, 21px)");
 		expect(box["box-sizing"]).toBe("border-box");
 		expect(box.padding).toBe("0");
 		expect(box["min-width"]).toBe("0");

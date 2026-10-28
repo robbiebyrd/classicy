@@ -376,3 +376,24 @@ describe("downloadClassicyTheme", () => {
 		expect(click).not.toHaveBeenCalled();
 	});
 });
+
+describe("theme files written before metric groups existed", () => {
+	it("a saved v1 file without metric groups round-trips with the full block", () => {
+		const file = JSON.parse(exportClassicyTheme(theme("default")));
+		file.theme.measurements = {
+			window: {
+				borderSize: 1,
+				controlSize: 12,
+				paddingSize: 6,
+				scrollbarSize: 17,
+			},
+		};
+		const loaded = parseOk(JSON.stringify(file));
+		expect(loaded.measurements.layout.dialogEdge).toBe(12);
+		expect(loaded.measurements.window.titleBarHeight).toBe(19);
+
+		const exported = JSON.parse(exportClassicyTheme(loaded));
+		expect(exported.theme.measurements.layout.dialogEdge).toBe(12);
+		expect(exported.theme.measurements.groupBox.gap).toBe(12);
+	});
+});

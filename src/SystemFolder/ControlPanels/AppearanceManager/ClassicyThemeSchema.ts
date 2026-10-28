@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { ClassicySounds } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicySounds";
+import { CLASSICY_DEFAULT_THEME_METRICS as METRICS } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import { classicyWallpaperFilename } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 
 /**
@@ -128,7 +129,45 @@ export const ClassicyThemeSchema = z.object({
 			controlSize: measurement,
 			paddingSize: measurement,
 			scrollbarSize: measurement,
+			titleBarHeight: measurement.default(METRICS.window.titleBarHeight),
+			utilityTitleBarHeight: measurement.default(
+				METRICS.window.utilityTitleBarHeight,
+			),
 		}),
+		// The groups below were added after version-1 theme files already
+		// existed, so each key — and each whole group — defaults to its Platinum
+		// value. Zod 4's `.default()` does not re-parse its value, so the group
+		// default must be the full object, never `{}`.
+		control: z
+			.object({
+				height: measurement.default(METRICS.control.height),
+				labelGap: measurement.default(METRICS.control.labelGap),
+				staticTextHeight: measurement.default(METRICS.control.staticTextHeight),
+			})
+			.default(METRICS.control),
+		button: z
+			.object({
+				minWidth: measurement.default(METRICS.button.minWidth),
+				textPadding: measurement.default(METRICS.button.textPadding),
+				gap: measurement.default(METRICS.button.gap),
+			})
+			.default(METRICS.button),
+		groupBox: z
+			.object({
+				marginSide: measurement.default(METRICS.groupBox.marginSide),
+				marginTop: measurement.default(METRICS.groupBox.marginTop),
+				marginBottom: measurement.default(METRICS.groupBox.marginBottom),
+				titlePad: measurement.default(METRICS.groupBox.titlePad),
+				gap: measurement.default(METRICS.groupBox.gap),
+			})
+			.default(METRICS.groupBox),
+		layout: z
+			.object({
+				itemGap: measurement.default(METRICS.layout.itemGap),
+				groupGap: measurement.default(METRICS.layout.groupGap),
+				dialogEdge: measurement.default(METRICS.layout.dialogEdge),
+			})
+			.default(METRICS.layout),
 	}),
 	desktop: z.object({
 		iconSize: size(512),

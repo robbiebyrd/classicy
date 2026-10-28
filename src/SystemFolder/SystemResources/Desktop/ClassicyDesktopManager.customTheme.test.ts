@@ -13,6 +13,10 @@ import {
 	getThemeColor,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorTargets";
 import {
+	CLASSICY_THEME_METRIC_TARGETS,
+	getThemeMetric,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricTargets";
+import {
 	type ActionMessage,
 	type ClassicyStore,
 	classicyDesktopStateEventReducer,
@@ -427,5 +431,88 @@ describe("through the Immer-backed kernel", () => {
 		expect(a.activeTheme.color.window.title).toBe(0x778899);
 		// The built-in entry is the very same (untouched) object.
 		expect(a.availableThemes?.[0]).toBe(stock);
+	});
+});
+
+describe("ClassicyDesktopChangeMetric", () => {
+	it("forks a built-in into Custom and applies the value", () => {
+		const ds = makeStore();
+		run(ds, {
+			type: "ClassicyDesktopChangeMetric",
+			metricKey: "buttonGap",
+			value: 20,
+		});
+		const a = appearance(ds);
+		expect(a.activeTheme.id).toBe(CLASSICY_CUSTOM_THEME_ID);
+		expect(a.activeTheme.name).toBe(CLASSICY_CUSTOM_THEME_NAME);
+		expect(a.activeTheme.measurements.button.gap).toBe(20);
+		expect(builtIn(ds, "default").measurements.button.gap).toBe(12);
+		expect(
+			(getThemeVars(a.activeTheme) as Record<string, string>)["--button-gap"],
+		).toBe("20px");
+	});
+
+	it("sets every metric target", () => {
+		for (const info of CLASSICY_THEME_METRIC_TARGETS) {
+			const ds = makeStore();
+			run(ds, {
+				type: "ClassicyDesktopChangeMetric",
+				...info.target,
+				value: 33,
+			});
+			const active = appearance(ds).activeTheme;
+			expect(getThemeMetric(active, info.target), info.cssVar).toBe(33);
+			expect(
+				(getThemeVars(active) as Record<string, string>)[info.cssVar],
+				info.cssVar,
+			).toBe("33px");
+		}
+	});
+
+	it("ignores an out-of-range value", () => {
+		const ds = makeStore();
+		const before = JSON.stringify(appearance(ds));
+		run(ds, {
+			type: "ClassicyDesktopChangeMetric",
+			metricKey: "windowControlSize",
+			value: 0,
+		});
+		run(ds, {
+			type: "ClassicyDesktopChangeMetric",
+			metricKey: "buttonGap",
+			value: 513,
+		});
+		run(ds, {
+			type: "ClassicyDesktopChangeMetric",
+			metricKey: "__proto__",
+			value: 12,
+		});
+		expect(JSON.stringify(appearance(ds))).toBe(before);
+		expect(appearance(ds).activeTheme.id).toBe("default");
+	});
+});
+
+describe("ClassicyDesktopLoadThemes normalizes metrics", () => {
+	it("a theme loaded without metric groups is complete when it becomes active", () => {
+		const ds = makeStore();
+		const stripped = JSON.parse(
+			JSON.stringify(builtIn(ds, "azul")),
+		) as unknown as Record<string, unknown>;
+		stripped.measurements = {
+			window: {
+				borderSize: 1,
+				controlSize: 12,
+				paddingSize: 6,
+				scrollbarSize: 17,
+			},
+		};
+		run(ds, { type: "ClassicyDesktopLoadThemes", availableThemes: [stripped] });
+		run(ds, { type: "ClassicyDesktopChangeTheme", activeTheme: "azul" });
+		const active = appearance(ds).activeTheme;
+		expect(active.id).toBe("azul");
+		expect(active.measurements.layout.itemGap).toBe(4);
+		expect(
+			(getThemeVars(active) as Record<string, string>)["--layout-item-gap"],
+		).toBe("4px");
 	});
 });

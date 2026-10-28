@@ -5,7 +5,7 @@
 // look + white fill is what distinguishes it from a (raised) bevel button; it
 // is NOT a substitute for a push button.
 .classicyImageWell {
-  --frame-w: var(--hig-frame-width, 2px);
+  --frame-w: var(--control-frame-width, 2px);
 
   display: inline-flex;
   align-items: center;

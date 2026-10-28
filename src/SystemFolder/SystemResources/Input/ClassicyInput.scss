@@ -5,12 +5,12 @@
 .classicyInput {
   font-family: var(--ui-font), sans-serif;
   // HIGOS8 Ch.2 "Edit Text Fields and Frames" (p.41): a 2px recessed frame,
-  // consistent with the image well / group box / separator (--hig-frame-width):
+  // consistent with the image well / group box / separator (--control-frame-width):
   // a 1px black border + a 2px inset bevel (dark top-left, light bottom-right).
   border: var(--window-border-size) solid var(--color-black);
   box-shadow:
-    inset var(--hig-frame-width) var(--hig-frame-width) 0 0 var(--color-system-05),
-    inset calc(var(--hig-frame-width) * -1) calc(var(--hig-frame-width) * -1) 0 0 var(--color-white);
+    inset var(--control-frame-width) var(--control-frame-width) 0 0 var(--color-system-05),
+    inset calc(var(--control-frame-width) * -1) calc(var(--control-frame-width) * -1) 0 0 var(--color-white);
   width: 100%;
 
   // HIGOS8 Ch.2 "Edit Text Fields and Frames" (p.41): the field stays a

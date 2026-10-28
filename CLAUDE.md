@@ -292,6 +292,15 @@ keystroke/click is swallowed in the capture phase.
 - 12 built-ins ported from bryanbraun/after-dark-css (`savers/`; CSS is MIT,
   sprite art © Berkeley Systems). Keyframes/classes are prefixed
   `classicySaver*` to avoid bundle-level CSS collisions.
+- The `logo` saver's image comes from its own live registry
+  (`savers/Logo/ClassicyScreenSaverLogoRegistry.ts`, in `sideEffects`):
+  `registerClassicyScreenSaverLogo({ id, name, src, width?, height? })` at
+  module scope; built-ins `berkeley-systems` (default), `classicy`,
+  `startup-screen` (`CLASSICY_SCREEN_SAVER_LOGO_IDS`). Config `{ logo: id }`
+  is picked in a custom `configComponent` pop-up (a schema enum could not
+  list logos registered later); an unregistered id draws the default. The
+  bounce keyframes read the mark's size from CSS custom properties, declared
+  or measured on load, so any image travels edge to edge.
 - The Screen Saver control panel
   (`ControlPanels/ScreenSaverManager/`) is part of `ClassicyControlPanels`.
 - Overlay z-index is 100001 (above dialog overlay 99999 and startup 100000);
@@ -608,6 +617,7 @@ Themes are JSON-based (`src/SystemFolder/ControlPanels/AppearanceManager/styles/
 
 Built-in themes are never mutated: the first colour/font/desktop edit on one (`ClassicyDesktopChangeColor { colorKey, index?, color }`, `ChangeFont*`, `ChangeBackground*`) forks it into the single "Custom" theme (`id: "custom"`) in `Appearance.customThemes` and activates it; later edits modify the active custom theme (`editActiveClassicyTheme`, `ClassicyCustomTheme.ts`). `ChangeTheme` searches built-ins, then customs. Customs live outside `availableThemes` because persisted arrays replace defaults on load.
 The 28 editable colours are defined once in `CLASSICY_THEME_COLOR_TARGETS` (`ClassicyThemeColorTargets.ts`), which drives the reducer's validation and the Appearance Manager's Colors tab. Details: `docs/AGENT-REFERENCE.md` §8.
+The 20 editable layout metrics are defined the same way in `CLASSICY_THEME_METRIC_TARGETS` (`ClassicyThemeMetricTargets.ts`, edited by `ClassicyDesktopChangeMetric { metricKey, value }`): layout constants are theme data under `measurements.<family>` (window, control, button, groupBox, layout; Platinum defaults in `CLASSICY_DEFAULT_THEME_METRICS`), derived sizes (frames, bevels, the edit-field height, …) are computed in `getThemeVars`, and there are no `--hig-*` variables. Themes persisted or saved before the groups existed are completed by `withDefaultThemeMetrics` (on load via `migrateClassicyState`, in files via zod defaults).
 Theme files (`ClassicyThemeFile.ts`, Themes tab "Save Theme…"/"Load Theme…") are `{ format: "classicy-theme", version: 1, theme }`, validated by the zod `ClassicyThemeSchema` (strips unknown keys; `backgroundImage` must be a bundled wallpaper or a plain http(s) URL because it lands unquoted in `url(…)`). Export writes wallpapers by filename. `ClassicyDesktopImportTheme { theme }` re-validates, always appends a new custom theme (`custom-<slug>` id, de-duplicated name, never `"custom"`) and activates it.
 
 ## Build Notes

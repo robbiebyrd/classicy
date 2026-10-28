@@ -24,6 +24,8 @@ export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicySize";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicySounds";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorTargets";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFile";
+export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricTargets";
+export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 export * from "./SystemFolder/ControlPanels/ControlStripManager/ClassicyControlStripManager";
@@ -64,6 +66,7 @@ export * from "./SystemFolder/Extensions/ScreenSaver/savers/FlyingToasters/Class
 export * from "./SystemFolder/Extensions/ScreenSaver/savers/Globe/ClassicyScreenSaverGlobe";
 export * from "./SystemFolder/Extensions/ScreenSaver/savers/HardRain/ClassicyScreenSaverHardRain";
 export * from "./SystemFolder/Extensions/ScreenSaver/savers/Logo/ClassicyScreenSaverLogo";
+export * from "./SystemFolder/Extensions/ScreenSaver/savers/Logo/ClassicyScreenSaverLogoRegistry";
 export * from "./SystemFolder/Extensions/ScreenSaver/savers/Messages/ClassicyScreenSaverMessages";
 export * from "./SystemFolder/Extensions/ScreenSaver/savers/Messages2/ClassicyScreenSaverMessages2";
 export * from "./SystemFolder/Extensions/ScreenSaver/savers/Rainstorm/ClassicyScreenSaverRainstorm";

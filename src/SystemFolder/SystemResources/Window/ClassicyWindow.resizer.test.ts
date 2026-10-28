@@ -209,7 +209,7 @@ describe("window resizer / scroll bar alignment", () => {
 	});
 
 	it("shrinks a placard control to the gutter it sits in", () => {
-		// .classicyPlacard is an 18px --hig-control-height control standalone;
+		// .classicyPlacard is an 18px --control-row-height control standalone;
 		// both it and its inline-block holder have to take the bar's height, or
 		// it stands proud of the line.
 		for (const selector of [

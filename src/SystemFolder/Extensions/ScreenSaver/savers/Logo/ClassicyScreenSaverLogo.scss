@@ -4,7 +4,13 @@
 }
 
 .classicySaverLogoMark {
-	/* 145px x 54px */
+	/*
+	 * The mark's rendered size, set inline by the component (the Berkeley
+	 * Systems original is 145px x 54px). The keyframes subtract it from the
+	 * viewport so any registered logo bounces edge to edge.
+	 */
+	--classicy-saver-logo-width: 145px;
+	--classicy-saver-logo-height: 54px;
 	display: block;
 	position: absolute;
 	animation:
@@ -17,13 +23,13 @@
 		left: 0;
 	}
 	to {
-		left: calc(100% - 145px);
+		left: calc(100% - var(--classicy-saver-logo-width));
 	}
 }
 
 @keyframes classicySaverLogoMoveY {
 	from {
-		top: calc(100% - 54px);
+		top: calc(100% - var(--classicy-saver-logo-height));
 	}
 	to {
 		top: 0;

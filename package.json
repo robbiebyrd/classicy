@@ -3,8 +3,8 @@
 	"module": "./dist/classicy.es.js",
 	"types": "./dist/types/src/index.d.ts",
 	"name": "classicy",
-	"version": "2.0.17",
-	"release": "Tempo",
+	"version": "2.1.3",
+	"release": "The",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/robbiebyrd/classicy"
@@ -56,6 +56,7 @@
 		"**/*.scss",
 		"./dist/fonts.js",
 		"./src/SystemFolder/Extensions/ScreenSaver/savers/ClassicyScreenSaverBuiltIns.tsx",
+		"./src/SystemFolder/Extensions/ScreenSaver/savers/Logo/ClassicyScreenSaverLogoRegistry.ts",
 		"./src/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverControlStripModule.ts",
 		"./src/SystemFolder/ControlPanels/SoundManager/ClassicySoundControlStripModule.tsx",
 		"./src/SystemFolder/ControlPanels/ControlStripManager/ClassicyControlStripManagerManifest.ts"

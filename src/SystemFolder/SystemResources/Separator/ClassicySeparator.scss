@@ -16,7 +16,7 @@
 .classicySeparatorHorizontal {
   box-sizing: border-box;
   width: 100%;
-  height: var(--hig-frame-width); // 2px total: 1px line + 1px highlight
+  height: var(--control-frame-width); // 2px total: 1px line + 1px highlight
   margin: calc(var(--window-padding-size) / 2) 0;
   // Top pixel = the dividing line; bottom pixel = the engraved highlight.
   border-top: var(--window-border-size) solid var(--color-system-04);
@@ -25,7 +25,7 @@
 
 .classicySeparatorVertical {
   box-sizing: border-box;
-  width: var(--hig-frame-width); // 2px total: 1px line + 1px highlight
+  width: var(--control-frame-width); // 2px total: 1px line + 1px highlight
   // Full height comes from `align-self: stretch` alone — an explicit
   // `height: 100%` would opt the item OUT of stretching, and inside a
   // content-sized flex row (ClassicyButtonToolbar) the percentage has no

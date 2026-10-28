@@ -18,6 +18,11 @@ import {
 	isThemeColorTarget,
 	isValidThemeColor,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorTargets";
+import {
+	type ClassicyThemeMetricChange,
+	isThemeMetricTarget,
+	isValidThemeMetric,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricTargets";
 import { ClassicyThemeSchema } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
@@ -231,6 +236,17 @@ export function hasThemeColorChange(
 	m: Msg,
 ): m is Msg & ClassicyThemeColorChange {
 	return isThemeColorTarget(m) && isValidThemeColor(m.color);
+}
+
+/**
+ * Action addresses one theme metric (`metricKey`, an allowlisted key from
+ * `CLASSICY_THEME_METRIC_KEYS`) and `value` is a finite number within that
+ * metric's `min`–`max` (see `CLASSICY_THEME_METRIC_TARGETS`).
+ */
+export function hasThemeMetricChange(
+	m: Msg,
+): m is Msg & ClassicyThemeMetricChange {
+	return isThemeMetricTarget(m) && isValidThemeMetric(m, m.value);
 }
 
 /** Action has `alertSound: string` (a `ClassicyAlert*` sprite key) */

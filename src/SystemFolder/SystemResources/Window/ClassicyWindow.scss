@@ -241,7 +241,9 @@
     position: relative;
     display: flex;
     flex-direction: row;
-    height: calc(var(--window-control-size) * 1.5);
+    // Theme metric (measurements.window.titleBarHeight; HIGOS8: 19px). The
+    // utility variant below overrides it with --window-utility-title-bar-height.
+    height: var(--window-title-bar-height);
     padding-bottom: var(--window-border-size);
     text-align: center;
     border: none;
@@ -570,7 +572,7 @@
   max-width: calc(100% - var(--window-control-size) * 3.5);
   height: var(--window-scrollbar-size);
 
-  // A placard is an 18px --hig-control-height control on its own, but on this
+  // A placard is an 18px --control-row-height control on its own, but on this
   // line it is one of the scroll bar gutter's occupants and takes the gutter's
   // height — otherwise it stands 2px proud of the bar it sits in.
   //
@@ -594,13 +596,6 @@
   opacity: 0.6;
 }
 
-// #205 / #32: document windows use the standard HIG 19px title bar height.
-.classicyWindowDocument {
-  .classicyWindowTitleBar {
-    min-height: var(--hig-titlebar-height);
-  }
-}
-
 // #205: utility (tool-palette) window — a crosshatch/pinstripe top drag region
 // instead of the pinstriped document title bar.
 .classicyWindowUtility {
@@ -622,13 +617,12 @@
   }
 
   .classicyWindowTitleBar {
-    // Windoid: half-height title bar (11px vs the 19px document bar). Override
-    // both height and min-height — the base .classicyWindowTitleBar sets
-    // height: calc(var(--window-control-size) * 1.5) (~18px), which would
-    // otherwise win over min-height alone.
-    height: var(--hig-titlebar-height-utility);
+    // Windoid: half-height title bar (measurements.window.utilityTitleBarHeight,
+    // 10px, vs the document bar's --window-title-bar-height). Override both
+    // height and min-height so nothing taller can win.
+    height: var(--window-utility-title-bar-height);
     top: calc(var(--window-border-size)*-2);
-    min-height: var(--hig-titlebar-height-utility);
+    min-height: var(--window-utility-title-bar-height);
     align-items: center;
     padding-bottom: 0;
 
@@ -636,27 +630,27 @@
     // keeping the Platinum bevel (inherited from the base rules).
     .classicyWindowControlBox {
       width: calc(
-        var(--hig-titlebar-height-utility) - var(--window-border-size) * 2
+        var(--window-utility-title-bar-height) - var(--window-border-size) * 2
       ) !important;
       height: calc(
-        var(--hig-titlebar-height-utility) - var(--window-border-size) * 2
+        var(--window-utility-title-bar-height) - var(--window-border-size) * 2
       ) !important;
 
       & .classicyWindowCloseBox {
         width: calc(
-          var(--hig-titlebar-height-utility) - var(--window-border-size) * 4
+          var(--window-utility-title-bar-height) - var(--window-border-size) * 4
         ) !important;
         height: calc(
-          var(--hig-titlebar-height-utility) - var(--window-border-size) * 4
+          var(--window-utility-title-bar-height) - var(--window-border-size) * 4
         ) !important;
       }
 
       & .classicyWindowCollapseBox {
         width: calc(
-          var(--hig-titlebar-height-utility) - var(--window-border-size) * 4
+          var(--window-utility-title-bar-height) - var(--window-border-size) * 4
         ) !important;
         height: calc(
-          var(--hig-titlebar-height-utility) - var(--window-border-size) * 4
+          var(--window-utility-title-bar-height) - var(--window-border-size) * 4
         ) !important;
 
         &:after {
@@ -681,7 +675,7 @@
     }
 
     .classicyWindowTitleCenter {
-      height: var(--hig-titlebar-height-utility) !important;
+      height: var(--window-utility-title-bar-height) !important;
       margin: 0 var(--window-padding-size) !important;
       background-image: assets.$title-bar-utility !important;
       background-repeat: repeat !important;
@@ -698,7 +692,7 @@
 // #203: modeless-dialog content frame — a 2px frame around the window body with
 // distinct active/inactive states. Opt in via the `contentFrame` prop.
 .classicyWindowContentsFramed {
-  border: var(--hig-frame-width) solid var(--color-system-07) !important;
+  border: var(--control-frame-width) solid var(--color-system-07) !important;
 }
 
 .classicyWindowContentsFramedDimmed {

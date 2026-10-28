@@ -22,17 +22,17 @@
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  min-width: var(--hig-popup-height);
-  height: var(--hig-popup-height);
+  min-width: var(--control-height);
+  height: var(--control-height);
   padding: 0 calc(var(--window-padding-size) / 2);
   font-family: var(--ui-font);
   font-size: calc(var(--ui-font-size) * 0.75);
   color: var(--color-black);
   background: var(--color-system-02);
-  border-top: var(--hig-bevel-sm) solid var(--color-system-01);
-  border-left: var(--hig-bevel-sm) solid var(--color-system-01);
-  border-bottom: var(--hig-bevel-sm) solid var(--color-system-05);
-  border-right: var(--hig-bevel-sm) solid var(--color-system-05);
+  border-top: var(--control-bevel-sm) solid var(--color-system-01);
+  border-left: var(--control-bevel-sm) solid var(--color-system-01);
+  border-bottom: var(--control-bevel-sm) solid var(--color-system-05);
+  border-right: var(--control-bevel-sm) solid var(--color-system-05);
   border-radius: 2px;
   outline: 1px solid var(--color-outline);
 }

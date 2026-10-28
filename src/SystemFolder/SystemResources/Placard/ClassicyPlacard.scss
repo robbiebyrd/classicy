@@ -10,13 +10,13 @@
 }
 
 .classicyPlacard {
-  --bevel-w: var(--hig-bevel-sm, 2px);
+  --bevel-w: var(--control-bevel-sm, 2px);
 
   display: inline-flex;
   align-items: center;
   gap: calc(var(--window-padding-size) / 2);
 
-  min-height: var(--hig-control-height, 18px);
+  min-height: var(--control-row-height, 18px);
   padding: 0 calc(var(--window-padding-size) / 1.5);
 
   font-family: var(--ui-font), sans-serif;

@@ -14,7 +14,7 @@ export const WarpConfigSchema = z.looseObject({
 		.min(3)
 		.max(9)
 		.default(9)
-		.describe("Star density: how many overlapping star layers fly past."),
+		.describe("Star density"),
 });
 
 const starImages = [stars1, stars2, stars3, stars4].map(String);

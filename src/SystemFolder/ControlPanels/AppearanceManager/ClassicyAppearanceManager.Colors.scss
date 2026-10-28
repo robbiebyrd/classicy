@@ -5,18 +5,18 @@
 .classicyAppearanceManagerColors {
   display: flex;
   flex-direction: column;
-  gap: var(--hig-item-gap-focus);
+  gap: var(--layout-focus-gap);
 }
 
 .classicyAppearanceManagerColorsScroll {
   display: flex;
   flex-wrap: wrap;
   align-content: flex-start;
-  gap: var(--hig-item-gap-focus) 0;
+  gap: var(--layout-focus-gap) 0;
   max-height: 210px;
   overflow-y: auto;
   // Room for the swatch bevel and the scroll bar to sit clear of the groups.
-  padding: var(--hig-item-gap) var(--hig-item-gap) var(--hig-item-gap) 0;
+  padding: var(--layout-item-gap) var(--layout-item-gap) var(--layout-item-gap) 0;
 }
 
 .classicyAppearanceManagerColorsGroup {
@@ -27,11 +27,11 @@
 .classicyAppearanceManagerColorsGrid {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--hig-item-gap) var(--hig-button-gap-h);
+  gap: var(--layout-item-gap) var(--button-gap);
 
   // Center each short label over its swatch.
   .classicyColorPickerSwatchWrapper {
     align-items: center;
-    gap: calc(var(--hig-item-gap) / 2);
+    gap: calc(var(--layout-item-gap) / 2);
   }
 }

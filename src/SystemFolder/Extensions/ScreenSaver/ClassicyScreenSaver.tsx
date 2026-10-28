@@ -94,9 +94,28 @@ const useScreenSaverIdleMonitor = (data: ScreenSaverData) => {
 	}, [enabled, active, timeoutMs, dispatch]);
 };
 
+/**
+ * Class put on `<html>` while a saver is showing. Its stylesheet rule hides the
+ * pointer everywhere in the document — not only over the overlay, so a saver's
+ * own elements and any host page outside the desktop show no cursor either —
+ * and it comes off with the overlay, so waking restores the pointer.
+ */
+export const SCREEN_SAVER_ACTIVE_DOCUMENT_CLASS = "classicyScreenSaverActive";
+
+const useHideCursorWhileActive = () => {
+	useEffect(() => {
+		const root = document.documentElement;
+		root.classList.add(SCREEN_SAVER_ACTIVE_DOCUMENT_CLASS);
+		return () => {
+			root.classList.remove(SCREEN_SAVER_ACTIVE_DOCUMENT_CLASS);
+		};
+	}, []);
+};
+
 const ClassicyScreenSaverOverlay: FunctionalComponent<{
 	data: ScreenSaverData;
 }> = ({ data }) => {
+	useHideCursorWhileActive();
 	const saver = data.selectedSaver
 		? getClassicyScreenSaver(data.selectedSaver)
 		: undefined;

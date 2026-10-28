@@ -17,7 +17,7 @@ type ClassicyControlGroupProps = {
 	title?: ReactNode;
 	/**
 	 * Border weight (HIGOS8 p.47). `primary` renders the 2px etched frame (1px
-	 * light + 1px dark, driven by `--hig-frame-width`); `secondary` renders a
+	 * light + 1px dark, driven by `--control-frame-width`); `secondary` renders a
 	 * 1px line, for lighter or nested grouping. Defaults to `primary`.
 	 */
 	variant?: ClassicyControlGroupVariant;
@@ -188,7 +188,7 @@ type ClassicyControlGroupStackProps = {
 
 /**
  * Stacks group boxes vertically at the HIG distance: 12px from one frame to
- * the next (HIGOS8 Figure 3-29, `--hig-groupbox-gap-v`), measured between
+ * the next (HIGOS8 Figure 3-29, `--group-box-gap`), measured between
  * the border lines, so a title overhanging the lower box's top edge sits
  * inside that gap rather than adding to it. Use it as the content of a
  * control panel or dialog that is a column of group boxes.

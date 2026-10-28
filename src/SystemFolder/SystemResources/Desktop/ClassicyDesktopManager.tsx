@@ -9,6 +9,8 @@ import {
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
 import { setThemeColor } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorTargets";
 import { readClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFile";
+import { withDefaultThemeMetricsList } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
+import { setThemeMetric } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricTargets";
 import {
 	hasActiveTheme,
 	hasAlertSound,
@@ -37,6 +39,7 @@ import {
 	hasStripPosition,
 	hasStripWidth,
 	hasThemeColorChange,
+	hasThemeMetricChange,
 	hasVisible,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
 import type {
@@ -334,6 +337,17 @@ export const classicyDesktopEventHandler = (
 			);
 			break;
 		}
+		// Same fork-on-first-edit semantics for the layout metrics
+		// (`measurements.<family>`); the payload is validated against
+		// CLASSICY_THEME_METRIC_TARGETS (key allowlist and min–max) first.
+		case "ClassicyDesktopChangeMetric": {
+			if (!hasThemeMetricChange(action)) break;
+			const target = action;
+			editActiveClassicyTheme(ds.System.Manager.Appearance, (theme) =>
+				setThemeMetric(theme, target, target.value),
+			);
+			break;
+		}
 		case "ClassicyDesktopChangeBackground": {
 			if (!hasBackgroundImage(action)) break;
 			editActiveClassicyTheme(ds.System.Manager.Appearance, (theme) => {
@@ -413,8 +427,12 @@ export const classicyDesktopEventHandler = (
 		}
 		case "ClassicyDesktopLoadThemes": {
 			if (!hasAvailableThemes(action)) break;
+			// A host may hand over themes written before the metric groups
+			// existed; complete them here so the next ChangeTheme never clones a
+			// metric-less theme into activeTheme (the load path does the same in
+			// migrateClassicyState).
 			ds.System.Manager.Appearance.availableThemes =
-				action.availableThemes as ClassicyTheme[];
+				withDefaultThemeMetricsList(action.availableThemes as ClassicyTheme[]);
 			break;
 		}
 		case "ClassicyDesktopSetBalloonHelp": {

@@ -4,6 +4,10 @@ import {
 	getTheme,
 	getThemeVars,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import {
+	CLASSICY_DEFAULT_THEME_METRICS,
+	withDefaultThemeMetrics,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 
 describe("getAllThemes", () => {
 	it("returns an array", () => {
@@ -116,16 +120,64 @@ describe("getThemeVars", () => {
 		expect(vars).toHaveProperty("--desktop-icon-size");
 	});
 
-	it("contains the HIG group-box spacing tokens (Figure 3-29)", () => {
-		const theme = getTheme("default");
-		const vars = getThemeVars(theme);
-		expect(vars["--hig-groupbox-gap-v"]).toBe("12px");
-		expect(vars["--hig-groupbox-gap-h"]).toBe("10px");
+	it("emits every metric input and derivation for the default theme", () => {
+		const vars = getThemeVars(getTheme("default")) as Record<string, string>;
+		// Inputs, 1:1 with measurements.<family>.<key>.
+		expect(vars["--window-title-bar-height"]).toBe("19px");
+		expect(vars["--window-utility-title-bar-height"]).toBe("10px");
+		expect(vars["--control-height"]).toBe("20px");
+		expect(vars["--control-label-gap"]).toBe("5px");
+		expect(vars["--control-static-text-height"]).toBe("16px");
+		expect(vars["--button-height"]).toBe("20px");
+		expect(vars["--button-min-width"]).toBe("58px");
+		expect(vars["--button-text-padding"]).toBe("8px");
+		expect(vars["--button-gap"]).toBe("12px");
+		expect(vars["--group-box-margin-side"]).toBe("10px");
+		expect(vars["--group-box-margin-top"]).toBe("12px");
+		expect(vars["--group-box-margin-bottom"]).toBe("10px");
+		expect(vars["--group-box-title-pad"]).toBe("3px");
+		expect(vars["--group-box-gap"]).toBe("12px");
+		expect(vars["--layout-item-gap"]).toBe("4px");
+		expect(vars["--layout-group-gap"]).toBe("16px");
+		expect(vars["--layout-dialog-edge"]).toBe("12px");
+		// Derived from the inputs.
+		expect(vars["--control-frame-width"]).toBe("2px");
+		expect(vars["--control-bevel-sm"]).toBe("2px");
+		expect(vars["--control-bevel-md"]).toBe("3px");
+		expect(vars["--control-bevel-lg"]).toBe("4px");
+		expect(vars["--button-default-ring"]).toBe("3px");
+		expect(vars["--control-row-height"]).toBe("18px");
+		expect(vars["--edit-field-height"]).toBe("22px");
+		expect(vars["--progress-height"]).toBe("12px");
+		expect(vars["--help-button-width"]).toBe("20px");
+		expect(vars["--help-button-height"]).toBe("21px");
+		expect(vars["--layout-focus-gap"]).toBe("6px");
 	});
 
-	it("contains --hig-titlebar-height-utility set to 10px", () => {
-		const theme = getTheme("default");
-		const vars = getThemeVars(theme);
-		expect(vars["--hig-titlebar-height-utility"]).toBe("10px");
+	it("derives from borderSize", () => {
+		const theme = withDefaultThemeMetrics({
+			...getTheme("default"),
+			measurements: {
+				...CLASSICY_DEFAULT_THEME_METRICS,
+				window: { ...CLASSICY_DEFAULT_THEME_METRICS.window, borderSize: 2 },
+			},
+		});
+		const vars = getThemeVars(theme) as Record<string, string>;
+		expect(vars["--control-frame-width"]).toBe("4px");
+		expect(vars["--control-bevel-lg"]).toBe("8px");
+		expect(vars["--button-default-ring"]).toBe("6px");
+		expect(vars["--edit-field-height"]).toBe("24px");
+		expect(vars["--help-button-height"]).toBe("22px");
+	});
+
+	// Owner decision D12 (docs/theming-audit.md §7): the --hig-* names are gone
+	// outright — no deprecated aliases, nothing emitted under the old names.
+	it("emits no --hig-* name at all", () => {
+		for (const theme of getAllThemes()) {
+			const higKeys = Object.keys(getThemeVars(theme)).filter((k) =>
+				k.startsWith("--hig-"),
+			);
+			expect(higKeys, theme.id).toEqual([]);
+		}
 	});
 });

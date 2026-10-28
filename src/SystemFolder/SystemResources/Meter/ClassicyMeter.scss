@@ -26,7 +26,7 @@
   align-items: stretch;
   box-sizing: border-box;
   width: 100%;
-  height: var(--hig-progress-height);
+  height: var(--progress-height);
   background: var(--color-system-04);
   @include appearance.platinumWindowInnerBorder;
 }
@@ -36,8 +36,8 @@
 }
 
 .classicyMeterSegmented {
-  gap: var(--hig-frame-width);
-  padding: var(--hig-frame-width);
+  gap: var(--control-frame-width);
+  padding: var(--control-frame-width);
 }
 
 .classicyMeterSegment {

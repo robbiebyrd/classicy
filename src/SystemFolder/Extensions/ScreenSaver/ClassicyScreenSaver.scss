@@ -10,6 +10,17 @@
 	user-select: none;
 }
 
+/*
+ * No pointer anywhere in the document while a saver is showing: the overlay
+ * puts this class on <html> for as long as it is mounted. `!important` and
+ * the descendant selector beat a saver's or host's own cursor rules, and the
+ * class comes off with the overlay, so the pointer returns on waking.
+ */
+html.classicyScreenSaverActive,
+html.classicyScreenSaverActive * {
+	cursor: none !important;
+}
+
 /* Savers that dim or reveal the live desktop (Fade Out, Spotlight). */
 .classicyScreenSaverOverlayTransparent {
 	background: transparent;

@@ -18,7 +18,11 @@ import {
 	ClassicyScreenSaverHardRain,
 	HardRainConfigSchema,
 } from "@/SystemFolder/Extensions/ScreenSaver/savers/HardRain/ClassicyScreenSaverHardRain";
-import { ClassicyScreenSaverLogo } from "@/SystemFolder/Extensions/ScreenSaver/savers/Logo/ClassicyScreenSaverLogo";
+import {
+	ClassicyScreenSaverLogo,
+	ClassicyScreenSaverLogoOptions,
+	LogoConfigSchema,
+} from "@/SystemFolder/Extensions/ScreenSaver/savers/Logo/ClassicyScreenSaverLogo";
 import {
 	ClassicyScreenSaverMessages,
 	MessagesConfigSchema,
@@ -90,6 +94,9 @@ registerClassicyScreenSaver({
 	id: "logo",
 	name: "Logo",
 	component: ClassicyScreenSaverLogo,
+	configSchema: LogoConfigSchema,
+	// A live pop-up of registered logos (`registerClassicyScreenSaverLogo`).
+	configComponent: ClassicyScreenSaverLogoOptions,
 });
 
 registerClassicyScreenSaver({

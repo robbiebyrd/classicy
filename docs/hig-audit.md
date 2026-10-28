@@ -86,8 +86,8 @@ Normative checklist (HIGOS8 Ch.2) and component mapping:
 | 2.9 | LOW | Static-text output had no disabled (dimmed) appearance. | `Output` | 🔧 Fixed |
 | 2.11 | LOW | Edit fields rounded their corners on focus and carried an invalid `outline` shorthand; the Rich editor also grew by 2em margin+padding on focus. | `Input`, `RichTextEditor` | 🔧 Fixed |
 | 2.12 | LOW | Table row selection used a fixed near-black instead of the Appearance selection color. | `Table` | 🔧 Fixed |
-| 2.6 | MEDIUM | List box frame was a 1px bevel vs the documented 2px `--hig-frame-width`. | `ListBox` | 🔧 Fixed |
-| 2.7 | MEDIUM | Edit-text frame was 1px vs the documented 2px `--hig-frame-width`. | `Input`,`TextEditor`,`RichTextEditor` | 🔧 Fixed |
+| 2.6 | MEDIUM | List box frame was a 1px bevel vs the documented 2px `--control-frame-width`. | `ListBox` | 🔧 Fixed |
+| 2.7 | MEDIUM | Edit-text frame was 1px vs the documented 2px `--control-frame-width`. | `Input`,`TextEditor`,`RichTextEditor` | 🔧 Fixed |
 | 2.5 | LOW | Pop-up list opened below/above the button rather than aligning the current item at the button level. | `PopUpMenu` | 🔧 Fixed (#263) |
 | 2.10 | LOW | Tab labels used the 14px app UI font, not the HIG 12pt/10pt sizes. | `Tabs` | 🔧 Fixed (#264) |
 
@@ -124,7 +124,7 @@ Normative checklist (HIGOS8 Ch.2) and component mapping:
 - **2.6, 2.7** (`ClassicyListBox.scss`, `ClassicyInput.scss`,
   `ClassicyTextEditor.scss`, `ClassicyRichTextEditor.scss`): the list box and
   edit-text controls now carry the same 2px recessed frame as the image well
-  (1px black border + a 2px **inset** bevel using `--hig-frame-width`), so they
+  (1px black border + a 2px **inset** bevel using `--control-frame-width`), so they
   match the controls the token was designed for. Verified by screenshot against
   the ImageWell reference in Storybook (preinstalled Chromium): the frame reads
   as a proper Platinum recess and — because the extra depth is an `inset`
@@ -204,7 +204,7 @@ Normative checklist (HIGOS8 Ch.3):
   buttons only. _HIGOS8 Ch.3 "Movable Modal Dialog Boxes" (p.59), "Alert Boxes"
   (p.60)._ Fixed in #262.
 
-**Verified already-compliant:** the `--hig-*` spacing tokens (12px button gap,
+**Verified already-compliant:** the layout-metric variables, now theme data under `measurements.<family>` (12px button gap,
 10px vertical stack, 12px dialog edge, 4/6/16px item/focus/group gaps, 20px
 button height, 58px OK/Cancel, 3px default ring, 8px text padding); alert
 severity icons (note=info, caution=triangle, stop=octagon); right-aligned button

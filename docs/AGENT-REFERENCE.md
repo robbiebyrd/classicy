@@ -532,9 +532,9 @@ usable pre-boot): `title?`, `children` *, `className?`, `width?`.
 | `ClassicyControlLabel` | `label?`, `labelFor?`, `id?` (the `<label>`'s id, for `aria-labelledby`), `labelSize?`, `icon?`, `direction?`, `disabled?`, `onClickFunc?` | renders nothing when label empty; the row is a focusable `role="button"` only with `onClickFunc` |
 | `ClassicyControlGroup` | `children` *, `label?`, `title?` (`ReactNode`; overrides `label`), `backgroundColor?` (painted behind the title so it masks the frame line; match the surface the group sits on; default `var(--color-system-03)`), `variant? ("primary"\|"secondary")`, `checkboxTitle?`, `popUpMenuTitle?`, `columns?`, `layout? ("default"\|"form")` | fieldset-style group; title can be a checkbox or popup. `layout="form"` is the HIG two-column label/control grid (labels 5px from fields, rows 6px apart; give controls `labelPosition="left"`) |
 | `ClassicyControlGroupFormRow` | `children` *, `justify? ("start"\|"end")` | full-width row inside a `layout="form"` group for anything that is not a label/control pair (checkbox, push button, text); `end` puts a button at the group's lower right |
-| `ClassicyControlGroupStack` | `children` *, `className?` | column of group boxes 12px frame to frame (`--hig-groupbox-gap-v`); the content of a control panel that is a stack of groups |
+| `ClassicyControlGroupStack` | `children` *, `className?` | column of group boxes 12px frame to frame (`--group-box-gap`); the content of a control panel that is a stack of groups |
 | `ClassicyForm` | `onSubmitFunc?`, `layout? ("default"\|"dialog")`, children * | real `<form>`; always calls `preventDefault` (never navigates); make the confirming button `isDefault buttonType="submit"` so Enter submits |
-| `ClassicyFormButtonRow` | `children` * | HIG dialog button row: right-aligned, `--hig-button-gap-h`, group-gap above |
+| `ClassicyFormButtonRow` | `children` * | HIG dialog button row: right-aligned, `--button-gap`, group-gap above |
 | `ClassicySeparator` | `orientation?` | |
 | `ClassicyPlacard` | `menuItems?`, `onSelect?(id)`, `onClick?`, `disabled?` | window-corner placard |
 | `ClassicyImageWell` | `src?`, `onDrop?(files, e)`, `selected?`, `enabled?` | drag-and-drop image slot |
@@ -927,8 +927,9 @@ dispatch({ type: 'ClassicyDesktopChangeTheme', activeTheme: 'myTheme' })  // no-
 ### Custom themes and colour edits
 
 Built-in themes (`Appearance.availableThemes`) are never mutated. Every theme
-edit — `ClassicyDesktopChangeColor`, `ChangeFont`, `ChangeFontSize`,
-`ChangeBackground`, `ChangeBackgroundPosition`/`Repeat`/`Size` — goes through
+edit — `ClassicyDesktopChangeColor`, `ChangeMetric`, `ChangeFont`,
+`ChangeFontSize`, `ChangeBackground`, `ChangeBackgroundPosition`/`Repeat`/`Size`
+— goes through
 `editActiveClassicyTheme` (`ClassicyCustomTheme.ts`):
 
 - **First edit while a built-in is active** deep-copies it into the single
@@ -975,6 +976,28 @@ with their CSS variable, label and group; `getThemeColor(theme, target)` /
 Manager's Colors tab (`useColorsTab`) is built from that table. Like every
 `ClassicyDesktop*` action, these are unreachable to untrusted (HyperCard)
 dispatches.
+
+`ClassicyDesktopChangeMetric` does the same for the 20 layout metrics, with
+identical fork-on-first-edit semantics:
+
+```ts
+dispatch({ type: 'ClassicyDesktopChangeMetric', metricKey: 'buttonGap', value: 16 })
+```
+
+`metricKey` is one of `CLASSICY_THEME_METRIC_KEYS` — `windowBorderSize`,
+`windowControlSize`, `windowPaddingSize`, `windowScrollbarSize`,
+`windowTitleBarHeight`, `windowUtilityTitleBarHeight`, `controlHeight`,
+`controlLabelGap`, `controlStaticTextHeight`, `buttonMinWidth`,
+`buttonTextPadding`, `buttonGap`, `groupBoxMarginSide`, `groupBoxMarginTop`,
+`groupBoxMarginBottom`, `groupBoxTitlePad`, `groupBoxGap`, `layoutItemGap`,
+`layoutGroupGap`, `layoutDialogEdge` — the camelCase spelling of
+`measurements.<family>.<key>`. `value` is whole pixels within the target's
+`min`–`max` (0 or 1 to 512; the sizes a zero would collapse have `min` 1).
+Invalid payloads are ignored (`hasThemeMetricChange`).
+`CLASSICY_THEME_METRIC_TARGETS` (`ClassicyThemeMetricTargets.ts`) lists every
+target with its CSS variable, label, group and bounds; `getThemeMetric` /
+`setThemeMetric` read and write one. Derived variables (frames, bevels, the
+edit-field height, …) have no target — change the input they derive from.
 
 `getTheme(id, overrides?)` returns a deep-merged clone; `getThemeVars(theme)`
 returns the CSS custom-property map. Raw SCSS partials are importable via
@@ -1074,7 +1097,7 @@ hard-coded colors/sizes, and they will follow theme changes automatically:
 ```css
 .myPanel {
     background: var(--color-system-03);
-    border: var(--hig-frame-width) solid var(--color-window-border);
+    border: var(--control-frame-width) solid var(--color-window-border);
     font-family: var(--ui-font);
     font-size: var(--ui-font-size);
 }
@@ -1092,19 +1115,48 @@ Theme-driven variables (values change per theme):
 | Typography | `--header-font`/`--header-font-size`, `--body-font`/`--body-font-size`, `--ui-font`/`--ui-font-size`, `--mono-font`/`--mono-font-size`, `--digital-font`/`--digital-font-size` |
 | Desktop | `--desktop-icon-size`, `--desktop-icon-font-size`, `--desktop-background-image`, `--desktop-background-color`, `--desktop-background-repeat`, `--desktop-background-position`, `--desktop-background-size`; fixed: `--icon-small-size` (16px), `--icon-size-regular` (32px) |
 
-HIG metric variables (`--hig-*`) encode Apple's Platinum Human Interface
-Guidelines measurements. They are fixed px constants (not theme-driven) but
-exposed as variables so custom components share the system's spacing:
+**Layout metrics** are theme data too. The inputs live in the theme JSON under
+`measurements.<family>` (Platinum defaults in `CLASSICY_DEFAULT_THEME_METRICS`,
+`ClassicyThemeMetrics.ts`; they are Apple's HIG Ch. 3 values) and each is
+emitted 1:1 as a variable:
 
-| Group | Variables (value) |
-|---|---|
-| Buttons | `--hig-button-height` (20), `--hig-button-min-width` (58, standard OK/Cancel), `--hig-button-text-padding` (8), `--hig-button-default-ring` (3), `--hig-button-gap-h` (12), `--hig-button-gap-v` (10), `--hig-dialog-edge` (12) |
-| Spacing | `--hig-item-gap` (4), `--hig-item-gap-focus` (6), `--hig-group-gap` (16) |
-| Controls | `--hig-control-box` (12), `--hig-control-height` (18), `--hig-control-label-gap` (5), `--hig-popup-height` (20), `--hig-editfield-height` (22) |
-| Group boxes | `--hig-groupbox-margin-side` (10), `--hig-groupbox-margin-top` (12), `--hig-groupbox-margin-bottom` (10), `--hig-groupbox-title-pad` (3), `--hig-groupbox-gap-v` (12, frame to frame stacked), `--hig-groupbox-gap-h` (10, side by side) |
-| Misc | `--hig-progress-height` (12), `--hig-static-text-height` (16), `--hig-disclosure-text-gap` (5), `--hig-help-button-width` (20), `--hig-help-button-height` (21) |
-| Frames & bevels | `--hig-frame-width` (2), `--hig-bevel-sm` (2), `--hig-bevel-md` (3), `--hig-bevel-lg` (4) |
-| Title bars | `--hig-titlebar-height` (19, document), `--hig-titlebar-height-utility` (10, utility/tool palette) |
+| Theme JSON | Variable | Platinum |
+|---|---|---|
+| `measurements.window.borderSize` | `--window-border-size` | 1 |
+| `measurements.window.controlSize` | `--window-control-size` | 12 |
+| `measurements.window.paddingSize` | `--window-padding-size` | 6 |
+| `measurements.window.scrollbarSize` | `--window-scrollbar-size` | 17 |
+| `measurements.window.titleBarHeight` | `--window-title-bar-height` | 19 |
+| `measurements.window.utilityTitleBarHeight` | `--window-utility-title-bar-height` | 10 |
+| `measurements.control.height` | `--control-height` (also `--button-height`) | 20 |
+| `measurements.control.labelGap` | `--control-label-gap` | 5 |
+| `measurements.control.staticTextHeight` | `--control-static-text-height` | 16 |
+| `measurements.button.minWidth` | `--button-min-width` (standard OK/Cancel) | 58 |
+| `measurements.button.textPadding` | `--button-text-padding` | 8 |
+| `measurements.button.gap` | `--button-gap` | 12 |
+| `measurements.groupBox.marginSide` / `marginTop` / `marginBottom` | `--group-box-margin-side` / `-top` / `-bottom` | 10 / 12 / 10 |
+| `measurements.groupBox.titlePad` | `--group-box-title-pad` | 3 |
+| `measurements.groupBox.gap` | `--group-box-gap` (frame to frame, stacked) | 12 |
+| `measurements.layout.itemGap` | `--layout-item-gap` | 4 |
+| `measurements.layout.groupGap` | `--layout-group-gap` | 16 |
+| `measurements.layout.dialogEdge` | `--layout-dialog-edge` | 12 |
+
+**Derived metrics** are computed by `getThemeVars` from those inputs, so a
+theme that changes an input gets them for free (never stored in JSON):
+
+| Variable | Formula | Platinum |
+|---|---|---|
+| `--control-frame-width` | `borderSize × 2` | 2 |
+| `--control-bevel-sm` / `-md` / `-lg` | `borderSize × 2 / 3 / 4` | 2 / 3 / 4 |
+| `--button-default-ring` | `borderSize × 3` | 3 |
+| `--control-row-height` | `controlSize × 1.5` (one-line control row: placard, list-box row) | 18 |
+| `--edit-field-height` | `control.height + borderSize × 2` | 22 |
+| `--progress-height` | `controlSize` | 12 |
+| `--help-button-width` / `-height` | `control.height` / `control.height + borderSize` | 20 / 21 |
+| `--layout-focus-gap` | `paddingSize` (preferred gap when focus rings show) | 6 |
+| `--window-scrollbar-arrow-size` | `scrollbarSize / 4` | 4.25 |
+
+There are no `--hig-*` variables (removed 2026-10-27, no aliases).
 
 ---
 
@@ -1266,6 +1318,32 @@ Registry read side: `getClassicyScreenSaver(id)`,
 `listClassicyScreenSavers()` (name-sorted),
 `resolveScreenSaverConfig(saver, saved?)`. The `active` flag is transient and
 never persists — a reload always wakes up.
+
+**Logo saver images.** The `logo` saver bounces one of a registry of images,
+chosen in its options pop-up (config `{ logo: <id> }`). Three ship built in
+(`CLASSICY_SCREEN_SAVER_LOGO_IDS`): `berkeley-systems` (the After Dark mark,
+default), `classicy` (the Classicy wordmark) and `startup-screen` (the mark
+the startup screen shows). Add your own at module scope; the pop-up is live,
+and re-registering an id replaces that image in place:
+
+```tsx
+import { registerClassicyScreenSaverLogo } from 'classicy'
+import logo from './acme-logo.png'
+
+registerClassicyScreenSaverLogo({
+    id: 'acme',
+    name: 'Acme Corp',   // shown in the Logo pop-up
+    src: logo,           // URL or data URI, drawn on black
+    width: 160,          // optional px; omit both to use the natural size,
+    height: 60,          // give one to scale with the aspect kept
+})
+```
+
+Logos list in registration order (built-ins first). Read side:
+`getClassicyScreenSaverLogo(id)`, `listClassicyScreenSaverLogos()`,
+`resolveClassicyScreenSaverLogo(id)` (unknown → default),
+`useClassicyScreenSaverLogos()` (live), `unregisterClassicyScreenSaverLogo(id)`.
+A saved config naming a logo that is no longer registered draws the default.
 
 ### Logging & diagnostics
 

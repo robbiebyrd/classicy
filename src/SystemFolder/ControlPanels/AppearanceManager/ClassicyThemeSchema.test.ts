@@ -8,6 +8,7 @@ import {
 	CLASSICY_CUSTOM_THEME_ID,
 	editActiveClassicyTheme,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
+import { CLASSICY_DEFAULT_THEME_METRICS } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import {
 	ClassicyThemeSchema,
 	isSafeClassicyThemeBackgroundImage,
@@ -223,6 +224,63 @@ describe("isSafeClassicyThemeBackgroundImage", () => {
 			withEdit((t) =>
 				Object.assign(t.desktop, { backgroundImage: "javascript:alert(1)" }),
 			),
+		);
+	});
+});
+
+describe("ClassicyThemeSchema — metric defaults", () => {
+	/** A default theme as a pre-metrics build wrote it: `measurements.window`
+	 * with its four original keys and nothing else. */
+	const v1Measurements = () =>
+		withEdit((t) => {
+			Object.assign(t, {
+				measurements: {
+					window: {
+						borderSize: 1,
+						controlSize: 12,
+						paddingSize: 6,
+						scrollbarSize: 17,
+					},
+				},
+			});
+		});
+
+	it("accepts a v1 theme with only measurements.window and fills the rest", () => {
+		const parsed = ClassicyThemeSchema.safeParse(v1Measurements());
+		expect(parsed.success, JSON.stringify(parsed.error?.issues)).toBe(true);
+		expect(parsed.data?.measurements).toEqual(CLASSICY_DEFAULT_THEME_METRICS);
+	});
+
+	it("keeps provided metrics", () => {
+		const parsed = ClassicyThemeSchema.safeParse(
+			withEdit((t) => {
+				(t.measurements as { control: { height: number } }).control.height = 24;
+			}),
+		);
+		expect(parsed.success).toBe(true);
+		expect(parsed.data?.measurements.control.height).toBe(24);
+		expect(parsed.data?.measurements.control.labelGap).toBe(5);
+	});
+
+	it("rejects a non-numeric metric", () => {
+		rejects(
+			withEdit((t) => {
+				Object.assign(
+					(t.measurements as unknown as { button: object }).button,
+					{ gap: "12" },
+				);
+			}),
+		);
+	});
+
+	it("rejects a metric over 512", () => {
+		rejects(
+			withEdit((t) => {
+				Object.assign(
+					(t.measurements as unknown as { layout: object }).layout,
+					{ groupGap: 513 },
+				);
+			}),
 		);
 	});
 });

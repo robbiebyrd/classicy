@@ -4,7 +4,7 @@
 .classicyProgress {
   progress[value] {
     width: calc(100%);
-    height: var(--hig-progress-height);
+    height: var(--progress-height);
     padding: 0 var(--window-border-size);
     background: var(--color-system-03) !important;
 
