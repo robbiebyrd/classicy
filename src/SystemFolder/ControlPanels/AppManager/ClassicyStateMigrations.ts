@@ -1,5 +1,8 @@
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
-import { withDefaultThemeMetrics } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
+import {
+	withDefaultThemeMetrics,
+	withDefaultThemeMetricsList,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import type {
 	ClassicyStore,
 	ClassicyStoreSystemApp,
@@ -64,15 +67,7 @@ function migrateThemeList(
 	themes: ClassicyTheme[] | undefined,
 ): ClassicyTheme[] | undefined {
 	if (!Array.isArray(themes)) return themes;
-	let next: ClassicyTheme[] | undefined;
-	themes.forEach((theme, i) => {
-		if (!theme || typeof theme !== "object") return;
-		const filled = withDefaultThemeMetrics(theme);
-		if (filled === theme) return;
-		next ??= [...themes];
-		next[i] = filled;
-	});
-	return next ?? themes;
+	return withDefaultThemeMetricsList(themes);
 }
 
 function migrateThemeMetrics(state: ClassicyStore): ClassicyStore {

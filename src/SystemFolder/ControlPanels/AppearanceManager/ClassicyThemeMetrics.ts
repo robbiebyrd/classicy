@@ -103,3 +103,22 @@ export function withDefaultThemeMetrics<
 	}
 	return { ...theme, measurements: next };
 }
+
+/**
+ * `withDefaultThemeMetrics` over a list, copy-on-write: the same array back
+ * when no entry needed completing, otherwise a copy with only the completed
+ * entries replaced. Non-object entries are left as they are.
+ */
+export function withDefaultThemeMetricsList<
+	T extends ClassicyThemeWithPartialMetrics,
+>(themes: readonly T[]): T[] {
+	let next: T[] | undefined;
+	themes.forEach((theme, i) => {
+		if (!theme || typeof theme !== "object") return;
+		const filled = withDefaultThemeMetrics(theme);
+		if (filled === theme) return;
+		next ??= [...themes];
+		next[i] = filled;
+	});
+	return next ?? (themes as T[]);
+}

@@ -491,3 +491,28 @@ describe("ClassicyDesktopChangeMetric", () => {
 		expect(appearance(ds).activeTheme.id).toBe("default");
 	});
 });
+
+describe("ClassicyDesktopLoadThemes normalizes metrics", () => {
+	it("a theme loaded without metric groups is complete when it becomes active", () => {
+		const ds = makeStore();
+		const stripped = JSON.parse(
+			JSON.stringify(builtIn(ds, "azul")),
+		) as unknown as Record<string, unknown>;
+		stripped.measurements = {
+			window: {
+				borderSize: 1,
+				controlSize: 12,
+				paddingSize: 6,
+				scrollbarSize: 17,
+			},
+		};
+		run(ds, { type: "ClassicyDesktopLoadThemes", availableThemes: [stripped] });
+		run(ds, { type: "ClassicyDesktopChangeTheme", activeTheme: "azul" });
+		const active = appearance(ds).activeTheme;
+		expect(active.id).toBe("azul");
+		expect(active.measurements.layout.itemGap).toBe(4);
+		expect(
+			(getThemeVars(active) as Record<string, string>)["--layout-item-gap"],
+		).toBe("4px");
+	});
+});
