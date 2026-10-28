@@ -910,7 +910,7 @@ type ClassicyTheme = {
     measurements: { window: { borderSize; controlSize; paddingSize; scrollbarSize } }
     desktop: { iconSize; iconFontSize; backgroundImage; backgroundColor;
                backgroundSize; backgroundRepeat; backgroundPosition }
-    sound: { name: string; disabled: string[] }
+    sound: { pack: string; disabled: string[] }
 }
 ```
 
@@ -1049,7 +1049,7 @@ Types are strict:
 | font stacks | letters, digits, spaces, `"` `'` `,` `.` `_` `-` only |
 | `backgroundRepeat`, string `backgroundPosition`/`backgroundSize` | CSS keyword chars (`A-Za-z0-9 % . -`) |
 | `desktop.backgroundImage` | `""`, a bundled wallpaper (filename or resolved URL), or an absolute http(s) URL with no whitespace, quotes, `()`, `\`, `;`, `<>`, `{}` — it is interpolated unquoted into `url(…)` (`isSafeClassicyThemeBackgroundImage`) |
-| `sound.name` | a key of `ClassicySounds` (e.g. `"platinum"`) |
+| `sound.pack` | a registered sound pack id (e.g. `"platinum"`); see §10 |
 
 ```ts
 import {
@@ -1070,7 +1070,8 @@ else showError(result.error)  // e.g. "This theme has invalid settings: color.sy
 `hasImportableTheme` validates it against the schema (invalid → ignored),
 then the reducer strips undeclared keys, resolves the wallpaper, assigns a
 fresh identity, **appends** it to `customThemes` and activates a copy (the
-same copy-on-activate as `ChangeTheme`; the caller loads its sound theme).
+same copy-on-activate as `ChangeTheme`; the sound manager reloads itself when
+the active theme's `sound.pack` changes).
 Identity rules (`assignImportedClassicyThemeIdentity`):
 
 - The file's `id` is ignored. The id is `custom-<slug of the name>`
@@ -1189,7 +1190,8 @@ sync. Use `analyticsExclude` to suppress a window's pageviews entirely. Window
 
 `ClassicySoundManagerProvider` is mounted for you by
 `ClassicyAppManagerProvider` (React context/useReducer, not Zustand). Sounds
-are Howler sprite keys from the bundled Platinum sound theme.
+are Howler sprite keys from the active sound pack (the bundled Platinum pack
+by default).
 
 ```ts
 import { useSoundDispatch, useClassicyAlertSound } from 'classicy'
@@ -1220,12 +1222,60 @@ system volume.
 Alert sound options: `CLASSICY_ALERT_SOUNDS` (Bonk, Growl, Indigo, Quack,
 Sosumi, Tabitha, Wild Eep); default `DEFAULT_ALERT_SOUND = "ClassicyAlertSosumi"`.
 
-**Custom sound themes**: a theme's `sound.name` keys into the exported
-mutable registry `ClassicySounds: Record<string, SoundData | null>` (stock
-key: `"platinum"`). `SoundData` (zod: `SoundDataSchema`) is the Howler
-audiosprite format: `{ src: string[], sprite: Record<string, [offsetMs, durationMs, loop?]> }`.
-Add a key to `ClassicySounds` and reference it from a theme, or dispatch
-`{ type: 'ClassicySoundLoad', file: soundData, disabled: [] }` directly.
+**Sound packs**: a sound pack is one Howler audiosprite sheet registered under
+a kebab-case id; a theme selects one with `sound.pack`. The earlier theme field
+and the mutable sound-data record it keyed into no longer exist: persisted
+state is healed on load, and a theme file that still uses the old field is
+refused with a `sound.pack:` issue.
+
+```ts
+import { registerClassicySoundPack, CLASSICY_SOUND_SPRITE_IDS } from 'classicy'
+
+registerClassicySoundPack({            // module scope, like the other registries
+    id: 'my-pack',                     // /^[a-z0-9][a-z0-9-]{0,63}$/
+    name: 'My Pack',                   // 1-64 chars
+    packageId: 'my-package',           // optional provenance
+    src: ['https://cdn.example/my-pack.ogg', 'https://cdn.example/my-pack.mp3'],
+    sprite: { ClassicyBeep: [0, 600], ClassicyWindowMoveMoving: [700, 400, true] },
+})
+```
+
+- `ClassicySoundPack` is `{ id, name, packageId?, src: string[], sprite }`
+  (`ClassicySoundPackSchema` validates it; an invalid pack is rejected with a
+  `classicyLog` warning). `sprite` is `Record<string, [offsetMs, durationMs, loop?]>`.
+  `src` entries may be relative to the pack JSON, `http(s)` URLs or `data:`
+  URIs. The registry stores them as given and Howler resolves them against the
+  page, so turn a relative `src` (what `pnpm build:audio` writes) into a
+  resolvable URL before registering, as the Platinum pack does with
+  `new URL('./x.ogg', import.meta.url)`.
+- Registry: `registerClassicySoundPack(pack)` (re-registering an id replaces
+  the pack in place), `getClassicySoundPack(id)`, `listClassicySoundPacks()`
+  (registration order), `subscribeClassicySoundPacks(listener)` and the live
+  hook `useClassicySoundPacks()`. The stock `"platinum"` pack registers itself
+  from `src/Appearance/Platinum/assets/sounds/platinum.ts`.
+- **Sprite-id contract**: `CLASSICY_SOUND_SPRITE_IDS` lists the 41 sprite ids
+  Classicy dispatches (it equals the Platinum sprite sheet's key set). A pack
+  should define all of them. When a pack is loaded and lacks some, the manager
+  logs a `warn` (`Sound pack is missing sprites; falling back to platinum`, with
+  the missing ids) and plays those sprites from the Platinum pack; a sprite
+  missing from both is not played.
+- **Boot and switching**: `ClassicySoundManagerProvider` reads
+  `System.Manager.Appearance.activeTheme.sound.pack` from the persisted store
+  and boots with that pack's player already built (Platinum if the pack is not
+  registered yet). It reloads when the id changes, and when a pack registers
+  after mount under the id the theme already names, with no page reload.
+  Editing any other part of the theme never reloads it. The system volume
+  (`ClassicyVolumeSet`) and the mute (`"*"` in `disabled`) carry over each
+  reload.
+- The reload is the reducer action `ClassicySoundLoad { pack, disabled }`
+  (`pack` is the `ClassicySoundPack` object, not an id; `disabled` replaces the
+  disabled list and defaults to the current one). Every Howl is built inside
+  `createSoundPlayer`, reached only through that action.
+- `pnpm build:audio` (`bin/make_audio_sprites.sh`) runs audiosprite over each
+  `assets/sounds/<name>/sprites/` directory and writes `<name>.json` plus the
+  encoded files next to it; the JSON carries `id` (the directory name), `name`,
+  relative `src` and `sprite`, ready to feed `registerClassicySoundPack` once
+  `src` is resolved.
 
 ---
 

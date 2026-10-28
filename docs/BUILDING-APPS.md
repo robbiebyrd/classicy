@@ -1134,7 +1134,7 @@ player({ type: ClassicySoundActionTypes.ClassicySoundPlay, sound: "ClassicyBeep"
 
 `ClassicySoundPlay` is skipped when something is already playing;
 `ClassicySoundPlayInterrupt` stops the current sound first. `sound` is a sprite
-key from the active sound theme.
+key from the active sound pack.
 
 For the user's chosen alert sound, use `useClassicyAlertSound()`, which returns a
 zero-argument function.
