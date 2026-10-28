@@ -1210,7 +1210,7 @@ Action types (string enum `ClassicySoundActionTypes`): `ClassicySoundPlay`
 (muting = the `"*"` wildcard in `disabled`; toggle just the mute with
 `EnableOne`/`DisableOne` `"*"` to keep per-sound choices), `ClassicyVolumeSet`
 (`{ volume }` 0–100, clamped and rounded; the player's gain, kept across
-theme loads),
+pack loads),
 `ClassicyAlertSound`, `ClassicySoundSetAlertSound`, `ClassicySoundSetAlertVolume`
 (`{ alertVolume }` 0–100, clamped and rounded). `useSound()` reads state.
 **Alert volume**: the persisted `Appearance.alertVolume` (default 100, set by
@@ -1243,11 +1243,21 @@ registerClassicySoundPack({            // module scope, like the other registrie
 - `ClassicySoundPack` is `{ id, name, packageId?, src: string[], sprite }`
   (`ClassicySoundPackSchema` validates it; an invalid pack is rejected with a
   `classicyLog` warning). `sprite` is `Record<string, [offsetMs, durationMs, loop?]>`.
-  `src` entries may be relative to the pack JSON, `http(s)` URLs or `data:`
+  `src` entries must be resolvable by the page: `http(s)` URLs or `data:`
   URIs. The registry stores them as given and Howler resolves them against the
-  page, so turn a relative `src` (what `pnpm build:audio` writes) into a
-  resolvable URL before registering, as the Platinum pack does with
-  `new URL('./x.ogg', import.meta.url)`.
+  page, never against the pack JSON. A pack JSON written by `pnpm build:audio`
+  holds paths relative to itself (`./platinum.ogg`), so resolve them first:
+
+  ```ts
+  const json = await (await fetch(jsonUrl)).json()
+  registerClassicySoundPack({
+      ...json,
+      src: json.src.map((s: string) => new URL(s, jsonUrl).href),
+  })
+  ```
+
+  A bundled pack does the same at build time with
+  `new URL('./x.ogg', import.meta.url)`, as the Platinum pack does.
 - Registry: `registerClassicySoundPack(pack)` (re-registering an id replaces
   the pack in place), `getClassicySoundPack(id)`, `listClassicySoundPacks()`
   (registration order), `subscribeClassicySoundPacks(listener)` and the live
