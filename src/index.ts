@@ -1,3 +1,4 @@
+export * from "./Appearance/Platinum/assets/sounds/platinum";
 export * from "./SystemFolder/ControlPanels/ClassicyControlPanels";
 export * from "./SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
 export * from "./SystemFolder/ControlPanels/AppManager/ClassicyActionTrust";
@@ -21,7 +22,6 @@ export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomThem
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyFontStack";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicySize";
-export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicySounds";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorTargets";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFile";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricTargets";

@@ -19,7 +19,6 @@ import {
 	isCustomThemeActive,
 	listClassicyThemes,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
-import { ClassicySounds } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicySounds";
 import type { ClassicyThemeColorChange } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorTargets";
 import {
 	downloadClassicyTheme,
@@ -34,6 +33,7 @@ import {
 	type ClassicyThemeSound,
 	useSoundDispatch,
 } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
+import { getClassicySoundPack } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
 import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import {
@@ -113,7 +113,7 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 
 	const loadSoundTheme = useCallback(
 		(soundTheme: ClassicyThemeSound) => {
-			const data = ClassicySounds[soundTheme.name];
+			const data = getClassicySoundPack(soundTheme.name);
 			if (!data) {
 				classicyLog(
 					"error",

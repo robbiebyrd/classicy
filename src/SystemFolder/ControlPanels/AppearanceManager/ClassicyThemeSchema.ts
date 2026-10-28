@@ -1,8 +1,12 @@
 import { z } from "zod";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
-import { ClassicySounds } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicySounds";
+import "@/Appearance/Platinum/assets/sounds/platinum";
 import { CLASSICY_DEFAULT_THEME_METRICS as METRICS } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import { classicyWallpaperFilename } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
+import {
+	getClassicySoundPack,
+	listClassicySoundPacks,
+} from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
 
 /**
  * Runtime schema for `ClassicyTheme`, used wherever a theme arrives from
@@ -85,8 +89,10 @@ const backgroundImage = z.string().refine(isSafeClassicyThemeBackgroundImage, {
 
 const soundName = z
 	.string()
-	.refine((name) => Object.hasOwn(ClassicySounds, name), {
-		error: `must be a known sound theme (${Object.keys(ClassicySounds).join(", ")})`,
+	.refine((name) => getClassicySoundPack(name) !== undefined, {
+		error: `must be a known sound theme (${listClassicySoundPacks()
+			.map((pack) => pack.id)
+			.join(", ")})`,
 	});
 
 export const ClassicyThemeSchema = z.object({

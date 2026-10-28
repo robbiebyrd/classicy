@@ -59,6 +59,7 @@
 		"./src/SystemFolder/Extensions/ScreenSaver/savers/Logo/ClassicyScreenSaverLogoRegistry.ts",
 		"./src/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverControlStripModule.ts",
 		"./src/SystemFolder/ControlPanels/SoundManager/ClassicySoundControlStripModule.tsx",
+		"./src/Appearance/Platinum/assets/sounds/platinum.ts",
 		"./src/SystemFolder/ControlPanels/ControlStripManager/ClassicyControlStripManagerManifest.ts"
 	],
 	"style": "./dist/classicy.css",

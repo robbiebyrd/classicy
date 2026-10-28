@@ -2,8 +2,12 @@
 
 import { Howl } from "howler";
 import { createContext, type Dispatch } from "react";
-import { ClassicySounds } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicySounds";
+import "@/Appearance/Platinum/assets/sounds/platinum";
 import type { ClassicyStoreSystemManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import {
+	CLASSICY_DEFAULT_SOUND_PACK_ID,
+	getClassicySoundPack,
+} from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
 import {
 	type SoundData,
 	SoundDataSchema,
@@ -127,7 +131,7 @@ export const createSoundPlayer = ({
 	return null;
 };
 
-const defaultSoundData = ClassicySounds.platinum;
+const defaultSoundData = getClassicySoundPack(CLASSICY_DEFAULT_SOUND_PACK_ID);
 
 /** The system volume as a 0–1 gain for the player (100 when unset). */
 export const classicySoundGain = (volume: number | undefined): number =>

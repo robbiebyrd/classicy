@@ -8,6 +8,7 @@ import {
 	type ClassicySoundState,
 	ClassicySoundStateEventReducer,
 } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerUtils";
+import { registerClassicySoundPack } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
 
 // Use vi.hoisted so the MockHowl constructor exists when the vi.mock factory
 // for "howler" runs (factories are hoisted before imports).
@@ -23,19 +24,21 @@ const { MockHowl } = vi.hoisted(() => {
 
 vi.mock("howler", () => ({ Howl: MockHowl }));
 
-vi.mock(
-	"@/SystemFolder/ControlPanels/AppearanceManager/ClassicySounds",
-	() => ({
-		ClassicySounds: {
-			platinum: { src: ["test.mp3"], sprite: { click: [0, 100] } },
-		},
-	}),
-);
+vi.mock("@/Appearance/Platinum/assets/sounds/platinum", () => ({}));
 
 vi.mock(
 	"@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerLabels.json",
 	() => ({ default: [] }),
 );
+
+beforeEach(() => {
+	registerClassicySoundPack({
+		id: "platinum",
+		name: "Platinum",
+		src: ["test.mp3"],
+		sprite: { click: [0, 100] },
+	});
+});
 
 // ---------------------------------------------------------------------------
 // Helpers
