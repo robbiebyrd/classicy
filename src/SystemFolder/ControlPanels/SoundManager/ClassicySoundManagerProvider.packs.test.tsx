@@ -136,6 +136,28 @@ describe("ClassicySoundManagerProvider sound packs", () => {
 		expect(player.volume).toHaveBeenCalledWith(0.4);
 	});
 
+	it("hands the theme's disabled list over when the pack changes", () => {
+		const { rerender } = render(tree());
+		mockAppearance.activeTheme = {
+			color: { a: 1 },
+			sound: { pack: "platinum", disabled: ["ClassicyBeep"] },
+		};
+		rerender(tree());
+		expect(latest.disabled).toEqual(["ClassicyBeep"]);
+	});
+
+	it("keeps defaultMuted when a pack registers after mount", () => {
+		mockAppearance.activeTheme.sound.pack = "late";
+		render(
+			<ClassicySoundManagerProvider defaultMuted>
+				<Probe />
+			</ClassicySoundManagerProvider>,
+		);
+		act(() => registerClassicySoundPack(pack("late", "late.ogg")));
+		expect(latest.packId).toBe("late");
+		expect(latest.disabled).toContain("*");
+	});
+
 	it("does not recreate the Howl when another theme field changes", () => {
 		const { rerender } = render(tree());
 		const count = created.length;

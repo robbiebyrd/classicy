@@ -289,11 +289,17 @@ export const ClassicySoundStateEventReducer = (
 			break;
 		}
 		case ClassicySoundActionTypes.ClassicySoundLoad: {
-			const disabled = action.disabled
+			const requested = action.disabled
 				? Array.isArray(action.disabled)
 					? action.disabled
 					: [action.disabled]
 				: ss.disabled;
+			// A reload never un-mutes: the "*" wildcard (defaultMuted, or the
+			// user's mute) survives the theme's own disabled list.
+			const disabled =
+				ss.disabled.includes("*") && !requested.includes("*")
+					? [...requested, "*"]
+					: requested;
 			const pack = action.pack;
 			if (!pack) {
 				next = { ...ss, disabled };
