@@ -60,9 +60,8 @@
 
   // --- On / pressed: bevel inverts (pushed-in) and the fill darkens. Under
   //     platinum pressed-was-off and pressed-was-on look identical. ---
-  &[data-state="on"],
-  &[data-state="pressed-off"],
-  &[data-state="pressed-on"] {
+  &.checked,
+  &.pressed {
     background-color: var(--color-system-04);
     color: var(--color-black);
     box-shadow:
@@ -70,13 +69,12 @@
       inset calc(var(--bevel-w) * -1) calc(var(--bevel-w) * -1) 0 0 var(--color-white);
   }
 
-  &[data-state="pressed-off"],
-  &[data-state="pressed-on"] {
+  &.pressed {
     background-color: var(--color-system-05);
   }
 
   // --- Mixed: pushed-in bevel with a lighter dithered-style fill. ---
-  &[data-state="mixed"] {
+  &.mixed {
     background-color: var(--color-system-03);
     color: var(--color-black);
     box-shadow:
@@ -85,8 +83,7 @@
   }
 
   // --- Disabled: flatten the bevel and dim the content. ---
-  &[data-state="disabled-off"],
-  &[data-state="disabled-on"] {
+  &.disabled {
     background-color: var(--color-system-02);
     border-color: var(--color-system-05);
     color: var(--color-system-05);
@@ -101,7 +98,7 @@
   }
 
   // Keep the "on" disabled state visibly latched (inset) even while dimmed.
-  &[data-state="disabled-on"] {
+  &.disabled.checked {
     background-color: var(--color-system-03);
   }
 }

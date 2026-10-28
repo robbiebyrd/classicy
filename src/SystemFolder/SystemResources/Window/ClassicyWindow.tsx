@@ -29,6 +29,7 @@ import {
 import { createPortal } from "react-dom";
 
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import {
 	getAppWindow,
 	listAppWindows,
@@ -1490,7 +1491,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const setResize = (toResize: boolean, nextSize?: [number, number]) => {
 		// Guard where the size is read, not in the SCSS: while collapsed, the
 		// window's DOM height is forced to the ~24px title-bar height by
-		// .classicyWindowCollapsed (ClassicyWindow.scss), so a measurement here
+		// .classicyWindow.collapsed (ClassicyWindow.scss), so a measurement here
 		// would persist that collapsed height as the window's real size.
 		// Skipping the dispatch entirely while collapsed leaves the last
 		// expanded size in the store untouched, so it survives a
@@ -1628,9 +1629,12 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				windowType === "utility"
 					? "classicyWindowUtility"
 					: "classicyWindowDocument",
-				ws.collapsed ? "classicyWindowCollapsed" : "",
-				ws.zoomed ? "classicyWindowZoomed" : "",
-				modal || isActive() ? "classicyWindowActive" : "classicyWindowInactive",
+				classicyStateClasses({
+					collapsed: ws.collapsed,
+					active: modal || isActive(),
+					inactive: !(modal || isActive()),
+					dragging: ws.moving,
+				}),
 				currentApp?.focused && !isActive() ? "classicyWindowActiveApp" : "",
 				windowType === "utility"
 					? alwaysOnTop || currentApp?.focused
@@ -1638,7 +1642,6 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 						: "classicyWindowBackgrounded"
 					: "",
 				!ws.closed ? "" : "classicyWindowInvisible",
-				ws.moving ? "classicyWindowDragging" : "",
 				ws.resizing ? "classicyWindowResizing" : "",
 				modal ? "classicyWindowModal" : "",
 				// Non-error modals (File Open/Save and other dialogs) stack in the
@@ -1780,7 +1783,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 						? "classicyWindowContentsModal"
 						: "classicyWindowContents",
 					header ? "classicyWindowContentsWithHeader" : "",
-					ws.collapsed ? "hidden" : "block",
+					classicyStateClasses({ collapsed: ws.collapsed }),
 				)}
 				style={
 					backgroundColor

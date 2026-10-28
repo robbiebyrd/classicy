@@ -3,7 +3,9 @@
   background: var(--color-black);
 }
 
-.classicyDesktopMenuAppleMenu {
+.classicyDesktopMenuApple {
+  margin-left: 0;
+
   > p {
     height: 100%;
     display: flex;
@@ -12,6 +14,11 @@
     ul {
       min-width: 20vw;
     }
+  }
+
+  &:after {
+    display: none !important;
+    content: '';
   }
 }
 
@@ -53,15 +60,6 @@
   margin: 0;
   padding: 0;
   list-style: none;
-}
-
-.classicyDesktopMenuAppleMenu {
-  margin-left: 0;
-
-  &:after {
-    display: none !important;
-    content: '';
-  }
 }
 
 .classicyDesktopMenuAppSwitcher {

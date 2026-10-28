@@ -2,16 +2,17 @@
 @use "../../ControlPanels/AppearanceManager/styles/scrollbars";
 @use "../../ControlPanels/AppearanceManager/styles/appearance";
 
-// #208: Zoom geometry is now computed in JS (standard-state vs user-state and
-// the horizontal/vertical zoom modes), applied via the window's inline
-// position/size. The class is retained purely as a state hook; it must NOT
-// force a rect or it would override the computed standard state.
-.classicyWindowZoomed {
-  // intentionally no geometry — see ClassicyWindow.tsx applyZoom()
+// #208: Zoom geometry is computed in JS (standard-state vs user-state and the
+// horizontal/vertical zoom modes) and applied via the window's inline
+// position/size, so zoom has no class — see ClassicyWindow.tsx applyZoom().
+
+:where(.classicyWindow).collapsed {
+  height: calc(var(--window-control-size) * 1.25) !important;
 }
 
-.classicyWindowCollapsed {
-  height: calc(var(--window-control-size) * 1.25) !important;
+// A collapsed window keeps its contents mounted but out of sight.
+:where(.classicyWindowContents, .classicyWindowContentsModal).collapsed {
+  visibility: hidden;
 }
 
 .classicyWindowHeader {
@@ -46,7 +47,7 @@
   box-shadow: none !important;
 }
 
-.classicyWindowInactive {
+:where(.classicyWindow).inactive {
   z-index: unset;
   user-select: none;
   filter: contrast(0.6) brightness(1.25);
@@ -82,7 +83,7 @@
   }
 }
 
-.classicyWindowActive {
+:where(.classicyWindow).active {
   z-index: 300 !important;
 
   .classicyWindowTitleBar {
@@ -175,7 +176,7 @@
   }
 }
 
-.classicyWindowDragging {
+:where(.classicyWindow).dragging {
   cursor: grabbing !important; /* Set cursor for the dragging element itself */
   border: calc(var(--window-padding-size) / 4) dotted !important;
   border-color: var(--color-black) !important;
@@ -608,7 +609,7 @@
   --window-scrollbar-size: calc(var(--window-padding-size) * 1 + var(--window-border-size) * 1);
   --window-scrollbar-arrow-size: calc(var(--window-scrollbar-size) / 4);
 
-  &.classicyWindowCollapsed {
+  &.collapsed {
       height: calc(var(--window-control-size) * .5) !important;
   }
 

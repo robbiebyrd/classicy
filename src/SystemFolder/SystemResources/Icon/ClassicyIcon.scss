@@ -39,7 +39,7 @@
   filter: opacity(0.45);
 }
 
-.classicyIconDragging {
+:where(.classicyIcon).dragging {
   z-index: 500 !important;
   //margin: calc(var(--desktop-icon-size) * -4);
   //padding: calc(var(--desktop-icon-size) * 4);
@@ -68,7 +68,7 @@
   mask-repeat: no-repeat !important;
 }
 
-.classicyIconOpen {
+:where(.classicyIcon).open {
   z-index: 99;
 
   .classicyIconMaskOuter {
@@ -83,7 +83,7 @@
   }
 }
 
-.classicyIconActive {
+:where(.classicyIcon).selected {
   .classicyIconMaskOuter {
     img {
       filter: brightness(50%);
@@ -96,7 +96,9 @@
   }
 }
 
-.classicyIconActiveAndOpen {
+// Selected and open at once. Both state rules above also match, so this
+// block — later, and more specific — restates only what differs from them.
+.classicyIcon.selected.open {
   z-index: 99;
 
   .classicyIconMaskOuter {
@@ -106,10 +108,17 @@
     .classicyIconMask {
       filter: brightness(50%);
       backdrop-filter: grayscale(1) invert(1) brightness(1) !important;
+      // The open rule's overlay blend and the selected rule's dimmed artwork
+      // never showed in this combined state; keep them off.
+      background-blend-mode: normal;
 
       * {
         opacity: 0;
       }
+    }
+
+    img {
+      filter: none;
     }
   }
 

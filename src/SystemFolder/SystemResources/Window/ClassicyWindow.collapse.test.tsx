@@ -126,7 +126,7 @@ describe("ClassicyWindow collapsed-size persistence (#11)", () => {
 
 		// jsdom never runs layout, so getBoundingClientRect() is always zeros
 		// by default. In a real browser, ClassicyWindow.scss's
-		// `.classicyWindowCollapsed { height: ... !important }` forces the
+		// `.classicyWindow.collapsed { height: ... !important }` forces the
 		// window's rect height to the ~24px title bar while collapsed. Stand
 		// that in here — driven off the same class the component applies —
 		// so the rect read at mouseup behaves exactly like a real browser.
@@ -135,7 +135,7 @@ describe("ClassicyWindow collapsed-size persistence (#11)", () => {
 		rectSpy = vi
 			.spyOn(Element.prototype, "getBoundingClientRect")
 			.mockImplementation(function (this: HTMLElement) {
-				const collapsed = this.classList.contains("classicyWindowCollapsed");
+				const collapsed = this.classList.contains("collapsed");
 				const inlineHeight = parseFloat(this.style.height || "");
 				const inlineWidth = parseFloat(this.style.width || "");
 				const height = collapsed
@@ -168,7 +168,7 @@ describe("ClassicyWindow collapsed-size persistence (#11)", () => {
 		rerender(windowEl());
 
 		const root = container.querySelector(".classicyWindow") as HTMLElement;
-		expect(root.classList.contains("classicyWindowCollapsed")).toBe(true);
+		expect(root.classList.contains("collapsed")).toBe(true);
 
 		fireEvent.mouseUp(root);
 
@@ -183,7 +183,7 @@ describe("ClassicyWindow collapsed-size persistence (#11)", () => {
 		rerender(windowEl());
 
 		const root = container.querySelector(".classicyWindow") as HTMLElement;
-		expect(root.classList.contains("classicyWindowCollapsed")).toBe(true);
+		expect(root.classList.contains("collapsed")).toBe(true);
 
 		// The reported bug path: a bare click on the collapsed window — mousedown
 		// and mouseup on the title bar with no movement, driving stopChangeWindow.
@@ -207,7 +207,7 @@ describe("ClassicyWindow collapsed-size persistence (#11)", () => {
 	it("still persists a new height when resizing an expanded (non-collapsed) window", () => {
 		const { container } = render(windowEl());
 		const root = container.querySelector(".classicyWindow") as HTMLElement;
-		expect(root.classList.contains("classicyWindowCollapsed")).toBe(false);
+		expect(root.classList.contains("collapsed")).toBe(false);
 
 		// A grow-box drag: the window sits at [110, 110], and the document-level
 		// move handler sizes it to the pointer's distance from that corner + 5.

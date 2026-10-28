@@ -762,7 +762,7 @@ describe("Control-dragging the Control Strip (#298, #299)", () => {
 		expect(storedStrip()).toMatchObject({ edge: "right", bottom: 288 });
 		// The press was a move: the strip did not collapse.
 		expect(storedStrip()?.collapsed).toBeUndefined();
-		expect(strip()).not.toHaveClass("classicyControlStripCollapsed");
+		expect(strip()).not.toHaveClass("collapsed");
 	});
 
 	it("docks back to the left when dropped on the left half", () => {

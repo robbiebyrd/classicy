@@ -12,6 +12,7 @@ import {
 	useState,
 } from "react";
 import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -510,9 +511,8 @@ export const ClassicyControlStrip: FunctionalComponent<
 			onContextMenu={onContextMenu}
 			className={classNames(
 				"classicyControlStrip",
-				collapsed && "classicyControlStripCollapsed",
+				classicyStateClasses({ collapsed, dragging: Boolean(movePreview) }),
 				edge === "right" && "classicyControlStripRight",
-				movePreview && "classicyControlStripMoving",
 				className,
 			)}
 			style={

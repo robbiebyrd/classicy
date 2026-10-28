@@ -115,12 +115,12 @@ describe("ClassicyFileBrowserViewIcons arrangement", () => {
 			arrangement: "sorted",
 		});
 		// firstIconRoot(), not `.closest("div")`: the <img>'s nearest div ancestor
-		// is div.classicyIconMask, but "classicyIconDragging" is only ever applied
+		// is div.classicyIconMask, but "dragging" is only ever applied
 		// to the root div.classicyIcon. Asserting on the mask made this pass for
 		// every possible implementation — including one with no locking at all.
 		const icon = firstIconRoot();
 		fireEvent.mouseDown(icon);
-		expect(icon.className).not.toContain("classicyIconDragging");
+		expect(icon).not.toHaveClass("dragging");
 	});
 
 	it("drags an outline, not the icon, once the pointer has moved", () => {

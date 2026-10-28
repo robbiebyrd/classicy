@@ -9,6 +9,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 
 export type ClassicyPlacardMenuItem = {
@@ -83,8 +84,6 @@ export const ClassicyPlacard: FunctionalComponent<ClassicyPlacardProps> = ({
 		return () => document.removeEventListener("mousedown", onDocClick);
 	}, [open]);
 
-	const state = disabled ? "disabled" : pressed || open ? "pressed" : "normal";
-
 	const handleClick = (e: MouseEvent<HTMLElement>) => {
 		if (disabled) return;
 		if (hasMenu) setOpen((o) => !o);
@@ -98,12 +97,18 @@ export const ClassicyPlacard: FunctionalComponent<ClassicyPlacardProps> = ({
 	};
 
 	const commonProps = {
-		"data-state": state,
-		className: classNames("classicyPlacard", {
-			classicyPlacardInteractive: interactive,
-			classicyPlacardHasMenu: hasMenu,
-			classicyPlacardDisabled: disabled,
-		}),
+		className: classNames(
+			"classicyPlacard",
+			classicyStateClasses({
+				disabled,
+				// A disabled placard never reads as pressed.
+				pressed: !disabled && (pressed || open),
+			}),
+			{
+				classicyPlacardInteractive: interactive,
+				classicyPlacardHasMenu: hasMenu,
+			},
+		),
 	};
 
 	const body = (

@@ -23,10 +23,9 @@ describe("ClassicyPlacard", () => {
 
 	it("reports the normal state by default", () => {
 		const { container } = render(<ClassicyPlacard>Info</ClassicyPlacard>);
-		expect(container.querySelector(".classicyPlacard")).toHaveAttribute(
-			"data-state",
-			"normal",
-		);
+		const placard = container.querySelector(".classicyPlacard");
+		expect(placard).not.toHaveClass("pressed", "disabled");
+		expect(placard).not.toHaveAttribute("data-state");
 	});
 
 	it("renders a button and fires onClick when clickable", async () => {
@@ -44,10 +43,10 @@ describe("ClassicyPlacard", () => {
 				Off
 			</ClassicyPlacard>,
 		);
-		expect(container.querySelector(".classicyPlacard")).toHaveAttribute(
-			"data-state",
-			"disabled",
-		);
+		const placard = container.querySelector(".classicyPlacard");
+		expect(placard).toHaveClass("disabled");
+		expect(placard).not.toHaveClass("classicyPlacardDisabled");
+		expect(placard).not.toHaveAttribute("data-state");
 		expect(screen.queryByRole("button")).not.toBeInTheDocument();
 	});
 

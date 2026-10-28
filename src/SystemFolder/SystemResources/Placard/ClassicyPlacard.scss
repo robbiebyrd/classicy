@@ -41,7 +41,7 @@
   }
 
   // --- Pressed: bevel inverts to look pushed in. ---
-  &[data-state="pressed"] {
+  &.pressed {
     background-color: var(--color-system-04);
     box-shadow:
       inset var(--bevel-w) var(--bevel-w) 0 0 var(--color-system-05),
@@ -49,7 +49,7 @@
   }
 
   // --- Disabled: flatten and dim. ---
-  &[data-state="disabled"] {
+  &.disabled {
     border-color: var(--color-system-05);
     color: var(--color-system-05);
     box-shadow:

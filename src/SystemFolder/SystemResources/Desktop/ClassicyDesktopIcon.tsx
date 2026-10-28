@@ -1,4 +1,5 @@
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -396,19 +397,6 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 				});
 			};
 
-			const getClass = () => {
-				const launched = isLaunched();
-				if (isSelected && launched) {
-					return "classicyDesktopIconActiveAndOpen";
-				} else if (isSelected) {
-					return "classicyDesktopIconActive";
-				} else if (launched) {
-					return "classicyDesktopIconOpen";
-				} else {
-					return "";
-				}
-			};
-
 			const isAlias = isAliasKind(kind);
 
 			return (
@@ -444,8 +432,11 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 					}}
 					className={classNames(
 						"classicyDesktopIcon",
-						dragging ? "classicyDesktopIconDragging" : "",
-						getClass(),
+						classicyStateClasses({
+							selected: isSelected,
+							open: isLaunched(),
+							dragging,
+						}),
 						isAlias ? "classicyDesktopIconAlias" : "",
 					)}
 					style={{ top: thisLocation[0], left: thisLocation[1] }}

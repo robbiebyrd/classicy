@@ -179,15 +179,7 @@
 			"SizeMedium",
 			"SizeSmall"
 		],
-		"ControlStrip": [
-			"Cell",
-			"Collapsed",
-			"Module",
-			"Modules",
-			"Moving",
-			"Right",
-			"Tab"
-		],
+		"ControlStrip": ["Cell", "Module", "Modules", "Right", "Tab"],
 		"CrashScreen": [],
 		"DateAndTimeManager": [
 			"ButtonRow",
@@ -206,19 +198,10 @@
 			"Select",
 			"State"
 		],
-		"DesktopIcon": [
-			"Active",
-			"ActiveAndOpen",
-			"Alias",
-			"Dragging",
-			"Image",
-			"Mask",
-			"MaskOuter",
-			"Open"
-		],
+		"DesktopIcon": ["Alias", "Image", "Mask", "MaskOuter"],
 		"DesktopMenu": [
 			"AppSwitcher",
-			"AppleMenu",
+			"Apple",
 			"ExtensionTrigger",
 			"Extensions",
 			"Help",
@@ -280,7 +263,7 @@
 			"Stage",
 			"StageInner"
 		],
-		"Icon": ["Active", "Dragging", "Invisible", "Mask", "MaskOuter"],
+		"Icon": ["Invisible", "Mask", "MaskOuter"],
 		"ImageWell": ["Image"],
 		"Input": ["Default", "Holder"],
 		"InputDialog": ["Body", "Buttons", "Icon", "Prompt", "Top"],
@@ -411,12 +394,10 @@
 		"Triangle": ["DropShadow", "Highlight", "Inner", "Outline", "Shadow"],
 		"WebViewer": ["Frame"],
 		"Window": [
-			"Active",
 			"ActiveApp",
 			"Backgrounded",
 			"CloseBox",
 			"CollapseBox",
-			"Collapsed",
 			"Contents",
 			"ContentsDimmed",
 			"ContentsFramed",
@@ -428,7 +409,6 @@
 			"ContentsWithHeader",
 			"ControlBox",
 			"Document",
-			"Dragging",
 			"Floating",
 			"Frame",
 			"FrameBody",
@@ -439,7 +419,6 @@
 			"HeaderDimmed",
 			"HeaderList",
 			"Icon",
-			"Inactive",
 			"Invisible",
 			"Modal",
 			"ModalFront",
@@ -461,8 +440,7 @@
 			"TitleRight",
 			"TitleText",
 			"Utility",
-			"ZoomBox",
-			"Zoomed"
+			"ZoomBox"
 		]
 	},
 	"states": [

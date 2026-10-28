@@ -129,7 +129,7 @@ $module-width: 30px;
   }
 }
 
-.classicyControlStripMoving {
+:where(.classicyControlStrip).dragging {
   cursor: move;
 
   * {
@@ -221,9 +221,8 @@ $module-width: 30px;
     line-height: 0;
   }
 
-  &[data-state="pressed-off"],
-  &[data-state="pressed-on"],
-  &[aria-expanded="true"] {
+  &.pressed,
+  &.open {
     @include bevel-pressed;
     box-shadow: none;
 
@@ -258,7 +257,7 @@ $module-width: 30px;
   }
 }
 
-.classicyControlStripCollapsed .classicyControlStripTab {
+:where(.classicyControlStrip).collapsed .classicyControlStripTab {
   cursor: default;
 }
 

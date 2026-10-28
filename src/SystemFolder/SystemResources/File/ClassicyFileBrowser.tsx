@@ -179,7 +179,7 @@ export const ClassicyFileBrowser: FunctionalComponent<
 	const { showContextMenu } = useClassicyContextualMenu();
 
 	// The list view reports its selection; the icon view's lives in each icon
-	// (highlighted ones carry classicyIconActive), so it is read from the DOM.
+	// (highlighted ones carry the selected state class), so it is read from the DOM.
 	const listSelectionRef = useRef<string[]>(selectedPaths ?? []);
 	const trackListSelection = useCallback(
 		(paths: string[]) => {
@@ -192,7 +192,7 @@ export const ClassicyFileBrowser: FunctionalComponent<
 		if (display === "list") return listSelectionRef.current;
 		return Array.from(
 			rootRef.current?.querySelectorAll(
-				`.classicyIconActive[${CLASSICY_FILE_PATH_ATTRIBUTE}]`,
+				`.classicyIcon.selected[${CLASSICY_FILE_PATH_ATTRIBUTE}]`,
 			) ?? [],
 			(el) => el.getAttribute(CLASSICY_FILE_PATH_ATTRIBUTE) ?? "",
 		).filter(Boolean);

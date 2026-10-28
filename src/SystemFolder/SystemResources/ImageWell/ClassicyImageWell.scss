@@ -36,7 +36,7 @@
 
 // Selected: accent frame using the Appearance/theme accent (falls back to the
 // focus-ring color).
-.classicyImageWellSelected {
+:where(.classicyImageWell).selected {
   outline: calc(var(--window-border-size) * 2) solid
     var(--color-theme-selection, var(--color-outline));
   outline-offset: calc(var(--window-border-size) * -1);
@@ -50,7 +50,7 @@
 }
 
 // Disabled: dim the fill and content.
-.classicyImageWellDisabled {
+:where(.classicyImageWell).disabled {
   background-color: var(--color-system-02);
   border-color: var(--color-system-05);
 

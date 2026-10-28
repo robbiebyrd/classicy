@@ -80,7 +80,8 @@ describe("ClassicyBevelButton pop-up menu (HIGOS8 p.32)", () => {
 		expect(button).toHaveAttribute("aria-expanded", "true");
 		expect(button).toHaveAttribute("aria-controls", menu.id);
 		// The button reads as pressed while its menu is down.
-		expect(button).toHaveAttribute("data-state", "pressed-off");
+		expect(button).toHaveClass("open", "pressed");
+		expect(button).not.toHaveAttribute("data-state");
 		const shrink = screen.getByRole("menuitem", { name: "Shrink" });
 		expect(shrink).toHaveTextContent("✓");
 	});

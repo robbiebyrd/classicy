@@ -279,7 +279,7 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
 				id: "apple-menu",
 				image: appleMenuIcon,
 				menuChildren,
-				className: "classicyDesktopMenuAppleMenu",
+				className: "classicyDesktopMenuApple",
 			} satisfies ClassicyMenuItem,
 			// The hoisted About must not also render in the app's own menus.
 			strippedAppMenu:

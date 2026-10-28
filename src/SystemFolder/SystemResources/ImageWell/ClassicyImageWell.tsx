@@ -6,6 +6,7 @@ import {
 	type PropsWithChildren,
 	useState,
 } from "react";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 
 type ClassicyImageWellProps = PropsWithChildren<{
 	/** Image source to display in the well. When set, it replaces `children`. */
@@ -71,12 +72,11 @@ export const ClassicyImageWell: FunctionalComponent<ClassicyImageWellProps> = ({
 		// biome-ignore lint/a11y/noStaticElementInteractions: an image well is a passive display frame that doubles as a mouse-only drag-and-drop target
 		// biome-ignore lint/a11y/useAriaPropsSupportedByRole: aria-label is valid for the resolved role ("img" or "group"); the role is dynamic so static analysis can't prove it
 		<div
-			className={classNames("classicyImageWell", {
-				classicyImageWellDisabled: !enabled,
-				classicyImageWellSelected: selected,
-				classicyImageWellDragOver: dragOver,
-			})}
-			data-state={enabled ? (selected ? "selected" : "enabled") : "disabled"}
+			className={classNames(
+				"classicyImageWell",
+				classicyStateClasses({ disabled: !enabled, selected }),
+				{ classicyImageWellDragOver: dragOver },
+			)}
 			// When an inner <img> carries the image semantics, the frame stays a
 			// plain container; with custom children it presents as the image itself.
 			role={src ? "group" : "img"}

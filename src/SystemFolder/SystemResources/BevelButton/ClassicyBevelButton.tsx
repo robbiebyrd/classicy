@@ -15,6 +15,10 @@ import {
 	useRef,
 	useState,
 } from "react";
+import {
+	type ClassicyState,
+	classicyStateClasses,
+} from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import { ClassicyBevelButtonPopup } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopup";
@@ -49,16 +53,6 @@ export type ClassicyBevelButtonMode = "push" | "toggle" | "radio" | "popup";
  *   behaves as a standard menu. The HIG's option sets in tool palettes.
  */
 export type ClassicyBevelPopupTrigger = "click" | "hold";
-
-/** The seven HIG visual states, exposed on `data-state` for styling/testing. */
-export type ClassicyBevelButtonState =
-	| "off"
-	| "pressed-off"
-	| "on"
-	| "pressed-on"
-	| "mixed"
-	| "disabled-off"
-	| "disabled-on";
 
 /**
  * Stand-in for the user's double-click time, which separates a sticky click
@@ -193,17 +187,24 @@ const bevelWidthClass = {
 const hasRenderableContent = (children: unknown): boolean =>
 	children != null && children !== "" && children !== false;
 
-const computeState = (
+// The HIG's seven visual states as the shared bare state classes. Disabled
+// outranks mixed, and mixed outranks pressed, so a rule keyed on one class
+// never has to unpick another; `checked` (on) combines with any of them.
+// `open` marks a showing pop-up surface; the button also reads as `pressed`
+// while it is down, so the caller passes `pressed || popupOpen` for `pressed`.
+const bevelButtonStates = (
 	disabled: boolean,
 	mixed: boolean,
 	pressed: boolean,
 	on: boolean,
-): ClassicyBevelButtonState => {
-	if (disabled) return on ? "disabled-on" : "disabled-off";
-	if (mixed) return "mixed";
-	if (pressed) return on ? "pressed-on" : "pressed-off";
-	return on ? "on" : "off";
-};
+	popupOpen: boolean,
+): Partial<Record<ClassicyState, boolean>> => ({
+	disabled,
+	mixed: mixed && !disabled,
+	pressed: pressed && !disabled && !mixed,
+	checked: on,
+	open: popupOpen,
+});
 
 /**
  * The Platinum bevel button (HIGOS8 Ch.2 "Bevel Buttons", p.29): a
@@ -215,11 +216,11 @@ const computeState = (
  * `ClassicyButton`. It renders a real `<button>` and passes other `<button>`
  * attributes through.
  *
- * All seven HIG states are exposed on `data-state` (`off`, `pressed-off`,
- * `on`, `pressed-on`, `mixed`, `disabled-off`, `disabled-on`). Presses play
- * the theme's click sounds and are reported to analytics. A radio button only
- * ever turns itself on: mutual exclusion is the caller's job, by wiring a
- * group's `on`/`onChangeFunc` to one shared value.
+ * The seven HIG states are exposed as the shared bare state classes beside
+ * the root (`pressed`, `checked`, `mixed`, `disabled`, and `open` while its
+ * pop-up shows). Presses play the theme's click sounds and are reported to
+ * analytics. A radio button only ever turns itself on: mutual exclusion is the
+ * caller's job, by wiring a group's `on`/`onChangeFunc` to one shared value.
  *
  * Given `menuItems` (a Platinum menu, HIGOS8 Figure 2-15) or `popupContent`
  * (any other surface, e.g. `ClassicyPopUpSlider`, Figure 2-16), it opens that
@@ -378,7 +379,15 @@ export const ClassicyBevelButton: FunctionalComponent<
 
 	const showArrow =
 		(mode === "popup" || hasSurface) && popupArrow !== undefined;
-	const state = computeState(disabled, mixed, pressed || popupOpen, onState);
+	const stateClasses = classicyStateClasses(
+		bevelButtonStates(
+			disabled,
+			mixed,
+			pressed || popupOpen,
+			onState,
+			popupOpen,
+		),
+	);
 
 	const onHandleFunc = (e: MouseEvent<HTMLButtonElement>) => {
 		if (disabled) return;
@@ -443,7 +452,6 @@ export const ClassicyBevelButton: FunctionalComponent<
 				type="button"
 				tabIndex={0}
 				disabled={disabled}
-				data-state={state}
 				data-mode={mode}
 				aria-pressed={
 					mode === "toggle" || mode === "push"
@@ -469,6 +477,7 @@ export const ClassicyBevelButton: FunctionalComponent<
 				}
 				className={classNames(
 					"classicyBevelButton",
+					stateClasses,
 					isSquare && "classicyBevelButtonSquare",
 					bevelWidthClass[bevelWidth],
 					`classicyBevelButtonMode${mode.charAt(0).toUpperCase()}${mode.slice(1)}`,

@@ -108,8 +108,9 @@ describe("ClassicyWindow utility (floating) windows never dim when unfocused", (
 		const { container } = renderWindow({ windowType: "utility" });
 		const win = container.querySelector(".classicyWindowUtility");
 		expect(win).not.toBeNull();
-		expect(win?.classList.contains("classicyWindowActive")).toBe(true);
-		expect(win?.classList.contains("classicyWindowInactive")).toBe(false);
+		expect(win?.classList.contains("active")).toBe(true);
+		expect(win?.classList.contains("inactive")).toBe(false);
+		expect(win?.classList.contains("classicyWindowActive")).toBe(false);
 	});
 
 	// None of the per-region dimming treatments apply to a floating palette.
@@ -126,8 +127,9 @@ describe("ClassicyWindow utility (floating) windows never dim when unfocused", (
 		const { container } = renderWindow({ windowType: "document" });
 		const win = container.querySelector(".classicyWindowDocument");
 		expect(win).not.toBeNull();
-		expect(win?.classList.contains("classicyWindowInactive")).toBe(true);
-		expect(win?.classList.contains("classicyWindowActive")).toBe(false);
+		expect(win?.classList.contains("inactive")).toBe(true);
+		expect(win?.classList.contains("active")).toBe(false);
+		expect(win?.classList.contains("classicyWindowInactive")).toBe(false);
 		expect(
 			container.querySelector(".classicyWindowPlacardBarDimmed"),
 		).not.toBeNull();

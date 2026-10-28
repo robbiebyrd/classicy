@@ -10,6 +10,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import {
 	type ClassicyLabelPosition,
@@ -273,8 +274,7 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 				: { [CLASSICY_FILE_PATH_ATTRIBUTE]: filePath })}
 			className={classNames(
 				"classicyIcon",
-				dragging ? "classicyIconDragging" : "",
-				active ? "classicyIconActive" : "",
+				classicyStateClasses({ dragging, selected: active }),
 				labelPositionClass(labelPosition),
 			)}
 			style={
