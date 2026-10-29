@@ -1,5 +1,9 @@
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
+	CLASSICY_THEME_DERIVATIONS,
+	px3,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeDerivations";
+import {
 	hasApp,
 	hasDesktopAppRef,
 	hasIconAddFields,
@@ -21,30 +25,76 @@ import type {
 	ClassicyIconBalloonHelp,
 } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
 import type { ClassicyStoreSystemDesktopManagerIcon } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
+import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
-const createGrid = (iconSize: number, iconPadding: number) => {
+/**
+ * The desktop-icon grid metrics, in px: the icon `size`, the `padding` around
+ * it and the grid `cell` (icon plus label room) — the values `getThemeVars`
+ * emits as `--desktop-icon-size`, `--desktop-icon-padding` and
+ * `--desktop-icon-cell`.
+ */
+export type ClassicyDesktopIconMetrics = {
+	size: number;
+	padding: number;
+	cell: number;
+};
+
+// One named derivation's value in px, rounded exactly as getThemeVars emits
+// it (px3), so the reducer's number equals the stylesheet's.
+const derivedPx = (theme: ClassicyTheme, cssVar: string): number => {
+	const derivation = CLASSICY_THEME_DERIVATIONS.find(
+		(d) => d.cssVar === cssVar,
+	);
+	if (!derivation) {
+		const message = `No theme derivation named ${cssVar}`;
+		classicyLog("error", "Theme", message);
+		throw new Error(message);
+	}
+	return Number.parseFloat(px3(derivation.compute(theme)));
+};
+
+/**
+ * The desktop-icon metrics of `theme`, computed from the theme and the named
+ * derivations alone. Pure: it never reads the DOM, so it is what reducer
+ * paths (desktop Clean Up, inside the store's `set`) use. Render and handler
+ * code that should honor the desktop's live variables uses
+ * `readClassicyDesktopIconMetrics` (ClassicyFileBrowserUtils) instead.
+ */
+export const classicyDesktopIconMetrics = (
+	theme: ClassicyTheme,
+): ClassicyDesktopIconMetrics => ({
+	size: theme.desktop.iconSize,
+	padding: derivedPx(theme, "--desktop-icon-padding"),
+	cell: derivedPx(theme, "--desktop-icon-cell"),
+});
+
+const createGrid = ({ size, padding, cell }: ClassicyDesktopIconMetrics) => {
 	return [
-		Math.floor(window.innerWidth / (iconSize + iconPadding)),
-		Math.floor(window.innerHeight / (iconSize * 2 + iconPadding)),
+		Math.floor(window.innerWidth / (size + padding)),
+		Math.floor(window.innerHeight / (cell + padding)),
 	];
 };
 
 const getGridPosition = (
-	iconSize: number,
-	iconPadding: number,
+	{ padding, cell }: ClassicyDesktopIconMetrics,
 	x: number,
 	y: number,
 ): [number, number] => {
-	const defaultPadding = iconPadding * 4;
+	const defaultPadding = padding * 4;
 	return [
-		Math.floor(window.innerWidth - (iconSize * 2 + iconPadding) * x),
-		Math.floor((iconSize * 2 + iconPadding) * y) + defaultPadding,
+		Math.floor(window.innerWidth - (cell + padding) * x),
+		Math.floor((cell + padding) * y) + defaultPadding,
 	];
 };
 
-export const getIconSize = (theme: ClassicyTheme) => {
-	return [theme.desktop.iconSize, theme.desktop.iconSize / 4];
+/**
+ * `[iconSize, iconPadding]` for `theme`, from `classicyDesktopIconMetrics`:
+ * pure, never the DOM (it is reached from the reducer).
+ */
+export const getIconSize = (theme: ClassicyTheme): [number, number] => {
+	const { size, padding } = classicyDesktopIconMetrics(theme);
+	return [size, padding];
 };
 
 const kindPriority: Record<string, number> = {
@@ -85,9 +135,11 @@ const cleanupDesktopIcons = (
 	const newDesktopIcons: ClassicyStoreSystemDesktopManagerIcon[] = [];
 	let startX: number = 1;
 	let startY: number = 0;
-	const [iconSize, iconPadding] = getIconSize(theme);
+	// Runs inside the store's `set`: the metrics come from the theme in
+	// state, never from the DOM.
+	const metrics = classicyDesktopIconMetrics(theme);
 
-	const grid = createGrid(iconSize, iconPadding);
+	const grid = createGrid(metrics);
 
 	icons.forEach((icon) => {
 		// Hidden icons are never drawn on the desktop (they exist only to
@@ -108,7 +160,7 @@ const cleanupDesktopIcons = (
 			startX = 1;
 		}
 
-		icon.location = getGridPosition(iconSize, iconPadding, startX, startY);
+		icon.location = getGridPosition(metrics, startX, startY);
 		newDesktopIcons.push(icon);
 		startY += 1;
 	});
