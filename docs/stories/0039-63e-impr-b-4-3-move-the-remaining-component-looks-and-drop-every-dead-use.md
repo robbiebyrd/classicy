@@ -3,12 +3,13 @@ id: 0039-63e
 title: 'B 4.3: Move the remaining component looks and drop every dead @use'
 purpose: 'Finish the base/package split: seventeen more per-component Platinum partials, the ControlStrip and Slider local bevels moved, and every dead @use of the old style modules deleted across the component stylesheets.'
 type: impr
-status: in_progress
+status: complete
 priority: "2"
 effort: L
 created: "2026-10-28T20:14:27.078Z"
-updated: "2026-10-29T20:34:29.258Z"
+updated: "2026-10-29T22:31:56.684Z"
 started: "2026-10-29T18:51:02.774Z"
+completed: "2026-10-29T22:31:56.684Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -85,17 +86,17 @@ links:
     - ["0005-1b3", "included", ["4.3"]]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
   "5":
-    status: pending
+    status: complete
   "6":
-    status: pending
+    status: complete
 ---
 
 # B 4.3: Move the remaining component looks and drop every dead @use
@@ -136,10 +137,10 @@ Re-shoot every id in stories.txt into `after/`; `for f in before/*.png; do compa
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: test "$(grep -rn 'AppearanceManager/styles/' src --include=*.scss | wc -l)" -eq 0
-- [ ] VERIFY: pnpm exec vitest run src/Appearance/Platinum && pnpm build:source
-- [ ] Seventeen new partials hold the moved includes, the ControlStrip bevels and the Slider thumb under their original selector chains; no file under src/SystemFolder references AppearanceManager/styles, `@include appearance.`, `@include scrollbars.` or `assets.$`.
-- [ ] VERIFY: test ! -e src/SystemFolder/ControlPanels/AppearanceManager/styles/appearance.scss && test ! -e src/SystemFolder/ControlPanels/AppearanceManager/styles/scrollbars.scss && test ! -e src/SystemFolder/ControlPanels/AppearanceManager/styles/assets.scss (ruling R7: the originals 4.1 copied are deleted here, with their remaining readers retargeted)
+- [x] VERIFY: test "$(grep -rn 'AppearanceManager/styles/' src --include=*.scss | wc -l)" -eq 0
+- [x] VERIFY: pnpm exec vitest run src/Appearance/Platinum && pnpm build:source
+- [x] Seventeen new partials hold the moved includes, the ControlStrip bevels and the Slider thumb under their original selector chains; no file under src/SystemFolder references AppearanceManager/styles, `@include appearance.`, `@include scrollbars.` or `assets.$`.
+- [x] VERIFY: test ! -e src/SystemFolder/ControlPanels/AppearanceManager/styles/appearance.scss && test ! -e src/SystemFolder/ControlPanels/AppearanceManager/styles/scrollbars.scss && test ! -e src/SystemFolder/ControlPanels/AppearanceManager/styles/assets.scss (ruling R7: the originals 4.1 copied are deleted here, with their remaining readers retargeted)
 
 ## Files
 
@@ -208,3 +209,7 @@ Re-shoot every id in stories.txt into `after/`; `for f in before/*.png; do compa
 ### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
 
 ### 2026-10-29T20:34:29.258Z - 4.3a (441167fb1: Button, BevelButton, Checkbox, Placard, Table, DriveSetupList, Meter, Output, ProgressBar, SplitView; 302/302 AE 0) and 4.3b (f0b02e27d: Assistant, StartupScreen, QuickTime, ControlStrip, Slider, DesktopIcon, Icon, Tabs; 101/101 AE 0) integrated onto feat/appearance-part-b as 552b4e0f0 and 50433055c. The controller resolved the platinum.scss include conflict by bundle order. Controller check: the Platinum CSS tests plus the two retargeted tests 112/112; lint, tsc and build:source incl. verify:dist green. Pushed. 4.3c (dead @use strip, guard test, old-module deletion, full-set parity) dispatched.
+
+### 2026-10-29T21:49:59.189Z - 4.3c ba391e984 review APPROVED (Critical 0, Important 0, Minor 6). The reviewer independently verified the include order under one metric (@layer classicy.base block position), the dead-@use reconciliation (44 → 21 → 0 files across 4.2/4.3a/4.3b/4.3c), the guard RED before the strip and non-vacuous, the deleted modules byte-equivalent to their replacements, and parity re-compared at 302/302 AE 0, forced 67/67 and Firefox 6/6. Final round dispatched in part-b-43a on feat/appearance-part-b-43c-final from d46ece610 (tests and docs only): exact-output pins for the 29 Platinum mixins, comment fix, compiled .hidden check, stale CLAUDE.md references to appearance.scss. Minor 4 (blank line 1 of ClassicyAppearanceManager.scss) waits for Part J.
+
+### 2026-10-29T22:31:55.722Z - Final round a0f18e9a3 (29 exact-output mixin pins, comment fix, compiled .hidden check, stale CLAUDE.md/AGENT-REFERENCE references to appearance.scss fixed) verified and cherry-picked onto feat/appearance-part-b as 8fd1de682 (lint, tsc, 9 files / 275 tests). B 6 confirmed on the integrated HEAD: 302/302 AE 0, forced 67/67 and Firefox 6/6. Criteria verified on 8fd1de682: no AppearanceManager/styles references in src SCSS, the three originals deleted, 24 Platinum partials. Complete.
