@@ -4,6 +4,7 @@ import type {
 	ClassicyThemeMeasurements,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { intToPx } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicySize";
+import { CLASSICY_THEME_DERIVATIONS } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeDerivations";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { DeepPartial } from "@/SystemFolder/SystemResources/Utils/deepMerge";
 
@@ -145,6 +146,18 @@ const kebab = (name: string): string =>
 // Collisions already reported, so a re-render never repeats a warning.
 const reportedCollisions = new Set<string>();
 
+// The named derivations `getThemeVars` emits after the inputs: reserved, so a
+// package measurement never makes one only to be silently replaced.
+const RESERVED_DERIVATION_NAMES: ReadonlySet<string> = new Set(
+	CLASSICY_THEME_DERIVATIONS.map((d) => d.cssVar),
+);
+
+const reportOnce = (collision: string, message: string): void => {
+	if (reportedCollisions.has(collision)) return;
+	reportedCollisions.add(collision);
+	classicyLog("warn", "ClassicyAppearance", message);
+};
+
 /**
  * The CSS custom properties for a theme's measurement *inputs*: every numeric
  * leaf `measurements.<family>.<key>` as `--<family>-<key>` (kebab-case) in
@@ -159,9 +172,13 @@ const reportedCollisions = new Set<string>();
  *   and `window.titleBarHeight`). The first wins: the core families are
  *   walked first, so a core input always wins, then package families in key
  *   order. Each collision is logged once.
+ * - A leaf whose variable is a named derivation (`CLASSICY_THEME_DERIVATIONS`,
+ *   e.g. `menu.minWidth` → `--menu-min-width`) is skipped, logged once: the
+ *   derivation names are reserved.
  *
  * The variables derived from the inputs (frames, bevels, `--button-height`,
- * …) stay in `getThemeVars`.
+ * …) stay in `getThemeVars`, and the named proportions in
+ * `ClassicyThemeDerivations.ts`.
  */
 export function classicyMeasurementVars(
 	measurements: ClassicyThemeMeasurements,
@@ -189,17 +206,19 @@ export function classicyMeasurementVars(
 			}
 			const name = `--${kebab(family)}-${kebab(key)}`;
 			const source = `${family}.${key}`;
+			if (RESERVED_DERIVATION_NAMES.has(name)) {
+				reportOnce(
+					`${name}|${source}`,
+					`Measurement ${source} makes ${name}, a reserved derived variable; the derivation is used.`,
+				);
+				continue;
+			}
 			const winner = sources.get(name);
 			if (winner !== undefined) {
-				const collision = `${winner}|${source}`;
-				if (!reportedCollisions.has(collision)) {
-					reportedCollisions.add(collision);
-					classicyLog(
-						"warn",
-						"ClassicyAppearance",
-						`Measurement ${source} and ${winner} both make ${name}; ${winner} is used.`,
-					);
-				}
+				reportOnce(
+					`${winner}|${source}`,
+					`Measurement ${source} and ${winner} both make ${name}; ${winner} is used.`,
+				);
 				continue;
 			}
 			sources.set(name, source);
