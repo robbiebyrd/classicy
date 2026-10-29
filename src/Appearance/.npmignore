@@ -1,0 +1,5 @@
+# Published with the package (package.json "files": "src/Appearance"), minus
+# tests and test helpers. A nested .npmignore applies inside a "files"
+# directory; a "!" pattern in "files" itself does not.
+*.test.*
+__tests__/

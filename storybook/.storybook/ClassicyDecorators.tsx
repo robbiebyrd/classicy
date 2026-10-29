@@ -2,6 +2,7 @@ import type { Decorator } from "@storybook/react-vite";
 import type { CSSProperties, ReactNode } from "react";
 import { useLayoutEffect, useState } from "react";
 import { useActiveClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
+import { useClassicyAssetVars } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	getTheme,
 	getThemeVars,
@@ -53,7 +54,10 @@ const ClassicyDesktopFrame = ({
 /**
  * The non-desktop story frame: a `.classicyDesktop` scope carrying the active
  * Appearance Package (resolved, as on the desktop root), so package CSS
- * reaches Controls/* stories too. A component, so the store hook is legal.
+ * reaches Controls/* stories too, and the registered cursor and system-art
+ * variables (`--classicy-cursor-*`, `--classicy-art-*`), which ClassicyDesktop
+ * otherwise publishes only on its own root. A component, so the hooks are
+ * legal.
  */
 const StoryFrame = ({
 	isCanvas,
@@ -65,12 +69,13 @@ const StoryFrame = ({
 	children: ReactNode;
 }) => {
 	const appearancePackageId = useActiveClassicyAppearancePackage().id;
+	const assetVars = useClassicyAssetVars();
 	return (
 		<div
 			id={isCanvas ? "classicyDesktop" : undefined}
 			className="classicyDesktop classicyStorybookFrame"
 			data-classicy-appearance={appearancePackageId}
-			style={style}
+			style={{ ...assetVars, ...style }}
 		>
 			{children}
 		</div>

@@ -132,9 +132,9 @@ const bundleProblems = (
 	file: string,
 	source: string,
 	layerOrder: string,
-): { problems: string[]; stylesheets: number } => {
+): { problems: string[]; stylesheets: string[] } => {
 	const problems: string[] = [];
-	let stylesheets = 0;
+	const stylesheets: string[] = [];
 	for (const match of source.matchAll(PACKAGE_BLOCK)) {
 		const at = match.index ?? 0;
 		let start = at - 1;
@@ -174,8 +174,7 @@ const bundleProblems = (
 			problems.push(
 				`${file}: a package stylesheet is not exactly one @layer ${PACKAGE_LAYER} block -> rules outside it would land in no package layer.`,
 			);
-		else if (!isEmptyLayerBlock(css, layerOrder) && css.includes(PACKAGE_SCOPE))
-			stylesheets++;
+		else if (isScopedPackageStylesheet(css, layerOrder)) stylesheets.push(css);
 	}
 	return { problems, stylesheets };
 };
@@ -189,6 +188,20 @@ const isEmptyLayerBlock = (css: string, layerOrder: string): boolean => {
 	const open = css.indexOf("{", readPrelude(css, layerOrder).end);
 	return skipTrivia(css, open + 1) === matchingBrace(css, open);
 };
+
+/**
+ * A package's own stylesheet with a look in it: exactly one non-empty
+ * `classicy.package` block whose rules are scoped under
+ * `[data-classicy-appearance=…]`.
+ */
+const isScopedPackageStylesheet = (css: string, layerOrder: string): boolean =>
+	isSingleClassicyLayerBlock(css, PACKAGE_LAYER, layerOrder) &&
+	!isEmptyLayerBlock(css, layerOrder) &&
+	css.includes(PACKAGE_SCOPE);
+
+/** `css` from its layer block on: the prelude (charset, order statement) dropped. */
+const stylesheetBody = (css: string, layerOrder: string): string =>
+	css.slice(readPrelude(css, layerOrder).end).trimEnd();
 
 export type ClassicyPackageCssInput = {
 	/** The CSS order statement, `CLASSICY_LAYER_ORDER`. */
@@ -206,13 +219,56 @@ export type ClassicyPackageCssInput = {
 	 * are not scoped under `[data-classicy-appearance=…]` does not count.
 	 */
 	requiredBundles?: ReadonlyArray<string>;
+	/**
+	 * Package stylesheet files that must be among `packageStylesheets`
+	 * (dist/classicy-platinum.css, linked by strict-CSP hosts), each a
+	 * non-empty scoped package stylesheet whose block is, byte for byte, the
+	 * package string every required bundle injects.
+	 */
+	requiredPackageStylesheets?: ReadonlyArray<string>;
+};
+
+/**
+ * Each required package stylesheet file: present, a non-empty scoped package
+ * stylesheet, and the same block every required bundle that carries one
+ * injects (the file is emitted from that very string).
+ */
+const packageFileProblems = (
+	file: string,
+	packageStylesheets: ReadonlyArray<{ file: string; css: string }>,
+	injected: ReadonlyArray<{ file: string; stylesheets: string[] }>,
+	layerOrder: string,
+): string[] => {
+	const css = packageStylesheets.find((sheet) => sheet.file === file)?.css;
+	if (css === undefined)
+		return [
+			`${file}: missing -> injectCssPlugin (vite.config.ts) emits it from the package's ?inline stylesheet; strict-CSP hosts link it.`,
+		];
+	if (!isScopedPackageStylesheet(css, layerOrder))
+		return [
+			`${file}: carries no non-empty @layer ${PACKAGE_LAYER} stylesheet scoped under [${PACKAGE_SCOPE}=…].`,
+		];
+	const body = stylesheetBody(css, layerOrder);
+	return injected
+		.filter(
+			({ stylesheets }) =>
+				stylesheets.length > 0 &&
+				!stylesheets.some(
+					(sheet) => stylesheetBody(sheet, layerOrder) === body,
+				),
+		)
+		.map(
+			(bundle) =>
+				`${file}: differs from the package stylesheet ${bundle.file} injects -> emit it from the same ?inline string.`,
+		);
 };
 
 /**
  * Check-dist invariant 7: package CSS ships as `@layer classicy.package`
  * blocks of their own, never nested inside `classicy.base`; every required
- * bundle carries a non-empty one; and the library stylesheet carries no
- * package look. One message per problem; empty when the invariant holds.
+ * bundle carries a non-empty one; every required package stylesheet file is
+ * that same stylesheet; and the library stylesheet carries no package look.
+ * One message per problem; empty when the invariant holds.
  */
 export const findClassicyPackageCssProblems = ({
 	layerOrder,
@@ -220,32 +276,46 @@ export const findClassicyPackageCssProblems = ({
 	baseStylesheets,
 	packageStylesheets,
 	requiredBundles = [],
-}: ClassicyPackageCssInput): string[] => [
-	...bundles.flatMap(({ file, source }) => {
-		const { problems, stylesheets } = bundleProblems(file, source, layerOrder);
-		return stylesheets === 0 && requiredBundles.includes(file)
-			? [...problems, missingPackageStylesheet(file)]
-			: problems;
-	}),
-	...requiredBundles
-		.filter((file) => !bundles.some((bundle) => bundle.file === file))
-		.map(missingPackageStylesheet),
-	...baseStylesheets.flatMap(({ file, css }) =>
-		new RegExp(PACKAGE_BLOCK.source).test(css) || css.includes(PACKAGE_SCOPE)
-			? [
-					`${file}: the library stylesheet carries package look (a @layer ${PACKAGE_LAYER} block or a ${PACKAGE_SCOPE} selector) -> package rules belong in the package's own CSS.`,
-				]
-			: [],
-	),
-	...packageStylesheets.flatMap(({ file, css }) =>
-		readPrelude(css, layerOrder).hasOrder &&
-		isSingleClassicyLayerBlock(css, PACKAGE_LAYER, layerOrder)
-			? []
-			: [
-					`${file}: must be "${layerOrder}" then exactly one @layer ${PACKAGE_LAYER} block.`,
-				],
-	),
-];
+	requiredPackageStylesheets = [],
+}: ClassicyPackageCssInput): string[] => {
+	const checked = bundles.map(({ file, source }) => ({
+		file,
+		...bundleProblems(file, source, layerOrder),
+	}));
+	return [
+		...checked.flatMap(({ file, problems, stylesheets }) =>
+			stylesheets.length === 0 && requiredBundles.includes(file)
+				? [...problems, missingPackageStylesheet(file)]
+				: problems,
+		),
+		...requiredBundles
+			.filter((file) => !bundles.some((bundle) => bundle.file === file))
+			.map(missingPackageStylesheet),
+		...baseStylesheets.flatMap(({ file, css }) =>
+			new RegExp(PACKAGE_BLOCK.source).test(css) || css.includes(PACKAGE_SCOPE)
+				? [
+						`${file}: the library stylesheet carries package look (a @layer ${PACKAGE_LAYER} block or a ${PACKAGE_SCOPE} selector) -> package rules belong in the package's own CSS.`,
+					]
+				: [],
+		),
+		...packageStylesheets.flatMap(({ file, css }) =>
+			readPrelude(css, layerOrder).hasOrder &&
+			isSingleClassicyLayerBlock(css, PACKAGE_LAYER, layerOrder)
+				? []
+				: [
+						`${file}: must be "${layerOrder}" then exactly one @layer ${PACKAGE_LAYER} block.`,
+					],
+		),
+		...requiredPackageStylesheets.flatMap((file) =>
+			packageFileProblems(
+				file,
+				packageStylesheets,
+				checked.filter((bundle) => requiredBundles.includes(bundle.file)),
+				layerOrder,
+			),
+		),
+	];
+};
 
 /** The entry bundles: each registers Platinum, so each must ship its look. */
 export const CLASSICY_ENTRY_BUNDLES = ["classicy.es.js", "classicy.umd.js"];
@@ -264,3 +334,60 @@ export const requiredClassicyPackageBundles = (
 				CLASSICY_ENTRY_BUNDLES.includes(file.split(/[\\/]/).pop() ?? ""),
 			)
 		: CLASSICY_ENTRY_BUNDLES.map(inDist);
+
+/** The package stylesheet files dist must hold: Platinum's, for strict-CSP hosts (R5). */
+export const CLASSICY_PACKAGE_STYLESHEETS = ["classicy-platinum.css"];
+
+/**
+ * The package stylesheet files invariant 7 requires: with named files, those
+ * of them that are one, matched by basename; otherwise all of them in dist,
+ * as `inDist` places them.
+ */
+export const requiredClassicyPackageStylesheets = (
+	named: ReadonlyArray<string>,
+	inDist: (file: string) => string,
+): string[] =>
+	named.length
+		? named.filter((file) =>
+				CLASSICY_PACKAGE_STYLESHEETS.includes(file.split(/[\\/]/).pop() ?? ""),
+			)
+		: CLASSICY_PACKAGE_STYLESHEETS.map(inDist);
+
+// An Appearance Package's stylesheet module, as the library build loads it:
+// `src/Appearance/<Package>/styles/<name>.scss?inline` (Platinum's index.ts
+// imports `./styles/platinum.scss?inline`). Not under node_modules.
+const PACKAGE_STYLESHEET_MODULE =
+	/\/src\/Appearance\/[^/]+\/styles\/([a-z0-9]+(?:-[a-z0-9]+)*)\.scss\?inline$/;
+// What vite:css-post turns an `?inline` stylesheet into in a build.
+const INLINE_CSS_MODULE = /^export default ("(?:[^"\\]|\\.)*");?\s*$/;
+
+/**
+ * The package stylesheet files to emit (dist/classicy-<name>.css), one per
+ * package stylesheet module among `modules` (each module's id and final
+ * transformed code), holding the CSS string that module exports: the same
+ * string the bundle injects at runtime. Throws when such a module is not a
+ * plain string export, or when two would write the same file.
+ */
+export const classicyPackageStylesheets = (
+	modules: Iterable<{ id: string; code: string | null }>,
+): Array<{ fileName: string; css: string }> => {
+	const files = new Map<string, { id: string; css: string }>();
+	for (const { id, code } of modules) {
+		const path = id.replace(/\\/g, "/");
+		const name = PACKAGE_STYLESHEET_MODULE.exec(path)?.[1];
+		if (name === undefined || path.includes("/node_modules/")) continue;
+		const literal = code === null ? undefined : INLINE_CSS_MODULE.exec(code);
+		if (!literal)
+			throw new Error(
+				`${id}: expected \`export default "<css>"\` (vite:css-post's ?inline module), got ${JSON.stringify(code?.slice(0, 80))}.`,
+			);
+		const fileName = `classicy-${name}.css`;
+		const clash = files.get(fileName);
+		if (clash)
+			throw new Error(
+				`${clash.id} and ${id} would both be emitted as ${fileName}.`,
+			);
+		files.set(fileName, { id, css: JSON.parse(literal[1]) as string });
+	}
+	return [...files].map(([fileName, { css }]) => ({ fileName, css }));
+};
