@@ -22,6 +22,7 @@ import {
 } from "react";
 
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import { CLASSICY_PART_ATTRIBUTE } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { APPLE_GUIDE_SHOW_TOPIC_EVENT } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideContext";
 import { ABOUT_BALLOON_HELP_TOPIC_ID } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideTopics";
 import { appSwitcherAppsFrom } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
@@ -186,6 +187,7 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 			image: focusedApp?.icon || "",
 			title: focusedApp?.name || "Finder",
 			className: "classicyDesktopMenuAppSwitcher",
+			partAttr: "switcher",
 			// The switcher's title follows the focused app, and it floats at the
 			// right end of the bar — so a name-length change would otherwise resize
 			// it and shove the sound/time widgets sideways. Reserve the widest open
@@ -250,6 +252,7 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 			id: "help-menu",
 			title: "Help",
 			className: "classicyDesktopMenuHelp",
+			partAttr: "help",
 			menuChildren: helpChildren,
 		};
 	}, [disableBalloonHelp, helpMenus, focusedMenuApp]);
@@ -293,6 +296,7 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 				image: appleMenuIcon,
 				menuChildren,
 				className: "classicyDesktopMenuApple",
+				partAttr: "apple",
 			} satisfies ClassicyMenuItem,
 			// The hoisted About must not also render in the app's own menus.
 			strippedAppMenu:
@@ -303,7 +307,9 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 	const defaultMenuItems: ClassicyMenuItem[] = useMemo(() => {
 		const items = [appleMenuItem] as ClassicyMenuItem[];
 		if (strippedAppMenu) {
-			items.push(...strippedAppMenu);
+			items.push(
+				...strippedAppMenu.map((item) => ({ ...item, partAttr: "app" })),
+			);
 		}
 		// Help is the rightmost standard menu; the App Switcher floats to the far
 		// right of the bar (8.5+ construct) and is kept last in the data.
@@ -379,6 +385,7 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 				<ul
 					id={"classicyDesktopMenuExtensions"}
 					className={"classicyDesktopMenuExtensions"}
+					{...{ [CLASSICY_PART_ATTRIBUTE.part]: "extensions" }}
 				/>
 			</ClassicyMenu>
 		</nav>

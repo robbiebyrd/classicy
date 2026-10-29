@@ -24,6 +24,8 @@ type ClassicyHelpButtonProps = {
 	className?: string;
 	/** Inline style, merged onto the button after the component's own. */
 	style?: CSSProperties;
+	/** `data-*` attributes (e.g. a part attribute), forwarded to the button. */
+	[dataAttribute: `data-${string}`]: string | undefined;
 };
 
 /**
@@ -50,10 +52,12 @@ export const ClassicyHelpButton: FunctionalComponent<
 	onClickFunc,
 	className,
 	style,
+	...dataAttributes
 }) => {
 	const helpIcon = useClassicyAsset("systemArt", "helpButton") ?? "";
 	return (
 		<ClassicyBevelButton
+			{...dataAttributes}
 			id={id}
 			aria-label={label}
 			bevelWidth="small"

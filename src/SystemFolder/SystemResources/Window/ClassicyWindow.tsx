@@ -29,7 +29,10 @@ import {
 import { createPortal } from "react-dom";
 
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
-import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
+import {
+	CLASSICY_PART_ATTRIBUTE,
+	classicyStateClasses,
+} from "@/Appearance/vocabulary/ClassicyVocabulary";
 import {
 	getAppWindow,
 	listAppWindows,
@@ -1720,7 +1723,10 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				)}
 			>
 				{closable && (
-					<div className={"classicyWindowControlBox"}>
+					<div
+						className={"classicyWindowControlBox"}
+						{...{ [CLASSICY_PART_ATTRIBUTE.control]: "close" }}
+					>
 						{/* biome-ignore lint/a11y/useSemanticElements: custom window control styled as pixel-precise box */}
 						<div
 							className={"classicyWindowCloseBox"}
@@ -1762,7 +1768,10 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 					)}
 				</div>
 				{zoomable && !modal && (
-					<div className={"classicyWindowControlBox"}>
+					<div
+						className={"classicyWindowControlBox"}
+						{...{ [CLASSICY_PART_ATTRIBUTE.control]: "zoom" }}
+					>
 						{/* biome-ignore lint/a11y/useSemanticElements: custom window control styled as pixel-precise box */}
 						<div
 							className={"classicyWindowZoomBox"}
@@ -1776,7 +1785,10 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 					</div>
 				)}
 				{collapsable && (
-					<div className={"classicyWindowControlBox"}>
+					<div
+						className={"classicyWindowControlBox"}
+						{...{ [CLASSICY_PART_ATTRIBUTE.control]: "collapse" }}
+					>
 						{/* biome-ignore lint/a11y/useSemanticElements: custom window control styled as pixel-precise box */}
 						<div
 							className={"classicyWindowCollapseBox"}

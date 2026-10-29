@@ -1,6 +1,7 @@
 import "./ClassicyDesktopMenuWidgetTime.scss";
 import "@/SystemFolder/SystemResources/Menu/ClassicyMenu.scss";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import { CLASSICY_PART_ATTRIBUTE } from "@/Appearance/vocabulary/ClassicyVocabulary";
 
 // Shared by the resync effect and the tick interval so the two can never
 // drift into computing the rendered shape differently.
@@ -201,6 +202,7 @@ export const ClassicyDesktopMenuWidgetTime: FunctionalComponent = () => {
 						"classicyMenuItemNoImage",
 						"classicyDesktopMenuTime",
 					)}
+					{...{ [CLASSICY_PART_ATTRIBUTE.part]: "clock" }}
 					onDoubleClick={openDateTimeManager}
 					onClick={() => {
 						setShowingTime(!showingTime);

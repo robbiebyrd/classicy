@@ -10,6 +10,7 @@ import {
 	useRef,
 } from "react";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import { CLASSICY_PART_ATTRIBUTE } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyHelpButton } from "@/SystemFolder/SystemResources/HelpButton/ClassicyHelpButton";
@@ -109,6 +110,19 @@ const AlertIcon: FunctionalComponent<{ alertType: ClassicyAlertType }> = ({
 			// Classic note bubble (system info icon).
 			return <img src={info} alt="Info" />;
 	}
+};
+
+/**
+ * An alert button's `data-classicy-role`: the default button, the cancel
+ * button, or any other (the help button included).
+ */
+const alertButtonRole = (
+	button: ClassicyAlertButton,
+	defaultId: string | undefined,
+): "default" | "cancel" | "other" => {
+	if (button.id === defaultId) return "default";
+	if (button.role === "cancel") return "cancel";
+	return "other";
 };
 
 const defaultButtonsForType = (
@@ -305,6 +319,7 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 								disabled={button.disabled}
 								onClickFunc={() => handleButton(button)}
 								className="classicyAlertHelpButton"
+								{...{ [CLASSICY_PART_ATTRIBUTE.role]: "other" }}
 							/>
 						) : (
 							<ClassicyButton
@@ -315,6 +330,12 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 								isDefault={button.id === defaultButton?.id}
 								disabled={button.disabled}
 								onClickFunc={() => handleButton(button)}
+								{...{
+									[CLASSICY_PART_ATTRIBUTE.role]: alertButtonRole(
+										button,
+										defaultButton?.id,
+									),
+								}}
 							>
 								{button.label}
 							</ClassicyButton>

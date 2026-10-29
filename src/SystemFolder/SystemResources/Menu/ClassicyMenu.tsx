@@ -14,7 +14,10 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
+import {
+	CLASSICY_PART_ATTRIBUTE,
+	classicyStateClasses,
+} from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
@@ -95,6 +98,11 @@ export interface ClassicyMenuItem {
 	menuChildren?: ClassicyMenuItem[];
 	/** Extra class names for the item's `<li>`. */
 	className?: string;
+	/**
+	 * Part name rendered as the item's `data-classicy-part` (the menu bar marks
+	 * its clusters: `apple`, `app`, `help`, `switcher`), for theme packages.
+	 */
+	partAttr?: string;
 	/** Balloon help for the item, shown while balloons are on. */
 	balloon?: {
 		title?: string;
@@ -352,6 +360,7 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 				ref={itemRef}
 				id={menuItem.id}
 				key={menuItem.id}
+				{...{ [CLASSICY_PART_ATTRIBUTE.part]: menuItem.partAttr }}
 				onClick={handleClick}
 				onKeyDown={(e: React.KeyboardEvent) => {
 					pokeActivity();
