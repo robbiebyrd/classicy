@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { resetClassicyAppearancePackagesForTests } from "@/Appearance/ClassicyAppearancePackageRegistry";
 import {
 	type ClassicyTheme,
 	getAllThemes,
@@ -395,5 +396,29 @@ describe("theme files written before metric groups existed", () => {
 		const exported = JSON.parse(exportClassicyTheme(loaded));
 		expect(exported.theme.measurements.layout.dialogEdge).toBe(12);
 		expect(exported.theme.measurements.groupBox.gap).toBe(12);
+	});
+});
+
+describe("theme files and appearance packages", () => {
+	afterEach(() => resetClassicyAppearancePackagesForTests());
+
+	it("writes the package id", () => {
+		const file = JSON.parse(exportClassicyTheme(theme("default")));
+		expect(file.theme.package).toBe("platinum");
+	});
+
+	it("a v1 file without package loads as platinum", () => {
+		const file = JSON.parse(exportClassicyTheme(theme("azul")));
+		delete file.theme.package;
+		expect(parseOk(JSON.stringify(file)).package).toBe("platinum");
+	});
+
+	it("refuses a theme for an uninstalled package", () => {
+		resetClassicyAppearancePackagesForTests();
+		const file = JSON.parse(exportClassicyTheme(theme("azul")));
+		file.theme.package = "irix";
+		expect(parseError(JSON.stringify(file))).toBe(
+			'This theme needs the "irix" appearance package, which is not installed.',
+		);
 	});
 });

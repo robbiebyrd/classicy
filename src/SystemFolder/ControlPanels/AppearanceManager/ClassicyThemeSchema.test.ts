@@ -313,3 +313,41 @@ describe("ClassicyThemeSchema — metric defaults", () => {
 		);
 	});
 });
+
+describe("ClassicyThemeSchema — appearance package", () => {
+	it("defaults package to platinum when absent", () => {
+		const parsed = ClassicyThemeSchema.safeParse(
+			withEdit((t) => {
+				delete (t as Record<string, unknown>).package;
+			}),
+		);
+		expect(parsed.success, JSON.stringify(parsed.error?.issues)).toBe(true);
+		expect(parsed.data?.package).toBe("platinum");
+	});
+
+	it("keeps a package id", () => {
+		const parsed = ClassicyThemeSchema.safeParse(
+			withEdit((t) => Object.assign(t, { package: "irix" })),
+		);
+		expect(parsed.success).toBe(true);
+		expect(parsed.data?.package).toBe("irix");
+	});
+
+	it("accepts a package measurement family", () => {
+		const parsed = ClassicyThemeSchema.safeParse(
+			withEdit((t) => {
+				Object.assign(t.measurements, { controlStrip: { cellHeight: 22 } });
+			}),
+		);
+		expect(parsed.success, JSON.stringify(parsed.error?.issues)).toBe(true);
+		expect(parsed.data?.measurements.controlStrip.cellHeight).toBe(22);
+	});
+
+	it("rejects a non-numeric package measurement", () => {
+		rejects(
+			withEdit((t) => {
+				Object.assign(t.measurements, { controlStrip: { cellHeight: "22" } });
+			}),
+		);
+	});
+});

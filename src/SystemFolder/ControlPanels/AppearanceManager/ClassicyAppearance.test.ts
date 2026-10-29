@@ -1,13 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
+	type ClassicyThemeMeasurements,
 	getAllThemes,
 	getTheme,
 	getThemeVars,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
 	CLASSICY_DEFAULT_THEME_METRICS,
+	classicyMeasurementVars,
 	withDefaultThemeMetrics,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
+// getThemeVars for every built-in theme, captured at c2da6d1c7 — before the
+// measurements walker replaced the explicit input emissions.
+import themeVarsBaseline from "./ClassicyAppearance.themeVars.baseline.json";
 
 describe("getAllThemes", () => {
 	it("returns an array", () => {
@@ -178,6 +183,98 @@ describe("getThemeVars", () => {
 				k.startsWith("--hig-"),
 			);
 			expect(higKeys, theme.id).toEqual([]);
+		}
+	});
+});
+
+describe("classicyMeasurementVars", () => {
+	it("emits a package measurement family as kebab-case px variables", () => {
+		const theme = getTheme("default");
+		const measurements = {
+			...theme.measurements,
+			controlStrip: { cellHeight: 22, moduleWidth: 30 },
+		};
+		const vars = classicyMeasurementVars(measurements);
+		expect(vars["--control-strip-cell-height"]).toBe("22px");
+		expect(vars["--control-strip-module-width"]).toBe("30px");
+		const themeVars = getThemeVars({ ...theme, measurements }) as Record<
+			string,
+			string
+		>;
+		expect(themeVars["--control-strip-cell-height"]).toBe("22px");
+		expect(themeVars["--control-strip-module-width"]).toBe("30px");
+	});
+
+	it("the walker reproduces every input variable byte-identically", () => {
+		// The 20 inputs getThemeVars emitted one by one before the walker:
+		// window 6, control 3, button 3, groupBox 5, layout 3.
+		expect(classicyMeasurementVars(getTheme("default").measurements)).toEqual({
+			"--window-border-size": "1px",
+			"--window-control-size": "12px",
+			"--window-padding-size": "6px",
+			"--window-scrollbar-size": "17px",
+			"--window-title-bar-height": "19px",
+			"--window-utility-title-bar-height": "10px",
+			"--control-height": "20px",
+			"--control-label-gap": "5px",
+			"--control-static-text-height": "16px",
+			"--button-min-width": "58px",
+			"--button-text-padding": "8px",
+			"--button-gap": "12px",
+			"--group-box-margin-side": "10px",
+			"--group-box-margin-top": "12px",
+			"--group-box-margin-bottom": "10px",
+			"--group-box-title-pad": "3px",
+			"--group-box-gap": "12px",
+			"--layout-item-gap": "4px",
+			"--layout-group-gap": "16px",
+			"--layout-dialog-edge": "12px",
+		});
+	});
+
+	it("ignores non-numeric leaves", () => {
+		const vars = classicyMeasurementVars({
+			...getTheme("default").measurements,
+			controlStrip: { cellHeight: "22", moduleWidth: 30 },
+		} as unknown as ClassicyThemeMeasurements);
+		expect(vars).not.toHaveProperty("--control-strip-cell-height");
+		expect(vars["--control-strip-module-width"]).toBe("30px");
+	});
+
+	it("ignores families and keys that are not camelCase names", () => {
+		const vars = classicyMeasurementVars({
+			...getTheme("default").measurements,
+			"x:0;color:red": { cellHeight: 1 },
+			controlStrip: { "a;b": 2, "": 3, cellHeight: 22 },
+		} as unknown as ClassicyThemeMeasurements);
+		expect(
+			Object.keys(vars).filter((name) => !/^--[a-z][a-z0-9-]*$/.test(name)),
+		).toEqual([]);
+		expect(vars["--control-strip-cell-height"]).toBe("22px");
+		expect(Object.keys(vars)).toHaveLength(21);
+	});
+
+	it("a package family cannot override a variable getThemeVars sets itself", () => {
+		const theme = getTheme("default");
+		const vars = getThemeVars({
+			...theme,
+			measurements: {
+				...theme.measurements,
+				color: { black: 7 },
+				help: { buttonWidth: 99 },
+			},
+		}) as Record<string, string>;
+		expect(vars["--color-black"]).toBe("#000000");
+		expect(vars["--help-button-width"]).toBe("20px");
+	});
+
+	it("leaves getThemeVars unchanged for every built-in theme", () => {
+		const themes = getAllThemes();
+		expect(themes.map((t) => t.id)).toEqual(Object.keys(themeVarsBaseline));
+		for (const theme of themes) {
+			expect(getThemeVars(theme), theme.id).toEqual(
+				(themeVarsBaseline as Record<string, unknown>)[theme.id],
+			);
 		}
 	});
 });
