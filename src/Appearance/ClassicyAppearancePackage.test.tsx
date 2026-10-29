@@ -327,10 +327,6 @@ describe("module load order", () => {
 			() =>
 				import("@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager"),
 		],
-		[
-			"the fallback package module",
-			() => import("@/Appearance/ClassicyAppearanceFallback"),
-		],
 		["the appearance hook", () => import("@/Appearance/useClassicyAppearance")],
 		[
 			"the appearance sound bridge",

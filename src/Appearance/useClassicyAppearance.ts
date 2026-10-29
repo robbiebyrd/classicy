@@ -11,13 +11,13 @@ import {
 } from "react";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
-import { CLASSICY_FALLBACK_APPEARANCE_PACKAGE } from "./ClassicyAppearanceFallback";
 import type {
 	ClassicyAppearanceDecoration,
 	ClassicyAppearanceEvent,
 	ClassicyAppearancePackage,
 } from "./ClassicyAppearancePackage";
 import {
+	CLASSICY_FALLBACK_APPEARANCE_PACKAGE,
 	getClassicyAppearancePackage,
 	subscribeClassicyAppearancePackages,
 } from "./ClassicyAppearancePackageRegistry";
@@ -36,8 +36,10 @@ import {
 const SUBSYSTEM = "ClassicyAppearance";
 
 // The active package is read without the store: the asset registry already
-// follows the store's resolved package id (its listeners fire on a switch),
-// and the package registry fires on (re)registration. This module never
+// follows the store's resolved package id (`Appearance.packageId` through
+// resolveClassicyAppearancePackage, which the store connects as the asset
+// package source; its listeners fire on a switch), and the package registry
+// fires on (re)registration. This module never
 // imports the app manager's store (useClassicyAppearance.storeFree.test.ts),
 // so wiring it into a component adds no store read and no store import; a
 // store that never connects its source resolves to Platinum.

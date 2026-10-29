@@ -3,7 +3,6 @@
  */
 
 export * from "./Appearance/ClassicyAppearanceDefaults";
-export * from "./Appearance/ClassicyAppearanceFallback";
 export * from "./Appearance/ClassicyAppearancePackage";
 export * from "./Appearance/ClassicyAppearancePackageRegistry";
 export * from "./Appearance/ClassicyAppearancePackageSchema";
