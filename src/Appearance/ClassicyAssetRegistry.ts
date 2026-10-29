@@ -7,6 +7,7 @@ import {
 import {
 	type ClassicyAssetSource,
 	isClassicyAssetSource,
+	parseClassicyPixelArtSource,
 } from "./ClassicyAssetSource";
 
 const PLATINUM = "platinum";
@@ -361,14 +362,6 @@ export const classicyAssetVarName = (
 let varsCache: { version: number; key: string; value: Record<string, string> } =
 	{ version: -1, key: "", value: {} };
 
-/**
- * System art that is `ClassicyPixelArt` rows (`encodeClassicyPixelArtRows`,
- * MIME `CLASSICY_PIXEL_ART_MIME`), not an image: drawn by the component, never
- * by CSS, so it gets no variable. Spelled out here because the registry cannot
- * import the component (the component reads the registry).
- */
-const PIXEL_ART_SOURCE = "data:text/x-classicy-pixel-art,";
-
 const assetVars = (): Record<string, string> => {
 	const activeId = getActiveClassicyAppearancePackageId();
 	if (varsCache.version === version && varsCache.key === activeId) {
@@ -377,7 +370,9 @@ const assetVars = (): Record<string, string> => {
 	const value: Record<string, string> = {};
 	for (const kind of ["cursors", "systemArt"] as const) {
 		for (const [key, src] of Object.entries(mergedTree(kind))) {
-			if (typeof src === "string" && !src.startsWith(PIXEL_ART_SOURCE)) {
+			// Pixel art (the Control Strip and pop-up slider glyphs) is drawn
+			// by ClassicyPixelArt, never by CSS, so it gets no variable.
+			if (typeof src === "string" && !parseClassicyPixelArtSource(src)) {
 				value[classicyAssetVarName(kind, key)] = `url("${src}")`;
 			}
 		}
