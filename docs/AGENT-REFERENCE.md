@@ -58,7 +58,10 @@ export default defineConfig({
 ```
 
 Excluding classicy means any CommonJS dependency it pulls in may then need to be
-listed in `optimizeDeps.include`. Production builds and webpack need no setting.
+listed in `optimizeDeps.include`. Bundlers that handle
+`new URL(…, import.meta.url)` (a Vite production build, webpack 5, Rollup with a
+URL plugin) need no setting; with any other (plain esbuild, Rollup without such
+a plugin), copy `dist/assets/` next to your bundle.
 Also new in this release: `import 'classicy/fonts'` is a deprecated no-op (the
 Platinum package registers its fonts), and `classicy/dist/fonts.css` no longer
 exists.
@@ -790,8 +793,8 @@ registerClassicyFonts('platinum', [{ family: 'MyFace', src: [myWoff2, myTtf] }])
 
 - **Deep merge.** Registration merges into the package's tree for that kind:
   new leaves are added, an existing leaf is replaced, and sibling entries are
-  kept. `registerClassicyIcons({ system: { alias } })` therefore replaces only
-  `system.alias`, not the rest of `system`. A leaf replaced by a namespace (or
+  kept. `registerClassicyIcons({ system: { files: { document } } })` therefore
+  replaces only `system.files.document`, not the rest of `system`. A leaf replaced by a namespace (or
   the reverse) logs a `classicyLog` warning and the new value wins. The keys
   `__proto__`, `constructor` and `prototype` are ignored.
 - **Per-package namespaces and fallback.** Each package id has its own tree per
@@ -839,6 +842,38 @@ const wallpapers = useClassicyAssetTree('wallpapers')
   and misses later registrations and package switches. `ClassicyIcons` is only
   the Platinum icon tree that gets registered; components read through the
   registry.
+
+### Migrating icon overrides (breaking change)
+
+Two things changed for code that registered or read icons:
+
+- **`ClassicyIcons` is a snapshot.** The constant is only the Platinum icon
+  tree as shipped. It does not reflect later `registerClassicyIcons` calls
+  (`ClassicyIcons['myApp']['icon']` is `undefined` at runtime). Read icons
+  through `useClassicyAsset('icons', path)` or
+  `resolveClassicyAsset('icons', path)`, not the constant; keep the typed value
+  `registerClassicyIcons` returns if you want autocomplete.
+- **System art and cursors moved out of the icon tree.** Platinum copies these
+  icon paths into system art and cursors when `platinumAssets.ts` loads, and
+  every consumer now reads the system-art key or cursor role, so registering
+  the icon path no longer changes what is drawn:
+
+| Icon path | Now drawn from | Register with |
+|---|---|---|
+| `system.alias` | system art `aliasBadge` | `registerClassicySystemArt(pkg, { aliasBadge })` |
+| `system.apple` | system art `appleMenu` | `registerClassicySystemArt(pkg, { appleMenu })` |
+| `system.desktop.trashEmpty` | system art `trashEmpty` | `registerClassicySystemArt(pkg, { trashEmpty })` |
+| `system.desktop.trashFull` | system art `trashFull` | `registerClassicySystemArt(pkg, { trashFull })` |
+| `ui.helpButton` | system art `helpButton` | `registerClassicySystemArt(pkg, { helpButton })` |
+| `classicy.logo` | system art `aboutLogo` | `registerClassicySystemArt(pkg, { aboutLogo })` |
+| `system.macosSvg` | system art `startupLogo` | `registerClassicySystemArt(pkg, { startupLogo })` |
+| `ui.cursors.watch`, `hand`, `resizeLr`, `resizeUd`, `resizeU`, `resizeD`, `resizeL`, `resizeR` | the cursor role of the same name | `registerClassicyCursors(pkg, { watch, hand, … })` |
+
+`pkg` is `"platinum"` until appearance packages are selectable. The icon
+paths stay registered, so reading them still works: the PDF viewer's pan-tool
+button, for one, still draws the `ui.cursors.hand` icon. The screen saver's
+built-in logos copy `classicy.logo` and `system.macosSvg` too; replace those
+with `registerClassicyScreenSaverLogo`.
 
 ### System art
 

@@ -888,13 +888,14 @@ Outside a component, read at call time with
 in a module-scope constant; a later registration or appearance-package switch
 would not reach it.
 
-Bundled icons are available directly:
+Bundled icons are read the same way, by dotted path (the `ClassicyIcons`
+constant is only the tree Platinum ships and misses later registrations):
 
 ```ts
-ClassicyIcons.system.files.document
-ClassicyIcons.system.folders.directory
-ClassicyIcons.system.drives.disk
-ClassicyIcons.system.macos
+useClassicyAsset('icons', 'system.files.document')
+useClassicyAsset('icons', 'system.folders.directory')
+useClassicyAsset('icons', 'system.drives.disk')
+useClassicyAsset('icons', 'system.macos')
 ```
 
 Override the alias-badge artwork with `registerClassicySystemArt("platinum", { aliasBadge })`. Cursors, wallpapers, fonts and the rest of the system art register the same way; see AGENT-REFERENCE §5 (Asset registries).

@@ -30,9 +30,34 @@ export default defineConfig({
 ```
 
 Any CommonJS dependency classicy pulls in may then need to go in
-`optimizeDeps.include`. Production builds and webpack need no setting.
+`optimizeDeps.include`. Bundlers that handle `new URL(…, import.meta.url)`
+(a Vite production build, webpack 5, Rollup with a URL plugin) need no
+setting; with any other (plain esbuild, Rollup without such a plugin), copy
+`dist/assets/` next to your bundle.
 `import "classicy/fonts"` is now a deprecated no-op (the Platinum package
 registers its fonts), and `classicy/dist/fonts.css` is gone.
+
+**Breaking change: system art and cursors are no longer icons.** The
+`ClassicyIcons` constant is now only the Platinum icon tree as shipped: it does
+not reflect later `registerClassicyIcons` calls (`ClassicyIcons.myApp.icon` is
+`undefined` at runtime), so read icons through `useClassicyAsset` (in a
+component) or `resolveClassicyAsset` (elsewhere), never the constant. And
+Platinum copies these icon paths into system art and cursors when it loads, so
+registering them under `registerClassicyIcons` no longer changes what is drawn.
+Register the replacement instead:
+
+| Icon path you used to register | Register now |
+|---|---|
+| `system.alias` | `registerClassicySystemArt("platinum", { aliasBadge })` |
+| `system.apple` | `registerClassicySystemArt("platinum", { appleMenu })` |
+| `system.desktop.trashEmpty` | `registerClassicySystemArt("platinum", { trashEmpty })` |
+| `system.desktop.trashFull` | `registerClassicySystemArt("platinum", { trashFull })` |
+| `ui.helpButton` | `registerClassicySystemArt("platinum", { helpButton })` |
+| `classicy.logo` | `registerClassicySystemArt("platinum", { aboutLogo })` |
+| `system.macosSvg` | `registerClassicySystemArt("platinum", { startupLogo })` |
+| `ui.cursors.watch`, `.hand`, `.resizeLr`, `.resizeUd`, `.resizeU`, `.resizeD`, `.resizeL`, `.resizeR` | `registerClassicyCursors("platinum", { watch, hand, resizeLr, resizeUd, resizeU, resizeD, resizeL, resizeR })` |
+
+`docs/AGENT-REFERENCE.md` §5 has the full asset-registry reference.
 
 ## Building and running on localhost
 
