@@ -3,11 +3,18 @@ id: 0079-vn4
 title: 'J 4.1: useMetricsTab over CLASSICY_THEME_METRIC_TARGETS'
 purpose: 'Add the Metrics tab: one spinner per core theme metric, grouped as the targets table groups them, dispatching `ClassicyDesktopChangeMetric { metricKey, value }`.'
 type: feat
-status: pending
+status: in_progress
 priority: "2"
 effort: S
 created: "2026-10-28T20:42:45.684Z"
-updated: "2026-10-28T20:42:45.684Z"
+updated: "2026-10-29T17:23:17.520Z"
+started: "2026-10-29T17:23:17.520Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy
@@ -87,3 +94,5 @@ it('shows the fork notice for a built-in and the editing notice for Custom', …
 - `src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.tsx` - modify: metricsTab composed into the tab list
 
 ## Work Log
+
+### 2026-10-29T17:23:10.556Z - Started beside Part B by controller decision (J reconciliation lists 4.1 as safe early: no overlap with B; the Metrics tab dispatches the core ClassicyDesktopChangeMetric { metricKey } form). Out of chain order: its depends story 0078-nc6 (J 3.1, the Packages/Options tabs) waits; 4.1 needs only J 1.1/2.1, both done. Base 2b892472a on feat/appearance-part-j; implementer dispatched. The panel gains a tab (a deliberate visual change); the screenshot check is deferred until after Part B lands, like J 1.1.
