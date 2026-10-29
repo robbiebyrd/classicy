@@ -8,8 +8,8 @@ import {
 } from "./ClassicyAppearanceStyles";
 
 // The registry itself, apart from the store-reading hooks in
-// ClassicyAppearancePackage.ts (which re-exports all of it, the contract's
-// home). It never imports the app manager: the desktop reducer looks packages
+// ClassicyAppearancePackage.ts (which re-exports the contract's names from it;
+// the barrel exports the rest). It never imports the app manager: the desktop reducer looks packages
 // up here, and a path from the reducer to the store module would evaluate the
 // store before its default state whenever the app manager loads first.
 
