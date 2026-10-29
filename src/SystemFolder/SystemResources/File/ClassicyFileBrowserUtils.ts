@@ -118,9 +118,12 @@ export const cleanupIcon = (
 	metrics: ClassicyDesktopIconMetrics = readClassicyDesktopIconMetrics(theme),
 ): [number, number] => {
 	const { origin, pitch } = iconGridLattice(theme, iconSizeOverride, metrics);
-	// createGrid doubles an icon size into the cell, so half the pitch counts
-	// columns on the very lattice the icons are placed on.
-	const grid = createGrid(pitch[0] / 2, metrics.padding, containerMeasure);
+	// Columns and rows are counted on the very lattice the icons are placed
+	// on: a cell is the pitch plus the padding margin.
+	const grid: [number, number] = [
+		Math.floor(containerMeasure[0] / (pitch[0] + metrics.padding)),
+		Math.floor(containerMeasure[1] / (pitch[1] + metrics.padding)),
+	];
 	const [startX, startY] = getGridPosition(iconIndex, grid);
 
 	return [
