@@ -135,14 +135,238 @@ describe("platinum.scss (compiled)", () => {
 	it("every rule is scoped under the platinum root", () => {
 		const { selectors, unscoped } = scanSelectors(css);
 		expect(unscoped).toEqual([]);
-		// 4.1 includes no component yet, so the block is empty. 4.2 includes
-		// the first partial: replace this pin with `toBeGreaterThan(0)`.
-		expect(selectors).toHaveLength(0);
-		expect(css).toBe("@layer classicy.package {}");
+		expect(selectors.length).toBeGreaterThan(0);
 	});
 
 	it("contains no platinumCamelCase mixin name", () =>
 		expect(css).not.toMatch(/platinum[A-Z]/));
+
+	const P = ".classicyDesktop[data-classicy-appearance=platinum]";
+	// Sass indents the rules inside the layer block and keeps a selector
+	// list's source line breaks; one selector list per line, unindented.
+	const flat = css.replace(/,\s*\n\s*/g, ", ").replace(/\n\s+/g, "\n");
+	// The first rule whose selector list is exactly `selector`: its offset and
+	// its declarations, last one winning.
+	const rule = (selector: string) => {
+		const at = flat.indexOf(`\n${selector} {\n`);
+		if (at < 0) throw new Error(`no rule for ${selector}`);
+		const body = flat.slice(at + selector.length + 4, flat.indexOf("}", at));
+		const props: Record<string, string> = {};
+		for (const line of body.split(";\n")) {
+			const colon = line.indexOf(":");
+			if (colon > 0)
+				props[line.slice(0, colon).trim()] = line
+					.slice(colon + 1)
+					.trim()
+					.replace(/;$/, "");
+		}
+		return { at, props };
+	};
+
+	it("scopes the window chrome", () => {
+		const window_ = rule(`${P} .classicyWindow`).props;
+		expect(window_.border).toBeDefined();
+		expect(window_["box-shadow"]).toBeDefined();
+		expect(flat).toContain(
+			`${P} .classicyWindowRed .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleCenter {`,
+		);
+		expect(
+			rule(`${P} .classicyWindow .classicyWindowResizer`).props[
+				"background-image"
+			],
+		).toMatch(/^url\(/);
+		expect(flat).toContain(
+			`${P} :where(.classicyWindow).active .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleCenter {`,
+		);
+	});
+
+	it("scopes the desktop scrollbars", () => {
+		expect(flat).toContain(`${P} *::-webkit-scrollbar {`);
+		expect(flat).toContain(`${P}.classicyDesktopSplitArrows`);
+	});
+
+	it("scopes the menu frame", () => {
+		expect(flat).toContain(
+			`${P} .classicyContextSubMenu .classicySeparatorHorizontal {`,
+		);
+		expect(rule(`${P} .classicySubMenu`).props.border).toBe(
+			"1px solid var(--color-black)",
+		);
+	});
+
+	// R15: a base override that beat a moved declaration moves with it, after
+	// it, so it still wins from inside the package layer.
+	it("keeps every override of the moved window look after what it overrides", () => {
+		const winsOver = (
+			winner: string,
+			loser: string,
+			prop: string,
+			value: string,
+		) => {
+			const w = rule(`${P} ${winner}`);
+			expect(w.props[prop], winner).toBe(value);
+			expect(w.at, `${winner} follows ${loser}`).toBeGreaterThan(
+				rule(`${P} ${loser}`).at,
+			);
+		};
+		// P1: the error border color, and P2: the dotted drag/resize outline.
+		winsOver(
+			".classicyWindow.classicyWindowRed",
+			".classicyWindowRed",
+			"border-color",
+			"var(--color-error)",
+		);
+		winsOver(
+			":where(.classicyWindow).dragging",
+			".classicyWindow.classicyWindowRed",
+			"box-shadow",
+			"none",
+		);
+		winsOver(
+			".classicyWindowResizing",
+			".classicyWindow",
+			"box-shadow",
+			"none",
+		);
+		// P5, P6, P7: dimmed and list parts drop their bevels.
+		winsOver(
+			".classicyWindow .classicyWindowResizerDimmed",
+			".classicyWindow .classicyWindowResizer",
+			"background-image",
+			"none",
+		);
+		winsOver(
+			".classicyWindow .classicyWindowContentsDimmed",
+			".classicyWindow .classicyWindowContents",
+			"box-shadow",
+			"none",
+		);
+		winsOver(
+			".classicyWindow .classicyWindowContentsDimmed",
+			".classicyWindow .classicyWindowContentsModal",
+			"box-shadow",
+			"none",
+		);
+		winsOver(
+			".classicyWindowHeader.classicyWindowHeaderList",
+			".classicyWindowHeader",
+			"border-bottom",
+			"none",
+		);
+		winsOver(
+			".classicyWindowHeaderDimmed",
+			".classicyWindowHeader",
+			"box-shadow",
+			"none",
+		);
+		// The title bar keeps no border under the dimmed-header class too.
+		expect(
+			rule(`${P} .classicyWindow .classicyWindowTitleBar`).props.border,
+		).toBe("none");
+		// P3, P4: utility stripes off; longhands after their shorthand.
+		const group = (prefix: string, a: string, b: string) =>
+			`${prefix} ${a}, ${prefix} ${b}`;
+		const utility = `${P} .classicyWindow.classicyWindowUtility .classicyWindowTitleBar .classicyWindowTitle`;
+		expect(
+			rule(
+				group(utility, ".classicyWindowTitleLeft", ".classicyWindowTitleRight"),
+			).props.background,
+		).toBe("none");
+		expect(
+			rule(`${utility} .classicyWindowTitleCenter`).props["background-size"],
+		).toBe("4px 3px");
+		const active = `${P} :where(.classicyWindow).active .classicyWindowTitleBar .classicyWindowTitle`;
+		expect(
+			rule(
+				group(active, ".classicyWindowTitleLeft", ".classicyWindowTitleRight"),
+			).props["background-size"],
+		).toBe("auto 99.8%");
+		expect(
+			rule(
+				`${P} .classicyWindowRed .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleCenter`,
+			).props["background-size"],
+		).toBe("auto 100%");
+		expect(
+			rule(
+				`${P} .classicyWindow:has(.classicyAlertMovable) .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleCenter`,
+			).props["background-size"],
+		).toBe("auto 100%");
+		expect(
+			rule(`${P} .classicyWindowFrameTitleBar`).props["background-size"],
+		).toBe("auto 100%");
+		// The control boxes' glyphs sit top left, over the mixin's centering,
+		// and the utility boxes keep their smaller size and glyph offset.
+		const bar = `${P} .classicyWindow .classicyWindowTitleBar`;
+		const glyphs = rule(
+			group(
+				bar,
+				".classicyWindowCollapseBox:after",
+				".classicyWindowZoomBox:after",
+			),
+		);
+		for (const box of ["CollapseBox", "ZoomBox"]) {
+			const own = rule(`${bar} .classicyWindow${box}:after`);
+			expect(own.props["background-position"]).toBe("top left");
+			expect(own.at).toBeGreaterThan(glyphs.at);
+		}
+		const utilityBox = `${P} .classicyWindowUtility .classicyWindowTitleBar .classicyWindowControlBox`;
+		expect(rule(`${utilityBox} .classicyWindowCloseBox`).props.width).toMatch(
+			/utility-title-bar-height/,
+		);
+		expect(
+			rule(`${utilityBox} .classicyWindowCollapseBox:after`).props.top,
+		).toBeDefined();
+	});
+
+	// The desktop's `& *` scroll-bar rules gain one class from the scope, every
+	// other partial two: the inactive window's own scroll-bar rules tied the
+	// desktop's in base (and lost on order), so they must tie here too.
+	it("keeps the inactive window's scroll bars tied with the desktop's, and before them", () => {
+		const inactive = rule(
+			`${P} :where(.classicyWindow.inactive)::-webkit-scrollbar-track`,
+		);
+		expect(inactive.props.border).toBe(
+			"var(--window-border-size) solid var(--color-system-06)",
+		);
+		expect(flat).not.toContain(`${P} :where(.classicyWindow).inactive`);
+		expect(
+			rule(`${P}::-webkit-scrollbar-track, ${P} *::-webkit-scrollbar-track`).at,
+		).toBeGreaterThan(inactive.at);
+	});
+
+	it("keeps the disabled pop-up fill over the undepressable face (P14)", () =>
+		expect(
+			rule(`${P} .classicyPopUpMenu.disabled`).props["background-color"],
+		).toBe("var(--color-system-01)"));
+
+	// P12 (Firefox only): the desktop's `scrollbar-width: auto` fallback would
+	// beat the base tab scroller's `none` from the package layer, so the tab
+	// scroller re-asserts it there, after the desktop rule, at equal
+	// specificity.
+	it("hides the tab scroller's scrollbar after the desktop scrollbar fallback", () => {
+		const supports = flat.lastIndexOf(
+			"@supports not selector(::-webkit-scrollbar)",
+		);
+		const fallback = flat.indexOf(`, ${P} * {`, supports);
+		expect(fallback).toBeGreaterThan(-1);
+		const tabs = rule(`${P} .classicyTabScroller`);
+		expect(tabs.props["scrollbar-width"]).toBe("none");
+		expect(tabs.at).toBeGreaterThan(fallback);
+	});
+});
+
+describe("the six base stylesheets 4.2 moved the Platinum look out of", () => {
+	it.each([
+		"SystemFolder/SystemResources/Window/ClassicyWindow.scss",
+		"SystemFolder/SystemResources/Window/ClassicyWindowFrame.scss",
+		"SystemFolder/SystemResources/Alert/ClassicyAlert.scss",
+		"SystemFolder/SystemResources/Desktop/ClassicyDesktop.scss",
+		"SystemFolder/SystemResources/Menu/ClassicyMenu.scss",
+		"SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu.scss",
+	])("%s no longer references the Platinum mixins", (file) =>
+		expect(read(file)).not.toMatch(
+			/AppearanceManager\/styles|platinum-|assets\.\$/,
+		));
 });
 
 describe("the moved Platinum mixin files", () => {

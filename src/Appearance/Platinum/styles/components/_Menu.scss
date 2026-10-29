@@ -1,0 +1,39 @@
+// The Platinum menu look (from ClassicyMenu.scss): the menu frame of HIGOS8
+// Figure 6-15 on every menu, its dividers, and the submenu triangle.
+@use "../mixins";
+@use "../scrollbars";
+@use "../assets";
+
+@mixin menu {
+  .classicyMenu {
+    @include mixins.platinum-menu-frame;
+  }
+
+  .classicySubMenu {
+    @include mixins.platinum-menu-frame;
+  }
+
+  .classicyContextMenu {
+    @include mixins.platinum-menu-frame;
+  }
+
+  .classicyContextSubMenu {
+    @include mixins.platinum-menu-frame;
+  }
+
+  // Dividers in every menu (Figure 6-15).
+  .classicyMenu,
+  .classicySubMenu,
+  .classicyContextMenu,
+  .classicyContextSubMenu {
+    .classicySeparatorHorizontal {
+      @include mixins.platinum-menu-divider;
+    }
+  }
+
+  .classicyMenuItemChildMenuIndicator {
+    &:after {
+      background-image: assets.$triangle;
+    }
+  }
+}

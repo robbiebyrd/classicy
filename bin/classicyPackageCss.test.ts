@@ -234,6 +234,76 @@ describe("findClassicyPackageCssProblems (check-dist invariant 7)", () => {
 		}
 	});
 
+	// Mandatory since 4.2 (Platinum ships its look): each entry bundle named
+	// in `requiredBundles` must carry a non-empty package stylesheet.
+	describe("required bundles", () => {
+		const required = (file: string, literal: string | null) =>
+			check({
+				bundles: [
+					{
+						file,
+						source: bundle(literal ?? js(BASE)),
+					},
+				],
+				requiredBundles: [file],
+			});
+		const MISSING =
+			/^dist\/classicy\.es\.js: carries no non-empty @layer classicy\.package stylesheet/;
+
+		it("passes a bundle carrying one non-empty package block", () => {
+			expect(required("dist/classicy.es.js", js(PACKAGE))).toEqual([]);
+			expect(
+				required("dist/classicy.umd.js", js(`${ORDER}\n${PACKAGE}`)),
+			).toEqual([]);
+		});
+
+		it("reports a bundle with no package stylesheet", () => {
+			const problems = required("dist/classicy.es.js", null);
+			expect(problems).toHaveLength(1);
+			expect(problems[0]).toMatch(MISSING);
+		});
+
+		it("reports the empty forms: a layer statement or an empty block", () => {
+			for (const css of [
+				"@layer classicy.package;",
+				"@layer classicy.package{}",
+				"@layer classicy.package {\n}",
+				"@layer classicy.package{/* empty */}",
+				`${ORDER}\n@layer classicy.package {}`,
+			]) {
+				const problems = required("dist/classicy.es.js", js(css));
+				expect(problems, css).toHaveLength(1);
+				expect(problems[0], css).toMatch(MISSING);
+			}
+		});
+
+		it("does not count a package block nested in classicy.base", () => {
+			const problems = required(
+				"dist/classicy.es.js",
+				js(`@layer classicy.base {\n${PACKAGE}\n}`),
+			);
+			expect(problems).toHaveLength(2);
+			expect(problems[0]).toMatch(/nested inside classicy\.base/);
+			expect(problems[1]).toMatch(MISSING);
+		});
+
+		it("does not count a package string with a stray rule", () => {
+			const problems = required("dist/classicy.es.js", js(`${PACKAGE}.leak{}`));
+			expect(problems).toHaveLength(2);
+			expect(problems[0]).toMatch(/not exactly one @layer classicy\.package/);
+			expect(problems[1]).toMatch(MISSING);
+		});
+
+		it("reports a required bundle that was not given", () => {
+			const problems = check({ requiredBundles: ["dist/classicy.umd.js"] });
+			expect(problems).toEqual([
+				expect.stringMatching(
+					/^dist\/classicy\.umd\.js: carries no non-empty @layer classicy\.package stylesheet/,
+				),
+			]);
+		});
+	});
+
 	it("reports a package stylesheet file without the order statement or with extra rules", () => {
 		for (const css of [
 			PACKAGE,

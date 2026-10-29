@@ -1,0 +1,31 @@
+// The Platinum movable-alert look (from ClassicyAlert.scss): the red title-bar
+// stripes `.classicyWindowRed` draws, for an alert that is not error-typed.
+@use "../mixins";
+@use "../scrollbars";
+@use "../assets";
+
+@mixin alert {
+  .classicyWindow:has(.classicyAlertMovable) {
+    .classicyWindowTitleBar {
+      .classicyWindowTitle {
+        .classicyWindowTitleCenter {
+          background: assets.$title-bar-center-red;
+          background-size: auto 100%;
+        }
+
+        .classicyWindowTitleLeft,
+        .classicyWindowTitleRight {
+          background: assets.$title-bar-center-red;
+
+          &:after {
+            background-image: assets.$title-bar-right-red;
+          }
+
+          &:before {
+            background-image: assets.$title-bar-left-red;
+          }
+        }
+      }
+    }
+  }
+}

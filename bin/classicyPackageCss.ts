@@ -84,6 +84,9 @@ export const isSingleClassicyLayerBlock = (
 };
 
 const PACKAGE_LAYER = "classicy.package";
+
+const missingPackageStylesheet = (file: string) =>
+	`${file}: carries no non-empty @layer ${PACKAGE_LAYER} stylesheet -> the entry bundle must register Platinum's look (check src/Appearance/Platinum/index.ts and its platinum.scss?inline import).`;
 const PACKAGE_BLOCK = /@layer\s+classicy\.package\s*\{/g;
 const PACKAGE_SCOPE = "data-classicy-appearance";
 // The tail of a `classicy.base` block's opening, raw or minified.
@@ -129,8 +132,9 @@ const bundleProblems = (
 	file: string,
 	source: string,
 	layerOrder: string,
-): string[] => {
+): { problems: string[]; stylesheets: number } => {
 	const problems: string[] = [];
+	let stylesheets = 0;
 	for (const match of source.matchAll(PACKAGE_BLOCK)) {
 		const at = match.index ?? 0;
 		let start = at - 1;
@@ -165,18 +169,24 @@ const bundleProblems = (
 			!(source[end] === quote && !isEscaped(source, end))
 		)
 			end++;
-		if (
-			!isSingleClassicyLayerBlock(
-				decodeLiteral(source.slice(start + 1, end)),
-				PACKAGE_LAYER,
-				layerOrder,
-			)
-		)
+		const css = decodeLiteral(source.slice(start + 1, end));
+		if (!isSingleClassicyLayerBlock(css, PACKAGE_LAYER, layerOrder))
 			problems.push(
 				`${file}: a package stylesheet is not exactly one @layer ${PACKAGE_LAYER} block -> rules outside it would land in no package layer.`,
 			);
+		else if (!isEmptyLayerBlock(css, layerOrder)) stylesheets++;
 	}
-	return problems;
+	return { problems, stylesheets };
+};
+
+/**
+ * True when the one layer block `css` holds (isSingleClassicyLayerBlock
+ * passed) has nothing but trivia between its braces: what an Appearance
+ * Package with no component look compiles to.
+ */
+const isEmptyLayerBlock = (css: string, layerOrder: string): boolean => {
+	const open = css.indexOf("{", readPrelude(css, layerOrder).end);
+	return skipTrivia(css, open + 1) === matchingBrace(css, open);
 };
 
 export type ClassicyPackageCssInput = {
@@ -188,23 +198,36 @@ export type ClassicyPackageCssInput = {
 	baseStylesheets: ReadonlyArray<{ file: string; css: string }>;
 	/** Emitted package stylesheets for strict-CSP hosts (dist/classicy-<id>.css). */
 	packageStylesheets: ReadonlyArray<{ file: string; css: string }>;
+	/**
+	 * Bundles that must each carry at least one non-empty package stylesheet
+	 * (the entry bundles, which register Platinum). A layer statement
+	 * (`@layer classicy.package;`) or an empty block does not count.
+	 */
+	requiredBundles?: ReadonlyArray<string>;
 };
 
 /**
  * Check-dist invariant 7: package CSS ships as `@layer classicy.package`
- * blocks of their own, never nested inside `classicy.base`, and the library
- * stylesheet carries no package look. One message per problem; empty when
- * the invariant holds (including when no package CSS has shipped).
+ * blocks of their own, never nested inside `classicy.base`; every required
+ * bundle carries a non-empty one; and the library stylesheet carries no
+ * package look. One message per problem; empty when the invariant holds.
  */
 export const findClassicyPackageCssProblems = ({
 	layerOrder,
 	bundles,
 	baseStylesheets,
 	packageStylesheets,
+	requiredBundles = [],
 }: ClassicyPackageCssInput): string[] => [
-	...bundles.flatMap(({ file, source }) =>
-		bundleProblems(file, source, layerOrder),
-	),
+	...bundles.flatMap(({ file, source }) => {
+		const { problems, stylesheets } = bundleProblems(file, source, layerOrder);
+		return stylesheets === 0 && requiredBundles.includes(file)
+			? [...problems, missingPackageStylesheet(file)]
+			: problems;
+	}),
+	...requiredBundles
+		.filter((file) => !bundles.some((bundle) => bundle.file === file))
+		.map(missingPackageStylesheet),
 	...baseStylesheets.flatMap(({ file, css }) =>
 		new RegExp(PACKAGE_BLOCK.source).test(css) || css.includes(PACKAGE_SCOPE)
 			? [

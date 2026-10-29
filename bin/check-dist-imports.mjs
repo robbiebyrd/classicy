@@ -58,8 +58,11 @@
 //    look would lose to the structure it decorates. Checked in every emitted
 //    bundle, in each emitted dist/classicy-<id>.css (the order statement, then
 //    the one block), and in the library stylesheet (dist/classicy.css and the
-//    injected text), which must carry no package look. Holds vacuously until a
-//    package's CSS ships (plan 0005-1b3 §4.1/§5.1).
+//    injected text), which must carry no package look. Both entry bundles
+//    (classicy.es.js, classicy.umd.js) must carry a NON-EMPTY one: they
+//    register Platinum, whose look ships in it since plan 0005-1b3 §4.2, so a
+//    missing string, an empty block or the bare `@layer classicy.package;`
+//    statement means the look stopped shipping.
 
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -358,17 +361,24 @@ if (!argv.slice(2).length || argv.slice(2).includes(cssFile)) {
 	const packageStylesheets = (await Promise.all(packageFiles.map(read))).map(
 		({ file, text }) => ({ file, css: text }),
 	);
+	// The entry bundles register Platinum, so each must ship its stylesheet.
+	// Named files: those of them that were named.
+	const ENTRY_BUNDLES = ["classicy.es.js", "classicy.umd.js"];
+	const requiredBundles = named.length
+		? jsFiles.filter((f) => ENTRY_BUNDLES.includes(f.split(/[\\/]/).pop()))
+		: ENTRY_BUNDLES.map((f) => join(DIST, f));
 	const problems = findClassicyPackageCssProblems({
 		layerOrder: LAYER_ORDER,
 		bundles: bundles.map(({ file, text }) => ({ file, source: text })),
 		baseStylesheets,
 		packageStylesheets,
+		requiredBundles,
 	});
 	for (const problem of problems) console.error(problem);
 	if (problems.length) failed = true;
 	else
 		console.log(
-			`package CSS: ${packageStylesheets.length} package stylesheet file(s); every @layer classicy.package block stands alone`,
+			`package CSS: ${requiredBundles.length} entry bundle(s) carry a non-empty package stylesheet; ${packageStylesheets.length} package stylesheet file(s); every @layer classicy.package block stands alone`,
 		);
 }
 

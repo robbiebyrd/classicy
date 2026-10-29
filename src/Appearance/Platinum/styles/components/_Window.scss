@@ -1,0 +1,211 @@
+// The Platinum window look (from ClassicyWindow.scss), included by
+// platinum.scss inside the package wrapper. Rules keep the base file's
+// selector chains and order: a base declaration that used to beat a moved one
+// (a later state, a longhand after a moved shorthand, or another class on the
+// same element) is moved here too, after what it overrides, because from the
+// package layer the moved look would beat it whatever its specificity.
+@use "../mixins";
+@use "../scrollbars";
+@use "../assets";
+
+@mixin window {
+  .classicyWindow {
+    @include mixins.platinum-window-border;
+
+    .classicyWindowTitleBar {
+      // Outranks the dimmed-header border below (a class on this element in
+      // the forced-state matrix).
+      border: none;
+      box-shadow: none;
+
+      .classicyWindowControlBox {
+        @include mixins.platinum-box-shadow;
+      }
+
+      .classicyWindowCollapseBox,
+      .classicyWindowZoomBox {
+        @include mixins.platinum-window-control-box-depressable;
+      }
+
+      // Top left, over the depressable box's centered glyph.
+      .classicyWindowCollapseBox {
+        &:after {
+          background-image: assets.$collapse;
+          background-position: top left;
+        }
+      }
+
+      .classicyWindowZoomBox {
+        &:after {
+          background-image: assets.$zoom;
+          background-position: top left;
+        }
+      }
+
+      .classicyWindowCloseBox {
+        @include mixins.platinum-window-control-box-depressable;
+      }
+    }
+
+    .classicyWindowResizer {
+      background-image: assets.$resizer;
+    }
+
+    .classicyWindowContents {
+      @include mixins.platinum-window-inner-border;
+    }
+  }
+
+  .classicyWindowHeader {
+    @include mixins.platinum-window-header-border;
+    @include mixins.platinum-window-inner-box-shadow-outer;
+  }
+
+  // #183: the list-view header drops the beveled bottom separator. Two classes
+  // so the dimmed header's border (below) does not bring the separator back.
+  .classicyWindowHeader.classicyWindowHeaderList {
+    border-bottom: none;
+    box-shadow: none;
+  }
+
+  .classicyWindow .classicyWindowContentsModal {
+    @include mixins.platinum-window-box-shadow;
+  }
+
+  // The windoid's smaller control boxes, over the depressable box's size.
+  .classicyWindowUtility {
+    .classicyWindowTitleBar {
+      .classicyWindowControlBox {
+        & .classicyWindowCloseBox {
+          width: calc(
+            var(--window-utility-title-bar-height) - var(--window-border-size) * 4
+          );
+          height: calc(
+            var(--window-utility-title-bar-height) - var(--window-border-size) * 4
+          );
+        }
+
+        & .classicyWindowCollapseBox {
+          width: calc(
+            var(--window-utility-title-bar-height) - var(--window-border-size) * 4
+          );
+          height: calc(
+            var(--window-utility-title-bar-height) - var(--window-border-size) * 4
+          );
+
+          &:after {
+            top: calc(var(--window-padding-size) * -1 - var(--window-border-size));
+          }
+        }
+      }
+    }
+  }
+
+  // The windoid's title-bar pattern. Named down to `.classicyWindowTitle` so it
+  // outranks the active and red title-bar rules (four classes) that follow.
+  .classicyWindow.classicyWindowUtility .classicyWindowTitleBar .classicyWindowTitle {
+    .classicyWindowTitleLeft,
+    .classicyWindowTitleRight {
+      background: none;
+    }
+
+    .classicyWindowTitleCenter {
+      background-image: assets.$title-bar-utility;
+      background-repeat: repeat;
+      background-size: 4px 3px;
+    }
+  }
+
+  // The base rule was `:where(.classicyWindow).inactive`, one class, which
+  // tied the desktop's `.classicyDesktop *` scroll-bar rules and lost on
+  // order. The package scope adds two classes here but one to the desktop's
+  // `& *`, so the state class goes inside :where() (same elements) to keep
+  // that tie; platinum.scss includes this partial before the desktop's.
+  :where(.classicyWindow.inactive) {
+    @include scrollbars.platinum-scrollbars-inactive();
+  }
+
+  :where(.classicyWindow).active {
+    .classicyWindowTitleBar {
+      .classicyWindowTitle {
+        .classicyWindowTitleCenter {
+          background: assets.$title-bar-center;
+        }
+
+        .classicyWindowTitleLeft,
+        .classicyWindowTitleRight {
+          background: assets.$title-bar-center;
+          background-size: auto 99.8%;
+
+          &:after {
+            background-image: assets.$title-bar-right;
+          }
+
+          &:before {
+            background-image: assets.$title-bar-left;
+          }
+        }
+      }
+    }
+  }
+
+  .classicyWindowRed {
+    @include mixins.platinum-window-border;
+
+    .classicyWindowTitleBar {
+      .classicyWindowTitle {
+        .classicyWindowTitleCenter {
+          background: assets.$title-bar-center-red;
+          background-size: auto 100%;
+        }
+
+        .classicyWindowTitleLeft,
+        .classicyWindowTitleRight {
+          background: assets.$title-bar-center-red;
+
+          &:after {
+            background-image: assets.$title-bar-right-red;
+          }
+
+          &:before {
+            background-image: assets.$title-bar-left-red;
+          }
+        }
+      }
+    }
+  }
+
+  // Two classes so the error border keeps its color under the dotted drag and
+  // resize outline, whose `border` shorthand comes later.
+  .classicyWindow.classicyWindowRed {
+    border-color: var(--color-error);
+  }
+
+  .classicyWindowHeaderDimmed {
+    border: solid var(--window-border-size) var(--color-black);
+    box-shadow: none;
+  }
+
+  // The dotted drag and resize outline.
+  :where(.classicyWindow).dragging {
+    border: calc(var(--window-padding-size) / 4) dotted;
+    border-color: var(--color-black);
+    box-shadow: none;
+  }
+
+  .classicyWindowResizing {
+    border: calc(var(--window-padding-size) / 4) dotted;
+    border-color: var(--color-black);
+    box-shadow: none;
+  }
+
+  // Named under `.classicyWindow` to outrank the contents' own bevel.
+  .classicyWindow .classicyWindowContentsDimmed {
+    box-shadow: none;
+  }
+
+  // Named under `.classicyWindow` to outrank the resizer's own grip.
+  .classicyWindow .classicyWindowResizerDimmed {
+    background-image: none;
+  }
+}
