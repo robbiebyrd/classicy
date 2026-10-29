@@ -45,11 +45,17 @@ const openAppearanceManager = async () => {
 			},
 		});
 	});
-	await waitFor(() => {
-		expect(
-			screen.getByRole("button", { name: "Load Theme…" }),
-		).toBeInTheDocument();
+	// Query inside the control panel's window, not the whole document: a role
+	// query computes styles for every candidate, which jsdom recomputes after
+	// each DOM change, so document-wide queries on the full desktop add hundreds
+	// of milliseconds of CPU per call.
+	const win = await screen.findByRole("application", {
+		name: "Appearance Manager",
 	});
+	expect(
+		within(win).getByRole("button", { name: "Load Theme…" }),
+	).toBeInTheDocument();
+	return win;
 };
 
 const pickFile = (file: File) => {
@@ -63,7 +69,17 @@ const themeFile = (text: string, name = "ocean.classicy-theme.json") =>
 
 const oceanTheme = () => ({ ...getTheme("bondi"), id: "x", name: "Ocean" });
 
-describe("Appearance Manager — saving and loading theme files", () => {
+// Whole-desktop integration tests: each boots ClassicyDesktop, opens a real
+// window and drives it through the store, costing up to ~1.5 s of CPU on an
+// idle machine (mostly React dev-mode rendering and jsdom style computation,
+// much of it one-off warm-up in each fresh test worker). A full parallel
+// `pnpm test` run on a loaded or small CI machine stretches that several
+// times over, past vitest's 5 s default, so this suite gets more headroom.
+const INTEGRATION_TIMEOUT_MS = 15_000;
+
+describe("Appearance Manager — saving and loading theme files", {
+	timeout: INTEGRATION_TIMEOUT_MS,
+}, () => {
 	beforeEach(() => {
 		localStorage.clear();
 		sessionStorage.clear();
@@ -81,7 +97,7 @@ describe("Appearance Manager — saving and loading theme files", () => {
 	});
 
 	it("loading a valid file imports the theme and selects it", async () => {
-		await openAppearanceManager();
+		const win = await openAppearanceManager();
 		pickFile(themeFile(exportClassicyTheme(oceanTheme())));
 
 		await waitFor(() => {
@@ -92,7 +108,9 @@ describe("Appearance Manager — saving and loading theme files", () => {
 			"custom-ocean",
 		]);
 
-		const themeMenu = screen.getByRole("combobox", { name: "Selected Theme" });
+		const themeMenu = within(win).getByRole("combobox", {
+			name: "Selected Theme",
+		});
 		expect(themeMenu).toHaveTextContent("Ocean");
 		fireEvent.click(themeMenu);
 		const options = within(screen.getByRole("listbox")).getAllByRole("option");
@@ -147,11 +165,11 @@ describe("Appearance Manager — saving and loading theme files", () => {
 			downloads.push(this.download);
 		});
 
-		await openAppearanceManager();
+		const win = await openAppearanceManager();
 		act(() => {
 			dispatch({ type: "ClassicyDesktopChangeTheme", activeTheme: "azul" });
 		});
-		fireEvent.click(screen.getByRole("button", { name: "Save Theme…" }));
+		fireEvent.click(within(win).getByRole("button", { name: "Save Theme…" }));
 
 		expect(downloads).toEqual(["azul.classicy-theme.json"]);
 		expect(await blob?.text()).toBe(exportClassicyTheme(getTheme("azul")));

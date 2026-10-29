@@ -46,19 +46,36 @@ const openAppearanceManager = async () => {
 			},
 		});
 	});
-	await waitFor(() => {
-		expect(screen.getByRole("tab", { name: "Colors" })).toBeInTheDocument();
+	// Query inside the control panel's window, not the whole document: every
+	// role query computes styles for each candidate, and jsdom recomputes them
+	// after every DOM change, so a document-wide query on the full desktop costs
+	// hundreds of milliseconds of CPU (enough, on a loaded machine, to push a
+	// test past its timeout).
+	const win = await screen.findByRole("application", {
+		name: "Appearance Manager",
 	});
+	expect(within(win).getByRole("tab", { name: "Colors" })).toBeInTheDocument();
+	return win;
 };
 
 // ClassicyTabs selects on mouse-up (press/release), not click.
-const showTab = (name: string) => {
-	const tab = screen.getByRole("tab", { name });
+const showTab = (win: HTMLElement, name: string) => {
+	const tab = within(win).getByRole("tab", { name });
 	fireEvent.mouseDown(tab);
 	fireEvent.mouseUp(tab);
 };
 
-describe("Appearance Manager — Colors tab and Custom theme", () => {
+// Whole-desktop integration tests: each boots ClassicyDesktop, opens a real
+// window and drives it through the store, costing up to ~1.5 s of CPU on an
+// idle machine (mostly React dev-mode rendering and jsdom style computation,
+// much of it one-off warm-up in each fresh test worker). A full parallel
+// `pnpm test` run on a loaded or small CI machine stretches that several
+// times over, past vitest's 5 s default, so this suite gets more headroom.
+const INTEGRATION_TIMEOUT_MS = 15_000;
+
+describe("Appearance Manager — Colors tab and Custom theme", {
+	timeout: INTEGRATION_TIMEOUT_MS,
+}, () => {
 	beforeEach(() => {
 		localStorage.clear();
 		sessionStorage.clear();
@@ -71,8 +88,8 @@ describe("Appearance Manager — Colors tab and Custom theme", () => {
 	});
 
 	it("places Colors between Desktop and Fonts", async () => {
-		await openAppearanceManager();
-		const tabs = screen
+		const win = await openAppearanceManager();
+		const tabs = within(win)
 			.getAllByRole("tab")
 			.map((t) => t.textContent?.trim())
 			.filter((t) =>
@@ -82,9 +99,9 @@ describe("Appearance Manager — Colors tab and Custom theme", () => {
 	});
 
 	it("shows 28 swatches carrying the active theme's colours", async () => {
-		await openAppearanceManager();
-		showTab("Colors");
-		const panel = screen.getByRole("tabpanel");
+		const win = await openAppearanceManager();
+		showTab(win, "Colors");
+		const panel = within(win).getByRole("tabpanel");
 		const swatches = within(panel).getAllByTestId("color-picker-swatch");
 		expect(swatches).toHaveLength(28);
 		const select = panel.querySelector("#appearance_color_select");
@@ -94,15 +111,21 @@ describe("Appearance Manager — Colors tab and Custom theme", () => {
 	});
 
 	it("picking a colour forks Custom and lists it on the Themes tab", async () => {
-		await openAppearanceManager();
-		showTab("Colors");
+		const win = await openAppearanceManager();
+		showTab(win, "Colors");
 		fireEvent.click(
-			screen
+			within(win)
 				.getByRole("tabpanel")
 				.querySelector("#appearance_color_highlight") as HTMLElement,
 		);
-		fireEvent.click(await screen.findByRole("option", { name: "Banana" }));
-		fireEvent.click(screen.getByRole("button", { name: "OK" }));
+		const picker = await screen.findByRole("application", {
+			name: "Color Picker",
+		});
+		const crayons = within(picker).getByRole("listbox", {
+			name: "Crayon colors",
+		});
+		fireEvent.click(within(crayons).getByRole("option", { name: "Banana" }));
+		fireEvent.click(within(picker).getByRole("button", { name: "OK" }));
 
 		await waitFor(() => {
 			expect(appearance().activeTheme.id).toBe(CLASSICY_CUSTOM_THEME_ID);
@@ -114,8 +137,10 @@ describe("Appearance Manager — Colors tab and Custom theme", () => {
 		).toBe(0xaaaaaa);
 		expect(screen.getByText(/Editing the “Custom” theme/)).toBeInTheDocument();
 
-		showTab("Themes");
-		const themeMenu = screen.getByRole("combobox", { name: "Selected Theme" });
+		showTab(win, "Themes");
+		const themeMenu = within(win).getByRole("combobox", {
+			name: "Selected Theme",
+		});
 		expect(themeMenu).toHaveTextContent("Custom");
 		fireEvent.click(themeMenu);
 		const listbox = screen.getByRole("listbox");
