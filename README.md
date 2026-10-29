@@ -59,6 +59,45 @@ Register the replacement instead:
 
 `docs/AGENT-REFERENCE.md` §5 has the full asset-registry reference.
 
+**Breaking change: shared state classes and cascade layers.** A component's
+state is now a bare class beside its root class, so the classes that folded a
+state into their name are gone, and `data-state` is no longer set anywhere.
+Update host CSS and tests that select them:
+
+| Old class | Now |
+|---|---|
+| `classicyWindowActive`, `classicyWindowInactive` | `.classicyWindow.active`, `.classicyWindow.inactive` |
+| `classicyWindowCollapsed`, `classicyWindowDragging` | `.classicyWindow.collapsed`, `.classicyWindow.dragging` |
+| `classicyButtonDefault`, `classicyButtonDepressed` | `.classicyButton.default`, `.classicyButton.pressed` |
+| `classicyMenuItemDisabled`, `classicyMenuItemOpen` | `.classicyMenuItem.disabled`, `.classicyMenuItem.open` |
+| `classicyTabButtonActive` | `.classicyTabButton.selected` |
+| `classicyDesktopIconActive`, `classicyDesktopIconOpen`, `classicyDesktopIconActiveAndOpen` | `.classicyDesktopIcon.selected`, `.open`, `.selected.open` |
+| `classicyIconActive` | `.classicyIcon.selected` |
+| `classicyListBoxOptionSelected`, `classicyTableRowSelected` | `.classicyListBoxOption.selected`, `.classicyTableRow.selected` |
+| `classicyDesktopMenuAppleMenu` | `classicyDesktopMenuApple` |
+| `[data-state="…"]` on BevelButton, Placard, ImageWell | `.checked`, `.pressed`, `.mixed`, `.disabled`, `.selected`, `.open` |
+
+The exported type `ClassicyBevelButtonState` is deleted. `classicy/scss/*` now
+resolves to the vocabulary (`@use "classicy/scss/vocabulary"`); the old theme
+partials are at `classicy/scss-platinum/*` for now. The global `.hidden`
+utility and `classicyWindowZoomed` are gone, and a `zIndex` passed in `style`
+to `ClassicyWindow`, `ClassicyIcon` or `ClassicyDesktopIcon` is dropped.
+
+Classicy's stylesheet is now in cascade layers
+(`@layer classicy.base, classicy.package, classicy.user`), so **unlayered host
+CSS and every host layer beat Classicy whatever the specificity**: a host
+`button { … }` or Tailwind v4's Preflight now restyles Classicy's controls.
+Keep resets in the reserved `classicy.base.host` sublayer (for Tailwind v4,
+replace `@import "tailwindcss";` with the granular form in
+`docs/AGENT-REFERENCE.md` §1). Because the state classes are bare generic
+names (`active`, `open`, `error`, `selected`, …), a host's global
+`.active { … }` now matches Classicy elements too: scope such rules to your
+own markup. The screen saver's hidden cursor no longer beats an unlayered host
+`* { cursor: … }`.
+
+The full old → new table (every renamed class) is in `docs/AGENT-REFERENCE.md`
+§5, "Migrating to the shared vocabulary".
+
 ## Building and running on localhost
 
 This project uses [pnpm](https://pnpm.io/) (enable it with `corepack enable`). First install dependencies:

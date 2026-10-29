@@ -558,6 +558,18 @@ component's root class, never folded into a longer class name and never in a
 | `ClassicyFileInput` | `error` |
 | `ClassicySlider`, `ClassicyPopUpSlider`, `ClassicyComboBox`, `ClassicyLink`, `ClassicyOutput`, `ClassicyControlLabel`, `ClassicyColorPicker` swatch | `disabled` |
 
+Not every declared state has a component row above:
+
+- `active` and `inactive` are set only by `ClassicyWindow`, from the window
+  manager's focus rather than a prop: the focused window (and every modal) is
+  `active`, every other open window `inactive`. No other component sets them.
+- `hover`, `focused` and `expanded` are declared for appearance packages and
+  hosts, but no Classicy component sets them and no Classicy rule reads them
+  yet. Classicy styles hover and focus with the `:hover` and `:focus-visible`
+  pseudo-classes, and an expanded disclosure or menu is `open`. A package or
+  host may add them itself (through `className`), knowing Classicy never
+  toggles them.
+
 `aria-*` attributes are still emitted alongside (for example `aria-expanded`
 on the Control Strip tab and `aria-pressed` where it applies); style the
 class, not the ARIA attribute.
@@ -592,6 +604,10 @@ name not in `$classicy-states`:
 Classicy's own single-state rules are written `:where(.classicyButton).pressed`,
 so they weigh (0,1,0), the same as the root rule they modify; a size or shape
 modifier declared later still wins over them.
+
+Upgrading from the folded class names (`classicyWindowActive`,
+`classicyButtonDepressed`, `data-state`, …)? See "Migrating to the shared
+vocabulary" in §5 for the full old → new table.
 
 **Part attributes.** Parts that a skin or a test must find without relying
 on Classicy's internal class names carry one of three attributes
@@ -1114,6 +1130,127 @@ paths stay registered, so reading them still works: the PDF viewer's pan-tool
 button, for one, still draws the `ui.cursors.hand` icon. The screen saver's
 built-in logos copy `classicy.logo` and `system.macosSvg` too; replace those
 with `registerClassicyScreenSaverLogo`.
+
+### Migrating to the shared vocabulary (breaking change)
+
+The vocabulary and cascade work (§4.0.1) renamed Classicy's state classes and
+layered its stylesheet. Host CSS, end-to-end tests and code that read
+Classicy's class names need these changes.
+
+**Renamed and removed classes.** A component's state is now a bare class beside
+its root, so every class that folded a state into its name is gone, and a few
+strays were renamed. The table lists every class name Classicy's source
+emitted before the change and no longer emits, generated from a diff of the
+two source trees:
+
+| Component | Old class | Now |
+|---|---|---|
+| ClassicyWindow | `classicyWindowActive` | `.classicyWindow.active` |
+|  | `classicyWindowInactive` | `.classicyWindow.inactive` |
+|  | `classicyWindowCollapsed` | `.classicyWindow.collapsed` |
+|  | `classicyWindowDragging` | `.classicyWindow.dragging` |
+|  | `classicyWindowZoomed` | none (it had no rule; a zoomed window carries no class) |
+|  | `hidden` | `.classicyWindowContents.collapsed` / `.classicyWindowContentsModal.collapsed` (the window's contents while collapsed); the global `.hidden` utility is gone |
+|  | `block` | none (the contents of an expanded window carry no extra class) |
+| ClassicyButton | `classicyButtonDefault` | `.classicyButton.default` |
+|  | `classicyButtonDepressed` | `.classicyButton.pressed` |
+| ClassicyCheckbox | `classicyCheckboxDefault` | `.classicyCheckbox.default` |
+|  | `classicyCheckboxMixed` | `.classicyCheckbox.mixed` |
+| ClassicyRadioInput | `classicyRadioInputDefault` | `.classicyRadioInput.default` |
+|  | `classicyRadioInputMixed` | `.classicyRadioInput.mixed` |
+|  | `classicyRadioInputWrapperChecked` | `.classicyRadioInputWrapper.checked` |
+|  | `classicyRadioInputWrapperDisabled` | `.classicyRadioInputWrapper.disabled` |
+| ClassicyMenu, ClassicyBevelButton menus | `classicyMenuItemDisabled` | `.classicyMenuItem.disabled` |
+|  | `classicyMenuItemOpen` | `.classicyMenuItem.open` |
+| Menu bar | `classicyDesktopMenuAppleMenu` | `classicyDesktopMenuApple` (or `[data-classicy-part="apple"]`) |
+| ClassicyPopUpMenu | `classicyPopUpMenuOpen` | `.classicyPopUpMenu.open` |
+|  | `select--disabled` | `.classicyPopUpMenu.disabled` |
+|  | `classicyPopUpMenuButtonDisabled` | `.classicyPopUpMenuButton.disabled` |
+| ClassicyListBox | `classicyListBoxDisabled` | `.classicyListBox.disabled` |
+|  | `classicyListBoxOptionSelected` | `.classicyListBoxOption.selected` |
+|  | `classicyListBoxOptionDisabled` | `.classicyListBoxOption.disabled` |
+| ClassicyTabs | `classicyTabButtonActive` | `.classicyTabButton.selected` (tabs are `selected`, not `active`) |
+| ClassicyTree | `classicyTreeNodeSelected` | `.classicyTreeNodeLabelHolder.selected` |
+|  | `classicyTreeNodeDisabled` | `.classicyTreeNodeLabelHolder.disabled` |
+| ClassicyTable, Finder list view | `classicyTableRowSelected` | `.classicyTableRow.selected` |
+|  | `classicyTableColumnHeaderSelected` | `.classicyTableColumnHeader.selected` (the sorted column) |
+|  | `classicyFileBrowserViewTableRowSelected` | `.classicyFileBrowserViewTableRow.selected` |
+| ClassicyIcon, ClassicyDesktopIcon | `classicyIconActive` | `.classicyIcon.selected` |
+|  | `classicyIconDragging` | `.classicyIcon.dragging` |
+|  | `classicyDesktopIconActive` | `.classicyDesktopIcon.selected` |
+|  | `classicyDesktopIconOpen` | `.classicyDesktopIcon.open` |
+|  | `classicyDesktopIconActiveAndOpen` | `.classicyDesktopIcon.selected.open` |
+|  | `classicyDesktopIconDragging` | `.classicyDesktopIcon.dragging` |
+| ClassicyControlStrip | `classicyControlStripCollapsed` | `.classicyControlStrip.collapsed` |
+|  | `classicyControlStripMoving` | `.classicyControlStrip.dragging` |
+| ClassicyPlacard, ClassicyImageWell | `classicyPlacardDisabled` | `.classicyPlacard.disabled` |
+|  | `classicyImageWellDisabled` | `.classicyImageWell.disabled` |
+|  | `classicyImageWellSelected` | `.classicyImageWell.selected` |
+| Disabled-only controls | `classicyComboBoxDisabled` | `.classicyComboBox.disabled` |
+|  | `classicyControlLabelDisabled` | `.classicyControlLabel.disabled` |
+|  | `classicyLinkDisabled` | `.classicyLink.disabled` |
+|  | `classicyOutputDisabled` | `.classicyOutput.disabled` |
+|  | `classicyPopUpSliderDisabled` | `.classicyPopUpSlider.disabled` |
+|  | `classicySliderDisabled` | `.classicySlider.disabled` |
+|  | `classicySliderTicksDisabled` | `.classicySliderTicks.disabled` |
+| ClassicyDisclosure, ClassicyFileInput | `classicyDisclosureInnerOpen` | `.classicyDisclosureInner.open` |
+|  | `classicyFileInputError` | `.classicyFileInputMessage.error` |
+| Color pickers | `classicyColorPickerSwatchDisabled` | `.classicyColorPickerSwatch.disabled` |
+|  | `classicyColorPickerCrayonSelected` | `.classicyColorPickerCrayon.selected` |
+|  | `classicyColorPickerModeListItemSelected` | `.classicyColorPickerModeListItem.selected` |
+|  | `classicyColorPickerSlider--red` | `classicyColorPickerSliderRed` |
+|  | `classicyColorPickerSlider--green` | `classicyColorPickerSliderGreen` |
+|  | `classicyColorPickerSlider--blue` | `classicyColorPickerSliderBlue` |
+|  | `classicyColorPickerSlider--cyan` | `classicyColorPickerSliderCyan` |
+|  | `classicyColorPickerSlider--magenta` | `classicyColorPickerSliderMagenta` |
+|  | `classicyColorPickerSlider--yellow` | `classicyColorPickerSliderYellow` |
+|  | `classicyColorPickerSlider--black` | `classicyColorPickerSliderBlack` |
+| Drive Setup | `driveSetupList` | `classicyDriveSetupList` |
+|  | `driveSetupList__tableContainer` | `classicyDriveSetupListTable` |
+|  | `driveSetupList__table` | `classicyDriveSetupListGrid` |
+|  | `driveSetupList__head` | `classicyDriveSetupListHead` |
+|  | `driveSetupList__row` | `classicyDriveSetupListRow` |
+|  | `driveSetupList__row--selected` | `.classicyDriveSetupListRow.selected` |
+
+Four selectors also left the stylesheets without ever being emitted
+(`classicyIconOpen`, `classicyIconActiveAndOpen`,
+`classicyRadioInputLabelDisabled` and the bare `classicyColorPickerSlider`).
+A host rule on them never matched anything, so there is nothing to migrate.
+
+**Other breaking changes:**
+
+- **No `data-state`.** `ClassicyBevelButton`, `ClassicyPlacard` and
+  `ClassicyImageWell` no longer set a `data-state` attribute, and the exported
+  type `ClassicyBevelButtonState` is deleted. Select the state classes instead:
+  BevelButton `on` → `.checked`, `pressed-off`/`pressed-on` → `.pressed`,
+  `mixed` → `.mixed`, `disabled-off`/`disabled-on` → `.disabled` (plus
+  `.checked` for `disabled-on`), and `.open` while its menu or panel shows;
+  Placard `pressed`/`disabled` → `.pressed`/`.disabled`; ImageWell
+  `selected`/`disabled` → `.selected`/`.disabled`.
+- **`classicy/scss/*` is the vocabulary.** It now resolves to
+  `src/Appearance/vocabulary/` (`@use "classicy/scss/vocabulary"`). The old
+  theme partials (`appearance`, the mixins) moved to `classicy/scss-platinum/*`,
+  a temporary bridge that appearance packages will replace.
+- **`.hidden` and `classicyWindowZoomed` are gone.** Classicy no longer ships
+  a global `.hidden { visibility: hidden }` utility; a host that relied on it
+  must define its own. A collapsed window's contents are
+  `.classicyWindowContents.collapsed`.
+- **A consumer `zIndex` is dropped** on `ClassicyWindow`, `ClassicyIcon` and
+  `ClassicyDesktopIcon`: their state classes own stacking (§4.0.1).
+- **Classicy's CSS is layered** (§1, "Cascade layers"). Unlayered host CSS and
+  every host layer now beat every Classicy rule whatever the specificity, so a
+  host `button { … }` or Tailwind v4's Preflight overrides Classicy's
+  controls. Keep broad resets beneath Classicy in the reserved sublayer
+  `classicy.base.host`, and for Tailwind v4 replace `@import "tailwindcss";`
+  with the granular form shown in §1.
+- **State classes are bare generic names** (`active`, `open`, `error`,
+  `selected`, `disabled`, `checked`, …). A host's own global `.active { … }`
+  or `.error { … }` now matches Classicy elements too and, being unlayered,
+  wins. Scope such rules to your own markup (`.my-nav .active`).
+- **The screen-saver cursor rule no longer uses `!important`.** It is a
+  layered rule with id-level specificity, so an unlayered host
+  `* { cursor: … }` now shows a pointer over a running screen saver. Scope
+  host cursor rules, or put them in a layer.
 
 ### System art
 
