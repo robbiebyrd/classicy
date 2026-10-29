@@ -49,9 +49,19 @@ const {
 		getViewport: vi.fn(() => ({ width: 100, height: 100 })),
 		render: vi.fn(() => ({ promise: Promise.resolve(), cancel: vi.fn() })),
 	};
+	// pdf.js's getPage() is a worker round-trip, so the page counter (shown
+	// as soon as the document loads) appears *before* the render effect gets
+	// to page.render(). Resolving on a later macrotask keeps every test
+	// honest about that order instead of passing only when the effect
+	// happens to win the race.
 	const mockDoc = {
 		numPages: 3,
-		getPage: vi.fn(() => Promise.resolve(mockPage)),
+		getPage: vi.fn(
+			() =>
+				new Promise<typeof mockPage>((resolve) =>
+					setTimeout(() => resolve(mockPage), 10),
+				),
+		),
 	};
 	const mockLoadingTaskDestroy = vi.fn();
 	// The explicit (unused) parameter type here doesn't change runtime
@@ -90,12 +100,21 @@ beforeEach(() => {
 	HTMLCanvasElement.prototype.getContext = vi.fn(
 		() => ({}),
 	) as unknown as typeof HTMLCanvasElement.prototype.getContext;
-	getDocumentMock.mockClear();
-	mockDoc.getPage.mockClear();
-	mockLoadingTaskDestroy.mockClear();
-	mockPage.render.mockClear();
-	mockPage.getViewport.mockClear();
+	// mockReset, not mockClear: it also drops unconsumed *Once values, so a
+	// test that fails before its first render can't leak its render task
+	// into the next test. It restores each vi.fn's original implementation.
+	getDocumentMock.mockReset();
+	mockDoc.getPage.mockReset();
+	mockLoadingTaskDestroy.mockReset();
+	mockPage.render.mockReset();
+	mockPage.getViewport.mockReset();
 });
+
+// "Page 1 of 3" only proves the document loaded; page 1 is drawn by a
+// later effect once getPage() resolves. Tests that act on the first render
+// task, or count calls after it, must wait for it.
+const waitForFirstPageRender = () =>
+	waitFor(() => expect(mockPage.render).toHaveBeenCalledTimes(1));
 
 describe("PDFViewerDocument", () => {
 	it("shows a loading state before the document resolves", async () => {
@@ -224,6 +243,7 @@ describe("PDFViewerDocument", () => {
 		const user = userEvent.setup();
 		render(<PDFViewerDocument url="http://example.com/sample.pdf" />);
 		await screen.findByText("Page 1 of 3");
+		await waitForFirstPageRender();
 		await user.click(screen.getByText("Next"));
 		await screen.findByText("Page 2 of 3");
 		expect(cancel).toHaveBeenCalledTimes(1);
@@ -259,6 +279,7 @@ describe("PDFViewerDocument", () => {
 			const user = userEvent.setup();
 			render(<PDFViewerDocument url="http://example.com/sample.pdf" />);
 			await screen.findByText("Page 1 of 3");
+			await waitForFirstPageRender();
 			await user.click(screen.getByText("Next"));
 			await screen.findByText("Page 2 of 3");
 			expect(cancel).toHaveBeenCalledTimes(1);
@@ -281,27 +302,41 @@ describe("PDFViewerDocument", () => {
 	it("shows a page error (toolbar still visible) when a render task fails for a reason other than cancellation", async () => {
 		// A genuine pdf.js rendering failure (not a RenderingCancelledException)
 		// must still surface to the user instead of being silently swallowed.
-		// The rejection is held back until after the page has rendered (rather
-		// than constructed pre-rejected) so the component's `.catch` has
-		// already attached by the time it fires, same as the cancellation
-		// test above — otherwise this would itself trip an
-		// unhandled-rejection warning.
+		// Like pdf.js, create the render promise inside page.render(), so it
+		// can only be rejected once the component holds it.
 		let rejectRender: (reason?: unknown) => void = () => {};
-		mockPage.render.mockReturnValueOnce({
-			promise: new Promise((_resolve, reject) => {
+		mockPage.render.mockImplementationOnce(() => ({
+			promise: new Promise<void>((_resolve, reject) => {
 				rejectRender = reject;
 			}),
 			cancel: vi.fn(),
-		});
+		}));
 
-		render(<PDFViewerDocument url="http://example.com/sample.pdf" />);
-		await screen.findByText("Page 1 of 3");
+		const unhandledRejections: unknown[] = [];
+		const onUnhandledRejection = (reason: unknown) => {
+			unhandledRejections.push(reason);
+		};
+		process.on("unhandledRejection", onUnhandledRejection);
 
-		rejectRender(new Error("canvas context lost"));
+		try {
+			render(<PDFViewerDocument url="http://example.com/sample.pdf" />);
+			await screen.findByText("Page 1 of 3");
+			// Rejecting before the component has called page.render() (and
+			// attached its handler in the same tick) leaves a rejection nobody
+			// is listening to — an unhandled rejection that fails the run.
+			await waitForFirstPageRender();
 
-		expect(
-			await screen.findByText("Couldn't render this page."),
-		).toBeInTheDocument();
+			rejectRender(new Error("canvas context lost"));
+
+			expect(
+				await screen.findByText("Couldn't render this page."),
+			).toBeInTheDocument();
+			await new Promise((resolve) => setTimeout(resolve, 0));
+		} finally {
+			process.removeListener("unhandledRejection", onUnhandledRejection);
+		}
+
+		expect(unhandledRejections).toHaveLength(0);
 		// The document loaded fine, so the toolbar must stay usable.
 		expect(screen.getByText("Page 1 of 3")).toBeInTheDocument();
 		expect(screen.getByText("Next")).not.toBeDisabled();
@@ -512,11 +547,13 @@ describe("PDFViewerDocument", () => {
 				);
 			}
 			// Already at the floor: another ctrl-click must not trigger a
-			// re-render at some smaller (or repeated) scale.
-			mockPage.getViewport.mockClear();
+			// re-render at some smaller (or repeated) scale. A scale change
+			// re-runs the render effect, which calls getPage() synchronously
+			// inside fireEvent's act(); getViewport would only follow after the
+			// page load, too late for a negative assertion to see.
+			mockDoc.getPage.mockClear();
 			fireEvent.click(wrapper, { ctrlKey: true });
-			await new Promise((resolve) => setTimeout(resolve, 0));
-			expect(mockPage.getViewport).not.toHaveBeenCalled();
+			expect(mockDoc.getPage).not.toHaveBeenCalled();
 		});
 
 		it("does not zoom on canvas click while the Pan tool is active", async () => {
@@ -524,10 +561,12 @@ describe("PDFViewerDocument", () => {
 				<PDFViewerDocument url="http://example.com/sample.pdf" />,
 			);
 			await screen.findByText("Page 1 of 3");
-			mockPage.getViewport.mockClear();
+			await waitForFirstPageRender();
+			// See the minimum-scale test: a zoom would re-run the render
+			// effect, calling getPage() inside fireEvent's act().
+			mockDoc.getPage.mockClear();
 			fireEvent.click(getWrapper(container), { clientX: 50, clientY: 40 });
-			await new Promise((resolve) => setTimeout(resolve, 0));
-			expect(mockPage.getViewport).not.toHaveBeenCalled();
+			expect(mockDoc.getPage).not.toHaveBeenCalled();
 		});
 	});
 
