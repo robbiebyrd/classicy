@@ -3,8 +3,6 @@
 // bevel. The controller's cells butt together, so each drops the mixin's
 // border and rounded corners right after it, as the base rule did.
 @use "../mixins";
-@use "../scrollbars";
-@use "../assets";
 
 @mixin quickTimeMovieEmbed {
   .quickTimePlayerVideoControlsTime {

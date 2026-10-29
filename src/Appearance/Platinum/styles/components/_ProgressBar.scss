@@ -1,8 +1,6 @@
 // The Platinum progress bar look (from ClassicyProgressBar.scss): the inset
 // track border.
 @use "../mixins";
-@use "../scrollbars";
-@use "../assets";
 
 @mixin progressBar {
   .classicyProgress {

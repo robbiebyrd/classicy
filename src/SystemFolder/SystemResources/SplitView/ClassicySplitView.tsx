@@ -123,10 +123,10 @@ interface ClassicySplitViewProps {
 /**
  * A resizable container splitting two or three content areas along a single
  * axis. The bordered divider between panes carries the Platinum window-frame
- * treatment (`--color-window-frame` fill with the `platinumWindowBorder`
- * bevel) and is dragged to trade space between the two panes it separates —
- * dragging toward the leading side grows the trailing pane and shrinks the
- * leading one, exactly like a window frame edge being pushed.
+ * treatment (`--color-window-frame` fill with the `platinum-window-border` bevel
+ * from Platinum's `_mixins.scss`) and is dragged to trade space between the two
+ * panes it separates — dragging toward the leading side grows the trailing pane
+ * and shrinks the leading one, exactly like a window frame edge being pushed.
  *
  * There is no HTML equivalent (the nearest ancestor is the obsolete
  * `<frameset>`). The root fills its parent, so give the parent a size; each

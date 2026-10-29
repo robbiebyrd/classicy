@@ -2,8 +2,6 @@
 // the menu frame around a non-menu surface, then the panel's own face and
 // inner highlight, which override the frame's background and shadow.
 @use "../mixins";
-@use "../scrollbars";
-@use "../assets";
 
 @mixin bevelButton {
   .classicyBevelButtonPopup.classicyBevelButtonPopupPanel {

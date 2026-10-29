@@ -1,7 +1,5 @@
 // The Platinum meter look (from ClassicyMeter.scss): the inset well border.
 @use "../mixins";
-@use "../scrollbars";
-@use "../assets";
 
 @mixin meter {
   .classicyMeter {

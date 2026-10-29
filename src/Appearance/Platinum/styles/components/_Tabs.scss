@@ -6,9 +6,6 @@
 // Scoped, it is one class higher than the fallback's `& *`, (0,3,0) vs
 // (0,2,0), so it wins on specificity; platinum.scss also includes this
 // partial after the desktop's.
-@use "../mixins";
-@use "../scrollbars";
-@use "../assets";
 
 @mixin tabs {
   .classicyTabScroller {

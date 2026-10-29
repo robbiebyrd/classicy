@@ -5,8 +5,6 @@
 // small radii) follow what they override, as in the base file, so they still
 // win from the package layer.
 @use "../mixins";
-@use "../scrollbars";
-@use "../assets";
 
 @mixin button {
   .classicyButton {
