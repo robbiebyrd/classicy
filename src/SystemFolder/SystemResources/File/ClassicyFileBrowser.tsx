@@ -8,8 +8,11 @@ import {
 	type RefObject,
 	useCallback,
 	useImperativeHandle,
+	useLayoutEffect,
 	useRef,
+	useState,
 } from "react";
+import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import type {
 	FinderIconViewOptions,
@@ -236,9 +239,22 @@ export const ClassicyFileBrowser: FunctionalComponent<
 		e.preventDefault();
 		showContextMenu(menu, [e.clientX, e.clientY]);
 	};
+	// The list view's icon base is the desktop's --desktop-icon-size, read once
+	// per theme icon size (not per render), in a layout effect after the commit
+	// that applies a new theme's variables to #classicyDesktop. The store's
+	// number is the fallback before the desktop mounts, and the value
+	// whenever the desktop's variables are the theme's.
 	const themeIconSize = useAppManager(
 		(s) => s.System.Manager.Appearance.activeTheme.desktop.iconSize,
 	);
+	const [desktopIconSize, setDesktopIconSize] = useState(() =>
+		readClassicyThemeVar("--desktop-icon-size", themeIconSize),
+	);
+	useLayoutEffect(() => {
+		setDesktopIconSize(
+			readClassicyThemeVar("--desktop-icon-size", themeIconSize),
+		);
+	}, [themeIconSize]);
 
 	return (
 		// biome-ignore lint/a11y/noStaticElementInteractions: keys and right-clicks bubble here from the focusable list box and icons
@@ -263,7 +279,7 @@ export const ClassicyFileBrowser: FunctionalComponent<
 					// theme ever ships a different base.
 					iconSize={
 						listViewOptions
-							? listViewIconSize(themeIconSize, listViewOptions.iconSize)
+							? listViewIconSize(desktopIconSize, listViewOptions.iconSize)
 							: 18
 					}
 					holderRef={holderRef}
