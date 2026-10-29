@@ -5,18 +5,14 @@ import {
 	registerClassicySystemArt,
 	registerClassicyWallpapers,
 } from "@/Appearance/ClassicyAssetRegistry";
-import { PLATINUM_SYSTEM_ART } from "@/Appearance/Platinum/assets/art/platinumArt";
+import {
+	platinumArt as art,
+	PLATINUM_SYSTEM_ART,
+} from "@/Appearance/Platinum/assets/art/platinumArt";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { ClassicyWallpapers } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 
 const PLATINUM = "platinum";
-
-const artModules = import.meta.glob("./art/*.{svg,png}", {
-	eager: true,
-	import: "default",
-}) as Record<string, string>;
-
-const art = (name: string): string => artModules[`./art/${name}`] ?? "";
 
 /**
  * Platinum's system art. Importing this module (a side effect, listed in
