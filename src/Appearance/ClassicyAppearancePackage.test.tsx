@@ -1,0 +1,296 @@
+import { act, renderHook } from "@testing-library/react";
+import { produce } from "immer";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID as LEAF_DEFAULT_ID } from "@/Appearance/ClassicyAppearanceDefaults";
+import {
+	CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID,
+	CLASSICY_FALLBACK_APPEARANCE_PACKAGE,
+	type ClassicyAppearanceLayout,
+	type ClassicyAppearancePackage,
+	getClassicyAppearancePackage,
+	listClassicyAppearancePackages,
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+	resolveClassicyAppearancePackage,
+	subscribeClassicyAppearancePackages,
+	useActiveClassicyAppearancePackage,
+	useClassicyAppearancePackages,
+} from "@/Appearance/ClassicyAppearancePackage";
+import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
+import {
+	getAllThemes,
+	getTheme,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import {
+	type ClassicyLogEntry,
+	registerClassicyLogSink,
+	unregisterClassicyLogSink,
+} from "@/SystemFolder/SystemResources/Log/ClassicyLog";
+
+const PLATINUM_LAYOUT: ClassicyAppearanceLayout = {
+	window: { growBoxCorner: "bottom-right" },
+	menuBar: { placement: "screen" },
+	desktop: { iconGridOrigin: "top-right" },
+};
+
+const makePackage = (
+	id: string,
+	overrides: Partial<ClassicyAppearancePackage> = {},
+): ClassicyAppearancePackage => ({
+	id,
+	name: id,
+	css: "",
+	defaults: getTheme("default"),
+	layout: PLATINUM_LAYOUT,
+	...overrides,
+});
+
+// System.Manager.Appearance.packageId joins the store type in 2.1; until then
+// the tests write it through a loose view of the Appearance slice.
+const setPackageId = (packageId: string) =>
+	act(() => {
+		useAppManager.setState((state) =>
+			produce(state, (draft) => {
+				(draft.System.Manager.Appearance as { packageId?: string }).packageId =
+					packageId;
+			}),
+		);
+	});
+
+beforeEach(() => {
+	resetClassicyAppearancePackagesForTests();
+	useAppManager.setState(DefaultAppManagerState, true);
+});
+
+afterEach(() => {
+	resetClassicyAppearancePackagesForTests();
+	useAppManager.setState(DefaultAppManagerState, true);
+	vi.restoreAllMocks();
+});
+
+describe("ClassicyAppearancePackage registry", () => {
+	it("registers and lists in registration order", () => {
+		registerClassicyAppearancePackage(makePackage("b"));
+		registerClassicyAppearancePackage(makePackage("a"));
+		expect(listClassicyAppearancePackages().map((p) => p.id)).toEqual([
+			"b",
+			"a",
+		]);
+	});
+
+	it("re-registering the same id replaces in place", () => {
+		registerClassicyAppearancePackage(makePackage("a", { name: "One" }));
+		registerClassicyAppearancePackage(makePackage("a", { name: "Two" }));
+		expect(getClassicyAppearancePackage("a")?.name).toBe("Two");
+		expect(listClassicyAppearancePackages()).toHaveLength(1);
+		expect(listClassicyAppearancePackages()[0].id).toBe("a");
+	});
+
+	it("a replaced package keeps its position among others", () => {
+		registerClassicyAppearancePackage(makePackage("a", { name: "One" }));
+		registerClassicyAppearancePackage(makePackage("b"));
+		registerClassicyAppearancePackage(makePackage("a", { name: "Two" }));
+		expect(listClassicyAppearancePackages().map((p) => p.id)).toEqual([
+			"a",
+			"b",
+		]);
+	});
+
+	it("rejects an invalid package and logs an error", () => {
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		const entries: ClassicyLogEntry[] = [];
+		registerClassicyLogSink({
+			id: "appearance-package-test",
+			onLog: (entry) => entries.push(entry),
+		});
+		try {
+			registerClassicyAppearancePackage(makePackage("Not Kebab"));
+		} finally {
+			unregisterClassicyLogSink("appearance-package-test");
+		}
+		expect(getClassicyAppearancePackage("Not Kebab")).toBeUndefined();
+		expect(entries).toHaveLength(1);
+		expect(entries[0].level).toBe("error");
+		expect(entries[0].subsystem).toBe("ClassicyAppearance");
+		expect(entries[0].message).toMatch(
+			/^Package "Not Kebab" was not registered: /,
+		);
+		expect(document.getElementById("classicy-appearance-Not Kebab")).toBeNull();
+	});
+
+	it("rejects a package whose css is not a string", () => {
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		registerClassicyAppearancePackage(
+			makePackage("a", { css: undefined as unknown as string }),
+		);
+		expect(getClassicyAppearancePackage("a")).toBeUndefined();
+	});
+
+	it("injects the package css on register", () => {
+		registerClassicyAppearancePackage(makePackage("a", { css: ".x{}" }));
+		expect(document.getElementById("classicy-appearance-a")?.textContent).toBe(
+			".x{}",
+		);
+	});
+
+	it("stores the package object it was given", () => {
+		const pkg = makePackage("a", { css: ".x{}", hooks: {} });
+		registerClassicyAppearancePackage(pkg);
+		expect(getClassicyAppearancePackage("a")).toBe(pkg);
+	});
+
+	it("subscribe fires once per register and stops after unsubscribe", () => {
+		const listener = vi.fn();
+		const unsubscribe = subscribeClassicyAppearancePackages(listener);
+		registerClassicyAppearancePackage(makePackage("a"));
+		expect(listener).toHaveBeenCalledTimes(1);
+		registerClassicyAppearancePackage(makePackage("b"));
+		expect(listener).toHaveBeenCalledTimes(2);
+		unsubscribe();
+		registerClassicyAppearancePackage(makePackage("c"));
+		expect(listener).toHaveBeenCalledTimes(2);
+	});
+
+	it("useClassicyAppearancePackages re-renders on registration", () => {
+		const { result } = renderHook(() => useClassicyAppearancePackages());
+		const before = result.current.length;
+		act(() => registerClassicyAppearancePackage(makePackage("a")));
+		expect(result.current.length).toBe(before + 1);
+	});
+
+	it("useActiveClassicyAppearancePackage falls back to platinum for an unknown packageId", () => {
+		const platinum = makePackage("platinum");
+		registerClassicyAppearancePackage(platinum);
+		setPackageId("irix");
+		const { result } = renderHook(() => useActiveClassicyAppearancePackage());
+		expect(result.current.id).toBe("platinum");
+		expect(result.current).toBe(platinum);
+	});
+
+	it("useActiveClassicyAppearancePackage follows the store and the registry", () => {
+		const platinum = makePackage("platinum");
+		registerClassicyAppearancePackage(platinum);
+		const { result } = renderHook(() => useActiveClassicyAppearancePackage());
+		expect(result.current).toBe(platinum);
+		setPackageId("mirror");
+		expect(result.current).toBe(platinum);
+		const mirror = makePackage("mirror");
+		act(() => registerClassicyAppearancePackage(mirror));
+		expect(result.current).toBe(mirror);
+	});
+
+	it("returns CLASSICY_FALLBACK_APPEARANCE_PACKAGE when nothing is registered", () => {
+		const { result } = renderHook(() => useActiveClassicyAppearancePackage());
+		expect(result.current).toBe(CLASSICY_FALLBACK_APPEARANCE_PACKAGE);
+		expect(result.current.css).toBe("");
+	});
+
+	it("useClassicyAppearanceLayout returns the active package layout", () => {
+		registerClassicyAppearancePackage(
+			makePackage("mirror", {
+				layout: {
+					...PLATINUM_LAYOUT,
+					window: { growBoxCorner: "bottom-left" },
+				},
+			}),
+		);
+		setPackageId("mirror");
+		const { result } = renderHook(() => useClassicyAppearanceLayout());
+		expect(result.current.window.growBoxCorner).toBe("bottom-left");
+	});
+});
+
+describe("resolveClassicyAppearancePackage", () => {
+	it("resolves the given id, then platinum, then the fallback", () => {
+		expect(resolveClassicyAppearancePackage("irix")).toBe(
+			CLASSICY_FALLBACK_APPEARANCE_PACKAGE,
+		);
+		const platinum = makePackage("platinum");
+		registerClassicyAppearancePackage(platinum);
+		expect(resolveClassicyAppearancePackage("irix")).toBe(platinum);
+		const irix = makePackage("irix");
+		registerClassicyAppearancePackage(irix);
+		expect(resolveClassicyAppearancePackage("irix")).toBe(irix);
+	});
+
+	it("reads the store's packageId at call time when no id is given", () => {
+		const platinum = makePackage("platinum");
+		const irix = makePackage("irix");
+		registerClassicyAppearancePackage(platinum);
+		registerClassicyAppearancePackage(irix);
+		expect(resolveClassicyAppearancePackage()).toBe(platinum);
+		setPackageId("irix");
+		expect(resolveClassicyAppearancePackage()).toBe(irix);
+	});
+});
+
+describe("CLASSICY_FALLBACK_APPEARANCE_PACKAGE", () => {
+	it("is Platinum's structure-only render: defaults, presets and layout, no css", () => {
+		expect(CLASSICY_FALLBACK_APPEARANCE_PACKAGE).toMatchObject({
+			id: "platinum",
+			name: "Platinum",
+			css: "",
+			layout: PLATINUM_LAYOUT,
+		});
+		expect(CLASSICY_FALLBACK_APPEARANCE_PACKAGE.defaults).toBe(
+			getTheme("default"),
+		);
+		expect(CLASSICY_FALLBACK_APPEARANCE_PACKAGE.presets).toBe(getAllThemes());
+		expect(CLASSICY_FALLBACK_APPEARANCE_PACKAGE.hooks).toBeUndefined();
+	});
+
+	it("is frozen", () =>
+		expect(Object.isFrozen(CLASSICY_FALLBACK_APPEARANCE_PACKAGE)).toBe(true));
+});
+
+describe("module load order", () => {
+	// Each entry point evaluated first in a fresh module graph: no constant is
+	// read in its temporal dead zone, whichever module a bundle reaches first.
+	it.each([
+		[
+			"the package module",
+			() => import("@/Appearance/ClassicyAppearancePackage"),
+		],
+		[
+			"the layout module",
+			() => import("@/Appearance/useClassicyAppearanceLayout"),
+		],
+		[
+			"the schema module",
+			() => import("@/Appearance/ClassicyAppearancePackageSchema"),
+		],
+		[
+			"the app manager",
+			() =>
+				import("@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager"),
+		],
+		["the library barrel", () => import("@/index")],
+	])(
+		"evaluates when %s loads first",
+		async (_name, load) => {
+			vi.resetModules();
+			await load();
+			const fresh = await import("@/Appearance/ClassicyAppearancePackage");
+			expect(fresh.CLASSICY_FALLBACK_APPEARANCE_PACKAGE.defaults.id).toBe(
+				"default",
+			);
+			expect(fresh.CLASSICY_FALLBACK_APPEARANCE_PACKAGE.presets).toHaveLength(
+				21,
+			);
+			expect(fresh.CLASSICY_FALLBACK_APPEARANCE_PACKAGE.layout).toEqual(
+				PLATINUM_LAYOUT,
+			);
+			// A cold graph transforms the whole library (the barrel case).
+		},
+		60_000,
+	);
+});
+
+describe("CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID", () => {
+	it("is platinum, re-exported from the dependency-free defaults module", () => {
+		expect(CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID).toBe("platinum");
+		expect(CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID).toBe(LEAF_DEFAULT_ID);
+	});
+});
