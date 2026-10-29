@@ -10,10 +10,7 @@ import {
 	useState,
 } from "react";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
-import {
-	useClassicyAppearanceInput,
-	withClassicyAppearanceInput,
-} from "@/Appearance/useClassicyAppearanceInput.internal";
+import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import {
 	ClassicyControlLabel,
@@ -128,7 +125,6 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 
 	const rootRef = useRef<HTMLDivElement>(null);
 	const appearance = useClassicyAppearance("ListBox", { disabled }, rootRef);
-	useClassicyAppearanceInput();
 	// Focus moving between rows stays inside the list: only focus entering
 	// from, or leaving to, outside the list is a focus or blur of the list.
 	const isInsideList = (target: EventTarget | null) =>

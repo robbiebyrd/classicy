@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render } from "@/__tests__/test-utils";
 import { installClassicyAppearanceProbe } from "@/Appearance/__tests__/appearanceProbe";
 import { ClassicySlider } from "@/SystemFolder/SystemResources/Slider/ClassicySlider";
@@ -11,6 +11,7 @@ beforeEach(() => {
 
 afterEach(() => {
 	probe.uninstall();
+	vi.restoreAllMocks();
 });
 
 /** The events Slider emitted after its own `mount`. */
@@ -19,6 +20,35 @@ const emitted = () => {
 	return own
 		.slice(own.findIndex((e) => e.event === "mount") + 1)
 		.map(({ event, detail }) => ({ event, detail }));
+};
+
+/**
+ * The document's live pointerup/pointercancel listeners, followed through
+ * spies on add/removeEventListener.
+ */
+const trackReleaseListeners = () => {
+	const live = new Set<string>();
+	const ids = new Map<unknown, number>();
+	const key = (type: string, listener: unknown) => {
+		if (!ids.has(listener)) ids.set(listener, ids.size);
+		return `${type}:${ids.get(listener)}`;
+	};
+	const add = document.addEventListener.bind(document);
+	const remove = document.removeEventListener.bind(document);
+	vi.spyOn(document, "addEventListener").mockImplementation(
+		(type, listener, options) => {
+			if (type === "pointerup" || type === "pointercancel")
+				live.add(key(type, listener));
+			add(type, listener, options);
+		},
+	);
+	vi.spyOn(document, "removeEventListener").mockImplementation(
+		(type, listener, options) => {
+			live.delete(key(type, listener));
+			remove(type, listener, options);
+		},
+	);
+	return live;
 };
 
 const root = (container: HTMLElement) =>
@@ -85,6 +115,25 @@ describe("ClassicySlider appearance", () => {
 		// A later release on the input is not a second end.
 		fireEvent.pointerUp(el);
 		expect(emitted()).toHaveLength(3);
+	});
+
+	it("listens to the document for a release only while a press lasts", () => {
+		const live = trackReleaseListeners();
+		const { container, unmount } = render(<ClassicySlider id="s" value={10} />);
+		const el = root(container);
+		expect(live.size).toBe(0);
+		fireEvent.pointerDown(el);
+		expect(live.size).toBe(2);
+		fireEvent.pointerUp(el);
+		expect(live.size).toBe(0);
+		fireEvent.pointerDown(el);
+		fireEvent.pointerCancel(el);
+		expect(live.size).toBe(0);
+		// Unmounted mid-drag: the listeners go with it.
+		fireEvent.pointerDown(el);
+		expect(live.size).toBe(2);
+		unmount();
+		expect(live.size).toBe(0);
 	});
 
 	it("reports keyboard stepping as change, with no drag", () => {

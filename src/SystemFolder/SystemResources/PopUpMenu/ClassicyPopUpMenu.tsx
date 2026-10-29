@@ -21,10 +21,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
-import {
-	useClassicyAppearanceInput,
-	withClassicyAppearanceInput,
-} from "@/Appearance/useClassicyAppearanceInput.internal";
+import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import {
@@ -213,7 +210,6 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 		wrapperRef,
 	);
 	const emitAppearance = appearance.emit;
-	useClassicyAppearanceInput();
 	// `close` follows the menu going away, whichever path dismissed it, and
 	// so comes after the `change` a pick emits.
 	const wasOpenRef = useRef(open);

@@ -23,10 +23,7 @@ import {
 } from "react";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
-import {
-	useClassicyAppearanceInput,
-	withClassicyAppearanceInput,
-} from "@/Appearance/useClassicyAppearanceInput.internal";
+import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 
 /**
@@ -223,7 +220,6 @@ export function ClassicyTable<T>({
 	);
 	// The container had no state class; `selected` stays on rows and headers.
 	const appearance = useClassicyAppearance("Table", {}, containerRef);
-	useClassicyAppearanceInput();
 	const typeBuffer = useRef("");
 	const typeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
 		undefined,
