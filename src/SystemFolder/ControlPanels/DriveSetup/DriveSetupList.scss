@@ -1,5 +1,3 @@
-@use "../AppearanceManager/styles/appearance";
-
 .classicyDriveSetupList {
 	display: flex;
 	flex-direction: column;
@@ -70,7 +68,7 @@
 	font-stretch: condensed;
 	padding: var(--window-padding-size);
 	background: var(--color-system-03);
-	@include appearance.platinumWindowBoxShadow;
+	// The header bevel is the Platinum package's.
 }
 
 .classicyDriveSetupListRow {

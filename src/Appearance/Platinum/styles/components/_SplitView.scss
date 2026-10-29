@@ -1,0 +1,11 @@
+// The Platinum split view look (from ClassicySplitView.scss): the divider's
+// window-frame bevel border.
+@use "../mixins";
+@use "../scrollbars";
+@use "../assets";
+
+@mixin splitView {
+  .classicySplitViewDivider {
+    @include mixins.platinum-window-border;
+  }
+}

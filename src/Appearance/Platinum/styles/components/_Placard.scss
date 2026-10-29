@@ -1,0 +1,11 @@
+// The Platinum placard look (from ClassicyPlacard.scss): the beveled border of
+// the pop-up menu a placard opens.
+@use "../mixins";
+@use "../scrollbars";
+@use "../assets";
+
+@mixin placard {
+  .classicyPlacardMenu {
+    @include mixins.platinum-window-border;
+  }
+}

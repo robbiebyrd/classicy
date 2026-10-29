@@ -14,12 +14,43 @@
 @use "components/PopUpMenu";
 @use "components/Desktop";
 @use "components/WindowFrame";
+// 4.3a begin
+@use "components/Button";
+@use "components/BevelButton";
+@use "components/Placard";
+@use "components/Checkbox";
+@use "components/DriveSetupList";
+@use "components/ProgressBar";
+@use "components/Table";
+@use "components/Meter";
+@use "components/Output";
+@use "components/SplitView";
+// 4.3a end
 
 @include package.classicy-package("platinum") {
   @include Alert.alert;
+  // 4.3a begin (dist/classicy.css offsets: Button 2708, BevelButton 11106)
+  @include Button.button;
+  @include BevelButton.bevelButton;
+  // 4.3a end
   @include Menu.menu;
   @include Window.window;
+  // 4.3a begin (Placard 28727)
+  @include Placard.placard;
+  // 4.3a end
   @include PopUpMenu.popUpMenu;
+  // 4.3a begin (Checkbox 73950, DriveSetupList 90480, ProgressBar 114720,
+  // Table 117464)
+  @include Checkbox.checkbox;
+  @include DriveSetupList.driveSetupList;
+  @include ProgressBar.progressBar;
+  @include Table.table;
+  // 4.3a end
   @include Desktop.desktop;
+  // 4.3a begin (Meter 172975, Output 174235, SplitView 177755)
+  @include Meter.meter;
+  @include Output.output;
+  @include SplitView.splitView;
+  // 4.3a end
   @include WindowFrame.windowFrame;
 }

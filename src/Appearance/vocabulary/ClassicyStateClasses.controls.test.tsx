@@ -345,7 +345,14 @@ describe("compiled SCSS of the touched components", () => {
 	// one-class specificity of the legacy class it replaces (later single-class
 	// rules such as .classicyButtonShapeSquare still win over it).
 	it("Button: pressed and default state rules, no legacy classes", () => {
-		const css = compile(`${R}Button/ClassicyButton.scss`);
+		// The state faces are the Platinum package's (B 4.3a): the base sheet
+		// plus its partial's rules, compiled unscoped.
+		const css = `${compile(`${R}Button/ClassicyButton.scss`)}\n${
+			sass.compileString(
+				'@use "Appearance/Platinum/styles/components/Button";\n@include Button.button;',
+				{ style: "expanded", loadPaths: [resolve(root, "src")] },
+			).css
+		}`;
 		expect(css).toContain(":where(.classicyButton).pressed {");
 		expect(css).toContain(":where(.classicyButton).default {");
 		expect(css).toContain(

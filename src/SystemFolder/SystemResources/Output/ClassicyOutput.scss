@@ -1,5 +1,3 @@
-@use '../../ControlPanels/AppearanceManager/styles/appearance';
-
 .classicyOutput {
   display: inline-block;
   box-sizing: border-box;
@@ -16,7 +14,7 @@
   line-height: var(--edit-field-height);
   padding: 0 calc(var(--window-padding-size) / 2);
   background: var(--color-white);
-  @include appearance.platinumWindowInnerBorder;
+  // The inset border is the Platinum package's.
 }
 
 .classicyOutputMono {

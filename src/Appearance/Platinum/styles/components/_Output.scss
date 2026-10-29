@@ -1,0 +1,11 @@
+// The Platinum output look (from ClassicyOutput.scss): the inset result
+// well's border.
+@use "../mixins";
+@use "../scrollbars";
+@use "../assets";
+
+@mixin output {
+  .classicyOutputInset {
+    @include mixins.platinum-window-inner-border;
+  }
+}
