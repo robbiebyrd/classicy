@@ -197,7 +197,7 @@ Each line names the part plan whose text it corrects; executors apply the amendm
 
 | Part | Plan | Stories | Audit §9 phase | Effort | Depends on | Can run beside |
 |---|---|---|---|---|---|---|
-| A | 0003-7x7 Vocabulary and cascade hygiene | 0001-cay … 0009-pat (9) | 1 | XL | 0001-1t9 (done) | C, D, G |
+| A (landed 738dbead5) | 0003-7x7 Vocabulary and cascade hygiene | 0001-cay … 0009-pat (9), follow-ups 0082-lgo | 1 | XL | 0001-1t9 (done) | C, D, G |
 | B | 0005-1b3 Package core and the Platinum package | 0033-f4o … 0041-dyu (9) | 2 | XL | A | C, D (B wires their registrations last) |
 | C | 0007-1sl Asset registries and system art | 0018-0zn … 0025-xns (8) | 3 | L | — | A, B, D, G |
 | D | 0008-j5l Sound packs | 0026-3a7 … 0032-ztu (7) | 4 | M | — | A, B, C, G |
@@ -208,7 +208,7 @@ Each line names the part plan whose text it corrects; executors apply the amendm
 | I | 0006-dy6 Package events and display participation | 0042-pbp … 0050-ryq (9) | 7 | L | B | E, F, H |
 | J | 0012-pt9 Appearance control panel | 0075-uev … 0081-ww6 (7) | 8 | L | B, C, D | E, F, H, I |
 
-81 stories in `docs/stories/`. Each story links its plan with `included` and the section numbers it implements; within a part, every story `depends` on the previous one; a part's first story `depends` on the last story of each plan in the "Depends on" column. `story_list({ plan: "<plan id>" })` lists a part's stories; a plan's `progress` map does not back-reference them.
+82 stories in `docs/stories/` (81 part stories plus 0082-lgo, the Part A follow-ups collected after landing). Each story links its plan with `included` and the section numbers it implements; within a part, every story `depends` on the previous one; a part's first story `depends` on the last story of each plan in the "Depends on" column. `story_list({ plan: "<plan id>" })` lists a part's stories; a plan's `progress` map does not back-reference them.
 
 Critical path: A → B → {E, F, H, I, J}. Two people: one takes A then B; the other takes C, D, G in parallel, then joins the fan-out. Every part links here with `parent`; `depends` links mirror the "Depends on" column.
 

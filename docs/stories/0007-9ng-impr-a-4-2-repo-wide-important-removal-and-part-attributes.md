@@ -75,7 +75,7 @@ progress:
 
 Audit §2.6: after A 4.1, 27 other SCSS files still carry ~96 `!important`s (DesktopIcon 14, scrollbars 13, Icon 11, DesktopMenuBar 7, Menu 6, …) — a package can only win over them by escalating (§2.9). §8.6 / umbrella 0002-ldj part attributes: window control boxes share one wrapper class with no role, alert buttons carry no role, and the menu bar's clusters are addressable only by DOM order (§5), so CSS `order` (part F) has nothing to target.
 
-This story removes every remaining `!important` by order or specificity (the hard cases have named resolutions: mask-size on icons, scrollbar hidden/inactive mixins, menu-bar `:after`, keyboard-shortcut font size, CrashScreen/ScreenSaver ids), adds `data-classicy-control="close|zoom|collapse"`, `data-classicy-role="default|cancel|other"` and `data-classicy-part="apple|app|help|switcher|extensions|clock"` (via a new `ClassicyMenuItem.partAttr` field rendered on the item's `<li>`), and pins zero `!important` with a repo-wide test.
+This story removes every remaining `!important` by order or specificity (the hard cases have named resolutions: mask-size on icons, scrollbar hidden/inactive mixins, menu-bar `:after`, keyboard-shortcut font size, CrashScreen/ScreenSaver ids), adds `data-classicy-control="close|zoom|collapse"`, `data-classicy-role="default|cancel|other"` and `data-classicy-part="apple|app|help|switcher|extensions|clock"` (via a new `ClassicyMenuItem.part` field rendered on the item's `<li>`), and pins zero `!important` with a repo-wide test.
 
 **Impact:** A 5.1 layers all component CSS; any surviving `!important` would stay unbeatable from `classicy.package`. Part F's arrangement slots (control-box order, alert button order, menu-bar clusters) need the part attributes.
 
@@ -95,7 +95,7 @@ For each file: delete the flag, run that component's existing tests and compile 
 
 ### 4: Add the part attributes
 
-ClassicyWindow.tsx:1690,1732,1746 — each `<div className="classicyWindowControlBox">` gains `data-classicy-control="close" | "zoom" | "collapse"`. ClassicyAlert.tsx:289-308 — each `ClassicyButton` gains `data-classicy-role` = `"default"` when `button.id === defaultButton?.id`, `"cancel"` when `button.role === "cancel"`, else `"other"` (the help button gets `"other"`). ClassicyMenu.tsx — add optional `partAttr?: string` to `ClassicyMenuItem`, rendered as `data-classicy-part={item.partAttr}` on the item's `<li>`. ClassicyDesktopMenuBar.tsx:176,240,283,352-366 — Apple item `partAttr: "apple"`, each app menu item `"app"`, Help `"help"`, App Switcher `"switcher"`, the Extensions `<ul>` `data-classicy-part="extensions"`; ClassicyDesktopMenuWidgetTime.tsx:196 — root `data-classicy-part="clock"`.
+ClassicyWindow.tsx:1690,1732,1746 — each `<div className="classicyWindowControlBox">` gains `data-classicy-control="close" | "zoom" | "collapse"`. ClassicyAlert.tsx:289-308 — each `ClassicyButton` gains `data-classicy-role` = `"default"` when `button.id === defaultButton?.id`, `"cancel"` when `button.role === "cancel"`, else `"other"` (the help button gets `"other"`). ClassicyMenu.tsx — add optional `part?: string` to `ClassicyMenuItem`, rendered as `data-classicy-part={item.part}` on the item's `<li>`. ClassicyDesktopMenuBar.tsx:176,240,283,352-366 — Apple item `part: "apple"`, each app menu item `"app"`, Help `"help"`, App Switcher `"switcher"`, the Extensions `<ul>` `data-classicy-part="extensions"`; ClassicyDesktopMenuWidgetTime.tsx:196 — root `data-classicy-part="clock"`.
 
 ### 5: Run tests to verify they pass
 
@@ -109,7 +109,7 @@ ClassicyWindow.tsx:1690,1732,1746 — each `<div className="classicyWindowContro
 
 - [x] VERIFY: grep -rn '!important' src --include=*.scss | wc -l  # expect 0
 - [x] VERIFY: pnpm exec vitest run src/Appearance/vocabulary/ClassicyCascade.repo.test.ts src/Appearance/vocabulary/ClassicyPartAttributes.test.tsx
-- [x] Window control boxes carry `data-classicy-control`, alert buttons `data-classicy-role` (`default`/`cancel`/`other`), menu-bar clusters `data-classicy-part` (`apple`, `app`, `help`, `switcher`, `extensions`, `clock`) via `ClassicyMenuItem.partAttr`.
+- [x] Window control boxes carry `data-classicy-control`, alert buttons `data-classicy-role` (`default`/`cancel`/`other`), menu-bar clusters `data-classicy-part` (`apple`, `app`, `help`, `switcher`, `extensions`, `clock`) via `ClassicyMenuItem.part`.
 - [x] Every removed flag is replaced by order or by one extra class, never by a new `!important`; each component's existing tests still pass (parity is confirmed in A 6).
 
 ## Files
@@ -143,9 +143,9 @@ ClassicyWindow.tsx:1690,1732,1746 — each `<div className="classicyWindowContro
 - `src/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaver.scss` - 1 removed (id specificity)
 - `src/SystemFolder/SystemResources/Window/ClassicyWindow.tsx` - :1690,1732,1746 data-classicy-control
 - `src/SystemFolder/SystemResources/Alert/ClassicyAlert.tsx` - :289-308 data-classicy-role
-- `src/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar.tsx` - :176,240,283,352-366 partAttr / data-classicy-part
+- `src/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar.tsx` - :176,240,283,352-366 part / data-classicy-part
 - `src/SystemFolder/SystemResources/Desktop/MenuBar/Widgets/Time/ClassicyDesktopMenuWidgetTime.tsx` - :196 data-classicy-part=clock
-- `src/SystemFolder/SystemResources/Menu/ClassicyMenu.tsx` - ClassicyMenuItem.partAttr rendered as data-classicy-part
+- `src/SystemFolder/SystemResources/Menu/ClassicyMenu.tsx` - ClassicyMenuItem.part rendered as data-classicy-part
 - `src/Appearance/vocabulary/ClassicyCascade.repo.test.ts` - create: repo-wide !important guard
 - `src/Appearance/vocabulary/ClassicyPartAttributes.test.tsx` - create: part attribute tests
 

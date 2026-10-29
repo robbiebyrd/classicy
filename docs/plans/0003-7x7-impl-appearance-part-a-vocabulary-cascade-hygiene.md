@@ -2,11 +2,12 @@
 id: 0003-7x7
 title: 'Part A: Vocabulary and cascade hygiene'
 type: impl
-status: in_progress
+status: complete
 priority: "2"
 effort: XL
 created: "2026-10-28T18:44:10.907Z"
-updated: "2026-10-29T07:08:22.185Z"
+updated: "2026-10-29T09:19:28.478Z"
+completed: "2026-10-29T09:19:28.478Z"
 links:
   repo:
     local: ~/classicy
@@ -344,7 +345,7 @@ it("platinumWindowControlBox sizes are not !important", () => compile a one-line
 - Modify: `src/SystemFolder/SystemResources/Alert/ClassicyAlert.tsx (:289-308)`
 - Modify: `src/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar.tsx (:176,240,283,352-366)`
 - Modify: `src/SystemFolder/SystemResources/Desktop/MenuBar/Widgets/Time/ClassicyDesktopMenuWidgetTime.tsx (:196)`
-- Modify: `src/SystemFolder/SystemResources/Menu/ClassicyMenu.tsx (where `ClassicyMenuItem.className` is applied — the Apple/App/Help/switcher items need `data-classicy-part` forwarded: add an optional `partAttr?: string` field to `ClassicyMenuItem` rendered as `data-classicy-part`)`
+- Modify: `src/SystemFolder/SystemResources/Menu/ClassicyMenu.tsx (where `ClassicyMenuItem.className` is applied — the Apple/App/Help/switcher items need `data-classicy-part` forwarded: add an optional `part?: string` field to `ClassicyMenuItem` rendered as `data-classicy-part`)`
 - Test: `src/Appearance/vocabulary/ClassicyCascade.repo.test.ts (new)`
 - Test: `src/Appearance/vocabulary/ClassicyPartAttributes.test.tsx (new)`
 
@@ -352,7 +353,7 @@ it("platinumWindowControlBox sizes are not !important", () => compile a one-line
 
 **Interfaces:**
 - Consumes: `CLASSICY_PART_ATTRIBUTE` (1.1).
-- Produces: Zero `!important` under src/**/*.scss. Known hard cases and their resolutions: DesktopIcon.scss:53,65,141-143 and Icon.scss:55,67 `mask-size/mask-mode/mask-repeat !important` — the base rule drops `!important` and the alias-badge override wins by order (move `.classicyDesktopIconAliasBadge .classicyDesktopIconMask` after the base `.classicyDesktopIconMask`); scrollbars.scss:243-279 (`scrollbars-hidden`/`-inactive` mixins) — callers include them after the base scrollbar mixin, so plain order wins; DesktopMenuBar.scss:34,62,73-75,97 (`display: none` on `:after`, hover backgrounds) — beat `.classicyMenuItem:after` by nesting under `.classicyDesktopMenu` (one extra class); Menu.scss:234-236 `.classicyMenuItemKeyboardShortcut` — nest under `.classicyMenuItem`; CrashScreen/ScreenSaver overlays — keep specificity via their existing ids. Part attributes: ClassicyWindow.tsx — each `<div className="classicyWindowControlBox">` gains `data-classicy-control="close" | "zoom" | "collapse"`; ClassicyAlert.tsx — each `ClassicyButton` gains `data-classicy-role` = `"default"` when `button.id === defaultButton?.id`, `"cancel"` when `button.role === "cancel"`, else `"other"` (the help button gets `"other"`); ClassicyDesktopMenuBar — Apple item `partAttr: "apple"`, each app menu item `"app"`, Help `"help"`, App Switcher `"switcher"`, the Extensions `<ul>` `data-classicy-part="extensions"`, the Time widget root `"clock"`. `ClassicyMenu` renders `data-classicy-part={item.partAttr}` on the item's `<li>`.
+- Produces: Zero `!important` under src/**/*.scss. Known hard cases and their resolutions: DesktopIcon.scss:53,65,141-143 and Icon.scss:55,67 `mask-size/mask-mode/mask-repeat !important` — the base rule drops `!important` and the alias-badge override wins by order (move `.classicyDesktopIconAliasBadge .classicyDesktopIconMask` after the base `.classicyDesktopIconMask`); scrollbars.scss:243-279 (`scrollbars-hidden`/`-inactive` mixins) — callers include them after the base scrollbar mixin, so plain order wins; DesktopMenuBar.scss:34,62,73-75,97 (`display: none` on `:after`, hover backgrounds) — beat `.classicyMenuItem:after` by nesting under `.classicyDesktopMenu` (one extra class); Menu.scss:234-236 `.classicyMenuItemKeyboardShortcut` — nest under `.classicyMenuItem`; CrashScreen/ScreenSaver overlays — keep specificity via their existing ids. Part attributes: ClassicyWindow.tsx — each `<div className="classicyWindowControlBox">` gains `data-classicy-control="close" | "zoom" | "collapse"`; ClassicyAlert.tsx — each `ClassicyButton` gains `data-classicy-role` = `"default"` when `button.id === defaultButton?.id`, `"cancel"` when `button.role === "cancel"`, else `"other"` (the help button gets `"other"`); ClassicyDesktopMenuBar — Apple item `part: "apple"`, each app menu item `"app"`, Help `"help"`, App Switcher `"switcher"`, the Extensions `<ul>` `data-classicy-part="extensions"`, the Time widget root `"clock"`. `ClassicyMenu` renders `data-classicy-part={item.part}` on the item's `<li>`.
 
 - [ ] **Step 1: Write the failing tests** — `ClassicyCascade.repo.test.ts`:
 ```ts
@@ -366,7 +367,7 @@ it("menu bar clusters carry data-classicy-part", () => { render the desktop menu
 ```
 - [ ] **Step 2: Run them to verify they fail** — Expected: FAIL — ~96 `!important` hits listed; attribute selectors return null. — `pnpm exec vitest run src/Appearance/vocabulary/ClassicyCascade.repo.test.ts src/Appearance/vocabulary/ClassicyPartAttributes.test.tsx`
 - [ ] **Step 3: Remove !important file by file, largest first** — For each file: delete the flag, run that component's existing tests and compile the file with sass to confirm the intended rule still wins by order or specificity (resolutions in Interfaces). Commit after every 3–4 files: `refactor(scss): remove !important from <files>`.
-- [ ] **Step 4: Add the part attributes** — Per Interfaces (Window, Alert, MenuBar, Time widget, Menu `partAttr`).
+- [ ] **Step 4: Add the part attributes** — Per Interfaces (Window, Alert, MenuBar, Time widget, Menu `part`).
 - [ ] **Step 5: Run tests to verify they pass** — Expected: PASS. — `pnpm test`
 - [ ] **Step 6: Lint, type-check, commit** — git add -A src && git commit -m "feat(vocabulary): data-classicy-control/role/part attributes; no !important left in src" (with the trailer) — `pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test`
 
@@ -458,4 +459,5 @@ Update the existing injector test `inserts the stylesheet once` expectation to t
 
 1. Part B (package core) consumes `CLASSICY_COMPONENT`, `classicy-state()`, the layer order and the `./scss/*` export; it deletes the temporary `./scss-platinum/*` export.
 2. Part G needs only `src/Appearance/vocabulary/` to exist (for `_color.scss`); it can start as soon as 1.1 is merged.
-3. Contract gap to raise on 0002-ldj: the `ClassicyMenuItem.partAttr` field (how a menu item carries `data-classicy-part`) and `CLASSICY_PART_ATTRIBUTE` are not pinned; the `[aria-expanded]` → `open` mapping for BevelButton's popup state and the `tabs → selected` (not `active`) decision should be recorded in the contract's vocabulary section.
+3. Contract gap raised on 0002-ldj and since resolved: the contract pins `ClassicyMenuItem.part` (rendered as `data-classicy-part`) and `CLASSICY_PART_ATTRIBUTE`, and the final fix wave renamed the plan's `part` to `part` to match; the `[aria-expanded]` → `open` mapping for BevelButton's popup state and the `tabs → selected` (not `active`) decision should be recorded in the contract's vocabulary section.
+4. Landed 2026-10-29 as 738dbead5 on feat/AppearancePackages (25 commits; final whole-branch review: Ready to land after one fix wave — host migration notes, ClassicyMenuItem.part per contract, className/style on every exported component with a root, one withoutZIndex helper, widened vocabulary coverage). Non-blocking follow-ups are tracked in story 0082-lgo.
