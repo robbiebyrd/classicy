@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T20:04:07.145Z"
-updated: "2026-10-28T23:47:54.167Z"
+updated: "2026-10-29T00:01:04.356Z"
 started: "2026-10-28T23:47:54.073Z"
 links:
   repo:
@@ -102,3 +102,5 @@ Edit `bin/check-dist-imports.mjs` first: invariant 3 becomes "each entry bundle 
 ## Work Log
 
 ### 2026-10-28T23:47:54.167Z - Implementation dispatched
+
+### 2026-10-29T00:01:04.356Z - Implementation committed (4d92822d3, c09bb4f76); task review in progress

@@ -3,12 +3,13 @@ id: 0005-dlx
 title: 'A 3.1: Passthrough on every public component; ClassicyButton spread order'
 purpose: Give every exported component `className` and `style` passthrough that merges onto the root, and fix ClassicyButton dropping a consumer className.
 type: feat
-status: in_progress
+status: complete
 priority: "2"
 effort: L
 created: "2026-10-28T19:49:52.097Z"
-updated: "2026-10-28T23:40:51.485Z"
+updated: "2026-10-29T00:01:01.899Z"
 started: "2026-10-28T23:40:51.348Z"
+completed: "2026-10-29T00:01:01.899Z"
 links:
   repo:
     local: ~/classicy
@@ -87,17 +88,17 @@ links:
     - ["0003-7x7", "included", ["3.1"]]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
   "5":
-    status: pending
+    status: complete
   "6":
-    status: pending
+    status: complete
 ---
 
 # A 3.1: Passthrough on every public component; ClassicyButton spread order
@@ -138,10 +139,10 @@ Mechanical: add `className?: string; style?: CSSProperties;` to each props type,
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm exec vitest run src/Appearance/vocabulary/ClassicyPassthrough.test.tsx
-- [ ] Every exported component's props include `className?: string` and `style?: CSSProperties`; the root keeps its `classicy<Component>` class and carries the host class; `style.marginTop` lands on the root.
-- [ ] `ClassicyButton` renders `classicyButton host` when `className="host"` is passed.
-- [ ] `ClassicyWindow` ignores `style.width/height` while the store has a size (merge `style` first, then `windowStyle`).
+- [x] VERIFY: pnpm exec vitest run src/Appearance/vocabulary/ClassicyPassthrough.test.tsx
+- [x] Every exported component's props include `className?: string` and `style?: CSSProperties`; the root keeps its `classicy<Component>` class and carries the host class; `style.marginTop` lands on the root.
+- [x] `ClassicyButton` renders `classicyButton host` when `className="host"` is passed.
+- [x] `ClassicyWindow` ignores `style.width/height` while the store has a size (merge `style` first, then `windowStyle`).
 
 ## Files
 
@@ -155,3 +156,5 @@ Mechanical: add `className?: string; style?: CSSProperties;` to each props type,
 ## Work Log
 
 ### 2026-10-28T23:40:51.485Z - Implementation dispatched
+
+### 2026-10-29T00:01:01.216Z - Completed: commits a54ad22..4e390b3 (format fix 88ff181e6 cherry-picked as e1ab6a4), task review approved. Full gate green: pnpm lint exit 0 repo-wide, tsc 0, 3449/3449 tests; passthrough tests 102/102. Note: ClassicyApp was not changed (it renders no single window; flagged by the implementer, review clean)

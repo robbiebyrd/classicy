@@ -7,7 +7,7 @@ status: complete
 priority: "2"
 effort: L
 created: "2026-10-28T20:02:06.942Z"
-updated: "2026-10-28T23:39:48.037Z"
+updated: "2026-10-29T00:01:03.821Z"
 started: "2026-10-28T23:33:07.248Z"
 completed: "2026-10-28T23:39:48.037Z"
 links:
@@ -102,7 +102,7 @@ it("spreads the asset variables onto the desktop root beside the theme vars") //
 - [x] 21 of the 25 `ClassicySystemArtKey`s resolve to a non-empty source under "platinum"; `startupWordmark`, `paradeDefault`, `menuCheck`, `menuDash` resolve to `undefined`.
 - [x] `#classicyDesktop` carries `--classicy-art-*` (and later `--classicy-cursor-*`) inline variables beside `--color-*`; `assets.scss`, `ClassicySlider.scss` and `ClassicyTabs.scss` are unchanged.
 - [x] `src/Appearance/Platinum/assets/art/` holds 17 files that pass `xmllint --noout`; `package.json` `sideEffects` lists `platinumAssets.ts`.
-- [~] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
+- [x] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
 
 ## Files
 
@@ -129,3 +129,5 @@ it("spreads the asset variables onto the desktop root beside the theme vars") //
 ### 2026-10-28T23:35:31.105Z - Implemented in commits ab1a3b5..9694ce7, task review clean. Criterion 1 left open: platinumAssets tests pass (26) but the sad-mac/@img grep prints 4, not 0 (ClassicyTree.stories.tsx x3, vi.mock in ClassicyTabs.test.tsx), all outside this section's file list; the CrashScreen hit is gone. xmllint is not installed, so the 17 art files were validated as XML with Python minidom instead (criterion 4 counted as done on that evidence).
 
 ### 2026-10-28T23:39:46.603Z - Literal grep over-broad (4 hits: ClassicyTree.stories.tsx x3, ClassicyTabs.test.tsx vi.mock); narrowed grep excluding *.stories.tsx and *.test.tsx = 0; intent met (controller ruling)
+
+### 2026-10-29T00:01:03.821Z - pnpm lint passes repo-wide on the part branch (format fix cherry-picked: A e1ab6a417 / C 4d92822d3)

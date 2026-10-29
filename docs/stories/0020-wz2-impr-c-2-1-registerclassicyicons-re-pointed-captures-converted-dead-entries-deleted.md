@@ -7,7 +7,7 @@ status: complete
 priority: "2"
 effort: L
 created: "2026-10-28T20:01:12.976Z"
-updated: "2026-10-28T23:39:27.580Z"
+updated: "2026-10-29T00:01:03.583Z"
 started: "2026-10-28T23:33:07.108Z"
 completed: "2026-10-28T23:39:27.579Z"
 links:
@@ -124,7 +124,7 @@ Replace the "assigns shallowly, so spread the existing namespace" paragraph and 
 - [x] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons.test.ts
 - [x] `registerClassicyIcons({ system: { alias } })` leaves `Object.keys(ClassicyIcons.system).length` unchanged and still resolves `system.desktop.trashFull`; `resolveClassicyAsset("icons","system.apple")` equals `ClassicyIcons.system.apple` after import.
 - [x] `ui.stripe`, `ui.tab`, `ui.menuDropdownArrows`, `ui.halftoneSmall` and `system.bomb` are gone; `getClassicyDefaultParadeIcons()` returns the same 11 parade entries; `grep -rn '@img/' src/SystemFolder --include=*.tsx` prints only `PictureViewer.tsx`.
-- [~] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
+- [x] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
 
 ## Files
 
@@ -171,3 +171,5 @@ Replace the "assigns shallowly, so spread the existing namespace" paragraph and 
 ### 2026-10-28T23:35:30.872Z - Implemented in commits 8633b8a..ab1a3b5, task review clean. Criterion 4 left open: the '@img/' grep over src/SystemFolder/*.tsx prints PictureViewer.tsx plus ClassicyTree.stories.tsx (3 story imports) and a vi.mock in ClassicyTabs.test.tsx, none touched by this section; the five dead entries are gone and the parade getter returns the same 11 entries. Decide whether to narrow the grep to non-story, non-test files or convert those two files.
 
 ### 2026-10-28T23:39:25.249Z - Literal grep over-broad (4 hits: ClassicyTree.stories.tsx x3, ClassicyTabs.test.tsx vi.mock); narrowed grep excluding *.stories.tsx and *.test.tsx prints only PictureViewer.tsx, exactly what the criterion expects; intent met (controller ruling). Criterion set done rather than not_applicable because the narrowed output matches the stated expectation.
+
+### 2026-10-29T00:01:03.583Z - pnpm lint passes repo-wide on the part branch (format fix cherry-picked: A e1ab6a417 / C 4d92822d3)

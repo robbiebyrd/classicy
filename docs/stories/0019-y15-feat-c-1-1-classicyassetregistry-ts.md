@@ -7,7 +7,7 @@ status: complete
 priority: "2"
 effort: M
 created: "2026-10-28T20:00:04.770Z"
-updated: "2026-10-28T23:36:19.032Z"
+updated: "2026-10-29T00:01:03.347Z"
 started: "2026-10-28T23:33:07.009Z"
 completed: "2026-10-28T23:36:19.032Z"
 links:
@@ -86,7 +86,7 @@ Contract exports verbatim: `ClassicyAssetKind`, `ClassicyAssetTree`, `registerCl
 - [x] Registering `{ system: { alias: "x" } }` after a `system` tree with other keys keeps every other key and resolves `system.alias` to `"x"`.
 - [x] A component using `useClassicyAsset` re-renders after a registration made after mount; `useClassicyAssetVars()` emits `--classicy-cursor-<kebab role>` and `--classicy-art-<kebab key>` as `url("…")` strings.
 - [x] `resolveClassicyAsset(kind, path)` falls back active package → "platinum" → `undefined`; `getActiveClassicyAppearancePackageId()` returns "platinum" and is documented as Part B's placeholder.
-- [~] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
+- [x] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
 
 ## Files
 
@@ -99,3 +99,5 @@ Contract exports verbatim: `ClassicyAssetKind`, `ClassicyAssetTree`, `registerCl
 ### 2026-10-28T23:35:30.553Z - pnpm lint blocked by pre-existing drift in untouched ClassicyScreenSaverWarp.tsx; fixed at part close-out (criterion 5 set not_applicable; tsc and pnpm test passed)
 
 ### 2026-10-28T23:35:30.653Z - Completed: commits e9625ee..8633b8a, task review clean
+
+### 2026-10-29T00:01:03.347Z - pnpm lint passes repo-wide on the part branch (format fix cherry-picked: A e1ab6a417 / C 4d92822d3)

@@ -3,11 +3,12 @@ id: 0006-wx6
 title: 'A 4.1: ClassicyWindow.scss reorder (sixty-two to zero), mixin, phantom tokens'
 purpose: Put the window's base rule before its state rules so source order wins and every `!important` in ClassicyWindow.scss and the control-box mixin can go, and remove the four phantom tokens.
 type: impr
-status: pending
+status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T19:50:33.651Z"
-updated: "2026-10-28T19:50:33.651Z"
+updated: "2026-10-29T00:01:02.285Z"
+started: "2026-10-29T00:01:02.199Z"
 links:
   repo:
     local: ~/classicy
@@ -103,3 +104,5 @@ Re-shoot only `desktop-window--*`, `dialogs-alert--*` and `desktop-desktop--defa
 - `src/SystemFolder/SystemResources/Window/ClassicyWindow.resizer.test.ts` - existing; must keep passing
 
 ## Work Log
+
+### 2026-10-29T00:01:02.283Z - Implementation dispatched
