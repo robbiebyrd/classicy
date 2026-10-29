@@ -7,12 +7,12 @@ import {
 	type MouseEvent,
 	type MouseEventHandler,
 	type PropsWithChildren,
-	useCallback,
 	useEffect,
 	useRef,
 	useState,
 } from "react";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import { useClassicyMergedRef } from "@/Appearance/useClassicyMergedRef.internal";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
@@ -144,15 +144,8 @@ export const ClassicyButton = forwardRef<
 
 		// The root element for the appearance hook, merged with the forwarded
 		// ref so callers keep receiving the <button>.
-		const buttonRef = useRef<HTMLButtonElement | null>(null);
-		const setButtonRef = useCallback(
-			(el: HTMLButtonElement | null) => {
-				buttonRef.current = el;
-				if (typeof ref === "function") ref(el);
-				else if (ref) ref.current = el;
-			},
-			[ref],
-		);
+		const [buttonRef, setButtonRef] =
+			useClassicyMergedRef<HTMLButtonElement>(ref);
 		const appearance = useClassicyAppearance(
 			"Button",
 			{ default: isDefault, pressed: depressed || keyActive },

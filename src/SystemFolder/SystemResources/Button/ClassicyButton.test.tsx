@@ -201,3 +201,47 @@ describe("ClassicyButton", () => {
 		expect(onKeyDown).toHaveBeenCalledTimes(1);
 	});
 });
+
+// The forwarded ref is merged with the component's own root ref (for the
+// appearance hook), so every ref form React supports must still reach the
+// <button>: object refs, classic callback refs (null on detach) and React 19
+// callback refs that return a cleanup (no null call on detach).
+describe("ClassicyButton forwarded ref", () => {
+	it("sets and clears an object ref", () => {
+		const ref = createRef<HTMLButtonElement>();
+		const { unmount } = render(<ClassicyButton ref={ref}>x</ClassicyButton>);
+		expect(ref.current).toBeInstanceOf(HTMLButtonElement);
+		unmount();
+		expect(ref.current).toBeNull();
+	});
+
+	it("calls a classic callback ref with the element, then null", () => {
+		const calls: (HTMLButtonElement | null)[] = [];
+		const ref = (el: HTMLButtonElement | null) => {
+			calls.push(el);
+		};
+		const { rerender, unmount } = render(
+			<ClassicyButton ref={ref}>x</ClassicyButton>,
+		);
+		rerender(<ClassicyButton ref={ref}>x</ClassicyButton>);
+		expect(calls).toHaveLength(1);
+		expect(calls[0]).toBeInstanceOf(HTMLButtonElement);
+		unmount();
+		expect(calls).toEqual([calls[0], null]);
+	});
+
+	it("runs a cleanup-returning callback ref's cleanup instead of calling it with null", () => {
+		const calls: (HTMLButtonElement | null)[] = [];
+		const cleanup = vi.fn();
+		const ref = (el: HTMLButtonElement | null) => {
+			calls.push(el);
+			return cleanup;
+		};
+		const { unmount } = render(<ClassicyButton ref={ref}>x</ClassicyButton>);
+		expect(calls).toHaveLength(1);
+		expect(calls[0]).toBeInstanceOf(HTMLButtonElement);
+		unmount();
+		expect(cleanup).toHaveBeenCalledTimes(1);
+		expect(calls).toHaveLength(1);
+	});
+});
