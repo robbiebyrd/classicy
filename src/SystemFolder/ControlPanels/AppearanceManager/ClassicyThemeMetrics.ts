@@ -4,6 +4,7 @@ import type {
 	ClassicyThemeMeasurements,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { intToPx } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicySize";
+import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { DeepPartial } from "@/SystemFolder/SystemResources/Utils/deepMerge";
 
 /**
@@ -129,36 +130,80 @@ export function withDefaultThemeMetricsList<
 	return next ?? (themes as T[]);
 }
 
-/** A camelCase name: the only family or key a variable is made from. */
-const MEASUREMENT_NAME = /^[A-Za-z][A-Za-z0-9]*$/;
+/**
+ * The only measurement family or key name that becomes a CSS variable: a
+ * lowercase-first camelCase name (`controlStrip`, `cellHeight`). The theme
+ * schema refuses any other package family or key name; the walker skips them
+ * too, for state that never passed the schema.
+ */
+export const CLASSICY_MEASUREMENT_NAME = /^[a-z][A-Za-z0-9]*$/;
 
 /** `groupBox` → `group-box`, `titleBarHeight` → `title-bar-height`. */
 const kebab = (name: string): string =>
 	name.replace(/[A-Z]/g, (capital) => `-${capital.toLowerCase()}`);
 
+// Collisions already reported, so a re-render never repeats a warning.
+const reportedCollisions = new Set<string>();
+
 /**
  * The CSS custom properties for a theme's measurement *inputs*: every numeric
  * leaf `measurements.<family>.<key>` as `--<family>-<key>` (kebab-case) in
  * whole pixels — the core families and any family an Appearance Package adds
- * (`controlStrip.cellHeight` → `--control-strip-cell-height`). Non-numeric
- * leaves emit nothing, and neither does a family or key that is not a plain
- * camelCase name: package families reach here from theme files and persisted
- * state, and a name becomes part of a CSS declaration. The variables derived
- * from the inputs (frames, bevels, `--button-height`, …) stay in
- * `getThemeVars`.
+ * (`controlStrip.cellHeight` → `--control-strip-cell-height`).
+ *
+ * - Non-numeric leaves emit nothing, and neither does a family or key that
+ *   is not a `CLASSICY_MEASUREMENT_NAME`: package families reach here from
+ *   theme files and persisted state, and a name becomes part of a CSS
+ *   declaration.
+ * - Kebab-casing can map two leaves to one variable (`windowTitle.barHeight`
+ *   and `window.titleBarHeight`). The first wins: the core families are
+ *   walked first, so a core input always wins, then package families in key
+ *   order. Each collision is logged once.
+ *
+ * The variables derived from the inputs (frames, bevels, `--button-height`,
+ * …) stay in `getThemeVars`.
  */
 export function classicyMeasurementVars(
 	measurements: ClassicyThemeMeasurements,
 ): Record<string, string> {
 	const vars: Record<string, string> = {};
-	for (const [family, keys] of Object.entries(measurements)) {
-		if (!MEASUREMENT_NAME.test(family) || !keys || typeof keys !== "object") {
+	const sources = new Map<string, string>();
+	const families = [
+		...METRIC_GROUPS,
+		...Object.keys(measurements).filter(
+			(family) => !(METRIC_GROUPS as string[]).includes(family),
+		),
+	];
+	for (const family of families) {
+		const keys: unknown = measurements[family];
+		if (
+			!CLASSICY_MEASUREMENT_NAME.test(family) ||
+			!keys ||
+			typeof keys !== "object"
+		) {
 			continue;
 		}
 		for (const [key, n] of Object.entries(keys)) {
-			if (typeof n === "number" && MEASUREMENT_NAME.test(key)) {
-				vars[`--${kebab(family)}-${kebab(key)}`] = intToPx(n);
+			if (typeof n !== "number" || !CLASSICY_MEASUREMENT_NAME.test(key)) {
+				continue;
 			}
+			const name = `--${kebab(family)}-${kebab(key)}`;
+			const source = `${family}.${key}`;
+			const winner = sources.get(name);
+			if (winner !== undefined) {
+				const collision = `${winner}|${source}`;
+				if (!reportedCollisions.has(collision)) {
+					reportedCollisions.add(collision);
+					classicyLog(
+						"warn",
+						"ClassicyAppearance",
+						`Measurement ${source} and ${winner} both make ${name}; ${winner} is used.`,
+					);
+				}
+				continue;
+			}
+			sources.set(name, source);
+			vars[name] = intToPx(n);
 		}
 	}
 	return vars;

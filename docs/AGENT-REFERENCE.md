@@ -320,7 +320,7 @@ Common built-in actions:
 | `ClassicyDesktopChangeAppearancePackage` | `{ packageId: string }` | Switch the active Appearance Package (`System.Manager.Appearance.packageId`, persisted, default `"platinum"`); activates a copy of the package's default theme unless the active theme already belongs to it (`theme.package`). An unregistered id is a logged no-op; untrusted dispatches never reach it (`ClassicyDesktop*` floor) |
 | `ClassicyDesktopChangeColor` | `{ colorKey, index?, color }` | Set one theme colour (forks a built-in into "Custom"; see §8) |
 | `ClassicyDesktopLoadThemes` | `{ availableThemes: ClassicyTheme[] }` | Replace the theme list (missing metric groups are filled, and a missing `package` becomes `"platinum"`) |
-| `ClassicyDesktopImportTheme` | `{ theme: ClassicyTheme }` | Add a (schema-validated) theme to `customThemes` with a fresh id and activate it (see §8 "Theme files") |
+| `ClassicyDesktopImportTheme` | `{ theme: ClassicyTheme }` | Add a (schema-validated) theme to `customThemes` with a fresh id and activate it. A theme whose `package` is not registered (the default `"platinum"` always counts as installed) is refused with a `ClassicyAppearance` warning and `Desktop.errorDialog` `{ title: "Appearance", message }` (see §8 "Theme files") |
 | `ClassicyDesktopChangeBackground` | `{ backgroundImage }` | Set wallpaper |
 | `ClassicyDesktopSetBalloonHelp` | `{ disableBalloonHelp: boolean }` | Toggle balloon help globally |
 | `ClassicyDesktopSetDoubleClickTitleToCollapse` | `{ doubleClickTitleToCollapse: boolean }` | Toggle whether double-clicking a window's title bar collapses it (`System.Manager.Desktop.doubleClickTitleToCollapse`, default `true`; the Appearance control panel's checkbox) |
@@ -1620,6 +1620,12 @@ File format — a versioned envelope, saved as `<theme-name>.classicy-theme.json
   copied from `themes.json`. A `format` other than `"classicy-theme"`, a
   missing version, or a version other than `1` is rejected (a higher version
   reports "saved by a newer version of Classicy").
+- `theme.package` names the theme's Appearance Package (`"platinum"` when
+  absent, so older files load as Platinum). Loading refuses a theme whose
+  package is not registered with `This theme needs the "<id>" appearance
+  package, which is not installed.` The default package
+  (`CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID`, `"platinum"`) always counts as
+  installed, registered or not, because the desktop falls back to it.
 - `desktop.backgroundImage` is written as the bundled wallpaper's **filename**
   (`"azul_dark.png"`) — the URL a build resolves it to (dev path, inlined
   `data:` URI) is build-specific — and resolved back on load. A plain http(s)
@@ -1628,8 +1634,9 @@ File format — a versioned envelope, saved as `<theme-name>.classicy-theme.json
 
 `ClassicyThemeSchema` (zod) mirrors `ClassicyTheme` (checked both ways at
 compile time). Unknown keys are **stripped**, not rejected (a newer file with
-an extra optional field still loads; nothing undeclared reaches the store).
-Types are strict:
+an extra optional field still loads; nothing undeclared reaches the store),
+except in `measurements`, where an unknown family is an Appearance Package's
+and is kept. Types are strict:
 
 | Field | Rule |
 |---|---|
@@ -1637,7 +1644,9 @@ Types are strict:
 | `color.system` / `color.theme` | exactly 7 colours |
 | `name` | 1–64 chars after trimming |
 | typography sizes, `desktop.iconSize`/`iconFontSize` | positive, ≤ 512 |
-| `measurements.window.*` | ≥ 0, ≤ 512 |
+| `package` | ≤ 64 chars; defaults to `"platinum"` |
+| `measurements.<family>.*` (core and package families) | ≥ 0, ≤ 512 |
+| package family and key names (`measurements.controlStrip.cellHeight`) | lowercase-first camelCase (`CLASSICY_MEASUREMENT_NAME`, `/^[a-z][A-Za-z0-9]*$/`) |
 | font stacks | letters, digits, spaces, `"` `'` `,` `.` `_` `-` only |
 | `backgroundRepeat`, string `backgroundPosition`/`backgroundSize` | CSS keyword chars (`A-Za-z0-9 % . -`) |
 | `desktop.backgroundImage` | `""`, a bundled wallpaper (filename or resolved URL), or an absolute http(s) URL with no whitespace, quotes, `()`, `\`, `;`, `<>`, `{}` — it is interpolated unquoted into `url(…)` (`isSafeClassicyThemeBackgroundImage`) |
@@ -1660,7 +1669,9 @@ else showError(result.error)  // e.g. "This theme has invalid settings: color.sy
 
 `ClassicyDesktopImportTheme { theme }` — the payload is untrusted:
 `hasImportableTheme` validates it against the schema (invalid → ignored),
-then the reducer strips undeclared keys, resolves the wallpaper, assigns a
+then the reducer refuses a theme for an uninstalled package (above) with a
+`ClassicyAppearance` warning and `Desktop.errorDialog`
+`{ title: "Appearance", message }`, else strips undeclared keys, resolves the wallpaper, assigns a
 fresh identity, **appends** it to `customThemes` and activates a copy (the
 same copy-on-activate as `ChangeTheme`; the sound manager reloads itself when
 the active theme's `sound.pack` changes).
@@ -1710,8 +1721,15 @@ Theme-driven variables (values change per theme):
 
 **Layout metrics** are theme data too. The inputs live in the theme JSON under
 `measurements.<family>` (Platinum defaults in `CLASSICY_DEFAULT_THEME_METRICS`,
-`ClassicyThemeMetrics.ts`; they are Apple's HIG Ch. 3 values) and each is
-emitted 1:1 as a variable:
+`ClassicyThemeMetrics.ts`; they are Apple's HIG Ch. 3 values).
+`classicyMeasurementVars` (same file) emits every numeric input as
+`--<family>-<key>`, kebab-cased. An Appearance Package may add families of its
+own (`measurements.controlStrip.cellHeight` → `--control-strip-cell-height`).
+Family and key names must be lowercase-first camelCase; other names are
+refused by the schema and skipped by the walker. When two inputs kebab-case to
+the same variable (`windowTitle.barHeight` and `window.titleBarHeight`), the
+first wins: core inputs always win, then package families in key order. Each
+collision is logged once as a `ClassicyAppearance` warning. The core inputs:
 
 | Theme JSON | Variable | Platinum |
 |---|---|---|

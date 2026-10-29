@@ -1,7 +1,10 @@
 import { z } from "zod";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import "@/Appearance/Platinum/assets/sounds/platinum";
-import { CLASSICY_DEFAULT_THEME_METRICS as METRICS } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
+import {
+	CLASSICY_MEASUREMENT_NAME,
+	CLASSICY_DEFAULT_THEME_METRICS as METRICS,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import { classicyWallpaperFilename } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 import { getClassicySoundPack } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
 
@@ -36,6 +39,16 @@ const size = (max: number) =>
 	z.number().positive().max(max, `must be at most ${max}`);
 
 const measurement = z.number().nonnegative().max(512, "must be at most 512");
+
+const NAME_ERROR = "must be a camelCase name starting with a lowercase letter";
+
+/** A package measurement family: camelCase keys, each a measurement. */
+const packageMeasurements = z.record(
+	z.string().regex(CLASSICY_MEASUREMENT_NAME, NAME_ERROR),
+	measurement,
+);
+
+const CORE_MEASUREMENT_FAMILIES: readonly string[] = Object.keys(METRICS);
 
 /** A CSS font stack: family names, quotes, commas — no syntax that could
  * close the declaration or pull in a resource. */
@@ -183,7 +196,23 @@ export const ClassicyThemeSchema = z.object({
 		})
 		// Any other family belongs to an Appearance Package (`controlStrip`,
 		// `menuFrame`, …): kept, and every key in it must be a measurement.
-		.catchall(z.record(z.string(), measurement)),
+		// Family and key names must be ones classicyMeasurementVars emits.
+		.catchall(packageMeasurements)
+		.check((ctx) => {
+			for (const family of Object.keys(ctx.value)) {
+				if (
+					!CORE_MEASUREMENT_FAMILIES.includes(family) &&
+					!CLASSICY_MEASUREMENT_NAME.test(family)
+				) {
+					ctx.issues.push({
+						code: "custom",
+						input: family,
+						path: [family],
+						message: NAME_ERROR,
+					});
+				}
+			}
+		}),
 	desktop: z.object({
 		iconSize: size(512),
 		iconFontSize: size(512),
