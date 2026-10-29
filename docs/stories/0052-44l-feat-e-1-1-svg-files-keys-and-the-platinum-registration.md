@@ -3,12 +3,13 @@ id: 0052-44l
 title: 'E 1.1: SVG files, keys and the Platinum registration'
 purpose: Turn the 13 base64 SVGs of assets.scss plus the Slider, Tabs and halftone inline art into SVG files registered as Platinum system art so every consumer can read them as --classicy-art-* variables.
 type: feat
-status: in_progress
+status: complete
 priority: "2"
 effort: L
 created: "2026-10-28T20:23:11.963Z"
-updated: "2026-10-29T18:52:32.146Z"
+updated: "2026-10-29T19:22:29.122Z"
 started: "2026-10-29T18:52:32.146Z"
+completed: "2026-10-29T19:22:29.122Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -47,19 +48,19 @@ links:
     - ["0009-agy", "included", ["1.1"]]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
   "5":
-    status: pending
+    status: complete
   "6":
-    status: pending
+    status: complete
   "7":
-    status: pending
+    status: complete
 ---
 
 # E 1.1: SVG files, keys and the Platinum registration
@@ -112,11 +113,11 @@ Append to the union (contract gap reported to 0002-ldj): `windowUtilityShade`, `
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm exec vitest run src/Appearance/Platinum/assets/art/platinumArt.test.ts
-- [ ] VERIFY: test ! -e assets/img/ui/slider-strikes.svg && test -e src/Appearance/Platinum/assets/art/slider-strikes.svg
-- [ ] `resolveClassicyAsset("systemArt", key, "platinum")` returns a valid asset source for all 15 keys and `useClassicyAssetVars()` exposes each as `--classicy-art-<kebab-key>` `url("…")`.
-- [ ] Every mask SVG keeps its original viewBox, omits `width`/`height`, and uses `currentColor`; only `window-grip.svg`, `window-dither.svg` and `slider-strikes.svg` keep hex fills.
-- [ ] `ClassicySystemArtKey` includes the 13 appended keys and `pnpm exec tsc --noEmit -p .` passes.
+- [x] VERIFY: pnpm exec vitest run src/Appearance/Platinum/assets/art/platinumArt.test.ts
+- [~] VERIFY: test ! -e assets/img/ui/slider-strikes.svg && test -e src/Appearance/Platinum/assets/art/slider-strikes.svg
+- [x] `resolveClassicyAsset("systemArt", key, "platinum")` returns a valid asset source for all 15 keys and `useClassicyAssetVars()` exposes each as `--classicy-art-<kebab-key>` `url("…")`.
+- [x] Every mask SVG keeps its original viewBox, omits `width`/`height`, and uses `currentColor`; only `window-grip.svg`, `window-dither.svg` and `slider-strikes.svg` keep hex fills.
+- [x] `ClassicySystemArtKey` includes the 13 appended keys and `pnpm exec tsc --noEmit -p .` passes.
 
 ## Files
 
@@ -144,3 +145,5 @@ Append to the union (contract gap reported to 0002-ldj): `windowUtilityShade`, `
 ## Work Log
 
 ### 2026-10-29T18:52:23.119Z - Started beside Part B (wave 2) by controller decision: the E reconciliation marks 1.1 "Yes, with carve-outs" — it edits only Part C's art files, platinumAssets.ts and their tests, none of which B 4.3–6 touches. Rulings E1 (register through platinumAssets.ts; new art modules data-only; Platinum/index.ts untouched), E2 (keep C's file names, rewrite in place into mask form), E3/E-B3 (keep the original stripe viewBoxes) bind. Branch feat/appearance-part-e from d8c687255; implementer dispatched. Out of chain order: depends story 0051-532 (E 0, the parity baseline) needs B's end state and is deferred; no stylesheet reads the art yet, so 1.1 changes no pixel.
+
+### 2026-10-29T19:22:13.645Z - Done on feat/appearance-part-e, d8c687255..28c4e09a1: 8162cd292 (Part C's art files rewritten in place as masks under C's names per E2 — stripes keep the original viewBoxes `0 0 11.53 12`/`0 0 12.01 12` with only the dark rows per E3/E-B3; title-bar-utility.svg split into window-utility-shade/-highlight with the gradients as currentColor alpha, then deleted; slider-thumb-rect.svg and halftone.svg added; data-only art/platinumArt.ts (PLATINUM_SYSTEM_ART, 15 keys) spread into platinumAssets.ts' single registration per E1, so Platinum registers 25 of 44 keys; Platinum/index.ts untouched), 28c4e09a1 (review minors: the mask test rejects any non-currentColor/none/url() paint and unpainted shapes; the stripe test pins every row; the glob helper shared). Review: Approved (C0 I0 M3, all fixed). No pixel change: nothing reads --classicy-art-* yet (grep 0); dist ships the art byte-identical, none inlined. Gate on 28c4e09a1: lint, tsc, 3933 tests, build:source + verify:dist. Criteria notes: criterion 2 (move slider-strikes.svg) is superseded by the reconciliation's 1.1 carve-out — the file stays in assets/img/ui until 3.1 because B 4.3 re-points to it — marked not applicable; criterion 5's 13 keys were already in ClassicySystemArtKey (Part C completed the union; cross-cutting fact), tsc passes. Carry-forward for 2.1 recorded in the ledger (utility ground color + mask-size).
