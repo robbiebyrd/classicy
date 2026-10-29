@@ -3,12 +3,13 @@ id: 0016-a5c
 title: 'G 3.2: Icon-grid math reads --desktop-icon-*'
 purpose: Make the desktop and Finder icon-grid math read `--desktop-icon-size`, `--desktop-icon-padding` and `--desktop-icon-cell` from CSS instead of bypassing the theme variables.
 type: impr
-status: in_progress
+status: complete
 priority: "2"
 effort: S
 created: "2026-10-28T19:57:42.338Z"
-updated: "2026-10-29T17:39:26.806Z"
+updated: "2026-10-29T18:24:53.372Z"
 started: "2026-10-29T17:39:26.806Z"
+completed: "2026-10-29T18:24:53.372Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -33,15 +34,15 @@ links:
     - ["0004-vqt", "included", ["3.2"]]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
   "5":
-    status: pending
+    status: complete
 ---
 
 # G 3.2: Icon-grid math reads --desktop-icon-*
@@ -76,9 +77,9 @@ Audit §3.2: `getIconSize` (ClassicyDesktopIconContext.tsx:46-48), `iconGridLatt
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconContext.test.ts
-- [ ] `getIconSize` returns the desktop's `--desktop-icon-size`/`--desktop-icon-padding` when present and `[48, 12]` from the default theme otherwise; `iconGridLattice` pitch follows `--desktop-icon-cell` unless an override is given.
-- [ ] `ClassicyFileBrowser.tsx` keeps the literal `18` list-view fallback; existing desktop clean-up and Finder icon-view tests pass unchanged.
+- [x] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconContext.test.ts
+- [x] `getIconSize` returns the desktop's `--desktop-icon-size`/`--desktop-icon-padding` when present and `[48, 12]` from the default theme otherwise; `iconGridLattice` pitch follows `--desktop-icon-cell` unless an override is given.
+- [x] `ClassicyFileBrowser.tsx` keeps the literal `18` list-view fallback; existing desktop clean-up and Finder icon-view tests pass unchanged.
 
 ## Files
 
@@ -92,3 +93,5 @@ Audit §3.2: `getIconSize` (ClassicyDesktopIconContext.tsx:46-48), `iconGridLatt
 ## Work Log
 
 ### 2026-10-29T17:39:19.350Z - Started beside Part B by controller decision (ruling G11: 3.2 is TypeScript-only; B touches no file it edits). Ruling G7 binds: reducer paths compute icon geometry from the theme in state (pure getThemeVars/derivations), never the DOM; only render/handler code uses readClassicyThemeVar. Base 28f7b1b15 on feat/appearance-part-g (3.1 complete); implementer dispatched. Parity deferred until after B lands.
+
+### 2026-10-29T18:24:37.331Z - Done on feat/appearance-part-g, 28f7b1b15..32faef6bb: e4dfdb13a (ruling G7 supersedes the plan's "getIconSize prefers the DOM": the reducer path — getIconSize, cleanupDesktopIcons, the private getGridPosition/createGrid — computes from the theme through the new pure classicyDesktopIconMetrics (derivation table), proven DOM-free by a getComputedStyle spy and by an independent value-import walk; render code reads --desktop-icon-size/-padding/-cell through readClassicyDesktopIconMetrics (in ClassicyFileBrowserUtils.ts, outside the reducer graph), 3 reads per active theme in the icon view, a layout-effect read in the list view; the literal 18 list-view fallback stays; the brief's [64, 16] test targets the reader), 32faef6bb (review minors: JSDoc says desktop Clean Up ignores a host's --desktop-icon-* style override while Finder honors it; FinderViewOptions doc corrected; icon-view cell count computed directly). Default theme lays out exactly as before; iconSize 32 lays out correctly. Review: Approved (C0 I0 M5; 1/3/5 fixed, 2/4 recorded for Phase 4 docs: new exports classicyDesktopIconMetrics, ClassicyDesktopIconMetrics, readClassicyDesktopIconMetrics). Gate on 32faef6bb: lint, tsc, build:source + verify:dist; full test green apart from the 0082-lgo (l) vocab-scan timeout under load (passes alone; fixed on the integration branch in bd555eb15); controller re-ran Desktop/File/Finder 78 files / 878 tests. Note for Part F recorded in its reconciliation. Parity deferred until after B lands (Platinum values unchanged).

@@ -7,7 +7,7 @@ status: pending
 priority: "4"
 effort: M
 created: "2026-10-29T09:19:21.134Z"
-updated: "2026-10-29T16:47:01.167Z"
+updated: "2026-10-29T18:23:13.937Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -72,8 +72,10 @@ Do criterion (k), then run `pnpm lint && pnpm exec tsc --noEmit -p . && pnpm tes
 - [ ] VERIFY: (i) In dev, the fonts <style> is inserted after #classicy-layer-order.
 - [ ] VERIFY: (j) The TEMPLATE_FAMILIES suffix lists in ClassicyVocabulary.test.ts are derived from the type unions rather than kept complete by a comment.
 - [ ] VERIFY: (k) Small cleanups are done: Finder rows no longer emit selected twice (ClassicyFileBrowserViewTable.tsx); Menu className versus navClass is documented; and a decision is recorded on whether withoutZIndex, now exported from the package root through the barrel, is documented or kept internal.
-- [ ] (l) The vocabulary coverage tests that scan every src .ts/.tsx file (ClassicyVocabulary.test.ts's class scan and its negative twin) never hit vitest's 5 s default timeout: give them an explicit timeout sized for a loaded machine, or cache the parsed file list. Observed 2026-10-29 by three implementers (Parts G, I, J) at load average 33–43 on 16 cores: 1.4–2.9 s alone, timed out under load, green on rerun.
+- [x] (l) The vocabulary coverage tests that scan every src .ts/.tsx file (ClassicyVocabulary.test.ts's class scan and its negative twin) never hit vitest's 5 s default timeout: give them an explicit timeout sized for a loaded machine, or cache the parsed file list. Observed 2026-10-29 by three implementers (Parts G, I, J) at load average 33–43 on 16 cores: 1.4–2.9 s alone, timed out under load, green on rerun.
 
 ## Work Log
 
 ### 2026-10-29T09:40:22.977Z - Criterion (a): for Part B, the cross-file order guard is met by the forced-state computed-style matrix (forced.cjs) that every look-moving task re-runs; the permanent CI guard stays in this story. Criterion (d): Part B moves scrollbars-inactive into the package unchanged (renamed platinum-*); this story removes it later.
+
+### 2026-10-29T18:23:10.159Z - Item (l) done on feat/AppearancePackages in bd555eb15: the class-coverage scan and its negative twin share one cached parse of src (scanSourceTree behind scanClassicyTokens) and carry an explicit 60 s timeout (SCAN_TIMEOUT_MS). Gate on the integration branch: pnpm lint clean, tsc clean, pnpm test 315 files / 3716 tests. The part branches (G, I, J, and B's remaining tasks) pick it up when they rebase; until then their implementers rerun the scan alone on a timeout.
