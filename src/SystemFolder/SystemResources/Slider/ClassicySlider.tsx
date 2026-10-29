@@ -9,6 +9,7 @@ import type {
 	SyntheticEvent,
 } from "react";
 import { useEffect, useRef, useState } from "react";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import {
 	ClassicyControlLabel,
@@ -213,6 +214,7 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 	// Uncontrolled input with ref-sync: avoids Safari freeze bug where React's
 	// controlled value reconciliation conflicts with native slider capture on mouseup.
 	const inputRef = useRef<HTMLInputElement>(null);
+	const appearance = useClassicyAppearance("Slider", { disabled }, inputRef);
 	// Only write to the DOM when value changes externally (i.e. the DOM doesn't
 	// already reflect it). During a drag, the DOM value already equals the prop
 	// value so this is a no-op — avoiding the write that causes Safari to lose
@@ -241,20 +243,56 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 	};
 
 	const handleChange: ChangeEventHandler<HTMLInputElement> = (e) => {
-		if (ghost) setLiveValue(Number(e.currentTarget.value));
+		const next = Number(e.currentTarget.value);
+		if (ghost) setLiveValue(next);
+		appearance.emit("change", { value: next });
 		onChangeFunc?.(e);
 	};
 
+	// A pointer drag is reported to the appearance package whether or not a
+	// ghost is drawn; `dragging` state only exists for the ghost. Keyboard
+	// stepping is not a drag: it reports `change` alone.
+	const pointerDragRef = useRef(false);
+	const finishPointerDrag = () => {
+		if (!pointerDragRef.current) return;
+		pointerDragRef.current = false;
+		appearance.emit("dragEnd", { value: Number(inputRef.current?.value) });
+	};
+	const finishPointerDragRef = useRef(finishPointerDrag);
+	finishPointerDragRef.current = finishPointerDrag;
+	// A release outside the input still ends the drag; the guard above keeps
+	// it to one dragEnd when the input saw the release too.
+	useEffect(() => {
+		const onRelease = () => finishPointerDragRef.current();
+		document.addEventListener("pointerup", onRelease);
+		document.addEventListener("pointercancel", onRelease);
+		return () => {
+			document.removeEventListener("pointerup", onRelease);
+			document.removeEventListener("pointercancel", onRelease);
+		};
+	}, []);
+
 	const handlePointerDown = (e: ReactPointerEvent<HTMLInputElement>) => {
-		if (ghost && !disabled) {
+		if (disabled) return;
+		if (ghost) {
 			setLiveValue(Number(e.currentTarget.value));
 			setDragging(true);
+		}
+		if (!pointerDragRef.current) {
+			pointerDragRef.current = true;
+			appearance.emit("dragStart", { value: Number(e.currentTarget.value) });
 		}
 	};
 
 	const endDrag = (e: SyntheticEvent<HTMLInputElement>) => {
 		if (dragging) setDragging(false);
+		finishPointerDrag();
 		if (onCommitFunc) handleCommit(e);
+	};
+
+	const cancelDrag = () => {
+		setDragging(false);
+		finishPointerDrag();
 	};
 
 	const sizeClassMap: Record<ClassicyControlLabelSize, string> = {
@@ -280,6 +318,7 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 
 	const rangeInput = (
 		<input
+			{...appearance.attrs}
 			ref={inputRef}
 			id={id}
 			type="range"
@@ -288,19 +327,20 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 			className={classNames(
 				"classicySlider",
 				highlighted && "classicySliderHighlighted",
-				classicyStateClasses({ disabled }),
+				appearance.className,
 				indicatorClassMap[resolvedIndicator],
 				isVertical && "classicySliderInputVertical",
 			)}
+			style={appearance.style}
 			defaultValue={value}
 			min={min}
 			max={max}
 			step={effectiveStep}
 			disabled={disabled}
 			onChange={handleChange}
-			onPointerDown={ghost ? handlePointerDown : undefined}
-			onPointerUp={ghost || onCommitFunc ? endDrag : undefined}
-			onPointerCancel={ghost ? () => setDragging(false) : undefined}
+			onPointerDown={handlePointerDown}
+			onPointerUp={endDrag}
+			onPointerCancel={cancelDrag}
 			onKeyUp={onCommitFunc ? handleCommit : undefined}
 		/>
 	);
