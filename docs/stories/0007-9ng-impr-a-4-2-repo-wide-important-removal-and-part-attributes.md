@@ -3,11 +3,12 @@ id: 0007-9ng
 title: 'A 4.2: Repo-wide !important removal and part attributes'
 purpose: Remove the remaining ~96 `!important`s from src SCSS (test-enforced) and add the `data-classicy-control`, `data-classicy-role` and `data-classicy-part` part attributes.
 type: impr
-status: pending
+status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T19:51:33.139Z"
-updated: "2026-10-28T19:51:33.139Z"
+updated: "2026-10-29T00:45:38.416Z"
+started: "2026-10-29T00:45:38.074Z"
 links:
   repo:
     local: ~/classicy
@@ -148,3 +149,5 @@ ClassicyWindow.tsx:1690,1732,1746 — each `<div className="classicyWindowContro
 - `src/Appearance/vocabulary/ClassicyPartAttributes.test.tsx` - create: part attribute tests
 
 ## Work Log
+
+### 2026-10-29T00:45:38.416Z - Implementation dispatched

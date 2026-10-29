@@ -3,12 +3,13 @@ id: 0006-wx6
 title: 'A 4.1: ClassicyWindow.scss reorder (sixty-two to zero), mixin, phantom tokens'
 purpose: Put the window's base rule before its state rules so source order wins and every `!important` in ClassicyWindow.scss and the control-box mixin can go, and remove the four phantom tokens.
 type: impr
-status: in_progress
+status: complete
 priority: "2"
 effort: M
 created: "2026-10-28T19:50:33.651Z"
-updated: "2026-10-29T00:01:02.285Z"
+updated: "2026-10-29T00:45:29.178Z"
 started: "2026-10-29T00:01:02.199Z"
+completed: "2026-10-29T00:45:29.178Z"
 links:
   repo:
     local: ~/classicy
@@ -29,19 +30,19 @@ links:
     - ["0003-7x7", "included", ["4.1"]]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
   "5":
-    status: pending
+    status: complete
   "6":
-    status: pending
+    status: complete
   "7":
-    status: pending
+    status: complete
 ---
 
 # A 4.1: ClassicyWindow.scss reorder (sixty-two to zero), mixin, phantom tokens
@@ -86,11 +87,11 @@ Re-shoot only `desktop-window--*`, `dialogs-alert--*` and `desktop-desktop--defa
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: grep -c '!important' src/SystemFolder/SystemResources/Window/ClassicyWindow.scss  # expect 0
-- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Window/ClassicyWindow.cascade.test.ts src/SystemFolder/SystemResources/Window/ClassicyWindow.resizer.test.ts
-- [ ] The base `.classicyWindow` rule precedes every state rule; z-index bands (150/300/350/370/99999) and collapsed heights (control × 1.25 / × .5) are unchanged; `platinumWindowControlBox` sets plain sizes.
-- [ ] `--color-theme-1`, `--box-border-size`, `--color-theme-hover` and `--color-theme-selection` appear nowhere in compiled CSS.
-- [ ] [MANUAL] `desktop-window--*`, `dialogs-alert--*` and `desktop-desktop--default` compare AE 0 against the A 0 baseline.
+- [x] VERIFY: grep -c '!important' src/SystemFolder/SystemResources/Window/ClassicyWindow.scss  # expect 0
+- [x] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Window/ClassicyWindow.cascade.test.ts src/SystemFolder/SystemResources/Window/ClassicyWindow.resizer.test.ts
+- [x] The base `.classicyWindow` rule precedes every state rule; z-index bands (150/300/350/370/99999) and collapsed heights (control × 1.25 / × .5) are unchanged; `platinumWindowControlBox` sets plain sizes.
+- [x] `--color-theme-1`, `--box-border-size`, `--color-theme-hover` and `--color-theme-selection` appear nowhere in compiled CSS.
+- [x] [MANUAL] `desktop-window--*`, `dialogs-alert--*` and `desktop-desktop--default` compare AE 0 against the A 0 baseline.
 
 ## Files
 
@@ -106,3 +107,7 @@ Re-shoot only `desktop-window--*`, `dialogs-alert--*` and `desktop-desktop--defa
 ## Work Log
 
 ### 2026-10-29T00:01:02.283Z - Implementation dispatched
+
+### 2026-10-29T00:45:27.420Z - Completed: commits 4e390b34c..d42955098 (57d13ab37 reorder, d42955098 fix round), task review clean after one fix round (a consumer inline zIndex is stripped so window states own stacking). Evidence of pixel identity: computed-style diff 0 across 42 story variants (867,267 values) and 0 across a 17,280-combination class matrix (1.57M rows), negative control 43,914 diffs; screenshots AE 0 for all 42 story shots and the 25 mid-check shots (desktop-window--*, dialogs-alert--*, desktop-desktop--default) with the menu-bar clock masked (the seconds clock differs by 190-276 px unmasked). 62 to 0 !important; phantom tokens gone. Full gate green: lint 0, tsc 0, 3459 tests.
+
+### 2026-10-29T00:45:27.645Z - Correction: classicyWindowInvisible is unreachable (root renders only when !ws.closed; the class is emitted only when ws.closed) — parked for a later task

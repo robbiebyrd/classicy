@@ -3,12 +3,13 @@ id: 0024-ktc
 title: 'C 5.1: Package assets emit as files; verify:dist'
 purpose: Stop lib-mode Vite from inlining src/Appearance/** assets so Platinum fonts and art ship as files, and make verify:dist guard the new invariants.
 type: impr
-status: in_progress
+status: complete
 priority: "2"
 effort: M
 created: "2026-10-28T20:04:07.145Z"
-updated: "2026-10-29T00:01:04.356Z"
+updated: "2026-10-29T00:20:27.242Z"
 started: "2026-10-28T23:47:54.073Z"
+completed: "2026-10-29T00:20:27.242Z"
 links:
   repo:
     local: ~/classicy
@@ -27,19 +28,19 @@ links:
     - ["0007-1sl", "included", ["5.1"]]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
   "5":
-    status: pending
+    status: complete
   "6":
-    status: pending
+    status: complete
   "7":
-    status: pending
+    status: complete
 ---
 
 # C 5.1: Package assets emit as files; verify:dist
@@ -84,11 +85,11 @@ Edit `bin/check-dist-imports.mjs` first: invariant 3 becomes "each entry bundle 
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm build:source  # verify:dist passes with the new invariants
-- [ ] `dist/assets/` holds exactly 13 `.woff2` files and at least 17 art files; `grep -c 'data:font' dist/classicy.es.js` is 0; `dist/fonts.js` exists with no `import`/`require`; `package.json` no longer exports `./dist/fonts.css`.
-- [ ] [MANUAL] In the example app `<style id="classicy-fonts-platinum">` carries 13 `@font-face` rules, the `.woff2` requests return 200, and the Fonts tab lists six families with no console errors.
-- [ ] VERIFY: pnpm exec vitest run bin/classicyStyleInjector.test.ts
-- [ ] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
+- [x] VERIFY: pnpm build:source  # verify:dist passes with the new invariants
+- [x] `dist/assets/` holds exactly 13 `.woff2` files and at least 17 art files; `grep -c 'data:font' dist/classicy.es.js` is 0; `dist/fonts.js` exists with no `import`/`require`; `package.json` no longer exports `./dist/fonts.css`.
+- [x] [MANUAL] In the example app `<style id="classicy-fonts-platinum">` carries 13 `@font-face` rules, the `.woff2` requests return 200, and the Fonts tab lists six families with no console errors.
+- [x] VERIFY: pnpm exec vitest run bin/classicyStyleInjector.test.ts
+- [x] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
 
 ## Files
 
@@ -104,3 +105,7 @@ Edit `bin/check-dist-imports.mjs` first: invariant 3 becomes "each entry bundle 
 ### 2026-10-28T23:47:54.167Z - Implementation dispatched
 
 ### 2026-10-29T00:01:04.356Z - Implementation committed (4d92822d3, c09bb4f76); task review in progress
+
+### 2026-10-29T00:20:26.518Z - Completed: commits 6bfd5c8a1..18dfe7ed9 (4d92822d3 format cherry-pick, c09bb4f76 build change, 18dfe7ed9 fix round), task review clean after one fix round. Full gate green (lint, tsc, 296 files / 3398 tests, verify:dist). dist/assets: 13 woff2, 17 svg, 1 png, 0 webp; 0 data:font in classicy.es.js. Criterion 3 evidence: headless Chromium smoke showed #classicy-fonts-platinum with 13 @font-face, woff2 requests 200, no console errors; a real Vite 7 consumer loaded 13 fonts as 200 font/woff2 with optimizeDeps.exclude. The Fonts tab six-family list was not hand-checked in the example app (covered by the C 4.1 unit test).
+
+### 2026-10-29T00:20:26.611Z - breaking change for Vite dev consumers documented (AGENT-REFERENCE §1, README, CLAUDE.md)

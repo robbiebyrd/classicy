@@ -3,11 +3,12 @@ id: 0025-xns
 title: 'C 6.1: Registry docs, example app, parity after'
 purpose: Document the asset registries, drop the example's obsolete fonts import, and prove Platinum is pixel-identical with the after-shoot and the full gate.
 type: chor
-status: pending
+status: in_progress
 priority: "2"
 effort: S
 created: "2026-10-28T20:04:33.061Z"
-updated: "2026-10-28T20:04:33.061Z"
+updated: "2026-10-29T00:20:35.331Z"
+started: "2026-10-29T00:20:35.252Z"
 links:
   repo:
     local: ~/classicy
@@ -76,3 +77,5 @@ git add docs CLAUDE.md example/src/app.tsx && git commit -m "docs(appearance): a
 - `.playwright-mcp/parity/part-C/after` - after screenshots (gitignored)
 
 ## Work Log
+
+### 2026-10-29T00:20:35.331Z - Implementation dispatched; includes the example-app cursor check owed by 0022-cbh criterion 4
