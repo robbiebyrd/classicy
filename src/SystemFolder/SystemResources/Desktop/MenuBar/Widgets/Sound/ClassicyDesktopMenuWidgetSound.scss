@@ -5,12 +5,14 @@
   padding-right: 0;
   padding-left: 0;
 
-  &:hover {
-    color: var(--color-black) !important;
-    background: transparent !important;
-  }
-
   img {
     width: 100%;
   }
+}
+
+// The widget never highlights. Nested under the menu bar: beats
+// `.classicyMenuItem:hover`.
+.classicyDesktopMenu .classicyDesktopMenuWidgetSound:hover {
+  color: var(--color-black);
+  background: transparent;
 }

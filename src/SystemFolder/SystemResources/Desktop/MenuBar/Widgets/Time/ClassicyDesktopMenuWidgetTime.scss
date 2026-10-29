@@ -1,11 +1,13 @@
 .classicyDesktopMenuTime {
   float: right;
   margin: 0 var(--window-control-size);
+}
 
-  &:hover {
-    color: var(--color-black) !important;
-    background: transparent !important;
-  }
+// The clock never highlights. Nested under the menu bar: beats
+// `.classicyMenuItem:hover`.
+.classicyDesktopMenu .classicyDesktopMenuTime:hover {
+  color: var(--color-black);
+  background: transparent;
 }
 
 .classicyDesktopMenuTimeSeparatorRight {

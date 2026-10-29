@@ -17,7 +17,7 @@
   }
 
   &:after {
-    display: none !important;
+    display: none;
     content: '';
   }
 }
@@ -31,7 +31,7 @@
   list-style: none;
   user-select: none;
   border-radius: var(--window-control-size) var(--window-control-size) 0 0;
-  background-color: var(--color-system-02) !important;
+  background-color: var(--color-system-02);
   box-shadow: inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-05),
     calc(var(--window-border-size) * 2) calc(var(--window-border-size) * 2) 0 0 var(--color-black);
   -webkit-user-drag: none;
@@ -43,7 +43,7 @@
   > li,
   > .classicyBalloonHelpAnchor > li {
     &:after {
-      display: none !important;
+      display: none;
     }
 
     & p {
@@ -68,10 +68,10 @@
   margin-left: 0;
   &:hover {
     &:before {
-      background: var(--color-theme-02) !important;
+      background: var(--color-theme-02);
       box-shadow: var(--window-border-size) var(--window-border-size) var(--color-theme-05),
         inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-theme-02),
-        inset var(--window-border-size) var(--window-border-size) var(--color-theme-01) !important;
+        inset var(--window-border-size) var(--window-border-size) var(--color-theme-01);
     }
   }
 
@@ -89,13 +89,13 @@
   }
 
   &:after {
-    display: none !important;
+    display: none;
     content: '';
   }
 
   * {
     ul {
-      right: calc((var(--window-control-size) - var(--window-padding-size)) * -1) !important;
+      right: calc((var(--window-control-size) - var(--window-padding-size)) * -1);
     }
   }
 }

@@ -148,9 +148,9 @@
     padding: 0;
 
     a {
-      cursor: default !important;
+      cursor: default;
       text-decoration: none;
-      color: var(--color-black) !important;
+      color: var(--color-black);
     }
   }
 }
@@ -200,7 +200,7 @@
     pointer-events: auto;
 
     > ul {
-      display: flex !important;
+      display: flex;
     }
   }
 }
@@ -208,13 +208,18 @@
 :where(.classicyMenuItem).disabled {
   &:hover {
     color: var(--color-white);
-    background-color: transparent !important;
   }
 
   p,
   kbd {
     color: var(--color-system-05);
   }
+}
+
+// A disabled item never highlights. Two classes and a pseudo-class: beats
+// `.classicyMenu div ul li:hover` (0,2,3) as well as `.classicyMenuItem:hover`.
+.classicyMenuItem.disabled:hover {
+  background-color: transparent;
 }
 
 .classicyMenuItemChildMenuIndicator {
@@ -230,10 +235,12 @@
   }
 }
 
-.classicyMenuItemKeyboardShortcut {
-  font-size: calc(var(--ui-font-size) * 0.75) !important;
+// Nested under the item: beats `.classicyMenuItem kbd { padding: 0 }` and
+// `.classicyKbdInline { font-size: inherit }`.
+.classicyMenuItem .classicyMenuItemKeyboardShortcut {
+  font-size: calc(var(--ui-font-size) * 0.75);
   line-height: 1.75;
-  padding-right: calc(var(--window-padding-size) / 2) !important;
+  padding-right: calc(var(--window-padding-size) / 2);
 }
 
 .classicyMenuItemFlash {
