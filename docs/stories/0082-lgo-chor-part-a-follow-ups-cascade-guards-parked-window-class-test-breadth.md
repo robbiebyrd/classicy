@@ -7,7 +7,7 @@ status: pending
 priority: "4"
 effort: M
 created: "2026-10-29T09:19:21.134Z"
-updated: "2026-10-29T09:19:21.134Z"
+updated: "2026-10-29T09:40:22.977Z"
 links:
   repo:
     local: ~/classicy
@@ -68,3 +68,5 @@ Do criterion (k), then run `pnpm lint && pnpm exec tsc --noEmit -p . && pnpm tes
 - [ ] VERIFY: (k) Small cleanups are done: Finder rows no longer emit selected twice (ClassicyFileBrowserViewTable.tsx); Menu className versus navClass is documented; and a decision is recorded on whether withoutZIndex, now exported from the package root through the barrel, is documented or kept internal.
 
 ## Work Log
+
+### 2026-10-29T09:40:22.977Z - Criterion (a): for Part B, the cross-file order guard is met by the forced-state computed-style matrix (forced.cjs) that every look-moving task re-runs; the permanent CI guard stays in this story. Criterion (d): Part B moves scrollbars-inactive into the package unchanged (renamed platinum-*); this story removes it later.

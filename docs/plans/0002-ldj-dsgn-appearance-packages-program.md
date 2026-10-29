@@ -192,6 +192,8 @@ Each line names the part plan whose text it corrects; executors apply the amendm
 - **0010-743 (F)**: `ClassicyMenuItem.part` is Part A's; F only adds it if absent.
 - **0012-pt9 (J)**: Fonts tab and wallpaper picker reading the registries is Part C's deliverable; J re-tests, does not re-implement. The import refusal reuses `Desktop.errorDialog` from Part B.
 - **0003-7x7 (A)**: `./scss-platinum/*` is temporary and is deleted by Part B.
+- **0005-1b3 (B), ruling R4**: the `./appearance/platinum` export keeps its contract key, but its value is an emitted no-op shim, `dist/appearance-platinum.js` with `.d.ts`, following the `dist/fonts.js` pattern; it no longer points at `./src/Appearance/Platinum/index.ts`. Reason: the main bundle already registers Platinum (D14), and consumers cannot load the TypeScript source, which uses `@/` aliases, a `?inline` SCSS import and a JSON import. `./appearance/platinum/scss/*` still points at the Platinum SCSS sources.
+- **0005-1b3 (B), ruling R5**: Part B also emits the compiled Platinum package CSS as `dist/classicy-platinum.css`, built from the same string the injector uses and starting with the layer-order statement. Strict-CSP hosts that cannot allow inline `<style>` link `classicy.css` and then `classicy-platinum.css`, first in `<head>`. Without this, moving the look into a JS-injected package stylesheet would strip the whole Platinum look from those hosts.
 
 ### Part plans, stories and dependency graph
 
