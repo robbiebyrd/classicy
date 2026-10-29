@@ -3,11 +3,12 @@ id: 0035-3bj
 title: 'B 2.1: Appearance.packageId, ClassicyDesktopChangeAppearancePackage, data-classicy-appearance'
 purpose: Persist the active Appearance Package id in the store, switch it with a guarded action, and write it onto the desktop root so package CSS can be scoped at runtime.
 type: feat
-status: pending
+status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T20:10:49.263Z"
-updated: "2026-10-28T20:10:49.263Z"
+updated: "2026-10-29T12:26:02.941Z"
+started: "2026-10-29T12:26:02.941Z"
 links:
   repo:
     local: ~/classicy
