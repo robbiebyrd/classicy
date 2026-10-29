@@ -3,11 +3,12 @@ id: 0043-u43
 title: 'I 1.1: useClassicyAppearance, ClassicyAppearanceSound, the test probe'
 purpose: Implement the contract hook that merges a package's decorations onto a component root and emits lifecycle events, plus the sound bridge handlers use and the probe package tests rely on.
 type: feat
-status: pending
+status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T20:16:19.391Z"
-updated: "2026-10-28T20:16:19.391Z"
+updated: "2026-10-29T16:19:32.258Z"
+started: "2026-10-29T16:19:32.258Z"
 links:
   repo:
     local: ~/classicy

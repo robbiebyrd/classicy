@@ -2,11 +2,11 @@
 id: 0012-pt9
 title: 'Part J: Appearance control panel'
 type: impl
-status: pending
+status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T19:35:31.437Z"
-updated: "2026-10-28T19:40:02.639Z"
+updated: "2026-10-29T16:20:01.389Z"
 links:
   repo:
     local: ~/classicy
@@ -24,7 +24,7 @@ progress:
   "1":
     status: pending
   "1.1":
-    status: pending
+    status: in_progress
   "2":
     status: pending
   "2.1":

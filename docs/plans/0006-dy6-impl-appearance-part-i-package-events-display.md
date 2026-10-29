@@ -2,11 +2,11 @@
 id: 0006-dy6
 title: 'Part I: Package events and display participation'
 type: impl
-status: pending
+status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T19:07:51.618Z"
-updated: "2026-10-28T19:38:38.492Z"
+updated: "2026-10-29T16:20:01.169Z"
 links:
   repo:
     local: ~/classicy
@@ -22,7 +22,7 @@ progress:
   "1":
     status: pending
   "1.1":
-    status: pending
+    status: in_progress
   "2":
     status: pending
   "2.1":

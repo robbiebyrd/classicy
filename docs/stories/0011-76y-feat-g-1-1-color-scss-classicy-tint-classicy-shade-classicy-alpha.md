@@ -3,11 +3,12 @@ id: 0011-76y
 title: 'G 1.1: _color.scss: classicy-tint, classicy-shade, classicy-alpha'
 purpose: Add the three package-neutral `color-mix` helpers every Classicy stylesheet uses instead of literal colors, pinned by a compiled-CSS test.
 type: feat
-status: pending
+status: in_progress
 priority: "2"
 effort: S
 created: "2026-10-28T19:53:21.572Z"
-updated: "2026-10-28T19:53:21.572Z"
+updated: "2026-10-29T16:19:32.492Z"
+started: "2026-10-29T16:19:32.492Z"
 links:
   repo:
     local: ~/classicy

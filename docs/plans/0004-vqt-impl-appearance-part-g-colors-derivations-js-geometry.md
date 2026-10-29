@@ -2,11 +2,11 @@
 id: 0004-vqt
 title: 'Part G: Colors, derivations and JS geometry'
 type: impl
-status: pending
+status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T18:58:37.718Z"
-updated: "2026-10-28T19:38:38.037Z"
+updated: "2026-10-29T16:20:00.935Z"
 links:
   repo:
     local: ~/classicy
@@ -21,7 +21,7 @@ progress:
   "1":
     status: pending
   "1.1":
-    status: pending
+    status: in_progress
   "1.2":
     status: pending
   "2":
