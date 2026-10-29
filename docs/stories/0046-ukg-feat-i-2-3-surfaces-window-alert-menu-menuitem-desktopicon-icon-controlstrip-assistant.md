@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T20:18:19.144Z"
-updated: "2026-10-29T21:06:06.605Z"
+updated: "2026-10-29T21:27:25.220Z"
 started: "2026-10-29T19:28:41.968Z"
 tags: []
 milestone: ""
@@ -121,3 +121,5 @@ Re-shoot desktop-window*, desktop-desktop*, desktop-desktopicon*, desktop-menu*,
 ### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
 
 ### 2026-10-29T21:06:06.605Z - Implementer DONE_WITH_CONCERNS at 848cdde6e. Review: Needs fixes, with one Important finding. A submenu leaf's flash bubbles animationend to every ancestor <li>, which emits a spurious release with no press. The new test missed it because jsdom never delivers fireEvent.animationEnd to React. Fix round 1 dispatched: own-target guard (I-R7), two tests using a real bubbling webkitAnimationEnd, plus the MenuItem focus/blur ancestor-echo minor.
+
+### 2026-10-29T21:27:25.219Z - Fix round 1 DONE_WITH_CONCERNS at 41793c78b: menu-flash own-target guard with two tests using a real bubbling webkitAnimationEnd (both RED first); focus/blur ancestor echoes removed; dividers skip the hook; a hover-opened submenu reports pointer input; desktop-icon select fires only on a change; Passthrough positive control; 4102 tests, DOM dump identical. Rulings: I-R16 adopted (Window zoom detail carries cause zoom|collapse|resize); Finder outline-drag events moved to follow-up story 0084-fd7; the dead spacer branch goes in I 3.2. Round 1b sent: convert the older fireEvent.animationEnd menu test, which only exercised the fallback, to the real event.
