@@ -92,6 +92,63 @@ describe("ClassicySchemaForm", () => {
 		expect(speed).toHaveValue(9);
 	});
 
+	it("clamps a typed number to the schema's min and max before reporting it (J-R17)", () => {
+		const onChange = vi.fn();
+		render(
+			<ClassicySchemaForm
+				schema={schema}
+				values={values}
+				idPrefix="T"
+				onChange={onChange}
+			/>,
+		);
+		const speed = document.getElementById("T_speed") as HTMLInputElement;
+		fireEvent.change(speed, { target: { value: "99" } });
+		expect(speed).toHaveValue(9);
+		expect(onChange).toHaveBeenLastCalledWith(["speed"], 9);
+		fireEvent.change(speed, { target: { value: "-4" } });
+		expect(speed).toHaveValue(1);
+		expect(onChange).toHaveBeenLastCalledWith(["speed"], 1);
+		// A field without .int() keeps its fraction.
+		fireEvent.change(speed, { target: { value: "2.5" } });
+		expect(onChange).toHaveBeenLastCalledWith(["speed"], 2.5);
+	});
+
+	it("rounds an integer field to a whole number before clamping (J-R17)", () => {
+		const onChange = vi.fn();
+		render(
+			<ClassicySchemaForm
+				schema={z.object({ count: z.number().int().min(2).max(10) })}
+				values={{ count: 5 }}
+				idPrefix="I"
+				onChange={onChange}
+			/>,
+		);
+		const count = document.getElementById("I_count") as HTMLInputElement;
+		fireEvent.change(count, { target: { value: "6.6" } });
+		expect(onChange).toHaveBeenLastCalledWith(["count"], 7);
+		fireEvent.change(count, { target: { value: "10.4" } });
+		expect(onChange).toHaveBeenLastCalledWith(["count"], 10);
+		fireEvent.change(count, { target: { value: "1.4" } });
+		expect(onChange).toHaveBeenLastCalledWith(["count"], 2);
+	});
+
+	it("reports nothing for an empty or non-numeric entry (J-R17)", () => {
+		const onChange = vi.fn();
+		render(
+			<ClassicySchemaForm
+				schema={schema}
+				values={values}
+				idPrefix="T"
+				onChange={onChange}
+			/>,
+		);
+		fireEvent.change(document.getElementById("T_speed") as HTMLElement, {
+			target: { value: "" },
+		});
+		expect(onChange).not.toHaveBeenCalled();
+	});
+
 	it("reports checkbox and text changes with their paths", () => {
 		const onChange = vi.fn();
 		render(

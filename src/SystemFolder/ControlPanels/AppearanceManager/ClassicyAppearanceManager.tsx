@@ -1,4 +1,7 @@
-import { useActiveClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
+import {
+	useActiveClassicyAppearancePackage,
+	useClassicyAppearancePackages,
+} from "@/Appearance/ClassicyAppearancePackage";
 import { getClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackageRegistry";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import "./ClassicyAppearanceManager.scss";
@@ -24,7 +27,11 @@ import {
 	downloadClassicyTheme,
 	parseClassicyThemeFile,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFile";
-import type { ClassicyThemeMetricChange } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricTargets";
+import type {
+	ClassicyThemeMetricChange,
+	ClassicyThemeMetricFamilyChange,
+	ClassicyThemeMetricFamilyTarget,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricTargets";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -52,6 +59,8 @@ import { useColorsTab } from "./ClassicyAppearanceManager.Colors";
 import { useDesktopTab } from "./ClassicyAppearanceManager.Desktop";
 import { useFontsTab } from "./ClassicyAppearanceManager.Fonts";
 import { useMetricsTab } from "./ClassicyAppearanceManager.Metrics";
+import { useOptionsTab } from "./ClassicyAppearanceManager.Options";
+import { usePackagesTab } from "./ClassicyAppearanceManager.Packages";
 import { useSoundTab } from "./ClassicyAppearanceManager.Sound";
 import { useThemesTab } from "./ClassicyAppearanceManager.Themes";
 import { withPrimaryFontFamily } from "./ClassicyFontStack";
@@ -95,6 +104,7 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		appearanceState.activeTheme.desktop.backgroundImage ||
 		ClassicyDefaultWallpaper;
 
+	const packages = useClassicyAppearancePackages();
 	const activePackage = useActiveClassicyAppearancePackage();
 
 	// The active package's presets and host-loaded themes, then the user's
@@ -327,11 +337,30 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 	);
 
 	const changeMetric = useCallback(
-		(change: ClassicyThemeMetricChange) => {
+		(change: ClassicyThemeMetricChange | ClassicyThemeMetricFamilyChange) => {
 			startTransition(() => {
 				desktopEventDispatch({
 					type: "ClassicyDesktopChangeMetric",
 					...change,
+				});
+			});
+		},
+		[desktopEventDispatch],
+	);
+
+	// A package knob (Options tab): the family form of ChangeMetric.
+	const changeKnob = useCallback(
+		(target: ClassicyThemeMetricFamilyTarget, value: number) =>
+			changeMetric({ ...target, value }),
+		[changeMetric],
+	);
+
+	const changePackage = useCallback(
+		(packageId: string) => {
+			startTransition(() => {
+				desktopEventDispatch({
+					type: "ClassicyDesktopChangeAppearancePackage",
+					packageId,
 				});
 			});
 		},
@@ -454,6 +483,18 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		loadThemeFile,
 	});
 
+	const packagesTab = usePackagesTab({
+		packages,
+		activePackageId: activePackage.id,
+		changePackage,
+	});
+
+	const optionsTab = useOptionsTab({
+		pkg: activePackage,
+		theme: appearanceState.activeTheme,
+		changeMetric: changeKnob,
+	});
+
 	const desktopTab = useDesktopTab({
 		bg,
 		bgPosition: appearanceState.activeTheme.desktop.backgroundPosition,
@@ -497,11 +538,30 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 	});
 
 	const tabs = useMemo(
-		// Colors sits between Desktop and Fonts: Mac OS 8.5's Appearance panel
-		// puts its color tab ahead of Fonts. Metrics follows Fonts, ahead of
-		// Sound.
-		() => [themesTab, desktopTab, colorsTab, fontsTab, metricsTab, soundTab],
-		[themesTab, desktopTab, colorsTab, fontsTab, metricsTab, soundTab],
+		// Packages and Options follow Themes: the package is the outermost
+		// choice, its knobs next. Colors sits between Desktop and Fonts: Mac OS
+		// 8.5's Appearance panel puts its color tab ahead of Fonts. Metrics
+		// follows Fonts, ahead of Sound.
+		() => [
+			themesTab,
+			packagesTab,
+			optionsTab,
+			desktopTab,
+			colorsTab,
+			fontsTab,
+			metricsTab,
+			soundTab,
+		],
+		[
+			themesTab,
+			packagesTab,
+			optionsTab,
+			desktopTab,
+			colorsTab,
+			fontsTab,
+			metricsTab,
+			soundTab,
+		],
 	);
 
 	return (
@@ -532,7 +592,8 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 				appMenu={appMenu}
 			>
 				<div className={"classicyAppearanceManagerContent"}>
-					{/* Six tabs need the compact strip to fit the 480 px panel. */}
+					{/* Eight tabs need the compact strip, which scrolls sideways
+					    when they overflow the 480 px panel. */}
 					<ClassicyTabs tabs={tabs} size="small" />
 					<ClassicyButton onClickFunc={quitApp}>Quit</ClassicyButton>
 				</div>

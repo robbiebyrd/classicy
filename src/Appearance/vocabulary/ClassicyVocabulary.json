@@ -80,6 +80,8 @@
 			"FontsColumn",
 			"FontsLabel",
 			"FontsRow",
+			"PackageSwatch",
+			"PackageSwatches",
 			"SoundColumn",
 			"SoundSlider",
 			"ThemeFileRow"

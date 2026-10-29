@@ -1,0 +1,377 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+	act,
+	fireEvent,
+	render,
+	renderHook,
+	screen,
+	waitFor,
+	within,
+} from "@/__tests__/test-utils";
+import type {
+	ClassicyAppearanceKnobs,
+	ClassicyAppearancePackage,
+} from "@/Appearance/ClassicyAppearancePackage";
+import { registerClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackageRegistry";
+import { classicyKnobsToSchema } from "@/Appearance/ClassicyAppearancePackageSchema";
+import {
+	type ClassicyTheme,
+	getTheme,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import {
+	appearanceOptionInputId,
+	useOptionsTab,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Options";
+import { APPEARANCE_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManagerManifest";
+import type { ClassicyThemeMetricFamilyTarget } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricTargets";
+import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { ClassicyAppManagerProvider } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext";
+import {
+	dispatch,
+	useAppManager,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { ClassicyDesktop } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktop";
+
+// Ruling 1: a package's options are its knobs, `{ <family>: { <key>: number } }`
+// under `theme.measurements`, built into `options` by classicyKnobsToSchema.
+const knobs: ClassicyAppearanceKnobs = {
+	controlStrip: {
+		cellHeight: { label: "Cell height", min: 1, max: 512, default: 22 },
+		tabWidth: { label: "Tab width", min: 4, max: 40, default: 12 },
+	},
+	menuBar: {
+		height: { label: "Menu bar height", min: 10, max: 60, default: 20 },
+	},
+};
+
+const testPack: ClassicyAppearancePackage = {
+	id: "test-pack",
+	name: "Test Pack",
+	css: "",
+	defaults: {
+		...getTheme("default"),
+		package: "test-pack",
+		measurements: {
+			...getTheme("default").measurements,
+			controlStrip: { cellHeight: 22, tabWidth: 12 },
+			menuBar: { height: 20 },
+		},
+	},
+	presets: [],
+	layout: {
+		window: { growBoxCorner: "bottom-right" },
+		menuBar: { placement: "screen" },
+		desktop: { iconGridOrigin: "top-right" },
+	},
+	knobs,
+	options: classicyKnobsToSchema(knobs),
+};
+
+const themeWith = (
+	families: Record<string, Record<string, number>>,
+): ClassicyTheme => ({
+	...getTheme("default"),
+	measurements: { ...getTheme("default").measurements, ...families },
+});
+
+const Host = ({
+	pkg = testPack,
+	theme = themeWith({
+		controlStrip: { cellHeight: 22, tabWidth: 12 },
+		menuBar: { height: 20 },
+	}),
+	changeMetric = vi.fn(),
+}: {
+	pkg?: ClassicyAppearancePackage;
+	theme?: ClassicyTheme;
+	changeMetric?: (
+		target: ClassicyThemeMetricFamilyTarget,
+		value: number,
+	) => void;
+}) => {
+	const tab = useOptionsTab({ pkg, theme, changeMetric });
+	return <div>{tab.children}</div>;
+};
+
+const field = (family: string, key: string) =>
+	document.getElementById(
+		appearanceOptionInputId({ family, key }),
+	) as HTMLInputElement;
+
+describe("useOptionsTab", () => {
+	it("is titled Options", () => {
+		const { result } = renderHook(() =>
+			useOptionsTab({
+				pkg: testPack,
+				theme: testPack.defaults,
+				changeMetric: vi.fn(),
+			}),
+		);
+		expect(result.current.title).toBe("Options");
+	});
+
+	it("renders the schema form from the package knobs with appearance_option ids", () => {
+		render(
+			<Host
+				theme={themeWith({
+					controlStrip: { cellHeight: 30, tabWidth: 12 },
+					menuBar: { height: 20 },
+				})}
+			/>,
+		);
+		expect(
+			document.getElementById(
+				"appearance_option_measurements_controlStrip_cellHeight",
+			),
+		).toHaveValue(30);
+		expect(field("controlStrip", "tabWidth")).toHaveValue(12);
+		expect(field("menuBar", "height")).toHaveValue(20);
+	});
+
+	it("labels each knob with its label and each family with its humanized name", () => {
+		render(<Host />);
+		expect(screen.getByLabelText("Cell height")).toBe(
+			field("controlStrip", "cellHeight"),
+		);
+		expect(screen.getByLabelText("Menu bar height")).toBe(
+			field("menuBar", "height"),
+		);
+		// One group box per family, titled by the humanized family name.
+		const legend = (input: HTMLElement) =>
+			input.closest("fieldset")?.querySelector(":scope > legend")?.textContent;
+		expect(legend(field("controlStrip", "cellHeight"))).toBe("Control strip");
+		expect(legend(field("controlStrip", "tabWidth"))).toBe("Control strip");
+		expect(legend(field("menuBar", "height"))).toBe("Menu bar");
+	});
+
+	it("shows a knob's default when the theme predates it", () => {
+		render(<Host theme={getTheme("default")} />);
+		expect(field("controlStrip", "cellHeight")).toHaveValue(22);
+		expect(field("menuBar", "height")).toHaveValue(20);
+	});
+
+	it("routes every knob through changeMetric as a family target", () => {
+		const changeMetric = vi.fn();
+		render(<Host changeMetric={changeMetric} />);
+		fireEvent.change(
+			document.getElementById(
+				"appearance_option_measurements_controlStrip_cellHeight",
+			) as HTMLElement,
+			{ target: { value: "30" } },
+		);
+		expect(changeMetric).toHaveBeenCalledWith(
+			{ family: "controlStrip", key: "cellHeight" },
+			30,
+		);
+		fireEvent.change(field("menuBar", "height"), { target: { value: "24" } });
+		expect(changeMetric).toHaveBeenLastCalledWith(
+			{ family: "menuBar", key: "height" },
+			24,
+		);
+	});
+
+	it("clamps an entry to the knob's min and max before dispatch (J-R17)", () => {
+		const changeMetric = vi.fn();
+		render(<Host changeMetric={changeMetric} />);
+		const tabWidth = field("controlStrip", "tabWidth");
+		fireEvent.change(tabWidth, { target: { value: "99" } });
+		expect(tabWidth).toHaveValue(40);
+		expect(changeMetric).toHaveBeenLastCalledWith(
+			{ family: "controlStrip", key: "tabWidth" },
+			40,
+		);
+		fireEvent.change(tabWidth, { target: { value: "1" } });
+		expect(tabWidth).toHaveValue(4);
+		expect(changeMetric).toHaveBeenLastCalledWith(
+			{ family: "controlStrip", key: "tabWidth" },
+			4,
+		);
+	});
+
+	it("keeps an entry within the theme's 0–512 even when a knob allows more", () => {
+		const wide: ClassicyAppearanceKnobs = {
+			controlStrip: {
+				cellHeight: { label: "Cell height", min: -10, max: 9000, default: 22 },
+			},
+		};
+		const changeMetric = vi.fn();
+		render(
+			<Host
+				pkg={{ ...testPack, knobs: wide, options: classicyKnobsToSchema(wide) }}
+				changeMetric={changeMetric}
+			/>,
+		);
+		const cellHeight = field("controlStrip", "cellHeight");
+		fireEvent.change(cellHeight, { target: { value: "9999" } });
+		expect(changeMetric).toHaveBeenLastCalledWith(
+			{ family: "controlStrip", key: "cellHeight" },
+			512,
+		);
+		fireEvent.change(cellHeight, { target: { value: "-5" } });
+		expect(changeMetric).toHaveBeenLastCalledWith(
+			{ family: "controlStrip", key: "cellHeight" },
+			0,
+		);
+	});
+
+	it("rounds a fractional entry to whole pixels before clamping (J-R17)", () => {
+		const changeMetric = vi.fn();
+		render(<Host changeMetric={changeMetric} />);
+		const tabWidth = field("controlStrip", "tabWidth");
+		fireEvent.change(tabWidth, { target: { value: "12.6" } });
+		expect(changeMetric).toHaveBeenLastCalledWith(
+			{ family: "controlStrip", key: "tabWidth" },
+			13,
+		);
+		fireEvent.change(tabWidth, { target: { value: "40.4" } });
+		expect(changeMetric).toHaveBeenLastCalledWith(
+			{ family: "controlStrip", key: "tabWidth" },
+			40,
+		);
+		fireEvent.change(tabWidth, { target: { value: "3.4" } });
+		expect(changeMetric).toHaveBeenLastCalledWith(
+			{ family: "controlStrip", key: "tabWidth" },
+			4,
+		);
+	});
+
+	it("dispatches nothing for an empty or non-numeric entry (J-R17)", () => {
+		const changeMetric = vi.fn();
+		render(<Host changeMetric={changeMetric} />);
+		fireEvent.change(field("controlStrip", "cellHeight"), {
+			target: { value: "" },
+		});
+		expect(changeMetric).not.toHaveBeenCalled();
+	});
+
+	it("says so when the package has no options", () => {
+		render(
+			<Host pkg={{ ...testPack, knobs: undefined, options: undefined }} />,
+		);
+		expect(
+			screen.getByText("The Test Pack package has no options."),
+		).toBeInTheDocument();
+	});
+
+	it("says so when the package declares no knobs (Platinum's empty options)", () => {
+		render(
+			<Host
+				pkg={{
+					...testPack,
+					knobs: {},
+					options: classicyKnobsToSchema({}),
+				}}
+			/>,
+		);
+		expect(
+			screen.getByText("The Test Pack package has no options."),
+		).toBeInTheDocument();
+		expect(document.querySelector("input")).toBeNull();
+	});
+});
+
+// End to end through the real store: switch packages on the Packages tab,
+// then edit a knob on the Options tab.
+const INTEGRATION_TIMEOUT_MS = 15_000;
+
+describe("Appearance Manager — Packages and Options tabs", {
+	timeout: INTEGRATION_TIMEOUT_MS,
+}, () => {
+	const appearance = () => useAppManager.getState().System.Manager.Appearance;
+
+	beforeEach(() => {
+		localStorage.clear();
+		sessionStorage.clear();
+		useAppManager.setState(
+			JSON.parse(
+				JSON.stringify(DefaultAppManagerState),
+			) as typeof DefaultAppManagerState,
+			true,
+		);
+	});
+
+	const openAppearanceManager = async () => {
+		render(
+			<ClassicyAppManagerProvider>
+				<ClassicyDesktop controlStrip={false} />
+			</ClassicyAppManagerProvider>,
+		);
+		await waitFor(() => {
+			expect(
+				useAppManager.getState().System.Manager.Applications.apps[
+					APPEARANCE_MANAGER_APP_ID
+				],
+			).toBeDefined();
+		});
+		act(() => {
+			dispatch({
+				type: "ClassicyAppOpen",
+				app: {
+					id: APPEARANCE_MANAGER_APP_ID,
+					name: "Appearance Manager",
+					icon: "",
+				},
+			});
+		});
+		return screen.findByRole("application", { name: "Appearance Manager" });
+	};
+
+	// ClassicyTabs selects on mouse-up (press/release), not click.
+	const showTab = (win: HTMLElement, name: string) => {
+		const tab = within(win).getByRole("tab", { name });
+		fireEvent.mouseDown(tab);
+		fireEvent.mouseUp(tab);
+	};
+	const visiblePanel = (win: HTMLElement) =>
+		within(within(win).getByRole("tabpanel"));
+
+	it("lists eight tabs, Packages and Options after Themes", async () => {
+		const win = await openAppearanceManager();
+		expect(
+			within(win)
+				.getAllByRole("tab")
+				.map((t) => t.textContent?.trim()),
+		).toEqual([
+			"Themes",
+			"Packages",
+			"Options",
+			"Desktop",
+			"Colors",
+			"Fonts",
+			"Metrics",
+			"Sound",
+		]);
+	});
+
+	it("switches the package and edits its knob through the store", async () => {
+		registerClassicyAppearancePackage(testPack);
+		const win = await openAppearanceManager();
+
+		showTab(win, "Options");
+		expect(
+			visiblePanel(win).getByText("The Platinum package has no options."),
+		).toBeInTheDocument();
+
+		showTab(win, "Packages");
+		fireEvent.click(visiblePanel(win).getByLabelText("Test Pack (0 presets)"));
+		await waitFor(() => {
+			expect(appearance().packageId).toBe("test-pack");
+		});
+		expect(appearance().activeTheme.package).toBe("test-pack");
+
+		showTab(win, "Options");
+		const cellHeight = await waitFor(() => {
+			const input = visiblePanel(win).getByLabelText("Cell height");
+			expect(input).toHaveValue(22);
+			return input;
+		});
+		fireEvent.change(cellHeight, { target: { value: "30" } });
+		await waitFor(() => {
+			expect(appearance().activeTheme.measurements.controlStrip).toEqual({
+				cellHeight: 30,
+				tabWidth: 12,
+			});
+		});
+		expect(cellHeight).toHaveValue(30);
+	});
+});
