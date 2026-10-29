@@ -1,0 +1,1 @@
+@layer classicy.base{.classicyLink{color:var(--color-theme-06);text-decoration:underline;cursor:pointer}.classicyLink:hover{color:var(--color-theme-07)}.classicyLink:active{color:var(--color-select)}.classicyLink:focus-visible{outline:1px dotted var(--color-outline);outline-offset:1px}:where(.classicyLink).disabled{color:var(--color-system-05);cursor:default}}
