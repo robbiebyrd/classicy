@@ -13,8 +13,28 @@
 			"classicyLabelLeft",
 			"classicyLabelRight"
 		],
+		"FileBrowser": [
+			"classicyFileDragGhost",
+			"classicyFileDragging",
+			"classicyFileDropTarget"
+		],
 		"MenuItem": ["classicyMenuWrapper"],
-		"PixelArt": ["classicyPixel3", "classicyPixelK", "classicyPixelW"],
+		"PixelArt": [
+			"classicyPixel1",
+			"classicyPixel2",
+			"classicyPixel3",
+			"classicyPixel4",
+			"classicyPixel5",
+			"classicyPixel6",
+			"classicyPixel7",
+			"classicyPixelK",
+			"classicyPixelW",
+			"classicyPixelb",
+			"classicyPixelc",
+			"classicyPixeld",
+			"classicyPixelm",
+			"classicyPixeln"
+		],
 		"Tabs": [
 			"classicyTabActiveContent",
 			"classicyTabButton",
@@ -60,10 +80,12 @@
 			"FontsColumn",
 			"FontsLabel",
 			"FontsRow",
+			"SoundColumn",
 			"SoundSlider",
 			"ThemeFileRow"
 		],
 		"Assistant": [
+			"AccessoryIcon",
 			"AccessoryIconLg",
 			"AccessoryIconMd",
 			"AccessoryIconSm",
@@ -80,6 +102,7 @@
 			"Anchor",
 			"Container",
 			"Content",
+			"Tail",
 			"TailBottom",
 			"TailCenter",
 			"TailLeft",
@@ -90,12 +113,18 @@
 		"BevelButton": [
 			"Arrow",
 			"ArrowHorizontal",
+			"ArrowLarge",
+			"ArrowSmall",
 			"ArrowVertical",
 			"BevelLarge",
 			"BevelMedium",
 			"BevelSmall",
 			"Icon",
 			"Label",
+			"ModePopup",
+			"ModePush",
+			"ModeRadio",
+			"ModeToggle",
 			"Popup",
 			"PopupPanel",
 			"Square"
@@ -152,7 +181,7 @@
 			"WheelTab",
 			"WheelUnit"
 		],
-		"ComboBox": ["NoMatches", "Wrapper"],
+		"ComboBox": ["Indicator", "Input", "NoMatches", "Wrapper"],
 		"ContextMenu": ["Wrapper"],
 		"ContextSubMenu": [],
 		"ContextualMenu": [],
@@ -179,7 +208,17 @@
 			"SizeMedium",
 			"SizeSmall"
 		],
-		"ControlStrip": ["Cell", "Module", "Modules", "Right", "Tab"],
+		"ControlStrip": [
+			"Cell",
+			"CollapseBox",
+			"Module",
+			"Modules",
+			"Right",
+			"Scroll",
+			"ScrollStart",
+			"Status",
+			"Tab"
+		],
 		"CrashScreen": [],
 		"DateAndTimeManager": [
 			"ButtonRow",
@@ -196,12 +235,14 @@
 			"DialogContent",
 			"DialogOverlay",
 			"Select",
+			"SplitArrows",
 			"State"
 		],
-		"DesktopIcon": ["Alias", "Image", "Mask", "MaskOuter"],
+		"DesktopIcon": ["Alias", "AliasBadge", "Image", "Mask", "MaskOuter"],
 		"DesktopMenu": [
 			"AppSwitcher",
 			"Apple",
+			"Extension",
 			"ExtensionTrigger",
 			"Extensions",
 			"Help",
@@ -264,7 +305,7 @@
 			"StageInner"
 		],
 		"Icon": ["Invisible", "Mask", "MaskOuter"],
-		"ImageWell": ["Image"],
+		"ImageWell": ["DragOver", "Image"],
 		"Input": ["Default", "Holder"],
 		"InputDialog": ["Body", "Buttons", "Icon", "Prompt", "Top"],
 		"Kbd": ["Inline", "Keycap", "Keycaps"],
@@ -278,7 +319,7 @@
 		],
 		"Link": [],
 		"ListBox": ["Option", "OptionIcon", "OptionLabel"],
-		"LittleArrows": ["Button", "Group"],
+		"LittleArrows": ["Button", "ButtonDown", "Group"],
 		"MenuItem": [
 			"BalloonAnchor",
 			"Check",
@@ -302,10 +343,18 @@
 			"Value"
 		],
 		"Output": ["Inset", "Mono", "Plain"],
-		"Pager": ["Arrow", "Page"],
+		"Pager": ["Arrow", "ArrowNext", "ArrowPrev", "Page"],
 		"PictureViewer": ["Image"],
 		"PixelArt": [],
-		"Placard": ["Arrow", "Content", "Holder", "Menu", "MenuItem"],
+		"Placard": [
+			"Arrow",
+			"Content",
+			"HasMenu",
+			"Holder",
+			"Interactive",
+			"Menu",
+			"MenuItem"
+		],
 		"PopUpMenu": [
 			"Button",
 			"Check",
@@ -318,15 +367,29 @@
 			"ListItemHighlight",
 			"ListItemIcon",
 			"ListItemLabel",
+			"SizeLarge",
+			"SizeMedium",
+			"SizeMini",
+			"SizeSmall",
 			"Value",
 			"Wrapper"
 		],
 		"PopUpSlider": ["Thumb", "Track"],
 		"PreBootScreen": [],
-		"Progress": ["ChasingArrowsSpinner", "Determinate", "Indeterminate"],
+		"Progress": [
+			"ChasingArrows",
+			"ChasingArrowsSpinner",
+			"Determinate",
+			"Indeterminate"
+		],
 		"RadioInput": ["Group", "GroupColumns", "Margin", "Wrapper"],
 		"RichTextEditor": [],
-		"ScreenSaver": ["Active", "ManagerContent"],
+		"ScreenSaver": [
+			"Active",
+			"ManagerContent",
+			"Overlay",
+			"OverlayTransparent"
+		],
 		"Separator": ["Horizontal", "Vertical"],
 		"Slider": [
 			"Ghost",
@@ -382,6 +445,7 @@
 		"Tree": [
 			"Group",
 			"Node",
+			"NodeBranch",
 			"NodeDisclosure",
 			"NodeIcon",
 			"NodeIconRight",
@@ -401,6 +465,7 @@
 			"Contents",
 			"ContentsDimmed",
 			"ContentsFramed",
+			"ContentsFramedDimmed",
 			"ContentsInner",
 			"ContentsInnerGrow",
 			"ContentsModal",
