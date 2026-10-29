@@ -22,6 +22,7 @@ import {
 	downloadClassicyTheme,
 	parseClassicyThemeFile,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFile";
+import type { ClassicyThemeMetricChange } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricTargets";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -47,6 +48,7 @@ import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWi
 import { useColorsTab } from "./ClassicyAppearanceManager.Colors";
 import { useDesktopTab } from "./ClassicyAppearanceManager.Desktop";
 import { useFontsTab } from "./ClassicyAppearanceManager.Fonts";
+import { useMetricsTab } from "./ClassicyAppearanceManager.Metrics";
 import { useSoundTab } from "./ClassicyAppearanceManager.Sound";
 import { useThemesTab } from "./ClassicyAppearanceManager.Themes";
 import { withPrimaryFontFamily } from "./ClassicyFontStack";
@@ -280,6 +282,18 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		[desktopEventDispatch],
 	);
 
+	const changeMetric = useCallback(
+		(change: ClassicyThemeMetricChange) => {
+			startTransition(() => {
+				desktopEventDispatch({
+					type: "ClassicyDesktopChangeMetric",
+					...change,
+				});
+			});
+		},
+		[desktopEventDispatch],
+	);
+
 	const changeAlertSound = useCallback(
 		(e: ChangeEvent<HTMLSelectElement>) => {
 			const value = e.target.value;
@@ -405,6 +419,12 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		changeFontSize,
 	});
 
+	const metricsTab = useMetricsTab({
+		theme: appearanceState.activeTheme,
+		editingCustomTheme: isCustomThemeActive(appearanceState),
+		changeMetric,
+	});
+
 	const soundTab = useSoundTab({
 		alertSound: appearanceState.alertSound ?? DEFAULT_ALERT_SOUND,
 		changeAlertSound,
@@ -415,9 +435,10 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 
 	const tabs = useMemo(
 		// Colors sits between Desktop and Fonts: Mac OS 8.5's Appearance panel
-		// puts its colour tab ahead of Fonts.
-		() => [themesTab, desktopTab, colorsTab, fontsTab, soundTab],
-		[themesTab, desktopTab, colorsTab, fontsTab, soundTab],
+		// puts its colour tab ahead of Fonts. Metrics follows Fonts, ahead of
+		// Sound.
+		() => [themesTab, desktopTab, colorsTab, fontsTab, metricsTab, soundTab],
+		[themesTab, desktopTab, colorsTab, fontsTab, metricsTab, soundTab],
 	);
 
 	return (
@@ -448,7 +469,7 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 				appMenu={appMenu}
 			>
 				<div className={"classicyAppearanceManagerContent"}>
-					{/* Five tabs need the compact strip to fit the 480 px panel. */}
+					{/* Six tabs need the compact strip to fit the 480 px panel. */}
 					<ClassicyTabs tabs={tabs} size="small" />
 					<ClassicyButton onClickFunc={quitApp}>Quit</ClassicyButton>
 				</div>
