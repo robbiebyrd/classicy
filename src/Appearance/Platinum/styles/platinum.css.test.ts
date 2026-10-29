@@ -54,6 +54,30 @@ const scanSelectors = (css: string) => {
 	};
 };
 
+/**
+ * A compound-selector chain's specificity as [ids, classes, types]: classes
+ * count attributes and pseudo-classes, types count pseudo-elements, and
+ * `:where(…)` counts nothing. Enough for the package's own selectors (no
+ * `:is`/`:not`/`:has` arguments are weighed).
+ */
+const specificity = (selector: string): [number, number, number] => {
+	const s = selector.replace(/:where\([^)]*\)/g, "");
+	const ids = (s.match(/#[\w-]+/g) ?? []).length;
+	const pseudoElements = (s.match(/::[\w-]+/g) ?? []).length;
+	const classes =
+		(s.match(/\.[\w-]+/g) ?? []).length +
+		(s.match(/\[[^\]]*\]/g) ?? []).length +
+		(s.replace(/::[\w-]+/g, "").match(/:[\w-]+/g) ?? []).length;
+	const types = (s.match(/(^|[\s>+~])[a-zA-Z][\w-]*/g) ?? []).length;
+	return [ids, classes, types + pseudoElements];
+};
+
+/** > 0 when `a` is more specific than `b`, 0 when equal. */
+const compareSpecificity = (a: string, b: string): number => {
+	const [x, y] = [specificity(a), specificity(b)];
+	return x[0] - y[0] || x[1] - y[1] || x[2] - y[2];
+};
+
 const LOAD = { loadPaths: ["src"] };
 
 // A stand-in for a package stylesheet with components in it: the real
@@ -78,6 +102,24 @@ const SAMPLE = compileString(
 }`,
 	LOAD,
 ).css;
+
+describe("specificity (this file's helper)", () => {
+	it("weighs classes, attributes, pseudo-classes, pseudo-elements and :where", () => {
+		const P = ".classicyDesktop[data-classicy-appearance=platinum]";
+		expect(specificity(`${P} .classicyTabScroller`)).toEqual([0, 3, 0]);
+		expect(specificity(`${P} *`)).toEqual([0, 2, 0]);
+		expect(
+			specificity(
+				`${P} :where(.classicyWindow.inactive)::-webkit-scrollbar-track`,
+			),
+		).toEqual([0, 2, 1]);
+		expect(
+			specificity(`${P} *::-webkit-scrollbar-button:end:vertical`),
+		).toEqual([0, 4, 1]);
+		expect(specificity("#a div > .b:hover")).toEqual([1, 2, 1]);
+		expect(compareSpecificity(`${P} *`, `${P} *`)).toBe(0);
+	});
+});
 
 describe("classicy-package (src/Appearance/vocabulary/_package.scss)", () => {
 	it("wraps its content in one @layer classicy.package block", () => {
@@ -341,17 +383,30 @@ describe("platinum.scss (compiled)", () => {
 
 	// P12 (Firefox only): the desktop's `scrollbar-width: auto` fallback would
 	// beat the base tab scroller's `none` from the package layer, so the tab
-	// scroller re-asserts it there, after the desktop rule, at equal
-	// specificity.
-	it("hides the tab scroller's scrollbar after the desktop scrollbar fallback", () => {
+	// scroller re-asserts it there. Scoped, it is one class above the
+	// fallback's `& *` ((0,3,0) vs (0,2,0)): it wins on specificity, and comes
+	// after the fallback as well.
+	it("hides the tab scroller's scrollbar over the desktop scrollbar fallback", () => {
 		const supports = flat.lastIndexOf(
 			"@supports not selector(::-webkit-scrollbar)",
 		);
 		const fallback = flat.indexOf(`, ${P} * {`, supports);
 		expect(fallback).toBeGreaterThan(-1);
-		const tabs = rule(`${P} .classicyTabScroller`);
-		expect(tabs.props["scrollbar-width"]).toBe("none");
-		expect(tabs.at).toBeGreaterThan(fallback);
+		expect(rule(`${P}, ${P} *`).props["scrollbar-width"]).toBe("auto");
+		// Every package rule that sets the tab scroller's scrollbar-width, by
+		// its declaration, whatever its selector.
+		const tabRules = [...flat.matchAll(/\n([^\n{}]*) \{\n([^}]*)\}/g)]
+			.filter(
+				([, selector, body]) =>
+					selector.includes(".classicyTabScroller") &&
+					/(^|\n)scrollbar-width:/.test(body),
+			)
+			.map(([, selector, body]) => ({ selector, body }));
+		expect(tabRules).toHaveLength(1);
+		const [tabs] = tabRules;
+		expect(tabs.body).toMatch(/(^|\n)scrollbar-width: none;/);
+		expect(compareSpecificity(tabs.selector, `${P} *`)).toBeGreaterThan(0);
+		expect(flat.indexOf(`\n${tabs.selector} {`)).toBeGreaterThan(fallback);
 	});
 });
 

@@ -174,7 +174,8 @@ const bundleProblems = (
 			problems.push(
 				`${file}: a package stylesheet is not exactly one @layer ${PACKAGE_LAYER} block -> rules outside it would land in no package layer.`,
 			);
-		else if (!isEmptyLayerBlock(css, layerOrder)) stylesheets++;
+		else if (!isEmptyLayerBlock(css, layerOrder) && css.includes(PACKAGE_SCOPE))
+			stylesheets++;
 	}
 	return { problems, stylesheets };
 };
@@ -201,7 +202,8 @@ export type ClassicyPackageCssInput = {
 	/**
 	 * Bundles that must each carry at least one non-empty package stylesheet
 	 * (the entry bundles, which register Platinum). A layer statement
-	 * (`@layer classicy.package;`) or an empty block does not count.
+	 * (`@layer classicy.package;`), an empty block, or a block whose rules
+	 * are not scoped under `[data-classicy-appearance=…]` does not count.
 	 */
 	requiredBundles?: ReadonlyArray<string>;
 };
@@ -244,3 +246,21 @@ export const findClassicyPackageCssProblems = ({
 				],
 	),
 ];
+
+/** The entry bundles: each registers Platinum, so each must ship its look. */
+export const CLASSICY_ENTRY_BUNDLES = ["classicy.es.js", "classicy.umd.js"];
+
+/**
+ * The bundles invariant 7 requires a package stylesheet in. With named files
+ * (check-dist-imports.mjs's arguments), the entry bundles among them, matched
+ * by basename; otherwise both entry bundles, as `inDist` places them.
+ */
+export const requiredClassicyPackageBundles = (
+	named: ReadonlyArray<string>,
+	inDist: (file: string) => string,
+): string[] =>
+	named.length
+		? named.filter((file) =>
+				CLASSICY_ENTRY_BUNDLES.includes(file.split(/[\\/]/).pop() ?? ""),
+			)
+		: CLASSICY_ENTRY_BUNDLES.map(inDist);

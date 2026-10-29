@@ -61,13 +61,17 @@
 //    injected text), which must carry no package look. Both entry bundles
 //    (classicy.es.js, classicy.umd.js) must carry a NON-EMPTY one: they
 //    register Platinum, whose look ships in it since plan 0005-1b3 §4.2, so a
-//    missing string, an empty block or the bare `@layer classicy.package;`
-//    statement means the look stopped shipping.
+//    missing string, an empty block, the bare `@layer classicy.package;`
+//    statement, or a block not scoped under `[data-classicy-appearance=…]`
+//    means the look stopped shipping.
 
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { argv, exit } from "node:process";
-import { findClassicyPackageCssProblems } from "./classicyPackageCss.ts";
+import {
+	findClassicyPackageCssProblems,
+	requiredClassicyPackageBundles,
+} from "./classicyPackageCss.ts";
 
 const DIST = "dist";
 
@@ -363,10 +367,9 @@ if (!argv.slice(2).length || argv.slice(2).includes(cssFile)) {
 	);
 	// The entry bundles register Platinum, so each must ship its stylesheet.
 	// Named files: those of them that were named.
-	const ENTRY_BUNDLES = ["classicy.es.js", "classicy.umd.js"];
-	const requiredBundles = named.length
-		? jsFiles.filter((f) => ENTRY_BUNDLES.includes(f.split(/[\\/]/).pop()))
-		: ENTRY_BUNDLES.map((f) => join(DIST, f));
+	const requiredBundles = requiredClassicyPackageBundles(named, (f) =>
+		join(DIST, f),
+	);
 	const problems = findClassicyPackageCssProblems({
 		layerOrder: LAYER_ORDER,
 		bundles: bundles.map(({ file, text }) => ({ file, source: text })),
