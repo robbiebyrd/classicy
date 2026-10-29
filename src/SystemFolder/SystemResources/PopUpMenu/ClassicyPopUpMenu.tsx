@@ -20,6 +20,7 @@ import {
 	useState,
 } from "react";
 import { createPortal } from "react-dom";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import {
@@ -202,6 +203,20 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 	const typeaheadBufferRef = useRef("");
 	const typeaheadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const reactId = useId();
+	const appearance = useClassicyAppearance(
+		"PopUpMenu",
+		{ disabled, open },
+		wrapperRef,
+	);
+	const emitAppearance = appearance.emit;
+	// `close` follows the menu going away, whichever path dismissed it, and
+	// so comes after the `change` a pick emits.
+	const wasOpenRef = useRef(open);
+	useEffect(() => {
+		if (wasOpenRef.current === open) return;
+		wasOpenRef.current = open;
+		if (!open) emitAppearance("close");
+	}, [open, emitAppearance]);
 
 	const { track } = useClassicyAnalytics();
 
@@ -223,6 +238,7 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 		(value: string) => {
 			if (value === PLACEHOLDER_VALUE) return;
 			setSelectedItem(value);
+			emitAppearance("change", { value });
 			track("selected", {
 				type: "ClassicyPopUpMenu",
 				itemId: value,
@@ -241,7 +257,7 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 				onChangeFunc(evt);
 			}
 		},
-		[onChangeFunc, track, id, label, options, selected],
+		[onChangeFunc, track, id, label, options, selected, emitAppearance],
 	);
 
 	const closeMenu = useCallback(() => {
@@ -258,10 +274,11 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 			setMenuRect(buttonRef.current.getBoundingClientRect());
 		}
 		setOpen(true);
+		emitAppearance("open");
 		// Firefox/Safari don't focus a <button> on click (only Chromium does),
 		// so without this the keydown handler never runs after a mouse-open.
 		buttonRef.current?.focus();
-	}, [disabled, currentIndex]);
+	}, [disabled, currentIndex, emitAppearance]);
 
 	// Native-<select>-style type-ahead: accumulate typed chars (reset after
 	// 250ms idle) and jump the highlight to the first matching option label.
@@ -487,14 +504,17 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 				></ClassicyControlLabel>
 			)}
 			<div
+				{...appearance.attrs}
 				ref={wrapperRef}
 				className={classNames(
 					"classicyPopUpMenu",
 					sizeClass,
-					classicyStateClasses({ disabled, open }),
+					appearance.className,
 					extraClassName,
 				)}
-				style={extraStyle}
+				style={
+					appearance.style ? { ...appearance.style, ...extraStyle } : extraStyle
+				}
 			>
 				{/* The visible custom button IS the control: it carries the `id`
 				    so consumers/tests can target it, and reflects the disabled

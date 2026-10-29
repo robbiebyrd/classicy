@@ -4,9 +4,10 @@ import {
 	type CSSProperties,
 	type FC as FunctionalComponent,
 	useEffect,
+	useRef,
 	useState,
 } from "react";
-import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import {
 	ClassicyControlLabel,
@@ -99,6 +100,12 @@ export const ClassicyCheckbox: FunctionalComponent<ClassicyCheckboxProps> = ({
 	}, [checked]);
 	const { track } = useClassicyAnalytics();
 	const analyticsArgs = { type: "ClassicyCheckbox", label };
+	const inputRef = useRef<HTMLInputElement>(null);
+	const appearance = useClassicyAppearance(
+		"Checkbox",
+		{ default: isDefault, mixed, checked: check, disabled },
+		inputRef,
+	);
 
 	const handleOnClick = () => {
 		if (onClickFunc) {
@@ -107,6 +114,7 @@ export const ClassicyCheckbox: FunctionalComponent<ClassicyCheckboxProps> = ({
 		track("click", { checked: !check, ...analyticsArgs });
 		if (!disabled) {
 			setCheck(!check);
+			appearance.emit("change", { checked: !check });
 		}
 	};
 
@@ -126,6 +134,8 @@ export const ClassicyCheckbox: FunctionalComponent<ClassicyCheckboxProps> = ({
 				disabled={disabled}
 			/>
 			<input
+				{...appearance.attrs}
+				ref={inputRef}
 				type={"checkbox"}
 				onChange={handleOnClick}
 				tabIndex={0}
@@ -134,14 +144,10 @@ export const ClassicyCheckbox: FunctionalComponent<ClassicyCheckboxProps> = ({
 				disabled={disabled}
 				className={classNames(
 					"classicyCheckbox",
-					classicyStateClasses({
-						default: isDefault,
-						mixed,
-						checked: check,
-						disabled,
-					}),
+					appearance.className,
 					mark === "x" ? "classicyCheckboxX" : "",
 				)}
+				style={appearance.style}
 			/>
 		</div>
 	);

@@ -13,9 +13,12 @@ import {
 	type FC as FunctionalComponent,
 	forwardRef,
 	type KeyboardEventHandler,
+	useCallback,
 	useEffect,
+	useRef,
 	useState,
 } from "react";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
 interface ClassicyInputProps {
@@ -116,8 +119,24 @@ export const ClassicyInput: FunctionalComponent<ClassicyInputProps> =
 			setValue(prefillValue ?? "");
 		}, [prefillValue]);
 
+		// The root element for the appearance hook, merged with the forwarded
+		// ref so callers keep receiving the <input>.
+		const inputRef = useRef<HTMLInputElement | null>(null);
+		const setInputRef = useCallback(
+			(el: HTMLInputElement | null) => {
+				inputRef.current = el;
+				if (typeof ref === "function") ref(el);
+				else if (ref) ref.current = el;
+			},
+			[ref],
+		);
+		// The field carries no state class (`isDefault` keeps its deprecated
+		// modifier class below).
+		const appearance = useClassicyAppearance("Input", {}, inputRef);
+
 		const handleOnChangeFunc: ChangeEventHandler<HTMLInputElement> = (e) => {
 			setValue(e.target.value);
+			appearance.emit("change", { value: e.target.value });
 			track("selected", { ...analyticsArgs, selected: e.target.value });
 			if (onChangeFunc) onChangeFunc(e);
 		};
@@ -146,24 +165,31 @@ export const ClassicyInput: FunctionalComponent<ClassicyInputProps> =
 					></ClassicyControlLabel>
 				)}
 				<input
+					{...appearance.attrs}
 					id={id}
 					tabIndex={0}
 					onChange={handleOnChangeFunc}
 					onKeyDown={handleOnKeyDown}
+					onFocus={() => appearance.emit("focus")}
+					onBlur={() => appearance.emit("blur")}
 					name={id}
 					type={type}
-					ref={ref}
+					ref={setInputRef}
 					disabled={disabled}
 					value={value}
 					placeholder={placeholder}
 					className={classNames(
 						"classicyInput",
+						appearance.className,
 						isDefault ? "classicyInputDefault" : "",
 					)}
 					style={
-						backgroundColor
+						backgroundColor || appearance.style
 							? ({
-									"--classicy-input-background": backgroundColor,
+									...(backgroundColor && {
+										"--classicy-input-background": backgroundColor,
+									}),
+									...appearance.style,
 								} as CSSProperties)
 							: undefined
 					}
