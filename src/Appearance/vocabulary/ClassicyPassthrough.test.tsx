@@ -59,6 +59,7 @@ import { ClassicyInputDialog } from "@/SystemFolder/SystemResources/InputDialog/
 import { ClassicyKbd } from "@/SystemFolder/SystemResources/Kbd/ClassicyKbd";
 import { ClassicyKeyboardEquivalentDialog } from "@/SystemFolder/SystemResources/KeyboardEquivalent/ClassicyKeyboardEquivalentDialog";
 import { ClassicyKeyboardEquivalentField } from "@/SystemFolder/SystemResources/KeyboardEquivalent/ClassicyKeyboardEquivalentField";
+import { ClassicyLink } from "@/SystemFolder/SystemResources/Link/ClassicyLink";
 import { ClassicyListBox } from "@/SystemFolder/SystemResources/ListBox/ClassicyListBox";
 import { ClassicyLittleArrows } from "@/SystemFolder/SystemResources/LittleArrows/ClassicyLittleArrows";
 import { ClassicyMenu } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
@@ -1037,6 +1038,54 @@ const decorationCases: [
 			/>
 		),
 		sel(".classicyListBox"),
+	],
+	[
+		"ClassicyTabs",
+		() => (
+			<ClassicyTabs
+				tabs={[{ title: "One", children: <p>1</p> }]}
+				style={STYLE}
+			/>
+		),
+		sel(".classicyTabContainer"),
+	],
+	[
+		"ClassicyDisclosure",
+		() => <ClassicyDisclosure label="D" style={STYLE} />,
+		sel(".classicyDisclosure"),
+	],
+	[
+		"ClassicyTree",
+		() => <ClassicyTree nodes={[{ id: "a", label: "A" }]} style={STYLE} />,
+		sel(".classicyTree"),
+	],
+	[
+		"ClassicyTable",
+		() => (
+			<ClassicyTable
+				columns={[
+					{ id: "n", title: "N", accessor: (r: { id: string }) => r.id },
+				]}
+				rows={[{ id: "1" }]}
+				getRowId={(r: { id: string }) => r.id}
+				style={STYLE}
+			/>
+		),
+		sel(".classicyTableContainer"),
+	],
+	[
+		"ClassicyLink",
+		() => (
+			<ClassicyLink href="https://example.com" style={STYLE}>
+				x
+			</ClassicyLink>
+		),
+		sel(".classicyLink"),
+	],
+	[
+		"ClassicyFileInput",
+		() => <ClassicyFileInput id="f" style={STYLE} />,
+		sel(".classicyFileInputHolder"),
 	],
 ];
 

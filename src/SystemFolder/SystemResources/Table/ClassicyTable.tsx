@@ -22,6 +22,7 @@ import {
 	useState,
 } from "react";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 
 /**
@@ -216,6 +217,8 @@ export function ClassicyTable<T>({
 		},
 		[externalContainerRef],
 	);
+	// The container had no state class; `selected` stays on rows and headers.
+	const appearance = useClassicyAppearance("Table", {}, containerRef);
 	const typeBuffer = useRef("");
 	const typeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
 		undefined,
@@ -285,22 +288,27 @@ export function ClassicyTable<T>({
 		};
 	}, [selectionApiRef, selectAll]);
 
-	// Selection semantics over the CURRENT visual (sorted) order.
+	// Selection semantics over the CURRENT visual (sorted) order. Clicks and
+	// the keyboard (arrows, Home/End, type-select) all select through here.
 	const applySelection = (rowId: string, mods: SelectionModifiers) => {
 		if (selectionMode === "none") return;
 		const visual = table.getRowModel().rows;
+		const emitSelect = (selected: boolean) =>
+			appearance.emit("select", { rowId, selected });
 		if (selectionMode === "multi") {
 			if (mods.shiftKey && anchorId.current) {
 				const ai = visual.findIndex((r) => r.id === anchorId.current);
 				const bi = visual.findIndex((r) => r.id === rowId);
 				if (ai >= 0 && bi >= 0) {
 					const [from, to] = ai <= bi ? [ai, bi] : [bi, ai];
+					emitSelect(true);
 					commit(visual.slice(from, to + 1).map((r) => r.id));
 					return; // the anchor survives so the range can keep pivoting
 				}
 			}
 			if (mods.metaKey || mods.ctrlKey) {
 				anchorId.current = rowId;
+				emitSelect(!effectiveSelected.includes(rowId));
 				commit(
 					effectiveSelected.includes(rowId)
 						? effectiveSelected.filter((v) => v !== rowId)
@@ -310,6 +318,7 @@ export function ClassicyTable<T>({
 			}
 		}
 		anchorId.current = rowId;
+		emitSelect(true);
 		commit([rowId]);
 	};
 
@@ -446,11 +455,16 @@ export function ClassicyTable<T>({
 	return (
 		// biome-ignore lint/a11y/noStaticElementInteractions: list box is a focusable scroll region driven by arrow keys and type-selection; rows remain the click targets
 		<div
+			{...appearance.attrs}
 			ref={setContainerRef}
 			tabIndex={selectionMode === "none" ? undefined : 0}
 			onKeyDown={handleKeyDown}
-			className={classNames("classicyTableContainer", className)}
-			style={style}
+			className={classNames(
+				"classicyTableContainer",
+				appearance.className,
+				className,
+			)}
+			style={appearance.style ? { ...appearance.style, ...style } : style}
 		>
 			<table className="classicyTable">
 				<thead
@@ -487,14 +501,15 @@ export function ClassicyTable<T>({
 											}
 											// First click sorts ascending; clicking the sorted
 											// column flips it (same cycle as the Finder view).
-											if (
+											const desc = !(
 												header.column.getIsSorted() === false ||
 												header.column.getIsSorted() === "desc"
-											) {
-												header.column.toggleSorting(false, false);
-											} else {
-												header.column.toggleSorting(true, false);
-											}
+											);
+											header.column.toggleSorting(desc, false);
+											appearance.emit("change", {
+												columnId: header.id,
+												desc,
+											});
 										}}
 									>
 										<div className="classicyTableHeaderCellContent">

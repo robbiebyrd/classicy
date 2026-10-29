@@ -9,8 +9,10 @@ import {
 	type ReactNode,
 	useCallback,
 	useMemo,
+	useRef,
 	useState,
 } from "react";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { useListNavigation } from "@/SystemFolder/SystemResources/Keyboard/useListNavigation";
@@ -412,6 +414,12 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 	const { activeId, setActiveId, tabStopId, registerRef, handleNavKey } =
 		useListNavigation(navRows);
 
+	const rootRef = useRef<HTMLUListElement>(null);
+	// The list had no state class; row states stay on the rows.
+	const appearance = useClassicyAppearance("Tree", {}, rootRef);
+	const emitAppearance = appearance.emit;
+
+	// Every expansion path (click, double-click, ⌘→/⌘←, Enter/Space) runs here.
 	const setOpen = useCallback(
 		(id: string, open: boolean) => {
 			setOpenSet((prev) => {
@@ -420,9 +428,10 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 				else next.delete(id);
 				return next;
 			});
+			emitAppearance(open ? "expand" : "collapse", { nodeId: id, open });
 			onToggleNode?.(id, open);
 		},
-		[onToggleNode],
+		[onToggleNode, emitAppearance],
 	);
 
 	const toggle = useCallback(
@@ -434,6 +443,20 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 
 	const resolvedSelectedIds = selectedIds ?? [];
 
+	// Every selection path (a click on a leaf or selectable branch, Enter or
+	// Space on the focused row) runs here.
+	const selectNode = useCallback(
+		(
+			id: string,
+			node: ClassicyTreeNode,
+			e: ReactMouseEvent | ReactKeyboardEvent,
+		) => {
+			emitAppearance("select", { nodeId: id });
+			onSelectNode?.(id, node, e);
+		},
+		[emitAppearance, onSelectNode],
+	);
+
 	const ctx: SharedRowContext = {
 		direction,
 		openSet,
@@ -443,7 +466,7 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 		registerRef,
 		selectionMode,
 		selectedIds: resolvedSelectedIds,
-		onSelectNode,
+		onSelectNode: selectNode,
 		onActivateNode,
 	};
 
@@ -497,7 +520,7 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 							current.node.branchSelectable === true;
 						e.preventDefault();
 						if (canSelectBranch) {
-							onSelectNode?.(current.id, current.node, e);
+							selectNode(current.id, current.node, e);
 						} else {
 							toggle(current.id);
 						}
@@ -510,7 +533,7 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 						!current.node.disabled;
 					if (canSelect) {
 						e.preventDefault();
-						onSelectNode?.(current.id, current.node, e);
+						selectNode(current.id, current.node, e);
 					}
 					return;
 				}
@@ -523,14 +546,16 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 			setOpen,
 			toggle,
 			selectionMode,
-			onSelectNode,
+			selectNode,
 		],
 	);
 
 	return (
 		<ul
-			className={classNames("classicyTree", className)}
-			style={style}
+			{...appearance.attrs}
+			ref={rootRef}
+			className={classNames("classicyTree", appearance.className, className)}
+			style={appearance.style ? { ...appearance.style, ...style } : style}
 			onKeyDown={handleKeyDown}
 		>
 			{nodes.map((node) => (
