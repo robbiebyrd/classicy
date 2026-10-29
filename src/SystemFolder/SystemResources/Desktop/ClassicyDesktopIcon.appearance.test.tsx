@@ -86,12 +86,48 @@ describe("ClassicyDesktopIcon appearance", () => {
 		expect(emitted().filter((e) => e.event === "select")).toEqual([
 			{ event: "select", detail: { input: "pointer" } },
 		]);
-		// A click on the selected icon re-selects it (collapsing a multiple
-		// selection), so it is a select gesture of its own.
+		// A click on the icon that is already the selection selects nothing.
 		fireEvent.mouseDown(el);
 		fireEvent.mouseUp(el);
 		fireEvent.click(el);
-		expect(emitted().filter((e) => e.event === "select")).toHaveLength(2);
+		expect(emitted().filter((e) => e.event === "select")).toHaveLength(1);
+	});
+
+	it("emits select for a click on a selected icon that collapses a multiple selection", () => {
+		const { container } = renderIcon();
+		const el = root(container);
+		act(() => {
+			useAppManager.setState((state) =>
+				produce(state, (draft) => {
+					draft.System.Manager.Desktop.selectedIcons = [APP, "Other.app"];
+				}),
+			);
+		});
+		fireEvent.mouseDown(el);
+		fireEvent.mouseUp(el);
+		fireEvent.click(el);
+		expect(emitted().filter((e) => e.event === "select")).toEqual([
+			{ event: "select", detail: { input: "pointer" } },
+		]);
+		expect(
+			useAppManager.getState().System.Manager.Desktop.selectedIcons,
+		).toEqual([APP]);
+	});
+
+	it("emits select once for a double-click, then open", () => {
+		const { container } = renderIcon();
+		const el = root(container);
+		for (let i = 0; i < 2; i++) {
+			fireEvent.mouseDown(el);
+			fireEvent.mouseUp(el);
+			fireEvent.click(el);
+		}
+		fireEvent.doubleClick(el);
+		expect(
+			emitted()
+				.filter((e) => e.event === "select" || e.event === "open")
+				.map((e) => e.event),
+		).toEqual(["select", "open"]);
 	});
 
 	it("emits open on a double-click and on Enter", () => {

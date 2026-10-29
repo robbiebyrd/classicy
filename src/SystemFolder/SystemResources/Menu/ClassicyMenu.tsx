@@ -15,7 +15,10 @@ import {
 	useState,
 } from "react";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
-import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
+import {
+	type ClassicyAppearanceInput,
+	withClassicyAppearanceInput,
+} from "@/Appearance/useClassicyAppearanceInput.internal";
 import { CLASSICY_PART_ATTRIBUTE } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
@@ -165,7 +168,20 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 		setOpenChildId(null);
 	}, [closeSignal]);
 
-	const handleOpen = useCallback((id: string) => setOpenChildId(id), []);
+	// How the latest submenu was opened: the press behind a click or Return,
+	// or the pointer for a hover (which no press tracker sees). The effect
+	// below reports the open, and the close it causes, with it.
+	const openedWithRef = useRef<{
+		id: string;
+		input: ClassicyAppearanceInput;
+	} | null>(null);
+	const handleOpen = useCallback(
+		(id: string, input: ClassicyAppearanceInput) => {
+			openedWithRef.current = { id, input };
+			setOpenChildId(id);
+		},
+		[],
+	);
 	const handleClose = useCallback(() => setOpenChildId(null), []);
 
 	const listRef = useRef<HTMLUListElement>(null);
@@ -179,10 +195,14 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 		const previous = lastOpenChildRef.current;
 		if (previous === openChildId) return;
 		lastOpenChildRef.current = openChildId;
-		if (previous !== null)
-			emit("close", withClassicyAppearanceInput({ itemId: previous }));
-		if (openChildId !== null)
-			emit("open", withClassicyAppearanceInput({ itemId: openChildId }));
+		const openedWith = openedWithRef.current;
+		openedWithRef.current = null;
+		const withInput = <T extends object>(detail: T) =>
+			openChildId !== null && openedWith?.id === openChildId
+				? { ...detail, input: openedWith.input }
+				: withClassicyAppearanceInput(detail);
+		if (previous !== null) emit("close", withInput({ itemId: previous }));
+		if (openChildId !== null) emit("open", withInput({ itemId: openChildId }));
 	}, [openChildId, emit]);
 
 	return menuItems && menuItems.length > 0 ? (
@@ -194,19 +214,24 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 				style={appearance.style}
 				key={`${name}_menu`}
 			>
-				{menuItems.map((item: ClassicyMenuItem, index: number) => (
-					<ClassicyMenuItemComponent
-						// Separators all share the id "spacer" (it's how they're
-						// detected), so fold the index in to keep React keys unique
-						// when a menu has more than one separator.
-						key={item?.id === "spacer" ? `spacer_${index}` : item?.id}
-						menuItem={item}
-						subNavClass={subNavClass || ""}
-						isOpen={openChildId === item.id}
-						onOpen={handleOpen}
-						onClose={handleClose}
-					/>
-				))}
+				{menuItems.map((item: ClassicyMenuItem, index: number) =>
+					item?.id === "spacer" ? (
+						// A divider is not a menu item: no MenuItem appearance hook.
+						<ClassicySeparator
+							// biome-ignore lint/suspicious/noArrayIndexKey: separators all share the id "spacer" (it's how they're detected), so the index keeps React keys unique when a menu has more than one
+							key={`spacer_${index}`}
+						/>
+					) : (
+						<ClassicyMenuItemComponent
+							key={item?.id}
+							menuItem={item}
+							subNavClass={subNavClass || ""}
+							isOpen={openChildId === item.id}
+							onOpen={handleOpen}
+							onClose={handleClose}
+						/>
+					),
+				)}
 				{children}
 			</ul>
 		</div>
@@ -217,7 +242,7 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 	menuItem: ClassicyMenuItem;
 	subNavClass: string;
 	isOpen: boolean;
-	onOpen: (id: string) => void;
+	onOpen: (id: string, input: ClassicyAppearanceInput) => void;
 	onClose: () => void;
 }> = memo(({ menuItem, subNavClass, isOpen, onOpen, onClose: _onClose }) => {
 	const player = useSoundDispatch();
@@ -353,7 +378,7 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 			if (isOpen) {
 				closeAll();
 			} else {
-				onOpen(menuItem.id);
+				onOpen(menuItem.id, withClassicyAppearanceInput().input);
 				activateMenuBar();
 				player({ type: "ClassicySoundPlay", sound: "ClassicyMenuOpen" });
 				appearance.emit(
@@ -382,14 +407,23 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 	const handleMouseEnter = () => {
 		pokeActivity();
 		if (hasChildren && menuBarActive) {
-			onOpen(menuItem.id);
+			onOpen(menuItem.id, "pointer");
 		}
 	};
 
 	const handleAnimationEnd = (e: React.AnimationEvent) => {
+		// animationend bubbles: a submenu item's flash reaches every ancestor
+		// <li>. Only this item's own flash ends this item's flash.
+		if (!isFlashing || e.target !== e.currentTarget) return;
 		if (e.animationName !== "classicyMenuItemFlashKeyframes") return;
 		finishFlash();
 	};
+
+	// onFocus, onBlur and onMouseOver bubble from a submenu's items and from
+	// this item's own children; report focus and blur for this item only.
+	const isOwnFocusEvent = (e: React.FocusEvent) => e.target === e.currentTarget;
+	const isOwnMouseOver = (e: React.MouseEvent) =>
+		(e.target as Element).closest(".classicyMenuItem") === e.currentTarget;
 
 	const li =
 		menuItem && menuItem.id === "spacer" ? (
@@ -413,25 +447,28 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 					}
 				}}
 				onMouseEnter={handleMouseEnter}
-				onFocus={() => {
+				onFocus={(e: React.FocusEvent) => {
 					track("hover", { type: "ClassicyMenuItem", ...analyticsArgs });
 					player({ type: "ClassicySoundPlay", sound: "ClassicyMenuItemHover" });
-					appearance.emit(
-						"focus",
-						withClassicyAppearanceInput({ itemId: menuItem.id }),
-					);
+					if (isOwnFocusEvent(e))
+						appearance.emit(
+							"focus",
+							withClassicyAppearanceInput({ itemId: menuItem.id }),
+						);
 				}}
-				onBlur={() =>
-					appearance.emit(
-						"blur",
-						withClassicyAppearanceInput({ itemId: menuItem.id }),
-					)
-				}
+				onBlur={(e: React.FocusEvent) => {
+					if (isOwnFocusEvent(e))
+						appearance.emit(
+							"blur",
+							withClassicyAppearanceInput({ itemId: menuItem.id }),
+						);
+				}}
 				onAnimationEnd={handleAnimationEnd}
-				onMouseOver={() => {
+				onMouseOver={(e: React.MouseEvent) => {
 					track("hover", { type: "ClassicyMenuItem", ...analyticsArgs });
 					player({ type: "ClassicySoundPlay", sound: "ClassicyMenuItemHover" });
-					appearance.emit("focus", { itemId: menuItem.id, input: "pointer" });
+					if (isOwnMouseOver(e))
+						appearance.emit("focus", { itemId: menuItem.id, input: "pointer" });
 				}}
 				onMouseLeave={() =>
 					appearance.emit("blur", { itemId: menuItem.id, input: "pointer" })
