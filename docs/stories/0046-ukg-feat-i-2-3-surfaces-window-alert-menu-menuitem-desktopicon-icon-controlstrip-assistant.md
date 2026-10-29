@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T20:18:19.144Z"
-updated: "2026-10-29T20:22:00.352Z"
+updated: "2026-10-29T21:06:06.605Z"
 started: "2026-10-29T19:28:41.968Z"
 tags: []
 milestone: ""
@@ -119,3 +119,5 @@ Re-shoot desktop-window*, desktop-desktop*, desktop-desktopicon*, desktop-menu*,
 ### 2026-10-29T20:17:08.194Z - Implementer DONE_WITH_CONCERNS at 848cdde6e: 54 new tests (41 RED to GREEN), 5 Passthrough rows plus a test that package style never moves or restacks windows or icons; the DOM dump with no package is unchanged. Concerns for 3.2: window resizes emit dragStart and change { kind: "resize" }; zoom { zoomed: false } also fires on collapse and resize start, where today's zoom sound plays; MenuItem focus fires on every mouseover; Finder outline drags emit no events. Controller re-ran lint, tsc and 104 files/1255 tests green; pushed. Reviewer dispatched with the concerns as focus; rulings follow the review.
 
 ### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
+
+### 2026-10-29T21:06:06.605Z - Implementer DONE_WITH_CONCERNS at 848cdde6e. Review: Needs fixes, with one Important finding. A submenu leaf's flash bubbles animationend to every ancestor <li>, which emits a spurious release with no press. The new test missed it because jsdom never delivers fireEvent.animationEnd to React. Fix round 1 dispatched: own-target guard (I-R7), two tests using a real bubbling webkitAnimationEnd, plus the MenuItem focus/blur ancestor-echo minor.

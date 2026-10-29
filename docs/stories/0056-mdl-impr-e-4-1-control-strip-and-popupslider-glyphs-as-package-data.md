@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T20:26:03.471Z"
-updated: "2026-10-29T20:22:00.352Z"
+updated: "2026-10-29T21:06:08.553Z"
 started: "2026-10-29T19:28:42.867Z"
 tags: []
 milestone: ""
@@ -145,3 +145,5 @@ In `ClassicyPixelArt.tsx`: `export const CLASSICY_PIXEL_ART_MIME = "text/x-class
 ### 2026-10-29T20:13:28.482Z - Review APPROVED (Critical 0, Important 0, Minor 7). The reviewer independently confirmed that the nine .txt files are byte-identical to the deleted arrays and that the pinned hashes come from the old rows. Final round sent for the minors: one MIME constant, nothing rendered when neither prop is given, consistent handling of other data-URI spellings, CR stripping, a consumer-wiring test with Platinum loaded, the E16 migration wording, and asserting through a log sink.
 
 ### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
+
+### 2026-10-29T21:06:08.553Z - Final round 1 (d3a5b7773) moved the MIME to ClassicyAssetSource.ts and added parseClassicyPixelArtSource. But platinumPixelArt.ts still imports the encoder from the component module ClassicyPixelArt.tsx, which pulls ClassicyPixelArt.scss into Platinum's data graph (+1-1.7 s cold import; the warnings test exceeds 5 s under load). That was the second review's Important finding. Fix round 2 dispatched: move the codec into a dependency-free module, prove the import graph is clean, report timings, and fix the remaining British spellings.

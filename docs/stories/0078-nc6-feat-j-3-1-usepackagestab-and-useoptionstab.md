@@ -3,12 +3,13 @@ id: 0078-nc6
 title: 'J 3.1: usePackagesTab and useOptionsTab'
 purpose: Add the Packages tab (choose the active Appearance Package among those registered) and the Options tab (a schema form over the active package's `options`), composed into the Appearance Manager beside the existing tabs.
 type: feat
-status: in_progress
+status: complete
 priority: "2"
 effort: M
 created: "2026-10-28T20:42:14.190Z"
-updated: "2026-10-29T20:22:00.352Z"
+updated: "2026-10-29T21:06:01.234Z"
 started: "2026-10-29T19:30:00.026Z"
+completed: "2026-10-29T21:06:01.234Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -34,15 +35,15 @@ links:
     - ["0012-pt9", "included", ["3.1"]]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
   "5":
-    status: pending
+    status: complete
 ---
 
 # J 3.1: usePackagesTab and useOptionsTab
@@ -93,8 +94,8 @@ it('says so when the package has no options', () => { render(<Host pkg={{ ...tes
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Packages.test.tsx src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Options.test.tsx
-- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/AppearanceManager
+- [x] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Packages.test.tsx src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Options.test.tsx
+- [x] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/AppearanceManager
 
 ## Files
 
@@ -114,3 +115,5 @@ it('says so when the package has no options', () => { render(<Host pkg={{ ...tes
 ### 2026-10-29T20:18:42.573Z - Review APPROVED (Critical 0, Important 0, Minor 6). Confirmed: Ruling 1 shape and dispatch, switching packages re-renders the Options tab, the J-R17 clamp (it also fixes a Warp `layers` mismatch between the screen and the saved setting), getThemeMetricFamilyBounds is the single shared bounds source, and the generated vocabulary is current. Ruling J-R18 recorded (bounds intersect 0–512; a knob with an empty intersection is left out with a warning). Final round sent: comment wording, J-R18, a Packages scroll region, the Options fork notice, and two tests.
 
 ### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
+
+### 2026-10-29T21:06:00.234Z - Final round 1bab0bf66 (J-R18 knob bounds via getThemeMetricFamilyBounds, the Options fork notice, the Packages scroll region, doc wording, two tests) verified by the controller: lint and tsc clean; AppearanceManager, SchemaForm, ScreenSaver and AppManager 44 files / 881 tests green, covering both VERIFY criteria. Pushed. Complete; the example-app check lives in 0083-v8n.
