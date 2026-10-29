@@ -3,11 +3,18 @@ id: 0052-44l
 title: 'E 1.1: SVG files, keys and the Platinum registration'
 purpose: Turn the 13 base64 SVGs of assets.scss plus the Slider, Tabs and halftone inline art into SVG files registered as Platinum system art so every consumer can read them as --classicy-art-* variables.
 type: feat
-status: pending
+status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T20:23:11.963Z"
-updated: "2026-10-28T20:23:11.963Z"
+updated: "2026-10-29T18:52:32.146Z"
+started: "2026-10-29T18:52:32.146Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy
@@ -135,3 +142,5 @@ Append to the union (contract gap reported to 0002-ldj): `windowUtilityShade`, `
 - `src/Appearance/Platinum/assets/art/platinumArt.test.ts` - create: registration and file-shape tests
 
 ## Work Log
+
+### 2026-10-29T18:52:23.119Z - Started beside Part B (wave 2) by controller decision: the E reconciliation marks 1.1 "Yes, with carve-outs" — it edits only Part C's art files, platinumAssets.ts and their tests, none of which B 4.3–6 touches. Rulings E1 (register through platinumAssets.ts; new art modules data-only; Platinum/index.ts untouched), E2 (keep C's file names, rewrite in place into mask form), E3/E-B3 (keep the original stripe viewBoxes) bind. Branch feat/appearance-part-e from d8c687255; implementer dispatched. Out of chain order: depends story 0051-532 (E 0, the parity baseline) needs B's end state and is deferred; no stylesheet reads the art yet, so 1.1 changes no pixel.

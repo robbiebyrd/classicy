@@ -2,11 +2,17 @@
 id: 0009-agy
 title: 'Part E: Art extraction and title-bar unification'
 type: impl
-status: pending
+status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T19:22:06.942Z"
-updated: "2026-10-28T19:38:39.163Z"
+updated: "2026-10-29T18:52:48.758Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy
@@ -23,7 +29,7 @@ progress:
   "1":
     status: pending
   "1.1":
-    status: pending
+    status: in_progress
   "2":
     status: pending
   "2.1":
