@@ -192,9 +192,11 @@ describe("window resizer / scroll bar alignment", () => {
 		// box's grey and the scroll bars' black borders; the grip's grey must meet
 		// those borders directly. The dimmed variant likewise carries no shadow.
 		expect(grip["box-shadow"]).toBeUndefined();
-		expect(rule(".classicyWindowResizerDimmed::before")["box-shadow"]).toBe(
-			"none !important",
-		);
+		expect(
+			rule(".classicyWindow .classicyWindowResizerDimmed::before")[
+				"box-shadow"
+			],
+		).toBe("none");
 	});
 
 	it("pins the placard bar to the same line at the other end", () => {

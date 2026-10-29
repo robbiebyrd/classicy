@@ -126,7 +126,7 @@ describe("ClassicyWindow collapsed-size persistence (#11)", () => {
 
 		// jsdom never runs layout, so getBoundingClientRect() is always zeros
 		// by default. In a real browser, ClassicyWindow.scss's
-		// `.classicyWindow.collapsed { height: ... !important }` forces the
+		// `.classicyWindow.collapsed { height: ... }` forces the
 		// window's rect height to the ~24px title bar while collapsed. Stand
 		// that in here — driven off the same class the component applies —
 		// so the rect read at mouseup behaves exactly like a real browser.
@@ -173,6 +173,17 @@ describe("ClassicyWindow collapsed-size persistence (#11)", () => {
 		fireEvent.mouseUp(root);
 
 		expect(resizeDispatches()).toHaveLength(0);
+	});
+
+	it("leaves a collapsed window's height to the stylesheet", () => {
+		// `.collapsed` sizes the window to its title bar in ClassicyWindow.scss
+		// without `!important`, so any inline height would override it.
+		mockWindowState.collapsed = true;
+		const { container } = render(windowEl());
+
+		const root = container.querySelector(".classicyWindow") as HTMLElement;
+		expect(root.classList.contains("collapsed")).toBe(true);
+		expect(root.style.height).toBe("");
 	});
 
 	it("survives a collapse -> click -> expand cycle with the pre-collapse size intact", () => {

@@ -85,7 +85,7 @@
 // border from `.classicyWindowRed` (modal + type="error").
 .classicyWindow:has(.classicyAlertMovable) {
   .classicyWindowTitleBar {
-    background-color: #f7cecd !important;
+    background-color: #f7cecd;
 
     .classicyWindowTitle {
       .classicyWindowTitleCenter {

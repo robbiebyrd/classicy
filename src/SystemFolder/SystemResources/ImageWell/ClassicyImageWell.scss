@@ -34,18 +34,17 @@
   pointer-events: none;
 }
 
-// Selected: accent frame using the Appearance/theme accent (falls back to the
-// focus-ring color).
+// Selected: accent frame in the focus-ring color.
 :where(.classicyImageWell).selected {
   outline: calc(var(--window-border-size) * 2) solid
-    var(--color-theme-selection, var(--color-outline));
+    var(--color-outline);
   outline-offset: calc(var(--window-border-size) * -1);
 }
 
 // Active drag target highlight.
 .classicyImageWellDragOver {
   outline: calc(var(--window-border-size) * 2) dashed
-    var(--color-theme-selection, var(--color-outline));
+    var(--color-outline);
   outline-offset: calc(var(--window-border-size) * -1);
 }
 

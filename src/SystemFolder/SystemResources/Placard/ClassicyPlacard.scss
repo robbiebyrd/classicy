@@ -106,7 +106,7 @@ button.classicyPlacard {
 
   &:hover:not(:disabled),
   &:focus:not(:disabled) {
-    background-color: var(--color-theme-hover, var(--color-system-05));
+    background-color: var(--color-system-05);
     color: var(--color-white);
     outline: none;
   }

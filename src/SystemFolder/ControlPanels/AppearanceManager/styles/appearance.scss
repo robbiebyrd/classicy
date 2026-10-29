@@ -117,8 +117,8 @@
 }
 
 @mixin platinumWindowControlBox {
-  width: calc(var(--window-control-size)) !important;
-  height: calc(var(--window-control-size)) !important;
+  width: var(--window-control-size);
+  height: var(--window-control-size);
   background: linear-gradient(135deg, var(--color-system-05), var(--color-white) 80%);
 
   &:before {

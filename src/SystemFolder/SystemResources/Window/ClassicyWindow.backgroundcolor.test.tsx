@@ -139,7 +139,7 @@ describe("ClassicyWindow backgroundColor prop", () => {
 		).toBe("var(--color-system-01)");
 	});
 
-	// Modal windows use .classicyWindowContentsModal with an !important
+	// Modal windows use .classicyWindowContentsModal with its own
 	// background; the variable must land on that div too. Modals render via
 	// createPortal into document.body in jsdom, so query the body, not the
 	// render container.

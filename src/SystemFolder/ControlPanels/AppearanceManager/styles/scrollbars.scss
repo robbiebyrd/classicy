@@ -240,33 +240,33 @@ $sb-arrow-2x: calc(var(--window-scrollbar-arrow-size) * 2);
   // Collapse every arrow button (whichever end the arrangement placed it) so an
   // inactive window shows bare, flat scroll gutters with no arrows or thumb.
   &::-webkit-scrollbar-button {
-    background: var(--color-system-02) !important;
-    border: none !important;
-    box-shadow: none !important;
-    width: 0 !important;
-    height: 0 !important;
+    background: var(--color-system-02);
+    border: none;
+    box-shadow: none;
+    width: 0;
+    height: 0;
   }
 
   &::-webkit-scrollbar-track {
-    background: var(--color-system-02) !important;
-    border: var(--window-border-size) solid var(--color-system-06) !important;
+    background: var(--color-system-02);
+    border: var(--window-border-size) solid var(--color-system-06);
   }
 
   &::-webkit-scrollbar-track:vertical {
-    box-shadow: none !important;
+    box-shadow: none;
   }
 
   &::-webkit-scrollbar-track:horizontal {
-    box-shadow: none !important;
+    box-shadow: none;
   }
 
   &::-webkit-scrollbar-corner {
-    border: none !important;
-    box-shadow: none !important;
+    border: none;
+    box-shadow: none;
   }
 
   &::-webkit-scrollbar-thumb {
-    display: none !important;
+    display: none;
   }
 }
 

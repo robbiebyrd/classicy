@@ -15,7 +15,7 @@
 }
 
 .classicyDriveSetupListTable {
-	border: var(--box-border-size, 2px) inset var(--color-black, #000);
+	border: var(--control-frame-width) inset var(--color-black, #000);
 	background: var(--color-white, #fff);
 	overflow-y: auto;
 	max-height: 180px;
@@ -77,7 +77,7 @@
 	cursor: default;
 
 	&.selected {
-		background: var(--color-theme-1, #000);
+		background: var(--color-black);
 		color: var(--color-white, #fff);
 	}
 }

@@ -1606,7 +1606,9 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const windowStyle = useMemo(
 		() => ({
 			width: size[0] === 0 ? "auto" : size[0],
-			height: ws.collapsed ? "auto" : size[1] === 0 ? "auto" : size[1],
+			// Collapsed: no inline height, so `.collapsed` (ClassicyWindow.scss)
+			// sizes the window to its title bar by the cascade alone.
+			height: ws.collapsed ? undefined : size[1] === 0 ? "auto" : size[1],
 			left: ws.position[0],
 			top: ws.position[1],
 			minWidth: resolvedMinimumSize[0],
