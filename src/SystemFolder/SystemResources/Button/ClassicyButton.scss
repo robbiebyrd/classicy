@@ -1,5 +1,3 @@
-@use "../../ControlPanels/AppearanceManager/styles/appearance";
-
 .classicyButton {
   font-family: var(--ui-font);
   font-size: calc(var(--ui-font-size));
@@ -19,7 +17,8 @@
     outline: var(--color-outline) solid calc(var(--window-border-size) * 2);
   }
 
-  @include appearance.platinumWindowDepressable;
+  // The bevel, its pressed and disabled faces, and every face below are the
+  // Platinum package's (Appearance/Platinum/styles/components/_Button.scss).
 }
 
 // HIG: OK / Cancel–style push buttons have a minimum width (58px). Applies to
@@ -34,43 +33,15 @@
 
   user-select: none;
   -webkit-user-select: none;
-
-  @include appearance.platinumDepressableDefault;
-
-  // Anchor the platinum default-button ring outset to the HIG token (3px).
-  // Same three-layer platinum ring as the mixin, but its outer reach is now
-  // driven by --button-default-ring instead of border-size arithmetic.
-  box-shadow:
-    0 0 0 calc(var(--button-default-ring) / 3) var(--color-system-04),
-    0 0 0 calc(var(--button-default-ring) / 3 * 2) var(--color-system-02),
-    0 0 0 var(--button-default-ring) var(--color-black),
-    inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 0 var(--color-system-05),
-    inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-06);
-
-  &:active:disabled {
-    box-shadow: none;
-  }
 }
 
-:where(.classicyButton).pressed {
-  @include appearance.platinumWindowDepressed;
-}
-
-// ~8-tick keyboard-activation highlight (Enter/Space on the focused button).
-// Mirrors the pressed (:active) appearance so keyboard activation gives the
-// same visual feedback as a mouse press.
-.classicyButtonKeyActive {
-  @include appearance.platinumWindowDepressed;
-}
-
-:where(.classicyButton).default.classicyButtonKeyActive {
-  @include appearance.platinumDepressableBoxShadowActive;
-}
+// The default ring, the pressed face (`.pressed`) and the ~8-tick
+// keyboard-activation highlight (`.classicyButtonKeyActive`, Enter/Space on
+// the focused button, mirroring a mouse press) are the Platinum package's.
 
 .classicyButtonShapeSquare {
   width: calc(var(--window-control-size) * 4);
   padding: 0;
-  border-radius: 0;
   aspect-ratio: 1/1;
 
   img {
@@ -80,7 +51,6 @@
 
 .classicyButtonSmall {
   font-size: calc(var(--ui-font-size)/1.5);
-  border-radius: calc(var(--window-padding-size)/2);
 }
 
 .classicyButtonShapeSquare.classicyButtonSmall {

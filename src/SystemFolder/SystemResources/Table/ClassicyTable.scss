@@ -1,5 +1,3 @@
-@use '../../ControlPanels/AppearanceManager/styles/appearance';
-
 // The generic Platinum list view — same look as the Finder's list mode
 // (ClassicyFileBrowserViewTable), minus the file-specific parts.
 
@@ -50,12 +48,11 @@
   align-items: center;
   position: relative;
   padding: var(--window-padding-size);
-
-  @include appearance.platinumWindowBoxShadow;
+  // The header bevel, and the sorted column's pressed-in header, are the
+  // Platinum package's (Appearance/Platinum/styles/components/_Table.scss).
 }
 
 :where(.classicyTableColumnHeader).selected {
-  @include appearance.platinumWindowHeaderBorderDepressed;
   background-color: var(--color-system-04);
 }
 

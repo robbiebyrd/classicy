@@ -1,5 +1,3 @@
-@use '../../ControlPanels/AppearanceManager/styles/appearance';
-
 // Zone → fill paint, as a custom property so the continuous fill and the
 // segmented LEDs share one source of truth.
 .classicyMeterOptimal {
@@ -28,7 +26,7 @@
   width: 100%;
   height: var(--progress-height);
   background: var(--color-system-04);
-  @include appearance.platinumWindowInnerBorder;
+  // The inset border is the Platinum package's.
 }
 
 .classicyMeterFill {

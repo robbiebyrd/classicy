@@ -1,12 +1,10 @@
-@use '../../ControlPanels/AppearanceManager/styles/appearance';
-
-
 .classicyCheckbox {
   width: calc(var(--window-control-size));
   height: var(--window-control-size);
   margin: var(--window-border-size);
   border-radius: 0;
-  @include appearance.platinumWindowBorder;
+  // The beveled border, and its pressed, disabled and default overrides, are
+  // the Platinum package's (Appearance/Platinum/styles/components/_Checkbox.scss).
   background: var(--color-system-03);
   appearance: none;
 
@@ -30,7 +28,6 @@
 
   &:active {
     background: var(--color-system-06);
-    box-shadow: none;
   }
 
   &:focus {
@@ -40,26 +37,7 @@
 
   &:disabled,
   &:disabled:active {
-    border: var(--window-border-size) solid var(--color-system-06);
     background: transparent;
-    box-shadow: none;
-  }
-}
-
-
-// `isDefault` emphasises the box with the theme accent while it is on or
-// pressed — the same treatment as a default radio button. It leaves the mark
-// alone: per the HIG the checkmark is the mark for every checkbox.
-.classicyCheckbox.default {
-  &:checked,
-  &:active {
-    border-color: var(--color-theme-06);
-  }
-
-  // As specific as the rules above and later: a disabled default box keeps
-  // the disabled border.
-  &:disabled {
-    border-color: var(--color-system-06);
   }
 }
 

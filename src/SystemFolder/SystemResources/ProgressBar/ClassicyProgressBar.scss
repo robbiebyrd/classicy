@@ -1,4 +1,3 @@
-@use '../../ControlPanels/AppearanceManager/styles/appearance';
 @use 'sass:list';
 
 .classicyProgress {
@@ -10,7 +9,7 @@
 
     &::-webkit-progress-bar {
       background: var(--color-system-04);
-      @include appearance.platinumWindowInnerBorder;
+      // The inset border is the Platinum package's.
     }
 
     &::-webkit-progress-value {

@@ -1,5 +1,3 @@
-@use "../../ControlPanels/AppearanceManager/styles/appearance";
-
 // Bevel Button (HIG #5) — rectangular beveled control giving a 3-D look.
 // The bevel width sets the apparent height; it is exposed as a local custom
 // property (--bevel-w) so every state can scale its highlight/shadow to match.
@@ -150,11 +148,9 @@
 
 // Any other surface (Figure 2-16's volume slider) shares that frame — border
 // and offset shadow — around the control face with a white highlight on the
-// inside top and left. No padding: the content brings its own size.
+// inside top and left (the Platinum package draws all three). No padding: the
+// content brings its own size.
 .classicyBevelButtonPopup.classicyBevelButtonPopupPanel {
-  @include appearance.platinumMenuFrame;
   box-sizing: content-box;
   color: var(--color-black);
-  background: var(--color-system-03);
-  box-shadow: inset 1px 1px 0 0 var(--color-white);
 }

@@ -1,4 +1,4 @@
-@use "../../ControlPanels/AppearanceManager/styles/appearance";
+@use "../../../Appearance/vocabulary/layout";
 
 .classicySplitView {
   display: flex;
@@ -24,16 +24,15 @@
   overflow: auto;
 }
 
-// The divider wears the window frame edge's clothes: the frame-grey fill and
-// the Platinum bevel border, sized to the frame ring so it reads as a movable
-// piece of window chrome rather than a plain rule.
+// The divider wears the window frame edge's clothes: the frame-gray fill and
+// the Platinum bevel border (the Platinum package's), sized to the frame ring
+// so it reads as a movable piece of window chrome rather than a plain rule.
 .classicySplitViewDivider {
   flex: 0 0 auto;
   margin: var(--window-padding-size) 0;
 
   background-color: var(--color-window-frame);
-  @include appearance.platinumWindowBorder;
-  @include appearance.no-select;
+  @include layout.classicy-no-select;
   touch-action: none;
 
   // Keyboard-resizable (ARIA window splitter): show where focus landed

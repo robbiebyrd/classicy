@@ -1,0 +1,54 @@
+// The Platinum push button look (from ClassicyButton.scss): the depressable
+// bevel, the default button's ring, and the pressed and keyboard-activation
+// faces. The base sheet's overrides of them (the default ring from
+// --button-default-ring, a disabled default button's flat face, square and
+// small radii) follow what they override, as in the base file, so they still
+// win from the package layer.
+@use "../mixins";
+@use "../scrollbars";
+@use "../assets";
+
+@mixin button {
+  .classicyButton {
+    @include mixins.platinum-window-depressable;
+  }
+
+  :where(.classicyButton).default {
+    @include mixins.platinum-depressable-default;
+
+    // Anchor the platinum default-button ring outset to the HIG token (3px).
+    // Same three-layer platinum ring as the mixin, but its outer reach is now
+    // driven by --button-default-ring instead of border-size arithmetic.
+    box-shadow:
+      0 0 0 calc(var(--button-default-ring) / 3) var(--color-system-04),
+      0 0 0 calc(var(--button-default-ring) / 3 * 2) var(--color-system-02),
+      0 0 0 var(--button-default-ring) var(--color-black),
+      inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 0 var(--color-system-05),
+      inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-06);
+
+    &:active:disabled {
+      box-shadow: none;
+    }
+  }
+
+  :where(.classicyButton).pressed {
+    @include mixins.platinum-window-depressed;
+  }
+
+  // ~8-tick keyboard-activation highlight: the pressed face.
+  .classicyButtonKeyActive {
+    @include mixins.platinum-window-depressed;
+  }
+
+  :where(.classicyButton).default.classicyButtonKeyActive {
+    @include mixins.platinum-depressable-box-shadow-active;
+  }
+
+  .classicyButtonShapeSquare {
+    border-radius: 0;
+  }
+
+  .classicyButtonSmall {
+    border-radius: calc(var(--window-padding-size)/2);
+  }
+}

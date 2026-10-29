@@ -128,7 +128,12 @@ describe("rules that replaced !important", () => {
 	});
 
 	it("disabled checkboxes and default radio buttons keep their borders", () => {
-		const checkbox = compile("SystemResources/Checkbox/ClassicyCheckbox.scss");
+		// The checkbox borders are the Platinum package's (B 4.3a): its
+		// partial's rules, compiled unscoped.
+		const checkbox = sass.compileString(
+			'@use "Appearance/Platinum/styles/components/Checkbox";\n@include Checkbox.checkbox;',
+			{ style: "expanded", loadPaths: [path.resolve(process.cwd(), "src")] },
+		).css;
 		expect(
 			ruleAt(checkbox, ".classicyCheckbox.default:disabled"),
 		).toBeGreaterThan(
