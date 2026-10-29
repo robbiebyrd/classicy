@@ -75,16 +75,32 @@ const knob = z
  * `hooks` (code and compiled CSS, which no schema can vouch for). Unknown
  * keys, those three included, are stripped from the parsed output.
  */
-export const ClassicyAppearancePackageSchema = z.object({
-	id: z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, "must be a kebab-case id"),
-	name: z.string().trim().min(1).max(64),
-	defaults: ClassicyThemeSchema,
-	presets: z.array(ClassicyThemeSchema).max(256).optional(),
-	knobs: z.record(z.string(), z.record(z.string(), knob)).optional(),
-	layout: ClassicyAppearanceLayoutSchema,
-	assets: z.partialRecord(z.enum(ASSET_KINDS), assetTree).optional(),
-	sounds: z.array(ClassicySoundPackSchema).optional(),
-});
+export const ClassicyAppearancePackageSchema = z
+	.object({
+		id: z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, "must be a kebab-case id"),
+		name: z.string().trim().min(1).max(64),
+		defaults: ClassicyThemeSchema,
+		presets: z.array(ClassicyThemeSchema).max(256).optional(),
+		knobs: z.record(z.string(), z.record(z.string(), knob)).optional(),
+		layout: ClassicyAppearanceLayoutSchema,
+		assets: z.partialRecord(z.enum(ASSET_KINDS), assetTree).optional(),
+		sounds: z.array(ClassicySoundPackSchema).optional(),
+	})
+	// The defaults are the theme a switch to this package activates; one that
+	// names another package would make ChangeAppearancePackage re-clone it on
+	// every switch and leave the active theme claiming the wrong package.
+	// (Presets are not checked here: preset lists belong to part J.)
+	.check((ctx) => {
+		const { id, defaults } = ctx.value;
+		if (defaults.package !== id) {
+			ctx.issues.push({
+				code: "custom",
+				input: defaults.package,
+				path: ["defaults", "package"],
+				message: `must be the package id "${id}", not "${defaults.package}"`,
+			});
+		}
+	});
 
 // Compile-time guard: whatever the schema accepts is a valid package once
 // `css` (and optionally `options`/`hooks`) is added. Not exported, so it

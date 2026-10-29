@@ -1056,9 +1056,14 @@ registerClassicyFonts('platinum', [{ family: 'MyFace', src: [myWoff2, myTtf] }])
   `__proto__`, `constructor` and `prototype` are ignored.
 - **Per-package namespaces and fallback.** Each package id has its own tree per
   kind. A read looks in the active package first, then in `"platinum"`, so a
-  package only registers what it changes. (Until the appearance-package switch
-  lands, the active package is always `"platinum"`; register overrides under
-  `"platinum"`, or under your own id once packages are selectable.)
+  package only registers what it changes. The active package is the store's
+  `System.Manager.Appearance.packageId` resolved against the registered
+  Appearance Packages, read at call time: an id whose package is not
+  registered reads as `"platinum"`. `useClassicyAsset`, `useClassicyAssetTree`
+  and `useClassicyAssetVars` re-render when it changes
+  (`ClassicyDesktopChangeAppearancePackage`, or the stored package
+  registering later). Register overrides of the stock art under `"platinum"`,
+  and a package's own art under its id.
   `registerClassicyIcons(icons, packageId)` takes the id last, and defaults to
   `"platinum"`.
 - **Fonts write CSS.** `registerClassicyFonts(packageId, faces)` also writes the

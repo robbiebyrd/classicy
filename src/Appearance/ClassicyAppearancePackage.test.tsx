@@ -42,7 +42,7 @@ const makePackage = (
 	id,
 	name: id,
 	css: "",
-	defaults: getTheme("default"),
+	defaults: { ...getTheme("default"), package: id },
 	layout: PLATINUM_LAYOUT,
 	...overrides,
 });
@@ -115,6 +115,37 @@ describe("ClassicyAppearancePackage registry", () => {
 			/^Package "Not Kebab" was not registered: /,
 		);
 		expect(document.getElementById("classicy-appearance-Not Kebab")).toBeNull();
+	});
+
+	it("rejects a package whose defaults belong to another package", () => {
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		const entries: ClassicyLogEntry[] = [];
+		registerClassicyLogSink({
+			id: "appearance-package-test",
+			onLog: (entry) => entries.push(entry),
+		});
+		try {
+			registerClassicyAppearancePackage(
+				makePackage("irix", {
+					defaults: { ...getTheme("default"), package: "platinum" },
+				}),
+			);
+		} finally {
+			unregisterClassicyLogSink("appearance-package-test");
+		}
+		expect(getClassicyAppearancePackage("irix")).toBeUndefined();
+		expect(entries).toHaveLength(1);
+		expect(entries[0].level).toBe("error");
+		expect(entries[0].message).toBe(
+			'Package "irix" was not registered: defaults.package: must be the package id "irix", not "platinum"',
+		);
+	});
+
+	it("registers a package whose defaults name it", () => {
+		const pkg = makePackage("irix");
+		expect(pkg.defaults.package).toBe("irix");
+		registerClassicyAppearancePackage(pkg);
+		expect(getClassicyAppearancePackage("irix")).toBe(pkg);
 	});
 
 	it("rejects a package whose css is not a string", () => {
@@ -304,15 +335,29 @@ describe("module load order", () => {
 			await load();
 			// The store was created from its finished default state (a store
 			// module evaluated before the app manager would see it unset), and
-			// the asset registry reads the active package through it.
+			// the asset registry follows the active package through it: a
+			// switch on the fresh store moves the registry's active id, which
+			// only happens when the store connected its package source.
 			const store = await import(
 				"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils"
 			);
-			expect(
-				store.useAppManager.getState().System.Manager.Appearance.packageId,
-			).toBe("platinum");
+			// The fresh store persists on its own (module-scope persistence);
+			// stop it so its debounced write never seeds a later case's store.
+			store.stopAppManagerPersistence();
+			const state = store.useAppManager.getState();
+			expect(state.System.Manager.Appearance.packageId).toBe("platinum");
 			const assets = await import("@/Appearance/ClassicyAssetRegistry");
 			expect(assets.getActiveClassicyAppearancePackageId()).toBe("platinum");
+			const packages = await import(
+				"@/Appearance/ClassicyAppearancePackageRegistry"
+			);
+			packages.registerClassicyAppearancePackage(makePackage("load-order"));
+			store.useAppManager.setState(
+				produce(state, (draft) => {
+					draft.System.Manager.Appearance.packageId = "load-order";
+				}),
+			);
+			expect(assets.getActiveClassicyAppearancePackageId()).toBe("load-order");
 			const fresh = await import("@/Appearance/ClassicyAppearancePackage");
 			expect(fresh.CLASSICY_FALLBACK_APPEARANCE_PACKAGE.defaults.id).toBe(
 				"default",

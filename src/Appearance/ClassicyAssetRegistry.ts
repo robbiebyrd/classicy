@@ -1,6 +1,10 @@
 import { useSyncExternalStore } from "react";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import {
+	getClassicyAssetPackageSource,
+	onClassicyAssetPackageSourceConnect,
+} from "./ClassicyAssetPackageSource.internal";
+import {
 	type ClassicyAssetSource,
 	isClassicyAssetSource,
 } from "./ClassicyAssetSource";
@@ -96,21 +100,12 @@ type StoredFontFace = {
 	style: string;
 };
 
-/** Where the registry learns which Appearance Package is active. */
-export type ClassicyAssetPackageSource = {
-	/** The resolved active package id, read at call time. */
-	getId: () => string;
-	/** Calls `onChange` whenever the active id may have changed. */
-	subscribe: (onChange: () => void) => () => void;
-};
-
 const trees = new Map<ClassicyAssetKind, Map<string, ClassicyAssetTree>>();
 /** Every registered face per package, with its full fallback source list. */
 const fontFaces = new Map<string, Map<string, StoredFontFace>>();
 let version = 0;
 const listeners = new Set<() => void>();
 
-let packageSource: ClassicyAssetPackageSource | undefined;
 let unsubscribePackageSource: (() => void) | undefined;
 let lastActiveId: string | undefined;
 
@@ -121,7 +116,7 @@ let lastActiveId: string | undefined;
  * evaluation of the default state, which resolves its own icons through here).
  */
 export const getActiveClassicyAppearancePackageId = (): string =>
-	packageSource?.getId() ?? PLATINUM;
+	getClassicyAssetPackageSource()?.getId() ?? PLATINUM;
 
 const onPackageSourceChange = (): void => {
 	const id = getActiveClassicyAppearancePackageId();
@@ -134,29 +129,24 @@ const onPackageSourceChange = (): void => {
 
 /** Subscribe to the source on the first asset listener, never at import. */
 const followPackageSource = (): void => {
-	if (!packageSource || unsubscribePackageSource) return;
+	const source = getClassicyAssetPackageSource();
+	if (!source || unsubscribePackageSource) return;
 	lastActiveId = getActiveClassicyAppearancePackageId();
-	unsubscribePackageSource = packageSource.subscribe(onPackageSourceChange);
+	unsubscribePackageSource = source.subscribe(onPackageSourceChange);
 };
 
-/**
- * Connects the registry to the active Appearance Package. The app manager
- * calls it once, right after it creates its store, so this module never
- * imports the store (the default state imports this module). The source is
- * read lazily: `getId` at lookup time, `subscribe` when the first consumer
- * subscribes.
- */
-export const connectClassicyAssetPackageSource = (
-	source: ClassicyAssetPackageSource,
-): void => {
+// The store connects its source through ClassicyAssetPackageSource.internal
+// (never public API), so this module never imports the store (the default
+// state imports this module). A (re)connection drops the old subscription and
+// re-reads every consumer that is already listening.
+onClassicyAssetPackageSourceConnect(() => {
 	unsubscribePackageSource?.();
 	unsubscribePackageSource = undefined;
-	packageSource = source;
 	if (listeners.size > 0) {
 		followPackageSource();
 		for (const listener of [...listeners]) listener();
 	}
-};
+});
 
 const isTree = (value: unknown): value is ClassicyAssetTree =>
 	typeof value === "object" && value !== null;

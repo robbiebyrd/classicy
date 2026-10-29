@@ -2,7 +2,7 @@ import { castDraft, produce } from "immer";
 import { create, type StoreApi, type UseBoundStore } from "zustand";
 import { resolveClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
 import { subscribeClassicyAppearancePackages } from "@/Appearance/ClassicyAppearancePackageRegistry";
-import { connectClassicyAssetPackageSource } from "@/Appearance/ClassicyAssetRegistry";
+import { connectClassicyAssetPackageSource } from "@/Appearance/ClassicyAssetPackageSource.internal";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import { resolveWallpaper } from "../AppearanceManager/ClassicyWallpapers";
 import type { ClassicyActionTrust } from "./ClassicyActionTrust";

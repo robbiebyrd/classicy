@@ -26,7 +26,7 @@ const registerMirror = () =>
 		id: "mirror",
 		name: "Mirror",
 		css: "",
-		defaults: getTheme("default"),
+		defaults: { ...getTheme("default"), package: "mirror" },
 		layout: MIRROR,
 	});
 
