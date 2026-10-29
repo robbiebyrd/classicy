@@ -27,6 +27,8 @@ export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Desktop";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Fonts";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Metrics";
+export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Options";
+export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Packages";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Sound";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Themes";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager";

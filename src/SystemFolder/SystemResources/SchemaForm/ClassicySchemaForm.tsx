@@ -37,7 +37,9 @@ const EMPTY_PATH: readonly string[] = [];
  * enum → pop-up menu, string → input, and a nested object → a titled
  * `ClassicyControlGroup` holding its own fields. A field's `.describe()` text
  * is its label; an undescribed key is humanized (`cellHeight` → "Cell
- * height"). Unsupported field types render nothing.
+ * height"). Unsupported field types render nothing. A number field reports
+ * the value it shows: an empty entry is not reported, an `.int()` field is
+ * rounded, and every entry is clamped to the field's `.min()`/`.max()`.
  *
  * It renders rows for a `ClassicyControlGroup layout="form"` grid, and no root
  * of its own: labeled controls carry their label on the left so label and
@@ -99,18 +101,33 @@ export const ClassicySchemaForm: FunctionalComponent<
 					);
 				}
 				if (field instanceof z.ZodNumber) {
+					const min = field.minValue ?? 0;
+					const max = field.maxValue ?? undefined;
 					return (
 						<ClassicySpinner
 							key={key}
 							id={id}
 							labelTitle={label}
 							labelPosition="left"
-							minValue={field.minValue ?? 0}
-							maxValue={field.maxValue ?? undefined}
+							minValue={min}
+							maxValue={max}
 							prefillValue={Number(value ?? 0)}
 							onChangeFunc={(e) => {
-								const next = Number.parseFloat(e.target.value);
-								if (Number.isFinite(next)) onChange(fieldPath, next);
+								// Report what the field shows (J-R17): an empty or
+								// non-numeric entry parses to NaN and is not reported;
+								// an `.int()` field is rounded to a whole number; then
+								// the entry is clamped to the bounds the spinner
+								// clamps its display to.
+								const parsed = Number.parseFloat(e.target.value);
+								if (!Number.isFinite(parsed)) return;
+								const whole = field.isInt ? Math.round(parsed) : parsed;
+								onChange(
+									fieldPath,
+									Math.min(
+										max ?? Number.POSITIVE_INFINITY,
+										Math.max(min, whole),
+									),
+								);
 							}}
 						/>
 					);

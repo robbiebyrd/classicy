@@ -387,6 +387,18 @@ export const getThemeMetricFamilyKnob = (
 };
 
 /**
+ * The values a knob accepts: its own inclusive `min`–`max`, narrowed to the
+ * theme schema's 0–512. The reducer validates against these, and the
+ * Options tab clamps entries to them.
+ */
+export const getThemeMetricFamilyBounds = (
+	knob: ClassicyAppearanceKnobs[string][string],
+): { min: number; max: number } => ({
+	min: Math.max(knob.min, 0),
+	max: Math.min(knob.max, MAX),
+});
+
+/**
  * True when `knobs` declares the target and `value` is a finite number within
  * the knob's inclusive bounds and the theme schema's 0–512.
  */
@@ -396,12 +408,13 @@ export const isValidThemeMetricFamily = (
 	knobs: ClassicyAppearanceKnobs | undefined,
 ): value is number => {
 	const knob = getThemeMetricFamilyKnob(knobs, target);
+	if (knob === undefined) return false;
+	const { min, max } = getThemeMetricFamilyBounds(knob);
 	return (
-		knob !== undefined &&
 		typeof value === "number" &&
 		Number.isFinite(value) &&
-		value >= Math.max(knob.min, 0) &&
-		value <= Math.min(knob.max, MAX)
+		value >= min &&
+		value <= max
 	);
 };
 
