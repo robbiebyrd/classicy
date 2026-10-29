@@ -3,11 +3,18 @@ id: 0046-ukg
 title: 'I 2.3: Surfaces: Window, Alert, Menu, MenuItem, DesktopIcon, Icon, ControlStrip, Assistant'
 purpose: Wire useClassicyAppearance into the window, alert, menu, icon, control strip and assistant roots so a package can decorate them and receive focus, collapse, expand, zoom, close, drag, press, release, open, select and change events.
 type: feat
-status: pending
+status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T20:18:19.144Z"
-updated: "2026-10-28T20:18:19.144Z"
+updated: "2026-10-29T19:28:43.701Z"
+started: "2026-10-29T19:28:41.968Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy
@@ -106,3 +113,5 @@ Re-shoot desktop-window*, desktop-desktop*, desktop-desktopicon*, desktop-menu*,
 - `src/SystemFolder/SystemResources/Assistant/ClassicyAssistant.appearance.test.tsx` - create
 
 ## Work Log
+
+### 2026-10-29T19:28:43.701Z - Started beside Part B (TSX only; B's remaining work is SCSS, Platinum/** and docs). Base 81ad67308; implementer dispatched. Binding: I-R4 strict, I-R5 attrs first, I-R13, I-R14/I-R15 (input on dual-path gestures, listeners only for the duration of a gesture). Window geometry and zIndex stay state-owned. Edits stay tight to the roots so G (ClassicyWindow menu-bar height) and E (ControlStrip art, title bar) rebase cleanly. Parity deferred until after B lands.

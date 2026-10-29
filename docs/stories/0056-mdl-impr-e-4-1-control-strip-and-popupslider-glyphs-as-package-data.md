@@ -3,11 +3,18 @@ id: 0056-mdl
 title: 'E 4.1: Control Strip and PopUpSlider glyphs as package data'
 purpose: Move the nine Control Strip and PopUpSlider pixel-art glyphs out of TS row arrays into Platinum text data files registered as system art, with ClassicyPixelArt reading rows by key.
 type: impr
-status: pending
+status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T20:26:03.471Z"
-updated: "2026-10-28T20:26:03.471Z"
+updated: "2026-10-29T19:28:44.621Z"
+started: "2026-10-29T19:28:42.867Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy
@@ -130,3 +137,5 @@ In `ClassicyPixelArt.tsx`: `export const CLASSICY_PIXEL_ART_MIME = "text/x-class
 - `src/Appearance/Platinum/assets/pixelart/platinumPixelArt.test.ts` - create: nine-glyph size test
 
 ## Work Log
+
+### 2026-10-29T19:28:44.621Z - Started in wave 2 beside Part B, out of chain order: 2.1–3.1 need B's SCSS, while 4.1 is TSX plus data only, which the E reconciliation shows does not overlap B. Base 28c4e09a1; implementer dispatched. Binding: E1 (data-only platinumPixelArt.ts, registered through platinumAssets.ts), E15 (pixel-art keys kept out of the --classicy-art-* vars), E16 (deleted public exports listed as breaking). Retarget platinumAssets.test.ts. Parity deferred until after B lands.

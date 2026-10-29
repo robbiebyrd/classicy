@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T20:17:37.615Z"
-updated: "2026-10-29T18:25:53.340Z"
+updated: "2026-10-29T19:28:16.540Z"
 started: "2026-10-29T18:25:53.340Z"
 tags: []
 milestone: ""
@@ -43,17 +43,17 @@ links:
     - ["0006-dy6", "included", ["2.2"]]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
   "5":
     status: pending
   "6":
-    status: pending
+    status: complete
 ---
 
 # I 2.2: Controls group 2: Slider, Placard, Tabs, Disclosure, Tree, Table, Link, FileInput
@@ -119,3 +119,5 @@ Re-shoot controls-slider*, controls-placard*, controls-tabs*, controls-disclosur
 ## Work Log
 
 ### 2026-10-29T18:25:47.482Z - Started beside Part B (I reconciliation: 2.x code is safe early; B's remaining work is SCSS-only). I-R4 strict (no class-list change), I-R5 attrs first, keyboard paths must emit what mouse paths emit (lesson from I 2.1's review), reuse the shared internal useClassicyMergedRef. Out of chain order: depends 0044-uvc (I 2.1) is code complete, awaiting only post-B parity. Base 3c2dc4e76; implementer dispatched. Parity deferred until after B lands.
+
+### 2026-10-29T19:28:16.540Z - Code complete on feat/appearance-part-i at 81ad67308 (bf9a71527 wiring, 06fe74709 I-R14 input source, 81ad67308 review round I-R15). Review approved. Controller re-ran lint/tsc and 31 files/475 tests green; pushed. Stays in_progress for the Storybook parity, deferred until after Part B lands.
