@@ -1,6 +1,6 @@
-// The Platinum look's mixins (from AppearanceManager/styles/appearance.scss,
-// renamed platinum-*), included by the package's component partials inside
-// classicy-package("platinum"). The layout helpers they use
+// The Platinum look's mixins (moved from the former AppearanceManager
+// appearance module, renamed platinum-*), included by the package's component
+// partials inside classicy-package("platinum"). The layout helpers they use
 // (classicy-px-rect, classicy-no-select) live in ../../vocabulary/_layout.scss.
 @use 'sass:color';
 @use 'sass:string';

@@ -3,83 +3,62 @@
 // scoped under `.classicyDesktop[data-classicy-appearance="platinum"]`. Each
 // components/_<Name>.scss exposes one mixin, included inside the wrapper below
 // in the order the library stylesheet bundles the base sheets they came from
-// (dist/classicy.css), so a tie between two partials resolves as it did there.
+// (the order of their `@layer classicy.base` blocks in an unminified
+// dist/classicy.css), so a tie between two partials resolves as it did there.
 @use "../../vocabulary/package";
 @use "mixins";
 @use "scrollbars";
 @use "assets";
 @use "components/Alert";
-@use "components/Menu";
-@use "components/Window";
-@use "components/PopUpMenu";
-@use "components/Desktop";
-@use "components/WindowFrame";
-// 4.3a begin
 @use "components/Button";
 @use "components/BevelButton";
-@use "components/Placard";
-@use "components/Checkbox";
-@use "components/DriveSetupList";
-@use "components/ProgressBar";
-@use "components/Table";
-@use "components/Meter";
-@use "components/Output";
-@use "components/SplitView";
-// 4.3a end
-// 4.3b begin
+@use "components/Menu";
+@use "components/Window";
 @use "components/Slider";
+@use "components/Checkbox";
+@use "components/PopUpMenu";
+@use "components/DriveSetupList";
 @use "components/Assistant";
+@use "components/ProgressBar";
 @use "components/Icon";
+@use "components/Table";
 @use "components/QuickTimeMovieEmbed";
 @use "components/StartupScreen";
 @use "components/ControlStrip";
+@use "components/Desktop";
 @use "components/Tabs";
 @use "components/DesktopIcon";
-// 4.3b end
+@use "components/Meter";
+@use "components/Output";
+@use "components/Placard";
+@use "components/SplitView";
+@use "components/WindowFrame";
 
 @include package.classicy-package("platinum") {
   @include Alert.alert;
-  // 4.3a begin (dist/classicy.css offsets: Button 2708, BevelButton 11106)
   @include Button.button;
   @include BevelButton.bevelButton;
-  // 4.3a end
   @include Menu.menu;
   @include Window.window;
-  // 4.3a begin (Placard 28727)
-  @include Placard.placard;
-  // 4.3a end
-  // 4.3b begin
   @include Slider.slider;
-  // 4.3b end
-  @include PopUpMenu.popUpMenu;
-  // 4.3a begin (Checkbox 73950, DriveSetupList 90480)
   @include Checkbox.checkbox;
+  @include PopUpMenu.popUpMenu;
   @include DriveSetupList.driveSetupList;
-  // 4.3a end
-  // 4.3b begin
   @include Assistant.assistant;
-  // 4.3b end
-  // 4.3a begin (ProgressBar 114720, Table 117464)
   @include ProgressBar.progressBar;
-  @include Table.table;
-  // 4.3a end
-  // 4.3b begin
   @include Icon.icon;
+  @include Table.table;
   @include QuickTimeMovieEmbed.quickTimeMovieEmbed;
   @include StartupScreen.startupScreen;
   @include ControlStrip.controlStrip;
-  // 4.3b end
   @include Desktop.desktop;
-  // 4.3b begin
   // Out of bundle order (ClassicyTabs.scss bundles before ClassicyDesktop.scss):
   // the tab scroller re-asserts its hidden scroll bar after the desktop's.
   @include Tabs.tabs;
   @include DesktopIcon.desktopIcon;
-  // 4.3b end
-  // 4.3a begin (Meter 172975, Output 174235, SplitView 177755)
   @include Meter.meter;
   @include Output.output;
+  @include Placard.placard;
   @include SplitView.splitView;
-  // 4.3a end
   @include WindowFrame.windowFrame;
 }

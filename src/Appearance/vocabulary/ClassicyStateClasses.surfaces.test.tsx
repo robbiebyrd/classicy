@@ -385,14 +385,12 @@ describe("compiled SCSS of the touched surfaces", () => {
 		expect(css).toContain(".classicyWindowInvisible {");
 	});
 
-	it("appearance.scss no longer ships the global .hidden utility", () => {
+	it("the Platinum mixins no longer ship the global .hidden utility", () => {
 		const css = compile(`${R}Window/ClassicyWindow.scss`);
 		expect(css).not.toMatch(/^\.hidden \{/m);
-		expect(
-			source(
-				"src/SystemFolder/ControlPanels/AppearanceManager/styles/appearance.scss",
-			),
-		).not.toMatch(/^\.hidden \{/m);
+		expect(source("src/Appearance/Platinum/styles/_mixins.scss")).not.toMatch(
+			/^\.hidden \{/m,
+		);
 	});
 
 	it.each([
