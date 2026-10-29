@@ -1250,7 +1250,8 @@ A host rule on them never matched anything, so there is nothing to migrate.
 - **The screen-saver cursor rule no longer uses `!important`.** It is a
   layered rule with id-level specificity, so an unlayered host
   `* { cursor: … }` now shows a pointer over a running screen saver. Scope
-  host cursor rules, or put them in a layer.
+  host cursor rules, or put them in the reserved `classicy.base.host`
+  sublayer (§1); any other host layer still outranks Classicy.
 
 ### System art
 
