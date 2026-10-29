@@ -30,6 +30,7 @@ export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Themes";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManagerManifest";
+export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceOptions";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyColors";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyFontStack";
