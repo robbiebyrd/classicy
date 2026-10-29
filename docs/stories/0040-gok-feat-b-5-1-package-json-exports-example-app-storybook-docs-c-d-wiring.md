@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T20:15:04.099Z"
-updated: "2026-10-29T20:34:41.738Z"
+updated: "2026-10-29T21:16:39.758Z"
 started: "2026-10-29T20:34:41.037Z"
 tags: []
 milestone: ""
@@ -114,3 +114,5 @@ package.json `exports`: `"./scss/*": "./src/Appearance/vocabulary/*"`, `"./appea
 ### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
 
 ### 2026-10-29T20:34:41.738Z - Started in parallel with B 4.3c, for maximum concurrency at the user's request. Worktree part-b-43a, branch feat/appearance-part-b-51, base 50433055c (4.3a and 4.3b integrated). Owns package.json, Platinum/index.ts, the example app (bridge removal), the Storybook decorator (useClassicyAssetVars per E-B4) and docs; 4.3c owns the SCSS, the guard test and deleting the old modules. Implementer dispatched.
+
+### 2026-10-29T21:16:39.757Z - Implementer DONE_WITH_CONCERNS at a77b68688: exports, files (plus src/Appearance/.npmignore, because the `!` patterns in package.json files had no effect), the ./appearance/platinum shim (R4), dist/classicy-platinum.css byte-identical to the injected package CSS, mandatory invariant 7, the bridge deleted, the Storybook decorator, docs; gate 330 files / 3986 tests, build:source + verify:dist, build:storybook, 302/302 stories AE 0. Its concern was the example's production build failing tsc -b in HyperCardPluginsDemo.tsx (plugin commands rejected by HCAction; on main since f645b976c); the controller fixed it in 2913f74bb with a pluginAction helper typed through HCPluginAction, and the example build passes. Controller re-ran lint, tsc and src/Appearance + bin (31 files / 553 tests) green. Pushed feat/appearance-part-b-51; reviewer dispatched; it integrates onto feat/appearance-part-b after 4.3c.
