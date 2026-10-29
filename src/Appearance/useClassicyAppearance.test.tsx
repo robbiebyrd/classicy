@@ -1,6 +1,6 @@
 import { act, render, renderHook } from "@testing-library/react";
 import { produce } from "immer";
-import { useLayoutEffect } from "react";
+import { StrictMode, useLayoutEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { installClassicyAppearanceProbe } from "@/Appearance/__tests__/appearanceProbe";
 import { CLASSICY_DEFAULT_APPEARANCE_LAYOUT } from "@/Appearance/ClassicyAppearanceDefaults";
@@ -11,7 +11,10 @@ import {
 	resetClassicyAppearancePackagesForTests,
 } from "@/Appearance/ClassicyAppearancePackage";
 import { playClassicyAppearanceSound } from "@/Appearance/ClassicyAppearanceSound";
-import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import {
+	resetClassicyAppearanceAttributeWarningsForTests,
+	useClassicyAppearance,
+} from "@/Appearance/useClassicyAppearance";
 import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import {
@@ -302,14 +305,17 @@ describe("useClassicyAppearance robustness", () => {
 		// The console mirror of the expected error entries; keep output clean.
 		vi.spyOn(console, "error").mockImplementation(() => {});
 		vi.spyOn(console, "warn").mockImplementation(() => {});
+		resetClassicyAppearanceAttributeWarningsForTests();
 	});
 
 	afterEach(() => {
 		unregisterClassicyLogSink(SINK_ID);
 		vi.restoreAllMocks();
+		vi.unstubAllEnvs();
 	});
 
 	const errors = () => entries.filter((entry) => entry.level === "error");
+	const warnings = () => entries.filter((entry) => entry.level === "warn");
 
 	it("applies a decoration emitted from a layout effect on the first commit", () => {
 		install({ on: { open: () => ({ className: "opened" }) } });
@@ -320,6 +326,31 @@ describe("useClassicyAppearance robustness", () => {
 		};
 		const { getByTestId } = render(<LayoutEmitter />);
 		expect(getByTestId("root").className).toBe("probe-Button opened");
+	});
+
+	it("applies a decoration emitted from a layout effect on a StrictMode re-mount", () => {
+		let opened = 0;
+		install({
+			on: {
+				open: () => {
+					opened += 1;
+					return { className: `opened${opened}` };
+				},
+			},
+		});
+		const LayoutEmitter = () => {
+			const { className, emit } = useClassicyAppearance("Button", {});
+			useLayoutEffect(() => emit("open"), [emit]);
+			return <div data-testid="root" className={className} />;
+		};
+		const { getByTestId } = render(
+			<StrictMode>
+				<LayoutEmitter />
+			</StrictMode>,
+		);
+		// StrictMode re-mounts the effects once: the re-mount's emit wins.
+		expect(opened).toBe(2);
+		expect(getByTestId("root").className).toBe("probe-Button opened2");
 	});
 
 	it("logs and ignores a throwing mount handler", () => {
@@ -409,6 +440,7 @@ describe("useClassicyAppearance robustness", () => {
 						role: "y",
 						"aria-label": "z",
 						"data-classicy-part": "app",
+						"data-Classicy-part": "app",
 						"data-foo": "1",
 					},
 				}),
@@ -422,6 +454,42 @@ describe("useClassicyAppearance robustness", () => {
 			"data-probe-state": "pressed",
 			"data-foo": "1",
 		});
+	});
+
+	it("reports a dropped attribute once per package and key, in development", () => {
+		install({ on: { press: () => ({ attrs: { id: `x${Math.random()}` } }) } });
+		const { result } = renderHook(() =>
+			useClassicyAppearance("Button", PRESSED),
+		);
+		act(() => result.current.emit("press"));
+		act(() => result.current.emit("press"));
+		expect(warnings()).toHaveLength(1);
+		expect(warnings()[0]).toMatchObject({
+			subsystem: "ClassicyAppearance",
+			message:
+				'Package "probe" set the attribute "id"; only data-* attributes outside data-classicy-* are applied.',
+		});
+
+		// Another package dropping the same key is reported once too.
+		registerClassicyAppearancePackage(
+			makePackage("probe-two", {
+				hooks: { decorate: () => ({ attrs: { id: "y" } }) },
+			}),
+		);
+		setPackageId("probe-two");
+		expect(warnings()).toHaveLength(2);
+		expect(warnings()[1].message).toContain('Package "probe-two"');
+	});
+
+	it("does not report dropped attributes in production", () => {
+		vi.stubEnv("NODE_ENV", "production");
+		install({ on: { press: () => ({ attrs: { id: "x" } }) } });
+		const { result } = renderHook(() =>
+			useClassicyAppearance("Button", PRESSED),
+		);
+		act(() => result.current.emit("press"));
+		expect(result.current.attrs).toEqual({ "data-probe-state": "pressed" });
+		expect(warnings()).toHaveLength(0);
 	});
 });
 

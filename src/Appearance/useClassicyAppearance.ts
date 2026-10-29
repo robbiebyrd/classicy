@@ -3,6 +3,7 @@ import {
 	type RefObject,
 	useCallback,
 	useEffect,
+	useLayoutEffect,
 	useMemo,
 	useRef,
 	useState,
@@ -54,11 +55,22 @@ const getActivePackage = (): ClassicyAppearancePackage =>
 	CLASSICY_FALLBACK_APPEARANCE_PACKAGE;
 
 // A package may add data attributes, never others (`id`, `role`, `aria-*`)
-// nor Classicy's own part attributes (`data-classicy-*`).
-const PACKAGE_ATTRIBUTE = /^data-(?!classicy-)/;
+// nor Classicy's own part attributes (`data-classicy-*`). Case-insensitive:
+// HTML lowercases attribute names, so "data-Classicy-part" would land as
+// "data-classicy-part".
+const PACKAGE_ATTRIBUTE = /^data-(?!classicy-)/i;
 
 // Dropped attributes are reported once per package and key, in development.
 const reportedDroppedAttributes = new Set<string>();
+
+/**
+ * Test helper: forget which dropped attributes were already reported, so a
+ * test can assert the once-per-package-and-key warning from a clean slate.
+ * @internal
+ */
+export const resetClassicyAppearanceAttributeWarningsForTests = (): void => {
+	reportedDroppedAttributes.clear();
+};
 
 const packageAttributes = (
 	packageId: string,
@@ -104,14 +116,16 @@ type EmittedDecoration = {
  * through this component's sound dispatch.
  *
  * - A handler that returns a decoration (even `{}`) replaces the emitted one;
- *   returning nothing keeps it. One returned from any emit before unmount
- *   applies, including an emit from a layout effect on the first commit.
+ *   returning nothing keeps it. One returned from any emit while mounted
+ *   applies, including an emit from a layout effect on the first commit or
+ *   on a re-mount (StrictMode, an `<Activity>` shown again).
  * - The emitted decoration belongs to the package id whose handler returned
  *   it: switching to another package drops it (switching back does not bring
  *   it back), while re-registering the same id keeps it.
- * - `attrs` holds only `data-*` keys outside `data-classicy-*`; anything else
- *   a package sets (`id`, `role`, `aria-*`, part attributes) is dropped and,
- *   in development, reported once. Spread `attrs` before the component's own
+ * - `attrs` holds only `data-*` keys outside `data-classicy-*` (compared
+ *   case-insensitively); anything else a package sets (`id`, `role`,
+ *   `aria-*`, part attributes) is dropped and, in development, reported once
+ *   per package and key. Spread `attrs` before the component's own
  *   attributes.
  * - Package code never breaks the component: a handler or `decorate()` that
  *   throws is logged as an error (subsystem "ClassicyAppearance") and counts
@@ -154,8 +168,18 @@ export function useClassicyAppearance<E extends HTMLElement = HTMLElement>(
 	const stateRef = useRef(state);
 	stateRef.current = state;
 	// Tracks unmount rather than mount, so a decoration returned before the
-	// passive mount effect (a layout-effect emit) still applies.
+	// passive mount effect (a layout-effect emit) still applies. Kept in a
+	// layout effect declared here, ahead of the component's own layout
+	// effects, so it is current for their emits on the first mount and on a
+	// re-mount (StrictMode, an <Activity> shown again); layout cleanups run
+	// before passive ones, so the `unmount` emit already sees it set.
 	const unmountedRef = useRef(false);
+	useLayoutEffect(() => {
+		unmountedRef.current = false;
+		return () => {
+			unmountedRef.current = true;
+		};
+	}, []);
 
 	const emit = useCallback(
 		(event: ClassicyAppearanceEvent, detail?: unknown) => {
@@ -193,11 +217,8 @@ export function useClassicyAppearance<E extends HTMLElement = HTMLElement>(
 	emitRef.current = emit;
 
 	useEffect(() => {
-		// Reset on every setup: StrictMode re-runs it after a cleanup.
-		unmountedRef.current = false;
 		emitRef.current("mount");
 		return () => {
-			unmountedRef.current = true;
 			emitRef.current("unmount");
 		};
 	}, []);
