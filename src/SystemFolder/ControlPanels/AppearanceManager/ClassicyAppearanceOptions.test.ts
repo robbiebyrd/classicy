@@ -40,10 +40,10 @@ describe("parseClassicyAppearanceOptionPath", () => {
 describe("applyClassicyAppearanceOption", () => {
 	it("applies a valid write", () => {
 		const t = structuredClone(getTheme("default"));
-		expect(applyClassicyAppearanceOption(t, "desktop.iconSize", 48)).toEqual({
+		expect(applyClassicyAppearanceOption(t, "desktop.iconSize", 40)).toEqual({
 			ok: true,
 		});
-		expect(t.desktop.iconSize).toBe(48);
+		expect(t.desktop.iconSize).toBe(40);
 	});
 
 	it("rejects a write the schema refuses and restores the value", () => {
@@ -105,10 +105,10 @@ describe("applyClassicyAppearanceOption", () => {
 		expect(
 			applyClassicyAppearanceOption(t, "typography.ui", "Charcoal; }"),
 		).toEqual({ ok: false, reason: "schema" });
-		expect(applyClassicyAppearanceOption(t, "typography.uiSize", 14)).toEqual({
+		expect(applyClassicyAppearanceOption(t, "typography.uiSize", 16)).toEqual({
 			ok: true,
 		});
-		expect(t.typography.uiSize).toBe(14);
+		expect(t.typography.uiSize).toBe(16);
 	});
 
 	it("a pre-existing invalid field never blocks an unrelated write", () => {

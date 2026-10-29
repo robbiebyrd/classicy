@@ -158,6 +158,34 @@ describe("the metric family form", () => {
 		expect(theme.measurements.controlStrip.cellHeight).toBe(22);
 	});
 
+	it.each([
+		["null", null],
+		["a number", 7],
+		["an array", [22]],
+	])("family form treats %s family as missing", (_name, family) => {
+		const theme = structuredClone(getTheme("default"));
+		(theme.measurements as Record<string, unknown>).controlStrip = family;
+		const target = { family: "controlStrip", key: "cellHeight" };
+		expect(() => getThemeMetricFamily(theme, target)).not.toThrow();
+		expect(getThemeMetricFamily(theme, target)).toBeNaN();
+		expect(() => setThemeMetricFamily(theme, target, 30, knobs)).not.toThrow();
+		expect(setThemeMetricFamily(theme, target, 30, knobs)).toBe(false);
+		expect(theme.measurements.controlStrip).toEqual(family);
+	});
+
+	it("family form reads a non-number leaf as NaN", () => {
+		const theme = structuredClone(getTheme("default"));
+		(theme.measurements as Record<string, unknown>).controlStrip = {
+			cellHeight: "22",
+		};
+		expect(
+			getThemeMetricFamily(theme, {
+				family: "controlStrip",
+				key: "cellHeight",
+			}),
+		).toBeNaN();
+	});
+
 	it("family form reads own knob properties only", () => {
 		const inherited = Object.create(knobs) as ClassicyAppearanceKnobs;
 		expect(

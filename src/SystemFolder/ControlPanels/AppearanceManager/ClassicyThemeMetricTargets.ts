@@ -405,23 +405,46 @@ export const isValidThemeMetricFamily = (
 	);
 };
 
+const isPlainObject = (value: unknown): value is Record<string, unknown> => {
+	if (typeof value !== "object" || value === null || Array.isArray(value))
+		return false;
+	const proto = Object.getPrototypeOf(value);
+	return proto === Object.prototype || proto === null;
+};
+
+/** The family object a theme carries for `family`; `undefined` when absent
+ * or not a plain object (tampered or legacy state). */
+const ownFamily = (
+	theme: ClassicyTheme,
+	family: string,
+): Record<string, unknown> | undefined => {
+	const m = theme.measurements;
+	if (!Object.hasOwn(m, family)) return undefined;
+	const value: unknown = m[family];
+	return isPlainObject(value) ? value : undefined;
+};
+
 /** Reads `measurements.<family>.<key>` through own properties; `NaN` when
- * the theme does not carry it. */
+ * the theme does not carry it as a number. */
 export const getThemeMetricFamily = (
 	theme: ClassicyTheme,
 	target: ClassicyThemeMetricFamilyTarget,
 ): number => {
-	const m = theme.measurements;
-	return Object.hasOwn(m, target.family) &&
-		Object.hasOwn(m[target.family], target.key)
-		? m[target.family][target.key]
-		: Number.NaN;
+	const family = ownFamily(theme, target.family);
+	const value =
+		family && Object.hasOwn(family, target.key)
+			? family[target.key]
+			: undefined;
+	return typeof value === "number" ? value : Number.NaN;
 };
 
 /**
  * Writes a package knob when `isValidThemeMetricFamily` passes, creating the
  * family or key if the theme predates the knob; otherwise a no-op (so
- * `editActiveClassicyTheme` does not fork). Returns whether it wrote.
+ * `editActiveClassicyTheme` does not fork). A family the theme carries as
+ * something other than a plain object (`null`, a number, an array — tampered
+ * or legacy state) is left alone and the write refused. Returns whether it
+ * wrote.
  */
 export const setThemeMetricFamily = (
 	theme: ClassicyTheme,
@@ -437,6 +460,8 @@ export const setThemeMetricFamily = (
 	}
 	const m = theme.measurements;
 	if (!Object.hasOwn(m, target.family)) m[target.family] = {};
-	m[target.family][target.key] = value;
+	const family = ownFamily(theme, target.family);
+	if (!family) return false;
+	family[target.key] = value;
 	return true;
 };
