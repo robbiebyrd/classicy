@@ -84,7 +84,7 @@ function injectCssPlugin(): Plugin {
 				type: "asset",
 				fileName: "fonts.d.ts",
 				source:
-					"// Side-effect module: importing it injects classicy's bundled fonts.\nexport {};\n",
+					"// Deprecated no-op side-effect module, kept for compatibility: classicy's fonts are registered by the Platinum appearance package.\nexport {};\n",
 			});
 
 			for (const output of Object.values(bundle)) {
@@ -188,6 +188,10 @@ export default defineConfig({
 		}),
 		richSvg(),
 		VitePluginImageTools({
+			// Package assets ship exactly as authored (Part E uses the art as CSS
+			// masks): no WebP conversion, no svgo. This one option gates the build
+			// WebP pass, the svgo pass and the dev middleware alike.
+			excludes: /src\/Appearance\//,
 			quality: 100,
 			enableWebp: true,
 			enableDev: true,

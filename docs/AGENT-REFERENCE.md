@@ -44,6 +44,25 @@ registers at runtime, so there is nothing to import:
 Under a Content-Security-Policy that forbids inline `<style>`, link
 `classicy/dist/classicy.css` instead; importing it as well is harmless.
 
+**Vite consumers (breaking change).** The package's fonts and art are files in
+`dist/assets/`, referenced as `new URL("assets/…", import.meta.url)`. Vite's dev
+server pre-bundles dependencies into `node_modules/.vite/deps/`, which rewrites
+those URLs, so fonts and art would come back as the SPA fallback page. Keep
+classicy out of the pre-bundle:
+
+```ts
+// vite.config.ts
+export default defineConfig({
+    optimizeDeps: { exclude: ['classicy'] },
+})
+```
+
+Excluding classicy means any CommonJS dependency it pulls in may then need to be
+listed in `optimizeDeps.include`. Production builds and webpack need no setting.
+Also new in this release: `import 'classicy/fonts'` is a deprecated no-op (the
+Platinum package registers its fonts), and `classicy/dist/fonts.css` no longer
+exists.
+
 Package `exports` map:
 
 | Specifier | Resolves to |

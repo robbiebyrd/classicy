@@ -38,7 +38,9 @@
 //
 // 5. PACKAGE ASSETS MUST EMIT AS FILES. dist/assets/ holds exactly the 13
 //    Platinum .woff2 fonts plus the Platinum art (svg/png), and the ES bundle
-//    resolves them with `new URL("assets/...", import.meta.url)`.
+//    resolves them with `new URL("assets/...", import.meta.url)`. They ship
+//    exactly as authored: no .webp, only .woff2/.svg/.png references, and a
+//    shipped SVG byte-identical to its source.
 
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -201,15 +203,51 @@ if (!argv.slice(2).length) {
 			`${join(DIST, "assets")}: ${fonts.length} .woff2 font(s), ${art.length} .svg/.png file(s)`,
 		);
 	}
+	// Package assets ship exactly as authored: the image plugin must not have
+	// rewritten them to WebP or run svgo over them (Part E uses the art as CSS
+	// masks, and svgo's removeViewBox breaks that).
+	const webp = assets.filter((f) => f.endsWith(".webp"));
+	if (webp.length) {
+		failed = true;
+		console.error(
+			`${join(DIST, "assets")}: ${webp.length} .webp file(s) (${webp.join(", ")}) -> the image plugin rewrote package art; check \`excludes\` on VitePluginImageTools in vite.config.ts.`,
+		);
+	}
 	const es = join(DIST, "classicy.es.js");
 	const esSource = await readFile(es, "utf8");
-	if (!esSource.includes('new URL("assets/')) {
+	const refs = [...esSource.matchAll(/new URL\("(assets\/[^"]*)"/g)].map(
+		(m) => m[1],
+	);
+	const strays = [...new Set(refs)].filter(
+		(r) => !/\.(woff2|svg|png)$/.test(r),
+	);
+	if (refs.length === 0) {
 		failed = true;
 		console.error(
 			`${es}: no \`new URL("assets/\` reference -> package assets are not resolved relative to the bundle.`,
 		);
+	} else if (strays.length) {
+		failed = true;
+		console.error(
+			`${es}: asset reference(s) to unexpected file types: ${strays.join(", ")}`,
+		);
 	} else {
-		console.log(`${es}: resolves file assets relative to the bundle`);
+		console.log(
+			`${es}: ${refs.length} file asset reference(s), all as authored`,
+		);
+	}
+	const svgSource = "src/Appearance/Platinum/assets/art/slider-strikes.svg";
+	const [authored, shipped] = await Promise.all([
+		readFile(svgSource).catch(() => null),
+		readFile(join(DIST, "assets", "slider-strikes.svg")).catch(() => null),
+	]);
+	if (authored === null || shipped === null || !authored.equals(shipped)) {
+		failed = true;
+		console.error(
+			`${join(DIST, "assets", "slider-strikes.svg")}: differs from ${svgSource} (or is missing) -> package SVGs must ship byte-for-byte.`,
+		);
+	} else {
+		console.log("dist/assets/slider-strikes.svg: byte-identical to its source");
 	}
 }
 

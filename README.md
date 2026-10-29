@@ -14,6 +14,26 @@ A UI framework using native CSS/JS replications of the Mac OS 8 interface compon
 
 ### [See our Storybook collection here!](https://demo.classicy.ing/storybook/)
 
+## Using Classicy in a Vite app
+
+Importing `classicy` injects its stylesheet; its fonts and art are files in
+`dist/assets/`. **Breaking change for Vite consumers:** Vite's dev server
+pre-bundles dependencies into `node_modules/.vite/deps/`, which breaks those
+file URLs (fonts and art return the SPA fallback page). Exclude classicy from
+the pre-bundle:
+
+```ts
+// vite.config.ts
+export default defineConfig({
+  optimizeDeps: { exclude: ["classicy"] },
+})
+```
+
+Any CommonJS dependency classicy pulls in may then need to go in
+`optimizeDeps.include`. Production builds and webpack need no setting.
+`import "classicy/fonts"` is now a deprecated no-op (the Platinum package
+registers its fonts), and `classicy/dist/fonts.css` is gone.
+
 ## Building and running on localhost
 
 This project uses [pnpm](https://pnpm.io/) (enable it with `corepack enable`). First install dependencies:
