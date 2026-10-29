@@ -3,12 +3,13 @@ id: 0015-uth
 title: 'G 3.1: readClassicyThemeVar and ClassicyWindow geometry'
 purpose: Give JS one way to read a theme metric from CSS and route the window's menu-bar height, zoom margin and resize inset through it instead of hard-coded numbers.
 type: impr
-status: in_progress
+status: complete
 priority: "2"
 effort: M
 created: "2026-10-28T19:57:13.886Z"
-updated: "2026-10-29T16:53:58.662Z"
+updated: "2026-10-29T17:38:48.998Z"
 started: "2026-10-29T16:53:57.937Z"
+completed: "2026-10-29T17:38:48.998Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -34,15 +35,15 @@ links:
     - ["0004-vqt", "included", ["3.1"]]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
   "5":
-    status: pending
+    status: complete
 ---
 
 # G 3.1: readClassicyThemeVar and ClassicyWindow geometry
@@ -79,10 +80,10 @@ This story adds `ClassicyThemeMetricReader.ts` (`classicyDefaultThemeVarPx`, `re
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Window/ClassicyWindow.geometry.test.ts src/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader.test.ts
-- [ ] VERIFY: grep -n 'menuBarHeight = 30\|margin = 8\|+ 5;' src/SystemFolder/SystemResources/Window/ClassicyWindow.tsx | wc -l   # 0
-- [ ] `readClassicyThemeVar` reads `#classicyDesktop`'s computed custom property and falls back to the default theme's emitted value (30 for `--menu-bar-height`) when the desktop or the value is missing.
-- [ ] `ClassicyWindow.hig.test.tsx` still expects position `[8, 38]`; zoom, placement and resize behave as before under Platinum.
+- [x] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Window/ClassicyWindow.geometry.test.ts src/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader.test.ts
+- [x] VERIFY: grep -n 'menuBarHeight = 30\|margin = 8\|+ 5;' src/SystemFolder/SystemResources/Window/ClassicyWindow.tsx | wc -l   # 0
+- [x] `readClassicyThemeVar` reads `#classicyDesktop`'s computed custom property and falls back to the default theme's emitted value (30 for `--menu-bar-height`) when the desktop or the value is missing.
+- [x] `ClassicyWindow.hig.test.tsx` still expects position `[8, 38]`; zoom, placement and resize behave as before under Platinum.
 
 ## Files
 
@@ -97,3 +98,5 @@ This story adds `ClassicyThemeMetricReader.ts` (`classicyDefaultThemeVarPx`, `re
 ## Work Log
 
 ### 2026-10-29T16:53:58.662Z - Started ahead of its depends story 0014-2b5 (G 2.2, the SCSS readers), which waits for Part B per ruling G11; 3.1 is TypeScript-only and needs only 2.1's emitted variables (--menu-bar-height, --window-zoom-margin, --window-resize-inset). Ruling G6 applied to the contract (0002-ldj amendments): readClassicyThemeVar(name, fallback?, el?). Binding notes: lazily cached default-theme fallback, resize inset read once per gesture, reader kept out of reducer-side imports. Base 531e283bd on feat/appearance-part-g; implementer dispatched. Parity deferred until after B lands.
+
+### 2026-10-29T17:38:40.872Z - Done on feat/appearance-part-g, 531e283bd..28f7b1b15: 69335b80e (ClassicyThemeMetricReader.ts: classicyDefaultThemeVarPx + readClassicyThemeVar(name, fallback?, el?) per ruling G6, lazy default-theme cache; ClassicyWindow menu-bar height ×4, zoom margin and resize inset routed through it; resize inset read once per gesture; balloon readControlSize delegates — 0→12 when unset, named in the commit body), 7490340c9 (review round 1: ruling G14 — any finite value >= 0 is a value, so F's window-mode 0px is honored; the menu-bar height is held in state and re-read in a layout effect per active theme, so a drag does 0 style reads (was 110); ??= inset; collapsed comment corrected; React changeWindow resize path tested), 28f7b1b15 (review round 2: the seed and the effect fall back to the active theme's height, so a window registers against the active theme on the boot render; default size props hoisted to module constants, so a drag does 0 clientWidth/clientHeight reads (was 44); drag assertion toBe(0)). No hard-coded 30/8/5 left (grep 0). Reader imported only by ClassicyWindow, useClassicyBalloonHelp and the barrel (never reducer-side). ClassicyWindow.hig.test.tsx still zooms to [8, 38]. Reviews: Needs fixes (I2 M5) → Approved (M2) → Approved (C0 I0 M0). Gate on 28f7b1b15: lint, tsc, 333 files / 3932 tests, build:source + verify:dist; controller re-ran Window + reader (26 files / 176 tests). Notes for Part F recorded in the F reconciliation: add the layout menuBar.placement to the seed and the layout-effect key. Completed ahead of its depends story 0014-2b5 (G 2.2, waits for Part B per G11). Parity deferred until after B lands (Platinum values equal the old constants).

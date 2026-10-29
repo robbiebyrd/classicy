@@ -3,11 +3,18 @@ id: 0016-a5c
 title: 'G 3.2: Icon-grid math reads --desktop-icon-*'
 purpose: Make the desktop and Finder icon-grid math read `--desktop-icon-size`, `--desktop-icon-padding` and `--desktop-icon-cell` from CSS instead of bypassing the theme variables.
 type: impr
-status: pending
+status: in_progress
 priority: "2"
 effort: S
 created: "2026-10-28T19:57:42.338Z"
-updated: "2026-10-28T19:57:42.338Z"
+updated: "2026-10-29T17:39:26.806Z"
+started: "2026-10-29T17:39:26.806Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy
@@ -83,3 +90,5 @@ Audit §3.2: `getIconSize` (ClassicyDesktopIconContext.tsx:46-48), `iconGridLatt
 - `src/SystemFolder/SystemResources/File/ClassicyFileBrowserUtils.test.ts` - add two cases (create if absent)
 
 ## Work Log
+
+### 2026-10-29T17:39:19.350Z - Started beside Part B by controller decision (ruling G11: 3.2 is TypeScript-only; B touches no file it edits). Ruling G7 binds: reducer paths compute icon geometry from the theme in state (pure getThemeVars/derivations), never the DOM; only render/handler code uses readClassicyThemeVar. Base 28f7b1b15 on feat/appearance-part-g (3.1 complete); implementer dispatched. Parity deferred until after B lands.
