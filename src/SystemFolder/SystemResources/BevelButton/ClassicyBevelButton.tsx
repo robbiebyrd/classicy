@@ -15,10 +15,8 @@ import {
 	useRef,
 	useState,
 } from "react";
-import {
-	type ClassicyState,
-	classicyStateClasses,
-} from "@/Appearance/vocabulary/ClassicyVocabulary";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import type { ClassicyState } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import { ClassicyBevelButtonPopup } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopup";
@@ -269,6 +267,7 @@ export const ClassicyBevelButton: FunctionalComponent<
 	"aria-haspopup": callerAriaHasPopup,
 	"aria-expanded": callerAriaExpanded,
 	"aria-controls": callerAriaControls,
+	style,
 	...rest
 }) => {
 	const player = useSoundDispatch();
@@ -306,6 +305,25 @@ export const ClassicyBevelButton: FunctionalComponent<
 	const releaseListenerRef = useRef<
 		((e: globalThis.MouseEvent) => void) | null
 	>(null);
+	const appearance = useClassicyAppearance(
+		"BevelButton",
+		bevelButtonStates(
+			disabled,
+			mixed,
+			pressed || popupOpen,
+			onState,
+			popupOpen,
+		),
+		buttonRef,
+	);
+	// `close` follows the surface going away, whichever path dismissed it.
+	const wasPopupOpenRef = useRef(popupOpen);
+	const emitAppearance = appearance.emit;
+	useEffect(() => {
+		if (wasPopupOpenRef.current === popupOpen) return;
+		wasPopupOpenRef.current = popupOpen;
+		if (!popupOpen) emitAppearance("close");
+	}, [popupOpen, emitAppearance]);
 
 	const clearHoldTimer = useCallback(() => {
 		if (holdTimerRef.current !== null) {
@@ -332,6 +350,7 @@ export const ClassicyBevelButton: FunctionalComponent<
 			right: rect.right - (popupAnchorInset?.right ?? 0),
 		});
 		player({ type: "ClassicySoundPlay", sound: "ClassicyMenuOpen" });
+		appearance.emit("open", { trigger });
 		track("open", { type: "ClassicyBevelButton", mode, trigger });
 	};
 
@@ -379,15 +398,6 @@ export const ClassicyBevelButton: FunctionalComponent<
 
 	const showArrow =
 		(mode === "popup" || hasSurface) && popupArrow !== undefined;
-	const stateClasses = classicyStateClasses(
-		bevelButtonStates(
-			disabled,
-			mixed,
-			pressed || popupOpen,
-			onState,
-			popupOpen,
-		),
-	);
 
 	const onHandleFunc = (e: MouseEvent<HTMLButtonElement>) => {
 		if (disabled) return;
@@ -395,6 +405,7 @@ export const ClassicyBevelButton: FunctionalComponent<
 			suppressClickRef.current = false;
 			return;
 		}
+		appearance.emit("click");
 		// A click with no pointer behind it (detail 0) is Enter or Space: with a
 		// click trigger that is how the keyboard opens and closes the surface.
 		if (hasSurface && trigger === "click" && e.detail === 0) {
@@ -447,6 +458,7 @@ export const ClassicyBevelButton: FunctionalComponent<
 		<>
 			{/* biome-ignore lint/a11y/useAriaPropsSupportedByRole: aria-checked is only set when role="radio" (mode="radio"); the role is dynamic so static analysis can't prove it */}
 			<button
+				{...appearance.attrs}
 				{...rest}
 				ref={buttonRef}
 				type="button"
@@ -477,7 +489,7 @@ export const ClassicyBevelButton: FunctionalComponent<
 				}
 				className={classNames(
 					"classicyBevelButton",
-					stateClasses,
+					appearance.className,
 					isSquare && "classicyBevelButtonSquare",
 					bevelWidthClass[bevelWidth],
 					`classicyBevelButtonMode${mode.charAt(0).toUpperCase()}${mode.slice(1)}`,
@@ -485,11 +497,13 @@ export const ClassicyBevelButton: FunctionalComponent<
 					// className above would otherwise silently overwrite.
 					className,
 				)}
+				style={appearance.style ? { ...appearance.style, ...style } : style}
 				onClick={onHandleFunc}
 				onKeyDown={onKeyDown}
 				onMouseDown={(e) => {
 					if (disabled) return;
 					setPressed(true);
+					appearance.emit("press");
 					player({
 						type: "ClassicySoundPlay",
 						sound: "ClassicyButtonClickDown",
@@ -500,6 +514,7 @@ export const ClassicyBevelButton: FunctionalComponent<
 					if (disabled) return;
 					clearHoldTimer();
 					setPressed(false);
+					appearance.emit("release");
 					player({ type: "ClassicySoundPlay", sound: "ClassicyButtonClickUp" });
 				}}
 				// If the pointer leaves while held, a push button reverts to off. A

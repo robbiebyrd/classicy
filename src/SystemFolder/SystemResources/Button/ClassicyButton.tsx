@@ -7,11 +7,12 @@ import {
 	type MouseEvent,
 	type MouseEventHandler,
 	type PropsWithChildren,
+	useCallback,
 	useEffect,
 	useRef,
 	useState,
 } from "react";
-import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
@@ -115,6 +116,7 @@ export const ClassicyButton = forwardRef<
 			onKeyDown,
 			onKeyUp,
 			className,
+			style,
 			...rest
 		},
 		ref,
@@ -140,7 +142,25 @@ export const ClassicyButton = forwardRef<
 			[],
 		);
 
+		// The root element for the appearance hook, merged with the forwarded
+		// ref so callers keep receiving the <button>.
+		const buttonRef = useRef<HTMLButtonElement | null>(null);
+		const setButtonRef = useCallback(
+			(el: HTMLButtonElement | null) => {
+				buttonRef.current = el;
+				if (typeof ref === "function") ref(el);
+				else if (ref) ref.current = el;
+			},
+			[ref],
+		);
+		const appearance = useClassicyAppearance(
+			"Button",
+			{ default: isDefault, pressed: depressed || keyActive },
+			buttonRef,
+		);
+
 		const onHandleFunc = (e: MouseEvent<HTMLButtonElement>) => {
+			appearance.emit("click");
 			track("click", { ...analyticsArgs });
 			if (onClickFunc) {
 				onClickFunc(e);
@@ -150,6 +170,7 @@ export const ClassicyButton = forwardRef<
 		const handleKeyDown = (e: KeyboardEvent<HTMLButtonElement>) => {
 			if (!disabled && !e.repeat && isActivationKey(e.key)) {
 				setKeyActive(true);
+				appearance.emit("press");
 				player({ type: "ClassicySoundPlay", sound: "ClassicyButtonClickDown" });
 				if (keyTimer.current) clearTimeout(keyTimer.current);
 				keyTimer.current = setTimeout(() => setKeyActive(false), KEY_ACTIVE_MS);
@@ -159,6 +180,7 @@ export const ClassicyButton = forwardRef<
 
 		const handleKeyUp = (e: KeyboardEvent<HTMLButtonElement>) => {
 			if (!disabled && isActivationKey(e.key)) {
+				appearance.emit("release");
 				player({ type: "ClassicySoundPlay", sound: "ClassicyButtonClickUp" });
 			}
 			onKeyUp?.(e);
@@ -166,16 +188,14 @@ export const ClassicyButton = forwardRef<
 
 		return (
 			<button
+				{...appearance.attrs}
 				{...rest}
-				ref={ref}
+				ref={setButtonRef}
 				type={buttonType}
 				tabIndex={0}
 				className={classNames(
 					"classicyButton",
-					classicyStateClasses({
-						default: isDefault,
-						pressed: depressed || keyActive,
-					}),
+					appearance.className,
 					buttonShape === "square" ? "classicyButtonShapeSquare" : "",
 					buttonSize === "small" ? "classicyButtonSmall" : "",
 					keyActive ? "classicyButtonKeyActive" : "",
@@ -183,15 +203,18 @@ export const ClassicyButton = forwardRef<
 					marginVariantClass[margin],
 					className,
 				)}
+				style={appearance.style ? { ...appearance.style, ...style } : style}
 				aria-pressed={depressed || keyActive || undefined}
 				onClick={onHandleFunc}
 				onMouseDown={() => {
+					appearance.emit("press");
 					player({
 						type: "ClassicySoundPlay",
 						sound: "ClassicyButtonClickDown",
 					});
 				}}
 				onMouseUp={() => {
+					appearance.emit("release");
 					player({ type: "ClassicySoundPlay", sound: "ClassicyButtonClickUp" });
 				}}
 				onKeyDown={handleKeyDown}

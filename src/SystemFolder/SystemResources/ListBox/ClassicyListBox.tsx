@@ -2,12 +2,14 @@ import "./ClassicyListBox.scss";
 import classNames from "classnames";
 import {
 	type CSSProperties,
+	type FocusEvent,
 	type FC as FunctionalComponent,
 	type KeyboardEvent as ReactKeyboardEvent,
 	useMemo,
 	useRef,
 	useState,
 } from "react";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import {
 	ClassicyControlLabel,
@@ -120,6 +122,19 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 		handleNavKey,
 	} = useListNavigation(navRows);
 
+	const rootRef = useRef<HTMLDivElement>(null);
+	const appearance = useClassicyAppearance("ListBox", { disabled }, rootRef);
+	// Focus moving between rows stays inside the list: only focus entering
+	// from, or leaving to, outside the list is a focus or blur of the list.
+	const isInsideList = (target: EventTarget | null) =>
+		target instanceof Node && !!rootRef.current?.contains(target);
+	const handleFocus = (e: FocusEvent<HTMLDivElement>) => {
+		if (!isInsideList(e.relatedTarget)) appearance.emit("focus");
+	};
+	const handleBlur = (e: FocusEvent<HTMLDivElement>) => {
+		if (!isInsideList(e.relatedTarget)) appearance.emit("blur");
+	};
+
 	const commit = (values: string[]) => {
 		setInternal(values);
 		onChangeFunc?.(values);
@@ -185,6 +200,8 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 
 	const listbox = (
 		<div
+			{...appearance.attrs}
+			ref={rootRef}
 			id={id}
 			role="listbox"
 			aria-multiselectable={selectionMode === "multi" || undefined}
@@ -192,7 +209,7 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 			aria-disabled={disabled || undefined}
 			className={classNames(
 				"classicyListBox",
-				classicyStateClasses({ disabled }),
+				appearance.className,
 				label ? "" : className,
 			)}
 			style={{
@@ -201,9 +218,12 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 							"--classicy-listbox-visible-rows": visibleRows,
 						} as CSSProperties)
 					: {}),
+				...appearance.style,
 				...(label ? {} : style),
 			}}
 			onKeyDown={handleKeyDown}
+			onFocus={handleFocus}
+			onBlur={handleBlur}
 		>
 			{options.map((o, index) => {
 				const isSelected = effectiveSelected.includes(o.value);
@@ -229,6 +249,7 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 							// tabindexed elements) so keyboard nav continues from it.
 							selectRow(o.value);
 							applySelection(index, e);
+							appearance.emit("select", { value: o.value });
 						}}
 						onDoubleClick={() => {
 							if (!disabled && !o.disabled) onActivateFunc?.(o.value);
