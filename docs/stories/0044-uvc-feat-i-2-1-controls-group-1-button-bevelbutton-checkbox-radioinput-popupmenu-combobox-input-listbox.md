@@ -3,11 +3,18 @@ id: 0044-uvc
 title: 'I 2.1: Controls group 1: Button, BevelButton, Checkbox, RadioInput, PopUpMenu, ComboBox, Input, ListBox'
 purpose: Wire useClassicyAppearance into the eight basic control roots so a package can decorate them and receive their press, release, click, open, close, change, focus, blur and select events.
 type: feat
-status: pending
+status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T20:17:02.861Z"
-updated: "2026-10-28T20:17:02.861Z"
+updated: "2026-10-29T17:30:58.233Z"
+started: "2026-10-29T17:30:58.233Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy
@@ -112,3 +119,5 @@ Re-shoot ids starting with controls-button, controls-bevelbutton, controls-check
 - `src/SystemFolder/SystemResources/ListBox/ClassicyListBox.appearance.test.tsx` - create
 
 ## Work Log
+
+### 2026-10-29T17:30:49.037Z - Started beside Part B by controller decision (I reconciliation marks the 2.x code safe early: B's remaining work is SCSS-only apart from 5.1's decorator and docs). Ruling I-R4 binds strictly: each component passes the hook exactly today's state object, so class lists and the forced-state matrix are unchanged. Base e0f358082 on feat/appearance-part-i; implementer dispatched. Parity deferred until after Part B lands. Depends story 0043-u43 (I 1.1) is complete.
