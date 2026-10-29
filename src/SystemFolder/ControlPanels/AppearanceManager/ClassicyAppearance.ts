@@ -4,7 +4,10 @@ import {
 	intToPct,
 	intToPx,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicySize";
-import { withDefaultThemeMetrics } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
+import {
+	classicyMeasurementVars,
+	withDefaultThemeMetrics,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import { resolveWallpaper } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 import type { ClassicyStoreSystemManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import type { ClassicyThemeSound } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
@@ -94,7 +97,8 @@ export type ClassicyThemeTypography = {
 
 /**
  * Theme metrics, grouped per control family. Every value is a whole number of
- * CSS pixels. These are the *inputs*; `getThemeVars` derives the rest
+ * CSS pixels. These are the *inputs* (`classicyMeasurementVars` emits each as
+ * `--<family>-<key>`); `getThemeVars` derives the rest
  * (frames, bevels, edit-field height, …) from them. Platinum defaults live in
  * `CLASSICY_DEFAULT_THEME_METRICS` (`ClassicyThemeMetrics.ts`).
  */
@@ -145,12 +149,23 @@ export type ClassicyThemeMeasurementsLayout = {
 	dialogEdge: number;
 };
 
-export type ClassicyThemeMeasurements = {
+/** The five metric families every theme carries (the Platinum layout). */
+export type ClassicyThemeCoreMeasurements = {
 	window: ClassicyThemeMeasurementsWindow;
 	control: ClassicyThemeMeasurementsControl;
 	button: ClassicyThemeMeasurementsButton;
 	groupBox: ClassicyThemeMeasurementsGroupBox;
 	layout: ClassicyThemeMeasurementsLayout;
+};
+
+/**
+ * The core families plus any family an Appearance Package adds
+ * (`controlStrip`, `menuFrame`, …): family → key → whole CSS pixels. Every
+ * numeric leaf becomes `--<family>-<key>` (kebab-case) on the desktop root
+ * (`classicyMeasurementVars`).
+ */
+export type ClassicyThemeMeasurements = ClassicyThemeCoreMeasurements & {
+	[family: string]: Record<string, number>;
 };
 
 export type ClassicyThemeDesktop = {
@@ -179,6 +194,11 @@ export const getThemeVars = (theme: ClassicyTheme) => {
 	const m = theme.measurements;
 	const border = m.window.borderSize;
 	return {
+		// --- Layout metrics: every theme input under `measurements.<family>`
+		// as `--<family>-<key>` (the core families' Platinum defaults are Mac
+		// OS 8 HIG Ch. 3 "Layout Guidelines"; a package may add families).
+		// First, so a package family can never override a variable below.
+		...classicyMeasurementVars(m),
 		"--color-black": intToHex(theme.color.black),
 		"--color-white": intToHex(theme.color.white),
 		"--color-alert": intToHex(theme.color.alert),
@@ -197,10 +217,6 @@ export const getThemeVars = (theme: ClassicyTheme) => {
 		"--color-theme-05": intToHex(theme.color.theme[4]),
 		"--color-theme-06": intToHex(theme.color.theme[5]),
 		"--color-theme-07": intToHex(theme.color.theme[6]),
-		"--window-control-size": intToPx(theme.measurements.window.controlSize),
-		"--window-border-size": intToPx(theme.measurements.window.borderSize),
-		"--window-padding-size": intToPx(theme.measurements.window.paddingSize),
-		"--window-scrollbar-size": intToPx(theme.measurements.window.scrollbarSize),
 		// Stripe unit of the scrollbar arrow glyphs; scales with the scrollbar.
 		"--window-scrollbar-arrow-size": intToPx(
 			theme.measurements.window.scrollbarSize / 4,
@@ -238,34 +254,10 @@ export const getThemeVars = (theme: ClassicyTheme) => {
 			typeof theme.desktop.backgroundSize === "number"
 				? intToPct(theme.desktop.backgroundSize)
 				: theme.desktop.backgroundSize,
-		// --- Layout metrics (theme inputs under `measurements.<family>`; the
-		// Platinum defaults are Mac OS 8 HIG Ch. 3 "Layout Guidelines").
-		// Windows.
-		"--window-title-bar-height": intToPx(m.window.titleBarHeight),
-		"--window-utility-title-bar-height": intToPx(
-			m.window.utilityTitleBarHeight,
-		),
-		// Controls.
-		"--control-height": intToPx(m.control.height),
-		"--control-label-gap": intToPx(m.control.labelGap),
-		"--control-static-text-height": intToPx(m.control.staticTextHeight),
-		// Push buttons (height is the standard control height).
-		"--button-height": intToPx(m.control.height),
-		"--button-min-width": intToPx(m.button.minWidth),
-		"--button-text-padding": intToPx(m.button.textPadding),
-		"--button-gap": intToPx(m.button.gap),
-		// Group boxes.
-		"--group-box-margin-side": intToPx(m.groupBox.marginSide),
-		"--group-box-margin-top": intToPx(m.groupBox.marginTop),
-		"--group-box-margin-bottom": intToPx(m.groupBox.marginBottom),
-		"--group-box-title-pad": intToPx(m.groupBox.titlePad),
-		"--group-box-gap": intToPx(m.groupBox.gap),
-		// Generic spacing.
-		"--layout-item-gap": intToPx(m.layout.itemGap),
-		"--layout-group-gap": intToPx(m.layout.groupGap),
-		"--layout-dialog-edge": intToPx(m.layout.dialogEdge),
 		// --- Derived metrics: structural relationships, computed from the
-		// inputs above so a theme that changes an input gets them for free.
+		// inputs so a theme that changes an input gets them for free.
+		// Push buttons: the standard control height.
+		"--button-height": intToPx(m.control.height),
 		// A frame is two borders; bevels are 2/3/4 borders deep.
 		"--control-frame-width": intToPx(border * 2),
 		"--control-bevel-sm": intToPx(border * 2),

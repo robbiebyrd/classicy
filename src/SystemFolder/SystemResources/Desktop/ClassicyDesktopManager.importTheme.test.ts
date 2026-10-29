@@ -1,5 +1,9 @@
 import { castDraft, produce } from "immer";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+} from "@/Appearance/ClassicyAppearancePackageRegistry";
 import {
 	type ClassicyTheme,
 	getTheme,
@@ -220,5 +224,48 @@ describe("ClassicyDesktopImportTheme", () => {
 		warn.mockRestore();
 		expect(appearance(state).customThemes ?? []).toHaveLength(0);
 		expect(appearance(state).activeTheme.id).toBe("default");
+	});
+});
+
+describe("ClassicyDesktopImportTheme — appearance packages", () => {
+	afterEach(() => {
+		resetClassicyAppearancePackagesForTests();
+		vi.restoreAllMocks();
+	});
+
+	it("refuses an uninstalled package with the error dialog", () => {
+		vi.spyOn(console, "warn").mockImplementation(() => {});
+		const before = makeStore();
+		const state = run(before, importTheme(fileTheme({ package: "irix" })));
+		expect(appearance(state).customThemes ?? []).toEqual(
+			appearance(before).customThemes ?? [],
+		);
+		expect(appearance(state).activeTheme).toEqual(
+			appearance(before).activeTheme,
+		);
+		expect(state.System.Manager.Desktop.errorDialog).toEqual({
+			title: "Appearance",
+			message:
+				'This theme needs the "irix" appearance package, which is not installed.',
+		});
+	});
+
+	it("accepts a registered package", () => {
+		registerClassicyAppearancePackage({
+			id: "irix",
+			name: "IRIX",
+			css: "",
+			defaults: { ...structuredClone(getTheme("azul")), package: "irix" },
+			layout: {
+				window: { growBoxCorner: "bottom-right" },
+				menuBar: { placement: "screen" },
+				desktop: { iconGridOrigin: "top-right" },
+			},
+		});
+		const state = run(makeStore(), importTheme(fileTheme({ package: "irix" })));
+		expect(appearance(state).customThemes).toHaveLength(1);
+		expect(appearance(state).activeTheme.id).toBe("custom-ocean");
+		expect(appearance(state).activeTheme.package).toBe("irix");
+		expect(state.System.Manager.Desktop.errorDialog ?? null).toBeNull();
 	});
 });

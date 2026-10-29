@@ -86,4 +86,20 @@ describe("withDefaultThemeMetrics", () => {
 			expect(withDefaultThemeMetrics(theme)).toBe(theme);
 		}
 	});
+
+	it("keeps a package measurement family when filling the core groups", () => {
+		const theme = windowOnlyTheme();
+		theme.measurements = {
+			...theme.measurements,
+			controlStrip: { cellHeight: 22, moduleWidth: 30 },
+		};
+		const filled = withDefaultThemeMetrics(theme);
+		expect(filled.measurements.controlStrip).toEqual({
+			cellHeight: 22,
+			moduleWidth: 30,
+		});
+		expect(filled.measurements.layout).toEqual(
+			CLASSICY_DEFAULT_THEME_METRICS.layout,
+		);
+	});
 });

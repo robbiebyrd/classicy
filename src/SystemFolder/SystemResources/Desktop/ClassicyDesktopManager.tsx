@@ -338,7 +338,16 @@ export const classicyDesktopEventHandler = (
 			// strips undeclared keys and resolves the wallpaper for this build.
 			if (!hasImportableTheme(action)) break;
 			const read = readClassicyTheme(action.theme);
-			if (!read.ok) break;
+			if (!read.ok) {
+				// A valid theme can still be refused (its Appearance Package is
+				// not installed): say why instead of ignoring the import.
+				classicyLog("warn", "ClassicyAppearance", read.error);
+				ds.System.Manager.Desktop.errorDialog = {
+					title: "Appearance",
+					message: read.error,
+				};
+				break;
+			}
 			const appearance = ds.System.Manager.Appearance;
 			// Always a new entry: the payload's id is ignored, so an import
 			// can never overwrite an existing custom theme or shadow a built-in.
