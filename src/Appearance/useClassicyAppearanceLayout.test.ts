@@ -8,6 +8,7 @@ import {
 	type ClassicyAppearanceLayout,
 	registerClassicyAppearancePackage,
 	resetClassicyAppearancePackagesForTests,
+	resolveClassicyAppearancePackage,
 } from "@/Appearance/ClassicyAppearancePackage";
 import {
 	CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
@@ -78,6 +79,26 @@ describe("getClassicyAppearanceLayout", () => {
 		expect(getClassicyAppearanceLayout("irix")).toBe(
 			CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
 		));
+
+	it("resolves by the package rule: the id, the registered default, the fallback (J-R16)", () => {
+		for (const id of ["mirror", "platinum", "irix"])
+			expect(getClassicyAppearanceLayout(id), id).toBe(
+				resolveClassicyAppearancePackage(id).layout,
+			);
+		registerClassicyAppearancePackage({
+			id: "platinum",
+			name: "Platinum",
+			css: "",
+			defaults: getTheme("default"),
+			layout: MIRROR,
+		});
+		expect(getClassicyAppearanceLayout("irix")).toBe(MIRROR);
+		registerMirror();
+		for (const id of ["mirror", "platinum", "irix"])
+			expect(getClassicyAppearanceLayout(id), id).toBe(
+				resolveClassicyAppearancePackage(id).layout,
+			);
+	});
 
 	it("reads the active package from the store when no id is given", () => {
 		registerMirror();

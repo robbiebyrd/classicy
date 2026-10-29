@@ -1,11 +1,8 @@
 import { useSyncExternalStore } from "react";
-import {
-	CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
-	CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID,
-} from "./ClassicyAppearanceDefaults";
+import { CLASSICY_DEFAULT_APPEARANCE_LAYOUT } from "./ClassicyAppearanceDefaults";
 import type { ClassicyAppearanceLayout } from "./ClassicyAppearancePackage";
 import {
-	getClassicyAppearancePackage,
+	getRegisteredClassicyAppearancePackageOrDefault,
 	subscribeClassicyAppearancePackages,
 } from "./ClassicyAppearancePackageRegistry";
 import { getClassicyAssetPackageSource } from "./ClassicyAssetPackageSource.internal";
@@ -24,19 +21,17 @@ export { CLASSICY_DEFAULT_APPEARANCE_LAYOUT } from "./ClassicyAppearanceDefaults
  * The layout of `packageId`'s package, or of the active package when no id
  * is given (the store's `packageId`, read at call time); an unregistered id
  * falls back to the default package's layout, then to
- * `CLASSICY_DEFAULT_APPEARANCE_LAYOUT`. Store-free, for reducers and effects
- * (a reducer passes the id from its draft); components use
+ * `CLASSICY_DEFAULT_APPEARANCE_LAYOUT` (the rule of
+ * `getRegisteredClassicyAppearancePackageOrDefault`, which
+ * `resolveClassicyAppearancePackage` shares). Store-free, for reducers and
+ * effects (a reducer passes the id from its draft); components use
  * `useClassicyAppearanceLayout`.
  */
 export const getClassicyAppearanceLayout = (
 	packageId?: string,
 ): ClassicyAppearanceLayout =>
-	(
-		getClassicyAppearancePackage(
-			packageId ??
-				getClassicyAssetPackageSource()?.getId() ??
-				CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID,
-		) ?? getClassicyAppearancePackage(CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID)
+	getRegisteredClassicyAppearancePackageOrDefault(
+		packageId ?? getClassicyAssetPackageSource()?.getId(),
 	)?.layout ?? CLASSICY_DEFAULT_APPEARANCE_LAYOUT;
 
 // The asset registry follows the active package id (and the store's
