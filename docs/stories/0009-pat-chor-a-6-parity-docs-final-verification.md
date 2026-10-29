@@ -3,11 +3,12 @@ id: 0009-pat
 title: 'A 6: Parity, docs, final verification'
 purpose: Prove Part A left Platinum pixel-identical, document the vocabulary and cascade layers, and run the full gate before the branch is finished.
 type: chor
-status: pending
+status: in_progress
 priority: "2"
 effort: S
 created: "2026-10-28T19:52:33.565Z"
-updated: "2026-10-28T19:52:33.565Z"
+updated: "2026-10-29T06:28:34.084Z"
+started: "2026-10-29T06:28:34.001Z"
 links:
   repo:
     local: ~/classicy
@@ -42,7 +43,7 @@ progress:
 
 ## Problem Statement
 
-Umbrella 0002-ldj: every part re-shoots its parity set and must end pixel-identical for Platinum unless it names a visual change; Part A names none. After A 2.1–A 5.1 the state classes, `!important` removal and `@layer` wrapping must be verified against the A 0 baseline, and the new vocabulary (state classes, `CLASSICY_STATE`/`classicyStateClasses`, `classicy-state()`, part attributes, `className`/`style` rule, layer order) documented for app authors in `docs/AGENT-REFERENCE.md` and `CLAUDE.md`. The audit's §9 item 6 claim that `classicyWindowInvisible` is dead is corrected.
+Umbrella 0002-ldj: every part re-shoots its parity set and must end pixel-identical for Platinum unless it names a visual change; Part A names none. After A 2.1–A 5.1 the state classes, `!important` removal and `@layer` wrapping must be verified against the A 0 baseline, and the new vocabulary (state classes, `CLASSICY_STATE`/`classicyStateClasses`, `classicy-state()`, part attributes, `className`/`style` rule, layer order) documented for app authors in `docs/AGENT-REFERENCE.md` and `CLAUDE.md`. The audit's §9 item 6 is brought up to date: `classicyWindowZoomed` and `block` are removed, and `classicyWindowInvisible` is confirmed unreachable (the A 4.1 review) and parked as a follow-up.
 
 **Impact:** Without the after-shots a cascade regression from 4.1/4.2/5.1 ships unnoticed; without the docs, package authors (part B) and app authors have no reference for the names they must target. Part G's first story depends on this one.
 
@@ -58,7 +59,7 @@ Restart Storybook (so the 5.1 layer plugin is active) and re-shoot every id in `
 
 ### 3: Update docs/AGENT-REFERENCE.md and docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
 
-New subsection under §4 'Vocabulary' (after 4.0): the 15 state classes with the `.classicyButton.pressed` idiom, `CLASSICY_STATE`/`classicyStateClasses`, `classicy-state()`, the three part attributes with their values, the `className`/`style` rule, and the `@layer` order (host CSS wins unlayered; a package targets `classicy.package`). Replace any `data-state` mention (`grep -n data-state docs/AGENT-REFERENCE.md`). Correct §9 item 6 of docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md: `classicyWindowInvisible` is live (closed-but-mounted windows); only `classicyWindowZoomed` and `block` were dead.
+New subsection under §4 'Vocabulary' (after 4.0): the 15 state classes with the `.classicyButton.pressed` idiom, `CLASSICY_STATE`/`classicyStateClasses`, `classicy-state()`, the three part attributes with their values, the `className`/`style` rule, and the `@layer` order (host CSS wins unlayered; a package targets `classicy.package`). Replace any `data-state` mention (`grep -n data-state docs/AGENT-REFERENCE.md`). Correct §9 item 6 of docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md: `classicyWindowZoomed` and `block` were dead and are removed; `classicyWindowInvisible` is also unreachable (the root renders only when the window is not closed, while the class is emitted only when it is closed) and is parked as a follow-up, with no behavior change in Part A.
 
 ### 4: Update CLAUDE.md
 
@@ -81,12 +82,14 @@ After the Theming section add: 'Vocabulary: shared state classes are bare and be
 - [ ] [MANUAL] Every Controls/*, Desktop/*, Dialogs/* story compares AE 0 before vs after (compare loop over .playwright-mcp/parity/part-A).
 - [ ] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test && pnpm build:source
 - [ ] VERIFY: grep -rn '!important' src --include=*.scss | wc -l  # 0; node bin/generate-vocabulary.ts --check  # exit 0
-- [ ] docs/AGENT-REFERENCE.md §4 'Vocabulary' and CLAUDE.md describe the state classes, part attributes, passthrough rule and `@layer` order; no `data-state` mention remains; the audit's `classicyWindowInvisible` claim is corrected.
+- [ ] docs/AGENT-REFERENCE.md §4 'Vocabulary' and CLAUDE.md describe the state classes, part attributes, passthrough rule and `@layer` order; no `data-state` mention remains; the audit's §9 item 6 records `classicyWindowInvisible` as unreachable and parked.
 
 ## Files
 
 - `docs/AGENT-REFERENCE.md` - §4 Vocabulary subsection; data-state mentions replaced
-- `docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md` (plan 0000-aud) - §9 item 6 correction (classicyWindowInvisible is live)
+- `docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md` (plan 0000-aud) - §9 item 6 update (classicyWindowInvisible unreachable, parked)
 - `CLAUDE.md` - Vocabulary and cascade paragraph after Theming
 
 ## Work Log
+
+### 2026-10-29T06:28:34.084Z - Started from 129c1945b: 280-story parity re-shoot, vocabulary docs, acceptance audit.

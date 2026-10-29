@@ -3,12 +3,13 @@ id: 0008-zlu
 title: 'A 5.1: @layer declaration in the injector; classicy.base wrapping plugin'
 purpose: Declare the `classicy.base, classicy.package, classicy.user` cascade layers once in the style injector and compile every component stylesheet into `classicy.base` in build, dev and Storybook.
 type: feat
-status: in_progress
+status: complete
 priority: "2"
 effort: M
 created: "2026-10-28T19:52:07.776Z"
-updated: "2026-10-29T05:34:43.551Z"
+updated: "2026-10-29T06:28:23.619Z"
 started: "2026-10-29T04:08:09.809Z"
+completed: "2026-10-29T06:28:23.619Z"
 links:
   repo:
     local: ~/classicy
@@ -28,19 +29,19 @@ links:
     - ["0003-7x7", "included", ["5.1"]]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
   "5":
-    status: pending
+    status: complete
   "6":
-    status: pending
+    status: complete
   "7":
-    status: pending
+    status: complete
 ---
 
 # A 5.1: @layer declaration in the injector; classicy.base wrapping plugin
@@ -85,10 +86,10 @@ With Storybook running, open `iframe.html?id=controls-button--default&viewMode=s
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm exec vitest run bin && pnpm build:source
-- [ ] The injected `<style id="classicy-styles">` starts with `@layer classicy.base, classicy.package, classicy.user;`; `<style id="classicy-fonts">` does not.
-- [ ] `dist/classicy.css` consists of `@layer classicy.base { … }` blocks (≥ 90) and `verify:dist` fails if the ES bundle stops embedding the order statement.
-- [ ] [MANUAL] In Storybook, `controls-button--default` renders styled and a `CSSLayerBlockRule` named `classicy.base` is present in `document.styleSheets`.
+- [x] VERIFY: pnpm exec vitest run bin && pnpm build:source
+- [x] The injected `<style id="classicy-styles">` starts with `@layer classicy.base, classicy.package, classicy.user;`; `<style id="classicy-fonts">` does not.
+- [x] `dist/classicy.css` consists of `@layer classicy.base { … }` blocks (≥ 90) and `verify:dist` fails if the ES bundle stops embedding the order statement.
+- [x] [MANUAL] In Storybook, `controls-button--default` renders styled and a `CSSLayerBlockRule` named `classicy.base` is present in `document.styleSheets`.
 
 ## Files
 
@@ -105,3 +106,5 @@ With Storybook running, open `iframe.html?id=controls-button--default&viewMode=s
 ### 2026-10-29T04:08:09.905Z - Implementation dispatched
 
 ### 2026-10-29T05:34:43.551Z - Implemented in ac4b1d9a3 (base 8d0f79c38): layer order @layer classicy.base, classicy.package, classicy.user declared in the injected stylesheet and in dist/classicy.css (after @charset); classicyCssLayerPlugin compiles every component stylesheet into classicy.base for the build, Storybook and the example's live source; computed-style identity 0 differences across 302 stories, negative control 375. In task review.
+
+### 2026-10-29T06:28:22.987Z - Complete: commits 8d0f79c38..129c1945b (ac4b1d9a3 layers; 605d723a9 order statement in dev/Storybook via head-prepend tag, host-layer docs incl. Tailwind v4 preflight in classicy.base.host; 129c1945b granular Tailwind form replaces the shorthand, per-file statement serve-only, verify:dist exactly-once). Task review clean after 2 fix rounds; identity 0 across 302 stories.

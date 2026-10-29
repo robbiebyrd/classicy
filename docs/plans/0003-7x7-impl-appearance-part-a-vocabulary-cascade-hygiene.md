@@ -6,7 +6,7 @@ status: in_progress
 priority: "2"
 effort: XL
 created: "2026-10-28T18:44:10.907Z"
-updated: "2026-10-29T04:08:10.726Z"
+updated: "2026-10-29T06:28:34.616Z"
 links:
   repo:
     local: ~/classicy
@@ -39,11 +39,11 @@ progress:
   "4.2":
     status: complete
   "5":
-    status: in_progress
+    status: complete
   "5.1":
-    status: in_progress
+    status: complete
   "6":
-    status: pending
+    status: in_progress
 ---
 
 # Part A: Vocabulary and cascade hygiene
@@ -418,7 +418,7 @@ Update the existing injector test `inserts the stylesheet once` expectation to t
 
 - [ ] Re-shoot every id in `.playwright-mcp/parity/part-A/stories.txt` into `.playwright-mcp/parity/part-A/after/` (same procedure as Phase 0; Storybook restarted after 5.1 so the layer plugin is active).
 - [ ] `for f in .playwright-mcp/parity/part-A/before/*.png; do n=$(compare -metric AE "$f" ".playwright-mcp/parity/part-A/after/$(basename "$f")" null: 2>&1); echo "$n $(basename "$f")"; done | sort -n | tail` → every line starts with `0`. Any non-zero: open both images, find the rule whose cascade changed (4.1/4.2 removed `!important`; 5.1 layered it under a host rule), fix the SCSS — never the screenshot — and re-run.
-- [ ] docs/AGENT-REFERENCE.md: new subsection under §4 'Vocabulary' (after 4.0): the 15 state classes with the `.classicyButton.pressed` idiom, `CLASSICY_STATE`/`classicyStateClasses`, `classicy-state()`, the three part attributes with their values, the `className`/`style` rule, and the `@layer` order (host CSS wins unlayered; a package targets `classicy.package`). Replace any `data-state` mention (`grep -n data-state docs/AGENT-REFERENCE.md`). Correct §9 item 6 of docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md: `classicyWindowInvisible` is live (closed-but-mounted windows), only `classicyWindowZoomed` and `block` were dead.
+- [ ] docs/AGENT-REFERENCE.md: new subsection under §4 'Vocabulary' (after 4.0): the 15 state classes with the `.classicyButton.pressed` idiom, `CLASSICY_STATE`/`classicyStateClasses`, `classicy-state()`, the three part attributes with their values, the `className`/`style` rule, and the `@layer` order (host CSS wins unlayered; a package targets `classicy.package`). Replace any `data-state` mention (`grep -n data-state docs/AGENT-REFERENCE.md`). Correct §9 item 6 of docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md: `classicyWindowZoomed` and `block` were dead and are removed; `classicyWindowInvisible` is also unreachable (the root renders only when the window is not closed, while the class is emitted only when it is closed) and is parked as a follow-up, with no behavior change in Part A.
 - [ ] CLAUDE.md after the Theming section: 'Vocabulary: shared state classes are bare and beside the root (`.classicyButton.pressed`), generated from `src/Appearance/vocabulary/ClassicyVocabulary.json` by `node bin/generate-vocabulary.ts` (run by `generate-barrels`; CI checks freshness). Part attributes `data-classicy-control|role|part`. Component CSS compiles into `@layer classicy.base`; no `!important` in src SCSS (test-enforced).'
 - [ ] `pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test && pnpm build:source` → all PASS; `grep -rn '!important' src --include=*.scss | wc -l` → 0; `node bin/generate-vocabulary.ts --check` → exit 0.
 - [ ] `verify` skill: run the example app; open a window, collapse it, open an error alert, open the Apple menu; no console errors; `document.querySelector('.classicyWindow.active')` exists; `document.querySelector('[data-classicy-control="close"]')` exists.
