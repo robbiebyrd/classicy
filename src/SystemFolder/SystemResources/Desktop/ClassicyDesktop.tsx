@@ -52,6 +52,10 @@ import {
 	useClassicyAsset,
 	useClassicyAssetVars,
 } from "@/Appearance/ClassicyAssetRegistry";
+import {
+	classicyLayoutVars,
+	useClassicyAppearanceLayout,
+} from "@/Appearance/useClassicyAppearanceLayout";
 // Registers the Platinum Appearance Package (and its assets and sound pack).
 import "@/Appearance/Platinum";
 import { listAppWindows } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
@@ -581,9 +585,20 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	// The resolved id, not the stored one: an id whose package is not (yet)
 	// registered renders as Platinum, so the CSS scope and the JS agree.
 	const appearancePackageId = useActiveClassicyAppearancePackage().id;
+	// The active package's arrangement (resolved from Appearance.packageId,
+	// never activeTheme.package), as root attributes and variables beside the
+	// theme's; getThemeVars only sees the theme.
+	const layout = useClassicyAppearanceLayout();
+	const layoutVars = useMemo(() => classicyLayoutVars(layout), [layout]);
 	const rootStyle = useMemo(
-		() => ({ ...currentTheme, ...assetVars, ...style }) as CSSProperties,
-		[currentTheme, assetVars, style],
+		() =>
+			({
+				...currentTheme,
+				...layoutVars,
+				...assetVars,
+				...style,
+			}) as CSSProperties,
+		[currentTheme, layoutVars, assetVars, style],
 	);
 
 	const openDesktopItem = useCallback(
@@ -622,6 +637,8 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 			role="application"
 			id={"classicyDesktop"}
 			data-classicy-appearance={appearancePackageId}
+			data-classicy-menu-bar={layout.menuBar.placement}
+			data-classicy-grow-box={layout.window.growBoxCorner}
 			ref={desktopRef}
 			tabIndex={-1}
 			style={rootStyle}
