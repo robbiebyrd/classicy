@@ -11,8 +11,10 @@ import {
 	type FC as FunctionalComponent,
 	type KeyboardEvent,
 	type ReactNode,
+	useRef,
 	useState,
 } from "react";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
@@ -75,9 +77,13 @@ export const ClassicyDisclosure: FunctionalComponent<
 	const [open, setOpen] = useState(false);
 	const { track } = useClassicyAnalytics();
 	const analyticsArgs = { type: "ClassicyLabel", label };
+	const rootRef = useRef<HTMLDivElement>(null);
+	// The root had no state class; `open` stays on the inner panel.
+	const appearance = useClassicyAppearance("Disclosure", {}, rootRef);
 
 	function setOpenState(next: boolean) {
 		track("click", { expanded: next, ...analyticsArgs });
+		appearance.emit(next ? "expand" : "collapse");
 		setOpen(next);
 	}
 
@@ -109,7 +115,16 @@ export const ClassicyDisclosure: FunctionalComponent<
 	}
 
 	return (
-		<div className={classNames("classicyDisclosure", className)} style={style}>
+		<div
+			{...appearance.attrs}
+			ref={rootRef}
+			className={classNames(
+				"classicyDisclosure",
+				appearance.className,
+				className,
+			)}
+			style={appearance.style ? { ...appearance.style, ...style } : style}
+		>
 			{/* biome-ignore lint/a11y/useSemanticElements: disclosure header is a block container with svg child incompatible with <button> */}
 			<div
 				role="button"

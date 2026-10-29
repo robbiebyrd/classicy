@@ -3,14 +3,16 @@ import classNames from "classnames";
 import {
 	type CSSProperties,
 	type FC as FunctionalComponent,
+	type KeyboardEvent,
 	type MouseEvent,
 	type MouseEventHandler,
 	type PropsWithChildren,
+	type RefObject,
 	useEffect,
 	useRef,
 	useState,
 } from "react";
-import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 
 export type ClassicyPlacardMenuItem = {
@@ -78,6 +80,27 @@ export const ClassicyPlacard: FunctionalComponent<ClassicyPlacardProps> = ({
 	const [pressed, setPressed] = useState(false);
 	const [open, setOpen] = useState(false);
 	const rootRef = useRef<HTMLDivElement>(null);
+	// The element carrying `.classicyPlacard`: a <button> when interactive,
+	// otherwise a <div>.
+	const placardRef = useRef<HTMLElement>(null);
+	const appearance = useClassicyAppearance(
+		"Placard",
+		{
+			disabled,
+			// A disabled placard never reads as pressed.
+			pressed: !disabled && (pressed || open),
+		},
+		placardRef,
+	);
+	const emitAppearance = appearance.emit;
+	// `close` follows the menu going away, whichever path dismissed it (a
+	// pick, a second click, an outside press).
+	const wasOpenRef = useRef(open);
+	useEffect(() => {
+		if (wasOpenRef.current === open) return;
+		wasOpenRef.current = open;
+		if (!open) emitAppearance("close");
+	}, [open, emitAppearance]);
 
 	// Close the pop-up menu on any outside click.
 	useEffect(() => {
@@ -93,8 +116,22 @@ export const ClassicyPlacard: FunctionalComponent<ClassicyPlacardProps> = ({
 
 	const handleClick = (e: MouseEvent<HTMLElement>) => {
 		if (disabled) return;
-		if (hasMenu) setOpen((o) => !o);
+		appearance.emit("click", { menu: hasMenu });
+		if (hasMenu) {
+			setOpen((o) => !o);
+			if (!open) appearance.emit("open");
+		}
 		if (onClick) onClick(e);
+	};
+
+	// Return and Space press and release the placard like the mouse does (the
+	// browser turns them into the click).
+	const isActivationKey = (key: string) => key === "Enter" || key === " ";
+	const handleKeyDown = (e: KeyboardEvent<HTMLElement>) => {
+		if (!e.repeat && isActivationKey(e.key)) appearance.emit("press");
+	};
+	const handleKeyUp = (e: KeyboardEvent<HTMLElement>) => {
+		if (isActivationKey(e.key)) appearance.emit("release");
 	};
 
 	const handleSelect = (item: ClassicyPlacardMenuItem) => {
@@ -104,18 +141,11 @@ export const ClassicyPlacard: FunctionalComponent<ClassicyPlacardProps> = ({
 	};
 
 	const commonProps = {
-		className: classNames(
-			"classicyPlacard",
-			classicyStateClasses({
-				disabled,
-				// A disabled placard never reads as pressed.
-				pressed: !disabled && (pressed || open),
-			}),
-			{
-				classicyPlacardInteractive: interactive,
-				classicyPlacardHasMenu: hasMenu,
-			},
-		),
+		className: classNames("classicyPlacard", appearance.className, {
+			classicyPlacardInteractive: interactive,
+			classicyPlacardHasMenu: hasMenu,
+		}),
+		style: appearance.style,
 	};
 
 	const body = (
@@ -137,6 +167,8 @@ export const ClassicyPlacard: FunctionalComponent<ClassicyPlacardProps> = ({
 		>
 			{interactive ? (
 				<button
+					{...appearance.attrs}
+					ref={placardRef as RefObject<HTMLButtonElement | null>}
 					type="button"
 					tabIndex={0}
 					disabled={disabled}
@@ -144,8 +176,11 @@ export const ClassicyPlacard: FunctionalComponent<ClassicyPlacardProps> = ({
 					aria-expanded={hasMenu ? open : undefined}
 					{...commonProps}
 					onClick={handleClick}
+					onKeyDown={handleKeyDown}
+					onKeyUp={handleKeyUp}
 					onMouseDown={() => {
 						setPressed(true);
+						appearance.emit("press");
 						player({
 							type: "ClassicySoundPlay",
 							sound: "ClassicyButtonClickDown",
@@ -153,6 +188,7 @@ export const ClassicyPlacard: FunctionalComponent<ClassicyPlacardProps> = ({
 					}}
 					onMouseUp={() => {
 						setPressed(false);
+						appearance.emit("release");
 						player({
 							type: "ClassicySoundPlay",
 							sound: "ClassicyButtonClickUp",
@@ -163,7 +199,13 @@ export const ClassicyPlacard: FunctionalComponent<ClassicyPlacardProps> = ({
 					{body}
 				</button>
 			) : (
-				<div {...commonProps}>{body}</div>
+				<div
+					{...appearance.attrs}
+					ref={placardRef as RefObject<HTMLDivElement | null>}
+					{...commonProps}
+				>
+					{body}
+				</div>
 			)}
 			{hasMenu && open && (
 				// biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: <ul> hosting menuitems requires role="menu" per the ARIA menu pattern

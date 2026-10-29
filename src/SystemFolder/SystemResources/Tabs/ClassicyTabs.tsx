@@ -12,6 +12,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
@@ -143,14 +144,19 @@ export const ClassicyTabs: FunctionalComponent<TabProps> = ({
 	const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
 	const scrollerRef = useRef<HTMLDivElement | null>(null);
 	const [scroll, setScroll] = useState<ScrollState>(NO_OVERFLOW);
+	const rootRef = useRef<HTMLDivElement>(null);
+	// The container had no state class; `selected` stays on the tab buttons.
+	const appearance = useClassicyAppearance("Tabs", {}, rootRef);
 
 	const selectTab = (tabId: number) => {
+		appearance.emit("select", { tabId });
 		player({ type: "ClassicySoundPlay", sound: "ClassicyTabClickUp" });
 		track("click", { type: "ClassicyTab", tabId, ...analyticsArgs });
 		setActiveTab(tabId);
 	};
 
 	const pressTab = (tabId: number) => {
+		appearance.emit("press", { tabId });
 		player({ type: "ClassicySoundPlay", sound: "ClassicyTabClickDown" });
 		track("selected", { type: "ClassicyTab", tabId, ...analyticsArgs });
 	};
@@ -224,6 +230,7 @@ export const ClassicyTabs: FunctionalComponent<TabProps> = ({
 	const stepScroll = (direction: -1 | 1) => {
 		const el = scrollerRef.current;
 		if (!el) return;
+		appearance.emit("change", { scroll: direction });
 		player({ type: "ClassicySoundPlay", sound: "ClassicyTabClickUp" });
 		const wrappers = Array.from(
 			el.querySelectorAll<HTMLElement>(".classicyTabButtonWrapper"),
@@ -272,6 +279,8 @@ export const ClassicyTabs: FunctionalComponent<TabProps> = ({
 				return;
 		}
 		e.preventDefault();
+		// The keyboard presses the tab it lands on, as a mouse press would.
+		appearance.emit("press", { tabId: next });
 		selectTab(next);
 		focusTab(next);
 	};
@@ -313,12 +322,15 @@ export const ClassicyTabs: FunctionalComponent<TabProps> = ({
 
 	return (
 		<div
+			{...appearance.attrs}
+			ref={rootRef}
 			className={classNames(
 				"classicyTabContainer",
+				appearance.className,
 				SIZE_CLASS[size],
 				className,
 			)}
-			style={style}
+			style={appearance.style ? { ...appearance.style, ...style } : style}
 		>
 			<div className={"classicyTabButtonsRow"}>
 				{scroll.overflowing && scrollArrow(-1)}
