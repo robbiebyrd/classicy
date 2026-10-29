@@ -3,11 +3,18 @@ id: 0045-1c6
 title: 'I 2.2: Controls group 2: Slider, Placard, Tabs, Disclosure, Tree, Table, Link, FileInput'
 purpose: Wire useClassicyAppearance into the second group of control roots so a package can decorate them and receive their drag, press, select, change, expand, collapse and click events.
 type: feat
-status: pending
+status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T20:17:37.615Z"
-updated: "2026-10-28T20:17:37.615Z"
+updated: "2026-10-29T18:25:53.340Z"
+started: "2026-10-29T18:25:53.340Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy
@@ -110,3 +117,5 @@ Re-shoot controls-slider*, controls-placard*, controls-tabs*, controls-disclosur
 - `src/SystemFolder/SystemResources/FileInput/ClassicyFileInput.appearance.test.tsx` - create
 
 ## Work Log
+
+### 2026-10-29T18:25:47.482Z - Started beside Part B (I reconciliation: 2.x code is safe early; B's remaining work is SCSS-only). I-R4 strict (no class-list change), I-R5 attrs first, keyboard paths must emit what mouse paths emit (lesson from I 2.1's review), reuse the shared internal useClassicyMergedRef. Out of chain order: depends 0044-uvc (I 2.1) is code complete, awaiting only post-B parity. Base 3c2dc4e76; implementer dispatched. Parity deferred until after B lands.
