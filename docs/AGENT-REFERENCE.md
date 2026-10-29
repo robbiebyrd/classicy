@@ -1450,8 +1450,9 @@ an undefined variable voids the whole declaration:
 `ClassicySplitView` and the PDF viewer's pan tool use exactly this form. The
 variables are scoped to the desktop root, so they do not exist outside it.
 
-Platinum's base64 art variables in `assets.scss` are unchanged; the registry
-changes how assets are exposed and swapped, not how Platinum draws.
+Platinum's base64 art variables (`src/Appearance/Platinum/styles/_assets.scss`)
+are unchanged; the registry changes how assets are exposed and swapped, not
+how Platinum draws.
 
 ---
 
