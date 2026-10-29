@@ -8,10 +8,7 @@ import {
 	useState,
 } from "react";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
-import {
-	useClassicyAppearanceInput,
-	withClassicyAppearanceInput,
-} from "@/Appearance/useClassicyAppearanceInput.internal";
+import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import {
 	ClassicyControlLabel,
@@ -110,8 +107,6 @@ export const ClassicyCheckbox: FunctionalComponent<ClassicyCheckboxProps> = ({
 		{ default: isDefault, mixed, checked: check, disabled },
 		inputRef,
 	);
-
-	useClassicyAppearanceInput();
 
 	const handleOnClick = () => {
 		if (onClickFunc) {

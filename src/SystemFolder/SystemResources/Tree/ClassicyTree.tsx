@@ -13,10 +13,7 @@ import {
 	useState,
 } from "react";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
-import {
-	useClassicyAppearanceInput,
-	withClassicyAppearanceInput,
-} from "@/Appearance/useClassicyAppearanceInput.internal";
+import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { useListNavigation } from "@/SystemFolder/SystemResources/Keyboard/useListNavigation";
@@ -422,7 +419,6 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 	// The list had no state class; row states stay on the rows.
 	const appearance = useClassicyAppearance("Tree", {}, rootRef);
 	const emitAppearance = appearance.emit;
-	useClassicyAppearanceInput();
 
 	// Every expansion path (click, double-click, ⌘→/⌘←, Enter/Space) runs here.
 	const setOpen = useCallback(

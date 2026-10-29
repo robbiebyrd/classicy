@@ -15,10 +15,7 @@ import {
 	useState,
 } from "react";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
-import {
-	useClassicyAppearanceInput,
-	withClassicyAppearanceInput,
-} from "@/Appearance/useClassicyAppearanceInput.internal";
+import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
@@ -127,8 +124,6 @@ export const ClassicyRadioInput: FunctionalComponent<
 	// The group carries no state class of its own: `checked` and `disabled`
 	// live on each item's wrapper.
 	const appearance = useClassicyAppearance("RadioInput", {}, groupRef);
-
-	useClassicyAppearanceInput();
 
 	const { track } = useClassicyAnalytics();
 	const analyticsArgs = { name, label, disabled, inputs };

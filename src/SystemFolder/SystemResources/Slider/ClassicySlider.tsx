@@ -10,10 +10,7 @@ import type {
 } from "react";
 import { useEffect, useRef, useState } from "react";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
-import {
-	useClassicyAppearanceInput,
-	withClassicyAppearanceInput,
-} from "@/Appearance/useClassicyAppearanceInput.internal";
+import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import {
 	ClassicyControlLabel,
@@ -57,6 +54,11 @@ export const computeSliderTicks = (
 		Math.min(100, (k * interval * 100) / range),
 	);
 	return { positions, snapStep: interval };
+};
+
+const removeReleaseListener = (listener: () => void) => {
+	document.removeEventListener("pointerup", listener);
+	document.removeEventListener("pointercancel", listener);
 };
 
 /** Orientation of the slider's travel axis. */
@@ -219,7 +221,6 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 	// controlled value reconciliation conflicts with native slider capture on mouseup.
 	const inputRef = useRef<HTMLInputElement>(null);
 	const appearance = useClassicyAppearance("Slider", { disabled }, inputRef);
-	useClassicyAppearanceInput();
 	// Only write to the DOM when value changes externally (i.e. the DOM doesn't
 	// already reflect it). During a drag, the DOM value already equals the prop
 	// value so this is a no-op — avoiding the write that causes Safari to lose
@@ -254,28 +255,31 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 		onChangeFunc?.(e);
 	};
 
-	// A pointer drag is reported to the appearance package whether or not a
-	// ghost is drawn; `dragging` state only exists for the ghost. Keyboard
-	// stepping is not a drag: it reports `change` alone.
+	// Every pointer press on the slider, a plain track click included, is
+	// reported to the appearance package as a drag (ruling I-R15b), whether
+	// or not a ghost is drawn; `dragging` state only exists for the ghost.
+	// Keyboard stepping is not a drag: it reports `change` alone.
 	const pointerDragRef = useRef(false);
+	// While a press lasts, the document is watched for its release, so one
+	// that lands outside the input still ends the drag.
+	const releaseListenerRef = useRef<(() => void) | null>(null);
 	const finishPointerDrag = () => {
+		const listener = releaseListenerRef.current;
+		releaseListenerRef.current = null;
+		if (listener) removeReleaseListener(listener);
 		if (!pointerDragRef.current) return;
 		pointerDragRef.current = false;
 		appearance.emit("dragEnd", { value: Number(inputRef.current?.value) });
 	};
-	const finishPointerDragRef = useRef(finishPointerDrag);
-	finishPointerDragRef.current = finishPointerDrag;
-	// A release outside the input still ends the drag; the guard above keeps
-	// it to one dragEnd when the input saw the release too.
-	useEffect(() => {
-		const onRelease = () => finishPointerDragRef.current();
-		document.addEventListener("pointerup", onRelease);
-		document.addEventListener("pointercancel", onRelease);
-		return () => {
-			document.removeEventListener("pointerup", onRelease);
-			document.removeEventListener("pointercancel", onRelease);
-		};
-	}, []);
+	// Unmounted mid-press: stop watching (no dragEnd; the slider is gone).
+	useEffect(
+		() => () => {
+			if (releaseListenerRef.current) {
+				removeReleaseListener(releaseListenerRef.current);
+			}
+		},
+		[],
+	);
 
 	const handlePointerDown = (e: ReactPointerEvent<HTMLInputElement>) => {
 		if (disabled) return;
@@ -285,6 +289,12 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 		}
 		if (!pointerDragRef.current) {
 			pointerDragRef.current = true;
+			// The guard in finishPointerDrag keeps it to one dragEnd when the
+			// input saw the release too.
+			const listener = () => finishPointerDrag();
+			releaseListenerRef.current = listener;
+			document.addEventListener("pointerup", listener);
+			document.addEventListener("pointercancel", listener);
 			appearance.emit("dragStart", { value: Number(e.currentTarget.value) });
 		}
 	};

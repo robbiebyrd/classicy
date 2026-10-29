@@ -10,10 +10,7 @@ import {
 	useRef,
 } from "react";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
-import {
-	useClassicyAppearanceInput,
-	withClassicyAppearanceInput,
-} from "@/Appearance/useClassicyAppearanceInput.internal";
+import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import type { ClassicyShortcutDisposition } from "@/SystemFolder/SystemResources/Shortcut/ClassicyShortcut";
@@ -90,7 +87,6 @@ export const ClassicyLink: FunctionalComponent<ClassicyLinkProps> = ({
 	const { track } = useClassicyAnalytics();
 	const linkRef = useRef<HTMLAnchorElement>(null);
 	const appearance = useClassicyAppearance("Link", { disabled }, linkRef);
-	useClassicyAppearanceInput();
 
 	// Mouse clicks and keyboard activation (Enter on an href link natively,
 	// Enter/Space on an event link through handleKeyDown) all land here.
