@@ -95,20 +95,6 @@ export const DefaultFSContent = {
 				_data: "File Contents",
 			},
 		},
-		Utilities: {
-			_type: ClassicyFileSystemEntryFileType.Directory,
-			_icon: directoryIcon,
-			"Disk Utility.app": {
-				_type: ClassicyFileSystemEntryFileType.File,
-				_mimeType: "text/plain",
-				_data: "File Contents",
-			},
-			"Terminal.app": {
-				_type: ClassicyFileSystemEntryFileType.File,
-				_mimeType: "text/plain",
-				_data: "File Contents",
-			},
-		},
 		Videos: {
 			_type: ClassicyFileSystemEntryFileType.Directory,
 			_icon: directoryIcon,
