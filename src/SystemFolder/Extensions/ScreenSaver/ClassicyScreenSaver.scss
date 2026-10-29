@@ -12,13 +12,14 @@
 
 /*
  * No pointer anywhere in the document while a saver is showing: the overlay
- * puts this class on <html> for as long as it is mounted. `!important` and
- * the descendant selector beat a saver's or host's own cursor rules, and the
- * class comes off with the overlay, so the pointer returns on waking.
+ * puts this class on <html> for as long as it is mounted. Matching the
+ * overlay's id in `:has()` gives the rule id-level specificity, so it beats a
+ * saver's or host's own class-based cursor rules; the class comes off with the
+ * overlay, so the pointer returns on waking.
  */
-html.classicyScreenSaverActive,
-html.classicyScreenSaverActive * {
-	cursor: none !important;
+html.classicyScreenSaverActive:has(#classicy-screen-saver-overlay),
+html.classicyScreenSaverActive:has(#classicy-screen-saver-overlay) * {
+	cursor: none;
 }
 
 /* Savers that dim or reveal the live desktop (Fade Out, Spotlight). */
@@ -26,10 +27,11 @@ html.classicyScreenSaverActive * {
 	background: transparent;
 }
 
-/* A frozen screensaver is still a screensaver; honor reduced motion. */
+/* A frozen screensaver is still a screensaver; honor reduced motion. The id
+   outranks every saver's class-based animation rules. */
 @media (prefers-reduced-motion: reduce) {
-	.classicyScreenSaverOverlay *,
-	.classicyScreenSaverOverlay {
-		animation-play-state: paused !important;
+	#classicy-screen-saver-overlay *,
+	#classicy-screen-saver-overlay {
+		animation-play-state: paused;
 	}
 }

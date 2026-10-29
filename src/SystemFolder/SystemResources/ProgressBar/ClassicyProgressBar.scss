@@ -6,7 +6,7 @@
     width: calc(100%);
     height: var(--progress-height);
     padding: 0 var(--window-border-size);
-    background: var(--color-system-03) !important;
+    background: var(--color-system-03);
 
     &::-webkit-progress-bar {
       background: var(--color-system-04);
@@ -64,7 +64,7 @@
                       var(--color-white) calc(var(--slide-var) + 10px),
                       var(--color-theme-04) calc(var(--slide-var) + 10px),
                       var(--color-theme-04) calc(var(--slide-var) + 20px)
-      ) !important;
+      );
       mask: linear-gradient(0deg, var(--color-black), white, var(--color-black)) luminance;
     }
   }

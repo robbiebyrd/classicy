@@ -6,14 +6,14 @@ input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button,
 .classicySpinner::-webkit-outer-spin-button,
 .classicySpinner::-webkit-inner-spin-button {
-  -webkit-appearance: none !important;
-  margin: 0 !important
+  -webkit-appearance: none;
+  margin: 0
 }
 
 /* Hide for Firefox */
 input[type=number] {
-  -moz-appearance: textfield !important;
-  appearance: textfield !important; /* Standard property */
+  -moz-appearance: textfield;
+  appearance: textfield; /* Standard property */
 }
 
 .classicySpinner {

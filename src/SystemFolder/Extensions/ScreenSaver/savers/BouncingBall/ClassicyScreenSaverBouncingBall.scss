@@ -12,6 +12,18 @@
 	background-color: white;
 }
 
+// Per-ball X/Y durations are co-prime-ish multiples so paths never sync up,
+// and negative delays start each ball mid-flight — one rule per ball the
+// config allows (12). In the stylesheet, not inline, so the overlay's
+// reduced-motion rule (keyed on its id) can pause them.
+@for $i from 0 through 11 {
+	.classicySaverBouncingBallBall:nth-child(#{$i + 1}) {
+		animation:
+			classicySaverBallMoveX (3.4s + $i * 0.55s) linear (-$i * 0.9s) infinite alternate,
+			classicySaverBallMoveY (3s + $i * 0.42s) linear (-$i * 1.3s) infinite alternate;
+	}
+}
+
 @keyframes classicySaverBallMoveX {
 	from {
 		left: calc(100% - 40px);

@@ -41,9 +41,10 @@
   }
 }
 
-.classicyBalloonHelpTitle {
+// Two classes: beats the bubble's `p { margin: 0 }`.
+.classicyBalloonHelp .classicyBalloonHelpTitle {
   font-weight: bold;
-  margin-bottom: 3px !important;
+  margin-bottom: 3px;
 }
 
 // The tail is a sibling of .classicyBalloonHelp — rendered after it in DOM

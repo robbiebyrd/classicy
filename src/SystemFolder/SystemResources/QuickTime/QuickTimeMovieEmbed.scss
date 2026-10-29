@@ -68,7 +68,7 @@
   @include appearance.platinumWindowUndepressable;
   border: 0;
   border-radius: 0;
-  aspect-ratio: 1/1 !important;
+  aspect-ratio: 1/1;
 
 }
 
@@ -83,7 +83,7 @@
   @include appearance.platinumWindowDepressable;
   border: 0;
   border-radius: 0;
-  aspect-ratio: 1/1 !important;
+  aspect-ratio: 1/1;
 
   img {
     filter: drop-shadow(var(--window-border-size) var(--window-border-size) 0px rgba(0, 0, 0, 0.5));

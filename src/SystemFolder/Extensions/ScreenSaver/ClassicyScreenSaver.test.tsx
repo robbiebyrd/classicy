@@ -4,6 +4,7 @@ import { render } from "@/__tests__/test-utils";
 import {
 	ClassicyScreenSaver,
 	SCREEN_SAVER_ACTIVE_DOCUMENT_CLASS,
+	SCREEN_SAVER_OVERLAY_ID,
 } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaver";
 import type { ScreenSaverData } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverContext";
 
@@ -89,6 +90,24 @@ describe("ClassicyScreenSaver overlay", () => {
 		expect(
 			container.querySelectorAll(".classicySaverBouncingBallBall"),
 		).toHaveLength(5);
+	});
+
+	it("gives the overlay the id its stylesheet overrides key on", () => {
+		setData({ active: true, selectedSaver: "bouncing-ball" });
+		render(<ClassicyScreenSaver />);
+		expect(
+			document
+				.getElementById(SCREEN_SAVER_OVERLAY_ID)
+				?.classList.contains("classicyScreenSaverOverlay"),
+		).toBe(true);
+	});
+
+	it("leaves the balls' animation to the stylesheet, where reduced motion reaches it", () => {
+		setData({ active: true, selectedSaver: "bouncing-ball" });
+		const { container } = render(<ClassicyScreenSaver />);
+		const balls = container.querySelectorAll(".classicySaverBouncingBallBall");
+		expect(balls).toHaveLength(3);
+		for (const ball of balls) expect(ball.getAttribute("style")).toBeNull();
 	});
 
 	it("marks the overlay transparent for savers that reveal the desktop", () => {

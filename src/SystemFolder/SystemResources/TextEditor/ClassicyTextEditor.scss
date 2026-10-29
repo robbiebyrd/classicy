@@ -17,12 +17,6 @@
   font-size: calc(var(--ui-font-size) * 2);
 }
 
-.classicyTextEditorAutoHeight {
-  height: auto !important;
-  field-sizing: content;
-  min-height: calc(var(--window-control-size) * 3);
-}
-
 .classicyTextEditor {
   box-sizing: border-box;
   width: 100%;
@@ -40,6 +34,13 @@
     outline: none;
     box-shadow: inset 0 0 0 calc(var(--window-border-size) * 2) var(--color-theme-04);
   }
+}
+
+// After the base rule: its height wins by source order.
+.classicyTextEditorAutoHeight {
+  height: auto;
+  field-sizing: content;
+  min-height: calc(var(--window-control-size) * 3);
 }
 
 .classicyTextEditorBorder {

@@ -16,7 +16,7 @@
   -webkit-user-select: none;
 
   &:focus {
-    outline: var(--color-outline) solid calc(var(--window-border-size) * 2) !important;
+    outline: var(--color-outline) solid calc(var(--window-border-size) * 2);
   }
 
   @include appearance.platinumWindowDepressable;
@@ -71,7 +71,7 @@
   width: calc(var(--window-control-size) * 4);
   padding: 0;
   border-radius: 0;
-  aspect-ratio: 1/1 !important;
+  aspect-ratio: 1/1;
 
   img {
     width: 100%;
@@ -84,8 +84,8 @@
 }
 
 .classicyButtonShapeSquare.classicyButtonSmall {
-  width: calc(var(--window-control-size) * 2) !important;
-  height: calc(var(--window-control-size) * 2) !important;
+  width: calc(var(--window-control-size) * 2);
+  height: calc(var(--window-control-size) * 2);
   padding: calc(var(--window-padding-size) * 0.5);
 
   img {

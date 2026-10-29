@@ -102,6 +102,9 @@ const useScreenSaverIdleMonitor = (data: ScreenSaverData) => {
  */
 export const SCREEN_SAVER_ACTIVE_DOCUMENT_CLASS = "classicyScreenSaverActive";
 
+/** The overlay's DOM id; ClassicyScreenSaver.scss keys its overrides on it. */
+export const SCREEN_SAVER_OVERLAY_ID = "classicy-screen-saver-overlay";
+
 const useHideCursorWhileActive = () => {
 	useEffect(() => {
 		const root = document.documentElement;
@@ -125,6 +128,10 @@ const ClassicyScreenSaverOverlay: FunctionalComponent<{
 		: {};
 	return (
 		<div
+			// The id gives the overlay's stylesheet rules (hidden cursor, paused
+			// animation for reduced motion) id-level specificity, so they outrank
+			// every saver's class-based rules.
+			id={SCREEN_SAVER_OVERLAY_ID}
 			className={`classicyScreenSaverOverlay${
 				saver?.transparentBackground
 					? " classicyScreenSaverOverlayTransparent"

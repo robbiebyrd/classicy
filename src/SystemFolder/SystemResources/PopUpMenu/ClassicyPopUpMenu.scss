@@ -8,8 +8,6 @@
 
 // ----- Size variants (unchanged public API) --------------------------------
 .classicyPopUpMenuSizeMini {
-  width: calc(var(--window-control-size) * 1.3125) !important;
-  height: calc(var(--window-control-size) * 1.3125) !important;
   font-size: calc(var(--ui-font-size) / 1.25);
   aspect-ratio: 1/1;
   overflow: hidden;
@@ -67,6 +65,13 @@
   }
 }
 
+// The mini pop-up is a fixed square. Two classes: beats the control's own
+// width and height above.
+.classicyPopUpMenu.classicyPopUpMenuSizeMini {
+  width: calc(var(--window-control-size) * 1.3125);
+  height: calc(var(--window-control-size) * 1.3125);
+}
+
 // The visible trigger: current selection on the left, indicator on the right.
 .classicyPopUpMenuButton {
   display: flex;
@@ -88,11 +93,11 @@
 
   &:focus {
     border-radius: var(--window-padding-size);
-    outline: var(--color-outline) solid calc(var(--window-border-size) * 2) !important;
+    outline: var(--color-outline) solid calc(var(--window-border-size) * 2);
   }
 
   &:focus:not(:focus-visible) {
-    outline: none !important;
+    outline: none;
   }
 }
 

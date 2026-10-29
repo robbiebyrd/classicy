@@ -43,7 +43,7 @@
   }
 
   *::selection {
-    background: var(--color-theme-02) !important;
+    background: var(--color-theme-02);
   }
 
   // Mac OS 8 "Smart Scrolling" OFF (Appearance control panel): classic split
@@ -61,7 +61,7 @@
 }
 
 .classicyDesktopSelect {
-  position: absolute !important;
+  position: absolute;
   border: var(--window-border-size) dotted var(--color-black);
   outline: var(--window-border-size) dotted var(--color-black);
 }

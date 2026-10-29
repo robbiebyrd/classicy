@@ -35,12 +35,12 @@
 
   &:focus {
     border-radius: var(--window-border-size);
-    outline: var(--color-outline) solid calc(var(--window-border-size) * 2) !important;
+    outline: var(--color-outline) solid calc(var(--window-border-size) * 2);
   }
 
   &:disabled,
   &:disabled:active {
-    border: var(--window-border-size) solid var(--color-system-06) !important;
+    border: var(--window-border-size) solid var(--color-system-06);
     background: transparent;
     box-shadow: none;
   }
@@ -54,6 +54,12 @@
   &:checked,
   &:active {
     border-color: var(--color-theme-06);
+  }
+
+  // As specific as the rules above and later: a disabled default box keeps
+  // the disabled border.
+  &:disabled {
+    border-color: var(--color-system-06);
   }
 }
 

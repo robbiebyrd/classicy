@@ -58,9 +58,12 @@
   }
 }
 
-:where(.classicyRadioInputWrapper).disabled {
-  border: calc(var(--window-border-size)) solid var(--color-system-05) !important;
-  background: var(--color-system-02) !important;
+// `:active` matches the checked wrapper's pressed rule above, so a disabled
+// wrapper stays flat while pressed.
+:where(.classicyRadioInputWrapper).disabled,
+:where(.classicyRadioInputWrapper).disabled:active {
+  border: calc(var(--window-border-size)) solid var(--color-system-05);
+  background: var(--color-system-02);
 }
 
 .classicyRadioInput {
@@ -94,7 +97,7 @@
   height: calc(var(--window-control-size) / 4);
   border-width: calc(var(--window-control-size) / 8);
   border-style: solid;
-  border-radius: 0 !important;
+  border-radius: 0;
   background: var(--color-window-border);
 
   &:disabled:checked {
@@ -110,12 +113,11 @@
   margin-left: calc(var(--window-control-size) / 2);
 }
 
-:where(.classicyRadioInput).default {
-  //width: var(--window-control-size);
-  //margin: 0;
-  //
+// Two classes and a pseudo-class, last in the file: beats the disabled
+// `:checked` rules above, so a default radio button keeps its accent border.
+.classicyRadioInput.default {
   &:checked,
   &:active {
-    border-color: var(--color-theme-06) !important;
+    border-color: var(--color-theme-06);
   }
 }
