@@ -1,5 +1,6 @@
 import { castDraft, produce } from "immer";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { ClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
 import {
 	registerClassicyAppearancePackage,
 	resetClassicyAppearancePackagesForTests,
@@ -8,6 +9,7 @@ import {
 	type ClassicyTheme,
 	getTheme,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { listClassicyPackageThemes } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
 import {
 	exportClassicyTheme,
 	parseClassicyThemeFile,
@@ -299,6 +301,107 @@ describe("ClassicyDesktopImportTheme — appearance packages", () => {
 		expect(appearance(state).activeTheme.id).toBe("custom-ocean");
 		expect(appearance(state).activeTheme.package).toBe("irix");
 		expect(state.System.Manager.Desktop.errorDialog ?? null).toBeNull();
+	});
+
+	it("an imported theme survives a fork into a later package's Custom slot", () => {
+		// Imported while no "ocean" package exists: custom-ocean is free.
+		let state = run(makeStore(), importTheme(fileTheme({ name: "Ocean" })));
+		expect(appearance(state).customThemes?.map((t) => t.id)).toEqual([
+			"custom-ocean",
+		]);
+		const importedColor = appearance(state).activeTheme.color;
+		const oceanPreset = {
+			...structuredClone(getTheme("azul")),
+			id: "ocean-one",
+			name: "Ocean One",
+			package: "ocean",
+		};
+		const oceanPackage: ClassicyAppearancePackage = {
+			id: "ocean",
+			name: "Ocean",
+			css: "",
+			defaults: oceanPreset,
+			presets: [oceanPreset],
+			layout: {
+				window: { growBoxCorner: "bottom-right" },
+				menuBar: { placement: "screen" },
+				desktop: { iconGridOrigin: "top-right" },
+			},
+		};
+		registerClassicyAppearancePackage(structuredClone(oceanPackage));
+		state = run(state, {
+			type: "ClassicyDesktopChangeAppearancePackage",
+			packageId: "ocean",
+		});
+		// The first edit on an Ocean preset forks into Ocean's slot, custom-ocean.
+		state = run(state, {
+			type: "ClassicyDesktopChangeColor",
+			colorKey: "black",
+			color: 0x010101,
+		});
+		const a = appearance(state);
+		expect(a.activeTheme.id).toBe("custom-ocean");
+		expect(a.activeTheme.package).toBe("ocean");
+		// The import moved aside, name and data intact.
+		const imported = a.customThemes?.find((t) => t.package === "platinum");
+		expect(imported?.id).toBe("custom-ocean-2");
+		expect(imported?.name).toBe("Ocean");
+		expect(imported?.color).toEqual(importedColor);
+		expect(a.customThemes).toHaveLength(2);
+
+		// Both are listed under their own package and selectable.
+		expect(
+			listClassicyPackageThemes(a, { id: "platinum" }).map((t) => t.id),
+		).toContain("custom-ocean-2");
+		expect(listClassicyPackageThemes(a, oceanPackage).map((t) => t.id)).toEqual(
+			["ocean-one", "custom-ocean"],
+		);
+		state = run(state, {
+			type: "ClassicyDesktopChangeTheme",
+			activeTheme: "custom-ocean-2",
+		});
+		expect(appearance(state).activeTheme.name).toBe("Ocean");
+		expect(appearance(state).activeTheme.color).toEqual(importedColor);
+		state = run(state, {
+			type: "ClassicyDesktopChangeTheme",
+			activeTheme: "custom-ocean",
+		});
+		expect(appearance(state).activeTheme.package).toBe("ocean");
+		expect(appearance(state).activeTheme.color.black).toBe(0x010101);
+	});
+
+	it("never duplicates a preset name or id of the active package", () => {
+		const preset = (id: string, name: string) => ({
+			...structuredClone(getTheme("azul")),
+			id,
+			name,
+			package: "presets-pack",
+		});
+		registerClassicyAppearancePackage({
+			id: "presets-pack",
+			name: "Presets Pack",
+			css: "",
+			defaults: preset("tp-one", "TP One"),
+			presets: [preset("tp-one", "TP One"), preset("custom-sea", "Sea Star")],
+			layout: {
+				window: { growBoxCorner: "bottom-right" },
+				menuBar: { placement: "screen" },
+				desktop: { iconGridOrigin: "top-right" },
+			},
+		});
+		let state = run(makeStore(), {
+			type: "ClassicyDesktopChangeAppearancePackage",
+			packageId: "presets-pack",
+		});
+		state = run(state, importTheme(fileTheme({ name: "TP One" })));
+		state = run(state, importTheme(fileTheme({ name: "Sea" })));
+		expect(
+			(appearance(state).customThemes ?? []).map((t) => [t.id, t.name]),
+		).toEqual([
+			["custom-tp-one-2", "TP One 2"],
+			// custom-sea is a preset's id: an import there would be unreachable.
+			["custom-sea-2", "Sea"],
+		]);
 	});
 
 	it("never takes a package's Custom fork slot id", () => {
