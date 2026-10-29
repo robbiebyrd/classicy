@@ -13,12 +13,11 @@ import {
 	type FC as FunctionalComponent,
 	forwardRef,
 	type KeyboardEventHandler,
-	useCallback,
 	useEffect,
-	useRef,
 	useState,
 } from "react";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import { useClassicyMergedRef } from "@/Appearance/useClassicyMergedRef.internal";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
 interface ClassicyInputProps {
@@ -121,15 +120,7 @@ export const ClassicyInput: FunctionalComponent<ClassicyInputProps> =
 
 		// The root element for the appearance hook, merged with the forwarded
 		// ref so callers keep receiving the <input>.
-		const inputRef = useRef<HTMLInputElement | null>(null);
-		const setInputRef = useCallback(
-			(el: HTMLInputElement | null) => {
-				inputRef.current = el;
-				if (typeof ref === "function") ref(el);
-				else if (ref) ref.current = el;
-			},
-			[ref],
-		);
+		const [inputRef, setInputRef] = useClassicyMergedRef<HTMLInputElement>(ref);
 		// The field carries no state class (`isDefault` keeps its deprecated
 		// modifier class below).
 		const appearance = useClassicyAppearance("Input", {}, inputRef);

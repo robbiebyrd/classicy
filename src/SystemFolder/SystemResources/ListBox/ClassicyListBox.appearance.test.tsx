@@ -45,7 +45,36 @@ describe("ClassicyListBox appearance", () => {
 		// Clicking a row focuses it first, so focus enters the list.
 		expect(emitted()).toEqual([
 			{ event: "focus", detail: undefined },
-			{ event: "select", detail: { value: "b" } },
+			{ event: "select", detail: { value: "b", selected: true } },
+		]);
+	});
+
+	it("emits select for keyboard selection", () => {
+		render(<ClassicyListBox id="l" options={OPTIONS} />);
+		const alpha = screen.getByRole("option", { name: "Alpha" });
+		fireEvent.focus(alpha);
+		fireEvent.keyDown(alpha, { key: " " });
+		fireEvent.keyDown(alpha, { key: "ArrowDown" });
+		expect(emitted().filter((e) => e.event === "select")).toEqual([
+			{ event: "select", detail: { value: "a", selected: true } },
+			{ event: "select", detail: { value: "b", selected: true } },
+		]);
+	});
+
+	it("reports a Ctrl-click deselect as selected: false", () => {
+		render(
+			<ClassicyListBox
+				id="l"
+				options={OPTIONS}
+				selectionMode="multi"
+				selected={["a", "b"]}
+			/>,
+		);
+		fireEvent.click(screen.getByRole("option", { name: "Beta" }), {
+			ctrlKey: true,
+		});
+		expect(emitted().filter((e) => e.event === "select")).toEqual([
+			{ event: "select", detail: { value: "b", selected: false } },
 		]);
 	});
 
