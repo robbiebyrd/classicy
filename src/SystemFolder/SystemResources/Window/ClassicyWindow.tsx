@@ -418,8 +418,24 @@ interface ClassicyWindowProps {
 	 * the stored position and size can be changed only through the window props
 	 * and the store, never by this style — so use it for everything else
 	 * (margins, opacity, custom properties).
+	 *
+	 * Stacking and the drag, resize and inactive paint belong to the window
+	 * states (ClassicyWindow.scss), so consumer values for them may be
+	 * overridden or ignored: `zIndex` is always dropped (the focus, floating,
+	 * modal and alert bands set it), and `border`, `borderColor`, `background`,
+	 * `boxShadow`, `cursor`, `filter`, `userSelect` and `overflow` are state
+	 * paint not to rely on.
 	 */
 	style?: CSSProperties;
+}
+
+/** A consumer style without the keys the window states own (`zIndex`). */
+function withoutStateOwnedStyle(
+	style: CSSProperties | undefined,
+): CSSProperties | undefined {
+	if (style?.zIndex === undefined) return style;
+	const { zIndex: _zIndex, ...rest } = style;
+	return rest;
 }
 
 // Mounted document windows by app + window id, so an unmount can tell whether
@@ -1637,7 +1653,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			ref={windowRef}
 			role="application"
 			aria-label={title || undefined}
-			style={{ ...style, ...windowStyle }}
+			style={{ ...withoutStateOwnedStyle(style), ...windowStyle }}
 			className={classNames(
 				"classicyWindow",
 				windowType === "utility"
