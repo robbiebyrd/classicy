@@ -63,6 +63,11 @@ const derivedPx = (theme: ClassicyTheme, cssVar: string): number => {
  * paths (desktop Clean Up, inside the store's `set`) use. Render and handler
  * code that should honor the desktop's live variables uses
  * `readClassicyDesktopIconMetrics` (ClassicyFileBrowserUtils) instead.
+ *
+ * So desktop Clean Up lays icons out from the theme alone: a host's inline
+ * override of `--desktop-icon-*` on the desktop's `style` is not seen by it,
+ * while Finder's icon and list views do honor that override. To resize the
+ * desktop grid, change the theme's `desktop.iconSize` instead.
  */
 export const classicyDesktopIconMetrics = (
 	theme: ClassicyTheme,
