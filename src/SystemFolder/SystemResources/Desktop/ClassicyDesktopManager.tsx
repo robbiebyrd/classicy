@@ -1,5 +1,8 @@
 import type { MouseEvent } from "react";
-import { getClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackageRegistry";
+import {
+	getClassicyAppearancePackage,
+	getRegisteredClassicyAppearancePackageOrDefault,
+} from "@/Appearance/ClassicyAppearancePackageRegistry";
 import {
 	type ClassicyTheme,
 	withDefaultThemePackageList,
@@ -397,19 +400,34 @@ export const classicyDesktopEventHandler = (
 			}
 			if (!hasThemeMetricFamilyChange(action)) break;
 			const target = action;
-			const knobs = getClassicyAppearancePackage(appearance.packageId)?.knobs;
+			// Resolved as resolveClassicyAppearancePackage does (an unregistered
+			// id means the default package), so the reducer accepts exactly the
+			// knobs the panel shows.
+			const knobs = getRegisteredClassicyAppearancePackageOrDefault(
+				appearance.packageId,
+			)?.knobs;
 			if (!isValidThemeMetricFamily(target, target.value, knobs)) {
 				classicyLog(
 					"warn",
 					"ClassicyDesktopManager",
-					`ClassicyDesktopChangeMetric rejected: "${target.family}.${target.key}" is not a knob of the "${appearance.packageId}" package, or the value is out of range`,
+					`ClassicyDesktopChangeMetric rejected: "${target.family}.${target.key}" is not a knob of the active package ("${appearance.packageId}"), or the value is out of range`,
 					{ value: target.value },
 				);
 				break;
 			}
+			let written = false;
 			editActiveClassicyTheme(appearance, (theme) => {
-				setThemeMetricFamily(theme, target, target.value, knobs);
+				written = setThemeMetricFamily(theme, target, target.value, knobs);
 			});
+			if (!written) {
+				// Only a family carried as something other than an object
+				// (tampered or legacy state) gets here: it is left alone.
+				classicyLog(
+					"warn",
+					"ClassicyDesktopManager",
+					`ClassicyDesktopChangeMetric rejected: measurements.${target.family} is not an object`,
+				);
+			}
 			break;
 		}
 		// One theme value by dotted path (`sound.pack`, `desktop.iconSize`):

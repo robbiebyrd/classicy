@@ -1,4 +1,5 @@
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
+import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "./ClassicyAppearanceDefaults";
 import type { ClassicyAppearancePackage } from "./ClassicyAppearancePackage";
 import { ClassicyAppearancePackageSchema } from "./ClassicyAppearancePackageSchema";
 import {
@@ -57,6 +58,19 @@ export function registerClassicyAppearancePackage(
 export const getClassicyAppearancePackage = (
 	id: string,
 ): ClassicyAppearancePackage | undefined => registry.get(id);
+
+/**
+ * The registered package for `id`, else the registered default package
+ * (`CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID`), else `undefined`. The first two
+ * tiers of `resolveClassicyAppearancePackage`, without its frozen fallback
+ * and without the store, so reducers resolve the active package by the same
+ * rule the hooks and the root attribute use.
+ */
+export const getRegisteredClassicyAppearancePackageOrDefault = (
+	id: string | undefined,
+): ClassicyAppearancePackage | undefined =>
+	(id === undefined ? undefined : registry.get(id)) ??
+	registry.get(CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID);
 
 /** Registered packages, in registration order. */
 export const listClassicyAppearancePackages = (): ClassicyAppearancePackage[] =>

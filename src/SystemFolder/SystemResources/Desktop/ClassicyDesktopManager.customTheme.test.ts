@@ -29,6 +29,7 @@ import {
 	DefaultAppManagerState,
 	mergeClassicyState,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { registerClassicySoundPack } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
 import { classicyDesktopEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
 import {
 	type ClassicyLogEntry,
@@ -589,15 +590,35 @@ describe("ClassicyDesktopChangeAppearanceOption", () => {
 		expect(JSON.stringify(appearance(ds))).toBe(before);
 	});
 
-	it("writes sound.pack", () => {
+	it("writing the value a theme already has does not fork", () => {
 		const ds = makeStore();
 		run(ds, {
 			type: "ClassicyDesktopChangeAppearanceOption",
 			path: "sound.pack",
 			value: "platinum",
 		});
-		// Same value: no change, so no fork.
 		expect(appearance(ds).activeTheme.id).toBe("default");
+	});
+
+	it("changes sound.pack to another registered pack and forks", () => {
+		// Left registered: the registry is per test file, and resetting it
+		// would also drop Platinum's pack, which the other tests rely on.
+		registerClassicySoundPack({
+			id: "option-test-sounds",
+			name: "Option Test",
+			src: ["https://example.com/option-test.ogg"],
+			sprite: { ClassicyBeep: [0, 1] },
+		});
+		const ds = makeStore();
+		run(ds, {
+			type: "ClassicyDesktopChangeAppearanceOption",
+			path: "sound.pack",
+			value: "option-test-sounds",
+		});
+		const a = appearance(ds);
+		expect(a.activeTheme.id).toBe(CLASSICY_CUSTOM_THEME_ID);
+		expect(a.activeTheme.sound.pack).toBe("option-test-sounds");
+		expect(builtIn(ds, "default").sound.pack).toBe("platinum");
 	});
 
 	it("is unreachable to untrusted dispatches", () => {
@@ -686,7 +707,30 @@ describe("ClassicyDesktopChangeMetric family form", () => {
 		expect(warnings).toHaveLength(3);
 	});
 
-	it("refuses every knob when the active package is not registered", () => {
+	it("resolves an unregistered packageId to the registered default package", () => {
+		// The same rule as resolveClassicyAppearancePackage (R6/R16): a
+		// persisted id whose package is gone falls back to Platinum, so the
+		// reducer accepts exactly the knobs the panel shows.
+		registerClassicyAppearancePackage({
+			...knobPackage,
+			id: "platinum",
+			name: "Platinum",
+			defaults: structuredClone(getTheme("default")),
+		});
+		const ds = makeStore();
+		appearance(ds).packageId = "beos";
+		run(ds, {
+			type: "ClassicyDesktopChangeMetric",
+			family: "controlStrip",
+			key: "cellHeight",
+			value: 30,
+		});
+		const a = appearance(ds);
+		expect(a.activeTheme.id).toBe(CLASSICY_CUSTOM_THEME_ID);
+		expect(a.activeTheme.measurements.controlStrip.cellHeight).toBe(30);
+	});
+
+	it("refuses every knob when neither the active nor the default package is registered", () => {
 		const warnings = captureWarnings();
 		const ds = makeStore();
 		appearance(ds).packageId = "beos";
@@ -697,6 +741,24 @@ describe("ClassicyDesktopChangeMetric family form", () => {
 			key: "cellHeight",
 			value: 30,
 		});
+		expect(JSON.stringify(appearance(ds))).toBe(before);
+		expect(warnings).toHaveLength(1);
+	});
+
+	it("survives a tampered non-object family without throwing or forking", () => {
+		const warnings = captureWarnings();
+		const ds = makeKnobStore();
+		const active = appearance(ds).activeTheme;
+		(active.measurements as Record<string, unknown>).controlStrip = null;
+		const before = JSON.stringify(appearance(ds));
+		expect(() =>
+			run(ds, {
+				type: "ClassicyDesktopChangeMetric",
+				family: "controlStrip",
+				key: "cellHeight",
+				value: 30,
+			}),
+		).not.toThrow();
 		expect(JSON.stringify(appearance(ds))).toBe(before);
 		expect(warnings).toHaveLength(1);
 	});
