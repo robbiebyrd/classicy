@@ -17,10 +17,18 @@ const root = mkdtempSync(join(tmpdir(), "classicy-check-dist-"));
 afterAll(() => rmSync(root, { recursive: true, force: true }));
 
 let run = 0;
-/** Writes the bundles (literal = the package string's JS literal, or none) and runs the script on them. */
-const check = (bundles: Record<string, string | null>) => {
+/**
+ * Writes the bundles (literal = the package string's JS literal, or none) and
+ * any other files (path → text, e.g. `fx/classicy-platinum.css` or
+ * `dist/appearance-platinum.js`), then runs the script on all of them.
+ */
+const check = (
+	bundles: Record<string, string | null>,
+	files: Record<string, string> = {},
+) => {
 	const dir = join(root, `case-${run++}`);
 	mkdirSync(join(dir, "fx"), { recursive: true });
+	mkdirSync(join(dir, "dist"), { recursive: true });
 	const names = Object.entries(bundles).map(([name, literal]) => {
 		const file = join("fx", name);
 		writeFileSync(
@@ -31,10 +39,13 @@ const check = (bundles: Record<string, string | null>) => {
 		);
 		return file;
 	});
-	const result = spawnSync(process.execPath, [SCRIPT, ...names], {
-		cwd: dir,
-		encoding: "utf8",
-	});
+	for (const [file, text] of Object.entries(files))
+		writeFileSync(join(dir, file), text);
+	const result = spawnSync(
+		process.execPath,
+		[SCRIPT, ...names, ...Object.keys(files)],
+		{ cwd: dir, encoding: "utf8" },
+	);
 	return { status: result.status, stderr: result.stderr };
 };
 const literal = (css: string) => `\`${css}\``;
@@ -100,5 +111,63 @@ describe("check-dist-imports.mjs invariant 7 (named files)", () => {
 				),
 			),
 		]);
+	});
+});
+
+// R5: the package stylesheet strict-CSP hosts link, emitted from the string
+// the entry bundles inject.
+describe("check-dist-imports.mjs invariant 7: dist/classicy-platinum.css (named files)", () => {
+	const FILE = join("fx", "classicy-platinum.css");
+	const withFile = (css: string) => check(both(PACKAGE), { [FILE]: css });
+
+	it("passes the order statement then the bundles' package string", () =>
+		expect(withFile(`${CLASSICY_LAYER_ORDER}\n${PACKAGE}`)).toEqual({
+			status: 0,
+			stderr: "",
+		}));
+
+	it.each([
+		["without the layer order statement", PACKAGE, /must be "@layer/],
+		[
+			"an empty block",
+			`${CLASSICY_LAYER_ORDER}\n@layer classicy.package{}`,
+			/carries no non-empty/,
+		],
+		[
+			"a different stylesheet",
+			`${CLASSICY_LAYER_ORDER}\n${PACKAGE.replace("1px", "2px")}`,
+			/differs from the package stylesheet .*classicy\.es\.js injects/,
+		],
+	])("fails on a file %s", (_name, css, message) => {
+		const { status, stderr } = withFile(css);
+		expect(status).toBe(1);
+		expect(stderr).toMatch(message);
+		expect(
+			stderr
+				.trim()
+				.split("\n")
+				.every((line) => line.startsWith(FILE)),
+		).toBe(true);
+	});
+});
+
+// R4: `classicy/appearance/platinum` resolves to an emitted no-op shim (the
+// main bundle already registers Platinum), checked like dist/fonts.js.
+describe("check-dist-imports.mjs invariant 4: dist/appearance-platinum.js (named files)", () => {
+	const SHIM = join("dist", "appearance-platinum.js");
+
+	it("passes a self-contained no-op", () =>
+		expect(
+			check(both(PACKAGE), { [SHIM]: "// Deprecated no-op.\n" }).status,
+		).toBe(0));
+
+	it("fails when it gains an import", () => {
+		const { status, stderr } = check(both(PACKAGE), {
+			[SHIM]: 'import "./classicy.es.js";\n',
+		});
+		expect(status).toBe(1);
+		expect(stderr).toMatch(
+			/appearance-platinum\.js: has an import\/require; it must stay a self-contained script/,
+		);
 	});
 });

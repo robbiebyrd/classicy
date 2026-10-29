@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
 	CLASSICY_ENTRY_BUNDLES,
+	CLASSICY_PACKAGE_STYLESHEETS,
+	classicyPackageStylesheets,
 	findClassicyPackageCssProblems,
 	isSingleClassicyLayerBlock,
 	requiredClassicyPackageBundles,
+	requiredClassicyPackageStylesheets,
 } from "./classicyPackageCss";
 import { CLASSICY_LAYER_ORDER } from "./classicyStyleInjector";
 
@@ -376,4 +379,139 @@ describe("requiredClassicyPackageBundles", () => {
 			requiredClassicyPackageBundles(["dist/my-classicy.es.js"], inDist),
 		).toEqual([]);
 	});
+});
+
+// R5: strict-CSP hosts link dist/classicy-platinum.css, emitted from the very
+// string the entry bundles inject (the `platinum.scss?inline` module).
+describe("required package stylesheet files (R5)", () => {
+	const FILE = "dist/classicy-platinum.css";
+	const bundles = (literal: string) =>
+		["dist/classicy.es.js", "dist/classicy.umd.js"].map((file) => ({
+			file,
+			source: bundle(literal),
+		}));
+	const required = (css: string | null, literal = js(PACKAGE)) =>
+		check({
+			bundles: bundles(literal),
+			packageStylesheets: css === null ? [] : [{ file: FILE, css }],
+			requiredBundles: ["dist/classicy.es.js", "dist/classicy.umd.js"],
+			requiredPackageStylesheets: [FILE],
+		});
+
+	it("passes the order statement then the bundles' own package string", () => {
+		expect(required(`${ORDER}\n${PACKAGE}`)).toEqual([]);
+		expect(required(`@charset "UTF-8";\n${ORDER}\n${PACKAGE}\n`)).toEqual([]);
+	});
+
+	it("reports a missing file", () =>
+		expect(required(null)).toEqual([
+			expect.stringMatching(/^dist\/classicy-platinum\.css: missing/),
+		]));
+
+	it("reports an empty or unscoped file", () => {
+		for (const block of [
+			"@layer classicy.package{}",
+			"@layer classicy.package{.classicyButton{color:red}}",
+		]) {
+			const problems = required(`${ORDER}\n${block}`, js(block));
+			expect(problems, block).toContainEqual(
+				expect.stringMatching(
+					/^dist\/classicy-platinum\.css: carries no non-empty/,
+				),
+			);
+		}
+	});
+
+	it("reports a file that differs from the string the bundles inject", () => {
+		const problems = required(
+			`${ORDER}\n${PACKAGE.replace("color:red", "color:blue")}`,
+		);
+		expect(problems).toEqual([
+			expect.stringMatching(
+				/^dist\/classicy-platinum\.css: differs from the package stylesheet dist\/classicy\.es\.js injects/,
+			),
+			expect.stringMatching(
+				/^dist\/classicy-platinum\.css: differs from the package stylesheet dist\/classicy\.umd\.js injects/,
+			),
+		]);
+	});
+});
+
+describe("requiredClassicyPackageStylesheets", () => {
+	const inDist = (file: string) => `dist/${file}`;
+
+	it("names Platinum's file", () =>
+		expect(CLASSICY_PACKAGE_STYLESHEETS).toEqual(["classicy-platinum.css"]));
+
+	it("requires it in dist/ when no file is named, else only when named", () => {
+		expect(requiredClassicyPackageStylesheets([], inDist)).toEqual([
+			"dist/classicy-platinum.css",
+		]);
+		expect(
+			requiredClassicyPackageStylesheets(
+				["dist/classicy.es.js", "fx/classicy-platinum.css"],
+				inDist,
+			),
+		).toEqual(["fx/classicy-platinum.css"]);
+		expect(
+			requiredClassicyPackageStylesheets(["dist/classicy.css"], inDist),
+		).toEqual([]);
+	});
+});
+
+// What injectCssPlugin emits as dist/classicy-<name>.css: the compiled text of
+// each package stylesheet module (`src/Appearance/<Package>/styles/<name>.scss?inline`).
+describe("classicyPackageStylesheets", () => {
+	const ID = "/repo/src/Appearance/Platinum/styles/platinum.scss?inline";
+	const module = (id: string, css: string) => ({
+		id,
+		code: `export default ${JSON.stringify(css)}`,
+	});
+
+	it("maps a package's ?inline stylesheet to classicy-<name>.css", () =>
+		expect(
+			classicyPackageStylesheets([
+				module(ID, PACKAGE),
+				module(
+					"C:\\repo\\src\\Appearance\\Irix-Dark\\styles\\irix-dark.scss?inline",
+					"@layer classicy.package{}",
+				),
+			]),
+		).toEqual([
+			{ fileName: "classicy-platinum.css", css: PACKAGE },
+			{
+				fileName: "classicy-irix-dark.css",
+				css: "@layer classicy.package{}",
+			},
+		]));
+
+	it("ignores every other module", () =>
+		expect(
+			classicyPackageStylesheets([
+				module("/repo/src/Appearance/Platinum/styles/platinum.scss", ""),
+				module("/repo/src/Appearance/Platinum/styles/_mixins.scss?inline", ""),
+				module("/repo/src/SystemFolder/Button/ClassicyButton.scss?inline", ""),
+				module(
+					"/repo/node_modules/x/src/Appearance/A/styles/a.scss?inline",
+					"",
+				),
+				{ id: "\0virtual", code: null },
+			]),
+		).toEqual([]));
+
+	it("throws when a package stylesheet module is not a string export", () =>
+		expect(() =>
+			classicyPackageStylesheets([{ id: ID, code: "export default css" }]),
+		).toThrow(/platinum\.scss\?inline/));
+
+	it("throws when two packages would write the same file", () =>
+		expect(() =>
+			classicyPackageStylesheets([
+				module(ID, PACKAGE),
+				module(
+					"/repo/src/Appearance/Other/styles/platinum.scss?inline",
+					PACKAGE,
+				),
+			]),
+		).toThrow(/classicy-platinum\.css/));
 });
