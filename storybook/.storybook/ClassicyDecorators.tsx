@@ -63,16 +63,19 @@ const StoryFrame = ({
 	isCanvas: boolean;
 	style: CSSProperties;
 	children: ReactNode;
-}) => (
-	<div
-		id={isCanvas ? "classicyDesktop" : undefined}
-		className="classicyDesktop classicyStorybookFrame"
-		data-classicy-appearance={useActiveClassicyAppearancePackage().id}
-		style={style}
-	>
-		{children}
-	</div>
-);
+}) => {
+	const appearancePackageId = useActiveClassicyAppearancePackage().id;
+	return (
+		<div
+			id={isCanvas ? "classicyDesktop" : undefined}
+			className="classicyDesktop classicyStorybookFrame"
+			data-classicy-appearance={appearancePackageId}
+			style={style}
+		>
+			{children}
+		</div>
+	);
+};
 
 export const withClassicy: Decorator = (Story, context) => {
 	const themeId = (context.globals.theme as string) ?? "default";

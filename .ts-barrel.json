@@ -9,6 +9,7 @@
 		"\\.test\\.tsx?$",
 		"\\.stories\\.tsx?$",
 		"custom\\.d\\.ts",
+		"\\.internal\\.ts$",
 		"\\s\\d+\\.ts$"
 	]
 }

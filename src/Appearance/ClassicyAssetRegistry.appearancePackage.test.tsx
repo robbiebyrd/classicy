@@ -129,3 +129,11 @@ describe("the asset registry follows the active Appearance Package", () => {
 		);
 	});
 });
+
+describe("the package source connection", () => {
+	it("is not part of the public API", async () => {
+		const api: Record<string, unknown> = await import("@/index");
+		expect(api).not.toHaveProperty("connectClassicyAssetPackageSource");
+		expect(api).toHaveProperty("getActiveClassicyAppearancePackageId");
+	}, 60_000);
+});

@@ -50,6 +50,29 @@ describe("ClassicyAppearancePackageSchema", () => {
 		);
 	});
 
+	it("rejects defaults that belong to another package", () => {
+		const result = ClassicyAppearancePackageSchema.safeParse({
+			...platinumShaped(),
+			id: "irix",
+		});
+		expect(result.success).toBe(false);
+		const issue = result.error?.issues.find(
+			(i) => i.path.join(".") === "defaults.package",
+		);
+		expect(issue?.message).toBe(
+			'must be the package id "irix", not "platinum"',
+		);
+	});
+
+	it("accepts defaults that name the package", () => {
+		const input = {
+			...platinumShaped(),
+			id: "irix",
+			defaults: { ...getTheme("default"), package: "irix" },
+		};
+		expect(ClassicyAppearancePackageSchema.safeParse(input).success).toBe(true);
+	});
+
 	it("rejects an id that is not kebab-case", () => {
 		for (const id of ["Not Kebab", "a--b", "-a", "a-", ""])
 			expect(
