@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	act,
 	fireEvent,
@@ -31,6 +31,11 @@ import {
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyDesktop } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktop";
+import {
+	type ClassicyLogEntry,
+	registerClassicyLogSink,
+	unregisterClassicyLogSink,
+} from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 // Ruling 1: a package's options are its knobs, `{ <family>: { <key>: number } }`
 // under `theme.measurements`, built into `options` by classicyKnobsToSchema.
@@ -81,6 +86,7 @@ const Host = ({
 		menuBar: { height: 20 },
 	}),
 	changeMetric = vi.fn(),
+	editingCustomTheme = false,
 }: {
 	pkg?: ClassicyAppearancePackage;
 	theme?: ClassicyTheme;
@@ -88,8 +94,9 @@ const Host = ({
 		target: ClassicyThemeMetricFamilyTarget,
 		value: number,
 	) => void;
+	editingCustomTheme?: boolean;
 }) => {
-	const tab = useOptionsTab({ pkg, theme, changeMetric });
+	const tab = useOptionsTab({ pkg, theme, editingCustomTheme, changeMetric });
 	return <div>{tab.children}</div>;
 };
 
@@ -104,6 +111,7 @@ describe("useOptionsTab", () => {
 			useOptionsTab({
 				pkg: testPack,
 				theme: testPack.defaults,
+				editingCustomTheme: false,
 				changeMetric: vi.fn(),
 			}),
 		);
@@ -242,6 +250,128 @@ describe("useOptionsTab", () => {
 			target: { value: "" },
 		});
 		expect(changeMetric).not.toHaveBeenCalled();
+	});
+
+	it("shows the Metrics tab's fork notice for a built-in and the editing notice for a custom theme", () => {
+		const { rerender } = render(<Host />);
+		expect(
+			screen.getByText(
+				"Changing an option creates a Custom theme from “Default”.",
+			),
+		).toBeInTheDocument();
+		rerender(
+			<Host
+				theme={{ ...testPack.defaults, id: "custom", name: "Custom" }}
+				editingCustomTheme
+			/>,
+		);
+		expect(screen.getByText("Editing the “Custom” theme.")).toBeInTheDocument();
+	});
+
+	it("follows a switch between two packages that share a knob: value and bounds (Minor 6)", () => {
+		const narrow: ClassicyAppearanceKnobs = {
+			controlStrip: {
+				cellHeight: { label: "Cell height", min: 50, max: 100, default: 60 },
+			},
+		};
+		const other: ClassicyAppearancePackage = {
+			...testPack,
+			id: "other-pack",
+			name: "Other Pack",
+			knobs: narrow,
+			options: classicyKnobsToSchema(narrow),
+		};
+		const changeMetric = vi.fn();
+		const { rerender } = render(<Host changeMetric={changeMetric} />);
+		const before = field("controlStrip", "cellHeight");
+		expect(before).toHaveValue(22);
+		rerender(
+			<Host
+				pkg={other}
+				theme={themeWith({ controlStrip: { cellHeight: 75 } })}
+				changeMetric={changeMetric}
+			/>,
+		);
+		const after = field("controlStrip", "cellHeight");
+		expect(after).toHaveValue(75);
+		// The other package's family has no tabWidth, and no menuBar family.
+		expect(field("controlStrip", "tabWidth")).toBeNull();
+		expect(field("menuBar", "height")).toBeNull();
+		fireEvent.change(after, { target: { value: "999" } });
+		expect(after).toHaveValue(100);
+		expect(changeMetric).toHaveBeenLastCalledWith(
+			{ family: "controlStrip", key: "cellHeight" },
+			100,
+		);
+		fireEvent.change(after, { target: { value: "10" } });
+		expect(after).toHaveValue(50);
+		expect(changeMetric).toHaveBeenLastCalledWith(
+			{ family: "controlStrip", key: "cellHeight" },
+			50,
+		);
+	});
+
+	describe("a knob declared wholly outside 0–512 (J-R18)", () => {
+		const warnings: ClassicyLogEntry[] = [];
+		beforeEach(() => {
+			warnings.length = 0;
+			vi.spyOn(console, "warn").mockImplementation(() => {});
+			registerClassicyLogSink({
+				id: "options-tab-test",
+				onLog: (entry) => {
+					if (entry.level === "warn") warnings.push(entry);
+				},
+			});
+		});
+		afterEach(() => {
+			unregisterClassicyLogSink("options-tab-test");
+			vi.restoreAllMocks();
+		});
+
+		const withHuge = (id: string, keepCellHeight: boolean) => {
+			const k: ClassicyAppearanceKnobs = {
+				controlStrip: {
+					...(keepCellHeight
+						? { cellHeight: knobs.controlStrip.cellHeight }
+						: {}),
+					huge: { label: "Huge", min: 600, max: 700, default: 650 },
+				},
+			};
+			return {
+				...testPack,
+				id,
+				name: "Huge Pack",
+				knobs: k,
+				options: classicyKnobsToSchema(k),
+			};
+		};
+
+		it("is left out, never rendered with inverted bounds, and warned about once", () => {
+			const pkg = withHuge("huge-pack", true);
+			const { rerender } = render(<Host pkg={pkg} />);
+			rerender(
+				<Host
+					pkg={pkg}
+					theme={themeWith({ controlStrip: { cellHeight: 30 } })}
+				/>,
+			);
+			expect(field("controlStrip", "huge")).toBeNull();
+			expect(screen.queryByLabelText("Huge")).toBeNull();
+			expect(field("controlStrip", "cellHeight")).toHaveValue(30);
+			const huge = warnings.filter((w) => w.message.includes("huge"));
+			expect(huge).toHaveLength(1);
+			expect(huge[0].subsystem).toBe("ClassicyAppearance");
+			expect(huge[0].message).toContain("huge-pack");
+			expect(huge[0].message).toContain("controlStrip");
+		});
+
+		it("leaves the tab saying the package has no options when it was the only knob", () => {
+			render(<Host pkg={withHuge("only-huge-pack", false)} />);
+			expect(
+				screen.getByText("The Huge Pack package has no options."),
+			).toBeInTheDocument();
+			expect(document.querySelector("input")).toBeNull();
+		});
 	});
 
 	it("says so when the package has no options", () => {
