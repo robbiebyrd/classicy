@@ -5,6 +5,7 @@ import {
 import "./ClassicyFileBrowserViewTable.scss";
 import classNames from "classnames";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	type MouseEvent,
 	memo,
@@ -87,6 +88,10 @@ type ClassicyFileBrowserViewTableProps = {
 	focusTargetRef?: RefObject<HTMLDivElement | null>;
 	/** Move items dragged out of the list (see `ClassicyFileBrowser`). */
 	onMoveItems?: ClassicyFileBrowserMoveItems;
+	/** Extra class names, merged onto the table's root after the component's own. */
+	className?: string;
+	/** Inline style for the table's root. */
+	style?: CSSProperties;
 };
 
 // Marks a row's name cell with its path, so a drag can find every dragged
@@ -110,6 +115,8 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 			onSelectionChange,
 			focusTargetRef,
 			onMoveItems,
+			className,
+			style,
 		}) => {
 			// The latest selection, so a drag that starts on a selected row
 			// carries every selected row (Mac OS 8 list views did).
@@ -445,7 +452,11 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 			return (
 				<ClassicyTable<FileRow>
 					key={`${appId}_filebrowser_${path}`}
-					className={"classicyFileBrowserViewTableContainer"}
+					className={classNames(
+						"classicyFileBrowserViewTableContainer",
+						className,
+					)}
+					style={style}
 					columns={columns}
 					rows={data}
 					getRowId={(row) => row._path ?? ""}

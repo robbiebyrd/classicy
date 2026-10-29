@@ -1,4 +1,4 @@
-import type { FC as FunctionalComponent } from "react";
+import type { CSSProperties, FC as FunctionalComponent } from "react";
 import type { z } from "zod";
 
 /** A saver's configuration values, persisted per saver id in app state. */
@@ -8,6 +8,14 @@ export type ClassicyScreenSaverConfig = Record<string, unknown>;
 export interface ClassicyScreenSaverProps {
 	/** Resolved config: schema/`defaultConfig` defaults merged under saved values. */
 	config: ClassicyScreenSaverConfig;
+	/**
+	 * Extra class names for the saver's root. The screen-saver overlay passes
+	 * none; they are for a host rendering a saver itself (a preview, say). The
+	 * built-in savers merge them after their own root class.
+	 */
+	className?: string;
+	/** Inline style for the saver's root, merged after the saver's own. */
+	style?: CSSProperties;
 }
 
 /** Props a saver's custom options UI receives from the host (control panel). */

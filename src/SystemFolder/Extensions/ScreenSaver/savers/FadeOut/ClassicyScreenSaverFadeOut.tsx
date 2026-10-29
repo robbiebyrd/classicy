@@ -1,4 +1,5 @@
 import "./ClassicyScreenSaverFadeOut.scss";
+import classNames from "classnames";
 import type { FC as FunctionalComponent } from "react";
 import type { ClassicyScreenSaverProps } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverRegistry";
 
@@ -9,4 +10,9 @@ import type { ClassicyScreenSaverProps } from "@/SystemFolder/Extensions/ScreenS
  */
 export const ClassicyScreenSaverFadeOut: FunctionalComponent<
 	ClassicyScreenSaverProps
-> = () => <div className="classicySaverFadeOut" />;
+> = ({ className, style }) => (
+	<div
+		className={classNames("classicySaverFadeOut", className)}
+		style={style}
+	/>
+);

@@ -1,5 +1,5 @@
 import "./AppleGuide.scss";
-import type { FC as FunctionalComponent } from "react";
+import type { CSSProperties, FC as FunctionalComponent } from "react";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -24,6 +24,10 @@ type AppleGuideWindowProps = {
 	 * window id (`apple_guide_<topicId>`). Unknown ids render nothing.
 	 */
 	topicId: string;
+	/** Extra class names, forwarded to the topic's `ClassicyWindow` root. */
+	className?: string;
+	/** Inline style, forwarded to the topic's `ClassicyWindow` root. */
+	style?: CSSProperties;
 };
 
 /**
@@ -52,6 +56,8 @@ type AppleGuideWindowProps = {
  */
 export const AppleGuideWindow: FunctionalComponent<AppleGuideWindowProps> = ({
 	topicId,
+	className,
+	style,
 }) => {
 	const dispatch = useAppManagerDispatch();
 	const rawData = useAppManager(
@@ -85,6 +91,8 @@ export const AppleGuideWindow: FunctionalComponent<AppleGuideWindowProps> = ({
 		<ClassicyWindow
 			id={appleGuideWindowId(topicId)}
 			appId={APPLE_GUIDE_APP_ID}
+			className={className}
+			style={style}
 			hideIcon={true}
 			closable={true}
 			zoomable={true}

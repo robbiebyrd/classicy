@@ -1,5 +1,7 @@
 import "./ClassicyStartupScreen.scss";
+import classNames from "classnames";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	useEffect,
 	useMemo,
@@ -27,6 +29,10 @@ interface ClassicyStartupScreenProps {
 	logo?: string;
 	/** Overrides the wordmark text shown next to the logo. Defaults to `"Classicy"`. */
 	wordmark?: string;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 }
 
 /**
@@ -49,7 +55,7 @@ interface ClassicyStartupScreenProps {
  */
 export const ClassicyStartupScreen: FunctionalComponent<
 	ClassicyStartupScreenProps
-> = ({ duration = 4000, logo, wordmark = "Classicy" }) => {
+> = ({ duration = 4000, logo, wordmark = "Classicy", className, style }) => {
 	const defaultLogo = useClassicyAsset("systemArt", "startupLogo") ?? "";
 	const [visible, setVisible] = useState(
 		() => !hasShownStartupScreenThisSession(),
@@ -120,7 +126,11 @@ export const ClassicyStartupScreen: FunctionalComponent<
 	if (!visible) return null;
 
 	return (
-		<div className="classicyStartupScreen" role="status">
+		<div
+			className={classNames("classicyStartupScreen", className)}
+			style={style}
+			role="status"
+		>
 			<div className="classicyStartupScreenPanel">
 				<div className="classicyStartupScreenLogo">
 					<img src={logo ?? defaultLogo} alt={wordmark} />

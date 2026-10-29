@@ -2,6 +2,7 @@ import "./ClassicyDesktopMenuWidgetSound.scss";
 import "@/SystemFolder/SystemResources/Menu/ClassicyMenu.scss";
 import classNames from "classnames";
 import type {
+	CSSProperties,
 	FC as FunctionalComponent,
 	KeyboardEvent,
 	MouseEvent,
@@ -23,6 +24,10 @@ import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
  */
 type ClassicyDesktopMenuWidgetSoundProps = {
 	hide?: boolean;
+	/** Extra class names, merged onto the item's `<li>` after the component's own. */
+	className?: string;
+	/** Inline style for the item's `<li>`. */
+	style?: CSSProperties;
 };
 
 // Module-level so the deprecation notice prints once per page, however many
@@ -41,7 +46,7 @@ let deprecationWarned = false;
  */
 export const ClassicyDesktopMenuWidgetSound: FunctionalComponent<
 	ClassicyDesktopMenuWidgetSoundProps
-> = ({ hide = false }) => {
+> = ({ hide = false, className, style }) => {
 	const appIcon =
 		useClassicyAsset("icons", "controlPanels.soundManager.app") ?? "";
 	const soundOffImg =
@@ -90,7 +95,9 @@ export const ClassicyDesktopMenuWidgetSound: FunctionalComponent<
 						"classicyDesktopMenuWidgetSound",
 						"classicyMenuItem",
 						"classicyMenuItemNoImage",
+						className,
 					)}
+					style={style}
 					onClick={mute}
 					onDoubleClick={openSoundManager}
 					onKeyDown={(e: KeyboardEvent) => {

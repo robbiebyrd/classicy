@@ -6,6 +6,7 @@
 
 import {
 	type ChangeEvent,
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	useEffect,
 	useState,
@@ -21,11 +22,17 @@ import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWi
 interface HyperCardDialogProps {
 	dialog: HCDialog;
 	stackId: string;
+	/** Extra class names, forwarded to the dialog's `ClassicyWindow` root. */
+	className?: string;
+	/** Inline style, forwarded to the dialog's `ClassicyWindow` root. */
+	style?: CSSProperties;
 }
 
 export const HyperCardDialog: FunctionalComponent<HyperCardDialogProps> = ({
 	dialog,
 	stackId,
+	className,
+	style,
 }) => {
 	const dispatch = useAppManagerDispatch();
 	const [text, setText] = useState(dialog.defaultValue ?? "");
@@ -53,6 +60,8 @@ export const HyperCardDialog: FunctionalComponent<HyperCardDialogProps> = ({
 		<ClassicyWindow
 			id={"hypercard_dialog"}
 			appId={HyperCardAppInfo.id}
+			className={className}
+			style={style}
 			title={dialog.kind === "ask" ? "Ask" : HyperCardAppInfo.name}
 			closable={false}
 			resizable={false}

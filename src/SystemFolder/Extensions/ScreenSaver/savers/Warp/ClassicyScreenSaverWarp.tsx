@@ -1,4 +1,5 @@
 import "./ClassicyScreenSaverWarp.scss";
+import classNames from "classnames";
 import type { CSSProperties, FC as FunctionalComponent } from "react";
 import { z } from "zod";
 import type { ClassicyScreenSaverProps } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverRegistry";
@@ -20,11 +21,11 @@ const starImages = [stars1, stars2, stars3, stars4].map(String);
  */
 export const ClassicyScreenSaverWarp: FunctionalComponent<
 	ClassicyScreenSaverProps
-> = ({ config }) => {
+> = ({ config, className, style }) => {
 	const parsed = WarpConfigSchema.safeParse(config);
 	const layers = parsed.success ? parsed.data.layers : 9;
 	return (
-		<div className="classicySaverWarp">
+		<div className={classNames("classicySaverWarp", className)} style={style}>
 			{Array.from({ length: layers }, (_, i) => (
 				<div
 					// biome-ignore lint/suspicious/noArrayIndexKey: layers are identical; stagger index is identity

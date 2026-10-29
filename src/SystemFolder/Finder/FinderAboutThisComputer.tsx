@@ -1,6 +1,6 @@
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import "./FinderAboutThisComputer.scss";
-import type { FC as FunctionalComponent } from "react";
+import type { CSSProperties, FC as FunctionalComponent } from "react";
 import { useEffect, useState } from "react";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
@@ -26,7 +26,16 @@ const pkgExtra = packageJson as Record<string, unknown>;
 const release =
 	typeof pkgExtra.release === "string" ? pkgExtra.release : "Classicy";
 
-export const FinderAboutThisComputer: FunctionalComponent = () => {
+type FinderAboutThisComputerProps = {
+	/** Extra class names, forwarded to the `ClassicyWindow` root. */
+	className?: string;
+	/** Inline style, forwarded to the `ClassicyWindow` root. */
+	style?: CSSProperties;
+};
+
+export const FinderAboutThisComputer: FunctionalComponent<
+	FinderAboutThisComputerProps
+> = ({ className, style }) => {
 	const classicyBg = useClassicyAsset("icons", "classicy.bg") ?? "";
 	const classicyLogo = useClassicyAsset("systemArt", "aboutLogo") ?? "";
 	const macosIcon = useClassicyAsset("icons", "system.macos") ?? "";
@@ -76,6 +85,8 @@ export const FinderAboutThisComputer: FunctionalComponent = () => {
 		<ClassicyWindow
 			id={FINDER_ABOUT_THIS_COMPUTER_WINDOW_ID}
 			appId={appId}
+			className={className}
+			style={style}
 			hideIcon={true}
 			title="About This Computer"
 			closable={true}

@@ -1,4 +1,5 @@
 import "./ClassicyScreenSaverFlyingToasters.scss";
+import classNames from "classnames";
 import type { CSSProperties, FC as FunctionalComponent } from "react";
 import { z } from "zod";
 import type { ClassicyScreenSaverProps } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverRegistry";
@@ -121,18 +122,19 @@ const TOAST: [string, string][] = [
  */
 export const ClassicyScreenSaverFlyingToasters: FunctionalComponent<
 	ClassicyScreenSaverProps
-> = ({ config }) => {
+> = ({ config, className, style }) => {
 	const parsed = FlyingToastersConfigSchema.safeParse(config);
 	const { toasters, toast } = parsed.success
 		? parsed.data
 		: { toasters: 37, toast: 12 };
 	return (
 		<div
-			className="classicySaverFlyingToasters"
+			className={classNames("classicySaverFlyingToasters", className)}
 			style={
 				{
 					"--classicy-saver-toaster": `url(${toasterSprite})`,
 					"--classicy-saver-toast": `url(${toastImage})`,
+					...style,
 				} as CSSProperties
 			}
 		>

@@ -1,11 +1,24 @@
 import "./ClassicyCrashScreen.scss";
-import { Component, type ErrorInfo, type ReactNode } from "react";
+import classNames from "classnames";
+import {
+	Component,
+	type CSSProperties,
+	type ErrorInfo,
+	type ReactNode,
+} from "react";
 import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { emitClassicyCrash } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 interface ClassicyCrashScreenProps {
 	/** The tree to guard — normally the whole desktop. Rendered unchanged until a descendant throws. */
 	children?: ReactNode;
+	/**
+	 * Extra class names, merged onto the Sad Mac screen after its own. The
+	 * boundary has no element of its own until a descendant throws.
+	 */
+	className?: string;
+	/** Inline style for the Sad Mac screen. */
+	style?: CSSProperties;
 }
 
 interface ClassicyCrashScreenState {
@@ -81,7 +94,8 @@ export class ClassicyCrashScreen extends Component<
 		if (this.state.crashed) {
 			return (
 				<button
-					className="classicyCrashScreen"
+					className={classNames("classicyCrashScreen", this.props.className)}
+					style={this.props.style}
 					type="button"
 					onClick={this.reload}
 					onKeyDown={this.reload}

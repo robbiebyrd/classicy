@@ -609,8 +609,10 @@ document.querySelector('[data-classicy-role="default"]')
 document.querySelector('[data-classicy-part="clock"]')
 ```
 
-**`className` and `style` passthrough.** Every exported component takes
-`className` and `style` and applies them to its outermost element. They are
+**`className` and `style` passthrough.** Every exported component that
+renders an element of its own takes `className` and `style` and applies them
+to its outermost element (the exceptions, which have none, are listed below).
+They are
 merged, never replacing anything: `className` is appended after the root and
 state classes (`<ClassicyButton className="wide">` renders
 `class="classicyButton … wide"`), and `style` is spread after the component's
@@ -633,8 +635,29 @@ and icon states own:
   `ClassicyProgressBar`, `ClassicyRadioInput`, `ClassicySlider`,
   `ClassicyListBox`), the props land on the wrapper when a label is shown and
   on the control otherwise. Dialog components (`ClassicyAlert`,
-  `ClassicyAboutWindow`, the file and input dialogs) forward them to their
-  `ClassicyWindow`. `ClassicyApp` renders no root of its own and takes neither.
+  `ClassicyAboutWindow`, the file and input dialogs, `ClassicyEmptyTrashAlert`,
+  `AppleGuideWindow`, `FinderAboutThisComputer`, `FinderPreferences`,
+  `HyperCardDialog`) forward them to their `ClassicyWindow`.
+- Components whose root changes with their phase apply them to whichever
+  root is showing: `ClassicyBootSequence` (the power-on overlay, then the
+  default startup screen; a custom `bootScreen` gets neither),
+  `PDFViewerDocument` (the loading and error messages, then the viewer) and
+  `ClassicyCrashScreen` (only the Sad Mac screen — the boundary has no element
+  until a descendant throws). The built-in screen savers take them through
+  `ClassicyScreenSaverProps`; the screen-saver overlay passes none, so they
+  matter only to a host rendering a saver itself.
+- No passthrough, because there is no root element of their own:
+  `ClassicyApp` and every bundled app built on it (`Finder`, `SimpleText`,
+  `HyperCard`, `MoviePlayer`, `QuickTimePictureViewer`, `PDFViewer`,
+  `WebViewer`, `AppleGuide`, `ClassicyScreenSaver`, the control panels and
+  `ClassicyControlPanels`); the providers (`ClassicyAppManagerProvider`,
+  `ClassicySoundManagerProvider`, `ClassicyMenuProvider`,
+  `ClassicyContextualMenuProvider`); the controllers that render nothing or
+  only transient alerts (`ClassicyOpenUrlController`,
+  `DriveSetupController`); and the components that render a run of sibling
+  elements into their parent (`QuickTimeSeekBar`, `QuickTimeVolumeControl`,
+  `ClassicyScreenSaverConfigForm`). Style the elements those produce
+  (windows, desktop icons, controls) instead.
 
 **Cascade layers.** Every Classicy rule is compiled into `@layer classicy.base`
 and ships no `!important` (a test enforces it). The order is declared once,

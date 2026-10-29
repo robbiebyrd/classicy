@@ -1,5 +1,6 @@
 import "./ClassicyScreenSaverBouncingBall.scss";
-import type { FC as FunctionalComponent } from "react";
+import classNames from "classnames";
+import type { CSSProperties, FC as FunctionalComponent } from "react";
 import { z } from "zod";
 import type {
 	ClassicyScreenSaverConfigProps,
@@ -29,10 +30,13 @@ const ballCount = (config: Record<string, unknown>): number => {
  */
 export const ClassicyScreenSaverBouncingBall: FunctionalComponent<
 	ClassicyScreenSaverProps
-> = ({ config }) => {
+> = ({ config, className, style }) => {
 	const count = ballCount(config);
 	return (
-		<div className="classicySaverBouncingBall">
+		<div
+			className={classNames("classicySaverBouncingBall", className)}
+			style={style}
+		>
 			{Array.from({ length: count }, (_, i) => (
 				<div
 					// biome-ignore lint/suspicious/noArrayIndexKey: balls are identical; position is identity
@@ -46,9 +50,16 @@ export const ClassicyScreenSaverBouncingBall: FunctionalComponent<
 
 /** Reference custom options UI: a single spinner, host-persisted via onChange. */
 export const ClassicyScreenSaverBouncingBallOptions: FunctionalComponent<
-	ClassicyScreenSaverConfigProps
-> = ({ config, onChange }) => (
+	ClassicyScreenSaverConfigProps & {
+		/** Extra class names, forwarded to the spinner's root. */
+		className?: string;
+		/** Inline style, forwarded to the spinner's root. */
+		style?: CSSProperties;
+	}
+> = ({ config, onChange, className, style }) => (
 	<ClassicySpinner
+		className={className}
+		style={style}
 		id="ScreenSaver_BouncingBall_balls"
 		labelTitle="Balls"
 		labelPosition="left"

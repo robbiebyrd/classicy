@@ -4,7 +4,13 @@
  * same handlers in the draft (each Apply/mutation dispatches SetScript).
  */
 
-import { type FC as FunctionalComponent, useEffect, useState } from "react";
+import classNames from "classnames";
+import {
+	type CSSProperties,
+	type FC as FunctionalComponent,
+	useEffect,
+	useState,
+} from "react";
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import type { HCEditState } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorUtils";
 import { HyperCardScriptBuilder } from "@/SystemFolder/HyperCard/Editor/HyperCardScriptBuilder";
@@ -19,11 +25,15 @@ import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabe
 interface HyperCardScriptEditorProps {
 	stackId: string;
 	edit: HCEditState;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 }
 
 export const HyperCardScriptEditor: FunctionalComponent<
 	HyperCardScriptEditorProps
-> = ({ stackId, edit }) => {
+> = ({ stackId, edit, className, style }) => {
 	const dispatch = useAppManagerDispatch();
 	const [tab, setTab] = useState<"builder" | "json">("builder");
 	const target = edit.script?.target;
@@ -42,7 +52,10 @@ export const HyperCardScriptEditor: FunctionalComponent<
 	if (!target || handlers === undefined) return null;
 
 	return (
-		<div className={"classicyHyperCardScriptEditor"}>
+		<div
+			className={classNames("classicyHyperCardScriptEditor", className)}
+			style={style}
+		>
 			<ClassicyControlLabel label={targetLabel(target)} />
 			<div className={"classicyHyperCardScriptTabs"}>
 				<ClassicyButton

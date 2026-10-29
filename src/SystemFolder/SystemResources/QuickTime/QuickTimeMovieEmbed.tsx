@@ -1,7 +1,12 @@
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import "./QuickTimeMovieEmbed.scss";
 import classNames from "classnames";
-import { type FC as FunctionalComponent, useCallback, useEffect } from "react";
+import {
+	type CSSProperties,
+	type FC as FunctionalComponent,
+	useCallback,
+	useEffect,
+} from "react";
 import ReactPlayer from "react-player";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { getAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
@@ -84,6 +89,10 @@ type QuickTimeVideoEmbedProps = {
 	crossOrigin?: "" | "anonymous" | "use-credentials";
 	/** Play inline on iOS rather than forcing native fullscreen. */
 	playsInline?: boolean;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 };
 
 /**
@@ -135,6 +144,8 @@ export const QuickTimeVideoEmbed: FunctionalComponent<
 	onPlaying,
 	crossOrigin,
 	playsInline,
+	className,
+	style,
 }) => {
 	const ccIcon = useClassicyAsset("icons", "system.quicktime.cc");
 	// Keyboard shortcuts only act while this movie's window is the focused one.
@@ -242,7 +253,9 @@ export const QuickTimeVideoEmbed: FunctionalComponent<
 			className={classNames(
 				"quickTimePlayerWrapper",
 				controlsDocked && "quickTimePlayerWrapperDocked",
+				className,
 			)}
+			style={style}
 		>
 			<div
 				className={classNames(

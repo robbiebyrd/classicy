@@ -1,4 +1,5 @@
 import "./ClassicyScreenSaverSpotlight.scss";
+import classNames from "classnames";
 import type { FC as FunctionalComponent } from "react";
 import type { ClassicyScreenSaverProps } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverRegistry";
 import spotlightBg from "./spotlight_bg.webp";
@@ -10,8 +11,11 @@ import spotlightBg from "./spotlight_bg.webp";
  */
 export const ClassicyScreenSaverSpotlight: FunctionalComponent<
 	ClassicyScreenSaverProps
-> = () => (
-	<div className="classicySaverSpotlight">
+> = ({ className, style }) => (
+	<div
+		className={classNames("classicySaverSpotlight", className)}
+		style={style}
+	>
 		<img
 			className="classicySaverSpotlightMask"
 			src={String(spotlightBg)}

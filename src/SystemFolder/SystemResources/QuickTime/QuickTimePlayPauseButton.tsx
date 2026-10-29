@@ -1,4 +1,5 @@
-import type { FC as FunctionalComponent } from "react";
+import classNames from "classnames";
+import type { CSSProperties, FC as FunctionalComponent } from "react";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 
 /**
@@ -10,14 +11,19 @@ export const QuickTimePlayPauseButton: FunctionalComponent<{
 	playing: boolean;
 	/** Fired on click; typically `useQuickTimePlayback().handlePlayPause`. */
 	onToggle: () => void;
-}> = ({ playing, onToggle }) => {
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
+}> = ({ playing, onToggle, className, style }) => {
 	const pauseButton = useClassicyAsset("icons", "system.quicktime.pauseButton");
 	const playButton = useClassicyAsset("icons", "system.quicktime.playButton");
 	return (
 		<button
 			type="button"
 			onClick={onToggle}
-			className={"quickTimePlayerVideoControlsButton"}
+			className={classNames("quickTimePlayerVideoControlsButton", className)}
+			style={style}
 		>
 			<img
 				className={"quickTimePlayerVideoControlsIcon"}

@@ -1,6 +1,6 @@
 import "./DriveSetupList.scss";
 import classNames from "classnames";
-import type { FC } from "react";
+import type { CSSProperties, FC } from "react";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import type { DriveRow } from "./ClassicyDriveSetupUtils";
@@ -9,15 +9,24 @@ type DriveSetupListProps = {
 	drives: DriveRow[];
 	selected: string | null;
 	onSelect: (name: string) => void;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style for the root element. */
+	style?: CSSProperties;
 };
 
 export const DriveSetupList: FC<DriveSetupListProps> = ({
 	drives,
 	selected,
 	onSelect,
+	className,
+	style,
 }) => {
 	return (
-		<div className="classicyDriveSetupList">
+		<div
+			className={classNames("classicyDriveSetupList", className)}
+			style={style}
+		>
 			<ClassicyControlLabel label="List of Drives" />
 			<div className="classicyDriveSetupListTable">
 				<table className="classicyDriveSetupListGrid">

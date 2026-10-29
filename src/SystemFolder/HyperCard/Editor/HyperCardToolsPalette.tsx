@@ -4,7 +4,8 @@
  * and click-to-arm placement (ClassicyAppHCEditSetPlacing).
  */
 
-import type { FC as FunctionalComponent } from "react";
+import classNames from "classnames";
+import type { CSSProperties, FC as FunctionalComponent } from "react";
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { HYPERCARD_PART_DRAG_MIME } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorOverlay";
 import { paletteEntries } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorSchemas";
@@ -14,11 +15,15 @@ import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyBu
 interface HyperCardToolsPaletteProps {
 	stackId: string;
 	edit: HCEditState;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 }
 
 export const HyperCardToolsPalette: FunctionalComponent<
 	HyperCardToolsPaletteProps
-> = ({ stackId, edit }) => {
+> = ({ stackId, edit, className, style }) => {
 	const dispatch = useAppManagerDispatch();
 
 	const setTool = (tool: HCEditState["tool"]) =>
@@ -27,7 +32,10 @@ export const HyperCardToolsPalette: FunctionalComponent<
 	const entries = paletteEntries();
 
 	return (
-		<div className={"classicyHyperCardPalette"}>
+		<div
+			className={classNames("classicyHyperCardPalette", className)}
+			style={style}
+		>
 			<div className={"classicyHyperCardPaletteTools"}>
 				<ClassicyButton
 					isDefault={edit.tool === "browse"}

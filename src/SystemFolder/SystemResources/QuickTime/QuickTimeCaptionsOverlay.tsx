@@ -67,7 +67,11 @@ export const QuickTimeCaptionsOverlay: FunctionalComponent<{
 	text: string | null;
 	/** Optional font/colour/size override; theme styling when omitted. */
 	captionStyle?: QuickTimeCaptionStyle;
-}> = ({ text, captionStyle }) => {
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
+}> = ({ text, captionStyle, className, style }) => {
 	const [overrideStyle, setOverrideStyle] = useState<CSSProperties>({});
 
 	useEffect(() => {
@@ -92,9 +96,13 @@ export const QuickTimeCaptionsOverlay: FunctionalComponent<{
 
 	return (
 		<div
-			className={
-				"quickTimePlayerCaptionsHolder quickTimePlayerCaptionsHolderBottom quickTimePlayerCaptionsHolderCenter"
-			}
+			className={classNames(
+				"quickTimePlayerCaptionsHolder",
+				"quickTimePlayerCaptionsHolderBottom",
+				"quickTimePlayerCaptionsHolderCenter",
+				className,
+			)}
+			style={style}
 		>
 			<div
 				className={classNames(

@@ -6,6 +6,7 @@
  * text (see the `key` on each field).
  */
 
+import classNames from "classnames";
 import {
 	type ChangeEvent,
 	type CSSProperties,
@@ -45,6 +46,10 @@ interface HyperCardCardProps {
 	stackId: string;
 	/** Editor design surface: render every part (hidden ones dimmed) with input disabled. */
 	editing?: boolean;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 }
 
 function rectStyle(part: HCPart): CSSProperties {
@@ -59,6 +64,8 @@ export const HyperCardCard: FunctionalComponent<HyperCardCardProps> = ({
 	open,
 	stackId,
 	editing = false,
+	className,
+	style,
 }) => {
 	const dispatch = useAppManagerDispatch();
 	const card = getCard(open.stack, open.currentCardId);
@@ -98,8 +105,8 @@ export const HyperCardCard: FunctionalComponent<HyperCardCardProps> = ({
 
 	return (
 		<div
-			className={"classicyHyperCardCanvas"}
-			style={{ width: canvasW, height: canvasH }}
+			className={classNames("classicyHyperCardCanvas", className)}
+			style={{ width: canvasW, height: canvasH, ...style }}
 		>
 			{parts.map(({ part, backgroundId }) => {
 				const visible = open.partVisibility[part.id] ?? part.visible ?? true;
@@ -107,7 +114,7 @@ export const HyperCardCard: FunctionalComponent<HyperCardCardProps> = ({
 				const key = fieldKey(part, open.currentCardId, backgroundId);
 				const rev = open.fieldRev[key] ?? 0;
 				const value = open.fieldValues[key] ?? part.content ?? "";
-				const classNames = [
+				const partClassNames = [
 					"classicyHyperCardPart",
 					editing ? "classicyHyperCardPartInert" : "",
 					editing && !visible ? "classicyHyperCardPartHidden" : "",
@@ -117,7 +124,7 @@ export const HyperCardCard: FunctionalComponent<HyperCardCardProps> = ({
 				return (
 					<div
 						key={part.id}
-						className={classNames}
+						className={partClassNames}
 						style={rectStyle(part)}
 						{...(editing ? { "data-part-id": part.id, inert: true } : {})}
 					>

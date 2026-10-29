@@ -1,5 +1,7 @@
 import "./ClassicyFileBrowserViewTable.scss";
+import classNames from "classnames";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	memo,
 	type RefObject,
@@ -44,6 +46,10 @@ export type ClassicyFileBrowserViewIconsProps = {
 	 * `ClassicyFileBrowser`). Without it, icons can only be rearranged here.
 	 */
 	onMoveItems?: ClassicyFileBrowserMoveItems;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style for the root element. */
+	style?: CSSProperties;
 };
 
 /**
@@ -91,6 +97,8 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 			showInvisible = true,
 			iconViewOptions,
 			onMoveItems,
+			className,
+			style,
 		}) => {
 			const activeTheme = useAppManager(
 				(s) => s.System.Manager.Appearance.activeTheme,
@@ -254,7 +262,11 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 			]);
 
 			return (
-				<div className={"classicyFileBrowserFill"} ref={resolvedHolderRef}>
+				<div
+					className={classNames("classicyFileBrowserFill", className)}
+					style={style}
+					ref={resolvedHolderRef}
+				>
 					{items.map((item) => {
 						return <ClassicyIcon {...item} key={item.name} />;
 					})}

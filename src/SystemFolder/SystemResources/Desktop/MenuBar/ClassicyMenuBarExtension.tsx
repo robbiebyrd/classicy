@@ -1,5 +1,7 @@
 import "./ClassicyMenuBarExtension.scss";
+import classNames from "classnames";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	type ReactNode,
 	useEffect,
@@ -25,6 +27,10 @@ export interface ClassicyMenuBarExtensionProps {
 	onClick?: () => void;
 	/** Custom item content, drawn instead of `icon`. */
 	children?: ReactNode;
+	/** Extra class names, merged onto the item's `<li>` after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the item's `<li>` after the component's own (`order`). */
+	style?: CSSProperties;
 }
 
 /**
@@ -47,7 +53,17 @@ export interface ClassicyMenuBarExtensionProps {
  */
 export const ClassicyMenuBarExtension: FunctionalComponent<
 	ClassicyMenuBarExtensionProps
-> = ({ id, order = 0, icon, title, menuItems, onClick, children }) => {
+> = ({
+	id,
+	order = 0,
+	icon,
+	title,
+	menuItems,
+	onClick,
+	children,
+	className,
+	style,
+}) => {
 	const [regionNode, setRegionNode] = useState<HTMLElement | null>(null);
 	const itemRef = useRef<HTMLLIElement>(null);
 	const [open, setOpen] = useState(false);
@@ -75,8 +91,12 @@ export const ClassicyMenuBarExtension: FunctionalComponent<
 	const item = (
 		<li
 			ref={itemRef}
-			className={"classicyMenuItem classicyDesktopMenuExtension"}
-			style={{ order }}
+			className={classNames(
+				"classicyMenuItem",
+				"classicyDesktopMenuExtension",
+				className,
+			)}
+			style={{ order, ...style }}
 		>
 			{/* A real <button> gives native Enter/Space activation and a clean
 			    accessible name without an interactive role on the <li>. */}

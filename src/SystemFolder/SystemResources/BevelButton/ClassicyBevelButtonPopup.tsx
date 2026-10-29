@@ -1,6 +1,7 @@
 import "@/SystemFolder/SystemResources/Menu/ClassicyMenu.scss";
 import classNames from "classnames";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	type KeyboardEvent,
 	type ReactNode,
@@ -50,6 +51,13 @@ type ClassicyBevelButtonPopupProps = {
 	buttonRef: RefObject<HTMLButtonElement | null>;
 	/** Called when the surface should close (item chosen, Escape, outside press, scroll, resize). */
 	onClose: () => void;
+	/** Extra class names, merged onto the surface's root after the component's own. */
+	className?: string;
+	/**
+	 * Inline style, merged onto the surface's root after the component's own. A
+	 * `left`/`top`/`visibility` here overrides the measured placement.
+	 */
+	style?: CSSProperties;
 };
 
 /**
@@ -72,6 +80,8 @@ export const ClassicyBevelButtonPopup: FunctionalComponent<
 	focusFirstItem = false,
 	buttonRef,
 	onClose,
+	className,
+	style: consumerStyle,
 }) => {
 	const wrapperRef = useRef<HTMLDivElement>(null);
 	// Null until measured: the first paint is hidden so the popup never flashes
@@ -166,6 +176,7 @@ export const ClassicyBevelButtonPopup: FunctionalComponent<
 		left: position?.left ?? anchor.left,
 		top: position?.top ?? anchor.bottom,
 		visibility: position ? undefined : ("hidden" as const),
+		...consumerStyle,
 	};
 
 	const surface = menuItems ? (
@@ -175,7 +186,7 @@ export const ClassicyBevelButtonPopup: FunctionalComponent<
 				id={id}
 				role="menu"
 				aria-label={label}
-				className="classicyBevelButtonPopup"
+				className={classNames("classicyBevelButtonPopup", className)}
 				style={style}
 				onKeyDown={onMenuKeyDown}
 			>
@@ -196,6 +207,7 @@ export const ClassicyBevelButtonPopup: FunctionalComponent<
 			className={classNames(
 				"classicyBevelButtonPopup",
 				"classicyBevelButtonPopupPanel",
+				className,
 			)}
 			style={style}
 		>

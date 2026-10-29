@@ -5,7 +5,12 @@
  * dispatches one SetScript (undo granularity = one mutation).
  */
 
-import type { ChangeEvent, FC as FunctionalComponent } from "react";
+import classNames from "classnames";
+import type {
+	ChangeEvent,
+	CSSProperties,
+	FC as FunctionalComponent,
+} from "react";
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useSound } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import type { HCScriptTarget } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorUtils";
@@ -133,11 +138,15 @@ interface HyperCardScriptBuilderProps {
 	stackId: string;
 	target: HCScriptTarget;
 	handlers: HCEventHandlers;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 }
 
 export const HyperCardScriptBuilder: FunctionalComponent<
 	HyperCardScriptBuilderProps
-> = ({ stackId, target, handlers }) => {
+> = ({ stackId, target, handlers, className, style }) => {
 	const dispatch = useAppManagerDispatch();
 	const commands = getRegisteredEditorCommands();
 	const verbOptions = [
@@ -157,7 +166,10 @@ export const HyperCardScriptBuilder: FunctionalComponent<
 	const absent = HC_EVENT_NAMES.filter((e) => !(e in handlers));
 
 	return (
-		<div className={"classicyHyperCardScriptBuilder"}>
+		<div
+			className={classNames("classicyHyperCardScriptBuilder", className)}
+			style={style}
+		>
 			{events.map((event) => (
 				<div key={event} className={"classicyHyperCardScriptEvent"}>
 					<ClassicyControlLabel label={event} />

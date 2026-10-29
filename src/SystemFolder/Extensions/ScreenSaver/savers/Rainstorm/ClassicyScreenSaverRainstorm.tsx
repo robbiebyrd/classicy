@@ -1,4 +1,5 @@
 import "./ClassicyScreenSaverRainstorm.scss";
+import classNames from "classnames";
 import type { CSSProperties, FC as FunctionalComponent } from "react";
 import { z } from "zod";
 import type { ClassicyScreenSaverProps } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverRegistry";
@@ -46,14 +47,19 @@ const layersFor = (intensity: "light" | "medium" | "heavy") => {
  */
 export const ClassicyScreenSaverRainstorm: FunctionalComponent<
 	ClassicyScreenSaverProps
-> = ({ config }) => {
+> = ({ config, className, style }) => {
 	const parsed = RainstormConfigSchema.safeParse(config);
 	const { intensity, lightning } = parsed.success
 		? parsed.data
 		: ({ intensity: "heavy", lightning: true } as const);
 	return (
 		<div
-			className={`classicySaverRainstorm${lightning ? " classicySaverRainstormLightning" : ""}`}
+			className={classNames(
+				"classicySaverRainstorm",
+				lightning && "classicySaverRainstormLightning",
+				className,
+			)}
+			style={style}
 		>
 			{layersFor(intensity).map((layer, i) => (
 				<div
