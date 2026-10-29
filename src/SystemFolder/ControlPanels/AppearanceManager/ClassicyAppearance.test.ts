@@ -17,7 +17,9 @@ import {
 } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 // A Part B parity guard: getThemeVars for every built-in theme, captured at
 // c2da6d1c7 with the code from before the measurements walker replaced the
-// explicit input emissions (`leaves getThemeVars unchanged …` below).
+// explicit input emissions (`leaves getThemeVars unchanged …` below), plus
+// the 35 named derivations (`CLASSICY_THEME_DERIVATIONS`) appended to each
+// theme when they were added (every earlier key and value unchanged).
 // Regenerate it only for an intended change to the emitted variables, by
 // running getThemeVars over getAllThemes() in a throwaway vitest file:
 //   writeFileSync("src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.themeVars.baseline.json",
@@ -169,6 +171,82 @@ describe("getThemeVars", () => {
 		expect(vars["--help-button-width"]).toBe("20px");
 		expect(vars["--help-button-height"]).toBe("21px");
 		expect(vars["--layout-focus-gap"]).toBe("6px");
+	});
+
+	it("emits every named derivation for the default theme", () => {
+		const vars = getThemeVars(getTheme("default")) as Record<string, string>;
+		const expected: Record<string, string> = {
+			"--window-collapsed-height": "15px",
+			"--window-utility-collapsed-height": "6px",
+			"--window-frame-inset": "4.8px",
+			"--window-zoom-margin": "8px",
+			"--window-resize-inset": "5px",
+			"--window-header-font-size": "12.11px",
+			"--window-title-stripe-height": "15px",
+			"--menu-bar-height": "30px",
+			"--menu-min-width": "180px",
+			"--menu-item-icon-size": "15px",
+			"--menu-item-icon-gap": "6px",
+			"--popup-height": "25.5px",
+			"--popup-mini-size": "15.75px",
+			"--popup-arrow-width": "21px",
+			"--control-glyph-size": "15px",
+			"--control-square-size": "24px",
+			"--button-square-width": "48px",
+			"--control-padding": "3px",
+			"--control-padding-tight": "1.5px",
+			"--control-padding-narrow": "2px",
+			"--control-padding-loose": "4px",
+			"--control-padding-wide": "9px",
+			"--ui-font-size-small": "11.2px",
+			"--ui-font-size-caption": "10.5px",
+			"--ui-font-size-compact": "11.667px",
+			"--ui-font-size-mini": "9.333px",
+			"--ui-font-size-large": "21px",
+			"--tab-height": "19.2px",
+			"--tab-min-width": "48px",
+			"--tab-min-width-large": "108px",
+			"--slider-thumb-width": "24px",
+			"--slider-thumb-height": "21px",
+			"--desktop-icon-padding": "12px",
+			"--desktop-icon-cell": "96px",
+			"--desktop-icon-label-pad": "3px",
+		};
+		for (const [k, v] of Object.entries(expected)) expect(vars[k], k).toBe(v);
+		expect(Object.keys(expected)).toHaveLength(35);
+	});
+
+	it("derives from the inputs, not constants", () => {
+		const theme = withDefaultThemeMetrics({
+			...getTheme("default"),
+			measurements: {
+				...getTheme("default").measurements,
+				window: {
+					...getTheme("default").measurements.window,
+					controlSize: 16,
+					paddingSize: 8,
+				},
+			},
+			typography: { ...getTheme("default").typography, uiSize: 12 },
+			desktop: { ...getTheme("default").desktop, iconSize: 32 },
+		});
+		const vars = getThemeVars(theme) as Record<string, string>;
+		expect(vars["--window-collapsed-height"]).toBe("20px");
+		expect(vars["--menu-bar-height"]).toBe("40px");
+		expect(vars["--popup-height"]).toBe("34px");
+		expect(vars["--window-frame-inset"]).toBe("6.4px");
+		expect(vars["--window-zoom-margin"]).toBe("10px");
+		expect(vars["--window-resize-inset"]).toBe("7px");
+		expect(vars["--ui-font-size-small"]).toBe("9.6px");
+		expect(vars["--ui-font-size-compact"]).toBe("10px");
+		expect(vars["--desktop-icon-cell"]).toBe("64px");
+		expect(vars["--desktop-icon-padding"]).toBe("8px");
+	});
+
+	it("keeps the pre-existing derivations unchanged", () => {
+		const vars = getThemeVars(getTheme("default")) as Record<string, string>;
+		expect(vars["--control-row-height"]).toBe("18px");
+		expect(vars["--edit-field-height"]).toBe("22px");
 	});
 
 	it("derives from borderSize", () => {
@@ -348,5 +426,28 @@ describe("classicyMeasurementVars — name collisions", () => {
 		expect(entries[0].subsystem).toBe("ClassicyAppearance");
 		expect(entries[0].message).toContain("menu.frameWidth");
 		expect(entries[0].message).toContain("menuFrame.width");
+	});
+
+	it("a package leaf cannot make a reserved derivation name, warning once", () => {
+		vi.spyOn(console, "warn").mockImplementation(() => {});
+		const entries = warnings();
+		const theme = getTheme("default");
+		const measurements = {
+			...theme.measurements,
+			menu: { minWidth: 400, frameWidth: 3 },
+		};
+		const vars = classicyMeasurementVars(measurements);
+		expect(vars).not.toHaveProperty("--menu-min-width");
+		expect(vars["--menu-frame-width"]).toBe("3px");
+		classicyMeasurementVars(measurements);
+		expect(
+			(getThemeVars({ ...theme, measurements }) as Record<string, string>)[
+				"--menu-min-width"
+			],
+		).toBe("180px");
+		expect(entries).toHaveLength(1);
+		expect(entries[0].subsystem).toBe("ClassicyAppearance");
+		expect(entries[0].message).toContain("menu.minWidth");
+		expect(entries[0].message).toContain("--menu-min-width");
 	});
 });
