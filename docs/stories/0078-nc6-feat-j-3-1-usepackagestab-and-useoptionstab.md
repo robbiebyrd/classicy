@@ -3,11 +3,18 @@ id: 0078-nc6
 title: 'J 3.1: usePackagesTab and useOptionsTab'
 purpose: Add the Packages tab (choose the active Appearance Package among those registered) and the Options tab (a schema form over the active package's `options`), composed into the Appearance Manager beside the existing tabs.
 type: feat
-status: pending
+status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T20:42:14.190Z"
-updated: "2026-10-28T20:42:14.190Z"
+updated: "2026-10-29T19:30:00.913Z"
+started: "2026-10-29T19:30:00.026Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy
@@ -99,3 +106,5 @@ it('says so when the package has no options', () => { render(<Host pkg={{ ...tes
 - `src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.scss` - modify: swatches and Options scroll area
 
 ## Work Log
+
+### 2026-10-29T19:30:00.913Z - Started beside Part B (reconciliation: code may go now; it rebases over B 4.3's line-1 deletion in ClassicyAppearanceManager.scss, which this task must not touch). Base 19f9cde64; implementer dispatched. Binding: Ruling 1 (Options tab renders the active package's knobs `{ family: { key } }` via classicyKnobsToSchema; edits dispatch ClassicyDesktopChangeMetric { family, key, value }; empty knobs show the no-options state), Ruling 9 (real scroll token, 340 px ceiling), Ruling 12, J-R17 (ClassicySchemaForm numeric clamp added here). Parity and the [MANUAL] example-app check wait for B.
