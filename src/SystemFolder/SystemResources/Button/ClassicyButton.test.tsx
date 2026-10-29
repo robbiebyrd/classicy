@@ -207,6 +207,50 @@ describe("ClassicyButton", () => {
 // <button>: object refs, classic callback refs (null on detach) and React 19
 // callback refs that return a cleanup (no null call on detach).
 describe("ClassicyButton forwarded ref", () => {
+	it("detaches the old ref and attaches the new one when the ref changes", () => {
+		const firstCleanup = vi.fn();
+		const firstCalls: (HTMLButtonElement | null)[] = [];
+		const first = (el: HTMLButtonElement | null) => {
+			firstCalls.push(el);
+			return firstCleanup;
+		};
+		const secondCleanup = vi.fn();
+		const secondCalls: (HTMLButtonElement | null)[] = [];
+		const second = (el: HTMLButtonElement | null) => {
+			secondCalls.push(el);
+			return secondCleanup;
+		};
+		const { rerender, unmount } = render(
+			<ClassicyButton ref={first}>x</ClassicyButton>,
+		);
+		rerender(<ClassicyButton ref={second}>x</ClassicyButton>);
+		expect(firstCleanup).toHaveBeenCalledTimes(1);
+		expect(firstCalls).toHaveLength(1);
+		expect(secondCalls).toHaveLength(1);
+		expect(secondCalls[0]).toBeInstanceOf(HTMLButtonElement);
+		expect(secondCalls[0]).toBe(firstCalls[0]);
+		unmount();
+		expect(secondCleanup).toHaveBeenCalledTimes(1);
+		expect(secondCalls).toHaveLength(1);
+		expect(firstCleanup).toHaveBeenCalledTimes(1);
+	});
+
+	it("clears an object ref when it is swapped for a callback ref", () => {
+		const objectRef = createRef<HTMLButtonElement>();
+		const calls: (HTMLButtonElement | null)[] = [];
+		const callbackRef = (el: HTMLButtonElement | null) => {
+			calls.push(el);
+		};
+		const { rerender } = render(
+			<ClassicyButton ref={objectRef}>x</ClassicyButton>,
+		);
+		const button = objectRef.current;
+		expect(button).toBeInstanceOf(HTMLButtonElement);
+		rerender(<ClassicyButton ref={callbackRef}>x</ClassicyButton>);
+		expect(objectRef.current).toBeNull();
+		expect(calls).toEqual([button]);
+	});
+
 	it("sets and clears an object ref", () => {
 		const ref = createRef<HTMLButtonElement>();
 		const { unmount } = render(<ClassicyButton ref={ref}>x</ClassicyButton>);
