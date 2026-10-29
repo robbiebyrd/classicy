@@ -21,6 +21,10 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import {
+	useClassicyAppearanceInput,
+	withClassicyAppearanceInput,
+} from "@/Appearance/useClassicyAppearanceInput.internal";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import {
@@ -209,13 +213,14 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 		wrapperRef,
 	);
 	const emitAppearance = appearance.emit;
+	useClassicyAppearanceInput();
 	// `close` follows the menu going away, whichever path dismissed it, and
 	// so comes after the `change` a pick emits.
 	const wasOpenRef = useRef(open);
 	useEffect(() => {
 		if (wasOpenRef.current === open) return;
 		wasOpenRef.current = open;
-		if (!open) emitAppearance("close");
+		if (!open) emitAppearance("close", withClassicyAppearanceInput());
 	}, [open, emitAppearance]);
 
 	const { track } = useClassicyAnalytics();
@@ -238,7 +243,7 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 		(value: string) => {
 			if (value === PLACEHOLDER_VALUE) return;
 			setSelectedItem(value);
-			emitAppearance("change", { value });
+			emitAppearance("change", withClassicyAppearanceInput({ value }));
 			track("selected", {
 				type: "ClassicyPopUpMenu",
 				itemId: value,
@@ -274,7 +279,7 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 			setMenuRect(buttonRef.current.getBoundingClientRect());
 		}
 		setOpen(true);
-		emitAppearance("open");
+		emitAppearance("open", withClassicyAppearanceInput());
 		// Firefox/Safari don't focus a <button> on click (only Chromium does),
 		// so without this the keydown handler never runs after a mouse-open.
 		buttonRef.current?.focus();

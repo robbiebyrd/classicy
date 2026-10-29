@@ -8,6 +8,10 @@ import {
 	useState,
 } from "react";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import {
+	useClassicyAppearanceInput,
+	withClassicyAppearanceInput,
+} from "@/Appearance/useClassicyAppearanceInput.internal";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import {
 	ClassicyControlLabel,
@@ -107,6 +111,8 @@ export const ClassicyCheckbox: FunctionalComponent<ClassicyCheckboxProps> = ({
 		inputRef,
 	);
 
+	useClassicyAppearanceInput();
+
 	const handleOnClick = () => {
 		if (onClickFunc) {
 			onClickFunc(!check);
@@ -114,7 +120,10 @@ export const ClassicyCheckbox: FunctionalComponent<ClassicyCheckboxProps> = ({
 		track("click", { checked: !check, ...analyticsArgs });
 		if (!disabled) {
 			setCheck(!check);
-			appearance.emit("change", { checked: !check });
+			appearance.emit(
+				"change",
+				withClassicyAppearanceInput({ checked: !check }),
+			);
 		}
 	};
 

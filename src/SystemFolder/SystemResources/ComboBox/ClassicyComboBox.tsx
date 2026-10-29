@@ -17,6 +17,10 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import {
+	useClassicyAppearanceInput,
+	withClassicyAppearanceInput,
+} from "@/Appearance/useClassicyAppearanceInput.internal";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import {
 	ClassicyControlLabel,
@@ -142,13 +146,14 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 	const optionId = (index: number) => `${reactId}-opt-${index}`;
 	const appearance = useClassicyAppearance("ComboBox", { disabled }, anchorRef);
 	const emitAppearance = appearance.emit;
+	useClassicyAppearanceInput();
 	// `close` follows the list going away, whichever path dismissed it, and
 	// so comes after the `change` a commit emits.
 	const wasOpenRef = useRef(open);
 	useEffect(() => {
 		if (wasOpenRef.current === open) return;
 		wasOpenRef.current = open;
-		if (!open) emitAppearance("close");
+		if (!open) emitAppearance("close", withClassicyAppearanceInput());
 	}, [open, emitAppearance]);
 
 	const { track } = useClassicyAnalytics();
@@ -208,7 +213,7 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 				setMenuRect(anchorRef.current.getBoundingClientRect());
 			}
 			setOpen(true);
-			emitAppearance("open");
+			emitAppearance("open", withClassicyAppearanceInput());
 			inputRef.current?.focus();
 		},
 		[disabled, emitAppearance],
@@ -220,7 +225,10 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 			committedLabel.current = option.label;
 			committedValue.current = option.value;
 			closeList();
-			emitAppearance("change", { value: option.value });
+			emitAppearance(
+				"change",
+				withClassicyAppearanceInput({ value: option.value }),
+			);
 			inputRef.current?.focus();
 			track("selected", {
 				type: "ClassicyComboBox",

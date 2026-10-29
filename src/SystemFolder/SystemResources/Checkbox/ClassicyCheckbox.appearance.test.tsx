@@ -35,8 +35,16 @@ describe("ClassicyCheckbox appearance", () => {
 
 	it("emits its events", () => {
 		const { container } = render(<ClassicyCheckbox id="c" />);
-		fireEvent.click(root(container));
-		expect(emitted()).toEqual([{ event: "change", detail: { checked: true } }]);
+		const el = root(container);
+		fireEvent.mouseDown(el);
+		fireEvent.click(el);
+		// Space toggles a focused checkbox through the same click.
+		fireEvent.keyDown(el, { key: " " });
+		fireEvent.click(el);
+		expect(emitted()).toEqual([
+			{ event: "change", detail: { checked: true, input: "pointer" } },
+			{ event: "change", detail: { checked: false, input: "keyboard" } },
+		]);
 	});
 
 	it("adds nothing when the package returns nothing", () => {

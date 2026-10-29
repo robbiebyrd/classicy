@@ -59,6 +59,7 @@ describe("ClassicyTable appearance", () => {
 		renderTable();
 		const header = screen.getByRole("columnheader", { name: "Name" });
 		fireEvent.click(header);
+		// Headers are pointer-only (not focusable): no input.
 		expect(emitted()).toEqual([
 			{ event: "change", detail: { columnId: "name", desc: false } },
 		]);
@@ -73,9 +74,13 @@ describe("ClassicyTable appearance", () => {
 
 	it("emits select for a clicked row", () => {
 		renderTable();
+		fireEvent.mouseDown(screen.getByText("Alpha"));
 		fireEvent.click(screen.getByText("Alpha"));
 		expect(emitted()).toEqual([
-			{ event: "select", detail: { rowId: "2", selected: true } },
+			{
+				event: "select",
+				detail: { rowId: "2", selected: true, input: "pointer" },
+			},
 		]);
 	});
 
@@ -84,16 +89,29 @@ describe("ClassicyTable appearance", () => {
 		fireEvent.keyDown(root(container), { key: "ArrowDown" });
 		fireEvent.keyDown(root(container), { key: "ArrowDown" });
 		expect(emitted()).toEqual([
-			{ event: "select", detail: { rowId: "1", selected: true } },
-			{ event: "select", detail: { rowId: "2", selected: true } },
+			{
+				event: "select",
+				detail: { rowId: "1", selected: true, input: "keyboard" },
+			},
+			{
+				event: "select",
+				detail: { rowId: "2", selected: true, input: "keyboard" },
+			},
 		]);
 	});
 
 	it("reports a Ctrl-click deselect as selected: false", () => {
 		renderTable({ selectionMode: "multi", selected: ["1", "2"] });
-		fireEvent.click(screen.getByText("Alpha"), { ctrlKey: true });
+		const alpha = screen.getByText("Alpha");
+		// The modifier goes down before the pointer: still a pointer click.
+		fireEvent.keyDown(alpha, { key: "Control", ctrlKey: true });
+		fireEvent.mouseDown(alpha, { ctrlKey: true });
+		fireEvent.click(alpha, { ctrlKey: true });
 		expect(emitted()).toEqual([
-			{ event: "select", detail: { rowId: "2", selected: false } },
+			{
+				event: "select",
+				detail: { rowId: "2", selected: false, input: "pointer" },
+			},
 		]);
 	});
 

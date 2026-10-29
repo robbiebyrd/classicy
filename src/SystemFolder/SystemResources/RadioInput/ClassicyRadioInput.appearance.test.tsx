@@ -57,8 +57,25 @@ describe("ClassicyRadioInput appearance", () => {
 			{ event: "release", detail: { itemId: "b" } },
 		]);
 		fireEvent.click(b);
-		expect(emitted()[2]).toEqual({ event: "change", detail: { itemId: "b" } });
+		// press/release come from the mouse only, so they carry no input.
+		expect(emitted()[2]).toEqual({
+			event: "change",
+			detail: { itemId: "b", input: "pointer" },
+		});
 		expect(emitted()).toHaveLength(3);
+	});
+
+	it("reports an arrow-key change as keyboard input", () => {
+		const { container } = render(
+			<ClassicyRadioInput name="r" inputs={INPUTS} />,
+		);
+		const a = container.querySelector("#a") as HTMLElement;
+		// The arrow checks the next item, which fires its click and change.
+		fireEvent.keyDown(a, { key: "ArrowDown" });
+		fireEvent.click(container.querySelector("#b") as HTMLElement);
+		expect(emitted()).toEqual([
+			{ event: "change", detail: { itemId: "b", input: "keyboard" } },
+		]);
 	});
 
 	it("emits press and release from an item's label", () => {

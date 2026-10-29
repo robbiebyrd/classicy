@@ -47,11 +47,31 @@ describe("ClassicyBevelButton appearance", () => {
 		const el = root(container);
 		fireEvent.mouseDown(el);
 		fireEvent.mouseUp(el);
-		fireEvent.click(el);
-		expect(emitted().map((e) => e.event)).toEqual([
-			"press",
-			"release",
-			"click",
+		fireEvent.click(el, { detail: 1 });
+		// press/release come from the mouse only, so they carry no input.
+		expect(emitted()).toEqual([
+			{ event: "press", detail: undefined },
+			{ event: "release", detail: undefined },
+			{ event: "click", detail: { input: "pointer" } },
+		]);
+	});
+
+	it("reports keyboard clicks, opens and closes", () => {
+		const { container } = render(
+			<ClassicyBevelButton mode="popup" menuItems={[{ id: "a", title: "A" }]}>
+				B
+			</ClassicyBevelButton>,
+		);
+		const el = root(container);
+		fireEvent.keyDown(el, { key: "Enter" });
+		fireEvent.click(el, { detail: 0 });
+		fireEvent.keyDown(el, { key: "Enter" });
+		fireEvent.click(el, { detail: 0 });
+		expect(emitted()).toEqual([
+			{ event: "click", detail: { input: "keyboard" } },
+			{ event: "open", detail: { trigger: "click", input: "keyboard" } },
+			{ event: "click", detail: { input: "keyboard" } },
+			{ event: "close", detail: { input: "keyboard" } },
 		]);
 	});
 
@@ -65,14 +85,12 @@ describe("ClassicyBevelButton appearance", () => {
 		fireEvent.mouseDown(el, { button: 0 });
 		expect(emitted()).toEqual([
 			{ event: "press", detail: undefined },
-			{ event: "open", detail: { trigger: "click" } },
+			{ event: "open", detail: { trigger: "click", input: "pointer" } },
 		]);
 		fireEvent.mouseDown(el, { button: 0 });
-		expect(emitted().map((e) => e.event)).toEqual([
-			"press",
-			"open",
-			"press",
-			"close",
+		expect(emitted().slice(2)).toEqual([
+			{ event: "press", detail: undefined },
+			{ event: "close", detail: { input: "pointer" } },
 		]);
 	});
 

@@ -43,13 +43,31 @@ describe("ClassicyInput appearance", () => {
 	it("emits its events", () => {
 		const { container } = render(<ClassicyInput id="i" />);
 		const el = root(container);
+		// Clicked into, typed in, tabbed out of. Text entry has no pointer
+		// path, so `change` carries no input.
+		fireEvent.mouseDown(el);
 		fireEvent.focus(el);
+		fireEvent.keyDown(el, { key: "a" });
 		fireEvent.change(el, { target: { value: "a" } });
+		fireEvent.keyDown(el, { key: "Tab" });
 		fireEvent.blur(el);
 		expect(emitted()).toEqual([
-			{ event: "focus", detail: undefined },
+			{ event: "focus", detail: { input: "pointer" } },
 			{ event: "change", detail: { value: "a" } },
-			{ event: "blur", detail: undefined },
+			{ event: "blur", detail: { input: "keyboard" } },
+		]);
+	});
+
+	it("reports a tabbed-in focus and a clicked-away blur", () => {
+		const { container } = render(<ClassicyInput id="i" />);
+		const el = root(container);
+		fireEvent.keyDown(document.body, { key: "Tab" });
+		fireEvent.focus(el);
+		fireEvent.mouseDown(document.body);
+		fireEvent.blur(el);
+		expect(emitted()).toEqual([
+			{ event: "focus", detail: { input: "keyboard" } },
+			{ event: "blur", detail: { input: "pointer" } },
 		]);
 	});
 

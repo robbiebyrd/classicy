@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { fireEvent, render } from "@/__tests__/test-utils";
+import { fireEvent, render, screen } from "@/__tests__/test-utils";
 import { installClassicyAppearanceProbe } from "@/Appearance/__tests__/appearanceProbe";
 import { ClassicyComboBox } from "@/SystemFolder/SystemResources/ComboBox/ClassicyComboBox";
 
@@ -45,12 +45,31 @@ describe("ClassicyComboBox appearance", () => {
 		);
 		const input = container.querySelector("#cb") as HTMLElement;
 		fireEvent.focus(input);
+		// Typing opens the list.
+		fireEvent.keyDown(input, { key: "B" });
 		fireEvent.change(input, { target: { value: "B" } });
-		expect(emitted()).toEqual([{ event: "open", detail: undefined }]);
+		expect(emitted()).toEqual([
+			{ event: "open", detail: { input: "keyboard" } },
+		]);
 		fireEvent.keyDown(input, { key: "Enter" });
 		expect(emitted().slice(1)).toEqual([
-			{ event: "change", detail: { value: "b" } },
-			{ event: "close", detail: undefined },
+			{ event: "change", detail: { value: "b", input: "keyboard" } },
+			{ event: "close", detail: { input: "keyboard" } },
+		]);
+	});
+
+	it("reports pointer opens, picks and closes", () => {
+		render(<ClassicyComboBox id="cb" options={OPTIONS} />);
+		const arrow = screen.getByRole("button", { name: "Show options" });
+		fireEvent.mouseDown(arrow);
+		fireEvent.click(arrow);
+		const beta = screen.getByRole("option", { name: /Beta/ });
+		fireEvent.mouseDown(beta);
+		fireEvent.click(beta);
+		expect(emitted()).toEqual([
+			{ event: "open", detail: { input: "pointer" } },
+			{ event: "change", detail: { value: "b", input: "pointer" } },
+			{ event: "close", detail: { input: "pointer" } },
 		]);
 	});
 

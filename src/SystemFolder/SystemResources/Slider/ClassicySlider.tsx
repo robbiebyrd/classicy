@@ -10,6 +10,10 @@ import type {
 } from "react";
 import { useEffect, useRef, useState } from "react";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import {
+	useClassicyAppearanceInput,
+	withClassicyAppearanceInput,
+} from "@/Appearance/useClassicyAppearanceInput.internal";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import {
 	ClassicyControlLabel,
@@ -215,6 +219,7 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 	// controlled value reconciliation conflicts with native slider capture on mouseup.
 	const inputRef = useRef<HTMLInputElement>(null);
 	const appearance = useClassicyAppearance("Slider", { disabled }, inputRef);
+	useClassicyAppearanceInput();
 	// Only write to the DOM when value changes externally (i.e. the DOM doesn't
 	// already reflect it). During a drag, the DOM value already equals the prop
 	// value so this is a no-op — avoiding the write that causes Safari to lose
@@ -245,7 +250,7 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 	const handleChange: ChangeEventHandler<HTMLInputElement> = (e) => {
 		const next = Number(e.currentTarget.value);
 		if (ghost) setLiveValue(next);
-		appearance.emit("change", { value: next });
+		appearance.emit("change", withClassicyAppearanceInput({ value: next }));
 		onChangeFunc?.(e);
 	};
 
