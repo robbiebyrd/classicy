@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import VitePluginImageTools from "vite-plugin-image-tools";
 import richSvg from "vite-plugin-react-rich-svg";
+import { classicyCssLayerPlugin } from "../bin/classicyCssLayerPlugin";
 
 // Repo root (this config lives in example/).
 const root = path.resolve(__dirname, "..");
@@ -43,6 +44,9 @@ export default defineConfig(({ command }) => {
 			// components, ?inline/?no-inline images, webp) resolve identically.
 			...(useLiveSource
 				? [
+						// Layer the library's component stylesheets as dist does
+						// (@layer classicy.base); the app's own stylesheets stay unlayered.
+						classicyCssLayerPlugin(),
 						richSvg(),
 						VitePluginImageTools({
 							quality: 100,

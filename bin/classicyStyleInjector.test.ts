@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
+	CLASSICY_LAYER_ORDER,
 	CLASSICY_STYLE_ELEMENT_ID,
 	classicyStyleInjector,
 } from "./classicyStyleInjector";
@@ -23,7 +24,9 @@ describe("classicyStyleInjector (#303)", () => {
 
 		const styles = document.querySelectorAll(`#${CLASSICY_STYLE_ELEMENT_ID}`);
 		expect(styles).toHaveLength(1);
-		expect(styles[0].textContent).toBe(".a{color:red}");
+		expect(styles[0].textContent).toBe(
+			`${CLASSICY_LAYER_ORDER}\n.a{color:red}`,
+		);
 		// First in <head>, so a host stylesheet wins ties.
 		expect(document.head.firstChild).toBe(styles[0]);
 	});
@@ -33,7 +36,7 @@ describe("classicyStyleInjector (#303)", () => {
 		run(css);
 		expect(
 			document.getElementById(CLASSICY_STYLE_ELEMENT_ID)?.textContent,
-		).toBe(css);
+		).toBe(`${CLASSICY_LAYER_ORDER}\n${css}`);
 	});
 
 	it("escapes </script> and line separators in the generated code", () => {
@@ -44,7 +47,16 @@ describe("classicyStyleInjector (#303)", () => {
 		run(css);
 		expect(
 			document.getElementById(CLASSICY_STYLE_ELEMENT_ID)?.textContent,
-		).toBe(css);
+		).toBe(`${CLASSICY_LAYER_ORDER}\n${css}`);
+	});
+
+	it("declares the cascade layer order before any rule", () => {
+		run(".a{color:red}");
+		expect(
+			document.getElementById(CLASSICY_STYLE_ELEMENT_ID)?.textContent,
+		).toBe(
+			"@layer classicy.base, classicy.package, classicy.user;\n.a{color:red}",
+		);
 	});
 
 	it("does nothing without a document", () => {

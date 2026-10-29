@@ -41,6 +41,14 @@
 //    resolves them with `new URL("assets/...", import.meta.url)`. They ship
 //    exactly as authored: no .webp, only .woff2/.svg/.png references, and a
 //    shipped SVG byte-identical to its source.
+//
+// 6. THE STYLESHEET MUST DECLARE THE CASCADE LAYER ORDER BEFORE ANY RULE.
+//    Every component rule is compiled into `@layer classicy.base`
+//    (classicyCssLayerPlugin). The order statement fixes base < package <
+//    user; without it first, a host that names `classicy.user` before our
+//    stylesheet loads would put its own overrides *under* the base layer.
+//    Checked in the injected <style> text of both entry bundles and at the
+//    head of dist/classicy.css (linked by strict-CSP hosts).
 
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -248,6 +256,59 @@ if (!argv.slice(2).length) {
 		);
 	} else {
 		console.log("dist/assets/slider-strikes.svg: byte-identical to its source");
+	}
+}
+
+// Invariant 6: the cascade layer order, first, in the injected stylesheet of
+// both entry bundles and in the linked dist/classicy.css.
+const LAYER_ORDER = "@layer classicy.base, classicy.package, classicy.user;";
+// The order statement, then the first component stylesheet's (minified)
+// layer block. Vite hoists a `@charset` to the top of the CSS: the injected
+// text keeps it after the statement (it means nothing in a <style>), the
+// linked file before it (it only counts as a file's first bytes).
+const CHARSET = '(?:@charset "[^"]*";\\s*)?';
+const ORDER = LAYER_ORDER.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const BASE_BLOCK = "@layer classicy\\.base\\s*\\{";
+const INJECTED_START = new RegExp(`^${ORDER}\\n${CHARSET}${BASE_BLOCK}`);
+const LINKED_START = new RegExp(`^${CHARSET}${ORDER}\\n${BASE_BLOCK}`);
+
+// The CSS text the injector at `at` writes: its `textContent=` string
+// literal, decoded.
+function injectedText(source, at) {
+	const literal = /\.textContent=("(?:[^"\\]|\\.)*")/.exec(source.slice(at));
+	try {
+		return literal ? JSON.parse(literal[1]) : "";
+	} catch {
+		return "";
+	}
+}
+for (const entry of ["classicy.es.js", "classicy.umd.js"]) {
+	const file = join(DIST, entry);
+	if (argv.slice(2).length && !argv.slice(2).includes(file)) continue;
+	const source = await readFile(file, "utf8");
+	const at = source.lastIndexOf(`document.getElementById(${STYLE_ID})`);
+	if (at === -1) continue; // reported by invariant 3
+	if (!INJECTED_START.test(injectedText(source, at))) {
+		failed = true;
+		console.error(
+			`${file}: the injected stylesheet does not start with "${LAYER_ORDER}" -> check classicyStyleInjector and classicyCssLayerPlugin.`,
+		);
+	} else {
+		console.log(
+			`${file}: the injected stylesheet declares the layer order first`,
+		);
+	}
+}
+const cssFile = join(DIST, "classicy.css");
+if (!argv.slice(2).length || argv.slice(2).includes(cssFile)) {
+	const css = await readFile(cssFile, "utf8").catch(() => "");
+	if (!LINKED_START.test(css)) {
+		failed = true;
+		console.error(
+			`${cssFile}: does not start with "${LAYER_ORDER}" and a classicy.base block -> check injectCssPlugin and classicyCssLayerPlugin.`,
+		);
+	} else {
+		console.log(`${cssFile}: declares the layer order first`);
 	}
 }
 

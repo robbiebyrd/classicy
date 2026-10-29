@@ -32,9 +32,8 @@ npm install classicy react react-dom zustand immer @tanstack/react-table react-p
 Every export comes from the package root (a flat barrel). Importing it also
 installs the stylesheet: the bundle injects `classicy.css` as a
 `<style id="classicy-styles">` at the top of `<head>` on first import (once; not
-during SSR), so host stylesheets still win on equal specificity. The bundled
-fonts are files (`dist/assets/*.woff2`) that the Platinum appearance package
-registers at runtime, so there is nothing to import:
+during SSR). The bundled fonts are files (`dist/assets/*.woff2`) that the
+Platinum appearance package registers at runtime, so there is nothing to import:
 
 ```ts
 // no longer needed: the Platinum package registers its fonts; the import is a deprecated no-op
@@ -65,6 +64,50 @@ a plugin), copy `dist/assets/` next to your bundle.
 Also new in this release: `import 'classicy/fonts'` is a deprecated no-op (the
 Platinum package registers its fonts), and `classicy/dist/fonts.css` no longer
 exists.
+
+### Cascade layers (overriding Classicy styles)
+
+The stylesheet (injected or linked) starts by declaring three cascade layers,
+then puts every Classicy component rule in the first one:
+
+```css
+@layer classicy.base, classicy.package, classicy.user;
+@layer classicy.base { /* every component stylesheet, one block per file */ }
+```
+
+`classicy.package` is reserved for appearance packages and `classicy.user` for
+host overrides; a later layer beats an earlier one whatever the specificity.
+The runtime fonts stylesheet (`<style id="classicy-fonts-platinum">`, written by
+`registerClassicyFonts`) is not layered: it holds only `@font-face` rules, which
+layers do not affect.
+
+**Consequence for hosts:** CSS outside any layer beats every layered rule, so a
+Classicy rule now loses to *any* unlayered host rule that sets the same
+property on the same element, even a less specific one that loads earlier: a
+host `button { padding: 0 }` now beats Classicy's `.classicyButton { padding: … }`.
+Before, the host rule needed higher specificity, or equal specificity and a
+later position. To override Classicy, either:
+
+- write plain unlayered rules (any specificity wins), or
+- put overrides in `@layer classicy.user { … }`, which beats `classicy.base` and
+  `classicy.package` (an appearance package) whatever the specificity, and
+  still loses to your unlayered CSS.
+
+The reverse case needs care: a broad host default that should *not* override
+Classicy's components (`div { … }`, `button { … }`) cannot go in a layer of your
+own, because the injected stylesheet declares Classicy's layers first and every
+layer declared later ranks above them. Put it in a sublayer of `classicy.base`
+instead (any name), which ranks below Classicy's own rules:
+
+```css
+@layer classicy.base.host {
+  div { overscroll-behavior: none; }  /* Classicy's pop-up list keeps `contain` */
+}
+```
+
+`!important` reverses the order: an `!important` declaration in
+`classicy.base` would beat an unlayered `!important` one, which is why Classicy
+ships none. Inline `style` attributes are unaffected by layers.
 
 Package `exports` map:
 
@@ -1734,6 +1777,6 @@ untrusted disposition strings.
 7. **`defaultState` only applies on first boot** (nothing hydrated). During development, clear `localStorage["classicyDesktopState"]` to see provider default changes.
 8. **Window ids are data**: they feed analytics paths and persistence. Keep them stable and free of user content, or set `analyticsPath` explicitly.
 9. **Colors are integers** (`0xRRGGBB`), not hex strings, throughout themes and color pickers.
-10. **Styles come with the import** — the bundle injects `classicy.css` into `<head>`; the fonts are files in `dist/assets/` registered by the Platinum package (`classicy/fonts` is a deprecated no-op). Link `classicy.css` yourself only if a CSP blocks inline `<style>`.
+10. **Styles come with the import** — the bundle injects `classicy.css` into `<head>`; the fonts are files in `dist/assets/` registered by the Platinum package (`classicy/fonts` is a deprecated no-op). Link `classicy.css` yourself only if a CSP blocks inline `<style>`. Classicy's rules live in `@layer classicy.base`, so any unlayered host rule on the same element and property wins; override in `@layer classicy.user` or with plain unlayered rules (§1, Cascade layers).
 11. Deprecated (still working, avoid in new code): `noDesktopIcon`, `inApplicationsFolder`, `registerAppEventHandler`, `registerClassicyUntrustedActionAllowlist` for app-owned actions, `isXData`-style hand-rolled guards (use `parseAppData`).
 12. **Never mount the built-in apps yourself** (`Finder`, `SimpleText`, `HyperCard`, the viewers, `ClassicyControlPanels`, `AppleGuide`) — `ClassicyDesktop` renders them all automatically; mounting them as children double-mounts them. Use the provider's `disable*` props to remove the optional ones.

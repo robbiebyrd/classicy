@@ -4,7 +4,11 @@ import { defineConfig, type Plugin } from "vite";
 import dts from "vite-plugin-dts";
 import VitePluginImageTools from "vite-plugin-image-tools";
 import richSvg from "vite-plugin-react-rich-svg";
-import { classicyStyleInjector } from "./bin/classicyStyleInjector";
+import { classicyCssLayerPlugin } from "./bin/classicyCssLayerPlugin";
+import {
+	CLASSICY_LAYER_ORDER,
+	classicyStyleInjector,
+} from "./bin/classicyStyleInjector";
 
 // Package assets under src/Appearance (the Platinum fonts and system art) must
 // ship as files in dist/assets, not as base64 inside the bundle. Lib mode
@@ -40,17 +44,20 @@ function noInlineAppearanceAssetsPlugin(): Plugin {
 // loader to configure, no second import to remember. This plugin embeds the
 // primary stylesheet into each entry bundle (ES and UMD) as a string and
 // appends a few lines that, when the module first runs in a browser, insert
-// it as `<style id="classicy-styles">` at the *top* of <head> — so any
-// stylesheet the host app loads still wins on equal specificity, as it did
-// when hosts imported classicy.css themselves. It is guarded so it runs once
+// it as `<style id="classicy-styles">` at the *top* of <head>, ahead of the
+// host's stylesheets, as when hosts imported classicy.css themselves. (Since
+// the rules are layered, an unlayered host rule wins whatever its order or
+// specificity.) It is guarded so it runs once
 // (a second copy of the library, or HMR, finds the element and stops) and
 // never in a non-browser environment (SSR, tests without a DOM).
 //
 // dist/classicy.css is still emitted, for hosts whose Content-Security-Policy
 // forbids inline <style> and who link the file instead; importing it as well as
-// the package is harmless (identical rules). The code is inserted before the
-// sourceMappingURL comment, after all existing code, so the bundles' source maps
-// stay aligned.
+// the package is harmless (identical rules). Both start with
+// CLASSICY_LAYER_ORDER, the cascade layer order, ahead of the
+// `@layer classicy.base { … }` blocks classicyCssLayerPlugin compiles every
+// component stylesheet into. The code is inserted before the sourceMappingURL
+// comment, after all existing code, so the bundles' source maps stay aligned.
 //
 // dist/fonts.js is a deprecated no-op: the Platinum fonts are files registered
 // at runtime (registerClassicyFonts), but `import "classicy/fonts"` must keep
@@ -73,6 +80,11 @@ function injectCssPlugin(): Plugin {
 					? cssAsset.source
 					: new TextDecoder().decode(cssAsset.source);
 			const injector = classicyStyleInjector(css);
+			// The linked file (strict-CSP hosts) declares the layer order before
+			// any rule too, as the injected <style> does -- after the `@charset`
+			// Vite hoists to the top, which only counts as a file's first bytes.
+			const charset = /^@charset "[^"]*";\n?/.exec(css)?.[0] ?? "";
+			cssAsset.source = `${charset}${CLASSICY_LAYER_ORDER}\n${css.slice(charset.length)}`;
 
 			this.emitFile({
 				type: "asset",
@@ -182,6 +194,9 @@ export default defineConfig({
 	},
 	plugins: [
 		noInlineAppearanceAssetsPlugin(),
+		// Compiles every component stylesheet into @layer classicy.base; the
+		// injected stylesheet declares the layer order first (CLASSICY_LAYER_ORDER).
+		classicyCssLayerPlugin(),
 		react(),
 		dts({
 			outDir: "dist/types",
