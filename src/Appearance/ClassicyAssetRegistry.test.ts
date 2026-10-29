@@ -124,6 +124,9 @@ describe("ClassicyAssetRegistry", () => {
 		registerClassicySystemArt("platinum", {
 			windowStripesRed: "red.svg",
 			controlStripModuleArrow: "data:text/x-classicy-pixel-art,K.%0AKK",
+			// Every spelling of the pixel-art MIME is pixel art, never a variable.
+			controlStripTab: "data:text/x-classicy-pixel-art;charset=utf-8,KK",
+			popUpSliderThumb: "data:TEXT/X-CLASSICY-PIXEL-ART;base64,S0s=",
 		});
 		const vars = captureHook(() => useClassicyAssetVars())[0];
 		expect(vars).toEqual({
