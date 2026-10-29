@@ -184,6 +184,11 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			const isSelected = useAppManager(
 				(s) => s.System.Manager.Desktop.selectedIcons?.includes(appId) ?? false,
 			);
+			// A click on a selected icon still changes the selection when it
+			// collapses a multiple selection down to this icon.
+			const isMultipleSelection = useAppManager(
+				(s) => (s.System.Manager.Desktop.selectedIcons?.length ?? 0) > 1,
+			);
 			const iconLocation = useAppManager((s) => {
 				const icon = s.System.Manager.Desktop.icons.find(
 					(i) => i.appId === appId,
@@ -247,12 +252,17 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 				if (!isSelected) {
 					track("focus", { type: "ClassicyDesktopIcon", ...analyticsArgs });
 				}
+				// "select" reports a change of selection: this icon becoming
+				// selected, or a multiple selection collapsing to it -- never a
+				// click on the icon that already is the selection.
+				const selectionChanges = !isSelected || isMultipleSelection;
 				desktopEventDispatch({
 					type: "ClassicyDesktopIconFocus",
 					iconId: appId,
 				});
 				if (selectedOnPressRef.current) selectedOnPressRef.current = false;
-				else appearance.emit("select", withClassicyAppearanceInput());
+				else if (selectionChanges)
+					appearance.emit("select", withClassicyAppearanceInput());
 				// Take keyboard focus from whatever window had it, so Delete and
 				// the arrow keys act on the desktop's selection.
 				iconRef.current?.focus({ preventScroll: true });

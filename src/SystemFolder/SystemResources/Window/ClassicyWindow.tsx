@@ -1057,7 +1057,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			applied?.[1] || resolvedSize[1],
 		];
 		setResize(true, startSize);
-		setZoom(false);
+		setZoom(false, true, "resize");
 		setSize(startSize);
 		emit("dragStart", { kind: "resize" });
 	};
@@ -1345,7 +1345,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const setCollapse = (toCollapse: boolean) => {
 		if (toCollapse) {
 			track("collapse", { type: "ClassicyWindow", ...analyticsArgs });
-			setZoom(false);
+			setZoom(false, true, "collapse");
 			player({ type: "ClassicySoundPlay", sound: "ClassicyWindowCollapse" });
 			emit("collapse", withClassicyAppearanceInput());
 			desktopEventDispatch({
@@ -1470,8 +1470,14 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 
 	// Flip the zoom flag (+ sound/track) without touching geometry. Used both by
 	// the zoom toggle and by resize/collapse, which clear the flag without
-	// restoring the remembered user state.
-	const setZoomFlag = (toZoom: boolean, playSound: boolean = true) => {
+	// restoring the remembered user state. `cause` tells a package which: the
+	// zoom event fires wherever the zoom sound plays, collapse and resize-start
+	// included, and only `cause: "zoom"` is the zoom box.
+	const setZoomFlag = (
+		toZoom: boolean,
+		playSound: boolean = true,
+		cause: "zoom" | "collapse" | "resize" = "zoom",
+	) => {
 		if (ws.collapsed) {
 			setCollapse(false);
 		}
@@ -1482,7 +1488,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 					? "ClassicyWindowZoomMaximize"
 					: "ClassicyWindowZoomMinimize",
 			});
-			emit("zoom", withClassicyAppearanceInput({ zoomed: toZoom }));
+			emit("zoom", withClassicyAppearanceInput({ zoomed: toZoom, cause }));
 		}
 		track(toZoom ? "zoom" : "minimize", {
 			type: "ClassicyWindow",
