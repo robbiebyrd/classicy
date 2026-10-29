@@ -1,3 +1,4 @@
+import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
 import { intToHex } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyColors";
 import {
 	intToPct,
@@ -11,6 +12,12 @@ import themesData from "../AppearanceManager/styles/themes.json";
 
 export interface ClassicyStoreSystemAppearanceManager
 	extends ClassicyStoreSystemManager {
+	/**
+	 * The active Appearance Package id, persisted, default "platinum". Set by
+	 * `ClassicyDesktopChangeAppearancePackage`; an id that is not registered
+	 * renders as Platinum (`resolveClassicyAppearancePackage`).
+	 */
+	packageId: string;
 	/** Built-in themes. Never mutated by edits — see `customThemes`. */
 	availableThemes?: ClassicyTheme[];
 	/**
@@ -159,6 +166,8 @@ export type ClassicyThemeDesktop = {
 export type ClassicyTheme = {
 	id: string;
 	name: string;
+	/** The Appearance Package this theme belongs to (default "platinum"). */
+	package: string;
 	color: ClassicyThemeColors;
 	typography: ClassicyThemeTypography;
 	measurements: ClassicyThemeMeasurements;
@@ -276,18 +285,47 @@ export const getThemeVars = (theme: ClassicyTheme) => {
 };
 
 /**
+ * `theme` with a `package` — "platinum" when it names none (themes saved or
+ * supplied before Appearance Packages existed). The same object back when it
+ * already has one.
+ */
+export function withDefaultThemePackage(theme: ClassicyTheme): ClassicyTheme {
+	if (typeof (theme as Partial<ClassicyTheme>).package === "string") {
+		return theme;
+	}
+	return { ...theme, package: CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID };
+}
+
+/** `withDefaultThemePackage` over a list; the same array back when untouched. */
+export function withDefaultThemePackageList(
+	themes: ClassicyTheme[],
+): ClassicyTheme[] {
+	let next: ClassicyTheme[] | undefined;
+	themes.forEach((theme, i) => {
+		if (!theme || typeof theme !== "object") return;
+		const filled = withDefaultThemePackage(theme);
+		if (filled === theme) return;
+		next ??= [...themes];
+		next[i] = filled;
+	});
+	return next ?? themes;
+}
+
+/**
  * `themes.json` names its wallpapers; the bundler owns the URLs. Resolving once
  * here means every reader of a theme — `getTheme`, `getAllThemes`, and the
  * default app-manager state — gets a background image that actually loads.
  */
 const resolvedThemes = (themesData as unknown as ClassicyTheme[]).map((theme) =>
-	withDefaultThemeMetrics({
-		...theme,
-		desktop: {
-			...theme.desktop,
-			backgroundImage: resolveWallpaper(theme.desktop.backgroundImage),
-		},
-	}),
+	withDefaultThemePackage(
+		withDefaultThemeMetrics({
+			...theme,
+			desktop: {
+				...theme.desktop,
+				backgroundImage: resolveWallpaper(theme.desktop.backgroundImage),
+			},
+		}),
+	),
 );
 
 export const getAllThemes = (): ClassicyTheme[] => {

@@ -1,5 +1,6 @@
 export * from "./Appearance/ClassicyAppearanceDefaults";
 export * from "./Appearance/ClassicyAppearancePackage";
+export * from "./Appearance/ClassicyAppearancePackageRegistry";
 export * from "./Appearance/ClassicyAppearancePackageSchema";
 export * from "./Appearance/ClassicyAppearanceStyles";
 export * from "./Appearance/ClassicyAssetRegistry";

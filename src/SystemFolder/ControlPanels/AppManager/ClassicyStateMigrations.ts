@@ -1,4 +1,9 @@
-import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
+import {
+	type ClassicyTheme,
+	withDefaultThemePackage,
+	withDefaultThemePackageList,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
 	withDefaultThemeMetrics,
 	withDefaultThemeMetricsList,
@@ -32,9 +37,14 @@ import { normalizeClassicyAppWindows } from "@/SystemFolder/ControlPanels/AppMan
  *   first theme switch after an upgrade would clone a metric-less theme.
  * - 2.2: theme `sound.name` renamed to `sound.pack` (plan 0002-ldj Part D)
  *   on the active, built-in and custom themes (`migrateThemeSoundPack`).
+ * - 2.3: Appearance.packageId and theme.package default to "platinum"
+ *   (plan 0002-ldj Part B) on the Appearance slice and the active, built-in
+ *   and custom themes (`migrateAppearancePackage`).
  */
 export function migrateClassicyState(state: ClassicyStore): ClassicyStore {
-	return migrateThemeSoundPack(migrateThemeMetrics(migrateAppWindows(state)));
+	return migrateAppearancePackage(
+		migrateThemeSoundPack(migrateThemeMetrics(migrateAppWindows(state))),
+	);
 }
 
 function migrateAppWindows(state: ClassicyStore): ClassicyStore {
@@ -176,6 +186,54 @@ function migrateThemeSoundPack(state: ClassicyStore): ClassicyStore {
 				...System.Manager,
 				Appearance: {
 					...appearance,
+					activeTheme,
+					availableThemes,
+					customThemes,
+				},
+			},
+		},
+	};
+}
+
+function migrateAppearancePackage(state: ClassicyStore): ClassicyStore {
+	const appearance = state?.System?.Manager?.Appearance;
+	if (!appearance || typeof appearance !== "object") return state;
+
+	const packageId =
+		typeof appearance.packageId === "string"
+			? appearance.packageId
+			: CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID;
+	const activeTheme =
+		appearance.activeTheme && typeof appearance.activeTheme === "object"
+			? withDefaultThemePackage(appearance.activeTheme)
+			: appearance.activeTheme;
+	const availableThemes = migrateThemeList(
+		appearance.availableThemes,
+		withDefaultThemePackageList,
+	);
+	const customThemes = migrateThemeList(
+		appearance.customThemes,
+		withDefaultThemePackageList,
+	);
+	if (
+		packageId === appearance.packageId &&
+		activeTheme === appearance.activeTheme &&
+		availableThemes === appearance.availableThemes &&
+		customThemes === appearance.customThemes
+	) {
+		return state;
+	}
+
+	const { System } = state;
+	return {
+		...state,
+		System: {
+			...System,
+			Manager: {
+				...System.Manager,
+				Appearance: {
+					...appearance,
+					packageId,
 					activeTheme,
 					availableThemes,
 					customThemes,

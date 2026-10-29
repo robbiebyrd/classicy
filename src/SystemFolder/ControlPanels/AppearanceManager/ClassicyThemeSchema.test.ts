@@ -47,6 +47,7 @@ describe("ClassicyThemeSchema — accepts", () => {
 
 	it("the forked Custom theme", () => {
 		const appearance = {
+			packageId: "platinum",
 			activeTheme: base(),
 			availableThemes: getAllThemes(),
 			customThemes: [] as ClassicyTheme[],

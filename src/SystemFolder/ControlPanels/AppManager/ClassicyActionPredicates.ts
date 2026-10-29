@@ -281,6 +281,11 @@ export function hasAvailableThemes(
 	return Array.isArray(m.availableThemes);
 }
 
+/** Action has `packageId: string` (an Appearance Package id) */
+export function hasPackageId(m: Msg): m is Msg & { packageId: string } {
+	return typeof m.packageId === "string";
+}
+
 /**
  * Action has `theme: ClassicyTheme`, validated against `ClassicyThemeSchema`
  * (an imported theme is untrusted data: colours in range, safe CSS strings, a

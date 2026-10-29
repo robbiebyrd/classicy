@@ -1,5 +1,8 @@
 import { castDraft, produce } from "immer";
 import { create, type StoreApi, type UseBoundStore } from "zustand";
+import { resolveClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
+import { subscribeClassicyAppearancePackages } from "@/Appearance/ClassicyAppearancePackageRegistry";
+import { connectClassicyAssetPackageSource } from "@/Appearance/ClassicyAssetRegistry";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import { resolveWallpaper } from "../AppearanceManager/ClassicyWallpapers";
 import type { ClassicyActionTrust } from "./ClassicyActionTrust";
@@ -107,6 +110,22 @@ export const useAppManager: UseBoundStore<StoreApi<ClassicyStore>> =
 	create<ClassicyStore>()(() => ({
 		...getInitialState(),
 	}));
+
+// The asset registry follows the active Appearance Package: the store's
+// packageId resolved against the package registry, so assets and the desktop
+// root's data-classicy-appearance always agree. Connected here, once the store
+// exists; the registry reads it lazily, never during module evaluation.
+connectClassicyAssetPackageSource({
+	getId: () => resolveClassicyAppearancePackage().id,
+	subscribe: (onChange) => {
+		const unsubscribeStore = useAppManager.subscribe(onChange);
+		const unsubscribePackages = subscribeClassicyAppearancePackages(onChange);
+		return () => {
+			unsubscribeStore();
+			unsubscribePackages();
+		};
+	},
+});
 
 /**
  * Dispatch an action to the store. `trust` defaults to `"trusted"` — the

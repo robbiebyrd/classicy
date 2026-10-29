@@ -71,6 +71,7 @@ function makeStore(
 					) as Record<ClassicyFileSystemEntryFileType, string>,
 				},
 				Appearance: {
+					packageId: "platinum",
 					availableThemes: [],
 					activeTheme: {} as ClassicyTheme,
 				},
@@ -86,6 +87,7 @@ function makeStoreForDesktop(): ClassicyStore {
 	ds.System.Manager.Appearance.activeTheme = {
 		id: "test-theme",
 		name: "Test",
+		package: "platinum",
 		color: {
 			outline: 0,
 			select: 0,
