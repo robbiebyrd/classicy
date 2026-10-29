@@ -6,7 +6,13 @@ status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T19:35:31.437Z"
-updated: "2026-10-29T16:20:01.389Z"
+updated: "2026-10-29T16:48:03.704Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy
@@ -28,7 +34,7 @@ progress:
   "2":
     status: pending
   "2.1":
-    status: pending
+    status: in_progress
   "3":
     status: pending
   "3.1":

@@ -7,7 +7,13 @@ status: pending
 priority: "4"
 effort: M
 created: "2026-10-29T09:19:21.134Z"
-updated: "2026-10-29T09:40:22.977Z"
+updated: "2026-10-29T16:47:01.167Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy
@@ -66,6 +72,7 @@ Do criterion (k), then run `pnpm lint && pnpm exec tsc --noEmit -p . && pnpm tes
 - [ ] VERIFY: (i) In dev, the fonts <style> is inserted after #classicy-layer-order.
 - [ ] VERIFY: (j) The TEMPLATE_FAMILIES suffix lists in ClassicyVocabulary.test.ts are derived from the type unions rather than kept complete by a comment.
 - [ ] VERIFY: (k) Small cleanups are done: Finder rows no longer emit selected twice (ClassicyFileBrowserViewTable.tsx); Menu className versus navClass is documented; and a decision is recorded on whether withoutZIndex, now exported from the package root through the barrel, is documented or kept internal.
+- [ ] (l) The vocabulary coverage tests that scan every src .ts/.tsx file (ClassicyVocabulary.test.ts's class scan and its negative twin) never hit vitest's 5 s default timeout: give them an explicit timeout sized for a loaded machine, or cache the parsed file list. Observed 2026-10-29 by three implementers (Parts G, I, J) at load average 33–43 on 16 cores: 1.4–2.9 s alone, timed out under load, green on rerun.
 
 ## Work Log
 

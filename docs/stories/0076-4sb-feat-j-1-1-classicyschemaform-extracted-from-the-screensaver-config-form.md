@@ -7,8 +7,14 @@ status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T20:40:40.229Z"
-updated: "2026-10-29T16:19:32.394Z"
+updated: "2026-10-29T16:46:37.162Z"
 started: "2026-10-29T16:19:32.394Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy
@@ -28,19 +34,19 @@ links:
     - ["0012-pt9", "included", ["1.1"]]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
   "5":
-    status: pending
+    status: complete
   "6":
     status: pending
   "7":
-    status: pending
+    status: complete
 ---
 
 # J 1.1: ClassicySchemaForm extracted from the ScreenSaver config form
@@ -93,9 +99,9 @@ Re-shoot `extensions-screensaver--*` and `app-screensaver-panel` into `.playwrig
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/SchemaForm src/SystemFolder/Extensions/ScreenSaver
-- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/ScreenSaverManager
-- [ ] VERIFY: grep -c 'ClassicySchemaForm' src/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverConfigForm.tsx  # >= 1: the wrapper delegates
+- [x] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/SchemaForm src/SystemFolder/Extensions/ScreenSaver
+- [x] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/ScreenSaverManager
+- [x] VERIFY: grep -c 'ClassicySchemaForm' src/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverConfigForm.tsx  # >= 1: the wrapper delegates
 - [ ] [MANUAL] `extensions-screensaver--*` stories and `app-screensaver-panel` compare AE 0 before vs after.
 
 ## Files
@@ -109,3 +115,5 @@ Re-shoot `extensions-screensaver--*` and `app-screensaver-panel` into `.playwrig
 - `src/index.ts` - modify: regenerated barrel
 
 ## Work Log
+
+### 2026-10-29T16:46:31.537Z - Code complete on feat/appearance-part-j at 89c839c22 (from Part B tip 7343d5f51): ClassicySchemaForm + ClassicySchemaFormFields extracted; ClassicyScreenSaverConfigForm is a thin wrapper keeping ids ScreenSaver_<saverId>_<key> and the { [key]: value } patch (nested fields patch a copy of their top-level object — new test fails against the literal form). Before/after DOM of the Screen Saver options (12 controls, 9 savers) captured from the unmodified code and byte-identical after. Gate: lint, tsc, 330 files / 3907 tests (maxWorkers=4 under load), build:source + verify:dist. Controller reviewed the production diff directly. Rulings J-R14 (assert spinner clamping / click-driven pop-up, never min/max attributes or fireEvent.change on a pop-up) and J-R15 (nested-group layout verified in J 6.1 parity) added. OPEN: the [MANUAL] screenshot-parity criterion and Step 6 wait for the post-Part-B baseline, so this story stays in_progress until then.

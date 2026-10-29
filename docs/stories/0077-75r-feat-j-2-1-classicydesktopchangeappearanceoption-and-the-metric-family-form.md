@@ -3,11 +3,18 @@ id: 0077-75r
 title: 'J 2.1: ClassicyDesktopChangeAppearanceOption and the metric family form'
 purpose: 'Give the panel two guarded write paths: `ClassicyDesktopChangeAppearanceOption { path, value }` for non-metric theme options and a `{ family, key }` form of `ClassicyDesktopChangeMetric` for package knob families, both rejecting bad input without forking a Custom theme.'
 type: feat
-status: pending
+status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T20:41:27.990Z"
-updated: "2026-10-28T20:41:27.990Z"
+updated: "2026-10-29T16:47:55.346Z"
+started: "2026-10-29T16:47:55.346Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy
@@ -99,3 +106,5 @@ ClassicyThemeMetricTargets.test.ts: `accepts the family form` (`isThemeMetricTar
 - `src/index.ts` - modify: regenerated barrel
 
 ## Work Log
+
+### 2026-10-29T16:47:54.121Z - Started beside Part B by controller decision (reconciliation verdict "Yes": B is done with the reducer, predicates and metric targets): its depends story 0076-4sb (J 1.1) is code-complete at 89c839c22 and only awaits the post-B screenshot check. Branch feat/appearance-part-j from 89c839c22; implementer dispatched.
