@@ -5,6 +5,7 @@ import {
 	registerClassicySystemArt,
 	registerClassicyWallpapers,
 } from "@/Appearance/ClassicyAssetRegistry";
+import { PLATINUM_SYSTEM_ART } from "@/Appearance/Platinum/assets/art/platinumArt";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { ClassicyWallpapers } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 
@@ -21,16 +22,18 @@ const art = (name: string): string => artModules[`./art/${name}`] ?? "";
  * Platinum's system art. Importing this module (a side effect, listed in
  * `package.json` `sideEffects`) registers it; every consumer reads its art at
  * render time through the asset registry, so a host's own
- * `registerClassicySystemArt` replaces any key.
+ * `registerClassicySystemArt` replaces any key. The window, menu, slider and
+ * tab art is the data module `art/platinumArt.ts`, spread in here.
  *
- * Not registered (Platinum registers 21 of the 44 `ClassicySystemArtKey`s; the
+ * Not registered (Platinum registers 25 of the 44 `ClassicySystemArtKey`s; the
  * rest resolve to `undefined`): `titleBarCapLeft`, `titleBarCapRight`,
- * `titleBarCapLeftRed`, `titleBarCapRightRed`, `windowUtilityShade` and
- * `windowUtilityHighlight` have SVGs under `art/` (`title-bar-left.svg`,
- * `-right.svg`, the red pair, `title-bar-utility.svg`) but stay unregistered
- * until Part E wires them into the window chrome. `menuCheck` and `menuDash`
- * are Unicode glyphs in `ClassicyMenu`, and the Control Strip and pop-up slider
- * art is drawn as `ClassicyPixelArt`, so those keys have no file at all.
+ * `titleBarCapLeftRed` and `titleBarCapRightRed` have SVGs under `art/`
+ * (`title-bar-left.svg`, `-right.svg` and the red pair) but stay unregistered
+ * until Part E decides whether the window chrome draws them. `menuCheck` and
+ * `menuDash` are Unicode glyphs in `ClassicyMenu`, and the Control Strip and
+ * pop-up slider art is drawn as `ClassicyPixelArt`, so those keys have no file
+ * at all. `triangle` and `downArrow` are aliases of `submenuArrow` and
+ * `popupArrows`.
  */
 registerClassicySystemArt(PLATINUM, {
 	appleMenu: ClassicyIcons.system.apple,
@@ -41,19 +44,9 @@ registerClassicySystemArt(PLATINUM, {
 	aliasBadge: ClassicyIcons.system.alias,
 	helpButton: ClassicyIcons.ui.helpButton,
 	aboutLogo: ClassicyIcons.classicy.logo,
-	windowStripes: art("title-bar-center.svg"),
-	windowStripesRed: art("title-bar-center-red.svg"),
-	windowGrip: art("resizer.svg"),
-	windowDither: art("corner-dither.svg"),
-	zoomGlyph: art("zoom.svg"),
-	collapseGlyph: art("collapse.svg"),
-	triangle: art("triangle.svg"),
-	downArrow: art("down-arrow.svg"),
-	submenuArrow: art("triangle.svg"),
-	popupArrows: art("down-arrow.svg"),
-	sliderThumb: art("slider-thumb.svg"),
-	sliderStrikes: art("slider-strikes.svg"),
-	tabOutline: art("tab-outline.svg"),
+	...PLATINUM_SYSTEM_ART,
+	triangle: PLATINUM_SYSTEM_ART.submenuArrow,
+	downArrow: PLATINUM_SYSTEM_ART.popupArrows,
 });
 
 /**
