@@ -120,6 +120,20 @@ describe("ClassicyAssetRegistry", () => {
 		});
 	});
 
+	it("useClassicyAssetVars leaves pixel-art sources out (they are not CSS images)", () => {
+		registerClassicySystemArt("platinum", {
+			windowStripesRed: "red.svg",
+			controlStripModuleArrow: "data:text/x-classicy-pixel-art,K.%0AKK",
+		});
+		const vars = captureHook(() => useClassicyAssetVars())[0];
+		expect(vars).toEqual({
+			"--classicy-art-window-stripes-red": 'url("red.svg")',
+		});
+		expect(resolveClassicyAsset("systemArt", "controlStripModuleArrow")).toBe(
+			"data:text/x-classicy-pixel-art,K.%0AKK",
+		);
+	});
+
 	it("registerClassicyWallpapers keys the tree by name", () => {
 		registerClassicyWallpapers("platinum", [
 			{ name: "Azul Dark", src: "azul_dark.png" },

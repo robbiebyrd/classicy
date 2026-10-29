@@ -25,15 +25,6 @@ import { useClassicyMountedApps } from "@/SystemFolder/SystemResources/App/Class
 import { ClassicyBevelButton } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButton";
 import { useClassicyContextualMenu } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 import {
-	controlStripCollapseGlyph,
-	controlStripModuleArrow,
-	controlStripScrollLeft,
-	controlStripScrollLeftDisabled,
-	controlStripScrollRight,
-	controlStripScrollRightDisabled,
-	controlStripTab,
-} from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripArt";
-import {
 	arrangeClassicyControlStripModules,
 	type ClassicyControlStripModuleDefinition,
 	setClassicyControlStripDisabledModules,
@@ -174,7 +165,7 @@ const ClassicyControlStripModuleButton: FunctionalComponent<{
 			menuItems={menuItems}
 			popupContent={!menuItems && Content ? <Content /> : undefined}
 		>
-			<ClassicyPixelArt rows={controlStripModuleArrow} />
+			<ClassicyPixelArt art="controlStripModuleArrow" />
 		</ClassicyBevelButton>
 	);
 };
@@ -545,7 +536,7 @@ export const ClassicyControlStrip: FunctionalComponent<
 							setCollapsed(true);
 						}}
 					>
-						<ClassicyPixelArt rows={controlStripCollapseGlyph} />
+						<ClassicyPixelArt art="controlStripCollapse" />
 					</button>
 					<button
 						type="button"
@@ -555,10 +546,10 @@ export const ClassicyControlStrip: FunctionalComponent<
 						onClick={() => scrollBy(-1)}
 					>
 						<ClassicyPixelArt
-							rows={
+							art={
 								canScroll.left
-									? controlStripScrollLeft
-									: controlStripScrollLeftDisabled
+									? "controlStripScrollLeft"
+									: "controlStripScrollLeftDisabled"
 							}
 						/>
 					</button>
@@ -583,10 +574,10 @@ export const ClassicyControlStrip: FunctionalComponent<
 						onClick={() => scrollBy(1)}
 					>
 						<ClassicyPixelArt
-							rows={
+							art={
 								canScroll.right
-									? controlStripScrollRight
-									: controlStripScrollRightDisabled
+									? "controlStripScrollRight"
+									: "controlStripScrollRightDisabled"
 							}
 						/>
 					</button>
@@ -609,7 +600,7 @@ export const ClassicyControlStrip: FunctionalComponent<
 				}}
 				onKeyDown={onTabKeyDown}
 			>
-				<ClassicyPixelArt rows={controlStripTab} />
+				<ClassicyPixelArt art="controlStripTab" />
 			</button>
 		</div>
 	);

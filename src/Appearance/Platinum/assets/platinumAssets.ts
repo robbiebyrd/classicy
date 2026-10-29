@@ -9,6 +9,7 @@ import {
 	platinumArt as art,
 	PLATINUM_SYSTEM_ART,
 } from "@/Appearance/Platinum/assets/art/platinumArt";
+import { PLATINUM_PIXEL_ART } from "@/Appearance/Platinum/assets/pixelart/platinumPixelArt";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { ClassicyWallpapers } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 
@@ -19,15 +20,17 @@ const PLATINUM = "platinum";
  * `package.json` `sideEffects`) registers it; every consumer reads its art at
  * render time through the asset registry, so a host's own
  * `registerClassicySystemArt` replaces any key. The window, menu, slider and
- * tab art is the data module `art/platinumArt.ts`, spread in here.
+ * tab art is the data module `art/platinumArt.ts`, and the Control Strip and
+ * pop-up slider pixel art (`ClassicyPixelArt` rows, `data:text/x-classicy-pixel-art`
+ * sources) is the data module `pixelart/platinumPixelArt.ts`; both are spread
+ * in here.
  *
- * Not registered (Platinum registers 25 of the 44 `ClassicySystemArtKey`s; the
+ * Not registered (Platinum registers 34 of the 44 `ClassicySystemArtKey`s; the
  * rest resolve to `undefined`): `titleBarCapLeft`, `titleBarCapRight`,
  * `titleBarCapLeftRed` and `titleBarCapRightRed` have SVGs under `art/`
  * (`title-bar-left.svg`, `-right.svg` and the red pair) but stay unregistered
  * until Part E decides whether the window chrome draws them. `menuCheck` and
- * `menuDash` are Unicode glyphs in `ClassicyMenu`, and the Control Strip and
- * pop-up slider art is drawn as `ClassicyPixelArt`, so those keys have no file
+ * `menuDash` are Unicode glyphs in `ClassicyMenu`, so those keys have no file
  * at all. `triangle` and `downArrow` are aliases of `submenuArrow` and
  * `popupArrows`.
  */
@@ -41,6 +44,7 @@ registerClassicySystemArt(PLATINUM, {
 	helpButton: ClassicyIcons.ui.helpButton,
 	aboutLogo: ClassicyIcons.classicy.logo,
 	...PLATINUM_SYSTEM_ART,
+	...PLATINUM_PIXEL_ART,
 	triangle: PLATINUM_SYSTEM_ART.submenuArrow,
 	downArrow: PLATINUM_SYSTEM_ART.popupArrows,
 });
