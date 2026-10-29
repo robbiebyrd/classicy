@@ -3,11 +3,12 @@ id: 0008-zlu
 title: 'A 5.1: @layer declaration in the injector; classicy.base wrapping plugin'
 purpose: Declare the `classicy.base, classicy.package, classicy.user` cascade layers once in the style injector and compile every component stylesheet into `classicy.base` in build, dev and Storybook.
 type: feat
-status: pending
+status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T19:52:07.776Z"
-updated: "2026-10-28T19:52:07.776Z"
+updated: "2026-10-29T04:08:09.905Z"
+started: "2026-10-29T04:08:09.809Z"
 links:
   repo:
     local: ~/classicy
@@ -100,3 +101,5 @@ With Storybook running, open `iframe.html?id=controls-button--default&viewMode=s
 - `bin/check-dist-imports.mjs` - assert the bundle embeds the layer order
 
 ## Work Log
+
+### 2026-10-29T04:08:09.905Z - Implementation dispatched

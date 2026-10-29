@@ -3,12 +3,13 @@ id: 0007-9ng
 title: 'A 4.2: Repo-wide !important removal and part attributes'
 purpose: Remove the remaining ~96 `!important`s from src SCSS (test-enforced) and add the `data-classicy-control`, `data-classicy-role` and `data-classicy-part` part attributes.
 type: impr
-status: in_progress
+status: complete
 priority: "2"
 effort: L
 created: "2026-10-28T19:51:33.139Z"
-updated: "2026-10-29T00:45:38.416Z"
+updated: "2026-10-29T04:07:59.129Z"
 started: "2026-10-29T00:45:38.074Z"
+completed: "2026-10-29T04:07:59.129Z"
 links:
   repo:
     local: ~/classicy
@@ -55,17 +56,17 @@ links:
     - ["0003-7x7", "included", ["4.2"]]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
   "5":
-    status: pending
+    status: complete
   "6":
-    status: pending
+    status: complete
 ---
 
 # A 4.2: Repo-wide !important removal and part attributes
@@ -106,10 +107,10 @@ ClassicyWindow.tsx:1690,1732,1746 — each `<div className="classicyWindowContro
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: grep -rn '!important' src --include=*.scss | wc -l  # expect 0
-- [ ] VERIFY: pnpm exec vitest run src/Appearance/vocabulary/ClassicyCascade.repo.test.ts src/Appearance/vocabulary/ClassicyPartAttributes.test.tsx
-- [ ] Window control boxes carry `data-classicy-control`, alert buttons `data-classicy-role` (`default`/`cancel`/`other`), menu-bar clusters `data-classicy-part` (`apple`, `app`, `help`, `switcher`, `extensions`, `clock`) via `ClassicyMenuItem.partAttr`.
-- [ ] Every removed flag is replaced by order or by one extra class, never by a new `!important`; each component's existing tests still pass (parity is confirmed in A 6).
+- [x] VERIFY: grep -rn '!important' src --include=*.scss | wc -l  # expect 0
+- [x] VERIFY: pnpm exec vitest run src/Appearance/vocabulary/ClassicyCascade.repo.test.ts src/Appearance/vocabulary/ClassicyPartAttributes.test.tsx
+- [x] Window control boxes carry `data-classicy-control`, alert buttons `data-classicy-role` (`default`/`cancel`/`other`), menu-bar clusters `data-classicy-part` (`apple`, `app`, `help`, `switcher`, `extensions`, `clock`) via `ClassicyMenuItem.partAttr`.
+- [x] Every removed flag is replaced by order or by one extra class, never by a new `!important`; each component's existing tests still pass (parity is confirmed in A 6).
 
 ## Files
 
@@ -151,3 +152,5 @@ ClassicyWindow.tsx:1690,1732,1746 — each `<div className="classicyWindowContro
 ## Work Log
 
 ### 2026-10-29T00:45:38.416Z - Implementation dispatched
+
+### 2026-10-29T04:07:58.435Z - Completed: commits d42955098..8d0f79c38 (be78abeca main change; two fix rounds: radio default rule restored to :where(.classicyRadioInput).default with order doing the work; screen saver pauses CSS animations under reduced motion at mount and via a capture-phase animationstart listener, WAAPI element.animate() documented as not covered). Evidence: !important 83 to 0 in src; computed-style identity 0 across 302 stories (140,895 entries), state matrices including an exhaustive 256-combination radio matrix, reversed sheet order, scrollbar stand-ins and the screen-saver overlay, each with a nonzero naive negative control; screenshot AE 0 with the clock masked (three file-dialog stories differ by 1-3 px, judged rasterization noise in the report); data-classicy-control/role/part attributes added. Full gate green: lint 0, tsc 0, 3483 tests. One PDF Pan-tool test race seen once; fix 304b10f78 arrives on the Part A rebase, to be confirmed in the post-rebase gate.
