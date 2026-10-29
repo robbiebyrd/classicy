@@ -364,10 +364,16 @@ export const classicyDesktopEventHandler = (
 			const appearance = ds.System.Manager.Appearance;
 			// Always a new entry: the payload's id is ignored, so an import
 			// can never overwrite an existing custom theme, shadow a built-in or
+			// the active package's presets (ChangeTheme finds those first), or
 			// take a registered package's Custom fork slot.
 			const imported = assignImportedClassicyThemeIdentity(
 				read.theme,
-				listClassicyThemes(appearance),
+				[
+					...listClassicyThemes(appearance),
+					...(getRegisteredClassicyAppearancePackageOrDefault(
+						appearance.packageId,
+					)?.presets ?? []),
+				],
 				listClassicyAppearancePackages().map((pkg) =>
 					classicyCustomThemeSlotId(pkg.id),
 				),

@@ -130,9 +130,25 @@ export const editActiveClassicyTheme = (
 	if (slot < 0) {
 		// Fork: the active theme is a built-in. Reuse its package's one
 		// Custom slot.
-		next.id = classicyCustomThemeSlotId(themePackageId(next));
+		const packageId = themePackageId(next);
+		next.id = classicyCustomThemeSlotId(packageId);
 		next.name = CLASSICY_CUSTOM_THEME_NAME;
 		slot = customs.findIndex((t) => t.id === next.id);
+		if (slot >= 0 && themePackageId(customs[slot]) !== packageId) {
+			// Another package's theme holds the id: an import made before this
+			// package was registered (import slugs and `custom-<packageId>`
+			// share a namespace). Move it aside under the next free numbered
+			// id, keeping its name and data; it is never the active theme
+			// here, since a built-in is.
+			const ids = new Set([
+				...customs.map((t) => t.id),
+				...(appearance.availableThemes ?? []).map((t) => t.id),
+			]);
+			let moved = `${next.id}-2`;
+			for (let n = 3; ids.has(moved); n++) moved = `${next.id}-${n}`;
+			customs[slot].id = moved;
+			slot = -1;
+		}
 		if (slot < 0) slot = customs.length;
 	}
 	customs[slot] = next;

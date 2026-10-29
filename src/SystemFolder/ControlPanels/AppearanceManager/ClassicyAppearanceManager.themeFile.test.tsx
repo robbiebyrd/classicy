@@ -415,4 +415,20 @@ describe("Appearance Manager — saving and loading theme files", {
 			},
 		]);
 	});
+	it("lists the active theme's pack even when it belongs to another package", async () => {
+		useAppManager.setState((state) => {
+			state.System.Manager.Appearance.activeTheme.sound.pack = "elsewhere";
+			return state;
+		});
+		const win = await openAppearanceManager();
+		showTab(win, "Sound");
+		const menu = win.querySelector("#soundPack") as HTMLElement;
+		expect(menu).toHaveTextContent("Elsewhere");
+		fireEvent.click(menu);
+		expect(
+			within(screen.getByRole("listbox"))
+				.getAllByRole("option")
+				.map((o) => o.textContent?.replace(/^✓/, "")),
+		).toEqual(["Platinum", "Beep", "Elsewhere"]);
+	});
 });
