@@ -59,8 +59,10 @@ describe("getRegisteredClassicyAppearancePackageOrDefault", () => {
 		).toBeUndefined();
 	});
 
-	it("never matches an inherited property name", () =>
-		expect(
-			getRegisteredClassicyAppearancePackageOrDefault("constructor"),
-		).toBeUndefined());
+	it("never matches an inherited property name", () => {
+		registerClassicyAppearancePackage(platinum);
+		expect(getRegisteredClassicyAppearancePackageOrDefault("constructor")).toBe(
+			platinum,
+		);
+	});
 });
