@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import * as sass from "sass";
 import { describe, expect, it } from "vitest";
 import {
 	CLASSICY_COMPONENT,
@@ -79,6 +80,18 @@ describe("ClassicyVocabulary", () => {
 			}
 		}
 		expect([...unknown].sort()).toEqual([]);
+	});
+
+	it("classicy-state() returns the class selector and rejects an unknown state at compile time", () => {
+		const compile = (state: string) =>
+			sass.compileString(
+				`@use "vocabulary" as v;\n.classicyButton#{v.classicy-state(${state})} { color: red; }`,
+				{ loadPaths: [dir], style: "compressed" },
+			).css;
+		expect(compile("pressed")).toBe(".classicyButton.pressed{color:red}");
+		expect(() => compile("bogus")).toThrow(
+			"classicy-state: unknown state bogus",
+		);
 	});
 
 	it("the committed outputs are fresh", () => {

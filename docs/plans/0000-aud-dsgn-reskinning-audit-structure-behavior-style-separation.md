@@ -701,8 +701,13 @@ Prerequisite for every later phase because packages target these names.
 6. Fix the dead selectors and phantom tokens listed in §2.1 and the window
    sweep: empty `classicyWindowZoomed`, undefined `block`, `--color-theme-1`,
    `--box-border-size`, `--color-theme-hover`, `--color-theme-selection`.
-   (`classicyWindowInvisible` is live, not dead: it renders closed-but-mounted
-   windows, `ClassicyWindow.tsx:704-712`.)
+   Correction (part A, task 6): the empty `classicyWindowZoomed` rule and the
+   undefined `block` class were dead and are removed. `classicyWindowInvisible`
+   is not live either: `ClassicyWindow` renders its root only while the window
+   is open (`const windowContent = !ws.closed && (…)`) but adds the class only
+   when `ws.closed`, so the class is never in the DOM. It is parked as a
+   follow-up (drop the class and its rule, or drop the render guard); part A
+   does not change window behavior.
 
 #### Phase 2 — Package core and the Platinum package
 

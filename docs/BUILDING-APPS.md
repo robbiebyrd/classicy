@@ -1363,8 +1363,8 @@ Classicy chrome exposes stable hooks:
 page.locator(".classicyDesktop")
 page.getByRole("button", { name: "My App" }).dblclick()   // desktop icon
 page.getByRole("application", { name: "My App" })          // a window
-expect(win).toHaveClass(/classicyWindowActive\b/)          // vs classicyWindowInactive
-page.locator(".classicyWindowCloseBox").click()
+expect(win).toHaveClass(/\bactive\b/)                     // vs \binactive\b; bare state classes
+page.locator('.classicyWindow.active [data-classicy-control="close"]').click()
 ```
 
 > ARIA name computation folds every descendant `menuitem`'s text into the

@@ -147,7 +147,8 @@ Package `exports` map:
 | `classicy/dist/classicy.css` | The stylesheet the bundle injects; link it yourself only under a strict CSP |
 | `classicy/fonts` | Deprecated no-op kept so existing `import 'classicy/fonts'` lines keep resolving |
 | `classicy/dist/*` | Anything in dist; the fonts ship as `dist/assets/*.woff2` |
-| `classicy/scss/*` | Raw SCSS partials (theme styles) |
+| `classicy/scss/*` | The SCSS vocabulary (`classicy/scss/vocabulary`: `$classicy-states`, `classicy-state()`; §4.0.1) |
+| `classicy/scss-platinum/*` | Platinum's appearance partials (`classicy/scss-platinum/appearance`); a temporary path that appearance packages will replace |
 
 ### Minimal app
 
@@ -518,6 +519,138 @@ theme CSS variables (§8) so it follows theme changes:
 - `<canvas>`, `<svg>`
 - `<iframe>` — the Web Viewer is a built-in app, not an embeddable component
 - Prose & sectioning: `<h1>`–`<h6>`, `<p>`, `<blockquote>`, `<pre>` / `<code>`, plain `<ul>` / `<ol>`, `<header>` / `<footer>` / `<section>` / `<article>` / `<aside>`
+
+### 4.0.1 Vocabulary: state classes, part attributes, passthrough, layers
+
+The class names and attributes below are the stable contract for styling
+Classicy from outside (host CSS, appearance packages, end-to-end tests). They
+are generated from `src/Appearance/vocabulary/ClassicyVocabulary.json` into
+`ClassicyVocabulary.ts` and `_vocabulary.scss`; never hand-edit those two.
+
+**State classes.** State is one of 15 bare classes set *beside* the
+component's root class, never folded into a longer class name and never in a
+`data-state` attribute (Classicy emits no `data-state` anywhere):
+
+`active` `inactive` `disabled` `selected` `pressed` `focused` `hover`
+`collapsed` `open` `dragging` `error` `default` `checked` `mixed` `expanded`
+
+```css
+.classicyButton.pressed { … }           /* not .classicyButtonPressed */
+.classicyWindow.active { … }            /* .inactive, .collapsed, .dragging */
+.classicyBevelButton.checked.pressed { … }
+```
+
+| Component (root class) | States it sets |
+|---|---|
+| `ClassicyWindow` (`classicyWindow`; its contents get `collapsed` too) | `active`, `inactive`, `collapsed`, `dragging` |
+| `ClassicyButton` | `default` (`isDefault`), `pressed` (`depressed`) |
+| `ClassicyBevelButton` | `checked`, `pressed`, `mixed`, `disabled`, `open` (its menu or panel is showing) |
+| `ClassicyCheckbox`, `ClassicyRadioInput` | `checked`, `mixed`, `disabled`, `default` |
+| `ClassicyPlacard` | `pressed` (also while its menu is open), `disabled` |
+| `ClassicyImageWell` | `selected`, `disabled` |
+| `ClassicyIcon` | `selected`, `dragging` |
+| `ClassicyDesktopIcon` | `selected`, `open` (its app is open, or its folder is open in a Finder window), `dragging` |
+| `ClassicyControlStrip` | `collapsed`, `dragging` |
+| `ClassicyMenu` items | `disabled`, `open` |
+| `ClassicyTabs` tab buttons; `ClassicyListBox` options, `ClassicyTree` nodes, `ClassicyTable` rows and sorted column header, Finder list rows, color picker crayons and modes | `selected` (plus `disabled` where an item can be disabled) |
+| `ClassicyPopUpMenu` | `open`, `disabled` |
+| `ClassicyDisclosure` (its content element) | `open` |
+| `ClassicyFileInput` | `error` |
+| `ClassicySlider`, `ClassicyPopUpSlider`, `ClassicyComboBox`, `ClassicyLink`, `ClassicyOutput`, `ClassicyControlLabel`, `ClassicyColorPicker` swatch | `disabled` |
+
+`aria-*` attributes are still emitted alongside (for example `aria-expanded`
+on the Control Strip tab and `aria-pressed` where it applies); style the
+class, not the ARIA attribute.
+
+From TypeScript, build a state string with `classicyStateClasses`, keyed by
+`CLASSICY_STATE` (type `ClassicyState`). It returns the true states in
+vocabulary order, so the same input always yields the same string:
+
+```ts
+import { CLASSICY_STATE, classicyStateClasses } from 'classicy'
+
+CLASSICY_STATE.pressed                                  // "pressed"
+classicyStateClasses({ pressed: true, active: true })   // "active pressed"
+```
+
+`CLASSICY_COMPONENT` (type `ClassicyComponentName`) maps each component name
+to its root class (`CLASSICY_COMPONENT.Button === "classicyButton"`,
+`CLASSICY_COMPONENT.Tabs === "classicyTabContainer"`).
+
+From SCSS, `@use "classicy/scss/vocabulary"` (the `./scss/*` export points at
+`src/Appearance/vocabulary/`) and write state selectors through
+`classicy-state()`, which returns `.<state>` and fails the Sass compile for any
+name not in `$classicy-states`:
+
+```scss
+@use "classicy/scss/vocabulary" as v;
+
+.classicyButton#{v.classicy-state(pressed)} { … }   // .classicyButton.pressed
+.classicyButton#{v.classicy-state(bogus)} { … }     // compile error: "classicy-state: unknown state bogus"
+```
+
+Classicy's own single-state rules are written `:where(.classicyButton).pressed`,
+so they weigh (0,1,0), the same as the root rule they modify; a size or shape
+modifier declared later still wins over them.
+
+**Part attributes.** Parts that a skin or a test must find without relying
+on Classicy's internal class names carry one of three attributes
+(`CLASSICY_PART_ATTRIBUTE` holds the names):
+
+| Attribute | Values | On |
+|---|---|---|
+| `data-classicy-control` | `close`, `zoom`, `collapse` | the window title bar's control boxes |
+| `data-classicy-role` | `default`, `cancel`, `other` | every `ClassicyAlert` button (the default button, the `role: "cancel"` button, any other including Help) |
+| `data-classicy-part` | `apple`, `app`, `help`, `switcher`, `extensions`, `clock` | the menu bar's clusters: Apple menu, each app menu title, Help, the application switcher, the menu-bar extensions and the clock |
+
+```ts
+document.querySelector('.classicyWindow.active [data-classicy-control="close"]')
+document.querySelector('[data-classicy-role="default"]')
+document.querySelector('[data-classicy-part="clock"]')
+```
+
+**`className` and `style` passthrough.** Every exported component takes
+`className` and `style` and applies them to its outermost element. They are
+merged, never replacing anything: `className` is appended after the root and
+state classes (`<ClassicyButton className="wide">` renders
+`class="classicyButton … wide"`), and `style` is spread after the component's
+own inline style, except for the values the component owns:
+
+- `ClassicyWindow` keeps its stored geometry over `style`, and drops
+  `zIndex` from it (the stacking band belongs to the window manager;
+  `ClassicyIcon` and `ClassicyDesktopIcon` drop `zIndex` likewise). The
+  dragging, resizing and inactive paint is state-owned: style it through
+  `.classicyWindow.dragging` / `.inactive`, not inline.
+- Custom properties a component sets on its root (the desktop's theme
+  variables, `ClassicyListBox`'s visible-rows count, `ClassicyWindowFrame`'s
+  width, the Control Strip's position, an icon's position and size) survive a
+  consumer `style`.
+- With a label wrapper (`ClassicyMeter`, `ClassicyOutput`,
+  `ClassicyProgressBar`, `ClassicyRadioInput`, `ClassicySlider`,
+  `ClassicyListBox`), the props land on the wrapper when a label is shown and
+  on the control otherwise. Dialog components (`ClassicyAlert`,
+  `ClassicyAboutWindow`, the file and input dialogs) forward them to their
+  `ClassicyWindow`. `ClassicyApp` renders no root of its own and takes neither.
+
+**Cascade layers.** Every Classicy rule is compiled into `@layer classicy.base`
+and ships no `!important` (a test enforces it). The order is declared once,
+first in `<head>`:
+
+```css
+@layer classicy.base, classicy.package, classicy.user;
+```
+
+- Unlayered host CSS, and every host layer declared after this statement
+  (all of them, Tailwind's included), beat every `classicy.*` layer whatever
+  the specificity.
+- An appearance package puts its rules in `classicy.package`, so they beat
+  Classicy's base rules whatever the specificity.
+- Host overrides placed in `classicy.user` beat base and package, but still
+  lose to any later host layer and to unlayered host CSS.
+
+The host-side details (the reserved `classicy.base.host` sublayer for resets
+that must yield to Classicy, the granular Tailwind v4 import, CSP linking) are
+in §1, Cascade layers.
 
 ### 4.1 Windows
 
@@ -1287,8 +1420,9 @@ target with its CSS variable, label, group and bounds; `getThemeMetric` /
 edit-field height, …) have no target — change the input they derive from.
 
 `getTheme(id, overrides?)` returns a deep-merged clone; `getThemeVars(theme)`
-returns the CSS custom-property map. Raw SCSS partials are importable via
-`classicy/scss/*`.
+returns the CSS custom-property map. Platinum's SCSS partials are importable
+via `classicy/scss-platinum/*` (temporary), and the state vocabulary via
+`classicy/scss/vocabulary` (§4.0.1).
 
 Theme-authoring helpers: `hexToInt` / `intToHex` convert between hex strings
 and the integer colors themes use. `ClassicyWallpapers` is the stock
