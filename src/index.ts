@@ -262,6 +262,8 @@ export * from "./SystemFolder/SystemResources/QuickTime/useQuickTimePlayback";
 export * from "./SystemFolder/SystemResources/QuickTime/useQuickTimeSubtitles";
 export * from "./SystemFolder/SystemResources/RadioInput/ClassicyRadioInput";
 export * from "./SystemFolder/SystemResources/RichTextEditor/ClassicyRichTextEditor";
+export * from "./SystemFolder/SystemResources/SchemaForm/ClassicySchemaForm";
+export * from "./SystemFolder/SystemResources/SchemaForm/ClassicySchemaFormFields";
 export * from "./SystemFolder/SystemResources/Separator/ClassicySeparator";
 export * from "./SystemFolder/SystemResources/Shortcut/ClassicyShortcut";
 export * from "./SystemFolder/SystemResources/Slider/ClassicySlider";
