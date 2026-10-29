@@ -3,11 +3,18 @@ id: 0040-gok
 title: 'B 5.1: package.json exports, example app, Storybook, docs, C/D wiring'
 purpose: Expose the vocabulary and the Platinum package through package.json exports, re-point the example app and Storybook, document packages, and wire parts C/D into the Platinum registration when they are present.
 type: feat
-status: pending
+status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T20:15:04.099Z"
-updated: "2026-10-29T20:22:00.352Z"
+updated: "2026-10-29T20:34:41.738Z"
+started: "2026-10-29T20:34:41.037Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy
@@ -105,3 +112,5 @@ package.json `exports`: `"./scss/*": "./src/Appearance/vocabulary/*"`, `"./appea
 
 ## Work Log
 ### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
+
+### 2026-10-29T20:34:41.738Z - Started in parallel with B 4.3c, for maximum concurrency at the user's request. Worktree part-b-43a, branch feat/appearance-part-b-51, base 50433055c (4.3a and 4.3b integrated). Owns package.json, Platinum/index.ts, the example app (bridge removal), the Storybook decorator (useClassicyAssetVars per E-B4) and docs; 4.3c owns the SCSS, the guard test and deleting the old modules. Implementer dispatched.

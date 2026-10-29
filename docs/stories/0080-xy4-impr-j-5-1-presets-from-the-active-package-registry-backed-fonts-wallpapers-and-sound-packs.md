@@ -3,12 +3,13 @@ id: 0080-xy4
 title: 'J 5.1: Presets from the active package; registry-backed fonts, wallpapers and sound packs'
 purpose: Re-point the Themes, Desktop, Fonts and Sound tabs at the active package's presets and the asset/sound registries, carry the package id through theme files, and refuse a theme file for an unregistered package with a stop alert.
 type: impr
-status: in_progress
+status: complete
 priority: "2"
 effort: M
 created: "2026-10-28T20:43:31.288Z"
-updated: "2026-10-29T20:22:00.352Z"
+updated: "2026-10-29T20:34:28.132Z"
 started: "2026-10-29T17:50:20.231Z"
+completed: "2026-10-29T20:34:28.132Z"
 tags: []
 milestone: ""
 due_date: ""

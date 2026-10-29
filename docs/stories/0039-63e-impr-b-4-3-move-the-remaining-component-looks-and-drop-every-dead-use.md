@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T20:14:27.078Z"
-updated: "2026-10-29T20:22:00.352Z"
+updated: "2026-10-29T20:34:29.258Z"
 started: "2026-10-29T18:51:02.774Z"
 tags: []
 milestone: ""
@@ -206,3 +206,5 @@ Re-shoot every id in stories.txt into `after/`; `for f in before/*.png; do compa
 ### 2026-10-29T18:50:54.964Z - Started, split three ways (task-4.3-split.md in the Part B ledger): 4.3a (Button, BevelButton, Checkbox, Placard, Table, DriveSetupList, Meter, Output, ProgressBar, SplitView; worktree part-b-43a, Storybook 6007) and 4.3b (Assistant, StartupScreen, QuickTimeMovieEmbed, ControlStrip, Slider with P9, DesktopIcon, Icon, plus _Tabs.scss from 4.2's carry-forward; worktree part-b-43b, Storybook 6008) run in parallel from d8c687255, each with its own components' parity against the shared Phase 0 baselines; the controller then integrates both onto feat/appearance-part-b and runs 4.3c (include-order merge by bundle offset, the remaining dead @use lines (44 files incl. ClassicyAppearanceManager.scss), the repo-wide guard with the corrected regex, deleting the old AppearanceManager/styles modules and directory (R7) with their readers retargeted, full-set parity).
 
 ### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
+
+### 2026-10-29T20:34:29.258Z - 4.3a (441167fb1: Button, BevelButton, Checkbox, Placard, Table, DriveSetupList, Meter, Output, ProgressBar, SplitView; 302/302 AE 0) and 4.3b (f0b02e27d: Assistant, StartupScreen, QuickTime, ControlStrip, Slider, DesktopIcon, Icon, Tabs; 101/101 AE 0) integrated onto feat/appearance-part-b as 552b4e0f0 and 50433055c. The controller resolved the platinum.scss include conflict by bundle order. Controller check: the Platinum CSS tests plus the two retargeted tests 112/112; lint, tsc and build:source incl. verify:dist green. Pushed. 4.3c (dead @use strip, guard test, old-module deletion, full-set parity) dispatched.

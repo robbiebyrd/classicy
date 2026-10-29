@@ -3,12 +3,13 @@ id: 0079-vn4
 title: 'J 4.1: useMetricsTab over CLASSICY_THEME_METRIC_TARGETS'
 purpose: 'Add the Metrics tab: one spinner per core theme metric, grouped as the targets table groups them, dispatching `ClassicyDesktopChangeMetric { metricKey, value }`.'
 type: feat
-status: in_progress
+status: complete
 priority: "2"
 effort: S
 created: "2026-10-28T20:42:45.684Z"
-updated: "2026-10-29T20:22:00.352Z"
+updated: "2026-10-29T20:34:27.068Z"
 started: "2026-10-29T17:23:17.520Z"
+completed: "2026-10-29T20:34:27.068Z"
 tags: []
 milestone: ""
 due_date: ""
