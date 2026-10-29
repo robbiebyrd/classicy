@@ -391,6 +391,10 @@ describe("compiled SCSS of the touched surfaces", () => {
 		expect(source("src/Appearance/Platinum/styles/_mixins.scss")).not.toMatch(
 			/^\.hidden \{/m,
 		);
+		// The whole Platinum package, compiled, has no top-level .hidden either.
+		expect(compile("src/Appearance/Platinum/styles/platinum.scss")).not.toMatch(
+			/^\.hidden \{/m,
+		);
 	});
 
 	it.each([

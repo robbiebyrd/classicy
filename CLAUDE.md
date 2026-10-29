@@ -367,14 +367,14 @@ resizable container splitting two or three content areas along one axis:
 ### Menu Frame
 
 Every menu — menu bar dropdowns, contextual menus, submenus, pop-up bevel
-menus — draws the Platinum frame from the `platinumMenuFrame` mixin
-(`appearance.scss`). HIGOS8 Ch.4 (p.91) describes it only in words ("beveled
-edges", "etched" dividers); the pixels are matched to the open Control Strip
+menus — draws the Platinum frame from the `platinum-menu-frame` mixin
+(`src/Appearance/Platinum/styles/_mixins.scss`). HIGOS8 Ch.4 (p.91)
+describes it only in words ("beveled edges", "etched" dividers); the pixels are matched to the open Control Strip
 menu in Figure 6-15 (p.126), so the same figure is cited here and for the
 Control Strip. The frame: 1 px black border, white/system-04 inner bevel with
-face-coloured corners, and a 1 px `system-07` shadow on the right and bottom
+face-colored corners, and a 1 px `system-07` shadow on the right and bottom
 starting 2 px in, drawn by `::before`/`::after` (so the menu list must be
-positioned). Dividers (`platinumMenuDivider`) are system-05 over white across
+positioned). Dividers (`platinum-menu-divider`) are system-05 over white across
 the full inner width. Bevel-button panels (`popupContent`) reuse the frame.
 
 ### Keyboard Equivalents
@@ -444,8 +444,9 @@ the control panel and the file system follow registrations made after mount.
 HIG p.125: a module for a control panel must include an "Open … Control Panel"
 command (`classicyControlStripOpenControlPanelItem`).
 
-The strip is pixel-matched to HIGOS8 Figure 6-15: bevels are `px-rect`
-background layers (`appearance.scss`), and the tab, arrows and slider are
+The strip is pixel-matched to HIGOS8 Figure 6-15: bevels are background
+layers drawn with the `classicy-px-rect` function
+(`src/Appearance/vocabulary/_layout.scss`), and the tab, arrows and slider are
 `ClassicyPixelArt` (rows of theme tokens rendered as SVG runs), so every pixel
 follows the theme. Widths snap to whole modules (31 px with the separator).
 

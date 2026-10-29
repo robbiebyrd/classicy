@@ -912,55 +912,510 @@ describe("the moved Platinum mixin files", () => {
 			"title-bar-right-red",
 		]));
 
-	// [name, arguments]: Sass evaluates a mixin body only when it is included,
-	// so compiling each one proves its body (and layout.classicy-px-rect)
-	// resolves, including those no partial includes. 4.1 proved each compiled
-	// exactly as its AppearanceManager/styles original; the originals are
-	// deleted (ruling R7), so these keep only the resolution check.
-	const MIXINS: [string, string][] = [
-		["platinum-menu-frame", ""],
-		["platinum-menu-divider", ""],
-		["platinum-window-box-shadow", ""],
-		["platinum-box-shadow", ""],
-		["platinum-window-border", ""],
-		["platinum-window-header-border", ""],
-		["platinum-window-header-border-depressed", ""],
-		["platinum-window-inner-box-shadow", ""],
-		["platinum-window-inner-box-shadow-outer", ""],
-		["platinum-window-inner-border", ""],
-		["platinum-window-control-box-border", ""],
-		["platinum-window-control-box", ""],
-		["platinum-window-control-box-depressable", ""],
-		["platinum-window-undepressable", ""],
-		["platinum-window-depressable", ""],
-		["platinum-window-depressed", ""],
-		["platinum-depressable-default", ""],
-		["platinum-depressable-box-shadow-active", ""],
-		["platinum-halftone", "(#c0c0c0, 10%)"],
-	];
-	const SCROLLBAR_MIXINS: [string, string][] = [
-		["platinum-scrollbar-glyph-up", "(var(--color-system-02))"],
-		["platinum-scrollbar-glyph-down", "(white)"],
-		["platinum-scrollbar-glyph-left", "(white)"],
-		["platinum-scrollbar-glyph-right", "(white)"],
-		["platinum-scrollbar-button-box", ""],
-		["platinum-scrollbar-button-pressed", ""],
-		["platinum-scrollbars", ""],
-		["platinum-scrollbars-split-arrows", ""],
-		["platinum-scrollbars-inactive", ""],
-		["platinum-scrollbars-themed", ""],
-	];
+	// Sass evaluates a mixin body only when it is included, so each mixin is
+	// included into `.x` and its whole output pinned: a body edit to any
+	// Platinum mixin fails here. The snapshots were taken from the copies that
+	// 4.1 proved compile exactly as their AppearanceManager/styles originals
+	// (since deleted, ruling R7). One test per mixin, because an inline
+	// snapshot cannot sit in a loop.
 	const include = (use: string, name: string, args: string) =>
 		compileString(
 			`@use "${use}" as m;\n.x { @include m.${name}${args}; }`,
 			LOAD,
 		).css;
+	const mixin = (name: string, args = "") =>
+		include(`${STYLES}/mixins`, name, args);
+	const scrollbarMixin = (name: string, args = "") =>
+		include(`${STYLES}/scrollbars`, name, args);
 
-	it.each(MIXINS)("%s compiles", (name, args) =>
-		expect(include(`${STYLES}/mixins`, name, args)).toMatch(/^\.x[\s\S]*;/));
+	it("platinum-menu-frame compiles to its pinned output", () =>
+		expect(mixin("platinum-menu-frame")).toMatchInlineSnapshot(`
+			".x {
+			  border: 1px solid var(--color-black);
+			  box-shadow: none;
+			  background: linear-gradient(var(--color-white), var(--color-white)) 0 0/calc(100% - 1px) 1px no-repeat, linear-gradient(var(--color-white), var(--color-white)) 0 0/1px calc(100% - 1px) no-repeat, linear-gradient(var(--color-system-04), var(--color-system-04)) 100% 1px/1px calc(100% - 1px) no-repeat, linear-gradient(var(--color-system-04), var(--color-system-04)) 1px 100%/calc(100% - 1px) 1px no-repeat, var(--color-system-02);
+			}
+			.x::before, .x::after {
+			  content: "";
+			  position: absolute;
+			  background-color: var(--color-system-07);
+			  pointer-events: none;
+			}
+			.x::after {
+			  top: 1px;
+			  right: -2px;
+			  bottom: -2px;
+			  width: 1px;
+			}
+			.x::before {
+			  left: 1px;
+			  right: -2px;
+			  bottom: -2px;
+			  height: 1px;
+			}"
+		`));
 
-	it.each(SCROLLBAR_MIXINS)("%s compiles", (name, args) =>
-		expect(include(`${STYLES}/scrollbars`, name, args)).toMatch(/\{[^}]*;/));
+	it("platinum-menu-divider compiles to its pinned output", () =>
+		expect(mixin("platinum-menu-divider")).toMatchInlineSnapshot(`
+			".x {
+			  align-self: stretch;
+			  width: auto;
+			  margin-left: calc(var(--window-border-size) * -1);
+			  margin-right: calc(var(--window-border-size) * -1);
+			  border-top-color: var(--color-system-05);
+			  border-bottom-color: var(--color-white);
+			}"
+		`));
+
+	it("platinum-window-box-shadow compiles to its pinned output", () =>
+		expect(mixin("platinum-window-box-shadow")).toMatchInlineSnapshot(`
+			".x {
+			  box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05), inset var(--window-border-size) var(--window-border-size) var(--color-window-border-outset), var(--window-border-size) var(--window-border-size) 0 0 var(--color-black);
+			}"
+		`));
+
+	it("platinum-box-shadow compiles to its pinned output", () =>
+		expect(mixin("platinum-box-shadow")).toMatchInlineSnapshot(`
+			".x {
+			  box-shadow: inset var(--window-border-size) var(--window-border-size) var(--color-system-05), var(--window-border-size) var(--window-border-size) var(--color-window-border-outset);
+			}"
+		`));
+
+	it("platinum-window-border compiles to its pinned output", () =>
+		expect(mixin("platinum-window-border")).toMatchInlineSnapshot(`
+			".x {
+			  border: var(--window-border-size) solid var(--color-window-border);
+			  box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05), inset var(--window-border-size) var(--window-border-size) var(--color-window-border-outset), var(--window-border-size) var(--window-border-size) 0 0 var(--color-black);
+			}"
+		`));
+
+	it("platinum-window-header-border compiles to its pinned output", () =>
+		expect(mixin("platinum-window-header-border")).toMatchInlineSnapshot(`
+			".x {
+			  border: var(--window-border-size) solid var(--color-system-07);
+			  border-bottom: var(--window-border-size) solid var(--color-system-05);
+			  box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05), inset var(--window-border-size) var(--window-border-size) var(--color-window-border-outset), var(--window-border-size) var(--window-border-size) 0 0 var(--color-black);
+			  box-shadow: inset var(--window-border-size) var(--window-border-size) var(--color-window-border-outset);
+			}"
+		`));
+
+	it("platinum-window-header-border-depressed compiles to its pinned output", () =>
+		expect(
+			mixin("platinum-window-header-border-depressed"),
+		).toMatchInlineSnapshot(`
+			".x {
+			  box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-03), inset calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) var(--color-system-05), calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) var(--color-system-06);
+			  border-bottom: calc(var(--window-border-size) * 1) solid var(--color-black);
+			  color: var(--color-black);
+			}"
+		`));
+
+	it("platinum-window-inner-box-shadow compiles to its pinned output", () =>
+		expect(mixin("platinum-window-inner-box-shadow")).toMatchInlineSnapshot(`
+			".x {
+			  box-shadow: calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05), calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) var(--color-window-border-outset);
+			}"
+		`));
+
+	it("platinum-window-inner-box-shadow-outer compiles to its pinned output", () =>
+		expect(
+			mixin("platinum-window-inner-box-shadow-outer"),
+		).toMatchInlineSnapshot(`
+			".x {
+			  box-shadow: calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05);
+			}"
+		`));
+
+	it("platinum-window-inner-border compiles to its pinned output", () =>
+		expect(mixin("platinum-window-inner-border")).toMatchInlineSnapshot(`
+			".x {
+			  border: var(--window-border-size) solid var(--color-window-border);
+			  box-shadow: calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05), calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) var(--color-window-border-outset);
+			}"
+		`));
+
+	it("platinum-window-control-box-border compiles to its pinned output", () =>
+		expect(mixin("platinum-window-control-box-border")).toMatchInlineSnapshot(`
+			".x {
+			  box-shadow: inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-03), inset calc((var(--window-border-size)) * -1) calc((var(--window-border-size)) * -1) 0 0 var(--color-system-05);
+			  border: var(--window-border-size) solid var(--color-black);
+			}"
+		`));
+
+	it("platinum-window-control-box compiles to its pinned output", () =>
+		expect(mixin("platinum-window-control-box")).toMatchInlineSnapshot(`
+			".x {
+			  width: var(--window-control-size);
+			  height: var(--window-control-size);
+			  background: linear-gradient(135deg, var(--color-system-05), var(--color-white) 80%);
+			}
+			.x:before {
+			  display: block;
+			  width: 100%;
+			  height: 100%;
+			  background-image: url("data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz48c3ZnIGlkPSJMYXllcl8xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3IDciPjxyZWN0IHdpZHRoPSI3IiBoZWlnaHQ9IjciIHN0eWxlPSJmaWxsOiMyMzFmMjA7IHN0cm9rZS13aWR0aDowcHg7Ii8+PHBvbHlnb24gcG9pbnRzPSIzIDAgMiAwIDIgMSAxIDEgMSAyIDAgMiAwIDMgMCA0IDEgNCAxIDMgMiAzIDIgMiAzIDIgMyAxIDQgMSA0IDAgMyAwIiBzdHlsZT0iZmlsbDojMmUyZTJlOyBzdHJva2Utd2lkdGg6MHB4OyIvPjxyZWN0IHg9IjYiIHk9IjYiIHdpZHRoPSIxIiBoZWlnaHQ9IjEiIHN0eWxlPSJmaWxsOiNmZmY7IHN0cm9rZS13aWR0aDowcHg7Ii8+PHBvbHlnb24gcG9pbnRzPSI1IDAgNCAwIDQgMSAzIDEgMyAyIDIgMiAyIDMgMSAzIDEgNCAwIDQgMCA1IDAgNiAxIDYgMSA1IDIgNSAyIDQgMyA0IDMgMyA0IDMgNCAyIDUgMiA1IDEgNiAxIDYgMCA1IDAiIHN0eWxlPSJmaWxsOiM1YzVjNWM7IHN0cm9rZS13aWR0aDowcHg7Ii8+PHBvbHlnb24gcG9pbnRzPSI2IDAgNiAxIDUgMSA1IDIgNCAyIDQgMyAzIDMgMyA0IDIgNCAyIDUgMSA1IDEgNiAwIDYgMCA3IDEgNyAyIDcgMiA2IDMgNiAzIDUgNCA1IDQgNCA1IDQgNSAzIDYgMyA2IDIgNyAyIDcgMSA3IDAgNiAwIiBzdHlsZT0iZmlsbDojODc4Nzg3OyBzdHJva2Utd2lkdGg6MHB4OyIvPjxwb2x5Z29uIHBvaW50cz0iNiAyIDYgMyA1IDMgNSA0IDQgNCA0IDUgMyA1IDMgNiAyIDYgMiA3IDMgNyA0IDcgNCA2IDUgNiA1IDUgNiA1IDYgNCA3IDQgNyAzIDcgMiA2IDIiIHN0eWxlPSJmaWxsOiNiMWIxYjE7IHN0cm9rZS13aWR0aDowcHg7Ii8+PHBvbHlnb24gcG9pbnRzPSI2IDQgNiA1IDUgNSA1IDYgNCA2IDQgNyA1IDcgNiA3IDYgNiA3IDYgNyA1IDcgNCA2IDQiIHN0eWxlPSJmaWxsOiNkOGQ4ZDc7IHN0cm9rZS13aWR0aDowcHg7Ii8+PC9zdmc+");
+			  background-repeat: no-repeat;
+			  background-size: cover;
+			  mix-blend-mode: luminosity;
+			  opacity: 0.25;
+			  content: " ";
+			}"
+		`));
+
+	it("platinum-window-control-box-depressable compiles to its pinned output", () =>
+		expect(
+			mixin("platinum-window-control-box-depressable"),
+		).toMatchInlineSnapshot(`
+			".x {
+			  width: var(--window-control-size);
+			  height: var(--window-control-size);
+			  background: linear-gradient(135deg, var(--color-system-05), var(--color-white) 80%);
+			}
+			.x:before {
+			  display: block;
+			  width: 100%;
+			  height: 100%;
+			  background-image: url("data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz48c3ZnIGlkPSJMYXllcl8xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3IDciPjxyZWN0IHdpZHRoPSI3IiBoZWlnaHQ9IjciIHN0eWxlPSJmaWxsOiMyMzFmMjA7IHN0cm9rZS13aWR0aDowcHg7Ii8+PHBvbHlnb24gcG9pbnRzPSIzIDAgMiAwIDIgMSAxIDEgMSAyIDAgMiAwIDMgMCA0IDEgNCAxIDMgMiAzIDIgMiAzIDIgMyAxIDQgMSA0IDAgMyAwIiBzdHlsZT0iZmlsbDojMmUyZTJlOyBzdHJva2Utd2lkdGg6MHB4OyIvPjxyZWN0IHg9IjYiIHk9IjYiIHdpZHRoPSIxIiBoZWlnaHQ9IjEiIHN0eWxlPSJmaWxsOiNmZmY7IHN0cm9rZS13aWR0aDowcHg7Ii8+PHBvbHlnb24gcG9pbnRzPSI1IDAgNCAwIDQgMSAzIDEgMyAyIDIgMiAyIDMgMSAzIDEgNCAwIDQgMCA1IDAgNiAxIDYgMSA1IDIgNSAyIDQgMyA0IDMgMyA0IDMgNCAyIDUgMiA1IDEgNiAxIDYgMCA1IDAiIHN0eWxlPSJmaWxsOiM1YzVjNWM7IHN0cm9rZS13aWR0aDowcHg7Ii8+PHBvbHlnb24gcG9pbnRzPSI2IDAgNiAxIDUgMSA1IDIgNCAyIDQgMyAzIDMgMyA0IDIgNCAyIDUgMSA1IDEgNiAwIDYgMCA3IDEgNyAyIDcgMiA2IDMgNiAzIDUgNCA1IDQgNCA1IDQgNSAzIDYgMyA2IDIgNyAyIDcgMSA3IDAgNiAwIiBzdHlsZT0iZmlsbDojODc4Nzg3OyBzdHJva2Utd2lkdGg6MHB4OyIvPjxwb2x5Z29uIHBvaW50cz0iNiAyIDYgMyA1IDMgNSA0IDQgNCA0IDUgMyA1IDMgNiAyIDYgMiA3IDMgNyA0IDcgNCA2IDUgNiA1IDUgNiA1IDYgNCA3IDQgNyAzIDcgMiA2IDIiIHN0eWxlPSJmaWxsOiNiMWIxYjE7IHN0cm9rZS13aWR0aDowcHg7Ii8+PHBvbHlnb24gcG9pbnRzPSI2IDQgNiA1IDUgNSA1IDYgNCA2IDQgNyA1IDcgNiA3IDYgNiA3IDYgNyA1IDcgNCA2IDQiIHN0eWxlPSJmaWxsOiNkOGQ4ZDc7IHN0cm9rZS13aWR0aDowcHg7Ii8+PC9zdmc+");
+			  background-repeat: no-repeat;
+			  background-size: cover;
+			  mix-blend-mode: luminosity;
+			  opacity: 0.25;
+			  content: " ";
+			}
+			.x {
+			  box-shadow: inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-03), inset calc((var(--window-border-size)) * -1) calc((var(--window-border-size)) * -1) 0 0 var(--color-system-05);
+			  border: var(--window-border-size) solid var(--color-black);
+			}
+			.x:active {
+			  box-shadow: inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-07), inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 0 var(--color-system-05);
+			  background: linear-gradient(135deg, var(--color-system-06), var(--color-system-05));
+			}
+			.x:after {
+			  position: relative;
+			  top: calc(var(--window-control-size) * -1 - var(--window-border-size));
+			  display: block;
+			  width: 100%;
+			  height: 100%;
+			  background-position: center center;
+			  background-repeat: no-repeat;
+			  background-size: contain;
+			  content: " ";
+			}"
+		`));
+
+	it("platinum-window-undepressable compiles to its pinned output", () =>
+		expect(mixin("platinum-window-undepressable")).toMatchInlineSnapshot(`
+			".x {
+			  box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05), inset calc(var(--window-border-size) * -2) calc(var(--window-border-size) * -2) var(--color-system-04), inset calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) var(--color-system-04), inset calc(var(--window-border-size) * 2) calc(var(--window-border-size) * 2) var(--color-white);
+			  background-color: var(--color-system-02);
+			  border: var(--window-border-size) solid var(--color-black);
+			  border-radius: var(--window-padding-size);
+			}"
+		`));
+
+	it("platinum-window-depressable compiles to its pinned output", () =>
+		expect(mixin("platinum-window-depressable")).toMatchInlineSnapshot(`
+			".x {
+			  box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05), inset calc(var(--window-border-size) * -2) calc(var(--window-border-size) * -2) var(--color-system-04), inset calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) var(--color-system-04), inset calc(var(--window-border-size) * 2) calc(var(--window-border-size) * 2) var(--color-white);
+			  background-color: var(--color-system-02);
+			  border: var(--window-border-size) solid var(--color-black);
+			  border-radius: var(--window-padding-size);
+			}
+			.x:active {
+			  box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05), inset calc(var(--window-border-size) * -2) calc(var(--window-border-size) * -2) var(--color-system-06), inset calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) var(--color-system-07), inset calc(var(--window-border-size) * 2) calc(var(--window-border-size) * 2) var(--color-system-06);
+			  background-color: var(--color-system-05);
+			  color: var(--color-white);
+			}
+			.x:disabled {
+			  box-shadow: none;
+			  background-color: var(--color-system-03);
+			  border-color: var(--color-system-05);
+			  color: var(--color-system-05);
+			}
+			.x:disabled * {
+			  color: var(--color-system-05);
+			}"
+		`));
+
+	it("platinum-window-depressed compiles to its pinned output", () =>
+		expect(mixin("platinum-window-depressed")).toMatchInlineSnapshot(`
+			".x {
+			  border-radius: var(--window-padding-size);
+			  box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05), inset calc(var(--window-border-size) * -2) calc(var(--window-border-size) * -2) var(--color-system-06), inset calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) var(--color-system-07), inset calc(var(--window-border-size) * 2) calc(var(--window-border-size) * 2) var(--color-system-06);
+			  background-color: var(--color-system-05);
+			  color: var(--color-white);
+			}"
+		`));
+
+	it("platinum-depressable-default compiles to its pinned output", () =>
+		expect(mixin("platinum-depressable-default")).toMatchInlineSnapshot(`
+			".x {
+			  box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05), inset calc(var(--window-border-size) * -2) calc(var(--window-border-size) * -2) var(--color-system-04), inset calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) var(--color-system-04), inset calc(var(--window-border-size) * 2) calc(var(--window-border-size) * 2) var(--color-white);
+			  background-color: var(--color-system-02);
+			  border: var(--window-border-size) solid var(--color-black);
+			  border-radius: var(--window-padding-size);
+			}
+			.x:active {
+			  box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05), inset calc(var(--window-border-size) * -2) calc(var(--window-border-size) * -2) var(--color-system-06), inset calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) var(--color-system-07), inset calc(var(--window-border-size) * 2) calc(var(--window-border-size) * 2) var(--color-system-06);
+			  background-color: var(--color-system-05);
+			  color: var(--color-white);
+			}
+			.x:disabled {
+			  box-shadow: none;
+			  background-color: var(--color-system-03);
+			  border-color: var(--color-system-05);
+			  color: var(--color-system-05);
+			}
+			.x:disabled * {
+			  color: var(--color-system-05);
+			}
+			.x {
+			  box-shadow: 0 0 0 var(--window-border-size) var(--color-system-04), 0 0 0 calc(var(--window-border-size) * 2) var(--color-system-02), 0 0 0 calc(var(--window-border-size) * 3) var(--color-black), inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 0 var(--color-system-05), inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-06);
+			}
+			.x:active {
+			  box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-07), inset calc(var(--window-border-size) * -2) calc(var(--window-border-size) * -2) var(--color-system-06), inset calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) var(--color-system-07), inset calc(var(--window-border-size) * 2) calc(var(--window-border-size) * 2) var(--color-system-06), 0 0 0 var(--window-border-size) var(--color-system-04), 0 0 0 calc(var(--window-border-size) * 2) var(--color-black), inset calc(var(--window-border-size) * -2) calc(var(--window-border-size) * -2) 0 0 var(--color-system-05), inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-06);
+			}"
+		`));
+
+	it("platinum-depressable-box-shadow-active compiles to its pinned output", () =>
+		expect(
+			mixin("platinum-depressable-box-shadow-active"),
+		).toMatchInlineSnapshot(`
+			".x {
+			  box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-07), inset calc(var(--window-border-size) * -2) calc(var(--window-border-size) * -2) var(--color-system-06), inset calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) var(--color-system-07), inset calc(var(--window-border-size) * 2) calc(var(--window-border-size) * 2) var(--color-system-06), 0 0 0 var(--window-border-size) var(--color-system-04), 0 0 0 calc(var(--window-border-size) * 2) var(--color-black), inset calc(var(--window-border-size) * -2) calc(var(--window-border-size) * -2) 0 0 var(--color-system-05), inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-06);
+			}"
+		`));
+
+	it("platinum-halftone compiles to its pinned output", () =>
+		expect(mixin("platinum-halftone", "(#c0c0c0, 10%)")).toMatchInlineSnapshot(`
+			".x {
+			  background-image: url('data:image/svg+xml,<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 2.8 2.8" xml:space="preserve"><path fill="%23C0C0C0" d="M1,1.2H0.5C0.3,1.2,0.2,1.2,0.2,1V0.5c0-0.1,0.1-0.2,0.2-0.2H1c0.1,0,0.2,0.1,0.2,0.2V1C1.2,1.2,1.2,1.2,1,1.2z"/><path fill="%23C0C0C0" d="M2.3,2.5H1.7c-0.1,0-0.2-0.1-0.2-0.2V1.7c0-0.1,0.1-0.2,0.2-0.2h0.6c0.1,0,0.2,0.1,0.2,0.2v0.6C2.5,2.4,2.4,2.5,2.3,2.5z"/></svg>');
+			  background-repeat: repeat;
+			  background-size: 10%;
+			}"
+		`));
+
+	it("platinum-scrollbar-glyph-up compiles to its pinned output", () =>
+		expect(
+			scrollbarMixin("platinum-scrollbar-glyph-up", "(var(--color-system-02))"),
+		).toMatchInlineSnapshot(`
+			".x {
+			  background: linear-gradient(transparent 75%, var(--color-black) 0) 50%/calc(var(--window-scrollbar-arrow-size) * 2) var(--window-scrollbar-arrow-size) no-repeat, linear-gradient(transparent 50%, var(--color-black) 0) 50%/calc(var(--window-scrollbar-arrow-size) * 1.5) var(--window-scrollbar-arrow-size) no-repeat, linear-gradient(transparent 25%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) var(--window-scrollbar-arrow-size) no-repeat, linear-gradient(var(--color-black) 50%, var(--color-black) 0) 50%/calc(var(--window-scrollbar-arrow-size) / 2) var(--window-scrollbar-arrow-size) no-repeat, var(--color-system-02);
+			}"
+		`));
+
+	it("platinum-scrollbar-glyph-down compiles to its pinned output", () =>
+		expect(
+			scrollbarMixin("platinum-scrollbar-glyph-down", "(white)"),
+		).toMatchInlineSnapshot(`
+			".x {
+			  background: linear-gradient(0deg, transparent 75%, var(--color-black) 0) 50%/calc(var(--window-scrollbar-arrow-size) * 2) var(--window-scrollbar-arrow-size) no-repeat, linear-gradient(0deg, transparent 50%, var(--color-black) 0) 50%/calc(var(--window-scrollbar-arrow-size) * 1.5) var(--window-scrollbar-arrow-size) no-repeat, linear-gradient(0deg, transparent 25%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) var(--window-scrollbar-arrow-size) no-repeat, linear-gradient(var(--color-black) 50%, var(--color-black) 0) 50%/calc(var(--window-scrollbar-arrow-size) / 2) var(--window-scrollbar-arrow-size) no-repeat, white;
+			}"
+		`));
+
+	it("platinum-scrollbar-glyph-left compiles to its pinned output", () =>
+		expect(
+			scrollbarMixin("platinum-scrollbar-glyph-left", "(white)"),
+		).toMatchInlineSnapshot(`
+			".x {
+			  background: linear-gradient(90deg, transparent 75%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) calc(var(--window-scrollbar-arrow-size) * 2) no-repeat, linear-gradient(90deg, transparent 50%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) calc(var(--window-scrollbar-arrow-size) * 1.5) no-repeat, linear-gradient(90deg, transparent 25%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) var(--window-scrollbar-arrow-size) no-repeat, linear-gradient(var(--color-black) 50%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) calc(var(--window-scrollbar-arrow-size) / 2) no-repeat, white;
+			}"
+		`));
+
+	it("platinum-scrollbar-glyph-right compiles to its pinned output", () =>
+		expect(
+			scrollbarMixin("platinum-scrollbar-glyph-right", "(white)"),
+		).toMatchInlineSnapshot(`
+			".x {
+			  background: linear-gradient(270deg, transparent 75%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) calc(var(--window-scrollbar-arrow-size) * 2) no-repeat, linear-gradient(270deg, transparent 50%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) calc(var(--window-scrollbar-arrow-size) * 1.5) no-repeat, linear-gradient(270deg, transparent 25%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) var(--window-scrollbar-arrow-size) no-repeat, linear-gradient(var(--color-black) 50%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) calc(var(--window-scrollbar-arrow-size) / 2) no-repeat, white;
+			}"
+		`));
+
+	it("platinum-scrollbar-button-box compiles to its pinned output", () =>
+		expect(
+			scrollbarMixin("platinum-scrollbar-button-box"),
+		).toMatchInlineSnapshot(`
+			".x {
+			  display: block;
+			  width: var(--window-scrollbar-size);
+			  height: var(--window-scrollbar-size);
+			}"
+		`));
+
+	it("platinum-scrollbar-button-pressed compiles to its pinned output", () =>
+		expect(
+			scrollbarMixin("platinum-scrollbar-button-pressed"),
+		).toMatchInlineSnapshot(`
+			".x {
+			  box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-07), inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 var(--color-system-07);
+			}"
+		`));
+
+	it("platinum-scrollbars compiles to its pinned output", () =>
+		expect(scrollbarMixin("platinum-scrollbars")).toMatchInlineSnapshot(`
+			"@supports not selector(::-webkit-scrollbar) {
+			  .x {
+			    scrollbar-width: auto;
+			    scrollbar-color: var(--color-theme-03) var(--color-system-04);
+			  }
+			}
+			.x::-webkit-scrollbar {
+			  width: var(--window-scrollbar-size);
+			  height: var(--window-scrollbar-size);
+			}
+			.x::-webkit-scrollbar-button:end:vertical {
+			  display: block;
+			  width: var(--window-scrollbar-size);
+			  height: var(--window-scrollbar-size);
+			  background-color: var(--color-system-02);
+			  border-left: var(--window-border-size) solid var(--color-black);
+			  border-right: var(--window-border-size) solid var(--color-black);
+			  border-top: var(--window-border-size) solid var(--color-black);
+			}
+			.x::-webkit-scrollbar-button:end:vertical:decrement {
+			  background: linear-gradient(transparent 75%, var(--color-black) 0) 50%/calc(var(--window-scrollbar-arrow-size) * 2) var(--window-scrollbar-arrow-size) no-repeat, linear-gradient(transparent 50%, var(--color-black) 0) 50%/calc(var(--window-scrollbar-arrow-size) * 1.5) var(--window-scrollbar-arrow-size) no-repeat, linear-gradient(transparent 25%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) var(--window-scrollbar-arrow-size) no-repeat, linear-gradient(var(--color-black) 50%, var(--color-black) 0) 50%/calc(var(--window-scrollbar-arrow-size) / 2) var(--window-scrollbar-arrow-size) no-repeat, var(--color-system-02);
+			  border-bottom: var(--window-border-size) solid var(--color-black);
+			}
+			.x::-webkit-scrollbar-button:end:vertical:decrement:active {
+			  background: linear-gradient(transparent 75%, var(--color-black) 0) 50%/calc(var(--window-scrollbar-arrow-size) * 2) var(--window-scrollbar-arrow-size) no-repeat, linear-gradient(transparent 50%, var(--color-black) 0) 50%/calc(var(--window-scrollbar-arrow-size) * 1.5) var(--window-scrollbar-arrow-size) no-repeat, linear-gradient(transparent 25%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) var(--window-scrollbar-arrow-size) no-repeat, linear-gradient(var(--color-black) 50%, var(--color-black) 0) 50%/calc(var(--window-scrollbar-arrow-size) / 2) var(--window-scrollbar-arrow-size) no-repeat, var(--color-system-06);
+			  box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-07), inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 var(--color-system-07);
+			}
+			.x::-webkit-scrollbar-button:end:vertical:increment {
+			  background: linear-gradient(0deg, transparent 75%, var(--color-black) 0) 50%/calc(var(--window-scrollbar-arrow-size) * 2) var(--window-scrollbar-arrow-size) no-repeat, linear-gradient(0deg, transparent 50%, var(--color-black) 0) 50%/calc(var(--window-scrollbar-arrow-size) * 1.5) var(--window-scrollbar-arrow-size) no-repeat, linear-gradient(0deg, transparent 25%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) var(--window-scrollbar-arrow-size) no-repeat, linear-gradient(var(--color-black) 50%, var(--color-black) 0) 50%/calc(var(--window-scrollbar-arrow-size) / 2) var(--window-scrollbar-arrow-size) no-repeat, var(--color-system-02);
+			}
+			.x::-webkit-scrollbar-button:end:vertical:increment:active {
+			  background: linear-gradient(0deg, transparent 75%, var(--color-black) 0) 50%/calc(var(--window-scrollbar-arrow-size) * 2) var(--window-scrollbar-arrow-size) no-repeat, linear-gradient(0deg, transparent 50%, var(--color-black) 0) 50%/calc(var(--window-scrollbar-arrow-size) * 1.5) var(--window-scrollbar-arrow-size) no-repeat, linear-gradient(0deg, transparent 25%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) var(--window-scrollbar-arrow-size) no-repeat, linear-gradient(var(--color-black) 50%, var(--color-black) 0) 50%/calc(var(--window-scrollbar-arrow-size) / 2) var(--window-scrollbar-arrow-size) no-repeat, var(--color-system-06);
+			  box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-07), inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 var(--color-system-07);
+			}
+			.x::-webkit-scrollbar-button:end:horizontal {
+			  display: block;
+			  width: var(--window-scrollbar-size);
+			  height: var(--window-scrollbar-size);
+			  background-color: var(--color-system-02);
+			  border-top: var(--window-border-size) solid var(--color-black);
+			  border-bottom: var(--window-border-size) solid var(--color-black);
+			  border-left: var(--window-border-size) solid var(--color-black);
+			}
+			.x::-webkit-scrollbar-button:end:horizontal:decrement {
+			  background: linear-gradient(90deg, transparent 75%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) calc(var(--window-scrollbar-arrow-size) * 2) no-repeat, linear-gradient(90deg, transparent 50%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) calc(var(--window-scrollbar-arrow-size) * 1.5) no-repeat, linear-gradient(90deg, transparent 25%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) var(--window-scrollbar-arrow-size) no-repeat, linear-gradient(var(--color-black) 50%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) calc(var(--window-scrollbar-arrow-size) / 2) no-repeat, var(--color-system-02);
+			  border-right: var(--window-border-size) solid var(--color-black);
+			}
+			.x::-webkit-scrollbar-button:end:horizontal:decrement:active {
+			  background: linear-gradient(90deg, transparent 75%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) calc(var(--window-scrollbar-arrow-size) * 2) no-repeat, linear-gradient(90deg, transparent 50%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) calc(var(--window-scrollbar-arrow-size) * 1.5) no-repeat, linear-gradient(90deg, transparent 25%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) var(--window-scrollbar-arrow-size) no-repeat, linear-gradient(var(--color-black) 50%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) calc(var(--window-scrollbar-arrow-size) / 2) no-repeat, var(--color-system-06);
+			  box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-07), inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 var(--color-system-07);
+			}
+			.x::-webkit-scrollbar-button:end:horizontal:increment {
+			  background: linear-gradient(270deg, transparent 75%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) calc(var(--window-scrollbar-arrow-size) * 2) no-repeat, linear-gradient(270deg, transparent 50%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) calc(var(--window-scrollbar-arrow-size) * 1.5) no-repeat, linear-gradient(270deg, transparent 25%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) var(--window-scrollbar-arrow-size) no-repeat, linear-gradient(var(--color-black) 50%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) calc(var(--window-scrollbar-arrow-size) / 2) no-repeat, var(--color-system-02);
+			}
+			.x::-webkit-scrollbar-button:end:horizontal:increment:active {
+			  background: linear-gradient(270deg, transparent 75%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) calc(var(--window-scrollbar-arrow-size) * 2) no-repeat, linear-gradient(270deg, transparent 50%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) calc(var(--window-scrollbar-arrow-size) * 1.5) no-repeat, linear-gradient(270deg, transparent 25%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) var(--window-scrollbar-arrow-size) no-repeat, linear-gradient(var(--color-black) 50%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) calc(var(--window-scrollbar-arrow-size) / 2) no-repeat, var(--color-system-06);
+			  box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-07), inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 var(--color-system-07);
+			}
+			.x::-webkit-scrollbar-track {
+			  background-color: var(--color-system-04);
+			  border: var(--window-border-size) solid var(--color-black);
+			}
+			.x::-webkit-scrollbar-track:vertical {
+			  box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-06), inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * 2) 0 var(--color-system-03), inset calc(var(--window-border-size) * 2) 0 0 rgba(0, 0, 0, 0.25), inset calc(var(--window-border-size) * -2) 0 0 rgba(255, 255, 255, 0.25);
+			}
+			.x::-webkit-scrollbar-track:horizontal {
+			  box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-06), inset calc(var(--window-border-size) * 2) calc(var(--window-border-size) * -1) 0 var(--color-system-03), inset calc(var(--window-border-size) * 2) 0 0 rgba(0, 0, 0, 0.25), inset calc(var(--window-border-size) * -2) 0 0 rgba(255, 255, 255, 0.25);
+			}
+			.x::-webkit-scrollbar-corner {
+			  border-top: var(--window-border-size) solid var(--color-black);
+			  border-left: var(--window-border-size) solid var(--color-black);
+			  box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-white);
+			  background: var(--color-system-03);
+			}"
+		`));
+
+	it("platinum-scrollbars-split-arrows compiles to its pinned output", () =>
+		expect(
+			scrollbarMixin("platinum-scrollbars-split-arrows"),
+		).toMatchInlineSnapshot(`
+			".x::-webkit-scrollbar-button:end:vertical:decrement, .x::-webkit-scrollbar-button:end:horizontal:decrement {
+			  display: none;
+			}
+			.x::-webkit-scrollbar-button:start:vertical:decrement {
+			  display: block;
+			  width: var(--window-scrollbar-size);
+			  height: var(--window-scrollbar-size);
+			  background-color: var(--color-system-02);
+			  border-left: var(--window-border-size) solid var(--color-black);
+			  border-right: var(--window-border-size) solid var(--color-black);
+			  border-bottom: var(--window-border-size) solid var(--color-black);
+			  background: linear-gradient(transparent 75%, var(--color-black) 0) 50%/calc(var(--window-scrollbar-arrow-size) * 2) var(--window-scrollbar-arrow-size) no-repeat, linear-gradient(transparent 50%, var(--color-black) 0) 50%/calc(var(--window-scrollbar-arrow-size) * 1.5) var(--window-scrollbar-arrow-size) no-repeat, linear-gradient(transparent 25%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) var(--window-scrollbar-arrow-size) no-repeat, linear-gradient(var(--color-black) 50%, var(--color-black) 0) 50%/calc(var(--window-scrollbar-arrow-size) / 2) var(--window-scrollbar-arrow-size) no-repeat, var(--color-system-02);
+			}
+			.x::-webkit-scrollbar-button:start:vertical:decrement:active {
+			  background: linear-gradient(transparent 75%, var(--color-black) 0) 50%/calc(var(--window-scrollbar-arrow-size) * 2) var(--window-scrollbar-arrow-size) no-repeat, linear-gradient(transparent 50%, var(--color-black) 0) 50%/calc(var(--window-scrollbar-arrow-size) * 1.5) var(--window-scrollbar-arrow-size) no-repeat, linear-gradient(transparent 25%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) var(--window-scrollbar-arrow-size) no-repeat, linear-gradient(var(--color-black) 50%, var(--color-black) 0) 50%/calc(var(--window-scrollbar-arrow-size) / 2) var(--window-scrollbar-arrow-size) no-repeat, var(--color-system-06);
+			  box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-07), inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 var(--color-system-07);
+			}
+			.x::-webkit-scrollbar-button:start:horizontal:decrement {
+			  display: block;
+			  width: var(--window-scrollbar-size);
+			  height: var(--window-scrollbar-size);
+			  background-color: var(--color-system-02);
+			  border-top: var(--window-border-size) solid var(--color-black);
+			  border-bottom: var(--window-border-size) solid var(--color-black);
+			  border-right: var(--window-border-size) solid var(--color-black);
+			  background: linear-gradient(90deg, transparent 75%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) calc(var(--window-scrollbar-arrow-size) * 2) no-repeat, linear-gradient(90deg, transparent 50%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) calc(var(--window-scrollbar-arrow-size) * 1.5) no-repeat, linear-gradient(90deg, transparent 25%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) var(--window-scrollbar-arrow-size) no-repeat, linear-gradient(var(--color-black) 50%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) calc(var(--window-scrollbar-arrow-size) / 2) no-repeat, var(--color-system-02);
+			}
+			.x::-webkit-scrollbar-button:start:horizontal:decrement:active {
+			  background: linear-gradient(90deg, transparent 75%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) calc(var(--window-scrollbar-arrow-size) * 2) no-repeat, linear-gradient(90deg, transparent 50%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) calc(var(--window-scrollbar-arrow-size) * 1.5) no-repeat, linear-gradient(90deg, transparent 25%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) var(--window-scrollbar-arrow-size) no-repeat, linear-gradient(var(--color-black) 50%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) calc(var(--window-scrollbar-arrow-size) / 2) no-repeat, var(--color-system-06);
+			  box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-07), inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 var(--color-system-07);
+			}"
+		`));
+
+	it("platinum-scrollbars-inactive compiles to its pinned output", () =>
+		expect(
+			scrollbarMixin("platinum-scrollbars-inactive"),
+		).toMatchInlineSnapshot(`
+			"@supports not selector(::-webkit-scrollbar) {
+			  .x {
+			    scrollbar-color: var(--color-system-04) var(--color-system-02);
+			  }
+			}
+			.x::-webkit-scrollbar-button {
+			  background: var(--color-system-02);
+			  border: none;
+			  box-shadow: none;
+			  width: 0;
+			  height: 0;
+			}
+			.x::-webkit-scrollbar-track {
+			  background: var(--color-system-02);
+			  border: var(--window-border-size) solid var(--color-system-06);
+			}
+			.x::-webkit-scrollbar-track:vertical {
+			  box-shadow: none;
+			}
+			.x::-webkit-scrollbar-track:horizontal {
+			  box-shadow: none;
+			}
+			.x::-webkit-scrollbar-corner {
+			  border: none;
+			  box-shadow: none;
+			}
+			.x::-webkit-scrollbar-thumb {
+			  display: none;
+			}"
+		`));
+
+	it("platinum-scrollbars-themed compiles to its pinned output", () =>
+		expect(scrollbarMixin("platinum-scrollbars-themed")).toMatchInlineSnapshot(`
+			".x::-webkit-scrollbar-thumb {
+			  min-width: var(--window-control-size);
+			  min-height: var(--window-control-size);
+			  border: var(--window-border-size) solid var(--color-theme-07);
+			  box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-02), inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 var(--color-theme-04);
+			}
+			.x::-webkit-scrollbar-thumb:vertical {
+			  background: linear-gradient(transparent 12.5%, var(--color-theme-05) 0, var(--color-theme-05) 25%, transparent 0, transparent 37.5%, var(--color-theme-05) 0, var(--color-theme-05) 50%, transparent 0, transparent 62.5%, var(--color-theme-05) 0, var(--color-theme-05) 75%, transparent 0, transparent 87.5%, var(--color-theme-05) 0) 50%/7px 8px no-repeat, linear-gradient(var(--color-theme-01) 12.5%, transparent 0, transparent 25%, var(--color-theme-01) 0, var(--color-theme-01) 37.5%, transparent 0, transparent 50%, var(--color-theme-01) 0, var(--color-theme-01) 62.5%, transparent 0, transparent 75%, var(--color-theme-01) 0, var(--color-theme-01) 87.5%, transparent 0) 49%/7px 8px no-repeat, var(--color-theme-03);
+			}
+			.x::-webkit-scrollbar-thumb:horizontal {
+			  background: linear-gradient(90deg, transparent 12.5%, var(--color-theme-05) 0, var(--color-theme-05) 25%, transparent 0, transparent 37.5%, var(--color-theme-05) 0, var(--color-theme-05) 50%, transparent 0, transparent 62.5%, var(--color-theme-05) 0, var(--color-theme-05) 75%, transparent 0, transparent 87.5%, var(--color-theme-05) 0) 50%/8px 7px no-repeat, linear-gradient(90deg, var(--color-theme-01) 12.5%, transparent 0, transparent 25%, var(--color-theme-01) 0, var(--color-theme-01) 37.5%, transparent 0, transparent 50%, var(--color-theme-01) 0, var(--color-theme-01) 62.5%, transparent 0, transparent 75%, var(--color-theme-01) 0, var(--color-theme-01) 87.5%, transparent 0) center 49%/8px 7px no-repeat, var(--color-theme-03);
+			}"
+		`));
 
 	// The value 4.1 pinned against the original encode-color.
 	it("platinum-encode-color percent-encodes a color for a data URI", () =>
