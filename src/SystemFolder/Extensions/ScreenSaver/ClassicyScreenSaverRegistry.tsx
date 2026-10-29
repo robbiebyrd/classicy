@@ -59,6 +59,13 @@ const registry = new Map<string, ClassicyScreenSaverDefinition>();
  * Register a screensaver. Call at module scope before rendering, like
  * `registerClassicyIcons`. Re-registering an id replaces the previous entry,
  * so a consumer can swap out a built-in saver with their own variant.
+ *
+ * Set `cursor` (and, preferably, animations) from a stylesheet, never inline:
+ * the overlay hides the pointer with a stylesheet rule keyed on its id, and an
+ * inline `cursor` on a saver element outranks it, showing the pointer over
+ * that element. Stylesheet animations are paused for reduced-motion users by
+ * the same kind of rule; the overlay also pauses its subtree's animations from
+ * JavaScript when the saver mounts, which reaches an inline `animation` too.
  */
 export function registerClassicyScreenSaver(
 	saver: ClassicyScreenSaverDefinition,

@@ -137,13 +137,25 @@ describe("rules that replaced !important", () => {
 				".classicyCheckbox.default:checked, .classicyCheckbox.default:active",
 			),
 		);
+		// Radio: the shared `:where(.root).state` form throughout, so the
+		// default rule wins by order at (0,2,0), not by a third class.
 		const radio = compile("SystemResources/RadioInput/ClassicyRadioInput.scss");
-		expect(
-			ruleAt(
-				radio,
-				".classicyRadioInput.default:checked, .classicyRadioInput.default:active",
-			),
-		).toBeGreaterThan(ruleAt(radio, ".classicyRadioInput:disabled:checked"));
+		const radioDefault = ruleAt(
+			radio,
+			":where(.classicyRadioInput).default:checked, :where(.classicyRadioInput).default:active",
+		);
+		const disabledChecked = ruleAt(
+			radio,
+			":where(.classicyRadioInput):disabled:checked",
+		);
+		expect(disabledChecked).toBeGreaterThan(
+			ruleAt(radio, ".classicyRadioInput:checked"),
+		);
+		expect(radioDefault).toBeGreaterThan(disabledChecked);
+		expect(radioDefault).toBeGreaterThan(
+			ruleAt(radio, ":where(.classicyRadioInput.mixed):disabled:checked"),
+		);
+		expect(radio).not.toMatch(/\.classicyRadioInput\.default/);
 	});
 
 	it("bouncing balls keep their per-ball timing in the stylesheet", () => {

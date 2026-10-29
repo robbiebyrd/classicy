@@ -305,7 +305,14 @@ keystroke/click is swallowed in the capture phase.
 - The Screen Saver control panel
   (`ControlPanels/ScreenSaverManager/`) is part of `ClassicyControlPanels`.
 - Overlay z-index is 100001 (above dialog overlay 99999 and startup 100000);
-  reduced-motion users get a paused (static) saver.
+  reduced-motion users get a paused (static) saver: a stylesheet rule keyed
+  on the overlay's id (`#classicy-screen-saver-overlay`) sets
+  `animation-play-state: paused`, and the overlay also pauses its subtree's
+  animations from JS when the saver mounts or changes (reaching inline ones).
+- The pointer is hidden by a stylesheet rule too
+  (`html.classicyScreenSaverActive:has(#classicy-screen-saver-overlay) *`, no
+  `!important`), so savers must set `cursor` from stylesheets, never inline —
+  an inline `cursor` on a saver element shows the pointer over it.
 
 ### Split Views
 

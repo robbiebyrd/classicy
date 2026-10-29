@@ -83,12 +83,14 @@
     opacity: 1;
     border-color: var(--color-window-border);
   }
+}
 
-  &:disabled:checked {
-    opacity: 1;
-    border-style: solid;
-    border-color: var(--color-system-05);
-  }
+// After `.classicyRadioInput:checked` and as specific (0,2,0): wins by order,
+// and leaves the default rule below room to win the same way.
+:where(.classicyRadioInput):disabled:checked {
+  opacity: 1;
+  border-style: solid;
+  border-color: var(--color-system-05);
 }
 
 :where(.classicyRadioInput).mixed {
@@ -99,11 +101,11 @@
   border-style: solid;
   border-radius: 0;
   background: var(--color-window-border);
+}
 
-  &:disabled:checked {
-    border-color: var(--color-system-05);
-    background: var(--color-system-05);
-  }
+:where(.classicyRadioInput.mixed):disabled:checked {
+  border-color: var(--color-system-05);
+  background: var(--color-system-05);
 }
 
 .classicyRadioInputLabel {
@@ -113,9 +115,9 @@
   margin-left: calc(var(--window-control-size) / 2);
 }
 
-// Two classes and a pseudo-class, last in the file: beats the disabled
-// `:checked` rules above, so a default radio button keeps its accent border.
-.classicyRadioInput.default {
+// Last in the file, at the disabled `:checked` rules' specificity (0,2,0):
+// a default radio button keeps its accent border, disabled or not.
+:where(.classicyRadioInput).default {
   &:checked,
   &:active {
     border-color: var(--color-theme-06);

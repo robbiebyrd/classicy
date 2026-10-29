@@ -3,7 +3,7 @@ import "./ClassicyScreenSaver.scss";
 import "@/SystemFolder/Extensions/ScreenSaver/savers/ClassicyScreenSaverBuiltIns";
 // Side-effect import: registers the Screen Saver Control Strip module.
 import "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverControlStripModule";
-import type { FC as FunctionalComponent } from "react";
+import type { FC as FunctionalComponent, RefObject } from "react";
 import { useEffect, useRef } from "react";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import {
@@ -96,9 +96,10 @@ const useScreenSaverIdleMonitor = (data: ScreenSaverData) => {
 
 /**
  * Class put on `<html>` while a saver is showing. Its stylesheet rule hides the
- * pointer everywhere in the document — not only over the overlay, so a saver's
- * own elements and any host page outside the desktop show no cursor either —
- * and it comes off with the overlay, so waking restores the pointer.
+ * pointer on every element in the document — not only the overlay — and it
+ * comes off with the overlay, so waking restores the pointer. Being a
+ * stylesheet rule (id-level specificity, no `!important`), it does not outrank
+ * an inline `cursor`, so savers set `cursor` from stylesheets.
  */
 export const SCREEN_SAVER_ACTIVE_DOCUMENT_CLASS = "classicyScreenSaverActive";
 
@@ -115,10 +116,47 @@ const useHideCursorWhileActive = () => {
 	}, []);
 };
 
+const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
+
+/**
+ * Pauses every animation in the overlay for reduced-motion users. The
+ * stylesheet's `animation-play-state: paused` already covers animations a
+ * saver declares in CSS; this also stops one a registered saver writes
+ * inline, which no stylesheet rule can outrank. Runs after the saver mounts,
+ * again whenever the selected saver changes, and when the preference flips
+ * (resuming when it is turned off).
+ */
+const usePauseForReducedMotion = (
+	overlayRef: RefObject<HTMLDivElement | null>,
+	saverId: string | undefined,
+) => {
+	useEffect(() => {
+		const overlay = overlayRef.current;
+		if (
+			saverId === undefined ||
+			!overlay ||
+			typeof overlay.getAnimations !== "function" ||
+			typeof window.matchMedia !== "function"
+		)
+			return;
+		const query = window.matchMedia(REDUCED_MOTION_QUERY);
+		const apply = (reduce: boolean) => {
+			for (const animation of overlay.getAnimations({ subtree: true }))
+				if (reduce) animation.pause();
+				else animation.play();
+		};
+		if (query.matches) apply(true);
+		const onChange = (e: MediaQueryListEvent) => apply(e.matches);
+		query.addEventListener?.("change", onChange);
+		return () => query.removeEventListener?.("change", onChange);
+	}, [overlayRef, saverId]);
+};
+
 const ClassicyScreenSaverOverlay: FunctionalComponent<{
 	data: ScreenSaverData;
 }> = ({ data }) => {
 	useHideCursorWhileActive();
+	const overlayRef = useRef<HTMLDivElement>(null);
 	const saver = data.selectedSaver
 		? getClassicyScreenSaver(data.selectedSaver)
 		: undefined;
@@ -126,8 +164,10 @@ const ClassicyScreenSaverOverlay: FunctionalComponent<{
 	const config = saver
 		? resolveScreenSaverConfig(saver, data.saverConfigs?.[saver.id])
 		: {};
+	usePauseForReducedMotion(overlayRef, saver?.id);
 	return (
 		<div
+			ref={overlayRef}
 			// The id gives the overlay's stylesheet rules (hidden cursor, paused
 			// animation for reduced motion) id-level specificity, so they outrank
 			// every saver's class-based rules.
