@@ -249,3 +249,56 @@ describe("ClassicyFileBrowserViewIcons arrangement", () => {
 		expect(renderedNames()).toEqual(["apple.pdf", "mango.pdf", "zebra.pdf"]);
 	});
 });
+
+describe("ClassicyFileBrowserViewIcons reads --desktop-icon-*", () => {
+	afterEach(() => {
+		document.getElementById("classicyDesktop")?.remove();
+		vi.restoreAllMocks();
+	});
+
+	const mountDesktop = () => {
+		const desktop = document.createElement("div");
+		desktop.id = "classicyDesktop";
+		desktop.style.setProperty("--desktop-icon-size", "64px");
+		desktop.style.setProperty("--desktop-icon-padding", "16px");
+		desktop.style.setProperty("--desktop-icon-cell", "128px");
+		document.body.append(desktop);
+	};
+
+	it("scales the size step from the desktop's --desktop-icon-size", () => {
+		mountDesktop();
+		renderIcons("test-icons-desktop-vars", {
+			...ICONS_BASE,
+			iconSize: "small",
+		});
+		// 0.5 x the desktop's 64px, not the theme's 48px.
+		expect(firstIconRoot().style.getPropertyValue("--desktop-icon-size")).toBe(
+			"32px",
+		);
+	});
+
+	it("reads the variables once per theme, not per icon or per re-layout", () => {
+		mountDesktop();
+		const read = vi.spyOn(CSSStyleDeclaration.prototype, "getPropertyValue");
+		const desktopIconReads = () =>
+			read.mock.calls.filter(([name]) => name.startsWith("--desktop-icon-"))
+				.length;
+		const ui = (fs: ClassicyFileSystem) => (
+			<ClassicyAppManagerProvider>
+				<ClassicyFileBrowserViewIcons
+					fs={fs}
+					path="Documents"
+					appId="Finder.app"
+					iconViewOptions={ICONS_BASE}
+				/>
+			</ClassicyAppManagerProvider>
+		);
+		const { rerender } = render(ui(makeFs("test-icons-read-once")));
+		// Three icons laid out: size, padding and cell, once each.
+		expect(desktopIconReads()).toBe(3);
+		// A new file-system identity re-runs the layout effect; the theme is
+		// unchanged, so nothing is read again.
+		rerender(ui(makeFs("test-icons-read-once-2")));
+		expect(desktopIconReads()).toBe(3);
+	});
+});

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
 	capitalizeFirst,
@@ -7,6 +7,7 @@ import {
 	fileTypeDisplayName,
 	getGridPosition,
 	iconGridLattice,
+	readClassicyDesktopIconMetrics,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserUtils";
 import { snapToGrid } from "@/SystemFolder/SystemResources/Icon/ClassicyIcon";
 
@@ -126,4 +127,47 @@ describe("iconGridLattice agrees with cleanupIcon", () => {
 		expect(cleanupIcon(theme, 9, 10, container, 24)).toEqual([60, 60]);
 		expect(snapToGrid([70, 70], pitch, origin)).toEqual([60, 60]);
 	});
+});
+
+describe("icon-view layout reads --desktop-icon-*", () => {
+	const theme = { desktop: { iconSize: 48 } } as ClassicyTheme;
+	const container: [number, number] = [500, 500];
+
+	afterEach(() => {
+		document.getElementById("classicyDesktop")?.remove();
+		vi.restoreAllMocks();
+	});
+
+	it("lays out on the desktop's --desktop-icon-cell lattice", () => {
+		const desktop = document.createElement("div");
+		desktop.id = "classicyDesktop";
+		desktop.style.setProperty("--desktop-icon-size", "40px");
+		desktop.style.setProperty("--desktop-icon-padding", "16px");
+		desktop.style.setProperty("--desktop-icon-cell", "80px");
+		document.body.append(desktop);
+		// Pitch 80 from origin 16; floor(500 / (80 + 16)) = 5 columns, so
+		// index 1 is cell (1, 0) and index 5 is cell (0, 1).
+		expect(cleanupIcon(theme, 1, 6, container)).toEqual([96, 16]);
+		expect(cleanupIcon(theme, 5, 6, container)).toEqual([16, 96]);
+	});
+
+	it("takes pre-read metrics without touching the DOM", () => {
+		const styleRead = vi.spyOn(window, "getComputedStyle");
+		const metrics = { size: 48, padding: 12, cell: 96 };
+		expect(cleanupIcon(theme, 1, 6, container, undefined, metrics)).toEqual([
+			108, 12,
+		]);
+		expect(iconGridLattice(theme, undefined, metrics)).toEqual({
+			origin: [12, 12],
+			pitch: [96, 96],
+		});
+		expect(styleRead).not.toHaveBeenCalled();
+	});
+
+	it("falls back to the theme's metrics without a desktop", () =>
+		expect(readClassicyDesktopIconMetrics(theme)).toEqual({
+			size: 48,
+			padding: 12,
+			cell: 96,
+		}));
 });
