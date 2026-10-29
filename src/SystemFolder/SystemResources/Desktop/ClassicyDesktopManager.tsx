@@ -9,6 +9,7 @@ import {
 	type ClassicyTheme,
 	withDefaultThemePackageList,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { applyClassicyAppearanceOption } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceOptions";
 import {
 	assignImportedClassicyThemeIdentity,
 	cloneClassicyTheme,
@@ -22,7 +23,11 @@ import {
 	withDefaultThemeMetrics,
 	withDefaultThemeMetricsList,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
-import { setThemeMetric } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricTargets";
+import {
+	isValidThemeMetricFamily,
+	setThemeMetric,
+	setThemeMetricFamily,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricTargets";
 import { resolveWallpaper } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 import {
 	hasActiveTheme,
@@ -30,6 +35,7 @@ import {
 	hasAlertVolume,
 	hasApp,
 	hasAppAndHelpItems,
+	hasAppearanceOptionChange,
 	hasAvailableThemes,
 	hasBackgroundImage,
 	hasBackgroundPosition,
@@ -54,6 +60,7 @@ import {
 	hasStripWidth,
 	hasThemeColorChange,
 	hasThemeMetricChange,
+	hasThemeMetricFamilyChange,
 	hasVisible,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
 import type {
@@ -410,14 +417,57 @@ export const classicyDesktopEventHandler = (
 			break;
 		}
 		// Same fork-on-first-edit semantics for the layout metrics
-		// (`measurements.<family>`); the payload is validated against
-		// CLASSICY_THEME_METRIC_TARGETS (key allowlist and min–max) first.
+		// (`measurements.<family>`). The core form `{ metricKey, value }` is
+		// validated against CLASSICY_THEME_METRIC_TARGETS (key allowlist and
+		// min–max); the family form `{ family, key, value }` against the knobs
+		// the active Appearance Package declares (allowlist and the knob's own
+		// bounds), creating a declared knob a theme does not carry yet.
 		case "ClassicyDesktopChangeMetric": {
-			if (!hasThemeMetricChange(action)) break;
+			const appearance = ds.System.Manager.Appearance;
+			if (hasThemeMetricChange(action)) {
+				const target = action;
+				editActiveClassicyTheme(appearance, (theme) =>
+					setThemeMetric(theme, target, target.value),
+				);
+				break;
+			}
+			if (!hasThemeMetricFamilyChange(action)) break;
 			const target = action;
-			editActiveClassicyTheme(ds.System.Manager.Appearance, (theme) =>
-				setThemeMetric(theme, target, target.value),
-			);
+			const knobs = getClassicyAppearancePackage(appearance.packageId)?.knobs;
+			if (!isValidThemeMetricFamily(target, target.value, knobs)) {
+				classicyLog(
+					"warn",
+					"ClassicyDesktopManager",
+					`ClassicyDesktopChangeMetric rejected: "${target.family}.${target.key}" is not a knob of the "${appearance.packageId}" package, or the value is out of range`,
+					{ value: target.value },
+				);
+				break;
+			}
+			editActiveClassicyTheme(appearance, (theme) => {
+				setThemeMetricFamily(theme, target, target.value, knobs);
+			});
+			break;
+		}
+		// One theme value by dotted path (`sound.pack`, `desktop.iconSize`):
+		// the path is allowlisted and walked through own properties, and only
+		// the written leaf is validated, against its own sub-schema. A refused
+		// write changes nothing, so it never forks.
+		case "ClassicyDesktopChangeAppearanceOption": {
+			if (!hasAppearanceOptionChange(action)) break;
+			editActiveClassicyTheme(ds.System.Manager.Appearance, (theme) => {
+				const r = applyClassicyAppearanceOption(
+					theme,
+					action.path,
+					action.value,
+				);
+				if (!r.ok)
+					classicyLog(
+						"warn",
+						"ClassicyDesktopManager",
+						`ClassicyDesktopChangeAppearanceOption rejected: ${r.reason}`,
+						{ path: action.path },
+					);
+			});
 			break;
 		}
 		case "ClassicyDesktopChangeBackground": {
