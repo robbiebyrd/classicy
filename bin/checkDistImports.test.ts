@@ -152,22 +152,55 @@ describe("check-dist-imports.mjs invariant 7: dist/classicy-platinum.css (named 
 });
 
 // R4: `classicy/appearance/platinum` resolves to an emitted no-op shim (the
-// main bundle already registers Platinum), checked like dist/fonts.js.
-describe("check-dist-imports.mjs invariant 4: dist/appearance-platinum.js (named files)", () => {
-	const SHIM = join("dist", "appearance-platinum.js");
+// main bundle already registers Platinum), checked like dist/fonts.js. Each
+// shim's .d.ts is checked with it: the exports map's `types` condition points
+// at it, so without it a TypeScript consumer's side-effect import stops
+// resolving under `noUncheckedSideEffectImports`.
+describe.each([
+	"appearance-platinum",
+	"fonts",
+])("check-dist-imports.mjs invariant 4: dist/%s.js and .d.ts (named files)", (name) => {
+	const SHIM = join("dist", `${name}.js`);
+	const TYPES = join("dist", `${name}.d.ts`);
+	const DECLARATION = "// No-op side-effect module.\nexport {};\n";
 
-	it("passes a self-contained no-op", () =>
+	it("passes a self-contained no-op with its declaration", () =>
 		expect(
-			check(both(PACKAGE), { [SHIM]: "// Deprecated no-op.\n" }).status,
-		).toBe(0));
+			check(both(PACKAGE), {
+				[SHIM]: "// Deprecated no-op.\n",
+				[TYPES]: DECLARATION,
+			}),
+		).toEqual({ status: 0, stderr: "" }));
 
 	it("fails when it gains an import", () => {
 		const { status, stderr } = check(both(PACKAGE), {
 			[SHIM]: 'import "./classicy.es.js";\n',
+			[TYPES]: DECLARATION,
 		});
 		expect(status).toBe(1);
-		expect(stderr).toMatch(
-			/appearance-platinum\.js: has an import\/require; it must stay a self-contained script/,
+		expect(stderr.trim()).toBe(
+			`${SHIM}: has an import/require; it must stay a self-contained script.`,
+		);
+	});
+
+	it("fails when its declaration is missing", () => {
+		const { status, stderr } = check(both(PACKAGE), {
+			[SHIM]: "// Deprecated no-op.\n",
+		});
+		expect(status).toBe(1);
+		expect(stderr.trim()).toBe(
+			`${TYPES}: missing -> check injectCssPlugin in vite.config.ts.`,
+		);
+	});
+
+	it("fails when its declaration gains an import", () => {
+		const { status, stderr } = check(both(PACKAGE), {
+			[SHIM]: "// Deprecated no-op.\n",
+			[TYPES]: 'import "./types/src/index";\nexport {};\n',
+		});
+		expect(status).toBe(1);
+		expect(stderr.trim()).toBe(
+			`${TYPES}: has an import/require; it must stay a self-contained declaration.`,
 		);
 	});
 });
