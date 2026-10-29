@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@/__tests__/test-utils";
+import {
+	act,
+	fireEvent,
+	render,
+	screen,
+	waitFor,
+} from "@/__tests__/test-utils";
 
 vi.mock(
 	"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils",
@@ -313,8 +319,10 @@ describe("ClassicyMenu — titleWidthSamples (reserved title width)", () => {
 	});
 
 	// The fallback timer and `animationend` both call finishFlash; whichever
-	// fires first must win exactly once. Fire the animationend after the click so
-	// both paths run, and assert the action still executes a single time.
+	// fires first must win exactly once. jsdom has no `AnimationEvent`, so React
+	// listens for "webkitAnimationEnd" and `fireEvent.animationEnd` never reaches
+	// the handler: dispatch the real, bubbling event React hears, so the event
+	// path runs first and the fallback's moment then passes.
 	it("runs a leaf item's action exactly once when animationend also fires", async () => {
 		const onClickFunc = vi.fn();
 		render(
@@ -325,9 +333,19 @@ describe("ClassicyMenu — titleWidthSamples (reserved title width)", () => {
 		);
 		const item = screen.getByRole("menuitem");
 		fireEvent.click(item);
-		fireEvent.animationEnd(item, {
-			animationName: "classicyMenuItemFlashKeyframes",
+		expect(item).toHaveClass("classicyMenuItemFlash");
+		const animationEnd = new Event("webkitAnimationEnd", {
+			bubbles: true,
+			cancelable: true,
 		});
+		Object.defineProperty(animationEnd, "animationName", {
+			value: "classicyMenuItemFlashKeyframes",
+		});
+		act(() => {
+			item.dispatchEvent(animationEnd);
+		});
+		// The event, not the 400 ms fallback, ended the flash.
+		expect(item).not.toHaveClass("classicyMenuItemFlash");
 		await waitFor(() => expect(onClickFunc).toHaveBeenCalledTimes(1), {
 			timeout: 2000,
 		});
