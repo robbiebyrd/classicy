@@ -94,6 +94,62 @@ describe("classicyCssLayerPlugin", () => {
 			);
 	});
 
+	// An Appearance Package's stylesheet (`platinum.scss?inline`) compiles to
+	// its own `@layer classicy.package { … }` block. Wrapped again it would
+	// land in `classicy.base.classicy.package`, under every base rule.
+	const PACKAGE_CSS =
+		'@layer classicy.package {\n  .classicyDesktop[data-classicy-appearance="platinum"] .classicyButton {\n    color: red;\n  }\n}';
+	const PACKAGE_ID = `${ROOT}/src/Appearance/Platinum/styles/platinum.scss?inline`;
+
+	it("leaves a stylesheet that is exactly one classicy.package block alone", async () => {
+		expect(wrapInClassicyLayer(PACKAGE_CSS)).toBe(PACKAGE_CSS);
+		for (const command of ["serve", "build"] as const)
+			expect(
+				await transform(command).call({}, PACKAGE_CSS, PACKAGE_ID),
+			).toBeNull();
+		// After a hoisted @charset, or a trailing newline, it is still one block.
+		const charset = `@charset "UTF-8";\n${PACKAGE_CSS}\n`;
+		expect(await transform().call({}, charset, PACKAGE_ID)).toBeNull();
+		// A brace inside a string or a comment does not close the block.
+		const braces = PACKAGE_CSS.replace(
+			"color: red;",
+			'content: "}"; /* } */ color: red;',
+		);
+		expect(await transform().call({}, braces, PACKAGE_ID)).toBeNull();
+	});
+
+	it("leaves a classicy.user block alone too, but still wraps component inline sheets", async () => {
+		const user = "@layer classicy.user {\n.a{}\n}";
+		expect(await transform().call({}, user, PACKAGE_ID)).toBeNull();
+		expect(
+			(await transform().call({}, ".a{}", `${ROOT}/src/X/X.scss?inline`))?.code,
+		).toBe(layered(".a{}"));
+	});
+
+	it("wraps package-looking CSS that is not exactly one declared-layer block", async () => {
+		for (const css of [
+			// A rule after the block.
+			`${PACKAGE_CSS}\n.b{}`,
+			// Two blocks.
+			`${PACKAGE_CSS}\n${PACKAGE_CSS}`,
+			// A rule before the block.
+			`.b{}\n${PACKAGE_CSS}`,
+			// Undeclared names that only share a prefix.
+			"@layer classicy.package.x {\n.a{}\n}",
+			"@layer classicy.packages {\n.a{}\n}",
+			"@layer classicy.base.host {\n.a{}\n}",
+			// Unbalanced.
+			"@layer classicy.package {\n.a{\n}",
+		]) {
+			expect(wrapInClassicyLayer(css)).toBe(
+				`@layer classicy.base {\n${css}\n}`,
+			);
+			expect((await transform().call({}, css, PACKAGE_ID))?.code).toBe(
+				layered(css),
+			);
+		}
+	});
+
 	it("prepends the layer order to each file only when serving", async () => {
 		const id = `${ROOT}/src/X/X.scss`;
 		expect((await transform("serve").call({}, ".a{}", id))?.code).toBe(
