@@ -1,5 +1,3 @@
-@use '../../ControlPanels/AppearanceManager/styles/appearance';
-@use '../../ControlPanels/AppearanceManager/styles/assets';
 @use 'sass:list';
 
 .classicyDesktopIcon {
@@ -58,7 +56,7 @@
   mask-mode: alpha;
   mask-size: calc(100% - var(--window-border-size));
   mask-repeat: no-repeat;
-  @include appearance.theme-halftone(#000000, 7%);
+  // Its halftone dither is in the Platinum package.
 }
 
 .classicyDesktopIconMaskOuter {

@@ -24,13 +24,4 @@
       @include scrollbars.platinum-scrollbars-split-arrows;
     }
   }
-
-  // ClassicyTabs.scss hides the tab strip's scroll bar (the arrow tabs are
-  // its scroll affordance); the scroll bars' `scrollbar-width: auto` fallback
-  // above (Firefox) would beat that from this layer, so the tab scroller says
-  // it again here. Scoped, it is one class higher than the fallback's `& *`,
-  // (0,3,0) vs (0,2,0), so it wins on specificity (it also comes later).
-  .classicyTabScroller {
-    scrollbar-width: none;
-  }
 }

@@ -1,4 +1,4 @@
-@use "../../ControlPanels/AppearanceManager/styles/appearance";
+@use "../../../Appearance/vocabulary/layout";
 
 .classicyAssistant {
 	display: flex;
@@ -19,8 +19,8 @@
 	font-family: var(--ui-font), sans-serif;
 	font-weight: bold;
 	background: var(--color-system-03);
-	@include appearance.platinumWindowHeaderBorder;
-	@include appearance.no-select;
+	// Its beveled border is in the Platinum package.
+	@include layout.classicy-no-select;
 }
 
 .classicyAssistantHeaderTitle {
@@ -77,7 +77,7 @@
 	// The pager's disabled-arrow punch-out is painted in the band color; this
 	// footer is system-03, not the pager's system-01 default.
 	--classicy-pager-band: var(--color-system-03);
-	@include appearance.no-select;
+	@include layout.classicy-no-select;
 }
 
 .classicyAssistantFooterButtons {
