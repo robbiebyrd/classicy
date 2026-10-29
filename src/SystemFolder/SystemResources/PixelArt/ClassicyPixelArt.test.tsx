@@ -1,11 +1,8 @@
 import { render } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { registerClassicySystemArt } from "@/Appearance/ClassicyAssetRegistry";
-import {
-	isClassicyAssetSource,
-	parseClassicyPixelArtSource,
-	CLASSICY_PIXEL_ART_MIME as SOURCE_MIME,
-} from "@/Appearance/ClassicyAssetSource";
+import { isClassicyAssetSource } from "@/Appearance/ClassicyAssetSource";
+import * as codec from "@/Appearance/ClassicyPixelArtSource";
 import {
 	type ClassicyLogEntry,
 	registerClassicyLogSink,
@@ -16,6 +13,7 @@ import {
 	ClassicyPixelArt,
 	decodeClassicyPixelArtRows,
 	encodeClassicyPixelArtRows,
+	parseClassicyPixelArtSource,
 } from "@/SystemFolder/SystemResources/PixelArt/ClassicyPixelArt";
 
 describe("ClassicyPixelArt", () => {
@@ -154,9 +152,12 @@ describe("ClassicyPixelArt", () => {
 		expect(parseClassicyPixelArtSource(undefined)).toBe(undefined);
 	});
 
-	it("re-exports the MIME the asset source module defines (one spelling)", () => {
+	it("re-exports the codec ClassicyPixelArtSource defines (one definition each)", () => {
 		expect(CLASSICY_PIXEL_ART_MIME).toBe("text/x-classicy-pixel-art");
-		expect(CLASSICY_PIXEL_ART_MIME).toBe(SOURCE_MIME);
+		expect(CLASSICY_PIXEL_ART_MIME).toBe(codec.CLASSICY_PIXEL_ART_MIME);
+		expect(encodeClassicyPixelArtRows).toBe(codec.encodeClassicyPixelArtRows);
+		expect(decodeClassicyPixelArtRows).toBe(codec.decodeClassicyPixelArtRows);
+		expect(parseClassicyPixelArtSource).toBe(codec.parseClassicyPixelArtSource);
 	});
 
 	it("draws nothing when given neither rows nor art", () => {
