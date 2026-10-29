@@ -11,8 +11,10 @@ import {
 	type CSSProperties,
 	type FC as FunctionalComponent,
 	useEffect,
+	useRef,
 	useState,
 } from "react";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
@@ -117,11 +119,16 @@ export const ClassicyRadioInput: FunctionalComponent<
 		setCheck(initialRadioCheck(inputs));
 	}, [inputs]);
 	const player = useSoundDispatch();
+	const groupRef = useRef<HTMLDivElement>(null);
+	// The group carries no state class of its own: `checked` and `disabled`
+	// live on each item's wrapper.
+	const appearance = useClassicyAppearance("RadioInput", {}, groupRef);
 
 	const { track } = useClassicyAnalytics();
 	const analyticsArgs = { name, label, disabled, inputs };
 
 	const handleOnChange = (id: string) => {
+		if (id !== check) appearance.emit("change", { itemId: id });
 		setCheck(id);
 		track("selected", {
 			type: "ClassicyRadioInput",
@@ -136,17 +143,23 @@ export const ClassicyRadioInput: FunctionalComponent<
 	// The group is a radiogroup named by its title (#310); a <label for> can't
 	// name a group, and no element has the group's name as its id.
 	const titleId = label ? `${name}_label` : undefined;
+	const groupStyle = label ? undefined : style;
 	const group = (
 		<div
+			{...appearance.attrs}
+			ref={groupRef}
 			role="radiogroup"
 			aria-labelledby={titleId}
 			aria-disabled={disabled || undefined}
 			className={classNames(
 				"classicyRadioInputGroup",
+				appearance.className,
 				align === "columns" ? "classicyRadioInputGroupColumns" : "",
 				label ? "" : className,
 			)}
-			style={label ? undefined : style}
+			style={
+				appearance.style ? { ...appearance.style, ...groupStyle } : groupStyle
+			}
 		>
 			{inputs?.map((item) => {
 				const itemDisabled = disabled || item.disabled === true;
@@ -181,6 +194,7 @@ export const ClassicyRadioInput: FunctionalComponent<
 								onChange={() => !itemDisabled && handleOnChange(item.id)}
 								onMouseDown={() => {
 									if (itemDisabled) return;
+									appearance.emit("press", { itemId: item.id });
 									track("click", {
 										type: "ClassicyRadioInput",
 										itemId: item.id,
@@ -193,6 +207,7 @@ export const ClassicyRadioInput: FunctionalComponent<
 								}}
 								onMouseUp={() => {
 									if (itemDisabled) return;
+									appearance.emit("release", { itemId: item.id });
 									player({
 										type: "ClassicySoundPlay",
 										sound: "ClassicyInputRadioClickUp",
@@ -206,6 +221,7 @@ export const ClassicyRadioInput: FunctionalComponent<
 							label={item.label}
 							onMouseDown={() => {
 								if (itemDisabled) return;
+								appearance.emit("press", { itemId: item.id });
 								track("click", {
 									type: "ClassicyRadioInput",
 									itemId: item.id,
@@ -218,6 +234,7 @@ export const ClassicyRadioInput: FunctionalComponent<
 							}}
 							onMouseUp={() => {
 								if (itemDisabled) return;
+								appearance.emit("release", { itemId: item.id });
 								player({
 									type: "ClassicySoundPlay",
 									sound: "ClassicyInputRadioClickUp",

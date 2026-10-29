@@ -1,6 +1,7 @@
 import type { ReactElement, ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, render } from "@/__tests__/test-utils";
+import { installClassicyAppearanceProbe } from "@/Appearance/__tests__/appearanceProbe";
 import {
 	type ClassicyStoreSystemApp,
 	DefaultAppManagerState,
@@ -11,6 +12,7 @@ import { ClassicyAboutWindow } from "@/SystemFolder/SystemResources/AboutWindow/
 import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
 import { ClassicyAssistant } from "@/SystemFolder/SystemResources/Assistant/ClassicyAssistant";
 import { ClassicyBalloonHelp } from "@/SystemFolder/SystemResources/BalloonHelp/ClassicyBalloonHelp";
+import { ClassicyBevelButton } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButton";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import {
 	ClassicyButtonToolbar,
@@ -988,5 +990,71 @@ describe("className and style passthrough", () => {
 			"300px",
 		);
 		expect(el.style.marginTop).toBe("7px");
+	});
+});
+
+// Ruling I-R5: an Appearance Package's style lands between the component's
+// own and the consumer's, so a consumer `style` key always wins.
+const decorationCases: [
+	name: string,
+	render: () => ReactElement,
+	root: (c: HTMLElement) => HTMLElement,
+][] = [
+	[
+		"ClassicyButton",
+		() => <ClassicyButton style={STYLE}>x</ClassicyButton>,
+		sel(".classicyButton"),
+	],
+	[
+		"ClassicyBevelButton",
+		() => <ClassicyBevelButton style={STYLE}>x</ClassicyBevelButton>,
+		sel(".classicyBevelButton"),
+	],
+	[
+		"ClassicyPopUpMenu",
+		() => (
+			<ClassicyPopUpMenu
+				id="p"
+				options={[{ value: "a", label: "A" }]}
+				style={STYLE}
+			/>
+		),
+		sel(".classicyPopUpMenu"),
+	],
+	[
+		"ClassicyRadioInput",
+		() => <ClassicyRadioInput name="r" inputs={[{ id: "a" }]} style={STYLE} />,
+		sel(".classicyRadioInputGroup"),
+	],
+	[
+		"ClassicyListBox",
+		() => (
+			<ClassicyListBox
+				id="l"
+				visibleRows={4}
+				options={[{ value: "a", label: "A" }]}
+				style={STYLE}
+			/>
+		),
+		sel(".classicyListBox"),
+	],
+];
+
+describe("appearance package style under passthrough", () => {
+	it.each(
+		decorationCases,
+	)("%s: consumer style beats the package's style", (_name, make, root) => {
+		const probe = installClassicyAppearanceProbe({
+			on: { mount: () => ({ style: { marginTop: 1, marginLeft: 3 } }) },
+		});
+		try {
+			const { container } = render(make(), { wrapper: Providers });
+			const el = root(container);
+			expect(el).toHaveAttribute("data-probe-state");
+			expect(el.style.marginLeft).toBe("3px");
+			expect(el.style.marginTop).toBe("7px");
+		} finally {
+			probe.uninstall();
+		}
 	});
 });
