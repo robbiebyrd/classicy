@@ -517,7 +517,7 @@ usable pre-boot): `title?`, `children` *, `className?`, `width?`.
 |---|---|---|
 | `ClassicyButton` | `isDefault?`, `disabled?`, `depressed?` (draw it held down, e.g. while its menu is open), `onClickFunc?`, `buttonShape? ("rectangle"\|"square")`, `buttonSize? ("medium"\|"small")`, `buttonType?`, `padding?/margin? ("sm"\|"md"\|"lg"\|"xl")` | forwardRef to `<button>`; accepts remaining button HTML attrs |
 | `ClassicyBevelButton` | `mode? ("push"\|"toggle"\|"radio"\|"popup")`, `bevelWidth? ("small"\|"medium"\|"large")`, `icon?`, `on?`, `mixed?`, `onChangeFunc?(on)`, `popupArrow? ("small"\|"large")`, `popupDirection? ("horizontal"\|"vertical")`, `menuItems?` (`ClassicyMenuItem[]`), `popupContent?`, `popupTrigger? ("click"\|"hold")`, `popupPlacement? ("below"\|"right")`, `popupAlign? ("start"\|"center")`, `popupAnchorInset?` (`{top?, bottom?, left?, right?}`), `popupHoldDelayMs? (500)`, `square?` (square bevel, as in a toolbar), `iconAlt?` (the icon's alt text; omit when the button has a text label), `className?` | auto-squares inside a toolbar. With `menuItems` (or `popupContent`, e.g. `ClassicyPopUpSlider`) it opens a Platinum menu below or to the right of itself (HIGOS8 p.32), flipping when there is no room. `click` trigger (default in `popup` mode): quick click = sticky menu, press held past the hold delay = standard press-drag-release menu. `hold` trigger (default in other modes): click keeps the button's own behaviour, a long press shows the options (tool palettes). Enter/Space or Down Arrow open it from the keyboard |
-| `ClassicyHelpButton` | `onClickFunc?`, `label? ("Help")`, `disabled?`, `id?`, `className?` | HIG Help button (HIGOS8 p.86): 20 × 21 small-bevel button with the help glyph (`ClassicyIcons.ui.helpButton`); `label` is the accessible name. Place it lower left aligned with the push buttons (`margin-right: auto` in a right-aligned row), else upper right. `ClassicyAlert`'s `help` button role renders it |
+| `ClassicyHelpButton` | `onClickFunc?`, `label? ("Help")`, `disabled?`, `id?`, `className?` | HIG Help button (HIGOS8 p.86): 20 × 21 small-bevel button with the help glyph (system-art key `helpButton`); `label` is the accessible name. Place it lower left aligned with the push buttons (`margin-right: auto` in a right-aligned row), else upper right. `ClassicyAlert`'s `help` button role renders it |
 | `ClassicyButtonToolbar` / `ClassicyButtonToolbarGroup` | `children` *, `size? ("large"\|"medium"\|"small")` (toolbar only; default `"large"`), `className?` | auto dividers between groups; roving-tabindex keyboard nav |
 | `ClassicyCheckbox` | `id` *, `checked?`, `mixed?`, `disabled?`, `onClickFunc?(checked)`, `label?`, `labelPosition?`, `labelSize?`, `mark? ("check"\|"x")`, `isDefault?` | `mark="x"` draws an ✕ instead of the checkmark, for locales where a checkmark is not acceptable (HIGOS8 p.28); `isDefault` draws the checked box in the theme accent |
 | `ClassicyRadioInput` | `name` *, `inputs` * (`{id, label?, checked?, disabled?}[]`), `onClickFunc?(id)`, `align? ("rows"\|"columns")`, `label?` | |
@@ -739,25 +739,170 @@ Exported zod schemas / types / guards: `MoviePlayerOpenFileSchema`,
 
 ---
 
-## 5. Icon Registration
+## 5. Asset registries
+
+Every swappable image, cursor, wallpaper and font is registered under an
+appearance **package id** and read back through one registry
+(`src/Appearance/ClassicyAssetRegistry.ts`). Platinum registers everything it
+ships as package `"platinum"` (`src/Appearance/Platinum/assets/platinumAssets.ts`
+plus the icon tree in `ClassicyIcons.ts`); a host registers its own assets at
+app entry, once, before rendering.
+
+Five kinds (`ClassicyAssetKind`):
+
+| Kind | Holds | Register with |
+|---|---|---|
+| `icons` | the nested icon tree (`ClassicyIcons`: `classicy`, `applications`, `controlPanels`, `system`, `ui`, and your own namespaces) | `registerClassicyIcons` |
+| `cursors` | one cursor image per `ClassicyCursorRole` | `registerClassicyCursors` |
+| `wallpapers` | desktop wallpapers by display name | `registerClassicyWallpapers` |
+| `fonts` | font faces, `fonts.<family>.<weight>-<style>` | `registerClassicyFonts` |
+| `systemArt` | named pieces of system artwork (`ClassicySystemArtKey`) | `registerClassicySystemArt` |
+
+An asset is a `ClassicyAssetSource`, a plain string: an imported URL, a relative
+or `http(s)` URL, or a `data:` URI. `isClassicyAssetSource` refuses any other
+scheme and anything that could break out of a quoted CSS `url("…")`.
+
+### Registering
 
 ```ts
-import { registerClassicyIcons, ClassicyIcons } from 'classicy'
-import tvIcon from './tv.png'
+import {
+    registerClassicyAssets,   // (kind, packageId, tree) — the primitive
+    registerClassicyIcons,    // <T extends ClassicyAssetTree>(icons: T, packageId = "platinum"): T
+    registerClassicyCursors,  // (packageId, Partial<Record<ClassicyCursorRole, ClassicyAssetSource>>)
+    registerClassicyWallpapers, // (packageId, Array<{ name: string; src: ClassicyAssetSource }>)
+    registerClassicyFonts,    // (packageId, ClassicyFontFace[])
+    registerClassicySystemArt, // (packageId, Partial<Record<ClassicySystemArtKey, ClassicyAssetSource>>)
+} from 'classicy'
 
-// At app entry, ONCE, before rendering. Returns the argument fully typed.
-export const AppIcons = registerClassicyIcons({
-    myApp: { app: tvIcon },
-})
-// Later: AppIcons.myApp.app  — or ClassicyIcons.myApp.app (untyped)
+// ClassicyFontFace = { family: string; src: ClassicyAssetSource | ClassicyAssetSource[];
+//   weight?: string ("normal"); style?: string ("normal") }   (an array = fallback sources in order)
+
+// Module scope in your entry file, before the first render:
+export const AppIcons = registerClassicyIcons({ myApp: { app: tvIcon } })  // returns its argument, typed
+registerClassicySystemArt('platinum', { aliasBadge: myAliasArrow })       // replaces ONE key, nothing else
+registerClassicyCursors('platinum', { hand: myHand })
+registerClassicyWallpapers('platinum', [{ name: 'Bubbles', src: bubblesPng }])
+registerClassicyFonts('platinum', [{ family: 'MyFace', src: [myWoff2, myTtf] }])
 ```
 
-- `registerClassicyIcons` merges into the shared `ClassicyIcons` object
-  (`Object.assign`), so you can also **override** stock entries — e.g. register
-  your own `system: { alias: myArrow }` to replace the alias badge artwork.
-- Stock namespaces on `ClassicyIcons`: `classicy`, `applications`,
-  `controlPanels`, `system` (incl. `system.alias`, trash, drives), `ui`.
-- Icon values are URL strings (imports resolve via your bundler).
+- **Deep merge.** Registration merges into the package's tree for that kind:
+  new leaves are added, an existing leaf is replaced, and sibling entries are
+  kept. `registerClassicyIcons({ system: { alias } })` therefore replaces only
+  `system.alias`, not the rest of `system`. A leaf replaced by a namespace (or
+  the reverse) logs a `classicyLog` warning and the new value wins. The keys
+  `__proto__`, `constructor` and `prototype` are ignored.
+- **Per-package namespaces and fallback.** Each package id has its own tree per
+  kind. A read looks in the active package first, then in `"platinum"`, so a
+  package only registers what it changes. (Until the appearance-package switch
+  lands, the active package is always `"platinum"`; register overrides under
+  `"platinum"`, or under your own id once packages are selectable.)
+  `registerClassicyIcons(icons, packageId)` takes the id last, and defaults to
+  `"platinum"`.
+- **Fonts write CSS.** `registerClassicyFonts(packageId, faces)` also writes the
+  `@font-face` rules into `<style id="classicy-fonts-<packageId>">` (placed
+  after `classicy-styles`) and registers each face's primary source in the
+  tree. A face with an unsafe family, descriptor or source is skipped with a
+  warning. Platinum's thirteen faces are `.woff2` files in `dist/assets/`.
+- **Wallpapers** register as `wallpapers.<name>`; the Appearance Manager's
+  Desktop tab lists the merged tree. **Fonts** feed its Fonts tab the same way.
+
+### Reading (the rule)
+
+Read an asset when you render or when you act, never once at import time.
+
+```tsx
+import { useClassicyAsset, useClassicyAssetTree, resolveClassicyAsset } from 'classicy'
+
+// In a component: re-renders when that path is (re)registered, even after mount.
+const alias = useClassicyAsset('systemArt', 'aliasBadge') ?? ''
+const icon = useClassicyAsset('icons', 'applications.myApp.app') ?? ''
+
+// Outside React (event handlers, reducers, utilities): read at call time.
+const url = resolveClassicyAsset('cursors', 'hand')   // string | undefined
+
+// A whole merged kind (a stable COPY, platinum under the active package):
+const wallpapers = useClassicyAssetTree('wallpapers')
+```
+
+- `resolveClassicyAsset(kind, dottedPath, packageId?)` returns the leaf from the
+  given (or active) package, then `"platinum"`, else `undefined`. Components
+  use `?? ""`.
+- `useClassicyAsset(kind, path)` and `useClassicyAssetTree(kind)` subscribe via
+  `useSyncExternalStore` (`subscribeClassicyAssets(listener)` is the raw
+  subscription). The tree is a copy, stable until the next registration;
+  never mutate it.
+- **Never capture an asset in a module-scope constant**
+  (`const arrow = ClassicyIcons.system.alias`). The value is frozen at import
+  and misses later registrations and package switches. `ClassicyIcons` is only
+  the Platinum icon tree that gets registered; components read through the
+  registry.
+
+### System art
+
+`ClassicySystemArtKey` is a union of 44 keys. Platinum registers 21 of them;
+the rest resolve to `undefined` and their consumers fall back to the stylesheet
+default (or draw nothing).
+
+| Registered by Platinum | Notes |
+|---|---|
+| `appleMenu`, `sadMac`, `startupLogo`, `trashEmpty`, `trashFull`, `aliasBadge`, `helpButton`, `aboutLogo` | read by the menu bar, crash screen, startup screen, Finder, desktop icons, `ClassicyHelpButton`, About This Computer |
+| `windowStripes`, `windowStripesRed`, `windowGrip`, `windowDither`, `zoomGlyph`, `collapseGlyph` | window chrome art |
+| `triangle`, `downArrow`, `submenuArrow`, `popupArrows`, `sliderThumb`, `sliderStrikes`, `tabOutline` | control art |
+
+Unregistered by Platinum (it has no standalone art for them, or the control
+draws them itself): `aboutBackground`, `windowUtilityShade`,
+`windowUtilityHighlight`, `titleBarCapLeft`, `titleBarCapRight`,
+`titleBarCapLeftRed`, `titleBarCapRightRed`, `sliderThumbRect`, `halftone`,
+`halftoneLarge`, `quickTimeThumbSlider`, `quickTimeVolumeSlider`,
+`controlStripTab`, `controlStripCollapse`, `controlStripScrollLeft`,
+`controlStripScrollLeftDisabled`, `controlStripScrollRight`,
+`controlStripScrollRightDisabled`, `controlStripModuleArrow`, `popUpSliderTrack`,
+`popUpSliderThumb`, `menuCheck`, `menuDash` (23 keys). `menuCheck` and
+`menuDash` are Unicode glyphs in `ClassicyMenu`; the Control Strip and pop-up
+slider art is `ClassicyPixelArt` rows of theme tokens. Two names that appear in
+Platinum's own test as "unregistered" (`startupWordmark`, `paradeDefault`) are
+not keys of the union at all; the boot parade is read through
+`getClassicyDefaultParadeIcons`.
+
+### Cursor roles
+
+`ClassicyCursorRole`: `arrow`, `watch`, `hand`, `ibeam`, `crosshair`,
+`resizeLr`, `resizeUd`, `resizeNwse`, `resizeNesw`, `resizeU`, `resizeD`,
+`resizeL`, `resizeR`. Platinum registers `arrow`, `watch`, `hand`, `resizeLr`,
+`resizeUd`, `resizeU`, `resizeD`, `resizeL`, `resizeR`; `ibeam`, `crosshair`,
+`resizeNwse` and `resizeNesw` have no Platinum file and stay unregistered, so
+the browser's own cursor shows for them.
+
+`useClassicyCursor()` returns a stable `setCursor(role?)` that reads the role
+from the registry at call time and sets `document.body.style.cursor`; a role
+with no registered cursor (or no argument) restores the default.
+
+### CSS variables
+
+`ClassicyDesktop` defines one custom property per registered cursor and system
+art entry on its root element, as a `url("…")` value (`useClassicyAssetVars`
+returns the same map; the names are camelCase keys turned kebab-case):
+
+- `--classicy-cursor-<role>`: `--classicy-cursor-arrow`, `-watch`, `-hand`,
+  `-ibeam`, `-crosshair`, `-resize-lr`, `-resize-ud`, `-resize-nwse`,
+  `-resize-nesw`, `-resize-u`, `-resize-d`, `-resize-l`, `-resize-r`.
+- `--classicy-art-<key>`: one per system-art key, e.g.
+  `--classicy-art-alias-badge`, `--classicy-art-window-grip`,
+  `--classicy-art-slider-thumb`.
+
+Only registered entries are defined, and they update when a registration
+changes. Use them in your own SCSS inside the desktop, with a fallback because
+an undefined variable voids the whole declaration:
+
+```scss
+.myDivider { cursor: var(--classicy-cursor-resize-lr, url('data:,')) 8 8, col-resize; }
+```
+
+`ClassicySplitView` and the PDF viewer's pan tool use exactly this form. The
+variables are scoped to the desktop root, so they do not exist outside it.
+
+Platinum's base64 art variables in `assets.scss` are unchanged; the registry
+changes how assets are exposed and swapped, not how Platinum draws.
 
 ---
 
@@ -1530,7 +1675,7 @@ untrusted disposition strings.
 
 1. **Always select** when reading the store: `useAppManager(s => s.System.Manager.Applications.apps[id])`. The app slice is `Applications`, not `App`.
 2. **Never mutate app/file-system state directly.** Apps change state only by dispatching actions handled by their registered handler; file system changes only via `fs.writeFile`/`mkDir`/`rmDir`/`setMetadata`.
-3. **Module-scope registration**: `registerClassicyIcons`, `registerApp`, `registerClassicyFileSystemAdapter`, and HyperCard registrations must run before first render (top-level of an entry module).
+3. **Module-scope registration, render-time reads**: `registerClassicyIcons` (and the other `registerClassicy*` asset registrars, §5), `registerApp`, `registerClassicyFileSystemAdapter`, and HyperCard registrations must run before first render (top-level of an entry module). Registering is module scope; reading an asset is not: use `useClassicyAsset`/`resolveClassicyAsset`, never a module-scope capture of an icon or art URL.
 4. **App state schemas are loose and optional**: `z.looseObject` with `.optional()` top-level fields, or the kernel's own writes will "fail" your schema in dev warnings.
 5. **Plugin prefix routing is insertion-order first-match**, not longest-match. Register more specific prefixes before general ones, and pick prefixes that don't collide with the built-in `ClassicyWindow*`/`ClassicyDesktop*`/`ClassicyApp*` families except intentionally under `ClassicyApp<YourApp>*`.
 6. **Guarded actions can never be scripted**: `ClassicyDesktop*`, `ClassicyWindow*`, `ClassicyAppFinderEmptyTrash`, `ClassicyAppHCEditSetScript`. Allowlisting them is a silent no-op by design.

@@ -52,12 +52,8 @@ npm install react react-dom zustand immer @tanstack/react-table react-player
 Importing `classicy` brings its styles with it: the bundle adds its stylesheet
 to the page's `<head>` the first time it loads, so there is no CSS file to
 import or loader to configure. The bundled fonts (ChicagoFLF, Charcoal,
-Geneva, Monaco and more, base64-embedded) are a separate, optional import
-that works the same way. Skip it if you supply your own fonts.
-
-```ts
-import "classicy/fonts"; // optional: the bundled fonts
-```
+Geneva, Monaco and more) are files that the Platinum appearance package
+registers at runtime, so there is nothing to import for them either.
 
 ## Quick start
 

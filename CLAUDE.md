@@ -166,7 +166,8 @@ bottom-left corner and italicize their label. System kinds (`drive`, `trash`,
 `ClassicyDesktopIconKinds.ts`; the badge is a second mask pair reusing
 `classicyDesktopIconMaskOuter`/`classicyDesktopIconMask`, so it inherits the
 selected and open state styling automatically. Swap the artwork by registering
-your own `system.alias` entry via `registerClassicyIcons`.
+`registerClassicySystemArt("<package>", { aliasBadge })` — the badge reads the
+system-art key `aliasBadge` at render time.
 
 ### Window Order & Focus Succession
 
@@ -619,6 +620,8 @@ Built-in themes are never mutated: the first colour/font/desktop edit on one (`C
 The 28 editable colours are defined once in `CLASSICY_THEME_COLOR_TARGETS` (`ClassicyThemeColorTargets.ts`), which drives the reducer's validation and the Appearance Manager's Colors tab. Details: `docs/AGENT-REFERENCE.md` §8.
 The 20 editable layout metrics are defined the same way in `CLASSICY_THEME_METRIC_TARGETS` (`ClassicyThemeMetricTargets.ts`, edited by `ClassicyDesktopChangeMetric { metricKey, value }`): layout constants are theme data under `measurements.<family>` (window, control, button, groupBox, layout; Platinum defaults in `CLASSICY_DEFAULT_THEME_METRICS`), derived sizes (frames, bevels, the edit-field height, …) are computed in `getThemeVars`, and there are no `--hig-*` variables. Themes persisted or saved before the groups existed are completed by `withDefaultThemeMetrics` (on load via `migrateClassicyState`, in files via zod defaults).
 Theme files (`ClassicyThemeFile.ts`, Themes tab "Save Theme…"/"Load Theme…") are `{ format: "classicy-theme", version: 1, theme }`, validated by the zod `ClassicyThemeSchema` (strips unknown keys; `backgroundImage` must be a bundled wallpaper or a plain http(s) URL because it lands unquoted in `url(…)`). Export writes wallpapers by filename. `ClassicyDesktopImportTheme { theme }` re-validates, always appends a new custom theme (`custom-<slug>` id, de-duplicated name, never `"custom"`) and activates it.
+
+Swappable assets (icons, cursors, wallpapers, fonts, system art) live in the per-package asset registry, `src/Appearance/ClassicyAssetRegistry.ts`: `registerClassicyAssets(kind, packageId, tree)` deep-merges (so `registerClassicyIcons({ system: { alias } })` keeps every other `system` entry), reads resolve the active package then `"platinum"`, and components read at render time with `useClassicyAsset`/`useClassicyAssetTree` (elsewhere `resolveClassicyAsset` at call time) — never a module-scope capture like `const x = ClassicyIcons.…`. `ClassicyDesktop` publishes registered cursors and system art as `--classicy-cursor-<role>` / `--classicy-art-<key>` on its root (`useClassicyAssetVars`); stylesheets use them with a fallback, since an undefined variable voids the whole `cursor` declaration. Everything Platinum registers is in `src/Appearance/Platinum/assets/platinumAssets.ts` (cursors by `ClassicyCursorRole`, the `ClassicySystemArtKey` art, wallpapers, the thirteen `.woff2` faces) plus the icon tree registered by `ClassicyIcons.ts`; each registration is made under `const PLATINUM = "platinum"`. Full reference: `docs/AGENT-REFERENCE.md` §5.
 
 ## Build Notes
 

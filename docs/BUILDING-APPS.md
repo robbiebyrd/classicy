@@ -897,7 +897,7 @@ ClassicyIcons.system.drives.disk
 ClassicyIcons.system.macos
 ```
 
-Override the alias-badge artwork by registering your own `system.alias` entry.
+Override the alias-badge artwork with `registerClassicySystemArt("platinum", { aliasBadge })`. Cursors, wallpapers, fonts and the rest of the system art register the same way; see AGENT-REFERENCE §5 (Asset registries).
 
 ---
 
