@@ -3,12 +3,20 @@ import type { ClassicyAssetSource } from "@/Appearance/ClassicyAssetSource";
 
 // Plain (query-less) imports, so the build emits each file to dist/assets/
 // instead of inlining it (`noInlineAppearanceAssetsPlugin`, vite.config.ts).
-const files = import.meta.glob("./*.svg", {
+const files = import.meta.glob("./*.{svg,png}", {
 	eager: true,
 	import: "default",
 }) as Record<string, string>;
 
-const art = (name: string): ClassicyAssetSource => files[`./${name}`] ?? "";
+/**
+ * The emitted URL of a file in this folder, by file name (`"sad-mac.png"`), or
+ * `""` when there is no such file (which `registerClassicySystemArt` reports as
+ * an invalid source). Every lookup of Platinum's art folder goes through this.
+ */
+export const platinumArt = (name: string): ClassicyAssetSource =>
+	files[`./${name}`] ?? "";
+
+const art = platinumArt;
 
 /**
  * Platinum's window, menu, slider and tab art, by system-art key. Data only:
