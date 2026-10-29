@@ -98,6 +98,44 @@ describe("Appearance Manager — Colors tab and Custom theme", {
 		expect(tabs).toEqual(["Themes", "Desktop", "Colors", "Fonts", "Sound"]);
 	});
 
+	it("places Metrics between Fonts and Sound", async () => {
+		const win = await openAppearanceManager();
+		const tabs = within(win)
+			.getAllByRole("tab")
+			.map((t) => t.textContent?.trim())
+			.filter((t) => ["Fonts", "Metrics", "Sound"].includes(t ?? ""));
+		expect(tabs).toEqual(["Fonts", "Metrics", "Sound"]);
+	});
+
+	it("editing a metric forks Custom with the metricKey change", async () => {
+		const win = await openAppearanceManager();
+		showTab(win, "Metrics");
+		const gap = within(win)
+			.getByRole("tabpanel")
+			.querySelector("#appearance_metric_buttonGap") as HTMLInputElement;
+		const builtInGap = appearance().activeTheme.measurements.button.gap;
+		fireEvent.change(gap, { target: { value: String(builtInGap + 7) } });
+
+		await waitFor(() => {
+			expect(appearance().activeTheme.id).toBe(CLASSICY_CUSTOM_THEME_ID);
+		});
+		expect(appearance().activeTheme.measurements.button.gap).toBe(
+			builtInGap + 7,
+		);
+		expect(
+			appearance().availableThemes?.find((t) => t.id === "default")
+				?.measurements.button.gap,
+		).toBe(builtInGap);
+		// Every tab's panel stays mounted (Colors and Metrics both carry the
+		// notice), so look only inside the one on show.
+		expect(
+			within(within(win).getByRole("tabpanel")).getByText(
+				/Editing the “Custom” theme/,
+			),
+		).toBeInTheDocument();
+		expect(gap).toHaveValue(builtInGap + 7);
+	});
+
 	it("shows 28 swatches carrying the active theme's colours", async () => {
 		const win = await openAppearanceManager();
 		showTab(win, "Colors");
@@ -135,7 +173,13 @@ describe("Appearance Manager — Colors tab and Custom theme", {
 			appearance().availableThemes?.find((t) => t.id === "default")?.color
 				.highlight,
 		).toBe(0xaaaaaa);
-		expect(screen.getByText(/Editing the “Custom” theme/)).toBeInTheDocument();
+		// Every tab's panel stays mounted (Colors and Metrics both carry the
+		// notice), so look only inside the one on show.
+		expect(
+			within(within(win).getByRole("tabpanel")).getByText(
+				/Editing the “Custom” theme/,
+			),
+		).toBeInTheDocument();
 
 		showTab(win, "Themes");
 		const themeMenu = within(win).getByRole("combobox", {
