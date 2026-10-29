@@ -435,7 +435,7 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 
 	const tabs = useMemo(
 		// Colors sits between Desktop and Fonts: Mac OS 8.5's Appearance panel
-		// puts its colour tab ahead of Fonts. Metrics follows Fonts, ahead of
+		// puts its color tab ahead of Fonts. Metrics follows Fonts, ahead of
 		// Sound.
 		() => [themesTab, desktopTab, colorsTab, fontsTab, metricsTab, soundTab],
 		[themesTab, desktopTab, colorsTab, fontsTab, metricsTab, soundTab],
