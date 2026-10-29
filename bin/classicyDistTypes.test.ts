@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
 	CLASSICY_DTS_EXCLUDE,
+	findClassicyBuildScriptDeclarations,
 	findClassicyTestDeclarations,
 } from "./classicyDistTypes";
 
@@ -16,6 +17,9 @@ describe("CLASSICY_DTS_EXCLUDE", () => {
 				"**/*.stories.tsx",
 			]),
 		));
+
+	it("keeps the build scripts in bin/ out of the declarations", () =>
+		expect(CLASSICY_DTS_EXCLUDE).toContain("bin/**"));
 });
 
 describe("findClassicyTestDeclarations", () => {
@@ -46,6 +50,31 @@ describe("findClassicyTestDeclarations", () => {
 				"src/SystemFolder/SystemResources/Button/ClassicyButton.d.ts.map",
 				"src/testing/ClassicyTestable.d.ts",
 				"src/latest.d.ts",
+			]),
+		).toEqual([]));
+});
+
+describe("findClassicyBuildScriptDeclarations", () => {
+	it("finds declarations of the build scripts in bin/ and their maps", () =>
+		expect(
+			findClassicyBuildScriptDeclarations([
+				"bin/classicyPackageCss.d.ts",
+				"bin/classicyPackageCss.d.ts.map",
+				"bin\\classicyDistTypes.d.ts",
+				"src/index.d.ts",
+			]),
+		).toEqual([
+			"bin/classicyPackageCss.d.ts",
+			"bin/classicyPackageCss.d.ts.map",
+			"bin\\classicyDistTypes.d.ts",
+		]));
+
+	it("passes the library's own declarations, even one under a bin folder", () =>
+		expect(
+			findClassicyBuildScriptDeclarations([
+				"src/index.d.ts",
+				"src/SystemFolder/bin/Trash.d.ts",
+				"binary.d.ts",
 			]),
 		).toEqual([]));
 });

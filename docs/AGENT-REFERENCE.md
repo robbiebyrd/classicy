@@ -201,8 +201,8 @@ Package `exports` map:
 | `classicy/fonts` | Deprecated no-op kept so existing `import 'classicy/fonts'` lines keep resolving |
 | `classicy/dist/*` | Anything in dist; the fonts ship as `dist/assets/*.woff2` |
 | `classicy/scss/*` | Raw SCSS partials (the Classicy vocabulary: states, layout helpers, classicy-package): `classicy/scss/vocabulary` (`$classicy-states`, `classicy-state()`; §4.0.1), `classicy/scss/layout` (`classicy-px-rect()`, `classicy-no-select`), `classicy/scss/package` (`classicy-package($id)`, §8) |
-| `classicy/appearance/platinum` | Side-effect import registering the Platinum package. A no-op shim: importing `classicy` already registers Platinum, so you never need it |
-| `classicy/appearance/platinum/scss/*` | Platinum's SCSS: `mixins` (the `platinum-*` mixins), `scrollbars` (`platinum-scrollbars*`), `assets` (the `$` art variables), `platinum` (the package stylesheet itself) |
+| `classicy/appearance/platinum` | Kept for compatibility; registers nothing. Importing `classicy` registers the Platinum package, so you never need this specifier |
+| `classicy/appearance/platinum/scss/*` | Platinum's SCSS partials for host `@use`: `mixins` (the `platinum-*` mixins), `scrollbars` (`platinum-scrollbars*`), `assets` (the `$` art variables). The package stylesheet itself (`platinum.scss` and its `components/` partials) is not for host compilation: it ships compiled, injected by the bundle and as `dist/classicy-platinum.css`, and one of its `url()`s points at an asset outside the published files |
 
 ### Minimal app
 
@@ -1324,22 +1324,27 @@ bevel, border, gradient and piece of art moved into Platinum's own stylesheet
 `.classicyDesktop[data-classicy-appearance="platinum"]`). Rendering inside
 `ClassicyDesktop` looks exactly as before. What changes for hosts:
 
-- **The `classicy/scss-platinum/*` bridge is gone.** Platinum's SCSS is at
-  `classicy/appearance/platinum/scss/*` (`mixins`, `scrollbars`, `assets`),
-  and the mixins are renamed to kebab-case with a `platinum-` prefix. The
-  helpers that are not Platinum's moved to the vocabulary,
-  `classicy/scss/layout`:
+- **The theme partials moved and were renamed.** Through 2.1.x, Platinum's
+  SCSS was `classicy/scss/appearance`, `classicy/scss/scrollbars` and
+  `classicy/scss/assets` (with the theme list at `classicy/scss/themes.json`
+  and the fonts at `classicy/scss/fonts`); `classicy/scss/*` is now the
+  vocabulary. Platinum's SCSS is at `classicy/appearance/platinum/scss/*`
+  (`mixins`, `scrollbars`, `assets`), and the mixins are renamed to
+  kebab-case with a `platinum-` prefix. The helpers that are not Platinum's
+  moved to the vocabulary, `classicy/scss/layout`. (Pre-release builds
+  exposed the same partials as `classicy/scss-platinum/*`; that bridge is
+  gone too, and the table applies to it unchanged.)
 
   ```scss
-  // before
-  @use 'classicy/scss-platinum/appearance';
+  // before (2.1.x)
+  @use 'classicy/scss/appearance';
   .bar { @include appearance.platinumWindowControlBoxBorder; }
   // after
   @use 'classicy/appearance/platinum/scss/mixins';
   .bar { @include mixins.platinum-window-control-box-border; }
   ```
 
-  | Before (`classicy/scss-platinum/…`) | Now |
+  | Before (`classicy/scss/appearance`, `scrollbars`, `assets`) | Now |
   |---|---|
   | `appearance.platinumMenuFrame`, `platinumMenuDivider` | `mixins.platinum-menu-frame`, `platinum-menu-divider` |
   | `appearance.platinumBoxShadow`, `platinumWindowBoxShadow` | `mixins.platinum-box-shadow`, `platinum-window-box-shadow` |
@@ -1356,10 +1361,8 @@ bevel, border, gradient and piece of art moved into Platinum's own stylesheet
   | `scrollbars.scrollbars`, `scrollbars-split-arrows`, `scrollbars-inactive`, `scrollbars-themed` | `scrollbars.platinum-scrollbars`, `platinum-scrollbars-split-arrows`, `platinum-scrollbars-inactive`, `platinum-scrollbars-themed` |
   | `scrollbars.sb-glyph-up`/`-down`/`-left`/`-right`, `sb-btn-box`, `sb-btn-pressed` | `scrollbars.platinum-scrollbar-glyph-up`/`-down`/`-left`/`-right`, `platinum-scrollbar-button-box`, `platinum-scrollbar-button-pressed` |
   | `assets.$…` (the art variables) | `assets.$…`, same names (`classicy/appearance/platinum/scss/assets`) |
-
-  The theme list (`themes.json`) is gone too: the built-in themes are the
-  `presets` of `src/Appearance/Platinum/platinum.json`, served by
-  `getAllThemes()`.
+  | `classicy/scss/themes.json` (the theme list) | `getAllThemes()` (the `presets` of `src/Appearance/Platinum/platinum.json`) |
+  | `classicy/scss/fonts` (the `@font-face` rules) | Nothing: the Platinum package registers its fonts at runtime |
 - **Components outside a desktop lose their look.** The package's rules only
   match inside an element carrying `class="classicyDesktop"` and
   `data-classicy-appearance="platinum"`; wrap standalone components in one,
@@ -2353,6 +2356,6 @@ untrusted disposition strings.
 7. **`defaultState` only applies on first boot** (nothing hydrated). During development, clear `localStorage["classicyDesktopState"]` to see provider default changes.
 8. **Window ids are data**: they feed analytics paths and persistence. Keep them stable and free of user content, or set `analyticsPath` explicitly.
 9. **Colors are integers** (`0xRRGGBB`), not hex strings, throughout themes and color pickers.
-10. **Styles come with the import** — the bundle injects `classicy.css` into `<head>`; the fonts are files in `dist/assets/` registered by the Platinum package (`classicy/fonts` is a deprecated no-op). Link `classicy.css` yourself only if a CSP blocks inline `<style>`. Classicy's rules live in `@layer classicy.base`, declared first, so any unlayered host rule *and any host layer* (Tailwind's preflight in `@layer base`, for example) on the same element and property wins. Override in `@layer classicy.user` or with plain unlayered rules; put resets that must yield to Classicy in `classicy.base.host` (§1, Cascade layers).
+10. **Styles come with the import** — the bundle injects `classicy.css` into `<head>`; the fonts are files in `dist/assets/` registered by the Platinum package (`classicy/fonts` is a deprecated no-op). The Platinum package injects its look the same way. Only if a CSP blocks inline `<style>`, link `classicy.css`, then `classicy-platinum.css`, first in `<head>` (§1); linking `classicy.css` alone gives a desktop with structure but no look. Structure lives in `@layer classicy.base` and the look in `@layer classicy.package`, both declared first, so any unlayered host rule *and any host layer* (Tailwind's preflight in `@layer base`, for example) on the same element and property beats either. Override in `@layer classicy.user` or with plain unlayered rules; put resets that must yield to Classicy in `classicy.base.host` (§1, Cascade layers).
 11. Deprecated (still working, avoid in new code): `noDesktopIcon`, `inApplicationsFolder`, `registerAppEventHandler`, `registerClassicyUntrustedActionAllowlist` for app-owned actions, `isXData`-style hand-rolled guards (use `parseAppData`).
 12. **Never mount the built-in apps yourself** (`Finder`, `SimpleText`, `HyperCard`, the viewers, `ClassicyControlPanels`, `AppleGuide`) — `ClassicyDesktop` renders them all automatically; mounting them as children double-mounts them. Use the provider's `disable*` props to remove the optional ones.

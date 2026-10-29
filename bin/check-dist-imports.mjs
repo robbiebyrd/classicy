@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Two invariants on the *published* bundle, both of which have shipped broken
-// and neither of which any other signal catches. `vite build` in a consumer app
+// Eight invariants on the *published* bundle. The first two have shipped
+// broken, and no other signal catches any of them. `vite build` in a consumer app
 // succeeds either way, and jsdom tests never load our own dist -- these only
 // surfaced as production outages.
 //
@@ -36,9 +36,13 @@
 //    resolving. `import "classicy/appearance/platinum"` is the Platinum
 //    package's documented side-effect entry, a no-op because the main bundle
 //    already registers Platinum (and a second copy of the registries would
-//    split the state). Both are emitted assets, not Rollup chunks, so nothing
-//    else notices if one goes missing or picks up an import a consumer can't
-//    resolve.
+//    split the state). Each ships with a .d.ts (the `types` condition of its
+//    export) that must exist and stay import-free too, or a TypeScript
+//    consumer's side-effect import stops resolving under
+//    `noUncheckedSideEffectImports`. All four are emitted assets, not Rollup
+//    chunks, so nothing else notices if one goes missing or picks up an import
+//    a consumer can't resolve. In named-file mode a shim and its declaration
+//    are checked together when either is named.
 //
 // 5. PACKAGE ASSETS MUST EMIT AS FILES. dist/assets/ holds exactly the 13
 //    Platinum .woff2 fonts plus the Platinum art (svg/png), and the ES bundle
@@ -71,16 +75,21 @@
 //    exist and be that same block, byte for byte: strict-CSP hosts, whose
 //    policy blocks the injected <style>, link it after classicy.css.
 //
-// 8. DIST/TYPES DECLARES THE LIBRARY, NOT ITS TESTS. vite-plugin-dts emits a
-//    .d.ts for every file tsconfig selects, so until its `exclude` named them
-//    (CLASSICY_DTS_EXCLUDE in bin/classicyDistTypes.ts) the tarball shipped a
-//    declaration for every test, every __tests__ helper and every story.
-//    Checked by walking dist/types (skipped when the caller names files).
+// 8. DIST/TYPES DECLARES THE LIBRARY, NOT ITS TESTS OR BUILD SCRIPTS.
+//    vite-plugin-dts emits a .d.ts for every file tsconfig selects, so until
+//    its `exclude` named them (CLASSICY_DTS_EXCLUDE in
+//    bin/classicyDistTypes.ts) the tarball shipped a declaration for every
+//    test, every __tests__ helper, every story and every build script in bin/
+//    (dist/types/bin/**). Checked by walking dist/types (skipped when the
+//    caller names files).
 
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { argv, exit } from "node:process";
-import { findClassicyTestDeclarations } from "./classicyDistTypes.ts";
+import {
+	findClassicyBuildScriptDeclarations,
+	findClassicyTestDeclarations,
+} from "./classicyDistTypes.ts";
 import {
 	findClassicyPackageCssProblems,
 	requiredClassicyPackageBundles,
@@ -203,25 +212,34 @@ for (const entry of ["classicy.es.js", "classicy.umd.js"]) {
 }
 
 // Invariant 4: the no-op shims (the deprecated fonts entry, the Platinum
-// package entry).
-for (const shim of ["fonts.js", "appearance-platinum.js"]) {
-	const entry = join(DIST, shim);
-	if (argv.slice(2).length && !argv.slice(2).includes(entry)) continue;
-	const source = await readFile(entry, "utf8").catch(() => null);
-	if (source === null) {
-		failed = true;
-		console.error(
-			`${entry}: missing -> check injectCssPlugin in vite.config.ts.`,
-		);
-	} else if (
-		/\b(?:import|require)\b/.test(source.replace(/^\s*\/\/.*$/gm, ""))
-	) {
-		failed = true;
-		console.error(
-			`${entry}: has an import/require; it must stay a self-contained script.`,
-		);
-	} else {
-		console.log(`${entry}: self-contained no-op shim`);
+// package entry) and their declarations.
+for (const shim of ["fonts", "appearance-platinum"]) {
+	const pair = [
+		{ entry: join(DIST, `${shim}.js`), kind: "script" },
+		{ entry: join(DIST, `${shim}.d.ts`), kind: "declaration" },
+	];
+	if (
+		argv.slice(2).length &&
+		!pair.some(({ entry }) => argv.slice(2).includes(entry))
+	)
+		continue;
+	for (const { entry, kind } of pair) {
+		const source = await readFile(entry, "utf8").catch(() => null);
+		if (source === null) {
+			failed = true;
+			console.error(
+				`${entry}: missing -> check injectCssPlugin in vite.config.ts.`,
+			);
+		} else if (
+			/\b(?:import|require)\b/.test(source.replace(/^\s*\/\/.*$/gm, ""))
+		) {
+			failed = true;
+			console.error(
+				`${entry}: has an import/require; it must stay a self-contained ${kind}.`,
+			);
+		} else {
+			console.log(`${entry}: self-contained no-op ${kind}`);
+		}
 	}
 }
 
@@ -416,17 +434,31 @@ if (!argv.slice(2).length) {
 	);
 	const shipped =
 		declarations === null ? [] : findClassicyTestDeclarations(declarations);
+	const scripts =
+		declarations === null
+			? []
+			: findClassicyBuildScriptDeclarations(declarations);
+	const listed = (paths) =>
+		`${paths.slice(0, 5).join(", ")}${paths.length > 5 ? ", …" : ""}`;
 	if (declarations === null) {
 		failed = true;
 		console.error(`${typesDir}: missing -> check dts in vite.config.ts.`);
-	} else if (shipped.length) {
+	}
+	if (shipped.length) {
 		failed = true;
 		console.error(
-			`${typesDir}: ${shipped.length} declaration(s) of tests, test helpers or stories (${shipped.slice(0, 5).join(", ")}${shipped.length > 5 ? ", …" : ""}) -> check CLASSICY_DTS_EXCLUDE in bin/classicyDistTypes.ts.`,
+			`${typesDir}: ${shipped.length} declaration(s) of tests, test helpers or stories (${listed(shipped)}) -> check CLASSICY_DTS_EXCLUDE in bin/classicyDistTypes.ts.`,
 		);
-	} else {
+	}
+	if (scripts.length) {
+		failed = true;
+		console.error(
+			`${typesDir}: ${scripts.length} declaration(s) of build scripts in bin/ (${listed(scripts)}) -> check CLASSICY_DTS_EXCLUDE in bin/classicyDistTypes.ts.`,
+		);
+	}
+	if (declarations !== null && !shipped.length && !scripts.length) {
 		console.log(
-			`${typesDir}: ${declarations.length} file(s), none for a test, test helper or story`,
+			`${typesDir}: ${declarations.length} file(s), none for a test, test helper, story or build script`,
 		);
 	}
 }

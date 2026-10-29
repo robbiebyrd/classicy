@@ -114,15 +114,18 @@ registers it, and everything inside `ClassicyDesktop` looks as before.
   rather than falling back, unstyled, to `document.body`.
 - **Strict-CSP hosts link a second file**: `classicy/dist/classicy.css`, then
   `classicy/dist/classicy-platinum.css`, first in `<head>`.
-- **`classicy/scss-platinum/*` is gone.** Use
-  `classicy/appearance/platinum/scss/*`. The mixins are renamed to kebab-case
-  with a `platinum-` prefix (`appearance.platinumWindowControlBoxBorder` →
-  `mixins.platinum-window-control-box-border` from
-  `classicy/appearance/platinum/scss/mixins`; `scrollbars.scrollbars` →
+- **The theme partials moved.** `classicy/scss/appearance`,
+  `classicy/scss/scrollbars` and `classicy/scss/assets` (2.1.x; pre-release
+  builds called them `classicy/scss-platinum/*`) are now
+  `classicy/appearance/platinum/scss/mixins`, `…/scrollbars` and `…/assets`.
+  The mixins are renamed to kebab-case with a `platinum-` prefix
+  (`appearance.platinumWindowControlBoxBorder` →
+  `mixins.platinum-window-control-box-border`; `scrollbars.scrollbars` →
   `scrollbars.platinum-scrollbars`), and `px-rect`/`no-select` moved to the
   vocabulary as `classicy-px-rect`/`classicy-no-select`
-  (`classicy/scss/layout`). `classicy/appearance/platinum` exists as a no-op
-  side-effect import.
+  (`classicy/scss/layout`). `classicy/scss/themes.json` is gone: call
+  `getAllThemes()`. `classicy/appearance/platinum` is kept for compatibility
+  and registers nothing (importing `classicy` registers Platinum).
 - **Fixed:** Firefox no longer shows a scroll bar under tab strips in the
   built library (the desktop's scroll-bar fallback used to beat the tab
   scroller's `scrollbar-width: none`).
