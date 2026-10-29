@@ -254,3 +254,20 @@ describe("ClassicyDesktopIcon alias badging", () => {
 		).toBeInTheDocument();
 	});
 });
+
+describe("ClassicyDesktopIcon consumer style", () => {
+	// Stacking belongs to the icon states (ClassicyDesktopIcon.scss: 10,
+	// dragging 500), which no longer win by !important; a consumer zIndex is
+	// dropped.
+	it("drops a consumer zIndex and keeps the rest", () => {
+		const { container } = render(
+			<ClassicyDesktopIcon
+				{...defaultProps}
+				style={{ zIndex: 7, opacity: 0.5 }}
+			/>,
+		);
+		const icon = container.querySelector("#TestApp\\.shortcut") as HTMLElement;
+		expect(icon.style.zIndex).toBe("");
+		expect(icon.style.opacity).toBe("0.5");
+	});
+});

@@ -4,7 +4,7 @@
 
 .classicyIcon {
   position: absolute;
-  z-index: 10 !important;
+  z-index: 10;
   display: flex;
   align-items: center;
   flex-direction: column;
@@ -40,7 +40,7 @@
 }
 
 :where(.classicyIcon).dragging {
-  z-index: 500 !important;
+  z-index: 500;
   //margin: calc(var(--desktop-icon-size) * -4);
   //padding: calc(var(--desktop-icon-size) * 4);
   user-select: none;
@@ -51,9 +51,9 @@
   width: calc(var(--desktop-icon-size) - var(--window-border-size) * 2);
   height: calc(var(--desktop-icon-size) - var(--window-border-size) * 2);
   margin: 0 auto;
-  mask-mode: alpha !important;
-  mask-size: calc(100% - var(--window-border-size)) !important;
-  mask-repeat: no-repeat !important;
+  mask-mode: alpha;
+  mask-size: calc(100% - var(--window-border-size));
+  mask-repeat: no-repeat;
   @include appearance.theme-halftone(#000000, 7%);
 }
 
@@ -62,18 +62,16 @@
   width: calc(var(--desktop-icon-size) + var(--window-border-size));
   height: calc(var(--desktop-icon-size) + var(--window-border-size));
   margin: 0 auto;
-  background: var(--color-black) !important;
-  mask-mode: alpha !important;
-  mask-size: cover !important;
-  mask-repeat: no-repeat !important;
+  background: var(--color-black);
+  mask-mode: alpha;
+  mask-size: cover;
+  mask-repeat: no-repeat;
 }
 
 :where(.classicyIcon).open {
-  z-index: 99;
-
   .classicyIconMaskOuter {
     .classicyIconMask {
-      backdrop-filter: grayscale(1) invert(1) brightness(1) !important;
+      backdrop-filter: grayscale(1) invert(1) brightness(1);
       background-blend-mode: overlay;
 
       * {
@@ -99,15 +97,13 @@
 // Selected and open at once. Both state rules above also match, so this
 // block — later, and more specific — restates only what differs from them.
 .classicyIcon.selected.open {
-  z-index: 99;
-
   .classicyIconMaskOuter {
     background: var(--color-black);
     filter: brightness(-5);
 
     .classicyIconMask {
       filter: brightness(50%);
-      backdrop-filter: grayscale(1) invert(1) brightness(1) !important;
+      backdrop-filter: grayscale(1) invert(1) brightness(1);
       // The open rule's overlay blend and the selected rule's dimmed artwork
       // never showed in this combined state; keep them off.
       background-blend-mode: normal;

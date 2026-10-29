@@ -403,9 +403,15 @@ describe("compiled SCSS of the touched surfaces", () => {
 		expect(css).not.toMatch(
 			new RegExp(`\\.${rootClass}(Active|ActiveAndOpen|Open|Dragging)\\b`),
 		);
+		// The open rules declare no z-index of their own (it always lost to the
+		// base rule's, so 4.2 deleted it): match the blocks by their first rule.
 		const selected = css.indexOf(`:where(.${rootClass}).selected p {`);
-		const open = css.indexOf(`:where(.${rootClass}).open {`);
-		const both = css.indexOf(`.${rootClass}.selected.open {`);
+		const open = css.indexOf(
+			`:where(.${rootClass}).open .${rootClass}MaskOuter`,
+		);
+		const both = css.indexOf(
+			`.${rootClass}.selected.open .${rootClass}MaskOuter`,
+		);
 		expect(selected).toBeGreaterThan(-1);
 		expect(open).toBeGreaterThan(-1);
 		expect(both).toBeGreaterThan(selected);

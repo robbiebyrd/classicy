@@ -108,11 +108,24 @@ interface ClassicyDesktopIconProps {
 	onOpenFilePath?: (path: string) => void;
 	/** Extra class names, merged onto the root element after the component's own. */
 	className?: string;
-	/** Inline style, merged onto the root element after the component's own. */
+	/**
+	 * Inline style, merged onto the root element after the component's own.
+	 * Stacking belongs to the icon states (ClassicyDesktopIcon.scss: 10, dragging 500), so a
+	 * `zIndex` here is dropped.
+	 */
 	style?: CSSProperties;
 }
 
 /** File-backed icons drag as files; drives and the Trash only take drops. */
+/** A consumer style without `zIndex`, which the icon states own. */
+const withoutZIndex = (
+	style: CSSProperties | undefined,
+): CSSProperties | undefined => {
+	if (style?.zIndex === undefined) return style;
+	const { zIndex: _zIndex, ...rest } = style;
+	return rest;
+};
+
 const draggedAsFile = (kind: string, filePath: string | undefined) =>
 	filePath !== undefined && kind !== "drive" && kind !== "trash";
 
@@ -446,7 +459,11 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 						isAlias ? "classicyDesktopIconAlias" : "",
 						className,
 					)}
-					style={{ top: thisLocation[0], left: thisLocation[1], ...style }}
+					style={{
+						top: thisLocation[0],
+						left: thisLocation[1],
+						...withoutZIndex(style),
+					}}
 					{...balloonHandlers}
 				>
 					<div className={"classicyDesktopIconImage"}>

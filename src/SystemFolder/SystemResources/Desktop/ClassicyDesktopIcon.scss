@@ -4,7 +4,7 @@
 
 .classicyDesktopIcon {
   position: absolute;
-  z-index: 10 !important;
+  z-index: 10;
   display: flex;
   align-items: center;
   flex-direction: column;
@@ -15,7 +15,7 @@
   image-rendering: pixelated;
   image-rendering: -moz-crisp-edges;
   image-rendering: crisp-edges;
-  outline: none !important;
+  outline: none;
 
   img {
     width: var(--desktop-icon-size);
@@ -37,8 +37,14 @@
   }
 }
 
+// An icon shows selection, never a focus ring. Three classes: beats
+// `.classicyDesktop *:focus-visible { outline-color }`.
+.classicyDesktop .classicyDesktopIcon:focus-visible {
+  outline: none;
+}
+
 :where(.classicyDesktopIcon).dragging {
-  z-index: 500 !important;
+  z-index: 500;
   // margin: calc(var(--desktop-icon-size) * -4);
   // padding: calc(var(--desktop-icon-size) * 4);
   user-select: none;
@@ -49,9 +55,9 @@
   width: calc(var(--desktop-icon-size) - var(--window-border-size) * 2);
   height: calc(var(--desktop-icon-size) - var(--window-border-size) * 2);
   margin: 0 auto;
-  mask-mode: alpha !important;
-  mask-size: calc(100% - var(--window-border-size)) !important;
-  mask-repeat: no-repeat !important;
+  mask-mode: alpha;
+  mask-size: calc(100% - var(--window-border-size));
+  mask-repeat: no-repeat;
   @include appearance.theme-halftone(#000000, 7%);
 }
 
@@ -60,18 +66,16 @@
   width: calc(var(--desktop-icon-size) + var(--window-border-size));
   height: calc(var(--desktop-icon-size) + var(--window-border-size));
   margin: 0 auto;
-  background: var(--color-black) !important;
-  mask-mode: alpha !important;
-  mask-size: cover !important;
-  mask-repeat: no-repeat !important;
+  background: var(--color-black);
+  mask-mode: alpha;
+  mask-size: cover;
+  mask-repeat: no-repeat;
 }
 
 :where(.classicyDesktopIcon).open {
-  z-index: 99;
-
   .classicyDesktopIconMaskOuter {
     .classicyDesktopIconMask {
-      backdrop-filter: grayscale(1) invert(1) brightness(1) !important;
+      backdrop-filter: grayscale(1) invert(1) brightness(1);
       background-blend-mode: overlay;
 
       * {
@@ -97,15 +101,13 @@
 // Selected and open at once. Both state rules above also match, so this
 // block — later, and more specific — restates only what differs from them.
 .classicyDesktopIcon.selected.open {
-  z-index: 99;
-
   .classicyDesktopIconMaskOuter {
     background: var(--color-black);
     filter: brightness(-5);
 
     .classicyDesktopIconMask {
       filter: brightness(50%);
-      backdrop-filter: grayscale(1) invert(1) brightness(1) !important;
+      backdrop-filter: grayscale(1) invert(1) brightness(1);
       // The open rule's overlay blend and the selected rule's dimmed artwork
       // never showed in this combined state; keep them off.
       background-blend-mode: normal;
@@ -147,9 +149,8 @@
     width: 100%;
     height: 100%;
     margin: 0;
-    // The base rule declares mask-size !important, so specificity alone
-    // cannot resize the badge's mask.
-    mask-size: 100% !important;
+    // Two classes, after the base mask rule: overrides its mask-size.
+    mask-size: 100%;
   }
 
   // Beats `.classicyDesktopIcon img` by source order — both are (0,1,1).

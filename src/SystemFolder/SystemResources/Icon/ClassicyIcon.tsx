@@ -91,7 +91,11 @@ interface ClassicyIconProps {
 	) => boolean;
 	/** Extra class names, merged onto the root element after the component's own. */
 	className?: string;
-	/** Inline style, merged onto the root element after the component's own. */
+	/**
+	 * Inline style, merged onto the root element after the component's own.
+	 * Stacking belongs to the icon states (ClassicyIcon.scss: 10, dragging 500), so a
+	 * `zIndex` here is dropped.
+	 */
 	style?: CSSProperties;
 }
 
@@ -101,6 +105,15 @@ interface ClassicyIconProps {
  * directly — jsdom has no layout engine, so a simulated drag would only ever
  * measure zeros.
  */
+/** A consumer style without `zIndex`, which the icon states own. */
+const withoutZIndex = (
+	style: CSSProperties | undefined,
+): CSSProperties | undefined => {
+	if (style?.zIndex === undefined) return style;
+	const { zIndex: _zIndex, ...rest } = style;
+	return rest;
+};
+
 export const snapToGrid = (
 	position: [number, number],
 	pitch: [number, number],
@@ -298,7 +311,7 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 					// when `size` is undefined so the theme's value keeps cascading
 					// exactly as it did before this prop existed.
 					...(size === undefined ? {} : { "--desktop-icon-size": `${size}px` }),
-					...style,
+					...withoutZIndex(style),
 				} as CSSProperties
 			}
 			onClick={toggleFocus}
