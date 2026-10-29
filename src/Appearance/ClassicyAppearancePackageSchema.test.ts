@@ -125,6 +125,34 @@ describe("ClassicyAppearancePackageSchema", () => {
 			}).success,
 		).toBe(false);
 	});
+
+	it("requires min <= default <= max for every knob", () => {
+		const knob = { label: "Shadow", min: 0, max: 4, default: 1 };
+		const parse = (k: Record<string, unknown>) =>
+			ClassicyAppearancePackageSchema.safeParse({
+				...platinumShaped(),
+				knobs: { menuFrame: { shadow: k } },
+			});
+		for (const k of [
+			{ ...knob, default: 0 },
+			{ ...knob, default: 4 },
+			{ ...knob, min: 2, max: 2, default: 2 },
+		])
+			expect(parse(k).success).toBe(true);
+		for (const k of [
+			{ ...knob, default: 9 },
+			{ ...knob, default: -1 },
+			{ ...knob, min: 5, max: 4, default: 4 },
+		]) {
+			const result = parse(k);
+			expect(result.success).toBe(false);
+			expect(result.error?.issues[0].path).toEqual([
+				"knobs",
+				"menuFrame",
+				"shadow",
+			]);
+		}
+	});
 });
 
 describe("classicyKnobsToSchema", () => {

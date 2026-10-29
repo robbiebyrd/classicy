@@ -57,12 +57,18 @@ const assetTree: z.ZodType<AssetTreeInput> = z.lazy(() =>
 	),
 );
 
-const knob = z.object({
-	label: z.string().trim().min(1).max(64),
-	min: z.number(),
-	max: z.number(),
-	default: z.number(),
-});
+// A knob's default must be a value its own bounds allow (and so min <= max):
+// classicyKnobsToSchema turns these into `.min().max().default()`.
+const knob = z
+	.object({
+		label: z.string().trim().min(1).max(64),
+		min: z.number(),
+		max: z.number(),
+		default: z.number(),
+	})
+	.refine((k) => k.min <= k.default && k.default <= k.max, {
+		error: "must satisfy min <= default <= max",
+	});
 
 /**
  * Everything in a `ClassicyAppearancePackage` but `css`, `options` and
@@ -81,8 +87,9 @@ export const ClassicyAppearancePackageSchema = z.object({
 });
 
 // Compile-time guard: whatever the schema accepts is a valid package once
-// `css` (and optionally `options`/`hooks`) is added.
-export type ClassicyAppearancePackageSchemaMatchesType = AssertTrue<
+// `css` (and optionally `options`/`hooks`) is added. Not exported, so it
+// stays out of the public barrel.
+type _ClassicyAppearancePackageSchemaMatchesType = AssertTrue<
 	z.output<typeof ClassicyAppearancePackageSchema> & {
 		css: string;
 	} extends ClassicyAppearancePackage

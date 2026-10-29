@@ -7,8 +7,41 @@
 
 const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-/** An optional leading `@charset`, then an optional layer order statement. */
-const PRELUDE = /^\s*(?:@charset "[^"]*";\s*)?(?:@layer [^{};]+;\s*)?/;
+/**
+ * The index after the whitespace (a BOM included) and complete top-level
+ * `/* … *\/` comments starting at `from`. Sass keeps loud comments in
+ * expanded output, and they are not rules.
+ */
+const skipTrivia = (css: string, from: number): number => {
+	let i = from;
+	for (;;) {
+		while (i < css.length && /\s/.test(css[i])) i++;
+		if (!css.startsWith("/*", i)) return i;
+		const end = css.indexOf("*/", i + 2);
+		if (end === -1) return i;
+		i = end + 2;
+	}
+};
+
+const CHARSET = /@charset "[^"]*";/y;
+
+/**
+ * Where the prelude a layered stylesheet may open with ends: trivia, an
+ * optional `@charset`, then at most one `layerOrder` statement (exactly that
+ * text, no other `@layer …;`), each followed by trivia. `hasOrder` says
+ * whether the order statement was there.
+ */
+const readPrelude = (
+	css: string,
+	layerOrder: string,
+): { end: number; hasOrder: boolean } => {
+	let i = skipTrivia(css, 0);
+	CHARSET.lastIndex = i;
+	if (CHARSET.test(css)) i = skipTrivia(css, CHARSET.lastIndex);
+	const hasOrder = css.startsWith(layerOrder, i);
+	if (hasOrder) i = skipTrivia(css, i + layerOrder.length);
+	return { end: i, hasOrder };
+};
 
 /**
  * The index of the `}` closing the `{` at `open`, or -1. Braces inside CSS
@@ -31,28 +64,28 @@ const matchingBrace = (css: string, open: number): number => {
 };
 
 /**
- * True when `css` is exactly one `@layer <layer> { … }` block, optionally
- * after a `@charset` and a layer order statement, with nothing but
- * whitespace after it. `<layer>` must match exactly: `classicy.packages` and
- * `classicy.package.x` are not `classicy.package`.
+ * True when `css` is exactly one `@layer <layer> { … }` block. Before it may
+ * come a `@charset` and at most one `layerOrder` statement (that exact text:
+ * any other `@layer …;` is a rule outside the block); around them, and after
+ * the block, only whitespace, a BOM and `/* … *\/` comments. `<layer>` must
+ * match exactly: `classicy.packages` and `classicy.package.x` are not
+ * `classicy.package`.
  */
 export const isSingleClassicyLayerBlock = (
 	css: string,
 	layer: string,
+	layerOrder: string,
 ): boolean => {
-	const rest = css.slice((PRELUDE.exec(css)?.[0] ?? "").length);
-	const head = new RegExp(`^@layer ${escapeRegExp(layer)}\\s*\\{`).exec(rest);
-	if (!head) return false;
-	const close = matchingBrace(rest, head[0].length - 1);
-	return close !== -1 && rest.slice(close + 1).trim() === "";
+	const head = new RegExp(`@layer ${escapeRegExp(layer)}\\s*\\{`, "y");
+	head.lastIndex = readPrelude(css, layerOrder).end;
+	if (!head.test(css)) return false;
+	const close = matchingBrace(css, head.lastIndex - 1);
+	return close !== -1 && skipTrivia(css, close + 1) === css.length;
 };
 
 const PACKAGE_LAYER = "classicy.package";
 const PACKAGE_BLOCK = /@layer\s+classicy\.package\s*\{/g;
 const PACKAGE_SCOPE = "data-classicy-appearance";
-// What may sit between a string's opening quote and its package block: the
-// layer order statement, then whitespace or `\n` escapes.
-const LITERAL_PREFIX = /^(?:@layer [^{};"'`]+;(?:\s|\\n)*)?$/;
 // The tail of a `classicy.base` block's opening, raw or minified.
 const OPENS_BASE_BLOCK = /@layer\s+classicy\.base\s*\{(?:\s|\\n)*$/;
 const QUOTES = new Set(['"', "'", "`"]);
@@ -92,7 +125,11 @@ const decodeLiteral = (body: string): string =>
  * `classicy.base` block (the layer plugin wrapped it) sits in
  * `classicy.base.classicy.package`, below every base rule.
  */
-const bundleProblems = (file: string, source: string): string[] => {
+const bundleProblems = (
+	file: string,
+	source: string,
+	layerOrder: string,
+): string[] => {
 	const problems: string[] = [];
 	for (const match of source.matchAll(PACKAGE_BLOCK)) {
 		const at = match.index ?? 0;
@@ -103,13 +140,19 @@ const bundleProblems = (file: string, source: string): string[] => {
 		)
 			start--;
 		const prefix = source.slice(start + 1, at);
+		const decodedPrefix = decodeLiteral(prefix);
 		if (OPENS_BASE_BLOCK.test(prefix)) {
 			problems.push(
 				`${file}: a @layer ${PACKAGE_LAYER} block is nested inside classicy.base -> check classicyCssLayerPlugin.`,
 			);
 			continue;
 		}
-		if (start < 0 || !LITERAL_PREFIX.test(prefix)) {
+		// Only what may open a package stylesheet (the same prelude rule as
+		// isSingleClassicyLayerBlock) may precede the block in its string.
+		if (
+			start < 0 ||
+			readPrelude(decodedPrefix, layerOrder).end !== decodedPrefix.length
+		) {
 			problems.push(
 				`${file}: a @layer ${PACKAGE_LAYER} block does not start its stylesheet string -> package CSS must be a stylesheet of its own.`,
 			);
@@ -126,6 +169,7 @@ const bundleProblems = (file: string, source: string): string[] => {
 			!isSingleClassicyLayerBlock(
 				decodeLiteral(source.slice(start + 1, end)),
 				PACKAGE_LAYER,
+				layerOrder,
 			)
 		)
 			problems.push(
@@ -158,7 +202,9 @@ export const findClassicyPackageCssProblems = ({
 	baseStylesheets,
 	packageStylesheets,
 }: ClassicyPackageCssInput): string[] => [
-	...bundles.flatMap(({ file, source }) => bundleProblems(file, source)),
+	...bundles.flatMap(({ file, source }) =>
+		bundleProblems(file, source, layerOrder),
+	),
 	...baseStylesheets.flatMap(({ file, css }) =>
 		new RegExp(PACKAGE_BLOCK.source).test(css) || css.includes(PACKAGE_SCOPE)
 			? [
@@ -167,8 +213,8 @@ export const findClassicyPackageCssProblems = ({
 			: [],
 	),
 	...packageStylesheets.flatMap(({ file, css }) =>
-		css.startsWith(`${layerOrder}\n`) &&
-		isSingleClassicyLayerBlock(css.slice(layerOrder.length), PACKAGE_LAYER)
+		readPrelude(css, layerOrder).hasOrder &&
+		isSingleClassicyLayerBlock(css, PACKAGE_LAYER, layerOrder)
 			? []
 			: [
 					`${file}: must be "${layerOrder}" then exactly one @layer ${PACKAGE_LAYER} block.`,
