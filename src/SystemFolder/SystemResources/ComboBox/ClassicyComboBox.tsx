@@ -17,10 +17,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
-import {
-	useClassicyAppearanceInput,
-	withClassicyAppearanceInput,
-} from "@/Appearance/useClassicyAppearanceInput.internal";
+import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import {
 	ClassicyControlLabel,
@@ -146,7 +143,6 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 	const optionId = (index: number) => `${reactId}-opt-${index}`;
 	const appearance = useClassicyAppearance("ComboBox", { disabled }, anchorRef);
 	const emitAppearance = appearance.emit;
-	useClassicyAppearanceInput();
 	// `close` follows the list going away, whichever path dismissed it, and
 	// so comes after the `change` a commit emits.
 	const wasOpenRef = useRef(open);

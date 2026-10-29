@@ -13,10 +13,7 @@ import {
 	useState,
 } from "react";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
-import {
-	useClassicyAppearanceInput,
-	withClassicyAppearanceInput,
-} from "@/Appearance/useClassicyAppearanceInput.internal";
+import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 
 export type ClassicyPlacardMenuItem = {
@@ -97,7 +94,6 @@ export const ClassicyPlacard: FunctionalComponent<ClassicyPlacardProps> = ({
 		placardRef,
 	);
 	const emitAppearance = appearance.emit;
-	useClassicyAppearanceInput();
 	// `close` follows the menu going away, whichever path dismissed it (a
 	// pick, a second click, an outside press).
 	const wasOpenRef = useRef(open);
