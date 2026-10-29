@@ -12,6 +12,10 @@ import {
 	useState,
 } from "react";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import {
+	useClassicyAppearanceInput,
+	withClassicyAppearanceInput,
+} from "@/Appearance/useClassicyAppearanceInput.internal";
 import { useClassicyMergedRef } from "@/Appearance/useClassicyMergedRef.internal";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
@@ -152,8 +156,10 @@ export const ClassicyButton = forwardRef<
 			buttonRef,
 		);
 
+		useClassicyAppearanceInput();
+
 		const onHandleFunc = (e: MouseEvent<HTMLButtonElement>) => {
-			appearance.emit("click");
+			appearance.emit("click", withClassicyAppearanceInput());
 			track("click", { ...analyticsArgs });
 			if (onClickFunc) {
 				onClickFunc(e);
@@ -163,7 +169,7 @@ export const ClassicyButton = forwardRef<
 		const handleKeyDown = (e: KeyboardEvent<HTMLButtonElement>) => {
 			if (!disabled && !e.repeat && isActivationKey(e.key)) {
 				setKeyActive(true);
-				appearance.emit("press");
+				appearance.emit("press", withClassicyAppearanceInput());
 				player({ type: "ClassicySoundPlay", sound: "ClassicyButtonClickDown" });
 				if (keyTimer.current) clearTimeout(keyTimer.current);
 				keyTimer.current = setTimeout(() => setKeyActive(false), KEY_ACTIVE_MS);
@@ -173,7 +179,7 @@ export const ClassicyButton = forwardRef<
 
 		const handleKeyUp = (e: KeyboardEvent<HTMLButtonElement>) => {
 			if (!disabled && isActivationKey(e.key)) {
-				appearance.emit("release");
+				appearance.emit("release", withClassicyAppearanceInput());
 				player({ type: "ClassicySoundPlay", sound: "ClassicyButtonClickUp" });
 			}
 			onKeyUp?.(e);
@@ -200,14 +206,14 @@ export const ClassicyButton = forwardRef<
 				aria-pressed={depressed || keyActive || undefined}
 				onClick={onHandleFunc}
 				onMouseDown={() => {
-					appearance.emit("press");
+					appearance.emit("press", withClassicyAppearanceInput());
 					player({
 						type: "ClassicySoundPlay",
 						sound: "ClassicyButtonClickDown",
 					});
 				}}
 				onMouseUp={() => {
-					appearance.emit("release");
+					appearance.emit("release", withClassicyAppearanceInput());
 					player({ type: "ClassicySoundPlay", sound: "ClassicyButtonClickUp" });
 				}}
 				onKeyDown={handleKeyDown}

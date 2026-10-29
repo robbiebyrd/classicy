@@ -10,6 +10,10 @@ import {
 	useState,
 } from "react";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import {
+	useClassicyAppearanceInput,
+	withClassicyAppearanceInput,
+} from "@/Appearance/useClassicyAppearanceInput.internal";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import {
 	ClassicyControlLabel,
@@ -124,15 +128,18 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 
 	const rootRef = useRef<HTMLDivElement>(null);
 	const appearance = useClassicyAppearance("ListBox", { disabled }, rootRef);
+	useClassicyAppearanceInput();
 	// Focus moving between rows stays inside the list: only focus entering
 	// from, or leaving to, outside the list is a focus or blur of the list.
 	const isInsideList = (target: EventTarget | null) =>
 		target instanceof Node && !!rootRef.current?.contains(target);
 	const handleFocus = (e: FocusEvent<HTMLDivElement>) => {
-		if (!isInsideList(e.relatedTarget)) appearance.emit("focus");
+		if (!isInsideList(e.relatedTarget))
+			appearance.emit("focus", withClassicyAppearanceInput());
 	};
 	const handleBlur = (e: FocusEvent<HTMLDivElement>) => {
-		if (!isInsideList(e.relatedTarget)) appearance.emit("blur");
+		if (!isInsideList(e.relatedTarget))
+			appearance.emit("blur", withClassicyAppearanceInput());
 	};
 
 	const commit = (values: string[]) => {
@@ -146,7 +153,10 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 		// Click and keyboard both select through here; `selected` is false
 		// only for a Ctrl/⌘-click that deselects in multi mode.
 		const emitSelect = (selected: boolean) =>
-			appearance.emit("select", { value: option.value, selected });
+			appearance.emit(
+				"select",
+				withClassicyAppearanceInput({ value: option.value, selected }),
+			);
 		if (selectionMode === "multi") {
 			if (mods.shiftKey && anchorIndex.current >= 0) {
 				const from = Math.min(anchorIndex.current, index);

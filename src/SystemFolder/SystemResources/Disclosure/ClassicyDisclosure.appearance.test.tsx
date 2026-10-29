@@ -49,11 +49,13 @@ describe("ClassicyDisclosure appearance", () => {
 			</ClassicyDisclosure>,
 		);
 		const header = screen.getByRole("button", { name: /More/ });
+		fireEvent.mouseDown(header);
 		fireEvent.click(header);
+		fireEvent.mouseDown(header);
 		fireEvent.click(header);
 		expect(emitted()).toEqual([
-			{ event: "expand", detail: undefined },
-			{ event: "collapse", detail: undefined },
+			{ event: "expand", detail: { input: "pointer" } },
+			{ event: "collapse", detail: { input: "pointer" } },
 		]);
 	});
 
@@ -70,11 +72,12 @@ describe("ClassicyDisclosure appearance", () => {
 		// Already open: a second ⌘→ does nothing.
 		fireEvent.keyDown(header, { key: "ArrowRight", ctrlKey: true });
 		fireEvent.keyDown(header, { key: "ArrowLeft", metaKey: true });
-		expect(emitted().map((e) => e.event)).toEqual([
-			"expand",
-			"collapse",
-			"expand",
-			"collapse",
+		const keyboard = { input: "keyboard" };
+		expect(emitted()).toEqual([
+			{ event: "expand", detail: keyboard },
+			{ event: "collapse", detail: keyboard },
+			{ event: "expand", detail: keyboard },
+			{ event: "collapse", detail: keyboard },
 		]);
 	});
 

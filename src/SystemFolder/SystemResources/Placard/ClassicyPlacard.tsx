@@ -13,6 +13,10 @@ import {
 	useState,
 } from "react";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import {
+	useClassicyAppearanceInput,
+	withClassicyAppearanceInput,
+} from "@/Appearance/useClassicyAppearanceInput.internal";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 
 export type ClassicyPlacardMenuItem = {
@@ -93,13 +97,14 @@ export const ClassicyPlacard: FunctionalComponent<ClassicyPlacardProps> = ({
 		placardRef,
 	);
 	const emitAppearance = appearance.emit;
+	useClassicyAppearanceInput();
 	// `close` follows the menu going away, whichever path dismissed it (a
 	// pick, a second click, an outside press).
 	const wasOpenRef = useRef(open);
 	useEffect(() => {
 		if (wasOpenRef.current === open) return;
 		wasOpenRef.current = open;
-		if (!open) emitAppearance("close");
+		if (!open) emitAppearance("close", withClassicyAppearanceInput());
 	}, [open, emitAppearance]);
 
 	// Close the pop-up menu on any outside click.
@@ -116,10 +121,10 @@ export const ClassicyPlacard: FunctionalComponent<ClassicyPlacardProps> = ({
 
 	const handleClick = (e: MouseEvent<HTMLElement>) => {
 		if (disabled) return;
-		appearance.emit("click", { menu: hasMenu });
+		appearance.emit("click", withClassicyAppearanceInput({ menu: hasMenu }));
 		if (hasMenu) {
 			setOpen((o) => !o);
-			if (!open) appearance.emit("open");
+			if (!open) appearance.emit("open", withClassicyAppearanceInput());
 		}
 		if (onClick) onClick(e);
 	};
@@ -128,10 +133,12 @@ export const ClassicyPlacard: FunctionalComponent<ClassicyPlacardProps> = ({
 	// browser turns them into the click).
 	const isActivationKey = (key: string) => key === "Enter" || key === " ";
 	const handleKeyDown = (e: KeyboardEvent<HTMLElement>) => {
-		if (!e.repeat && isActivationKey(e.key)) appearance.emit("press");
+		if (!e.repeat && isActivationKey(e.key))
+			appearance.emit("press", withClassicyAppearanceInput());
 	};
 	const handleKeyUp = (e: KeyboardEvent<HTMLElement>) => {
-		if (isActivationKey(e.key)) appearance.emit("release");
+		if (isActivationKey(e.key))
+			appearance.emit("release", withClassicyAppearanceInput());
 	};
 
 	const handleSelect = (item: ClassicyPlacardMenuItem) => {
@@ -180,7 +187,7 @@ export const ClassicyPlacard: FunctionalComponent<ClassicyPlacardProps> = ({
 					onKeyUp={handleKeyUp}
 					onMouseDown={() => {
 						setPressed(true);
-						appearance.emit("press");
+						appearance.emit("press", withClassicyAppearanceInput());
 						player({
 							type: "ClassicySoundPlay",
 							sound: "ClassicyButtonClickDown",
@@ -188,7 +195,7 @@ export const ClassicyPlacard: FunctionalComponent<ClassicyPlacardProps> = ({
 					}}
 					onMouseUp={() => {
 						setPressed(false);
-						appearance.emit("release");
+						appearance.emit("release", withClassicyAppearanceInput());
 						player({
 							type: "ClassicySoundPlay",
 							sound: "ClassicyButtonClickUp",

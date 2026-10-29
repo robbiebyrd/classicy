@@ -15,6 +15,10 @@ import {
 	useState,
 } from "react";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import {
+	useClassicyAppearanceInput,
+	withClassicyAppearanceInput,
+} from "@/Appearance/useClassicyAppearanceInput.internal";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
@@ -124,11 +128,14 @@ export const ClassicyRadioInput: FunctionalComponent<
 	// live on each item's wrapper.
 	const appearance = useClassicyAppearance("RadioInput", {}, groupRef);
 
+	useClassicyAppearanceInput();
+
 	const { track } = useClassicyAnalytics();
 	const analyticsArgs = { name, label, disabled, inputs };
 
 	const handleOnChange = (id: string) => {
-		if (id !== check) appearance.emit("change", { itemId: id });
+		if (id !== check)
+			appearance.emit("change", withClassicyAppearanceInput({ itemId: id }));
 		setCheck(id);
 		track("selected", {
 			type: "ClassicyRadioInput",

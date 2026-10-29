@@ -23,6 +23,10 @@ import {
 } from "react";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import {
+	useClassicyAppearanceInput,
+	withClassicyAppearanceInput,
+} from "@/Appearance/useClassicyAppearanceInput.internal";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 
 /**
@@ -219,6 +223,7 @@ export function ClassicyTable<T>({
 	);
 	// The container had no state class; `selected` stays on rows and headers.
 	const appearance = useClassicyAppearance("Table", {}, containerRef);
+	useClassicyAppearanceInput();
 	const typeBuffer = useRef("");
 	const typeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
 		undefined,
@@ -294,7 +299,10 @@ export function ClassicyTable<T>({
 		if (selectionMode === "none") return;
 		const visual = table.getRowModel().rows;
 		const emitSelect = (selected: boolean) =>
-			appearance.emit("select", { rowId, selected });
+			appearance.emit(
+				"select",
+				withClassicyAppearanceInput({ rowId, selected }),
+			);
 		if (selectionMode === "multi") {
 			if (mods.shiftKey && anchorId.current) {
 				const ai = visual.findIndex((r) => r.id === anchorId.current);

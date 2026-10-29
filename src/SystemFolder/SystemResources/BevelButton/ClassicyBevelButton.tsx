@@ -16,6 +16,10 @@ import {
 	useState,
 } from "react";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import {
+	useClassicyAppearanceInput,
+	withClassicyAppearanceInput,
+} from "@/Appearance/useClassicyAppearanceInput.internal";
 import type { ClassicyState } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
@@ -316,13 +320,14 @@ export const ClassicyBevelButton: FunctionalComponent<
 		),
 		buttonRef,
 	);
+	useClassicyAppearanceInput();
 	// `close` follows the surface going away, whichever path dismissed it.
 	const wasPopupOpenRef = useRef(popupOpen);
 	const emitAppearance = appearance.emit;
 	useEffect(() => {
 		if (wasPopupOpenRef.current === popupOpen) return;
 		wasPopupOpenRef.current = popupOpen;
-		if (!popupOpen) emitAppearance("close");
+		if (!popupOpen) emitAppearance("close", withClassicyAppearanceInput());
 	}, [popupOpen, emitAppearance]);
 
 	const clearHoldTimer = useCallback(() => {
@@ -350,7 +355,7 @@ export const ClassicyBevelButton: FunctionalComponent<
 			right: rect.right - (popupAnchorInset?.right ?? 0),
 		});
 		player({ type: "ClassicySoundPlay", sound: "ClassicyMenuOpen" });
-		appearance.emit("open", { trigger });
+		appearance.emit("open", withClassicyAppearanceInput({ trigger }));
 		track("open", { type: "ClassicyBevelButton", mode, trigger });
 	};
 
@@ -405,7 +410,7 @@ export const ClassicyBevelButton: FunctionalComponent<
 			suppressClickRef.current = false;
 			return;
 		}
-		appearance.emit("click");
+		appearance.emit("click", withClassicyAppearanceInput());
 		// A click with no pointer behind it (detail 0) is Enter or Space: with a
 		// click trigger that is how the keyboard opens and closes the surface.
 		if (hasSurface && trigger === "click" && e.detail === 0) {

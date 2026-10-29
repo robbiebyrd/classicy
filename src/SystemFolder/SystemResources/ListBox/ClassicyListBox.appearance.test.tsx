@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { fireEvent, render, screen } from "@/__tests__/test-utils";
+import { act, fireEvent, render, screen } from "@/__tests__/test-utils";
 import { installClassicyAppearanceProbe } from "@/Appearance/__tests__/appearanceProbe";
 import { ClassicyListBox } from "@/SystemFolder/SystemResources/ListBox/ClassicyListBox";
 
@@ -41,23 +41,37 @@ describe("ClassicyListBox appearance", () => {
 
 	it("emits its events", () => {
 		render(<ClassicyListBox id="l" options={OPTIONS} />);
-		fireEvent.click(screen.getByRole("option", { name: "Beta" }));
+		const beta = screen.getByRole("option", { name: "Beta" });
+		fireEvent.mouseDown(beta);
+		fireEvent.click(beta);
 		// Clicking a row focuses it first, so focus enters the list.
 		expect(emitted()).toEqual([
-			{ event: "focus", detail: undefined },
-			{ event: "select", detail: { value: "b", selected: true } },
+			{ event: "focus", detail: { input: "pointer" } },
+			{
+				event: "select",
+				detail: { value: "b", selected: true, input: "pointer" },
+			},
 		]);
 	});
 
 	it("emits select for keyboard selection", () => {
 		render(<ClassicyListBox id="l" options={OPTIONS} />);
 		const alpha = screen.getByRole("option", { name: "Alpha" });
-		fireEvent.focus(alpha);
+		fireEvent.keyDown(document.body, { key: "Tab" });
+		// Real focus, so the arrow's move to Beta stays inside the list.
+		act(() => alpha.focus());
 		fireEvent.keyDown(alpha, { key: " " });
 		fireEvent.keyDown(alpha, { key: "ArrowDown" });
-		expect(emitted().filter((e) => e.event === "select")).toEqual([
-			{ event: "select", detail: { value: "a", selected: true } },
-			{ event: "select", detail: { value: "b", selected: true } },
+		expect(emitted()).toEqual([
+			{ event: "focus", detail: { input: "keyboard" } },
+			{
+				event: "select",
+				detail: { value: "a", selected: true, input: "keyboard" },
+			},
+			{
+				event: "select",
+				detail: { value: "b", selected: true, input: "keyboard" },
+			},
 		]);
 	});
 
@@ -70,11 +84,16 @@ describe("ClassicyListBox appearance", () => {
 				selected={["a", "b"]}
 			/>,
 		);
-		fireEvent.click(screen.getByRole("option", { name: "Beta" }), {
-			ctrlKey: true,
-		});
+		const beta = screen.getByRole("option", { name: "Beta" });
+		// The modifier goes down before the pointer: still a pointer click.
+		fireEvent.keyDown(beta, { key: "Control", ctrlKey: true });
+		fireEvent.mouseDown(beta, { ctrlKey: true });
+		fireEvent.click(beta, { ctrlKey: true });
 		expect(emitted().filter((e) => e.event === "select")).toEqual([
-			{ event: "select", detail: { value: "b", selected: false } },
+			{
+				event: "select",
+				detail: { value: "b", selected: false, input: "pointer" },
+			},
 		]);
 	});
 
@@ -86,14 +105,18 @@ describe("ClassicyListBox appearance", () => {
 			</>,
 		);
 		const [alpha, beta] = screen.getAllByRole("option");
+		fireEvent.keyDown(document.body, { key: "Tab" });
 		fireEvent.focus(alpha);
 		// Moving between rows stays inside the list: no blur/focus pair.
 		fireEvent.blur(alpha, { relatedTarget: beta });
 		fireEvent.focus(beta, { relatedTarget: alpha });
-		fireEvent.blur(beta, {
-			relatedTarget: screen.getByRole("button", { name: "outside" }),
-		});
-		expect(emitted().map((e) => e.event)).toEqual(["focus", "blur"]);
+		const outside = screen.getByRole("button", { name: "outside" });
+		fireEvent.mouseDown(outside);
+		fireEvent.blur(beta, { relatedTarget: outside });
+		expect(emitted()).toEqual([
+			{ event: "focus", detail: { input: "keyboard" } },
+			{ event: "blur", detail: { input: "pointer" } },
+		]);
 	});
 
 	it("adds nothing when the package returns nothing", () => {

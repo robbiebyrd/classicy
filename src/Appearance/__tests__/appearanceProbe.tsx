@@ -9,6 +9,7 @@ import {
 	registerClassicyAppearancePackage,
 	resetClassicyAppearancePackagesForTests,
 } from "@/Appearance/ClassicyAppearancePackage";
+import { resetClassicyAppearanceInputForTests } from "@/Appearance/useClassicyAppearanceInput.internal";
 import {
 	CLASSICY_COMPONENT,
 	type ClassicyComponentName,
@@ -82,6 +83,8 @@ export function installClassicyAppearanceProbe(options?: {
 	const previousPackageId =
 		useAppManager.getState().System.Manager.Appearance.packageId;
 	const events: ClassicyAppearanceProbeEvent[] = [];
+	// Each test starts from "pointer", whatever the last test pressed.
+	resetClassicyAppearanceInputForTests();
 
 	const on: NonNullable<ClassicyAppearanceHooks["on"]> = {};
 	for (const component of Object.keys(
