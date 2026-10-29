@@ -37,11 +37,11 @@ describe("ClassicyButton appearance", () => {
 		const el = root(container);
 		fireEvent.mouseDown(el);
 		fireEvent.mouseUp(el);
-		fireEvent.click(el);
-		expect(emitted().map((e) => e.event)).toEqual([
-			"press",
-			"release",
-			"click",
+		fireEvent.click(el, { detail: 1 });
+		expect(emitted()).toEqual([
+			{ event: "press", detail: { input: "pointer" } },
+			{ event: "release", detail: { input: "pointer" } },
+			{ event: "click", detail: { input: "pointer" } },
 		]);
 	});
 
@@ -49,8 +49,14 @@ describe("ClassicyButton appearance", () => {
 		const { container } = render(<ClassicyButton>OK</ClassicyButton>);
 		const el = root(container);
 		fireEvent.keyDown(el, { key: "Enter" });
+		// Enter clicks on keydown; the click has no pointer behind it.
+		fireEvent.click(el, { detail: 0 });
 		fireEvent.keyUp(el, { key: "Enter" });
-		expect(emitted().map((e) => e.event)).toEqual(["press", "release"]);
+		expect(emitted()).toEqual([
+			{ event: "press", detail: { input: "keyboard" } },
+			{ event: "click", detail: { input: "keyboard" } },
+			{ event: "release", detail: { input: "keyboard" } },
+		]);
 	});
 
 	it("adds nothing when the package returns nothing", () => {

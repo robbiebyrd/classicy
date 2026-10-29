@@ -45,8 +45,11 @@ describe("ClassicyLink appearance", () => {
 				Docs
 			</ClassicyLink>,
 		);
+		fireEvent.mouseDown(screen.getByText("Docs"));
 		fireEvent.click(screen.getByText("Docs"));
-		expect(emitted()).toEqual([{ event: "click", detail: undefined }]);
+		expect(emitted()).toEqual([
+			{ event: "click", detail: { input: "pointer" } },
+		]);
 	});
 
 	it("emits click for keyboard activation of an event link", () => {
@@ -57,7 +60,10 @@ describe("ClassicyLink appearance", () => {
 		fireEvent.keyDown(screen.getByRole("button", { name: "Run" }), {
 			key: " ",
 		});
-		expect(emitted().map((e) => e.event)).toEqual(["click", "click"]);
+		expect(emitted()).toEqual([
+			{ event: "click", detail: { input: "keyboard" } },
+			{ event: "click", detail: { input: "keyboard" } },
+		]);
 	});
 
 	it("emits nothing when disabled", () => {

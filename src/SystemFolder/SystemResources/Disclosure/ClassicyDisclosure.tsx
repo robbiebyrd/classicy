@@ -15,6 +15,10 @@ import {
 	useState,
 } from "react";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import {
+	useClassicyAppearanceInput,
+	withClassicyAppearanceInput,
+} from "@/Appearance/useClassicyAppearanceInput.internal";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
@@ -80,10 +84,14 @@ export const ClassicyDisclosure: FunctionalComponent<
 	const rootRef = useRef<HTMLDivElement>(null);
 	// The root had no state class; `open` stays on the inner panel.
 	const appearance = useClassicyAppearance("Disclosure", {}, rootRef);
+	useClassicyAppearanceInput();
 
 	function setOpenState(next: boolean) {
 		track("click", { expanded: next, ...analyticsArgs });
-		appearance.emit(next ? "expand" : "collapse");
+		appearance.emit(
+			next ? "expand" : "collapse",
+			withClassicyAppearanceInput(),
+		);
 		setOpen(next);
 	}
 
