@@ -3,12 +3,13 @@ id: 0033-f4o
 title: 'B 0: Parity baseline'
 purpose: Capture before-screenshots of every Storybook story so Part B's package extraction can be proven pixel-identical for Platinum.
 type: chor
-status: in_progress
+status: complete
 priority: "2"
 effort: S
 created: "2026-10-28T20:09:19.027Z"
-updated: "2026-10-29T09:20:35.431Z"
+updated: "2026-10-29T11:35:06.975Z"
 started: "2026-10-29T09:20:35.365Z"
+completed: "2026-10-29T11:35:06.975Z"
 links:
   repo:
     local: ~/classicy
@@ -23,13 +24,13 @@ links:
     - ["0005-1b3", "included", ["0"]]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
 ---
 
 # B 0: Parity baseline
@@ -62,9 +63,9 @@ Playwright: for each id open `http://localhost:<port>/iframe.html?id=<id>&viewMo
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: test "$(ls .playwright-mcp/parity/part-b/before | wc -l)" -eq "$(wc -l < .playwright-mcp/parity/part-b/stories.txt)"
-- [ ] stories.txt lists every story id from Storybook's index.json (the full set, not a subset).
-- [ ] [MANUAL] Each before PNG is a 1024×768 capture taken after networkidle + 500 ms.
+- [x] VERIFY: test "$(ls .playwright-mcp/parity/part-b/before | wc -l)" -eq "$(wc -l < .playwright-mcp/parity/part-b/stories.txt)"
+- [x] stories.txt lists every story id from Storybook's index.json (the full set, not a subset).
+- [x] [MANUAL] Each before PNG is a 1024×768 capture taken after networkidle + 500 ms.
 
 ## Files
 
@@ -74,3 +75,5 @@ Playwright: for each id open `http://localhost:<port>/iframe.html?id=<id>&viewMo
 ## Work Log
 
 ### 2026-10-29T09:20:35.430Z - Started from 738dbead5: deterministic double baseline of every Storybook story (shot twice, must self-match) plus a computed-style dump per story; a read-only reconciliation of the plan against landed Parts A/C/D runs in parallel.
+
+### 2026-10-29T11:35:06.703Z - Baseline captured at 738dbead5 (no code commits): 302/302 stories, before vs before-2 AE 0 on every pair after adding chromium flags --disable-gpu --disable-lcd-text --disable-partial-raster and a two-identical-frames rule (Part A's procedure left 3-4 bistable 1px flips per run). Computed dumps 302x2 (12 differ only in auto margin on DIV.classicyDesktopIconImage, ignored). Forced-state matrix 67 states, two runs identical; slider pseudo-elements dumped via Firefox (6 files). Scripts and baselines in .playwright-mcp/parity/part-b/ (gitignored).

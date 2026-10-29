@@ -6,7 +6,7 @@ status: in_progress
 priority: "2"
 effort: XL
 created: "2026-10-28T19:03:51.006Z"
-updated: "2026-10-29T09:20:35.114Z"
+updated: "2026-10-29T11:35:07.729Z"
 links:
   repo:
     local: ~/classicy
@@ -18,11 +18,11 @@ links:
     - ["0000-aud", "included"]
 progress:
   "0":
-    status: in_progress
+    status: complete
   "1":
-    status: pending
+    status: in_progress
   "1.1":
-    status: pending
+    status: in_progress
   "2":
     status: pending
   "2.1":

@@ -3,11 +3,12 @@ id: 0034-whu
 title: 'B 1.1: ClassicyAppearancePackage.ts, ClassicyAppearancePackageSchema.ts, ClassicyAppearanceStyles.ts'
 purpose: Create the Appearance Package registry, its zod schema and the scoped style injector that every later package feature builds on.
 type: feat
-status: pending
+status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T20:10:08.701Z"
-updated: "2026-10-28T20:10:08.701Z"
+updated: "2026-10-29T11:35:17.910Z"
+started: "2026-10-29T11:35:17.910Z"
 links:
   repo:
     local: ~/classicy
