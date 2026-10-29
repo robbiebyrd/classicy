@@ -69,11 +69,13 @@ describe("ClassicyTabs appearance", () => {
 		render(<ClassicyTabs tabs={TABS} />);
 		const second = screen.getByRole("tab", { name: "Two" });
 		fireEvent.mouseDown(second);
-		expect(emitted()).toEqual([{ event: "press", detail: { tabId: 1 } }]);
+		expect(emitted()).toEqual([
+			{ event: "press", detail: { tabId: 1, input: "pointer" } },
+		]);
 		// Releasing the press is the click that selects the tab.
 		fireEvent.mouseUp(second);
 		expect(emitted().slice(1)).toEqual([
-			{ event: "select", detail: { tabId: 1 } },
+			{ event: "select", detail: { tabId: 1, input: "pointer" } },
 		]);
 	});
 
@@ -88,10 +90,10 @@ describe("ClassicyTabs appearance", () => {
 			key: "x",
 		});
 		expect(emitted()).toEqual([
-			{ event: "press", detail: { tabId: 1 } },
-			{ event: "select", detail: { tabId: 1 } },
-			{ event: "press", detail: { tabId: 4 } },
-			{ event: "select", detail: { tabId: 4 } },
+			{ event: "press", detail: { tabId: 1, input: "keyboard" } },
+			{ event: "select", detail: { tabId: 1, input: "keyboard" } },
+			{ event: "press", detail: { tabId: 4, input: "keyboard" } },
+			{ event: "select", detail: { tabId: 4, input: "keyboard" } },
 		]);
 	});
 
@@ -102,6 +104,7 @@ describe("ClassicyTabs appearance", () => {
 		// jsdom never scrolls on its own: report the new offset.
 		fireEvent.scroll(scroller);
 		fireEvent.click(screen.getByLabelText("Scroll tabs left"));
+		// The arrows are pointer-only (not focusable): no input.
 		expect(emitted()).toEqual([
 			{ event: "change", detail: { scroll: 1 } },
 			{ event: "change", detail: { scroll: -1 } },

@@ -45,12 +45,12 @@ describe("ClassicyPlacard appearance", () => {
 		fireEvent.mouseDown(el);
 		fireEvent.mouseUp(el);
 		expect(emitted()).toEqual([
-			{ event: "press", detail: undefined },
-			{ event: "release", detail: undefined },
+			{ event: "press", detail: { input: "pointer" } },
+			{ event: "release", detail: { input: "pointer" } },
 		]);
-		fireEvent.click(el);
+		fireEvent.click(el, { detail: 1 });
 		expect(emitted().slice(2)).toEqual([
-			{ event: "click", detail: { menu: false } },
+			{ event: "click", detail: { menu: false, input: "pointer" } },
 		]);
 	});
 
@@ -58,24 +58,35 @@ describe("ClassicyPlacard appearance", () => {
 		const { container } = render(
 			<ClassicyPlacard menuItems={ITEMS}>100%</ClassicyPlacard>,
 		);
-		fireEvent.click(root(container));
+		// A pointer press with no mousedown handler of its own: only the click.
+		fireEvent.pointerDown(root(container));
+		fireEvent.click(root(container), { detail: 1 });
 		expect(emitted()).toEqual([
-			{ event: "click", detail: { menu: true } },
-			{ event: "open", detail: undefined },
+			{ event: "click", detail: { menu: true, input: "pointer" } },
+			{ event: "open", detail: { input: "pointer" } },
 		]);
 		// An open menu keeps the placard pressed, as before (I-R4).
 		expect(root(container)).toHaveClass("pressed");
-		fireEvent.click(screen.getByRole("menuitem", { name: "50%" }));
-		expect(emitted().slice(2)).toEqual([{ event: "close", detail: undefined }]);
+		const item = screen.getByRole("menuitem", { name: "50%" });
+		fireEvent.mouseDown(item);
+		fireEvent.click(item);
+		expect(emitted().slice(2)).toEqual([
+			{ event: "close", detail: { input: "pointer" } },
+		]);
 	});
 
 	it("emits close when an outside press dismisses the menu", () => {
 		const { container } = render(
 			<ClassicyPlacard menuItems={ITEMS}>100%</ClassicyPlacard>,
 		);
-		fireEvent.click(root(container));
+		fireEvent.keyDown(root(container), { key: "Enter" });
+		fireEvent.click(root(container), { detail: 0 });
 		fireEvent.mouseDown(document.body);
-		expect(emitted().map((e) => e.event)).toEqual(["click", "open", "close"]);
+		expect(emitted().slice(1)).toEqual([
+			{ event: "click", detail: { menu: true, input: "keyboard" } },
+			{ event: "open", detail: { input: "keyboard" } },
+			{ event: "close", detail: { input: "pointer" } },
+		]);
 	});
 
 	it("emits press and release for Return and Space", () => {
@@ -90,11 +101,12 @@ describe("ClassicyPlacard appearance", () => {
 		}
 		fireEvent.keyDown(el, { key: "a" });
 		fireEvent.keyUp(el, { key: "a" });
-		expect(emitted().map((e) => e.event)).toEqual([
-			"press",
-			"release",
-			"press",
-			"release",
+		const keyboard = { input: "keyboard" };
+		expect(emitted()).toEqual([
+			{ event: "press", detail: keyboard },
+			{ event: "release", detail: keyboard },
+			{ event: "press", detail: keyboard },
+			{ event: "release", detail: keyboard },
 		]);
 	});
 

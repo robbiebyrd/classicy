@@ -52,21 +52,30 @@ describe("ClassicyTree appearance", () => {
 	it("emits its events", () => {
 		render(<ClassicyTree nodes={NODES} />);
 		const branch = row("Branch");
+		fireEvent.mouseDown(branch);
 		fireEvent.click(branch);
 		expect(emitted()).toEqual([
-			{ event: "expand", detail: { nodeId: "branch", open: true } },
+			{
+				event: "expand",
+				detail: { nodeId: "branch", open: true, input: "pointer" },
+			},
 		]);
+		fireEvent.mouseDown(branch);
 		fireEvent.click(branch);
 		expect(emitted().slice(1)).toEqual([
-			{ event: "collapse", detail: { nodeId: "branch", open: false } },
+			{
+				event: "collapse",
+				detail: { nodeId: "branch", open: false, input: "pointer" },
+			},
 		]);
 	});
 
 	it("emits select for a clicked leaf", () => {
 		render(<ClassicyTree nodes={NODES} selectionMode="single" />);
+		fireEvent.mouseDown(row("Leaf"));
 		fireEvent.click(row("Leaf"));
 		expect(emitted()).toEqual([
-			{ event: "select", detail: { nodeId: "leaf" } },
+			{ event: "select", detail: { nodeId: "leaf", input: "pointer" } },
 		]);
 	});
 
@@ -83,12 +92,14 @@ describe("ClassicyTree appearance", () => {
 		fireEvent.keyDown(list, { key: " " });
 		fireEvent.focus(row("Leaf"));
 		fireEvent.keyDown(list, { key: "Enter" });
+		const open = { nodeId: "branch", open: true };
+		const closed = { nodeId: "branch", open: false };
 		expect(emitted()).toEqual([
-			{ event: "expand", detail: { nodeId: "branch", open: true } },
-			{ event: "collapse", detail: { nodeId: "branch", open: false } },
-			{ event: "expand", detail: { nodeId: "branch", open: true } },
-			{ event: "collapse", detail: { nodeId: "branch", open: false } },
-			{ event: "select", detail: { nodeId: "leaf" } },
+			{ event: "expand", detail: { ...open, input: "keyboard" } },
+			{ event: "collapse", detail: { ...closed, input: "keyboard" } },
+			{ event: "expand", detail: { ...open, input: "keyboard" } },
+			{ event: "collapse", detail: { ...closed, input: "keyboard" } },
+			{ event: "select", detail: { nodeId: "leaf", input: "keyboard" } },
 		]);
 	});
 

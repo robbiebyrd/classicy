@@ -34,8 +34,13 @@ describe("ClassicySlider appearance", () => {
 
 	it("emits its events", () => {
 		const { container } = render(<ClassicySlider id="s" value={10} />);
-		fireEvent.change(root(container), { target: { value: "40" } });
-		expect(emitted()).toEqual([{ event: "change", detail: { value: 40 } }]);
+		const el = root(container);
+		// A click on the track: the mouse goes down, the value jumps.
+		fireEvent.mouseDown(el);
+		fireEvent.change(el, { target: { value: "40" } });
+		expect(emitted()).toEqual([
+			{ event: "change", detail: { value: 40, input: "pointer" } },
+		]);
 	});
 
 	it("brackets a pointer drag with dragStart and dragEnd, with or without a ghost", () => {
@@ -49,7 +54,7 @@ describe("ClassicySlider appearance", () => {
 			fireEvent.pointerUp(el);
 			expect(emitted()).toEqual([
 				{ event: "dragStart", detail: { value: 10 } },
-				{ event: "change", detail: { value: 40 } },
+				{ event: "change", detail: { value: 40, input: "pointer" } },
 				{ event: "dragEnd", detail: { value: 40 } },
 			]);
 			unmount();
@@ -74,7 +79,7 @@ describe("ClassicySlider appearance", () => {
 		fireEvent.pointerUp(document.body);
 		expect(emitted()).toEqual([
 			{ event: "dragStart", detail: { value: 10 } },
-			{ event: "change", detail: { value: 30 } },
+			{ event: "change", detail: { value: 30, input: "pointer" } },
 			{ event: "dragEnd", detail: { value: 30 } },
 		]);
 		// A later release on the input is not a second end.
@@ -89,7 +94,9 @@ describe("ClassicySlider appearance", () => {
 		fireEvent.keyDown(el, { key: "ArrowRight" });
 		fireEvent.change(el, { target: { value: "11" } });
 		fireEvent.keyUp(el, { key: "ArrowRight" });
-		expect(emitted()).toEqual([{ event: "change", detail: { value: 11 } }]);
+		expect(emitted()).toEqual([
+			{ event: "change", detail: { value: 11, input: "keyboard" } },
+		]);
 	});
 
 	it("emits no drag while disabled", () => {
