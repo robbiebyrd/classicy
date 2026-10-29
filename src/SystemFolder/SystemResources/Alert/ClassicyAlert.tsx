@@ -10,6 +10,8 @@ import {
 	useRef,
 } from "react";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import { CLASSICY_PART_ATTRIBUTE } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
@@ -191,6 +193,15 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 	const player = useSoundDispatch();
 	const contentRef = useRef<HTMLDivElement | null>(null);
 	const defaultButtonRef = useRef<HTMLButtonElement | null>(null);
+	const appearance = useClassicyAppearance("Alert", {}, contentRef);
+	const { emit } = appearance;
+
+	// An alert is open for as long as it is mounted: once per mount, even if
+	// the sound dispatch (and so `emit`) changes identity.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: emitted once per mount
+	useEffect(() => {
+		emit("open");
+	}, []);
 
 	const resolvedButtons = useMemo(
 		() =>
@@ -224,10 +235,13 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 	const handleButton = useCallback(
 		(button: ClassicyAlertButton) => {
 			if (button.disabled) return;
+			// A click (or Return/Space on the focused button), or Return,
+			// Escape or Command-period through the keyboard equivalents.
+			emit("close", withClassicyAppearanceInput({ buttonId: button.id }));
 			button.onClick?.();
 			onClose?.();
 		},
-		[onClose],
+		[onClose, emit],
 	);
 
 	const onDefault = useCallback(() => {
@@ -286,11 +300,14 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 			analyticsExclude
 		>
 			<div
+				{...appearance.attrs}
 				ref={contentRef}
 				className={classNames(
 					"classicyAlert",
+					appearance.className,
 					movable ? "classicyAlertMovable" : "classicyAlertFixed",
 				)}
+				style={appearance.style}
 				role="alertdialog"
 				aria-modal="true"
 				aria-label={label}

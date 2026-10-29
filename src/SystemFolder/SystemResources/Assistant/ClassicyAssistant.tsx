@@ -6,8 +6,11 @@ import {
 	type FC as FunctionalComponent,
 	type KeyboardEvent,
 	type ReactNode,
+	useRef,
 	useState,
 } from "react";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyPager } from "@/SystemFolder/SystemResources/Pager/ClassicyPager";
@@ -130,6 +133,8 @@ export const ClassicyAssistant: FunctionalComponent<ClassicyAssistantProps> = ({
 		clamp(initialPage, 0, lastIndex),
 	);
 	const player = useSoundDispatch();
+	const rootRef = useRef<HTMLDivElement>(null);
+	const appearance = useClassicyAppearance("Assistant", {}, rootRef);
 
 	const isControlled = page !== undefined;
 	const currentPage = clamp(
@@ -156,6 +161,8 @@ export const ClassicyAssistant: FunctionalComponent<ClassicyAssistantProps> = ({
 		const next = clamp(index, 0, lastIndex);
 		if (next === currentPage) return;
 		player({ type: "ClassicySoundPlay", sound: "ClassicyTabClickUp" });
+		// The pager's arrows and the arrow keys both land here.
+		appearance.emit("change", withClassicyAppearanceInput({ page: next }));
 		if (!isControlled) setUncontrolledPage(next);
 		onPageChange?.(next);
 	};
@@ -183,8 +190,14 @@ export const ClassicyAssistant: FunctionalComponent<ClassicyAssistantProps> = ({
 	return (
 		// biome-ignore lint/a11y/noStaticElementInteractions: wizard container is a focusable arrow-key nav surface
 		<div
-			className={classNames("classicyAssistant", className)}
-			style={style}
+			{...appearance.attrs}
+			ref={rootRef}
+			className={classNames(
+				"classicyAssistant",
+				appearance.className,
+				className,
+			)}
+			style={appearance.style ? { ...appearance.style, ...style } : style}
 			// biome-ignore lint/a11y/noNoninteractiveTabindex: focusable so arrow keys work when focus is within the assistant
 			tabIndex={0}
 			onKeyDown={onKeyDown}
