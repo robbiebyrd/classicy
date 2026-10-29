@@ -3,12 +3,13 @@ id: 0056-mdl
 title: 'E 4.1: Control Strip and PopUpSlider glyphs as package data'
 purpose: Move the nine Control Strip and PopUpSlider pixel-art glyphs out of TS row arrays into Platinum text data files registered as system art, with ClassicyPixelArt reading rows by key.
 type: impr
-status: in_progress
+status: complete
 priority: "2"
 effort: M
 created: "2026-10-28T20:26:03.471Z"
-updated: "2026-10-29T21:06:08.553Z"
+updated: "2026-10-29T21:24:13.649Z"
 started: "2026-10-29T19:28:42.867Z"
+completed: "2026-10-29T21:24:13.649Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -47,19 +48,19 @@ links:
     - ["0009-agy", "included", ["4.1"]]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
   "5":
-    status: pending
+    status: complete
   "6":
-    status: pending
+    status: complete
   "7":
-    status: pending
+    status: complete
 ---
 
 # E 4.1: Control Strip and PopUpSlider glyphs as package data
@@ -110,9 +111,9 @@ In `ClassicyPixelArt.tsx`: `export const CLASSICY_PIXEL_ART_MIME = "text/x-class
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/PixelArt src/Appearance/Platinum/assets/pixelart
-- [ ] VERIFY: test ! -e src/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripArt.ts && test ! -e src/SystemFolder/SystemResources/PopUpSlider/ClassicyPopUpSliderArt.ts
-- [ ] `ClassicyPixelArt` accepts `rows` or `art`; `encode/decodeClassicyPixelArtRows` round-trip and the nine `platinum` keys decode to their HIG sizes.
+- [x] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/PixelArt src/Appearance/Platinum/assets/pixelart
+- [x] VERIFY: test ! -e src/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripArt.ts && test ! -e src/SystemFolder/SystemResources/PopUpSlider/ClassicyPopUpSliderArt.ts
+- [x] `ClassicyPixelArt` accepts `rows` or `art`; `encode/decodeClassicyPixelArtRows` round-trip and the nine `platinum` keys decode to their HIG sizes.
 
 ## Files
 
@@ -147,3 +148,5 @@ In `ClassicyPixelArt.tsx`: `export const CLASSICY_PIXEL_ART_MIME = "text/x-class
 ### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
 
 ### 2026-10-29T21:06:08.553Z - Final round 1 (d3a5b7773) moved the MIME to ClassicyAssetSource.ts and added parseClassicyPixelArtSource. But platinumPixelArt.ts still imports the encoder from the component module ClassicyPixelArt.tsx, which pulls ClassicyPixelArt.scss into Platinum's data graph (+1-1.7 s cold import; the warnings test exceeds 5 s under load). That was the second review's Important finding. Fix round 2 dispatched: move the codec into a dependency-free module, prove the import graph is clean, report timings, and fix the remaining British spellings.
+
+### 2026-10-29T21:24:12.507Z - Fix round 2 f1da2f807 verified by the controller: the codec now lives in the dependency-free src/Appearance/ClassicyPixelArtSource.ts (types plus classicyLog only); platinumPixelArt.ts and the registry import it; ClassicyPixelArt.tsx re-exports it; a new import-graph test proves that Platinum's asset graph loads no .scss and no .tsx. Warnings-test body time fell from a median of about 1.7 s to about 1.1 s with no timeout added. British spellings fixed. Controller: lint and tsc clean; PixelArt, ControlStrip, PopUpSlider and src/Appearance 33 files / 514 tests green; both row modules confirmed deleted. Pushed. Complete; the screenshot check lives in 0083-v8n.
