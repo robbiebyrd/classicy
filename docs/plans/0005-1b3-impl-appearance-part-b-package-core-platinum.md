@@ -2,11 +2,11 @@
 id: 0005-1b3
 title: 'Part B: Package core and the Platinum package'
 type: impl
-status: pending
+status: in_progress
 priority: "2"
 effort: XL
 created: "2026-10-28T19:03:51.006Z"
-updated: "2026-10-28T19:38:38.247Z"
+updated: "2026-10-29T09:20:35.114Z"
 links:
   repo:
     local: ~/classicy
@@ -18,7 +18,7 @@ links:
     - ["0000-aud", "included"]
 progress:
   "0":
-    status: pending
+    status: in_progress
   "1":
     status: pending
   "1.1":

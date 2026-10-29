@@ -3,11 +3,12 @@ id: 0033-f4o
 title: 'B 0: Parity baseline'
 purpose: Capture before-screenshots of every Storybook story so Part B's package extraction can be proven pixel-identical for Platinum.
 type: chor
-status: pending
+status: in_progress
 priority: "2"
 effort: S
 created: "2026-10-28T20:09:19.027Z"
-updated: "2026-10-28T20:09:19.027Z"
+updated: "2026-10-29T09:20:35.431Z"
+started: "2026-10-29T09:20:35.365Z"
 links:
   repo:
     local: ~/classicy
@@ -71,3 +72,5 @@ Playwright: for each id open `http://localhost:<port>/iframe.html?id=<id>&viewMo
 - `.playwright-mcp/parity/part-b/before/` - created: one PNG per story id
 
 ## Work Log
+
+### 2026-10-29T09:20:35.430Z - Started from 738dbead5: deterministic double baseline of every Storybook story (shot twice, must self-match) plus a computed-style dump per story; a read-only reconciliation of the plan against landed Parts A/C/D runs in parallel.

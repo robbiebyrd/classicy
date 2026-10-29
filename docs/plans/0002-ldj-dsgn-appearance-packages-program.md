@@ -198,7 +198,7 @@ Each line names the part plan whose text it corrects; executors apply the amendm
 | Part | Plan | Stories | Audit §9 phase | Effort | Depends on | Can run beside |
 |---|---|---|---|---|---|---|
 | A (landed 738dbead5) | 0003-7x7 Vocabulary and cascade hygiene | 0001-cay … 0009-pat (9), follow-ups 0082-lgo | 1 | XL | 0001-1t9 (done) | C, D, G |
-| B | 0005-1b3 Package core and the Platinum package | 0033-f4o … 0041-dyu (9) | 2 | XL | A | C, D (B wires their registrations last) |
+| B (in progress) | 0005-1b3 Package core and the Platinum package | 0033-f4o … 0041-dyu (9) | 2 | XL | A | C, D (B wires their registrations last) |
 | C | 0007-1sl Asset registries and system art | 0018-0zn … 0025-xns (8) | 3 | L | — | A, B, D, G |
 | D | 0008-j5l Sound packs | 0026-3a7 … 0032-ztu (7) | 4 | M | — | A, B, C, G |
 | E | 0009-agy Art extraction and title-bar unification | 0051-532 … 0058-83a (8) | 5 items 1–5 | L | B, C | F, G, H, I |
