@@ -3,11 +3,18 @@ id: 0080-xy4
 title: 'J 5.1: Presets from the active package; registry-backed fonts, wallpapers and sound packs'
 purpose: Re-point the Themes, Desktop, Fonts and Sound tabs at the active package's presets and the asset/sound registries, carry the package id through theme files, and refuse a theme file for an unregistered package with a stop alert.
 type: impr
-status: pending
+status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T20:43:31.288Z"
-updated: "2026-10-28T20:43:31.288Z"
+updated: "2026-10-29T17:50:20.231Z"
+started: "2026-10-29T17:50:20.231Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy
@@ -94,3 +101,5 @@ Themes: `ThemesTabProps` gains `packageName: string`; the label becomes `The cur
 - `src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.themeFile.test.tsx` - modify: unregistered-package refusal, preset list, sound.pack dispatch
 
 ## Work Log
+
+### 2026-10-29T17:50:12.317Z - Started beside Part B by controller decision (J reconciliation: no code overlap with B). The reconciliation narrows the section: Fonts/Desktop are already registry-backed by Part C and the old ClassicySounds globals are already gone (Part D); the remaining work is the Themes list from the active package (ruling 2), no redundant import pre-check (3), cross-package import (4), the shared Custom slot (8), the filtered sound-pack list via ChangeAppearanceOption { path: "sound.pack" } (10, J-R10) and the Themes label (12). Out of chain order (depends 0079-vn4, J 4.1, code complete). Base 954d06de2; implementer dispatched. Parity deferred until after B lands.
