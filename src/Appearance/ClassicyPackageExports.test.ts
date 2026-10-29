@@ -1,7 +1,8 @@
-import { existsSync, readFileSync } from "node:fs";
+import { execFile } from "node:child_process";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import * as sass from "sass";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
 // The published surface of the Appearance Packages program: package.json
 // `exports`, `files` and `sideEffects`, and the example app that consumes the
@@ -42,15 +43,6 @@ describe("package.json: the Appearance Packages surface", () => {
 		);
 	});
 
-	// npm and pnpm ignore a "!" pattern in `files` once a directory is listed
-	// (`pnpm pack --dry-run` still lists every test), but both honor a
-	// .npmignore inside a listed directory.
-	it("ships no tests or test helpers from src/Appearance", () => {
-		const ignored = read("src/Appearance/.npmignore").split("\n");
-		expect(ignored).toContain("*.test.*");
-		expect(ignored).toContain("__tests__/");
-	});
-
 	it("marks the Platinum entry as a side effect", () => {
 		expect(pkg.sideEffects).toContain("./src/Appearance/Platinum/index.ts");
 		expect(pkg.sideEffects).toContain("./dist/appearance-platinum.js");
@@ -72,6 +64,85 @@ describe("package.json: the Appearance Packages surface", () => {
 		const watch = pkg.scripts["build:watchsource"];
 		expect(watch).not.toContain('--ignore "**/index.ts"');
 		expect(watch).toContain('--ignore "src/index.ts"');
+	});
+});
+
+// What the packers really put in the tarball. pnpm 10 ignores a "!" pattern
+// in `files` (npm 11 honors it), so the tests and `__tests__` helpers under
+// src/Appearance are kept out by src/Appearance/.npmignore, which both honor.
+// Each packer runs once, without lifecycle scripts (`prepare` runs husky).
+type PackedFile = { path: string };
+const PACKERS = [
+	{
+		name: "npm",
+		command: "npm",
+		args: ["pack", "--dry-run", "--json", "--ignore-scripts"],
+		files: (json: unknown) => (json as Array<{ files: PackedFile[] }>)[0].files,
+	},
+	{
+		name: "pnpm",
+		command: "pnpm",
+		args: ["--config.ignore-scripts=true", "pack", "--dry-run", "--json"],
+		files: (json: unknown) => (json as { files: PackedFile[] }).files,
+	},
+];
+
+/** The packed paths, or why the packer could not run (it is not installed). */
+const pack = ({ command, args, files }: (typeof PACKERS)[number]) =>
+	new Promise<string[] | { unavailable: string }>((done, fail) =>
+		execFile(
+			command,
+			args,
+			{ cwd: root, maxBuffer: 64 * 1024 * 1024 },
+			(error, stdout, stderr) => {
+				if ((error as NodeJS.ErrnoException | null)?.code === "ENOENT")
+					return done({ unavailable: `${command} is not on the PATH` });
+				if (error) return fail(new Error(`${command} pack failed: ${stderr}`));
+				done(files(JSON.parse(stdout)).map((file) => file.path));
+			},
+		),
+	);
+
+// Every .scss file under the directories the SCSS exports serve.
+const exportedScss = ["./scss/*", "./appearance/platinum/scss/*"].flatMap(
+	(key) => {
+		const dir = (pkg.exports[key] as string)
+			.replace(/^\.\//, "")
+			.replace(/\*$/, "");
+		return readdirSync(path.resolve(root, dir), { recursive: true })
+			.map(String)
+			.filter((file) => file.endsWith(".scss"))
+			.map((file) => path.posix.join(dir, file.split(path.sep).join("/")));
+	},
+);
+
+describe.each(PACKERS)("the tarball, as $name packs it", (packer) => {
+	let packed: string[] | { unavailable: string };
+	beforeAll(async () => {
+		packed = await pack(packer);
+	}, 120_000);
+	const files = (skip: (note: string) => never) =>
+		Array.isArray(packed) ? packed : skip(packed.unavailable);
+
+	it("ships no test, test helper or story from src/", ({ skip }) => {
+		const source = files(skip).filter((file) => file.startsWith("src/"));
+		expect(source.length).toBeGreaterThan(0);
+		expect(
+			source.filter((file) =>
+				/(?:^|\/)__tests__\/|\.test\.|\.stories\./.test(file),
+			),
+		).toEqual([]);
+	});
+
+	it("ships every SCSS file the scss exports serve", ({ skip }) => {
+		expect(exportedScss).toEqual(
+			expect.arrayContaining([
+				"src/Appearance/vocabulary/_layout.scss",
+				"src/Appearance/Platinum/styles/_mixins.scss",
+			]),
+		);
+		const shipped = new Set(files(skip));
+		expect(exportedScss.filter((file) => !shipped.has(file))).toEqual([]);
 	});
 });
 

@@ -499,6 +499,25 @@ describe("classicyPackageStylesheets", () => {
 			]),
 		).toEqual([]));
 
+	// A name that is not lowercase kebab-case would emit no CSP file and no
+	// error (invariant 7 matches classicy-<kebab>.css), so the build fails.
+	it.each([
+		"Irix",
+		"irix_dark",
+		"IrixDark",
+		"irix--dark",
+		"irix.dark",
+	])("throws on the package stylesheet name %s", (name) =>
+		expect(() =>
+			classicyPackageStylesheets([
+				module(`/repo/src/Appearance/Irix/styles/${name}.scss?inline`, PACKAGE),
+			]),
+		).toThrow(
+			new RegExp(
+				`${name.replace(/\./g, "\\.")}\\.scss\\?inline.*lowercase kebab-case`,
+			),
+		));
+
 	it("throws when a package stylesheet module is not a string export", () =>
 		expect(() =>
 			classicyPackageStylesheets([{ id: ID, code: "export default css" }]),

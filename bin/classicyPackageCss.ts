@@ -355,9 +355,13 @@ export const requiredClassicyPackageStylesheets = (
 
 // An Appearance Package's stylesheet module, as the library build loads it:
 // `src/Appearance/<Package>/styles/<name>.scss?inline` (Platinum's index.ts
-// imports `./styles/platinum.scss?inline`). Not under node_modules.
+// imports `./styles/platinum.scss?inline`). Not under node_modules, and not a
+// Sass partial (`_name.scss`), which is never a stylesheet of its own.
 const PACKAGE_STYLESHEET_MODULE =
-	/\/src\/Appearance\/[^/]+\/styles\/([a-z0-9]+(?:-[a-z0-9]+)*)\.scss\?inline$/;
+	/\/src\/Appearance\/[^/]+\/styles\/([^/_][^/]*)\.scss\?inline$/;
+// The name must be lowercase kebab-case: it becomes dist/classicy-<name>.css,
+// and check-dist-imports.mjs only recognizes such files (invariant 7).
+const PACKAGE_STYLESHEET_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 // What vite:css-post turns an `?inline` stylesheet into in a build.
 const INLINE_CSS_MODULE = /^export default ("(?:[^"\\]|\\.)*");?\s*$/;
 
@@ -365,8 +369,9 @@ const INLINE_CSS_MODULE = /^export default ("(?:[^"\\]|\\.)*");?\s*$/;
  * The package stylesheet files to emit (dist/classicy-<name>.css), one per
  * package stylesheet module among `modules` (each module's id and final
  * transformed code), holding the CSS string that module exports: the same
- * string the bundle injects at runtime. Throws when such a module is not a
- * plain string export, or when two would write the same file.
+ * string the bundle injects at runtime. Throws when such a module's name is
+ * not lowercase kebab-case, when it is not a plain string export, or when two
+ * would write the same file.
  */
 export const classicyPackageStylesheets = (
 	modules: Iterable<{ id: string; code: string | null }>,
@@ -376,6 +381,10 @@ export const classicyPackageStylesheets = (
 		const path = id.replace(/\\/g, "/");
 		const name = PACKAGE_STYLESHEET_MODULE.exec(path)?.[1];
 		if (name === undefined || path.includes("/node_modules/")) continue;
+		if (!PACKAGE_STYLESHEET_NAME.test(name))
+			throw new Error(
+				`${id}: a package stylesheet's name must be lowercase kebab-case (it is emitted as dist/classicy-<name>.css); rename ${name}.scss.`,
+			);
 		const literal = code === null ? undefined : INLINE_CSS_MODULE.exec(code);
 		if (!literal)
 			throw new Error(

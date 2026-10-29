@@ -70,10 +70,17 @@
 //    means the look stopped shipping. And dist/classicy-platinum.css must
 //    exist and be that same block, byte for byte: strict-CSP hosts, whose
 //    policy blocks the injected <style>, link it after classicy.css.
+//
+// 8. DIST/TYPES DECLARES THE LIBRARY, NOT ITS TESTS. vite-plugin-dts emits a
+//    .d.ts for every file tsconfig selects, so until its `exclude` named them
+//    (CLASSICY_DTS_EXCLUDE in bin/classicyDistTypes.ts) the tarball shipped a
+//    declaration for every test, every __tests__ helper and every story.
+//    Checked by walking dist/types (skipped when the caller names files).
 
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { argv, exit } from "node:process";
+import { findClassicyTestDeclarations } from "./classicyDistTypes.ts";
 import {
 	findClassicyPackageCssProblems,
 	requiredClassicyPackageBundles,
@@ -398,6 +405,30 @@ if (!argv.slice(2).length || argv.slice(2).includes(cssFile)) {
 		console.log(
 			`package CSS: ${requiredBundles.length} entry bundle(s) carry a non-empty package stylesheet; ${packageStylesheets.length} package stylesheet file(s), ${requiredPackageStylesheets.length} of them required and identical to the injected one; every @layer classicy.package block stands alone`,
 		);
+}
+
+// Invariant 8: no declarations for tests, test helpers or stories. Skipped
+// when the caller names specific files.
+if (!argv.slice(2).length) {
+	const typesDir = join(DIST, "types");
+	const declarations = await readdir(typesDir, { recursive: true }).catch(
+		() => null,
+	);
+	const shipped =
+		declarations === null ? [] : findClassicyTestDeclarations(declarations);
+	if (declarations === null) {
+		failed = true;
+		console.error(`${typesDir}: missing -> check dts in vite.config.ts.`);
+	} else if (shipped.length) {
+		failed = true;
+		console.error(
+			`${typesDir}: ${shipped.length} declaration(s) of tests, test helpers or stories (${shipped.slice(0, 5).join(", ")}${shipped.length > 5 ? ", …" : ""}) -> check CLASSICY_DTS_EXCLUDE in bin/classicyDistTypes.ts.`,
+		);
+	} else {
+		console.log(
+			`${typesDir}: ${declarations.length} file(s), none for a test, test helper or story`,
+		);
+	}
 }
 
 if (failed) exit(1);
