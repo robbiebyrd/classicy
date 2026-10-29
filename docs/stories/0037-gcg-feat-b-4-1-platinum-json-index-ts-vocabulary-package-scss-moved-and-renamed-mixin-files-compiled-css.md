@@ -3,12 +3,13 @@ id: 0037-gcg
 title: 'B 4.1: platinum.json, index.ts, vocabulary _package.scss, moved and renamed mixin files, compiled css'
 purpose: 'Create the Platinum package module: presets and layout in platinum.json, the platinum-* mixin files moved out of AppearanceManager/styles, and css compiled under the classicy-package scope.'
 type: feat
-status: in_progress
+status: complete
 priority: "2"
 effort: L
 created: "2026-10-28T20:12:29.317Z"
-updated: "2026-10-29T14:45:39.077Z"
+updated: "2026-10-29T15:56:12.486Z"
 started: "2026-10-29T14:45:39.077Z"
+completed: "2026-10-29T15:56:12.486Z"
 links:
   repo:
     local: ~/classicy
@@ -45,21 +46,21 @@ links:
     - ["0005-1b3", "included", ["4.1"]]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
   "5":
-    status: pending
+    status: complete
   "6":
-    status: pending
+    status: complete
   "7":
-    status: pending
+    status: complete
   "8":
-    status: pending
+    status: complete
 ---
 
 # B 4.1: platinum.json, index.ts, vocabulary _package.scss, moved and renamed mixin files, compiled css
@@ -108,11 +109,11 @@ Set `"noHeader": false` in .ts-barrel.json, then `pnpm generate-barrels && test 
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm exec vitest run src/Appearance/Platinum
-- [ ] src/Appearance/Platinum/ registers id "platinum" with 21 presets in themes.json order, defaults equal to the Default preset, the Platinum layout, knobs {} and css compiled from platinum.scss wrapped in @layer classicy.package under .classicyDesktop[data-classicy-appearance="platinum"].
-- [ ] _mixins.scss, _scrollbars.scss and _assets.scss hold the moved files with every mixin renamed platinum-* (no /platinum[A-Z]/ in compiled css); themes.json, appearance.scss, scrollbars.scss and assets.scss are deleted.
-- [ ] VERIFY: pnpm generate-barrels && test -f src/Appearance/Platinum/index.ts && grep -q 'Appearance/Platinum/index' src/index.ts
-- [ ] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
+- [x] VERIFY: pnpm exec vitest run src/Appearance/Platinum
+- [x] src/Appearance/Platinum/ registers id "platinum" with 21 presets in themes.json order, defaults equal to the Default preset, the Platinum layout, knobs {} and css compiled from platinum.scss wrapped in @layer classicy.package under .classicyDesktop[data-classicy-appearance="platinum"].
+- [~] _mixins.scss, _scrollbars.scss and _assets.scss hold the moved files with every mixin renamed platinum-* (no /platinum[A-Z]/ in compiled css); themes.json, appearance.scss, scrollbars.scss and assets.scss are deleted.
+- [x] VERIFY: pnpm generate-barrels && test -f src/Appearance/Platinum/index.ts && grep -q 'Appearance/Platinum/index' src/index.ts
+- [x] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
 
 ## Files
 
@@ -142,3 +143,5 @@ Set `"noHeader": false` in .ts-barrel.json, then `pnpm generate-barrels && test 
 - `src/index.ts` - regenerated with header
 
 ## Work Log
+
+### 2026-10-29T15:56:03.314Z - Done on feat/appearance-part-b, cf41e5930..7343d5f51: b122975cf Platinum package module (platinum.json with 21 presets byte-equal to themes.json plus package, layout, knobs {}; index.ts registering via getTheme/getAllThemes with sounds [platinumSoundPack] and barrel re-exports; vocabulary _package.scss and _layout.scss; _mixins/_scrollbars/_assets COPIED and renamed platinum-* with 30 old-vs-new compile-equivalence tests; themes.json deleted; noHeader false; blank package CSS left alone by plugin and injector; package wrapper proven on a test-only compileString sample; Platinum CSS today is `@layer classicy.package {}`); 7343d5f51 review round 1 (knobs carried on the package, comment, American spelling, test title). Criterion 3 partly not applicable by ruling R7: the three original style files stay until the end of 4.3 (criterion added to 0039-63e); _mixins/_scrollbars/_assets and the renames are done and themes.json is deleted. Exported names 1058→1059 (only PLATINUM_APPEARANCE_PACKAGE_ID added). Review APPROVED (0 critical/important); controller ran /verify on the example app (root attribute platinum, package style injected after the layer order, Finder window opens active with controls). Gate: lint, tsc, 328 files / 3896 tests, build:source + verify:dist green. Parity: 302/302 AE 0, forced 67/67 identical, computed 0 non-noise diffs.

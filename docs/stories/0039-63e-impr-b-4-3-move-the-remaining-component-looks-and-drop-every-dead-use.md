@@ -7,7 +7,7 @@ status: pending
 priority: "2"
 effort: L
 created: "2026-10-28T20:14:27.078Z"
-updated: "2026-10-28T20:14:27.078Z"
+updated: "2026-10-29T15:56:02.523Z"
 links:
   repo:
     local: ~/classicy
@@ -132,6 +132,7 @@ Re-shoot every id in stories.txt into `after/`; `for f in before/*.png; do compa
 - [ ] VERIFY: pnpm exec vitest run src/Appearance/Platinum && pnpm build:source
 - [ ] Seventeen new partials hold the moved includes, the ControlStrip bevels and the Slider thumb under their original selector chains; no file under src/SystemFolder references AppearanceManager/styles, `@include appearance.`, `@include scrollbars.` or `assets.$`.
 - [ ] [MANUAL] Every story in .playwright-mcp/parity/part-b/stories.txt compares with AE 0 before vs after.
+- [ ] VERIFY: test ! -e src/SystemFolder/ControlPanels/AppearanceManager/styles/appearance.scss && test ! -e src/SystemFolder/ControlPanels/AppearanceManager/styles/scrollbars.scss && test ! -e src/SystemFolder/ControlPanels/AppearanceManager/styles/assets.scss (ruling R7: the originals 4.1 copied are deleted here, with their remaining readers retargeted)
 
 ## Files
 
