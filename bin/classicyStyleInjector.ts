@@ -2,12 +2,18 @@
 export const CLASSICY_STYLE_ELEMENT_ID = "classicy-styles";
 
 /**
- * The cascade layer order, declared once before any Classicy rule. Every
- * component stylesheet is compiled into `classicy.base` (see
- * classicyCssLayerPlugin.ts); appearance packages layer into
- * `classicy.package` and host overrides into `classicy.user`, so each beats
- * the one before it whatever its specificity. Unlayered host CSS beats all
- * three.
+ * The cascade layer order. Every component stylesheet is compiled into
+ * `classicy.base` (see classicyCssLayerPlugin.ts); appearance packages layer
+ * into `classicy.package` and host overrides into `classicy.user`, so each
+ * beats the one before it whatever its specificity. Unlayered host CSS, and
+ * every layer a host declares later, beat all three.
+ *
+ * It is declared first, before any other sheet can name a layer: once at the
+ * head of the injected stylesheet (classicyStyleInjector) and of
+ * dist/classicy.css (prependLayerOrder); as `<style id="classicy-layer-order">`
+ * at the top of every HTML page Vite serves or builds (the plugin's
+ * transformIndexHtml); and, on the dev server only, at the head of each
+ * wrapped component stylesheet too.
  */
 export const CLASSICY_LAYER_ORDER =
 	"@layer classicy.base, classicy.package, classicy.user;";

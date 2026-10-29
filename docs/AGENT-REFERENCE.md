@@ -111,12 +111,29 @@ never declares or uses it. A sublayer ranks below the rules directly in
 everywhere else:
 
 ```css
-@import "tailwindcss/preflight.css" layer(classicy.base.host);
-
 @layer classicy.base.host {
   div { overscroll-behavior: none; }  /* Classicy's pop-up list keeps `contain` */
 }
 ```
+
+**Tailwind v4.** `@import "tailwindcss";` is shorthand for four lines that
+load Preflight into `@layer base`, which outranks Classicy. Adding a second
+Preflight import next to it does not help, because the shorthand still loads its
+own copy into `base`. **Replace** `@import "tailwindcss";` with its granular
+form, and move only Preflight:
+
+```css
+/* replaces @import "tailwindcss"; */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(classicy.base.host);
+@import "tailwindcss/utilities.css" layer(utilities);
+```
+
+These file and layer names follow Tailwind's own Preflight page (tailwindcss.com/docs/preflight).
+Its utilities still beat Classicy, which is usually what you want from a
+`class="…"` on a Classicy element. Your own `@layer base` styles also still
+outrank Classicy, so put any meant only for your markup in `classicy.base.host` too.
 
 `!important` reverses the order: an `!important` declaration in
 `classicy.base` would beat an unlayered `!important` one, which is why Classicy

@@ -17,10 +17,16 @@ type Transform = (
 const ROOT = path
 	.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 	.replace(/\\/g, "/");
-const transform = () =>
-	classicyCssLayerPlugin().transform as unknown as Transform;
-// What the transform emits for a component stylesheet: the layer order
-// (so a page with no HTML entry still gets it first), then the wrapped CSS.
+// The plugin as Vite runs it: configResolved first, with the command.
+const transform = (command: "serve" | "build" = "serve") => {
+	const p = classicyCssLayerPlugin();
+	(p.configResolved as unknown as (c: { command: string }) => void)({
+		command,
+	});
+	return p.transform as unknown as Transform;
+};
+// What the dev server emits for a component stylesheet: the layer order (so a
+// page with no HTML entry still gets it first), then the wrapped CSS.
 const layered = (css: string) =>
 	`${CLASSICY_LAYER_ORDER}\n${wrapInClassicyLayer(css)}`;
 
@@ -86,6 +92,18 @@ describe("classicyCssLayerPlugin", () => {
 			expect(wrapInClassicyLayer(css)).toBe(
 				`@layer classicy.base {\n${css}\n}`,
 			);
+	});
+
+	it("prepends the layer order to each file only when serving", async () => {
+		const id = `${ROOT}/src/X/X.scss`;
+		expect((await transform("serve").call({}, ".a{}", id))?.code).toBe(
+			layered(".a{}"),
+		);
+		// A build declares the order once, first: the injector,
+		// prependLayerOrder for dist/classicy.css, the HTML tag for pages.
+		expect((await transform("build").call({}, ".a{}", id))?.code).toBe(
+			wrapInClassicyLayer(".a{}"),
+		);
 	});
 
 	it("declares the layer order first in every HTML page it serves", () => {

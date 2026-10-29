@@ -49,15 +49,20 @@ const isClassicyComponentScss = (id: string): boolean => {
  *
  * The layer order (CLASSICY_LAYER_ORDER) must be declared before any other
  * sheet names a layer, or a host sheet parsed first that names
- * `classicy.user` would rank it below `classicy.base`. The dist injector puts
- * it first in <head>; for pages a Vite server or build renders (the example's
- * dev server, Storybook's preview iframe) `transformIndexHtml` prepends it as
- * `<style id="classicy-layer-order">`, and every wrapped file also starts with
- * it, for pages with no HTML entry. Repeating the statement is a no-op.
+ * `classicy.user` would rank it below `classicy.base`. `transformIndexHtml`
+ * prepends it as `<style id="classicy-layer-order">` to every HTML page Vite
+ * serves or builds (Storybook's preview iframe, the example's dev server).
+ * When serving, every wrapped file also starts with it, for pages with no
+ * HTML entry (repeating the statement is a no-op). A build declares it once,
+ * first, instead: the dist injector and prependLayerOrder (vite.config.ts).
  */
 export function classicyCssLayerPlugin(layer = "classicy.base"): Plugin {
+	let serving = false;
 	return {
 		name: "classicy-css-layer",
+		configResolved(config) {
+			serving = config.command === "serve";
+		},
 		transformIndexHtml() {
 			return [
 				{
@@ -71,8 +76,9 @@ export function classicyCssLayerPlugin(layer = "classicy.base"): Plugin {
 		transform(code, id) {
 			if (!isClassicyComponentScss(id) || wrapped(layer).test(code))
 				return null;
+			const css = wrapInClassicyLayer(code, layer);
 			return {
-				code: `${CLASSICY_LAYER_ORDER}\n${wrapInClassicyLayer(code, layer)}`,
+				code: serving ? `${CLASSICY_LAYER_ORDER}\n${css}` : css,
 				map: null,
 			};
 		},
