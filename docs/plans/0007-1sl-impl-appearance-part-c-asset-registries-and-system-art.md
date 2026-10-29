@@ -2,11 +2,12 @@
 id: 0007-1sl
 title: 'Part C: Asset registries and system art'
 type: impl
-status: in_progress
+status: complete
 priority: "2"
 effort: L
 created: "2026-10-28T19:13:05.606Z"
-updated: "2026-10-29T01:11:30.305Z"
+updated: "2026-10-29T02:07:13.276Z"
+completed: "2026-10-29T02:07:13.276Z"
 links:
   repo:
     local: ~/classicy

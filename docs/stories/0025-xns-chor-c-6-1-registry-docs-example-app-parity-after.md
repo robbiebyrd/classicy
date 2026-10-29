@@ -7,7 +7,7 @@ status: complete
 priority: "2"
 effort: S
 created: "2026-10-28T20:04:33.061Z"
-updated: "2026-10-29T01:11:29.616Z"
+updated: "2026-10-29T02:07:13.181Z"
 started: "2026-10-29T00:20:35.252Z"
 completed: "2026-10-29T01:11:29.616Z"
 links:
@@ -82,3 +82,5 @@ git add docs CLAUDE.md example/src/app.tsx && git commit -m "docs(appearance): a
 ### 2026-10-29T00:20:35.331Z - Implementation dispatched; includes the example-app cursor check owed by 0022-cbh criterion 4
 
 ### 2026-10-29T01:11:29.090Z - Completed: commits 18dfe7ed9..dee65376e (c951711a4 docs, dee65376e fix round: registry-wide asset-source validation, exhaustive system-art key record), task review clean after one fix round. Parity: 87 stories shot, after count equals before; AE 0 on every story with the menu-bar clock masked (unmasked, 35 differ only inside the clock box; one bad baseline, controls-splitview--two-panes-horizontal, was a Storybook loading spinner and was re-shot from e9625ee90 and replaced; the story itself compared 0 against the pre-Part-C tree). Docs: AGENT-REFERENCE section 5 rewritten as Asset registries, CLAUDE.md and BUILDING-APPS updated, classicy/fonts grep shows only deprecation notes. Full gate green: lint, tsc, 296 files / 3425 tests, build:source with verify:dist. Caveats: plain pnpm test hit the 5 s timeout in heavy AppearanceManager tests (customTheme, themeFile) under machine load 40-55, green with --maxWorkers=4, to be compared in the final review; isClassicyAssetSource rejects file:/blob:/app:/chrome-extension: sources, carried into the Part C final fix wave. Docs note: Platinum registers 21 of 44 system-art keys (23 unregistered), not the brief's four.
+
+### 2026-10-29T02:07:13.181Z - Whole-branch review fix wave (host-scheme assets, SSR snapshots, migration docs); rebased and landed on feat/AppearancePackages at e1a45481b
