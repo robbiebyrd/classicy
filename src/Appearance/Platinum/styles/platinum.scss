@@ -2,12 +2,24 @@
 // registered as the package's `css`: one `@layer classicy.package` block
 // scoped under `.classicyDesktop[data-classicy-appearance="platinum"]`. Each
 // components/_<Name>.scss exposes one mixin, included inside the wrapper below
-// (none yet: the component looks move here in tasks 4.2 and 4.3, until then
-// this compiles to an empty block).
+// in the order the library stylesheet bundles the base sheets they came from
+// (dist/classicy.css), so a tie between two partials resolves as it did there.
 @use "../../vocabulary/package";
 @use "mixins";
 @use "scrollbars";
 @use "assets";
+@use "components/Alert";
+@use "components/Menu";
+@use "components/Window";
+@use "components/PopUpMenu";
+@use "components/Desktop";
+@use "components/WindowFrame";
 
 @include package.classicy-package("platinum") {
+  @include Alert.alert;
+  @include Menu.menu;
+  @include Window.window;
+  @include PopUpMenu.popUpMenu;
+  @include Desktop.desktop;
+  @include WindowFrame.windowFrame;
 }

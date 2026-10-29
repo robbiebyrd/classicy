@@ -1,6 +1,3 @@
-@use "../../ControlPanels/AppearanceManager/styles/assets";
-@use "../../ControlPanels/AppearanceManager/styles/appearance";
-
 .classicyAlert {
   display: flex;
   flex-direction: column;
@@ -82,29 +79,10 @@
 // Movable alert: the window is draggable (not error-typed), so paint the red
 // title-bar highlight here — mirrors `.classicyWindowRed`'s title treatment
 // without touching ClassicyWindow. The non-movable variant already gets the red
-// border from `.classicyWindowRed` (modal + type="error").
+// border from `.classicyWindowRed` (modal + type="error"). The red stripes are
+// in the Platinum package.
 .classicyWindow:has(.classicyAlertMovable) {
   .classicyWindowTitleBar {
     background-color: #f7cecd;
-
-    .classicyWindowTitle {
-      .classicyWindowTitleCenter {
-        background: assets.$title-bar-center-red;
-        background-size: auto 100%;
-      }
-
-      .classicyWindowTitleLeft,
-      .classicyWindowTitleRight {
-        background: assets.$title-bar-center-red;
-
-        &:after {
-          background-image: assets.$title-bar-right-red;
-        }
-
-        &:before {
-          background-image: assets.$title-bar-left-red;
-        }
-      }
-    }
   }
 }

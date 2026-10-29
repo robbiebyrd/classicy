@@ -1,6 +1,5 @@
 @use 'sass:list';
-@use '../../ControlPanels/AppearanceManager/styles/appearance';
-@use '../../ControlPanels/AppearanceManager/styles/scrollbars';
+@use '../../../Appearance/vocabulary/layout';
 
 .classicyDesktop {
   overflow: hidden;
@@ -18,12 +17,12 @@
   -webkit-user-drag: none;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  @include appearance.no-select;
+  @include layout.classicy-no-select;
 
+  // The Platinum scroll bars, on the desktop and everything in it, are in the
+  // Platinum package.
   &,
   & * {
-    @include scrollbars.scrollbars;
-    @include scrollbars.scrollbars-themed;
     accent-color: var(--color-theme-04);
 
     &:focus-visible {
@@ -46,18 +45,9 @@
     background: var(--color-theme-02);
   }
 
-  // Mac OS 8 "Smart Scrolling" OFF (Appearance control panel): classic split
-  // scroll arrows, one at each end of the bar. Added as a modifier on the
-  // desktop root so the two-class selector outranks the grouped default from
-  // scrollbars() and cascades to every scrollable surface (windows, list
-  // boxes, tables, windoids) at once. Smart Scrolling ON is the default and
-  // needs no class.
-  &.classicyDesktopSplitArrows {
-    &,
-    & * {
-      @include scrollbars.scrollbars-split-arrows;
-    }
-  }
+  // Mac OS 8 "Smart Scrolling" OFF (Appearance control panel) adds
+  // classicyDesktopSplitArrows to the desktop root: classic split scroll
+  // arrows, drawn by the Platinum package.
 }
 
 .classicyDesktopSelect {

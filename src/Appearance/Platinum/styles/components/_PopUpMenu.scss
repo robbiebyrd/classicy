@@ -1,0 +1,20 @@
+// The Platinum pop-up menu look (from ClassicyPopUpMenu.scss): the raised
+// control and its double-arrow indicator. The disabled fill follows the
+// undepressable face it overrides.
+@use "../mixins";
+@use "../scrollbars";
+@use "../assets";
+
+@mixin popUpMenu {
+  .classicyPopUpMenu {
+    @include mixins.platinum-window-undepressable;
+
+    &.disabled {
+      background-color: var(--color-system-01);
+    }
+  }
+
+  .classicyPopUpMenuIndicator {
+    background-image: assets.$down-arrow;
+  }
+}

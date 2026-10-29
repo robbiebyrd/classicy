@@ -1,0 +1,35 @@
+// The Platinum desktop look (from ClassicyDesktop.scss): the scroll bars of
+// the desktop and everything in it. The package root is the desktop itself,
+// so `&` here is `.classicyDesktop[data-classicy-appearance="platinum"]`.
+@use "../mixins";
+@use "../scrollbars";
+@use "../assets";
+
+@mixin desktop {
+  &,
+  & * {
+    @include scrollbars.platinum-scrollbars;
+    @include scrollbars.platinum-scrollbars-themed;
+  }
+
+  // Mac OS 8 "Smart Scrolling" OFF (Appearance control panel): classic split
+  // scroll arrows, one at each end of the bar. Added as a modifier on the
+  // desktop root so the two-class selector outranks the grouped default from
+  // platinum-scrollbars() and cascades to every scrollable surface (windows,
+  // list boxes, tables, windoids) at once. Smart Scrolling ON is the default
+  // and needs no class.
+  &.classicyDesktopSplitArrows {
+    &,
+    & * {
+      @include scrollbars.platinum-scrollbars-split-arrows;
+    }
+  }
+
+  // ClassicyTabs.scss hides the tab strip's scroll bar (the arrow tabs are
+  // its scroll affordance); the scroll bars' `scrollbar-width: auto` fallback
+  // above (Firefox) would beat that from this layer, so the tab scroller says
+  // it again here, after it, at equal specificity.
+  .classicyTabScroller {
+    scrollbar-width: none;
+  }
+}
