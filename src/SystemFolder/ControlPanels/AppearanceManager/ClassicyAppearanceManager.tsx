@@ -1,3 +1,5 @@
+import { useActiveClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
+import { getClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackageRegistry";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import "./ClassicyAppearanceManager.scss";
 import {
@@ -15,7 +17,7 @@ import type {
 import { APPEARANCE_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManagerManifest";
 import {
 	isCustomThemeActive,
-	listClassicyThemes,
+	listClassicyPackageThemes,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
 import type { ClassicyThemeColorChange } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorTargets";
 import {
@@ -29,6 +31,7 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { DEFAULT_ALERT_SOUND } from "@/SystemFolder/ControlPanels/SoundManager/ClassicyAlertSounds";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
+import { useClassicySoundPacks } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
 import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import {
@@ -92,14 +95,37 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		appearanceState.activeTheme.desktop.backgroundImage ||
 		ClassicyDefaultWallpaper;
 
-	// Built-in themes, then the user's custom themes (e.g. "Custom").
+	const activePackage = useActiveClassicyAppearancePackage();
+
+	// The active package's presets and host-loaded themes, then the user's
+	// custom themes of that package (e.g. "Custom").
 	const themesList = useMemo(
 		() =>
-			listClassicyThemes({
-				availableThemes: appearanceState.availableThemes,
-				customThemes: appearanceState.customThemes,
-			}).map((a: ClassicyTheme) => ({ value: a.id, label: a.name })),
-		[appearanceState.availableThemes, appearanceState.customThemes],
+			listClassicyPackageThemes(
+				{
+					availableThemes: appearanceState.availableThemes,
+					customThemes: appearanceState.customThemes,
+				},
+				activePackage,
+			).map((a: ClassicyTheme) => ({ value: a.id, label: a.name })),
+		[
+			appearanceState.availableThemes,
+			appearanceState.customThemes,
+			activePackage,
+		],
+	);
+
+	// Packs shared by every package, and the active package's own.
+	const registeredSoundPacks = useClassicySoundPacks();
+	const soundPacks = useMemo(
+		() =>
+			registeredSoundPacks
+				.filter(
+					(pack) =>
+						pack.packageId === undefined || pack.packageId === activePackage.id,
+				)
+				.map(({ id, name }) => ({ id, name })),
+		[registeredSoundPacks, activePackage.id],
 	);
 
 	// Why a theme file could not be saved or loaded, shown in a stop alert.
@@ -141,6 +167,19 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 				});
 				return;
 			}
+			// A theme made for another installed package switches to that
+			// package first, so the active theme and the active look agree.
+			// (parseClassicyThemeFile has already refused an uninstalled one.)
+			const themePackage = result.theme.package;
+			if (
+				themePackage !== activePackage.id &&
+				getClassicyAppearancePackage(themePackage)
+			) {
+				desktopEventDispatch({
+					type: "ClassicyDesktopChangeAppearancePackage",
+					packageId: themePackage,
+				});
+			}
 			// The reducer re-validates the theme, gives it a unique id and name,
 			// adds it to the custom themes and makes it the active theme, which
 			// selects it in the theme pop-up.
@@ -149,7 +188,7 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 				theme: result.theme,
 			});
 		},
-		[desktopEventDispatch],
+		[desktopEventDispatch, activePackage.id],
 	);
 
 	const switchTheme = useCallback(
@@ -294,6 +333,20 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		[desktopEventDispatch],
 	);
 
+	const changeSoundPack = useCallback(
+		(e: ChangeEvent<HTMLSelectElement>) => {
+			const value = e.target.value;
+			startTransition(() => {
+				desktopEventDispatch({
+					type: "ClassicyDesktopChangeAppearanceOption",
+					path: "sound.pack",
+					value,
+				});
+			});
+		},
+		[desktopEventDispatch],
+	);
+
 	const changeAlertSound = useCallback(
 		(e: ChangeEvent<HTMLSelectElement>) => {
 			const value = e.target.value;
@@ -381,6 +434,8 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 	];
 
 	const themesTab = useThemesTab({
+		packageId: activePackage.id,
+		packageName: activePackage.name,
 		themesList,
 		switchTheme,
 		activeThemeId: appearanceState.activeTheme.id,
@@ -426,6 +481,9 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 	});
 
 	const soundTab = useSoundTab({
+		soundPacks,
+		soundPack: appearanceState.activeTheme.sound.pack,
+		changeSoundPack,
 		alertSound: appearanceState.alertSound ?? DEFAULT_ALERT_SOUND,
 		changeAlertSound,
 		alertVolume: appearanceState.alertVolume ?? 100,

@@ -12,6 +12,7 @@ import {
 import {
 	CLASSICY_CUSTOM_THEME_ID,
 	CLASSICY_CUSTOM_THEME_NAME,
+	classicyCustomThemeSlotId,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
 import {
 	CLASSICY_THEME_COLOR_TARGETS,
@@ -761,6 +762,132 @@ describe("ClassicyDesktopChangeMetric family form", () => {
 		).not.toThrow();
 		expect(JSON.stringify(appearance(ds))).toBe(before);
 		expect(warnings).toHaveLength(1);
+	});
+});
+
+describe("themes across Appearance Packages", () => {
+	const packTheme = (id: string, name: string) => ({
+		...structuredClone(getTheme("default")),
+		id,
+		name,
+		package: "theme-pack",
+	});
+	const themePackage: ClassicyAppearancePackage = {
+		id: "theme-pack",
+		name: "Theme Pack",
+		css: "",
+		defaults: packTheme("tp-one", "TP One"),
+		presets: [packTheme("tp-one", "TP One"), packTheme("tp-two", "TP Two")],
+		layout: {
+			window: { growBoxCorner: "bottom-right" },
+			menuBar: { placement: "screen" },
+			desktop: { iconGridOrigin: "top-right" },
+		},
+	};
+	const makePackStore = (): ClassicyStore => {
+		registerClassicyAppearancePackage(themePackage);
+		const ds = makeStore();
+		run(ds, {
+			type: "ClassicyDesktopChangeAppearancePackage",
+			packageId: themePackage.id,
+		});
+		return ds;
+	};
+
+	it("ChangeTheme activates a copy of a preset of the active package", () => {
+		const ds = makePackStore();
+		run(ds, { type: "ClassicyDesktopChangeTheme", activeTheme: "tp-two" });
+		const a = appearance(ds);
+		expect(a.activeTheme.id).toBe("tp-two");
+		expect(a.activeTheme.package).toBe("theme-pack");
+		expect(a.activeTheme).not.toBe(themePackage.presets?.[1]);
+		// The preset list is left alone (B left availableThemes untouched).
+		expect(a.availableThemes?.some((t) => t.id === "tp-two")).toBe(false);
+	});
+
+	it("ChangeTheme prefers a host-loaded theme over a preset with the same id", () => {
+		const ds = makePackStore();
+		run(ds, {
+			type: "ClassicyDesktopLoadThemes",
+			availableThemes: [
+				...(appearance(ds).availableThemes ?? []),
+				packTheme("tp-two", "Loaded TP Two"),
+			],
+		});
+		run(ds, { type: "ClassicyDesktopChangeTheme", activeTheme: "tp-two" });
+		expect(appearance(ds).activeTheme.name).toBe("Loaded TP Two");
+	});
+
+	it("ChangeTheme does not reach the presets of an inactive package", () => {
+		registerClassicyAppearancePackage(themePackage);
+		const ds = makeStore();
+		run(ds, { type: "ClassicyDesktopChangeTheme", activeTheme: "tp-two" });
+		expect(appearance(ds).activeTheme.id).toBe("default");
+	});
+
+	it("ChangeTheme stays unreachable to untrusted dispatches", () => {
+		expect(isUntrustedActionAllowed("ClassicyDesktopChangeTheme")).toBe(false);
+		vi.spyOn(console, "warn").mockImplementation(() => {});
+		const before = makePackStore();
+		const after = produce(before, (draft) => {
+			classicyDesktopStateEventReducer(
+				castDraft(draft) as ClassicyStore,
+				{ type: "ClassicyDesktopChangeTheme", activeTheme: "tp-two" },
+				"untrusted",
+			);
+		});
+		expect(after).toBe(before);
+	});
+
+	it("names one Custom slot per package", () => {
+		expect(classicyCustomThemeSlotId("platinum")).toBe(
+			CLASSICY_CUSTOM_THEME_ID,
+		);
+		expect(classicyCustomThemeSlotId("theme-pack")).toBe("custom-theme-pack");
+	});
+
+	it("forks a theme of another package into that package's own Custom slot", () => {
+		const ds = makeStore();
+		run(ds, {
+			type: "ClassicyDesktopChangeColor",
+			colorKey: "black",
+			color: 0x010101,
+		});
+		registerClassicyAppearancePackage(themePackage);
+		run(ds, {
+			type: "ClassicyDesktopChangeAppearancePackage",
+			packageId: themePackage.id,
+		});
+		run(ds, {
+			type: "ClassicyDesktopChangeColor",
+			colorKey: "white",
+			color: 0xfefefe,
+		});
+		let a = appearance(ds);
+		expect(a.activeTheme.id).toBe("custom-theme-pack");
+		expect(a.activeTheme.name).toBe(CLASSICY_CUSTOM_THEME_NAME);
+		expect(a.activeTheme.package).toBe("theme-pack");
+		expect(a.customThemes?.map((t) => t.id)).toEqual([
+			CLASSICY_CUSTOM_THEME_ID,
+			"custom-theme-pack",
+		]);
+		// Platinum's Custom keeps its edit.
+		expect(a.customThemes?.[0].color.black).toBe(0x010101);
+		expect(a.customThemes?.[0].color.white).not.toBe(0xfefefe);
+
+		// A re-fork in the same package overwrites that package's slot only.
+		run(ds, { type: "ClassicyDesktopChangeTheme", activeTheme: "tp-two" });
+		run(ds, {
+			type: "ClassicyDesktopChangeColor",
+			colorKey: "select",
+			color: 0x123456,
+		});
+		a = appearance(ds);
+		expect(a.customThemes).toHaveLength(2);
+		expect(a.activeTheme.id).toBe("custom-theme-pack");
+		expect(a.customThemes?.[1].color.select).toBe(0x123456);
+		expect(a.customThemes?.[1].color.white).not.toBe(0xfefefe);
+		expect(a.customThemes?.[0].color.black).toBe(0x010101);
 	});
 });
 

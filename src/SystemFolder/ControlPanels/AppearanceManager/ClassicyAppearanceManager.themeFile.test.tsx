@@ -7,7 +7,11 @@ import {
 	within,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { registerClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackageRegistry";
+import {
+	type ClassicyTheme,
+	getTheme,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { APPEARANCE_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManagerManifest";
 import { exportClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFile";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
@@ -16,7 +20,43 @@ import {
 	dispatch,
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import {
+	CLASSICY_SOUND_SPRITE_IDS,
+	registerClassicySoundPack,
+} from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
 import { ClassicyDesktop } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktop";
+
+// Every dispatch the panel makes, through the real store's dispatch: the panel
+// takes its dispatcher from useAppManagerDispatch.
+const { dispatched } = vi.hoisted(() => ({
+	dispatched: [] as { type: string; [key: string]: unknown }[],
+}));
+vi.mock(
+	"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils",
+	async (importOriginal) => {
+		const actual =
+			await importOriginal<
+				typeof import("@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils")
+			>();
+		const spy: typeof actual.dispatch = (action, trust) => {
+			dispatched.push(action as (typeof dispatched)[number]);
+			actual.dispatch(action, trust);
+		};
+		return { ...actual, useAppManagerDispatch: () => spy };
+	},
+);
+
+// Sound packs registered below point at remote files; jsdom cannot load
+// audio, so the sound manager gets an inert player.
+vi.mock("howler", () => ({
+	Howl: class {
+		play = vi.fn();
+		stop = vi.fn();
+		volume = vi.fn();
+		unload = vi.fn();
+		playing = vi.fn().mockReturnValue(false);
+	},
+}));
 
 // End to end through the real store: open the Appearance Manager, then save
 // and load theme files from its Themes tab.
@@ -69,6 +109,72 @@ const themeFile = (text: string, name = "ocean.classicy-theme.json") =>
 
 const oceanTheme = () => ({ ...getTheme("bondi"), id: "x", name: "Ocean" });
 
+// The panel's own actions: everything it dispatches is a ClassicyDesktop*
+// action, while the desktop around it also dispatches window and app events.
+const desktopActions = () =>
+	dispatched.filter((a) => a.type.startsWith("ClassicyDesktop"));
+const dispatchedTypes = () => desktopActions().map((a) => a.type);
+
+// A second Appearance Package with two presets of its own. Left registered:
+// registrations outlive a test, and every test starts on Platinum again.
+const testPackTheme = (id: string, name: string): ClassicyTheme => ({
+	...structuredClone(getTheme("default")),
+	id,
+	name,
+	package: "test-pack",
+});
+registerClassicyAppearancePackage({
+	id: "test-pack",
+	name: "Test Pack",
+	css: "",
+	defaults: testPackTheme("tp-one", "TP One"),
+	presets: [
+		testPackTheme("tp-one", "TP One"),
+		testPackTheme("tp-two", "TP Two"),
+	],
+	layout: {
+		window: { growBoxCorner: "bottom-right" },
+		menuBar: { placement: "screen" },
+		desktop: { iconGridOrigin: "top-right" },
+	},
+});
+// Complete sprite sheets, so the sound manager has nothing to fall back on.
+const everySprite = Object.fromEntries(
+	CLASSICY_SOUND_SPRITE_IDS.map((id, i) => [
+		id,
+		[i * 10, 5] as [number, number],
+	]),
+);
+registerClassicySoundPack({
+	id: "beep",
+	name: "Beep",
+	src: ["https://example.com/beep.ogg"],
+	sprite: everySprite,
+});
+registerClassicySoundPack({
+	id: "elsewhere",
+	name: "Elsewhere",
+	packageId: "some-other-package",
+	src: ["https://example.com/elsewhere.ogg"],
+	sprite: everySprite,
+});
+
+// ClassicyTabs selects on mouse-up (press/release), not click.
+const showTab = (win: HTMLElement, name: string) => {
+	const tab = within(win).getByRole("tab", { name });
+	fireEvent.mouseDown(tab);
+	fireEvent.mouseUp(tab);
+};
+
+const themeMenuOptions = (win: HTMLElement) => {
+	fireEvent.click(
+		within(win).getByRole("combobox", { name: "Selected Theme" }),
+	);
+	return within(screen.getByRole("listbox"))
+		.getAllByRole("option")
+		.map((o) => o.textContent?.replace(/^✓/, ""));
+};
+
 // Whole-desktop integration tests: each boots ClassicyDesktop, opens a real
 // window and drives it through the store, costing up to ~1.5 s of CPU on an
 // idle machine (mostly React dev-mode rendering and jsdom style computation,
@@ -81,6 +187,7 @@ describe("Appearance Manager — saving and loading theme files", {
 	timeout: INTEGRATION_TIMEOUT_MS,
 }, () => {
 	beforeEach(() => {
+		dispatched.length = 0;
 		localStorage.clear();
 		sessionStorage.clear();
 		useAppManager.setState(
@@ -173,5 +280,139 @@ describe("Appearance Manager — saving and loading theme files", {
 
 		expect(downloads).toEqual(["azul.classicy-theme.json"]);
 		expect(await blob?.text()).toBe(exportClassicyTheme(getTheme("azul")));
+	});
+	it("refuses a theme file for an unregistered package with a stop alert and no dispatch", async () => {
+		await openAppearanceManager();
+		dispatched.length = 0;
+		pickFile(
+			themeFile(
+				JSON.stringify({
+					format: "classicy-theme",
+					version: 1,
+					theme: { ...getTheme("default"), package: "irix" },
+				}),
+				"irix.classicy-theme.json",
+			),
+		);
+
+		const alert = await screen.findByRole("alertdialog");
+		expect(alert).toHaveTextContent(
+			"“irix.classicy-theme.json” could not be loaded.",
+		);
+		// parseClassicyThemeFile's own refusal (J-R3), word for word.
+		expect(alert).toHaveTextContent(
+			'This theme needs the "irix" appearance package, which is not installed.',
+		);
+		expect(within(alert).getByAltText("Error")).toBeInTheDocument();
+		expect(dispatchedTypes()).not.toContain("ClassicyDesktopImportTheme");
+		expect(dispatchedTypes()).not.toContain(
+			"ClassicyDesktopChangeAppearancePackage",
+		);
+		expect(appearance().customThemes ?? []).toHaveLength(0);
+	});
+
+	it("lists presets of the active package and custom themes of that package only", async () => {
+		useAppManager.setState((state) => {
+			const a = state.System.Manager.Appearance;
+			a.customThemes = [
+				{
+					...getTheme("azul"),
+					id: "custom",
+					name: "Custom",
+					package: "platinum",
+				},
+				testPackTheme("custom-test-pack", "Test Pack Custom"),
+			];
+			return state;
+		});
+		const win = await openAppearanceManager();
+		const options = themeMenuOptions(win);
+		expect(options).toHaveLength(21 + 1);
+		expect(options.at(-1)).toBe("Custom");
+		expect(options).not.toContain("Test Pack Custom");
+	});
+
+	it("lists another package's presets and switches to one", async () => {
+		act(() => {
+			dispatch({
+				type: "ClassicyDesktopChangeAppearancePackage",
+				packageId: "test-pack",
+			});
+		});
+		const win = await openAppearanceManager();
+		expect(
+			within(win).getByText("The current Appearance Package is Test Pack"),
+		).toBeInTheDocument();
+		expect(themeMenuOptions(win)).toEqual(["TP One", "TP Two"]);
+
+		fireEvent.click(
+			within(screen.getByRole("listbox")).getByRole("option", {
+				name: "TP Two",
+			}),
+		);
+		await waitFor(() => {
+			expect(appearance().activeTheme.id).toBe("tp-two");
+		});
+		expect(appearance().activeTheme.package).toBe("test-pack");
+	});
+
+	it("loading a theme of another installed package switches to that package first", async () => {
+		await openAppearanceManager();
+		dispatched.length = 0;
+		pickFile(
+			themeFile(
+				exportClassicyTheme(testPackTheme("x", "Pack Ocean")),
+				"pack-ocean.classicy-theme.json",
+			),
+		);
+
+		await waitFor(() => {
+			expect(appearance().activeTheme.name).toBe("Pack Ocean");
+		});
+		expect(dispatchedTypes()).toEqual([
+			"ClassicyDesktopChangeAppearancePackage",
+			"ClassicyDesktopImportTheme",
+		]);
+		expect(desktopActions()[0]).toMatchObject({ packageId: "test-pack" });
+		expect(appearance().packageId).toBe("test-pack");
+		expect(appearance().activeTheme.package).toBe("test-pack");
+	});
+
+	it("loading a theme of the active package does not switch packages", async () => {
+		await openAppearanceManager();
+		dispatched.length = 0;
+		pickFile(themeFile(exportClassicyTheme(oceanTheme())));
+		await waitFor(() => {
+			expect(appearance().activeTheme.id).toBe("custom-ocean");
+		});
+		expect(dispatchedTypes()).toEqual(["ClassicyDesktopImportTheme"]);
+	});
+
+	it("selecting a sound pack dispatches ClassicyDesktopChangeAppearanceOption sound.pack", async () => {
+		const win = await openAppearanceManager();
+		showTab(win, "Sound");
+		const menu = win.querySelector("#soundPack") as HTMLElement;
+		expect(menu).toHaveTextContent("Platinum");
+		fireEvent.click(menu);
+		const listbox = screen.getByRole("listbox");
+		// Packs of no package and of the active one; never another package's.
+		expect(
+			within(listbox)
+				.getAllByRole("option")
+				.map((o) => o.textContent?.replace(/^✓/, "")),
+		).toEqual(["Platinum", "Beep"]);
+		dispatched.length = 0;
+		fireEvent.click(within(listbox).getByRole("option", { name: "Beep" }));
+
+		await waitFor(() => {
+			expect(appearance().activeTheme.sound.pack).toBe("beep");
+		});
+		expect(desktopActions()).toEqual([
+			{
+				type: "ClassicyDesktopChangeAppearanceOption",
+				path: "sound.pack",
+				value: "beep",
+			},
+		]);
 	});
 });
