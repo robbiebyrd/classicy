@@ -7,8 +7,8 @@ import {
 import {
 	type ClassicyAssetSource,
 	isClassicyAssetSource,
-	parseClassicyPixelArtSource,
 } from "./ClassicyAssetSource";
+import { parseClassicyPixelArtSource } from "./ClassicyPixelArtSource";
 
 const PLATINUM = "platinum";
 const SUBSYSTEM = "ClassicyAssetRegistry";

@@ -10,6 +10,7 @@ export * from "./Appearance/ClassicyAppearanceSound";
 export * from "./Appearance/ClassicyAppearanceStyles";
 export * from "./Appearance/ClassicyAssetRegistry";
 export * from "./Appearance/ClassicyAssetSource";
+export * from "./Appearance/ClassicyPixelArtSource";
 export * from "./Appearance/useClassicyAppearance";
 export * from "./Appearance/useClassicyAppearanceLayout";
 export * from "./Appearance/Platinum/index";

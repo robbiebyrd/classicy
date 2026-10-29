@@ -9,70 +9,25 @@ import {
 	useClassicyAsset,
 } from "@/Appearance/ClassicyAssetRegistry";
 import {
-	CLASSICY_PIXEL_ART_MIME,
-	type ClassicyAssetSource,
-	parseClassicyPixelArtSource,
-} from "@/Appearance/ClassicyAssetSource";
-import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
+	type ClassicyPixelArtRows,
+	decodeClassicyPixelArtRows,
+} from "@/Appearance/ClassicyPixelArtSource";
 
-/**
- * Pixel art as rows of palette tokens, one character per pixel; "." is
- * transparent. Used for HIG artwork that has to be pixel-exact but still
- * follow the theme — the Control Strip's tab and arrows, the pop-up slider —
- * where CSS borders and gradients cannot hit every pixel.
- */
-export type ClassicyPixelArtRows = readonly string[];
-
-// Token → colour lives in ClassicyPixelArt.scss (one class per token), so the
+// Token → color lives in ClassicyPixelArt.scss (one class per token), so the
 // palette follows the theme without inline styles.
 
 /**
- * The MIME type of pixel art registered as system art. Defined in
- * `ClassicyAssetSource` (which the asset registry also reads) and re-exported
- * here beside the encoder.
+ * The pixel-art codec lives in the dependency-free `ClassicyPixelArtSource`
+ * (so Appearance Package data never imports this component or its
+ * stylesheet); re-exported here beside the component that draws it.
  */
-export { CLASSICY_PIXEL_ART_MIME };
-
-/**
- * Pixel art as an asset source, for `registerClassicySystemArt`:
- * `data:text/x-classicy-pixel-art,<rows joined by newlines, URI-encoded>`.
- * The encoding never emits a quote or backslash, so the source passes the
- * registry's validation.
- */
-export const encodeClassicyPixelArtRows = (
-	rows: ClassicyPixelArtRows,
-): ClassicyAssetSource =>
-	`data:${CLASSICY_PIXEL_ART_MIME},${encodeURIComponent(rows.join("\n"))}`;
-
-/**
- * The rows of a pixel-art source: any `data:` URI with the pixel-art MIME
- * (`parseClassicyPixelArtSource`: any case, any parameters, percent-encoded or
- * `;base64`). Carriage returns are stripped and a trailing empty row is
- * dropped. `[]` for `undefined`, any other source, or a malformed payload
- * (logged).
- */
-export const decodeClassicyPixelArtRows = (
-	src: ClassicyAssetSource | undefined,
-): ClassicyPixelArtRows => {
-	const source = parseClassicyPixelArtSource(src);
-	if (!source) return [];
-	let text: string;
-	try {
-		text = source.base64
-			? atob(source.payload)
-			: decodeURIComponent(source.payload);
-	} catch {
-		classicyLog(
-			"warn",
-			"ClassicyPixelArt",
-			"Ignored pixel art with a malformed payload",
-		);
-		return [];
-	}
-	const rows = text.replace(/\r/g, "").split("\n");
-	if (rows.at(-1) === "") rows.pop();
-	return rows;
-};
+export {
+	CLASSICY_PIXEL_ART_MIME,
+	type ClassicyPixelArtRows,
+	decodeClassicyPixelArtRows,
+	encodeClassicyPixelArtRows,
+	parseClassicyPixelArtSource,
+} from "@/Appearance/ClassicyPixelArtSource";
 
 /**
  * The rows registered as system art `key` for the active Appearance Package
@@ -119,10 +74,10 @@ type ClassicyPixelArtProps = (
  * same-token pixels, with crisp edges. Inline (not an `<img>`) so the token
  * classes resolve against the current theme. Decorative.
  *
- * Use it for HIG artwork that must be pixel-exact yet recolour with the
+ * Use it for HIG artwork that must be pixel-exact yet recolor with the
  * Appearance theme — the Control Strip's tab, collapse box and arrows
  * (HIGOS8 Figure 6-15) and `ClassicyPopUpSlider` (Figure 2-16) are drawn with
- * it. Each token maps to a theme colour token in `ClassicyPixelArt.scss`, so
+ * it. Each token maps to a theme color token in `ClassicyPixelArt.scss`, so
  * switching themes repaints the art with no re-render. The SVG is
  * `aria-hidden`; give the surrounding control its accessible name.
  *
