@@ -714,6 +714,7 @@ interface ClassicyMenuItem {
     onClickFunc?: () => void
     menuChildren?: ClassicyMenuItem[]
     className?: string
+    part?: string                   // rendered as data-classicy-part, for theme packages
     balloon?: { title?: string; content: string; position?: ClassicyBalloonPosition }
 }
 ```

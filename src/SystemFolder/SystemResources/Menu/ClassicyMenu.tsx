@@ -101,8 +101,9 @@ export interface ClassicyMenuItem {
 	/**
 	 * Part name rendered as the item's `data-classicy-part` (the menu bar marks
 	 * its clusters: `apple`, `app`, `help`, `switcher`), for theme packages.
+	 * It is never rendered as a DOM `part` (shadow-parts) attribute.
 	 */
-	partAttr?: string;
+	part?: string;
 	/** Balloon help for the item, shown while balloons are on. */
 	balloon?: {
 		title?: string;
@@ -360,7 +361,7 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 				ref={itemRef}
 				id={menuItem.id}
 				key={menuItem.id}
-				{...{ [CLASSICY_PART_ATTRIBUTE.part]: menuItem.partAttr }}
+				{...{ [CLASSICY_PART_ATTRIBUTE.part]: menuItem.part }}
 				onClick={handleClick}
 				onKeyDown={(e: React.KeyboardEvent) => {
 					pokeActivity();

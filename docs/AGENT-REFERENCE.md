@@ -455,7 +455,7 @@ throughout:
 
 - `ClassicyControlLabelSize = "small" | "medium" | "large"`
 - `ClassicyLabelPosition = "above" | "left" | "right" | "below"`
-- `ClassicyMenuItem = { id, title?, icon?, disabled?, checked?, keyboardShortcut?, event?, eventData?, onClickFunc?, menuChildren?, balloon?, ... }`
+- `ClassicyMenuItem = { id, title?, icon?, disabled?, checked?, keyboardShortcut?, event?, eventData?, onClickFunc?, menuChildren?, part?, balloon?, ... }` (`part` renders as the item's `data-classicy-part`, never a DOM `part` attribute)
 - `ClassicyIconBalloonHelp = { title?, content, position?, delay? }`
 
 ### 4.0 HTML element ⇄ Classicy component map

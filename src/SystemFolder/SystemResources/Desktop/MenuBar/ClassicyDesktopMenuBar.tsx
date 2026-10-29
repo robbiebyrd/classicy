@@ -187,7 +187,7 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 			image: focusedApp?.icon || "",
 			title: focusedApp?.name || "Finder",
 			className: "classicyDesktopMenuAppSwitcher",
-			partAttr: "switcher",
+			part: "switcher",
 			// The switcher's title follows the focused app, and it floats at the
 			// right end of the bar — so a name-length change would otherwise resize
 			// it and shove the sound/time widgets sideways. Reserve the widest open
@@ -252,7 +252,7 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 			id: "help-menu",
 			title: "Help",
 			className: "classicyDesktopMenuHelp",
-			partAttr: "help",
+			part: "help",
 			menuChildren: helpChildren,
 		};
 	}, [disableBalloonHelp, helpMenus, focusedMenuApp]);
@@ -296,7 +296,7 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 				image: appleMenuIcon,
 				menuChildren,
 				className: "classicyDesktopMenuApple",
-				partAttr: "apple",
+				part: "apple",
 			} satisfies ClassicyMenuItem,
 			// The hoisted About must not also render in the app's own menus.
 			strippedAppMenu:
@@ -307,9 +307,7 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 	const defaultMenuItems: ClassicyMenuItem[] = useMemo(() => {
 		const items = [appleMenuItem] as ClassicyMenuItem[];
 		if (strippedAppMenu) {
-			items.push(
-				...strippedAppMenu.map((item) => ({ ...item, partAttr: "app" })),
-			);
+			items.push(...strippedAppMenu.map((item) => ({ ...item, part: "app" })));
 		}
 		// Help is the rightmost standard menu; the App Switcher floats to the far
 		// right of the bar (8.5+ construct) and is kept last in the data.

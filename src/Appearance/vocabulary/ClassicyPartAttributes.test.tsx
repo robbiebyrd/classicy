@@ -9,6 +9,7 @@ import {
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
 import { ClassicyDesktopMenuBar } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar";
+import { ClassicyMenu } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
 /**
@@ -133,6 +134,18 @@ describe("part attributes", () => {
 			expect(
 				container.querySelector(`[data-classicy-part="${p}"]`),
 			).not.toBeNull();
+	});
+
+	it("a menu item's part renders only as data-classicy-part, never as a DOM part attribute", () => {
+		const { container } = render(
+			<ClassicyMenu
+				name="parts-menu"
+				menuItems={[{ id: "parts_item", title: "Item", part: "custom" }]}
+			/>,
+		);
+		const li = container.querySelector("#parts_item");
+		expect(li).toHaveAttribute("data-classicy-part", "custom");
+		expect(li).not.toHaveAttribute("part");
 	});
 
 	it("each app menu title carries data-classicy-part app", () => {
