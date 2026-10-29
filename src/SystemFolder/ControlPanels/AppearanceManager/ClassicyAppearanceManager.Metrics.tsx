@@ -74,16 +74,20 @@ export const useMetricsTab = ({
 												prefillValue={getThemeMetric(theme, info.target)}
 												onChangeFunc={(e) => {
 													// An empty or non-numeric entry parses to NaN and is
-													// ignored (`Number("")` would be 0). A typed value is
-													// clamped as the spinner clamps its display, so the
-													// store gets the number the field shows.
+													// ignored (`Number("")` would be 0). The spinner still
+													// shows such an entry as its minimum while the store
+													// keeps the old value, until the next edit or a theme
+													// change re-syncs the field. Any other entry is rounded
+													// to whole pixels (J-R17), then clamped as the spinner
+													// clamps its display, so the store gets the number the
+													// field shows (a fractional entry shows unrounded).
 													const value = Number.parseFloat(e.target.value);
 													if (!Number.isFinite(value)) return;
 													changeMetric({
 														...info.target,
 														value: Math.min(
 															info.max,
-															Math.max(info.min, value),
+															Math.max(info.min, Math.round(value)),
 														),
 													});
 												}}
