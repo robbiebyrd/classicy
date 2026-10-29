@@ -1,0 +1,355 @@
+// The scrollbar arrow glyphs are drawn as stacked gradient stripes sized in
+// multiples of --window-scrollbar-arrow-size (scrollbar size / 4, from theme).
+$sb-arrow: var(--window-scrollbar-arrow-size);
+$sb-arrow-half: calc(var(--window-scrollbar-arrow-size) / 2);
+$sb-arrow-1-5x: calc(var(--window-scrollbar-arrow-size) * 1.5);
+$sb-arrow-2x: calc(var(--window-scrollbar-arrow-size) * 2);
+
+// ---------------------------------------------------------------------------
+// Arrow glyph mixins
+//
+// Each draws a Platinum scroll-arrow triangle pointing one direction over a
+// background colour, via four stacked gradient stripes (2x / 1.5x / 1x wide
+// bands plus a solid stem). Direction is the gradient angle; vertical arrows
+// are wide-over-short bands, horizontal arrows are tall-over-narrow (the band
+// sizes swap). These are the same glyphs the control drew before the Smart
+// Scrolling split — only the button *placement* changes between arrangements,
+// so the glyphs are factored out and reused by both.
+// ---------------------------------------------------------------------------
+@mixin platinum-scrollbar-glyph-up($bg) {
+  background: linear-gradient(transparent 75%, var(--color-black) 0) 50% / #{$sb-arrow-2x} #{$sb-arrow} no-repeat,
+  linear-gradient(transparent 50%, var(--color-black) 0) 50% / #{$sb-arrow-1-5x} #{$sb-arrow} no-repeat,
+  linear-gradient(transparent 25%, var(--color-black) 0) 50% / #{$sb-arrow} #{$sb-arrow} no-repeat,
+  linear-gradient(var(--color-black) 50%, var(--color-black) 0) 50% / #{$sb-arrow-half} #{$sb-arrow} no-repeat,
+  #{$bg};
+}
+
+@mixin platinum-scrollbar-glyph-down($bg) {
+  background: linear-gradient(0deg, transparent 75%, var(--color-black) 0) 50% / #{$sb-arrow-2x} #{$sb-arrow} no-repeat,
+  linear-gradient(0deg, transparent 50%, var(--color-black) 0) 50% / #{$sb-arrow-1-5x} #{$sb-arrow} no-repeat,
+  linear-gradient(0deg, transparent 25%, var(--color-black) 0) 50% / #{$sb-arrow} #{$sb-arrow} no-repeat,
+  linear-gradient(var(--color-black) 50%, var(--color-black) 0) 50% / #{$sb-arrow-half} #{$sb-arrow} no-repeat,
+  #{$bg};
+}
+
+@mixin platinum-scrollbar-glyph-left($bg) {
+  background: linear-gradient(90deg, transparent 75%, var(--color-black) 0) 50% / #{$sb-arrow} #{$sb-arrow-2x} no-repeat,
+  linear-gradient(90deg, transparent 50%, var(--color-black) 0) 50% / #{$sb-arrow} #{$sb-arrow-1-5x} no-repeat,
+  linear-gradient(90deg, transparent 25%, var(--color-black) 0) 50% / #{$sb-arrow} #{$sb-arrow} no-repeat,
+  linear-gradient(var(--color-black) 50%, var(--color-black) 0) 50% / #{$sb-arrow} #{$sb-arrow-half} no-repeat,
+  #{$bg};
+}
+
+@mixin platinum-scrollbar-glyph-right($bg) {
+  background: linear-gradient(270deg, transparent 75%, var(--color-black) 0) 50% / #{$sb-arrow} #{$sb-arrow-2x} no-repeat,
+  linear-gradient(270deg, transparent 50%, var(--color-black) 0) 50% / #{$sb-arrow} #{$sb-arrow-1-5x} no-repeat,
+  linear-gradient(270deg, transparent 25%, var(--color-black) 0) 50% / #{$sb-arrow} #{$sb-arrow} no-repeat,
+  linear-gradient(var(--color-black) 50%, var(--color-black) 0) 50% / #{$sb-arrow} #{$sb-arrow-half} no-repeat,
+  #{$bg};
+}
+
+// Common button box, and the pressed (:active) inset bevel.
+@mixin platinum-scrollbar-button-box {
+  display: block;
+  width: var(--window-scrollbar-size);
+  height: var(--window-scrollbar-size);
+}
+
+@mixin platinum-scrollbar-button-pressed {
+  box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-07),
+  inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 var(--color-system-07);
+}
+
+@mixin platinum-scrollbars() {
+  // Firefox / standards fallback: WebKit gets the fully-styled platinum
+  // scrollbar below; Firefox (and any engine without ::-webkit-scrollbar)
+  // at least picks up the theme-accent thumb and inset track colors.
+  // Guarded: a non-auto scrollbar-color/width makes Chrome 121+ and
+  // Safari 26.2+ ignore all ::-webkit-scrollbar styling, so these
+  // properties must never reach engines that support the pseudos.
+  // (The arrow arrangement is WebKit-only; Firefox has no scroll buttons
+  // either way, so the Smart Scrolling toggle is a no-op there.)
+  @supports not selector(::-webkit-scrollbar) {
+    & {
+      scrollbar-width: auto;
+      scrollbar-color: var(--color-theme-03) var(--color-system-04);
+    }
+  }
+
+  &::-webkit-scrollbar {
+    width: var(--window-scrollbar-size);
+    height: var(--window-scrollbar-size);
+  }
+
+  // --- Default arrangement: Mac OS 8 "Smart Scrolling" (ON) -----------------
+  // Both arrows are grouped together at the END of the bar — the bottom for a
+  // vertical bar, the right for a horizontal bar — exactly as shipped in Mac
+  // OS 8.0 with Smart Scrolling enabled. The up/left arrow sits above/left of
+  // the down/right arrow within the pair. The classic split arrangement is the
+  // OFF override in platinum-scrollbars-split-arrows().
+  //
+  // Only the END buttons are declared here; WebKit does not draw a scrollbar
+  // button unless it is given `display: block`, so the START positions stay
+  // empty until the split override enables them.
+
+  // Vertical: both buttons at the bottom.
+  &::-webkit-scrollbar-button:end:vertical {
+    @include platinum-scrollbar-button-box;
+    background-color: var(--color-system-02);
+    border-left: var(--window-border-size) solid var(--color-black);
+    border-right: var(--window-border-size) solid var(--color-black);
+    border-top: var(--window-border-size) solid var(--color-black);
+  }
+
+  // Up arrow (top of the pair); its bottom border divides it from the down arrow.
+  &::-webkit-scrollbar-button:end:vertical:decrement {
+    @include platinum-scrollbar-glyph-up(var(--color-system-02));
+    border-bottom: var(--window-border-size) solid var(--color-black);
+  }
+
+  &::-webkit-scrollbar-button:end:vertical:decrement:active {
+    @include platinum-scrollbar-glyph-up(var(--color-system-06));
+    @include platinum-scrollbar-button-pressed;
+  }
+
+  // Down arrow (bottom of the pair).
+  &::-webkit-scrollbar-button:end:vertical:increment {
+    @include platinum-scrollbar-glyph-down(var(--color-system-02));
+  }
+
+  &::-webkit-scrollbar-button:end:vertical:increment:active {
+    @include platinum-scrollbar-glyph-down(var(--color-system-06));
+    @include platinum-scrollbar-button-pressed;
+  }
+
+  // Horizontal: both buttons at the right.
+  &::-webkit-scrollbar-button:end:horizontal {
+    @include platinum-scrollbar-button-box;
+    background-color: var(--color-system-02);
+    border-top: var(--window-border-size) solid var(--color-black);
+    border-bottom: var(--window-border-size) solid var(--color-black);
+    border-left: var(--window-border-size) solid var(--color-black);
+  }
+
+  // Left arrow (left of the pair); its right border divides it from the right arrow.
+  &::-webkit-scrollbar-button:end:horizontal:decrement {
+    @include platinum-scrollbar-glyph-left(var(--color-system-02));
+    border-right: var(--window-border-size) solid var(--color-black);
+  }
+
+  &::-webkit-scrollbar-button:end:horizontal:decrement:active {
+    @include platinum-scrollbar-glyph-left(var(--color-system-06));
+    @include platinum-scrollbar-button-pressed;
+  }
+
+  // Right arrow (right of the pair).
+  &::-webkit-scrollbar-button:end:horizontal:increment {
+    @include platinum-scrollbar-glyph-right(var(--color-system-02));
+  }
+
+  &::-webkit-scrollbar-button:end:horizontal:increment:active {
+    @include platinum-scrollbar-glyph-right(var(--color-system-06));
+    @include platinum-scrollbar-button-pressed;
+  }
+
+  &::-webkit-scrollbar-track {
+    background-color: var(--color-system-04);
+    border: var(--window-border-size) solid var(--color-black);
+  }
+
+  &::-webkit-scrollbar-track:vertical {
+    box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-06),
+    inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * 2) 0 var(--color-system-03),
+    inset calc(var(--window-border-size) * 2) 0 0 rgba(0, 0, 0, 0.25),
+    inset calc(var(--window-border-size) * -2) 0 0 rgba(255, 255, 255, 0.25);
+  }
+
+  &::-webkit-scrollbar-track:horizontal {
+    box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-06),
+    inset calc(var(--window-border-size) * 2) calc(var(--window-border-size) * -1) 0 var(--color-system-03),
+    inset calc(var(--window-border-size) * 2) 0 0 rgba(0, 0, 0, 0.25),
+    inset calc(var(--window-border-size) * -2) 0 0 rgba(255, 255, 255, 0.25);
+  }
+
+  &::-webkit-scrollbar-corner {
+    border-top: var(--window-border-size) solid var(--color-black);
+    border-left: var(--window-border-size) solid var(--color-black);
+    box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-white);
+    background: var(--color-system-03);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Smart Scrolling OFF — classic split arrows (one at each end).
+//
+// Applied at higher specificity than platinum-scrollbars() (under the
+// .classicyDesktopSplitArrows root), so it overrides the grouped default. The
+// *increment* (down / right) arrow already lives at the END in the default, so
+// it stays put; this override just moves the *decrement* (up / left) arrow to
+// the START end and hides the one the grouped layout drew at the END.
+// ---------------------------------------------------------------------------
+@mixin platinum-scrollbars-split-arrows() {
+  // Remove the up/left arrow from the end pair…
+  &::-webkit-scrollbar-button:end:vertical:decrement,
+  &::-webkit-scrollbar-button:end:horizontal:decrement {
+    display: none;
+  }
+
+  // …and draw it at the start instead.
+  // Vertical: up arrow at the top; its bottom border divides it from the track.
+  &::-webkit-scrollbar-button:start:vertical:decrement {
+    @include platinum-scrollbar-button-box;
+    background-color: var(--color-system-02);
+    border-left: var(--window-border-size) solid var(--color-black);
+    border-right: var(--window-border-size) solid var(--color-black);
+    border-bottom: var(--window-border-size) solid var(--color-black);
+    @include platinum-scrollbar-glyph-up(var(--color-system-02));
+  }
+
+  &::-webkit-scrollbar-button:start:vertical:decrement:active {
+    @include platinum-scrollbar-glyph-up(var(--color-system-06));
+    @include platinum-scrollbar-button-pressed;
+  }
+
+  // Horizontal: left arrow at the far left; its right border divides it from the track.
+  &::-webkit-scrollbar-button:start:horizontal:decrement {
+    @include platinum-scrollbar-button-box;
+    background-color: var(--color-system-02);
+    border-top: var(--window-border-size) solid var(--color-black);
+    border-bottom: var(--window-border-size) solid var(--color-black);
+    border-right: var(--window-border-size) solid var(--color-black);
+    @include platinum-scrollbar-glyph-left(var(--color-system-02));
+  }
+
+  &::-webkit-scrollbar-button:start:horizontal:decrement:active {
+    @include platinum-scrollbar-glyph-left(var(--color-system-06));
+    @include platinum-scrollbar-button-pressed;
+  }
+}
+
+@mixin platinum-scrollbars-inactive() {
+  // Firefox / standards fallback for the inactive (blurred window) state:
+  // flatten the thumb into the track using neutral system greys.
+  // Guarded for the same reason as in platinum-scrollbars() above.
+  @supports not selector(::-webkit-scrollbar) {
+    & {
+      scrollbar-color: var(--color-system-04) var(--color-system-02);
+    }
+  }
+
+  // Collapse every arrow button (whichever end the arrangement placed it) so an
+  // inactive window shows bare, flat scroll gutters with no arrows or thumb.
+  &::-webkit-scrollbar-button {
+    background: var(--color-system-02);
+    border: none;
+    box-shadow: none;
+    width: 0;
+    height: 0;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: var(--color-system-02);
+    border: var(--window-border-size) solid var(--color-system-06);
+  }
+
+  &::-webkit-scrollbar-track:vertical {
+    box-shadow: none;
+  }
+
+  &::-webkit-scrollbar-track:horizontal {
+    box-shadow: none;
+  }
+
+  &::-webkit-scrollbar-corner {
+    border: none;
+    box-shadow: none;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    display: none;
+  }
+}
+
+@mixin platinum-scrollbars-themed() {
+  &::-webkit-scrollbar-thumb {
+    min-width: var(--window-control-size);
+    min-height: var(--window-control-size);
+    border: var(--window-border-size) solid var(--color-theme-07);
+    box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-02),
+    inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 var(--color-theme-04);
+  }
+
+  &::-webkit-scrollbar-thumb:vertical {
+    background: linear-gradient(
+                    transparent 12.5%,
+                    var(--color-theme-05) 0,
+                    var(--color-theme-05) 25%,
+                    transparent 0,
+                    transparent 37.5%,
+                    var(--color-theme-05) 0,
+                    var(--color-theme-05) 50%,
+                    transparent 0,
+                    transparent 62.5%,
+                    var(--color-theme-05) 0,
+                    var(--color-theme-05) 75%,
+                    transparent 0,
+                    transparent 87.5%,
+                    var(--color-theme-05) 0
+    ) 50%/7px 8px no-repeat,
+    linear-gradient(
+                    var(--color-theme-01) 12.5%,
+                    transparent 0,
+                    transparent 25%,
+                    var(--color-theme-01) 0,
+                    var(--color-theme-01) 37.5%,
+                    transparent 0,
+                    transparent 50%,
+                    var(--color-theme-01) 0,
+                    var(--color-theme-01) 62.5%,
+                    transparent 0,
+                    transparent 75%,
+                    var(--color-theme-01) 0,
+                    var(--color-theme-01) 87.5%,
+                    transparent 0
+    ) 49%/7px 8px no-repeat,
+    var(--color-theme-03);
+  }
+
+  &::-webkit-scrollbar-thumb:horizontal {
+    background: linear-gradient(
+                    90deg,
+                    transparent 12.5%,
+                    var(--color-theme-05) 0,
+                    var(--color-theme-05) 25%,
+                    transparent 0,
+                    transparent 37.5%,
+                    var(--color-theme-05) 0,
+                    var(--color-theme-05) 50%,
+                    transparent 0,
+                    transparent 62.5%,
+                    var(--color-theme-05) 0,
+                    var(--color-theme-05) 75%,
+                    transparent 0,
+                    transparent 87.5%,
+                    var(--color-theme-05) 0
+    ) 50%/8px 7px no-repeat,
+    linear-gradient(
+                    90deg,
+                    var(--color-theme-01) 12.5%,
+                    transparent 0,
+                    transparent 25%,
+                    var(--color-theme-01) 0,
+                    var(--color-theme-01) 37.5%,
+                    transparent 0,
+                    transparent 50%,
+                    var(--color-theme-01) 0,
+                    var(--color-theme-01) 62.5%,
+                    transparent 0,
+                    transparent 75%,
+                    var(--color-theme-01) 0,
+                    var(--color-theme-01) 87.5%,
+                    transparent 0
+    ) center 49%/8px 7px no-repeat,
+    var(--color-theme-03);
+  }
+}

@@ -1,0 +1,14 @@
+// An Appearance Package's stylesheet: its rules in the `classicy.package`
+// cascade layer, scoped under the desktop root that names the package, so a
+// package's look applies only while it is the active one and always beats
+// Classicy's structure (`classicy.base`), whatever the specificity.
+//
+//   @use "classicy/scss/package";
+//   @include package.classicy-package("irix") { .classicyButton { … } }
+@mixin classicy-package($id) {
+  @layer classicy.package {
+    .classicyDesktop[data-classicy-appearance="#{$id}"] {
+      @content;
+    }
+  }
+}

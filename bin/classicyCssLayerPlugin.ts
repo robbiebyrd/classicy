@@ -20,9 +20,12 @@ const DECLARED_LAYERS = CLASSICY_LAYER_ORDER.replace(/^@layer\s+|;$/g, "")
 	.split(",")
 	.map((name) => name.trim());
 
+// Nothing to layer: wrapped, it would only add an empty `@layer` block.
+const isBlank = (css: string): boolean => css.trim() === "";
+
 /**
- * True when `css` must not be wrapped into `layer`: it already is this
- * module's own wrapper, or it is exactly one block of another declared layer
+ * True when `css` must not be wrapped into `layer`: it is blank, it already
+ * is this module's own wrapper, or it is exactly one block of another declared layer
  * -- an Appearance Package's `?inline` stylesheet, compiled to one
  * `@layer classicy.package { … }` block. Wrapped again, that block would sit
  * in `classicy.base.classicy.package`, under every base rule. The layer name
@@ -31,6 +34,7 @@ const DECLARED_LAYERS = CLASSICY_LAYER_ORDER.replace(/^@layer\s+|;$/g, "")
  * comments (a second block, a stray rule, another `@layer …;`) is wrapped.
  */
 const isLayered = (css: string, layer: string): boolean =>
+	isBlank(css) ||
 	wrapped(layer).test(css) ||
 	DECLARED_LAYERS.some(
 		(name) =>
@@ -41,8 +45,8 @@ const isLayered = (css: string, layer: string): boolean =>
 /**
  * `css` inside an `@layer <layer> { … }` block. Unchanged when it already is
  * exactly such a block (optionally after the layer order statement), so
- * wrapping twice is wrapping once, or exactly one block of another declared
- * layer (a package stylesheet).
+ * wrapping twice is wrapping once, when it is exactly one block of another
+ * declared layer (a package stylesheet), or when it is blank.
  */
 export const wrapInClassicyLayer = (
 	css: string,

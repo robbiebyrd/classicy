@@ -1,0 +1,16 @@
+// Layout helpers shared by Classicy's stylesheets and Appearance Packages
+// (`@use "classicy/scss/layout"` in a host). Emits no CSS of its own.
+
+// A 1 px-exact rectangle of `$color` at (`$x`, `$y`) sized `$w` × `$h`, as one
+// background layer. Stacks of these draw bevels whose 1 px corner notches a
+// border or box-shadow can't express (HIGOS8 figures are pixel-exact).
+@function classicy-px-rect($color, $x, $y, $w, $h) {
+  // Interpolated so Sass keeps the "/" literal instead of dividing $y by $w.
+  @return linear-gradient($color, $color) #{$x} #{$y} / #{$w} #{$h} no-repeat;
+}
+
+@mixin classicy-no-select {
+  -webkit-user-select: none; /* Safari */
+  -ms-user-select: none; /* IE 10 and IE 11 */
+  user-select: none; /* Standard syntax */
+}

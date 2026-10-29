@@ -1,0 +1,13 @@
+// The Platinum package stylesheet, imported `?inline` by ../index.ts and
+// registered as the package's `css`: one `@layer classicy.package` block
+// scoped under `.classicyDesktop[data-classicy-appearance="platinum"]`. Each
+// components/_<Name>.scss exposes one mixin, included inside the wrapper below
+// (none yet: the component looks move here in tasks 4.2 and 4.3, until then
+// this compiles to an empty block).
+@use "../../vocabulary/package";
+@use "mixins";
+@use "scrollbars";
+@use "assets";
+
+@include package.classicy-package("platinum") {
+}

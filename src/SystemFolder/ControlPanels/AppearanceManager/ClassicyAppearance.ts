@@ -1,4 +1,8 @@
 import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
+// Data, not the package module: the default app-manager state reads these
+// themes at module evaluation and must never wait on the side-effect import
+// that registers the Platinum package (src/Appearance/Platinum/index.ts).
+import platinumJson from "@/Appearance/Platinum/platinum.json";
 import { intToHex } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyColors";
 import {
 	intToPct,
@@ -11,7 +15,6 @@ import {
 import { resolveWallpaper } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 import type { ClassicyStoreSystemManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import type { ClassicyThemeSound } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
-import themesData from "../AppearanceManager/styles/themes.json";
 
 export interface ClassicyStoreSystemAppearanceManager
 	extends ClassicyStoreSystemManager {
@@ -306,20 +309,22 @@ export function withDefaultThemePackageList(
 }
 
 /**
- * `themes.json` names its wallpapers; the bundler owns the URLs. Resolving once
+ * The built-in themes are the Platinum package's presets (`platinum.json`).
+ * They name their wallpapers; the bundler owns the URLs. Resolving once
  * here means every reader of a theme — `getTheme`, `getAllThemes`, and the
  * default app-manager state — gets a background image that actually loads.
  */
-const resolvedThemes = (themesData as unknown as ClassicyTheme[]).map((theme) =>
-	withDefaultThemePackage(
-		withDefaultThemeMetrics({
-			...theme,
-			desktop: {
-				...theme.desktop,
-				backgroundImage: resolveWallpaper(theme.desktop.backgroundImage),
-			},
-		}),
-	),
+const resolvedThemes = (platinumJson.presets as unknown as ClassicyTheme[]).map(
+	(theme) =>
+		withDefaultThemePackage(
+			withDefaultThemeMetrics({
+				...theme,
+				desktop: {
+					...theme.desktop,
+					backgroundImage: resolveWallpaper(theme.desktop.backgroundImage),
+				},
+			}),
+		),
 );
 
 export const getAllThemes = (): ClassicyTheme[] => {

@@ -58,6 +58,19 @@ describe("injectClassicyAppearanceStyles", () => {
 		).toBe(2);
 	});
 
+	// A package whose stylesheet compiled to nothing gets no element, and a
+	// package re-registered with no CSS loses its old one.
+	it("writes no element for blank CSS and removes a stale one", () => {
+		injectClassicyAppearanceStyles("p", "");
+		injectClassicyAppearanceStyles("q", " \n");
+		expect(document.getElementById("classicy-appearance-p")).toBeNull();
+		expect(document.getElementById("classicy-appearance-q")).toBeNull();
+		injectClassicyAppearanceStyles("p", ".a{}");
+		expect(document.getElementById("classicy-appearance-p")).not.toBeNull();
+		injectClassicyAppearanceStyles("p", "");
+		expect(document.getElementById("classicy-appearance-p")).toBeNull();
+	});
+
 	it("is a no-op without document", () => {
 		vi.stubGlobal("document", undefined);
 		expect(() => injectClassicyAppearanceStyles("p", ".a{}")).not.toThrow();

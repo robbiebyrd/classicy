@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import platinumJson from "@/Appearance/Platinum/platinum.json";
 import {
 	type ClassicyTheme,
 	getAllThemes,
@@ -14,7 +15,6 @@ import {
 	isSafeClassicyThemeBackgroundImage,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema";
 import { ClassicyDefaultWallpaper } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
-import themesData from "@/SystemFolder/ControlPanels/AppearanceManager/styles/themes.json";
 import { registerClassicySoundPack } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
 
 const base = (): ClassicyTheme => structuredClone(getTheme("default"));
@@ -31,8 +31,10 @@ const rejects = (value: unknown) =>
 
 describe("ClassicyThemeSchema — accepts", () => {
 	it.each(
-		(themesData as unknown as ClassicyTheme[]).map((t) => [t.id, t] as const),
-	)("bundled theme %s as written in themes.json", (_id, theme) => {
+		(platinumJson.presets as unknown as ClassicyTheme[]).map(
+			(t) => [t.id, t] as const,
+		),
+	)("bundled theme %s as written in platinum.json", (_id, theme) => {
 		const parsed = ClassicyThemeSchema.safeParse(theme);
 		expect(parsed.success, JSON.stringify(parsed.error?.issues)).toBe(true);
 	});

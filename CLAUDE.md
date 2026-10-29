@@ -622,7 +622,7 @@ no effect. Registering the same type twice is a no-op, matching
 
 ### Theming
 
-Themes are JSON-based (`src/SystemFolder/ControlPanels/AppearanceManager/styles/themes.json`) and control:
+Themes are JSON-based — the built-ins are the 21 `presets` of the Platinum Appearance Package (`src/Appearance/Platinum/platinum.json`, read as data by `getAllThemes`; `src/Appearance/Platinum/index.ts` registers the package) — and control:
 - Typography (body, ui, header fonts)
 - Colors (system palette, theme accent colors)
 - Desktop appearance (background, patterns)

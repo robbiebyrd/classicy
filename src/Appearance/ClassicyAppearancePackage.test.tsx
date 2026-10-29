@@ -328,6 +328,7 @@ describe("module load order", () => {
 				import("@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager"),
 		],
 		["the library barrel", () => import("@/index")],
+		["the Platinum package module", () => import("@/Appearance/Platinum")],
 	])(
 		"evaluates when %s loads first",
 		async (_name, load) => {

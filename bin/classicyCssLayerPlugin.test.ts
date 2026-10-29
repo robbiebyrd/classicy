@@ -155,6 +155,27 @@ describe("classicyCssLayerPlugin", () => {
 		}
 	});
 
+	// Platinum's stylesheet before any component partial is included (task
+	// 4.1): Sass keeps the empty block, which only names the layer.
+	it("leaves an empty package stylesheet alone", async () => {
+		const empty = "@layer classicy.package {}";
+		expect(wrapInClassicyLayer(empty)).toBe(empty);
+		for (const command of ["serve", "build"] as const)
+			expect(await transform(command).call({}, empty, PACKAGE_ID)).toBeNull();
+	});
+
+	it("never wraps a blank stylesheet into an empty classicy.base block", async () => {
+		for (const css of ["", "\n", "  \n\t"]) {
+			expect(wrapInClassicyLayer(css)).toBe(css);
+			for (const command of ["serve", "build"] as const) {
+				expect(await transform(command).call({}, css, PACKAGE_ID)).toBeNull();
+				expect(
+					await transform(command).call({}, css, `${ROOT}/src/X/X.scss`),
+				).toBeNull();
+			}
+		}
+	});
+
 	it("prepends the layer order to each file only when serving", async () => {
 		const id = `${ROOT}/src/X/X.scss`;
 		expect((await transform("serve").call({}, ".a{}", id))?.code).toBe(

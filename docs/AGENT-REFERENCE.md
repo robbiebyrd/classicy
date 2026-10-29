@@ -1617,7 +1617,7 @@ File format — a versioned envelope, saved as `<theme-name>.classicy-theme.json
 ```
 
 - Loading also accepts a **bare theme object** (no envelope), e.g. an entry
-  copied from `themes.json`. A `format` other than `"classicy-theme"`, a
+  copied from the `presets` of `src/Appearance/Platinum/platinum.json`. A `format` other than `"classicy-theme"`, a
   missing version, or a version other than `1` is rejected (a higher version
   reports "saved by a newer version of Classicy").
 - `theme.package` names the theme's Appearance Package (`"platinum"` when
