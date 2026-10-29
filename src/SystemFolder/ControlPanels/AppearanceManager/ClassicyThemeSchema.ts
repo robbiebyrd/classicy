@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import "@/Appearance/Platinum/assets/sounds/platinum";
 import {
@@ -112,8 +113,8 @@ export const ClassicyThemeSchema = z.object({
 	id: z.string().max(128),
 	name: z.string().trim().min(1, "must not be empty").max(64),
 	// The Appearance Package the theme belongs to; files saved before
-	// packages existed load as Platinum.
-	package: z.string().max(64).default("platinum"),
+	// packages existed load as the default package (Platinum).
+	package: z.string().max(64).default(CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID),
 	color: z.object({
 		outline: color,
 		select: color,

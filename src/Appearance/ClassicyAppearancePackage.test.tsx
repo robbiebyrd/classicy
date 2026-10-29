@@ -373,6 +373,72 @@ describe("module load order", () => {
 		},
 		60_000,
 	);
+
+	// getClassicyAppearanceLayout is for reducers, and the app manager imports
+	// its reducers (the desktop icon reducer among them) while it builds
+	// DefaultAppManagerState. The mock below makes that reducer import the
+	// getter first, so the app manager, evaluated first in a fresh graph,
+	// reaches the getter's module mid-evaluation. Were that module to reach the
+	// store, the store would be created against an app manager that is still
+	// evaluating: in a bundle, a ReferenceError on DefaultAppManagerState; in
+	// vitest's module runner, an import that waits on the app manager forever,
+	// which the race turns into a failure.
+	it("evaluates when the app manager loads first and a reducer it imports reads the layout getter", async () => {
+		const reducer =
+			"@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconContext";
+		vi.resetModules();
+		vi.doMock(reducer, async (importOriginal) => {
+			let timer: ReturnType<typeof setTimeout> | undefined;
+			const layout = await Promise.race([
+				import("@/Appearance/useClassicyAppearanceLayout"),
+				new Promise<never>((_, reject) => {
+					timer = setTimeout(
+						() =>
+							reject(
+								new Error(
+									"the layout getter's module waited on the app manager mid-evaluation",
+								),
+							),
+						20_000,
+					);
+				}),
+			]).finally(() => clearTimeout(timer));
+			// As a reducer would, while the app manager evaluates.
+			expect(layout.getClassicyAppearanceLayout("platinum")).toEqual(
+				PLATINUM_LAYOUT,
+			);
+			return importOriginal();
+		});
+		try {
+			await import(
+				"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager"
+			);
+			const store = await import(
+				"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils"
+			);
+			store.stopAppManagerPersistence();
+			expect(
+				store.useAppManager.getState().System.Manager.Appearance.packageId,
+			).toBe("platinum");
+			// The getter follows the fresh store's packageId (R18).
+			const layout = await import("@/Appearance/useClassicyAppearanceLayout");
+			const packages = await import(
+				"@/Appearance/ClassicyAppearancePackageRegistry"
+			);
+			const mirror = makePackage("load-order", {
+				layout: { ...PLATINUM_LAYOUT, menuBar: { placement: "window" } },
+			});
+			packages.registerClassicyAppearancePackage(mirror);
+			store.useAppManager.setState(
+				produce(store.useAppManager.getState(), (draft) => {
+					draft.System.Manager.Appearance.packageId = "load-order";
+				}),
+			);
+			expect(layout.getClassicyAppearanceLayout()).toBe(mirror.layout);
+		} finally {
+			vi.doUnmock(reducer);
+		}
+	}, 60_000);
 });
 
 describe("CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID", () => {

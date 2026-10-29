@@ -1,5 +1,10 @@
 import type { MouseEvent } from "react";
-import { getClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackageRegistry";
+import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
+import type { ClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
+import {
+	CLASSICY_FALLBACK_APPEARANCE_PACKAGE,
+	getClassicyAppearancePackage,
+} from "@/Appearance/ClassicyAppearancePackageRegistry";
 import {
 	type ClassicyTheme,
 	withDefaultThemePackageList,
@@ -13,8 +18,12 @@ import {
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
 import { setThemeColor } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorTargets";
 import { readClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFile";
-import { withDefaultThemeMetricsList } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
+import {
+	withDefaultThemeMetrics,
+	withDefaultThemeMetricsList,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import { setThemeMetric } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricTargets";
+import { resolveWallpaper } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 import {
 	hasActiveTheme,
 	hasAlertSound,
@@ -199,6 +208,27 @@ const controlStripState = (ds: ClassicyStore): ClassicyStoreControlStrip => {
 	return ds.System.Manager.Desktop.controlStrip;
 };
 
+/**
+ * A package's defaults as the theme a switch activates: a copy (as
+ * ChangeTheme activates), completed as built-in and loaded themes are. The
+ * registry keeps a package as passed, so a JS-authored one may lack metric
+ * groups or name a bundled wallpaper by filename; `package` is the package's
+ * own id (its registration guarantees the defaults name no other).
+ */
+const activatableClassicyPackageDefaults = (
+	pkg: ClassicyAppearancePackage,
+): ClassicyTheme => {
+	const theme = withDefaultThemeMetrics(cloneClassicyTheme(pkg.defaults));
+	return {
+		...theme,
+		package: pkg.id,
+		desktop: {
+			...theme.desktop,
+			backgroundImage: resolveWallpaper(theme.desktop.backgroundImage),
+		},
+	};
+};
+
 export const classicyDesktopEventHandler = (
 	ds: ClassicyStore,
 	action: ActionMessage,
@@ -313,7 +343,13 @@ export const classicyDesktopEventHandler = (
 		}
 		case "ClassicyDesktopChangeAppearancePackage": {
 			if (!hasPackageId(action)) break;
-			const pkg = getClassicyAppearancePackage(action.packageId);
+			// The default package is always installable (R16): unregistered,
+			// its built-in structure applies, as for theme files.
+			const pkg =
+				getClassicyAppearancePackage(action.packageId) ??
+				(action.packageId === CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID
+					? CLASSICY_FALLBACK_APPEARANCE_PACKAGE
+					: undefined);
 			if (!pkg) {
 				classicyLog(
 					"warn",
@@ -328,7 +364,7 @@ export const classicyDesktopEventHandler = (
 			// the package's defaults (a copy, as ChangeTheme activates). The
 			// preset list is left alone.
 			if (appearance.activeTheme.package !== pkg.id) {
-				appearance.activeTheme = cloneClassicyTheme(pkg.defaults);
+				appearance.activeTheme = activatableClassicyPackageDefaults(pkg);
 			}
 			break;
 		}

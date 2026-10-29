@@ -9,19 +9,13 @@ import type {
 	ClassicyComponentName,
 	ClassicyState,
 } from "@/Appearance/vocabulary/ClassicyVocabulary";
-import {
-	type ClassicyTheme,
-	getAllThemes,
-	getTheme,
-} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import type { ClassicySoundPack } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
+import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "./ClassicyAppearanceDefaults";
 import {
-	CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
-	CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID,
-} from "./ClassicyAppearanceDefaults";
-import {
+	CLASSICY_FALLBACK_APPEARANCE_PACKAGE,
 	getClassicyAppearancePackage,
 	listClassicyAppearancePackages,
 	subscribeClassicyAppearancePackages,
@@ -29,6 +23,7 @@ import {
 
 export { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "./ClassicyAppearanceDefaults";
 export {
+	CLASSICY_FALLBACK_APPEARANCE_PACKAGE,
 	getClassicyAppearancePackage,
 	listClassicyAppearancePackages,
 	registerClassicyAppearancePackage,
@@ -144,27 +139,6 @@ export type ClassicyAppearancePackage = {
 	sounds?: ClassicySoundPack[];
 	hooks?: ClassicyAppearanceHooks;
 };
-
-// Built at module evaluation. ClassicyAppearance has no runtime edge back to
-// this module, and the app manager (reached through `useAppManager`) is only
-// read inside functions, so the themes are always initialized here whichever
-// module a bundle evaluates first (ClassicyAppearancePackage.test.tsx loads
-// each entry point into a fresh module graph).
-/**
- * Platinum's structure without its look: the Platinum defaults, presets and
- * layout, and no CSS or hooks. Returned only while no package is registered
- * at all (lone-component tests, a host that never loads Platinum). Frozen
- * shallowly: `defaults` and `presets` are the shared built-in theme objects.
- */
-export const CLASSICY_FALLBACK_APPEARANCE_PACKAGE: ClassicyAppearancePackage =
-	Object.freeze({
-		id: CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID,
-		name: "Platinum",
-		css: "",
-		defaults: getTheme("default"),
-		presets: getAllThemes(),
-		layout: CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
-	});
 
 /** Registered packages in registration order; re-renders on any change. */
 export const useClassicyAppearancePackages = (): ClassicyAppearancePackage[] =>

@@ -1,4 +1,12 @@
+import {
+	getAllThemes,
+	getTheme,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
+import {
+	CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
+	CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID,
+} from "./ClassicyAppearanceDefaults";
 import type { ClassicyAppearancePackage } from "./ClassicyAppearancePackage";
 import { ClassicyAppearancePackageSchema } from "./ClassicyAppearancePackageSchema";
 import {
@@ -13,6 +21,27 @@ import {
 // store before its default state whenever the app manager loads first.
 
 const SUBSYSTEM = "ClassicyAppearance";
+
+// Built at module evaluation, and kept here (not beside the store-reading
+// hooks) so reducers can fall back to it: ClassicyAppearance has no runtime
+// edge back to this module, so the themes are always initialized here
+// whichever module a bundle evaluates first (ClassicyAppearancePackage.test.tsx
+// loads each entry point into a fresh module graph).
+/**
+ * Platinum's structure without its look: the Platinum defaults, presets and
+ * layout, and no CSS or hooks. Returned only while no package is registered
+ * at all (lone-component tests, a host that never loads Platinum). Frozen
+ * shallowly: `defaults` and `presets` are the shared built-in theme objects.
+ */
+export const CLASSICY_FALLBACK_APPEARANCE_PACKAGE: ClassicyAppearancePackage =
+	Object.freeze({
+		id: CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID,
+		name: "Platinum",
+		css: "",
+		defaults: getTheme("default"),
+		presets: getAllThemes(),
+		layout: CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
+	});
 
 const registry = new Map<string, ClassicyAppearancePackage>();
 const listeners = new Set<() => void>();
