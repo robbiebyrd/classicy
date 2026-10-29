@@ -49,10 +49,22 @@
 //    stylesheet loads would put its own overrides *under* the base layer.
 //    Checked in the injected <style> text of both entry bundles and at the
 //    head of dist/classicy.css (linked by strict-CSP hosts).
+//
+// 7. PACKAGE CSS IS ITS OWN `@layer classicy.package` BLOCK. An Appearance
+//    Package's stylesheet (`platinum.scss?inline`) must ship as exactly one
+//    `classicy.package` block, never nested inside `classicy.base`: the layer
+//    plugin wraps every src stylesheet, and a wrapped package block would sit
+//    in `classicy.base.classicy.package`, under every base rule, so the whole
+//    look would lose to the structure it decorates. Checked in every emitted
+//    bundle, in each emitted dist/classicy-<id>.css (the order statement, then
+//    the one block), and in the library stylesheet (dist/classicy.css and the
+//    injected text), which must carry no package look. Holds vacuously until a
+//    package's CSS ships (plan 0005-1b3 §4.1/§5.1).
 
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { argv, exit } from "node:process";
+import { findClassicyPackageCssProblems } from "./classicyPackageCss.ts";
 
 const DIST = "dist";
 
@@ -310,6 +322,54 @@ if (!argv.slice(2).length || argv.slice(2).includes(cssFile)) {
 	} else {
 		console.log(`${cssFile}: declares the layer order first`);
 	}
+}
+
+// Invariant 7: package CSS is its own classicy.package block. With named
+// files, only those are checked (a .js file as a bundle, a .css file by name).
+{
+	const named = argv.slice(2);
+	const distFiles = named.length ? [] : await readdir(DIST);
+	const jsFiles = named.length
+		? named.filter((f) => f.endsWith(".js"))
+		: distFiles.filter((f) => f.endsWith(".js")).map((f) => join(DIST, f));
+	const PACKAGE_CSS_FILE = /^classicy-[a-z0-9]+(?:-[a-z0-9]+)*\.css$/;
+	const packageFiles = named.length
+		? named.filter((f) => PACKAGE_CSS_FILE.test(f.split(/[\\/]/).pop()))
+		: distFiles
+				.filter((f) => PACKAGE_CSS_FILE.test(f))
+				.map((f) => join(DIST, f));
+	const read = async (file) => ({ file, text: await readFile(file, "utf8") });
+	const bundles = await Promise.all(jsFiles.map(read));
+	const baseStylesheets = bundles.flatMap(({ file, text }) => {
+		const at = text.lastIndexOf(`document.getElementById(${STYLE_ID})`);
+		return at === -1
+			? []
+			: [
+					{
+						file: `${file} (injected stylesheet)`,
+						css: injectedText(text, at),
+					},
+				];
+	});
+	if (!named.length || named.includes(cssFile)) {
+		const css = await readFile(cssFile, "utf8").catch(() => null);
+		if (css !== null) baseStylesheets.push({ file: cssFile, css });
+	}
+	const packageStylesheets = (await Promise.all(packageFiles.map(read))).map(
+		({ file, text }) => ({ file, css: text }),
+	);
+	const problems = findClassicyPackageCssProblems({
+		layerOrder: LAYER_ORDER,
+		bundles: bundles.map(({ file, text }) => ({ file, source: text })),
+		baseStylesheets,
+		packageStylesheets,
+	});
+	for (const problem of problems) console.error(problem);
+	if (problems.length) failed = true;
+	else
+		console.log(
+			`package CSS: ${packageStylesheets.length} package stylesheet file(s); every @layer classicy.package block stands alone`,
+		);
 }
 
 if (failed) exit(1);

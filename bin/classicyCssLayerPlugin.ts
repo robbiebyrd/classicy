@@ -1,6 +1,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Plugin } from "vite";
+import { isSingleClassicyLayerBlock } from "./classicyPackageCss";
 import { CLASSICY_LAYER_ORDER } from "./classicyStyleInjector";
 
 const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -13,15 +14,37 @@ const wrapped = (layer: string) =>
 		`^(?:${escapeRegExp(CLASSICY_LAYER_ORDER)}\\n)?@layer ${escapeRegExp(layer)} \\{\\n[\\s\\S]*\\n\\}$`,
 	);
 
+// The layers CLASSICY_LAYER_ORDER declares: classicy.base, classicy.package,
+// classicy.user.
+const DECLARED_LAYERS = CLASSICY_LAYER_ORDER.replace(/^@layer\s+|;$/g, "")
+	.split(",")
+	.map((name) => name.trim());
+
+/**
+ * True when `css` must not be wrapped into `layer`: it already is this
+ * module's own wrapper, or it is exactly one block of another declared layer
+ * -- an Appearance Package's `?inline` stylesheet, compiled to one
+ * `@layer classicy.package { … }` block. Wrapped again, that block would sit
+ * in `classicy.base.classicy.package`, under every base rule. The layer name
+ * matches exactly (`classicy.packages`, `classicy.package.x` are wrapped), and
+ * anything outside the one block (a second block, a stray rule) is wrapped.
+ */
+const isLayered = (css: string, layer: string): boolean =>
+	wrapped(layer).test(css) ||
+	DECLARED_LAYERS.some(
+		(name) => name !== layer && isSingleClassicyLayerBlock(css, name),
+	);
+
 /**
  * `css` inside an `@layer <layer> { … }` block. Unchanged when it already is
  * exactly such a block (optionally after the layer order statement), so
- * wrapping twice is wrapping once.
+ * wrapping twice is wrapping once, or exactly one block of another declared
+ * layer (a package stylesheet).
  */
 export const wrapInClassicyLayer = (
 	css: string,
 	layer = "classicy.base",
-): string => (wrapped(layer).test(css) ? css : `@layer ${layer} {\n${css}\n}`);
+): string => (isLayered(css, layer) ? css : `@layer ${layer} {\n${css}\n}`);
 
 // Classicy's own sources: this repository's src/ (the plugin file lives in
 // bin/). Excludes the example app's and node_modules' stylesheets, which are
@@ -41,7 +64,9 @@ const isClassicyComponentScss = (id: string): boolean => {
 
 /**
  * Compiles every Classicy component stylesheet into the `classicy.base`
- * cascade layer. No `enforce`: it runs in the normal phase, after `vite:css`
+ * cascade layer, `?inline` ones included; a stylesheet that is exactly one
+ * block of another declared layer (a package's `classicy.package` sheet) is
+ * left as it is. No `enforce`: it runs in the normal phase, after `vite:css`
  * has compiled the SCSS to CSS and before `vite:css-post` collects it, in the
  * library build, the dev servers and Storybook alike. One block per source
  * file, so per-file rule order is unchanged and every rule keeps its place
@@ -74,8 +99,7 @@ export function classicyCssLayerPlugin(layer = "classicy.base"): Plugin {
 			];
 		},
 		transform(code, id) {
-			if (!isClassicyComponentScss(id) || wrapped(layer).test(code))
-				return null;
+			if (!isClassicyComponentScss(id) || isLayered(code, layer)) return null;
 			const css = wrapInClassicyLayer(code, layer);
 			return {
 				code: serving ? `${CLASSICY_LAYER_ORDER}\n${css}` : css,
