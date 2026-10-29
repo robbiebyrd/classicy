@@ -761,6 +761,9 @@ Five kinds (`ClassicyAssetKind`):
 An asset is a `ClassicyAssetSource`, a plain string: an imported URL, a relative
 or `http(s)` URL, or a `data:` URI. `isClassicyAssetSource` refuses any other
 scheme and anything that could break out of a quoted CSS `url("…")`.
+`registerClassicyAssets` (so every `registerClassicy*` registrar) checks each
+leaf with it: an invalid leaf is skipped with a `classicyLog` warning naming the
+kind, package and dotted path, and the rest of the tree still registers.
 
 ### Registering
 
@@ -849,20 +852,27 @@ default (or draw nothing).
 | `windowStripes`, `windowStripesRed`, `windowGrip`, `windowDither`, `zoomGlyph`, `collapseGlyph` | window chrome art |
 | `triangle`, `downArrow`, `submenuArrow`, `popupArrows`, `sliderThumb`, `sliderStrikes`, `tabOutline` | control art |
 
-Unregistered by Platinum (it has no standalone art for them, or the control
-draws them itself): `aboutBackground`, `windowUtilityShade`,
+Unregistered by Platinum (23 keys): `aboutBackground`, `windowUtilityShade`,
 `windowUtilityHighlight`, `titleBarCapLeft`, `titleBarCapRight`,
 `titleBarCapLeftRed`, `titleBarCapRightRed`, `sliderThumbRect`, `halftone`,
 `halftoneLarge`, `quickTimeThumbSlider`, `quickTimeVolumeSlider`,
 `controlStripTab`, `controlStripCollapse`, `controlStripScrollLeft`,
 `controlStripScrollLeftDisabled`, `controlStripScrollRight`,
 `controlStripScrollRightDisabled`, `controlStripModuleArrow`, `popUpSliderTrack`,
-`popUpSliderThumb`, `menuCheck`, `menuDash` (23 keys). `menuCheck` and
-`menuDash` are Unicode glyphs in `ClassicyMenu`; the Control Strip and pop-up
-slider art is `ClassicyPixelArt` rows of theme tokens. Two names that appear in
-Platinum's own test as "unregistered" (`startupWordmark`, `paradeDefault`) are
-not keys of the union at all; the boot parade is read through
-`getClassicyDefaultParadeIcons`.
+`popUpSliderThumb`, `menuCheck`, `menuDash`. Why:
+
+- The four title-bar caps and the two utility keys have SVGs under
+  `src/Appearance/Platinum/assets/art/` (`title-bar-left.svg`, `-right.svg`,
+  the red pair, `title-bar-utility.svg`) but stay unregistered until Part E
+  wires them into the window chrome.
+- `menuCheck` and `menuDash` are Unicode glyphs in `ClassicyMenu`, and the
+  Control Strip and pop-up slider art is `ClassicyPixelArt` rows of theme
+  tokens, so those keys have no file.
+- The rest have no Platinum art today.
+
+Platinum's own test (`platinumAssets.test.ts`) classifies every key in an
+exhaustive `Record<ClassicySystemArtKey, boolean>`, so adding a key to the union
+without deciding whether Platinum registers it is a type error.
 
 ### Cursor roles
 

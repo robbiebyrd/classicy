@@ -23,12 +23,14 @@ const art = (name: string): string => artModules[`./art/${name}`] ?? "";
  * render time through the asset registry, so a host's own
  * `registerClassicySystemArt` replaces any key.
  *
- * Deliberately unregistered — Platinum has no art for them today:
- * `startupWordmark` (the wordmark is text), `paradeDefault` (the parade is
- * eleven icons, read through `getClassicyDefaultParadeIcons`), `menuCheck` and
- * `menuDash` (Unicode glyphs in `ClassicyMenu`). The title-bar caps and utility
- * stripes (`title-bar-left.svg`, `-right.svg`, `-utility.svg` and the red
- * pair) are decoded in `art/` but have no contract key yet.
+ * Not registered (Platinum registers 21 of the 44 `ClassicySystemArtKey`s; the
+ * rest resolve to `undefined`): `titleBarCapLeft`, `titleBarCapRight`,
+ * `titleBarCapLeftRed`, `titleBarCapRightRed`, `windowUtilityShade` and
+ * `windowUtilityHighlight` have SVGs under `art/` (`title-bar-left.svg`,
+ * `-right.svg`, the red pair, `title-bar-utility.svg`) but stay unregistered
+ * until Part E wires them into the window chrome. `menuCheck` and `menuDash`
+ * are Unicode glyphs in `ClassicyMenu`, and the Control Strip and pop-up slider
+ * art is drawn as `ClassicyPixelArt`, so those keys have no file at all.
  */
 registerClassicySystemArt(PLATINUM, {
 	appleMenu: ClassicyIcons.system.apple,

@@ -160,7 +160,46 @@ const notify = (): void => {
 	for (const listener of [...listeners]) listener();
 };
 
-/** Deep-merge `tree` into that package's namespace for `kind`. */
+/**
+ * A copy of `tree` holding only leaves that pass `isClassicyAssetSource`.
+ * Leaves land in CSS `url("…")` values, so an invalid one (a quote or `)` that
+ * could break out of the URL, a `javascript:` scheme, an empty string) is
+ * dropped with a warning naming the kind, package and dotted path; the rest of
+ * the tree still registers.
+ */
+const validLeaves = (
+	kind: ClassicyAssetKind,
+	packageId: string,
+	tree: ClassicyAssetTree,
+	trail: string,
+): ClassicyAssetTree => {
+	const out: ClassicyAssetTree = {};
+	for (const key of Object.keys(tree)) {
+		const path = trail ? `${trail}.${key}` : key;
+		if (FORBIDDEN_KEYS.has(key)) {
+			classicyLog("warn", SUBSYSTEM, `Ignored forbidden key "${path}"`);
+			continue;
+		}
+		const value = tree[key];
+		if (isTree(value)) {
+			out[key] = validLeaves(kind, packageId, value, path);
+		} else if (isClassicyAssetSource(value)) {
+			out[key] = value;
+		} else {
+			classicyLog(
+				"warn",
+				SUBSYSTEM,
+				`Ignored ${kind} asset "${path}" for package "${packageId}": not a safe asset source`,
+			);
+		}
+	}
+	return out;
+};
+
+/**
+ * Deep-merge `tree` into that package's namespace for `kind`. Leaves that are
+ * not a valid `ClassicyAssetSource` are skipped with a warning.
+ */
 export const registerClassicyAssets = (
 	kind: ClassicyAssetKind,
 	packageId: string,
@@ -176,7 +215,7 @@ export const registerClassicyAssets = (
 		stored = {};
 		byPackage.set(packageId, stored);
 	}
-	mergeInto(stored, tree, "");
+	mergeInto(stored, validLeaves(kind, packageId, tree, ""), "");
 	notify();
 };
 

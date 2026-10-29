@@ -1,6 +1,6 @@
 import { act, render } from "@testing-library/react";
 import { createElement } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	type ClassicyAssetTree,
 	classicyAssetVarName,
@@ -16,6 +16,11 @@ import {
 	useClassicyAssetVars,
 } from "@/Appearance/ClassicyAssetRegistry";
 import { isClassicyAssetSource } from "@/Appearance/ClassicyAssetSource";
+import {
+	type ClassicyLogEntry,
+	registerClassicyLogSink,
+	unregisterClassicyLogSink,
+} from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 const captureHook = <T>(hook: () => T) => {
 	const seen: T[] = [];
@@ -140,5 +145,95 @@ describe("ClassicyAssetRegistry", () => {
 		expect(isClassicyAssetSource("javascript:alert(1)")).toBe(false);
 		expect(isClassicyAssetSource('a").png')).toBe(false);
 		expect(isClassicyAssetSource("")).toBe(false);
+	});
+
+	describe("source validation", () => {
+		const entries: ClassicyLogEntry[] = [];
+
+		beforeEach(() => {
+			entries.length = 0;
+			vi.spyOn(console, "warn").mockImplementation(() => {});
+			registerClassicyLogSink({
+				id: "asset-validation-test",
+				onLog: (entry) => entries.push(entry),
+			});
+		});
+
+		afterEach(() => {
+			unregisterClassicyLogSink("asset-validation-test");
+			vi.restoreAllMocks();
+		});
+
+		it.each([
+			['a").png', "close-paren and quote"],
+			['a"b.png', "quote"],
+			["javascript:alert(1)", "javascript: scheme"],
+			["", "empty string"],
+		])("skips a cursor and a system-art source %j (%s), keeps valid siblings, and never emits a variable for it", (bad) => {
+			registerClassicyCursors("platinum", {
+				hand: bad,
+				arrow: "arrow.svg",
+			});
+			registerClassicySystemArt("platinum", {
+				aliasBadge: bad,
+				sadMac: "sad.png",
+			});
+			expect(resolveClassicyAsset("cursors", "hand")).toBeUndefined();
+			expect(resolveClassicyAsset("systemArt", "aliasBadge")).toBeUndefined();
+			expect(resolveClassicyAsset("cursors", "arrow")).toBe("arrow.svg");
+			expect(resolveClassicyAsset("systemArt", "sadMac")).toBe("sad.png");
+			const vars = captureHook(() => useClassicyAssetVars())[0];
+			expect(vars).toEqual({
+				"--classicy-cursor-arrow": 'url("arrow.svg")',
+				"--classicy-art-sad-mac": 'url("sad.png")',
+			});
+			const warnings = entries.filter((e) => e.level === "warn");
+			expect(warnings.map((e) => e.message)).toEqual([
+				expect.stringContaining('cursors asset "hand" for package "platinum"'),
+				expect.stringContaining(
+					'systemArt asset "aliasBadge" for package "platinum"',
+				),
+			]);
+		});
+
+		it("skips an invalid nested icon leaf, naming its dotted path, and registers the rest of the tree", () => {
+			registerClassicyAssets("icons", "mine", {
+				system: { alias: "javascript:alert(1)", apple: "a.png" },
+				ui: { ok: "ok.png" },
+			});
+			expect(
+				resolveClassicyAsset("icons", "system.alias", "mine"),
+			).toBeUndefined();
+			expect(resolveClassicyAsset("icons", "system.apple", "mine")).toBe(
+				"a.png",
+			);
+			expect(resolveClassicyAsset("icons", "ui.ok", "mine")).toBe("ok.png");
+			expect(entries.map((e) => e.message)).toEqual([
+				expect.stringContaining(
+					'icons asset "system.alias" for package "mine"',
+				),
+			]);
+		});
+
+		it("skips an invalid wallpaper source", () => {
+			registerClassicyWallpapers("platinum", [
+				{ name: "Bad", src: 'x").png' },
+				{ name: "Good", src: "good.png" },
+			]);
+			expect(resolveClassicyAsset("wallpapers", "Bad")).toBeUndefined();
+			expect(resolveClassicyAsset("wallpapers", "Good")).toBe("good.png");
+		});
+
+		it("still accepts data: URIs and http(s) URLs", () => {
+			registerClassicyCursors("platinum", {
+				arrow: "data:image/svg+xml,<svg a='1'/>",
+				hand: "https://x.test/hand.png",
+			});
+			expect(resolveClassicyAsset("cursors", "arrow")).toMatch(/^data:/);
+			expect(resolveClassicyAsset("cursors", "hand")).toBe(
+				"https://x.test/hand.png",
+			);
+			expect(entries).toHaveLength(0);
+		});
 	});
 });
