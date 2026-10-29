@@ -75,8 +75,7 @@ describe("getClassicyAppearanceLayout", () => {
 		);
 		useAppManager.setState((state) =>
 			produce(state, (draft) => {
-				(draft.System.Manager.Appearance as { packageId?: string }).packageId =
-					"mirror";
+				draft.System.Manager.Appearance.packageId = "mirror";
 			}),
 		);
 		expect(getClassicyAppearanceLayout()).toEqual(MIRROR);

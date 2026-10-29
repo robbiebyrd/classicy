@@ -47,6 +47,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { useActiveClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
 import {
 	useClassicyAsset,
 	useClassicyAssetVars,
@@ -576,6 +577,9 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 
 	const currentTheme = useMemo(() => getThemeVars(activeTheme), [activeTheme]);
 	const assetVars = useClassicyAssetVars();
+	// The resolved id, not the stored one: an id whose package is not (yet)
+	// registered renders as Platinum, so the CSS scope and the JS agree.
+	const appearancePackageId = useActiveClassicyAppearancePackage().id;
 	const rootStyle = useMemo(
 		() => ({ ...currentTheme, ...assetVars, ...style }) as CSSProperties,
 		[currentTheme, assetVars, style],
@@ -616,6 +620,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 		<div
 			role="application"
 			id={"classicyDesktop"}
+			data-classicy-appearance={appearancePackageId}
 			ref={desktopRef}
 			tabIndex={-1}
 			style={rootStyle}

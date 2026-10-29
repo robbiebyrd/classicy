@@ -17,20 +17,24 @@ import {
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import type { ClassicySoundPack } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
-import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import {
 	CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
 	CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID,
 } from "./ClassicyAppearanceDefaults";
-import { ClassicyAppearancePackageSchema } from "./ClassicyAppearancePackageSchema";
 import {
-	CLASSICY_APPEARANCE_STYLE_ELEMENT_PREFIX,
-	injectClassicyAppearanceStyles,
-} from "./ClassicyAppearanceStyles";
+	getClassicyAppearancePackage,
+	listClassicyAppearancePackages,
+	subscribeClassicyAppearancePackages,
+} from "./ClassicyAppearancePackageRegistry";
 
 export { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "./ClassicyAppearanceDefaults";
-
-const SUBSYSTEM = "ClassicyAppearance";
+export {
+	getClassicyAppearancePackage,
+	listClassicyAppearancePackages,
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+	subscribeClassicyAppearancePackages,
+} from "./ClassicyAppearancePackageRegistry";
 
 /**
  * Where a package puts the pieces whose position differs between systems.
@@ -162,63 +166,6 @@ export const CLASSICY_FALLBACK_APPEARANCE_PACKAGE: ClassicyAppearancePackage =
 		layout: CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
 	});
 
-const registry = new Map<string, ClassicyAppearancePackage>();
-const listeners = new Set<() => void>();
-let snapshot: ClassicyAppearancePackage[] = [];
-
-const publish = () => {
-	snapshot = Array.from(registry.values());
-	for (const listener of listeners) listener();
-};
-
-/**
- * Add an Appearance Package. Call it at module scope; consumers update live.
- * The package is validated against `ClassicyAppearancePackageSchema` (all but
- * `css`, `options` and `hooks`); an invalid one is logged as an error and not
- * registered. On success its CSS is injected (`injectClassicyAppearanceStyles`)
- * and the package object itself is stored. Re-registering an id replaces the
- * package and keeps its position.
- */
-export function registerClassicyAppearancePackage(
-	pkg: ClassicyAppearancePackage,
-): void {
-	const parsed = ClassicyAppearancePackageSchema.safeParse(pkg);
-	const issues = parsed.success
-		? []
-		: parsed.error.issues.map(
-				(issue) => `${issue.path.join(".") || "(package)"}: ${issue.message}`,
-			);
-	if (typeof pkg?.css !== "string") issues.push("css: must be a string");
-	if (issues.length) {
-		classicyLog(
-			"error",
-			SUBSYSTEM,
-			`Package "${pkg?.id}" was not registered: ${issues.join("; ")}`,
-		);
-		return;
-	}
-	injectClassicyAppearanceStyles(pkg.id, pkg.css);
-	registry.set(pkg.id, pkg);
-	publish();
-}
-
-export const getClassicyAppearancePackage = (
-	id: string,
-): ClassicyAppearancePackage | undefined => registry.get(id);
-
-/** Registered packages, in registration order. */
-export const listClassicyAppearancePackages = (): ClassicyAppearancePackage[] =>
-	snapshot;
-
-export function subscribeClassicyAppearancePackages(
-	listener: () => void,
-): () => void {
-	listeners.add(listener);
-	return () => {
-		listeners.delete(listener);
-	};
-}
-
 /** Registered packages in registration order; re-renders on any change. */
 export const useClassicyAppearancePackages = (): ClassicyAppearancePackage[] =>
 	useSyncExternalStore(
@@ -227,14 +174,16 @@ export const useClassicyAppearancePackages = (): ClassicyAppearancePackage[] =>
 		listClassicyAppearancePackages,
 	);
 
-// `System.Manager.Appearance.packageId` joins the store type with the store
-// change (plan 0005-1b3 §2.1); a state without it means the default package.
+// Read as possibly absent: a hand-built state may lack it until
+// migrateClassicyState fills it, and a missing id means the default package.
 const selectPackageId = (state: ClassicyStore): string | undefined =>
-	(state.System.Manager.Appearance as { packageId?: string }).packageId;
+	state.System.Manager.Appearance.packageId;
 
 const resolve = (packageId: string | undefined): ClassicyAppearancePackage =>
-	(packageId === undefined ? undefined : registry.get(packageId)) ??
-	registry.get(CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID) ??
+	(packageId === undefined
+		? undefined
+		: getClassicyAppearancePackage(packageId)) ??
+	getClassicyAppearancePackage(CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID) ??
 	CLASSICY_FALLBACK_APPEARANCE_PACKAGE;
 
 /**
@@ -258,15 +207,3 @@ export const useActiveClassicyAppearancePackage =
 		useClassicyAppearancePackages();
 		return resolve(packageId);
 	};
-
-/** Test helper: forget every registered package and remove its stylesheet. */
-export const resetClassicyAppearancePackagesForTests = (): void => {
-	registry.clear();
-	if (typeof document !== "undefined") {
-		for (const style of document.querySelectorAll(
-			`style[id^="${CLASSICY_APPEARANCE_STYLE_ELEMENT_PREFIX}"]`,
-		))
-			style.remove();
-	}
-	publish();
-};

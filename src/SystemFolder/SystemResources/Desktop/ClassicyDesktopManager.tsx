@@ -1,5 +1,9 @@
 import type { MouseEvent } from "react";
-import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { getClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackageRegistry";
+import {
+	type ClassicyTheme,
+	withDefaultThemePackageList,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
 	assignImportedClassicyThemeIdentity,
 	cloneClassicyTheme,
@@ -35,6 +39,7 @@ import {
 	hasModuleHidden,
 	hasModuleOrder,
 	hasMouseEvent,
+	hasPackageId,
 	hasSmartScrolling,
 	hasStripPosition,
 	hasStripWidth,
@@ -50,6 +55,7 @@ import type {
 import { dispatchToPlugin } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { listAppWindows } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import type { ClassicyIconBalloonHelp } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
+import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { readShortcutDisposition } from "@/SystemFolder/SystemResources/Shortcut/ClassicyShortcut";
 import { isValidHttpUrl } from "@/SystemFolder/SystemResources/Utils/urlValidation";
@@ -305,6 +311,27 @@ export const classicyDesktopEventHandler = (
 			}
 			break;
 		}
+		case "ClassicyDesktopChangeAppearancePackage": {
+			if (!hasPackageId(action)) break;
+			const pkg = getClassicyAppearancePackage(action.packageId);
+			if (!pkg) {
+				classicyLog(
+					"warn",
+					"ClassicyAppearance",
+					`Appearance package "${action.packageId}" is not registered.`,
+				);
+				break;
+			}
+			const appearance = ds.System.Manager.Appearance;
+			appearance.packageId = pkg.id;
+			// Keep a theme already made for the package; otherwise start from
+			// the package's defaults (a copy, as ChangeTheme activates). The
+			// preset list is left alone.
+			if (appearance.activeTheme.package !== pkg.id) {
+				appearance.activeTheme = cloneClassicyTheme(pkg.defaults);
+			}
+			break;
+		}
 		case "ClassicyDesktopImportTheme": {
 			// The payload is untrusted (it came from a file): the predicate
 			// validates it against ClassicyThemeSchema, and readClassicyTheme
@@ -427,12 +454,16 @@ export const classicyDesktopEventHandler = (
 		}
 		case "ClassicyDesktopLoadThemes": {
 			if (!hasAvailableThemes(action)) break;
-			// A host may hand over themes written before the metric groups
-			// existed; complete them here so the next ChangeTheme never clones a
-			// metric-less theme into activeTheme (the load path does the same in
-			// migrateClassicyState).
+			// A host may hand over themes written before the metric groups or
+			// Appearance Packages existed; complete them here so the next
+			// ChangeTheme never clones a metric-less or package-less theme into
+			// activeTheme (the load path does the same in migrateClassicyState).
 			ds.System.Manager.Appearance.availableThemes =
-				withDefaultThemeMetricsList(action.availableThemes as ClassicyTheme[]);
+				withDefaultThemePackageList(
+					withDefaultThemeMetricsList(
+						action.availableThemes as ClassicyTheme[],
+					),
+				);
 			break;
 		}
 		case "ClassicyDesktopSetBalloonHelp": {

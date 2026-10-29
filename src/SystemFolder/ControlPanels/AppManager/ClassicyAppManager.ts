@@ -4,6 +4,7 @@ import {
 	getTheme,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
 import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	hasApp,
@@ -618,6 +619,7 @@ export const DefaultAppManagerState: ClassicyStore = {
 				) as Record<ClassicyFileSystemEntryFileType, string>,
 			},
 			Appearance: {
+				packageId: CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID,
 				availableThemes: getAllThemes(),
 				// Via getTheme, not themesData: the raw JSON names its wallpaper
 				// rather than carrying a loadable URL.

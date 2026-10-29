@@ -47,14 +47,11 @@ const makePackage = (
 	...overrides,
 });
 
-// System.Manager.Appearance.packageId joins the store type in 2.1; until then
-// the tests write it through a loose view of the Appearance slice.
 const setPackageId = (packageId: string) =>
 	act(() => {
 		useAppManager.setState((state) =>
 			produce(state, (draft) => {
-				(draft.System.Manager.Appearance as { packageId?: string }).packageId =
-					packageId;
+				draft.System.Manager.Appearance.packageId = packageId;
 			}),
 		);
 	});
@@ -282,12 +279,40 @@ describe("module load order", () => {
 			() =>
 				import("@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager"),
 		],
+		[
+			"the package registry",
+			() => import("@/Appearance/ClassicyAppearancePackageRegistry"),
+		],
+		["the asset registry", () => import("@/Appearance/ClassicyAssetRegistry")],
+		[
+			"the store module",
+			() =>
+				import(
+					"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils"
+				),
+		],
+		[
+			"the desktop reducer",
+			() =>
+				import("@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager"),
+		],
 		["the library barrel", () => import("@/index")],
 	])(
 		"evaluates when %s loads first",
 		async (_name, load) => {
 			vi.resetModules();
 			await load();
+			// The store was created from its finished default state (a store
+			// module evaluated before the app manager would see it unset), and
+			// the asset registry reads the active package through it.
+			const store = await import(
+				"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils"
+			);
+			expect(
+				store.useAppManager.getState().System.Manager.Appearance.packageId,
+			).toBe("platinum");
+			const assets = await import("@/Appearance/ClassicyAssetRegistry");
+			expect(assets.getActiveClassicyAppearancePackageId()).toBe("platinum");
 			const fresh = await import("@/Appearance/ClassicyAppearancePackage");
 			expect(fresh.CLASSICY_FALLBACK_APPEARANCE_PACKAGE.defaults.id).toBe(
 				"default",

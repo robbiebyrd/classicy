@@ -96,17 +96,67 @@ type StoredFontFace = {
 	style: string;
 };
 
-/**
- * Placeholder until plan 0002-ldj Part B reads
- * System.Manager.Appearance.packageId; Part B replaces the body, not the name.
- */
-export const getActiveClassicyAppearancePackageId = (): string => PLATINUM;
+/** Where the registry learns which Appearance Package is active. */
+export type ClassicyAssetPackageSource = {
+	/** The resolved active package id, read at call time. */
+	getId: () => string;
+	/** Calls `onChange` whenever the active id may have changed. */
+	subscribe: (onChange: () => void) => () => void;
+};
 
 const trees = new Map<ClassicyAssetKind, Map<string, ClassicyAssetTree>>();
 /** Every registered face per package, with its full fallback source list. */
 const fontFaces = new Map<string, Map<string, StoredFontFace>>();
 let version = 0;
 const listeners = new Set<() => void>();
+
+let packageSource: ClassicyAssetPackageSource | undefined;
+let unsubscribePackageSource: (() => void) | undefined;
+let lastActiveId: string | undefined;
+
+/**
+ * The active Appearance Package's id: the store's `packageId` resolved
+ * against the registered packages (an unregistered id is Platinum), read at
+ * call time. Platinum until the app manager connects its store (during module
+ * evaluation of the default state, which resolves its own icons through here).
+ */
+export const getActiveClassicyAppearancePackageId = (): string =>
+	packageSource?.getId() ?? PLATINUM;
+
+const onPackageSourceChange = (): void => {
+	const id = getActiveClassicyAppearancePackageId();
+	if (id === lastActiveId) return;
+	lastActiveId = id;
+	// The caches key on the active id, so no version bump: consumers only
+	// need to re-read their snapshots.
+	for (const listener of [...listeners]) listener();
+};
+
+/** Subscribe to the source on the first asset listener, never at import. */
+const followPackageSource = (): void => {
+	if (!packageSource || unsubscribePackageSource) return;
+	lastActiveId = getActiveClassicyAppearancePackageId();
+	unsubscribePackageSource = packageSource.subscribe(onPackageSourceChange);
+};
+
+/**
+ * Connects the registry to the active Appearance Package. The app manager
+ * calls it once, right after it creates its store, so this module never
+ * imports the store (the default state imports this module). The source is
+ * read lazily: `getId` at lookup time, `subscribe` when the first consumer
+ * subscribes.
+ */
+export const connectClassicyAssetPackageSource = (
+	source: ClassicyAssetPackageSource,
+): void => {
+	unsubscribePackageSource?.();
+	unsubscribePackageSource = undefined;
+	packageSource = source;
+	if (listeners.size > 0) {
+		followPackageSource();
+		for (const listener of [...listeners]) listener();
+	}
+};
 
 const isTree = (value: unknown): value is ClassicyAssetTree =>
 	typeof value === "object" && value !== null;
@@ -257,6 +307,7 @@ export const resolveClassicyAsset = (
 
 export const subscribeClassicyAssets = (listener: () => void): (() => void) => {
 	listeners.add(listener);
+	followPackageSource();
 	return () => {
 		listeners.delete(listener);
 	};

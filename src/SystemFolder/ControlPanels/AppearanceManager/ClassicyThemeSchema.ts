@@ -95,6 +95,9 @@ const soundPack = z
 export const ClassicyThemeSchema = z.object({
 	id: z.string().max(128),
 	name: z.string().trim().min(1, "must not be empty").max(64),
+	// The Appearance Package the theme belongs to; files saved before
+	// packages existed load as Platinum.
+	package: z.string().max(64).default("platinum"),
 	color: z.object({
 		outline: color,
 		select: color,
