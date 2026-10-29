@@ -30,11 +30,15 @@
 //    the `?no-inline` resolver stopped matching them, Vite's lib mode would
 //    base64 them into the bundle again (every consumer pays for every font).
 //
-// 4. dist/fonts.js MUST STAY A SELF-CONTAINED NO-OP. `import "classicy/fonts"`
-//    is the deprecated opt-in from before the fonts became files; existing
-//    consumers still import it, so it has to keep resolving. It is an emitted
-//    asset, not a Rollup chunk, so nothing else notices if it goes missing or
-//    picks up an import a consumer can't resolve.
+// 4. dist/fonts.js AND dist/appearance-platinum.js MUST STAY SELF-CONTAINED
+//    NO-OPS. `import "classicy/fonts"` is the deprecated opt-in from before the
+//    fonts became files; existing consumers still import it, so it has to keep
+//    resolving. `import "classicy/appearance/platinum"` is the Platinum
+//    package's documented side-effect entry, a no-op because the main bundle
+//    already registers Platinum (and a second copy of the registries would
+//    split the state). Both are emitted assets, not Rollup chunks, so nothing
+//    else notices if one goes missing or picks up an import a consumer can't
+//    resolve.
 //
 // 5. PACKAGE ASSETS MUST EMIT AS FILES. dist/assets/ holds exactly the 13
 //    Platinum .woff2 fonts plus the Platinum art (svg/png), and the ES bundle
@@ -63,7 +67,9 @@
 //    register Platinum, whose look ships in it since plan 0005-1b3 §4.2, so a
 //    missing string, an empty block, the bare `@layer classicy.package;`
 //    statement, or a block not scoped under `[data-classicy-appearance=…]`
-//    means the look stopped shipping.
+//    means the look stopped shipping. And dist/classicy-platinum.css must
+//    exist and be that same block, byte for byte: strict-CSP hosts, whose
+//    policy blocks the injected <style>, link it after classicy.css.
 
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -71,6 +77,7 @@ import { argv, exit } from "node:process";
 import {
 	findClassicyPackageCssProblems,
 	requiredClassicyPackageBundles,
+	requiredClassicyPackageStylesheets,
 } from "./classicyPackageCss.ts";
 
 const DIST = "dist";
@@ -188,24 +195,26 @@ for (const entry of ["classicy.es.js", "classicy.umd.js"]) {
 	}
 }
 
-// Invariant 4: the deprecated no-op fonts entry.
-const fontsEntry = join(DIST, "fonts.js");
-if (!argv.slice(2).length || argv.slice(2).includes(fontsEntry)) {
-	const source = await readFile(fontsEntry, "utf8").catch(() => null);
+// Invariant 4: the no-op shims (the deprecated fonts entry, the Platinum
+// package entry).
+for (const shim of ["fonts.js", "appearance-platinum.js"]) {
+	const entry = join(DIST, shim);
+	if (argv.slice(2).length && !argv.slice(2).includes(entry)) continue;
+	const source = await readFile(entry, "utf8").catch(() => null);
 	if (source === null) {
 		failed = true;
 		console.error(
-			`${fontsEntry}: missing -> check injectCssPlugin in vite.config.ts.`,
+			`${entry}: missing -> check injectCssPlugin in vite.config.ts.`,
 		);
 	} else if (
 		/\b(?:import|require)\b/.test(source.replace(/^\s*\/\/.*$/gm, ""))
 	) {
 		failed = true;
 		console.error(
-			`${fontsEntry}: has an import/require; it must stay a self-contained script.`,
+			`${entry}: has an import/require; it must stay a self-contained script.`,
 		);
 	} else {
-		console.log(`${fontsEntry}: self-contained no-op shim`);
+		console.log(`${entry}: self-contained no-op shim`);
 	}
 }
 
@@ -370,18 +379,24 @@ if (!argv.slice(2).length || argv.slice(2).includes(cssFile)) {
 	const requiredBundles = requiredClassicyPackageBundles(named, (f) =>
 		join(DIST, f),
 	);
+	// dist/classicy-platinum.css (R5). Named files: if it was named.
+	const requiredPackageStylesheets = requiredClassicyPackageStylesheets(
+		named,
+		(f) => join(DIST, f),
+	);
 	const problems = findClassicyPackageCssProblems({
 		layerOrder: LAYER_ORDER,
 		bundles: bundles.map(({ file, text }) => ({ file, source: text })),
 		baseStylesheets,
 		packageStylesheets,
 		requiredBundles,
+		requiredPackageStylesheets,
 	});
 	for (const problem of problems) console.error(problem);
 	if (problems.length) failed = true;
 	else
 		console.log(
-			`package CSS: ${requiredBundles.length} entry bundle(s) carry a non-empty package stylesheet; ${packageStylesheets.length} package stylesheet file(s); every @layer classicy.package block stands alone`,
+			`package CSS: ${requiredBundles.length} entry bundle(s) carry a non-empty package stylesheet; ${packageStylesheets.length} package stylesheet file(s), ${requiredPackageStylesheets.length} of them required and identical to the injected one; every @layer classicy.package block stands alone`,
 		);
 }
 

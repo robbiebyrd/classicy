@@ -79,7 +79,8 @@ Update host CSS and tests that select them:
 
 The exported type `ClassicyBevelButtonState` is deleted. `classicy/scss/*` now
 resolves to the vocabulary (`@use "classicy/scss/vocabulary"`); the old theme
-partials are at `classicy/scss-platinum/*` for now. The global `.hidden`
+partials are Platinum's, at `classicy/appearance/platinum/scss/*` (see
+Appearance Packages below). The global `.hidden`
 utility and `classicyWindowZoomed` are gone, and a `zIndex` passed in `style`
 to `ClassicyWindow`, `ClassicyIcon` or `ClassicyDesktopIcon` is dropped.
 
@@ -97,6 +98,37 @@ own markup. The screen saver's hidden cursor no longer beats an unlayered host
 
 The full old → new table (every renamed class) is in `docs/AGENT-REFERENCE.md`
 §5, "Migrating to the shared vocabulary".
+
+**Breaking change: the look is an Appearance Package.** Classicy's stylesheet
+now holds structure only; the Platinum look (every bevel, border, gradient
+and piece of art) is the Platinum Appearance Package's own stylesheet, in
+`@layer classicy.package` and scoped under
+`.classicyDesktop[data-classicy-appearance="platinum"]`. Importing `classicy`
+registers it, and everything inside `ClassicyDesktop` looks as before.
+
+- **Components outside a desktop are unstyled.** Wrap a standalone component
+  in an element carrying `class="classicyDesktop"` and
+  `data-classicy-appearance="platinum"`, with the theme and asset variables
+  on it (`getThemeVars(getTheme("default"))` and `useClassicyAssetVars()`);
+  give it `id="classicyDesktop"` so portals (menus, balloons) render inside it
+  rather than falling back, unstyled, to `document.body`.
+- **Strict-CSP hosts link a second file**: `classicy/dist/classicy.css`, then
+  `classicy/dist/classicy-platinum.css`, first in `<head>`.
+- **`classicy/scss-platinum/*` is gone.** Use
+  `classicy/appearance/platinum/scss/*`. The mixins are renamed to kebab-case
+  with a `platinum-` prefix (`appearance.platinumWindowControlBoxBorder` →
+  `mixins.platinum-window-control-box-border` from
+  `classicy/appearance/platinum/scss/mixins`; `scrollbars.scrollbars` →
+  `scrollbars.platinum-scrollbars`), and `px-rect`/`no-select` moved to the
+  vocabulary as `classicy-px-rect`/`classicy-no-select`
+  (`classicy/scss/layout`). `classicy/appearance/platinum` exists as a no-op
+  side-effect import.
+- **Fixed:** Firefox no longer shows a scroll bar under tab strips in the
+  built library (the desktop's scroll-bar fallback used to beat the tab
+  scroller's `scrollbar-width: none`).
+
+The full mixin table and the package API are in `docs/AGENT-REFERENCE.md`
+§5, "Migrating to Appearance Packages", and §8, "Appearance Packages".
 
 ## Building and running on localhost
 

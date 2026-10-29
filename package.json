@@ -31,7 +31,7 @@
 		"build:audio": "./bin/make_audio_sprites.sh",
 		"build:watch": "concurrently --kill-others \"pnpm build:watchaudio\" \"pnpm build:watchsource\"",
 		"build:watchaudio": "nodemon --watch \"resources/sounds/**\" --ext \"mp3,mp4,wav,aif,aiff,ogg,flac,m4a,ac3,json\" --exec \"pnpm build:audio\" --ignore \"example/**\" --ignore \"rt911/**\" ",
-		"build:watchsource": "nodemon --watch \"src/**\" --watch \"assets/**\" --ext \"tsx,ts,json,css,scss,png,jpg,svg\" --exec \"tsc -b && vite build\" --ignore \"example/**\" --ignore \"rt911/**\" --ignore \"**/index.ts\" --ignore \"**/index\\ *.ts\" --ignore \"**/index\\ *.tsx\" ",
+		"build:watchsource": "nodemon --watch \"src/**\" --watch \"assets/**\" --ext \"tsx,ts,json,css,scss,png,jpg,svg\" --exec \"tsc -b && vite build\" --ignore \"example/**\" --ignore \"rt911/**\" --ignore \"src/index.ts\" --ignore \"src/index\\ *.ts\" ",
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"lint": "biome check .",
@@ -49,13 +49,13 @@
 		"dist",
 		"docs/AGENT-REFERENCE.md",
 		"docs/BUILDING-APPS.md",
-		"src/Appearance/vocabulary",
-		"src/SystemFolder/ControlPanels/AppearanceManager/styles"
+		"src/Appearance"
 	],
 	"sideEffects": [
 		"**/*.css",
 		"**/*.scss",
 		"./dist/fonts.js",
+		"./dist/appearance-platinum.js",
 		"./src/Appearance/Platinum/index.ts",
 		"./src/Appearance/Platinum/assets/platinumAssets.ts",
 		"./src/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons.ts",
@@ -80,7 +80,11 @@
 		},
 		"./dist/*": "./dist/*",
 		"./scss/*": "./src/Appearance/vocabulary/*",
-		"./scss-platinum/*": "./src/SystemFolder/ControlPanels/AppearanceManager/styles/*"
+		"./appearance/platinum": {
+			"types": "./dist/appearance-platinum.d.ts",
+			"default": "./dist/appearance-platinum.js"
+		},
+		"./appearance/platinum/scss/*": "./src/Appearance/Platinum/styles/*"
 	},
 	"dependencies": {
 		"@analytics/google-tag-manager": "^0.6.0",

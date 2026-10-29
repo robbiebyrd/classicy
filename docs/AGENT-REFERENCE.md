@@ -40,11 +40,20 @@ Platinum appearance package registers at runtime, so there is nothing to import:
 // import 'classicy/fonts'
 ```
 
-Under a Content-Security-Policy that forbids inline `<style>`, link
-`classicy/dist/classicy.css` instead; importing it as well is harmless. Link
-`classicy.css` **first in `<head>`**, before any other stylesheet: its opening
-layer order statement (below) only fixes the order if no earlier sheet has
-named a layer.
+Under a Content-Security-Policy that forbids inline `<style>`, link the two
+stylesheets yourself instead: `classicy/dist/classicy.css` (structure), then
+`classicy/dist/classicy-platinum.css` (the Platinum look, which the Platinum
+appearance package otherwise injects as `<style id="classicy-appearance-platinum">`;
+see "Cascade layers" below). Importing them as well is harmless. Link
+`classicy.css` **first in `<head>`**, before any other stylesheet, and
+`classicy-platinum.css` right after it: each opens with the layer order
+statement (below), which only fixes the order if no earlier sheet has named a
+layer.
+
+```html
+<link rel="stylesheet" href="/node_modules/classicy/dist/classicy.css">
+<link rel="stylesheet" href="/node_modules/classicy/dist/classicy-platinum.css">
+```
 
 **Vite consumers (breaking change).** The package's fonts and art are files in
 `dist/assets/`, referenced as `new URL("assets/…", import.meta.url)`. Vite's dev
@@ -80,6 +89,49 @@ then puts every Classicy component rule in the first one:
 
 `classicy.package` is reserved for appearance packages and `classicy.user` for
 host overrides; a later layer beats an earlier one whatever the specificity.
+
+**Where the look comes from.** `classicy.css` holds structure only (layout,
+sizing, state rules). Every bevel, border, gradient and piece of art is the
+active **Appearance Package**'s (§8, "Appearance Packages"). Registering a
+package (`registerClassicyAppearancePackage`; Platinum registers itself when
+`classicy` is imported) writes its compiled CSS into
+`<style id="classicy-appearance-<id>">`: directly after `#classicy-styles`
+when that element is already there, else at the end of `<head>` (the shipped
+bundle registers Platinum before its own stylesheet injector runs, so in
+practice it lands at the end; element order does not matter, because the
+order statement decides precedence). That CSS is one `@layer classicy.package
+{ … }` block, every rule scoped under
+`.classicyDesktop[data-classicy-appearance="<id>"]`, and the desktop root
+carries `data-classicy-appearance` with the resolved active package's id. So a
+package's look applies only inside a desktop running it, and it beats
+Classicy's own rules (`classicy.base`) whatever the specificity:
+
+```css
+@layer classicy.package {
+  .classicyDesktop[data-classicy-appearance="platinum"] .classicyButton { … }
+}
+```
+
+**Components outside a desktop are unstyled.** A `ClassicyButton` (or any
+component) rendered on its own page, outside `ClassicyDesktop`, gets structure
+but no look. Wrap such components in an element that names the package, and
+spread the theme and asset variables the desktop root would publish:
+
+```tsx
+<div
+    className="classicyDesktop"
+    data-classicy-appearance="platinum"
+    style={{ ...getThemeVars(getTheme('default')), ...useClassicyAssetVars() }}
+>
+    <ClassicyButton>OK</ClassicyButton>
+</div>
+```
+
+(`useClassicyAssetVars` is a hook: call it in the wrapping component.)
+Portals fall back to `document.body` when no `#classicyDesktop` element
+exists, and such body-level portals are unstyled the same way; give the
+wrapper `id="classicyDesktop"` to keep them inside it.
+
 The runtime fonts stylesheet (`<style id="classicy-fonts-platinum">`, written by
 `registerClassicyFonts`) is not layered: it holds only `@font-face` rules, which
 layers do not affect.
@@ -145,10 +197,12 @@ Package `exports` map:
 |---|---|
 | `classicy` | ES/UMD bundle + types |
 | `classicy/dist/classicy.css` | The stylesheet the bundle injects; link it yourself only under a strict CSP |
+| `classicy/dist/classicy-platinum.css` | The Platinum package's stylesheet, which the package injects; link it after `classicy.css`, only under a strict CSP |
 | `classicy/fonts` | Deprecated no-op kept so existing `import 'classicy/fonts'` lines keep resolving |
 | `classicy/dist/*` | Anything in dist; the fonts ship as `dist/assets/*.woff2` |
-| `classicy/scss/*` | The SCSS vocabulary (`classicy/scss/vocabulary`: `$classicy-states`, `classicy-state()`; §4.0.1) |
-| `classicy/scss-platinum/*` | Platinum's appearance partials (`classicy/scss-platinum/appearance`); a temporary path that appearance packages will replace |
+| `classicy/scss/*` | Raw SCSS partials (the Classicy vocabulary: states, layout helpers, classicy-package): `classicy/scss/vocabulary` (`$classicy-states`, `classicy-state()`; §4.0.1), `classicy/scss/layout` (`classicy-px-rect()`, `classicy-no-select`), `classicy/scss/package` (`classicy-package($id)`, §8) |
+| `classicy/appearance/platinum` | Side-effect import registering the Platinum package. A no-op shim: importing `classicy` already registers Platinum, so you never need it |
+| `classicy/appearance/platinum/scss/*` | Platinum's SCSS: `mixins` (the `platinum-*` mixins), `scrollbars` (`platinum-scrollbars*`), `assets` (the `$` art variables), `platinum` (the package stylesheet itself) |
 
 ### Minimal app
 
@@ -1131,7 +1185,8 @@ Two things changed for code that registered or read icons:
 | `system.macosSvg` | system art `startupLogo` | `registerClassicySystemArt(pkg, { startupLogo })` |
 | `ui.cursors.watch`, `hand`, `resizeLr`, `resizeUd`, `resizeU`, `resizeD`, `resizeL`, `resizeR` | the cursor role of the same name | `registerClassicyCursors(pkg, { watch, hand, … })` |
 
-`pkg` is `"platinum"` until appearance packages are selectable. The icon
+`pkg` is `"platinum"` to replace Platinum's art, or your own package's id for
+art only that package uses (reads fall back to `"platinum"`). The icon
 paths stay registered, so reading them still works: the PDF viewer's pan-tool
 button, for one, still draws the `ui.cursors.hand` icon. The screen saver's
 built-in logos copy `classicy.logo` and `system.macosSvg` too; replace those
@@ -1235,8 +1290,9 @@ A host rule on them never matched anything, so there is nothing to migrate.
   `selected`/`disabled` → `.selected`/`.disabled`.
 - **`classicy/scss/*` is the vocabulary.** It now resolves to
   `src/Appearance/vocabulary/` (`@use "classicy/scss/vocabulary"`). The old
-  theme partials (`appearance`, the mixins) moved to `classicy/scss-platinum/*`,
-  a temporary bridge that appearance packages will replace.
+  theme partials (`appearance`, the mixins) are now Platinum's, at
+  `classicy/appearance/platinum/scss/*`, under new names: see "Migrating to
+  Appearance Packages" below.
 - **`.hidden` and `classicyWindowZoomed` are gone.** Classicy no longer ships
   a global `.hidden { visibility: hidden }` utility; a host that relied on it
   must define its own. A collapsed window's contents are
@@ -1258,6 +1314,70 @@ A host rule on them never matched anything, so there is nothing to migrate.
   `* { cursor: … }` now shows a pointer over a running screen saver. Scope
   host cursor rules, or put them in the reserved `classicy.base.host`
   sublayer (§1); any other host layer still outranks Classicy.
+
+### Migrating to Appearance Packages (breaking change)
+
+Classicy's look is now the Platinum **Appearance Package** (§8, "Appearance
+Packages"): structure stays in `classicy.css` (`classicy.base`), and every
+bevel, border, gradient and piece of art moved into Platinum's own stylesheet
+(`classicy.package`, scoped under
+`.classicyDesktop[data-classicy-appearance="platinum"]`). Rendering inside
+`ClassicyDesktop` looks exactly as before. What changes for hosts:
+
+- **The `classicy/scss-platinum/*` bridge is gone.** Platinum's SCSS is at
+  `classicy/appearance/platinum/scss/*` (`mixins`, `scrollbars`, `assets`),
+  and the mixins are renamed to kebab-case with a `platinum-` prefix. The
+  helpers that are not Platinum's moved to the vocabulary,
+  `classicy/scss/layout`:
+
+  ```scss
+  // before
+  @use 'classicy/scss-platinum/appearance';
+  .bar { @include appearance.platinumWindowControlBoxBorder; }
+  // after
+  @use 'classicy/appearance/platinum/scss/mixins';
+  .bar { @include mixins.platinum-window-control-box-border; }
+  ```
+
+  | Before (`classicy/scss-platinum/…`) | Now |
+  |---|---|
+  | `appearance.platinumMenuFrame`, `platinumMenuDivider` | `mixins.platinum-menu-frame`, `platinum-menu-divider` |
+  | `appearance.platinumBoxShadow`, `platinumWindowBoxShadow` | `mixins.platinum-box-shadow`, `platinum-window-box-shadow` |
+  | `appearance.platinumWindowBorder` | `mixins.platinum-window-border` |
+  | `appearance.platinumWindowHeaderBorder`, `platinumWindowHeaderBorderDepressed` | `mixins.platinum-window-header-border`, `platinum-window-header-border-depressed` |
+  | `appearance.platinumWindowInnerBoxShadow`, `platinumWindowInnerBoxShadowOuter`, `platinumWindowInnerBorder` | `mixins.platinum-window-inner-box-shadow`, `platinum-window-inner-box-shadow-outer`, `platinum-window-inner-border` |
+  | `appearance.platinumWindowControlBox`, `platinumWindowControlBoxBorder`, `platinumWindowControlBoxDepressable` | `mixins.platinum-window-control-box`, `platinum-window-control-box-border`, `platinum-window-control-box-depressable` |
+  | `appearance.platinumWindowUndepressable`, `platinumWindowDepressable`, `platinumWindowDepressed` | `mixins.platinum-window-undepressable`, `platinum-window-depressable`, `platinum-window-depressed` |
+  | `appearance.platinumDepressableDefault`, `platinumDepressableBoxShadowActive` | `mixins.platinum-depressable-default`, `platinum-depressable-box-shadow-active` |
+  | `appearance.theme-halftone($color, $size)` | `mixins.platinum-halftone($color, $size)` |
+  | `appearance.encode-color($string)` | `mixins.platinum-encode-color($string)` |
+  | `appearance.px-rect(…)` | `layout.classicy-px-rect(…)` (`@use 'classicy/scss/layout'`) |
+  | `appearance.no-select` | `layout.classicy-no-select` |
+  | `scrollbars.scrollbars`, `scrollbars-split-arrows`, `scrollbars-inactive`, `scrollbars-themed` | `scrollbars.platinum-scrollbars`, `platinum-scrollbars-split-arrows`, `platinum-scrollbars-inactive`, `platinum-scrollbars-themed` |
+  | `scrollbars.sb-glyph-up`/`-down`/`-left`/`-right`, `sb-btn-box`, `sb-btn-pressed` | `scrollbars.platinum-scrollbar-glyph-up`/`-down`/`-left`/`-right`, `platinum-scrollbar-button-box`, `platinum-scrollbar-button-pressed` |
+  | `assets.$…` (the art variables) | `assets.$…`, same names (`classicy/appearance/platinum/scss/assets`) |
+
+  The theme list (`themes.json`) is gone too: the built-in themes are the
+  `presets` of `src/Appearance/Platinum/platinum.json`, served by
+  `getAllThemes()`.
+- **Components outside a desktop lose their look.** The package's rules only
+  match inside an element carrying `class="classicyDesktop"` and
+  `data-classicy-appearance="platinum"`; wrap standalone components in one,
+  with the theme and asset variables spread on it (§1, "Cascade layers"). A
+  portal that falls back to `document.body` (no `#classicyDesktop` mounted) is
+  unstyled the same way.
+- **Strict-CSP hosts link a second file.** `dist/classicy.css` no longer
+  carries the look; link `dist/classicy-platinum.css` right after it (§1).
+- **Host overrides keep working.** Unlayered host CSS, host layers and
+  `classicy.user` outrank `classicy.package` just as they outrank
+  `classicy.base`, and resets in the reserved `classicy.base.host` sublayer
+  still yield to both.
+- **Fixed: Firefox and the tab strip's scroll bar.** In the shipped
+  `dist/classicy.css` the tabs stylesheet came before the desktop's, so the
+  desktop's Firefox scroll-bar fallback beat `.classicyTabScroller
+  { scrollbar-width: none }` and Firefox users of the built library saw a
+  scroll bar under tab strips. The package re-asserts the tab scroller's rule
+  after the desktop's, so it is hidden everywhere.
 
 ### System art
 
@@ -1485,7 +1605,9 @@ Modules) never journal.
 
 ## 8. Theming
 
-Themes are plain JSON objects (`ClassicyTheme`): 21 built-ins ship with ids
+Themes are JSON presets of an Appearance Package (`ClassicyTheme` objects;
+see "Appearance Packages" below). Platinum's 21 built-ins, the `presets` of
+`src/Appearance/Platinum/platinum.json`, ship with ids
 `default, azul, bondi, copper, crimson, emerald, frenchBlue, gold, ivy,
 lavender, pistachio, magenta, nutmeg, poppy, plum, rose, sapphire, silver,
 teal, turquoise, sunny`.
@@ -1494,11 +1616,13 @@ teal, turquoise, sunny`.
 type ClassicyTheme = {
     id: string
     name: string
+    package: string   // the Appearance Package it belongs to ("platinum")
     color: { outline; select; highlight; black; white; alert; error;
              system: number[7]; theme: number[7];
              window: { border; borderOutset; borderInset; frame; title; document } }  // colors are ints
     typography: { ui; uiSize; header; headerSize; body; bodySize; mono; monoSize; digital; digitalSize }
-    measurements: { window: { borderSize; controlSize; paddingSize; scrollbarSize } }
+    measurements: { window; control; button; groupBox; layout;  // the 20 core metrics (below)
+                    [family: string]: Record<string, number> }   // plus a package's own families
     desktop: { iconSize; iconFontSize; backgroundImage; backgroundColor;
                backgroundSize; backgroundRepeat; backgroundPosition }
     sound: { pack: string; disabled: string[] }
@@ -1591,9 +1715,11 @@ target with its CSS variable, label, group and bounds; `getThemeMetric` /
 edit-field height, …) have no target — change the input they derive from.
 
 `getTheme(id, overrides?)` returns a deep-merged clone; `getThemeVars(theme)`
-returns the CSS custom-property map. Platinum's SCSS partials are importable
-via `classicy/scss-platinum/*` (temporary), and the state vocabulary via
-`classicy/scss/vocabulary` (§4.0.1).
+returns the CSS custom-property map. Platinum's SCSS is importable via
+`classicy/appearance/platinum/scss/*` (`mixins`, `scrollbars`, `assets`; the
+`platinum-*` mixins), the state vocabulary via `classicy/scss/vocabulary`
+(§4.0.1), and the layout helpers and package wrapper via
+`classicy/scss/layout` and `classicy/scss/package`.
 
 Theme-authoring helpers: `hexToInt` / `intToHex` convert between hex strings
 and the integer colors themes use. `ClassicyWallpapers` is the stock
@@ -1601,6 +1727,102 @@ wallpaper catalog and `resolveWallpaper(name)` maps a wallpaper name (as used
 in `desktop.backgroundImage` / `ClassicyDesktopChangeBackground`) to its URL;
 `classicyWallpaperFilename(value)` is its inverse (bundled filename for a
 filename or a resolved URL / inlined `data:` URI, else `undefined`).
+
+### Appearance Packages
+
+An **Appearance Package** is a complete look the desktop switches to as a
+unit: its CSS, its default theme and presets, its arrangement, and the assets,
+sound packs and hooks that go with it. Classicy ships one, Platinum
+(`src/Appearance/Platinum/`), registered when `classicy` is imported; themes
+are presets of a package, and every theme names its package in
+`theme.package`.
+
+```ts
+import { registerClassicyAppearancePackage, classicyKnobsToSchema, getTheme } from 'classicy'
+import irixCss from './irix.scss?inline'   // one @layer classicy.package block (below)
+
+registerClassicyAppearancePackage({
+    id: 'irix',                       // kebab-case
+    name: 'IRIX',
+    css: irixCss,
+    defaults: { ...getTheme('default'), id: 'irix', name: 'IRIX', package: 'irix' },
+    presets: [/* more ClassicyTheme objects, package: 'irix' */],
+    knobs: { controlStrip: { cellHeight: { label: 'Cell height', min: 16, max: 40, default: 22 } } },
+    options: classicyKnobsToSchema({ /* the same knobs */ }),
+    layout: {
+        window: { growBoxCorner: 'bottom-right' },
+        menuBar: { placement: 'screen' },
+        desktop: { iconGridOrigin: 'top-right' },
+    },
+    sounds: [/* ClassicySoundPack objects, registered with registerClassicySoundPack */],
+})
+```
+
+`ClassicyAppearancePackage` fields:
+
+| Field | Meaning |
+|---|---|
+| `id`, `name` | Kebab-case id (`"platinum"`); display name, 1–64 chars |
+| `css` | The compiled stylesheet: exactly one `@layer classicy.package { … }` block, every rule scoped under `.classicyDesktop[data-classicy-appearance="<id>"]` |
+| `defaults` | The theme a switch to the package activates; `defaults.package` must be the package's `id` |
+| `presets` | Built-in themes offered with the package (Platinum's 21) |
+| `knobs` / `options` | Tunable measurement families (`family → key → { label, min, max, default }`, values under `theme.measurements.<family>`, emitted as `--<family>-<key>`), and the zod schema `classicyKnobsToSchema(knobs)` builds from them |
+| `layout` | `{ window.growBoxCorner, menuBar.placement, desktop.iconGridOrigin }`; read with `useClassicyAppearanceLayout()` / `getClassicyAppearanceLayout(packageId?)`, as CSS variables with `classicyLayoutVars(layout)`. Components do not position by it yet |
+| `assets`, `sounds` | Descriptive: register the package's art with the asset registries under its id (§5) and its sound packs with `registerClassicySoundPack` (§10) |
+| `hooks` | `{ decorate?, on? }` per component and event; declared for packages, not yet called by components |
+
+**Registering.** `registerClassicyAppearancePackage(pkg)` runs at module
+scope. It validates the package against `ClassicyAppearancePackageSchema`
+(everything but `css`, `options` and `hooks`); an invalid package is logged
+as a `ClassicyAppearance` error and not registered. A valid one has its CSS
+written to `<style id="classicy-appearance-<id>">` (§1, "Cascade layers") and
+is stored; re-registering an id replaces the package and its stylesheet in
+place. Read the registry with `getClassicyAppearancePackage(id)`,
+`listClassicyAppearancePackages()` (registration order),
+`subscribeClassicyAppearancePackages(listener)`, or the hook
+`useClassicyAppearancePackages()`.
+
+**Writing the CSS.** Wrap the rules in the vocabulary's package mixin, which
+adds the layer and the scope; Platinum's mixins are there to reuse:
+
+```scss
+@use "classicy/scss/package";
+@use "classicy/appearance/platinum/scss/mixins";
+
+@include package.classicy-package("irix") {
+  .classicyButton { @include mixins.platinum-window-depressable; }
+}
+```
+
+Compile it to a string (`?inline` in Vite) and pass it as `css`; Classicy
+never wraps it.
+
+**The active package.** `System.Manager.Appearance.packageId` (persisted,
+default `CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID`, `"platinum"`; state saved
+before packages existed loads as Platinum) names it. It resolves to that
+package when registered, else Platinum, else
+`CLASSICY_FALLBACK_APPEARANCE_PACKAGE` (Platinum's defaults, presets and
+layout with no CSS or hooks, used only while no package is registered at
+all). Components read it with `useActiveClassicyAppearancePackage()`;
+reducers, effects and other non-hook code with
+`resolveClassicyAppearancePackage(packageId?)` (the store's id at call time
+when omitted). The desktop root carries the **resolved** id as
+`data-classicy-appearance`, so CSS and JS agree while a persisted id's package
+has not registered yet; the attribute follows when it does.
+
+**Switching.** `dispatch({ type: 'ClassicyDesktopChangeAppearancePackage',
+packageId: 'irix' })` sets `packageId` and activates a copy of the package's
+`defaults`, unless the active theme already belongs to it (`theme.package`).
+An unregistered id is a logged no-op, and like every `ClassicyDesktop*` action
+it is unreachable to untrusted (HyperCard) dispatches.
+
+**`theme.package`.** Every theme names its package. A theme without one is
+Platinum's: persisted state is migrated on load (`migrateClassicyState`),
+`ClassicyDesktopLoadThemes` fills it in, and theme files default it (below).
+Loading a theme file or dispatching `ClassicyDesktopImportTheme` for a package
+that is not registered is refused (`This theme needs the "<id>" appearance
+package, which is not installed.`, shown as `Desktop.errorDialog`); the
+default package always counts as installed.
 
 ### Theme files (save / load)
 
