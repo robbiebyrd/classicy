@@ -7,7 +7,7 @@ status: complete
 priority: "2"
 effort: M
 created: "2026-10-28T20:04:07.145Z"
-updated: "2026-10-29T00:20:27.242Z"
+updated: "2026-10-29T01:11:29.954Z"
 started: "2026-10-28T23:47:54.073Z"
 completed: "2026-10-29T00:20:27.242Z"
 links:
@@ -109,3 +109,5 @@ Edit `bin/check-dist-imports.mjs` first: invariant 3 becomes "each entry bundle 
 ### 2026-10-29T00:20:26.518Z - Completed: commits 6bfd5c8a1..18dfe7ed9 (4d92822d3 format cherry-pick, c09bb4f76 build change, 18dfe7ed9 fix round), task review clean after one fix round. Full gate green (lint, tsc, 296 files / 3398 tests, verify:dist). dist/assets: 13 woff2, 17 svg, 1 png, 0 webp; 0 data:font in classicy.es.js. Criterion 3 evidence: headless Chromium smoke showed #classicy-fonts-platinum with 13 @font-face, woff2 requests 200, no console errors; a real Vite 7 consumer loaded 13 fonts as 200 font/woff2 with optimizeDeps.exclude. The Fonts tab six-family list was not hand-checked in the example app (covered by the C 4.1 unit test).
 
 ### 2026-10-29T00:20:26.611Z - breaking change for Vite dev consumers documented (AGENT-REFERENCE §1, README, CLAUDE.md)
+
+### 2026-10-29T01:11:29.953Z - Fonts tab verified in the example app during C 6.1: six families listed; 13 faces load on demand

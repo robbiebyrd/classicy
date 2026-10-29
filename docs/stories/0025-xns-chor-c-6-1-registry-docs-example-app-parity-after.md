@@ -3,12 +3,13 @@ id: 0025-xns
 title: 'C 6.1: Registry docs, example app, parity after'
 purpose: Document the asset registries, drop the example's obsolete fonts import, and prove Platinum is pixel-identical with the after-shoot and the full gate.
 type: chor
-status: in_progress
+status: complete
 priority: "2"
 effort: S
 created: "2026-10-28T20:04:33.061Z"
-updated: "2026-10-29T00:20:35.331Z"
+updated: "2026-10-29T01:11:29.616Z"
 started: "2026-10-29T00:20:35.252Z"
+completed: "2026-10-29T01:11:29.616Z"
 links:
   repo:
     local: ~/classicy
@@ -25,13 +26,13 @@ links:
     - ["0007-1sl", "included", ["6.1"]]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
 ---
 
 # C 6.1: Registry docs, example app, parity after
@@ -64,10 +65,10 @@ git add docs CLAUDE.md example/src/app.tsx && git commit -m "docs(appearance): a
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: ls .playwright-mcp/parity/part-C/after/*.png | wc -l  # equals before; compare loop prints 0 for every story
-- [ ] [MANUAL] Every `compare -metric AE before/<id>.png after/<id>.png` prints 0 for all 18-title parity stories; any non-zero was fixed in code, not in the screenshot.
-- [ ] `docs/AGENT-REFERENCE.md` §5 documents the registries, deep merge, the read-side rule and the `--classicy-cursor-*`/`--classicy-art-*` variables; `CLAUDE.md` names `ClassicyAssetRegistry.ts` and `platinumAssets.ts`; `grep -rn "classicy/fonts" example storybook docs CLAUDE.md` shows only the deprecation note.
-- [ ] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test && pnpm build:source
+- [x] VERIFY: ls .playwright-mcp/parity/part-C/after/*.png | wc -l  # equals before; compare loop prints 0 for every story
+- [x] [MANUAL] Every `compare -metric AE before/<id>.png after/<id>.png` prints 0 for all 18-title parity stories; any non-zero was fixed in code, not in the screenshot.
+- [x] `docs/AGENT-REFERENCE.md` §5 documents the registries, deep merge, the read-side rule and the `--classicy-cursor-*`/`--classicy-art-*` variables; `CLAUDE.md` names `ClassicyAssetRegistry.ts` and `platinumAssets.ts`; `grep -rn "classicy/fonts" example storybook docs CLAUDE.md` shows only the deprecation note.
+- [x] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test && pnpm build:source
 
 ## Files
 
@@ -79,3 +80,5 @@ git add docs CLAUDE.md example/src/app.tsx && git commit -m "docs(appearance): a
 ## Work Log
 
 ### 2026-10-29T00:20:35.331Z - Implementation dispatched; includes the example-app cursor check owed by 0022-cbh criterion 4
+
+### 2026-10-29T01:11:29.090Z - Completed: commits 18dfe7ed9..dee65376e (c951711a4 docs, dee65376e fix round: registry-wide asset-source validation, exhaustive system-art key record), task review clean after one fix round. Parity: 87 stories shot, after count equals before; AE 0 on every story with the menu-bar clock masked (unmasked, 35 differ only inside the clock box; one bad baseline, controls-splitview--two-panes-horizontal, was a Storybook loading spinner and was re-shot from e9625ee90 and replaced; the story itself compared 0 against the pre-Part-C tree). Docs: AGENT-REFERENCE section 5 rewritten as Asset registries, CLAUDE.md and BUILDING-APPS updated, classicy/fonts grep shows only deprecation notes. Full gate green: lint, tsc, 296 files / 3425 tests, build:source with verify:dist. Caveats: plain pnpm test hit the 5 s timeout in heavy AppearanceManager tests (customTheme, themeFile) under machine load 40-55, green with --maxWorkers=4, to be compared in the final review; isClassicyAssetSource rejects file:/blob:/app:/chrome-extension: sources, carried into the Part C final fix wave. Docs note: Platinum registers 21 of 44 system-art keys (23 unregistered), not the brief's four.

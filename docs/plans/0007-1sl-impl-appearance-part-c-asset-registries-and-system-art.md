@@ -6,7 +6,7 @@ status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T19:13:05.606Z"
-updated: "2026-10-29T00:20:36.095Z"
+updated: "2026-10-29T01:11:30.305Z"
 links:
   repo:
     local: ~/classicy
@@ -41,9 +41,9 @@ progress:
   "5.1":
     status: complete
   "6":
-    status: in_progress
+    status: complete
   "6.1":
-    status: in_progress
+    status: complete
 ---
 
 # Part C: Asset registries and system art

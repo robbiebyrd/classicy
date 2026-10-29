@@ -3,12 +3,13 @@ id: 0022-cbh
 title: 'C 3.2: Cursors by role'
 purpose: Register Platinum's cursors by role, add the default arrow, and replace every relative cursor url() in SCSS with a --classicy-cursor-* variable.
 type: feat
-status: in_progress
+status: complete
 priority: "2"
 effort: M
 created: "2026-10-28T20:02:45.335Z"
-updated: "2026-10-29T00:01:04.013Z"
+updated: "2026-10-29T01:11:35.295Z"
 started: "2026-10-28T23:33:07.360Z"
+completed: "2026-10-29T01:11:35.295Z"
 links:
   repo:
     local: ~/classicy
@@ -90,7 +91,7 @@ it("every role SplitView drags with is registered") // for u,d,l,r: resolveClass
 - [x] VERIFY: grep -rn "assets/img/ui/cursors" src --include=*.scss | wc -l  # expect 0
 - [x] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Cursor
 - [x] `resolveClassicyAsset("cursors", role)` is defined for `arrow`, `watch`, `hand`, `resizeLr`, `resizeUd`, `resizeU`, `resizeD`, `resizeL`, `resizeR` under "platinum"; `setCursor()` with no role clears the body cursor exactly as before.
-- [ ] [MANUAL] In the example app a SplitView divider shows the Mac resize cursor on hover and the directional cursor mid-drag; the PDF viewer's pan and zoom tools show the hand and magnifier cursors.
+- [x] [MANUAL] In the example app a SplitView divider shows the Mac resize cursor on hover and the directional cursor mid-drag; the PDF viewer's pan and zoom tools show the hand and magnifier cursors.
 - [x] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
 
 ## Files
@@ -115,3 +116,5 @@ it("every role SplitView drags with is registered") // for u,d,l,r: resolveClass
 ### 2026-10-28T23:40:49.993Z - Criterion 4 left open: the manual example-app check (SplitView divider cursors, PDF pan and zoom cursors) has no evidence in the task report; only var() fallback behavior was checked in headless Chromium. Needs a manual check or a controller waiver
 
 ### 2026-10-29T00:01:04.013Z - pnpm lint passes repo-wide on the part branch (format fix cherry-picked: A e1ab6a417 / C 4d92822d3)
+
+### 2026-10-29T01:11:29.843Z - Verified in the example app during C 6.1: SplitView lr/ud → cursor-resize-lr/ud.png 8 8 with col/row-resize; PDF hand → cursor-hand.png 8 8, grab; none computed to auto
