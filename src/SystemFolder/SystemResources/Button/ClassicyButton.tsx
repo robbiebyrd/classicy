@@ -12,10 +12,7 @@ import {
 	useState,
 } from "react";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
-import {
-	useClassicyAppearanceInput,
-	withClassicyAppearanceInput,
-} from "@/Appearance/useClassicyAppearanceInput.internal";
+import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import { useClassicyMergedRef } from "@/Appearance/useClassicyMergedRef.internal";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
@@ -155,8 +152,6 @@ export const ClassicyButton = forwardRef<
 			{ default: isDefault, pressed: depressed || keyActive },
 			buttonRef,
 		);
-
-		useClassicyAppearanceInput();
 
 		const onHandleFunc = (e: MouseEvent<HTMLButtonElement>) => {
 			appearance.emit("click", withClassicyAppearanceInput());

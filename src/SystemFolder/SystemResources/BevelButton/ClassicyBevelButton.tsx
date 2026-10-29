@@ -16,10 +16,7 @@ import {
 	useState,
 } from "react";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
-import {
-	useClassicyAppearanceInput,
-	withClassicyAppearanceInput,
-} from "@/Appearance/useClassicyAppearanceInput.internal";
+import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import type { ClassicyState } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
@@ -320,7 +317,6 @@ export const ClassicyBevelButton: FunctionalComponent<
 		),
 		buttonRef,
 	);
-	useClassicyAppearanceInput();
 	// `close` follows the surface going away, whichever path dismissed it.
 	const wasPopupOpenRef = useRef(popupOpen);
 	const emitAppearance = appearance.emit;

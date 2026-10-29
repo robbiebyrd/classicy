@@ -26,6 +26,7 @@ import {
 	getActiveClassicyAppearancePackageId,
 	subscribeClassicyAssets,
 } from "./ClassicyAssetRegistry";
+import { installClassicyAppearanceInput } from "./useClassicyAppearanceInput.internal";
 import {
 	type ClassicyComponentName,
 	type ClassicyState,
@@ -215,6 +216,10 @@ export function useClassicyAppearance<E extends HTMLElement = HTMLElement>(
 	);
 	const emitRef = useRef(emit);
 	emitRef.current = emit;
+
+	// Every wired control installs the press-modality tracker that
+	// `detail.input` reads (once per realm), so none can forget it.
+	useEffect(installClassicyAppearanceInput, []);
 
 	useEffect(() => {
 		emitRef.current("mount");

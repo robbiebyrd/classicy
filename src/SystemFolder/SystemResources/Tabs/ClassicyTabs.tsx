@@ -13,10 +13,7 @@ import {
 	useState,
 } from "react";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
-import {
-	useClassicyAppearanceInput,
-	withClassicyAppearanceInput,
-} from "@/Appearance/useClassicyAppearanceInput.internal";
+import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
@@ -151,7 +148,6 @@ export const ClassicyTabs: FunctionalComponent<TabProps> = ({
 	const rootRef = useRef<HTMLDivElement>(null);
 	// The container had no state class; `selected` stays on the tab buttons.
 	const appearance = useClassicyAppearance("Tabs", {}, rootRef);
-	useClassicyAppearanceInput();
 
 	const selectTab = (tabId: number) => {
 		appearance.emit("select", withClassicyAppearanceInput({ tabId }));

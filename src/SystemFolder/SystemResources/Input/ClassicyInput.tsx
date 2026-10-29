@@ -17,10 +17,7 @@ import {
 	useState,
 } from "react";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
-import {
-	useClassicyAppearanceInput,
-	withClassicyAppearanceInput,
-} from "@/Appearance/useClassicyAppearanceInput.internal";
+import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import { useClassicyMergedRef } from "@/Appearance/useClassicyMergedRef.internal";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
@@ -128,7 +125,6 @@ export const ClassicyInput: FunctionalComponent<ClassicyInputProps> =
 		// The field carries no state class (`isDefault` keeps its deprecated
 		// modifier class below).
 		const appearance = useClassicyAppearance("Input", {}, inputRef);
-		useClassicyAppearanceInput();
 
 		const handleOnChangeFunc: ChangeEventHandler<HTMLInputElement> = (e) => {
 			setValue(e.target.value);
