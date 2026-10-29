@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+	CLASSICY_ENTRY_BUNDLES,
 	findClassicyPackageCssProblems,
 	isSingleClassicyLayerBlock,
+	requiredClassicyPackageBundles,
 } from "./classicyPackageCss";
 import { CLASSICY_LAYER_ORDER } from "./classicyStyleInjector";
 
@@ -294,6 +296,21 @@ describe("findClassicyPackageCssProblems (check-dist invariant 7)", () => {
 			expect(problems[1]).toMatch(MISSING);
 		});
 
+		// Only a package's own stylesheet counts: one scoped under
+		// `[data-classicy-appearance=…]`, not any non-empty block (a sample
+		// string elsewhere in shipped code would otherwise satisfy the check).
+		it("does not count a non-empty package block without the data-classicy-appearance scope", () => {
+			for (const css of [
+				"@layer classicy.package{.classicyButton{color:red}}",
+				"@layer classicy.package{.classicyDesktop .classicyButton{color:red}}",
+				`${ORDER}\n@layer classicy.package {\n  .a { color: red; }\n}`,
+			]) {
+				const problems = required("dist/classicy.es.js", js(css));
+				expect(problems, css).toHaveLength(1);
+				expect(problems[0], css).toMatch(MISSING);
+			}
+		});
+
 		it("reports a required bundle that was not given", () => {
 			const problems = check({ requiredBundles: ["dist/classicy.umd.js"] });
 			expect(problems).toEqual([
@@ -316,5 +333,47 @@ describe("findClassicyPackageCssProblems (check-dist invariant 7)", () => {
 			expect(problems).toHaveLength(1);
 			expect(problems[0]).toMatch(/^dist\/classicy-platinum\.css: /);
 		}
+	});
+});
+
+// check-dist-imports.mjs requires the entry bundles: by default the two in
+// dist/, and with named files only the entry bundles among them.
+describe("requiredClassicyPackageBundles", () => {
+	const inDist = (file: string) => `dist/${file}`;
+
+	it("names the two entry bundles", () =>
+		expect(CLASSICY_ENTRY_BUNDLES).toEqual([
+			"classicy.es.js",
+			"classicy.umd.js",
+		]));
+
+	it("requires both entry bundles in dist/ when no file is named", () =>
+		expect(requiredClassicyPackageBundles([], inDist)).toEqual([
+			"dist/classicy.es.js",
+			"dist/classicy.umd.js",
+		]));
+
+	it("requires only the named entry bundles, by basename, wherever they are", () => {
+		expect(
+			requiredClassicyPackageBundles(
+				[
+					"dist/classicy.es.js",
+					"dist/classicy.css",
+					"dist/pdf-DcHjwfzs.js",
+					"fixtures\\classicy.umd.js",
+				],
+				inDist,
+			),
+		).toEqual(["dist/classicy.es.js", "fixtures\\classicy.umd.js"]);
+		expect(
+			requiredClassicyPackageBundles(
+				["dist/fonts.js", "dist/classicy.css"],
+				inDist,
+			),
+		).toEqual([]);
+		// A name only ending like an entry bundle is not one.
+		expect(
+			requiredClassicyPackageBundles(["dist/my-classicy.es.js"], inDist),
+		).toEqual([]);
 	});
 });
