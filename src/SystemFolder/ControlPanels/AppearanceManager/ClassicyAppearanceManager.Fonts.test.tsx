@@ -126,4 +126,20 @@ describe("useFontsTab", () => {
 		await user.click(screen.getByRole("option", { name: "Espy Sans" }));
 		expect(changeFont).toHaveBeenCalledExactlyOnceWith("ui", "Espy Sans");
 	});
+
+	it("lists registered font families", async () => {
+		// Registered before render; runs after the registration-order test,
+		// since registrations outlive a test.
+		registerClassicyFonts("platinum", [
+			{ family: "TestFace", src: "data:font/woff2;base64,AA==" },
+		]);
+		const user = userEvent.setup();
+		render(<Host />);
+		for (const key of ROWS) {
+			await user.click(menu(key));
+			const option = screen.getByRole("option", { name: "TestFace" });
+			expect(option).toBeInTheDocument();
+			await user.keyboard("{Escape}");
+		}
+	});
 });

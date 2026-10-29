@@ -112,6 +112,22 @@ describe("useDesktopTab — Patterns", () => {
 			wallpaper("Rio Azul").value,
 		);
 	});
+
+	it("lists registered wallpapers", async () => {
+		// Registered before render; runs after the bundled-count test, since
+		// registrations outlive a test.
+		registerClassicyWallpapers("platinum", [
+			{ name: "Test Paper", src: "https://example.com/t.png" },
+		]);
+		const changeBackground = vi.fn();
+		const user = userEvent.setup();
+		render(<Host changeBackground={changeBackground} />);
+		await user.click(patternsMenu());
+		await user.click(screen.getByRole("option", { name: "Test Paper" }));
+		expect(changeBackground.mock.calls[0][0].target.value).toBe(
+			"https://example.com/t.png",
+		);
+	});
 });
 
 // Align, Repeat and Size follow Patterns in DOM order.
