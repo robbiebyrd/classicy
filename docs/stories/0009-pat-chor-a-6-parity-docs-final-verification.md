@@ -3,12 +3,13 @@ id: 0009-pat
 title: 'A 6: Parity, docs, final verification'
 purpose: Prove Part A left Platinum pixel-identical, document the vocabulary and cascade layers, and run the full gate before the branch is finished.
 type: chor
-status: in_progress
+status: complete
 priority: "2"
 effort: S
 created: "2026-10-28T19:52:33.565Z"
-updated: "2026-10-29T06:28:34.084Z"
+updated: "2026-10-29T07:08:36.735Z"
 started: "2026-10-29T06:28:34.001Z"
+completed: "2026-10-29T07:08:36.735Z"
 links:
   repo:
     local: ~/classicy
@@ -24,19 +25,19 @@ links:
     - ["0003-7x7", "included", ["6"]]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
   "5":
-    status: pending
+    status: complete
   "6":
-    status: pending
+    status: complete
   "7":
-    status: pending
+    status: complete
 ---
 
 # A 6: Parity, docs, final verification
@@ -79,10 +80,10 @@ After the Theming section add: 'Vocabulary: shared state classes are bare and be
 
 ## Acceptance Criteria
 
-- [ ] [MANUAL] Every Controls/*, Desktop/*, Dialogs/* story compares AE 0 before vs after (compare loop over .playwright-mcp/parity/part-A).
-- [ ] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test && pnpm build:source
-- [ ] VERIFY: grep -rn '!important' src --include=*.scss | wc -l  # 0; node bin/generate-vocabulary.ts --check  # exit 0
-- [ ] docs/AGENT-REFERENCE.md §4 'Vocabulary' and CLAUDE.md describe the state classes, part attributes, passthrough rule and `@layer` order; no `data-state` mention remains; the audit's §9 item 6 records `classicyWindowInvisible` as unreachable and parked.
+- [x] [MANUAL] Every Controls/*, Desktop/*, Dialogs/* story compares AE 0 before vs after (compare loop over .playwright-mcp/parity/part-A).
+- [x] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test && pnpm build:source
+- [x] VERIFY: grep -rn '!important' src --include=*.scss | wc -l  # 0; node bin/generate-vocabulary.ts --check  # exit 0
+- [x] docs/AGENT-REFERENCE.md §4 'Vocabulary' and CLAUDE.md describe the state classes, part attributes, passthrough rule and `@layer` order; no `data-state` mention remains; the audit's §9 item 6 records `classicyWindowInvisible` as unreachable and parked.
 
 ## Files
 
@@ -93,3 +94,5 @@ After the Theming section add: 'Vocabulary: shared state classes are bare and be
 ## Work Log
 
 ### 2026-10-29T06:28:34.084Z - Started from 129c1945b: 280-story parity re-shoot, vocabulary docs, acceptance audit.
+
+### 2026-10-29T07:08:21.648Z - Complete: commit c5c2182d0 (base 129c1945b). Parity 280/280 AE 0 against a before set re-shot from e9625ee90 with an identical, deterministic procedure (Phase 0 shots had Storybook spinners and a live clock); reviewer reproduced 280/280; one 1 px gradient-jitter outlier under load replaced by a re-shoot after 6 reruns compared 0. Vocabulary docs in AGENT-REFERENCE §4.0.1 and CLAUDE.md; audit §9 item 6 updated (classicyWindowInvisible unreachable, parked); new test that classicy-state(bogus) fails the Sass compile. Full gate green. Task review approved.

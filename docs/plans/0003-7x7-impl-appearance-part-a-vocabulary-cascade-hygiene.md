@@ -6,7 +6,7 @@ status: in_progress
 priority: "2"
 effort: XL
 created: "2026-10-28T18:44:10.907Z"
-updated: "2026-10-29T06:28:34.616Z"
+updated: "2026-10-29T07:08:22.185Z"
 links:
   repo:
     local: ~/classicy
@@ -43,7 +43,7 @@ progress:
   "5.1":
     status: complete
   "6":
-    status: in_progress
+    status: complete
 ---
 
 # Part A: Vocabulary and cascade hygiene

@@ -3,12 +3,13 @@ id: 0004-l1f
 title: 'A 2.2: data-state users, windows, icons, Control Strip, menu-bar typo'
 purpose: Move BevelButton, Placard and ImageWell off `data-state`, and windows, icons, the Control Strip and the menu bar onto the bare shared state classes, fixing the doubled AppleMenu class and the dead window selectors.
 type: impr
-status: in_progress
+status: complete
 priority: "2"
 effort: L
 created: "2026-10-28T19:49:01.956Z"
-updated: "2026-10-28T23:40:48.958Z"
+updated: "2026-10-29T07:08:36.818Z"
 started: "2026-10-28T23:32:52.303Z"
+completed: "2026-10-29T07:08:36.818Z"
 links:
   repo:
     local: ~/classicy
@@ -108,7 +109,7 @@ Window.tsx:1632-1643: Active→active, Inactive→inactive, Collapsed→collapse
 - [~] VERIFY: grep -rn 'data-state' src | wc -l   # 0
 - [x] BevelButton/Placard/ImageWell emit `checked`/`pressed`/`disabled`/`mixed`/`open`/`selected` combinations and no `data-state`; ControlStrip.scss has no `[aria-expanded]` selector; `aria-expanded` is still emitted.
 - [x] `.classicyWindowZoomed`, the `block` class and `.hidden` are gone; `classicyWindowInvisible` still hides closed-but-mounted windows; MenuBar.scss has one `.classicyDesktopMenuApple` block.
-- [ ] Each replaced selector keeps its specificity and position (the `.selected.open` block follows `.selected` and `.open`), so computed styles are unchanged.
+- [x] Each replaced selector keeps its specificity and position (the `.selected.open` block follows `.selected` and `.open`), so computed styles are unchanged.
 
 ## Files
 
@@ -148,3 +149,5 @@ Window.tsx:1632-1643: Active→active, Inactive→inactive, Collapsed→collapse
 ### 2026-10-28T23:40:47.085Z - Literal grep over-broad (15 hits, all negative data-state assertions and test names in *.test.ts(x)); narrowed grep excluding *.test.ts(x) = 0; intent met (controller ruling, applied by analogy)
 
 ### 2026-10-28T23:40:47.248Z - Criterion 5 left open: awaiting A Phase 6 parity re-shoot. Implementer reasoned, did not measure, that specificity and position are preserved; deviations: Window contents rule uses :where(...).collapsed, and .selected.open restates background-blend-mode and resets
+
+### 2026-10-29T07:08:22.072Z - Criterion 5 met: A 6 parity (c5c2182d0) compared 280/280 Controls/*, Desktop/* and Dialogs/* stories at AE 0 against a before set re-shot from e9625ee90, so computed styles are unchanged. Note: criterion 4's claim that classicyWindowInvisible hides closed-but-mounted windows was later found false (the class is unreachable, parked; see A 4.1 and the audit correction); no behavior changed.
