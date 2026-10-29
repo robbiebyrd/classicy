@@ -15,6 +15,7 @@ import {
 	exportClassicyTheme,
 	parseClassicyThemeFile,
 	portableClassicyThemeBackground,
+	readClassicyTheme,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFile";
 import {
 	buildClassicyWallpaperIndex,
@@ -411,6 +412,22 @@ describe("theme files and appearance packages", () => {
 		const file = JSON.parse(exportClassicyTheme(theme("azul")));
 		delete file.theme.package;
 		expect(parseOk(JSON.stringify(file)).package).toBe("platinum");
+	});
+
+	// R16: the default package is always installable, registered or not, so a
+	// registry-only check can never pass these.
+	it("reads a platinum theme with no package registered (R16)", () => {
+		resetClassicyAppearancePackagesForTests();
+		const result = readClassicyTheme({ ...theme("azul"), package: "platinum" });
+		expect(result.ok).toBe(true);
+		expect(parseOk(exportClassicyTheme(theme("azul"))).package).toBe(
+			"platinum",
+		);
+		expect(readClassicyTheme({ ...theme("azul"), package: "beos" })).toEqual({
+			ok: false,
+			error:
+				'This theme needs the "beos" appearance package, which is not installed.',
+		});
 	});
 
 	it("refuses a theme for an uninstalled package", () => {

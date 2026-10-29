@@ -21,6 +21,11 @@ import {
 	DefaultAppManagerState,
 	mergeClassicyState,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import {
+	type ClassicyLogEntry,
+	registerClassicyLogSink,
+	unregisterClassicyLogSink,
+} from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 const makeStore = (): ClassicyStore =>
 	mergeClassicyState(DefaultAppManagerState, {});
@@ -228,13 +233,21 @@ describe("ClassicyDesktopImportTheme", () => {
 });
 
 describe("ClassicyDesktopImportTheme — appearance packages", () => {
+	const SINK_ID = "import-theme-package-test";
+
 	afterEach(() => {
 		resetClassicyAppearancePackagesForTests();
+		unregisterClassicyLogSink(SINK_ID);
 		vi.restoreAllMocks();
 	});
 
 	it("refuses an uninstalled package with the error dialog", () => {
 		vi.spyOn(console, "warn").mockImplementation(() => {});
+		const entries: ClassicyLogEntry[] = [];
+		registerClassicyLogSink({
+			id: SINK_ID,
+			onLog: (entry) => entries.push(entry),
+		});
 		const before = makeStore();
 		const state = run(before, importTheme(fileTheme({ package: "irix" })));
 		expect(appearance(state).customThemes ?? []).toEqual(
@@ -248,6 +261,25 @@ describe("ClassicyDesktopImportTheme — appearance packages", () => {
 			message:
 				'This theme needs the "irix" appearance package, which is not installed.',
 		});
+		expect(entries).toEqual([
+			expect.objectContaining({
+				level: "warn",
+				subsystem: "ClassicyAppearance",
+				message:
+					'This theme needs the "irix" appearance package, which is not installed.',
+			}),
+		]);
+	});
+
+	it("imports a platinum theme with no package registered (R16)", () => {
+		resetClassicyAppearancePackagesForTests();
+		const state = run(
+			makeStore(),
+			importTheme(fileTheme({ package: "platinum" })),
+		);
+		expect(appearance(state).customThemes).toHaveLength(1);
+		expect(appearance(state).activeTheme.package).toBe("platinum");
+		expect(state.System.Manager.Desktop.errorDialog ?? null).toBeNull();
 	});
 
 	it("accepts a registered package", () => {

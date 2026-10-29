@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
 	type ClassicyThemeMeasurements,
 	getAllThemes,
@@ -10,8 +10,20 @@ import {
 	classicyMeasurementVars,
 	withDefaultThemeMetrics,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
-// getThemeVars for every built-in theme, captured at c2da6d1c7 — before the
-// measurements walker replaced the explicit input emissions.
+import {
+	type ClassicyLogEntry,
+	registerClassicyLogSink,
+	unregisterClassicyLogSink,
+} from "@/SystemFolder/SystemResources/Log/ClassicyLog";
+// A Part B parity guard: getThemeVars for every built-in theme, captured at
+// c2da6d1c7 with the code from before the measurements walker replaced the
+// explicit input emissions (`leaves getThemeVars unchanged …` below).
+// Regenerate it only for an intended change to the emitted variables, by
+// running getThemeVars over getAllThemes() in a throwaway vitest file:
+//   writeFileSync("src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.themeVars.baseline.json",
+//     `${JSON.stringify(Object.fromEntries(getAllThemes().map((t) => [t.id, getThemeVars(t)])), null, "\t")}\n`)
+// then `pnpm exec vitest run <that file>` and delete it; never regenerate to
+// make an unintended difference pass.
 import themeVarsBaseline from "./ClassicyAppearance.themeVars.baseline.json";
 
 describe("getAllThemes", () => {
@@ -245,7 +257,8 @@ describe("classicyMeasurementVars", () => {
 		const vars = classicyMeasurementVars({
 			...getTheme("default").measurements,
 			"x:0;color:red": { cellHeight: 1 },
-			controlStrip: { "a;b": 2, "": 3, cellHeight: 22 },
+			ControlStrip: { cellHeight: 4 },
+			controlStrip: { "a;b": 2, "": 3, CellHeight: 5, cellHeight: 22 },
 		} as unknown as ClassicyThemeMeasurements);
 		expect(
 			Object.keys(vars).filter((name) => !/^--[a-z][a-z0-9-]*$/.test(name)),
@@ -276,5 +289,64 @@ describe("classicyMeasurementVars", () => {
 				(themeVarsBaseline as Record<string, unknown>)[theme.id],
 			);
 		}
+	});
+});
+
+describe("classicyMeasurementVars — name collisions", () => {
+	const SINK_ID = "measurement-collision-test";
+	const warnings = (): ClassicyLogEntry[] => {
+		const entries: ClassicyLogEntry[] = [];
+		registerClassicyLogSink({
+			id: SINK_ID,
+			onLog: (entry) => {
+				if (entry.level === "warn") entries.push(entry);
+			},
+		});
+		return entries;
+	};
+
+	afterEach(() => {
+		unregisterClassicyLogSink(SINK_ID);
+		vi.restoreAllMocks();
+	});
+
+	it("a core input always wins over a package family with the same variable name", () => {
+		vi.spyOn(console, "warn").mockImplementation(() => {});
+		const entries = warnings();
+		const theme = getTheme("default");
+		const measurements = {
+			...theme.measurements,
+			windowTitle: { barHeight: 40 },
+		};
+		expect(
+			classicyMeasurementVars(measurements)["--window-title-bar-height"],
+		).toBe("19px");
+		expect(
+			(getThemeVars({ ...theme, measurements }) as Record<string, string>)[
+				"--window-title-bar-height"
+			],
+		).toBe("19px");
+		expect(entries).toHaveLength(1);
+		expect(entries[0].subsystem).toBe("ClassicyAppearance");
+		expect(entries[0].message).toContain("windowTitle.barHeight");
+		expect(entries[0].message).toContain("window.titleBarHeight");
+	});
+
+	it("the first of two colliding package families wins, warning once", () => {
+		vi.spyOn(console, "warn").mockImplementation(() => {});
+		const entries = warnings();
+		const measurements = {
+			...getTheme("default").measurements,
+			menu: { frameWidth: 3 },
+			menuFrame: { width: 5 },
+		};
+		expect(classicyMeasurementVars(measurements)["--menu-frame-width"]).toBe(
+			"3px",
+		);
+		classicyMeasurementVars(measurements);
+		expect(entries).toHaveLength(1);
+		expect(entries[0].subsystem).toBe("ClassicyAppearance");
+		expect(entries[0].message).toContain("menu.frameWidth");
+		expect(entries[0].message).toContain("menuFrame.width");
 	});
 });

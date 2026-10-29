@@ -351,3 +351,16 @@ describe("ClassicyThemeSchema — appearance package", () => {
 		);
 	});
 });
+
+describe("ClassicyThemeSchema — package measurement names", () => {
+	it.each([
+		["a hyphenated family", { "control-strip": { cellHeight: 22 } }],
+		["a PascalCase family", { ControlStrip: { cellHeight: 22 } }],
+		["a family starting with a digit", { "2x": { cellHeight: 22 } }],
+		["an underscored key", { controlStrip: { cell_height: 22 } }],
+		["a key starting with a digit", { controlStrip: { "2x": 22 } }],
+		["a PascalCase key", { controlStrip: { CellHeight: 22 } }],
+	])("rejects %s", (_label, family) => {
+		rejects(withEdit((t) => Object.assign(t.measurements, family)));
+	});
+});

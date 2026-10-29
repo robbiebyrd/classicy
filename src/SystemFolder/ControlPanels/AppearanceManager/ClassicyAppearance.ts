@@ -196,8 +196,10 @@ export const getThemeVars = (theme: ClassicyTheme) => {
 	return {
 		// --- Layout metrics: every theme input under `measurements.<family>`
 		// as `--<family>-<key>` (the core families' Platinum defaults are Mac
-		// OS 8 HIG Ch. 3 "Layout Guidelines"; a package may add families).
-		// First, so a package family can never override a variable below.
+		// OS 8 HIG Ch. 3 "Layout Guidelines"; a package may add families, and
+		// a core input wins any name collision with one). Spread first, so
+		// no package family can override a color, font, desktop or derived
+		// variable set below.
 		...classicyMeasurementVars(m),
 		"--color-black": intToHex(theme.color.black),
 		"--color-white": intToHex(theme.color.white),
