@@ -1,5 +1,10 @@
 import { castDraft, produce } from "immer";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+	type ClassicyAppearancePackage,
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+} from "@/Appearance/ClassicyAppearancePackage";
 import {
 	getTheme,
 	getThemeVars,
@@ -16,6 +21,7 @@ import {
 	CLASSICY_THEME_METRIC_TARGETS,
 	getThemeMetric,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricTargets";
+import { isUntrustedActionAllowed } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionTrust";
 import {
 	type ActionMessage,
 	type ClassicyStore,
@@ -24,6 +30,11 @@ import {
 	mergeClassicyState,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { classicyDesktopEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
+import {
+	type ClassicyLogEntry,
+	registerClassicyLogSink,
+	unregisterClassicyLogSink,
+} from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 // A deep, unaliased copy of the real default state (all built-in themes).
 const makeStore = (): ClassicyStore =>
@@ -489,6 +500,205 @@ describe("ClassicyDesktopChangeMetric", () => {
 		});
 		expect(JSON.stringify(appearance(ds))).toBe(before);
 		expect(appearance(ds).activeTheme.id).toBe("default");
+	});
+});
+
+const LOG_SINK_ID = "custom-theme-test";
+
+/** Collects the warnings classicyLog emits (and keeps the console quiet). */
+const captureWarnings = (): ClassicyLogEntry[] => {
+	vi.spyOn(console, "warn").mockImplementation(() => {});
+	const entries: ClassicyLogEntry[] = [];
+	registerClassicyLogSink({
+		id: LOG_SINK_ID,
+		onLog: (entry) => {
+			if (entry.level === "warn") entries.push(entry);
+		},
+	});
+	return entries;
+};
+
+afterEach(() => {
+	resetClassicyAppearancePackagesForTests();
+	unregisterClassicyLogSink(LOG_SINK_ID);
+	vi.restoreAllMocks();
+});
+
+describe("ClassicyDesktopChangeAppearanceOption", () => {
+	it("ClassicyDesktopChangeAppearanceOption forks a built-in and applies the value", () => {
+		const ds = makeStore();
+		// Platinum's stock icon size is already 48 (the plan's value), so the
+		// write uses 40: an unchanged value is a no-op and never forks.
+		expect(builtIn(ds, "default").desktop.iconSize).toBe(48);
+		run(ds, {
+			type: "ClassicyDesktopChangeAppearanceOption",
+			path: "desktop.iconSize",
+			value: 40,
+		});
+		const a = appearance(ds);
+		expect(a.activeTheme.id).toBe(CLASSICY_CUSTOM_THEME_ID);
+		expect(a.activeTheme.desktop.iconSize).toBe(40);
+		expect(builtIn(ds, "default").desktop.iconSize).toBe(48);
+		expect(
+			a.customThemes?.find((t) => t.id === "custom")?.desktop.iconSize,
+		).toBe(40);
+	});
+
+	it("rejects a bad path without forking", () => {
+		const warnings = captureWarnings();
+		const ds = makeStore();
+		const customsBefore = JSON.stringify(appearance(ds).customThemes);
+		run(ds, {
+			type: "ClassicyDesktopChangeAppearanceOption",
+			path: "measurements.window.borderSize",
+			value: 3,
+		});
+		expect(appearance(ds).activeTheme.id).toBe("default");
+		expect(JSON.stringify(appearance(ds).customThemes)).toBe(customsBefore);
+		expect(warnings).toHaveLength(1);
+		expect(warnings[0].subsystem).toBe("ClassicyDesktopManager");
+	});
+
+	it("rejects a prototype path and a schema-refused value without forking", () => {
+		const warnings = captureWarnings();
+		const ds = makeStore();
+		const before = JSON.stringify(appearance(ds));
+		run(ds, {
+			type: "ClassicyDesktopChangeAppearanceOption",
+			path: "__proto__.x",
+			value: 1,
+		});
+		run(ds, {
+			type: "ClassicyDesktopChangeAppearanceOption",
+			path: "sound.pack",
+			value: "no-such-pack",
+		});
+		expect(JSON.stringify(appearance(ds))).toBe(before);
+		expect(({} as Record<string, unknown>).x).toBeUndefined();
+		expect(warnings).toHaveLength(2);
+	});
+
+	it("ignores a payload without a path or a value", () => {
+		const ds = makeStore();
+		const before = JSON.stringify(appearance(ds));
+		run(ds, { type: "ClassicyDesktopChangeAppearanceOption", value: 40 });
+		run(ds, {
+			type: "ClassicyDesktopChangeAppearanceOption",
+			path: "desktop.iconSize",
+		});
+		expect(JSON.stringify(appearance(ds))).toBe(before);
+	});
+
+	it("writes sound.pack", () => {
+		const ds = makeStore();
+		run(ds, {
+			type: "ClassicyDesktopChangeAppearanceOption",
+			path: "sound.pack",
+			value: "platinum",
+		});
+		// Same value: no change, so no fork.
+		expect(appearance(ds).activeTheme.id).toBe("default");
+	});
+
+	it("is unreachable to untrusted dispatches", () => {
+		expect(
+			isUntrustedActionAllowed("ClassicyDesktopChangeAppearanceOption"),
+		).toBe(false);
+		vi.spyOn(console, "warn").mockImplementation(() => {});
+		const before = makeStore();
+		const after = produce(before, (draft) => {
+			classicyDesktopStateEventReducer(
+				castDraft(draft) as ClassicyStore,
+				{
+					type: "ClassicyDesktopChangeAppearanceOption",
+					path: "desktop.iconSize",
+					value: 40,
+				},
+				"untrusted",
+			);
+		});
+		expect(after).toBe(before);
+	});
+});
+
+describe("ClassicyDesktopChangeMetric family form", () => {
+	const knobPackage: ClassicyAppearancePackage = {
+		id: "knob-test",
+		name: "Knob Test",
+		css: "",
+		defaults: { ...structuredClone(getTheme("default")), package: "knob-test" },
+		layout: {
+			window: { growBoxCorner: "bottom-right" },
+			menuBar: { placement: "screen" },
+			desktop: { iconGridOrigin: "top-right" },
+		},
+		knobs: {
+			controlStrip: {
+				cellHeight: { label: "Cell height", min: 10, max: 40, default: 22 },
+			},
+		},
+	};
+
+	const makeKnobStore = (): ClassicyStore => {
+		registerClassicyAppearancePackage(knobPackage);
+		const ds = makeStore();
+		appearance(ds).packageId = knobPackage.id;
+		return ds;
+	};
+
+	it("ClassicyDesktopChangeMetric family form forks and applies", () => {
+		const ds = makeKnobStore();
+		run(ds, {
+			type: "ClassicyDesktopChangeMetric",
+			family: "controlStrip",
+			key: "cellHeight",
+			value: 30,
+		});
+		const a = appearance(ds);
+		expect(a.activeTheme.id).toBe(CLASSICY_CUSTOM_THEME_ID);
+		expect(a.activeTheme.measurements.controlStrip.cellHeight).toBe(30);
+		expect(builtIn(ds, "default").measurements.controlStrip).toBeUndefined();
+		expect(
+			(getThemeVars(a.activeTheme) as Record<string, string>)[
+				"--control-strip-cell-height"
+			],
+		).toBe("30px");
+	});
+
+	it("refuses an undeclared knob, an out-of-range value and a core family without forking", () => {
+		const warnings = captureWarnings();
+		const ds = makeKnobStore();
+		const before = JSON.stringify(appearance(ds));
+		for (const payload of [
+			{ family: "controlStrip", key: "nope", value: 30 },
+			{ family: "menuFrame", key: "cellHeight", value: 30 },
+			{ family: "controlStrip", key: "cellHeight", value: 41 },
+			{ family: "window", key: "borderSize", value: 3 },
+			{ family: "__proto__", key: "x", value: 3 },
+			{ family: "constructor", key: "x", value: 3 },
+		]) {
+			run(ds, { type: "ClassicyDesktopChangeMetric", ...payload });
+		}
+		expect(JSON.stringify(appearance(ds))).toBe(before);
+		expect(appearance(ds).activeTheme.id).toBe("default");
+		// The three well-formed knob writes are reported; malformed targets are
+		// ignored, like an invalid metricKey.
+		expect(warnings).toHaveLength(3);
+	});
+
+	it("refuses every knob when the active package is not registered", () => {
+		const warnings = captureWarnings();
+		const ds = makeStore();
+		appearance(ds).packageId = "beos";
+		const before = JSON.stringify(appearance(ds));
+		run(ds, {
+			type: "ClassicyDesktopChangeMetric",
+			family: "controlStrip",
+			key: "cellHeight",
+			value: 30,
+		});
+		expect(JSON.stringify(appearance(ds))).toBe(before);
+		expect(warnings).toHaveLength(1);
 	});
 });
 
