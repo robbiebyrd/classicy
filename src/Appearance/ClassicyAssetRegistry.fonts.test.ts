@@ -123,4 +123,17 @@ describe("registerClassicyFonts", () => {
 		expect(css).toContain("fine.woff2");
 		expect(resolveClassicyAsset("fonts", "Good.normal-normal")).toBeUndefined();
 	});
+
+	it("skips a face whose family contains a control character", () => {
+		registerClassicyFonts("platinum", [
+			{ family: "Form\fFeed", src: "a.woff2" },
+			{ family: "Fine", src: "fine.woff2" },
+		]);
+		const css = styleCss("platinum");
+		expect(css.match(/@font-face/g)).toHaveLength(1);
+		expect(css).not.toContain("\f");
+		expect(
+			resolveClassicyAsset("fonts", "Form\fFeed.normal-normal"),
+		).toBeUndefined();
+	});
 });

@@ -305,8 +305,6 @@ export const ClassicyIcons = {
 		files: {
 			_1292: icon("system/files/129 2.png"),
 			_1294: icon("system/files/129 4.png"),
-			_229: icon("system/files/229.png"),
-			_232Messages: icon("system/files/232.Messages.png"),
 			application: icon("system/files/application.png"),
 			document: icon("system/files/document.png"),
 			edition: icon("system/files/edition.png"),

@@ -215,6 +215,21 @@ describe("ClassicyAssetRegistry", () => {
 			]);
 		});
 
+		it("omits a subtree whose leaves are all invalid, so it cannot turn a valid leaf into an empty namespace", () => {
+			registerClassicyAssets("icons", "platinum", {
+				system: { alias: "alias.png" },
+			});
+			registerClassicyAssets("icons", "platinum", {
+				system: { alias: { badge: "javascript:alert(1)" } },
+			});
+			expect(resolveClassicyAsset("icons", "system.alias")).toBe("alias.png");
+			expect(entries.map((e) => e.message)).toEqual([
+				expect.stringContaining(
+					'icons asset "system.alias.badge" for package "platinum"',
+				),
+			]);
+		});
+
 		it("skips an invalid wallpaper source", () => {
 			registerClassicyWallpapers("platinum", [
 				{ name: "Bad", src: 'x").png' },

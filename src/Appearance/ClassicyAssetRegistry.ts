@@ -162,10 +162,11 @@ const notify = (): void => {
 
 /**
  * A copy of `tree` holding only leaves that pass `isClassicyAssetSource`.
- * Leaves land in CSS `url("…")` values, so an invalid one (a quote or `)` that
- * could break out of the URL, a `javascript:` scheme, an empty string) is
- * dropped with a warning naming the kind, package and dotted path; the rest of
- * the tree still registers.
+ * Leaves land in CSS `url("…")` values, so an invalid one (a quote or
+ * backslash that could break out of the URL, a `javascript:` scheme, an empty
+ * string) is dropped with a warning naming the kind, package and dotted path;
+ * the rest of the tree still registers. A subtree left with no leaves is
+ * omitted.
  */
 const validLeaves = (
 	kind: ClassicyAssetKind,
@@ -182,7 +183,12 @@ const validLeaves = (
 		}
 		const value = tree[key];
 		if (isTree(value)) {
-			out[key] = validLeaves(kind, packageId, value, path);
+			const subtree = validLeaves(kind, packageId, value, path);
+			// A subtree whose every leaf was dropped registers nothing: merging
+			// `{}` would turn an existing valid leaf into an empty namespace.
+			const emptied =
+				Object.keys(subtree).length === 0 && Object.keys(value).length > 0;
+			if (!emptied) out[key] = subtree;
 		} else if (isClassicyAssetSource(value)) {
 			out[key] = value;
 		} else {
@@ -259,10 +265,14 @@ export const subscribeClassicyAssets = (listener: () => void): (() => void) => {
 export const useClassicyAsset = (
 	kind: ClassicyAssetKind,
 	path: string,
-): ClassicyAssetSource | undefined =>
-	useSyncExternalStore(subscribeClassicyAssets, () =>
-		resolveClassicyAsset(kind, path),
+): ClassicyAssetSource | undefined => {
+	const getSnapshot = () => resolveClassicyAsset(kind, path);
+	return useSyncExternalStore(
+		subscribeClassicyAssets,
+		getSnapshot,
+		getSnapshot,
 	);
+};
 
 const treeCache = new Map<
 	string,
@@ -287,8 +297,14 @@ const mergedTree = (kind: ClassicyAssetKind): ClassicyAssetTree => {
 /** Merged COPY (platinum under the active package); stable until a registration. */
 export const useClassicyAssetTree = (
 	kind: ClassicyAssetKind,
-): ClassicyAssetTree =>
-	useSyncExternalStore(subscribeClassicyAssets, () => mergedTree(kind));
+): ClassicyAssetTree => {
+	const getSnapshot = () => mergedTree(kind);
+	return useSyncExternalStore(
+		subscribeClassicyAssets,
+		getSnapshot,
+		getSnapshot,
+	);
+};
 
 const kebab = (key: string): string =>
 	key.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
@@ -323,7 +339,7 @@ const assetVars = (): Record<string, string> => {
 
 /** `--classicy-cursor-<role>` / `--classicy-art-<key>` as `url("…")` strings. */
 export const useClassicyAssetVars = (): Record<string, string> =>
-	useSyncExternalStore(subscribeClassicyAssets, assetVars);
+	useSyncExternalStore(subscribeClassicyAssets, assetVars, assetVars);
 
 export const registerClassicyCursors = (
 	packageId: string,
@@ -356,7 +372,8 @@ const FONT_FORMATS: Record<string, string> = {
 	opentype: "opentype",
 };
 
-const SAFE_FONT_NAME = /^[^"'\\\r\n;{}]+$/;
+// biome-ignore lint/suspicious/noControlCharactersInRegex: refusing control characters is the point
+const SAFE_FONT_NAME = /^[^"'\\;{}\u0000-\u001f\u007f]+$/;
 const SAFE_FONT_DESCRIPTOR = /^[A-Za-z0-9 .%-]+$/;
 
 /** ` format("…")` from a data: mime or the file extension; empty if unknown. */
