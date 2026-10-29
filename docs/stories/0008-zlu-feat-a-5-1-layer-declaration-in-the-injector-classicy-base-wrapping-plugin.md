@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T19:52:07.776Z"
-updated: "2026-10-29T04:08:09.905Z"
+updated: "2026-10-29T05:34:43.551Z"
 started: "2026-10-29T04:08:09.809Z"
 links:
   repo:
@@ -103,3 +103,5 @@ With Storybook running, open `iframe.html?id=controls-button--default&viewMode=s
 ## Work Log
 
 ### 2026-10-29T04:08:09.905Z - Implementation dispatched
+
+### 2026-10-29T05:34:43.551Z - Implemented in ac4b1d9a3 (base 8d0f79c38): layer order @layer classicy.base, classicy.package, classicy.user declared in the injected stylesheet and in dist/classicy.css (after @charset); classicyCssLayerPlugin compiles every component stylesheet into classicy.base for the build, Storybook and the example's live source; computed-style identity 0 differences across 302 stories, negative control 375. In task review.
