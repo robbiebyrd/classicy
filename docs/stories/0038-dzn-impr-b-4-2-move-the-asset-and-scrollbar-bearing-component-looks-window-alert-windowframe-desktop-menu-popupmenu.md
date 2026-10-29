@@ -3,11 +3,12 @@ id: 0038-dzn
 title: 'B 4.2: Move the asset- and scrollbar-bearing component looks: Window, Alert, WindowFrame, Desktop, Menu, PopUpMenu'
 purpose: Move the window chrome, title-bar art, desktop scrollbars and menu frames out of the base stylesheets into Platinum per-component partials, pixel-identical.
 type: impr
-status: pending
+status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T20:13:13.594Z"
-updated: "2026-10-28T20:13:13.594Z"
+updated: "2026-10-29T15:57:34.199Z"
+started: "2026-10-29T15:57:34.199Z"
 links:
   repo:
     local: ~/classicy
