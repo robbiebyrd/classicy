@@ -3,12 +3,13 @@ id: 0077-75r
 title: 'J 2.1: ClassicyDesktopChangeAppearanceOption and the metric family form'
 purpose: 'Give the panel two guarded write paths: `ClassicyDesktopChangeAppearanceOption { path, value }` for non-metric theme options and a `{ family, key }` form of `ClassicyDesktopChangeMetric` for package knob families, both rejecting bad input without forking a Custom theme.'
 type: feat
-status: in_progress
+status: complete
 priority: "2"
 effort: M
 created: "2026-10-28T20:41:27.990Z"
-updated: "2026-10-29T16:47:55.346Z"
+updated: "2026-10-29T17:21:08.378Z"
 started: "2026-10-29T16:47:55.346Z"
+completed: "2026-10-29T17:21:08.378Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -35,15 +36,15 @@ links:
     - ["0012-pt9", "included", ["2.1"]]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
   "5":
-    status: pending
+    status: complete
 ---
 
 # J 2.1: ClassicyDesktopChangeAppearanceOption and the metric family form
@@ -89,10 +90,10 @@ ClassicyThemeMetricTargets.test.ts: `accepts the family form` (`isThemeMetricTar
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceOptions.test.ts
-- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricTargets.test.ts src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.customTheme.test.tsx
-- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.customTheme.test.tsx -t 'rejects a bad path without forking'
-- [ ] [MANUAL] `parseClassicyAppearanceOptionPath` rejects `__proto__`, `constructor`, `prototype`, `id`, `name`, `package` and `measurements` roots; the family form of `setThemeMetric` never creates a key.
+- [x] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceOptions.test.ts
+- [x] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricTargets.test.ts src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.customTheme.test.tsx
+- [x] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.customTheme.test.tsx -t 'rejects a bad path without forking'
+- [x] [MANUAL] `parseClassicyAppearanceOptionPath` rejects `__proto__`, `constructor`, `prototype`, `id`, `name`, `package` and `measurements` roots; the family form of `setThemeMetric` never creates a key.
 
 ## Files
 
@@ -108,3 +109,5 @@ ClassicyThemeMetricTargets.test.ts: `accepts the family form` (`isThemeMetricTar
 ## Work Log
 
 ### 2026-10-29T16:47:54.121Z - Started beside Part B by controller decision (reconciliation verdict "Yes": B is done with the reducer, predicates and metric targets): its depends story 0076-4sb (J 1.1) is code-complete at 89c839c22 and only awaits the post-B screenshot check. Branch feat/appearance-part-j from 89c839c22; implementer dispatched.
+
+### 2026-10-29T17:20:22.167Z - Done on feat/appearance-part-j, 89c839c22..2b892472a: b32dc0015 (ClassicyDesktopChangeAppearanceOption; the metric family form `{ family, key, value }` beside the core `{ metricKey }` per J-R7), 294b8f4d8 (review round 1: store-free Platinum fallback for knobs per new ruling J-R16 via `getRegisteredClassicyAppearancePackageOrDefault`, assertions that can fail, a real sound.pack write, non-object family guard), 2b892472a (controller: re-review minors). Criteria notes: the reducer tests live in src/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager.customTheme.test.ts (reconciliation 2.1 moved them; the AC's AppearanceManager path is stale) and pass, including the bad-path no-fork case; criterion 4's "never creates a key" is superseded by J-R5 — a knob the active package declares but the theme lacks IS created, an undeclared family/key is refused, and `__proto__`/`constructor`/`prototype` are refused on both write paths. Untrusted floor holds for both actions. Gate on 294b8f4d8: lint, tsc, 332 files / 3958 tests, build:source + verify:dist; 2b892472a (test + comment only): biome, tsc, src/Appearance 26 files / 421 tests. Reviews: first Needs fixes (C0 I1 M4), re-review Approved (C0 I0 M2, both fixed). AGENT-REFERENCE §2 rows are in task-2.1-report.md for J 6.1 (B 5.1 owns that file now).
