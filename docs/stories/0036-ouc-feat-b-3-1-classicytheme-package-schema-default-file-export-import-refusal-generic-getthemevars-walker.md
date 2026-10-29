@@ -3,12 +3,13 @@ id: 0036-ouc
 title: 'B 3.1: ClassicyTheme.package, schema default, file export/import refusal, generic getThemeVars walker'
 purpose: Tie every theme to its Appearance Package by id, refuse themes for uninstalled packages, and let getThemeVars emit any package measurement family as CSS variables.
 type: feat
-status: in_progress
+status: complete
 priority: "2"
 effort: M
 created: "2026-10-28T20:11:27.034Z"
-updated: "2026-10-29T13:41:46.665Z"
+updated: "2026-10-29T14:44:11.370Z"
 started: "2026-10-29T13:41:46.665Z"
+completed: "2026-10-29T14:44:11.370Z"
 links:
   repo:
     local: ~/classicy
@@ -30,17 +31,17 @@ links:
     - ["0005-1b3", "included", ["3.1"]]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
   "5":
-    status: pending
+    status: complete
   "6":
-    status: pending
+    status: complete
 ---
 
 # B 3.1: ClassicyTheme.package, schema default, file export/import refusal, generic getThemeVars walker
@@ -81,10 +82,10 @@ ClassicyAppearance.test.ts: `emits a package measurement family as kebab-case px
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/AppearanceManager
-- [ ] ClassicyThemeSchema defaults package to "platinum" and accepts numeric package measurement families; theme files carry package; readClassicyTheme and ClassicyDesktopImportTheme refuse an unregistered package (file error / Desktop.errorDialog with title "Appearance").
-- [ ] getThemeVars emits every measurements.<family>.<key> number as --<kebab family>-<kebab key>: <n>px and the 21 pre-existing input variables are byte-identical.
-- [ ] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
+- [x] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/AppearanceManager
+- [x] ClassicyThemeSchema defaults package to "platinum" and accepts numeric package measurement families; theme files carry package; readClassicyTheme and ClassicyDesktopImportTheme refuse an unregistered package (file error / Desktop.errorDialog with title "Appearance").
+- [x] getThemeVars emits every measurements.<family>.<key> number as --<kebab family>-<kebab key>: <n>px and the 21 pre-existing input variables are byte-identical.
+- [x] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
 
 ## Files
 
@@ -99,3 +100,5 @@ ClassicyAppearance.test.ts: `emits a package measurement family as kebab-case px
 - `src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.test.ts` - walker tests
 
 ## Work Log
+
+### 2026-10-29T14:44:10.769Z - Done on feat/appearance-part-b, c2da6d1c7..cf41e5930: 2048d5bce theme package id on files, uninstalled-package refusal (readClassicyTheme error; ImportTheme errorDialog { title: "Appearance" } + classicyLog warning), measurements catchall + ClassicyThemeCoreMeasurements type, withDefaultThemeMetrics keeps package families, walker classicyMeasurementVars in ClassicyThemeMetrics.ts replacing the 20 input variables (the AC's "21" is the plan's stale count — reconciliation found 20), committed getThemeVars baseline fixture captured at c2da6d1c7; ruling R16 (default package id always installable, by constant); cf41e5930 review round 1 (core families always win, deterministic first-wins collisions with a one-time warning, CLASSICY_MEASUREMENT_NAME enforced in schema and walker, PascalCase rejected, AGENT-REFERENCE §8 + action table + CLAUDE.md updated, explicit R16 and warning tests). Review APPROVED (0 critical/important); reviewer re-derived the fixture from c2da6d1c7 (21/21 exact). Gate: lint, tsc, 325 files / 3837 tests, build:source + verify:dist green. Parity: 302/302 AE 0, forced 67/67 identical, computed 0 non-noise diffs.

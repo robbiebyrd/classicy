@@ -3,11 +3,12 @@ id: 0037-gcg
 title: 'B 4.1: platinum.json, index.ts, vocabulary _package.scss, moved and renamed mixin files, compiled css'
 purpose: 'Create the Platinum package module: presets and layout in platinum.json, the platinum-* mixin files moved out of AppearanceManager/styles, and css compiled under the classicy-package scope.'
 type: feat
-status: pending
+status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T20:12:29.317Z"
-updated: "2026-10-28T20:12:29.317Z"
+updated: "2026-10-29T14:45:39.077Z"
+started: "2026-10-29T14:45:39.077Z"
 links:
   repo:
     local: ~/classicy
