@@ -58,10 +58,19 @@ describe("readClassicyThemeVar", () => {
 		expect(readClassicyThemeVar("--menu-bar-height")).toBe(30);
 	});
 
-	it("falls back when the computed value is zero or negative", () => {
-		const desktop = mountDesktop({ "--menu-bar-height": "0px" });
+	// G14: 0px is a real value (Part F's window-mode menu bar), not "unset".
+	it("returns a real 0px rather than the fallback", () => {
+		mountDesktop({ "--menu-bar-height": "0px" });
+		expect(readClassicyThemeVar("--menu-bar-height")).toBe(0);
+	});
+
+	it("falls back when the computed value is empty", () => {
+		mountDesktop({ "--menu-bar-height": "" });
 		expect(readClassicyThemeVar("--menu-bar-height")).toBe(30);
-		desktop.style.setProperty("--menu-bar-height", "-4px");
+	});
+
+	it("falls back when the computed value is negative", () => {
+		mountDesktop({ "--menu-bar-height": "-3px" });
 		expect(readClassicyThemeVar("--menu-bar-height")).toBe(30);
 	});
 
