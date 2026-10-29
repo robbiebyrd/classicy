@@ -1,5 +1,6 @@
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
-import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -213,6 +214,11 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			const { showContextMenu } = useClassicyContextualMenu();
 
 			const iconRef = useRef<HTMLDivElement>(null);
+			// The press that selects an icon reports it; the click ending that
+			// press must not report it again.
+			const selectedOnPressRef = useRef(false);
+			// One dragEnd per dragStart: mouseup also ends presses that never dragged.
+			const dragEmittedRef = useRef(false);
 
 			// Stock copy is resolved here, not stored on the icon record, so revised
 			// text ships with the library rather than staying frozen in localStorage.
@@ -231,6 +237,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 				e.stopPropagation();
 				if (didDragRef.current) {
 					didDragRef.current = false;
+					selectedOnPressRef.current = false;
 					return;
 				}
 				// Only when selection actually changes, so "focus" means the icon
@@ -244,6 +251,8 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 					type: "ClassicyDesktopIconFocus",
 					iconId: appId,
 				});
+				if (selectedOnPressRef.current) selectedOnPressRef.current = false;
+				else appearance.emit("select", withClassicyAppearanceInput());
 				// Take keyboard focus from whatever window had it, so Delete and
 				// the arrow keys act on the desktop's selection.
 				iconRef.current?.focus({ preventScroll: true });
@@ -266,6 +275,8 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			};
 
 			const launchIcon = () => {
+				// A double-click or Enter/Space.
+				appearance.emit("open", withClassicyAppearanceInput());
 				if (onClickFunc) {
 					onClickFunc();
 				}
@@ -305,6 +316,12 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 				return isOpen;
 			};
 
+			const appearance = useClassicyAppearance(
+				"DesktopIcon",
+				{ selected: isSelected, open: isLaunched(), dragging },
+				iconRef,
+			);
+
 			const stopChangeIcon = () => {
 				// Bound to onMouseUp, so this runs on every release on the icon.
 				// Report only a drag that actually happened. didDragRef -- not
@@ -317,6 +334,10 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 				}
 				setDragging(false);
 				setClickPosition([0, 0]);
+				if (dragEmittedRef.current) {
+					dragEmittedRef.current = false;
+					appearance.emit("dragEnd");
+				}
 			};
 
 			const startDrag = (e: MouseEvent<HTMLDivElement>) => {
@@ -328,11 +349,13 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 				didDragRef.current = false;
 
 				// If icon is not already selected, select just this one for the drag
+				selectedOnPressRef.current = !isSelected;
 				if (!isSelected) {
 					desktopEventDispatch({
 						type: "ClassicyDesktopIconFocus",
 						iconId: appId,
 					});
+					appearance.emit("select", withClassicyAppearanceInput());
 				}
 
 				if (draggedAsFile(kind, filePath)) {
@@ -344,6 +367,8 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 				setClickPosition([e.clientX - rect.left, e.clientY - rect.top]);
 
 				setDragging(true);
+				dragEmittedRef.current = true;
+				appearance.emit("dragStart");
 			};
 
 			// A file-backed icon drags as Finder items do: a dotted outline of every
@@ -415,6 +440,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			return (
 				// biome-ignore lint/a11y/useSemanticElements: desktop icon is a draggable div with ref and complex mouse handling incompatible with <button>
 				<div
+					{...appearance.attrs}
 					role="button"
 					tabIndex={0}
 					ref={iconRef}
@@ -445,15 +471,14 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 					}}
 					className={classNames(
 						"classicyDesktopIcon",
-						classicyStateClasses({
-							selected: isSelected,
-							open: isLaunched(),
-							dragging,
-						}),
+						appearance.className,
 						isAlias ? "classicyDesktopIconAlias" : "",
 						className,
 					)}
 					style={{
+						// Package style first: the icon's location is its own (a
+						// package never moves it), and only a consumer's wins over it.
+						...withoutZIndex(appearance.style),
 						top: thisLocation[0],
 						left: thisLocation[1],
 						...withoutZIndex(style),

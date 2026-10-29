@@ -30,6 +30,8 @@ import {
 import { createPortal } from "react-dom";
 
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import {
 	CLASSICY_PART_ATTRIBUTE,
 	classicyStateClasses,
@@ -1014,6 +1016,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			type: "ClassicySoundPlayInterrupt",
 			sound: "ClassicyWindowMoveStop",
 		});
+		emit("dragEnd", { kind: wasResizing ? "resize" : "move" });
 		setActive();
 		if (wasResizing || ws.resizing) {
 			endResize();
@@ -1056,6 +1059,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		setResize(true, startSize);
 		setZoom(false);
 		setSize(startSize);
+		emit("dragStart", { kind: "resize" });
 	};
 
 	const startMoveWindow = (e: MouseEvent<HTMLDivElement>) => {
@@ -1112,6 +1116,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			],
 		});
 		player({ type: "ClassicySoundPlay", sound: "ClassicyWindowMoveIdle" });
+		emit("dragStart", { kind: "move" });
 		setDragging(true);
 	};
 
@@ -1132,10 +1137,12 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				windowRef.current.style.width = `${newWidth}px`;
 				windowRef.current.style.height = `${newHeight}px`;
 			}
+			emit("change", { kind: "resize" });
 		}
 
 		if (ws.dragging) {
 			player({ type: "ClassicySoundPlay", sound: "ClassicyWindowMoveMoving" });
+			emit("change", { kind: "move" });
 			setMoving(true, [
 				e.clientX - clickPosition[0],
 				e.clientY - clickPosition[1],
@@ -1164,6 +1171,9 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			player({
 				type: "ClassicySoundPlayInterrupt",
 				sound: "ClassicyWindowMoveStop",
+			});
+			emit("dragEnd", {
+				kind: isResizingRef.current || ws.resizing ? "resize" : "move",
 			});
 		}
 		const wasResizing = isResizingRef.current;
@@ -1226,6 +1236,19 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		return windowType === "utility" || ws.focused;
 	}, [ws.focused, windowType]);
 
+	const front = modal || isActive();
+	const appearance = useClassicyAppearance(
+		"Window",
+		{
+			collapsed: ws.collapsed,
+			active: front,
+			inactive: !front,
+			dragging: ws.moving,
+		},
+		windowRef,
+	);
+	const { emit } = appearance;
+
 	const setActive = useCallback(
 		(_e?: MouseEvent<HTMLDivElement>) => {
 			if (!ws.focused) {
@@ -1236,6 +1259,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				// firing for clicks in a window that was already focused.
 				track("focus", { type: "ClassicyWindow", ...analyticsArgs });
 				player({ type: "ClassicySoundPlay", sound: "ClassicyWindowFocus" });
+				emit("focus", withClassicyAppearanceInput());
 				desktopEventDispatch({
 					type: "ClassicyWindowFocus",
 					app: {
@@ -1246,7 +1270,16 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				});
 			}
 		},
-		[ws, appId, appMenu, desktopEventDispatch, player, track, analyticsArgs],
+		[
+			ws,
+			appId,
+			appMenu,
+			desktopEventDispatch,
+			player,
+			track,
+			analyticsArgs,
+			emit,
+		],
 	);
 
 	useEffect(() => {
@@ -1276,6 +1309,11 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			type: "ClassicySoundPlay",
 			sound: toCollapse ? "ClassicyWindowCollapse" : "ClassicyWindowExpand",
 		});
+		// Once, from the clicked window, for every window it collapses.
+		emit(
+			toCollapse ? "collapse" : "expand",
+			withClassicyAppearanceInput({ all: true }),
+		);
 		Object.entries(apps).forEach(([appKey, app]) => {
 			listAppWindows(app).forEach((w) => {
 				if (w.closed) return;
@@ -1309,6 +1347,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			track("collapse", { type: "ClassicyWindow", ...analyticsArgs });
 			setZoom(false);
 			player({ type: "ClassicySoundPlay", sound: "ClassicyWindowCollapse" });
+			emit("collapse", withClassicyAppearanceInput());
 			desktopEventDispatch({
 				type: "ClassicyWindowCollapse",
 				window: ws,
@@ -1319,6 +1358,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		} else {
 			track("expand", { type: "ClassicyWindow", ...analyticsArgs });
 			player({ type: "ClassicySoundPlay", sound: "ClassicyWindowExpand" });
+			emit("expand", withClassicyAppearanceInput());
 			desktopEventDispatch({
 				type: "ClassicyWindowExpand",
 				window: ws,
@@ -1442,6 +1482,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 					? "ClassicyWindowZoomMaximize"
 					: "ClassicyWindowZoomMinimize",
 			});
+			emit("zoom", withClassicyAppearanceInput({ zoomed: toZoom }));
 		}
 		track(toZoom ? "zoom" : "minimize", {
 			type: "ClassicyWindow",
@@ -1557,6 +1598,8 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const finishClose = () => {
 		track("close", { type: "ClassicyWindow", show: true, ...analyticsArgs });
 		player({ type: "ClassicySoundPlay", sound: "ClassicyWindowClose" });
+		// The close box (a click, Return or Space) or a modal's Escape.
+		emit("close", withClassicyAppearanceInput());
 		desktopEventDispatch({
 			type: "ClassicyWindowClose",
 			app: {
@@ -1648,27 +1691,27 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			? (document.getElementById("classicyDesktop") ?? document.body)
 			: null;
 
-	const front = modal || isActive();
-
 	const windowContent = !ws.closed && (
 		// biome-ignore lint/a11y/useKeyWithClickEvents: application container captures clicks for focus
 		<div
+			{...appearance.attrs}
 			id={[appId, id].join("_")}
 			ref={windowRef}
 			role="application"
 			aria-label={title || undefined}
-			style={{ ...withoutStateOwnedStyle(style), ...windowStyle }}
+			// Package, then consumer, then the window's own geometry; neither
+			// may set the stacking.
+			style={{
+				...withoutStateOwnedStyle(appearance.style),
+				...withoutStateOwnedStyle(style),
+				...windowStyle,
+			}}
 			className={classNames(
 				"classicyWindow",
 				windowType === "utility"
 					? "classicyWindowUtility"
 					: "classicyWindowDocument",
-				classicyStateClasses({
-					collapsed: ws.collapsed,
-					active: front,
-					inactive: !front,
-					dragging: ws.moving,
-				}),
+				appearance.className,
 				currentApp?.focused && !isActive() ? "classicyWindowActiveApp" : "",
 				windowType === "utility"
 					? alwaysOnTop || currentApp?.focused

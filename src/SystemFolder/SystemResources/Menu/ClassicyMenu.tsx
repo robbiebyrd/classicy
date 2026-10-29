@@ -14,10 +14,9 @@ import {
 	useRef,
 	useState,
 } from "react";
-import {
-	CLASSICY_PART_ATTRIBUTE,
-	classicyStateClasses,
-} from "@/Appearance/vocabulary/ClassicyVocabulary";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
+import { CLASSICY_PART_ATTRIBUTE } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
@@ -169,9 +168,32 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 	const handleOpen = useCallback((id: string) => setOpenChildId(id), []);
 	const handleClose = useCallback(() => setOpenChildId(null), []);
 
+	const listRef = useRef<HTMLUListElement>(null);
+	const appearance = useClassicyAppearance("Menu", {}, listRef);
+	const { emit } = appearance;
+	// A submenu opens by a click, Return, or hovering an active menu; it
+	// closes when another opens or the menus close. Reported once the open
+	// child has changed, whatever changed it.
+	const lastOpenChildRef = useRef<string | null>(null);
+	useEffect(() => {
+		const previous = lastOpenChildRef.current;
+		if (previous === openChildId) return;
+		lastOpenChildRef.current = openChildId;
+		if (previous !== null)
+			emit("close", withClassicyAppearanceInput({ itemId: previous }));
+		if (openChildId !== null)
+			emit("open", withClassicyAppearanceInput({ itemId: openChildId }));
+	}, [openChildId, emit]);
+
 	return menuItems && menuItems.length > 0 ? (
 		<div className={classNames("classicyMenuWrapper", className)} style={style}>
-			<ul className={classNames(navClass)} key={`${name}_menu`}>
+			<ul
+				{...appearance.attrs}
+				ref={listRef}
+				className={classNames(navClass, appearance.className)}
+				style={appearance.style}
+				key={`${name}_menu`}
+			>
 				{menuItems.map((item: ClassicyMenuItem, index: number) => (
 					<ClassicyMenuItemComponent
 						// Separators all share the id "spacer" (it's how they're
@@ -205,6 +227,12 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 	const [isFlashing, setIsFlashing] = useState(false);
 	const [submenuFlipped, setSubmenuFlipped] = useState(false);
 	const itemRef = useRef<HTMLLIElement>(null);
+	// Its own hook, not the menu's emit: each item is a MenuItem root.
+	const appearance = useClassicyAppearance(
+		"MenuItem",
+		{ disabled: menuItem.disabled, open: isOpen },
+		itemRef,
+	);
 
 	// Once open, measure the child menu against the viewport; if it would
 	// overflow the right edge, flip it to open leftward instead. Measured only
@@ -291,6 +319,10 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 			clearTimeout(flashTimerRef.current);
 			flashTimerRef.current = undefined;
 		}
+		appearance.emit(
+			"release",
+			withClassicyAppearanceInput({ itemId: menuItem.id }),
+		);
 		setIsFlashing(false);
 		closeAll();
 		// Defer action execution so the close state propagates before the
@@ -324,11 +356,20 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 				onOpen(menuItem.id);
 				activateMenuBar();
 				player({ type: "ClassicySoundPlay", sound: "ClassicyMenuOpen" });
+				appearance.emit(
+					"open",
+					withClassicyAppearanceInput({ itemId: menuItem.id }),
+				);
 			}
 		} else {
 			actionRanRef.current = false;
 			setIsFlashing(true);
 			player({ type: "ClassicySoundPlay", sound: "ClassicyMenuItemClick" });
+			// A click or Return; the flash running is the pressed look.
+			appearance.emit(
+				"press",
+				withClassicyAppearanceInput({ itemId: menuItem.id }),
+			);
 			if (flashTimerRef.current !== undefined) {
 				clearTimeout(flashTimerRef.current);
 			}
@@ -355,6 +396,7 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 			<ClassicySeparator />
 		) : (
 			<li
+				{...appearance.attrs}
 				// biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: <li> items in a menu require role="menuitem" per ARIA menu pattern
 				role="menuitem"
 				tabIndex={-1}
@@ -374,23 +416,35 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 				onFocus={() => {
 					track("hover", { type: "ClassicyMenuItem", ...analyticsArgs });
 					player({ type: "ClassicySoundPlay", sound: "ClassicyMenuItemHover" });
+					appearance.emit(
+						"focus",
+						withClassicyAppearanceInput({ itemId: menuItem.id }),
+					);
 				}}
+				onBlur={() =>
+					appearance.emit(
+						"blur",
+						withClassicyAppearanceInput({ itemId: menuItem.id }),
+					)
+				}
 				onAnimationEnd={handleAnimationEnd}
 				onMouseOver={() => {
 					track("hover", { type: "ClassicyMenuItem", ...analyticsArgs });
 					player({ type: "ClassicySoundPlay", sound: "ClassicyMenuItemHover" });
+					appearance.emit("focus", { itemId: menuItem.id, input: "pointer" });
 				}}
+				onMouseLeave={() =>
+					appearance.emit("blur", { itemId: menuItem.id, input: "pointer" })
+				}
 				className={classNames(
 					"classicyMenuItem",
 					menuItem.icon ? "" : "classicyMenuItemNoImage",
 					menuItem.className,
-					classicyStateClasses({
-						disabled: menuItem.disabled,
-						open: isOpen,
-					}),
+					appearance.className,
 					hasChildren ? "classicyMenuItemChildMenuIndicator" : "",
 					isFlashing ? "classicyMenuItemFlash" : "",
 				)}
+				style={appearance.style}
 			>
 				<p>
 					{menuItem.checked !== undefined ? (
