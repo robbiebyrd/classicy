@@ -1810,7 +1810,10 @@ layout with no CSS or hooks, used only while no package is registered at
 all). Components read it with `useActiveClassicyAppearancePackage()`;
 reducers, effects and other non-hook code with
 `resolveClassicyAppearancePackage(packageId?)` (the store's id at call time
-when omitted). The desktop root carries the **resolved** id as
+when omitted). Code that must not import the store (the desktop reducer)
+uses the store-free `getRegisteredClassicyAppearancePackageOrDefault(id)`
+from `ClassicyAppearancePackageRegistry.ts`: the same chain without the
+fallback, which `resolveClassicyAppearancePackage` adds. The desktop root carries the **resolved** id as
 `data-classicy-appearance`, so CSS and JS agree while a persisted id's package
 has not registered yet; the attribute follows when it does.
 

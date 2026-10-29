@@ -13,10 +13,9 @@ import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManag
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import type { ClassicySoundPack } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
-import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "./ClassicyAppearanceDefaults";
 import {
 	CLASSICY_FALLBACK_APPEARANCE_PACKAGE,
-	getClassicyAppearancePackage,
+	getRegisteredClassicyAppearancePackageOrDefault,
 	listClassicyAppearancePackages,
 	subscribeClassicyAppearancePackages,
 } from "./ClassicyAppearancePackageRegistry";
@@ -25,6 +24,7 @@ export { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "./ClassicyAppearanceDefa
 export {
 	CLASSICY_FALLBACK_APPEARANCE_PACKAGE,
 	getClassicyAppearancePackage,
+	getRegisteredClassicyAppearancePackageOrDefault,
 	listClassicyAppearancePackages,
 	registerClassicyAppearancePackage,
 	resetClassicyAppearancePackagesForTests,
@@ -153,11 +153,10 @@ export const useClassicyAppearancePackages = (): ClassicyAppearancePackage[] =>
 const selectPackageId = (state: ClassicyStore): string | undefined =>
 	state.System.Manager.Appearance.packageId;
 
+// The store-free registry helper (shared with the reducers, J-R16), then the
+// frozen structure-only fallback.
 const resolve = (packageId: string | undefined): ClassicyAppearancePackage =>
-	(packageId === undefined
-		? undefined
-		: getClassicyAppearancePackage(packageId)) ??
-	getClassicyAppearancePackage(CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID) ??
+	getRegisteredClassicyAppearancePackageOrDefault(packageId) ??
 	CLASSICY_FALLBACK_APPEARANCE_PACKAGE;
 
 /**
