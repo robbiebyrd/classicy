@@ -1,22 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ReactNode } from "react";
-import {
-	controlStripCollapseGlyph,
-	controlStripModuleArrow,
-	controlStripScrollLeft,
-	controlStripScrollLeftDisabled,
-	controlStripScrollRight,
-	controlStripScrollRightDisabled,
-	controlStripTab,
-} from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripArt";
-import {
-	popUpSliderThumb,
-	popUpSliderTrack,
-} from "@/SystemFolder/SystemResources/PopUpSlider/ClassicyPopUpSliderArt";
-import {
-	ClassicyPixelArt,
-	type ClassicyPixelArtRows,
-} from "./ClassicyPixelArt";
+import type { ClassicySystemArtKey } from "@/Appearance/ClassicyAssetRegistry";
+import { ClassicyPixelArt } from "./ClassicyPixelArt";
 
 const meta = {
 	title: "System/PixelArt",
@@ -53,16 +38,16 @@ const Labelled = ({
 
 /**
  * The Control Strip's tab (HIGOS8 Figure 6-15, 17 × 24) at its native size —
- * exactly as the strip draws it. Switch the toolbar theme to watch the
- * greys follow the palette.
+ * exactly as the strip draws it, from the system-art key `controlStripTab`.
+ * Switch the toolbar theme to watch the grays follow the palette.
  */
 export const NativeSize: Story = {
-	args: { rows: controlStripTab },
+	args: { art: "controlStripTab" },
 };
 
 /** The same tab magnified 8×, so the individual palette-token pixels show. */
 export const Magnified: Story = {
-	args: { rows: controlStripTab },
+	args: { art: "controlStripTab" },
 	decorators: [
 		(Story) => (
 			<Magnify by={8}>
@@ -72,18 +57,19 @@ export const Magnified: Story = {
 	],
 };
 
-const controlStripArt: [string, ClassicyPixelArtRows][] = [
-	["Collapse box", controlStripCollapseGlyph],
-	["Scroll left", controlStripScrollLeft],
-	["Scroll left (disabled)", controlStripScrollLeftDisabled],
-	["Scroll right", controlStripScrollRight],
-	["Scroll right (disabled)", controlStripScrollRightDisabled],
-	["Module pop-up arrow", controlStripModuleArrow],
-	["Tab", controlStripTab],
+const controlStripArt: [string, ClassicySystemArtKey][] = [
+	["Collapse box", "controlStripCollapse"],
+	["Scroll left", "controlStripScrollLeft"],
+	["Scroll left (disabled)", "controlStripScrollLeftDisabled"],
+	["Scroll right", "controlStripScrollRight"],
+	["Scroll right (disabled)", "controlStripScrollRightDisabled"],
+	["Module pop-up arrow", "controlStripModuleArrow"],
+	["Tab", "controlStripTab"],
 ];
 
 /**
- * Every Control Strip glyph from `ClassicyControlStripArt`, magnified 4×.
+ * Every Control Strip glyph the Appearance Package registers, by system-art
+ * key, magnified 4×.
  * The arrows and tab are drawn in black and the system greys; the collapse
  * box also carries a theme accent token (`b`), so it picks up the theme's
  * accent colour.
@@ -91,10 +77,10 @@ const controlStripArt: [string, ClassicyPixelArtRows][] = [
 export const ControlStripGlyphs: RenderStory = {
 	render: () => (
 		<div style={{ display: "flex", gap: 24, alignItems: "flex-end" }}>
-			{controlStripArt.map(([label, rows]) => (
+			{controlStripArt.map(([label, art]) => (
 				<Labelled key={label} label={label}>
 					<Magnify by={4}>
-						<ClassicyPixelArt rows={rows} />
+						<ClassicyPixelArt art={art} />
 					</Magnify>
 				</Labelled>
 			))}
@@ -111,12 +97,12 @@ export const PopUpSliderArt: RenderStory = {
 		<div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
 			<Labelled label="Track">
 				<Magnify by={3}>
-					<ClassicyPixelArt rows={popUpSliderTrack} />
+					<ClassicyPixelArt art="popUpSliderTrack" />
 				</Magnify>
 			</Labelled>
 			<Labelled label="Thumb">
 				<Magnify by={3}>
-					<ClassicyPixelArt rows={popUpSliderThumb} />
+					<ClassicyPixelArt art="popUpSliderThumb" />
 				</Magnify>
 			</Labelled>
 		</div>
