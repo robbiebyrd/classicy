@@ -8,6 +8,7 @@ import {
 	intToPct,
 	intToPx,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicySize";
+import { classicyThemeDerivations } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeDerivations";
 import {
 	classicyMeasurementVars,
 	withDefaultThemeMetrics,
@@ -278,6 +279,14 @@ export const getThemeVars = (theme: ClassicyTheme) => {
 		"--help-button-height": intToPx(m.control.height + border),
 		// Preferred gap when focus rings show: the standard padding.
 		"--layout-focus-gap": intToPx(m.window.paddingSize),
+		// The named Platinum proportions (`CLASSICY_THEME_DERIVATIONS`):
+		// collapsed heights, menu and pop-up sizes, paddings, font steps, the
+		// desktop icon grid. Last, so no measurement input can shadow one.
+		...classicyThemeDerivations({
+			measurements: m,
+			typography: theme.typography,
+			desktop: theme.desktop,
+		}),
 	};
 };
 
