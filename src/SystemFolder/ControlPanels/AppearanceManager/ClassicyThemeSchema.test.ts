@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import platinumJson from "@/Appearance/Platinum/platinum.json";
 import {
 	type ClassicyTheme,
@@ -326,6 +326,32 @@ describe("ClassicyThemeSchema — appearance package", () => {
 		expect(parsed.success, JSON.stringify(parsed.error?.issues)).toBe(true);
 		expect(parsed.data?.package).toBe("platinum");
 	});
+
+	// R16: the default comes from CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID, never
+	// a literal, so the schema follows the constant wherever it is defined.
+	it("defaults package to CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID", async () => {
+		const defaults = "@/Appearance/ClassicyAppearanceDefaults";
+		vi.resetModules();
+		vi.doMock(defaults, async (importOriginal) => ({
+			...(await importOriginal<object>()),
+			CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID: "default-under-test",
+		}));
+		try {
+			const fresh = await import(
+				"@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema"
+			);
+			const parsed = fresh.ClassicyThemeSchema.safeParse(
+				withEdit((t) => {
+					delete (t as Record<string, unknown>).package;
+				}),
+			);
+			expect(parsed.success, JSON.stringify(parsed.error?.issues)).toBe(true);
+			expect(parsed.data?.package).toBe("default-under-test");
+		} finally {
+			vi.doUnmock(defaults);
+			vi.resetModules();
+		}
+	}, 30_000);
 
 	it("keeps a package id", () => {
 		const parsed = ClassicyThemeSchema.safeParse(
