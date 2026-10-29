@@ -10,10 +10,6 @@ import {
 } from "react";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { ClassicyPixelArt } from "@/SystemFolder/SystemResources/PixelArt/ClassicyPixelArt";
-import {
-	popUpSliderThumb,
-	popUpSliderTrack,
-} from "@/SystemFolder/SystemResources/PopUpSlider/ClassicyPopUpSliderArt";
 
 // Geometry from HIGOS8 Figure 2-16, in the slider's own coordinates (the inside
 // of the 19 × 75 pop-up frame). The thumb travels between the track's end caps.
@@ -165,12 +161,12 @@ export const ClassicyPopUpSlider: FunctionalComponent<
 			onKeyDown={onKeyDown}
 		>
 			<ClassicyPixelArt
-				rows={popUpSliderTrack}
+				art="popUpSliderTrack"
 				className="classicyPopUpSliderTrack"
 			/>
 			{/* Thumb position is the slider's value, so it is set inline. */}
 			<span className="classicyPopUpSliderThumb" style={{ top: thumbTop }}>
-				<ClassicyPixelArt rows={popUpSliderThumb} />
+				<ClassicyPixelArt art="popUpSliderThumb" />
 			</span>
 		</div>
 	);

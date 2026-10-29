@@ -180,7 +180,6 @@ export * from "./SystemFolder/SystemResources/ContextualMenu/ClassicyContextualM
 export * from "./SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup";
 export * from "./SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 export * from "./SystemFolder/SystemResources/ControlStrip/ClassicyControlStrip";
-export * from "./SystemFolder/SystemResources/ControlStrip/ClassicyControlStripArt";
 export * from "./SystemFolder/SystemResources/ControlStrip/ClassicyControlStripRegistry";
 export * from "./SystemFolder/SystemResources/CrashScreen/ClassicyCrashScreen";
 export * from "./SystemFolder/SystemResources/Cursor/useClassicyCursor";
@@ -257,7 +256,6 @@ export * from "./SystemFolder/SystemResources/Placard/ClassicyPlacard";
 export * from "./SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
 export * from "./SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenuPlacement";
 export * from "./SystemFolder/SystemResources/PopUpSlider/ClassicyPopUpSlider";
-export * from "./SystemFolder/SystemResources/PopUpSlider/ClassicyPopUpSliderArt";
 export * from "./SystemFolder/SystemResources/ProgressBar/ClassicyProgressBar";
 export * from "./SystemFolder/SystemResources/QuickTime/QuickTimeCaptionsOverlay";
 export * from "./SystemFolder/SystemResources/QuickTime/QuickTimeFullscreenButton";
