@@ -150,8 +150,9 @@ export const useClassicyAppearancePackages = (): ClassicyAppearancePackage[] =>
 
 // Read as possibly absent: a hand-built state may lack it until
 // migrateClassicyState fills it, and a missing id means the default package.
+// Mocked stores in tests may lack the slice altogether.
 const selectPackageId = (state: ClassicyStore): string | undefined =>
-	state.System.Manager.Appearance.packageId;
+	state.System?.Manager?.Appearance?.packageId;
 
 // The store-free registry helper (shared with the reducers, J-R16), then the
 // frozen structure-only fallback.
