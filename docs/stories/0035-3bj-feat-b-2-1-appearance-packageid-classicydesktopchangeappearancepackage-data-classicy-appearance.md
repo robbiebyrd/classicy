@@ -3,12 +3,13 @@ id: 0035-3bj
 title: 'B 2.1: Appearance.packageId, ClassicyDesktopChangeAppearancePackage, data-classicy-appearance'
 purpose: Persist the active Appearance Package id in the store, switch it with a guarded action, and write it onto the desktop root so package CSS can be scoped at runtime.
 type: feat
-status: in_progress
+status: complete
 priority: "2"
 effort: M
 created: "2026-10-28T20:10:49.263Z"
-updated: "2026-10-29T12:26:02.941Z"
+updated: "2026-10-29T13:40:54.601Z"
 started: "2026-10-29T12:26:02.941Z"
+completed: "2026-10-29T13:40:54.601Z"
 links:
   repo:
     local: ~/classicy
@@ -31,17 +32,17 @@ links:
     - ["0005-1b3", "included", ["2.1"]]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
   "5":
-    status: pending
+    status: complete
   "6":
-    status: pending
+    status: complete
 ---
 
 # B 2.1: Appearance.packageId, ClassicyDesktopChangeAppearancePackage, data-classicy-appearance
@@ -82,10 +83,10 @@ ClassicyDesktop.tsx: `const packageId = useAppManager((s) => s.System.Manager.Ap
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Desktop src/SystemFolder/ControlPanels/AppManager
-- [ ] System.Manager.Appearance.packageId defaults to "platinum", persists, is healed by migrateClassicyState, and is written as data-classicy-appearance on #classicyDesktop and on the Storybook frame.
-- [ ] ClassicyDesktopChangeAppearancePackage switches to a registered package (activating a clone of its defaults when the active theme belongs to another package), ignores unregistered ids with a classicyLog warning, and is unreachable to untrusted dispatches.
-- [ ] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
+- [x] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Desktop src/SystemFolder/ControlPanels/AppManager
+- [x] System.Manager.Appearance.packageId defaults to "platinum", persists, is healed by migrateClassicyState, and is written as data-classicy-appearance on #classicyDesktop and on the Storybook frame.
+- [x] ClassicyDesktopChangeAppearancePackage switches to a registered package (activating a clone of its defaults when the active theme belongs to another package), ignores unregistered ids with a classicyLog warning, and is unreachable to untrusted dispatches.
+- [x] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
 
 ## Files
 
@@ -101,3 +102,5 @@ ClassicyDesktop.tsx: `const packageId = useAppManager((s) => s.System.Manager.Ap
 - `src/SystemFolder/SystemResources/Desktop/ClassicyDesktop.appearance.test.tsx` - create: root attribute tests
 
 ## Work Log
+
+### 2026-10-29T13:40:53.972Z - Done on feat/appearance-part-b, c3ec154b2..c2da6d1c7: 1eb8a47fd packageId in the store, ChangeAppearancePackage (logged no-op for unregistered ids, untrusted floor), outermost migrateAppearancePackage (label 2.3), LoadThemes package default, resolved id on #classicyDesktop and the Storybook StoryFrame (R6), asset registry follows the store (R2), registry split into store-free ClassicyAppearancePackageRegistry.ts for load order, ClassicyThemeSchema.package landed early; c2da6d1c7 review round 1 (package schema requires defaults.package === id, asset package source moved to an internal non-barrel module, AGENT-REFERENCE §5, stronger load-order test). Review APPROVED (0 critical/important); reviewer smoke-loaded the dist ESM bundle in jsdom. Gate: lint, tsc, 325 files / 3811 tests, build:source + verify:dist green. Parity: 302/302 AE 0, forced 67/67 identical, computed 0 non-noise diffs (html +36 = the attribute).

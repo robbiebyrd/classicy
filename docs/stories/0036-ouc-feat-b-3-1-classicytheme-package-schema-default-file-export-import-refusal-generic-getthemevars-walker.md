@@ -3,11 +3,12 @@ id: 0036-ouc
 title: 'B 3.1: ClassicyTheme.package, schema default, file export/import refusal, generic getThemeVars walker'
 purpose: Tie every theme to its Appearance Package by id, refuse themes for uninstalled packages, and let getThemeVars emit any package measurement family as CSS variables.
 type: feat
-status: pending
+status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T20:11:27.034Z"
-updated: "2026-10-28T20:11:27.034Z"
+updated: "2026-10-29T13:41:46.665Z"
+started: "2026-10-29T13:41:46.665Z"
 links:
   repo:
     local: ~/classicy
