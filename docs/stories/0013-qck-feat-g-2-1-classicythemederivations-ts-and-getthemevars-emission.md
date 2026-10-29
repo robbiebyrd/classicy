@@ -3,11 +3,18 @@ id: 0013-qck
 title: 'G 2.1: ClassicyThemeDerivations.ts and getThemeVars emission'
 purpose: 'Name the Platinum proportions once: a derivation table with formula, doc and Platinum value for each, emitted by `getThemeVars` and pinned by tests.'
 type: feat
-status: pending
+status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T19:54:56.238Z"
-updated: "2026-10-28T19:54:56.238Z"
+updated: "2026-10-29T16:34:28.899Z"
+started: "2026-10-29T16:34:28.899Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy
@@ -84,3 +91,5 @@ This story adds `ClassicyThemeDerivations.ts` with `CLASSICY_THEME_DERIVATIONS` 
 - `src/index.ts` - regenerated barrel
 
 ## Work Log
+
+### 2026-10-29T16:34:27.965Z - Started out of chain order by controller decision (ruling G11): its `depends` story 0012-3av (G 1.2, literal colors) touches component stylesheets Part B 4.2/4.3 is moving, so it waits for B; 2.1 is TypeScript-only (ClassicyThemeDerivations.ts + getThemeVars) and needs nothing from 1.2. Branch feat/appearance-part-g from 08b34b126; implementer dispatched.
