@@ -492,6 +492,7 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 	const optionsTab = useOptionsTab({
 		pkg: activePackage,
 		theme: appearanceState.activeTheme,
+		editingCustomTheme: isCustomThemeActive(appearanceState),
 		changeMetric: changeKnob,
 	});
 

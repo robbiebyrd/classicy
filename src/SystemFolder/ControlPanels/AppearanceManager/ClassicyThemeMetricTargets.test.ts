@@ -10,6 +10,7 @@ import {
 	CLASSICY_THEME_METRIC_TARGETS,
 	getThemeMetric,
 	getThemeMetricFamily,
+	getThemeMetricFamilyBounds,
 	isThemeMetricFamilyTarget,
 	isThemeMetricTarget,
 	isValidThemeMetric,
@@ -184,6 +185,41 @@ describe("the metric family form", () => {
 				key: "cellHeight",
 			}),
 		).toBeNaN();
+	});
+
+	it("family bounds are the knob's range within 0–512, or none when they do not meet (J-R18)", () => {
+		const knob = (min: number, max: number) => ({
+			label: "K",
+			min,
+			max,
+			default: min,
+		});
+		expect(getThemeMetricFamilyBounds(knob(4, 40))).toEqual({
+			min: 4,
+			max: 40,
+		});
+		expect(getThemeMetricFamilyBounds(knob(-10, 9000))).toEqual({
+			min: 0,
+			max: 512,
+		});
+		expect(getThemeMetricFamilyBounds(knob(512, 600))).toEqual({
+			min: 512,
+			max: 512,
+		});
+		expect(getThemeMetricFamilyBounds(knob(600, 700))).toBeUndefined();
+		expect(getThemeMetricFamilyBounds(knob(-20, -5))).toBeUndefined();
+	});
+
+	it("family form refuses every value of a knob wholly outside 0–512 (J-R18)", () => {
+		const outside: ClassicyAppearanceKnobs = {
+			controlStrip: {
+				huge: { label: "Huge", min: 600, max: 700, default: 650 },
+			},
+		};
+		const huge = { family: "controlStrip", key: "huge" };
+		for (const value of [0, 512, 600, 650, 700]) {
+			expect(isValidThemeMetricFamily(huge, value, outside)).toBe(false);
+		}
 	});
 
 	it("family form reads own knob properties only", () => {

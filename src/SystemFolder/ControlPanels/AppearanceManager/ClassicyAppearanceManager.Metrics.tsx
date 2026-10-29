@@ -24,6 +24,21 @@ interface MetricsTabProps {
 	changeMetric: (change: ClassicyThemeMetricChange) => void;
 }
 
+/**
+ * The notice above an editing tab: what the next edit does to the active
+ * theme. A built-in theme is forked into "Custom" by the first edit
+ * (`change` names the kind of edit, e.g. "a metric"); a custom theme is
+ * edited in place. Shared by the Metrics and Options tabs.
+ */
+export const appearanceThemeEditNotice = (
+	themeName: string,
+	editingCustomTheme: boolean,
+	change: string,
+): string =>
+	editingCustomTheme
+		? `Editing the “${themeName}” theme.`
+		: `Changing ${change} creates a Custom theme from “${themeName}”.`;
+
 /** DOM id of the spinner for a metric target, e.g. `appearance_metric_buttonGap`. */
 export const appearanceMetricSpinnerId = (target: {
 	metricKey: ClassicyThemeMetricKey;
@@ -46,11 +61,11 @@ export const useMetricsTab = ({
 			children: (
 				<div className={"classicyAppearanceManagerColors"}>
 					<ClassicyControlLabel
-						label={
-							editingCustomTheme
-								? `Editing the “${theme.name}” theme.`
-								: `Changing a metric creates a Custom theme from “${theme.name}”.`
-						}
+						label={appearanceThemeEditNotice(
+							theme.name,
+							editingCustomTheme,
+							"a metric",
+						)}
 					/>
 					<div className={"classicyAppearanceManagerColorsScroll"}>
 						{CLASSICY_THEME_METRIC_GROUPS.map((group) => (

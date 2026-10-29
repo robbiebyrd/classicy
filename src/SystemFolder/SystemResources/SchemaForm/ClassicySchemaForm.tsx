@@ -38,8 +38,12 @@ const EMPTY_PATH: readonly string[] = [];
  * `ClassicyControlGroup` holding its own fields. A field's `.describe()` text
  * is its label; an undescribed key is humanized (`cellHeight` → "Cell
  * height"). Unsupported field types render nothing. A number field reports
- * the value it shows: an empty entry is not reported, an `.int()` field is
- * rounded, and every entry is clamped to the field's `.min()`/`.max()`.
+ * its entry clamped to the field's `.min()`/`.max()`, the bounds the spinner
+ * clamps its display to, so an out-of-range entry reports the bound the field
+ * shows. An `.int()` field reports the rounded value, though the spinner
+ * keeps showing the fraction typed (6.6 shows 6.6 and reports 7). An empty or
+ * non-numeric entry reports nothing, though the spinner shows its minimum
+ * until the next edit or a new value re-syncs it.
  *
  * It renders rows for a `ClassicyControlGroup layout="form"` grid, and no root
  * of its own: labeled controls carry their label on the left so label and
@@ -113,11 +117,13 @@ export const ClassicySchemaForm: FunctionalComponent<
 							maxValue={max}
 							prefillValue={Number(value ?? 0)}
 							onChangeFunc={(e) => {
-								// Report what the field shows (J-R17): an empty or
-								// non-numeric entry parses to NaN and is not reported;
-								// an `.int()` field is rounded to a whole number; then
-								// the entry is clamped to the bounds the spinner
-								// clamps its display to.
+								// J-R17. The clamp matches the spinner's own, so an
+								// out-of-range entry reports the bound it shows. The
+								// spinner does not round (J-R14 leaves it alone), so an
+								// `.int()` field reports the rounded value while the
+								// field still shows the fraction typed. An empty or
+								// non-numeric entry parses to NaN and reports nothing,
+								// while the spinner shows its minimum.
 								const parsed = Number.parseFloat(e.target.value);
 								if (!Number.isFinite(parsed)) return;
 								const whole = field.isInt ? Math.round(parsed) : parsed;

@@ -1,3 +1,4 @@
+import "./ClassicyAppearanceManager.Colors.scss";
 import { useMemo } from "react";
 import type { ClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
 import { intToHex } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyColors";
@@ -44,37 +45,42 @@ export const usePackagesTab = ({
 	return useMemo(
 		() => ({
 			title: "Packages",
+			// The Colors tab's fixed-height scroll region (J-R18): however many
+			// packages are registered, the window stays under the 340 px HIG
+			// ceiling. One group spans its full width.
 			children: (
-				<>
-					<ClassicyRadioInput
-						name="appearance_package"
-						inputs={inputs}
-						onClickFunc={(id) => {
-							const pkg = packages.find(
-								(p) => appearancePackageInputId(p.id) === id,
-							);
-							if (pkg) changePackage(pkg.id);
-						}}
-					/>
-					<ul className={"classicyAppearanceManagerPackageSwatches"}>
-						{packages.map((pkg) => (
-							<li
-								key={pkg.id}
-								data-package-id={pkg.id}
-								aria-label={`${pkg.name} colors`}
-							>
-								{pkg.defaults.color.theme.map((c, i) => (
-									<span
-										// biome-ignore lint/suspicious/noArrayIndexKey: a fixed seven-slot palette; colors may repeat.
-										key={i}
-										className={"classicyAppearanceManagerPackageSwatch"}
-										style={{ background: intToHex(c) }}
-									/>
-								))}
-							</li>
-						))}
-					</ul>
-				</>
+				<div className={"classicyAppearanceManagerColorsScroll"}>
+					<div className={"classicyAppearanceManagerColorsGroup"}>
+						<ClassicyRadioInput
+							name="appearance_package"
+							inputs={inputs}
+							onClickFunc={(id) => {
+								const pkg = packages.find(
+									(p) => appearancePackageInputId(p.id) === id,
+								);
+								if (pkg) changePackage(pkg.id);
+							}}
+						/>
+						<ul className={"classicyAppearanceManagerPackageSwatches"}>
+							{packages.map((pkg) => (
+								<li
+									key={pkg.id}
+									data-package-id={pkg.id}
+									aria-label={`${pkg.name} colors`}
+								>
+									{pkg.defaults.color.theme.map((c, i) => (
+										<span
+											// biome-ignore lint/suspicious/noArrayIndexKey: a fixed seven-slot palette; colors may repeat.
+											key={i}
+											className={"classicyAppearanceManagerPackageSwatch"}
+											style={{ background: intToHex(c) }}
+										/>
+									))}
+								</li>
+							))}
+						</ul>
+					</div>
+				</div>
 			),
 		}),
 		[inputs, packages, changePackage],

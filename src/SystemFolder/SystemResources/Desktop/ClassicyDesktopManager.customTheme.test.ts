@@ -746,6 +746,33 @@ describe("ClassicyDesktopChangeMetric family form", () => {
 		expect(warnings).toHaveLength(1);
 	});
 
+	it("refuses a knob whose range lies wholly outside 0–512, without forking (J-R18)", () => {
+		const warnings = captureWarnings();
+		registerClassicyAppearancePackage({
+			...knobPackage,
+			knobs: {
+				controlStrip: {
+					...knobPackage.knobs?.controlStrip,
+					huge: { label: "Huge", min: 600, max: 700, default: 650 },
+				},
+			},
+		});
+		const ds = makeStore();
+		appearance(ds).packageId = knobPackage.id;
+		const before = JSON.stringify(appearance(ds));
+		for (const value of [512, 600, 650]) {
+			run(ds, {
+				type: "ClassicyDesktopChangeMetric",
+				family: "controlStrip",
+				key: "huge",
+				value,
+			});
+		}
+		expect(JSON.stringify(appearance(ds))).toBe(before);
+		expect(appearance(ds).activeTheme.id).toBe("default");
+		expect(warnings).toHaveLength(3);
+	});
+
 	it("survives a tampered non-object family without throwing or forking", () => {
 		const warnings = captureWarnings();
 		const ds = makeKnobStore();
