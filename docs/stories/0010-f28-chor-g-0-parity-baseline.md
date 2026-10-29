@@ -7,13 +7,14 @@ status: pending
 priority: "2"
 effort: S
 created: "2026-10-28T19:52:56.298Z"
-updated: "2026-10-28T19:52:56.298Z"
+updated: "2026-10-29T20:14:15.844Z"
 links:
   repo:
     local: ~/classicy
   specs:
     - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   stories:
+    - ["0083-v8n", "blocks"]
     - ["0009-pat", "depends"]
   plans:
     - ["0004-vqt", "included", ["0"]]
@@ -59,7 +60,7 @@ Verify the PNG count equals the stories.txt line count. On `dialogs-alert--stop`
 ## Acceptance Criteria
 
 - [ ] VERIFY: ls .playwright-mcp/parity/part-G/before/*.png | wc -l  # equals the stories.txt line count
-- [ ] [MANUAL] `dialogs-alert--stop` title bar measures `rgb(247, 206, 205)` and the value is noted for G 4.
 - [ ] No repo file changed and nothing was committed.
 
 ## Work Log
+### 2026-10-29T20:14:15.844Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.

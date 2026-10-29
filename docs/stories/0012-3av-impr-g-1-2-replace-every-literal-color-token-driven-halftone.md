@@ -7,7 +7,7 @@ status: pending
 priority: "2"
 effort: M
 created: "2026-10-28T19:54:12.504Z"
-updated: "2026-10-28T19:54:12.504Z"
+updated: "2026-10-29T20:14:15.844Z"
 links:
   repo:
     local: ~/classicy
@@ -28,6 +28,7 @@ links:
   specs:
     - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   stories:
+    - ["0083-v8n", "blocks"]
     - ["0011-76y", "depends"]
   plans:
     - ["0004-vqt", "included", ["1.2"]]
@@ -99,7 +100,6 @@ Re-shoot `controls-icon--*`, `desktop-desktopicon--*`, `controls-controlgroup--*
 - [ ] VERIFY: pnpm exec vitest run src/Appearance/vocabulary/ClassicyLiteralColors.test.ts
 - [ ] VERIFY: grep -rnE '#[0-9a-fA-F]{3,8}\b|rgba?\([0-9]|(^|[ :,(])(white|black)([ ;,)]|$)|groove rgb' src --include=*.scss | grep -v 'var(--[a-z0-9-]*, *#\|Extensions/ScreenSaver\|ColorPicker\|data:image\|white-space\|^\S*:\s*//' | wc -l   # 0
 - [ ] `#f7cecd` appears nowhere; `theme-halftone` takes a token and paints a `::before` mask; `encode-color` is gone.
-- [ ] [MANUAL] Icon, DesktopIcon and ControlGroup stories compare AE 0; only error-styled alert stories differ, and only inside the title bar.
 
 ## Files
 
@@ -118,3 +118,4 @@ Re-shoot `controls-icon--*`, `desktop-desktopicon--*`, `controls-controlgroup--*
 - `src/Appearance/vocabulary/ClassicyLiteralColors.test.ts` - create
 
 ## Work Log
+### 2026-10-29T20:14:15.844Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.

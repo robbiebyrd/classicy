@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T20:18:19.144Z"
-updated: "2026-10-29T19:28:43.701Z"
+updated: "2026-10-29T20:17:08.194Z"
 started: "2026-10-29T19:28:41.968Z"
 tags: []
 milestone: ""
@@ -115,3 +115,5 @@ Re-shoot desktop-window*, desktop-desktop*, desktop-desktopicon*, desktop-menu*,
 ## Work Log
 
 ### 2026-10-29T19:28:43.701Z - Started beside Part B (TSX only; B's remaining work is SCSS, Platinum/** and docs). Base 81ad67308; implementer dispatched. Binding: I-R4 strict, I-R5 attrs first, I-R13, I-R14/I-R15 (input on dual-path gestures, listeners only for the duration of a gesture). Window geometry and zIndex stay state-owned. Edits stay tight to the roots so G (ClassicyWindow menu-bar height) and E (ControlStrip art, title bar) rebase cleanly. Parity deferred until after B lands.
+
+### 2026-10-29T20:17:08.194Z - Implementer DONE_WITH_CONCERNS at 848cdde6e: 54 new tests (41 RED to GREEN), 5 Passthrough rows plus a test that package style never moves or restacks windows or icons; the DOM dump with no package is unchanged. Concerns for 3.2: window resizes emit dragStart and change { kind: "resize" }; zoom { zoomed: false } also fires on collapse and resize start, where today's zoom sound plays; MenuItem focus fires on every mouseover; Finder outline drags emit no events. Controller re-ran lint, tsc and 104 files/1255 tests green; pushed. Reviewer dispatched with the concerns as focus; rulings follow the review.

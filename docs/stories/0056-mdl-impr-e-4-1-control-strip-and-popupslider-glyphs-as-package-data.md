@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T20:26:03.471Z"
-updated: "2026-10-29T19:28:44.621Z"
+updated: "2026-10-29T20:13:28.482Z"
 started: "2026-10-29T19:28:42.867Z"
 tags: []
 milestone: ""
@@ -139,3 +139,7 @@ In `ClassicyPixelArt.tsx`: `export const CLASSICY_PIXEL_ART_MIME = "text/x-class
 ## Work Log
 
 ### 2026-10-29T19:28:44.621Z - Started in wave 2 beside Part B, out of chain order: 2.1–3.1 need B's SCSS, while 4.1 is TSX plus data only, which the E reconciliation shows does not overlap B. Base 28c4e09a1; implementer dispatched. Binding: E1 (data-only platinumPixelArt.ts, registered through platinumAssets.ts), E15 (pixel-art keys kept out of the --classicy-art-* vars), E16 (deleted public exports listed as breaking). Retarget platinumAssets.test.ts. Parity deferred until after B lands.
+
+### 2026-10-29T20:04:06.672Z - Implementer DONE at e8aae7ab0: nine glyphs are .txt data files registered through platinumAssets.ts (34 of 44 keys); ClassicyPixelArt takes `art`. E15: pixel art is excluded from --classicy-art-* vars. E16: nine row-constant exports removed, replaced by useClassicyPixelArtRows / <ClassicyPixelArt art>. Render hashes are pinned to the old rows. Controller re-ran lint, tsc and 501/502 tests; the one failure was platinumAssets.warnings timing out under load, which passes alone 3/3 and has a timeout fix on the integration branch (f78e6ab51). Pushed; reviewer dispatched.
+
+### 2026-10-29T20:13:28.482Z - Review APPROVED (Critical 0, Important 0, Minor 7). The reviewer independently confirmed that the nine .txt files are byte-identical to the deleted arrays and that the pinned hashes come from the old rows. Final round sent for the minors: one MIME constant, nothing rendered when neither prop is given, consistent handling of other data-URI spellings, CR stripping, a consumer-wiring test with Platinum loaded, the E16 migration wording, and asserting through a log sink.

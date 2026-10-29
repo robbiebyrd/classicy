@@ -7,7 +7,7 @@ status: pending
 priority: "2"
 effort: S
 created: "2026-10-28T19:58:09.781Z"
-updated: "2026-10-28T19:58:09.781Z"
+updated: "2026-10-29T20:14:15.844Z"
 links:
   repo:
     local: ~/classicy
@@ -18,6 +18,7 @@ links:
   specs:
     - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   stories:
+    - ["0083-v8n", "blocks"]
     - ["0016-a5c", "depends"]
   plans:
     - ["0004-vqt", "included", ["4"]]
@@ -78,11 +79,9 @@ CLAUDE.md Theming section: 'Colors: never a literal — use a `--color-*` token 
 
 ## Acceptance Criteria
 
-- [ ] [MANUAL] Every parity story compares AE 0 except the named error-alert title bars, whose diff is confined to the title bar (compare loop over .playwright-mcp/parity/part-G).
 - [ ] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test && pnpm build:source
 - [ ] VERIFY: grep -c 'color-mix' dist/classicy.css   # >= 14
 - [ ] AGENT-REFERENCE §8 lists the color helpers, the 35 derivations and the part H one-off inventory; CLAUDE.md and the audit (§2.1, §3.1, §3.2) are updated.
-- [ ] [MANUAL] In the example app `--menu-bar-height` resolves to `30px`, a zoomed window lands at [8, 38], and the Apple menu is 180 px wide, with no console errors.
 
 ## Files
 
@@ -91,3 +90,4 @@ CLAUDE.md Theming section: 'Colors: never a literal — use a `--color-*` token 
 - `docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md` (plan 0000-aud) - §2.1, §3.1, §3.2 'Done (part G)' notes
 
 ## Work Log
+### 2026-10-29T20:14:15.844Z - Moved 2 open [MANUAL] acceptance criteria to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.

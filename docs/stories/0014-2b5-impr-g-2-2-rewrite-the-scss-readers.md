@@ -7,7 +7,7 @@ status: pending
 priority: "2"
 effort: L
 created: "2026-10-28T19:56:33.172Z"
-updated: "2026-10-28T19:56:33.172Z"
+updated: "2026-10-29T20:14:15.844Z"
 links:
   repo:
     local: ~/classicy
@@ -62,6 +62,7 @@ links:
   specs:
     - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   stories:
+    - ["0083-v8n", "blocks"]
     - ["0013-qck", "depends"]
   plans:
     - ["0004-vqt", "included", ["2.2"]]
@@ -127,7 +128,6 @@ Re-shoot `desktop-window--*`, `desktop-menu--*`, `desktop-menubar--*`, `controls
 - [ ] VERIFY: pnpm exec vitest run src/Appearance/vocabulary/ClassicyDerivationReaders.test.ts src/SystemFolder/SystemResources/Window/ClassicyWindow.resizer.test.ts src/SystemFolder/SystemResources/Tabs/ClassicyTabs.typescale.test.ts
 - [ ] VERIFY: grep -rnoE 'calc\(\s*var\(--[a-z0-9-]+\)\s*[*/]\s*[0-9.]+(\s*/\s*[0-9.]+)?\s*\)' src --include=*.scss | grep -v Extensions/ScreenSaver | wc -l   # <= 60
 - [ ] Every site in the per-file map reads `var(--<name>)`; no rewritten family still carries its multiplier; the remaining sites are enumerated as the part H one-off inventory.
-- [ ] [MANUAL] Window, Menu, MenuBar, PopUpMenu, Tabs, Button and Placard stories compare AE 0 against the G 0 baseline.
 
 ## Files
 
@@ -180,3 +180,4 @@ Re-shoot `desktop-window--*`, `desktop-menu--*`, `desktop-menubar--*`, `controls
 - `src/SystemFolder/SystemResources/Tabs/ClassicyTabs.typescale.test.ts` - resolver understands var(--ui-font-size-compact)
 
 ## Work Log
+### 2026-10-29T20:14:15.844Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
