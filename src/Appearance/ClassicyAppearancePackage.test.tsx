@@ -8,6 +8,7 @@ import {
 	type ClassicyAppearanceLayout,
 	type ClassicyAppearancePackage,
 	getClassicyAppearancePackage,
+	getRegisteredClassicyAppearancePackageOrDefault,
 	listClassicyAppearancePackages,
 	registerClassicyAppearancePackage,
 	resetClassicyAppearancePackagesForTests,
@@ -28,6 +29,8 @@ import {
 	registerClassicyLogSink,
 	unregisterClassicyLogSink,
 } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
+
+const FALLBACK = CLASSICY_FALLBACK_APPEARANCE_PACKAGE;
 
 const PLATINUM_LAYOUT: ClassicyAppearanceLayout = {
 	window: { growBoxCorner: "bottom-right" },
@@ -257,6 +260,39 @@ describe("resolveClassicyAppearancePackage", () => {
 		const irix = makePackage("irix");
 		registerClassicyAppearancePackage(irix);
 		expect(resolveClassicyAppearancePackage("irix")).toBe(irix);
+	});
+
+	it("is getRegisteredClassicyAppearancePackageOrDefault, then the fallback (J-R16)", () => {
+		const platinum = makePackage("platinum");
+		const irix = makePackage("irix");
+		const ids = ["platinum", "irix", "unregistered", "constructor"];
+		const expected = {
+			none: [FALLBACK, FALLBACK, FALLBACK, FALLBACK],
+			irixOnly: [FALLBACK, irix, FALLBACK, FALLBACK],
+			platinumOnly: [platinum, platinum, platinum, platinum],
+			both: [platinum, irix, platinum, platinum],
+		};
+		const registrations = {
+			none: [],
+			irixOnly: [irix],
+			platinumOnly: [platinum],
+			both: [platinum, irix],
+		};
+		for (const [name, pkgs] of Object.entries(registrations)) {
+			resetClassicyAppearancePackagesForTests();
+			for (const pkg of pkgs) registerClassicyAppearancePackage(pkg);
+			ids.forEach((id, i) => {
+				const resolved = resolveClassicyAppearancePackage(id);
+				// The chain B shipped, unchanged…
+				expect(resolved, `${name}: ${id}`).toBe(
+					expected[name as keyof typeof expected][i],
+				);
+				// …and it is the store-free helper plus the frozen fallback.
+				expect(resolved, `${name}: ${id}`).toBe(
+					getRegisteredClassicyAppearancePackageOrDefault(id) ?? FALLBACK,
+				);
+			});
+		}
 	});
 
 	it("reads the store's packageId at call time when no id is given", () => {

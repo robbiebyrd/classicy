@@ -89,10 +89,10 @@ export const getClassicyAppearancePackage = (
 
 /**
  * The registered package for `id`, else the registered default package
- * (`CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID`), else `undefined`. The first two
- * tiers of `resolveClassicyAppearancePackage`, without its frozen fallback
- * and without the store, so reducers resolve the active package by the same
- * rule the hooks and the root attribute use.
+ * (`CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID`), else `undefined`. Store-free,
+ * so reducers resolve the active package by the same rule the hooks and the
+ * root attribute use: `resolveClassicyAppearancePackage` is this, then
+ * `CLASSICY_FALLBACK_APPEARANCE_PACKAGE`.
  */
 export const getRegisteredClassicyAppearancePackageOrDefault = (
 	id: string | undefined,
