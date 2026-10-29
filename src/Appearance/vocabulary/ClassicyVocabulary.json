@@ -320,6 +320,7 @@
 		"Link": [],
 		"ListBox": ["Option", "OptionIcon", "OptionLabel"],
 		"LittleArrows": ["Button", "ButtonDown", "Group"],
+		"Menu": [],
 		"MenuItem": [
 			"BalloonAnchor",
 			"Check",
