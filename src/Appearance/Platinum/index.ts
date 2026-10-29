@@ -14,10 +14,10 @@ import {
 	getTheme,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 // Both register at module load: the Platinum assets (system art, cursors,
-// wallpapers, fonts) and the Platinum sound pack. The sound pack must come
-// first, since the package below is validated and a theme's `sound.pack` must
-// name a registered pack. The package lists them; it never registers them a
-// second time.
+// wallpapers, fonts) and the Platinum sound pack. The sound pack must be
+// registered before the registration below, since the package is validated
+// and a theme's `sound.pack` must name a registered pack. The package lists
+// them; it never registers them a second time.
 import "./assets/platinumAssets";
 import { platinumSoundPack } from "./assets/sounds/platinum";
 import platinumJson from "./platinum.json";
@@ -39,6 +39,7 @@ registerClassicyAppearancePackage({
 	defaults: getTheme(platinumJson.defaults.id),
 	presets: getAllThemes(),
 	css: platinumCss,
+	knobs: platinumJson.knobs,
 	options: classicyKnobsToSchema(platinumJson.knobs),
 	layout: platinumJson.layout as ClassicyAppearanceLayout,
 	sounds: [platinumSoundPack],
