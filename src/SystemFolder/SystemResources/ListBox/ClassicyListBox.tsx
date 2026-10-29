@@ -143,6 +143,10 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 	const applySelection = (index: number, mods: SelectionModifiers) => {
 		const option = options[index];
 		if (!option || option.disabled || disabled) return;
+		// Click and keyboard both select through here; `selected` is false
+		// only for a Ctrl/⌘-click that deselects in multi mode.
+		const emitSelect = (selected: boolean) =>
+			appearance.emit("select", { value: option.value, selected });
 		if (selectionMode === "multi") {
 			if (mods.shiftKey && anchorIndex.current >= 0) {
 				const from = Math.min(anchorIndex.current, index);
@@ -153,20 +157,24 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 						.filter((o) => !o.disabled)
 						.map((o) => o.value),
 				);
+				emitSelect(true);
 				return; // the anchor survives so the range can keep pivoting
 			}
 			if (mods.metaKey || mods.ctrlKey) {
 				anchorIndex.current = index;
+				const wasSelected = effectiveSelected.includes(option.value);
 				commit(
-					effectiveSelected.includes(option.value)
+					wasSelected
 						? effectiveSelected.filter((v) => v !== option.value)
 						: [...effectiveSelected, option.value],
 				);
+				emitSelect(!wasSelected);
 				return;
 			}
 		}
 		anchorIndex.current = index;
 		commit([option.value]);
+		emitSelect(true);
 	};
 
 	const handleKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>) => {
@@ -249,7 +257,6 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 							// tabindexed elements) so keyboard nav continues from it.
 							selectRow(o.value);
 							applySelection(index, e);
-							appearance.emit("select", { value: o.value });
 						}}
 						onDoubleClick={() => {
 							if (!disabled && !o.disabled) onActivateFunc?.(o.value);
