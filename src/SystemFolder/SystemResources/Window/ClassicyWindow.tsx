@@ -34,6 +34,7 @@ import {
 	CLASSICY_PART_ATTRIBUTE,
 	classicyStateClasses,
 } from "@/Appearance/vocabulary/ClassicyVocabulary";
+import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
 import {
 	getAppWindow,
 	listAppWindows,
@@ -57,7 +58,7 @@ export type ClassicyWindowSizeDimension = number | `${number}%`;
 export function resolveSize(
 	size: [ClassicyWindowSizeDimension, ClassicyWindowSizeDimension],
 ): [number, number] {
-	const menuBarHeight = 30;
+	const menuBarHeight = readClassicyThemeVar("--menu-bar-height");
 	const desktop =
 		typeof document !== "undefined"
 			? document.getElementById("classicyDesktop")
@@ -120,7 +121,7 @@ export function resolvePosition(
 	pos: [ClassicyWindowPositionX, ClassicyWindowPositionY],
 	windowSize: [number, number],
 ): [number, number] {
-	const menuBarHeight = 30;
+	const menuBarHeight = readClassicyThemeVar("--menu-bar-height");
 	const vw = typeof window !== "undefined" ? window.innerWidth : 800;
 	const vh = typeof window !== "undefined" ? window.innerHeight : 600;
 
@@ -160,7 +161,7 @@ export function clampWindowPositionToViewport(
 	position: [number, number],
 	windowSize: [number, number],
 ): [number, number] {
-	const menuBarHeight = 30;
+	const menuBarHeight = readClassicyThemeVar("--menu-bar-height");
 	const vw = typeof window !== "undefined" ? window.innerWidth : 800;
 	const vh = typeof window !== "undefined" ? window.innerHeight : 600;
 
@@ -595,6 +596,9 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const dragStartPointRef = useRef<[number, number]>([0, 0]);
 	const clickPositionRef = useRef<[number, number]>([0, 0]);
 	const wsPositionRef = useRef<[number, number]>([0, 0]);
+	// `--window-resize-inset`, read once when a resize gesture starts
+	// (startResizeWindow); null until the first gesture.
+	const resizeInsetRef = useRef<number | null>(null);
 	// #208: the user's window rect captured just before a zoom, restored on un-zoom.
 	const userStateRef = useRef<{
 		position: [number, number];
@@ -985,8 +989,12 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		if (windowRef.current?.contains(e.target as Node)) return;
 
 		if (isResizingRef.current) {
-			const newWidth = Math.abs(wsPositionRef.current[0] - e.clientX) + 5;
-			const newHeight = Math.abs(wsPositionRef.current[1] - e.clientY) + 5;
+			const resizeInset =
+				resizeInsetRef.current ?? readClassicyThemeVar("--window-resize-inset");
+			const newWidth =
+				Math.abs(wsPositionRef.current[0] - e.clientX) + resizeInset;
+			const newHeight =
+				Math.abs(wsPositionRef.current[1] - e.clientY) + resizeInset;
 			pendingSizeRef.current = [newWidth, newHeight];
 			if (windowRef.current) {
 				windowRef.current.style.width = `${newWidth}px`;
@@ -1036,6 +1044,9 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		const left = windowRef?.current?.getBoundingClientRect().left ?? 0;
 		const top = windowRef?.current?.getBoundingClientRect().top ?? 0;
 		wsPositionRef.current = [left, top];
+		// Read once per gesture: the mousemove handlers use the ref, so a
+		// drag never forces a style read per move.
+		resizeInsetRef.current = readClassicyThemeVar("--window-resize-inset");
 		isResizingRef.current = true;
 		desktopEventDispatch({
 			type: "ClassicyWindowPosition",
@@ -1125,8 +1136,10 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		}
 
 		if (ws.resizing) {
-			const newWidth = Math.abs(ws.position[0] - e.clientX) + 5;
-			const newHeight = Math.abs(ws.position[1] - e.clientY) + 5;
+			const resizeInset =
+				resizeInsetRef.current ?? readClassicyThemeVar("--window-resize-inset");
+			const newWidth = Math.abs(ws.position[0] - e.clientX) + resizeInset;
+			const newHeight = Math.abs(ws.position[1] - e.clientY) + resizeInset;
 			pendingSizeRef.current = [newWidth, newHeight];
 			if (windowRef.current) {
 				windowRef.current.style.width = `${newWidth}px`;
@@ -1343,8 +1356,8 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		position: [number, number];
 		size: [number, number];
 	} => {
-		const menuBarHeight = 30;
-		const margin = 8;
+		const menuBarHeight = readClassicyThemeVar("--menu-bar-height");
+		const margin = readClassicyThemeVar("--window-zoom-margin");
 		const desktop =
 			typeof document !== "undefined"
 				? document.getElementById("classicyDesktop")
@@ -1520,8 +1533,8 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	// apply); omitted, the window's applied size is used (#291).
 	const setResize = (toResize: boolean, nextSize?: [number, number]) => {
 		// Guard where the size is read, not in the SCSS: while collapsed, the
-		// window's DOM height is forced to the ~24px title-bar height by
-		// .classicyWindow.collapsed (ClassicyWindow.scss), so a measurement here
+		// window's DOM height is forced to `--window-collapsed-height` (15 px)
+		// by `.classicyWindow.collapsed` (ClassicyWindow.scss), so a measurement here
 		// would persist that collapsed height as the window's real size.
 		// Skipping the dispatch entirely while collapsed leaves the last
 		// expanded size in the store untouched, so it survives a
