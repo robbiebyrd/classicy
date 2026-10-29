@@ -34,6 +34,10 @@ import {
 	CLASSICY_PART_ATTRIBUTE,
 	classicyStateClasses,
 } from "@/Appearance/vocabulary/ClassicyVocabulary";
+import {
+	type ClassicyTheme,
+	getThemeVars,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
 import {
 	getAppWindow,
@@ -58,6 +62,37 @@ export type ClassicyWindowSizeDimension = number | `${number}%`;
 // `menuBarHeight` defaults to a live read of `--menu-bar-height`; a caller on a
 // render path passes the value it already read, so no render forces a style
 // read (ClassicyWindow reads it once per theme).
+// The geometry prop defaults, module-level so they keep one identity: an
+// array literal in the props destructuring is a new array every render, which
+// re-ran the resolveSize/resolvePosition memos on every render — a forced
+// layout read of the desktop's size on every drag move. A caller passing its
+// own arrays is unaffected.
+const DEFAULT_INITIAL_SIZE: [
+	ClassicyWindowSizeDimension,
+	ClassicyWindowSizeDimension,
+] = [350, 0];
+const DEFAULT_INITIAL_POSITION: [
+	ClassicyWindowPositionX,
+	ClassicyWindowPositionY,
+] = [110, 110];
+const DEFAULT_MINIMUM_SIZE: [
+	ClassicyWindowSizeDimension,
+	ClassicyWindowSizeDimension,
+] = [300, 0];
+
+// The theme's own --menu-bar-height, or undefined (the reader's default-theme
+// fallback) with no theme. It seeds the window's height before the desktop
+// has applied the theme's variables, i.e. on the boot render.
+const themeMenuBarHeight = (
+	theme: ClassicyTheme | undefined,
+): number | undefined => {
+	if (!theme) return undefined;
+	const value = Number.parseFloat(
+		(getThemeVars(theme) as Record<string, string>)["--menu-bar-height"],
+	);
+	return Number.isFinite(value) ? value : undefined;
+};
+
 export function resolveSize(
 	size: [ClassicyWindowSizeDimension, ClassicyWindowSizeDimension],
 	menuBarHeight: number = readClassicyThemeVar("--menu-bar-height"),
@@ -490,9 +525,9 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	type = "default",
 	growable,
 	defaultWindow = false,
-	initialSize = [350, 0],
-	initialPosition = [110, 110],
-	minimumSize = [300, 0],
+	initialSize = DEFAULT_INITIAL_SIZE,
+	initialPosition = DEFAULT_INITIAL_POSITION,
+	minimumSize = DEFAULT_MINIMUM_SIZE,
 	dimContents = true,
 	header,
 	appMenu,
@@ -536,17 +571,24 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	// drag re-renders on each mousemove, and a read there forces a style
 	// recalc per move. Read in a layout effect, after the commit that applies
 	// a new theme's variables to #classicyDesktop (a read during render would
-	// still see the old theme's). Part F adds the layout's menu-bar placement
-	// to this key.
+	// still see the old theme's). Both reads fall back to the ACTIVE theme's
+	// value, not the default theme's: on the boot render no desktop carries
+	// the variables yet, and the window registers (ClassicyWindowOpen) with
+	// the geometry of that first render. Part F adds the layout's menu-bar
+	// placement to this seed as well as to the effect key.
 	const activeTheme = useAppManager(
 		(state) => state.System.Manager.Appearance?.activeTheme,
 	);
 	const [menuBarHeight, setMenuBarHeight] = useState(() =>
-		readClassicyThemeVar("--menu-bar-height"),
+		readClassicyThemeVar("--menu-bar-height", themeMenuBarHeight(activeTheme)),
 	);
-	// biome-ignore lint/correctness/useExhaustiveDependencies: activeTheme isn't read in the body — it is the re-read trigger, since the theme's variables change the value
 	useLayoutEffect(() => {
-		setMenuBarHeight(readClassicyThemeVar("--menu-bar-height"));
+		setMenuBarHeight(
+			readClassicyThemeVar(
+				"--menu-bar-height",
+				themeMenuBarHeight(activeTheme),
+			),
+		);
 	}, [activeTheme]);
 
 	const resolvedSize = useMemo(

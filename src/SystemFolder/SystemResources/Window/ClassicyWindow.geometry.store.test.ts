@@ -65,6 +65,9 @@ const storedWindow = () =>
 	);
 
 let rectSpy: ReturnType<typeof vi.spyOn>;
+// Layout reads of the desktop's size (resolveSize's clientWidth/Height).
+const desktopWidthRead = vi.fn(() => 1024);
+const desktopHeightRead = vi.fn(() => 768);
 
 beforeEach(() => {
 	act(() => {
@@ -100,6 +103,10 @@ beforeEach(() => {
 	const desktop = document.createElement("div");
 	desktop.id = "classicyDesktop";
 	desktop.style.setProperty("--window-resize-inset", "7px");
+	desktopWidthRead.mockClear();
+	desktopHeightRead.mockClear();
+	Object.defineProperty(desktop, "clientWidth", { get: desktopWidthRead });
+	Object.defineProperty(desktop, "clientHeight", { get: desktopHeightRead });
 	document.body.append(desktop);
 });
 
@@ -125,12 +132,14 @@ const renderWindow = () =>
 	);
 
 describe("ClassicyWindow geometry on the store-driven hot path", () => {
-	it("a drag of many mousemoves reads --menu-bar-height at most once", () => {
+	it("a drag of many mousemoves reads no theme variable and no desktop size", () => {
 		const { container } = renderWindow();
 		const title = container.querySelector(
 			".classicyWindowTitle",
 		) as HTMLElement;
 		vi.mocked(readClassicyThemeVar).mockClear();
+		desktopWidthRead.mockClear();
+		desktopHeightRead.mockClear();
 
 		fireEvent.mouseDown(title, { clientX: 150, clientY: 120 });
 		const moves = 20;
@@ -146,7 +155,64 @@ describe("ClassicyWindow geometry on the store-driven hot path", () => {
 		expect(storedWindow()?.position).toEqual([210, 210]);
 		fireEvent.mouseUp(document.body, { clientX: 250, clientY: 220 });
 
-		expect(reads("--menu-bar-height")).toBeLessThanOrEqual(1);
+		expect(reads("--menu-bar-height")).toBe(0);
+		// The default initialSize/minimumSize are stable, so the resolveSize
+		// memos never re-run (and never force a layout read) during the drag.
+		expect(desktopWidthRead).not.toHaveBeenCalled();
+		expect(desktopHeightRead).not.toHaveBeenCalled();
+	});
+
+	it("registers a boot-render window against the active theme's menu bar", () => {
+		// The boot render: the window renders inside the desktop's first commit,
+		// so no #classicyDesktop carries the variables yet.
+		document.getElementById("classicyDesktop")?.remove();
+		act(() => {
+			useAppManager.setState((state) => {
+				const theme = state.System.Manager.Appearance.activeTheme;
+				return {
+					...state,
+					System: {
+						...state.System,
+						Manager: {
+							...state.System.Manager,
+							Appearance: {
+								...state.System.Manager.Appearance,
+								// controlSize 16 → --menu-bar-height 40 (control × 2.5).
+								activeTheme: {
+									...theme,
+									measurements: {
+										...theme.measurements,
+										window: { ...theme.measurements.window, controlSize: 16 },
+									},
+								},
+							},
+						},
+					},
+				};
+			});
+		});
+
+		render(
+			createElement(
+				ClassicyWindow,
+				{
+					id: "win",
+					appId: APP,
+					title: "Geometry",
+					initialPosition: ["left", "top"],
+				},
+				createElement("p", null, "content"),
+			),
+		);
+
+		expect(storedWindow()?.position).toEqual([0, 40]);
+
+		// Still no desktop after mount: the layout-effect re-read keeps the
+		// active theme's 40 too, so a zoom lands at 8 margin + 40 + 8.
+		fireEvent.click(
+			document.querySelector(".classicyWindowZoomBox") as HTMLElement,
+		);
+		expect(storedWindow()?.position).toEqual([8, 48]);
 	});
 
 	it("the React onMouseMove resize path adds the CSS inset once per gesture", () => {
