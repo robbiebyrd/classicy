@@ -60,12 +60,15 @@ const registry = new Map<string, ClassicyScreenSaverDefinition>();
  * `registerClassicyIcons`. Re-registering an id replaces the previous entry,
  * so a consumer can swap out a built-in saver with their own variant.
  *
- * Set `cursor` (and, preferably, animations) from a stylesheet, never inline:
- * the overlay hides the pointer with a stylesheet rule keyed on its id, and an
- * inline `cursor` on a saver element outranks it, showing the pointer over
- * that element. Stylesheet animations are paused for reduced-motion users by
- * the same kind of rule; the overlay also pauses its subtree's animations from
- * JavaScript when the saver mounts, which reaches an inline `animation` too.
+ * Set `cursor` from a stylesheet, never inline: the overlay hides the pointer
+ * with a stylesheet rule keyed on its id, and an inline `cursor` on a saver
+ * element outranks it, showing the pointer over that element.
+ *
+ * Animate with CSS animations. For reduced-motion users every CSS animation
+ * in the overlay is paused — declared in a stylesheet or inline, whenever it
+ * starts (the overlay pauses its subtree on mount and each later
+ * `animationstart`). Web Animations API animations (`element.animate()`)
+ * started after mount are not paused.
  */
 export function registerClassicyScreenSaver(
 	saver: ClassicyScreenSaverDefinition,

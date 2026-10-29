@@ -119,12 +119,18 @@ const useHideCursorWhileActive = () => {
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 
 /**
- * Pauses every animation in the overlay for reduced-motion users. The
+ * Pauses every CSS animation in the overlay for reduced-motion users. The
  * stylesheet's `animation-play-state: paused` already covers animations a
- * saver declares in CSS; this also stops one a registered saver writes
- * inline, which no stylesheet rule can outrank. Runs after the saver mounts,
- * again whenever the selected saver changes, and when the preference flips
- * (resuming when it is turned off).
+ * saver declares in CSS; this also stops ones a registered saver writes
+ * inline, which no stylesheet rule can outrank:
+ * - after the saver mounts and whenever the selected saver changes, every
+ *   animation in the subtree (including ones still in their delay phase);
+ * - from then on, each CSS animation that starts later (an element spawned on
+ *   a timer, a style written after render), via a capture-phase
+ *   `animationstart` listener on the overlay;
+ * - when the preference flips (resuming the subtree when it is turned off).
+ * Web Animations API animations (`element.animate()`) fire no
+ * `animationstart` and are not caught once the saver has mounted.
  */
 const usePauseForReducedMotion = (
 	overlayRef: RefObject<HTMLDivElement | null>,
@@ -135,20 +141,29 @@ const usePauseForReducedMotion = (
 		if (
 			saverId === undefined ||
 			!overlay ||
-			typeof overlay.getAnimations !== "function" ||
 			typeof window.matchMedia !== "function"
 		)
 			return;
 		const query = window.matchMedia(REDUCED_MOTION_QUERY);
 		const apply = (reduce: boolean) => {
+			if (typeof overlay.getAnimations !== "function") return;
 			for (const animation of overlay.getAnimations({ subtree: true }))
 				if (reduce) animation.pause();
 				else animation.play();
 		};
 		if (query.matches) apply(true);
+		const onAnimationStart = (event: Event) => {
+			if (!query.matches) return;
+			for (const animation of (event.target as Element).getAnimations?.() ?? [])
+				animation.pause();
+		};
 		const onChange = (e: MediaQueryListEvent) => apply(e.matches);
+		overlay.addEventListener("animationstart", onAnimationStart, true);
 		query.addEventListener?.("change", onChange);
-		return () => query.removeEventListener?.("change", onChange);
+		return () => {
+			overlay.removeEventListener("animationstart", onAnimationStart, true);
+			query.removeEventListener?.("change", onChange);
+		};
 	}, [overlayRef, saverId]);
 };
 

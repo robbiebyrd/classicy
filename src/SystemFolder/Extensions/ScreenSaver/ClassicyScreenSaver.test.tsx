@@ -1,6 +1,7 @@
 import { fireEvent } from "@testing-library/react";
+import { useEffect, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render } from "@/__tests__/test-utils";
+import { act, render } from "@/__tests__/test-utils";
 import {
 	ClassicyScreenSaver,
 	SCREEN_SAVER_ACTIVE_DOCUMENT_CLASS,
@@ -170,6 +171,74 @@ describe("ClassicyScreenSaver overlay", () => {
 			setData({ active: true, selectedSaver: "test-inline-animation" });
 			render(<ClassicyScreenSaver />);
 			expect(animation.pause).not.toHaveBeenCalled();
+		});
+	});
+
+	describe("a registered saver that spawns inline-animated elements later", () => {
+		// An element appended after mount carries an inline `animation` the
+		// mount-time pass never saw; the overlay's capture-phase
+		// `animationstart` listener pauses it when it starts.
+		const SpawningSaver = () => {
+			const [spawned, setSpawned] = useState(false);
+			useEffect(() => {
+				const timer = setTimeout(() => setSpawned(true), 1000);
+				return () => clearTimeout(timer);
+			}, []);
+			return (
+				<div className="testSpawningSaver">
+					{spawned && (
+						<b
+							className="testSpawned"
+							style={{ animation: "testFall 2s linear infinite" }}
+						/>
+					)}
+				</div>
+			);
+		};
+		registerClassicyScreenSaver({
+			id: "test-spawning",
+			name: "Spawning",
+			component: SpawningSaver,
+		});
+
+		const spawnAndStart = (reduce: boolean) => {
+			vi.useFakeTimers();
+			vi.stubGlobal(
+				"matchMedia",
+				vi.fn((query: string) => ({
+					matches: reduce && query === "(prefers-reduced-motion: reduce)",
+					addEventListener: vi.fn(),
+					removeEventListener: vi.fn(),
+				})),
+			);
+			setData({ active: true, selectedSaver: "test-spawning" });
+			const { container } = render(<ClassicyScreenSaver />);
+			expect(container.querySelector(".testSpawned")).toBeNull();
+			act(() => {
+				vi.advanceTimersByTime(1000);
+			});
+			const spawned = container.querySelector<HTMLElement>(".testSpawned");
+			expect(spawned?.style.animation).toContain("testFall");
+			const animation = { pause: vi.fn(), play: vi.fn() };
+			Object.defineProperty(spawned, "getAnimations", {
+				configurable: true,
+				value: () => [animation],
+			});
+			spawned?.dispatchEvent(new Event("animationstart", { bubbles: true }));
+			return animation;
+		};
+
+		afterEach(() => {
+			vi.useRealTimers();
+			vi.unstubAllGlobals();
+		});
+
+		it("pauses an animation that starts after mount under reduced motion", () => {
+			expect(spawnAndStart(true).pause).toHaveBeenCalled();
+		});
+
+		it("leaves it running without a reduced-motion preference", () => {
+			expect(spawnAndStart(false).pause).not.toHaveBeenCalled();
 		});
 	});
 
