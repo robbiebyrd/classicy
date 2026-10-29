@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
-	CLASSICY_FONTS_STYLE_ELEMENT_ID,
 	CLASSICY_STYLE_ELEMENT_ID,
 	classicyStyleInjector,
 } from "./classicyStyleInjector";
@@ -10,7 +9,6 @@ const run = (css: string) => new Function(classicyStyleInjector(css))();
 
 afterEach(() => {
 	document.getElementById(CLASSICY_STYLE_ELEMENT_ID)?.remove();
-	document.getElementById(CLASSICY_FONTS_STYLE_ELEMENT_ID)?.remove();
 	for (const el of document.head.querySelectorAll("link")) el.remove();
 });
 
@@ -47,23 +45,6 @@ describe("classicyStyleInjector (#303)", () => {
 		expect(
 			document.getElementById(CLASSICY_STYLE_ELEMENT_ID)?.textContent,
 		).toBe(css);
-	});
-
-	it("injects the fonts into their own element, alongside the stylesheet", () => {
-		run(".a{color:red}");
-		new Function(
-			classicyStyleInjector(
-				"@font-face{font-family:x}",
-				CLASSICY_FONTS_STYLE_ELEMENT_ID,
-			),
-		)();
-
-		expect(
-			document.getElementById(CLASSICY_STYLE_ELEMENT_ID)?.textContent,
-		).toBe(".a{color:red}");
-		expect(
-			document.getElementById(CLASSICY_FONTS_STYLE_ELEMENT_ID)?.textContent,
-		).toBe("@font-face{font-family:x}");
 	});
 
 	it("does nothing without a document", () => {

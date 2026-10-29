@@ -1,9 +1,6 @@
 /** The id of the `<style>` element the library injects its stylesheet into. */
 export const CLASSICY_STYLE_ELEMENT_ID = "classicy-styles";
 
-/** The id of the `<style>` element `classicy/fonts` injects the bundled fonts into. */
-export const CLASSICY_FONTS_STYLE_ELEMENT_ID = "classicy-fonts";
-
 const UNSAFE_IN_SCRIPT: Record<string, string> = {
 	"<": "\\u003C",
 	">": "\\u003E",
@@ -26,11 +23,10 @@ const jsStringLiteral = (value: string): string =>
 
 /**
  * The code appended to each entry bundle (see `injectCssPlugin` in
- * vite.config.ts), and the whole of `dist/fonts.js` with the fonts' `id`:
- * when it first runs in a browser, it inserts `css` as `<style id="…">` at
- * the top of <head>, so host stylesheets still win on equal specificity. It
- * does nothing without a `document` (SSR) or when the element already exists
- * (a second copy of the library, HMR).
+ * vite.config.ts): when it first runs in a browser, it inserts `css` as
+ * `<style id="…">` at the top of <head>, so host stylesheets still win on
+ * equal specificity. It does nothing without a `document` (SSR) or when the
+ * element already exists (a second copy of the library, HMR).
  */
 export function classicyStyleInjector(
 	css: string,
