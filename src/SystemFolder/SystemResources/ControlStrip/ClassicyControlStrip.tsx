@@ -12,7 +12,8 @@ import {
 	useState,
 } from "react";
 import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
-import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -244,14 +245,6 @@ export const ClassicyControlStrip: FunctionalComponent<
 	);
 	const width = stored?.width ?? initialWidth;
 
-	const setCollapsed = useCallback(
-		(next: boolean) =>
-			dispatch({
-				type: "ClassicyDesktopControlStripSetCollapsed",
-				collapsed: next,
-			}),
-		[dispatch],
-	);
 	const setWidth = useCallback(
 		(next: number) => {
 			if (next !== width)
@@ -271,6 +264,24 @@ export const ClassicyControlStrip: FunctionalComponent<
 
 	const [canScroll, setCanScroll] = useState({ left: false, right: false });
 	const stripRef = useRef<HTMLDivElement>(null);
+	const appearance = useClassicyAppearance(
+		"ControlStrip",
+		{ collapsed, dragging: Boolean(movePreview) },
+		stripRef,
+	);
+	const { emit } = appearance;
+	// The tab (a click, Enter or Space, or a drag on a collapsed strip) and the
+	// collapse box all land here.
+	const setCollapsed = useCallback(
+		(next: boolean) => {
+			dispatch({
+				type: "ClassicyDesktopControlStripSetCollapsed",
+				collapsed: next,
+			});
+			emit(next ? "collapse" : "expand", withClassicyAppearanceInput());
+		},
+		[dispatch, emit],
+	);
 	const viewportRef = useRef<HTMLDivElement>(null);
 	const moveRef = useRef<{
 		startX: number;
@@ -351,6 +362,7 @@ export const ClassicyControlStrip: FunctionalComponent<
 			if (!drag) return;
 			const dx = e.clientX - drag.startX;
 			if (!drag.moved && Math.abs(dx) <= TAB_CLICK_SLOP) return;
+			const starting = !drag.moved;
 			drag.moved = true;
 			if (collapsed) {
 				// Dragging a collapsed strip pulls it back out at its last size.
@@ -358,6 +370,7 @@ export const ClassicyControlStrip: FunctionalComponent<
 				setCollapsed(false);
 				return;
 			}
+			if (starting) emit("dragStart", { kind: "resize" });
 			setWidth(
 				clampStripWidth(
 					viewportRef.current,
@@ -369,6 +382,7 @@ export const ClassicyControlStrip: FunctionalComponent<
 			const drag = dragRef.current;
 			dragRef.current = null;
 			if (drag && !drag.moved) setCollapsed(!collapsed);
+			if (drag?.moved) emit("dragEnd", { kind: "resize" });
 		};
 		document.addEventListener("mousemove", onMove);
 		document.addEventListener("mouseup", onUp);
@@ -376,7 +390,7 @@ export const ClassicyControlStrip: FunctionalComponent<
 			document.removeEventListener("mousemove", onMove);
 			document.removeEventListener("mouseup", onUp);
 		};
-	}, [collapsed, growDirection, setCollapsed, setWidth]);
+	}, [collapsed, growDirection, setCollapsed, setWidth, emit]);
 
 	// Control-drag on the collapse box: past the click slop the strip follows
 	// the pointer up and down and docks to the pointer's half of the desktop;
@@ -393,6 +407,7 @@ export const ClassicyControlStrip: FunctionalComponent<
 				Math.abs(e.clientY - move.startY) <= TAB_CLICK_SLOP
 			)
 				return;
+			if (!move.moved) emit("dragStart", { kind: "move" });
 			move.moved = true;
 			move.position = computeClassicyControlStripPosition({
 				pointer: [e.clientX, e.clientY],
@@ -413,6 +428,7 @@ export const ClassicyControlStrip: FunctionalComponent<
 			setTimeout(() => {
 				suppressCollapseClickRef.current = false;
 			}, 0);
+			if (move.moved) emit("dragEnd", { kind: "move" });
 			if (!move.position) return;
 			dispatch({
 				type: "ClassicyDesktopControlStripSetPosition",
@@ -426,7 +442,7 @@ export const ClassicyControlStrip: FunctionalComponent<
 			document.removeEventListener("mousemove", onMove);
 			document.removeEventListener("mouseup", onUp);
 		};
-	}, [dispatch]);
+	}, [dispatch, emit]);
 
 	const onCollapseBoxMouseDown = (e: MouseEvent<HTMLButtonElement>) => {
 		// Every press decides afresh whether the click that ends it collapses.
@@ -508,17 +524,19 @@ export const ClassicyControlStrip: FunctionalComponent<
 
 	return (
 		<div
+			{...appearance.attrs}
 			ref={stripRef}
 			role="toolbar"
 			aria-label="Control Strip"
 			onContextMenu={onContextMenu}
 			className={classNames(
 				"classicyControlStrip",
-				classicyStateClasses({ collapsed, dragging: Boolean(movePreview) }),
+				appearance.className,
 				edge === "right" && "classicyControlStripRight",
 				className,
 			)}
 			style={{
+				...appearance.style,
 				...(bottom === 0
 					? {}
 					: ({

@@ -1087,9 +1087,77 @@ const decorationCases: [
 		() => <ClassicyFileInput id="f" style={STYLE} />,
 		sel(".classicyFileInputHolder"),
 	],
+	// The surfaces (task 2.3). Menu and Alert have no row: a consumer's style
+	// lands on the menu's wrapper and the alert's window, not on the list or
+	// the alert body the package decorates.
+	[
+		"ClassicyWindow",
+		() => (
+			<ClassicyWindow id="w" appId={APP} title="W" style={STYLE}>
+				<p>body</p>
+			</ClassicyWindow>
+		),
+		sel(".classicyWindow"),
+	],
+	[
+		"ClassicyIcon",
+		() => <ClassicyIcon appId={APP} name="Icon" icon="/i.png" style={STYLE} />,
+		sel(".classicyIcon"),
+	],
+	[
+		"ClassicyDesktopIcon",
+		() => (
+			<ClassicyDesktopIcon
+				appId={APP}
+				appName="Passthrough"
+				icon="/i.png"
+				style={STYLE}
+			/>
+		),
+		sel(".classicyDesktopIcon"),
+	],
+	[
+		"ClassicyControlStrip",
+		() => <ClassicyControlStrip style={STYLE} />,
+		sel(".classicyControlStrip"),
+	],
+	[
+		"ClassicyAssistant",
+		() => (
+			<ClassicyAssistant
+				pages={[{ title: "One", content: <p>1</p> }]}
+				style={STYLE}
+			/>
+		),
+		sel(".classicyAssistant"),
+	],
 ];
 
+// The window and the icons own their position and stacking: a package's
+// style sets neither (the consumer's left/top still moves an icon).
+const geometryCases = decorationCases.filter(([name]) =>
+	["ClassicyWindow", "ClassicyIcon", "ClassicyDesktopIcon"].includes(name),
+);
+
 describe("appearance package style under passthrough", () => {
+	it.each(
+		geometryCases,
+	)("%s: the package's style never moves or restacks it", (_name, make, root) => {
+		const probe = installClassicyAppearanceProbe({
+			on: { mount: () => ({ style: { left: 901, top: 902, zIndex: 77 } }) },
+		});
+		try {
+			const { container } = render(make(), { wrapper: Providers });
+			const el = root(container);
+			expect(el).toHaveAttribute("data-probe-state");
+			expect(el.style.left).not.toBe("901px");
+			expect(el.style.top).not.toBe("902px");
+			expect(el.style.zIndex).toBe("");
+		} finally {
+			probe.uninstall();
+		}
+	});
+
 	it.each(
 		decorationCases,
 	)("%s: consumer style beats the package's style", (_name, make, root) => {

@@ -10,7 +10,8 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import {
 	type ClassicyLabelPosition,
@@ -168,6 +169,13 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	const movedWhileDragging = useRef<boolean>(false);
 
 	const iconRef = useRef<HTMLDivElement>(null);
+	const appearance = useClassicyAppearance(
+		"Icon",
+		{ dragging, selected: active },
+		iconRef,
+	);
+	// One dragEnd per dragStart: mouseup also ends presses that never dragged.
+	const dragEmittedRef = useRef(false);
 
 	const id = `${appId}.shortcut`;
 
@@ -176,6 +184,7 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 
 	const toggleFocus = () => {
 		track("focus", analyticsArgs);
+		appearance.emit("select", { selected: !active });
 		setActive(!active);
 	};
 	const setFocus = (active: boolean) => {
@@ -190,6 +199,8 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 
 	const doDoubleClick = () => {
 		if (onClickFunc) {
+			// A double-click or Enter/Space.
+			appearance.emit("open", withClassicyAppearanceInput());
 			clearFocus();
 			onClickFunc();
 		}
@@ -203,6 +214,10 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 		}
 		movedWhileDragging.current = false;
 		setDragging(false);
+		if (dragEmittedRef.current) {
+			dragEmittedRef.current = false;
+			appearance.emit("dragEnd");
+		}
 	};
 
 	const startDrag = (e: MouseEvent<HTMLDivElement>) => {
@@ -233,6 +248,8 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 		if (positionLocked) return;
 		movedWhileDragging.current = false;
 		setDragging(true);
+		dragEmittedRef.current = true;
+		appearance.emit("dragStart");
 	};
 
 	const changeIcon = (e: MouseEvent<HTMLDivElement>) => {
@@ -274,6 +291,7 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	return (
 		// biome-ignore lint/a11y/useSemanticElements: icon is a draggable div with ref and complex mouse handling incompatible with <button>
 		<div
+			{...appearance.attrs}
 			role="button"
 			tabIndex={0}
 			ref={iconRef}
@@ -287,12 +305,15 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 				: { [CLASSICY_FILE_PATH_ATTRIBUTE]: filePath })}
 			className={classNames(
 				"classicyIcon",
-				classicyStateClasses({ dragging, selected: active }),
+				appearance.className,
 				labelPositionClass(labelPosition),
 				className,
 			)}
 			style={
 				{
+					// Package style first: the icon's position is its own (a
+					// package never moves it), and only a consumer's wins over it.
+					...withoutZIndex(appearance.style),
 					left: `${position[0]}px`,
 					top: `${position[1]}px`,
 					// Every rule in ClassicyIcon.scss that sizes this icon — the
