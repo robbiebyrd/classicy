@@ -8,7 +8,11 @@ import {
 	type ClassicySystemArtKey,
 	useClassicyAsset,
 } from "@/Appearance/ClassicyAssetRegistry";
-import type { ClassicyAssetSource } from "@/Appearance/ClassicyAssetSource";
+import {
+	CLASSICY_PIXEL_ART_MIME,
+	type ClassicyAssetSource,
+	parseClassicyPixelArtSource,
+} from "@/Appearance/ClassicyAssetSource";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 /**
@@ -23,12 +27,11 @@ export type ClassicyPixelArtRows = readonly string[];
 // palette follows the theme without inline styles.
 
 /**
- * The MIME type of pixel art registered as system art: a `data:` source whose
- * payload is the rows, URI-encoded and joined with newlines.
+ * The MIME type of pixel art registered as system art. Defined in
+ * `ClassicyAssetSource` (which the asset registry also reads) and re-exported
+ * here beside the encoder.
  */
-export const CLASSICY_PIXEL_ART_MIME = "text/x-classicy-pixel-art";
-
-const PIXEL_ART_PREFIX = `data:${CLASSICY_PIXEL_ART_MIME},`;
+export { CLASSICY_PIXEL_ART_MIME };
 
 /**
  * Pixel art as an asset source, for `registerClassicySystemArt`:
@@ -39,29 +42,34 @@ const PIXEL_ART_PREFIX = `data:${CLASSICY_PIXEL_ART_MIME},`;
 export const encodeClassicyPixelArtRows = (
 	rows: ClassicyPixelArtRows,
 ): ClassicyAssetSource =>
-	`${PIXEL_ART_PREFIX}${encodeURIComponent(rows.join("\n"))}`;
+	`data:${CLASSICY_PIXEL_ART_MIME},${encodeURIComponent(rows.join("\n"))}`;
 
 /**
- * The rows of a pixel-art source made by `encodeClassicyPixelArtRows` (a
- * trailing empty row is dropped); `[]` for `undefined`, any other source, or
- * a malformed payload (logged).
+ * The rows of a pixel-art source: any `data:` URI with the pixel-art MIME
+ * (`parseClassicyPixelArtSource`: any case, any parameters, percent-encoded or
+ * `;base64`). Carriage returns are stripped and a trailing empty row is
+ * dropped. `[]` for `undefined`, any other source, or a malformed payload
+ * (logged).
  */
 export const decodeClassicyPixelArtRows = (
 	src: ClassicyAssetSource | undefined,
 ): ClassicyPixelArtRows => {
-	if (!src?.startsWith(PIXEL_ART_PREFIX)) return [];
+	const source = parseClassicyPixelArtSource(src);
+	if (!source) return [];
 	let text: string;
 	try {
-		text = decodeURIComponent(src.slice(PIXEL_ART_PREFIX.length));
+		text = source.base64
+			? atob(source.payload)
+			: decodeURIComponent(source.payload);
 	} catch {
 		classicyLog(
 			"warn",
 			"ClassicyPixelArt",
-			"Ignored pixel art with a malformed URI-encoded payload",
+			"Ignored pixel art with a malformed payload",
 		);
 		return [];
 	}
-	const rows = text.split("\n");
+	const rows = text.replace(/\r/g, "").split("\n");
 	if (rows.at(-1) === "") rows.pop();
 	return rows;
 };
@@ -133,9 +141,10 @@ export const ClassicyPixelArt: FunctionalComponent<ClassicyPixelArtProps> = ({
 	className,
 	style,
 }) => {
-	// Hooks are unconditional: with `rows` given the lookup is ignored.
+	// Hooks are unconditional: with `rows` given the lookup is ignored, and a
+	// call with neither prop (only possible past the type) draws nothing.
 	const registeredRows = useClassicyPixelArtRows(art ?? "controlStripTab");
-	const rows = givenRows ?? registeredRows;
+	const rows = givenRows ?? (art ? registeredRows : []);
 	const width = rows[0]?.length ?? 0;
 	const rects = [];
 	for (let y = 0; y < rows.length; y++) {
