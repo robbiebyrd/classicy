@@ -91,7 +91,7 @@ describe("system art consumers read the registry", () => {
 			</ClassicyAppManagerProvider>,
 		);
 		const apple = () =>
-			container.querySelector(".classicyDesktopMenuAppleMenu img");
+			container.querySelector(".classicyDesktopMenuApple img");
 		expect(apple()).toHaveAttribute("src", platinumArt.appleMenu);
 		act(() => {
 			registerClassicySystemArt(PLATINUM, { appleMenu: "apple-later.png" });
