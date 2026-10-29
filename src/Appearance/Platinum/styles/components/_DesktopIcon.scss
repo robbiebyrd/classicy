@@ -1,0 +1,11 @@
+// The Platinum desktop icon look (from ClassicyDesktopIcon.scss): the
+// halftone dither drawn through the icon's mask.
+@use "../mixins";
+@use "../scrollbars";
+@use "../assets";
+
+@mixin desktopIcon {
+  .classicyDesktopIconMask {
+    @include mixins.platinum-halftone(#000000, 7%);
+  }
+}

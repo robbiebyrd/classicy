@@ -1,0 +1,76 @@
+// The Platinum Control Strip look (from ClassicyControlStrip.scss), pixel for
+// pixel from HIGOS8 Figure 6-15: the raised, recessed and pressed cell bevels,
+// drawn as px-rect background layers. The cells' size, black separators and
+// glyph positions are structure and stay in the base sheet.
+@use "../../../vocabulary/layout";
+@use "../mixins";
+@use "../scrollbars";
+@use "../assets";
+
+// Raised (normal) cell: face ring, white highlight 1 px in on the top and left,
+// #a5a5a5 then #848484 on the bottom and right.
+@mixin platinum-control-strip-bevel-raised {
+  background:
+    layout.classicy-px-rect(var(--color-white), 1px, 1px, calc(100% - 3px), 1px),
+    layout.classicy-px-rect(var(--color-white), 1px, 1px, 1px, calc(100% - 3px)),
+    layout.classicy-px-rect(var(--color-system-04), calc(100% - 1px), 2px, 1px, calc(100% - 4px)),
+    layout.classicy-px-rect(var(--color-system-04), 2px, calc(100% - 1px), calc(100% - 3px), 1px),
+    layout.classicy-px-rect(var(--color-system-05), 100%, 1px, 1px, calc(100% - 1px)),
+    layout.classicy-px-rect(var(--color-system-05), 1px, 100%, calc(100% - 1px), 1px),
+    var(--color-system-03);
+}
+
+// Recessed (the disabled scroll arrow cell): dark top and left, white bottom
+// and right, face corners.
+@mixin platinum-control-strip-bevel-recessed {
+  background:
+    layout.classicy-px-rect(var(--color-system-05), 0, 0, 1px, calc(100% - 1px)),
+    layout.classicy-px-rect(var(--color-system-05), 0, 0, calc(100% - 1px), 1px),
+    layout.classicy-px-rect(var(--color-white), 100%, 1px, 1px, calc(100% - 1px)),
+    layout.classicy-px-rect(var(--color-white), 1px, 100%, calc(100% - 1px), 1px),
+    var(--color-system-03);
+}
+
+// Pressed (a module with its menu open): 2 px dark top and left, 2 px light
+// bottom and right, on the darker face.
+@mixin platinum-control-strip-bevel-pressed {
+  background:
+    layout.classicy-px-rect(var(--color-system-06), 0, 0, calc(100% - 1px), 1px),
+    layout.classicy-px-rect(var(--color-system-06), 0, 1px, calc(100% - 2px), 1px),
+    layout.classicy-px-rect(var(--color-system-06), 0, 0, 1px, calc(100% - 1px)),
+    layout.classicy-px-rect(var(--color-system-06), 1px, 0, 1px, calc(100% - 2px)),
+    layout.classicy-px-rect(var(--color-system-03), 100%, 1px, 1px, calc(100% - 1px)),
+    layout.classicy-px-rect(var(--color-system-03), calc(100% - 1px), 1px, 1px, calc(100% - 1px)),
+    layout.classicy-px-rect(var(--color-system-03), 1px, calc(100% - 1px), calc(100% - 1px), 1px),
+    layout.classicy-px-rect(var(--color-system-03), 1px, 100%, calc(100% - 1px), 1px),
+    var(--color-system-05);
+}
+
+@mixin controlStrip {
+  // The collapse box and scroll arrows.
+  .classicyControlStripCell {
+    @include platinum-control-strip-bevel-raised;
+
+    &:active:not(:disabled) {
+      @include platinum-control-strip-bevel-pressed;
+    }
+  }
+
+  .classicyControlStripScroll {
+    &:disabled {
+      @include platinum-control-strip-bevel-recessed;
+    }
+  }
+
+  // Each module is a pop-up bevel button; the strip's bevel replaces the bevel
+  // button's own face (its `box-shadow: none` stays in the base sheet, where
+  // it already outranks the bevel button's shadow).
+  .classicyControlStrip .classicyBevelButton.classicyControlStripModule {
+    @include platinum-control-strip-bevel-raised;
+
+    &.pressed,
+    &.open {
+      @include platinum-control-strip-bevel-pressed;
+    }
+  }
+}

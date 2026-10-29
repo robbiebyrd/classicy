@@ -408,6 +408,220 @@ describe("platinum.scss (compiled)", () => {
 		expect(compareSpecificity(tabs.selector, `${P} *`)).toBeGreaterThan(0);
 		expect(flat.indexOf(`\n${tabs.selector} {`)).toBeGreaterThan(fallback);
 	});
+
+	describe("4.3b: the assistant, startup screen, QuickTime, Control Strip, slider, icon and tab-scroller looks", () => {
+		// Every rule whose selector list is exactly `selector`, in order: Sass
+		// emits a rule's declarations that follow a nested rule as a second rule
+		// for the same selector, after the nested ones.
+		const rules = (selector: string) => {
+			const found: ReturnType<typeof rule>[] = [];
+			for (
+				let at = flat.indexOf(`\n${selector} {\n`);
+				at >= 0;
+				at = flat.indexOf(`\n${selector} {\n`, at + 1)
+			) {
+				const body = flat.slice(
+					at + selector.length + 4,
+					flat.indexOf("}", at),
+				);
+				const props: Record<string, string> = {};
+				for (const line of body.split(";\n")) {
+					const colon = line.indexOf(":");
+					if (colon > 0)
+						props[line.slice(0, colon).trim()] = line
+							.slice(colon + 1)
+							.trim()
+							.replace(/;$/, "");
+				}
+				found.push({ at, props });
+			}
+			if (!found.length) throw new Error(`no rule for ${selector}`);
+			return found;
+		};
+		// `winner` sets `prop` to `value` after the last rule for `loser`.
+		const winsOver = (
+			winner: string,
+			loser: string,
+			prop: string,
+			value: string,
+		) => {
+			const w = rules(`${P} ${winner}`).at(-1);
+			expect(w?.props[prop], winner).toBe(value);
+			expect(w?.at, `${winner} follows ${loser}`).toBeGreaterThan(
+				rule(`${P} ${loser}`).at,
+			);
+		};
+
+		it("scopes the assistant header bevel", () => {
+			const header = rule(`${P} .classicyAssistantHeader`).props;
+			expect(header.border).toBe(
+				"var(--window-border-size) solid var(--color-system-07)",
+			);
+			expect(header["border-bottom"]).toBe(
+				"var(--window-border-size) solid var(--color-system-05)",
+			);
+			expect(header["box-shadow"]).toBe(
+				"inset var(--window-border-size) var(--window-border-size) var(--color-window-border-outset)",
+			);
+		});
+
+		it("scopes the startup screen panel border", () => {
+			const panel = rule(`${P} .classicyStartupScreenPanel`).props;
+			expect(panel.border).toBe(
+				"var(--window-border-size) solid var(--color-window-border)",
+			);
+			expect(panel["box-shadow"]).toBeDefined();
+		});
+
+		// P11: the controller's cells drop the mixins' border and rounded
+		// corners right after them, from the same layer.
+		it("keeps the QuickTime controller cells flat over the raised face (P11)", () => {
+			// The face, then (last) the flat edges: in the same rule for the time
+			// display, in a later rule for the same selector after the mixin's
+			// nested :active and :disabled rules for the others.
+			const flatAfterFace = (cell: string, flatProps: string[]) => {
+				const found = rules(`${P} ${cell}`);
+				const [face, last] = [found[0], found.at(-1)];
+				expect(face.props["background-color"], cell).toBe(
+					"var(--color-system-02)",
+				);
+				expect(face.props["border-radius"], cell).toBeDefined();
+				for (const prop of flatProps)
+					expect(last?.props[prop], `${cell} ${prop}`).toBe("0");
+				if (last !== face)
+					expect(last?.at).toBeGreaterThan(rule(`${P} ${cell}:disabled`).at);
+			};
+			flatAfterFace(".quickTimePlayerVideoControlsTime", [
+				"border",
+				"border-radius",
+			]);
+			flatAfterFace(".quickTimePlayerVideoControlsButton", [
+				"border",
+				"border-radius",
+			]);
+			flatAfterFace(".quickTimePlayerVideoControlsProgressBarHolder", [
+				"border-radius",
+			]);
+			expect(
+				rule(`${P} .quickTimePlayerVideoControlsButton:active`).props[
+					"background-color"
+				],
+			).toBe("var(--color-system-05)");
+			expect(
+				rule(`${P} .quickTimePlayerVideoControlsVolumeBar`).props["box-shadow"],
+			).toMatch(/var\(--color-window-border-outset\)$/);
+		});
+
+		it("scopes the control strip bevels", () => {
+			const raised = rule(`${P} .classicyControlStripCell`).props.background;
+			expect(raised).toMatch(/^linear-gradient\(/);
+			expect(raised).toMatch(/var\(--color-system-03\)$/);
+			const pressed = rule(
+				`${P} .classicyControlStripCell:active:not(:disabled)`,
+			).props.background;
+			expect(pressed).toMatch(/var\(--color-system-05\)$/);
+			expect(
+				rule(`${P} .classicyControlStripScroll:disabled`).props.background,
+			).toMatch(
+				/^linear-gradient\(var\(--color-system-05\), var\(--color-system-05\)\) 0 0/,
+			);
+			const module = `${P} .classicyControlStrip .classicyBevelButton.classicyControlStripModule`;
+			expect(rule(module).props.background).toBe(raised);
+			const moduleDown = rule(`${module}.pressed, ${module}.open`);
+			expect(moduleDown.props.background).toBe(pressed);
+			expect(moduleDown.at).toBeGreaterThan(rule(module).at);
+			// The module's box-shadow (P15) and the cells' borders are structure.
+			expect(rule(module).props["box-shadow"]).toBeUndefined();
+			expect(
+				rule(`${P} .classicyControlStripCell`).props.border,
+			).toBeUndefined();
+		});
+
+		// P9: the nondirectional knob overrides the pentagon thumb's clip-path
+		// and background, so it follows it in the package too.
+		it("scopes the slider thumb, with the nondirectional knob over it (P9)", () => {
+			const thumb = rule(`${P} .classicySlider::-webkit-slider-thumb`).props;
+			expect(thumb["clip-path"]).toBe(
+				"polygon(9% 2%, 92% 2%, 92% 56.6%, 50% 95%, 9% 56.6%)",
+			);
+			// The grip strikes resolve from the partial's own depth.
+			expect(thumb.background).toContain(
+				'url("../../../../../assets/img/ui/slider-strikes.svg") center 30%',
+			);
+			for (const pseudo of [
+				"::-webkit-slider-thumb",
+				"::-moz-range-thumb",
+				":active::-webkit-slider-thumb",
+				":active::-moz-range-thumb",
+			]) {
+				winsOver(
+					`.classicySliderIndicatorNondirectional${pseudo}`,
+					`.classicySlider${pseudo}`,
+					"clip-path",
+					"inset(0 round calc(var(--window-border-size) * 1.5))",
+				);
+				winsOver(
+					`.classicySliderIndicatorNondirectional${pseudo}`,
+					`.classicySliderHighlighted${pseudo}`,
+					"clip-path",
+					"inset(0 round calc(var(--window-border-size) * 1.5))",
+				);
+				expect(
+					rule(`${P} .classicySliderHighlighted${pseudo}`).at,
+				).toBeGreaterThan(rule(`${P} .classicySlider${pseudo}`).at);
+			}
+			winsOver(
+				".classicySliderGhost.classicySliderIndicatorNondirectional",
+				".classicySliderGhost",
+				"clip-path",
+				"inset(0 round calc(var(--window-border-size) * 1.5))",
+			);
+			expect(rule(`${P} .classicySliderGhost`).props["clip-path"]).toBe(
+				thumb["clip-path"],
+			);
+		});
+
+		it("scopes the icon halftones", () => {
+			for (const mask of [".classicyDesktopIconMask", ".classicyIconMask"]) {
+				const props = rule(`${P} ${mask}`).props;
+				expect(props["background-image"], mask).toMatch(
+					/^url\(['"]data:image\/svg\+xml,/,
+				);
+				expect(props["background-repeat"], mask).toBe("repeat");
+				expect(props["background-size"], mask).toBe("7%");
+			}
+		});
+
+		// Carried from 4.2's review: the tab scroller's re-assertion belongs to
+		// a Tabs partial, included after the desktop's.
+		it("hides the tab scroller's scrollbar from the Tabs partial, included after the desktop's", () => {
+			expect(read(`${STYLES}/components/_Desktop.scss`)).not.toContain(
+				"classicyTabScroller",
+			);
+			expect(read(`${STYLES}/components/_Tabs.scss`)).toMatch(
+				/\.classicyTabScroller \{\s*scrollbar-width: none;\s*\}/,
+			);
+			const platinum = read(`${STYLES}/platinum.scss`);
+			expect(platinum.indexOf("@include Tabs.tabs;")).toBeGreaterThan(
+				platinum.indexOf("@include Desktop.desktop;"),
+			);
+		});
+
+		it.each([
+			"SystemFolder/SystemResources/Assistant/ClassicyAssistant.scss",
+			"SystemFolder/SystemResources/Boot/ClassicyStartupScreen.scss",
+			"SystemFolder/SystemResources/QuickTime/QuickTimeMovieEmbed.scss",
+			"SystemFolder/SystemResources/ControlStrip/ClassicyControlStrip.scss",
+			"SystemFolder/SystemResources/Slider/ClassicySlider.scss",
+			"SystemFolder/SystemResources/Desktop/ClassicyDesktopIcon.scss",
+			"SystemFolder/SystemResources/Icon/ClassicyIcon.scss",
+		])("%s no longer references the Platinum look", (file) => {
+			const sheet = read(file);
+			expect(sheet).not.toMatch(
+				/AppearanceManager\/styles|@include appearance\.|platinum-|assets\.\$|bevel-(raised|recessed|pressed)|thumb-appearance|\$_thumb-|\$thumb-shape/,
+			);
+		});
+	});
 });
 
 describe("the six base stylesheets 4.2 moved the Platinum look out of", () => {

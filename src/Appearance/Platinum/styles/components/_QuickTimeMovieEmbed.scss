@@ -1,0 +1,30 @@
+// The Platinum QuickTime controller look (from QuickTimeMovieEmbed.scss): the
+// raised time display, buttons and seek-bar holder, and the volume pop-up's
+// bevel. The controller's cells butt together, so each drops the mixin's
+// border and rounded corners right after it, as the base rule did.
+@use "../mixins";
+@use "../scrollbars";
+@use "../assets";
+
+@mixin quickTimeMovieEmbed {
+  .quickTimePlayerVideoControlsTime {
+    @include mixins.platinum-window-undepressable;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .quickTimePlayerVideoControlsButton {
+    @include mixins.platinum-window-depressable;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .quickTimePlayerVideoControlsProgressBarHolder {
+    @include mixins.platinum-window-depressable;
+    border-radius: 0;
+  }
+
+  .quickTimePlayerVideoControlsVolumeBar {
+    @include mixins.platinum-window-inner-box-shadow;
+  }
+}

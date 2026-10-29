@@ -1,0 +1,17 @@
+// The tab strip's scroll bar, hidden over the Platinum desktop's.
+// ClassicyTabs.scss hides it (the arrow tabs are its scroll affordance) and
+// keeps doing so outside a Platinum desktop; inside one, the desktop
+// scroll bars' `scrollbar-width: auto` fallback (Firefox, _Desktop.scss)
+// would beat that from this layer, so the tab scroller says it again here.
+// Scoped, it is one class higher than the fallback's `& *`, (0,3,0) vs
+// (0,2,0), so it wins on specificity; platinum.scss also includes this
+// partial after the desktop's.
+@use "../mixins";
+@use "../scrollbars";
+@use "../assets";
+
+@mixin tabs {
+  .classicyTabScroller {
+    scrollbar-width: none;
+  }
+}
