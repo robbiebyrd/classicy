@@ -18,7 +18,10 @@ import {
 } from "@/Appearance/useClassicyAppearanceLayout";
 import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
-import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import {
+	dispatch,
+	useAppManager,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 
 const MIRROR: ClassicyAppearanceLayout = {
 	window: { growBoxCorner: "bottom-left" },
@@ -150,6 +153,19 @@ describe("useClassicyAppearanceLayout", () => {
 		expect(result.current).toBe(flipped);
 		act(() => setPackageId("platinum"));
 		expect(result.current).toBe(CLASSICY_DEFAULT_APPEARANCE_LAYOUT);
+	});
+
+	it("the hook follows the active package", () => {
+		registerMirror();
+		const { result } = renderHook(() => useClassicyAppearanceLayout());
+		expect(result.current.menuBar.placement).toBe("screen");
+		act(() =>
+			dispatch({
+				type: "ClassicyDesktopChangeAppearancePackage",
+				packageId: "mirror",
+			}),
+		);
+		expect(result.current.menuBar.placement).toBe("window");
 	});
 });
 
