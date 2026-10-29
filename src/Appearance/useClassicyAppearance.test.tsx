@@ -1,5 +1,6 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, render, renderHook } from "@testing-library/react";
 import { produce } from "immer";
+import { useLayoutEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { installClassicyAppearanceProbe } from "@/Appearance/__tests__/appearanceProbe";
 import { CLASSICY_DEFAULT_APPEARANCE_LAYOUT } from "@/Appearance/ClassicyAppearanceDefaults";
@@ -13,6 +14,11 @@ import { playClassicyAppearanceSound } from "@/Appearance/ClassicyAppearanceSoun
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import {
+	type ClassicyLogEntry,
+	registerClassicyLogSink,
+	unregisterClassicyLogSink,
+} from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 const { soundSpy } = vi.hoisted(() => ({ soundSpy: vi.fn() }));
 
@@ -280,5 +286,199 @@ describe("installClassicyAppearanceProbe", () => {
 			useClassicyAppearance("Button", PRESSED),
 		);
 		expect(result.current.className).toBe("pressed");
+	});
+});
+
+describe("useClassicyAppearance robustness", () => {
+	const SINK_ID = "use-classicy-appearance-test";
+	let entries: ClassicyLogEntry[];
+
+	beforeEach(() => {
+		entries = [];
+		registerClassicyLogSink({
+			id: SINK_ID,
+			onLog: (entry) => entries.push(entry),
+		});
+		// The console mirror of the expected error entries; keep output clean.
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		vi.spyOn(console, "warn").mockImplementation(() => {});
+	});
+
+	afterEach(() => {
+		unregisterClassicyLogSink(SINK_ID);
+		vi.restoreAllMocks();
+	});
+
+	const errors = () => entries.filter((entry) => entry.level === "error");
+
+	it("applies a decoration emitted from a layout effect on the first commit", () => {
+		install({ on: { open: () => ({ className: "opened" }) } });
+		const LayoutEmitter = () => {
+			const { className, emit } = useClassicyAppearance("Button", {});
+			useLayoutEffect(() => emit("open"), [emit]);
+			return <div data-testid="root" className={className} />;
+		};
+		const { getByTestId } = render(<LayoutEmitter />);
+		expect(getByTestId("root").className).toBe("probe-Button opened");
+	});
+
+	it("logs and ignores a throwing mount handler", () => {
+		install({
+			on: {
+				mount: () => {
+					throw new Error("mount boom");
+				},
+			},
+		});
+		const { result } = renderHook(() =>
+			useClassicyAppearance("Button", PRESSED),
+		);
+		expect(result.current.className).toBe("pressed probe-Button");
+		expect(errors()).toHaveLength(1);
+		expect(errors()[0]).toMatchObject({
+			subsystem: "ClassicyAppearance",
+			message: "Button.mount handler threw; ignored.",
+		});
+		expect((errors()[0].details[0] as Error).message).toBe("mount boom");
+	});
+
+	it("logs and ignores a throwing press handler; the caller's own logic still runs", () => {
+		install({
+			on: {
+				press: () => ({ className: "flash" }),
+				release: () => {
+					playClassicyAppearanceSound("ClassicyButtonClickUp");
+					throw new Error("release boom");
+				},
+			},
+		});
+		const { result } = renderHook(() =>
+			useClassicyAppearance("Button", PRESSED),
+		);
+		act(() => result.current.emit("press"));
+		const ownLogic = vi.fn();
+		act(() => {
+			result.current.emit("release");
+			ownLogic();
+		});
+		expect(ownLogic).toHaveBeenCalledOnce();
+		// The thrown handler counts as returning nothing.
+		expect(result.current.className).toBe("pressed probe-Button flash");
+		expect(errors().map((entry) => entry.message)).toEqual([
+			"Button.release handler threw; ignored.",
+		]);
+		// The sound played before the throw went out, and the bridge's stack
+		// is balanced: a sound outside any handler is refused again.
+		expect(soundSpy).toHaveBeenCalledExactlyOnceWith({
+			type: "ClassicySoundPlay",
+			sound: "ClassicyButtonClickUp",
+		});
+		playClassicyAppearanceSound("ClassicyButtonClickDown");
+		expect(soundSpy).toHaveBeenCalledOnce();
+	});
+
+	it("logs and ignores a throwing decorate()", () => {
+		registerClassicyAppearancePackage(
+			makePackage("throwing-decorate", {
+				hooks: {
+					decorate: () => {
+						throw new Error("decorate boom");
+					},
+				},
+			}),
+		);
+		setPackageId("throwing-decorate");
+		const { result } = renderHook(() =>
+			useClassicyAppearance("Button", PRESSED),
+		);
+		expect(result.current.className).toBe("pressed");
+		expect(result.current.style).toBeUndefined();
+		expect(result.current.attrs).toEqual({});
+		expect(errors()[0]).toMatchObject({
+			subsystem: "ClassicyAppearance",
+			message: "Button.decorate threw; ignored.",
+		});
+	});
+
+	it("keeps only data-* attrs that are not data-classicy-*", () => {
+		install({
+			on: {
+				press: () => ({
+					attrs: {
+						id: "x",
+						role: "y",
+						"aria-label": "z",
+						"data-classicy-part": "app",
+						"data-foo": "1",
+					},
+				}),
+			},
+		});
+		const { result } = renderHook(() =>
+			useClassicyAppearance("Button", PRESSED),
+		);
+		act(() => result.current.emit("press"));
+		expect(result.current.attrs).toEqual({
+			"data-probe-state": "pressed",
+			"data-foo": "1",
+		});
+	});
+});
+
+describe("useClassicyAppearance subscriptions", () => {
+	it("follows a re-registration of the active package", () => {
+		registerClassicyAppearancePackage(
+			makePackage("live", {
+				hooks: { decorate: () => ({ className: "v1" }) },
+			}),
+		);
+		setPackageId("live");
+		const { result } = renderHook(() =>
+			useClassicyAppearance("Button", PRESSED),
+		);
+		expect(result.current.className).toBe("pressed v1");
+		act(() =>
+			registerClassicyAppearancePackage(
+				makePackage("live", {
+					hooks: { decorate: () => ({ className: "v2" }) },
+				}),
+			),
+		);
+		expect(result.current.className).toBe("pressed v2");
+	});
+
+	it("follows a late registration of the stored package id", () => {
+		setPackageId("late");
+		const { result } = renderHook(() =>
+			useClassicyAppearance("Button", PRESSED),
+		);
+		expect(result.current.className).toBe("pressed");
+		act(() =>
+			registerClassicyAppearancePackage(
+				makePackage("late", {
+					hooks: { decorate: () => ({ className: "late" }) },
+				}),
+			),
+		);
+		expect(result.current.className).toBe("pressed late");
+	});
+
+	it("does not re-render on an unrelated store change", () => {
+		install();
+		let renders = 0;
+		renderHook(() => {
+			renders += 1;
+			return useClassicyAppearance("Button", PRESSED);
+		});
+		const before = renders;
+		act(() => {
+			useAppManager.setState((state) =>
+				produce(state, (draft) => {
+					draft.System.Manager.Desktop.disableBalloonHelp =
+						!draft.System.Manager.Desktop.disableBalloonHelp;
+				}),
+			);
+		});
+		expect(renders).toBe(before);
 	});
 });
