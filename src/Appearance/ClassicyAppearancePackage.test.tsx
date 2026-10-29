@@ -122,10 +122,26 @@ describe("ClassicyAppearancePackage registry", () => {
 
 	it("rejects a package whose css is not a string", () => {
 		vi.spyOn(console, "error").mockImplementation(() => {});
-		registerClassicyAppearancePackage(
-			makePackage("a", { css: undefined as unknown as string }),
-		);
+		const entries: ClassicyLogEntry[] = [];
+		registerClassicyLogSink({
+			id: "appearance-package-test",
+			onLog: (entry) => entries.push(entry),
+		});
+		try {
+			registerClassicyAppearancePackage(
+				makePackage("a", { css: undefined as unknown as string }),
+			);
+		} finally {
+			unregisterClassicyLogSink("appearance-package-test");
+		}
 		expect(getClassicyAppearancePackage("a")).toBeUndefined();
+		expect(entries).toHaveLength(1);
+		expect(entries[0].level).toBe("error");
+		expect(entries[0].subsystem).toBe("ClassicyAppearance");
+		expect(entries[0].message).toBe(
+			'Package "a" was not registered: css: must be a string',
+		);
+		expect(document.getElementById("classicy-appearance-a")).toBeNull();
 	});
 
 	it("injects the package css on register", () => {

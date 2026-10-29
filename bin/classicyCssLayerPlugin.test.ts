@@ -116,6 +116,9 @@ describe("classicyCssLayerPlugin", () => {
 			'content: "}"; /* } */ color: red;',
 		);
 		expect(await transform().call({}, braces, PACKAGE_ID)).toBeNull();
+		// Top-level comments around the block (Sass keeps them) are not rules.
+		const comments = `/* Platinum */\n${PACKAGE_CSS}\n/* end */`;
+		expect(await transform().call({}, comments, PACKAGE_ID)).toBeNull();
 	});
 
 	it("leaves a classicy.user block alone too, but still wraps component inline sheets", async () => {
@@ -140,6 +143,8 @@ describe("classicyCssLayerPlugin", () => {
 			"@layer classicy.base.host {\n.a{}\n}",
 			// Unbalanced.
 			"@layer classicy.package {\n.a{\n}",
+			// A statement that is not the layer order.
+			`@layer x;\n${PACKAGE_CSS}`,
 		]) {
 			expect(wrapInClassicyLayer(css)).toBe(
 				`@layer classicy.base {\n${css}\n}`,

@@ -27,12 +27,15 @@ const DECLARED_LAYERS = CLASSICY_LAYER_ORDER.replace(/^@layer\s+|;$/g, "")
  * `@layer classicy.package { … }` block. Wrapped again, that block would sit
  * in `classicy.base.classicy.package`, under every base rule. The layer name
  * matches exactly (`classicy.packages`, `classicy.package.x` are wrapped), and
- * anything outside the one block (a second block, a stray rule) is wrapped.
+ * anything outside the one block but a `@charset`, the order statement and
+ * comments (a second block, a stray rule, another `@layer …;`) is wrapped.
  */
 const isLayered = (css: string, layer: string): boolean =>
 	wrapped(layer).test(css) ||
 	DECLARED_LAYERS.some(
-		(name) => name !== layer && isSingleClassicyLayerBlock(css, name),
+		(name) =>
+			name !== layer &&
+			isSingleClassicyLayerBlock(css, name, CLASSICY_LAYER_ORDER),
 	);
 
 /**

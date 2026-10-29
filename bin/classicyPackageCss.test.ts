@@ -11,6 +11,7 @@ const PACKAGE =
 const BASE = "@layer classicy.base{.classicyButton{display:flex}}";
 const bundle = (literal: string) => `var a=1;const css=${literal};export{css};`;
 const js = (css: string) => JSON.stringify(css);
+const ORDER = CLASSICY_LAYER_ORDER;
 
 const check = (
 	input: Partial<Parameters<typeof findClassicyPackageCssProblems>[0]>,
@@ -25,11 +26,14 @@ const check = (
 
 describe("isSingleClassicyLayerBlock", () => {
 	it("accepts exactly one block of the layer, after an optional charset and order statement", () => {
-		expect(isSingleClassicyLayerBlock(PACKAGE, "classicy.package")).toBe(true);
+		expect(isSingleClassicyLayerBlock(PACKAGE, "classicy.package", ORDER)).toBe(
+			true,
+		);
 		expect(
 			isSingleClassicyLayerBlock(
 				`@charset "UTF-8";\n${CLASSICY_LAYER_ORDER}\n${PACKAGE}\n`,
 				"classicy.package",
+				ORDER,
 			),
 		).toBe(true);
 	});
@@ -45,7 +49,9 @@ describe("isSingleClassicyLayerBlock", () => {
 			"@layer classicy.package.x{.a{}}",
 			"",
 		])
-			expect(isSingleClassicyLayerBlock(css, "classicy.package")).toBe(false);
+			expect(isSingleClassicyLayerBlock(css, "classicy.package", ORDER)).toBe(
+				false,
+			);
 	});
 
 	it("skips braces inside strings and comments", () =>
@@ -53,8 +59,40 @@ describe("isSingleClassicyLayerBlock", () => {
 			isSingleClassicyLayerBlock(
 				'@layer classicy.package{.a::before{content:"}\\"}"}/* } */.b{}}',
 				"classicy.package",
+				ORDER,
 			),
 		).toBe(true));
+});
+
+describe("isSingleClassicyLayerBlock: prelude and trailer", () => {
+	const single = (css: string) =>
+		isSingleClassicyLayerBlock(css, "classicy.package", ORDER);
+
+	// Sass keeps top-level loud comments in expanded output, which is what the
+	// layer plugin sees on the dev server and in Storybook.
+	it("accepts top-level comments before and after the block", () => {
+		expect(single(`/* Platinum */\n${PACKAGE}\n/* end */\n`)).toBe(true);
+		expect(
+			single(
+				`@charset "UTF-8";\n/* a */\n${ORDER}\n/* b */\n${PACKAGE}/* c */`,
+			),
+		).toBe(true);
+		// An unterminated comment is not a comment.
+		expect(single(`${PACKAGE}\n/* end`)).toBe(false);
+	});
+
+	it("accepts a BOM-prefixed block (Sass compressed output)", () =>
+		expect(single(`\uFEFF${PACKAGE}`)).toBe(true));
+
+	it("rejects a foreign @layer statement before the block", () => {
+		expect(single(`@layer x;\n${PACKAGE}`)).toBe(false);
+		expect(single(`@layer classicy.base, classicy.package;\n${PACKAGE}`)).toBe(
+			false,
+		);
+	});
+
+	it("rejects two order statements", () =>
+		expect(single(`${ORDER}\n${ORDER}\n${PACKAGE}`)).toBe(false));
 });
 
 describe("findClassicyPackageCssProblems (check-dist invariant 7)", () => {
@@ -83,6 +121,48 @@ describe("findClassicyPackageCssProblems (check-dist invariant 7)", () => {
 					bundles: [{ file: "dist/classicy.es.js", source: bundle(literal) }],
 				}),
 			).toEqual([]);
+	});
+
+	it("applies the same prelude rule to bundle strings and package files", () => {
+		expect(
+			check({
+				bundles: [
+					{
+						file: "dist/classicy.es.js",
+						source: bundle(js(`@layer x;\n${PACKAGE}`)),
+					},
+				],
+			}),
+		).toHaveLength(1);
+		expect(
+			check({
+				bundles: [
+					{
+						file: "dist/classicy.es.js",
+						source: bundle(js(`${ORDER}\n${ORDER}\n${PACKAGE}`)),
+					},
+				],
+			}),
+		).toHaveLength(1);
+		expect(
+			check({
+				packageStylesheets: [
+					{
+						file: "dist/classicy-platinum.css",
+						css: `${ORDER}\n/* Platinum */\n${PACKAGE}\n`,
+					},
+				],
+			}),
+		).toEqual([]);
+		for (const css of [
+			`${ORDER}\n${ORDER}\n${PACKAGE}`,
+			`@layer x;\n${PACKAGE}`,
+		])
+			expect(
+				check({
+					packageStylesheets: [{ file: "dist/classicy-platinum.css", css }],
+				}),
+			).toHaveLength(1);
 	});
 
 	it("passes a package stylesheet file that starts with the layer order", () =>
