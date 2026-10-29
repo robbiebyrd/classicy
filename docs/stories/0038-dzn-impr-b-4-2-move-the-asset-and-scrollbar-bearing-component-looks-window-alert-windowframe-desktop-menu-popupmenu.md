@@ -3,12 +3,19 @@ id: 0038-dzn
 title: 'B 4.2: Move the asset- and scrollbar-bearing component looks: Window, Alert, WindowFrame, Desktop, Menu, PopUpMenu'
 purpose: Move the window chrome, title-bar art, desktop scrollbars and menu frames out of the base stylesheets into Platinum per-component partials, pixel-identical.
 type: impr
-status: in_progress
+status: complete
 priority: "2"
 effort: L
 created: "2026-10-28T20:13:13.594Z"
-updated: "2026-10-29T15:57:34.199Z"
+updated: "2026-10-29T18:50:46.015Z"
 started: "2026-10-29T15:57:34.199Z"
+completed: "2026-10-29T18:50:46.015Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy
@@ -35,19 +42,19 @@ links:
     - ["0005-1b3", "included", ["4.2"]]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
   "5":
-    status: pending
+    status: complete
   "6":
-    status: pending
+    status: complete
   "7":
-    status: pending
+    status: complete
 ---
 
 # B 4.2: Move the asset- and scrollbar-bearing component looks: Window, Alert, WindowFrame, Desktop, Menu, PopUpMenu
@@ -92,10 +99,10 @@ Re-shoot the ids whose title starts with Desktop/Window, Desktop/WindowFrame, De
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm exec vitest run src/Appearance/Platinum/styles/platinum.css.test.ts
-- [ ] Six partials (window, alert, windowFrame, desktop, menu, popUpMenu) hold every moved include and asset read under the original selector chains; the six base stylesheets contain no AppearanceManager/styles @use, no platinum-* include and no assets.$ read.
-- [ ] VERIFY: pnpm build:source && pnpm build:storybook
-- [ ] [MANUAL] Window, WindowFrame, Desktop, Menu, MenuBar, Alert, PopUpMenu and ContextualMenu stories compare with AE 0 before vs after.
+- [x] VERIFY: pnpm exec vitest run src/Appearance/Platinum/styles/platinum.css.test.ts
+- [x] Six partials (window, alert, windowFrame, desktop, menu, popUpMenu) hold every moved include and asset read under the original selector chains; the six base stylesheets contain no AppearanceManager/styles @use, no platinum-* include and no assets.$ read.
+- [x] VERIFY: pnpm build:source && pnpm build:storybook
+- [x] [MANUAL] Window, WindowFrame, Desktop, Menu, MenuBar, Alert, PopUpMenu and ContextualMenu stories compare with AE 0 before vs after.
 
 ## Files
 
@@ -115,3 +122,5 @@ Re-shoot the ids whose title starts with Desktop/Window, Desktop/WindowFrame, De
 - `src/Appearance/Platinum/styles/platinum.css.test.ts` - scoped-selector assertions
 
 ## Work Log
+
+### 2026-10-29T18:50:32.233Z - Done on feat/appearance-part-b, 7343d5f51..d8c687255: 6784533c8 (Window, Alert, WindowFrame, Desktop, Menu and PopUpMenu looks moved into `@layer classicy.package` partials under `.classicyDesktop[data-classicy-appearance="platinum"]`, with every base override per R15 — P1–P7, P12, P14 plus the extra sites the property grep found (control-box glyph background-position, utility close/collapse box sizes, title-bar border/box-shadow); the inactive window scroll-bar rule respelled `:where(.classicyWindow.inactive)` to restore the base tie exactly; check-dist invariant 7 mandatory), d8c687255 (review minors: tab-scroller comment and test now pin the real specificity relation; invariant 7 also requires the `data-classicy-appearance` scope; required-bundle logic extracted and unit-tested; the tamper matrix committed as bin/checkDistImports.test.ts). Parity, controller-verified: 302/302 screenshots AE 0 vs Phase 0; forced matrix 67/67 Chromium + 6/6 Firefox identical (excluding `__matchedPseudo`, which records layer names by design); computed dumps identical apart from the known noise. Review: Approved (C0 I0 M4; 1/3/4 fixed, 2 → 4.3 carry-forward). Gate on d8c687255: lint, tsc, 3929 tests, build:source + verify:dist invariants 1–7, build:storybook. Carry-forward to 4.3 recorded: move the tab-scroller rule into `_Tabs.scss`; release-note the Firefox dist tab-scroll-bar fix; delete the old styles modules and retarget their readers.

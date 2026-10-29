@@ -3,11 +3,18 @@ id: 0039-63e
 title: 'B 4.3: Move the remaining component looks and drop every dead @use'
 purpose: 'Finish the base/package split: seventeen more per-component Platinum partials, the ControlStrip and Slider local bevels moved, and every dead @use of the old style modules deleted across the component stylesheets.'
 type: impr
-status: pending
+status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T20:14:27.078Z"
-updated: "2026-10-29T15:56:02.523Z"
+updated: "2026-10-29T18:51:02.774Z"
+started: "2026-10-29T18:51:02.774Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy
@@ -195,3 +202,5 @@ Re-shoot every id in stories.txt into `after/`; `for f in before/*.png; do compa
 - `src/Appearance/Platinum/styles/platinum.css.test.ts` - bevel/strip/slider assertions and repo-wide guard
 
 ## Work Log
+
+### 2026-10-29T18:50:54.964Z - Started, split three ways (task-4.3-split.md in the Part B ledger): 4.3a (Button, BevelButton, Checkbox, Placard, Table, DriveSetupList, Meter, Output, ProgressBar, SplitView; worktree part-b-43a, Storybook 6007) and 4.3b (Assistant, StartupScreen, QuickTimeMovieEmbed, ControlStrip, Slider with P9, DesktopIcon, Icon, plus _Tabs.scss from 4.2's carry-forward; worktree part-b-43b, Storybook 6008) run in parallel from d8c687255, each with its own components' parity against the shared Phase 0 baselines; the controller then integrates both onto feat/appearance-part-b and runs 4.3c (include-order merge by bundle offset, the remaining dead @use lines (44 files incl. ClassicyAppearanceManager.scss), the repo-wide guard with the corrected regex, deleting the old AppearanceManager/styles modules and directory (R7) with their readers retargeted, full-set parity).
