@@ -3,7 +3,7 @@ import type { ClassicyAssetSource } from "@/Appearance/ClassicyAssetSource";
 import {
 	type ClassicyPixelArtRows,
 	encodeClassicyPixelArtRows,
-} from "@/SystemFolder/SystemResources/PixelArt/ClassicyPixelArt";
+} from "@/Appearance/ClassicyPixelArtSource";
 import controlStripCollapse from "./control-strip-collapse.txt?raw";
 import controlStripModuleArrow from "./control-strip-module-arrow.txt?raw";
 import controlStripScrollLeft from "./control-strip-scroll-left.txt?raw";

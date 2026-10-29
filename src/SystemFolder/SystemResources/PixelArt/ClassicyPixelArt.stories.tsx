@@ -66,9 +66,9 @@ const controlStripArt: [string, ClassicySystemArtKey][] = [
 /**
  * Every Control Strip glyph the Appearance Package registers, by system-art
  * key, magnified 4×.
- * The arrows and tab are drawn in black and the system greys; the collapse
+ * The arrows and tab are drawn in black and the system grays; the collapse
  * box also carries a theme accent token (`b`), so it picks up the theme's
- * accent colour.
+ * accent color.
  */
 export const ControlStripGlyphs: Story = {
 	render: () => (
@@ -107,7 +107,7 @@ export const PopUpSliderArt: Story = {
 
 /**
  * Hand-authored art: a beveled square with a black frame, white and
- * system-05 bevel, system-03 face and a centre in the theme accents `b`, `c`
+ * system-05 bevel, system-03 face and a center in the theme accents `b`, `c`
  * and `d`. Every character is a palette token and `.` is transparent; edit
  * the `rows` control to draw your own.
  */
