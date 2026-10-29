@@ -80,6 +80,17 @@ function declaredClasses(vocabulary: typeof json): Set<string> {
  * that ends a template chunk right before `${…}` is reported as a prefix.
  */
 function scanClassicyTokens(): { tokens: Set<string>; prefixes: Set<string> } {
+	scanCache ??= scanSourceTree();
+	return scanCache;
+}
+
+// The scan parses every src module (1.4–2.9 s alone), so the two tests that
+// need it share one result and get a timeout sized for a loaded machine;
+// vitest's 5 s default timed out at load averages of 33–43 on 16 cores.
+const SCAN_TIMEOUT_MS = 60_000;
+let scanCache: ReturnType<typeof scanSourceTree> | undefined;
+
+function scanSourceTree(): { tokens: Set<string>; prefixes: Set<string> } {
 	const tokens = new Set<string>();
 	const prefixes = new Set<string>();
 	const collect = (text: string, beforeInterpolation: boolean) => {
@@ -165,34 +176,44 @@ describe("ClassicyVocabulary", () => {
 		expect(CLASSICY_COMPONENT.Tabs).toBe("classicyTabContainer");
 	});
 
-	it("every classicy class literal in src resolves to the vocabulary", () => {
-		const known = declaredClasses(json);
-		const { tokens, prefixes } = scanClassicyTokens();
-		const unknown = [...tokens].filter(
-			(token) => !known.has(token) && !(token in NOT_CLASSES),
-		);
-		expect(unknown.sort()).toEqual([]);
-		// A token that runs into a `${…}` is a class prefix: its family must be
-		// listed below, and every class it can produce must be declared.
-		expect([...prefixes].sort()).toEqual(Object.keys(TEMPLATE_FAMILIES).sort());
-		const undeclared = Object.entries(TEMPLATE_FAMILIES).flatMap(
-			([prefix, suffixes]) =>
-				suffixes.map((s) => `${prefix}${s}`).filter((c) => !known.has(c)),
-		);
-		expect(undeclared).toEqual([]);
-	});
+	it(
+		"every classicy class literal in src resolves to the vocabulary",
+		() => {
+			const known = declaredClasses(json);
+			const { tokens, prefixes } = scanClassicyTokens();
+			const unknown = [...tokens].filter(
+				(token) => !known.has(token) && !(token in NOT_CLASSES),
+			);
+			expect(unknown.sort()).toEqual([]);
+			// A token that runs into a `${…}` is a class prefix: its family must be
+			// listed below, and every class it can produce must be declared.
+			expect([...prefixes].sort()).toEqual(
+				Object.keys(TEMPLATE_FAMILIES).sort(),
+			);
+			const undeclared = Object.entries(TEMPLATE_FAMILIES).flatMap(
+				([prefix, suffixes]) =>
+					suffixes.map((s) => `${prefix}${s}`).filter((c) => !known.has(c)),
+			);
+			expect(undeclared).toEqual([]);
+		},
+		SCAN_TIMEOUT_MS,
+	);
 
-	it("the coverage scan fails when a declared part is removed", () => {
-		const trimmed = structuredClone(json);
-		trimmed.components.Pager = trimmed.components.Pager.filter(
-			(part: string) => part !== "ArrowNext",
-		);
-		const known = declaredClasses(trimmed);
-		const { tokens } = scanClassicyTokens();
-		expect([...tokens].filter((token) => !known.has(token))).toContain(
-			"classicyPagerArrowNext",
-		);
-	});
+	it(
+		"the coverage scan fails when a declared part is removed",
+		() => {
+			const trimmed = structuredClone(json);
+			trimmed.components.Pager = trimmed.components.Pager.filter(
+				(part: string) => part !== "ArrowNext",
+			);
+			const known = declaredClasses(trimmed);
+			const { tokens } = scanClassicyTokens();
+			expect([...tokens].filter((token) => !known.has(token))).toContain(
+				"classicyPagerArrowNext",
+			);
+		},
+		SCAN_TIMEOUT_MS,
+	);
 
 	it("classicy-state() returns the class selector and rejects an unknown state at compile time", () => {
 		const compile = (state: string) =>
