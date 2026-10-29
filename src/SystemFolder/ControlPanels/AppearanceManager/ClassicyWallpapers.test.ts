@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import platinumJson from "@/Appearance/Platinum/platinum.json";
 import {
 	getAllThemes,
 	getTheme,
@@ -8,7 +9,6 @@ import {
 	ClassicyWallpapers,
 	resolveWallpaper,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
-import themesData from "@/SystemFolder/ControlPanels/AppearanceManager/styles/themes.json";
 
 describe("resolveWallpaper", () => {
 	it("resolves a bare wallpaper filename to its bundled URL", () => {
@@ -67,16 +67,16 @@ describe("jpg wallpapers", () => {
 });
 
 describe("theme wallpapers resolve through the bundler", () => {
-	// Regression: themes.json held literal "/assets/img/wallpapers/*.png" strings.
+	// Regression: themes.json (now platinum.json) held literal "/assets/img/wallpapers/*.png" strings.
 	// JSON imports bypass Vite's asset pipeline, so those shipped verbatim and
 	// 404'd in any consuming app. Under vitest a bundled asset resolves to that
 	// same source path, so the meaningful invariant is identity with the
 	// resolver's output — that holds in dev and in a production build alike.
-	it("names wallpapers in themes.json instead of pathing to them", () => {
+	it("names wallpapers in platinum.json instead of pathing to them", () => {
 		// The root cause: a path written here ships verbatim, because Vite's
 		// asset pipeline never sees strings inside an imported JSON file. Only
 		// a bare filename, resolved through the bundler at runtime, is safe.
-		for (const theme of themesData) {
+		for (const theme of platinumJson.presets) {
 			expect(
 				theme.desktop.backgroundImage,
 				`theme "${theme.id}" must name its wallpaper, not path to it`,

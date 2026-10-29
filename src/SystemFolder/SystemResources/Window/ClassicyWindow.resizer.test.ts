@@ -1,7 +1,7 @@
 import path from "node:path";
 import * as sass from "sass";
 import { describe, expect, it } from "vitest";
-import themes from "@/SystemFolder/ControlPanels/AppearanceManager/styles/themes.json";
+import platinumJson from "@/Appearance/Platinum/platinum.json";
 
 /**
  * Everything on the window's bottom line — the horizontal scroll bar, the grow
@@ -58,8 +58,10 @@ const window_ = rule(".classicyWindow");
 
 // The default theme's window measurements, as ClassicyAppearanceManager emits
 // them onto the desktop root.
-const defaultTheme = themes.find((theme) => theme.id === "default");
-if (!defaultTheme) throw new Error("themes.json has no `default` theme");
+const defaultTheme = platinumJson.presets.find(
+	(theme) => theme.id === "default",
+);
+if (!defaultTheme) throw new Error("platinum.json has no `default` preset");
 const measurements = defaultTheme.measurements.window;
 const vars: Record<string, string> = {
 	"--window-border-size": `${measurements.borderSize}px`,

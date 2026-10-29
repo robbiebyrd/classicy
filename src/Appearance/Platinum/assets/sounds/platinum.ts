@@ -43,5 +43,8 @@ export const platinumSoundPack: ClassicySoundPack =
 		src: platinumUrls,
 	});
 
-// Registered here until plan 0002-ldj Part B moves this call into src/Appearance/Platinum/index.ts
+// Registered here, at module load; src/Appearance/Platinum/index.ts imports this
+// module and lists the pack in the Platinum package (`sounds`), never registering
+// it again. The call stays here: in index.ts it would sit on a load cycle through
+// ClassicyThemeSchema, whose `sound.pack` check reads the sound pack registry.
 registerClassicySoundPack(platinumSoundPack);

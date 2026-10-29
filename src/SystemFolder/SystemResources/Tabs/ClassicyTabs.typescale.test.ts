@@ -1,7 +1,7 @@
 import path from "node:path";
 import * as sass from "sass";
 import { describe, expect, it } from "vitest";
-import themes from "@/SystemFolder/ControlPanels/AppearanceManager/styles/themes.json";
+import platinumJson from "@/Appearance/Platinum/platinum.json";
 
 /**
  * HIG 2.10: tab labels are the 12 pt / 10 pt system font, not the 14 px body
@@ -54,8 +54,10 @@ const fontSizeOf = (selector: string): string => {
 };
 
 // The default theme's UI font size, as ClassicyAppearance emits it.
-const defaultTheme = themes.find((theme) => theme.id === "default");
-if (!defaultTheme) throw new Error("themes.json has no `default` theme");
+const defaultTheme = platinumJson.presets.find(
+	(theme) => theme.id === "default",
+);
+if (!defaultTheme) throw new Error("platinum.json has no `default` preset");
 const uiFontSize = defaultTheme.typography.uiSize;
 
 /** Minimal +-*_/ and parentheses evaluator, so no eval/Function is needed. */

@@ -31,8 +31,8 @@ import {
  * registered (`registerClassicyAppearancePackage`) — except Platinum, which
  * is always available (`CLASSICY_FALLBACK_APPEARANCE_PACKAGE`).
  *
- * Loading also accepts a bare theme object (no envelope) — the shape of an
- * entry in `themes.json` or of `JSON.stringify(activeTheme)` — so themes
+ * Loading also accepts a bare theme object (no envelope) — the shape of a
+ * preset in `platinum.json` or of `JSON.stringify(activeTheme)` — so themes
  * written by hand or copied out of the store load without wrapping.
  *
  * Wallpapers are written as their bundled filename (`"azul_dark.png"`): the

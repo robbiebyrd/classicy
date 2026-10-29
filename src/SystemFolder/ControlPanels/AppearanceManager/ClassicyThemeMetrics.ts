@@ -12,7 +12,7 @@ import type { DeepPartial } from "@/SystemFolder/SystemResources/Utils/deepMerge
  * grouped per control family. These are the theme *inputs*; `getThemeVars`
  * derives frames, bevels, the edit-field height and the rest from them.
  *
- * Every built-in theme carries this block in `themes.json`; a theme loaded
+ * Every built-in theme carries this block in `platinum.json`; a theme loaded
  * from an older build or an older theme file is completed with these values
  * by `withDefaultThemeMetrics`.
  */

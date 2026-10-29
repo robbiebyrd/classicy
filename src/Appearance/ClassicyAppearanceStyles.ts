@@ -14,8 +14,8 @@ const CLASSICY_STYLE_ELEMENT_ID = "classicy-styles";
  * library stylesheet is present, else at the end of `<head>`; the layer order
  * statement at the head of the document decides precedence either way, not
  * the element order. Calling again for the same id replaces the text of the
- * existing element (a package re-registered), and nothing happens without a
- * `document` (SSR).
+ * existing element (a package re-registered). Blank CSS writes no element and
+ * removes the id's existing one. Nothing happens without a `document` (SSR).
  */
 export const injectClassicyAppearanceStyles = (
 	id: string,
@@ -24,6 +24,10 @@ export const injectClassicyAppearanceStyles = (
 	if (typeof document === "undefined") return;
 	const elementId = `${CLASSICY_APPEARANCE_STYLE_ELEMENT_PREFIX}${id}`;
 	const existing = document.getElementById(elementId);
+	if (css.trim() === "") {
+		existing?.remove();
+		return;
+	}
 	if (existing) {
 		if (existing.textContent !== css) existing.textContent = css;
 		return;

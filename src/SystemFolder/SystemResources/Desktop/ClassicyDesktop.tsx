@@ -52,7 +52,8 @@ import {
 	useClassicyAsset,
 	useClassicyAssetVars,
 } from "@/Appearance/ClassicyAssetRegistry";
-import "@/Appearance/Platinum/assets/platinumAssets";
+// Registers the Platinum Appearance Package (and its assets and sound pack).
+import "@/Appearance/Platinum";
 import { listAppWindows } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
 import { getClassicyDefaultParadeIcons } from "@/SystemFolder/SystemResources/Boot/ClassicyDefaultParadeIcons";

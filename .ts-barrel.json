@@ -3,7 +3,7 @@
 	"location": "top",
 	"structure": "flat",
 	"directory": ["./src"],
-	"noHeader": true,
+	"noHeader": false,
 	"exclude": [
 		"__tests__",
 		"\\.test\\.tsx?$",
