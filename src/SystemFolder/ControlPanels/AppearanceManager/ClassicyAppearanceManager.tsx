@@ -115,17 +115,22 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		],
 	);
 
-	// Packs shared by every package, and the active package's own.
+	// Packs shared by every package, and the active package's own — plus the
+	// active theme's pack when it belongs to another package, so the pop-up
+	// always shows the current choice.
 	const registeredSoundPacks = useClassicySoundPacks();
+	const currentSoundPack = appearanceState.activeTheme.sound.pack;
 	const soundPacks = useMemo(
 		() =>
 			registeredSoundPacks
 				.filter(
 					(pack) =>
-						pack.packageId === undefined || pack.packageId === activePackage.id,
+						pack.packageId === undefined ||
+						pack.packageId === activePackage.id ||
+						pack.id === currentSoundPack,
 				)
 				.map(({ id, name }) => ({ id, name })),
-		[registeredSoundPacks, activePackage.id],
+		[registeredSoundPacks, activePackage.id, currentSoundPack],
 	);
 
 	// Why a theme file could not be saved or loaded, shown in a stop alert.
@@ -482,7 +487,7 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 
 	const soundTab = useSoundTab({
 		soundPacks,
-		soundPack: appearanceState.activeTheme.sound.pack,
+		soundPack: currentSoundPack,
 		changeSoundPack,
 		alertSound: appearanceState.alertSound ?? DEFAULT_ALERT_SOUND,
 		changeAlertSound,
