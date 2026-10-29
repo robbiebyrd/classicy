@@ -23,6 +23,9 @@ const baseProps = (): SoundTabProps => ({
 	alertVolume: 100,
 	changeAlertVolume: vi.fn(),
 	previewAlertVolume: vi.fn(),
+	soundPacks: [{ id: "platinum", name: "Platinum" }],
+	soundPack: "platinum",
+	changeSoundPack: vi.fn() as (e: ChangeEvent<HTMLSelectElement>) => void,
 });
 
 // ClassicyPopUpMenu is a custom combobox: role="combobox" trigger shows the
@@ -33,6 +36,10 @@ const Host = (props: SoundTabProps) => {
 	return <div>{tab.children}</div>;
 };
 
+// Sound Pack is the first pop-up on the tab, Alert Sound the second.
+const soundPackMenu = () => screen.getAllByRole("combobox")[0];
+const alertSoundMenu = () => screen.getAllByRole("combobox")[1];
+
 describe("useSoundTab", () => {
 	it("is titled 'Sound'", () => {
 		const { result } = renderHook(() => useSoundTab(baseProps()));
@@ -41,13 +48,13 @@ describe("useSoundTab", () => {
 
 	it("shows the current selection on the trigger", () => {
 		render(<Host {...baseProps()} alertSound="ClassicyAlertQuack" />);
-		expect(screen.getByRole("combobox")).toHaveTextContent("Quack");
+		expect(alertSoundMenu()).toHaveTextContent("Quack");
 	});
 
 	it("lists all seven alert options when opened", async () => {
 		const user = userEvent.setup();
 		render(<Host {...baseProps()} />);
-		await user.click(screen.getByRole("combobox"));
+		await user.click(alertSoundMenu());
 		expect(
 			within(screen.getByRole("listbox")).getAllByRole("option"),
 		).toHaveLength(7);
@@ -57,13 +64,58 @@ describe("useSoundTab", () => {
 		const props = baseProps();
 		const user = userEvent.setup();
 		render(<Host {...props} />);
-		await user.click(screen.getByRole("combobox"));
+		await user.click(alertSoundMenu());
 		await user.click(screen.getByRole("option", { name: "Quack" }));
 		const changeAlertSound = props.changeAlertSound as ReturnType<typeof vi.fn>;
 		expect(changeAlertSound).toHaveBeenCalledOnce();
 		expect(changeAlertSound.mock.calls[0][0].target.value).toBe(
 			"ClassicyAlertQuack",
 		);
+	});
+});
+
+describe("useSoundTab — Sound Pack", () => {
+	const packs = [
+		{ id: "platinum", name: "Platinum" },
+		{ id: "beep", name: "Beep" },
+	];
+
+	it("lists sound packs and selects the theme's pack", async () => {
+		const user = userEvent.setup();
+		const { container } = render(
+			<Host {...baseProps()} soundPacks={packs} soundPack="beep" />,
+		);
+		// ClassicyPopUpMenu has no native <select> (J-R14): the combobox
+		// carrying the id shows the selected pack's name.
+		const menu = container.querySelector("#soundPack");
+		expect(menu).toBe(soundPackMenu());
+		expect(menu).toHaveTextContent("Beep");
+		await user.click(soundPackMenu());
+		expect(
+			within(screen.getByRole("listbox"))
+				.getAllByRole("option")
+				.map((o) => o.textContent?.replace(/^✓/, "")),
+		).toEqual(["Platinum", "Beep"]);
+	});
+
+	it("sits above Alert Sound, with its own label", () => {
+		render(<Host {...baseProps()} />);
+		const label = screen.getByText("Sound Pack");
+		expect(
+			label.compareDocumentPosition(screen.getByText("Alert Sound")) &
+				Node.DOCUMENT_POSITION_FOLLOWING,
+		).toBeTruthy();
+	});
+
+	it("changeSoundPack fires on change", async () => {
+		const props = baseProps();
+		const user = userEvent.setup();
+		render(<Host {...props} soundPacks={packs} soundPack="beep" />);
+		await user.click(soundPackMenu());
+		await user.click(screen.getByRole("option", { name: "Platinum" }));
+		const changeSoundPack = props.changeSoundPack as ReturnType<typeof vi.fn>;
+		expect(changeSoundPack).toHaveBeenCalledOnce();
+		expect(changeSoundPack.mock.calls[0][0].target.value).toBe("platinum");
 	});
 });
 

@@ -5,6 +5,7 @@ import {
 	CLASSICY_FALLBACK_APPEARANCE_PACKAGE,
 	getClassicyAppearancePackage,
 	getRegisteredClassicyAppearancePackageOrDefault,
+	listClassicyAppearancePackages,
 } from "@/Appearance/ClassicyAppearancePackageRegistry";
 import {
 	type ClassicyTheme,
@@ -13,6 +14,7 @@ import {
 import { applyClassicyAppearanceOption } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceOptions";
 import {
 	assignImportedClassicyThemeIdentity,
+	classicyCustomThemeSlotId,
 	cloneClassicyTheme,
 	editActiveClassicyTheme,
 	findClassicyTheme,
@@ -337,16 +339,17 @@ export const classicyDesktopEventHandler = (
 		}
 		case "ClassicyDesktopChangeTheme": {
 			if (!hasActiveTheme(action)) break;
-			// Built-ins first, then custom themes. Activate a copy, so edits to
-			// the active theme can never alias the stored entry.
+			// Built-ins first, then the active package's presets (resolved as
+			// the hooks resolve it, J-R16), then custom themes. Activate a copy,
+			// so edits to the active theme can never alias the stored entry.
+			const appearance = ds.System.Manager.Appearance;
 			const foundTheme = findClassicyTheme(
-				ds.System.Manager.Appearance,
+				appearance,
 				action.activeTheme,
+				getRegisteredClassicyAppearancePackageOrDefault(appearance.packageId)
+					?.presets,
 			);
-			if (foundTheme) {
-				ds.System.Manager.Appearance.activeTheme =
-					cloneClassicyTheme(foundTheme);
-			}
+			if (foundTheme) appearance.activeTheme = cloneClassicyTheme(foundTheme);
 			break;
 		}
 		case "ClassicyDesktopChangeAppearancePackage": {
@@ -394,10 +397,14 @@ export const classicyDesktopEventHandler = (
 			}
 			const appearance = ds.System.Manager.Appearance;
 			// Always a new entry: the payload's id is ignored, so an import
-			// can never overwrite an existing custom theme or shadow a built-in.
+			// can never overwrite an existing custom theme, shadow a built-in or
+			// take a registered package's Custom fork slot.
 			const imported = assignImportedClassicyThemeIdentity(
 				read.theme,
 				listClassicyThemes(appearance),
+				listClassicyAppearancePackages().map((pkg) =>
+					classicyCustomThemeSlotId(pkg.id),
+				),
 			);
 			if (!appearance.customThemes) appearance.customThemes = [];
 			appearance.customThemes.push(imported);

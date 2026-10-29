@@ -1,3 +1,5 @@
+import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
+import type { ClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
 import type {
 	ClassicyStoreSystemAppearanceManager,
 	ClassicyTheme,
@@ -12,14 +14,28 @@ import type {
  * custom theme inside `availableThemes` would freeze the built-in list at
  * whatever shipped when the user first edited a colour.
  *
- * The first edit made while a built-in theme is active forks it into the single
- * "Custom" slot (`CLASSICY_CUSTOM_THEME_ID`), overwriting any previous Custom.
- * Edits made while any custom theme is active modify that theme in place, so a
- * future importer can add further entries to `customThemes` and they are
- * editable with no extra wiring.
+ * The first edit made while a built-in theme is active forks it into its
+ * package's "Custom" slot (`classicyCustomThemeSlotId`), overwriting any
+ * previous Custom of that package; each package keeps its own. Edits made
+ * while any custom theme is active modify that theme in place, so imported
+ * themes in `customThemes` are editable with no extra wiring.
  */
 export const CLASSICY_CUSTOM_THEME_ID = "custom";
 export const CLASSICY_CUSTOM_THEME_NAME = "Custom";
+
+/** The package a theme belongs to; a theme naming none is the default's. */
+const themePackageId = (theme: ClassicyTheme): string =>
+	theme.package ?? CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID;
+
+/**
+ * The id of a package's Custom fork slot: `"custom"` for the default package
+ * (so state saved before packages existed keeps its Custom theme), else
+ * `custom-<packageId>`. Every slot is named "Custom".
+ */
+export const classicyCustomThemeSlotId = (packageId: string): string =>
+	packageId === CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID
+		? CLASSICY_CUSTOM_THEME_ID
+		: `${CLASSICY_CUSTOM_THEME_ID}-${packageId}`;
 
 /** Deep copy of a theme. Themes are plain JSON data, and a JSON round trip
  * also reads through Immer drafts (structuredClone throws on a Proxy). */
@@ -37,15 +53,46 @@ export const listClassicyThemes = (
 	...(appearance.customThemes ?? []),
 ];
 
-/** Looks a theme id up among the built-ins, then the custom themes. */
+/**
+ * The theme list for one Appearance Package, as the Appearance Manager shows
+ * it: the package's presets and the host-loaded built-ins
+ * (`availableThemes`, `ClassicyDesktopLoadThemes`) of that package, once per
+ * id in preset order (a loaded theme replaces the preset it shares an id
+ * with, since `ClassicyDesktopChangeTheme` finds it first), then the custom
+ * themes of that package.
+ */
+export const listClassicyPackageThemes = (
+	appearance: Pick<
+		ClassicyStoreSystemAppearanceManager,
+		"availableThemes" | "customThemes"
+	>,
+	pkg: Pick<ClassicyAppearancePackage, "id" | "presets">,
+): ClassicyTheme[] => {
+	const ofPackage = (t: ClassicyTheme) => themePackageId(t) === pkg.id;
+	const builtIns = new Map<string, ClassicyTheme>();
+	for (const preset of pkg.presets ?? []) builtIns.set(preset.id, preset);
+	for (const loaded of (appearance.availableThemes ?? []).filter(ofPackage))
+		builtIns.set(loaded.id, loaded);
+	return [
+		...builtIns.values(),
+		...(appearance.customThemes ?? []).filter(ofPackage),
+	];
+};
+
+/**
+ * Looks a theme id up among the built-ins, then `presets` (the active
+ * package's), then the custom themes.
+ */
 export const findClassicyTheme = (
 	appearance: Pick<
 		ClassicyStoreSystemAppearanceManager,
 		"availableThemes" | "customThemes"
 	>,
 	themeId: string,
+	presets: readonly ClassicyTheme[] = [],
 ): ClassicyTheme | undefined =>
 	appearance.availableThemes?.find((t) => t.id === themeId) ??
+	presets.find((t) => t.id === themeId) ??
 	appearance.customThemes?.find((t) => t.id === themeId);
 
 /** True when the active theme is one of the user's custom themes (so edits
@@ -81,10 +128,11 @@ export const editActiveClassicyTheme = (
 	const customs = appearance.customThemes;
 	let slot = customs.findIndex((t) => t.id === appearance.activeTheme.id);
 	if (slot < 0) {
-		// Fork: the active theme is a built-in. Reuse the one Custom slot.
-		next.id = CLASSICY_CUSTOM_THEME_ID;
+		// Fork: the active theme is a built-in. Reuse its package's one
+		// Custom slot.
+		next.id = classicyCustomThemeSlotId(themePackageId(next));
 		next.name = CLASSICY_CUSTOM_THEME_NAME;
-		slot = customs.findIndex((t) => t.id === CLASSICY_CUSTOM_THEME_ID);
+		slot = customs.findIndex((t) => t.id === next.id);
 		if (slot < 0) slot = customs.length;
 	}
 	customs[slot] = next;
@@ -121,12 +169,14 @@ export const slugifyClassicyThemeName = (name: string): string =>
  * - **Id**: `custom-<slug of the final name>` (`custom-theme` for a name with
  *   no letters or digits), with "-2", "-3", … appended on collision. The id in
  *   the file is ignored — it is untrusted, and honouring it could overwrite an
- *   existing custom theme or shadow a built-in. Never `"custom"`: that is the
- *   fork slot, which the next edit made on a built-in overwrites.
+ *   existing custom theme or shadow a built-in. Never a package's Custom fork
+ *   slot (`"custom"`, the theme's own package's, or any id in `reservedIds`):
+ *   the next edit made on a built-in of that package overwrites the slot.
  */
 export const assignImportedClassicyThemeIdentity = (
 	theme: ClassicyTheme,
 	existing: ClassicyTheme[],
+	reservedIds: Iterable<string> = [],
 ): ClassicyTheme => {
 	const names = new Set(existing.map((t) => t.name.toLowerCase()));
 	let name = theme.name;
@@ -140,8 +190,9 @@ export const assignImportedClassicyThemeIdentity = (
 		name = `${stem} ${n}`;
 	}
 
-	const ids = new Set(existing.map((t) => t.id));
+	const ids = new Set([...existing.map((t) => t.id), ...reservedIds]);
 	ids.add(CLASSICY_CUSTOM_THEME_ID);
+	ids.add(classicyCustomThemeSlotId(themePackageId(theme)));
 	const baseId = `${CLASSICY_IMPORTED_THEME_ID_PREFIX}${slugifyClassicyThemeName(name) || "theme"}`;
 	let id = baseId;
 	for (let n = 2; ids.has(id); n++) id = `${baseId}-${n}`;

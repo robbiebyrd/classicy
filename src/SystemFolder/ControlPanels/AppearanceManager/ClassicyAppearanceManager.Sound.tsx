@@ -6,6 +6,11 @@ import { ClassicySlider } from "@/SystemFolder/SystemResources/Slider/ClassicySl
 import type { TabIndividual } from "@/SystemFolder/SystemResources/Tabs/ClassicyTabs";
 
 interface SoundTabProps {
+	/** The sound packs the active Appearance Package can use, in order. */
+	soundPacks: { id: string; name: string }[];
+	/** The active theme's `sound.pack`. */
+	soundPack: string;
+	changeSoundPack: (e: ChangeEvent<HTMLSelectElement>) => void;
 	alertSound: string;
 	changeAlertSound: (e: ChangeEvent<HTMLSelectElement>) => void;
 	/** Alert sound level, 0–100 (a percentage of the system volume). */
@@ -17,13 +22,20 @@ interface SoundTabProps {
 }
 
 export const useSoundTab = ({
+	soundPacks,
+	soundPack,
+	changeSoundPack,
 	alertSound,
 	changeAlertSound,
 	alertVolume,
 	changeAlertVolume,
 	previewAlertVolume,
-}: SoundTabProps): TabIndividual =>
-	useMemo(
+}: SoundTabProps): TabIndividual => {
+	const soundPackOptions = useMemo(
+		() => soundPacks.map(({ id, name }) => ({ value: id, label: name })),
+		[soundPacks],
+	);
+	return useMemo(
 		() => ({
 			title: "Sound",
 			children: (
@@ -32,6 +44,17 @@ export const useSoundTab = ({
 						"classicyAppearanceManagerFontsColumn classicyAppearanceManagerSoundColumn"
 					}
 				>
+					<div className={"classicyAppearanceManagerFontsRow"}>
+						<div className={"classicyAppearanceManagerFontsLabel"}>
+							<ClassicyControlLabel label={"Sound Pack"} direction={"left"} />
+						</div>
+						<ClassicyPopUpMenu
+							id={"soundPack"}
+							options={soundPackOptions}
+							selected={soundPack}
+							onChangeFunc={changeSoundPack}
+						/>
+					</div>
 					<div className={"classicyAppearanceManagerFontsRow"}>
 						<div className={"classicyAppearanceManagerFontsLabel"}>
 							<ClassicyControlLabel label={"Alert Sound"} direction={"left"} />
@@ -68,6 +91,9 @@ export const useSoundTab = ({
 			),
 		}),
 		[
+			soundPackOptions,
+			soundPack,
+			changeSoundPack,
 			alertSound,
 			changeAlertSound,
 			alertVolume,
@@ -75,3 +101,4 @@ export const useSoundTab = ({
 			previewAlertVolume,
 		],
 	);
+};

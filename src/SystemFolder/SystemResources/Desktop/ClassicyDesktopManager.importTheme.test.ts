@@ -300,4 +300,34 @@ describe("ClassicyDesktopImportTheme — appearance packages", () => {
 		expect(appearance(state).activeTheme.package).toBe("irix");
 		expect(state.System.Manager.Desktop.errorDialog ?? null).toBeNull();
 	});
+
+	it("never takes a package's Custom fork slot id", () => {
+		registerClassicyAppearancePackage({
+			id: "irix",
+			name: "IRIX",
+			css: "",
+			defaults: { ...structuredClone(getTheme("azul")), package: "irix" },
+			layout: {
+				window: { growBoxCorner: "bottom-right" },
+				menuBar: { placement: "screen" },
+				desktop: { iconGridOrigin: "top-right" },
+			},
+		});
+		// "Irix" slugs to the IRIX package's slot id, custom-irix, whichever
+		// package the theme belongs to.
+		let state = run(
+			makeStore(),
+			importTheme(fileTheme({ name: "Irix", package: "irix" })),
+		);
+		state = run(state, importTheme(fileTheme({ name: "Irix Two" })));
+		state = run(
+			state,
+			importTheme(fileTheme({ name: "Platinum", package: "platinum" })),
+		);
+		expect((appearance(state).customThemes ?? []).map((t) => t.id)).toEqual([
+			"custom-irix-2",
+			"custom-irix-two",
+			"custom-platinum",
+		]);
+	});
 });
