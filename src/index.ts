@@ -9,6 +9,7 @@ export * from "./Appearance/ClassicyAppearancePackageSchema";
 export * from "./Appearance/ClassicyAppearanceStyles";
 export * from "./Appearance/ClassicyAssetRegistry";
 export * from "./Appearance/ClassicyAssetSource";
+export * from "./Appearance/ClassicyPixelArtSource";
 export * from "./Appearance/useClassicyAppearanceLayout";
 export * from "./Appearance/Platinum/index";
 export * from "./Appearance/vocabulary/ClassicyVocabulary";
