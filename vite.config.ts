@@ -6,8 +6,8 @@ import VitePluginImageTools from "vite-plugin-image-tools";
 import richSvg from "vite-plugin-react-rich-svg";
 import { classicyCssLayerPlugin } from "./bin/classicyCssLayerPlugin";
 import {
-	CLASSICY_LAYER_ORDER,
 	classicyStyleInjector,
+	prependLayerOrder,
 } from "./bin/classicyStyleInjector";
 
 // Package assets under src/Appearance (the Platinum fonts and system art) must
@@ -81,10 +81,8 @@ function injectCssPlugin(): Plugin {
 					: new TextDecoder().decode(cssAsset.source);
 			const injector = classicyStyleInjector(css);
 			// The linked file (strict-CSP hosts) declares the layer order before
-			// any rule too, as the injected <style> does -- after the `@charset`
-			// Vite hoists to the top, which only counts as a file's first bytes.
-			const charset = /^@charset "[^"]*";\n?/.exec(css)?.[0] ?? "";
-			cssAsset.source = `${charset}${CLASSICY_LAYER_ORDER}\n${css.slice(charset.length)}`;
+			// any rule too, as the injected <style> does.
+			cssAsset.source = prependLayerOrder(css);
 
 			this.emitFile({
 				type: "asset",

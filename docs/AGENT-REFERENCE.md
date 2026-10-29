@@ -41,7 +41,10 @@ Platinum appearance package registers at runtime, so there is nothing to import:
 ```
 
 Under a Content-Security-Policy that forbids inline `<style>`, link
-`classicy/dist/classicy.css` instead; importing it as well is harmless.
+`classicy/dist/classicy.css` instead; importing it as well is harmless. Link
+`classicy.css` **first in `<head>`**, before any other stylesheet: its opening
+layer order statement (below) only fixes the order if no earlier sheet has
+named a layer.
 
 **Vite consumers (breaking change).** The package's fonts and art are files in
 `dist/assets/`, referenced as `new URL("assets/…", import.meta.url)`. Vite's dev
@@ -81,25 +84,35 @@ The runtime fonts stylesheet (`<style id="classicy-fonts-platinum">`, written by
 `registerClassicyFonts`) is not layered: it holds only `@font-face` rules, which
 layers do not affect.
 
-**Consequence for hosts:** CSS outside any layer beats every layered rule, so a
-Classicy rule now loses to *any* unlayered host rule that sets the same
-property on the same element, even a less specific one that loads earlier: a
-host `button { padding: 0 }` now beats Classicy's `.classicyButton { padding: … }`.
-Before, the host rule needed higher specificity, or equal specificity and a
-later position. To override Classicy, either:
+**Consequence for hosts.** Classicy's order statement is the first thing in
+`<head>` (the injected `<style>` is inserted at the top), so Classicy's three
+layers come first in the layer order. Two kinds of host CSS therefore outrank
+*every* Classicy layer, `classicy.user` included, whatever their specificity:
 
-- write plain unlayered rules (any specificity wins), or
-- put overrides in `@layer classicy.user { … }`, which beats `classicy.base` and
-  `classicy.package` (an appearance package) whatever the specificity, and
-  still loses to your unlayered CSS.
+1. **Unlayered CSS.** A host `button { padding: 0 }` now beats Classicy's
+   `.classicyButton { padding: … }`. Before, the host rule needed higher
+   specificity, or equal specificity and a later position.
+2. **Every host layer declared later**, which is all of them. Layered
+   frameworks and resets fall here. The canonical case is Tailwind v4: its
+   preflight sits in `@layer base` and resets `*{margin:0;padding:0;border:0
+   solid}`, which now strips the bevels, padding and borders from every
+   Classicy control. The same goes for its `components` and `utilities` layers,
+   and for any reset you put in a layer of your own.
 
-The reverse case needs care: a broad host default that should *not* override
-Classicy's components (`div { … }`, `button { … }`) cannot go in a layer of your
-own, because the injected stylesheet declares Classicy's layers first and every
-layer declared later ranks above them. Put it in a sublayer of `classicy.base`
-instead (any name), which ranks below Classicy's own rules:
+To **override** Classicy on purpose, write plain unlayered rules, or put the
+overrides in `@layer classicy.user { … }`. That beats `classicy.base` and
+`classicy.package` (an appearance package) whatever the specificity, and still
+loses to your unlayered CSS and your own layers.
+
+To keep a broad host default from overriding Classicy's components, put it in
+**`classicy.base.host`**. That sublayer name is reserved for hosts, and Classicy
+never declares or uses it. A sublayer ranks below the rules directly in
+`classicy.base`, so Classicy's own rules win there, and the default applies
+everywhere else:
 
 ```css
+@import "tailwindcss/preflight.css" layer(classicy.base.host);
+
 @layer classicy.base.host {
   div { overscroll-behavior: none; }  /* Classicy's pop-up list keeps `contain` */
 }
@@ -1777,6 +1790,6 @@ untrusted disposition strings.
 7. **`defaultState` only applies on first boot** (nothing hydrated). During development, clear `localStorage["classicyDesktopState"]` to see provider default changes.
 8. **Window ids are data**: they feed analytics paths and persistence. Keep them stable and free of user content, or set `analyticsPath` explicitly.
 9. **Colors are integers** (`0xRRGGBB`), not hex strings, throughout themes and color pickers.
-10. **Styles come with the import** — the bundle injects `classicy.css` into `<head>`; the fonts are files in `dist/assets/` registered by the Platinum package (`classicy/fonts` is a deprecated no-op). Link `classicy.css` yourself only if a CSP blocks inline `<style>`. Classicy's rules live in `@layer classicy.base`, so any unlayered host rule on the same element and property wins; override in `@layer classicy.user` or with plain unlayered rules (§1, Cascade layers).
+10. **Styles come with the import** — the bundle injects `classicy.css` into `<head>`; the fonts are files in `dist/assets/` registered by the Platinum package (`classicy/fonts` is a deprecated no-op). Link `classicy.css` yourself only if a CSP blocks inline `<style>`. Classicy's rules live in `@layer classicy.base`, declared first, so any unlayered host rule *and any host layer* (Tailwind's preflight in `@layer base`, for example) on the same element and property wins. Override in `@layer classicy.user` or with plain unlayered rules; put resets that must yield to Classicy in `classicy.base.host` (§1, Cascade layers).
 11. Deprecated (still working, avoid in new code): `noDesktopIcon`, `inApplicationsFolder`, `registerAppEventHandler`, `registerClassicyUntrustedActionAllowlist` for app-owned actions, `isXData`-style hand-rolled guards (use `parseAppData`).
 12. **Never mount the built-in apps yourself** (`Finder`, `SimpleText`, `HyperCard`, the viewers, `ClassicyControlPanels`, `AppleGuide`) — `ClassicyDesktop` renders them all automatically; mounting them as children double-mounts them. Use the provider's `disable*` props to remove the optional ones.

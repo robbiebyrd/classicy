@@ -12,6 +12,16 @@ export const CLASSICY_STYLE_ELEMENT_ID = "classicy-styles";
 export const CLASSICY_LAYER_ORDER =
 	"@layer classicy.base, classicy.package, classicy.user;";
 
+/**
+ * `css` with CLASSICY_LAYER_ORDER before its first rule, for a stylesheet
+ * served as a file (dist/classicy.css). A leading `@charset` stays first: it
+ * only counts as a linked file's first bytes.
+ */
+export const prependLayerOrder = (css: string): string => {
+	const charset = /^@charset "[^"]*";\n?/.exec(css)?.[0] ?? "";
+	return `${charset}${CLASSICY_LAYER_ORDER}\n${css.slice(charset.length)}`;
+};
+
 const UNSAFE_IN_SCRIPT: Record<string, string> = {
 	"<": "\\u003C",
 	">": "\\u003E",

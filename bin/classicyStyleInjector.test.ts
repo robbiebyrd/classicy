@@ -3,6 +3,7 @@ import {
 	CLASSICY_LAYER_ORDER,
 	CLASSICY_STYLE_ELEMENT_ID,
 	classicyStyleInjector,
+	prependLayerOrder,
 } from "./classicyStyleInjector";
 
 // Runs the injector exactly as a bundle would: as plain script code.
@@ -27,7 +28,8 @@ describe("classicyStyleInjector (#303)", () => {
 		expect(styles[0].textContent).toBe(
 			`${CLASSICY_LAYER_ORDER}\n.a{color:red}`,
 		);
-		// First in <head>, so a host stylesheet wins ties.
+		// First in <head>, so its layer order statement precedes any host
+		// layer (and unlayered host rules beat it whatever their position).
 		expect(document.head.firstChild).toBe(styles[0]);
 	});
 
@@ -62,5 +64,19 @@ describe("classicyStyleInjector (#303)", () => {
 	it("does nothing without a document", () => {
 		const code = classicyStyleInjector(".a{}");
 		expect(() => new Function("document", code)(undefined)).not.toThrow();
+	});
+});
+
+describe("prependLayerOrder", () => {
+	it("puts the layer order before the CSS", () =>
+		expect(prependLayerOrder(".a{}")).toBe(`${CLASSICY_LAYER_ORDER}\n.a{}`));
+
+	it("keeps a leading @charset first, where a linked file needs it", () => {
+		expect(prependLayerOrder('@charset "UTF-8";.a{}')).toBe(
+			`@charset "UTF-8";${CLASSICY_LAYER_ORDER}\n.a{}`,
+		);
+		expect(prependLayerOrder('@charset "UTF-8";\n.a{}')).toBe(
+			`@charset "UTF-8";\n${CLASSICY_LAYER_ORDER}\n.a{}`,
+		);
 	});
 });

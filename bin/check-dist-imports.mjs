@@ -265,12 +265,20 @@ const LAYER_ORDER = "@layer classicy.base, classicy.package, classicy.user;";
 // The order statement, then the first component stylesheet's (minified)
 // layer block. Vite hoists a `@charset` to the top of the CSS: the injected
 // text keeps it after the statement (it means nothing in a <style>), the
-// linked file before it (it only counts as a file's first bytes).
+// linked file before it (it only counts as a file's first bytes). Each
+// component file also starts with the (minified) statement, for pages with
+// no HTML entry; the repeats are no-ops.
 const CHARSET = '(?:@charset "[^"]*";\\s*)?';
 const ORDER = LAYER_ORDER.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const REPEATS =
+	"(?:@layer classicy\\.base,\\s*classicy\\.package,\\s*classicy\\.user;\\s*)*";
 const BASE_BLOCK = "@layer classicy\\.base\\s*\\{";
-const INJECTED_START = new RegExp(`^${ORDER}\\n${CHARSET}${BASE_BLOCK}`);
-const LINKED_START = new RegExp(`^${CHARSET}${ORDER}\\n${BASE_BLOCK}`);
+const INJECTED_START = new RegExp(
+	`^${ORDER}\\n${CHARSET}${REPEATS}${BASE_BLOCK}`,
+);
+const LINKED_START = new RegExp(
+	`^${CHARSET}${ORDER}\\n${REPEATS}${BASE_BLOCK}`,
+);
 
 // The CSS text the injector at `at` writes: its `textContent=` string
 // literal, decoded.
