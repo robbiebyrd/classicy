@@ -1,8 +1,6 @@
 // The Platinum icon look (from ClassicyIcon.scss): the halftone dither drawn
 // through the icon's mask.
 @use "../mixins";
-@use "../scrollbars";
-@use "../assets";
 
 @mixin icon {
   .classicyIconMask {

@@ -1,9 +1,7 @@
 // The Platinum desktop look (from ClassicyDesktop.scss): the scroll bars of
 // the desktop and everything in it. The package root is the desktop itself,
 // so `&` here is `.classicyDesktop[data-classicy-appearance="platinum"]`.
-@use "../mixins";
 @use "../scrollbars";
-@use "../assets";
 
 @mixin desktop {
   &,

@@ -15,10 +15,11 @@
 }
 
 .appleGuideWindow .classicyAssistantHeader {
-  // box-sizing: border-box so the platinumWindowHeaderBorder mixin's 1px top
-  // and bottom borders sit inside the measured 42px band instead of adding to
-  // it. The mixin's own bottom edge (system-05) stands in for the capture's
-  // #969696 rule under the title.
+  // box-sizing: border-box so the 1px top and bottom borders of the
+  // platinum-window-header-border mixin (Appearance/Platinum/styles/_mixins.scss)
+  // sit inside the measured 42px band instead of adding to it. The mixin's own
+  // bottom edge (system-05) stands in for the capture's #969696 rule under the
+  // title.
   box-sizing: border-box;
   height: 42px;
   padding: 0 12px;

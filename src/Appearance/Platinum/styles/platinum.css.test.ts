@@ -1417,6 +1417,56 @@ describe("the moved Platinum mixin files", () => {
 			}"
 		`));
 
+	// The mixins local to a component partial (the Control Strip bevels, the
+	// slider thumb), which the `./appearance/platinum/scss/*` wildcard export
+	// also exposes, pinned the same way. The Part B final review matched their
+	// compiled declarations against the originals in ClassicyControlStrip.scss
+	// and ClassicySlider.scss; the slider thumb is included with the normal
+	// (raised) body gradient its first call site passes.
+	const controlStripMixin = (name: string) =>
+		include(`${STYLES}/components/ControlStrip`, name, "");
+
+	it("platinum-control-strip-bevel-raised compiles to its pinned output", () =>
+		expect(
+			controlStripMixin("platinum-control-strip-bevel-raised"),
+		).toMatchInlineSnapshot(`
+			".x {
+			  background: linear-gradient(var(--color-white), var(--color-white)) 1px 1px/calc(100% - 3px) 1px no-repeat, linear-gradient(var(--color-white), var(--color-white)) 1px 1px/1px calc(100% - 3px) no-repeat, linear-gradient(var(--color-system-04), var(--color-system-04)) calc(100% - 1px) 2px/1px calc(100% - 4px) no-repeat, linear-gradient(var(--color-system-04), var(--color-system-04)) 2px calc(100% - 1px)/calc(100% - 3px) 1px no-repeat, linear-gradient(var(--color-system-05), var(--color-system-05)) 100% 1px/1px calc(100% - 1px) no-repeat, linear-gradient(var(--color-system-05), var(--color-system-05)) 1px 100%/calc(100% - 1px) 1px no-repeat, var(--color-system-03);
+			}"
+		`));
+
+	it("platinum-control-strip-bevel-recessed compiles to its pinned output", () =>
+		expect(
+			controlStripMixin("platinum-control-strip-bevel-recessed"),
+		).toMatchInlineSnapshot(`
+			".x {
+			  background: linear-gradient(var(--color-system-05), var(--color-system-05)) 0 0/1px calc(100% - 1px) no-repeat, linear-gradient(var(--color-system-05), var(--color-system-05)) 0 0/calc(100% - 1px) 1px no-repeat, linear-gradient(var(--color-white), var(--color-white)) 100% 1px/1px calc(100% - 1px) no-repeat, linear-gradient(var(--color-white), var(--color-white)) 1px 100%/calc(100% - 1px) 1px no-repeat, var(--color-system-03);
+			}"
+		`));
+
+	it("platinum-control-strip-bevel-pressed compiles to its pinned output", () =>
+		expect(
+			controlStripMixin("platinum-control-strip-bevel-pressed"),
+		).toMatchInlineSnapshot(`
+			".x {
+			  background: linear-gradient(var(--color-system-06), var(--color-system-06)) 0 0/calc(100% - 1px) 1px no-repeat, linear-gradient(var(--color-system-06), var(--color-system-06)) 0 1px/calc(100% - 2px) 1px no-repeat, linear-gradient(var(--color-system-06), var(--color-system-06)) 0 0/1px calc(100% - 1px) no-repeat, linear-gradient(var(--color-system-06), var(--color-system-06)) 1px 0/1px calc(100% - 2px) no-repeat, linear-gradient(var(--color-system-03), var(--color-system-03)) 100% 1px/1px calc(100% - 1px) no-repeat, linear-gradient(var(--color-system-03), var(--color-system-03)) calc(100% - 1px) 1px/1px calc(100% - 1px) no-repeat, linear-gradient(var(--color-system-03), var(--color-system-03)) 1px calc(100% - 1px)/calc(100% - 1px) 1px no-repeat, linear-gradient(var(--color-system-03), var(--color-system-03)) 1px 100%/calc(100% - 1px) 1px no-repeat, var(--color-system-05);
+			}"
+		`));
+
+	it("platinum-slider-thumb compiles to its pinned output", () =>
+		expect(
+			include(
+				`${STYLES}/components/Slider`,
+				"platinum-slider-thumb",
+				"(linear-gradient(to bottom, var(--color-system-01), var(--color-system-04)))",
+			),
+		).toMatchInlineSnapshot(`
+			".x {
+			  clip-path: polygon(9% 2%, 92% 2%, 92% 56.6%, 50% 95%, 9% 56.6%);
+			  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 21 21'%3E%3Cpolygon points='0,0 21,0 21,13.02 10.5,21 0,13.02' fill='none' stroke='black' stroke-width='4'/%3E%3C/svg%3E") 0 0/100% 100% no-repeat, url("../../../../../assets/img/ui/slider-strikes.svg") center 30%/45% 35% no-repeat, linear-gradient(to bottom, var(--color-system-01), var(--color-system-04));
+			}"
+		`));
+
 	// The value 4.1 pinned against the original encode-color.
 	it("platinum-encode-color percent-encodes a color for a data URI", () =>
 		expect(

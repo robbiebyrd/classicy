@@ -4,9 +4,6 @@
 // The thumb's size, its rotation for each pointing direction and the ghost's
 // position stay in the base sheet. The nondirectional rules override the
 // pentagon thumb's clip-path and background, so they come with it, after it.
-@use "../mixins";
-@use "../scrollbars";
-@use "../assets";
 
 // Pentagon: flat top + right/left sides down to 62%, then arrow-point to 100%
 $thumb-shape: polygon(9% 2%, 92% 2%, 92% 56.6%, 50% 95%, 9% 56.6%);

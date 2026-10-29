@@ -1,7 +1,6 @@
 // The Platinum menu look (from ClassicyMenu.scss): the menu frame of HIGOS8
 // Figure 6-15 on every menu, its dividers, and the submenu triangle.
 @use "../mixins";
-@use "../scrollbars";
 @use "../assets";
 
 @mixin menu {

@@ -1,7 +1,5 @@
 // The Platinum window-frame look (from ClassicyWindowFrame.scss): the
 // pinstriped title bar. The size follows the shorthand, which resets it.
-@use "../mixins";
-@use "../scrollbars";
 @use "../assets";
 
 @mixin windowFrame {

@@ -1,8 +1,6 @@
 // The Platinum list view look (from ClassicyTable.scss): the column headers'
 // bevel and the sorted column's pressed-in header.
 @use "../mixins";
-@use "../scrollbars";
-@use "../assets";
 
 @mixin table {
   .classicyTableColumnHeader {

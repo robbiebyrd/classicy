@@ -3,9 +3,6 @@
 // drawn as px-rect background layers. The cells' size, black separators and
 // glyph positions are structure and stay in the base sheet.
 @use "../../../vocabulary/layout";
-@use "../mixins";
-@use "../scrollbars";
-@use "../assets";
 
 // Raised (normal) cell: face ring, white highlight 1 px in on the top and left,
 // #a5a5a5 then #848484 on the bottom and right.

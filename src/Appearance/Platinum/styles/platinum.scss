@@ -6,9 +6,6 @@
 // (the order of their `@layer classicy.base` blocks in an unminified
 // dist/classicy.css), so a tie between two partials resolves as it did there.
 @use "../../vocabulary/package";
-@use "mixins";
-@use "scrollbars";
-@use "assets";
 @use "components/Alert";
 @use "components/Button";
 @use "components/BevelButton";

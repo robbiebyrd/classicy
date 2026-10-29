@@ -2,8 +2,6 @@
 // beveled border. Apple Guide's restyle of the band (AppleGuide.scss) sets
 // only its box, height, font and fill, none of which this sets.
 @use "../mixins";
-@use "../scrollbars";
-@use "../assets";
 
 @mixin assistant {
   .classicyAssistantHeader {
