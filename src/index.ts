@@ -267,6 +267,7 @@ export * from "./SystemFolder/SystemResources/Triangle/ClassicyTriangle";
 export * from "./SystemFolder/SystemResources/Utils/base64Compression";
 export * from "./SystemFolder/SystemResources/Utils/deepMerge";
 export * from "./SystemFolder/SystemResources/Utils/urlValidation";
+export * from "./SystemFolder/SystemResources/Utils/withoutZIndex";
 export * from "./SystemFolder/SystemResources/Window/ClassicyWindow";
 export * from "./SystemFolder/SystemResources/Window/ClassicyWindowContext";
 export * from "./SystemFolder/SystemResources/Window/ClassicyWindowFrame";

@@ -22,6 +22,7 @@ import {
 	type ClassicyFileDropTarget,
 	startClassicyFileDrag,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
+import { withoutZIndex } from "@/SystemFolder/SystemResources/Utils/withoutZIndex";
 
 interface ClassicyIconProps {
 	/** Owning app id; prefixes the element's DOM id (`<appId>.shortcut-…`). */
@@ -105,15 +106,6 @@ interface ClassicyIconProps {
  * directly — jsdom has no layout engine, so a simulated drag would only ever
  * measure zeros.
  */
-/** A consumer style without `zIndex`, which the icon states own. */
-const withoutZIndex = (
-	style: CSSProperties | undefined,
-): CSSProperties | undefined => {
-	if (style?.zIndex === undefined) return style;
-	const { zIndex: _zIndex, ...rest } = style;
-	return rest;
-};
-
 export const snapToGrid = (
 	position: [number, number],
 	pitch: [number, number],

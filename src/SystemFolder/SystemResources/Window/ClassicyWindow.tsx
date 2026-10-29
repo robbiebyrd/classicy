@@ -10,6 +10,7 @@ import {
 	useKeyboardEquivalents,
 } from "@/SystemFolder/SystemResources/Keyboard/useKeyboardEquivalents";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import { withoutZIndex } from "@/SystemFolder/SystemResources/Utils/withoutZIndex";
 import "./ClassicyWindow.scss";
 import classNames from "classnames";
 import {
@@ -432,14 +433,12 @@ interface ClassicyWindowProps {
 	style?: CSSProperties;
 }
 
-/** A consumer style without the keys the window states own (`zIndex`). */
-function withoutStateOwnedStyle(
-	style: CSSProperties | undefined,
-): CSSProperties | undefined {
-	if (style?.zIndex === undefined) return style;
-	const { zIndex: _zIndex, ...rest } = style;
-	return rest;
-}
+/**
+ * A consumer style without the keys the window states own (`zIndex`). The
+ * window's geometry is not stripped here: it wins because `windowStyle` is
+ * spread after this result.
+ */
+const withoutStateOwnedStyle = withoutZIndex;
 
 // Mounted document windows by app + window id, so an unmount can tell whether
 // the same window has mounted again before its deferred close runs.
@@ -1649,6 +1648,8 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			? (document.getElementById("classicyDesktop") ?? document.body)
 			: null;
 
+	const front = modal || isActive();
+
 	const windowContent = !ws.closed && (
 		// biome-ignore lint/a11y/useKeyWithClickEvents: application container captures clicks for focus
 		<div
@@ -1664,8 +1665,8 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 					: "classicyWindowDocument",
 				classicyStateClasses({
 					collapsed: ws.collapsed,
-					active: modal || isActive(),
-					inactive: !(modal || isActive()),
+					active: front,
+					inactive: !front,
 					dragging: ws.moving,
 				}),
 				currentApp?.focused && !isActive() ? "classicyWindowActiveApp" : "",

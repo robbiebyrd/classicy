@@ -5,6 +5,7 @@ import {
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
+import { withoutZIndex } from "@/SystemFolder/SystemResources/Utils/withoutZIndex";
 import "@/SystemFolder/SystemResources/BalloonHelp/ClassicyBalloonHelp.scss";
 import {
 	type ClassicyIconBalloonHelp,
@@ -117,15 +118,6 @@ interface ClassicyDesktopIconProps {
 }
 
 /** File-backed icons drag as files; drives and the Trash only take drops. */
-/** A consumer style without `zIndex`, which the icon states own. */
-const withoutZIndex = (
-	style: CSSProperties | undefined,
-): CSSProperties | undefined => {
-	if (style?.zIndex === undefined) return style;
-	const { zIndex: _zIndex, ...rest } = style;
-	return rest;
-};
-
 const draggedAsFile = (kind: string, filePath: string | undefined) =>
 	filePath !== undefined && kind !== "drive" && kind !== "trash";
 
