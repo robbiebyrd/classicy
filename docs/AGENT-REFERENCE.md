@@ -614,7 +614,9 @@ document.querySelector('[data-classicy-part="clock"]')
 merged, never replacing anything: `className` is appended after the root and
 state classes (`<ClassicyButton className="wide">` renders
 `class="classicyButton … wide"`), and `style` is spread after the component's
-own inline style, except for the values the component owns:
+own inline style, so a consumer key wins over the component's own — custom
+properties included — except window geometry and `zIndex`, which the window
+and icon states own:
 
 - `ClassicyWindow` keeps its stored geometry over `style`, and drops
   `zIndex` from it (the stacking band belongs to the window manager;
@@ -623,8 +625,10 @@ own inline style, except for the values the component owns:
   `.classicyWindow.dragging` / `.inactive`, not inline.
 - Custom properties a component sets on its root (the desktop's theme
   variables, `ClassicyListBox`'s visible-rows count, `ClassicyWindowFrame`'s
-  width, the Control Strip's position, an icon's position and size) survive a
-  consumer `style`.
+  width, the Control Strip's position, an icon's size) are overridden by the
+  same key in a consumer `style`, as is any other inline key. On `ClassicyIcon`
+  and `ClassicyDesktopIcon` a `left`/`top` in `style` overrides the drag
+  position, so the icon stops following its drag.
 - With a label wrapper (`ClassicyMeter`, `ClassicyOutput`,
   `ClassicyProgressBar`, `ClassicyRadioInput`, `ClassicySlider`,
   `ClassicyListBox`), the props land on the wrapper when a label is shown and

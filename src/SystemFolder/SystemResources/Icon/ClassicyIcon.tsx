@@ -93,7 +93,9 @@ interface ClassicyIconProps {
 	/** Extra class names, merged onto the root element after the component's own. */
 	className?: string;
 	/**
-	 * Inline style, merged onto the root element after the component's own.
+	 * Inline style, merged onto the root element after the component's own, so
+	 * its keys win — including `--desktop-icon-size`. A `left`/`top` here
+	 * overrides the icon's position, so the icon no longer follows a drag.
 	 * Stacking belongs to the icon states (ClassicyIcon.scss: 10, dragging 500), so a
 	 * `zIndex` here is dropped.
 	 */
