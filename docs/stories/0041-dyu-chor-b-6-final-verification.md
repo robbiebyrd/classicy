@@ -3,11 +3,18 @@ id: 0041-dyu
 title: 'B 6: Final verification'
 purpose: Run the full gate for Part B and prove every Storybook story is pixel-identical after the package extraction and the decorator change.
 type: chor
-status: pending
+status: in_progress
 priority: "2"
 effort: S
 created: "2026-10-28T20:15:20.746Z"
-updated: "2026-10-29T20:22:00.352Z"
+updated: "2026-10-29T21:44:58.965Z"
+started: "2026-10-29T21:44:56.938Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy
@@ -73,3 +80,5 @@ Stop the background Storybook / dev servers started by this plan.
 
 ## Work Log
 ### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
+
+### 2026-10-29T21:44:58.965Z - Started on the integrated feat/appearance-part-b HEAD d46ece610 (4.3a, 4.3b, 4.3c ba391e984, and 5.1 cherry-picked as a900dae78/27a330356/d46ece610). The verification agent runs the full gate (lint, tsc, vitest --maxWorkers=3, build:source with invariants 7+8, the example and Storybook builds), the Phase 6 bundle greps, and full-set parity (302 screenshots, computed dumps, forced Chromium 67 and Firefox 6) into after-b6*. Verify-only: it fixes nothing and stops on any failure. The 4.3c review runs in parallel.

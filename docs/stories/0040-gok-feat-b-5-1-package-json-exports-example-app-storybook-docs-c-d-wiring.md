@@ -3,12 +3,13 @@ id: 0040-gok
 title: 'B 5.1: package.json exports, example app, Storybook, docs, C/D wiring'
 purpose: Expose the vocabulary and the Platinum package through package.json exports, re-point the example app and Storybook, document packages, and wire parts C/D into the Platinum registration when they are present.
 type: feat
-status: in_progress
+status: complete
 priority: "2"
 effort: M
 created: "2026-10-28T20:15:04.099Z"
-updated: "2026-10-29T21:16:39.758Z"
+updated: "2026-10-29T21:44:47.294Z"
 started: "2026-10-29T20:34:41.037Z"
+completed: "2026-10-29T21:44:47.294Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -37,19 +38,19 @@ links:
     - ["0005-1b3", "included", ["5.1"]]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
   "5":
-    status: pending
+    status: complete
   "6":
-    status: pending
+    status: complete
   "7":
-    status: pending
+    status: complete
 ---
 
 # B 5.1: package.json exports, example app, Storybook, docs, C/D wiring
@@ -94,9 +95,9 @@ package.json `exports`: `"./scss/*": "./src/Appearance/vocabulary/*"`, `"./appea
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm exec vitest run src/Appearance/ClassicyPackageExports.test.ts && pnpm build:source
-- [ ] package.json exports ./scss/* (vocabulary), ./appearance/platinum and ./appearance/platinum/scss/*; files ships src/Appearance; the example app and Storybook build.
-- [ ] AGENT-REFERENCE.md and CLAUDE.md document the package registry, packageId, ChangeAppearancePackage, theme.package and the new export paths; the C/D wiring outcome is recorded in the commit body.
+- [x] VERIFY: pnpm exec vitest run src/Appearance/ClassicyPackageExports.test.ts && pnpm build:source
+- [x] package.json exports ./scss/* (vocabulary), ./appearance/platinum and ./appearance/platinum/scss/*; files ships src/Appearance; the example app and Storybook build.
+- [x] AGENT-REFERENCE.md and CLAUDE.md document the package registry, packageId, ChangeAppearancePackage, theme.package and the new export paths; the C/D wiring outcome is recorded in the commit body.
 
 ## Files
 
@@ -116,3 +117,5 @@ package.json `exports`: `"./scss/*": "./src/Appearance/vocabulary/*"`, `"./appea
 ### 2026-10-29T20:34:41.738Z - Started in parallel with B 4.3c, for maximum concurrency at the user's request. Worktree part-b-43a, branch feat/appearance-part-b-51, base 50433055c (4.3a and 4.3b integrated). Owns package.json, Platinum/index.ts, the example app (bridge removal), the Storybook decorator (useClassicyAssetVars per E-B4) and docs; 4.3c owns the SCSS, the guard test and deleting the old modules. Implementer dispatched.
 
 ### 2026-10-29T21:16:39.757Z - Implementer DONE_WITH_CONCERNS at a77b68688: exports, files (plus src/Appearance/.npmignore, because the `!` patterns in package.json files had no effect), the ./appearance/platinum shim (R4), dist/classicy-platinum.css byte-identical to the injected package CSS, mandatory invariant 7, the bridge deleted, the Storybook decorator, docs; gate 330 files / 3986 tests, build:source + verify:dist, build:storybook, 302/302 stories AE 0. Its concern was the example's production build failing tsc -b in HyperCardPluginsDemo.tsx (plugin commands rejected by HCAction; on main since f645b976c); the controller fixed it in 2913f74bb with a pluginAction helper typed through HCPluginAction, and the example build passes. Controller re-ran lint, tsc and src/Appearance + bin (31 files / 553 tests) green. Pushed feat/appearance-part-b-51; reviewer dispatched; it integrates onto feat/appearance-part-b after 4.3c.
+
+### 2026-10-29T21:44:45.844Z - Review APPROVED (Critical 0, Important 0, Minor 5). Final round 630bf7498 fixed four minors: the npm/pnpm `!`-pattern claim corrected after testing both packers; a pack test asserting what each packer actually ships; test/story declarations excluded from dist/types plus verify:dist invariant 8 (pnpm tarball 1421 → 714 files); a misnamed package stylesheet now fails the build. Minor 3 (CI does not build the example) became story 0085-c3x. Controller verified lint, tsc, build:source (invariants 7+8) and 104 pack/bin tests. Integrated onto feat/appearance-part-b as a900dae78, 27a330356, d46ece610 (clean cherry-picks over 4.3c) and pushed. B 6 is re-running the full gate, the example and Storybook builds, and full parity on the integrated HEAD. Complete.
