@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@/__tests__/test-utils";
+import { fireEvent, render, screen, within } from "@/__tests__/test-utils";
 import { ClassicyColorPickerDialog } from "@/SystemFolder/SystemResources/ColorPicker/ClassicyColorPickerDialog";
 
 const mockDispatch = vi.hoisted(() => vi.fn());
@@ -72,16 +72,18 @@ describe("ClassicyColorPickerDialog mode list", () => {
 	it("is a listbox whose selection the arrow keys, Home and End move", () => {
 		render(<ClassicyColorPickerDialog id="mode-list-dialog" open={true} />);
 		const list = screen.getByRole("listbox", { name: "Color picker mode" });
+		// Query the mode list, not the document: the Crayons panel holds dozens
+		// more options, and every role query recomputes jsdom styles for each
+		// candidate after a DOM change (hundreds of ms per call over the dialog).
 		const selected = () =>
-			screen
+			within(list)
 				.getAllByRole("option", { selected: true })
-				.filter((o) => list.contains(o))
 				.map((o) => o.textContent);
 		expect(selected()).toEqual(["Crayons"]);
 		fireEvent.keyDown(list, { key: "ArrowDown" });
 		expect(selected()).toEqual(["RGB"]);
 		expect(list.getAttribute("aria-activedescendant")).toBe(
-			screen.getByRole("option", { name: "RGB" }).id,
+			within(list).getByRole("option", { name: "RGB" }).id,
 		);
 		fireEvent.keyDown(list, { key: "End" });
 		expect(selected()).toEqual(["CMYK"]);
@@ -89,7 +91,7 @@ describe("ClassicyColorPickerDialog mode list", () => {
 		expect(selected()).toEqual(["CMYK"]); // stays on the last mode
 		fireEvent.keyDown(list, { key: "Home" });
 		expect(selected()).toEqual(["Crayons"]);
-		fireEvent.click(screen.getByRole("option", { name: "HSV" }));
+		fireEvent.click(within(list).getByRole("option", { name: "HSV" }));
 		expect(selected()).toEqual(["HSV"]);
 	});
 });
