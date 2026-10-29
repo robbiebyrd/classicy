@@ -761,12 +761,19 @@ Five kinds (`ClassicyAssetKind`):
 | `fonts` | font faces, `fonts.<family>.<weight>-<style>` | `registerClassicyFonts` |
 | `systemArt` | named pieces of system artwork (`ClassicySystemArtKey`) | `registerClassicySystemArt` |
 
-An asset is a `ClassicyAssetSource`, a plain string: an imported URL, a relative
-or `http(s)` URL, or a `data:` URI. `isClassicyAssetSource` refuses any other
-scheme and anything that could break out of a quoted CSS `url("…")`.
+An asset is a `ClassicyAssetSource`, a plain string: an imported URL, a relative,
+`http(s)` or `blob:` URL, a `data:` URI, or an absolute URL on the library
+module's own protocol (`new URL(import.meta.url).protocol`) or the page's
+(`location.protocol`), so `file:` (Electron), `app:`, `tauri:`, `capacitor:` and
+extension hosts work. `isClassicyAssetSource` refuses any other scheme,
+`javascript:` and `vbscript:` always (case-insensitive, after trimming), and any
+string holding a `"`, `\`, CR or LF, which could break out of the quoted CSS
+`url("…")` every emitter writes. Spaces and parentheses are fine.
 `registerClassicyAssets` (so every `registerClassicy*` registrar) checks each
 leaf with it: an invalid leaf is skipped with a `classicyLog` warning naming the
-kind, package and dotted path, and the rest of the tree still registers.
+kind, package and dotted path, and the rest of the tree still registers. A
+namespace whose every leaf is skipped is left out, so it never replaces an
+existing asset with an empty namespace.
 
 ### Registering
 
