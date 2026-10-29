@@ -370,6 +370,74 @@ describe("ClassicyDesktopImportTheme — appearance packages", () => {
 		expect(appearance(state).activeTheme.color.black).toBe(0x010101);
 	});
 
+	describe("moving a squatting import aside", () => {
+		const testPackage = (
+			id: string,
+			presetIds: string[] = [`${id}-one`],
+		): ClassicyAppearancePackage => {
+			const presets = presetIds.map((presetId) => ({
+				...structuredClone(getTheme("azul")),
+				id: presetId,
+				name: presetId,
+				package: id,
+			}));
+			return {
+				id,
+				name: id,
+				css: "",
+				defaults: presets[0],
+				presets,
+				layout: {
+					window: { growBoxCorner: "bottom-right" },
+					menuBar: { placement: "screen" },
+					desktop: { iconGridOrigin: "top-right" },
+				},
+			};
+		};
+
+		/** Imports "Ocean" for `importPackage`, then forks under a later "ocean". */
+		const forkOverImportedOcean = (importPackage: string) => {
+			let state = run(
+				makeStore(),
+				importTheme(fileTheme({ name: "Ocean", package: importPackage })),
+			);
+			expect(appearance(state).activeTheme.id).toBe("custom-ocean");
+			registerClassicyAppearancePackage(testPackage("ocean"));
+			state = run(state, {
+				type: "ClassicyDesktopChangeAppearancePackage",
+				packageId: "ocean",
+			});
+			state = run(state, {
+				type: "ClassicyDesktopChangeColor",
+				colorKey: "black",
+				color: 0x010101,
+			});
+			expect(appearance(state).activeTheme.id).toBe("custom-ocean");
+			expect(appearance(state).activeTheme.package).toBe("ocean");
+			return appearance(state).customThemes?.find(
+				(t) => t.package === importPackage,
+			);
+		};
+
+		it("skips a preset id of the import's own package", () => {
+			// Reef ships a preset whose id is custom-ocean-2: the moved import
+			// must not be shadowed by it while Reef is active.
+			registerClassicyAppearancePackage(
+				testPackage("reef", ["reef-one", "custom-ocean-2"]),
+			);
+			const moved = forkOverImportedOcean("reef");
+			expect(moved?.id).toBe("custom-ocean-3");
+			expect(moved?.name).toBe("Ocean");
+		});
+
+		it("skips a registered package's Custom slot id", () => {
+			// custom-ocean-2 is the "ocean-2" package's fork slot.
+			registerClassicyAppearancePackage(testPackage("ocean-2"));
+			const moved = forkOverImportedOcean("platinum");
+			expect(moved?.id).toBe("custom-ocean-3");
+		});
+	});
+
 	it("never duplicates a preset name or id of the active package", () => {
 		const preset = (id: string, name: string) => ({
 			...structuredClone(getTheme("azul")),

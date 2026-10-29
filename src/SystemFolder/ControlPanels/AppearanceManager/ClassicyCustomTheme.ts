@@ -1,5 +1,9 @@
 import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
 import type { ClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
+import {
+	getRegisteredClassicyAppearancePackageOrDefault,
+	listClassicyAppearancePackages,
+} from "@/Appearance/ClassicyAppearancePackageRegistry";
 import type {
 	ClassicyStoreSystemAppearanceManager,
 	ClassicyTheme,
@@ -139,10 +143,21 @@ export const editActiveClassicyTheme = (
 			// package was registered (import slugs and `custom-<packageId>`
 			// share a namespace). Move it aside under the next free numbered
 			// id, keeping its name and data; it is never the active theme
-			// here, since a built-in is.
+			// here, since a built-in is. The id avoids what an import's does:
+			// every theme, the moved theme's own package's presets (which
+			// ChangeTheme would find first) and every registered package's
+			// Custom slot. Both lookups are store-free (J-R16).
+			const ownPresets =
+				getRegisteredClassicyAppearancePackageOrDefault(
+					themePackageId(customs[slot]),
+				)?.presets ?? [];
 			const ids = new Set([
 				...customs.map((t) => t.id),
 				...(appearance.availableThemes ?? []).map((t) => t.id),
+				...ownPresets.map((t) => t.id),
+				...listClassicyAppearancePackages().map((pkg) =>
+					classicyCustomThemeSlotId(pkg.id),
+				),
 			]);
 			let moved = `${next.id}-2`;
 			for (let n = 3; ids.has(moved); n++) moved = `${next.id}-${n}`;
