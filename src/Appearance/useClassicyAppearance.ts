@@ -9,14 +9,17 @@ import {
 	useSyncExternalStore,
 } from "react";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
+import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
+import { CLASSICY_FALLBACK_APPEARANCE_PACKAGE } from "./ClassicyAppearanceFallback";
+import type {
+	ClassicyAppearanceDecoration,
+	ClassicyAppearanceEvent,
+	ClassicyAppearancePackage,
+} from "./ClassicyAppearancePackage";
 import {
-	CLASSICY_FALLBACK_APPEARANCE_PACKAGE,
-	type ClassicyAppearanceDecoration,
-	type ClassicyAppearanceEvent,
-	type ClassicyAppearancePackage,
 	getClassicyAppearancePackage,
 	subscribeClassicyAppearancePackages,
-} from "./ClassicyAppearancePackage";
+} from "./ClassicyAppearancePackageRegistry";
 import { runWithClassicyAppearanceSoundDispatch } from "./ClassicyAppearanceSound";
 import {
 	getActiveClassicyAppearancePackageId,
@@ -28,12 +31,14 @@ import {
 	classicyStateClasses,
 } from "./vocabulary/ClassicyVocabulary";
 
+const SUBSYSTEM = "ClassicyAppearance";
+
 // The active package is read without the store: the asset registry already
 // follows the store's resolved package id (its listeners fire on a switch),
-// and the package registry fires on (re)registration. Components that wire
-// this hook therefore never call `useAppManager`, so tests that mock the
-// store with partial fixtures keep working; a store that never connects its
-// source resolves to Platinum.
+// and the package registry fires on (re)registration. This module never
+// imports the app manager's store (useClassicyAppearance.storeFree.test.ts),
+// so wiring it into a component adds no store read and no store import; a
+// store that never connects its source resolves to Platinum.
 const subscribeActivePackage = (onChange: () => void): (() => void) => {
 	const unsubscribeAssets = subscribeClassicyAssets(onChange);
 	const unsubscribePackages = subscribeClassicyAppearancePackages(onChange);
@@ -47,6 +52,39 @@ const subscribeActivePackage = (onChange: () => void): (() => void) => {
 const getActivePackage = (): ClassicyAppearancePackage =>
 	getClassicyAppearancePackage(getActiveClassicyAppearancePackageId()) ??
 	CLASSICY_FALLBACK_APPEARANCE_PACKAGE;
+
+// A package may add data attributes, never others (`id`, `role`, `aria-*`)
+// nor Classicy's own part attributes (`data-classicy-*`).
+const PACKAGE_ATTRIBUTE = /^data-(?!classicy-)/;
+
+// Dropped attributes are reported once per package and key, in development.
+const reportedDroppedAttributes = new Set<string>();
+
+const packageAttributes = (
+	packageId: string,
+	attrs: Record<string, string>,
+): Record<string, string> => {
+	const kept: Record<string, string> = {};
+	for (const [key, value] of Object.entries(attrs)) {
+		if (PACKAGE_ATTRIBUTE.test(key)) {
+			kept[key] = value;
+			continue;
+		}
+		const reportKey = `${packageId}\u0000${key}`;
+		if (
+			process.env.NODE_ENV !== "production" &&
+			!reportedDroppedAttributes.has(reportKey)
+		) {
+			reportedDroppedAttributes.add(reportKey);
+			classicyLog(
+				"warn",
+				SUBSYSTEM,
+				`Package "${packageId}" set the attribute "${key}"; only data-* attributes outside data-classicy-* are applied.`,
+			);
+		}
+	}
+	return kept;
+};
 
 type EmittedDecoration = {
 	/** The package whose handler returned it; a switch drops it. */
@@ -63,15 +101,29 @@ type EmittedDecoration = {
  * emitted one's), and `emit`, which runs the package's
  * `hooks.on[component][event]` handler synchronously with the latest state and
  * `ref.current`. Sounds a handler plays (`playClassicyAppearanceSound`) go
- * through this component's sound dispatch. A handler that returns a
- * decoration (even `{}`) replaces the emitted one; returning nothing keeps it.
- * A package switch drops it.
+ * through this component's sound dispatch.
  *
- * `mount` is emitted once after the first commit and `unmount` on unmount
- * (in development StrictMode React runs that effect twice, so a handler sees
- * mount, unmount, mount). With no package hooks the result is a pure function
- * of `state`: `className` is `classicyStateClasses(state)`, `style` is
- * undefined and `attrs` is `{}`.
+ * - A handler that returns a decoration (even `{}`) replaces the emitted one;
+ *   returning nothing keeps it. One returned from any emit before unmount
+ *   applies, including an emit from a layout effect on the first commit.
+ * - The emitted decoration belongs to the package id whose handler returned
+ *   it: switching to another package drops it (switching back does not bring
+ *   it back), while re-registering the same id keeps it.
+ * - `attrs` holds only `data-*` keys outside `data-classicy-*`; anything else
+ *   a package sets (`id`, `role`, `aria-*`, part attributes) is dropped and,
+ *   in development, reported once. Spread `attrs` before the component's own
+ *   attributes.
+ * - Package code never breaks the component: a handler or `decorate()` that
+ *   throws is logged as an error (subsystem "ClassicyAppearance") and counts
+ *   as returning nothing.
+ * - `mount` is emitted once after the first commit and `unmount` on unmount.
+ *   React has detached refs by then, so an `unmount` handler sees
+ *   `element: null`. In development StrictMode React runs that effect twice,
+ *   so a handler sees mount, unmount, mount.
+ *
+ * With no package hooks the result is a pure function of `state`:
+ * `className` is `classicyStateClasses(state)`, `style` is undefined and
+ * `attrs` is `{}`.
  */
 export function useClassicyAppearance<E extends HTMLElement = HTMLElement>(
 	component: ClassicyComponentName,
@@ -101,23 +153,38 @@ export function useClassicyAppearance<E extends HTMLElement = HTMLElement>(
 	packageRef.current = pkg;
 	const stateRef = useRef(state);
 	stateRef.current = state;
-	const mountedRef = useRef(false);
+	// Tracks unmount rather than mount, so a decoration returned before the
+	// passive mount effect (a layout-effect emit) still applies.
+	const unmountedRef = useRef(false);
 
 	const emit = useCallback(
 		(event: ClassicyAppearanceEvent, detail?: unknown) => {
 			const active = packageRef.current;
 			const handler = active.hooks?.on?.[component]?.[event];
 			if (!handler) return;
-			const result = runWithClassicyAppearanceSoundDispatch(soundDispatch, () =>
-				handler({
-					component,
-					event,
-					element: ref?.current ?? null,
-					state: stateRef.current,
-					detail,
-				}),
+			const result = runWithClassicyAppearanceSoundDispatch(
+				soundDispatch,
+				() => {
+					try {
+						return handler({
+							component,
+							event,
+							element: ref?.current ?? null,
+							state: stateRef.current,
+							detail,
+						});
+					} catch (error) {
+						classicyLog(
+							"error",
+							SUBSYSTEM,
+							`${component}.${event} handler threw; ignored.`,
+							error,
+						);
+						return undefined;
+					}
+				},
 			);
-			if (!result || typeof result !== "object" || !mountedRef.current) return;
+			if (!result || typeof result !== "object" || unmountedRef.current) return;
 			setEmitted({ packageId: active.id, decoration: result });
 		},
 		[component, soundDispatch, ref],
@@ -126,10 +193,11 @@ export function useClassicyAppearance<E extends HTMLElement = HTMLElement>(
 	emitRef.current = emit;
 
 	useEffect(() => {
-		mountedRef.current = true;
+		// Reset on every setup: StrictMode re-runs it after a cleanup.
+		unmountedRef.current = false;
 		emitRef.current("mount");
 		return () => {
-			mountedRef.current = false;
+			unmountedRef.current = true;
 			emitRef.current("unmount");
 		};
 	}, []);
@@ -139,10 +207,19 @@ export function useClassicyAppearance<E extends HTMLElement = HTMLElement>(
 	// Keyed on the state classes, which name exactly the true states, so the
 	// returned style and attrs keep their identity between equal renders.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: stateClasses stands for state.
-	const decorated = useMemo(
-		() => decorate?.(component, state),
-		[decorate, component, stateClasses],
-	);
+	const decorated = useMemo(() => {
+		try {
+			return decorate?.(component, state);
+		} catch (error) {
+			classicyLog(
+				"error",
+				SUBSYSTEM,
+				`${component}.decorate threw; ignored.`,
+				error,
+			);
+			return undefined;
+		}
+	}, [decorate, component, stateClasses]);
 
 	return useMemo(() => {
 		const className = [
@@ -156,7 +233,10 @@ export function useClassicyAppearance<E extends HTMLElement = HTMLElement>(
 			decorated?.style || emittedDecoration?.style
 				? { ...decorated?.style, ...emittedDecoration?.style }
 				: undefined;
-		const attrs = { ...decorated?.attrs, ...emittedDecoration?.attrs };
+		const attrs = packageAttributes(pkg.id, {
+			...decorated?.attrs,
+			...emittedDecoration?.attrs,
+		});
 		return { className, style, attrs, emit };
-	}, [stateClasses, decorated, emittedDecoration, emit]);
+	}, [pkg.id, stateClasses, decorated, emittedDecoration, emit]);
 }
