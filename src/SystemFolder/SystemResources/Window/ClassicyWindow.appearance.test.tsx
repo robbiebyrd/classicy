@@ -136,13 +136,40 @@ describe("ClassicyWindow appearance", () => {
 		).toEqual([{ event: "collapse", detail: { all: true, input: "pointer" } }]);
 	});
 
-	it("emits zoom { zoomed } from the zoom box", () => {
+	it("emits zoom { zoomed, cause: zoom } from the zoom box", () => {
 		renderWindow();
 		click(part("classicyWindowZoomBox"));
 		fireEvent.keyDown(part("classicyWindowZoomBox"), { key: " " });
 		expect(emitted().filter((e) => e.event === "zoom")).toEqual([
-			{ event: "zoom", detail: { zoomed: true, input: "pointer" } },
-			{ event: "zoom", detail: { zoomed: false, input: "keyboard" } },
+			{
+				event: "zoom",
+				detail: { zoomed: true, input: "pointer", cause: "zoom" },
+			},
+			{
+				event: "zoom",
+				detail: { zoomed: false, input: "keyboard", cause: "zoom" },
+			},
+		]);
+	});
+
+	it("names collapse and resize-start as the cause of their zoom { zoomed: false }", () => {
+		renderWindow();
+		click(part("classicyWindowCollapseBox"));
+		click(part("classicyWindowCollapseBox"));
+		fireEvent.mouseDown(part("classicyWindowResizer"), {
+			clientX: 340,
+			clientY: 250,
+		});
+		fireEvent.mouseUp(root(), { clientX: 340, clientY: 250 });
+		expect(emitted().filter((e) => e.event === "zoom")).toEqual([
+			{
+				event: "zoom",
+				detail: { zoomed: false, input: "pointer", cause: "collapse" },
+			},
+			{
+				event: "zoom",
+				detail: { zoomed: false, input: "pointer", cause: "resize" },
+			},
 		]);
 	});
 

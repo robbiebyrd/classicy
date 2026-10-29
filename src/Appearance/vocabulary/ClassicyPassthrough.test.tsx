@@ -1144,12 +1144,18 @@ describe("appearance package style under passthrough", () => {
 		geometryCases,
 	)("%s: the package's style never moves or restacks it", (_name, make, root) => {
 		const probe = installClassicyAppearanceProbe({
-			on: { mount: () => ({ style: { left: 901, top: 902, zIndex: 77 } }) },
+			on: {
+				mount: () => ({
+					style: { left: 901, top: 902, zIndex: 77, marginLeft: 3 },
+				}),
+			},
 		});
 		try {
 			const { container } = render(make(), { wrapper: Providers });
 			const el = root(container);
 			expect(el).toHaveAttribute("data-probe-state");
+			// The same decoration does apply: only the geometry is refused.
+			expect(el.style.marginLeft).toBe("3px");
 			expect(el.style.left).not.toBe("901px");
 			expect(el.style.top).not.toBe("902px");
 			expect(el.style.zIndex).toBe("");
