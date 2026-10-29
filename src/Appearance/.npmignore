@@ -1,5 +1,7 @@
 # Published with the package (package.json "files": "src/Appearance"), minus
-# tests and test helpers. A nested .npmignore applies inside a "files"
-# directory; a "!" pattern in "files" itself does not.
+# tests and test helpers. npm and pnpm both honor a nested .npmignore inside a
+# "files" directory. A "!" pattern in "files" itself would not do: npm 11
+# honors it, but pnpm 10 ignores it. ClassicyPackageExports.test.ts checks
+# what both packers really pack.
 *.test.*
 __tests__/
