@@ -3,12 +3,13 @@ id: 0044-uvc
 title: 'I 2.1: Controls group 1: Button, BevelButton, Checkbox, RadioInput, PopUpMenu, ComboBox, Input, ListBox'
 purpose: Wire useClassicyAppearance into the eight basic control roots so a package can decorate them and receive their press, release, click, open, close, change, focus, blur and select events.
 type: feat
-status: in_progress
+status: complete
 priority: "2"
 effort: L
 created: "2026-10-28T20:17:02.861Z"
-updated: "2026-10-29T20:22:00.352Z"
+updated: "2026-10-29T20:41:07.094Z"
 started: "2026-10-29T17:30:58.233Z"
+completed: "2026-10-29T20:41:07.094Z"
 tags: []
 milestone: ""
 due_date: ""

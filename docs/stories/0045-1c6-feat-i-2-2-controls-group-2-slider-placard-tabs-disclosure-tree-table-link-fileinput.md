@@ -3,12 +3,13 @@ id: 0045-1c6
 title: 'I 2.2: Controls group 2: Slider, Placard, Tabs, Disclosure, Tree, Table, Link, FileInput'
 purpose: Wire useClassicyAppearance into the second group of control roots so a package can decorate them and receive their drag, press, select, change, expand, collapse and click events.
 type: feat
-status: in_progress
+status: complete
 priority: "2"
 effort: L
 created: "2026-10-28T20:17:37.615Z"
-updated: "2026-10-29T20:22:00.352Z"
+updated: "2026-10-29T20:41:06.208Z"
 started: "2026-10-29T18:25:53.340Z"
+completed: "2026-10-29T20:41:06.208Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -52,7 +53,7 @@ progress:
   "4":
     status: complete
   "5":
-    status: pending
+    status: rejected
   "6":
     status: complete
 ---
@@ -93,9 +94,9 @@ Re-shoot controls-slider*, controls-placard*, controls-tabs*, controls-disclosur
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/{Slider,Placard,Tabs,Disclosure,Tree,Table,Link,FileInput} -t appearance
-- [ ] The eight roots carry the probe decoration and the listed state classes, emit the listed events with their detail payloads, and add no DOM attribute or inline style when the package returns nothing.
-- [ ] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
+- [x] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/{Slider,Placard,Tabs,Disclosure,Tree,Table,Link,FileInput} -t appearance
+- [x] The eight roots carry the probe decoration and the listed state classes, emit the listed events with their detail payloads, and add no DOM attribute or inline style when the package returns nothing.
+- [x] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
 
 ## Files
 

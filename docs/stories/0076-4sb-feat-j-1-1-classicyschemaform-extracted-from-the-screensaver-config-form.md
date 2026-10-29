@@ -3,12 +3,13 @@ id: 0076-4sb
 title: 'J 1.1: ClassicySchemaForm extracted from the ScreenSaver config form'
 purpose: Extract the saver-specific, flat ScreenSaver options form into a generic nested zod-object form that the Appearance panel's Options tab can reuse, keeping the Screen Saver panel pixel-identical.
 type: feat
-status: in_progress
+status: complete
 priority: "2"
 effort: M
 created: "2026-10-28T20:40:40.229Z"
-updated: "2026-10-29T20:22:00.352Z"
+updated: "2026-10-29T20:41:28.713Z"
 started: "2026-10-29T16:19:32.394Z"
+completed: "2026-10-29T20:41:08.210Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -45,7 +46,7 @@ progress:
   "5":
     status: complete
   "6":
-    status: pending
+    status: rejected
   "7":
     status: complete
 ---
