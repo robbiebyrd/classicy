@@ -3,11 +3,18 @@ id: 0015-uth
 title: 'G 3.1: readClassicyThemeVar and ClassicyWindow geometry'
 purpose: Give JS one way to read a theme metric from CSS and route the window's menu-bar height, zoom margin and resize inset through it instead of hard-coded numbers.
 type: impr
-status: pending
+status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T19:57:13.886Z"
-updated: "2026-10-28T19:57:13.886Z"
+updated: "2026-10-29T16:53:58.662Z"
+started: "2026-10-29T16:53:57.937Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy
@@ -88,3 +95,5 @@ This story adds `ClassicyThemeMetricReader.ts` (`classicyDefaultThemeVarPx`, `re
 - `src/index.ts` - regenerated barrel
 
 ## Work Log
+
+### 2026-10-29T16:53:58.662Z - Started ahead of its depends story 0014-2b5 (G 2.2, the SCSS readers), which waits for Part B per ruling G11; 3.1 is TypeScript-only and needs only 2.1's emitted variables (--menu-bar-height, --window-zoom-margin, --window-resize-inset). Ruling G6 applied to the contract (0002-ldj amendments): readClassicyThemeVar(name, fallback?, el?). Binding notes: lazily cached default-theme fallback, resize inset read once per gesture, reader kept out of reducer-side imports. Base 531e283bd on feat/appearance-part-g; implementer dispatched. Parity deferred until after B lands.
