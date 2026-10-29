@@ -3,11 +3,18 @@ id: 0060-ez9
 title: 'F 1.1: useClassicyAppearanceLayout, getThemeVars layout variables, desktop root attributes'
 purpose: 'Give JS and CSS one reader for the active package''s layout declarations: a hook and getter, three --classicy-layout-* variables from getThemeVars, and two attributes on the desktop root.'
 type: feat
-status: pending
+status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T20:29:01.741Z"
-updated: "2026-10-28T20:29:01.741Z"
+updated: "2026-10-29T23:18:42.183Z"
+started: "2026-10-29T23:18:40.166Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy
@@ -108,3 +115,5 @@ Spread `classicyLayoutVars(getClassicyAppearanceLayout(theme.package))` into the
 - `src/index.ts` - regenerate barrel
 
 ## Work Log
+
+### 2026-10-29T23:18:42.182Z - Started on the landed Part B (29a15c243; worktree part-f, branch feat/appearance-part-f). B already created useClassicyAppearanceLayout.ts (the default layout, a store-free getter, the hook, classicyLayoutVars), so this task does only the rest: spread classicyLayoutVars on the desktop root beside the theme vars and add data-classicy-menu-bar and data-classicy-grow-box. Superseded plan text: the contract amendment (layout vars come from classicyLayoutVars, not getThemeVars) and ruling B-R18 (the active package comes from Appearance.packageId, never theme.package) override step 4 and the second acceptance criterion. The reconciliation predates B's landing and is being re-verified. Parity runs against the shared post-B baseline. Implementer dispatched.

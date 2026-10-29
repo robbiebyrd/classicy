@@ -2,11 +2,17 @@
 id: 0010-743
 title: 'Part F: Arrangement slots'
 type: impl
-status: pending
+status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T19:26:28.560Z"
-updated: "2026-10-28T19:38:39.371Z"
+updated: "2026-10-29T23:18:45.270Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy
