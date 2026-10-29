@@ -70,6 +70,7 @@ export const CLASSICY_COMPONENT = {
 	Link: "classicyLink",
 	ListBox: "classicyListBox",
 	LittleArrows: "classicyLittleArrows",
+	Menu: "classicyMenu",
 	MenuItem: "classicyMenuItem",
 	Meter: "classicyMeter",
 	Output: "classicyOutput",
