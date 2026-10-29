@@ -9,7 +9,7 @@ $sb-arrow-2x: calc(var(--window-scrollbar-arrow-size) * 2);
 // Arrow glyph mixins
 //
 // Each draws a Platinum scroll-arrow triangle pointing one direction over a
-// background colour, via four stacked gradient stripes (2x / 1.5x / 1x wide
+// background color, via four stacked gradient stripes (2x / 1.5x / 1x wide
 // bands plus a solid stem). Direction is the gradient angle; vertical arrows
 // are wide-over-short bands, horizontal arrows are tall-over-narrow (the band
 // sizes swap). These are the same glyphs the control drew before the Smart
@@ -229,7 +229,7 @@ $sb-arrow-2x: calc(var(--window-scrollbar-arrow-size) * 2);
 
 @mixin platinum-scrollbars-inactive() {
   // Firefox / standards fallback for the inactive (blurred window) state:
-  // flatten the thumb into the track using neutral system greys.
+  // flatten the thumb into the track using neutral system grays.
   // Guarded for the same reason as in platinum-scrollbars() above.
   @supports not selector(::-webkit-scrollbar) {
     & {

@@ -10,7 +10,7 @@
 
 // The Platinum menu frame, pixel-for-pixel from HIGOS8 Figure 6-15: a 1 px
 // black border; inside it a white highlight on the top and left and a
-// system-04 edge on the bottom and right, meeting at face-coloured corners;
+// system-04 edge on the bottom and right, meeting at face-colored corners;
 // outside it a 1 px system-07 shadow on the right and bottom that starts 2 px
 // in from the corner. The shadow is drawn by ::before/::after, so the element
 // must be positioned (menus are absolute; give a static one `relative`).

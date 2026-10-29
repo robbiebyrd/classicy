@@ -123,7 +123,7 @@ describe("parseClassicyThemeFile — accepted input", () => {
 		expect(parseOk(bare)).toEqual(theme("plum"));
 	});
 
-	it("accepts a bare themes.json-style entry naming its wallpaper", () => {
+	it("accepts a bare platinum.json preset naming its wallpaper", () => {
 		const t = theme("bondi");
 		t.desktop.backgroundImage = "waves_bondi.png";
 		expect(parseOk(JSON.stringify(t)).desktop.backgroundImage).toBe(

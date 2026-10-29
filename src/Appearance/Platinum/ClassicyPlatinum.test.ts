@@ -58,7 +58,9 @@ describe("the Platinum appearance package", () => {
 		expect(parsed.success, JSON.stringify(parsed.error?.issues)).toBe(true);
 		expect(pkg?.defaults.package).toBe("platinum");
 		expect(typeof pkg?.css).toBe("string");
-		// The options schema is built from the (empty) knobs.
+		// The package carries platinum.json's (empty) knobs, and the options
+		// schema is built from them.
+		expect(pkg?.knobs).toEqual(platinumJson.knobs);
 		expect(pkg?.options?.parse({})).toEqual({});
 	});
 
