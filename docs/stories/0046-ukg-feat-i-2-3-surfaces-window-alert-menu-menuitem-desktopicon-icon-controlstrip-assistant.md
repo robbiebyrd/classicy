@@ -3,12 +3,13 @@ id: 0046-ukg
 title: 'I 2.3: Surfaces: Window, Alert, Menu, MenuItem, DesktopIcon, Icon, ControlStrip, Assistant'
 purpose: Wire useClassicyAppearance into the window, alert, menu, icon, control strip and assistant roots so a package can decorate them and receive focus, collapse, expand, zoom, close, drag, press, release, open, select and change events.
 type: feat
-status: in_progress
+status: complete
 priority: "2"
 effort: L
 created: "2026-10-28T20:18:19.144Z"
-updated: "2026-10-29T21:27:25.220Z"
+updated: "2026-10-29T21:36:14.619Z"
 started: "2026-10-29T19:28:41.968Z"
+completed: "2026-10-29T21:36:14.619Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -42,17 +43,17 @@ links:
     - ["0006-dy6", "included", ["2.3"]]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
   "5":
-    status: pending
+    status: rejected
   "6":
-    status: pending
+    status: complete
 ---
 
 # I 2.3: Surfaces: Window, Alert, Menu, MenuItem, DesktopIcon, Icon, ControlStrip, Assistant
@@ -91,9 +92,9 @@ Re-shoot desktop-window*, desktop-desktop*, desktop-desktopicon*, desktop-menu*,
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/{Window,Alert,Menu,Desktop,Icon,ControlStrip,Assistant} -t appearance
-- [ ] Window, Alert, Menu, MenuItem, DesktopIcon, Icon, ControlStrip and Assistant roots carry the probe decoration and the listed state classes and emit the listed events (one dragEnd per window gesture, one release per menu flash); every pre-existing Window and Menu test still passes.
-- [ ] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
+- [x] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/{Window,Alert,Menu,Desktop,Icon,ControlStrip,Assistant} -t appearance
+- [x] Window, Alert, Menu, MenuItem, DesktopIcon, Icon, ControlStrip and Assistant roots carry the probe decoration and the listed state classes and emit the listed events (one dragEnd per window gesture, one release per menu flash); every pre-existing Window and Menu test still passes.
+- [x] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
 
 ## Files
 
@@ -123,3 +124,5 @@ Re-shoot desktop-window*, desktop-desktop*, desktop-desktopicon*, desktop-menu*,
 ### 2026-10-29T21:06:06.605Z - Implementer DONE_WITH_CONCERNS at 848cdde6e. Review: Needs fixes, with one Important finding. A submenu leaf's flash bubbles animationend to every ancestor <li>, which emits a spurious release with no press. The new test missed it because jsdom never delivers fireEvent.animationEnd to React. Fix round 1 dispatched: own-target guard (I-R7), two tests using a real bubbling webkitAnimationEnd, plus the MenuItem focus/blur ancestor-echo minor.
 
 ### 2026-10-29T21:27:25.219Z - Fix round 1 DONE_WITH_CONCERNS at 41793c78b: menu-flash own-target guard with two tests using a real bubbling webkitAnimationEnd (both RED first); focus/blur ancestor echoes removed; dividers skip the hook; a hover-opened submenu reports pointer input; desktop-icon select fires only on a change; Passthrough positive control; 4102 tests, DOM dump identical. Rulings: I-R16 adopted (Window zoom detail carries cause zoom|collapse|resize); Finder outline-drag events moved to follow-up story 0084-fd7; the dead spacer branch goes in I 3.2. Round 1b sent: convert the older fireEvent.animationEnd menu test, which only exercised the fallback, to the real event.
+
+### 2026-10-29T21:36:13.575Z - Fix round 1b (16c405d12) converted the old fireEvent.animationEnd menu test to a real bubbling webkitAnimationEnd; mutation checks show it now fails when the event path breaks. Fix re-review APPROVED (Critical 0, Important 0, Minor 3): guard confirmed in the emitting handler, the I-R4 DOM dump byte-identical, keyboard paths and zoom.cause correct at all three sites. Carry-forwards: an own-target guard test goes to I 3.2; the docs rows go to I 4.1. Controller: lint and tsc clean; surfaces, src/Appearance and src/__tests__ 106 files / 1276 tests green (the full suite was 4102 green at 41793c78b). Pushed. Complete; the screenshot check lives in 0083-v8n.
