@@ -3,12 +3,13 @@ id: 0013-qck
 title: 'G 2.1: ClassicyThemeDerivations.ts and getThemeVars emission'
 purpose: 'Name the Platinum proportions once: a derivation table with formula, doc and Platinum value for each, emitted by `getThemeVars` and pinned by tests.'
 type: feat
-status: in_progress
+status: complete
 priority: "2"
 effort: M
 created: "2026-10-28T19:54:56.238Z"
-updated: "2026-10-29T16:34:28.899Z"
+updated: "2026-10-29T16:50:50.526Z"
 started: "2026-10-29T16:34:28.899Z"
+completed: "2026-10-29T16:50:50.526Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -32,15 +33,15 @@ links:
     - ["0004-vqt", "included", ["2.1"]]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
   "5":
-    status: pending
+    status: complete
 ---
 
 # G 2.1: ClassicyThemeDerivations.ts and getThemeVars emission
@@ -77,10 +78,10 @@ This story adds `ClassicyThemeDerivations.ts` with `CLASSICY_THEME_DERIVATIONS` 
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.test.ts -t 'named derivation'
-- [ ] `getThemeVars(getTheme("default"))` emits all 35 named derivations with the pinned values (e.g. `--window-collapsed-height` 15px, `--menu-bar-height` 30px, `--popup-height` 25.5px, `--ui-font-size-compact` 11.667px) and they change with the inputs.
-- [ ] The pre-existing 11 derivations (`--control-row-height` 18px, `--edit-field-height` 22px, …) are unchanged; `--menu-item-height` is not emitted.
-- [ ] `CLASSICY_THEME_DERIVATIONS` has 35 unique `--`-prefixed cssVars, each with a formula and a doc naming its reader.
+- [x] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.test.ts -t 'named derivation'
+- [x] `getThemeVars(getTheme("default"))` emits all 35 named derivations with the pinned values (e.g. `--window-collapsed-height` 15px, `--menu-bar-height` 30px, `--popup-height` 25.5px, `--ui-font-size-compact` 11.667px) and they change with the inputs.
+- [x] The pre-existing 11 derivations (`--control-row-height` 18px, `--edit-field-height` 22px, …) are unchanged; `--menu-item-height` is not emitted.
+- [x] `CLASSICY_THEME_DERIVATIONS` has 35 unique `--`-prefixed cssVars, each with a formula and a doc naming its reader.
 
 ## Files
 
@@ -93,3 +94,5 @@ This story adds `ClassicyThemeDerivations.ts` with `CLASSICY_THEME_DERIVATIONS` 
 ## Work Log
 
 ### 2026-10-29T16:34:27.965Z - Started out of chain order by controller decision (ruling G11): its `depends` story 0012-3av (G 1.2, literal colors) touches component stylesheets Part B 4.2/4.3 is moving, so it waits for B; 2.1 is TypeScript-only (ClassicyThemeDerivations.ts + getThemeVars) and needs nothing from 1.2. Branch feat/appearance-part-g from 08b34b126; implementer dispatched.
+
+### 2026-10-29T16:50:44.179Z - Done on feat/appearance-part-g, 08b34b126..531e283bd: ClassicyThemeDerivations.ts (35 named derivations with formula, doc and compute; px3) spread into getThemeVars; the measurements walker reserves the 35 names (ruling G4, warn once). Part B's baseline fixture regenerated: controller-verified over all 21 themes — 0 keys removed, 0 values changed, exactly the 35 new keys added. The 14 pre-existing derivations (the AC's "11" is the plan's stale count) are unchanged; ruling G13 extends the reservation to them in G 2.2. Gate: lint, tsc, 330 files / 3911 tests, build:source + verify:dist; controller re-ran AppearanceManager + AppManager (34 files / 730 tests). Completed ahead of its depends story 0012-3av (G 1.2, deferred until Part B lands per G11); no visual effect until 2.2 reads the variables.
