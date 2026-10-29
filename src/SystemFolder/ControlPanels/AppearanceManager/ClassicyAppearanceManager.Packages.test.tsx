@@ -138,6 +138,22 @@ describe("usePackagesTab", () => {
 		);
 	});
 
+	it("sits in the shared Colors scroll region, so many packages never grow the window (J-R18)", () => {
+		render(
+			<Host
+				packages={listClassicyAppearancePackages()}
+				activePackageId="platinum"
+			/>,
+		);
+		const scroll = screen
+			.getByLabelText("Platinum (21 presets)")
+			.closest(".classicyAppearanceManagerColorsScroll");
+		expect(scroll).not.toBeNull();
+		expect(
+			scroll?.querySelector(".classicyAppearanceManagerPackageSwatches"),
+		).not.toBeNull();
+	});
+
 	it("keeps customThemes when the package changes (reducer)", () => {
 		const custom: ClassicyTheme = {
 			...structuredClone(getTheme("default")),
