@@ -363,6 +363,11 @@ describe("module load order", () => {
 			() =>
 				import("@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager"),
 		],
+		["the appearance hook", () => import("@/Appearance/useClassicyAppearance")],
+		[
+			"the appearance sound bridge",
+			() => import("@/Appearance/ClassicyAppearanceSound"),
+		],
 		["the library barrel", () => import("@/index")],
 		["the Platinum package module", () => import("@/Appearance/Platinum")],
 	])(
