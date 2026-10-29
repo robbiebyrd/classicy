@@ -7,7 +7,7 @@ status: complete
 priority: "2"
 effort: L
 created: "2026-10-28T20:07:25.344Z"
-updated: "2026-10-28T23:47:36.556Z"
+updated: "2026-10-29T20:22:00.352Z"
 started: "2026-10-28T23:34:32.411Z"
 completed: "2026-10-28T23:36:34.626Z"
 links:
@@ -23,6 +23,7 @@ links:
   specs:
     - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   stories:
+    - ["0083-v8n", "blocks"]
     - ["0029-4z8", "depends"]
   plans:
     - ["0008-j5l", "included", ["4.1"]]
@@ -103,7 +104,6 @@ Provider (`ClassicySoundManagerProvider.tsx:19-37`): `import "@/Appearance/Plati
 - [x] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerProvider.packs.test.tsx src/SystemFolder/ControlPanels/SoundManager/ClassicySoundStateEventReducer.test.ts
 - [x] The provider seeds its Howl from the persisted theme's pack before children's mount effects, loads a pack registered after mount, reloads on `sound.pack` change with the volume re-applied, and does not recreate the Howl on other theme edits.
 - [x] A sprite missing from the active pack plays on the Platinum fallback player; `ClassicySoundLoad` logs one `classicyLog` warning naming the missing ids and unloads the previous player; `grep -rn "applySoundTheme\|loadSoundTheme" src` is empty.
-- [~] [MANUAL] In the example app the boot chime plays once, Default → Azul → Default keeps button clicks sounding with no console warning, persisted state carries `"pack":"platinum"`, and a volume of 40 survives a theme switch.
 - [x] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
 
 ## Files
@@ -126,3 +126,5 @@ Provider (`ClassicySoundManagerProvider.tsx:19-37`): `import "@/Appearance/Plati
 ### 2026-10-28T23:47:36.438Z - pnpm lint passes repo-wide after 88ff181e6 (criterion 5 changed from not_applicable to done; controller verified lint 0, tsc 0, 3357/3357 tests)
 
 ### 2026-10-28T23:47:36.556Z - Whole-branch review fix wave 2bddbed76..88ff181e6 (loop stop across players; docs); merged a1a600a76
+
+### 2026-10-29T20:22:00.352Z - Moved the waived [MANUAL] listening pass (never performed by a person) to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.

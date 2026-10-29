@@ -7,7 +7,7 @@ status: pending
 priority: "2"
 effort: S
 created: "2026-10-28T20:39:40.133Z"
-updated: "2026-10-28T20:39:40.133Z"
+updated: "2026-10-29T20:22:00.352Z"
 links:
   repo:
     local: ~/classicy
@@ -19,6 +19,7 @@ links:
   specs:
     - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   stories:
+    - ["0083-v8n", "blocks"]
     - ["0073-wte", "depends"]
   plans:
     - ["0011-v9t", "included", ["7.1", "8"]]
@@ -72,8 +73,6 @@ AGENT-REFERENCE §8 gains a 'Package knob families' table (family → keys → C
 - [ ] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test && pnpm build:source
 - [ ] VERIFY: node bin/check-pixel-literals.ts; echo exit=$?  # expect exit=0, no output
 - [ ] VERIFY: grep -rnoE '(?<![\w.-])[1-9][0-9]*(\.[0-9]+)?px' src --include=*.scss | grep -v savers | grep -v '@media' | wc -l  # expect 0
-- [ ] [MANUAL] Every Phase 0 story and app screen compares AE 0 before vs after; the example app's `--control-strip-cell-height` reads `22px` and the Control Strip, menus, balloons and pager look unchanged.
-- [ ] [MANUAL] AGENT-REFERENCE §8 has the knob-families table and gate paragraph; CLAUDE.md has the Theming sentence; plan 0000-aud (the audit) §2.5 and §9 Phase 6 item 3 carry 'Done' lines.
 
 ## Files
 
@@ -83,3 +82,4 @@ AGENT-REFERENCE §8 gains a 'Package knob families' table (family → keys → C
 - `.playwright-mcp/parity/part-H/after` - create: the after-set compared against before
 
 ## Work Log
+### 2026-10-29T20:22:00.352Z - Moved 2 open [MANUAL] acceptance criteria to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.

@@ -7,7 +7,7 @@ status: pending
 priority: "2"
 effort: S
 created: "2026-10-28T20:34:27.417Z"
-updated: "2026-10-28T20:34:27.417Z"
+updated: "2026-10-29T20:22:00.352Z"
 links:
   repo:
     local: ~/classicy
@@ -17,6 +17,7 @@ links:
   specs:
     - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   stories:
+    - ["0083-v8n", "blocks"]
     - ["0041-dyu", "depends"]
     - ["0017-ih7", "depends"]
   plans:
@@ -64,7 +65,6 @@ HyperCard, Finder About This Computer, Finder Preferences and Drive Setup have n
 
 - [ ] VERIFY: `ls .playwright-mcp/parity/part-H/before/*.png | wc -l` equals stories.txt lines + 4
 - [ ] VERIFY: `test -f src/Appearance/Platinum/platinum.json && test -f src/Appearance/Platinum/styles/_mixins.scss && grep -c 'menu-item-height' src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.ts`
-- [ ] [MANUAL] Every before-screenshot shows the surface fully rendered (no blank frames, no loading state).
 
 ## Files
 
@@ -72,3 +72,4 @@ HyperCard, Finder About This Computer, Finder Preferences and Drive Setup have n
 - `.playwright-mcp/parity/part-H/before` - create: one PNG per story id plus four app screens
 
 ## Work Log
+### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.

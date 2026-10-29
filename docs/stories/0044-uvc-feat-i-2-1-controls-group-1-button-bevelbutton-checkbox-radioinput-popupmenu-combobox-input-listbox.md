@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T20:17:02.861Z"
-updated: "2026-10-29T18:25:11.753Z"
+updated: "2026-10-29T20:22:00.352Z"
 started: "2026-10-29T17:30:58.233Z"
 tags: []
 milestone: ""
@@ -38,6 +38,7 @@ links:
   specs:
     - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   stories:
+    - ["0083-v8n", "blocks"]
     - ["0043-u43", "depends"]
   plans:
     - ["0006-dy6", "included", ["2.1"]]
@@ -94,7 +95,6 @@ Re-shoot ids starting with controls-button, controls-bevelbutton, controls-check
 
 - [x] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/{Button,BevelButton,Checkbox,RadioInput,PopUpMenu,ComboBox,Input,ListBox} -t appearance
 - [x] The eight roots carry the probe decoration and the listed state classes, emit the listed events with their detail payloads, and add no DOM attribute or inline style when the package returns nothing.
-- [ ] [MANUAL] controls-button*, controls-bevelbutton*, controls-checkbox*, controls-radioinput*, controls-popupmenu*, controls-combobox*, controls-input* and controls-listbox* stories compare AE 0 before vs after.
 - [x] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
 
 ## Files
@@ -121,3 +121,5 @@ Re-shoot ids starting with controls-button, controls-bevelbutton, controls-check
 ### 2026-10-29T17:30:49.037Z - Started beside Part B by controller decision (I reconciliation marks the 2.x code safe early: B's remaining work is SCSS-only apart from 5.1's decorator and docs). Ruling I-R4 binds strictly: each component passes the hook exactly today's state object, so class lists and the forced-state matrix are unchanged. Base e0f358082 on feat/appearance-part-i; implementer dispatched. Parity deferred until after Part B lands. Depends story 0043-u43 (I 1.1) is complete.
 
 ### 2026-10-29T18:24:55.900Z - Code complete on feat/appearance-part-i, e0f358082..3c2dc4e76: a82ef5255 (the eight roots call useClassicyAppearance with exactly today's state objects per I-R4 — RadioInput and Input pass {} — so class lists, style values and attributes are byte-identical with no package hooks (24-state DOM dump; only a consumer style attribute now serializes after class on Button/BevelButton, which the parity dumps cannot see); attrs spread first (I-R5); every emit isolated (I-R13); close emitted when the open flag falls, so a pick reports change before close; passthrough rows prove consumer style beats package style for 5 components), 7345b7ad1 (review round 1: shared internal useClassicyMergedRef for Button/Input fixes React 19 cleanup-returning callback refs, with object/callback/cleanup ref tests; ListBox select emitted from applySelection with { value, selected }, so keyboard selection reports too), 3c2dc4e76 (final minors: forwarded-ref identity-change tests). Reviews: Needs fixes (I1 M4) → Approved (M2, both closed). Gate on 3c2dc4e76: lint, tsc, build:source + verify:dist, 3972 tests + the 0082-lgo (l) vocab-scan timeout under load (passes alone; fixed on the integration branch in bd555eb15). Doc rows for the docs task are in task-2.1-report.md (close timing, RadioInput change on user selection only, ListBox select per gesture). Stays in_progress for the [MANUAL] AE-0 parity of the eight controls' stories, deferred until after Part B lands.
+
+### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.

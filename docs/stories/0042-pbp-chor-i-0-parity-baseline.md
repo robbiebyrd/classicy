@@ -7,7 +7,7 @@ status: pending
 priority: "2"
 effort: S
 created: "2026-10-28T20:15:36.352Z"
-updated: "2026-10-28T20:15:36.352Z"
+updated: "2026-10-29T20:22:00.352Z"
 links:
   repo:
     local: ~/classicy
@@ -17,6 +17,7 @@ links:
   specs:
     - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   stories:
+    - ["0083-v8n", "blocks"]
     - ["0041-dyu", "depends"]
   plans:
     - ["0006-dy6", "included", ["0"]]
@@ -61,7 +62,6 @@ Playwright: each `iframe.html?id=<id>&viewMode=story` at 1024×768, networkidle 
 
 - [ ] VERIFY: test "$(ls .playwright-mcp/parity/part-i/before | wc -l)" -eq "$(wc -l < .playwright-mcp/parity/part-i/stories.txt)"
 - [ ] stories.txt lists every story id from Storybook's index.json (the full set).
-- [ ] [MANUAL] Each before PNG is a 1024×768 capture taken after networkidle + 500 ms.
 
 ## Files
 
@@ -69,3 +69,4 @@ Playwright: each `iframe.html?id=<id>&viewMode=story` at 1024×768, networkidle 
 - `.playwright-mcp/parity/part-i/before/` - created: one PNG per story id
 
 ## Work Log
+### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.

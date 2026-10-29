@@ -7,7 +7,7 @@ status: pending
 priority: "2"
 effort: L
 created: "2026-10-28T20:33:07.123Z"
-updated: "2026-10-28T20:33:07.123Z"
+updated: "2026-10-29T20:22:00.352Z"
 links:
   repo:
     local: ~/classicy
@@ -31,6 +31,7 @@ links:
   specs:
     - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   stories:
+    - ["0083-v8n", "blocks"]
     - ["0065-8mp", "depends"]
   plans:
     - ["0010-743", "included", ["7.1"]]
@@ -109,7 +110,6 @@ Re-shoot every id in `stories.txt` into `after/` and `for f in before/*.png; do 
 - [ ] VERIFY: pnpm exec vitest run MirroredPackage && cat .playwright-mcp/parity/part-F/mirrored.txt  # every entry true
 - [ ] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test && pnpm build:source && pnpm build:storybook
 - [ ] Six `--mirrored` stories exist (Window, Alert, Desktop, MenuBar, Tabs, Disclosure), driven by the registered `mirrored` package whose `layout` is `bottom-left` / `window` / `top-left`.
-- [ ] [MANUAL] Every Playwright position expression in Step 5 records `true`, and `compare -metric AE` is `0` for every pre-existing story in `stories.txt`.
 - [ ] `docs/AGENT-REFERENCE.md` has the "Layout declarations" subsection and `CLAUDE.md` the arrangement paragraph.
 
 ## Files
@@ -132,3 +132,4 @@ Re-shoot every id in `stories.txt` into `after/` and `for f in before/*.png; do 
 - `.playwright-mcp/parity/part-F/mirrored.txt` - create: Playwright position results
 
 ## Work Log
+### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.

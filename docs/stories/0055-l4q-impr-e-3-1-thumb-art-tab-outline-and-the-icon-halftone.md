@@ -7,7 +7,7 @@ status: pending
 priority: "2"
 effort: M
 created: "2026-10-28T20:25:11.193Z"
-updated: "2026-10-28T20:25:11.193Z"
+updated: "2026-10-29T20:22:00.352Z"
 links:
   repo:
     local: ~/classicy
@@ -23,6 +23,7 @@ links:
   specs:
     - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   stories:
+    - ["0083-v8n", "blocks"]
     - ["0054-b5i", "depends"]
   plans:
     - ["0009-agy", "included", ["3.1"]]
@@ -97,7 +98,6 @@ Both icon rules become `mask-image: var(--classicy-icon-mask), var(--classicy-ar
 - [ ] VERIFY: git grep -n 'data:image/svg\|theme-halftone\|encode-color' src --include='*.scss'  # expect no output
 - [ ] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Slider/ClassicySlider.art.test.ts src/SystemFolder/SystemResources/Tabs/ClassicyTabs.art.test.ts src/SystemFolder/SystemResources/Icon/ClassicyIcon.art.test.ts
 - [ ] Slider thumb layers keep their positions and sizes and read `--classicy-art-slider-*`; the tab outline is a `z-index: -1` masked `::before`; both icon masks intersect `--classicy-art-halftone` at `7%` over `--color-black`.
-- [ ] [MANUAL] `compare -metric AE` is `0` for every `controls-slider--*`, `controls-tabs--*`, `controls-icon--*`, `desktop-desktopicon--*` and `desktop-desktop--*` story.
 
 ## Files
 
@@ -111,3 +111,4 @@ Both icon rules become `mask-image: var(--classicy-icon-mask), var(--classicy-ar
 - `src/SystemFolder/SystemResources/Icon/ClassicyIcon.art.test.ts` - create: halftone mask assertions
 
 ## Work Log
+### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.

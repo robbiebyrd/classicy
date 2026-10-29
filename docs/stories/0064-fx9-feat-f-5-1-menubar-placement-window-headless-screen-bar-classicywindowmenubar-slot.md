@@ -7,7 +7,7 @@ status: pending
 priority: "2"
 effort: M
 created: "2026-10-28T20:31:22.637Z"
-updated: "2026-10-28T20:31:22.637Z"
+updated: "2026-10-29T20:22:00.352Z"
 links:
   repo:
     local: ~/classicy
@@ -25,6 +25,7 @@ links:
   specs:
     - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   stories:
+    - ["0083-v8n", "blocks"]
     - ["0063-n9x", "depends"]
   plans:
     - ["0010-743", "included", ["5.1"]]
@@ -90,7 +91,6 @@ Insert `<ClassicyWindowMenuBar appId={appId} windowId={id} menuItems={appMenu} /
 - [ ] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyShortcutDispatcher.integration.test.tsx
 - [ ] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Window/ClassicyWindowMenuBar.test.tsx src/SystemFolder/SystemResources/Desktop/ClassicyDesktop.layout.test.tsx
 - [ ] With `menuBar.placement: "window"` the screen bar renders nothing, each window with a non-empty `appMenu` renders `.classicyWindowMenuBar` under its title bar, and the chord integration test still fires the item; with `screen` nothing changes.
-- [ ] [MANUAL] `compare -metric AE` is `0` for every `desktop-desktop--*`, `desktop-window--*` and `desktop-app--*` story.
 
 ## Files
 
@@ -106,3 +106,4 @@ Insert `<ClassicyWindowMenuBar appId={appId} windowId={id} menuItems={appMenu} /
 - `src/index.ts` - regenerate barrel
 
 ## Work Log
+### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.

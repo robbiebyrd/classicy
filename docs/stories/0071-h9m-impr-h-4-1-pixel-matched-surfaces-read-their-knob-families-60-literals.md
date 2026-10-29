@@ -7,7 +7,7 @@ status: pending
 priority: "2"
 effort: M
 created: "2026-10-28T20:37:19.203Z"
-updated: "2026-10-28T20:37:19.203Z"
+updated: "2026-10-29T20:22:00.352Z"
 links:
   repo:
     local: ~/classicy
@@ -24,6 +24,7 @@ links:
   specs:
     - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   stories:
+    - ["0083-v8n", "blocks"]
     - ["0070-yf7", "depends"]
   plans:
     - ["0011-v9t", "included", ["4.1"]]
@@ -82,7 +83,6 @@ Menu frame (`_mixins.scss`, the former `platinumMenuFrame` lines 20-52): `border
 
 - [ ] VERIFY: node bin/check-pixel-literals.ts && ! grep -E 'Pager|BalloonHelp|PopUpSlider|_mixins|_scrollbars' bin/pixel-literal-allowlist.json
 - [ ] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Pager src/SystemFolder/SystemResources/BalloonHelp src/Appearance/Platinum/styles
-- [ ] [MANUAL] `desktop-menu--*`, `controls-pager--*`, `controls-balloonhelp--*`, `controls-popupslider--*` and `desktop-window--*` stories compare AE 0 before vs after.
 
 ## Files
 
@@ -97,3 +97,4 @@ Menu frame (`_mixins.scss`, the former `platinumMenuFrame` lines 20-52): `border
 - `src/Appearance/Platinum/styles/pixelLiterals.test.ts` - create: no-literal check over the three Platinum/PopUpSlider files
 
 ## Work Log
+### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.

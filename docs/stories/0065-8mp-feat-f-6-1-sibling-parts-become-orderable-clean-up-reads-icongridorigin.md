@@ -7,7 +7,7 @@ status: pending
 priority: "2"
 effort: L
 created: "2026-10-28T20:32:12.590Z"
-updated: "2026-10-28T20:32:12.590Z"
+updated: "2026-10-29T20:22:00.352Z"
 links:
   repo:
     local: ~/classicy
@@ -26,6 +26,7 @@ links:
   specs:
     - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   stories:
+    - ["0083-v8n", "blocks"]
     - ["0064-fx9", "depends"]
   plans:
     - ["0010-743", "included", ["6.1"]]
@@ -106,7 +107,6 @@ The header always renders triangle then label, with class `classicyDisclosureLab
 - [ ] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Alert src/SystemFolder/SystemResources/Disclosure src/SystemFolder/SystemResources/Tabs
 - [ ] Every non-help alert button carries `data-classicy-role`; `.classicyAlertIcon`/`.classicyAlertBody` have `order` 10/20 and buttons none; `labelPosition="left"` is the `classicyDisclosureLabelLeft` class with `order: -1`; `stripPosition="bottom"` is the `classicyTabStripBottom` class on a flex-column container.
 - [ ] `classicyDesktopIconGridPosition` returns `[880, 64]`, `[16, 64]`, `[880, 560]`, `[16, 560]` for the four origins at 1024×768 and `ClassicyDesktopIconCleanup` honors the active package's origin.
-- [ ] [MANUAL] `compare -metric AE` is `0` for every `dialogs-alert--*`, `controls-disclosure--*`, `controls-tabs--*`, `desktop-desktop--*` and `desktop-desktopicon--*` story.
 
 ## Files
 
@@ -123,3 +123,4 @@ The header always renders triangle then label, with class `classicyDisclosureLab
 - `src/SystemFolder/SystemResources/Tabs/ClassicyTabs.layout.test.ts` - create: flex column and strip class tests
 
 ## Work Log
+### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.

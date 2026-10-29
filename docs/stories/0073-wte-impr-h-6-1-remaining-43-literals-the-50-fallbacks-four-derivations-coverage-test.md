@@ -7,7 +7,7 @@ status: pending
 priority: "2"
 effort: L
 created: "2026-10-28T20:39:09.687Z"
-updated: "2026-10-28T20:39:09.687Z"
+updated: "2026-10-29T20:22:00.352Z"
 links:
   repo:
     local: ~/classicy
@@ -47,6 +47,7 @@ links:
   specs:
     - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   stories:
+    - ["0083-v8n", "blocks"]
     - ["0072-fjm", "depends"]
   plans:
     - ["0011-v9t", "included", ["6.1"]]
@@ -107,7 +108,6 @@ Derivations, added to `getThemeVars` ONLY if absent (`grep -c '<name>' ClassicyA
 - [ ] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.varCoverage.test.ts
 - [ ] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.test.ts -t 'focus ring, corner radius and window shadow'
 - [ ] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/HelpButton
-- [ ] [MANUAL] Only the two `--classicy-control-strip-*, 0px` instance fallbacks remain in `src/**/*.scss`; `ClassicyControlLabel.scss:77` keeps its `@media` breakpoint with the explanatory comment.
 
 ## Files
 
@@ -145,3 +145,4 @@ Derivations, added to `getThemeVars` ONLY if absent (`grep -c '<name>' ClassicyA
 - `src/SystemFolder/SystemResources/HelpButton/ClassicyHelpButton.test.tsx` - modify: expectations without fallbacks
 
 ## Work Log
+### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.

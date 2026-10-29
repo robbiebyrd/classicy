@@ -7,7 +7,7 @@ status: pending
 priority: "4"
 effort: M
 created: "2026-10-29T09:19:21.134Z"
-updated: "2026-10-29T18:23:13.937Z"
+updated: "2026-10-29T20:22:00.352Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -15,6 +15,8 @@ planned_start: ""
 planned_end: ""
 order: 0
 links:
+  stories:
+    - ["0083-v8n", "blocks"]
   repo:
     local: ~/classicy
   plans:
@@ -68,7 +70,6 @@ Do criterion (k), then run `pnpm lint && pnpm exec tsc --noEmit -p . && pnpm tes
 - [ ] VERIFY: (e) Test breadth: the cascade test pins all window state selectors (ActiveApp, Floating, Backgrounded, ModalFront, NoScroll, Dimmed); collision tests cover overridable positional and custom-property styles; a consumer height stays off a collapsed root; the movable-alert 370 band is covered; Placard disabled+pressed, MenuBar &:after, and FileInput error, Link, Output and ControlLabel disabled are covered; the generator's --check CLI path and a JSON shape guard are tested.
 - [ ] VERIFY: (f) Turning reduced motion off does not replay animations that a screen saver paused itself, and :has(#overlay) has a fallback or a documented browser floor.
 - [ ] VERIFY: (g) Dev CSS source maps are exact: classicyCssLayerPlugin uses MagicString instead of returning map: null.
-- [ ] [MANUAL] (h) The parity procedure adds one mid-time check for animated stories, since animations are currently frozen at t=0.
 - [ ] VERIFY: (i) In dev, the fonts <style> is inserted after #classicy-layer-order.
 - [ ] VERIFY: (j) The TEMPLATE_FAMILIES suffix lists in ClassicyVocabulary.test.ts are derived from the type unions rather than kept complete by a comment.
 - [ ] VERIFY: (k) Small cleanups are done: Finder rows no longer emit selected twice (ClassicyFileBrowserViewTable.tsx); Menu className versus navClass is documented; and a decision is recorded on whether withoutZIndex, now exported from the package root through the barrel, is documented or kept internal.
@@ -79,3 +80,5 @@ Do criterion (k), then run `pnpm lint && pnpm exec tsc --noEmit -p . && pnpm tes
 ### 2026-10-29T09:40:22.977Z - Criterion (a): for Part B, the cross-file order guard is met by the forced-state computed-style matrix (forced.cjs) that every look-moving task re-runs; the permanent CI guard stays in this story. Criterion (d): Part B moves scrollbars-inactive into the package unchanged (renamed platinum-*); this story removes it later.
 
 ### 2026-10-29T18:23:10.159Z - Item (l) done on feat/AppearancePackages in bd555eb15: the class-coverage scan and its negative twin share one cached parse of src (scanSourceTree behind scanClassicyTokens) and carry an explicit 60 s timeout (SCAN_TIMEOUT_MS). Gate on the integration branch: pnpm lint clean, tsc clean, pnpm test 315 files / 3716 tests. The part branches (G, I, J, and B's remaining tasks) pick it up when they rebase; until then their implementers rerun the scan alone on a timeout.
+
+### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.

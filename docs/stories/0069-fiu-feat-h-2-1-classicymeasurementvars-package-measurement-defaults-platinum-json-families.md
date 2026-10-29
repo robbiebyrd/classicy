@@ -7,7 +7,7 @@ status: pending
 priority: "2"
 effort: L
 created: "2026-10-28T20:36:01.303Z"
-updated: "2026-10-28T20:36:01.303Z"
+updated: "2026-10-29T20:22:00.352Z"
 links:
   repo:
     local: ~/classicy
@@ -24,6 +24,7 @@ links:
   specs:
     - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   stories:
+    - ["0083-v8n", "blocks"]
     - ["0068-02e", "depends"]
   plans:
     - ["0011-v9t", "included", ["2.1"]]
@@ -91,7 +92,6 @@ In `ClassicyAppearance.ts`: `ClassicyThemeMeasurements` becomes `{ window; contr
 - [ ] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics.test.ts src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.test.ts
 - [ ] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/AppManager/ClassicyStateMigrations.metrics.test.ts -t 'heals knob families'
 - [ ] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.test.ts -t 'emits every metric input and derivation for the default theme'  # core input names byte-identical
-- [ ] [MANUAL] `platinum.json` carries all 21 knob families on `defaults.measurements` and on every preset, and the Platinum `options` schema lists each family with `.describe()` labels.
 
 ## Files
 
@@ -106,3 +106,4 @@ In `ClassicyAppearance.ts`: `ClassicyThemeMeasurements` becomes `{ window; contr
 - `src/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema.test.ts` - modify: loose-measurements test
 
 ## Work Log
+### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.

@@ -7,7 +7,7 @@ status: pending
 priority: "2"
 effort: M
 created: "2026-10-28T20:15:04.099Z"
-updated: "2026-10-28T20:15:04.099Z"
+updated: "2026-10-29T20:22:00.352Z"
 links:
   repo:
     local: ~/classicy
@@ -24,6 +24,7 @@ links:
   specs:
     - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   stories:
+    - ["0083-v8n", "blocks"]
     - ["0039-63e", "depends"]
   plans:
     - ["0005-1b3", "included", ["5.1"]]
@@ -88,7 +89,6 @@ package.json `exports`: `"./scss/*": "./src/Appearance/vocabulary/*"`, `"./appea
 
 - [ ] VERIFY: pnpm exec vitest run src/Appearance/ClassicyPackageExports.test.ts && pnpm build:source
 - [ ] package.json exports ./scss/* (vocabulary), ./appearance/platinum and ./appearance/platinum/scss/*; files ships src/Appearance; the example app and Storybook build.
-- [ ] [MANUAL] In the running example the desktop root carries data-classicy-appearance="platinum", #classicy-appearance-platinum sits right after #classicy-styles, and switching Default → Azul → Default logs no console errors.
 - [ ] AGENT-REFERENCE.md and CLAUDE.md document the package registry, packageId, ChangeAppearancePackage, theme.package and the new export paths; the C/D wiring outcome is recorded in the commit body.
 
 ## Files
@@ -104,3 +104,4 @@ package.json `exports`: `"./scss/*": "./src/Appearance/vocabulary/*"`, `"./appea
 - `src/Appearance/ClassicyPackageExports.test.ts` - create: exports test
 
 ## Work Log
+### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.

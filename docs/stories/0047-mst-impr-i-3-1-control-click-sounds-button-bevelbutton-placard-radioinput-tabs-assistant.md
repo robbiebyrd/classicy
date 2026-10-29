@@ -7,7 +7,7 @@ status: pending
 priority: "2"
 effort: M
 created: "2026-10-28T20:18:59.762Z"
-updated: "2026-10-28T20:18:59.762Z"
+updated: "2026-10-29T20:22:00.352Z"
 links:
   repo:
     local: ~/classicy
@@ -27,6 +27,7 @@ links:
   specs:
     - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   stories:
+    - ["0083-v8n", "blocks"]
     - ["0046-ukg", "depends"]
   plans:
     - ["0006-dy6", "included", ["3.1"]]
@@ -85,7 +86,6 @@ hooks.ts: `export const platinumAppearanceHooks: ClassicyAppearanceHooks = { on:
 
 - [ ] VERIFY: pnpm exec vitest run src/Appearance/Platinum/hooks.test.ts src/Appearance/Platinum/hooks.controls.test.tsx
 - [ ] platinumAppearanceHooks maps Button/BevelButton/Placard/RadioInput/Tabs/Assistant events to their sprites and is registered as the Platinum package's hooks; the six component files dispatch no feedback sprite (regex /sound: "Classicy(Button|InputRadio|Tab|Menu)/ absent) while the error beep stays.
-- [ ] [MANUAL] In the example app the click sprites play on push buttons, bevel buttons and radio items with no sound-bridge warning in the console.
 - [ ] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
 
 ## Files
@@ -104,3 +104,4 @@ hooks.ts: `export const platinumAppearanceHooks: ClassicyAppearanceHooks = { on:
 - `src/Appearance/Platinum/hooks.controls.test.tsx` - create: behavior-survival tests
 
 ## Work Log
+### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.

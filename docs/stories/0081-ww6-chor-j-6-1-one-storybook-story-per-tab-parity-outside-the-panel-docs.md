@@ -7,7 +7,7 @@ status: pending
 priority: "2"
 effort: S
 created: "2026-10-28T20:44:05.904Z"
-updated: "2026-10-28T20:44:05.904Z"
+updated: "2026-10-29T20:22:00.352Z"
 links:
   repo:
     local: ~/classicy
@@ -20,6 +20,7 @@ links:
   specs:
     - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   stories:
+    - ["0083-v8n", "blocks"]
     - ["0080-xy4", "depends"]
   plans:
     - ["0012-pt9", "included", ["6.1", "7"]]
@@ -85,8 +86,6 @@ Example app: Packages tab shows Platinum checked; Options tab shows the Platinum
 - [ ] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test && pnpm build:storybook
 - [ ] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/AppearanceManager src/SystemFolder/SystemResources/SchemaForm
 - [ ] VERIFY: grep -rn 'ClassicySounds\|ClassicyWallpapers\b\|const ClassicyFonts' src/SystemFolder/ControlPanels/AppearanceManager | wc -l  # expect 0
-- [ ] [MANUAL] Every J 0 screenshot except `app-appearance-*` compares AE 0 before vs after; all nine `system-appearancemanager--*` stories render without console errors.
-- [ ] [MANUAL] AGENT-REFERENCE lists the new action, the metric family form, `ClassicySchemaForm` and the eight tabs; CLAUDE.md has the schema-form paragraph; plan 0000-aud (the audit) §9 Phase 8 carries a 'Done' line.
 
 ## Files
 
@@ -97,3 +96,4 @@ Example app: Packages tab shows Platinum checked; Options tab shows the Platinum
 - `.playwright-mcp/parity/part-J/after` - create: after-set compared against before
 
 ## Work Log
+### 2026-10-29T20:22:00.352Z - Moved 2 open [MANUAL] acceptance criteria to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.

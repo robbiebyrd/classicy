@@ -7,7 +7,7 @@ status: pending
 priority: "2"
 effort: L
 created: "2026-10-28T20:27:13.259Z"
-updated: "2026-10-28T20:27:13.259Z"
+updated: "2026-10-29T20:22:00.352Z"
 links:
   repo:
     local: ~/classicy
@@ -38,6 +38,7 @@ links:
   specs:
     - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   stories:
+    - ["0083-v8n", "blocks"]
     - ["0056-mdl", "depends"]
   plans:
     - ["0009-agy", "included", ["5.1"]]
@@ -110,7 +111,6 @@ This section (plan 0009-agy §5.1, umbrella 0002-ldj; §9 Phase 5 items 3–4) m
 - [ ] VERIFY: git grep -nP '[✓–▸▾✕⌃⌥⇧⌘]' src --include='*.tsx' -- ':!*.test.tsx' ':!*.stories.tsx' ':!*Kbd*' ':!*KeyboardShortcut*' ':!*KeyboardEquivalent*' | grep -v -E '^\S+:\s*(\*|//)' ; test $? -eq 1
 - [ ] `ClassicyKbd` renders one `data-classicy-part="modifier-<name>"` span per modifier with unchanged `textContent`; both `MODIFIER_GLYPHS` tables are gone and `CLASSICY_MODIFIER_GLYPHS` is the single source.
 - [ ] The crayon SVG, color wheel and captions overlay contain no literal `rgba()`/hex; the values live in `--platinum-crayon-*`, `--platinum-color-wheel-crosshair` and `--classicy-caption-*`.
-- [ ] [MANUAL] `compare -metric AE` is `0` for every re-shot menu, pop-up, combo-box, bevel-button, placard, file-input, kbd and color-picker story.
 
 ## Files
 
@@ -139,3 +139,4 @@ This section (plan 0009-agy §5.1, umbrella 0002-ldj; §9 Phase 5 items 3–4) m
 - `src/SystemFolder/SystemResources/QuickTime/QuickTimeCaptionsOverlay.test.tsx` - modify: caption custom-property test
 
 ## Work Log
+### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.

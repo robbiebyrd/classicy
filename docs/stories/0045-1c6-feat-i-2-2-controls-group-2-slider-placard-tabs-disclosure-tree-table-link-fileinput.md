@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T20:17:37.615Z"
-updated: "2026-10-29T19:28:16.540Z"
+updated: "2026-10-29T20:22:00.352Z"
 started: "2026-10-29T18:25:53.340Z"
 tags: []
 milestone: ""
@@ -38,6 +38,7 @@ links:
   specs:
     - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   stories:
+    - ["0083-v8n", "blocks"]
     - ["0044-uvc", "depends"]
   plans:
     - ["0006-dy6", "included", ["2.2"]]
@@ -94,7 +95,6 @@ Re-shoot controls-slider*, controls-placard*, controls-tabs*, controls-disclosur
 
 - [ ] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/{Slider,Placard,Tabs,Disclosure,Tree,Table,Link,FileInput} -t appearance
 - [ ] The eight roots carry the probe decoration and the listed state classes, emit the listed events with their detail payloads, and add no DOM attribute or inline style when the package returns nothing.
-- [ ] [MANUAL] controls-slider*, controls-placard*, controls-tabs*, controls-disclosure*, controls-tree*, controls-table*, controls-link* and controls-fileinput* stories compare AE 0 before vs after.
 - [ ] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
 
 ## Files
@@ -121,3 +121,5 @@ Re-shoot controls-slider*, controls-placard*, controls-tabs*, controls-disclosur
 ### 2026-10-29T18:25:47.482Z - Started beside Part B (I reconciliation: 2.x code is safe early; B's remaining work is SCSS-only). I-R4 strict (no class-list change), I-R5 attrs first, keyboard paths must emit what mouse paths emit (lesson from I 2.1's review), reuse the shared internal useClassicyMergedRef. Out of chain order: depends 0044-uvc (I 2.1) is code complete, awaiting only post-B parity. Base 3c2dc4e76; implementer dispatched. Parity deferred until after B lands.
 
 ### 2026-10-29T19:28:16.540Z - Code complete on feat/appearance-part-i at 81ad67308 (bf9a71527 wiring, 06fe74709 I-R14 input source, 81ad67308 review round I-R15). Review approved. Controller re-ran lint/tsc and 31 files/475 tests green; pushed. Stays in_progress for the Storybook parity, deferred until after Part B lands.
+
+### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.

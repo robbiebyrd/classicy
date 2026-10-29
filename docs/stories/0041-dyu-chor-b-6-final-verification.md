@@ -7,7 +7,7 @@ status: pending
 priority: "2"
 effort: S
 created: "2026-10-28T20:15:20.746Z"
-updated: "2026-10-28T20:15:20.746Z"
+updated: "2026-10-29T20:22:00.352Z"
 links:
   repo:
     local: ~/classicy
@@ -18,6 +18,7 @@ links:
   specs:
     - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   stories:
+    - ["0083-v8n", "blocks"]
     - ["0040-gok", "depends"]
   plans:
     - ["0005-1b3", "included", ["6"]]
@@ -63,7 +64,6 @@ Stop the background Storybook / dev servers started by this plan.
 - [ ] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test && pnpm build:source
 - [ ] VERIFY: test "$(grep -c 'platinum[A-Z]' dist/classicy.css)" -eq 0 && grep -q '@layer classicy.package' dist/classicy.es.js
 - [ ] VERIFY: for f in .playwright-mcp/parity/part-b/before/*.png; do compare -metric AE "$f" ".playwright-mcp/parity/part-b/after/$(basename $f)" null: 2>&1; echo " $f"; done | grep -v '^0 ' | wc -l  # expect 0
-- [ ] [MANUAL] Every story in stories.txt compares AE 0 before vs after; no background dev server is left running.
 
 ## Files
 
@@ -72,3 +72,4 @@ Stop the background Storybook / dev servers started by this plan.
 - `dist/classicy.es.js` - inspected: package layer present
 
 ## Work Log
+### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.

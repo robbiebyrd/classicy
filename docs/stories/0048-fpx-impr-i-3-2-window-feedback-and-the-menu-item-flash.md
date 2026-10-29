@@ -7,7 +7,7 @@ status: pending
 priority: "2"
 effort: M
 created: "2026-10-28T20:19:44.230Z"
-updated: "2026-10-28T20:19:44.230Z"
+updated: "2026-10-29T20:22:00.352Z"
 links:
   repo:
     local: ~/classicy
@@ -26,6 +26,7 @@ links:
   specs:
     - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   stories:
+    - ["0083-v8n", "blocks"]
     - ["0047-mst", "depends"]
   plans:
     - ["0006-dy6", "included", ["3.2"]]
@@ -85,7 +86,6 @@ Re-shoot desktop-window*, desktop-menu*, desktop-menubar*, dialogs-alert*, contr
 - [ ] VERIFY: pnpm exec vitest run src/Appearance/Platinum src/SystemFolder/SystemResources/Menu
 - [ ] platinumAppearanceHooks holds the Window and MenuItem entries (flash decoration on press, {} on release); ClassicyWindow.tsx dispatches no window feedback sprite and ClassicyMenu.tsx no menu sprite or flash class; the flash CSS lives in the Platinum _Menu partial; error beeps remain.
 - [ ] A menu item's action runs exactly once for animationend of any name, the 400 ms fallback timer, or both.
-- [ ] [MANUAL] desktop-window*, desktop-menu*, desktop-menubar*, dialogs-alert* and controls-contextualmenu* stories compare AE 0 before vs after.
 - [ ] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
 
 ## Files
@@ -103,3 +103,4 @@ Re-shoot desktop-window*, desktop-menu*, desktop-menubar*, dialogs-alert*, contr
 - `src/SystemFolder/SystemResources/Menu/ClassicyMenu.test.tsx` - existing exactly-once tests kept passing
 
 ## Work Log
+### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.

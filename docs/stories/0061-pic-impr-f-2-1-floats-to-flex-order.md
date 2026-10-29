@@ -7,7 +7,7 @@ status: pending
 priority: "2"
 effort: M
 created: "2026-10-28T20:29:34.870Z"
-updated: "2026-10-28T20:29:34.870Z"
+updated: "2026-10-29T20:22:00.352Z"
 links:
   repo:
     local: ~/classicy
@@ -19,6 +19,7 @@ links:
   specs:
     - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   stories:
+    - ["0083-v8n", "blocks"]
     - ["0060-ez9", "depends"]
   plans:
     - ["0010-743", "included", ["2.1"]]
@@ -82,7 +83,6 @@ If `attributes.txt` (Phase 0) shows a part attribute on a descendant rather than
 - [ ] VERIFY: git grep -n 'float: right' src/SystemFolder/SystemResources/Desktop/MenuBar  # expect no output
 - [ ] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar.layout.test.tsx
 - [ ] The six clusters are direct flex children of `.classicyDesktopMenu` with `order` 10/20/30/40/50/60 and `extensions` carries `margin-left: auto`.
-- [ ] [MANUAL] `compare -metric AE` is `0` for every `desktop-menubar--*`, `desktop-menubar-extension--*`, `desktop-desktop--*` and `desktop-app--*` story.
 
 ## Files
 
@@ -92,3 +92,4 @@ If `attributes.txt` (Phase 0) shows a part attribute on a descendant rather than
 - `src/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar.layout.test.tsx` - create: compiled-CSS and DOM cluster tests
 
 ## Work Log
+### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.

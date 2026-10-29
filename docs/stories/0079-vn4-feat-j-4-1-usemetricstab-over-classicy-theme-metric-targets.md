@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: S
 created: "2026-10-28T20:42:45.684Z"
-updated: "2026-10-29T17:49:40.637Z"
+updated: "2026-10-29T20:22:00.352Z"
 started: "2026-10-29T17:23:17.520Z"
 tags: []
 milestone: ""
@@ -25,6 +25,7 @@ links:
   specs:
     - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   stories:
+    - ["0083-v8n", "blocks"]
     - ["0078-nc6", "depends"]
   plans:
     - ["0012-pt9", "included", ["4.1"]]
@@ -85,7 +86,6 @@ it('shows the fork notice for a built-in and the editing notice for Custom', …
 
 - [x] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Metrics.test.tsx
 - [x] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/AppearanceManager
-- [ ] [MANUAL] In the example app, changing Buttons → Gap to 20 on the Metrics tab widens dialog button spacing and switches the theme pop-up to Custom.
 
 ## Files
 
@@ -98,3 +98,5 @@ it('shows the fork notice for a built-in and the editing notice for Custom', …
 ### 2026-10-29T17:23:10.556Z - Started beside Part B by controller decision (J reconciliation lists 4.1 as safe early: no overlap with B; the Metrics tab dispatches the core ClassicyDesktopChangeMetric { metricKey } form). Out of chain order: its depends story 0078-nc6 (J 3.1, the Packages/Options tabs) waits; 4.1 needs only J 1.1/2.1, both done. Base 2b892472a on feat/appearance-part-j; implementer dispatched. The panel gains a tab (a deliberate visual change); the screenshot check is deferred until after Part B lands, like J 1.1.
 
 ### 2026-10-29T17:49:29.224Z - Code complete on feat/appearance-part-j, 2b892472a..954d06de2: a5a12617d (useMetricsTab: one ClassicySpinner per CLASSICY_THEME_METRIC_TARGETS entry in the five groups, Colors-tab layout and notices, dispatching the core ClassicyDesktopChangeMetric { metricKey, value } form per J-R7; parseFloat + clamp because the plan's Number("") is 0; Colors integration test scoped to the visible panel; two end-to-end panel tests), 954d06de2 (review minors: honest empty-entry comment + pinned behavior; whole-pixel rounding per new ruling J-R17; group-membership assertion; "color" spelling). Review: Approved (C0 I0 M5; four fixed, M2 — ClassicySchemaForm clamping — carried to J 3.1 via J-R17). Gate on 954d06de2: lint, tsc, 3968 tests, build:source + verify:dist; controller re-ran AppearanceManager (21 files / 394 tests) and the Metrics file (8/8). VERIFY criteria pass. Stays in_progress for the [MANUAL] example-app check and the Appearance Manager screenshot check, both after Part B lands (the panel gains a tab, a deliberate visual change; only the J 6.1 System/AppearanceManager stories change).
+
+### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.

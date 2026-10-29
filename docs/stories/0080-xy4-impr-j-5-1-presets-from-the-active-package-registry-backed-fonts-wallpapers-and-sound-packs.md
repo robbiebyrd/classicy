@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T20:43:31.288Z"
-updated: "2026-10-29T18:43:21.651Z"
+updated: "2026-10-29T20:22:00.352Z"
 started: "2026-10-29T17:50:20.231Z"
 tags: []
 milestone: ""
@@ -32,6 +32,7 @@ links:
   specs:
     - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   stories:
+    - ["0083-v8n", "blocks"]
     - ["0079-vn4", "depends"]
   plans:
     - ["0012-pt9", "included", ["5.1"]]
@@ -85,7 +86,6 @@ Themes: `ThemesTabProps` gains `packageName: string`; the label becomes `The cur
 - [x] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.themeFile.test.tsx src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Sound.test.tsx
 - [x] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Themes.test.tsx src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Desktop.test.tsx src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Fonts.test.tsx
 - [x] VERIFY: grep -c 'ClassicySounds\|loadSoundTheme\|applySoundTheme' src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.tsx  # expect 0
-- [ ] [MANUAL] In the example app the Sound tab lists Platinum as the sound pack and Load Theme… with a file whose `package` is `irix` shows the stop alert without changing the theme.
 
 ## Files
 
@@ -105,3 +105,5 @@ Themes: `ThemesTabProps` gains `packageName: string`; the label becomes `The cur
 ### 2026-10-29T17:50:12.317Z - Started beside Part B by controller decision (J reconciliation: no code overlap with B). The reconciliation narrows the section: Fonts/Desktop are already registry-backed by Part C and the old ClassicySounds globals are already gone (Part D); the remaining work is the Themes list from the active package (ruling 2), no redundant import pre-check (3), cross-package import (4), the shared Custom slot (8), the filtered sound-pack list via ChangeAppearanceOption { path: "sound.pack" } (10, J-R10) and the Themes label (12). Out of chain order (depends 0079-vn4, J 4.1, code complete). Base 954d06de2; implementer dispatched. Parity deferred until after B lands.
 
 ### 2026-10-29T18:43:09.813Z - Code complete on feat/appearance-part-j, 954d06de2..19f9cde64: 3bdf8a4cf (J-R2 theme list = active package presets + its loaded themes + its customs, ChangeTheme searches availableThemes → active-package presets (store-free J-R16 helper) → customs, untrusted floor pinned; J-R3 no panel pre-check, B's message pinned; J-R4 importing a theme for another installed package switches packages first; J-R8 one Custom slot per package ("custom" for the default package, custom-<pkg> otherwise); J-R10 Sound Pack pop-up lists shared + active-package packs and writes ChangeAppearanceOption sound.pack; J-R12 Platinum icon only for platinum; Fonts/Desktop already Part C's, old sound globals already gone (Part D)), 2aa35d2b6 (review round 1: a fork moves an import squatting on custom-<pkg> aside to -2/-3 instead of overwriting it — a real data-loss bug; imports deduplicated against the active package's presets; the active theme's pack always listed), 19f9cde64 (final minors: the moved import's new id also avoids its package's presets and every Custom slot id; doc row corrected). Reviews: Needs fixes (I1 M5) → Approved (M2) → closed. Gate on 19f9cde64: lint, tsc, 333 files / 3995 tests, build:source + verify:dist. Contract additions for J 6.1: classicyCustomThemeSlotId, listClassicyPackageThemes, findClassicyTheme's presets parameter, assignImportedClassicyThemeIdentity's reservedIds parameter. Stays in_progress for the [MANUAL] example-app check after Part B lands.
+
+### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.

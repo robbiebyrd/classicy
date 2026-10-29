@@ -7,7 +7,7 @@ status: pending
 priority: "2"
 effort: L
 created: "2026-10-28T20:28:02.193Z"
-updated: "2026-10-28T20:28:02.193Z"
+updated: "2026-10-29T20:22:00.352Z"
 links:
   repo:
     local: ~/classicy
@@ -26,6 +26,7 @@ links:
   specs:
     - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   stories:
+    - ["0083-v8n", "blocks"]
     - ["0057-yxq", "depends"]
   plans:
     - ["0009-agy", "included", ["6.1"]]
@@ -105,7 +106,6 @@ Re-shoot every id in `stories.txt` into `after/`; `for f in before/*.png; do pri
 - [ ] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Window && grep -c 'data:image/svg' dist/classicy.css  # 0 after pnpm build:source
 - [ ] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test && pnpm build:source
 - [ ] `ClassicyWindow` and `ClassicyWindowFrame` both render `ClassicyWindowTitleBar`; the `.titlebar`, `.hig`, `.utility`, `.collapse`, `.beforeclose` and `.resizeSize` window suites pass unedited; `data-classicy-control` attributes are present.
-- [ ] [MANUAL] Parity: AE `0` for every story in `stories.txt` except the three named changes — WindowFrame title-bar band (a), zoom box (b), title-less stripe band at `-fuzz 1%` (c) — each confined to its stated region.
 - [ ] `docs/AGENT-REFERENCE.md` and `CLAUDE.md` document `ClassicyWindowTitleBar`, the Platinum art keys, the `art` prop and the modifier table.
 
 ## Files
@@ -123,3 +123,4 @@ Re-shoot every id in `stories.txt` into `after/`; `for f in before/*.png; do pri
 - `.playwright-mcp/parity/part-E/after/` - create: after screenshots
 
 ## Work Log
+### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.

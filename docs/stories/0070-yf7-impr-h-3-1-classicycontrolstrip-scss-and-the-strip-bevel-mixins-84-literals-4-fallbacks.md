@@ -7,7 +7,7 @@ status: pending
 priority: "2"
 effort: M
 created: "2026-10-28T20:36:39.615Z"
-updated: "2026-10-28T20:36:39.615Z"
+updated: "2026-10-29T20:22:00.352Z"
 links:
   repo:
     local: ~/classicy
@@ -20,6 +20,7 @@ links:
   specs:
     - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   stories:
+    - ["0083-v8n", "blocks"]
     - ["0069-fiu", "depends"]
   plans:
     - ["0011-v9t", "included", ["3.1"]]
@@ -78,7 +79,6 @@ Locate the strip bevels with `grep -rl 'bevel-raised\|platinum-control-strip' sr
 
 - [ ] VERIFY: node bin/check-pixel-literals.ts && grep -c 'ClassicyControlStrip.scss' bin/pixel-literal-allowlist.json  # expect exit 0 and 0
 - [ ] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/ControlStrip -t 'module step|no pixel literal'
-- [ ] [MANUAL] Every `desktop-controlstrip--*` story compares AE 0 before vs after (collapsed, right-docked and pressed-module included).
 
 ## Files
 
@@ -89,3 +89,4 @@ Locate the strip bevels with `grep -rl 'bevel-raised\|platinum-control-strip' sr
 - `src/SystemFolder/SystemResources/ControlStrip/ClassicyControlStrip.test.tsx` - modify: module-step and no-literal tests
 
 ## Work Log
+### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.

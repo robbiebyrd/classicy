@@ -7,7 +7,7 @@ status: pending
 priority: "2"
 effort: S
 created: "2026-10-28T20:22:13.756Z"
-updated: "2026-10-28T20:22:13.756Z"
+updated: "2026-10-29T20:22:00.352Z"
 links:
   repo:
     local: ~/classicy
@@ -18,6 +18,7 @@ links:
   specs:
     - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   stories:
+    - ["0083-v8n", "blocks"]
     - ["0041-dyu", "depends"]
     - ["0025-xns", "depends"]
   plans:
@@ -64,8 +65,6 @@ The screenshots live under the gitignored `.playwright-mcp/`; nothing is committ
 ## Acceptance Criteria
 
 - [ ] VERIFY: ls .playwright-mcp/parity/part-E/before | wc -l  # equals wc -l stories.txt; cat caps.txt
-- [ ] [MANUAL] `stories.txt` lists every story under the twenty title prefixes named in Step 1 and `before/` holds one 1024×768 PNG per id.
-- [ ] [MANUAL] `caps.txt` records the two pseudo-element heights measured on `desktop-window--default`.
 
 ## Files
 
@@ -74,3 +73,4 @@ The screenshots live under the gitignored `.playwright-mcp/`; nothing is committ
 - `.playwright-mcp/parity/part-E/caps.txt` - create: measured cap pseudo-element heights
 
 ## Work Log
+### 2026-10-29T20:22:00.352Z - Moved 2 open [MANUAL] acceptance criteria to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.

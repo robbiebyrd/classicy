@@ -7,7 +7,7 @@ status: pending
 priority: "2"
 effort: M
 created: "2026-10-28T20:24:32.303Z"
-updated: "2026-10-28T20:24:32.303Z"
+updated: "2026-10-29T20:22:00.352Z"
 links:
   repo:
     local: ~/classicy
@@ -23,6 +23,7 @@ links:
   specs:
     - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   stories:
+    - ["0083-v8n", "blocks"]
     - ["0053-e1n", "depends"]
   plans:
     - ["0009-agy", "included", ["2.2"]]
@@ -93,7 +94,6 @@ Re-shoot `desktop-window--*`, `desktop-menu--*`, `controls-popupmenu--*`, `deskt
 - [ ] VERIFY: git grep -n 'data:image/svg' src/SystemFolder --include='*.scss' -- ':!src/SystemFolder/SystemResources/Slider' ':!src/SystemFolder/SystemResources/Tabs' ':!src/SystemFolder/SystemResources/Icon' ':!src/SystemFolder/SystemResources/Desktop'  # expect no output
 - [ ] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Window src/SystemFolder/SystemResources/Menu/ClassicyMenu.art.test.ts
 - [ ] `ClassicyWindow.tsx` no longer calls `setCursor`; the resizer's cursor is `var(--classicy-cursor-resize-lr), auto` in CSS.
-- [ ] [MANUAL] `compare -metric AE` is `0` for every re-shot story except zoomable windows, whose only differing pixels lie inside the 12×12 zoom box (named change (b)).
 
 ## Files
 
@@ -107,3 +107,4 @@ Re-shoot `desktop-window--*`, `desktop-menu--*`, `controls-popupmenu--*`, `deskt
 - `src/SystemFolder/SystemResources/Menu/ClassicyMenu.art.test.ts` - create: menu and pop-up mask assertions
 
 ## Work Log
+### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.

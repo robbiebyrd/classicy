@@ -7,7 +7,7 @@ status: pending
 priority: "2"
 effort: S
 created: "2026-10-28T20:39:58.702Z"
-updated: "2026-10-28T20:39:58.702Z"
+updated: "2026-10-29T20:22:00.352Z"
 links:
   repo:
     local: ~/classicy
@@ -17,6 +17,7 @@ links:
   specs:
     - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   stories:
+    - ["0083-v8n", "blocks"]
     - ["0041-dyu", "depends"]
     - ["0025-xns", "depends"]
     - ["0032-ztu", "depends"]
@@ -65,7 +66,6 @@ Example app (`pnpm preview`): open the Screen Saver control panel with the Flyin
 
 - [ ] VERIFY: `ls .playwright-mcp/parity/part-J/before/*.png | wc -l` equals stories.txt lines + 6
 - [ ] VERIFY: grep -c useClassicyAppearancePackages src/Appearance/ClassicyAppearancePackage.ts; grep -c useClassicyAssetTree src/Appearance/ClassicyAssetRegistry.ts; grep -c useClassicySoundPacks src/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks.ts  # each >= 1
-- [ ] [MANUAL] The Screen Saver panel screenshot shows the Flying Toasters options form fully rendered.
 
 ## Files
 
@@ -73,3 +73,4 @@ Example app (`pnpm preview`): open the Screen Saver control panel with the Flyin
 - `.playwright-mcp/parity/part-J/before` - create: one PNG per story id plus six app screens
 
 ## Work Log
+### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.

@@ -7,7 +7,7 @@ status: pending
 priority: "2"
 effort: M
 created: "2026-10-28T20:23:54.842Z"
-updated: "2026-10-28T20:23:54.842Z"
+updated: "2026-10-29T20:22:00.352Z"
 links:
   repo:
     local: ~/classicy
@@ -20,6 +20,7 @@ links:
   specs:
     - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   stories:
+    - ["0083-v8n", "blocks"]
     - ["0052-44l", "depends"]
   plans:
     - ["0009-agy", "included", ["2.1"]]
@@ -95,7 +96,6 @@ Caps: per the Phase 0 gate result `["0px","0px"]`, delete the `&:after`/`&:befor
 - [ ] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Window/ClassicyWindow.art.test.ts
 - [ ] `_assets.scss` declares `--platinum-stripe-light/dark` and `--platinum-stripe-red-light/dark` on the package root and holds no `url(` data URI.
 - [ ] Every stripe and utility pseudo-element mirrors the old `background-*` longhands with the same `mask-*` values (`auto 100%`, `auto 99.8%`, `4px 3px`).
-- [ ] [MANUAL] `compare -metric AE` is `0` for every `desktop-window--*`, `dialogs-alert--*` and `desktop-windowframe--*` story against `before/`.
 
 ## Files
 
@@ -106,3 +106,4 @@ Caps: per the Phase 0 gate result `["0px","0px"]`, delete the `&:after`/`&:befor
 - `src/SystemFolder/SystemResources/Window/ClassicyWindow.art.test.ts` - create: compiled-CSS assertions
 
 ## Work Log
+### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.

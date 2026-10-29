@@ -7,7 +7,7 @@ status: pending
 priority: "2"
 effort: S
 created: "2026-10-28T20:20:53.774Z"
-updated: "2026-10-28T20:20:53.774Z"
+updated: "2026-10-29T20:22:00.352Z"
 links:
   repo:
     local: ~/classicy
@@ -17,6 +17,7 @@ links:
   specs:
     - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   stories:
+    - ["0083-v8n", "blocks"]
     - ["0049-cdo", "depends"]
   plans:
     - ["0006-dy6", "included", ["5"]]
@@ -68,7 +69,6 @@ Stop the background Storybook / dev servers started by this plan.
 - [ ] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test && pnpm build:source
 - [ ] VERIFY: test "$(grep -rn 'ClassicySoundPlay\"' src/SystemFolder/SystemResources --include=*.tsx | grep -v test | grep -vE 'PlayError|ClassicyBoot' | wc -l)" -eq 0 && test "$(grep -c classicyMenuItemFlashKeyframes dist/classicy.css)" -eq 0
 - [ ] VERIFY: for f in .playwright-mcp/parity/part-i/before/*.png; do compare -metric AE "$f" ".playwright-mcp/parity/part-i/after/$(basename $f)" null: 2>&1; echo " $f"; done | grep -v '^0 ' | wc -l  # expect 0
-- [ ] [MANUAL] Every pre-existing story compares AE 0 before vs after; no background dev server is left running.
 
 ## Files
 
@@ -76,3 +76,4 @@ Stop the background Storybook / dev servers started by this plan.
 - `dist/classicy.css` - inspected: no flash keyframes in base
 
 ## Work Log
+### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.

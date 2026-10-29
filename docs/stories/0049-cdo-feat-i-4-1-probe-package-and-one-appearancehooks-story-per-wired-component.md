@@ -7,7 +7,7 @@ status: pending
 priority: "2"
 effort: M
 created: "2026-10-28T20:20:35.567Z"
-updated: "2026-10-28T20:20:35.567Z"
+updated: "2026-10-29T20:22:00.352Z"
 links:
   repo:
     local: ~/classicy
@@ -42,6 +42,7 @@ links:
   specs:
     - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   stories:
+    - ["0083-v8n", "blocks"]
     - ["0048-fpx", "depends"]
   plans:
     - ["0006-dy6", "included", ["4.1"]]
@@ -98,7 +99,6 @@ docs/AGENT-REFERENCE.md: under the Appearance Packages subsection add `useClassi
 
 - [ ] VERIFY: pnpm exec vitest run src/Appearance/ClassicyAppearanceProbe.story.test.tsx && pnpm build:storybook
 - [ ] Each of the 23 wired component story files exports an `AppearanceHooks` story rendering under the storybook-probe package, with the probe activated on mount and platinum restored on unmount.
-- [ ] [MANUAL] controls-button--appearance-hooks renders unstyled with a magenta outline; pressing turns it green and logs Button.press / Button.release / Button.click in the Actions panel.
 - [ ] AGENT-REFERENCE.md and CLAUDE.md document useClassicyAppearance, the 16 events, the decoration precedence and D23 semantics, playClassicyAppearanceSound and the Platinum hooks table.
 
 ## Files
@@ -132,3 +132,4 @@ docs/AGENT-REFERENCE.md: under the Appearance Packages subsection add `useClassi
 - `src/Appearance/ClassicyAppearanceProbe.story.test.tsx` - create: probe tests
 
 ## Work Log
+### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.

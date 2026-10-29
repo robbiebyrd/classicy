@@ -7,7 +7,7 @@ status: pending
 priority: "2"
 effort: S
 created: "2026-10-28T20:28:20.890Z"
-updated: "2026-10-28T20:28:20.890Z"
+updated: "2026-10-29T20:22:00.352Z"
 links:
   repo:
     local: ~/classicy
@@ -18,6 +18,7 @@ links:
   specs:
     - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   stories:
+    - ["0083-v8n", "blocks"]
     - ["0009-pat", "depends"]
     - ["0041-dyu", "depends"]
   plans:
@@ -64,8 +65,6 @@ Everything lives under the gitignored `.playwright-mcp/`; nothing is committed.
 ## Acceptance Criteria
 
 - [ ] VERIFY: ls .playwright-mcp/parity/part-F/before | wc -l  # equals wc -l stories.txt
-- [ ] [MANUAL] `stories.txt` lists every story under the nine title prefixes and `before/` holds one 1024×768 PNG per id.
-- [ ] [MANUAL] `attributes.txt` records the grep hits for the six cluster parts, three control attributes and the alert role attribute (or notes which are missing).
 
 ## Files
 
@@ -74,3 +73,4 @@ Everything lives under the gitignored `.playwright-mcp/`; nothing is committed.
 - `.playwright-mcp/parity/part-F/attributes.txt` - create: Part A attribute inventory
 
 ## Work Log
+### 2026-10-29T20:22:00.352Z - Moved 2 open [MANUAL] acceptance criteria to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.

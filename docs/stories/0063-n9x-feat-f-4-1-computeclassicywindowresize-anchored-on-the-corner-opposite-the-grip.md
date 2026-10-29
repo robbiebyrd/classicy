@@ -7,7 +7,7 @@ status: pending
 priority: "2"
 effort: M
 created: "2026-10-28T20:30:41.718Z"
-updated: "2026-10-28T20:30:41.718Z"
+updated: "2026-10-29T20:22:00.352Z"
 links:
   repo:
     local: ~/classicy
@@ -20,6 +20,7 @@ links:
   specs:
     - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   stories:
+    - ["0083-v8n", "blocks"]
     - ["0062-sxu", "depends"]
   plans:
     - ["0010-743", "included", ["4.1"]]
@@ -93,7 +94,6 @@ Re-shoot `desktop-window--*` → AE `0`. In Storybook `desktop-window--default`,
 - [ ] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Window/ClassicyWindowResize.test.ts
 - [ ] `computeClassicyWindowResize` passes the four-corner table; the bottom-right path reproduces today's numbers with `CLASSICY_WINDOW_RESIZE_FUDGE = 5`; a mirrored window's grip drag moves `style.left`.
 - [ ] The untouched `ClassicyWindow.resizeSize.test.tsx:211-243` cases still pass.
-- [ ] [MANUAL] `compare -metric AE` is `0` for every `desktop-window--*` story and a 40 px grip drag in `desktop-window--default` keeps `left/top` and grows width/height by 40 (±1).
 
 ## Files
 
@@ -104,3 +104,4 @@ Re-shoot `desktop-window--*` → AE `0`. In Storybook `desktop-window--default`,
 - `src/index.ts` - regenerate barrel
 
 ## Work Log
+### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.

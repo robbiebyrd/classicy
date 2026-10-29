@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T20:26:03.471Z"
-updated: "2026-10-29T20:13:28.482Z"
+updated: "2026-10-29T20:22:00.352Z"
 started: "2026-10-29T19:28:42.867Z"
 tags: []
 milestone: ""
@@ -41,6 +41,7 @@ links:
   specs:
     - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   stories:
+    - ["0083-v8n", "blocks"]
     - ["0055-l4q", "depends"]
   plans:
     - ["0009-agy", "included", ["4.1"]]
@@ -112,7 +113,6 @@ In `ClassicyPixelArt.tsx`: `export const CLASSICY_PIXEL_ART_MIME = "text/x-class
 - [ ] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/PixelArt src/Appearance/Platinum/assets/pixelart
 - [ ] VERIFY: test ! -e src/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripArt.ts && test ! -e src/SystemFolder/SystemResources/PopUpSlider/ClassicyPopUpSliderArt.ts
 - [ ] `ClassicyPixelArt` accepts `rows` or `art`; `encode/decodeClassicyPixelArtRows` round-trip and the nine `platinum` keys decode to their HIG sizes.
-- [ ] [MANUAL] `compare -metric AE` is `0` for every `desktop-controlstrip--*`, `controls-popupslider--*` and `system-pixelart--*` story.
 
 ## Files
 
@@ -143,3 +143,5 @@ In `ClassicyPixelArt.tsx`: `export const CLASSICY_PIXEL_ART_MIME = "text/x-class
 ### 2026-10-29T20:04:06.672Z - Implementer DONE at e8aae7ab0: nine glyphs are .txt data files registered through platinumAssets.ts (34 of 44 keys); ClassicyPixelArt takes `art`. E15: pixel art is excluded from --classicy-art-* vars. E16: nine row-constant exports removed, replaced by useClassicyPixelArtRows / <ClassicyPixelArt art>. Render hashes are pinned to the old rows. Controller re-ran lint, tsc and 501/502 tests; the one failure was platinumAssets.warnings timing out under load, which passes alone 3/3 and has a timeout fix on the integration branch (f78e6ab51). Pushed; reviewer dispatched.
 
 ### 2026-10-29T20:13:28.482Z - Review APPROVED (Critical 0, Important 0, Minor 7). The reviewer independently confirmed that the nine .txt files are byte-identical to the deleted arrays and that the pinned hashes come from the old rows. Final round sent for the minors: one MIME constant, nothing rendered when neither prop is given, consistent handling of other data-URI spellings, CR stripping, a consumer-wiring test with Platinum loaded, the E16 migration wording, and asserting through a log sink.
+
+### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.

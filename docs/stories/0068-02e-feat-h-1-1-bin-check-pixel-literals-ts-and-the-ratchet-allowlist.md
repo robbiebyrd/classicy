@@ -7,7 +7,7 @@ status: pending
 priority: "2"
 effort: M
 created: "2026-10-28T20:35:01.283Z"
-updated: "2026-10-28T20:35:01.283Z"
+updated: "2026-10-29T20:22:00.352Z"
 links:
   repo:
     local: ~/classicy
@@ -19,6 +19,7 @@ links:
   specs:
     - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   stories:
+    - ["0083-v8n", "blocks"]
     - ["0067-opx", "depends"]
   plans:
     - ["0011-v9t", "included", ["1.1"]]
@@ -93,7 +94,6 @@ it('scanPixelLiterals skips savers', () => expect([...scanPixelLiterals(process.
 - [ ] VERIFY: node bin/check-pixel-literals.ts; echo exit=$?  # expect exit=0 with the seeded allowlist
 - [ ] VERIFY: pnpm exec vitest run bin/check-pixel-literals.test.ts
 - [ ] VERIFY: grep -c 'node bin/check-pixel-literals.ts' package.json  # expect 1, inside the lint script
-- [ ] [MANUAL] The seeded allowlist lists only SCSS files under `src/` (none under `savers/`), and the ControlStrip entry is 88.
 
 ## Files
 
@@ -103,3 +103,4 @@ it('scanPixelLiterals skips savers', () => expect([...scanPixelLiterals(process.
 - `package.json` - modify: lint script runs the gate after Biome
 
 ## Work Log
+### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.

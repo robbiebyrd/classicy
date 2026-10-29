@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T20:14:27.078Z"
-updated: "2026-10-29T18:51:02.774Z"
+updated: "2026-10-29T20:22:00.352Z"
 started: "2026-10-29T18:51:02.774Z"
 tags: []
 milestone: ""
@@ -79,6 +79,7 @@ links:
   specs:
     - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   stories:
+    - ["0083-v8n", "blocks"]
     - ["0038-dzn", "depends"]
   plans:
     - ["0005-1b3", "included", ["4.3"]]
@@ -138,7 +139,6 @@ Re-shoot every id in stories.txt into `after/`; `for f in before/*.png; do compa
 - [ ] VERIFY: test "$(grep -rn 'AppearanceManager/styles/' src --include=*.scss | wc -l)" -eq 0
 - [ ] VERIFY: pnpm exec vitest run src/Appearance/Platinum && pnpm build:source
 - [ ] Seventeen new partials hold the moved includes, the ControlStrip bevels and the Slider thumb under their original selector chains; no file under src/SystemFolder references AppearanceManager/styles, `@include appearance.`, `@include scrollbars.` or `assets.$`.
-- [ ] [MANUAL] Every story in .playwright-mcp/parity/part-b/stories.txt compares with AE 0 before vs after.
 - [ ] VERIFY: test ! -e src/SystemFolder/ControlPanels/AppearanceManager/styles/appearance.scss && test ! -e src/SystemFolder/ControlPanels/AppearanceManager/styles/scrollbars.scss && test ! -e src/SystemFolder/ControlPanels/AppearanceManager/styles/assets.scss (ruling R7: the originals 4.1 copied are deleted here, with their remaining readers retargeted)
 
 ## Files
@@ -204,3 +204,5 @@ Re-shoot every id in stories.txt into `after/`; `for f in before/*.png; do compa
 ## Work Log
 
 ### 2026-10-29T18:50:54.964Z - Started, split three ways (task-4.3-split.md in the Part B ledger): 4.3a (Button, BevelButton, Checkbox, Placard, Table, DriveSetupList, Meter, Output, ProgressBar, SplitView; worktree part-b-43a, Storybook 6007) and 4.3b (Assistant, StartupScreen, QuickTimeMovieEmbed, ControlStrip, Slider with P9, DesktopIcon, Icon, plus _Tabs.scss from 4.2's carry-forward; worktree part-b-43b, Storybook 6008) run in parallel from d8c687255, each with its own components' parity against the shared Phase 0 baselines; the controller then integrates both onto feat/appearance-part-b and runs 4.3c (include-order merge by bundle offset, the remaining dead @use lines (44 files incl. ClassicyAppearanceManager.scss), the repo-wide guard with the corrected regex, deleting the old AppearanceManager/styles modules and directory (R7) with their readers retargeted, full-set parity).
+
+### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.

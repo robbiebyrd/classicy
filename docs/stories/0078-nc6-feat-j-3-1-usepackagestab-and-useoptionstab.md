@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T20:42:14.190Z"
-updated: "2026-10-29T20:13:27.205Z"
+updated: "2026-10-29T20:22:00.352Z"
 started: "2026-10-29T19:30:00.026Z"
 tags: []
 milestone: ""
@@ -28,6 +28,7 @@ links:
   specs:
     - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   stories:
+    - ["0083-v8n", "blocks"]
     - ["0077-75r", "depends"]
   plans:
     - ["0012-pt9", "included", ["3.1"]]
@@ -94,7 +95,6 @@ it('says so when the package has no options', () => { render(<Host pkg={{ ...tes
 
 - [ ] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Packages.test.tsx src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Options.test.tsx
 - [ ] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/AppearanceManager
-- [ ] [MANUAL] In the example app the Packages tab lists Platinum checked with seven swatches, and the Options tab shows the Platinum knob groups from the `options` schema; the tab strip scrolls when eight tabs exceed 480 px.
 
 ## Files
 
@@ -110,3 +110,7 @@ it('says so when the package has no options', () => { render(<Host pkg={{ ...tes
 ### 2026-10-29T19:30:00.913Z - Started beside Part B (reconciliation: code may go now; it rebases over B 4.3's line-1 deletion in ClassicyAppearanceManager.scss, which this task must not touch). Base 19f9cde64; implementer dispatched. Binding: Ruling 1 (Options tab renders the active package's knobs `{ family: { key } }` via classicyKnobsToSchema; edits dispatch ClassicyDesktopChangeMetric { family, key, value }; empty knobs show the no-options state), Ruling 9 (real scroll token, 340 px ceiling), Ruling 12, J-R17 (ClassicySchemaForm numeric clamp added here). Parity and the [MANUAL] example-app check wait for B.
 
 ### 2026-10-29T20:13:27.205Z - Implementer DONE at 318ff9176: Packages tab (memoized radio list plus swatches; startTransition on change) and Options tab (active package's knobs by family, dispatching ChangeMetric { family, key, value }; no-options state for empty knobs; Colors scroll region per Ruling 9). J-R17 clamp added to ClassicySchemaForm, with the shared bounds helper getThemeMetricFamilyBounds. Tab order: Themes, Packages, Options, Desktop, Colors, Fonts, Metrics, Sound. SCSS line 1 left for B 4.3. Controller re-ran lint, tsc and 642/644 tests; the 2 failures are vocabulary-scan timeouts at load 93 that pass 10/10 alone with a long timeout (fixed on the integration branch). Pushed; reviewer dispatched.
+
+### 2026-10-29T20:18:42.573Z - Review APPROVED (Critical 0, Important 0, Minor 6). Confirmed: Ruling 1 shape and dispatch, switching packages re-renders the Options tab, the J-R17 clamp (it also fixes a Warp `layers` mismatch between the screen and the saved setting), getThemeMetricFamilyBounds is the single shared bounds source, and the generated vocabulary is current. Ruling J-R18 recorded (bounds intersect 0–512; a knob with an empty intersection is left out with a warning). Final round sent: comment wording, J-R18, a Packages scroll region, the Options fork notice, and two tests.
+
+### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.

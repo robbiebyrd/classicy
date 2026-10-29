@@ -7,7 +7,7 @@ status: pending
 priority: "2"
 effort: M
 created: "2026-10-28T20:38:01.840Z"
-updated: "2026-10-28T20:38:01.840Z"
+updated: "2026-10-29T20:22:00.352Z"
 links:
   repo:
     local: ~/classicy
@@ -22,6 +22,7 @@ links:
   specs:
     - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   stories:
+    - ["0083-v8n", "blocks"]
     - ["0071-h9m", "depends"]
   plans:
     - ["0011-v9t", "included", ["5.1"]]
@@ -81,7 +82,6 @@ Verify each cited line first (`grep -n px <file>`); Parts A/G may have shifted l
 - [ ] VERIFY: pnpm exec vitest run src/SystemFolder/HyperCard/HyperCard.pixelLiterals.test.ts
 - [ ] VERIFY: node bin/check-pixel-literals.ts && ! grep -E 'HyperCard|FinderAbout|FinderPreferences|AppleGuide|ColorPicker' bin/pixel-literal-allowlist.json
 - [ ] VERIFY: pnpm exec sass --no-source-map src/SystemFolder/SystemResources/ColorPicker/ClassicyColorPicker.scss | grep -c 'inset: 8.3333'  # expect 1
-- [ ] [MANUAL] `extensions-appleguide--*`, `controls-colorpicker--*` and the four example-app screens compare AE 0 before vs after.
 
 ## Files
 
@@ -94,3 +94,4 @@ Verify each cited line first (`grep -n px <file>`); Parts A/G may have shifted l
 - `src/SystemFolder/HyperCard/HyperCard.pixelLiterals.test.ts` - create: no-literal check over the five files
 
 ## Work Log
+### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.

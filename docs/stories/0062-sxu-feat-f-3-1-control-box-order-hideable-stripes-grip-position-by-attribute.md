@@ -7,7 +7,7 @@ status: pending
 priority: "2"
 effort: S
 created: "2026-10-28T20:30:04.823Z"
-updated: "2026-10-28T20:30:04.823Z"
+updated: "2026-10-29T20:22:00.352Z"
 links:
   repo:
     local: ~/classicy
@@ -19,6 +19,7 @@ links:
   specs:
     - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   stories:
+    - ["0083-v8n", "blocks"]
     - ["0061-pic", "depends"]
   plans:
     - ["0010-743", "included", ["3.1"]]
@@ -84,7 +85,6 @@ Inside the title-bar block (after `:251`): `[data-classicy-control="close"] { or
 - [ ] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Window/ClassicyWindow.layout.test.ts
 - [ ] Each `.classicyWindowControlBox` wrapper carries `data-classicy-control`; base `order` is close 10, title 20, zoom 30, collapse 40; the grip moves with `[data-classicy-grow-box]` for the three other corners.
 - [ ] No `display … !important` on `.classicyWindowTitleLeft/Center/Right`.
-- [ ] [MANUAL] `compare -metric AE` is `0` for every `desktop-window--*` story.
 
 ## Files
 
@@ -94,3 +94,4 @@ Inside the title-bar block (after `:251`): `[data-classicy-control="close"] { or
 - `src/SystemFolder/SystemResources/Window/ClassicyWindow.titlebar.test.tsx` - modify: wrapper attribute test
 
 ## Work Log
+### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.

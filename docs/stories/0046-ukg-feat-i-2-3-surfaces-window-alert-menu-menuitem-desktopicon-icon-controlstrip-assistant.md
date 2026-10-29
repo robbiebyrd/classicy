@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T20:18:19.144Z"
-updated: "2026-10-29T20:17:08.194Z"
+updated: "2026-10-29T20:22:00.352Z"
 started: "2026-10-29T19:28:41.968Z"
 tags: []
 milestone: ""
@@ -36,6 +36,7 @@ links:
   specs:
     - ./docs/plans/0000-aud-dsgn-reskinning-audit-structure-behavior-style-separation.md
   stories:
+    - ["0083-v8n", "blocks"]
     - ["0045-1c6", "depends"]
   plans:
     - ["0006-dy6", "included", ["2.3"]]
@@ -92,7 +93,6 @@ Re-shoot desktop-window*, desktop-desktop*, desktop-desktopicon*, desktop-menu*,
 
 - [ ] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/{Window,Alert,Menu,Desktop,Icon,ControlStrip,Assistant} -t appearance
 - [ ] Window, Alert, Menu, MenuItem, DesktopIcon, Icon, ControlStrip and Assistant roots carry the probe decoration and the listed state classes and emit the listed events (one dragEnd per window gesture, one release per menu flash); every pre-existing Window and Menu test still passes.
-- [ ] [MANUAL] desktop-window*, desktop-desktop*, desktop-desktopicon*, desktop-menu*, desktop-menubar*, desktop-controlstrip*, dialogs-alert*, dialogs-assistant* and controls-icon* stories compare AE 0 before vs after.
 - [ ] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
 
 ## Files
@@ -117,3 +117,5 @@ Re-shoot desktop-window*, desktop-desktop*, desktop-desktopicon*, desktop-menu*,
 ### 2026-10-29T19:28:43.701Z - Started beside Part B (TSX only; B's remaining work is SCSS, Platinum/** and docs). Base 81ad67308; implementer dispatched. Binding: I-R4 strict, I-R5 attrs first, I-R13, I-R14/I-R15 (input on dual-path gestures, listeners only for the duration of a gesture). Window geometry and zIndex stay state-owned. Edits stay tight to the roots so G (ClassicyWindow menu-bar height) and E (ControlStrip art, title bar) rebase cleanly. Parity deferred until after B lands.
 
 ### 2026-10-29T20:17:08.194Z - Implementer DONE_WITH_CONCERNS at 848cdde6e: 54 new tests (41 RED to GREEN), 5 Passthrough rows plus a test that package style never moves or restacks windows or icons; the DOM dump with no package is unchanged. Concerns for 3.2: window resizes emit dragStart and change { kind: "resize" }; zoom { zoomed: false } also fires on collapse and resize start, where today's zoom sound plays; MenuItem focus fires on every mouseover; Finder outline drags emit no events. Controller re-ran lint, tsc and 104 files/1255 tests green; pushed. Reviewer dispatched with the concerns as focus; rulings follow the review.
+
+### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
