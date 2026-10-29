@@ -5,6 +5,7 @@ import dts from "vite-plugin-dts";
 import VitePluginImageTools from "vite-plugin-image-tools";
 import richSvg from "vite-plugin-react-rich-svg";
 import { classicyCssLayerPlugin } from "./bin/classicyCssLayerPlugin";
+import { CLASSICY_DTS_EXCLUDE } from "./bin/classicyDistTypes";
 import { classicyPackageStylesheets } from "./bin/classicyPackageCss";
 import {
 	classicyStyleInjector,
@@ -236,6 +237,9 @@ export default defineConfig({
 		react(),
 		dts({
 			outDir: "dist/types",
+			// No declarations for tests, test helpers or stories (verify:dist,
+			// invariant 8, fails the build if one ships).
+			exclude: CLASSICY_DTS_EXCLUDE,
 		}),
 		richSvg(),
 		VitePluginImageTools({
