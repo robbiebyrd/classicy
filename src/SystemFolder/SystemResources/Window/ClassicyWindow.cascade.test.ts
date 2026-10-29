@@ -98,16 +98,13 @@ describe("ClassicyWindow.scss cascade", () => {
 			);
 	});
 
-	it("platinumWindowControlBox sizes are not !important", () => {
+	it("platinum-window-control-box sizes are not !important", () => {
 		const mixin = sass.compileString(
-			'@use "appearance";\n.box { @include appearance.platinumWindowControlBox; }',
+			'@use "mixins";\n.box { @include mixins.platinum-window-control-box; }',
 			{
 				style: "expanded",
 				loadPaths: [
-					path.resolve(
-						process.cwd(),
-						"src/SystemFolder/ControlPanels/AppearanceManager/styles",
-					),
+					path.resolve(process.cwd(), "src/Appearance/Platinum/styles"),
 				],
 			},
 		).css;

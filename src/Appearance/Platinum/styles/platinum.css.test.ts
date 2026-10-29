@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, globSync, readFileSync } from "node:fs";
 import { compile, compileString } from "sass";
 import { describe, expect, it } from "vitest";
 import { isSingleClassicyLayerBlock } from "../../../../bin/classicyPackageCss";
@@ -6,8 +6,8 @@ import { CLASSICY_LAYER_ORDER } from "../../../../bin/classicyStyleInjector";
 
 // Under src/, the Sass load path.
 const STYLES = "Appearance/Platinum/styles";
-// The originals stay in place until 4.3 re-points the last component sheet
-// (ruling R7); the equivalence tests below are deleted with them.
+// Where the modules _mixins/_scrollbars/_assets were copied from; deleted once
+// no base sheet used them (ruling R7).
 const ORIGINALS = "SystemFolder/ControlPanels/AppearanceManager/styles";
 const read = (file: string) => readFileSync(`src/${file}`, "utf8");
 
@@ -622,6 +622,211 @@ describe("platinum.scss (compiled)", () => {
 			);
 		});
 	});
+
+	describe("4.3a: the push button, bevel pop-up panel, checkbox, placard, table, drive list, meter, output, progress bar and split view looks", () => {
+		// Every rule whose selector list is exactly `selector` (a list joined by
+		// ", "), each part scoped (Sass splits a rule around its nested rules), in
+		// order: the offset of each, and the declarations of all of them, the last
+		// one winning.
+		const rules = (selector: string) => {
+			const scoped = selector
+				.split(", ")
+				.map((part) => `${P} ${part}`)
+				.join(", ");
+			const head = `\n${scoped} {\n`;
+			const at: number[] = [];
+			const props: Record<string, string> = {};
+			for (let i = flat.indexOf(head); i >= 0; i = flat.indexOf(head, i + 1)) {
+				at.push(i);
+				const body = flat.slice(i + head.length, flat.indexOf("}", i));
+				for (const line of body.split(";\n")) {
+					const colon = line.indexOf(":");
+					if (colon > 0)
+						props[line.slice(0, colon).trim()] = line
+							.slice(colon + 1)
+							.trim()
+							.replace(/;$/, "");
+				}
+			}
+			if (!at.length) throw new Error(`no rule for ${scoped}`);
+			return { first: at[0], last: at.at(-1) ?? at[0], props };
+		};
+		// R15: `winner` sets `prop` to `value` and follows `loser`.
+		const winsOver = (
+			winner: string,
+			loser: string,
+			prop: string,
+			value: string,
+		) => {
+			const w = rules(winner);
+			expect(w.props[prop], winner).toBe(value);
+			expect(w.last, `${winner} follows ${loser}`).toBeGreaterThan(
+				rules(loser).first,
+			);
+		};
+		const BORDER = "var(--window-border-size) solid var(--color-window-border)";
+
+		it("scopes the push button bevels", () => {
+			const button = rules(".classicyButton").props;
+			expect(button["border-radius"]).toBe("var(--window-padding-size)");
+			expect(button["box-shadow"]).toBeDefined();
+			expect(rules(".classicyButton:active").props["background-color"]).toBe(
+				"var(--color-system-05)",
+			);
+			expect(
+				rules(":where(.classicyButton).pressed").props["box-shadow"],
+			).toBeDefined();
+			expect(
+				rules(".classicyButtonKeyActive").props["box-shadow"],
+			).toBeDefined();
+			expect(
+				rules(":where(.classicyButton).default.classicyButtonKeyActive").props[
+					"box-shadow"
+				],
+			).toBeDefined();
+		});
+
+		it("keeps the push button overrides after the bevels they override (P8, P8b)", () => {
+			// P8: square and small buttons keep their radius over the bevel's.
+			winsOver(
+				".classicyButtonShapeSquare",
+				".classicyButton",
+				"border-radius",
+				"0",
+			);
+			winsOver(
+				".classicyButtonSmall",
+				".classicyButton",
+				"border-radius",
+				"calc(var(--window-padding-size) / 2)",
+			);
+			winsOver(
+				".classicyButtonShapeSquare",
+				":where(.classicyButton).pressed",
+				"border-radius",
+				"0",
+			);
+			// P8b: the default ring comes from --button-default-ring, and a disabled
+			// default button shows no pressed shadow.
+			expect(
+				rules(":where(.classicyButton).default").props["box-shadow"],
+			).toMatch(/^0 0 0 calc\(var\(--button-default-ring\) \/ 3\)/);
+			winsOver(
+				":where(.classicyButton).default:active:disabled",
+				":where(.classicyButton).default:active",
+				"box-shadow",
+				"none",
+			);
+		});
+
+		it("scopes the bevel button's pop-up panel frame and keeps its face over it (P10)", () => {
+			const panel = rules(
+				".classicyBevelButtonPopup.classicyBevelButtonPopupPanel",
+			);
+			expect(panel.props.border).toBe("1px solid var(--color-black)");
+			expect(panel.props.background).toBe("var(--color-system-03)");
+			expect(panel.props["box-shadow"]).toBe(
+				"inset 1px 1px 0 0 var(--color-white)",
+			);
+			expect(panel.last).toBeGreaterThan(panel.first);
+			expect(flat).toContain(
+				`${P} .classicyBevelButtonPopup.classicyBevelButtonPopupPanel::before {`,
+			);
+		});
+
+		it("scopes the checkbox border and keeps its pressed, disabled and default overrides after it (P13)", () => {
+			expect(rules(".classicyCheckbox").props.border).toBe(BORDER);
+			winsOver(
+				".classicyCheckbox:active",
+				".classicyCheckbox",
+				"box-shadow",
+				"none",
+			);
+			const disabled =
+				".classicyCheckbox:disabled, .classicyCheckbox:disabled:active";
+			winsOver(disabled, ".classicyCheckbox", "box-shadow", "none");
+			winsOver(
+				disabled,
+				".classicyCheckbox",
+				"border",
+				"var(--window-border-size) solid var(--color-system-06)",
+			);
+			winsOver(
+				".classicyCheckbox.default:checked, .classicyCheckbox.default:active",
+				".classicyCheckbox",
+				"border-color",
+				"var(--color-theme-06)",
+			);
+			winsOver(
+				".classicyCheckbox.default:disabled",
+				".classicyCheckbox.default:checked, .classicyCheckbox.default:active",
+				"border-color",
+				"var(--color-system-06)",
+			);
+		});
+
+		it("scopes the placard menu, table header, drive list head, meter, output, progress bar and split view bevels", () => {
+			expect(rules(".classicyPlacardMenu").props.border).toBe(BORDER);
+			expect(
+				rules(".classicyTableColumnHeader").props["box-shadow"],
+			).toBeDefined();
+			const selected = rules(":where(.classicyTableColumnHeader).selected");
+			expect(selected.props["border-bottom"]).toBe(
+				"calc(var(--window-border-size) * 1) solid var(--color-black)",
+			);
+			expect(selected.first).toBeGreaterThan(
+				rules(".classicyTableColumnHeader").first,
+			);
+			expect(
+				rules(".classicyDriveSetupListHead th").props["box-shadow"],
+			).toBeDefined();
+			expect(rules(".classicyMeter").props.border).toBe(BORDER);
+			expect(rules(".classicyOutputInset").props.border).toBe(BORDER);
+			expect(
+				rules(".classicyProgress progress[value]::-webkit-progress-bar").props
+					.border,
+			).toBe(BORDER);
+			expect(rules(".classicySplitViewDivider").props.border).toBe(BORDER);
+		});
+
+		it.each([
+			"SystemFolder/SystemResources/Button/ClassicyButton.scss",
+			"SystemFolder/SystemResources/BevelButton/ClassicyBevelButton.scss",
+			"SystemFolder/SystemResources/Checkbox/ClassicyCheckbox.scss",
+			"SystemFolder/SystemResources/Placard/ClassicyPlacard.scss",
+			"SystemFolder/SystemResources/Table/ClassicyTable.scss",
+			"SystemFolder/ControlPanels/DriveSetup/DriveSetupList.scss",
+			"SystemFolder/SystemResources/Meter/ClassicyMeter.scss",
+			"SystemFolder/SystemResources/Output/ClassicyOutput.scss",
+			"SystemFolder/SystemResources/ProgressBar/ClassicyProgressBar.scss",
+			"SystemFolder/SystemResources/SplitView/ClassicySplitView.scss",
+		])("%s no longer references the old style modules or the Platinum mixins", (file) =>
+			expect(read(file)).not.toMatch(
+				/styles\/(appearance|scrollbars|assets)['"]|@include appearance\.|platinum-|assets\.\$/,
+			));
+	});
+});
+
+describe("the old AppearanceManager style modules", () => {
+	// Every stylesheet outside src/Appearance/ (the packages and the
+	// vocabulary, whose Platinum files are the modules' renamed copies).
+	const sheets = globSync("src/**/*.scss").filter(
+		(file) => !file.replaceAll("\\", "/").startsWith("src/Appearance/"),
+	);
+
+	it("no base stylesheet uses the old style modules", () => {
+		expect(sheets.length).toBeGreaterThan(0);
+		expect(
+			sheets.filter((file) =>
+				/@use ['"][^'"]*styles\/(appearance|scrollbars|assets)['"]|@include (appearance|scrollbars)\.|assets\.\$/.test(
+					readFileSync(file, "utf8"),
+				),
+			),
+		).toEqual([]);
+	});
+
+	it("are deleted, with their directory (ruling R7)", () =>
+		expect(existsSync(`src/${ORIGINALS}`)).toBe(false));
 });
 
 describe("the six base stylesheets 4.2 moved the Platinum look out of", () => {
@@ -635,191 +840,6 @@ describe("the six base stylesheets 4.2 moved the Platinum look out of", () => {
 	])("%s no longer references the Platinum mixins", (file) =>
 		expect(read(file)).not.toMatch(
 			/AppearanceManager\/styles|platinum-|assets\.\$/,
-		));
-});
-
-describe("4.3a: the push button, bevel pop-up panel, checkbox, placard, table, drive list, meter, output, progress bar and split view looks", () => {
-	const css = compile(`src/${STYLES}/platinum.scss`, LOAD).css;
-	const P = ".classicyDesktop[data-classicy-appearance=platinum]";
-	// One selector list per line, unindented (as in the block above).
-	const flat = css.replace(/,\s*\n\s*/g, ", ").replace(/\n\s+/g, "\n");
-	// Every rule whose selector list is exactly `selector` (a list joined by
-	// ", "), each part scoped (Sass splits a rule around its nested rules), in
-	// order: the offset of each, and the declarations of all of them, the last
-	// one winning.
-	const rules = (selector: string) => {
-		const scoped = selector
-			.split(", ")
-			.map((part) => `${P} ${part}`)
-			.join(", ");
-		const head = `\n${scoped} {\n`;
-		const at: number[] = [];
-		const props: Record<string, string> = {};
-		for (let i = flat.indexOf(head); i >= 0; i = flat.indexOf(head, i + 1)) {
-			at.push(i);
-			const body = flat.slice(i + head.length, flat.indexOf("}", i));
-			for (const line of body.split(";\n")) {
-				const colon = line.indexOf(":");
-				if (colon > 0)
-					props[line.slice(0, colon).trim()] = line
-						.slice(colon + 1)
-						.trim()
-						.replace(/;$/, "");
-			}
-		}
-		if (!at.length) throw new Error(`no rule for ${scoped}`);
-		return { first: at[0], last: at.at(-1) ?? at[0], props };
-	};
-	// R15: `winner` sets `prop` to `value` and follows `loser`.
-	const winsOver = (
-		winner: string,
-		loser: string,
-		prop: string,
-		value: string,
-	) => {
-		const w = rules(winner);
-		expect(w.props[prop], winner).toBe(value);
-		expect(w.last, `${winner} follows ${loser}`).toBeGreaterThan(
-			rules(loser).first,
-		);
-	};
-	const BORDER = "var(--window-border-size) solid var(--color-window-border)";
-
-	it("scopes the push button bevels", () => {
-		const button = rules(".classicyButton").props;
-		expect(button["border-radius"]).toBe("var(--window-padding-size)");
-		expect(button["box-shadow"]).toBeDefined();
-		expect(rules(".classicyButton:active").props["background-color"]).toBe(
-			"var(--color-system-05)",
-		);
-		expect(
-			rules(":where(.classicyButton).pressed").props["box-shadow"],
-		).toBeDefined();
-		expect(rules(".classicyButtonKeyActive").props["box-shadow"]).toBeDefined();
-		expect(
-			rules(":where(.classicyButton).default.classicyButtonKeyActive").props[
-				"box-shadow"
-			],
-		).toBeDefined();
-	});
-
-	it("keeps the push button overrides after the bevels they override (P8, P8b)", () => {
-		// P8: square and small buttons keep their radius over the bevel's.
-		winsOver(
-			".classicyButtonShapeSquare",
-			".classicyButton",
-			"border-radius",
-			"0",
-		);
-		winsOver(
-			".classicyButtonSmall",
-			".classicyButton",
-			"border-radius",
-			"calc(var(--window-padding-size) / 2)",
-		);
-		winsOver(
-			".classicyButtonShapeSquare",
-			":where(.classicyButton).pressed",
-			"border-radius",
-			"0",
-		);
-		// P8b: the default ring comes from --button-default-ring, and a disabled
-		// default button shows no pressed shadow.
-		expect(
-			rules(":where(.classicyButton).default").props["box-shadow"],
-		).toMatch(/^0 0 0 calc\(var\(--button-default-ring\) \/ 3\)/);
-		winsOver(
-			":where(.classicyButton).default:active:disabled",
-			":where(.classicyButton).default:active",
-			"box-shadow",
-			"none",
-		);
-	});
-
-	it("scopes the bevel button's pop-up panel frame and keeps its face over it (P10)", () => {
-		const panel = rules(
-			".classicyBevelButtonPopup.classicyBevelButtonPopupPanel",
-		);
-		expect(panel.props.border).toBe("1px solid var(--color-black)");
-		expect(panel.props.background).toBe("var(--color-system-03)");
-		expect(panel.props["box-shadow"]).toBe(
-			"inset 1px 1px 0 0 var(--color-white)",
-		);
-		expect(panel.last).toBeGreaterThan(panel.first);
-		expect(flat).toContain(
-			`${P} .classicyBevelButtonPopup.classicyBevelButtonPopupPanel::before {`,
-		);
-	});
-
-	it("scopes the checkbox border and keeps its pressed, disabled and default overrides after it (P13)", () => {
-		expect(rules(".classicyCheckbox").props.border).toBe(BORDER);
-		winsOver(
-			".classicyCheckbox:active",
-			".classicyCheckbox",
-			"box-shadow",
-			"none",
-		);
-		const disabled =
-			".classicyCheckbox:disabled, .classicyCheckbox:disabled:active";
-		winsOver(disabled, ".classicyCheckbox", "box-shadow", "none");
-		winsOver(
-			disabled,
-			".classicyCheckbox",
-			"border",
-			"var(--window-border-size) solid var(--color-system-06)",
-		);
-		winsOver(
-			".classicyCheckbox.default:checked, .classicyCheckbox.default:active",
-			".classicyCheckbox",
-			"border-color",
-			"var(--color-theme-06)",
-		);
-		winsOver(
-			".classicyCheckbox.default:disabled",
-			".classicyCheckbox.default:checked, .classicyCheckbox.default:active",
-			"border-color",
-			"var(--color-system-06)",
-		);
-	});
-
-	it("scopes the placard menu, table header, drive list head, meter, output, progress bar and split view bevels", () => {
-		expect(rules(".classicyPlacardMenu").props.border).toBe(BORDER);
-		expect(
-			rules(".classicyTableColumnHeader").props["box-shadow"],
-		).toBeDefined();
-		const selected = rules(":where(.classicyTableColumnHeader).selected");
-		expect(selected.props["border-bottom"]).toBe(
-			"calc(var(--window-border-size) * 1) solid var(--color-black)",
-		);
-		expect(selected.first).toBeGreaterThan(
-			rules(".classicyTableColumnHeader").first,
-		);
-		expect(
-			rules(".classicyDriveSetupListHead th").props["box-shadow"],
-		).toBeDefined();
-		expect(rules(".classicyMeter").props.border).toBe(BORDER);
-		expect(rules(".classicyOutputInset").props.border).toBe(BORDER);
-		expect(
-			rules(".classicyProgress progress[value]::-webkit-progress-bar").props
-				.border,
-		).toBe(BORDER);
-		expect(rules(".classicySplitViewDivider").props.border).toBe(BORDER);
-	});
-
-	it.each([
-		"SystemFolder/SystemResources/Button/ClassicyButton.scss",
-		"SystemFolder/SystemResources/BevelButton/ClassicyBevelButton.scss",
-		"SystemFolder/SystemResources/Checkbox/ClassicyCheckbox.scss",
-		"SystemFolder/SystemResources/Placard/ClassicyPlacard.scss",
-		"SystemFolder/SystemResources/Table/ClassicyTable.scss",
-		"SystemFolder/ControlPanels/DriveSetup/DriveSetupList.scss",
-		"SystemFolder/SystemResources/Meter/ClassicyMeter.scss",
-		"SystemFolder/SystemResources/Output/ClassicyOutput.scss",
-		"SystemFolder/SystemResources/ProgressBar/ClassicyProgressBar.scss",
-		"SystemFolder/SystemResources/SplitView/ClassicySplitView.scss",
-	])("%s no longer references the old style modules or the Platinum mixins", (file) =>
-		expect(read(file)).not.toMatch(
-			/styles\/(appearance|scrollbars|assets)['"]|@include appearance\.|platinum-|assets\.\$/,
 		));
 });
 
@@ -871,67 +891,64 @@ describe("the moved Platinum mixin files", () => {
 			);
 	});
 
-	it("_assets.scss is assets.scss verbatim", () =>
-		expect(read(`${STYLES}/_assets.scss`)).toBe(
-			read(`${ORIGINALS}/assets.scss`),
-		));
+	it("_assets.scss declares the Platinum art variables, and no mixin", () =>
+		expect(
+			[...read(`${STYLES}/_assets.scss`).matchAll(/^\$([\w-]+):/gm)].map(
+				([, name]) => name,
+			),
+		).toEqual([
+			"corner-dither",
+			"collapse",
+			"zoom",
+			"title-bar-center",
+			"title-bar-left",
+			"title-bar-right",
+			"title-bar-utility",
+			"resizer",
+			"triangle",
+			"down-arrow",
+			"title-bar-center-red",
+			"title-bar-left-red",
+			"title-bar-right-red",
+		]));
 
-	// [renamed, original, arguments]: every mixin compiles to exactly the CSS
-	// its original does. Sass evaluates a mixin body only when it is included,
-	// so this is what proves the copied bodies (and layout.classicy-px-rect)
-	// resolve; platinum.scss includes none of them yet.
-	const MIXINS: [string, string, string][] = [
-		["platinum-menu-frame", "platinumMenuFrame", ""],
-		["platinum-menu-divider", "platinumMenuDivider", ""],
-		["platinum-window-box-shadow", "platinumWindowBoxShadow", ""],
-		["platinum-box-shadow", "platinumBoxShadow", ""],
-		["platinum-window-border", "platinumWindowBorder", ""],
-		["platinum-window-header-border", "platinumWindowHeaderBorder", ""],
-		[
-			"platinum-window-header-border-depressed",
-			"platinumWindowHeaderBorderDepressed",
-			"",
-		],
-		["platinum-window-inner-box-shadow", "platinumWindowInnerBoxShadow", ""],
-		[
-			"platinum-window-inner-box-shadow-outer",
-			"platinumWindowInnerBoxShadowOuter",
-			"",
-		],
-		["platinum-window-inner-border", "platinumWindowInnerBorder", ""],
-		[
-			"platinum-window-control-box-border",
-			"platinumWindowControlBoxBorder",
-			"",
-		],
-		["platinum-window-control-box", "platinumWindowControlBox", ""],
-		[
-			"platinum-window-control-box-depressable",
-			"platinumWindowControlBoxDepressable",
-			"",
-		],
-		["platinum-window-undepressable", "platinumWindowUndepressable", ""],
-		["platinum-window-depressable", "platinumWindowDepressable", ""],
-		["platinum-window-depressed", "platinumWindowDepressed", ""],
-		["platinum-depressable-default", "platinumDepressableDefault", ""],
-		[
-			"platinum-depressable-box-shadow-active",
-			"platinumDepressableBoxShadowActive",
-			"",
-		],
-		["platinum-halftone", "theme-halftone", "(#c0c0c0, 10%)"],
+	// [name, arguments]: Sass evaluates a mixin body only when it is included,
+	// so compiling each one proves its body (and layout.classicy-px-rect)
+	// resolves, including those no partial includes. 4.1 proved each compiled
+	// exactly as its AppearanceManager/styles original; the originals are
+	// deleted (ruling R7), so these keep only the resolution check.
+	const MIXINS: [string, string][] = [
+		["platinum-menu-frame", ""],
+		["platinum-menu-divider", ""],
+		["platinum-window-box-shadow", ""],
+		["platinum-box-shadow", ""],
+		["platinum-window-border", ""],
+		["platinum-window-header-border", ""],
+		["platinum-window-header-border-depressed", ""],
+		["platinum-window-inner-box-shadow", ""],
+		["platinum-window-inner-box-shadow-outer", ""],
+		["platinum-window-inner-border", ""],
+		["platinum-window-control-box-border", ""],
+		["platinum-window-control-box", ""],
+		["platinum-window-control-box-depressable", ""],
+		["platinum-window-undepressable", ""],
+		["platinum-window-depressable", ""],
+		["platinum-window-depressed", ""],
+		["platinum-depressable-default", ""],
+		["platinum-depressable-box-shadow-active", ""],
+		["platinum-halftone", "(#c0c0c0, 10%)"],
 	];
-	const SCROLLBAR_MIXINS: [string, string, string][] = [
-		["platinum-scrollbar-glyph-up", "sb-glyph-up", "(var(--color-system-02))"],
-		["platinum-scrollbar-glyph-down", "sb-glyph-down", "(white)"],
-		["platinum-scrollbar-glyph-left", "sb-glyph-left", "(white)"],
-		["platinum-scrollbar-glyph-right", "sb-glyph-right", "(white)"],
-		["platinum-scrollbar-button-box", "sb-btn-box", ""],
-		["platinum-scrollbar-button-pressed", "sb-btn-pressed", ""],
-		["platinum-scrollbars", "scrollbars", ""],
-		["platinum-scrollbars-split-arrows", "scrollbars-split-arrows", ""],
-		["platinum-scrollbars-inactive", "scrollbars-inactive", ""],
-		["platinum-scrollbars-themed", "scrollbars-themed", ""],
+	const SCROLLBAR_MIXINS: [string, string][] = [
+		["platinum-scrollbar-glyph-up", "(var(--color-system-02))"],
+		["platinum-scrollbar-glyph-down", "(white)"],
+		["platinum-scrollbar-glyph-left", "(white)"],
+		["platinum-scrollbar-glyph-right", "(white)"],
+		["platinum-scrollbar-button-box", ""],
+		["platinum-scrollbar-button-pressed", ""],
+		["platinum-scrollbars", ""],
+		["platinum-scrollbars-split-arrows", ""],
+		["platinum-scrollbars-inactive", ""],
+		["platinum-scrollbars-themed", ""],
 	];
 	const include = (use: string, name: string, args: string) =>
 		compileString(
@@ -939,28 +956,18 @@ describe("the moved Platinum mixin files", () => {
 			LOAD,
 		).css;
 
-	it.each(MIXINS)("%s compiles exactly as %s", (renamed, original, args) => {
-		const after = include(`${STYLES}/mixins`, renamed, args);
-		expect(after.length).toBeGreaterThan(0);
-		expect(after).toBe(include(`${ORIGINALS}/appearance`, original, args));
-	});
+	it.each(MIXINS)("%s compiles", (name, args) =>
+		expect(include(`${STYLES}/mixins`, name, args)).toMatch(/^\.x[\s\S]*;/));
 
-	it.each(
-		SCROLLBAR_MIXINS,
-	)("%s compiles exactly as %s", (renamed, original, args) => {
-		const after = include(`${STYLES}/scrollbars`, renamed, args);
-		expect(after.length).toBeGreaterThan(0);
-		expect(after).toBe(include(`${ORIGINALS}/scrollbars`, original, args));
-	});
+	it.each(SCROLLBAR_MIXINS)("%s compiles", (name, args) =>
+		expect(include(`${STYLES}/scrollbars`, name, args)).toMatch(/\{[^}]*;/));
 
-	it("platinum-encode-color returns what encode-color does", () => {
-		const call = (use: string, fn: string) =>
+	// The value 4.1 pinned against the original encode-color.
+	it("platinum-encode-color percent-encodes a color for a data URI", () =>
+		expect(
 			compileString(
-				`@use "${use}" as m;\n.x { content: m.${fn}(#336699); }`,
+				`@use "${STYLES}/mixins" as m;\n.x { content: m.platinum-encode-color(#336699); }`,
 				LOAD,
-			).css;
-		expect(call(`${STYLES}/mixins`, "platinum-encode-color")).toBe(
-			call(`${ORIGINALS}/appearance`, "encode-color"),
-		);
-	});
+			).css,
+		).toBe('.x {\n  content: "%23336699";\n}'));
 });
