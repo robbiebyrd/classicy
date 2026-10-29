@@ -82,3 +82,26 @@
   display: flex;
   align-items: center;
 }
+
+// Packages tab: under the package list, each package's seven theme colors as
+// a row of small swatches (the color itself is inline data).
+.classicyAppearanceManagerPackageSwatches {
+  display: flex;
+  flex-direction: column;
+  gap: var(--layout-item-gap);
+  margin: var(--layout-focus-gap) 0 0;
+  padding: 0;
+  list-style: none;
+
+  > li {
+    display: flex;
+    gap: var(--layout-item-gap);
+  }
+}
+
+.classicyAppearanceManagerPackageSwatch {
+  width: var(--icon-small-size);
+  height: var(--icon-small-size);
+  border: var(--window-border-size) solid var(--color-black);
+  box-sizing: border-box;
+}
