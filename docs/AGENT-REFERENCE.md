@@ -376,6 +376,7 @@ Common built-in actions:
 | `ClassicyAppOpen` | `{ app: { id, name, icon } }` | Open an app |
 | `ClassicyAppClose` | `{ app: { id } }` | Close an app |
 | `ClassicyAppFocus` | `{ app: { id } }` | Focus an app |
+| `ClassicyWindowOpen` | `{ app: { id }, window: { id, size, minimumSize, position?, autoPosition?, menuBar?, windowType?, collapsable?, modal? } }` | Register (or reopen) a window. A new window opens at `position` as given, `[0, 0]` included. With no `position`, or with `autoPosition: true`, it is cascaded instead: `[30 + 10·n, 30 + 10·n]`, n being the app's window count. An existing window keeps its stored position. `ClassicyWindow` always passes a position (its `initialPosition`, default `[110, 110]`), so it never cascades |
 | `ClassicyWindowFocus` | `{ app: { id }, window: { id } }` | Focus a window |
 | `ClassicyDesktopChangeTheme` | `{ activeTheme: "<themeId>" }` | Switch theme (the active package's loaded built-ins, then its defaults and presets, then custom themes, then other packages' built-ins) |
 | `ClassicyDesktopChangeAppearancePackage` | `{ packageId: string }` | Switch the active Appearance Package (`System.Manager.Appearance.packageId`, persisted, default `"platinum"`); activates a copy of the package's default theme unless the active theme already belongs to it (`theme.package`). An unregistered id is a logged no-op; untrusted dispatches never reach it (`ClassicyDesktop*` floor) |

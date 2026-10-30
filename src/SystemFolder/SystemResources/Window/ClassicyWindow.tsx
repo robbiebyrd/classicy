@@ -1003,6 +1003,9 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			// refresh for the focused window happens in the ws.focused effect below.
 			// #278: collapsable/modal come from props, not `ws` — a persisted
 			// record restored into `ws` may predate them or be stale.
+			// G18: the window always supplies a position (`initialPosition`,
+			// default [110, 110], resolved and clamped), so it never asks the
+			// reducer for the cascade (`autoPosition`); [0, 0] opens at [0, 0].
 			desktopEventDispatch({
 				type: "ClassicyWindowOpen",
 				window: { ...ws, collapsable, modal },

@@ -159,6 +159,11 @@ The full mixin table and the package API are in `docs/AGENT-REFERENCE.md`
   instead of `#f7cecd`, so they follow a theme's error color. New SCSS
   helpers `classicy-tint`, `classicy-shade` and `classicy-alpha` are at
   `classicy/scss/color`.
+- **`ClassicyWindowOpen` no longer treats `[0, 0]` as "no position".** A new
+  window opens where its `position` says, `[0, 0]` included. To have it
+  cascaded (`30 + 10·n`), omit `position` or pass `autoPosition: true`.
+  `ClassicyWindow` always supplies a position, so its windows are unaffected
+  (default `[110, 110]`).
 - **A package knob that would make a variable Classicy sets itself**
   (`menu.minWidth` → `--menu-min-width`) is skipped with a warning and left
   out of the Options tab.

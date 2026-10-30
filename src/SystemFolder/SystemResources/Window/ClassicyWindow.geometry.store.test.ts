@@ -372,14 +372,34 @@ describe("ClassicyWindow geometry under the menu-bar placement (G17)", () => {
 		expect(storedWindow()?.position).toEqual([8, 38]);
 	});
 
+	it("registers a boot-render top-left window at [0, 0] under window placement", () => {
+		registerClassicyAppearancePackage(
+			placementPackage("test-window", "window"),
+		);
+		activate("test-window");
+		// No desktop: the window seeds from the active theme and layout. [0, 0]
+		// is the position it asked for, not "no position" (G18).
+		render(
+			createElement(
+				ClassicyWindow,
+				{
+					id: "win",
+					appId: APP,
+					title: "Geometry",
+					initialPosition: ["left", "top"],
+				},
+				createElement("p", null, "content"),
+			),
+		);
+		expect(storedWindow()?.position).toEqual([0, 0]);
+	});
+
 	it("registers a boot-render window at the screen's top under window placement", () => {
 		registerClassicyAppearancePackage(
 			placementPackage("test-window", "window"),
 		);
 		activate("test-window");
-		// No desktop: the window seeds from the active theme and layout. The x
-		// is numeric because ClassicyWindowOpen treats exactly [0, 0] as "no
-		// position" and cascades it to [30, 30].
+		// No desktop: the window seeds from the active theme and layout.
 		render(
 			createElement(
 				ClassicyWindow,

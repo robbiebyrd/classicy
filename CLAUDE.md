@@ -175,6 +175,9 @@ system-art key `aliasBadge` at render time.
 Windows stack and refocus by recency (`zOrder` = last open/focus time;
 `lastAccessedWindowId` = last focused):
 
+- `ClassicyWindowOpen` places a brand-new window at the `position` it sends,
+  `[0, 0]` included; only a dispatch with no `position` (or `autoPosition:
+  true`) is cascaded to `30 + 10·n` (G18). `ClassicyWindow` always sends one.
 - `ClassicyWindowOpen` focuses a brand-new window, and a window **reopened**
   after being closed this session (`closedThisSession`, set by
   `ClassicyWindowClose`, stripped in `sanitizeStateForPersistence`). A window

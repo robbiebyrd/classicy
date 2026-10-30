@@ -159,7 +159,9 @@ describe("ClassicyWindowOpen", () => {
 		expect(windows.find((w) => w.id === "w1")?.size).toEqual([400, 300]);
 	});
 
-	it("pads position when position is [0, 0]", () => {
+	// G18: [0, 0] is a real position (a top-left window under window
+	// placement), so a new window that asks for it opens there.
+	it("opens a new window at [0, 0] when it asks for [0, 0]", () => {
 		const ds = makeStoreWithWindows();
 		classicyWindowEventHandler(ds, {
 			type: "ClassicyWindowOpen",
@@ -172,8 +174,40 @@ describe("ClassicyWindowOpen", () => {
 			},
 		});
 		const w3 = getAppWindow(ds.System.Manager.Applications.apps.TestApp, "w3");
-		expect(w3?.position[0]).toBeGreaterThan(0);
-		expect(w3?.position[1]).toBeGreaterThan(0);
+		expect(w3?.position).toEqual([0, 0]);
+	});
+
+	// G18: only a window that supplied no position is cascaded, by the number
+	// of windows the app already has: autoPosition, or no position at all.
+	it("cascades a window that supplied no position: [30, 30], then [40, 40]", () => {
+		const ds = makeStore();
+		ds.System.Manager.Applications.apps.EmptyApp = {
+			id: "EmptyApp",
+			name: "Empty",
+			icon: "",
+			open: true,
+			focused: false,
+			windows: {},
+		};
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowOpen",
+			app: { id: "EmptyApp" },
+			window: {
+				id: "first",
+				minimumSize: [100, 100],
+				size: [500, 350],
+				position: [200, 200],
+				autoPosition: true,
+			},
+		});
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowOpen",
+			app: { id: "EmptyApp" },
+			window: { id: "second", minimumSize: [100, 100], size: [500, 350] },
+		});
+		const app = ds.System.Manager.Applications.apps.EmptyApp;
+		expect(getAppWindow(app, "first")?.position).toEqual([30, 30]);
+		expect(getAppWindow(app, "second")?.position).toEqual([40, 40]);
 	});
 
 	it("is a no-op when the app is not registered", () => {
