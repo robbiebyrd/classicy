@@ -6,6 +6,7 @@
 
 import classNames from "classnames";
 import type { CSSProperties, FC as FunctionalComponent } from "react";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { HYPERCARD_PART_DRAG_MIME } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorOverlay";
 import { paletteEntries } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorSchemas";
@@ -51,29 +52,48 @@ export const HyperCardToolsPalette: FunctionalComponent<
 				</ClassicyButton>
 			</div>
 			<div className={"classicyHyperCardPaletteParts"}>
-				{entries.map((entry) => (
-					// biome-ignore lint/a11y/noStaticElementInteractions: palette entry
-					// biome-ignore lint/a11y/useKeyWithClickEvents: drag-first control
-					<div
-						key={entry.type}
-						className={"classicyHyperCardPaletteEntry"}
-						data-part-type={entry.type}
-						draggable
-						onDragStart={(e) =>
-							e.dataTransfer?.setData(HYPERCARD_PART_DRAG_MIME, entry.type)
-						}
-						onClick={() =>
-							dispatch({
-								type: "ClassicyAppHCEditSetPlacing",
-								stackId,
-								partType: entry.type,
-							})
-						}
-					>
-						{entry.label}
-						{edit.placing === entry.type ? " ✓" : ""}
-					</div>
-				))}
+				{entries.map((entry) => {
+					const armed = edit.placing === entry.type;
+					const arm = () =>
+						dispatch({
+							type: "ClassicyAppHCEditSetPlacing",
+							stackId,
+							partType: entry.type,
+						});
+					return (
+						// A toggle button: aria-pressed carries the armed state, and the
+						// package draws its ✓ after the aria-hidden mark.
+						// biome-ignore lint/a11y/useSemanticElements: a <button> would bring its own box and break the palette's look; the div is draggable, focusable and keyboard-operable
+						<div
+							key={entry.type}
+							role="button"
+							tabIndex={0}
+							aria-pressed={armed}
+							className={classNames(
+								"classicyHyperCardPaletteEntry",
+								classicyStateClasses({ selected: armed }),
+							)}
+							data-part-type={entry.type}
+							draggable
+							onDragStart={(e) =>
+								e.dataTransfer?.setData(HYPERCARD_PART_DRAG_MIME, entry.type)
+							}
+							onClick={arm}
+							onKeyDown={(e) => {
+								if (e.key === "Enter" || e.key === " ") {
+									e.preventDefault();
+									arm();
+								}
+							}}
+						>
+							{entry.label}
+							<span
+								className={"classicyHyperCardPaletteEntryMark"}
+								aria-hidden={"true"}
+							/>
+						</div>
+					);
+				})}
 			</div>
 		</div>
 	);

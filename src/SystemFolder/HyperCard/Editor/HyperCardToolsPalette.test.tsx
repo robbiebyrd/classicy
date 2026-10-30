@@ -83,4 +83,26 @@ describe("HyperCardToolsPalette", () => {
 		);
 		expect(entry?.textContent).toContain("Palette Test");
 	});
+
+	// The armed entry's ✓ is package CSS (::after on an aria-hidden mark), so
+	// the state reaches assistive technology through aria-pressed instead.
+	it("exposes the armed entry as a pressed button with a selected state", () => {
+		render(
+			<HyperCardToolsPalette
+				stackId={"demo"}
+				edit={{ ...makeEdit(), placing: "slider" }}
+			/>,
+		);
+		const armed = screen.getByRole("button", { name: "Slider" });
+		expect(armed).toHaveAttribute("aria-pressed", "true");
+		expect(armed).toHaveClass("classicyHyperCardPaletteEntry", "selected");
+		expect(armed.textContent).not.toContain("✓");
+		const mark = armed.querySelector(".classicyHyperCardPaletteEntryMark");
+		expect(mark).toHaveAttribute("aria-hidden", "true");
+		expect(mark?.textContent).toBe("");
+
+		const idle = screen.getByRole("button", { name: "Button" });
+		expect(idle).toHaveAttribute("aria-pressed", "false");
+		expect(idle).not.toHaveClass("selected");
+	});
 });

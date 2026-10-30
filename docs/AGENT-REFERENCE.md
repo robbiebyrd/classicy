@@ -1956,7 +1956,10 @@ content: the menu check and mixed dash (`.classicyMenuItemCheck.checked`,
 the bevel button arrows (`.classicyBevelButtonArrowHorizontal`,
 `.classicyBevelButtonArrowVertical`), the placard arrow
 (`.classicyPlacardArrow`) and the file input's remove cross
-(`.classicyFileInputRemoveGlyph`). Platinum uses the font's ✓ – ▸ ▾ ✕ and
+(`.classicyFileInputRemoveGlyph`); the HyperCard tools palette's armed entry
+(`role="button"`, `aria-pressed`, `.selected`) gets its " ✓" as `::after`
+content on the aria-hidden `.classicyHyperCardPaletteEntryMark` after its
+label. Platinum uses the font's ✓ – ▸ ▾ ✕ and
 writes them as escapes with `string.unquote('"\\2713"')`, because Sass
 decodes a quoted escape and prepends `@charset`; that keeps the Sass output
 ASCII. The shipped files stay ASCII because the library build sets
