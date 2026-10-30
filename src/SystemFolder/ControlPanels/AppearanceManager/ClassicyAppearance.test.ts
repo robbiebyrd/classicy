@@ -11,7 +11,9 @@ import {
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeDerivations";
 import {
 	CLASSICY_DEFAULT_THEME_METRICS,
+	CLASSICY_THEME_NON_MEASUREMENT_VARS,
 	classicyMeasurementVars,
+	isReservedClassicyThemeVar,
 	withDefaultThemeMetrics,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import {
@@ -503,10 +505,32 @@ describe("classicyMeasurementVars — name collisions", () => {
 		expectReserved(CLASSICY_THEME_DERIVATIONS.map((d) => d.cssVar));
 	});
 
+	it("reserves every palette, font and desktop variable against package leaves", () => {
+		// getThemeVars sets them after the inputs, so a package leaf making one
+		// (`desktop.iconSize` → `--desktop-icon-size`) would be overwritten
+		// without a word: a package knob that can never take effect.
+		expectReserved(CLASSICY_THEME_NON_MEASUREMENT_VARS);
+	});
+
 	it("lists only variables getThemeVars emits", () => {
 		const vars = getThemeVars(getTheme("default")) as Record<string, string>;
-		for (const name of CLASSICY_THEME_DERIVED_VARS) {
+		for (const name of [
+			...CLASSICY_THEME_DERIVED_VARS,
+			...CLASSICY_THEME_NON_MEASUREMENT_VARS,
+		]) {
 			expect(vars, name).toHaveProperty(name);
+		}
+	});
+
+	it("reserves every variable getThemeVars sets beyond the measurement inputs", () => {
+		// The other direction: a variable added to getThemeVars later fails
+		// here until it is listed, and so reserved.
+		for (const theme of getAllThemes()) {
+			const inputs = classicyMeasurementVars(theme.measurements);
+			const unreserved = Object.keys(getThemeVars(theme)).filter(
+				(name) => !(name in inputs) && !isReservedClassicyThemeVar(name),
+			);
+			expect(unreserved, theme.id).toEqual([]);
 		}
 	});
 });
