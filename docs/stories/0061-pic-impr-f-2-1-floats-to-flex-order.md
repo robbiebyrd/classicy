@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T20:29:34.870Z"
-updated: "2026-10-30T00:28:05.735Z"
+updated: "2026-10-30T01:30:39.858Z"
 started: "2026-10-30T00:28:04.107Z"
 tags: []
 milestone: ""
@@ -102,3 +102,5 @@ If `attributes.txt` (Phase 0) shows a part attribute on a descendant rather than
 ### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
 
 ### 2026-10-30T00:28:05.735Z - Started on feat/appearance-part-f (worktree part-f) at BASE f95309251 (F 1.1 approved). The brief is the part-f ledger task-2.1-brief.md. The first commit is test-only: the F 1.1 review's minor carry-forwards. Parity: port 6025 against the shared post-B baseline.
+
+### 2026-10-30T01:30:39.858Z - Implemented at a21c0fe8d (pushed), after bcb76c862 (the test-only F 1.1 carry-forwards). RED: 3 style tests; GREEN 7/7. Gate: lint, tsc, 4033 tests (566 s, no timeouts), build:source with verify:dist; the float: right grep is empty. Parity: 48/48 desktop-* stories at AE 0 against post-B. The 9 menu-bar, desktop and app stories in Firefox are at AE 0 against a same-worktree before set. Menu-bar boxes are byte-identical in Chromium and Firefox, and computed changes are only display, order, float and flex-item sizing. Deviations: also removed float: right from the deprecated Sound widget, which is not drawn; kept box-sizing: border-box, because the reconciliation's F4 shift claim was wrong. A balloon-wrapped top-level menu stretching wide predates F and is carried forward. The task review is in progress.

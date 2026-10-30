@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: S
 created: "2026-10-28T20:44:05.904Z"
-updated: "2026-10-30T00:22:24.845Z"
+updated: "2026-10-30T01:18:13.138Z"
 started: "2026-10-30T00:22:16.952Z"
 tags: []
 milestone: ""
@@ -106,3 +106,5 @@ Example app: Packages tab shows Platinum checked; Options tab shows the Platinum
 ### 2026-10-29T20:22:00.352Z - Moved 2 open [MANUAL] acceptance criteria to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
 
 ### 2026-10-30T00:22:24.845Z - Started on feat/appearance-part-j-v2 (worktree part-j) at post-B base 8ed7810d3, which includes the J-R16 resolve. The implementer brief is the part-j ledger task-6.1-brief.md; parity uses the shared post-B baseline at .playwright-mcp/parity/post-b/ in place of a part-local J 0 set.
+
+### 2026-10-30T01:18:13.138Z - Implemented at 07a633d2e (pushed). Gate: lint, tsc, vitest 4153/4153 (no timeouts), build:storybook (312 stories), build:source with verify:dist. The 9 system-appearancemanager stories render with no console errors. Parity: post-B 302/302 and J 0 79/79 at AE 0. The Screen Saver app shot differs by 62 px, which the report attributes to the clock (12:00:59 vs 12:00:58); the reviewer is re-shooting it to confirm. The example-app verify passed except the Options knob step, which needs Part H. Deviations: Panel opens the app instead of rendering it twice; the tab stories use the AppearanceManagerTabStory.app id; the Options story uses test-pack until H; a Controls/SchemaForm Nested story was added for J-R15; a J contract line was added to 0002-ldj. The task review is in progress.
