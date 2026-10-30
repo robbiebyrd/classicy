@@ -1284,6 +1284,13 @@ A host rule on them never matched anything, so there is nothing to migrate.
 
 **Other breaking changes:**
 
+- **Radio groups default to rows.** `ClassicyRadioInput`'s `align` now
+  defaults to `"rows"`, which is how every group already rendered (the old
+  documented `"columns"` default never applied, because its rule lost the
+  cascade). Two visible effects: an explicit `align="columns"` now really
+  stacks, and default groups no longer carry the
+  `classicyRadioInputGroupColumns` class, so a host selector on that class
+  stops matching them.
 - **No `data-state`.** `ClassicyBevelButton`, `ClassicyPlacard` and
   `ClassicyImageWell` no longer set a `data-state` attribute, and the exported
   type `ClassicyBevelButtonState` is deleted. Select the state classes instead:

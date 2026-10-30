@@ -7,7 +7,12 @@
 // Plain erasable TypeScript: check-dist-imports.mjs imports this file through
 // Node's type stripping.
 
-/** Where verify:dist reads the expected art names from. */
+/**
+ * Where verify:dist reads the expected art names from. Only Platinum ships art
+ * today; noInlineAppearanceAssetsPlugin emits every asset under src/Appearance/,
+ * so a second in-repo package's art fails verify:dist as "extra" until its
+ * directory is added here.
+ */
 export const CLASSICY_ART_SOURCE_DIR = "src/Appearance/Platinum/assets/art";
 
 const ART_NAME = /\.(?:svg|png)$/;
