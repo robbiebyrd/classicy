@@ -236,6 +236,26 @@ describe("platinum.scss (compiled)", () => {
 		);
 	});
 
+	// I 3.2: the chosen item's flash is Platinum's; the MenuItem press hook
+	// adds the class. The keyframes sit in the package layer, unscoped (a
+	// @keyframes has no selector), and leave the base sheet.
+	it("scopes the menu item flash and carries its keyframes", () => {
+		const flash = rule(`${P} .classicyMenuItemFlash`).props;
+		expect(flash["animation-name"]).toBe("classicyMenuItemFlashKeyframes");
+		expect(flash["animation-duration"]).toBe("0.25s");
+		expect(flash["animation-iteration-count"]).toBe("1");
+		expect(flash["animation-timing-function"]).toBe("steps(1, end)");
+		const keyframes = flat.slice(
+			flat.indexOf("@keyframes classicyMenuItemFlashKeyframes {"),
+		);
+		expect(keyframes.length).toBeLessThan(flat.length);
+		for (const step of ["0%", "20%", "40%", "60%", "80%", "100%"])
+			expect(keyframes).toContain(`\n${step} {\n`);
+		expect(
+			read("SystemFolder/SystemResources/Menu/ClassicyMenu.scss"),
+		).not.toMatch(/classicyMenuItemFlash/);
+	});
+
 	// R15: a base override that beat a moved declaration moves with it, after
 	// it, so it still wins from inside the package layer.
 	it("keeps every override of the moved window look after what it overrides", () => {

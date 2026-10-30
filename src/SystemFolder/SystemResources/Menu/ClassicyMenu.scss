@@ -228,45 +228,6 @@
   padding-right: calc(var(--window-padding-size) / 2);
 }
 
-.classicyMenuItemFlash {
-  -webkit-animation-name: classicyMenuItemFlashKeyframes;
-  animation-name: classicyMenuItemFlashKeyframes;
-  animation-duration: .25s;
-  animation-iteration-count: 1;
-  animation-timing-function: steps(1, end) ;
-}
-
-@keyframes classicyMenuItemFlashKeyframes {
-  0% {
-    background-color: var(--color-theme-04);
-    color: var(--color-white);
-  }
-
-  20% {
-    background-color: var(--color-system-02);
-    color: var(--color-black);
-  }
-
-  40% {
-    background-color: var(--color-theme-04);
-    color: var(--color-white);
-  }
-
-  60% {
-    background-color: var(--color-system-02);
-    color: var(--color-black);
-  }
-
-  80% {
-    background-color: var(--color-theme-04);
-    color: var(--color-white);
-  }
-
-  100% {
-    background-color: var(--color-system-02);
-    color: var(--color-black);
-  }
-}
 .classicyMenuItemBalloonAnchor {
   display: block;
   width: 100%;

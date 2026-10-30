@@ -460,8 +460,9 @@ const mountedWindowKeys = new Map<string, number>();
  * content-box size its inline `width`/`height` apply — the frame padding and
  * border sit outside it — and zoom targets are content-box sizes too. Moving,
  * focusing, collapsing, zooming and closing dispatch `ClassicyWindow*` events
- * and play the theme's window sounds; opening and focusing emit analytics
- * pageviews (see `analyticsPath`).
+ * and emit the matching Window appearance events, whose sounds come from the
+ * active Appearance Package's hooks (Platinum's window sounds); opening and
+ * focusing emit analytics pageviews (see `analyticsPath`).
  *
  * ```tsx
  * <ClassicyApp id="TV.app" name="TV" icon={icon} defaultWindow="main">
@@ -1012,10 +1013,6 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		isDraggingRef.current = false;
 		isResizingRef.current = false;
 
-		player({
-			type: "ClassicySoundPlayInterrupt",
-			sound: "ClassicyWindowMoveStop",
-		});
 		emit("dragEnd", { kind: wasResizing ? "resize" : "move" });
 		setActive();
 		if (wasResizing || ws.resizing) {
@@ -1115,7 +1112,6 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				clientY - clickPositionRef.current[1],
 			],
 		});
-		player({ type: "ClassicySoundPlay", sound: "ClassicyWindowMoveIdle" });
 		emit("dragStart", { kind: "move" });
 		setDragging(true);
 	};
@@ -1141,7 +1137,6 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		}
 
 		if (ws.dragging) {
-			player({ type: "ClassicySoundPlay", sound: "ClassicyWindowMoveMoving" });
 			emit("change", { kind: "move" });
 			setMoving(true, [
 				e.clientX - clickPosition[0],
@@ -1168,10 +1163,6 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		// release, causing the page to freeze after slider interactions.
 		if (ws.resizing || ws.dragging || ws.moving) {
 			e.preventDefault();
-			player({
-				type: "ClassicySoundPlayInterrupt",
-				sound: "ClassicyWindowMoveStop",
-			});
 			emit("dragEnd", {
 				kind: isResizingRef.current || ws.resizing ? "resize" : "move",
 			});
@@ -1258,7 +1249,6 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				// billed one ordinary click as two focus events -- and kept
 				// firing for clicks in a window that was already focused.
 				track("focus", { type: "ClassicyWindow", ...analyticsArgs });
-				player({ type: "ClassicySoundPlay", sound: "ClassicyWindowFocus" });
 				emit("focus", withClassicyAppearanceInput());
 				desktopEventDispatch({
 					type: "ClassicyWindowFocus",
@@ -1270,16 +1260,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				});
 			}
 		},
-		[
-			ws,
-			appId,
-			appMenu,
-			desktopEventDispatch,
-			player,
-			track,
-			analyticsArgs,
-			emit,
-		],
+		[ws, appId, appMenu, desktopEventDispatch, track, analyticsArgs, emit],
 	);
 
 	useEffect(() => {
@@ -1305,10 +1286,6 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			return;
 		}
 		const apps = useAppManager.getState().System.Manager.Applications.apps;
-		player({
-			type: "ClassicySoundPlay",
-			sound: toCollapse ? "ClassicyWindowCollapse" : "ClassicyWindowExpand",
-		});
 		// Once, from the clicked window, for every window it collapses.
 		emit(
 			toCollapse ? "collapse" : "expand",
@@ -1346,7 +1323,6 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		if (toCollapse) {
 			track("collapse", { type: "ClassicyWindow", ...analyticsArgs });
 			setZoom(false, true, "collapse");
-			player({ type: "ClassicySoundPlay", sound: "ClassicyWindowCollapse" });
 			emit("collapse", withClassicyAppearanceInput());
 			desktopEventDispatch({
 				type: "ClassicyWindowCollapse",
@@ -1357,7 +1333,6 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			});
 		} else {
 			track("expand", { type: "ClassicyWindow", ...analyticsArgs });
-			player({ type: "ClassicySoundPlay", sound: "ClassicyWindowExpand" });
 			emit("expand", withClassicyAppearanceInput());
 			desktopEventDispatch({
 				type: "ClassicyWindowExpand",
@@ -1468,11 +1443,12 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		};
 	};
 
-	// Flip the zoom flag (+ sound/track) without touching geometry. Used both by
-	// the zoom toggle and by resize/collapse, which clear the flag without
-	// restoring the remembered user state. `cause` tells a package which: the
-	// zoom event fires wherever the zoom sound plays, collapse and resize-start
-	// included, and only `cause: "zoom"` is the zoom box.
+	// Flip the zoom flag (+ zoom event/track) without touching geometry. Used
+	// both by the zoom toggle and by resize/collapse, which clear the flag
+	// without restoring the remembered user state. `cause` tells a package
+	// which: the zoom event fires wherever the zoom sound plays (Platinum's
+	// hooks play it), collapse and resize-start included, and only
+	// `cause: "zoom"` is the zoom box.
 	const setZoomFlag = (
 		toZoom: boolean,
 		playSound: boolean = true,
@@ -1482,12 +1458,6 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			setCollapse(false);
 		}
 		if (playSound) {
-			player({
-				type: "ClassicySoundPlay",
-				sound: toZoom
-					? "ClassicyWindowZoomMaximize"
-					: "ClassicyWindowZoomMinimize",
-			});
 			emit("zoom", withClassicyAppearanceInput({ zoomed: toZoom, cause }));
 		}
 		track(toZoom ? "zoom" : "minimize", {
@@ -1603,7 +1573,6 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	// user to act on whatever the veto is asking about).
 	const finishClose = () => {
 		track("close", { type: "ClassicyWindow", show: true, ...analyticsArgs });
-		player({ type: "ClassicySoundPlay", sound: "ClassicyWindowClose" });
 		// The close box (a click, Return or Space) or a modal's Escape.
 		emit("close", withClassicyAppearanceInput());
 		desktopEventDispatch({

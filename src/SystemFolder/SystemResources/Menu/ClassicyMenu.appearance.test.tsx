@@ -117,6 +117,26 @@ describe("ClassicyMenu appearance", () => {
 		expect(onClickFunc).toHaveBeenCalledTimes(1);
 	});
 
+	// The own-target guard on its own: the item IS flashing, so only the
+	// `e.target === e.currentTarget` check stops an animation that ends on one
+	// of its own children (here its title) from ending the flash.
+	it("ignores a flash-named animationend from the flashing item's own child", async () => {
+		const onClickFunc = vi.fn();
+		renderMenu(onClickFunc);
+		fireEvent.mouseDown(item("save"));
+		fireEvent.click(item("save"));
+		endFlash(item("save").querySelector("p") as HTMLElement);
+		expect(emitted("MenuItem")).toEqual([
+			{ event: "press", detail: { itemId: "save", input: "pointer" } },
+		]);
+		expect(onClickFunc).not.toHaveBeenCalled();
+		// The fallback still ends it, once.
+		await waitFor(() => expect(onClickFunc).toHaveBeenCalledTimes(1));
+		expect(
+			emitted("MenuItem").filter((e) => e.event === "release"),
+		).toHaveLength(1);
+	});
+
 	it("emits one release, for the child only, when a submenu leaf's flash ends", async () => {
 		const parentAction = vi.fn();
 		const childAction = vi.fn();
