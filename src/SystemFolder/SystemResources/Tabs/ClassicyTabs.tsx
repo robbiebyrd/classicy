@@ -15,7 +15,6 @@ import {
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
-import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
 /**
@@ -110,9 +109,10 @@ const NO_OVERFLOW: ScrollState = {
  * HTML equivalent; it implements the ARIA `role="tablist"` pattern.
  *
  * Uncontrolled: it always opens on the first tab and keeps the selection
- * itself. Pressing a tab plays `ClassicyTabClickDown`, releasing it plays
- * `ClassicyTabClickUp` and selects it (both also send analytics events of
- * type `ClassicyTab`). The tab strip is a roving-tabindex group:
+ * itself. Under Platinum, pressing a tab plays `ClassicyTabClickDown`,
+ * releasing it plays `ClassicyTabClickUp` (the package's hooks), and the
+ * release selects it (both also send analytics events of type
+ * `ClassicyTab`). The tab strip is a roving-tabindex group:
  * Left/Up and Right/Down move (wrapping) and Home/End jump, with activation
  * following focus. When the tabs do not fit, scroll arrows appear at both
  * ends and step the strip by whole tabs.
@@ -139,7 +139,6 @@ export const ClassicyTabs: FunctionalComponent<TabProps> = ({
 	const instanceId = useId();
 	const tabDomId = (index: number) => `${instanceId}-tab-${index}`;
 	const panelDomId = (index: number) => `${instanceId}-panel-${index}`;
-	const player = useSoundDispatch();
 	const { track } = useClassicyAnalytics();
 	const analyticsArgs = { tabs: tabs.map((t) => t.title) };
 	const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -151,14 +150,12 @@ export const ClassicyTabs: FunctionalComponent<TabProps> = ({
 
 	const selectTab = (tabId: number) => {
 		appearance.emit("select", withClassicyAppearanceInput({ tabId }));
-		player({ type: "ClassicySoundPlay", sound: "ClassicyTabClickUp" });
 		track("click", { type: "ClassicyTab", tabId, ...analyticsArgs });
 		setActiveTab(tabId);
 	};
 
 	const pressTab = (tabId: number) => {
 		appearance.emit("press", withClassicyAppearanceInput({ tabId }));
-		player({ type: "ClassicySoundPlay", sound: "ClassicyTabClickDown" });
 		track("selected", { type: "ClassicyTab", tabId, ...analyticsArgs });
 	};
 
@@ -232,7 +229,6 @@ export const ClassicyTabs: FunctionalComponent<TabProps> = ({
 		const el = scrollerRef.current;
 		if (!el) return;
 		appearance.emit("change", { scroll: direction });
-		player({ type: "ClassicySoundPlay", sound: "ClassicyTabClickUp" });
 		const wrappers = Array.from(
 			el.querySelectorAll<HTMLElement>(".classicyTabButtonWrapper"),
 		);

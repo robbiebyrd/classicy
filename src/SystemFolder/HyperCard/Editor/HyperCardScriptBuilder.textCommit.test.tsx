@@ -25,6 +25,8 @@
  * asserts the edit still commits. It fails if `useSound()` is moved back
  * into `ActionField` above the field-kind branches.
  */
+// Platinum's hooks play the control sounds these tests rely on.
+import "@/Appearance/Platinum";
 import { cleanup } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, userEvent } from "@/__tests__/test-utils";

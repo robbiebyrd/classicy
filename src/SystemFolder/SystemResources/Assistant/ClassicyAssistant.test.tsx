@@ -1,3 +1,5 @@
+// Platinum's hooks play the control sounds these tests rely on.
+import "@/Appearance/Platinum";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, userEvent } from "@/__tests__/test-utils";
