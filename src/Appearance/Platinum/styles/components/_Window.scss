@@ -116,7 +116,7 @@
     .classicyWindowTitleCenter {
       background-image: var(--classicy-art-window-utility-texture);
       background-repeat: repeat;
-      background-size: 4px 3px;
+      background-size: var(--utility-title-bar-texture-width) var(--utility-title-bar-texture-height);
     }
   }
 

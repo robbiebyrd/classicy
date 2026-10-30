@@ -109,6 +109,43 @@ describe("ClassicyPopUpSlider (HIGOS8 Figure 2-16)", () => {
 		expect(trackTopReads()).toBe(1);
 	});
 
+	// H 6.1 (from the H 4.1 integration): a drag compares against the last
+	// value it reported, not the value at the press, so dragging away and
+	// back to where the press started still reports the way back.
+	it("reports a drag back to the value it started from", () => {
+		const onChange = vi.fn();
+		const Spy = () => {
+			const [value, setValue] = useState(50);
+			return (
+				<ClassicyPopUpSlider
+					ariaLabel="Volume"
+					value={value}
+					onChange={(next) => {
+						onChange(next);
+						setValue(next);
+					}}
+				/>
+			);
+		};
+		render(<Spy />);
+		const slider = screen.getByRole("slider", { name: "Volume" });
+		vi.spyOn(slider, "getBoundingClientRect").mockReturnValue({
+			top: 0,
+		} as DOMRect);
+		// The default track top is 3 px and the thumb's centre sits 5 px below
+		// its top, so value v puts the pointer at 8 + 57 * (1 - v / 100).
+		const at = (v: number) => 8 + 57 * (1 - v / 100);
+		fireEvent.mouseDown(slider, { button: 0, clientY: at(50) });
+		expect(onChange).not.toHaveBeenCalled();
+		fireEvent.mouseMove(document, { clientY: at(25) });
+		expect(slider).toHaveAttribute("aria-valuenow", "25");
+		fireEvent.mouseMove(document, { clientY: at(50) });
+		expect(slider).toHaveAttribute("aria-valuenow", "50");
+		fireEvent.mouseMove(document, { clientY: at(50) });
+		fireEvent.mouseUp(document);
+		expect(onChange.mock.calls).toEqual([[25], [50]]);
+	});
+
 	it("ignores input while disabled", () => {
 		const onChange = vi.fn();
 		render(

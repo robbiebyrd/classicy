@@ -3,17 +3,17 @@
 .classicyAlert {
   display: flex;
   flex-direction: column;
-  gap: var(--layout-group-gap, 16px);
-  padding: var(--layout-dialog-edge, 12px);
-  min-width: 280px;
-  max-width: 460px;
+  gap: var(--layout-group-gap);
+  padding: var(--layout-dialog-edge);
+  min-width: var(--dialog-alert-min-width);
+  max-width: var(--dialog-alert-max-width);
   font-family: var(--ui-font), sans-serif;
 
   .classicyAlertTop {
     display: flex;
     flex-direction: row;
     align-items: flex-start;
-    gap: var(--layout-group-gap, 16px);
+    gap: var(--layout-group-gap);
   }
 
   // Severity icon: fixed 32px square per the HIG alert icon column. The icon
@@ -24,12 +24,12 @@
   .classicyAlertIcon {
     order: 10;
     flex: 0 0 auto;
-    width: var(--icon-size-regular, 32px);
-    height: var(--icon-size-regular, 32px);
+    width: var(--icon-size-regular);
+    height: var(--icon-size-regular);
 
     img {
-      width: var(--icon-size-regular, 32px);
-      height: var(--icon-size-regular, 32px);
+      width: var(--icon-size-regular);
+      height: var(--icon-size-regular);
       display: block;
     }
   }
@@ -39,9 +39,9 @@
     flex: 1 1 auto;
     display: flex;
     flex-direction: column;
-    gap: var(--layout-focus-gap, 6px);
+    gap: var(--layout-focus-gap);
     // Vertically align the label with the icon's cap height.
-    padding-top: 1px;
+    padding-top: var(--window-border-size);
   }
 
   // Tier 1 — bold system-font label (heading).
@@ -76,7 +76,7 @@
     align-items: center;
     justify-content: flex-end;
     flex-wrap: wrap;
-    gap: var(--button-gap, 12px);
+    gap: var(--button-gap);
 
     .classicyAlertHelpButton {
       margin-right: auto;

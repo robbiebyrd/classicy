@@ -9,7 +9,7 @@
 
 .classicyFileOpenDialogWell {
 	flex: 1;
-	min-height: 220px;
+	min-height: var(--dialog-file-dialog-min-height);
 	overflow-y: auto;
 	background: var(--color-white);
 	border: var(--window-border-size) solid var(--color-window-border);

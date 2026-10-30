@@ -33,7 +33,10 @@ import {
 // last, and the unread picker.wheelInset knob was dropped; at H 4.1's
 // integration menuFrame.shadowOffset became shadowGap (H-R24), the scrollbar
 // grip knobs were renamed thumbGrip* (H-R20) and balloonHelp.tailWidth was
-// dropped (H-R22) (every other key and value unchanged each time).
+// dropped (H-R22); H 6.1 added the progressBar.stripeWidth and
+// controlStripPopup.overlap knobs in the knob region and three derivations
+// (--control-corner-radius, --window-shadow-offset, --window-frame-inset-whole)
+// at the end (every other key and value unchanged each time).
 // Regenerate it only for an intended change to the emitted variables, by
 // running getThemeVars over getAllThemes() in a throwaway vitest file:
 //   writeFileSync("src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.themeVars.baseline.json",
@@ -46,8 +49,8 @@ import themeVarsBaseline from "./ClassicyAppearance.themeVars.baseline.json";
 // H-B1's pager.fontSize; H 5.1's hyperCard.itemPaddingY came and went,
 // replaced by the --layout-item-gap-half derivation under H-R19; the unread
 // picker.wheelInset was dropped; balloonHelp.tailWidth was dropped under
-// H-R22).
-const PLATINUM_KNOB_COUNT = 93;
+// H-R22; H 6.1 added controlStripPopup.overlap and progressBar.stripeWidth).
+const PLATINUM_KNOB_COUNT = 95;
 
 describe("getAllThemes", () => {
 	it("returns an array", () => {
@@ -283,9 +286,12 @@ describe("getThemeVars", () => {
 			"--focus-ring-width": "1px",
 			"--focus-ring-inset": "3px",
 			"--layout-item-gap-half": "2px",
+			"--control-corner-radius": "2px",
+			"--window-shadow-offset": "2px",
+			"--window-frame-inset-whole": "4px",
 		};
 		for (const [k, v] of Object.entries(expected)) expect(vars[k], k).toBe(v);
-		expect(Object.keys(expected)).toHaveLength(38);
+		expect(Object.keys(expected)).toHaveLength(41);
 	});
 
 	it("derives from the inputs, not constants", () => {
@@ -339,12 +345,15 @@ describe("getThemeVars", () => {
 		expect(vars["--help-button-height"]).toBe("22px");
 	});
 
-	// H-R5 (H 3.1): the focus ring's width and inset, named derivations of the
-	// border (the rest of H 6.1's set lands with 6.1).
-	it("emits the focus ring derivations", () => {
+	// H-R5: the focus ring's width and inset (H 3.1), the control corner
+	// radius and the window shadow offset (H 6.1), named derivations of the
+	// border.
+	it("emits the focus ring, corner radius and window shadow derivations", () => {
 		const vars = getThemeVars(getTheme("default")) as Record<string, string>;
 		expect(vars["--focus-ring-width"]).toBe("1px");
 		expect(vars["--focus-ring-inset"]).toBe("3px");
+		expect(vars["--control-corner-radius"]).toBe("2px");
+		expect(vars["--window-shadow-offset"]).toBe("2px");
 		const thick = getThemeVars(
 			withDefaultThemeMetrics({
 				...getTheme("default"),
@@ -356,6 +365,32 @@ describe("getThemeVars", () => {
 		) as Record<string, string>;
 		expect(thick["--focus-ring-width"]).toBe("2px");
 		expect(thick["--focus-ring-inset"]).toBe("6px");
+		expect(thick["--control-corner-radius"]).toBe("4px");
+		expect(thick["--window-shadow-offset"]).toBe("4px");
+	});
+
+	// H 6.1: Part E's window frame insets its title bar by the frame inset
+	// rounded down to a whole pixel; the rounding is the derivation's, so the
+	// stylesheet carries no 1px rounding step.
+	it("emits the window frame inset rounded down to a whole pixel", () => {
+		const vars = getThemeVars(getTheme("default")) as Record<string, string>;
+		expect(vars["--window-frame-inset"]).toBe("4.8px");
+		expect(vars["--window-frame-inset-whole"]).toBe("4px");
+		const padded = (paddingSize: number) =>
+			(
+				getThemeVars(
+					withDefaultThemeMetrics({
+						...getTheme("default"),
+						measurements: {
+							...CLASSICY_DEFAULT_THEME_METRICS,
+							window: { ...CLASSICY_DEFAULT_THEME_METRICS.window, paddingSize },
+						},
+					}),
+				) as Record<string, string>
+			)["--window-frame-inset-whole"];
+		expect(padded(8)).toBe("6px"); // 6.4
+		expect(padded(5)).toBe("4px"); // exactly 4
+		expect(padded(10)).toBe("8px"); // exactly 8
 	});
 
 	// H-R19: half the item gap is one role with one name, read by HyperCard's

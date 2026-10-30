@@ -43,13 +43,17 @@
 }
 
 
+// The barber-pole stripes: a white band and a theme band, each
+// progressBar.stripeWidth wide, slid along by progressBar.stripePeriod per
+// loop (measurements.progressBar, platinum.json). The period is a whole number
+// of band pairs (40 = 2 × 20 under Platinum), so the loop has no seam.
 .classicyProgressIndeterminate {
   @keyframes stripeSlide {
     from {
       --slide-var: 0px;
     }
     to {
-      --slide-var: 40px;
+      --slide-var: var(--progress-bar-stripe-period);
     }
   }
 
@@ -60,9 +64,9 @@
       background-image: repeating-linear-gradient(
                       45deg,
                       var(--color-white) var(--slide-var),
-                      var(--color-white) calc(var(--slide-var) + 10px),
-                      var(--color-theme-04) calc(var(--slide-var) + 10px),
-                      var(--color-theme-04) calc(var(--slide-var) + 20px)
+                      var(--color-white) calc(var(--slide-var) + var(--progress-bar-stripe-width)),
+                      var(--color-theme-04) calc(var(--slide-var) + var(--progress-bar-stripe-width)),
+                      var(--color-theme-04) calc(var(--slide-var) + var(--progress-bar-stripe-width) + var(--progress-bar-stripe-width))
       );
       mask: linear-gradient(0deg, var(--color-black), var(--color-white), var(--color-black)) luminance;
     }

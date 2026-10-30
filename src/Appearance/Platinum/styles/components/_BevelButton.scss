@@ -21,6 +21,6 @@
   .classicyBevelButtonPopup.classicyBevelButtonPopupPanel {
     @include mixins.platinum-menu-frame;
     background: var(--color-system-03);
-    box-shadow: inset 1px 1px 0 0 var(--color-white);
+    box-shadow: inset var(--menu-frame-bevel-width) var(--menu-frame-bevel-width) 0 0 var(--color-white);
   }
 }

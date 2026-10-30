@@ -1,9 +1,9 @@
 .classicyDriveSetupList {
 	display: flex;
 	flex-direction: column;
-	gap: var(--window-padding-size, 8px);
+	gap: var(--window-padding-size);
 	font-family: var(--ui-font, sans-serif);
-	font-size: var(--ui-font-size, 12px);
+	font-size: var(--ui-font-size);
 }
 
 .classicyDriveSetupListHeader {
@@ -13,10 +13,10 @@
 }
 
 .classicyDriveSetupListTable {
-	border: var(--control-frame-width) inset var(--color-black, #000);
-	background: var(--color-white, #fff);
+	border: var(--control-frame-width) inset var(--color-black);
+	background: var(--color-white);
 	overflow-y: auto;
-	max-height: 180px;
+	max-height: var(--control-panel-list-max-height);
 	min-height: calc(var(--window-control-size) * 8);
 }
 
@@ -27,7 +27,7 @@
 
 	th,
 	td {
-		padding: 2px 6px;
+		padding: var(--layout-item-gap-half) var(--window-padding-size);
 		text-align: left;
 		overflow: hidden;
 		white-space: nowrap;
@@ -76,6 +76,6 @@
 
 	&.selected {
 		background: var(--color-black);
-		color: var(--color-white, #fff);
+		color: var(--color-white);
 	}
 }

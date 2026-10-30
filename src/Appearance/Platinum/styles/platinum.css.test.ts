@@ -378,7 +378,9 @@ describe("platinum.scss (compiled)", () => {
 		).toBe("none");
 		expect(
 			rule(`${utility} .classicyWindowTitleCenter`).props["background-size"],
-		).toBe("4px 3px");
+		).toBe(
+			"var(--utility-title-bar-texture-width) var(--utility-title-bar-texture-height)",
+		);
 		const active = `${P} :where(.classicyWindow).active .classicyWindowTitleBar .classicyWindowTitle`;
 		// The windoid's side bands drop the active stripes. Specificity decides,
 		// not source order (the utility group comes first): it outranks the
@@ -826,7 +828,7 @@ describe("platinum.scss (compiled)", () => {
 			);
 			expect(panel.props.background).toBe("var(--color-system-03)");
 			expect(panel.props["box-shadow"]).toBe(
-				"inset 1px 1px 0 0 var(--color-white)",
+				"inset var(--menu-frame-bevel-width) var(--menu-frame-bevel-width) 0 0 var(--color-white)",
 			);
 			expect(panel.last).toBeGreaterThan(panel.first);
 			expect(flat).toContain(

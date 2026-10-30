@@ -932,7 +932,7 @@ unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
 | `ClassicyButton` | `isDefault?`, `disabled?`, `depressed?` (draw it held down, e.g. while its menu is open), `onClickFunc?`, `buttonShape? ("rectangle"\|"square")`, `buttonSize? ("medium"\|"small")`, `buttonType?`, `padding?/margin? ("sm"\|"md"\|"lg"\|"xl")` | forwardRef to `<button>`; accepts remaining button HTML attrs |
-| `ClassicyBevelButton` | `mode? ("push"\|"toggle"\|"radio"\|"popup")`, `bevelWidth? ("small"\|"medium"\|"large")`, `icon?`, `on?`, `mixed?`, `onChangeFunc?(on)`, `popupArrow? ("small"\|"large")`, `popupDirection? ("horizontal"\|"vertical")`, `menuItems?` (`ClassicyMenuItem[]`), `popupContent?`, `popupTrigger? ("click"\|"hold")`, `popupPlacement? ("below"\|"right")`, `popupAlign? ("start"\|"center")`, `popupAnchorInset?` (`{top?, bottom?, left?, right?}`), `popupHoldDelayMs? (500)`, `square?` (square bevel, as in a toolbar), `iconAlt?` (the icon's alt text; omit when the button has a text label), `className?` | auto-squares inside a toolbar. With `menuItems` (or `popupContent`, e.g. `ClassicyPopUpSlider`) it opens a Platinum menu below or to the right of itself (HIGOS8 p.32), flipping when there is no room. `click` trigger (default in `popup` mode): quick click = sticky menu, press held past the hold delay = standard press-drag-release menu. `hold` trigger (default in other modes): click keeps the button's own behavior, a long press shows the options (tool palettes). Enter/Space or Down Arrow open it from the keyboard |
+| `ClassicyBevelButton` | `mode? ("push"\|"toggle"\|"radio"\|"popup")`, `bevelWidth? ("small"\|"medium"\|"large")`, `icon?`, `on?`, `mixed?`, `onChangeFunc?(on)`, `popupArrow? ("small"\|"large")`, `popupDirection? ("horizontal"\|"vertical")`, `menuItems?` (`ClassicyMenuItem[]`), `popupContent?`, `popupTrigger? ("click"\|"hold")`, `popupPlacement? ("below"\|"right")`, `popupAlign? ("start"\|"center")`, `popupAnchorInset?` (`{top?, bottom?, left?, right?}`, or a function of the button returning one, called each time the surface opens), `popupHoldDelayMs? (500)`, `square?` (square bevel, as in a toolbar), `iconAlt?` (the icon's alt text; omit when the button has a text label), `className?` | auto-squares inside a toolbar. With `menuItems` (or `popupContent`, e.g. `ClassicyPopUpSlider`) it opens a Platinum menu below or to the right of itself (HIGOS8 p.32), flipping when there is no room. `click` trigger (default in `popup` mode): quick click = sticky menu, press held past the hold delay = standard press-drag-release menu. `hold` trigger (default in other modes): click keeps the button's own behavior, a long press shows the options (tool palettes). Enter/Space or Down Arrow open it from the keyboard |
 | `ClassicyHelpButton` | `onClickFunc?`, `label? ("Help")`, `disabled?`, `id?`, `className?` | HIG Help button (HIGOS8 p.86): 20 × 21 small-bevel button with the help glyph (system-art key `helpButton`); `label` is the accessible name. Place it lower left aligned with the push buttons (`margin-right: auto` in a right-aligned row), else upper right. `ClassicyAlert`'s `help` button role renders it |
 | `ClassicyButtonToolbar` / `ClassicyButtonToolbarGroup` | `children` *, `size? ("large"\|"medium"\|"small")` (toolbar only; default `"large"`), `className?` | auto dividers between groups; roving-tabindex keyboard nav |
 | `ClassicyCheckbox` | `id` *, `checked?`, `mixed?`, `disabled?`, `onClickFunc?(checked)`, `label?`, `labelPosition?`, `labelSize?`, `mark? ("check"\|"x")`, `isDefault?` | `mark="x"` draws an ✕ instead of the checkmark, for locales where a checkmark is not acceptable (HIGOS8 p.28); `isDefault` draws the checked box in the theme accent |
@@ -3317,7 +3317,7 @@ full precision, and a rounded `9.333px` moves the computed `font-size`
 |---|---|---|---|
 | `--window-collapsed-height` | `controlSize × 1.25` | 15 | ClassicyWindow.scss |
 | `--window-utility-collapsed-height` | `controlSize × 0.5` | 6 | ClassicyWindow.scss |
-| `--window-frame-inset` | `paddingSize / 1.25` | 4.8 | ClassicyWindow.scss, ClassicyWindowFrame.scss |
+| `--window-frame-inset` | `paddingSize / 1.25` | 4.8 | ClassicyWindow.scss |
 | `--window-zoom-margin` | `paddingSize + borderSize × 2` | 8 | ClassicyWindow.tsx |
 | `--window-resize-inset` | `max(0, paddingSize - borderSize)` | 5 | ClassicyWindow.tsx |
 | `--window-header-font-size` | `uiSize × 0.865` | 12.11 (unrounded) | ClassicyWindow.scss |
@@ -3350,9 +3350,12 @@ full precision, and a rounded `9.333px` moves the computed `font-size`
 | `--desktop-icon-padding` | `iconSize / 4` | 12 | ClassicyDesktopIconContext.tsx, ClassicyFileBrowserUtils.ts |
 | `--desktop-icon-cell` | `iconSize × 2` | 96 | ClassicyDesktopIcon.scss, ClassicyDesktopIconContext.tsx, ClassicyFileBrowserUtils.ts |
 | `--desktop-icon-label-pad` | `iconFontSize / 4` | 3 | ClassicyDesktopIcon.scss, ClassicyIcon.scss |
-| `--focus-ring-width` | `borderSize` | 1 | ClassicyColorPicker.scss, ClassicyControlStrip.scss, ClassicyPopUpSlider.scss |
+| `--focus-ring-width` | `borderSize` | 1 | ClassicyColorPicker.scss, ClassicyControlStrip.scss, ClassicyKbd.scss, ClassicyLink.scss, ClassicyPopUpSlider.scss |
 | `--focus-ring-inset` | `borderSize × 3` | 3 | ClassicyColorPicker.scss, ClassicyControlStrip.scss |
-| `--layout-item-gap-half` | `itemGap / 2` | 2 | HyperCard.scss |
+| `--layout-item-gap-half` | `itemGap / 2` | 2 | DriveSetupList.scss, HyperCard.scss |
+| `--control-corner-radius` | `borderSize × 2` | 2 | ClassicyKbd.scss |
+| `--window-shadow-offset` | `borderSize × 2` | 2 | ClassicyWindowFrame.scss |
+| `--window-frame-inset-whole` | `floor(paddingSize / 1.25)` | 4 | ClassicyWindowFrame.scss |
 
 The table's types and one helper are public:
 
@@ -3379,7 +3382,7 @@ sets itself could never take effect. Those variables are reserved
 
 - the palette, font and desktop variables (`CLASSICY_THEME_NON_MEASUREMENT_VARS`, 44 names);
 - the derived metrics above (`CLASSICY_THEME_DERIVED_VARS`, 15 names);
-- the named derivations (`CLASSICY_THEME_DERIVATIONS`, 38 names);
+- the named derivations (`CLASSICY_THEME_DERIVATIONS`, 41 names);
 - every `--classicy-*` name. That prefix is Classicy's own: the desktop root
   sets `--classicy-layout-*` after the theme's variables, and
   `--classicy-art-*` and `--classicy-cursor-*` are read with fallbacks a
@@ -3409,8 +3412,8 @@ variable itself:
 | Input variable | Derived variables to override |
 |---|---|
 | `--window-control-size` | `--window-collapsed-height`, `--window-utility-collapsed-height`, `--window-title-stripe-height`, `--menu-bar-height`, `--menu-min-width`, `--menu-item-icon-size`, `--menu-item-icon-gap`, `--popup-height`, `--popup-mini-size`, `--popup-arrow-width`, `--control-glyph-size`, `--control-square-size`, `--button-square-width`, `--tab-height`, `--tab-min-width`, `--tab-min-width-large`, `--slider-thumb-width`, `--slider-thumb-height`, `--control-row-height`, `--progress-height` |
-| `--window-padding-size` | `--control-padding`, `--control-padding-tight`, `--control-padding-narrow`, `--control-padding-loose`, `--control-padding-wide`, `--window-frame-inset`, `--window-zoom-margin`, `--window-resize-inset`, `--layout-focus-gap` |
-| `--window-border-size` | `--control-frame-width`, `--control-bevel-sm`, `--control-bevel-md`, `--control-bevel-lg`, `--button-default-ring`, `--edit-field-height`, `--help-button-height`, `--focus-ring-width`, `--focus-ring-inset` (and `--window-zoom-margin`, `--window-resize-inset`) |
+| `--window-padding-size` | `--control-padding`, `--control-padding-tight`, `--control-padding-narrow`, `--control-padding-loose`, `--control-padding-wide`, `--window-frame-inset`, `--window-frame-inset-whole`, `--window-zoom-margin`, `--window-resize-inset`, `--layout-focus-gap` |
+| `--window-border-size` | `--control-frame-width`, `--control-bevel-sm`, `--control-bevel-md`, `--control-bevel-lg`, `--button-default-ring`, `--edit-field-height`, `--help-button-height`, `--focus-ring-width`, `--focus-ring-inset`, `--control-corner-radius`, `--window-shadow-offset` (and `--window-zoom-margin`, `--window-resize-inset`) |
 | `--window-scrollbar-size` | `--window-scrollbar-arrow-size` |
 | `--control-height` | `--button-height`, `--edit-field-height`, `--help-button-width`, `--help-button-height` |
 | `--ui-font-size` | `--ui-font-size-small`, `--ui-font-size-caption`, `--ui-font-size-compact`, `--ui-font-size-mini`, `--ui-font-size-large`, `--window-header-font-size` |
@@ -3454,8 +3457,13 @@ skips:
 
 - comments, including a `//` comment at the end of a line;
 - these spans, blanking only the span so the rest of its line is still
-  checked: a `var(--x, <fallback>)` fallback and a data URI;
-- the helpers' own definitions and the screen savers (whole files);
+  checked: a `var(--classicy-x, <fallback>)` fallback and a data URI. A
+  theme variable's fallback (`var(--color-black, #000)`) is not skipped:
+  `getThemeVars` always sets the variable, so the literal is dead (H-R14);
+- the helpers' own definitions and the screen savers' ported art under
+  `savers/` (whole files);
+- the crash screen's `var(--color-black, black)`: the Sad Mac replaces the
+  desktop, so it renders outside the element that carries the theme;
 - in `ClassicyColorPicker.scss`, only the crayon box's art (its cardboard,
   bevel, lip and lip edge) and the RGB/CMYK slider tracks, each listed by
   declaration (`EXEMPT_DECLARATIONS`);
@@ -3499,13 +3507,13 @@ the variable instead of hard-coding the number:
   Finder's icons but not desktop Clean Up. Resize the desktop grid with the
   theme's `desktop.iconSize`.
 
-**Multipliers still in SCSS (Part H inventory).** 88 simple multipliers are
+**Multipliers still in SCSS (Part H inventory).** 89 simple multipliers are
 left. Each is a proportion no named derivation means (some share a named
 derivation's formula, but not its role), or a site kept on purpose; Part H
 names or removes them. Count them with:
 
 ```sh
-grep -rnoE 'calc\(\s*var\(--[a-z0-9-]+\)\s*[*/]\s*[0-9.]+(\s*/\s*[0-9.]+)?\s*\)' src --include=*.scss | grep -v Extensions/ScreenSaver | wc -l   # 88
+grep -rnoE 'calc\(\s*var\(--[a-z0-9-]+\)\s*[*/]\s*[0-9.]+(\s*/\s*[0-9.]+)?\s*\)' src --include=*.scss | grep -v Extensions/ScreenSaver | wc -l   # 89
 ```
 
 By file (under `src/`) and formula; "×n" means n sites:
@@ -3529,6 +3537,7 @@ By file (under `src/`) and formula; "×n" means n sites:
 | `SystemFolder/SystemResources/Desktop/ClassicyDesktopIcon.scss` | `desktop-icon-font-size / 2`; `desktop-icon-size × 4`; `desktop-icon-size / 4` |
 | `SystemFolder/SystemResources/File/ClassicyFileBrowserViewTable.scss` | `desktop-icon-size / 16` ×2 |
 | `SystemFolder/SystemResources/Icon/ClassicyIcon.scss` | `desktop-icon-size × 2` ×2; `desktop-icon-size × 4` |
+| `SystemFolder/SystemResources/KeyboardEquivalent/ClassicyKeyboardEquivalent.scss` | `layout-group-gap × 2` (counted since H 6.1 dropped its `16px` fallback) |
 | `SystemFolder/SystemResources/Menu/ClassicyMenu.scss` | `window-padding-size × 1.25` |
 | `SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu.scss` | `ui-font-size × 2` |
 | `SystemFolder/SystemResources/QuickTime/QuickTimeMovieEmbed.scss` | `ui-font-size × 0.85`; `window-control-size × 0.875` ×2; `window-control-size × 5`; `window-control-size × 1.75`; `window-control-size × 0.825`; `window-control-size × 0.25`; `window-padding-size × 0.75`; `window-control-size × 0.75` |
@@ -3558,7 +3567,7 @@ Kept on purpose:
   bevel-width × 2`, `× 3`, `× 4`) that the grep does not count, being
   multi-term.
 
-Three of the 88 sit inside `//` comments: `ClassicyIcon.scss` and
+Three of the 89 sit inside `//` comments: `ClassicyIcon.scss` and
 `ClassicyDesktopIcon.scss` `desktop-icon-size × 4`, and
 `QuickTimeMovieEmbed.scss` `window-control-size × 0.825`. The grep does not
 count negative forms (`* -1`, `* -2`), multi-term `calc()`s, or the Button

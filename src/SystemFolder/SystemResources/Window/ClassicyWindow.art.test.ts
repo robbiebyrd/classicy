@@ -109,13 +109,17 @@ describe("ClassicyWindow title-bar art (Platinum package)", () => {
 			);
 	});
 
+	// H 6.1: the 4px 3px tile is the utilityTitleBar texture knobs
+	// (measurements.utilityTitleBar, platinum.json; H-R11).
 	it("the utility texture is the center band's image, tiled 4px 3px", () => {
 		const center = rule(`${UTILITY} .classicyWindowTitleCenter`);
 		expect(center["background-image"]).toBe(
 			"var(--classicy-art-window-utility-texture)",
 		);
 		expect(center["background-repeat"]).toBe("repeat");
-		expect(center["background-size"]).toBe("4px 3px");
+		expect(center["background-size"]).toBe(
+			"var(--utility-title-bar-texture-width) var(--utility-title-bar-texture-height)",
+		);
 		// T3: the windoid's side bands draw nothing, over the active stripes.
 		for (const band of [
 			".classicyWindowTitleLeft",

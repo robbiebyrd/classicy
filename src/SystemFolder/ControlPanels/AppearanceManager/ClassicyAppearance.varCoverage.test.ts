@@ -1,0 +1,113 @@
+import { readdirSync, readFileSync } from "node:fs";
+import { join, relative, resolve, sep } from "node:path";
+import { describe, expect, it } from "vitest";
+import {
+	getTheme,
+	getThemeVars,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { scanPixelLiterals } from "../../../../bin/check-pixel-literals.ts";
+import {
+	blankClassicyScssComments,
+	listClassicyScssFiles,
+} from "../../../../bin/classicyScssSource.ts";
+
+// H 6.1: with the `var(--x, Npx)` fallbacks gone, a stylesheet read of a
+// variable nothing sets is an invalid declaration (a `width` that computes to
+// `auto`, a `gap` of 0). Every read must therefore be a variable
+// `getThemeVars` emits, a custom property a stylesheet declares itself, one a
+// component sets from TypeScript, or one of the desktop root's asset and
+// layout variables (`useClassicyAssetVars`, `classicyLayoutVars`).
+const ROOT = resolve(__dirname, "../../../..");
+const SRC = join(ROOT, "src");
+const SAVERS = "src/SystemFolder/Extensions/ScreenSaver/savers/";
+
+const repoPath = (full: string): string =>
+	relative(ROOT, full).split(sep).join("/");
+
+const scssFiles = listClassicyScssFiles(SRC).filter(
+	(full) => !repoPath(full).startsWith(SAVERS),
+);
+
+// Library TypeScript only: a variable set by a test or a story alone is not
+// set for a host.
+const listLibraryScripts = (dir: string): string[] =>
+	readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+		const full = join(dir, entry.name);
+		if (entry.isDirectory()) {
+			return entry.name === "__tests__" ? [] : listLibraryScripts(full);
+		}
+		return /\.tsx?$/.test(entry.name) &&
+			!/\.(test|stories)\.tsx?$/.test(entry.name)
+			? [full]
+			: [];
+	});
+
+const matchesIn = (text: string, pattern: RegExp): string[] =>
+	[...text.matchAll(pattern)].map((match) => match[1]);
+
+const READ = /var\(\s*(--[a-zA-Z0-9-]+)/g;
+const DECLARED = /^\s*(--[a-zA-Z0-9-]+)\s*:/gm;
+const SET_FROM_SCRIPT = /["'](--[a-zA-Z0-9-]+)["']/g;
+const DESKTOP_ROOT_PREFIX = /^--classicy-(art|cursor|layout)-/;
+
+// Variables nothing in Classicy sets, left for a host (or a package) to set:
+// every read of one carries its own fallback, so it is never invalid.
+const HOST_HOOKS = [
+	// ClassicyWindowMenuBar.scss: the window menu bar's height, else the
+	// derived control × 1.75 (docs/AGENT-REFERENCE.md).
+	"--classicy-window-menu-bar-height",
+	// HyperCard.scss: the card transitions' length, else 300ms
+	// (HC_TRANSITION_MS, HyperCardTransition.tsx).
+	"--hc-transition-duration",
+];
+
+const sheets = scssFiles.map((full) =>
+	blankClassicyScssComments(readFileSync(full, "utf8")),
+);
+
+describe("theme variable coverage (H 6.1)", () => {
+	it("every var(--…) read in src/**/*.scss is emitted, declared or set from TSX", () => {
+		const reads = new Set(sheets.flatMap((sheet) => matchesIn(sheet, READ)));
+		const allowed = new Set([
+			...Object.keys(getThemeVars(getTheme("default"))),
+			...sheets.flatMap((sheet) => matchesIn(sheet, DECLARED)),
+			...listLibraryScripts(SRC).flatMap((full) =>
+				matchesIn(readFileSync(full, "utf8"), SET_FROM_SCRIPT),
+			),
+			...HOST_HOOKS,
+		]);
+		expect(
+			[...reads]
+				.filter((name) => !allowed.has(name) && !DESKTOP_ROOT_PREFIX.test(name))
+				.sort(),
+		).toEqual([]);
+	});
+
+	it("reads a host hook only with a fallback", () => {
+		for (const hook of HOST_HOOKS) {
+			const reads = sheets.flatMap((sheet) =>
+				matchesIn(sheet, new RegExp(`var\\(\\s*${hook}\\s*([,)])`, "g")),
+			);
+			expect(reads.length, hook).toBeGreaterThan(0);
+			expect(
+				reads.filter((next) => next !== ","),
+				hook,
+			).toEqual([]);
+		}
+	});
+
+	it("no var() fallback carries a pixel literal", () =>
+		expect(
+			[...scanPixelLiterals(ROOT).values()]
+				.flat()
+				.filter((literal) => literal.kind === "fallback")
+				.map((literal) => `${literal.file}:${literal.line} ${literal.text}`),
+		).toEqual([]));
+
+	it("the pixel allowlist is empty", () =>
+		expect(
+			JSON.parse(
+				readFileSync(join(ROOT, "bin/pixel-literal-allowlist.json"), "utf8"),
+			),
+		).toEqual({}));
+});

@@ -32,7 +32,7 @@ $legend-overhang: calc(var(--ui-font-size) * 0.75 * 1.4 / 2);
 
 // Secondary group box: a single 1px line, no etch.
 .classicyControlGroupFieldsetSecondary {
-  border: 1px solid var(--color-system-05);
+  border: var(--window-border-size) solid var(--color-system-05);
 }
 
 .classicyControlGroupFieldsetLabeled {

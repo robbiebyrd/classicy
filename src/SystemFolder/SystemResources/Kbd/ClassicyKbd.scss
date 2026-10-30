@@ -33,6 +33,6 @@
   border-left: var(--control-bevel-sm) solid var(--color-system-01);
   border-bottom: var(--control-bevel-sm) solid var(--color-system-05);
   border-right: var(--control-bevel-sm) solid var(--color-system-05);
-  border-radius: 2px;
-  outline: 1px solid var(--color-outline);
+  border-radius: var(--control-corner-radius);
+  outline: var(--focus-ring-width) solid var(--color-outline);
 }

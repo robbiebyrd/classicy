@@ -29,6 +29,7 @@ import {
 } from "@/SystemFolder/ControlPanels/ControlStripManager/ClassicyControlStripManagerManifest";
 import { useClassicyMountedApps } from "@/SystemFolder/SystemResources/App/ClassicyMountedApps";
 import { ClassicyBevelButton } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButton";
+import type { ClassicyBevelPopupRect } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopupPlacement";
 import { useClassicyContextualMenu } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 import {
 	arrangeClassicyControlStripModules,
@@ -60,10 +61,21 @@ export type ClassicyControlStripProps = {
 	style?: CSSProperties;
 };
 
-// HIGOS8 Figure 6-15: a module's surface overlaps the strip by 3 px (its bottom
-// border lands two rows into the module) and a menu's left edge sits on the
-// module's left separator.
-const MODULE_POPUP_INSET = { top: 3, left: -1 };
+// HIGOS8 Figure 6-15: a module's surface overlaps the strip by the theme's
+// overlap (3 px under Platinum: its bottom border lands two rows into the
+// module) and a menu's left edge sits on the module's left separator, one
+// strip border wide. Read from the variables the module inherits each time
+// its surface opens (G14), never per render.
+const modulePopupInset = (
+	module: HTMLElement,
+): Partial<ClassicyBevelPopupRect> => ({
+	top: readClassicyThemeVar("--control-strip-popup-overlap", undefined, module),
+	left: -readClassicyThemeVar(
+		"--control-strip-border-width",
+		undefined,
+		module,
+	),
+});
 
 // Pixels a press on the tab may travel and still count as a click.
 const TAB_CLICK_SLOP = 3;
@@ -175,7 +187,7 @@ const ClassicyControlStripModuleButton: FunctionalComponent<{
 			// Figure 6-15's menus start at the module's edge; Figure 2-16's
 			// slider is centred on it.
 			popupAlign={menuItems ? "start" : "center"}
-			popupAnchorInset={MODULE_POPUP_INSET}
+			popupAnchorInset={modulePopupInset}
 			menuItems={menuItems}
 			popupContent={!menuItems && Content ? <Content /> : undefined}
 		>

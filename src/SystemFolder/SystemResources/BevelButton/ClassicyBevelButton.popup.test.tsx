@@ -415,6 +415,33 @@ describe("ClassicyBevelButton pop-up placement", () => {
 		spy.mockRestore();
 	});
 
+	// H 6.1: an inset read from the theme is computed when the surface opens,
+	// from the button, once per opening, never per render.
+	it("popupAnchorInset may be computed from the button as the surface opens", () => {
+		const spy = mockButtonRect();
+		const inset = vi.fn((button: HTMLElement) => ({
+			top: 3,
+			left: button.getAttribute("aria-label") === "Module" ? -2 : 0,
+		}));
+		render(
+			<ClassicyBevelButton
+				mode="popup"
+				aria-label="Module"
+				popupPlacement="below"
+				popupAnchorInset={inset}
+				menuItems={lassoItems(vi.fn())}
+				popupHoldDelayMs={10_000}
+			/>,
+		);
+		expect(inset).not.toHaveBeenCalled();
+		quickClick(screen.getByRole("button", { name: "Module" }));
+		const menu = screen.getByRole("menu");
+		expect(menu.style.left).toBe("48px");
+		expect(menu.style.top).toBe("120px");
+		expect(inset).toHaveBeenCalledTimes(1);
+		spy.mockRestore();
+	});
+
 	it("popupAlign centres a surface on the button", () => {
 		const spy = mockButtonRect();
 		// The panel measures itself: 20 x 10.

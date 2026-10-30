@@ -182,7 +182,8 @@
 				"colorsScrollMaxHeight": 210
 			},
 			"progressBar": {
-				"stripePeriod": 40
+				"stripePeriod": 40,
+				"stripeWidth": 10
 			},
 			"utilityTitleBar": {
 				"textureWidth": 4,
@@ -205,6 +206,9 @@
 			},
 			"table": {
 				"resizerWidth": 15
+			},
+			"controlStripPopup": {
+				"overlap": 3
 			}
 		},
 		"desktop": {
