@@ -38,8 +38,8 @@ import {
 // (--control-corner-radius, --window-shadow-offset, --window-frame-inset-whole,
 // and --progress-bar-stripe-period, 20px, which replaced the 40px stripePeriod
 // knob, H-R27b) at the end, and dropped crashScreen.artWidth (H-R27a); H
-// 6.2a appended 31 derivations and 31 component knobs for the named
-// multipliers (every other key and value unchanged each time).
+// 6.2a appended 62 derivations for the named multipliers (H-R25: none of
+// them a knob) (every other key and value unchanged each time).
 // Regenerate it only for an intended change to the emitted variables, by
 // running getThemeVars over getAllThemes() in a throwaway vitest file:
 //   writeFileSync("src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.themeVars.baseline.json",
@@ -54,9 +54,9 @@ import themeVarsBaseline from "./ClassicyAppearance.themeVars.baseline.json";
 // picker.wheelInset was dropped; balloonHelp.tailWidth was dropped under
 // H-R22; H 6.1 added progressBar.stripeWidth and stripMenu.overlap, made
 // progressBar.stripePeriod a derivation and dropped the unreachable
-// crashScreen.artWidth, H-R27; H 6.2a added 31 component knobs for named
-// multipliers).
-const PLATINUM_KNOB_COUNT = 124;
+// crashScreen.artWidth, H-R27; H 6.2a's component knobs became derivations
+// under H-R25).
+const PLATINUM_KNOB_COUNT = 93;
 
 describe("getAllThemes", () => {
 	it("returns an array", () => {
@@ -328,9 +328,41 @@ describe("getThemeVars", () => {
 			"--tab-min-width-medium": "84px",
 			"--tab-height-large": "36px",
 			"--tab-large-padding-top": "4.5px",
+			// H-R25: the former component knobs, as derivations.
+			"--assistant-header-gap": "6px",
+			"--assistant-accessory-icon-medium": "21px",
+			"--assistant-accessory-icon-large": "30px",
+			"--button-toolbar-square-button-width": "36px",
+			"--desktop-icon-label-gap": "6px",
+			"--disclosure-triangle-offset": "6px",
+			"--file-browser-list-icon-spacing": "3px",
+			"--menu-sub-menu-offset-block": "24px",
+			"--menu-sub-menu-offset-inline": "12px",
+			"--picker-swatch-size": "30px",
+			"--picker-layout-gap": "12px",
+			"--quick-time-undocked-video-inset": "4px",
+			"--quick-time-controls-end-reserve": "24px",
+			"--quick-time-volume-bar-length": "60px",
+			"--quick-time-volume-bar-offset": "21px",
+			"--quick-time-thumb-rise": "6px",
+			"--quick-time-thumb-shift-inline": "3px",
+			"--quick-time-volume-track-top": "3px",
+			"--quick-time-progress-track-top": "3px",
+			"--quick-time-progress-track-height": "9px",
+			"--radio-offset-top": "6px",
+			"--tab-gap": "12px",
+			"--tab-padding-inline": "18px",
+			"--tab-scroll-button-min-width": "36px",
+			"--tab-small-row-indent": "6px",
+			"--tab-small-padding-inline": "12px",
+			"--tab-small-icon-size": "9px",
+			"--tab-large-padding-inline": "24px",
+			"--text-editor-height-inset": "4px",
+			"--text-editor-auto-min-height": "36px",
+			"--time-picker-period-min-width": "56px",
 		};
 		for (const [k, v] of Object.entries(expected)) expect(vars[k], k).toBe(v);
-		expect(Object.keys(expected)).toHaveLength(73);
+		expect(Object.keys(expected)).toHaveLength(104);
 	});
 
 	it("derives from the inputs, not constants", () => {
