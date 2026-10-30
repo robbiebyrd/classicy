@@ -26,8 +26,8 @@ type ClassicyRadioInputProps = {
 	/** Where the group title sits relative to the buttons. Defaults to `above`. */
 	labelPosition?: ClassicyLabelPosition;
 	/**
-	 * Button layout: `columns` stacks the buttons in one vertical column;
-	 * `rows` lays them out side by side in one row. Defaults to `columns`.
+	 * Button layout: `rows` lays the buttons out side by side in one row;
+	 * `columns` stacks them in one vertical column. Defaults to `rows`.
 	 */
 	align?: "rows" | "columns";
 	/**
@@ -105,7 +105,7 @@ export const ClassicyRadioInput: FunctionalComponent<
 	label,
 	labelSize = "medium",
 	labelPosition = "above",
-	align = "columns",
+	align = "rows",
 	disabled = false,
 	onClickFunc,
 	inputs,

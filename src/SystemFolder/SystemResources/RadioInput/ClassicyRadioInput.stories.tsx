@@ -21,15 +21,28 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 /**
- * The default `align="columns"` layout: buttons stacked in one column under the
- * group title, with "Medium" pre-selected via `checked`.
+ * The default layout, `align="rows"`: buttons side by side in one row under
+ * the group title, with "Medium" pre-selected via `checked`.
  */
-export const Columns: Story = {};
+export const Default: Story = {};
 
 /**
- * `align="rows"` lays the buttons out side by side in a single row. (Each
- * story uses its own `name` and ids, as separate groups on one page must.)
+ * `align="columns"` stacks the buttons in one column. (Each story uses its own
+ * `name` and ids, as separate groups on one page must.)
  */
+export const Columns: Story = {
+	args: {
+		name: "speed-columns",
+		align: "columns",
+		inputs: [
+			{ id: "slow-columns", label: "Slow" },
+			{ id: "medium-columns", label: "Medium", checked: true },
+			{ id: "fast-columns", label: "Fast" },
+		],
+	},
+};
+
+/** `align="rows"` passed explicitly: the same row as the default. */
 export const Rows: Story = {
 	args: {
 		name: "speed-rows",

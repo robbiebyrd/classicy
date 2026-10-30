@@ -1,7 +1,3 @@
-.classicyRadioInputGroupColumns {
-  flex-direction: column;
-}
-
 .classicyRadioInputGroup {
   display: flex;
   align-items: stretch;
@@ -14,6 +10,12 @@
     align-items: stretch;
     flex-direction: row;
   }
+}
+
+// align="columns": after the group rule, which it overrides at the same
+// specificity.
+.classicyRadioInputGroupColumns {
+  flex-direction: column;
 }
 
 .classicyRadioInputMargin {
