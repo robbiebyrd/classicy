@@ -1494,6 +1494,33 @@ bevel, border, gradient and piece of art moved into Platinum's own stylesheet
   for the old `controlStripCollapseGlyph`), draw them with
   `<ClassicyPixelArt art={key} />`, and replace them with
   `registerClassicySystemArt(packageId, { [key]: encodeClassicyPixelArtRows(rows) })`.
+- **Text glyphs moved to package CSS.** The menu check and mixed dash, the
+  pop-up and combo-box check, the bevel button arrows (▸ ▾), the placard
+  arrow (▾), the file input's remove cross (✕) and the HyperCard tools
+  palette's armed ✓ are no longer text: each component renders an empty
+  `aria-hidden` span and the package draws the glyph as `::before`/`::after`
+  content (§8, "Glyphs and colors a package supplies"). A host test or script
+  that reads those spans' `textContent`, or queries `getByText("✓")`, now
+  gets `""` or no match; assert the state instead (`aria-checked`,
+  `aria-pressed`, the `checked`/`mixed`/`selected` state classes).
+- **Checkable menu items and palette entries changed role.** A
+  `ClassicyMenuItem` with `checked` set (`true`, `false` or `"mixed"`) renders
+  as `role="menuitemcheckbox"` with that `aria-checked` (§4,
+  `ClassicyMenuItem`), so `getByRole("menuitem", { name })` misses it; query
+  `menuitemcheckbox`. A HyperCard tools-palette entry is `role="button"` with
+  `aria-pressed` (a toggle: pressing the armed entry again disarms it).
+- **Caption colors are custom properties.** A `captionStyle`'s colors reach
+  the cue as `--classicy-caption-fg`/`-bg` and their `-alpha` properties,
+  composed by `.quickTimePlayerCaptions.quickTimePlayerCaptionsCustomStyle` in
+  `classicy.base`, not as inline `color`/`background-color`. A host reading
+  the cue's `style.color` gets `""`, and the precedence changed: host CSS in
+  `classicy.user`, or unlayered, now beats the viewer's caption colors. To
+  theme captions and still honor a `captionStyle`, select
+  `.quickTimePlayerCaptions:not(.quickTimePlayerCaptionsCustomStyle)` (§4.9).
+- **`ClassicyKbd` wraps each modifier glyph** in its own
+  `<span class="classicyKbdModifier" data-classicy-part="modifier-<name>">`
+  (inside its own cap in `keycaps`). The text is unchanged, but snapshots of
+  its child structure change.
 - **Host overrides keep working.** Unlayered host CSS, host layers and
   `classicy.user` outrank `classicy.package` just as they outrank
   `classicy.base`, and resets in the reserved `classicy.base.host` sublayer

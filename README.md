@@ -148,6 +148,29 @@ registers it, and everything inside `ClassicyDesktop` looks as before.
   Strip and pop-up slider row constants (`controlStripTab`,
   `popUpSliderTrack`, …) are no longer exported: read them with
   `useClassicyPixelArtRows(key)` or draw `<ClassicyPixelArt art={key} />`.
+  The published `platinum-window-control-box` and
+  `platinum-window-control-box-depressable` mixins draw their dither from
+  `--classicy-art-window-dither`, so a host using them outside a desktop must
+  define it (or accept no dither).
+- **Text glyphs are package CSS.** The menu check and dash, the pop-up and
+  combo-box check, the bevel button's ▸ ▾, the placard's ▾, the file input's
+  ✕ and the HyperCard tools palette's ✓ are now empty `aria-hidden` spans the
+  package fills with `::before`/`::after` content: their `textContent` is
+  `""`, and `getByText("✓")` finds nothing.
+- **Checkable roles.** A menu item with `checked` set is
+  `role="menuitemcheckbox"` with `aria-checked`, so
+  `getByRole("menuitem", { name })` misses it; a HyperCard tools-palette entry
+  is `role="button"` with `aria-pressed`.
+- **Caption colors are custom properties.** A `captionStyle` reaches the cue
+  as `--classicy-caption-*` properties, not inline `color` and
+  `background-color` (`style.color` reads `""`), so it no longer carries
+  inline precedence: host CSS in `classicy.user`, or unlayered, overrides it.
+  Theme captions through
+  `.quickTimePlayerCaptions:not(.quickTimePlayerCaptionsCustomStyle)` to keep
+  the viewer's choice.
+- **`ClassicyKbd` wraps each modifier** in its own
+  `<span class="classicyKbdModifier" data-classicy-part="modifier-<name>">`.
+  The text is unchanged; snapshots of its children change.
 - **Fixed:** Firefox no longer shows a scroll bar under tab strips in the
   built library (the desktop's scroll-bar fallback used to beat the tab
   scroller's `scrollbar-width: none`).
