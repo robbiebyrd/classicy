@@ -1,3 +1,4 @@
+import { useClassicyAppIdentity } from "@/Appearance/ClassicyAppIdentity";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	useAppManager,
@@ -58,6 +59,12 @@ export function ClassicyScreenSaverManager() {
 	const appIcon =
 		useClassicyAsset("icons", "system.extensions.screensaver") ?? "";
 
+	// Display only: the app's id, record and Quit keep APP_NAME and appIcon.
+	const identity = useClassicyAppIdentity(APP_ID, {
+		name: APP_NAME,
+		icon: appIcon,
+	});
+
 	// Mac OS 8 HIG control-panel menu bar (audit ch. 6 §35): Apple / File / Edit.
 	// The About entry is discovery data for the desktop menu bar (HIG #209):
 	// ClassicyDesktopMenuBar hoists it into the Apple menu and strips it from
@@ -109,9 +116,9 @@ export function ClassicyScreenSaverManager() {
 		>
 			<ClassicyWindow
 				id={WINDOW_ID}
-				title={APP_NAME}
+				title={identity.name}
 				appId={APP_ID}
-				icon={appIcon}
+				icon={identity.icon}
 				closable={true}
 				resizable={false}
 				zoomable={false}
@@ -126,7 +133,7 @@ export function ClassicyScreenSaverManager() {
 						id: `${APP_ID}_file`,
 						title: "File",
 						menuChildren: [
-							{ ...aboutMenuItem, title: `About ${APP_NAME}` },
+							{ ...aboutMenuItem, title: `About ${identity.name}` },
 							{
 								...closeWindowMenuItemHelper(`${APP_ID}_close_window`, () =>
 									windowClose(

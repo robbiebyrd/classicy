@@ -6,6 +6,7 @@ import {
 	useMemo,
 	useState,
 } from "react";
+import { useClassicyAppIdentity } from "@/Appearance/ClassicyAppIdentity";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	useAppManager,
@@ -69,6 +70,11 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
 			"icons",
 			"controlPanels.dateTimeManager.dateTimeManager",
 		) ?? "";
+	// Display only: the app's id, record and Quit keep APP_NAME and appIcon.
+	const identity = useClassicyAppIdentity(APP_ID, {
+		name: APP_NAME,
+		icon: appIcon,
+	});
 	// Narrowed to the literal union (rather than `string`) so any future
 	// assignment of a non-am/pm value — e.g. reintroducing the timezone-offset
 	// bug this file was fixed for — is a compile error, not a silent 12-hour
@@ -197,7 +203,7 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
 			id: `${APP_ID}_file`,
 			title: "File",
 			menuChildren: [
-				{ ...aboutMenuItem, title: `About ${APP_NAME}` },
+				{ ...aboutMenuItem, title: `About ${identity.name}` },
 				{
 					...closeWindowMenuItemHelper(`${APP_ID}_close_window`, () =>
 						windowClose(WINDOW_ID, quitAppHelper(APP_ID, APP_NAME, appIcon)),
@@ -257,9 +263,9 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
 		>
 			<ClassicyWindow
 				id={WINDOW_ID}
-				title={APP_NAME}
+				title={identity.name}
 				appId={APP_ID}
-				icon={appIcon}
+				icon={identity.icon}
 				closable={true}
 				resizable={false}
 				zoomable={false}

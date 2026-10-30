@@ -1,5 +1,8 @@
 import { useState } from "react";
-import { useClassicyAppIdentityOverrides } from "@/Appearance/ClassicyAppIdentity";
+import {
+	useClassicyAppIdentity,
+	useClassicyAppIdentityOverrides,
+} from "@/Appearance/ClassicyAppIdentity";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	useAppManager,
@@ -49,6 +52,12 @@ export function ClassicyControlStripManager() {
 	const dispatch = useAppManagerDispatch();
 	const appIcon =
 		useClassicyAsset("icons", "controlPanels.controlStripManager.app") ?? "";
+
+	// Display only: the app's id, record and Quit keep APP_NAME and appIcon.
+	const identity = useClassicyAppIdentity(APP_ID, {
+		name: APP_NAME,
+		icon: appIcon,
+	});
 
 	// Mac OS 8 HIG control-panel menu bar (audit ch. 6 §35): Apple / File. No
 	// Edit menu: the panel has no edit-text fields.
@@ -108,9 +117,9 @@ export function ClassicyControlStripManager() {
 		>
 			<ClassicyWindow
 				id={WINDOW_ID}
-				title={APP_NAME}
+				title={identity.name}
 				appId={APP_ID}
-				icon={appIcon}
+				icon={identity.icon}
 				closable={true}
 				resizable={false}
 				zoomable={false}
@@ -125,7 +134,7 @@ export function ClassicyControlStripManager() {
 						id: `${APP_ID}_file`,
 						title: "File",
 						menuChildren: [
-							{ ...aboutMenuItem, title: `About ${APP_NAME}` },
+							{ ...aboutMenuItem, title: `About ${identity.name}` },
 							{
 								...closeWindowMenuItemHelper(`${APP_ID}_close_window`, () =>
 									windowClose(

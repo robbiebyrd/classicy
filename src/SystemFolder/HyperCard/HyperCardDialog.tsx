@@ -11,6 +11,7 @@ import {
 	useEffect,
 	useState,
 } from "react";
+import { useClassicyAppIdentity } from "@/Appearance/ClassicyAppIdentity";
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import type { HCDialog } from "@/SystemFolder/HyperCard/HyperCardUtils";
 import { HyperCardAppInfo } from "@/SystemFolder/HyperCard/HyperCardUtils";
@@ -35,6 +36,11 @@ export const HyperCardDialog: FunctionalComponent<HyperCardDialogProps> = ({
 	style,
 }) => {
 	const dispatch = useAppManagerDispatch();
+	// Display only: the dialog's window keeps HyperCard's internal app id.
+	const appName = useClassicyAppIdentity(HyperCardAppInfo.id, {
+		name: HyperCardAppInfo.name,
+		icon: "",
+	}).name;
 	const [text, setText] = useState(dialog.defaultValue ?? "");
 
 	useEffect(() => {
@@ -62,7 +68,7 @@ export const HyperCardDialog: FunctionalComponent<HyperCardDialogProps> = ({
 			appId={HyperCardAppInfo.id}
 			className={className}
 			style={style}
-			title={dialog.kind === "ask" ? "Ask" : HyperCardAppInfo.name}
+			title={dialog.kind === "ask" ? "Ask" : appName}
 			closable={false}
 			resizable={false}
 			zoomable={false}
