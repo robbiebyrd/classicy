@@ -133,6 +133,20 @@ export function resetClassicyFileSystemSharedTrees(): void {
 	sharedTrees.clear();
 }
 
+/**
+ * `JSON.stringify` replacer for the persisted tree: drops every entry a
+ * derived overlay generated (`_derived: true`). Metadata keys are never
+ * entries, so they are kept as they are.
+ */
+const omitDerivedEntries = (key: string, value: unknown): unknown =>
+	key !== "" &&
+	!key.startsWith("_") &&
+	typeof value === "object" &&
+	value !== null &&
+	(value as ClassicyFileSystemEntry)._derived === true
+		? undefined
+		: value;
+
 export class ClassicyFileSystem {
 	storageKey: string;
 	separator: string;
@@ -245,8 +259,15 @@ export class ClassicyFileSystem {
 		}
 	}
 
+	/**
+	 * The tree as it is persisted: serialized without the entries a derived
+	 * overlay generated (`_derived`, at any depth), which are rebuilt on every
+	 * load (K-R5). So nothing an Appearance Package shows reaches localStorage
+	 * or an adapter, and switching packages never changes a snapshot's bytes or
+	 * hash. Loading a snapshot back drops the overlay until it is rebuilt.
+	 */
 	snapshot(): string {
-		return JSON.stringify(this.fs, null, 2);
+		return JSON.stringify(this.fs, omitDerivedEntries, 2);
 	}
 
 	/** Centralized localStorage persistence — the only place the tree is written. */
@@ -332,7 +353,8 @@ export class ClassicyFileSystem {
 	/**
 	 * Replace the tree with a derived overlay (Applications / Extensions
 	 * folders). Derived state regenerates from the app store every boot, so
-	 * this intentionally neither journals nor notifies adapters.
+	 * this intentionally neither journals nor notifies adapters, and its
+	 * `_derived` entries are left out of every snapshot.
 	 */
 	applyDerivedTree(tree: ClassicyFileSystemEntry) {
 		this.fs = tree;
