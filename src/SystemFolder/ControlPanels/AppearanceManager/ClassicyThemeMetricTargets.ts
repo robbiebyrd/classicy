@@ -372,7 +372,8 @@ const isKnobName = (value: unknown): value is string =>
  * edited by `metricKey`), and the variable the pair makes is not one
  * `getThemeVars` sets itself (`isReservedClassicyThemeVar`: `menu.minWidth`
  * would make the derivation `--menu-min-width`, which the walker skips, so
- * the edit could never take effect). Whether a package declares the knob is
+ * the edit could never take effect; nor may it take Classicy's own
+ * `--classicy-` prefix, as a family `classicy` would). Whether a package declares the knob is
  * checked against its knobs (`isValidThemeMetricFamily`).
  */
 export const isThemeMetricFamilyTarget = (

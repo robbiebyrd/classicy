@@ -7,8 +7,8 @@ import {
 	CLASSICY_THEME_DERIVATIONS,
 	CLASSICY_THEME_DERIVED_VARS,
 	classicyThemeDerivations,
-	px3,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeDerivations";
+import { px3 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeDerivations.internal";
 import {
 	CLASSICY_THEME_NON_MEASUREMENT_VARS,
 	classicyMeasurementVars,
@@ -121,5 +121,25 @@ describe("classicyThemeDerivations", () => {
 			},
 		});
 		expect(vars["--control-padding-narrow"]).toBe("2.333px");
+	});
+
+	// The Metrics tab allows padding 0 with border 1: the inset is 0 then, not
+	// a negative value the window's reader would discard for Platinum's 5.
+	it("never makes --window-resize-inset negative", () => {
+		const vars = classicyThemeDerivations({
+			...inputs,
+			measurements: {
+				...inputs.measurements,
+				window: {
+					...inputs.measurements.window,
+					paddingSize: 0,
+					borderSize: 1,
+				},
+			},
+		});
+		expect(vars["--window-resize-inset"]).toBe("0px");
+		expect(classicyThemeDerivations(inputs)["--window-resize-inset"]).toBe(
+			"5px",
+		);
 	});
 });

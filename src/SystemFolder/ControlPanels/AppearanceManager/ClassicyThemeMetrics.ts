@@ -216,16 +216,29 @@ const RESERVED_THEME_VARS: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * True for a `--classicy-` name. The prefix is Classicy's own: the desktop
+ * root sets `--classicy-layout-*` after the theme's variables, and
+ * `--classicy-art-*`/`--classicy-cursor-*` are read with fallbacks that a
+ * stray value would void. So no package measurement may make one (a family
+ * `classicy` or `classicyLayout`, say): `isReservedClassicyThemeVar` counts
+ * them reserved.
+ */
+const isClassicyPrefixedThemeVar = (name: string): boolean =>
+	name.startsWith("--classicy-");
+
+/**
  * True when `getThemeVars` sets `name` itself, after the measurement inputs:
  * a palette, font or desktop variable (`CLASSICY_THEME_NON_MEASUREMENT_VARS`),
  * an earlier derived variable (`CLASSICY_THEME_DERIVED_VARS`) or a named
- * derivation (`CLASSICY_THEME_DERIVATIONS`). A package measurement whose
+ * derivation (`CLASSICY_THEME_DERIVATIONS`); or when `name` takes the
+ * `--classicy-` prefix, which Classicy keeps for its own root variables
+ * (`--classicy-layout-*`, `--classicy-art-*`, …). A package measurement whose
  * variable (`classicyMeasurementVarName`) is reserved is skipped by
  * `classicyMeasurementVars`, and is not an editable knob
  * (`isThemeMetricFamilyTarget`).
  */
 export const isReservedClassicyThemeVar = (name: string): boolean =>
-	RESERVED_THEME_VARS.has(name);
+	RESERVED_THEME_VARS.has(name) || isClassicyPrefixedThemeVar(name);
 
 /**
  * The CSS variable a measurement makes: `--<family>-<key>`, kebab-cased
@@ -296,7 +309,9 @@ export function classicyMeasurementVars(
 			if (isReservedClassicyThemeVar(name)) {
 				reportOnce(
 					`${name}|${source}`,
-					`Measurement ${source} makes ${name}, a reserved theme variable; getThemeVars sets its own value.`,
+					isClassicyPrefixedThemeVar(name)
+						? `Measurement ${source} makes ${name}; the --classicy- prefix is reserved for Classicy's own variables.`
+						: `Measurement ${source} makes ${name}, a reserved theme variable; getThemeVars sets its own value.`,
 				);
 				continue;
 			}

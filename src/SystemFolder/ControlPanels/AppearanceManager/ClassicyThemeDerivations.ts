@@ -4,12 +4,7 @@ import type {
 	ClassicyThemeTypography,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { intToPx } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicySize";
-
-/**
- * A pixel length rounded to three decimals, so a fractional derivation
- * (`14 * 0.865`) is the same string in a test, the store and the browser.
- */
-export const px3 = (n: number): string => intToPx(Math.round(n * 1000) / 1000);
+import { px3 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeDerivations.internal";
 
 /** The theme inputs a named derivation may read. */
 export type ClassicyThemeDerivationInputs = {
@@ -86,9 +81,9 @@ export const CLASSICY_THEME_DERIVATIONS: readonly ClassicyThemeDerivation[] = [
 	},
 	{
 		cssVar: "--window-resize-inset",
-		formula: "window.paddingSize - window.borderSize",
-		doc: "Slack added to a window's size while resize-dragging, the padding inside the border, so the pointer stays over the grow box (ClassicyWindow.tsx resize).",
-		compute: (i) => padding(i) - border(i),
+		formula: "max(0, window.paddingSize - window.borderSize)",
+		doc: "Slack added to a window's size while resize-dragging, the padding inside the border, so the pointer stays over the grow box (ClassicyWindow.tsx resize). Never negative: the window's reader would discard a negative value for the default theme's.",
+		compute: (i) => Math.max(0, padding(i) - border(i)),
 	},
 	{
 		cssVar: "--window-header-font-size",

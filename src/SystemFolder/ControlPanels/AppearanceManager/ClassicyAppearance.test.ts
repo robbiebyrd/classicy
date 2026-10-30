@@ -12,6 +12,7 @@ import {
 import {
 	CLASSICY_DEFAULT_THEME_METRICS,
 	CLASSICY_THEME_NON_MEASUREMENT_VARS,
+	classicyMeasurementVarName,
 	classicyMeasurementVars,
 	isReservedClassicyThemeVar,
 	withDefaultThemeMetrics,
@@ -461,22 +462,33 @@ describe("classicyMeasurementVars — name collisions", () => {
 	// G13: every variable getThemeVars derives is reserved, so a package
 	// leaf that would make one (`help.buttonWidth` → `--help-button-width`) is
 	// skipped and the derivation stands. A name splits into a family (its
-	// first segment) and a camelCase key (the rest).
-	const leafFor = (name: string): [string, string] => {
+	// first segment) and a camelCase key (the rest), or into nothing when no
+	// leaf makes it: a measurement name never puts a hyphen before a digit,
+	// so `--color-system-01` has no leaf (`color.system01` makes
+	// `--color-system01`), and no package can shadow it.
+	const leafFor = (name: string): [string, string] | undefined => {
 		const [family, ...rest] = name.slice(2).split("-");
 		const key = rest
 			.map((part, i) =>
 				i === 0 ? part : part[0].toUpperCase() + part.slice(1),
 			)
 			.join("");
-		return [family, key];
+		return classicyMeasurementVarName(family, key) === name
+			? [family, key]
+			: undefined;
 	};
+	// The palette names no leaf can make: the numbered system and theme colors.
+	const UNMAKEABLE = /^--color-(system|theme)-0[1-7]$/;
 	const expectReserved = (names: readonly string[]) => {
 		vi.spyOn(console, "warn").mockImplementation(() => {});
 		const theme = getTheme("default");
 		const expected = getThemeVars(theme) as Record<string, string>;
 		for (const name of names) {
-			const [family, key] = leafFor(name);
+			const leaf = leafFor(name);
+			// Only the numbered colors may lack a leaf; any other name is tested.
+			expect(leaf === undefined, name).toBe(UNMAKEABLE.test(name));
+			if (!leaf) continue;
+			const [family, key] = leaf;
 			const measurements = {
 				...theme.measurements,
 				[family]: {
@@ -495,6 +507,27 @@ describe("classicyMeasurementVars — name collisions", () => {
 			).toBe(expected[name]);
 		}
 	};
+
+	// M7: a package family must not make Classicy's own root variables
+	// (--classicy-layout-*, --classicy-art-*), which the desktop root sets
+	// after the theme's, or whose unset fallbacks a stylesheet relies on.
+	it("skips a package leaf that takes the --classicy- prefix", () => {
+		vi.spyOn(console, "warn").mockImplementation(() => {});
+		const entries = warnings();
+		const vars = classicyMeasurementVars({
+			...getTheme("default").measurements,
+			classicy: { artHalftone: 4, layoutGrowBoxCorner: 2 },
+			classicyLayout: { iconGridOrigin: 3 },
+			classic: { artHalftone: 5 },
+		});
+		expect(
+			Object.keys(vars).filter((n) => n.startsWith("--classicy-")),
+		).toEqual([]);
+		expect(vars["--classic-art-halftone"]).toBe("5px");
+		expect(entries.map((e) => e.message).join("\n")).toContain(
+			"classicy.artHalftone",
+		);
+	});
 
 	it("reserves every pre-existing derived variable against package leaves", () => {
 		expect(CLASSICY_THEME_DERIVED_VARS).toHaveLength(15);

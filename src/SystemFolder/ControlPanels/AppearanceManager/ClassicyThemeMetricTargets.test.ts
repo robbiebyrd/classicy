@@ -143,6 +143,24 @@ describe("the metric family form", () => {
 		expect(Object.hasOwn(theme.measurements, "menu")).toBe(false);
 	});
 
+	// M7: the --classicy- prefix is Classicy's own (--classicy-layout-*,
+	// --classicy-art-*, …); no package knob may make one.
+	it("refuses a knob whose variable takes the --classicy- prefix", () => {
+		for (const [family, key] of [
+			["classicy", "layoutGrowBoxCorner"],
+			["classicy", "artHalftone"],
+			["classicyLayout", "growBoxCorner"],
+		]) {
+			expect(
+				isThemeMetricFamilyTarget({ family, key }),
+				`${family}.${key}`,
+			).toBe(false);
+		}
+		expect(
+			isThemeMetricFamilyTarget({ family: "classic", key: "artHalftone" }),
+		).toBe(true);
+	});
+
 	it("family form get/set round-trips an existing knob", () => {
 		const theme = withStrip();
 		const target = { family: "controlStrip", key: "cellHeight" };

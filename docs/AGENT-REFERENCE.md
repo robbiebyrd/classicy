@@ -1818,7 +1818,8 @@ never `constructor`/`prototype`, never one of the five core groups — those use
 `metricKey`), and the variable they make must not be one `getThemeVars` sets
 itself (`isReservedClassicyThemeVar`; see "Reserved names" under "CSS custom
 properties"): `menu.minWidth` would make the derivation `--menu-min-width`,
-which the walker skips, so the edit could never take effect. The knob must be declared by the **active** package, resolved
+which the walker skips, so the edit could never take effect, and a family
+`classicy` would make a reserved `--classicy-*` name. The knob must be declared by the **active** package, resolved
 as `resolveClassicyAppearancePackage` resolves it (the registered package for
 `Appearance.packageId`, else the registered default package; see "The active
 package" below). `value` must be within the knob's bounds,
@@ -2694,7 +2695,7 @@ window geometry share, named once (`CLASSICY_THEME_DERIVATIONS`,
 `ClassicyThemeDerivations.ts`: each entry has `cssVar`, `formula`, `doc` and
 `compute`). `getThemeVars` emits them last, after every other variable, so a
 theme that changes an input moves them all. Values are rounded to three
-decimals (`px3`), except the six font sizes, which are emitted **unrounded**
+decimals, except the six font sizes, which are emitted **unrounded**
 (`unrounded: true`): `--window-header-font-size` and
 `--ui-font-size-small`/`-caption`/`-compact`/`-mini`/`-large`. They replaced
 `calc(var(--ui-font-size) / 1.5)` and the like, which the browser computed at
@@ -2710,7 +2711,7 @@ full precision, and a rounded `9.333px` moves the computed `font-size`
 | `--window-utility-collapsed-height` | `controlSize × 0.5` | 6 | ClassicyWindow.scss |
 | `--window-frame-inset` | `paddingSize / 1.25` | 4.8 | ClassicyWindow.scss |
 | `--window-zoom-margin` | `paddingSize + borderSize × 2` | 8 | ClassicyWindow.tsx |
-| `--window-resize-inset` | `paddingSize - borderSize` | 5 | ClassicyWindow.tsx |
+| `--window-resize-inset` | `max(0, paddingSize - borderSize)` | 5 | ClassicyWindow.tsx |
 | `--window-header-font-size` | `uiSize × 0.865` | 12.11 (unrounded) | ClassicyWindow.scss, ClassicyWindowFrame.scss |
 | `--window-title-stripe-height` | `controlSize × 1.25` | 15 | ClassicyWindow.scss |
 | `--menu-bar-height` | `controlSize × 2.5` | 30 | ClassicyWindow.tsx |
@@ -2742,6 +2743,17 @@ full precision, and a rounded `9.333px` moves the computed `font-size`
 | `--desktop-icon-cell` | `iconSize × 2` | 96 | ClassicyDesktopIcon.scss, ClassicyDesktopIconContext.tsx, ClassicyFileBrowserUtils.ts |
 | `--desktop-icon-label-pad` | `iconFontSize / 4` | 3 | ClassicyDesktopIcon.scss, ClassicyIcon.scss |
 
+The table's types and one helper are public:
+
+- `ClassicyThemeDerivation`: one entry, `{ cssVar, formula, doc, compute,
+  unrounded? }`. `compute(inputs)` returns CSS pixels; `unrounded: true` marks
+  the six font sizes.
+- `ClassicyThemeDerivationInputs`: what `compute` may read,
+  `{ measurements, typography: { uiSize }, desktop: { iconSize, iconFontSize } }`
+  (a `ClassicyTheme` satisfies it).
+- `classicyThemeDerivations(inputs)`: every entry as `cssVar` → pixel string,
+  rounded or unrounded as above. `getThemeVars` spreads it last.
+
 Equal formulas are separate names on purpose (the 1.25× collapsed height,
 title stripe, menu icon and control glyph; the 2× square control and slider
 thumb; the 1.75× pop-up arrow and slider thumb; the 4× square button and
@@ -2756,7 +2768,12 @@ sets itself could never take effect. Those variables are reserved
 
 - the palette, font and desktop variables (`CLASSICY_THEME_NON_MEASUREMENT_VARS`, 44 names);
 - the derived metrics above (`CLASSICY_THEME_DERIVED_VARS`, 15 names);
-- the named derivations (`CLASSICY_THEME_DERIVATIONS`, 35 names).
+- the named derivations (`CLASSICY_THEME_DERIVATIONS`, 35 names);
+- every `--classicy-*` name. That prefix is Classicy's own: the desktop root
+  sets `--classicy-layout-*` after the theme's variables, and
+  `--classicy-art-*` and `--classicy-cursor-*` are read with fallbacks a
+  stray value would void. So a package family named `classicy` (or
+  `classicyLayout`, …) makes nothing.
 
 `classicyMeasurementVars` skips a leaf whose variable
 (`classicyMeasurementVarName(family, key)`) is reserved and logs one
