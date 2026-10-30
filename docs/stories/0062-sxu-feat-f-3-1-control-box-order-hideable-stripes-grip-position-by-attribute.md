@@ -3,12 +3,13 @@ id: 0062-sxu
 title: 'F 3.1: Control-box order, hideable stripes, grip position by attribute'
 purpose: Make the window's close, zoom and collapse boxes addressable by order on data-classicy-control, keep the stripe spans hideable, and position the grow-box grip by the desktop's data-classicy-grow-box attribute.
 type: feat
-status: in_progress
+status: complete
 priority: "2"
 effort: S
 created: "2026-10-28T20:30:04.823Z"
-updated: "2026-10-30T02:18:22.007Z"
+updated: "2026-10-30T02:21:28.973Z"
 started: "2026-10-30T01:30:49.894Z"
+completed: "2026-10-30T02:21:28.973Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -89,9 +90,9 @@ Inside the title-bar block (after `:251`): `[data-classicy-control="close"] { or
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Window/ClassicyWindow.layout.test.ts
-- [ ] Each `.classicyWindowControlBox` wrapper carries `data-classicy-control`; base `order` is close 10, title 20, zoom 30, collapse 40; the grip moves with `[data-classicy-grow-box]` for the three other corners.
-- [ ] No `display … !important` on `.classicyWindowTitleLeft/Center/Right`.
+- [x] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Window/ClassicyWindow.layout.test.ts
+- [x] Each `.classicyWindowControlBox` wrapper carries `data-classicy-control`; base `order` is close 10, title 20, zoom 30, collapse 40; the grip moves with `[data-classicy-grow-box]` for the three other corners.
+- [x] No `display … !important` on `.classicyWindowTitleLeft/Center/Right`.
 
 ## Files
 
@@ -106,3 +107,5 @@ Inside the title-bar block (after `:251`): `[data-classicy-control="close"] { or
 ### 2026-10-30T01:30:51.695Z - Started on feat/appearance-part-f at BASE a21c0fe8d (F 2.1), with F 2.1's task review running in parallel. The brief is the part-f ledger task-3.1-brief.md. F8: Part A already emits data-classicy-control. Edits stay tight because Part E concurrently rewrites the window title-bar art. Parity: port 6025 against .playwright-mcp/parity/part-F/before.
 
 ### 2026-10-30T02:18:22.007Z - Implemented in bac781e8d, with ecd04c6d7 folding in the F 2.1 review minors (separate plain and :has() order rules, test-first; the "clock and extensions" comment). Both pushed. Gate: lint, tsc, 4038 tests (382 s, no timeouts), build:source with verify:dist. Window suite 159/159. Parity: 48/48 part-F stories at AE 0. Computed styles change only order on the control wrappers and the title. Forced Chromium: 47/67 identical, and the other 20 differ only in those order values. Firefox forced dumps were not run. Stale reconciliation lines are recorded in the report. The task review is in progress.
+
+### 2026-10-30T02:21:26.198Z - Review APPROVED at ecd04c6d7, with no Critical or Important findings. The order values 10/20/30/40 reproduce the DOM order for every combination of closable, zoomable and collapsable, and data-classicy-control is emitted only on the three wrappers (Part A, F8). The grip rules are (0,3,0) over the base (0,2,0) and set the correct edges, and the desktop emits exactly the four corner values. The :has() split is real (its test fails on the old combined form). F-R4 holds: no order or grow-box rule in the Platinum partials. Minors: the top-right corner test is folded into F 4.1; the grip ::before edges under mirrored corners are owned by F 7.1 (carry-forward, preferring a base-SCSS geometry fix per F-R4); the duplicated title rule is noted for E 6.1's move; the stripe-hide check's file scope is low priority.
