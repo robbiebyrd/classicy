@@ -90,20 +90,29 @@ const appIdKey = z
 
 // The derived Applications and Extensions folders key their entries by the
 // display name, so it must be usable as a file-system name: no leading `_`
-// (metadata keys) and no `:` (the path separator). Refinements, never
-// `.trim()`: the registry keeps the original object, so nothing may be
-// transformed.
+// (metadata keys), no `:` (the path separator) and no C0 control character
+// or DEL. Refinements, never `.trim()`: the registry keeps the original
+// object, so nothing may be transformed. The length checks keep zod's own
+// messages, which name the bound.
 const DISPLAY_NAME_ERROR =
 	"must be a display name usable as a file name (no leading _, no :)";
+const hasControlCharacter = (text: string): boolean => {
+	for (let i = 0; i < text.length; i++) {
+		const code = text.charCodeAt(i);
+		if (code <= 0x1f || code === 0x7f) return true;
+	}
+	return false;
+};
 const displayName = z
 	.string()
-	.min(1, { error: DISPLAY_NAME_ERROR })
-	.max(64, { error: DISPLAY_NAME_ERROR })
+	.min(1)
+	.max(64)
 	.refine(
 		(name) =>
 			name === name.trim() &&
 			!name.startsWith("_") &&
 			!name.includes(":") &&
+			!hasControlCharacter(name) &&
 			!FORBIDDEN_KEYS.has(name),
 		{ error: DISPLAY_NAME_ERROR },
 	);

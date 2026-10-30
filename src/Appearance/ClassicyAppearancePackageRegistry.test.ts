@@ -158,4 +158,15 @@ describe("registerClassicyAppearancePackage", () => {
 		);
 		log.mockRestore();
 	});
+
+	it("replaces a package's apps map on re-registration", () => {
+		const first = { "A.app": { name: "A" } };
+		const second = { "B.app": { name: "B" } };
+		registerClassicyAppearancePackage({ ...irix, apps: first });
+		expect(getClassicyAppearancePackage("irix")?.apps).toBe(first);
+		registerClassicyAppearancePackage({ ...irix, apps: second });
+		expect(getClassicyAppearancePackage("irix")?.apps).toBe(second);
+		registerClassicyAppearancePackage(irix);
+		expect(getClassicyAppearancePackage("irix")?.apps).toBeUndefined();
+	});
 });

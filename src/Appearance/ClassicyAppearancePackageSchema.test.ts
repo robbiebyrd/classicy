@@ -241,4 +241,108 @@ describe("ClassicyAppearancePackageSchema apps", () => {
 			/app id/,
 		);
 	});
+
+	// K 1.1 review, Minor 1: pin what the guard and the record refuse.
+	const appsIssues = (apps: unknown) => {
+		const result = ClassicyAppearancePackageSchema.safeParse({
+			...valid,
+			apps,
+		});
+		return result.success ? [] : result.error.issues;
+	};
+
+	const nullPrototype = (entries: Record<string, unknown>) =>
+		Object.assign(Object.create(null), entries);
+
+	it.each([
+		["__proto__", JSON.parse('{"__proto__": {"name": "X"}}')],
+		["constructor", { constructor: { name: "X" } }],
+		["prototype", { prototype: { name: "X" } }],
+		[
+			"__proto__ (null-prototype map)",
+			JSON.parse('{"__proto__": {"name": "X"}}', (_key, value) =>
+				typeof value === "object" && value !== null
+					? Object.assign(Object.create(null), value)
+					: value,
+			),
+		],
+		["constructor (null-prototype map)", nullPrototype({ constructor: {} })],
+	])("refuses the app id %s at the apps path", (_id, apps) => {
+		const issues = appsIssues(apps);
+		expect(issues).toHaveLength(1);
+		expect(issues[0].path).toEqual(["apps"]);
+		expect(issues[0].message).toMatch(/__proto__, constructor or prototype/);
+	});
+
+	it("accepts a null-prototype map of valid overrides", () => {
+		expect(
+			appsIssues(nullPrototype({ "A.app": { name: "A" }, "B.app": {} })),
+		).toEqual([]);
+	});
+
+	it.each([
+		["__proto__", JSON.parse('{"A.app": {"__proto__": {"name": "X"}}}')],
+		["constructor", { "A.app": { constructor: "X" } }],
+		["prototype", { "A.app": { prototype: "X" } }],
+	])("refuses the entry key %s", (_key, apps) => {
+		const issues = appsIssues(apps);
+		expect(issues.length).toBeGreaterThan(0);
+		expect(issues[0].path).toEqual(["apps", "A.app"]);
+	});
+
+	it.each([
+		["Pad "],
+		["Pad\t"],
+		["A\nB"],
+		["A\u0000B"],
+		["A\u001fB"],
+		["A\u007fB"],
+		["prototype"],
+	])("refuses the name %j", (name) => {
+		expect(appsIssues({ "A.app": { name } })[0]?.path).toEqual([
+			"apps",
+			"A.app",
+			"name",
+		]);
+	});
+
+	it.each([
+		["a_x"],
+		["x".repeat(64)],
+		["Media Player"],
+	])("accepts the name %j", (name) => {
+		expect(appsIssues({ "A.app": { name } })).toEqual([]);
+	});
+
+	it.each([
+		["", />=1 characters/],
+		["x".repeat(65), /<=64 characters/],
+	])("reports the length of the name %j, not the file-name rules", (name, bound) => {
+		const issues = appsIssues({ "A.app": { name } });
+		expect(issues).toHaveLength(1);
+		expect(issues[0].path).toEqual(["apps", "A.app", "name"]);
+		expect(issues[0].message).toMatch(bound);
+		expect(issues[0].message).not.toMatch(/leading _/);
+	});
+
+	it.each([
+		[""],
+		[" Plays."],
+		["Plays. "],
+		["x".repeat(513)],
+	])("refuses the description %j", (description) => {
+		expect(appsIssues({ "A.app": { description } })[0]?.path).toEqual([
+			"apps",
+			"A.app",
+			"description",
+		]);
+	});
+
+	it.each([
+		["x"],
+		["x".repeat(512)],
+		["Plays movies and sound."],
+	])("accepts the description %j", (description) => {
+		expect(appsIssues({ "A.app": { description } })).toEqual([]);
+	});
 });
