@@ -347,18 +347,30 @@ const isClassicyPrefixedThemeVar = (name: string): boolean =>
 	name.startsWith("--classicy-");
 
 /**
+ * True for a name in the palette's `--color-` space (H-R16): a family
+ * `color` or one whose kebab-case name starts with `color-` (`colorPicker`
+ * → `--color-picker-*`). Reserved whole, not name by name, so a measurement
+ * can never pass for a palette color, whatever getThemeVars sets today.
+ */
+const isPaletteThemeVar = (name: string): boolean =>
+	name.startsWith("--color-");
+
+/**
  * True when `getThemeVars` sets `name` itself, after the measurement inputs:
  * a palette, font or desktop variable (`CLASSICY_THEME_NON_MEASUREMENT_VARS`),
  * an earlier derived variable (`CLASSICY_THEME_DERIVED_VARS`) or a named
  * derivation (`CLASSICY_THEME_DERIVATIONS`); or when `name` takes the
  * `--classicy-` prefix, which Classicy keeps for its own root variables
- * (`--classicy-layout-*`, `--classicy-art-*`, …). A package measurement whose
+ * (`--classicy-layout-*`, `--classicy-art-*`, …); or when `name` takes the
+ * palette's `--color-` prefix (H-R16). A package measurement whose
  * variable (`classicyMeasurementVarName`) is reserved is skipped by
  * `classicyMeasurementVars`, and is not an editable knob
  * (`isThemeMetricFamilyTarget`).
  */
 export const isReservedClassicyThemeVar = (name: string): boolean =>
-	RESERVED_THEME_VARS.has(name) || isClassicyPrefixedThemeVar(name);
+	RESERVED_THEME_VARS.has(name) ||
+	isClassicyPrefixedThemeVar(name) ||
+	isPaletteThemeVar(name);
 
 /**
  * The CSS variable a measurement makes: `--<family>-<key>`, kebab-cased
@@ -432,7 +444,9 @@ export function classicyMeasurementVars(
 					`${name}|${source}`,
 					isClassicyPrefixedThemeVar(name)
 						? `Measurement ${source} makes ${name}; the --classicy- prefix is reserved for Classicy's own variables.`
-						: `Measurement ${source} makes ${name}, a reserved theme variable; getThemeVars sets its own value.`,
+						: isPaletteThemeVar(name) && !RESERVED_THEME_VARS.has(name)
+							? `Measurement ${source} makes ${name}; the --color- prefix is reserved for the palette.`
+							: `Measurement ${source} makes ${name}, a reserved theme variable; getThemeVars sets its own value.`,
 				);
 				continue;
 			}

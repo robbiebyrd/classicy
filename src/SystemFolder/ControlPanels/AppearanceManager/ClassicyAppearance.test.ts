@@ -585,6 +585,37 @@ describe("classicyMeasurementVars — name collisions", () => {
 		);
 	});
 
+	// H-R16: the --color- names are the palette's; no measurement family may
+	// emit into them, whether or not getThemeVars sets that exact name.
+	it("skips a package leaf that makes a --color- palette name (H-R16)", () => {
+		vi.spyOn(console, "warn").mockImplementation(() => {});
+		const entries = warnings();
+		const vars = classicyMeasurementVars({
+			...CLASSICY_DEFAULT_THEME_METRICS,
+			colorPicker: { wheelMax: 240 },
+			color: { accent: 3 },
+			colorful: { stripeWidth: 2 },
+		} as ClassicyThemeMeasurements);
+		expect(Object.keys(vars).filter((n) => n.startsWith("--color-"))).toEqual(
+			[],
+		);
+		expect(vars["--colorful-stripe-width"]).toBe("2px");
+		const messages = entries.map((e) => e.message).join("\n");
+		expect(messages).toContain("colorPicker.wheelMax");
+		expect(messages).toContain("color.accent");
+		expect(messages).toContain("--color- prefix");
+	});
+
+	it("emits the color picker's knobs as --picker-* (H-R16)", () => {
+		const vars = getThemeVars(getTheme("default")) as Record<string, string>;
+		expect(vars["--picker-wheel-max"]).toBe("240px");
+		expect(vars["--picker-unit-width"]).toBe("14px");
+		const inputs = classicyMeasurementVars(getTheme("default").measurements);
+		expect(Object.keys(inputs).filter((n) => n.startsWith("--color-"))).toEqual(
+			[],
+		);
+	});
+
 	it("reserves every pre-existing derived variable against package leaves", () => {
 		expect(CLASSICY_THEME_DERIVED_VARS).toHaveLength(15);
 		expectReserved(CLASSICY_THEME_DERIVED_VARS);
