@@ -130,6 +130,14 @@ describe("ClassicySoundPacks", () => {
 			const text = readFileSync(file, "utf8");
 			for (const m of text.matchAll(/sound:\s*["']([A-Za-z0-9_]+)["']/g))
 				found.push(m[1]);
+			// Appearance Package hooks play sprites through the sound bridge:
+			// `playClassicyAppearanceSound("…")`, or a package hooks module's
+			// `sound("…")` helper (Platinum's control sounds).
+			const bridge =
+				path.basename(file) === "hooks.ts"
+					? /(?:\bsound|playClassicyAppearanceSound)\(\s*["']([A-Za-z0-9_]+)["']/g
+					: /playClassicyAppearanceSound\(\s*["']([A-Za-z0-9_]+)["']/g;
+			for (const m of text.matchAll(bridge)) found.push(m[1]);
 		}
 		expect(new Set(found.filter((id) => !contractIds.has(id)))).toEqual(
 			new Set(),

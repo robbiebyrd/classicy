@@ -102,9 +102,10 @@ const clamp = (value: number, min: number, max: number): number =>
  * `ClassicyWindow`; Classicy's own Apple Guide window (`AppleGuideWindow`,
  * the Help menu's "About Balloon Help…") is built on it.
  *
- * Page changes play `ClassicyTabClickUp`; the → and ← keys page while focus
- * is inside the assistant. A page's `canAdvance` can refuse a forward move,
- * which plays the error sound instead. Uncontrolled by default (starting at
+ * Page changes play `ClassicyTabClickUp` under Platinum (its `change` hook);
+ * the → and ← keys page while focus is inside the assistant. A page's
+ * `canAdvance` can refuse a forward move, which plays the error sound
+ * instead. Uncontrolled by default (starting at
  * `initialPage`); pass `page` + `onPageChange` to own the current page.
  *
  * ```tsx
@@ -160,7 +161,6 @@ export const ClassicyAssistant: FunctionalComponent<ClassicyAssistantProps> = ({
 	const changePage = (index: number) => {
 		const next = clamp(index, 0, lastIndex);
 		if (next === currentPage) return;
-		player({ type: "ClassicySoundPlay", sound: "ClassicyTabClickUp" });
 		// The pager's arrows and the arrow keys both land here.
 		appearance.emit("change", withClassicyAppearanceInput({ page: next }));
 		if (!isControlled) setUncontrolledPage(next);

@@ -14,7 +14,6 @@ import {
 } from "react";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
-import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 
 export type ClassicyPlacardMenuItem = {
 	/** Value passed to `onSelect` when the item is chosen. */
@@ -74,7 +73,6 @@ export const ClassicyPlacard: FunctionalComponent<ClassicyPlacardProps> = ({
 	className,
 	style,
 }) => {
-	const player = useSoundDispatch();
 	const hasMenu = Array.isArray(menuItems) && menuItems.length > 0;
 	const interactive = !disabled && (hasMenu || Boolean(onClick));
 
@@ -184,18 +182,10 @@ export const ClassicyPlacard: FunctionalComponent<ClassicyPlacardProps> = ({
 					onMouseDown={() => {
 						setPressed(true);
 						appearance.emit("press", withClassicyAppearanceInput());
-						player({
-							type: "ClassicySoundPlay",
-							sound: "ClassicyButtonClickDown",
-						});
 					}}
 					onMouseUp={() => {
 						setPressed(false);
 						appearance.emit("release", withClassicyAppearanceInput());
-						player({
-							type: "ClassicySoundPlay",
-							sound: "ClassicyButtonClickUp",
-						});
 					}}
 					onMouseLeave={() => setPressed(false)}
 				>

@@ -20,11 +20,13 @@ import {
 // them; it never registers them a second time.
 import "./assets/platinumAssets";
 import { platinumSoundPack } from "./assets/sounds/platinum";
+import { platinumAppearanceHooks } from "./hooks";
 import platinumJson from "./platinum.json";
 import platinumCss from "./styles/platinum.scss?inline";
 
 export * from "./assets/platinumAssets";
 export * from "./assets/sounds/platinum";
+export * from "./hooks";
 
 /** The Platinum package's id. */
 export const PLATINUM_APPEARANCE_PACKAGE_ID = "platinum";
@@ -43,4 +45,5 @@ registerClassicyAppearancePackage({
 	options: classicyKnobsToSchema(platinumJson.knobs),
 	layout: platinumJson.layout as ClassicyAppearanceLayout,
 	sounds: [platinumSoundPack],
+	hooks: platinumAppearanceHooks,
 });

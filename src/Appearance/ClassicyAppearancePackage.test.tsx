@@ -334,6 +334,7 @@ describe("module load order", () => {
 		],
 		["the library barrel", () => import("@/index")],
 		["the Platinum package module", () => import("@/Appearance/Platinum")],
+		["the Platinum hooks", () => import("@/Appearance/Platinum/hooks")],
 	])(
 		"evaluates when %s loads first",
 		async (_name, load) => {

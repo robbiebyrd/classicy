@@ -18,7 +18,6 @@ import {
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import type { ClassicyState } from "@/Appearance/vocabulary/ClassicyVocabulary";
-import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import { ClassicyBevelButtonPopup } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopup";
 import type {
@@ -271,7 +270,6 @@ export const ClassicyBevelButton: FunctionalComponent<
 	style,
 	...rest
 }) => {
-	const player = useSoundDispatch();
 	const { track } = useClassicyAnalytics();
 	const inToolbar = useContext(ClassicyButtonToolbarContext);
 	// Inside a toolbar an icon-only control takes the square box by default;
@@ -350,7 +348,6 @@ export const ClassicyBevelButton: FunctionalComponent<
 			left: rect.left + (popupAnchorInset?.left ?? 0),
 			right: rect.right - (popupAnchorInset?.right ?? 0),
 		});
-		player({ type: "ClassicySoundPlay", sound: "ClassicyMenuOpen" });
 		appearance.emit("open", withClassicyAppearanceInput({ trigger }));
 		track("open", { type: "ClassicyBevelButton", mode, trigger });
 	};
@@ -505,10 +502,6 @@ export const ClassicyBevelButton: FunctionalComponent<
 					if (disabled) return;
 					setPressed(true);
 					appearance.emit("press");
-					player({
-						type: "ClassicySoundPlay",
-						sound: "ClassicyButtonClickDown",
-					});
 					onPopupMouseDown(e);
 				}}
 				onMouseUp={() => {
@@ -516,7 +509,6 @@ export const ClassicyBevelButton: FunctionalComponent<
 					clearHoldTimer();
 					setPressed(false);
 					appearance.emit("release");
-					player({ type: "ClassicySoundPlay", sound: "ClassicyButtonClickUp" });
 				}}
 				// If the pointer leaves while held, a push button reverts to off. A
 				// pending hold keeps running: dragging off toward the menu is part of
