@@ -1010,6 +1010,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 
 		if (isResizingRef.current) {
 			applyResize(e.clientX, e.clientY);
+			emit("change", { kind: "resize" });
 		}
 
 		if (isDraggingRef.current) {

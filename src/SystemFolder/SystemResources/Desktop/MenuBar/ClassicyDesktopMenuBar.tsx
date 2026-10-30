@@ -8,6 +8,7 @@ import {
 	ClassicyMenu,
 	type ClassicyMenuItem,
 } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import { ClassicyMenuContext } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuContext";
 import { ClassicyMenuProvider } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuProvider";
 import { useClassicyMenuCloseOnOutsideMouseDown } from "@/SystemFolder/SystemResources/Menu/useClassicyMenuCloseOnOutsideMouseDown";
 import "@/SystemFolder/SystemResources/Menu/ClassicyMenu.scss";
@@ -15,6 +16,7 @@ import classNames from "classnames";
 import {
 	type CSSProperties,
 	type FC as FunctionalComponent,
+	useContext,
 	useEffect,
 	useMemo,
 	useRef,
@@ -181,6 +183,14 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 	const desktopEventDispatch = useAppManagerDispatch();
 	const navRef = useRef<HTMLElement>(null);
 	useClassicyMenuCloseOnOutsideMouseDown(navRef);
+	// Window placement unmounts the bar but keeps its provider, so a menu
+	// open at the switch (a keyboard equivalent or host code changed the
+	// package, with no mouse-down to close it) would leave the provider
+	// active: back on the screen, hovering a title would open its menu.
+	const { closeAll } = useContext(ClassicyMenuContext);
+	useEffect(() => {
+		if (resolvedPlacement === "window") closeAll();
+	}, [resolvedPlacement, closeAll]);
 
 	const appSwitcherData = useMemo(() => appSwitcherAppsFrom(apps), [apps]);
 

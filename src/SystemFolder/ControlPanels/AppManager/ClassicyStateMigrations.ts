@@ -40,11 +40,58 @@ import { normalizeClassicyAppWindows } from "@/SystemFolder/ControlPanels/AppMan
  * - 2.3: Appearance.packageId and theme.package default to "platinum"
  *   (plan 0002-ldj Part B) on the Appearance slice and the active, built-in
  *   and custom themes (`migrateAppearancePackage`).
+ * - Every window's gesture flags (`resizing`, `dragging`, `moving`) are
+ *   dropped (`stripWindowGestureFlags`). They belong to a gesture in
+ *   progress, which a load ends; `sanitizeStateForPersistence` drops them on
+ *   save, and this pass drops them from state saved before it did, so a
+ *   stale `dragging` never makes a window follow the pointer.
  */
 export function migrateClassicyState(state: ClassicyStore): ClassicyStore {
 	return migrateAppearancePackage(
-		migrateThemeSoundPack(migrateThemeMetrics(migrateAppWindows(state))),
+		migrateThemeSoundPack(
+			migrateThemeMetrics(stripWindowGestureFlags(migrateAppWindows(state))),
+		),
 	);
+}
+
+/** The window flags that only a gesture in progress sets. */
+const WINDOW_GESTURE_FLAGS = ["resizing", "dragging", "moving"] as const;
+
+/** Copy-on-write removal of every window's gesture flags; runs after
+ * `migrateAppWindows`, so `windows` is a record. */
+function stripWindowGestureFlags(state: ClassicyStore): ClassicyStore {
+	const apps = state?.System?.Manager?.Applications?.apps;
+	if (!apps || typeof apps !== "object") return state;
+
+	let nextApps: Record<string, ClassicyStoreSystemApp> | undefined;
+	for (const [appId, app] of Object.entries(apps)) {
+		const windows = app?.windows;
+		if (!windows || typeof windows !== "object") continue;
+		let nextWindows: typeof windows | undefined;
+		for (const [windowId, w] of Object.entries(windows)) {
+			if (!w || !WINDOW_GESTURE_FLAGS.some((flag) => Object.hasOwn(w, flag)))
+				continue;
+			const { resizing: _r, dragging: _d, moving: _m, ...rest } = w;
+			nextWindows ??= { ...windows };
+			nextWindows[windowId] = rest;
+		}
+		if (!nextWindows) continue;
+		nextApps ??= { ...apps };
+		nextApps[appId] = { ...app, windows: nextWindows };
+	}
+	if (!nextApps) return state;
+
+	const { System } = state;
+	return {
+		...state,
+		System: {
+			...System,
+			Manager: {
+				...System.Manager,
+				Applications: { ...System.Manager.Applications, apps: nextApps },
+			},
+		},
+	};
 }
 
 function migrateAppWindows(state: ClassicyStore): ClassicyStore {

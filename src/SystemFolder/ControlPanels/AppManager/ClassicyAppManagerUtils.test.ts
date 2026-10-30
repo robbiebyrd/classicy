@@ -258,6 +258,49 @@ describe("getInitialState — localStorage behaviour (via module re-import)", ()
 		).toBeDefined();
 	});
 
+	// A blob saved mid-gesture by an older build still carries the gesture
+	// flags; a loaded `dragging: true` would make the window jump to the
+	// pointer on its first mouse move.
+	it("drops a persisted window's resizing, dragging and moving on load", async () => {
+		const stored = makeValidStoredState();
+		(
+			stored.System as Record<string, unknown> & {
+				Manager: { Applications: { apps: Record<string, unknown> } };
+			}
+		).Manager.Applications.apps["Persisted.app"] = {
+			id: "Persisted.app",
+			name: "Persisted",
+			icon: "",
+			open: true,
+			windows: {
+				w: {
+					id: "w",
+					closed: false,
+					resizing: true,
+					dragging: true,
+					moving: true,
+					size: [100, 100],
+					position: [10, 40],
+				},
+			},
+		};
+		localStorage.setItem("classicyDesktopState", JSON.stringify(stored));
+
+		vi.resetModules();
+		const { useAppManager, stopAppManagerPersistence } = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils"
+		);
+		stopAppManagerPersistence();
+
+		const win =
+			useAppManager.getState().System.Manager.Applications.apps["Persisted.app"]
+				.windows.w;
+		expect(win.position).toEqual([10, 40]);
+		expect("resizing" in win).toBe(false);
+		expect("dragging" in win).toBe(false);
+		expect("moving" in win).toBe(false);
+	});
+
 	/** Hydrate a fresh store from a persisted `activeTheme.desktop.backgroundImage`. */
 	async function hydrateBackground(backgroundImage: string): Promise<string> {
 		const stored = makeValidStoredState();

@@ -246,6 +246,27 @@ describe("ClassicyWindow appearance", () => {
 		expect(drag.filter((e) => e.event === "dragEnd")).toHaveLength(1);
 	});
 
+	// The document listener carries the resize while the pointer is outside
+	// the window; it reports each step as the window's own handler does.
+	it("emits change { kind: resize } while the pointer is outside the window", () => {
+		renderWindow();
+		const grow = part("classicyWindowResizer");
+		fireEvent.mouseDown(grow, { clientX: 340, clientY: 250 });
+		fireEvent.mouseMove(document.body, { clientX: 380, clientY: 290 });
+		fireEvent.mouseMove(document.body, { clientX: 400, clientY: 300 });
+		fireEvent.mouseUp(document.body, { clientX: 400, clientY: 300 });
+		expect(
+			emitted().filter((e) =>
+				["dragStart", "change", "dragEnd"].includes(e.event),
+			),
+		).toEqual([
+			{ event: "dragStart", detail: { kind: "resize" } },
+			{ event: "change", detail: { kind: "resize" } },
+			{ event: "change", detail: { kind: "resize" } },
+			{ event: "dragEnd", detail: { kind: "resize" } },
+		]);
+	});
+
 	it("emits no drag for a bare title-bar click", () => {
 		renderWindow();
 		click(part("classicyWindowTitle"), { clientX: 100, clientY: 60 });
