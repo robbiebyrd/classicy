@@ -3,11 +3,18 @@ id: 0066-874
 title: 'F 7.1: Storybook mirrored stories, Playwright position checks, final parity and docs'
 purpose: Prove every arrangement slot with a Storybook-only mirrored appearance package and six Mirrored stories checked by Playwright position expressions, then close Part F with the full parity shoot, docs and build verification.
 type: chor
-status: pending
+status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T20:33:07.123Z"
-updated: "2026-10-29T20:22:00.352Z"
+updated: "2026-10-30T04:27:30.845Z"
+started: "2026-10-30T04:27:30.845Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy

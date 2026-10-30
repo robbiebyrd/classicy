@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T20:32:12.590Z"
-updated: "2026-10-30T03:48:15.190Z"
+updated: "2026-10-30T04:27:21.676Z"
 started: "2026-10-30T03:48:15.190Z"
 tags: []
 milestone: ""
@@ -131,3 +131,5 @@ The header always renders triangle then label, with class `classicyDisclosureLab
 
 ## Work Log
 ### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
+
+### 2026-10-30T04:27:21.676Z - F 6.1 implemented (f2e4faf38): alert/disclosure/tabs parts orderable, stripPosition prop, desktop clean-up reads iconGridOrigin store-free. 4074 tests; 30 alert/disclosure/tabs/desktop stories AE 0. Known: bottom tab strip art still points up (carried to 7.1). Task review dispatched.
