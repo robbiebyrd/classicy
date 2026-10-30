@@ -64,7 +64,7 @@
                       var(--color-theme-04) calc(var(--slide-var) + 10px),
                       var(--color-theme-04) calc(var(--slide-var) + 20px)
       );
-      mask: linear-gradient(0deg, var(--color-black), white, var(--color-black)) luminance;
+      mask: linear-gradient(0deg, var(--color-black), var(--color-white), var(--color-black)) luminance;
     }
   }
 }

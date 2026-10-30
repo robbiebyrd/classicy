@@ -4,6 +4,6 @@
 
 @mixin icon {
   .classicyIconMask {
-    @include mixins.platinum-halftone(#000000, 7%);
+    @include mixins.platinum-halftone("--color-black", 7%);
   }
 }
