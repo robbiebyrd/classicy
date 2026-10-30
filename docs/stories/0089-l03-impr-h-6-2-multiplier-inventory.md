@@ -7,7 +7,7 @@ status: ready
 priority: "2"
 effort: L
 created: "2026-10-30T12:16:47.737Z"
-updated: "2026-10-30T17:33:13.072Z"
+updated: "2026-10-30T19:59:21.020Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -78,3 +78,5 @@ AGENT-REFERENCE §8 replaces the inventory with the kept-on-purpose list and doc
 ## Work Log
 
 ### 2026-10-30T17:33:02.291Z - H 6.2 started in two passes: 6.2a (the multiplier gate, the seeded allowlist, and sites outside H 6.1's 27 files, plus E's ClassicyWindowTitleBar.scss) runs in parallel with H 6.1 in worktree part-h-62; 6.2b converts the sites in those 27 files after 6.1 integrates. Base: land/part-h d6aed9d95 (H rebased onto the landed Part E, pushed as feat/appearance-part-h-v2).
+
+### 2026-10-30T19:59:21.020Z - H 6.2a implemented (9a98dfb74 on h/6.2a): the multiplier gate with a reasoned allowlist (178 live sites seeded, more than G's 88 grep count); 123 sites named with 31 derivations and 31 knobs; 55 sites left (31 kept on purpose, 24 in 6.1's files for 6.2b). Parity AE 0 on 342 stories + 4 app shots. Ruling H-R25: sites multiplying a user-editable metric must stay proportional (derivations, not knobs), so the Metrics tab keeps scaling; fix round running.

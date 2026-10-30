@@ -3,11 +3,11 @@ id: 0096-4hh
 title: A user file in Applications or Extensions is replaced by a same-named app entry
 purpose: Never lose a user's file to a derived folder entry that shares its name.
 type: bugs
-status: pending
+status: ready
 priority: "1"
 effort: S
 created: "2026-10-30T19:15:44.106Z"
-updated: "2026-10-30T19:15:44.106Z"
+updated: "2026-10-30T20:35:32.840Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -69,3 +69,5 @@ Pin the SimpleText and Calculator placeholder handoff, the user-file case and th
 - `src/SystemFolder/SystemResources/File/ClassicyFileSystem.ts` - snapshot filter (K-R5)
 
 ## Work Log
+
+### 2026-10-30T20:35:32.840Z - Started in worktree part-k-96 (branch k/0096) from feat/appearance-part-k 3b8767ebc; it lands with Part K.

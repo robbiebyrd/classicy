@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-30T14:45:18.135Z"
-updated: "2026-10-30T18:40:01.027Z"
+updated: "2026-10-30T20:35:23.420Z"
 started: "2026-10-30T15:15:36.055Z"
 tags: []
 milestone: ""
@@ -91,3 +91,9 @@ Per the plan, after Part E lands; pixel parity for Platinum (no package override
 ### 2026-10-30T18:25:21.650Z - K 3.1 review fixes in (77477f2e0 on k/3.1): analytics and drive type-select pinned, all seven mutants now fail; the empty-label balloon title now matches the label fallback. Accepted for integration. K-R1 fix pushed (7e74758e0, 80/80 parity shots AE 0). K 3.2 and 3.4 cherry-picked onto feat/appearance-part-k; gate running.
 
 ### 2026-10-30T18:40:01.027Z - K 3.3 fix round (36ca95f22) re-review: Approved. Derived entries no longer persist (K-R5), and no user file is lost, including files inside derived folders. K-R7 extends K-R4 to the Control Strip Modules folder at integration. All four 3.x tasks now approved; integration next.
+
+### 2026-10-30T19:59:23.483Z - K 4.1 implemented (45476c34f, 7c98d0697 on k/4.1): control panels and HyperCard follow display identity in window titles, proxy icons and About titles. Ruling K-R8: stored menus keep the internal About title, resolved by item id at render. In review.
+
+### 2026-10-30T20:04:46.791Z - K 4.1 review: Approved (a probe renamed all 15 bundled apps and found no display data in persisted state). Ruling K-R9: the About helper retitles only 'About <internal name>'. Integrates after the 3.x step.
+
+### 2026-10-30T20:35:23.420Z - K 3.x integrated and pushed (3b8767ebc): 3.3 cherry-picked (one test-file conflict plus a silent duplicate declaration, both resolved), carry-forward minors and K-R7 applied, 19 mutants all killed, 417 files / 4957 tests, 80/80 parity AE 0. K 4.1 integration (with K-R9) and story 0096-4hh (user-file data loss) running in parallel.
