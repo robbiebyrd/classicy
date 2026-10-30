@@ -3390,6 +3390,37 @@ full precision, and a rounded `9.333px` moves the computed `font-size`
 | `--tab-min-width-medium` | `controlSize × 7` | 84 | ClassicyTabs.scss |
 | `--tab-height-large` | `controlSize × 3` | 36 | ClassicyTabs.scss |
 | `--tab-large-padding-top` | `paddingSize × 0.75` | 4.5 | ClassicyTabs.scss |
+| `--assistant-header-gap` | `controlSize × 0.5` | 6 | ClassicyAssistant.scss |
+| `--assistant-accessory-icon-medium` | `controlSize × 1.75` | 21 | ClassicyAssistant.scss |
+| `--assistant-accessory-icon-large` | `controlSize × 2.5` | 30 | ClassicyAssistant.scss |
+| `--button-toolbar-square-button-width` | `controlSize × 3` | 36 | ClassicyButtonToolbar.scss |
+| `--desktop-icon-label-gap` | `iconFontSize / 2` | 6 | ClassicyDesktopIcon.scss |
+| `--disclosure-triangle-offset` | `controlSize / 2` | 6 | ClassicyTriangle.scss |
+| `--file-browser-list-icon-spacing` | `iconSize / 16` | 3 | ClassicyFileBrowserViewTable.scss |
+| `--menu-sub-menu-offset-block` | `paddingSize × 4` | 24 | ClassicyMenu.scss |
+| `--menu-sub-menu-offset-inline` | `paddingSize × 2` | 12 | ClassicyMenu.scss |
+| `--picker-swatch-size` | `controlSize × 2.5` | 30 | ClassicyColorPicker.scss |
+| `--picker-layout-gap` | `paddingSize × 2` | 12 | ClassicyColorPicker.scss |
+| `--quick-time-undocked-video-inset` | `borderSize × 4` | 4 | QuickTimeMovieEmbed.scss |
+| `--quick-time-controls-end-reserve` | `controlSize × 2` | 24 | QuickTimeMovieEmbed.scss |
+| `--quick-time-volume-bar-length` | `controlSize × 5` | 60 | QuickTimeMovieEmbed.scss |
+| `--quick-time-volume-bar-offset` | `controlSize × 1.75` | 21 | QuickTimeMovieEmbed.scss |
+| `--quick-time-thumb-rise` | `controlSize × 0.5` | 6 | QuickTimeMovieEmbed.scss |
+| `--quick-time-thumb-shift-inline` | `controlSize × 0.25` | 3 | QuickTimeMovieEmbed.scss |
+| `--quick-time-volume-track-top` | `controlSize × 0.25` | 3 | QuickTimeMovieEmbed.scss |
+| `--quick-time-progress-track-top` | `controlSize × 0.25` | 3 | QuickTimeMovieEmbed.scss |
+| `--quick-time-progress-track-height` | `controlSize × 0.75` | 9 | QuickTimeMovieEmbed.scss |
+| `--radio-offset-top` | `controlSize / 2` | 6 | ClassicyRadioInput.scss |
+| `--tab-gap` | `paddingSize × 2` | 12 | ClassicyTabs.scss |
+| `--tab-padding-inline` | `paddingSize × 3` | 18 | ClassicyTabs.scss |
+| `--tab-scroll-button-min-width` | `controlSize × 3` | 36 | ClassicyTabs.scss |
+| `--tab-small-row-indent` | `controlSize / 2` | 6 | ClassicyTabs.scss |
+| `--tab-small-padding-inline` | `paddingSize × 2` | 12 | ClassicyTabs.scss |
+| `--tab-small-icon-size` | `controlSize × 0.75` | 9 | ClassicyTabs.scss |
+| `--tab-large-padding-inline` | `paddingSize × 4` | 24 | ClassicyTabs.scss |
+| `--text-editor-height-inset` | `borderSize × 4` | 4 | ClassicyTextEditor.scss |
+| `--text-editor-auto-min-height` | `controlSize × 3` | 36 | ClassicyTextEditor.scss |
+| `--time-picker-period-min-width` | `uiSize × 4` | 56 | ClassicyTimePicker.scss |
 
 The table's types and one helper are public:
 
@@ -3416,7 +3447,7 @@ sets itself could never take effect. Those variables are reserved
 
 - the palette, font and desktop variables (`CLASSICY_THEME_NON_MEASUREMENT_VARS`, 44 names);
 - the derived metrics above (`CLASSICY_THEME_DERIVED_VARS`, 15 names);
-- the named derivations (`CLASSICY_THEME_DERIVATIONS`, 73 names);
+- the named derivations (`CLASSICY_THEME_DERIVATIONS`, 104 names);
 - every `--classicy-*` name. That prefix is Classicy's own: the desktop root
   sets `--classicy-layout-*` after the theme's variables, and
   `--classicy-art-*` and `--classicy-cursor-*` are read with fallbacks a
@@ -3445,13 +3476,13 @@ variable itself:
 
 | Input variable | Derived variables to override |
 |---|---|
-| `--window-control-size` | `--window-collapsed-height`, `--window-utility-collapsed-height`, `--window-title-stripe-height`, `--menu-bar-height`, `--menu-min-width`, `--menu-item-icon-size`, `--menu-item-icon-gap`, `--popup-height`, `--popup-mini-size`, `--popup-arrow-width`, `--control-glyph-size`, `--control-square-size`, `--button-square-width`, `--tab-height`, `--tab-min-width`, `--tab-min-width-large`, `--slider-thumb-width`, `--slider-thumb-height`, `--control-row-height`, `--progress-height`, `--window-max-height-reserve`, `--window-contents-chrome-height`, `--window-contents-header-chrome-height`, `--window-modal-contents-chrome-height`, `--window-utility-contents-chrome-height`, `--window-placard-end-reserve`, `--window-modal-title-reserve`, `--window-menu-bar-height`, `--control-label-spacing`, `--radio-mark-width`, `--radio-mixed-mark-top`, `--radio-mixed-mark-height`, `--radio-mixed-mark-border`, `--quick-time-control-icon-size`, `--tab-scroll-arrow-size`, `--tab-scroll-arrow-size-large`, `--tab-min-width-medium`, `--tab-height-large` |
-| `--window-padding-size` | `--control-padding`, `--control-padding-tight`, `--control-padding-narrow`, `--control-padding-loose`, `--control-padding-wide`, `--window-frame-inset`, `--window-frame-inset-whole`, `--window-zoom-margin`, `--window-resize-inset`, `--layout-focus-gap`, `--quick-time-volume-track-inset`, `--menu-item-padding-inline`, `--tab-large-padding-top` (and the four window contents chrome heights and `--window-max-height-reserve`) |
-| `--window-border-size` | `--control-frame-width`, `--control-bevel-sm`, `--control-bevel-md`, `--control-bevel-lg`, `--button-default-ring`, `--edit-field-height`, `--help-button-height`, `--focus-ring-width`, `--focus-ring-inset`, `--control-corner-radius`, `--window-shadow-offset`, `--slider-thumb-corner-radius` (and `--window-zoom-margin`, `--window-resize-inset`) |
+| `--window-control-size` | `--window-collapsed-height`, `--window-utility-collapsed-height`, `--window-title-stripe-height`, `--menu-bar-height`, `--menu-min-width`, `--menu-item-icon-size`, `--menu-item-icon-gap`, `--popup-height`, `--popup-mini-size`, `--popup-arrow-width`, `--control-glyph-size`, `--control-square-size`, `--button-square-width`, `--tab-height`, `--tab-min-width`, `--tab-min-width-large`, `--slider-thumb-width`, `--slider-thumb-height`, `--control-row-height`, `--progress-height`, `--window-max-height-reserve`, `--window-contents-chrome-height`, `--window-contents-header-chrome-height`, `--window-modal-contents-chrome-height`, `--window-utility-contents-chrome-height`, `--window-placard-end-reserve`, `--window-modal-title-reserve`, `--window-menu-bar-height`, `--control-label-spacing`, `--radio-mark-width`, `--radio-mixed-mark-top`, `--radio-mixed-mark-height`, `--radio-mixed-mark-border`, `--quick-time-control-icon-size`, `--tab-scroll-arrow-size`, `--tab-scroll-arrow-size-large`, `--tab-min-width-medium`, `--tab-height-large`, `--assistant-header-gap`, `--assistant-accessory-icon-medium`, `--assistant-accessory-icon-large`, `--button-toolbar-square-button-width`, `--disclosure-triangle-offset`, `--picker-swatch-size`, `--quick-time-controls-end-reserve`, `--quick-time-volume-bar-length`, `--quick-time-volume-bar-offset`, `--quick-time-thumb-rise`, `--quick-time-thumb-shift-inline`, `--quick-time-volume-track-top`, `--quick-time-progress-track-top`, `--quick-time-progress-track-height`, `--radio-offset-top`, `--tab-scroll-button-min-width`, `--tab-small-row-indent`, `--tab-small-icon-size`, `--text-editor-auto-min-height` |
+| `--window-padding-size` | `--control-padding`, `--control-padding-tight`, `--control-padding-narrow`, `--control-padding-loose`, `--control-padding-wide`, `--window-frame-inset`, `--window-frame-inset-whole`, `--window-zoom-margin`, `--window-resize-inset`, `--layout-focus-gap`, `--quick-time-volume-track-inset`, `--menu-item-padding-inline`, `--tab-large-padding-top`, `--menu-sub-menu-offset-block`, `--menu-sub-menu-offset-inline`, `--picker-layout-gap`, `--tab-gap`, `--tab-padding-inline`, `--tab-small-padding-inline`, `--tab-large-padding-inline` (and the four window contents chrome heights and `--window-max-height-reserve`) |
+| `--window-border-size` | `--control-frame-width`, `--control-bevel-sm`, `--control-bevel-md`, `--control-bevel-lg`, `--button-default-ring`, `--edit-field-height`, `--help-button-height`, `--focus-ring-width`, `--focus-ring-inset`, `--control-corner-radius`, `--window-shadow-offset`, `--slider-thumb-corner-radius`, `--quick-time-undocked-video-inset`, `--text-editor-height-inset` (and `--window-zoom-margin`, `--window-resize-inset`) |
 | `--window-scrollbar-size` | `--window-scrollbar-arrow-size` |
 | `--control-height` | `--button-height`, `--edit-field-height`, `--help-button-width`, `--help-button-height` |
-| `--ui-font-size` | `--ui-font-size-small`, `--ui-font-size-caption`, `--ui-font-size-compact`, `--ui-font-size-mini`, `--ui-font-size-large`, `--window-header-font-size`, `--ui-font-size-xlarge`, `--checkbox-x-mark-font-size`, `--checkbox-x-mark-line-height`, `--balloon-help-font-size`, `--quick-time-time-font-size`, `--finder-about-font-size`, `--finder-about-title-font-size`, `--finder-about-heading-font-size`, `--finder-about-copyright-font-size` |
-| `--desktop-icon-size` / `--desktop-icon-font-size` | `--desktop-icon-padding`, `--desktop-icon-cell` / `--desktop-icon-label-pad` |
+| `--ui-font-size` | `--ui-font-size-small`, `--ui-font-size-caption`, `--ui-font-size-compact`, `--ui-font-size-mini`, `--ui-font-size-large`, `--window-header-font-size`, `--ui-font-size-xlarge`, `--checkbox-x-mark-font-size`, `--checkbox-x-mark-line-height`, `--balloon-help-font-size`, `--quick-time-time-font-size`, `--finder-about-font-size`, `--finder-about-title-font-size`, `--finder-about-heading-font-size`, `--finder-about-copyright-font-size`, `--time-picker-period-min-width` |
+| `--desktop-icon-size` / `--desktop-icon-font-size` | `--desktop-icon-padding`, `--desktop-icon-cell`, `--file-browser-list-icon-spacing` / `--desktop-icon-label-pad`, `--desktop-icon-label-gap` |
 | `--layout-item-gap` | `--layout-item-gap-half` |
 | `--progress-bar-stripe-width` | `--progress-bar-stripe-period` |
 
@@ -3592,26 +3623,16 @@ names on top of 6.1's pixel-literal purge: `_Window.scss` (4),
 `ClassicySlider.scss` (7), `ClassicyTable.scss` (1) and
 `ClassicyWindowFrame.scss` (1).
 
-**Component knobs (H 6.2).** Component-local whole-pixel sizes that were
-multipliers are knobs in Platinum's `defaults.measurements` (emitted as
-`--<family>-<key>`, editable in theme files, not shown in the Options tab,
-H-R4). Unlike the multiplier they replace, a knob does not follow
-`window.controlSize` or the other inputs: change it in the theme.
-
-| Family | Keys (Platinum px) | Read by |
-|---|---|---|
-| `assistant` | `headerGap` 6, `accessoryIconMedium` 21, `accessoryIconLarge` 30 | ClassicyAssistant.scss |
-| `buttonToolbar` | `squareButtonWidth` 36 | ClassicyButtonToolbar.scss |
-| `desktopIcon` | `labelGap` 6 | ClassicyDesktopIcon.scss |
-| `disclosureTriangle` | `offset` 6 | ClassicyTriangle.scss |
-| `fileBrowser` | `listIconSpacing` 3 | ClassicyFileBrowserViewTable.scss |
-| `menu` | `subMenuOffsetBlock` 24, `subMenuOffsetInline` 12 | ClassicyMenu.scss |
-| `picker` | `swatchSize` 30, `layoutGap` 12 | ClassicyColorPicker.scss |
-| `quickTime` | `undockedVideoInset` 4, `controlsEndReserve` 24, `volumeBarLength` 60, `volumeBarOffset` 21, `thumbRise` 6, `thumbShiftInline` 3, `volumeTrackTop` 3, `progressTrackTop` 3, `progressTrackHeight` 9 | QuickTimeMovieEmbed.scss |
-| `radio` | `offsetTop` 6 | ClassicyRadioInput.scss |
-| `tab` | `gap` 12, `paddingInline` 18, `scrollButtonMinWidth` 36, `smallRowIndent` 6, `smallPaddingInline` 12, `smallIconSize` 9, `largePaddingInline` 24 | ClassicyTabs.scss |
-| `textEditor` | `heightInset` 4, `autoMinHeight` 36 | ClassicyTextEditor.scss |
-| `timePicker` | `periodMinWidth` 56 | ClassicyTimePicker.scss |
+**Multipliers of editable metrics stay derivations (H-R25).** A multiplier
+of a metric a user can edit (the Metrics tab's 20 targets, the Fonts tab's UI
+size, the desktop icon sizes) is named as a derivation of that metric, never
+a fixed knob, even when only one component reads it: a knob would stop
+following the metric, and the Metrics tab would silently stop rescaling that
+part. A knob may replace only a multiple of a value no user edits (a package
+constant, a knob family). `ClassicyThemeDerivations.metricScaling.test.ts`
+edits each metric through its action (`ClassicyDesktopChangeMetric`,
+`ClassicyDesktopChangeFontSize`, `ClassicyDesktopChangeAppearanceOption`) and
+checks that every variable H 6.2 named follows it, as its `calc()` did.
 
 There are no `--hig-*` variables (removed 2026-10-27, no aliases).
 
