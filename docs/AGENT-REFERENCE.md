@@ -915,8 +915,8 @@ usable pre-boot): `title?`, `children` *, `className?`, `width?`.
 | `ClassicyContextualMenuTarget` | `menuItems` *, `children` | attach a right-click menu to any element |
 | `ClassicyContextualMenu` | `name` *, `position` *, `menuItems` *, `onClose?` | low-level; usually not used directly |
 | `useClassicyContextualMenu()` | → `{ showContextMenu(items, [x, y]), hideContextMenu() }` | imperative API |
-| `ClassicyDesktopMenuBar` | `className?`, `style?`, `placement? ("screen"\|"window")` | rendered by `ClassicyDesktop`; reads its menus from the store. `placement` defaults to the active package's `layout.menuBar.placement`: `"window"` renders nothing (the bar still runs the keyboard-equivalent dispatcher), and each window draws its menus in a `ClassicyWindowMenuBar` (§8, "Layout declarations") |
-| `ClassicyWindowMenuBar` | `appId` *, `windowId` *, `menuItems` *, `className?`, `style?` | a window's own menu bar, rendered by `ClassicyWindow` under its title bar when the placement is `"window"`; usually not used directly. Root carries `data-classicy-part="window-menu-bar"` |
+| `ClassicyDesktopMenuBar` | `className?`, `style?`, `placement? ("screen"\|"window")` | rendered by `ClassicyDesktop`; reads its menus from the store. `placement` defaults to the active package's `layout.menuBar.placement`; `"window"` renders nothing (the bar still runs the keyboard-equivalent dispatcher). The prop affects only this bar: windows draw a `ClassicyWindowMenuBar` when the package layout says `window`, whatever the prop says. So `placement="window"` under Platinum leaves no menus on screen (keyboard equivalents still fire), and `placement="screen"` under a window-placement package draws the screen bar and every window's bar (§8, "Layout declarations") |
+| `ClassicyWindowMenuBar` | `appId` *, `windowId` *, `menuItems` *, `className?`, `style?` | a window's own menu bar, rendered by `ClassicyWindow` under its title bar when the package layout's placement is `"window"`; usually not used directly. Root carries `data-classicy-part="window-menu-bar"`; the window root carries `classicyWindowWithMenuBar` while it draws one |
 | `useClassicyMenuCloseOnOutsideMouseDown(ref)` | `ref` * (`RefObject<HTMLElement \| null>`) | call inside a `ClassicyMenuProvider`: while its menu bar is active (a title was clicked open), a mouse-down outside `ref`'s element closes the provider's menus. Both menu bars use it; a null ref closes nothing |
 | `ClassicyMenuBarExtension` | `id` *, `order?`, `icon?`, `title?`, `menuItems?`, `onClick?` | add a right-side menu bar item (like the clock) |
 
@@ -2304,7 +2304,7 @@ how they look) has two halves:
 |---|---|---|
 | `window.growBoxCorner` | `bottom-right`, `bottom-left`, `top-right`, `top-left` | the grow box's corner (base CSS keyed on `[data-classicy-grow-box]`, the grip's two drawn edges included, which stay on its content side) and which corner a resize drag keeps fixed (`computeClassicyWindowResize`, below) |
 | `menuBar.placement` | `screen`, `window` | `screen`: the one menu bar across the top. `window`: the screen bar renders nothing (it stays mounted and still dispatches and registers keyboard equivalents), and each window with an `appMenu` draws it in a `ClassicyWindowMenuBar` under its title bar |
-| `desktop.iconGridOrigin` | `top-right`, `top-left`, `bottom-right`, `bottom-left` | the corner desktop icons are laid out from, by Clean Up (`ClassicyDesktopIconCleanup`) and when an icon is added |
+| `desktop.iconGridOrigin` | `top-right`, `top-left`, `bottom-right`, `bottom-left` | the corner desktop icons are laid out from, by Clean Up (`ClassicyDesktopIconCleanup`) and when an icon is added. Switching packages does not move existing icons; the next Clean Up does |
 
 **Reading it.** `useClassicyAppearanceLayout()` (components; re-renders on a
 package switch) and `getClassicyAppearanceLayout(packageId?)` (reducers and
@@ -2351,24 +2351,35 @@ menus stick as the screen bar's do and close on a selection, a re-click of
 the open title, a mouse-down outside the bar
 (`useClassicyMenuCloseOnOutsideMouseDown`), or the 15 s idle timeout. Another
 window's bar counts as outside, so only one window's menu is open at a time.
-Its height is
-`--classicy-window-menu-bar-height` when a host or package sets it (it
-inherits), else `control size × 1.75`, and the window's contents shrink by
-it. Limits of this placement: the Apple, Help and App Switcher menus, the
-clock and menu bar extensions have no home in a window bar and are not
-shown. A `ClassicyMenuBarExtension` renders nothing while the placement is
-`window` and reappears in the screen bar's new extensions region when it
-returns to `screen`. It follows the package layout only: a bar forced to
-`placement="screen"` under a window-placement package is not re-queried. Window geometry still reserves the screen bar's 30 px
-band at the top. `ClassicyDesktopMenuBar`'s `placement` prop overrides the
-layout for one bar.
+A switch to window placement closes any menu open on the screen bar. Its
+height is `--classicy-window-menu-bar-height` when a host or package sets it
+(it inherits), else `control size × 1.75`, and the window's contents shrink
+by it. While it draws the bar, the window root carries
+`classicyWindowWithMenuBar`, which keys that sizing; a separate
+`:has(> .classicyWindowMenuBar)` rule repeats it, so a browser without
+`:has()` still fits the window together. Limits of this placement: the Apple, Help
+and App Switcher menus, the clock and menu bar extensions have no home in a
+window bar and are not shown. A `ClassicyMenuBarExtension` renders nothing
+while the placement is `window` and reappears in the screen bar's new
+extensions region when it returns to `screen`. It follows the package
+layout only: a bar forced to `placement="screen"` under a window-placement
+package is not re-queried. Window geometry still reserves the screen bar's
+30 px band at the top.
+
+`ClassicyDesktopMenuBar`'s `placement` prop affects only that bar; windows
+follow the package layout, never the prop. `placement="window"` under
+Platinum makes the screen bar headless while no window draws a bar, so no
+menus are on screen (keyboard equivalents still fire). `placement="screen"`
+under a window-placement package draws the screen bar and, in each window
+with an `appMenu`, a window bar as well.
 
 **`computeClassicyWindowResize(corner, rect, pointer, chrome, fudge?,
 minimum?, floor?)`** → `{ size: [w, h], position: [left, top] }`. Pure; the
 size and position for a resize drag whose grow box is in `corner`. The
 corner opposite the grow box is the anchor: the size is the pointer's
-distance from it plus `fudge` (`CLASSICY_WINDOW_RESIZE_FUDGE`, 5, which keeps
-the grow box under the pointer), and the position keeps the anchor fixed.
+distance from it plus `fudge` (default 5, which keeps the grow box under the
+pointer; `ClassicyWindow` passes the same value), and the position keeps the
+anchor fixed.
 `rect` is the window's bounding rect when the drag started (left, top,
 right, bottom) and `chrome` its frame padding plus border, which the rect
 includes and the applied size does not. Two optional limits apply only on an
@@ -2390,14 +2401,20 @@ Classicy always used. `ClassicyWindow` writes `size` as the window's width
 and height during the drag and, for any other corner, `position` as its
 left and top.
 
-**Icon grid.** Clean Up walks the grid one icon cell at a time
-(`iconSize × 2 + iconSize / 4` on both axes), down each column from the
-origin's edge, then to the next column. Every counted column fits the
-viewport, and a bottom origin also keeps its last row clear of the menu bar,
-so no cleaned-up icon lands off-screen. In a viewport too short for even one
-row below that band, a bottom origin's one row is clamped to the top
-origins' first-row height (`4 × padding`). `classicyDesktopIconGridPosition(iconSize,
-padding, col, row, origin?)` is the cell-to-location function.
+Types: `ClassicyWindowRect` is the `rect` argument (`{ left, top, right,
+bottom }`, viewport pixels, frame included); `ClassicyWindowResizeResult` is
+the return value (`{ size, position }`, both `[number, number]`).
+
+**Icon grid.** Clean Up walks the grid one grid step (icon cell plus
+padding) at a time (`iconSize × 2 + iconSize / 4` on both axes), down each
+column from the origin's edge, then to the next column. Every counted column
+fits the viewport, and a bottom origin also keeps its last row clear of the
+menu bar, so no cleaned-up icon lands off-screen. In a viewport too short
+for even one row below that band, a bottom origin's one row is clamped to
+the top origins' first-row height (`4 × padding`).
+`classicyDesktopIconGridPosition(iconSize, padding, col, row, origin?)` is
+the grid-position-to-location function; `origin` defaults to
+`CLASSICY_DEFAULT_APPEARANCE_LAYOUT.desktop.iconGridOrigin`.
 
 **A package that rearranges.** The Storybook-only `mirrored` package
 (`storybook/.storybook/MirroredPackage.ts` and `mirrored.scss`) is the proof
@@ -2411,9 +2428,11 @@ all three keys flipped. Its six `Mirrored` stories (`desktop-window`,
 `dialogs-alert`, `desktop-desktop`, `desktop-menubar`, `controls-tabs`,
 `controls-disclosure`) are rendered with `mirroredParameters`, from
 `storybook/.storybook/mirrored.ts`. Importing that module registers the
-package, and only those six story files import it, so the package is
-registered only in a story iframe that loaded one of them and never shows up
-in other stories' package lists.
+package, and only those six story files import it (never `preview.tsx`), so
+the package is registered only in an iframe that has loaded one of those
+files. A fresh load of any other story never sees it, but Storybook keeps
+one preview iframe across sidebar navigation, so a story visited after a
+`Mirrored` one in the same session lists it too.
 
 **Changes from earlier builds** (Platinum's pixels are unchanged):
 
