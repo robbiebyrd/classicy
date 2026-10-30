@@ -678,6 +678,13 @@ describe("useClassicyFileSystem Control Strip Modules overlay", () => {
 			icon: "/plain.png",
 		});
 		const unmount = markClassicyAppMounted("FsOwner.app");
+		const snapshots: ClassicyFileSystemSnapshot[] = [];
+		registerClassicyFileSystemAdapter({
+			id: "test-strip-overlay-rename",
+			onSnapshot: (snapshot) => {
+				snapshots.push(snapshot);
+			},
+		});
 		try {
 			const { result } = renderHook(
 				() => useClassicyFileSystem("test-strip-overlay-rename"),
@@ -700,9 +707,30 @@ describe("useClassicyFileSystem Control Strip Modules overlay", () => {
 			);
 			expect(result.current.resolve(`${folder}:Owned`)).toBeUndefined();
 			expect(result.current.resolve(`${folder}:Plain`)).toBeDefined();
-			expect(localStorage.getItem("test-strip-overlay-rename")).not.toContain(
-				"Owner Display",
-			);
+
+			// An ordinary write after the switch persists the user's tree, never
+			// a module file or a display name (K-R5): not to localStorage, not
+			// to an adapter's snapshot.
+			act(() => {
+				result.current.mkDir("Macintosh HD:Probe Folder");
+			});
+			result.current.flushNow();
+			const stored = JSON.parse(
+				localStorage.getItem("test-strip-overlay-rename") as string,
+			) as ClassicyFileSystemTree;
+			const snapshot = snapshots.at(-1) as ClassicyFileSystemSnapshot;
+			for (const tree of [stored, snapshot.tree]) {
+				const text = JSON.stringify(tree);
+				expect(text).toContain("Probe Folder");
+				for (const name of ["Owner Display", "Owned", "Plain", "_derived"]) {
+					expect(text).not.toContain(name);
+				}
+				const modules =
+					tree["Macintosh HD"]["System Folder"]["Control Strip Modules"] ?? {};
+				expect(Object.keys(modules).filter((k) => !k.startsWith("_"))).toEqual(
+					[],
+				);
+			}
 
 			act(() => {
 				dispatch({
@@ -714,6 +742,7 @@ describe("useClassicyFileSystem Control Strip Modules overlay", () => {
 			expect(result.current.resolve(`${folder}:Owner Display`)).toBeUndefined();
 		} finally {
 			act(() => unmount());
+			unregisterClassicyFileSystemAdapter("test-strip-overlay-rename");
 			unregisterClassicyControlStripModule("fs-test-plain");
 			unregisterClassicyAppearancePackage("test-fs-strip-rename");
 		}
