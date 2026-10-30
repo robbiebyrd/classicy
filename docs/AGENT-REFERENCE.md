@@ -1067,7 +1067,11 @@ A `captionStyle`'s colors reach the cue as custom properties, not inline
 `color`: `--classicy-caption-fg` and `--classicy-caption-bg` (`"r, g, b"`) and
 `--classicy-caption-fg-alpha` / `--classicy-caption-bg-alpha`, composed by
 `.quickTimePlayerCaptions.quickTimePlayerCaptionsCustomStyle` in
-`QuickTimeCaptionsOverlay.scss`.
+`QuickTimeCaptionsOverlay.scss`. The themed caption look (Platinum: theme
+colors, a glow and a saturating filter) is the package's, on
+`.quickTimePlayerCaptions:not(.quickTimePlayerCaptionsCustomStyle)`, so it
+never touches a cue with a `captionStyle`; a package that themes captions
+should skip that class the same way, or its layer beats the viewer's colors.
 
 That rule sits in `classicy.base`, so the end user's caption colors no
 longer carry inline precedence. Host CSS in `classicy.user`, or unlayered,

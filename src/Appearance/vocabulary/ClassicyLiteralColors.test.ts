@@ -30,7 +30,10 @@ const progressBar = compileFile(
 const controlGroup = compileFile(
 	`${SYSTEM}/ControlGroup/ClassicyControlGroup.scss`,
 );
-const quickTime = compileFile(`${SYSTEM}/QuickTime/QuickTimeMovieEmbed.scss`);
+// The QuickTime controller look is in its Platinum partial.
+const quickTime = compileSource(
+	`@use "Appearance/Platinum/styles/components/QuickTimeMovieEmbed" as q;\n@include q.quickTimeMovieEmbed;`,
+);
 const finderAbout = compileFile(
 	"src/SystemFolder/Finder/FinderAboutThisComputer.scss",
 );

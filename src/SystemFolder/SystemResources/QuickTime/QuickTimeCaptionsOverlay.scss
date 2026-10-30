@@ -2,9 +2,9 @@
 
 // A caller's caption colors (`captionStyle`), which QuickTimeCaptionsOverlay
 // publishes as custom properties: `--classicy-caption-fg` and `-bg` are
-// "r, g, b" triples, `-fg-alpha` and `-bg-alpha` their opacities. Both
-// classes, so the rule beats the themed `.quickTimePlayerCaptions` colors
-// (QuickTimeMovieEmbed.scss) whichever stylesheet the bundle puts first.
+// "r, g, b" triples, `-fg-alpha` and `-bg-alpha` their opacities. They are
+// consumer data, not package look, so they stay in base; the package's themed
+// caption colors skip a cue with this class.
 .quickTimePlayerCaptions.quickTimePlayerCaptionsCustomStyle {
   color: rgba(var(--classicy-caption-fg), var(--classicy-caption-fg-alpha));
   background-color: rgba(

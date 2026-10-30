@@ -72,3 +72,72 @@ describe("QuickTime slider thumb art", () => {
 		);
 	});
 });
+
+const SEEK_TRACK =
+	".quickTimePlayerVideoControlsProgressBar::-webkit-slider-runnable-track";
+
+/**
+ * The rest of the controller's and the captions' look is Platinum's too. What
+ * the base sheet keeps besides geometry are resets of the native controls
+ * (`transparent` backgrounds, `-webkit-appearance: none`, the suppressed
+ * focus ring and legacy track ticks), never a color token, border, shadow,
+ * filter or gradient.
+ */
+describe("QuickTime controller and caption look", () => {
+	it("the base sheet holds no color token, border, shadow, filter or gradient", () => {
+		expect(base).not.toMatch(
+			/var\(--color-|color-mix|box-shadow|text-shadow|filter|gradient|border-radius/,
+		);
+		expect(base).not.toMatch(/\bborder:/);
+		for (const [, prop, value] of base.matchAll(
+			/\b(background(?:-color)?|color|border-color|outline): ([^;]+);/g,
+		))
+			expect(`${prop}: ${value}`).toMatch(/: (transparent|none)$/);
+	});
+
+	it("Platinum draws the seek track's border and inset bevel", () => {
+		expect(packageRule(SEEK_TRACK)).toMatchObject({
+			border: "var(--window-border-size) solid var(--color-theme-04)",
+		});
+		expect(packageRule(SEEK_TRACK)["box-shadow"]).toMatch(
+			/^inset .*var\(--color-theme-04\),\s*inset .*var\(--color-theme-06\)$/s,
+		);
+	});
+
+	it("Platinum paints the controller bar, the volume pop-up and the focused tracks", () => {
+		expect(packageRule(".quickTimePlayerVideoControlsHolder").background).toBe(
+			"var(--color-system-03)",
+		);
+		expect(
+			packageRule(".quickTimePlayerVideoControlsVolumeBar").background,
+		).toBe("var(--color-system-03)");
+		for (const bar of ["ProgressBar", "VolumeBar"])
+			expect(
+				packageRule(
+					`.quickTimePlayerVideoControls${bar}:focus::-webkit-slider-runnable-track`,
+				).background,
+				bar,
+			).toBe("var(--color-theme-02)");
+		expect(packageRule(".quickTimePlayerVideoControlsButton img").filter).toBe(
+			"drop-shadow(var(--window-border-size) var(--window-border-size) 0px color-mix(in srgb, var(--color-black) 50%, transparent))",
+		);
+	});
+
+	// The themed caption look skips a cue with a caller's `captionStyle`, whose
+	// colors (QuickTimeCaptionsOverlay.scss, consumer data) stay in base.
+	it("Platinum themes only the captions without a caller's captionStyle", () => {
+		expect(
+			packageRule(
+				".quickTimePlayerCaptions:not(.quickTimePlayerCaptionsCustomStyle)",
+			),
+		).toEqual({
+			color: "var(--color-theme-01)",
+			"background-color": "var(--color-system-07)",
+			"text-shadow": "0px 0 3px var(--color-theme-05)",
+			filter: "saturate(500%) contrast(2)",
+		});
+		expect(
+			packageRule(".quickTimePlayerCaptionsCustomStyle")["border-radius"],
+		).toBe("var(--control-frame-width)");
+	});
+});

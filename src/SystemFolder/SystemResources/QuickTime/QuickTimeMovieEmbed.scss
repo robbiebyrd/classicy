@@ -1,4 +1,3 @@
-@use '../../../Appearance/vocabulary/color' as c;
 @use '../../../Appearance/vocabulary/layout';
 
 .quickTimePlayerVideoHolder {
@@ -52,7 +51,7 @@
 
   height: var(--control-row-height);
   margin-bottom: calc(var(--window-padding-size) - var(--window-border-size));
-  background: var(--color-system-03);
+  // Its face color is in the Platinum package.
   justify-items: center;
 }
 
@@ -79,12 +78,9 @@
   height: var(--control-row-height);
   margin: 0;
   padding: 0;
-  // Its raised, pressable face (flat-edged) is in the Platinum package.
+  // Its raised, pressable face (flat-edged) and its glyph's drop shadow are
+  // in the Platinum package.
   aspect-ratio: 1/1;
-
-  img {
-    filter: drop-shadow(var(--window-border-size) var(--window-border-size) 0px c.classicy-alpha("--color-black", 50%));
-  }
 }
 
 .quickTimePlayerVideoControlsIcon {
@@ -113,6 +109,7 @@
   background: transparent; /* Otherwise white in Chrome */
   -webkit-appearance: none; /* Hides the slider so that custom slider can be made */
   writing-mode: vertical-rl;
+  // Its face color and bevel are in the Platinum package.
 }
 
 .quickTimePlayerVideoControlsProgressBar {
@@ -169,16 +166,7 @@
   margin-left: calc(var(--window-padding-size) * .75);
   cursor: pointer;
   background: transparent;
-  // Its border and inset bevel are in the Platinum package.
-}
-
-.quickTimePlayerVideoControlsVolumeBar:focus::-webkit-slider-runnable-track {
-  background: var(--color-theme-02);
-}
-
-.quickTimePlayerVideoControlsVolumeBar {
-  background: var(--color-system-03);
-  // Its bevel is in the Platinum package.
+  // Its border, inset bevel and focus color are in the Platinum package.
 }
 
 
@@ -188,14 +176,8 @@
   margin-right: var(--window-padding-size);
   margin-left: var(--control-padding);
   cursor: pointer;
-  border: var(--window-border-size) solid var(--color-theme-04);
   background: transparent;
-  box-shadow: inset var(--window-border-size) var(--window-border-size) var(--window-border-size) var(--color-theme-04),
-  inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--window-border-size) var(--color-theme-06);
-}
-
-.quickTimePlayerVideoControlsProgressBar:focus::-webkit-slider-runnable-track {
-  background: var(--color-theme-02);
+  // Its border, inset bevel and focus color are in the Platinum package.
 }
 
 .quickTimePlayerCaptionsHolder {
@@ -231,20 +213,16 @@
   width: auto;
   margin: var(--window-padding-size);
   padding: var(--window-padding-size);
-  color: var(--color-theme-01);
-  background-color: var(--color-system-07);
-  text-shadow: 0px 0 3px var(--color-theme-05);
-  filter: saturate(500%) contrast(2);
+  // Its themed colors, glow and filter are in the Platinum package, which
+  // skips a cue with a caller's captionStyle.
 }
 
-// Applied when a caller provides an explicit captionStyle: neutralize the
-// themed effects so the caller's exact colors render, and match the plain
-// subtitle-overlay presentation (rt911 TV's former .subtitleOverlay).
+// Applied when a caller provides an explicit captionStyle: the caller's exact
+// colors render (QuickTimeCaptionsOverlay.scss; the package's themed effects
+// skip this class), laid out as the plain subtitle overlay (rt911 TV's former
+// .subtitleOverlay). Its rounded corners are in the Platinum package.
 .quickTimePlayerCaptionsCustomStyle {
-  filter: none;
-  text-shadow: none;
   white-space: pre-line;
   line-height: 1.4;
   text-align: center;
-  border-radius: var(--control-frame-width);
 }

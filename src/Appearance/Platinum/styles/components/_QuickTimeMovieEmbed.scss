@@ -1,11 +1,19 @@
-// The Platinum QuickTime controller look (from QuickTimeMovieEmbed.scss): the
-// raised time display, buttons and seek-bar holder, the volume pop-up's
-// bevel, the slider thumbs' art and drop shadow, and the volume track's inset
-// bevel. The controller's cells butt together, so each drops the mixin's
-// border and rounded corners right after it, as the base rule did.
+// The Platinum QuickTime controller and caption look (from
+// QuickTimeMovieEmbed.scss): the bar's face, the raised time display, buttons
+// (and their glyphs' drop shadow) and seek-bar holder, the volume pop-up's
+// face and bevel, the slider thumbs' art and drop shadow, both tracks' border,
+// inset bevel and focus color, and the themed captions. The controller's
+// cells butt together, so each drops the mixin's border and rounded corners
+// right after it, as the base rule did. The base sheet keeps geometry and
+// resets of the native range input only.
+@use "../../../vocabulary/color" as c;
 @use "../mixins";
 
 @mixin quickTimeMovieEmbed {
+  .quickTimePlayerVideoControlsHolder {
+    background: var(--color-system-03);
+  }
+
   .quickTimePlayerVideoControlsTime {
     @include mixins.platinum-window-undepressable;
     border: 0;
@@ -16,6 +24,10 @@
     @include mixins.platinum-window-depressable;
     border: 0;
     border-radius: 0;
+
+    img {
+      filter: drop-shadow(var(--window-border-size) var(--window-border-size) 0px c.classicy-alpha("--color-black", 50%));
+    }
   }
 
   .quickTimePlayerVideoControlsProgressBarHolder {
@@ -24,6 +36,7 @@
   }
 
   .quickTimePlayerVideoControlsVolumeBar {
+    background: var(--color-system-03);
     @include mixins.platinum-window-inner-box-shadow;
   }
 
@@ -42,9 +55,30 @@
     background-image: var(--classicy-art-quick-time-volume-slider);
   }
 
-  .quickTimePlayerVideoControlsVolumeBar::-webkit-slider-runnable-track {
+  // Both tracks: a themed border and inset bevel, and the focused track's fill.
+  .quickTimePlayerVideoControlsVolumeBar::-webkit-slider-runnable-track,
+  .quickTimePlayerVideoControlsProgressBar::-webkit-slider-runnable-track {
     border: var(--window-border-size) solid var(--color-theme-04);
     box-shadow: inset var(--window-border-size) var(--window-border-size) var(--window-border-size) var(--color-theme-04),
       inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--window-border-size) var(--color-theme-06);
+  }
+
+  .quickTimePlayerVideoControlsVolumeBar:focus::-webkit-slider-runnable-track,
+  .quickTimePlayerVideoControlsProgressBar:focus::-webkit-slider-runnable-track {
+    background: var(--color-theme-02);
+  }
+
+  // The themed captions. A cue with a caller's captionStyle is skipped: its
+  // colors are the caller's (QuickTimeCaptionsOverlay.scss, in base), and
+  // this layer would beat them.
+  .quickTimePlayerCaptions:not(.quickTimePlayerCaptionsCustomStyle) {
+    color: var(--color-theme-01);
+    background-color: var(--color-system-07);
+    text-shadow: 0px 0 3px var(--color-theme-05);
+    filter: saturate(500%) contrast(2);
+  }
+
+  .quickTimePlayerCaptionsCustomStyle {
+    border-radius: var(--control-frame-width);
   }
 }
