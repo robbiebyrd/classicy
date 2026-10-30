@@ -674,13 +674,16 @@ on Classicy's internal class names carry one of three attributes
 |---|---|---|
 | `data-classicy-control` | `close`, `zoom`, `collapse` | the window title bar's control boxes |
 | `data-classicy-role` | `default`, `cancel`, `other` | every `ClassicyAlert` button (the default button, the `role: "cancel"` button, any other including Help) |
-| `data-classicy-part` | `apple`, `app`, `help`, `switcher`, `extensions`, `clock` | the menu bar's clusters: Apple menu, each app menu title, Help, the application switcher, the menu-bar extensions and the clock |
+| `data-classicy-part` | `apple`, `app`, `help`, `switcher`, `extensions`, `clock`, `window-menu-bar` | the menu bar's clusters: Apple menu, each app menu title, Help, the application switcher, the menu-bar extensions and the clock; and the root of a window's own menu bar (`ClassicyWindowMenuBar`) |
 
 ```ts
 document.querySelector('.classicyWindow.active [data-classicy-control="close"]')
 document.querySelector('[data-classicy-role="default"]')
 document.querySelector('[data-classicy-part="clock"]')
 ```
+
+These parts are flex items in explicit `order`, so an Appearance Package
+rearranges them with CSS `order` alone; see "Layout declarations" in §8.
 
 **`className` and `style` passthrough.** Every exported component that
 renders an element of its own takes `className` and `style` and applies them
@@ -836,6 +839,12 @@ full-window `<textarea>`, `ClassicySplitView` panes, a pan surface) must pass
 `scrollable={false}`, or its inner scrolling counts as overflow and the window
 shows a second set of bars beside the inner ones.
 
+The grow box sits in the corner the active Appearance Package's
+`layout.window.growBoxCorner` names (Platinum: bottom-right), and a resize
+drag keeps the opposite corner fixed (`computeClassicyWindowResize`); with
+`layout.menuBar.placement: "window"` a window with an `appMenu` draws it in
+its own menu bar under the title bar. See §8, "Layout declarations".
+
 **`ClassicyWindowFrame`** — presentational chrome only (no store coupling;
 usable pre-boot): `title?`, `children` *, `className?`, `width?`.
 
@@ -888,7 +897,7 @@ usable pre-boot): `title?`, `children` *, `className?`, `width?`.
 | `ClassicyMeter` | `value` *, `min?/max? (0/100)`, `low?/high?/optimum?`, `segments?`, `showValue?`, `label?` | native `<meter>` zone semantics: the region holding `optimum` is optimal (theme accent), adjacent is suboptimal (`--color-alert`), two away is bad (`--color-error`); `meterZone()` exported |
 | `ClassicyOutput` | `id` *, `value?` or children, `htmlFor?: string[]`, `variant? ("plain"\|"inset")`, `mono?`, `label?`, `disabled?` (dimmed) | real `<output>`; `inset` is the white beveled result well |
 | `ClassicyKbd` | `shortcut?` (any `parseKeyboardShortcut` spelling) or children, `variant? ("inline"\|"keycaps")` | real `<kbd>` in canonical glyph order (⌃⌥⇧⌘ + key); menu items render their `keyboardShortcut` through it |
-| `ClassicyTabs` | `tabs` * (`{title?, icon?, children}[]`), `size? ("small"\|"medium"\|"large")` | tab height and label type scale; small tabs suit dense panels |
+| `ClassicyTabs` | `tabs` * (`{title?, icon?, children}[]`), `size? ("small"\|"medium"\|"large")`, `stripPosition? ("top"\|"bottom")` | tab height and label type scale; small tabs suit dense panels. `stripPosition="bottom"` puts the strip under the panel (same DOM order; the stylesheet moves it with `order`, root class `classicyTabStripBottom`); the tabs' outline art still points up |
 | `ClassicyTree` | `nodes` *, `direction?` (closed triangles' direction; default right), `selectionMode? ("none"\|"single"\|"multi")`, `selectedIds?`, `onSelectNode?`, `onActivateNode?`, `onToggleNode?` | hierarchical list |
 | `ClassicyTable` | `columns` * (`{id, title, accessor, render?, sortable?, resizable?, width?, align?}[]`), `rows` *, `getRowId` *, `selectionMode? ("none"\|"single"\|"multi")`, `selected?: string[]`, `onSelectionChange?`, `onActivateRow?`, `defaultSort?`, `stickyHeader? (true)`, `rowClassName?`; tree rows: `getSubRows?`, `rowCanExpand?`, `expanded?: string[]`, `onToggleRow?`; handles: `selectionApiRef?` (`{ selectAll }`), `containerRef?` (the focusable list box, e.g. for a window's `initialFocusRef`) | generic Platinum list view over `@tanstack/react-table` (already a peer dep); semantic `<table>` + `aria-sort`; Shift/⌘ selection over the current sorted order; arrows/Home/End/Enter/type-select keyboard. `render(row, expansion)` receives `{ depth, canExpand, isExpanded, toggle }` so a column can draw its own disclosure (this is how the Finder list view is built) |
 | `ClassicyPager` | `page` *, `pageCount` *, `onPageChange` *, `pageClassName?` (extra class for the page-number cell) | Apple Guide page control |
@@ -906,7 +915,9 @@ usable pre-boot): `title?`, `children` *, `className?`, `width?`.
 | `ClassicyContextualMenuTarget` | `menuItems` *, `children` | attach a right-click menu to any element |
 | `ClassicyContextualMenu` | `name` *, `position` *, `menuItems` *, `onClose?` | low-level; usually not used directly |
 | `useClassicyContextualMenu()` | → `{ showContextMenu(items, [x, y]), hideContextMenu() }` | imperative API |
-| `ClassicyDesktopMenuBar` | (no props) | rendered by `ClassicyDesktop` |
+| `ClassicyDesktopMenuBar` | `className?`, `style?`, `placement? ("screen"\|"window")` | rendered by `ClassicyDesktop`; reads its menus from the store. `placement` defaults to the active package's `layout.menuBar.placement`: `"window"` renders nothing (the bar still runs the keyboard-equivalent dispatcher), and each window draws its menus in a `ClassicyWindowMenuBar` (§8, "Layout declarations") |
+| `ClassicyWindowMenuBar` | `appId` *, `windowId` *, `menuItems` *, `className?`, `style?` | a window's own menu bar, rendered by `ClassicyWindow` under its title bar when the placement is `"window"`; usually not used directly. Root carries `data-classicy-part="window-menu-bar"` |
+| `useClassicyMenuCloseOnOutsideMouseDown(ref)` | `ref` * (`RefObject<HTMLElement \| null>`) | call inside a `ClassicyMenuProvider`: while its menu bar is active (a title was clicked open), a mouse-down outside `ref`'s element closes the provider's menus. Both menu bars use it; a null ref closes nothing |
 | `ClassicyMenuBarExtension` | `id` *, `order?`, `icon?`, `title?`, `menuItems?`, `onClick?` | add a right-side menu bar item (like the clock) |
 
 `ClassicyMenuItem.link` is analytics only: it is reported with the item's
@@ -961,7 +972,7 @@ plain integers (`0xRRGGBB`).
 | `ClassicyCrashScreen` | `children?` | error boundary → Sad Mac screen. `ClassicyDesktop` already wraps itself in one, so don't add another around it; use it only for a shell you build without `ClassicyDesktop` |
 | `ClassicyBoot` / `ClassicyBootSequence` / `ClassicyStartupScreen` | see source | boot parade; normally managed by `ClassicyDesktop` |
 | `ClassicyDesktopMenuWidgetTime` | none | stock menu bar clock widget; the menu bar shows only Time |
-| `ClassicyDesktopMenuWidgetSound` | `hide?` | **deprecated** — menu-bar mute toggle, no longer mounted. Use the Control Strip's built-in Sound module (`classicy-sound`, registered by `ClassicySoundManagerProvider`). Still exported; logs a one-time `classicyLog` warning in dev builds when mounted |
+| `ClassicyDesktopMenuWidgetSound` | `hide?` | **deprecated** — menu-bar mute toggle, no longer mounted. Use the Control Strip's built-in Sound module (`classicy-sound`, registered by `ClassicySoundManagerProvider`). Still exported; logs a one-time `classicyLog` warning in dev builds when mounted. It no longer floats right: the menu bar places its clusters by flex `order`, so mounted in a container that is not a flex row it floats left |
 | `ClassicyControlStrip` | `disabledModules?` (module ids), `defaultCollapsed?`, `defaultWidth?`, `className?` | Mac OS 8 Control Strip (HIGOS8 p.125, Figure 6-15): floating strip at the desktop's lower left — collapse box, scroll arrows, modules, draggable tab; widths snap to whole modules. Control-dragging the collapse box moves it up or down and docks it to the left or right edge (the pointer's half of the desktop; mirrored when docked right), stored as `edge`/`bottom` via `ClassicyDesktopControlStripSetPosition {edge: "left"\|"right", bottom}` (px above the desktop's bottom; `computeClassicyControlStripPosition` is the pure placement). `ClassicyDesktop` mounts it (`controlStrip` prop: its props, or `false` to hide). Shows every registered module (below) not in `disabledModules` and not hidden by the user. Collapsed state, width, user-hidden ids and user order persist in `System.Manager.Desktop.controlStrip` (`ClassicyDesktopControlStripSetVisible {visible}`, `…SetCollapsed {collapsed}`, `…SetWidth {width\|null}`, `…SetModuleHidden {moduleId, hidden}`, `…SetModuleOrder {moduleOrder}`); the defaults apply until the user changes them. Its contextual menu: Hide Control Strip, Open Control Strip Control Panel |
 | `registerClassicyControlStripModule(def)` | `id` *, `label` *, `icon` * (string or hook), `appId?`, `order? (100)`, `menuItems?` (array or hook), `content?` (component), `fileIcon?` | adds a module; call at module scope. Live (`useSyncExternalStore`). Same `appId` re-registering replaces; another `appId` is ignored with a warning. With `appId`, shown only while that `ClassicyApp` is mounted (`useClassicyMountedApps`). Each module also appears as a file in `System Folder:Control Strip Modules`. Also `unregisterClassicyControlStripModule(id)`, `getClassicyControlStripModule(id)`, `listClassicyControlStripModules()`, `arrangeClassicyControlStripModules(registrations, {disabledModules?, moduleOrder?, mountedApps})`, `classicyControlStripOpenControlPanelItem(dispatch, panelName, app)` (HIG p.125 "Open … Control Panel"). Built-in ids: `CLASSICY_CONTROL_STRIP_MODULE_IDS` (`sound` → `classicy-sound`, order 10; `screenSaver` → `classicy-screen-saver`, order 20, owned by `ScreenSaver.app`) |
 | `ClassicyControlStripManager` | none | the Control Strip control panel (`ControlStripManager.app`, in `ClassicyControlPanels`): show/hide the strip; show/hide and reorder each module the host has not disabled |
@@ -1892,7 +1903,7 @@ registerClassicyAppearancePackage({
 | `defaults` | The theme a switch to the package activates; `defaults.package` must be the package's `id` |
 | `presets` | Built-in themes offered with the package (Platinum's 21) |
 | `knobs` / `options` | Tunable measurement families (`family → key → { label, min, max, default }`, values under `theme.measurements.<family>`, emitted as `--<family>-<key>`), and the zod schema `classicyKnobsToSchema(knobs)` builds from them |
-| `layout` | `{ window.growBoxCorner, menuBar.placement, desktop.iconGridOrigin }`; read with `useClassicyAppearanceLayout()` / `getClassicyAppearanceLayout(packageId?)`, as CSS variables with `classicyLayoutVars(layout)`. Components do not position by it yet |
+| `layout` | `{ window.growBoxCorner, menuBar.placement, desktop.iconGridOrigin }`; read with `useClassicyAppearanceLayout()` / `getClassicyAppearanceLayout(packageId?)`, as CSS variables with `classicyLayoutVars(layout)`. See "Layout declarations" below |
 | `assets`, `sounds` | Descriptive: register the package's art with the asset registries under its id (§5) and its sound packs with `registerClassicySoundPack` (§10) |
 | `hooks` | `{ decorate?, on? }`: what the package adds to each component's root, and its handlers per component and event; components call them through `useClassicyAppearance` ("Package hooks", below) |
 
@@ -2275,6 +2286,143 @@ Actions panel. Under the probe the window control boxes, menu dividers and
 the depressable `::after` geometry collapse, because that structure still
 lives in Platinum's look mixins (Part B ruling R10; follow-up story
 0088-sz9).
+
+### Layout declarations
+
+A package's **arrangement** (where the parts of a surface go, as opposed to
+how they look) has two halves:
+
+1. **CSS `order` and flex direction** on the parts that carry a part
+   attribute or part class (table below). The base stylesheet gives each
+   part an explicit `order`; a package overrides the numbers in its own CSS.
+   Which parts exist is behavior and never changes: a package may only
+   reorder or hide them.
+2. **The package's `layout` block**, for the three arrangements that need
+   JavaScript as well as CSS.
+
+| Key | Values (Platinum's first) | Drives |
+|---|---|---|
+| `window.growBoxCorner` | `bottom-right`, `bottom-left`, `top-right`, `top-left` | the grow box's corner (base CSS keyed on `[data-classicy-grow-box]`, the grip's two drawn edges included, which stay on its content side) and which corner a resize drag keeps fixed (`computeClassicyWindowResize`, below) |
+| `menuBar.placement` | `screen`, `window` | `screen`: the one menu bar across the top. `window`: the screen bar renders nothing (it stays mounted and still dispatches and registers keyboard equivalents), and each window with an `appMenu` draws it in a `ClassicyWindowMenuBar` under its title bar |
+| `desktop.iconGridOrigin` | `top-right`, `top-left`, `bottom-right`, `bottom-left` | the corner desktop icons are laid out from, by Clean Up (`ClassicyDesktopIconCleanup`) and when an icon is added |
+
+**Reading it.** `useClassicyAppearanceLayout()` (components; re-renders on a
+package switch) and `getClassicyAppearanceLayout(packageId?)` (reducers and
+effects; store-free, so a reducer may import it; with no id it reads the
+active package at call time) resolve the active package from
+`System.Manager.Appearance.packageId`, never from `activeTheme.package`: a
+registered package's layout, else Platinum's, else
+`CLASSICY_DEFAULT_APPEARANCE_LAYOUT`.
+
+**On the desktop root.** `ClassicyDesktop` publishes the resolved layout on
+its root element, beside `data-classicy-appearance`, as two attributes and
+three custom properties (spread by `ClassicyDesktop` from
+`classicyLayoutVars(layout)`; `getThemeVars` only sees the theme and emits
+none of them):
+
+| Root attribute | Custom property |
+|---|---|
+| `data-classicy-grow-box` | `--classicy-layout-grow-box-corner` |
+| `data-classicy-menu-bar` | `--classicy-layout-menu-bar-placement` |
+| — | `--classicy-layout-icon-grid-origin` |
+
+Values are the bare keywords (`bottom-right`, `screen`, …). The attributes
+are on the desktop root only: a component rendered outside a
+`ClassicyDesktop` (a Storybook Controls story's frame, say) sees neither, so
+`[data-classicy-grow-box="…"] .classicyWindow …` rules do not reach it.
+
+**Parts a package may `order`:**
+
+| Surface | Flex items (base `order`) | Notes |
+|---|---|---|
+| Window title bar | `[data-classicy-control="close"]` 10, `.classicyWindowTitle` 20, `[data-classicy-control="zoom"]` 30, `[data-classicy-control="collapse"]` 40 | the stripes are `.classicyWindowTitleLeft`/`Center`/`Right`, which a package may hide (`display: none`) |
+| Alert top row (`.classicyAlertTop`) | `.classicyAlertIcon` 10, `.classicyAlertBody` 20 | |
+| Alert buttons (`.classicyAlertButtons`) | each button by `[data-classicy-role="default\|cancel\|other"]` | no base `order`: the button list's order, default last; flip with `flex-direction`. Help keeps `margin-right: auto` |
+| Menu bar (`.classicyDesktopMenu`) | `[data-classicy-part]` `apple` 10, `app` 20, `help` 30, `extensions` 40, `clock` 50, `switcher` 60 | `extensions` carries `margin-left: auto`, which pushes the right-hand cluster over. A title with balloon help is wrapped in an anchor; that anchor is the flex item, ordered by the part it wraps (`:has()`), and sized by its title. Window menu bars use the same rules |
+| Tabs (`.classicyTabContainer`, a flex column) | `.classicyTabButtonsRow` (strip), `.classicyTabsHolder` (panel) | `stripPosition="bottom"` (`.classicyTabStripBottom`) moves the strip below with `order: 1` and moves its 1 px overhang to the top edge |
+| Disclosure header (`.classicyDisclosureHeader`) | the triangle, then `.classicyControlLabelHolder` | `labelPosition="left"` (`.classicyDisclosureLabelLeft`) sets the label's `order: -1` |
+
+**Window menu bars.** With `menuBar.placement: "window"`, `ClassicyWindow`
+renders a `ClassicyWindowMenuBar` (root `.classicyWindowMenuBar`,
+`data-classicy-part="window-menu-bar"`) with the window's `appMenu` directly
+under the title bar. Utility windows, modals, collapsed windows and windows
+with an empty `appMenu` get none. It has its own `ClassicyMenuProvider`:
+menus stick as the screen bar's do and close on a selection, a re-click of
+the open title, a mouse-down outside the bar
+(`useClassicyMenuCloseOnOutsideMouseDown`), or the 15 s idle timeout. Another
+window's bar counts as outside, so only one window's menu is open at a time.
+Its height is
+`--classicy-window-menu-bar-height` when a host or package sets it (it
+inherits), else `control size × 1.75`, and the window's contents shrink by
+it. Limits of this placement: the Apple, Help and App Switcher menus, the
+clock and menu bar extensions have no home in a window bar and are not
+shown. A `ClassicyMenuBarExtension` renders nothing while the placement is
+`window` and reappears in the screen bar's new extensions region when it
+returns to `screen`. Window geometry still reserves the screen bar's 30 px
+band at the top. `ClassicyDesktopMenuBar`'s `placement` prop overrides the
+layout for one bar.
+
+**`computeClassicyWindowResize(corner, rect, pointer, chrome, fudge?,
+minimum?, floor?)`** → `{ size: [w, h], position: [left, top] }`. Pure; the
+size and position for a resize drag whose grow box is in `corner`. The
+corner opposite the grow box is the anchor: the size is the pointer's
+distance from it plus `fudge` (`CLASSICY_WINDOW_RESIZE_FUDGE`, 5, which keeps
+the grow box under the pointer), and the position keeps the anchor fixed.
+`rect` is the window's bounding rect when the drag started (left, top,
+right, bottom) and `chrome` its frame padding plus border, which the rect
+includes and the applied size does not. Two optional limits apply only on an
+axis whose grow box moves the left or top edge:
+
+- `minimum` (`[w, h]`, default `[0, 0]`): the window's minimum content size.
+  CSS draws the window at least that size, so the moved edge stops there;
+  the returned size stays raw.
+- `floor` (`[x, y]`, default `[0, 0]`): the lowest left/top the window may
+  take; past it the size shrinks so the edge stops at the floor.
+  `ClassicyWindow` passes its viewport floor, `[0, 30]` (the screen's left
+  edge and the menu bar's underside), the same floor
+  `clampWindowPositionToViewport` re-applies after every move and resize.
+
+`bottom-right` moves no edge, ignores both limits, and gives the numbers
+Classicy always used. `ClassicyWindow` writes `size` as the window's width
+and height during the drag and, for any other corner, `position` as its
+left and top.
+
+**Icon grid.** Clean Up walks the grid one icon cell at a time
+(`iconSize × 2 + iconSize / 4` on both axes), down each column from the
+origin's edge, then to the next column. Every counted column fits the
+viewport, and a bottom origin also keeps its last row clear of the menu bar,
+so no cleaned-up icon lands off-screen. `classicyDesktopIconGridPosition(iconSize,
+padding, col, row, origin?)` is the cell-to-location function.
+
+**A package that rearranges.** The Storybook-only `mirrored` package
+(`storybook/.storybook/MirroredPackage.ts` and `mirrored.scss`) is the proof
+that every slot works and the template for a new package: Platinum's look,
+rescoped by including Platinum's component mixins inside
+`classicy-package("mirrored")`, then the flips (close box right, zoom and
+collapse left, stripes hidden, the alert's icon right and default button
+leftmost, the App Switcher leading the menu bar, the tab strip and its
+outlines under the panel, the disclosure label first), plus a `layout` with
+all three keys flipped. Its six `Mirrored` stories (`desktop-window`,
+`dialogs-alert`, `desktop-desktop`, `desktop-menubar`, `controls-tabs`,
+`controls-disclosure`) are rendered with `mirroredParameters`.
+
+**Changes from earlier builds** (Platinum's pixels are unchanged):
+
+- The menu bar's clusters are flex items placed by `order`, not floats.
+  The deprecated `ClassicyDesktopMenuWidgetSound`, mounted outside the menu
+  bar in a container that is not a flex row, now floats left (it floated
+  right).
+- A balloon-wrapped top-level menu title is as wide as its title, not the
+  whole bar.
+- `ClassicyDisclosure` renders one DOM order, triangle then label, for both
+  label positions; a left label is moved first by CSS. Code that read a
+  left-label header's `firstElementChild` as the label now gets the
+  triangle. A non-interactive `ClassicyTriangle`'s `<svg>` is
+  `aria-hidden`, so the header's accessible name is its label alone in both
+  positions (it was "More info Toggle" or "Toggle More info").
+- Clean Up counts columns by the icon cell, not `iconSize + padding`, so on a
+  desktop with more icons than fit the icons wrap to the first column
+  instead of running off-screen.
 
 ### Theme files (save / load)
 

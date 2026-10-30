@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
+import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
 export const SB_ICON: string = ClassicyIcons.system.macClassic as string;
 
@@ -11,6 +12,16 @@ export const desktopParameters = {
 	layout: "fullscreen",
 	classicy: { desktop: true },
 	docs: { story: { inline: false, height: "600px" } },
+};
+
+/**
+ * `desktopParameters` under the Storybook-only `mirrored` Appearance Package
+ * (MirroredPackage.ts): every arrangement slot flipped. Spread into a
+ * `Mirrored` story's `parameters`.
+ */
+export const mirroredParameters = {
+	...desktopParameters,
+	classicy: { ...desktopParameters.classicy, appearancePackage: "mirrored" },
 };
 
 /**
@@ -35,3 +46,28 @@ export const StoryApp: FC<{
 		</ClassicyApp>
 	);
 };
+
+/**
+ * Hosts a control in one open document window of a Storybook app, for a
+ * Controls/* story rendered on a desktop (`desktopParameters`,
+ * `mirroredParameters`), where a bare control would sit loose on the desktop.
+ */
+export const StoryWindow: FC<{
+	title: string;
+	size?: [number, number];
+	children?: ReactNode;
+}> = ({ title, size = [420, 260], children }) => (
+	<StoryApp id="storybook.app" name="Storybook">
+		<ClassicyWindow
+			id="story"
+			appId="storybook.app"
+			title={title}
+			initialSize={size}
+			initialPosition={[200, 80]}
+		>
+			<div style={{ padding: "calc(var(--window-padding-size) * 2)" }}>
+				{children}
+			</div>
+		</ClassicyWindow>
+	</StoryApp>
+);

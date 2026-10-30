@@ -2,7 +2,7 @@ import {
 	appearanceHooksParameters,
 	ClassicyAppearanceProbe,
 } from "@sb/ClassicyAppearanceProbe";
-import { desktopParameters, StoryApp } from "@sb/helpers";
+import { desktopParameters, mirroredParameters, StoryApp } from "@sb/helpers";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useRef } from "react";
 import { fn } from "storybook/test";
@@ -534,4 +534,18 @@ export const AppearanceHooks: StoryObj<Record<string, never>> = {
 		</ClassicyAppearanceProbe>
 	),
 	parameters: appearanceHooksParameters("600px"),
+};
+
+/**
+ * `Default` under the Storybook-only `mirrored` Appearance Package, which
+ * rearranges the window by CSS `order` and its `layout` alone: the close box
+ * at the right, zoom and collapse at the left, the title's stripes hidden and
+ * the grow box (`window.growBoxCorner: "bottom-left"`) in the lower-left
+ * corner, its edges drawn on its content side. Dragging the grip resizes from
+ * that corner, keeping the top-right corner fixed. The grip art itself is
+ * Platinum's, not mirrored.
+ */
+export const Mirrored: Story = {
+	...Default,
+	parameters: mirroredParameters,
 };
