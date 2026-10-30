@@ -4,6 +4,11 @@ import { resolveClassicyAppearancePackage } from "@/Appearance/ClassicyAppearanc
 import { subscribeClassicyAppearancePackages } from "@/Appearance/ClassicyAppearancePackageRegistry";
 import { connectClassicyAssetPackageSource } from "@/Appearance/ClassicyAssetPackageSource.internal";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
+import type { ClassicyTheme } from "../AppearanceManager/ClassicyAppearance";
+import {
+	classicyThemeMeasurementDefaults,
+	withoutDefaultThemeMeasurements,
+} from "../AppearanceManager/ClassicyThemeMetrics";
 import { resolveWallpaper } from "../AppearanceManager/ClassicyWallpapers";
 import type { ClassicyActionTrust } from "./ClassicyActionTrust";
 import {
@@ -52,6 +57,42 @@ function healThemeWallpapers(state: ClassicyStore): ClassicyStore {
 	return state;
 }
 
+/** `theme` as it is persisted: without the package-family leaves equal to
+ * its package's defaults (H-R17). */
+const persistableClassicyTheme = (theme: ClassicyTheme): ClassicyTheme =>
+	theme && typeof theme === "object"
+		? withoutDefaultThemeMeasurements(
+				theme,
+				classicyThemeMeasurementDefaults(theme.package),
+			)
+		: theme;
+
+/**
+ * The defaults the persisted state is merged over, with the active theme's
+ * package families dropped as persistence drops them. The merge is deep, so
+ * a family the saved active theme left to its package would otherwise come
+ * back from the default (Platinum) theme as a present value, and a host
+ * package registered after the store loads could never supply its own.
+ */
+const withoutDefaultActiveThemeMeasurements = (
+	state: ClassicyStore,
+): ClassicyStore => {
+	const appearance = state.System.Manager.Appearance;
+	return {
+		...state,
+		System: {
+			...state.System,
+			Manager: {
+				...state.System.Manager,
+				Appearance: {
+					...appearance,
+					activeTheme: persistableClassicyTheme(appearance.activeTheme),
+				},
+			},
+		},
+	};
+};
+
 /** True iff the module store initialized from valid persisted localStorage state. */
 export const wasHydratedFromStorage = (): boolean => hydratedFromStorage;
 
@@ -88,7 +129,7 @@ function getInitialState(): ClassicyStore {
 				return healThemeWallpapers(
 					migrateClassicyState(
 						mergeClassicyState(
-							DefaultAppManagerState,
+							withoutDefaultActiveThemeMeasurements(DefaultAppManagerState),
 							parsed as DeepPartial<ClassicyStore>,
 						),
 					),
@@ -172,7 +213,31 @@ let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 export function sanitizeStateForPersistence(
 	state: ClassicyStore,
 ): ClassicyStore {
+	// Themes keep only the package-family values a user changed (H-R17):
+	// the rest equal the package defaults, which getThemeVars fills when it
+	// reads the theme. That keeps saved state near its pre-knob size, and
+	// lets a later change to a package's defaults reach existing users.
+	const appearance = state.System?.Manager?.Appearance;
+	const list = (themes: ClassicyTheme[] | undefined) =>
+		Array.isArray(themes) ? themes.map(persistableClassicyTheme) : themes;
+	const activeTheme = persistableClassicyTheme(appearance?.activeTheme);
+	const availableThemes = list(appearance?.availableThemes);
+	const customThemes = list(appearance?.customThemes);
+	const changed = (next: ClassicyTheme[] | undefined, prev = next) =>
+		next?.some((t, i) => t !== prev?.[i]) ?? false;
 	return produce(state, (draft) => {
+		const draftAppearance = draft.System?.Manager?.Appearance;
+		if (draftAppearance && appearance) {
+			if (activeTheme !== appearance.activeTheme) {
+				draftAppearance.activeTheme = castDraft(activeTheme);
+			}
+			if (changed(availableThemes, appearance.availableThemes)) {
+				draftAppearance.availableThemes = castDraft(availableThemes);
+			}
+			if (changed(customThemes, appearance.customThemes)) {
+				draftAppearance.customThemes = castDraft(customThemes);
+			}
+		}
 		const browserApp = draft.System.Manager.Applications.apps["Browser.app"];
 		if (browserApp?.data && "history" in browserApp.data) {
 			delete (browserApp.data as Record<string, unknown>).history;

@@ -131,8 +131,9 @@ const fillFamily = (
  * The input is never mutated.
  *
  * Pass `classicyThemeMeasurementDefaults(theme.package)` to fill a package's
- * families too (H-R2): `getThemeVars`, the state migration and
- * `ClassicyDesktopLoadThemes` do.
+ * families too (H-R2): `getThemeVars`, theme export, `ClassicyDesktopLoadThemes`
+ * and package activation do. The state migration does not (H-R17): it runs
+ * before a host can register its package, so it fills the core five only.
  */
 export function withDefaultThemeMetrics<
 	T extends ClassicyThemeWithPartialMetrics,
@@ -181,6 +182,50 @@ export function withDefaultThemeMetricsList<
 		next[i] = filled as unknown as T;
 	});
 	return next ?? (themes as T[]);
+}
+
+/**
+ * The inverse of `withDefaultThemeMetrics` for the families beyond the core
+ * five (H-R17): `theme` without every package-family leaf equal to its
+ * `defaults` value, and without a family that this empties. The core five,
+ * keys `defaults` does not name and changed values are kept. Copy-on-write:
+ * the same theme back when there is nothing to drop.
+ *
+ * `sanitizeStateForPersistence` stores themes this way, so persisted state
+ * keeps only what a user changed, and a later change to a package's knob
+ * defaults reaches existing users; `getThemeVars` fills the rest when it
+ * reads the theme.
+ */
+export function withoutDefaultThemeMeasurements<
+	T extends ClassicyThemeWithPartialMetrics,
+>(theme: T, defaults: ClassicyThemeMeasurementDefaults): T {
+	const current = theme.measurements as Record<string, unknown> | undefined;
+	if (!isPlainObject(current)) return theme;
+	let next: Record<string, unknown> | undefined;
+	for (const [family, value] of Object.entries(current)) {
+		const familyDefaults = Object.hasOwn(defaults, family)
+			? defaults[family]
+			: undefined;
+		if (
+			(METRIC_GROUPS as string[]).includes(family) ||
+			!familyDefaults ||
+			!isPlainObject(value)
+		) {
+			continue;
+		}
+		const kept = Object.fromEntries(
+			Object.entries(value).filter(
+				([key, v]) =>
+					!(Object.hasOwn(familyDefaults, key) && familyDefaults[key] === v),
+			),
+		);
+		const keptCount = Object.keys(kept).length;
+		if (keptCount === Object.keys(value).length) continue;
+		next ??= { ...current };
+		if (keptCount === 0) delete next[family];
+		else next[family] = kept;
+	}
+	return next ? ({ ...theme, measurements: next } as T) : theme;
 }
 
 /**

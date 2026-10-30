@@ -77,6 +77,25 @@ describe("exportClassicyTheme", () => {
 		expect(file.theme.desktop.backgroundImage).toBe("");
 	});
 
+	// H-R17: a theme in the store may carry only the families it changed;
+	// the file carries the healed theme, so every knob value travels.
+	it("writes the knob families a stored theme leaves to its package defaults", () => {
+		const t = theme("default");
+		const { window, control, button, groupBox, layout } = t.measurements;
+		t.measurements = {
+			window,
+			control,
+			button,
+			groupBox,
+			layout,
+			controlStrip: { cellHeight: 30 },
+		} as ClassicyTheme["measurements"];
+		const written = JSON.parse(exportClassicyTheme(t)).theme.measurements;
+		expect(written.controlStrip.cellHeight).toBe(30);
+		expect(written.controlStrip.moduleWidth).toBe(30);
+		expect(written.pager).toEqual(getTheme("default").measurements.pager);
+	});
+
 	it("strips keys the schema does not declare", () => {
 		const t = { ...theme("default"), scratch: 1 } as ClassicyTheme;
 		expect(JSON.parse(exportClassicyTheme(t)).theme).not.toHaveProperty(

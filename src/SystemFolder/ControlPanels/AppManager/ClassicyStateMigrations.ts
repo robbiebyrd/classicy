@@ -5,7 +5,6 @@ import {
 	withDefaultThemePackageList,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
-	classicyThemeMeasurementDefaults,
 	withDefaultThemeMetrics,
 	withDefaultThemeMetricsList,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
@@ -31,13 +30,15 @@ import { normalizeClassicyAppWindows } from "@/SystemFolder/ControlPanels/AppMan
  * - 1.0: `apps[id].windows` moved from an array to a record keyed by window
  *   id (`normalizeClassicyAppWindows`).
  * - 2.1: theme metric groups (`measurements.control/button/groupBox/layout`,
- *   `window.titleBarHeight/utilityTitleBarHeight`) and the package knob
- *   families (`controlStrip`, `pager`, …) filled key by key from the theme's
- *   package defaults over Platinum's (`classicyThemeMeasurementDefaults`) on
- *   the active, built-in and custom themes (`withDefaultThemeMetrics`).
- *   Built-ins matter: `availableThemes` is persisted and replaces the
- *   defaults wholesale, so without this the first theme switch after an
- *   upgrade would clone a metric-less theme.
+ *   `window.titleBarHeight/utilityTitleBarHeight`) filled from
+ *   `CLASSICY_DEFAULT_THEME_METRICS` on the active, built-in and custom
+ *   themes (`withDefaultThemeMetrics`). The core five only (H-R17): this
+ *   runs at store creation, before a host can register its package, so
+ *   package knob families (`controlStrip`, `pager`, …) are left to
+ *   `getThemeVars`, which fills them from the package registered by the
+ *   time it reads the theme. Built-ins matter: `availableThemes` is
+ *   persisted and replaces the defaults wholesale, so without this the
+ *   first theme switch after an upgrade would clone a metric-less theme.
  * - 2.2: theme `sound.name` renamed to `sound.pack` on the active, built-in
  *   and custom themes (`migrateThemeSoundPack`).
  * - 2.3: Appearance.packageId and theme.package default to "platinum" on the
@@ -124,15 +125,12 @@ function migrateAppWindows(state: ClassicyStore): ClassicyStore {
 	};
 }
 
-/** A theme's measurement defaults: its own package's over Platinum's. */
-const themeMeasurementDefaults = (theme: ClassicyTheme) =>
-	classicyThemeMeasurementDefaults(theme.package);
-
 /** Copy-on-write fill of a theme list; the same array back when untouched. */
 function migrateThemeList(
 	themes: ClassicyTheme[] | undefined,
-	migrate: (themes: ClassicyTheme[]) => ClassicyTheme[] = (list) =>
-		withDefaultThemeMetricsList(list, themeMeasurementDefaults),
+	migrate: (
+		themes: ClassicyTheme[],
+	) => ClassicyTheme[] = withDefaultThemeMetricsList,
 ): ClassicyTheme[] | undefined {
 	if (!Array.isArray(themes)) return themes;
 	return migrate(themes);
@@ -144,10 +142,7 @@ function migrateThemeMetrics(state: ClassicyStore): ClassicyStore {
 
 	const activeTheme =
 		appearance.activeTheme && typeof appearance.activeTheme === "object"
-			? withDefaultThemeMetrics(
-					appearance.activeTheme,
-					themeMeasurementDefaults(appearance.activeTheme),
-				)
+			? withDefaultThemeMetrics(appearance.activeTheme)
 			: appearance.activeTheme;
 	const availableThemes = migrateThemeList(appearance.availableThemes);
 	const customThemes = migrateThemeList(appearance.customThemes);

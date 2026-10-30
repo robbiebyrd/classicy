@@ -1,9 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
+	registerClassicyAppearancePackage,
+	unregisterClassicyAppearancePackage,
+} from "@/Appearance/ClassicyAppearancePackageRegistry";
+import {
 	type ClassicyTheme,
+	getTheme,
 	getThemeVars,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
-import type { ClassicyThemeWithPartialMetrics } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
+import {
+	CLASSICY_DEFAULT_THEME_METRICS,
+	type ClassicyThemeWithPartialMetrics,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import {
 	type ClassicyStore,
 	DefaultAppManagerState,
@@ -76,21 +84,82 @@ describe("migrateClassicyState — theme metrics", () => {
 		).toBe("4px");
 	});
 
+	// H-R17 (amends H-R2): the migration runs at store creation, before a
+	// host package can register, so it fills only the core five; knob
+	// families are healed at read time, from the package registered by then.
 	it("heals knob families from the package defaults", () => {
 		const migrated = migrateClassicyState(strippedState());
 		const appearance = migrated.System.Manager.Appearance;
-		expect(appearance.activeTheme.measurements.pager.cellHeight).toBe(36);
+		expect(appearance.activeTheme.measurements.pager).toBeUndefined();
 		expect(
 			(getThemeVars(appearance.activeTheme) as Record<string, string>)[
 				"--pager-cell-height"
 			],
 		).toBe("36px");
 		for (const theme of appearance.availableThemes ?? []) {
-			expect(theme.measurements.controlStrip.cellHeight, theme.id).toBe(22);
+			expect(Object.keys(theme.measurements), theme.id).toEqual(
+				Object.keys(CLASSICY_DEFAULT_THEME_METRICS),
+			);
+			expect(
+				(getThemeVars(theme) as Record<string, string>)[
+					"--control-strip-cell-height"
+				],
+				theme.id,
+			).toBe("22px");
 		}
+		const custom = appearance.customThemes?.[0];
+		expect(custom?.measurements.balloonHelp).toBeUndefined();
 		expect(
-			appearance.customThemes?.[0]?.measurements.balloonHelp.tailWidth,
-		).toBe(20);
+			custom &&
+				(getThemeVars(custom) as Record<string, string>)[
+					"--balloon-help-tail-width"
+				],
+		).toBe("20px");
+	});
+
+	it("a host package registered after the store loads gets its own knob value", () => {
+		const base = getTheme("default");
+		// A theme persisted before its package declared controlStrip.
+		const persistedTheme = {
+			...base,
+			id: "late-theme",
+			package: "late-pack",
+			measurements: structuredClone(CLASSICY_DEFAULT_THEME_METRICS),
+		} as ClassicyTheme;
+		const state = structuredClone(DefaultAppManagerState);
+		state.System.Manager.Appearance.activeTheme = persistedTheme;
+		// Store creation migrates here, before the host registers its package.
+		const migrated =
+			migrateClassicyState(state).System.Manager.Appearance.activeTheme;
+		registerClassicyAppearancePackage({
+			id: "late-pack",
+			name: "Late Pack",
+			css: "",
+			defaults: {
+				...base,
+				id: "late-pack",
+				name: "Late Pack",
+				package: "late-pack",
+				measurements: {
+					...base.measurements,
+					controlStrip: { ...base.measurements.controlStrip, cellHeight: 30 },
+				},
+			},
+			layout: {
+				window: { growBoxCorner: "bottom-right" },
+				menuBar: { placement: "screen" },
+				desktop: { iconGridOrigin: "top-right" },
+			},
+		});
+		try {
+			expect(
+				(getThemeVars(migrated) as Record<string, string>)[
+					"--control-strip-cell-height"
+				],
+			).toBe("30px");
+		} finally {
+			unregisterClassicyAppearancePackage("late-pack");
+		}
 	});
 
 	it("returns the same object when themes are complete", () => {
