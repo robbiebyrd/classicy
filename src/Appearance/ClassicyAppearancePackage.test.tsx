@@ -368,6 +368,13 @@ describe("module load order", () => {
 			"the appearance sound bridge",
 			() => import("@/Appearance/ClassicyAppearanceSound"),
 		],
+		[
+			"the desktop icon reducer",
+			() =>
+				import(
+					"@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconContext"
+				),
+		],
 		["the library barrel", () => import("@/index")],
 		["the Platinum package module", () => import("@/Appearance/Platinum")],
 		["the Platinum hooks", () => import("@/Appearance/Platinum/hooks")],

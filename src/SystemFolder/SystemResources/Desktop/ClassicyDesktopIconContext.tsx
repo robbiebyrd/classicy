@@ -1,3 +1,5 @@
+import type { ClassicyAppearanceLayout } from "@/Appearance/ClassicyAppearancePackage";
+import { getClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
 	hasApp,
@@ -30,16 +32,27 @@ const createGrid = (iconSize: number, iconPadding: number) => {
 	];
 };
 
-const getGridPosition = (
+/**
+ * The desktop location of grid cell (`col`, `row`), counted from the package
+ * layout's icon grid origin. `col` starts at 1 and `row` at 0, as the
+ * clean-up walks them. `top-right` (Platinum) is the original formula: columns
+ * step in from the right edge, rows down from the top.
+ */
+export const classicyDesktopIconGridPosition = (
 	iconSize: number,
 	iconPadding: number,
-	x: number,
-	y: number,
+	col: number,
+	row: number,
+	origin: ClassicyAppearanceLayout["desktop"]["iconGridOrigin"] = "top-right",
 ): [number, number] => {
-	const defaultPadding = iconPadding * 4;
+	const cell = iconSize * 2 + iconPadding;
 	return [
-		Math.floor(window.innerWidth - (iconSize * 2 + iconPadding) * x),
-		Math.floor((iconSize * 2 + iconPadding) * y) + defaultPadding,
+		origin.endsWith("right")
+			? Math.floor(window.innerWidth - cell * col)
+			: Math.floor(cell * (col - 1) + iconPadding),
+		origin.startsWith("top")
+			? Math.floor(cell * row) + iconPadding * 4
+			: Math.floor(window.innerHeight - cell * (row + 1)) - iconPadding * 4,
 	];
 };
 
@@ -81,6 +94,7 @@ const sortDesktopIcons = (
 const cleanupDesktopIcons = (
 	theme: ClassicyTheme,
 	icons: ClassicyStoreSystemDesktopManagerIcon[],
+	origin: ClassicyAppearanceLayout["desktop"]["iconGridOrigin"] = "top-right",
 ) => {
 	const newDesktopIcons: ClassicyStoreSystemDesktopManagerIcon[] = [];
 	let startX: number = 1;
@@ -108,7 +122,13 @@ const cleanupDesktopIcons = (
 			startX = 1;
 		}
 
-		icon.location = getGridPosition(iconSize, iconPadding, startX, startY);
+		icon.location = classicyDesktopIconGridPosition(
+			iconSize,
+			iconPadding,
+			startX,
+			startY,
+			origin,
+		);
 		newDesktopIcons.push(icon);
 		startY += 1;
 	});
@@ -135,6 +155,12 @@ const readBalloonHelp = (
 	};
 };
 
+// The active package's grid origin, read store-free from the draft's
+// packageId (never activeTheme.package): this module is in the reducer graph.
+const iconGridOrigin = (ds: ClassicyStore) =>
+	getClassicyAppearanceLayout(ds.System.Manager.Appearance.packageId).desktop
+		.iconGridOrigin;
+
 export const classicyDesktopIconEventHandler = (
 	ds: ClassicyStore,
 	action: ActionMessage,
@@ -144,6 +170,7 @@ export const classicyDesktopIconEventHandler = (
 			ds.System.Manager.Desktop.icons = cleanupDesktopIcons(
 				ds.System.Manager.Appearance.activeTheme,
 				ds.System.Manager.Desktop.icons,
+				iconGridOrigin(ds),
 			);
 			break;
 		}
@@ -155,6 +182,7 @@ export const classicyDesktopIconEventHandler = (
 					ds.System.Manager.Desktop.icons,
 					sortBy as "name" | "kind" | "label",
 				),
+				iconGridOrigin(ds),
 			);
 			break;
 		}
@@ -227,6 +255,7 @@ export const classicyDesktopIconEventHandler = (
 					ds.System.Manager.Desktop.icons = cleanupDesktopIcons(
 						ds.System.Manager.Appearance.activeTheme,
 						sortDesktopIcons(ds.System.Manager.Desktop.icons, "kind"),
+						iconGridOrigin(ds),
 					);
 				}
 			} else {
@@ -288,6 +317,7 @@ export const classicyDesktopIconEventHandler = (
 						ds.System.Manager.Desktop.icons = cleanupDesktopIcons(
 							ds.System.Manager.Appearance.activeTheme,
 							ds.System.Manager.Desktop.icons,
+							iconGridOrigin(ds),
 						);
 					}
 				}

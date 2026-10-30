@@ -14,8 +14,13 @@
     gap: var(--layout-group-gap, 16px);
   }
 
-  // Severity icon: fixed 32px square per the HIG alert icon column.
+  // Severity icon: fixed 32px square per the HIG alert icon column. The icon
+  // and body are ordered explicitly, so a package can swap them by overriding
+  // the numbers. The buttons declare no order: their order is the button
+  // list's, default last, and a package flips them with `flex-direction` or
+  // with `order` on `[data-classicy-role]`.
   .classicyAlertIcon {
+    order: 10;
     flex: 0 0 auto;
     width: var(--icon-size-regular, 32px);
     height: var(--icon-size-regular, 32px);
@@ -28,6 +33,7 @@
   }
 
   .classicyAlertBody {
+    order: 20;
     flex: 1 1 auto;
     display: flex;
     flex-direction: column;
