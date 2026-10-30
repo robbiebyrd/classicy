@@ -3,11 +3,18 @@ id: 0073-wte
 title: 'H 6.1: Remaining 43 literals, the 50 fallbacks, four derivations, coverage test'
 purpose: Purge the long tail of pixel literals across 25 files, drop every `var(--x, Npx)` fallback, add the four derivations Part G did not name, empty the allowlist, and pin a test that every `var(--…)` read in SCSS is emitted, declared or set.
 type: impr
-status: pending
+status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T20:39:09.687Z"
-updated: "2026-10-29T20:22:00.352Z"
+updated: "2026-10-30T17:33:48.087Z"
+started: "2026-10-30T17:33:43.278Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy
@@ -146,3 +153,5 @@ Derivations, added to `getThemeVars` ONLY if absent (`grep -c '<name>' ClassicyA
 
 ## Work Log
 ### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
+
+### 2026-10-30T17:33:48.086Z - H 6.1 started in worktree part-h-61 (branch h/6.1) from land/part-h d6aed9d95, H rebased onto the landed Part E. Parity compares against before-post-e/. Runs in parallel with H 6.2a; 6.1 leaves multiplier sites to 6.2b.

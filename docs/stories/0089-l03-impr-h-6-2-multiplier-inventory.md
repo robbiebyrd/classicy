@@ -3,11 +3,11 @@ id: 0089-l03
 title: 'H 6.2: Multiplier inventory'
 purpose: Work Part G's 86-site one-off multiplier inventory down to the sites kept on purpose, so no unnamed calc(var(--x) * N) proportion survives in the stylesheets.
 type: impr
-status: pending
+status: ready
 priority: "2"
 effort: L
 created: "2026-10-30T12:16:47.737Z"
-updated: "2026-10-30T12:16:47.737Z"
+updated: "2026-10-30T17:33:13.072Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -76,3 +76,5 @@ AGENT-REFERENCE §8 replaces the inventory with the kept-on-purpose list and doc
 - `docs/AGENT-REFERENCE.md` - kept-on-purpose list and new names
 
 ## Work Log
+
+### 2026-10-30T17:33:02.291Z - H 6.2 started in two passes: 6.2a (the multiplier gate, the seeded allowlist, and sites outside H 6.1's 27 files, plus E's ClassicyWindowTitleBar.scss) runs in parallel with H 6.1 in worktree part-h-62; 6.2b converts the sites in those 27 files after 6.1 integrates. Base: land/part-h d6aed9d95 (H rebased onto the landed Part E, pushed as feat/appearance-part-h-v2).

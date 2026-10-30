@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-30T14:45:18.135Z"
-updated: "2026-10-30T17:14:12.335Z"
+updated: "2026-10-30T18:25:21.651Z"
 started: "2026-10-30T15:15:36.055Z"
 tags: []
 milestone: ""
@@ -77,3 +77,15 @@ Per the plan, after Part E lands; pixel parity for Platinum (no package override
 ### 2026-10-30T16:47:37.514Z - K 2.1 implemented (a896af93e literal action types for PDF Viewer, Movie Player, Picture Viewer, SimpleText; PDF Viewer's close now reaches its own reducer; generic paths pinned to the internal name; 91f1590f3 K 1.2 review items incl. one shared active-package subscriber replacing three copies). 4833 tests. K 2.1 review and K 2.2 dispatched.
 
 ### 2026-10-30T17:14:12.335Z - K 2.2 implemented (5417971f7 loadApp refreshes code-derived identity, records never hold display data, persistence guard; 27f18eb3a K 2.1 review fixes: real routing pins proven by mutation, bidi/invisible-character guard). 4847 tests. K 2.2 review plus K 3.1, 3.2, 3.3, 3.4 dispatched in parallel worktrees (disjoint files).
+
+### 2026-10-30T17:43:46.100Z - K 3.2 implemented (f6362c4d0 on k/3.2: App Switcher and Apple menu show display names/icons); in review. Its parity check found that K 2.2's loadApp refresh changed Finder's switcher icon (system.macos to system.mac); ruling K-R1 restores system.macos at integration.
+
+### 2026-10-30T17:49:08.308Z - K 2.2 review fixes landed (28d19d169, pushed): TV icon override in the persistence guard (mutants M3/M4 now fail), U+200E/U+200F/U+061C/U+2060/U+00AD refused, Finder's fallback OpenFile site pinned. K 2.2 complete. K 3.3 (7a3a38ada) and 3.4 (71c479555) implemented, in review; rulings K-R2 (strip label only when overridden) and K-R3 (dedupe the collision warning) recorded.
+
+### 2026-10-30T17:51:02.307Z - K 3.2 review: Approved (no Critical/Important; 4 minors carried to the 3.x integration). K 3.1 (b5ea0b64c) implemented, in review; it closes the 2.2 balloon gap. K-R1 Finder switcher-icon fix dispatched on feat/appearance-part-k.
+
+### 2026-10-30T17:58:01.286Z - K 3.3 review: Needs fixes (warning floods; an app's own name could displace another app's override; a static file could be overwritten; derived entries with display names reach localStorage and adapter snapshots). Rulings K-R4 (reserve static and own names; fall back to '<own name> (<id>)') and K-R5 (strip _derived entries at the persistence boundary) recorded; 3.3 fix round running. K 3.4 review: Needs fixes, its one Important resolved by K-R5; test hardening carried to the integration.
+
+### 2026-10-30T18:01:59.935Z - K 3.1 review: Needs fixes (test-only: analytics display-name leak and type-select drive exclusion unpinned; code correct, 2.2 balloon gap closed). 3.1 fix round running.
+
+### 2026-10-30T18:25:21.650Z - K 3.1 review fixes in (77477f2e0 on k/3.1): analytics and drive type-select pinned, all seven mutants now fail; the empty-label balloon title now matches the label fallback. Accepted for integration. K-R1 fix pushed (7e74758e0, 80/80 parity shots AE 0). K 3.2 and 3.4 cherry-picked onto feat/appearance-part-k; gate running.
