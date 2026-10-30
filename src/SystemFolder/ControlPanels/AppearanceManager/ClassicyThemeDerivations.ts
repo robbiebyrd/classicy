@@ -271,6 +271,18 @@ export const CLASSICY_THEME_DERIVATIONS: readonly ClassicyThemeDerivation[] = [
 		doc: "Padding inside an icon's label box (ClassicyDesktopIcon.scss, ClassicyIcon.scss).",
 		compute: (i) => i.desktop.iconFontSize / 4,
 	},
+	{
+		cssVar: "--focus-ring-width",
+		formula: "window.borderSize",
+		doc: "Width of the keyboard focus outline drawn inside a control (ClassicyControlStrip.scss).",
+		compute: (i) => border(i),
+	},
+	{
+		cssVar: "--focus-ring-inset",
+		formula: "window.borderSize * 3",
+		doc: "How far the keyboard focus outline sits inside a control's edge, clear of its frame and bevel (ClassicyControlStrip.scss).",
+		compute: (i) => border(i) * 3,
+	},
 ];
 
 /**

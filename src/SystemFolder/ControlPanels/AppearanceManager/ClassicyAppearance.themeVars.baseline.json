@@ -208,7 +208,9 @@
 		"--slider-thumb-height": "21px",
 		"--desktop-icon-padding": "12px",
 		"--desktop-icon-cell": "96px",
-		"--desktop-icon-label-pad": "3px"
+		"--desktop-icon-label-pad": "3px",
+		"--focus-ring-width": "1px",
+		"--focus-ring-inset": "3px"
 	},
 	"azul": {
 		"--window-border-size": "1px",
@@ -419,7 +421,9 @@
 		"--slider-thumb-height": "21px",
 		"--desktop-icon-padding": "12px",
 		"--desktop-icon-cell": "96px",
-		"--desktop-icon-label-pad": "3px"
+		"--desktop-icon-label-pad": "3px",
+		"--focus-ring-width": "1px",
+		"--focus-ring-inset": "3px"
 	},
 	"bondi": {
 		"--window-border-size": "1px",
@@ -630,7 +634,9 @@
 		"--slider-thumb-height": "21px",
 		"--desktop-icon-padding": "12px",
 		"--desktop-icon-cell": "96px",
-		"--desktop-icon-label-pad": "3px"
+		"--desktop-icon-label-pad": "3px",
+		"--focus-ring-width": "1px",
+		"--focus-ring-inset": "3px"
 	},
 	"copper": {
 		"--window-border-size": "1px",
@@ -841,7 +847,9 @@
 		"--slider-thumb-height": "21px",
 		"--desktop-icon-padding": "12px",
 		"--desktop-icon-cell": "96px",
-		"--desktop-icon-label-pad": "3px"
+		"--desktop-icon-label-pad": "3px",
+		"--focus-ring-width": "1px",
+		"--focus-ring-inset": "3px"
 	},
 	"crimson": {
 		"--window-border-size": "1px",
@@ -1052,7 +1060,9 @@
 		"--slider-thumb-height": "21px",
 		"--desktop-icon-padding": "12px",
 		"--desktop-icon-cell": "96px",
-		"--desktop-icon-label-pad": "3px"
+		"--desktop-icon-label-pad": "3px",
+		"--focus-ring-width": "1px",
+		"--focus-ring-inset": "3px"
 	},
 	"emerald": {
 		"--window-border-size": "1px",
@@ -1263,7 +1273,9 @@
 		"--slider-thumb-height": "21px",
 		"--desktop-icon-padding": "12px",
 		"--desktop-icon-cell": "96px",
-		"--desktop-icon-label-pad": "3px"
+		"--desktop-icon-label-pad": "3px",
+		"--focus-ring-width": "1px",
+		"--focus-ring-inset": "3px"
 	},
 	"frenchBlue": {
 		"--window-border-size": "1px",
@@ -1474,7 +1486,9 @@
 		"--slider-thumb-height": "21px",
 		"--desktop-icon-padding": "12px",
 		"--desktop-icon-cell": "96px",
-		"--desktop-icon-label-pad": "3px"
+		"--desktop-icon-label-pad": "3px",
+		"--focus-ring-width": "1px",
+		"--focus-ring-inset": "3px"
 	},
 	"gold": {
 		"--window-border-size": "1px",
@@ -1685,7 +1699,9 @@
 		"--slider-thumb-height": "21px",
 		"--desktop-icon-padding": "12px",
 		"--desktop-icon-cell": "96px",
-		"--desktop-icon-label-pad": "3px"
+		"--desktop-icon-label-pad": "3px",
+		"--focus-ring-width": "1px",
+		"--focus-ring-inset": "3px"
 	},
 	"ivy": {
 		"--window-border-size": "1px",
@@ -1896,7 +1912,9 @@
 		"--slider-thumb-height": "21px",
 		"--desktop-icon-padding": "12px",
 		"--desktop-icon-cell": "96px",
-		"--desktop-icon-label-pad": "3px"
+		"--desktop-icon-label-pad": "3px",
+		"--focus-ring-width": "1px",
+		"--focus-ring-inset": "3px"
 	},
 	"lavender": {
 		"--window-border-size": "1px",
@@ -2107,7 +2125,9 @@
 		"--slider-thumb-height": "21px",
 		"--desktop-icon-padding": "12px",
 		"--desktop-icon-cell": "96px",
-		"--desktop-icon-label-pad": "3px"
+		"--desktop-icon-label-pad": "3px",
+		"--focus-ring-width": "1px",
+		"--focus-ring-inset": "3px"
 	},
 	"pistachio": {
 		"--window-border-size": "1px",
@@ -2318,7 +2338,9 @@
 		"--slider-thumb-height": "21px",
 		"--desktop-icon-padding": "12px",
 		"--desktop-icon-cell": "96px",
-		"--desktop-icon-label-pad": "3px"
+		"--desktop-icon-label-pad": "3px",
+		"--focus-ring-width": "1px",
+		"--focus-ring-inset": "3px"
 	},
 	"magenta": {
 		"--window-border-size": "1px",
@@ -2529,7 +2551,9 @@
 		"--slider-thumb-height": "21px",
 		"--desktop-icon-padding": "12px",
 		"--desktop-icon-cell": "96px",
-		"--desktop-icon-label-pad": "3px"
+		"--desktop-icon-label-pad": "3px",
+		"--focus-ring-width": "1px",
+		"--focus-ring-inset": "3px"
 	},
 	"nutmeg": {
 		"--window-border-size": "1px",
@@ -2740,7 +2764,9 @@
 		"--slider-thumb-height": "21px",
 		"--desktop-icon-padding": "12px",
 		"--desktop-icon-cell": "96px",
-		"--desktop-icon-label-pad": "3px"
+		"--desktop-icon-label-pad": "3px",
+		"--focus-ring-width": "1px",
+		"--focus-ring-inset": "3px"
 	},
 	"poppy": {
 		"--window-border-size": "1px",
@@ -2951,7 +2977,9 @@
 		"--slider-thumb-height": "21px",
 		"--desktop-icon-padding": "12px",
 		"--desktop-icon-cell": "96px",
-		"--desktop-icon-label-pad": "3px"
+		"--desktop-icon-label-pad": "3px",
+		"--focus-ring-width": "1px",
+		"--focus-ring-inset": "3px"
 	},
 	"plum": {
 		"--window-border-size": "1px",
@@ -3162,7 +3190,9 @@
 		"--slider-thumb-height": "21px",
 		"--desktop-icon-padding": "12px",
 		"--desktop-icon-cell": "96px",
-		"--desktop-icon-label-pad": "3px"
+		"--desktop-icon-label-pad": "3px",
+		"--focus-ring-width": "1px",
+		"--focus-ring-inset": "3px"
 	},
 	"rose": {
 		"--window-border-size": "1px",
@@ -3373,7 +3403,9 @@
 		"--slider-thumb-height": "21px",
 		"--desktop-icon-padding": "12px",
 		"--desktop-icon-cell": "96px",
-		"--desktop-icon-label-pad": "3px"
+		"--desktop-icon-label-pad": "3px",
+		"--focus-ring-width": "1px",
+		"--focus-ring-inset": "3px"
 	},
 	"sapphire": {
 		"--window-border-size": "1px",
@@ -3584,7 +3616,9 @@
 		"--slider-thumb-height": "21px",
 		"--desktop-icon-padding": "12px",
 		"--desktop-icon-cell": "96px",
-		"--desktop-icon-label-pad": "3px"
+		"--desktop-icon-label-pad": "3px",
+		"--focus-ring-width": "1px",
+		"--focus-ring-inset": "3px"
 	},
 	"silver": {
 		"--window-border-size": "1px",
@@ -3795,7 +3829,9 @@
 		"--slider-thumb-height": "21px",
 		"--desktop-icon-padding": "12px",
 		"--desktop-icon-cell": "96px",
-		"--desktop-icon-label-pad": "3px"
+		"--desktop-icon-label-pad": "3px",
+		"--focus-ring-width": "1px",
+		"--focus-ring-inset": "3px"
 	},
 	"teal": {
 		"--window-border-size": "1px",
@@ -4006,7 +4042,9 @@
 		"--slider-thumb-height": "21px",
 		"--desktop-icon-padding": "12px",
 		"--desktop-icon-cell": "96px",
-		"--desktop-icon-label-pad": "3px"
+		"--desktop-icon-label-pad": "3px",
+		"--focus-ring-width": "1px",
+		"--focus-ring-inset": "3px"
 	},
 	"turquoise": {
 		"--window-border-size": "1px",
@@ -4217,7 +4255,9 @@
 		"--slider-thumb-height": "21px",
 		"--desktop-icon-padding": "12px",
 		"--desktop-icon-cell": "96px",
-		"--desktop-icon-label-pad": "3px"
+		"--desktop-icon-label-pad": "3px",
+		"--focus-ring-width": "1px",
+		"--focus-ring-inset": "3px"
 	},
 	"sunny": {
 		"--window-border-size": "1px",
@@ -4428,6 +4468,8 @@
 		"--slider-thumb-height": "21px",
 		"--desktop-icon-padding": "12px",
 		"--desktop-icon-cell": "96px",
-		"--desktop-icon-label-pad": "3px"
+		"--desktop-icon-label-pad": "3px",
+		"--focus-ring-width": "1px",
+		"--focus-ring-inset": "3px"
 	}
 }

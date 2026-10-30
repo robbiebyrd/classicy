@@ -3,10 +3,11 @@
 // The strip is 24 px tall: a 1 px black top and bottom with 22 px cells
 // between, each cell closed on its right by a 1 px black separator (the first
 // also on its left). Cells: collapse box 13 px, scroll arrow 13 px, modules
-// 30 px each, scroll arrow 13 px, then the 17 px tab. Colours are the theme
-// tokens the figure's 8-bit greys were quantized from (#c6c6c6 face ->
+// 30 px each, scroll arrow 13 px, then the 17 px tab. Colors are the theme
+// tokens the figure's 8-bit grays were quantized from (#c6c6c6 face ->
 // system-03, #a5a5a5 -> system-04, #848484 -> system-05, #424242 ->
 // system-06).
+// Geometry comes from measurements.controlStrip (platinum.json); see getThemeVars.
 //
 // It floats over application windows and palettes (350) but stays under the
 // modal-dialog scrim (360), so a modal dialog blocks it.
@@ -15,27 +16,23 @@
 // this sheet holds the strip's structure: cell sizes, black separators,
 // glyph positions and docking.
 
-$cell-height: 22px;
-$narrow-cell: 13px;
-$module-width: 30px;
-
 @mixin strip-cell($width) {
   position: relative;
   flex: 0 0 auto;
   box-sizing: content-box;
   width: $width;
-  height: $cell-height;
+  height: var(--control-strip-cell-height);
   margin: 0;
   padding: 0;
-  border: 1px solid var(--color-black);
+  border: var(--control-strip-border-width) solid var(--color-black);
   border-left: none;
   font-size: 0;
   line-height: 0;
   cursor: default;
 
   &:focus-visible {
-    outline: 1px solid var(--color-outline);
-    outline-offset: -3px;
+    outline: var(--focus-ring-width) solid var(--color-outline);
+    outline-offset: calc(var(--focus-ring-inset) * -1);
   }
 }
 
@@ -51,7 +48,9 @@ $module-width: 30px;
     min(
       var(--classicy-control-strip-bottom, 0px),
       calc(
-        100% - #{$cell-height + 2px} -
+        100% - var(--control-strip-cell-height) -
+          var(--control-strip-border-width) -
+          var(--control-strip-border-width) -
           var(--classicy-control-strip-top-inset, 0px)
       )
     )
@@ -59,7 +58,11 @@ $module-width: 30px;
   z-index: 355;
   display: flex;
   align-items: flex-start;
-  height: $cell-height + 2px;
+  // A cell between the strip's top and bottom borders.
+  height: calc(
+    var(--control-strip-border-width) + var(--control-strip-cell-height) +
+      var(--control-strip-border-width)
+  );
 
   svg {
     display: block;
@@ -87,7 +90,7 @@ $module-width: 30px;
   }
 
   .classicyControlStripScrollStart {
-    border-left: 1px solid var(--color-black);
+    border-left: var(--control-strip-border-width) solid var(--color-black);
   }
 }
 
@@ -102,7 +105,7 @@ $module-width: 30px;
 // --- Collapse box and scroll arrows ----------------------------------------
 
 .classicyControlStripCell {
-  @include strip-cell($narrow-cell);
+  @include strip-cell(var(--control-strip-narrow-cell-width));
 
   svg {
     position: absolute;
@@ -111,28 +114,39 @@ $module-width: 30px;
 
 // The first cell closes the strip on the left.
 .classicyControlStripCollapseBox {
-  border-left: 1px solid var(--color-black);
+  border-left: var(--control-strip-border-width) solid var(--color-black);
 
   svg {
-    left: 2px;
-    top: 7px;
+    left: var(--control-strip-collapse-glyph-left);
+    top: var(--control-strip-collapse-glyph-top);
   }
 
   &:active svg {
-    left: 3px;
-    top: 8px;
+    left: calc(
+      var(--control-strip-collapse-glyph-left) +
+        var(--control-strip-pressed-shift)
+    );
+    top: calc(
+      var(--control-strip-collapse-glyph-top) +
+        var(--control-strip-pressed-shift)
+    );
   }
 }
 
 .classicyControlStripScroll {
   svg {
-    left: 2px;
-    top: 6px;
+    left: var(--control-strip-scroll-glyph-left);
+    top: var(--control-strip-scroll-glyph-top);
   }
 
   &:active:not(:disabled) svg {
-    left: 3px;
-    top: 7px;
+    left: calc(
+      var(--control-strip-scroll-glyph-left) +
+        var(--control-strip-pressed-shift)
+    );
+    top: calc(
+      var(--control-strip-scroll-glyph-top) + var(--control-strip-pressed-shift)
+    );
   }
 }
 
@@ -150,7 +164,7 @@ $module-width: 30px;
 // Each module is a pop-up bevel button restyled to the figure: icon at (2, 3),
 // arrow at (22, 7); pressed, both move down and right by 1 px.
 .classicyControlStrip .classicyBevelButton.classicyControlStripModule {
-  @include strip-cell($module-width);
+  @include strip-cell(var(--control-strip-module-width));
   display: block;
   min-width: 0;
   min-height: 0;
@@ -159,17 +173,17 @@ $module-width: 30px;
 
   .classicyBevelButtonIcon {
     position: absolute;
-    left: 2px;
-    top: 3px;
-    width: var(--icon-small-size, 16px);
-    height: var(--icon-small-size, 16px);
+    left: var(--control-strip-module-icon-left);
+    top: var(--control-strip-module-icon-top);
+    width: var(--icon-small-size);
+    height: var(--icon-small-size);
     image-rendering: pixelated;
   }
 
   .classicyBevelButtonLabel {
     position: absolute;
-    left: 22px;
-    top: 7px;
+    left: var(--control-strip-module-arrow-left);
+    top: var(--control-strip-module-arrow-top);
     line-height: 0;
   }
 
@@ -178,13 +192,24 @@ $module-width: 30px;
     box-shadow: none;
 
     .classicyBevelButtonIcon {
-      left: 3px;
-      top: 4px;
+      left: calc(
+        var(--control-strip-module-icon-left) +
+          var(--control-strip-pressed-shift)
+      );
+      top: calc(
+        var(--control-strip-module-icon-top) + var(--control-strip-pressed-shift)
+      );
     }
 
     .classicyBevelButtonLabel {
-      left: 23px;
-      top: 8px;
+      left: calc(
+        var(--control-strip-module-arrow-left) +
+          var(--control-strip-pressed-shift)
+      );
+      top: calc(
+        var(--control-strip-module-arrow-top) +
+          var(--control-strip-pressed-shift)
+      );
     }
   }
 }
@@ -203,8 +228,8 @@ $module-width: 30px;
   cursor: ew-resize;
 
   &:focus-visible {
-    outline: 1px solid var(--color-outline);
-    outline-offset: -3px;
+    outline: var(--focus-ring-width) solid var(--color-outline);
+    outline-offset: calc(var(--focus-ring-inset) * -1);
   }
 }
 

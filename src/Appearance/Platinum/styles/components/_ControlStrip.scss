@@ -2,18 +2,59 @@
 // pixel from HIGOS8 Figure 6-15: the raised, recessed and pressed cell bevels,
 // drawn as px-rect background layers. The cells' size, black separators and
 // glyph positions are structure and stay in the base sheet.
+//
+// The art is drawn on a grid of --control-strip-bevel-width pixels
+// (measurements.controlStrip.bevelWidth): every coordinate is a whole number
+// of bevel pixels, so the "* 2", "* 3" and "* 4" below are positions on that
+// grid, not theme proportions.
 @use "../../../vocabulary/layout";
 
 // Raised (normal) cell: face ring, white highlight 1 px in on the top and left,
 // #a5a5a5 then #848484 on the bottom and right.
 @mixin platinum-control-strip-bevel-raised {
   background:
-    layout.classicy-px-rect(var(--color-white), 1px, 1px, calc(100% - 3px), 1px),
-    layout.classicy-px-rect(var(--color-white), 1px, 1px, 1px, calc(100% - 3px)),
-    layout.classicy-px-rect(var(--color-system-04), calc(100% - 1px), 2px, 1px, calc(100% - 4px)),
-    layout.classicy-px-rect(var(--color-system-04), 2px, calc(100% - 1px), calc(100% - 3px), 1px),
-    layout.classicy-px-rect(var(--color-system-05), 100%, 1px, 1px, calc(100% - 1px)),
-    layout.classicy-px-rect(var(--color-system-05), 1px, 100%, calc(100% - 1px), 1px),
+    layout.classicy-px-rect(
+      var(--color-white),
+      var(--control-strip-bevel-width),
+      var(--control-strip-bevel-width),
+      calc(100% - var(--control-strip-bevel-width) * 3),
+      var(--control-strip-bevel-width)
+    ),
+    layout.classicy-px-rect(
+      var(--color-white),
+      var(--control-strip-bevel-width),
+      var(--control-strip-bevel-width),
+      var(--control-strip-bevel-width),
+      calc(100% - var(--control-strip-bevel-width) * 3)
+    ),
+    layout.classicy-px-rect(
+      var(--color-system-04),
+      calc(100% - var(--control-strip-bevel-width)),
+      calc(var(--control-strip-bevel-width) * 2),
+      var(--control-strip-bevel-width),
+      calc(100% - var(--control-strip-bevel-width) * 4)
+    ),
+    layout.classicy-px-rect(
+      var(--color-system-04),
+      calc(var(--control-strip-bevel-width) * 2),
+      calc(100% - var(--control-strip-bevel-width)),
+      calc(100% - var(--control-strip-bevel-width) * 3),
+      var(--control-strip-bevel-width)
+    ),
+    layout.classicy-px-rect(
+      var(--color-system-05),
+      100%,
+      var(--control-strip-bevel-width),
+      var(--control-strip-bevel-width),
+      calc(100% - var(--control-strip-bevel-width))
+    ),
+    layout.classicy-px-rect(
+      var(--color-system-05),
+      var(--control-strip-bevel-width),
+      100%,
+      calc(100% - var(--control-strip-bevel-width)),
+      var(--control-strip-bevel-width)
+    ),
     var(--color-system-03);
 }
 
@@ -21,10 +62,34 @@
 // and right, face corners.
 @mixin platinum-control-strip-bevel-recessed {
   background:
-    layout.classicy-px-rect(var(--color-system-05), 0, 0, 1px, calc(100% - 1px)),
-    layout.classicy-px-rect(var(--color-system-05), 0, 0, calc(100% - 1px), 1px),
-    layout.classicy-px-rect(var(--color-white), 100%, 1px, 1px, calc(100% - 1px)),
-    layout.classicy-px-rect(var(--color-white), 1px, 100%, calc(100% - 1px), 1px),
+    layout.classicy-px-rect(
+      var(--color-system-05),
+      0,
+      0,
+      var(--control-strip-bevel-width),
+      calc(100% - var(--control-strip-bevel-width))
+    ),
+    layout.classicy-px-rect(
+      var(--color-system-05),
+      0,
+      0,
+      calc(100% - var(--control-strip-bevel-width)),
+      var(--control-strip-bevel-width)
+    ),
+    layout.classicy-px-rect(
+      var(--color-white),
+      100%,
+      var(--control-strip-bevel-width),
+      var(--control-strip-bevel-width),
+      calc(100% - var(--control-strip-bevel-width))
+    ),
+    layout.classicy-px-rect(
+      var(--color-white),
+      var(--control-strip-bevel-width),
+      100%,
+      calc(100% - var(--control-strip-bevel-width)),
+      var(--control-strip-bevel-width)
+    ),
     var(--color-system-03);
 }
 
@@ -32,14 +97,62 @@
 // bottom and right, on the darker face.
 @mixin platinum-control-strip-bevel-pressed {
   background:
-    layout.classicy-px-rect(var(--color-system-06), 0, 0, calc(100% - 1px), 1px),
-    layout.classicy-px-rect(var(--color-system-06), 0, 1px, calc(100% - 2px), 1px),
-    layout.classicy-px-rect(var(--color-system-06), 0, 0, 1px, calc(100% - 1px)),
-    layout.classicy-px-rect(var(--color-system-06), 1px, 0, 1px, calc(100% - 2px)),
-    layout.classicy-px-rect(var(--color-system-03), 100%, 1px, 1px, calc(100% - 1px)),
-    layout.classicy-px-rect(var(--color-system-03), calc(100% - 1px), 1px, 1px, calc(100% - 1px)),
-    layout.classicy-px-rect(var(--color-system-03), 1px, calc(100% - 1px), calc(100% - 1px), 1px),
-    layout.classicy-px-rect(var(--color-system-03), 1px, 100%, calc(100% - 1px), 1px),
+    layout.classicy-px-rect(
+      var(--color-system-06),
+      0,
+      0,
+      calc(100% - var(--control-strip-bevel-width)),
+      var(--control-strip-bevel-width)
+    ),
+    layout.classicy-px-rect(
+      var(--color-system-06),
+      0,
+      var(--control-strip-bevel-width),
+      calc(100% - var(--control-strip-bevel-width) * 2),
+      var(--control-strip-bevel-width)
+    ),
+    layout.classicy-px-rect(
+      var(--color-system-06),
+      0,
+      0,
+      var(--control-strip-bevel-width),
+      calc(100% - var(--control-strip-bevel-width))
+    ),
+    layout.classicy-px-rect(
+      var(--color-system-06),
+      var(--control-strip-bevel-width),
+      0,
+      var(--control-strip-bevel-width),
+      calc(100% - var(--control-strip-bevel-width) * 2)
+    ),
+    layout.classicy-px-rect(
+      var(--color-system-03),
+      100%,
+      var(--control-strip-bevel-width),
+      var(--control-strip-bevel-width),
+      calc(100% - var(--control-strip-bevel-width))
+    ),
+    layout.classicy-px-rect(
+      var(--color-system-03),
+      calc(100% - var(--control-strip-bevel-width)),
+      var(--control-strip-bevel-width),
+      var(--control-strip-bevel-width),
+      calc(100% - var(--control-strip-bevel-width))
+    ),
+    layout.classicy-px-rect(
+      var(--color-system-03),
+      var(--control-strip-bevel-width),
+      calc(100% - var(--control-strip-bevel-width)),
+      calc(100% - var(--control-strip-bevel-width)),
+      var(--control-strip-bevel-width)
+    ),
+    layout.classicy-px-rect(
+      var(--color-system-03),
+      var(--control-strip-bevel-width),
+      100%,
+      calc(100% - var(--control-strip-bevel-width)),
+      var(--control-strip-bevel-width)
+    ),
     var(--color-system-05);
 }
 

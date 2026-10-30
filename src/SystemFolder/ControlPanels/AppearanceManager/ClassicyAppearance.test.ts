@@ -26,8 +26,9 @@ import {
 // c2da6d1c7 with the code from before the measurements walker replaced the
 // explicit input emissions (`leaves getThemeVars unchanged …` below), plus
 // the 35 named derivations (`CLASSICY_THEME_DERIVATIONS`) appended to each
-// theme when they were added, and Platinum's 95 knob variables (H 2.1) after
-// them (every earlier key and value unchanged both times).
+// theme when they were added, Platinum's 95 knob variables (H 2.1) after
+// them, and H 3.1's two focus-ring derivations (H-R5) after those (every
+// earlier key and value unchanged each time).
 // Regenerate it only for an intended change to the emitted variables, by
 // running getThemeVars over getAllThemes() in a throwaway vitest file:
 //   writeFileSync("src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.themeVars.baseline.json",
@@ -267,9 +268,11 @@ describe("getThemeVars", () => {
 			"--desktop-icon-padding": "12px",
 			"--desktop-icon-cell": "96px",
 			"--desktop-icon-label-pad": "3px",
+			"--focus-ring-width": "1px",
+			"--focus-ring-inset": "3px",
 		};
 		for (const [k, v] of Object.entries(expected)) expect(vars[k], k).toBe(v);
-		expect(Object.keys(expected)).toHaveLength(35);
+		expect(Object.keys(expected)).toHaveLength(37);
 	});
 
 	it("derives from the inputs, not constants", () => {
@@ -321,6 +324,25 @@ describe("getThemeVars", () => {
 		expect(vars["--button-default-ring"]).toBe("6px");
 		expect(vars["--edit-field-height"]).toBe("24px");
 		expect(vars["--help-button-height"]).toBe("22px");
+	});
+
+	// H-R5 (H 3.1): the focus ring's width and inset, named derivations of the
+	// border (the rest of H 6.1's set lands with 6.1).
+	it("emits the focus ring derivations", () => {
+		const vars = getThemeVars(getTheme("default")) as Record<string, string>;
+		expect(vars["--focus-ring-width"]).toBe("1px");
+		expect(vars["--focus-ring-inset"]).toBe("3px");
+		const thick = getThemeVars(
+			withDefaultThemeMetrics({
+				...getTheme("default"),
+				measurements: {
+					...CLASSICY_DEFAULT_THEME_METRICS,
+					window: { ...CLASSICY_DEFAULT_THEME_METRICS.window, borderSize: 2 },
+				},
+			}),
+		) as Record<string, string>;
+		expect(thick["--focus-ring-width"]).toBe("2px");
+		expect(thick["--focus-ring-inset"]).toBe("6px");
 	});
 
 	// Owner decision D12 (docs/theming-audit.md §7): the --hig-* names are gone
