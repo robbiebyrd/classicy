@@ -158,7 +158,7 @@
 				"footerHeight": 48,
 				"footerPaddingX": 10
 			},
-			"colorPicker": {
+			"picker": {
 				"wheelMax": 240,
 				"wheelInset": 20,
 				"labelOverhang": 14,
