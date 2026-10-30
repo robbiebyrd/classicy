@@ -2,6 +2,7 @@ import {
 	appearanceHooksParameters,
 	ClassicyAppearanceProbe,
 } from "@sb/ClassicyAppearanceProbe";
+import { mirroredParameters, StoryWindow } from "@sb/helpers";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ComponentProps } from "react";
 import { ClassicyCheckbox } from "@/SystemFolder/SystemResources/Checkbox/ClassicyCheckbox";
@@ -158,4 +159,21 @@ export const AppearanceHooks: Story = {
 		</ClassicyAppearanceProbe>
 	),
 	parameters: appearanceHooksParameters(),
+};
+
+/**
+ * `Default`, in a window, under the Storybook-only `mirrored` Appearance
+ * Package: the tab strip under its panel by CSS `order` alone, with each
+ * tab's outline turned over so its wide edge meets the panel (the label is
+ * turned back upright).
+ * Without a package, `stripPosition="bottom"` moves the strip the same way.
+ */
+export const Mirrored: Story = {
+	...Default,
+	parameters: mirroredParameters,
+	render: (args) => (
+		<StoryWindow title="Tabs" size={[420, 220]}>
+			<ClassicyTabs {...args} />
+		</StoryWindow>
+	),
 };
