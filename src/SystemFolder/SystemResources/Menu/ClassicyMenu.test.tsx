@@ -105,9 +105,12 @@ describe("ClassicyMenu", () => {
 		const items = [
 			{ id: "item-1", title: "Save", keyboardShortcut: "&#8984;S" },
 		];
-		render(<ClassicyMenu name="test-menu" menuItems={items} />);
-		// he.decode converts &#8984; to the Command symbol
-		expect(screen.getByText("\u2318S")).toBeInTheDocument();
+		const { container } = render(
+			<ClassicyMenu name="test-menu" menuItems={items} />,
+		);
+		// he.decode converts &#8984; to the Command symbol (each modifier is its
+		// own span inside the <kbd>, so match the element's whole text).
+		expect(container.querySelector("kbd")).toHaveTextContent(/^\u2318S$/);
 	});
 
 	it("flips a nested submenu to the left when it would overflow the viewport", () => {
@@ -191,8 +194,10 @@ describe("ClassicyMenu", () => {
 		const items = [
 			{ id: "save-as", title: "Save As", keyboardShortcut: "Cmd+Shift+S" },
 		];
-		render(<ClassicyMenu name="test-menu" menuItems={items} />);
-		expect(screen.getByText("⇧⌘S")).toBeInTheDocument();
+		const { container } = render(
+			<ClassicyMenu name="test-menu" menuItems={items} />,
+		);
+		expect(container.querySelector("kbd")).toHaveTextContent(/^⇧⌘S$/);
 	});
 
 	it("renders the shortcut as a semantic <kbd> via ClassicyKbd", () => {
@@ -234,7 +239,8 @@ describe("ClassicyMenu", () => {
 		);
 		const check = container.querySelector(".classicyMenuItemCheck");
 		expect(check).not.toBeNull();
-		expect(check).toHaveTextContent("✓");
+		// The ✓ itself is package CSS on `.checked::before`.
+		expect(check).toHaveClass("checked");
 	});
 
 	it("reserves the check gutter but shows no glyph for a checked:false item", () => {

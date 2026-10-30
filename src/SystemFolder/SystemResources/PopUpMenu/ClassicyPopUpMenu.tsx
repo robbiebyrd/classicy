@@ -30,8 +30,6 @@ import {
 } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenuPlacement";
 
 const PLACEHOLDER_VALUE = "__classicy_placeholder__";
-// HIG checkmark drawn against the current selection in the open menu.
-const CHECKMARK = "✓";
 
 /** Control size: the label sizes plus a menu-only `"mini"`. */
 export type ClassicyPopUpMenuSize = ClassicyControlLabelSize | "mini";
@@ -612,9 +610,13 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 											}
 										}}
 									>
-										<span className="classicyPopUpMenuCheck" aria-hidden={true}>
-											{isSelected ? CHECKMARK : ""}
-										</span>
+										<span
+											className={classNames(
+												"classicyPopUpMenuCheck",
+												classicyStateClasses({ checked: isSelected }),
+											)}
+											aria-hidden={true}
+										/>
 										{o.icon && (
 											<img
 												className="classicyPopUpMenuListItemIcon"

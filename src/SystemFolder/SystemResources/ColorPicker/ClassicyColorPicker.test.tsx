@@ -224,6 +224,80 @@ describe("ClassicyColorPickerCMYK — boundary values", () => {
 	});
 });
 
+describe("ClassicyColorPickerCrayon — package colors", () => {
+	// The facet, strip, band and outline tints are look: the crayon reads them
+	// from custom properties the Appearance Package declares on its root.
+	it("crayon facets read package custom properties", () => {
+		const { container } = render(
+			<ClassicyColorPickerCrayon
+				color={0x000000}
+				crayons={MAC_OS_8_CRAYONS.slice(0, 1)}
+				onChangeFunc={vi.fn()}
+			/>,
+		);
+		const facet = container.querySelector(
+			'polygon[points="18,1 5,28 18,28"]',
+		) as SVGElement;
+		expect(facet.style.getPropertyValue("fill")).toBe(
+			"var(--classicy-color-picker-crayon-facet-light)",
+		);
+		const tip = container.querySelector(
+			'polygon[points="18,1 5,28 31,28"]',
+		) as SVGElement;
+		expect(tip.style.getPropertyValue("stroke")).toBe(
+			"var(--classicy-color-picker-crayon-outline)",
+		);
+		expect(container.innerHTML).not.toMatch(/rgba\(/);
+	});
+});
+
+describe("ClassicyColorWheel — crosshair color", () => {
+	const strokeStyles = (style?: React.CSSProperties) => {
+		const seen: string[] = [];
+		const ctx = new Proxy(
+			{},
+			{
+				get: (_t, key) =>
+					key === "createImageData"
+						? () => ({ data: new Uint8ClampedArray(4 * 4 * 4) })
+						: () => {},
+				set: (_t, key, value) => {
+					if (key === "strokeStyle") seen.push(value);
+					return true;
+				},
+			},
+		);
+		const spy = vi
+			.spyOn(HTMLCanvasElement.prototype, "getContext")
+			.mockReturnValue(ctx as unknown as CanvasRenderingContext2D);
+		render(
+			<ClassicyColorWheel
+				hue={0}
+				saturation={50}
+				brightness={100}
+				mode="hsv"
+				size={4}
+				onChangeFunc={vi.fn()}
+				style={style}
+			/>,
+		);
+		spy.mockRestore();
+		return seen;
+	};
+
+	it("strokes the crosshair in the package's --classicy-color-picker-crosshair", () => {
+		expect(
+			strokeStyles({
+				"--classicy-color-picker-crosshair": "#00ff00",
+			} as React.CSSProperties),
+		).toEqual(["#00ff00"]);
+	});
+
+	it("falls back to white when no package declares it", () => {
+		expect(strokeStyles()).toEqual(["#ffffff"]);
+	});
+});
+
 describe("ClassicyColorWheel — hit test", () => {
 	it("reads hue and saturation from the rendered size, not the bitmap size", () => {
 		// The canvas bitmap is `size` px square but CSS scales it to fit the

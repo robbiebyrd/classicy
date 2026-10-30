@@ -235,6 +235,24 @@ describe("platinum.scss (compiled)", () => {
 		).toBe("var(--classicy-art-popup-arrows)");
 	});
 
+	// Part E 5.1: the text glyphs are package look, drawn as `::before`
+	// content on the state or variant class. Escapes, so the CSS stays ASCII:
+	// no `@charset` (or BOM) ahead of the layer block.
+	it("draws the menu, pop-up, bevel, placard and file-input glyphs as content", () => {
+		const glyphs: [string, string][] = [
+			[".classicyMenuItemCheck.checked::before", '"\\2713"'],
+			[".classicyMenuItemCheck.mixed::before", '"\\2013"'],
+			[".classicyPopUpMenuCheck.checked::before", '"\\2713"'],
+			[".classicyBevelButtonArrowHorizontal::before", '"\\25B8"'],
+			[".classicyBevelButtonArrowVertical::before", '"\\25BE"'],
+			[".classicyPlacardArrow::before", '"\\25BE"'],
+			[".classicyFileInputRemoveGlyph::before", '"\\2715"'],
+		];
+		for (const [selector, content] of glyphs)
+			expect(rule(`${P} ${selector}`).props.content).toBe(content);
+		expect([...css].every((ch) => ch.charCodeAt(0) < 0x80)).toBe(true);
+	});
+
 	it("scopes the desktop scrollbars", () => {
 		expect(flat).toContain(`${P} *::-webkit-scrollbar {`);
 		expect(flat).toContain(`${P}.classicyDesktopSplitArrows`);
@@ -1006,6 +1024,17 @@ describe("the moved Platinum mixin files", () => {
 			  --platinum-stripe-dark: #787878;
 			  --platinum-stripe-red-light: #f9dada;
 			  --platinum-stripe-red-dark: #ef8c89;
+			  --classicy-color-picker-crayon-outline: rgba(0, 0, 0, 0.4);
+			  --classicy-color-picker-crayon-facet-light: rgba(255, 255, 255, 0.25);
+			  --classicy-color-picker-crayon-facet-dark: rgba(0, 0, 0, 0.2);
+			  --classicy-color-picker-crayon-strip-dark: rgba(0, 0, 0, 0.22);
+			  --classicy-color-picker-crayon-strip-light: rgba(255, 255, 255, 0.22);
+			  --classicy-color-picker-crayon-gloss: rgba(255, 255, 255, 0.07);
+			  --classicy-color-picker-crayon-band: rgba(255, 255, 255, 0.48);
+			  --classicy-color-picker-crayon-line-1: rgba(0, 0, 0, 0.2);
+			  --classicy-color-picker-crayon-line-2: rgba(0, 0, 0, 0.14);
+			  --classicy-color-picker-crayon-end-outline: rgba(0, 0, 0, 0.28);
+			  --classicy-color-picker-crosshair: #ffffff;
 			}"
 		`));
 

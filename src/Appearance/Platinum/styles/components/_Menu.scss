@@ -1,6 +1,7 @@
 // The Platinum menu look (from ClassicyMenu.scss): the menu frame of HIGOS8
-// Figure 6-15 on every menu, its dividers, the submenu triangle, and the
-// flash of a chosen item.
+// Figure 6-15 on every menu, its dividers, the submenu triangle, the flash of
+// a chosen item, and the check and dash glyphs of checked and mixed items.
+@use "sass:string";
 @use "../mixins";
 
 @mixin menu {
@@ -81,5 +82,18 @@
       background-color: var(--color-system-02);
       color: var(--color-black);
     }
+  }
+
+  // The check and mixed-state dash in an item's check gutter (HIGOS8 Ch. 4).
+  // Font glyphs, as escapes kept by `string.unquote`, so the package CSS
+  // stays ASCII (Sass decodes a quoted escape and prepends `@charset`). The
+  // gutter is an inline-flex box, so each glyph is centered in it as the text
+  // was.
+  .classicyMenuItemCheck.checked::before {
+    content: string.unquote('"\\2713"'); // ✓
+  }
+
+  .classicyMenuItemCheck.mixed::before {
+    content: string.unquote('"\\2013"'); // –
   }
 }
