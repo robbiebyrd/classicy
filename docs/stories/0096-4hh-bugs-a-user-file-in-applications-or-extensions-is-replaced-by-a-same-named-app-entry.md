@@ -7,7 +7,7 @@ status: ready
 priority: "1"
 effort: S
 created: "2026-10-30T19:15:44.106Z"
-updated: "2026-10-30T20:35:32.840Z"
+updated: "2026-10-30T21:10:19.342Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -71,3 +71,5 @@ Pin the SimpleText and Calculator placeholder handoff, the user-file case and th
 ## Work Log
 
 ### 2026-10-30T20:35:32.840Z - Started in worktree part-k-96 (branch k/0096) from feat/appearance-part-k 3b8767ebc; it lands with Part K.
+
+### 2026-10-30T21:10:19.342Z - Fixed in a3532a44d on k/0096: only entries marked _placeholder (SimpleText and Calculator, plus legacy unmarked ones recognized by their exact seeded shape) give way to a same-named app; any other entry wins, and the app takes '<own name> (<id>)', numbered if needed, across Applications, Extensions and Control Strip Modules. 22 new tests (16 failed before), 17 mutants killed, 417 files / 4979 tests, parity 8/8 AE 0. Ruling K-R10. In review.
