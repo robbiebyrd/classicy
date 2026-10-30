@@ -45,7 +45,7 @@ const knobs: ClassicyAppearanceKnobs = {
 		tabWidth: { label: "Tab width", min: 4, max: 40, default: 12 },
 	},
 	menuBar: {
-		height: { label: "Menu bar height", min: 10, max: 60, default: 20 },
+		barHeight: { label: "Menu bar height", min: 10, max: 60, default: 20 },
 	},
 };
 
@@ -59,7 +59,7 @@ const testPack: ClassicyAppearancePackage = {
 		measurements: {
 			...getTheme("default").measurements,
 			controlStrip: { cellHeight: 22, tabWidth: 12 },
-			menuBar: { height: 20 },
+			menuBar: { barHeight: 20 },
 		},
 	},
 	presets: [],
@@ -83,7 +83,7 @@ const Host = ({
 	pkg = testPack,
 	theme = themeWith({
 		controlStrip: { cellHeight: 22, tabWidth: 12 },
-		menuBar: { height: 20 },
+		menuBar: { barHeight: 20 },
 	}),
 	changeMetric = vi.fn(),
 	editingCustomTheme = false,
@@ -123,7 +123,7 @@ describe("useOptionsTab", () => {
 			<Host
 				theme={themeWith({
 					controlStrip: { cellHeight: 30, tabWidth: 12 },
-					menuBar: { height: 20 },
+					menuBar: { barHeight: 20 },
 				})}
 			/>,
 		);
@@ -133,7 +133,7 @@ describe("useOptionsTab", () => {
 			),
 		).toHaveValue(30);
 		expect(field("controlStrip", "tabWidth")).toHaveValue(12);
-		expect(field("menuBar", "height")).toHaveValue(20);
+		expect(field("menuBar", "barHeight")).toHaveValue(20);
 	});
 
 	it("labels each knob with its label and each family with its humanized name", () => {
@@ -142,20 +142,20 @@ describe("useOptionsTab", () => {
 			field("controlStrip", "cellHeight"),
 		);
 		expect(screen.getByLabelText("Menu bar height")).toBe(
-			field("menuBar", "height"),
+			field("menuBar", "barHeight"),
 		);
 		// One group box per family, titled by the humanized family name.
 		const legend = (input: HTMLElement) =>
 			input.closest("fieldset")?.querySelector(":scope > legend")?.textContent;
 		expect(legend(field("controlStrip", "cellHeight"))).toBe("Control strip");
 		expect(legend(field("controlStrip", "tabWidth"))).toBe("Control strip");
-		expect(legend(field("menuBar", "height"))).toBe("Menu bar");
+		expect(legend(field("menuBar", "barHeight"))).toBe("Menu bar");
 	});
 
 	it("shows a knob's default when the theme predates it", () => {
 		render(<Host theme={getTheme("default")} />);
 		expect(field("controlStrip", "cellHeight")).toHaveValue(22);
-		expect(field("menuBar", "height")).toHaveValue(20);
+		expect(field("menuBar", "barHeight")).toHaveValue(20);
 	});
 
 	it("routes every knob through changeMetric as a family target", () => {
@@ -171,9 +171,11 @@ describe("useOptionsTab", () => {
 			{ family: "controlStrip", key: "cellHeight" },
 			30,
 		);
-		fireEvent.change(field("menuBar", "height"), { target: { value: "24" } });
+		fireEvent.change(field("menuBar", "barHeight"), {
+			target: { value: "24" },
+		});
 		expect(changeMetric).toHaveBeenLastCalledWith(
-			{ family: "menuBar", key: "height" },
+			{ family: "menuBar", key: "barHeight" },
 			24,
 		);
 	});
@@ -296,7 +298,7 @@ describe("useOptionsTab", () => {
 		expect(after).toHaveValue(75);
 		// The other package's family has no tabWidth, and no menuBar family.
 		expect(field("controlStrip", "tabWidth")).toBeNull();
-		expect(field("menuBar", "height")).toBeNull();
+		expect(field("menuBar", "barHeight")).toBeNull();
 		fireEvent.change(after, { target: { value: "999" } });
 		expect(after).toHaveValue(100);
 		expect(changeMetric).toHaveBeenLastCalledWith(
@@ -419,6 +421,49 @@ describe("useOptionsTab", () => {
 			expect(named[0].subsystem).toBe("ClassicyAppearance");
 			expect(named[0].message).toContain("window.shadowSize");
 			expect(named[0].message).toContain("control-strip.gap");
+		});
+	});
+
+	describe("a knob named like a variable getThemeVars reserves (G13)", () => {
+		const warnings: ClassicyLogEntry[] = [];
+		beforeEach(() => {
+			warnings.length = 0;
+			vi.spyOn(console, "warn").mockImplementation(() => {});
+			registerClassicyLogSink({
+				id: "options-tab-reserved-test",
+				onLog: (entry) => {
+					if (entry.level === "warn") warnings.push(entry);
+				},
+			});
+		});
+		afterEach(() => {
+			unregisterClassicyLogSink("options-tab-reserved-test");
+			vi.restoreAllMocks();
+		});
+
+		it("is left out and named as reserved in the package's one warning", () => {
+			const k: ClassicyAppearanceKnobs = {
+				menu: {
+					minWidth: { label: "Menu min width", min: 0, max: 400, default: 180 },
+					frameWidth: { label: "Menu frame", min: 0, max: 8, default: 2 },
+				},
+			};
+			const pkg = {
+				...testPack,
+				id: "reserved-pack",
+				knobs: k,
+				options: classicyKnobsToSchema(k),
+			};
+			render(<Host pkg={pkg} theme={themeWith({ menu: { frameWidth: 2 } })} />);
+			expect(screen.queryByLabelText("Menu min width")).toBeNull();
+			expect(field("menu", "minWidth")).toBeNull();
+			expect(field("menu", "frameWidth")).not.toBeNull();
+			const named = warnings.filter((w) => w.message.includes("reserved-pack"));
+			expect(named).toHaveLength(1);
+			expect(named[0].message).toContain(
+				'"menu.minWidth" (makes --menu-min-width, a reserved theme variable)',
+			);
+			expect(named[0].message).not.toContain("menu.frameWidth");
 		});
 	});
 

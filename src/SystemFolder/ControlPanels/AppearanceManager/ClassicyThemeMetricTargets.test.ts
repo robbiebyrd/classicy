@@ -116,6 +116,33 @@ describe("the metric family form", () => {
 		).toBe(false);
 	});
 
+	it("refuses a knob whose variable getThemeVars reserves (G13)", () => {
+		// The walker skips these leaves, so an edit could never take effect:
+		// the reducer refuses it and the Options tab leaves the knob out.
+		for (const [family, key] of [
+			["menu", "minWidth"], // a named derivation, --menu-min-width
+			["help", "buttonWidth"], // an earlier derived variable
+			["desktop", "iconSize"], // a desktop variable, --desktop-icon-size
+		]) {
+			expect(
+				isThemeMetricFamilyTarget({ family, key }),
+				`${family}.${key}`,
+			).toBe(false);
+		}
+		expect(
+			isThemeMetricFamilyTarget({ family: "menu", key: "frameWidth" }),
+		).toBe(true);
+		const reservedKnobs: ClassicyAppearanceKnobs = {
+			menu: {
+				minWidth: { label: "Min width", min: 0, max: 400, default: 180 },
+			},
+		};
+		const theme = structuredClone(getTheme("default"));
+		const target = { family: "menu", key: "minWidth" };
+		expect(setThemeMetricFamily(theme, target, 200, reservedKnobs)).toBe(false);
+		expect(Object.hasOwn(theme.measurements, "menu")).toBe(false);
+	});
+
 	it("family form get/set round-trips an existing knob", () => {
 		const theme = withStrip();
 		const target = { family: "controlStrip", key: "cellHeight" };

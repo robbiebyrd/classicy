@@ -87,7 +87,7 @@ const testPackKnobs: ClassicyAppearanceKnobs = {
 		tabWidth: { label: "Tab width", min: 4, max: 40, default: 12 },
 	},
 	menuBar: {
-		height: { label: "Menu bar height", min: 10, max: 60, default: 20 },
+		barHeight: { label: "Menu bar height", min: 10, max: 60, default: 20 },
 	},
 };
 
@@ -103,7 +103,7 @@ const testPackTheme = (
 	measurements: {
 		...base.measurements,
 		controlStrip: { cellHeight: 22, tabWidth: 12 },
-		menuBar: { height: 20 },
+		menuBar: { barHeight: 20 },
 	},
 });
 

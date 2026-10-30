@@ -8,6 +8,10 @@ import type {
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { appearanceThemeEditNotice } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Metrics";
 import {
+	classicyMeasurementVarName,
+	isReservedClassicyThemeVar,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
+import {
 	type ClassicyThemeMetricFamilyTarget,
 	getThemeMetricFamily,
 	getThemeMetricFamilyBounds,
@@ -95,9 +99,11 @@ const knobFamilyValues = (
  * whole-pixel value clamped to the knob's bounds. Above them sits the
  * Metrics tab's notice: the first edit on a built-in theme forks "Custom".
  * A knob the reducer would refuse is left out: one whose family or key fails
- * `isThemeMetricFamilyTarget` (a core group such as `window`, or a name that
- * is not lower camel case) or whose declared range does not meet 0–512.
- * The left-out knobs are reported in one warning per package.
+ * `isThemeMetricFamilyTarget` (a core group such as `window`, a name that is
+ * not lower camel case, or a pair that makes a variable `getThemeVars`
+ * reserves, such as `menu.minWidth` → `--menu-min-width`) or whose declared
+ * range does not meet 0–512. The left-out knobs are reported in one warning
+ * per package.
  * A package without editable knobs says so instead.
  */
 export const useOptionsTab = ({
@@ -113,7 +119,12 @@ export const useOptionsTab = ({
 				const knobs: EditableKnob[] = [];
 				for (const [key, knob] of Object.entries(keys)) {
 					if (!isThemeMetricFamilyTarget({ family, key })) {
-						skipped.push(`"${family}.${key}" (not a package measurement name)`);
+						const name = classicyMeasurementVarName(family, key);
+						skipped.push(
+							isReservedClassicyThemeVar(name)
+								? `"${family}.${key}" (makes ${name}, a reserved theme variable)`
+								: `"${family}.${key}" (not a package measurement name)`,
+						);
 						continue;
 					}
 					const bounds = getThemeMetricFamilyBounds(knob);
