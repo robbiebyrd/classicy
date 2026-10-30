@@ -108,7 +108,10 @@ export const DriveSetupController: FC = () => {
 		setPendingInitialize(null);
 		if (!drive) return;
 		const resolved = resolveDefaultFileSystem(defaultFileSystem, mode);
-		// Keep the pre-erase tree verbatim: it is the rollback if the push fails.
+		// Keep the pre-erase tree: it is the rollback if the push fails. It is
+		// the persisted form, so it lacks the derived entries (Applications,
+		// Extensions, Control Strip Modules), which the file-system hook
+		// rebuilds after either load.
 		const previousTree = fs.snapshot();
 		const nextTree = resetDriveInTree(
 			JSON.parse(previousTree),
