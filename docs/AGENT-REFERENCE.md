@@ -1431,6 +1431,15 @@ Unregistered by Platinum (23 keys): `aboutBackground`, `windowUtilityShade`,
 - `menuCheck` and `menuDash` are Unicode glyphs in `ClassicyMenu`, and the
   Control Strip and pop-up slider art is `ClassicyPixelArt` rows of theme
   tokens, so those keys have no file.
+- `halftone` has a consumer but no Platinum art (`halftoneLarge` has
+  neither). The icon dither (`platinum-halftone`, on every icon mask's
+  `::before`) reads `--classicy-art-halftone` as an alpha **mask**, tiled at
+  7% of the icon under the icon mask, painted with a color token. Unset, the
+  built-in dot pattern is used. Registering a `halftone` art therefore
+  changes the dither of every icon. Only an image whose alpha carries the
+  pattern works there: a pixel-art source
+  (`data:text/x-classicy-pixel-art`) is not an image, so it cannot serve as
+  that mask.
 - The rest have no Platinum art today.
 
 Platinum's own test (`platinumAssets.test.ts`) classifies every key in an
