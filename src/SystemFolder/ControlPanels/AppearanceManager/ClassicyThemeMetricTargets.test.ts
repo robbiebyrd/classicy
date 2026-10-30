@@ -140,7 +140,11 @@ describe("the metric family form", () => {
 		const theme = structuredClone(getTheme("default"));
 		const target = { family: "menu", key: "minWidth" };
 		expect(setThemeMetricFamily(theme, target, 200, reservedKnobs)).toBe(false);
-		expect(Object.hasOwn(theme.measurements, "menu")).toBe(false);
+		// Platinum's own `menu` family (popUpMaxHeight) is left as it was.
+		expect(theme.measurements.menu).toEqual(
+			getTheme("default").measurements.menu,
+		);
+		expect(Object.hasOwn(theme.measurements.menu, "minWidth")).toBe(false);
 	});
 
 	// M7: the --classicy- prefix is Classicy's own (--classicy-layout-*,
@@ -178,7 +182,9 @@ describe("the metric family form", () => {
 	});
 
 	it("family form creates a declared knob the theme lacks", () => {
+		// A theme saved before Platinum had a controlStrip family.
 		const theme = structuredClone(getTheme("default"));
+		delete (theme.measurements as Record<string, unknown>).controlStrip;
 		const target = { family: "controlStrip", key: "cellHeight" };
 		expect(getThemeMetricFamily(theme, target)).toBeNaN();
 		expect(setThemeMetricFamily(theme, target, 30, knobs)).toBe(true);

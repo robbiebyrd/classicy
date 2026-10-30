@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { windowsRecord } from "@/__tests__/windowsRecord";
+import platinumJson from "@/Appearance/Platinum/platinum.json";
 import {
 	type ClassicyTheme,
+	getTheme,
 	getThemeVars,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { withPrimaryFontFamily } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyFontStack";
@@ -411,8 +413,28 @@ describe("classicyDesktopEventHandler — ClassicyDesktopLoadThemes", () => {
 			availableThemes: newThemes,
 		});
 
+		// The fixture carries the core five only, so each theme is completed
+		// with Platinum's knob families (H 2.1) and the list is a copy.
+		const loaded = ds.System.Manager.Appearance.availableThemes ?? [];
+		expect(loaded).toHaveLength(2);
+		const { window, control, button, groupBox, layout, ...knobFamilies } =
+			platinumJson.defaults.measurements;
+		loaded.forEach((theme, i) => {
+			expect(theme).toEqual({
+				...newThemes[i],
+				measurements: { ...newThemes[i].measurements, ...knobFamilies },
+			});
+		});
+	});
+
+	it("keeps the provided list itself when every theme is complete", () => {
+		const ds = makeStoreForDesktop();
+		const newThemes = [getTheme("default"), getTheme("azul")];
+		classicyDesktopEventHandler(ds, {
+			type: "ClassicyDesktopLoadThemes",
+			availableThemes: newThemes,
+		});
 		expect(ds.System.Manager.Appearance.availableThemes).toBe(newThemes);
-		expect(ds.System.Manager.Appearance.availableThemes).toHaveLength(2);
 	});
 });
 

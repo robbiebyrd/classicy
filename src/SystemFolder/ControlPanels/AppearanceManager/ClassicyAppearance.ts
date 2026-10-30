@@ -11,6 +11,7 @@ import {
 import { classicyThemeDerivations } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeDerivations";
 import {
 	classicyMeasurementVars,
+	classicyThemeMeasurementDefaults,
 	withDefaultThemeMetrics,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import { resolveWallpaper } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
@@ -195,7 +196,15 @@ export type ClassicyTheme = {
 };
 
 export const getThemeVars = (theme: ClassicyTheme) => {
-	const m = theme.measurements;
+	// Completed first, key by key, from the theme's package defaults over
+	// Platinum's (H-R2): themes reach here unmigrated (previews, stories,
+	// tests, a theme saved before a family existed), and a missing knob
+	// would leave a base stylesheet reading an unset variable. Copy-on-write,
+	// so a complete theme costs no allocation.
+	const m = withDefaultThemeMetrics(
+		theme,
+		classicyThemeMeasurementDefaults(theme.package),
+	).measurements;
 	const border = m.window.borderSize;
 	return {
 		// --- Layout metrics: every theme input under `measurements.<family>`
@@ -224,9 +233,7 @@ export const getThemeVars = (theme: ClassicyTheme) => {
 		"--color-theme-06": intToHex(theme.color.theme[5]),
 		"--color-theme-07": intToHex(theme.color.theme[6]),
 		// Stripe unit of the scrollbar arrow glyphs; scales with the scrollbar.
-		"--window-scrollbar-arrow-size": intToPx(
-			theme.measurements.window.scrollbarSize / 4,
-		),
+		"--window-scrollbar-arrow-size": intToPx(m.window.scrollbarSize / 4),
 		// Classic Mac OS small-icon (SICN) size.
 		"--icon-small-size": intToPx(16),
 		// Classic Mac OS regular icon size (dialog icons, previews).
@@ -326,13 +333,18 @@ export function withDefaultThemePackageList(
 const resolvedThemes = (platinumJson.presets as unknown as ClassicyTheme[]).map(
 	(theme) =>
 		withDefaultThemePackage(
-			withDefaultThemeMetrics({
-				...theme,
-				desktop: {
-					...theme.desktop,
-					backgroundImage: resolveWallpaper(theme.desktop.backgroundImage),
+			withDefaultThemeMetrics(
+				{
+					...theme,
+					desktop: {
+						...theme.desktop,
+						backgroundImage: resolveWallpaper(theme.desktop.backgroundImage),
+					},
 				},
-			}),
+				// The presets carry only the core five; Platinum's families are
+				// in `defaults.measurements` alone and filled here (H-R8).
+				classicyThemeMeasurementDefaults(theme.package),
+			),
 		),
 );
 

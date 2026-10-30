@@ -14,6 +14,7 @@ import type {
 } from "@/Appearance/ClassicyAppearancePackage";
 import { registerClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackageRegistry";
 import { classicyKnobsToSchema } from "@/Appearance/ClassicyAppearancePackageSchema";
+import platinumJson from "@/Appearance/Platinum/platinum.json";
 import {
 	type ClassicyTheme,
 	getTheme,
@@ -476,7 +477,7 @@ describe("useOptionsTab", () => {
 		).toBeInTheDocument();
 	});
 
-	it("says so when the package declares no knobs (Platinum's empty options)", () => {
+	it("says so when the package declares an empty knobs record", () => {
 		render(
 			<Host
 				pkg={{
@@ -570,10 +571,13 @@ describe("Appearance Manager — Packages and Options tabs", {
 		registerClassicyAppearancePackage(testPack);
 		const win = await openAppearanceManager();
 
+		// Platinum declares knobs for its six contract families (H-R4).
 		showTab(win, "Options");
-		expect(
-			visiblePanel(win).getByText("The Platinum package has no options."),
-		).toBeInTheDocument();
+		expect(visiblePanel(win).getByLabelText("Module width")).toHaveValue(30);
+		expect(visiblePanel(win).getByLabelText("Arrow glyph width")).toHaveValue(
+			7,
+		);
+		expect(visiblePanel(win).queryByLabelText("Tab width")).toBeNull();
 
 		showTab(win, "Packages");
 		fireEvent.click(visiblePanel(win).getByLabelText("Test Pack (1 theme)"));
@@ -589,8 +593,11 @@ describe("Appearance Manager — Packages and Options tabs", {
 			return input;
 		});
 		fireEvent.change(cellHeight, { target: { value: "30" } });
+		// Test Pack declares two strip keys; the switch fills the other
+		// Platinum strip keys (H-R2), and the edit changes only cellHeight.
 		await waitFor(() => {
 			expect(appearance().activeTheme.measurements.controlStrip).toEqual({
+				...platinumJson.defaults.measurements.controlStrip,
 				cellHeight: 30,
 				tabWidth: 12,
 			});
