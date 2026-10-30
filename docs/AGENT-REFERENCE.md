@@ -2358,7 +2358,8 @@ it. Limits of this placement: the Apple, Help and App Switcher menus, the
 clock and menu bar extensions have no home in a window bar and are not
 shown. A `ClassicyMenuBarExtension` renders nothing while the placement is
 `window` and reappears in the screen bar's new extensions region when it
-returns to `screen`. Window geometry still reserves the screen bar's 30 px
+returns to `screen`. It follows the package layout only: a bar forced to
+`placement="screen"` under a window-placement package is not re-queried. Window geometry still reserves the screen bar's 30 px
 band at the top. `ClassicyDesktopMenuBar`'s `placement` prop overrides the
 layout for one bar.
 
@@ -2378,9 +2379,11 @@ axis whose grow box moves the left or top edge:
   the returned size stays raw.
 - `floor` (`[x, y]`, default `[0, 0]`): the lowest left/top the window may
   take; past it the size shrinks so the edge stops at the floor.
-  `ClassicyWindow` passes its viewport floor, `[0, 30]` (the screen's left
-  edge and the menu bar's underside), the same floor
-  `clampWindowPositionToViewport` re-applies after every move and resize.
+  `ClassicyWindow` passes its viewport floor, `windowViewportFloor` (`[0,
+  30]`: the screen's left edge and the menu bar's underside), a constant
+  module-private to `ClassicyWindow.tsx` and shared there with
+  `clampWindowPositionToViewport`, which re-applies it after every move and
+  resize.
 
 `bottom-right` moves no edge, ignores both limits, and gives the numbers
 Classicy always used. `ClassicyWindow` writes `size` as the window's width
@@ -2391,7 +2394,9 @@ left and top.
 (`iconSize × 2 + iconSize / 4` on both axes), down each column from the
 origin's edge, then to the next column. Every counted column fits the
 viewport, and a bottom origin also keeps its last row clear of the menu bar,
-so no cleaned-up icon lands off-screen. `classicyDesktopIconGridPosition(iconSize,
+so no cleaned-up icon lands off-screen. In a viewport too short for even one
+row below that band, a bottom origin's one row is clamped to the top
+origins' first-row height (`4 × padding`). `classicyDesktopIconGridPosition(iconSize,
 padding, col, row, origin?)` is the cell-to-location function.
 
 **A package that rearranges.** The Storybook-only `mirrored` package
@@ -2404,7 +2409,11 @@ leftmost, the App Switcher leading the menu bar, the tab strip and its
 outlines under the panel, the disclosure label first), plus a `layout` with
 all three keys flipped. Its six `Mirrored` stories (`desktop-window`,
 `dialogs-alert`, `desktop-desktop`, `desktop-menubar`, `controls-tabs`,
-`controls-disclosure`) are rendered with `mirroredParameters`.
+`controls-disclosure`) are rendered with `mirroredParameters`, from
+`storybook/.storybook/mirrored.ts`. Importing that module registers the
+package, and only those six story files import it, so the package is
+registered only in a story iframe that loaded one of them and never shows up
+in other stories' package lists.
 
 **Changes from earlier builds** (Platinum's pixels are unchanged):
 

@@ -15,16 +15,6 @@ export const desktopParameters = {
 };
 
 /**
- * `desktopParameters` under the Storybook-only `mirrored` Appearance Package
- * (MirroredPackage.ts): every arrangement slot flipped. Spread into a
- * `Mirrored` story's `parameters`.
- */
-export const mirroredParameters = {
-	...desktopParameters,
-	classicy: { ...desktopParameters.classicy, appearancePackage: "mirrored" },
-};
-
-/**
  * Wraps children in ClassicyApp and immediately opens the app, so
  * ClassicyWindow children render without a desktop-icon double-click.
  */
@@ -50,7 +40,8 @@ export const StoryApp: FC<{
 /**
  * Hosts a control in one open document window of a Storybook app, for a
  * Controls/* story rendered on a desktop (`desktopParameters`,
- * `mirroredParameters`), where a bare control would sit loose on the desktop.
+ * `mirroredParameters` from ./mirrored), where a bare control would sit
+ * loose on the desktop.
  */
 export const StoryWindow: FC<{
 	title: string;

@@ -124,8 +124,11 @@ const stripAboutItem = (
 
 /**
  * The Mac OS 8 menu bar (HIGOS8 Ch.4, p.91) across the top of the desktop —
- * Classicy's top-level `<nav>`. `ClassicyDesktop` mounts it; it takes no props
- * and reads everything from the store.
+ * Classicy's top-level `<nav>`. `ClassicyDesktop` mounts it, and it reads its
+ * menus from the store. Its optional props are `className`, `style` and
+ * `placement` (`"screen" | "window"`, defaulting to the active Appearance
+ * Package's `layout.menuBar.placement`). With `"window"` it renders nothing
+ * but stays mounted, so it still runs the keyboard-equivalent dispatcher.
  *
  * From left to right it shows the Apple menu (the system menu, led by "About
  * <focused app>" when that app publishes an About item — the item is moved

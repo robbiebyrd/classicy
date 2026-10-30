@@ -2,7 +2,6 @@ import "@/Appearance/Platinum";
 import type { Preview } from "@storybook/react-vite";
 import platinumJson from "@/Appearance/Platinum/platinum.json";
 import { withClassicy } from "./ClassicyDecorators";
-import "./MirroredPackage";
 
 const preview: Preview = {
 	globalTypes: {
