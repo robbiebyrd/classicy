@@ -425,12 +425,25 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 	const isOwnMouseOver = (e: React.MouseEvent) =>
 		(e.target as Element).closest(".classicyMenuItem") === e.currentTarget;
 
+	// A checkable item is a menuitemcheckbox, whose aria-checked carries the
+	// state: the ✓ and – are package CSS in an aria-hidden gutter, so without
+	// it the state would reach assistive technology only through the look.
+	// ARIA 1.2 allows "mixed" on menuitemcheckbox, not on menuitemradio.
+	const checkable = menuItem.checked !== undefined;
+
 	// ClassicyMenu renders dividers itself, so every item here is a real one.
 	const li = (
+		// biome-ignore lint/a11y/useAriaPropsSupportedByRole: aria-checked is set only with role="menuitemcheckbox"; the role is dynamic, so the rule cannot see it
 		<li
 			{...appearance.attrs}
-			// biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: <li> items in a menu require role="menuitem" per ARIA menu pattern
-			role="menuitem"
+			role={checkable ? "menuitemcheckbox" : "menuitem"}
+			aria-checked={
+				checkable
+					? menuItem.checked === "mixed"
+						? "mixed"
+						: menuItem.checked === true
+					: undefined
+			}
 			tabIndex={-1}
 			ref={itemRef}
 			id={menuItem.id}
