@@ -2,11 +2,12 @@
 id: 0010-743
 title: 'Part F: Arrangement slots'
 type: impl
-status: in_progress
+status: complete
 priority: "2"
 effort: L
 created: "2026-10-28T19:26:28.560Z"
-updated: "2026-10-30T05:58:58.502Z"
+updated: "2026-10-30T07:21:14.997Z"
+completed: "2026-10-30T07:21:14.997Z"
 tags: []
 milestone: ""
 due_date: ""

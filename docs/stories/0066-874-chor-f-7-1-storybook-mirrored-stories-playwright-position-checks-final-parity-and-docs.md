@@ -7,7 +7,7 @@ status: complete
 priority: "2"
 effort: L
 created: "2026-10-28T20:33:07.123Z"
-updated: "2026-10-30T05:58:29.081Z"
+updated: "2026-10-30T07:21:15.481Z"
 started: "2026-10-30T04:27:30.845Z"
 completed: "2026-10-30T05:58:29.081Z"
 tags: []
@@ -145,3 +145,5 @@ Re-shoot every id in `stories.txt` into `after/` and `for f in before/*.png; do 
 ### 2026-10-30T05:32:01.628Z - F 7.1 implemented (a85512323) with the F 6.1 review fixes (3a4d0352a, F-R5 grid caps, triangle aria-hidden, vocabulary), the F 5.1 fix re-review minors (ceb58236c), the carry-forward fixes (5fc369358: grip edges follow the corner, extension portal follows placement, balloon titles sized by content) and the mirrored stories. 4098 tests; build:source + build:storybook green; 48/48 Platinum stories AE 0; all Playwright position checks true. Task review dispatched.
 
 ### 2026-10-30T05:58:24.495Z - F 7.1 review fixes landed as 2a9b6522e: F-R6 (mirrored package registers only in the six mirrored story files; verified per story in fresh pages), JSDoc corrections, short-viewport icon clamp, docs. 4100 tests; 48/48 AE 0; mirrored stories unchanged. Complete; F's whole-branch final review follows.
+
+### 2026-10-30T07:21:15.476Z - Part F landed on feat/AppearancePackages at 6fd0918b3 after the whole-branch final reviews (core + UI/docs) and two fix rounds. Final gate: 387 files / 4537 tests, storybook typecheck, vocabulary check, build:source, build:storybook; parity 48/48 + 6/6 mirrored AE 0.
