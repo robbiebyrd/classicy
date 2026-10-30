@@ -1530,7 +1530,7 @@ root as `--classicy-art-<kebab-key>` (pixel art excepted: its
 | `submenuArrow`, `popupArrows` (and their aliases `triangle`, `downArrow`) | the submenu triangle (`::after` image) and the pop-up double arrow (the indicator's image) |
 | `sliderThumb`, `sliderThumbRect`, `sliderStrikes` | the slider thumb's image layers |
 | `tabOutline` | the tab wrapper's image |
-| `halftone`, `halftoneLarge` | the open-icon dot pattern and the pre-boot dither (their icon readers are Part G's, ruling G16) |
+| `halftone`, `halftoneLarge` | the open-icon dot pattern (the mask of `platinum-halftone`'s `::before`, no fallback) and the pre-boot dither |
 | `controlStripTab`, `controlStripCollapse`, `controlStripScrollLeft`, `controlStripScrollLeftDisabled`, `controlStripScrollRight`, `controlStripScrollRightDisabled`, `controlStripModuleArrow`, `popUpSliderTrack`, `popUpSliderThumb` | `ClassicyPixelArt` rows (`<ClassicyPixelArt art={key} />`, `useClassicyPixelArtRows`) |
 
 Unregistered by Platinum (5 keys): `aboutBackground`, `quickTimeThumbSlider`,
@@ -1563,11 +1563,14 @@ never painted, and the windoid texture is one image, `windowUtilityTexture`.
 
 The icon dither (`platinum-halftone`, on every icon mask's `::before`) reads
 `--classicy-art-halftone` as an alpha **mask**, tiled at 7% of the icon under
-the icon mask, painted with a color token. Unset, the built-in dot pattern is
-used. Registering a `halftone` art therefore changes the dither of every icon.
-Only an image whose alpha carries the pattern works there: a pixel-art source
-(`data:text/x-classicy-pixel-art`) is not an image, so it cannot serve as that
-mask.
+the icon mask, painted with a color token. There is no built-in fallback:
+Platinum registers `halftone`, asset lookups fall back to Platinum, and
+`ClassicyDesktop` publishes the variable on its root, so a standalone
+component's wrapper needs `useClassicyAssetVars()` (as for all of Platinum's
+art) or its open icons lose the dither. Registering a `halftone` art changes
+the dither of every icon. Only an image whose alpha carries the pattern works
+there: a pixel-art source (`data:text/x-classicy-pixel-art`) is not an image,
+so it cannot serve as that mask.
 
 Platinum's own test (`platinumAssets.test.ts`) classifies every key in an
 exhaustive `Record<ClassicySystemArtKey, boolean>`, so adding a key to the union

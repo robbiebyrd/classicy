@@ -221,11 +221,12 @@
 // pattern on a `::before` under the element's content. The element's own
 // `mask-image` (the icon shape) clips the pseudo-element as it clipped the
 // former background image. The pattern is the registered `halftone` system
-// art (`--classicy-art-halftone`) when a package publishes one, else the
-// built-in dots below (a mask, so their fill is only coverage). The host
-// isolates a stacking context, so the `z-index: -1` dots paint above its own
-// background on any element, not only on a masked icon (whose `mask-image`
-// already makes one).
+// art (`--classicy-art-halftone`, a mask, so its fill is only coverage), with
+// no built-in fallback: Platinum registers it, asset lookups fall back to
+// Platinum, and ClassicyDesktop (or `useClassicyAssetVars()` on a standalone
+// wrapper) always publishes the variable. The host isolates a stacking
+// context, so the `z-index: -1` dots paint above its own background on any
+// element, not only on a masked icon (whose `mask-image` already makes one).
 @mixin platinum-halftone($token: "--color-black", $size: 5%) {
   position: relative;
   isolation: isolate;
@@ -237,7 +238,7 @@
     z-index: -1;
     pointer-events: none;
     background-color: var(#{c.classicy-token($token)});
-    mask-image: var(--classicy-art-halftone, url('data:image/svg+xml,<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 2.8 2.8" xml:space="preserve"><path fill="black" d="M1,1.2H0.5C0.3,1.2,0.2,1.2,0.2,1V0.5c0-0.1,0.1-0.2,0.2-0.2H1c0.1,0,0.2,0.1,0.2,0.2V1C1.2,1.2,1.2,1.2,1,1.2z"/><path fill="black" d="M2.3,2.5H1.7c-0.1,0-0.2-0.1-0.2-0.2V1.7c0-0.1,0.1-0.2,0.2-0.2h0.6c0.1,0,0.2,0.1,0.2,0.2v0.6C2.5,2.4,2.4,2.5,2.3,2.5z"/></svg>'));
+    mask-image: var(--classicy-art-halftone);
     mask-repeat: repeat;
     mask-size: $size;
   }
