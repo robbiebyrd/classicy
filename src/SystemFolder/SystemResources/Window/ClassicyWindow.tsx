@@ -16,7 +16,6 @@ import classNames from "classnames";
 import {
 	type CSSProperties,
 	type FC as FunctionalComponent,
-	type KeyboardEvent,
 	type MouseEvent,
 	type ReactNode,
 	type RefObject,
@@ -36,10 +35,7 @@ import {
 	classicyLayoutThemeVars,
 	useClassicyAppearanceLayout,
 } from "@/Appearance/useClassicyAppearanceLayout";
-import {
-	CLASSICY_PART_ATTRIBUTE,
-	classicyStateClasses,
-} from "@/Appearance/vocabulary/ClassicyVocabulary";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import {
 	type ClassicyTheme,
 	getThemeVars,
@@ -64,6 +60,7 @@ import {
 	type ClassicyWindowRect,
 	computeClassicyWindowResize,
 } from "@/SystemFolder/SystemResources/Window/ClassicyWindowResize";
+import { ClassicyWindowTitleBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowTitleBar";
 
 export type ClassicyWindowPositionX = number | "left" | "center" | "right";
 export type ClassicyWindowPositionY = number | "top" | "center" | "bottom";
@@ -1917,92 +1914,23 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 						// binding on this descendant would double-invoke the handler.
 					></div>
 				))}
-			<div
-				className={classNames(
-					"classicyWindowTitleBar",
-					modal === true ? "classicyWindowTitleBarModal" : "",
-				)}
-			>
-				{closable && (
-					<div
-						className={"classicyWindowControlBox"}
-						{...{ [CLASSICY_PART_ATTRIBUTE.control]: "close" }}
-					>
-						{/* biome-ignore lint/a11y/useSemanticElements: custom window control styled as pixel-precise box */}
-						<div
-							className={"classicyWindowCloseBox"}
-							role="button"
-							tabIndex={0}
-							onClick={close}
-							onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
-								if (e.key === "Enter" || e.key === " ") close();
-							}}
-						></div>
-					</div>
-				)}
-				{/* biome-ignore lint/a11y/noStaticElementInteractions: title bar is a mouse-only drag handle */}
-				<div
-					className={"classicyWindowTitle"}
-					role="presentation"
-					onMouseDown={onTitleMouseDown}
-					// stopChangeWindow is bound once, on the root classicyWindow
-					// element; mouseup here bubbles to it (see comment there).
-					onDoubleClick={
-						doubleClickTitleToCollapse ? toggleCollapse : undefined
-					}
-				>
-					{title !== "" && windowType !== "utility" ? (
-						<>
-							<div className={"classicyWindowTitleLeft"}></div>
-							{!hideIcon && (
-								<div className={"classicyWindowIcon"}>
-									<img src={icon} alt={title} />
-								</div>
-							)}
-							<div className={"classicyWindowTitleText"}>
-								<p>{title}</p>
-							</div>
-							<div className={"classicyWindowTitleRight"}></div>
-						</>
-					) : (
-						<div className={"classicyWindowTitleCenter"}></div>
-					)}
-				</div>
-				{zoomable && !modal && (
-					<div
-						className={"classicyWindowControlBox"}
-						{...{ [CLASSICY_PART_ATTRIBUTE.control]: "zoom" }}
-					>
-						{/* biome-ignore lint/a11y/useSemanticElements: custom window control styled as pixel-precise box */}
-						<div
-							className={"classicyWindowZoomBox"}
-							role="button"
-							tabIndex={0}
-							onClick={toggleZoom}
-							onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
-								if (e.key === "Enter" || e.key === " ") toggleZoom();
-							}}
-						></div>
-					</div>
-				)}
-				{collapsable && (
-					<div
-						className={"classicyWindowControlBox"}
-						{...{ [CLASSICY_PART_ATTRIBUTE.control]: "collapse" }}
-					>
-						{/* biome-ignore lint/a11y/useSemanticElements: custom window control styled as pixel-precise box */}
-						<div
-							className={"classicyWindowCollapseBox"}
-							role="button"
-							tabIndex={0}
-							onClick={onCollapseBoxClick}
-							onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
-								if (e.key === "Enter" || e.key === " ") toggleCollapse();
-							}}
-						></div>
-					</div>
-				)}
-			</div>
+			<ClassicyWindowTitleBar
+				title={title}
+				icon={icon}
+				hideIcon={hideIcon}
+				variant={windowType === "utility" ? "utility" : "document"}
+				modal={modal === true}
+				onClose={closable ? close : undefined}
+				onZoom={zoomable ? toggleZoom : undefined}
+				onCollapse={collapsable ? onCollapseBoxClick : undefined}
+				onCollapseKey={toggleCollapse}
+				onTitleMouseDown={onTitleMouseDown}
+				// stopChangeWindow is bound once, on the root classicyWindow
+				// element; the title's mouseup bubbles to it (see comment there).
+				onTitleDoubleClick={
+					doubleClickTitleToCollapse ? toggleCollapse : undefined
+				}
+			/>
 			{showsMenuBar && appMenu && (
 				<ClassicyWindowMenuBar
 					appId={appId}

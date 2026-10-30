@@ -45,6 +45,8 @@ const ACTIVE =
 const RED = ".classicyWindowRed .classicyWindowTitleBar .classicyWindowTitle";
 const ALERT =
 	".classicyWindow:has(.classicyAlertMovable) .classicyWindowTitleBar .classicyWindowTitle";
+const FRAME =
+	".classicyWindowFrame .classicyWindowTitleBar .classicyWindowTitle";
 const UTILITY =
 	".classicyWindow.classicyWindowUtility .classicyWindowTitleBar .classicyWindowTitle";
 
@@ -101,7 +103,7 @@ describe("ClassicyWindow title-bar art (Platinum package)", () => {
 			`${ACTIVE} .classicyWindowTitleLeft::before`,
 			`${RED} .classicyWindowTitleRight::before`,
 			`${ALERT} .classicyWindowTitleCenter::before`,
-			".classicyWindowFrameTitleBar::before",
+			`${FRAME} .classicyWindowTitleLeft::before`,
 		]) {
 			const b = rule(layer);
 			expect(b.content, layer).toBe('""');
@@ -115,19 +117,25 @@ describe("ClassicyWindow title-bar art (Platinum package)", () => {
 			`${ACTIVE} .classicyWindowTitleLeft`,
 			`${RED} .classicyWindowTitleCenter`,
 			`${ALERT} .classicyWindowTitleRight`,
-			".classicyWindowFrameTitleBar",
+			`${FRAME} .classicyWindowTitleCenter`,
 		])
 			expect(rule(band).position, band).toBe("relative");
 	});
 
-	it("the window frame's title bar draws the same stripes under its title", () => {
-		const bar = rule(".classicyWindowFrameTitleBar");
-		expect(bar["background-color"]).toBe("var(--platinum-stripe-light)");
-		expect(bar.isolation).toBe("isolate");
-		const before = rule(".classicyWindowFrameTitleBar::before");
-		expect(before["mask-image"]).toBe("var(--classicy-art-window-stripes)");
-		expect(before["mask-size"]).toBe("auto 100%");
-		expect(before["z-index"]).toBe("-1");
+	it("the window frame's title bar draws the focused window's stripes", () => {
+		expect(
+			rule(`${FRAME} .classicyWindowTitleCenter`)["background-color"],
+		).toBe("var(--platinum-stripe-light)");
+		const center = rule(`${FRAME} .classicyWindowTitleCenter::before`);
+		expect(center["mask-image"]).toBe("var(--classicy-art-window-stripes)");
+		expect(center["mask-size"]).toBe("auto 100%");
+		for (const band of [
+			".classicyWindowTitleLeft",
+			".classicyWindowTitleRight",
+		])
+			expect(rule(`${FRAME} ${band}::before`)["mask-size"], band).toBe(
+				"auto 99.8%",
+			);
 	});
 
 	it("utility texture is two masked radial layers at 4px 3px", () => {
@@ -179,11 +187,7 @@ describe("ClassicyWindow title-bar art (Platinum package)", () => {
 
 	it("no stylesheet embeds stripe art any more", () => {
 		const titleBarRules = rules.filter((r) =>
-			r.selectors.some((s) =>
-				/classicyWindowTitle(Center|Left|Right)|classicyWindowFrameTitleBar/.test(
-					s,
-				),
-			),
+			r.selectors.some((s) => /classicyWindowTitle(Center|Left|Right)/.test(s)),
 		);
 		expect(titleBarRules.length).toBeGreaterThan(0);
 		for (const r of titleBarRules)

@@ -1,15 +1,21 @@
-// The Platinum window-frame look (from ClassicyWindowFrame.scss): the
-// pinstriped title bar. The stripe layer sits under the centered title, in
-// the title bar's own stacking context.
+// The Platinum window-frame look (from ClassicyWindowFrame.scss): the frame
+// draws the window's title bar (ClassicyWindowTitleBar), always focused, so
+// its bands carry the focused window's stripes.
 @use "../mixins";
 
 @mixin windowFrame {
-  .classicyWindowFrameTitleBar {
-    isolation: isolate;
-    @include mixins.platinum-title-bar-stripes(auto 100%);
+  .classicyWindowFrame {
+    .classicyWindowTitleBar {
+      .classicyWindowTitle {
+        .classicyWindowTitleCenter {
+          @include mixins.platinum-title-bar-stripes(auto 100%);
+        }
 
-    &::before {
-      z-index: -1;
+        .classicyWindowTitleLeft,
+        .classicyWindowTitleRight {
+          @include mixins.platinum-title-bar-stripes(auto 99.8%);
+        }
+      }
     }
   }
 }
