@@ -2838,11 +2838,11 @@ full precision, and a rounded `9.333px` moves the computed `font-size`
 |---|---|---|---|
 | `--window-collapsed-height` | `controlSize × 1.25` | 15 | ClassicyWindow.scss |
 | `--window-utility-collapsed-height` | `controlSize × 0.5` | 6 | ClassicyWindow.scss |
-| `--window-frame-inset` | `paddingSize / 1.25` | 4.8 | ClassicyWindow.scss |
+| `--window-frame-inset` | `paddingSize / 1.25` | 4.8 | ClassicyWindow.scss, ClassicyWindowFrame.scss |
 | `--window-zoom-margin` | `paddingSize + borderSize × 2` | 8 | ClassicyWindow.tsx |
 | `--window-resize-inset` | `max(0, paddingSize - borderSize)` | 5 | ClassicyWindow.tsx |
-| `--window-header-font-size` | `uiSize × 0.865` | 12.11 (unrounded) | ClassicyWindow.scss, ClassicyWindowFrame.scss |
-| `--window-title-stripe-height` | `controlSize × 1.25` | 15 | ClassicyWindow.scss |
+| `--window-header-font-size` | `uiSize × 0.865` | 12.11 (unrounded) | ClassicyWindow.scss |
+| `--window-title-stripe-height` | `controlSize × 1.25` | 15 | ClassicyWindowTitleBar.scss |
 | `--menu-bar-height` | `controlSize × 2.5` | 30 | ClassicyWindow.tsx |
 | `--menu-min-width` | `controlSize × 15` | 180 | ClassicyMenu.scss |
 | `--menu-item-icon-size` | `controlSize × 1.25` | 15 | ClassicyMenu.scss |
@@ -2851,13 +2851,13 @@ full precision, and a rounded `9.333px` moves the computed `font-size`
 | `--popup-mini-size` | `controlSize × 1.3125` | 15.75 | ClassicyPopUpMenu.scss |
 | `--popup-arrow-width` | `controlSize × 1.75` | 21 | ClassicyPopUpMenu.scss |
 | `--control-glyph-size` | `controlSize × 1.25` | 15 | ClassicyAssistant.scss, ClassicyFileBrowserViewTable.scss, ClassicyLittleArrows.scss, ClassicyProgressBar.scss, QuickTimeMovieEmbed.scss |
-| `--control-square-size` | `controlSize × 2` | 24 | ClassicyButton.scss, ClassicyButtonToolbar.scss, ClassicySpinner.scss, ClassicyTabs.scss, ClassicyWindow.scss |
+| `--control-square-size` | `controlSize × 2` | 24 | ClassicyButton.scss, ClassicyButtonToolbar.scss, ClassicySpinner.scss, ClassicyTabs.scss, ClassicyWindowTitleBar.scss |
 | `--button-square-width` | `controlSize × 4` | 48 | ClassicyBevelButton.scss, ClassicyButton.scss |
-| `--control-padding` | `paddingSize × 0.5` | 3 | ClassicyAssistant.scss, ClassicyBevelButton.scss, ClassicyButton.scss, ClassicyButtonToolbar.scss, ClassicyDatePicker.scss, ClassicyFileInput.scss, ClassicyFileOpenDialog.scss, ClassicyKbd.scss, ClassicyListBox.scss, ClassicyMenu.scss, ClassicyMeter.scss, ClassicyOutput.scss, ClassicyPlacard.scss, ClassicyPopUpMenu.scss, ClassicySeparator.scss, ClassicySpinner.scss, ClassicyTabs.scss, ClassicyTree.scss, ClassicyWindow.scss, QuickTimeMovieEmbed.scss, _Button.scss |
+| `--control-padding` | `paddingSize × 0.5` | 3 | ClassicyAssistant.scss, ClassicyBevelButton.scss, ClassicyButton.scss, ClassicyButtonToolbar.scss, ClassicyDatePicker.scss, ClassicyFileInput.scss, ClassicyFileOpenDialog.scss, ClassicyKbd.scss, ClassicyListBox.scss, ClassicyMenu.scss, ClassicyMeter.scss, ClassicyOutput.scss, ClassicyPlacard.scss, ClassicyPopUpMenu.scss, ClassicySeparator.scss, ClassicySpinner.scss, ClassicyTabs.scss, ClassicyTree.scss, ClassicyWindow.scss, ClassicyWindowTitleBar.scss, QuickTimeMovieEmbed.scss, _Button.scss |
 | `--control-padding-tight` | `paddingSize / 4` | 1.5 | ClassicyButtonToolbar.scss, ClassicyWindow.scss, _Window.scss |
 | `--control-padding-narrow` | `paddingSize / 3` | 2 | ClassicyButtonToolbar.scss, ClassicyPlacard.scss, ClassicyPopUpMenu.scss, ClassicyTabs.scss |
 | `--control-padding-loose` | `paddingSize / 1.5` | 4 | ClassicyButtonToolbar.scss, ClassicyListBox.scss, ClassicyPlacard.scss, ClassicyPopUpMenu.scss, ClassicyTabs.scss |
-| `--control-padding-wide` | `paddingSize × 1.5` | 9 | ClassicyPopUpMenu.scss, ClassicyStartupScreen.scss, ClassicyTabs.scss, ClassicyWindowFrame.scss |
+| `--control-padding-wide` | `paddingSize × 1.5` | 9 | ClassicyPopUpMenu.scss, ClassicyStartupScreen.scss, ClassicyTabs.scss |
 | `--ui-font-size-small` | `uiSize × 0.8` | 11.200000000000001 (unrounded) | ClassicyColorPicker.scss, ClassicyControlGroup.scss, ClassicyControlLabel.scss, ClassicyPopUpMenu.scss, ClassicySlider.scss, ClassicyTable.scss, ClassicyTextEditor.scss, DriveSetupList.scss |
 | `--ui-font-size-caption` | `uiSize × 0.75` | 10.5 (unrounded) | ClassicyCheckbox.scss, ClassicyControlGroup.scss, ClassicyKbd.scss, ClassicyMenu.scss, ClassicyMeter.scss |
 | `--ui-font-size-compact` | `uiSize × 10 / 12` | 11.666666666666666 (unrounded) | ClassicyButtonToolbar.scss, ClassicyPlacard.scss, ClassicyTabs.scss |

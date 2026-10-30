@@ -70,7 +70,7 @@ export const CLASSICY_THEME_DERIVATIONS: readonly ClassicyThemeDerivation[] = [
 	{
 		cssVar: "--window-frame-inset",
 		formula: "window.paddingSize / 1.25",
-		doc: "Inset of the window content from its outer frame (ClassicyWindow.scss).",
+		doc: "Inset of the window content from its outer frame (ClassicyWindow.scss, ClassicyWindowFrame.scss).",
 		compute: (i) => padding(i) / 1.25,
 	},
 	{
@@ -88,14 +88,14 @@ export const CLASSICY_THEME_DERIVATIONS: readonly ClassicyThemeDerivation[] = [
 	{
 		cssVar: "--window-header-font-size",
 		formula: "typography.uiSize * 0.865",
-		doc: "Window title text size, slightly smaller than the UI font (ClassicyWindow.scss, ClassicyWindowFrame.scss).",
+		doc: "Window title text size, slightly smaller than the UI font (ClassicyWindow.scss).",
 		compute: (i) => ui(i) * 0.865,
 		unrounded: true,
 	},
 	{
 		cssVar: "--window-title-stripe-height",
 		formula: "window.controlSize * 1.25",
-		doc: "Height of the ridged stripe band either side of the window title (ClassicyWindow.scss).",
+		doc: "Height of the ridged stripe band either side of the window title (ClassicyWindowTitleBar.scss).",
 		compute: (i) => control(i) * 1.25,
 	},
 	{
@@ -185,7 +185,7 @@ export const CLASSICY_THEME_DERIVATIONS: readonly ClassicyThemeDerivation[] = [
 	{
 		cssVar: "--control-padding-wide",
 		formula: "window.paddingSize * 1.5",
-		doc: "Wide padding around framed content (ClassicyPopUpMenu.scss, ClassicyTabs.scss, ClassicyWindowFrame.scss).",
+		doc: "Wide padding around framed content (ClassicyPopUpMenu.scss, ClassicyTabs.scss).",
 		compute: (i) => padding(i) * 1.5,
 	},
 	{

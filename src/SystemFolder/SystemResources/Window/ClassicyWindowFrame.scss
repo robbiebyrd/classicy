@@ -20,7 +20,7 @@
   // frame ring (rounded down to a whole pixel, so the body below stays on the
   // pixel grid), and ruled off from the body (which has no border of its own).
   > .classicyWindowTitleBar {
-    padding: round(down, calc(var(--window-padding-size) / 1.25), 1px);
+    padding: round(down, var(--window-frame-inset), 1px);
     padding-bottom: var(--window-border-size);
     border-bottom: var(--window-border-size) solid var(--color-black);
   }
