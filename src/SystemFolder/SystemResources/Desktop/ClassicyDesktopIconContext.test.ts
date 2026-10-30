@@ -11,6 +11,7 @@ import {
 	resetClassicyAppearancePackagesForTests,
 } from "@/Appearance/ClassicyAppearancePackage";
 import { PLATINUM_APPEARANCE_PACKAGE_ID } from "@/Appearance/Platinum";
+import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	dispatch,
@@ -69,17 +70,43 @@ describe("ClassicyDesktopIconCleanup", () => {
 		{ appId: "B.app", appName: "B", icon: "b.png", kind: "app_shortcut" },
 	];
 
-	const seedStore = (packageId: string) =>
+	const seedStore = (packageId: string, seeded = icons) =>
 		useAppManager.setState(
 			produce(DefaultAppManagerState, (draft) => {
 				draft.System.Manager.Appearance.packageId = packageId;
 				draft.System.Manager.Appearance.activeTheme.desktop.iconSize = 64;
-				draft.System.Manager.Desktop.icons = icons.map((icon) => ({
+				draft.System.Manager.Desktop.icons = seeded.map((icon) => ({
 					...icon,
 				}));
 			}),
 			true,
 		);
+
+	/** `count` app icons, named so the kind-then-name sort keeps their order. */
+	const manyIcons = (count: number) =>
+		Array.from({ length: count }, (_, i) => ({
+			appId: `I${String(i).padStart(2, "0")}.app`,
+			appName: `I${String(i).padStart(2, "0")}`,
+			icon: "i.png",
+			kind: "app_shortcut",
+		}));
+
+	/** A CSS-less package whose only change is the icon grid's origin. */
+	const registerOriginPackage = (
+		id: string,
+		iconGridOrigin: "bottom-right" | "bottom-left",
+	) =>
+		registerClassicyAppearancePackage({
+			id,
+			name: id,
+			css: "",
+			defaults: { ...getTheme("default"), id: `${id}-default`, package: id },
+			layout: {
+				window: { growBoxCorner: "bottom-right" },
+				menuBar: { placement: "screen" },
+				desktop: { iconGridOrigin },
+			},
+		});
 
 	const locations = () =>
 		useAppManager
@@ -116,6 +143,45 @@ describe("ClassicyDesktopIconCleanup", () => {
 		expect(locations()).toEqual([
 			[880, 64],
 			[880, 208],
+		]);
+	});
+
+	// F-R5: every cleaned-up icon stays on screen, whatever the origin.
+	it.each([
+		"bottom-right",
+		"bottom-left",
+	] as const)("keeps every %s row below the menu bar", (origin) => {
+		registerOriginPackage(`test-${origin}`, origin);
+		seedStore(`test-${origin}`, manyIcons(6));
+		dispatch({ type: "ClassicyDesktopIconCleanup" });
+		const ys = locations().map((location) => location?.[1] ?? -1);
+		expect(ys).toHaveLength(6);
+		for (const y of ys) expect(y).toBeGreaterThanOrEqual(64);
+		// 768 px tall, 8 × 16 px reserved, 144 px a row: four rows, then the
+		// next column.
+		expect(ys).toEqual([560, 416, 272, 128, 560, 416]);
+	});
+
+	it("counts the desktop's columns with the icon step (7 at 1024 px)", () => {
+		// One row per column (144 px ≤ height < 288 px), so every icon starts a
+		// column: with 7 columns counted, the 7th icon wraps back to the first.
+		setViewport(1024, 200);
+		seedStore(PLATINUM_APPEARANCE_PACKAGE_ID, manyIcons(8));
+		dispatch({ type: "ClassicyDesktopIconCleanup" });
+		const xs = locations().map((location) => location?.[0]);
+		expect(xs).toEqual([880, 736, 592, 448, 304, 160, 880, 736]);
+	});
+
+	it("keeps Platinum's first top-right positions with many icons", () => {
+		seedStore(PLATINUM_APPEARANCE_PACKAGE_ID, manyIcons(6));
+		dispatch({ type: "ClassicyDesktopIconCleanup" });
+		expect(locations()).toEqual([
+			[880, 64],
+			[880, 208],
+			[880, 352],
+			[880, 496],
+			[880, 640],
+			[736, 64],
 		]);
 	});
 });

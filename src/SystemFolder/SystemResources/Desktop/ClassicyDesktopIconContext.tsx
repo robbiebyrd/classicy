@@ -25,10 +25,25 @@ import type {
 import type { ClassicyStoreSystemDesktopManagerIcon } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
-const createGrid = (iconSize: number, iconPadding: number) => {
+/**
+ * The clean-up grid's column and row counts. Both step by one icon cell
+ * (`iconSize * 2 + iconPadding`, the step `classicyDesktopIconGridPosition`
+ * places by), so every counted column fits the viewport (F-R5). A bottom
+ * origin also reserves the menu bar's band at the top (`8 * iconPadding`:
+ * the top origins' `4 * iconPadding` lead, plus the bottom origins' own), so
+ * its last row never lands under the menu bar.
+ */
+const createGrid = (
+	iconSize: number,
+	iconPadding: number,
+	origin: ClassicyAppearanceLayout["desktop"]["iconGridOrigin"],
+) => {
+	const step = iconSize * 2 + iconPadding;
 	return [
-		Math.floor(window.innerWidth / (iconSize + iconPadding)),
-		Math.floor(window.innerHeight / (iconSize * 2 + iconPadding)),
+		Math.floor(window.innerWidth / step),
+		origin.startsWith("bottom")
+			? Math.max(1, Math.floor((window.innerHeight - iconPadding * 8) / step))
+			: Math.floor(window.innerHeight / step),
 	];
 };
 
@@ -101,7 +116,7 @@ const cleanupDesktopIcons = (
 	let startY: number = 0;
 	const [iconSize, iconPadding] = getIconSize(theme);
 
-	const grid = createGrid(iconSize, iconPadding);
+	const grid = createGrid(iconSize, iconPadding, origin);
 
 	icons.forEach((icon) => {
 		// Hidden icons are never drawn on the desktop (they exist only to

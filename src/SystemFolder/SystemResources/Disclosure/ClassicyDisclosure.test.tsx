@@ -25,6 +25,19 @@ vi.mock(
 );
 
 describe("ClassicyDisclosure", () => {
+	// The header is role="button", so its name is computed from its children:
+	// the label alone, in either label position. The non-interactive
+	// triangle is decorative (aria-hidden), so its SVG <title> stays out.
+	it.each([
+		"left",
+		"right",
+	] as const)("names the header by its label alone (label %s)", (labelPosition) => {
+		render(
+			<ClassicyDisclosure label="More info" labelPosition={labelPosition} />,
+		);
+		expect(screen.getByRole("button")).toHaveAccessibleName("More info");
+	});
+
 	it("renders with closed class by default", () => {
 		const { container } = render(<ClassicyDisclosure label="More info" />);
 		const inner = container.querySelector(".classicyDisclosureInner");
