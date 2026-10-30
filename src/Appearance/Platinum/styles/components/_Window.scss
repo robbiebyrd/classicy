@@ -26,22 +26,21 @@
         @include mixins.platinum-window-control-box-depressable;
       }
 
-      // The glyphs are masks painted black: top left, over the depressable
-      // box's centered glyph. Only these two boxes get the color; the close
-      // box shares the depressable :after but draws no glyph.
+      // The glyphs are the registered art as the depressable :after's image,
+      // top left over its centered geometry; the close box draws none. Images,
+      // not masks (rulings E20, E24): a masked glyph made the luminosity-
+      // blended dither of every box in its title bar draw one level off.
       .classicyWindowCollapseBox {
         &:after {
-          background-color: var(--color-black);
-          mask-image: var(--classicy-art-collapse-glyph);
-          mask-position: top left;
+          background-image: var(--classicy-art-collapse-glyph);
+          background-position: top left;
         }
       }
 
       .classicyWindowZoomBox {
         &:after {
-          background-color: var(--color-black);
-          mask-image: var(--classicy-art-zoom-glyph);
-          mask-position: top left;
+          background-image: var(--classicy-art-zoom-glyph);
+          background-position: top left;
         }
       }
 
@@ -104,45 +103,20 @@
     }
   }
 
-  // The windoid's title-bar pattern. Named down to `.classicyWindowTitle` so it
-  // outranks the active and red title-bar rules (four classes) that follow,
-  // which is why each layer here sets every property their ::before sets.
+  // The windoid's title-bar pattern: the registered texture (two radial
+  // gradients over the frame gray) tiled 4px x 3px on the center band, and no
+  // side bands. Named down to `.classicyWindowTitle` so it outranks the active
+  // and red title-bar rules (four classes) that follow.
   .classicyWindow.classicyWindowUtility .classicyWindowTitleBar .classicyWindowTitle {
     .classicyWindowTitleLeft,
     .classicyWindowTitleRight {
       background: none;
-
-      &::before {
-        content: none;
-      }
     }
 
-    // A 4px x 3px tile of two radial gradients over the frame gray: the
-    // shade (black) under the highlight (white), each a mask on its own layer.
     .classicyWindowTitleCenter {
-      position: relative;
-      background-color: var(--color-system-03);
-
-      &::before,
-      &::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-        mask-repeat: repeat;
-        mask-position: 0 0;
-        mask-size: 4px 3px;
-      }
-
-      &::before {
-        background-color: var(--color-black);
-        mask-image: var(--classicy-art-window-utility-shade);
-      }
-
-      &::after {
-        background-color: var(--color-white);
-        mask-image: var(--classicy-art-window-utility-highlight);
-      }
+      background-image: var(--classicy-art-window-utility-texture);
+      background-repeat: repeat;
+      background-size: 4px 3px;
     }
   }
 
@@ -155,38 +129,17 @@
     @include scrollbars.platinum-scrollbars-inactive();
   }
 
+  // The focused title bar's stripes: the center band at the art's own size,
+  // the bands beside a title a hair under full height.
   :where(.classicyWindow).active {
-    .classicyWindowTitleBar {
-      .classicyWindowTitle {
-        .classicyWindowTitleCenter {
-          @include mixins.platinum-title-bar-stripes(auto 100%);
-        }
-
-        .classicyWindowTitleLeft,
-        .classicyWindowTitleRight {
-          @include mixins.platinum-title-bar-stripes(auto 99.8%);
-        }
-      }
-    }
+    @include mixins.platinum-title-bar-stripes($side-size: auto 99.8%);
   }
 
+  // The red title bar: the shorthand alone on the side bands resets the
+  // focused bands' 99.8% to auto.
   .classicyWindowRed {
     @include mixins.platinum-window-border;
-
-    .classicyWindowTitleBar {
-      .classicyWindowTitle {
-        .classicyWindowTitleCenter {
-          @include mixins.platinum-title-bar-stripes(auto 100%, "-red");
-        }
-
-        // `auto`, written out: the active side bands' 99.8% would otherwise
-        // show through (the old `background:` shorthand reset it).
-        .classicyWindowTitleLeft,
-        .classicyWindowTitleRight {
-          @include mixins.platinum-title-bar-stripes(auto, "-red");
-        }
-      }
-    }
+    @include mixins.platinum-title-bar-stripes("-red", $center-size: auto 100%);
   }
 
   // Two classes so the error border keeps its color under the dotted drag and

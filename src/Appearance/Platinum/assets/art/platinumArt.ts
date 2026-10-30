@@ -22,22 +22,23 @@ const art = platinumArt;
  * Platinum's window, menu, slider and tab art, by system-art key. Data only:
  * `platinumAssets.ts` registers it, so importing this module has no effect.
  *
- * Masks (`fill`/`stroke` is `currentColor`, no intrinsic size, the original
- * `viewBox`): the stripes hold only the dark rows (the element's background
- * paints the light ones), the utility texture is split into its shade and
- * highlight layers, and the glyphs, arrows, thumb outlines, tab outline and
- * halftone are single-color shapes. Images (their grays are the art): the
- * grip, the dither and the slider strikes. In an image context `currentColor`
- * resolves to black, so the thumb outlines and the halftone also draw as
- * images.
+ * Images in their own colors: the title-bar stripes (gray and red) and the
+ * windoid texture, which each band draws as its background image (owner
+ * ruling E20: masks blend the anti-aliased row boundaries of a band drawn at
+ * a fractional scale or position differently from the one image), and the
+ * grip, the dither and the slider strikes (their grays are the art).
+ *
+ * Single-color shapes (`fill`/`stroke` is `currentColor`, no intrinsic size,
+ * the original `viewBox`): the zoom and collapse glyphs are masks over a
+ * theme color; the menu and pop-up arrows, the thumb outlines, the tab outline
+ * and the halftone are images, where `currentColor` resolves to black.
  */
 export const PLATINUM_SYSTEM_ART: Readonly<
 	Partial<Record<ClassicySystemArtKey, ClassicyAssetSource>>
 > = {
 	windowStripes: art("title-bar-center.svg"),
 	windowStripesRed: art("title-bar-center-red.svg"),
-	windowUtilityShade: art("window-utility-shade.svg"),
-	windowUtilityHighlight: art("window-utility-highlight.svg"),
+	windowUtilityTexture: art("title-bar-utility.svg"),
 	windowGrip: art("resizer.svg"),
 	windowDither: art("corner-dither.svg"),
 	zoomGlyph: art("zoom.svg"),

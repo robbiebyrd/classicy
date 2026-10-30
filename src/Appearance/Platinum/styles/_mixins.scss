@@ -144,9 +144,9 @@
     display: block;
     width: 100%;
     height: 100%;
-    mask-position: center center;
-    mask-repeat: no-repeat;
-    mask-size: contain;
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-size: contain;
     content: ' ';
   }
 }
@@ -232,27 +232,46 @@
   background-size: $size;
 }
 
-// The title-bar pinstripes (HIGOS8 Figure 3-1) as masked package art: the
-// element paints the light rows as its background color, and a ::before over
-// its padding box paints the dark rows through the stripe mask
-// (`--classicy-art-window-stripes`, `-red` for `$tone: "-red"`; dark rows
-// only, original viewBox). `$mask-size` is the background-size the striped
-// image had, so the mask tiles exactly as it did. The ::before is absolute
-// and paints over the element's in-flow children: give it a z-index under
-// them (and the element a stacking context) when there are any.
-@mixin platinum-title-bar-stripes($mask-size, $tone: "") {
-  position: relative;
-  background-color: var(--platinum-stripe#{$tone}-light);
+// The title-bar pinstripes (HIGOS8 Figure 3-1) on the stripe bands of a
+// ClassicyWindowTitleBar: included in the rule of the bar's ancestor (the
+// window state or the frame), it draws the registered stripe art
+// (`--classicy-art-window-stripes`, `-red` for `$tone: "-red"`) as each band's
+// background image, in the art's own colors. The `background` shorthand
+// resets the band's other background longhands, as the stripes always have;
+// `$center-size` and `$side-size` (the title-less center band and the two
+// bands beside a title) follow it when given.
+//
+// An image, not masks over theme colors (owner ruling E20): a band drawn at a
+// fractional scale or position anti-aliases its row boundaries inside the one
+// image, and no stack of masks, two or four layers or one per row, blends
+// them the same (up to 21 levels off in Chromium, 25 in Firefox). A package
+// recolors the stripes by registering recolored art.
+@mixin platinum-title-bar-stripes($tone: "", $center-size: null, $side-size: null) {
+  .classicyWindowTitleBar .classicyWindowTitle {
+    .classicyWindowTitleCenter {
+      background: var(--classicy-art-window-stripes#{$tone});
 
-  &::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background-color: var(--platinum-stripe#{$tone}-dark);
-    mask-image: var(--classicy-art-window-stripes#{$tone});
-    mask-repeat: repeat;
-    mask-position: 0 0;
-    mask-size: $mask-size;
+      @if $center-size {
+        background-size: $center-size;
+      }
+    }
+
+    .classicyWindowTitleLeft,
+    .classicyWindowTitleRight {
+      background: var(--classicy-art-window-stripes#{$tone});
+
+      @if $side-size {
+        background-size: $side-size;
+      }
+
+      // The base sheet's zero-height end boxes get an empty image layer: it
+      // paints nothing, but Chromium rasters the control boxes' luminosity
+      // dither one level differently without it (it stands in for the cap
+      // art those boxes carried before Part E).
+      &:before,
+      &:after {
+        background-image: linear-gradient(transparent, transparent);
+      }
+    }
   }
 }

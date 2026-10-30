@@ -365,9 +365,9 @@ describe("platinum.scss (compiled)", () => {
 		expect(
 			rule(`${P} .classicyWindow .classicyWindowTitleBar`).props.border,
 		).toBe("none");
-		// P3, P4: utility stripes off; the stripe masks keep the sizes the
-		// striped images had (Part E 2.1; ClassicyWindow.art.test.ts has the
-		// rest of the masks).
+		// P3, P4: utility stripes off; the stripe images keep the sizes they
+		// had before Part E (E 6.1, owner ruling E20; ClassicyWindow.art.test.ts
+		// has the rest of the bands).
 		const group = (prefix: string, a: string, b: string) =>
 			`${prefix} ${a}, ${prefix} ${b}`;
 		const utility = `${P} .classicyWindow.classicyWindowUtility .classicyWindowTitleBar .classicyWindowTitle`;
@@ -377,27 +377,12 @@ describe("platinum.scss (compiled)", () => {
 			).props.background,
 		).toBe("none");
 		expect(
-			rule(
-				group(
-					utility,
-					".classicyWindowTitleLeft::before",
-					".classicyWindowTitleRight::before",
-				),
-			).props.content,
-		).toBe("none");
-		expect(
-			rule(
-				group(
-					utility,
-					".classicyWindowTitleCenter::before",
-					".classicyWindowTitleCenter::after",
-				),
-			).props["mask-size"],
+			rule(`${utility} .classicyWindowTitleCenter`).props["background-size"],
 		).toBe("4px 3px");
 		const active = `${P} :where(.classicyWindow).active .classicyWindowTitleBar .classicyWindowTitle`;
 		// The windoid's side bands drop the active stripes. Specificity decides,
 		// not source order (the utility group comes first): it outranks the
-		// active group, (0,7,1) against (0,6,1) with the root prefix.
+		// active group, (0,7,0) against (0,6,0) with the root prefix.
 		// (ids, classes/attributes/pseudo-classes, types/pseudo-elements);
 		// `:where()` counts nothing.
 		const specificity = (selector: string) => {
@@ -413,53 +398,42 @@ describe("platinum.scss (compiled)", () => {
 			".classicyWindowTitleLeft",
 			".classicyWindowTitleRight",
 		]) {
-			expect(specificity(`${utility} ${band}::before`), band).toEqual([
-				0, 7, 1,
-			]);
-			expect(specificity(`${active} ${band}::before`), band).toEqual([0, 6, 1]);
+			expect(specificity(`${utility} ${band}`), band).toEqual([0, 7, 0]);
+			expect(specificity(`${active} ${band}`), band).toEqual([0, 6, 0]);
 		}
-		expect(
-			rule(
-				group(
-					active,
-					".classicyWindowTitleLeft::before",
-					".classicyWindowTitleRight::before",
-				),
-			).props["mask-size"],
-		).toBe("auto 99.8%");
+		const activeSides = rule(
+			group(active, ".classicyWindowTitleLeft", ".classicyWindowTitleRight"),
+		);
+		expect(activeSides.props["background-size"]).toBe("auto 99.8%");
 		const red = `${P} .classicyWindowRed .classicyWindowTitleBar .classicyWindowTitle`;
 		expect(
-			rule(`${red} .classicyWindowTitleCenter::before`).props["mask-size"],
+			rule(`${red} .classicyWindowTitleCenter`).props["background-size"],
 		).toBe("auto 100%");
-		// The red side bands follow the active ones and write their `auto`.
+		// The red side bands follow the active ones, and their shorthand resets
+		// the size to auto.
 		const redSides = rule(
-			group(
-				red,
-				".classicyWindowTitleLeft::before",
-				".classicyWindowTitleRight::before",
-			),
+			group(red, ".classicyWindowTitleLeft", ".classicyWindowTitleRight"),
 		);
-		expect(redSides.props["mask-size"]).toBe("auto");
-		expect(redSides.at).toBeGreaterThan(
+		expect(redSides.props.background).toBe(
+			"var(--classicy-art-window-stripes-red)",
+		);
+		expect(redSides.props["background-size"]).toBeUndefined();
+		expect(redSides.at).toBeGreaterThan(activeSides.at);
+		expect(
+			rule(
+				`${P} .classicyWindow:has(.classicyAlertMovable) .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleCenter`,
+			).props["background-size"],
+		).toBe("auto 100%");
+		expect(
 			rule(
 				group(
-					active,
-					".classicyWindowTitleLeft::before",
-					".classicyWindowTitleRight::before",
+					`${P} .classicyWindowFrame .classicyWindowTitleBar .classicyWindowTitle`,
+					".classicyWindowTitleLeft",
+					".classicyWindowTitleRight",
 				),
-			).at,
-		);
-		expect(
-			rule(
-				`${P} .classicyWindow:has(.classicyAlertMovable) .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleCenter::before`,
-			).props["mask-size"],
-		).toBe("auto 100%");
-		expect(
-			rule(
-				`${P} .classicyWindowFrame .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleCenter::before`,
-			).props["mask-size"],
-		).toBe("auto 100%");
-		// The control boxes' glyph masks sit top left, over the mixin's
+			).props["background-size"],
+		).toBe("auto 99.8%");
+		// The control boxes' glyph images sit top left, over the mixin's
 		// centering, and the utility boxes keep their smaller size and glyph
 		// offset.
 		const bar = `${P} .classicyWindow .classicyWindowTitleBar`;
@@ -472,7 +446,7 @@ describe("platinum.scss (compiled)", () => {
 		);
 		for (const box of ["CollapseBox", "ZoomBox"]) {
 			const own = rule(`${bar} .classicyWindow${box}:after`);
-			expect(own.props["mask-position"]).toBe("top left");
+			expect(own.props["background-position"]).toBe("top left");
 			expect(own.at).toBeGreaterThan(glyphs.at);
 		}
 		const utilityBox = `${P} .classicyWindowUtility .classicyWindowTitleBar .classicyWindowControlBox`;
@@ -1031,10 +1005,6 @@ describe("the moved Platinum mixin files", () => {
 			include(`${STYLES}/assets`, "platinum-root-properties", ""),
 		).toMatchInlineSnapshot(`
 			".x {
-			  --platinum-stripe-light: var(--color-white);
-			  --platinum-stripe-dark: #787878;
-			  --platinum-stripe-red-light: #f9dada;
-			  --platinum-stripe-red-dark: #ef8c89;
 			  --classicy-color-picker-crayon-outline: rgba(0, 0, 0, 0.4);
 			  --classicy-color-picker-crayon-facet-light: rgba(255, 255, 255, 0.25);
 			  --classicy-color-picker-crayon-facet-dark: rgba(0, 0, 0, 0.2);
@@ -1233,9 +1203,9 @@ describe("the moved Platinum mixin files", () => {
 			  display: block;
 			  width: 100%;
 			  height: 100%;
-			  mask-position: center center;
-			  mask-repeat: no-repeat;
-			  mask-size: contain;
+			  background-position: center center;
+			  background-repeat: no-repeat;
+			  background-size: contain;
 			  content: " ";
 			}"
 		`));
@@ -1334,43 +1304,39 @@ describe("the moved Platinum mixin files", () => {
 
 	it("platinum-title-bar-stripes compiles to its pinned output", () =>
 		expect(
-			mixin("platinum-title-bar-stripes", "(auto 99.8%)"),
+			mixin("platinum-title-bar-stripes", "($side-size: auto 99.8%)"),
 		).toMatchInlineSnapshot(`
-			".x {
-			  position: relative;
-			  background-color: var(--platinum-stripe-light);
+			".x .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleCenter {
+			  background: var(--classicy-art-window-stripes);
 			}
-			.x::before {
-			  content: "";
-			  position: absolute;
-			  inset: 0;
-			  pointer-events: none;
-			  background-color: var(--platinum-stripe-dark);
-			  mask-image: var(--classicy-art-window-stripes);
-			  mask-repeat: repeat;
-			  mask-position: 0 0;
-			  mask-size: auto 99.8%;
+			.x .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleLeft,
+			.x .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleRight {
+			  background: var(--classicy-art-window-stripes);
+			  background-size: auto 99.8%;
+			}
+			.x .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleLeft:before, .x .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleLeft:after,
+			.x .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleRight:before,
+			.x .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleRight:after {
+			  background-image: linear-gradient(transparent, transparent);
 			}"
 		`));
 
 	it("platinum-title-bar-stripes compiles to its pinned output, red", () =>
 		expect(
-			mixin("platinum-title-bar-stripes", '(auto, "-red")'),
+			mixin("platinum-title-bar-stripes", '("-red", $center-size: auto 100%)'),
 		).toMatchInlineSnapshot(`
-			".x {
-			  position: relative;
-			  background-color: var(--platinum-stripe-red-light);
+			".x .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleCenter {
+			  background: var(--classicy-art-window-stripes-red);
+			  background-size: auto 100%;
 			}
-			.x::before {
-			  content: "";
-			  position: absolute;
-			  inset: 0;
-			  pointer-events: none;
-			  background-color: var(--platinum-stripe-red-dark);
-			  mask-image: var(--classicy-art-window-stripes-red);
-			  mask-repeat: repeat;
-			  mask-position: 0 0;
-			  mask-size: auto;
+			.x .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleLeft,
+			.x .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleRight {
+			  background: var(--classicy-art-window-stripes-red);
+			}
+			.x .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleLeft:before, .x .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleLeft:after,
+			.x .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleRight:before,
+			.x .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleRight:after {
+			  background-image: linear-gradient(transparent, transparent);
 			}"
 		`));
 

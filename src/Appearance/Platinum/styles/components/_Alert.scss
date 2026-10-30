@@ -3,19 +3,8 @@
 @use "../mixins";
 
 @mixin alert {
+  // The shorthand alone on the side bands resets the focused bands' 99.8%.
   .classicyWindow:has(.classicyAlertMovable) {
-    .classicyWindowTitleBar {
-      .classicyWindowTitle {
-        .classicyWindowTitleCenter {
-          @include mixins.platinum-title-bar-stripes(auto 100%, "-red");
-        }
-
-        // `auto`, written out over the active side bands' 99.8%.
-        .classicyWindowTitleLeft,
-        .classicyWindowTitleRight {
-          @include mixins.platinum-title-bar-stripes(auto, "-red");
-        }
-      }
-    }
+    @include mixins.platinum-title-bar-stripes("-red", $center-size: auto 100%);
   }
 }

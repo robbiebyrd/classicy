@@ -23,12 +23,7 @@ const PLATINUM_REGISTERS: Record<ClassicySystemArtKey, boolean> = {
 	aboutBackground: false,
 	windowStripes: true,
 	windowStripesRed: true,
-	windowUtilityShade: true,
-	windowUtilityHighlight: true,
-	titleBarCapLeft: false,
-	titleBarCapRight: false,
-	titleBarCapLeftRed: false,
-	titleBarCapRightRed: false,
+	windowUtilityTexture: true,
 	windowGrip: true,
 	windowDither: true,
 	zoomGlyph: true,
@@ -76,9 +71,9 @@ describe("Platinum system art", () => {
 		expect(resolveClassicyAsset("systemArt", key)).toBeUndefined();
 	});
 
-	it("registers 35 of the 44 keys", () => {
-		expect(REGISTERED).toHaveLength(35);
-		expect(UNREGISTERED).toHaveLength(9);
+	it("registers 34 of the 39 keys", () => {
+		expect(REGISTERED).toHaveLength(34);
+		expect(UNREGISTERED).toHaveLength(5);
 	});
 
 	it("the Apple menu, trash, alias badge and help button are the icon-tree leaves", () => {
