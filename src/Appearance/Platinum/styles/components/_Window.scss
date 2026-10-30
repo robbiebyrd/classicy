@@ -6,7 +6,6 @@
 // package layer the moved look would beat it whatever its specificity.
 @use "../mixins";
 @use "../scrollbars";
-@use "../assets";
 
 @mixin window {
   .classicyWindow {
@@ -27,18 +26,22 @@
         @include mixins.platinum-window-control-box-depressable;
       }
 
-      // Top left, over the depressable box's centered glyph.
+      // The glyphs are masks painted black: top left, over the depressable
+      // box's centered glyph. Only these two boxes get the color; the close
+      // box shares the depressable :after but draws no glyph.
       .classicyWindowCollapseBox {
         &:after {
-          background-image: assets.$collapse;
-          background-position: top left;
+          background-color: var(--color-black);
+          mask-image: var(--classicy-art-collapse-glyph);
+          mask-position: top left;
         }
       }
 
       .classicyWindowZoomBox {
         &:after {
-          background-image: assets.$zoom;
-          background-position: top left;
+          background-color: var(--color-black);
+          mask-image: var(--classicy-art-zoom-glyph);
+          mask-position: top left;
         }
       }
 
@@ -48,7 +51,7 @@
     }
 
     .classicyWindowResizer {
-      background-image: assets.$resizer;
+      background-image: var(--classicy-art-window-grip);
     }
 
     .classicyWindowContents {

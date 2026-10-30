@@ -38,10 +38,6 @@ vi.mock(
 	}),
 );
 
-vi.mock("@/SystemFolder/SystemResources/Cursor/useClassicyCursor", () => ({
-	useClassicyCursor: () => vi.fn(),
-}));
-
 const APP = "Surfaces.app";
 
 const seedStore = (apps: Record<string, ClassicyStoreSystemApp> = {}) => {

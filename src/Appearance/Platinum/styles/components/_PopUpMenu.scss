@@ -2,7 +2,6 @@
 // control and its double-arrow indicator. The disabled fill follows the
 // undepressable face it overrides.
 @use "../mixins";
-@use "../assets";
 
 @mixin popUpMenu {
   .classicyPopUpMenu {
@@ -13,7 +12,13 @@
     }
   }
 
+  // The double arrow: the registered art as an image, like the grow-box grip
+  // and the control-box dither (ruling E21). A mask over --color-black does
+  // not reproduce the raster exactly at every tile size (the ComboBox's
+  // 9x10.8 px arrow), and an image layer leaves the indicator's border,
+  // corners and bevel untouched. Base keeps the no-repeat / center / 45%
+  // geometry.
   .classicyPopUpMenuIndicator {
-    background-image: assets.$down-arrow;
+    background-image: var(--classicy-art-popup-arrows);
   }
 }
