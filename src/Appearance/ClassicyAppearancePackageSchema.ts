@@ -92,9 +92,11 @@ const appIdKey = z
 // display name, so it must be usable as a file-system name: no leading `_`
 // (metadata keys), no `:` (the path separator), no control character (C0,
 // DEL, C1) or line/paragraph separator (U+2028, U+2029), and no bidi control
-// (U+202A–U+202E, U+2066–U+2069) or invisible character (U+200B, U+FEFF),
-// which could make a label read as another app's. Refinements, never
-// `.trim()`: the registry keeps the original object, so nothing may be
+// (U+202A–U+202E, U+2066–U+2069; the marks U+200E, U+200F, U+061C) or
+// invisible character (U+200B, U+2060, U+FEFF, the soft hyphen U+00AD), which
+// could make a label read as another app's. The joiners U+200C and U+200D
+// stay allowed: emoji sequences and several scripts need them. Refinements,
+// never `.trim()`: the registry keeps the original object, so nothing may be
 // transformed. The length checks keep zod's own messages, which name the
 // bound.
 const DISPLAY_NAME_ERROR =
@@ -110,6 +112,11 @@ const hasUnsafeCharacter = (text: string): boolean => {
 			(code >= 0x202a && code <= 0x202e) ||
 			(code >= 0x2066 && code <= 0x2069) ||
 			code === 0x200b ||
+			code === 0x200e ||
+			code === 0x200f ||
+			code === 0x061c ||
+			code === 0x2060 ||
+			code === 0x00ad ||
 			code === 0xfeff
 		) {
 			return true;

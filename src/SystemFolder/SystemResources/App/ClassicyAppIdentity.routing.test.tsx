@@ -207,6 +207,49 @@ describe("app identity under a renaming package", () => {
 		expect(apps()["TV.app"].open).toBe(true);
 	});
 
+	it("routes Finder's own fallback OpenFile through Finder's record name", () => {
+		// A variant of `test-rename` that also renames Finder, registered only
+		// here; `afterEach` resets the registry.
+		const fixture = getClassicyAppearancePackage(
+			TEST_RENAME_PACKAGE_ID,
+		) as ClassicyAppearancePackage;
+		registerClassicyAppearancePackage({
+			...fixture,
+			apps: { ...fixture.apps, "Finder.app": { name: "Explorer" } },
+		});
+		// The type's handler has no record (an app that is gone): Finder falls
+		// back to opening the file itself, since its record lists every type.
+		act(() => {
+			useAppManager.setState((state) =>
+				produce(state, (draft) => {
+					draft.System.Manager.Applications.fileTypeHandlers[
+						ClassicyFileSystemEntryFileType.TextFile
+					] = "Gone.app";
+				}),
+			);
+		});
+
+		const path = "Macintosh HD:Documents:Notes.txt";
+		appHandlerTypes.length = 0;
+		act(() =>
+			dispatch({
+				type: "ClassicyAppFinderOpenFile",
+				file: { _type: ClassicyFileSystemEntryFileType.TextFile },
+				path,
+			}),
+		);
+
+		// `ClassicyAppFinderOpenFile` from the record's "Finder", never the
+		// package's "Explorer"; and the file reached Finder's queue.
+		expect(appHandlerTypes.filter((type) => type.endsWith("OpenFile"))).toEqual(
+			["ClassicyAppFinderOpenFile"],
+		);
+		expect(apps()["Finder.app"].data?.openFiles).toEqual([path]);
+		expect(useAppManager.getState().System.Manager.Desktop.errorDialog).toBe(
+			null,
+		);
+	});
+
 	it("closes a host app's file window with its internal-name action type", async () => {
 		const { container } = render(<TV />);
 		await waitFor(() => expect(apps()["TV.app"]).toBeDefined());
@@ -266,15 +309,39 @@ describe("app identity under a renaming package", () => {
 });
 
 describe("persisted identity under a renaming package", () => {
-	// Everything `test-rename` shows in place of the apps' own identity.
+	// The icon this test's package variant gives TV: a 2x2 black square,
+	// distinct from the fixture's `TEST_RENAMED_ICON`.
+	const TEST_RENAMED_TV_ICON =
+		"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='2'%3E%3Crect width='2' height='2'/%3E%3C/svg%3E";
+
+	// Everything the package variant shows in place of the apps' own identity.
 	const DISPLAY_ONLY = [
 		"Media Player",
 		"Television",
 		"Plays movies and sound.",
 		TEST_RENAMED_ICON,
+		TEST_RENAMED_TV_ICON,
 	];
 
 	it("refreshes stale records from code and never stores display data", async () => {
+		// `test-rename` gives TV a name only, so a leak of the resolved icon
+		// into TV's Apple-menu entry or parade icon would write TV's own icon
+		// and pass unseen. Re-registering the id replaces the package in place
+		// (the store already names it); `afterEach` resets the registry.
+		const fixture = getClassicyAppearancePackage(
+			TEST_RENAME_PACKAGE_ID,
+		) as ClassicyAppearancePackage;
+		registerClassicyAppearancePackage({
+			...fixture,
+			apps: {
+				...fixture.apps,
+				"TV.app": { name: "Television", icon: TEST_RENAMED_TV_ICON },
+			},
+		});
+		expect(
+			getClassicyAppearancePackage(TEST_RENAME_PACKAGE_ID)?.apps?.["TV.app"],
+		).toEqual({ name: "Television", icon: TEST_RENAMED_TV_ICON });
+
 		// A record left by an earlier session, holding an older name and icon.
 		act(() => {
 			useAppManager.setState((state) =>
@@ -321,6 +388,9 @@ describe("persisted identity under a renaming package", () => {
 
 		const state = useAppManager.getState();
 		const stored = JSON.stringify(state);
+		// `sanitizeStateForPersistence` empties `Boot.paradeIcons`, so the
+		// persisted half never sees the parade: only the live-store half
+		// (`stored`) guards the parade icons.
 		const persisted = JSON.stringify(sanitizeStateForPersistence(state));
 		for (const text of DISPLAY_ONLY) {
 			expect(stored).not.toContain(text);

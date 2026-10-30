@@ -129,7 +129,7 @@ describe("ClassicyApp icon visibility", () => {
 		expect(iconRemoveActions()).toHaveLength(0);
 	});
 
-	it("stores a string balloon as content only, with no title", () => {
+	it("dispatches a string balloon as content only, with no title", () => {
 		render(
 			<ClassicyApp
 				id="TV.app"
@@ -148,7 +148,7 @@ describe("ClassicyApp icon visibility", () => {
 		expect(iconAddActions()[0].balloonHelp).toBeUndefined();
 	});
 
-	it("stores no balloon for a registered manifest description with no prop", () => {
+	it("dispatches no balloon for a registered manifest description with no prop", () => {
 		registerApp({
 			id: "Described.app",
 			description: "Does described things.",
@@ -164,7 +164,7 @@ describe("ClassicyApp icon visibility", () => {
 		expect(iconAddActions()[0].balloonHelp).toBeUndefined();
 	});
 
-	it("stores an explicit prop's copy even when a manifest is registered", () => {
+	it("dispatches an explicit prop's copy even when a manifest is registered", () => {
 		registerApp({
 			id: "Explicit.app",
 			description: "Manifest copy.",
