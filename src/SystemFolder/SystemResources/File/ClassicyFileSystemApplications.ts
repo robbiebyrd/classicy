@@ -66,18 +66,21 @@ export const classicyDerivedAppEntryNames = (
 			taken.add(displayName);
 			return displayName;
 		}
+		const fallback = taken.has(name) ? `${name} (${appId})` : name;
+		taken.add(fallback);
 		const warning = `${folderName}\u0000${displayName}\u0000${appId}`;
 		if (!warnedDerivedAppEntryFallbacks.has(warning)) {
 			warnedDerivedAppEntryFallbacks.add(warning);
+			// Names the form the app is listed under: its own name, or the
+			// "<own name> (<id>)" suffix form.
+			const used = fallback === name ? "its own name" : `"${fallback}"`;
 			classicyLog(
 				"warn",
 				"ClassicyFileSystem",
-				`App display name unusable in ${folderName}; using its own name`,
+				`App display name unusable in ${folderName}; using ${used}`,
 				{ appId, name: displayName },
 			);
 		}
-		const fallback = taken.has(name) ? `${name} (${appId})` : name;
-		taken.add(fallback);
 		return fallback;
 	});
 };

@@ -224,6 +224,9 @@ describe("buildApplicationsFolder display names", () => {
 		expect(folder.B._creator).toBe("C.app");
 		expect(folder["B (B.app)"]._creator).toBe("B.app");
 		expect(warnings()).toHaveLength(1);
+		expect(warnings()[0].message).toBe(
+			'App display name unusable in Applications; using "B (B.app)"',
+		);
 		expect(warnings()[0].details).toEqual([{ appId: "B.app", name: "Same" }]);
 	});
 
