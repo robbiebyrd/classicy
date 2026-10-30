@@ -7,7 +7,7 @@ status: ready
 priority: "1"
 effort: S
 created: "2026-10-30T19:15:44.106Z"
-updated: "2026-10-30T21:18:32.634Z"
+updated: "2026-10-30T21:44:17.358Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -75,3 +75,5 @@ Pin the SimpleText and Calculator placeholder handoff, the user-file case and th
 ### 2026-10-30T21:10:19.342Z - Fixed in a3532a44d on k/0096: only entries marked _placeholder (SimpleText and Calculator, plus legacy unmarked ones recognized by their exact seeded shape) give way to a same-named app; any other entry wins, and the app takes '<own name> (<id>)', numbered if needed, across Applications, Extensions and Control Strip Modules. 22 new tests (16 failed before), 17 mutants killed, 417 files / 4979 tests, parity 8/8 AE 0. Ruling K-R10. In review.
 
 ### 2026-10-30T21:18:32.633Z - Review: Needs fixes. A user's edits to a still-marked placeholder (for example a saved Calculator document) would be lost when a Calculator app appears; probe P1 proves it. Ruling K-R11: a placeholder gives way only while untouched (no _modifiedOn, seeded content unchanged). Everything else holds: no other loss path, legacy shape unreachable from user actions, handoff intact. Fix round running.
+
+### 2026-10-30T21:44:17.358Z - Review fixes (703eded06): a placeholder gives way only while it matches the frozen CLASSICY_SEEDED_PLACEHOLDER exactly (K-R11); the reviewer's P1 sequence is a hook test (the edited Calculator file survives, and the app is listed as 'Calculator (Calculator.app)'); minors m1-m3 done; 17 mutants killed; 417 files / 4993 tests; parity 8/8 AE 0. Accepted; cherry-picks onto feat/appearance-part-k after K 5.1's fix round. Filed 0098-drm for the pre-existing default-tree aliasing found here.
