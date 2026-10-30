@@ -1,8 +1,15 @@
 import { desktopParameters, SB_ICON, StoryApp } from "@sb/helpers";
+import { renamedParameters } from "@sb/renamed";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { fn } from "storybook/test";
-import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { useClassicyAppIdentity } from "@/Appearance/ClassicyAppIdentity";
+import {
+	useAppManager,
+	useAppManagerDispatch,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { hasAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
+import { MoviePlayerAppInfo } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerUtils";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 import { ClassicyApp } from "./ClassicyApp";
 
@@ -130,4 +137,79 @@ const AppWithContextMenu = () => {
  */
 export const AppContextMenu: Story = {
 	render: () => <AppWithContextMenu />,
+};
+
+const APPLICATIONS_FOLDER = "Macintosh HD:Applications";
+
+const RenamedByPackageDesktop = () => {
+	const dispatch = useAppManagerDispatch();
+	// A host app opts its own window into the package's identity the way the
+	// bundled control panels do: the title and proxy icon are the display
+	// identity, resolved at render, never stored.
+	const tv = useClassicyAppIdentity("TV.app", { name: "TV", icon: SB_ICON });
+	// Both windows register (and take focus) on mount, so Movie Player is
+	// opened, and focused, only once they have.
+	const windowsReady = useAppManager((state) => {
+		const { apps } = state.System.Manager.Applications;
+		return (
+			hasAppWindow(apps["TV.app"], "main") &&
+			hasAppWindow(apps["Finder.app"], APPLICATIONS_FOLDER)
+		);
+	});
+	const moviePlayerOpened = useRef(false);
+
+	useEffect(() => {
+		dispatch({
+			type: "ClassicyAppOpen",
+			app: { id: "TV.app", name: "TV", icon: SB_ICON },
+		});
+		dispatch({
+			type: "ClassicyAppFinderOpenFolder",
+			path: APPLICATIONS_FOLDER,
+		});
+	}, [dispatch]);
+
+	useEffect(() => {
+		if (!windowsReady || moviePlayerOpened.current) return;
+		moviePlayerOpened.current = true;
+		dispatch({ type: "ClassicyAppOpen", app: MoviePlayerAppInfo });
+	}, [dispatch, windowsReady]);
+
+	return (
+		<ClassicyApp
+			id="TV.app"
+			name="TV"
+			icon={SB_ICON}
+			showDesktopIcon
+			addSystemMenu
+			desktopIconBalloonHelp="Double-click to watch TV."
+		>
+			<ClassicyWindow
+				id="main"
+				appId="TV.app"
+				title={tv.name}
+				icon={tv.icon}
+				initialSize={[300, 160]}
+				initialPosition={[420, 400]}
+			>
+				<p style={{ padding: "1em" }}>Now playing on channel 8.</p>
+			</ClassicyWindow>
+		</ClassicyApp>
+	);
+};
+
+/**
+ * Under the Storybook-only `renamed` package, Movie Player is 'Media Player'
+ * with its own icon (menu bar, App Switcher, Applications) and the host app
+ * TV.app is 'Television' on the desktop. Switch the package back in the
+ * Appearance control panel and every name and icon returns.
+ *
+ * The TV window titles itself with `useClassicyAppIdentity`, as the bundled
+ * control panels do, so its title and proxy icon follow the package too.
+ * Persisted state never changes: records, menus and the file system keep
+ * the apps' own names.
+ */
+export const RenamedByPackage: Story = {
+	parameters: renamedParameters,
+	render: () => <RenamedByPackageDesktop />,
 };

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" shape-rendering="crispEdges">
+  <title>Television (Storybook test)</title>
+  <path d="M11 2 L16 8 L21 2" fill="none" stroke="#000000" stroke-width="1.5"/>
+  <rect x="2" y="8" width="28" height="20" fill="#000000"/>
+  <rect x="3" y="9" width="26" height="18" fill="#996633"/>
+  <rect x="5" y="11" width="17" height="14" fill="#000000"/>
+  <rect x="6" y="12" width="15" height="12" fill="#99ccff"/>
+  <rect x="6" y="18" width="15" height="6" fill="#66cc66"/>
+  <circle cx="25.5" cy="14" r="2" fill="#000000"/>
+  <circle cx="25.5" cy="20" r="2" fill="#000000"/>
+  <rect x="5" y="28" width="4" height="2" fill="#000000"/>
+  <rect x="23" y="28" width="4" height="2" fill="#000000"/>
+</svg>
