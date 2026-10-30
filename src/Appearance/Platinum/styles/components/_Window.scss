@@ -102,17 +102,44 @@
   }
 
   // The windoid's title-bar pattern. Named down to `.classicyWindowTitle` so it
-  // outranks the active and red title-bar rules (four classes) that follow.
+  // outranks the active and red title-bar rules (four classes) that follow,
+  // which is why each layer here sets every property their ::before sets.
   .classicyWindow.classicyWindowUtility .classicyWindowTitleBar .classicyWindowTitle {
     .classicyWindowTitleLeft,
     .classicyWindowTitleRight {
       background: none;
+
+      &::before {
+        content: none;
+      }
     }
 
+    // A 4px x 3px tile of two radial gradients over the frame gray: the
+    // shade (black) under the highlight (white), each a mask on its own layer.
     .classicyWindowTitleCenter {
-      background-image: assets.$title-bar-utility;
-      background-repeat: repeat;
-      background-size: 4px 3px;
+      position: relative;
+      background-color: var(--color-system-03);
+
+      &::before,
+      &::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        mask-repeat: repeat;
+        mask-position: 0 0;
+        mask-size: 4px 3px;
+      }
+
+      &::before {
+        background-color: var(--color-black);
+        mask-image: var(--classicy-art-window-utility-shade);
+      }
+
+      &::after {
+        background-color: var(--color-white);
+        mask-image: var(--classicy-art-window-utility-highlight);
+      }
     }
   }
 
@@ -129,21 +156,12 @@
     .classicyWindowTitleBar {
       .classicyWindowTitle {
         .classicyWindowTitleCenter {
-          background: assets.$title-bar-center;
+          @include mixins.platinum-title-bar-stripes(auto 100%);
         }
 
         .classicyWindowTitleLeft,
         .classicyWindowTitleRight {
-          background: assets.$title-bar-center;
-          background-size: auto 99.8%;
-
-          &:after {
-            background-image: assets.$title-bar-right;
-          }
-
-          &:before {
-            background-image: assets.$title-bar-left;
-          }
+          @include mixins.platinum-title-bar-stripes(auto 99.8%);
         }
       }
     }
@@ -155,21 +173,14 @@
     .classicyWindowTitleBar {
       .classicyWindowTitle {
         .classicyWindowTitleCenter {
-          background: assets.$title-bar-center-red;
-          background-size: auto 100%;
+          @include mixins.platinum-title-bar-stripes(auto 100%, "-red");
         }
 
+        // `auto`, written out: the active side bands' 99.8% would otherwise
+        // show through (the old `background:` shorthand reset it).
         .classicyWindowTitleLeft,
         .classicyWindowTitleRight {
-          background: assets.$title-bar-center-red;
-
-          &:after {
-            background-image: assets.$title-bar-right-red;
-          }
-
-          &:before {
-            background-image: assets.$title-bar-left-red;
-          }
+          @include mixins.platinum-title-bar-stripes(auto, "-red");
         }
       }
     }

@@ -27,9 +27,9 @@ const PLATINUM = "platinum";
  *
  * Not registered (Platinum registers 34 of the 44 `ClassicySystemArtKey`s; the
  * rest resolve to `undefined`): `titleBarCapLeft`, `titleBarCapRight`,
- * `titleBarCapLeftRed` and `titleBarCapRightRed` have SVGs under `art/`
- * (`title-bar-left.svg`, `-right.svg` and the red pair) but stay unregistered
- * until Part E decides whether the window chrome draws them. `menuCheck` and
+ * `titleBarCapLeftRed` and `titleBarCapRightRed` have no art, because the
+ * Platinum title bar draws no caps (its side-band cap boxes were 0px tall, so
+ * their art never painted and was removed). `menuCheck` and
  * `menuDash` are Unicode glyphs in `ClassicyMenu`, so those keys have no file
  * at all. `triangle` and `downArrow` are aliases of `submenuArrow` and
  * `popupArrows`.

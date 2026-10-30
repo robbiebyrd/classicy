@@ -15,19 +15,15 @@ const read = (file: string): string =>
 
 /**
  * Art that is not a mask. The grip, dither and strikes stay images (their
- * grays are the art); the arrow cursor is a cursor; the four title-bar caps
- * stay verbatim and unregistered until the Phase 0 cap measurement decides
- * whether they are drawn at all (Ruling E13).
+ * grays are the art); the arrow cursor is a cursor. (The four title-bar cap
+ * SVGs are gone: the Phase 0 cap measurement found them never drawn, Ruling
+ * E13.)
  */
 const NOT_MASKS = [
 	"resizer.svg",
 	"corner-dither.svg",
 	"slider-strikes.svg",
 	"cursor-arrow.svg",
-	"title-bar-left.svg",
-	"title-bar-right.svg",
-	"title-bar-left-red.svg",
-	"title-bar-right-red.svg",
 ];
 
 /** Every `fill`, `stroke` and `stop-color` attribute: [, name, value]. */

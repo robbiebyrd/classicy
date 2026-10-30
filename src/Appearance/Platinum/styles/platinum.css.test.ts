@@ -325,7 +325,9 @@ describe("platinum.scss (compiled)", () => {
 		expect(
 			rule(`${P} .classicyWindow .classicyWindowTitleBar`).props.border,
 		).toBe("none");
-		// P3, P4: utility stripes off; longhands after their shorthand.
+		// P3, P4: utility stripes off; the stripe masks keep the sizes the
+		// striped images had (Part E 2.1; ClassicyWindow.art.test.ts has the
+		// rest of the masks).
 		const group = (prefix: string, a: string, b: string) =>
 			`${prefix} ${a}, ${prefix} ${b}`;
 		const utility = `${P} .classicyWindow.classicyWindowUtility .classicyWindowTitleBar .classicyWindowTitle`;
@@ -335,26 +337,80 @@ describe("platinum.scss (compiled)", () => {
 			).props.background,
 		).toBe("none");
 		expect(
-			rule(`${utility} .classicyWindowTitleCenter`).props["background-size"],
+			rule(
+				group(
+					utility,
+					".classicyWindowTitleLeft::before",
+					".classicyWindowTitleRight::before",
+				),
+			).props.content,
+		).toBe("none");
+		expect(
+			rule(
+				group(
+					utility,
+					".classicyWindowTitleCenter::before",
+					".classicyWindowTitleCenter::after",
+				),
+			).props["mask-size"],
 		).toBe("4px 3px");
 		const active = `${P} :where(.classicyWindow).active .classicyWindowTitleBar .classicyWindowTitle`;
+		// The windoid's side bands drop the active stripes, after them.
 		expect(
 			rule(
-				group(active, ".classicyWindowTitleLeft", ".classicyWindowTitleRight"),
-			).props["background-size"],
+				group(
+					utility,
+					".classicyWindowTitleLeft::before",
+					".classicyWindowTitleRight::before",
+				),
+			).at,
+		).toBeLessThan(
+			rule(
+				group(
+					active,
+					".classicyWindowTitleLeft::before",
+					".classicyWindowTitleRight::before",
+				),
+			).at,
+		);
+		expect(
+			rule(
+				group(
+					active,
+					".classicyWindowTitleLeft::before",
+					".classicyWindowTitleRight::before",
+				),
+			).props["mask-size"],
 		).toBe("auto 99.8%");
+		const red = `${P} .classicyWindowRed .classicyWindowTitleBar .classicyWindowTitle`;
+		expect(
+			rule(`${red} .classicyWindowTitleCenter::before`).props["mask-size"],
+		).toBe("auto 100%");
+		// The red side bands follow the active ones and write their `auto`.
+		const redSides = rule(
+			group(
+				red,
+				".classicyWindowTitleLeft::before",
+				".classicyWindowTitleRight::before",
+			),
+		);
+		expect(redSides.props["mask-size"]).toBe("auto");
+		expect(redSides.at).toBeGreaterThan(
+			rule(
+				group(
+					active,
+					".classicyWindowTitleLeft::before",
+					".classicyWindowTitleRight::before",
+				),
+			).at,
+		);
 		expect(
 			rule(
-				`${P} .classicyWindowRed .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleCenter`,
-			).props["background-size"],
+				`${P} .classicyWindow:has(.classicyAlertMovable) .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleCenter::before`,
+			).props["mask-size"],
 		).toBe("auto 100%");
 		expect(
-			rule(
-				`${P} .classicyWindow:has(.classicyAlertMovable) .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleCenter`,
-			).props["background-size"],
-		).toBe("auto 100%");
-		expect(
-			rule(`${P} .classicyWindowFrameTitleBar`).props["background-size"],
+			rule(`${P} .classicyWindowFrameTitleBar::before`).props["mask-size"],
 		).toBe("auto 100%");
 		// The control boxes' glyphs sit top left, over the mixin's centering,
 		// and the utility boxes keep their smaller size and glyph offset.
@@ -891,6 +947,7 @@ describe("the moved Platinum mixin files", () => {
 			"mixin platinum-depressable-box-shadow-active",
 			"function platinum-encode-color",
 			"mixin platinum-halftone",
+			"mixin platinum-title-bar-stripes",
 		]);
 		expect(declared("_scrollbars.scss")).toEqual([
 			"mixin platinum-scrollbar-glyph-up",
@@ -904,14 +961,18 @@ describe("the moved Platinum mixin files", () => {
 			"mixin platinum-scrollbars-inactive",
 			"mixin platinum-scrollbars-themed",
 		]);
-		expect(declared("_assets.scss")).toEqual([]);
+		expect(declared("_assets.scss")).toEqual([
+			"mixin platinum-root-properties",
+		]);
 		for (const file of ["_mixins.scss", "_scrollbars.scss", "_assets.scss"])
 			expect(read(`${STYLES}/${file}`)).not.toMatch(
 				/platinum[A-Z]|\bsb-(?:glyph|btn)|theme-halftone|[^-]encode-color|[^-]px-rect|[^-]no-select/,
 			);
 	});
 
-	it("_assets.scss declares the Platinum art variables, and no mixin", () =>
+	// The title-bar stripes and texture are registered art (Part E 2.1); the
+	// rest go as their consumers move to `--classicy-art-*`.
+	it("_assets.scss declares the Platinum art variables, and the root-properties mixin", () =>
 		expect(
 			[...read(`${STYLES}/_assets.scss`).matchAll(/^\$([\w-]+):/gm)].map(
 				([, name]) => name,
@@ -920,17 +981,22 @@ describe("the moved Platinum mixin files", () => {
 			"corner-dither",
 			"collapse",
 			"zoom",
-			"title-bar-center",
-			"title-bar-left",
-			"title-bar-right",
-			"title-bar-utility",
 			"resizer",
 			"triangle",
 			"down-arrow",
-			"title-bar-center-red",
-			"title-bar-left-red",
-			"title-bar-right-red",
 		]));
+
+	it("platinum-root-properties compiles to its pinned output", () =>
+		expect(
+			include(`${STYLES}/assets`, "platinum-root-properties", ""),
+		).toMatchInlineSnapshot(`
+			".x {
+			  --platinum-stripe-light: var(--color-white);
+			  --platinum-stripe-dark: #787878;
+			  --platinum-stripe-red-light: #f9dada;
+			  --platinum-stripe-red-dark: #ef8c89;
+			}"
+		`));
 
 	// Sass evaluates a mixin body only when it is included, so each mixin is
 	// included into `.x` and its whole output pinned: a body edit to any
@@ -1212,6 +1278,48 @@ describe("the moved Platinum mixin files", () => {
 			  background-image: url('data:image/svg+xml,<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 2.8 2.8" xml:space="preserve"><path fill="%23C0C0C0" d="M1,1.2H0.5C0.3,1.2,0.2,1.2,0.2,1V0.5c0-0.1,0.1-0.2,0.2-0.2H1c0.1,0,0.2,0.1,0.2,0.2V1C1.2,1.2,1.2,1.2,1,1.2z"/><path fill="%23C0C0C0" d="M2.3,2.5H1.7c-0.1,0-0.2-0.1-0.2-0.2V1.7c0-0.1,0.1-0.2,0.2-0.2h0.6c0.1,0,0.2,0.1,0.2,0.2v0.6C2.5,2.4,2.4,2.5,2.3,2.5z"/></svg>');
 			  background-repeat: repeat;
 			  background-size: 10%;
+			}"
+		`));
+
+	it("platinum-title-bar-stripes compiles to its pinned output", () =>
+		expect(
+			mixin("platinum-title-bar-stripes", "(auto 99.8%)"),
+		).toMatchInlineSnapshot(`
+			".x {
+			  position: relative;
+			  background-color: var(--platinum-stripe-light);
+			}
+			.x::before {
+			  content: "";
+			  position: absolute;
+			  inset: 0;
+			  pointer-events: none;
+			  background-color: var(--platinum-stripe-dark);
+			  mask-image: var(--classicy-art-window-stripes);
+			  mask-repeat: repeat;
+			  mask-position: 0 0;
+			  mask-size: auto 99.8%;
+			}"
+		`));
+
+	it("platinum-title-bar-stripes compiles to its pinned output, red", () =>
+		expect(
+			mixin("platinum-title-bar-stripes", '(auto, "-red")'),
+		).toMatchInlineSnapshot(`
+			".x {
+			  position: relative;
+			  background-color: var(--platinum-stripe-red-light);
+			}
+			.x::before {
+			  content: "";
+			  position: absolute;
+			  inset: 0;
+			  pointer-events: none;
+			  background-color: var(--platinum-stripe-red-dark);
+			  mask-image: var(--classicy-art-window-stripes-red);
+			  mask-repeat: repeat;
+			  mask-position: 0 0;
+			  mask-size: auto;
 			}"
 		`));
 
