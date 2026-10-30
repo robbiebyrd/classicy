@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import type { ClassicyStoreSystemApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { CLASSICY_SEEDED_PLACEHOLDER } from "@/SystemFolder/SystemResources/File/ClassicyDerivedFolderPlaceholders.internal";
 import { resetClassicyDerivedAppEntryNameWarnings } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
 import {
 	buildExtensionsFolder,
@@ -270,25 +271,28 @@ describe("withExtensionsFolder keeps static files, replacing only placeholders",
 		vi.restoreAllMocks();
 	});
 
+	const treeWith = (statics: Record<string, unknown>) =>
+		({
+			"Macintosh HD": {
+				_type: ClassicyFileSystemEntryFileType.Drive,
+				"System Folder": {
+					_type: ClassicyFileSystemEntryFileType.Directory,
+					Extensions: {
+						_type: ClassicyFileSystemEntryFileType.Directory,
+						...statics,
+					},
+				},
+			},
+		}) as unknown as ClassicyFileSystemEntry;
 	const extensionsWith = (
 		statics: Record<string, unknown>,
 		apps: ClassicyStoreSystemApp[],
 	) =>
-		withExtensionsFolder(
-			{
-				"Macintosh HD": {
-					_type: ClassicyFileSystemEntryFileType.Drive,
-					"System Folder": {
-						_type: ClassicyFileSystemEntryFileType.Directory,
-						Extensions: {
-							_type: ClassicyFileSystemEntryFileType.Directory,
-							...statics,
-						},
-					},
-				},
-			} as unknown as ClassicyFileSystemEntry,
-			apps,
-		)["Macintosh HD"]["System Folder"].Extensions;
+		withExtensionsFolder(treeWith(statics), apps)["Macintosh HD"][
+			"System Folder"
+		].Extensions;
+	/** The seeded stand-in, under the Clock extension's name. */
+	const clockStandIn = () => ({ ...CLASSICY_SEEDED_PLACEHOLDER });
 
 	it('keeps a user file named like an extension, listing it as "<own name> (<id>)"', () => {
 		const extensions = extensionsWith(
@@ -307,26 +311,35 @@ describe("withExtensionsFolder keeps static files, replacing only placeholders",
 		expect(warnings()[0]).toMatchObject({
 			subsystem: "ClassicyFileSystem",
 			message:
-				'App display name unusable in Extensions; using "Clock (Clock.app)"',
+				'Name "Clock" already taken in Extensions; using "Clock (Clock.app)"',
 			details: [{ appId: "Clock.app", name: "Clock" }],
 		});
 	});
 
-	it("lets a marked placeholder give way to its extension", () => {
+	it("lets a marked placeholder give way to its extension while it is exactly as seeded", () => {
+		const extensions = extensionsWith({ Clock: clockStandIn() }, [
+			app("Clock.app", "Clock"),
+		]);
+
+		expect(extensions.Clock._creator).toBe("Clock.app");
+		expect(extensions["Clock (Clock.app)"]).toBeUndefined();
+		expect(warnings()).toHaveLength(0);
+	});
+
+	it("keeps a marked placeholder once edited (K-R11)", () => {
 		const extensions = extensionsWith(
 			{
 				Clock: {
-					_type: ClassicyFileSystemEntryFileType.File,
-					_invisible: true,
-					_placeholder: true,
+					...clockStandIn(),
+					_data: "mine",
+					_modifiedOn: "2026-10-30T00:00:00.000Z",
 				},
 			},
 			[app("Clock.app", "Clock")],
 		);
 
-		expect(extensions.Clock._creator).toBe("Clock.app");
-		expect(extensions["Clock (Clock.app)"]).toBeUndefined();
-		expect(warnings()).toHaveLength(0);
+		expect(extensions.Clock._data).toBe("mine");
+		expect(extensions["Clock (Clock.app)"]._creator).toBe("Clock.app");
 	});
 
 	it("recognizes the unmarked old placeholders in Applications only", () => {

@@ -74,8 +74,8 @@ export const buildExtensionsFolder = (
  * Returns a copy of the tree with the derived Extensions folder merged into
  * "System Folder" on its first drive (creating the folder when a custom tree
  * lacks one). Static Extensions children, a user's files among them, are
- * kept: no extension takes one's name, and only a `_placeholder` entry gives
- * way to the extension of its name. Entries from an earlier build whose
+ * kept: no extension takes one's name, and only a `_placeholder` entry still
+ * exactly as seeded gives way to the extension of its name. Entries from an earlier build whose
  * extension is gone are dropped. The input tree is not mutated, and a tree with no drive — or
  * with nothing to add or drop — passes through unchanged. `overrides` and
  * `separator` go to `buildExtensionsFolder`.

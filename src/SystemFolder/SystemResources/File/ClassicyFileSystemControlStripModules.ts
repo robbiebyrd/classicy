@@ -98,7 +98,7 @@ export const buildControlStripModulesFolder = (
  * merged into "System Folder" on its first drive (creating System Folder when
  * a custom tree lacks one). Static children of the folder, a user's files
  * among them, are kept: no module takes one's name, and only a `_placeholder`
- * entry gives way to the module of its name. Entries from an earlier build
+ * entry still exactly as seeded gives way to the module of its name. Entries from an earlier build
  * whose module is gone are dropped. The input is not mutated, and a tree with no
  * drive — or with nothing to add or drop — passes through unchanged.
  */

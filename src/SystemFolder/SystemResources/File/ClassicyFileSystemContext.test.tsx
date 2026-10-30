@@ -582,6 +582,13 @@ describe("useClassicyFileSystem keeps user files in the derived folders", () => 
 	const stored = () =>
 		JSON.parse(localStorage.getItem(STORAGE_KEY) as string)["Macintosh HD"];
 
+	// The default tree as this file loaded it. A fresh boot's live tree is
+	// DefaultFSContent itself, so an edit made on one leaks into every later
+	// test; the tests that edit start from this stored copy instead.
+	const PRISTINE_TREE = structuredClone(DefaultFSContent);
+	const bootFromStoredDefaults = () =>
+		localStorage.setItem(STORAGE_KEY, JSON.stringify(PRISTINE_TREE));
+
 	beforeEach(() => {
 		// A previous case's debounced write would land on this case's storage.
 		flushClassicyFileSystemPendingForStorageKey(STORAGE_KEY);
@@ -608,6 +615,7 @@ describe("useClassicyFileSystem keeps user files in the derived folders", () => 
 	});
 
 	it("keeps a user file named like an installed app across a rebuild, a save and a reload", () => {
+		bootFromStoredDefaults();
 		const { result } = renderHook(() => useClassicyFileSystem());
 		const fs = () => result.current;
 		addAppIcon("TV.app", "TV");
@@ -641,12 +649,13 @@ describe("useClassicyFileSystem keeps user files in the derived folders", () => 
 
 		// One warning per folder, however many rebuilds ran.
 		expect(warnings().map((entry) => entry.message)).toEqual([
-			'App display name unusable in Applications; using "TV (TV.app)"',
-			'App display name unusable in Extensions; using "Clock (Clock.app)"',
+			'Name "TV" already taken in Applications; using "TV (TV.app)"',
+			'Name "Clock" already taken in Extensions; using "Clock (Clock.app)"',
 		]);
 	});
 
 	it("never loses a user file across a package switch and back", () => {
+		bootFromStoredDefaults();
 		const { result } = renderHook(() => useClassicyFileSystem());
 		const fs = () => result.current;
 		addAppIcon("TV.app", "TV");
@@ -705,9 +714,42 @@ describe("useClassicyFileSystem keeps user files in the derived folders", () => 
 		expect(warnings()).toHaveLength(0);
 	});
 
+	it("keeps the Calculator placeholder once the user has saved into it (K-R11)", () => {
+		// The review's P1: a stand-in edited through SimpleText's save path,
+		// then an app of its name appears.
+		bootFromStoredDefaults();
+		const { result } = renderHook(() => useClassicyFileSystem());
+		const fs = () => result.current;
+		act(() => {
+			fs().setMetadata(`${APPLICATIONS}:Calculator`, {
+				_data: "my sums",
+				_modifiedOn: new Date(),
+			});
+		});
+		fs().flushNow();
+		expect(stored().Applications.Calculator._placeholder).toBe(true);
+
+		addAppIcon("Calculator.app", "Calculator");
+
+		const expectEditKept = () => {
+			expect(fs().resolve(`${APPLICATIONS}:Calculator`)._data).toBe("my sums");
+			expect(
+				fs().resolve(`${APPLICATIONS}:Calculator (Calculator.app)`)._creator,
+			).toBe("Calculator.app");
+		};
+		expectEditKept();
+
+		saveAndReload(fs);
+		expect(stored().Applications.Calculator._data).toBe("my sums");
+		expectEditKept();
+		expect(warnings().map((entry) => entry.message)).toEqual([
+			'Name "Calculator" already taken in Applications; using "Calculator (Calculator.app)"',
+		]);
+	});
+
 	it("hands the unmarked placeholders an older build stored to the real apps", () => {
 		// A returning visitor's tree, saved before placeholders were marked.
-		const tree = structuredClone(DefaultFSContent) as ClassicyFileSystemTree;
+		const tree = structuredClone(PRISTINE_TREE) as ClassicyFileSystemTree;
 		const legacy = tree["Macintosh HD"].Applications;
 		delete legacy.SimpleText._placeholder;
 		delete legacy.Calculator._placeholder;

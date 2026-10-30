@@ -6,58 +6,98 @@ import {
 /**
  * Which static entries of a derived folder (Applications, Extensions,
  * Control Strip Modules) give way to an app or module of the same name, and
- * which keep their name (story 0096). Only placeholders give way; any other
- * entry, a user's file above all, is reserved, and the app is listed beside
- * it as "<own name> (<id>)" (K-R4).
+ * which keep their name (story 0096). Only an untouched placeholder gives
+ * way; any other entry, a user's file above all, is reserved, and the app is
+ * listed beside it as "<own name> (<id>)" (K-R4).
  */
 
-/** The Applications entries Platinum's default tree seeded as invisible
- *  stand-ins for its apps, before placeholders were marked. */
+/**
+ * The stand-in Platinum seeds in Applications for SimpleText and Calculator,
+ * every key and value of it. DefaultFSContent holds copies, never this object,
+ * so an edit to a live stand-in (a fresh boot's tree is DefaultFSContent
+ * itself) can never change what "as seeded" means.
+ */
+export const CLASSICY_SEEDED_PLACEHOLDER: Readonly<ClassicyFileSystemEntry> =
+	Object.freeze({
+		_type: ClassicyFileSystemEntryFileType.File,
+		_mimeType: "text/plain",
+		_data: "File Contents",
+		_invisible: true,
+		_placeholder: true,
+	});
+
+/** The same stand-in as builds before `_placeholder` stored it. */
+const LEGACY_PLACEHOLDER_SHAPE: Readonly<Record<string, unknown>> =
+	Object.freeze(
+		Object.fromEntries(
+			Object.entries(CLASSICY_SEEDED_PLACEHOLDER).filter(
+				([key]) => key !== "_placeholder",
+			),
+		),
+	);
+
+/** The Applications entries those builds seeded it under. */
 const LEGACY_APPLICATIONS_PLACEHOLDER_NAMES: ReadonlySet<string> = new Set([
 	"SimpleText",
 	"Calculator",
 ]);
 
-/** Every key and value those stand-ins had, and nothing else. */
-const LEGACY_PLACEHOLDER_SHAPE: Readonly<Record<string, unknown>> = {
-	_type: ClassicyFileSystemEntryFileType.File,
-	_mimeType: "text/plain",
-	_data: "File Contents",
-	_invisible: true,
-};
-
-/**
- * Whether `entry`, at `name` in Applications, is a SimpleText or Calculator
- * stand-in that a build before `_placeholder` stored. It must match exactly:
- * the name, and exactly the four keys and values the default tree gave it.
- * No user file can: `writeFile` always adds `_createdOn` and writes a
- * `text_file`, `mkDir` makes folders, and moves into the read-only
- * Applications folder are refused. So only a host writing that exact entry
- * on purpose (a default tree, a `load`, a seed migration) could make one.
- */
-const isLegacyApplicationsPlaceholder = (
-	name: string,
+/** Whether `entry` has exactly `shape`'s own keys, each with the same value. */
+const hasExactShape = (
 	entry: ClassicyFileSystemEntry,
+	shape: Readonly<Record<string, unknown>>,
 ): boolean => {
-	if (!LEGACY_APPLICATIONS_PLACEHOLDER_NAMES.has(name)) return false;
-	const keys = Object.keys(entry);
-	const shapeKeys = Object.keys(LEGACY_PLACEHOLDER_SHAPE);
+	const shapeKeys = Object.keys(shape);
 	return (
-		keys.length === shapeKeys.length &&
+		Object.keys(entry).length === shapeKeys.length &&
 		shapeKeys.every(
-			(key) =>
-				Object.hasOwn(entry, key) &&
-				entry[key] === LEGACY_PLACEHOLDER_SHAPE[key],
+			(key) => Object.hasOwn(entry, key) && entry[key] === shape[key],
 		)
 	);
 };
 
 /**
+ * Whether `entry`, at `name`, is a placeholder that still gives way:
+ *
+ * - A marked entry (`_placeholder: true`) only while it is exactly as seeded
+ *   (K-R11): no `_modifiedOn`, and `_data` and every other key equal to
+ *   `CLASSICY_SEEDED_PLACEHOLDER`'s. Once a user edits it (SimpleText saves
+ *   through `setMetadata({ _data, _modifiedOn })`, which keeps the marker),
+ *   it is the user's file and wins like any other.
+ * - With `legacyApplicationsPlaceholders` (the Applications folder), an
+ *   unmarked SimpleText or Calculator stand-in that a build before
+ *   `_placeholder` stored: that name, and exactly the seeded keys and values
+ *   less the marker.
+ *
+ * No file a user makes has either shape. `writeFile` always adds
+ * `_createdOn` and writes a `text_file`; the save dialog passes `_type` and
+ * `_icon`; a SimpleText save adds `_modifiedOn`; the Trash adds its
+ * `_trashed*` keys (and Restore removes them); no library path sets
+ * `_invisible` on a file. A move keeps an entry's own keys, so it never turns
+ * a user's file into either shape, whether or not Applications is read-only
+ * at the time. Only a host writing that exact entry on purpose (a default
+ * tree, a `load`, a seed migration) could.
+ */
+const isPlaceholder = (
+	name: string,
+	entry: ClassicyFileSystemEntry,
+	legacyApplicationsPlaceholders: boolean,
+): boolean => {
+	if (entry._placeholder === true) {
+		return hasExactShape(entry, CLASSICY_SEEDED_PLACEHOLDER);
+	}
+	return (
+		legacyApplicationsPlaceholders &&
+		LEGACY_APPLICATIONS_PLACEHOLDER_NAMES.has(name) &&
+		hasExactShape(entry, LEGACY_PLACEHOLDER_SHAPE)
+	);
+};
+
+/**
  * The names of `folder`'s static entries that an app or module may not
- * take: every child (metadata keys aside) except a placeholder, which is an
- * entry marked `_placeholder: true` or, with `legacyApplicationsPlaceholders`
- * (the Applications folder), an unmarked SimpleText or Calculator stand-in
- * an older build stored.
+ * take: every child (metadata keys aside) except a placeholder that still
+ * gives way (see `isPlaceholder`). A child that is not an entry object is
+ * reserved too.
  */
 export const classicyDerivedFolderReservedNames = (
 	folder: ClassicyFileSystemEntry | undefined,
@@ -68,11 +108,7 @@ export const classicyDerivedFolderReservedNames = (
 				if (name.startsWith("_")) return false;
 				const entry = folder[name];
 				if (typeof entry !== "object" || entry === null) return true;
-				if (entry._placeholder === true) return false;
-				return !(
-					legacyApplicationsPlaceholders &&
-					isLegacyApplicationsPlaceholder(name, entry)
-				);
+				return !isPlaceholder(name, entry, legacyApplicationsPlaceholders);
 			})
 		: [];
 

@@ -156,9 +156,9 @@ export const buildApplicationsFolder = (
 /**
  * Returns a copy of the tree with the derived Applications folder merged into
  * its first drive. Static Applications children, a user's files among them,
- * are kept: no app takes one's name. Only a placeholder (`_placeholder`, or
- * the unmarked SimpleText and Calculator stand-ins older builds stored) gives
- * way to the app of its name. Entries from an earlier build
+ * are kept: no app takes one's name. Only an untouched placeholder (a
+ * `_placeholder` entry exactly as seeded, or the unmarked SimpleText and
+ * Calculator stand-ins older builds stored) gives way to the app of its name. Entries from an earlier build
  * whose app is gone are dropped. The input tree is not mutated, and a tree
  * with no drive — or with nothing to add or drop — passes through unchanged.
  * `overrides` and `separator` go to `buildApplicationsFolder`.
