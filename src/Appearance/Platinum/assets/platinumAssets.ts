@@ -25,11 +25,10 @@ const PLATINUM = "platinum";
  * sources) is the data module `pixelart/platinumPixelArt.ts`; both are spread
  * in here.
  *
- * Not registered (Platinum registers 34 of the 39 `ClassicySystemArtKey`s; the
+ * Not registered (Platinum registers 36 of the 39 `ClassicySystemArtKey`s; the
  * rest resolve to `undefined`): `menuCheck` and `menuDash` are `::before`
  * glyphs in the Platinum package, so those keys have no file at all;
- * `aboutBackground`, `quickTimeThumbSlider` and `quickTimeVolumeSlider` have no
- * Platinum art. `triangle` and `downArrow` are aliases of `submenuArrow` and
+ * `aboutBackground` has no Platinum art. `triangle` and `downArrow` are aliases of `submenuArrow` and
  * `popupArrows`.
  */
 registerClassicySystemArt(PLATINUM, {

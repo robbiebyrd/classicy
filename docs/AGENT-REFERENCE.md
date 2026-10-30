@@ -1514,7 +1514,7 @@ bevel, border, gradient and piece of art moved into Platinum's own stylesheet
 
 ### System art
 
-`ClassicySystemArtKey` is a union of 39 keys. Platinum registers 34 of them;
+`ClassicySystemArtKey` is a union of 39 keys. Platinum registers 36 of them;
 the rest resolve to `undefined` and their consumers fall back to the stylesheet
 default (or draw nothing). Each registered entry is published on the desktop
 root as `--classicy-art-<kebab-key>` (pixel art excepted: its
@@ -1530,14 +1530,15 @@ root as `--classicy-art-<kebab-key>` (pixel art excepted: its
 | `submenuArrow`, `popupArrows` (and their aliases `triangle`, `downArrow`) | the submenu triangle (`::after` image) and the pop-up double arrow (the indicator's image) |
 | `sliderThumb`, `sliderThumbRect`, `sliderStrikes` | the slider thumb's image layers |
 | `tabOutline` | the tab wrapper's image |
+| `quickTimeThumbSlider`, `quickTimeVolumeSlider` | the QuickTime controller's seek and volume thumbs, their `::-webkit-slider-thumb` images |
 | `halftone`, `halftoneLarge` | the open-icon dot pattern (the mask of `platinum-halftone`'s `::before`, no fallback) and the pre-boot dither |
 | `controlStripTab`, `controlStripCollapse`, `controlStripScrollLeft`, `controlStripScrollLeftDisabled`, `controlStripScrollRight`, `controlStripScrollRightDisabled`, `controlStripModuleArrow`, `popUpSliderTrack`, `popUpSliderThumb` | `ClassicyPixelArt` rows (`<ClassicyPixelArt art={key} />`, `useClassicyPixelArtRows`) |
 
-Unregistered by Platinum (5 keys): `aboutBackground`, `quickTimeThumbSlider`,
-`quickTimeVolumeSlider` (no Platinum art), and `menuCheck`, `menuDash` (the
-menu check and dash are `::before` glyphs in Platinum's menu partial).
+Unregistered by Platinum (3 keys): `aboutBackground` (no Platinum art), and
+`menuCheck`, `menuDash` (the menu check and dash are `::before` glyphs in
+Platinum's menu partial).
 
-The window, menu, pop-up, slider and tab art is drawn as **image layers**,
+The window, menu, pop-up, slider, tab and QuickTime art is drawn as **image layers**,
 never masks, so it shows the colors the file holds (`currentColor` draws black
 in an image), and a package recolors it by registering recolored files. A mask
 over a theme color would recolor with the theme, but it anti-aliases edges

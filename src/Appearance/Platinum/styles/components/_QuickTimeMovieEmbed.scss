@@ -1,5 +1,6 @@
 // The Platinum QuickTime controller look (from QuickTimeMovieEmbed.scss): the
-// raised time display, buttons and seek-bar holder, and the volume pop-up's
+// raised time display, buttons and seek-bar holder, the volume pop-up's
+// bevel, the slider thumbs' art and drop shadow, and the volume track's inset
 // bevel. The controller's cells butt together, so each drops the mixin's
 // border and rounded corners right after it, as the base rule did.
 @use "../mixins";
@@ -24,5 +25,26 @@
 
   .quickTimePlayerVideoControlsVolumeBar {
     @include mixins.platinum-window-inner-box-shadow;
+  }
+
+  // The thumbs are the registered art (`quickTimeThumbSlider`,
+  // `quickTimeVolumeSlider`), drawn as image layers over the base sheet's
+  // geometry; the volume thumb's rule follows the shared one, as in base.
+  .quickTimePlayerVideoControlsProgressBar::-webkit-slider-thumb,
+  .quickTimePlayerVideoControlsVolumeBar::-webkit-slider-thumb {
+    background-image: var(--classicy-art-quick-time-thumb-slider);
+    filter: drop-shadow(
+      var(--window-border-size) var(--window-border-size) var(--window-border-size) var(--color-system-06)
+    );
+  }
+
+  .quickTimePlayerVideoControlsVolumeBar::-webkit-slider-thumb {
+    background-image: var(--classicy-art-quick-time-volume-slider);
+  }
+
+  .quickTimePlayerVideoControlsVolumeBar::-webkit-slider-runnable-track {
+    border: var(--window-border-size) solid var(--color-theme-04);
+    box-shadow: inset var(--window-border-size) var(--window-border-size) var(--window-border-size) var(--color-theme-04),
+      inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--window-border-size) var(--color-theme-06);
   }
 }

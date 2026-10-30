@@ -143,11 +143,10 @@
   margin-top: calc(var(--window-control-size) * -0.5);
   margin-left: calc(var(--window-control-size) * -0.25);
   cursor: pointer;
-  background: url('./thumb-slider.svg') no-repeat;
+  // The thumb art (and its drop shadow) is the package's
+  // (`quickTimeThumbSlider`, `quickTimeVolumeSlider`); this keeps its geometry.
+  background-repeat: no-repeat;
   background-size: contain;
-  filter: drop-shadow(
-                  var(--window-border-size) var(--window-border-size) var(--window-border-size) var(--color-system-06)
-  );
   -webkit-appearance: none;
 }
 
@@ -157,7 +156,8 @@
   margin-top: 0;
   margin-right: calc(var(--window-control-size) * -0.25);
   margin-left: 0;
-  background: url('./volume-slider.svg') no-repeat;
+  background-repeat: no-repeat;
+  background-size: auto;
 }
 
 .quickTimePlayerVideoControlsVolumeBar::-webkit-slider-runnable-track {
@@ -168,10 +168,8 @@
   margin-right: var(--control-padding);
   margin-left: calc(var(--window-padding-size) * .75);
   cursor: pointer;
-  border: var(--window-border-size) solid var(--color-theme-04);
   background: transparent;
-  box-shadow: inset var(--window-border-size) var(--window-border-size) var(--window-border-size) var(--color-theme-04),
-  inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--window-border-size) var(--color-theme-06);
+  // Its border and inset bevel are in the Platinum package.
 }
 
 .quickTimePlayerVideoControlsVolumeBar:focus::-webkit-slider-runnable-track {

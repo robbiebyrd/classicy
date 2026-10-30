@@ -25,14 +25,16 @@ const art = platinumArt;
  * Images in their own colors: the title-bar stripes (gray and red) and the
  * windoid texture, which each band draws as its background image (owner
  * ruling E20: masks blend the anti-aliased row boundaries of a band drawn at
- * a fractional scale or position differently from the one image), and the
- * grip, the dither and the slider strikes (their grays are the art).
+ * a fractional scale or position differently from the one image), the grip,
+ * the dither and the slider strikes (their grays are the art), and the
+ * QuickTime controller's seek and volume thumbs.
  *
  * Single-color shapes (`fill`/`stroke` is `currentColor`, no intrinsic size,
  * the original `viewBox`): the zoom and collapse glyphs, the menu and pop-up
  * arrows, the thumb outlines, the tab outline and the halftone. Platinum draws
- * them as images too, where `currentColor` resolves to black; a package could
- * use them as masks over its own colors.
+ * all of them as images, where `currentColor` resolves to black, except the
+ * halftone, which `platinum-halftone` uses as a mask; a package could use any
+ * of them as masks over its own colors.
  */
 export const PLATINUM_SYSTEM_ART: Readonly<
 	Partial<Record<ClassicySystemArtKey, ClassicyAssetSource>>
@@ -51,4 +53,6 @@ export const PLATINUM_SYSTEM_ART: Readonly<
 	sliderStrikes: art("slider-strikes.svg"),
 	tabOutline: art("tab-outline.svg"),
 	halftone: art("halftone.svg"),
+	quickTimeThumbSlider: art("quicktime-thumb-slider.svg"),
+	quickTimeVolumeSlider: art("quicktime-volume-slider.svg"),
 };

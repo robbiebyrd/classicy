@@ -17,7 +17,8 @@ const read = (file: string): string =>
  * Art that is not a mask. The title-bar stripes and the windoid texture are
  * images in their original colors (owner ruling E20: a mask cannot blend
  * their row boundaries as the one image does); the grip, dither and strikes
- * stay images (their grays are the art); the arrow cursor is a cursor. (The
+ * stay images (their grays are the art), as do the QuickTime controller's
+ * two-tone thumbs; the arrow cursor is a cursor. (The
  * four title-bar cap SVGs are gone: the Phase 0 cap measurement found them
  * never drawn, Ruling E13.)
  */
@@ -29,6 +30,8 @@ const NOT_MASKS = [
 	"corner-dither.svg",
 	"slider-strikes.svg",
 	"cursor-arrow.svg",
+	"quicktime-thumb-slider.svg",
+	"quicktime-volume-slider.svg",
 ];
 
 /** Every `fill`, `stroke` and `stop-color` attribute: [, name, value]. */
@@ -61,6 +64,8 @@ describe("Platinum window, menu, slider and tab art", () => {
 			"sliderStrikes",
 			"tabOutline",
 			"halftone",
+			"quickTimeThumbSlider",
+			"quickTimeVolumeSlider",
 		])
 			expect(
 				isClassicyAssetSource(
