@@ -32,6 +32,7 @@ import { createPortal } from "react-dom";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
+import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import {
 	CLASSICY_PART_ATTRIBUTE,
 	classicyStateClasses,
@@ -51,6 +52,10 @@ import {
 } from "@/SystemFolder/SystemResources/Analytics/ClassicyAnalyticsPath";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import { useClassicyCursor } from "@/SystemFolder/SystemResources/Cursor/useClassicyCursor";
+import {
+	type ClassicyWindowRect,
+	computeClassicyWindowResize,
+} from "@/SystemFolder/SystemResources/Window/ClassicyWindowResize";
 
 export type ClassicyWindowPositionX = number | "left" | "center" | "right";
 export type ClassicyWindowPositionY = number | "top" | "center" | "bottom";
@@ -598,6 +603,15 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const dragStartPointRef = useRef<[number, number]>([0, 0]);
 	const clickPositionRef = useRef<[number, number]>([0, 0]);
 	const wsPositionRef = useRef<[number, number]>([0, 0]);
+	// A resize gesture's anchor: the rect and chrome measured on grow-box press.
+	const resizeRectRef = useRef<ClassicyWindowRect>({
+		left: 0,
+		top: 0,
+		right: 0,
+		bottom: 0,
+	});
+	const chromeRef = useRef<[number, number]>([0, 0]);
+	const layout = useClassicyAppearanceLayout();
 	// #208: the user's window rect captured just before a zoom, restored on un-zoom.
 	const userStateRef = useRef<{
 		position: [number, number];
@@ -988,13 +1002,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		if (windowRef.current?.contains(e.target as Node)) return;
 
 		if (isResizingRef.current) {
-			const newWidth = Math.abs(wsPositionRef.current[0] - e.clientX) + 5;
-			const newHeight = Math.abs(wsPositionRef.current[1] - e.clientY) + 5;
-			pendingSizeRef.current = [newWidth, newHeight];
-			if (windowRef.current) {
-				windowRef.current.style.width = `${newWidth}px`;
-				windowRef.current.style.height = `${newHeight}px`;
-			}
+			applyResize(e.clientX, e.clientY);
 		}
 
 		if (isDraggingRef.current) {
@@ -1030,12 +1038,44 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		]);
 	};
 
+	// Both resize move handlers: the size from the corner opposite the grow
+	// box (the rect measured on press, not the store position) and, for any
+	// grow box but bottom-right, the left/top that keep that corner in place.
+	const applyResize = (clientX: number, clientY: number) => {
+		const corner = layout.window.growBoxCorner;
+		const { size, position } = computeClassicyWindowResize(
+			corner,
+			resizeRectRef.current,
+			[clientX, clientY],
+			chromeRef.current,
+		);
+		pendingSizeRef.current = size;
+		const el = windowRef.current;
+		if (!el) return;
+		el.style.width = `${size[0]}px`;
+		el.style.height = `${size[1]}px`;
+		if (corner !== "bottom-right") {
+			el.style.left = `${position[0]}px`;
+			el.style.top = `${position[1]}px`;
+		}
+	};
+
 	const startResizeWindow = (e: MouseEvent<HTMLDivElement>) => {
 		e.preventDefault();
 		track("resize", { type: "ClassicyWindow", ...analyticsArgs });
-		const left = windowRef?.current?.getBoundingClientRect().left ?? 0;
-		const top = windowRef?.current?.getBoundingClientRect().top ?? 0;
+		const rect = windowRef?.current?.getBoundingClientRect();
+		const left = rect?.left ?? 0;
+		const top = rect?.top ?? 0;
 		wsPositionRef.current = [left, top];
+		resizeRectRef.current = {
+			left,
+			top,
+			right: rect?.right ?? 0,
+			bottom: rect?.bottom ?? 0,
+		};
+		chromeRef.current = windowRef.current
+			? classicyWindowChromeSize(windowRef.current)
+			: [0, 0];
 		isResizingRef.current = true;
 		desktopEventDispatch({
 			type: "ClassicyWindowPosition",
@@ -1126,13 +1166,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		}
 
 		if (ws.resizing) {
-			const newWidth = Math.abs(ws.position[0] - e.clientX) + 5;
-			const newHeight = Math.abs(ws.position[1] - e.clientY) + 5;
-			pendingSizeRef.current = [newWidth, newHeight];
-			if (windowRef.current) {
-				windowRef.current.style.width = `${newWidth}px`;
-				windowRef.current.style.height = `${newHeight}px`;
-			}
+			applyResize(e.clientX, e.clientY);
 			emit("change", { kind: "resize" });
 		}
 

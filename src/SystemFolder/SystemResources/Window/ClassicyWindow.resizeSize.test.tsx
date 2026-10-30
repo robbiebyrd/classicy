@@ -6,11 +6,30 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render } from "@/__tests__/test-utils";
 import { windowsRecord } from "@/__tests__/windowsRecord";
 import {
+	type ClassicyAppearancePackage,
+	getClassicyAppearancePackage,
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+} from "@/Appearance/ClassicyAppearancePackage";
+import { connectClassicyAssetPackageSource } from "@/Appearance/ClassicyAssetPackageSource.internal";
+import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import {
 	ClassicyWindow,
 	classicyWindowContentSize,
 } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
 const mockDispatch = vi.hoisted(() => vi.fn());
+// The mocked store's window record: `resizing` is what a grow-box press
+// writes, and the window's own mousemove handler only resizes while it is set.
+const mockWindow = vi.hoisted(() => ({ resizing: false }));
+
+// The store is mocked, so nothing connects the active package id; stand in
+// for the store's connection (`Appearance.packageId`).
+const activePackage = { id: "platinum" };
+connectClassicyAssetPackageSource({
+	getId: () => activePackage.id,
+	subscribe: () => () => {},
+});
 
 vi.mock(
 	"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils",
@@ -32,7 +51,7 @@ vi.mock(
 										focused: false,
 										dragging: false,
 										moving: false,
-										resizing: false,
+										resizing: mockWindow.resizing,
 										zoomed: false,
 										closed: false,
 										size: [425, 300] as [number, number],
@@ -324,5 +343,95 @@ describe("ClassicyWindow stored size (#291)", () => {
 			expect(root.style.width).toBe("625px");
 			expect(root.style.height).toBe("330px");
 		});
+	});
+});
+
+// F 4.1: the grip may sit in any corner the active package declares; the
+// resize anchors the corner opposite it, so the edges beside the grip move.
+describe("ClassicyWindow resize with a mirrored grow box", () => {
+	let platinum: ClassicyAppearancePackage | undefined;
+	let rectSpy: ReturnType<typeof vi.spyOn>;
+
+	beforeEach(() => {
+		mockDispatch.mockClear();
+		platinum = getClassicyAppearancePackage("platinum");
+		registerClassicyAppearancePackage({
+			id: "test-mirror",
+			name: "Mirror",
+			css: "",
+			defaults: {
+				...getTheme("default"),
+				id: "test-mirror-default",
+				package: "test-mirror",
+			},
+			layout: {
+				window: { growBoxCorner: "bottom-left" },
+				menuBar: { placement: "window" },
+				desktop: { iconGridOrigin: "top-left" },
+			},
+		});
+		activePackage.id = "test-mirror";
+		rectSpy = vi
+			.spyOn(Element.prototype, "getBoundingClientRect")
+			.mockReturnValue({
+				left: 100,
+				top: 100,
+				right: 300,
+				bottom: 250,
+				width: 200,
+				height: 150,
+				x: 100,
+				y: 100,
+				toJSON: () => {},
+			} as DOMRect);
+	});
+
+	afterEach(() => {
+		rectSpy.mockRestore();
+		mockWindow.resizing = false;
+		activePackage.id = "platinum";
+		resetClassicyAppearancePackagesForTests();
+		if (platinum) registerClassicyAppearancePackage(platinum);
+	});
+
+	it("a bottom-left grow box moves the left edge while dragging", () => {
+		// No chrome applied: jsdom computes none, so chrome is [0, 0].
+		const { container } = render(
+			<ClassicyWindow
+				id="TestWindow"
+				appId="TestApp"
+				title="Test"
+				resizable
+				zoomable
+			>
+				<p>content</p>
+			</ClassicyWindow>,
+		);
+		const windowEl = container.querySelector(".classicyWindow") as HTMLElement;
+		const resizer = container.querySelector(
+			".classicyWindowResizer",
+		) as HTMLElement;
+
+		mockWindow.resizing = true;
+		fireEvent.mouseDown(resizer, { clientX: 100, clientY: 250 });
+		fireEvent.mouseMove(windowEl, { clientX: 110, clientY: 260 });
+		expect(windowEl.style.width).toBe("195px");
+		expect(windowEl.style.height).toBe("165px");
+		expect(windowEl.style.left).toBe("105px");
+		expect(windowEl.style.top).toBe("100px");
+
+		// A second move, after the re-render the first one caused, still
+		// anchors the right edge.
+		fireEvent.mouseMove(windowEl, { clientX: 90, clientY: 270 });
+		expect(windowEl.style.width).toBe("215px");
+		expect(windowEl.style.height).toBe("175px");
+		expect(windowEl.style.left).toBe("85px");
+
+		// The document listener (pointer outside the window) agrees.
+		fireEvent.mouseMove(document.body, { clientX: 120, clientY: 255 });
+		expect(windowEl.style.width).toBe("185px");
+		expect(windowEl.style.height).toBe("160px");
+		expect(windowEl.style.left).toBe("115px");
+		expect(windowEl.style.top).toBe("100px");
 	});
 });
