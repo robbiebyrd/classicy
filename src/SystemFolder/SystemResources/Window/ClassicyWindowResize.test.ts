@@ -71,6 +71,11 @@ describe("computeClassicyWindowResize", () => {
 				[0, 30],
 			),
 		).toEqual({ size: [290, 165], position: [0, 100] }));
+	// Unreachable from a real press: both limits bind only when a window drawn
+	// at least its minimum starts with its edge past the floor (this rect's
+	// content is 190 under a 400 minimum), and the release clamp forbids that
+	// press rect. Were it reached, the clamp would still move the window onto
+	// the floor after the release.
 	it("the minimum wins when it and the floor both bind", () =>
 		expect(
 			computeClassicyWindowResize(

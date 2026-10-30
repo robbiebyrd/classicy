@@ -1869,11 +1869,14 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				)}
 			</div>
 			{/* menuBar.placement "window": the window draws its own menus
-			    under the title bar (the screen bar is headless). */}
+			    under the title bar (the screen bar is headless). Utility
+			    windows and modals (Mac OS 8 movable modals have no menu
+			    bar) get none. */}
 			{layout.menuBar.placement === "window" &&
 				appMenu &&
 				appMenu.length > 0 &&
 				windowType !== "utility" &&
+				!modal &&
 				!ws.collapsed && (
 					<ClassicyWindowMenuBar
 						appId={appId}

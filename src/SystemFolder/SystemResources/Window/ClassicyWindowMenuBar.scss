@@ -20,17 +20,22 @@
 // also takes the bar's height off, or its contents would run past the frame's
 // bottom edge under the grow box. Platinum places menus on the screen, so no
 // Platinum window matches.
-.classicyWindow:has(> .classicyWindowMenuBar) {
-  --classicy-window-menu-bar-height: calc(var(--window-control-size) * 1.75);
+//
+// The bar's height is `--classicy-window-menu-bar-height` when a host or
+// package sets it (on the desktop or any ancestor; it inherits), else
+// control × 1.75. It is read with that fallback at each use and declared
+// nowhere here, so an inherited value always reaches it.
+$_bar-height: var(--classicy-window-menu-bar-height, calc(var(--window-control-size) * 1.75));
 
+.classicyWindow:has(> .classicyWindowMenuBar) {
   > .classicyWindowMenuBar {
-    height: var(--classicy-window-menu-bar-height);
+    height: $_bar-height;
   }
 
   .classicyWindowContents {
     height: calc(
       100% - (var(--window-control-size) * 1) - var(--window-padding-size) * 1.5 -
-        var(--classicy-window-menu-bar-height)
+        #{$_bar-height}
     );
   }
 }
@@ -38,6 +43,6 @@
 .classicyWindow.classicyWindow:has(> .classicyWindowMenuBar) .classicyWindowContentsWithHeader {
   height: calc(
     100% - (var(--window-control-size) * 3) - (var(--window-padding-size)) -
-      var(--classicy-window-menu-bar-height)
+      #{$_bar-height}
   );
 }

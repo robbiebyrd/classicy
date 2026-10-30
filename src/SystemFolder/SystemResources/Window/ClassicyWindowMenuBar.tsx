@@ -1,11 +1,16 @@
 import classNames from "classnames";
-import type { CSSProperties, FC as FunctionalComponent } from "react";
+import {
+	type CSSProperties,
+	type FC as FunctionalComponent,
+	useRef,
+} from "react";
 import { CLASSICY_PART_ATTRIBUTE } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import {
 	ClassicyMenu,
 	type ClassicyMenuItem,
 } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { ClassicyMenuProvider } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuProvider";
+import { useClassicyMenuCloseOnOutsideMouseDown } from "@/SystemFolder/SystemResources/Menu/useClassicyMenuCloseOnOutsideMouseDown";
 import "./ClassicyWindowMenuBar.scss";
 
 export type ClassicyWindowMenuBarProps = {
@@ -24,33 +29,56 @@ export type ClassicyWindowMenuBarProps = {
 /**
  * A window's own menu bar, for Appearance Packages whose layout sets
  * `menuBar.placement` to `"window"`: `ClassicyWindow` renders it directly
- * under its title bar with the window's `appMenu`, and the screen menu bar
- * renders nothing (it still dispatches keyboard equivalents). It reuses the
- * screen bar's menu classes (`classicyDesktopMenu`), so its menus open,
- * stick and close the same way, inside their own `ClassicyMenuProvider`. The
+ * under its title bar with the window's `appMenu` (not for utility windows,
+ * modals or a collapsed window), and the screen menu bar renders nothing (it
+ * still dispatches keyboard equivalents). It reuses the screen bar's menu
+ * classes (`classicyDesktopMenu`) inside its own `ClassicyMenuProvider`: its
+ * menus open and stick as the screen bar's do, and close on a selection, a
+ * re-click of the open title or a mouse-down anywhere outside the bar. The
  * bar's flex and `order` rules come from the screen bar's stylesheet, which
  * loads with `ClassicyDesktopMenuBar` (the desktop always mounts it).
  *
  * Only the app's menus have a home here. The Apple, Help and App Switcher
  * menus, the clock and menu bar extensions (`ClassicyMenuBarExtension`, which
  * portals into the screen bar's extensions list) are not shown in window
- * placement.
+ * placement. Window geometry still reserves the screen bar's 30 px top band
+ * (`menuBarHeight` and `windowViewportFloor` in `ClassicyWindow.tsx`), so a
+ * window is never placed or dragged into it; Part G replaces those constants
+ * with the theme's `--menu-bar-height`.
  */
 export const ClassicyWindowMenuBar: FunctionalComponent<
 	ClassicyWindowMenuBarProps
 > = ({ appId, windowId, menuItems, className, style }) => (
-	<div
-		className={classNames("classicyWindowMenuBar", className)}
-		style={style}
-		{...{ [CLASSICY_PART_ATTRIBUTE.part]: "window-menu-bar" }}
-	>
-		<ClassicyMenuProvider>
+	<ClassicyMenuProvider>
+		<ClassicyWindowMenuBarContent
+			appId={appId}
+			windowId={windowId}
+			menuItems={menuItems}
+			className={className}
+			style={style}
+		/>
+	</ClassicyMenuProvider>
+);
+
+// Inside the provider, so the outside-click hook closes this bar's menus.
+const ClassicyWindowMenuBarContent: FunctionalComponent<
+	ClassicyWindowMenuBarProps
+> = ({ appId, windowId, menuItems, className, style }) => {
+	const rootRef = useRef<HTMLDivElement>(null);
+	useClassicyMenuCloseOnOutsideMouseDown(rootRef);
+	return (
+		<div
+			ref={rootRef}
+			className={classNames("classicyWindowMenuBar", className)}
+			style={style}
+			{...{ [CLASSICY_PART_ATTRIBUTE.part]: "window-menu-bar" }}
+		>
 			<ClassicyMenu
 				name={`${appId}_${windowId}_menuBar`}
 				menuItems={menuItems}
 				navClass="classicyDesktopMenu classicyWindowMenu"
 				subNavClass="classicySubMenu"
 			/>
-		</ClassicyMenuProvider>
-	</div>
-);
+		</div>
+	);
+};

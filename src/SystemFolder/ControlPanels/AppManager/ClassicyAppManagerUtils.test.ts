@@ -660,6 +660,45 @@ describe("sanitizeStateForPersistence — closedThisSession", () => {
 	});
 });
 
+describe("sanitizeStateForPersistence — gesture flags", () => {
+	// A reload ends any drag or resize; a persisted `resizing: true` would keep
+	// the window acting as if resized until its first click.
+	it("strips resizing, dragging and moving from every window", async () => {
+		const { sanitizeStateForPersistence } = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils"
+		);
+		const { DefaultAppManagerState } = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager"
+		);
+		const state = structuredClone(DefaultAppManagerState);
+		state.System.Manager.Applications.apps["X.app"] = {
+			id: "X.app",
+			name: "X",
+			icon: "",
+			open: true,
+			data: {},
+			windows: {
+				w: {
+					id: "w",
+					closed: false,
+					resizing: true,
+					dragging: true,
+					moving: true,
+					size: [100, 100],
+					position: [0, 0],
+					minimumSize: [0, 0],
+				},
+			},
+		};
+		const out = sanitizeStateForPersistence(state);
+		const win = out.System.Manager.Applications.apps["X.app"].windows.w;
+		expect(win.size).toEqual([100, 100]);
+		expect("resizing" in win).toBe(false);
+		expect("dragging" in win).toBe(false);
+		expect("moving" in win).toBe(false);
+	});
+});
+
 // ─── wasHydratedFromStorage ───────────────────────────────────────────────────
 
 describe("wasHydratedFromStorage", () => {
@@ -910,8 +949,11 @@ describe("windows record migration (0.x saved state)", () => {
 
 		const second = await loadStore();
 		const reloaded = second.useAppManager.getState();
+		// The reload is the live state as persisted: session-only fields (the
+		// move's `moving: false` among them) are stripped on save.
 		expect(reloaded.System.Manager.Applications.apps).toEqual(
-			first.useAppManager.getState().System.Manager.Applications.apps,
+			first.sanitizeStateForPersistence(first.useAppManager.getState()).System
+				.Manager.Applications.apps,
 		);
 		expect(
 			JSON.parse(JSON.stringify(second.sanitizeStateForPersistence(reloaded))),

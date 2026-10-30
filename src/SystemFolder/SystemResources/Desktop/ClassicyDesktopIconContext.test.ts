@@ -1,13 +1,16 @@
 import { produce } from "immer";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+	registerTestMirrorPackage,
+	TEST_MIRROR_PACKAGE_ID,
+} from "@/__tests__/testMirrorPackage";
+import {
 	type ClassicyAppearancePackage,
 	getClassicyAppearancePackage,
 	registerClassicyAppearancePackage,
 	resetClassicyAppearancePackagesForTests,
 } from "@/Appearance/ClassicyAppearancePackage";
 import { PLATINUM_APPEARANCE_PACKAGE_ID } from "@/Appearance/Platinum";
-import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	dispatch,
@@ -97,22 +100,9 @@ describe("ClassicyDesktopIconCleanup", () => {
 	});
 
 	it("ClassicyDesktopIconCleanup uses the active package's origin", () => {
-		registerClassicyAppearancePackage({
-			id: "test-mirror",
-			name: "Mirror",
-			css: "",
-			defaults: {
-				...getTheme("default"),
-				id: "test-mirror-default",
-				package: "test-mirror",
-			},
-			layout: {
-				window: { growBoxCorner: "bottom-left" },
-				menuBar: { placement: "window" },
-				desktop: { iconGridOrigin: "top-left" },
-			},
-		});
-		seedStore("test-mirror");
+		// test-mirror lays icons out from the top left.
+		registerTestMirrorPackage();
+		seedStore(TEST_MIRROR_PACKAGE_ID);
 		dispatch({ type: "ClassicyDesktopIconCleanup" });
 		expect(locations()).toEqual([
 			[16, 64],
