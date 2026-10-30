@@ -29,23 +29,29 @@ const stringEnd = (source: string, start: number): number => {
 };
 
 /**
- * The index of the `)` matching the `(` at `open`, skipping quoted strings;
- * `source.length` when it is never closed.
+ * Where the body of the url() whose `(` is at `open` ends: `end` is the index
+ * of its closing `)` when `closed`, else the index of the line's end (or the
+ * source's), where an unclosed url stops so it never hides later lines.
+ *
+ * As CSS reads it: a backslash escapes the next character (`a\(b.png`); a
+ * quoted body is one string, then runs to the `)`; an unquoted body cannot
+ * hold `(` or a quote, so it ends at its first unescaped `)` whatever it
+ * holds (a `(` or a stray `'` included).
  */
-const closingParen = (source: string, open: number): number => {
-	let depth = 0;
-	for (let i = open; i < source.length; i++) {
+const urlBodyEnd = (
+	source: string,
+	open: number,
+): { end: number; closed: boolean } => {
+	let i = open + 1;
+	while (source[i] === " " || source[i] === "\t") i++;
+	if (source[i] === '"' || source[i] === "'") i = stringEnd(source, i);
+	for (; i < source.length; i++) {
 		const c = source[i];
-		if (c === '"' || c === "'") {
-			i = stringEnd(source, i) - 1;
-		} else if (c === "(") {
-			depth++;
-		} else if (c === ")") {
-			depth--;
-			if (depth === 0) return i;
-		}
+		if (c === "\n") return { end: i, closed: false };
+		if (c === ")") return { end: i, closed: true };
+		if (c === "\\" && source[i + 1] !== "\n") i++;
 	}
-	return source.length;
+	return { end: source.length, closed: false };
 };
 
 /** Whether a `url(` function starts at `i` (not the tail of an identifier). */
@@ -68,7 +74,8 @@ export const blankClassicyScssComments = (source: string): string => {
 		if (c === '"' || c === "'") {
 			end = stringEnd(source, i);
 		} else if (isUrlAt(source, i)) {
-			end = Math.min(closingParen(source, i + 3) + 1, source.length);
+			const body = urlBodyEnd(source, i + 3);
+			end = body.closed ? body.end + 1 : body.end;
 		} else if (source.startsWith("/*", i)) {
 			const close = source.indexOf("*/", i + 2);
 			end = close === -1 ? source.length : close + 2;
@@ -87,7 +94,7 @@ export const blankClassicyScssComments = (source: string): string => {
 
 /**
  * The source with every url() payload blanked (`url(…)` keeps its name and
- * parentheses; nested parentheses and quotes inside it are handled), and with
+ * parentheses; a body ends as `urlBodyEnd` says), and with
  * every quoted `data:` string blanked, the art a Sass variable holds before it
  * is wrapped in url(). Run it on source whose comments are already blanked.
  */
@@ -103,10 +110,10 @@ export const blankClassicyScssUrlPayloads = (source: string): string => {
 			span = source.slice(i, end);
 			if (/^["']data:/i.test(span)) span = blank(span);
 		} else if (isUrlAt(source, i)) {
-			const close = closingParen(source, i + 3);
-			end = Math.min(close + 1, source.length);
-			const payload = blank(source.slice(i + 4, close));
-			span = `${source.slice(i, i + 4)}${payload}${close < source.length ? ")" : ""}`;
+			const body = urlBodyEnd(source, i + 3);
+			end = body.closed ? body.end + 1 : body.end;
+			const payload = blank(source.slice(i + 4, body.end));
+			span = `${source.slice(i, i + 4)}${payload}${body.closed ? ")" : ""}`;
 		}
 		out += span;
 		i = end;

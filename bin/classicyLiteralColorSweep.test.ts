@@ -102,6 +102,25 @@ describe("classicyLiteralColorHits", () => {
 			),
 		).toEqual([]));
 
+	// H 1.1 review, Minor 7: a url() payload is exempt, not the rest of its
+	// line; Minor 1: a url() body never hides the lines after it.
+	it("exempts a url() payload but flags a color after it", () =>
+		expect(
+			hits(
+				"src/SystemFolder/X/X.scss",
+				[
+					".a { background: url(x.png) #abc; }",
+					".b { background: url(x-#abc.png); }",
+					".c { background: url(a\\(b.png) no-repeat; }",
+					".d { color: #f00; }",
+					".e { background: url(x.png no-repeat;",
+					".f { color: #0f0; }",
+					".g { mask: url(data:image/svg+xml,<svg>it's</svg>); }",
+					".h { color: #00f; }",
+				].join("\n"),
+			),
+		).toEqual([1, 4, 6, 8]));
+
 	it("skips the color helpers' own definitions and the screen savers", () => {
 		const line = ".a { color: #123456; }";
 		expect(hits("src/Appearance/vocabulary/_color.scss", line)).toEqual([]);
