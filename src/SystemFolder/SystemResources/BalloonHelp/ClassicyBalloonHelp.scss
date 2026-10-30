@@ -25,10 +25,10 @@
 .classicyBalloonHelp {
   background: var(--color-white);
   border: var(--window-border-size) solid var(--color-black);
-  border-radius: 8px;
+  border-radius: var(--balloon-help-corner-radius);
   padding: var(--window-padding-size);
-  min-width: 80px;
-  max-width: 220px;
+  min-width: var(--balloon-help-min-width);
+  max-width: var(--balloon-help-max-width);
 
   p {
     margin: 0;
@@ -42,15 +42,16 @@
 // Two classes: beats the bubble's `p { margin: 0 }`.
 .classicyBalloonHelp .classicyBalloonHelpTitle {
   font-weight: bold;
-  margin-bottom: 3px;
+  margin-bottom: var(--balloon-help-title-gap);
 }
 
 // The tail is a sibling of .classicyBalloonHelp — rendered after it in DOM
 // order so it paints on top of the bubble's border. It sits outside the
 // bubble and overlaps it by 2px so the white fill masks the border line at
-// the junction. scaleX(-1) mirrors the tip to the right; scaleY(-1) flips
-// the tail upward for bottom placements. The flips are composed from custom
-// properties so the vertical and horizontal position classes combine freely.
+// the junction (measurements.balloonHelp, platinum.json). scaleX(-1) mirrors
+// the tip to the right; scaleY(-1) flips the tail upward for bottom
+// placements. The flips are composed from custom properties so the vertical
+// and horizontal position classes combine freely.
 .classicyBalloonHelpTail {
   position: absolute;
   display: block;
@@ -59,23 +60,24 @@
 }
 
 .classicyBalloonHelpTailTop {
-  bottom: -12px;
+  bottom: calc(var(--balloon-help-tail-offset) * -1);
 }
 
 .classicyBalloonHelpTailBottom {
-  top: -12px;
+  top: calc(var(--balloon-help-tail-offset) * -1);
   --classicy-balloon-tail-sy: -1;
 }
 
 .classicyBalloonHelpTailLeft {
-  left: 8px;
+  left: var(--balloon-help-tail-inset);
 }
 
 .classicyBalloonHelpTailCenter {
-  left: calc(50% - 10px);
+  // Half the tail's width centers it on the bubble.
+  left: calc(50% - var(--balloon-help-tail-width) / 2);
 }
 
 .classicyBalloonHelpTailRight {
-  right: 8px;
+  right: var(--balloon-help-tail-inset);
   --classicy-balloon-tail-sx: -1;
 }

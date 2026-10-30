@@ -1,11 +1,12 @@
 // Platinum page control (back arrow / recessed page cell / forward arrow).
-// Geometry measured from the Mac OS 8 "About Help" reference capture; colors
-// are theme tokens so the control recolors with the appearance theme.
+// Geometry measured from the Mac OS 8 "About Help" reference capture, read
+// from the pager knobs (measurements.pager, platinum.json); colors are theme
+// tokens so the control recolors with the appearance theme.
 
 .classicyPager {
   display: flex;
   align-items: center;
-  border: 1px solid var(--color-system-03);
+  border: var(--pager-border-width) solid var(--color-system-03);
   // The disabled arrows' punch-out is painted in whatever band the pager sits
   // on (see --classicy-pager-band below), or the hollow centre reads as a
   // lighter blob rather than a hole.
@@ -21,10 +22,10 @@
   // (border + 2 arrow buttons + page cell) spans ~120px. With the page
   // cell fixed at its measured 32px fill width (34px incl. border) and
   // the pager's 1px border on each side, solving 2w + 34 + 2 = 120 gives
-  // w = 42.
+  // w = 42 (measurements.pager, platinum.json).
   position: relative;
-  width: 42px;
-  height: 36px;
+  width: var(--pager-arrow-width);
+  height: var(--pager-cell-height);
   border: none;
   background: transparent;
   cursor: pointer;
@@ -44,7 +45,7 @@
     width: 0;
     height: 0;
     transform: translate(-50%, -50%);
-    border-block: 8px solid transparent;
+    border-block: var(--pager-glyph-half-height) solid transparent;
   }
 
   &::after {
@@ -65,46 +66,47 @@
 
 .classicyPagerArrowPrev {
   &::before {
-    border-right: 11px solid currentColor;
+    border-right: var(--pager-glyph-depth) solid currentColor;
     border-left: 0;
   }
 
   &::after {
-    border-block-width: 5px;
-    border-right: 7px solid var(--classicy-pager-band, var(--color-system-01));
+    border-block-width: var(--pager-punch-half-height);
+    border-right: var(--pager-punch-depth) solid var(--classicy-pager-band, var(--color-system-01));
     border-left: 0;
   }
 }
 
 .classicyPagerArrowNext {
   &::before {
-    border-left: 11px solid currentColor;
+    border-left: var(--pager-glyph-depth) solid currentColor;
     border-right: 0;
   }
 
   &::after {
-    border-block-width: 5px;
-    border-left: 7px solid var(--classicy-pager-band, var(--color-system-01));
+    border-block-width: var(--pager-punch-half-height);
+    border-left: var(--pager-punch-depth) solid var(--classicy-pager-band, var(--color-system-01));
     border-right: 0;
   }
 }
 
 .classicyPagerPage {
-  min-width: 32px;
-  height: 36px;
+  min-width: var(--pager-page-min-width);
+  height: var(--pager-cell-height);
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--ui-font), sans-serif;
   font-weight: bold;
-  font-size: 12px;
+  // The capture's 12 px page number is its own knob: the UI font is 14 px.
+  font-size: var(--pager-font-size);
   // Recessed cell: darkest on top, mid on the remaining edges. The theme ramp
   // has no step between system-03 and system-04, so the capture's lighter
   // bottom/right (#c0c0c0 against a #cdcdcd fill) compresses onto system-04
   // rather than vanishing into the fill.
   background: var(--color-system-03);
-  border-top: 2px solid var(--color-system-05);
-  border-left: 1px solid var(--color-system-04);
-  border-bottom: 1px solid var(--color-system-04);
-  border-right: 1px solid var(--color-system-04);
+  border-top: var(--pager-page-top-border) solid var(--color-system-05);
+  border-left: var(--pager-border-width) solid var(--color-system-04);
+  border-bottom: var(--pager-border-width) solid var(--color-system-04);
+  border-right: var(--pager-border-width) solid var(--color-system-04);
 }

@@ -1,5 +1,8 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@/__tests__/test-utils";
+import { scanPixelLiteralsInSource } from "../../../../bin/check-pixel-literals.ts";
 
 const mockState = vi.hoisted(() => ({ disableBalloonHelp: false }));
 
@@ -104,4 +107,16 @@ describe("ClassicyBalloonHelp", () => {
 		expect(tooltip).toHaveTextContent("Opens the file.");
 		expect(anchor).toHaveAttribute("aria-describedby", tooltip.id);
 	});
+});
+
+// The bubble and tail geometry are balloon-help knobs (measurements.balloonHelp,
+// platinum.json), never pixel literals.
+describe("ClassicyBalloonHelp stylesheet", () => {
+	it("no bare literal", () =>
+		expect(
+			scanPixelLiteralsInSource(
+				readFileSync(resolve(__dirname, "ClassicyBalloonHelp.scss"), "utf8"),
+				"ClassicyBalloonHelp.scss",
+			).filter((literal) => literal.kind === "bare"),
+		).toEqual([]));
 });
