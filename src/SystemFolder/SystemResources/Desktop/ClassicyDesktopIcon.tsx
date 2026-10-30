@@ -1,3 +1,4 @@
+import { useClassicyAppIdentity } from "@/Appearance/ClassicyAppIdentity";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
@@ -5,6 +6,7 @@ import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { getAppManifest } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import { withoutZIndex } from "@/SystemFolder/SystemResources/Utils/withoutZIndex";
 import "@/SystemFolder/SystemResources/BalloonHelp/ClassicyBalloonHelp.scss";
@@ -22,6 +24,7 @@ import {
 	startClassicyFileDrag,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
 import type { ClassicyFileDragOutlinePart } from "@/SystemFolder/SystemResources/File/ClassicyFileDragOutline";
+import { APP_SHORTCUT_ICON_KIND } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
 import "./ClassicyDesktopIcon.scss";
@@ -46,11 +49,18 @@ interface ClassicyDesktopIconProps {
 	 * `${appId}.shortcut`.
 	 */
 	appId: string;
-	/** App name, used as the label when `label` is unset and as the image alt text. */
+	/**
+	 * App name, used as the label when `label` is unset and as the image alt
+	 * text; for an `app_shortcut`, an Appearance Package's `apps` override is
+	 * shown instead. The open action and analytics always carry this name.
+	 */
 	appName: string;
-	/** Icon image (URL or data URI). */
+	/**
+	 * Icon image (URL or data URI); for an `app_shortcut`, an Appearance
+	 * Package's `apps` override is shown instead.
+	 */
 	icon: string;
-	/** Text under the icon. Defaults to `appName`. */
+	/** Text under the icon. Defaults to the displayed app name. */
 	label?: string;
 	/**
 	 * Icon kind: `drive`, `directory`, `app_shortcut`, `shortcut`, `trash`,
@@ -81,10 +91,12 @@ interface ClassicyDesktopIconProps {
 	 */
 	contextMenu?: ClassicyMenuItem[];
 	/**
-	 * Balloon help, `{ title?, content, position?, delay? }`. When omitted,
-	 * `trash` and `drive` icons use stock copy titled with the label; other
-	 * kinds show no balloon. (`ClassicyApp` fills this from its
-	 * `desktopIconBalloonHelp` or registered manifest description.)
+	 * Balloon help, `{ title?, content, position?, delay? }`, titled with the
+	 * label (or the displayed app name) when it has no title. When omitted, an
+	 * `app_shortcut` shows its app's description (an Appearance Package's
+	 * `apps` override, else the registered manifest's), `trash` and `drive`
+	 * icons use stock copy titled with the label, and other kinds show no
+	 * balloon. (`ClassicyApp` fills this from its `desktopIconBalloonHelp`.)
 	 */
 	balloonHelp?: ClassicyIconBalloonHelp;
 	/**
@@ -177,6 +189,20 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			style,
 		}) => {
 			const aliasBadge = useClassicyAsset("systemArt", "aliasBadge") ?? "";
+			// How the active package shows the app. Only an app shortcut stands
+			// for its app: drives share Finder.app's id, and other kinds name
+			// their own target.
+			const isAppShortcut = kind === APP_SHORTCUT_ICON_KIND;
+			const identity = useClassicyAppIdentity(
+				isAppShortcut ? appId : undefined,
+				{
+					name: appName,
+					icon,
+					description: isAppShortcut
+						? getAppManifest(appId)?.description
+						: undefined,
+				},
+			);
 			const [clickPosition, setClickPosition] = useState<[number, number]>([
 				0, 0,
 			]);
@@ -231,10 +257,15 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			// One dragEnd per dragStart: mouseup also ends presses that never dragged.
 			const dragEmittedRef = useRef(false);
 
-			// Stock copy is resolved here, not stored on the icon record, so revised
-			// text ships with the library rather than staying frozen in localStorage.
-			const effectiveBalloonHelp =
-				balloonHelp ?? defaultBalloonForKind(kind, label ?? appName);
+			// Stock copy, the app's description and the title are resolved here,
+			// not stored on the icon record, so revised text ships with the
+			// library rather than staying frozen in localStorage, and they follow
+			// the active package.
+			const effectiveBalloonHelp = balloonHelp
+				? { ...balloonHelp, title: balloonHelp.title ?? label ?? identity.name }
+				: identity.description
+					? { title: label ?? identity.name, content: identity.description }
+					: defaultBalloonForKind(kind, label ?? appName);
 			const { handlers: balloonHandlers, balloon } = useClassicyBalloonHelp(
 				iconRef,
 				effectiveBalloonHelp,
@@ -539,11 +570,13 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 						<div
 							className={"classicyDesktopIconMaskOuter"}
 							style={
-								{ "--classicy-icon-mask": `url(${icon})` } as CSSProperties
+								{
+									"--classicy-icon-mask": `url(${identity.icon})`,
+								} as CSSProperties
 							}
 						>
 							<div className={"classicyDesktopIconMask"}>
-								<img src={icon} alt={appName} />
+								<img src={identity.icon} alt={identity.name} />
 							</div>
 						</div>
 						{isAlias && (
@@ -563,7 +596,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 							</div>
 						)}
 					</div>
-					<p>{label ? label : appName}</p>
+					<p>{label ? label : identity.name}</p>
 					{balloon}
 				</div>
 			);

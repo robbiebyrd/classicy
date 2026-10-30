@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { classicyAppIdentityFrom } from "@/Appearance/ClassicyAppIdentity";
 import {
 	type KeyNavIcon,
 	nearestIconInDirection,
@@ -139,6 +140,24 @@ describe("typeaheadMatch", () => {
 		];
 		expect(typeaheadMatch(icons, "Friendly")).toBe("x");
 		expect(typeaheadMatch(icons, "Internal")).toBeNull();
+	});
+
+	it("finds an app by the display name its icon is mapped to", () => {
+		// ClassicyDesktop maps each unlabeled app_shortcut icon's label to the
+		// active package's display name before type-select.
+		const overrides = { "TV.app": { name: "Television" } };
+		const icons: KeyNavIcon[] = [
+			{ appId: "Scrapbook.app", appName: "Scrapbook" },
+			{ appId: "TV.app", appName: "TV" },
+		].map((i) => ({
+			...i,
+			label: classicyAppIdentityFrom(overrides, i.appId, {
+				name: i.appName,
+				icon: "",
+			}).name,
+		}));
+		expect(typeaheadMatch(icons, "Tel")).toBe("TV.app");
+		expect(typeaheadMatch(icons, "TV")).toBeNull();
 	});
 
 	it("matches the user-described sequence: C → Controls, Pa → Pager Decoder, Newsg → Newsgroups", () => {

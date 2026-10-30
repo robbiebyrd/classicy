@@ -1,5 +1,6 @@
 import { CLASSICY_DEFAULT_APPEARANCE_LAYOUT } from "@/Appearance/ClassicyAppearanceDefaults";
 import type { ClassicyAppearanceLayout } from "@/Appearance/ClassicyAppearancePackage";
+import { resolveClassicyAppIdentity } from "@/Appearance/ClassicyAppIdentity";
 import { getClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { CLASSICY_THEME_DERIVATIONS } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeDerivations";
@@ -26,6 +27,7 @@ import type {
 	ClassicyIconBalloonHelp,
 } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
 import type { ClassicyStoreSystemDesktopManagerIcon } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
+import { APP_SHORTCUT_ICON_KIND } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
@@ -151,20 +153,37 @@ const kindPriority: Record<string, number> = {
 const getKindPriority = (kind: string): number =>
 	kindPriority[kind?.toLowerCase()] ?? 99;
 
+/**
+ * Sorts the desktop's icons in place, by name or by kind then name. The name
+ * is the one the icon shows for its app: an app shortcut takes `packageId`'s
+ * display name (store-free, read from the draft's `packageId`); every other
+ * kind, drives sharing `Finder.app` included, its own `appName`.
+ */
 const sortDesktopIcons = (
 	icons: ClassicyStoreSystemDesktopManagerIcon[],
 	sortType: "name" | "kind" | "label",
+	packageId?: string,
 ) => {
+	const displayName = (i: ClassicyStoreSystemDesktopManagerIcon) =>
+		i.kind === APP_SHORTCUT_ICON_KIND
+			? resolveClassicyAppIdentity(
+					i.appId,
+					{ name: i.appName, icon: i.icon },
+					packageId,
+				).name
+			: i.appName;
+	const byName = (
+		a: ClassicyStoreSystemDesktopManagerIcon,
+		b: ClassicyStoreSystemDesktopManagerIcon,
+	) => displayName(a).toLowerCase().localeCompare(displayName(b).toLowerCase());
 	switch (sortType) {
 		case "name":
-			return icons.sort((a, b) =>
-				a.appName.toLowerCase().localeCompare(b.appName.toLowerCase()),
-			);
+			return icons.sort(byName);
 		default:
 			return icons.sort((a, b) => {
 				const kindDiff = getKindPriority(a.kind) - getKindPriority(b.kind);
 				if (kindDiff !== 0) return kindDiff;
-				return a.appName.toLowerCase().localeCompare(b.appName.toLowerCase());
+				return byName(a, b);
 			});
 	}
 };
@@ -261,6 +280,7 @@ export const classicyDesktopIconEventHandler = (
 				sortDesktopIcons(
 					ds.System.Manager.Desktop.icons,
 					sortBy as "name" | "kind" | "label",
+					ds.System.Manager.Appearance.packageId,
 				),
 				iconGridOrigin(ds),
 			);
@@ -334,7 +354,11 @@ export const classicyDesktopIconEventHandler = (
 				if (!placed) {
 					ds.System.Manager.Desktop.icons = cleanupDesktopIcons(
 						ds.System.Manager.Appearance.activeTheme,
-						sortDesktopIcons(ds.System.Manager.Desktop.icons, "kind"),
+						sortDesktopIcons(
+							ds.System.Manager.Desktop.icons,
+							"kind",
+							ds.System.Manager.Appearance.packageId,
+						),
 						iconGridOrigin(ds),
 					);
 				}

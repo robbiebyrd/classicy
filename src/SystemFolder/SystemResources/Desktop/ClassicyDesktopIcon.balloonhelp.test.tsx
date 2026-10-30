@@ -155,6 +155,51 @@ describe("ClassicyDesktopIcon balloon help", () => {
 		expect(screen.queryByText(/This is the Trash\./)).not.toBeInTheDocument();
 	});
 
+	it("titles an untitled balloon with the icon's label, else its app name", async () => {
+		mockState.disableBalloonHelp = false;
+		const { unmount } = render(
+			<ClassicyDesktopIcon
+				{...defaultProps}
+				balloonHelp={{ content: "Opens the editor.", delay: 0 }}
+			/>,
+		);
+		fireEvent.mouseEnter(iconRoot());
+		expect(await screen.findByText("Opens the editor.")).toBeInTheDocument();
+		expect(
+			document.querySelector(".classicyBalloonHelpTitle"),
+		).toHaveTextContent("Test Application");
+		unmount();
+
+		render(
+			<ClassicyDesktopIcon
+				{...defaultProps}
+				label="Editor"
+				balloonHelp={{ content: "Opens the editor.", delay: 0 }}
+			/>,
+		);
+		fireEvent.mouseEnter(iconRoot());
+		expect(await screen.findByText("Opens the editor.")).toBeInTheDocument();
+		expect(
+			document.querySelector(".classicyBalloonHelpTitle"),
+		).toHaveTextContent("Editor");
+	});
+
+	it("keeps a balloon's own title", async () => {
+		mockState.disableBalloonHelp = false;
+		render(
+			<ClassicyDesktopIcon
+				{...defaultProps}
+				label="Editor"
+				balloonHelp={{ title: "Edit", content: "Opens the editor.", delay: 0 }}
+			/>,
+		);
+		fireEvent.mouseEnter(iconRoot());
+		expect(await screen.findByText("Opens the editor.")).toBeInTheDocument();
+		expect(
+			document.querySelector(".classicyBalloonHelpTitle"),
+		).toHaveTextContent("Edit");
+	});
+
 	it("shows nothing for an app icon with no balloonHelp", async () => {
 		mockState.disableBalloonHelp = false;
 		const { container } = render(<ClassicyDesktopIcon {...defaultProps} />);
