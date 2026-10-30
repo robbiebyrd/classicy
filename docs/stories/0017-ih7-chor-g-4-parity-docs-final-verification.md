@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: S
 created: "2026-10-28T19:58:09.781Z"
-updated: "2026-10-30T06:51:31.941Z"
+updated: "2026-10-30T09:00:13.291Z"
 started: "2026-10-30T04:31:07.349Z"
 tags: []
 milestone: ""
@@ -102,3 +102,5 @@ CLAUDE.md Theming section: 'Colors: never a literal — use a `--color-*` token 
 ### 2026-10-30T04:31:09.562Z - Started on land/part-g (Part G rebased onto the integration branch with J and tooling, fbcecaacf). Folds the G 2.2 review minors: J Options tab vs G13 reserved names, stale reader comments, two-way reserved-name test, docs (85-site inventory, unrounded fonts, reserved names, input-override note), and the G12 sweep filter for package-private constants.
 
 ### 2026-10-30T06:51:31.941Z - G 4 implemented on land/part-g (3a304e4d7): reader-list fixes, the literal-color sweep as a script with the G12 package-constant exemption, two-way reserved-name check (also reserves palette/font/desktop names), J's Options tab refuses reserved knob names, Phase 4 docs. Gate: 4272 tests, storybook typecheck, sweep 0. Parity: 305/313 AE 0 vs the integration tip without G; the 8 others are the named error title bars, byte-identical to G 1.2. Stale claim fixed: the Apple-menu 180 px check (dropdowns use 20vw). G lands after F: rebase onto I + F with the recorded recipes, then whole-branch final review.
+
+### 2026-10-30T09:00:13.291Z - Part G rebased onto I and F (6ae160ecd, pushed as land/part-g-v3; the old land/part-g ref is not force-pushed). Recipes applied: live resize inset as fudge, live menu-bar floor, icon grid over step; a 42 px menu bar + 9 px inset test proves resize and release clamp agree. Gate 4625 tests; parity: only G15 title bars (incl. I's and F's error-alert stories). New ruling G17 (window placement collapses --menu-bar-height to 0) goes to the final fix round. Whole-branch final reviews (core + SCSS/docs) dispatched.
