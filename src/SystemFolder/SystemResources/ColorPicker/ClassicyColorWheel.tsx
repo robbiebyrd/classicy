@@ -6,6 +6,7 @@ import {
 	useEffect,
 	useRef,
 } from "react";
+import { useActiveClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
 import { hlsToRgb, hsvToRgb } from "./ClassicyColorPickerUtils";
 
 interface ClassicyColorWheelProps {
@@ -33,7 +34,11 @@ export const ClassicyColorWheel: FC<ClassicyColorWheelProps> = ({
 }) => {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const dragging = useRef(false);
+	// The crosshair color is read from the package's stylesheet, so a package
+	// switch must redraw the wheel even though no prop changed.
+	const packageId = useActiveClassicyAppearancePackage().id;
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: packageId is not read in the effect; it re-reads --classicy-color-picker-crosshair when the active package changes
 	useEffect(() => {
 		const canvas = canvasRef.current;
 		if (!canvas) return;
@@ -98,7 +103,7 @@ export const ClassicyColorWheel: FC<ClassicyColorWheelProps> = ({
 		ctx.lineTo(cx, cy + ARM);
 		ctx.stroke();
 		ctx.restore();
-	}, [size, hue, saturation, brightness, mode]);
+	}, [size, hue, saturation, brightness, mode, packageId]);
 
 	// In rendered pixels, not bitmap pixels: the canvas is `size` square but
 	// the stylesheet scales it to the room the panel has, so the radius is
