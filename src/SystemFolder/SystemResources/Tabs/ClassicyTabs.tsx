@@ -34,6 +34,13 @@ export interface TabProps {
 	tabs: TabIndividual[];
 	/** Tab sizing; see {@link ClassicyTabsSize}. Defaults to `"medium"`. */
 	size?: ClassicyTabsSize;
+	/**
+	 * Which edge of the panel the tab strip sits on. `"top"` (the default) is
+	 * the HIG tab control; `"bottom"` moves the strip below the panel, tabs
+	 * hanging down from its bottom border. The DOM order is the same either
+	 * way (strip, then panel); the stylesheet moves the strip with `order`.
+	 */
+	stripPosition?: "top" | "bottom";
 	/** Extra class names, merged onto the root element after the component's own. */
 	className?: string;
 	/** Inline style, merged onto the root element after the component's own. */
@@ -129,6 +136,7 @@ const NO_OVERFLOW: ScrollState = {
 export const ClassicyTabs: FunctionalComponent<TabProps> = ({
 	tabs,
 	size = "medium",
+	stripPosition = "top",
 	className,
 	style,
 }) => {
@@ -325,6 +333,7 @@ export const ClassicyTabs: FunctionalComponent<TabProps> = ({
 				"classicyTabContainer",
 				appearance.className,
 				SIZE_CLASS[size],
+				stripPosition === "bottom" && "classicyTabStripBottom",
 				className,
 			)}
 			style={appearance.style ? { ...appearance.style, ...style } : style}

@@ -49,6 +49,7 @@
 			"classicyTabScrollGlyph",
 			"classicyTabScrollWrapper",
 			"classicyTabScroller",
+			"classicyTabStripBottom",
 			"classicyTabsHolder",
 			"classicyTabsSizeLarge",
 			"classicyTabsSizeSmall"
@@ -254,7 +255,7 @@
 			"WidgetSound"
 		],
 		"DesktopMenuBar": [],
-		"Disclosure": ["Header", "Inner", "InnerClose"],
+		"Disclosure": ["Header", "Inner", "InnerClose", "LabelLeft"],
 		"DriveSetupList": ["Grid", "Head", "Header", "Row", "Table"],
 		"FileBrowser": [
 			"Fill",

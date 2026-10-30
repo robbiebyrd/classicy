@@ -9,6 +9,13 @@
   gap: var(--window-padding-size);
 }
 
+// The header renders the triangle, then the label. A left label moves ahead
+// of the triangle by `order`, not `row-reverse`, so the pair stays at the
+// header's start edge.
+.classicyDisclosureLabelLeft > .classicyControlLabelHolder {
+  order: -1;
+}
+
 .classicyDisclosureInner {
   padding: calc(var(--window-padding-size));
 }

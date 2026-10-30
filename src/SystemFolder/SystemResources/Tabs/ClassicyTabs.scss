@@ -24,6 +24,12 @@ $tab-shape: polygon(13.70% 0%, 86.30% 0%, 100% 100%, 0% 100%);
 $_tab-border-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 75.31 23.44' preserveAspectRatio='none'%3E%3Cpath d='M0,23.44 L10.32,0 H64.98 L75.31,23.44' fill='none' stroke='black' stroke-width='2' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
 
 .classicyTabContainer {
+  // The strip and the panel are a flex column, so `order` can put the strip
+  // below the panel (`.classicyTabStripBottom`). `stretch` keeps both at the
+  // container's width, as block children were.
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
   // Scroll-arrow triangle size. Declared on the container, not on the glyph
   // itself, so the size modifiers below can override it by inheritance — a
   // declaration on the glyph would always beat an inherited ancestor value.
@@ -47,6 +53,16 @@ $_tab-border-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/s
   align-items: flex-end;
   margin-bottom: calc(var(--window-border-size) * -1);
   margin-left: calc(var(--window-control-size) * 1);
+}
+
+// A strip below the panel: after it in flex order, its overhang moved to the
+// top edge so the active tab merges into the panel's bottom border, and the
+// tabs hung from the row's top.
+.classicyTabStripBottom .classicyTabButtonsRow {
+  order: 1;
+  margin-bottom: 0;
+  margin-top: calc(var(--window-border-size) * -1);
+  align-items: flex-start;
 }
 
 .classicyTabScroller {
