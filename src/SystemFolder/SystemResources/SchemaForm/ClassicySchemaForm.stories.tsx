@@ -85,6 +85,9 @@ type Story = StoryObj<typeof meta>;
  * `ClassicyControlGroup layout="form"` around it.
  */
 export const Nested: Story = {
+	// The render owns the values (a working form); these args only satisfy
+	// the component's required props, so editing them would do nothing.
+	parameters: { controls: { disable: true } },
 	args: {
 		schema: optionsSchema,
 		values: initialValues,

@@ -2,9 +2,11 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import {
 	type ChangeEvent,
 	type FC,
+	type ReactNode,
 	useCallback,
 	useEffect,
 	useMemo,
+	useState,
 } from "react";
 import {
 	type ClassicyAppearanceKnobs,
@@ -57,6 +59,7 @@ import {
 import { DEFAULT_ALERT_SOUND } from "@/SystemFolder/ControlPanels/SoundManager/ClassicyAlertSounds";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { useClassicySoundPacks } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
+import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import type { TabIndividual } from "@/SystemFolder/SystemResources/Tabs/ClassicyTabs";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
@@ -154,7 +157,9 @@ const AppearanceTabWindow: FC<{
 	/** Window id suffix, e.g. `themes` → `story_themes`. */
 	id: string;
 	tab: TabIndividual;
-}> = ({ id, tab }) => {
+	/** Rendered inside the app, after the window (e.g. an alert). */
+	children?: ReactNode;
+}> = ({ id, tab, children }) => {
 	const icon = useAppearanceIcon();
 	useOpenApp(TAB_STORY_APP_ID, icon);
 	return (
@@ -179,6 +184,7 @@ const AppearanceTabWindow: FC<{
 			>
 				<div className={"classicyAppearanceManagerContent"}>{tab.children}</div>
 			</ClassicyWindow>
+			{children}
 		</ClassicyApp>
 	);
 };
@@ -201,13 +207,51 @@ const ThemesTabStory = () => {
 			})),
 		[appearance, activePackage],
 	);
+	// Save Theme… and Load Theme… as the panel does them
+	// (ClassicyAppearanceManager.tsx): a failure shows a stop alert, and a
+	// theme file for another installed package switches to that package
+	// before the import, so the active theme and the active look agree (J-R4).
+	const [themeFileError, setThemeFileError] = useState<{
+		label: string;
+		message: string;
+	} | null>(null);
+	const saveTheme = useCallback(() => {
+		const result = downloadClassicyTheme(
+			useAppManager.getState().System.Manager.Appearance.activeTheme,
+		);
+		if (!result.ok)
+			setThemeFileError({
+				label: "The theme could not be saved.",
+				message: result.error,
+			});
+	}, []);
 	const loadThemeFile = useCallback(
 		async (file: File) => {
-			const result = parseClassicyThemeFile(await file.text());
-			if (result.ok)
-				dispatch({ type: "ClassicyDesktopImportTheme", theme: result.theme });
+			const label = `“${file.name}” could not be loaded.`;
+			let text: string;
+			try {
+				text = await file.text();
+			} catch {
+				setThemeFileError({ label, message: "The file could not be read." });
+				return;
+			}
+			const result = parseClassicyThemeFile(text);
+			if (!result.ok) {
+				setThemeFileError({ label, message: result.error });
+				return;
+			}
+			const themePackage = result.theme.package;
+			if (
+				themePackage !== activePackage.id &&
+				getClassicyAppearancePackage(themePackage)
+			)
+				dispatch({
+					type: "ClassicyDesktopChangeAppearancePackage",
+					packageId: themePackage,
+				});
+			dispatch({ type: "ClassicyDesktopImportTheme", theme: result.theme });
 		},
-		[dispatch],
+		[dispatch, activePackage.id],
 	);
 	const tab = useThemesTab({
 		packageId: activePackage.id,
@@ -228,10 +272,23 @@ const ThemesTabStory = () => {
 				type: "ClassicyDesktopSetDoubleClickTitleToCollapse",
 				doubleClickTitleToCollapse: checked,
 			}),
-		saveTheme: () => downloadClassicyTheme(appearance.activeTheme),
+		saveTheme,
 		loadThemeFile,
 	});
-	return <AppearanceTabWindow id="themes" tab={tab} />;
+	return (
+		<AppearanceTabWindow id="themes" tab={tab}>
+			{themeFileError && (
+				<ClassicyAlert
+					id={"AppearanceManagerTabStory_theme_file_alert"}
+					appId={TAB_STORY_APP_ID}
+					alertType={"stop"}
+					label={themeFileError.label}
+					message={themeFileError.message}
+					onClose={() => setThemeFileError(null)}
+				/>
+			)}
+		</AppearanceTabWindow>
+	);
 };
 
 const PackagesTabStory = () => {
@@ -253,12 +310,24 @@ const OptionsTabStory = () => {
 	const appearance = useAppearance();
 	const dispatch = useAppManagerDispatch();
 	// Platinum declares no knobs, so the story switches to Test Pack, whose
-	// two families render as two groups of spinners.
+	// two families render as two groups of spinners. On unmount it switches
+	// back (if Test Pack is still active), so a non-desktop story opened next
+	// in this iframe, whose frame keeps the store, renders under Platinum.
 	useEffect(() => {
 		dispatch({
 			type: "ClassicyDesktopChangeAppearancePackage",
 			packageId: TEST_PACK_ID,
 		});
+		return () => {
+			if (
+				useAppManager.getState().System.Manager.Appearance.packageId ===
+				TEST_PACK_ID
+			)
+				dispatch({
+					type: "ClassicyDesktopChangeAppearancePackage",
+					packageId: PLATINUM_APPEARANCE_PACKAGE_ID,
+				});
+		};
 	}, [dispatch]);
 	const changeMetric = useCallback(
 		(target: ClassicyThemeMetricFamilyTarget, value: number) =>
@@ -447,8 +516,10 @@ export const Panel: Story = {
 /**
  * Themes: the active Appearance Package's presets and custom themes, the
  * scrolling options, and Save Theme… / Load Theme…. Load Theme… with a file
- * for a package that is not installed is refused before anything is
- * dispatched (the panel shows the reason in a stop alert).
+ * for a package that is not installed, or one that does not parse, is
+ * refused before anything is dispatched, with the reason in a stop alert; a
+ * file for another installed package (Test Pack, say) switches to that
+ * package before the theme is imported.
  */
 export const Themes: Story = {
 	render: () => <ThemesTabStory />,
