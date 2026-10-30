@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T20:31:22.637Z"
-updated: "2026-10-30T02:58:39.214Z"
+updated: "2026-10-30T03:48:07.289Z"
 started: "2026-10-30T02:58:39.214Z"
 tags: []
 milestone: ""
@@ -114,3 +114,5 @@ Insert `<ClassicyWindowMenuBar appId={appId} windowId={id} menuItems={appMenu} /
 
 ## Work Log
 ### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
+
+### 2026-10-30T03:48:07.289Z - F 5.1 implemented (bd27a2afe): ClassicyWindowMenuBar slot plus headless screen bar for menuBar.placement window; chords still dispatch. Full suite 4050/4050; 26 desktop/window/app/menubar stories AE 0; live window-placement check passes (21 px bar, contents inside the frame). Named limitations: extensions/Apple/Help/switcher/clock have no in-window home; top band stays 30 px. Task review dispatched.

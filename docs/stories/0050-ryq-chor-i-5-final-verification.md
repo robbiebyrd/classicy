@@ -3,12 +3,13 @@ id: 0050-ryq
 title: 'I 5: Final verification'
 purpose: Run the full gate for Part I and prove every pre-existing Storybook story is pixel-identical after the hook wiring and the feedback moves.
 type: chor
-status: in_progress
+status: complete
 priority: "2"
 effort: S
 created: "2026-10-28T20:20:53.774Z"
-updated: "2026-10-30T03:06:50.303Z"
+updated: "2026-10-30T03:47:55.982Z"
 started: "2026-10-30T03:06:50.303Z"
+completed: "2026-10-30T03:47:55.982Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -73,9 +74,9 @@ Stop the background Storybook / dev servers started by this plan.
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test && pnpm build:source
-- [ ] VERIFY: test "$(grep -rn 'ClassicySoundPlay\"' src/SystemFolder/SystemResources --include=*.tsx | grep -v test | grep -vE 'PlayError|ClassicyBoot' | wc -l)" -eq 0 && test "$(grep -c classicyMenuItemFlashKeyframes dist/classicy.css)" -eq 0
-- [ ] VERIFY: for f in .playwright-mcp/parity/part-i/before/*.png; do compare -metric AE "$f" ".playwright-mcp/parity/part-i/after/$(basename $f)" null: 2>&1; echo " $f"; done | grep -v '^0 ' | wc -l  # expect 0
+- [x] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test && pnpm build:source
+- [x] VERIFY: test "$(grep -rn 'ClassicySoundPlay\"' src/SystemFolder/SystemResources --include=*.tsx | grep -v test | grep -vE 'PlayError|ClassicyBoot' | wc -l)" -eq 0 && test "$(grep -c classicyMenuItemFlashKeyframes dist/classicy.css)" -eq 0
+- [x] VERIFY: for f in .playwright-mcp/parity/part-i/before/*.png; do compare -metric AE "$f" ".playwright-mcp/parity/part-i/after/$(basename $f)" null: 2>&1; echo " $f"; done | grep -v '^0 ' | wc -l  # expect 0
 
 ## Files
 
@@ -84,3 +85,5 @@ Stop the background Storybook / dev servers started by this plan.
 
 ## Work Log
 ### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
+
+### 2026-10-30T03:47:33.059Z - I 5 done at b81857816 (also folds the I 4.1 review minors). Gate green: 363 files / 4252 tests, lint, tsc, build:source + verify:dist. Feedback-sprite grep 0; flash keyframes 0 in dist/classicy.css (present in classicy-platinum.css). Parity: fresh after/ of all 302 stories, compare-ae total 302 nonzero 0 missing 0. In-iframe navigation from appearance-hooks to default restores platinum. Whole-branch final reviews (core + UI/docs) dispatched.

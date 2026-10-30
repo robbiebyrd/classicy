@@ -3,11 +3,18 @@ id: 0065-8mp
 title: 'F 6.1: Sibling parts become orderable; clean-up reads iconGridOrigin'
 purpose: Make alert icon/button order, the Disclosure label side and the Tabs strip position reachable by CSS alone, and make desktop clean-up fill the icon grid from the package's declared origin.
 type: feat
-status: pending
+status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T20:32:12.590Z"
-updated: "2026-10-29T20:22:00.352Z"
+updated: "2026-10-30T03:48:15.190Z"
+started: "2026-10-30T03:48:15.190Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy
