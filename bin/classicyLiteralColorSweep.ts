@@ -5,10 +5,16 @@
 //   node bin/classicyLiteralColorSweep.ts   print each hit; exit 1 when any
 //
 // Build script, not library code: it reports through stdout/stderr and exit
-// codes. Erasable TypeScript syntax only, so Node runs it directly. Part H's
-// guard reuses findClassicyLiteralColors.
-import { readdirSync, readFileSync } from "node:fs";
+// codes. Erasable TypeScript syntax only, so Node runs it directly. It shares
+// its comment and url()/data-URI blanking with Part H's pixel-literal gate
+// (classicyScssSource.ts).
+import { readFileSync } from "node:fs";
 import { join, relative, sep } from "node:path";
+import {
+	blankClassicyScssComments,
+	blankClassicyScssUrlPayloads,
+	listClassicyScssFiles,
+} from "./classicyScssSource.ts";
 
 export type ClassicyLiteralColorHit = {
 	/** Path relative to the root, with `/` separators. */
@@ -58,14 +64,13 @@ const LITERAL = new RegExp(
 	"i",
 );
 
-// Spans that hold a literal on purpose, blanked before LITERAL is tested so
-// the rest of their line is still checked: a `var(--x, <fallback>)` (one
-// level of nested parentheses, so `rgba()` and `var()` fallbacks too) and art
-// in a data URI.
-const EXEMPT_SPANS: readonly RegExp[] = [
-	/var\(--[a-z0-9-]+\s*,[^()]*(?:\([^()]*(?:\([^()]*\)[^()]*)*\)[^()]*)*\)/gi,
-	/"data:[^"]*"|'data:[^']*'|url\(\s*data:[^)]*\)/g,
-];
+// A span that holds a literal on purpose, blanked before LITERAL is tested so
+// the rest of its line is still checked: a `var(--x, <fallback>)` (one level
+// of nested parentheses, so `rgba()` and `var()` fallbacks too). Art in a
+// url() or a quoted data URI is blanked with the comments, by
+// classicyScssSource.ts (shared with the pixel-literal gate).
+const VAR_FALLBACK =
+	/var\(--[a-z0-9-]+\s*,[^()]*(?:\([^()]*(?:\([^()]*\)[^()]*)*\)[^()]*)*\)/gi;
 
 // Files that hold colors as data: the color helpers' own definitions (their
 // white/black mix targets) and the screen savers (ported After Dark art).
@@ -102,21 +107,10 @@ const isPackageFile = (file: string): boolean => {
 	return folder !== undefined && folder !== "vocabulary";
 };
 
-// Blank out /* … */ comments, keeping every newline so line numbers hold.
-const stripBlockComments = (source: string): string =>
-	source.replace(/\/\*[\s\S]*?\*\//g, (comment) =>
-		comment.replace(/[^\n]/g, " "),
-	);
-
-// A `//` comment to the end of the line; a `://` (a URL) is not one.
-const LINE_COMMENT = /(^|[^:])\/\/.*$/;
-
-// The line with every exempt span and its comment blanked. Data URIs go
-// first, so a `//` inside one never reads as a comment.
+// The line (comments and url() payloads already blanked) with every exempt
+// span blanked.
 const sweptText = (file: string, line: string): string => {
-	let text = line;
-	for (const span of EXEMPT_SPANS) text = text.replace(span, " ");
-	text = text.replace(LINE_COMMENT, "$1");
+	let text = line.replace(VAR_FALLBACK, " ");
 	for (const span of EXEMPT_DECLARATIONS[file] ?? []) {
 		text = text.replace(span, " ");
 	}
@@ -133,29 +127,22 @@ export function classicyLiteralColorHits(
 ): ClassicyLiteralColorHit[] {
 	if (EXEMPT_FILE.test(file)) return [];
 	const hits: ClassicyLiteralColorHit[] = [];
-	stripBlockComments(source)
+	const uncommented = blankClassicyScssComments(source);
+	const reported = uncommented.split("\n");
+	blankClassicyScssUrlPayloads(uncommented)
 		.split("\n")
 		.forEach((text, index) => {
 			if (!LITERAL.test(sweptText(file, text))) return;
-			hits.push({ file, line: index + 1, text: text.trim() });
+			hits.push({ file, line: index + 1, text: reported[index].trim() });
 		});
 	return hits;
 }
-
-const scssFiles = (dir: string): string[] =>
-	readdirSync(dir, { withFileTypes: true })
-		.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
-		.flatMap((entry) => {
-			const full = join(dir, entry.name);
-			if (entry.isDirectory()) return scssFiles(full);
-			return entry.name.endsWith(".scss") ? [full] : [];
-		});
 
 /** Every literal color in `<root>/src/**\/*.scss`, sorted by path. */
 export function findClassicyLiteralColors(
 	root: string,
 ): ClassicyLiteralColorHit[] {
-	return scssFiles(join(root, "src")).flatMap((full) =>
+	return listClassicyScssFiles(join(root, "src")).flatMap((full) =>
 		classicyLiteralColorHits(
 			relative(root, full).split(sep).join("/"),
 			readFileSync(full, "utf8"),
