@@ -70,7 +70,7 @@ describe("scanPixelLiteralsInSource", () => {
 	it("strips // comments but spares the :// in a URL", () =>
 		expect(
 			scanPixelLiteralsInSource(
-				"a { top: 2px; } // 9px\nb { background: url(http://x.test/a(1)/7px.png) 3px; }",
+				"a { top: 2px; } // 9px\nb { background: url(http://x.test/a\\(1\\)/7px.png) 3px; }",
 				"f.scss",
 			).map((found) => `${found.line} ${found.text}`),
 		).toEqual(["1 2px", "2 3px"]));
@@ -82,6 +82,72 @@ describe("scanPixelLiteralsInSource", () => {
 				"f.scss",
 			).map((found) => `${found.text} ${found.kind}`),
 		).toEqual(["4px bare"]));
+
+	// H 1.1 review, Minor 1: a url() body never swallows the rest of the file.
+	it("honors backslash escapes in an unquoted url body", () =>
+		expect(
+			scanPixelLiteralsInSource(
+				"a { background: url(a\\(b.png) 4px; }\nb { top: 5px; }",
+				"f.scss",
+			).map((found) => `${found.line} ${found.text}`),
+		).toEqual(["1 4px", "2 5px"]));
+
+	it("ends an unquoted url body at its first unescaped )", () =>
+		expect(
+			scanPixelLiteralsInSource(
+				"a { background: url(a(b.png) 4px; }\nb { top: 5px; }",
+				"f.scss",
+			).map((found) => `${found.line} ${found.text}`),
+		).toEqual(["1 4px", "2 5px"]));
+
+	it("ends an unclosed url at the end of its line", () =>
+		expect(
+			scanPixelLiteralsInSource(
+				"a { background: url(x.png 3px;\nb { top: 5px; }",
+				"f.scss",
+			).map((found) => `${found.line} ${found.text}`),
+		).toEqual(["2 5px"]));
+
+	it("ends an unquoted url body with a stray quote at its )", () =>
+		expect(
+			scanPixelLiteralsInSource(
+				"a { mask: url(data:image/svg+xml,<svg>it's</svg>) 2px; }\nb { top: 5px; }",
+				"f.scss",
+			).map((found) => `${found.line} ${found.text}`),
+		).toEqual(["1 2px", "2 5px"]));
+
+	it("ends a quoted url body after its string, even with a stray quote inside", () =>
+		expect(
+			scanPixelLiteralsInSource(
+				"a { mask: url('data:image/svg+xml,<svg>it's</svg>) 2px; }\nb { top: 5px; }",
+				"f.scss",
+			).map((found) => `${found.line} ${found.text}`),
+		).toEqual(["1 2px", "2 5px"]));
+
+	// Minor 2: every way CSS writes a pixel length.
+	it("matches uppercase units, leading-dot decimals and exponents", () =>
+		expect(
+			scanPixelLiteralsInSource(
+				"a { top: 4PX; left: .5px; width: 1e3px; right: -.25Px; margin: 0PX .0px 0e2px; }",
+				"f.scss",
+			).map((found) => found.text),
+		).toEqual(["4PX", ".5px", "1e3px", "-.25Px"]));
+
+	it("splits a subtraction written without spaces into two literals", () =>
+		expect(
+			scanPixelLiteralsInSource("a { top: calc(10px-3px); }", "f.scss").map(
+				(found) => found.text,
+			),
+		).toEqual(["10px", "-3px"]));
+
+	// Minor 4: the parenthesis stack spans lines.
+	it("classifies a fallback that starts on the next line", () =>
+		expect(
+			scanPixelLiteralsInSource(
+				"a {\n  width: var(--a,\n    4px);\n  top: 2px;\n}",
+				"f.scss",
+			).map((found) => `${found.line} ${found.text} ${found.kind}`),
+		).toEqual(["3 4px fallback", "4 2px bare"]));
 
 	it("counts Sass declarations, interpolation and package constants", () =>
 		expect(
@@ -111,6 +177,21 @@ describe("checkPixelLiteralAllowlist", () => {
 				"a.scss": 1,
 			}),
 		).toEqual([]));
+
+	// Minor 5: an entry is a positive whole count; a file at 0 is deleted.
+	it("ratchet: rejects a 0 entry and a count that is not a whole number", () =>
+		expect(
+			checkPixelLiteralAllowlist(new Map([["a.scss", [lit]]]), {
+				"a.scss": 1,
+				"gone.scss": 0,
+				"b.scss": 1.5,
+				"c.scss": "2",
+			}),
+		).toEqual([
+			"invalid allowlist entry for b.scss: 1.5 (a count must be a positive whole number)",
+			'invalid allowlist entry for c.scss: "2" (a count must be a positive whole number)',
+			"invalid allowlist entry for gone.scss: 0 (a file with no literals left must be removed from the list)",
+		]));
 
 	it("ratchet: a listed file that is gone must be removed", () =>
 		expect(checkPixelLiteralAllowlist(new Map(), { "gone.scss": 3 })).toEqual([
