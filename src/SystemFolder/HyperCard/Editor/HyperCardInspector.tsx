@@ -6,7 +6,8 @@
  * keyed on selection + field so selection changes remount them.
  */
 
-import type { FC as FunctionalComponent } from "react";
+import classNames from "classnames";
+import type { CSSProperties, FC as FunctionalComponent } from "react";
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { optionsSchemaFor } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorSchemas";
 import {
@@ -28,6 +29,10 @@ import { ClassicyTextEditor } from "@/SystemFolder/SystemResources/TextEditor/Cl
 interface HyperCardInspectorProps {
 	stackId: string;
 	edit: HCEditState;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 }
 
 /** Uncontrolled input that commits its latest text on Enter or blur. */
@@ -79,7 +84,7 @@ const STYLE_FIELDS: {
 
 export const HyperCardInspector: FunctionalComponent<
 	HyperCardInspectorProps
-> = ({ stackId, edit }) => {
+> = ({ stackId, edit, className, style }) => {
 	const dispatch = useAppManagerDispatch();
 	const parts =
 		peekLayerParts(edit.draft, edit.currentCardId, edit.layer) ?? [];
@@ -88,7 +93,10 @@ export const HyperCardInspector: FunctionalComponent<
 		: undefined;
 
 	return (
-		<div className={"classicyHyperCardInspector"}>
+		<div
+			className={classNames("classicyHyperCardInspector", className)}
+			style={style}
+		>
 			{part ? renderPartSections(part) : renderCardStackSections()}
 		</div>
 	);

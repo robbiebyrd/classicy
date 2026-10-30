@@ -12,7 +12,12 @@ import {
 	toolbarPlugin,
 	UndoRedo,
 } from "@mdxeditor/editor";
-import type { FC as FunctionalComponent, RefObject } from "react";
+import classNames from "classnames";
+import type {
+	CSSProperties,
+	FC as FunctionalComponent,
+	RefObject,
+} from "react";
 
 interface ClassicyRichTextEditorProps {
 	/**
@@ -27,6 +32,10 @@ interface ClassicyRichTextEditorProps {
 	editorRef?: RefObject<MDXEditorMethods | null>;
 	/** Fired with the current markdown whenever the document is edited. */
 	onChangeFunc?: (markdown: string) => void;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 }
 
 const editorPlugins = [
@@ -67,9 +76,12 @@ const editorPlugins = [
  */
 export const ClassicyRichTextEditor: FunctionalComponent<
 	ClassicyRichTextEditorProps
-> = ({ content, editorRef, onChangeFunc }) => {
+> = ({ content, editorRef, onChangeFunc, className, style }) => {
 	return (
-		<div className={"classicyRichTextEditor"}>
+		<div
+			className={classNames("classicyRichTextEditor", className)}
+			style={style}
+		>
 			<MDXEditor
 				ref={editorRef}
 				markdown={content}

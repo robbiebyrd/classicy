@@ -1,5 +1,8 @@
+import { act } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { render, renderHook, screen, userEvent } from "@/__tests__/test-utils";
+import "@/Appearance/Platinum/assets/platinumAssets";
+import { registerClassicyFonts } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	type ClassicyThemeTypography,
 	getTheme,
@@ -93,5 +96,50 @@ describe("useFontsTab", () => {
 		await user.click(menu(key));
 		await user.click(screen.getByRole("option", { name: label }));
 		expect(changeFont).toHaveBeenCalledExactlyOnceWith(key, value);
+	});
+
+	it("lists the registered font families in registration order with the Digital label", async () => {
+		const user = userEvent.setup();
+		render(<Host />);
+		await user.click(menu("ui"));
+		const options = screen.getAllByRole("option");
+		expect(options.map((o) => o.textContent?.replace(/^✓/, ""))).toEqual([
+			"Charcoal",
+			"ChicagoFLF",
+			"Geneva",
+			"AppleGaramond",
+			"Monaco",
+			"Digital",
+		]);
+	});
+
+	it("a family registered after mount appears", async () => {
+		const changeFont = vi.fn();
+		const user = userEvent.setup();
+		render(<Host changeFont={changeFont} />);
+		act(() =>
+			registerClassicyFonts("platinum", [
+				{ family: "Espy Sans", src: "espy.woff2" },
+			]),
+		);
+		await user.click(menu("ui"));
+		await user.click(screen.getByRole("option", { name: "Espy Sans" }));
+		expect(changeFont).toHaveBeenCalledExactlyOnceWith("ui", "Espy Sans");
+	});
+
+	it("lists registered font families", async () => {
+		// Registered before render; runs after the registration-order test,
+		// since registrations outlive a test.
+		registerClassicyFonts("platinum", [
+			{ family: "TestFace", src: "data:font/woff2;base64,AA==" },
+		]);
+		const user = userEvent.setup();
+		render(<Host />);
+		for (const key of ROWS) {
+			await user.click(menu(key));
+			const option = screen.getByRole("option", { name: "TestFace" });
+			expect(option).toBeInTheDocument();
+			await user.keyboard("{Escape}");
+		}
 	});
 });

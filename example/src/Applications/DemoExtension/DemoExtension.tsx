@@ -1,4 +1,4 @@
-import { ClassicyApp, ClassicyIcons } from "classicy";
+import { ClassicyApp, useClassicyAsset } from "classicy";
 
 /**
  * Minimal background extension: no desktop icon, no App Switcher entry, no
@@ -6,11 +6,14 @@ import { ClassicyApp, ClassicyIcons } from "classicy";
  * Macintosh HD:System Folder:Extensions, where double-clicking it shows the
  * "Library" error dialog.
  */
-export const DemoExtension = () => (
-	<ClassicyApp
-		id="DemoExtension.app"
-		name="Demo Extension"
-		icon={ClassicyIcons.system.extension}
-		extension
-	/>
-);
+export const DemoExtension = () => {
+	const icon = useClassicyAsset("icons", "system.extension") ?? "";
+	return (
+		<ClassicyApp
+			id="DemoExtension.app"
+			name="Demo Extension"
+			icon={icon}
+			extension
+		/>
+	);
+};

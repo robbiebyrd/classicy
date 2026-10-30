@@ -1,3 +1,5 @@
+@use "../../Appearance/vocabulary/color" as c;
+
 .finderAboutThisComputer {
   display: flex;
   flex-direction: column;
@@ -27,7 +29,7 @@
     width: 90%;
     height: 90%;
     object-fit: contain;
-    filter: drop-shadow(4px 4px 6px rgba(255, 255, 255, 0.5));
+    filter: drop-shadow(4px 4px 6px c.classicy-alpha("--color-white", 50%));
   }
 
   p {
@@ -50,7 +52,7 @@
     width: 56px;
     height: 56px;
     padding: 4px;
-    border: var(--window-border-size) solid #999;
+    border: var(--window-border-size) solid c.classicy-shade("--color-system-04", 10%);
     background: var(--color-white);
   }
 
@@ -80,7 +82,7 @@
 }
 
 .finderAboutThisComputerUsage {
-  border-top: var(--window-border-size) solid #999;
+  border-top: var(--window-border-size) solid c.classicy-shade("--color-system-04", 10%);
   flex: 1;
   overflow-y: auto;
   background-color: var(--color-system-01);

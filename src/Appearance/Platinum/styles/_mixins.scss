@@ -1,0 +1,289 @@
+// The Platinum look's mixins (moved from the former AppearanceManager
+// appearance module, renamed platinum-*), included by the package's component
+// partials inside classicy-package("platinum"). The layout helpers they use
+// (classicy-px-rect, classicy-no-select) live in ../../vocabulary/_layout.scss.
+@use 'sass:list';
+@use '../../vocabulary/color' as c;
+@use '../../vocabulary/layout';
+
+// The Platinum menu frame, pixel-for-pixel from HIGOS8 Figure 6-15: a 1 px
+// black border; inside it a white highlight on the top and left and a
+// system-04 edge on the bottom and right, meeting at face-colored corners;
+// outside it a 1 px system-07 shadow on the right and bottom that starts 2 px
+// in from the corner. The shadow is drawn by ::before/::after, so the element
+// must be positioned (menus are absolute; give a static one `relative`).
+@mixin platinum-menu-frame {
+  border: 1px solid var(--color-black);
+  box-shadow: none;
+  background:
+    layout.classicy-px-rect(var(--color-white), 0, 0, calc(100% - 1px), 1px),
+    layout.classicy-px-rect(var(--color-white), 0, 0, 1px, calc(100% - 1px)),
+    layout.classicy-px-rect(var(--color-system-04), 100%, 1px, 1px, calc(100% - 1px)),
+    layout.classicy-px-rect(var(--color-system-04), 1px, 100%, calc(100% - 1px), 1px),
+    var(--color-system-02);
+
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    background-color: var(--color-system-07);
+    pointer-events: none;
+  }
+
+  // Right shadow: from 2 px below the top edge to 1 px past the bottom.
+  &::after {
+    top: 1px;
+    right: -2px;
+    bottom: -2px;
+    width: 1px;
+  }
+
+  // Bottom shadow: from 2 px in from the left edge to 1 px past the right.
+  &::before {
+    left: 1px;
+    right: -2px;
+    bottom: -2px;
+    height: 1px;
+  }
+}
+
+// A divider inside a Platinum menu (Figure 6-15): a system-05 line over a
+// white one, running the menu's full inner width — across the frame's
+// highlight and edge, which the menu's 1 px padding would otherwise inset.
+@mixin platinum-menu-divider {
+  align-self: stretch;
+  width: auto;
+  margin-left: calc(var(--window-border-size) * -1);
+  margin-right: calc(var(--window-border-size) * -1);
+  border-top-color: var(--color-system-05);
+  border-bottom-color: var(--color-white);
+}
+
+@mixin platinum-window-box-shadow {
+  box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05),
+  inset var(--window-border-size) var(--window-border-size) var(--color-window-border-outset),
+  var(--window-border-size) var(--window-border-size) 0 0 var(--color-black);
+}
+
+@mixin platinum-box-shadow {
+  box-shadow: inset var(--window-border-size) var(--window-border-size) var(--color-system-05),
+  var(--window-border-size) var(--window-border-size) var(--color-window-border-outset);
+}
+
+@mixin platinum-window-border {
+  border: var(--window-border-size) solid var(--color-window-border);
+  @include platinum-window-box-shadow;
+}
+
+@mixin platinum-window-header-border {
+  border: var(--window-border-size) solid var(--color-system-07);
+  border-bottom: var(--window-border-size) solid var(--color-system-05);
+  @include platinum-window-box-shadow;
+  box-shadow: inset var(--window-border-size) var(--window-border-size) var(--color-window-border-outset);
+}
+
+@mixin platinum-window-header-border-depressed {
+  box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-03),
+    inset var(--window-border-size) var(--window-border-size) var(--color-system-05),
+    var(--window-border-size) var(--window-border-size) var(--color-system-06);
+  border-bottom: var(--window-border-size) solid var(--color-black);
+  color: var(--color-black);
+}
+
+@mixin platinum-window-inner-box-shadow {
+  box-shadow: calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05),
+  var(--window-border-size) var(--window-border-size) var(--color-window-border-outset);
+}
+
+@mixin platinum-window-inner-box-shadow-outer {
+  box-shadow: calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05);
+}
+
+
+@mixin platinum-window-inner-border {
+  border: var(--window-border-size) solid var(--color-window-border);
+  @include platinum-window-inner-box-shadow;
+}
+
+@mixin platinum-window-control-box-border {
+  box-shadow: inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-03),
+  inset calc((var(--window-border-size)) * -1) calc((var(--window-border-size)) * -1) 0 0 var(--color-system-05);
+  border: var(--window-border-size) solid var(--color-black);
+}
+
+@mixin platinum-window-control-box {
+  width: var(--window-control-size);
+  height: var(--window-control-size);
+  background: linear-gradient(135deg, var(--color-system-05), var(--color-white) 80%);
+
+  &:before {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background-image: var(--classicy-art-window-dither);
+    background-repeat: no-repeat;
+    background-size: cover;
+    mix-blend-mode: luminosity;
+    opacity: 0.25;
+    content: ' ';
+  }
+}
+
+@mixin platinum-window-control-box-depressable {
+  @include platinum-window-control-box;
+  @include platinum-window-control-box-border;
+  &:active {
+    box-shadow: inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-07),
+    inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 0 var(--color-system-05);
+    background: linear-gradient(135deg, var(--color-system-06), var(--color-system-05));
+  }
+  &:after {
+    position: relative;
+    top: calc((var(--window-control-size) * -1) - var(--window-border-size));
+    display: block;
+    width: 100%;
+    height: 100%;
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-size: contain;
+    content: ' ';
+  }
+}
+
+@mixin platinum-window-undepressable {
+  box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05),
+  inset calc(var(--window-border-size) * -2) calc(var(--window-border-size) * -2) var(--color-system-04),
+  inset var(--window-border-size) var(--window-border-size) var(--color-system-04),
+  inset var(--control-frame-width) var(--control-frame-width) var(--color-white);
+  background-color: var(--color-system-02);
+  border: var(--window-border-size) solid var(--color-black);
+  border-radius: var(--window-padding-size);
+}
+
+@mixin platinum-window-depressable {
+  @include platinum-window-undepressable;
+  &:active {
+    box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05),
+    inset calc(var(--window-border-size) * -2) calc(var(--window-border-size) * -2) var(--color-system-06),
+    inset var(--window-border-size) var(--window-border-size) var(--color-system-07),
+    inset var(--control-frame-width) var(--control-frame-width) var(--color-system-06);
+    background-color: var(--color-system-05);
+    color: var(--color-white);
+  }
+
+  &:disabled {
+    box-shadow: none;
+    background-color: var(--color-system-03);
+    border-color: var(--color-system-05);
+    color: var(--color-system-05);
+
+    * {
+      color: var(--color-system-05);
+    }
+  }
+}
+
+@mixin platinum-window-depressed {
+  border-radius: var(--window-padding-size);
+  box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05),
+  inset calc(var(--window-border-size) * -2) calc(var(--window-border-size) * -2) var(--color-system-06),
+  inset var(--window-border-size) var(--window-border-size) var(--color-system-07),
+  inset var(--control-frame-width) var(--control-frame-width) var(--color-system-06);
+  background-color: var(--color-system-05);
+  color: var(--color-white);
+}
+
+@mixin platinum-depressable-default {
+  @include platinum-window-depressable;
+  box-shadow: 0 0 0 var(--window-border-size) var(--color-system-04),
+  0 0 0 var(--control-frame-width) var(--color-system-02),
+  0 0 0 var(--control-bevel-md) var(--color-black),
+  inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 0 var(--color-system-05),
+  inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-06);
+
+  &:active {
+    @include platinum-depressable-box-shadow-active;
+  }
+}
+
+@mixin platinum-depressable-box-shadow-active {
+  box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-07),
+  inset calc(var(--window-border-size) * -2) calc(var(--window-border-size) * -2) var(--color-system-06),
+  inset var(--window-border-size) var(--window-border-size) var(--color-system-07),
+  inset var(--control-frame-width) var(--control-frame-width) var(--color-system-06),
+  0 0 0 var(--window-border-size) var(--color-system-04),
+  0 0 0 var(--control-frame-width) var(--color-black),
+  inset calc(var(--window-border-size) * -2) calc(var(--window-border-size) * -2) 0 0 var(--color-system-05),
+  inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-06);
+}
+
+// The halftone dither, painted with the color token `$token` through the dot
+// pattern on a `::before` under the element's content. The element's own
+// `mask-image` (the icon shape) clips the pseudo-element as it clipped the
+// former background image. The pattern is the registered `halftone` system
+// art (`--classicy-art-halftone`, a mask, so its fill is only coverage), with
+// no built-in fallback: Platinum registers it, asset lookups fall back to
+// Platinum, and ClassicyDesktop (or `useClassicyAssetVars()` on a standalone
+// wrapper) always publishes the variable. The host isolates a stacking
+// context, so the `z-index: -1` dots paint above its own background on any
+// element, not only on a masked icon (whose `mask-image` already makes one).
+@mixin platinum-halftone($token: "--color-black", $size: 5%) {
+  position: relative;
+  isolation: isolate;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-color: var(#{c.classicy-token($token)});
+    mask-image: var(--classicy-art-halftone);
+    mask-repeat: repeat;
+    mask-size: $size;
+  }
+}
+
+// The title-bar pinstripes (HIGOS8 Figure 3-1) on the stripe bands of a
+// ClassicyWindowTitleBar: included in the rule of the bar's ancestor (the
+// window state or the frame), it draws the registered stripe art
+// (`--classicy-art-window-stripes`, `-red` for `$tone: "-red"`) as each band's
+// background image, in the art's own colors. The `background` shorthand
+// resets the band's other background longhands, as the stripes always have;
+// `$center-size` and `$side-size` (the title-less center band and the two
+// bands beside a title) follow it when given.
+//
+// An image, not masks over theme colors (owner ruling E20): a band drawn at a
+// fractional scale or position anti-aliases its row boundaries inside the one
+// image, and no stack of masks, two or four layers or one per row, blends
+// them the same (up to 21 levels off in Chromium, 25 in Firefox). A package
+// recolors the stripes by registering recolored art.
+@mixin platinum-title-bar-stripes($tone: "", $center-size: null, $side-size: null) {
+  .classicyWindowTitleBar .classicyWindowTitle {
+    .classicyWindowTitleCenter {
+      background: var(--classicy-art-window-stripes#{$tone});
+
+      @if $center-size {
+        background-size: $center-size;
+      }
+    }
+
+    .classicyWindowTitleLeft,
+    .classicyWindowTitleRight {
+      background: var(--classicy-art-window-stripes#{$tone});
+
+      @if $side-size {
+        background-size: $side-size;
+      }
+
+      // The base sheet's zero-height end boxes get an empty image layer: it
+      // paints nothing, but Chromium rasters the control boxes' luminosity
+      // dither one level differently without it (it stands in for the cap
+      // art those boxes carried before Part E).
+      &:before,
+      &:after {
+        background-image: linear-gradient(transparent, transparent);
+      }
+    }
+  }
+}

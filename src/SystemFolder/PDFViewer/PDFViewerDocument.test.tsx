@@ -93,6 +93,11 @@ vi.mock("pdfjs-dist/build/pdf.worker.min.mjs?url", () => ({
 	default: "mock-worker-url",
 }));
 
+import { act } from "react";
+import {
+	ClassicyIcons,
+	registerClassicyIcons,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { PDFViewerDocument } from "@/SystemFolder/PDFViewer/PDFViewerDocument";
 import { compressToBase64 } from "@/SystemFolder/SystemResources/Utils/base64Compression";
 
@@ -442,6 +447,35 @@ describe("PDFViewerDocument", () => {
 			await user.click(screen.getByRole("button", { name: "Zoom Tool" }));
 			expect(wrapper).toHaveClass("pdfViewerDocumentToolZoom");
 			expect(wrapper).not.toHaveClass("pdfViewerDocumentToolPan");
+		});
+
+		it("hands the stylesheet the zoom lens as --classicy-pdf-zoom-cursor, following a later icon registration", async () => {
+			const { container } = render(
+				<PDFViewerDocument url="http://example.com/sample.pdf" />,
+			);
+			await screen.findByText("Page 1 of 3");
+			const root = container.querySelector(".pdfViewerDocument") as HTMLElement;
+			expect(root.style.getPropertyValue("--classicy-pdf-zoom-cursor")).toBe(
+				`url("${ClassicyIcons.system.sherlock.search}")`,
+			);
+			try {
+				act(() => {
+					registerClassicyIcons({
+						system: { sherlock: { search: "host-search.png" } },
+					});
+				});
+				expect(root.style.getPropertyValue("--classicy-pdf-zoom-cursor")).toBe(
+					'url("host-search.png")',
+				);
+			} finally {
+				act(() => {
+					registerClassicyIcons({
+						system: {
+							sherlock: { search: ClassicyIcons.system.sherlock.search },
+						},
+					});
+				});
+			}
 		});
 
 		it("pans the scroll offsets while dragging with the Pan tool, and stops on release", async () => {

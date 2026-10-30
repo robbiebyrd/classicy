@@ -16,6 +16,9 @@ import {
 	useEffect,
 	useState,
 } from "react";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
+import { useClassicyMergedRef } from "@/Appearance/useClassicyMergedRef.internal";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
 interface ClassicyInputProps {
@@ -53,6 +56,10 @@ interface ClassicyInputProps {
 	backgroundColor?: string;
 	/** Forwarded to the native `<input>`. */
 	ref?: ForwardedRef<HTMLInputElement>;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 }
 
 /**
@@ -88,6 +95,8 @@ export const ClassicyInput: FunctionalComponent<ClassicyInputProps> =
 			backgroundColor,
 			onChangeFunc,
 			onEnterFunc,
+			className,
+			style,
 		},
 		ref,
 	) {
@@ -110,8 +119,16 @@ export const ClassicyInput: FunctionalComponent<ClassicyInputProps> =
 			setValue(prefillValue ?? "");
 		}, [prefillValue]);
 
+		// The root element for the appearance hook, merged with the forwarded
+		// ref so callers keep receiving the <input>.
+		const [inputRef, setInputRef] = useClassicyMergedRef<HTMLInputElement>(ref);
+		// The field carries no state class (`isDefault` keeps its deprecated
+		// modifier class below).
+		const appearance = useClassicyAppearance("Input", {}, inputRef);
+
 		const handleOnChangeFunc: ChangeEventHandler<HTMLInputElement> = (e) => {
 			setValue(e.target.value);
+			appearance.emit("change", { value: e.target.value });
 			track("selected", { ...analyticsArgs, selected: e.target.value });
 			if (onChangeFunc) onChangeFunc(e);
 		};
@@ -127,7 +144,9 @@ export const ClassicyInput: FunctionalComponent<ClassicyInputProps> =
 				className={classNames(
 					"classicyInputHolder",
 					labelPositionClass(labelPosition),
+					className,
 				)}
+				style={style}
 			>
 				{labelTitle && (
 					<ClassicyControlLabel
@@ -138,24 +157,33 @@ export const ClassicyInput: FunctionalComponent<ClassicyInputProps> =
 					></ClassicyControlLabel>
 				)}
 				<input
+					{...appearance.attrs}
 					id={id}
 					tabIndex={0}
 					onChange={handleOnChangeFunc}
 					onKeyDown={handleOnKeyDown}
+					onFocus={() =>
+						appearance.emit("focus", withClassicyAppearanceInput())
+					}
+					onBlur={() => appearance.emit("blur", withClassicyAppearanceInput())}
 					name={id}
 					type={type}
-					ref={ref}
+					ref={setInputRef}
 					disabled={disabled}
 					value={value}
 					placeholder={placeholder}
 					className={classNames(
 						"classicyInput",
+						appearance.className,
 						isDefault ? "classicyInputDefault" : "",
 					)}
 					style={
-						backgroundColor
+						backgroundColor || appearance.style
 							? ({
-									"--classicy-input-background": backgroundColor,
+									...(backgroundColor && {
+										"--classicy-input-background": backgroundColor,
+									}),
+									...appearance.style,
 								} as CSSProperties)
 							: undefined
 					}

@@ -1,4 +1,4 @@
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import type {
 	ClassicyFileSystem,
 	ClassicyFileSystemMoveRefusal,
@@ -66,7 +66,7 @@ export function ensureClassicyTrash(fs: ClassicyFileSystem): string {
 	if (!fs.resolve(CLASSICY_TRASH_PATH)) {
 		fs.mkDir(CLASSICY_TRASH_PATH);
 		fs.setMetadata(CLASSICY_TRASH_PATH, {
-			_icon: ClassicyIcons.system.desktop.trashEmpty,
+			_icon: resolveClassicyAsset("systemArt", "trashEmpty") ?? "",
 			_system: true,
 			_nameLocked: true,
 			// Not a volume: Open and Save dialogs, which list the root, skip it.

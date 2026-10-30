@@ -1,3 +1,4 @@
+import { createRef } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, userEvent } from "@/__tests__/test-utils";
 import { ClassicyInput } from "@/SystemFolder/SystemResources/Input/ClassicyInput";
@@ -99,5 +100,47 @@ describe("ClassicyInput", () => {
 			"type",
 			"password",
 		);
+	});
+});
+
+// The forwarded ref is merged with the component's own root ref (for the
+// appearance hook), so every ref form React supports must still reach the
+// <input>: object refs, classic callback refs (null on detach) and React 19
+// callback refs that return a cleanup (no null call on detach).
+describe("ClassicyInput forwarded ref", () => {
+	it("sets and clears an object ref", () => {
+		const ref = createRef<HTMLInputElement>();
+		const { unmount } = render(<ClassicyInput id="i" ref={ref} />);
+		expect(ref.current).toBeInstanceOf(HTMLInputElement);
+		unmount();
+		expect(ref.current).toBeNull();
+	});
+
+	it("calls a classic callback ref with the element, then null", () => {
+		const calls: (HTMLInputElement | null)[] = [];
+		const ref = (el: HTMLInputElement | null) => {
+			calls.push(el);
+		};
+		const { rerender, unmount } = render(<ClassicyInput id="i" ref={ref} />);
+		rerender(<ClassicyInput id="i" ref={ref} />);
+		expect(calls).toHaveLength(1);
+		expect(calls[0]).toBeInstanceOf(HTMLInputElement);
+		unmount();
+		expect(calls).toEqual([calls[0], null]);
+	});
+
+	it("runs a cleanup-returning callback ref's cleanup instead of calling it with null", () => {
+		const calls: (HTMLInputElement | null)[] = [];
+		const cleanup = vi.fn();
+		const ref = (el: HTMLInputElement | null) => {
+			calls.push(el);
+			return cleanup;
+		};
+		const { unmount } = render(<ClassicyInput id="i" ref={ref} />);
+		expect(calls).toHaveLength(1);
+		expect(calls[0]).toBeInstanceOf(HTMLInputElement);
+		unmount();
+		expect(cleanup).toHaveBeenCalledTimes(1);
+		expect(calls).toHaveLength(1);
 	});
 });

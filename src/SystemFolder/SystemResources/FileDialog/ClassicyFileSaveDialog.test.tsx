@@ -35,10 +35,6 @@ vi.mock(
 	}),
 );
 
-vi.mock("@/SystemFolder/SystemResources/Cursor/useClassicyCursor", () => ({
-	useClassicyCursor: () => vi.fn(),
-}));
-
 vi.mock("@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons", () => ({
 	ClassicyIcons: {
 		system: {
@@ -301,7 +297,7 @@ describe("ClassicyFileSaveDialog", () => {
 			"li",
 		);
 		expect(
-			fileHolder?.querySelector(".classicyTreeNodeDisabled"),
+			fileHolder?.querySelector(".classicyTreeNodeLabelHolder.disabled"),
 		).not.toBeNull();
 	});
 

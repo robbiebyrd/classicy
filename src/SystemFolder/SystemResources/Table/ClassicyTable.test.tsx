@@ -112,7 +112,7 @@ describe("ClassicyTable", () => {
 		fireEvent.click(screen.getByText("Abbey Road"));
 		expect(onSelection).toHaveBeenLastCalledWith(["abbey"]);
 		expect(
-			container.querySelectorAll(".classicyTableRowSelected"),
+			container.querySelectorAll(".classicyTableRow.selected"),
 		).toHaveLength(1);
 	});
 
@@ -220,7 +220,7 @@ describe("ClassicyTable", () => {
 			/>,
 		);
 		const selectedRows = container.querySelectorAll(
-			".classicyTableRowSelected",
+			".classicyTableRow.selected",
 		);
 		expect(selectedRows).toHaveLength(2);
 	});
@@ -384,7 +384,7 @@ describe("ClassicyTable — tree rows (expansion)", () => {
 			/>,
 		);
 		fireEvent.click(screen.getByText("top.pdf"));
-		const selected = container.querySelector(".classicyTableRowSelected");
+		const selected = container.querySelector(".classicyTableRow.selected");
 		expect(selected).toHaveClass("legacySelected");
 		expect(container.querySelector(".legacyRow")).toHaveClass(
 			"classicyTableRow",

@@ -89,9 +89,7 @@ describe("ClassicyAboutWindow default button + keyboard dismissal", () => {
 
 	it("marks OK as the default button", () => {
 		const { getByRole } = renderAbout(() => {});
-		expect(getByRole("button", { name: "OK" })).toHaveClass(
-			"classicyButtonDefault",
-		);
+		expect(getByRole("button", { name: "OK" })).toHaveClass("default");
 	});
 
 	it("dismisses on Escape (routed through the OK button)", () => {

@@ -2,6 +2,7 @@ import path from "node:path";
 import * as sass from "sass";
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, userEvent } from "@/__tests__/test-utils";
+import "@/Appearance/Platinum/assets/platinumAssets";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { ClassicyHelpButton } from "@/SystemFolder/SystemResources/HelpButton/ClassicyHelpButton";
 

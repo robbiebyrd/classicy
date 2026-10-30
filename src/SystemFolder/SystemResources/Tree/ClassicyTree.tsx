@@ -1,6 +1,7 @@
 import "./ClassicyTree.scss";
 import classNames from "classnames";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	type MouseEventHandler,
 	type KeyboardEvent as ReactKeyboardEvent,
@@ -8,8 +9,12 @@ import {
 	type ReactNode,
 	useCallback,
 	useMemo,
+	useRef,
 	useState,
 } from "react";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { useListNavigation } from "@/SystemFolder/SystemResources/Keyboard/useListNavigation";
 import {
@@ -100,6 +105,10 @@ type ClassicyTreeProps = {
 	) => void;
 	/** Fired when a selectable leaf is double-clicked — the "open it" gesture. */
 	onActivateNode?: (id: string, node: ClassicyTreeNode) => void;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 };
 
 /** A single row in the flattened (currently-visible) view of the tree. */
@@ -247,10 +256,10 @@ const ClassicyTreeNodeItem: FunctionalComponent<ClassicyTreeNodeItemProps> = ({
 						ref={registerRef}
 						className={classNames(
 							"classicyTreeNodeLabelHolder classicyTreeNodeBranch",
-							{
-								classicyTreeNodeDisabled: node.disabled,
-								classicyTreeNodeSelected: canSelectBranch && isBranchSelected,
-							},
+							classicyStateClasses({
+								disabled: node.disabled,
+								selected: canSelectBranch && isBranchSelected,
+							}),
 						)}
 						onClick={(e) => {
 							if (node.disabled) return;
@@ -282,9 +291,7 @@ const ClassicyTreeNodeItem: FunctionalComponent<ClassicyTreeNodeItemProps> = ({
 							"classicyTreeNodeLabelHolder",
 							"classicyTreeNodeLeaf",
 							"classicyTreeNodeSelectable",
-							{
-								classicyTreeNodeSelected: isSelected,
-							},
+							classicyStateClasses({ selected: isSelected }),
 						)}
 						onClick={(e) => ctx.onSelectNode?.(node.id, node, e)}
 						onDoubleClick={() => ctx.onActivateNode?.(node.id, node)}
@@ -300,10 +307,10 @@ const ClassicyTreeNodeItem: FunctionalComponent<ClassicyTreeNodeItemProps> = ({
 						className={classNames(
 							"classicyTreeNodeLabelHolder",
 							"classicyTreeNodeLeaf",
-							{
-								classicyTreeNodeDisabled: node.disabled,
-								classicyTreeNodeSelected: isSelected,
-							},
+							classicyStateClasses({
+								disabled: node.disabled,
+								selected: isSelected,
+							}),
 						)}
 						onFocus={onFocus}
 					>
@@ -386,6 +393,8 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 	selectedIds,
 	onSelectNode,
 	onActivateNode,
+	className,
+	style,
 }) => {
 	const [openSet, setOpenSet] = useState<Set<string>>(() =>
 		collectDefaultOpen(nodes),
@@ -406,6 +415,12 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 	const { activeId, setActiveId, tabStopId, registerRef, handleNavKey } =
 		useListNavigation(navRows);
 
+	const rootRef = useRef<HTMLUListElement>(null);
+	// The list had no state class; row states stay on the rows.
+	const appearance = useClassicyAppearance("Tree", {}, rootRef);
+	const emitAppearance = appearance.emit;
+
+	// Every expansion path (click, double-click, ⌘→/⌘←, Enter/Space) runs here.
 	const setOpen = useCallback(
 		(id: string, open: boolean) => {
 			setOpenSet((prev) => {
@@ -414,9 +429,13 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 				else next.delete(id);
 				return next;
 			});
+			emitAppearance(
+				open ? "expand" : "collapse",
+				withClassicyAppearanceInput({ nodeId: id, open }),
+			);
 			onToggleNode?.(id, open);
 		},
-		[onToggleNode],
+		[onToggleNode, emitAppearance],
 	);
 
 	const toggle = useCallback(
@@ -428,6 +447,20 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 
 	const resolvedSelectedIds = selectedIds ?? [];
 
+	// Every selection path (a click on a leaf or selectable branch, Enter or
+	// Space on the focused row) runs here.
+	const selectNode = useCallback(
+		(
+			id: string,
+			node: ClassicyTreeNode,
+			e: ReactMouseEvent | ReactKeyboardEvent,
+		) => {
+			emitAppearance("select", withClassicyAppearanceInput({ nodeId: id }));
+			onSelectNode?.(id, node, e);
+		},
+		[emitAppearance, onSelectNode],
+	);
+
 	const ctx: SharedRowContext = {
 		direction,
 		openSet,
@@ -437,7 +470,7 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 		registerRef,
 		selectionMode,
 		selectedIds: resolvedSelectedIds,
-		onSelectNode,
+		onSelectNode: selectNode,
 		onActivateNode,
 	};
 
@@ -491,7 +524,7 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 							current.node.branchSelectable === true;
 						e.preventDefault();
 						if (canSelectBranch) {
-							onSelectNode?.(current.id, current.node, e);
+							selectNode(current.id, current.node, e);
 						} else {
 							toggle(current.id);
 						}
@@ -504,7 +537,7 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 						!current.node.disabled;
 					if (canSelect) {
 						e.preventDefault();
-						onSelectNode?.(current.id, current.node, e);
+						selectNode(current.id, current.node, e);
 					}
 					return;
 				}
@@ -517,12 +550,18 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 			setOpen,
 			toggle,
 			selectionMode,
-			onSelectNode,
+			selectNode,
 		],
 	);
 
 	return (
-		<ul className={classNames("classicyTree")} onKeyDown={handleKeyDown}>
+		<ul
+			{...appearance.attrs}
+			ref={rootRef}
+			className={classNames("classicyTree", appearance.className, className)}
+			style={appearance.style ? { ...appearance.style, ...style } : style}
+			onKeyDown={handleKeyDown}
+		>
 			{nodes.map((node) => (
 				<ClassicyTreeNodeItem key={node.id} node={node} depth={0} ctx={ctx} />
 			))}

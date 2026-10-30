@@ -1,5 +1,3 @@
-@use '../../ControlPanels/AppearanceManager/styles/appearance';
-
 .classicyOutput {
   display: inline-block;
   box-sizing: border-box;
@@ -14,9 +12,9 @@
 .classicyOutputInset {
   min-height: var(--edit-field-height);
   line-height: var(--edit-field-height);
-  padding: 0 calc(var(--window-padding-size) / 2);
+  padding: 0 var(--control-padding);
   background: var(--color-white);
-  @include appearance.platinumWindowInnerBorder;
+  // The inset border is the Platinum package's.
 }
 
 .classicyOutputMono {
@@ -26,6 +24,6 @@
 
 // Disabled static text is dimmed (HIGOS8 Ch.2 "Static Text Fields", p.42),
 // matching ClassicyControlLabel's disabled treatment.
-.classicyOutputDisabled {
+:where(.classicyOutput).disabled {
   color: var(--color-system-05);
 }

@@ -3,7 +3,9 @@
   background: var(--color-black);
 }
 
-.classicyDesktopMenuAppleMenu {
+.classicyDesktopMenuApple {
+  margin-left: 0;
+
   > p {
     height: 100%;
     display: flex;
@@ -13,22 +15,39 @@
       min-width: 20vw;
     }
   }
+
+  &:after {
+    display: none;
+    content: '';
+  }
 }
 
+// The clusters are flex items, placed by `order` from their
+// data-classicy-part (below), not by floats, so a package can rearrange the
+// bar with `order` alone. `align-items: flex-start` keeps each cluster at its
+// own height, as the floats did. The bar is itself a flex item of its
+// .classicyMenuWrapper; border-box makes `width: 100%` that wrapper's width,
+// padding included, which is what flex shrinking settled on before.
 .classicyDesktopMenu {
   z-index: 500;
-  display: inline-block;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
   width: 100%;
+  box-sizing: border-box;
   margin: 0;
   padding: 0 var(--window-control-size);
   list-style: none;
   user-select: none;
   border-radius: var(--window-control-size) var(--window-control-size) 0 0;
-  background-color: var(--color-system-02) !important;
+  background-color: var(--color-system-02);
   box-shadow: inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-05),
-    calc(var(--window-border-size) * 2) calc(var(--window-border-size) * 2) 0 0 var(--color-black);
+    var(--control-frame-width) var(--control-frame-width) 0 0 var(--color-black);
   -webkit-user-drag: none;
 
+  > * {
+    float: none;
+  }
 
   // Hide the child-menu triangle on top-level menu titles only (including
   // balloon-wrapped ones); items inside dropdowns keep the indicator from
@@ -36,17 +55,61 @@
   > li,
   > .classicyBalloonHelpAnchor > li {
     &:after {
-      display: none !important;
+      display: none;
     }
 
     & p {
       padding: 0;
     }
   }
+
+  // A balloon-wrapped title's anchor is a full-width block, as dropdown items
+  // need (ClassicyMenu.scss); on the bar it is a flex item sized by its
+  // title, or it would stretch across the bar and push the clusters after it.
+  > .classicyMenuItemBalloonAnchor {
+    width: auto;
+
+    > .classicyMenuItem {
+      width: auto;
+    }
+  }
+}
+
+// Left to right: Apple, the app's menus, Help, then — pushed to the far end by
+// the extensions' auto margin — menu bar extensions, the clock and the App
+// Switcher. A top-level item with balloon help is wrapped in a
+// ClassicyBalloonHelp anchor, which is then the flex item: the `:has()` form
+// orders that wrapper by the part it wraps. The two forms are separate rules,
+// plain first: a browser without :has() drops a whole rule whose selector list
+// contains it, and would lose the plain order with it.
+$classicy-menu-bar-order: (
+  apple: 10,
+  app: 20,
+  help: 30,
+  extensions: 40,
+  clock: 50,
+  switcher: 60,
+);
+
+@mixin classicy-menu-bar-slot($part, $order) {
+  order: $order;
+
+  @if $part == extensions {
+    margin-left: auto;
+  }
+}
+
+@each $part, $order in $classicy-menu-bar-order {
+  .classicyDesktopMenu > [data-classicy-part="#{$part}"] {
+    @include classicy-menu-bar-slot($part, $order);
+  }
+
+  .classicyDesktopMenu > :has(> [data-classicy-part="#{$part}"]) {
+    @include classicy-menu-bar-slot($part, $order);
+  }
 }
 
 .classicyDesktopMenuExtensions {
-  float: right;
   display: flex;
   align-items: center;
   height: 100%;
@@ -55,30 +118,20 @@
   list-style: none;
 }
 
-.classicyDesktopMenuAppleMenu {
-  margin-left: 0;
-
-  &:after {
-    display: none !important;
-    content: '';
-  }
-}
-
 .classicyDesktopMenuAppSwitcher {
-  float: right;
   margin-right: 0;
   margin-left: 0;
   &:hover {
     &:before {
-      background: var(--color-theme-02) !important;
+      background: var(--color-theme-02);
       box-shadow: var(--window-border-size) var(--window-border-size) var(--color-theme-05),
         inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-theme-02),
-        inset var(--window-border-size) var(--window-border-size) var(--color-theme-01) !important;
+        inset var(--window-border-size) var(--window-border-size) var(--color-theme-01);
     }
   }
 
   &:before {
-    width: calc(var(--window-border-size) * 2);
+    width: var(--control-frame-width);
     height: 75%;
     margin-right: var(--window-padding-size);
     content: '';
@@ -91,13 +144,13 @@
   }
 
   &:after {
-    display: none !important;
+    display: none;
     content: '';
   }
 
   * {
     ul {
-      right: calc((var(--window-control-size) - var(--window-padding-size)) * -1) !important;
+      right: calc((var(--window-control-size) - var(--window-padding-size)) * -1);
     }
   }
 }

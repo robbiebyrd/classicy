@@ -20,6 +20,8 @@ import {
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorTargets";
 import {
 	type ClassicyThemeMetricChange,
+	type ClassicyThemeMetricFamilyChange,
+	isThemeMetricFamilyTarget,
 	isThemeMetricTarget,
 	isValidThemeMetric,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricTargets";
@@ -228,8 +230,8 @@ export function hasFontSize(
 }
 
 /**
- * Action is a valid theme colour edit: `colorKey` names one of the 28 theme
- * colours (`index` 0–6 required for `system`/`theme`, absent otherwise) and
+ * Action is a valid theme color edit: `colorKey` names one of the 28 theme
+ * colors (`index` 0–6 required for `system`/`theme`, absent otherwise) and
  * `color` is a 24-bit RGB integer (0x000000–0xFFFFFF).
  */
 export function hasThemeColorChange(
@@ -247,6 +249,34 @@ export function hasThemeMetricChange(
 	m: Msg,
 ): m is Msg & ClassicyThemeMetricChange {
 	return isThemeMetricTarget(m) && isValidThemeMetric(m, m.value);
+}
+
+/**
+ * Action has the family form of `ClassicyDesktopChangeMetric`: `family` and
+ * `key` are measurement names outside the five core groups
+ * (`isThemeMetricFamilyTarget`) and `value` is a finite number. Whether the
+ * active package declares the knob, and its bounds, are checked against the
+ * package's knobs in the reducer.
+ */
+export function hasThemeMetricFamilyChange(
+	m: Msg,
+): m is Msg & ClassicyThemeMetricFamilyChange {
+	return (
+		isThemeMetricFamilyTarget(m) &&
+		typeof m.value === "number" &&
+		Number.isFinite(m.value)
+	);
+}
+
+/**
+ * Action has `path: string` and a `value` key (any value, `undefined`
+ * included): the shape of `ClassicyDesktopChangeAppearanceOption`. The path
+ * and value are validated by `applyClassicyAppearanceOption`.
+ */
+export function hasAppearanceOptionChange(
+	m: Msg,
+): m is Msg & { path: string; value: unknown } {
+	return typeof m.path === "string" && "value" in m;
 }
 
 /** Action has `alertSound: string` (a `ClassicyAlert*` sprite key) */
@@ -281,9 +311,14 @@ export function hasAvailableThemes(
 	return Array.isArray(m.availableThemes);
 }
 
+/** Action has `packageId: string` (an Appearance Package id) */
+export function hasPackageId(m: Msg): m is Msg & { packageId: string } {
+	return typeof m.packageId === "string";
+}
+
 /**
  * Action has `theme: ClassicyTheme`, validated against `ClassicyThemeSchema`
- * (an imported theme is untrusted data: colours in range, safe CSS strings, a
+ * (an imported theme is untrusted data: colors in range, safe CSS strings, a
  * bundled-wallpaper or http(s) `backgroundImage`, a known sound theme).
  */
 export function hasImportableTheme(

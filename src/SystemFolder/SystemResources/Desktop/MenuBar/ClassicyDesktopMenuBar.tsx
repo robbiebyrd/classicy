@@ -10,23 +10,40 @@ import {
 } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { ClassicyMenuContext } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuContext";
 import { ClassicyMenuProvider } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuProvider";
+import { useClassicyMenuCloseOnOutsideMouseDown } from "@/SystemFolder/SystemResources/Menu/useClassicyMenuCloseOnOutsideMouseDown";
 import "@/SystemFolder/SystemResources/Menu/ClassicyMenu.scss";
+import classNames from "classnames";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	useContext,
 	useEffect,
 	useMemo,
 	useRef,
 } from "react";
-
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import type { ClassicyAppearanceLayout } from "@/Appearance/ClassicyAppearancePackage";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
+import { CLASSICY_PART_ATTRIBUTE } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { APPLE_GUIDE_SHOW_TOPIC_EVENT } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideContext";
 import { ABOUT_BALLOON_HELP_TOPIC_ID } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideTopics";
 import { appSwitcherAppsFrom } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
 import { useClassicyShortcutDispatcher } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyShortcutDispatcher";
 import { collectMenuChords } from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
 
-const appleMenuIcon = ClassicyIcons.system.apple;
+export type ClassicyDesktopMenuBarProps = {
+	/** Extra class names, merged onto the `<nav>` after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the `<nav>` after the component's own. */
+	style?: CSSProperties;
+	/**
+	 * Where the menus are drawn: `"screen"` renders this bar; `"window"`
+	 * renders nothing, because each window draws its own menus in a
+	 * `ClassicyWindowMenuBar`. Defaults to the active Appearance Package's
+	 * `layout.menuBar.placement`.
+	 */
+	placement?: ClassicyAppearanceLayout["menuBar"]["placement"];
+};
 
 /**
  * Depth-first search of a menu tree for an app's "About" item. Apps publish
@@ -109,8 +126,11 @@ const stripAboutItem = (
 
 /**
  * The Mac OS 8 menu bar (HIGOS8 Ch.4, p.91) across the top of the desktop —
- * Classicy's top-level `<nav>`. `ClassicyDesktop` mounts it; it takes no props
- * and reads everything from the store.
+ * Classicy's top-level `<nav>`. `ClassicyDesktop` mounts it, and it reads its
+ * menus from the store. Its optional props are `className`, `style` and
+ * `placement` (`"screen" | "window"`, defaulting to the active Appearance
+ * Package's `layout.menuBar.placement`). With `"window"` it renders nothing
+ * but stays mounted, so it still runs the keyboard-equivalent dispatcher.
  *
  * From left to right it shows the Apple menu (the system menu, led by "About
  * <focused app>" when that app publishes an About item — the item is moved
@@ -124,16 +144,33 @@ const stripAboutItem = (
  * It also runs the app-wide keyboard-equivalent dispatcher: a chord fires the
  * matching item of the focused app's menus, then the system menus, then an
  * extension's global shortcut — whether or not a menu is open.
+ *
+ * When `placement` is `"window"` (a package's `layout.menuBar.placement`),
+ * the bar stays mounted and keeps dispatching and registering chords but
+ * renders nothing; each window shows its own menus in a
+ * `ClassicyWindowMenuBar`. The Apple, Help and App Switcher menus, the clock
+ * and menu bar extensions (which portal into this bar) are then not shown.
  */
-export const ClassicyDesktopMenuBar: FunctionalComponent = () => {
+export const ClassicyDesktopMenuBar: FunctionalComponent<
+	ClassicyDesktopMenuBarProps
+> = ({ className, style, placement }) => {
 	return (
 		<ClassicyMenuProvider>
-			<ClassicyDesktopMenuBarContent />
+			<ClassicyDesktopMenuBarContent
+				className={className}
+				style={style}
+				placement={placement}
+			/>
 		</ClassicyMenuProvider>
 	);
 };
 
-const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
+const ClassicyDesktopMenuBarContent: FunctionalComponent<
+	ClassicyDesktopMenuBarProps
+> = ({ className, style, placement }) => {
+	const layout = useClassicyAppearanceLayout();
+	const resolvedPlacement = placement ?? layout.menuBar.placement;
+	const appleMenuIcon = useClassicyAsset("systemArt", "appleMenu") ?? "";
 	const apps = useAppManager((s) => s.System.Manager.Applications.apps);
 	const systemMenu = useAppManager((s) => s.System.Manager.Desktop.systemMenu);
 	const appMenu = useAppManager((s) => s.System.Manager.Desktop.appMenu);
@@ -144,18 +181,16 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
 	// works whether or not a consumer has populated the slot.
 	const helpMenus = useAppManager((s) => s.System.Manager.Desktop?.helpMenu);
 	const desktopEventDispatch = useAppManagerDispatch();
-	const { closeAll } = useContext(ClassicyMenuContext);
 	const navRef = useRef<HTMLElement>(null);
-
+	useClassicyMenuCloseOnOutsideMouseDown(navRef);
+	// Window placement unmounts the bar but keeps its provider, so a menu
+	// open at the switch (a keyboard equivalent or host code changed the
+	// package, with no mouse-down to close it) would leave the provider
+	// active: back on the screen, hovering a title would open its menu.
+	const { closeAll } = useContext(ClassicyMenuContext);
 	useEffect(() => {
-		const handleClickOutside = (e: MouseEvent) => {
-			if (navRef.current && !navRef.current.contains(e.target as Node)) {
-				closeAll();
-			}
-		};
-		document.addEventListener("mousedown", handleClickOutside);
-		return () => document.removeEventListener("mousedown", handleClickOutside);
-	}, [closeAll]);
+		if (resolvedPlacement === "window") closeAll();
+	}, [resolvedPlacement, closeAll]);
 
 	const appSwitcherData = useMemo(() => appSwitcherAppsFrom(apps), [apps]);
 
@@ -174,9 +209,10 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
 			image: focusedApp?.icon || "",
 			title: focusedApp?.name || "Finder",
 			className: "classicyDesktopMenuAppSwitcher",
-			// The switcher's title follows the focused app, and it floats at the
+			part: "switcher",
+			// The switcher's title follows the focused app, and it sits at the
 			// right end of the bar — so a name-length change would otherwise resize
-			// it and shove the sound/time widgets sideways. Reserve the widest open
+			// it and shove the clock and extensions sideways. Reserve the widest open
 			// app's width up front and the bar stays put.
 			titleWidthSamples: openApps.map((app) => app.name),
 			menuChildren: openApps.map((app) => ({
@@ -238,6 +274,7 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
 			id: "help-menu",
 			title: "Help",
 			className: "classicyDesktopMenuHelp",
+			part: "help",
 			menuChildren: helpChildren,
 		};
 	}, [disableBalloonHelp, helpMenus, focusedMenuApp]);
@@ -280,21 +317,24 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
 				id: "apple-menu",
 				image: appleMenuIcon,
 				menuChildren,
-				className: "classicyDesktopMenuAppleMenu",
+				className: "classicyDesktopMenuApple",
+				part: "apple",
 			} satisfies ClassicyMenuItem,
 			// The hoisted About must not also render in the app's own menus.
 			strippedAppMenu:
 				aboutItem && appMenu ? stripAboutItem(appMenu, aboutItem) : appMenu,
 		};
-	}, [focusedMenuApp, appMenu, systemMenu]);
+	}, [focusedMenuApp, appMenu, systemMenu, appleMenuIcon]);
 
 	const defaultMenuItems: ClassicyMenuItem[] = useMemo(() => {
 		const items = [appleMenuItem] as ClassicyMenuItem[];
 		if (strippedAppMenu) {
-			items.push(...strippedAppMenu);
+			items.push(...strippedAppMenu.map((item) => ({ ...item, part: "app" })));
 		}
-		// Help is the rightmost standard menu; the App Switcher floats to the far
-		// right of the bar (8.5+ construct) and is kept last in the data.
+		// Help is the rightmost standard menu; the App Switcher sits at the far
+		// right of the bar (8.5+ construct) and is kept last in the data. Where
+		// each one lands is set by its `part` (order via data-classicy-part; see
+		// ClassicyDesktopMenuBar.scss), not by its place in this list.
 		items.push(helpMenuItem);
 		items.push(appSwitcherMenuMenuItem);
 		return items;
@@ -348,8 +388,16 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
 	// action whether or not a menu is dropped down. No separate listener is
 	// needed here.
 
+	// Headless in window placement: every hook above has run, so chords still
+	// register and dispatch; only the bar itself is not drawn.
+	if (resolvedPlacement === "window") return null;
+
 	return (
-		<nav ref={navRef} className={"classicyDesktopMenuBar"}>
+		<nav
+			ref={navRef}
+			className={classNames("classicyDesktopMenuBar", className)}
+			style={style}
+		>
 			<ClassicyMenu
 				name={"desktopMenuBar"}
 				menuItems={defaultMenuItems}
@@ -358,11 +406,13 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent = () => {
 			>
 				{/* Sound lives on the Control Strip (ClassicyDesktop mounts it). */}
 				<ClassicyDesktopMenuWidgetTime />
-				{/* Portal target for app Menu Bar Extensions. Rendered last so its
-				    float:right lands it to the LEFT of the Time widget. */}
+				{/* Portal target for app Menu Bar Extensions. Order via
+				    data-classicy-part; see ClassicyDesktopMenuBar.scss: it lands
+				    left of the clock and pushes the right cluster to the end. */}
 				<ul
 					id={"classicyDesktopMenuExtensions"}
 					className={"classicyDesktopMenuExtensions"}
+					{...{ [CLASSICY_PART_ATTRIBUTE.part]: "extensions" }}
 				/>
 			</ClassicyMenu>
 		</nav>

@@ -1,3 +1,8 @@
+import {
+	type ClassicyAssetTree,
+	registerClassicyAssets,
+} from "@/Appearance/ClassicyAssetRegistry";
+
 const iconModules = import.meta.glob(
 	"../../../../assets/img/icons/**/*.{png,gif,jpg,svg}",
 	{ eager: true, import: "default" },
@@ -18,31 +23,32 @@ const ui = (filename: string): string => {
 	return uiModules[key] ?? "";
 };
 
-// Recursive type for consumer icon namespaces.
-// Values are URL strings or nested objects of URL strings (up to 2 levels).
-export type ClassicyIconMap = Record<
-	string,
-	string | Record<string, string | Record<string, string>>
->;
+const PLATINUM = "platinum";
+
+// Alias kept for consumers that typed their icon namespaces with it.
+export type ClassicyIconMap = ClassicyAssetTree;
 
 /**
- * Register custom icon namespaces into ClassicyIcons at runtime.
+ * Register custom icon namespaces at runtime.
  *
- * Call this once before rendering — typically in your app entry point.
- * The function returns its argument with full TypeScript types so you can
- * keep a typed local reference for autocomplete:
+ * Call this once before rendering, typically in your app entry point.
+ * Registration deep-merges into the package's icon tree (default: Platinum),
+ * so `registerClassicyIcons({ system: { alias } })` replaces only that one
+ * entry. The function returns its argument with full TypeScript types so you
+ * can keep a typed local reference for autocomplete:
  *
  * ```ts
  * import appIcon from './icon.png';
  * const MyIcons = registerClassicyIcons({ myApp: { icon: appIcon } });
  * // MyIcons.myApp.icon  — fully typed
- * // ClassicyIcons['myApp']['icon']  — also works at runtime
+ * // useClassicyAsset("icons", "myApp.icon")  — read at render time
  * ```
  */
-export function registerClassicyIcons<
-	T extends Record<string, ClassicyIconMap>,
->(icons: T): T {
-	Object.assign(ClassicyIcons as Record<string, unknown>, icons);
+export function registerClassicyIcons<T extends ClassicyAssetTree>(
+	icons: T,
+	packageId: string = PLATINUM,
+): T {
+	registerClassicyAssets("icons", packageId, icons);
 	return icons;
 }
 
@@ -229,7 +235,6 @@ export const ClassicyIcons = {
 		apple: icon("system/apple.png"),
 		bigSwitchOff: icon("system/big-switch-off.png"),
 		bigSwitchOn: icon("system/big-switch-on.png"),
-		bomb: icon("system/bomb.svg"),
 		clipboard: icon("system/clipboard.png"),
 		comport1: icon("system/comport1.png"),
 		comport2: icon("system/comport2.png"),
@@ -300,8 +305,6 @@ export const ClassicyIcons = {
 		files: {
 			_1292: icon("system/files/129 2.png"),
 			_1294: icon("system/files/129 4.png"),
-			_229: icon("system/files/229.png"),
-			_232Messages: icon("system/files/232.Messages.png"),
 			application: icon("system/files/application.png"),
 			document: icon("system/files/document.png"),
 			edition: icon("system/files/edition.png"),
@@ -511,11 +514,7 @@ export const ClassicyIcons = {
 		// Apple Guide lightbulb "?", lifted pixel-for-pixel from Figure 3-36.
 		helpButton: ui("help-button.png"),
 		halftoneLarge: ui("halftone-large.png"),
-		halftoneSmall: ui("halftone-small.png"),
 		menuDropdownArrowUp: ui("menu-dropdown-arrow-up.svg"),
-		menuDropdownArrows: ui("menu-dropdown-arrows.svg"),
-		stripe: ui("stripe.svg"),
-		tab: ui("tab.svg"),
 		cursors: {
 			add: ui("cursors/cursor-add.png"),
 			eyedropper: ui("cursors/cursor-eyedropper.png"),
@@ -538,3 +537,5 @@ export const ClassicyIcons = {
 		},
 	},
 };
+
+registerClassicyAssets("icons", PLATINUM, ClassicyIcons);

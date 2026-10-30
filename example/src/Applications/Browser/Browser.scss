@@ -1,4 +1,4 @@
-@use 'classicy/scss/appearance';
+@use 'classicy/appearance/platinum/scss/mixins';
 
 .browser {
   display: flex;
@@ -10,7 +10,7 @@
     background-color: var(--color-system-03);
 }
 .browserFavoritesBar {
-  @include appearance.platinumWindowControlBoxBorder;
+  @include mixins.platinum-window-control-box-border;
 
   background-color: var(--color-system-01)  !important;
 

@@ -1,6 +1,4 @@
 import "./PDFViewerDocument.scss";
-import zoomToolIcon from "@img/icons/system/sherlock/search.png";
-import panToolIcon from "@img/ui/cursors/cursor-hand.png";
 import classNames from "classnames";
 import type {
 	PDFDocumentLoadingTask,
@@ -9,6 +7,7 @@ import type {
 } from "pdfjs-dist";
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	type MouseEvent,
 	type PointerEvent,
@@ -16,6 +15,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import { decompressFromBase64 } from "@/SystemFolder/SystemResources/Utils/base64Compression";
@@ -43,12 +43,24 @@ const SCALE_STEP = 0.25;
 interface PDFViewerDocumentProps {
 	url: string;
 	data?: string;
+	/**
+	 * Extra class names, merged onto the root element after the component's
+	 * own — the loading and error messages while those show, then the viewer.
+	 */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 }
 
 export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 	url,
 	data,
+	className,
+	style,
 }) => {
+	const zoomToolIcon =
+		useClassicyAsset("icons", "system.sherlock.search") ?? "";
+	const panToolIcon = useClassicyAsset("icons", "ui.cursors.hand") ?? "";
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const wrapperRef = useRef<HTMLDivElement>(null);
 	// Pan-drag bookkeeping. A ref, not state: pointermove happens dozens of
@@ -192,11 +204,25 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 	// nothing for a toolbar to navigate — full replacement is the only
 	// sensible option here.
 	if (error) {
-		return <p className="pdfViewerDocumentError">Couldn't load this PDF.</p>;
+		return (
+			<p
+				className={classNames("pdfViewerDocumentError", className)}
+				style={style}
+			>
+				Couldn't load this PDF.
+			</p>
+		);
 	}
 
 	if (!doc) {
-		return <p className="pdfViewerDocumentLoading">Loading…</p>;
+		return (
+			<p
+				className={classNames("pdfViewerDocumentLoading", className)}
+				style={style}
+			>
+				Loading…
+			</p>
+		);
 	}
 
 	const numPages = doc.numPages;
@@ -253,7 +279,15 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 	};
 
 	return (
-		<div className="pdfViewerDocument">
+		<div
+			className={classNames("pdfViewerDocument", className)}
+			style={
+				{
+					"--classicy-pdf-zoom-cursor": `url("${zoomToolIcon}")`,
+					...style,
+				} as CSSProperties
+			}
+		>
 			<div className="pdfViewerDocumentToolbar">
 				<ClassicyButton
 					buttonSize="small"

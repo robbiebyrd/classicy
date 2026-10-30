@@ -47,15 +47,27 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { useActiveClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
+import {
+	useClassicyAsset,
+	useClassicyAssetVars,
+} from "@/Appearance/ClassicyAssetRegistry";
+import {
+	classicyLayoutThemeVars,
+	classicyLayoutVars,
+	useClassicyAppearanceLayout,
+} from "@/Appearance/useClassicyAppearanceLayout";
+// Registers the Platinum Appearance Package (and its assets and sound pack).
+import "@/Appearance/Platinum";
 import { listAppWindows } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
-import { ClassicyDefaultParadeIcons } from "@/SystemFolder/SystemResources/Boot/ClassicyDefaultParadeIcons";
+import { getClassicyDefaultParadeIcons } from "@/SystemFolder/SystemResources/Boot/ClassicyDefaultParadeIcons";
 import {
 	ClassicyControlStrip,
 	type ClassicyControlStripProps,
 } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStrip";
 import { ClassicyDesktopIcon } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIcon";
+import { markClassicyDesktopIconKeyboardSelection } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconKeyboardSelection.internal";
 import {
 	type ArrowDirection,
 	nearestIconInDirection,
@@ -85,9 +97,6 @@ import {
 } from "@/SystemFolder/SystemResources/File/ClassicyTrash";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
-const macosIcon = ClassicyIcons.system.macos;
-
-import "../../ControlPanels/AppearanceManager/styles/fonts.scss";
 import "../../../index.css";
 
 interface ClassicyDesktopProps {
@@ -128,6 +137,10 @@ interface ClassicyDesktopProps {
 	 * or `false` to hide it.
 	 */
 	controlStrip?: boolean | ClassicyControlStripProps;
+	/** Extra class names, merged onto the `#classicyDesktop` surface (a style is merged after the theme custom properties) after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the `#classicyDesktop` surface (a style is merged after the theme custom properties) after the component's own. */
+	style?: CSSProperties;
 }
 
 const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
@@ -139,7 +152,10 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	startupWordmark,
 	bootScreen,
 	controlStrip = true,
+	className,
+	style,
 }) => {
+	const macosIcon = useClassicyAsset("icons", "system.macos") ?? "";
 	const [showAbout, setShowAbout] = useState(false);
 
 	const [selectBoxStart, setSelectBoxStart] = useState([0, 0]);
@@ -269,7 +285,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	// Register the classic extension icons in the boot parade on mount.
 	// Adds dedup by id, so a remount never duplicates entries.
 	useEffect(() => {
-		for (const entry of ClassicyDefaultParadeIcons) {
+		for (const entry of getClassicyDefaultParadeIcons()) {
 			desktopEventDispatch({ type: "ClassicyBootParadeIconAdd", ...entry });
 		}
 	}, [desktopEventDispatch]);
@@ -313,6 +329,16 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 			if (!isOnIcon && !isOnDesktop) return;
 
 			const arrowKeys = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
+			// Selects `iconId` and, when that changes the selection, marks it
+			// so the icon reports the change as a keyboard `select`.
+			const selectIconFromKeyboard = (iconId: string) => {
+				if (selectedIcons.length !== 1 || selectedIcons[0] !== iconId)
+					markClassicyDesktopIconKeyboardSelection(iconId);
+				desktopEventDispatch({
+					type: "ClassicyDesktopIconFocus",
+					iconId,
+				});
+			};
 
 			if (
 				(e.key === "Backspace" || e.key === "Delete") &&
@@ -331,10 +357,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 					e.key as ArrowDirection,
 				);
 				if (nextId) {
-					desktopEventDispatch({
-						type: "ClassicyDesktopIconFocus",
-						iconId: nextId,
-					});
+					selectIconFromKeyboard(nextId);
 					document.getElementById(`${nextId}.shortcut`)?.focus();
 				}
 			} else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
@@ -349,10 +372,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 				}, 800);
 				const matchId = typeaheadMatch(desktopIcons, typePrefixRef.current);
 				if (matchId) {
-					desktopEventDispatch({
-						type: "ClassicyDesktopIconFocus",
-						iconId: matchId,
-					});
+					selectIconFromKeyboard(matchId);
 					document.getElementById(`${matchId}.shortcut`)?.focus();
 				}
 			}
@@ -567,6 +587,33 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	]);
 
 	const currentTheme = useMemo(() => getThemeVars(activeTheme), [activeTheme]);
+	const assetVars = useClassicyAssetVars();
+	// The resolved id, not the stored one: an id whose package is not (yet)
+	// registered renders as Platinum, so the CSS scope and the JS agree.
+	const appearancePackageId = useActiveClassicyAppearancePackage().id;
+	// The active package's arrangement (resolved from Appearance.packageId,
+	// never activeTheme.package), as root attributes and variables beside the
+	// theme's; getThemeVars only sees the theme. classicyLayoutThemeVars
+	// overrides the theme variables the layout changes (window placement's
+	// 0px `--menu-bar-height`), so it is spread after the theme's.
+	const layout = useClassicyAppearanceLayout();
+	const layoutVars = useMemo(
+		() => ({
+			...classicyLayoutVars(layout),
+			...classicyLayoutThemeVars(layout),
+		}),
+		[layout],
+	);
+	const rootStyle = useMemo(
+		() =>
+			({
+				...currentTheme,
+				...layoutVars,
+				...assetVars,
+				...style,
+			}) as CSSProperties,
+		[currentTheme, layoutVars, assetVars, style],
+	);
 
 	const openDesktopItem = useCallback(
 		(path: string) => {
@@ -603,12 +650,17 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 		<div
 			role="application"
 			id={"classicyDesktop"}
+			data-classicy-appearance={appearancePackageId}
+			data-classicy-menu-bar={layout.menuBar.placement}
+			data-classicy-grow-box={layout.window.growBoxCorner}
 			ref={desktopRef}
 			tabIndex={-1}
-			style={currentTheme as CSSProperties}
-			className={classNames("classicyDesktop", {
-				classicyDesktopSplitArrows: smartScrolling === false,
-			})}
+			style={rootStyle}
+			className={classNames(
+				"classicyDesktop",
+				{ classicyDesktopSplitArrows: smartScrolling === false },
+				className,
+			)}
 			onMouseMove={resizeSelectBox}
 			onContextMenu={toggleDesktopContextMenu}
 			onMouseUp={clearSelectBox}
@@ -771,6 +823,8 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 	startupWordmark,
 	bootScreen,
 	controlStrip,
+	className,
+	style,
 }) => (
 	<ClassicyCrashScreen>
 		<ClassicyContextualMenuProvider>
@@ -782,6 +836,8 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 				startupWordmark={startupWordmark}
 				bootScreen={bootScreen}
 				controlStrip={controlStrip}
+				className={className}
+				style={style}
 			>
 				{children}
 			</ClassicyDesktopInner>

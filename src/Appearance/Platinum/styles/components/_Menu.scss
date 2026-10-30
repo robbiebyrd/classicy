@@ -1,0 +1,99 @@
+// The Platinum menu look (from ClassicyMenu.scss): the menu frame of HIGOS8
+// Figure 6-15 on every menu, its dividers, the submenu triangle, the flash of
+// a chosen item, and the check and dash glyphs of checked and mixed items.
+@use "sass:string";
+@use "../mixins";
+
+@mixin menu {
+  .classicyMenu {
+    @include mixins.platinum-menu-frame;
+  }
+
+  .classicySubMenu {
+    @include mixins.platinum-menu-frame;
+  }
+
+  .classicyContextMenu {
+    @include mixins.platinum-menu-frame;
+  }
+
+  .classicyContextSubMenu {
+    @include mixins.platinum-menu-frame;
+  }
+
+  // Dividers in every menu (Figure 6-15).
+  .classicyMenu,
+  .classicySubMenu,
+  .classicyContextMenu,
+  .classicyContextSubMenu {
+    .classicySeparatorHorizontal {
+      @include mixins.platinum-menu-divider;
+    }
+  }
+
+  // The submenu triangle: the registered art as the box's own image, placed
+  // by the base sheet (right center, no repeat). An image, not a mask
+  // (ruling E24): a mask drew the anti-aliased edge one level off in Firefox.
+  .classicyMenuItemChildMenuIndicator {
+    &:after {
+      background-image: var(--classicy-art-submenu-arrow);
+    }
+  }
+
+  // The flash of a chosen item (from ClassicyMenu.scss), applied by the
+  // MenuItem press hook (hooks.ts) and cleared by its release. Its
+  // animationend runs the item's action.
+  .classicyMenuItemFlash {
+    -webkit-animation-name: classicyMenuItemFlashKeyframes;
+    animation-name: classicyMenuItemFlashKeyframes;
+    animation-duration: .25s;
+    animation-iteration-count: 1;
+    animation-timing-function: steps(1, end) ;
+  }
+
+  @keyframes classicyMenuItemFlashKeyframes {
+    0% {
+      background-color: var(--color-theme-04);
+      color: var(--color-white);
+    }
+
+    20% {
+      background-color: var(--color-system-02);
+      color: var(--color-black);
+    }
+
+    40% {
+      background-color: var(--color-theme-04);
+      color: var(--color-white);
+    }
+
+    60% {
+      background-color: var(--color-system-02);
+      color: var(--color-black);
+    }
+
+    80% {
+      background-color: var(--color-theme-04);
+      color: var(--color-white);
+    }
+
+    100% {
+      background-color: var(--color-system-02);
+      color: var(--color-black);
+    }
+  }
+
+  // The check and mixed-state dash in an item's check gutter (HIGOS8 Ch. 4).
+  // Font glyphs, as escapes kept by `string.unquote`, so the Sass output
+  // stays ASCII (Sass decodes a quoted escape and prepends `@charset`; the
+  // build keeps dist ASCII, verify:dist invariant 9). The
+  // gutter is an inline-flex box, so each glyph is centered in it as the text
+  // was.
+  .classicyMenuItemCheck.checked::before {
+    content: string.unquote('"\\2713"'); // ✓
+  }
+
+  .classicyMenuItemCheck.mixed::before {
+    content: string.unquote('"\\2013"'); // –
+  }
+}

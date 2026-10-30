@@ -1,9 +1,14 @@
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import "./QuickTimeMovieEmbed.scss";
 import classNames from "classnames";
-import { type FC as FunctionalComponent, useCallback, useEffect } from "react";
+import {
+	type CSSProperties,
+	type FC as FunctionalComponent,
+	useCallback,
+	useEffect,
+} from "react";
 import ReactPlayer from "react-player";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { getAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import {
 	type QuickTimeCaptionStyle,
@@ -16,8 +21,6 @@ import { QuickTimeVolumeControl } from "@/SystemFolder/SystemResources/QuickTime
 import { useControllableState } from "@/SystemFolder/SystemResources/QuickTime/useControllableState";
 import { useQuickTimePlayback } from "@/SystemFolder/SystemResources/QuickTime/useQuickTimePlayback";
 import { useQuickTimeSubtitles } from "@/SystemFolder/SystemResources/QuickTime/useQuickTimeSubtitles";
-
-const ccIcon = ClassicyIcons.system.quicktime.cc;
 
 type QuickTimeVideoEmbedProps = {
 	/**
@@ -86,6 +89,10 @@ type QuickTimeVideoEmbedProps = {
 	crossOrigin?: "" | "anonymous" | "use-credentials";
 	/** Play inline on iOS rather than forcing native fullscreen. */
 	playsInline?: boolean;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 };
 
 /**
@@ -137,7 +144,10 @@ export const QuickTimeVideoEmbed: FunctionalComponent<
 	onPlaying,
 	crossOrigin,
 	playsInline,
+	className,
+	style,
 }) => {
+	const ccIcon = useClassicyAsset("icons", "system.quicktime.cc");
 	// Keyboard shortcuts only act while this movie's window is the focused one.
 	const shortcutWindowId = windowId ?? `${appId}_MoviePlayer_${url}`;
 	const playerWindowFocused = useAppManager(
@@ -243,7 +253,9 @@ export const QuickTimeVideoEmbed: FunctionalComponent<
 			className={classNames(
 				"quickTimePlayerWrapper",
 				controlsDocked && "quickTimePlayerWrapperDocked",
+				className,
 			)}
+			style={style}
 		>
 			<div
 				className={classNames(

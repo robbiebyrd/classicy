@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+	CLASSICY_MODIFIER_GLYPHS,
+	CLASSICY_MODIFIER_ORDER,
 	canonicalChord,
 	canonicalChordsFromEvent,
 	collectMenuChords,
@@ -7,6 +9,7 @@ import {
 	formatKeyboardShortcut,
 	isFunctionKey,
 	keyboardShortcutFromEvent,
+	keyboardShortcutModifiers,
 	keyboardShortcutParts,
 	parseKeyboardShortcut,
 	runMenuItemAction,
@@ -387,6 +390,46 @@ describe("keyboardShortcutFromEvent (recording a keyboard equivalent)", () => {
 	it("round-trips: the recorded shortcut matches the event that made it", () => {
 		const e = ev({ key: "s", code: "KeyS", metaKey: true, shiftKey: true });
 		expect(shortcutMatchesEvent(keyboardShortcutFromEvent(e), e)).toBe(true);
+	});
+});
+
+describe("the shared modifier table", () => {
+	it("names each modifier's glyph once", () => {
+		expect(CLASSICY_MODIFIER_GLYPHS.command).toBe("⌘");
+		expect(CLASSICY_MODIFIER_GLYPHS).toEqual({
+			control: "⌃",
+			option: "⌥",
+			shift: "⇧",
+			command: "⌘",
+		});
+		expect(CLASSICY_MODIFIER_ORDER).toEqual([
+			"control",
+			"option",
+			"shift",
+			"command",
+		]);
+	});
+
+	it("keyboardShortcutModifiers lists the set modifiers in canonical order", () => {
+		expect(keyboardShortcutModifiers("Ctrl+Cmd+S")).toEqual([
+			"control",
+			"command",
+		]);
+		expect(keyboardShortcutModifiers("Cmd+Shift+Opt+Ctrl+K")).toEqual([
+			"control",
+			"option",
+			"shift",
+			"command",
+		]);
+		expect(keyboardShortcutModifiers("F1")).toEqual([]);
+		expect(keyboardShortcutModifiers(undefined)).toEqual([]);
+	});
+
+	it("keyboardShortcutModifiers takes an already-parsed shortcut too", () => {
+		expect(
+			keyboardShortcutModifiers(parseKeyboardShortcut("Ctrl+Cmd+S")),
+		).toEqual(["control", "command"]);
+		expect(keyboardShortcutModifiers(parseKeyboardShortcut("F1"))).toEqual([]);
 	});
 });
 

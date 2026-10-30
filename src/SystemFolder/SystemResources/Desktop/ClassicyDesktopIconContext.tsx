@@ -1,4 +1,9 @@
+import { CLASSICY_DEFAULT_APPEARANCE_LAYOUT } from "@/Appearance/ClassicyAppearanceDefaults";
+import type { ClassicyAppearanceLayout } from "@/Appearance/ClassicyAppearancePackage";
+import { getClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { CLASSICY_THEME_DERIVATIONS } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeDerivations";
+import { px3 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeDerivations.internal";
 import {
 	hasApp,
 	hasDesktopAppRef,
@@ -21,30 +26,116 @@ import type {
 	ClassicyIconBalloonHelp,
 } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
 import type { ClassicyStoreSystemDesktopManagerIcon } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
+import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
-const createGrid = (iconSize: number, iconPadding: number) => {
+/**
+ * The desktop-icon grid metrics, in px: the icon `size`, the `padding` around
+ * it and the grid `cell` (icon plus label room) — the values `getThemeVars`
+ * emits as `--desktop-icon-size`, `--desktop-icon-padding` and
+ * `--desktop-icon-cell`. The grid steps by `cell + padding` on both axes.
+ */
+export type ClassicyDesktopIconMetrics = {
+	size: number;
+	padding: number;
+	cell: number;
+};
+
+// One named derivation's value in px, rounded exactly as getThemeVars emits
+// it (px3), so the reducer's number equals the stylesheet's.
+const derivedPx = (theme: ClassicyTheme, cssVar: string): number => {
+	const derivation = CLASSICY_THEME_DERIVATIONS.find(
+		(d) => d.cssVar === cssVar,
+	);
+	if (!derivation) {
+		const message = `No theme derivation named ${cssVar}`;
+		classicyLog("error", "Theme", message);
+		throw new Error(message);
+	}
+	return Number.parseFloat(px3(derivation.compute(theme)));
+};
+
+/**
+ * The desktop-icon metrics of `theme`, computed from the theme and the named
+ * derivations alone. Pure: it never reads the DOM, so it is what reducer
+ * paths (desktop Clean Up, inside the store's `set`) use. Render and handler
+ * code that should honor the desktop's live variables uses
+ * `readClassicyDesktopIconMetrics` (ClassicyFileBrowserUtils) instead.
+ *
+ * So desktop Clean Up lays icons out from the theme alone: a host's inline
+ * override of `--desktop-icon-*` on the desktop's `style` is not seen by it,
+ * while Finder's icon and list views do honor that override. To resize the
+ * desktop grid, change the theme's `desktop.iconSize` instead.
+ */
+export const classicyDesktopIconMetrics = (
+	theme: ClassicyTheme,
+): ClassicyDesktopIconMetrics => ({
+	size: theme.desktop.iconSize,
+	padding: derivedPx(theme, "--desktop-icon-padding"),
+	cell: derivedPx(theme, "--desktop-icon-cell"),
+});
+
+/**
+ * The clean-up grid's column and row counts. Both step by one grid step
+ * (`cell + padding`, the step `classicyDesktopIconGridPosition` places by),
+ * so every counted column fits the viewport. A bottom origin also reserves
+ * the menu bar's band at the top (`8 * padding`: the top origins'
+ * `4 * padding` lead, plus the bottom origins' own), so its last row never
+ * lands under the menu bar. Some row must exist, so a viewport shorter than
+ * `8 * padding` plus one step still gets one; there
+ * `classicyDesktopIconGridPosition` clamps a bottom origin's y to at least
+ * `4 * padding`, keeping that row on screen.
+ */
+const createGrid = (
+	{ padding, cell }: ClassicyDesktopIconMetrics,
+	origin: ClassicyAppearanceLayout["desktop"]["iconGridOrigin"],
+) => {
+	const step = cell + padding;
 	return [
-		Math.floor(window.innerWidth / (iconSize + iconPadding)),
-		Math.floor(window.innerHeight / (iconSize * 2 + iconPadding)),
+		Math.floor(window.innerWidth / step),
+		origin.startsWith("bottom")
+			? Math.max(1, Math.floor((window.innerHeight - padding * 8) / step))
+			: Math.floor(window.innerHeight / step),
 	];
 };
 
-const getGridPosition = (
-	iconSize: number,
-	iconPadding: number,
-	x: number,
-	y: number,
+/**
+ * The desktop location of grid cell (`col`, `row`), counted from the package
+ * layout's icon grid origin. `col` starts at 1 and `row` at 0, as the
+ * clean-up walks them; both step by `cell + padding`. `top-right` (Platinum)
+ * is the original formula: columns step in from the right edge, rows down
+ * from the top.
+ */
+export const classicyDesktopIconGridPosition = (
+	{ padding, cell }: ClassicyDesktopIconMetrics,
+	col: number,
+	row: number,
+	origin: ClassicyAppearanceLayout["desktop"]["iconGridOrigin"] = CLASSICY_DEFAULT_APPEARANCE_LAYOUT
+		.desktop.iconGridOrigin,
 ): [number, number] => {
-	const defaultPadding = iconPadding * 4;
+	const step = cell + padding;
 	return [
-		Math.floor(window.innerWidth - (iconSize * 2 + iconPadding) * x),
-		Math.floor((iconSize * 2 + iconPadding) * y) + defaultPadding,
+		origin.endsWith("right")
+			? Math.floor(window.innerWidth - step * col)
+			: Math.floor(step * (col - 1) + padding),
+		origin.startsWith("top")
+			? Math.floor(step * row) + padding * 4
+			: // Never above the top origins' first row (y = 4 × padding), so a
+				// row forced into a viewport too short for it stays on screen.
+				Math.max(
+					padding * 4,
+					Math.floor(window.innerHeight - step * (row + 1)) - padding * 4,
+				),
 	];
 };
 
-export const getIconSize = (theme: ClassicyTheme) => {
-	return [theme.desktop.iconSize, theme.desktop.iconSize / 4];
+/**
+ * `[iconSize, iconPadding]` for `theme`, from `classicyDesktopIconMetrics`:
+ * pure, never the DOM (it is reached from the reducer).
+ */
+export const getIconSize = (theme: ClassicyTheme): [number, number] => {
+	const { size, padding } = classicyDesktopIconMetrics(theme);
+	return [size, padding];
 };
 
 const kindPriority: Record<string, number> = {
@@ -81,13 +172,17 @@ const sortDesktopIcons = (
 const cleanupDesktopIcons = (
 	theme: ClassicyTheme,
 	icons: ClassicyStoreSystemDesktopManagerIcon[],
+	origin: ClassicyAppearanceLayout["desktop"]["iconGridOrigin"] = CLASSICY_DEFAULT_APPEARANCE_LAYOUT
+		.desktop.iconGridOrigin,
 ) => {
 	const newDesktopIcons: ClassicyStoreSystemDesktopManagerIcon[] = [];
 	let startX: number = 1;
 	let startY: number = 0;
-	const [iconSize, iconPadding] = getIconSize(theme);
+	// Runs inside the store's `set`: the metrics come from the theme in
+	// state, never from the DOM.
+	const metrics = classicyDesktopIconMetrics(theme);
 
-	const grid = createGrid(iconSize, iconPadding);
+	const grid = createGrid(metrics, origin);
 
 	icons.forEach((icon) => {
 		// Hidden icons are never drawn on the desktop (they exist only to
@@ -108,7 +203,12 @@ const cleanupDesktopIcons = (
 			startX = 1;
 		}
 
-		icon.location = getGridPosition(iconSize, iconPadding, startX, startY);
+		icon.location = classicyDesktopIconGridPosition(
+			metrics,
+			startX,
+			startY,
+			origin,
+		);
 		newDesktopIcons.push(icon);
 		startY += 1;
 	});
@@ -135,6 +235,12 @@ const readBalloonHelp = (
 	};
 };
 
+// The active package's grid origin, read store-free from the draft's
+// packageId (never activeTheme.package): this module is in the reducer graph.
+const iconGridOrigin = (ds: ClassicyStore) =>
+	getClassicyAppearanceLayout(ds.System.Manager.Appearance.packageId).desktop
+		.iconGridOrigin;
+
 export const classicyDesktopIconEventHandler = (
 	ds: ClassicyStore,
 	action: ActionMessage,
@@ -144,6 +250,7 @@ export const classicyDesktopIconEventHandler = (
 			ds.System.Manager.Desktop.icons = cleanupDesktopIcons(
 				ds.System.Manager.Appearance.activeTheme,
 				ds.System.Manager.Desktop.icons,
+				iconGridOrigin(ds),
 			);
 			break;
 		}
@@ -155,6 +262,7 @@ export const classicyDesktopIconEventHandler = (
 					ds.System.Manager.Desktop.icons,
 					sortBy as "name" | "kind" | "label",
 				),
+				iconGridOrigin(ds),
 			);
 			break;
 		}
@@ -227,6 +335,7 @@ export const classicyDesktopIconEventHandler = (
 					ds.System.Manager.Desktop.icons = cleanupDesktopIcons(
 						ds.System.Manager.Appearance.activeTheme,
 						sortDesktopIcons(ds.System.Manager.Desktop.icons, "kind"),
+						iconGridOrigin(ds),
 					);
 				}
 			} else {
@@ -288,6 +397,7 @@ export const classicyDesktopIconEventHandler = (
 						ds.System.Manager.Desktop.icons = cleanupDesktopIcons(
 							ds.System.Manager.Appearance.activeTheme,
 							ds.System.Manager.Desktop.icons,
+							iconGridOrigin(ds),
 						);
 					}
 				}

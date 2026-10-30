@@ -1,12 +1,19 @@
 import { castDraft, produce } from "immer";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+	type ClassicyAppearancePackage,
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+} from "@/Appearance/ClassicyAppearancePackage";
+import {
+	type ClassicyTheme,
 	getTheme,
 	getThemeVars,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
 	CLASSICY_CUSTOM_THEME_ID,
 	CLASSICY_CUSTOM_THEME_NAME,
+	classicyCustomThemeSlotId,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
 import {
 	CLASSICY_THEME_COLOR_TARGETS,
@@ -16,6 +23,8 @@ import {
 	CLASSICY_THEME_METRIC_TARGETS,
 	getThemeMetric,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricTargets";
+import { resolveWallpaper } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
+import { isUntrustedActionAllowed } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionTrust";
 import {
 	type ActionMessage,
 	type ClassicyStore,
@@ -23,7 +32,13 @@ import {
 	DefaultAppManagerState,
 	mergeClassicyState,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { registerClassicySoundPack } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
 import { classicyDesktopEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
+import {
+	type ClassicyLogEntry,
+	registerClassicyLogSink,
+	unregisterClassicyLogSink,
+} from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 // A deep, unaliased copy of the real default state (all built-in themes).
 const makeStore = (): ClassicyStore =>
@@ -40,7 +55,7 @@ const builtIn = (ds: ClassicyStore, id: string) => {
 	return t;
 };
 
-describe("ClassicyDesktopChangeColor — every colour target", () => {
+describe("ClassicyDesktopChangeColor — every color target", () => {
 	it.each(
 		CLASSICY_THEME_COLOR_TARGETS.map((info) => [info.cssVar, info] as const),
 	)("sets %s", (cssVar, info) => {
@@ -57,7 +72,7 @@ describe("ClassicyDesktopChangeColor — every colour target", () => {
 		);
 	});
 
-	it("covers exactly the 28 colour variables getThemeVars emits", () => {
+	it("covers exactly the 28 color variables getThemeVars emits", () => {
 		const vars = Object.keys(getThemeVars(getTheme("default")));
 		const colorVars = vars.filter(
 			(v) => v.startsWith("--color-") || v === "--desktop-background-color",
@@ -94,12 +109,12 @@ describe("ClassicyDesktopChangeColor — every colour target", () => {
 
 describe("ClassicyDesktopChangeColor — payload validation", () => {
 	const invalid: [string, Record<string, unknown>][] = [
-		["non-integer colour", { colorKey: "black", color: 1.5 }],
-		["negative colour", { colorKey: "black", color: -1 }],
-		["colour above 0xFFFFFF", { colorKey: "black", color: 0x1000000 }],
-		["NaN colour", { colorKey: "black", color: Number.NaN }],
-		["string colour", { colorKey: "black", color: "#ffffff" }],
-		["missing colour", { colorKey: "black" }],
+		["non-integer color", { colorKey: "black", color: 1.5 }],
+		["negative color", { colorKey: "black", color: -1 }],
+		["color above 0xFFFFFF", { colorKey: "black", color: 0x1000000 }],
+		["NaN color", { colorKey: "black", color: Number.NaN }],
+		["string color", { colorKey: "black", color: "#ffffff" }],
+		["missing color", { colorKey: "black" }],
 		["unknown key", { colorKey: "purple", color: 0 }],
 		["missing key", { color: 0 }],
 		["palette without index", { colorKey: "system", color: 0 }],
@@ -118,7 +133,7 @@ describe("ClassicyDesktopChangeColor — payload validation", () => {
 		expect(JSON.stringify(appearance(ds))).toBe(before);
 	});
 
-	it("accepts the boundary colours 0 and 0xFFFFFF", () => {
+	it("accepts the boundary colors 0 and 0xFFFFFF", () => {
 		const ds = makeStore();
 		run(ds, {
 			type: "ClassicyDesktopChangeColor",
@@ -376,7 +391,7 @@ describe("Font and desktop edits fork too", () => {
 		expect(JSON.stringify(builtIn(ds, "default"))).toBe(stock);
 	});
 
-	it("a font edit after a colour edit lands in the same Custom theme", () => {
+	it("a font edit after a color edit lands in the same Custom theme", () => {
 		const ds = makeStore();
 		run(ds, {
 			type: "ClassicyDesktopChangeColor",
@@ -489,6 +504,594 @@ describe("ClassicyDesktopChangeMetric", () => {
 		});
 		expect(JSON.stringify(appearance(ds))).toBe(before);
 		expect(appearance(ds).activeTheme.id).toBe("default");
+	});
+});
+
+const LOG_SINK_ID = "custom-theme-test";
+
+/** Collects the warnings classicyLog emits (and keeps the console quiet). */
+const captureWarnings = (): ClassicyLogEntry[] => {
+	vi.spyOn(console, "warn").mockImplementation(() => {});
+	const entries: ClassicyLogEntry[] = [];
+	registerClassicyLogSink({
+		id: LOG_SINK_ID,
+		onLog: (entry) => {
+			if (entry.level === "warn") entries.push(entry);
+		},
+	});
+	return entries;
+};
+
+afterEach(() => {
+	resetClassicyAppearancePackagesForTests();
+	unregisterClassicyLogSink(LOG_SINK_ID);
+	vi.restoreAllMocks();
+});
+
+describe("ClassicyDesktopChangeAppearanceOption", () => {
+	it("ClassicyDesktopChangeAppearanceOption forks a built-in and applies the value", () => {
+		const ds = makeStore();
+		// Platinum's stock icon size is already 48 (the plan's value), so the
+		// write uses 40: an unchanged value is a no-op and never forks.
+		expect(builtIn(ds, "default").desktop.iconSize).toBe(48);
+		run(ds, {
+			type: "ClassicyDesktopChangeAppearanceOption",
+			path: "desktop.iconSize",
+			value: 40,
+		});
+		const a = appearance(ds);
+		expect(a.activeTheme.id).toBe(CLASSICY_CUSTOM_THEME_ID);
+		expect(a.activeTheme.desktop.iconSize).toBe(40);
+		expect(builtIn(ds, "default").desktop.iconSize).toBe(48);
+		expect(
+			a.customThemes?.find((t) => t.id === "custom")?.desktop.iconSize,
+		).toBe(40);
+	});
+
+	it("rejects a bad path without forking", () => {
+		const warnings = captureWarnings();
+		const ds = makeStore();
+		const customsBefore = JSON.stringify(appearance(ds).customThemes);
+		run(ds, {
+			type: "ClassicyDesktopChangeAppearanceOption",
+			path: "measurements.window.borderSize",
+			value: 3,
+		});
+		expect(appearance(ds).activeTheme.id).toBe("default");
+		expect(JSON.stringify(appearance(ds).customThemes)).toBe(customsBefore);
+		expect(warnings).toHaveLength(1);
+		expect(warnings[0].subsystem).toBe("ClassicyDesktopManager");
+	});
+
+	it("rejects a prototype path and a schema-refused value without forking", () => {
+		const warnings = captureWarnings();
+		const ds = makeStore();
+		const before = JSON.stringify(appearance(ds));
+		run(ds, {
+			type: "ClassicyDesktopChangeAppearanceOption",
+			path: "__proto__.x",
+			value: 1,
+		});
+		run(ds, {
+			type: "ClassicyDesktopChangeAppearanceOption",
+			path: "sound.pack",
+			value: "no-such-pack",
+		});
+		expect(JSON.stringify(appearance(ds))).toBe(before);
+		expect(({} as Record<string, unknown>).x).toBeUndefined();
+		expect(warnings).toHaveLength(2);
+	});
+
+	it("ignores a payload without a path or a value", () => {
+		const ds = makeStore();
+		const before = JSON.stringify(appearance(ds));
+		run(ds, { type: "ClassicyDesktopChangeAppearanceOption", value: 40 });
+		run(ds, {
+			type: "ClassicyDesktopChangeAppearanceOption",
+			path: "desktop.iconSize",
+		});
+		expect(JSON.stringify(appearance(ds))).toBe(before);
+	});
+
+	it("writing the value a theme already has does not fork", () => {
+		const ds = makeStore();
+		run(ds, {
+			type: "ClassicyDesktopChangeAppearanceOption",
+			path: "sound.pack",
+			value: "platinum",
+		});
+		expect(appearance(ds).activeTheme.id).toBe("default");
+	});
+
+	it("changes sound.pack to another registered pack and forks", () => {
+		// Left registered: the registry is per test file, and resetting it
+		// would also drop Platinum's pack, which the other tests rely on.
+		registerClassicySoundPack({
+			id: "option-test-sounds",
+			name: "Option Test",
+			src: ["https://example.com/option-test.ogg"],
+			sprite: { ClassicyBeep: [0, 1] },
+		});
+		const ds = makeStore();
+		run(ds, {
+			type: "ClassicyDesktopChangeAppearanceOption",
+			path: "sound.pack",
+			value: "option-test-sounds",
+		});
+		const a = appearance(ds);
+		expect(a.activeTheme.id).toBe(CLASSICY_CUSTOM_THEME_ID);
+		expect(a.activeTheme.sound.pack).toBe("option-test-sounds");
+		expect(builtIn(ds, "default").sound.pack).toBe("platinum");
+	});
+
+	it("is unreachable to untrusted dispatches", () => {
+		expect(
+			isUntrustedActionAllowed("ClassicyDesktopChangeAppearanceOption"),
+		).toBe(false);
+		vi.spyOn(console, "warn").mockImplementation(() => {});
+		const before = makeStore();
+		const after = produce(before, (draft) => {
+			classicyDesktopStateEventReducer(
+				castDraft(draft) as ClassicyStore,
+				{
+					type: "ClassicyDesktopChangeAppearanceOption",
+					path: "desktop.iconSize",
+					value: 40,
+				},
+				"untrusted",
+			);
+		});
+		expect(after).toBe(before);
+	});
+});
+
+describe("ClassicyDesktopChangeMetric family form", () => {
+	const knobPackage: ClassicyAppearancePackage = {
+		id: "knob-test",
+		name: "Knob Test",
+		css: "",
+		defaults: { ...structuredClone(getTheme("default")), package: "knob-test" },
+		layout: {
+			window: { growBoxCorner: "bottom-right" },
+			menuBar: { placement: "screen" },
+			desktop: { iconGridOrigin: "top-right" },
+		},
+		knobs: {
+			controlStrip: {
+				cellHeight: { label: "Cell height", min: 10, max: 40, default: 22 },
+			},
+		},
+	};
+
+	const makeKnobStore = (): ClassicyStore => {
+		registerClassicyAppearancePackage(knobPackage);
+		const ds = makeStore();
+		appearance(ds).packageId = knobPackage.id;
+		return ds;
+	};
+
+	it("ClassicyDesktopChangeMetric family form forks and applies", () => {
+		const ds = makeKnobStore();
+		run(ds, {
+			type: "ClassicyDesktopChangeMetric",
+			family: "controlStrip",
+			key: "cellHeight",
+			value: 30,
+		});
+		const a = appearance(ds);
+		expect(a.activeTheme.id).toBe(CLASSICY_CUSTOM_THEME_ID);
+		expect(a.activeTheme.measurements.controlStrip.cellHeight).toBe(30);
+		expect(builtIn(ds, "default").measurements.controlStrip).toBeUndefined();
+		expect(
+			(getThemeVars(a.activeTheme) as Record<string, string>)[
+				"--control-strip-cell-height"
+			],
+		).toBe("30px");
+	});
+
+	it("refuses an undeclared knob, an out-of-range value and a core family without forking", () => {
+		const warnings = captureWarnings();
+		const ds = makeKnobStore();
+		const before = JSON.stringify(appearance(ds));
+		for (const payload of [
+			{ family: "controlStrip", key: "nope", value: 30 },
+			{ family: "menuFrame", key: "cellHeight", value: 30 },
+			{ family: "controlStrip", key: "cellHeight", value: 41 },
+			{ family: "window", key: "borderSize", value: 3 },
+			{ family: "__proto__", key: "x", value: 3 },
+			{ family: "constructor", key: "x", value: 3 },
+		]) {
+			run(ds, { type: "ClassicyDesktopChangeMetric", ...payload });
+		}
+		expect(JSON.stringify(appearance(ds))).toBe(before);
+		expect(appearance(ds).activeTheme.id).toBe("default");
+		// The three well-formed knob writes are reported; malformed targets are
+		// ignored, like an invalid metricKey.
+		expect(warnings).toHaveLength(3);
+	});
+
+	it("resolves an unregistered packageId to the registered default package", () => {
+		// The same rule as resolveClassicyAppearancePackage (R6/R16): a
+		// persisted id whose package is gone falls back to Platinum, so the
+		// reducer and the panel agree on the active package's knobs.
+		registerClassicyAppearancePackage({
+			...knobPackage,
+			id: "platinum",
+			name: "Platinum",
+			defaults: structuredClone(getTheme("default")),
+		});
+		const ds = makeStore();
+		appearance(ds).packageId = "beos";
+		run(ds, {
+			type: "ClassicyDesktopChangeMetric",
+			family: "controlStrip",
+			key: "cellHeight",
+			value: 30,
+		});
+		const a = appearance(ds);
+		expect(a.activeTheme.id).toBe(CLASSICY_CUSTOM_THEME_ID);
+		expect(a.activeTheme.measurements.controlStrip.cellHeight).toBe(30);
+	});
+
+	it("refuses every knob when neither the active nor the default package is registered", () => {
+		const warnings = captureWarnings();
+		const ds = makeStore();
+		appearance(ds).packageId = "beos";
+		const before = JSON.stringify(appearance(ds));
+		run(ds, {
+			type: "ClassicyDesktopChangeMetric",
+			family: "controlStrip",
+			key: "cellHeight",
+			value: 30,
+		});
+		expect(JSON.stringify(appearance(ds))).toBe(before);
+		expect(warnings).toHaveLength(1);
+	});
+
+	it("refuses a knob whose range lies wholly outside 0–512, without forking (J-R18)", () => {
+		const warnings = captureWarnings();
+		registerClassicyAppearancePackage({
+			...knobPackage,
+			knobs: {
+				controlStrip: {
+					...knobPackage.knobs?.controlStrip,
+					huge: { label: "Huge", min: 600, max: 700, default: 650 },
+				},
+			},
+		});
+		const ds = makeStore();
+		appearance(ds).packageId = knobPackage.id;
+		const before = JSON.stringify(appearance(ds));
+		for (const value of [512, 600, 650]) {
+			run(ds, {
+				type: "ClassicyDesktopChangeMetric",
+				family: "controlStrip",
+				key: "huge",
+				value,
+			});
+		}
+		expect(JSON.stringify(appearance(ds))).toBe(before);
+		expect(appearance(ds).activeTheme.id).toBe("default");
+		expect(warnings).toHaveLength(3);
+	});
+
+	it("survives a tampered non-object family without throwing or forking", () => {
+		const warnings = captureWarnings();
+		const ds = makeKnobStore();
+		const active = appearance(ds).activeTheme;
+		(active.measurements as Record<string, unknown>).controlStrip = null;
+		const before = JSON.stringify(appearance(ds));
+		expect(() =>
+			run(ds, {
+				type: "ClassicyDesktopChangeMetric",
+				family: "controlStrip",
+				key: "cellHeight",
+				value: 30,
+			}),
+		).not.toThrow();
+		expect(JSON.stringify(appearance(ds))).toBe(before);
+		expect(warnings).toHaveLength(1);
+	});
+});
+
+describe("themes across Appearance Packages", () => {
+	const packTheme = (id: string, name: string) => ({
+		...structuredClone(getTheme("default")),
+		id,
+		name,
+		package: "theme-pack",
+	});
+	const themePackage: ClassicyAppearancePackage = {
+		id: "theme-pack",
+		name: "Theme Pack",
+		css: "",
+		defaults: packTheme("tp-one", "TP One"),
+		presets: [packTheme("tp-one", "TP One"), packTheme("tp-two", "TP Two")],
+		layout: {
+			window: { growBoxCorner: "bottom-right" },
+			menuBar: { placement: "screen" },
+			desktop: { iconGridOrigin: "top-right" },
+		},
+	};
+	const makePackStore = (): ClassicyStore => {
+		registerClassicyAppearancePackage(themePackage);
+		const ds = makeStore();
+		run(ds, {
+			type: "ClassicyDesktopChangeAppearancePackage",
+			packageId: themePackage.id,
+		});
+		return ds;
+	};
+
+	it("ChangeTheme activates a copy of a preset of the active package", () => {
+		const ds = makePackStore();
+		run(ds, { type: "ClassicyDesktopChangeTheme", activeTheme: "tp-two" });
+		const a = appearance(ds);
+		expect(a.activeTheme.id).toBe("tp-two");
+		expect(a.activeTheme.package).toBe("theme-pack");
+		expect(a.activeTheme).not.toBe(themePackage.presets?.[1]);
+		// The preset list is left alone (B left availableThemes untouched).
+		expect(a.availableThemes?.some((t) => t.id === "tp-two")).toBe(false);
+	});
+
+	it("ChangeTheme prefers a host-loaded theme over a preset with the same id", () => {
+		const ds = makePackStore();
+		run(ds, {
+			type: "ClassicyDesktopLoadThemes",
+			availableThemes: [
+				...(appearance(ds).availableThemes ?? []),
+				packTheme("tp-two", "Loaded TP Two"),
+			],
+		});
+		run(ds, { type: "ClassicyDesktopChangeTheme", activeTheme: "tp-two" });
+		expect(appearance(ds).activeTheme.name).toBe("Loaded TP Two");
+	});
+
+	it("ChangeTheme does not reach the presets of an inactive package", () => {
+		registerClassicyAppearancePackage(themePackage);
+		const ds = makeStore();
+		run(ds, { type: "ClassicyDesktopChangeTheme", activeTheme: "tp-two" });
+		expect(appearance(ds).activeTheme.id).toBe("default");
+	});
+
+	it("ChangeTheme stays unreachable to untrusted dispatches", () => {
+		expect(isUntrustedActionAllowed("ClassicyDesktopChangeTheme")).toBe(false);
+		vi.spyOn(console, "warn").mockImplementation(() => {});
+		const before = makePackStore();
+		const after = produce(before, (draft) => {
+			classicyDesktopStateEventReducer(
+				castDraft(draft) as ClassicyStore,
+				{ type: "ClassicyDesktopChangeTheme", activeTheme: "tp-two" },
+				"untrusted",
+			);
+		});
+		expect(after).toBe(before);
+	});
+
+	it("names one Custom slot per package", () => {
+		expect(classicyCustomThemeSlotId("platinum")).toBe(
+			CLASSICY_CUSTOM_THEME_ID,
+		);
+		expect(classicyCustomThemeSlotId("theme-pack")).toBe("custom-theme-pack");
+	});
+
+	it("forks a theme of another package into that package's own Custom slot", () => {
+		const ds = makeStore();
+		run(ds, {
+			type: "ClassicyDesktopChangeColor",
+			colorKey: "black",
+			color: 0x010101,
+		});
+		registerClassicyAppearancePackage(themePackage);
+		run(ds, {
+			type: "ClassicyDesktopChangeAppearancePackage",
+			packageId: themePackage.id,
+		});
+		run(ds, {
+			type: "ClassicyDesktopChangeColor",
+			colorKey: "white",
+			color: 0xfefefe,
+		});
+		let a = appearance(ds);
+		expect(a.activeTheme.id).toBe("custom-theme-pack");
+		expect(a.activeTheme.name).toBe(CLASSICY_CUSTOM_THEME_NAME);
+		expect(a.activeTheme.package).toBe("theme-pack");
+		expect(a.customThemes?.map((t) => t.id)).toEqual([
+			CLASSICY_CUSTOM_THEME_ID,
+			"custom-theme-pack",
+		]);
+		// Platinum's Custom keeps its edit.
+		expect(a.customThemes?.[0].color.black).toBe(0x010101);
+		expect(a.customThemes?.[0].color.white).not.toBe(0xfefefe);
+
+		// A re-fork in the same package overwrites that package's slot only.
+		run(ds, { type: "ClassicyDesktopChangeTheme", activeTheme: "tp-two" });
+		run(ds, {
+			type: "ClassicyDesktopChangeColor",
+			colorKey: "select",
+			color: 0x123456,
+		});
+		a = appearance(ds);
+		expect(a.customThemes).toHaveLength(2);
+		expect(a.activeTheme.id).toBe("custom-theme-pack");
+		expect(a.customThemes?.[1].color.select).toBe(0x123456);
+		expect(a.customThemes?.[1].color.white).not.toBe(0xfefefe);
+		expect(a.customThemes?.[0].color.black).toBe(0x010101);
+	});
+});
+
+describe("ChangeTheme in a package whose ids collide with Platinum's", () => {
+	const layout: ClassicyAppearancePackage["layout"] = {
+		window: { growBoxCorner: "bottom-right" },
+		menuBar: { placement: "screen" },
+		desktop: { iconGridOrigin: "top-right" },
+	};
+	const irixTheme = (id: string, name: string): ClassicyTheme => ({
+		...structuredClone(getTheme("default")),
+		id,
+		name,
+		package: "irix",
+	});
+	const switchTo = (ds: ClassicyStore, packageId: string) =>
+		run(ds, { type: "ClassicyDesktopChangeAppearancePackage", packageId });
+
+	it("J-R19: ChangeTheme to a colliding preset id activates the active package's theme, and an edit forks into its Custom slot", () => {
+		registerClassicyAppearancePackage({
+			id: "irix",
+			name: "IRIX",
+			css: "",
+			defaults: irixTheme("indigo", "Indigo"),
+			presets: [irixTheme("indigo", "Indigo"), irixTheme("default", "Default")],
+			layout,
+		});
+		const ds = makeStore();
+		switchTo(ds, "irix");
+		run(ds, { type: "ClassicyDesktopChangeTheme", activeTheme: "default" });
+		let a = appearance(ds);
+		expect(a.activeTheme.id).toBe("default");
+		expect(a.activeTheme.package).toBe("irix");
+		run(ds, {
+			type: "ClassicyDesktopChangeColor",
+			colorKey: "black",
+			color: 0x020202,
+		});
+		a = appearance(ds);
+		expect(a.activeTheme.id).toBe("custom-irix");
+		expect(a.activeTheme.package).toBe("irix");
+		expect(a.customThemes?.map((t) => t.id)).toEqual(["custom-irix"]);
+	});
+
+	it("J-R21: ChangeTheme resolves a preset's bundled wallpaper filename to its asset URL", () => {
+		const filenamePreset = irixTheme("dusk", "Dusk");
+		filenamePreset.desktop.backgroundImage = "azul_dark.png";
+		registerClassicyAppearancePackage({
+			id: "irix",
+			name: "IRIX",
+			css: "",
+			defaults: irixTheme("indigo", "Indigo"),
+			presets: [irixTheme("indigo", "Indigo"), filenamePreset],
+			layout,
+		});
+		const ds = makeStore();
+		switchTo(ds, "irix");
+		run(ds, { type: "ClassicyDesktopChangeTheme", activeTheme: "dusk" });
+		const image = appearance(ds).activeTheme.desktop.backgroundImage;
+		expect(image).not.toBe("azul_dark.png");
+		expect(image).toBe(resolveWallpaper("azul_dark.png"));
+		// The registered preset is left as passed.
+		expect(filenamePreset.desktop.backgroundImage).toBe("azul_dark.png");
+	});
+
+	it("J-R22: a package's defaults are selectable when no preset has their id", () => {
+		registerClassicyAppearancePackage({
+			id: "irix",
+			name: "IRIX",
+			css: "",
+			defaults: irixTheme("indigo", "Indigo"),
+			layout,
+		});
+		const ds = makeStore();
+		switchTo(ds, "irix");
+		expect(appearance(ds).activeTheme.id).toBe("indigo");
+		// Away (a fork) and back.
+		run(ds, {
+			type: "ClassicyDesktopChangeColor",
+			colorKey: "black",
+			color: 0x030303,
+		});
+		expect(appearance(ds).activeTheme.id).toBe("custom-irix");
+		run(ds, { type: "ClassicyDesktopChangeTheme", activeTheme: "indigo" });
+		const a = appearance(ds);
+		expect(a.activeTheme.id).toBe("indigo");
+		expect(a.activeTheme.package).toBe("irix");
+		expect(a.activeTheme.color.black).not.toBe(0x030303);
+	});
+});
+
+describe("ChangeAppearanceOption sound.pack and the active package (ruling 10)", () => {
+	it("refuses a pack that belongs to another package, with a warning and no fork", () => {
+		registerClassicySoundPack({
+			id: "irix-sounds",
+			name: "IRIX Sounds",
+			packageId: "irix",
+			src: ["https://example.com/irix.ogg"],
+			sprite: { ClassicyBeep: [0, 1] },
+		});
+		const warnings = captureWarnings();
+		const ds = makeStore();
+		const before = JSON.stringify(appearance(ds));
+		run(ds, {
+			type: "ClassicyDesktopChangeAppearanceOption",
+			path: "sound.pack",
+			value: "irix-sounds",
+		});
+		expect(JSON.stringify(appearance(ds))).toBe(before);
+		expect(warnings).toHaveLength(1);
+		expect(warnings[0].message).toContain("irix-sounds");
+	});
+
+	it("re-picking the current pack, though another package owns it, neither warns nor forks", () => {
+		registerClassicySoundPack({
+			id: "beos-sounds",
+			name: "BeOS Sounds",
+			packageId: "beos",
+			src: ["https://example.com/beos.ogg"],
+			sprite: { ClassicyBeep: [0, 1] },
+		});
+		const warnings = captureWarnings();
+		const ds = makeStore();
+		// A theme loaded with a foreign pack already names it.
+		appearance(ds).activeTheme.sound.pack = "beos-sounds";
+		const before = JSON.stringify(appearance(ds));
+		run(ds, {
+			type: "ClassicyDesktopChangeAppearanceOption",
+			path: "sound.pack",
+			value: "beos-sounds",
+		});
+		expect(JSON.stringify(appearance(ds))).toBe(before);
+		expect(appearance(ds).activeTheme.id).toBe("default");
+		expect(warnings).toHaveLength(0);
+	});
+
+	it("accepts a pack the active package owns", () => {
+		registerClassicyAppearancePackage({
+			id: "nextstep",
+			name: "NeXTSTEP",
+			css: "",
+			defaults: {
+				...structuredClone(getTheme("default")),
+				id: "nextstep-gray",
+				name: "Gray",
+				package: "nextstep",
+			},
+			layout: {
+				window: { growBoxCorner: "bottom-right" },
+				menuBar: { placement: "screen" },
+				desktop: { iconGridOrigin: "top-right" },
+			},
+		});
+		registerClassicySoundPack({
+			id: "nextstep-sounds",
+			name: "NeXTSTEP Sounds",
+			packageId: "nextstep",
+			src: ["https://example.com/nextstep.ogg"],
+			sprite: { ClassicyBeep: [0, 1] },
+		});
+		const warnings = captureWarnings();
+		const ds = makeStore();
+		run(ds, {
+			type: "ClassicyDesktopChangeAppearancePackage",
+			packageId: "nextstep",
+		});
+		run(ds, {
+			type: "ClassicyDesktopChangeAppearanceOption",
+			path: "sound.pack",
+			value: "nextstep-sounds",
+		});
+		const a = appearance(ds);
+		expect(a.activeTheme.sound.pack).toBe("nextstep-sounds");
+		expect(a.activeTheme.id).toBe("custom-nextstep");
+		expect(warnings).toHaveLength(0);
 	});
 });
 

@@ -1,11 +1,13 @@
 import "./ClassicyControlLabel.scss";
 import classNames from "classnames";
 import type {
+	CSSProperties,
 	FC as FunctionalComponent,
 	KeyboardEvent,
 	MouseEvent,
 	ReactNode,
 } from "react";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 
 type ClassicyControlLabelDirections = "left" | "right";
 export type ClassicyControlLabelSize = "small" | "medium" | "large";
@@ -74,6 +76,10 @@ interface ClassicyControlLabelProps {
 	onMouseDown?: (e: MouseEvent) => void;
 	/** Mouse-up on the text itself. */
 	onMouseUp?: (e: MouseEvent) => void;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 }
 
 /**
@@ -110,6 +116,8 @@ export const ClassicyControlLabel: FunctionalComponent<
 	onClickFunc,
 	onMouseDown,
 	onMouseUp,
+	className,
+	style,
 }) => {
 	if (label === "") {
 		return null;
@@ -160,7 +168,9 @@ export const ClassicyControlLabel: FunctionalComponent<
 				isLeftOrBottom
 					? "classicyControlLabelHolderLeft"
 					: "classicyControlLabelHolderRight",
+				className,
 			)}
+			style={style}
 		>
 			{icon && <img src={icon} width={imageSize(iconSize)} alt={label} />}
 
@@ -172,7 +182,7 @@ export const ClassicyControlLabel: FunctionalComponent<
 				className={classNames(
 					"classicyControlLabel",
 					sizeClassMap[labelSize],
-					disabled && "classicyControlLabelDisabled",
+					classicyStateClasses({ disabled }),
 					direction === "right"
 						? "classicyControlLabelMarginRight"
 						: "classicyControlLabelMarginLeft",

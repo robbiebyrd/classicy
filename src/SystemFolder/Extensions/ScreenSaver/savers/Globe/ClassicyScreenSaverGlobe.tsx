@@ -1,4 +1,5 @@
 import "./ClassicyScreenSaverGlobe.scss";
+import classNames from "classnames";
 import type { CSSProperties, FC as FunctionalComponent } from "react";
 import type { ClassicyScreenSaverProps } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverRegistry";
 import globeSprite from "./globe_240.webp";
@@ -9,10 +10,15 @@ import globeSprite from "./globe_240.webp";
  */
 export const ClassicyScreenSaverGlobe: FunctionalComponent<
 	ClassicyScreenSaverProps
-> = () => (
+> = ({ className, style }) => (
 	<div
-		className="classicySaverGlobe"
-		style={{ "--classicy-saver-globe": `url(${globeSprite})` } as CSSProperties}
+		className={classNames("classicySaverGlobe", className)}
+		style={
+			{
+				"--classicy-saver-globe": `url(${globeSprite})`,
+				...style,
+			} as CSSProperties
+		}
 	>
 		<div className="classicySaverGlobeBall" />
 	</div>

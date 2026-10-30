@@ -1,10 +1,9 @@
-@use '../../ControlPanels/AppearanceManager/styles/appearance';
-@use '../../ControlPanels/AppearanceManager/styles/assets';
 @use 'sass:list';
+@use '../../../Appearance/vocabulary/color' as c;
 
 .classicyIcon {
   position: absolute;
-  z-index: 10 !important;
+  z-index: 10;
   display: flex;
   align-items: center;
   flex-direction: column;
@@ -28,10 +27,10 @@
     font-family: var(--body-font), serif;
     font-size: var(--desktop-icon-font-size);
     width: fit-content;
-    margin-top: calc(var(--desktop-icon-font-size) / 4);
-    padding: calc(var(--desktop-icon-font-size) / 4);
+    margin-top: var(--desktop-icon-label-pad);
+    padding: var(--desktop-icon-label-pad);
     color: var(--color-black);
-    background: rgba(255, 255, 255, 0.5);
+    background: c.classicy-alpha("--color-white", 50%);
   }
 }
 
@@ -39,8 +38,8 @@
   filter: opacity(0.45);
 }
 
-.classicyIconDragging {
-  z-index: 500 !important;
+:where(.classicyIcon).dragging {
+  z-index: 500;
   //margin: calc(var(--desktop-icon-size) * -4);
   //padding: calc(var(--desktop-icon-size) * 4);
   user-select: none;
@@ -51,10 +50,10 @@
   width: calc(var(--desktop-icon-size) - var(--window-border-size) * 2);
   height: calc(var(--desktop-icon-size) - var(--window-border-size) * 2);
   margin: 0 auto;
-  mask-mode: alpha !important;
-  mask-size: calc(100% - var(--window-border-size)) !important;
-  mask-repeat: no-repeat !important;
-  @include appearance.theme-halftone(#000000, 7%);
+  mask-mode: alpha;
+  mask-size: calc(100% - var(--window-border-size));
+  mask-repeat: no-repeat;
+  // Its halftone dither is in the Platinum package.
 }
 
 .classicyIconMaskOuter {
@@ -62,18 +61,16 @@
   width: calc(var(--desktop-icon-size) + var(--window-border-size));
   height: calc(var(--desktop-icon-size) + var(--window-border-size));
   margin: 0 auto;
-  background: var(--color-black) !important;
-  mask-mode: alpha !important;
-  mask-size: cover !important;
-  mask-repeat: no-repeat !important;
+  background: var(--color-black);
+  mask-mode: alpha;
+  mask-size: cover;
+  mask-repeat: no-repeat;
 }
 
-.classicyIconOpen {
-  z-index: 99;
-
+:where(.classicyIcon).open {
   .classicyIconMaskOuter {
     .classicyIconMask {
-      backdrop-filter: grayscale(1) invert(1) brightness(1) !important;
+      backdrop-filter: grayscale(1) invert(1) brightness(1);
       background-blend-mode: overlay;
 
       * {
@@ -83,7 +80,7 @@
   }
 }
 
-.classicyIconActive {
+:where(.classicyIcon).selected {
   .classicyIconMaskOuter {
     img {
       filter: brightness(50%);
@@ -92,29 +89,36 @@
 
   p {
     color: var(--color-white);
-    background: rgba(0, 0, 0, 0.5);
+    background: c.classicy-alpha("--color-black", 50%);
   }
 }
 
-.classicyIconActiveAndOpen {
-  z-index: 99;
-
+// Selected and open at once. Both state rules above also match, so this
+// block — later, and more specific — restates only what differs from them.
+.classicyIcon.selected.open {
   .classicyIconMaskOuter {
     background: var(--color-black);
     filter: brightness(-5);
 
     .classicyIconMask {
       filter: brightness(50%);
-      backdrop-filter: grayscale(1) invert(1) brightness(1) !important;
+      backdrop-filter: grayscale(1) invert(1) brightness(1);
+      // The open rule's overlay blend and the selected rule's dimmed artwork
+      // never showed in this combined state; keep them off.
+      background-blend-mode: normal;
 
       * {
         opacity: 0;
       }
     }
+
+    img {
+      filter: none;
+    }
   }
 
   p {
     color: var(--color-white);
-    background: rgba(0, 0, 0, 0.5);
+    background: c.classicy-alpha("--color-black", 50%);
   }
 }

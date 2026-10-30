@@ -1,6 +1,6 @@
 import { sha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex } from "@noble/hashes/utils.js";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	type ClassicyFileSystemJournalEntry,
 	type ClassicyFileSystemSnapshot,
@@ -26,8 +26,6 @@ import { DefaultFSContent } from "@/SystemFolder/SystemResources/File/DefaultCla
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import { decompressFromBase64 } from "@/SystemFolder/SystemResources/Utils/base64Compression";
 import { deepMergeReplacingArrays } from "@/SystemFolder/SystemResources/Utils/deepMerge";
-
-const directoryIcon = ClassicyIcons.system.folders.directory;
 
 // filterByType's default allow-list: every ClassicyFileSystemEntryFileType
 // except Drive, derived from the enum so a newly added type is included
@@ -847,7 +845,7 @@ export class ClassicyFileSystem {
 		const newDirectoryObject = () => {
 			return {
 				_type: "directory",
-				_icon: directoryIcon,
+				_icon: resolveClassicyAsset("icons", "system.folders.directory") ?? "",
 			} as ClassicyFileSystemEntry;
 		};
 

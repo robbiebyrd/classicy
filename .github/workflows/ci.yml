@@ -50,11 +50,19 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Check generated vocabulary is fresh
+        run: node bin/generate-vocabulary.ts --check
+
       - name: Lint (Biome)
         run: pnpm lint
 
       - name: Type check
         run: pnpm exec tsc --noEmit -p .
+
+      # The root tsconfig excludes the stories; storybook/tsconfig.json checks
+      # them (and .storybook/) strictly.
+      - name: Type check stories (Storybook)
+        run: pnpm storybook:typecheck
 
       - name: Run tests
         run: pnpm test

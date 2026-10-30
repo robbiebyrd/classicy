@@ -1,6 +1,7 @@
 import "./ClassicyTriangle.scss";
 import classNames from "classnames";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	type KeyboardEvent,
 	useState,
@@ -23,12 +24,15 @@ type ClassicyTriangleProps = {
 	onToggle?: (open: boolean) => void;
 	/**
 	 * `true` wraps the triangle in a focusable `role="button"` with
-	 * `aria-expanded`; `false` renders the bare SVG, for a parent row that
-	 * handles the toggling itself. Defaults to `true`.
+	 * `aria-expanded`; `false` renders the bare SVG, `aria-hidden`, for a
+	 * parent row that handles the toggling and carries the name itself.
+	 * Defaults to `true`.
 	 */
 	interactive?: boolean;
 	/** Extra class names: on the button wrapper, or on the SVG when not interactive. */
 	className?: string;
+	/** Inline style, merged onto the root element (the button wrapper, or the `<svg>` when not interactive) after the component's own. */
+	style?: CSSProperties;
 };
 
 /**
@@ -54,6 +58,7 @@ export const ClassicyTriangle: FunctionalComponent<ClassicyTriangleProps> = ({
 	onToggle,
 	interactive = true,
 	className,
+	style,
 }) => {
 	const [internalOpen, setInternalOpen] = useState(defaultOpen);
 	const { track } = useClassicyAnalytics();
@@ -95,6 +100,11 @@ export const ClassicyTriangle: FunctionalComponent<ClassicyTriangleProps> = ({
 				triangleClassOpenName,
 				!interactive && className,
 			)}
+			style={interactive ? undefined : style}
+			// Non-interactive, it is a decorative marker inside a row that owns
+			// the interaction and the name: hidden, so its <title> never joins
+			// that row's accessible name.
+			aria-hidden={interactive ? undefined : true}
 		>
 			<title>Toggle</title>
 			<polygon
@@ -131,6 +141,7 @@ export const ClassicyTriangle: FunctionalComponent<ClassicyTriangleProps> = ({
 			aria-expanded={resolvedOpen}
 			tabIndex={0}
 			className={className}
+			style={style}
 			onClick={toggle}
 			onKeyDown={handleKeyPress}
 		>

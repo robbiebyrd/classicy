@@ -1,0 +1,66 @@
+// A window's own menu bar (menuBar.placement "window"), directly under its
+// title bar. It reuses the screen bar's .classicyDesktopMenu rules (flex,
+// order by data-classicy-part, the bar's look); these rules only fit it into
+// the window. They are nested under the root so they beat
+// .classicyDesktopMenu whichever stylesheet loads first.
+
+.classicyWindowMenuBar {
+  flex: 0 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+
+  .classicyWindowMenu {
+    border-radius: 0;
+    padding: 0 var(--window-padding-size);
+  }
+}
+
+// The contents' height is the window's minus the title bar's (a percentage
+// calc in ClassicyWindow.scss, not a flex share), so a window with a menu bar
+// also takes the bar's height off, or its contents would run past the frame's
+// bottom edge under the grow box. Platinum places menus on the screen, so no
+// Platinum window matches.
+//
+// The bar's height is `--classicy-window-menu-bar-height` when a host or
+// package sets it (on the desktop or any ancestor; it inherits), else
+// control × 1.75. It is read with that fallback at each use and declared
+// nowhere here, so an inherited value always reaches it.
+$_bar-height: var(--classicy-window-menu-bar-height, calc(var(--window-control-size) * 1.75));
+
+// The rules for a window root that holds a menu bar. `$root` is the window's
+// selector; `$doubled` repeats it with a leading `.classicyWindow`, which
+// lifts the header variant over ClassicyWindow.scss's own doubled rule.
+@mixin _with-menu-bar($root, $doubled) {
+  #{$root} {
+    > .classicyWindowMenuBar {
+      height: $_bar-height;
+    }
+
+    .classicyWindowContents {
+      height: calc(
+        100% - (var(--window-control-size) * 1) - var(--window-padding-size) * 1.5 -
+          #{$_bar-height}
+      );
+    }
+  }
+
+  #{$doubled} .classicyWindowContentsWithHeader {
+    height: calc(
+      100% - (var(--window-control-size) * 3) - (var(--window-padding-size)) -
+        #{$_bar-height}
+    );
+  }
+}
+
+// Keyed twice, in separate rules, never one selector list: a browser that
+// cannot parse :has() drops only the :has() rules. ClassicyWindow adds
+// classicyWindowWithMenuBar whenever it draws the bar; :has() also covers a
+// bar placed in a window some other way.
+@include _with-menu-bar(
+  ".classicyWindow.classicyWindowWithMenuBar",
+  ".classicyWindow.classicyWindow.classicyWindowWithMenuBar"
+);
+@include _with-menu-bar(
+  ".classicyWindow:has(> .classicyWindowMenuBar)",
+  ".classicyWindow.classicyWindow:has(> .classicyWindowMenuBar)"
+);

@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { resetClassicyAppearancePackagesForTests } from "@/Appearance/ClassicyAppearancePackageRegistry";
 import {
 	type ClassicyTheme,
 	getAllThemes,
@@ -14,6 +15,7 @@ import {
 	exportClassicyTheme,
 	parseClassicyThemeFile,
 	portableClassicyThemeBackground,
+	readClassicyTheme,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFile";
 import {
 	buildClassicyWallpaperIndex,
@@ -121,7 +123,7 @@ describe("parseClassicyThemeFile — accepted input", () => {
 		expect(parseOk(bare)).toEqual(theme("plum"));
 	});
 
-	it("accepts a bare themes.json-style entry naming its wallpaper", () => {
+	it("accepts a bare platinum.json preset naming its wallpaper", () => {
 		const t = theme("bondi");
 		t.desktop.backgroundImage = "waves_bondi.png";
 		expect(parseOk(JSON.stringify(t)).desktop.backgroundImage).toBe(
@@ -180,16 +182,16 @@ describe("parseClassicyThemeFile — errors", () => {
 	it("summarises schema issues with their paths", () => {
 		const t = theme("azul") as unknown as {
 			color: { select: number; system: number[] };
-			sound: { name: string };
+			sound: { pack: string };
 		};
 		t.color.select = -1;
 		t.color.system = [1, 2, 3];
-		t.sound.name = "sosumi";
+		t.sound.pack = "sosumi";
 		const error = parseError(envelope({ theme: t }));
 		expect(error).toMatch(/^This theme has invalid settings: /);
 		expect(error).toContain("color.select:");
 		expect(error).toContain("color.system:");
-		expect(error).toContain("sound.name:");
+		expect(error).toContain("sound.pack:");
 	});
 
 	it("lists only the first three issues, counting the rest", () => {
@@ -369,8 +371,8 @@ describe("downloadClassicyTheme", () => {
 
 	it("refuses a theme that would not load back, without downloading", () => {
 		const click = vi.spyOn(HTMLAnchorElement.prototype, "click");
-		const t = theme("azul") as unknown as { sound: { name: string } };
-		t.sound.name = "sosumi";
+		const t = theme("azul") as unknown as { sound: { pack: string } };
+		t.sound.pack = "sosumi";
 		const result = downloadClassicyTheme(t as unknown as ClassicyTheme);
 		expect(result.ok).toBe(false);
 		expect(click).not.toHaveBeenCalled();
@@ -395,5 +397,45 @@ describe("theme files written before metric groups existed", () => {
 		const exported = JSON.parse(exportClassicyTheme(loaded));
 		expect(exported.theme.measurements.layout.dialogEdge).toBe(12);
 		expect(exported.theme.measurements.groupBox.gap).toBe(12);
+	});
+});
+
+describe("theme files and appearance packages", () => {
+	afterEach(() => resetClassicyAppearancePackagesForTests());
+
+	it("writes the package id", () => {
+		const file = JSON.parse(exportClassicyTheme(theme("default")));
+		expect(file.theme.package).toBe("platinum");
+	});
+
+	it("a v1 file without package loads as platinum", () => {
+		const file = JSON.parse(exportClassicyTheme(theme("azul")));
+		delete file.theme.package;
+		expect(parseOk(JSON.stringify(file)).package).toBe("platinum");
+	});
+
+	// R16: the default package is always installable, registered or not, so a
+	// registry-only check can never pass these.
+	it("reads a platinum theme with no package registered (R16)", () => {
+		resetClassicyAppearancePackagesForTests();
+		const result = readClassicyTheme({ ...theme("azul"), package: "platinum" });
+		expect(result.ok).toBe(true);
+		expect(parseOk(exportClassicyTheme(theme("azul"))).package).toBe(
+			"platinum",
+		);
+		expect(readClassicyTheme({ ...theme("azul"), package: "beos" })).toEqual({
+			ok: false,
+			error:
+				'This theme needs the "beos" appearance package, which is not installed.',
+		});
+	});
+
+	it("refuses a theme for an uninstalled package", () => {
+		resetClassicyAppearancePackagesForTests();
+		const file = JSON.parse(exportClassicyTheme(theme("azul")));
+		file.theme.package = "irix";
+		expect(parseError(JSON.stringify(file))).toBe(
+			'This theme needs the "irix" appearance package, which is not installed.',
+		);
 	});
 });

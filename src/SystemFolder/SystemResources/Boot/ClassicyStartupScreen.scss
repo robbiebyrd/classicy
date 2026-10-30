@@ -1,4 +1,4 @@
-@use "../../ControlPanels/AppearanceManager/styles/appearance";
+@use "../../../Appearance/vocabulary/layout";
 
 .classicyStartupScreen {
   position: fixed;
@@ -18,7 +18,7 @@
   padding: calc(var(--window-padding-size) * 6)
     calc(var(--window-padding-size) * 8);
   background: var(--color-system-03);
-  @include appearance.platinumWindowBorder;
+  // Its window border is in the Platinum package.
 }
 
 .classicyStartupScreenLogo {
@@ -44,7 +44,7 @@
   line-height: 1;
   color: var(--color-black);
 
-  @include appearance.no-select;
+  @include layout.classicy-no-select;
 }
 
 .classicyStartupScreenProgress {
@@ -59,7 +59,7 @@
   display: flex;
   // wrap-reverse grows the parade upward when a row fills, like Mac OS 7
   flex-wrap: wrap-reverse;
-  gap: calc(var(--window-padding-size) * 1.5);
+  gap: var(--control-padding-wide);
 
   img {
     width: var(--icon-size-regular, 32px);

@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
+import { getClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackageRegistry";
+import platinumJson from "@/Appearance/Platinum/platinum.json";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import type {
 	ClassicyStore,
@@ -10,6 +12,7 @@ import {
 	classicyAppEventHandler,
 	classicyDesktopStateEventReducer,
 	closeApp,
+	DefaultAppManagerState,
 	deFocusApps,
 	focusApp,
 	focusWindow,
@@ -92,6 +95,7 @@ function makeStore(
 					) as Record<ClassicyFileSystemEntryFileType, string>,
 				},
 				Appearance: {
+					packageId: "platinum",
 					availableThemes: [],
 					activeTheme: {} as ClassicyTheme,
 				},
@@ -2014,5 +2018,21 @@ describe("keyboard shortcut registry reducer", () => {
 		});
 		expect(ds.System.Manager.Keyboard.app["TextEditor.app"]).toBeUndefined();
 		expect(ds.System.Manager.Keyboard.global["control+space"]).toBeUndefined();
+	});
+});
+
+// Module-evaluation order: the default state reads Platinum's presets as data
+// (platinum.json), so it never waits on the side-effect module that registers
+// the package. This file must not import "@/Appearance/Platinum".
+describe("DefaultAppManagerState without the Platinum package module", () => {
+	it("offers the 21 Platinum presets", () => {
+		expect(getClassicyAppearancePackage("platinum")).toBeUndefined();
+		const { availableThemes, activeTheme } =
+			DefaultAppManagerState.System.Manager.Appearance;
+		expect(availableThemes).toHaveLength(21);
+		expect(availableThemes?.map((t) => t.id)).toEqual(
+			platinumJson.presets.map((t) => t.id),
+		);
+		expect(activeTheme.id).toBe("default");
 	});
 });

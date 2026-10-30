@@ -1,6 +1,6 @@
-import "@/SystemFolder/ControlPanels/AppearanceManager/styles/fonts.scss";
+import "@/Appearance/Platinum";
 import type { Preview } from "@storybook/react-vite";
-import themesData from "@/SystemFolder/ControlPanels/AppearanceManager/styles/themes.json";
+import platinumJson from "@/Appearance/Platinum/platinum.json";
 import { withClassicy } from "./ClassicyDecorators";
 
 const preview: Preview = {
@@ -10,7 +10,10 @@ const preview: Preview = {
 			description: "Classicy appearance theme",
 			toolbar: {
 				icon: "paintbrush",
-				items: themesData.map((t) => ({ value: t.id, title: t.name })),
+				items: platinumJson.presets.map((t) => ({
+					value: t.id,
+					title: t.name,
+				})),
 				dynamicTitle: true,
 			},
 		},

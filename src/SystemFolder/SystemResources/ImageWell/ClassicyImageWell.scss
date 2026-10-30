@@ -1,5 +1,3 @@
-@use "../../ControlPanels/AppearanceManager/styles/appearance";
-
 // Image Well (HIG #16) — a 2-pixel recessed frame with a white fill that
 // displays an icon/picture and can act as a drag-and-drop target. The recessed
 // look + white fill is what distinguishes it from a (raised) bevel button; it
@@ -34,23 +32,22 @@
   pointer-events: none;
 }
 
-// Selected: accent frame using the Appearance/theme accent (falls back to the
-// focus-ring color).
-.classicyImageWellSelected {
-  outline: calc(var(--window-border-size) * 2) solid
-    var(--color-theme-selection, var(--color-outline));
+// Selected: accent frame in the focus-ring color.
+:where(.classicyImageWell).selected {
+  outline: var(--control-frame-width) solid
+    var(--color-outline);
   outline-offset: calc(var(--window-border-size) * -1);
 }
 
 // Active drag target highlight.
 .classicyImageWellDragOver {
-  outline: calc(var(--window-border-size) * 2) dashed
-    var(--color-theme-selection, var(--color-outline));
+  outline: var(--control-frame-width) dashed
+    var(--color-outline);
   outline-offset: calc(var(--window-border-size) * -1);
 }
 
 // Disabled: dim the fill and content.
-.classicyImageWellDisabled {
+:where(.classicyImageWell).disabled {
   background-color: var(--color-system-02);
   border-color: var(--color-system-05);
 

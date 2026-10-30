@@ -1,0 +1,185 @@
+@use "../../../Appearance/vocabulary/layout";
+
+// The structure of ClassicyWindowTitleBar, shared by ClassicyWindow and
+// ClassicyWindowFrame: each includes these mixins inside its own root rule, so
+// the title bar's selectors stay `.<root> .classicyWindowTitleBar …`. The look
+// (control-box bevels and glyphs, the title-bar stripes) is in the Appearance
+// Package: Platinum's is in Appearance/Platinum/styles/components/_Window.scss
+// and _WindowFrame.scss.
+
+// The title bar and its parts: the control boxes, the title area, the stripe
+// bands around the title and the title text.
+@mixin classicy-window-title-bar {
+  .classicyWindowTitleBar {
+    @include layout.classicy-no-select;
+
+    font-family: var(--ui-font), sans-serif;
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    // Theme metric (measurements.window.titleBarHeight; HIGOS8: 19px). The
+    // windoid overrides it with --window-utility-title-bar-height
+    // (ClassicyWindow.scss).
+    height: var(--window-title-bar-height);
+    padding-bottom: var(--window-border-size);
+    text-align: center;
+    column-gap: var(--control-bevel-lg);
+
+    // Arrangement: the title bar's flex items in explicit order. The DOM order
+    // already matches, so these change no pixels; an Appearance Package
+    // reorders the parts by overriding the numbers. The control wrappers
+    // (.classicyWindowControlBox) carry data-classicy-control; the title
+    // area's own number is in its rule below.
+    [data-classicy-control="close"] {
+      order: 10;
+    }
+
+    [data-classicy-control="zoom"] {
+      order: 30;
+    }
+
+    [data-classicy-control="collapse"] {
+      order: 40;
+    }
+
+    .classicyWindowIcon {
+      max-width: var(--control-square-size);
+      max-height: var(--window-title-stripe-height);
+      padding: 0 var(--control-padding);
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-start;
+
+      img {
+        height: 100%;
+        width: 100%;
+        user-select: none;
+        pointer-events: none;
+        object-fit: contain;
+      }
+    }
+
+    .classicyWindowTitle {
+      order: 20;
+      position: relative;
+      display: flex;
+      flex-direction: row;
+      flex-grow: 1;
+      text-align: center;
+      min-width: 0;
+
+      .classicyWindowTitleText {
+        font-size: var(--ui-font-size);
+        overflow: hidden;
+        align-content: flex-start;
+        height: 1.5em;
+        line-height: 1;
+        cursor: default;
+        user-select: none;
+        color: var(--color-system-05);
+        -webkit-user-drag: none;
+        display: flex;
+
+        & > p {
+          overflow: hidden;
+          margin: 0;
+          text-wrap: nowrap;
+          text-overflow: ellipsis;
+        }
+      }
+
+      .classicyWindowTitleCenter {
+        flex-grow: 1;
+        width: auto;
+        height: var(--window-title-stripe-height);
+        margin: var(--control-padding) var(--window-padding-size);
+        margin-top: 0;
+        padding: 0;
+      }
+
+      .classicyWindowTitleLeft,
+      .classicyWindowTitleRight {
+        flex-grow: 1;
+        width: auto;
+        height: var(--window-control-size);
+        margin: var(--control-padding) var(--window-padding-size);
+        margin-top: 0;
+        padding: 0;
+      }
+
+      span {
+        font-size: var(--window-control-size);
+        margin: 0;
+        padding: 0;
+        background: var(--color-window-frame);
+      }
+    }
+
+    .classicyWindowControlBox {
+      padding: var(--window-border-size) 0 var(--window-border-size)
+        var(--window-border-size);
+      opacity: 0;
+      width: calc(var(--window-control-size) + var(--window-border-size));
+      height: calc(var(--window-control-size) + var(--window-border-size));
+    }
+
+    .classicyWindowCollapseBox {
+      &:after {
+        opacity: 0.65;
+      }
+    }
+
+    .classicyWindowZoomBox {
+      &:after {
+        opacity: 0.65;
+        margin-top: var(--control-frame-width)
+      }
+    }
+  }
+}
+
+// The focused title bar: the control boxes show and the title is black
+// (unfocused, the boxes are hidden and the title is gray).
+@mixin classicy-window-title-bar-active {
+  .classicyWindowTitleBar {
+    user-select: none;
+
+    .classicyWindowControlBox {
+      opacity: 1;
+    }
+
+    .classicyWindowTitle {
+      .classicyWindowTitleText {
+        color: var(--color-black);
+      }
+
+      // The bands' end boxes: zero-height, relatively positioned pseudo-
+      // elements at each end of the bands beside the title (the caps of an
+      // earlier title bar, whose art never had any height to paint). They
+      // draw nothing, but the package paints a layer on them (Platinum: an
+      // empty image) and the layer is part of the raster: without it Chromium
+      // blends the control boxes' luminosity dither one level differently.
+      .classicyWindowTitleLeft,
+      .classicyWindowTitleRight {
+        &:after {
+          position: relative;
+          top: -100%;
+          right: calc(var(--window-padding-size) * -1);
+          display: block;
+          float: right;
+          width: var(--window-padding-size);
+          content: " ";
+          background-repeat: no-repeat;
+        }
+
+        &:before {
+          position: relative;
+          left: calc((var(--window-padding-size) * -1) / 2);
+          display: block;
+          content: " ";
+          background-repeat: no-repeat;
+        }
+      }
+    }
+  }
+}

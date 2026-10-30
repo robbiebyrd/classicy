@@ -1,4 +1,4 @@
-import type { FC as FunctionalComponent } from "react";
+import type { CSSProperties, FC as FunctionalComponent } from "react";
 import type { ActionMessage } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
 import type { ClassicyDesktopSystemDialog } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
@@ -53,6 +53,10 @@ type ClassicyEmptyTrashAlertProps = {
 	onEmpty: () => void;
 	/** Close the alert (after either button). */
 	onClose: () => void;
+	/** Extra class names, forwarded to the alert's window root. */
+	className?: string;
+	/** Inline style, forwarded to the alert's window root. */
+	style?: CSSProperties;
 };
 
 /**
@@ -62,7 +66,7 @@ type ClassicyEmptyTrashAlertProps = {
  */
 export const ClassicyEmptyTrashAlert: FunctionalComponent<
 	ClassicyEmptyTrashAlertProps
-> = ({ itemCount, onEmpty, onClose }) => {
+> = ({ itemCount, onEmpty, onClose, className, style }) => {
 	if (itemCount === 0) {
 		return (
 			<ClassicyAlert
@@ -72,6 +76,8 @@ export const ClassicyEmptyTrashAlert: FunctionalComponent<
 				label={"The Trash is empty."}
 				buttons={[{ id: "ok", label: "OK", role: "default" }]}
 				onClose={onClose}
+				className={className}
+				style={style}
 			/>
 		);
 	}
@@ -89,6 +95,8 @@ export const ClassicyEmptyTrashAlert: FunctionalComponent<
 				{ id: "ok", label: "OK", role: "default", onClick: onEmpty },
 			]}
 			onClose={onClose}
+			className={className}
+			style={style}
 		/>
 	);
 };

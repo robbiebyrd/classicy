@@ -1,7 +1,11 @@
 import path from "node:path";
 import * as sass from "sass";
 import { describe, expect, it } from "vitest";
-import themes from "@/SystemFolder/ControlPanels/AppearanceManager/styles/themes.json";
+import platinumJson from "@/Appearance/Platinum/platinum.json";
+import {
+	getTheme,
+	getThemeVars,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 
 /**
  * HIG 2.10: tab labels are the 12 pt / 10 pt system font, not the 14 px body
@@ -54,8 +58,10 @@ const fontSizeOf = (selector: string): string => {
 };
 
 // The default theme's UI font size, as ClassicyAppearance emits it.
-const defaultTheme = themes.find((theme) => theme.id === "default");
-if (!defaultTheme) throw new Error("themes.json has no `default` theme");
+const defaultTheme = platinumJson.presets.find(
+	(theme) => theme.id === "default",
+);
+if (!defaultTheme) throw new Error("platinum.json has no `default` preset");
 const uiFontSize = defaultTheme.typography.uiSize;
 
 /** Minimal +-*_/ and parentheses evaluator, so no eval/Function is needed. */
@@ -92,10 +98,21 @@ const evaluate = (input: string): number => {
 	return expr();
 };
 
-/** Resolve a `calc(var(--ui-font-size) …)` declaration to a number of pixels. */
+// Every variable getThemeVars emits for the default theme: the UI font size
+// and its named steps (`--ui-font-size-compact`, `--ui-font-size-large`, …).
+const themeVars = getThemeVars(getTheme("default")) as Record<string, string>;
+
+/**
+ * Resolve a font-size declaration — `var(--ui-font-size)`, a named step such
+ * as `var(--ui-font-size-compact)`, or a `calc()` over them — to pixels.
+ */
 const px = (value: string): number => {
 	const expression = value
-		.replace(/var\(\s*--ui-font-size\s*\)/g, `(${uiFontSize})`)
+		.replace(/var\(\s*(--[\w-]+)\s*\)/g, (_, name: string) => {
+			const resolved = themeVars[name];
+			if (resolved === undefined) throw new Error(`undefined var: ${name}`);
+			return `(${resolved})`;
+		})
 		.replace(/calc\(/g, "(")
 		.replace(/px/g, "")
 		.trim();
@@ -133,7 +150,9 @@ describe("tab label type scale (HIG 2.10)", () => {
 			".classicyTabsSizeSmall .classicyTabButton",
 			".classicyTabsSizeLarge .classicyTabButton",
 		]) {
-			expect(fontSizeOf(selector)).toContain("var(--ui-font-size)");
+			// The UI font itself or one of its named steps (getThemeVars derives
+			// those from the same --ui-font-size input).
+			expect(fontSizeOf(selector)).toMatch(/var\(--ui-font-size(-[a-z]+)?\)/);
 		}
 		// The large tab stays the existing Classicy extension (no HIG equivalent).
 		expect(large).toBeGreaterThan(medium);

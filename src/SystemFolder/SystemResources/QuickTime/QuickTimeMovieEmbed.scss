@@ -1,11 +1,11 @@
-@use '../../ControlPanels/AppearanceManager/styles/appearance';
+@use '../../../Appearance/vocabulary/layout';
 
 .quickTimePlayerVideoHolder {
   position: relative;
   display: flex;
   flex-direction: column;
   width: 100%;
-  @include appearance.no-select;
+  @include layout.classicy-no-select;
 }
 
 .quickTimePlayerWrapper {
@@ -13,7 +13,7 @@
   flex-direction: column;
   width: 100%;
   height: 100%;
-  min-height: calc(var(--window-control-size) * 1.5);
+  min-height: var(--control-row-height);
 
   &.quickTimePlayerWrapperDocked {
     height: calc(100% - var(--window-control-size) * 1);
@@ -44,14 +44,14 @@
 }
 
 .quickTimePlayerVideoControlsHolder {
-  @include appearance.no-select;
-  bottom: calc(var(--window-border-size) * 1);
+  @include layout.classicy-no-select;
+  bottom: var(--window-border-size);
   display: flex;
   width: calc(100% - var(--window-control-size) * 2);
 
-  height: calc(var(--window-control-size) * 1.5);
+  height: var(--control-row-height);
   margin-bottom: calc(var(--window-padding-size) - var(--window-border-size));
-  background: var(--color-system-03);
+  // Its face color is in the Platinum package.
   justify-items: center;
 }
 
@@ -62,13 +62,11 @@
   align-items: center;
   flex-direction: row;
   justify-content: center;
-  height: calc(var(--window-control-size) * 1.5);
+  height: var(--control-row-height);
   margin: 0;
   padding: 0 var(--window-padding-size);
-  @include appearance.platinumWindowUndepressable;
-  border: 0;
-  border-radius: 0;
-  aspect-ratio: 1/1 !important;
+  // Its raised face (flat-edged) is in the Platinum package.
+  aspect-ratio: 1/1;
 
 }
 
@@ -77,17 +75,12 @@
   align-items: center;
   flex-direction: row;
   justify-content: center;
-  height: calc(var(--window-control-size) * 1.5);
+  height: var(--control-row-height);
   margin: 0;
   padding: 0;
-  @include appearance.platinumWindowDepressable;
-  border: 0;
-  border-radius: 0;
-  aspect-ratio: 1/1 !important;
-
-  img {
-    filter: drop-shadow(var(--window-border-size) var(--window-border-size) 0px rgba(0, 0, 0, 0.5));
-  }
+  // Its raised, pressable face (flat-edged) and its glyph's drop shadow are
+  // in the Platinum package.
+  aspect-ratio: 1/1;
 }
 
 .quickTimePlayerVideoControlsIcon {
@@ -100,16 +93,15 @@
 
 .quickTimePlayerVideoControlsProgressBarHolder {
   flex-grow: 1;
-  @include appearance.platinumWindowDepressable;
+  // Its raised, pressable face (square-cornered) is in the Platinum package.
   width: auto;
-  border-radius: 0;
 }
 
 .quickTimePlayerVideoControlsVolumeBar {
   position: absolute;
   z-index: 999;
-  bottom: calc(var(--window-control-size) * 1.5);
-  width: calc(var(--window-control-size) * 1.5);
+  bottom: var(--control-row-height);
+  width: var(--control-row-height);
   height: calc(var(--window-control-size) * 5);
   margin-top: calc(var(--window-control-size) * 1.75);
   margin-right: calc(var(--window-control-size) * -1.75);
@@ -117,11 +109,12 @@
   background: transparent; /* Otherwise white in Chrome */
   -webkit-appearance: none; /* Hides the slider so that custom slider can be made */
   writing-mode: vertical-rl;
+  // Its face color and bevel are in the Platinum package.
 }
 
 .quickTimePlayerVideoControlsProgressBar {
   width: 100%;
-  height: calc(var(--window-control-size) * 1.25);
+  height: var(--control-glyph-size);
   background: transparent; /* Otherwise white in Chrome */
   -webkit-appearance: none; /* Hides the slider so that custom slider can be made */
 }
@@ -142,66 +135,49 @@
 }
 
 .quickTimePlayerVideoControlsProgressBar::-webkit-slider-thumb, .quickTimePlayerVideoControlsVolumeBar::-webkit-slider-thumb {
-  width: calc(var(--window-control-size) * 1.25);
-  height: calc(var(--window-control-size) * 1.5);
+  width: var(--control-glyph-size);
+  height: var(--control-row-height);
   margin-top: calc(var(--window-control-size) * -0.5);
   margin-left: calc(var(--window-control-size) * -0.25);
   cursor: pointer;
-  background: url('./thumb-slider.svg') no-repeat;
+  // The thumb art (and its drop shadow) is the package's
+  // (`quickTimeThumbSlider`, `quickTimeVolumeSlider`); this keeps its geometry.
+  background-repeat: no-repeat;
   background-size: contain;
-  filter: drop-shadow(
-                  var(--window-border-size) var(--window-border-size) var(--window-border-size) var(--color-system-06)
-  );
   -webkit-appearance: none;
 }
 
 .quickTimePlayerVideoControlsVolumeBar::-webkit-slider-thumb {
-  width: calc(var(--window-control-size) * 1.5);
-  height: calc(var(--window-control-size) * 1);
+  width: var(--control-row-height);
+  height: var(--window-control-size);
   margin-top: 0;
   margin-right: calc(var(--window-control-size) * -0.25);
   margin-left: 0;
-  background: url('./volume-slider.svg') no-repeat;
+  background-repeat: no-repeat;
+  background-size: auto;
 }
 
 .quickTimePlayerVideoControlsVolumeBar::-webkit-slider-runnable-track {
   //height: calc(var(--window-control-size) * 0.825);
-  width: calc(var(--window-control-size) * 1);
-  height: calc(var(--window-control-size) * 1.5);
+  width: var(--window-control-size);
+  height: var(--control-row-height);
   margin-top: calc(var(--window-control-size) * 0.25);
-  margin-right: calc(var(--window-padding-size) * .5);
+  margin-right: var(--control-padding);
   margin-left: calc(var(--window-padding-size) * .75);
   cursor: pointer;
-  border: var(--window-border-size) solid var(--color-theme-04);
   background: transparent;
-  box-shadow: inset var(--window-border-size) var(--window-border-size) var(--window-border-size) var(--color-theme-04),
-  inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--window-border-size) var(--color-theme-06);
-}
-
-.quickTimePlayerVideoControlsVolumeBar:focus::-webkit-slider-runnable-track {
-  background: var(--color-theme-02);
-}
-
-.quickTimePlayerVideoControlsVolumeBar {
-  background: var(--color-system-03);
-  @include appearance.platinumWindowInnerBoxShadow;
+  // Its border, inset bevel and focus color are in the Platinum package.
 }
 
 
 .quickTimePlayerVideoControlsProgressBar::-webkit-slider-runnable-track {
   height: calc(var(--window-control-size) * 0.75);
   margin-top: calc(var(--window-control-size) * -0.25);
-  margin-right: calc(var(--window-padding-size) * 1);
-  margin-left: calc(var(--window-padding-size) * 0.5);
+  margin-right: var(--window-padding-size);
+  margin-left: var(--control-padding);
   cursor: pointer;
-  border: var(--window-border-size) solid var(--color-theme-04);
   background: transparent;
-  box-shadow: inset var(--window-border-size) var(--window-border-size) var(--window-border-size) var(--color-theme-04),
-  inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--window-border-size) var(--color-theme-06);
-}
-
-.quickTimePlayerVideoControlsProgressBar:focus::-webkit-slider-runnable-track {
-  background: var(--color-theme-02);
+  // Its border, inset bevel and focus color are in the Platinum package.
 }
 
 .quickTimePlayerCaptionsHolder {
@@ -237,20 +213,16 @@
   width: auto;
   margin: var(--window-padding-size);
   padding: var(--window-padding-size);
-  color: var(--color-theme-01);
-  background-color: var(--color-system-07);
-  text-shadow: 0px 0 3px var(--color-theme-05);
-  filter: saturate(500%) contrast(2);
+  // Its themed colors, glow and filter are in the Platinum package, which
+  // skips a cue with a caller's captionStyle.
 }
 
-// Applied when a caller provides an explicit captionStyle: neutralize the
-// themed effects so the caller's exact colors render, and match the plain
-// subtitle-overlay presentation (rt911 TV's former .subtitleOverlay).
+// Applied when a caller provides an explicit captionStyle: the caller's exact
+// colors render (QuickTimeCaptionsOverlay.scss; the package's themed effects
+// skip this class), laid out as the plain subtitle overlay (rt911 TV's former
+// .subtitleOverlay). Its rounded corners are in the Platinum package.
 .quickTimePlayerCaptionsCustomStyle {
-  filter: none;
-  text-shadow: none;
   white-space: pre-line;
   line-height: 1.4;
   text-align: center;
-  border-radius: calc(var(--window-border-size) * 2);
 }

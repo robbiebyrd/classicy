@@ -1,13 +1,16 @@
 import "./ClassicyLink.scss";
 import classNames from "classnames";
-import type {
-	AnchorHTMLAttributes,
-	FC as FunctionalComponent,
-	KeyboardEvent,
-	MouseEvent,
-	MouseEventHandler,
-	PropsWithChildren,
+import {
+	type AnchorHTMLAttributes,
+	type FC as FunctionalComponent,
+	type KeyboardEvent,
+	type MouseEvent,
+	type MouseEventHandler,
+	type PropsWithChildren,
+	useRef,
 } from "react";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import type { ClassicyShortcutDisposition } from "@/SystemFolder/SystemResources/Shortcut/ClassicyShortcut";
@@ -76,17 +79,23 @@ export const ClassicyLink: FunctionalComponent<ClassicyLinkProps> = ({
 	onClickFunc,
 	disabled = false,
 	className,
+	style,
 	children,
 	...rest
 }) => {
 	const dispatch = useAppManagerDispatch();
 	const { track } = useClassicyAnalytics();
+	const linkRef = useRef<HTMLAnchorElement>(null);
+	const appearance = useClassicyAppearance("Link", { disabled }, linkRef);
 
+	// Mouse clicks and keyboard activation (Enter on an href link natively,
+	// Enter/Space on an event link through handleKeyDown) all land here.
 	const activate = (e: MouseEvent<HTMLAnchorElement>) => {
 		if (disabled) {
 			e.preventDefault();
 			return;
 		}
+		appearance.emit("click", withClassicyAppearanceInput());
 		track("click", { type: "ClassicyLink", href, event });
 		if (onClickFunc) {
 			onClickFunc(e);
@@ -124,16 +133,15 @@ export const ClassicyLink: FunctionalComponent<ClassicyLinkProps> = ({
 
 	return (
 		<a
+			{...appearance.attrs}
 			{...rest}
+			ref={linkRef}
 			href={href}
 			role={href ? undefined : "button"}
 			tabIndex={disabled ? -1 : href ? undefined : 0}
 			aria-disabled={disabled || undefined}
-			className={classNames(
-				"classicyLink",
-				disabled ? "classicyLinkDisabled" : "",
-				className,
-			)}
+			className={classNames("classicyLink", appearance.className, className)}
+			style={appearance.style ? { ...appearance.style, ...style } : style}
 			onClick={activate}
 			onKeyDown={href ? undefined : handleKeyDown}
 		>

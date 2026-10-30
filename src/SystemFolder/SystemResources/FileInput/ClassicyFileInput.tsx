@@ -3,12 +3,15 @@ import "./ClassicyFileInput.scss";
 import classNames from "classnames";
 import {
 	type ChangeEvent,
+	type CSSProperties,
 	forwardRef,
 	useCallback,
 	useImperativeHandle,
 	useRef,
 	useState,
 } from "react";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import {
 	ClassicyControlLabel,
@@ -50,6 +53,10 @@ interface ClassicyFileInputProps {
 	labelDisabled?: boolean;
 	/** Called with the complete current file list after every add or remove. */
 	onChangeFunc?: (files: File[]) => void;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 }
 
 /**
@@ -81,6 +88,8 @@ export const ClassicyFileInput = forwardRef<
 		labelSize = "medium",
 		labelDisabled,
 		onChangeFunc,
+		className,
+		style,
 	},
 	ref,
 ) {
@@ -89,6 +98,10 @@ export const ClassicyFileInput = forwardRef<
 	const [entries, setEntries] = useState<FileEntry[]>([]);
 	const [error, setError] = useState<string | null>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
+	const rootRef = useRef<HTMLDivElement>(null);
+	// The root had no state class; `error` stays on the message.
+	const appearance = useClassicyAppearance("FileInput", {}, rootRef);
+	const emitAppearance = appearance.emit;
 
 	const tryAdd = useCallback(
 		(currentEntries: FileEntry[], incoming: File[]): FileEntry[] | null => {
@@ -121,9 +134,14 @@ export const ClassicyFileInput = forwardRef<
 			const next = tryAdd(entries, incoming);
 			if (next === null) return;
 			setEntries(next);
+			// The Choose button and the `addFiles` handle (a drop target) both
+			// add here; a batch reports its first file.
+			if (incoming.length > 0) {
+				emitAppearance("change", { fileName: incoming[0].name });
+			}
 			onChangeFunc?.(next.map((e) => e.file));
 		},
-		[entries, tryAdd, onChangeFunc],
+		[entries, tryAdd, onChangeFunc, emitAppearance],
 	);
 
 	useImperativeHandle(ref, () => ({ addFiles }), [addFiles]);
@@ -149,10 +167,15 @@ export const ClassicyFileInput = forwardRef<
 
 	return (
 		<div
+			{...appearance.attrs}
+			ref={rootRef}
 			className={classNames(
 				"classicyFileInputHolder",
+				appearance.className,
 				labelPositionClass(labelPosition),
+				className,
 			)}
+			style={appearance.style ? { ...appearance.style, ...style } : style}
 		>
 			{labelTitle && (
 				<ClassicyControlLabel
@@ -180,7 +203,13 @@ export const ClassicyFileInput = forwardRef<
 					{multiple ? "Choose Files…" : "Choose File…"}
 				</ClassicyButton>
 				{error && (
-					<span role="alert" className="classicyFileInputError">
+					<span
+						role="alert"
+						className={classNames(
+							"classicyFileInputMessage",
+							classicyStateClasses({ error: true }),
+						)}
+					>
 						{error}
 					</span>
 				)}
@@ -195,7 +224,10 @@ export const ClassicyFileInput = forwardRef<
 									onClickFunc={() => handleRemove(entry.id)}
 									aria-label={`Remove ${entry.file.name}`}
 								>
-									✕
+									<span
+										className="classicyFileInputRemoveGlyph"
+										aria-hidden={true}
+									/>
 								</ClassicyButton>
 							</li>
 						))}

@@ -3,6 +3,7 @@ import type { StorybookConfig } from "@storybook/react-vite";
 import { mergeConfig } from "vite";
 import VitePluginImageTools from "vite-plugin-image-tools";
 import richSvg from "vite-plugin-react-rich-svg";
+import { classicyCssLayerPlugin } from "../../bin/classicyCssLayerPlugin";
 
 const repoRoot = path.resolve(import.meta.dirname, "../..");
 
@@ -23,6 +24,10 @@ const config: StorybookConfig = {
 			// rewrites glob-imported asset URLs (ClassicyIcons) against this base,
 			// so component icons resolve correctly under the preview sub-path.
 			base: process.env.STORYBOOK_BASE || config.base,
+			// Storybook does not load the root vite.config.ts, so the library
+			// build's charset is repeated here: stories exercise the same escaped
+			// glyph CSS that dist ships (verify:dist invariant 9).
+			esbuild: { charset: "ascii" },
 			assetsInclude: [
 				"**/*.ogg",
 				"**/*.m4a",
@@ -42,6 +47,9 @@ const config: StorybookConfig = {
 				},
 			},
 			plugins: [
+				// Storybook compiles the SCSS itself, so the component stylesheets
+				// are layered here too (@layer classicy.base), as in the library build.
+				classicyCssLayerPlugin(),
 				richSvg(),
 				VitePluginImageTools({
 					quality: 100,

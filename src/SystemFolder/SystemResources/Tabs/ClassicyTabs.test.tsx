@@ -52,7 +52,7 @@ describe("ClassicyTabs", () => {
 	it("first tab button has active class by default", () => {
 		render(<ClassicyTabs tabs={tabs} />);
 		const firstButton = screen.getByRole("tab", { name: "First Tab" });
-		expect(firstButton).toHaveClass("classicyTabButtonActive");
+		expect(firstButton).toHaveClass("selected");
 	});
 
 	it("clicking second tab shows its content and hides first", async () => {

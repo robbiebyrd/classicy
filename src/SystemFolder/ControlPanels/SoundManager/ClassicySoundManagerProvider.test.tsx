@@ -6,15 +6,33 @@ import {
 	useSoundDispatch,
 } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { ClassicySoundManagerProvider } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerProvider";
+import { registerClassicySoundPack } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
+
+registerClassicySoundPack({
+	id: "platinum",
+	name: "Platinum",
+	src: ["platinum.mp3"],
+	sprite: { ClassicyBeep: [0, 100] },
+});
+
+const { players } = vi.hoisted(() => ({
+	players: [] as { volume: ReturnType<typeof vi.fn> }[],
+}));
 
 vi.mock("howler", () => ({
 	Howl: class {
 		play = vi.fn();
 		stop = vi.fn();
 		volume = vi.fn();
+		unload = vi.fn();
 		playing = vi.fn().mockReturnValue(false);
+		constructor() {
+			players.push(this);
+		}
 	},
 }));
+
+vi.mock("@/Appearance/Platinum/assets/sounds/platinum", () => ({}));
 
 // Feed a fixed selection through the Zustand hook the provider reads. The
 // Appearance slice is hoisted so individual tests can vary it.
@@ -153,15 +171,13 @@ const VolumeProbe = () => {
 
 describe("ClassicySoundManagerProvider volume", () => {
 	it("applies the system volume to the player as its gain", () => {
-		const player = initialPlayer.soundPlayer as unknown as {
-			volume: ReturnType<typeof vi.fn>;
-		};
-		player.volume.mockClear();
+		players.length = 0;
 		render(
 			<ClassicySoundManagerProvider>
 				<VolumeProbe />
 			</ClassicySoundManagerProvider>,
 		);
+		const player = players[0];
 		expect(player.volume).toHaveBeenLastCalledWith(1);
 		fireEvent.click(screen.getByRole("button", { name: "gain-100" }));
 		expect(player.volume).toHaveBeenLastCalledWith(0.4);

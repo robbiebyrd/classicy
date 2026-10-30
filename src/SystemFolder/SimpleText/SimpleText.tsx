@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -29,8 +29,6 @@ import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWi
 
 const appName = "SimpleText";
 const appId = SIMPLE_TEXT_APP_ID;
-const appIcon = ClassicyIcons.applications.simpletext.app;
-
 // SimpleText edits plain text and styled (Markdown) text; the two map to the
 // same underlying string, distinguished only by which editor renders it.
 type SimpleTextFileType =
@@ -73,6 +71,8 @@ const sameTarget = (a: SaveTarget, b: SaveTarget): boolean =>
 			: false;
 
 export const SimpleText = () => {
+	const appIcon =
+		useClassicyAsset("icons", "applications.simpletext.app") ?? "";
 	const desktopEventDispatch = useAppManagerDispatch();
 	const appState = useAppManager(
 		(state) => state.System.Manager.Applications.apps[appId],
@@ -420,6 +420,7 @@ export const SimpleText = () => {
 			desktopEventDispatch,
 			editMenu,
 			aboutMenuItem,
+			appIcon,
 		],
 	);
 

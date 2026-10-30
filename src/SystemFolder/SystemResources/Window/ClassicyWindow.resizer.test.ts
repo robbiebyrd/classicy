@@ -1,7 +1,12 @@
 import path from "node:path";
 import * as sass from "sass";
 import { describe, expect, it } from "vitest";
-import themes from "@/SystemFolder/ControlPanels/AppearanceManager/styles/themes.json";
+import { cssDeclarations, parseCssRules } from "@/__tests__/compiledCss";
+import platinumJson from "@/Appearance/Platinum/platinum.json";
+import {
+	getTheme,
+	getThemeVars,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 
 /**
  * Everything on the window's bottom line — the horizontal scroll bar, the grow
@@ -56,18 +61,15 @@ const rule = (selector: string): Record<string, string> => {
 const resizer = rule(".classicyWindow .classicyWindowResizer");
 const window_ = rule(".classicyWindow");
 
-// The default theme's window measurements, as ClassicyAppearanceManager emits
-// them onto the desktop root.
-const defaultTheme = themes.find((theme) => theme.id === "default");
-if (!defaultTheme) throw new Error("themes.json has no `default` theme");
+// The default theme's window measurements, and every variable getThemeVars
+// emits onto the desktop root (the inputs and the derivations the stylesheet
+// reads, such as --window-frame-inset).
+const defaultTheme = platinumJson.presets.find(
+	(theme) => theme.id === "default",
+);
+if (!defaultTheme) throw new Error("platinum.json has no `default` preset");
 const measurements = defaultTheme.measurements.window;
-const vars: Record<string, string> = {
-	"--window-border-size": `${measurements.borderSize}px`,
-	"--window-control-size": `${measurements.controlSize}px`,
-	"--window-padding-size": `${measurements.paddingSize}px`,
-	"--window-scrollbar-size": `${measurements.scrollbarSize}px`,
-	"--window-frame-inset": window_["--window-frame-inset"],
-};
+const vars = getThemeVars(getTheme("default")) as Record<string, string>;
 
 /** Resolve var()/calc() the way a browser would, down to a number of pixels. */
 const px = (value: string): number => {
@@ -192,9 +194,11 @@ describe("window resizer / scroll bar alignment", () => {
 		// box's grey and the scroll bars' black borders; the grip's grey must meet
 		// those borders directly. The dimmed variant likewise carries no shadow.
 		expect(grip["box-shadow"]).toBeUndefined();
-		expect(rule(".classicyWindowResizerDimmed::before")["box-shadow"]).toBe(
-			"none !important",
-		);
+		expect(
+			rule(".classicyWindow .classicyWindowResizerDimmed::before")[
+				"box-shadow"
+			],
+		).toBe("none");
 	});
 
 	it("pins the placard bar to the same line at the other end", () => {
@@ -237,5 +241,50 @@ describe("window resizer / scroll bar alignment", () => {
 		const utility = rule(".classicyWindowUtility");
 		expect(utility["--window-scrollbar-size"]).toBeDefined();
 		expect(px(utility["--window-scrollbar-size"])).toBeLessThan(gutter);
+	});
+
+	// Part E 2.2 (ruling E6): the grow box asks for the package's resize cursor
+	// in CSS, instead of ClassicyWindow setting the page's cursor on hover.
+	// Outside a desktop the variable is undefined, so it falls back (as the
+	// split view's dividers do) to an image that never loads, then a keyword.
+	it("asks for the package's horizontal resize cursor", () => {
+		expect(resizer.cursor).toBe(
+			'var(--classicy-cursor-resize-lr, url("data:,")) 8 8, nwse-resize',
+		);
+	});
+
+	// Part F moves the grow box to the package's corner (data-classicy-grow-box
+	// on the desktop root). The registered art is a symmetric left-right arrow,
+	// so it serves every corner; only the keyword fallback must turn to the
+	// other diagonal where the grip sits bottom-left or top-right.
+	it.each([
+		["bottom-left", "nesw-resize"],
+		["top-right", "nesw-resize"],
+	])("falls back to the %s corner's own diagonal (%s)", (corner, keyword) => {
+		const rules = parseCssRules(css);
+		const selector = `:where([data-classicy-grow-box=${corner}]) .classicyWindow .classicyWindowResizer`;
+		expect(cssDeclarations(rules, selector)).toEqual({
+			cursor: `var(--classicy-cursor-resize-lr, url("data:,")) 8 8, ${keyword}`,
+		});
+		// Same specificity as the base rule, and after it, so it wins there; and
+		// before the resizing rule, so a resize still shows the grabbing hand.
+		const at = (s: string) => rules.findIndex((r) => r.selectors.includes(s));
+		expect(at(selector)).toBeGreaterThan(
+			at(".classicyWindow .classicyWindowResizer"),
+		);
+		expect(at(selector)).toBeLessThan(
+			at(".classicyWindowResizing .classicyWindowResizer"),
+		);
+	});
+
+	// An active resize keeps the grabbing hand over the grow box.
+	it("keeps the grabbing cursor while resizing", () => {
+		// (The declaration carries a trailing comment, hence the prefix match.)
+		expect(
+			rule(".classicyWindowResizing .classicyWindowResizer").cursor,
+		).toMatch(/^grabbing\b/);
+		expect(
+			css.indexOf(".classicyWindowResizing .classicyWindowResizer {"),
+		).toBeGreaterThan(css.indexOf(".classicyWindow .classicyWindowResizer {"));
 	});
 });

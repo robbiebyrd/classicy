@@ -1,0 +1,50 @@
+// Color variants of a theme token, so no stylesheet needs a literal color
+// (reskinning audit §8.7, decision D10). `getThemeVars` emits one custom
+// property per color token; these helpers derive tints, shades and
+// translucent forms from it with `color-mix`, so the variant follows the
+// active theme. Emits no CSS of its own (`@use "classicy/scss/color"` in a
+// host).
+//
+//   @use "classicy/scss/color" as c;
+//   background: c.classicy-tint("--color-error", 80%);
+//   // → color-mix(in srgb, var(--color-error), white 80%)
+//
+// `$token` is the full custom-property name as a string ("--color-system-01");
+// `$pct` is a Sass percentage from 0% to 100% (80%); anything else fails
+// the compile (`classicy-percentage`).
+@use "sass:math";
+@use "sass:meta";
+@use "sass:string";
+
+// Returns `$token` if it is a custom-property name string, else fails the
+// compile: a bare name (`"color-error"`) would emit the invalid `var(color-error)`.
+@function classicy-token($token) {
+  @if meta.type-of($token) != string or string.index($token, "--") != 1 {
+    @error "classicy color helpers take a custom-property name string such as \"--color-system-01\", got #{$token}";
+  }
+  @return $token;
+}
+
+// Returns `$pct` if it is a percentage from 0% to 100%, else fails the
+// compile: `0.5` or `120%` would emit an invalid `color-mix`.
+@function classicy-percentage($pct) {
+  @if meta.type-of($pct) != number or math.unit($pct) != "%" or $pct < 0% or $pct > 100% {
+    @error "classicy color helpers take a percentage from 0% to 100%, got #{$pct}";
+  }
+  @return $pct;
+}
+
+// `$token` mixed toward white by `$pct` (a lighter tint).
+@function classicy-tint($token, $pct) {
+  @return color-mix(in srgb, var(#{classicy-token($token)}), white #{classicy-percentage($pct)});
+}
+
+// `$token` mixed toward black by `$pct` (a darker shade).
+@function classicy-shade($token, $pct) {
+  @return color-mix(in srgb, var(#{classicy-token($token)}), black #{classicy-percentage($pct)});
+}
+
+// `$token` at `$pct` opacity.
+@function classicy-alpha($token, $pct) {
+  @return color-mix(in srgb, var(#{classicy-token($token)}) #{classicy-percentage($pct)}, transparent);
+}

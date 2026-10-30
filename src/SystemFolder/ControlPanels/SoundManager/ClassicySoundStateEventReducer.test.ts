@@ -8,6 +8,8 @@ import {
 	type ClassicySoundState,
 	ClassicySoundStateEventReducer,
 } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerUtils";
+import { registerClassicySoundPack } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
+import * as ClassicyLog from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 // Use vi.hoisted so the MockHowl constructor exists when the vi.mock factory
 // for "howler" runs (factories are hoisted before imports).
@@ -17,25 +19,28 @@ const { MockHowl } = vi.hoisted(() => {
 		stop = vi.fn();
 		volume = vi.fn();
 		playing = vi.fn().mockReturnValue(false);
+		unload = vi.fn();
 	}
 	return { MockHowl };
 });
 
 vi.mock("howler", () => ({ Howl: MockHowl }));
 
-vi.mock(
-	"@/SystemFolder/ControlPanels/AppearanceManager/ClassicySounds",
-	() => ({
-		ClassicySounds: {
-			platinum: { src: ["test.mp3"], sprite: { click: [0, 100] } },
-		},
-	}),
-);
+vi.mock("@/Appearance/Platinum/assets/sounds/platinum", () => ({}));
 
 vi.mock(
 	"@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerLabels.json",
 	() => ({ default: [] }),
 );
+
+beforeEach(() => {
+	registerClassicySoundPack({
+		id: "platinum",
+		name: "Platinum",
+		src: ["test.mp3"],
+		sprite: { click: [0, 100] },
+	});
+});
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -46,6 +51,7 @@ function makePlayer() {
 		play: vi.fn(),
 		stop: vi.fn(),
 		volume: vi.fn(),
+		unload: vi.fn(),
 		playing: vi.fn().mockReturnValue(false),
 	} as unknown as Howl;
 }
@@ -55,6 +61,16 @@ function makeSoundState(
 ): ClassicySoundState {
 	return {
 		soundPlayer: makePlayer(),
+		packId: "platinum",
+		sprites: new Set([
+			"click",
+			"ClassicyBeep",
+			"ClassicyAlertWildEep",
+			"ClassicyAlertQuack",
+			"ClassicyAlertBonk",
+			"ClassicyAlertSosumi",
+		]),
+		fallbackPlayer: null,
 		disabled: [],
 		labels: [],
 		volume: 100,
@@ -194,12 +210,17 @@ describe("ClassicySoundPlayError", () => {
 // ---------------------------------------------------------------------------
 
 describe("ClassicySoundLoad", () => {
-	it("updates soundPlayer when file is provided", () => {
+	it("updates soundPlayer when a pack is provided", () => {
 		const ss = makeSoundState();
 		const original = ss.soundPlayer;
 		const next = ClassicySoundStateEventReducer(ss, {
 			type: "ClassicySoundLoad" as ClassicySoundActionTypes,
-			file: { src: ["new.mp3"], sprite: { ding: [0, 200] } },
+			pack: {
+				id: "new",
+				name: "New",
+				src: ["new.mp3"],
+				sprite: { ding: [0, 200] },
+			},
 		});
 		// ClassicySoundLoad calls createSoundPlayer → new MockHowl — the returned
 		// player is a different instance from the one we put in the test state.
@@ -215,7 +236,7 @@ describe("ClassicySoundLoad", () => {
 		expect(next.disabled).toEqual(["click", "drag"]);
 	});
 
-	it("keeps existing soundPlayer when file is not provided", () => {
+	it("keeps existing soundPlayer when pack is not provided", () => {
 		const ss = makeSoundState();
 		const original = ss.soundPlayer;
 		const next = ClassicySoundStateEventReducer(ss, {
@@ -594,5 +615,167 @@ describe("alert volume scaling", () => {
 			sound: "ClassicyBeep",
 		});
 		expect(ss.soundPlayer?.volume).not.toHaveBeenCalled();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Sound packs: packId, sprites and the Platinum fallback player
+// ---------------------------------------------------------------------------
+
+const remotePack = {
+	id: "remote",
+	name: "Remote",
+	src: ["https://cdn.example.com/remote.ogg"],
+	sprite: { ClassicyBeep: [0, 100] as [number, number] },
+};
+
+const loadRemote = (ss: ClassicySoundState) =>
+	ClassicySoundStateEventReducer(ss, {
+		type: "ClassicySoundLoad" as ClassicySoundActionTypes,
+		pack: remotePack,
+	});
+
+describe("ClassicySoundLoad packs", () => {
+	it("ClassicySoundLoad sets packId, sprites and a platinum fallback player for a non-platinum pack", () => {
+		const next = loadRemote(makeSoundState());
+		expect(next.packId).toBe("remote");
+		expect(next.sprites.has("ClassicyBeep")).toBe(true);
+		expect(next.fallbackPlayer).toBeInstanceOf(MockHowl);
+		const platinum = ClassicySoundStateEventReducer(next, {
+			type: "ClassicySoundLoad" as ClassicySoundActionTypes,
+			pack: {
+				id: "platinum",
+				name: "Platinum",
+				src: ["test.mp3"],
+				sprite: { click: [0, 100] },
+			},
+		});
+		expect(platinum.fallbackPlayer).toBeNull();
+	});
+
+	it("plays a sprite missing from the active pack on the fallback player", () => {
+		const next = loadRemote(makeSoundState());
+		ClassicySoundStateEventReducer(next, {
+			type: "ClassicySoundPlay" as ClassicySoundActionTypes,
+			sound: "ClassicyWindowOpen",
+		});
+		expect(next.fallbackPlayer?.play).toHaveBeenCalledWith(
+			"ClassicyWindowOpen",
+		);
+		expect(next.soundPlayer?.play).not.toHaveBeenCalled();
+	});
+
+	it("plays a sprite the active pack has on the active player", () => {
+		const next = loadRemote(makeSoundState());
+		ClassicySoundStateEventReducer(next, {
+			type: "ClassicySoundPlay" as ClassicySoundActionTypes,
+			sound: "ClassicyBeep",
+		});
+		expect(next.soundPlayer?.play).toHaveBeenCalledWith("ClassicyBeep");
+		expect(next.fallbackPlayer?.play).not.toHaveBeenCalled();
+	});
+
+	it("warns once about missing sprites on load", () => {
+		const warn = vi.spyOn(ClassicyLog, "classicyLog");
+		loadRemote(makeSoundState());
+		const calls = warn.mock.calls.filter(
+			(c) => c[0] === "warn" && String(c[2]).includes("missing sprites"),
+		);
+		expect(calls).toHaveLength(1);
+		expect(calls[0][1]).toBe("ClassicySoundManager");
+		warn.mockRestore();
+	});
+
+	it("unloads the previous player on reload", () => {
+		const previous = makePlayer();
+		loadRemote(makeSoundState({ soundPlayer: previous }));
+		expect(previous.unload).toHaveBeenCalledOnce();
+	});
+});
+
+describe("loops that span the active and fallback players", () => {
+	const stopPack = {
+		id: "stop-only",
+		name: "Stop only",
+		src: ["https://cdn.example.com/stop.ogg"],
+		sprite: { ClassicyWindowMoveStop: [0, 100] as [number, number] },
+	};
+	const movingPack = {
+		id: "moving-only",
+		name: "Moving only",
+		src: ["https://cdn.example.com/moving.ogg"],
+		sprite: {
+			ClassicyWindowMoveMoving: [0, 100, true] as [number, number, boolean],
+		},
+	};
+	const load = (pack: typeof stopPack | typeof movingPack) =>
+		ClassicySoundStateEventReducer(makeSoundState(), {
+			type: "ClassicySoundLoad" as ClassicySoundActionTypes,
+			pack,
+		});
+
+	it("a stop sprite on the active pack ends a loop playing on the fallback", () => {
+		const ss = load(stopPack);
+		ClassicySoundStateEventReducer(ss, {
+			type: "ClassicySoundPlay" as ClassicySoundActionTypes,
+			sound: "ClassicyWindowMoveIdle",
+		});
+		expect(ss.fallbackPlayer?.play).toHaveBeenCalledWith(
+			"ClassicyWindowMoveIdle",
+		);
+		ClassicySoundStateEventReducer(ss, {
+			type: "ClassicySoundPlayInterrupt" as ClassicySoundActionTypes,
+			sound: "ClassicyWindowMoveStop",
+		});
+		expect(ss.fallbackPlayer?.stop).toHaveBeenCalled();
+		expect(ss.soundPlayer?.play).toHaveBeenCalledWith("ClassicyWindowMoveStop");
+	});
+
+	it("a stop sprite on the fallback ends a loop playing on the active pack", () => {
+		const ss = load(movingPack);
+		ClassicySoundStateEventReducer(ss, {
+			type: "ClassicySoundPlay" as ClassicySoundActionTypes,
+			sound: "ClassicyWindowMoveMoving",
+		});
+		expect(ss.soundPlayer?.play).toHaveBeenCalledWith(
+			"ClassicyWindowMoveMoving",
+		);
+		ClassicySoundStateEventReducer(ss, {
+			type: "ClassicySoundPlayInterrupt" as ClassicySoundActionTypes,
+			sound: "ClassicyWindowMoveStop",
+		});
+		expect(ss.soundPlayer?.stop).toHaveBeenCalled();
+		expect(ss.fallbackPlayer?.play).toHaveBeenCalledWith(
+			"ClassicyWindowMoveStop",
+		);
+	});
+
+	it("ClassicySoundStop stops both players", () => {
+		const ss = load(stopPack);
+		ClassicySoundStateEventReducer(ss, {
+			type: "ClassicySoundStop" as ClassicySoundActionTypes,
+		});
+		expect(ss.soundPlayer?.stop).toHaveBeenCalledOnce();
+		expect(ss.fallbackPlayer?.stop).toHaveBeenCalledOnce();
+	});
+
+	it("an alert stops a loop on the other player", () => {
+		const ss = load(movingPack);
+		ClassicySoundStateEventReducer(ss, {
+			type: "ClassicySoundPlayError" as ClassicySoundActionTypes,
+			sound: "ClassicyAlertBonk",
+		});
+		expect(ss.soundPlayer?.stop).toHaveBeenCalled();
+		expect(ss.fallbackPlayer?.play).toHaveBeenCalledWith("ClassicyAlertBonk");
+	});
+
+	it("a sprite is not replayed while the other player is playing", () => {
+		const ss = load(stopPack);
+		(ss.soundPlayer?.playing as ReturnType<typeof vi.fn>).mockReturnValue(true);
+		ClassicySoundStateEventReducer(ss, {
+			type: "ClassicySoundPlay" as ClassicySoundActionTypes,
+			sound: "ClassicyWindowMoveIdle",
+		});
+		expect(ss.fallbackPlayer?.play).not.toHaveBeenCalled();
 	});
 });

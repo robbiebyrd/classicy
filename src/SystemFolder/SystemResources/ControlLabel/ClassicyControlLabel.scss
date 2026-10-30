@@ -15,12 +15,12 @@
   font-family: var(--ui-font);
 }
 
-.classicyControlLabelDisabled {
+:where(.classicyControlLabel).disabled {
   color: var(--color-system-05);
 }
 
 .classicyControlLabelSizeSmall {
-  font-size: calc(var(--ui-font-size) / 1.25);
+  font-size: var(--ui-font-size-small);
 }
 
 .classicyControlLabelSizeMedium {

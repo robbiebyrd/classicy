@@ -1,4 +1,9 @@
+import {
+	appearanceHooksParameters,
+	ClassicyAppearanceProbe,
+} from "@sb/ClassicyAppearanceProbe";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { ComponentProps } from "react";
 import { fn } from "storybook/test";
 import { ClassicyCheckbox } from "./ClassicyCheckbox";
 
@@ -68,4 +73,19 @@ export const LabelOnLeft: Story = {
 		labelPosition: "left",
 		label: "Remember password",
 	},
+};
+
+/**
+ * The Appearance Package hook surface, under the Storybook probe package:
+ * every root `decorate()` reaches is outlined (green while pressed), and every
+ * event the component emits is logged in the Actions panel.
+ */
+export const AppearanceHooks: Story = {
+	args: Checked.args,
+	render: (args: ComponentProps<typeof ClassicyCheckbox>) => (
+		<ClassicyAppearanceProbe>
+			<ClassicyCheckbox {...args} />
+		</ClassicyAppearanceProbe>
+	),
+	parameters: appearanceHooksParameters(),
 };

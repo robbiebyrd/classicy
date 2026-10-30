@@ -1,4 +1,5 @@
 import "./ClassicyScreenSaverMessages.scss";
+import classNames from "classnames";
 import type { CSSProperties, FC as FunctionalComponent } from "react";
 import { z } from "zod";
 import type { ClassicyScreenSaverProps } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverRegistry";
@@ -20,13 +21,16 @@ export const MessagesConfigSchema = z.looseObject({
  */
 export const ClassicyScreenSaverMessages: FunctionalComponent<
 	ClassicyScreenSaverProps
-> = ({ config }) => {
+> = ({ config, className, style }) => {
 	const parsed = MessagesConfigSchema.safeParse(config);
 	const { text, speedSeconds } = parsed.success
 		? parsed.data
 		: { text: "OUT TO LUNCH", speedSeconds: 10 };
 	return (
-		<div className="classicySaverMessages">
+		<div
+			className={classNames("classicySaverMessages", className)}
+			style={style}
+		>
 			<span
 				className="classicySaverMessagesText"
 				style={

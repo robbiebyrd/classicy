@@ -10,12 +10,12 @@ import {
 	useKeyboardEquivalents,
 } from "@/SystemFolder/SystemResources/Keyboard/useKeyboardEquivalents";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import { withoutZIndex } from "@/SystemFolder/SystemResources/Utils/withoutZIndex";
 import "./ClassicyWindow.scss";
 import classNames from "classnames";
 import {
 	type CSSProperties,
 	type FC as FunctionalComponent,
-	type KeyboardEvent,
 	type MouseEvent,
 	type ReactNode,
 	type RefObject,
@@ -27,14 +27,24 @@ import {
 	useState,
 } from "react";
 import { createPortal } from "react-dom";
-
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import type { ClassicyAppearanceLayout } from "@/Appearance/ClassicyAppearancePackage";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
+import {
+	classicyLayoutThemeVars,
+	useClassicyAppearanceLayout,
+} from "@/Appearance/useClassicyAppearanceLayout";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
+import {
+	type ClassicyTheme,
+	getThemeVars,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
 import {
 	getAppWindow,
 	listAppWindows,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
-
-const fileIcon = ClassicyIcons.system.files.file;
 
 // Pixels the pointer must travel with the button held before a title bar
 // mousedown becomes a window drag; anything less is treated as a click.
@@ -45,16 +55,72 @@ import {
 	classicyWindowPageTitle,
 } from "@/SystemFolder/SystemResources/Analytics/ClassicyAnalyticsPath";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
-import { useClassicyCursor } from "@/SystemFolder/SystemResources/Cursor/useClassicyCursor";
+import { ClassicyWindowMenuBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowMenuBar";
+import {
+	type ClassicyWindowRect,
+	computeClassicyWindowResize,
+} from "@/SystemFolder/SystemResources/Window/ClassicyWindowResize";
+import { ClassicyWindowTitleBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowTitleBar";
 
 export type ClassicyWindowPositionX = number | "left" | "center" | "right";
 export type ClassicyWindowPositionY = number | "top" | "center" | "bottom";
 export type ClassicyWindowSizeDimension = number | `${number}%`;
 
+// The lowest left/top a window may take: the screen's left edge and the menu
+// bar's underside, `menuBarHeight` (the desktop root's live `--menu-bar-height`:
+// the theme's, or 0 under window placement).
+// clampWindowPositionToViewport holds every window to it, a resize that moves
+// the left or top edge stops there, and resolveSize, resolvePosition and the
+// zoom's standard state keep the menu bar's band (its y) out of the room they
+// give a window.
+const windowViewportFloor = (menuBarHeight: number): [number, number] => [
+	0,
+	menuBarHeight,
+];
+
+// The geometry prop defaults, module-level so they keep one identity: an
+// array literal in the props destructuring is a new array every render, which
+// re-ran the resolveSize/resolvePosition memos on every render — a forced
+// layout read of the desktop's size on every drag move. A caller passing its
+// own arrays is unaffected.
+const DEFAULT_INITIAL_SIZE: [
+	ClassicyWindowSizeDimension,
+	ClassicyWindowSizeDimension,
+] = [350, 0];
+const DEFAULT_INITIAL_POSITION: [
+	ClassicyWindowPositionX,
+	ClassicyWindowPositionY,
+] = [110, 110];
+const DEFAULT_MINIMUM_SIZE: [
+	ClassicyWindowSizeDimension,
+	ClassicyWindowSizeDimension,
+] = [300, 0];
+
+// The --menu-bar-height the desktop root carries for `theme` under `layout`
+// (the theme's, then the layout's override: 0 under window placement), or
+// undefined (the reader's default-theme fallback) with no theme. It seeds the
+// window's height before the desktop has applied the variables, i.e. on the
+// boot render.
+const themeMenuBarHeight = (
+	theme: ClassicyTheme | undefined,
+	layout: ClassicyAppearanceLayout,
+): number | undefined => {
+	if (!theme) return undefined;
+	const vars: Record<string, string> = {
+		...(getThemeVars(theme) as Record<string, string>),
+		...classicyLayoutThemeVars(layout),
+	};
+	const value = Number.parseFloat(vars["--menu-bar-height"]);
+	return Number.isFinite(value) ? value : undefined;
+};
+
+// `menuBarHeight` defaults to a live read of `--menu-bar-height`; a caller on a
+// render path passes the value it already read, so no render forces a style
+// read (ClassicyWindow reads it once per theme and menu-bar placement).
 export function resolveSize(
 	size: [ClassicyWindowSizeDimension, ClassicyWindowSizeDimension],
+	menuBarHeight: number = readClassicyThemeVar("--menu-bar-height"),
 ): [number, number] {
-	const menuBarHeight = 30;
 	const desktop =
 		typeof document !== "undefined"
 			? document.getElementById("classicyDesktop")
@@ -116,8 +182,8 @@ export function classicyWindowChromeSize(el: HTMLElement): [number, number] {
 export function resolvePosition(
 	pos: [ClassicyWindowPositionX, ClassicyWindowPositionY],
 	windowSize: [number, number],
+	menuBarHeight: number = readClassicyThemeVar("--menu-bar-height"),
 ): [number, number] {
-	const menuBarHeight = 30;
 	const vw = typeof window !== "undefined" ? window.innerWidth : 800;
 	const vh = typeof window !== "undefined" ? window.innerHeight : 600;
 
@@ -156,16 +222,17 @@ export function resolvePosition(
 export function clampWindowPositionToViewport(
 	position: [number, number],
 	windowSize: [number, number],
+	menuBarHeight: number = readClassicyThemeVar("--menu-bar-height"),
 ): [number, number] {
-	const menuBarHeight = 30;
+	const [minX, minY] = windowViewportFloor(menuBarHeight);
 	const vw = typeof window !== "undefined" ? window.innerWidth : 800;
 	const vh = typeof window !== "undefined" ? window.innerHeight : 600;
 
-	const maxX = Math.max(0, vw - windowSize[0]);
-	const maxY = Math.max(menuBarHeight, vh - windowSize[1]);
+	const maxX = Math.max(minX, vw - windowSize[0]);
+	const maxY = Math.max(minY, vh - windowSize[1]);
 
-	const x = Math.min(Math.max(position[0], 0), maxX);
-	const y = Math.min(Math.max(position[1], menuBarHeight), maxY);
+	const x = Math.min(Math.max(position[0], minX), maxX);
+	const y = Math.min(Math.max(position[1], minY), maxY);
 
 	return [x, y];
 }
@@ -411,7 +478,31 @@ interface ClassicyWindowProps {
 	 * initial target instead. Opt-in: omitted, nothing is focused.
 	 */
 	initialFocusRef?: RefObject<HTMLElement | null>;
+	/** Extra class names, merged onto the root `.classicyWindow` after the component's own. */
+	className?: string;
+	/**
+	 * Inline style for the root `.classicyWindow`. The window's own geometry
+	 * (`width`, `height`, `left`, `top`, `minWidth`, `minHeight`) always wins —
+	 * the stored position and size can be changed only through the window props
+	 * and the store, never by this style — so use it for everything else
+	 * (margins, opacity, custom properties).
+	 *
+	 * Stacking and the drag, resize and inactive paint belong to the window
+	 * states (ClassicyWindow.scss), so consumer values for them may be
+	 * overridden or ignored: `zIndex` is always dropped (the focus, floating,
+	 * modal and alert bands set it), and `border`, `borderColor`, `background`,
+	 * `boxShadow`, `cursor`, `filter`, `userSelect` and `overflow` are state
+	 * paint not to rely on.
+	 */
+	style?: CSSProperties;
 }
+
+/**
+ * A consumer style without the keys the window states own (`zIndex`). The
+ * window's geometry is not stripped here: it wins because `windowStyle` is
+ * spread after this result.
+ */
+const withoutStateOwnedStyle = withoutZIndex;
 
 // Mounted document windows by app + window id, so an unmount can tell whether
 // the same window has mounted again before its deferred close runs.
@@ -431,8 +522,9 @@ const mountedWindowKeys = new Map<string, number>();
  * content-box size its inline `width`/`height` apply — the frame padding and
  * border sit outside it — and zoom targets are content-box sizes too. Moving,
  * focusing, collapsing, zooming and closing dispatch `ClassicyWindow*` events
- * and play the theme's window sounds; opening and focusing emit analytics
- * pageviews (see `analyticsPath`).
+ * and emit the matching Window appearance events, whose sounds come from the
+ * active Appearance Package's hooks (Platinum's window sounds); opening and
+ * focusing emit analytics pageviews (see `analyticsPath`).
  *
  * ```tsx
  * <ClassicyApp id="TV.app" name="TV" icon={icon} defaultWindow="main">
@@ -459,9 +551,9 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	type = "default",
 	growable,
 	defaultWindow = false,
-	initialSize = [350, 0],
-	initialPosition = [110, 110],
-	minimumSize = [300, 0],
+	initialSize = DEFAULT_INITIAL_SIZE,
+	initialPosition = DEFAULT_INITIAL_POSITION,
+	minimumSize = DEFAULT_MINIMUM_SIZE,
 	dimContents = true,
 	header,
 	appMenu,
@@ -480,7 +572,10 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	placard,
 	backgroundColor,
 	initialFocusRef,
+	className,
+	style,
 }) => {
+	const fileIcon = useClassicyAsset("icons", "system.files.file") ?? "";
 	const icon = iconProp || fileIcon;
 
 	const currentApp = useAppManager(
@@ -498,10 +593,52 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const player = useSoundDispatch();
 	const { showContextMenu } = useClassicyContextualMenu();
 
-	const resolvedSize = useMemo(() => resolveSize(initialSize), [initialSize]);
+	const windowRef = useRef<HTMLDivElement | null>(null);
+	const layout = useClassicyAppearanceLayout();
+
+	// `--menu-bar-height`, read once per theme and menu-bar placement instead
+	// of on every render: a drag re-renders on each mousemove, and a read
+	// there forces a style recalc per move. Read in a layout effect, after the
+	// commit that applies new variables to the desktop root (a read during
+	// render would still see the old ones), from the window's own element,
+	// which inherits them from the desktop it is in. Both reads fall back to
+	// the ACTIVE theme's and layout's value, not the default theme's: on the
+	// boot render no desktop carries the variables yet, and the window
+	// registers (ClassicyWindowOpen) with the geometry of that first render.
+	// The key is the theme and the placement: the desktop root spreads
+	// getThemeVars(theme), then the layout's override (window placement
+	// leaves the screen bar headless, so its band is 0; see
+	// classicyLayoutThemeVars). This value is also the viewport floor
+	// (`windowViewportFloor`) a flipped-corner resize stops at, so the resize
+	// and the release clamp always agree.
+	const activeTheme = useAppManager(
+		(state) => state.System.Manager.Appearance?.activeTheme,
+	);
+	const [menuBarHeight, setMenuBarHeight] = useState(() =>
+		readClassicyThemeVar(
+			"--menu-bar-height",
+			themeMenuBarHeight(activeTheme, layout),
+		),
+	);
+	const menuBarPlacement = layout.menuBar.placement;
+	// biome-ignore lint/correctness/useExhaustiveDependencies: keyed on the placement, not the whole layout: only the placement changes --menu-bar-height
+	useLayoutEffect(() => {
+		setMenuBarHeight(
+			readClassicyThemeVar(
+				"--menu-bar-height",
+				themeMenuBarHeight(activeTheme, layout),
+				windowRef.current,
+			),
+		);
+	}, [activeTheme, menuBarPlacement]);
+
+	const resolvedSize = useMemo(
+		() => resolveSize(initialSize, menuBarHeight),
+		[initialSize, menuBarHeight],
+	);
 	const resolvedMinimumSize = useMemo(
-		() => resolveSize(minimumSize),
-		[minimumSize],
+		() => resolveSize(minimumSize, menuBarHeight),
+		[minimumSize, menuBarHeight],
 	);
 
 	// Non-resizable windows can't be user-resized, so persisted size from the
@@ -512,7 +649,6 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const [clickPosition, setClickPosition] = useState<[number, number]>([0, 0]);
 
 	const { track, page } = useClassicyAnalytics();
-	const setCursor = useClassicyCursor();
 	const analyticsArgs = useMemo(() => {
 		return {
 			appId,
@@ -551,7 +687,6 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		zoomable,
 	]);
 
-	const windowRef = useRef<HTMLDivElement | null>(null);
 	const contentsRef = useRef<HTMLDivElement | null>(null);
 	const pendingSizeRef = useRef<[number, number] | null>(null);
 	const isDraggingRef = useRef(false);
@@ -565,6 +700,17 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const dragStartPointRef = useRef<[number, number]>([0, 0]);
 	const clickPositionRef = useRef<[number, number]>([0, 0]);
 	const wsPositionRef = useRef<[number, number]>([0, 0]);
+	// A resize gesture's anchor: the rect and chrome measured on grow-box press.
+	const resizeRectRef = useRef<ClassicyWindowRect>({
+		left: 0,
+		top: 0,
+		right: 0,
+		bottom: 0,
+	});
+	const chromeRef = useRef<[number, number]>([0, 0]);
+	// `--window-resize-inset`, read once when a resize gesture starts
+	// (startResizeWindow); null until the first gesture.
+	const resizeInsetRef = useRef<number | null>(null);
 	// #208: the user's window rect captured just before a zoom, restored on un-zoom.
 	const userStateRef = useRef<{
 		position: [number, number];
@@ -594,10 +740,11 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			// resizable window's real size can already differ from its initial
 			// default by the time this runs.
 			clampWindowPositionToViewport(
-				resolvePosition(initialPosition, resolvedSize),
+				resolvePosition(initialPosition, resolvedSize, menuBarHeight),
 				size,
+				menuBarHeight,
 			),
-		[initialPosition, resolvedSize, size],
+		[initialPosition, resolvedSize, size, menuBarHeight],
 	);
 
 	// #248: only a symbolic position (e.g. "center") should ever re-center as
@@ -638,6 +785,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				position: clampWindowPositionToViewport(
 					currentWindow.position,
 					currentWindow.size,
+					menuBarHeight,
 				),
 			};
 		}
@@ -655,6 +803,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		defaultWindow,
 		hidden,
 		id,
+		menuBarHeight,
 		resolvedPosition,
 		resolvedSize,
 		resolvedMinimumSize,
@@ -684,8 +833,9 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		const rect = el.getBoundingClientRect();
 		const measuredSize: [number, number] = [rect.width, rect.height];
 		const recentered = clampWindowPositionToViewport(
-			resolvePosition(initialPosition, measuredSize),
+			resolvePosition(initialPosition, measuredSize, menuBarHeight),
 			measuredSize,
+			menuBarHeight,
 		);
 		if (
 			Math.round(recentered[0]) === Math.round(wsPositionRef.current[0]) &&
@@ -848,6 +998,9 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			// refresh for the focused window happens in the ws.focused effect below.
 			// #278: collapsable/modal come from props, not `ws` — a persisted
 			// record restored into `ws` may predate them or be stale.
+			// G18: the window always supplies a position (`initialPosition`,
+			// default [110, 110], resolved and clamped), so it never asks the
+			// reducer for the cascade (`autoPosition`); [0, 0] opens at [0, 0].
 			desktopEventDispatch({
 				type: "ClassicyWindowOpen",
 				window: { ...ws, collapsable, modal },
@@ -951,20 +1104,17 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	docMoveHandlerRef.current = (e: globalThis.MouseEvent) => {
 		promoteDragIfNeeded(e.clientX, e.clientY);
 		if (!isDraggingRef.current && !isResizingRef.current) return;
-		// Skip when mouse is still inside the window — the React onMouseMove handler covers that.
+		// Skip when mouse is still inside the window — the React onMouseMove
+		// handler covers that, emits included, so each move reports once.
 		if (windowRef.current?.contains(e.target as Node)) return;
 
 		if (isResizingRef.current) {
-			const newWidth = Math.abs(wsPositionRef.current[0] - e.clientX) + 5;
-			const newHeight = Math.abs(wsPositionRef.current[1] - e.clientY) + 5;
-			pendingSizeRef.current = [newWidth, newHeight];
-			if (windowRef.current) {
-				windowRef.current.style.width = `${newWidth}px`;
-				windowRef.current.style.height = `${newHeight}px`;
-			}
+			applyResize(e.clientX, e.clientY);
+			emit("change", { kind: "resize" });
 		}
 
 		if (isDraggingRef.current) {
+			emit("change", { kind: "move" });
 			setMoving(true, [
 				e.clientX - clickPositionRef.current[0],
 				e.clientY - clickPositionRef.current[1],
@@ -980,10 +1130,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		isDraggingRef.current = false;
 		isResizingRef.current = false;
 
-		player({
-			type: "ClassicySoundPlayInterrupt",
-			sound: "ClassicyWindowMoveStop",
-		});
+		emit("dragEnd", { kind: wasResizing ? "resize" : "move" });
 		setActive();
 		if (wasResizing || ws.resizing) {
 			endResize();
@@ -1000,12 +1147,60 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		]);
 	};
 
+	// Both resize move handlers: the size from the corner opposite the grow
+	// box (the rect measured on press, not the store position) and, for any
+	// grow box but bottom-right, the left/top that keep that corner in place.
+	const applyResize = (clientX: number, clientY: number) => {
+		const corner = layout.window.growBoxCorner;
+		const { size, position } = computeClassicyWindowResize(
+			corner,
+			resizeRectRef.current,
+			[clientX, clientY],
+			chromeRef.current,
+			resizeInsetRef.current ??
+				readClassicyThemeVar(
+					"--window-resize-inset",
+					undefined,
+					windowRef.current,
+				),
+			// The minimum windowStyle draws, so the moved edge stops there.
+			[resolvedMinimumSize[0], ws.collapsed ? 0 : resolvedMinimumSize[1]],
+			windowViewportFloor(menuBarHeight),
+		);
+		pendingSizeRef.current = size;
+		const el = windowRef.current;
+		if (!el) return;
+		el.style.width = `${size[0]}px`;
+		el.style.height = `${size[1]}px`;
+		if (corner !== "bottom-right") {
+			el.style.left = `${position[0]}px`;
+			el.style.top = `${position[1]}px`;
+		}
+	};
+
 	const startResizeWindow = (e: MouseEvent<HTMLDivElement>) => {
 		e.preventDefault();
 		track("resize", { type: "ClassicyWindow", ...analyticsArgs });
-		const left = windowRef?.current?.getBoundingClientRect().left ?? 0;
-		const top = windowRef?.current?.getBoundingClientRect().top ?? 0;
+		const rect = windowRef?.current?.getBoundingClientRect();
+		const left = rect?.left ?? 0;
+		const top = rect?.top ?? 0;
 		wsPositionRef.current = [left, top];
+		resizeRectRef.current = {
+			left,
+			top,
+			right: rect?.right ?? 0,
+			bottom: rect?.bottom ?? 0,
+		};
+		chromeRef.current = windowRef.current
+			? classicyWindowChromeSize(windowRef.current)
+			: [0, 0];
+		// Read once per gesture: the mousemove handlers use the ref, so a
+		// drag never forces a style read per move.
+		resizeInsetRef.current = readClassicyThemeVar(
+			"--window-resize-inset",
+			undefined,
+			windowRef.current,
+		);
 		isResizingRef.current = true;
 		desktopEventDispatch({
 			type: "ClassicyWindowPosition",
@@ -1024,8 +1219,9 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			applied?.[1] || resolvedSize[1],
 		];
 		setResize(true, startSize);
-		setZoom(false);
+		setZoom(false, true, "resize");
 		setSize(startSize);
+		emit("dragStart", { kind: "resize" });
 	};
 
 	const startMoveWindow = (e: MouseEvent<HTMLDivElement>) => {
@@ -1081,7 +1277,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				clientY - clickPositionRef.current[1],
 			],
 		});
-		player({ type: "ClassicySoundPlay", sound: "ClassicyWindowMoveIdle" });
+		emit("dragStart", { kind: "move" });
 		setDragging(true);
 	};
 
@@ -1094,18 +1290,15 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			setActive(e);
 		}
 
-		if (ws.resizing) {
-			const newWidth = Math.abs(ws.position[0] - e.clientX) + 5;
-			const newHeight = Math.abs(ws.position[1] - e.clientY) + 5;
-			pendingSizeRef.current = [newWidth, newHeight];
-			if (windowRef.current) {
-				windowRef.current.style.width = `${newWidth}px`;
-				windowRef.current.style.height = `${newHeight}px`;
-			}
+		// Only a press in this mount resizes: a persisted `resizing` left over
+		// from a reload has no measured rect to anchor on.
+		if (ws.resizing && isResizingRef.current) {
+			applyResize(e.clientX, e.clientY);
+			emit("change", { kind: "resize" });
 		}
 
 		if (ws.dragging) {
-			player({ type: "ClassicySoundPlay", sound: "ClassicyWindowMoveMoving" });
+			emit("change", { kind: "move" });
 			setMoving(true, [
 				e.clientX - clickPosition[0],
 				e.clientY - clickPosition[1],
@@ -1131,9 +1324,8 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		// release, causing the page to freeze after slider interactions.
 		if (ws.resizing || ws.dragging || ws.moving) {
 			e.preventDefault();
-			player({
-				type: "ClassicySoundPlayInterrupt",
-				sound: "ClassicyWindowMoveStop",
+			emit("dragEnd", {
+				kind: isResizingRef.current || ws.resizing ? "resize" : "move",
 			});
 		}
 		const wasResizing = isResizingRef.current;
@@ -1196,6 +1388,19 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		return windowType === "utility" || ws.focused;
 	}, [ws.focused, windowType]);
 
+	const front = modal || isActive();
+	const appearance = useClassicyAppearance(
+		"Window",
+		{
+			collapsed: ws.collapsed,
+			active: front,
+			inactive: !front,
+			dragging: ws.moving,
+		},
+		windowRef,
+	);
+	const { emit } = appearance;
+
 	const setActive = useCallback(
 		(_e?: MouseEvent<HTMLDivElement>) => {
 			if (!ws.focused) {
@@ -1205,7 +1410,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				// billed one ordinary click as two focus events -- and kept
 				// firing for clicks in a window that was already focused.
 				track("focus", { type: "ClassicyWindow", ...analyticsArgs });
-				player({ type: "ClassicySoundPlay", sound: "ClassicyWindowFocus" });
+				emit("focus", withClassicyAppearanceInput());
 				desktopEventDispatch({
 					type: "ClassicyWindowFocus",
 					app: {
@@ -1216,7 +1421,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				});
 			}
 		},
-		[ws, appId, appMenu, desktopEventDispatch, player, track, analyticsArgs],
+		[ws, appId, appMenu, desktopEventDispatch, track, analyticsArgs, emit],
 	);
 
 	useEffect(() => {
@@ -1242,10 +1447,11 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			return;
 		}
 		const apps = useAppManager.getState().System.Manager.Applications.apps;
-		player({
-			type: "ClassicySoundPlay",
-			sound: toCollapse ? "ClassicyWindowCollapse" : "ClassicyWindowExpand",
-		});
+		// Once, from the clicked window, for every window it collapses.
+		emit(
+			toCollapse ? "collapse" : "expand",
+			withClassicyAppearanceInput({ all: true }),
+		);
 		Object.entries(apps).forEach(([appKey, app]) => {
 			listAppWindows(app).forEach((w) => {
 				if (w.closed) return;
@@ -1277,8 +1483,8 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const setCollapse = (toCollapse: boolean) => {
 		if (toCollapse) {
 			track("collapse", { type: "ClassicyWindow", ...analyticsArgs });
-			setZoom(false);
-			player({ type: "ClassicySoundPlay", sound: "ClassicyWindowCollapse" });
+			setZoom(false, true, "collapse");
+			emit("collapse", withClassicyAppearanceInput());
 			desktopEventDispatch({
 				type: "ClassicyWindowCollapse",
 				window: ws,
@@ -1288,7 +1494,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			});
 		} else {
 			track("expand", { type: "ClassicyWindow", ...analyticsArgs });
-			player({ type: "ClassicySoundPlay", sound: "ClassicyWindowExpand" });
+			emit("expand", withClassicyAppearanceInput());
 			desktopEventDispatch({
 				type: "ClassicyWindowExpand",
 				window: ws,
@@ -1313,8 +1519,11 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		position: [number, number];
 		size: [number, number];
 	} => {
-		const menuBarHeight = 30;
-		const margin = 8;
+		const margin = readClassicyThemeVar(
+			"--window-zoom-margin",
+			undefined,
+			windowRef.current,
+		);
 		const desktop =
 			typeof document !== "undefined"
 				? document.getElementById("classicyDesktop")
@@ -1364,7 +1573,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		let targetW = stdW;
 		let targetH = stdH;
 		if (idealSize) {
-			const [iw, ih] = resolveSize(idealSize);
+			const [iw, ih] = resolveSize(idealSize, menuBarHeight);
 			targetW = clamp(iw, resolvedMinimumSize[0], stdW);
 			targetH = clamp(ih, resolvedMinimumSize[1], stdH);
 		} else {
@@ -1398,20 +1607,22 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		};
 	};
 
-	// Flip the zoom flag (+ sound/track) without touching geometry. Used both by
-	// the zoom toggle and by resize/collapse, which clear the flag without
-	// restoring the remembered user state.
-	const setZoomFlag = (toZoom: boolean, playSound: boolean = true) => {
+	// Flip the zoom flag (+ zoom event/track) without touching geometry. Used
+	// both by the zoom toggle and by resize/collapse, which clear the flag
+	// without restoring the remembered user state. `cause` tells a package
+	// which: the zoom event fires wherever the zoom sound plays (Platinum's
+	// hooks play it), collapse and resize-start included, and only
+	// `cause: "zoom"` is the zoom box.
+	const setZoomFlag = (
+		toZoom: boolean,
+		playSound: boolean = true,
+		cause: "zoom" | "collapse" | "resize" = "zoom",
+	) => {
 		if (ws.collapsed) {
 			setCollapse(false);
 		}
 		if (playSound) {
-			player({
-				type: "ClassicySoundPlay",
-				sound: toZoom
-					? "ClassicyWindowZoomMaximize"
-					: "ClassicyWindowZoomMinimize",
-			});
+			emit("zoom", withClassicyAppearanceInput({ zoomed: toZoom, cause }));
 		}
 		track(toZoom ? "zoom" : "minimize", {
 			type: "ClassicyWindow",
@@ -1490,8 +1701,10 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	// apply); omitted, the window's applied size is used (#291).
 	const setResize = (toResize: boolean, nextSize?: [number, number]) => {
 		// Guard where the size is read, not in the SCSS: while collapsed, the
-		// window's DOM height is forced to the ~24px title-bar height by
-		// .classicyWindowCollapsed (ClassicyWindow.scss), so a measurement here
+		// window's DOM height is forced to the collapsed title-bar height — 15 px,
+		// or 6 px for a utility window — by `.classicyWindow.collapsed`
+		// (ClassicyWindow.scss; G 2.2 names that height
+		// `--window-collapsed-height`), so a measurement here
 		// would persist that collapsed height as the window's real size.
 		// Skipping the dispatch entirely while collapsed leaves the last
 		// expanded size in the store untouched, so it survives a
@@ -1526,7 +1739,8 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	// user to act on whatever the veto is asking about).
 	const finishClose = () => {
 		track("close", { type: "ClassicyWindow", show: true, ...analyticsArgs });
-		player({ type: "ClassicySoundPlay", sound: "ClassicyWindowClose" });
+		// The close box (a click, Return or Space) or a modal's Escape.
+		emit("close", withClassicyAppearanceInput());
 		desktopEventDispatch({
 			type: "ClassicyWindowClose",
 			app: {
@@ -1594,7 +1808,9 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const windowStyle = useMemo(
 		() => ({
 			width: size[0] === 0 ? "auto" : size[0],
-			height: ws.collapsed ? "auto" : size[1] === 0 ? "auto" : size[1],
+			// Collapsed: no inline height, so `.collapsed` (ClassicyWindow.scss)
+			// sizes the window to its title bar by the cascade alone.
+			height: ws.collapsed ? undefined : size[1] === 0 ? "auto" : size[1],
 			left: ws.position[0],
 			top: ws.position[1],
 			minWidth: resolvedMinimumSize[0],
@@ -1616,22 +1832,39 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			? (document.getElementById("classicyDesktop") ?? document.body)
 			: null;
 
+	// menuBar.placement "window": the window draws its own menus under the
+	// title bar (the screen bar is headless). Utility windows and modals (Mac
+	// OS 8 movable modals have no menu bar) get none, nor does a collapsed
+	// window. The root's classicyWindowWithMenuBar keys the bar's height and
+	// the contents' shrink without :has().
+	const showsMenuBar =
+		layout.menuBar.placement === "window" &&
+		(appMenu?.length ?? 0) > 0 &&
+		windowType !== "utility" &&
+		!modal &&
+		!ws.collapsed;
+
 	const windowContent = !ws.closed && (
 		// biome-ignore lint/a11y/useKeyWithClickEvents: application container captures clicks for focus
 		<div
+			{...appearance.attrs}
 			id={[appId, id].join("_")}
 			ref={windowRef}
 			role="application"
 			aria-label={title || undefined}
-			style={windowStyle}
+			// Package, then consumer, then the window's own geometry; neither
+			// may set the stacking.
+			style={{
+				...withoutStateOwnedStyle(appearance.style),
+				...withoutStateOwnedStyle(style),
+				...windowStyle,
+			}}
 			className={classNames(
 				"classicyWindow",
 				windowType === "utility"
 					? "classicyWindowUtility"
 					: "classicyWindowDocument",
-				ws.collapsed ? "classicyWindowCollapsed" : "",
-				ws.zoomed ? "classicyWindowZoomed" : "",
-				modal || isActive() ? "classicyWindowActive" : "classicyWindowInactive",
+				appearance.className,
 				currentApp?.focused && !isActive() ? "classicyWindowActiveApp" : "",
 				windowType === "utility"
 					? alwaysOnTop || currentApp?.focused
@@ -1639,7 +1872,6 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 						: "classicyWindowBackgrounded"
 					: "",
 				!ws.closed ? "" : "classicyWindowInvisible",
-				ws.moving ? "classicyWindowDragging" : "",
 				ws.resizing ? "classicyWindowResizing" : "",
 				modal ? "classicyWindowModal" : "",
 				// Non-error modals (File Open/Save and other dialogs) stack in the
@@ -1649,6 +1881,8 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				modal && type === "error" ? "classicyWindowRed" : "",
 				scrollable ? "" : "classicyWindowNoScroll",
 				scrollable && !showScrollBars ? "classicyWindowScrollBarsHidden" : "",
+				showsMenuBar ? "classicyWindowWithMenuBar" : "",
+				className,
 			)}
 			onMouseMove={changeWindow}
 			// Bound ONLY here, at the outermost element, rather than on the frame
@@ -1680,83 +1914,30 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 						// binding on this descendant would double-invoke the handler.
 					></div>
 				))}
-			<div
-				className={classNames(
-					"classicyWindowTitleBar",
-					modal === true ? "classicyWindowTitleBarModal" : "",
-				)}
-			>
-				{closable && (
-					<div className={"classicyWindowControlBox"}>
-						{/* biome-ignore lint/a11y/useSemanticElements: custom window control styled as pixel-precise box */}
-						<div
-							className={"classicyWindowCloseBox"}
-							role="button"
-							tabIndex={0}
-							onClick={close}
-							onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
-								if (e.key === "Enter" || e.key === " ") close();
-							}}
-						></div>
-					</div>
-				)}
-				{/* biome-ignore lint/a11y/noStaticElementInteractions: title bar is a mouse-only drag handle */}
-				<div
-					className={"classicyWindowTitle"}
-					role="presentation"
-					onMouseDown={onTitleMouseDown}
-					// stopChangeWindow is bound once, on the root classicyWindow
-					// element; mouseup here bubbles to it (see comment there).
-					onDoubleClick={
-						doubleClickTitleToCollapse ? toggleCollapse : undefined
-					}
-				>
-					{title !== "" && windowType !== "utility" ? (
-						<>
-							<div className={"classicyWindowTitleLeft"}></div>
-							{!hideIcon && (
-								<div className={"classicyWindowIcon"}>
-									<img src={icon} alt={title} />
-								</div>
-							)}
-							<div className={"classicyWindowTitleText"}>
-								<p>{title}</p>
-							</div>
-							<div className={"classicyWindowTitleRight"}></div>
-						</>
-					) : (
-						<div className={"classicyWindowTitleCenter"}></div>
-					)}
-				</div>
-				{zoomable && !modal && (
-					<div className={"classicyWindowControlBox"}>
-						{/* biome-ignore lint/a11y/useSemanticElements: custom window control styled as pixel-precise box */}
-						<div
-							className={"classicyWindowZoomBox"}
-							role="button"
-							tabIndex={0}
-							onClick={toggleZoom}
-							onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
-								if (e.key === "Enter" || e.key === " ") toggleZoom();
-							}}
-						></div>
-					</div>
-				)}
-				{collapsable && (
-					<div className={"classicyWindowControlBox"}>
-						{/* biome-ignore lint/a11y/useSemanticElements: custom window control styled as pixel-precise box */}
-						<div
-							className={"classicyWindowCollapseBox"}
-							role="button"
-							tabIndex={0}
-							onClick={onCollapseBoxClick}
-							onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
-								if (e.key === "Enter" || e.key === " ") toggleCollapse();
-							}}
-						></div>
-					</div>
-				)}
-			</div>
+			<ClassicyWindowTitleBar
+				title={title}
+				icon={icon}
+				hideIcon={hideIcon}
+				variant={windowType === "utility" ? "utility" : "document"}
+				modal={modal === true}
+				onClose={closable ? close : undefined}
+				onZoom={zoomable ? toggleZoom : undefined}
+				onCollapse={collapsable ? onCollapseBoxClick : undefined}
+				onCollapseKey={toggleCollapse}
+				onTitleMouseDown={onTitleMouseDown}
+				// stopChangeWindow is bound once, on the root classicyWindow
+				// element; the title's mouseup bubbles to it (see comment there).
+				onTitleDoubleClick={
+					doubleClickTitleToCollapse ? toggleCollapse : undefined
+				}
+			/>
+			{showsMenuBar && appMenu && (
+				<ClassicyWindowMenuBar
+					appId={appId}
+					windowId={id}
+					menuItems={appMenu}
+				/>
+			)}
 			{header && !ws.collapsed && (
 				<div
 					className={classNames(
@@ -1781,7 +1962,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 						? "classicyWindowContentsModal"
 						: "classicyWindowContents",
 					header ? "classicyWindowContentsWithHeader" : "",
-					ws.collapsed ? "hidden" : "block",
+					classicyStateClasses({ collapsed: ws.collapsed }),
 				)}
 				style={
 					backgroundColor
@@ -1829,9 +2010,8 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 					role="presentation"
 					onMouseDown={startResizeWindow}
 					// stopChangeWindow is bound once, on the root classicyWindow
-					// element; mouseup here bubbles to it (see comment there).
-					onMouseEnter={() => setCursor("resizeLr")}
-					onMouseLeave={() => setCursor()}
+					// element; mouseup here bubbles to it (see comment there). Its
+					// resize cursor is CSS (ClassicyWindow.scss).
 				></div>
 			)}
 		</div>

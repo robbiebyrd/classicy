@@ -1,6 +1,7 @@
 import "./ClassicyAlert.scss";
 import classNames from "classnames";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	type ReactNode,
 	useCallback,
@@ -8,7 +9,10 @@ import {
 	useMemo,
 	useRef,
 } from "react";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
+import { CLASSICY_PART_ATTRIBUTE } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyHelpButton } from "@/SystemFolder/SystemResources/HelpButton/ClassicyHelpButton";
@@ -85,22 +89,42 @@ export type ClassicyAlertProps = {
 	 * it here.
 	 */
 	onClose?: () => void;
+	/** Extra class names, merged onto the dialog window after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the dialog window after the component's own. */
+	style?: CSSProperties;
 };
 
 const AlertIcon: FunctionalComponent<{ alertType: ClassicyAlertType }> = ({
 	alertType,
 }) => {
+	const warn = useClassicyAsset("icons", "system.warn") ?? "";
+	const error = useClassicyAsset("icons", "system.error") ?? "";
+	const info = useClassicyAsset("icons", "system.info") ?? "";
 	switch (alertType) {
 		case "caution":
 			// Classic caution triangle (system warn icon).
-			return <img src={ClassicyIcons.system.warn} alt="Caution" />;
+			return <img src={warn} alt="Caution" />;
 		case "stop":
 			// Classic stop octagon (system error icon).
-			return <img src={ClassicyIcons.system.error} alt="Error" />;
+			return <img src={error} alt="Error" />;
 		default:
 			// Classic note bubble (system info icon).
-			return <img src={ClassicyIcons.system.info} alt="Info" />;
+			return <img src={info} alt="Info" />;
 	}
+};
+
+/**
+ * An alert button's `data-classicy-role`: the default button, the cancel
+ * button, or any other (the help button included).
+ */
+const alertButtonRole = (
+	button: ClassicyAlertButton,
+	defaultId: string | undefined,
+): "default" | "cancel" | "other" => {
+	if (button.id === defaultId) return "default";
+	if (button.role === "cancel") return "cancel";
+	return "other";
 };
 
 const defaultButtonsForType = (
@@ -163,10 +187,21 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 	defaultButtonId,
 	movable = false,
 	onClose,
+	className,
+	style,
 }) => {
 	const player = useSoundDispatch();
 	const contentRef = useRef<HTMLDivElement | null>(null);
 	const defaultButtonRef = useRef<HTMLButtonElement | null>(null);
+	const appearance = useClassicyAppearance("Alert", {}, contentRef);
+	const { emit } = appearance;
+
+	// An alert is open for as long as it is mounted: once per mount, even if
+	// the sound dispatch (and so `emit`) changes identity.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: emitted once per mount
+	useEffect(() => {
+		emit("open");
+	}, []);
 
 	const resolvedButtons = useMemo(
 		() =>
@@ -200,10 +235,13 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 	const handleButton = useCallback(
 		(button: ClassicyAlertButton) => {
 			if (button.disabled) return;
+			// A click (or Return/Space on the focused button), or Return,
+			// Escape or Command-period through the keyboard equivalents.
+			emit("close", withClassicyAppearanceInput({ buttonId: button.id }));
 			button.onClick?.();
 			onClose?.();
 		},
-		[onClose],
+		[onClose, emit],
 	);
 
 	const onDefault = useCallback(() => {
@@ -243,6 +281,8 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 	return (
 		<ClassicyWindow
 			id={id}
+			className={className}
+			style={style}
 			appId={appId}
 			title={title}
 			hideIcon={true}
@@ -260,11 +300,14 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 			analyticsExclude
 		>
 			<div
+				{...appearance.attrs}
 				ref={contentRef}
 				className={classNames(
 					"classicyAlert",
+					appearance.className,
 					movable ? "classicyAlertMovable" : "classicyAlertFixed",
 				)}
+				style={appearance.style}
 				role="alertdialog"
 				aria-modal="true"
 				aria-label={label}
@@ -293,6 +336,7 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 								disabled={button.disabled}
 								onClickFunc={() => handleButton(button)}
 								className="classicyAlertHelpButton"
+								{...{ [CLASSICY_PART_ATTRIBUTE.role]: "other" }}
 							/>
 						) : (
 							<ClassicyButton
@@ -303,6 +347,12 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 								isDefault={button.id === defaultButton?.id}
 								disabled={button.disabled}
 								onClickFunc={() => handleButton(button)}
+								{...{
+									[CLASSICY_PART_ATTRIBUTE.role]: alertButtonRole(
+										button,
+										defaultButton?.id,
+									),
+								}}
 							>
 								{button.label}
 							</ClassicyButton>

@@ -1,4 +1,4 @@
-@use "../../ControlPanels/AppearanceManager/styles/appearance";
+@use "../../../Appearance/vocabulary/layout";
 
 .classicySplitView {
   display: flex;
@@ -24,16 +24,15 @@
   overflow: auto;
 }
 
-// The divider wears the window frame edge's clothes: the frame-grey fill and
-// the Platinum bevel border, sized to the frame ring so it reads as a movable
-// piece of window chrome rather than a plain rule.
+// The divider wears the window frame edge's clothes: the frame-gray fill and
+// the Platinum bevel border (the Platinum package's), sized to the frame ring
+// so it reads as a movable piece of window chrome rather than a plain rule.
 .classicySplitViewDivider {
   flex: 0 0 auto;
   margin: var(--window-padding-size) 0;
 
   background-color: var(--color-window-frame);
-  @include appearance.platinumWindowBorder;
-  @include appearance.no-select;
+  @include layout.classicy-no-select;
   touch-action: none;
 
   // Keyboard-resizable (ARIA window splitter): show where focus landed
@@ -44,19 +43,25 @@
   }
 }
 
-// Hotspot 8 8 = the center of the 16px Platinum resize cursors, where the
-// bar meets the arrow.
+// Cursors come from the asset registry: ClassicyDesktop defines
+// `--classicy-cursor-<role>` as url("…") on its root. Hotspot 8 8 = the center
+// of the 16px Platinum resize cursors, where the bar meets the arrow. Outside a
+// desktop the variable is undefined, which would void the whole `cursor`
+// declaration; the fallback is an image that never loads, so the browser moves
+// on to the keyword cursor.
+$cursor-missing: url('data:,');
+
 .classicySplitViewHorizontal > .classicySplitViewDivider {
   width: var(--window-padding-size);
   cursor:
-    url('../../../../assets/img/ui/cursors/cursor-resize-lr.png') 8 8,
+    var(--classicy-cursor-resize-lr, #{$cursor-missing}) 8 8,
     col-resize;
 }
 
 .classicySplitViewVertical > .classicySplitViewDivider {
   height: var(--window-padding-size);
   cursor:
-    url('../../../../assets/img/ui/cursors/cursor-resize-ud.png') 8 8,
+    var(--classicy-cursor-resize-ud, #{$cursor-missing}) 8 8,
     row-resize;
 }
 
@@ -65,13 +70,12 @@
 // stamps the direction on the root while a drag is live; matching on the root
 // overrides every divider's own hover cursor, since document.body's inline
 // cursor (set for everywhere else by useClassicyCursor) loses to it.
-@each $dir, $img, $fallback in ('u', 'cursor-resize-u', n-resize),
-  ('d', 'cursor-resize-d', s-resize), ('l', 'cursor-resize-l', w-resize),
-  ('r', 'cursor-resize-r', e-resize)
+@each $dir, $var, $fallback in ('u', resize-u, n-resize), ('d', resize-d, s-resize),
+  ('l', resize-l, w-resize), ('r', resize-r, e-resize)
 {
   .classicySplitView[data-drag-direction='#{$dir}'] .classicySplitViewDivider {
     cursor:
-      url('../../../../assets/img/ui/cursors/#{$img}.png') 8 8,
+      var(--classicy-cursor-#{$var}, #{$cursor-missing}) 8 8,
       $fallback;
   }
 }

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -44,7 +44,8 @@ const WINDOW_ID = "ControlStripManager_1";
  */
 export function ClassicyControlStripManager() {
 	const dispatch = useAppManagerDispatch();
-	const appIcon = ClassicyIcons.controlPanels.controlStripManager.app;
+	const appIcon =
+		useClassicyAsset("icons", "controlPanels.controlStripManager.app") ?? "";
 
 	// Mac OS 8 HIG control-panel menu bar (audit ch. 6 §35): Apple / File. No
 	// Edit menu: the panel has no edit-text fields.

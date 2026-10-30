@@ -28,6 +28,6 @@
   left: 1px;
 }
 
-.classicyPopUpSliderDisabled {
+:where(.classicyPopUpSlider).disabled {
   opacity: 0.5;
 }

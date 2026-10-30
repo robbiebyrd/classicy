@@ -1,5 +1,5 @@
 import type { FC as FunctionalComponent } from "react";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import {
 	APPLE_GUIDE_APP_ID,
@@ -15,6 +15,8 @@ import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
  * topic. Importing this module registers the ClassicyAppAppleGuide reducer.
  */
 export const AppleGuide: FunctionalComponent = () => {
+	const appleGuideIcon =
+		useClassicyAsset("icons", "system.extensions.appleGuide") ?? "";
 	const rawData = useAppManager(
 		(s) => s.System.Manager.Applications.apps[APPLE_GUIDE_APP_ID]?.data,
 	);
@@ -26,7 +28,7 @@ export const AppleGuide: FunctionalComponent = () => {
 		<ClassicyApp
 			id={APPLE_GUIDE_APP_ID}
 			name={APPLE_GUIDE_APP_NAME}
-			icon={ClassicyIcons.system.extensions.appleGuide}
+			icon={appleGuideIcon}
 			extension
 		>
 			{openTopics.map((topicId) => (

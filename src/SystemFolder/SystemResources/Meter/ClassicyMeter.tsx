@@ -1,6 +1,10 @@
 import "./ClassicyMeter.scss";
 import classNames from "classnames";
-import type { FC as FunctionalComponent, ReactElement } from "react";
+import type {
+	CSSProperties,
+	FC as FunctionalComponent,
+	ReactElement,
+} from "react";
 import {
 	ClassicyControlLabel,
 	type ClassicyLabelAlign,
@@ -78,6 +82,10 @@ interface ClassicyMeterProps extends ClassicyMeterBounds {
 	 * instead of a continuous bar.
 	 */
 	segments?: number;
+	/** Extra class names, merged onto the outermost element (the label wrapper, else the value row, else the gauge) after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the outermost element (the label wrapper, else the value row, else the gauge) after the component's own. */
+	style?: CSSProperties;
 }
 
 /**
@@ -105,11 +113,16 @@ export const ClassicyMeter: FunctionalComponent<ClassicyMeterProps> = ({
 	labelAlign = "left",
 	showValue,
 	segments,
+	className,
+	style,
 }) => {
 	const span = max - min;
 	const fraction =
 		span > 0 ? Math.min(1, Math.max(0, (value - min) / span)) : 0;
 	const zone = meterZone(value, { min, max, low, high, optimum });
+
+	// The passthrough lands on the outermost element this render produces.
+	const outermost = label ? "label" : showValue ? "row" : "gauge";
 
 	const gauge = (
 		// biome-ignore lint/a11y/useSemanticElements: native <meter> cannot be Platinum-styled cross-browser (UA zone colors, no segment rendering)
@@ -118,7 +131,9 @@ export const ClassicyMeter: FunctionalComponent<ClassicyMeterProps> = ({
 				"classicyMeter",
 				zoneClass[zone],
 				segments ? "classicyMeterSegmented" : "",
+				outermost === "gauge" ? className : "",
 			)}
+			style={outermost === "gauge" ? style : undefined}
 			role="meter"
 			aria-valuenow={value}
 			aria-valuemin={min}
@@ -150,7 +165,13 @@ export const ClassicyMeter: FunctionalComponent<ClassicyMeterProps> = ({
 	let indicator: ReactElement = gauge;
 	if (showValue) {
 		indicator = (
-			<div className="classicyMeterRow">
+			<div
+				className={classNames(
+					"classicyMeterRow",
+					outermost === "row" ? className : "",
+				)}
+				style={outermost === "row" ? style : undefined}
+			>
 				{gauge}
 				<span className="classicyMeterValue">{value}</span>
 			</div>
@@ -164,7 +185,9 @@ export const ClassicyMeter: FunctionalComponent<ClassicyMeterProps> = ({
 			className={classNames(
 				labelPositionClass(labelPosition),
 				labelAlignClass(labelAlign),
+				className,
 			)}
+			style={style}
 		>
 			<ClassicyControlLabel label={label} />
 			{indicator}

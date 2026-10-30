@@ -1,4 +1,5 @@
 import "./ClassicyScreenSaverFish.scss";
+import classNames from "classnames";
 import type { CSSProperties, FC as FunctionalComponent } from "react";
 import { z } from "zod";
 import type { ClassicyScreenSaverProps } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverRegistry";
@@ -64,16 +65,17 @@ const FISH: [sprite: string, row: number, route: string][] = [
  */
 export const ClassicyScreenSaverFish: FunctionalComponent<
 	ClassicyScreenSaverProps
-> = ({ config }) => {
+> = ({ config, className, style }) => {
 	const parsed = FishConfigSchema.safeParse(config);
 	const count = parsed.success ? parsed.data.fish : 16;
 	return (
 		<div
-			className="classicySaverFish"
+			className={classNames("classicySaverFish", className)}
 			style={
 				{
 					"--classicy-saver-fish-seafloor": `url(${String(seafloor)})`,
 					"--classicy-saver-fish-bubbles": `url(${String(bubbles)})`,
+					...style,
 				} as CSSProperties
 			}
 		>

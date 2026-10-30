@@ -1,6 +1,6 @@
 import "./ClassicyPager.scss";
 import classNames from "classnames";
-import type { FC as FunctionalComponent } from "react";
+import type { CSSProperties, FC as FunctionalComponent } from "react";
 
 type ClassicyPagerProps = {
 	/** Zero-based current page; the cell shows it one-based. */
@@ -18,6 +18,10 @@ type ClassicyPagerProps = {
 	 * historical class name here so consumer stylesheets keep matching.
 	 */
 	pageClassName?: string;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 };
 
 /**
@@ -45,12 +49,14 @@ export const ClassicyPager: FunctionalComponent<ClassicyPagerProps> = ({
 	pageCount,
 	onPageChange,
 	pageClassName,
+	className,
+	style,
 }) => {
 	const canGoBack = page > 0;
 	const canGoForward = page < pageCount - 1;
 
 	return (
-		<div className="classicyPager">
+		<div className={classNames("classicyPager", className)} style={style}>
 			<button
 				type="button"
 				className="classicyPagerArrow classicyPagerArrowPrev"

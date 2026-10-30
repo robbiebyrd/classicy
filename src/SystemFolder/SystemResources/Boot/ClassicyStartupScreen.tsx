@@ -1,11 +1,13 @@
 import "./ClassicyStartupScreen.scss";
+import classNames from "classnames";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	useEffect,
 	useMemo,
 	useState,
 } from "react";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import {
@@ -22,11 +24,15 @@ interface ClassicyStartupScreenProps {
 	duration?: number;
 	/**
 	 * Overrides the logo image shown beside the wordmark (`wordmark` is its alt
-	 * text). Defaults to `ClassicyIcons.system.macosSvg`.
+	 * text). Defaults to the registered `startupLogo` system art.
 	 */
 	logo?: string;
 	/** Overrides the wordmark text shown next to the logo. Defaults to `"Classicy"`. */
 	wordmark?: string;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 }
 
 /**
@@ -49,11 +55,8 @@ interface ClassicyStartupScreenProps {
  */
 export const ClassicyStartupScreen: FunctionalComponent<
 	ClassicyStartupScreenProps
-> = ({
-	duration = 4000,
-	logo = ClassicyIcons.system.macosSvg,
-	wordmark = "Classicy",
-}) => {
+> = ({ duration = 4000, logo, wordmark = "Classicy", className, style }) => {
+	const defaultLogo = useClassicyAsset("systemArt", "startupLogo") ?? "";
 	const [visible, setVisible] = useState(
 		() => !hasShownStartupScreenThisSession(),
 	);
@@ -123,10 +126,14 @@ export const ClassicyStartupScreen: FunctionalComponent<
 	if (!visible) return null;
 
 	return (
-		<div className="classicyStartupScreen" role="status">
+		<div
+			className={classNames("classicyStartupScreen", className)}
+			style={style}
+			role="status"
+		>
 			<div className="classicyStartupScreenPanel">
 				<div className="classicyStartupScreenLogo">
-					<img src={logo} alt={wordmark} />
+					<img src={logo ?? defaultLogo} alt={wordmark} />
 					<span className="classicyStartupScreenWordmark">{wordmark}</span>
 				</div>
 				<div className="classicyStartupScreenProgress">

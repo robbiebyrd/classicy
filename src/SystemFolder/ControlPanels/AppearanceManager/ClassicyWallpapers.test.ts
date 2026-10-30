@@ -1,13 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
+import platinumJson from "@/Appearance/Platinum/platinum.json";
 import {
 	getAllThemes,
 	getTheme,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
 	ClassicyDefaultWallpaper,
+	ClassicyWallpapers,
 	resolveWallpaper,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
-import themesData from "@/SystemFolder/ControlPanels/AppearanceManager/styles/themes.json";
 
 describe("resolveWallpaper", () => {
 	it("resolves a bare wallpaper filename to its bundled URL", () => {
@@ -52,17 +53,30 @@ describe("resolveWallpaper", () => {
 	});
 });
 
+describe("jpg wallpapers", () => {
+	it("includes the jpg wallpaper", () => {
+		expect(
+			ClassicyWallpapers.some(
+				(w) =>
+					w.label === "Default Photo" &&
+					(w.value.endsWith(".jpg") || w.value.startsWith("data:image/jpeg")),
+			),
+		).toBe(true);
+		expect(resolveWallpaper("default.jpg")).not.toBe("");
+	});
+});
+
 describe("theme wallpapers resolve through the bundler", () => {
-	// Regression: themes.json held literal "/assets/img/wallpapers/*.png" strings.
+	// Regression: themes.json (now platinum.json) held literal "/assets/img/wallpapers/*.png" strings.
 	// JSON imports bypass Vite's asset pipeline, so those shipped verbatim and
 	// 404'd in any consuming app. Under vitest a bundled asset resolves to that
 	// same source path, so the meaningful invariant is identity with the
 	// resolver's output — that holds in dev and in a production build alike.
-	it("names wallpapers in themes.json instead of pathing to them", () => {
+	it("names wallpapers in platinum.json instead of pathing to them", () => {
 		// The root cause: a path written here ships verbatim, because Vite's
 		// asset pipeline never sees strings inside an imported JSON file. Only
 		// a bare filename, resolved through the bundler at runtime, is safe.
-		for (const theme of themesData) {
+		for (const theme of platinumJson.presets) {
 			expect(
 				theme.desktop.backgroundImage,
 				`theme "${theme.id}" must name its wallpaper, not path to it`,

@@ -83,4 +83,57 @@ describe("HyperCardToolsPalette", () => {
 		);
 		expect(entry?.textContent).toContain("Palette Test");
 	});
+
+	// The armed entry's ✓ is package CSS (::after on an aria-hidden mark), so
+	// the state reaches assistive technology through aria-pressed instead.
+	it("exposes the armed entry as a pressed button with a selected state", () => {
+		render(
+			<HyperCardToolsPalette
+				stackId={"demo"}
+				edit={{ ...makeEdit(), placing: "slider" }}
+			/>,
+		);
+		const armed = screen.getByRole("button", { name: "Slider" });
+		expect(armed).toHaveAttribute("aria-pressed", "true");
+		expect(armed).toHaveClass("classicyHyperCardPaletteEntry", "selected");
+		expect(armed.textContent).not.toContain("✓");
+		const mark = armed.querySelector(".classicyHyperCardPaletteEntryMark");
+		expect(mark).toHaveAttribute("aria-hidden", "true");
+		expect(mark?.textContent).toBe("");
+
+		const idle = screen.getByRole("button", { name: "Button" });
+		expect(idle).toHaveAttribute("aria-pressed", "false");
+		expect(idle).not.toHaveClass("selected");
+	});
+
+	// Arming is a one-shot, optional mode (nothing armed is the normal state),
+	// so the entry is a toggle: pressing the armed entry again disarms it and
+	// aria-pressed turns false, by click and by Enter or Space.
+	it("disarms the armed entry when it is pressed again", () => {
+		const { rerender } = render(
+			<HyperCardToolsPalette
+				stackId={"demo"}
+				edit={{ ...makeEdit(), placing: "slider" }}
+			/>,
+		);
+		const armed = screen.getByRole("button", { name: "Slider" });
+		fireEvent.click(armed);
+		fireEvent.keyDown(armed, { key: "Enter" });
+		fireEvent.keyDown(armed, { key: " " });
+		expect(dispatch.mock.calls).toEqual(
+			Array.from({ length: 3 }, () => [
+				{
+					type: "ClassicyAppHCEditSetPlacing",
+					stackId: "demo",
+					partType: undefined,
+				},
+			]),
+		);
+
+		rerender(<HyperCardToolsPalette stackId={"demo"} edit={makeEdit()} />);
+		expect(screen.getByRole("button", { name: "Slider" })).toHaveAttribute(
+			"aria-pressed",
+			"false",
+		);
+	});
 });

@@ -1,5 +1,7 @@
 import "./ClassicyFileBrowserViewTable.scss";
+import classNames from "classnames";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	memo,
 	type RefObject,
@@ -7,6 +9,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import type { FinderIconViewOptions } from "@/SystemFolder/Finder/FinderContext";
 import {
@@ -14,11 +17,12 @@ import {
 	finderEntryComparator,
 	iconViewIconSize,
 } from "@/SystemFolder/Finder/FinderViewOptions";
-import { getIconSize } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconContext";
+import type { ClassicyDesktopIconMetrics } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconContext";
 import {
 	cleanupIcon,
 	iconGridLattice,
 	iconImageByType,
+	readClassicyDesktopIconMetrics,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserUtils";
 import type {
 	ClassicyFileDropDestination,
@@ -44,6 +48,10 @@ export type ClassicyFileBrowserViewIconsProps = {
 	 * `ClassicyFileBrowser`). Without it, icons can only be rearranged here.
 	 */
 	onMoveItems?: ClassicyFileBrowserMoveItems;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style for the root element. */
+	style?: CSSProperties;
 };
 
 /**
@@ -91,6 +99,8 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 			showInvisible = true,
 			iconViewOptions,
 			onMoveItems,
+			className,
+			style,
 		}) => {
 			const activeTheme = useAppManager(
 				(s) => s.System.Manager.Appearance.activeTheme,
@@ -103,6 +113,16 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 			const resolvedHolderRef = holderRef ?? internalHolderRef;
 
 			const [items, setItems] = useState<iconType[]>([]);
+
+			// The desktop-icon metrics, read from the desktop once per active
+			// theme rather than once per icon: the layout effect re-runs on every
+			// file-system change, and each read forces a style read. Read in the
+			// layout effect, after the commit that applies a new theme's
+			// variables to #classicyDesktop.
+			const iconMetricsRef = useRef<{
+				theme: ClassicyTheme;
+				metrics: ClassicyDesktopIconMetrics;
+			} | null>(null);
 
 			// Destructured rather than depended on as `iconViewOptions` itself:
 			// it is a fresh object on every render of the parent, and depending
@@ -175,15 +195,22 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 							)
 						: entries;
 
+				if (iconMetricsRef.current?.theme !== activeTheme) {
+					iconMetricsRef.current = {
+						theme: activeTheme,
+						metrics: readClassicyDesktopIconMetrics(activeTheme),
+					};
+				}
+				const iconMetrics = iconMetricsRef.current.metrics;
 				const iconSize = iconSizeStep
-					? iconViewIconSize(getIconSize(activeTheme)[0], iconSizeStep)
+					? iconViewIconSize(iconMetrics.size, iconSizeStep)
 					: undefined;
 				// Same lattice `cleanupIcon` lays the icons out on — pitch AND origin
 				// both come from `iconGridLattice`, so a snapped icon lands exactly
 				// where the layout would have put it. Passing only the pitch (or
 				// passing `iconSize` instead of the full cell width) puts drops on
 				// half-rows that overlap the row above.
-				const lattice = iconGridLattice(activeTheme, iconSize);
+				const lattice = iconGridLattice(activeTheme, iconSize, iconMetrics);
 				const snapTo = arrangement === "grid" ? lattice.pitch : undefined;
 				// "sorted" ("Keep arranged by…") derives both order and position from
 				// the sort key, so dragging is disabled entirely. "grid" ("Snap to
@@ -228,6 +255,7 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 							ordered.length,
 							containerMeasure,
 							iconSize,
+							iconMetrics,
 						),
 						size: iconSize,
 						snapTo,
@@ -254,7 +282,11 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 			]);
 
 			return (
-				<div className={"classicyFileBrowserFill"} ref={resolvedHolderRef}>
+				<div
+					className={classNames("classicyFileBrowserFill", className)}
+					style={style}
+					ref={resolvedHolderRef}
+				>
 					{items.map((item) => {
 						return <ClassicyIcon {...item} key={item.name} />;
 					})}

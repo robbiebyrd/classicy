@@ -1,6 +1,7 @@
 import "./ClassicyTabs.scss";
 import classNames from "classnames";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	type KeyboardEvent,
 	type ReactNode,
@@ -11,7 +12,9 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
 /**
@@ -31,6 +34,17 @@ export interface TabProps {
 	tabs: TabIndividual[];
 	/** Tab sizing; see {@link ClassicyTabsSize}. Defaults to `"medium"`. */
 	size?: ClassicyTabsSize;
+	/**
+	 * Which edge of the panel the tab strip sits on. `"top"` (the default) is
+	 * the HIG tab control; `"bottom"` moves the strip below the panel, tabs
+	 * hanging down from its bottom border. The DOM order is the same either
+	 * way (strip, then panel); the stylesheet moves the strip with `order`.
+	 */
+	stripPosition?: "top" | "bottom";
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 }
 
 export interface TabIndividual {
@@ -102,9 +116,10 @@ const NO_OVERFLOW: ScrollState = {
  * HTML equivalent; it implements the ARIA `role="tablist"` pattern.
  *
  * Uncontrolled: it always opens on the first tab and keeps the selection
- * itself. Pressing a tab plays `ClassicyTabClickDown`, releasing it plays
- * `ClassicyTabClickUp` and selects it (both also send analytics events of
- * type `ClassicyTab`). The tab strip is a roving-tabindex group:
+ * itself. Under Platinum, pressing a tab plays `ClassicyTabClickDown`,
+ * releasing it plays `ClassicyTabClickUp` (the package's hooks), and the
+ * release selects it (both also send analytics events of type
+ * `ClassicyTab`). The tab strip is a roving-tabindex group:
  * Left/Up and Right/Down move (wrapping) and Home/End jump, with activation
  * following focus. When the tabs do not fit, scroll arrows appear at both
  * ends and step the strip by whole tabs.
@@ -121,6 +136,9 @@ const NO_OVERFLOW: ScrollState = {
 export const ClassicyTabs: FunctionalComponent<TabProps> = ({
 	tabs,
 	size = "medium",
+	stripPosition = "top",
+	className,
+	style,
 }) => {
 	const [activeTab, setActiveTab] = useState(0);
 	// Tab and panel DOM ids are unique per instance (#309): two strips with a
@@ -129,21 +147,23 @@ export const ClassicyTabs: FunctionalComponent<TabProps> = ({
 	const instanceId = useId();
 	const tabDomId = (index: number) => `${instanceId}-tab-${index}`;
 	const panelDomId = (index: number) => `${instanceId}-panel-${index}`;
-	const player = useSoundDispatch();
 	const { track } = useClassicyAnalytics();
 	const analyticsArgs = { tabs: tabs.map((t) => t.title) };
 	const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
 	const scrollerRef = useRef<HTMLDivElement | null>(null);
 	const [scroll, setScroll] = useState<ScrollState>(NO_OVERFLOW);
+	const rootRef = useRef<HTMLDivElement>(null);
+	// The container had no state class; `selected` stays on the tab buttons.
+	const appearance = useClassicyAppearance("Tabs", {}, rootRef);
 
 	const selectTab = (tabId: number) => {
-		player({ type: "ClassicySoundPlay", sound: "ClassicyTabClickUp" });
+		appearance.emit("select", withClassicyAppearanceInput({ tabId }));
 		track("click", { type: "ClassicyTab", tabId, ...analyticsArgs });
 		setActiveTab(tabId);
 	};
 
 	const pressTab = (tabId: number) => {
-		player({ type: "ClassicySoundPlay", sound: "ClassicyTabClickDown" });
+		appearance.emit("press", withClassicyAppearanceInput({ tabId }));
 		track("selected", { type: "ClassicyTab", tabId, ...analyticsArgs });
 	};
 
@@ -216,7 +236,7 @@ export const ClassicyTabs: FunctionalComponent<TabProps> = ({
 	const stepScroll = (direction: -1 | 1) => {
 		const el = scrollerRef.current;
 		if (!el) return;
-		player({ type: "ClassicySoundPlay", sound: "ClassicyTabClickUp" });
+		appearance.emit("change", { scroll: direction });
 		const wrappers = Array.from(
 			el.querySelectorAll<HTMLElement>(".classicyTabButtonWrapper"),
 		);
@@ -264,6 +284,8 @@ export const ClassicyTabs: FunctionalComponent<TabProps> = ({
 				return;
 		}
 		e.preventDefault();
+		// The keyboard presses the tab it lands on, as a mouse press would.
+		appearance.emit("press", withClassicyAppearanceInput({ tabId: next }));
 		selectTab(next);
 		focusTab(next);
 	};
@@ -304,7 +326,18 @@ export const ClassicyTabs: FunctionalComponent<TabProps> = ({
 	};
 
 	return (
-		<div className={classNames("classicyTabContainer", SIZE_CLASS[size])}>
+		<div
+			{...appearance.attrs}
+			ref={rootRef}
+			className={classNames(
+				"classicyTabContainer",
+				appearance.className,
+				SIZE_CLASS[size],
+				stripPosition === "bottom" && "classicyTabStripBottom",
+				className,
+			)}
+			style={appearance.style ? { ...appearance.style, ...style } : style}
+		>
 			<div className={"classicyTabButtonsRow"}>
 				{scroll.overflowing && scrollArrow(-1)}
 				<div className={"classicyTabScroller"} ref={scrollerRef}>
@@ -327,11 +360,10 @@ export const ClassicyTabs: FunctionalComponent<TabProps> = ({
 										ref={(el) => {
 											buttonRefs.current[index] = el;
 										}}
-										className={
-											"classicyTabButton" +
-											" " +
-											(isActive ? "classicyTabButtonActive" : "")
-										}
+										className={classNames(
+											"classicyTabButton",
+											classicyStateClasses({ selected: isActive }),
+										)}
 										onMouseDown={() => pressTab(index)}
 										onMouseUp={() => selectTab(index)}
 										onKeyDown={handleTabKeyDown}

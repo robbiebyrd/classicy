@@ -6,11 +6,12 @@ import {
 	useMemo,
 	useState,
 } from "react";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { DATE_AND_TIME_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeManagerManifest";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import {
 	useClassicyAboutMenu,
@@ -22,10 +23,6 @@ import {
 	quitAppHelper,
 	quitMenuItemHelper,
 } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
-
-const appIcon = ClassicyIcons.controlPanels.dateTimeManager.dateTimeManager;
-
-import { DATE_AND_TIME_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeManagerManifest";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyControlGroup } from "@/SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup";
 import { ClassicyDatePicker } from "@/SystemFolder/SystemResources/DatePicker/ClassicyDatePicker";
@@ -67,6 +64,11 @@ const TIMEZONES = [
 ];
 
 export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
+	const appIcon =
+		useClassicyAsset(
+			"icons",
+			"controlPanels.dateTimeManager.dateTimeManager",
+		) ?? "";
 	// Narrowed to the literal union (rather than `string`) so any future
 	// assignment of a non-am/pm value — e.g. reintroducing the timezone-offset
 	// bug this file was fixed for — is a compile error, not a silent 12-hour

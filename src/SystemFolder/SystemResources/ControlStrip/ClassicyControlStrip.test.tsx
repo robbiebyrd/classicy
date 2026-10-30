@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { dispatchAnimationEnd } from "@/__tests__/animationEnd";
 import {
 	act,
 	fireEvent,
@@ -45,19 +46,9 @@ vi.mock(
 	}),
 );
 
-// ClassicyMenu runs a chosen item once its flash animation ends; jsdom has no
-// AnimationEvent, so React listens for the prefixed event (see
-// ClassicyDesktopMenuBar.help.test.tsx).
-const completeMenuItemFlash = (id: string) => {
-	const event = new Event("webkitAnimationEnd", {
-		bubbles: true,
-		cancelable: true,
-	});
-	Object.defineProperty(event, "animationName", {
-		value: "classicyMenuItemFlashKeyframes",
-	});
-	document.getElementById(id)?.dispatchEvent(event);
-};
+// ClassicyMenu runs a chosen item once its flash animation ends.
+const completeMenuItemFlash = (id: string) =>
+	dispatchAnimationEnd(document.getElementById(id));
 
 /** A mouse click: press and release on one element, then its click. */
 const click = (el: Element) => {
@@ -163,10 +154,7 @@ describe("ClassicyControlStrip (HIGOS8 Figure 6-15)", () => {
 		renderStrip();
 		click(screen.getByRole("button", { name: "File Sharing" }));
 		const status = screen.getByRole("menuitem", { name: "No Users Connected" });
-		expect(status).toHaveClass(
-			"classicyControlStripStatus",
-			"classicyMenuItemDisabled",
-		);
+		expect(status).toHaveClass("classicyControlStripStatus", "disabled");
 		fireEvent.click(
 			screen.getByRole("menuitem", { name: "Open File Sharing Control Panel" }),
 		);
@@ -405,7 +393,12 @@ describe("built-in control strip modules", () => {
 				name: "Open Screen Saver Control Panel",
 			}),
 		).toBeInTheDocument();
-		fireEvent.click(screen.getByRole("menuitem", { name: "Screen Saver On" }));
+		// A checked choice: the menu exposes it as a checked menuitemcheckbox.
+		const enabledItem = screen.getByRole("menuitemcheckbox", {
+			name: "Screen Saver On",
+		});
+		expect(enabledItem).toHaveAttribute("aria-checked", "true");
+		fireEvent.click(enabledItem);
 		completeMenuItemFlash("screen-saver-enabled");
 		await waitFor(() =>
 			expect(
@@ -765,7 +758,7 @@ describe("Control-dragging the Control Strip (#298, #299)", () => {
 		expect(storedStrip()).toMatchObject({ edge: "right", bottom: 288 });
 		// The press was a move: the strip did not collapse.
 		expect(storedStrip()?.collapsed).toBeUndefined();
-		expect(strip()).not.toHaveClass("classicyControlStripCollapsed");
+		expect(strip()).not.toHaveClass("collapsed");
 	});
 
 	it("docks back to the left when dropped on the left half", () => {

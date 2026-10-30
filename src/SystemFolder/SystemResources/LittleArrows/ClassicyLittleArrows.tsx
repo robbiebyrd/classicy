@@ -1,6 +1,7 @@
 import "./ClassicyLittleArrows.scss";
 import classNames from "classnames";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	type KeyboardEvent as ReactKeyboardEvent,
 	type MouseEvent as ReactMouseEvent,
@@ -8,7 +9,7 @@ import {
 	useEffect,
 	useRef,
 } from "react";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 
 // Continuous repeat while held — the HIG's little-arrows behavior. Callers that
 // want acceleration (ClassicySpinner's ×10 escalation) derive it from `heldMs`.
@@ -28,6 +29,8 @@ interface ClassicyLittleArrowsProps {
 	downLabel?: string;
 	/** Extra class names merged onto the arrow pair's wrapper. */
 	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 	/** Delay between repeats while held, in ms. Defaults to `120`. */
 	repeatIntervalMs?: number;
 	/**
@@ -70,9 +73,11 @@ export const ClassicyLittleArrows: FunctionalComponent<
 	upLabel = "Increment",
 	downLabel = "Decrement",
 	className,
+	style,
 	repeatIntervalMs = REPEAT_INTERVAL_MS,
 	focusTarget,
 }) => {
+	const arrowUp = useClassicyAsset("icons", "ui.menuDropdownArrowUp") ?? "";
 	// Keep the callback in a ref so the interval always calls the latest closure.
 	const onStepRef = useRef(onStep);
 	onStepRef.current = onStep;
@@ -140,7 +145,10 @@ export const ClassicyLittleArrows: FunctionalComponent<
 	};
 
 	return (
-		<div className={classNames("classicyLittleArrows", className)}>
+		<div
+			className={classNames("classicyLittleArrows", className)}
+			style={style}
+		>
 			<button
 				type="button"
 				className="classicyLittleArrowsButton"
@@ -151,7 +159,7 @@ export const ClassicyLittleArrows: FunctionalComponent<
 				onMouseLeave={stop}
 				onKeyDown={(e) => stepKey(e, 1)}
 			>
-				<img src={ClassicyIcons.ui.menuDropdownArrowUp} alt="" />
+				<img src={arrowUp} alt="" />
 			</button>
 			<button
 				type="button"
@@ -163,7 +171,7 @@ export const ClassicyLittleArrows: FunctionalComponent<
 				onMouseLeave={stop}
 				onKeyDown={(e) => stepKey(e, -1)}
 			>
-				<img src={ClassicyIcons.ui.menuDropdownArrowUp} alt="" />
+				<img src={arrowUp} alt="" />
 			</button>
 		</div>
 	);

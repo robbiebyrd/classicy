@@ -8,6 +8,7 @@ import "./ClassicyPopUpMenu.scss";
 import classNames from "classnames";
 import {
 	type ChangeEvent,
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	type KeyboardEvent,
 	useCallback,
@@ -19,6 +20,9 @@ import {
 	useState,
 } from "react";
 import { createPortal } from "react-dom";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import {
 	type ClassicyPopUpMenuPlacementResult,
@@ -26,8 +30,6 @@ import {
 } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenuPlacement";
 
 const PLACEHOLDER_VALUE = "__classicy_placeholder__";
-// HIG checkmark drawn against the current selection in the open menu.
-const CHECKMARK = "✓";
 
 /** Control size: the label sizes plus a menu-only `"mini"`. */
 export type ClassicyPopUpMenuSize = ClassicyControlLabelSize | "mini";
@@ -132,6 +134,8 @@ type classicyPopUpMenuProps = {
 	onChangeFunc?: (e: ChangeEvent<HTMLSelectElement>) => void;
 	/** Extra class on the pop-up wrapper. */
 	className?: string;
+	/** Inline style on the same element as `className` (the pop-up box, not the outer label wrapper). */
+	style?: CSSProperties;
 	/** Disables the button. Defaults to `false`. */
 	disabled?: boolean;
 };
@@ -167,6 +171,7 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 	selected,
 	placeholder,
 	className: extraClassName,
+	style: extraStyle,
 	size = "medium",
 	onChangeFunc,
 	disabled = false,
@@ -197,6 +202,20 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 	const typeaheadBufferRef = useRef("");
 	const typeaheadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const reactId = useId();
+	const appearance = useClassicyAppearance(
+		"PopUpMenu",
+		{ disabled, open },
+		wrapperRef,
+	);
+	const emitAppearance = appearance.emit;
+	// `close` follows the menu going away, whichever path dismissed it, and
+	// so comes after the `change` a pick emits.
+	const wasOpenRef = useRef(open);
+	useEffect(() => {
+		if (wasOpenRef.current === open) return;
+		wasOpenRef.current = open;
+		if (!open) emitAppearance("close", withClassicyAppearanceInput());
+	}, [open, emitAppearance]);
 
 	const { track } = useClassicyAnalytics();
 
@@ -218,6 +237,7 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 		(value: string) => {
 			if (value === PLACEHOLDER_VALUE) return;
 			setSelectedItem(value);
+			emitAppearance("change", withClassicyAppearanceInput({ value }));
 			track("selected", {
 				type: "ClassicyPopUpMenu",
 				itemId: value,
@@ -236,7 +256,7 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 				onChangeFunc(evt);
 			}
 		},
-		[onChangeFunc, track, id, label, options, selected],
+		[onChangeFunc, track, id, label, options, selected, emitAppearance],
 	);
 
 	const closeMenu = useCallback(() => {
@@ -253,10 +273,11 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 			setMenuRect(buttonRef.current.getBoundingClientRect());
 		}
 		setOpen(true);
+		emitAppearance("open", withClassicyAppearanceInput());
 		// Firefox/Safari don't focus a <button> on click (only Chromium does),
 		// so without this the keydown handler never runs after a mouse-open.
 		buttonRef.current?.focus();
-	}, [disabled, currentIndex]);
+	}, [disabled, currentIndex, emitAppearance]);
 
 	// Native-<select>-style type-ahead: accumulate typed chars (reset after
 	// 250ms idle) and jump the highlight to the first matching option label.
@@ -482,14 +503,17 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 				></ClassicyControlLabel>
 			)}
 			<div
+				{...appearance.attrs}
 				ref={wrapperRef}
 				className={classNames(
 					"classicyPopUpMenu",
 					sizeClass,
-					disabled && "select--disabled",
-					open && "classicyPopUpMenuOpen",
+					appearance.className,
 					extraClassName,
 				)}
+				style={
+					appearance.style ? { ...appearance.style, ...extraStyle } : extraStyle
+				}
 			>
 				{/* The visible custom button IS the control: it carries the `id`
 				    so consumers/tests can target it, and reflects the disabled
@@ -502,7 +526,7 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 					role="combobox"
 					className={classNames(
 						"classicyPopUpMenuButton",
-						disabled && "classicyPopUpMenuButtonDisabled",
+						classicyStateClasses({ disabled }),
 					)}
 					disabled={disabled}
 					aria-disabled={disabled}
@@ -586,9 +610,13 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 											}
 										}}
 									>
-										<span className="classicyPopUpMenuCheck" aria-hidden={true}>
-											{isSelected ? CHECKMARK : ""}
-										</span>
+										<span
+											className={classNames(
+												"classicyPopUpMenuCheck",
+												classicyStateClasses({ checked: isSelected }),
+											)}
+											aria-hidden={true}
+										/>
 										{o.icon && (
 											<img
 												className="classicyPopUpMenuListItemIcon"

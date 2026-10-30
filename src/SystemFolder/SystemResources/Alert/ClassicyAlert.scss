@@ -1,5 +1,4 @@
-@use "../../ControlPanels/AppearanceManager/styles/assets";
-@use "../../ControlPanels/AppearanceManager/styles/appearance";
+@use "../../../Appearance/vocabulary/color" as c;
 
 .classicyAlert {
   display: flex;
@@ -17,8 +16,13 @@
     gap: var(--layout-group-gap, 16px);
   }
 
-  // Severity icon: fixed 32px square per the HIG alert icon column.
+  // Severity icon: fixed 32px square per the HIG alert icon column. The icon
+  // and body are ordered explicitly, so a package can swap them by overriding
+  // the numbers. The buttons declare no order: their order is the button
+  // list's, default last, and a package flips them with `flex-direction` or
+  // with `order` on `[data-classicy-role]`.
   .classicyAlertIcon {
+    order: 10;
     flex: 0 0 auto;
     width: var(--icon-size-regular, 32px);
     height: var(--icon-size-regular, 32px);
@@ -31,6 +35,7 @@
   }
 
   .classicyAlertBody {
+    order: 20;
     flex: 1 1 auto;
     display: flex;
     flex-direction: column;
@@ -82,29 +87,10 @@
 // Movable alert: the window is draggable (not error-typed), so paint the red
 // title-bar highlight here — mirrors `.classicyWindowRed`'s title treatment
 // without touching ClassicyWindow. The non-movable variant already gets the red
-// border from `.classicyWindowRed` (modal + type="error").
+// border from `.classicyWindowRed` (modal + type="error"). The red stripes are
+// in the Platinum package.
 .classicyWindow:has(.classicyAlertMovable) {
   .classicyWindowTitleBar {
-    background-color: #f7cecd !important;
-
-    .classicyWindowTitle {
-      .classicyWindowTitleCenter {
-        background: assets.$title-bar-center-red;
-        background-size: auto 100%;
-      }
-
-      .classicyWindowTitleLeft,
-      .classicyWindowTitleRight {
-        background: assets.$title-bar-center-red;
-
-        &:after {
-          background-image: assets.$title-bar-right-red;
-        }
-
-        &:before {
-          background-image: assets.$title-bar-left-red;
-        }
-      }
-    }
+    background-color: c.classicy-tint("--color-error", 80%);
   }
 }

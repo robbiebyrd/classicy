@@ -1,4 +1,9 @@
-import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
+import {
+	type ClassicyTheme,
+	withDefaultThemePackage,
+	withDefaultThemePackageList,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
 	withDefaultThemeMetrics,
 	withDefaultThemeMetricsList,
@@ -30,9 +35,63 @@ import { normalizeClassicyAppWindows } from "@/SystemFolder/ControlPanels/AppMan
  *   themes (`withDefaultThemeMetrics`). Built-ins matter: `availableThemes`
  *   is persisted and replaces the defaults wholesale, so without this the
  *   first theme switch after an upgrade would clone a metric-less theme.
+ * - 2.2: theme `sound.name` renamed to `sound.pack` on the active, built-in
+ *   and custom themes (`migrateThemeSoundPack`).
+ * - 2.3: Appearance.packageId and theme.package default to "platinum" on the
+ *   Appearance slice and the active, built-in and custom themes
+ *   (`migrateAppearancePackage`).
+ * - Every window's gesture flags (`resizing`, `dragging`, `moving`) are
+ *   dropped (`stripWindowGestureFlags`). They belong to a gesture in
+ *   progress, which a load ends; `sanitizeStateForPersistence` drops them on
+ *   save, and this pass drops them from state saved before it did, so a
+ *   stale `dragging` never makes a window follow the pointer.
  */
 export function migrateClassicyState(state: ClassicyStore): ClassicyStore {
-	return migrateThemeMetrics(migrateAppWindows(state));
+	return migrateAppearancePackage(
+		migrateThemeSoundPack(
+			migrateThemeMetrics(stripWindowGestureFlags(migrateAppWindows(state))),
+		),
+	);
+}
+
+/** The window flags that only a gesture in progress sets. */
+const WINDOW_GESTURE_FLAGS = ["resizing", "dragging", "moving"] as const;
+
+/** Copy-on-write removal of every window's gesture flags; runs after
+ * `migrateAppWindows`, so `windows` is a record. */
+function stripWindowGestureFlags(state: ClassicyStore): ClassicyStore {
+	const apps = state?.System?.Manager?.Applications?.apps;
+	if (!apps || typeof apps !== "object") return state;
+
+	let nextApps: Record<string, ClassicyStoreSystemApp> | undefined;
+	for (const [appId, app] of Object.entries(apps)) {
+		const windows = app?.windows;
+		if (!windows || typeof windows !== "object") continue;
+		let nextWindows: typeof windows | undefined;
+		for (const [windowId, w] of Object.entries(windows)) {
+			if (!w || !WINDOW_GESTURE_FLAGS.some((flag) => Object.hasOwn(w, flag)))
+				continue;
+			const { resizing: _r, dragging: _d, moving: _m, ...rest } = w;
+			nextWindows ??= { ...windows };
+			nextWindows[windowId] = rest;
+		}
+		if (!nextWindows) continue;
+		nextApps ??= { ...apps };
+		nextApps[appId] = { ...app, windows: nextWindows };
+	}
+	if (!nextApps) return state;
+
+	const { System } = state;
+	return {
+		...state,
+		System: {
+			...System,
+			Manager: {
+				...System.Manager,
+				Applications: { ...System.Manager.Applications, apps: nextApps },
+			},
+		},
+	};
 }
 
 function migrateAppWindows(state: ClassicyStore): ClassicyStore {
@@ -65,9 +124,12 @@ function migrateAppWindows(state: ClassicyStore): ClassicyStore {
 /** Copy-on-write fill of a theme list; the same array back when untouched. */
 function migrateThemeList(
 	themes: ClassicyTheme[] | undefined,
+	migrate: (
+		themes: ClassicyTheme[],
+	) => ClassicyTheme[] = withDefaultThemeMetricsList,
 ): ClassicyTheme[] | undefined {
 	if (!Array.isArray(themes)) return themes;
-	return withDefaultThemeMetricsList(themes);
+	return migrate(themes);
 }
 
 function migrateThemeMetrics(state: ClassicyStore): ClassicyStore {
@@ -97,6 +159,128 @@ function migrateThemeMetrics(state: ClassicyStore): ClassicyStore {
 				...System.Manager,
 				Appearance: {
 					...appearance,
+					activeTheme,
+					availableThemes,
+					customThemes,
+				},
+			},
+		},
+	};
+}
+
+/** A theme whose `sound` still carries `name` (and no `pack`) becomes
+ * `{ pack: name, disabled }`; one carrying both (the persisted `name` deep-merged
+ * over the defaults' `pack`) drops the stale `name`; the same theme back
+ * otherwise. */
+function renameThemeSoundName(theme: ClassicyTheme): ClassicyTheme {
+	const sound = theme?.sound as
+		| { name?: unknown; pack?: unknown; disabled?: string[] }
+		| undefined;
+	if (!sound || typeof sound !== "object") return theme;
+	if (!Object.hasOwn(sound, "name")) return theme;
+	if (Object.hasOwn(sound, "pack")) {
+		const { name: _name, ...rest } = sound;
+		return { ...theme, sound: rest as ClassicyTheme["sound"] };
+	}
+	if (typeof sound.name !== "string") return theme;
+	return {
+		...theme,
+		sound: { pack: sound.name, disabled: sound.disabled ?? [] },
+	};
+}
+
+function renameThemeListSoundName(themes: ClassicyTheme[]): ClassicyTheme[] {
+	let next: ClassicyTheme[] | undefined;
+	themes.forEach((theme, i) => {
+		const renamed = renameThemeSoundName(theme);
+		if (renamed === theme) return;
+		next ??= [...themes];
+		next[i] = renamed;
+	});
+	return next ?? themes;
+}
+
+function migrateThemeSoundPack(state: ClassicyStore): ClassicyStore {
+	const appearance = state?.System?.Manager?.Appearance;
+	if (!appearance || typeof appearance !== "object") return state;
+
+	const activeTheme =
+		appearance.activeTheme && typeof appearance.activeTheme === "object"
+			? renameThemeSoundName(appearance.activeTheme)
+			: appearance.activeTheme;
+	const availableThemes = migrateThemeList(
+		appearance.availableThemes,
+		renameThemeListSoundName,
+	);
+	const customThemes = migrateThemeList(
+		appearance.customThemes,
+		renameThemeListSoundName,
+	);
+	if (
+		activeTheme === appearance.activeTheme &&
+		availableThemes === appearance.availableThemes &&
+		customThemes === appearance.customThemes
+	) {
+		return state;
+	}
+
+	const { System } = state;
+	return {
+		...state,
+		System: {
+			...System,
+			Manager: {
+				...System.Manager,
+				Appearance: {
+					...appearance,
+					activeTheme,
+					availableThemes,
+					customThemes,
+				},
+			},
+		},
+	};
+}
+
+function migrateAppearancePackage(state: ClassicyStore): ClassicyStore {
+	const appearance = state?.System?.Manager?.Appearance;
+	if (!appearance || typeof appearance !== "object") return state;
+
+	const packageId =
+		typeof appearance.packageId === "string"
+			? appearance.packageId
+			: CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID;
+	const activeTheme =
+		appearance.activeTheme && typeof appearance.activeTheme === "object"
+			? withDefaultThemePackage(appearance.activeTheme)
+			: appearance.activeTheme;
+	const availableThemes = migrateThemeList(
+		appearance.availableThemes,
+		withDefaultThemePackageList,
+	);
+	const customThemes = migrateThemeList(
+		appearance.customThemes,
+		withDefaultThemePackageList,
+	);
+	if (
+		packageId === appearance.packageId &&
+		activeTheme === appearance.activeTheme &&
+		availableThemes === appearance.availableThemes &&
+		customThemes === appearance.customThemes
+	) {
+		return state;
+	}
+
+	const { System } = state;
+	return {
+		...state,
+		System: {
+			...System,
+			Manager: {
+				...System.Manager,
+				Appearance: {
+					...appearance,
+					packageId,
 					activeTheme,
 					availableThemes,
 					customThemes,

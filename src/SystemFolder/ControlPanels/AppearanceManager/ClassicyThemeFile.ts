@@ -1,4 +1,9 @@
 import type { z } from "zod";
+import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
+// The store-free registry, never ClassicyAppearancePackage.ts: the desktop
+// reducer imports this module, and a path from it to the store would evaluate
+// the store before its default state.
+import { getClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackageRegistry";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { slugifyClassicyThemeName } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
 import {
@@ -20,8 +25,14 @@ import {
  *
  *     { "format": "classicy-theme", "version": 1, "theme": { …ClassicyTheme } }
  *
- * Loading also accepts a bare theme object (no envelope) — the shape of an
- * entry in `themes.json` or of `JSON.stringify(activeTheme)` — so themes
+ * A theme names its sound pack as `sound: { pack, disabled }`; the pack must be
+ * registered (`registerClassicySoundPack`) when the file is loaded. Likewise
+ * its Appearance Package (`package`, "platinum" when absent) must be
+ * registered (`registerClassicyAppearancePackage`) — except Platinum, which
+ * is always available (`CLASSICY_FALLBACK_APPEARANCE_PACKAGE`).
+ *
+ * Loading also accepts a bare theme object (no envelope) — the shape of a
+ * preset in `platinum.json` or of `JSON.stringify(activeTheme)` — so themes
  * written by hand or copied out of the store load without wrapping.
  *
  * Wallpapers are written as their bundled filename (`"azul_dark.png"`): the
@@ -48,6 +59,15 @@ export const portableClassicyThemeBackground = (value: string): string => {
 	if (filename) return filename;
 	return isSafeClassicyThemeBackgroundImage(value) ? value : "";
 };
+
+/**
+ * True when themes of `packageId` can be shown: the package is registered, or
+ * it is the default package, whose structure is built in
+ * (`resolveClassicyAppearancePackage` falls back to it).
+ */
+const isClassicyAppearancePackageInstalled = (packageId: string): boolean =>
+	packageId === CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID ||
+	getClassicyAppearancePackage(packageId) !== undefined;
 
 /** The loadable form of a validated `backgroundImage`: bundled wallpapers
  * resolve to this build's URL; http(s) URLs pass through. */
@@ -99,8 +119,9 @@ const describeIssues = (issues: z.core.$ZodIssue[]): string => {
 /**
  * Validates an untrusted theme object and makes it loadable: unknown keys
  * stripped, the wallpaper resolved for this build. Used for both file imports
- * and `ClassicyDesktopImportTheme` payloads. Identity (id/name) is left alone —
- * see `assignImportedClassicyThemeIdentity`.
+ * and `ClassicyDesktopImportTheme` payloads. A theme for an Appearance Package
+ * that is not installed is refused. Identity (id/name) is left alone — see
+ * `assignImportedClassicyThemeIdentity`.
  */
 export const readClassicyTheme = (value: unknown): ClassicyThemeParseResult => {
 	const parsed = ClassicyThemeSchema.safeParse(value);
@@ -111,6 +132,12 @@ export const readClassicyTheme = (value: unknown): ClassicyThemeParseResult => {
 		};
 	}
 	const theme = parsed.data;
+	if (!isClassicyAppearancePackageInstalled(theme.package)) {
+		return {
+			ok: false,
+			error: `This theme needs the "${theme.package}" appearance package, which is not installed.`,
+		};
+	}
 	theme.desktop.backgroundImage = loadableClassicyThemeBackground(
 		theme.desktop.backgroundImage,
 	);

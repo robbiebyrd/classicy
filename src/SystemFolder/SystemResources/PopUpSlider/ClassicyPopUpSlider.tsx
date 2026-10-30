@@ -1,17 +1,15 @@
 import "./ClassicyPopUpSlider.scss";
 import classNames from "classnames";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	type KeyboardEvent,
 	type MouseEvent,
 	useEffect,
 	useRef,
 } from "react";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { ClassicyPixelArt } from "@/SystemFolder/SystemResources/PixelArt/ClassicyPixelArt";
-import {
-	popUpSliderThumb,
-	popUpSliderTrack,
-} from "@/SystemFolder/SystemResources/PopUpSlider/ClassicyPopUpSliderArt";
 
 // Geometry from HIGOS8 Figure 2-16, in the slider's own coordinates (the inside
 // of the 19 × 75 pop-up frame). The thumb travels between the track's end caps.
@@ -39,6 +37,8 @@ type ClassicyPopUpSliderProps = {
 	id?: string;
 	/** Extra class on the slider. */
 	className?: string;
+	/** Inline style on the slider. */
+	style?: CSSProperties;
 };
 
 const clamp = (value: number, lo: number, hi: number) =>
@@ -79,6 +79,7 @@ export const ClassicyPopUpSlider: FunctionalComponent<
 	disabled = false,
 	id,
 	className,
+	style,
 }) => {
 	const sliderRef = useRef<HTMLDivElement>(null);
 	const dragCleanupRef = useRef<(() => void) | null>(null);
@@ -152,19 +153,20 @@ export const ClassicyPopUpSlider: FunctionalComponent<
 			aria-disabled={disabled || undefined}
 			className={classNames(
 				"classicyPopUpSlider",
-				disabled && "classicyPopUpSliderDisabled",
+				classicyStateClasses({ disabled }),
 				className,
 			)}
+			style={style}
 			onMouseDown={onMouseDown}
 			onKeyDown={onKeyDown}
 		>
 			<ClassicyPixelArt
-				rows={popUpSliderTrack}
+				art="popUpSliderTrack"
 				className="classicyPopUpSliderTrack"
 			/>
 			{/* Thumb position is the slider's value, so it is set inline. */}
 			<span className="classicyPopUpSliderThumb" style={{ top: thumbTop }}>
-				<ClassicyPixelArt rows={popUpSliderThumb} />
+				<ClassicyPixelArt art="popUpSliderThumb" />
 			</span>
 		</div>
 	);

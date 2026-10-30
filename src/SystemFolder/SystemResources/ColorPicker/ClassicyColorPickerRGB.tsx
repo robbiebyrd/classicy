@@ -1,15 +1,22 @@
-import type { ChangeEvent, FC } from "react";
+import classNames from "classnames";
+import type { ChangeEvent, CSSProperties, FC } from "react";
 import { ClassicySlider } from "@/SystemFolder/SystemResources/Slider/ClassicySlider";
 import { intToRgb, rgbToInt } from "./ClassicyColorPickerUtils";
 
 interface ClassicyColorPickerRGBProps {
 	color: number;
 	onChangeFunc: (color: number) => void;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 }
 
 export const ClassicyColorPickerRGB: FC<ClassicyColorPickerRGBProps> = ({
 	color,
 	onChangeFunc,
+	className,
+	style,
 }) => {
 	const { r, g, b } = intToRgb(color);
 	const rPct = Math.round((r / 255) * 100);
@@ -33,8 +40,11 @@ export const ClassicyColorPickerRGB: FC<ClassicyColorPickerRGBProps> = ({
 			emit(channel, Number(e.target.value));
 
 	return (
-		<div className="classicyColorPickerSlidersTab">
-			<div className="classicyColorPickerSlider--red">
+		<div
+			className={classNames("classicyColorPickerSlidersTab", className)}
+			style={style}
+		>
+			<div className="classicyColorPickerSliderRed">
 				<ClassicySlider
 					id="cp-rgb-r"
 					labelTitle="Red:"
@@ -46,7 +56,7 @@ export const ClassicyColorPickerRGB: FC<ClassicyColorPickerRGBProps> = ({
 					onChangeFunc={onChange("r")}
 				/>
 			</div>
-			<div className="classicyColorPickerSlider--green">
+			<div className="classicyColorPickerSliderGreen">
 				<ClassicySlider
 					id="cp-rgb-g"
 					labelTitle="Green:"
@@ -58,7 +68,7 @@ export const ClassicyColorPickerRGB: FC<ClassicyColorPickerRGBProps> = ({
 					onChangeFunc={onChange("g")}
 				/>
 			</div>
-			<div className="classicyColorPickerSlider--blue">
+			<div className="classicyColorPickerSliderBlue">
 				<ClassicySlider
 					id="cp-rgb-b"
 					labelTitle="Blue:"

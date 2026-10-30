@@ -6,7 +6,7 @@ import {
 	useMemo,
 	useRef,
 } from "react";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import type { ActionMessage } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	useAppManager,
@@ -68,8 +68,6 @@ import {
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import type { ClassicyTableSelectionApi } from "@/SystemFolder/SystemResources/Table/ClassicyTable";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
-
-const appIcon = ClassicyIcons.system.mac;
 
 type FinderWindowProps = {
 	appId: string;
@@ -343,6 +341,7 @@ const FinderFolderWindow: FunctionalComponent<FinderFolderWindowProps> = ({
 const FinderFolderWindowMemo = memo(FinderFolderWindow);
 
 export const Finder = () => {
+	const appIcon = useClassicyAsset("icons", "system.mac") ?? "";
 	const appName: string = "Finder";
 	const appId: string = "Finder.app";
 	const desktopEventDispatch = useAppManagerDispatch();
@@ -553,15 +552,15 @@ export const Finder = () => {
 		ensureClassicyTrash(fs);
 	}, [fs]);
 	const trashFull = listClassicyTrashItems(fs).length > 0;
+	const trashFullIcon = useClassicyAsset("systemArt", "trashFull") ?? "";
+	const trashEmptyIcon = useClassicyAsset("systemArt", "trashEmpty") ?? "";
 	useEffect(() => {
 		desktopEventDispatch({
 			type: "ClassicyDesktopIconAdd",
 			app: {
 				id: "Trash",
 				name: "Trash",
-				icon: trashFull
-					? ClassicyIcons.system.desktop.trashFull
-					: ClassicyIcons.system.desktop.trashEmpty,
+				icon: trashFull ? trashFullIcon : trashEmptyIcon,
 			},
 			kind: "trash",
 			filePath: CLASSICY_TRASH_PATH,
@@ -589,7 +588,7 @@ export const Finder = () => {
 				},
 			],
 		});
-	}, [trashFull, desktopEventDispatch]);
+	}, [trashFull, trashFullIcon, trashEmptyIcon, desktopEventDispatch]);
 
 	const trashItems = useCallback(
 		(paths: string[]) => {

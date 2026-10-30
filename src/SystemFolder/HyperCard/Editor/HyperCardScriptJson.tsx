@@ -4,7 +4,12 @@
  * error without dispatching.
  */
 
-import { type FC as FunctionalComponent, useState } from "react";
+import classNames from "classnames";
+import {
+	type CSSProperties,
+	type FC as FunctionalComponent,
+	useState,
+} from "react";
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import type { HCScriptTarget } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorUtils";
 import { validateHandlers } from "@/SystemFolder/HyperCard/Editor/HyperCardScriptModel";
@@ -17,11 +22,15 @@ interface HyperCardScriptJsonProps {
 	stackId: string;
 	target: HCScriptTarget;
 	handlers: HCEventHandlers;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 }
 
 export const HyperCardScriptJson: FunctionalComponent<
 	HyperCardScriptJsonProps
-> = ({ stackId, target, handlers }) => {
+> = ({ stackId, target, handlers, className, style }) => {
 	const dispatch = useAppManagerDispatch();
 	const seeded = JSON.stringify(handlers, null, "\t");
 	const [text, setText] = useState(seeded);
@@ -50,7 +59,10 @@ export const HyperCardScriptJson: FunctionalComponent<
 	};
 
 	return (
-		<div className={"classicyHyperCardScriptJson"}>
+		<div
+			className={classNames("classicyHyperCardScriptJson", className)}
+			style={style}
+		>
 			<ClassicyTextEditor
 				key={`${stackId}:${JSON.stringify(target)}`}
 				id={"hypercard_script_json"}

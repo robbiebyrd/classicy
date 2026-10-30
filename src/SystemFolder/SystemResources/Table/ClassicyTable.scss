@@ -1,5 +1,3 @@
-@use '../../ControlPanels/AppearanceManager/styles/appearance';
-
 // The generic Platinum list view — same look as the Finder's list mode
 // (ClassicyFileBrowserViewTable), minus the file-specific parts.
 
@@ -34,28 +32,27 @@
 }
 
 .classicyTableHeader {
-  border: none !important;
+  border: none;
 }
 
 .classicyTableContent {
-  font-size: calc(var(--ui-font-size) * 0.8);
+  font-size: var(--ui-font-size-small);
   font-weight: normal;
 }
 
 .classicyTableColumnHeader {
-  font-size: calc(var(--ui-font-size) * 0.8);
+  font-size: var(--ui-font-size-small);
   font-weight: normal;
   font-stretch: condensed;
   display: table-cell;
   align-items: center;
   position: relative;
   padding: var(--window-padding-size);
-
-  @include appearance.platinumWindowBoxShadow;
+  // The header bevel, and the sorted column's pressed-in header, are the
+  // Platinum package's (Appearance/Platinum/styles/components/_Table.scss).
 }
 
-.classicyTableColumnHeaderSelected {
-  @include appearance.platinumWindowHeaderBorderDepressed;
+:where(.classicyTableColumnHeader).selected {
   background-color: var(--color-system-04);
 }
 
@@ -73,7 +70,7 @@
 // Finder-style list selection tracks the user's Appearance selection color
 // (HIGOS8 Ch.2 — the selection/accent color is user-set in the Appearance
 // control panel), matching ClassicyTree rather than a fixed near-black.
-.classicyTableRowSelected {
+:where(.classicyTableRow).selected {
   color: var(--color-white);
   background: var(--color-select);
 }

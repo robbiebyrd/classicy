@@ -8,8 +8,10 @@ import {
 	ClassicyInput,
 	ClassicyWindow,
 	quitAppHelper,
+	resolveClassicyAsset,
 	useAppManager,
 	useAppManagerDispatch,
+	useClassicyAsset,
 } from "classicy";
 import DOMPurify from "dompurify";
 import {
@@ -34,12 +36,15 @@ import {
 	useBrowserNavigation,
 } from "./useBrowserNavigation";
 
-const DEFAULT_FAVORITES: BrowserFavorite[] = [
+// Read at call time, not captured at import, so a later icon registration
+// reaches the seeded favorites.
+const defaultFavorites = (): BrowserFavorite[] => [
 	{
 		id: "cnn",
 		title: "CNN",
 		url: "http://www.cnn.com/",
-		icon: ClassicyIcons.applications.internetExplorer.news,
+		icon:
+			resolveClassicyAsset("icons", "applications.internetExplorer.news") ?? "",
 	},
 ];
 
@@ -106,12 +111,15 @@ const PROTOCOL_OPTIONS = [
 
 const DEFAULT_URL = "http://www.apple.com/";
 const DEFAULT_HOME_LABEL = "Apple";
-const DEFAULT_HOME_ICON = ClassicyIcons.applications.internetExplorer.apple;
+const DEFAULT_HOME_ICON_PATH = "applications.internetExplorer.apple";
 
 export const Browser = () => {
 	const appName = "Browser";
 	const appId = "Browser.app";
-	const appIcon = ClassicyIcons.applications.internetExplorer.app;
+	const appIcon =
+		useClassicyAsset("icons", "applications.internetExplorer.app") ?? "";
+	const defaultHomeIcon =
+		useClassicyAsset("icons", DEFAULT_HOME_ICON_PATH) ?? "";
 
 	const desktopEventDispatch = useAppManagerDispatch();
 	const appState = useAppManager(
@@ -138,7 +146,7 @@ export const Browser = () => {
 	const homePage = browserData.homePage ?? {
 		url: DEFAULT_URL,
 		label: DEFAULT_HOME_LABEL,
-		icon: DEFAULT_HOME_ICON,
+		icon: defaultHomeIcon,
 	};
 
 	// Seed defaults once the app's state exists. Not keyed on the fields
@@ -149,7 +157,7 @@ export const Browser = () => {
 		if (!browserData.favorites) {
 			desktopEventDispatch({
 				type: "ClassicyAppBrowserInitFavorites",
-				favorites: DEFAULT_FAVORITES,
+				favorites: defaultFavorites(),
 			});
 		}
 		if (!browserData.homePage) {
@@ -157,7 +165,7 @@ export const Browser = () => {
 				type: "ClassicyAppBrowserSetHomePage",
 				url: DEFAULT_URL,
 				label: DEFAULT_HOME_LABEL,
-				icon: DEFAULT_HOME_ICON,
+				icon: resolveClassicyAsset("icons", DEFAULT_HOME_ICON_PATH) ?? "",
 			});
 		}
 	}, [appState, desktopEventDispatch]);

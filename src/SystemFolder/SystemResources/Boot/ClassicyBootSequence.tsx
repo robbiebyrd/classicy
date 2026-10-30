@@ -1,11 +1,12 @@
 import "./ClassicyBootSequence.scss";
+import classNames from "classnames";
 import {
 	type CSSProperties,
 	type FC as FunctionalComponent,
 	type ReactNode,
 	useState,
 } from "react";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { ClassicyStartupScreen } from "@/SystemFolder/SystemResources/Boot/ClassicyStartupScreen";
 import {
 	hasShownStartupScreenThisSession,
@@ -28,6 +29,14 @@ interface ClassicyBootSequenceProps {
 	 * helpers. Still subject to the `startupScreen` gate.
 	 */
 	bootScreen?: ReactNode;
+	/**
+	 * Extra class names, merged onto the root of the current phase after its
+	 * own: the power-on overlay, then the default startup screen. A
+	 * `bootScreen` is rendered as given and receives neither.
+	 */
+	className?: string;
+	/** Inline style, merged like `className` after the phase root's own. */
+	style?: CSSProperties;
 }
 
 /**
@@ -48,7 +57,10 @@ export const ClassicyBootSequence: FunctionalComponent<
 	startupLogo,
 	startupWordmark,
 	bootScreen,
+	className,
+	style,
 }) => {
+	const halftoneLarge = useClassicyAsset("icons", "ui.halftoneLarge") ?? "";
 	const [phase, setPhase] = useState<"powerOn" | "startup">(() =>
 		preBootScreen && !hasShownStartupScreenThisSession()
 			? "powerOn"
@@ -71,10 +83,14 @@ export const ClassicyBootSequence: FunctionalComponent<
 		// Hide the desktop behind an opaque white sheet tiled with the halftone
 		// pattern (a transparent PNG resolved in JS, handed to SCSS as a var).
 		const overlayStyle = {
-			"--classicy-preboot-halftone": `url(${ClassicyIcons.ui.halftoneLarge})`,
+			"--classicy-preboot-halftone": `url(${halftoneLarge})`,
+			...style,
 		} as CSSProperties;
 		return (
-			<div className="classicyPreBootScreen" style={overlayStyle}>
+			<div
+				className={classNames("classicyPreBootScreen", className)}
+				style={overlayStyle}
+			>
 				{preBootScreen(powerOn)}
 			</div>
 		);
@@ -87,6 +103,8 @@ export const ClassicyBootSequence: FunctionalComponent<
 				duration={startupDuration}
 				logo={startupLogo}
 				wordmark={startupWordmark}
+				className={className}
+				style={style}
 			/>
 		)
 	);

@@ -1,0 +1,33 @@
+// The Platinum pop-up menu look (from ClassicyPopUpMenu.scss): the raised
+// control, its double-arrow indicator, and the checkmark against the current
+// item of the open menu (ComboBox shares it). The disabled fill follows the
+// undepressable face it overrides.
+@use "sass:string";
+@use "../mixins";
+
+@mixin popUpMenu {
+  .classicyPopUpMenu {
+    @include mixins.platinum-window-undepressable;
+
+    &.disabled {
+      background-color: var(--color-system-01);
+    }
+  }
+
+  // The double arrow: the registered art as an image, like the grow-box grip
+  // and the control-box dither (ruling E21). A mask over --color-black does
+  // not reproduce the raster exactly at every tile size (the ComboBox's
+  // 9x10.8 px arrow), and an image layer leaves the indicator's border,
+  // corners and bevel untouched. Base keeps the no-repeat / center / 45%
+  // geometry.
+  .classicyPopUpMenuIndicator {
+    background-image: var(--classicy-art-popup-arrows);
+  }
+
+  // The HIG checkmark against the current selection, a font glyph in the
+  // fixed check gutter (an escape kept by `string.unquote`, so the Sass output
+  // stays ASCII; the build keeps dist ASCII, verify:dist invariant 9).
+  .classicyPopUpMenuCheck.checked::before {
+    content: string.unquote('"\\2713"'); // ✓
+  }
+}

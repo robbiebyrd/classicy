@@ -1,6 +1,7 @@
 import type { CSSProperties, FC, ReactNode, RefObject } from "react";
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 
 export type ClassicyBalloonPosition =
@@ -24,16 +25,10 @@ export interface ClassicyIconBalloonHelp {
 	delay?: number;
 }
 
-// Read --window-control-size from the desktop element at the time of display.
-const readControlSize = (): number => {
-	const el =
-		document.getElementById("classicyDesktop") ?? document.documentElement;
-	return (
-		parseFloat(
-			getComputedStyle(el).getPropertyValue("--window-control-size"),
-		) || 0
-	);
-};
+// Read --window-control-size from the desktop element at the time of display
+// (the default theme's 12 px before the desktop mounts).
+const readControlSize = (): number =>
+	readClassicyThemeVar("--window-control-size");
 
 /** The subset of DOMRect this module measures against. */
 interface AnchorRect {

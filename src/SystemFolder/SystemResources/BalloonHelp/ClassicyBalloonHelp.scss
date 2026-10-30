@@ -1,5 +1,3 @@
-@use "../../ControlPanels/AppearanceManager/styles/appearance";
-
 // Tight wrapper — shrinks to the children's dimensions so the balloon
 // is positioned relative to the actual element, not a stretched block.
 .classicyBalloonHelpAnchor {
@@ -41,9 +39,10 @@
   }
 }
 
-.classicyBalloonHelpTitle {
+// Two classes: beats the bubble's `p { margin: 0 }`.
+.classicyBalloonHelp .classicyBalloonHelpTitle {
   font-weight: bold;
-  margin-bottom: 3px !important;
+  margin-bottom: 3px;
 }
 
 // The tail is a sibling of .classicyBalloonHelp — rendered after it in DOM

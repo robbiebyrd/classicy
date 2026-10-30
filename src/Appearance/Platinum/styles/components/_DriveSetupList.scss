@@ -1,0 +1,9 @@
+// The Platinum Drive Setup list look (from DriveSetupList.scss): the column
+// headers' bevel, matching the Finder list view.
+@use "../mixins";
+
+@mixin driveSetupList {
+  .classicyDriveSetupListHead th {
+    @include mixins.platinum-window-box-shadow;
+  }
+}

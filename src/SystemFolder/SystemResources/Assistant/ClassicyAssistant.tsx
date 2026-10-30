@@ -1,11 +1,16 @@
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import "./ClassicyAssistant.scss";
+import classNames from "classnames";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	type KeyboardEvent,
 	type ReactNode,
+	useRef,
 	useState,
 } from "react";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyPager } from "@/SystemFolder/SystemResources/Pager/ClassicyPager";
@@ -80,6 +85,10 @@ export interface ClassicyAssistantProps {
 	 * controlled or not (only after `canAdvance` allows a forward move).
 	 */
 	onPageChange?: (index: number) => void;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 }
 
 const clamp = (value: number, min: number, max: number): number =>
@@ -93,9 +102,10 @@ const clamp = (value: number, min: number, max: number): number =>
  * `ClassicyWindow`; Classicy's own Apple Guide window (`AppleGuideWindow`,
  * the Help menu's "About Balloon Help…") is built on it.
  *
- * Page changes play `ClassicyTabClickUp`; the → and ← keys page while focus
- * is inside the assistant. A page's `canAdvance` can refuse a forward move,
- * which plays the error sound instead. Uncontrolled by default (starting at
+ * Page changes play `ClassicyTabClickUp` under Platinum (its `change` hook);
+ * the → and ← keys page while focus is inside the assistant. A page's
+ * `canAdvance` can refuse a forward move, which plays the error sound
+ * instead. Uncontrolled by default (starting at
  * `initialPage`); pass `page` + `onPageChange` to own the current page.
  *
  * ```tsx
@@ -116,12 +126,16 @@ export const ClassicyAssistant: FunctionalComponent<ClassicyAssistantProps> = ({
 	initialPage = 0,
 	page,
 	onPageChange,
+	className,
+	style,
 }) => {
 	const lastIndex = Math.max(0, pages.length - 1);
 	const [uncontrolledPage, setUncontrolledPage] = useState(() =>
 		clamp(initialPage, 0, lastIndex),
 	);
 	const player = useSoundDispatch();
+	const rootRef = useRef<HTMLDivElement>(null);
+	const appearance = useClassicyAppearance("Assistant", {}, rootRef);
 
 	const isControlled = page !== undefined;
 	const currentPage = clamp(
@@ -147,7 +161,8 @@ export const ClassicyAssistant: FunctionalComponent<ClassicyAssistantProps> = ({
 	const changePage = (index: number) => {
 		const next = clamp(index, 0, lastIndex);
 		if (next === currentPage) return;
-		player({ type: "ClassicySoundPlay", sound: "ClassicyTabClickUp" });
+		// The pager's arrows and the arrow keys both land here.
+		appearance.emit("change", withClassicyAppearanceInput({ page: next }));
 		if (!isControlled) setUncontrolledPage(next);
 		onPageChange?.(next);
 	};
@@ -174,8 +189,19 @@ export const ClassicyAssistant: FunctionalComponent<ClassicyAssistantProps> = ({
 
 	return (
 		// biome-ignore lint/a11y/noStaticElementInteractions: wizard container is a focusable arrow-key nav surface
-		// biome-ignore lint/a11y/noNoninteractiveTabindex: focusable so arrow keys work when focus is within the assistant
-		<div className={"classicyAssistant"} tabIndex={0} onKeyDown={onKeyDown}>
+		<div
+			{...appearance.attrs}
+			ref={rootRef}
+			className={classNames(
+				"classicyAssistant",
+				appearance.className,
+				className,
+			)}
+			style={appearance.style ? { ...appearance.style, ...style } : style}
+			// biome-ignore lint/a11y/noNoninteractiveTabindex: focusable so arrow keys work when focus is within the assistant
+			tabIndex={0}
+			onKeyDown={onKeyDown}
+		>
 			<section
 				className={"classicyAssistantHeader"}
 				aria-live="polite"

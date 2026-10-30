@@ -1,6 +1,14 @@
 import "./ClassicyCheckbox.scss";
 import classNames from "classnames";
-import { type FC as FunctionalComponent, useEffect, useState } from "react";
+import {
+	type CSSProperties,
+	type FC as FunctionalComponent,
+	useEffect,
+	useRef,
+	useState,
+} from "react";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import {
 	ClassicyControlLabel,
@@ -45,6 +53,10 @@ export type ClassicyCheckboxProps = {
 	 * checkmark is not culturally acceptable. Defaults to "check".
 	 */
 	mark?: "check" | "x";
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 };
 
 /**
@@ -80,6 +92,8 @@ export const ClassicyCheckbox: FunctionalComponent<ClassicyCheckboxProps> = ({
 	labelSize = "medium",
 	labelPosition = "right",
 	mark = "check",
+	className,
+	style,
 }) => {
 	const [check, setCheck] = useState<boolean>(checked || false);
 	useEffect(() => {
@@ -87,6 +101,12 @@ export const ClassicyCheckbox: FunctionalComponent<ClassicyCheckboxProps> = ({
 	}, [checked]);
 	const { track } = useClassicyAnalytics();
 	const analyticsArgs = { type: "ClassicyCheckbox", label };
+	const inputRef = useRef<HTMLInputElement>(null);
+	const appearance = useClassicyAppearance(
+		"Checkbox",
+		{ default: isDefault, mixed, checked: check, disabled },
+		inputRef,
+	);
 
 	const handleOnClick = () => {
 		if (onClickFunc) {
@@ -95,6 +115,10 @@ export const ClassicyCheckbox: FunctionalComponent<ClassicyCheckboxProps> = ({
 		track("click", { checked: !check, ...analyticsArgs });
 		if (!disabled) {
 			setCheck(!check);
+			appearance.emit(
+				"change",
+				withClassicyAppearanceInput({ checked: !check }),
+			);
 		}
 	};
 
@@ -103,7 +127,9 @@ export const ClassicyCheckbox: FunctionalComponent<ClassicyCheckboxProps> = ({
 			className={classNames(
 				"classicyCheckboxHolder",
 				labelPositionClass(labelPosition),
+				className,
 			)}
+			style={style}
 		>
 			<ClassicyControlLabel
 				label={label}
@@ -112,6 +138,8 @@ export const ClassicyCheckbox: FunctionalComponent<ClassicyCheckboxProps> = ({
 				disabled={disabled}
 			/>
 			<input
+				{...appearance.attrs}
+				ref={inputRef}
 				type={"checkbox"}
 				onChange={handleOnClick}
 				tabIndex={0}
@@ -120,10 +148,10 @@ export const ClassicyCheckbox: FunctionalComponent<ClassicyCheckboxProps> = ({
 				disabled={disabled}
 				className={classNames(
 					"classicyCheckbox",
-					isDefault ? "classicyCheckboxDefault" : "",
-					mixed ? "classicyCheckboxMixed" : "",
+					appearance.className,
 					mark === "x" ? "classicyCheckboxX" : "",
 				)}
+				style={appearance.style}
 			/>
 		</div>
 	);

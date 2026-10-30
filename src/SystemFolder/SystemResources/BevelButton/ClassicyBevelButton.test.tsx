@@ -30,7 +30,8 @@ describe("ClassicyBevelButton", () => {
 	it("defaults to the off state and medium bevel", () => {
 		render(<ClassicyBevelButton>Tool</ClassicyBevelButton>);
 		const btn = screen.getByRole("button", { name: "Tool" });
-		expect(btn).toHaveAttribute("data-state", "off");
+		expect(btn).not.toHaveClass("pressed", "checked", "mixed", "disabled");
+		expect(btn).not.toHaveAttribute("data-state");
 		expect(btn).toHaveClass("classicyBevelButtonBevelMedium");
 	});
 
@@ -73,10 +74,12 @@ describe("ClassicyBevelButton", () => {
 			</ClassicyBevelButton>,
 		);
 		const btn = screen.getByRole("button", { name: "Bold" });
-		expect(btn).toHaveAttribute("data-state", "off");
+		expect(btn).not.toHaveClass("checked");
 		await user.click(btn);
 		expect(onChange).toHaveBeenCalledWith(true);
-		expect(btn).toHaveAttribute("data-state", "on");
+		expect(btn).toHaveClass("checked");
+		expect(btn).not.toHaveClass("pressed");
+		expect(btn).not.toHaveAttribute("data-state");
 	});
 
 	it("radio mode turns on and stays on (never toggles back off)", async () => {
@@ -93,7 +96,8 @@ describe("ClassicyBevelButton", () => {
 		await user.click(btn);
 		// Only the first click changed state.
 		expect(onChange).toHaveBeenCalledTimes(1);
-		expect(btn).toHaveAttribute("data-state", "on");
+		expect(btn).toHaveClass("checked");
+		expect(btn).not.toHaveClass("pressed");
 	});
 
 	it("reports the mixed state", () => {
@@ -103,7 +107,7 @@ describe("ClassicyBevelButton", () => {
 			</ClassicyBevelButton>,
 		);
 		const btn = screen.getByRole("button", { name: "Mixed" });
-		expect(btn).toHaveAttribute("data-state", "mixed");
+		expect(btn).toHaveClass("mixed");
 		expect(btn).toHaveAttribute("aria-pressed", "mixed");
 	});
 
@@ -117,7 +121,8 @@ describe("ClassicyBevelButton", () => {
 		);
 		const btn = screen.getByRole("button", { name: "Off" });
 		expect(btn).toBeDisabled();
-		expect(btn).toHaveAttribute("data-state", "disabled-off");
+		expect(btn).toHaveClass("disabled");
+		expect(btn).not.toHaveClass("checked");
 		await user.click(btn);
 		expect(onClick).not.toHaveBeenCalled();
 
@@ -126,9 +131,9 @@ describe("ClassicyBevelButton", () => {
 				On
 			</ClassicyBevelButton>,
 		);
-		expect(screen.getByRole("button", { name: "On" })).toHaveAttribute(
-			"data-state",
-			"disabled-on",
+		expect(screen.getByRole("button", { name: "On" })).toHaveClass(
+			"disabled",
+			"checked",
 		);
 	});
 

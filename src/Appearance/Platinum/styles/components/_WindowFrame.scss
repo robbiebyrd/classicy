@@ -1,0 +1,10 @@
+// The Platinum window-frame look (from ClassicyWindowFrame.scss): the frame
+// draws the window's title bar (ClassicyWindowTitleBar), always focused, so
+// its bands carry the focused window's stripes.
+@use "../mixins";
+
+@mixin windowFrame {
+  .classicyWindowFrame {
+    @include mixins.platinum-title-bar-stripes($side-size: auto 99.8%);
+  }
+}

@@ -1,4 +1,14 @@
+import type { ClassicyAppearanceKnobs } from "@/Appearance/ClassicyAppearancePackage";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import {
+	isClassicyForbiddenKey,
+	isClassicyPlainObject,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceKeyGuards.internal";
+import {
+	CLASSICY_MEASUREMENT_NAME,
+	classicyMeasurementVarName,
+	isReservedClassicyThemeVar,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 
 /**
  * Every theme metric a user can edit, addressed by a flat, typed target. This
@@ -326,4 +336,153 @@ export const setThemeMetric = (
 			m.layout.dialogEdge = value;
 			return;
 	}
+};
+
+// ─── The family form: an Appearance Package's knobs ─────────────────────────
+//
+// `ClassicyDesktopChangeMetric { family, key, value }` edits
+// `measurements.<family>.<key>` for a knob the ACTIVE package declares
+// (`ClassicyAppearancePackage.knobs`). It is a separate shape from the 20 core
+// targets above, which stay `{ metricKey }`: the knobs are the allowlist here,
+// and the bounds are the knob's own.
+
+/** Addresses one package knob, `measurements.<family>.<key>`. */
+export type ClassicyThemeMetricFamilyTarget = { family: string; key: string };
+
+/** Family-form payload of `ClassicyDesktopChangeMetric` (minus `type`). */
+export type ClassicyThemeMetricFamilyChange =
+	ClassicyThemeMetricFamilyTarget & {
+		/** Whole CSS pixels, within the knob's `min`–`max` (and 0–512). */
+		value: number;
+	};
+
+const CORE_GROUP_IDS: readonly string[] = CLASSICY_THEME_METRIC_GROUPS.map(
+	(group) => group.id,
+);
+
+const isKnobName = (value: unknown): value is string =>
+	typeof value === "string" &&
+	CLASSICY_MEASUREMENT_NAME.test(value) &&
+	!isClassicyForbiddenKey(value);
+
+/**
+ * Validates an untyped `{ family, key }` as a family-form target: both are
+ * measurement names (`CLASSICY_MEASUREMENT_NAME`), neither is `constructor`
+ * or `prototype`, `family` is not one of the five core groups (those are
+ * edited by `metricKey`), and the variable the pair makes is not one
+ * `getThemeVars` sets itself (`isReservedClassicyThemeVar`: `menu.minWidth`
+ * would make the derivation `--menu-min-width`, which the walker skips, so
+ * the edit could never take effect; nor may it take Classicy's own
+ * `--classicy-` prefix, as a family `classicy` would). Whether a package declares the knob is
+ * checked against its knobs (`isValidThemeMetricFamily`).
+ */
+export const isThemeMetricFamilyTarget = (
+	value: Readonly<Record<string, unknown>>,
+): value is ClassicyThemeMetricFamilyTarget =>
+	isKnobName(value.family) &&
+	isKnobName(value.key) &&
+	!CORE_GROUP_IDS.includes(value.family) &&
+	!isReservedClassicyThemeVar(
+		classicyMeasurementVarName(value.family, value.key),
+	);
+
+/** The knob `knobs` declares for a target, read through own properties only. */
+export const getThemeMetricFamilyKnob = (
+	knobs: ClassicyAppearanceKnobs | undefined,
+	target: ClassicyThemeMetricFamilyTarget,
+): ClassicyAppearanceKnobs[string][string] | undefined => {
+	if (!knobs || !Object.hasOwn(knobs, target.family)) return undefined;
+	const family = knobs[target.family];
+	return family && Object.hasOwn(family, target.key)
+		? family[target.key]
+		: undefined;
+};
+
+/**
+ * The values a knob accepts: its own inclusive `min`–`max` intersected with
+ * the theme schema's 0–512. `undefined` when they do not meet (a
+ * knob declared wholly outside 0–512), so the knob is not editable at all:
+ * the reducer refuses every value and the Options tab leaves it out. The
+ * single source for both.
+ */
+export const getThemeMetricFamilyBounds = (
+	knob: ClassicyAppearanceKnobs[string][string],
+): { min: number; max: number } | undefined => {
+	const min = Math.max(knob.min, 0);
+	const max = Math.min(knob.max, MAX);
+	return min <= max ? { min, max } : undefined;
+};
+
+/**
+ * True when `knobs` declares the target and `value` is a finite number within
+ * the knob's inclusive bounds and the theme schema's 0–512.
+ */
+export const isValidThemeMetricFamily = (
+	target: ClassicyThemeMetricFamilyTarget,
+	value: unknown,
+	knobs: ClassicyAppearanceKnobs | undefined,
+): value is number => {
+	const knob = getThemeMetricFamilyKnob(knobs, target);
+	const bounds = knob && getThemeMetricFamilyBounds(knob);
+	return (
+		bounds !== undefined &&
+		typeof value === "number" &&
+		Number.isFinite(value) &&
+		value >= bounds.min &&
+		value <= bounds.max
+	);
+};
+
+/** The family object a theme carries for `family`; `undefined` when absent
+ * or not a plain object (tampered or legacy state). */
+const ownFamily = (
+	theme: ClassicyTheme,
+	family: string,
+): Record<string, unknown> | undefined => {
+	const m = theme.measurements;
+	if (!Object.hasOwn(m, family)) return undefined;
+	const value: unknown = m[family];
+	return isClassicyPlainObject(value) ? value : undefined;
+};
+
+/** Reads `measurements.<family>.<key>` through own properties; `NaN` when
+ * the theme does not carry it as a number. */
+export const getThemeMetricFamily = (
+	theme: ClassicyTheme,
+	target: ClassicyThemeMetricFamilyTarget,
+): number => {
+	const family = ownFamily(theme, target.family);
+	const value =
+		family && Object.hasOwn(family, target.key)
+			? family[target.key]
+			: undefined;
+	return typeof value === "number" ? value : Number.NaN;
+};
+
+/**
+ * Writes a package knob when `isValidThemeMetricFamily` passes, creating the
+ * family or key if the theme predates the knob; otherwise a no-op (so
+ * `editActiveClassicyTheme` does not fork). A family the theme carries as
+ * something other than a plain object (`null`, a number, an array — tampered
+ * or legacy state) is left alone and the write refused. Returns whether it
+ * wrote.
+ */
+export const setThemeMetricFamily = (
+	theme: ClassicyTheme,
+	target: ClassicyThemeMetricFamilyTarget,
+	value: number,
+	knobs: ClassicyAppearanceKnobs | undefined,
+): boolean => {
+	if (
+		!isThemeMetricFamilyTarget(target) ||
+		!isValidThemeMetricFamily(target, value, knobs)
+	) {
+		return false;
+	}
+	const m = theme.measurements;
+	if (!Object.hasOwn(m, target.family)) m[target.family] = {};
+	const family = ownFamily(theme, target.family);
+	if (!family) return false;
+	family[target.key] = value;
+	return true;
 };

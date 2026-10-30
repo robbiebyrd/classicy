@@ -1,4 +1,5 @@
-import type { ChangeEvent, FC } from "react";
+import classNames from "classnames";
+import type { ChangeEvent, CSSProperties, FC } from "react";
 import { ClassicySlider } from "@/SystemFolder/SystemResources/Slider/ClassicySlider";
 import {
 	cmykToRgb,
@@ -10,11 +11,17 @@ import {
 interface ClassicyColorPickerCMYKProps {
 	color: number;
 	onChangeFunc: (color: number) => void;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 }
 
 export const ClassicyColorPickerCMYK: FC<ClassicyColorPickerCMYKProps> = ({
 	color,
 	onChangeFunc,
+	className,
+	style,
 }) => {
 	const { r, g, b } = intToRgb(color);
 	const { c, m, y, k } = rgbToCmyk(r, g, b);
@@ -33,8 +40,11 @@ export const ClassicyColorPickerCMYK: FC<ClassicyColorPickerCMYKProps> = ({
 			emit(channel, Number(e.target.value));
 
 	return (
-		<div className="classicyColorPickerSlidersTab">
-			<div className="classicyColorPickerSlider--cyan">
+		<div
+			className={classNames("classicyColorPickerSlidersTab", className)}
+			style={style}
+		>
+			<div className="classicyColorPickerSliderCyan">
 				<ClassicySlider
 					id="cp-cmyk-c"
 					labelTitle="Cyan:"
@@ -46,7 +56,7 @@ export const ClassicyColorPickerCMYK: FC<ClassicyColorPickerCMYKProps> = ({
 					onChangeFunc={onChange("c")}
 				/>
 			</div>
-			<div className="classicyColorPickerSlider--magenta">
+			<div className="classicyColorPickerSliderMagenta">
 				<ClassicySlider
 					id="cp-cmyk-m"
 					labelTitle="Magenta:"
@@ -58,7 +68,7 @@ export const ClassicyColorPickerCMYK: FC<ClassicyColorPickerCMYKProps> = ({
 					onChangeFunc={onChange("m")}
 				/>
 			</div>
-			<div className="classicyColorPickerSlider--yellow">
+			<div className="classicyColorPickerSliderYellow">
 				<ClassicySlider
 					id="cp-cmyk-y"
 					labelTitle="Yellow:"
@@ -70,7 +80,7 @@ export const ClassicyColorPickerCMYK: FC<ClassicyColorPickerCMYKProps> = ({
 					onChangeFunc={onChange("y")}
 				/>
 			</div>
-			<div className="classicyColorPickerSlider--black">
+			<div className="classicyColorPickerSliderBlack">
 				<ClassicySlider
 					id="cp-cmyk-k"
 					labelTitle="Black:"

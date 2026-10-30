@@ -1,0 +1,9 @@
+// The Platinum icon look (from ClassicyIcon.scss): the halftone dither drawn
+// through the icon's mask.
+@use "../mixins";
+
+@mixin icon {
+  .classicyIconMask {
+    @include mixins.platinum-halftone("--color-black", 7%);
+  }
+}

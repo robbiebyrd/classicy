@@ -2,12 +2,16 @@ import "./ClassicyListBox.scss";
 import classNames from "classnames";
 import {
 	type CSSProperties,
+	type FocusEvent,
 	type FC as FunctionalComponent,
 	type KeyboardEvent as ReactKeyboardEvent,
 	useMemo,
 	useRef,
 	useState,
 } from "react";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import {
 	ClassicyControlLabel,
 	type ClassicyControlLabelSize,
@@ -57,6 +61,10 @@ type ClassicyListBoxProps = {
 	labelSize?: ClassicyControlLabelSize;
 	/** Dims the list and ignores clicks and keys. Defaults to `false`. */
 	disabled?: boolean;
+	/** Extra class names, merged onto the outermost element (the label wrapper when there is a label) after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the outermost element (the label wrapper when there is a label) after the component's own. */
+	style?: CSSProperties;
 };
 
 type SelectionModifiers = {
@@ -92,6 +100,8 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 	labelPosition = "above",
 	labelSize,
 	disabled = false,
+	className,
+	style,
 }) => {
 	const [internal, setInternal] = useState<string[]>([]);
 	const effectiveSelected = selected ?? internal;
@@ -113,6 +123,21 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 		handleNavKey,
 	} = useListNavigation(navRows);
 
+	const rootRef = useRef<HTMLDivElement>(null);
+	const appearance = useClassicyAppearance("ListBox", { disabled }, rootRef);
+	// Focus moving between rows stays inside the list: only focus entering
+	// from, or leaving to, outside the list is a focus or blur of the list.
+	const isInsideList = (target: EventTarget | null) =>
+		target instanceof Node && !!rootRef.current?.contains(target);
+	const handleFocus = (e: FocusEvent<HTMLDivElement>) => {
+		if (!isInsideList(e.relatedTarget))
+			appearance.emit("focus", withClassicyAppearanceInput());
+	};
+	const handleBlur = (e: FocusEvent<HTMLDivElement>) => {
+		if (!isInsideList(e.relatedTarget))
+			appearance.emit("blur", withClassicyAppearanceInput());
+	};
+
 	const commit = (values: string[]) => {
 		setInternal(values);
 		onChangeFunc?.(values);
@@ -121,6 +146,13 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 	const applySelection = (index: number, mods: SelectionModifiers) => {
 		const option = options[index];
 		if (!option || option.disabled || disabled) return;
+		// Click and keyboard both select through here; `selected` is false
+		// only for a Ctrl/⌘-click that deselects in multi mode.
+		const emitSelect = (selected: boolean) =>
+			appearance.emit(
+				"select",
+				withClassicyAppearanceInput({ value: option.value, selected }),
+			);
 		if (selectionMode === "multi") {
 			if (mods.shiftKey && anchorIndex.current >= 0) {
 				const from = Math.min(anchorIndex.current, index);
@@ -131,20 +163,24 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 						.filter((o) => !o.disabled)
 						.map((o) => o.value),
 				);
+				emitSelect(true);
 				return; // the anchor survives so the range can keep pivoting
 			}
 			if (mods.metaKey || mods.ctrlKey) {
 				anchorIndex.current = index;
+				const wasSelected = effectiveSelected.includes(option.value);
 				commit(
-					effectiveSelected.includes(option.value)
+					wasSelected
 						? effectiveSelected.filter((v) => v !== option.value)
 						: [...effectiveSelected, option.value],
 				);
+				emitSelect(!wasSelected);
 				return;
 			}
 		}
 		anchorIndex.current = index;
 		commit([option.value]);
+		emitSelect(true);
 	};
 
 	const handleKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>) => {
@@ -178,6 +214,8 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 
 	const listbox = (
 		<div
+			{...appearance.attrs}
+			ref={rootRef}
 			id={id}
 			role="listbox"
 			aria-multiselectable={selectionMode === "multi" || undefined}
@@ -185,16 +223,21 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 			aria-disabled={disabled || undefined}
 			className={classNames(
 				"classicyListBox",
-				disabled && "classicyListBoxDisabled",
+				appearance.className,
+				label ? "" : className,
 			)}
-			style={
-				visibleRows
+			style={{
+				...(visibleRows
 					? ({
 							"--classicy-listbox-visible-rows": visibleRows,
 						} as CSSProperties)
-					: undefined
-			}
+					: {}),
+				...appearance.style,
+				...(label ? {} : style),
+			}}
 			onKeyDown={handleKeyDown}
+			onFocus={handleFocus}
+			onBlur={handleBlur}
 		>
 			{options.map((o, index) => {
 				const isSelected = effectiveSelected.includes(o.value);
@@ -207,10 +250,13 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 						aria-disabled={o.disabled || undefined}
 						tabIndex={tabStopId === o.value && !disabled ? 0 : -1}
 						ref={(el) => registerRef(o.value, el)}
-						className={classNames("classicyListBoxOption", {
-							classicyListBoxOptionSelected: isSelected,
-							classicyListBoxOptionDisabled: o.disabled,
-						})}
+						className={classNames(
+							"classicyListBoxOption",
+							classicyStateClasses({
+								selected: isSelected,
+								disabled: o.disabled,
+							}),
+						)}
 						onClick={(e) => {
 							if (disabled || o.disabled) return;
 							// Focus the row too (browsers do this natively for
@@ -241,7 +287,10 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 	if (!label) return listbox;
 
 	return (
-		<div className={classNames(labelPositionClass(labelPosition))}>
+		<div
+			className={classNames(labelPositionClass(labelPosition), className)}
+			style={style}
+		>
 			<ClassicyControlLabel
 				label={label}
 				labelFor={id}

@@ -38,10 +38,6 @@ vi.mock(
 	}),
 );
 
-vi.mock("@/SystemFolder/SystemResources/Cursor/useClassicyCursor", () => ({
-	useClassicyCursor: () => vi.fn(),
-}));
-
 vi.mock("@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons", () => ({
 	ClassicyIcons: {
 		system: { files: { file: "file.png" } },
@@ -93,16 +89,16 @@ describe("ClassicyAlert", () => {
 		const buttons = screen.getAllByRole("button");
 		expect(buttons).toHaveLength(1);
 		expect(buttons[0]).toHaveTextContent("OK");
-		expect(buttons[0]).toHaveClass("classicyButtonDefault");
+		expect(buttons[0]).toHaveClass("default");
 	});
 
 	it("generates Cancel + default Continue for caution alerts", () => {
 		render(<ClassicyAlert alertType="caution" label="c" />);
 		expect(screen.getByRole("button", { name: "Cancel" })).not.toHaveClass(
-			"classicyButtonDefault",
+			"default",
 		);
 		expect(screen.getByRole("button", { name: "Continue" })).toHaveClass(
-			"classicyButtonDefault",
+			"default",
 		);
 	});
 
@@ -179,10 +175,10 @@ describe("ClassicyAlert", () => {
 			/>,
 		);
 		expect(screen.getByRole("button", { name: "Cancel" })).toHaveClass(
-			"classicyButtonDefault",
+			"default",
 		);
 		expect(screen.getByRole("button", { name: "Discard" })).not.toHaveClass(
-			"classicyButtonDefault",
+			"default",
 		);
 	});
 

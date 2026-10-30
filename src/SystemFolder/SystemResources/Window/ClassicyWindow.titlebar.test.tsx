@@ -1,3 +1,7 @@
+// The window sounds come from Platinum's hooks. ClassicyIcons is not mocked:
+// the icon tree registers itself in ClassicyIcons.ts, which Platinum's assets
+// import and read at load, and a mock of a different shape broke that module.
+import "@/Appearance/Platinum";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render } from "@/__tests__/test-utils";
 import { windowsRecord } from "@/__tests__/windowsRecord";
@@ -64,14 +68,6 @@ vi.mock(
 		useClassicyAnalytics: () => ({ track: vi.fn(), page: vi.fn() }),
 	}),
 );
-
-vi.mock("@/SystemFolder/SystemResources/Cursor/useClassicyCursor", () => ({
-	useClassicyCursor: () => vi.fn(),
-}));
-
-vi.mock("@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons", () => ({
-	ClassicyIcons: { system: { files: { file: "file.png" } } },
-}));
 
 vi.mock(
 	"@/SystemFolder/SystemResources/Window/ClassicyWindow.scss",
@@ -219,5 +215,17 @@ describe("ClassicyWindow title bar", () => {
 		expect(dispatchedTypes()).toContainEqual(
 			expect.objectContaining({ type: "ClassicyWindowCollapse" }),
 		);
+	});
+
+	// The wrapper is the title bar's flex item, so it carries the part
+	// attribute the base `order` rules (and a package) key on.
+	it("tags each control wrapper", () => {
+		const { container } = renderWindow();
+		for (const c of ["close", "zoom", "collapse"])
+			expect(
+				container.querySelector(
+					`.classicyWindowControlBox[data-classicy-control="${c}"]`,
+				),
+			).not.toBeNull();
 	});
 });

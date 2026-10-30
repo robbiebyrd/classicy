@@ -1,20 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen } from "@/__tests__/test-utils";
+import { registerClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { ClassicyBootSequence } from "@/SystemFolder/SystemResources/Boot/ClassicyBootSequence";
 
 const mockPlayer = vi.hoisted(() => vi.fn());
+
+// The overlay reads its art from the icon registry at render time.
+registerClassicyIcons({
+	system: { macosSvg: "macos.svg" },
+	ui: { halftoneLarge: "halftone-large.png" },
+});
 
 vi.mock(
 	"@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext",
 	() => ({ useSoundDispatch: () => mockPlayer }),
 );
-
-vi.mock("@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons", () => ({
-	ClassicyIcons: {
-		system: { macosSvg: "macos.svg" },
-		ui: { halftoneLarge: "halftone-large.png" },
-	},
-}));
 
 vi.mock(
 	"@/SystemFolder/SystemResources/Boot/ClassicyStartupScreen.scss",

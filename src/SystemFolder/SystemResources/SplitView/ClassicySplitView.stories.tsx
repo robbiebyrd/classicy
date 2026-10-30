@@ -9,6 +9,10 @@ const meta = {
 
 export default meta;
 type Story = StoryObj<typeof meta>;
+// For the stories that draw the component themselves in `render` and ignore
+// the args: typed against the component (every arg optional), not
+// `typeof meta`, which would demand its required props as story args.
+type RenderStory = StoryObj<typeof ClassicySplitView>;
 
 const paneStyle = {
 	padding: 8,
@@ -97,7 +101,7 @@ export const ThreePanesWithDefaultSizes: Story = {
  * Combining directions is done by nesting a split view inside a pane, never
  * by a grid mode: here a sidebar beside a vertically split main area.
  */
-export const NestedSplits: Story = {
+export const NestedSplits: RenderStory = {
 	render: () => (
 		<div style={{ width: 640, height: 360 }}>
 			<ClassicySplitView direction="horizontal" defaultSizes={[35, 65]}>
@@ -139,6 +143,6 @@ const CommitDemo = () => {
  * release) with the final sizes — save those to app state and pass them back
  * as `defaultSizes` on the next mount to restore the user's split.
  */
-export const CommitOnRelease: Story = {
+export const CommitOnRelease: RenderStory = {
 	render: () => <CommitDemo />,
 };

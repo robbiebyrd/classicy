@@ -1,0 +1,156 @@
+// The Platinum slider look (from ClassicySlider.scss): the indicator's shape,
+// border, grip and face, for the native thumb in each state, the highlighted
+// and nondirectional variants, and the ghost indicator that tracks a drag.
+// The thumb's size, its rotation for each pointing direction and the ghost's
+// position stay in the base sheet. The nondirectional rules override the
+// pentagon thumb's clip-path and background, so they come with it, after it.
+
+// Pentagon: flat top + right/left sides down to 62%, then arrow-point to 100%
+$thumb-shape: polygon(9% 2%, 92% 2%, 92% 56.6%, 50% 95%, 9% 56.6%);
+
+// ── Thumb border art ──────────────────────────────────────────────────────────
+// `border`, `box-shadow`, and `filter: drop-shadow` all fail on
+// ::webkit-slider-thumb: border/shadow paint before clip-path (rectangle-clipped),
+// and filter is not applied to this pseudo-element by the browser.
+//
+// Solution: an image layer draws a 4px stroke on the same pentagon path used by
+// clip-path. The stroke is centered on the path so its outer 2px are cropped by
+// clip-path, leaving a clean 2px border (= --window-border-size × 2) that
+// follows every edge exactly — including the diagonal lower sides.
+//
+// The art is the registered system art `sliderThumb` (Platinum:
+// assets/art/slider-thumb.svg, viewBox 21 × 21 = the thumb's width × height,
+// points = $thumb-shape in px). It stays an image layer, not a mask: the thumb
+// has no pseudo-elements, so a mask would clip the body gradient too. Its
+// `currentColor` stroke draws black in an image.
+$_thumb-border-svg: var(--classicy-art-slider-thumb);
+
+// ── Thumb grip strikes art ────────────────────────────────────────────────────
+// Three vertical lines centered in the thumb body to indicate draggability:
+// the registered system art `sliderStrikes` (Platinum:
+// assets/art/slider-strikes.svg, its two-tone grays the art).
+$_thumb-strikes-svg: var(--classicy-art-slider-strikes);
+
+// ── Nondirectional thumb (unpointed knob) ─────────────────────────────────────
+// A plain rounded-rectangle indicator for sliders where the pointed edge would
+// carry no meaning. Same 2px-cropped-stroke trick as the pentagon border, from
+// the registered system art `sliderThumbRect` (Platinum:
+// assets/art/slider-thumb-rect.svg).
+$_thumb-rect-svg: var(--classicy-art-slider-thumb-rect);
+$_thumb-rect-shape: inset(0 round calc(var(--window-border-size) * 1.5));
+
+// ── Thumb appearance mixin ────────────────────────────────────────────────────
+@mixin platinum-slider-thumb(
+  $body-gradient,
+) {
+  clip-path: $thumb-shape;
+  background:
+    $_thumb-border-svg 0 0 / 100% 100% no-repeat,
+    $_thumb-strikes-svg center 30% / 45% 35% no-repeat,
+    $body-gradient;
+}
+
+@mixin slider {
+  .classicySlider {
+    // Image 1 — normal (raised Platinum silver)
+    &::-webkit-slider-thumb {
+      @include platinum-slider-thumb(
+        linear-gradient(to bottom, var(--color-system-01), var(--color-system-04))
+      );
+    }
+
+    &::-moz-range-thumb {
+      @include platinum-slider-thumb(
+        linear-gradient(to bottom, var(--color-system-01), var(--color-system-04))
+      );
+    }
+
+    // Image 2 — depressed / dragging (inverted gradient, reversed glint)
+    &:active::-webkit-slider-thumb {
+      @include platinum-slider-thumb(
+        linear-gradient(to bottom, var(--color-theme-04), var(--color-theme-03), var(--color-theme-04))
+      );
+    }
+
+    &:active::-moz-range-thumb {
+      @include platinum-slider-thumb(
+        linear-gradient(to bottom, var(--color-theme-04), var(--color-theme-03), var(--color-theme-04))
+      );
+    }
+  }
+
+  // ─── Highlighted variant (Image 3) — theme blue ─────────────────────────────
+
+  .classicySliderHighlighted {
+    &::-webkit-slider-thumb {
+      @include platinum-slider-thumb(
+        linear-gradient(to bottom, var(--color-theme-04), var(--color-theme-03), var(--color-theme-04))
+      );
+    }
+
+    &::-moz-range-thumb {
+      @include platinum-slider-thumb(
+        linear-gradient(to bottom, var(--color-theme-03), var(--color-theme-04), var(--color-theme-03))    );
+    }
+
+    &:active::-webkit-slider-thumb {
+      @include platinum-slider-thumb(
+        linear-gradient(to bottom, var(--color-theme-06), var(--color-theme-05), var(--color-theme-06))
+      );
+    }
+
+    &:active::-moz-range-thumb {
+      @include platinum-slider-thumb(
+        linear-gradient(to bottom, var(--color-theme-06), var(--color-theme-05), var(--color-theme-06))    );
+    }
+  }
+
+  // ─── Nondirectional indicator: a rounded-rectangle knob with no point ───────
+
+  .classicySliderIndicatorNondirectional {
+    &::-webkit-slider-thumb {
+      clip-path: $_thumb-rect-shape;
+      background:
+        $_thumb-rect-svg 0 0 / 100% 100% no-repeat,
+        $_thumb-strikes-svg center 50% / 45% 35% no-repeat,
+        linear-gradient(to bottom, var(--color-system-01), var(--color-system-04));
+    }
+    &::-moz-range-thumb {
+      clip-path: $_thumb-rect-shape;
+      background:
+        $_thumb-rect-svg 0 0 / 100% 100% no-repeat,
+        $_thumb-strikes-svg center 50% / 45% 35% no-repeat,
+        linear-gradient(to bottom, var(--color-system-01), var(--color-system-04));
+    }
+    &:active::-webkit-slider-thumb {
+      clip-path: $_thumb-rect-shape;
+      background:
+        $_thumb-rect-svg 0 0 / 100% 100% no-repeat,
+        $_thumb-strikes-svg center 50% / 45% 35% no-repeat,
+        linear-gradient(to bottom, var(--color-theme-04), var(--color-theme-03), var(--color-theme-04));
+    }
+    &:active::-moz-range-thumb {
+      clip-path: $_thumb-rect-shape;
+      background:
+        $_thumb-rect-svg 0 0 / 100% 100% no-repeat,
+        $_thumb-strikes-svg center 50% / 45% 35% no-repeat,
+        linear-gradient(to bottom, var(--color-theme-04), var(--color-theme-03), var(--color-theme-04));
+    }
+  }
+
+  // ─── Ghost indicator (shadow copy tracking the pointer during drag) ─────────
+
+  .classicySliderGhost {
+    clip-path: $thumb-shape;
+    background:
+      $_thumb-border-svg 0 0 / 100% 100% no-repeat,
+      linear-gradient(to bottom, var(--color-system-02), var(--color-system-05));
+
+    &.classicySliderIndicatorNondirectional {
+      clip-path: $_thumb-rect-shape;
+      background:
+        $_thumb-rect-svg 0 0 / 100% 100% no-repeat,
+        linear-gradient(to bottom, var(--color-system-02), var(--color-system-05));
+    }
+  }
+}

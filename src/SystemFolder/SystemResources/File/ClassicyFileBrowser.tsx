@@ -1,13 +1,18 @@
 import "./ClassicyFileBrowserViewTable.scss";
+import classNames from "classnames";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	type KeyboardEvent,
 	type MouseEvent,
 	type RefObject,
 	useCallback,
 	useImperativeHandle,
+	useLayoutEffect,
 	useRef,
+	useState,
 } from "react";
+import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import type {
 	FinderIconViewOptions,
@@ -112,6 +117,10 @@ type ClassicyFileBrowserProps = {
 	) => ClassicyMenuItem[] | undefined;
 	/** Receives `{ selectedPaths() }`, for menu commands that act on the selection. */
 	commandsRef?: RefObject<ClassicyFileBrowserCommands | null>;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 };
 
 // Define stable default functions outside component to prevent re-creation
@@ -173,13 +182,15 @@ export const ClassicyFileBrowser: FunctionalComponent<
 	onDeleteItems,
 	itemContextMenu,
 	commandsRef,
+	className,
+	style,
 }) => {
 	const holderRef = useRef<HTMLDivElement>(null);
 	const rootRef = useRef<HTMLDivElement>(null);
 	const { showContextMenu } = useClassicyContextualMenu();
 
 	// The list view reports its selection; the icon view's lives in each icon
-	// (highlighted ones carry classicyIconActive), so it is read from the DOM.
+	// (highlighted ones carry the selected state class), so it is read from the DOM.
 	const listSelectionRef = useRef<string[]>(selectedPaths ?? []);
 	const trackListSelection = useCallback(
 		(paths: string[]) => {
@@ -192,7 +203,7 @@ export const ClassicyFileBrowser: FunctionalComponent<
 		if (display === "list") return listSelectionRef.current;
 		return Array.from(
 			rootRef.current?.querySelectorAll(
-				`.classicyIconActive[${CLASSICY_FILE_PATH_ATTRIBUTE}]`,
+				`.classicyIcon.selected[${CLASSICY_FILE_PATH_ATTRIBUTE}]`,
 			) ?? [],
 			(el) => el.getAttribute(CLASSICY_FILE_PATH_ATTRIBUTE) ?? "",
 		).filter(Boolean);
@@ -228,15 +239,29 @@ export const ClassicyFileBrowser: FunctionalComponent<
 		e.preventDefault();
 		showContextMenu(menu, [e.clientX, e.clientY]);
 	};
+	// The list view's icon base is the desktop's --desktop-icon-size, read once
+	// per theme icon size (not per render), in a layout effect after the commit
+	// that applies a new theme's variables to #classicyDesktop. The store's
+	// number is the fallback before the desktop mounts, and the value
+	// whenever the desktop's variables are the theme's.
 	const themeIconSize = useAppManager(
 		(s) => s.System.Manager.Appearance.activeTheme.desktop.iconSize,
 	);
+	const [desktopIconSize, setDesktopIconSize] = useState(() =>
+		readClassicyThemeVar("--desktop-icon-size", themeIconSize),
+	);
+	useLayoutEffect(() => {
+		setDesktopIconSize(
+			readClassicyThemeVar("--desktop-icon-size", themeIconSize),
+		);
+	}, [themeIconSize]);
 
 	return (
 		// biome-ignore lint/a11y/noStaticElementInteractions: keys and right-clicks bubble here from the focusable list box and icons
 		<div
 			ref={rootRef}
-			className={"classicyFileBrowserFill"}
+			className={classNames("classicyFileBrowserFill", className)}
+			style={style}
 			{...{ [CLASSICY_DROP_FOLDER_ATTRIBUTE]: path }}
 			onKeyDown={onKeyDown}
 			onContextMenu={onContextMenu}
@@ -254,7 +279,7 @@ export const ClassicyFileBrowser: FunctionalComponent<
 					// theme ever ships a different base.
 					iconSize={
 						listViewOptions
-							? listViewIconSize(themeIconSize, listViewOptions.iconSize)
+							? listViewIconSize(desktopIconSize, listViewOptions.iconSize)
 							: 18
 					}
 					holderRef={holderRef}

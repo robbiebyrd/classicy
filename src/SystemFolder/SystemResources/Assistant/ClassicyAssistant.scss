@@ -1,4 +1,4 @@
-@use "../../ControlPanels/AppearanceManager/styles/appearance";
+@use "../../../Appearance/vocabulary/layout";
 
 .classicyAssistant {
 	display: flex;
@@ -14,13 +14,13 @@
 	flex-direction: row;
 	align-items: center;
 	column-gap: calc(var(--window-control-size) * 0.5);
-	height: calc(var(--window-control-size) * 1.5);
+	height: var(--control-row-height);
 	padding: 0 var(--window-padding-size);
 	font-family: var(--ui-font), sans-serif;
 	font-weight: bold;
 	background: var(--color-system-03);
-	@include appearance.platinumWindowHeaderBorder;
-	@include appearance.no-select;
+	// Its beveled border is in the Platinum package.
+	@include layout.classicy-no-select;
 }
 
 .classicyAssistantHeaderTitle {
@@ -43,8 +43,8 @@
 }
 
 .classicyAssistantAccessoryIconSm {
-	width: calc(var(--window-control-size) * 1.25);
-	height: calc(var(--window-control-size) * 1.25);
+	width: var(--control-glyph-size);
+	height: var(--control-glyph-size);
 }
 
 .classicyAssistantAccessoryIconMd {
@@ -72,25 +72,25 @@
 	align-items: center;
 	justify-content: space-between;
 	column-gap: var(--window-padding-size);
-	padding: calc(var(--window-padding-size) * 0.5) var(--window-padding-size);
+	padding: var(--control-padding) var(--window-padding-size);
 	background: var(--color-system-03);
 	// The pager's disabled-arrow punch-out is painted in the band color; this
 	// footer is system-03, not the pager's system-01 default.
 	--classicy-pager-band: var(--color-system-03);
-	@include appearance.no-select;
+	@include layout.classicy-no-select;
 }
 
 .classicyAssistantFooterButtons {
 	display: flex;
 	flex-direction: row;
-	column-gap: calc(var(--window-padding-size) * 0.5);
+	column-gap: var(--control-padding);
 }
 
 .classicyAssistantNav {
 	display: flex;
 	flex-direction: row;
 	align-items: center;
-	column-gap: calc(var(--window-padding-size) * 0.5);
+	column-gap: var(--control-padding);
 }
 
 // `.classicyAssistantPageIndicator` carries no rule of its own: the page cell

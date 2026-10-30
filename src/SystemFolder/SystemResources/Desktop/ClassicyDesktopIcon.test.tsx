@@ -1,5 +1,10 @@
-import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@/__tests__/test-utils";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen } from "@/__tests__/test-utils";
+import {
+	registerClassicySystemArt,
+	resolveClassicyAsset,
+} from "@/Appearance/ClassicyAssetRegistry";
+import "@/Appearance/Platinum/assets/platinumAssets";
 import { ClassicyContextualMenuProvider } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 
 const mockDispatch = vi.hoisted(() => vi.fn());
@@ -196,6 +201,41 @@ describe("ClassicyDesktopIcon alias badging", () => {
 		);
 	});
 
+	describe("with a host-registered aliasBadge", () => {
+		const platinumAlias = resolveClassicyAsset(
+			"systemArt",
+			"aliasBadge",
+		) as string;
+		afterEach(() => {
+			registerClassicySystemArt("platinum", { aliasBadge: platinumAlias });
+		});
+
+		it("draws the registered artwork on the badge", () => {
+			registerClassicySystemArt("platinum", { aliasBadge: "custom.png" });
+			const { container } = render(<ClassicyDesktopIcon {...defaultProps} />);
+			const badgeEl = badge(container) as HTMLElement;
+			expect(badgeEl.querySelector("img")).toHaveAttribute("src", "custom.png");
+			expect(badgeEl.style.getPropertyValue("--classicy-icon-mask")).toBe(
+				"url(custom.png)",
+			);
+		});
+
+		it("re-renders the badge when the alias is registered after mount", () => {
+			const { container } = render(<ClassicyDesktopIcon {...defaultProps} />);
+			expect(badge(container)?.querySelector("img")).toHaveAttribute(
+				"src",
+				platinumAlias,
+			);
+			act(() => {
+				registerClassicySystemArt("platinum", { aliasBadge: "later.png" });
+			});
+			expect(badge(container)?.querySelector("img")).toHaveAttribute(
+				"src",
+				"later.png",
+			);
+		});
+	});
+
 	it("hides the badge from assistive technology", () => {
 		const { container } = render(<ClassicyDesktopIcon {...defaultProps} />);
 		const badgeImg = container.querySelector(
@@ -212,5 +252,22 @@ describe("ClassicyDesktopIcon alias badging", () => {
 		expect(
 			wrapper?.querySelector(".classicyDesktopIconMask > img"),
 		).toBeInTheDocument();
+	});
+});
+
+describe("ClassicyDesktopIcon consumer style", () => {
+	// Stacking belongs to the icon states (ClassicyDesktopIcon.scss: 10,
+	// dragging 500), which no longer win by !important; a consumer zIndex is
+	// dropped.
+	it("drops a consumer zIndex and keeps the rest", () => {
+		const { container } = render(
+			<ClassicyDesktopIcon
+				{...defaultProps}
+				style={{ zIndex: 7, opacity: 0.5 }}
+			/>,
+		);
+		const icon = container.querySelector("#TestApp\\.shortcut") as HTMLElement;
+		expect(icon.style.zIndex).toBe("");
+		expect(icon.style.opacity).toBe("0.5");
 	});
 });

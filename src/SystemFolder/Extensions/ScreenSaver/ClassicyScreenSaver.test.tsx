@@ -1,11 +1,14 @@
 import { fireEvent } from "@testing-library/react";
+import { useEffect, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render } from "@/__tests__/test-utils";
+import { act, render } from "@/__tests__/test-utils";
 import {
 	ClassicyScreenSaver,
 	SCREEN_SAVER_ACTIVE_DOCUMENT_CLASS,
+	SCREEN_SAVER_OVERLAY_ID,
 } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaver";
 import type { ScreenSaverData } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverContext";
+import { registerClassicyScreenSaver } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverRegistry";
 
 const mockDispatch = vi.hoisted(() => vi.fn());
 const mockData = vi.hoisted(
@@ -89,6 +92,154 @@ describe("ClassicyScreenSaver overlay", () => {
 		expect(
 			container.querySelectorAll(".classicySaverBouncingBallBall"),
 		).toHaveLength(5);
+	});
+
+	it("gives the overlay the id its stylesheet overrides key on", () => {
+		setData({ active: true, selectedSaver: "bouncing-ball" });
+		render(<ClassicyScreenSaver />);
+		expect(
+			document
+				.getElementById(SCREEN_SAVER_OVERLAY_ID)
+				?.classList.contains("classicyScreenSaverOverlay"),
+		).toBe(true);
+	});
+
+	it("leaves the balls' animation to the stylesheet, where reduced motion reaches it", () => {
+		setData({ active: true, selectedSaver: "bouncing-ball" });
+		const { container } = render(<ClassicyScreenSaver />);
+		const balls = container.querySelectorAll(".classicySaverBouncingBallBall");
+		expect(balls).toHaveLength(3);
+		for (const ball of balls) expect(ball.getAttribute("style")).toBeNull();
+	});
+
+	describe("a registered saver with an inline animation", () => {
+		// No stylesheet rule outranks an inline `animation` shorthand, so the
+		// overlay pauses its subtree's animations itself for reduced motion.
+		const InlineSaver = () => (
+			<div
+				className="testInlineSaver"
+				style={{ animation: "testSpin 1s linear infinite" }}
+			/>
+		);
+		registerClassicyScreenSaver({
+			id: "test-inline-animation",
+			name: "Inline Animation",
+			component: InlineSaver,
+		});
+
+		const stubMotion = (reduce: boolean) => {
+			const animation = { pause: vi.fn(), play: vi.fn() };
+			const getAnimations = vi.fn(() => [animation]);
+			vi.stubGlobal(
+				"matchMedia",
+				vi.fn((query: string) => ({
+					matches: reduce && query === "(prefers-reduced-motion: reduce)",
+					addEventListener: vi.fn(),
+					removeEventListener: vi.fn(),
+				})),
+			);
+			Object.defineProperty(HTMLElement.prototype, "getAnimations", {
+				configurable: true,
+				value: getAnimations,
+			});
+			return { animation, getAnimations };
+		};
+
+		afterEach(() => {
+			vi.unstubAllGlobals();
+			delete (HTMLElement.prototype as { getAnimations?: unknown })
+				.getAnimations;
+		});
+
+		it("is paused under reduced motion", () => {
+			const { animation, getAnimations } = stubMotion(true);
+			setData({ active: true, selectedSaver: "test-inline-animation" });
+			const { container } = render(<ClassicyScreenSaver />);
+			expect(
+				container.querySelector<HTMLElement>(".testInlineSaver")?.style
+					.animation,
+			).toContain("testSpin");
+			expect(getAnimations).toHaveBeenCalledWith({ subtree: true });
+			expect(getAnimations.mock.contexts[0]).toBe(
+				document.getElementById(SCREEN_SAVER_OVERLAY_ID),
+			);
+			expect(animation.pause).toHaveBeenCalled();
+		});
+
+		it("keeps running without a reduced-motion preference", () => {
+			const { animation } = stubMotion(false);
+			setData({ active: true, selectedSaver: "test-inline-animation" });
+			render(<ClassicyScreenSaver />);
+			expect(animation.pause).not.toHaveBeenCalled();
+		});
+	});
+
+	describe("a registered saver that spawns inline-animated elements later", () => {
+		// An element appended after mount carries an inline `animation` the
+		// mount-time pass never saw; the overlay's capture-phase
+		// `animationstart` listener pauses it when it starts.
+		const SpawningSaver = () => {
+			const [spawned, setSpawned] = useState(false);
+			useEffect(() => {
+				const timer = setTimeout(() => setSpawned(true), 1000);
+				return () => clearTimeout(timer);
+			}, []);
+			return (
+				<div className="testSpawningSaver">
+					{spawned && (
+						<b
+							className="testSpawned"
+							style={{ animation: "testFall 2s linear infinite" }}
+						/>
+					)}
+				</div>
+			);
+		};
+		registerClassicyScreenSaver({
+			id: "test-spawning",
+			name: "Spawning",
+			component: SpawningSaver,
+		});
+
+		const spawnAndStart = (reduce: boolean) => {
+			vi.useFakeTimers();
+			vi.stubGlobal(
+				"matchMedia",
+				vi.fn((query: string) => ({
+					matches: reduce && query === "(prefers-reduced-motion: reduce)",
+					addEventListener: vi.fn(),
+					removeEventListener: vi.fn(),
+				})),
+			);
+			setData({ active: true, selectedSaver: "test-spawning" });
+			const { container } = render(<ClassicyScreenSaver />);
+			expect(container.querySelector(".testSpawned")).toBeNull();
+			act(() => {
+				vi.advanceTimersByTime(1000);
+			});
+			const spawned = container.querySelector<HTMLElement>(".testSpawned");
+			expect(spawned?.style.animation).toContain("testFall");
+			const animation = { pause: vi.fn(), play: vi.fn() };
+			Object.defineProperty(spawned, "getAnimations", {
+				configurable: true,
+				value: () => [animation],
+			});
+			spawned?.dispatchEvent(new Event("animationstart", { bubbles: true }));
+			return animation;
+		};
+
+		afterEach(() => {
+			vi.useRealTimers();
+			vi.unstubAllGlobals();
+		});
+
+		it("pauses an animation that starts after mount under reduced motion", () => {
+			expect(spawnAndStart(true).pause).toHaveBeenCalled();
+		});
+
+		it("leaves it running without a reduced-motion preference", () => {
+			expect(spawnAndStart(false).pause).not.toHaveBeenCalled();
+		});
 	});
 
 	it("marks the overlay transparent for savers that reveal the desktop", () => {

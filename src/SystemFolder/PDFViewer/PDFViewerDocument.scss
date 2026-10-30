@@ -32,16 +32,23 @@
 	flex-shrink: 0;
 }
 
+// The hand comes from the cursor registry (`--classicy-cursor-hand`, defined by
+// ClassicyDesktop); the zoom lens is set by PDFViewerDocument from the Sherlock
+// icon it already reads. An undefined variable (no desktop) would void the whole
+// `cursor` declaration, so each falls back to an image that never loads and the
+// browser moves on to the keyword cursor.
+$cursor-missing: url('data:,');
+
 .pdfViewerDocumentToolPan {
 	cursor:
-		url('../../../assets/img/ui/cursors/cursor-hand.png') 8 8,
+		var(--classicy-cursor-hand, #{$cursor-missing}) 8 8,
 		grab;
 }
 
 .pdfViewerDocumentToolZoom {
 	// Hotspot sits over the lens of the 32px Sherlock magnifying glass.
 	cursor:
-		url('../../../assets/img/icons/system/sherlock/search.png') 10 10,
+		var(--classicy-pdf-zoom-cursor, #{$cursor-missing}) 10 10,
 		zoom-in;
 }
 

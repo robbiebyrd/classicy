@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import platinumJson from "@/Appearance/Platinum/platinum.json";
 import {
 	type ClassicyTheme,
 	getAllThemes,
@@ -14,7 +15,7 @@ import {
 	isSafeClassicyThemeBackgroundImage,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema";
 import { ClassicyDefaultWallpaper } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
-import themesData from "@/SystemFolder/ControlPanels/AppearanceManager/styles/themes.json";
+import { registerClassicySoundPack } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
 
 const base = (): ClassicyTheme => structuredClone(getTheme("default"));
 
@@ -30,8 +31,10 @@ const rejects = (value: unknown) =>
 
 describe("ClassicyThemeSchema — accepts", () => {
 	it.each(
-		(themesData as unknown as ClassicyTheme[]).map((t) => [t.id, t] as const),
-	)("bundled theme %s as written in themes.json", (_id, theme) => {
+		(platinumJson.presets as unknown as ClassicyTheme[]).map(
+			(t) => [t.id, t] as const,
+		),
+	)("bundled theme %s as written in platinum.json", (_id, theme) => {
 		const parsed = ClassicyThemeSchema.safeParse(theme);
 		expect(parsed.success, JSON.stringify(parsed.error?.issues)).toBe(true);
 	});
@@ -46,6 +49,7 @@ describe("ClassicyThemeSchema — accepts", () => {
 
 	it("the forked Custom theme", () => {
 		const appearance = {
+			packageId: "platinum",
 			activeTheme: base(),
 			availableThemes: getAllThemes(),
 			customThemes: [] as ClassicyTheme[],
@@ -151,14 +155,41 @@ describe("ClassicyThemeSchema — rejects", () => {
 
 	it("an unknown sound theme", () => {
 		const parsed = ClassicyThemeSchema.safeParse(
-			withEdit((t) => Object.assign(t.sound, { name: "sosumi" })),
+			withEdit((t) => Object.assign(t.sound, { pack: "sosumi" })),
 		);
 		expect(parsed.success).toBe(false);
-		expect(parsed.error?.issues[0].path).toEqual(["sound", "name"]);
+		expect(parsed.error?.issues[0].path).toEqual(["sound", "pack"]);
 	});
 
-	it("a sound name inherited from Object.prototype", () => {
-		rejects(withEdit((t) => Object.assign(t.sound, { name: "toString" })));
+	it("a sound pack registered after module load validates", () => {
+		registerClassicySoundPack({
+			id: "late",
+			name: "Late",
+			src: ["https://x/l.ogg"],
+			sprite: { ClassicyBeep: [0, 1] },
+		});
+		const parsed = ClassicyThemeSchema.safeParse(
+			withEdit((t) => {
+				Object.assign(t.sound, { pack: "late" });
+			}),
+		);
+		expect(parsed.success).toBe(true);
+	});
+
+	it("a theme file still using sound.name is refused with a sound.pack issue", () => {
+		const parsed = ClassicyThemeSchema.safeParse(
+			withEdit((t) => {
+				const sound = t.sound as Record<string, unknown>;
+				delete sound.pack;
+				sound.name = "platinum";
+			}),
+		);
+		expect(parsed.success).toBe(false);
+		expect(parsed.error?.issues[0].path).toEqual(["sound", "pack"]);
+	});
+
+	it("a sound pack inherited from Object.prototype", () => {
+		rejects(withEdit((t) => Object.assign(t.sound, { pack: "toString" })));
 	});
 
 	it("font stacks carrying CSS syntax", () => {
@@ -282,5 +313,82 @@ describe("ClassicyThemeSchema — metric defaults", () => {
 				);
 			}),
 		);
+	});
+});
+
+describe("ClassicyThemeSchema — appearance package", () => {
+	it("defaults package to platinum when absent", () => {
+		const parsed = ClassicyThemeSchema.safeParse(
+			withEdit((t) => {
+				delete (t as Record<string, unknown>).package;
+			}),
+		);
+		expect(parsed.success, JSON.stringify(parsed.error?.issues)).toBe(true);
+		expect(parsed.data?.package).toBe("platinum");
+	});
+
+	// R16: the default comes from CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID, never
+	// a literal, so the schema follows the constant wherever it is defined.
+	it("defaults package to CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID", async () => {
+		const defaults = "@/Appearance/ClassicyAppearanceDefaults";
+		vi.resetModules();
+		vi.doMock(defaults, async (importOriginal) => ({
+			...(await importOriginal<object>()),
+			CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID: "default-under-test",
+		}));
+		try {
+			const fresh = await import(
+				"@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema"
+			);
+			const parsed = fresh.ClassicyThemeSchema.safeParse(
+				withEdit((t) => {
+					delete (t as Record<string, unknown>).package;
+				}),
+			);
+			expect(parsed.success, JSON.stringify(parsed.error?.issues)).toBe(true);
+			expect(parsed.data?.package).toBe("default-under-test");
+		} finally {
+			vi.doUnmock(defaults);
+			vi.resetModules();
+		}
+	}, 30_000);
+
+	it("keeps a package id", () => {
+		const parsed = ClassicyThemeSchema.safeParse(
+			withEdit((t) => Object.assign(t, { package: "irix" })),
+		);
+		expect(parsed.success).toBe(true);
+		expect(parsed.data?.package).toBe("irix");
+	});
+
+	it("accepts a package measurement family", () => {
+		const parsed = ClassicyThemeSchema.safeParse(
+			withEdit((t) => {
+				Object.assign(t.measurements, { controlStrip: { cellHeight: 22 } });
+			}),
+		);
+		expect(parsed.success, JSON.stringify(parsed.error?.issues)).toBe(true);
+		expect(parsed.data?.measurements.controlStrip.cellHeight).toBe(22);
+	});
+
+	it("rejects a non-numeric package measurement", () => {
+		rejects(
+			withEdit((t) => {
+				Object.assign(t.measurements, { controlStrip: { cellHeight: "22" } });
+			}),
+		);
+	});
+});
+
+describe("ClassicyThemeSchema — package measurement names", () => {
+	it.each([
+		["a hyphenated family", { "control-strip": { cellHeight: 22 } }],
+		["a PascalCase family", { ControlStrip: { cellHeight: 22 } }],
+		["a family starting with a digit", { "2x": { cellHeight: 22 } }],
+		["an underscored key", { controlStrip: { cell_height: 22 } }],
+		["a key starting with a digit", { controlStrip: { "2x": 22 } }],
+		["a PascalCase key", { controlStrip: { CellHeight: 22 } }],
+	])("rejects %s", (_label, family) => {
+		rejects(withEdit((t) => Object.assign(t.measurements, family)));
 	});
 });

@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useClassicyAssetTree } from "@/Appearance/ClassicyAssetRegistry";
 import type { ClassicyThemeTypography } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
@@ -6,14 +7,10 @@ import { ClassicySpinner } from "@/SystemFolder/SystemResources/Spinner/Classicy
 import type { TabIndividual } from "@/SystemFolder/SystemResources/Tabs/ClassicyTabs";
 import { primaryFontFamily } from "./ClassicyFontStack";
 
-const ClassicyFonts = [
-	{ label: "Charcoal", value: "Charcoal" },
-	{ label: "ChicagoFLF", value: "ChicagoFLF" },
-	{ label: "Geneva", value: "Geneva" },
-	{ label: "AppleGaramond", value: "AppleGaramond" },
-	{ label: "Monaco", value: "Monaco" },
-	{ label: "Digital", value: "VCR OSD Mono" },
-];
+/** Display labels for families whose CSS name is not what the tab shows. */
+const CLASSICY_FONT_LABELS: Record<string, string> = {
+	"VCR OSD Mono": "Digital",
+};
 
 const FONT_MIN_SIZE = 8;
 const FONT_MAX_SIZE = 72;
@@ -32,8 +29,17 @@ export const useFontsTab = ({
 	typography,
 	changeFont,
 	changeFontSize,
-}: FontsTabProps): TabIndividual =>
-	useMemo(
+}: FontsTabProps): TabIndividual => {
+	const fonts = useClassicyAssetTree("fonts");
+	const fontOptions = useMemo(
+		() =>
+			Object.keys(fonts).map((family) => ({
+				label: CLASSICY_FONT_LABELS[family] ?? family,
+				value: family,
+			})),
+		[fonts],
+	);
+	return useMemo(
 		() => ({
 			title: "Fonts",
 			children: (
@@ -44,7 +50,7 @@ export const useFontsTab = ({
 						</div>
 						<ClassicyPopUpMenu
 							id={"ui"}
-							options={ClassicyFonts}
+							options={fontOptions}
 							selected={primaryFontFamily(typography.ui)}
 							placeholder={"Custom"}
 							onChangeFunc={(e) => changeFont("ui", e.target.value)}
@@ -68,7 +74,7 @@ export const useFontsTab = ({
 						</div>
 						<ClassicyPopUpMenu
 							id={"body"}
-							options={ClassicyFonts}
+							options={fontOptions}
 							selected={primaryFontFamily(typography.body)}
 							placeholder={"Custom"}
 							onChangeFunc={(e) => changeFont("body", e.target.value)}
@@ -89,7 +95,7 @@ export const useFontsTab = ({
 						</div>
 						<ClassicyPopUpMenu
 							id={"header"}
-							options={ClassicyFonts}
+							options={fontOptions}
 							selected={primaryFontFamily(typography.header)}
 							placeholder={"Custom"}
 							onChangeFunc={(e) => changeFont("header", e.target.value)}
@@ -113,7 +119,7 @@ export const useFontsTab = ({
 						</div>
 						<ClassicyPopUpMenu
 							id={"mono"}
-							options={ClassicyFonts}
+							options={fontOptions}
 							selected={primaryFontFamily(typography.mono)}
 							placeholder={"Custom"}
 							onChangeFunc={(e) => changeFont("mono", e.target.value)}
@@ -134,7 +140,7 @@ export const useFontsTab = ({
 						</div>
 						<ClassicyPopUpMenu
 							id={"digital"}
-							options={ClassicyFonts}
+							options={fontOptions}
 							selected={primaryFontFamily(typography.digital)}
 							placeholder={"Custom"}
 							onChangeFunc={(e) => changeFont("digital", e.target.value)}
@@ -152,5 +158,6 @@ export const useFontsTab = ({
 				</div>
 			),
 		}),
-		[typography, changeFont, changeFontSize],
+		[typography, changeFont, changeFontSize, fontOptions],
 	);
+};

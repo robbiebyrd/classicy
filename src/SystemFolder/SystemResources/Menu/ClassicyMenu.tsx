@@ -2,6 +2,7 @@ import "@/SystemFolder/SystemResources/Menu/ClassicyMenu.scss";
 import classNames from "classnames";
 import he from "he";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	type MouseEvent,
 	memo,
@@ -13,8 +14,16 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import {
+	type ClassicyAppearanceInput,
+	withClassicyAppearanceInput,
+} from "@/Appearance/useClassicyAppearanceInput.internal";
+import {
+	CLASSICY_PART_ATTRIBUTE,
+	classicyStateClasses,
+} from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
-import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import {
 	ClassicyBalloonHelp,
@@ -93,6 +102,12 @@ export interface ClassicyMenuItem {
 	menuChildren?: ClassicyMenuItem[];
 	/** Extra class names for the item's `<li>`. */
 	className?: string;
+	/**
+	 * Part name rendered as the item's `data-classicy-part` (the menu bar marks
+	 * its clusters: `apple`, `app`, `help`, `switcher`), for theme packages.
+	 * It is never rendered as a DOM `part` (shadow-parts) attribute.
+	 */
+	part?: string;
 	/** Balloon help for the item, shown while balloons are on. */
 	balloon?: {
 		title?: string;
@@ -117,6 +132,10 @@ interface ClassicyMenuProps {
 	 * `subNavClass`. Kept so existing callers still type-check.
 	 */
 	isSubmenu?: boolean;
+	/** Extra class names, merged onto the `.classicyMenuWrapper` after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the `.classicyMenuWrapper` after the component's own. */
+	style?: CSSProperties;
 }
 
 /**
@@ -126,8 +145,9 @@ interface ClassicyMenuProps {
  * equivalents, icons, dividers, balloon help and nested submenus (which flip
  * left at the viewport edge).
  *
- * Choosing an item flashes it, plays the menu sounds, closes the menu and then
- * runs `onClickFunc` (or dispatches `event` with `eventData`). Disabled items
+ * Choosing an item flashes it and plays the menu sounds (both from the
+ * appearance package's MenuItem hooks), closes the menu and then runs
+ * `onClickFunc` (or dispatches `event` with `eventData`). Disabled items
  * ignore clicks. Render it under a `ClassicyMenuProvider`, which supplies the
  * close and sticky-menu state (without one, choosing an item never closes an
  * open submenu). Most code renders menus through `ClassicyWindow`'s
@@ -140,6 +160,8 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 	navClass,
 	subNavClass,
 	children,
+	className,
+	style,
 }) => {
 	const { closeSignal } = useContext(ClassicyMenuContext);
 	const [openChildId, setOpenChildId] = useState<string | null>(null);
@@ -149,25 +171,70 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 		setOpenChildId(null);
 	}, [closeSignal]);
 
-	const handleOpen = useCallback((id: string) => setOpenChildId(id), []);
+	// How the latest submenu was opened: the press behind a click or Return,
+	// or the pointer for a hover (which no press tracker sees). The effect
+	// below reports the open, and the close it causes, with it.
+	const openedWithRef = useRef<{
+		id: string;
+		input: ClassicyAppearanceInput;
+	} | null>(null);
+	const handleOpen = useCallback(
+		(id: string, input: ClassicyAppearanceInput) => {
+			openedWithRef.current = { id, input };
+			setOpenChildId(id);
+		},
+		[],
+	);
 	const handleClose = useCallback(() => setOpenChildId(null), []);
 
+	const listRef = useRef<HTMLUListElement>(null);
+	const appearance = useClassicyAppearance("Menu", {}, listRef);
+	const { emit } = appearance;
+	// A submenu opens by a click, Return, or hovering an active menu; it
+	// closes when another opens or the menus close. Reported once the open
+	// child has changed, whatever changed it.
+	const lastOpenChildRef = useRef<string | null>(null);
+	useEffect(() => {
+		const previous = lastOpenChildRef.current;
+		if (previous === openChildId) return;
+		lastOpenChildRef.current = openChildId;
+		const openedWith = openedWithRef.current;
+		openedWithRef.current = null;
+		const withInput = <T extends object>(detail: T) =>
+			openChildId !== null && openedWith?.id === openChildId
+				? { ...detail, input: openedWith.input }
+				: withClassicyAppearanceInput(detail);
+		if (previous !== null) emit("close", withInput({ itemId: previous }));
+		if (openChildId !== null) emit("open", withInput({ itemId: openChildId }));
+	}, [openChildId, emit]);
+
 	return menuItems && menuItems.length > 0 ? (
-		<div className={"classicyMenuWrapper"}>
-			<ul className={classNames(navClass)} key={`${name}_menu`}>
-				{menuItems.map((item: ClassicyMenuItem, index: number) => (
-					<ClassicyMenuItemComponent
-						// Separators all share the id "spacer" (it's how they're
-						// detected), so fold the index in to keep React keys unique
-						// when a menu has more than one separator.
-						key={item?.id === "spacer" ? `spacer_${index}` : item?.id}
-						menuItem={item}
-						subNavClass={subNavClass || ""}
-						isOpen={openChildId === item.id}
-						onOpen={handleOpen}
-						onClose={handleClose}
-					/>
-				))}
+		<div className={classNames("classicyMenuWrapper", className)} style={style}>
+			<ul
+				{...appearance.attrs}
+				ref={listRef}
+				className={classNames(navClass, appearance.className)}
+				style={appearance.style}
+				key={`${name}_menu`}
+			>
+				{menuItems.map((item: ClassicyMenuItem, index: number) =>
+					item?.id === "spacer" ? (
+						// A divider is not a menu item: no MenuItem appearance hook.
+						<ClassicySeparator
+							// biome-ignore lint/suspicious/noArrayIndexKey: separators all share the id "spacer" (it's how they're detected), so the index keeps React keys unique when a menu has more than one
+							key={`spacer_${index}`}
+						/>
+					) : (
+						<ClassicyMenuItemComponent
+							key={item?.id}
+							menuItem={item}
+							subNavClass={subNavClass || ""}
+							isOpen={openChildId === item.id}
+							onOpen={handleOpen}
+							onClose={handleClose}
+						/>
+					),
+				)}
 				{children}
 			</ul>
 		</div>
@@ -178,16 +245,21 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 	menuItem: ClassicyMenuItem;
 	subNavClass: string;
 	isOpen: boolean;
-	onOpen: (id: string) => void;
+	onOpen: (id: string, input: ClassicyAppearanceInput) => void;
 	onClose: () => void;
 }> = memo(({ menuItem, subNavClass, isOpen, onOpen, onClose: _onClose }) => {
-	const player = useSoundDispatch();
 	const desktopDispatch = useAppManagerDispatch();
 	const { closeAll, menuBarActive, activateMenuBar, pokeActivity } =
 		useContext(ClassicyMenuContext);
 	const [isFlashing, setIsFlashing] = useState(false);
 	const [submenuFlipped, setSubmenuFlipped] = useState(false);
 	const itemRef = useRef<HTMLLIElement>(null);
+	// Its own hook, not the menu's emit: each item is a MenuItem root.
+	const appearance = useClassicyAppearance(
+		"MenuItem",
+		{ disabled: menuItem.disabled, open: isOpen },
+		itemRef,
+	);
 
 	// Once open, measure the child menu against the viewport; if it would
 	// overflow the right edge, flip it to open leftward instead. Measured only
@@ -274,6 +346,10 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 			clearTimeout(flashTimerRef.current);
 			flashTimerRef.current = undefined;
 		}
+		appearance.emit(
+			"release",
+			withClassicyAppearanceInput({ itemId: menuItem.id }),
+		);
 		setIsFlashing(false);
 		closeAll();
 		// Defer action execution so the close state propagates before the
@@ -304,14 +380,22 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 			if (isOpen) {
 				closeAll();
 			} else {
-				onOpen(menuItem.id);
+				onOpen(menuItem.id, withClassicyAppearanceInput().input);
 				activateMenuBar();
-				player({ type: "ClassicySoundPlay", sound: "ClassicyMenuOpen" });
+				appearance.emit(
+					"open",
+					withClassicyAppearanceInput({ itemId: menuItem.id }),
+				);
 			}
 		} else {
 			actionRanRef.current = false;
 			setIsFlashing(true);
-			player({ type: "ClassicySoundPlay", sound: "ClassicyMenuItemClick" });
+			// A click or Return. The package's press decoration is the flash
+			// (Platinum's flash class, in its MenuItem hooks); `release` clears it.
+			appearance.emit(
+				"press",
+				withClassicyAppearanceInput({ itemId: menuItem.id }),
+			);
 			if (flashTimerRef.current !== undefined) {
 				clearTimeout(flashTimerRef.current);
 			}
@@ -324,109 +408,145 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 	const handleMouseEnter = () => {
 		pokeActivity();
 		if (hasChildren && menuBarActive) {
-			onOpen(menuItem.id);
+			onOpen(menuItem.id, "pointer");
 		}
 	};
 
 	const handleAnimationEnd = (e: React.AnimationEvent) => {
-		if (e.animationName !== "classicyMenuItemFlashKeyframes") return;
-		finishFlash();
+		// animationend bubbles: a submenu item's flash reaches every ancestor
+		// <li>. Only an animation of this item itself ends its flash, whatever
+		// its name: the flash keyframes belong to the Appearance Package.
+		if (isFlashing && e.target === e.currentTarget) finishFlash();
 	};
 
-	const li =
-		menuItem && menuItem.id === "spacer" ? (
-			<ClassicySeparator />
-		) : (
-			<li
-				// biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: <li> items in a menu require role="menuitem" per ARIA menu pattern
-				role="menuitem"
-				tabIndex={-1}
-				ref={itemRef}
-				id={menuItem.id}
-				key={menuItem.id}
-				onClick={handleClick}
-				onKeyDown={(e: React.KeyboardEvent) => {
-					pokeActivity();
-					if (e.key === "Enter") {
-						e.preventDefault();
-						handleClick(e as unknown as MouseEvent);
-					}
-				}}
-				onMouseEnter={handleMouseEnter}
-				onFocus={() => {
-					track("hover", { type: "ClassicyMenuItem", ...analyticsArgs });
-					player({ type: "ClassicySoundPlay", sound: "ClassicyMenuItemHover" });
-				}}
-				onAnimationEnd={handleAnimationEnd}
-				onMouseOver={() => {
-					track("hover", { type: "ClassicyMenuItem", ...analyticsArgs });
-					player({ type: "ClassicySoundPlay", sound: "ClassicyMenuItemHover" });
-				}}
-				onBlur={() => {
-					player({ type: "ClassicySoundPlay", sound: "ClassicyMenuItemBlur" });
-				}}
-				onMouseOut={() => {
-					player({ type: "ClassicySoundPlay", sound: "ClassicyMenuItemBlur" });
-				}}
-				className={classNames(
-					"classicyMenuItem",
-					menuItem.icon ? "" : "classicyMenuItemNoImage",
-					menuItem.className,
-					menuItem.disabled ? "classicyMenuItemDisabled" : "",
-					hasChildren ? "classicyMenuItemChildMenuIndicator" : "",
-					isOpen ? "classicyMenuItemOpen" : "",
-					isFlashing ? "classicyMenuItemFlash" : "",
-				)}
-			>
-				<p>
-					{menuItem.checked !== undefined ? (
-						<span className={"classicyMenuItemCheck"} aria-hidden={"true"}>
-							{menuItem.checked === "mixed" ? "–" : menuItem.checked ? "✓" : ""}
-						</span>
-					) : menuItem.image ? (
-						<img src={menuItem.image} alt={menuItem.title} />
-					) : menuItem.icon ? (
-						<img src={menuItem.icon} alt={menuItem.title} />
-					) : null}
-					{menuItem.title &&
-						(widthSamples.length > 0 ? (
-							<span className={"classicyMenuItemTitleSizer"}>
-								<span>{he.decode(menuItem.title)}</span>
-								{widthSamples.map((sample) => (
-									<span
-										key={sample}
-										className={"classicyMenuItemTitleSample"}
-										aria-hidden={"true"}
-									>
-										{he.decode(sample)}
-									</span>
-								))}
-							</span>
-						) : (
-							he.decode(menuItem.title)
-						))}
-				</p>
-				{menuItem.keyboardShortcut && (
-					<ClassicyKbd
-						variant="inline"
-						shortcut={menuItem.keyboardShortcut}
-						className="classicyMenuItemKeyboardShortcut"
-					/>
-				)}
+	// onFocus, onBlur and onMouseOver bubble from a submenu's items and from
+	// this item's own children; report focus and blur for this item only.
+	const isOwnFocusEvent = (e: React.FocusEvent) => e.target === e.currentTarget;
+	const isOwnMouseOver = (e: React.MouseEvent) =>
+		(e.target as Element).closest(".classicyMenuItem") === e.currentTarget;
 
-				{hasChildren && (
-					<ClassicyMenu
-						name={`${menuItem.id}_subitem`}
-						menuItems={menuItem.menuChildren ?? []}
-						subNavClass={subNavClass}
-						navClass={classNames(
-							subNavClass,
-							submenuFlipped && "classicySubMenuFlipLeft",
+	// A checkable item is a menuitemcheckbox, whose aria-checked carries the
+	// state: the ✓ and – are package CSS in an aria-hidden gutter, so without
+	// it the state would reach assistive technology only through the look.
+	// ARIA 1.2 allows "mixed" on menuitemcheckbox, not on menuitemradio.
+	const checkable = menuItem.checked !== undefined;
+
+	// ClassicyMenu renders dividers itself, so every item here is a real one.
+	const li = (
+		// biome-ignore lint/a11y/useAriaPropsSupportedByRole: aria-checked is set only with role="menuitemcheckbox"; the role is dynamic, so the rule cannot see it
+		<li
+			{...appearance.attrs}
+			role={checkable ? "menuitemcheckbox" : "menuitem"}
+			aria-checked={
+				checkable
+					? menuItem.checked === "mixed"
+						? "mixed"
+						: menuItem.checked === true
+					: undefined
+			}
+			tabIndex={-1}
+			ref={itemRef}
+			id={menuItem.id}
+			key={menuItem.id}
+			{...{ [CLASSICY_PART_ATTRIBUTE.part]: menuItem.part }}
+			onClick={handleClick}
+			onKeyDown={(e: React.KeyboardEvent) => {
+				pokeActivity();
+				if (e.key === "Enter") {
+					e.preventDefault();
+					handleClick(e as unknown as MouseEvent);
+				}
+			}}
+			onMouseEnter={handleMouseEnter}
+			onFocus={(e: React.FocusEvent) => {
+				track("hover", { type: "ClassicyMenuItem", ...analyticsArgs });
+				if (isOwnFocusEvent(e))
+					appearance.emit(
+						"focus",
+						withClassicyAppearanceInput({ itemId: menuItem.id }),
+					);
+			}}
+			onBlur={(e: React.FocusEvent) => {
+				if (isOwnFocusEvent(e))
+					appearance.emit(
+						"blur",
+						withClassicyAppearanceInput({ itemId: menuItem.id }),
+					);
+			}}
+			onAnimationEnd={handleAnimationEnd}
+			onMouseOver={(e: React.MouseEvent) => {
+				track("hover", { type: "ClassicyMenuItem", ...analyticsArgs });
+				if (isOwnMouseOver(e))
+					appearance.emit("focus", { itemId: menuItem.id, input: "pointer" });
+			}}
+			onMouseLeave={() =>
+				appearance.emit("blur", { itemId: menuItem.id, input: "pointer" })
+			}
+			className={classNames(
+				"classicyMenuItem",
+				menuItem.icon ? "" : "classicyMenuItemNoImage",
+				menuItem.className,
+				appearance.className,
+				hasChildren ? "classicyMenuItemChildMenuIndicator" : "",
+			)}
+			style={appearance.style}
+		>
+			<p>
+				{menuItem.checked !== undefined ? (
+					<span
+						className={classNames(
+							"classicyMenuItemCheck",
+							classicyStateClasses({
+								checked: menuItem.checked === true,
+								mixed: menuItem.checked === "mixed",
+							}),
 						)}
-					></ClassicyMenu>
-				)}
-			</li>
-		);
+						aria-hidden={"true"}
+					/>
+				) : menuItem.image ? (
+					<img src={menuItem.image} alt={menuItem.title} />
+				) : menuItem.icon ? (
+					<img src={menuItem.icon} alt={menuItem.title} />
+				) : null}
+				{menuItem.title &&
+					(widthSamples.length > 0 ? (
+						<span className={"classicyMenuItemTitleSizer"}>
+							<span>{he.decode(menuItem.title)}</span>
+							{widthSamples.map((sample) => (
+								<span
+									key={sample}
+									className={"classicyMenuItemTitleSample"}
+									aria-hidden={"true"}
+								>
+									{he.decode(sample)}
+								</span>
+							))}
+						</span>
+					) : (
+						he.decode(menuItem.title)
+					))}
+			</p>
+			{menuItem.keyboardShortcut && (
+				<ClassicyKbd
+					variant="inline"
+					shortcut={menuItem.keyboardShortcut}
+					className="classicyMenuItemKeyboardShortcut"
+				/>
+			)}
+
+			{hasChildren && (
+				<ClassicyMenu
+					name={`${menuItem.id}_subitem`}
+					menuItems={menuItem.menuChildren ?? []}
+					subNavClass={subNavClass}
+					navClass={classNames(
+						subNavClass,
+						submenuFlipped && "classicySubMenuFlipLeft",
+					)}
+				></ClassicyMenu>
+			)}
+		</li>
+	);
 
 	return menuItem.balloon ? (
 		<ClassicyBalloonHelp

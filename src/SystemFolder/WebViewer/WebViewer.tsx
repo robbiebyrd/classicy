@@ -1,4 +1,5 @@
 import { type FC as FunctionalComponent, useCallback } from "react";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -22,7 +23,7 @@ import {
 } from "@/SystemFolder/WebViewer/WebViewerUtils";
 import "./WebViewerContext";
 
-const { name: appName, id: appId, icon: appIcon } = WebViewerAppInfo;
+const { name: appName, id: appId } = WebViewerAppInfo;
 
 /**
  * Renders a shortcut target inside the desktop.
@@ -49,6 +50,8 @@ const WebViewerFrame: FunctionalComponent<{ url: string; title: string }> = ({
 	);
 
 export const WebViewer: FunctionalComponent = () => {
+	const appIcon =
+		useClassicyAsset("icons", "applications.internetExplorer.globe") ?? "";
 	const desktopEventDispatch = useAppManagerDispatch();
 	const appState = useAppManager(
 		(state) => state.System.Manager.Applications.apps[appId],
@@ -108,7 +111,7 @@ export const WebViewer: FunctionalComponent = () => {
 				menuChildren: [aboutMenuItem],
 			},
 		],
-		[closeWindow, openUrls, aboutMenuItem],
+		[closeWindow, openUrls, aboutMenuItem, appIcon],
 	);
 
 	return (

@@ -1,5 +1,3 @@
-@use "../../ControlPanels/AppearanceManager/styles/appearance";
-
 // Placard (HIG #15) — a small beveled info panel. Familiar placement is the
 // bottom-left of a window, left of the horizontal scroll bar (e.g. a
 // magnification-level pop-up). This is a standalone control; wiring it into
@@ -14,13 +12,13 @@
 
   display: inline-flex;
   align-items: center;
-  gap: calc(var(--window-padding-size) / 2);
+  gap: var(--control-padding);
 
   min-height: var(--control-row-height, 18px);
-  padding: 0 calc(var(--window-padding-size) / 1.5);
+  padding: 0 var(--control-padding-loose);
 
   font-family: var(--ui-font), sans-serif;
-  font-size: calc(var(--ui-font-size) / 1.2);
+  font-size: var(--ui-font-size-compact);
   color: var(--color-black);
 
   background-color: var(--color-system-02);
@@ -36,12 +34,12 @@
     inset calc(var(--bevel-w) * -1) calc(var(--bevel-w) * -1) 0 0 var(--color-system-05);
 
   &:focus-visible {
-    outline: var(--color-outline) solid calc(var(--window-border-size) * 2);
+    outline: var(--color-outline) solid var(--control-frame-width);
     outline-offset: var(--window-border-size);
   }
 
   // --- Pressed: bevel inverts to look pushed in. ---
-  &[data-state="pressed"] {
+  &.pressed {
     background-color: var(--color-system-04);
     box-shadow:
       inset var(--bevel-w) var(--bevel-w) 0 0 var(--color-system-05),
@@ -49,7 +47,7 @@
   }
 
   // --- Disabled: flatten and dim. ---
-  &[data-state="disabled"] {
+  &.disabled {
     border-color: var(--color-system-05);
     color: var(--color-system-05);
     box-shadow:
@@ -71,7 +69,7 @@ button.classicyPlacard {
 .classicyPlacardArrow {
   display: inline-flex;
   align-items: center;
-  font-size: calc(var(--ui-font-size) / 1.5);
+  font-size: var(--ui-font-size-mini);
   line-height: 1;
 }
 
@@ -88,17 +86,17 @@ button.classicyPlacard {
   list-style: none;
 
   background-color: var(--color-system-02);
-  @include appearance.platinumWindowBorder;
+  // The beveled border is the Platinum package's.
 }
 
 .classicyPlacardMenuItem {
   display: block;
   width: 100%;
-  padding: calc(var(--window-padding-size) / 3) var(--window-padding-size);
+  padding: var(--control-padding-narrow) var(--window-padding-size);
   border: none;
   background: transparent;
   font-family: var(--ui-font), sans-serif;
-  font-size: calc(var(--ui-font-size) / 1.2);
+  font-size: var(--ui-font-size-compact);
   color: var(--color-black);
   text-align: left;
   white-space: nowrap;
@@ -106,7 +104,7 @@ button.classicyPlacard {
 
   &:hover:not(:disabled),
   &:focus:not(:disabled) {
-    background-color: var(--color-theme-hover, var(--color-system-05));
+    background-color: var(--color-system-05);
     color: var(--color-white);
     outline: none;
   }

@@ -9,6 +9,7 @@ import type {
 	ReactNode,
 } from "react";
 import { Children, Fragment, useRef, useState } from "react";
+import type { ClassicyCursorRole } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyCursor } from "@/SystemFolder/SystemResources/Cursor/useClassicyCursor";
 
 /**
@@ -30,12 +31,15 @@ const KEYBOARD_STEP_PCT = 1;
 // directional resize cursor (bar-and-arrow, e.g. cursor-resize-u.png).
 type ClassicySplitViewDragDirection = "u" | "d" | "l" | "r";
 
-const dragCursorName = {
+const dragCursorName: Record<
+	ClassicySplitViewDragDirection,
+	ClassicyCursorRole
+> = {
 	u: "resizeU",
 	d: "resizeD",
 	l: "resizeL",
 	r: "resizeR",
-} as const;
+};
 
 /**
  * Redistribute pane sizes (percentages) after a divider drag. Only the two
@@ -110,6 +114,8 @@ interface ClassicySplitViewProps {
 	onResizeCommit?: (sizes: number[]) => void;
 	/** Extra class names to merge onto the root element. */
 	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 	/** Two or three content areas; extras are dropped with a dev warning. */
 	children: ReactNode;
 }
@@ -117,10 +123,10 @@ interface ClassicySplitViewProps {
 /**
  * A resizable container splitting two or three content areas along a single
  * axis. The bordered divider between panes carries the Platinum window-frame
- * treatment (`--color-window-frame` fill with the `platinumWindowBorder`
- * bevel) and is dragged to trade space between the two panes it separates —
- * dragging toward the leading side grows the trailing pane and shrinks the
- * leading one, exactly like a window frame edge being pushed.
+ * treatment (`--color-window-frame` fill with the `platinum-window-border` bevel
+ * from Platinum's `_mixins.scss`) and is dragged to trade space between the two
+ * panes it separates — dragging toward the leading side grows the trailing pane
+ * and shrinks the leading one, exactly like a window frame edge being pushed.
  *
  * There is no HTML equivalent (the nearest ancestor is the obsolete
  * `<frameset>`). The root fills its parent, so give the parent a size; each
@@ -147,6 +153,7 @@ export const ClassicySplitView: FunctionalComponent<ClassicySplitViewProps> = ({
 	onResize,
 	onResizeCommit,
 	className,
+	style,
 	children,
 }) => {
 	const allChildren = Children.toArray(children);
@@ -290,6 +297,7 @@ export const ClassicySplitView: FunctionalComponent<ClassicySplitViewProps> = ({
 					: "classicySplitViewVertical",
 				className,
 			)}
+			style={style}
 		>
 			{panes.map((child, index) => (
 				// biome-ignore lint/suspicious/noArrayIndexKey: panes are positional; order is their identity

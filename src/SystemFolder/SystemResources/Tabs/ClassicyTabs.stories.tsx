@@ -1,4 +1,11 @@
+import {
+	appearanceHooksParameters,
+	ClassicyAppearanceProbe,
+} from "@sb/ClassicyAppearanceProbe";
+import { StoryWindow } from "@sb/helpers";
+import { mirroredParameters } from "@sb/mirrored";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { ComponentProps } from "react";
 import { ClassicyCheckbox } from "@/SystemFolder/SystemResources/Checkbox/ClassicyCheckbox";
 import { ClassicyInput } from "@/SystemFolder/SystemResources/Input/ClassicyInput";
 import { ClassicyTabs } from "./ClassicyTabs";
@@ -10,6 +17,10 @@ const meta = {
 
 export default meta;
 type Story = StoryObj<typeof meta>;
+// For the stories that draw the component themselves in `render` and ignore
+// the args: typed against the component (every arg optional), not
+// `typeof meta`, which would demand its required props as story args.
+type RenderStory = StoryObj<typeof ClassicyTabs>;
 
 /**
  * A standard (`medium`) tab control with three panes holding ordinary
@@ -73,7 +84,7 @@ export const Large: Story = {
  * is that size scaled by the HIG's 10:12 ratio, and `large` is the Classicy
  * extension above it.
  */
-export const SizeComparison: Story = {
+export const SizeComparison: RenderStory = {
 	render: () => (
 		<div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
 			<ClassicyTabs size="small" tabs={sizeTabs} />
@@ -134,4 +145,36 @@ export const WithIcons: Story = {
 			},
 		],
 	},
+};
+
+/**
+ * The Appearance Package hook surface, under the Storybook probe package:
+ * every root `decorate()` reaches is outlined (green while pressed), and every
+ * event the component emits is logged in the Actions panel.
+ */
+export const AppearanceHooks: Story = {
+	args: Default.args,
+	render: (args: ComponentProps<typeof ClassicyTabs>) => (
+		<ClassicyAppearanceProbe>
+			<ClassicyTabs {...args} />
+		</ClassicyAppearanceProbe>
+	),
+	parameters: appearanceHooksParameters(),
+};
+
+/**
+ * `Default`, in a window, under the Storybook-only `mirrored` Appearance
+ * Package: the tab strip under its panel by CSS `order` alone, with each
+ * tab's outline turned over so its wide edge meets the panel (the label is
+ * turned back upright).
+ * Without a package, `stripPosition="bottom"` moves the strip the same way.
+ */
+export const Mirrored: Story = {
+	...Default,
+	parameters: mirroredParameters,
+	render: (args) => (
+		<StoryWindow title="Tabs" size={[420, 220]}>
+			<ClassicyTabs {...args} />
+		</StoryWindow>
+	),
 };

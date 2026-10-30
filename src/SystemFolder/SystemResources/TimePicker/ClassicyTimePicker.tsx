@@ -2,6 +2,7 @@ import "./ClassicyTimePicker.scss";
 import classNames from "classnames";
 import {
 	type ChangeEvent,
+	type CSSProperties,
 	type ForwardedRef,
 	type FC as FunctionalComponent,
 	forwardRef,
@@ -81,6 +82,10 @@ interface ClassicyTimePickerProps {
 	minValue?: Date;
 	/** Latest allowed date-time; later edits snap to it. */
 	maxValue?: Date;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 }
 
 /**
@@ -114,6 +119,8 @@ export const ClassicyTimePicker: FunctionalComponent<ClassicyTimePickerProps> =
 				onChangeFunc,
 				minValue,
 				maxValue,
+				className,
+				style,
 			},
 			ref,
 		) {
@@ -284,7 +291,9 @@ export const ClassicyTimePicker: FunctionalComponent<ClassicyTimePickerProps> =
 					className={classNames(
 						"classicyTimePickerHolder",
 						labelPositionClass(labelPosition),
+						className,
 					)}
+					style={style}
 				>
 					{labelTitle && (
 						<ClassicyControlLabel

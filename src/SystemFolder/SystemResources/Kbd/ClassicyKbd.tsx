@@ -1,14 +1,18 @@
 import "./ClassicyKbd.scss";
 import classNames from "classnames";
-import type { FC as FunctionalComponent, PropsWithChildren } from "react";
-import { parseKeyboardShortcut } from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
-
-const MODIFIER_GLYPHS = {
-	control: "⌃",
-	option: "⌥",
-	shift: "⇧",
-	command: "⌘",
-} as const;
+import type {
+	CSSProperties,
+	FC as FunctionalComponent,
+	PropsWithChildren,
+	ReactNode,
+} from "react";
+import { CLASSICY_PART_ATTRIBUTE } from "@/Appearance/vocabulary/ClassicyVocabulary";
+import {
+	CLASSICY_MODIFIER_GLYPHS,
+	type ClassicyModifierName,
+	keyboardShortcutModifiers,
+	parseKeyboardShortcut,
+} from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
 
 type ClassicyKbdProps = PropsWithChildren<{
 	/**
@@ -27,20 +31,33 @@ type ClassicyKbdProps = PropsWithChildren<{
 	variant?: "inline" | "keycaps";
 	/** Extra class names merged onto the outer `<kbd>`. */
 	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 }>;
 
 /**
- * The parts of a chord in canonical display order, one entry per key cap.
- * "Cmd+Shift+S" → ["⇧", "⌘", "S"].
+ * One modifier's glyph, addressable by a package as
+ * `[data-classicy-part="modifier-<name>"]`.
  */
-const shortcutParts = (shortcut: string): string[] => {
-	const p = parseKeyboardShortcut(shortcut);
-	const parts: string[] = [];
-	if (p.control) parts.push(MODIFIER_GLYPHS.control);
-	if (p.option) parts.push(MODIFIER_GLYPHS.option);
-	if (p.shift) parts.push(MODIFIER_GLYPHS.shift);
-	if (p.command) parts.push(MODIFIER_GLYPHS.command);
-	if (p.key) parts.push(p.key);
+const ModifierGlyph = ({ name }: { name: ClassicyModifierName }) => (
+	<span
+		className="classicyKbdModifier"
+		{...{ [CLASSICY_PART_ATTRIBUTE.part]: `modifier-${name}` }}
+	>
+		{CLASSICY_MODIFIER_GLYPHS[name]}
+	</span>
+);
+
+/**
+ * The parts of a chord in canonical display order, one entry per key cap:
+ * a span per modifier, then the key. "Cmd+Shift+S" → [⇧, ⌘, "S"].
+ */
+const shortcutParts = (shortcut: string): ReactNode[] => {
+	const parsed = parseKeyboardShortcut(shortcut);
+	const parts: ReactNode[] = keyboardShortcutModifiers(parsed).map((name) => (
+		<ModifierGlyph key={name} name={name} />
+	));
+	if (parsed.key) parts.push(parsed.key);
 	return parts;
 };
 
@@ -64,6 +81,7 @@ export const ClassicyKbd: FunctionalComponent<ClassicyKbdProps> = ({
 	shortcut,
 	variant = "inline",
 	className,
+	style,
 	children,
 }) => {
 	const parts = shortcut !== undefined ? shortcutParts(shortcut) : undefined;
@@ -77,6 +95,7 @@ export const ClassicyKbd: FunctionalComponent<ClassicyKbdProps> = ({
 		return (
 			<kbd
 				className={classNames("classicyKbd", "classicyKbdKeycaps", className)}
+				style={style}
 			>
 				{(parts ?? [children]).map((part, index) => (
 					<kbd
@@ -92,8 +111,11 @@ export const ClassicyKbd: FunctionalComponent<ClassicyKbdProps> = ({
 	}
 
 	return (
-		<kbd className={classNames("classicyKbd", "classicyKbdInline", className)}>
-			{parts !== undefined ? parts.join("") : children}
+		<kbd
+			className={classNames("classicyKbd", "classicyKbdInline", className)}
+			style={style}
+		>
+			{parts ?? children}
 		</kbd>
 	);
 };

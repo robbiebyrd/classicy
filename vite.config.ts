@@ -4,79 +4,40 @@ import { defineConfig, type Plugin } from "vite";
 import dts from "vite-plugin-dts";
 import VitePluginImageTools from "vite-plugin-image-tools";
 import richSvg from "vite-plugin-react-rich-svg";
+import { classicyCssLayerPlugin } from "./bin/classicyCssLayerPlugin";
+import { CLASSICY_DTS_EXCLUDE } from "./bin/classicyDistTypes";
+import { classicyPackageStylesheets } from "./bin/classicyPackageCss";
 import {
-	CLASSICY_FONTS_STYLE_ELEMENT_ID,
 	classicyStyleInjector,
+	prependLayerOrder,
 } from "./bin/classicyStyleInjector";
 
-// dist/classicy.css is dominated by base64 @font-face `src:` data URIs (the
-// bundled fonts in AppearanceManager/styles/fonts.scss) -- every consumer
-// downloads every bundled font whether or not their theme uses them. Those
-// rules are pulled in via a plain `import "...fonts.scss"` deep inside the
-// component tree (ClassicyDesktop.tsx), so by the time Rollup gets to CSS
-// output they're indistinguishable from any other stylesheet content -- and
-// because this is `build.lib` with `formats: ["umd", "es"]`, UMD forbids a
-// second entry point (Rollup errors if `lib.entry` isn't a single module for
-// non-ESM formats), so "give fonts.scss its own rollup input" isn't
-// available here without dropping UMD or a second build pass.
-// Splitting therefore happens post-render instead: this plugin's
-// `generateBundle` hook runs once per output format, finds the emitted CSS
-// asset(s), regex-extracts every `@font-face` block whose `src` is a
-// `data:` URI into a sibling `fonts.css` asset (emitted via `emitFile`, same
-// mechanism Rollup uses for any other build-time asset), and rewrites the
-// original CSS asset's `source` with those blocks removed. `@font-face`
-// rules never nest braces, so a non-greedy-free `[^}]*` scan between `{`/`}`
-// is a safe, complete parse of each rule -- no CSS parser dependency needed.
-// While a rule is in hand, it also backfills `font-display: swap` on faces
-// that don't already declare it, so extracting these into an opt-in
-// stylesheet doesn't newly block text rendering on whether a consumer
-// happened to load fonts.css yet.
-function splitFontFacesPlugin(): Plugin {
-	const FONT_FACE_RE = /@font-face\s*\{[^}]*\}/g;
+// Package assets under src/Appearance (the Platinum fonts and system art) must
+// ship as files in dist/assets, not as base64 inside the bundle. Lib mode
+// inlines every asset regardless of `assetsInlineLimit` (`shouldInline` returns
+// true for `build.lib`), but a per-import `?no-inline` query short-circuits that
+// check. This resolver appends the query to every asset import that resolves
+// under src/Appearance, so source files keep plain imports. The emitted files
+// are referenced as `new URL("assets/...", import.meta.url)`, relative to the
+// bundle. Imports that already carry a Vite query are left alone.
+function noInlineAppearanceAssetsPlugin(): Plugin {
+	const ASSET_RE = /\.(woff2?|ttf|otf|png|jpe?g|gif|svg|ogg|m4a|mp3|ac3|wav)$/i;
 
 	return {
-		name: "classicy-split-font-faces",
-		// MUST be "post". Vite's own `vite:css-post` plugin is what actually
-		// adds the bundled .css asset, and it does so in its generateBundle.
-		// An unordered user plugin's generateBundle runs BEFORE that, so the
-		// bundle contains no .css asset yet, the loop below matches nothing,
-		// and the split silently no-ops — which is exactly what happened
-		// before this was added.
-		enforce: "post",
-		generateBundle(_options, bundle) {
-			for (const fileName of Object.keys(bundle)) {
-				const output = bundle[fileName];
-				if (output.type !== "asset" || !fileName.endsWith(".css")) continue;
-
-				const source =
-					typeof output.source === "string"
-						? output.source
-						: new TextDecoder().decode(output.source);
-
-				const extractedFaces: string[] = [];
-				const remainingCss = source.replace(FONT_FACE_RE, (rule) => {
-					// Leave any non-inlined @font-face (e.g. a future system-font
-					// fallback) in the primary stylesheet -- only base64 payloads
-					// are the size problem this split exists to solve.
-					if (!rule.includes("data:")) return rule;
-
-					const ruleWithDisplay = /font-display\s*:/.test(rule)
-						? rule
-						: rule.replace("{", "{\n  font-display: swap;");
-
-					extractedFaces.push(ruleWithDisplay);
-					return "";
-				});
-
-				if (extractedFaces.length === 0) continue;
-
-				output.source = remainingCss;
-				this.emitFile({
-					type: "asset",
-					fileName: "fonts.css",
-					source: extractedFaces.join("\n\n"),
-				});
+		name: "classicy-no-inline-appearance-assets",
+		enforce: "pre",
+		async resolveId(source, importer, options) {
+			if (!importer || source.includes("?")) return null;
+			const resolved = await this.resolve(source, importer, {
+				...options,
+				skipSelf: true,
+			});
+			if (!resolved) return null;
+			const [file] = resolved.id.split("?");
+			if (!ASSET_RE.test(file) || !file.includes("/src/Appearance/")) {
+				return null;
 			}
+			return `${resolved.id}${resolved.id.includes("?") ? "&" : "?"}no-inline`;
 		},
 	};
 }
@@ -85,26 +46,40 @@ function splitFontFacesPlugin(): Plugin {
 // loader to configure, no second import to remember. This plugin embeds the
 // primary stylesheet into each entry bundle (ES and UMD) as a string and
 // appends a few lines that, when the module first runs in a browser, insert
-// it as `<style id="classicy-styles">` at the *top* of <head> — so any
-// stylesheet the host app loads still wins on equal specificity, as it did
-// when hosts imported classicy.css themselves. It is guarded so it runs once
+// it as `<style id="classicy-styles">` at the *top* of <head>, ahead of the
+// host's stylesheets, as when hosts imported classicy.css themselves. (Since
+// the rules are layered, an unlayered host rule wins whatever its order or
+// specificity.) It is guarded so it runs once
 // (a second copy of the library, or HMR, finds the element and stops) and
 // never in a non-browser environment (SSR, tests without a DOM).
 //
-// It runs after splitFontFacesPlugin (same "post" phase, later in the plugin
-// list), so the base64 fonts it moved to fonts.css stay out: they are several
-// MB and remain an opt-in import. dist/classicy.css is still emitted, for
-// hosts whose Content-Security-Policy forbids inline <style> and who link the
-// file instead; importing it as well as the package is harmless (identical
-// rules). The code is inserted before the sourceMappingURL comment, after all
-// existing code, so the bundles' source maps stay aligned.
+// dist/classicy.css is still emitted, for hosts whose Content-Security-Policy
+// forbids inline <style> and who link the file instead; importing it as well as
+// the package is harmless (identical rules). Both start with
+// CLASSICY_LAYER_ORDER, the cascade layer order, ahead of the
+// `@layer classicy.base { … }` blocks classicyCssLayerPlugin compiles every
+// component stylesheet into. The code is inserted before the sourceMappingURL
+// comment, after all existing code, so the bundles' source maps stay aligned.
 //
-// The fonts get the same treatment, opt-in: `import "classicy/fonts"` loads
-// dist/fonts.js, which injects fonts.css as `<style id="classicy-fonts">`.
-// UMD allows only one entry (see splitFontFacesPlugin), so fonts.js is not a
-// Rollup input but an emitted asset: the injector is a self-contained script
-// with no imports or exports, which is valid as an ES module, as CommonJS and
-// as a classic <script>. dist/fonts.d.ts lets TypeScript resolve the import.
+// Each Appearance Package's stylesheet ships in the bundle as a string (its
+// `?inline` import) that the package registry injects at runtime as
+// `<style id="classicy-appearance-<id>">`. A strict CSP blocks that element
+// too, so the same string is also emitted as dist/classicy-<name>.css
+// (Platinum: dist/classicy-platinum.css), starting with CLASSICY_LAYER_ORDER;
+// such hosts link it right after classicy.css. It is read from the module's
+// final transformed code, so it is byte for byte what the bundle injects
+// (check-dist-imports.mjs invariant 7 compares the two).
+//
+// dist/fonts.js is a deprecated no-op: the Platinum fonts are files registered
+// at runtime (registerClassicyFonts), but `import "classicy/fonts"` must keep
+// resolving for existing consumers. UMD allows only one entry, so fonts.js is
+// not a Rollup input but an emitted asset: a self-contained script with no
+// imports or exports, valid as an ES module, as CommonJS and as a classic
+// <script>. dist/fonts.d.ts lets TypeScript resolve the import.
+// dist/appearance-platinum.js (+ .d.ts), the `classicy/appearance/platinum`
+// export, is the same kind of no-op: importing `classicy` already registers
+// the Platinum package, and the package source (TypeScript with `?inline`
+// SCSS) is not loadable by consumers.
 function injectCssPlugin(): Plugin {
 	return {
 		name: "classicy-inject-css",
@@ -120,23 +95,44 @@ function injectCssPlugin(): Plugin {
 					? cssAsset.source
 					: new TextDecoder().decode(cssAsset.source);
 			const injector = classicyStyleInjector(css);
+			// The linked file (strict-CSP hosts) declares the layer order before
+			// any rule too, as the injected <style> does.
+			cssAsset.source = prependLayerOrder(css);
 
-			const fontsAsset = bundle["fonts.css"];
-			if (fontsAsset?.type === "asset") {
-				const fontsCss =
-					typeof fontsAsset.source === "string"
-						? fontsAsset.source
-						: new TextDecoder().decode(fontsAsset.source);
+			this.emitFile({
+				type: "asset",
+				fileName: "fonts.js",
+				source:
+					'// Deprecated no-op: Classicy\'s fonts are registered by the Platinum appearance package (registerClassicyFonts). Kept so `import "classicy/fonts"` keeps resolving.\n',
+			});
+			this.emitFile({
+				type: "asset",
+				fileName: "fonts.d.ts",
+				source:
+					"// Deprecated no-op side-effect module, kept for compatibility: classicy's fonts are registered by the Platinum appearance package.\nexport {};\n",
+			});
+			this.emitFile({
+				type: "asset",
+				fileName: "appearance-platinum.js",
+				source:
+					'// No-op: importing "classicy" registers the Platinum appearance package. Kept so `import "classicy/appearance/platinum"` resolves.\n',
+			});
+			this.emitFile({
+				type: "asset",
+				fileName: "appearance-platinum.d.ts",
+				source:
+					'// No-op side-effect module: importing "classicy" registers the Platinum appearance package.\nexport {};\n',
+			});
+			for (const { fileName, css: packageCss } of classicyPackageStylesheets(
+				Array.from(this.getModuleIds(), (id) => ({
+					id,
+					code: this.getModuleInfo(id)?.code ?? null,
+				})),
+			)) {
 				this.emitFile({
 					type: "asset",
-					fileName: "fonts.js",
-					source: `// Injects classicy's bundled fonts: import "classicy/fonts".\n${classicyStyleInjector(fontsCss, CLASSICY_FONTS_STYLE_ELEMENT_ID)}`,
-				});
-				this.emitFile({
-					type: "asset",
-					fileName: "fonts.d.ts",
-					source:
-						"// Side-effect module: importing it injects classicy's bundled fonts.\nexport {};\n",
+					fileName,
+					source: prependLayerOrder(packageCss),
 				});
 			}
 
@@ -216,6 +212,17 @@ export default defineConfig({
 	define: {
 		"process.env.NODE_ENV": JSON.stringify("production"),
 	},
+	// Escape non-ASCII characters in everything esbuild minifies: every
+	// stylesheet, injected or linked, and the strings of both bundles (regex
+	// literals, and the comments the ES bundle keeps, stay as written). Vite's
+	// default (`"utf8"`) writes
+	// the package's `content: "\2713"` glyphs raw, and strict-CSP hosts link
+	// dist/classicy-<id>.css themselves: a file with no `@charset`, served
+	// without an HTTP charset, takes a non-UTF-8 page's encoding and draws
+	// "âœ“". The injected and the linked package CSS come from the same
+	// minified string, so they stay byte-identical (verify:dist invariants 7
+	// and 9).
+	esbuild: { charset: "ascii" },
 	base: "./",
 	assetsInclude: [
 		"**/*.ogg",
@@ -234,40 +241,35 @@ export default defineConfig({
 		},
 	},
 	plugins: [
+		noInlineAppearanceAssetsPlugin(),
+		// Compiles every component stylesheet into @layer classicy.base; the
+		// injected stylesheet declares the layer order first (CLASSICY_LAYER_ORDER).
+		classicyCssLayerPlugin(),
 		react(),
 		dts({
 			outDir: "dist/types",
+			// No declarations for tests, test helpers or stories (verify:dist,
+			// invariant 8, fails the build if one ships).
+			exclude: CLASSICY_DTS_EXCLUDE,
 		}),
 		richSvg(),
 		VitePluginImageTools({
+			// Package assets ship exactly as authored (Part E uses the art as CSS
+			// masks): no WebP conversion, no svgo. This one option gates the build
+			// WebP pass, the svgo pass and the dev middleware alike.
+			excludes: /src\/Appearance\//,
 			quality: 100,
 			enableWebp: true,
 			enableDev: true,
 			enableDevWebp: true,
 		}),
-		splitFontFacesPlugin(),
-		// After the font split, so the injected CSS carries no base64 fonts.
 		injectCssPlugin(),
 	],
 	build: {
 		sourcemap: true,
-		// NOTE: `assetsInlineLimit` is deliberately NOT set here — it would do
-		// nothing. Because `build.lib` is set below (umd/es dual-format output),
-		// Vite's asset pipeline short-circuits to "always inline" BEFORE it ever
-		// reads that option. From Vite's docs: "If you specify build.lib,
-		// build.assetsInlineLimit will be ignored and assets will always be
-		// inlined, regardless of file size." Verified empirically too — adding
-		// the option changed dist/classicy.es.js by 1.4 kB (the config line
-		// itself) and removed no data URIs.
-		//
-		// That is why ~78% of the JS bundle is base64: a 1.79 MB audio sprite,
-		// a 1.67 MB inlined worker, and 384 PNGs. The only supported opt-out is
-		// a per-import `?no-inline` query at each asset's import site
-		// (PDFViewerDocument.tsx's pdf.worker URL, ClassicySounds.ts's sprite
-		// `new URL(...)`, every @img import) — a source-wide change with real
-		// runtime risk, since it moves worker/audio URL resolution from an
-		// unconditional data: URI to a path the consumer's bundler must resolve.
-		// jsdom tests cannot catch a regression there. Not attempted here.
+		// Lib mode ignores `assetsInlineLimit` (assets always inline), so it is
+		// deliberately not set. noInlineAppearanceAssetsPlugin uses the per-import
+		// `?no-inline` opt-out to emit package assets under src/Appearance as files.
 		lib: {
 			entry: resolve(__dirname, "src/index.ts"),
 			formats: ["umd", "es"],
@@ -277,6 +279,15 @@ export default defineConfig({
 		rollupOptions: {
 			external: isExternal,
 			output: {
+				// Package assets (src/Appearance/**) go under dist/assets; every
+				// other emitted file, the stylesheet included, keeps its root-level
+				// name (injectCssPlugin and `classicy/dist/classicy.css` depend on it).
+				assetFileNames: (asset) =>
+					asset.originalFileNames.some((name) =>
+						name.includes("src/Appearance/"),
+					)
+						? "assets/[name][extname]"
+						: "[name][extname]",
 				globals: {
 					react: "React",
 					"react-dom": "ReactDOM",

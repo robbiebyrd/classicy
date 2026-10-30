@@ -1,4 +1,9 @@
+import {
+	appearanceHooksParameters,
+	ClassicyAppearanceProbe,
+} from "@sb/ClassicyAppearanceProbe";
 import { desktopParameters, StoryApp } from "@sb/helpers";
+import { mirroredParameters } from "@sb/mirrored";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fn } from "storybook/test";
 import { ClassicyAlert } from "./ClassicyAlert";
@@ -10,7 +15,10 @@ const meta = {
 } satisfies Meta<typeof ClassicyAlert>;
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+// Every story here draws the component itself in `render` and ignores the
+// args, so the stories are typed against the component (every arg optional),
+// not `typeof meta`, which would demand its required props as story args.
+type Story = StoryObj<typeof ClassicyAlert>;
 
 /**
  * A `note` alert with no `buttons` prop: the note icon and the generated single
@@ -18,7 +26,12 @@ type Story = StoryObj<typeof meta>;
  * decide on.
  */
 export const Note: Story = {
-	render: () => (
+	render: () => <NoteAlertStory />,
+};
+
+/** The `Note` story's alert, also rendered by `AppearanceHooks`. */
+function NoteAlertStory() {
+	return (
 		<StoryApp id="storybook.app" name="Storybook">
 			<ClassicyAlert
 				id="alert-note"
@@ -29,8 +42,8 @@ export const Note: Story = {
 				onClose={fn()}
 			/>
 		</StoryApp>
-	),
-};
+	);
+}
 
 /**
  * A `caution` alert with explicit buttons: Cancel (`role: "cancel"`, fired by
@@ -170,4 +183,31 @@ export const CautionDefaultButtons: Story = {
 			/>
 		</StoryApp>
 	),
+};
+
+/**
+ * The Appearance Package hook surface, under the Storybook probe package:
+ * every root `decorate()` reaches is outlined (green while pressed), and every
+ * event the component emits is logged in the Actions panel.
+ *
+ * It renders a fixed tree and takes no args.
+ */
+export const AppearanceHooks: StoryObj<Record<string, never>> = {
+	render: () => (
+		<ClassicyAppearanceProbe>
+			<NoteAlertStory />
+		</ClassicyAppearanceProbe>
+	),
+	parameters: appearanceHooksParameters("600px"),
+};
+
+/**
+ * `Caution` under the Storybook-only `mirrored` Appearance Package: the icon
+ * on the right of the message and the default button leftmost, by CSS alone
+ * (`flex-direction: row-reverse` on the top row and the button row). Return
+ * and Escape still pick the same buttons.
+ */
+export const Mirrored: Story = {
+	...Caution,
+	parameters: mirroredParameters,
 };

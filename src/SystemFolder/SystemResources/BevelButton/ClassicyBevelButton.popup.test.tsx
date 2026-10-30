@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { dispatchAnimationEnd } from "@/__tests__/animationEnd";
 import {
 	fireEvent,
 	render,
@@ -24,18 +25,9 @@ vi.mock(
 );
 
 // ClassicyMenu runs a leaf item's action only once its click-flash animation
-// ends. jsdom has no AnimationEvent, so React listens for the prefixed event;
-// see ClassicyDesktopMenuBar.help.test.tsx for the full explanation.
-const completeMenuItemFlash = (id: string) => {
-	const event = new Event("webkitAnimationEnd", {
-		bubbles: true,
-		cancelable: true,
-	});
-	Object.defineProperty(event, "animationName", {
-		value: "classicyMenuItemFlashKeyframes",
-	});
-	document.getElementById(id)?.dispatchEvent(event);
-};
+// ends.
+const completeMenuItemFlash = (id: string) =>
+	dispatchAnimationEnd(document.getElementById(id));
 
 const lassoItems = (onPick: (id: string) => void): ClassicyMenuItem[] => [
 	{
@@ -80,9 +72,14 @@ describe("ClassicyBevelButton pop-up menu (HIGOS8 p.32)", () => {
 		expect(button).toHaveAttribute("aria-expanded", "true");
 		expect(button).toHaveAttribute("aria-controls", menu.id);
 		// The button reads as pressed while its menu is down.
-		expect(button).toHaveAttribute("data-state", "pressed-off");
-		const shrink = screen.getByRole("menuitem", { name: "Shrink" });
-		expect(shrink).toHaveTextContent("✓");
+		expect(button).toHaveClass("open", "pressed");
+		expect(button).not.toHaveAttribute("data-state");
+		const shrink = screen.getByRole("menuitemcheckbox", { name: "Shrink" });
+		expect(shrink).toHaveAttribute("aria-checked", "true");
+		// The ✓ is package CSS on `.classicyMenuItemCheck.checked::before`.
+		expect(shrink.querySelector(".classicyMenuItemCheck")).toHaveClass(
+			"checked",
+		);
 	});
 
 	it("keeps describing its own pop-up even when a caller passes disclosure ARIA", () => {
@@ -220,7 +217,9 @@ describe("ClassicyBevelButton pop-up menu (HIGOS8 p.32)", () => {
 		button.focus();
 		// Enter/Space produce a click with no pointer behind it (detail 0).
 		fireEvent.click(button, { detail: 0 });
-		const [shrink, noShrink] = screen.getAllByRole("menuitem");
+		// Both items are checkable, so they are menuitemcheckbox items, and
+		// keyboard navigation must still reach them.
+		const [shrink, noShrink] = screen.getAllByRole("menuitemcheckbox");
 		expect(shrink).toHaveFocus();
 		fireEvent.keyDown(shrink, { key: "ArrowDown" });
 		expect(noShrink).toHaveFocus();

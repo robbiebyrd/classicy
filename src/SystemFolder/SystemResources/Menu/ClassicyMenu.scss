@@ -1,7 +1,7 @@
 @use 'sass:list';
 
-@use '../../ControlPanels/AppearanceManager/styles/appearance';
-@use '../../ControlPanels/AppearanceManager/styles/assets';
+// The Platinum menu frame, dividers and submenu triangle are in the Platinum
+// package (Appearance/Platinum/styles/components/_Menu.scss).
 
 .classicyMenuWrapper {
   font-family: var(--ui-font), sans-serif;
@@ -14,17 +14,16 @@
   margin: 0;
   padding: 0;
   // box-shadow: inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-05),
-  //   calc(var(--window-border-size) * 2) calc(var(--window-border-size) * 2) 0 0 var(--color-black);
+  //   var(--control-frame-width) var(--control-frame-width) 0 0 var(--color-black);
 }
 
 .classicyMenu {
   position: absolute;
   display: flex;
   flex-direction: column;
-  min-width: calc(var(--window-control-size) * 15);
+  min-width: var(--menu-min-width);
   margin: 0;
   padding: var(--window-border-size);
-  @include appearance.platinumMenuFrame;
   list-style: none;
 
   div {
@@ -43,8 +42,7 @@
   position: absolute;
   display: none;
   flex-direction: column;
-  min-width: calc(var(--window-control-size) * 15);
-  @include appearance.platinumMenuFrame;
+  min-width: var(--menu-min-width);
   margin: 0 0 0 calc(var(--window-padding-size) * -1);
   padding: var(--window-border-size);
   list-style: none;
@@ -73,8 +71,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  min-width: calc(var(--window-control-size) * 15);
-  @include appearance.platinumMenuFrame;
+  min-width: var(--menu-min-width);
   margin: 0;
   padding: var(--window-border-size);
   list-style: none;
@@ -91,22 +88,11 @@
   }
   display: none;
   flex-direction: column;
-  min-width: calc(var(--window-control-size) * 15);
-  @include appearance.platinumMenuFrame;
+  min-width: var(--menu-min-width);
   margin: calc(var(--window-padding-size) * -4) calc(var(--window-padding-size) * -2);
   padding: var(--window-border-size);
   list-style: none;
   color: var(--color-black);
-}
-
-// Dividers in every menu (Figure 6-15).
-.classicyMenu,
-.classicySubMenu,
-.classicyContextMenu,
-.classicyContextSubMenu {
-  .classicySeparatorHorizontal {
-    @include appearance.platinumMenuDivider;
-  }
 }
 
 .classicyMenuItem {
@@ -131,9 +117,9 @@
   }
 
   img {
-    width: calc(var(--window-control-size) * 1.25);
-    height: calc(var(--window-control-size) * 1.25);
-    margin-right: calc(var(--window-control-size) * 0.5);
+    width: var(--menu-item-icon-size);
+    height: var(--menu-item-icon-size);
+    margin-right: var(--menu-item-icon-gap);
     user-select: none;
     -webkit-user-drag: none;
   }
@@ -148,9 +134,9 @@
     padding: 0;
 
     a {
-      cursor: default !important;
+      cursor: default;
       text-decoration: none;
-      color: var(--color-black) !important;
+      color: var(--color-black);
     }
   }
 }
@@ -164,8 +150,8 @@
   justify-content: center;
   // Reserve the same left gutter an item icon uses, so checked and unchecked
   // items in the same menu keep their titles aligned; the ✓ sits centered in it.
-  width: calc(var(--window-control-size) * 1.25);
-  margin-right: calc(var(--window-control-size) * 0.5);
+  width: var(--menu-item-icon-size);
+  margin-right: var(--menu-item-icon-gap);
   user-select: none;
 }
 
@@ -192,7 +178,7 @@
   visibility: hidden;
 }
 
-.classicyMenuItemOpen {
+:where(.classicyMenuItem).open {
   color: var(--color-white);
   background-color: var(--color-theme-04);
 
@@ -200,21 +186,26 @@
     pointer-events: auto;
 
     > ul {
-      display: flex !important;
+      display: flex;
     }
   }
 }
 
-.classicyMenuItemDisabled {
+:where(.classicyMenuItem).disabled {
   &:hover {
     color: var(--color-white);
-    background-color: transparent !important;
   }
 
   p,
   kbd {
     color: var(--color-system-05);
   }
+}
+
+// A disabled item never highlights. Two classes and a pseudo-class: beats
+// `.classicyMenu div ul li:hover` (0,2,3) as well as `.classicyMenuItem:hover`.
+.classicyMenuItem.disabled:hover {
+  background-color: transparent;
 }
 
 .classicyMenuItemChildMenuIndicator {
@@ -224,57 +215,20 @@
     width: 1em;
     height: 1em;
     content: ' ';
-    background-image: assets.$triangle;
+    // The triangle's image is in the Platinum package; its placement is here.
     background-repeat: no-repeat;
     background-position: right center;
   }
 }
 
-.classicyMenuItemKeyboardShortcut {
-  font-size: calc(var(--ui-font-size) * 0.75) !important;
+// Nested under the item: beats `.classicyMenuItem kbd { padding: 0 }` and
+// `.classicyKbdInline { font-size: inherit }`.
+.classicyMenuItem .classicyMenuItemKeyboardShortcut {
+  font-size: var(--ui-font-size-caption);
   line-height: 1.75;
-  padding-right: calc(var(--window-padding-size) / 2) !important;
+  padding-right: var(--control-padding);
 }
 
-.classicyMenuItemFlash {
-  -webkit-animation-name: classicyMenuItemFlashKeyframes;
-  animation-name: classicyMenuItemFlashKeyframes;
-  animation-duration: .25s;
-  animation-iteration-count: 1;
-  animation-timing-function: steps(1, end) ;
-}
-
-@keyframes classicyMenuItemFlashKeyframes {
-  0% {
-    background-color: var(--color-theme-04);
-    color: var(--color-white);
-  }
-
-  20% {
-    background-color: var(--color-system-02);
-    color: var(--color-black);
-  }
-
-  40% {
-    background-color: var(--color-theme-04);
-    color: var(--color-white);
-  }
-
-  60% {
-    background-color: var(--color-system-02);
-    color: var(--color-black);
-  }
-
-  80% {
-    background-color: var(--color-theme-04);
-    color: var(--color-white);
-  }
-
-  100% {
-    background-color: var(--color-system-02);
-    color: var(--color-black);
-  }
-}
 .classicyMenuItemBalloonAnchor {
   display: block;
   width: 100%;

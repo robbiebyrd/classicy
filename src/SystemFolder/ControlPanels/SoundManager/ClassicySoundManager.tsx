@@ -1,12 +1,13 @@
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import "./ClassicySoundManager.scss";
 import { type FC as FunctionalComponent, useCallback, useMemo } from "react";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	type ClassicySoundInfo,
 	useSound,
 	useSoundDispatch,
 } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
+import { SOUND_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerManifest";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import {
 	useClassicyAboutMenu,
@@ -17,10 +18,6 @@ import {
 	quitAppHelper,
 	quitMenuItemHelper,
 } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
-
-const appIcon = ClassicyIcons.controlPanels.soundManager.app;
-
-import { SOUND_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerManifest";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyCheckbox } from "@/SystemFolder/SystemResources/Checkbox/ClassicyCheckbox";
 import { ClassicyControlGroup } from "@/SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup";
@@ -33,6 +30,8 @@ const APP_NAME = "Sound Manager";
 const WINDOW_ID = "SoundManager_1";
 
 export const ClassicySoundManager: FunctionalComponent = () => {
+	const appIcon =
+		useClassicyAsset("icons", "controlPanels.soundManager.app") ?? "";
 	const desktopEventDispatch = useAppManagerDispatch();
 
 	const playerState = useSound();

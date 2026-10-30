@@ -1,6 +1,6 @@
 .classicyCrashScreen {
 	position: absolute;
-	z-index: 2000 !important;
+	z-index: 2000;
 	top: 0;
 	left: 0;
 	display: flex;
@@ -9,7 +9,7 @@
 	width: 100vw;
 	height: 100vh;
 	cursor: pointer;
-	background: var(--color-black, black) !important;
+	background: var(--color-black, black);
 	border: none;
 	padding: 0;
 

@@ -11,6 +11,10 @@ const meta = {
 
 export default meta;
 type Story = StoryObj<typeof meta>;
+// For the stories that draw the component themselves in `render` and ignore
+// the args: typed against the component (every arg optional), not
+// `typeof meta`, which would demand its required props as story args.
+type RenderStory = StoryObj<typeof ClassicyBalloonHelp>;
 
 /**
  * A titled balloon at the default `top-left` position and 600 ms delay: rest
@@ -88,6 +92,6 @@ const HookTarget = () => {
  * component's inline-block wrapper would disturb. Spread `handlers` onto the
  * element and render `balloon` inside it.
  */
-export const WithHook: Story = {
+export const WithHook: RenderStory = {
 	render: () => <HookTarget />,
 };

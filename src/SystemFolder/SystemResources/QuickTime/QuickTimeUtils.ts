@@ -1,9 +1,4 @@
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
-
-const sound33Img = ClassicyIcons.controlPanels.soundManager.sound33;
-const sound66Img = ClassicyIcons.controlPanels.soundManager.sound66;
-const soundOffImg = ClassicyIcons.controlPanels.soundManager.soundOff;
-const soundOnImg = ClassicyIcons.controlPanels.soundManager.soundOn;
+import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 
 export function timeFriendly(seconds: number): string {
 	if (!Number.isFinite(seconds)) {
@@ -15,15 +10,18 @@ export function timeFriendly(seconds: number): string {
 	return `${hours}:${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
 }
 
+const soundIcon = (name: string): string =>
+	resolveClassicyAsset("icons", `controlPanels.soundManager.${name}`) ?? "";
+
 export function getVolumeIcon(volume: number): string {
 	if (volume === 0) {
-		return soundOffImg;
+		return soundIcon("soundOff");
 	}
 	if (volume > 0 && volume < 0.3) {
-		return sound33Img;
+		return soundIcon("sound33");
 	}
 	if (volume >= 0.3 && volume < 0.7) {
-		return sound66Img;
+		return soundIcon("sound66");
 	}
-	return soundOnImg;
+	return soundIcon("soundOn");
 }

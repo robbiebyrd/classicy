@@ -1,7 +1,14 @@
 import type {
 	ClassicyTheme,
+	ClassicyThemeCoreMeasurements,
 	ClassicyThemeMeasurements,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { intToPx } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicySize";
+import {
+	CLASSICY_THEME_DERIVATIONS,
+	CLASSICY_THEME_DERIVED_VARS,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeDerivations";
+import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { DeepPartial } from "@/SystemFolder/SystemResources/Utils/deepMerge";
 
 /**
@@ -9,11 +16,11 @@ import type { DeepPartial } from "@/SystemFolder/SystemResources/Utils/deepMerge
  * grouped per control family. These are the theme *inputs*; `getThemeVars`
  * derives frames, bevels, the edit-field height and the rest from them.
  *
- * Every built-in theme carries this block in `themes.json`; a theme loaded
+ * Every built-in theme carries this block in `platinum.json`; a theme loaded
  * from an older build or an older theme file is completed with these values
  * by `withDefaultThemeMetrics`.
  */
-export const CLASSICY_DEFAULT_THEME_METRICS: Readonly<ClassicyThemeMeasurements> =
+export const CLASSICY_DEFAULT_THEME_METRICS: Readonly<ClassicyThemeCoreMeasurements> =
 	{
 		window: {
 			borderSize: 1,
@@ -41,10 +48,13 @@ export type ClassicyThemeWithPartialMetrics = Omit<
 	ClassicyTheme,
 	"measurements"
 > & {
-	measurements?: DeepPartial<ClassicyThemeMeasurements>;
+	measurements?: DeepPartial<ClassicyThemeCoreMeasurements> & {
+		[family: string]: unknown;
+	};
 };
 
-type MetricGroupId = keyof ClassicyThemeMeasurements;
+// The core families only: a package family has no defaults to fill from.
+type MetricGroupId = keyof ClassicyThemeCoreMeasurements;
 
 const METRIC_GROUPS = Object.keys(
 	CLASSICY_DEFAULT_THEME_METRICS,
@@ -60,8 +70,8 @@ const isMetricNumber = (value: unknown): value is number =>
  */
 const fillGroup = <G extends MetricGroupId>(
 	group: G,
-	value: DeepPartial<ClassicyThemeMeasurements>[G] | undefined,
-): ClassicyThemeMeasurements[G] => {
+	value: DeepPartial<ClassicyThemeCoreMeasurements>[G] | undefined,
+): ClassicyThemeCoreMeasurements[G] => {
 	const defaults = CLASSICY_DEFAULT_THEME_METRICS[group];
 	const present = (value ?? {}) as Record<string, unknown>;
 	let complete = value !== undefined;
@@ -75,7 +85,7 @@ const fillGroup = <G extends MetricGroupId>(
 			complete = false;
 		}
 	}
-	return (complete ? value : filled) as ClassicyThemeMeasurements[G];
+	return (complete ? value : filled) as ClassicyThemeCoreMeasurements[G];
 };
 
 /**
@@ -85,14 +95,15 @@ const fillGroup = <G extends MetricGroupId>(
  * already present (so idempotent passes over live store state change
  * nothing), otherwise a shallow copy of the theme with a new `measurements`
  * object in which present values win and only the missing ones are filled.
- * The input is never mutated.
+ * Families outside the core five (an Appearance Package's) are carried over
+ * as they are. The input is never mutated.
  */
 export function withDefaultThemeMetrics<
 	T extends ClassicyThemeWithPartialMetrics,
 >(theme: T): T & { measurements: ClassicyThemeMeasurements } {
 	const current = theme.measurements;
 	let changed = current === undefined;
-	const next = {} as ClassicyThemeMeasurements;
+	const next = { ...current } as ClassicyThemeMeasurements;
 	for (const group of METRIC_GROUPS) {
 		const filled = fillGroup(group, current?.[group]);
 		if (filled !== current?.[group]) changed = true;
@@ -121,4 +132,200 @@ export function withDefaultThemeMetricsList<
 		next[i] = filled;
 	});
 	return next ?? (themes as T[]);
+}
+
+/**
+ * The only measurement family or key name that becomes a CSS variable: a
+ * lowercase-first camelCase name (`controlStrip`, `cellHeight`). The theme
+ * schema refuses any other package family or key name; the walker skips them
+ * too, for state that never passed the schema.
+ */
+export const CLASSICY_MEASUREMENT_NAME = /^[a-z][A-Za-z0-9]*$/;
+
+/** `groupBox` → `group-box`, `titleBarHeight` → `title-bar-height`. */
+const kebab = (name: string): string =>
+	name.replace(/[A-Z]/g, (capital) => `-${capital.toLowerCase()}`);
+
+// Collisions already reported, so a re-render never repeats a warning.
+const reportedCollisions = new Set<string>();
+
+/**
+ * The variables `getThemeVars` sets from the theme's palette, typography and
+ * desktop: everything it emits that is neither a measurement input nor
+ * derived from one. They are set after the inputs, so they are reserved with
+ * the derived names (`isReservedClassicyThemeVar`): a package measurement
+ * that would make one (`desktop.iconSize` → `--desktop-icon-size`) could
+ * never take effect. A test fails when `getThemeVars` emits a variable that
+ * is in none of the reserved lists.
+ */
+export const CLASSICY_THEME_NON_MEASUREMENT_VARS: readonly string[] = [
+	"--color-black",
+	"--color-white",
+	"--color-alert",
+	"--color-error",
+	"--color-system-01",
+	"--color-system-02",
+	"--color-system-03",
+	"--color-system-04",
+	"--color-system-05",
+	"--color-system-06",
+	"--color-system-07",
+	"--color-theme-01",
+	"--color-theme-02",
+	"--color-theme-03",
+	"--color-theme-04",
+	"--color-theme-05",
+	"--color-theme-06",
+	"--color-theme-07",
+	"--color-window-border",
+	"--color-window-border-outset",
+	"--color-window-border-inset",
+	"--color-window-frame",
+	"--color-window-title",
+	"--color-window-document",
+	"--color-outline",
+	"--color-select",
+	"--color-highlight",
+	"--header-font",
+	"--header-font-size",
+	"--body-font",
+	"--body-font-size",
+	"--ui-font",
+	"--ui-font-size",
+	"--mono-font",
+	"--mono-font-size",
+	"--digital-font",
+	"--digital-font-size",
+	"--desktop-icon-size",
+	"--desktop-icon-font-size",
+	"--desktop-background-image",
+	"--desktop-background-color",
+	"--desktop-background-repeat",
+	"--desktop-background-position",
+	"--desktop-background-size",
+];
+
+// Every variable `getThemeVars` sets after the inputs (the palette, font and
+// desktop variables, the earlier derived variables and the named
+// derivations): reserved, so a package measurement never makes one only to be
+// silently replaced.
+const RESERVED_THEME_VARS: ReadonlySet<string> = new Set([
+	...CLASSICY_THEME_NON_MEASUREMENT_VARS,
+	...CLASSICY_THEME_DERIVED_VARS,
+	...CLASSICY_THEME_DERIVATIONS.map((d) => d.cssVar),
+]);
+
+/**
+ * True for a `--classicy-` name. The prefix is Classicy's own: the desktop
+ * root sets `--classicy-layout-*` after the theme's variables, and
+ * `--classicy-art-*`/`--classicy-cursor-*` are read with fallbacks that a
+ * stray value would void. So no package measurement may make one (a family
+ * `classicy` or `classicyLayout`, say): `isReservedClassicyThemeVar` counts
+ * them reserved.
+ */
+const isClassicyPrefixedThemeVar = (name: string): boolean =>
+	name.startsWith("--classicy-");
+
+/**
+ * True when `getThemeVars` sets `name` itself, after the measurement inputs:
+ * a palette, font or desktop variable (`CLASSICY_THEME_NON_MEASUREMENT_VARS`),
+ * an earlier derived variable (`CLASSICY_THEME_DERIVED_VARS`) or a named
+ * derivation (`CLASSICY_THEME_DERIVATIONS`); or when `name` takes the
+ * `--classicy-` prefix, which Classicy keeps for its own root variables
+ * (`--classicy-layout-*`, `--classicy-art-*`, …). A package measurement whose
+ * variable (`classicyMeasurementVarName`) is reserved is skipped by
+ * `classicyMeasurementVars`, and is not an editable knob
+ * (`isThemeMetricFamilyTarget`).
+ */
+export const isReservedClassicyThemeVar = (name: string): boolean =>
+	RESERVED_THEME_VARS.has(name) || isClassicyPrefixedThemeVar(name);
+
+/**
+ * The CSS variable a measurement makes: `--<family>-<key>`, kebab-cased
+ * (`controlStrip`, `cellHeight` → `--control-strip-cell-height`).
+ */
+export const classicyMeasurementVarName = (
+	family: string,
+	key: string,
+): string => `--${kebab(family)}-${kebab(key)}`;
+
+const reportOnce = (collision: string, message: string): void => {
+	if (reportedCollisions.has(collision)) return;
+	reportedCollisions.add(collision);
+	classicyLog("warn", "ClassicyAppearance", message);
+};
+
+/**
+ * The CSS custom properties for a theme's measurement *inputs*: every numeric
+ * leaf `measurements.<family>.<key>` as `--<family>-<key>` (kebab-case) in
+ * whole pixels — the core families and any family an Appearance Package adds
+ * (`controlStrip.cellHeight` → `--control-strip-cell-height`).
+ *
+ * - Non-numeric leaves emit nothing, and neither does a family or key that
+ *   is not a `CLASSICY_MEASUREMENT_NAME`: package families reach here from
+ *   theme files and persisted state, and a name becomes part of a CSS
+ *   declaration.
+ * - Kebab-casing can map two leaves to one variable (`windowTitle.barHeight`
+ *   and `window.titleBarHeight`). The first wins: the core families are
+ *   walked first, so a core input always wins, then package families in key
+ *   order. Each collision is logged once.
+ * - A leaf whose variable `getThemeVars` sets itself
+ *   (`isReservedClassicyThemeVar`: a derived one, e.g. `help.buttonWidth` →
+ *   `--help-button-width`; a named derivation, e.g. `menu.minWidth` →
+ *   `--menu-min-width`; or a palette, font or desktop variable, e.g.
+ *   `desktop.iconSize` → `--desktop-icon-size`) is skipped, logged once: those
+ *   names are reserved.
+ *
+ * The variables derived from the inputs (frames, bevels, `--button-height`,
+ * …) stay in `getThemeVars`, and the named proportions in
+ * `ClassicyThemeDerivations.ts`.
+ */
+export function classicyMeasurementVars(
+	measurements: ClassicyThemeMeasurements,
+): Record<string, string> {
+	const vars: Record<string, string> = {};
+	const sources = new Map<string, string>();
+	const families = [
+		...METRIC_GROUPS,
+		...Object.keys(measurements).filter(
+			(family) => !(METRIC_GROUPS as string[]).includes(family),
+		),
+	];
+	for (const family of families) {
+		const keys: unknown = measurements[family];
+		if (
+			!CLASSICY_MEASUREMENT_NAME.test(family) ||
+			!keys ||
+			typeof keys !== "object"
+		) {
+			continue;
+		}
+		for (const [key, n] of Object.entries(keys)) {
+			if (typeof n !== "number" || !CLASSICY_MEASUREMENT_NAME.test(key)) {
+				continue;
+			}
+			const name = classicyMeasurementVarName(family, key);
+			const source = `${family}.${key}`;
+			if (isReservedClassicyThemeVar(name)) {
+				reportOnce(
+					`${name}|${source}`,
+					isClassicyPrefixedThemeVar(name)
+						? `Measurement ${source} makes ${name}; the --classicy- prefix is reserved for Classicy's own variables.`
+						: `Measurement ${source} makes ${name}, a reserved theme variable; getThemeVars sets its own value.`,
+				);
+				continue;
+			}
+			const winner = sources.get(name);
+			if (winner !== undefined) {
+				reportOnce(
+					`${winner}|${source}`,
+					`Measurement ${source} and ${winner} both make ${name}; ${winner} is used.`,
+				);
+				continue;
+			}
+			sources.set(name, source);
+			vars[name] = intToPx(n);
+		}
+	}
+	return vars;
 }

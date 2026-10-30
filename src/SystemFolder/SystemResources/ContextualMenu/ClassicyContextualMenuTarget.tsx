@@ -1,5 +1,6 @@
 import "./ClassicyContextualMenuTarget.scss";
 import type {
+	CSSProperties,
 	FC as FunctionalComponent,
 	MouseEvent,
 	PropsWithChildren,
@@ -12,6 +13,8 @@ interface ClassicyContextualMenuTargetProps extends PropsWithChildren {
 	menuItems: ClassicyMenuItem[];
 	/** Extra class names for the wrapping `<div>`. */
 	className?: string;
+	/** Inline style, merged onto the wrapper after the component's own. */
+	style?: CSSProperties;
 }
 
 /**
@@ -33,7 +36,7 @@ interface ClassicyContextualMenuTargetProps extends PropsWithChildren {
  */
 export const ClassicyContextualMenuTarget: FunctionalComponent<
 	ClassicyContextualMenuTargetProps
-> = ({ menuItems, className, children }) => {
+> = ({ menuItems, className, style, children }) => {
 	const { showContextMenu } = useClassicyContextualMenu();
 
 	const handleContextMenu = (e: MouseEvent<HTMLDivElement>) => {
@@ -49,6 +52,7 @@ export const ClassicyContextualMenuTarget: FunctionalComponent<
 			className={["classicyContextualMenuTarget", className]
 				.filter(Boolean)
 				.join(" ")}
+			style={style}
 			onContextMenu={handleContextMenu}
 		>
 			{children}

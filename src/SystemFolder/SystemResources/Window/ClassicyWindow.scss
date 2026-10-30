@@ -1,223 +1,20 @@
-@use "../../ControlPanels/AppearanceManager/styles/assets";
-@use "../../ControlPanels/AppearanceManager/styles/scrollbars";
-@use "../../ControlPanels/AppearanceManager/styles/appearance";
+@use "../../../Appearance/vocabulary/color" as c;
+@use "../../../Appearance/vocabulary/layout";
+@use "./ClassicyWindowTitleBar" as title-bar;
 
-// #208: Zoom geometry is now computed in JS (standard-state vs user-state and
-// the horizontal/vertical zoom modes), applied via the window's inline
-// position/size. The class is retained purely as a state hook; it must NOT
-// force a rect or it would override the computed standard state.
-.classicyWindowZoomed {
-  // intentionally no geometry — see ClassicyWindow.tsx applyZoom()
-}
+// #208: Zoom geometry is computed in JS (standard-state vs user-state and the
+// horizontal/vertical zoom modes) and applied via the window's inline
+// position/size, so zoom has no class — see ClassicyWindow.tsx applyZoom().
 
-.classicyWindowCollapsed {
-  height: calc(var(--window-control-size) * 1.25) !important;
-}
-
-.classicyWindowHeader {
-  font-family: var(--ui-font), sans-serif;
-  font-size: calc(var(--ui-font-size) * 0.865);
-  position: sticky;
-  z-index: 999;
-  top: 0;
-  display: flex;
-  @include appearance.platinumWindowHeaderBorder;
-  @include appearance.platinumWindowInnerBoxShadowOuter;
-
-  @include appearance.no-select;
-  align-items: center;
-  flex-direction: row;
-  justify-content: center;
-  height: calc(var(--window-control-size) * 1.5);
-  background: var(--color-system-03);
-  column-gap: var(--window-control-size);
-}
-
-.classicyWindowHeaderDimmed {
-  opacity: 0.5;
-  border: solid var(--window-border-size) var(--color-black) !important;
-  box-shadow: none !important;
-}
-
-// #183: list-view header variant — drops the beveled bottom separator so the
-// header reads as a column-heading strip rather than a raised bar.
-.classicyWindowHeaderList {
-  border-bottom: none !important;
-  box-shadow: none !important;
-}
-
-.classicyWindowInactive {
-  z-index: unset;
-  user-select: none;
-  filter: contrast(0.6) brightness(1.25);
-  @include scrollbars.scrollbars-inactive();
-}
-
-.classicyWindowActiveApp {
-  z-index: 150 !important;
-}
-
-.classicyWindowContentsDimmed {
-  opacity: 0.8;
-  box-shadow: none !important;
-  filter: contrast(0.9);
-}
-
-.classicyWindowContentsNotDimmed {
-  filter: contrast(1.667) brightness(0.8);
-}
-
-.classicyWindowResizerDimmed {
-  background-image: none !important;
-
-  // The grip's two edges live on ::before (see .classicyWindowResizer).
-  &::before {
-    border-top: var(--window-border-size) solid var(--color-system-05) !important;
-    border-left: var(--window-border-size) solid var(--color-system-05) !important;
-    // Flat, like ::-webkit-scrollbar-corner under scrollbars-inactive(). The old
-    // outer shadow painted frame grey up and to the left to mask the gap the
-    // misaligned grip left behind; there is no gap to mask now, and an outer
-    // shadow would cover the inactive scroll bars' edges.
-    box-shadow: none !important;
-  }
-}
-
-.classicyWindowActive {
-  z-index: 300 !important;
-
-  .classicyWindowTitleBar {
-    user-select: none;
-
-    .classicyWindowControlBox {
-      opacity: 1 !important;
-    }
-
-    .classicyWindowTitle {
-      .classicyWindowTitleText {
-        color: var(--color-black) !important;
-      }
-
-      .classicyWindowTitleCenter {
-        background: assets.$title-bar-center;
-      }
-
-      .classicyWindowTitleLeft,
-      .classicyWindowTitleRight {
-        background: assets.$title-bar-center;
-        background-size: auto 99.8%;
-
-        &:after {
-          position: relative;
-          top: -100%;
-          right: calc(var(--window-padding-size) * -1);
-          display: block;
-          float: right;
-          width: var(--window-padding-size);
-          content: " ";
-          background-image: assets.$title-bar-right;
-          background-repeat: no-repeat;
-        }
-
-        &:before {
-          position: relative;
-          left: calc((var(--window-padding-size) * -1) / 2);
-          display: block;
-          content: " ";
-          background-image: assets.$title-bar-left;
-          background-repeat: no-repeat;
-        }
-      }
-    }
-  }
-}
-
-// #234: a utility palette floats above its own app's active document (300)
-// while that app is focused…
-.classicyWindowFloating {
-  z-index: 350 !important;
-}
-
-// …and drops behind the focused app's windows (150 / 300) when its own app is
-// backgrounded, so Finder file-browser windows cover a background app's palette.
-.classicyWindowBackgrounded {
-  z-index: 20 !important;
-}
-
-// Non-error modal dialogs (File Open/Save and friends) sit in a band ABOVE the
-// utility/tool-palette floating band (350) so a palette can never cover an open
-// dialog, yet BELOW the red error/alert band (99999) so system alerts still win.
-// The paired non-error modal scrim (below) sits just under this so it blocks and
-// separates every window beneath the dialog. Error modals keep classicyWindowRed.
-.classicyWindowModalFront {
-  z-index: 370 !important;
-}
-
-.classicyWindowInvisible {
-  display: none !important;
-}
-
-.classicyWindowNoScroll {
-  overflow: hidden !important;
-}
-
-.classicyWindowResizing {
-  border: calc(var(--window-padding-size) / 4) dotted !important;
-  border-color: var(--color-black) !important;
-  background: transparent !important;
-  box-shadow: none !important;
-
-  .classicyWindowResizer {
-    cursor: grabbing !important; /* Use grabbing cursor while actively resizing */
-  }
-
-  * {
-    opacity: 0;
-  }
-}
-
-.classicyWindowDragging {
-  cursor: grabbing !important; /* Set cursor for the dragging element itself */
-  border: calc(var(--window-padding-size) / 4) dotted !important;
-  border-color: var(--color-black) !important;
-  background: transparent !important;
-  box-shadow: none !important;
-
-  * {
-    opacity: 0;
-    user-select: none; /* Prevent text selection while dragging */
-    user-drag: none; /* Prevent accidental dragging of child elements */
-  }
-}
-
-.classicyWindowRed {
-  @include appearance.platinumWindowBorder;
-  z-index: 99999 !important;
-  border-color: var(--color-error) !important;
-
-  .classicyWindowTitleBar {
-    background-color: #f7cecd !important;
-
-    .classicyWindowTitle {
-      .classicyWindowTitleCenter {
-        background: assets.$title-bar-center-red;
-        background-size: auto 100%;
-      }
-
-      .classicyWindowTitleLeft,
-      .classicyWindowTitleRight {
-        background: assets.$title-bar-center-red;
-
-        &:after {
-          background-image: assets.$title-bar-right-red;
-        }
-
-        &:before {
-          background-image: assets.$title-bar-left-red;
-        }
-      }
-    }
-  }
-}
+// Layout: the base `.classicyWindow` rule, then its parts, then the window
+// variants, then every state. A state wins because it comes later in this
+// file, never by importance; where a state has to beat a rule of
+// higher specificity, its selector repeats a class (or names the
+// `.classicyWindow` ancestor) instead. ClassicyWindow.cascade.test.ts pins it.
+//
+// The Platinum look (borders, bevels, title-bar stripes, control-box art) is
+// in the Platinum package (Appearance/Platinum/styles/components/_Window.scss),
+// with every state override of it.
 
 .classicyWindow {
   position: absolute;
@@ -226,137 +23,15 @@
     100% - var(--window-control-size) * 4 - var(--window-padding-size)
   );
   // Width of the grey frame ring between the window border and the contents
-  // box. Anything that has to line up with the contents' edges (the resizer,
-  // below) derives its inset from this rather than restating the expression.
-  --window-frame-inset: calc(var(--window-padding-size) / 1.25);
+  // box: the theme derivation --window-frame-inset (padding / 1.25). Anything
+  // that has to line up with the contents' edges (the resizer, below) reads
+  // it rather than restating the expression.
   padding: var(--window-frame-inset);
 
   background-color: var(--color-window-frame);
-  @include appearance.platinumWindowBorder;
 
-  .classicyWindowTitleBar {
-    @include appearance.no-select;
-
-    font-family: var(--ui-font), sans-serif;
-    position: relative;
-    display: flex;
-    flex-direction: row;
-    // Theme metric (measurements.window.titleBarHeight; HIGOS8: 19px). The
-    // utility variant below overrides it with --window-utility-title-bar-height.
-    height: var(--window-title-bar-height);
-    padding-bottom: var(--window-border-size);
-    text-align: center;
-    border: none;
-    box-shadow: none;
-    column-gap: calc(var(--window-border-size) * 4);
-
-    .classicyWindowIcon {
-      max-width: calc(var(--window-control-size) * 2);
-      max-height: calc(var(--window-control-size) * 1.25);
-      padding: 0 calc(var(--window-padding-size) / 2);
-      display: flex;
-      align-items: flex-start;
-      justify-content: flex-start;
-
-      img {
-        height: 100%;
-        width: 100%;
-        user-select: none;
-        pointer-events: none;
-        object-fit: contain;
-      }
-    }
-
-    .classicyWindowTitle {
-      position: relative;
-      display: flex;
-      flex-direction: row;
-      flex-grow: 1;
-      text-align: center;
-      min-width: 0;
-
-      .classicyWindowTitleText {
-        font-size: var(--ui-font-size);
-        overflow: hidden;
-        align-content: flex-start;
-        height: 1.5em !important;
-        line-height: 1;
-        cursor: default;
-        user-select: none;
-        color: var(--color-system-05);
-        -webkit-user-drag: none;
-        display: flex;
-
-        & > p {
-          overflow: hidden;
-          margin: 0;
-          text-wrap: nowrap;
-          text-overflow: ellipsis;
-        }
-      }
-
-      .classicyWindowTitleCenter {
-        flex-grow: 1;
-        width: auto;
-        height: calc(var(--window-control-size) * 1.25);
-        margin: calc(var(--window-padding-size) / 2) var(--window-padding-size);
-        margin-top: 0;
-        padding: 0;
-      }
-
-      .classicyWindowTitleLeft,
-      .classicyWindowTitleRight {
-        flex-grow: 1;
-        width: auto;
-        height: calc(var(--window-control-size) * 1);
-        margin: calc(var(--window-padding-size) / 2) var(--window-padding-size);
-        margin-top: 0;
-        padding: 0;
-      }
-
-      span {
-        font-size: var(--window-control-size);
-        margin: 0;
-        padding: 0;
-        background: var(--color-window-frame) !important;
-      }
-    }
-
-    .classicyWindowControlBox {
-      @include appearance.platinumBoxShadow;
-      padding: var(--window-border-size) 0 var(--window-border-size)
-        var(--window-border-size);
-      opacity: 0;
-      width: calc(var(--window-control-size) + var(--window-border-size)) !important;
-      height: calc(var(--window-control-size) + var(--window-border-size)) !important;
-    }
-
-    .classicyWindowCollapseBox,
-    .classicyWindowZoomBox {
-      @include appearance.platinumWindowControlBoxDepressable;
-    }
-
-    .classicyWindowCollapseBox {
-      &:after {
-        opacity: 0.65;
-        background-image: assets.$collapse;
-        background-position: top left;
-      }
-    }
-
-    .classicyWindowZoomBox {
-      &:after {
-        opacity: 0.65;
-        background-image: assets.$zoom;
-        background-position: top left;
-        margin-top: calc(var(--window-border-size) * 2)
-      }
-    }
-
-    .classicyWindowCloseBox {
-      @include appearance.platinumWindowControlBoxDepressable;
-    }
-  }
+  // The title bar's structure, shared with ClassicyWindowFrame.
+  @include title-bar.classicy-window-title-bar;
 
   // The grow box is the scroll bars' corner, and only its top and left edges are
   // drawn: those two continue the horizontal and vertical scroll bars' outer
@@ -375,7 +50,7 @@
     position: absolute;
     z-index: 999;
     box-sizing: border-box;
-    // Stop 1px short of the window's padding box so platinumWindowBoxShadow's
+    // Stop 1px short of the window's padding box so the window box shadow's
     // inset bevel — the frame's own bottom-right shading — still reads.
     right: var(--window-border-size);
     bottom: var(--window-border-size);
@@ -385,13 +60,21 @@
     height: calc(var(--window-scrollbar-size) + var(--window-frame-inset));
     padding: 0;
     user-select: none;
+    // The grow box's cursor comes from the asset registry (ruling E6):
+    // ClassicyDesktop defines `--classicy-cursor-<role>` as url("…") on its
+    // root. Hotspot 8 8 = the center of the 16px Platinum resize cursor.
+    // Outside a desktop the variable is undefined, which would void the whole
+    // declaration; the fallback is an image that never loads, so the browser
+    // moves on to the keyword cursor (the split view's idiom).
+    cursor:
+      var(--classicy-cursor-resize-lr, url('data:,')) 8 8,
+      nwse-resize;
     // Flat frame grey, no edges of its own: past the gutter this box exists only
     // to cover the contents box's border and bevel, which would otherwise draw a
     // black line and a white line along the grip's bottom and right and box it
     // in. Nothing is enclosed on those two sides.
     border: none;
     background-color: var(--color-system-03);
-    background-image: assets.$resizer;
     background-repeat: no-repeat;
     background-position: center;
     background-size: calc(
@@ -427,13 +110,63 @@
       // No inset highlight: a white bevel here reads as a 1px white seam between
       // the grow box and the scroll bars. The grip's grey must meet the bars'
       // black borders directly (matches Mac OS 8's grow box).
+
+      // The edges are on the grip's content side, so they follow its corner
+      // (published on the desktop root as data-classicy-grow-box; bottom-right
+      // is the rule above). A left corner draws the vertical edge on the
+      // grip's right, nudged out by a border as the bottom-right one is
+      // nudged left; a top corner draws the horizontal edge along the bottom.
+      [data-classicy-grow-box*="left"] & {
+        left: auto;
+        right: calc(var(--window-border-size) * -1);
+        border-left: none;
+        border-right: var(--window-border-size) solid var(--color-black);
+      }
+
+      [data-classicy-grow-box*="top"] & {
+        top: auto;
+        bottom: 0;
+        border-top: none;
+        border-bottom: var(--window-border-size) solid var(--color-black);
+      }
+    }
+
+    // Arrangement: the grip follows the active package's grow-box corner,
+    // published on the desktop root as data-classicy-grow-box (bottom-right,
+    // the default, is the rule above). Its ::before edges follow it (above).
+    [data-classicy-grow-box="bottom-left"] & {
+      left: var(--window-border-size);
+      right: auto;
+    }
+
+    [data-classicy-grow-box="top-right"] & {
+      top: var(--window-border-size);
+      bottom: auto;
+    }
+
+    [data-classicy-grow-box="top-left"] & {
+      left: var(--window-border-size);
+      right: auto;
+      top: var(--window-border-size);
+      bottom: auto;
+    }
+
+    // The registered resize art is a symmetric left-right arrow and serves
+    // every corner, but the keyword fallback above points along the
+    // bottom-right/top-left diagonal; the other two corners fall back to their
+    // own. :where() keeps the base rule's specificity, so the resizing rule
+    // below (later, equal weight) still shows the grabbing hand.
+    :where([data-classicy-grow-box="bottom-left"]) &,
+    :where([data-classicy-grow-box="top-right"]) & {
+      cursor:
+        var(--classicy-cursor-resize-lr, url('data:,')) 8 8,
+        nesw-resize;
     }
   }
 
   .classicyWindowContents {
     position: relative;
     display: block;
-    @include appearance.platinumWindowInnerBorder;
     // When a document window scrolls, Mac OS 8 draws BOTH scroll bars (the
     // non-scrolling axis shows an empty, thumb-less track). `scroll` — not
     // `auto` — reserves both gutters and the grow-box corner at the
@@ -450,7 +183,6 @@
     position: relative;
     display: block;
     overflow: scroll;
-    height: calc(100% - (var(--window-control-size) * 3) - (var(--window-padding-size))) !important;
     background-color: var(--classicy-window-contents-bg, var(--color-window-document));
   }
 
@@ -474,22 +206,49 @@
   }
 }
 
-.classicyWindowContentsModal {
+// The contents' header-offset height outranks the utility variant's and the
+// modal contents' heights (each one class lower).
+.classicyWindow.classicyWindow .classicyWindowContentsWithHeader {
+  height: calc(100% - (var(--window-control-size) * 3) - (var(--window-padding-size)));
+}
+
+.classicyWindowHeader {
+  font-family: var(--ui-font), sans-serif;
+  font-size: var(--window-header-font-size);
+  position: sticky;
+  z-index: 999;
+  top: 0;
+  display: flex;
+
+  @include layout.classicy-no-select;
+  align-items: center;
+  flex-direction: row;
+  justify-content: center;
+  height: var(--control-row-height);
+  background: var(--color-system-03);
+  column-gap: var(--window-control-size);
+}
+
+// #183: the list-view header variant (classicyWindowHeaderList) drops the
+// beveled bottom separator, so the header reads as a column-heading strip
+// rather than a raised bar: a look, in the Platinum package.
+
+// Named under `.classicyWindow` to outrank the header-offset contents'
+// background (`.classicyWindow .classicyWindowContentsWithHeader`).
+.classicyWindow .classicyWindowContentsModal {
   width: calc(100% - var(--window-padding-size) / 2);
   height: calc(
     100% - (var(--window-control-size) * 2) - var(--window-padding-size)
   );
-  margin: 0 !important;
-  padding: calc(var(--window-padding-size) / 4) !important;
-  border: none !important;
-  @include appearance.platinumWindowBorder;
-  border-top: calc(var(--window-padding-size) / 4) solid var(--color-black) !important;
-  background-color: var(--classicy-window-contents-bg, var(--color-window-frame)) !important;
-  @include appearance.platinumWindowBoxShadow;
+  margin: 0;
+  padding: var(--control-padding-tight);
+  border: none;
+  border-top: var(--control-padding-tight) solid var(--color-black);
+  background-color: var(--classicy-window-contents-bg, var(--color-window-frame));
 }
 
 .classicyWindowContentsModalInner {
-  padding: calc(var(--window-padding-size) / 2);
+  padding: var(--control-padding);
 }
 
 .classicyWindowContentsInner {
@@ -500,20 +259,6 @@
 
 .classicyWindowContentsInnerGrow {
   height: 100%;
-}
-
-.classicyWindowModal {
-  margin: 0 !important;
-  padding: 0;
-}
-
-.classicyWindowTitleBarModal {
-  padding: calc(var(--window-padding-size) / 1.25)
-    calc(var(--window-padding-size) / 1.25) !important;
-
-  & .classicyWindowTitle {
-    width: calc(100% - var(--window-control-size)*5) !important;
-  }
 }
 
 // #205: draggable frame edges. Mac OS 8 lets you drag a window from the narrow
@@ -592,111 +337,10 @@
   }
 }
 
-.classicyWindowPlacardBarDimmed {
-  opacity: 0.6;
-}
-
-// #205: utility (tool-palette) window — a crosshatch/pinstripe top drag region
-// instead of the pinstriped document title bar.
-.classicyWindowUtility {
-  // Windoid scrollbars are narrower than a document window's. These custom
-  // properties inherit, so the override cascades to every scrollbar
-  // pseudo-element inside the palette — and to .classicyWindowResizer, which
-  // sizes itself to --window-scrollbar-size and so shrinks to match without a
-  // rule of its own. The arrow glyph derives from the scrollbar size (the theme
-  // uses size / 4), so it scales down proportionally too.
-  --window-scrollbar-size: calc(var(--window-padding-size) * 1 + var(--window-border-size) * 1);
-  --window-scrollbar-arrow-size: calc(var(--window-scrollbar-size) / 4);
-
-  &.classicyWindowCollapsed {
-      height: calc(var(--window-control-size) * .5) !important;
-  }
-
-  .classicyWindowContents {
-    height: calc(100% - var(--window-control-size) * .25 - var(--window-padding-size) * 1.5)
-  }
-
-  .classicyWindowTitleBar {
-    // Windoid: half-height title bar (measurements.window.utilityTitleBarHeight,
-    // 10px, vs the document bar's --window-title-bar-height). Override both
-    // height and min-height so nothing taller can win.
-    height: var(--window-utility-title-bar-height);
-    top: calc(var(--window-border-size)*-2);
-    min-height: var(--window-utility-title-bar-height);
-    align-items: center;
-    padding-bottom: 0;
-
-    // Shrink the close/zoom/collapse boxes to fit the shorter bar while
-    // keeping the Platinum bevel (inherited from the base rules).
-    .classicyWindowControlBox {
-      width: calc(
-        var(--window-utility-title-bar-height) - var(--window-border-size) * 2
-      ) !important;
-      height: calc(
-        var(--window-utility-title-bar-height) - var(--window-border-size) * 2
-      ) !important;
-
-      & .classicyWindowCloseBox {
-        width: calc(
-          var(--window-utility-title-bar-height) - var(--window-border-size) * 4
-        ) !important;
-        height: calc(
-          var(--window-utility-title-bar-height) - var(--window-border-size) * 4
-        ) !important;
-      }
-
-      & .classicyWindowCollapseBox {
-        width: calc(
-          var(--window-utility-title-bar-height) - var(--window-border-size) * 4
-        ) !important;
-        height: calc(
-          var(--window-utility-title-bar-height) - var(--window-border-size) * 4
-        ) !important;
-
-        &:after {
-          top: calc(var(--window-padding-size) * -1 - var(--window-border-size));
-        }
-      }
-    }
-
-    .classicyWindowTitleText {
-      background: var(--color-system-03);
-      padding: 0 calc(var(--window-padding-size) / 2);
-    }
-
-    .classicyWindowTitleLeft,
-    .classicyWindowTitleRight {
-      background: none !important;
-
-      &:before,
-      &:after {
-        content: none !important;
-      }
-    }
-
-    .classicyWindowTitleCenter {
-      height: var(--window-utility-title-bar-height) !important;
-      margin: 0 var(--window-padding-size) !important;
-      background-image: assets.$title-bar-utility !important;
-      background-repeat: repeat !important;
-      background-size: 4px 3px !important;
-
-      &:before,
-      &:after {
-        content: none !important;
-      }
-    }
-  }
-}
-
 // #203: modeless-dialog content frame — a 2px frame around the window body with
 // distinct active/inactive states. Opt in via the `contentFrame` prop.
 .classicyWindowContentsFramed {
-  border: var(--control-frame-width) solid var(--color-system-07) !important;
-}
-
-.classicyWindowContentsFramedDimmed {
-  border-color: var(--color-system-05) !important;
+  border: var(--control-frame-width) solid var(--color-system-07);
 }
 
 // #197: modal scrim — an input-blocking backdrop rendered behind a modal window
@@ -714,4 +358,213 @@
 
 .classicyWindowModalScrimError {
   z-index: 99998; // just below the red error modal (z-index 99999)
+}
+
+// #205: utility (tool-palette) window — a crosshatch/pinstripe top drag region
+// instead of the pinstriped document title bar.
+.classicyWindowUtility {
+  // Windoid scrollbars are narrower than a document window's. These custom
+  // properties inherit, so the override cascades to every scrollbar
+  // pseudo-element inside the palette — and to .classicyWindowResizer, which
+  // sizes itself to --window-scrollbar-size and so shrinks to match without a
+  // rule of its own. The arrow glyph derives from the scrollbar size (the theme
+  // uses size / 4), so it scales down proportionally too.
+  --window-scrollbar-size: calc(var(--window-padding-size) * 1 + var(--window-border-size) * 1);
+  --window-scrollbar-arrow-size: calc(var(--window-scrollbar-size) / 4);
+
+  .classicyWindowContents {
+    height: calc(100% - var(--window-control-size) * .25 - var(--window-padding-size) * 1.5)
+  }
+
+  .classicyWindowTitleBar {
+    // Windoid: half-height title bar (measurements.window.utilityTitleBarHeight,
+    // 10px, vs the document bar's --window-title-bar-height). Override both
+    // height and min-height so nothing taller can win.
+    height: var(--window-utility-title-bar-height);
+    top: calc(var(--window-border-size)*-2);
+    min-height: var(--window-utility-title-bar-height);
+    align-items: center;
+    padding-bottom: 0;
+
+    // Shrink the close/zoom/collapse boxes to fit the shorter bar while
+    // keeping the Platinum bevel (from the Platinum package).
+    .classicyWindowControlBox {
+      width: calc(
+        var(--window-utility-title-bar-height) - var(--window-border-size) * 2
+      );
+      height: calc(
+        var(--window-utility-title-bar-height) - var(--window-border-size) * 2
+      );
+
+      // The close and collapse boxes' own utility size is in the Platinum
+      // package: it overrides the package's control-box size.
+    }
+
+    .classicyWindowTitleText {
+      background: var(--color-system-03);
+      padding: 0 var(--control-padding);
+    }
+  }
+}
+
+// The windoid's title-bar band. Named down to `.classicyWindowTitle` so it
+// outranks the document title bar's center band above.
+.classicyWindow.classicyWindowUtility .classicyWindowTitleBar .classicyWindowTitle {
+  .classicyWindowTitleCenter {
+    height: var(--window-utility-title-bar-height);
+    margin: 0 var(--window-padding-size);
+  }
+}
+
+.classicyWindowModal {
+  margin: 0;
+  padding: 0;
+}
+
+// Named under `.classicyWindow` to outrank the document and utility title
+// bars' padding-bottom.
+.classicyWindow .classicyWindowTitleBarModal {
+  padding: var(--window-frame-inset)
+    var(--window-frame-inset);
+
+  & .classicyWindowTitle {
+    width: calc(100% - var(--window-control-size)*5);
+  }
+}
+
+:where(.classicyWindow).inactive {
+  user-select: none;
+  filter: contrast(0.6) brightness(1.25);
+}
+
+:where(.classicyWindow).active {
+  z-index: 300;
+
+  @include title-bar.classicy-window-title-bar-active;
+}
+
+.classicyWindowActiveApp {
+  z-index: 150;
+}
+
+// #234: a utility palette floats above its own app's active document (300)
+// while that app is focused…
+.classicyWindowFloating {
+  z-index: 350;
+}
+
+// …and drops behind the focused app's windows (150 / 300) when its own app is
+// backgrounded, so Finder file-browser windows cover a background app's palette.
+.classicyWindowBackgrounded {
+  z-index: 20;
+}
+
+// Non-error modal dialogs (File Open/Save and friends) sit in a band ABOVE the
+// utility/tool-palette floating band (350) so a palette can never cover an open
+// dialog, yet BELOW the red error/alert band (99999) so system alerts still win.
+// The paired non-error modal scrim (below) sits just under this so it blocks and
+// separates every window beneath the dialog. Error modals keep classicyWindowRed.
+.classicyWindowModalFront {
+  z-index: 370;
+}
+
+.classicyWindowRed {
+  z-index: 99999;
+
+  .classicyWindowTitleBar {
+    background-color: c.classicy-tint("--color-error", 80%);
+  }
+}
+
+:where(.classicyWindow).collapsed {
+  height: var(--window-collapsed-height);
+}
+
+.classicyWindowUtility.collapsed {
+  height: var(--window-utility-collapsed-height);
+}
+
+// A collapsed window keeps its contents mounted but out of sight.
+:where(.classicyWindowContents, .classicyWindowContentsModal).collapsed {
+  visibility: hidden;
+}
+
+// The header and contents dim before the drag and resize rules: dragging or
+// resizing hides every child (opacity 0), dimmed or not.
+.classicyWindowHeaderDimmed {
+  opacity: 0.5;
+}
+
+.classicyWindowContentsDimmed {
+  opacity: 0.8;
+  filter: contrast(0.9);
+}
+
+:where(.classicyWindow).dragging {
+  cursor: grabbing; /* Set cursor for the dragging element itself */
+  background: transparent;
+
+  * {
+    opacity: 0;
+    user-select: none; /* Prevent text selection while dragging */
+    user-drag: none; /* Prevent accidental dragging of child elements */
+  }
+}
+
+.classicyWindowResizing {
+  background: transparent;
+
+  .classicyWindowResizer {
+    cursor: grabbing; /* Use grabbing cursor while actively resizing */
+  }
+
+  * {
+    opacity: 0;
+  }
+}
+
+.classicyWindowInvisible {
+  display: none;
+}
+
+.classicyWindowNoScroll {
+  overflow: hidden;
+}
+
+.classicyWindowContentsNotDimmed {
+  filter: contrast(1.667) brightness(0.8);
+}
+
+// The dimmed contents' and resizer's look (no bevel, no grip art) is in the
+// Platinum package.
+.classicyWindow .classicyWindowResizerDimmed {
+  // The grip's two edges live on ::before (see .classicyWindowResizer).
+  &::before {
+    border-top: var(--window-border-size) solid var(--color-system-05);
+    border-left: var(--window-border-size) solid var(--color-system-05);
+    // Flat, like ::-webkit-scrollbar-corner under scrollbars-inactive(). The old
+    // outer shadow painted frame grey up and to the left to mask the gap the
+    // misaligned grip left behind; there is no gap to mask now, and an outer
+    // shadow would cover the inactive scroll bars' edges.
+    box-shadow: none;
+
+    // A moved grip's moved edges (see .classicyWindowResizer::before) dim too.
+    [data-classicy-grow-box*="left"] & {
+      border-right-color: var(--color-system-05);
+    }
+
+    [data-classicy-grow-box*="top"] & {
+      border-bottom-color: var(--color-system-05);
+    }
+  }
+}
+
+// After the drag and resize rules, unlike the dimmed header and contents: a
+// dimmed placard bar keeps its own opacity while its window is dragged.
+.classicyWindowPlacardBarDimmed {
+  opacity: 0.6;
+}
+
+.classicyWindowContentsFramedDimmed {
+  border-color: var(--color-system-05);
 }

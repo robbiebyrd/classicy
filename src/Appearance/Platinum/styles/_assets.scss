@@ -1,0 +1,27 @@
+// The Platinum package root's custom properties. The package's art is
+// registered system art (`--classicy-art-*`, see ../assets), read by the
+// component partials, every one as an image layer: the title-bar stripes, the
+// windoid texture, the control-box glyphs and dither, the grow-box grip, and
+// the menu and pop-up arrows.
+
+// The package root's custom properties, included first inside
+// `classicy-package("platinum")` by platinum.scss, so they land on
+// `.classicyDesktop[data-classicy-appearance="platinum"]` and every
+// descendant inherits them.
+@mixin platinum-root-properties {
+  // The Color Picker's crayon shading (ClassicyColorPickerCrayon reads them as
+  // the tip and end outlines, the tip facets, the body strips and gloss, and
+  // the label band and lines) and the color wheel's crosshair, drawn in
+  // 'difference' compositing over the wheel.
+  --classicy-color-picker-crayon-outline: rgba(0, 0, 0, 0.4);
+  --classicy-color-picker-crayon-facet-light: rgba(255, 255, 255, 0.25);
+  --classicy-color-picker-crayon-facet-dark: rgba(0, 0, 0, 0.2);
+  --classicy-color-picker-crayon-strip-dark: rgba(0, 0, 0, 0.22);
+  --classicy-color-picker-crayon-strip-light: rgba(255, 255, 255, 0.22);
+  --classicy-color-picker-crayon-gloss: rgba(255, 255, 255, 0.07);
+  --classicy-color-picker-crayon-band: rgba(255, 255, 255, 0.48);
+  --classicy-color-picker-crayon-line-1: rgba(0, 0, 0, 0.2);
+  --classicy-color-picker-crayon-line-2: rgba(0, 0, 0, 0.14);
+  --classicy-color-picker-crayon-end-outline: rgba(0, 0, 0, 0.28);
+  --classicy-color-picker-crosshair: #ffffff;
+}

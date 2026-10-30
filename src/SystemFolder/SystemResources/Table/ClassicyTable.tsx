@@ -10,6 +10,7 @@ import {
 } from "@tanstack/react-table";
 import classNames from "classnames";
 import {
+	type CSSProperties,
 	type KeyboardEvent,
 	type ReactElement,
 	type ReactNode,
@@ -20,9 +21,10 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
-
-const arrowUpIcon = ClassicyIcons.ui.menuDropdownArrowUp;
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 
 /**
  * Expansion facts handed to every cell `render`, so a column (typically the
@@ -89,6 +91,8 @@ type ClassicyTableProps<T> = {
 	stickyHeader?: boolean;
 	/** Extra class(es) for the scrolling container. */
 	className?: string;
+	/** Inline style for the scrolling container. */
+	style?: CSSProperties;
 	/** Extra class(es) for a row — e.g. legacy class names a consumer's CSS keys on. */
 	rowClassName?: (row: T, isSelected: boolean) => string | undefined;
 	/**
@@ -165,6 +169,7 @@ export function ClassicyTable<T>({
 	defaultSort,
 	stickyHeader = true,
 	className,
+	style,
 	rowClassName,
 	getSubRows,
 	rowCanExpand,
@@ -173,6 +178,7 @@ export function ClassicyTable<T>({
 	selectionApiRef,
 	containerRef: externalContainerRef,
 }: ClassicyTableProps<T>): ReactElement {
+	const arrowUpIcon = useClassicyAsset("icons", "ui.menuDropdownArrowUp") ?? "";
 	const [sorting, setSorting] = useState<SortingState>(
 		defaultSort ? [{ id: defaultSort.columnId, desc: !!defaultSort.desc }] : [],
 	);
@@ -212,6 +218,8 @@ export function ClassicyTable<T>({
 		},
 		[externalContainerRef],
 	);
+	// The container had no state class; `selected` stays on rows and headers.
+	const appearance = useClassicyAppearance("Table", {}, containerRef);
 	const typeBuffer = useRef("");
 	const typeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
 		undefined,
@@ -281,22 +289,30 @@ export function ClassicyTable<T>({
 		};
 	}, [selectionApiRef, selectAll]);
 
-	// Selection semantics over the CURRENT visual (sorted) order.
+	// Selection semantics over the CURRENT visual (sorted) order. Clicks and
+	// the keyboard (arrows, Home/End, type-select) all select through here.
 	const applySelection = (rowId: string, mods: SelectionModifiers) => {
 		if (selectionMode === "none") return;
 		const visual = table.getRowModel().rows;
+		const emitSelect = (selected: boolean) =>
+			appearance.emit(
+				"select",
+				withClassicyAppearanceInput({ rowId, selected }),
+			);
 		if (selectionMode === "multi") {
 			if (mods.shiftKey && anchorId.current) {
 				const ai = visual.findIndex((r) => r.id === anchorId.current);
 				const bi = visual.findIndex((r) => r.id === rowId);
 				if (ai >= 0 && bi >= 0) {
 					const [from, to] = ai <= bi ? [ai, bi] : [bi, ai];
+					emitSelect(true);
 					commit(visual.slice(from, to + 1).map((r) => r.id));
 					return; // the anchor survives so the range can keep pivoting
 				}
 			}
 			if (mods.metaKey || mods.ctrlKey) {
 				anchorId.current = rowId;
+				emitSelect(!effectiveSelected.includes(rowId));
 				commit(
 					effectiveSelected.includes(rowId)
 						? effectiveSelected.filter((v) => v !== rowId)
@@ -306,6 +322,7 @@ export function ClassicyTable<T>({
 			}
 		}
 		anchorId.current = rowId;
+		emitSelect(true);
 		commit([rowId]);
 	};
 
@@ -442,10 +459,16 @@ export function ClassicyTable<T>({
 	return (
 		// biome-ignore lint/a11y/noStaticElementInteractions: list box is a focusable scroll region driven by arrow keys and type-selection; rows remain the click targets
 		<div
+			{...appearance.attrs}
 			ref={setContainerRef}
 			tabIndex={selectionMode === "none" ? undefined : 0}
 			onKeyDown={handleKeyDown}
-			className={classNames("classicyTableContainer", className)}
+			className={classNames(
+				"classicyTableContainer",
+				appearance.className,
+				className,
+			)}
+			style={appearance.style ? { ...appearance.style, ...style } : style}
 		>
 			<table className="classicyTable">
 				<thead
@@ -474,7 +497,7 @@ export function ClassicyTable<T>({
 										className={classNames(
 											"classicyTableColumnHeader",
 											header.column.getIsResizing() ? "isResizing" : "",
-											isSorted ? "classicyTableColumnHeaderSelected" : "",
+											classicyStateClasses({ selected: !!isSorted }),
 										)}
 										onClick={() => {
 											if (!header.column.getCanSort()) {
@@ -482,14 +505,15 @@ export function ClassicyTable<T>({
 											}
 											// First click sorts ascending; clicking the sorted
 											// column flips it (same cycle as the Finder view).
-											if (
+											const desc = !(
 												header.column.getIsSorted() === false ||
 												header.column.getIsSorted() === "desc"
-											) {
-												header.column.toggleSorting(false, false);
-											} else {
-												header.column.toggleSorting(true, false);
-											}
+											);
+											header.column.toggleSorting(desc, false);
+											appearance.emit("change", {
+												columnId: header.id,
+												desc,
+											});
 										}}
 									>
 										<div className="classicyTableHeaderCellContent">
@@ -534,9 +558,9 @@ export function ClassicyTable<T>({
 							data-selected={effectiveSelected.includes(row.id) || undefined}
 							className={classNames(
 								"classicyTableRow",
-								effectiveSelected.includes(row.id)
-									? "classicyTableRowSelected"
-									: null,
+								classicyStateClasses({
+									selected: effectiveSelected.includes(row.id),
+								}),
 								rowClassName?.(
 									row.original,
 									effectiveSelected.includes(row.id),

@@ -1,4 +1,9 @@
+import {
+	appearanceHooksParameters,
+	ClassicyAppearanceProbe,
+} from "@sb/ClassicyAppearanceProbe";
 import { desktopParameters, StoryApp } from "@sb/helpers";
+import { mirroredParameters } from "@sb/mirrored";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useRef } from "react";
 import { fn } from "storybook/test";
@@ -13,7 +18,10 @@ const meta = {
 } satisfies Meta<typeof ClassicyWindow>;
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+// Every story here draws the component itself in `render` and ignores the
+// args, so the stories are typed against the component (every arg optional),
+// not `typeof meta`, which would demand its required props as story args.
+type Story = StoryObj<typeof ClassicyWindow>;
 
 /**
  * A standard document window: close box on the left, zoom and collapse boxes on
@@ -21,7 +29,12 @@ type Story = StoryObj<typeof meta>;
  * it to hear the window sounds; its geometry lives in the window manager store.
  */
 export const Default: Story = {
-	render: () => (
+	render: () => <DefaultWindowStory />,
+};
+
+/** The `Default` story's window, also rendered by `AppearanceHooks`. */
+function DefaultWindowStory() {
+	return (
 		<StoryApp id="storybook.app" name="Storybook">
 			<ClassicyWindow
 				id="default"
@@ -35,8 +48,8 @@ export const Default: Story = {
 				</p>
 			</ClassicyWindow>
 		</StoryApp>
-	),
-};
+	);
+}
 
 /**
  * The minimal modal dialog: `modal` portals the window above an input-blocking
@@ -506,4 +519,34 @@ const CloseVetoWindow = () => {
  */
 export const CloseVeto: Story = {
 	render: () => <CloseVetoWindow />,
+};
+
+/**
+ * The Appearance Package hook surface, under the Storybook probe package:
+ * every root `decorate()` reaches is outlined (green while pressed), and every
+ * event the component emits is logged in the Actions panel.
+ *
+ * It renders a fixed tree and takes no args.
+ */
+export const AppearanceHooks: StoryObj<Record<string, never>> = {
+	render: () => (
+		<ClassicyAppearanceProbe>
+			<DefaultWindowStory />
+		</ClassicyAppearanceProbe>
+	),
+	parameters: appearanceHooksParameters("600px"),
+};
+
+/**
+ * `Default` under the Storybook-only `mirrored` Appearance Package, which
+ * rearranges the window by CSS `order` and its `layout` alone: the close box
+ * at the right, zoom and collapse at the left, the title's stripes hidden and
+ * the grow box (`window.growBoxCorner: "bottom-left"`) in the lower-left
+ * corner, its edges drawn on its content side. Dragging the grip resizes from
+ * that corner, keeping the top-right corner fixed. The grip art itself is
+ * Platinum's, not mirrored.
+ */
+export const Mirrored: Story = {
+	...Default,
+	parameters: mirroredParameters,
 };

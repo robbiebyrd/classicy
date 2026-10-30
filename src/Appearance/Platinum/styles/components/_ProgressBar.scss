@@ -1,0 +1,13 @@
+// The Platinum progress bar look (from ClassicyProgressBar.scss): the inset
+// track border.
+@use "../mixins";
+
+@mixin progressBar {
+  .classicyProgress {
+    progress[value] {
+      &::-webkit-progress-bar {
+        @include mixins.platinum-window-inner-border;
+      }
+    }
+  }
+}

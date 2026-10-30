@@ -714,6 +714,7 @@ interface ClassicyMenuItem {
     onClickFunc?: () => void
     menuChildren?: ClassicyMenuItem[]
     className?: string
+    part?: string                   // rendered as data-classicy-part, for theme packages
     balloon?: { title?: string; content: string; position?: ClassicyBalloonPosition }
 }
 ```
@@ -868,31 +869,37 @@ Props: `id`, `order` (default `0`), `icon`, `title`, `menuItems`, `onClick`,
 Register icons **once, at module scope**, before anything renders.
 
 ```tsx
-import { ClassicyIcons, registerClassicyIcons } from 'classicy'
+import { registerClassicyIcons, useClassicyAsset } from 'classicy'
 import appIconPng from './my-app.png'
 
-// registerClassicyIcons assigns shallowly, so spread the existing namespace to
-// keep the bundled app icons (and other apps' registrations) intact.
-const ICONS = registerClassicyIcons({
+// Registration deep-merges, so this keeps the bundled app icons (and other
+// apps' registrations) intact; no spreading of existing namespaces needed.
+registerClassicyIcons({
     applications: {
-        ...ClassicyIcons.applications,
         myApp: { app: appIconPng, doc: docPng },
     },
 })
 
-const appIcon = ICONS.applications.myApp.app
+// In a component, read it at render time so it follows the active package:
+const appIcon = useClassicyAsset('icons', 'applications.myApp.app') ?? ''
 ```
 
-Bundled icons are available directly:
+Outside a component, read at call time with
+`resolveClassicyAsset('icons', 'applications.myApp.app')`. Don't capture an icon
+in a module-scope constant; a later registration or appearance-package switch
+would not reach it.
+
+Bundled icons are read the same way, by dotted path (the `ClassicyIcons`
+constant is only the tree Platinum ships and misses later registrations):
 
 ```ts
-ClassicyIcons.system.files.document
-ClassicyIcons.system.folders.directory
-ClassicyIcons.system.drives.disk
-ClassicyIcons.system.macos
+useClassicyAsset('icons', 'system.files.document')
+useClassicyAsset('icons', 'system.folders.directory')
+useClassicyAsset('icons', 'system.drives.disk')
+useClassicyAsset('icons', 'system.macos')
 ```
 
-Override the alias-badge artwork by registering your own `system.alias` entry.
+Override the alias-badge artwork with `registerClassicySystemArt("platinum", { aliasBadge })`. Cursors, wallpapers, fonts and the rest of the system art register the same way; see AGENT-REFERENCE §5 (Asset registries).
 
 ---
 
@@ -1134,7 +1141,7 @@ player({ type: ClassicySoundActionTypes.ClassicySoundPlay, sound: "ClassicyBeep"
 
 `ClassicySoundPlay` is skipped when something is already playing;
 `ClassicySoundPlayInterrupt` stops the current sound first. `sound` is a sprite
-key from the active sound theme.
+key from the active sound pack.
 
 For the user's chosen alert sound, use `useClassicyAlertSound()`, which returns a
 zero-argument function.
@@ -1357,8 +1364,8 @@ Classicy chrome exposes stable hooks:
 page.locator(".classicyDesktop")
 page.getByRole("button", { name: "My App" }).dblclick()   // desktop icon
 page.getByRole("application", { name: "My App" })          // a window
-expect(win).toHaveClass(/classicyWindowActive\b/)          // vs classicyWindowInactive
-page.locator(".classicyWindowCloseBox").click()
+expect(win).toHaveClass(/\bactive\b/)                     // vs \binactive\b; bare state classes
+page.locator('.classicyWindow.active [data-classicy-control="close"]').click()
 ```
 
 > ARIA name computation folds every descendant `menuitem`'s text into the

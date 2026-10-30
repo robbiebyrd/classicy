@@ -1,0 +1,68 @@
+// The Platinum package stylesheet, imported `?inline` by ../index.ts and
+// registered as the package's `css`: one `@layer classicy.package` block
+// scoped under `.classicyDesktop[data-classicy-appearance="platinum"]`. Each
+// components/_<Name>.scss exposes one mixin, included inside the wrapper below
+// in the order the library stylesheet bundles the base sheets they came from
+// (the order of their `@layer classicy.base` blocks in an unminified
+// dist/classicy.css), so a tie between two partials resolves as it did there.
+@use "../../vocabulary/package";
+@use "assets";
+@use "components/Alert";
+@use "components/Button";
+@use "components/BevelButton";
+@use "components/Menu";
+@use "components/Window";
+@use "components/Slider";
+@use "components/Checkbox";
+@use "components/PopUpMenu";
+@use "components/DriveSetupList";
+@use "components/Assistant";
+@use "components/ProgressBar";
+@use "components/Icon";
+@use "components/Table";
+@use "components/QuickTimeMovieEmbed";
+@use "components/StartupScreen";
+@use "components/ControlStrip";
+@use "components/Desktop";
+@use "components/Tabs";
+@use "components/DesktopIcon";
+@use "components/HyperCard";
+@use "components/FileInput";
+@use "components/Meter";
+@use "components/Output";
+@use "components/Placard";
+@use "components/SplitView";
+@use "components/WindowFrame";
+
+@include package.classicy-package("platinum") {
+  // The package root's custom properties, on the root itself.
+  @include assets.platinum-root-properties;
+  @include Alert.alert;
+  @include Button.button;
+  @include BevelButton.bevelButton;
+  @include Menu.menu;
+  @include Window.window;
+  @include Slider.slider;
+  @include Checkbox.checkbox;
+  @include PopUpMenu.popUpMenu;
+  @include DriveSetupList.driveSetupList;
+  @include Assistant.assistant;
+  @include ProgressBar.progressBar;
+  @include Icon.icon;
+  @include Table.table;
+  @include QuickTimeMovieEmbed.quickTimeMovieEmbed;
+  @include StartupScreen.startupScreen;
+  @include ControlStrip.controlStrip;
+  @include Desktop.desktop;
+  // Out of bundle order (ClassicyTabs.scss bundles before ClassicyDesktop.scss):
+  // the tab scroller re-asserts its hidden scroll bar after the desktop's.
+  @include Tabs.tabs;
+  @include DesktopIcon.desktopIcon;
+  @include HyperCard.hyperCard;
+  @include FileInput.fileInput;
+  @include Meter.meter;
+  @include Output.output;
+  @include Placard.placard;
+  @include SplitView.splitView;
+  @include WindowFrame.windowFrame;
+}

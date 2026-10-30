@@ -1,7 +1,11 @@
 import "./ClassicyHelpButton.scss";
 import classNames from "classnames";
-import type { FC as FunctionalComponent, MouseEventHandler } from "react";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import type {
+	CSSProperties,
+	FC as FunctionalComponent,
+	MouseEventHandler,
+} from "react";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { ClassicyBevelButton } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButton";
 
 type ClassicyHelpButtonProps = {
@@ -18,6 +22,10 @@ type ClassicyHelpButtonProps = {
 	onClickFunc?: MouseEventHandler<HTMLButtonElement>;
 	/** Extra class names merged onto the button (e.g. for placement). */
 	className?: string;
+	/** Inline style, merged onto the button after the component's own. */
+	style?: CSSProperties;
+	/** `data-*` attributes (e.g. a part attribute), forwarded to the button. */
+	[dataAttribute: `data-${string}`]: string | undefined;
 };
 
 /**
@@ -32,19 +40,32 @@ type ClassicyHelpButtonProps = {
  *
  * It is a small-bevel `ClassicyBevelButton` in `push` mode, so it shares that
  * button's click sounds, analytics and keyboard behaviour; the glyph is
- * `ClassicyIcons.ui.helpButton`. In an alert, give a button `role: "help"` and `ClassicyAlert` renders this
+ * the registered `helpButton` system art. In an alert, give a button `role: "help"` and `ClassicyAlert` renders this
  * component, far left.
  */
 export const ClassicyHelpButton: FunctionalComponent<
 	ClassicyHelpButtonProps
-> = ({ id, label = "Help", disabled = false, onClickFunc, className }) => (
-	<ClassicyBevelButton
-		id={id}
-		aria-label={label}
-		bevelWidth="small"
-		icon={ClassicyIcons.ui.helpButton}
-		disabled={disabled}
-		onClickFunc={onClickFunc}
-		className={classNames("classicyHelpButton", className)}
-	/>
-);
+> = ({
+	id,
+	label = "Help",
+	disabled = false,
+	onClickFunc,
+	className,
+	style,
+	...dataAttributes
+}) => {
+	const helpIcon = useClassicyAsset("systemArt", "helpButton") ?? "";
+	return (
+		<ClassicyBevelButton
+			{...dataAttributes}
+			id={id}
+			aria-label={label}
+			bevelWidth="small"
+			icon={helpIcon}
+			disabled={disabled}
+			onClickFunc={onClickFunc}
+			className={classNames("classicyHelpButton", className)}
+			style={style}
+		/>
+	);
+};

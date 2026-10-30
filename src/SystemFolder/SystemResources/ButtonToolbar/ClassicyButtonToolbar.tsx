@@ -2,6 +2,7 @@ import "./ClassicyButtonToolbar.scss";
 import classNames from "classnames";
 import {
 	Children,
+	type CSSProperties,
 	type FocusEvent,
 	Fragment,
 	type FC as FunctionalComponent,
@@ -39,6 +40,8 @@ export type ClassicyButtonToolbarSize = "large" | "medium" | "small";
 export type ClassicyButtonToolbarProps = {
 	/** Extra class names merged onto the toolbar element. */
 	className?: string;
+	/** Inline style, merged onto the toolbar element after the component's own. */
+	style?: CSSProperties;
 	/**
 	 * Sizing for every control in the toolbar, as a unit: `large` (the classic
 	 * toolbar look), `medium`, or `small` (matches `ClassicyButton`'s small
@@ -55,6 +58,8 @@ export type ClassicyButtonToolbarProps = {
 export type ClassicyButtonToolbarGroupProps = {
 	/** Extra class names merged onto the group element. */
 	className?: string;
+	/** Inline style, merged onto the group element after the component's own. */
+	style?: CSSProperties;
 	/** The controls in this run, packed flush with no gaps between them. */
 	children: ReactNode;
 };
@@ -68,8 +73,11 @@ export type ClassicyButtonToolbarGroupProps = {
  */
 export const ClassicyButtonToolbarGroup: FunctionalComponent<
 	ClassicyButtonToolbarGroupProps
-> = ({ className, children }) => (
-	<div className={classNames("classicyButtonToolbarGroup", className)}>
+> = ({ className, style, children }) => (
+	<div
+		className={classNames("classicyButtonToolbarGroup", className)}
+		style={style}
+	>
 		{children}
 	</div>
 );
@@ -149,7 +157,7 @@ const toolbarSizeClass: Record<ClassicyButtonToolbarSize, string | undefined> =
  */
 export const ClassicyButtonToolbar: FunctionalComponent<
 	ClassicyButtonToolbarProps
-> = ({ className, size = "large", children }) => {
+> = ({ className, style, size = "large", children }) => {
 	// toArray drops null/undefined/booleans and assigns stable keys, so a
 	// conditionally-rendered group never leaves a stray divider behind.
 	const items = Children.toArray(children);
@@ -303,6 +311,7 @@ export const ClassicyButtonToolbar: FunctionalComponent<
 					toolbarSizeClass[size],
 					className,
 				)}
+				style={style}
 				onKeyDown={handleKeyDown}
 				onFocus={handleFocus}
 			>

@@ -5,21 +5,24 @@ import type {
 	FC as FunctionalComponent,
 	ReactNode,
 } from "react";
+import { ClassicyWindowTitleBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowTitleBar";
 
 interface ClassicyWindowFrameProps {
-	/** Text in the centred title chip. Omitted or empty, the title bar shows only pinstripes. */
+	/** The title, between the title bar's stripe bands. Omitted or empty, the title bar shows only pinstripes. */
 	title?: string;
 	/** Body content, rendered below the title bar. */
 	children: ReactNode;
 	/** Extra class names for the outer frame element. */
 	className?: string;
+	/** Inline style for the outer frame element; merged after the `width` custom property. */
+	style?: CSSProperties;
 	/** Caps the frame's max-width (number → px); content narrower than this stays narrower. */
 	width?: string | number;
 }
 
 /**
- * Presentational Mac OS 8 window frame: title bar (pinstripes + centered
- * title chip) over a body region. Intentionally decoupled from the window
+ * Presentational Mac OS 8 window frame: the window's title bar
+ * (`ClassicyWindowTitleBar`, without control boxes or icon) over a body region. Intentionally decoupled from the window
  * manager — no appId, no store reads, no dispatches — so it renders anywhere,
  * including the pre-boot overlay before any app exists.
  *
@@ -39,8 +42,8 @@ interface ClassicyWindowFrameProps {
  */
 export const ClassicyWindowFrame: FunctionalComponent<
 	ClassicyWindowFrameProps
-> = ({ title = "", children, className, width }) => {
-	const style =
+> = ({ title = "", children, className, style, width }) => {
+	const frameStyle =
 		width !== undefined
 			? ({
 					"--classicy-window-frame-width":
@@ -49,12 +52,11 @@ export const ClassicyWindowFrame: FunctionalComponent<
 			: undefined;
 
 	return (
-		<div className={classNames("classicyWindowFrame", className)} style={style}>
-			<div className="classicyWindowFrameTitleBar">
-				{title !== "" && (
-					<span className="classicyWindowFrameTitleText">{title}</span>
-				)}
-			</div>
+		<div
+			className={classNames("classicyWindowFrame", className)}
+			style={{ ...frameStyle, ...style }}
+		>
+			<ClassicyWindowTitleBar title={title} hideIcon />
 			<div className="classicyWindowFrameBody">{children}</div>
 		</div>
 	);

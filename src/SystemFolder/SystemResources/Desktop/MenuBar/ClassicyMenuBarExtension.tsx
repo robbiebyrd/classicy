@@ -1,5 +1,7 @@
 import "./ClassicyMenuBarExtension.scss";
+import classNames from "classnames";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	type ReactNode,
 	useEffect,
@@ -7,6 +9,7 @@ import {
 	useState,
 } from "react";
 import { createPortal } from "react-dom";
+import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { ClassicyContextualMenu } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenu";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
@@ -25,6 +28,10 @@ export interface ClassicyMenuBarExtensionProps {
 	onClick?: () => void;
 	/** Custom item content, drawn instead of `icon`. */
 	children?: ReactNode;
+	/** Extra class names, merged onto the item's `<li>` after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the item's `<li>` after the component's own (`order`). */
+	style?: CSSProperties;
 }
 
 /**
@@ -34,7 +41,12 @@ export interface ClassicyMenuBarExtensionProps {
  *
  * Render it anywhere inside a `ClassicyDesktop` (typically inside your
  * `ClassicyApp`): it portals into the menu bar's `#classicyDesktopMenuExtensions`
- * region, and renders nothing when that region is not in the document. The item
+ * region, and renders nothing when that region is not in the document — as
+ * under an Appearance Package whose `layout.menuBar.placement` is `"window"`,
+ * which draws no screen bar. It looks the region up again whenever the
+ * package layout's placement changes, so it reappears when the bar does; a
+ * bar forced to `placement="screen"` under a window-placement package is not
+ * re-queried. The item
  * is a real `<button>`, so Enter and Space activate it. With `menuItems`, a
  * click drops a Platinum menu below the item, which closes on a selection or a
  * click outside.
@@ -47,7 +59,17 @@ export interface ClassicyMenuBarExtensionProps {
  */
 export const ClassicyMenuBarExtension: FunctionalComponent<
 	ClassicyMenuBarExtensionProps
-> = ({ id, order = 0, icon, title, menuItems, onClick, children }) => {
+> = ({
+	id,
+	order = 0,
+	icon,
+	title,
+	menuItems,
+	onClick,
+	children,
+	className,
+	style,
+}) => {
 	const [regionNode, setRegionNode] = useState<HTMLElement | null>(null);
 	const itemRef = useRef<HTMLLIElement>(null);
 	const [open, setOpen] = useState(false);
@@ -55,9 +77,15 @@ export const ClassicyMenuBarExtension: FunctionalComponent<
 
 	const hasMenu = !!menuItems && menuItems.length > 0;
 
+	// The region is the screen bar's: a package with menus in each window
+	// removes it, and a switch back renders a new one. Look it up again
+	// whenever the placement changes (effects run after the bar's commit), so
+	// the item never stays portaled into a detached region.
+	const placement = useClassicyAppearanceLayout().menuBar.placement;
+	// biome-ignore lint/correctness/useExhaustiveDependencies: placement is the trigger; the lookup reads the DOM the bar just committed
 	useEffect(() => {
 		setRegionNode(document.getElementById("classicyDesktopMenuExtensions"));
-	}, []);
+	}, [placement]);
 
 	const activate = () => {
 		if (hasMenu) {
@@ -75,8 +103,12 @@ export const ClassicyMenuBarExtension: FunctionalComponent<
 	const item = (
 		<li
 			ref={itemRef}
-			className={"classicyMenuItem classicyDesktopMenuExtension"}
-			style={{ order }}
+			className={classNames(
+				"classicyMenuItem",
+				"classicyDesktopMenuExtension",
+				className,
+			)}
+			style={{ order, ...style }}
 		>
 			{/* A real <button> gives native Enter/Space activation and a clean
 			    accessible name without an interactive role on the <li>. */}

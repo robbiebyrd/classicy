@@ -1,5 +1,8 @@
 import { castDraft, produce } from "immer";
 import { create, type StoreApi, type UseBoundStore } from "zustand";
+import { resolveClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
+import { subscribeClassicyAppearancePackages } from "@/Appearance/ClassicyAppearancePackageRegistry";
+import { connectClassicyAssetPackageSource } from "@/Appearance/ClassicyAssetPackageSource.internal";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import { resolveWallpaper } from "../AppearanceManager/ClassicyWallpapers";
 import type { ClassicyActionTrust } from "./ClassicyActionTrust";
@@ -108,6 +111,22 @@ export const useAppManager: UseBoundStore<StoreApi<ClassicyStore>> =
 		...getInitialState(),
 	}));
 
+// The asset registry follows the active Appearance Package: the store's
+// packageId resolved against the package registry, so assets and the desktop
+// root's data-classicy-appearance always agree. Connected here, once the store
+// exists; the registry reads it lazily, never during module evaluation.
+connectClassicyAssetPackageSource({
+	getId: () => resolveClassicyAppearancePackage().id,
+	subscribe: (onChange) => {
+		const unsubscribeStore = useAppManager.subscribe(onChange);
+		const unsubscribePackages = subscribeClassicyAppearancePackages(onChange);
+		return () => {
+			unsubscribeStore();
+			unsubscribePackages();
+		};
+	},
+});
+
 /**
  * Dispatch an action to the store. `trust` defaults to `"trusted"` — the
  * existing, unrestricted behavior every current call site relies on.
@@ -215,9 +234,16 @@ export function sanitizeStateForPersistence(
 		draft.System.Manager.Keyboard = { app: {}, system: [], global: {} };
 		// "Closed this session" is what makes a re-registering window a reopen
 		// that takes focus; after a reload no window has been closed yet.
+		// `resizing`, `dragging` and `moving` belong to a gesture in progress;
+		// a reload ends it, and a stale flag would keep the window acting as
+		// if dragged (preventDefault on mousemove, the resizing class) until
+		// its first click.
 		for (const app of Object.values(draft.System.Manager.Applications.apps)) {
 			for (const w of Object.values(app.windows ?? {})) {
 				delete w.closedThisSession;
+				delete w.resizing;
+				delete w.dragging;
+				delete w.moving;
 			}
 		}
 	});

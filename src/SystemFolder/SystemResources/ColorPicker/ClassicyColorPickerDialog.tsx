@@ -9,6 +9,7 @@ import {
 	useId,
 	useState,
 } from "react";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { intToHex } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyColors";
 import { ClassicyAppIdContext } from "@/SystemFolder/SystemResources/App/ClassicyAppIdContext";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
@@ -49,6 +50,10 @@ interface ClassicyColorPickerDialogProps {
 	onSelectFunc?: (color: number) => void;
 	/** Called by Cancel or the close box. The caller closes the dialog. */
 	onCancelFunc?: () => void;
+	/** Extra class names, merged onto the dialog window after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the dialog window after the component's own. */
+	style?: CSSProperties;
 }
 
 /**
@@ -68,6 +73,8 @@ export const ClassicyColorPickerDialog: FC<ClassicyColorPickerDialogProps> = ({
 	crayons = MAC_OS_8_CRAYONS,
 	onSelectFunc,
 	onCancelFunc,
+	className,
+	style,
 }) => {
 	const [pendingColor, setPendingColor] = useState(initialColor);
 	const listId = useId();
@@ -160,6 +167,8 @@ export const ClassicyColorPickerDialog: FC<ClassicyColorPickerDialogProps> = ({
 			scrollable={false}
 			initialSize={[520, 430]}
 			initialPosition={[200, 100]}
+			className={className}
+			style={style}
 			onCloseFunc={() => onCancelFunc?.()}
 			analyticsExclude
 		>
@@ -189,7 +198,7 @@ export const ClassicyColorPickerDialog: FC<ClassicyColorPickerDialogProps> = ({
 								aria-selected={m === mode}
 								className={classNames(
 									"classicyColorPickerModeListItem",
-									m === mode && "classicyColorPickerModeListItemSelected",
+									classicyStateClasses({ selected: m === mode }),
 								)}
 								onClick={() => setMode(m)}
 							>

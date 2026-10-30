@@ -1,22 +1,45 @@
 import type { MouseEvent } from "react";
-import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
+import type { ClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
+import {
+	CLASSICY_FALLBACK_APPEARANCE_PACKAGE,
+	getClassicyAppearancePackage,
+	getRegisteredClassicyAppearancePackageOrDefault,
+	listClassicyAppearancePackages,
+} from "@/Appearance/ClassicyAppearancePackageRegistry";
+import {
+	type ClassicyTheme,
+	withDefaultThemePackageList,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { applyClassicyAppearanceOption } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceOptions";
 import {
 	assignImportedClassicyThemeIdentity,
+	classicyCustomThemeSlotId,
 	cloneClassicyTheme,
 	editActiveClassicyTheme,
 	findClassicyTheme,
+	listClassicyPackageBuiltInThemes,
 	listClassicyThemes,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
 import { setThemeColor } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorTargets";
 import { readClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFile";
-import { withDefaultThemeMetricsList } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
-import { setThemeMetric } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricTargets";
+import {
+	withDefaultThemeMetrics,
+	withDefaultThemeMetricsList,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
+import {
+	isValidThemeMetricFamily,
+	setThemeMetric,
+	setThemeMetricFamily,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricTargets";
+import { resolveWallpaper } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 import {
 	hasActiveTheme,
 	hasAlertSound,
 	hasAlertVolume,
 	hasApp,
 	hasAppAndHelpItems,
+	hasAppearanceOptionChange,
 	hasAvailableThemes,
 	hasBackgroundImage,
 	hasBackgroundPosition,
@@ -35,11 +58,13 @@ import {
 	hasModuleHidden,
 	hasModuleOrder,
 	hasMouseEvent,
+	hasPackageId,
 	hasSmartScrolling,
 	hasStripPosition,
 	hasStripWidth,
 	hasThemeColorChange,
 	hasThemeMetricChange,
+	hasThemeMetricFamilyChange,
 	hasVisible,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
 import type {
@@ -49,7 +74,9 @@ import type {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { dispatchToPlugin } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { listAppWindows } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
+import { getClassicySoundPack } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
 import type { ClassicyIconBalloonHelp } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
+import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { readShortcutDisposition } from "@/SystemFolder/SystemResources/Shortcut/ClassicyShortcut";
 import { isValidHttpUrl } from "@/SystemFolder/SystemResources/Utils/urlValidation";
@@ -193,6 +220,29 @@ const controlStripState = (ds: ClassicyStore): ClassicyStoreControlStrip => {
 	return ds.System.Manager.Desktop.controlStrip;
 };
 
+/**
+ * One of a package's own themes (its defaults or a preset) as the theme a
+ * switch or ChangeTheme activates: a copy, completed as built-in and loaded
+ * themes are. The registry keeps a package as passed, so a JS-authored one
+ * may lack metric groups or name a bundled wallpaper by filename; `package`
+ * is the package's own id (its registration guarantees its themes name no
+ * other).
+ */
+const activatableClassicyPackageTheme = (
+	pkg: ClassicyAppearancePackage,
+	packageTheme: ClassicyTheme,
+): ClassicyTheme => {
+	const theme = withDefaultThemeMetrics(cloneClassicyTheme(packageTheme));
+	return {
+		...theme,
+		package: pkg.id,
+		desktop: {
+			...theme.desktop,
+			backgroundImage: resolveWallpaper(theme.desktop.backgroundImage),
+		},
+	};
+};
+
 export const classicyDesktopEventHandler = (
 	ds: ClassicyStore,
 	action: ActionMessage,
@@ -293,15 +343,59 @@ export const classicyDesktopEventHandler = (
 		}
 		case "ClassicyDesktopChangeTheme": {
 			if (!hasActiveTheme(action)) break;
-			// Built-ins first, then custom themes. Activate a copy, so edits to
-			// the active theme can never alias the stored entry.
-			const foundTheme = findClassicyTheme(
-				ds.System.Manager.Appearance,
-				action.activeTheme,
+			// J-R19: the active package's host-loaded themes, then its own
+			// built-ins (defaults and presets, J-R22; the package resolved as
+			// the hooks resolve it, J-R16), then custom themes, so an id shared
+			// with another package's built-in finds the active package's theme.
+			// Activate a copy, so edits to the active theme can never alias the
+			// stored entry; a package's own theme is completed as a package
+			// switch completes its defaults (J-R21: wallpaper, metrics).
+			const appearance = ds.System.Manager.Appearance;
+			const pkg = getRegisteredClassicyAppearancePackageOrDefault(
+				appearance.packageId,
 			);
-			if (foundTheme) {
-				ds.System.Manager.Appearance.activeTheme =
-					cloneClassicyTheme(foundTheme);
+			const activePackage = pkg ?? {
+				id: CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID,
+			};
+			const foundTheme = findClassicyTheme(
+				appearance,
+				action.activeTheme,
+				activePackage,
+			);
+			if (!foundTheme) break;
+			appearance.activeTheme =
+				pkg && listClassicyPackageBuiltInThemes(pkg).includes(foundTheme)
+					? activatableClassicyPackageTheme(pkg, foundTheme)
+					: cloneClassicyTheme(foundTheme);
+			break;
+		}
+		case "ClassicyDesktopChangeAppearancePackage": {
+			if (!hasPackageId(action)) break;
+			// The default package is always installable (R16): unregistered,
+			// its built-in structure applies, as for theme files.
+			const pkg =
+				getClassicyAppearancePackage(action.packageId) ??
+				(action.packageId === CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID
+					? CLASSICY_FALLBACK_APPEARANCE_PACKAGE
+					: undefined);
+			if (!pkg) {
+				classicyLog(
+					"warn",
+					"ClassicyAppearance",
+					`Appearance package "${action.packageId}" is not registered.`,
+				);
+				break;
+			}
+			const appearance = ds.System.Manager.Appearance;
+			appearance.packageId = pkg.id;
+			// Keep a theme already made for the package; otherwise start from
+			// the package's defaults (a copy, as ChangeTheme activates). The
+			// preset list is left alone.
+			if (appearance.activeTheme.package !== pkg.id) {
+				appearance.activeTheme = activatableClassicyPackageTheme(
+					pkg,
+					pkg.defaults,
+				);
 			}
 			break;
 		}
@@ -311,13 +405,34 @@ export const classicyDesktopEventHandler = (
 			// strips undeclared keys and resolves the wallpaper for this build.
 			if (!hasImportableTheme(action)) break;
 			const read = readClassicyTheme(action.theme);
-			if (!read.ok) break;
+			if (!read.ok) {
+				// A valid theme can still be refused (its Appearance Package is
+				// not installed): say why instead of ignoring the import.
+				classicyLog("warn", "ClassicyAppearance", read.error);
+				ds.System.Manager.Desktop.errorDialog = {
+					title: "Appearance",
+					message: read.error,
+				};
+				break;
+			}
 			const appearance = ds.System.Manager.Appearance;
 			// Always a new entry: the payload's id is ignored, so an import
-			// can never overwrite an existing custom theme or shadow a built-in.
+			// can never overwrite an existing custom theme, shadow a built-in or
+			// the active package's own themes (ChangeTheme finds those first), or
+			// take a registered package's Custom fork slot.
 			const imported = assignImportedClassicyThemeIdentity(
 				read.theme,
-				listClassicyThemes(appearance),
+				[
+					...listClassicyThemes(appearance),
+					...listClassicyPackageBuiltInThemes(
+						getRegisteredClassicyAppearancePackageOrDefault(
+							appearance.packageId,
+						) ?? {},
+					),
+				],
+				listClassicyAppearancePackages().map((pkg) =>
+					classicyCustomThemeSlotId(pkg.id),
+				),
 			);
 			if (!appearance.customThemes) appearance.customThemes = [];
 			appearance.customThemes.push(imported);
@@ -338,14 +453,96 @@ export const classicyDesktopEventHandler = (
 			break;
 		}
 		// Same fork-on-first-edit semantics for the layout metrics
-		// (`measurements.<family>`); the payload is validated against
-		// CLASSICY_THEME_METRIC_TARGETS (key allowlist and min–max) first.
+		// (`measurements.<family>`). The core form `{ metricKey, value }` is
+		// validated against CLASSICY_THEME_METRIC_TARGETS (key allowlist and
+		// min–max); the family form `{ family, key, value }` against the knobs
+		// the active Appearance Package declares (allowlist and the knob's own
+		// bounds), creating a declared knob a theme does not carry yet.
 		case "ClassicyDesktopChangeMetric": {
-			if (!hasThemeMetricChange(action)) break;
+			const appearance = ds.System.Manager.Appearance;
+			if (hasThemeMetricChange(action)) {
+				const target = action;
+				editActiveClassicyTheme(appearance, (theme) =>
+					setThemeMetric(theme, target, target.value),
+				);
+				break;
+			}
+			if (!hasThemeMetricFamilyChange(action)) break;
 			const target = action;
-			editActiveClassicyTheme(ds.System.Manager.Appearance, (theme) =>
-				setThemeMetric(theme, target, target.value),
-			);
+			// Resolved as resolveClassicyAppearancePackage does (an unregistered
+			// id means the default package). The Options tab offers only knobs
+			// that pass isThemeMetricFamilyTarget and have bounds (J-R18, J-R20),
+			// so every edit it offers is accepted here.
+			const knobs = getRegisteredClassicyAppearancePackageOrDefault(
+				appearance.packageId,
+			)?.knobs;
+			if (!isValidThemeMetricFamily(target, target.value, knobs)) {
+				classicyLog(
+					"warn",
+					"ClassicyDesktopManager",
+					`ClassicyDesktopChangeMetric rejected: "${target.family}.${target.key}" is not a knob of the active package ("${appearance.packageId}"), or the value is out of range`,
+					{ value: target.value },
+				);
+				break;
+			}
+			let written = false;
+			editActiveClassicyTheme(appearance, (theme) => {
+				written = setThemeMetricFamily(theme, target, target.value, knobs);
+			});
+			if (!written) {
+				// Only a family carried as something other than an object
+				// (tampered or legacy state) gets here: it is left alone.
+				classicyLog(
+					"warn",
+					"ClassicyDesktopManager",
+					`ClassicyDesktopChangeMetric rejected: measurements.${target.family} is not an object`,
+				);
+			}
+			break;
+		}
+		// One theme value by dotted path (`sound.pack`, `desktop.iconSize`):
+		// the path is allowlisted and walked through own properties, and only
+		// the written field (a scalar, or an object or tuple replaced whole) is
+		// validated, against its own sub-schema. A refused write changes
+		// nothing, so it never forks.
+		case "ClassicyDesktopChangeAppearanceOption": {
+			if (!hasAppearanceOptionChange(action)) break;
+			// Ruling 10: a new sound pack must be shared (no `packageId`) or the
+			// active package's, as the Sound tab offers them (re-picking the
+			// current pack changes nothing either way).
+			if (
+				action.path === "sound.pack" &&
+				typeof action.value === "string" &&
+				action.value !== ds.System.Manager.Appearance.activeTheme.sound.pack
+			) {
+				const owner = getClassicySoundPack(action.value)?.packageId;
+				const activeId =
+					getRegisteredClassicyAppearancePackageOrDefault(
+						ds.System.Manager.Appearance.packageId,
+					)?.id ?? CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID;
+				if (owner !== undefined && owner !== activeId) {
+					classicyLog(
+						"warn",
+						"ClassicyDesktopManager",
+						`ClassicyDesktopChangeAppearanceOption rejected: sound pack "${action.value}" belongs to package "${owner}", not the active package ("${activeId}")`,
+					);
+					break;
+				}
+			}
+			editActiveClassicyTheme(ds.System.Manager.Appearance, (theme) => {
+				const r = applyClassicyAppearanceOption(
+					theme,
+					action.path,
+					action.value,
+				);
+				if (!r.ok)
+					classicyLog(
+						"warn",
+						"ClassicyDesktopManager",
+						`ClassicyDesktopChangeAppearanceOption rejected: ${r.reason}`,
+						{ path: action.path },
+					);
+			});
 			break;
 		}
 		case "ClassicyDesktopChangeBackground": {
@@ -427,12 +624,16 @@ export const classicyDesktopEventHandler = (
 		}
 		case "ClassicyDesktopLoadThemes": {
 			if (!hasAvailableThemes(action)) break;
-			// A host may hand over themes written before the metric groups
-			// existed; complete them here so the next ChangeTheme never clones a
-			// metric-less theme into activeTheme (the load path does the same in
-			// migrateClassicyState).
+			// A host may hand over themes written before the metric groups or
+			// Appearance Packages existed; complete them here so the next
+			// ChangeTheme never clones a metric-less or package-less theme into
+			// activeTheme (the load path does the same in migrateClassicyState).
 			ds.System.Manager.Appearance.availableThemes =
-				withDefaultThemeMetricsList(action.availableThemes as ClassicyTheme[]);
+				withDefaultThemePackageList(
+					withDefaultThemeMetricsList(
+						action.availableThemes as ClassicyTheme[],
+					),
+				);
 			break;
 		}
 		case "ClassicyDesktopSetBalloonHelp": {

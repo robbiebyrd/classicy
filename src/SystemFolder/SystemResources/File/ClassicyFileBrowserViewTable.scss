@@ -17,7 +17,7 @@
   height: auto;
   min-height: 100%;
   overflow: visible;
-  border: 0 !important;
+  border: 0;
 
   // The generic list-box focus ring is drawn on the scroller's edge; with the
   // window as the scroller it would ring the whole (possibly off-screen)
@@ -41,7 +41,7 @@
 
 // The Finder highlights only the filename label (rules below), never the
 // whole row — neutralize the generic row highlight.
-.classicyFileBrowserViewTableContainer .classicyTableRowSelected {
+.classicyFileBrowserViewTableContainer :where(.classicyTableRow).selected {
   color: inherit;
   background: var(--color-system-01);
 }
@@ -58,12 +58,12 @@
   text-overflow: ellipsis;
 }
 
-.classicyFileBrowserViewTableRowSelected .classicyFileBrowserViewTableRowIconLabel {
+:where(.classicyFileBrowserViewTableRow).selected .classicyFileBrowserViewTableRowIconLabel {
   color: var(--color-white);
   background: var(--color-system-07);
 }
 
-.classicyFileBrowserViewTableRowSelected .classicyFileBrowserViewTableRowIcon {
+:where(.classicyFileBrowserViewTableRow).selected .classicyFileBrowserViewTableRowIcon {
   filter: contrast(0.75) brightness(0.5);
 }
 
@@ -97,7 +97,7 @@
   cursor: pointer;
 
   svg {
-    height: calc(var(--window-control-size) * 1.25);
+    height: var(--control-glyph-size);
   }
 }
 

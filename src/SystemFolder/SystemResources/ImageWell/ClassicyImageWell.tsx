@@ -1,11 +1,13 @@
 import "./ClassicyImageWell.scss";
 import classNames from "classnames";
 import {
+	type CSSProperties,
 	type DragEvent,
 	type FC as FunctionalComponent,
 	type PropsWithChildren,
 	useState,
 } from "react";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 
 type ClassicyImageWellProps = PropsWithChildren<{
 	/** Image source to display in the well. When set, it replaces `children`. */
@@ -23,6 +25,10 @@ type ClassicyImageWellProps = PropsWithChildren<{
 	onDrop?: (files: FileList, e: DragEvent<HTMLDivElement>) => void;
 	/** Accessible label for the well (falls back to `alt`). Not drawn. */
 	label?: string;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 }>;
 
 /**
@@ -44,6 +50,8 @@ export const ClassicyImageWell: FunctionalComponent<ClassicyImageWellProps> = ({
 	onDrop,
 	label,
 	children,
+	className,
+	style,
 }) => {
 	const isDropTarget = enabled && typeof onDrop === "function";
 	const [dragOver, setDragOver] = useState(false);
@@ -71,12 +79,13 @@ export const ClassicyImageWell: FunctionalComponent<ClassicyImageWellProps> = ({
 		// biome-ignore lint/a11y/noStaticElementInteractions: an image well is a passive display frame that doubles as a mouse-only drag-and-drop target
 		// biome-ignore lint/a11y/useAriaPropsSupportedByRole: aria-label is valid for the resolved role ("img" or "group"); the role is dynamic so static analysis can't prove it
 		<div
-			className={classNames("classicyImageWell", {
-				classicyImageWellDisabled: !enabled,
-				classicyImageWellSelected: selected,
-				classicyImageWellDragOver: dragOver,
-			})}
-			data-state={enabled ? (selected ? "selected" : "enabled") : "disabled"}
+			className={classNames(
+				"classicyImageWell",
+				classicyStateClasses({ disabled: !enabled, selected }),
+				{ classicyImageWellDragOver: dragOver },
+				className,
+			)}
+			style={style}
 			// When an inner <img> carries the image semantics, the frame stays a
 			// plain container; with custom children it presents as the image itself.
 			role={src ? "group" : "img"}

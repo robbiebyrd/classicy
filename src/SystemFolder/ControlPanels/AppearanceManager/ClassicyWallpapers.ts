@@ -1,7 +1,7 @@
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 const wallpaperModules = import.meta.glob(
-	"../../../../assets/img/wallpapers/*.png",
+	"../../../../assets/img/wallpapers/*.{png,jpg}",
 	{ eager: true, import: "default" },
 ) as Record<string, string>;
 
@@ -14,7 +14,7 @@ export const ClassicyDefaultWallpaper = wp("default.png");
 
 /**
  * Index of bundled wallpapers by every form a theme may hold them in: the
- * bare filename (`themes.json`'s portable reference) and the bundler's URL for
+ * bare filename (`platinum.json`'s portable reference) and the bundler's URL for
  * it (a `/assets/...` path under `vite dev`, an inlined `data:` URI in a
  * library build). Pure, so it can be exercised with any module map.
  */
@@ -46,7 +46,7 @@ export const classicyWallpaperFilename = (value: string): string | undefined =>
  * Turn a theme's `desktop.backgroundImage` into a URL the browser can actually
  * load.
  *
- * Bundled wallpapers must be referenced by name, never by path: `themes.json`
+ * Bundled wallpapers must be referenced by name, never by path: `platinum.json`
  * is imported as data, so Vite's asset pipeline never sees the strings inside
  * it and any path written there ships verbatim. Under `vite dev` such a path
  * happens to resolve (the file is served from the project root), but a built
@@ -97,6 +97,7 @@ export const ClassicyWallpapers = [
 	{ label: "Candy Bar Pistachio", value: wp("candy_bar_pistachio.png") },
 	{ label: "Candy Bar Sunny", value: wp("candy_bar_sunny.png") },
 	{ label: "Default", value: wp("default.png") },
+	{ label: "Default Photo", value: wp("default.jpg") },
 	{ label: "Diagonals Bondi", value: wp("diagonals_bondi.png") },
 	{ label: "Diagonals Bondi Dark", value: wp("diagonals_bondi_dark.png") },
 	{ label: "Diagonals Poppy", value: wp("diagonals_poppy.png") },

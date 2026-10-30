@@ -297,14 +297,10 @@ describe("ClassicyFileBrowserViewTable keyboard navigation", () => {
 		) as HTMLElement;
 		listbox.focus();
 		await user.keyboard("{ArrowDown}");
-		expect(dataRow("apple.pdf")).toHaveClass(
-			"classicyFileBrowserViewTableRowSelected",
-		);
+		expect(dataRow("apple.pdf")).toHaveClass("selected");
 
 		await user.keyboard("{ArrowDown}");
-		expect(dataRow("banana.pdf")).toHaveClass(
-			"classicyFileBrowserViewTableRowSelected",
-		);
+		expect(dataRow("banana.pdf")).toHaveClass("selected");
 	});
 
 	it("selects a row by typing its leading characters", async () => {
@@ -326,9 +322,7 @@ describe("ClassicyFileBrowserViewTable keyboard navigation", () => {
 		) as HTMLElement;
 		listbox.focus();
 		await user.keyboard("b");
-		expect(dataRow("banana.pdf")).toHaveClass(
-			"classicyFileBrowserViewTableRowSelected",
-		);
+		expect(dataRow("banana.pdf")).toHaveClass("selected");
 	});
 
 	it("opens the selected item on Enter", async () => {

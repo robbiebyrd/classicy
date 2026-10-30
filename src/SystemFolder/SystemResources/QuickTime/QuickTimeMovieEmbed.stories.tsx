@@ -18,6 +18,10 @@ const meta = {
 
 export default meta;
 type Story = StoryObj<typeof meta>;
+// For the stories that draw the component themselves in `render` and ignore
+// the args: typed against the component (every arg optional), not
+// `typeof meta`, which would demand its required props as story args.
+type RenderStory = StoryObj<typeof QuickTimeVideoEmbed>;
 
 /**
  * The layout Movie Player uses: `controlsDocked` pins the controller bar to
@@ -82,6 +86,6 @@ const ExternalTransport = () => {
  * pattern for a host that supplies its own transport (`hideControls` also
  * disables the keyboard shortcuts).
  */
-export const ControlledPlayback: Story = {
+export const ControlledPlayback: RenderStory = {
 	render: () => <ExternalTransport />,
 };

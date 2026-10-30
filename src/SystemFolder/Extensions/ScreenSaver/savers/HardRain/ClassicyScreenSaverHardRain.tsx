@@ -1,4 +1,5 @@
 import "./ClassicyScreenSaverHardRain.scss";
+import classNames from "classnames";
 import type { CSSProperties, FC as FunctionalComponent } from "react";
 import { z } from "zod";
 import type { ClassicyScreenSaverProps } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverRegistry";
@@ -128,11 +129,14 @@ const DROPS: [number, string, number, string][] = [
  */
 export const ClassicyScreenSaverHardRain: FunctionalComponent<
 	ClassicyScreenSaverProps
-> = ({ config }) => {
+> = ({ config, className, style }) => {
 	const parsed = HardRainConfigSchema.safeParse(config);
 	const count = parsed.success ? parsed.data.drops : 60;
 	return (
-		<div className="classicySaverHardRain">
+		<div
+			className={classNames("classicySaverHardRain", className)}
+			style={style}
+		>
 			{DROPS.slice(0, count).map(([t, p, size, color], i) => {
 				const [top, left] = POSITIONS[p];
 				return (

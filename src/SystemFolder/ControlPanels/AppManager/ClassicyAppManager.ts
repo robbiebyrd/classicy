@@ -3,7 +3,9 @@ import {
 	getAllThemes,
 	getTheme,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
+import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	hasApp,
 	hasAppAndFileType,
@@ -45,8 +47,6 @@ import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import type { DeepPartial } from "@/SystemFolder/SystemResources/Utils/deepMerge";
 import { deepMergeReplacingArrays } from "@/SystemFolder/SystemResources/Utils/deepMerge";
-
-const macosIcon = ClassicyIcons.system.macos;
 
 type JsonPrimitive = string | number | boolean | null;
 type JsonObject = { [key: string]: JsonValue };
@@ -601,7 +601,8 @@ export const DefaultAppManagerState: ClassicyStore = {
 					"Finder.app": {
 						id: "Finder.app",
 						name: "Finder",
-						icon: macosIcon,
+						// Platinum icons are registered by the ClassicyIcons import above
+						icon: resolveClassicyAsset("icons", "system.macos") ?? "",
 						windows: {},
 						open: true,
 						focused: true,
@@ -618,6 +619,7 @@ export const DefaultAppManagerState: ClassicyStore = {
 				) as Record<ClassicyFileSystemEntryFileType, string>,
 			},
 			Appearance: {
+				packageId: CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID,
 				availableThemes: getAllThemes(),
 				// Via getTheme, not themesData: the raw JSON names its wallpaper
 				// rather than carrying a loadable URL.

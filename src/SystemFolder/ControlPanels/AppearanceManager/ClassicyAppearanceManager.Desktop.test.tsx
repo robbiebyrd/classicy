@@ -1,6 +1,9 @@
+import { act } from "@testing-library/react";
 import type { ChangeEvent } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { render, renderHook, screen, userEvent } from "@/__tests__/test-utils";
+import "@/Appearance/Platinum/assets/platinumAssets";
+import { registerClassicyWallpapers } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	classicyBackgroundSizeOption,
 	useDesktopTab,
@@ -33,7 +36,7 @@ const patternsMenu = () => screen.getAllByRole("combobox")[0];
 
 const wallpaper = (label: string) => {
 	const found = ClassicyWallpapers.find((w) => w.label === label);
-	if (!found) throw new Error(`no wallpaper labelled ${label}`);
+	if (!found) throw new Error(`no wallpaper labeled ${label}`);
 	return found;
 };
 
@@ -60,6 +63,31 @@ describe("useDesktopTab — Patterns", () => {
 		expect(patternsMenu()).toHaveTextContent("Waves Bondi");
 	});
 
+	it("lists every bundled wallpaper from the registry, including the jpg", async () => {
+		const user = userEvent.setup();
+		render(<Host />);
+		await user.click(patternsMenu());
+		expect(screen.getAllByRole("option")).toHaveLength(
+			ClassicyWallpapers.length,
+		);
+		expect(
+			screen.getByRole("option", { name: "Default Photo" }),
+		).toBeInTheDocument();
+	});
+
+	it("a wallpaper registered after mount appears (a name may contain a dot)", async () => {
+		const user = userEvent.setup();
+		render(<Host />);
+		act(() =>
+			registerClassicyWallpapers("platinum", [
+				{ name: "Mac OS 8.5", src: "https://example.com/8-5.png" },
+			]),
+		);
+		await user.click(patternsMenu());
+		await user.click(screen.getByRole("option", { name: "Mac OS 8.5" }));
+		expect(baseProps.changeBackground).toHaveBeenCalled();
+	});
+
 	it("shows 'Custom' for a picture that matches no pattern", () => {
 		render(<Host bg={"https://example.com/my-picture.png"} />);
 		expect(patternsMenu()).toHaveTextContent("Custom");
@@ -82,6 +110,22 @@ describe("useDesktopTab — Patterns", () => {
 		expect(screen.getByAltText("Background")).toHaveAttribute(
 			"src",
 			wallpaper("Rio Azul").value,
+		);
+	});
+
+	it("lists registered wallpapers", async () => {
+		// Registered before render; runs after the bundled-count test, since
+		// registrations outlive a test.
+		registerClassicyWallpapers("platinum", [
+			{ name: "Test Paper", src: "https://example.com/t.png" },
+		]);
+		const changeBackground = vi.fn();
+		const user = userEvent.setup();
+		render(<Host changeBackground={changeBackground} />);
+		await user.click(patternsMenu());
+		await user.click(screen.getByRole("option", { name: "Test Paper" }));
+		expect(changeBackground.mock.calls[0][0].target.value).toBe(
+			"https://example.com/t.png",
 		);
 	});
 });

@@ -1,0 +1,13 @@
+// The Platinum list view look (from ClassicyTable.scss): the column headers'
+// bevel and the sorted column's pressed-in header.
+@use "../mixins";
+
+@mixin table {
+  .classicyTableColumnHeader {
+    @include mixins.platinum-window-box-shadow;
+  }
+
+  :where(.classicyTableColumnHeader).selected {
+    @include mixins.platinum-window-header-border-depressed;
+  }
+}
