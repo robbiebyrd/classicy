@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T20:36:01.303Z"
-updated: "2026-10-30T12:31:47.810Z"
+updated: "2026-10-30T13:37:56.036Z"
 started: "2026-10-30T12:31:47.810Z"
 tags: []
 milestone: ""
@@ -114,3 +114,5 @@ In `ClassicyAppearance.ts`: `ClassicyThemeMeasurements` becomes `{ window; contr
 
 ## Work Log
 ### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
+
+### 2026-10-30T13:37:56.036Z - H 2.1 implemented: ed4b2f800 (generic knob walker, key-by-key filling of missing values, Platinum families in defaults only, knobs for the six contract families per owner ruling H-R4), 4de8f606a (H 1.1 review scanner fixes), e7df0fe1d (H-R16: colorPicker family renamed picker; --color-* reserved). 4702 tests; 342/342 + 4 app shots AE 0; Options tab gains the six groups (named change). Persisted state +43 KiB. Task review dispatched.

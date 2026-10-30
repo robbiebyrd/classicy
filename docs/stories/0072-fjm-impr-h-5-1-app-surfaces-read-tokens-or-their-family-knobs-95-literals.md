@@ -3,11 +3,18 @@ id: 0072-fjm
 title: 'H 5.1: App surfaces read tokens or their family knobs (95 literals)'
 purpose: Rewrite HyperCard, Finder About This Computer, Finder Preferences, Apple Guide and Color Picker literals to core tokens or their `--hyper-card-*`, `--finder-*`, `--apple-guide-*`, `--color-picker-*` knobs, pixel-identical.
 type: impr
-status: pending
+status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T20:38:01.840Z"
-updated: "2026-10-29T20:22:00.352Z"
+updated: "2026-10-30T13:37:58.376Z"
+started: "2026-10-30T13:37:58.376Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy

@@ -3,11 +3,18 @@ id: 0071-h9m
 title: 'H 4.1: Pixel-matched surfaces read their knob families (60 literals)'
 purpose: Rewrite the menu frame, scrollbar arrow glyphs, Pager, Balloon Help and PopUpSlider literals to their `measurements.<family>` knobs, pixel-identical.
 type: impr
-status: pending
+status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T20:37:19.203Z"
-updated: "2026-10-29T20:22:00.352Z"
+updated: "2026-10-30T13:37:57.366Z"
+started: "2026-10-30T13:37:57.366Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy

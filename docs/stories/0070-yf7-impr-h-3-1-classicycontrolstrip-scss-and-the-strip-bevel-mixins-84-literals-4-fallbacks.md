@@ -3,11 +3,18 @@ id: 0070-yf7
 title: 'H 3.1: ClassicyControlStrip.scss and the strip bevel mixins (84 literals, 4 fallbacks)'
 purpose: Rewrite the Control Strip's 84 pixel literals and 4 fallbacks to read the `--control-strip-*` knobs and the focus-ring derivations, pixel-identical.
 type: impr
-status: pending
+status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T20:36:39.615Z"
-updated: "2026-10-29T20:22:00.352Z"
+updated: "2026-10-30T13:37:56.507Z"
+started: "2026-10-30T13:37:56.507Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy
