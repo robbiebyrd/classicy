@@ -21,9 +21,11 @@ const COLS = 16;
 
 // The crayon's shading tints, read from custom properties the Appearance
 // Package declares on its root (inline SVG inherits them). As `style`, not
-// presentation attributes, which do not reliably resolve `var()`.
+// presentation attributes, which do not reliably resolve `var()`. Unset (no
+// package declares them), a tint is transparent: an undefined `var()` would
+// otherwise inherit the SVG's black fill.
 const tint = (name: string): string =>
-	`var(--classicy-color-picker-crayon-${name})`;
+	`var(--classicy-color-picker-crayon-${name}, transparent)`;
 
 // Crayon SVG: pointed tip with faceted shading + body with label band.
 // The body is mostly hidden behind the row in front; only the tip stays visible.
