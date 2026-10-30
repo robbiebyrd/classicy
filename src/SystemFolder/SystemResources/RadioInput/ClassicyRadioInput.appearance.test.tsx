@@ -99,8 +99,7 @@ describe("ClassicyRadioInput appearance", () => {
 		const el = root(container);
 		expect(el.hasAttribute("data-probe-state")).toBe(false);
 		expect(el.hasAttribute("style")).toBe(false);
-		expect(el.getAttribute("class")).toBe(
-			"classicyRadioInputGroup classicyRadioInputGroupColumns",
-		);
+		// The default align is "rows" (story 0087-p2w), which adds no modifier class.
+		expect(el.getAttribute("class")).toBe("classicyRadioInputGroup");
 	});
 });
