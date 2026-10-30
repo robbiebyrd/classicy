@@ -138,6 +138,7 @@ export function useClassicyFileSystem(
 			({ definition }): ClassicyControlStripModuleFile => ({
 				id: definition.id,
 				name: classicyControlStripModuleLabel(definition, appIdentityOverrides),
+				label: definition.label,
 				icon:
 					definition.fileIcon ??
 					resolveClassicyAsset("icons", "system.controlStrip.moduleFile") ??

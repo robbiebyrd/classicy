@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { resetClassicyDerivedAppEntryNameWarnings } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
 import {
 	buildControlStripModulesFolder,
 	CONTROL_STRIP_MODULES_FOLDER_NAME,
@@ -9,6 +10,11 @@ import {
 	type ClassicyFileSystemEntry,
 	ClassicyFileSystemEntryFileType,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import {
+	type ClassicyLogEntry,
+	registerClassicyLogSink,
+	unregisterClassicyLogSink,
+} from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 const sound = { id: "classicy-sound", name: "Sound", icon: "/sound.png" };
 const saver = {
@@ -104,5 +110,113 @@ describe("withControlStripModulesFolder rebuilds", () => {
 		const none = withControlStripModulesFolder(second, []);
 		expect(folder(none)).toEqual(["Static Module"]);
 		expect(withControlStripModulesFolder(none, [])).toBe(none);
+	});
+});
+
+// K-R7: a module's display name never hides a static file in the folder.
+describe("withControlStripModulesFolder reserves static names against display names", () => {
+	const SINK_ID = "control-strip-modules-display-names";
+	let entries: ClassicyLogEntry[];
+	const warnings = () => entries.filter((entry) => entry.level === "warn");
+
+	beforeEach(() => {
+		entries = [];
+		resetClassicyDerivedAppEntryNameWarnings();
+		registerClassicyLogSink({
+			id: SINK_ID,
+			onLog: (entry) => entries.push(entry),
+		});
+		// The dev console mirror of the expected warnings; keep the output clean.
+		vi.spyOn(console, "warn").mockImplementation(() => {});
+	});
+
+	afterEach(() => {
+		unregisterClassicyLogSink(SINK_ID);
+		vi.restoreAllMocks();
+	});
+
+	const mine = (data: string) => ({
+		_type: ClassicyFileSystemEntryFileType.TextFile,
+		_data: data,
+	});
+	const treeWith = (statics: Record<string, unknown>) =>
+		({
+			HD: {
+				_type: ClassicyFileSystemEntryFileType.Drive,
+				"System Folder": {
+					_type: ClassicyFileSystemEntryFileType.Directory,
+					"Control Strip Modules": {
+						_type: ClassicyFileSystemEntryFileType.Directory,
+						...statics,
+					},
+				},
+			},
+		}) as unknown as ClassicyFileSystemEntry;
+	const modulesFolder = (t: ClassicyFileSystemEntry) =>
+		t.HD["System Folder"]["Control Strip Modules"];
+	/** A module its app owns, shown under the app's display name. */
+	const owned = {
+		id: "owned",
+		name: "Owner Display",
+		label: "Owned",
+		icon: "/owned.png",
+		appId: "Owner.app",
+	};
+
+	it("lists the module under its own label when its display name is a static file's", () => {
+		const folder = modulesFolder(
+			withControlStripModulesFolder(treeWith({ "Owner Display": mine("a") }), [
+				owned,
+			]),
+		);
+
+		expect(folder["Owner Display"]._data).toBe("a");
+		expect(folder.Owned._creator).toBe("Owner.app");
+		expect(warnings()).toHaveLength(1);
+		expect(warnings()[0]).toMatchObject({
+			subsystem: "ClassicyFileSystem",
+			message:
+				"App display name unusable in Control Strip Modules; using its own name",
+			details: [
+				{ moduleId: "owned", appId: "Owner.app", name: "Owner Display" },
+			],
+		});
+	});
+
+	it('lists it as "<label> (<id>)" when its own label is a static file\'s too', () => {
+		const folder = modulesFolder(
+			withControlStripModulesFolder(
+				treeWith({ "Owner Display": mine("a"), Owned: mine("b") }),
+				[owned],
+			),
+		);
+
+		expect(folder["Owner Display"]._data).toBe("a");
+		expect(folder.Owned._data).toBe("b");
+		expect(folder["Owned (owned)"]._creator).toBe("Owner.app");
+		expect(warnings()[0].message).toBe(
+			'App display name unusable in Control Strip Modules; using "Owned (owned)"',
+		);
+	});
+
+	it("warns once per collision across rebuilds", () => {
+		const first = withControlStripModulesFolder(
+			treeWith({ "Owner Display": mine("a") }),
+			[owned],
+		);
+		withControlStripModulesFolder(first, [owned]);
+
+		expect(warnings()).toHaveLength(1);
+	});
+
+	it("still lets a module shown under its own label replace a static file of that name", () => {
+		const folder = modulesFolder(
+			withControlStripModulesFolder(treeWith({ Sound: mine("a") }), [
+				{ ...sound, label: "Sound" },
+			]),
+		);
+
+		expect(folder.Sound._creator).toBe("ControlStrip");
+		expect(warnings()).toHaveLength(0);
 	});
 });
