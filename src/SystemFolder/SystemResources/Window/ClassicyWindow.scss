@@ -224,12 +224,30 @@
       // No inset highlight: a white bevel here reads as a 1px white seam between
       // the grow box and the scroll bars. The grip's grey must meet the bars'
       // black borders directly (matches Mac OS 8's grow box).
+
+      // The edges are on the grip's content side, so they follow its corner
+      // (published on the desktop root as data-classicy-grow-box; bottom-right
+      // is the rule above). A left corner draws the vertical edge on the
+      // grip's right, nudged out by a border as the bottom-right one is
+      // nudged left; a top corner draws the horizontal edge along the bottom.
+      [data-classicy-grow-box*="left"] & {
+        left: auto;
+        right: calc(var(--window-border-size) * -1);
+        border-left: none;
+        border-right: var(--window-border-size) solid var(--color-black);
+      }
+
+      [data-classicy-grow-box*="top"] & {
+        top: auto;
+        bottom: 0;
+        border-top: none;
+        border-bottom: var(--window-border-size) solid var(--color-black);
+      }
     }
 
     // Arrangement: the grip follows the active package's grow-box corner,
     // published on the desktop root as data-classicy-grow-box (bottom-right,
-    // the default, is the rule above). The ::before edges stay drawn for the
-    // bottom-right corner; a package that moves the grip restyles them.
+    // the default, is the rule above). Its ::before edges follow it (above).
     [data-classicy-grow-box="bottom-left"] & {
       left: var(--window-border-size);
       right: auto;
@@ -678,6 +696,15 @@
     // misaligned grip left behind; there is no gap to mask now, and an outer
     // shadow would cover the inactive scroll bars' edges.
     box-shadow: none;
+
+    // A moved grip's moved edges (see .classicyWindowResizer::before) dim too.
+    [data-classicy-grow-box*="left"] & {
+      border-right-color: var(--color-system-05);
+    }
+
+    [data-classicy-grow-box*="top"] & {
+      border-bottom-color: var(--color-system-05);
+    }
   }
 }
 
