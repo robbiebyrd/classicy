@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: S
 created: "2026-10-28T19:58:09.781Z"
-updated: "2026-10-30T04:31:09.562Z"
+updated: "2026-10-30T06:51:31.941Z"
 started: "2026-10-30T04:31:07.349Z"
 tags: []
 milestone: ""
@@ -100,3 +100,5 @@ CLAUDE.md Theming section: 'Colors: never a literal — use a `--color-*` token 
 ### 2026-10-29T20:14:15.844Z - Moved 2 open [MANUAL] acceptance criteria to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
 
 ### 2026-10-30T04:31:09.562Z - Started on land/part-g (Part G rebased onto the integration branch with J and tooling, fbcecaacf). Folds the G 2.2 review minors: J Options tab vs G13 reserved names, stale reader comments, two-way reserved-name test, docs (85-site inventory, unrounded fonts, reserved names, input-override note), and the G12 sweep filter for package-private constants.
+
+### 2026-10-30T06:51:31.941Z - G 4 implemented on land/part-g (3a304e4d7): reader-list fixes, the literal-color sweep as a script with the G12 package-constant exemption, two-way reserved-name check (also reserves palette/font/desktop names), J's Options tab refuses reserved knob names, Phase 4 docs. Gate: 4272 tests, storybook typecheck, sweep 0. Parity: 305/313 AE 0 vs the integration tip without G; the 8 others are the named error title bars, byte-identical to G 1.2. Stale claim fixed: the Apple-menu 180 px check (dropdowns use 20vw). G lands after F: rebase onto I + F with the recorded recipes, then whole-branch final review.

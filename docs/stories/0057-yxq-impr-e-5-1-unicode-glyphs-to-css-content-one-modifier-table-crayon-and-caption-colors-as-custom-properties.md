@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T20:27:13.259Z"
-updated: "2026-10-30T05:38:00.547Z"
+updated: "2026-10-30T06:29:20.106Z"
 started: "2026-10-30T05:38:00.547Z"
 tags: []
 milestone: ""
@@ -147,3 +147,7 @@ This section (plan 0009-agy §5.1, umbrella 0002-ldj; §9 Phase 5 items 3–4) m
 
 ## Work Log
 ### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
+
+### 2026-10-30T06:21:47.094Z - E 5.1 implemented: 996b265a9 (glyphs from package CSS; one modifier table), 94cbe7c09 (crayon tints fall back to transparent outside a package), bb51ebb3c (docs). 4098 tests; 67 stories and 14 opened surfaces AE 0; accessible names unchanged. Concerns under review: minified CSS ships raw UTF-8 glyphs with no @charset, one more text checkmark in HyperCardToolsPalette, menu items expose no aria-checked (pre-existing).
+
+### 2026-10-30T06:29:20.106Z - Task review: Needs fixes. Important: the minified dist/classicy-platinum.css ships raw UTF-8 glyphs with no @charset (Vite's esbuild charset utf8); fix with esbuild charset ascii plus a verify:dist invariant. Minors: menu items get menuitemcheckbox + aria-checked, HyperCard palette check moves to package CSS with aria-pressed, caption-color precedence documented, crosshair follows package switches, Firefox parity. E is rebasing onto the integration branch (I, J, tooling) on land/part-e, then applying these fixes.
