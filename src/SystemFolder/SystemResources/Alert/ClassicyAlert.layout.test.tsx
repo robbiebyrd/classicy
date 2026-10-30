@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { compileScss, scssRule } from "@/__tests__/compiledScss";
+import { compileScss, scssRule } from "@/__tests__/compiledCss";
 import { render } from "@/__tests__/test-utils";
 import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
 

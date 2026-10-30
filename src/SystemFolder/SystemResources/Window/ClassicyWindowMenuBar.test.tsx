@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { compileScss, scssRule } from "@/__tests__/compiledScss";
+import { compileScss, scssRule } from "@/__tests__/compiledCss";
 import { ClassicyWindowMenuBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowMenuBar";
 
 describe("ClassicyWindowMenuBar", () => {
