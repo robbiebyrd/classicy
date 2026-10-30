@@ -220,4 +220,16 @@ describe("ClassicyWindow title bar", () => {
 			expect.objectContaining({ type: "ClassicyWindowCollapse" }),
 		);
 	});
+
+	// The wrapper is the title bar's flex item, so it carries the part
+	// attribute the base `order` rules (and a package) key on.
+	it("tags each control wrapper", () => {
+		const { container } = renderWindow();
+		for (const c of ["close", "zoom", "collapse"])
+			expect(
+				container.querySelector(
+					`.classicyWindowControlBox[data-classicy-control="${c}"]`,
+				),
+			).not.toBeNull();
+	});
 });
