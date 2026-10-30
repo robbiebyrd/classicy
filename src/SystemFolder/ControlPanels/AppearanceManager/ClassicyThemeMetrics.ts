@@ -1,3 +1,4 @@
+import platinumJson from "@/Appearance/Platinum/platinum.json";
 import type {
 	ClassicyTheme,
 	ClassicyThemeCoreMeasurements,
@@ -8,6 +9,7 @@ import {
 	CLASSICY_THEME_DERIVATIONS,
 	CLASSICY_THEME_DERIVED_VARS,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeDerivations";
+import { getClassicyPackageMeasurements } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMeasurementSource.internal";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { DeepPartial } from "@/SystemFolder/SystemResources/Utils/deepMerge";
 
@@ -18,7 +20,9 @@ import type { DeepPartial } from "@/SystemFolder/SystemResources/Utils/deepMerge
  *
  * Every built-in theme carries this block in `platinum.json`; a theme loaded
  * from an older build or an older theme file is completed with these values
- * by `withDefaultThemeMetrics`.
+ * by `withDefaultThemeMetrics`. Platinum's further families (`controlStrip`,
+ * `pager`, …) live only in `platinum.json`'s `defaults.measurements` and are
+ * filled the same way (`classicyThemeMeasurementDefaults`).
  */
 export const CLASSICY_DEFAULT_THEME_METRICS: Readonly<ClassicyThemeCoreMeasurements> =
 	{
@@ -53,85 +57,201 @@ export type ClassicyThemeWithPartialMetrics = Omit<
 	};
 };
 
-// The core families only: a package family has no defaults to fill from.
+// The core families, walked first so a core input wins every collision.
 type MetricGroupId = keyof ClassicyThemeCoreMeasurements;
 
 const METRIC_GROUPS = Object.keys(
 	CLASSICY_DEFAULT_THEME_METRICS,
 ) as MetricGroupId[];
 
+/** A theme whose `measurements` are complete: what `withDefaultThemeMetrics`
+ * returns. Every family reads as `Record<string, number>`, so a family the
+ * input carried partly (`controlStrip: { cellHeight }`) types as filled. */
+export type ClassicyThemeWithMetrics<
+	T extends ClassicyThemeWithPartialMetrics,
+> = Omit<T, "measurements"> & { measurements: ClassicyThemeMeasurements };
+
+/**
+ * What `withDefaultThemeMetrics` fills from: family → key → whole pixels.
+ * `CLASSICY_DEFAULT_THEME_METRICS` (the core five) or
+ * `classicyThemeMeasurementDefaults(packageId)` (the core five and every
+ * package family).
+ */
+export type ClassicyThemeMeasurementDefaults = Readonly<
+	Record<string, Readonly<Record<string, number>>>
+>;
+
 const isMetricNumber = (value: unknown): value is number =>
 	typeof value === "number" && Number.isFinite(value);
 
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+	value !== null && typeof value === "object" && !Array.isArray(value);
+
 /**
- * Fills one group from its defaults. Returns the input group itself when it
- * already carries every key as a finite number, so callers can detect "nothing
- * to do" by reference.
+ * Fills one family from its defaults, key by key. Returns the input family
+ * itself when it already carries every default key as a finite number, so
+ * callers can detect "nothing to do" by reference. Otherwise a new object:
+ * the present finite values and the missing defaults in the defaults' key
+ * order, then the family's own keys the defaults do not name (a package's
+ * extra knob, say). A family that is not a plain object is replaced.
  */
-const fillGroup = <G extends MetricGroupId>(
-	group: G,
-	value: DeepPartial<ClassicyThemeCoreMeasurements>[G] | undefined,
-): ClassicyThemeCoreMeasurements[G] => {
-	const defaults = CLASSICY_DEFAULT_THEME_METRICS[group];
-	const present = (value ?? {}) as Record<string, unknown>;
-	let complete = value !== undefined;
-	const filled: Record<string, number> = {};
+const fillFamily = (
+	defaults: Readonly<Record<string, number>>,
+	value: unknown,
+): unknown => {
+	const present = isPlainObject(value) ? value : undefined;
+	let complete = present !== undefined;
+	const filled: Record<string, unknown> = {};
 	for (const key of Object.keys(defaults)) {
-		const v = present[key];
+		const v = present && Object.hasOwn(present, key) ? present[key] : undefined;
 		if (isMetricNumber(v)) {
 			filled[key] = v;
 		} else {
-			filled[key] = (defaults as Record<string, number>)[key];
+			filled[key] = defaults[key];
 			complete = false;
 		}
 	}
-	return (complete ? value : filled) as ClassicyThemeCoreMeasurements[G];
+	if (complete) return present;
+	for (const [key, v] of Object.entries(present ?? {})) {
+		if (!Object.hasOwn(filled, key)) filled[key] = v;
+	}
+	return filled;
 };
 
 /**
- * Completes a theme's `measurements` from `CLASSICY_DEFAULT_THEME_METRICS`.
+ * Completes a theme's `measurements` from `defaults`
+ * (`CLASSICY_DEFAULT_THEME_METRICS`, the core five, unless given): every
+ * family and every key `defaults` names, key by key.
  *
- * Copy-on-write: returns **the same object** when every group and key is
+ * Copy-on-write: returns **the same object** when every family and key is
  * already present (so idempotent passes over live store state change
  * nothing), otherwise a shallow copy of the theme with a new `measurements`
  * object in which present values win and only the missing ones are filled.
- * Families outside the core five (an Appearance Package's) are carried over
- * as they are. The input is never mutated.
+ * Families and keys `defaults` does not name are carried over as they are.
+ * The input is never mutated.
+ *
+ * Pass `classicyThemeMeasurementDefaults(theme.package)` to fill a package's
+ * families too (H-R2): `getThemeVars`, the state migration and
+ * `ClassicyDesktopLoadThemes` do.
  */
 export function withDefaultThemeMetrics<
 	T extends ClassicyThemeWithPartialMetrics,
->(theme: T): T & { measurements: ClassicyThemeMeasurements } {
-	const current = theme.measurements;
+>(
+	theme: T,
+	defaults: ClassicyThemeMeasurementDefaults = CLASSICY_DEFAULT_THEME_METRICS,
+): ClassicyThemeWithMetrics<T> {
+	const current = theme.measurements as Record<string, unknown> | undefined;
 	let changed = current === undefined;
-	const next = { ...current } as ClassicyThemeMeasurements;
-	for (const group of METRIC_GROUPS) {
-		const filled = fillGroup(group, current?.[group]);
-		if (filled !== current?.[group]) changed = true;
-		(next as Record<string, unknown>)[group] = filled;
+	const next: Record<string, unknown> = { ...current };
+	for (const family of Object.keys(defaults)) {
+		const filled = fillFamily(defaults[family], current?.[family]);
+		if (filled !== current?.[family]) changed = true;
+		next[family] = filled;
 	}
 	if (!changed) {
-		return theme as T & { measurements: ClassicyThemeMeasurements };
+		return theme as ClassicyThemeWithMetrics<T>;
 	}
-	return { ...theme, measurements: next };
+	return {
+		...theme,
+		measurements: next as ClassicyThemeMeasurements,
+	};
 }
 
 /**
  * `withDefaultThemeMetrics` over a list, copy-on-write: the same array back
  * when no entry needed completing, otherwise a copy with only the completed
- * entries replaced. Non-object entries are left as they are.
+ * entries replaced. Non-object entries are left as they are. `defaultsFor`
+ * picks each theme's defaults (the core five unless given); pass
+ * `(t) => classicyThemeMeasurementDefaults(t.package)` to fill every theme
+ * from its own package.
  */
 export function withDefaultThemeMetricsList<
 	T extends ClassicyThemeWithPartialMetrics,
->(themes: readonly T[]): T[] {
+>(
+	themes: readonly T[],
+	defaultsFor: (theme: T) => ClassicyThemeMeasurementDefaults = () =>
+		CLASSICY_DEFAULT_THEME_METRICS,
+): T[] {
 	let next: T[] | undefined;
 	themes.forEach((theme, i) => {
 		if (!theme || typeof theme !== "object") return;
-		const filled = withDefaultThemeMetrics(theme);
+		const filled = withDefaultThemeMetrics(theme, defaultsFor(theme));
 		if (filled === theme) return;
 		next ??= [...themes];
-		next[i] = filled;
+		next[i] = filled as unknown as T;
 	});
 	return next ?? (themes as T[]);
+}
+
+/**
+ * `base` with `over`'s finite numeric leaves merged in key by key (`over`
+ * wins); `over`'s new families and keys are appended. Neither is mutated;
+ * the result and each of its families are frozen.
+ */
+const mergeMeasurementDefaults = (
+	base: ClassicyThemeMeasurementDefaults,
+	over: unknown,
+): ClassicyThemeMeasurementDefaults => {
+	const merged: Record<string, Record<string, number>> = {};
+	for (const [family, keys] of Object.entries(base)) {
+		merged[family] = { ...keys };
+	}
+	if (isPlainObject(over)) {
+		for (const [family, keys] of Object.entries(over)) {
+			if (!isPlainObject(keys)) continue;
+			for (const [key, value] of Object.entries(keys)) {
+				if (!isMetricNumber(value)) continue;
+				merged[family] ??= {};
+				merged[family][key] = value;
+			}
+		}
+	}
+	for (const keys of Object.values(merged)) Object.freeze(keys);
+	return Object.freeze(merged);
+};
+
+// The floor every theme is filled to: the core five, then Platinum's
+// families (platinum.json, read as data, so it is there however early this
+// module evaluates). Base SCSS reads Platinum's knob variables for every
+// package (H-R13), so every package's defaults start from these.
+const PLATINUM_MEASUREMENT_DEFAULTS = mergeMeasurementDefaults(
+	CLASSICY_DEFAULT_THEME_METRICS,
+	platinumJson.defaults.measurements,
+);
+
+// One merge per package `defaults.measurements` object: getThemeVars asks on
+// every render. A re-registered package brings a new object, so a new entry.
+const packageDefaultsCache = new WeakMap<
+	object,
+	ClassicyThemeMeasurementDefaults
+>();
+
+/**
+ * The measurements a theme of `packageId` is completed with: Platinum's
+ * `defaults.measurements` (the core five and every Platinum family), with the
+ * registered package's own `defaults.measurements` merged in key by key, the
+ * package's values winning (`getRegisteredClassicyAppearancePackageOrDefault`:
+ * an unknown or missing id falls back to the registered default package, and
+ * with none registered the result is Platinum's).
+ *
+ * Key by key, not family by family: a package that declares part of a
+ * family (`controlStrip { cellHeight, tabWidth }`) keeps the Platinum keys it
+ * leaves out, since base stylesheets read them. Frozen, and the same object
+ * for the same package registration.
+ */
+export function classicyThemeMeasurementDefaults(
+	packageId: string | undefined,
+): ClassicyThemeMeasurements {
+	const own = getClassicyPackageMeasurements(packageId);
+	if (!isPlainObject(own)) {
+		return PLATINUM_MEASUREMENT_DEFAULTS as ClassicyThemeMeasurements;
+	}
+	let merged = packageDefaultsCache.get(own);
+	if (merged === undefined) {
+		merged = mergeMeasurementDefaults(PLATINUM_MEASUREMENT_DEFAULTS, own);
+		packageDefaultsCache.set(own, merged);
+	}
+	return merged as ClassicyThemeMeasurements;
 }
 
 /**
@@ -261,8 +381,9 @@ const reportOnce = (collision: string, message: string): void => {
  * whole pixels — the core families and any family an Appearance Package adds
  * (`controlStrip.cellHeight` → `--control-strip-cell-height`).
  *
- * - Non-numeric leaves emit nothing, and neither does a family or key that
- *   is not a `CLASSICY_MEASUREMENT_NAME`: package families reach here from
+ * - Leaves that are not finite numbers (`"22"`, `NaN`) emit nothing, and
+ *   neither does a family or key that is not a
+ *   `CLASSICY_MEASUREMENT_NAME`: package families reach here from
  *   theme files and persisted state, and a name becomes part of a CSS
  *   declaration.
  * - Kebab-casing can map two leaves to one variable (`windowTitle.barHeight`
@@ -301,7 +422,7 @@ export function classicyMeasurementVars(
 			continue;
 		}
 		for (const [key, n] of Object.entries(keys)) {
-			if (typeof n !== "number" || !CLASSICY_MEASUREMENT_NAME.test(key)) {
+			if (!isMetricNumber(n) || !CLASSICY_MEASUREMENT_NAME.test(key)) {
 				continue;
 			}
 			const name = classicyMeasurementVarName(family, key);

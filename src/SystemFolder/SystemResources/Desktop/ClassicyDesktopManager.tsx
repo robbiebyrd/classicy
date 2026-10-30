@@ -29,6 +29,7 @@ import {
 	CLASSICY_THEME_FONT_SIZE_MIN,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFontSizes";
 import {
+	classicyThemeMeasurementDefaults,
 	withDefaultThemeMetrics,
 	withDefaultThemeMetricsList,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
@@ -238,7 +239,10 @@ const activatableClassicyPackageTheme = (
 	pkg: ClassicyAppearancePackage,
 	packageTheme: ClassicyTheme,
 ): ClassicyTheme => {
-	const theme = withDefaultThemeMetrics(cloneClassicyTheme(packageTheme));
+	const theme = withDefaultThemeMetrics(
+		cloneClassicyTheme(packageTheme),
+		classicyThemeMeasurementDefaults(pkg.id),
+	);
 	return {
 		...theme,
 		package: pkg.id,
@@ -642,6 +646,7 @@ export const classicyDesktopEventHandler = (
 				withDefaultThemePackageList(
 					withDefaultThemeMetricsList(
 						action.availableThemes as ClassicyTheme[],
+						(theme) => classicyThemeMeasurementDefaults(theme.package),
 					),
 				);
 			break;

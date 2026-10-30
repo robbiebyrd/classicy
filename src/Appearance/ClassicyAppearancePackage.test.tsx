@@ -378,6 +378,13 @@ describe("module load order", () => {
 		["the library barrel", () => import("@/index")],
 		["the Platinum package module", () => import("@/Appearance/Platinum")],
 		["the Platinum hooks", () => import("@/Appearance/Platinum/hooks")],
+		[
+			"the theme metrics module",
+			() =>
+				import(
+					"@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics"
+				),
+		],
 	])(
 		"evaluates when %s loads first",
 		async (_name, load) => {

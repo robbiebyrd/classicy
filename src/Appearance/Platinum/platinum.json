@@ -72,6 +72,141 @@
 				"itemGap": 4,
 				"groupGap": 16,
 				"dialogEdge": 12
+			},
+			"controlStrip": {
+				"cellHeight": 22,
+				"narrowCellWidth": 13,
+				"moduleWidth": 30,
+				"borderWidth": 1,
+				"bevelWidth": 1,
+				"pressedShift": 1,
+				"collapseGlyphLeft": 2,
+				"collapseGlyphTop": 7,
+				"scrollGlyphLeft": 2,
+				"scrollGlyphTop": 6,
+				"moduleIconLeft": 2,
+				"moduleIconTop": 3,
+				"moduleArrowLeft": 22,
+				"moduleArrowTop": 7
+			},
+			"menuFrame": {
+				"borderWidth": 1,
+				"bevelWidth": 1,
+				"shadowWidth": 1,
+				"shadowStart": 1,
+				"shadowOffset": 2
+			},
+			"pager": {
+				"borderWidth": 1,
+				"arrowWidth": 42,
+				"cellHeight": 36,
+				"glyphHalfHeight": 8,
+				"glyphDepth": 11,
+				"punchHalfHeight": 5,
+				"punchDepth": 7,
+				"pageMinWidth": 32,
+				"pageTopBorder": 2,
+				"fontSize": 12
+			},
+			"balloonHelp": {
+				"cornerRadius": 8,
+				"minWidth": 80,
+				"maxWidth": 220,
+				"titleGap": 3,
+				"tailOffset": 12,
+				"tailInset": 8,
+				"tailWidth": 20
+			},
+			"popUpSlider": {
+				"width": 17,
+				"height": 73,
+				"trackLeft": 4,
+				"trackTop": 3,
+				"thumbLeft": 1
+			},
+			"scrollbar": {
+				"arrowGlyphWidth": 7,
+				"arrowGlyphHeight": 8
+			},
+			"hyperCard": {
+				"fontSize": 11,
+				"handleSize": 6,
+				"paletteMaxWidth": 220,
+				"indent": 12
+			},
+			"finder": {
+				"padding": 8,
+				"aboutBannerWidth": 260,
+				"aboutBannerHeight": 120,
+				"aboutBannerShadowOffset": 4,
+				"aboutBannerShadowBlur": 6,
+				"aboutRowGap": 12,
+				"aboutIconSize": 56,
+				"aboutLabelWidth": 80,
+				"aboutValueWidth": 60
+			},
+			"appleGuide": {
+				"headerHeight": 42,
+				"headerPaddingX": 12,
+				"headerFontSize": 13,
+				"bodyFontSize": 14,
+				"bodyPaddingY": 12,
+				"bodyPaddingX": 20,
+				"paragraphGap": 12,
+				"listIndent": 18,
+				"listItemGap": 2,
+				"footerHeight": 48,
+				"footerPaddingX": 10
+			},
+			"colorPicker": {
+				"wheelMax": 240,
+				"wheelInset": 20,
+				"labelOverhang": 14,
+				"modeListWidth": 90,
+				"itemPaddingY": 3,
+				"crayonHoverLift": 8,
+				"crayonSelectedLift": 5,
+				"boxLipHeight": 22,
+				"fieldWidth": 44,
+				"unitWidth": 14
+			},
+			"dialog": {
+				"alertMinWidth": 280,
+				"alertMaxWidth": 460,
+				"inputMinWidth": 300,
+				"inputMaxWidth": 460,
+				"keyboardEquivalentMinWidth": 300,
+				"keyboardEquivalentMaxWidth": 420,
+				"fileDialogMinHeight": 220
+			},
+			"controlPanel": {
+				"listMaxHeight": 180,
+				"colorsScrollMaxHeight": 210
+			},
+			"progressBar": {
+				"stripePeriod": 40
+			},
+			"utilityTitleBar": {
+				"textureWidth": 4,
+				"textureHeight": 3
+			},
+			"crashScreen": {
+				"artWidth": 245
+			},
+			"boot": {
+				"halftoneTile": 4
+			},
+			"helpButton": {
+				"glyphSize": 14
+			},
+			"quickTime": {
+				"captionShadowBlur": 3
+			},
+			"menu": {
+				"popUpMaxHeight": 300
+			},
+			"table": {
+				"resizerWidth": 15
 			}
 		},
 		"desktop": {
@@ -1866,5 +2001,276 @@
 			"iconGridOrigin": "top-right"
 		}
 	},
-	"knobs": {}
+	"knobs": {
+		"controlStrip": {
+			"cellHeight": {
+				"label": "Cell height",
+				"min": 12,
+				"max": 64,
+				"default": 22
+			},
+			"narrowCellWidth": {
+				"label": "Narrow cell width",
+				"min": 6,
+				"max": 40,
+				"default": 13
+			},
+			"moduleWidth": {
+				"label": "Module width",
+				"min": 16,
+				"max": 96,
+				"default": 30
+			},
+			"borderWidth": {
+				"label": "Border width",
+				"min": 0,
+				"max": 4,
+				"default": 1
+			},
+			"bevelWidth": {
+				"label": "Bevel width",
+				"min": 0,
+				"max": 4,
+				"default": 1
+			},
+			"pressedShift": {
+				"label": "Pressed shift",
+				"min": 0,
+				"max": 4,
+				"default": 1
+			},
+			"collapseGlyphLeft": {
+				"label": "Collapse glyph left",
+				"min": 0,
+				"max": 16,
+				"default": 2
+			},
+			"collapseGlyphTop": {
+				"label": "Collapse glyph top",
+				"min": 0,
+				"max": 32,
+				"default": 7
+			},
+			"scrollGlyphLeft": {
+				"label": "Scroll glyph left",
+				"min": 0,
+				"max": 16,
+				"default": 2
+			},
+			"scrollGlyphTop": {
+				"label": "Scroll glyph top",
+				"min": 0,
+				"max": 32,
+				"default": 6
+			},
+			"moduleIconLeft": {
+				"label": "Module icon left",
+				"min": 0,
+				"max": 16,
+				"default": 2
+			},
+			"moduleIconTop": {
+				"label": "Module icon top",
+				"min": 0,
+				"max": 32,
+				"default": 3
+			},
+			"moduleArrowLeft": {
+				"label": "Module arrow left",
+				"min": 0,
+				"max": 64,
+				"default": 22
+			},
+			"moduleArrowTop": {
+				"label": "Module arrow top",
+				"min": 0,
+				"max": 32,
+				"default": 7
+			}
+		},
+		"menuFrame": {
+			"borderWidth": {
+				"label": "Border width",
+				"min": 0,
+				"max": 4,
+				"default": 1
+			},
+			"bevelWidth": {
+				"label": "Bevel width",
+				"min": 0,
+				"max": 4,
+				"default": 1
+			},
+			"shadowWidth": {
+				"label": "Shadow width",
+				"min": 0,
+				"max": 4,
+				"default": 1
+			},
+			"shadowStart": {
+				"label": "Shadow start",
+				"min": 0,
+				"max": 8,
+				"default": 1
+			},
+			"shadowOffset": {
+				"label": "Shadow offset",
+				"min": 0,
+				"max": 8,
+				"default": 2
+			}
+		},
+		"pager": {
+			"borderWidth": {
+				"label": "Border width",
+				"min": 0,
+				"max": 4,
+				"default": 1
+			},
+			"arrowWidth": {
+				"label": "Arrow width",
+				"min": 16,
+				"max": 96,
+				"default": 42
+			},
+			"cellHeight": {
+				"label": "Cell height",
+				"min": 16,
+				"max": 96,
+				"default": 36
+			},
+			"glyphHalfHeight": {
+				"label": "Glyph half height",
+				"min": 2,
+				"max": 32,
+				"default": 8
+			},
+			"glyphDepth": {
+				"label": "Glyph depth",
+				"min": 2,
+				"max": 32,
+				"default": 11
+			},
+			"punchHalfHeight": {
+				"label": "Punch half height",
+				"min": 1,
+				"max": 32,
+				"default": 5
+			},
+			"punchDepth": {
+				"label": "Punch depth",
+				"min": 1,
+				"max": 32,
+				"default": 7
+			},
+			"pageMinWidth": {
+				"label": "Page minimum width",
+				"min": 8,
+				"max": 128,
+				"default": 32
+			},
+			"pageTopBorder": {
+				"label": "Page top border",
+				"min": 0,
+				"max": 8,
+				"default": 2
+			},
+			"fontSize": {
+				"label": "Font size",
+				"min": 8,
+				"max": 32,
+				"default": 12
+			}
+		},
+		"balloonHelp": {
+			"cornerRadius": {
+				"label": "Corner radius",
+				"min": 0,
+				"max": 32,
+				"default": 8
+			},
+			"minWidth": {
+				"label": "Minimum width",
+				"min": 32,
+				"max": 320,
+				"default": 80
+			},
+			"maxWidth": {
+				"label": "Maximum width",
+				"min": 80,
+				"max": 512,
+				"default": 220
+			},
+			"titleGap": {
+				"label": "Title gap",
+				"min": 0,
+				"max": 16,
+				"default": 3
+			},
+			"tailOffset": {
+				"label": "Tail offset",
+				"min": 0,
+				"max": 64,
+				"default": 12
+			},
+			"tailInset": {
+				"label": "Tail inset",
+				"min": 0,
+				"max": 64,
+				"default": 8
+			},
+			"tailWidth": {
+				"label": "Tail width",
+				"min": 4,
+				"max": 64,
+				"default": 20
+			}
+		},
+		"popUpSlider": {
+			"width": {
+				"label": "Width",
+				"min": 8,
+				"max": 64,
+				"default": 17
+			},
+			"height": {
+				"label": "Height",
+				"min": 32,
+				"max": 256,
+				"default": 73
+			},
+			"trackLeft": {
+				"label": "Track left",
+				"min": 0,
+				"max": 32,
+				"default": 4
+			},
+			"trackTop": {
+				"label": "Track top",
+				"min": 0,
+				"max": 32,
+				"default": 3
+			},
+			"thumbLeft": {
+				"label": "Thumb left",
+				"min": 0,
+				"max": 16,
+				"default": 1
+			}
+		},
+		"scrollbar": {
+			"arrowGlyphWidth": {
+				"label": "Arrow glyph width",
+				"min": 3,
+				"max": 32,
+				"default": 7
+			},
+			"arrowGlyphHeight": {
+				"label": "Arrow glyph height",
+				"min": 3,
+				"max": 32,
+				"default": 8
+			}
+		}
+	}
 }

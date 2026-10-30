@@ -72,7 +72,8 @@ const TAB_STORY_APP_ID = "AppearanceManagerTabStory.app";
 // ---------------------------------------------------------------------------
 // Test Pack: a second Appearance Package, registered at module scope (as in
 // the Packages and Options tab tests), so the Packages list shows two rows
-// and the Options tab has knobs to show (Platinum declares none). It borrows
+// and the Options tab shows a package's own knobs, apart from Platinum's six
+// families (Platinum declares knobs too since H 2.1). It borrows
 // Platinum's look — Platinum's stylesheet re-scoped to its own id — so a
 // switch to it changes what the panel offers, not how the desktop looks.
 // The registration lasts for the iframe's lifetime, so shoot these stories
@@ -309,8 +310,8 @@ const PackagesTabStory = () => {
 const OptionsTabStory = () => {
 	const appearance = useAppearance();
 	const dispatch = useAppManagerDispatch();
-	// Platinum declares no knobs, so the story switches to Test Pack, whose
-	// two families render as two groups of spinners. On unmount it switches
+	// The story switches to Test Pack, whose two families render as two
+	// small groups of spinners (Platinum's six families would fill the tab). On unmount it switches
 	// back (if Test Pack is still active), so a non-desktop story opened next
 	// in this iframe, whose frame keeps the store, renders under Platinum.
 	useEffect(() => {
@@ -537,7 +538,7 @@ export const Packages: Story = {
 
 /**
  * Options: the active package's knobs, one group per family. This story
- * switches to Test Pack (Platinum declares no knobs). Edits dispatch
+ * switches to Test Pack (two small families). Edits dispatch
  * `ClassicyDesktopChangeMetric { family, key, value }`, clamped to the
  * knob's range within 0–512.
  */

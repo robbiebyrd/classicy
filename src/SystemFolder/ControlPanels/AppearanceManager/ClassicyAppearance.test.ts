@@ -26,7 +26,8 @@ import {
 // c2da6d1c7 with the code from before the measurements walker replaced the
 // explicit input emissions (`leaves getThemeVars unchanged …` below), plus
 // the 35 named derivations (`CLASSICY_THEME_DERIVATIONS`) appended to each
-// theme when they were added (every earlier key and value unchanged).
+// theme when they were added, and Platinum's 95 knob variables (H 2.1) after
+// them (every earlier key and value unchanged both times).
 // Regenerate it only for an intended change to the emitted variables, by
 // running getThemeVars over getAllThemes() in a throwaway vitest file:
 //   writeFileSync("src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.themeVars.baseline.json",
@@ -34,6 +35,10 @@ import {
 // then `pnpm exec vitest run <that file>` and delete it; never regenerate to
 // make an unintended difference pass.
 import themeVarsBaseline from "./ClassicyAppearance.themeVars.baseline.json";
+
+// Platinum's knob leaves beside the core five (H 2.1: 94 planned keys plus
+// H-B1's pager.fontSize).
+const PLATINUM_KNOB_COUNT = 95;
 
 describe("getAllThemes", () => {
 	it("returns an array", () => {
@@ -180,6 +185,50 @@ describe("getThemeVars", () => {
 		expect(vars["--layout-focus-gap"]).toBe("6px");
 	});
 
+	it("emits every Platinum knob family", () => {
+		const vars = getThemeVars(getTheme("default")) as Record<string, string>;
+		expect(vars["--control-strip-cell-height"]).toBe("22px");
+		expect(vars["--menu-frame-shadow-offset"]).toBe("2px");
+		expect(vars["--pager-arrow-width"]).toBe("42px");
+		expect(vars["--balloon-help-tail-width"]).toBe("20px");
+		expect(vars["--pop-up-slider-height"]).toBe("73px");
+		expect(vars["--scrollbar-arrow-glyph-width"]).toBe("7px");
+		expect(vars["--hyper-card-handle-size"]).toBe("6px");
+		expect(vars["--dialog-alert-min-width"]).toBe("280px");
+		// H-B1 and H-R11.
+		expect(vars["--pager-font-size"]).toBe("12px");
+		expect(vars["--utility-title-bar-texture-width"]).toBe("4px");
+		expect(vars["--utility-title-bar-texture-height"]).toBe("3px");
+	});
+
+	it("emits knobs for a theme persisted without them", () => {
+		const theme = getTheme("default");
+		const { controlStrip: _dropped, ...measurements } = theme.measurements;
+		const vars = getThemeVars({
+			...theme,
+			measurements: measurements as ClassicyThemeMeasurements,
+		}) as Record<string, string>;
+		expect(vars["--control-strip-cell-height"]).toBe("22px");
+		expect(vars["--control-strip-module-arrow-top"]).toBe("7px");
+	});
+
+	it("emits knobs and core inputs for a theme persisted with only part of a family", () => {
+		const theme = getTheme("default");
+		const vars = getThemeVars({
+			...theme,
+			measurements: {
+				window: theme.measurements.window,
+				pager: { cellHeight: 40 },
+			} as unknown as ClassicyThemeMeasurements,
+		}) as Record<string, string>;
+		expect(vars["--pager-cell-height"]).toBe("40px");
+		expect(vars["--pager-arrow-width"]).toBe("42px");
+		expect(vars["--layout-item-gap"]).toBe("4px");
+		expect(
+			Object.values(vars).some((v) => /undefined|NaN/.test(String(v))),
+		).toBe(false);
+	});
+
 	it("emits every named derivation for the default theme", () => {
 		const vars = getThemeVars(getTheme("default")) as Record<string, string>;
 		const expected: Record<string, string> = {
@@ -306,8 +355,11 @@ describe("classicyMeasurementVars", () => {
 
 	it("the walker reproduces every input variable byte-identically", () => {
 		// The 20 inputs getThemeVars emitted one by one before the walker:
-		// window 6, control 3, button 3, groupBox 5, layout 3.
-		expect(classicyMeasurementVars(getTheme("default").measurements)).toEqual({
+		// window 6, control 3, button 3, groupBox 5, layout 3. They come
+		// first; Platinum's 95 knob variables (20 families, H 2.1) follow.
+		const vars = classicyMeasurementVars(getTheme("default").measurements);
+		expect(Object.keys(vars)).toHaveLength(20 + PLATINUM_KNOB_COUNT);
+		expect(Object.fromEntries(Object.entries(vars).slice(0, 20))).toEqual({
 			"--window-border-size": "1px",
 			"--window-control-size": "12px",
 			"--window-padding-size": "6px",
@@ -341,8 +393,10 @@ describe("classicyMeasurementVars", () => {
 	});
 
 	it("ignores families and keys that are not camelCase names", () => {
+		// Over the core five, so the count is the 20 core inputs plus the one
+		// valid leaf (Platinum's own families would add their 95 knobs).
 		const vars = classicyMeasurementVars({
-			...getTheme("default").measurements,
+			...CLASSICY_DEFAULT_THEME_METRICS,
 			"x:0;color:red": { cellHeight: 1 },
 			ControlStrip: { cellHeight: 4 },
 			controlStrip: { "a;b": 2, "": 3, CellHeight: 5, cellHeight: 22 },
@@ -422,11 +476,13 @@ describe("classicyMeasurementVars — name collisions", () => {
 	it("the first of two colliding package families wins, warning once", () => {
 		vi.spyOn(console, "warn").mockImplementation(() => {});
 		const entries = warnings();
+		// The core five only: Platinum's own `menuFrame` and `menu` families
+		// would put menuFrame first in key order.
 		const measurements = {
-			...getTheme("default").measurements,
+			...CLASSICY_DEFAULT_THEME_METRICS,
 			menu: { frameWidth: 3 },
 			menuFrame: { width: 5 },
-		};
+		} as ClassicyThemeMeasurements;
 		expect(classicyMeasurementVars(measurements)["--menu-frame-width"]).toBe(
 			"3px",
 		);

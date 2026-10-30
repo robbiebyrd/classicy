@@ -361,6 +361,12 @@ describe("ClassicyThemeSchema — appearance package", () => {
 		expect(parsed.data?.package).toBe("irix");
 	});
 
+	it("theme schema keeps package knob families", () => {
+		const parsed = ClassicyThemeSchema.safeParse(platinumJson.defaults);
+		expect(parsed.success, JSON.stringify(parsed.error?.issues)).toBe(true);
+		expect(parsed.data?.measurements.controlStrip.cellHeight).toBe(22);
+	});
+
 	it("accepts a package measurement family", () => {
 		const parsed = ClassicyThemeSchema.safeParse(
 			withEdit((t) => {
