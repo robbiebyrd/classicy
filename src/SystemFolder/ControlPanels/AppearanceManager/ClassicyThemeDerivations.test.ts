@@ -1,3 +1,5 @@
+import { readdirSync, readFileSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import platinumJson from "@/Appearance/Platinum/platinum.json";
 import type { ClassicyThemeMeasurements } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
@@ -35,6 +37,31 @@ describe("CLASSICY_THEME_DERIVATIONS", () => {
 		expect(inputs.length).toBeGreaterThan(0);
 		const derived = CLASSICY_THEME_DERIVATIONS.map((d) => d.cssVar);
 		expect(derived.filter((name) => inputs.includes(name))).toEqual([]);
+	});
+
+	it("every file a doc names as a reader reads the variable", () => {
+		// The docs are Part H's map of who reads what: a file named there that
+		// no longer reads the variable is a stale entry.
+		const files = new Map<string, string[]>();
+		const walk = (dir: string) => {
+			for (const entry of readdirSync(dir, { withFileTypes: true })) {
+				const full = path.join(dir, entry.name);
+				if (entry.isDirectory()) walk(full);
+				else files.set(entry.name, [...(files.get(entry.name) ?? []), full]);
+			}
+		};
+		walk(path.resolve(process.cwd(), "src"));
+		const stale: string[] = [];
+		for (const d of CLASSICY_THEME_DERIVATIONS) {
+			for (const name of d.doc.match(/[\w.]+\.(?:scss|tsx|ts)\b/g) ?? []) {
+				const found = files.get(name) ?? [];
+				expect(found, `${d.cssVar}: ${name}`).toHaveLength(1);
+				if (!readFileSync(found[0], "utf8").includes(d.cssVar)) {
+					stale.push(`${d.cssVar}: ${name}`);
+				}
+			}
+		}
+		expect(stale).toEqual([]);
 	});
 });
 

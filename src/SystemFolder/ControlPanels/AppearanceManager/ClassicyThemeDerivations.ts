@@ -261,13 +261,13 @@ export const CLASSICY_THEME_DERIVATIONS: readonly ClassicyThemeDerivation[] = [
 	{
 		cssVar: "--desktop-icon-padding",
 		formula: "desktop.iconSize / 4",
-		doc: "Padding around a desktop icon inside its grid cell (ClassicyDesktopIcon.scss).",
+		doc: "Padding around a desktop icon inside its grid cell, and so the icon grid's origin: read by the desktop Clean Up and the Finder icon view (ClassicyDesktopIconContext.tsx, ClassicyFileBrowserUtils.ts); no stylesheet reads it (the alias badge's iconSize / 4 stays a one-off).",
 		compute: (i) => i.desktop.iconSize / 4,
 	},
 	{
 		cssVar: "--desktop-icon-cell",
 		formula: "desktop.iconSize * 2",
-		doc: "Width of one desktop and icon-view grid cell, icon plus label room (ClassicyDesktopIcon.scss, ClassicyIcon.scss).",
+		doc: "Width of one desktop and icon-view grid cell, icon plus label room (ClassicyDesktopIcon.scss; the grid pitch in ClassicyDesktopIconContext.tsx, ClassicyFileBrowserUtils.ts). The plain ClassicyIcon stylesheet keeps its own iconSize * 2: its size prop sets --desktop-icon-size per icon, which a root-derived cell would not follow.",
 		compute: (i) => i.desktop.iconSize * 2,
 	},
 	{
