@@ -41,6 +41,10 @@ const meta = {
 
 export default meta;
 type Story = StoryObj<typeof meta>;
+// For the stories that draw the component themselves in `render` and ignore
+// the args: typed against the component (every arg optional), not
+// `typeof meta`, which would demand its required props as story args.
+type RenderStory = StoryObj<typeof ClassicyTable>;
 
 /**
  * Sortable, resizable columns, sorted by Name on mount: click a header to
@@ -152,6 +156,6 @@ const FolderTable = () => {
  * Focus a branch row and press ⌘→ / ⌘← to expand or collapse it. Selection
  * here is controlled (`selected` + `onSelectionChange`).
  */
-export const TreeRows: Story = {
+export const TreeRows: RenderStory = {
 	render: () => <FolderTable />,
 };

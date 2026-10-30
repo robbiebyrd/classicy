@@ -11,6 +11,10 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+// These stories add nothing to the decorator's desktop. Storybook types a
+// story's result as a React element, so they render one that draws nothing.
+const NoApps = () => null;
+
 /**
  * The bare desktop with no apps of your own: menu bar, wallpaper, Trash, the
  * Finder's disk icon and the Control Strip. Right-click the empty desktop for
@@ -18,7 +22,7 @@ type Story = StoryObj<typeof meta>;
  * decorator supplies the `ClassicyDesktop`, with the startup screen off.)
  */
 export const Default: Story = {
-	render: () => null,
+	render: () => <NoApps />,
 };
 
 /**
@@ -30,5 +34,5 @@ export const WithoutControlStrip: Story = {
 	parameters: {
 		classicy: { desktop: true, controlStrip: false },
 	},
-	render: () => null,
+	render: () => <NoApps />,
 };

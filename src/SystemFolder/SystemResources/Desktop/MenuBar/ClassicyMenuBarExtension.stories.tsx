@@ -10,7 +10,10 @@ const meta = {
 } satisfies Meta<typeof ClassicyMenuBarExtension>;
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+// Every story here draws the component itself in `render` and ignores the
+// args, so the stories are typed against the component (every arg optional),
+// not `typeof meta`, which would demand its required props as story args.
+type Story = StoryObj<typeof ClassicyMenuBarExtension>;
 
 // The component portals into #classicyDesktopMenuExtensions and its dropdown
 // into #classicyDesktop, so the story provides both, plus a black bar strip.

@@ -25,6 +25,10 @@ const meta = {
 
 export default meta;
 type Story = StoryObj<typeof meta>;
+// For the stories that draw the component themselves in `render` and ignore
+// the args: typed against the component (every arg optional), not
+// `typeof meta`, which would demand its required props as story args.
+type RenderStory = StoryObj<typeof ClassicyPixelArt>;
 
 /**
  * Scales its children up without resampling, so each art pixel shows as a
@@ -84,7 +88,7 @@ const controlStripArt: [string, ClassicyPixelArtRows][] = [
  * box also carries a theme accent token (`b`), so it picks up the theme's
  * accent colour.
  */
-export const ControlStripGlyphs: Story = {
+export const ControlStripGlyphs: RenderStory = {
 	render: () => (
 		<div style={{ display: "flex", gap: 24, alignItems: "flex-end" }}>
 			{controlStripArt.map(([label, rows]) => (
@@ -102,7 +106,7 @@ export const ControlStripGlyphs: Story = {
  * The pop-up volume slider's track (10 × 68) and thumb (15 × 10) from
  * HIGOS8 Figure 2-16, as `ClassicyPopUpSlider` layers them, magnified 3×.
  */
-export const PopUpSliderArt: Story = {
+export const PopUpSliderArt: RenderStory = {
 	render: () => (
 		<div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
 			<Labelled label="Track">

@@ -12,6 +12,10 @@ const meta = {
 
 export default meta;
 type Story = StoryObj<typeof meta>;
+// For the stories that draw the component themselves in `render` and ignore
+// the args: typed against the component (every arg optional), not
+// `typeof meta`, which would demand its required props as story args.
+type RenderStory = StoryObj<typeof ClassicyTree>;
 
 const nodes: ClassicyTreeNode[] = [
 	{
@@ -167,6 +171,6 @@ const InteractiveTree = () => {
  * `branchSelectable`, so a single click selects it and a double-click
  * toggles it; "Archive" opts out with `selectable: false`.
  */
-export const InteractiveSelection: Story = {
+export const InteractiveSelection: RenderStory = {
 	render: () => <InteractiveTree />,
 };

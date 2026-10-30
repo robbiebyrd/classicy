@@ -13,6 +13,10 @@ const meta = {
 
 export default meta;
 type Story = StoryObj<typeof meta>;
+// For the stories that draw the component themselves in `render` and ignore
+// the args: typed against the component (every arg optional), not
+// `typeof meta`, which would demand its required props as story args.
+type RenderStory = StoryObj<typeof ClassicyRichTextEditor>;
 
 /**
  * A Markdown document with a heading, bold text and a block quote. Use the
@@ -64,6 +68,6 @@ const ImperativeEditor = () => {
  * replaced through `editorRef` (`setMarkdown`), and read back with
  * `getMarkdown`.
  */
-export const ImperativeAccess: Story = {
+export const ImperativeAccess: RenderStory = {
 	render: () => <ImperativeEditor />,
 };
