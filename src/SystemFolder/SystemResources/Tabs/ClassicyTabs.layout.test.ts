@@ -1,6 +1,6 @@
 import { createElement } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { compileScss, scssRule } from "@/__tests__/compiledScss";
+import { compileScss, scssRule } from "@/__tests__/compiledCss";
 import { render } from "@/__tests__/test-utils";
 import { ClassicyTabs } from "@/SystemFolder/SystemResources/Tabs/ClassicyTabs";
 

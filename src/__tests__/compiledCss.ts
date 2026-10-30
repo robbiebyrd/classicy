@@ -1,14 +1,26 @@
+import path from "node:path";
+import * as sass from "sass";
+
 /**
  * Helpers for tests that read compiled stylesheets (`sass.compile(...).css`):
- * split the output into rules and merge the declarations of the rules that
- * name a selector. They tolerate the Platinum package's output, whose rules
- * sit indented inside `@layer classicy.package { … }` and are scoped under the
- * desktop root, as well as an unindented base sheet.
+ * compile a sheet, split the output into rules and merge the declarations of
+ * the rules that name a selector. They tolerate the Platinum package's output,
+ * whose rules sit indented inside `@layer classicy.package { … }` and are
+ * scoped under the desktop root, as well as an unindented base sheet.
  */
 
 /** The Platinum package root every package rule is scoped under. */
 export const PLATINUM_ROOT =
 	".classicyDesktop[data-classicy-appearance=platinum]";
+
+/**
+ * Compiles a stylesheet through the sass API (`?inline` and plain SCSS
+ * imports are empty under vitest), in `expanded` style: one selector of a list
+ * per line and one declaration per line. `file` is relative to the repo root,
+ * which is vitest's root (jsdom leaves `import.meta.url` a non-file URL).
+ */
+export const compileScss = (file: string): string =>
+	sass.compile(path.resolve(process.cwd(), file), { style: "expanded" }).css;
 
 /** One compiled rule: its selector list and its declaration block. */
 export type CompiledCssRule = { selectors: string[]; body: string };
@@ -32,8 +44,33 @@ export const cssDeclarations = (
 	rules: CompiledCssRule[],
 	selector: string,
 	label = selector,
+): Record<string, string> =>
+	mergeDeclarations(
+		rules.filter((r) => r.selectors.includes(selector)),
+		label,
+	);
+
+/**
+ * The declarations of every rule headed by exactly `selector` (a rule of its
+ * own, not one entry of a selector list), merged in source order. Takes the
+ * compiled stylesheet itself. Throws `no rule for <selector>` when none is.
+ */
+export const scssRule = (
+	css: string,
+	selector: string,
+): Record<string, string> =>
+	mergeDeclarations(
+		parseCssRules(css).filter(
+			(r) => r.selectors.length === 1 && r.selectors[0] === selector,
+		),
+		selector,
+	);
+
+/** The rules' declarations merged in source order (a later value wins). */
+const mergeDeclarations = (
+	matched: CompiledCssRule[],
+	label: string,
 ): Record<string, string> => {
-	const matched = rules.filter((r) => r.selectors.includes(selector));
 	if (matched.length === 0) throw new Error(`no rule for ${label}`);
 	const props: Record<string, string> = {};
 	for (const { body } of matched)
