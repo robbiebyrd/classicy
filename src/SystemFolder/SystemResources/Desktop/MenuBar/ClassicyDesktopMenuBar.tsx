@@ -22,12 +22,19 @@ import {
 	useRef,
 } from "react";
 import type { ClassicyAppearanceLayout } from "@/Appearance/ClassicyAppearancePackage";
+import {
+	classicyAppIdentityFrom,
+	useClassicyAppIdentityOverrides,
+} from "@/Appearance/ClassicyAppIdentity";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { CLASSICY_PART_ATTRIBUTE } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { APPLE_GUIDE_SHOW_TOPIC_EVENT } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideContext";
 import { ABOUT_BALLOON_HELP_TOPIC_ID } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideTopics";
-import { appSwitcherAppsFrom } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
+import {
+	appSwitcherAppsFrom,
+	withClassicyAppIdentityMenuItems,
+} from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
 import { useClassicyShortcutDispatcher } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyShortcutDispatcher";
 import { collectMenuChords } from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
 
@@ -192,7 +199,19 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 		if (resolvedPlacement === "window") closeAll();
 	}, [resolvedPlacement, closeAll]);
 
-	const appSwitcherData = useMemo(() => appSwitcherAppsFrom(apps), [apps]);
+	// The active package's display overrides (its `apps`): the switcher, the
+	// About item and the Apple-menu app entries show each app by its display
+	// identity, while ids, events and the store keep the internal one.
+	const overrides = useClassicyAppIdentityOverrides();
+	const finderName = classicyAppIdentityFrom(overrides, "Finder.app", {
+		name: "Finder",
+		icon: "",
+	}).name;
+
+	const appSwitcherData = useMemo(
+		() => appSwitcherAppsFrom(apps, overrides),
+		[apps, overrides],
+	);
 
 	const setActiveApp = (appId: string) => {
 		desktopEventDispatch({
@@ -207,7 +226,7 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 		return {
 			id: "app-switcher",
 			image: focusedApp?.icon || "",
-			title: focusedApp?.name || "Finder",
+			title: focusedApp?.name || finderName,
 			className: "classicyDesktopMenuAppSwitcher",
 			part: "switcher",
 			// The switcher's title follows the focused app, and it sits at the
@@ -225,7 +244,7 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 			})),
 		};
 		// biome-ignore lint/correctness/useExhaustiveDependencies: setActiveApp is defined inline and recreated each render; including it would cause infinite loops
-	}, [appSwitcherData, setActiveApp]);
+	}, [appSwitcherData, finderName, setActiveApp]);
 
 	// The app whose menus the bar is showing. Extensions (e.g. Apple Guide) can
 	// take window focus but must never be treated as "the focused app" here —
@@ -285,7 +304,10 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 	// menu with its own "About This Computer" entry removed to avoid two Abouts.
 	const { appleMenuItem, strippedAppMenu } = useMemo(() => {
 		const focusedAppId = focusedMenuApp?.id ?? "Finder.app";
-		const appName = focusedMenuApp?.name ?? "Finder";
+		const appName = focusedMenuApp
+			? classicyAppIdentityFrom(overrides, focusedMenuApp.id, focusedMenuApp)
+					.name
+			: finderName;
 
 		const aboutItem = findAppAboutItem(appMenu, focusedAppId);
 
@@ -293,7 +315,7 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 		if (aboutItem) {
 			// Drop the system menu's leading "About This Computer" (and a spacer
 			// immediately after it) so our injected spacer isn't doubled.
-			let rest = systemMenu ?? [];
+			let rest = withClassicyAppIdentityMenuItems(systemMenu, overrides) ?? [];
 			if (rest[0] && isAboutThisComputerItem(rest[0])) {
 				rest = rest.slice(1);
 				if (rest[0]?.id === "spacer") rest = rest.slice(1);
@@ -308,8 +330,10 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 				...rest,
 			];
 		} else {
-			// No app About available — leave the system menu untouched.
-			menuChildren = systemMenu;
+			// No app About available — leave the system menu as it is, apart
+			// from showing its app entries by their display names.
+			menuChildren =
+				withClassicyAppIdentityMenuItems(systemMenu, overrides) ?? [];
 		}
 
 		return {
@@ -324,7 +348,14 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 			strippedAppMenu:
 				aboutItem && appMenu ? stripAboutItem(appMenu, aboutItem) : appMenu,
 		};
-	}, [focusedMenuApp, appMenu, systemMenu, appleMenuIcon]);
+	}, [
+		focusedMenuApp,
+		appMenu,
+		systemMenu,
+		appleMenuIcon,
+		overrides,
+		finderName,
+	]);
 
 	const defaultMenuItems: ClassicyMenuItem[] = useMemo(() => {
 		const items = [appleMenuItem] as ClassicyMenuItem[];
