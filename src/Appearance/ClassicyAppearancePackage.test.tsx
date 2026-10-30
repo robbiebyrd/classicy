@@ -327,6 +327,13 @@ describe("module load order", () => {
 			() =>
 				import("@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager"),
 		],
+		[
+			"the desktop icon reducer",
+			() =>
+				import(
+					"@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconContext"
+				),
+		],
 		["the library barrel", () => import("@/index")],
 		["the Platinum package module", () => import("@/Appearance/Platinum")],
 	])(

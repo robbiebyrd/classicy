@@ -110,26 +110,27 @@ export const ClassicyDisclosure: FunctionalComponent<
 
 	return (
 		<div className={classNames("classicyDisclosure", className)} style={style}>
+			{/* One DOM order, triangle then label; a left label is moved before
+			    the triangle by `order` in the stylesheet, so a package can
+			    reorder the pair. */}
 			{/* biome-ignore lint/a11y/useSemanticElements: disclosure header is a block container with svg child incompatible with <button> */}
 			<div
 				role="button"
-				className={"classicyDisclosureHeader"}
+				className={classNames(
+					"classicyDisclosureHeader",
+					labelPosition === "left" && "classicyDisclosureLabelLeft",
+				)}
 				onClick={() => setOpenState(!open)}
 				tabIndex={0}
 				aria-expanded={open}
 				onKeyDown={(e) => handleKeyPress(e)}
 			>
-				{labelPosition === "left" && (
-					<ClassicyControlLabel label={label} labelSize={labelSize} />
-				)}
 				<ClassicyTriangle
 					direction={direction}
 					open={open}
 					interactive={false}
 				/>
-				{labelPosition !== "left" && (
-					<ClassicyControlLabel label={label} labelSize={labelSize} />
-				)}
+				<ClassicyControlLabel label={label} labelSize={labelSize} />
 			</div>
 			<div
 				className={classNames(

@@ -1,3 +1,5 @@
+import path from "node:path";
+import * as sass from "sass";
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, userEvent } from "@/__tests__/test-utils";
 import { ClassicyDisclosure } from "@/SystemFolder/SystemResources/Disclosure/ClassicyDisclosure";
@@ -104,5 +106,43 @@ describe("ClassicyDisclosure", () => {
 		expect(inner).toHaveClass("open");
 		await user.keyboard("{Meta>}{ArrowLeft}{/Meta}");
 		expect(inner).toHaveClass("classicyDisclosureInnerClose");
+	});
+});
+
+// vitest's root is the repo root, and jsdom leaves import.meta.url as a
+// non-file URL, so resolve from the project root.
+const disclosureCss = sass.compile(
+	path.resolve(
+		process.cwd(),
+		"src/SystemFolder/SystemResources/Disclosure/ClassicyDisclosure.scss",
+	),
+	{ style: "expanded" },
+).css;
+
+describe("ClassicyDisclosure arrangement", () => {
+	// The header always renders the triangle, then the label; a left label is
+	// moved visually by `order`, so a package can reorder the pair.
+	it("keeps one DOM order and moves a left label with order", () => {
+		const { container } = render(
+			<ClassicyDisclosure label="More info" labelPosition="left" />,
+		);
+		const header = container.querySelector(
+			".classicyDisclosureHeader",
+		) as HTMLElement;
+		expect(header).toHaveClass("classicyDisclosureLabelLeft");
+		expect(header.lastElementChild).toHaveClass("classicyControlLabelHolder");
+		const match = disclosureCss.match(
+			/^\.classicyDisclosureLabelLeft > \.classicyControlLabelHolder \{\n([^}]*)\n\}/m,
+		);
+		expect(match?.[1]).toMatch(/^\s*order: -1;$/m);
+	});
+
+	it("leaves a right label unmarked", () => {
+		const { container } = render(<ClassicyDisclosure label="More info" />);
+		const header = container.querySelector(
+			".classicyDisclosureHeader",
+		) as HTMLElement;
+		expect(header).not.toHaveClass("classicyDisclosureLabelLeft");
+		expect(header.lastElementChild).toHaveClass("classicyControlLabelHolder");
 	});
 });
