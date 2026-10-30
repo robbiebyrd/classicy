@@ -1,5 +1,13 @@
+import { produce } from "immer";
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@/__tests__/test-utils";
+import { act, fireEvent, render, screen } from "@/__tests__/test-utils";
+import {
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+} from "@/Appearance/ClassicyAppearancePackage";
+import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyColorPicker } from "./ClassicyColorPicker";
 import { ClassicyColorPickerCMYK } from "./ClassicyColorPickerCMYK";
 import { ClassicyColorPickerCrayon } from "./ClassicyColorPickerCrayon";
@@ -295,6 +303,74 @@ describe("ClassicyColorWheel — crosshair color", () => {
 
 	it("falls back to white when no package declares it", () => {
 		expect(strokeStyles()).toEqual(["#ffffff"]);
+	});
+
+	// A package switch restyles the open picker without a drag: the wheel
+	// re-reads the new package's crosshair color when the active id changes.
+	it("re-reads the crosshair color when the active package changes", () => {
+		const seen: string[] = [];
+		const ctx = new Proxy(
+			{},
+			{
+				get: (_t, key) =>
+					key === "createImageData"
+						? () => ({ data: new Uint8ClampedArray(4 * 4 * 4) })
+						: () => {},
+				set: (_t, key, value) => {
+					if (key === "strokeStyle") seen.push(value);
+					return true;
+				},
+			},
+		);
+		vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
+			ctx as unknown as CanvasRenderingContext2D,
+		);
+		registerClassicyAppearancePackage({
+			id: "crosshair-test",
+			name: "Crosshair Test",
+			css: "",
+			defaults: { ...getTheme("default"), package: "crosshair-test" },
+			layout: {
+				window: { growBoxCorner: "bottom-right" },
+				menuBar: { placement: "screen" },
+				desktop: { iconGridOrigin: "top-right" },
+			},
+		});
+		try {
+			render(
+				<ClassicyColorWheel
+					hue={0}
+					saturation={50}
+					brightness={100}
+					mode="hsv"
+					size={4}
+					onChangeFunc={vi.fn()}
+					style={
+						{
+							"--classicy-color-picker-crosshair": "#00ff00",
+						} as React.CSSProperties
+					}
+				/>,
+			);
+			expect(seen).toEqual(["#00ff00"]);
+			// The new package's stylesheet declares another crosshair color.
+			(document.querySelector("canvas") as HTMLCanvasElement).style.setProperty(
+				"--classicy-color-picker-crosshair",
+				"#ff00ff",
+			);
+			act(() => {
+				useAppManager.setState((state) =>
+					produce(state, (draft) => {
+						draft.System.Manager.Appearance.packageId = "crosshair-test";
+					}),
+				);
+			});
+			expect(seen).toEqual(["#00ff00", "#ff00ff"]);
+		} finally {
+			vi.restoreAllMocks();
+			resetClassicyAppearancePackagesForTests();
+			useAppManager.setState(DefaultAppManagerState, true);
+		}
 	});
 });
 
