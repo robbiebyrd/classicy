@@ -6,7 +6,7 @@ status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T19:31:45.820Z"
-updated: "2026-10-30T11:04:38.683Z"
+updated: "2026-10-30T12:17:07.168Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -25,11 +25,11 @@ links:
     - ["0000-aud", "included"]
 progress:
   "0":
-    status: in_progress
+    status: complete
   "1":
     status: pending
   "1.1":
-    status: pending
+    status: in_progress
   "2":
     status: pending
   "2.1":
@@ -49,6 +49,8 @@ progress:
   "6":
     status: pending
   "6.1":
+    status: pending
+  "6.2":
     status: pending
   "7":
     status: pending
@@ -307,6 +309,24 @@ ClassicyAppearance.test.ts: keep `emits every metric input and derivation for th
 - [ ] **Step 6: Lint, type-check, commit** — git add -A src bin/pixel-literal-allowlist.json && git commit -m "refactor(scss): purge the remaining pixel literals and var() fallbacks; pin variable coverage" (body: lists the four derivations added beyond Part G) (with the trailer) — `pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test`
 
 **Validation:** `node bin/check-pixel-literals.ts && test "$(cat bin/pixel-literal-allowlist.json | tr -d ' \n')" = '{}'`
+
+### 6.2: Multiplier inventory (added 2026-10-30, owner ruling H-R6)
+
+**Goal:** Work Part G's one-off multiplier inventory (86 `calc(var(--x) * N)` sites at G's landing; AGENT-REFERENCE §8) down to the sites G kept on purpose, so no unnamed proportion survives in `src/**/*.scss`.
+
+**Depends on:** 6.1 (E-dependent sites after Part E lands, per H-R9)
+
+**Interfaces:**
+- Consumes: `bin/check-pixel-literals.ts` (1.1) and its scanner; `CLASSICY_THEME_DERIVATIONS` and G13 reservation; the 2.1 knob walker.
+- Produces: `kind: "multiplier"` in the scanner with its own ratchet allowlist (`bin/multiplier-allowlist.json`), seeded from the live sites and ending at G's kept-on-purpose sites (`ClassicyIcon.scss` ×2, `ClassicyDesktopIcon.scss` `/4`, `ClassicyWindow.scss` `/4`, `_scrollbars.scss` arrow forms ×3) plus H-R7's stated-reason exceptions (pixel-grid multiples inside package pixel art; handle-centering halves), each with a one-line reason. Every other site becomes a named derivation (a structural role shared across the theme; appended to `CLASSICY_THEME_DERIVATIONS`) or a knob (a component-local size); never more than one name per role.
+
+- [ ] **Step 1: Write the failing tests** — the scanner reports `kind: "multiplier"`; a fixture with one unnamed `calc(var(--x) * 3)` fails the ratchet; the allowlist's every entry carries a reason.
+- [ ] **Step 2: Seed the allowlist from the live sites, then convert the E-independent sites** — derivation or knob per site; parity AE 0 on the touched stories (H-R10).
+- [ ] **Step 3: After Part E lands, convert the E-file sites** (Window, WindowFrame, `ClassicyWindowTitleBar.scss`, Tabs, Menu, `_Slider.scss`) and tighten the allowlist to the kept-on-purpose set.
+- [ ] **Step 4: Docs** — AGENT-REFERENCE §8: the inventory is replaced by the kept-on-purpose list with reasons; new derivations and knobs documented.
+- [ ] **Step 5: Lint, type-check, test, commit.**
+
+**Validation:** `node bin/check-pixel-literals.ts` exits 0 and `bin/multiplier-allowlist.json` lists only the kept-on-purpose and stated-reason sites.
 
 ## Phase 7: Parity and documentation
 

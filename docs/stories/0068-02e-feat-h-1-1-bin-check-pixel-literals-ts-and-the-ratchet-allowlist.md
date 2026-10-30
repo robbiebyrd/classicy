@@ -3,11 +3,18 @@ id: 0068-02e
 title: 'H 1.1: bin/check-pixel-literals.ts and the ratchet allowlist'
 purpose: Add the lint gate that counts bare pixel literals in SCSS against a per-file allowlist that only ever shrinks, and wire it into `pnpm lint`.
 type: feat
-status: pending
+status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T20:35:01.283Z"
-updated: "2026-10-29T20:22:00.352Z"
+updated: "2026-10-30T12:17:06.832Z"
+started: "2026-10-30T12:17:06.832Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy
