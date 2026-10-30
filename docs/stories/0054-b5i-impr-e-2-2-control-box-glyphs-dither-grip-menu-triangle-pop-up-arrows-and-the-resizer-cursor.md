@@ -3,11 +3,18 @@ id: 0054-b5i
 title: 'E 2.2: Control-box glyphs, dither, grip, menu triangle, pop-up arrows and the resizer cursor'
 purpose: Make the zoom/collapse glyphs, control-box dither, grow-box grip, submenu triangle and pop-up indicator read registered package art, and move the resizer cursor choice from JS into CSS.
 type: impr
-status: pending
+status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T20:24:32.303Z"
-updated: "2026-10-29T20:22:00.352Z"
+updated: "2026-10-30T02:11:17.460Z"
+started: "2026-10-30T02:11:17.460Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy
