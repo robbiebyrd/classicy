@@ -1580,9 +1580,23 @@ the dither of every icon. Only an image whose alpha carries the pattern works
 there: a pixel-art source (`data:text/x-classicy-pixel-art`) is not an image,
 so it cannot serve as that mask.
 
+`triangle` and `downArrow` are true aliases of `submenuArrow` and
+`popupArrows`: `registerClassicySystemArt` writes each alias with its key, so
+registering either name registers both (a package that registers only
+`submenuArrow` also covers `triangle`), and when one call gives the two names
+different art, the key's art wins with a warning.
+
+`registerClassicySystemArt` also checks each source's form against its key and
+logs a `ClassicyAssetRegistry` warning, without refusing it, when it would draw
+nothing: a plain image for one of the nine pixel-art keys (`controlStrip*`,
+`popUpSlider*`, which need `encodeClassicyPixelArtRows` rows), or pixel art
+for an image key. In development it also logs a key outside the union, such
+as a removed `titleBarCap*` key registered by a JS host.
+
 Platinum's own test (`platinumAssets.test.ts`) classifies every key in an
 exhaustive `Record<ClassicySystemArtKey, boolean>`, so adding a key to the union
-without deciding whether Platinum registers it is a type error.
+without deciding whether Platinum registers it is a type error (the registry's
+own form table, `"image"` or `"pixelArt"` per key, is exhaustive the same way).
 
 ### Cursor roles
 
@@ -2072,7 +2086,8 @@ the bevel button arrows (`.classicyBevelButtonArrowHorizontal`,
 `.classicyBevelButtonArrowVertical`), the placard arrow
 (`.classicyPlacardArrow`) and the file input's remove cross
 (`.classicyFileInputRemoveGlyph`); the HyperCard tools palette's armed entry
-(`role="button"`, `aria-pressed`, `.selected`) gets its " ✓" as `::after`
+(`role="button"`, `aria-pressed`, `.selected`; a toggle: pressing the armed
+entry again disarms it) gets its " ✓" as `::after`
 content on the aria-hidden `.classicyHyperCardPaletteEntryMark` after its
 label. Platinum uses the font's ✓ – ▸ ▾ ✕ and
 writes them as escapes with `string.unquote('"\\2713"')`, because Sass

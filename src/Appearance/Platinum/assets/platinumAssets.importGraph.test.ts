@@ -107,6 +107,7 @@ describe("the Platinum asset modules' import graph", () => {
 		expect(components(graph)).toEqual([]);
 		expect(graph).not.toContain("package:react");
 		expect(graph.filter((file) => !file.endsWith(".txt")).sort()).toEqual([
+			"src/Appearance/ClassicyPixelArtSource.internal.ts",
 			"src/Appearance/ClassicyPixelArtSource.ts",
 			"src/Appearance/Platinum/assets/pixelart/platinumPixelArt.ts",
 			"src/SystemFolder/SystemResources/Log/ClassicyLog.ts",
@@ -126,7 +127,9 @@ describe("the Platinum asset modules' import graph", () => {
 
 	it("the asset registry reads the pixel-art rule from the codec, not the component", () => {
 		const graph = runtimeImportGraph("src/Appearance/ClassicyAssetRegistry.ts");
-		expect(graph).toContain("src/Appearance/ClassicyPixelArtSource.ts");
+		expect(graph).toContain(
+			"src/Appearance/ClassicyPixelArtSource.internal.ts",
+		);
 		expect(stylesheets(graph)).toEqual([]);
 		expect(components(graph)).toEqual([]);
 	});

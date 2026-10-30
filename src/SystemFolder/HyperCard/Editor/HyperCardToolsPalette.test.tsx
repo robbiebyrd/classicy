@@ -105,4 +105,35 @@ describe("HyperCardToolsPalette", () => {
 		expect(idle).toHaveAttribute("aria-pressed", "false");
 		expect(idle).not.toHaveClass("selected");
 	});
+
+	// Arming is a one-shot, optional mode (nothing armed is the normal state),
+	// so the entry is a toggle: pressing the armed entry again disarms it and
+	// aria-pressed turns false, by click and by Enter or Space.
+	it("disarms the armed entry when it is pressed again", () => {
+		const { rerender } = render(
+			<HyperCardToolsPalette
+				stackId={"demo"}
+				edit={{ ...makeEdit(), placing: "slider" }}
+			/>,
+		);
+		const armed = screen.getByRole("button", { name: "Slider" });
+		fireEvent.click(armed);
+		fireEvent.keyDown(armed, { key: "Enter" });
+		fireEvent.keyDown(armed, { key: " " });
+		expect(dispatch.mock.calls).toEqual(
+			Array.from({ length: 3 }, () => [
+				{
+					type: "ClassicyAppHCEditSetPlacing",
+					stackId: "demo",
+					partType: undefined,
+				},
+			]),
+		);
+
+		rerender(<HyperCardToolsPalette stackId={"demo"} edit={makeEdit()} />);
+		expect(screen.getByRole("button", { name: "Slider" })).toHaveAttribute(
+			"aria-pressed",
+			"false",
+		);
+	});
 });

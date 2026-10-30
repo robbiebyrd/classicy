@@ -100,6 +100,23 @@ describe("classicyHyperCardEditorEventHandler", () => {
 		]);
 	});
 
+	it("SetPlacing arms a part type and disarms with no part type", () => {
+		const store = makeStore();
+		enter(store);
+		dispatch(store, {
+			type: "ClassicyAppHCEditSetPlacing",
+			stackId: "demo",
+			partType: "slider",
+		});
+		expect(edit(store).placing).toBe("slider");
+		dispatch(store, {
+			type: "ClassicyAppHCEditSetPlacing",
+			stackId: "demo",
+			partType: undefined,
+		});
+		expect(edit(store).placing).toBeUndefined();
+	});
+
 	it("SetRect clamps position to >=0 and size to >=8", () => {
 		const store = makeStore();
 		enter(store);

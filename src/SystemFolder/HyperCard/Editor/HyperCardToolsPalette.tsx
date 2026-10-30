@@ -1,7 +1,8 @@
 /**
  * Tools palette content: Browse/Pointer mode buttons plus the parts list. Each
  * part entry supports both drag-to-canvas (HTML5 DnD with the part-type MIME)
- * and click-to-arm placement (ClassicyAppHCEditSetPlacing).
+ * and click-to-arm placement (ClassicyAppHCEditSetPlacing); a second press
+ * on the armed entry disarms it.
  */
 
 import classNames from "classnames";
@@ -54,11 +55,14 @@ export const HyperCardToolsPalette: FunctionalComponent<
 			<div className={"classicyHyperCardPaletteParts"}>
 				{entries.map((entry) => {
 					const armed = edit.placing === entry.type;
-					const arm = () =>
+					// Pressing the armed entry again disarms it: arming is a one-shot,
+					// optional mode (nothing armed is the normal state), so each entry
+					// is a toggle, not one of a set of radio buttons.
+					const toggle = () =>
 						dispatch({
 							type: "ClassicyAppHCEditSetPlacing",
 							stackId,
-							partType: entry.type,
+							partType: armed ? undefined : entry.type,
 						});
 					return (
 						// A toggle button: aria-pressed carries the armed state, and the
@@ -78,11 +82,11 @@ export const HyperCardToolsPalette: FunctionalComponent<
 							onDragStart={(e) =>
 								e.dataTransfer?.setData(HYPERCARD_PART_DRAG_MIME, entry.type)
 							}
-							onClick={arm}
+							onClick={toggle}
 							onKeyDown={(e) => {
 								if (e.key === "Enter" || e.key === " ") {
 									e.preventDefault();
-									arm();
+									toggle();
 								}
 							}}
 						>

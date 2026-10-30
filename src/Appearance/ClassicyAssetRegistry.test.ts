@@ -268,4 +268,124 @@ describe("ClassicyAssetRegistry", () => {
 			expect(entries).toHaveLength(0);
 		});
 	});
+
+	describe("system-art keys and forms", () => {
+		const entries: ClassicyLogEntry[] = [];
+		const warnings = () =>
+			entries.filter((e) => e.level === "warn").map((e) => e.message);
+
+		beforeEach(() => {
+			entries.length = 0;
+			vi.spyOn(console, "warn").mockImplementation(() => {});
+			registerClassicyLogSink({
+				id: "system-art-keys-test",
+				onLog: (entry) => entries.push(entry),
+			});
+		});
+
+		afterEach(() => {
+			unregisterClassicyLogSink("system-art-keys-test");
+			vi.restoreAllMocks();
+			vi.unstubAllEnvs();
+		});
+
+		// The Control Strip and pop-up slider keys are drawn by ClassicyPixelArt
+		// from pixel-art rows; an image there draws nothing.
+		it("warns when a package registers a plain image for a pixel-art key", () => {
+			registerClassicySystemArt("test-pack", {
+				controlStripTab: "tab.svg",
+				controlStripModuleArrow: "data:text/x-classicy-pixel-art,K.%0AKK",
+			});
+			expect(warnings()).toEqual([
+				expect.stringMatching(
+					/"controlStripTab" for package "test-pack".*pixel-art rows.*draws nothing/,
+				),
+			]);
+			// It is still registered: the warning explains, it does not refuse.
+			expect(
+				resolveClassicyAsset("systemArt", "controlStripTab", "test-pack"),
+			).toBe("tab.svg");
+		});
+
+		it("warns when a package registers pixel art for an image key", () => {
+			registerClassicySystemArt("test-pack", {
+				windowGrip: "data:text/x-classicy-pixel-art,KK",
+			});
+			expect(warnings()).toEqual([
+				expect.stringMatching(
+					/"windowGrip" for package "test-pack".*not an image.*draws nothing/,
+				),
+			]);
+		});
+
+		it("warns in development about a key outside ClassicySystemArtKey", () => {
+			vi.stubEnv("NODE_ENV", "development");
+			registerClassicySystemArt("test-pack", {
+				// A removed key (E25), from a JS host or a cast.
+				...({ titleBarCapLeft: "cap.svg" } as object),
+				sadMac: "sad.png",
+			});
+			expect(warnings()).toEqual([
+				expect.stringMatching(
+					/unknown system-art key "titleBarCapLeft" for package "test-pack"/,
+				),
+			]);
+		});
+
+		it("says nothing about an unknown key in production", () => {
+			vi.stubEnv("NODE_ENV", "production");
+			registerClassicySystemArt("test-pack", {
+				...({ titleBarCapLeft: "cap.svg" } as object),
+			});
+			expect(warnings()).toEqual([]);
+		});
+
+		it("registers nothing to warn about for well-formed art", () => {
+			registerClassicySystemArt("test-pack", {
+				sadMac: "sad.png",
+				popUpSliderThumb: "data:text/x-classicy-pixel-art,KK",
+			});
+			expect(warnings()).toEqual([]);
+		});
+
+		// `triangle` and `downArrow` are aliases of `submenuArrow` and
+		// `popupArrows`: registering either name registers both.
+		it("resolves an alias to its key's art, either way round", () => {
+			registerClassicySystemArt("test-pack", {
+				submenuArrow: "sub.svg",
+				downArrow: "down.svg",
+			});
+			expect(resolveClassicyAsset("systemArt", "triangle", "test-pack")).toBe(
+				"sub.svg",
+			);
+			expect(
+				resolveClassicyAsset("systemArt", "popupArrows", "test-pack"),
+			).toBe("down.svg");
+			expect(warnings()).toEqual([]);
+		});
+
+		it("an alias follows a later registration of its key", () => {
+			registerClassicySystemArt("test-pack", { triangle: "first.svg" });
+			registerClassicySystemArt("test-pack", { submenuArrow: "second.svg" });
+			expect(resolveClassicyAsset("systemArt", "triangle", "test-pack")).toBe(
+				"second.svg",
+			);
+			expect(
+				resolveClassicyAsset("systemArt", "submenuArrow", "test-pack"),
+			).toBe("second.svg");
+		});
+
+		it("the key wins, with a warning, when one call gives an alias other art", () => {
+			registerClassicySystemArt("test-pack", {
+				submenuArrow: "sub.svg",
+				triangle: "tri.svg",
+			});
+			expect(resolveClassicyAsset("systemArt", "triangle", "test-pack")).toBe(
+				"sub.svg",
+			);
+			expect(warnings()).toEqual([
+				expect.stringMatching(/"triangle" is an alias of "submenuArrow"/),
+			]);
+		});
+	});
 });

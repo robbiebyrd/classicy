@@ -26,7 +26,6 @@ export {
 	type ClassicyPixelArtRows,
 	decodeClassicyPixelArtRows,
 	encodeClassicyPixelArtRows,
-	parseClassicyPixelArtSource,
 } from "@/Appearance/ClassicyPixelArtSource";
 
 /**

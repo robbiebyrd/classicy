@@ -1,12 +1,18 @@
 import type { ClassicyAssetSource } from "@/Appearance/ClassicyAssetSource";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
+import {
+	CLASSICY_PIXEL_ART_MIME,
+	parseClassicyPixelArtSource,
+} from "./ClassicyPixelArtSource.internal";
 
 /**
  * The pixel-art codec: how `ClassicyPixelArt` rows travel as a system-art
  * asset source. Dependency-free on purpose (types and `classicyLog` only), so
  * an Appearance Package's data module and the asset registry can use it
  * without pulling a component or its stylesheet into their import graph.
- * `ClassicyPixelArt` re-exports every name here.
+ * `ClassicyPixelArt` re-exports every name here. The rule for what counts as
+ * pixel art (`parseClassicyPixelArtSource`) is internal, in
+ * `ClassicyPixelArtSource.internal.ts`.
  */
 
 /**
@@ -17,38 +23,9 @@ import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
  */
 export type ClassicyPixelArtRows = readonly string[];
 
-/**
- * The MIME type of pixel art registered as system art
- * (`encodeClassicyPixelArtRows`): a `data:` source whose payload is the rows,
- * joined with newlines.
- */
-export const CLASSICY_PIXEL_ART_MIME = "text/x-classicy-pixel-art";
-
-/** `data:<pixel-art MIME>[;parameter…],<payload>`, the MIME in any case. */
-const PIXEL_ART_SOURCE = new RegExp(
-	`^data:${CLASSICY_PIXEL_ART_MIME}((?:;[^,]*)?),`,
-	"i",
-);
-
-/**
- * The one rule for what counts as pixel art: any `data:` URI whose media type
- * is `CLASSICY_PIXEL_ART_MIME` (any case, any parameters such as
- * `;charset=utf-8`, optionally `;base64`). Returns the still-encoded payload
- * and whether it is base64, or `undefined` for any other source.
- * `decodeClassicyPixelArtRows` decodes exactly these sources, and
- * `useClassicyAssetVars` leaves exactly these out of the CSS variables.
- */
-export const parseClassicyPixelArtSource = (
-	src: ClassicyAssetSource | undefined,
-): { base64: boolean; payload: string } | undefined => {
-	if (src === undefined) return undefined;
-	const match = PIXEL_ART_SOURCE.exec(src);
-	if (!match) return undefined;
-	return {
-		base64: match[1].toLowerCase().split(";").includes("base64"),
-		payload: src.slice(match[0].length),
-	};
-};
+// The MIME type and the parser live in the `.internal` module (one
+// definition, shared with the asset registry; the parser is not public API).
+export { CLASSICY_PIXEL_ART_MIME } from "./ClassicyPixelArtSource.internal";
 
 /**
  * Pixel art as an asset source, for `registerClassicySystemArt`:
@@ -63,7 +40,8 @@ export const encodeClassicyPixelArtRows = (
 
 /**
  * The rows of a pixel-art source: any `data:` URI with the pixel-art MIME
- * (`parseClassicyPixelArtSource`: any case, any parameters, percent-encoded or
+ * (`parseClassicyPixelArtSource` in the `.internal` module: any case, any
+ * parameters, percent-encoded or
  * `;base64`). Carriage returns are stripped and a trailing empty row is
  * dropped. `[]` for `undefined`, any other source, or a malformed payload
  * (logged).

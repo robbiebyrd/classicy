@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { registerClassicySystemArt } from "@/Appearance/ClassicyAssetRegistry";
 import { isClassicyAssetSource } from "@/Appearance/ClassicyAssetSource";
 import * as codec from "@/Appearance/ClassicyPixelArtSource";
+import { parseClassicyPixelArtSource } from "@/Appearance/ClassicyPixelArtSource.internal";
 import {
 	type ClassicyLogEntry,
 	registerClassicyLogSink,
@@ -13,7 +14,6 @@ import {
 	ClassicyPixelArt,
 	decodeClassicyPixelArtRows,
 	encodeClassicyPixelArtRows,
-	parseClassicyPixelArtSource,
 } from "@/SystemFolder/SystemResources/PixelArt/ClassicyPixelArt";
 
 describe("ClassicyPixelArt", () => {
@@ -157,7 +157,12 @@ describe("ClassicyPixelArt", () => {
 		expect(CLASSICY_PIXEL_ART_MIME).toBe(codec.CLASSICY_PIXEL_ART_MIME);
 		expect(encodeClassicyPixelArtRows).toBe(codec.encodeClassicyPixelArtRows);
 		expect(decodeClassicyPixelArtRows).toBe(codec.decodeClassicyPixelArtRows);
-		expect(parseClassicyPixelArtSource).toBe(codec.parseClassicyPixelArtSource);
+	});
+
+	// The parser is the codec's internal rule (the decoder and the asset
+	// registry's CSS variables share it), not public API.
+	it("keeps parseClassicyPixelArtSource out of the public codec", () => {
+		expect(codec).not.toHaveProperty("parseClassicyPixelArtSource");
 	});
 
 	it("draws nothing when given neither rows nor art", () => {

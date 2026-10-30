@@ -28,8 +28,9 @@ const PLATINUM = "platinum";
  * Not registered (Platinum registers 36 of the 39 `ClassicySystemArtKey`s; the
  * rest resolve to `undefined`): `menuCheck` and `menuDash` are `::before`
  * glyphs in the Platinum package, so those keys have no file at all;
- * `aboutBackground` has no Platinum art. `triangle` and `downArrow` are aliases of `submenuArrow` and
- * `popupArrows`.
+ * `aboutBackground` has no Platinum art. `triangle` and `downArrow` are
+ * aliases of `submenuArrow` and `popupArrows`: `registerClassicySystemArt`
+ * registers each with its key, so they are not listed here.
  */
 registerClassicySystemArt(PLATINUM, {
 	appleMenu: ClassicyIcons.system.apple,
@@ -49,8 +50,6 @@ registerClassicySystemArt(PLATINUM, {
 	halftoneLarge: ClassicyIcons.ui.halftoneLarge,
 	...PLATINUM_SYSTEM_ART,
 	...PLATINUM_PIXEL_ART,
-	triangle: PLATINUM_SYSTEM_ART.submenuArrow,
-	downArrow: PLATINUM_SYSTEM_ART.popupArrows,
 });
 
 /**

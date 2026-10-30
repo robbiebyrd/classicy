@@ -8,7 +8,7 @@ import {
 	type ClassicyAssetSource,
 	isClassicyAssetSource,
 } from "./ClassicyAssetSource";
-import { parseClassicyPixelArtSource } from "./ClassicyPixelArtSource";
+import { parseClassicyPixelArtSource } from "./ClassicyPixelArtSource.internal";
 
 const PLATINUM = "platinum";
 const SUBSYSTEM = "ClassicyAssetRegistry";
@@ -390,11 +390,127 @@ export const registerClassicyCursors = (
 ): void =>
 	registerClassicyAssets("cursors", packageId, cursors as ClassicyAssetTree);
 
+/**
+ * How each system-art key is drawn: `"image"` (a CSS image, published as
+ * `--classicy-art-<key>`, or an `<img>`) or `"pixelArt"` (rows drawn by
+ * `ClassicyPixelArt`, registered with `encodeClassicyPixelArtRows`). A
+ * `Record` over the union, so a new key must be classified; its keys are also
+ * the runtime list of known keys.
+ */
+const SYSTEM_ART_FORMS: Record<ClassicySystemArtKey, "image" | "pixelArt"> = {
+	appleMenu: "image",
+	sadMac: "image",
+	startupLogo: "image",
+	trashEmpty: "image",
+	trashFull: "image",
+	aliasBadge: "image",
+	helpButton: "image",
+	aboutLogo: "image",
+	aboutBackground: "image",
+	windowStripes: "image",
+	windowStripesRed: "image",
+	windowUtilityTexture: "image",
+	windowGrip: "image",
+	windowDither: "image",
+	zoomGlyph: "image",
+	collapseGlyph: "image",
+	submenuArrow: "image",
+	popupArrows: "image",
+	sliderThumb: "image",
+	sliderThumbRect: "image",
+	sliderStrikes: "image",
+	tabOutline: "image",
+	halftone: "image",
+	halftoneLarge: "image",
+	quickTimeThumbSlider: "image",
+	quickTimeVolumeSlider: "image",
+	controlStripTab: "pixelArt",
+	controlStripCollapse: "pixelArt",
+	controlStripScrollLeft: "pixelArt",
+	controlStripScrollLeftDisabled: "pixelArt",
+	controlStripScrollRight: "pixelArt",
+	controlStripScrollRightDisabled: "pixelArt",
+	controlStripModuleArrow: "pixelArt",
+	popUpSliderTrack: "pixelArt",
+	popUpSliderThumb: "pixelArt",
+	menuCheck: "image",
+	menuDash: "image",
+	triangle: "image",
+	downArrow: "image",
+};
+
+/**
+ * Alias → key. `triangle` and `downArrow` are other names for `submenuArrow`
+ * and `popupArrows`: registering either name registers both, so a package
+ * that registers only `submenuArrow` also covers `triangle`.
+ */
+const SYSTEM_ART_ALIASES = [
+	["triangle", "submenuArrow"],
+	["downArrow", "popupArrows"],
+] as const satisfies readonly (readonly [
+	ClassicySystemArtKey,
+	ClassicySystemArtKey,
+])[];
+
+const isSystemArtKey = (key: string): key is ClassicySystemArtKey =>
+	Object.hasOwn(SYSTEM_ART_FORMS, key);
+
+/**
+ * Register a package's system art. Aliases are written with their key (above;
+ * when one call gives both different art, the key's wins, with a warning).
+ * A source of the wrong form for its key is registered but logged, since it
+ * draws nothing: a plain image for a pixel-art key, or pixel art for an image
+ * key. In development, a key outside `ClassicySystemArtKey` (a removed key
+ * from a JS host, a typo) is logged too.
+ */
 export const registerClassicySystemArt = (
 	packageId: string,
 	art: Partial<Record<ClassicySystemArtKey, ClassicyAssetSource>>,
-): void =>
-	registerClassicyAssets("systemArt", packageId, art as ClassicyAssetTree);
+): void => {
+	const entries: Record<string, ClassicyAssetSource | undefined> = { ...art };
+	for (const [alias, key] of SYSTEM_ART_ALIASES) {
+		const src = art[key] ?? art[alias];
+		if (src === undefined) continue;
+		if (
+			art[key] !== undefined &&
+			art[alias] !== undefined &&
+			art[key] !== art[alias]
+		)
+			classicyLog(
+				"warn",
+				SUBSYSTEM,
+				`"${alias}" is an alias of "${key}"; package "${packageId}" gave them different art, so "${key}"'s is registered for both`,
+			);
+		entries[key] = src;
+		entries[alias] = src;
+	}
+	for (const [key, src] of Object.entries(entries)) {
+		if (!isSystemArtKey(key)) {
+			if (process.env.NODE_ENV !== "production" && !FORBIDDEN_KEYS.has(key))
+				classicyLog(
+					"warn",
+					SUBSYSTEM,
+					`Registered unknown system-art key "${key}" for package "${packageId}": no ClassicySystemArtKey has that name, so nothing reads it`,
+				);
+			continue;
+		}
+		if (!isClassicyAssetSource(src)) continue;
+		const pixelArt = parseClassicyPixelArtSource(src) !== undefined;
+		if (SYSTEM_ART_FORMS[key] === "pixelArt" && !pixelArt)
+			classicyLog(
+				"warn",
+				SUBSYSTEM,
+				`System art "${key}" for package "${packageId}" is drawn by ClassicyPixelArt and needs pixel-art rows (encodeClassicyPixelArtRows); this source draws nothing`,
+			);
+		else if (SYSTEM_ART_FORMS[key] === "image" && pixelArt)
+			classicyLog(
+				"warn",
+				SUBSYSTEM,
+				`System art "${key}" for package "${packageId}" is pixel art, not an image; it draws nothing there`,
+			);
+	}
+	registerClassicyAssets("systemArt", packageId, entries as ClassicyAssetTree);
+};
 
 export const registerClassicyWallpapers = (
 	packageId: string,
