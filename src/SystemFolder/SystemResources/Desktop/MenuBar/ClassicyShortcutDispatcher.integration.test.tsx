@@ -1,6 +1,14 @@
 import { act, fireEvent, render } from "@testing-library/react";
 import { produce } from "immer";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+	type ClassicyAppearancePackage,
+	getClassicyAppearancePackage,
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+} from "@/Appearance/ClassicyAppearancePackage";
+import { PLATINUM_APPEARANCE_PACKAGE_ID } from "@/Appearance/Platinum";
+import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
 	type ClassicyStore,
 	type ClassicyStoreSystemApp,
@@ -30,6 +38,30 @@ function setStore(mutate: (draft: ClassicyStore) => void): void {
 		useAppManager.setState(produce(DefaultAppManagerState, mutate), true);
 	});
 }
+
+// Importing the Platinum module registered it; the window-placement case
+// resets the registry and puts this object back afterwards.
+const platinum = getClassicyAppearancePackage(
+	PLATINUM_APPEARANCE_PACKAGE_ID,
+) as ClassicyAppearancePackage;
+
+/** A package that places menus in windows, so the screen bar is headless. */
+const registerMirror = () =>
+	registerClassicyAppearancePackage({
+		id: "test-mirror",
+		name: "Mirror",
+		css: "",
+		defaults: {
+			...getTheme("default"),
+			id: "test-mirror-default",
+			package: "test-mirror",
+		},
+		layout: {
+			window: { growBoxCorner: "bottom-left" },
+			menuBar: { placement: "window" },
+			desktop: { iconGridOrigin: "top-left" },
+		},
+	});
 
 function makeApp(id: string, focused: boolean): ClassicyStoreSystemApp {
 	return {
@@ -162,5 +194,69 @@ describe("ClassicyShortcutDispatcher — end-to-end via the real menu bar", () =
 		expect(
 			useAppManager.getState().System.Manager.Desktop.disableBalloonHelp,
 		).toBe(true);
+	});
+
+	describe("with menus placed in windows", () => {
+		afterEach(() => {
+			resetClassicyAppearancePackagesForTests();
+			registerClassicyAppearancePackage(platinum);
+			useAppManager.setState(DefaultAppManagerState, true);
+		});
+
+		it("still fires with the screen bar headless (placement window)", async () => {
+			registerMirror();
+			const focusedAppAction = vi.fn();
+
+			const focusedAppMenu: ClassicyMenuItem[] = [
+				{
+					id: "FocusedApp.app_view",
+					title: "View",
+					menuChildren: [
+						{
+							id: "FocusedApp.app_tools",
+							title: "Tools",
+							keyboardShortcut: "Ctrl+T",
+							onClickFunc: focusedAppAction,
+						},
+					],
+				},
+			];
+
+			setStore((draft) => {
+				draft.System.Manager.Appearance.packageId = "test-mirror";
+				draft.System.Manager.Applications.apps = {
+					"FocusedApp.app": makeApp("FocusedApp.app", true),
+					"OtherApp.app": makeApp("OtherApp.app", false),
+				};
+				draft.System.Manager.Applications.focusedAppId = "FocusedApp.app";
+				draft.System.Manager.Desktop.appMenu = focusedAppMenu;
+				draft.System.Manager.Keyboard.global = {
+					"control+space": {
+						appId: "BalloonExt",
+						event: "ClassicyDesktopSetBalloonHelp",
+						eventData: { disableBalloonHelp: true },
+					},
+				};
+			});
+
+			let container: HTMLElement | undefined;
+			await act(async () => {
+				({ container } = render(<ClassicyDesktopMenuBar />));
+			});
+
+			// Headless: the bar renders nothing, but its hooks still ran.
+			expect(container?.querySelector(".classicyDesktopMenuBar")).toBeNull();
+			expect(
+				useAppManager.getState().System.Manager.Keyboard.app["FocusedApp.app"],
+			).toEqual(expect.arrayContaining(["control+t"]));
+
+			fireEvent.keyDown(document, { key: "t", ctrlKey: true });
+			expect(focusedAppAction).toHaveBeenCalledTimes(1);
+
+			fireEvent.keyDown(document, { key: " ", code: "Space", ctrlKey: true });
+			expect(
+				useAppManager.getState().System.Manager.Desktop.disableBalloonHelp,
+			).toBe(true);
+		});
 	});
 });

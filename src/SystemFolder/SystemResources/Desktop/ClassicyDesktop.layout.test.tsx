@@ -17,7 +17,10 @@ import {
 	dispatch,
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import { ClassicyDesktop } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktop";
+import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
 // Importing the Platinum module registered it; keep that object so every test
 // starts from the real Platinum registration (platinum.json's layout), not
@@ -50,6 +53,50 @@ const renderDesktop = (style?: CSSProperties) =>
 		<ClassicyAppManagerProvider>
 			<ClassicyDesktop startupScreen={false} style={style} />
 		</ClassicyAppManagerProvider>,
+	);
+
+const APP_ID = "T.app";
+
+const fileMenu: ClassicyMenuItem[] = [
+	{ id: "file", title: "File", menuChildren: [{ id: "new", title: "New" }] },
+];
+
+const openApp = () =>
+	useAppManager.setState((state) =>
+		produce(state, (draft) => {
+			draft.System.Manager.Applications.apps[APP_ID] = {
+				id: APP_ID,
+				name: "T",
+				icon: "",
+				windows: {},
+				open: true,
+				focused: true,
+				data: {},
+			};
+		}),
+	);
+
+const renderDesktopWithWindow = () =>
+	render(
+		<ClassicyAppManagerProvider>
+			<ClassicyDesktop startupScreen={false}>
+				<ClassicyApp id={APP_ID} name="T" icon="">
+					<ClassicyWindow
+						id="main"
+						appId={APP_ID}
+						title="Main"
+						appMenu={fileMenu}
+					>
+						<p>body</p>
+					</ClassicyWindow>
+				</ClassicyApp>
+			</ClassicyDesktop>
+		</ClassicyAppManagerProvider>,
+	);
+
+const activate = (packageId: string) =>
+	act(() =>
+		dispatch({ type: "ClassicyDesktopChangeAppearancePackage", packageId }),
 	);
 
 const desktopRoot = (container: HTMLElement) =>
@@ -160,5 +207,30 @@ describe("ClassicyDesktop layout", () => {
 				"--classicy-layout-grow-box-corner",
 			),
 		).toBe("top-left");
+	});
+
+	describe("menuBar.placement", () => {
+		it("hides the screen bar when the active package places menus in windows", () => {
+			registerMirror();
+			const { container } = renderDesktop();
+			expect(container.querySelector(".classicyDesktopMenuBar")).not.toBeNull();
+			activate("test-mirror");
+			expect(container.querySelector(".classicyDesktopMenuBar")).toBeNull();
+		});
+
+		it("renders each window's menus in the window, and back on the screen bar", () => {
+			registerMirror();
+			openApp();
+			const { container } = renderDesktopWithWindow();
+			activate("test-mirror");
+			expect(
+				container.querySelector(".classicyWindow .classicyWindowMenuBar"),
+			).not.toBeNull();
+			expect(container.querySelector(".classicyDesktopMenuBar")).toBeNull();
+
+			activate(PLATINUM_APPEARANCE_PACKAGE_ID);
+			expect(container.querySelector(".classicyWindowMenuBar")).toBeNull();
+			expect(container.querySelector(".classicyDesktopMenuBar")).not.toBeNull();
+		});
 	});
 });
