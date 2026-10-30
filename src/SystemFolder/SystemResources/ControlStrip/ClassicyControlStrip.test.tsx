@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import type { CSSProperties } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { dispatchAnimationEnd } from "@/__tests__/animationEnd";
 import {
@@ -29,6 +31,7 @@ import {
 	unregisterClassicyControlStripModule,
 	useClassicyControlStripDisabledModules,
 } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripRegistry";
+import { scanPixelLiteralsInSource } from "../../../../bin/check-pixel-literals.ts";
 // The built-in modules register when their owners' modules load.
 import "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundControlStripModule";
 import "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverControlStripModule";
@@ -294,6 +297,62 @@ describe("ClassicyControlStrip (HIGOS8 Figure 6-15)", () => {
 			) as HTMLElement;
 			expect(viewport.style.width).toBe("90px");
 		});
+	});
+
+	// H-R12: with nothing measurable (jsdom lays nothing out, so offsetWidth
+	// is 0), a module step is the theme's module width plus its separator,
+	// read from the variables an ancestor sets.
+	it("scrolls one module step read from the theme variables", () => {
+		vi.spyOn(HTMLElement.prototype, "scrollWidth", "get").mockReturnValue(300);
+		vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(100);
+		vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(0);
+		register(...testModules());
+		renderWithProviders(
+			<div
+				id="classicyDesktop"
+				style={
+					{
+						"--control-strip-module-width": "40px",
+						"--control-strip-border-width": "2px",
+					} as CSSProperties
+				}
+			>
+				<ClassicyControlStrip disabledModules={BUILT_INS} />
+			</div>,
+		);
+		fireEvent.click(
+			screen.getByRole("button", { name: "Scroll Control Strip right" }),
+		);
+		const modules = document.querySelector(
+			".classicyControlStripModules",
+		) as HTMLElement;
+		expect(modules.scrollLeft).toBe(42);
+	});
+
+	it("reads no pixel literal", () => {
+		expect(
+			scanPixelLiteralsInSource(
+				readFileSync(
+					"src/SystemFolder/SystemResources/ControlStrip/ClassicyControlStrip.scss",
+					"utf8",
+				),
+				"strip",
+			).filter((l) => l.kind === "bare"),
+		).toEqual([]);
+	});
+
+	// The Platinum bevels (Part B moved them to the package partial) and the
+	// base sheet's fallbacks: nothing left but the exempt `0px` instance ones.
+	it("draws its Platinum bevels and reads its fallbacks without a pixel literal", () => {
+		for (const file of [
+			"src/Appearance/Platinum/styles/components/_ControlStrip.scss",
+			"src/SystemFolder/SystemResources/ControlStrip/ClassicyControlStrip.scss",
+		]) {
+			expect(
+				scanPixelLiteralsInSource(readFileSync(file, "utf8"), file),
+				file,
+			).toEqual([]);
+		}
 	});
 });
 

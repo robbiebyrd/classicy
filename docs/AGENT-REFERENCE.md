@@ -2750,6 +2750,8 @@ full precision, and a rounded `9.333px` moves the computed `font-size`
 | `--desktop-icon-padding` | `iconSize / 4` | 12 | ClassicyDesktopIconContext.tsx, ClassicyFileBrowserUtils.ts |
 | `--desktop-icon-cell` | `iconSize × 2` | 96 | ClassicyDesktopIcon.scss, ClassicyDesktopIconContext.tsx, ClassicyFileBrowserUtils.ts |
 | `--desktop-icon-label-pad` | `iconFontSize / 4` | 3 | ClassicyDesktopIcon.scss, ClassicyIcon.scss |
+| `--focus-ring-width` | `borderSize` | 1 | ClassicyControlStrip.scss |
+| `--focus-ring-inset` | `borderSize × 3` | 3 | ClassicyControlStrip.scss |
 
 The table's types and one helper are public:
 
@@ -2776,7 +2778,7 @@ sets itself could never take effect. Those variables are reserved
 
 - the palette, font and desktop variables (`CLASSICY_THEME_NON_MEASUREMENT_VARS`, 44 names);
 - the derived metrics above (`CLASSICY_THEME_DERIVED_VARS`, 15 names);
-- the named derivations (`CLASSICY_THEME_DERIVATIONS`, 35 names);
+- the named derivations (`CLASSICY_THEME_DERIVATIONS`, 37 names);
 - every `--classicy-*` name. That prefix is Classicy's own: the desktop root
   sets `--classicy-layout-*` after the theme's variables, and
   `--classicy-art-*` and `--classicy-cursor-*` are read with fallbacks a
@@ -2807,7 +2809,7 @@ variable itself:
 |---|---|
 | `--window-control-size` | `--window-collapsed-height`, `--window-utility-collapsed-height`, `--window-title-stripe-height`, `--menu-bar-height`, `--menu-min-width`, `--menu-item-icon-size`, `--menu-item-icon-gap`, `--popup-height`, `--popup-mini-size`, `--popup-arrow-width`, `--control-glyph-size`, `--control-square-size`, `--button-square-width`, `--tab-height`, `--tab-min-width`, `--tab-min-width-large`, `--slider-thumb-width`, `--slider-thumb-height`, `--control-row-height`, `--progress-height` |
 | `--window-padding-size` | `--control-padding`, `--control-padding-tight`, `--control-padding-narrow`, `--control-padding-loose`, `--control-padding-wide`, `--window-frame-inset`, `--window-zoom-margin`, `--window-resize-inset`, `--layout-focus-gap` |
-| `--window-border-size` | `--control-frame-width`, `--control-bevel-sm`, `--control-bevel-md`, `--control-bevel-lg`, `--button-default-ring`, `--edit-field-height`, `--help-button-height` (and `--window-zoom-margin`, `--window-resize-inset`) |
+| `--window-border-size` | `--control-frame-width`, `--control-bevel-sm`, `--control-bevel-md`, `--control-bevel-lg`, `--button-default-ring`, `--edit-field-height`, `--help-button-height`, `--focus-ring-width`, `--focus-ring-inset` (and `--window-zoom-margin`, `--window-resize-inset`) |
 | `--window-scrollbar-size` | `--window-scrollbar-arrow-size` |
 | `--control-height` | `--button-height`, `--edit-field-height`, `--help-button-width`, `--help-button-height` |
 | `--ui-font-size` | `--ui-font-size-small`, `--ui-font-size-caption`, `--ui-font-size-compact`, `--ui-font-size-mini`, `--ui-font-size-large`, `--window-header-font-size` |
