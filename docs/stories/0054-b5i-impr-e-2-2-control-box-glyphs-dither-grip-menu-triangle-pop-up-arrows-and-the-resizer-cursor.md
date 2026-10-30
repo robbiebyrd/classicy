@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T20:24:32.303Z"
-updated: "2026-10-30T04:00:41.801Z"
+updated: "2026-10-30T04:23:53.653Z"
 started: "2026-10-30T02:11:17.460Z"
 tags: []
 milestone: ""
@@ -118,3 +118,5 @@ Re-shoot `desktop-window--*`, `desktop-menu--*`, `controls-popupmenu--*`, `deskt
 ### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
 
 ### 2026-10-30T04:00:41.801Z - E 2.2 implemented (uncommitted at the time) with gate green, 4076 tests. Every art surface is AE 0 or exactly named change (b), except the masked pop-up arrows in 5 ComboBox stories (AE 9, peak 4). Controller ruling E21: draw the pop-up arrows as an image layer on every indicator surface, like the grip and dither, for exact parity (E20). The art stays registry-swappable. Implementer is finishing and committing.
+
+### 2026-10-30T04:23:53.653Z - E 2.2 committed: 135296d3a (art rewrite; E21 in body) + 5a2fbe724 (E 2.1 review minor 4). Gate green: 4077 tests. All 26 pop-up indicator stories AE 0 incl. ComboBox; zoom box is exactly named change (b) across 32 stories; other glyphs, dither and grip AE 0; Firefox forced 6/6; _assets.scss 0 data URIs. E 2.1 interim stripe drift unchanged (E20 -> E 6.1). Task review dispatched.

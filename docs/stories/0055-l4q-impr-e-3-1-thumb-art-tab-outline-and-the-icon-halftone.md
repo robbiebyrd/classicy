@@ -3,11 +3,18 @@ id: 0055-l4q
 title: 'E 3.1: Thumb art, tab outline and the icon halftone'
 purpose: Point the slider thumb layers, the tab outline and the icon halftone at registered package art and delete the compile-time encode-color/theme-halftone helpers.
 type: impr
-status: pending
+status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T20:25:11.193Z"
-updated: "2026-10-29T20:22:00.352Z"
+updated: "2026-10-30T04:24:12.130Z"
+started: "2026-10-30T04:24:07.441Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy
@@ -112,3 +119,5 @@ Both icon rules become `mask-image: var(--classicy-icon-mask), var(--classicy-ar
 
 ## Work Log
 ### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
+
+### 2026-10-30T04:24:12.130Z - Started on feat/appearance-part-e-v2 (BASE 5a2fbe724). Scope narrowed by ruling G16: E 3.1 registers the halftone art only; the halftone readers and the platinum-halftone/encode-color deletion belong to G 1.2 (its own branch). The halftone parts of the acceptance criteria are verified once both E and G have landed.

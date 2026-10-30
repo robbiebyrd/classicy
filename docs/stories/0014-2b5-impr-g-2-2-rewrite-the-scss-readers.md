@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T19:56:33.172Z"
-updated: "2026-10-30T01:53:24.028Z"
+updated: "2026-10-30T04:21:11.638Z"
 started: "2026-10-30T01:53:24.028Z"
 tags: []
 milestone: ""
@@ -188,3 +188,5 @@ Re-shoot `desktop-window--*`, `desktop-menu--*`, `desktop-menubar--*`, `controls
 
 ## Work Log
 ### 2026-10-29T20:14:15.844Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
+
+### 2026-10-30T04:21:11.638Z - G 2.2 implemented on feat/appearance-part-g-v2: 1a80b4e40 (G13 derived-variable reservation), 9c257a6e7 (G 1.2 review minors), 6012b2ce9 (readers use named derivations). Gate green: 4097 tests. 302/302 screenshots and computed styles identical to G 1.2's after-set; forced states 67/67 Chromium, 6/6 Firefox. Six font-size derivations emitted unrounded to keep computed values exact. Multiplier sites 327 -> 85, above the brief's <=60 estimate; the remaining sites are listed in the commit body. Task review dispatched to classify them.
