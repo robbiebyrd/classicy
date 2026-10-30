@@ -3,11 +3,18 @@ id: 0061-pic
 title: 'F 2.1: Floats to flex + order'
 purpose: Lay the menu bar out as a flex row whose six clusters are placed by order on their data-classicy-part attribute, so a package can rearrange it without touching DOM order or fighting floats.
 type: impr
-status: pending
+status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T20:29:34.870Z"
-updated: "2026-10-29T20:22:00.352Z"
+updated: "2026-10-30T00:28:05.735Z"
+started: "2026-10-30T00:28:04.107Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy
@@ -93,3 +100,5 @@ If `attributes.txt` (Phase 0) shows a part attribute on a descendant rather than
 
 ## Work Log
 ### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
+
+### 2026-10-30T00:28:05.735Z - Started on feat/appearance-part-f (worktree part-f) at BASE f95309251 (F 1.1 approved). The brief is the part-f ledger task-2.1-brief.md. The first commit is test-only: the F 1.1 review's minor carry-forwards. Parity: port 6025 against the shared post-B baseline.

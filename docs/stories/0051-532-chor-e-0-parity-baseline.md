@@ -3,11 +3,18 @@ id: 0051-532
 title: 'E 0: Parity baseline'
 purpose: Capture before-screenshots of every surface Part E touches and measure whether the title-bar stripe caps ever paint, so the art extraction can be proven pixel-identical and the cap decision is made on evidence.
 type: chor
-status: pending
+status: in_progress
 priority: "2"
 effort: S
 created: "2026-10-28T20:22:13.756Z"
-updated: "2026-10-29T20:22:00.352Z"
+updated: "2026-10-30T00:24:15.818Z"
+started: "2026-10-30T00:24:15.818Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy

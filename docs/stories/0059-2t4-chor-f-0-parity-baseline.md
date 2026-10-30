@@ -3,11 +3,18 @@ id: 0059-2t4
 title: 'F 0: Parity baseline'
 purpose: Capture before-screenshots of every surface Part F rearranges and confirm Part A's part attributes are in place, so the arrangement slots can be proven pixel-identical for Platinum.
 type: chor
-status: pending
+status: in_progress
 priority: "2"
 effort: S
 created: "2026-10-28T20:28:20.890Z"
-updated: "2026-10-29T20:22:00.352Z"
+updated: "2026-10-30T00:24:16.692Z"
+started: "2026-10-30T00:24:16.692Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy

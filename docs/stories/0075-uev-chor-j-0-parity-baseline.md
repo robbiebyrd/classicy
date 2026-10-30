@@ -3,11 +3,18 @@ id: 0075-uev
 title: 'J 0: Parity baseline'
 purpose: Capture before-screenshots of the Screen Saver control panel, the controls the Appearance panel reuses and the Appearance panel itself, so Part J can prove nothing outside the panel changed.
 type: chor
-status: pending
+status: in_progress
 priority: "2"
 effort: S
 created: "2026-10-28T20:39:58.702Z"
-updated: "2026-10-29T20:22:00.352Z"
+updated: "2026-10-30T00:24:17.406Z"
+started: "2026-10-30T00:24:17.406Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy

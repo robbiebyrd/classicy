@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T20:29:01.741Z"
-updated: "2026-10-29T23:18:42.183Z"
+updated: "2026-10-30T00:27:28.352Z"
 started: "2026-10-29T23:18:40.166Z"
 tags: []
 milestone: ""
@@ -99,10 +99,10 @@ Spread `classicyLayoutVars(getClassicyAppearanceLayout(theme.package))` into the
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm exec vitest run src/Appearance/useClassicyAppearanceLayout.test.tsx
-- [ ] `getThemeVars(getTheme("default"))` emits `--classicy-layout-grow-box-corner: bottom-right`, `--classicy-layout-menu-bar-placement: screen`, `--classicy-layout-icon-grid-origin: top-right`, and a theme whose `package` is `test-mirror` emits that package's values.
-- [ ] The desktop root carries `data-classicy-menu-bar` and `data-classicy-grow-box` that follow `ClassicyDesktopChangeAppearancePackage`.
-- [ ] `getClassicyAppearanceLayout` falls back to Platinum's layout for unknown or omitted ids and `useClassicyAppearanceLayout` follows the active package.
+- [x] The desktop root carries `data-classicy-menu-bar` and `data-classicy-grow-box` that follow `ClassicyDesktopChangeAppearancePackage`.
+- [x] `getClassicyAppearanceLayout` falls back to Platinum's layout for unknown or omitted ids and `useClassicyAppearanceLayout` follows the active package.
+- [x] The desktop root's style carries `--classicy-layout-grow-box-corner: bottom-right`, `--classicy-layout-menu-bar-placement: screen` and `--classicy-layout-icon-grid-origin: top-right` from `classicyLayoutVars(useClassicyAppearanceLayout())` (contract amendment and F-R1: not `getThemeVars`)
+- [x] VERIFY: pnpm exec vitest run src/Appearance/useClassicyAppearanceLayout.test.ts src/SystemFolder/SystemResources/Desktop/ClassicyDesktop.layout.test.tsx
 
 ## Files
 
@@ -117,3 +117,5 @@ Spread `classicyLayoutVars(getClassicyAppearanceLayout(theme.package))` into the
 ## Work Log
 
 ### 2026-10-29T23:18:42.182Z - Started on the landed Part B (29a15c243; worktree part-f, branch feat/appearance-part-f). B already created useClassicyAppearanceLayout.ts (the default layout, a store-free getter, the hook, classicyLayoutVars), so this task does only the rest: spread classicyLayoutVars on the desktop root beside the theme vars and add data-classicy-menu-bar and data-classicy-grow-box. Superseded plan text: the contract amendment (layout vars come from classicyLayoutVars, not getThemeVars) and ruling B-R18 (the active package comes from Appearance.packageId, never theme.package) override step 4 and the second acceptance criterion. The reconciliation predates B's landing and is being re-verified. Parity runs against the shared post-B baseline. Implementer dispatched.
+
+### 2026-10-30T00:27:28.352Z - Done at f95309251 (feat/appearance-part-f, pushed); the spec review approved it with no Critical or Important findings. Gate: lint, tsc, 4025/4025 tests, build:source with verify:dist. Parity: 68 desktop-* and dialogs-* stories at AE 0 against the shared post-B baseline. The criteria were rewritten to match the code (B's .test.ts; layout variables come from classicyLayoutVars on the desktop root, not getThemeVars, per the contract amendment and F-R1). The review's minor coverage findings carry into F 2.1's first commit: re-register Platinum after the reset; add a desktop case for an unregistered packageId; rename the hook test after its action. The stale getThemeVars text in plans 0011-v9t:293 and 0010-743 carries to F 7.1 and Part H. Completion waits on F 0 (0059-2t4).

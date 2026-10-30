@@ -3,11 +3,18 @@ id: 0042-pbp
 title: 'I 0: Parity baseline'
 purpose: Capture before-screenshots of every Storybook story so Part I's hook wiring and feedback moves can be proven pixel-identical for Platinum.
 type: chor
-status: pending
+status: in_progress
 priority: "2"
 effort: S
 created: "2026-10-28T20:15:36.352Z"
-updated: "2026-10-29T20:22:00.352Z"
+updated: "2026-10-30T00:24:14.913Z"
+started: "2026-10-30T00:24:14.913Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy

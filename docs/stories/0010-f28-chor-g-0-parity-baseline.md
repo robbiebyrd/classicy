@@ -3,11 +3,18 @@ id: 0010-f28
 title: 'G 0: Parity baseline'
 purpose: Capture the before-screenshots of every Controls, Desktop and Dialogs story (and the error alert's title-bar color) so Part G's color and derivation rewrites can be proven pixel-identical apart from the one named change.
 type: chor
-status: pending
+status: in_progress
 priority: "2"
 effort: S
 created: "2026-10-28T19:52:56.298Z"
-updated: "2026-10-29T20:14:15.844Z"
+updated: "2026-10-30T00:24:14.041Z"
+started: "2026-10-30T00:24:14.041Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy
