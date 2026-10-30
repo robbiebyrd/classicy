@@ -6,7 +6,7 @@ status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-30T15:03:17.932Z"
-updated: "2026-10-30T15:15:34.891Z"
+updated: "2026-10-30T15:53:36.892Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -25,13 +25,13 @@ links:
     - ["0009-agy", "depends"]
 progress:
   "0":
-    status: in_progress
+    status: complete
   "1":
     status: pending
   "1.1":
-    status: in_progress
+    status: complete
   "1.2":
-    status: pending
+    status: in_progress
   "2":
     status: pending
   "2.1":

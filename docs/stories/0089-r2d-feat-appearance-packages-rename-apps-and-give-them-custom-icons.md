@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-30T14:45:18.135Z"
-updated: "2026-10-30T15:15:36.445Z"
+updated: "2026-10-30T15:53:27.367Z"
 started: "2026-10-30T15:15:36.055Z"
 tags: []
 milestone: ""
@@ -65,3 +65,5 @@ Per the plan, after Part E lands; pixel parity for Platinum (no package override
 ## Work Log
 
 ### 2026-10-30T15:15:36.445Z - Part K started on feat/appearance-part-k (worktree from 5ebaff579, after Part E landed): Phase 0 baseline and 1.1 (the validated apps field) dispatched. Plan 0013-l9f holds the surface inventory and the controller rulings (K-D7 changed per the owner's 'everywhere' ruling).
+
+### 2026-10-30T15:53:27.367Z - K Phase 0 done (76 stories + 4 app shots, deterministic; name-built action-type inventory 12 sites + 2 JSDoc incl. the PDF Viewer space bug) and K 1.1 implemented (55f5d6b0c: validated apps field, display-name rules, raw-input prototype-key guard). 4778 tests. K 1.1 review and K 1.2 (resolver + live hooks) dispatched.
