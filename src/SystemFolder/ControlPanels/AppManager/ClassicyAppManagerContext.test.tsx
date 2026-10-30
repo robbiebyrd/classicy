@@ -81,6 +81,75 @@ describe("ClassicyAppManagerProvider defaultState", () => {
 		).toBe("-4");
 	}, 20000);
 
+	// H-R17 refinement: the seed is merged deeply, so it merges over a state
+	// whose active theme has its default knob families dropped; a host theme
+	// that leaves a family to its package gets the package's value, not the
+	// default Platinum theme's.
+	it("a seeded host theme gets its own package's knob values", async () => {
+		const ctx = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext"
+		);
+		const utils = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils"
+		);
+		const appearance = await import(
+			"@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance"
+		);
+		const registry = await import(
+			"@/Appearance/ClassicyAppearancePackageRegistry"
+		);
+		const base = appearance.getTheme("default");
+		const { window, control, button, groupBox, layout } = base.measurements;
+		registry.registerClassicyAppearancePackage({
+			id: "seed-pack",
+			name: "Seed Pack",
+			css: "",
+			defaults: {
+				...base,
+				id: "seed-pack",
+				name: "Seed Pack",
+				package: "seed-pack",
+				measurements: {
+					...base.measurements,
+					controlStrip: { ...base.measurements.controlStrip, cellHeight: 30 },
+				},
+			},
+			layout: {
+				window: { growBoxCorner: "bottom-right" },
+				menuBar: { placement: "screen" },
+				desktop: { iconGridOrigin: "top-right" },
+			},
+		});
+		const seed = {
+			System: {
+				Manager: {
+					Appearance: {
+						packageId: "seed-pack",
+						activeTheme: {
+							...base,
+							id: "host",
+							package: "seed-pack",
+							measurements: { window, control, button, groupBox, layout },
+						},
+					},
+				},
+			},
+		};
+		render(<ctx.ClassicyAppManagerProvider defaultState={seed} />);
+		await waitFor(() => {
+			expect(
+				utils.useAppManager.getState().System.Manager.Appearance.activeTheme.id,
+			).toBe("host");
+		});
+		const active =
+			utils.useAppManager.getState().System.Manager.Appearance.activeTheme;
+		expect(
+			(appearance.getThemeVars(active) as Record<string, string>)[
+				"--control-strip-cell-height"
+			],
+		).toBe("30px");
+	}, 20000);
+
 	it("does NOT override when valid persisted state exists", async () => {
 		localStorage.setItem(
 			"classicyDesktopState",

@@ -131,6 +131,39 @@ describe("sanitizeStateForPersistence — theme measurements (H-R17)", () => {
 		).toEqual(themesBefore);
 	});
 
+	// H-R17 refinement: a theme whose package is unregistered at save time
+	// cannot be compared with its own defaults, so it is saved unchanged; an
+	// edit equal to Platinum's value is never mistaken for a default.
+	it("keeps an edit saved while the theme's package is unregistered", async () => {
+		const { store, appearance, registry } = await freshStore();
+		const base = appearance.getTheme("default");
+		const state = structuredClone(store.useAppManager.getState());
+		const theme = state.System.Manager.Appearance.activeTheme;
+		theme.id = "custom-late-pack";
+		theme.package = "late-pack";
+		// The user's edit: 22, Platinum's value but not late-pack's 30.
+		theme.measurements.controlStrip = {
+			...theme.measurements.controlStrip,
+			cellHeight: 22,
+		};
+		state.System.Manager.Appearance.customThemes = [structuredClone(theme)];
+		const saved =
+			store.sanitizeStateForPersistence(state).System.Manager.Appearance;
+		expect(saved.activeTheme).toBe(theme);
+		registry.registerClassicyAppearancePackage(latePack(base));
+		for (const t of [saved.activeTheme, saved.customThemes?.[0]]) {
+			expect(appearance.getThemeVars(t)["--control-strip-cell-height"]).toBe(
+				"22px",
+			);
+		}
+		// Once the package is registered, the same theme is compared with
+		// late-pack's own defaults: 22 is an edit and stays, 30s would go.
+		const again =
+			store.sanitizeStateForPersistence(state).System.Manager.Appearance
+				.activeTheme;
+		expect(again.measurements.controlStrip).toEqual({ cellHeight: 22 });
+	});
+
 	it("a host package registered after the store loads gets its own knob value", async () => {
 		const first = await freshStore();
 		const base = first.appearance.getTheme("default");

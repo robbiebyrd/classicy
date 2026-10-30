@@ -1,7 +1,11 @@
 import { castDraft, produce } from "immer";
 import { create, type StoreApi, type UseBoundStore } from "zustand";
+import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
 import { resolveClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
-import { subscribeClassicyAppearancePackages } from "@/Appearance/ClassicyAppearancePackageRegistry";
+import {
+	getClassicyAppearancePackage,
+	subscribeClassicyAppearancePackages,
+} from "@/Appearance/ClassicyAppearancePackageRegistry";
 import { connectClassicyAssetPackageSource } from "@/Appearance/ClassicyAssetPackageSource.internal";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { ClassicyTheme } from "../AppearanceManager/ClassicyAppearance";
@@ -57,10 +61,21 @@ function healThemeWallpapers(state: ClassicyStore): ClassicyStore {
 	return state;
 }
 
-/** `theme` as it is persisted: without the package-family leaves equal to
- * its package's defaults (H-R17). */
+/** True when `theme`'s own package defaults can be read now: it names
+ * Platinum (or no package), or a package that is registered. */
+const hasKnownClassicyThemePackage = (theme: ClassicyTheme): boolean =>
+	theme.package === undefined ||
+	theme.package === CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID ||
+	getClassicyAppearancePackage(theme.package) !== undefined;
+
+/**
+ * `theme` as it is persisted: without the package-family leaves equal to its
+ * package's defaults (H-R17). A theme whose package is not registered yet is
+ * kept whole: its defaults would resolve to Platinum's, and an edit that
+ * happens to equal Platinum's value would be lost.
+ */
 const persistableClassicyTheme = (theme: ClassicyTheme): ClassicyTheme =>
-	theme && typeof theme === "object"
+	theme && typeof theme === "object" && hasKnownClassicyThemePackage(theme)
 		? withoutDefaultThemeMeasurements(
 				theme,
 				classicyThemeMeasurementDefaults(theme.package),
@@ -68,13 +83,15 @@ const persistableClassicyTheme = (theme: ClassicyTheme): ClassicyTheme =>
 		: theme;
 
 /**
- * The defaults the persisted state is merged over, with the active theme's
- * package families dropped as persistence drops them. The merge is deep, so
- * a family the saved active theme left to its package would otherwise come
- * back from the default (Platinum) theme as a present value, and a host
- * package registered after the store loads could never supply its own.
+ * `state` with its active theme's default knob families dropped, as
+ * persistence drops them: the base for a deep merge of saved state (the
+ * load path) or of a host's `defaultState` (the provider). Otherwise a
+ * family the merged-in active theme leaves to its package would come back
+ * from the default (Platinum) theme as a present value, and the theme's own
+ * package could never supply it.
+ * @internal
  */
-const withoutDefaultActiveThemeMeasurements = (
+export const withoutDefaultActiveThemeMeasurements = (
 	state: ClassicyStore,
 ): ClassicyStore => {
 	const appearance = state.System.Manager.Appearance;
@@ -223,8 +240,10 @@ export function sanitizeStateForPersistence(
 	const activeTheme = persistableClassicyTheme(appearance?.activeTheme);
 	const availableThemes = list(appearance?.availableThemes);
 	const customThemes = list(appearance?.customThemes);
-	const changed = (next: ClassicyTheme[] | undefined, prev = next) =>
-		next?.some((t, i) => t !== prev?.[i]) ?? false;
+	const changed = (
+		next: ClassicyTheme[] | undefined,
+		prev: ClassicyTheme[] | undefined,
+	) => next?.some((t, i) => t !== prev?.[i]) ?? false;
 	return produce(state, (draft) => {
 		const draftAppearance = draft.System?.Manager?.Appearance;
 		if (draftAppearance && appearance) {
