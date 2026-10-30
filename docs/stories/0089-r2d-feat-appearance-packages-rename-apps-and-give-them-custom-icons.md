@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-30T14:45:18.135Z"
-updated: "2026-10-30T18:25:21.651Z"
+updated: "2026-10-30T18:40:01.027Z"
 started: "2026-10-30T15:15:36.055Z"
 tags: []
 milestone: ""
@@ -89,3 +89,5 @@ Per the plan, after Part E lands; pixel parity for Platinum (no package override
 ### 2026-10-30T18:01:59.935Z - K 3.1 review: Needs fixes (test-only: analytics display-name leak and type-select drive exclusion unpinned; code correct, 2.2 balloon gap closed). 3.1 fix round running.
 
 ### 2026-10-30T18:25:21.650Z - K 3.1 review fixes in (77477f2e0 on k/3.1): analytics and drive type-select pinned, all seven mutants now fail; the empty-label balloon title now matches the label fallback. Accepted for integration. K-R1 fix pushed (7e74758e0, 80/80 parity shots AE 0). K 3.2 and 3.4 cherry-picked onto feat/appearance-part-k; gate running.
+
+### 2026-10-30T18:40:01.027Z - K 3.3 fix round (36ca95f22) re-review: Approved. Derived entries no longer persist (K-R5), and no user file is lost, including files inside derived folders. K-R7 extends K-R4 to the Control Strip Modules folder at integration. All four 3.x tasks now approved; integration next.
