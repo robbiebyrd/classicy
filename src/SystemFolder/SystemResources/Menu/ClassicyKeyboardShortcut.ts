@@ -101,11 +101,16 @@ const modifierGlyphs = (names: readonly ClassicyModifierName[]): string =>
 
 /**
  * The modifiers a shortcut sets, in canonical order:
- * "Ctrl+Cmd+S" -> ["control", "command"], "F1" -> [].
+ * "Ctrl+Cmd+S" -> ["control", "command"], "F1" -> []. Takes the shortcut
+ * string, or the result of `parseKeyboardShortcut` when the caller already
+ * parsed it (so it is not parsed twice).
  */
 export const keyboardShortcutModifiers = (
-	raw: string | undefined,
-): ClassicyModifierName[] => setModifiers(parseKeyboardShortcut(raw));
+	shortcut: string | ParsedKeyboardShortcut | undefined,
+): ClassicyModifierName[] =>
+	setModifiers(
+		typeof shortcut === "object" ? shortcut : parseKeyboardShortcut(shortcut),
+	);
 
 /**
  * Normalize a shortcut string to its platinum display form, e.g.

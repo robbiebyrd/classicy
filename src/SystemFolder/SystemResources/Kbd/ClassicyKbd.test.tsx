@@ -4,6 +4,30 @@ import { ClassicyKbd } from "@/SystemFolder/SystemResources/Kbd/ClassicyKbd";
 
 vi.mock("@/SystemFolder/SystemResources/Kbd/ClassicyKbd.scss", () => ({}));
 
+// Call-through spies, so a test can count how often ClassicyKbd parses.
+const shortcutSpies = vi.hoisted(() => ({
+	parse: vi.fn(),
+	modifiers: vi.fn(),
+}));
+vi.mock(
+	"@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut",
+	async (importOriginal) => {
+		const actual =
+			await importOriginal<
+				typeof import("@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut")
+			>();
+		shortcutSpies.parse.mockImplementation(actual.parseKeyboardShortcut);
+		shortcutSpies.modifiers.mockImplementation(
+			actual.keyboardShortcutModifiers,
+		);
+		return {
+			...actual,
+			parseKeyboardShortcut: shortcutSpies.parse,
+			keyboardShortcutModifiers: shortcutSpies.modifiers,
+		};
+	},
+);
+
 describe("ClassicyKbd", () => {
 	it("renders a semantic <kbd> with canonical Platinum glyphs", () => {
 		const { container } = render(<ClassicyKbd shortcut="Cmd+Shift+S" />);
@@ -95,6 +119,17 @@ describe("ClassicyKbd", () => {
 		expect(container.querySelector("kbd")).toHaveClass(
 			"classicyKbd",
 			"myClass",
+		);
+	});
+
+	it("parses the shortcut once and hands the parse to the modifier lookup", () => {
+		shortcutSpies.parse.mockClear();
+		shortcutSpies.modifiers.mockClear();
+		render(<ClassicyKbd shortcut="Cmd+Shift+S" />);
+		expect(shortcutSpies.parse).toHaveBeenCalledTimes(1);
+		expect(shortcutSpies.modifiers).toHaveBeenCalledTimes(1);
+		expect(shortcutSpies.modifiers).toHaveBeenCalledWith(
+			shortcutSpies.parse.mock.results[0].value,
 		);
 	});
 });
