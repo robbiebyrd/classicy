@@ -13,7 +13,10 @@ const meta = {
 } satisfies Meta<typeof ClassicyColorPicker>;
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+// Every story here draws the component itself in `render` and ignores the
+// args, so the stories are typed against the component (every arg optional),
+// not `typeof meta`, which would demand its required props as story args.
+type Story = StoryObj<typeof ClassicyColorPicker>;
 
 /**
  * Hosts the picker in a window of a running app — the dialog it opens is a

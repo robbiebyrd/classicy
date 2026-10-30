@@ -10,6 +10,10 @@ const meta = {
 
 export default meta;
 type Story = StoryObj<typeof meta>;
+// For the stories that draw the component themselves in `render` and ignore
+// the args: typed against the component (every arg optional), not
+// `typeof meta`, which would demand its required props as story args.
+type RenderStory = StoryObj<typeof ClassicyTabs>;
 
 /**
  * A standard (`medium`) tab control with three panes holding ordinary
@@ -73,7 +77,7 @@ export const Large: Story = {
  * is that size scaled by the HIG's 10:12 ratio, and `large` is the Classicy
  * extension above it.
  */
-export const SizeComparison: Story = {
+export const SizeComparison: RenderStory = {
 	render: () => (
 		<div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
 			<ClassicyTabs size="small" tabs={sizeTabs} />
