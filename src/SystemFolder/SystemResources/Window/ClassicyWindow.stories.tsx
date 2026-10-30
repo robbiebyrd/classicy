@@ -1,3 +1,7 @@
+import {
+	appearanceHooksParameters,
+	ClassicyAppearanceProbe,
+} from "@sb/ClassicyAppearanceProbe";
 import { desktopParameters, StoryApp } from "@sb/helpers";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useRef } from "react";
@@ -24,7 +28,12 @@ type Story = StoryObj<typeof ClassicyWindow>;
  * it to hear the window sounds; its geometry lives in the window manager store.
  */
 export const Default: Story = {
-	render: () => (
+	render: () => <DefaultWindowStory />,
+};
+
+/** The `Default` story's window, also rendered by `AppearanceHooks`. */
+function DefaultWindowStory() {
+	return (
 		<StoryApp id="storybook.app" name="Storybook">
 			<ClassicyWindow
 				id="default"
@@ -38,8 +47,8 @@ export const Default: Story = {
 				</p>
 			</ClassicyWindow>
 		</StoryApp>
-	),
-};
+	);
+}
 
 /**
  * The minimal modal dialog: `modal` portals the window above an input-blocking
@@ -509,4 +518,20 @@ const CloseVetoWindow = () => {
  */
 export const CloseVeto: Story = {
 	render: () => <CloseVetoWindow />,
+};
+
+/**
+ * The Appearance Package hook surface, under the Storybook probe package:
+ * every root `decorate()` reaches is outlined (green while pressed), and every
+ * event the component emits is logged in the Actions panel.
+ *
+ * It renders a fixed tree and takes no args.
+ */
+export const AppearanceHooks: StoryObj<Record<string, never>> = {
+	render: () => (
+		<ClassicyAppearanceProbe>
+			<DefaultWindowStory />
+		</ClassicyAppearanceProbe>
+	),
+	parameters: appearanceHooksParameters("600px"),
 };

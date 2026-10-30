@@ -704,6 +704,11 @@ and icon states own:
   same key in a consumer `style`, as is any other inline key. On `ClassicyIcon`
   and `ClassicyDesktopIcon` a `left`/`top` in `style` overrides the drag
   position, so the icon stops following its drag.
+- The active Appearance Package's decoration (§8, "Package hooks") sits
+  between the two: its class follows the state classes and precedes the
+  component's modifiers and the consumer's `className`; its `style` follows
+  the component's own and loses to the consumer's; its `data-*` attributes
+  come before the component's own.
 - With a label wrapper (`ClassicyMeter`, `ClassicyOutput`,
   `ClassicyProgressBar`, `ClassicyRadioInput`, `ClassicySlider`,
   `ClassicyListBox`), the props land on the wrapper when a label is shown and
@@ -1876,7 +1881,7 @@ registerClassicyAppearancePackage({
 | `knobs` / `options` | Tunable measurement families (`family → key → { label, min, max, default }`, values under `theme.measurements.<family>`, emitted as `--<family>-<key>`), and the zod schema `classicyKnobsToSchema(knobs)` builds from them |
 | `layout` | `{ window.growBoxCorner, menuBar.placement, desktop.iconGridOrigin }`; read with `useClassicyAppearanceLayout()` / `getClassicyAppearanceLayout(packageId?)`, as CSS variables with `classicyLayoutVars(layout)`. Components do not position by it yet |
 | `assets`, `sounds` | Descriptive: register the package's art with the asset registries under its id (§5) and its sound packs with `registerClassicySoundPack` (§10) |
-| `hooks` | `{ decorate?, on? }` per component and event; declared for packages, not yet called by components |
+| `hooks` | `{ decorate?, on? }`: what the package adds to each component's root, and its handlers per component and event; components call them through `useClassicyAppearance` ("Package hooks", below) |
 
 **Registering.** `registerClassicyAppearancePackage(pkg)` runs at module
 scope. It validates the package against `ClassicyAppearancePackageSchema`
@@ -1938,6 +1943,288 @@ Loading a theme file or dispatching `ClassicyDesktopImportTheme` for a package
 that is not registered is refused (`This theme needs the "<id>" appearance
 package, which is not installed.`, shown as `Desktop.errorDialog`); the
 default package always counts as installed.
+
+#### Package hooks
+
+A package's `hooks` are its behavior: what it adds to a component's root
+element (`decorate`), and what it does when a component emits an event (`on`):
+play a feedback sound, or decorate the root for a moment (Platinum's menu-item
+flash). Every wired component calls `useClassicyAppearance` on its root;
+feedback sounds and the menu flash live in the package, never in component
+code.
+
+```ts
+import { playClassicyAppearanceSound, registerClassicyAppearancePackage } from 'classicy'
+
+registerClassicyAppearancePackage({
+    // … id, name, css, defaults, layout (above)
+    hooks: {
+        decorate: (component, state) =>
+            component === 'Button' ? { attrs: { 'data-irix-bevel': state.pressed ? 'in' : 'out' } } : undefined,
+        on: {
+            Button: {
+                press: () => { playClassicyAppearanceSound('ClassicyButtonClickDown') },
+                release: (ctx) => {
+                    if ((ctx.detail as { input?: string })?.input !== 'keyboard')
+                        playClassicyAppearanceSound('ClassicyButtonClickUp')
+                },
+            },
+            MenuItem: {
+                press: () => ({ className: 'irixMenuItemBlink' }),  // decorate until…
+                release: () => ({}),                                 // …the action runs
+            },
+        },
+    },
+})
+```
+
+**The hook.** `useClassicyAppearance(component, state, ref?)` returns
+`{ className, style?, attrs, emit }`:
+
+- `component` is the PascalCase name, a `ClassicyComponentName` (a key of
+  `CLASSICY_COMPONENT`); `state` is the object the component passes
+  `classicyStateClasses`; `ref` is its root element.
+- `className` is the state classes, then the class `decorate()` returned,
+  then the class of the last decoration a handler returned. `style` and
+  `attrs` are decorate's, then the emitted one's.
+- `emit(event, detail?)` runs `hooks.on[component][event]` synchronously
+  with `{ component, event, element, state, detail }` (the latest state and
+  `ref.current`).
+- With no package hooks the result is a pure function of `state`
+  (`classicyStateClasses(state)`, no `style`, `attrs` `{}`), so a component
+  renders exactly as before.
+
+The active package is read without the store (it follows the store's
+`Appearance.packageId` through the asset registry's package source), so a
+component rendered with a mocked or partial store, or none, resolves to
+Platinum.
+
+**The 16 events.** `mount`, `unmount`, `press`, `release`, `click`, `open`,
+`close`, `focus`, `blur`, `collapse`, `expand`, `zoom`, `select`, `change`,
+`dragStart`, `dragEnd` (`ClassicyAppearanceEvent`). Which component emits
+which, with what `detail`, is in the table below.
+
+**Decorations.** A handler that returns a decoration (even `{}`) replaces the
+emitted one; returning nothing (`void`) keeps it. So `press` can return a
+class and `release` can return `{}` to clear it, while a handler that only
+plays a sound leaves the decoration alone. Further:
+
+- The emitted decoration belongs to the package whose handler returned it:
+  switching packages drops it (switching back does not bring it back).
+  Re-registering the same id keeps it.
+- `attrs` may only add `data-*` attributes outside `data-classicy-*`
+  (compared case-insensitively). Anything else (`id`, `role`, `aria-*`, part
+  attributes) is dropped and, in development, reported once per package and
+  key.
+- Package code never breaks a component. A handler or `decorate()` that
+  throws is logged as a `ClassicyAppearance` error and counts as returning
+  nothing.
+- `mount` is emitted once after the first commit, and `unmount` on unmount,
+  with `element: null` (React has detached refs by then). In development
+  StrictMode a handler sees `mount`, `unmount`, `mount`.
+
+**Precedence on the root.** Components merge a decoration with their own
+attributes and the consumer's passthrough props (§4.0.1):
+
+- **className:** the root class, then the package's (in the state classes'
+  slot), then the component's modifier classes, then the consumer's
+  `className`. `MenuItem` keeps its old slot, after the item's own
+  `className`.
+- **style:** the component's own, then the package's, then the consumer's
+  `style`. For `ClassicyWindow`, `ClassicyIcon`, `ClassicyDesktopIcon` and
+  `ClassicyControlStrip`, position, geometry and stacking stay the
+  component's: the window protects exactly `width`, `left`, `top` and
+  `height` and drops `zIndex`; a package's `transform`, `margin`, `right`,
+  `bottom`, `maxWidth` and the like do apply. The control strip's two position
+  custom properties (`--classicy-control-strip-bottom` and the edge offset)
+  are its own, but a package's inline `bottom`/`left` does apply and beats
+  the SCSS.
+- **attrs:** the package's `data-*` first, so the component's own attributes
+  always win.
+
+**Sounds.** A handler plays a sprite with
+`playClassicyAppearanceSound(sound, { interrupt? })`. It goes through the
+emitting component's own sound dispatch (`ClassicySoundPlay`, or
+`ClassicySoundPlayInterrupt` with `{ interrupt: true }`), so mute, volume and
+the active sound pack apply as for any other sound. It works only inside a
+handler; called anywhere else it logs a `ClassicyAppearance` warning and does
+nothing.
+
+**`detail.input`.** `"pointer" | "keyboard"`: how the press behind the event
+was made. It is present only on events a component emits from both a pointer
+path and a keyboard path, merged into the detail (or `{ input }` where the
+event has no other detail), so a package can react to one path only. Every
+user gesture with a keyboard path emits from it. Rules:
+
+- Events from one path only carry no `input`.
+- A `change` produced by text entry (Input) or by file selection or drop
+  (FileInput) never carries `input`. A context-menu paste or a text drop is
+  still text entry.
+- It comes from the last press (pointer down, mouse down or key down; three
+  passive capture listeners on `document`, installed once per realm by the
+  hook). A `close` with no press behind it reports the latest press.
+
+**Events per component.** The decoration lands on the root listed. "States"
+are exactly the state classes the component already emitted; states shown on
+inner elements (rows, tab buttons, items) stay there.
+
+| Component | Decoration root | States | Events (detail) |
+|---|---|---|---|
+| Button | `button.classicyButton` | default, pressed | press `{ input }`, release `{ input }` (mouse, Return/Space), click `{ input }` |
+| BevelButton | `button.classicyBevelButton` | disabled, mixed, pressed, checked, open | press, release (mouse only), click `{ input }`, open `{ trigger: "click" \| "hold", input }`, close `{ input }` |
+| Checkbox | `input.classicyCheckbox` | default, mixed, checked, disabled | change `{ checked, input }` |
+| RadioInput | `div.classicyRadioInputGroup` | none (item states stay on `.classicyRadioInputWrapper`) | press/release `{ itemId }` (mouse only, on the input or label), change `{ itemId, input }` (click, arrow keys) |
+| PopUpMenu | `div.classicyPopUpMenu` | disabled, open | open `{ input }`, change `{ value, input }`, close `{ input }` |
+| ComboBox | `div.classicyComboBox` | disabled | open `{ input }` (typing, an arrow key, the arrow button), change `{ value, input }` (a pick from the list), close `{ input }` |
+| Input | `input.classicyInput` | none (`isDefault` keeps `classicyInputDefault`) | focus `{ input }`, blur `{ input }`, change `{ value }` (text entry: no `input`) |
+| ListBox | `div.classicyListBox` | disabled | select `{ value, selected, input }` (click, Space, arrows, Home/End, type-select; `selected: false` for a Ctrl/⌘-click deselect), focus/blur `{ input }` when focus enters or leaves the list |
+| Slider | `input.classicySlider` | disabled (`highlighted` keeps its modifier class) | change `{ value, input }` (drag, click, arrow keys); dragStart/dragEnd `{ value }` bracket every pointer press, a plain track click included (pointer only; one dragEnd per dragStart, even when released outside the input) |
+| Placard | `.classicyPlacard` (`button` when interactive, else `div`) | disabled, pressed (also while its menu is open) | press/release `{ input }` (mouse, Return/Space), click `{ menu, input }`, open `{ input }`, close `{ input }` |
+| Tabs | `div.classicyTabContainer` | none (`selected` stays on `.classicyTabButton`) | press `{ tabId, input }` (mousedown, or the tab an arrow/Home/End key lands on), select `{ tabId, input }` (mouseup, or that key); change `{ scroll: -1 \| 1 }` from the scroll arrows (pointer only: they are not focusable) |
+| Disclosure | `div.classicyDisclosure` | none (`open` stays on `.classicyDisclosureInner`) | expand `{ input }`, collapse `{ input }` (click, Enter, Space, ⌘/Ctrl+→/←) |
+| Tree | `ul.classicyTree` | none (row states stay on rows) | expand/collapse `{ nodeId, open, input }`, select `{ nodeId, input }` |
+| Table | `div.classicyTableContainer` | none (`selected` stays on rows and headers) | select `{ rowId, selected, input }` (⌘A emits nothing); change `{ columnId, desc }` from a sortable header (pointer only: headers are not focusable) |
+| Link | `a.classicyLink` | disabled | click `{ input }` (never while disabled) |
+| FileInput | `div.classicyFileInputHolder` | none (`error` stays on `.classicyFileInputMessage`) | change `{ fileName }` for an accepted addition (the button or `addFiles`): the first file only of a batch, nothing on a refusal or removal, no `input` |
+| Window | `div.classicyWindow` | collapsed, active, inactive, dragging (active: a modal or the front window; dragging: the store's `moving`) | focus `{ input }` (became focused); collapse/expand `{ input }`, or `{ all: true, input }` once for an Option-click collapse-all; zoom `{ zoomed, input, cause }`; close `{ input }`; dragStart/change/dragEnd `{ kind: "move" \| "resize" }` (pointer only) |
+| Alert | `div.classicyAlert` (the body inside the alert's window) | none | open (once per mount); close `{ buttonId, input }` (the button that dismissed it: click, Return, Escape, ⌘.) |
+| Menu | the menu's root `<ul>` (its classes come from `navClass`; a submenu is its own Menu) | none | open/close `{ itemId, input }` when its open submenu changes |
+| MenuItem | `li.classicyMenuItem` | disabled, open | press `{ itemId, input }` (a leaf chosen: click or Return), release `{ itemId, input }` (that leaf's flash ends), open `{ itemId, input }` (a submenu opened by click or Return), focus `{ itemId, input }`, blur `{ itemId, input }` |
+| DesktopIcon | `div.classicyDesktopIcon` | selected, open, dragging | select `{ input }`, open `{ input }` (double-click, Enter/Space), dragStart/dragEnd (pointer only) |
+| Icon | `div.classicyIcon` | dragging, selected | select `{ selected }` (a click toggle), open `{ input }` (double-click, Enter/Space; only with an open action), dragStart/dragEnd (pointer only) |
+| ControlStrip | `div.classicyControlStrip` | collapsed, dragging | collapse/expand `{ input }` (tab or collapse box, click or keys, a drag on a collapsed tab); dragStart/dragEnd `{ kind: "resize" }` (tab drag) or `{ kind: "move" }` (Control-drag of the collapse box), pointer only |
+| Assistant | `div.classicyAssistant` | none | change `{ page, input }` (pager arrows, ←/→; not for a refused or no-op move) |
+
+Every wired component also emits `mount` and `unmount` (no `input`).
+
+Notes on timing and repeats:
+
+- **`close` timing** (BevelButton, PopUpMenu, ComboBox, Placard): it is
+  emitted from a passive effect after the commit that hides the surface, so
+  it arrives after paint and after a pick's `change`, about a frame later than
+  `open`, which the opening handler emits synchronously. A Menu's `open` and
+  `close` both come from a passive effect on its open submenu, a commit
+  after the change.
+- **`select` is per gesture**, not per change (ListBox, Table, DesktopIcon). A
+  repeat re-emits `select { selected: true }` though nothing changed:
+  re-clicking the selected row, Space on it, or an arrow, Home or End press at
+  a boundary, auto-repeat included. A Shift range selection reports only the
+  pivot row.
+- **RadioInput `change`** fires on user selection only. A parent that passes a
+  new `inputs` array emits nothing.
+
+Window:
+
+- `zoom { zoomed, input, cause }`: `cause` is `"zoom"` (the zoom box, a click
+  or a key), `"collapse"` or `"resize"`. Collapse and a resize start fire
+  `zoom { zoomed: false }` wherever the zoom sound plays; a package that
+  wants only zoom-box toggles filters on `cause === "zoom"`.
+- `change { kind }` fires while the pointer moves over the window. A fast
+  move whose pointer leaves the window reports no `change` until the pointer
+  is back over it.
+- A move's `dragStart` arrives at the drag threshold. A resize's arrives on
+  mousedown, preceded by `zoom { zoomed: false, cause: "resize" }`. There is
+  exactly one `dragEnd` per gesture, released on the window or anywhere on the
+  document.
+- `close` means the window's own close box, or a modal's Escape. Closes
+  dispatched straight to the store emit no `close`: `useClassicyWindowClose`,
+  SimpleText, HyperCard, and any `ClassicyWindowClose` dispatch.
+
+Alert: `open` fires once per mount. Under development StrictMode a package
+sees `open, open` with no `close` between, because the effect has no cleanup
+to pair it.
+
+Menu and MenuItem:
+
+- A `Menu` decoration lands on the list's `<ul>`. `CLASSICY_COMPONENT.Menu`
+  names the root class `classicyMenu`, but the `<ul>` carries the caller's
+  `navClass` (`classicyDesktopMenu`, `classicyContextMenu`, or a submenu's
+  class) instead.
+- Menu `open`/`close`: `input` is how the submenu was opened (a hover is
+  `"pointer"`), and that open's input also tags the close it causes. A close
+  by the menus closing reads the last press.
+- MenuItem `focus` is emitted for the item's own keyboard focus, or a pointer
+  hover over the item or its own content (not over a submenu's items). It may
+  repeat while hovered and is not paired one to one with `blur`, which is
+  emitted when the item's own focus leaves or the pointer leaves the item.
+- MenuItem `release` is emitted once, when this item's own flash ends: an
+  `animationend` of any name on the item itself, or the 400 ms fallback,
+  whichever comes first. Then the item's action runs, exactly once.
+- A divider is not a MenuItem: it emits nothing and is not decorated.
+
+DesktopIcon and Icon:
+
+- DesktopIcon `select` is emitted when the selection changes (the icon
+  becomes selected, or a multiple selection collapses to it), once per
+  gesture. A click on the icon that already is the whole selection emits
+  nothing, so a double-click is `select, …, open`.
+- Icon `select { selected }` is emitted only by a click toggle. Selection
+  set programmatically (after a positional or file drag) emits nothing; the
+  `selected` state class is authoritative.
+- `dragStart`/`dragEnd` bracket every pointer press that can move the icon, a
+  plain click included, mirroring the `dragging` state (as on the Slider).
+  Finder outline drags of file-backed desktop icons, and `ClassicyIcon` file
+  drags (`onFileDrag`), emit no drag events, and the `dragging` class stays
+  off.
+
+**Platinum's hooks.** `platinumAppearanceHooks`
+(`src/Appearance/Platinum/hooks.ts`, exported) holds Platinum's feedback
+sounds and its menu-item flash. They play for exactly the causes and inputs
+that played them before the sounds moved out of the components. Sprite names
+are `ClassicySoundSpriteId`s, so a misspelled sprite fails the type check.
+
+| Component | Event | Platinum |
+|---|---|---|
+| Button | press / release | `ClassicyButtonClickDown` / `ClassicyButtonClickUp` (mouse and Return/Space) |
+| BevelButton | press / release | `ClassicyButtonClickDown` / `ClassicyButtonClickUp` (mouse only, as emitted) |
+| BevelButton | open | `ClassicyMenuOpen` |
+| Placard | press / release | `ClassicyButtonClickDown` / `ClassicyButtonClickUp`, pointer only (Return/Space are silent) |
+| RadioInput | press / release | `ClassicyInputRadioClickDown` / `ClassicyInputRadioClickUp` |
+| Tabs | press | `ClassicyTabClickDown`, pointer only |
+| Tabs | select | `ClassicyTabClickUp` (mouseup, and the tab an arrow, Home or End lands on) |
+| Tabs | change | `ClassicyTabClickUp` (the scroll arrows) |
+| Assistant | change | `ClassicyTabClickUp` |
+| Window | focus | `ClassicyWindowFocus` |
+| Window | collapse / expand | `ClassicyWindowCollapse` / `ClassicyWindowExpand` |
+| Window | zoom | `ClassicyWindowZoomMaximize` when `zoomed`, else `ClassicyWindowZoomMinimize` (any `cause`) |
+| Window | close | `ClassicyWindowClose` |
+| Window | dragStart | `ClassicyWindowMoveIdle` for a move; a resize start is silent |
+| Window | change | `ClassicyWindowMoveMoving` for a move |
+| Window | dragEnd | `ClassicyWindowMoveStop`, as an interrupt |
+| MenuItem | press | `ClassicyMenuItemClick`, and returns `{ className: "classicyMenuItemFlash" }` (the flash) |
+| MenuItem | release | returns `{}`: clears the flash |
+| MenuItem | open / focus | `ClassicyMenuOpen` / `ClassicyMenuItemHover` |
+
+Everything else is unmapped (silent): MenuItem `blur` (no pack has a blur
+sprite), the Menu list's own `open`/`close` (a submenu opened by hover was
+silent before too), Placard `click`/`open`/`close`, RadioInput `change`, and
+every other component's events. The flash class and its keyframes
+(`classicyMenuItemFlashKeyframes`) are in Platinum's `_Menu.scss`, in
+`classicy.package`.
+
+Behavior that follows from the move:
+
+- **A component with no package hooks is silent.** A component rendered while
+  only `CLASSICY_FALLBACK_APPEARANCE_PACKAGE` applies (no package registered:
+  a lone-component test that never imports `@/Appearance/Platinum`, or a host
+  that never loads Platinum), or under a package whose hooks map nothing,
+  plays no feedback sounds. Importing `classicy` or rendering
+  `ClassicyDesktop` registers Platinum.
+- **A menu with no package flash does not flash.** Under a package whose
+  MenuItem `press` returns no decoration (or with no package hooks), a chosen
+  item gets no flash class. In a body-level portal outside every
+  `.classicyDesktop`, Platinum's class is set but no package CSS animates it.
+  Either way the item's action runs, once, through the 400 ms fallback.
+- **Error beeps and the boot sound stay in Classicy.** `ClassicySoundPlayError`
+  (Window, Alert, Assistant) follows the alert sound preference, and the
+  startup screen plays `ClassicyBoot`; both are behavior, not look, and no
+  package can change them.
+
+Storybook shows the hook surface: every wired component's
+**AppearanceHooks** story renders it under the `storybook-probe` package
+(`storybook/.storybook/ClassicyAppearanceProbe.tsx`). Platinum's CSS is off
+there, every decorated root is outlined, and every event is logged in the
+Actions panel.
 
 ### Theme files (save / load)
 
@@ -2188,6 +2475,12 @@ player({ type: 'ClassicySoundPlayInterrupt', sound: 'ClassicyBeep' })  // stops 
 
 const alert = useClassicyAlertSound()  // () => plays the configured alert sound
 ```
+
+Control, window and menu **feedback sounds** (clicks, the window sounds, the
+menu sounds) are not played by the components: the active Appearance
+Package's hooks play them with `playClassicyAppearanceSound` (§8, "Package
+hooks"), through the emitting component's dispatch. The error beep
+(`ClassicySoundPlayError`) and the boot sound stay in the components.
 
 Action types (string enum `ClassicySoundActionTypes`): `ClassicySoundPlay`
 (skipped if muted, per-sound disabled, or already playing),
