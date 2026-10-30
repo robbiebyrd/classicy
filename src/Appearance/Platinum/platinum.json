@@ -94,7 +94,7 @@
 				"bevelWidth": 1,
 				"shadowWidth": 1,
 				"shadowStart": 1,
-				"shadowOffset": 2
+				"shadowGap": 0
 			},
 			"pager": {
 				"borderWidth": 1,
@@ -114,8 +114,7 @@
 				"maxWidth": 220,
 				"titleGap": 3,
 				"tailOffset": 12,
-				"tailInset": 8,
-				"tailWidth": 20
+				"tailInset": 8
 			},
 			"popUpSlider": {
 				"width": 17,
@@ -125,8 +124,8 @@
 				"thumbLeft": 1
 			},
 			"scrollbar": {
-				"arrowGlyphWidth": 7,
-				"arrowGlyphHeight": 8
+				"thumbGripWidth": 7,
+				"thumbGripHeight": 8
 			},
 			"hyperCard": {
 				"fontSize": 11,
@@ -2112,11 +2111,11 @@
 				"max": 8,
 				"default": 1
 			},
-			"shadowOffset": {
-				"label": "Shadow offset",
+			"shadowGap": {
+				"label": "Shadow gap",
 				"min": 0,
-				"max": 8,
-				"default": 2
+				"max": 4,
+				"default": 0
 			}
 		},
 		"pager": {
@@ -2133,7 +2132,7 @@
 				"default": 42
 			},
 			"cellHeight": {
-				"label": "Cell height",
+				"label": "Row height",
 				"min": 16,
 				"max": 96,
 				"default": 36
@@ -2208,8 +2207,8 @@
 			},
 			"tailOffset": {
 				"label": "Tail offset",
-				"min": 0,
-				"max": 64,
+				"min": 12,
+				"max": 14,
 				"default": 12
 			},
 			"tailInset": {
@@ -2217,12 +2216,6 @@
 				"min": 0,
 				"max": 64,
 				"default": 8
-			},
-			"tailWidth": {
-				"label": "Tail width",
-				"min": 4,
-				"max": 64,
-				"default": 20
 			}
 		},
 		"popUpSlider": {
@@ -2240,8 +2233,8 @@
 			},
 			"trackLeft": {
 				"label": "Track left",
-				"min": 0,
-				"max": 32,
+				"min": 4,
+				"max": 4,
 				"default": 4
 			},
 			"trackTop": {
@@ -2252,20 +2245,20 @@
 			},
 			"thumbLeft": {
 				"label": "Thumb left",
-				"min": 0,
-				"max": 16,
+				"min": 1,
+				"max": 1,
 				"default": 1
 			}
 		},
 		"scrollbar": {
-			"arrowGlyphWidth": {
-				"label": "Arrow glyph width",
+			"thumbGripWidth": {
+				"label": "Thumb grip width (across the bar)",
 				"min": 3,
 				"max": 32,
 				"default": 7
 			},
-			"arrowGlyphHeight": {
-				"label": "Arrow glyph height",
+			"thumbGripHeight": {
+				"label": "Thumb grip height (along the bar)",
 				"min": 3,
 				"max": 32,
 				"default": 8

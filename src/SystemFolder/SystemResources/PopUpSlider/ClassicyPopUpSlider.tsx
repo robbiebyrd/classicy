@@ -9,14 +9,18 @@ import {
 	useRef,
 } from "react";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
+import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
 import { ClassicyPixelArt } from "@/SystemFolder/SystemResources/PixelArt/ClassicyPixelArt";
 
-// Geometry from HIGOS8 Figure 2-16, in the slider's own coordinates (the inside
-// of the 19 × 75 pop-up frame). The thumb travels between the track's end caps.
+// Geometry from HIGOS8 Figure 2-16, fixed by the track and thumb drawings
+// (the registered popUpSliderTrack and popUpSliderThumb pixel art). The thumb
+// travels between the track's end caps: its top sits on the track's top (the
+// popUpSlider.trackTop knob, which the stylesheet places it at) at the maximum
+// and TRAVEL below it at the minimum, where its bottom rests on the lower cap.
+// Travel is measured from the track, so a package that moves the track moves
+// the thumb with it (H-R23).
 const THUMB_HEIGHT = 10;
-const THUMB_TOP_MAX_TRAVEL = 3; // thumb top at the track's upper cap
-const THUMB_TOP_MIN_TRAVEL = 60; // thumb bottom on the track's lower cap
-const TRAVEL = THUMB_TOP_MIN_TRAVEL - THUMB_TOP_MAX_TRAVEL;
+const TRAVEL = 57;
 
 type ClassicyPopUpSliderProps = {
 	/** Current value (clamped to `min`…`max`); the slider is fully controlled. */
@@ -85,19 +89,19 @@ export const ClassicyPopUpSlider: FunctionalComponent<
 	const dragCleanupRef = useRef<(() => void) | null>(null);
 	const range = max - min || 1;
 	const current = clamp(value, min, max);
-	const thumbTop =
-		THUMB_TOP_MIN_TRAVEL - Math.round(((current - min) / range) * TRAVEL);
+	// How far below the upper cap the thumb's top sits.
+	const thumbDrop = TRAVEL - Math.round(((current - min) / range) * TRAVEL);
 
 	const snap = (raw: number) =>
 		clamp(min + Math.round((raw - min) / step) * step, min, max);
 
-	const setFromPointer = (clientY: number) => {
+	// `trackTop` is read once per gesture (the press), never per mousemove.
+	const setFromPointer = (clientY: number, trackTop: number) => {
 		const el = sliderRef.current;
 		if (!el) return;
-		const top = clientY - el.getBoundingClientRect().top - THUMB_HEIGHT / 2;
-		const travelled =
-			THUMB_TOP_MIN_TRAVEL -
-			clamp(top, THUMB_TOP_MAX_TRAVEL, THUMB_TOP_MIN_TRAVEL);
+		const drop =
+			clientY - el.getBoundingClientRect().top - THUMB_HEIGHT / 2 - trackTop;
+		const travelled = TRAVEL - clamp(drop, 0, TRAVEL);
 		const next = snap(min + (travelled / TRAVEL) * range);
 		if (next !== current) onChange(next);
 	};
@@ -108,8 +112,14 @@ export const ClassicyPopUpSlider: FunctionalComponent<
 		if (disabled || e.button !== 0) return;
 		e.preventDefault();
 		sliderRef.current?.focus();
-		setFromPointer(e.clientY);
-		const onMove = (ev: globalThis.MouseEvent) => setFromPointer(ev.clientY);
+		const trackTop = readClassicyThemeVar(
+			"--pop-up-slider-track-top",
+			undefined,
+			sliderRef.current,
+		);
+		setFromPointer(e.clientY, trackTop);
+		const onMove = (ev: globalThis.MouseEvent) =>
+			setFromPointer(ev.clientY, trackTop);
 		const onUp = () => dragCleanupRef.current?.();
 		document.addEventListener("mousemove", onMove);
 		document.addEventListener("mouseup", onUp);
@@ -164,8 +174,12 @@ export const ClassicyPopUpSlider: FunctionalComponent<
 				art="popUpSliderTrack"
 				className="classicyPopUpSliderTrack"
 			/>
-			{/* Thumb position is the slider's value, so it is set inline. */}
-			<span className="classicyPopUpSliderThumb" style={{ top: thumbTop }}>
+			{/* Thumb position is the slider's value, so its drop below the
+			    track's top is set inline; the stylesheet sets the top. */}
+			<span
+				className="classicyPopUpSliderThumb"
+				style={{ marginTop: thumbDrop }}
+			>
 				<ClassicyPixelArt art="popUpSliderThumb" />
 			</span>
 		</div>

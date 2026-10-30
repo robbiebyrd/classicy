@@ -201,11 +201,15 @@ describe("classicyThemeMeasurementDefaults", () => {
 	it("classicyThemeMeasurementDefaults carries the Platinum knob families", () => {
 		const d = classicyThemeMeasurementDefaults("platinum");
 		expect(d.controlStrip.cellHeight).toBe(22);
-		expect(d.menuFrame.shadowOffset).toBe(2);
+		expect(d.menuFrame.shadowGap).toBe(0);
+		expect(d.menuFrame).not.toHaveProperty("shadowOffset");
 		expect(d.pager.arrowWidth).toBe(42);
-		expect(d.balloonHelp.tailWidth).toBe(20);
+		expect(d.balloonHelp.tailOffset).toBe(12);
+		expect(d.balloonHelp).not.toHaveProperty("tailWidth");
 		expect(d.popUpSlider.height).toBe(73);
-		expect(d.scrollbar.arrowGlyphWidth).toBe(7);
+		expect(d.scrollbar.thumbGripWidth).toBe(7);
+		expect(d.scrollbar.thumbGripHeight).toBe(8);
+		expect(d.scrollbar).not.toHaveProperty("arrowGlyphWidth");
 		expect(d.window.borderSize).toBe(1);
 	});
 

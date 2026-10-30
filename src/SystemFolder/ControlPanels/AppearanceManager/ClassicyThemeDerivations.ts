@@ -274,7 +274,7 @@ export const CLASSICY_THEME_DERIVATIONS: readonly ClassicyThemeDerivation[] = [
 	{
 		cssVar: "--focus-ring-width",
 		formula: "window.borderSize",
-		doc: "Width of the keyboard focus outline drawn inside a control (ClassicyControlStrip.scss, ClassicyColorPicker.scss).",
+		doc: "Width of the keyboard focus outline drawn inside a control (ClassicyControlStrip.scss, ClassicyColorPicker.scss, ClassicyPopUpSlider.scss).",
 		compute: (i) => border(i),
 	},
 	{

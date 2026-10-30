@@ -9,8 +9,8 @@
   cursor: default;
 
   &:focus-visible {
-    outline: 1px solid var(--color-outline);
-    outline-offset: -1px;
+    outline: var(--focus-ring-width) solid var(--color-outline);
+    outline-offset: calc(var(--focus-ring-width) * -1);
   }
 
   svg {
@@ -24,9 +24,12 @@
   top: var(--pop-up-slider-track-top);
 }
 
+// The thumb's top starts on the track's top; the slider's value adds its drop
+// below that as an inline margin-top (H-R23), so thumb and track move together.
 .classicyPopUpSliderThumb {
   position: absolute;
   left: var(--pop-up-slider-thumb-left);
+  top: var(--pop-up-slider-track-top);
 }
 
 :where(.classicyPopUpSlider).disabled {

@@ -119,4 +119,18 @@ describe("ClassicyBalloonHelp stylesheet", () => {
 				"ClassicyBalloonHelp.scss",
 			).filter((literal) => literal.kind === "bare"),
 		).toEqual([]));
+
+	// H-R22: the tail is a fixed 20 × 14 drawing, so the centered tail is
+	// centered by layout (both insets, auto margins), following the drawing's
+	// own width; no tail-width knob, no halving.
+	it("centers the tail by layout, not by a tail-width knob", () => {
+		const sheet = readFileSync(
+			resolve(__dirname, "ClassicyBalloonHelp.scss"),
+			"utf8",
+		);
+		const center = sheet.match(/\.classicyBalloonHelpTailCenter \{([^}]*)\}/);
+		expect(center?.[1]).toMatch(/left: 0;\s*right: 0;\s*margin-inline: auto;/);
+		expect(sheet).not.toContain("--balloon-help-tail-width");
+		expect(sheet).not.toMatch(/\/ 2/);
+	});
 });
