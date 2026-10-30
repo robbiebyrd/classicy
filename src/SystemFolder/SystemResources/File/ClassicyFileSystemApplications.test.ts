@@ -3,6 +3,7 @@ import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/Cl
 import type { ClassicyStoreSystemDesktopManagerIcon } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
 import {
 	buildApplicationsFolder,
+	resetClassicyDerivedAppEntryNameWarnings,
 	withApplicationsFolder,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
 import {
@@ -136,6 +137,7 @@ describe("buildApplicationsFolder display names", () => {
 
 	beforeEach(() => {
 		entries = [];
+		resetClassicyDerivedAppEntryNameWarnings();
 		registerClassicyLogSink({
 			id: SINK_ID,
 			onLog: (entry) => entries.push(entry),
@@ -206,7 +208,7 @@ describe("buildApplicationsFolder display names", () => {
 		expect(warnings()).toHaveLength(1);
 	});
 
-	it("keeps last-wins when the fallback name is taken too", () => {
+	it("lists every app when the fallback name is taken too, suffixing the id", () => {
 		const folder = buildApplicationsFolder(
 			[appIcon("A.app", "A"), appIcon("C.app", "C"), appIcon("B.app", "B")],
 			{
@@ -216,11 +218,101 @@ describe("buildApplicationsFolder display names", () => {
 			},
 		);
 
-		// B cannot have "Same" (A's) and falls back to "B", which C took: the
-		// later entry overwrites, as two apps with one name always have.
+		// B cannot have "Same" (A's), and its own name "B" is C's display
+		// name, so B is listed as "B (B.app)": no app drops out (K-R4).
 		expect(folder.Same._creator).toBe("A.app");
-		expect(folder.B._creator).toBe("B.app");
+		expect(folder.B._creator).toBe("C.app");
+		expect(folder["B (B.app)"]._creator).toBe("B.app");
 		expect(warnings()).toHaveLength(1);
+		expect(warnings()[0].details).toEqual([{ appId: "B.app", name: "Same" }]);
+	});
+
+	it("reserves an un-renamed app's own name, even later in icon order", () => {
+		// The reviewer's probe: Movie Player renamed "QuickTime Player", ahead
+		// of a host app whose own name is "QuickTime Player".
+		const folder = buildApplicationsFolder(
+			[
+				appIcon("MoviePlayer.app", "Movie Player"),
+				appIcon("QT.app", "QuickTime Player"),
+			],
+			{ "MoviePlayer.app": { name: "QuickTime Player" } },
+		);
+
+		expect(folder["QuickTime Player"]._creator).toBe("QT.app");
+		expect(folder["Movie Player"]._creator).toBe("MoviePlayer.app");
+		expect(warnings()).toHaveLength(1);
+		expect(warnings()[0].details).toEqual([
+			{ appId: "MoviePlayer.app", name: "QuickTime Player" },
+		]);
+	});
+
+	it("never gives a static entry's name to a display name", () => {
+		const folder = buildApplicationsFolder(
+			[appIcon("A.app", "A"), appIcon("B.app", "Notes")],
+			{ "A.app": { name: "Read Me" }, "B.app": { name: "Bee" } },
+			":",
+			["Read Me", "Notes"],
+		);
+
+		expect(folder["Read Me"]).toBeUndefined();
+		expect(folder.A._creator).toBe("A.app");
+		// B's display name is free; its own name being a static entry's
+		// matters only when it falls back.
+		expect(folder.Bee._creator).toBe("B.app");
+		expect(warnings()).toHaveLength(1);
+	});
+
+	it("suffixes the id when the fallback own name is a static entry's", () => {
+		const folder = buildApplicationsFolder(
+			[appIcon("A.app", "Notes")],
+			{ "A.app": { name: "Read Me" } },
+			":",
+			["Read Me", "Notes"],
+		);
+
+		expect(folder["Read Me"]).toBeUndefined();
+		expect(folder.Notes).toBeUndefined();
+		expect(folder["Notes (A.app)"]._creator).toBe("A.app");
+	});
+
+	it("warns once per collision, however many builds repeat it", () => {
+		const icons = [appIcon("A.app", "A"), appIcon("B.app", "B")];
+		const overrides = { "A.app": { name: "Same" }, "B.app": { name: "Same" } };
+		buildApplicationsFolder(icons, overrides);
+		buildApplicationsFolder(icons, overrides);
+		expect(warnings()).toHaveLength(1);
+
+		// A different losing app is a different collision.
+		buildApplicationsFolder([...icons, appIcon("C.app", "C")], {
+			...overrides,
+			"C.app": { name: "Same" },
+		});
+		expect(warnings()).toHaveLength(2);
+		expect(warnings()[1].details).toEqual([{ appId: "C.app", name: "Same" }]);
+	});
+
+	it("keeps a static Applications entry when a display name would take it", () => {
+		const tree = {
+			_type: ClassicyFileSystemEntryFileType.Directory,
+			"Macintosh HD": {
+				_type: ClassicyFileSystemEntryFileType.Drive,
+				Applications: {
+					_type: ClassicyFileSystemEntryFileType.Directory,
+					"Media Player": {
+						_type: ClassicyFileSystemEntryFileType.TextFile,
+						_data: "mine",
+					},
+				},
+			},
+		} as ClassicyFileSystemEntry;
+		const apps = withApplicationsFolder(
+			tree,
+			[appIcon("MoviePlayer.app", "Movie Player")],
+			{ "MoviePlayer.app": { name: "Media Player" } },
+		)["Macintosh HD"].Applications;
+
+		expect(apps["Media Player"]._data).toBe("mine");
+		expect(apps["Movie Player"]._creator).toBe("MoviePlayer.app");
 	});
 
 	it("keeps last-wins, with no warning, for two apps with one own name", () => {

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import type { ClassicyStoreSystemApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { resetClassicyDerivedAppEntryNameWarnings } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
 import {
 	buildExtensionsFolder,
 	withExtensionsFolder,
@@ -141,6 +142,7 @@ describe("buildExtensionsFolder display names", () => {
 
 	beforeEach(() => {
 		entries = [];
+		resetClassicyDerivedAppEntryNameWarnings();
 		registerClassicyLogSink({
 			id: SINK_ID,
 			onLog: (entry) => entries.push(entry),
@@ -214,5 +216,33 @@ describe("buildExtensionsFolder display names", () => {
 		expect(extensions.Ay._creator).toBe("A.app");
 		expect(extensions.B._creator).toBe("B.app");
 		expect(extensions["B/2"]).toBeUndefined();
+	});
+
+	it("keeps a static Extensions entry when a display name would take it", () => {
+		const tree = {
+			"Macintosh HD": {
+				_type: ClassicyFileSystemEntryFileType.Drive,
+				"System Folder": {
+					_type: ClassicyFileSystemEntryFileType.Directory,
+					Extensions: {
+						_type: ClassicyFileSystemEntryFileType.Directory,
+						Clock: { _type: ClassicyFileSystemEntryFileType.TextFile },
+					},
+				},
+			},
+		} as unknown as ClassicyFileSystemEntry;
+		const extensions = withExtensionsFolder(
+			tree,
+			[app("A.app", "A"), app("B.app", "B")],
+			{ "A.app": { name: "Clock" }, "B.app": { name: "A" } },
+		)["Macintosh HD"]["System Folder"].Extensions;
+
+		// A cannot take the static "Clock"; B cannot take A's own name, which
+		// A fell back to, and its own "B" is free.
+		expect(extensions.Clock._type).toBe(
+			ClassicyFileSystemEntryFileType.TextFile,
+		);
+		expect(extensions.A._creator).toBe("A.app");
+		expect(extensions.B._creator).toBe("B.app");
 	});
 });

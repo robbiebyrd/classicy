@@ -31,10 +31,13 @@ import {
 } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripRegistry";
 import type { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import {
+	type ClassicyFileSystemSnapshot,
+	flushClassicyFileSystemPendingForStorageKey,
 	getClassicyFileSystemAdapters,
 	registerClassicyFileSystemAdapter,
 	unregisterClassicyFileSystemAdapter,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemAdapter";
+import { resetClassicyDerivedAppEntryNameWarnings } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
 import {
 	ClassicyDefaultFileSystemContext,
 	resetClassicyFileSystemReconciliation,
@@ -304,13 +307,22 @@ describe("useClassicyFileSystem derived folders by display name", () => {
 		Object.keys(folder).filter((key) => !key.startsWith("_"));
 
 	beforeEach(() => {
+		// A previous case's debounced write would land on this case's storage.
+		flushClassicyFileSystemPendingForStorageKey("classicyStorage");
 		localStorage.clear();
 		resetToPlatinum();
+		resetClassicyDerivedAppEntryNameWarnings();
+		resetClassicyFileSystemReconciliation();
 		registerTestRenamePackage();
 		dispatched.length = 0;
 	});
 
 	afterEach(() => {
+		for (const adapter of getClassicyFileSystemAdapters()) {
+			unregisterClassicyFileSystemAdapter(adapter.id);
+		}
+		resetClassicyFileSystemReconciliation();
+		vi.restoreAllMocks();
 		resetToPlatinum();
 	});
 
@@ -374,32 +386,140 @@ describe("useClassicyFileSystem derived folders by display name", () => {
 		).toBe(true);
 	});
 
-	it("persists no display name outside derived entries", async () => {
+	it("persists no derived entry, so a package switch changes no stored byte", async () => {
 		const fs = await renderWithMoviePlayer();
+		const snapshots: ClassicyFileSystemSnapshot[] = [];
+		registerClassicyFileSystemAdapter({
+			id: "test-derived-persistence",
+			onSnapshot: (snapshot) => {
+				snapshots.push(snapshot);
+			},
+		});
+
+		// The hash of the user's content under Platinum…
+		fs().flushNow();
+		const before = fs().buildSnapshot().hash;
+		const storedBefore = localStorage.getItem("classicyStorage");
+
+		// …is the hash of the same content under the renaming package.
 		switchPackage(TEST_RENAME_PACKAGE_ID);
 		expect(fs().resolve(MEDIA_PLAYER_PATH)).toBeDefined();
+		expect(fs().buildSnapshot().hash).toBe(before);
 
+		// An ordinary write persists the user's tree, never the overlay.
+		act(() => {
+			fs().mkDir("Macintosh HD:Documents:After Switch");
+		});
 		fs().flushNow();
-		const persisted = localStorage.getItem("classicyStorage");
-		expect(persisted).not.toBeNull();
+		const stored = localStorage.getItem("classicyStorage") as string;
+		const snapshot = snapshots.at(-1) as ClassicyFileSystemSnapshot;
+		for (const text of [stored, JSON.stringify(snapshot.tree)]) {
+			expect(text).toContain("After Switch");
+			expect(text).not.toContain("Media Player");
+			expect(text).not.toContain("Movie Player");
+			expect(text).not.toContain("_derived");
+		}
 
-		// Every "Media Player" key in the stored tree, with whether it is derived.
-		const found: { path: string; derived: boolean }[] = [];
-		const walk = (entry: ClassicyFileSystemEntry, path: string) => {
-			for (const [key, child] of Object.entries(entry)) {
-				if (key.startsWith("_") || typeof child !== "object" || !child) {
-					continue;
-				}
-				const childPath = path ? `${path}:${key}` : key;
-				if (key === "Media Player") {
-					found.push({ path: childPath, derived: child._derived === true });
-				}
-				walk(child as ClassicyFileSystemEntry, childPath);
-			}
+		// Switching back changes nothing persisted either.
+		switchPackage(PLATINUM_APPEARANCE_PACKAGE_ID);
+		expect(fs().buildSnapshot().hash).toBe(snapshot.hash);
+		fs().flushNow();
+		expect(localStorage.getItem("classicyStorage")).toBe(stored);
+		expect(storedBefore).not.toContain("_derived");
+	});
+
+	it("keeps a static Applications file a display name would take, across a switch and back", async () => {
+		// A user's tree with a file of their own in Applications, where
+		// `test-rename` would put Movie Player.
+		const tree = structuredClone(DefaultFSContent) as ClassicyFileSystemTree;
+		tree["Macintosh HD"].Applications["Media Player"] = {
+			_type: ClassicyFileSystemEntryFileType.TextFile,
+			_data: "mine",
 		};
-		walk(JSON.parse(persisted as string), "");
+		localStorage.setItem("classicyStorage", JSON.stringify(tree));
+		const fs = await renderWithMoviePlayer();
+		vi.spyOn(console, "warn").mockImplementation(() => {});
 
-		expect(found.filter((hit) => !hit.derived)).toEqual([]);
+		switchPackage(TEST_RENAME_PACKAGE_ID);
+		expect(fs().resolve(MEDIA_PLAYER_PATH)._data).toBe("mine");
+		expect(fs().resolve(`${APPLICATIONS}:Movie Player`)._creator).toBe(
+			MoviePlayerAppInfo.id,
+		);
+
+		switchPackage(PLATINUM_APPEARANCE_PACKAGE_ID);
+		expect(fs().resolve(MEDIA_PLAYER_PATH)._data).toBe("mine");
+		expect(fs().resolve(`${APPLICATIONS}:Movie Player`)._creator).toBe(
+			MoviePlayerAppInfo.id,
+		);
+	});
+
+	it("relists System Folder:Extensions by display name on a package switch", () => {
+		const { result } = renderHook(() => useClassicyFileSystem());
+		act(() =>
+			dispatch({
+				type: "ClassicyAppLoad",
+				app: { id: "TV.app", name: "TV", icon: "/icons/tv.png" },
+				extension: true,
+			}),
+		);
+		const extensions = "Macintosh HD:System Folder:Extensions";
+		expect(result.current.resolve(`${extensions}:TV`)._creator).toBe("TV.app");
+
+		switchPackage(TEST_RENAME_PACKAGE_ID);
+
+		expect(result.current.resolve(`${extensions}:Television`)._creator).toBe(
+			"TV.app",
+		);
+		expect(result.current.resolve(`${extensions}:TV`)).toBeUndefined();
+	});
+
+	it("rebuilds the derived folders after an adapter reconcile replaces the tree", async () => {
+		registerClassicyFileSystemAdapter({
+			id: "test-derived-reconcile",
+			reconcile: async () => ({
+				action: "replace",
+				tree: {
+					_type: ClassicyFileSystemEntryFileType.Directory,
+					"Macintosh HD": {
+						_type: ClassicyFileSystemEntryFileType.Drive,
+						"FromRemote.txt": {
+							_type: ClassicyFileSystemEntryFileType.TextFile,
+							_data: "remote",
+						},
+					},
+				},
+			}),
+		});
+		const fs = await renderWithMoviePlayer();
+
+		await waitFor(() =>
+			expect(fs().resolve("Macintosh HD:FromRemote.txt")?._data).toBe("remote"),
+		);
+		// The remote tree has no Applications folder; the overlay put it back.
+		expect(fs().resolve(`${APPLICATIONS}:Movie Player`)._creator).toBe(
+			MoviePlayerAppInfo.id,
+		);
+		switchPackage(TEST_RENAME_PACKAGE_ID);
+		expect(fs().resolve(MEDIA_PLAYER_PATH)._creator).toBe(
+			MoviePlayerAppInfo.id,
+		);
+	});
+
+	it("rebuilds the derived folders after a tree is loaded back from its snapshot", async () => {
+		const fs = await renderWithMoviePlayer();
+		switchPackage(TEST_RENAME_PACKAGE_ID);
+
+		// Drive Setup's rollback: load the persisted form, which holds no
+		// derived entries.
+		const persisted = fs().snapshot();
+		expect(persisted).not.toContain("Media Player");
+		act(() => {
+			fs().load(persisted);
+		});
+
+		expect(fs().resolve(MEDIA_PLAYER_PATH)._creator).toBe(
+			MoviePlayerAppInfo.id,
+		);
 	});
 });
 
