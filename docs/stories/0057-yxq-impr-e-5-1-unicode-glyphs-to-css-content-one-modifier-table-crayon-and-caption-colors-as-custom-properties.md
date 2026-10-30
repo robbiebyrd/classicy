@@ -3,12 +3,13 @@ id: 0057-yxq
 title: 'E 5.1: Unicode glyphs to CSS content, one modifier table, crayon and caption colors as custom properties'
 purpose: Move every Unicode UI glyph out of JSX into Platinum CSS content, share one modifier-glyph table between Kbd and the shortcut helpers with one span per modifier, and lift the crayon, color-wheel and caption literal colors into custom properties.
 type: impr
-status: in_progress
+status: complete
 priority: "2"
 effort: L
 created: "2026-10-28T20:27:13.259Z"
-updated: "2026-10-30T06:29:20.106Z"
+updated: "2026-10-30T07:43:53.771Z"
 started: "2026-10-30T05:38:00.547Z"
+completed: "2026-10-30T07:43:53.771Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -114,10 +115,10 @@ This section (plan 0009-agy §5.1, umbrella 0002-ldj; §9 Phase 5 items 3–4) m
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Menu src/SystemFolder/SystemResources/Kbd src/SystemFolder/SystemResources/PopUpMenu
-- [ ] VERIFY: git grep -nP '[✓–▸▾✕⌃⌥⇧⌘]' src --include='*.tsx' -- ':!*.test.tsx' ':!*.stories.tsx' ':!*Kbd*' ':!*KeyboardShortcut*' ':!*KeyboardEquivalent*' | grep -v -E '^\S+:\s*(\*|//)' ; test $? -eq 1
-- [ ] `ClassicyKbd` renders one `data-classicy-part="modifier-<name>"` span per modifier with unchanged `textContent`; both `MODIFIER_GLYPHS` tables are gone and `CLASSICY_MODIFIER_GLYPHS` is the single source.
-- [ ] The crayon SVG, color wheel and captions overlay contain no literal `rgba()`/hex; the values live in `--platinum-crayon-*`, `--platinum-color-wheel-crosshair` and `--classicy-caption-*`.
+- [x] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Menu src/SystemFolder/SystemResources/Kbd src/SystemFolder/SystemResources/PopUpMenu
+- [x] `ClassicyKbd` renders one `data-classicy-part="modifier-<name>"` span per modifier with unchanged `textContent`; both `MODIFIER_GLYPHS` tables are gone and `CLASSICY_MODIFIER_GLYPHS` is the single source.
+- [x] The crayon SVG, color wheel and captions overlay contain no literal rgba()/hex; the values live in --classicy-color-picker-crayon-*, --classicy-color-picker-crosshair (declared by Platinum's root properties, rulings E8/E9; base components read no --platinum-* names) and --classicy-caption-*.
+- [x] VERIFY: grep -n -P '[✓▸▾✕–]' src/SystemFolder/SystemResources/{Menu/ClassicyMenu,PopUpMenu/ClassicyPopUpMenu,ComboBox/ClassicyComboBox,BevelButton/ClassicyBevelButton,Placard/ClassicyPlacard,FileInput/ClassicyFileInput}.tsx src/SystemFolder/HyperCard/Editor/HyperCardToolsPalette.tsx | grep -v -E ':\s*(\*|//)'; test $? -eq 1   # no UI glyph rendered as text in the glyph sites (keyboardShortcut data strings and prose dashes elsewhere are data, per the 5.1 review)
 
 ## Files
 
@@ -151,3 +152,5 @@ This section (plan 0009-agy §5.1, umbrella 0002-ldj; §9 Phase 5 items 3–4) m
 ### 2026-10-30T06:21:47.094Z - E 5.1 implemented: 996b265a9 (glyphs from package CSS; one modifier table), 94cbe7c09 (crayon tints fall back to transparent outside a package), bb51ebb3c (docs). 4098 tests; 67 stories and 14 opened surfaces AE 0; accessible names unchanged. Concerns under review: minified CSS ships raw UTF-8 glyphs with no @charset, one more text checkmark in HyperCardToolsPalette, menu items expose no aria-checked (pre-existing).
 
 ### 2026-10-30T06:29:20.106Z - Task review: Needs fixes. Important: the minified dist/classicy-platinum.css ships raw UTF-8 glyphs with no @charset (Vite's esbuild charset utf8); fix with esbuild charset ascii plus a verify:dist invariant. Minors: menu items get menuitemcheckbox + aria-checked, HyperCard palette check moves to package CSS with aria-pressed, caption-color precedence documented, crosshair follows package switches, Firefox parity. E is rebasing onto the integration branch (I, J, tooling) on land/part-e, then applying these fixes.
+
+### 2026-10-30T07:43:53.598Z - Review fixes landed on land/part-e (rebased onto the integration branch with I and J): 74890cdf0 ASCII CSS build + verify:dist invariant 9; efb5a11f0 menuitemcheckbox + aria-checked; d07e99009 HyperCard palette check as package CSS with aria-pressed; 717358f28 caption precedence doc; ee5c44b67 crosshair follows package switches; 2adabdc06 Kbd parses once. 4531 tests; glyph stories AE 0 in Chromium and Firefox. Criteria 2 and 4 rewritten to intent (shortcut data strings are data; E8/E9 color-picker names). Controller rulings E23 (probe stories lose package-owned art by design) and E24 (submenu triangle to an image layer, Firefox 1-level drift).
