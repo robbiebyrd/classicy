@@ -95,6 +95,13 @@ const PANELS: [string, string, FC, string][] = [
 	],
 ];
 
+// The panels plus HyperCard: every bundled app whose About item the menu
+// bars title (K 4.1 review m2).
+const MENU_BAR_APPS: [string, string, FC, string][] = [
+	...PANELS,
+	[HyperCardAppInfo.id, HyperCardAppInfo.name, HyperCard, "hypercard_main"],
+];
+
 const switchTo = (packageId: string) =>
 	act(() =>
 		dispatch({ type: "ClassicyDesktopChangeAppearancePackage", packageId }),
@@ -286,7 +293,7 @@ describe("HyperCard follows the package's app identity", () => {
 	});
 });
 
-describe("the menu bars title a renamed panel's About item (K-R8)", () => {
+describe("the menu bars title a renamed app's About item (K-R8)", () => {
 	const open = (appId: string, appName: string) =>
 		act(() =>
 			dispatch({
@@ -296,7 +303,7 @@ describe("the menu bars title a renamed panel's About item (K-R8)", () => {
 		);
 
 	it.each(
-		PANELS,
+		MENU_BAR_APPS,
 	)("%s: the screen bar's Apple menu shows About <display name>", (appId, appName, Panel) => {
 		open(appId, appName);
 		render(
@@ -315,7 +322,7 @@ describe("the menu bars title a renamed panel's About item (K-R8)", () => {
 	});
 
 	it.each(
-		PANELS,
+		MENU_BAR_APPS,
 	)("%s: the window's own menu bar shows About <display name>", (appId, appName, Panel, windowId) => {
 		switchTo(WINDOW_MENUS_PACKAGE_ID);
 		open(appId, appName);
@@ -342,6 +349,13 @@ describe("the menu bars title a renamed panel's About item (K-R8)", () => {
 
 describe("ClassicyWindowMenuBar titles the About item at render (K-R8)", () => {
 	it("follows a package switch with the same stored menu", () => {
+		// The bar reads the app's own name from its record (K-R9).
+		act(() =>
+			dispatch({
+				type: "ClassicyAppOpen",
+				app: { id: DRIVE_SETUP_APP_ID, name: "Drive Setup", icon: "" },
+			}),
+		);
 		// One menu array for every render: only the package changes.
 		const menuItems: ClassicyMenuItem[] = [
 			{
@@ -370,5 +384,98 @@ describe("ClassicyWindowMenuBar titles the About item at render (K-R8)", () => {
 		switchTo(PLATINUM_APPEARANCE_PACKAGE_ID);
 		expect(about()).toHaveTextContent("About Drive Setup");
 		expect(menuItems[0].menuChildren?.[0].title).toBe("About Drive Setup");
+	});
+});
+
+// K-R9: the window bar retitles only the internal name's form. The screen
+// bar's Apple menu builds its own "About <display name>" (HIG #209, K 3.2)
+// whatever the stored wording, and strips the stored item from the app's
+// menus, so the stored title is never drawn there.
+describe("an About item's stored wording under a rename (K-R9)", () => {
+	const APP_NAME = "Drive Setup";
+	const ABOUT_ID = `${DRIVE_SETUP_APP_ID}_about`;
+	const storedMenu = (title: string): ClassicyMenuItem[] => [
+		{
+			id: `${DRIVE_SETUP_APP_ID}_file`,
+			title: "File",
+			menuChildren: [
+				{ id: ABOUT_ID, title },
+				{ id: `${DRIVE_SETUP_APP_ID}_quit`, title: "Quit" },
+			],
+		},
+	];
+	const openApp = () =>
+		act(() =>
+			dispatch({
+				type: "ClassicyAppOpen",
+				app: { id: DRIVE_SETUP_APP_ID, name: APP_NAME, icon: "" },
+			}),
+		);
+
+	// [case, stored title, the window bar's drawn title]
+	const CASES: [string, string, string][] = [
+		[
+			"the internal name's form",
+			`About ${APP_NAME}`,
+			`About ${displayName(DRIVE_SETUP_APP_ID)}`,
+		],
+		["a plain About", "About", "About"],
+		["a custom title", `About ${APP_NAME}…`, `About ${APP_NAME}…`],
+	];
+
+	it.each(
+		CASES,
+	)("the window bar draws %s as the app chose", (_case, stored, drawn) => {
+		switchTo(WINDOW_MENUS_PACKAGE_ID);
+		openApp();
+		const menuItems = storedMenu(stored);
+		render(
+			<ClassicyWindowMenuBar
+				appId={DRIVE_SETUP_APP_ID}
+				windowId="DriveSetup_1"
+				menuItems={menuItems}
+			/>,
+		);
+		fireEvent.click(
+			document.querySelector(".classicyWindowMenuBar li > p") as HTMLElement,
+		);
+		expect(document.getElementById(ABOUT_ID)?.textContent).toBe(drawn);
+		expect(menuItems[0].menuChildren?.[0].title).toBe(stored);
+	});
+
+	it.each(
+		CASES,
+	)("the screen bar's Apple menu draws %s as About <display name>", (_case, stored) => {
+		openApp();
+		act(() =>
+			dispatch({
+				type: "ClassicyAppFocus",
+				app: { id: DRIVE_SETUP_APP_ID },
+			}),
+		);
+		act(() =>
+			useAppManager.setState((s) => ({
+				System: {
+					...s.System,
+					Manager: {
+						...s.System.Manager,
+						Desktop: {
+							...s.System.Manager.Desktop,
+							appMenu: storedMenu(stored),
+						},
+					},
+				},
+			})),
+		);
+		render(<ClassicyDesktopMenuBar />);
+		const apple = document.querySelector<HTMLElement>(
+			'[data-classicy-part="apple"]',
+		) as HTMLElement;
+		fireEvent.click(apple.querySelector("p") ?? apple);
+		expect(
+			document.getElementById(`${DRIVE_SETUP_APP_ID}_about_apple`)?.textContent,
+		).toBe(`About ${displayName(DRIVE_SETUP_APP_ID)}`);
+		// The stored item is hoisted, not drawn in the app's File menu too.
+		expect(document.getElementById(ABOUT_ID)).toBeNull();
 	});
 });

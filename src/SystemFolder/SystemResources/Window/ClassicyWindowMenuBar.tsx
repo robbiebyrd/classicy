@@ -7,6 +7,7 @@ import {
 } from "react";
 import { useClassicyAppIdentityOverrides } from "@/Appearance/ClassicyAppIdentity";
 import { CLASSICY_PART_ATTRIBUTE } from "@/Appearance/vocabulary/ClassicyVocabulary";
+import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { withClassicyAppIdentityAboutItem } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
 import {
 	ClassicyMenu,
@@ -70,12 +71,19 @@ const ClassicyWindowMenuBarContent: FunctionalComponent<
 > = ({ appId, windowId, menuItems, className, style }) => {
 	const rootRef = useRef<HTMLDivElement>(null);
 	useClassicyMenuCloseOnOutsideMouseDown(rootRef);
-	// The app's About item is stored under the app's own name (K-R8); it is
-	// titled with the active package's display name here, where it is drawn.
+	// The app's About item is stored under the app's own name (K-R8), read
+	// from its record; when that title is "About <own name>" it is titled
+	// with the active package's display name here, where it is drawn. Any
+	// other wording the app chose is drawn as stored (K-R9).
+	const appName = useAppManager(
+		(state) => state.System.Manager.Applications.apps[appId]?.name,
+	);
 	const overrides = useClassicyAppIdentityOverrides();
 	const items = useMemo(
-		() => withClassicyAppIdentityAboutItem(menuItems, appId, overrides) ?? [],
-		[menuItems, appId, overrides],
+		() =>
+			withClassicyAppIdentityAboutItem(menuItems, appId, appName, overrides) ??
+			[],
+		[menuItems, appId, appName, overrides],
 	);
 	return (
 		<div
