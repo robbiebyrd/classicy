@@ -1,16 +1,18 @@
 import { act, render } from "@testing-library/react";
 import { produce } from "immer";
-import type { CSSProperties } from "react";
+import type { ComponentProps, CSSProperties } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
-	type ClassicyAppearanceLayout,
+	registerTestMirrorPackage,
+	TEST_MIRROR_PACKAGE_ID,
+} from "@/__tests__/testMirrorPackage";
+import {
 	type ClassicyAppearancePackage,
 	getClassicyAppearancePackage,
 	registerClassicyAppearancePackage,
 	resetClassicyAppearancePackagesForTests,
 } from "@/Appearance/ClassicyAppearancePackage";
 import { PLATINUM_APPEARANCE_PACKAGE_ID } from "@/Appearance/Platinum";
-import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { ClassicyAppManagerProvider } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext";
 import {
@@ -28,25 +30,6 @@ import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWi
 const platinum = getClassicyAppearancePackage(
 	PLATINUM_APPEARANCE_PACKAGE_ID,
 ) as ClassicyAppearancePackage;
-
-const mirror: ClassicyAppearanceLayout = {
-	window: { growBoxCorner: "bottom-left" },
-	menuBar: { placement: "window" },
-	desktop: { iconGridOrigin: "top-left" },
-};
-
-const registerMirror = () =>
-	registerClassicyAppearancePackage({
-		id: "test-mirror",
-		name: "Mirror",
-		css: "",
-		defaults: {
-			...getTheme("default"),
-			id: "test-mirror-default",
-			package: "test-mirror",
-		},
-		layout: mirror,
-	});
 
 const renderDesktop = (style?: CSSProperties) =>
 	render(
@@ -76,7 +59,9 @@ const openApp = () =>
 		}),
 	);
 
-const renderDesktopWithWindow = () =>
+const renderDesktopWithWindow = (
+	windowProps: Partial<ComponentProps<typeof ClassicyWindow>> = {},
+) =>
 	render(
 		<ClassicyAppManagerProvider>
 			<ClassicyDesktop startupScreen={false}>
@@ -86,6 +71,7 @@ const renderDesktopWithWindow = () =>
 						appId={APP_ID}
 						title="Main"
 						appMenu={fileMenu}
+						{...windowProps}
 					>
 						<p>body</p>
 					</ClassicyWindow>
@@ -141,12 +127,12 @@ describe("ClassicyDesktop layout", () => {
 	});
 
 	it("follows a switch to another package", () => {
-		registerMirror();
+		registerTestMirrorPackage();
 		const { container } = renderDesktop();
 		act(() =>
 			dispatch({
 				type: "ClassicyDesktopChangeAppearancePackage",
-				packageId: "test-mirror",
+				packageId: TEST_MIRROR_PACKAGE_ID,
 			}),
 		);
 		const root = desktopRoot(container);
@@ -181,12 +167,13 @@ describe("ClassicyDesktop layout", () => {
 	// R18 / F-R1: the active package is Appearance.packageId; a theme
 	// authored for another package does not switch the arrangement.
 	it("reads the active package, never activeTheme.package", () => {
-		registerMirror();
+		registerTestMirrorPackage();
 		const { container } = renderDesktop();
 		act(() =>
 			useAppManager.setState((state) =>
 				produce(state, (draft) => {
-					draft.System.Manager.Appearance.activeTheme.package = "test-mirror";
+					draft.System.Manager.Appearance.activeTheme.package =
+						TEST_MIRROR_PACKAGE_ID;
 				}),
 			),
 		);
@@ -211,18 +198,18 @@ describe("ClassicyDesktop layout", () => {
 
 	describe("menuBar.placement", () => {
 		it("hides the screen bar when the active package places menus in windows", () => {
-			registerMirror();
+			registerTestMirrorPackage();
 			const { container } = renderDesktop();
 			expect(container.querySelector(".classicyDesktopMenuBar")).not.toBeNull();
-			activate("test-mirror");
+			activate(TEST_MIRROR_PACKAGE_ID);
 			expect(container.querySelector(".classicyDesktopMenuBar")).toBeNull();
 		});
 
 		it("renders each window's menus in the window, and back on the screen bar", () => {
-			registerMirror();
+			registerTestMirrorPackage();
 			openApp();
 			const { container } = renderDesktopWithWindow();
-			activate("test-mirror");
+			activate(TEST_MIRROR_PACKAGE_ID);
 			expect(
 				container.querySelector(".classicyWindow .classicyWindowMenuBar"),
 			).not.toBeNull();
@@ -231,6 +218,38 @@ describe("ClassicyDesktop layout", () => {
 			activate(PLATINUM_APPEARANCE_PACKAGE_ID);
 			expect(container.querySelector(".classicyWindowMenuBar")).toBeNull();
 			expect(container.querySelector(".classicyDesktopMenuBar")).not.toBeNull();
+		});
+
+		// The slot's negative branches: utility windows, modals (Mac OS 8
+		// movable modals have no menu bar), collapsed windows and an empty
+		// appMenu get no bar.
+		it.each([
+			["a utility window", { windowType: "utility" as const }],
+			["a modal window", { modal: true }],
+			["an empty appMenu", { appMenu: [] }],
+		])("draws no window menu bar for %s", (_name, windowProps) => {
+			registerTestMirrorPackage();
+			openApp();
+			renderDesktopWithWindow(windowProps);
+			activate(TEST_MIRROR_PACKAGE_ID);
+			expect(document.querySelector(".classicyWindow")).not.toBeNull();
+			expect(document.querySelector(".classicyWindowMenuBar")).toBeNull();
+		});
+
+		it("draws no window menu bar while the window is collapsed", () => {
+			registerTestMirrorPackage();
+			openApp();
+			renderDesktopWithWindow();
+			activate(TEST_MIRROR_PACKAGE_ID);
+			expect(document.querySelector(".classicyWindowMenuBar")).not.toBeNull();
+			act(() =>
+				dispatch({
+					type: "ClassicyWindowCollapse",
+					app: { id: APP_ID },
+					window: { id: "main" },
+				}),
+			);
+			expect(document.querySelector(".classicyWindowMenuBar")).toBeNull();
 		});
 	});
 });

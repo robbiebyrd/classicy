@@ -8,14 +8,13 @@ import {
 	ClassicyMenu,
 	type ClassicyMenuItem,
 } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
-import { ClassicyMenuContext } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuContext";
 import { ClassicyMenuProvider } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuProvider";
+import { useClassicyMenuCloseOnOutsideMouseDown } from "@/SystemFolder/SystemResources/Menu/useClassicyMenuCloseOnOutsideMouseDown";
 import "@/SystemFolder/SystemResources/Menu/ClassicyMenu.scss";
 import classNames from "classnames";
 import {
 	type CSSProperties,
 	type FC as FunctionalComponent,
-	useContext,
 	useEffect,
 	useMemo,
 	useRef,
@@ -177,18 +176,8 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 	// works whether or not a consumer has populated the slot.
 	const helpMenus = useAppManager((s) => s.System.Manager.Desktop?.helpMenu);
 	const desktopEventDispatch = useAppManagerDispatch();
-	const { closeAll } = useContext(ClassicyMenuContext);
 	const navRef = useRef<HTMLElement>(null);
-
-	useEffect(() => {
-		const handleClickOutside = (e: MouseEvent) => {
-			if (navRef.current && !navRef.current.contains(e.target as Node)) {
-				closeAll();
-			}
-		};
-		document.addEventListener("mousedown", handleClickOutside);
-		return () => document.removeEventListener("mousedown", handleClickOutside);
-	}, [closeAll]);
+	useClassicyMenuCloseOnOutsideMouseDown(navRef);
 
 	const appSwitcherData = useMemo(() => appSwitcherAppsFrom(apps), [apps]);
 

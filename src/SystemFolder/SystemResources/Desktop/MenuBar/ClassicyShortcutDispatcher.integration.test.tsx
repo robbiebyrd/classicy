@@ -2,13 +2,16 @@ import { act, fireEvent, render } from "@testing-library/react";
 import { produce } from "immer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+	registerTestMirrorPackage,
+	TEST_MIRROR_PACKAGE_ID,
+} from "@/__tests__/testMirrorPackage";
+import {
 	type ClassicyAppearancePackage,
 	getClassicyAppearancePackage,
 	registerClassicyAppearancePackage,
 	resetClassicyAppearancePackagesForTests,
 } from "@/Appearance/ClassicyAppearancePackage";
 import { PLATINUM_APPEARANCE_PACKAGE_ID } from "@/Appearance/Platinum";
-import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
 	type ClassicyStore,
 	type ClassicyStoreSystemApp,
@@ -44,24 +47,6 @@ function setStore(mutate: (draft: ClassicyStore) => void): void {
 const platinum = getClassicyAppearancePackage(
 	PLATINUM_APPEARANCE_PACKAGE_ID,
 ) as ClassicyAppearancePackage;
-
-/** A package that places menus in windows, so the screen bar is headless. */
-const registerMirror = () =>
-	registerClassicyAppearancePackage({
-		id: "test-mirror",
-		name: "Mirror",
-		css: "",
-		defaults: {
-			...getTheme("default"),
-			id: "test-mirror-default",
-			package: "test-mirror",
-		},
-		layout: {
-			window: { growBoxCorner: "bottom-left" },
-			menuBar: { placement: "window" },
-			desktop: { iconGridOrigin: "top-left" },
-		},
-	});
 
 function makeApp(id: string, focused: boolean): ClassicyStoreSystemApp {
 	return {
@@ -204,7 +189,7 @@ describe("ClassicyShortcutDispatcher — end-to-end via the real menu bar", () =
 		});
 
 		it("still fires with the screen bar headless (placement window)", async () => {
-			registerMirror();
+			registerTestMirrorPackage();
 			const focusedAppAction = vi.fn();
 
 			const focusedAppMenu: ClassicyMenuItem[] = [
@@ -223,7 +208,7 @@ describe("ClassicyShortcutDispatcher — end-to-end via the real menu bar", () =
 			];
 
 			setStore((draft) => {
-				draft.System.Manager.Appearance.packageId = "test-mirror";
+				draft.System.Manager.Appearance.packageId = TEST_MIRROR_PACKAGE_ID;
 				draft.System.Manager.Applications.apps = {
 					"FocusedApp.app": makeApp("FocusedApp.app", true),
 					"OtherApp.app": makeApp("OtherApp.app", false),

@@ -4,6 +4,10 @@
 // window draw larger by its chrome after every click-and-reload.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render } from "@/__tests__/test-utils";
+import {
+	registerTestMirrorPackage,
+	TEST_MIRROR_PACKAGE_ID,
+} from "@/__tests__/testMirrorPackage";
 import { windowsRecord } from "@/__tests__/windowsRecord";
 import {
 	type ClassicyAppearancePackage,
@@ -355,22 +359,8 @@ describe("ClassicyWindow resize with a mirrored grow box", () => {
 	beforeEach(() => {
 		mockDispatch.mockClear();
 		platinum = getClassicyAppearancePackage("platinum");
-		registerClassicyAppearancePackage({
-			id: "test-mirror",
-			name: "Mirror",
-			css: "",
-			defaults: {
-				...getTheme("default"),
-				id: "test-mirror-default",
-				package: "test-mirror",
-			},
-			layout: {
-				window: { growBoxCorner: "bottom-left" },
-				menuBar: { placement: "window" },
-				desktop: { iconGridOrigin: "top-left" },
-			},
-		});
-		activePackage.id = "test-mirror";
+		registerTestMirrorPackage();
+		activePackage.id = TEST_MIRROR_PACKAGE_ID;
 		rectSpy = vi
 			.spyOn(Element.prototype, "getBoundingClientRect")
 			.mockReturnValue({
@@ -396,7 +386,9 @@ describe("ClassicyWindow resize with a mirrored grow box", () => {
 
 	// The window under test: jsdom computes no chrome, so chrome is [0, 0].
 	const renderMirrored = (minimumSize: [number, number]) => {
-		const window = (
+		// A fresh element each time: React skips a re-render handed the same
+		// element object, so `rerenderWindow` really runs ClassicyWindow again.
+		const ui = () => (
 			<ClassicyWindow
 				id="TestWindow"
 				appId="TestApp"
@@ -408,10 +400,10 @@ describe("ClassicyWindow resize with a mirrored grow box", () => {
 				<p>content</p>
 			</ClassicyWindow>
 		);
-		const view = render(window);
+		const view = render(ui());
 		return {
 			...view,
-			rerenderWindow: () => view.rerender(window),
+			rerenderWindow: () => view.rerender(ui()),
 			windowEl: view.container.querySelector(".classicyWindow") as HTMLElement,
 			resizer: view.container.querySelector(
 				".classicyWindowResizer",
