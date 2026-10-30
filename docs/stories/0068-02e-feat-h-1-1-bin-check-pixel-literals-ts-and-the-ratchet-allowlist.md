@@ -3,11 +3,13 @@ id: 0068-02e
 title: 'H 1.1: bin/check-pixel-literals.ts and the ratchet allowlist'
 purpose: Add the lint gate that counts bare pixel literals in SCSS against a per-file allowlist that only ever shrinks, and wire it into `pnpm lint`.
 type: feat
-status: ready
+status: complete
 priority: "2"
 effort: M
 created: "2026-10-28T20:35:01.283Z"
-updated: "2026-10-30T15:41:29.827Z"
+updated: "2026-10-30T12:36:05.233Z"
+started: "2026-10-30T12:17:06.832Z"
+completed: "2026-10-30T12:36:05.233Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -97,9 +99,9 @@ it('scanPixelLiterals skips savers', () => expect([...scanPixelLiterals(process.
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: node bin/check-pixel-literals.ts; echo exit=$?  # expect exit=0 with the seeded allowlist
-- [ ] VERIFY: pnpm exec vitest run bin/check-pixel-literals.test.ts
-- [ ] VERIFY: grep -c 'node bin/check-pixel-literals.ts' package.json  # expect 1, inside the lint script
+- [x] VERIFY: node bin/check-pixel-literals.ts; echo exit=$?  # expect exit=0 with the seeded allowlist
+- [x] VERIFY: pnpm exec vitest run bin/check-pixel-literals.test.ts
+- [x] VERIFY: grep -c 'node bin/check-pixel-literals.ts' package.json  # expect 1, inside the lint script
 
 ## Files
 
@@ -110,3 +112,7 @@ it('scanPixelLiterals skips savers', () => expect([...scanPixelLiterals(process.
 
 ## Work Log
 ### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
+
+### 2026-10-30T12:31:46.988Z - H 1.1 implemented (7ee7539e2): bin/check-pixel-literals.ts as CLI + vitest + pnpm lint, shared bin/classicyScssSource.ts stripping with G's sweep; allowlist seeded 281 bare + 47 fallback over 39 files, matching the reconciliation. 4664 tests. Task review dispatched.
+
+### 2026-10-30T12:36:04.853Z - Task review APPROVED: scanner survived 47 adversarial fixtures, the ratchet behaves in every case, the seed recounts by hand, CI enforces it via pnpm lint. Edge-case minors (url escapes/unclosed, case-insensitive and .5px literals, multi-line fallback kind, allowlist validation, sweep url test) folded into the H 2.1 worker's separate commit.

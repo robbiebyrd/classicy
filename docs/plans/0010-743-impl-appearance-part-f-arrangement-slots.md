@@ -6,8 +6,8 @@ status: complete
 priority: "2"
 effort: L
 created: "2026-10-28T19:26:28.560Z"
-updated: "2026-10-30T15:38:41.559Z"
-completed: "2026-10-30T15:38:41.559Z"
+updated: "2026-10-30T07:21:14.997Z"
+completed: "2026-10-30T07:21:14.997Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -65,7 +65,7 @@ progress:
 
 **Problem:** Audit §5 and §8.8 (D21): the menu bar's right cluster is `float: right` + DOM order (`ClassicyDesktopMenuBar.scss:48-56,67-70`, `Widgets/Time/ClassicyDesktopMenuWidgetTime.scss:2`), which defeats `order`; the window title bar's boxes share one wrapper class so CSS cannot address them; the resize math assumes a top-left anchor and bottom-right grip (`ClassicyWindow.tsx:958-959, 1003-1029, 1098-1099`); the screen menu bar is simply the desktop's first child (`ClassicyDesktop.tsx:636`) with no window-level slot; Disclosure's label side is a JSX branch (`ClassicyDisclosure.tsx:114-124`); Tabs' container is not flex; desktop clean-up always fills from the right edge (`ClassicyDesktopIconContext.tsx:26-44, 81-117`).
 
-**Approach:** A `useClassicyAppearanceLayout()` reader (plus a non-hook getter for reducers and `getThemeVars`) feeds the three declared values to JS and CSS; flex + `order` replaces floats and JSX branches wherever parts are siblings; a pure `computeClassicyWindowResize` anchors the corner opposite the grip; a `ClassicyWindowMenuBar` slot renders the window's `appMenu` when placement is `window` while the screen bar keeps running the shortcut dispatcher headlessly; a Storybook-only `mirrored` package proves every slot.
+**Approach:** A `useClassicyAppearanceLayout()` reader (plus a non-hook getter for reducers) feeds the three declared values to JS and CSS, the CSS half as `--classicy-layout-*` from `classicyLayoutVars`, spread on the desktop root by `ClassicyDesktop` (superseded by ruling F1: `getThemeVars` emits none of them); flex + `order` replaces floats and JSX branches wherever parts are siblings; a pure `computeClassicyWindowResize` anchors the corner opposite the grip; a `ClassicyWindowMenuBar` slot renders the window's `appMenu` when placement is `window` while the screen bar keeps running the shortcut dispatcher headlessly; a Storybook-only `mirrored` package proves every slot.
 
 ---
 
@@ -92,7 +92,7 @@ progress:
 | File | Change | Responsibility |
 |---|---|---|
 | `src/Appearance/useClassicyAppearanceLayout.ts` | create | `CLASSICY_DEFAULT_APPEARANCE_LAYOUT`, `getClassicyAppearanceLayout(packageId?)`, `useClassicyAppearanceLayout()`, `classicyLayoutVars(layout)`. |
-| `src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.ts` | modify | `getThemeVars` emits the three `--classicy-layout-*` variables (line 169). |
+| `src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.ts` | modify | Superseded by ruling F1: not modified. The three `--classicy-layout-*` variables are spread on the desktop root by `ClassicyDesktop.tsx`; `getThemeVars` only sees the theme. |
 | `src/SystemFolder/SystemResources/Desktop/ClassicyDesktop.tsx` | modify | Root `data-classicy-menu-bar` / `data-classicy-grow-box` (603-618); menu bar placement (636). |
 | `src/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar.tsx` | modify | `placement` prop; headless when `window` (128-134, 351-369). |
 | `src/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar.scss` | modify | Flex bar with `order` per cluster; floats removed (18-31, 48-56, 67-70). |
@@ -140,7 +140,7 @@ progress:
 
 **Interfaces:**
 - Consumes: Part B: `ClassicyAppearanceLayout`, `getClassicyAppearancePackage(id)`, `useActiveClassicyAppearancePackage()`, `CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID`, `registerClassicyAppearancePackage`, `theme.package`, store `System.Manager.Appearance.packageId`, action `ClassicyDesktopChangeAppearancePackage`; `getThemeVars` at `ClassicyAppearance.ts:169`; desktop root element at `ClassicyDesktop.tsx:603-618` (Part B added `data-classicy-appearance` there).
-- Produces: `src/Appearance/useClassicyAppearanceLayout.ts`: `export const CLASSICY_DEFAULT_APPEARANCE_LAYOUT: ClassicyAppearanceLayout = { window: { growBoxCorner: "bottom-right" }, menuBar: { placement: "screen" }, desktop: { iconGridOrigin: "top-right" } }` (frozen); `export const getClassicyAppearanceLayout = (packageId?: string): ClassicyAppearanceLayout` → `getClassicyAppearancePackage(packageId ?? CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID)?.layout ?? getClassicyAppearancePackage(CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID)?.layout ?? CLASSICY_DEFAULT_APPEARANCE_LAYOUT`; `export const useClassicyAppearanceLayout = (): ClassicyAppearanceLayout` → `useActiveClassicyAppearancePackage().layout`; `export const classicyLayoutVars = (layout: ClassicyAppearanceLayout): Record<string, string>` → `{ "--classicy-layout-grow-box-corner": layout.window.growBoxCorner, "--classicy-layout-menu-bar-placement": layout.menuBar.placement, "--classicy-layout-icon-grid-origin": layout.desktop.iconGridOrigin }`. `getThemeVars(theme)` spreads `classicyLayoutVars(getClassicyAppearanceLayout(theme.package))` (type-only import cycle: `ClassicyAppearancePackage.ts` imports `type ClassicyTheme`; `ClassicyAppearance.ts` imports the runtime getter from `useClassicyAppearanceLayout.ts` — no runtime cycle). Desktop root gains `data-classicy-menu-bar={layout.menuBar.placement}` and `data-classicy-grow-box={layout.window.growBoxCorner}` from `useClassicyAppearanceLayout()`.
+- Produces: `src/Appearance/useClassicyAppearanceLayout.ts`: `export const CLASSICY_DEFAULT_APPEARANCE_LAYOUT: ClassicyAppearanceLayout = { window: { growBoxCorner: "bottom-right" }, menuBar: { placement: "screen" }, desktop: { iconGridOrigin: "top-right" } }` (frozen); `export const getClassicyAppearanceLayout = (packageId?: string): ClassicyAppearanceLayout` → `getClassicyAppearancePackage(packageId ?? CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID)?.layout ?? getClassicyAppearancePackage(CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID)?.layout ?? CLASSICY_DEFAULT_APPEARANCE_LAYOUT`; `export const useClassicyAppearanceLayout = (): ClassicyAppearanceLayout` → `useActiveClassicyAppearancePackage().layout`; `export const classicyLayoutVars = (layout: ClassicyAppearanceLayout): Record<string, string>` → `{ "--classicy-layout-grow-box-corner": layout.window.growBoxCorner, "--classicy-layout-menu-bar-placement": layout.menuBar.placement, "--classicy-layout-icon-grid-origin": layout.desktop.iconGridOrigin }`. Superseded by ruling F1: `ClassicyDesktop` spreads `classicyLayoutVars(layout)` on the desktop root, and `getThemeVars` only sees the theme and emits none of the `--classicy-layout-*` variables (so `ClassicyAppearance.ts` imports nothing from `useClassicyAppearanceLayout.ts`). Desktop root gains `data-classicy-menu-bar={layout.menuBar.placement}` and `data-classicy-grow-box={layout.window.growBoxCorner}` from `useClassicyAppearanceLayout()`.
 
 - [ ] **Step 1: Write the failing tests** — `useClassicyAppearanceLayout.test.tsx`:
 ```ts
@@ -150,10 +150,10 @@ it("returns a registered package's layout", () => { registerClassicyAppearancePa
 it("the hook follows the active package", () => { const { result } = renderHook(() => useClassicyAppearanceLayout()); expect(result.current.menuBar.placement).toBe("screen"); act(() => dispatch({ type: "ClassicyDesktopChangeAppearancePackage", packageId: "test-mirror" })); expect(result.current.menuBar.placement).toBe("window"); });
 it("classicyLayoutVars emits bare keywords", () => { expect(classicyLayoutVars(mirror)).toEqual({ "--classicy-layout-grow-box-corner": "bottom-left", "--classicy-layout-menu-bar-placement": "window", "--classicy-layout-icon-grid-origin": "top-left" }); });
 ```
-`ClassicyAppearance.test.ts` (after line 123's block): `it("emits the layout variables for the theme's package", () => { const v = getThemeVars(getTheme("default")); expect(v["--classicy-layout-grow-box-corner"]).toBe("bottom-right"); expect(v["--classicy-layout-menu-bar-placement"]).toBe("screen"); expect(v["--classicy-layout-icon-grid-origin"]).toBe("top-right"); expect(getThemeVars({ ...getTheme("default"), package: "test-mirror" })["--classicy-layout-grow-box-corner"]).toBe("bottom-left"); })`. `ClassicyDesktop.layout.test.tsx` (render as `ClassicyDesktop.test.tsx` does): `it("publishes the layout on the desktop root", () => { const root = container.querySelector(".classicyDesktop"); expect(root?.getAttribute("data-classicy-menu-bar")).toBe("screen"); expect(root?.getAttribute("data-classicy-grow-box")).toBe("bottom-right"); })` and the same after switching to `test-mirror` → `"window"`, `"bottom-left"`.
+Superseded by ruling F1: no `ClassicyAppearance.test.ts` case, because `getThemeVars` emits no `--classicy-layout-*` variables; `ClassicyDesktop.layout.test.tsx` checks them on the desktop root's style instead (published by `classicyLayoutVars`, spread by `ClassicyDesktop`). `ClassicyDesktop.layout.test.tsx` (render as `ClassicyDesktop.test.tsx` does): `it("publishes the layout on the desktop root", () => { const root = container.querySelector(".classicyDesktop"); expect(root?.getAttribute("data-classicy-menu-bar")).toBe("screen"); expect(root?.getAttribute("data-classicy-grow-box")).toBe("bottom-right"); })` and the same after switching to `test-mirror` → `"window"`, `"bottom-left"`.
 - [ ] **Step 2: Run them to verify they fail** — Expected: FAIL (module not found; variables undefined; attributes null). — `pnpm exec vitest run src/Appearance/useClassicyAppearanceLayout.test.tsx src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.test.ts src/SystemFolder/SystemResources/Desktop/ClassicyDesktop.layout.test.tsx`
 - [ ] **Step 3: Implement `src/Appearance/useClassicyAppearanceLayout.ts` per Interfaces** — Then `pnpm exec barrelsby -c .ts-barrel.json`.
-- [ ] **Step 4: Emit the variables from `getThemeVars` (`ClassicyAppearance.ts:169`)** — Spread `classicyLayoutVars(getClassicyAppearanceLayout(theme.package))` into the returned object beside the metric derivations.
+- [ ] **Step 4: Emit the variables on the desktop root** — Superseded by ruling F1: `ClassicyDesktop` spreads `classicyLayoutVars(layout)` into the desktop root's style; `getThemeVars` (`ClassicyAppearance.ts`) is not modified and emits none of them.
 - [ ] **Step 5: Write the two root attributes in `ClassicyDesktop.tsx:603-618`** — `const layout = useClassicyAppearanceLayout();` beside `activeTheme` (158); add the attributes next to `data-classicy-appearance`.
 - [ ] **Step 6: Run tests to verify they pass** — Expected: PASS. — `pnpm exec vitest run src/Appearance src/SystemFolder/ControlPanels/AppearanceManager src/SystemFolder/SystemResources/Desktop`
 - [ ] **Step 7: Lint, type-check, commit** — git add src/Appearance src/SystemFolder/ControlPanels/AppearanceManager src/SystemFolder/SystemResources/Desktop src/index.ts && git commit -m "feat(appearance): layout declaration readers, --classicy-layout-* variables and desktop root attributes" (with the trailer). — `pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test`
@@ -371,7 +371,7 @@ A `false` is a slot that does not work: fix the component or `mirrored.scss`, no
 
 ## Acceptance Criteria
 
-- [ ] `getThemeVars(getTheme("default"))` emits `--classicy-layout-grow-box-corner: bottom-right`, `--classicy-layout-menu-bar-placement: screen`, `--classicy-layout-icon-grid-origin: top-right`; the desktop root carries `data-classicy-menu-bar` and `data-classicy-grow-box`.
+- [ ] The desktop root's style carries `--classicy-layout-grow-box-corner: bottom-right`, `--classicy-layout-menu-bar-placement: screen`, `--classicy-layout-icon-grid-origin: top-right` (spread by `ClassicyDesktop` from `classicyLayoutVars`; `getThemeVars` emits none of them, ruling F1); the desktop root carries `data-classicy-menu-bar` and `data-classicy-grow-box`.
 - [ ] `git grep -n 'float: right' src/SystemFolder/SystemResources/Desktop/MenuBar` returns nothing; the six clusters are direct flex children with `order` 10…60.
 - [ ] `computeClassicyWindowResize` passes the four-corner table; the bottom-right path reproduces today's numbers; a mirrored window's grip drag moves `style.left`.
 - [ ] With `menuBar.placement: "window"` the screen bar renders nothing, each window with `appMenu` renders `.classicyWindowMenuBar`, and the shortcut integration test still fires the chord.
@@ -383,7 +383,7 @@ A `false` is a slot that does not work: fix the component or `mirrored.scss`, no
 
 | Requirement | Delivered by |
 |---|---|
-| Contract: useClassicyAppearanceLayout(), --classicy-layout-* from getThemeVars, data-classicy-menu-bar / data-classicy-grow-box on the desktop root | 1.1 Steps 3-5 |
+| Contract: useClassicyAppearanceLayout(), --classicy-layout-* on the desktop root (from ClassicyDesktop, not getThemeVars; ruling F1), data-classicy-menu-bar / data-classicy-grow-box on the desktop root | 1.1 Steps 3-5 |
 | §9 Phase 5 item 6: menu bar floats → flex + order on data-classicy-part clusters | 2.1 Steps 3-4 |
 | §5 / §8.8: control-box order and side via data-classicy-control; stripe spans hideable; grip position by corner | 3.1 Steps 3-4 |
 | §8.8: resize math reads window.growBoxCorner and anchors the opposite corner; tests for four corners | 4.1 Steps 1, 3-4 |

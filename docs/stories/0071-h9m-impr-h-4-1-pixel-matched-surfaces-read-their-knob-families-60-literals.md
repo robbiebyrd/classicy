@@ -3,11 +3,12 @@ id: 0071-h9m
 title: 'H 4.1: Pixel-matched surfaces read their knob families (60 literals)'
 purpose: Rewrite the menu frame, scrollbar arrow glyphs, Pager, Balloon Help and PopUpSlider literals to their `measurements.<family>` knobs, pixel-identical.
 type: impr
-status: pending
+status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T20:37:19.203Z"
-updated: "2026-10-30T15:45:22.409Z"
+updated: "2026-10-30T15:52:15.108Z"
+started: "2026-10-30T13:37:57.366Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -105,6 +106,6 @@ Menu frame (`_mixins.scss`, the former `platinumMenuFrame` lines 20-52): `border
 ## Work Log
 ### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
 
-### 2026-10-30T15:31:59.300Z - H 4.1 implemented on h/4.1 (35952dfe2): menu frame, scrollbar arrows, pager (H-B1), balloon help and pop-up slider read package knobs; allowlist 328 -> 270. 4708 tests; 342 stories + 16 interaction scenes AE 0; 121 computed-style dumps and 67 forced states identical. PopUpSlider focus ring left pending 3.1 (H-R18). Ruling H-R20 (scrollbar grip knob renamed). Task review dispatched.
+### 2026-10-30T15:52:13.048Z - H 4.1 implemented on h/4.1 (35952dfe2): menu frame, scrollbar arrows, pager (H-B1), balloon help and pop-up slider read package knobs; allowlist 328 -> 270. 4708 tests; 342 stories + 16 interaction scenes AE 0; 121 computed-style dumps and 67 forced states identical.
 
-### 2026-10-30T15:45:22.409Z - Task review APPROVED (1743 per-preset comparisons all equal). Rulings H-R21 to H-R24 and the label ruling; integrating onto feat/appearance-part-h with the review fixes (PopUpSlider focus ring, H-R20 grip rename, tail centering, slider travel, menu shadow gap).
+### 2026-10-30T15:52:15.107Z - Task review APPROVED (1743 per-preset comparisons all equal). Rulings H-R20 to H-R24 plus the label ruling; integrating onto feat/appearance-part-h with the review fixes (PopUpSlider focus ring, grip rename, tail centering, slider travel, menu shadow gap).

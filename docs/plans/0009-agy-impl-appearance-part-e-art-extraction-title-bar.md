@@ -6,8 +6,8 @@ status: complete
 priority: "2"
 effort: L
 created: "2026-10-28T19:22:06.942Z"
-updated: "2026-10-30T15:38:37.195Z"
-completed: "2026-10-30T15:38:37.194Z"
+updated: "2026-10-30T15:14:16.273Z"
+completed: "2026-10-30T15:14:16.273Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -28,7 +28,7 @@ progress:
   "0":
     status: complete
   "1":
-    status: pending
+    status: complete
   "1.1":
     status: complete
   "2":
@@ -42,17 +42,17 @@ progress:
   "3.1":
     status: complete
   "4":
-    status: pending
+    status: complete
   "4.1":
     status: complete
   "5":
-    status: pending
+    status: complete
   "5.1":
-    status: in_progress
+    status: complete
   "6":
-    status: pending
+    status: complete
   "6.1":
-    status: pending
+    status: complete
 ---
 
 # Part E: Art extraction and title-bar unification
@@ -75,7 +75,7 @@ progress:
 
 ## Constraints
 
-- Platinum renders pixel-identical (Storybook parity AE 0) except the three named changes: (a) `ClassicyWindowFrame` title bar adopts the window title bar (19 px, `--ui-font-size` text, left/right stripe bands) — stories `desktop-windowframe--*` differ only inside the title-bar band; (b) the zoom glyph's Illustrator rich-black `#231f20` becomes `var(--color-black)` — difference confined to the zoom box; (c) anti-aliasing at stripe row boundaries of the title-less center band (`classicyWindowTitleCenter`) may differ by ≤ 2 levels per channel because a mask composites dark-over-light instead of two abutting rects.
+- Platinum renders pixel-identical (Storybook parity AE 0) except the three named changes: (a) `ClassicyWindowFrame` title bar adopts the window title bar (19 px, `--ui-font-size` text, left/right stripe bands) — stories `desktop-windowframe--*` differ only inside the title-bar band; (b) RETIRED at landing: the zoom glyph keeps its original `#231f20` art as an image layer (rulings E20/E21), so the zoom box is AE 0; (c) anti-aliasing at stripe row boundaries of the title-less center band (`classicyWindowTitleCenter`) may differ by ≤ 2 levels per channel because a mask composites dark-over-light instead of two abutting rects.
 - Before each commit: `pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test` (CI runs the same three).
 - Library code logs through `classicyLog`, never `console.*`.
 - `src/index.ts` is barrel-generated: run `pnpm exec barrelsby -c .ts-barrel.json` after adding a module; never hand-edit barrels.

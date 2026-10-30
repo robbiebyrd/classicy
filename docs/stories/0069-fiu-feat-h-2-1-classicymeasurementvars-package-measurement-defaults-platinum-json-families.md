@@ -3,11 +3,13 @@ id: 0069-fiu
 title: 'H 2.1: classicyMeasurementVars, package measurement defaults, platinum.json families'
 purpose: Emit every `measurements.<family>.<key>` as a CSS variable through a generic walker, seed the Platinum knob families with today's pixel values, and heal persisted themes that lack them.
 type: feat
-status: ready
+status: complete
 priority: "2"
 effort: L
 created: "2026-10-28T20:36:01.303Z"
-updated: "2026-10-30T15:42:02.722Z"
+updated: "2026-10-30T14:53:34.331Z"
+started: "2026-10-30T12:31:47.810Z"
+completed: "2026-10-30T14:53:34.331Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -95,9 +97,9 @@ In `ClassicyAppearance.ts`: `ClassicyThemeMeasurements` becomes `{ window; contr
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics.test.ts src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.test.ts
-- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/AppManager/ClassicyStateMigrations.metrics.test.ts -t 'heals knob families'
-- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.test.ts -t 'emits every metric input and derivation for the default theme'  # core input names byte-identical
+- [x] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics.test.ts src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.test.ts
+- [x] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/AppManager/ClassicyStateMigrations.metrics.test.ts -t 'heals knob families'
+- [x] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.test.ts -t 'emits every metric input and derivation for the default theme'  # core input names byte-identical
 
 ## Files
 
@@ -113,3 +115,7 @@ In `ClassicyAppearance.ts`: `ClassicyThemeMeasurements` becomes `{ window; contr
 
 ## Work Log
 ### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
+
+### 2026-10-30T13:37:56.036Z - H 2.1 implemented: ed4b2f800 (generic knob walker, key-by-key filling of missing values, Platinum families in defaults only, knobs for the six contract families per owner ruling H-R4), 4de8f606a (H 1.1 review scanner fixes), e7df0fe1d (H-R16: colorPicker family renamed picker; --color-* reserved). 4702 tests; 342/342 + 4 app shots AE 0; Options tab gains the six groups (named change). Persisted state +43 KiB. Task review dispatched.
+
+### 2026-10-30T14:53:34.009Z - Complete at e18320e3a: H-R17 (migration fills only the core five; persistence drops floor-equal knob values only for known packages; load path and provider seed merge over the stripped defaults). Persisted default state back to 30,261 bytes. Fix re-review findings addressed; criterion suites 72/72 verified by the controller.
