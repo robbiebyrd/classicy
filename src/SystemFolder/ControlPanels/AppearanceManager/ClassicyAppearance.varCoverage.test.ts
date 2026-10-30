@@ -42,12 +42,19 @@ const listLibraryScripts = (dir: string): string[] =>
 			: [];
 	});
 
+// The first group each match captured.
 const matchesIn = (text: string, pattern: RegExp): string[] =>
-	[...text.matchAll(pattern)].map((match) => match[1]);
+	[...text.matchAll(pattern)].map(
+		(match) => match.slice(1).find((group) => group !== undefined) ?? "",
+	);
 
 const READ = /var\(\s*(--[a-zA-Z0-9-]+)/g;
 const DECLARED = /^\s*(--[a-zA-Z0-9-]+)\s*:/gm;
-const SET_FROM_SCRIPT = /["'](--[a-zA-Z0-9-]+)["']/g;
+// A set, not a read: a style-object key (`"--x": value`) or a
+// `setProperty("--x", …)` call. A `readClassicyThemeVar("--x")` mention does
+// not count.
+const SET_FROM_SCRIPT =
+	/["'](--[a-zA-Z0-9-]+)["']\s*:|setProperty\(\s*["'](--[a-zA-Z0-9-]+)["']/g;
 const DESKTOP_ROOT_PREFIX = /^--classicy-(art|cursor|layout)-/;
 
 // Variables nothing in Classicy sets, left for a host (or a package) to set:

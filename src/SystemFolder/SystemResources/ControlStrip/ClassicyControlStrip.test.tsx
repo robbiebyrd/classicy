@@ -428,15 +428,14 @@ describe("ClassicyControlStrip (HIGOS8 Figure 6-15)", () => {
 		);
 		const reads = vi.spyOn(CSSStyleDeclaration.prototype, "getPropertyValue");
 		const overlapReads = () =>
-			reads.mock.calls.filter(
-				([name]) => name === "--control-strip-popup-overlap",
-			).length;
+			reads.mock.calls.filter(([name]) => name === "--strip-menu-overlap")
+				.length;
 		register(...testModules());
 		renderWithProviders(
 			<div
 				style={
 					{
-						"--control-strip-popup-overlap": "5px",
+						"--strip-menu-overlap": "5px",
 						"--control-strip-border-width": "2px",
 					} as CSSProperties
 				}

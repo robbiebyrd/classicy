@@ -23,6 +23,7 @@ import { createPortal } from "react-dom";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
+import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import {
 	type ClassicyPopUpMenuPlacementResult,
@@ -393,6 +394,13 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 				el.scrollHeight,
 				window.innerHeight,
 				selectedMetrics,
+				// The theme's cap, read from the button (the list may be portaled
+				// out of its themed ancestor) once per opening.
+				readClassicyThemeVar(
+					"--menu-pop-up-max-height",
+					undefined,
+					buttonRef.current,
+				),
 			),
 		);
 	}, [open, menuRect, currentIndex, reactId]);

@@ -2,9 +2,12 @@ import { describe, expect, it } from "vitest";
 import platinumJson from "@/Appearance/Platinum/platinum.json";
 import {
 	classicyPopUpMenuPlacement,
-	POPUP_MENU_MAX_HEIGHT,
 	POPUP_MENU_VIEWPORT_MARGIN,
 } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenuPlacement";
+
+// With no cap passed, the policy caps at Platinum's menu.popUpMaxHeight.
+const POPUP_MENU_MAX_HEIGHT =
+	platinumJson.defaults.measurements.menu.popUpMaxHeight;
 
 // The anchor is the pop-up button's viewport rect. A menu placed *below* grows
 // downward from the button's top edge (the historical Platinum look, where the
@@ -122,11 +125,36 @@ describe("classicyPopUpMenuPlacement — aligned (selected item over the button)
 	});
 });
 
-// The stylesheet's measuring-pass cap reads Platinum's menu.popUpMaxHeight
-// (H 6.1); the placement policy's cap must stay the same number.
-describe("POPUP_MENU_MAX_HEIGHT", () => {
-	it("equals Platinum's menu.popUpMaxHeight measurement", () =>
-		expect(POPUP_MENU_MAX_HEIGHT).toBe(
-			platinumJson.defaults.measurements.menu.popUpMaxHeight,
-		));
+// H-R26: the cap is the theme's --menu-pop-up-max-height, which the menus
+// read where they open and pass in; the policy holds no number of its own.
+describe("classicyPopUpMenuPlacement height cap", () => {
+	it("caps a long list at the cap it is given, in both modes", () => {
+		for (const cap of [200, 400]) {
+			expect(
+				classicyPopUpMenuPlacement(anchor(100), 1000, 800, null, cap).maxHeight,
+				`grow ${cap}`,
+			).toBe(cap);
+			expect(
+				classicyPopUpMenuPlacement(
+					anchor(100),
+					1000,
+					800,
+					{ offsetTop: 0, height: 20 },
+					cap,
+				).maxHeight,
+				`aligned ${cap}`,
+			).toBe(cap);
+		}
+	});
+
+	it("flips by the height the cap allows", () => {
+		// 296px below the button's top, 316px above its bottom: a 200 cap fits
+		// below; a 400 cap fits neither, so the roomier side wins.
+		expect(
+			classicyPopUpMenuPlacement(anchor(300), 1000, 600, null, 200).above,
+		).toBe(false);
+		expect(
+			classicyPopUpMenuPlacement(anchor(300), 1000, 600, null, 400).above,
+		).toBe(true);
+	});
 });

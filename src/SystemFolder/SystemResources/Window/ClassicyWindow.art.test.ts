@@ -109,9 +109,9 @@ describe("ClassicyWindow title-bar art (Platinum package)", () => {
 			);
 	});
 
-	// H 6.1: the 4px 3px tile is the utilityTitleBar texture knobs
-	// (measurements.utilityTitleBar, platinum.json; H-R11).
-	it("the utility texture is the center band's image, tiled 4px 3px", () => {
+	// H 6.1: the tile size is the utilityTitleBar texture knobs, 4px 3px under
+	// Platinum (measurements.utilityTitleBar, platinum.json; H-R11).
+	it("the utility texture is the center band's image, tiled by the utility title-bar texture knobs", () => {
 		const center = rule(`${UTILITY} .classicyWindowTitleCenter`);
 		expect(center["background-image"]).toBe(
 			"var(--classicy-art-window-utility-texture)",

@@ -14,11 +14,9 @@
 	padding: 0;
 
 	img {
-		/* The Sad Mac art's natural width (measurements.crashScreen.artWidth,
-		   platinum.json); crisp pixel scaling. The screen replaces the whole
-		   desktop, so outside a themed ancestor the variable is unset and the
-		   width falls back to the image's own, the same 245 px. */
-		width: var(--crash-screen-art-width);
+		/* The Sad Mac art at its intrinsic size, crisply scaled. The screen
+		   replaces the whole desktop, so no theme variable reaches it: it reads
+		   no theme measurement (H-R27a). */
 		max-width: 40vw;
 		image-rendering: pixelated;
 	}

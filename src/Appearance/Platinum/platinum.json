@@ -182,15 +182,11 @@
 				"colorsScrollMaxHeight": 210
 			},
 			"progressBar": {
-				"stripePeriod": 40,
 				"stripeWidth": 10
 			},
 			"utilityTitleBar": {
 				"textureWidth": 4,
 				"textureHeight": 3
-			},
-			"crashScreen": {
-				"artWidth": 245
 			},
 			"boot": {
 				"halftoneTile": 4
@@ -207,7 +203,7 @@
 			"table": {
 				"resizerWidth": 15
 			},
-			"controlStripPopup": {
+			"stripMenu": {
 				"overlap": 3
 			}
 		},

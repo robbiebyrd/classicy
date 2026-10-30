@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	fireEvent,
@@ -103,6 +104,25 @@ describe("ClassicyComboBox", () => {
 		expect(screen.getByRole("listbox")).toBeInTheDocument();
 		await user.keyboard("{Escape}");
 		expect(screen.queryByRole("listbox")).toBeNull();
+	});
+
+	// H-R26: the open list's height cap is the theme's
+	// --menu-pop-up-max-height, read from the control when the list opens.
+	it.each([
+		200, 400,
+	])("caps the open list at a --menu-pop-up-max-height of %ipx from an ancestor", async (cap) => {
+		const scroll = vi
+			.spyOn(HTMLElement.prototype, "scrollHeight", "get")
+			.mockReturnValue(1000);
+		const user = userEvent.setup();
+		render(
+			<div style={{ "--menu-pop-up-max-height": `${cap}px` } as CSSProperties}>
+				<ClassicyComboBox id="fruit" options={options} />
+			</div>,
+		);
+		await user.click(screen.getByRole("button", { name: "Show options" }));
+		expect(screen.getByRole("listbox").style.maxHeight).toBe(`${cap}px`);
+		scroll.mockRestore();
 	});
 
 	it("the arrow button shows the full list regardless of the text", async () => {
