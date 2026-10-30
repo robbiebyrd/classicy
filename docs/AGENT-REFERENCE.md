@@ -672,7 +672,7 @@ on Classicy's internal class names carry one of three attributes
 |---|---|---|
 | `data-classicy-control` | `close`, `zoom`, `collapse` | the window title bar's control boxes |
 | `data-classicy-role` | `default`, `cancel`, `other` | every `ClassicyAlert` button (the default button, the `role: "cancel"` button, any other including Help) |
-| `data-classicy-part` | `apple`, `app`, `help`, `switcher`, `extensions`, `clock` | the menu bar's clusters: Apple menu, each app menu title, Help, the application switcher, the menu-bar extensions and the clock |
+| `data-classicy-part` | `apple`, `app`, `help`, `switcher`, `extensions`, `clock`; `modifier-control`, `modifier-option`, `modifier-shift`, `modifier-command` | the menu bar's clusters: Apple menu, each app menu title, Help, the application switcher, the menu-bar extensions and the clock; and each modifier glyph span (`classicyKbdModifier`) a `ClassicyKbd` renders |
 
 ```ts
 document.querySelector('.classicyWindow.active [data-classicy-control="close"]')
@@ -865,7 +865,7 @@ usable pre-boot): `title?`, `children` *, `className?`, `width?`.
 | `ClassicyProgressBar` | `value?`, `max? (100)`, `indeterminate?`, `autoSwitch?`, `chasingArrows?`, `label?` | barber-pole when indeterminate; with `autoSwitch` an indeterminate bar becomes determinate as soon as it has a `value` |
 | `ClassicyMeter` | `value` *, `min?/max? (0/100)`, `low?/high?/optimum?`, `segments?`, `showValue?`, `label?` | native `<meter>` zone semantics: the region holding `optimum` is optimal (theme accent), adjacent is suboptimal (`--color-alert`), two away is bad (`--color-error`); `meterZone()` exported |
 | `ClassicyOutput` | `id` *, `value?` or children, `htmlFor?: string[]`, `variant? ("plain"\|"inset")`, `mono?`, `label?`, `disabled?` (dimmed) | real `<output>`; `inset` is the white beveled result well |
-| `ClassicyKbd` | `shortcut?` (any `parseKeyboardShortcut` spelling) or children, `variant? ("inline"\|"keycaps")` | real `<kbd>` in canonical glyph order (⌃⌥⇧⌘ + key); menu items render their `keyboardShortcut` through it |
+| `ClassicyKbd` | `shortcut?` (any `parseKeyboardShortcut` spelling) or children, `variant? ("inline"\|"keycaps")` | real `<kbd>` in canonical glyph order (⌃⌥⇧⌘ + key); each modifier is a `<span class="classicyKbdModifier" data-classicy-part="modifier-<name>">` holding its glyph (inside its own cap in `keycaps`), so the text is unchanged; menu items render their `keyboardShortcut` through it |
 | `ClassicyTabs` | `tabs` * (`{title?, icon?, children}[]`), `size? ("small"\|"medium"\|"large")` | tab height and label type scale; small tabs suit dense panels |
 | `ClassicyTree` | `nodes` *, `direction?` (closed triangles' direction; default right), `selectionMode? ("none"\|"single"\|"multi")`, `selectedIds?`, `onSelectNode?`, `onActivateNode?`, `onToggleNode?` | hierarchical list |
 | `ClassicyTable` | `columns` * (`{id, title, accessor, render?, sortable?, resizable?, width?, align?}[]`), `rows` *, `getRowId` *, `selectionMode? ("none"\|"single"\|"multi")`, `selected?: string[]`, `onSelectionChange?`, `onActivateRow?`, `defaultSort?`, `stickyHeader? (true)`, `rowClassName?`; tree rows: `getSubRows?`, `rowCanExpand?`, `expanded?: string[]`, `onToggleRow?`; handles: `selectionApiRef?` (`{ selectAll }`), `containerRef?` (the focusable list box, e.g. for a window's `initialFocusRef`) | generic Platinum list view over `@tanstack/react-table` (already a peer dep); semantic `<table>` + `aria-sort`; Shift/⌘ selection over the current sorted order; arrows/Home/End/Enter/type-select keyboard. `render(row, expansion)` receives `{ depth, canExpand, isExpanded, toggle }` so a column can draw its own disclosure (this is how the Finder list view is built) |
@@ -897,8 +897,13 @@ wrapped control > window `contextMenu` > app `contextMenu` > desktop default
 `e.preventDefault()`; every menu layer checks `e.defaultPrevented`.
 
 Keyboard shortcut helpers: `parseKeyboardShortcut`, `formatKeyboardShortcut`,
-`shortcutMatchesEvent`, `findMenuItemByShortcut`, `runMenuItemAction`,
-`useKeyboardEquivalents`, `useFocusTrap`, `useClassicyShortcutDispatcher`.
+`keyboardShortcutModifiers` (the set modifiers, in canonical order:
+`"Ctrl+Cmd+S"` → `["control", "command"]`), `shortcutMatchesEvent`,
+`findMenuItemByShortcut`, `runMenuItemAction`, `useKeyboardEquivalents`,
+`useFocusTrap`, `useClassicyShortcutDispatcher`. The one modifier table is
+`CLASSICY_MODIFIER_GLYPHS` (`{ control: "⌃", option: "⌥", shift: "⇧",
+command: "⌘" }`), keyed by `ClassicyModifierName` and ordered by
+`CLASSICY_MODIFIER_ORDER`; every helper and `ClassicyKbd` reads it.
 
 ### 4.6 Alerts & dialogs
 
@@ -984,6 +989,12 @@ default `${appId}_MoviePlayer_${url}`), `subtitlesUrl`, `autoPlay`,
 `QuickTimePlayPauseButton`, `QuickTimeFullscreenButton`, `QuickTimeSeekBar`,
 `QuickTimeVolumeControl`, `QuickTimeCaptionsOverlay`, and hooks
 `useQuickTimePlayback`, `useQuickTimeSubtitles`, `useControllableState`.
+
+A `captionStyle`'s colors reach the cue as custom properties, not inline
+`color`: `--classicy-caption-fg` and `--classicy-caption-bg` (`"r, g, b"`) and
+`--classicy-caption-fg-alpha` / `--classicy-caption-bg-alpha`, composed by
+`.quickTimePlayerCaptions.quickTimePlayerCaptionsCustomStyle` in
+`QuickTimeCaptionsOverlay.scss`.
 
 `QuickTimeVideoEmbed` also takes `options` (passed to `react-player` as its
 `config`) and the media callbacks `onReady` (ready to play), `onWaiting`
@@ -1800,6 +1811,22 @@ adds the layer and the scope; Platinum's mixins are there to reuse:
 
 Compile it to a string (`?inline` in Vite) and pass it as `css`; Classicy
 never wraps it.
+
+**Glyphs and colors a package supplies.** Some text glyphs are look, so the
+components render an empty span and the package draws the glyph as `::before`
+content: the menu check and mixed dash (`.classicyMenuItemCheck.checked`,
+`.mixed`), the pop-up and combo-box check (`.classicyPopUpMenuCheck.checked`),
+the bevel button arrows (`.classicyBevelButtonArrowHorizontal`,
+`.classicyBevelButtonArrowVertical`), the placard arrow
+(`.classicyPlacardArrow`) and the file input's remove cross
+(`.classicyFileInputRemoveGlyph`). Platinum uses the font's ✓ – ▸ ▾ ✕ and
+writes them as escapes with `string.unquote('"\\2713"')`, because Sass
+decodes a quoted escape and prepends `@charset`. A package also declares, on
+its root, the Color Picker's crayon tints
+(`--classicy-color-picker-crayon-{outline,facet-light,facet-dark,strip-dark,strip-light,gloss,band,line-1,line-2,end-outline}`)
+and the color wheel's `--classicy-color-picker-crosshair` (white when unset);
+a package that declares none leaves the crayons unshaded (each tint falls
+back to `transparent`).
 
 **The active package.** `System.Manager.Appearance.packageId` (persisted,
 default `CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID`, `"platinum"`; state saved
