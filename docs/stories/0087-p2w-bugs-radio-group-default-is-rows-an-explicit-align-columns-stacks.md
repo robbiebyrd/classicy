@@ -7,7 +7,7 @@ status: in_progress
 priority: "3"
 effort: XS
 created: "2026-10-30T01:49:48.719Z"
-updated: "2026-10-30T01:50:14.508Z"
+updated: "2026-10-30T03:10:52.788Z"
 started: "2026-10-30T01:50:14.508Z"
 tags: []
 milestone: ""
@@ -63,3 +63,5 @@ Change the `align` default to `"rows"`, and move `.classicyRadioInputGroupColumn
 - `docs/AGENT-REFERENCE.md` - documented default
 
 ## Work Log
+
+### 2026-10-30T03:10:52.788Z - Implemented on fix/tooling-typecheck (8e0044bfb): align defaults to "rows", columns rule ordered after the group rule so align="columns" stacks; old Columns story renamed Default, new Columns story stacks; docs updated. Every existing radio story AE 0; the new Columns story is an intended change (no valid baseline).

@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: S
 created: "2026-10-30T01:47:52.512Z"
-updated: "2026-10-30T01:50:13.770Z"
+updated: "2026-10-30T03:10:51.297Z"
 started: "2026-10-30T01:50:13.770Z"
 tags: []
 milestone: ""
@@ -77,3 +77,5 @@ Add a `storybook:typecheck` script and run it in `.github/workflows/ci.yml` besi
 - `CLAUDE.md` - CI paragraph
 
 ## Work Log
+
+### 2026-10-30T03:10:51.297Z - Tooling branch fix/tooling-typecheck at 701489841: root configs excluded from dist/types with a verify:dist guard (80ae8a34f); strict storybook tsconfig 192 -> 0 errors, *.png typed as string (e841ef4db); storybook:typecheck CI step (549b8d3b0); jsdom media stubs, 96 -> 0 noise lines (fb998bc18); verify:dist exact art set (701489841). Gate green: 4031/4031. Two leftovers sent back for fixing: dist/types/package.json.d.ts and 6 remaining jsdom canvas/navigation lines.
