@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T20:24:32.303Z"
-updated: "2026-10-30T02:11:17.460Z"
+updated: "2026-10-30T02:19:46.200Z"
 started: "2026-10-30T02:11:17.460Z"
 tags: []
 milestone: ""
@@ -101,6 +101,7 @@ Re-shoot `desktop-window--*`, `desktop-menu--*`, `controls-popupmenu--*`, `deskt
 - [ ] VERIFY: git grep -n 'data:image/svg' src/SystemFolder --include='*.scss' -- ':!src/SystemFolder/SystemResources/Slider' ':!src/SystemFolder/SystemResources/Tabs' ':!src/SystemFolder/SystemResources/Icon' ':!src/SystemFolder/SystemResources/Desktop'  # expect no output
 - [ ] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Window src/SystemFolder/SystemResources/Menu/ClassicyMenu.art.test.ts
 - [ ] `ClassicyWindow.tsx` no longer calls `setCursor`; the resizer's cursor is `var(--classicy-cursor-resize-lr), auto` in CSS.
+- [ ] VERIFY: grep -c 'url(.data:' src/Appearance/Platinum/styles/_assets.scss  # 0 (E 2.1 left the six 2.2-owned data URIs there: corner-dither, collapse, zoom, resizer, triangle, down-arrow)
 
 ## Files
 

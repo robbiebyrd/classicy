@@ -3,12 +3,13 @@ id: 0053-e1n
 title: 'E 2.1: Title-bar stripes, red stripes and the utility texture'
 purpose: Draw the window title-bar stripes, the red error stripes and the utility crosshatch from masked package art over theme colors instead of base64 images with baked hex.
 type: impr
-status: in_progress
+status: complete
 priority: "2"
 effort: M
 created: "2026-10-28T20:23:54.842Z"
-updated: "2026-10-30T02:11:09.302Z"
+updated: "2026-10-30T02:20:18.692Z"
 started: "2026-10-30T00:22:14.648Z"
+completed: "2026-10-30T02:20:18.692Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -100,9 +101,9 @@ Caps: per the Phase 0 gate result `["0px","0px"]`, delete the `&:after`/`&:befor
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Window/ClassicyWindow.art.test.ts
-- [ ] `_assets.scss` declares `--platinum-stripe-light/dark` and `--platinum-stripe-red-light/dark` on the package root and holds no `url(` data URI.
-- [ ] Every stripe and utility pseudo-element mirrors the old `background-*` longhands with the same `mask-*` values (`auto 100%`, `auto 99.8%`, `4px 3px`).
+- [x] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Window/ClassicyWindow.art.test.ts
+- [x] Every stripe and utility pseudo-element mirrors the old `background-*` longhands with the same `mask-*` values (`auto 100%`, `auto 99.8%`, `4px 3px`).
+- [x] `_assets.scss` declares `--platinum-stripe-light/dark` and `--platinum-stripe-red-light/dark` on the package root and holds no stripe or utility-texture data URI. The six remaining `$…` data URIs (corner-dither, collapse, zoom, resizer, triangle, down-arrow) are E 2.2's art, kept until their last reader moves, and E 2.2 removes them.
 
 ## Files
 
@@ -120,3 +121,5 @@ Caps: per the Phase 0 gate result `["0px","0px"]`, delete the `&:after`/`&:befor
 ### 2026-10-30T01:55:52.698Z - First pass da6c3a721 (pushed). Gate green: 4063 tests, build:source with verify:dist. Cap pseudos measured 0px, so the caps were deleted. Parity: 245/302 at AE 0. The 57 others differ only inside title-bar stripe bands, with no row moved: 1 level on the titled side bands and the windoid, but up to 14 (red) and 21 levels on the 1.25× title-less centers and 13 on the 1.5× WindowFrame, against named change (c)'s limit of ≤2. Cause: the opaque light ground blocks the bleed-through of the background that the old SVG had at fractional boundary pixels. Ruling E19 sends it back: two masked layers (light rows and dark rows) over the normal background, with no opaque ground. If it still exceeds 2 levels, the owner decides.
 
 ### 2026-10-30T02:11:09.301Z - E19 two-layer attempt: still over 2 levels (title-less center 21→34, red 14→20; frame 13→2; sides and windoid 1). Cause: at 1.25×, about half the fractional row boundaries draw dark-first and half light-first, so no fixed two-layer order matches. Exact parity needs four layers per band. The attempt is saved as .playwright-mcp/parity/part-E/e19-two-layer.patch. OWNER ruling E20 (2026-10-30): E 2.1 closes with version 1 (da6c3a721) as an INTERIM state, and E 6.1 must deliver exact four-layer stripe parity before Part E lands; that is recorded as an E 6.1 acceptance criterion. Task review dispatched.
+
+### 2026-10-30T02:20:15.865Z - Review APPROVED at da6c3a721 (interim per OWNER ruling E20), with no Critical or Important findings. The reviewer recomputed AE, the diff bounding box and the peak level for all 302 stories against post-b: 57 differ, none with a bounding box taller than 18 px, and each confined to its stripe band with no row moved. The maxima match E20 exactly (center 21, red 14, frame 13, sides and windoid 1). Every mask-* longhand mirrors its old background-* twin or is equivalent by construction, and the pins changed in the same commit. The controller checked _assets.scss at the commit: the four --platinum-stripe-* properties are declared and no stripe or texture data URI remains. The six remaining $ data URIs are E 2.2's art, so that criterion was narrowed and E 2.2 gained a "0 data URIs in _assets.scss" criterion. Minors: the test comment goes to E 2.2; the verify:dist exact art set to fix/tooling-typecheck; the G12 sweep filter to G's carry-forward; the dead titleBarCap* keys, the stripe-mixin naming and the White-follows-theme docs to E 6.1's carry-forward.
