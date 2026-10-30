@@ -138,6 +138,16 @@ registers it, and everything inside `ClassicyDesktop` looks as before.
   `position: relative` and `isolation: isolate` on the element it is
   included in.
   `platinum-encode-color` is removed.
+- **Platinum's art is registered system art** (`--classicy-art-<key>`,
+  published by `ClassicyDesktop`): the `assets.$…` art variables are gone,
+  and a standalone component needs `useClassicyAssetVars()` on its wrapper
+  (above) or its art is missing. `ClassicyWindowFrame` now draws the window's
+  title bar (`ClassicyWindowTitleBar`): target
+  `.classicyWindowFrame .classicyWindowTitleBar` instead of the removed
+  `classicyWindowFrameTitleBar`/`classicyWindowFrameTitleText`. The Control
+  Strip and pop-up slider row constants (`controlStripTab`,
+  `popUpSliderTrack`, …) are no longer exported: read them with
+  `useClassicyPixelArtRows(key)` or draw `<ClassicyPixelArt art={key} />`.
 - **Fixed:** Firefox no longer shows a scroll bar under tab strips in the
   built library (the desktop's scroll-bar fallback used to beat the tab
   scroller's `scrollbar-width: none`).

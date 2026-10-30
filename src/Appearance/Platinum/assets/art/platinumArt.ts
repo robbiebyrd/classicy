@@ -29,9 +29,10 @@ const art = platinumArt;
  * grip, the dither and the slider strikes (their grays are the art).
  *
  * Single-color shapes (`fill`/`stroke` is `currentColor`, no intrinsic size,
- * the original `viewBox`): the zoom and collapse glyphs are masks over a
- * theme color; the menu and pop-up arrows, the thumb outlines, the tab outline
- * and the halftone are images, where `currentColor` resolves to black.
+ * the original `viewBox`): the zoom and collapse glyphs, the menu and pop-up
+ * arrows, the thumb outlines, the tab outline and the halftone. Platinum draws
+ * them as images too, where `currentColor` resolves to black; a package could
+ * use them as masks over its own colors.
  */
 export const PLATINUM_SYSTEM_ART: Readonly<
 	Partial<Record<ClassicySystemArtKey, ClassicyAssetSource>>

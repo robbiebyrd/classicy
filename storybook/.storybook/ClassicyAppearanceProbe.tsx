@@ -76,7 +76,7 @@ const PROBE_PACKAGE: ClassicyAppearancePackage = {
 };
 
 const PROBE_NOTE =
-	'Rendered under the "storybook-probe" package: Platinum CSS is off (structure only — audit §8.2; the window control boxes, menu dividers and depressable ::after geometry live in Platinum\'s look mixins, Part B ruling R10, and collapse here), every root is outlined by decorate(), and every emitted event is logged in the Actions panel.';
+	'Rendered under the "storybook-probe" package: Platinum CSS is off (structure only — audit §8.2; the window control boxes, menu dividers and depressable ::after geometry live in Platinum\'s look mixins, Part B ruling R10, and collapse here; Platinum-owned art and glyphs, such as the title-bar stripes, the tab outline and the placard arrow, are absent, ruling E23), every root is outlined by decorate(), and every emitted event is logged in the Actions panel.';
 
 // Probes mounted in this realm, and what the first one found before it took
 // over: the probe registration and the store switch are shared, made by the
