@@ -1548,14 +1548,16 @@ Firefox for the stripes. Platinum must render as it did before it was a
 package.
 
 Images also load where masks may not. `mask-image` URLs are fetched in CORS
-mode: Firefox drops a mask whose file comes from another origin without CORS
-headers (Chromium draws it; both draw masks from `file:` pages), while a
-background image always loads. So Platinum's art is safe when a host serves
-`dist/assets/` from a CDN or packages the app for `file:`. The masks that
-remain are the icons' `--classicy-icon-mask` (the icon's own image, any URL
-the host gives, and the alias badge) and the open icon's halftone
-(`dist/assets/halftone.svg`, below): a host serving those from another origin
-must send CORS headers for Firefox.
+mode, and the CSS Masking spec requires that of every engine: a mask whose
+file comes from another origin without CORS headers is dropped. Firefox
+enforces it today; Chromium still draws such a mask, but that leniency is not
+guaranteed. Both draw masks from `file:` pages, and a background image always
+loads. So Platinum's art is safe when a host serves `dist/assets/` from a CDN
+or packages the app for `file:`. Platinum's one mask art, the open icon's
+halftone (below), is registered as an inline `data:` URI, so it needs no fetch
+at all. The masks that remain are the icons' `--classicy-icon-mask` (the
+icon's own image, any URL the host gives, and the alias badge): a host serving
+those from another origin must send CORS headers, in every engine.
 
 The four title-bar cap keys (`titleBarCapLeft`, `-Right`, `-LeftRed`,
 `-RightRed`) and the split windoid keys (`windowUtilityShade`,
@@ -1565,7 +1567,9 @@ never painted, and the windoid texture is one image, `windowUtilityTexture`.
 The icon dither (`platinum-halftone`, on every icon mask's `::before`) reads
 `--classicy-art-halftone` as an alpha **mask**, tiled at 7% of the icon under
 the icon mask, painted with a color token. There is no built-in fallback:
-Platinum registers `halftone`, asset lookups fall back to Platinum, and
+Platinum registers `halftone` (as an inline `data:` URI, so the mask never
+needs a CORS fetch; `dist/assets/halftone.svg` still ships with the rest of
+the art), asset lookups fall back to Platinum, and
 `ClassicyDesktop` publishes the variable on its root, so a standalone
 component's wrapper needs `useClassicyAssetVars()` (as for all of Platinum's
 art) or its open icons lose the dither. Registering a `halftone` art changes

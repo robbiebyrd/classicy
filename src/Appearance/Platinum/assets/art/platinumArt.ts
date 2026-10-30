@@ -1,5 +1,12 @@
 import type { ClassicySystemArtKey } from "@/Appearance/ClassicyAssetRegistry";
 import type { ClassicyAssetSource } from "@/Appearance/ClassicyAssetSource";
+// The one deliberate `?inline` (ruling E17): the halftone is the only art
+// Platinum uses as a mask, and `mask-image` URLs are fetched in CORS mode, so
+// a file served from another origin without CORS headers would leave open
+// icons without their dither. As a `data:` URI (0.36 kB, a `currentColor`
+// shape, not color-encoded: G16) it needs no fetch. The file itself is still
+// emitted to dist/assets/ by the glob below.
+import halftoneInline from "./halftone.svg?inline";
 
 // Plain (query-less) imports, so the build emits each file to dist/assets/
 // instead of inlining it (`noInlineAppearanceAssetsPlugin`, vite.config.ts).
@@ -53,7 +60,7 @@ export const PLATINUM_SYSTEM_ART: Readonly<
 	sliderThumbRect: art("slider-thumb-rect.svg"),
 	sliderStrikes: art("slider-strikes.svg"),
 	tabOutline: art("tab-outline.svg"),
-	halftone: art("halftone.svg"),
+	halftone: halftoneInline,
 	quickTimeThumbSlider: art("quicktime-thumb-slider.svg"),
 	quickTimeVolumeSlider: art("quicktime-volume-slider.svg"),
 };
