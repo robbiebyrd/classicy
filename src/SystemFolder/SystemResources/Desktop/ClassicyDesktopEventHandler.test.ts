@@ -9,6 +9,10 @@ import { CLASSICY_DEFAULT_THEME_METRICS } from "@/SystemFolder/ControlPanels/App
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { listAppWindows } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { classicyDesktopEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
+import {
+	CLASSICY_SYSTEM_MENU_APP_PREFIX,
+	withClassicyAppIdentityMenuItems,
+} from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 
 function makeStore(
@@ -172,6 +176,22 @@ describe("classicyDesktopEventHandler — ClassicyDesktopAppMenuAdd", () => {
 
 		expect(ds.System.Manager.Desktop.systemMenu).toHaveLength(1);
 		expect(ds.System.Manager.Desktop.systemMenu[0].title).toBe("Notes Updated");
+	});
+
+	it("ids the entry with the shared prefix the Apple menu resolves display names by", () => {
+		const ds = makeStoreForDesktop();
+		classicyDesktopEventHandler(ds, {
+			type: "ClassicyDesktopAppMenuAdd",
+			app: { id: "Notes.app", name: "Notes", icon: "notes.png" },
+		});
+
+		const [entry] = ds.System.Manager.Desktop.systemMenu;
+		expect(entry.id).toBe(`${CLASSICY_SYSTEM_MENU_APP_PREFIX}Notes.app`);
+		const [shown] =
+			withClassicyAppIdentityMenuItems(ds.System.Manager.Desktop.systemMenu, {
+				"Notes.app": { name: "Jottings" },
+			}) ?? [];
+		expect(shown.title).toBe("Jottings");
 	});
 });
 
