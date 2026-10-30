@@ -222,14 +222,16 @@ describe("platinum.scss (compiled)", () => {
 		);
 	});
 
-	// Part E 2.2: the submenu triangle is a mask over black; the pop-up double
-	// arrow is the indicator's own image (ruling E21), like the grow-box grip.
+	// Part E 2.2: the submenu triangle (ruling E24) and the pop-up double
+	// arrow (ruling E21) are their boxes' own images, like the grow-box grip.
 	it("draws the menu and pop-up arrows from registered art", () => {
 		const triangle = rule(
 			`${P} .classicyMenuItemChildMenuIndicator:after`,
 		).props;
-		expect(triangle["mask-image"]).toBe("var(--classicy-art-submenu-arrow)");
-		expect(triangle["background-color"]).toBe("var(--color-black)");
+		expect(triangle["background-image"]).toBe(
+			"var(--classicy-art-submenu-arrow)",
+		);
+		expect(triangle["mask-image"]).toBeUndefined();
 		expect(
 			rule(`${P} .classicyPopUpMenuIndicator`).props["background-image"],
 		).toBe("var(--classicy-art-popup-arrows)");

@@ -215,7 +215,9 @@
     width: 1em;
     height: 1em;
     content: ' ';
-    // The triangle is in the Platinum package.
+    // The triangle's image is in the Platinum package; its placement is here.
+    background-repeat: no-repeat;
+    background-position: right center;
   }
 }
 
