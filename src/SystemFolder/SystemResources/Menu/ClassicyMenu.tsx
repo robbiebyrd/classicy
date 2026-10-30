@@ -388,7 +388,7 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 			actionRanRef.current = false;
 			setIsFlashing(true);
 			// A click or Return. The package's press decoration is the flash
-			// (Platinum's `classicyMenuItemFlash`); `release` clears it.
+			// (Platinum's flash class, in its MenuItem hooks); `release` clears it.
 			appearance.emit(
 				"press",
 				withClassicyAppearanceInput({ itemId: menuItem.id }),
