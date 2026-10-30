@@ -3,12 +3,13 @@ id: 0065-8mp
 title: 'F 6.1: Sibling parts become orderable; clean-up reads iconGridOrigin'
 purpose: Make alert icon/button order, the Disclosure label side and the Tabs strip position reachable by CSS alone, and make desktop clean-up fill the icon grid from the package's declared origin.
 type: feat
-status: in_progress
+status: complete
 priority: "2"
 effort: L
 created: "2026-10-28T20:32:12.590Z"
-updated: "2026-10-30T05:32:04.620Z"
+updated: "2026-10-30T05:58:26.672Z"
 started: "2026-10-30T03:48:15.190Z"
+completed: "2026-10-30T05:58:26.672Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -110,10 +111,10 @@ The header always renders triangle then label, with class `classicyDisclosureLab
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconContext.test.ts
-- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Alert src/SystemFolder/SystemResources/Disclosure src/SystemFolder/SystemResources/Tabs
-- [ ] Every non-help alert button carries `data-classicy-role`; `.classicyAlertIcon`/`.classicyAlertBody` have `order` 10/20 and buttons none; `labelPosition="left"` is the `classicyDisclosureLabelLeft` class with `order: -1`; `stripPosition="bottom"` is the `classicyTabStripBottom` class on a flex-column container.
-- [ ] `classicyDesktopIconGridPosition` returns `[880, 64]`, `[16, 64]`, `[880, 560]`, `[16, 560]` for the four origins at 1024×768 and `ClassicyDesktopIconCleanup` honors the active package's origin.
+- [x] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconContext.test.ts
+- [x] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Alert src/SystemFolder/SystemResources/Disclosure src/SystemFolder/SystemResources/Tabs
+- [x] Every non-help alert button carries `data-classicy-role`; `.classicyAlertIcon`/`.classicyAlertBody` have `order` 10/20 and buttons none; `labelPosition="left"` is the `classicyDisclosureLabelLeft` class with `order: -1`; `stripPosition="bottom"` is the `classicyTabStripBottom` class on a flex-column container.
+- [x] `classicyDesktopIconGridPosition` returns `[880, 64]`, `[16, 64]`, `[880, 560]`, `[16, 560]` for the four origins at 1024×768 and `ClassicyDesktopIconCleanup` honors the active package's origin.
 
 ## Files
 
@@ -137,3 +138,5 @@ The header always renders triangle then label, with class `classicyDisclosureLab
 ### 2026-10-30T04:31:53.199Z - Task review: Needs fixes. Important: bottom-origin clean-up put row 4 at y=-16 (the plan's formula has no row cap). Controller ruling F-R5: cap rows for bottom origins, and createGrid counts columns with the real step (an older 80 px bug gave 11 columns at 1024 px). Minors: aria-hidden on the disclosure triangle svg, consistent vocabulary entries, shared compiled-CSS test helper. All sent to the F 7.1 worker as a separate commit. The G merge naming trap (cell vs step) is recorded in the carry-forward.
 
 ### 2026-10-30T05:32:04.620Z - F 6.1 review fixes landed as 3a4d0352a (F-R5: bottom-origin row caps and real-step column count; disclosure triangle aria-hidden; consistent vocabulary; shared test helper). Under review with F 7.1.
+
+### 2026-10-30T05:58:22.307Z - Review fixes (3a4d0352a: F-R5 caps, triangle aria-hidden, vocabulary, shared helper) verified correct by the F 7.1 task review. Complete; F's whole-branch final review follows.

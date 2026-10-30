@@ -3,12 +3,13 @@ id: 0066-874
 title: 'F 7.1: Storybook mirrored stories, Playwright position checks, final parity and docs'
 purpose: Prove every arrangement slot with a Storybook-only mirrored appearance package and six Mirrored stories checked by Playwright position expressions, then close Part F with the full parity shoot, docs and build verification.
 type: chor
-status: in_progress
+status: complete
 priority: "2"
 effort: L
 created: "2026-10-28T20:33:07.123Z"
-updated: "2026-10-30T05:32:01.628Z"
+updated: "2026-10-30T05:58:29.081Z"
 started: "2026-10-30T04:27:30.845Z"
+completed: "2026-10-30T05:58:29.081Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -114,10 +115,10 @@ Re-shoot every id in `stories.txt` into `after/` and `for f in before/*.png; do 
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm exec vitest run MirroredPackage && cat .playwright-mcp/parity/part-F/mirrored.txt  # every entry true
-- [ ] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test && pnpm build:source && pnpm build:storybook
-- [ ] Six `--mirrored` stories exist (Window, Alert, Desktop, MenuBar, Tabs, Disclosure), driven by the registered `mirrored` package whose `layout` is `bottom-left` / `window` / `top-left`.
-- [ ] `docs/AGENT-REFERENCE.md` has the "Layout declarations" subsection and `CLAUDE.md` the arrangement paragraph.
+- [x] VERIFY: pnpm exec vitest run MirroredPackage && cat .playwright-mcp/parity/part-F/mirrored.txt  # every entry true
+- [x] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test && pnpm build:source && pnpm build:storybook
+- [x] Six `--mirrored` stories exist (Window, Alert, Desktop, MenuBar, Tabs, Disclosure), driven by the registered `mirrored` package whose `layout` is `bottom-left` / `window` / `top-left`.
+- [x] `docs/AGENT-REFERENCE.md` has the "Layout declarations" subsection and `CLAUDE.md` the arrangement paragraph.
 
 ## Files
 
@@ -142,3 +143,5 @@ Re-shoot every id in `stories.txt` into `after/` and `for f in before/*.png; do 
 ### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
 
 ### 2026-10-30T05:32:01.628Z - F 7.1 implemented (a85512323) with the F 6.1 review fixes (3a4d0352a, F-R5 grid caps, triangle aria-hidden, vocabulary), the F 5.1 fix re-review minors (ceb58236c), the carry-forward fixes (5fc369358: grip edges follow the corner, extension portal follows placement, balloon titles sized by content) and the mirrored stories. 4098 tests; build:source + build:storybook green; 48/48 Platinum stories AE 0; all Playwright position checks true. Task review dispatched.
+
+### 2026-10-30T05:58:24.495Z - F 7.1 review fixes landed as 2a9b6522e: F-R6 (mirrored package registers only in the six mirrored story files; verified per story in fresh pages), JSDoc corrections, short-viewport icon clamp, docs. 4100 tests; 48/48 AE 0; mirrored stories unchanged. Complete; F's whole-branch final review follows.
