@@ -1,7 +1,6 @@
-import path from "node:path";
 import { createElement } from "react";
-import * as sass from "sass";
 import { describe, expect, it, vi } from "vitest";
+import { compileScss, scssRule } from "@/__tests__/compiledScss";
 import { render } from "@/__tests__/test-utils";
 import { ClassicyTabs } from "@/SystemFolder/SystemResources/Tabs/ClassicyTabs";
 
@@ -26,40 +25,11 @@ vi.mock(
 );
 vi.mock("@/SystemFolder/SystemResources/Tabs/ClassicyTabs.scss", () => ({}));
 
-// vitest's root is the repo root, and jsdom leaves import.meta.url as a
-// non-file URL, so resolve from the project root.
-const css = sass.compile(
-	path.resolve(
-		process.cwd(),
-		"src/SystemFolder/SystemResources/Tabs/ClassicyTabs.scss",
-	),
-	{ style: "expanded" },
-).css;
+const css = compileScss(
+	"src/SystemFolder/SystemResources/Tabs/ClassicyTabs.scss",
+);
 
-// A selector can head more than one block, so merge every block it heads.
-const rule = (selector: string): Record<string, string> => {
-	const blocks = [
-		...css.matchAll(
-			new RegExp(
-				`^${selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} \\{\\n([^}]*)\\n\\}`,
-				"gm",
-			),
-		),
-	];
-	if (blocks.length === 0) throw new Error(`rule not found: ${selector}`);
-	const declarations: Record<string, string> = {};
-	for (const block of blocks) {
-		for (const line of block[1].split("\n")) {
-			const colon = line.indexOf(":");
-			if (colon === -1) continue;
-			declarations[line.slice(0, colon).trim()] = line
-				.slice(colon + 1)
-				.trim()
-				.replace(/;$/, "");
-		}
-	}
-	return declarations;
-};
+const rule = (selector: string) => scssRule(css, selector);
 
 const tabs = [
 	{ title: "First", children: createElement("p", null, "First content") },
