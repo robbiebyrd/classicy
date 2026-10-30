@@ -1,8 +1,8 @@
 // The Platinum package root's custom properties. The package's art is
 // registered system art (`--classicy-art-*`, see ../assets), read by the
-// component partials: the control-box glyphs as masks over a theme color; the
-// title-bar stripes, the windoid texture, the menu and pop-up arrows, the
-// grow-box grip and the control-box dither as images.
+// component partials, every one as an image layer: the title-bar stripes, the
+// windoid texture, the control-box glyphs and dither, the grow-box grip, and
+// the menu and pop-up arrows.
 
 // The package root's custom properties, included first inside
 // `classicy-package("platinum")` by platinum.scss, so they land on

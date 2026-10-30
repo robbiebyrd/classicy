@@ -846,7 +846,36 @@ drag keeps the opposite corner fixed (`computeClassicyWindowResize`); with
 its own menu bar under the title bar. See §8, "Layout declarations".
 
 **`ClassicyWindowFrame`** — presentational chrome only (no store coupling;
-usable pre-boot): `title?`, `children` *, `className?`, `width?`.
+usable pre-boot): `title?`, `children` *, `className?`, `width?`. It draws the
+window's own title bar (`ClassicyWindowTitleBar`, always focused, with no
+control boxes or icon) over its body, inset by the window's frame ring and
+ruled off from the body; the `classicyWindowFrameTitleBar` and
+`classicyWindowFrameTitleText` classes are gone (see "Migrating to Appearance
+Packages", §5).
+
+**`ClassicyWindowTitleBar`** — the title bar both chromes draw, so an
+Appearance Package skins one title bar. Presentational: it reads no store and
+dispatches nothing; `ClassicyWindow` passes its own handlers in. It merges
+`className` and `style` onto its root (`.classicyWindowTitleBar`).
+
+| Prop | Type | Notes |
+|---|---|---|
+| `title` * | `string` | `""` draws one title-less center band (`classicyWindowTitleCenter`) |
+| `icon` / `hideIcon` | `string` / `boolean` | the proxy icon before the title (document variant) |
+| `variant` | `"document" \| "utility"` | default `"document"` (side bands around the title); `"utility"` draws the windoid's center band and no title text |
+| `modal` | `boolean` | adds `classicyWindowTitleBarModal`; never a zoom box |
+| `onClose` / `onZoom` | `() => void` | each draws its box (a `data-classicy-control` wrapper) and is called by a click, Enter or Space |
+| `onCollapse` | `(e: MouseEvent<HTMLDivElement>) => void` | draws the collapse box; called by its click |
+| `onCollapseKey` | `() => void` | Enter or Space on the collapse box; without it those keys click the box |
+| `onTitleMouseDown` / `onTitleDoubleClick` | handlers | on the title area, the drag handle |
+| `className` / `style` | passthrough | onto the root |
+
+The structure is two SCSS mixins in `Window/ClassicyWindowTitleBar.scss`
+(`classicy-window-title-bar`, `classicy-window-title-bar-active`) that
+`ClassicyWindow.scss` and `ClassicyWindowFrame.scss` include under their own
+roots, so the title bar's selectors are `.classicyWindow .classicyWindowTitleBar …`
+or `.classicyWindowFrame .classicyWindowTitleBar …`. Platinum draws the
+stripes with `platinum-title-bar-stripes` (§5, "System art").
 
 ### 4.2 Buttons & toggles
 
@@ -982,7 +1011,7 @@ plain integers (`0xRRGGBB`).
 | `registerClassicyControlStripModule(def)` | `id` *, `label` *, `icon` * (string or hook), `appId?`, `order? (100)`, `menuItems?` (array or hook), `content?` (component), `fileIcon?` | adds a module; call at module scope. Live (`useSyncExternalStore`). Same `appId` re-registering replaces; another `appId` is ignored with a warning. With `appId`, shown only while that `ClassicyApp` is mounted (`useClassicyMountedApps`). Each module also appears as a file in `System Folder:Control Strip Modules`. Also `unregisterClassicyControlStripModule(id)`, `getClassicyControlStripModule(id)`, `listClassicyControlStripModules()`, `arrangeClassicyControlStripModules(registrations, {disabledModules?, moduleOrder?, mountedApps})`, `classicyControlStripOpenControlPanelItem(dispatch, panelName, app)` (HIG p.125 "Open … Control Panel"). Built-in ids: `CLASSICY_CONTROL_STRIP_MODULE_IDS` (`sound` → `classicy-sound`, order 10; `screenSaver` → `classicy-screen-saver`, order 20, owned by `ScreenSaver.app`) |
 | `ClassicyControlStripManager` | none | the Control Strip control panel (`ControlStripManager.app`, in `ClassicyControlPanels`): show/hide the strip; show/hide and reorder each module the host has not disabled |
 | `ClassicyPopUpSlider` | `value` *, `onChange(value)` *, `ariaLabel` *, `min? (0)`, `max? (100)`, `step? (1)`, `disabled?` | HIGOS8 Figure 2-16's vertical slider (17 × 73) for a bevel button's `popupContent`; drag/click, arrows, Page Up/Down, Home/End |
-| `ClassicyPixelArt` | `rows` * (`string[]` of palette tokens, `.` transparent), `className?` | themed, pixel-exact inline-SVG art (tokens `K W 1–7 b c d m n` map to theme colors) |
+| `ClassicyPixelArt` | `rows` (`string[]` of palette tokens, `.` transparent) **or** `art` (a `ClassicySystemArtKey` holding pixel art, read from the active package at render time), `className?`, `style?` | themed, pixel-exact inline-SVG art (tokens `K W 1–7 b c d m n` map to theme colors). `useClassicyPixelArtRows(key)` returns a key's rows; a package registers rows as system art with `encodeClassicyPixelArtRows(rows)` (a `data:text/x-classicy-pixel-art,…` source, `CLASSICY_PIXEL_ART_MIME`), and `decodeClassicyPixelArtRows(src)` reads one back outside React |
 
 Desktop icon `kind` values (sort order): `drive`, `directory`, `app_shortcut`,
 `shortcut`, `trash`, `file`, `icon`. Kinds `app_shortcut` and `shortcut` get
@@ -1421,7 +1450,7 @@ bevel, border, gradient and piece of art moved into Platinum's own stylesheet
   | `appearance.no-select` | `layout.classicy-no-select` |
   | `scrollbars.scrollbars`, `scrollbars-split-arrows`, `scrollbars-inactive`, `scrollbars-themed` | `scrollbars.platinum-scrollbars`, `platinum-scrollbars-split-arrows`, `platinum-scrollbars-inactive`, `platinum-scrollbars-themed` |
   | `scrollbars.sb-glyph-up`/`-down`/`-left`/`-right`, `sb-btn-box`, `sb-btn-pressed` | `scrollbars.platinum-scrollbar-glyph-up`/`-down`/`-left`/`-right`, `platinum-scrollbar-button-box`, `platinum-scrollbar-button-pressed` |
-  | `assets.$…` (the art variables) | `assets.$…`, same names (`classicy/appearance/platinum/scss/assets`) |
+  | `assets.$…` (the art variables) | Gone: read the registered art as `var(--classicy-art-<key>)` ("System art", below). `classicy/appearance/platinum/scss/assets` exports only `platinum-root-properties` |
   | `classicy/scss/themes.json` (the theme list) | `getAllThemes()` (the `presets` of `src/Appearance/Platinum/platinum.json`) |
   | `classicy/scss/fonts` (the `@font-face` rules) | Nothing: the Platinum package registers its fonts at runtime |
 - **Components outside a desktop lose their look.** The package's rules only
@@ -1432,6 +1461,28 @@ bevel, border, gradient and piece of art moved into Platinum's own stylesheet
   unstyled the same way.
 - **Strict-CSP hosts link a second file.** `dist/classicy.css` no longer
   carries the look; link `dist/classicy-platinum.css` right after it (§1).
+- **Platinum's art is registered system art.** The window, menu, pop-up,
+  slider and tab art is read as `var(--classicy-art-<key>)`, which only
+  `ClassicyDesktop` (and Storybook's frame) define. A standalone component
+  needs `useClassicyAssetVars()` spread on its wrapper too, or its art is
+  missing: for a slider the thumb's whole `background` shorthand, body
+  gradient included, is invalid at computed-value time. The published
+  `platinum-window-control-box` and `platinum-window-control-box-depressable`
+  mixins draw their dither from `--classicy-art-window-dither`, so a host
+  using them outside a desktop must define it (or accept no dither).
+- **The window frame draws the window's title bar.** `ClassicyWindowFrame`
+  renders `ClassicyWindowTitleBar` (§4.1); its `classicyWindowFrameTitleBar`
+  and `classicyWindowFrameTitleText` classes are gone. Target
+  `.classicyWindowFrame .classicyWindowTitleBar` and
+  `.classicyWindowFrame .classicyWindowTitleText` instead.
+- **The Control Strip and pop-up slider row constants are no longer
+  exported** (`controlStripTab`, `controlStripCollapseGlyph`,
+  `controlStripScroll{Left,Right}{,Disabled}`, `controlStripModuleArrow`,
+  `popUpSliderTrack`, `popUpSliderThumb`). They are Appearance Package data:
+  read them with `useClassicyPixelArtRows(key)` (key `controlStripCollapse`
+  for the old `controlStripCollapseGlyph`), draw them with
+  `<ClassicyPixelArt art={key} />`, and replace them with
+  `registerClassicySystemArt(packageId, { [key]: encodeClassicyPixelArtRows(rows) })`.
 - **Host overrides keep working.** Unlayered host CSS, host layers and
   `classicy.user` outrank `classicy.package` just as they outrank
   `classicy.base`, and resets in the reserved `classicy.base.host` sublayer
@@ -1455,33 +1506,52 @@ bevel, border, gradient and piece of art moved into Platinum's own stylesheet
 
 ### System art
 
-`ClassicySystemArtKey` is a union of 44 keys. Platinum registers 21 of them;
+`ClassicySystemArtKey` is a union of 39 keys. Platinum registers 34 of them;
 the rest resolve to `undefined` and their consumers fall back to the stylesheet
-default (or draw nothing).
+default (or draw nothing). Each registered entry is published on the desktop
+root as `--classicy-art-<kebab-key>` (pixel art excepted: its
+`data:text/x-classicy-pixel-art` sources are no CSS images).
 
 | Registered by Platinum | Notes |
 |---|---|
 | `appleMenu`, `sadMac`, `startupLogo`, `trashEmpty`, `trashFull`, `aliasBadge`, `helpButton`, `aboutLogo` | read by the menu bar, crash screen, startup screen, Finder, desktop icons, `ClassicyHelpButton`, About This Computer |
-| `windowStripes`, `windowStripesRed`, `windowGrip`, `windowDither`, `zoomGlyph`, `collapseGlyph` | window chrome art |
-| `triangle`, `downArrow`, `submenuArrow`, `popupArrows`, `sliderThumb`, `sliderStrikes`, `tabOutline` | control art |
+| `windowStripes`, `windowStripesRed` | the title-bar pinstripes, gray and red, in their own colors: each stripe band's `background` image (`platinum-title-bar-stripes` in `_mixins.scss`) |
+| `windowUtilityTexture` | the windoid's title-bar texture, tiled 4px × 3px on its center band |
+| `windowGrip`, `windowDither` | the grow-box grip and the control boxes' luminosity dither (images) |
+| `zoomGlyph`, `collapseGlyph` | the control-box glyphs, their boxes' `::after` images (`currentColor` draws black) |
+| `submenuArrow`, `popupArrows` (and their aliases `triangle`, `downArrow`) | the submenu triangle (`::after` image) and the pop-up double arrow (the indicator's image) |
+| `sliderThumb`, `sliderThumbRect`, `sliderStrikes` | the slider thumb's image layers |
+| `tabOutline` | the tab wrapper's image |
+| `halftone`, `halftoneLarge` | the open-icon dot pattern and the pre-boot dither (their icon readers are Part G's, ruling G16) |
+| `controlStripTab`, `controlStripCollapse`, `controlStripScrollLeft`, `controlStripScrollLeftDisabled`, `controlStripScrollRight`, `controlStripScrollRightDisabled`, `controlStripModuleArrow`, `popUpSliderTrack`, `popUpSliderThumb` | `ClassicyPixelArt` rows (`<ClassicyPixelArt art={key} />`, `useClassicyPixelArtRows`) |
 
-Unregistered by Platinum (23 keys): `aboutBackground`, `windowUtilityShade`,
-`windowUtilityHighlight`, `titleBarCapLeft`, `titleBarCapRight`,
-`titleBarCapLeftRed`, `titleBarCapRightRed`, `sliderThumbRect`, `halftone`,
-`halftoneLarge`, `quickTimeThumbSlider`, `quickTimeVolumeSlider`,
-`controlStripTab`, `controlStripCollapse`, `controlStripScrollLeft`,
-`controlStripScrollLeftDisabled`, `controlStripScrollRight`,
-`controlStripScrollRightDisabled`, `controlStripModuleArrow`, `popUpSliderTrack`,
-`popUpSliderThumb`, `menuCheck`, `menuDash`. Why:
+Unregistered by Platinum (5 keys): `aboutBackground`, `quickTimeThumbSlider`,
+`quickTimeVolumeSlider` (no Platinum art), and `menuCheck`, `menuDash` (the
+menu check and dash are `::before` glyphs in Platinum's menu partial).
 
-- The four title-bar caps and the two utility keys have SVGs under
-  `src/Appearance/Platinum/assets/art/` (`title-bar-left.svg`, `-right.svg`,
-  the red pair, `title-bar-utility.svg`) but stay unregistered until Part E
-  wires them into the window chrome.
-- `menuCheck` and `menuDash` are Unicode glyphs in `ClassicyMenu`, and the
-  Control Strip and pop-up slider art is `ClassicyPixelArt` rows of theme
-  tokens, so those keys have no file.
-- The rest have no Platinum art today.
+The window, menu, pop-up, slider and tab art is drawn as **image layers**,
+never masks, so it shows the colors the file holds (`currentColor` draws black
+in an image), and a package recolors it by registering recolored files. A mask
+over a theme color would recolor with the theme, but it anti-aliases edges
+(and the stripes' row boundaries, drawn at fractional scales and positions)
+differently from the one image: up to 21 levels off in Chromium and 25 in
+Firefox for the stripes. Platinum must render as it did before it was a
+package.
+
+Images also load where masks may not. `mask-image` URLs are fetched in CORS
+mode: Firefox drops a mask whose file comes from another origin without CORS
+headers (Chromium draws it; both draw masks from `file:` pages), while a
+background image always loads. So Platinum's art is safe when a host serves
+`dist/assets/` from a CDN or packages the app for `file:`. The masks that
+remain are the icons' `--classicy-icon-mask` (the icon's own image, any URL
+the host gives, and the alias badge) and, once Part G lands, the open icon's
+halftone (`dist/assets/halftone.svg`): a host serving those from another
+origin must send CORS headers for Firefox.
+
+The four title-bar cap keys (`titleBarCapLeft`, `-Right`, `-LeftRed`,
+`-RightRed`) and the split windoid keys (`windowUtilityShade`,
+`windowUtilityHighlight`) are gone from the union: the caps were 0 px tall and
+never painted, and the windoid texture is one image, `windowUtilityTexture`.
 
 Platinum's own test (`platinumAssets.test.ts`) classifies every key in an
 exhaustive `Record<ClassicySystemArtKey, boolean>`, so adding a key to the union
@@ -1498,7 +1568,11 @@ the browser's own cursor shows for them.
 
 `useClassicyCursor()` returns a stable `setCursor(role?)` that reads the role
 from the registry at call time and sets `document.body.style.cursor`; a role
-with no registered cursor (or no argument) restores the default.
+with no registered cursor (or no argument) restores the default. For a cursor
+over one element, use CSS instead: `cursor: var(--classicy-cursor-<role>,
+url('data:,')) <x> <y>, <keyword>` (the window grow box and the split-view
+dividers do this; inside a desktop, `.classicyDesktop { cursor: default }`
+hides a body cursor anyway).
 
 ### CSS variables
 
@@ -1524,9 +1598,9 @@ an undefined variable voids the whole declaration:
 `ClassicySplitView` and the PDF viewer's pan tool use exactly this form. The
 variables are scoped to the desktop root, so they do not exist outside it.
 
-Platinum's base64 art variables (`src/Appearance/Platinum/styles/_assets.scss`)
-are unchanged; the registry changes how assets are exposed and swapped, not
-how Platinum draws.
+Platinum draws all of its window, menu, pop-up, slider and tab art from these
+variables (image layers, see "System art"); `_assets.scss` holds no art, only
+the package root's custom properties (`platinum-root-properties`).
 
 ---
 
@@ -2331,7 +2405,9 @@ there, every decorated root is outlined, and every event is logged in the
 Actions panel. Under the probe the window control boxes, menu dividers and
 the depressable `::after` geometry collapse, because that structure still
 lives in Platinum's look mixins (Part B ruling R10; follow-up story
-0088-sz9).
+0088-sz9), and package-owned art and glyphs (the stripes, glyphs and arrows,
+the tab outline, the placard ▾, the menu check) are absent by design: they
+are Platinum's look, not the component's (ruling E23).
 
 ### Layout declarations
 
