@@ -246,6 +246,45 @@ describe("ClassicyDesktopIconCleanup", () => {
 			]);
 		});
 
+		it("ClassicyDesktopIconSort by kind breaks ties on the package's name", () => {
+			registerTestRenamePackage();
+			seedStore(TEST_RENAME_PACKAGE_ID, [
+				...named,
+				{ appId: "Trash", appName: "Trash", icon: "t.png", kind: "trash" },
+			]);
+			dispatch({ type: "ClassicyDesktopIconSort", sortBy: "kind" });
+			expect(order()).toEqual([
+				"Scrapbook.app",
+				"TV.app",
+				"Tetris.app",
+				"Zed.app",
+				"Trash",
+			]);
+		});
+
+		it("ClassicyDesktopIconAdd lays the desktop out by the package's name", () => {
+			registerTestRenamePackage();
+			seedStore(
+				TEST_RENAME_PACKAGE_ID,
+				named.filter((icon) => icon.appId !== "Tetris.app"),
+			);
+			dispatch({
+				type: "ClassicyDesktopIconAdd",
+				app: { id: "Tetris.app", name: "Tetris", icon: "t.png" },
+				kind: "app_shortcut",
+			});
+			expect(order()).toEqual([
+				"Scrapbook.app",
+				"TV.app",
+				"Tetris.app",
+				"Zed.app",
+			]);
+			const tv = useAppManager
+				.getState()
+				.System.Manager.Desktop.icons.find((icon) => icon.appId === "TV.app");
+			expect(tv?.appName).toBe("TV");
+		});
+
 		it("keeps a drive sharing an overridden app id under its own name", () => {
 			// Extend the fixture locally: test-rename also renames Finder.
 			registerTestRenamePackage();
