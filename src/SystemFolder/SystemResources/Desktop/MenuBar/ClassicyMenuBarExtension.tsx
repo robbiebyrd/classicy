@@ -9,6 +9,7 @@ import {
 	useState,
 } from "react";
 import { createPortal } from "react-dom";
+import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { ClassicyContextualMenu } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenu";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
@@ -40,7 +41,10 @@ export interface ClassicyMenuBarExtensionProps {
  *
  * Render it anywhere inside a `ClassicyDesktop` (typically inside your
  * `ClassicyApp`): it portals into the menu bar's `#classicyDesktopMenuExtensions`
- * region, and renders nothing when that region is not in the document. The item
+ * region, and renders nothing when that region is not in the document — as
+ * under an Appearance Package whose `layout.menuBar.placement` is `"window"`,
+ * which draws no screen bar. It looks the region up again whenever the
+ * placement changes, so it reappears when the bar does. The item
  * is a real `<button>`, so Enter and Space activate it. With `menuItems`, a
  * click drops a Platinum menu below the item, which closes on a selection or a
  * click outside.
@@ -71,9 +75,15 @@ export const ClassicyMenuBarExtension: FunctionalComponent<
 
 	const hasMenu = !!menuItems && menuItems.length > 0;
 
+	// The region is the screen bar's: a package with menus in each window
+	// removes it, and a switch back renders a new one. Look it up again
+	// whenever the placement changes (effects run after the bar's commit), so
+	// the item never stays portaled into a detached region.
+	const placement = useClassicyAppearanceLayout().menuBar.placement;
+	// biome-ignore lint/correctness/useExhaustiveDependencies: placement is the trigger; the lookup reads the DOM the bar just committed
 	useEffect(() => {
 		setRegionNode(document.getElementById("classicyDesktopMenuExtensions"));
-	}, []);
+	}, [placement]);
 
 	const activate = () => {
 		if (hasMenu) {

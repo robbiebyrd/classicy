@@ -62,6 +62,17 @@
       padding: 0;
     }
   }
+
+  // A balloon-wrapped title's anchor is a full-width block, as dropdown items
+  // need (ClassicyMenu.scss); on the bar it is a flex item sized by its
+  // title, or it would stretch across the bar and push the clusters after it.
+  > .classicyMenuItemBalloonAnchor {
+    width: auto;
+
+    > .classicyMenuItem {
+      width: auto;
+    }
+  }
 }
 
 // Left to right: Apple, the app's menus, Help, then — pushed to the far end by

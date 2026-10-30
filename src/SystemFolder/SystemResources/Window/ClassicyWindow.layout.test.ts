@@ -83,6 +83,37 @@ describe("ClassicyWindow.scss arrangement", () => {
 		});
 	});
 
+	// F 7.1 (F 3.1 review carry-forward): the grip's two drawn edges continue
+	// the scroll bars' outer lines on the content side of the grip, so they
+	// follow the corner: a left corner draws the vertical edge on the grip's
+	// right (nudged out by a border, mirroring the bottom-right nudge), a top
+	// corner draws the horizontal edge along the grip's bottom. Dimmed, the
+	// moved edges take the dimmed color too. (Sass writes `*=left` unquoted.)
+	it("mirrors the grip's edges with its corner", () => {
+		expect(rule(`[data-classicy-grow-box*=left] ${resizer}::before`)).toEqual({
+			left: "auto",
+			right: "calc(var(--window-border-size) * -1)",
+			"border-left": "none",
+			"border-right": "var(--window-border-size) solid var(--color-black)",
+		});
+		expect(rule(`[data-classicy-grow-box*=top] ${resizer}::before`)).toEqual({
+			top: "auto",
+			bottom: "0",
+			"border-top": "none",
+			"border-bottom": "var(--window-border-size) solid var(--color-black)",
+		});
+		expect(
+			rule(
+				"[data-classicy-grow-box*=left] .classicyWindow .classicyWindowResizerDimmed::before",
+			),
+		).toEqual({ "border-right-color": "var(--color-system-05)" });
+		expect(
+			rule(
+				"[data-classicy-grow-box*=top] .classicyWindow .classicyWindowResizerDimmed::before",
+			),
+		).toEqual({ "border-bottom-color": "var(--color-system-05)" });
+	});
+
 	it("stripe spans can be hidden by a package", () => {
 		expect(css).not.toMatch(
 			/classicyWindowTitle(Left|Center|Right)[^}]*display:[^;]*!important/,
