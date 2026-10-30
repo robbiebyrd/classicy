@@ -7,21 +7,9 @@
 // The slant is proportional rather than a fixed pixel run, so it holds its
 // character across all three sizes: on a `small` tab it works out to roughly
 // the 5 px-over-14 px rise of the reference art, and it stays aligned with the
-// stretched border SVG below, which a fixed-px slant would not.
+// stretched outline art (the appearance package's `tabOutline`, the wrapper's
+// background image), which a fixed-px slant would not.
 $tab-shape: polygon(13.70% 0%, 86.30% 0%, 100% 100%, 0% 100%);
-
-// ── Tab border SVG ────────────────────────────────────────────────────────────
-// Draws only the 3 visible sides (left diagonal, top, right diagonal — no bottom).
-// 2 px centered stroke → 1 px visible inside after clip-path crops the outer half.
-// preserveAspectRatio='none' is required so the SVG stretches to exactly fill the
-// element — otherwise the browser letterboxes it and the stroke drifts off the clip edges.
-// vector-effect='non-scaling-stroke' is what keeps that stretch from also
-// stretching the stroke: without it the 2 px stroke is scaled by the viewBox
-// mapping, so on a `small` tab (19.2 px against a 23.44-unit box) the top edge
-// thins to ~0.7 px and vanishes into antialiasing. Non-scaling keeps it 2 px in
-// device space at every size, leaving a true 1 px line after the clip.
-// Path: bottom-left → top-left → top-right → bottom-right (open, no closing line).
-$_tab-border-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 75.31 23.44' preserveAspectRatio='none'%3E%3Cpath d='M0,23.44 L10.32,0 H64.98 L75.31,23.44' fill='none' stroke='black' stroke-width='2' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
 
 .classicyTabContainer {
   // Scroll-arrow triangle size. Declared on the container, not on the glyph
@@ -80,11 +68,11 @@ $_tab-border-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/s
   flex: 0 0 auto;
   height: calc(var(--window-control-size) * 2);
   clip-path: $tab-shape;
-  // SVG layer (top): 3-sided border tracing the tab outline via stroke.
-  // background-color (bottom): fill — overridden to active color via :has() below.
-  background-image: $_tab-border-svg;
+  // The appearance package's outline art (Platinum: `tabOutline`) is this
+  // wrapper's background image, stretched to fill it above the fill.
   background-size: 100% 100%;
   background-repeat: no-repeat;
+  // The fill — overridden to the active color via :has() below.
   background-color: var(--color-system-04);
 
   &:has(.classicyTabButton.selected) {

@@ -8,29 +8,35 @@
 // Pentagon: flat top + right/left sides down to 62%, then arrow-point to 100%
 $thumb-shape: polygon(9% 2%, 92% 2%, 92% 56.6%, 50% 95%, 9% 56.6%);
 
-// ── Thumb border SVG ──────────────────────────────────────────────────────────
+// ── Thumb border art ──────────────────────────────────────────────────────────
 // `border`, `box-shadow`, and `filter: drop-shadow` all fail on
 // ::webkit-slider-thumb: border/shadow paint before clip-path (rectangle-clipped),
 // and filter is not applied to this pseudo-element by the browser.
 //
-// Solution: SVG background layer draws a 4px black stroke on the same pentagon
-// path used by clip-path. The stroke is centered on the path so its outer 2px
-// are cropped by clip-path, leaving a clean 2px border (= --window-border-size × 2)
-// that follows every edge exactly — including the diagonal lower sides.
+// Solution: an image layer draws a 4px stroke on the same pentagon path used by
+// clip-path. The stroke is centered on the path so its outer 2px are cropped by
+// clip-path, leaving a clean 2px border (= --window-border-size × 2) that
+// follows every edge exactly — including the diagonal lower sides.
 //
-// SVG viewBox = 21 × 21 px (matches the thumb's width × height, 1:1 aspect ratio).
-// Points = $thumb-shape converted to px: (0,0)(21,0)(21,13.02)(10.5,21)(0,13.02)
-$_thumb-border-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 21 21'%3E%3Cpolygon points='0,0 21,0 21,13.02 10.5,21 0,13.02' fill='none' stroke='black' stroke-width='4'/%3E%3C/svg%3E");
+// The art is the registered system art `sliderThumb` (Platinum:
+// assets/art/slider-thumb.svg, viewBox 21 × 21 = the thumb's width × height,
+// points = $thumb-shape in px). It stays an image layer, not a mask: the thumb
+// has no pseudo-elements, so a mask would clip the body gradient too. Its
+// `currentColor` stroke draws black in an image.
+$_thumb-border-svg: var(--classicy-art-slider-thumb);
 
-// ── Thumb grip strikes SVG ────────────────────────────────────────────────────
-// Three vertical lines centered in the thumb body to indicate draggability.
-// Sourced from assets/img/ui/slider-strikes.svg (ui icon section).
-$_thumb-strikes-svg: url('../../../../../assets/img/ui/slider-strikes.svg');
+// ── Thumb grip strikes art ────────────────────────────────────────────────────
+// Three vertical lines centered in the thumb body to indicate draggability:
+// the registered system art `sliderStrikes` (Platinum:
+// assets/art/slider-strikes.svg, its two-tone grays the art).
+$_thumb-strikes-svg: var(--classicy-art-slider-strikes);
 
 // ── Nondirectional thumb (unpointed knob) ─────────────────────────────────────
 // A plain rounded-rectangle indicator for sliders where the pointed edge would
-// carry no meaning. Same 2px-cropped-stroke trick as the pentagon border.
-$_thumb-rect-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 21 21'%3E%3Crect x='0' y='0' width='21' height='21' rx='3' fill='none' stroke='black' stroke-width='4'/%3E%3C/svg%3E");
+// carry no meaning. Same 2px-cropped-stroke trick as the pentagon border, from
+// the registered system art `sliderThumbRect` (Platinum:
+// assets/art/slider-thumb-rect.svg).
+$_thumb-rect-svg: var(--classicy-art-slider-thumb-rect);
 $_thumb-rect-shape: inset(0 round calc(var(--window-border-size) * 1.5));
 
 // ── Thumb appearance mixin ────────────────────────────────────────────────────
