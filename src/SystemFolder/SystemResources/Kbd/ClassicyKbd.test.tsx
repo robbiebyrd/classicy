@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@/__tests__/test-utils";
 import { ClassicyKbd } from "@/SystemFolder/SystemResources/Kbd/ClassicyKbd";
@@ -131,5 +133,17 @@ describe("ClassicyKbd", () => {
 		expect(shortcutSpies.modifiers).toHaveBeenCalledWith(
 			shortcutSpies.parse.mock.results[0].value,
 		);
+	});
+});
+
+// H-R27d: the key cap's outline is an edge of the cap, always drawn, so it
+// reads the border width, not the focus ring's (one name per role, H-R6).
+describe("ClassicyKbd styles", () => {
+	it("outlines the key cap with the border width", () => {
+		const sheet = readFileSync(resolve(__dirname, "ClassicyKbd.scss"), "utf8");
+		expect(sheet).toMatch(
+			/outline: var\(--window-border-size\) solid var\(--color-outline\);/,
+		);
+		expect(sheet).not.toMatch(/--focus-ring-width/);
 	});
 });

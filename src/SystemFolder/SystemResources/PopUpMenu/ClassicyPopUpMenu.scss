@@ -128,8 +128,8 @@
   // (see ClassicyPopUpMenu.tsx) so the menu escapes the window's overflow.
   // So is max-height, once the menu has been measured: the value below
   // (measurements.menu.popUpMaxHeight, platinum.json) governs only the single
-  // measuring pass, and Platinum's must stay equal to POPUP_MENU_MAX_HEIGHT in
-  // ClassicyPopUpMenuPlacement.ts (pinned by ClassicyPopUpMenuPlacement.test.ts).
+  // measuring pass; the placement policy (ClassicyPopUpMenuPlacement.ts) caps
+  // the open menu at the same variable, read when the menu opens.
   margin: 0;
   padding: var(--window-border-size);
   list-style: none;

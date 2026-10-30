@@ -19,6 +19,7 @@ import { createPortal } from "react-dom";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
+import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import {
 	ClassicyControlLabel,
@@ -297,7 +298,19 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 		const el = listRef.current;
 		if (!el) return;
 		setPlacement(
-			classicyPopUpMenuPlacement(menuRect, el.scrollHeight, window.innerHeight),
+			classicyPopUpMenuPlacement(
+				menuRect,
+				el.scrollHeight,
+				window.innerHeight,
+				null,
+				// The theme's cap, read from the input (the list may be portaled
+				// out of its themed ancestor) once per opening.
+				readClassicyThemeVar(
+					"--menu-pop-up-max-height",
+					undefined,
+					inputRef.current,
+				),
+			),
 		);
 	}, [open, menuRect]);
 

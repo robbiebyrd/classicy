@@ -34,9 +34,11 @@ import {
 // integration menuFrame.shadowOffset became shadowGap (H-R24), the scrollbar
 // grip knobs were renamed thumbGrip* (H-R20) and balloonHelp.tailWidth was
 // dropped (H-R22); H 6.1 added the progressBar.stripeWidth and
-// controlStripPopup.overlap knobs in the knob region and three derivations
-// (--control-corner-radius, --window-shadow-offset, --window-frame-inset-whole)
-// at the end (every other key and value unchanged each time).
+// stripMenu.overlap knobs in the knob region and four derivations
+// (--control-corner-radius, --window-shadow-offset, --window-frame-inset-whole,
+// and --progress-bar-stripe-period, 20px, which replaced the 40px stripePeriod
+// knob, H-R27b) at the end, and dropped crashScreen.artWidth (H-R27a) (every
+// other key and value unchanged each time).
 // Regenerate it only for an intended change to the emitted variables, by
 // running getThemeVars over getAllThemes() in a throwaway vitest file:
 //   writeFileSync("src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.themeVars.baseline.json",
@@ -49,8 +51,10 @@ import themeVarsBaseline from "./ClassicyAppearance.themeVars.baseline.json";
 // H-B1's pager.fontSize; H 5.1's hyperCard.itemPaddingY came and went,
 // replaced by the --layout-item-gap-half derivation under H-R19; the unread
 // picker.wheelInset was dropped; balloonHelp.tailWidth was dropped under
-// H-R22; H 6.1 added controlStripPopup.overlap and progressBar.stripeWidth).
-const PLATINUM_KNOB_COUNT = 95;
+// H-R22; H 6.1 added progressBar.stripeWidth and stripMenu.overlap, made
+// progressBar.stripePeriod a derivation and dropped the unreachable
+// crashScreen.artWidth, H-R27).
+const PLATINUM_KNOB_COUNT = 93;
 
 describe("getAllThemes", () => {
 	it("returns an array", () => {
@@ -289,9 +293,10 @@ describe("getThemeVars", () => {
 			"--control-corner-radius": "2px",
 			"--window-shadow-offset": "2px",
 			"--window-frame-inset-whole": "4px",
+			"--progress-bar-stripe-period": "20px",
 		};
 		for (const [k, v] of Object.entries(expected)) expect(vars[k], k).toBe(v);
-		expect(Object.keys(expected)).toHaveLength(41);
+		expect(Object.keys(expected)).toHaveLength(42);
 	});
 
 	it("derives from the inputs, not constants", () => {
@@ -367,6 +372,20 @@ describe("getThemeVars", () => {
 		expect(thick["--focus-ring-inset"]).toBe("6px");
 		expect(thick["--control-corner-radius"]).toBe("4px");
 		expect(thick["--window-shadow-offset"]).toBe("4px");
+	});
+
+	// H-R27b: the stripes' period is two bands, derived from the one knob, so
+	// the band width and the period can never disagree.
+	it("derives the progress bar's stripe period from its stripe width", () => {
+		const vars = getThemeVars(getTheme("default")) as Record<string, string>;
+		expect(vars["--progress-bar-stripe-width"]).toBe("10px");
+		expect(vars["--progress-bar-stripe-period"]).toBe("20px");
+		const base = getTheme("default");
+		const wide = getThemeVars({
+			...base,
+			measurements: { ...base.measurements, progressBar: { stripeWidth: 7 } },
+		}) as Record<string, string>;
+		expect(wide["--progress-bar-stripe-period"]).toBe("14px");
 	});
 
 	// H 6.1: Part E's window frame insets its title bar by the frame inset

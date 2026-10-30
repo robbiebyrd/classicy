@@ -1,5 +1,12 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, userEvent } from "@/__tests__/test-utils";
+import {
+	getTheme,
+	getThemeVars,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { CLASSICY_THEME_NON_MEASUREMENT_VARS } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import { ClassicyCrashScreen } from "@/SystemFolder/SystemResources/CrashScreen/ClassicyCrashScreen";
 
 vi.mock(
@@ -92,4 +99,32 @@ describe("ClassicyCrashScreen", () => {
 		fireEvent.keyDown(window, { key: "Escape" });
 		expect(reload).not.toHaveBeenCalled();
 	});
+});
+
+// H-R27a: the Sad Mac replaces the whole desktop, so it renders outside the
+// element that carries the theme's variables. Its sheet must not read a theme
+// measurement (it would never be set there), and anything it does read needs
+// a fallback of its own; the art keeps its intrinsic size.
+describe("ClassicyCrashScreen styles", () => {
+	const sheet = readFileSync(
+		resolve(__dirname, "ClassicyCrashScreen.scss"),
+		"utf8",
+	).replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "");
+	const reads = [...sheet.matchAll(/var\(\s*(--[a-zA-Z0-9-]+)\s*([,)])/g)];
+
+	it("reads no theme measurement variable", () => {
+		const measurements = Object.keys(getThemeVars(getTheme("default"))).filter(
+			(name) => !CLASSICY_THEME_NON_MEASUREMENT_VARS.includes(name),
+		);
+		expect(
+			reads
+				.map(([, name]) => name)
+				.filter((name) => measurements.includes(name)),
+		).toEqual([]);
+	});
+
+	it("reads every variable with a fallback of its own", () =>
+		expect(
+			reads.filter(([, , next]) => next !== ",").map(([, name]) => name),
+		).toEqual([]));
 });

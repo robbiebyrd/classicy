@@ -57,14 +57,14 @@ export type ClassicyControlStripProps = {
 };
 
 // HIGOS8 Figure 6-15: a module's surface overlaps the strip by the theme's
-// overlap (3 px under Platinum: its bottom border lands two rows into the
-// module) and a menu's left edge sits on the module's left separator, one
+// strip menu overlap (stripMenu.overlap, 3 px under Platinum: its bottom
+// border lands two rows into the module) and a menu's left edge sits on the module's left separator, one
 // strip border wide. Read from the variables the module inherits each time
 // its surface opens (G14), never per render.
 const modulePopupInset = (
 	module: HTMLElement,
 ): Partial<ClassicyBevelPopupRect> => ({
-	top: readClassicyThemeVar("--control-strip-popup-overlap", undefined, module),
+	top: readClassicyThemeVar("--strip-menu-overlap", undefined, module),
 	left: -readClassicyThemeVar(
 		"--control-strip-border-width",
 		undefined,

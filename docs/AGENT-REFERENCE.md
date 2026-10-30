@@ -2928,12 +2928,13 @@ full precision, and a rounded `9.333px` moves the computed `font-size`
 | `--desktop-icon-padding` | `iconSize / 4` | 12 | ClassicyDesktopIconContext.tsx, ClassicyFileBrowserUtils.ts |
 | `--desktop-icon-cell` | `iconSize × 2` | 96 | ClassicyDesktopIcon.scss, ClassicyDesktopIconContext.tsx, ClassicyFileBrowserUtils.ts |
 | `--desktop-icon-label-pad` | `iconFontSize / 4` | 3 | ClassicyDesktopIcon.scss, ClassicyIcon.scss |
-| `--focus-ring-width` | `borderSize` | 1 | ClassicyColorPicker.scss, ClassicyControlStrip.scss, ClassicyKbd.scss, ClassicyLink.scss, ClassicyPopUpSlider.scss |
+| `--focus-ring-width` | `borderSize` | 1 | ClassicyColorPicker.scss, ClassicyControlStrip.scss, ClassicyLink.scss, ClassicyPopUpSlider.scss |
 | `--focus-ring-inset` | `borderSize × 3` | 3 | ClassicyColorPicker.scss, ClassicyControlStrip.scss |
 | `--layout-item-gap-half` | `itemGap / 2` | 2 | DriveSetupList.scss, HyperCard.scss |
 | `--control-corner-radius` | `borderSize × 2` | 2 | ClassicyKbd.scss |
 | `--window-shadow-offset` | `borderSize × 2` | 2 | ClassicyWindowFrame.scss |
 | `--window-frame-inset-whole` | `floor(paddingSize / 1.25)` | 4 | ClassicyWindowFrame.scss |
+| `--progress-bar-stripe-period` | `progressBar.stripeWidth × 2` (a package knob) | 20 | ClassicyProgressBar.scss |
 
 The table's types and one helper are public:
 
@@ -2960,7 +2961,7 @@ sets itself could never take effect. Those variables are reserved
 
 - the palette, font and desktop variables (`CLASSICY_THEME_NON_MEASUREMENT_VARS`, 44 names);
 - the derived metrics above (`CLASSICY_THEME_DERIVED_VARS`, 15 names);
-- the named derivations (`CLASSICY_THEME_DERIVATIONS`, 41 names);
+- the named derivations (`CLASSICY_THEME_DERIVATIONS`, 42 names);
 - every `--classicy-*` name. That prefix is Classicy's own: the desktop root
   sets `--classicy-layout-*` after the theme's variables, and
   `--classicy-art-*` and `--classicy-cursor-*` are read with fallbacks a
@@ -2997,6 +2998,7 @@ variable itself:
 | `--ui-font-size` | `--ui-font-size-small`, `--ui-font-size-caption`, `--ui-font-size-compact`, `--ui-font-size-mini`, `--ui-font-size-large`, `--window-header-font-size` |
 | `--desktop-icon-size` / `--desktop-icon-font-size` | `--desktop-icon-padding`, `--desktop-icon-cell` / `--desktop-icon-label-pad` |
 | `--layout-item-gap` | `--layout-item-gap-half` |
+| `--progress-bar-stripe-width` | `--progress-bar-stripe-period` |
 
 JS geometry reads the variables the window inherits from its desktop root
 (below), so overriding `--menu-bar-height`, `--window-zoom-margin` or

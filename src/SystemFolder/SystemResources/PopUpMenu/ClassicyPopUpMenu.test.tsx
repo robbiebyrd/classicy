@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, render, screen, userEvent, within } from "@/__tests__/test-utils";
 
@@ -300,6 +301,25 @@ describe("ClassicyPopUpMenu", () => {
 		expect(onChangeFunc).not.toHaveBeenCalled(); // typing did not commit
 		await user.keyboard("{Enter}");
 		expect(onChangeFunc.mock.calls[0][0].target.value).toBe("cherry");
+	});
+
+	// H-R26: the open list's height cap is the theme's
+	// --menu-pop-up-max-height, read from the control when the menu opens.
+	it.each([
+		200, 400,
+	])("caps the open list at a --menu-pop-up-max-height of %ipx from an ancestor", async (cap) => {
+		const scroll = vi
+			.spyOn(HTMLElement.prototype, "scrollHeight", "get")
+			.mockReturnValue(1000);
+		const user = userEvent.setup();
+		render(
+			<div style={{ "--menu-pop-up-max-height": `${cap}px` } as CSSProperties}>
+				<ClassicyPopUpMenu id="fruit" options={many} selected="opt-3" />
+			</div>,
+		);
+		await user.click(screen.getByRole("combobox"));
+		expect(screen.getByRole("listbox").style.maxHeight).toBe(`${cap}px`);
+		scroll.mockRestore();
 	});
 
 	it("renders the open list outside a clipping ancestor (portaled to the body)", async () => {

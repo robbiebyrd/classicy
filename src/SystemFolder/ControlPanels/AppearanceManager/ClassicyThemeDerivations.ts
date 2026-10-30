@@ -1,3 +1,4 @@
+import platinumJson from "@/Appearance/Platinum/platinum.json";
 import type {
 	ClassicyThemeDesktop,
 	ClassicyThemeMeasurements,
@@ -40,6 +41,12 @@ const padding = (i: ClassicyThemeDerivationInputs): number =>
 const border = (i: ClassicyThemeDerivationInputs): number =>
 	i.measurements.window.borderSize;
 const ui = (i: ClassicyThemeDerivationInputs): number => i.typography.uiSize;
+// A package knob, not a core input: `getThemeVars` heals the theme from the
+// package floor before deriving, so Platinum's band is the fallback for a
+// caller that derives from unhealed measurements.
+const stripeWidth = (i: ClassicyThemeDerivationInputs): number =>
+	i.measurements.progressBar?.stripeWidth ??
+	platinumJson.defaults.measurements.progressBar.stripeWidth;
 
 /**
  * The Platinum proportions every stylesheet and the window geometry share,
@@ -274,7 +281,7 @@ export const CLASSICY_THEME_DERIVATIONS: readonly ClassicyThemeDerivation[] = [
 	{
 		cssVar: "--focus-ring-width",
 		formula: "window.borderSize",
-		doc: "Width of the keyboard focus outline drawn inside a control, and of the outlines that share its weight: a link's focus ring and its offset, a key cap's outline (ClassicyControlStrip.scss, ClassicyColorPicker.scss, ClassicyPopUpSlider.scss, ClassicyLink.scss, ClassicyKbd.scss).",
+		doc: "Width of the keyboard focus outline drawn around or inside a control, such as a link's focus ring (ClassicyControlStrip.scss, ClassicyColorPicker.scss, ClassicyPopUpSlider.scss, ClassicyLink.scss).",
 		compute: (i) => border(i),
 	},
 	{
@@ -306,6 +313,12 @@ export const CLASSICY_THEME_DERIVATIONS: readonly ClassicyThemeDerivation[] = [
 		formula: "floor(window.paddingSize / 1.25)",
 		doc: "The window frame inset rounded down to a whole pixel: how far a window frame's title bar sits inside the frame's border, so the frame's body stays on the pixel grid (ClassicyWindowFrame.scss).",
 		compute: (i) => Math.floor(padding(i) / 1.25),
+	},
+	{
+		cssVar: "--progress-bar-stripe-period",
+		formula: "progressBar.stripeWidth * 2",
+		doc: "Repeat of an indeterminate progress bar's barber-pole stripes: a white band and a theme band, each progressBar.stripeWidth wide, so the bands and the period can never disagree (ClassicyProgressBar.scss, H-R27b).",
+		compute: (i) => stripeWidth(i) * 2,
 	},
 ];
 
