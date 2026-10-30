@@ -163,7 +163,7 @@
 
 @mixin platinum-window-undepressable {
   box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05),
-  inset calc(var(--window-border-size) * -2) calc(var(--window-border-size) * -2) var(--color-system-04),
+  inset calc(var(--control-frame-width) * -1) calc(var(--control-frame-width) * -1) var(--color-system-04),
   inset var(--window-border-size) var(--window-border-size) var(--color-system-04),
   inset var(--control-frame-width) var(--control-frame-width) var(--color-white);
   background-color: var(--color-system-02);
@@ -175,7 +175,7 @@
   @include platinum-window-undepressable;
   &:active {
     box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05),
-    inset calc(var(--window-border-size) * -2) calc(var(--window-border-size) * -2) var(--color-system-06),
+    inset calc(var(--control-frame-width) * -1) calc(var(--control-frame-width) * -1) var(--color-system-06),
     inset var(--window-border-size) var(--window-border-size) var(--color-system-07),
     inset var(--control-frame-width) var(--control-frame-width) var(--color-system-06);
     background-color: var(--color-system-05);
@@ -197,7 +197,7 @@
 @mixin platinum-window-depressed {
   border-radius: var(--window-padding-size);
   box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05),
-  inset calc(var(--window-border-size) * -2) calc(var(--window-border-size) * -2) var(--color-system-06),
+  inset calc(var(--control-frame-width) * -1) calc(var(--control-frame-width) * -1) var(--color-system-06),
   inset var(--window-border-size) var(--window-border-size) var(--color-system-07),
   inset var(--control-frame-width) var(--control-frame-width) var(--color-system-06);
   background-color: var(--color-system-05);
@@ -219,12 +219,12 @@
 
 @mixin platinum-depressable-box-shadow-active {
   box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-07),
-  inset calc(var(--window-border-size) * -2) calc(var(--window-border-size) * -2) var(--color-system-06),
+  inset calc(var(--control-frame-width) * -1) calc(var(--control-frame-width) * -1) var(--color-system-06),
   inset var(--window-border-size) var(--window-border-size) var(--color-system-07),
   inset var(--control-frame-width) var(--control-frame-width) var(--color-system-06),
   0 0 0 var(--window-border-size) var(--color-system-04),
   0 0 0 var(--control-frame-width) var(--color-black),
-  inset calc(var(--window-border-size) * -2) calc(var(--window-border-size) * -2) 0 0 var(--color-system-05),
+  inset calc(var(--control-frame-width) * -1) calc(var(--control-frame-width) * -1) 0 0 var(--color-system-05),
   inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-06);
 }
 

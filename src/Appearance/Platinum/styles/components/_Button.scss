@@ -15,11 +15,11 @@
     @include mixins.platinum-depressable-default;
 
     // Anchor the platinum default-button ring outset to the HIG token (3px).
-    // Same three-layer platinum ring as the mixin, but its outer reach is now
-    // driven by --button-default-ring instead of border-size arithmetic.
+    // Same three-layer platinum ring as the mixin, one border wide per
+    // layer (border, frame, ring), its outer reach --button-default-ring.
     box-shadow:
-      0 0 0 calc(var(--button-default-ring) / 3) var(--color-system-04),
-      0 0 0 calc(var(--button-default-ring) / 3 * 2) var(--color-system-02),
+      0 0 0 var(--window-border-size) var(--color-system-04),
+      0 0 0 var(--control-frame-width) var(--color-system-02),
       0 0 0 var(--button-default-ring) var(--color-black),
       inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 0 var(--color-system-05),
       inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-06);

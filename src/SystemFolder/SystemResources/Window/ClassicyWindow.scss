@@ -19,9 +19,7 @@
 .classicyWindow {
   position: absolute;
   z-index: 20;
-  max-height: calc(
-    100% - var(--window-control-size) * 4 - var(--window-padding-size)
-  );
+  max-height: calc(100% - var(--window-max-height-reserve));
   // Width of the grey frame ring between the window border and the contents
   // box: the theme derivation --window-frame-inset (padding / 1.25). Anything
   // that has to line up with the contents' edges (the resizer, below) reads
@@ -78,7 +76,8 @@
     background-repeat: no-repeat;
     background-position: center;
     background-size: calc(
-      var(--window-control-size) - (var(--window-border-size) * 2)
+      var(--window-control-size) - var(--window-border-size) -
+        var(--window-border-size)
     );
     box-shadow: none;
 
@@ -175,7 +174,7 @@
     // content and, while nothing overflows, adds classicyWindowScrollBarsHidden
     // (below), which drops the bars altogether.
     overflow: scroll;
-    height: calc(100% - (var(--window-control-size) * 1) - var(--window-padding-size) * 1.5);
+    height: calc(100% - var(--window-contents-chrome-height));
     background-color: var(--classicy-window-contents-bg, var(--color-window-document));
   }
 
@@ -209,7 +208,7 @@
 // The contents' header-offset height outranks the utility variant's and the
 // modal contents' heights (each one class lower).
 .classicyWindow.classicyWindow .classicyWindowContentsWithHeader {
-  height: calc(100% - (var(--window-control-size) * 3) - (var(--window-padding-size)));
+  height: calc(100% - var(--window-contents-header-chrome-height));
 }
 
 .classicyWindowHeader {
@@ -236,10 +235,8 @@
 // Named under `.classicyWindow` to outrank the header-offset contents'
 // background (`.classicyWindow .classicyWindowContentsWithHeader`).
 .classicyWindow .classicyWindowContentsModal {
-  width: calc(100% - var(--window-padding-size) / 2);
-  height: calc(
-    100% - (var(--window-control-size) * 2) - var(--window-padding-size)
-  );
+  width: calc(100% - var(--control-padding-tight) - var(--control-padding-tight));
+  height: calc(100% - var(--window-modal-contents-chrome-height));
   margin: 0;
   padding: var(--control-padding-tight);
   border: none;
@@ -314,7 +311,7 @@
   display: flex;
   align-items: center;
   // leave the bottom-right corner free for the resizer / horizontal scroll bar
-  max-width: calc(100% - var(--window-control-size) * 3.5);
+  max-width: calc(100% - var(--window-placard-end-reserve));
   height: var(--window-scrollbar-size);
 
   // A placard is an 18px --control-row-height control on its own, but on this
@@ -369,11 +366,11 @@
   // sizes itself to --window-scrollbar-size and so shrinks to match without a
   // rule of its own. The arrow glyph derives from the scrollbar size (the theme
   // uses size / 4), so it scales down proportionally too.
-  --window-scrollbar-size: calc(var(--window-padding-size) * 1 + var(--window-border-size) * 1);
+  --window-scrollbar-size: calc(var(--window-padding-size) + var(--window-border-size));
   --window-scrollbar-arrow-size: calc(var(--window-scrollbar-size) / 4);
 
   .classicyWindowContents {
-    height: calc(100% - var(--window-control-size) * .25 - var(--window-padding-size) * 1.5)
+    height: calc(100% - var(--window-utility-contents-chrome-height))
   }
 
   .classicyWindowTitleBar {
@@ -381,7 +378,7 @@
     // 10px, vs the document bar's --window-title-bar-height). Override both
     // height and min-height so nothing taller can win.
     height: var(--window-utility-title-bar-height);
-    top: calc(var(--window-border-size)*-2);
+    top: calc(var(--control-frame-width) * -1);
     min-height: var(--window-utility-title-bar-height);
     align-items: center;
     padding-bottom: 0;
@@ -390,10 +387,12 @@
     // keeping the Platinum bevel (from the Platinum package).
     .classicyWindowControlBox {
       width: calc(
-        var(--window-utility-title-bar-height) - var(--window-border-size) * 2
+        var(--window-utility-title-bar-height) - var(--window-border-size) -
+          var(--window-border-size)
       );
       height: calc(
-        var(--window-utility-title-bar-height) - var(--window-border-size) * 2
+        var(--window-utility-title-bar-height) - var(--window-border-size) -
+          var(--window-border-size)
       );
 
       // The close and collapse boxes' own utility size is in the Platinum
@@ -428,7 +427,7 @@
     var(--window-frame-inset);
 
   & .classicyWindowTitle {
-    width: calc(100% - var(--window-control-size)*5);
+    width: calc(100% - var(--window-modal-title-reserve));
   }
 }
 

@@ -39,7 +39,7 @@
   // without disturbing the bevel, which lives in border + box-shadow.
   &:focus-visible {
     outline: var(--window-border-size) dotted var(--color-black);
-    outline-offset: calc(var(--window-border-size) * -2);
+    outline-offset: calc(var(--control-frame-width) * -1);
   }
 }
 

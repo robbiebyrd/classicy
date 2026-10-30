@@ -50,8 +50,8 @@
 // selector so it overrides the base checkmark on source order.
 .classicyCheckbox.classicyCheckboxX {
   &:checked:after {
-    font-size: calc(var(--ui-font-size) * 1.25);
-    line-height: calc(var(--ui-font-size) * 0.65);
+    font-size: var(--checkbox-x-mark-font-size);
+    line-height: var(--checkbox-x-mark-line-height);
     content: '\00D7';
   }
 }

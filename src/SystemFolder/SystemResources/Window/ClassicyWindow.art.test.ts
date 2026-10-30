@@ -195,7 +195,7 @@ describe("ClassicyWindow title-bar art (Platinum package)", () => {
 			});
 			expect(baseRule(`${base} ${band}:before`), band).toEqual({
 				position: "relative",
-				left: "calc(var(--window-padding-size) * -1 / 2)",
+				left: "calc(var(--control-padding) * -1)",
 				display: "block",
 				content: '" "',
 				"background-repeat": "no-repeat",
@@ -282,7 +282,7 @@ describe("ClassicyWindow control-box and grow-box art (Platinum package)", () =>
 		const g = rule(RESIZER);
 		expect(g["background-image"]).toBe("var(--classicy-art-window-grip)");
 		expect(baseRule(RESIZER)["background-size"]).toBe(
-			"calc(var(--window-control-size) - var(--window-border-size) * 2)",
+			"calc(var(--window-control-size) - var(--window-border-size) - var(--window-border-size))",
 		);
 		expect(baseRule(RESIZER)["background-repeat"]).toBe("no-repeat");
 		expect(baseRule(RESIZER)["background-position"]).toBe("center");

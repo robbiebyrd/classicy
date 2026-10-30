@@ -28,8 +28,8 @@ $cp-crayon-tip: 0.31;
 .classicyColorPickerSwatch {
   display: inline-block;
   background-color: var(--classicy-preview-color);
-  width: calc(var(--window-control-size) * 2.5);
-  height: calc(var(--window-control-size) * 2.5);
+  width: var(--picker-swatch-size);
+  height: var(--picker-swatch-size);
   border: var(--window-border-size) solid var(--color-window-border);
   box-shadow:
     inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-01),
@@ -157,7 +157,7 @@ $cp-crayon-tip: 0.31;
   border: var(--window-border-size) solid var(--color-window-border);
   box-shadow:
     inset var(--control-frame-width) var(--control-frame-width) 0 rgba(255, 255, 255, 0.06),
-    inset calc(var(--window-border-size) * -2) calc(var(--window-border-size) * -2) 0 rgba(0, 0, 0, 0.55);
+    inset calc(var(--control-frame-width) * -1) calc(var(--control-frame-width) * -1) 0 rgba(0, 0, 0, 0.55);
   padding: 0;
   overflow: hidden;
 }
@@ -268,7 +268,7 @@ $cp-crayon-tip: 0.31;
 .classicyColorPickerSlidersTab {
   display: flex;
   flex-direction: column;
-  gap: calc(var(--window-padding-size) * 2);
+  gap: var(--picker-layout-gap);
   padding: var(--window-padding-size);
 }
 
@@ -283,7 +283,7 @@ $cp-crayon-tip: 0.31;
 
 .classicyColorPickerWheelLayout {
   display: flex;
-  gap: calc(var(--window-padding-size) * 2);
+  gap: var(--picker-layout-gap);
   align-items: flex-start;
 }
 

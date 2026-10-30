@@ -37,8 +37,9 @@ import {
 // stripMenu.overlap knobs in the knob region and four derivations
 // (--control-corner-radius, --window-shadow-offset, --window-frame-inset-whole,
 // and --progress-bar-stripe-period, 20px, which replaced the 40px stripePeriod
-// knob, H-R27b) at the end, and dropped crashScreen.artWidth (H-R27a) (every
-// other key and value unchanged each time).
+// knob, H-R27b) at the end, and dropped crashScreen.artWidth (H-R27a); H
+// 6.2a appended 31 derivations and 31 component knobs for the named
+// multipliers (every other key and value unchanged each time).
 // Regenerate it only for an intended change to the emitted variables, by
 // running getThemeVars over getAllThemes() in a throwaway vitest file:
 //   writeFileSync("src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.themeVars.baseline.json",
@@ -53,8 +54,9 @@ import themeVarsBaseline from "./ClassicyAppearance.themeVars.baseline.json";
 // picker.wheelInset was dropped; balloonHelp.tailWidth was dropped under
 // H-R22; H 6.1 added progressBar.stripeWidth and stripMenu.overlap, made
 // progressBar.stripePeriod a derivation and dropped the unreachable
-// crashScreen.artWidth, H-R27).
-const PLATINUM_KNOB_COUNT = 93;
+// crashScreen.artWidth, H-R27; H 6.2a added 31 component knobs for named
+// multipliers).
+const PLATINUM_KNOB_COUNT = 124;
 
 describe("getAllThemes", () => {
 	it("returns an array", () => {
@@ -294,9 +296,41 @@ describe("getThemeVars", () => {
 			"--window-shadow-offset": "2px",
 			"--window-frame-inset-whole": "4px",
 			"--progress-bar-stripe-period": "20px",
+			// H 6.2a: the multipliers named (H-R6).
+			"--window-max-height-reserve": "54px",
+			"--window-contents-chrome-height": "21px",
+			"--window-contents-header-chrome-height": "42px",
+			"--window-modal-contents-chrome-height": "30px",
+			"--window-utility-contents-chrome-height": "12px",
+			"--window-placard-end-reserve": "42px",
+			"--window-modal-title-reserve": "60px",
+			"--window-menu-bar-height": "21px",
+			"--ui-font-size-xlarge": "28px",
+			"--control-label-spacing": "6px",
+			"--radio-mark-width": "4px",
+			"--radio-mixed-mark-top": "4.8px",
+			"--radio-mixed-mark-height": "3px",
+			"--radio-mixed-mark-border": "1.5px",
+			"--checkbox-x-mark-font-size": "17.5px",
+			"--checkbox-x-mark-line-height": `${14 * 0.65}px`,
+			"--balloon-help-font-size": `${14 * 0.85}px`,
+			"--quick-time-time-font-size": `${14 * 0.85}px`,
+			"--quick-time-control-icon-size": "10.5px",
+			"--quick-time-volume-track-inset": "4.5px",
+			"--finder-about-font-size": `${14 * 0.8571}px`,
+			"--finder-about-title-font-size": `${14 * 1.8571}px`,
+			"--finder-about-heading-font-size": `${14 * 1.0714}px`,
+			"--finder-about-copyright-font-size": `${14 * 0.7857}px`,
+			"--menu-item-padding-inline": "7.5px",
+			"--slider-thumb-corner-radius": "1.5px",
+			"--tab-scroll-arrow-size": "4px",
+			"--tab-scroll-arrow-size-large": "5.333px",
+			"--tab-min-width-medium": "84px",
+			"--tab-height-large": "36px",
+			"--tab-large-padding-top": "4.5px",
 		};
 		for (const [k, v] of Object.entries(expected)) expect(vars[k], k).toBe(v);
-		expect(Object.keys(expected)).toHaveLength(42);
+		expect(Object.keys(expected)).toHaveLength(73);
 	});
 
 	it("derives from the inputs, not constants", () => {

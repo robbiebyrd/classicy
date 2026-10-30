@@ -5,7 +5,7 @@
   box-shadow:
     inset var(--control-frame-width) var(--control-frame-width) 0 0 var(--color-system-05),
     inset calc(var(--control-frame-width) * -1) calc(var(--control-frame-width) * -1) 0 0 var(--color-white);
-  min-height: calc(100% - var(--window-border-size)*2);
+  min-height: calc(100% - var(--window-border-size) - var(--window-border-size));
   display: flex;
   flex-direction: column;
 

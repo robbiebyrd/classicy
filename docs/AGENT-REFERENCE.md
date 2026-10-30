@@ -2881,9 +2881,11 @@ window geometry share, named once (`CLASSICY_THEME_DERIVATIONS`,
 `ClassicyThemeDerivations.ts`: each entry has `cssVar`, `formula`, `doc` and
 `compute`). `getThemeVars` emits them last, after every other variable, so a
 theme that changes an input moves them all. Values are rounded to three
-decimals, except the six font sizes, which are emitted **unrounded**
-(`unrounded: true`): `--window-header-font-size` and
-`--ui-font-size-small`/`-caption`/`-compact`/`-mini`/`-large`. They replaced
+decimals, except the font sizes, which are emitted **unrounded**
+(`unrounded: true`): `--window-header-font-size`,
+`--ui-font-size-small`/`-caption`/`-compact`/`-mini`/`-large`/`-xlarge`, the
+checkbox X mark's size and line height, the balloon and QuickTime time text,
+and About This Computer's four sizes. They replaced
 `calc(var(--ui-font-size) / 1.5)` and the like, which the browser computed at
 full precision, and a rounded `9.333px` moves the computed `font-size`
 (`9.33333px`). So a 14 px UI font gives `--ui-font-size-small: 11.200000000000001px`
@@ -2935,12 +2937,43 @@ full precision, and a rounded `9.333px` moves the computed `font-size`
 | `--window-shadow-offset` | `borderSize × 2` | 2 | ClassicyWindowFrame.scss |
 | `--window-frame-inset-whole` | `floor(paddingSize / 1.25)` | 4 | ClassicyWindowFrame.scss |
 | `--progress-bar-stripe-period` | `progressBar.stripeWidth × 2` (a package knob) | 20 | ClassicyProgressBar.scss |
+| `--window-max-height-reserve` | `controlSize × 4 + paddingSize` | 54 | ClassicyWindow.scss |
+| `--window-contents-chrome-height` | `controlSize + paddingSize × 1.5` | 21 | ClassicyWindow.scss, ClassicyWindowMenuBar.scss |
+| `--window-contents-header-chrome-height` | `controlSize × 3 + paddingSize` | 42 | ClassicyWindow.scss, ClassicyWindowMenuBar.scss |
+| `--window-modal-contents-chrome-height` | `controlSize × 2 + paddingSize` | 30 | ClassicyWindow.scss |
+| `--window-utility-contents-chrome-height` | `controlSize × 0.25 + paddingSize × 1.5` | 12 | ClassicyWindow.scss |
+| `--window-placard-end-reserve` | `controlSize × 3.5` | 42 | ClassicyWindow.scss |
+| `--window-modal-title-reserve` | `controlSize × 5` | 60 | ClassicyWindow.scss |
+| `--window-menu-bar-height` | `controlSize × 1.75` | 21 | ClassicyWindowMenuBar.scss |
+| `--ui-font-size-xlarge` | `uiSize × 2` | 28 (unrounded) | ClassicyControlLabel.scss, ClassicyTextEditor.scss |
+| `--control-label-spacing` | `controlSize / 2` | 6 | ClassicyControlLabel.scss, ClassicyRadioInput.scss |
+| `--radio-mark-width` | `controlSize / 3` | 4 | ClassicyRadioInput.scss |
+| `--radio-mixed-mark-top` | `controlSize / 2.5` | 4.8 | ClassicyRadioInput.scss |
+| `--radio-mixed-mark-height` | `controlSize / 4` | 3 | ClassicyRadioInput.scss |
+| `--radio-mixed-mark-border` | `controlSize / 8` | 1.5 | ClassicyRadioInput.scss |
+| `--checkbox-x-mark-font-size` | `uiSize × 1.25` | 17.5 (unrounded) | ClassicyCheckbox.scss |
+| `--checkbox-x-mark-line-height` | `uiSize × 0.65` | 9.1 (unrounded) | ClassicyCheckbox.scss |
+| `--balloon-help-font-size` | `uiSize × 0.85` | 11.9 (unrounded) | ClassicyBalloonHelp.scss |
+| `--quick-time-time-font-size` | `uiSize × 0.85` | 11.9 (unrounded) | QuickTimeMovieEmbed.scss |
+| `--quick-time-control-icon-size` | `controlSize × 0.875` | 10.5 | QuickTimeMovieEmbed.scss |
+| `--quick-time-volume-track-inset` | `paddingSize × 0.75` | 4.5 | QuickTimeMovieEmbed.scss |
+| `--finder-about-font-size` | `uiSize × 0.8571` | 11.9994 (unrounded) | FinderAboutThisComputer.scss |
+| `--finder-about-title-font-size` | `uiSize × 1.8571` | 25.9994 (unrounded) | FinderAboutThisComputer.scss |
+| `--finder-about-heading-font-size` | `uiSize × 1.0714` | 14.9996 (unrounded) | FinderAboutThisComputer.scss |
+| `--finder-about-copyright-font-size` | `uiSize × 0.7857` | 10.9998 (unrounded) | FinderAboutThisComputer.scss |
+| `--menu-item-padding-inline` | `paddingSize × 1.25` | 7.5 | ClassicyMenu.scss |
+| `--slider-thumb-corner-radius` | `borderSize × 1.5` | 1.5 | _Slider.scss |
+| `--tab-scroll-arrow-size` | `controlSize / 3` | 4 | ClassicyTabs.scss |
+| `--tab-scroll-arrow-size-large` | `controlSize / 2.25` | 5.333 | ClassicyTabs.scss |
+| `--tab-min-width-medium` | `controlSize × 7` | 84 | ClassicyTabs.scss |
+| `--tab-height-large` | `controlSize × 3` | 36 | ClassicyTabs.scss |
+| `--tab-large-padding-top` | `paddingSize × 0.75` | 4.5 | ClassicyTabs.scss |
 
 The table's types and one helper are public:
 
 - `ClassicyThemeDerivation`: one entry, `{ cssVar, formula, doc, compute,
   unrounded? }`. `compute(inputs)` returns CSS pixels; `unrounded: true` marks
-  the six font sizes.
+  the font sizes.
 - `ClassicyThemeDerivationInputs`: what `compute` may read,
   `{ measurements, typography: { uiSize }, desktop: { iconSize, iconFontSize } }`
   (a `ClassicyTheme` satisfies it).
@@ -2961,7 +2994,7 @@ sets itself could never take effect. Those variables are reserved
 
 - the palette, font and desktop variables (`CLASSICY_THEME_NON_MEASUREMENT_VARS`, 44 names);
 - the derived metrics above (`CLASSICY_THEME_DERIVED_VARS`, 15 names);
-- the named derivations (`CLASSICY_THEME_DERIVATIONS`, 42 names);
+- the named derivations (`CLASSICY_THEME_DERIVATIONS`, 73 names);
 - every `--classicy-*` name. That prefix is Classicy's own: the desktop root
   sets `--classicy-layout-*` after the theme's variables, and
   `--classicy-art-*` and `--classicy-cursor-*` are read with fallbacks a
@@ -2981,8 +3014,8 @@ name.
 are values `getThemeVars` computes from the theme and sets inline on the
 desktop root, not `calc()`s in the stylesheets. Overriding an *input*
 variable (`--window-control-size: 16px` in `ClassicyDesktop`'s `style`, or in
-host CSS on an element inside the desktop) changes that variable and the one-off `calc()`s
-still left (below), but it **no longer rescales the derived sizes**:
+host CSS on an element inside the desktop) changes that variable and the
+multipliers still left (below), but it **no longer rescales the derived sizes**:
 `--menu-min-width` stays 180px. To rescale everything, change the theme
 (`measurements.window.controlSize` in a theme file, or
 `ClassicyDesktopChangeMetric`). To change one size, override the derived
@@ -2990,12 +3023,12 @@ variable itself:
 
 | Input variable | Derived variables to override |
 |---|---|
-| `--window-control-size` | `--window-collapsed-height`, `--window-utility-collapsed-height`, `--window-title-stripe-height`, `--menu-bar-height`, `--menu-min-width`, `--menu-item-icon-size`, `--menu-item-icon-gap`, `--popup-height`, `--popup-mini-size`, `--popup-arrow-width`, `--control-glyph-size`, `--control-square-size`, `--button-square-width`, `--tab-height`, `--tab-min-width`, `--tab-min-width-large`, `--slider-thumb-width`, `--slider-thumb-height`, `--control-row-height`, `--progress-height` |
-| `--window-padding-size` | `--control-padding`, `--control-padding-tight`, `--control-padding-narrow`, `--control-padding-loose`, `--control-padding-wide`, `--window-frame-inset`, `--window-frame-inset-whole`, `--window-zoom-margin`, `--window-resize-inset`, `--layout-focus-gap` |
-| `--window-border-size` | `--control-frame-width`, `--control-bevel-sm`, `--control-bevel-md`, `--control-bevel-lg`, `--button-default-ring`, `--edit-field-height`, `--help-button-height`, `--focus-ring-width`, `--focus-ring-inset`, `--control-corner-radius`, `--window-shadow-offset` (and `--window-zoom-margin`, `--window-resize-inset`) |
+| `--window-control-size` | `--window-collapsed-height`, `--window-utility-collapsed-height`, `--window-title-stripe-height`, `--menu-bar-height`, `--menu-min-width`, `--menu-item-icon-size`, `--menu-item-icon-gap`, `--popup-height`, `--popup-mini-size`, `--popup-arrow-width`, `--control-glyph-size`, `--control-square-size`, `--button-square-width`, `--tab-height`, `--tab-min-width`, `--tab-min-width-large`, `--slider-thumb-width`, `--slider-thumb-height`, `--control-row-height`, `--progress-height`, `--window-max-height-reserve`, `--window-contents-chrome-height`, `--window-contents-header-chrome-height`, `--window-modal-contents-chrome-height`, `--window-utility-contents-chrome-height`, `--window-placard-end-reserve`, `--window-modal-title-reserve`, `--window-menu-bar-height`, `--control-label-spacing`, `--radio-mark-width`, `--radio-mixed-mark-top`, `--radio-mixed-mark-height`, `--radio-mixed-mark-border`, `--quick-time-control-icon-size`, `--tab-scroll-arrow-size`, `--tab-scroll-arrow-size-large`, `--tab-min-width-medium`, `--tab-height-large` |
+| `--window-padding-size` | `--control-padding`, `--control-padding-tight`, `--control-padding-narrow`, `--control-padding-loose`, `--control-padding-wide`, `--window-frame-inset`, `--window-frame-inset-whole`, `--window-zoom-margin`, `--window-resize-inset`, `--layout-focus-gap`, `--quick-time-volume-track-inset`, `--menu-item-padding-inline`, `--tab-large-padding-top` (and the four window contents chrome heights and `--window-max-height-reserve`) |
+| `--window-border-size` | `--control-frame-width`, `--control-bevel-sm`, `--control-bevel-md`, `--control-bevel-lg`, `--button-default-ring`, `--edit-field-height`, `--help-button-height`, `--focus-ring-width`, `--focus-ring-inset`, `--control-corner-radius`, `--window-shadow-offset`, `--slider-thumb-corner-radius` (and `--window-zoom-margin`, `--window-resize-inset`) |
 | `--window-scrollbar-size` | `--window-scrollbar-arrow-size` |
 | `--control-height` | `--button-height`, `--edit-field-height`, `--help-button-width`, `--help-button-height` |
-| `--ui-font-size` | `--ui-font-size-small`, `--ui-font-size-caption`, `--ui-font-size-compact`, `--ui-font-size-mini`, `--ui-font-size-large`, `--window-header-font-size` |
+| `--ui-font-size` | `--ui-font-size-small`, `--ui-font-size-caption`, `--ui-font-size-compact`, `--ui-font-size-mini`, `--ui-font-size-large`, `--window-header-font-size`, `--ui-font-size-xlarge`, `--checkbox-x-mark-font-size`, `--checkbox-x-mark-line-height`, `--balloon-help-font-size`, `--quick-time-time-font-size`, `--finder-about-font-size`, `--finder-about-title-font-size`, `--finder-about-heading-font-size`, `--finder-about-copyright-font-size` |
 | `--desktop-icon-size` / `--desktop-icon-font-size` | `--desktop-icon-padding`, `--desktop-icon-cell` / `--desktop-icon-label-pad` |
 | `--layout-item-gap` | `--layout-item-gap-half` |
 | `--progress-bar-stripe-width` | `--progress-bar-stripe-period` |
@@ -3087,51 +3120,30 @@ the variable instead of hard-coding the number:
   Finder's icons but not desktop Clean Up. Resize the desktop grid with the
   theme's `desktop.iconSize`.
 
-**Multipliers still in SCSS (Part H inventory).** 89 simple multipliers are
-left. Each is a proportion no named derivation means (some share a named
-derivation's formula, but not its role), or a site kept on purpose; Part H
-names or removes them. Count them with:
+**Multipliers in SCSS (the multiplier gate).** A theme variable scaled by a
+bare number (`calc(var(--x) * 3)`, `var(--h) / -2`) is a proportion with no
+name, so stylesheets read a named derivation (above) or a knob instead. The
+pixel-literal gate's scanner also finds these sites
+(`scanMultipliersInSource`, `kind: "multiplier"`, in
+`bin/check-pixel-literals.ts`): every `var()` read, or a parenthesized group
+holding one or a Sass variable, multiplied or divided by a unitless number,
+and every unitless number multiplying one, in `src/**/*.scss` outside the
+screen savers and comments. It does not count sign flips (`* -1`, `-1 *`,
+`/ -1`), factors with a unit (`$deg * 1deg`), ratios of two variables, a
+number scaling a number, or a Sass-interpolated factor (`* #{$mult}`); a
+chain scales its operand once (`var(--r) / 3 * 2` is one site). Sums and
+differences of named variables need no name either (H-R7), so a size less a
+border on each side is written `var(--x) - var(--window-border-size) -
+var(--window-border-size)`.
 
-```sh
-grep -rnoE 'calc\(\s*var\(--[a-z0-9-]+\)\s*[*/]\s*[0-9.]+(\s*/\s*[0-9.]+)?\s*\)' src --include=*.scss | grep -v Extensions/ScreenSaver | wc -l   # 89
-```
-
-By file (under `src/`) and formula; "×n" means n sites:
-
-| File | Formulas left |
-|---|---|
-| `Appearance/Platinum/styles/_scrollbars.scss` | `window-scrollbar-arrow-size / 2`; `window-scrollbar-arrow-size × 1.5`; `window-scrollbar-arrow-size × 2` |
-| `Appearance/Platinum/styles/components/_Button.scss` | `button-default-ring / 3` |
-| `Appearance/Platinum/styles/components/_ControlStrip.scss` | `control-strip-bevel-width × 2` ×2 |
-| `Appearance/Platinum/styles/components/_Slider.scss` | `window-border-size × 1.5` |
-| `SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Colors.scss` | `layout-item-gap / 2` |
-| `SystemFolder/ControlPanels/DriveSetup/DriveSetupList.scss` | `window-control-size × 8` |
-| `SystemFolder/Finder/FinderAboutThisComputer.scss` | `ui-font-size × 0.8571`; `ui-font-size × 1.8571`; `ui-font-size × 1.0714`; `ui-font-size × 0.7857` |
-| `SystemFolder/SystemResources/Assistant/ClassicyAssistant.scss` | `window-control-size × 0.5`; `window-control-size × 1.75` ×2; `window-control-size × 2.5` ×2 |
-| `SystemFolder/SystemResources/BalloonHelp/ClassicyBalloonHelp.scss` | `ui-font-size × 0.85` |
-| `SystemFolder/SystemResources/Boot/ClassicyStartupScreen.scss` | `window-padding-size × 3`; `window-padding-size × 6`; `window-padding-size × 8`; `window-padding-size × 2` ×2 |
-| `SystemFolder/SystemResources/ButtonToolbar/ClassicyButtonToolbar.scss` | `window-control-size × 3` |
-| `SystemFolder/SystemResources/Checkbox/ClassicyCheckbox.scss` | `ui-font-size × 1.25`; `ui-font-size × 0.65` |
-| `SystemFolder/SystemResources/ColorPicker/ClassicyColorPicker.scss` | `window-control-size × 2.5` ×2; `window-padding-size × 2` ×2 |
-| `SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel.scss` | `ui-font-size × 2`; `window-control-size / 2` ×4 |
-| `SystemFolder/SystemResources/Desktop/ClassicyDesktopIcon.scss` | `desktop-icon-font-size / 2`; `desktop-icon-size × 4`; `desktop-icon-size / 4` |
-| `SystemFolder/SystemResources/File/ClassicyFileBrowserViewTable.scss` | `desktop-icon-size / 16` ×2 |
-| `SystemFolder/SystemResources/Icon/ClassicyIcon.scss` | `desktop-icon-size × 2` ×2; `desktop-icon-size × 4` |
-| `SystemFolder/SystemResources/KeyboardEquivalent/ClassicyKeyboardEquivalent.scss` | `layout-group-gap × 2` (counted since H 6.1 dropped its `16px` fallback) |
-| `SystemFolder/SystemResources/Menu/ClassicyMenu.scss` | `window-padding-size × 1.25` |
-| `SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu.scss` | `ui-font-size × 2` |
-| `SystemFolder/SystemResources/QuickTime/QuickTimeMovieEmbed.scss` | `ui-font-size × 0.85`; `window-control-size × 0.875` ×2; `window-control-size × 5`; `window-control-size × 1.75`; `window-control-size × 0.825`; `window-control-size × 0.25`; `window-padding-size × 0.75`; `window-control-size × 0.75` |
-| `SystemFolder/SystemResources/RadioInput/ClassicyRadioInput.scss` | `window-control-size / 2` ×2; `window-control-size / 3`; `window-control-size / 2.5`; `window-control-size / 4`; `window-control-size / 8` |
-| `SystemFolder/SystemResources/Slider/ClassicySlider.scss` | `window-control-size × 8`; `window-padding-size × 0.75` ×2; `ui-font-size × 1.2` |
-| `SystemFolder/SystemResources/Table/ClassicyTable.scss` | `ui-font-size × 0.5` |
-| `SystemFolder/SystemResources/Tabs/ClassicyTabs.scss` | `window-control-size / 3`; `window-padding-size × 2` ×3; `window-padding-size × 3` ×2; `window-control-size × 7`; `window-control-size × 3` ×2; `window-control-size / 2`; `window-control-size × 0.75` ×2; `window-control-size / 2.25`; `window-padding-size × 0.75`; `window-padding-size × 4` ×2 |
-| `SystemFolder/SystemResources/TextEditor/ClassicyTextEditor.scss` | `ui-font-size × 2`; `window-control-size × 3` |
-| `SystemFolder/SystemResources/TimePicker/ClassicyTimePicker.scss` | `ui-font-size × 4` |
-| `SystemFolder/SystemResources/Window/ClassicyWindow.scss` | `window-scrollbar-size / 4` |
-| `SystemFolder/SystemResources/Window/ClassicyWindowFrame.scss` | `window-padding-size × 2` |
-| `SystemFolder/SystemResources/Window/ClassicyWindowMenuBar.scss` | `window-control-size × 1.75` (the window menu bar's default height) |
-
-Kept on purpose:
+`bin/multiplier-allowlist.json` holds the sites that stay, per file, as
+groups of `{ count, reason }`, each reason one line saying why the sites are
+geometry rather than a role. The same ratchet as the pixel list applies to a
+file's total: a new site fails `pnpm lint` (and the vitest gate) with
+`<file>:<line> <site>`, and a removed one asks for the count to be lowered
+(`tighten the multiplier allowlist for …`). The list is edited by hand, since
+every group needs its reason; `node bin/check-pixel-literals.ts
+--list-multipliers` prints every site. Kept on purpose:
 
 - `ClassicyIcon.scss`, the two `desktop-icon-size × 2`: the `size` prop sets
   `--desktop-icon-size` per icon, and the root's `--desktop-icon-cell` would
@@ -3141,17 +3153,43 @@ Kept on purpose:
 - `ClassicyWindow.scss`, `window-scrollbar-size / 4`: the utility window's
   local arrow size, from its local scroll-bar size.
 - `_scrollbars.scss`, the three arrow forms: Platinum glyph geometry.
-- `_ControlStrip.scss`, the two `control-strip-bevel-width × 2`: positions on
-  the Control Strip art's bevel-pixel grid (H-R7), not theme proportions. The
-  same partial has six more multiples of the one bevel knob (`100% -
-  bevel-width × 2`, `× 3`, `× 4`) that the grep does not count, being
-  multi-term.
+- `_ControlStrip.scss`, the eight multiples of `control-strip-bevel-width`
+  (`× 2`, `× 3`, `× 4`, alone or as `100% - …`): positions on the Control
+  Strip art's bevel-pixel grid inside `classicy-px-rect` (H-R7), not theme
+  proportions.
+- `HyperCard.scss`, the twelve `hyper-card-handle-size / -2`: a selection
+  handle is pulled half its own size over the corner or edge it marks
+  (H-R7); and the four `50% - hyper-card-handle-size / 2`: a side handle
+  centered on its edge (H-R21).
 
-Three of the 89 sit inside `//` comments: `ClassicyIcon.scss` and
-`ClassicyDesktopIcon.scss` `desktop-icon-size × 4`, and
-`QuickTimeMovieEmbed.scss` `window-control-size × 0.825`. The grep does not
-count negative forms (`* -1`, `* -2`), multi-term `calc()`s, or the Button
-margin variants a Sass loop generates.
+Until H 6.2b, the gate also holds 24 sites in the H 6.1 files, which 6.2b
+names on top of 6.1's pixel-literal purge: `_Window.scss` (4),
+`ClassicyAppearanceManager.Colors.scss` (1), `DriveSetupList.scss` (1),
+`ClassicyStartupScreen.scss` (5), `ClassicyControlGroup.scss` (1),
+`ClassicyKeyboardEquivalent.scss` (2), `ClassicyPopUpMenu.scss` (1),
+`ClassicySlider.scss` (7), `ClassicyTable.scss` (1) and
+`ClassicyWindowFrame.scss` (1).
+
+**Component knobs (H 6.2).** Component-local whole-pixel sizes that were
+multipliers are knobs in Platinum's `defaults.measurements` (emitted as
+`--<family>-<key>`, editable in theme files, not shown in the Options tab,
+H-R4). Unlike the multiplier they replace, a knob does not follow
+`window.controlSize` or the other inputs: change it in the theme.
+
+| Family | Keys (Platinum px) | Read by |
+|---|---|---|
+| `assistant` | `headerGap` 6, `accessoryIconMedium` 21, `accessoryIconLarge` 30 | ClassicyAssistant.scss |
+| `buttonToolbar` | `squareButtonWidth` 36 | ClassicyButtonToolbar.scss |
+| `desktopIcon` | `labelGap` 6 | ClassicyDesktopIcon.scss |
+| `disclosureTriangle` | `offset` 6 | ClassicyTriangle.scss |
+| `fileBrowser` | `listIconSpacing` 3 | ClassicyFileBrowserViewTable.scss |
+| `menu` | `subMenuOffsetBlock` 24, `subMenuOffsetInline` 12 | ClassicyMenu.scss |
+| `picker` | `swatchSize` 30, `layoutGap` 12 | ClassicyColorPicker.scss |
+| `quickTime` | `undockedVideoInset` 4, `controlsEndReserve` 24, `volumeBarLength` 60, `volumeBarOffset` 21, `thumbRise` 6, `thumbShiftInline` 3, `volumeTrackTop` 3, `progressTrackTop` 3, `progressTrackHeight` 9 | QuickTimeMovieEmbed.scss |
+| `radio` | `offsetTop` 6 | ClassicyRadioInput.scss |
+| `tab` | `gap` 12, `paddingInline` 18, `scrollButtonMinWidth` 36, `smallRowIndent` 6, `smallPaddingInline` 12, `smallIconSize` 9, `largePaddingInline` 24 | ClassicyTabs.scss |
+| `textEditor` | `heightInset` 4, `autoMinHeight` 36 | ClassicyTextEditor.scss |
+| `timePicker` | `periodMinWidth` 56 | ClassicyTimePicker.scss |
 
 There are no `--hig-*` variables (removed 2026-10-27, no aliases).
 

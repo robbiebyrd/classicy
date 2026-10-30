@@ -25,7 +25,7 @@
 .classicyRadioInputWrapper {
   width: var(--window-control-size);
   height: var(--window-control-size);
-  margin-top: calc(var(--window-control-size) / 2);
+  margin-top: var(--radio-offset-top);
   border: calc(var(--window-border-size)) solid var(--color-system-07);
   border-radius: 50%;
 
@@ -69,7 +69,7 @@
   position: relative;
   margin: var(--control-frame-width);
   opacity: 0;
-  border-width: calc(var(--window-control-size) / 3);
+  border-width: var(--radio-mark-width);
   border-style: solid;
   border-radius: 50%;
   appearance: none;
@@ -93,10 +93,10 @@
 }
 
 :where(.classicyRadioInput).mixed {
-  margin-top:calc(var(--window-control-size) / 2.5);
+  margin-top: var(--radio-mixed-mark-top);
   width: var(--window-control-size);
-  height: calc(var(--window-control-size) / 4);
-  border-width: calc(var(--window-control-size) / 8);
+  height: var(--radio-mixed-mark-height);
+  border-width: var(--radio-mixed-mark-border);
   border-style: solid;
   border-radius: 0;
   background: var(--color-window-border);
@@ -111,7 +111,7 @@
   font-family: var(--ui-font), sans-serif;
   font-size: var(--ui-font-size);
   height: var(--window-control-size);
-  margin-left: calc(var(--window-control-size) / 2);
+  margin-left: var(--control-label-spacing);
 }
 
 // Last in the file, at the disabled `:checked` rules' specificity (0,2,0):

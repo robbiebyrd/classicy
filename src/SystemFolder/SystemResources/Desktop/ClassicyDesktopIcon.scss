@@ -29,7 +29,7 @@
     font-family: var(--body-font), serif;
     font-size: var(--desktop-icon-font-size);
     width: fit-content;
-    margin-top: calc(var(--desktop-icon-font-size) / 2);
+    margin-top: var(--desktop-icon-label-gap);
     padding: var(--desktop-icon-label-pad);
     color: var(--color-black);
     background: c.classicy-alpha("--color-white", 50%);
@@ -51,8 +51,8 @@
 
 .classicyDesktopIconMask {
   mask-image: var(--classicy-icon-mask);
-  width: calc(var(--desktop-icon-size) - var(--window-border-size) * 2);
-  height: calc(var(--desktop-icon-size) - var(--window-border-size) * 2);
+  width: calc(var(--desktop-icon-size) - var(--window-border-size) - var(--window-border-size));
+  height: calc(var(--desktop-icon-size) - var(--window-border-size) - var(--window-border-size));
   margin: 0 auto;
   mask-mode: alpha;
   mask-size: calc(100% - var(--window-border-size));
