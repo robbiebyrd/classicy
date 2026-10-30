@@ -182,6 +182,8 @@ File `src/Appearance/useClassicyAppearanceLayout.ts`: `CLASSICY_DEFAULT_APPEARAN
 
 Each line names the part plan whose text it corrects; executors apply the amendment over the plan's wording.
 
+- **0013-l9f (K, added 2026-10-30, owner request, story 0089-r2d)**: additive. `ClassicyAppearancePackage` gains an optional `apps?: Record<appId, { name?: string; icon?: ClassicyAssetSource; description?: string }>` (zod-validated, `.describe()`d), resolved by `resolveClassicyAppIdentity`/`useClassicyAppIdentity`; display only — internal ids, action types and persisted state keep the original identity.
+
 - **0005-1b3 (B) §2.1/§3.1**: `useClassicyAppearanceLayout` and friends live in `src/Appearance/useClassicyAppearanceLayout.ts` (above), not in `ClassicyAppearancePackage.ts`; layout vars are emitted by `classicyLayoutVars`, not `getThemeVars`.
 - **0005-1b3 (B)**: `ClassicyAssetSource`/`isClassicyAssetSource` come from `src/Appearance/ClassicyAssetSource.ts`; B's structurally identical local types for `assets`/`sounds` are replaced by imports once C/D have landed (B §5.1 presence-checked step).
 - **0005-1b3 (B) and 0011-v9t (H)**: `platinum.json` carries both `defaults.measurements.<family>` (values) and `knobs` (UI metadata), as pinned above.

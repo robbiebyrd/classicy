@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T20:38:01.840Z"
-updated: "2026-10-30T14:25:29.728Z"
+updated: "2026-10-30T14:59:01.755Z"
 started: "2026-10-30T13:37:58.376Z"
 tags: []
 milestone: ""
@@ -106,3 +106,5 @@ Verify each cited line first (`grep -n px <file>`); Parts A/G may have shifted l
 ### 2026-10-30T14:18:27.242Z - H 5.1 implemented on h/5.1 (65168e086): HyperCard, Finder, Apple Guide and Color Picker read theme variables and knobs; allowlist 328 -> 233 literals (39 -> 34 files); new knob hyperCard.itemPaddingY (H-R7). Parity: 18 stories, 4 app shots, 16 open-dialog shots AE 0 except two focus shots that need H 3.1's focus-ring derivations (integrate after 3.1). Task review dispatched.
 
 ### 2026-10-30T14:25:29.728Z - Task review APPROVED: all 85 changed compiled lines resolve byte-identical across the 21 presets; allowlist and knob count exact; merge with Part E conflict-free. Integration-order constraint (H-R18): land only after 3.1 (its focus ring reads 3.1's derivations). Rulings H-R19 (half item gap is one derivation) and integration fixes recorded.
+
+### 2026-10-30T14:59:01.755Z - Integrating into feat/appearance-part-h after 3.1 (H-R18), with the H-R19 half-item-gap derivation replacing hyperCard.itemPaddingY and the dead picker.wheelInset knob dropped; the two focus shots re-shot for real after integration.
