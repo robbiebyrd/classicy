@@ -99,10 +99,16 @@ describe("script builder sound field", () => {
 		const options = within(listbox)
 			.getAllByRole("option")
 			.map((o) => o.textContent);
-		// The current selection ("ClassicyBeep" -> "System — Beep") is rendered
-		// with a leading HIG checkmark inside the open menu. "None" is the clear
-		// affordance (parity with the old text field's empty-string clear).
-		expect(options).toEqual(["None", "General — Click", "✓System — Beep"]);
+		// The current selection ("ClassicyBeep" -> "System — Beep") is marked
+		// with the HIG checkmark inside the open menu (package CSS on the
+		// gutter's `checked` state). "None" is the clear affordance (parity with
+		// the old text field's empty-string clear).
+		expect(options).toEqual(["None", "General — Click", "System — Beep"]);
+		expect(
+			within(listbox)
+				.getByRole("option", { name: "System — Beep" })
+				.querySelector(".classicyPopUpMenuCheck"),
+		).toHaveClass("checked");
 	});
 
 	it("keeps an unregistered sound as the selected option", () => {

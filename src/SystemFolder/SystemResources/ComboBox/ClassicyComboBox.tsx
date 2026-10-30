@@ -35,8 +35,6 @@ import {
 	classicyPopUpMenuPlacement,
 } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenuPlacement";
 
-const CHECKMARK = "✓";
-
 /**
  * How typing narrows the suggestions: by label prefix, by label substring, or
  * (`false`) not at all. Matching is case-insensitive.
@@ -479,9 +477,13 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 										}
 									}}
 								>
-									<span className="classicyPopUpMenuCheck" aria-hidden={true}>
-										{isSelected ? CHECKMARK : ""}
-									</span>
+									<span
+										className={classNames(
+											"classicyPopUpMenuCheck",
+											classicyStateClasses({ checked: isSelected }),
+										)}
+										aria-hidden={true}
+									/>
 									{o.icon && (
 										<img
 											className="classicyPopUpMenuListItemIcon"

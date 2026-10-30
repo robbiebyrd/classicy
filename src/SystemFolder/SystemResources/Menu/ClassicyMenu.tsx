@@ -394,9 +394,16 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 			>
 				<p>
 					{menuItem.checked !== undefined ? (
-						<span className={"classicyMenuItemCheck"} aria-hidden={"true"}>
-							{menuItem.checked === "mixed" ? "–" : menuItem.checked ? "✓" : ""}
-						</span>
+						<span
+							className={classNames(
+								"classicyMenuItemCheck",
+								classicyStateClasses({
+									checked: menuItem.checked === true,
+									mixed: menuItem.checked === "mixed",
+								}),
+							)}
+							aria-hidden={"true"}
+						/>
 					) : menuItem.image ? (
 						<img src={menuItem.image} alt={menuItem.title} />
 					) : menuItem.icon ? (

@@ -83,7 +83,10 @@ describe("ClassicyBevelButton pop-up menu (HIGOS8 p.32)", () => {
 		expect(button).toHaveClass("open", "pressed");
 		expect(button).not.toHaveAttribute("data-state");
 		const shrink = screen.getByRole("menuitem", { name: "Shrink" });
-		expect(shrink).toHaveTextContent("✓");
+		// The ✓ is package CSS on `.classicyMenuItemCheck.checked::before`.
+		expect(shrink.querySelector(".classicyMenuItemCheck")).toHaveClass(
+			"checked",
+		);
 	});
 
 	it("keeps describing its own pop-up even when a caller passes disclosure ARIA", () => {

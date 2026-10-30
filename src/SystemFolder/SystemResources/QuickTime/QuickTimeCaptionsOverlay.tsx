@@ -7,6 +7,7 @@ import {
 } from "react";
 import { intToRgb } from "@/SystemFolder/SystemResources/ColorPicker/ClassicyColorPickerUtils";
 import "./QuickTimeMovieEmbed.scss";
+import "./QuickTimeCaptionsOverlay.scss";
 
 /**
  * Caption appearance override. Matches the shape of rt911 TV's CaptionStyle so
@@ -82,12 +83,17 @@ export const QuickTimeCaptionsOverlay: FunctionalComponent<{
 		const font = resolveCssVar(captionStyle.font);
 		const { r: cr, g: cg, b: cb } = intToRgb(captionStyle.color);
 		const { r: br, g: bg, b: bb } = intToRgb(captionStyle.bgColor);
+		// The colors are data, published as custom properties;
+		// QuickTimeCaptionsOverlay.scss composes them into `color` and
+		// `background-color`.
 		setOverrideStyle({
 			fontFamily: `${font || "sans-serif"}, sans-serif`,
 			fontSize: `${captionStyle.size}%`,
-			color: `rgba(${cr}, ${cg}, ${cb}, ${captionStyle.colorOpacity})`,
-			backgroundColor: `rgba(${br}, ${bg}, ${bb}, ${captionStyle.bgOpacity})`,
-		});
+			"--classicy-caption-fg": `${cr}, ${cg}, ${cb}`,
+			"--classicy-caption-fg-alpha": `${captionStyle.colorOpacity}`,
+			"--classicy-caption-bg": `${br}, ${bg}, ${bb}`,
+			"--classicy-caption-bg-alpha": `${captionStyle.bgOpacity}`,
+		} as CSSProperties);
 	}, [captionStyle]);
 
 	if (!text) return null;

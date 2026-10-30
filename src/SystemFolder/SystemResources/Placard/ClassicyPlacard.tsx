@@ -121,11 +121,7 @@ export const ClassicyPlacard: FunctionalComponent<ClassicyPlacardProps> = ({
 	const body = (
 		<>
 			<span className="classicyPlacardContent">{children}</span>
-			{hasMenu && (
-				<span className="classicyPlacardArrow" aria-hidden={true}>
-					▾
-				</span>
-			)}
+			{hasMenu && <span className="classicyPlacardArrow" aria-hidden={true} />}
 		</>
 	);
 

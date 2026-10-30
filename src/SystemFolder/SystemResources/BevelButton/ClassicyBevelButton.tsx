@@ -528,9 +528,7 @@ export const ClassicyBevelButton: FunctionalComponent<
 								: "classicyBevelButtonArrowVertical",
 						)}
 						aria-hidden={true}
-					>
-						{popupDirection === "horizontal" ? "▸" : "▾"}
-					</span>
+					/>
 				)}
 			</button>
 			{popupAnchor && (

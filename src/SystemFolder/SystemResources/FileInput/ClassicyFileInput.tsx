@@ -211,7 +211,10 @@ export const ClassicyFileInput = forwardRef<
 									onClickFunc={() => handleRemove(entry.id)}
 									aria-label={`Remove ${entry.file.name}`}
 								>
-									✕
+									<span
+										className="classicyFileInputRemoveGlyph"
+										aria-hidden={true}
+									/>
 								</ClassicyButton>
 							</li>
 						))}

@@ -1,8 +1,15 @@
-// The Platinum placard look (from ClassicyPlacard.scss): the beveled border of
-// the pop-up menu a placard opens.
+// The Platinum placard look (from ClassicyPlacard.scss): the pop-up arrow of a
+// placard with a menu, and the beveled border of the menu it opens.
+@use "sass:string";
 @use "../mixins";
 
 @mixin placard {
+  // A font glyph, as an escape kept by `string.unquote` so the package CSS
+  // stays ASCII.
+  .classicyPlacardArrow::before {
+    content: string.unquote('"\\25BE"'); // ▾
+  }
+
   .classicyPlacardMenu {
     @include mixins.platinum-window-border;
   }

@@ -265,7 +265,15 @@
 			"ViewTableRowIconLabel"
 		],
 		"FileDialog": ["Extension", "NameRow"],
-		"FileInput": ["Body", "Holder", "Item", "List", "Message", "Native"],
+		"FileInput": [
+			"Body",
+			"Holder",
+			"Item",
+			"List",
+			"Message",
+			"Native",
+			"RemoveGlyph"
+		],
 		"FileOpenDialog": ["Actions", "Body", "Footer", "Well"],
 		"Form": ["ButtonRow", "Dialog"],
 		"HelpButton": [],
@@ -308,7 +316,7 @@
 		"ImageWell": ["DragOver", "Image"],
 		"Input": ["Default", "Holder"],
 		"InputDialog": ["Body", "Buttons", "Icon", "Prompt", "Top"],
-		"Kbd": ["Inline", "Keycap", "Keycaps"],
+		"Kbd": ["Inline", "Keycap", "Keycaps", "Modifier"],
 		"KeyboardEquivalent": [
 			"Buttons",
 			"Description",
@@ -534,7 +542,11 @@
 			"help",
 			"switcher",
 			"extensions",
-			"clock"
+			"clock",
+			"modifier-control",
+			"modifier-option",
+			"modifier-shift",
+			"modifier-command"
 		]
 	}
 }

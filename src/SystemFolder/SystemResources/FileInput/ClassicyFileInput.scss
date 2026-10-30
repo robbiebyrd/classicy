@@ -46,3 +46,9 @@
   font-family: var(--ui-font), sans-serif;
   font-size: var(--ui-font-size);
 }
+
+// The remove button's glyph box; the glyph itself is the Appearance Package's
+// `::before` content.
+.classicyFileInputRemoveGlyph {
+  display: inline-block;
+}
