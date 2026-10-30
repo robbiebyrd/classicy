@@ -2832,14 +2832,26 @@ color such as `red`) fails the compile (`classicy-token`).
 
 `node bin/classicyLiteralColorSweep.ts` prints every literal color left in
 `src/**/*.scss` and exits 1 when there is one. The same check is exported as
-`findClassicyLiteralColors`, and a test runs it. It skips:
+`findClassicyLiteralColors`, and a test runs it. A literal is a hex color;
+an `rgb()`/`rgba()`, `hsl()`/`hsla()`, `hwb()`, `lab()`, `lch()`, `oklab()`
+or `oklch()` whose first argument is a number (spaces allowed); a `color()`
+with a color space; or any CSS named color (`gray`, `red`, `silver`, …). It
+skips:
 
-- comments;
-- `var(--x, #hex|white|black)` fallbacks, data URIs and `white-space`;
-- the helpers' own definitions, the screen savers and the color picker;
-- an Appearance Package's private constants: a `--<package>-*:` declaration
-  under `src/Appearance/<Package>/`, such as `--platinum-stripe-dark: #787878`
-  (the package id is the folder name, lowercased).
+- comments, including a `//` comment at the end of a line;
+- these spans, blanking only the span so the rest of its line is still
+  checked: a `var(--x, <fallback>)` fallback and a data URI;
+- the helpers' own definitions and the screen savers (whole files);
+- in `ClassicyColorPicker.scss`, only the crayon box's art (its cardboard,
+  bevel, lip and lip edge) and the RGB/CMYK slider tracks, each listed by
+  declaration (`EXEMPT_DECLARATIONS`);
+- an Appearance Package's custom-property declarations under
+  `src/Appearance/<Package>/` (not `vocabulary`), whether a private constant
+  or a value for a component-interface variable: Part E's
+  `--platinum-stripe-dark: #787878` and
+  `--classicy-color-picker-crosshair: #ffffff`, say. Only the declaration is
+  skipped: a property rule such as `color: #c00` in a package partial is
+  still a hit.
 
 **Reading a metric from JS.** Code that needs a theme size in pixels reads
 the variable instead of hard-coding the number:
