@@ -2750,7 +2750,7 @@ full precision, and a rounded `9.333px` moves the computed `font-size`
 | `--desktop-icon-padding` | `iconSize / 4` | 12 | ClassicyDesktopIconContext.tsx, ClassicyFileBrowserUtils.ts |
 | `--desktop-icon-cell` | `iconSize × 2` | 96 | ClassicyDesktopIcon.scss, ClassicyDesktopIconContext.tsx, ClassicyFileBrowserUtils.ts |
 | `--desktop-icon-label-pad` | `iconFontSize / 4` | 3 | ClassicyDesktopIcon.scss, ClassicyIcon.scss |
-| `--focus-ring-width` | `borderSize` | 1 | ClassicyColorPicker.scss, ClassicyControlStrip.scss |
+| `--focus-ring-width` | `borderSize` | 1 | ClassicyColorPicker.scss, ClassicyControlStrip.scss, ClassicyPopUpSlider.scss |
 | `--focus-ring-inset` | `borderSize × 3` | 3 | ClassicyColorPicker.scss, ClassicyControlStrip.scss |
 | `--layout-item-gap-half` | `itemGap / 2` | 2 | HyperCard.scss |
 

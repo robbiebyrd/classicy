@@ -59,6 +59,9 @@
     scaleY(var(--classicy-balloon-tail-sy, 1));
 }
 
+// The tail drawing is 14 px tall (useClassicyBalloonHelp.tsx), so its offset
+// (measurements.balloonHelp, platinum.json) stays 12–14: the drawing overlaps
+// the bubble's border by 2–0 px and joins it without a gap (H-R22).
 .classicyBalloonHelpTailTop {
   bottom: calc(var(--balloon-help-tail-offset) * -1);
 }
@@ -73,8 +76,11 @@
 }
 
 .classicyBalloonHelpTailCenter {
-  // Half the tail's width centers it on the bubble.
-  left: calc(50% - var(--balloon-help-tail-width) / 2);
+  // Both insets and auto margins center the tail drawing on the bubble at its
+  // own width (H-R22).
+  left: 0;
+  right: 0;
+  margin-inline: auto;
 }
 
 .classicyBalloonHelpTailRight {

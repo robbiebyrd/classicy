@@ -15,6 +15,14 @@
 // drawn by ::before/::after, so the element must be positioned (menus are
 // absolute; give a static one `relative`).
 @mixin platinum-menu-frame {
+  // The pseudo-elements are placed from the padding edge, so the shadow's
+  // outer edge sits past it by the border, the gap between border and shadow
+  // (0 in Figure 6-15) and the shadow itself: a thicker border pushes the
+  // shadow out instead of being painted over (H-R24).
+  $shadow-reach: calc(
+    (var(--menu-frame-border-width) + var(--menu-frame-shadow-gap) + var(--menu-frame-shadow-width)) * -1
+  );
+
   border: var(--menu-frame-border-width) solid var(--color-black);
   box-shadow: none;
   background:
@@ -36,8 +44,8 @@
   // (measurements.menuFrame, platinum.json).
   &::after {
     top: var(--menu-frame-shadow-start);
-    right: calc(var(--menu-frame-shadow-offset) * -1);
-    bottom: calc(var(--menu-frame-shadow-offset) * -1);
+    right: $shadow-reach;
+    bottom: $shadow-reach;
     width: var(--menu-frame-shadow-width);
   }
 
@@ -45,8 +53,8 @@
   // (measurements.menuFrame, platinum.json).
   &::before {
     left: var(--menu-frame-shadow-start);
-    right: calc(var(--menu-frame-shadow-offset) * -1);
-    bottom: calc(var(--menu-frame-shadow-offset) * -1);
+    right: $shadow-reach;
+    bottom: $shadow-reach;
     height: var(--menu-frame-shadow-width);
   }
 }
