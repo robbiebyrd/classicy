@@ -119,7 +119,7 @@ describe("literal colors are theme tokens (G 1.2)", () => {
 			"border-top: var(--window-border-size) solid color-mix(in srgb, var(--color-system-04), black 10%);",
 		);
 		expect(finderAbout).toContain(
-			"filter: drop-shadow(4px 4px 6px color-mix(in srgb, var(--color-white) 50%, transparent));",
+			"filter: drop-shadow(var(--finder-about-banner-shadow-offset) var(--finder-about-banner-shadow-offset) var(--finder-about-banner-shadow-blur) color-mix(in srgb, var(--color-white) 50%, transparent));",
 		);
 	});
 

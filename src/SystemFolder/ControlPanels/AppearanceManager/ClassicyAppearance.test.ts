@@ -27,8 +27,9 @@ import {
 // explicit input emissions (`leaves getThemeVars unchanged …` below), plus
 // the 35 named derivations (`CLASSICY_THEME_DERIVATIONS`) appended to each
 // theme when they were added, Platinum's 95 knob variables (H 2.1) after
-// them, and H 3.1's two focus-ring derivations (H-R5) after those (every
-// earlier key and value unchanged each time).
+// them, H 5.1's hyperCard.itemPaddingY among them, and H 3.1's two
+// focus-ring derivations (H-R5) appended at the end (every earlier key and
+// value unchanged each time).
 // Regenerate it only for an intended change to the emitted variables, by
 // running getThemeVars over getAllThemes() in a throwaway vitest file:
 //   writeFileSync("src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.themeVars.baseline.json",
@@ -38,8 +39,8 @@ import {
 import themeVarsBaseline from "./ClassicyAppearance.themeVars.baseline.json";
 
 // Platinum's knob leaves beside the core five (H 2.1: 94 planned keys plus
-// H-B1's pager.fontSize).
-const PLATINUM_KNOB_COUNT = 95;
+// H-B1's pager.fontSize; H 5.1: hyperCard.itemPaddingY).
+const PLATINUM_KNOB_COUNT = 96;
 
 describe("getAllThemes", () => {
 	it("returns an array", () => {
@@ -378,7 +379,7 @@ describe("classicyMeasurementVars", () => {
 	it("the walker reproduces every input variable byte-identically", () => {
 		// The 20 inputs getThemeVars emitted one by one before the walker:
 		// window 6, control 3, button 3, groupBox 5, layout 3. They come
-		// first; Platinum's 95 knob variables (20 families, H 2.1) follow.
+		// first; Platinum's knob variables (20 families, H 2.1) follow.
 		const vars = classicyMeasurementVars(getTheme("default").measurements);
 		expect(Object.keys(vars)).toHaveLength(20 + PLATINUM_KNOB_COUNT);
 		expect(Object.fromEntries(Object.entries(vars).slice(0, 20))).toEqual({
