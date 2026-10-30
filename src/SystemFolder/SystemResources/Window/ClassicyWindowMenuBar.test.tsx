@@ -60,4 +60,36 @@ describe("ClassicyWindowMenuBar", () => {
 		fireEvent.mouseDown(document.body);
 		expect(file).not.toHaveClass("open");
 	});
+
+	// F 5.1 fix re-review: each bar treats a peer bar as outside, so only one
+	// window's menu is ever open.
+	it("keeps one menu open across two window bars", () => {
+		const bar = (windowId: string) => (
+			<ClassicyWindowMenuBar
+				appId="T.app"
+				windowId={windowId}
+				menuItems={[
+					{
+						id: `${windowId}_file`,
+						title: `File ${windowId}`,
+						menuChildren: [{ id: `${windowId}_new`, title: "New" }],
+					},
+				]}
+			/>
+		);
+		render(
+			<>
+				{bar("a")}
+				{bar("b")}
+			</>,
+		);
+		const fileA = screen.getByText("File a").closest("li") as HTMLElement;
+		const fileB = screen.getByText("File b").closest("li") as HTMLElement;
+		fireEvent.click(screen.getByText("File a"));
+		expect(fileA).toHaveClass("open");
+		fireEvent.mouseDown(screen.getByText("File b"));
+		fireEvent.click(screen.getByText("File b"));
+		expect(fileA).not.toHaveClass("open");
+		expect(fileB).toHaveClass("open");
+	});
 });
