@@ -7,8 +7,8 @@ status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-30T14:45:18.135Z"
-updated: "2026-10-30T15:15:36.445Z"
-started: "2026-10-30T15:15:36.055Z"
+updated: "2026-10-30T15:43:44.045Z"
+started: "2026-10-30T15:43:44.045Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -63,5 +63,3 @@ Per the plan, after Part E lands; pixel parity for Platinum (no package override
 - `docs/AGENT-REFERENCE.md` - document the feature
 
 ## Work Log
-
-### 2026-10-30T15:15:36.445Z - Part K started on feat/appearance-part-k (worktree from 5ebaff579, after Part E landed): Phase 0 baseline and 1.1 (the validated apps field) dispatched. Plan 0013-l9f holds the surface inventory and the controller rulings (K-D7 changed per the owner's 'everywhere' ruling).

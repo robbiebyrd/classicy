@@ -6,7 +6,7 @@ status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T19:31:45.820Z"
-updated: "2026-10-30T14:53:34.938Z"
+updated: "2026-10-30T15:45:20.327Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -25,32 +25,30 @@ links:
     - ["0000-aud", "included"]
 progress:
   "0":
-    status: complete
+    status: pending
   "1":
-    status: complete
+    status: pending
   "1.1":
-    status: complete
+    status: pending
   "2":
-    status: complete
+    status: pending
   "2.1":
-    status: complete
+    status: pending
   "3":
     status: pending
   "3.1":
-    status: in_progress
+    status: complete
   "4":
     status: pending
   "4.1":
-    status: in_progress
+    status: pending
   "5":
     status: pending
   "5.1":
-    status: in_progress
+    status: complete
   "6":
     status: pending
   "6.1":
-    status: pending
-  "6.2":
     status: pending
   "7":
     status: pending
@@ -298,7 +296,7 @@ ClassicyAppearance.test.ts: keep `emits every metric input and derivation for th
 **Depends on:** 3.1, 4.1, 5.1
 
 **Interfaces:**
-- Consumes: Part G derivations by name; Part A removed `--box-border-size`, `--color-theme-1`, `--color-theme-hover`, `--color-theme-selection` (verify: `grep -rn 'box-border-size\|color-theme-1\b\|theme-hover\|theme-selection' src --include=*.scss` → 0; if any remain, rewrite `--box-border-size, 2px` to `var(--control-frame-width)` here and report to Part A). Part C's `useClassicyAssetVars` emits `--classicy-art-*` / `--classicy-cursor-*`; Part F's `classicyLayoutVars` (`useClassicyAppearanceLayout.ts`, spread by `ClassicyDesktop`) publishes `--classicy-layout-*` on the desktop root, not `getThemeVars`.
+- Consumes: Part G derivations by name; Part A removed `--box-border-size`, `--color-theme-1`, `--color-theme-hover`, `--color-theme-selection` (verify: `grep -rn 'box-border-size\|color-theme-1\b\|theme-hover\|theme-selection' src --include=*.scss` → 0; if any remain, rewrite `--box-border-size, 2px` to `var(--control-frame-width)` here and report to Part A). Part C's `useClassicyAssetVars` emits `--classicy-art-*` / `--classicy-cursor-*`; Part F's `getThemeVars` emits `--classicy-layout-*`.
 - Produces: Derivations added to `getThemeVars` ONLY if absent (`grep -c '<name>' ClassicyAppearance.ts` = 0): `--focus-ring-width` = `intToPx(border)`, `--focus-ring-inset` = `intToPx(border * 3)`, `--control-corner-radius` = `intToPx(border * 2)`, `--window-shadow-offset` = `intToPx(border * 2)` — these four are H's additions to Part G's inventory; say so in the commit body. Rewrites: ProgressBar `:53 --slide-var: 40px` → `var(--progress-bar-stripe-period)`, `:64,65 + 10px` → `+ var(--progress-bar-stripe-period) / 4`, `:66 + 20px` → `/ 2`; Alert `:9,10` → `var(--dialog-alert-min-width)` / `--dialog-alert-max-width`, `:39 padding-top: 1px` → `var(--window-border-size)`; FileDrag `:28 outline: 2px` → `var(--control-frame-width)`, `:29 -2px` → `calc(var(--control-frame-width) * -1)`, `:42 border: 2px` → `var(--control-frame-width)`; DriveSetupList `:20 180px` → `var(--control-panel-list-max-height)`, `:31 2px 6px` → `calc(var(--layout-item-gap) / 2) var(--window-padding-size)`; InputDialog `:9,10` → `--dialog-input-min-width` / `-max-width`; Window `:682 background-size: 4px 3px` (if Part E left it) → `var(--title-bar-dither-width) var(--title-bar-dither-height)`; WindowFrame `:11 box-shadow: 2px 2px 0` → `var(--window-shadow-offset) var(--window-shadow-offset) 0`; KeyboardEquivalent `:35,36` → `--dialog-keyboard-equivalent-min-width` / `-max-width`; Link `:15 1px` → `var(--focus-ring-width)`, `:16 outline-offset: 1px` → `var(--focus-ring-width)`; FileInput `:19,20 1px` → `var(--window-border-size)` (visually-hidden hairline); CrashScreen `:18 245px` → `var(--crash-screen-art-width)`; BootSequence `:13 4px 4px` → `var(--boot-halftone-tile) var(--boot-halftone-tile)`; Slider `:75,91 999px` → `calc(infinity * 1px)`; HelpButton `:17,18 14px` → `var(--help-button-glyph-size)`; Kbd `:36 2px` → `var(--control-corner-radius)`, `:37 1px` → `var(--focus-ring-width)`; BevelButton `:162 inset 1px 1px 0 0` → `inset var(--window-border-size) var(--window-border-size) 0 0`; QuickTimeMovieEmbed `:242 0px 0 3px` → `0 0 var(--quick-time-caption-shadow-blur)`; ControlLabel `:77 @media (max-width: 480px)` stays (exempt prelude; add comment `viewport breakpoint, not a theme value`); PopUpMenu `:134 300px` → `var(--menu-pop-up-max-height)`; Table `:109 15px` → `var(--table-resizer-width)`; FileOpenDialog `:14 220px` → `var(--dialog-file-dialog-min-height)`; ControlGroup `:36 1px` → `var(--window-border-size)`; AppearanceManager.Colors `:16 210px` → `var(--control-panel-colors-scroll-max-height)`. Fallbacks (50): delete the `, Npx` in every `var(--name, Npx)` whose name `getThemeVars` emits (`--icon-size-regular` ×10, `--icon-small-size` ×2, `--layout-focus-gap` ×6, `--layout-group-gap` ×6, `--layout-dialog-edge` ×3, `--button-gap` ×3, `--control-frame-width` ×3, `--control-bevel-sm/-md` ×2 each, `--control-bevel-lg`, `--control-row-height`, `--edit-field-height` ×2, `--help-button-height`, `--help-button-width`, `--ui-font-size`, `--window-control-size` ×2, `--window-padding-size`) in KeyboardEquivalent, InputDialog, Alert, BevelButton, DriveSetupList, Tree, Placard, StartupScreen, HelpButton, ImageWell; keep the two `--classicy-control-strip-*, 0px` instance fallbacks. Update `ClassicyHelpButton.test.tsx:109-110` expectations to `var(--help-button-width)` / `var(--help-button-height)`.
 
 - [ ] **Step 1: Write the failing tests** — ClassicyAppearance.test.ts: `emits the focus ring, corner radius and window shadow derivations` (`--focus-ring-width` '1px', `--focus-ring-inset` '3px', `--control-corner-radius` '2px', `--window-shadow-offset` '2px'; with `borderSize: 2` → '2px', '6px', '4px', '4px'). ClassicyAppearance.varCoverage.test.ts: `every var(--…) read in src/**/*.scss is emitted, declared or set from TSX` — collect reads with `/var\(\s*(--[a-zA-Z0-9-]+)/g` over `src/**/*.scss` minus `savers/**`; allowed = `new Set(Object.keys(getThemeVars(getTheme('default'))))` ∪ names matching `/^--(\S+):/m` declared in any `src/**/*.scss` ∪ names appearing as string literals `"--name"`/`'--name'` in any `src/**/*.{ts,tsx}` ∪ names matching `/^--classicy-(art|cursor|layout)-/`; `expect([...reads].filter(n => !allowed.has(n)).sort()).toEqual([])`. `no var() fallback carries a pixel literal` — `scanPixelLiterals(root)` entries with `kind === 'fallback'` whose text is not `0px` → `[]`. `the pixel allowlist is empty` — `expect(JSON.parse(readFileSync('bin/pixel-literal-allowlist.json','utf8'))).toEqual({})`.
@@ -309,24 +307,6 @@ ClassicyAppearance.test.ts: keep `emits every metric input and derivation for th
 - [ ] **Step 6: Lint, type-check, commit** — git add -A src bin/pixel-literal-allowlist.json && git commit -m "refactor(scss): purge the remaining pixel literals and var() fallbacks; pin variable coverage" (body: lists the four derivations added beyond Part G) (with the trailer) — `pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test`
 
 **Validation:** `node bin/check-pixel-literals.ts && test "$(cat bin/pixel-literal-allowlist.json | tr -d ' \n')" = '{}'`
-
-### 6.2: Multiplier inventory (added 2026-10-30, owner ruling H-R6)
-
-**Goal:** Work Part G's one-off multiplier inventory (86 `calc(var(--x) * N)` sites at G's landing; AGENT-REFERENCE §8) down to the sites G kept on purpose, so no unnamed proportion survives in `src/**/*.scss`.
-
-**Depends on:** 6.1 (E-dependent sites after Part E lands, per H-R9)
-
-**Interfaces:**
-- Consumes: `bin/check-pixel-literals.ts` (1.1) and its scanner; `CLASSICY_THEME_DERIVATIONS` and G13 reservation; the 2.1 knob walker.
-- Produces: `kind: "multiplier"` in the scanner with its own ratchet allowlist (`bin/multiplier-allowlist.json`), seeded from the live sites and ending at G's kept-on-purpose sites (`ClassicyIcon.scss` ×2, `ClassicyDesktopIcon.scss` `/4`, `ClassicyWindow.scss` `/4`, `_scrollbars.scss` arrow forms ×3) plus H-R7's stated-reason exceptions (pixel-grid multiples inside package pixel art; handle-centering halves), each with a one-line reason. Every other site becomes a named derivation (a structural role shared across the theme; appended to `CLASSICY_THEME_DERIVATIONS`) or a knob (a component-local size); never more than one name per role.
-
-- [ ] **Step 1: Write the failing tests** — the scanner reports `kind: "multiplier"`; a fixture with one unnamed `calc(var(--x) * 3)` fails the ratchet; the allowlist's every entry carries a reason.
-- [ ] **Step 2: Seed the allowlist from the live sites, then convert the E-independent sites** — derivation or knob per site; parity AE 0 on the touched stories (H-R10).
-- [ ] **Step 3: After Part E lands, convert the E-file sites** (Window, WindowFrame, `ClassicyWindowTitleBar.scss`, Tabs, Menu, `_Slider.scss`) and tighten the allowlist to the kept-on-purpose set.
-- [ ] **Step 4: Docs** — AGENT-REFERENCE §8: the inventory is replaced by the kept-on-purpose list with reasons; new derivations and knobs documented.
-- [ ] **Step 5: Lint, type-check, test, commit.**
-
-**Validation:** `node bin/check-pixel-literals.ts` exits 0 and `bin/multiplier-allowlist.json` lists only the kept-on-purpose and stated-reason sites.
 
 ## Phase 7: Parity and documentation
 

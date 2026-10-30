@@ -6,8 +6,8 @@ status: complete
 priority: "2"
 effort: L
 created: "2026-10-28T18:58:37.718Z"
-updated: "2026-10-30T11:03:26.162Z"
-completed: "2026-10-30T11:03:26.162Z"
+updated: "2026-10-30T15:38:25.108Z"
+completed: "2026-10-30T15:38:25.108Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -44,7 +44,7 @@ progress:
   "3.2":
     status: complete
   "4":
-    status: complete
+    status: in_progress
 ---
 
 # Part G: Colors, derivations and JS geometry

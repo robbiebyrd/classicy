@@ -3,12 +3,11 @@ id: 0070-yf7
 title: 'H 3.1: ClassicyControlStrip.scss and the strip bevel mixins (84 literals, 4 fallbacks)'
 purpose: Rewrite the Control Strip's 84 pixel literals and 4 fallbacks to read the `--control-strip-*` knobs and the focus-ring derivations, pixel-identical.
 type: impr
-status: in_progress
+status: ready
 priority: "2"
 effort: M
 created: "2026-10-28T20:36:39.615Z"
-updated: "2026-10-30T14:59:01.372Z"
-started: "2026-10-30T13:37:56.507Z"
+updated: "2026-10-30T15:45:00.097Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -84,8 +83,8 @@ Locate the strip bevels with `grep -rl 'bevel-raised\|platinum-control-strip' sr
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: node bin/check-pixel-literals.ts && grep -c 'ClassicyControlStrip.scss' bin/pixel-literal-allowlist.json  # expect exit 0 and 0
-- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/ControlStrip -t 'module step|no pixel literal'
+- [x] VERIFY: node bin/check-pixel-literals.ts && grep -c 'ClassicyControlStrip.scss' bin/pixel-literal-allowlist.json  # expect exit 0 and 0
+- [x] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/ControlStrip -t 'module step|no pixel literal'
 
 ## Files
 
@@ -98,6 +97,4 @@ Locate the strip bevels with `grep -rl 'bevel-raised\|platinum-control-strip' sr
 ## Work Log
 ### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
 
-### 2026-10-30T14:51:22.890Z - H 3.1 implemented on h/3.1 (1196696bb): Control Strip base + Platinum partial read measurements.controlStrip knobs (84 literals removed; allowlist 328 -> 242); --focus-ring-width/inset added as derivations (H-R5); strip JS step reads the module step once per gesture (H-R12). 4706 tests; 82 stories AE 0, 22 computed-style identical, 16 forced strip states identical. Task review dispatched.
-
-### 2026-10-30T14:59:01.372Z - Task review APPROVED: 819 per-preset value comparisons all equal (checker proven to catch 1 px); 8 H-R7 pixel-art multipliers recorded; focus-ring derivations G13-reserved; JS step read once per gesture; no stray snapshot edits from the accidental update run. Integrating into feat/appearance-part-h with 5.1 (H-R18 order) plus integration fixes (H-R19 etc.).
+### 2026-10-30T15:45:00.097Z - Integrated into feat/appearance-part-h at 88dd75950 (3.1 then 5.1 per H-R18; integration fixes incl. H-R19). Gate 4724 tests; 346/346 baseline shots AE 0; 5.1's focus shots AE 0 for real; 3.1's 16 forced strip states identical.
