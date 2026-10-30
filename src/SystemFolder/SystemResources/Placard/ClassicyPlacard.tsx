@@ -51,9 +51,10 @@ type ClassicyPlacardProps = PropsWithChildren<{
  *
  * It has three looks: normal, pressed and disabled. A plain placard is
  * static information (a `<div>`). Given `onClick` or `menuItems` it becomes
- * a `<button>` that plays the button click sounds; with `menuItems` it shows
- * a down-arrow and opens a small menu (closed by an outside click) whose
- * choice is reported through `onSelect`.
+ * a `<button>` that plays the button click sounds (the appearance package's
+ * press/release hooks); with `menuItems` it shows a down-arrow and opens a
+ * small menu (closed by an outside click) whose choice is reported through
+ * `onSelect`.
  *
  * ```tsx
  * <ClassicyWindow
