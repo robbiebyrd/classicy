@@ -684,9 +684,7 @@ describe("platinum.scss (compiled)", () => {
 				expect(rule(`${P} ${mask}`).props.position, mask).toBe("relative");
 				const props = rule(`${P} ${mask}::before`).props;
 				expect(props["background-color"], mask).toBe("var(--color-black)");
-				expect(props["mask-image"], mask).toMatch(
-					/^var\(--classicy-art-halftone, url\(['"]data:image\/svg\+xml,/,
-				);
+				expect(props["mask-image"], mask).toBe("var(--classicy-art-halftone)");
 				expect(props["mask-repeat"], mask).toBe("repeat");
 				expect(props["mask-size"], mask).toBe("7%");
 			}
@@ -1309,7 +1307,7 @@ describe("the moved Platinum mixin files", () => {
 			  z-index: -1;
 			  pointer-events: none;
 			  background-color: var(--color-system-05);
-			  mask-image: var(--classicy-art-halftone, url('data:image/svg+xml,<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 2.8 2.8" xml:space="preserve"><path fill="black" d="M1,1.2H0.5C0.3,1.2,0.2,1.2,0.2,1V0.5c0-0.1,0.1-0.2,0.2-0.2H1c0.1,0,0.2,0.1,0.2,0.2V1C1.2,1.2,1.2,1.2,1,1.2z"/><path fill="black" d="M2.3,2.5H1.7c-0.1,0-0.2-0.1-0.2-0.2V1.7c0-0.1,0.1-0.2,0.2-0.2h0.6c0.1,0,0.2,0.1,0.2,0.2v0.6C2.5,2.4,2.4,2.5,2.3,2.5z"/></svg>'));
+			  mask-image: var(--classicy-art-halftone);
 			  mask-repeat: repeat;
 			  mask-size: 10%;
 			}"

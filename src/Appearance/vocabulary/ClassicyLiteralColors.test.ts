@@ -147,11 +147,11 @@ describe("literal colors are theme tokens (G 1.2)", () => {
 			expect(before["background-color"], mask).toBe("var(--color-black)");
 			expect(before["mask-size"], mask).toBe("7%");
 			expect(before["mask-repeat"], mask).toBe("repeat");
-			// The registered `halftone` system art when a package publishes it,
-			// else the built-in dot pattern.
-			expect(before["mask-image"], mask).toMatch(
-				/^var\(--classicy-art-halftone, url\('data:image\/svg\+xml,<svg [^']* fill="black" [^']*'\)\)$/,
-			);
+			// The registered `halftone` system art, with no built-in fallback:
+			// Platinum registers it, asset lookups fall back to Platinum, and
+			// ClassicyDesktop (or useClassicyAssetVars on a standalone wrapper)
+			// always publishes the variable.
+			expect(before["mask-image"], mask).toBe("var(--classicy-art-halftone)");
 			expect(rule(halftone, mask)["background-image"], mask).toBeUndefined();
 			expect(rule(halftone, mask).position, mask).toBe("relative");
 		}
