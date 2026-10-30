@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Eight invariants on the *published* bundle. The first two have shipped
+// Nine invariants on the *published* bundle. The first two have shipped
 // broken, and no other signal catches any of them. `vite build` in a consumer app
 // succeeds either way, and jsdom tests never load our own dist -- these only
 // surfaced as production outages.
@@ -86,6 +86,15 @@
 //    vitest.config.d.ts) and for every imported JSON file (package.json.d.ts,
 //    platinum.json.d.ts, …). Checked by walking dist/types (skipped when the
 //    caller names files).
+//
+// 9. EVERY STYLESHEET IN DIST/ IS ASCII ONLY, OR OPENS WITH `@charset "UTF-8";`.
+//    Strict-CSP hosts link dist/classicy.css and dist/classicy-<id>.css
+//    themselves, and a linked file with no BOM, no HTTP charset and no
+//    leading `@charset` takes the referring page's encoding: raw UTF-8 from a
+//    windows-1252 page turns a package's `content: "✓"` into "âœ“". Vite
+//    minifies CSS with esbuild, whose default charset writes non-ASCII raw;
+//    `esbuild.charset: "ascii"` in vite.config.ts keeps every glyph an
+//    escape. Checked on every dist/*.css (named .css files in named mode).
 
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -95,6 +104,7 @@ import {
 	compareClassicyArtNames,
 	isClassicyArtName,
 } from "./classicyDistAssets.ts";
+import { findClassicyCssCharsetProblem } from "./classicyDistCharset.ts";
 import {
 	findClassicyBuildScriptDeclarations,
 	findClassicyJsonDeclarations,
@@ -488,6 +498,30 @@ if (!argv.slice(2).length) {
 			`${typesDir}: ${declarations.length} file(s), none for a test, test helper, story, build script in bin/, root build config or imported JSON`,
 		);
 	}
+}
+
+// Invariant 9: each linked stylesheet decodes the same under any page
+// encoding. With named files, only the named .css files.
+{
+	const named = argv.slice(2);
+	const cssFiles = named.length
+		? named.filter((f) => f.endsWith(".css"))
+		: (await readdir(DIST))
+				.filter((f) => f.endsWith(".css"))
+				.sort()
+				.map((f) => join(DIST, f));
+	let clean = 0;
+	for (const file of cssFiles) {
+		const problem = findClassicyCssCharsetProblem(file, await readFile(file));
+		if (problem) {
+			failed = true;
+			console.error(problem);
+		} else clean++;
+	}
+	if (clean === cssFiles.length)
+		console.log(
+			`stylesheet charset: ${clean} .css file(s), each ASCII only or opening with @charset "UTF-8"`,
+		);
 }
 
 if (failed) exit(1);

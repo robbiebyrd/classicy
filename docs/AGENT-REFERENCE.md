@@ -1979,7 +1979,13 @@ the bevel button arrows (`.classicyBevelButtonArrowHorizontal`,
 (`.classicyPlacardArrow`) and the file input's remove cross
 (`.classicyFileInputRemoveGlyph`). Platinum uses the font's ✓ – ▸ ▾ ✕ and
 writes them as escapes with `string.unquote('"\\2713"')`, because Sass
-decodes a quoted escape and prepends `@charset`. A package also declares, on
+decodes a quoted escape and prepends `@charset`; that keeps the Sass output
+ASCII. The shipped files stay ASCII because the library build sets
+`esbuild: { charset: "ascii" }` (Vite's CSS minifier would otherwise write
+the glyphs raw), and verify:dist (invariant 9) fails the build if any
+`dist/*.css` holds a non-ASCII byte without opening with
+`@charset "UTF-8";`. A host that links `classicy-<id>.css` from a page that
+is not UTF-8 therefore still draws the glyphs. A package also declares, on
 its root, the Color Picker's crayon tints
 (`--classicy-color-picker-crayon-{outline,facet-light,facet-dark,strip-dark,strip-light,gloss,band,line-1,line-2,end-outline}`)
 and the color wheel's `--classicy-color-picker-crosshair` (white when unset);
