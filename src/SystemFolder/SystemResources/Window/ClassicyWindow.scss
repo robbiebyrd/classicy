@@ -450,25 +450,12 @@
   }
 }
 
-// The windoid's title-bar pattern. Named down to `.classicyWindowTitle` so it
-// outranks the active and red title-bar rules (four classes) that follow.
+// The windoid's title-bar band. Named down to `.classicyWindowTitle` so it
+// outranks the document title bar's center band above.
 .classicyWindow.classicyWindowUtility .classicyWindowTitleBar .classicyWindowTitle {
-  .classicyWindowTitleLeft,
-  .classicyWindowTitleRight {
-    &:before,
-    &:after {
-      content: none;
-    }
-  }
-
   .classicyWindowTitleCenter {
     height: var(--window-utility-title-bar-height);
     margin: 0 var(--window-padding-size);
-
-    &:before,
-    &:after {
-      content: none;
-    }
   }
 }
 
@@ -506,28 +493,6 @@
     .classicyWindowTitle {
       .classicyWindowTitleText {
         color: var(--color-black);
-      }
-
-      .classicyWindowTitleLeft,
-      .classicyWindowTitleRight {
-        &:after {
-          position: relative;
-          top: -100%;
-          right: calc(var(--window-padding-size) * -1);
-          display: block;
-          float: right;
-          width: var(--window-padding-size);
-          content: " ";
-          background-repeat: no-repeat;
-        }
-
-        &:before {
-          position: relative;
-          left: calc((var(--window-padding-size) * -1) / 2);
-          display: block;
-          content: " ";
-          background-repeat: no-repeat;
-        }
       }
     }
   }
