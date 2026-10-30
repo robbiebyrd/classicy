@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T20:28:02.193Z"
-updated: "2026-10-30T11:34:00.417Z"
+updated: "2026-10-30T12:41:35.425Z"
 started: "2026-10-30T08:36:57.567Z"
 tags: []
 milestone: ""
@@ -137,3 +137,5 @@ Re-shoot every id in `stories.txt` into `after/`; `for f in before/*.png; do pri
 ### 2026-10-30T08:36:57.759Z - Started on land/part-e (492dc8be8: Part E rebased onto the integration branch with I, J and F; gate 4631 tests). Scope: E24 first (submenu triangle as an image layer), one ClassicyWindowTitleBar keeping F's order group, menu-bar slot and I's emits, exact four-layer stripe parity per owner ruling E20, and the owned carry-forward (docs, E17, slider-thumb forced capture, probe note per E23, CLAUDE.md invariant 9).
 
 ### 2026-10-30T11:34:00.417Z - E 6.1 implemented on land/part-e (a3b94f076): E24 submenu triangle as image layer; one ClassicyWindowTitleBar; exact title-bar stripes as image layers (E20; no mask was exact: 1 level Chromium / 25 Firefox); window frame body on the pixel grid; docs. 4634 tests. Parity vs the no-E tip: 280/342 AE 0, the rest only named changes (a) and (b) and the probe-note text; Firefox 139 surfaces likewise. Ruling E25 recorded (art key union 39, 34 registered; stripes do not follow theme White). Now rebasing onto the landed G (halftone fallback drop per recipe), then the whole-branch final review.
+
+### 2026-10-30T12:41:35.425Z - Part E rebased onto the landed G (0914f4cde, pushed as land/part-e-v3): G's halftone data: fallback dropped, the deferred criterion's grep is empty, icon stories AE 0; G15 pink kept under the rebuilt title bar. Gate 4745 tests; parity matches E 6.1 story for story (only named changes a/b, E23, probe note). Whole-branch final reviews (core + SCSS/art/docs) dispatched.
