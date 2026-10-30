@@ -3,12 +3,13 @@ id: 0064-fx9
 title: 'F 5.1: menuBar.placement = window: headless screen bar, ClassicyWindowMenuBar slot'
 purpose: 'Let a package declare menuBar.placement "window": the screen bar keeps its hooks but renders nothing, and each window renders its own appMenu in a new ClassicyWindowMenuBar slot under the title bar, with keyboard-shortcut dispatch unchanged.'
 type: feat
-status: in_progress
+status: complete
 priority: "2"
 effort: M
 created: "2026-10-28T20:31:22.637Z"
-updated: "2026-10-30T04:27:24.030Z"
+updated: "2026-10-30T04:33:03.543Z"
 started: "2026-10-30T02:58:39.214Z"
+completed: "2026-10-30T04:33:03.543Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -95,9 +96,9 @@ Insert `<ClassicyWindowMenuBar appId={appId} windowId={id} menuItems={appMenu} /
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyShortcutDispatcher.integration.test.tsx
-- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Window/ClassicyWindowMenuBar.test.tsx src/SystemFolder/SystemResources/Desktop/ClassicyDesktop.layout.test.tsx
-- [ ] With `menuBar.placement: "window"` the screen bar renders nothing, each window with a non-empty `appMenu` renders `.classicyWindowMenuBar` under its title bar, and the chord integration test still fires the item; with `screen` nothing changes.
+- [x] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyShortcutDispatcher.integration.test.tsx
+- [x] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Window/ClassicyWindowMenuBar.test.tsx src/SystemFolder/SystemResources/Desktop/ClassicyDesktop.layout.test.tsx
+- [x] With `menuBar.placement: "window"` the screen bar renders nothing, each window with a non-empty `appMenu` renders `.classicyWindowMenuBar` under its title bar, and the chord integration test still fires the item; with `screen` nothing changes.
 
 ## Files
 
@@ -118,3 +119,5 @@ Insert `<ClassicyWindowMenuBar appId={appId} windowId={id} menuItems={appMenu} /
 ### 2026-10-30T03:48:07.289Z - F 5.1 implemented (bd27a2afe): ClassicyWindowMenuBar slot plus headless screen bar for menuBar.placement window; chords still dispatch. Full suite 4050/4050; 26 desktop/window/app/menubar stories AE 0; live window-placement check passes (21 px bar, contents inside the frame). Named limitations: extensions/Apple/Help/switcher/clock have no in-window home; top band stays 30 px. Task review dispatched.
 
 ### 2026-10-30T04:27:24.030Z - F 5.1 review fixes landed (06c2b323f): window menu bar closes on outside click via a shared hook, modal exclusion, negative-branch tests, height variable inherits, shared registerMirror helper; also the F 4.1 re-review minors (fresh rerender element, doc clause, transient resizing/dragging/moving stripped from persisted state). 4080 tests; 26 stories AE 0. Fix re-review dispatched.
+
+### 2026-10-30T04:33:01.421Z - Fix re-review APPROVED (06c2b323f). Outside-click close is a verbatim extraction, so the screen bar behaves identically; the window bar uses it inside its own provider. Modal exclusion and negative branches tested; the height variable inherits; one shared test-mirror helper. Transient flags are stripped only from the persisted copy, which also fixes a stale-dragging window jump. Window/Desktop/AppManager suites 977/977. Remaining minors (closeAll only when open, two-bar test, idle-timeout doc, hook docs) folded into the F 7.1 worker's review-fix commit.
