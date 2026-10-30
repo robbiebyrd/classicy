@@ -3,11 +3,18 @@ id: 0069-fiu
 title: 'H 2.1: classicyMeasurementVars, package measurement defaults, platinum.json families'
 purpose: Emit every `measurements.<family>.<key>` as a CSS variable through a generic walker, seed the Platinum knob families with today's pixel values, and heal persisted themes that lack them.
 type: feat
-status: pending
+status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T20:36:01.303Z"
-updated: "2026-10-29T20:22:00.352Z"
+updated: "2026-10-30T12:31:47.810Z"
+started: "2026-10-30T12:31:47.810Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy
