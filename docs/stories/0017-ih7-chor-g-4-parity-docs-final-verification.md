@@ -3,11 +3,18 @@ id: 0017-ih7
 title: 'G 4: Parity, docs, final verification'
 purpose: Prove Part G changed no pixel beyond the named error-tint, document the color helpers, named derivations and metric reader, and run the full gate.
 type: chor
-status: pending
+status: in_progress
 priority: "2"
 effort: S
 created: "2026-10-28T19:58:09.781Z"
-updated: "2026-10-29T20:14:15.844Z"
+updated: "2026-10-30T04:31:09.562Z"
+started: "2026-10-30T04:31:07.349Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy
@@ -91,3 +98,5 @@ CLAUDE.md Theming section: 'Colors: never a literal — use a `--color-*` token 
 
 ## Work Log
 ### 2026-10-29T20:14:15.844Z - Moved 2 open [MANUAL] acceptance criteria to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
+
+### 2026-10-30T04:31:09.562Z - Started on land/part-g (Part G rebased onto the integration branch with J and tooling, fbcecaacf). Folds the G 2.2 review minors: J Options tab vs G13 reserved names, stale reader comments, two-way reserved-name test, docs (85-site inventory, unrounded fonts, reserved names, input-override note), and the G12 sweep filter for package-private constants.

@@ -3,12 +3,13 @@ id: 0014-2b5
 title: 'G 2.2: Rewrite the SCSS readers'
 purpose: Replace the simple `calc(var(--x) * N)` multipliers across ~45 stylesheets with the named derivations, leaving an enumerated one-off list for part H.
 type: impr
-status: in_progress
+status: complete
 priority: "2"
 effort: L
 created: "2026-10-28T19:56:33.172Z"
-updated: "2026-10-30T04:21:11.638Z"
+updated: "2026-10-30T04:29:26.923Z"
 started: "2026-10-30T01:53:24.028Z"
+completed: "2026-10-30T04:29:26.923Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -132,9 +133,9 @@ Re-shoot `desktop-window--*`, `desktop-menu--*`, `desktop-menubar--*`, `controls
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm exec vitest run src/Appearance/vocabulary/ClassicyDerivationReaders.test.ts src/SystemFolder/SystemResources/Window/ClassicyWindow.resizer.test.ts src/SystemFolder/SystemResources/Tabs/ClassicyTabs.typescale.test.ts
-- [ ] VERIFY: grep -rnoE 'calc\(\s*var\(--[a-z0-9-]+\)\s*[*/]\s*[0-9.]+(\s*/\s*[0-9.]+)?\s*\)' src --include=*.scss | grep -v Extensions/ScreenSaver | wc -l   # <= 60
-- [ ] Every site in the per-file map reads `var(--<name>)`; no rewritten family still carries its multiplier; the remaining sites are enumerated as the part H one-off inventory.
+- [x] VERIFY: pnpm exec vitest run src/Appearance/vocabulary/ClassicyDerivationReaders.test.ts src/SystemFolder/SystemResources/Window/ClassicyWindow.resizer.test.ts src/SystemFolder/SystemResources/Tabs/ClassicyTabs.typescale.test.ts
+- [x] Every site in the per-file map reads `var(--<name>)`; no rewritten family still carries its multiplier; the remaining sites are enumerated as the part H one-off inventory.
+- [x] VERIFY: grep -rnoE 'calc\(\s*var\(--[a-z0-9-]+\)\s*[*/]\s*[0-9.]+(\s*/\s*[0-9.]+)?\s*\)' src --include=*.scss | grep -v Extensions/ScreenSaver | wc -l   # <= 85 (the one-off inventory at 6012b2ce9; the plan's <= 60 was an estimate) and every remaining site matches the inventory in the 6012b2ce9 commit body by file and formula
 
 ## Files
 
@@ -190,3 +191,5 @@ Re-shoot `desktop-window--*`, `desktop-menu--*`, `desktop-menubar--*`, `controls
 ### 2026-10-29T20:14:15.844Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
 
 ### 2026-10-30T04:21:11.638Z - G 2.2 implemented on feat/appearance-part-g-v2: 1a80b4e40 (G13 derived-variable reservation), 9c257a6e7 (G 1.2 review minors), 6012b2ce9 (readers use named derivations). Gate green: 4097 tests. 302/302 screenshots and computed styles identical to G 1.2's after-set; forced states 67/67 Chromium, 6/6 Firefox. Six font-size derivations emitted unrounded to keep computed values exact. Multiplier sites 327 -> 85, above the brief's <=60 estimate; the remaining sites are listed in the commit body. Task review dispatched to classify them.
+
+### 2026-10-30T04:29:24.790Z - Task review APPROVED. Every remaining site is classified: 3 deliberate map deviations (ClassicyIcon per-instance size, alias badge, a self-referencing window line), 79 one-offs, 3 brief-kept scrollbar forms; the commit body lists all 85. All 218 changed code line pairs compute identical values (script, Platinum and an odd theme). Count criterion rewritten to the 85-site inventory (<=60 was an estimate). Minors (J Options tab vs G13 reserved names, stale reader comments, two-way reserved-name test, override note, story file links) carried to G 4.

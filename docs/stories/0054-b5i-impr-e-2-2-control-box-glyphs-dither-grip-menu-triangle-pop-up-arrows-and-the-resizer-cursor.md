@@ -3,12 +3,13 @@ id: 0054-b5i
 title: 'E 2.2: Control-box glyphs, dither, grip, menu triangle, pop-up arrows and the resizer cursor'
 purpose: Make the zoom/collapse glyphs, control-box dither, grow-box grip, submenu triangle and pop-up indicator read registered package art, and move the resizer cursor choice from JS into CSS.
 type: impr
-status: in_progress
+status: complete
 priority: "2"
 effort: M
 created: "2026-10-28T20:24:32.303Z"
-updated: "2026-10-30T04:23:53.653Z"
+updated: "2026-10-30T04:30:06.686Z"
 started: "2026-10-30T02:11:17.460Z"
+completed: "2026-10-30T04:30:06.686Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -98,10 +99,10 @@ Re-shoot `desktop-window--*`, `desktop-menu--*`, `controls-popupmenu--*`, `deskt
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: git grep -n 'data:image/svg' src/SystemFolder --include='*.scss' -- ':!src/SystemFolder/SystemResources/Slider' ':!src/SystemFolder/SystemResources/Tabs' ':!src/SystemFolder/SystemResources/Icon' ':!src/SystemFolder/SystemResources/Desktop'  # expect no output
-- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Window src/SystemFolder/SystemResources/Menu/ClassicyMenu.art.test.ts
-- [ ] `ClassicyWindow.tsx` no longer calls `setCursor`; the resizer's cursor is `var(--classicy-cursor-resize-lr), auto` in CSS.
-- [ ] VERIFY: grep -c 'url(.data:' src/Appearance/Platinum/styles/_assets.scss  # 0 (E 2.1 left the six 2.2-owned data URIs there: corner-dither, collapse, zoom, resizer, triangle, down-arrow)
+- [x] VERIFY: git grep -n 'data:image/svg' src/SystemFolder --include='*.scss' -- ':!src/SystemFolder/SystemResources/Slider' ':!src/SystemFolder/SystemResources/Tabs' ':!src/SystemFolder/SystemResources/Icon' ':!src/SystemFolder/SystemResources/Desktop'  # expect no output
+- [x] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Window src/SystemFolder/SystemResources/Menu/ClassicyMenu.art.test.ts
+- [x] `ClassicyWindow.tsx` no longer calls `setCursor`; the resizer's cursor is `var(--classicy-cursor-resize-lr), auto` in CSS.
+- [x] VERIFY: grep -c 'url(.data:' src/Appearance/Platinum/styles/_assets.scss  # 0 (E 2.1 left the six 2.2-owned data URIs there: corner-dither, collapse, zoom, resizer, triangle, down-arrow)
 
 ## Files
 
@@ -120,3 +121,5 @@ Re-shoot `desktop-window--*`, `desktop-menu--*`, `controls-popupmenu--*`, `deskt
 ### 2026-10-30T04:00:41.801Z - E 2.2 implemented (uncommitted at the time) with gate green, 4076 tests. Every art surface is AE 0 or exactly named change (b), except the masked pop-up arrows in 5 ComboBox stories (AE 9, peak 4). Controller ruling E21: draw the pop-up arrows as an image layer on every indicator surface, like the grip and dither, for exact parity (E20). The art stays registry-swappable. Implementer is finishing and committing.
 
 ### 2026-10-30T04:23:53.653Z - E 2.2 committed: 135296d3a (art rewrite; E21 in body) + 5a2fbe724 (E 2.1 review minor 4). Gate green: 4077 tests. All 26 pop-up indicator stories AE 0 incl. ComboBox; zoom box is exactly named change (b) across 32 stories; other glyphs, dither and grip AE 0; Firefox forced 6/6; _assets.scss 0 data URIs. E 2.1 interim stripe drift unchanged (E20 -> E 6.1). Task review dispatched.
+
+### 2026-10-30T04:30:04.634Z - Task review APPROVED. Zoom diff confined to the glyph strokes inside the 12x12 content box (the 14x14 is the bordered box); all 26 pop-up stories AE 0 re-derived; grip and dither art byte-identical; no references to deleted variables or mocks. Dry-run merges: one trivial import conflict with Part F in ClassicyWindow.tsx; clean onto the integration branch. Minors: mixin doc row (E 6.1), shared test helper (folded into E 3.1), F per-corner fallback cursor note (cross-part).
