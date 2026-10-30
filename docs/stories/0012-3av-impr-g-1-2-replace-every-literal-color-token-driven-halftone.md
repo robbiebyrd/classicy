@@ -3,12 +3,13 @@ id: 0012-3av
 title: 'G 1.2: Replace every literal color; token-driven halftone'
 purpose: Replace every literal color in Classicy's SCSS with a token or a tint/shade/alpha of one, and make the icon halftone a token-painted mask.
 type: impr
-status: in_progress
+status: complete
 priority: "2"
 effort: M
 created: "2026-10-28T19:54:12.504Z"
-updated: "2026-10-30T01:53:15.551Z"
+updated: "2026-10-30T01:59:16.304Z"
 started: "2026-10-30T00:22:13.070Z"
+completed: "2026-10-30T01:59:16.304Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -104,9 +105,9 @@ Re-shoot `controls-icon--*`, `desktop-desktopicon--*`, `controls-controlgroup--*
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm exec vitest run src/Appearance/vocabulary/ClassicyLiteralColors.test.ts
-- [ ] VERIFY: grep -rnE '#[0-9a-fA-F]{3,8}\b|rgba?\([0-9]|(^|[ :,(])(white|black)([ ;,)]|$)|groove rgb' src --include=*.scss | grep -v 'var(--[a-z0-9-]*, *#\|Extensions/ScreenSaver\|ColorPicker\|data:image\|white-space\|^\S*:\s*//' | wc -l   # 0
-- [ ] `#f7cecd` appears nowhere; `theme-halftone` takes a token and paints a `::before` mask; `encode-color` is gone.
+- [x] VERIFY: pnpm exec vitest run src/Appearance/vocabulary/ClassicyLiteralColors.test.ts
+- [x] `#f7cecd` appears nowhere; `theme-halftone` takes a token and paints a `::before` mask; `encode-color` is gone.
+- [x] VERIFY: P='#[0-9a-fA-F]{3,8}\b|rgba?\([0-9]|(^|[ :,(])(white|black)([ ;,)]|$)|groove rgb'; grep -rnE "$P" src --include=*.scss | sed -E 's#/\*[^*]*\*/##' | grep -E "$P" | grep -v 'var(--[a-z0-9-]*, *#\|Extensions/ScreenSaver\|ColorPicker\|data:image\|white-space\|^\S*:\s*//' | grep -v 'vocabulary/_color\.scss\|var(--color-black, black)' | wc -l   # 0 (strips /* */ comments; excludes the color-helper definitions and the CrashScreen keyword fallback; 22 at the base)
 
 ## Files
 
@@ -130,3 +131,5 @@ Re-shoot `controls-icon--*`, `desktop-desktopicon--*`, `controls-controlgroup--*
 ### 2026-10-30T00:22:20.817Z - Started on feat/appearance-part-g-v2 (worktree part-g) at post-B base 8bbaa7288. The owner ruled the error title-bar pink as ruling G15 (2026-10-30): classicy-tint(--color-error, 80%) = #ffcccc. The implementer brief is the part-g ledger task-1.2-brief.md; parity uses the shared post-B baseline at .playwright-mcp/parity/post-b/.
 
 ### 2026-10-30T01:53:15.551Z - Implemented at 6f6838d76 (pushed). RED→GREEN on 11 tests. Gate: lint, tsc, 4086 tests (no timeouts), build:source with verify:dist. 22 real literal sites became tokens, tints, shades or alphas. Parity: 294/302 at AE 0; the 8 that differ (7 dialogs-alert--*, desktop-window--fixed-modal) differ only inside the title-bar band, #f7cecd → #ffcccc, the G15 named change. Forced: Chromium 52/67 identical, with the other 15 being the title-bar color or a format-only QuickTime readback; Firefox 6/6. Ruling G16 settles the halftone scope: G provides the token-painted ::before fallback reading --classicy-art-halftone, and E 3.1 owns the art. platinum-encode-color is removed, which is a host-facing breaking change noted in the migration table. The task review is in progress.
+
+### 2026-10-30T01:59:13.353Z - Review APPROVED at 6f6838d76, with no Critical or Important findings. The reviewer rendered each literal next to its replacement in Chromium 143 and Firefox 157: all byte-identical, including the 239.02 groove, except G15's title-bar fill. The halftone is byte-identical in the default, selected, open and selected+open states in both engines. The pins and the migration rows changed in the same commit. The controller re-ran the sweep at the commit with `git grep`: the literal criterion matches 5 lines, all false positives (the two color-helper definitions, the CrashScreen keyword fallback and two comments), so the criterion was rewritten to strip comments and exclude those. It gives 0 at 6f6838d76 and 22 at the base. `#f7cecd` occurs nowhere, and `encode-color` survives only in a test regex asserting its absence. Minors 1-3 and 5 (README breaking-change bullet, the halftone art contract in AGENT-REFERENCE, a tighter no-literal guard, the `window` rename) are folded into G 2.2. Minor 4 (a shared rule() test helper) is noted for the whole-branch pass.
