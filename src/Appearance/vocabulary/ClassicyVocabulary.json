@@ -485,6 +485,8 @@
 			"HeaderList",
 			"Icon",
 			"Invisible",
+			"Menu",
+			"MenuBar",
 			"Modal",
 			"ModalFront",
 			"ModalScrim",
@@ -534,7 +536,8 @@
 			"help",
 			"switcher",
 			"extensions",
-			"clock"
+			"clock",
+			"window-menu-bar"
 		]
 	}
 }
