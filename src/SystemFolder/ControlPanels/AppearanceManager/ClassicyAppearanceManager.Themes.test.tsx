@@ -185,6 +185,49 @@ describe("listClassicyPackageThemes", () => {
 	});
 });
 
+describe("listClassicyPackageThemes — a package's defaults (J-R22)", () => {
+	const theme = (id: string, pkg: string, name = id) =>
+		({ id, name, package: pkg }) as unknown as ClassicyTheme;
+
+	it("lists the defaults first when no preset has their id", () => {
+		expect(
+			listClassicyPackageThemes(
+				{ availableThemes: [theme("default", "platinum")], customThemes: [] },
+				{
+					id: "irix",
+					defaults: theme("indigo", "irix"),
+					presets: [theme("dusk", "irix")],
+				},
+			).map((t) => t.id),
+		).toEqual(["indigo", "dusk"]);
+	});
+
+	it("lists a package with defaults only", () => {
+		expect(
+			listClassicyPackageThemes(
+				{ availableThemes: [], customThemes: [] },
+				{ id: "irix", defaults: theme("indigo", "irix") },
+			).map((t) => t.id),
+		).toEqual(["indigo"]);
+	});
+
+	it("does not list the defaults twice when a preset has their id", () => {
+		expect(
+			listClassicyPackageThemes(
+				{ availableThemes: [], customThemes: [] },
+				{
+					id: "irix",
+					defaults: theme("indigo", "irix", "Defaults"),
+					presets: [theme("dusk", "irix"), theme("indigo", "irix", "Preset")],
+				},
+			).map((t) => [t.id, t.name]),
+		).toEqual([
+			["dusk", "dusk"],
+			["indigo", "Preset"],
+		]);
+	});
+});
+
 // #280: Smart Scrolling's neighbour on the Mac OS 8 Appearance Options tab.
 describe("useThemesTab — Double-click title bar to collapse", () => {
 	it("renders the checkbox checked when on", () => {

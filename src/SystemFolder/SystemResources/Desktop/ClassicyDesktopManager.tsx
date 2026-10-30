@@ -18,6 +18,7 @@ import {
 	cloneClassicyTheme,
 	editActiveClassicyTheme,
 	findClassicyTheme,
+	listClassicyPackageBuiltInThemes,
 	listClassicyThemes,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
 import { setThemeColor } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorTargets";
@@ -219,16 +220,18 @@ const controlStripState = (ds: ClassicyStore): ClassicyStoreControlStrip => {
 };
 
 /**
- * A package's defaults as the theme a switch activates: a copy (as
- * ChangeTheme activates), completed as built-in and loaded themes are. The
- * registry keeps a package as passed, so a JS-authored one may lack metric
- * groups or name a bundled wallpaper by filename; `package` is the package's
- * own id (its registration guarantees the defaults name no other).
+ * One of a package's own themes (its defaults or a preset) as the theme a
+ * switch or ChangeTheme activates: a copy, completed as built-in and loaded
+ * themes are. The registry keeps a package as passed, so a JS-authored one
+ * may lack metric groups or name a bundled wallpaper by filename; `package`
+ * is the package's own id (its registration guarantees its themes name no
+ * other).
  */
-const activatableClassicyPackageDefaults = (
+const activatableClassicyPackageTheme = (
 	pkg: ClassicyAppearancePackage,
+	packageTheme: ClassicyTheme,
 ): ClassicyTheme => {
-	const theme = withDefaultThemeMetrics(cloneClassicyTheme(pkg.defaults));
+	const theme = withDefaultThemeMetrics(cloneClassicyTheme(packageTheme));
 	return {
 		...theme,
 		package: pkg.id,
@@ -339,17 +342,30 @@ export const classicyDesktopEventHandler = (
 		}
 		case "ClassicyDesktopChangeTheme": {
 			if (!hasActiveTheme(action)) break;
-			// Built-ins first, then the active package's presets (resolved as
-			// the hooks resolve it, J-R16), then custom themes. Activate a copy,
-			// so edits to the active theme can never alias the stored entry.
+			// J-R19: the active package's host-loaded themes, then its own
+			// built-ins (defaults and presets, J-R22; the package resolved as
+			// the hooks resolve it, J-R16), then custom themes, so an id shared
+			// with another package's built-in finds the active package's theme.
+			// Activate a copy, so edits to the active theme can never alias the
+			// stored entry; a package's own theme is completed as a package
+			// switch completes its defaults (J-R21: wallpaper, metrics).
 			const appearance = ds.System.Manager.Appearance;
+			const pkg = getRegisteredClassicyAppearancePackageOrDefault(
+				appearance.packageId,
+			);
+			const activePackage = pkg ?? {
+				id: CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID,
+			};
 			const foundTheme = findClassicyTheme(
 				appearance,
 				action.activeTheme,
-				getRegisteredClassicyAppearancePackageOrDefault(appearance.packageId)
-					?.presets,
+				activePackage,
 			);
-			if (foundTheme) appearance.activeTheme = cloneClassicyTheme(foundTheme);
+			if (!foundTheme) break;
+			appearance.activeTheme =
+				pkg && listClassicyPackageBuiltInThemes(pkg).includes(foundTheme)
+					? activatableClassicyPackageTheme(pkg, foundTheme)
+					: cloneClassicyTheme(foundTheme);
 			break;
 		}
 		case "ClassicyDesktopChangeAppearancePackage": {
@@ -375,7 +391,10 @@ export const classicyDesktopEventHandler = (
 			// the package's defaults (a copy, as ChangeTheme activates). The
 			// preset list is left alone.
 			if (appearance.activeTheme.package !== pkg.id) {
-				appearance.activeTheme = activatableClassicyPackageDefaults(pkg);
+				appearance.activeTheme = activatableClassicyPackageTheme(
+					pkg,
+					pkg.defaults,
+				);
 			}
 			break;
 		}
@@ -398,15 +417,17 @@ export const classicyDesktopEventHandler = (
 			const appearance = ds.System.Manager.Appearance;
 			// Always a new entry: the payload's id is ignored, so an import
 			// can never overwrite an existing custom theme, shadow a built-in or
-			// the active package's presets (ChangeTheme finds those first), or
+			// the active package's own themes (ChangeTheme finds those first), or
 			// take a registered package's Custom fork slot.
 			const imported = assignImportedClassicyThemeIdentity(
 				read.theme,
 				[
 					...listClassicyThemes(appearance),
-					...(getRegisteredClassicyAppearancePackageOrDefault(
-						appearance.packageId,
-					)?.presets ?? []),
+					...listClassicyPackageBuiltInThemes(
+						getRegisteredClassicyAppearancePackageOrDefault(
+							appearance.packageId,
+						) ?? {},
+					),
 				],
 				listClassicyAppearancePackages().map((pkg) =>
 					classicyCustomThemeSlotId(pkg.id),
@@ -448,8 +469,9 @@ export const classicyDesktopEventHandler = (
 			if (!hasThemeMetricFamilyChange(action)) break;
 			const target = action;
 			// Resolved as resolveClassicyAppearancePackage does (an unregistered
-			// id means the default package), so the reducer accepts exactly the
-			// knobs the panel shows.
+			// id means the default package). The Options tab offers only knobs
+			// that pass isThemeMetricFamilyTarget and have bounds (J-R18, J-R20),
+			// so every edit it offers is accepted here.
 			const knobs = getRegisteredClassicyAppearancePackageOrDefault(
 				appearance.packageId,
 			)?.knobs;

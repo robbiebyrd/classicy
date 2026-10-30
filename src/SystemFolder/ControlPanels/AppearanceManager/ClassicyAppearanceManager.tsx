@@ -107,23 +107,31 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 	const packages = useClassicyAppearancePackages();
 	const activePackage = useActiveClassicyAppearancePackage();
 
-	// The active package's presets and host-loaded themes, then the user's
-	// custom themes of that package (e.g. "Custom").
-	const themesList = useMemo(
-		() =>
-			listClassicyPackageThemes(
-				{
-					availableThemes: appearanceState.availableThemes,
-					customThemes: appearanceState.customThemes,
-				},
-				activePackage,
-			).map((a: ClassicyTheme) => ({ value: a.id, label: a.name })),
-		[
-			appearanceState.availableThemes,
-			appearanceState.customThemes,
+	// The active package's built-ins (defaults and presets) and host-loaded
+	// themes, then the user's custom themes of that package (e.g. "Custom") —
+	// plus the active theme when it is not among them (a theme of another
+	// package), so the pop-up always shows the current choice, as the Sound
+	// tab does for packs (J-R22).
+	const { id: activeThemeId, name: activeThemeName } =
+		appearanceState.activeTheme;
+	const themesList = useMemo(() => {
+		const themes = listClassicyPackageThemes(
+			{
+				availableThemes: appearanceState.availableThemes,
+				customThemes: appearanceState.customThemes,
+			},
 			activePackage,
-		],
-	);
+		).map((a: ClassicyTheme) => ({ value: a.id, label: a.name }));
+		if (!themes.some((t) => t.value === activeThemeId))
+			themes.push({ value: activeThemeId, label: activeThemeName });
+		return themes;
+	}, [
+		appearanceState.availableThemes,
+		appearanceState.customThemes,
+		activePackage,
+		activeThemeId,
+		activeThemeName,
+	]);
 
 	// Packs shared by every package, and the active package's own — plus the
 	// active theme's pack when it belongs to another package, so the pop-up

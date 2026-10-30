@@ -199,14 +199,14 @@ const ThemesTabStory = () => {
 	);
 	const dispatch = useAppManagerDispatch();
 	const activePackage = useActiveClassicyAppearancePackage();
-	const themesList = useMemo(
-		() =>
-			listClassicyPackageThemes(appearance, activePackage).map((t) => ({
-				value: t.id,
-				label: t.name,
-			})),
-		[appearance, activePackage],
-	);
+	// As the panel builds it: the active theme is listed even when it belongs
+	// to another package, so the pop-up is never blank (J-R22).
+	const themesList = useMemo(() => {
+		const themes = listClassicyPackageThemes(appearance, activePackage);
+		if (!themes.some((t) => t.id === appearance.activeTheme.id))
+			themes.push(appearance.activeTheme);
+		return themes.map((t) => ({ value: t.id, label: t.name }));
+	}, [appearance, activePackage]);
 	// Save Theme… and Load Theme… as the panel does them
 	// (ClassicyAppearanceManager.tsx): a failure shows a stop alert, and a
 	// theme file for another installed package switches to that package
