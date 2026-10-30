@@ -7,7 +7,7 @@ status: ready
 priority: "2"
 effort: L
 created: "2026-10-30T12:16:47.737Z"
-updated: "2026-10-30T21:09:10.933Z"
+updated: "2026-10-30T21:21:34.698Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -82,3 +82,5 @@ AGENT-REFERENCE §8 replaces the inventory with the kept-on-purpose list and doc
 ### 2026-10-30T19:59:21.020Z - H 6.2a implemented (9a98dfb74 on h/6.2a): the multiplier gate with a reasoned allowlist (178 live sites seeded, more than G's 88 grep count); 123 sites named with 31 derivations and 31 knobs; 55 sites left (31 kept on purpose, 24 in 6.1's files for 6.2b). Parity AE 0 on 342 stories + 4 app shots. Ruling H-R25: sites multiplying a user-editable metric must stay proportional (derivations, not knobs), so the Metrics tab keeps scaling; fix round running.
 
 ### 2026-10-30T21:09:10.933Z - H 6.2a H-R25 fix (08a84dc11): all 31 knobs had replaced multiples of user-editable metrics, so all 31 are now derivations under the same variable names (no SCSS change). A new metric-scaling test sets each metric through its real action and fails against the knob version. Parity AE 0 on 346 shots, computed styles 342/342, forced states 67/67. All 24 sites left for 6.2b multiply editable metrics, so they become derivations too. In review.
+
+### 2026-10-30T21:21:34.698Z - 6.2a review: Needs fixes. The scanner misses Sass #{$x} operands (4 live Slider sites; the true total is 182, not 178) and sign-flip-plus-factor chains such as var(--x) * -1 / 2. Values verified: 33,212 old-vs-new comparisons across every editable input; H-R25 fully applied. Ruling H-R28 covers the scanner fix, the title-bar cap offset's own name, a knob/derivation collision test and a duplicate-role check. Fix round running.
