@@ -19,7 +19,7 @@ const compileSource = (source: string) =>
 	}).css;
 
 const SYSTEM = "src/SystemFolder/SystemResources";
-const window = compileFile(`${SYSTEM}/Window/ClassicyWindow.scss`);
+const windowCss = compileFile(`${SYSTEM}/Window/ClassicyWindow.scss`);
 const alert = compileFile(`${SYSTEM}/Alert/ClassicyAlert.scss`);
 const fileInput = compileFile(`${SYSTEM}/FileInput/ClassicyFileInput.scss`);
 const icon = compileFile(`${SYSTEM}/Icon/ClassicyIcon.scss`);
@@ -69,7 +69,7 @@ const rule = (css: string, selector: string): Record<string, string> => {
 
 describe("literal colors are theme tokens (G 1.2)", () => {
 	it("ClassicyWindow red title bar uses the error tint", () =>
-		expect(window).toContain(
+		expect(windowCss).toContain(
 			"background-color: color-mix(in srgb, var(--color-error), white 80%);",
 		));
 
@@ -159,7 +159,7 @@ describe("literal colors are theme tokens (G 1.2)", () => {
 
 	it("no literal color remains in the audited files", () => {
 		const audited = {
-			window,
+			window: windowCss,
 			alert,
 			fileInput,
 			icon,
@@ -177,9 +177,13 @@ describe("literal colors are theme tokens (G 1.2)", () => {
 				// Comments are prose ("Otherwise white in Chrome"), data URIs are art.
 				.replace(/\/\*[\s\S]*?\*\//g, "")
 				.replace(/url\([^)]*\)/g, "")
-				// The `white`/`black` mixing targets inside a helper's color-mix.
-				.replace(/var\(--[\w-]+\)/g, "")
-				.replace(/color-mix\([^()]*\)/g, "");
+				// Only the helper shapes (classicy-tint/-shade/-alpha): a token
+				// mixed with white, black or transparent. A literal used as the
+				// mixed color still fails.
+				.replace(
+					/color-mix\(in srgb, var\(--[\w-]+\)(\s+\d+%)?,\s*(white|black|transparent)(\s+\d+%)?\)/g,
+					"",
+				);
 			expect(stripped, name).not.toMatch(
 				/#[0-9a-f]{3,8}\b|rgba?\(|(^|[\s:,(])(white|black)([\s;,)]|$)/im,
 			);
