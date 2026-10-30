@@ -180,6 +180,27 @@ const ClassicyControlStripModuleButton: FunctionalComponent<{
 	);
 };
 
+// The strip's position custom properties belong to its stored position
+// (ClassicyDesktopControlStripSetPosition): an Appearance Package's style never
+// sets them, even in the default position, where the strip writes neither and
+// the stylesheet's default applies. A consumer `style` still may.
+const CONTROL_STRIP_POSITION_PROPERTIES = [
+	"--classicy-control-strip-bottom",
+	"--classicy-control-strip-top-inset",
+];
+const withoutPositionProperties = (
+	style: CSSProperties | undefined,
+): CSSProperties | undefined => {
+	if (
+		!style ||
+		!CONTROL_STRIP_POSITION_PROPERTIES.some((key) => Object.hasOwn(style, key))
+	)
+		return style;
+	const rest: Record<string, unknown> = { ...style };
+	for (const key of CONTROL_STRIP_POSITION_PROPERTIES) delete rest[key];
+	return rest as CSSProperties;
+};
+
 /**
  * The Mac OS 8 Control Strip (HIGOS8 Ch.6 "Persistent Access", p.125, Figure
  * 6-15): a floating strip, docked to the lower left of the desktop until the
@@ -536,7 +557,7 @@ export const ClassicyControlStrip: FunctionalComponent<
 				className,
 			)}
 			style={{
-				...appearance.style,
+				...withoutPositionProperties(appearance.style),
 				...(bottom === 0
 					? {}
 					: ({

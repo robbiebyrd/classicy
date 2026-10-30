@@ -3,7 +3,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen } from "@/__tests__/test-utils";
 import { installClassicyAppearanceProbe } from "@/Appearance/__tests__/appearanceProbe";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
-import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import {
+	dispatch,
+	useAppManager,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyControlStrip } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStrip";
 import {
 	CLASSICY_CONTROL_STRIP_MODULE_IDS,
@@ -145,6 +148,42 @@ describe("ClassicyControlStrip appearance", () => {
 		renderStrip({ style: { marginTop: 7 } });
 		expect(strip().style.marginLeft).toBe("3px");
 		expect(strip().style.marginTop).toBe("7px");
+	});
+
+	it("never lets the package's style set its position custom properties", () => {
+		probe.uninstall();
+		probe = installClassicyAppearanceProbe({
+			on: {
+				mount: () => ({
+					style: {
+						"--classicy-control-strip-bottom": "999px",
+						"--classicy-control-strip-top-inset": "888px",
+						marginLeft: 3,
+					} as CSSProperties,
+				}),
+			},
+		});
+		const bottomOf = () =>
+			strip().style.getPropertyValue("--classicy-control-strip-bottom");
+		const topInsetOf = () =>
+			strip().style.getPropertyValue("--classicy-control-strip-top-inset");
+		// The default position sets neither, so the stylesheet's default holds.
+		const { unmount } = renderStrip();
+		expect(strip().style.marginLeft).toBe("3px");
+		expect(bottomOf()).toBe("");
+		expect(topInsetOf()).toBe("");
+		unmount();
+		// A stored position is the strip's own.
+		act(() => {
+			dispatch({
+				type: "ClassicyDesktopControlStripSetPosition",
+				edge: "left",
+				bottom: 120,
+			});
+		});
+		renderStrip();
+		expect(bottomOf()).toBe("120px");
+		expect(topInsetOf()).not.toBe("888px");
 	});
 
 	it("adds nothing when the package returns nothing", () => {

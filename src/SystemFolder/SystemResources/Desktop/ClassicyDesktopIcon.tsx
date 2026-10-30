@@ -31,6 +31,7 @@ import {
 	type KeyboardEvent,
 	type MouseEvent,
 	memo,
+	useEffect,
 	useMemo,
 	useRef,
 	useState,
@@ -222,6 +223,10 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			// The press that selects an icon reports it; the click ending that
 			// press must not report it again.
 			const selectedOnPressRef = useRef(false);
+			// Set when a press or click on the icon has reported the selection
+			// change it makes, so the selection effect below does not report it
+			// again.
+			const selectReportedRef = useRef(false);
 			// One dragEnd per dragStart: mouseup also ends presses that never dragged.
 			const dragEmittedRef = useRef(false);
 
@@ -261,8 +266,10 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 					iconId: appId,
 				});
 				if (selectedOnPressRef.current) selectedOnPressRef.current = false;
-				else if (selectionChanges)
+				else if (selectionChanges) {
+					selectReportedRef.current = true;
 					appearance.emit("select", withClassicyAppearanceInput());
+				}
 				// Take keyboard focus from whatever window had it, so Delete and
 				// the arrow keys act on the desktop's selection.
 				iconRef.current?.focus({ preventScroll: true });
@@ -332,6 +339,29 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 				iconRef,
 			);
 
+			// Selection the desktop makes from the keyboard (its arrow keys and
+			// type-ahead; ruling I-R14) reaches the icon only as store state, so
+			// the icon reports it here, after the commit, when it became
+			// selected or a multiple selection collapsed to it. A press or click
+			// on the icon has already reported its own change
+			// (selectReportedRef), and a change no key press made (a selection
+			// rectangle, a selection set in code) is not reported.
+			const selectionRef = useRef({ isSelected, isMultipleSelection });
+			const emitAppearance = appearance.emit;
+			useEffect(() => {
+				const previous = selectionRef.current;
+				selectionRef.current = { isSelected, isMultipleSelection };
+				const reported = selectReportedRef.current;
+				selectReportedRef.current = false;
+				const becameSelection =
+					isSelected &&
+					(!previous.isSelected ||
+						(previous.isMultipleSelection && !isMultipleSelection));
+				if (!becameSelection || reported) return;
+				const detail = withClassicyAppearanceInput();
+				if (detail.input === "keyboard") emitAppearance("select", detail);
+			}, [isSelected, isMultipleSelection, emitAppearance]);
+
 			const stopChangeIcon = () => {
 				// Bound to onMouseUp, so this runs on every release on the icon.
 				// Report only a drag that actually happened. didDragRef -- not
@@ -365,6 +395,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 						type: "ClassicyDesktopIconFocus",
 						iconId: appId,
 					});
+					selectReportedRef.current = true;
 					appearance.emit("select", withClassicyAppearanceInput());
 				}
 
