@@ -1,0 +1,137 @@
+// The mirrored Storybook package's stylesheet (MirroredPackage.ts imports it
+// `?inline`): one `@layer classicy.package` block scoped under
+// `.classicyDesktop[data-classicy-appearance="mirrored"]`.
+//
+// First Platinum's whole look, rescoped: the same component mixins, included
+// in platinum.scss's order (MirroredPackage.test.ts pins that the compiled
+// body is Platinum's), so the mirrored stories look like Platinum and show
+// only the arrangement change. Then the flips: CSS `order` and flex direction
+// on the part attributes and part classes, which is all a package needs to
+// rearrange a surface. The grip corner, the menu bar's placement and the icon
+// grid's origin come from the package's `layout`, not from CSS.
+//
+// Relative paths, not the `@/` alias: the test compiles this file through the
+// sass API, which has no aliases.
+@use "../../src/Appearance/vocabulary/package";
+@use "../../src/Appearance/Platinum/styles/components/Alert";
+@use "../../src/Appearance/Platinum/styles/components/Button";
+@use "../../src/Appearance/Platinum/styles/components/BevelButton";
+@use "../../src/Appearance/Platinum/styles/components/Menu";
+@use "../../src/Appearance/Platinum/styles/components/Window";
+@use "../../src/Appearance/Platinum/styles/components/Slider";
+@use "../../src/Appearance/Platinum/styles/components/Checkbox";
+@use "../../src/Appearance/Platinum/styles/components/PopUpMenu";
+@use "../../src/Appearance/Platinum/styles/components/DriveSetupList";
+@use "../../src/Appearance/Platinum/styles/components/Assistant";
+@use "../../src/Appearance/Platinum/styles/components/ProgressBar";
+@use "../../src/Appearance/Platinum/styles/components/Icon";
+@use "../../src/Appearance/Platinum/styles/components/Table";
+@use "../../src/Appearance/Platinum/styles/components/QuickTimeMovieEmbed";
+@use "../../src/Appearance/Platinum/styles/components/StartupScreen";
+@use "../../src/Appearance/Platinum/styles/components/ControlStrip";
+@use "../../src/Appearance/Platinum/styles/components/Desktop";
+@use "../../src/Appearance/Platinum/styles/components/Tabs";
+@use "../../src/Appearance/Platinum/styles/components/DesktopIcon";
+@use "../../src/Appearance/Platinum/styles/components/Meter";
+@use "../../src/Appearance/Platinum/styles/components/Output";
+@use "../../src/Appearance/Platinum/styles/components/Placard";
+@use "../../src/Appearance/Platinum/styles/components/SplitView";
+@use "../../src/Appearance/Platinum/styles/components/WindowFrame";
+
+@include package.classicy-package("mirrored") {
+  @include Alert.alert;
+  @include Button.button;
+  @include BevelButton.bevelButton;
+  @include Menu.menu;
+  @include Window.window;
+  @include Slider.slider;
+  @include Checkbox.checkbox;
+  @include PopUpMenu.popUpMenu;
+  @include DriveSetupList.driveSetupList;
+  @include Assistant.assistant;
+  @include ProgressBar.progressBar;
+  @include Icon.icon;
+  @include Table.table;
+  @include QuickTimeMovieEmbed.quickTimeMovieEmbed;
+  @include StartupScreen.startupScreen;
+  @include ControlStrip.controlStrip;
+  @include Desktop.desktop;
+  @include Tabs.tabs;
+  @include DesktopIcon.desktopIcon;
+  @include Meter.meter;
+  @include Output.output;
+  @include Placard.placard;
+  @include SplitView.splitView;
+  @include WindowFrame.windowFrame;
+
+  // ── Flips ────────────────────────────────────────────────────────────────
+
+  // Window: the close box at the far right, the zoom and collapse boxes at
+  // the far left (zoom outermost), the title's stripes hidden.
+  [data-classicy-control="close"] {
+    order: 50;
+  }
+
+  [data-classicy-control="zoom"] {
+    order: 5;
+  }
+
+  [data-classicy-control="collapse"] {
+    order: 6;
+  }
+
+  .classicyWindowTitleLeft,
+  .classicyWindowTitleRight,
+  .classicyWindowTitleCenter {
+    display: none;
+  }
+
+  // Alert: the icon on the right; the default button leftmost, the row still
+  // packed against the right edge.
+  .classicyAlertTop {
+    flex-direction: row-reverse;
+  }
+
+  .classicyAlertButtons {
+    flex-direction: row-reverse;
+    justify-content: flex-start;
+  }
+
+  // Menu bar (when a bar is drawn on the screen): the App Switcher leads at
+  // the far left; Apple, the app menus, Help, extensions and the clock are
+  // pushed to the right edge.
+  .classicyDesktopMenu > [data-classicy-part="switcher"] {
+    order: 1;
+    margin-right: auto;
+  }
+
+  .classicyDesktopMenu > [data-classicy-part="extensions"] {
+    margin-left: 0;
+  }
+
+  // Tabs: the strip under the panel, its overhang moved to the top edge, the
+  // tabs hung from the row's top (ClassicyTabs' own stripPosition="bottom"
+  // does the same in base).
+  .classicyTabContainer .classicyTabButtonsRow {
+    order: 1;
+    margin-bottom: 0;
+    margin-top: calc(var(--window-border-size) * -1);
+    align-items: flex-start;
+  }
+
+  // …and each tab's trapezoid outline turned over with it, so the wide edge
+  // meets the panel. The clip and the outline art are on the wrapper; the
+  // button inside is turned back so its label stays upright.
+  .classicyTabContainer .classicyTabButtonWrapper {
+    transform: scaleY(-1);
+  }
+
+  .classicyTabContainer .classicyTabButtonWrapper .classicyTabButton {
+    transform: scaleY(-1);
+  }
+
+  // Disclosure: the label before the triangle, by CSS alone.
+  .classicyDisclosureHeader > .classicyControlLabelHolder {
+    order: -1;
+  }
+}

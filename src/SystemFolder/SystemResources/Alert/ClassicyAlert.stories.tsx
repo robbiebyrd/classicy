@@ -1,4 +1,4 @@
-import { desktopParameters, StoryApp } from "@sb/helpers";
+import { desktopParameters, mirroredParameters, StoryApp } from "@sb/helpers";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fn } from "storybook/test";
 import { ClassicyAlert } from "./ClassicyAlert";
@@ -170,4 +170,15 @@ export const CautionDefaultButtons: Story = {
 			/>
 		</StoryApp>
 	),
+};
+
+/**
+ * `Caution` under the Storybook-only `mirrored` Appearance Package: the icon
+ * on the right of the message and the default button leftmost, by CSS alone
+ * (`flex-direction: row-reverse` on the top row and the button row). Return
+ * and Escape still pick the same buttons.
+ */
+export const Mirrored: Story = {
+	...Caution,
+	parameters: mirroredParameters,
 };

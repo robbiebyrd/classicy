@@ -85,7 +85,7 @@ progress:
 | File | Change | Responsibility |
 |---|---|---|
 | `src/Appearance/useClassicyAppearanceLayout.ts` | create | `CLASSICY_DEFAULT_APPEARANCE_LAYOUT`, `getClassicyAppearanceLayout(packageId?)`, `useClassicyAppearanceLayout()`, `classicyLayoutVars(layout)`. |
-| `src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.ts` | modify | `getThemeVars` emits the three `--classicy-layout-*` variables (line 169). |
+| `src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.ts` | modify | Superseded by ruling F1: not modified. The three `--classicy-layout-*` variables are spread on the desktop root by `ClassicyDesktop.tsx`; `getThemeVars` only sees the theme. |
 | `src/SystemFolder/SystemResources/Desktop/ClassicyDesktop.tsx` | modify | Root `data-classicy-menu-bar` / `data-classicy-grow-box` (603-618); menu bar placement (636). |
 | `src/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar.tsx` | modify | `placement` prop; headless when `window` (128-134, 351-369). |
 | `src/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar.scss` | modify | Flex bar with `order` per cluster; floats removed (18-31, 48-56, 67-70). |
@@ -364,7 +364,7 @@ A `false` is a slot that does not work: fix the component or `mirrored.scss`, no
 
 ## Acceptance Criteria
 
-- [ ] `getThemeVars(getTheme("default"))` emits `--classicy-layout-grow-box-corner: bottom-right`, `--classicy-layout-menu-bar-placement: screen`, `--classicy-layout-icon-grid-origin: top-right`; the desktop root carries `data-classicy-menu-bar` and `data-classicy-grow-box`.
+- [ ] The desktop root's style carries `--classicy-layout-grow-box-corner: bottom-right`, `--classicy-layout-menu-bar-placement: screen`, `--classicy-layout-icon-grid-origin: top-right` (spread by `ClassicyDesktop` from `classicyLayoutVars`; `getThemeVars` emits none of them, ruling F1); the desktop root carries `data-classicy-menu-bar` and `data-classicy-grow-box`.
 - [ ] `git grep -n 'float: right' src/SystemFolder/SystemResources/Desktop/MenuBar` returns nothing; the six clusters are direct flex children with `order` 10…60.
 - [ ] `computeClassicyWindowResize` passes the four-corner table; the bottom-right path reproduces today's numbers; a mirrored window's grip drag moves `style.left`.
 - [ ] With `menuBar.placement: "window"` the screen bar renders nothing, each window with `appMenu` renders `.classicyWindowMenuBar`, and the shortcut integration test still fires the chord.
@@ -376,7 +376,7 @@ A `false` is a slot that does not work: fix the component or `mirrored.scss`, no
 
 | Requirement | Delivered by |
 |---|---|
-| Contract: useClassicyAppearanceLayout(), --classicy-layout-* from getThemeVars, data-classicy-menu-bar / data-classicy-grow-box on the desktop root | 1.1 Steps 3-5 |
+| Contract: useClassicyAppearanceLayout(), --classicy-layout-* on the desktop root (from ClassicyDesktop, not getThemeVars; ruling F1), data-classicy-menu-bar / data-classicy-grow-box on the desktop root | 1.1 Steps 3-5 |
 | §9 Phase 5 item 6: menu bar floats → flex + order on data-classicy-part clusters | 2.1 Steps 3-4 |
 | §5 / §8.8: control-box order and side via data-classicy-control; stripe spans hideable; grip position by corner | 3.1 Steps 3-4 |
 | §8.8: resize math reads window.growBoxCorner and anchors the opposite corner; tests for four corners | 4.1 Steps 1, 3-4 |

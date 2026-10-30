@@ -1,3 +1,4 @@
+import { mirroredParameters, StoryWindow } from "@sb/helpers";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { ClassicyDisclosure } from "./ClassicyDisclosure";
 
@@ -27,4 +28,19 @@ export const LabelOnLeft: Story = {
 		labelPosition: "left",
 		children: <p>Details revealed on disclosure.</p>,
 	},
+};
+
+/**
+ * `Default`, in a window, under the Storybook-only `mirrored` Appearance
+ * Package: the label before the triangle by CSS `order` alone, with no
+ * `labelPosition` prop.
+ */
+export const Mirrored: Story = {
+	...Default,
+	parameters: mirroredParameters,
+	render: (args) => (
+		<StoryWindow title="Disclosure" size={[360, 180]}>
+			<ClassicyDisclosure {...args} />
+		</StoryWindow>
+	),
 };

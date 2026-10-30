@@ -1,5 +1,15 @@
-import { desktopParameters } from "@sb/helpers";
+import {
+	desktopParameters,
+	mirroredParameters,
+	SB_ICON,
+	StoryApp,
+} from "@sb/helpers";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { useMemo } from "react";
+import { fn } from "storybook/test";
+import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
+import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 import { ClassicyDesktop } from "./ClassicyDesktop";
 
 const meta = {
@@ -31,4 +41,54 @@ export const WithoutControlStrip: Story = {
 		classicy: { desktop: true, controlStrip: false },
 	},
 	render: () => null,
+};
+
+const MirroredDesktop = () => {
+	const appMenu: ClassicyMenuItem[] = useMemo(
+		() => [
+			{
+				id: "storybook.app_file",
+				title: "File",
+				menuChildren: [
+					{ id: "storybook.app_new", title: "New", onClickFunc: fn() },
+					{ id: "storybook.app_open", title: "Open…", onClickFunc: fn() },
+				],
+			},
+		],
+		[],
+	);
+	return (
+		<>
+			<StoryApp id="storybook.app" name="Storybook">
+				<ClassicyWindow
+					id="mirrored"
+					appId="storybook.app"
+					title="Menus in the Window"
+					appMenu={appMenu}
+					initialSize={[380, 200]}
+					initialPosition={[240, 80]}
+				>
+					<p style={{ padding: "1em" }}>
+						This window&apos;s File menu is in its own menu bar, under the title
+						bar; there is no menu bar across the screen.
+					</p>
+				</ClassicyWindow>
+			</StoryApp>
+			<ClassicyApp id="storybook-notes.app" name="Notes" icon={SB_ICON} />
+		</>
+	);
+};
+
+/**
+ * The desktop under the Storybook-only `mirrored` Appearance Package, whose
+ * `layout` moves the menus into each window (`menuBar.placement: "window"`)
+ * and lays desktop icons out from the top left (`desktop.iconGridOrigin`).
+ * The screen bar is not drawn (it still dispatches keyboard equivalents); a
+ * window with an `appMenu` shows it in a bar under its title. The Apple,
+ * Help and App Switcher menus, the clock and menu bar extensions have no
+ * place in this arrangement.
+ */
+export const Mirrored: Story = {
+	parameters: mirroredParameters,
+	render: () => <MirroredDesktop />,
 };

@@ -10,6 +10,7 @@ import {
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { ClassicyAppManagerProvider } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext";
 import {
+	dispatch,
 	stopAppManagerPersistence,
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
@@ -28,18 +29,35 @@ const resetClassicyStore = (themeId: string) => {
 const ClassicyDesktopFrame = ({
 	themeId,
 	controlStrip,
+	appearancePackage,
 	children,
 }: {
 	themeId: string;
 	controlStrip: boolean;
+	appearancePackage?: string;
 	children: ReactNode;
 }) => {
 	const [ready, setReady] = useState(false);
 
 	useLayoutEffect(() => {
 		resetClassicyStore(themeId);
+		// After the reset, which would otherwise wipe it: the switch sets
+		// Appearance.packageId and activates the package's defaults (so
+		// activeTheme.package follows).
+		if (appearancePackage) {
+			dispatch({
+				type: "ClassicyDesktopChangeAppearancePackage",
+				packageId: appearancePackage,
+			});
+		}
 		setReady(true);
-	}, [themeId]);
+		// The store outlives the story: put the default package back when a
+		// story that switched leaves, so the next non-desktop story (whose
+		// frame reads the store's package) never inherits it.
+		return () => {
+			if (appearancePackage) resetClassicyStore(themeId);
+		};
+	}, [themeId, appearancePackage]);
 
 	if (!ready) return null;
 	return (
@@ -143,16 +161,20 @@ const DocsPortalRoot = ({
  */
 const StoryFrame = ({
 	isCanvas,
+	appearancePackage,
 	style,
 	portalStyle,
 	children,
 }: {
 	isCanvas: boolean;
+	/** A package id from `parameters.classicy.appearancePackage`, which wins over the store's. */
+	appearancePackage?: string;
 	style: CSSProperties;
 	portalStyle: CSSProperties;
 	children: ReactNode;
 }) => {
-	const appearancePackageId = useActiveClassicyAppearancePackage().id;
+	const activeAppearancePackageId = useActiveClassicyAppearancePackage().id;
+	const appearancePackageId = appearancePackage ?? activeAppearancePackageId;
 	const assetVars = useClassicyAssetVars();
 	return (
 		<div
@@ -174,6 +196,11 @@ const StoryFrame = ({
 
 export const withClassicy: Decorator = (Story, context) => {
 	const themeId = (context.globals.theme as string) ?? "default";
+	// `parameters.classicy.appearancePackage`: render the story under that
+	// registered Appearance Package (e.g. "mirrored", via mirroredParameters).
+	const appearancePackage = context.parameters.classicy?.appearancePackage as
+		| string
+		| undefined;
 
 	if (context.parameters.classicy?.desktop) {
 		// Keyed on story + theme so any switch fully unmounts/remounts the frame,
@@ -190,6 +217,7 @@ export const withClassicy: Decorator = (Story, context) => {
 					themeId={themeId}
 					// Stories that mount their own strip set `controlStrip: false`.
 					controlStrip={context.parameters.classicy?.controlStrip ?? true}
+					appearancePackage={appearancePackage}
 				>
 					<Story />
 				</ClassicyDesktopFrame>
@@ -197,7 +225,13 @@ export const withClassicy: Decorator = (Story, context) => {
 		);
 	}
 
-	const vars = getThemeVars(getTheme(themeId)) as CSSProperties;
+	// The plain frame only scopes the package's CSS (the store, and with it
+	// the layout, is left alone); the variables are the theme's under it.
+	const vars = getThemeVars(
+		appearancePackage
+			? { ...getTheme(themeId), package: appearancePackage }
+			: getTheme(themeId),
+	) as CSSProperties;
 	const isCanvas = context.viewMode === "story";
 	const typography: CSSProperties = {
 		fontFamily: "var(--ui-font)",
@@ -209,6 +243,7 @@ export const withClassicy: Decorator = (Story, context) => {
 		<ClassicySoundManagerProvider>
 			<StoryFrame
 				isCanvas={isCanvas}
+				appearancePackage={appearancePackage}
 				portalStyle={{ ...vars, ...typography }}
 				style={{
 					...vars,
