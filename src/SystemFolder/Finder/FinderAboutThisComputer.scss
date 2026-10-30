@@ -12,14 +12,14 @@
 .finderAboutThisComputerHeader {
   display: flex;
   flex-direction: row;
-  gap: 16px;
-  padding: 8px;
+  gap: var(--layout-group-gap);
+  padding: var(--finder-padding);
   align-items: center;
 }
 
 .finderAboutThisComputerBanner {
-  flex: 0 0 260px;
-  height: 120px;
+  flex: 0 0 var(--finder-about-banner-width);
+  height: var(--finder-about-banner-height);
   background: var(--color-black);
   display: flex;
   align-items: center;
@@ -29,7 +29,7 @@
     width: 90%;
     height: 90%;
     object-fit: contain;
-    filter: drop-shadow(4px 4px 6px c.classicy-alpha("--color-white", 50%));
+    filter: drop-shadow(var(--finder-about-banner-shadow-offset) var(--finder-about-banner-shadow-offset) var(--finder-about-banner-shadow-blur) c.classicy-alpha("--color-white", 50%));
   }
 
   p {
@@ -38,7 +38,7 @@
     font-family: var(--header-font), serif;
     font-style: italic;
     text-align: center;
-    padding: 8px;
+    padding: var(--finder-padding);
   }
 }
 
@@ -46,12 +46,12 @@
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 12px;
+  gap: var(--finder-about-row-gap);
 
   img {
-    width: 56px;
-    height: 56px;
-    padding: 4px;
+    width: var(--finder-about-icon-size);
+    height: var(--finder-about-icon-size);
+    padding: var(--layout-item-gap);
     border: var(--window-border-size) solid c.classicy-shade("--color-system-04", 10%);
     background: var(--color-white);
   }
@@ -68,7 +68,7 @@
   flex-direction: row;
   justify-content: space-between;
   align-items: flex-end;
-  padding: 4px 8px 6px;
+  padding: var(--layout-item-gap) var(--finder-padding) var(--window-padding-size);
 
   p {
     margin: var(--window-border-size) 0;
@@ -92,8 +92,8 @@
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
+  gap: var(--window-padding-size);
+  padding: var(--layout-item-gap) var(--finder-padding);
 
   img {
     width: var(--icon-small-size);
@@ -103,11 +103,11 @@
 }
 
 .finderAboutThisComputerUsageName {
-  min-width: 80px;
+  min-width: var(--finder-about-label-width);
 }
 
 .finderAboutThisComputerUsageSize {
-  min-width: 60px;
+  min-width: var(--finder-about-value-width);
   text-align: right;
 }
 

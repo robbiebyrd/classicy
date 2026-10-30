@@ -83,12 +83,12 @@ describe("ClassicyColorPickerDialog layout", () => {
 		it("lets the wheel shrink to the room left beside its fields", () => {
 			const outer = rule(".classicyColorPickerWheelOuter");
 			expect(outer.width).toBe("100%");
-			expect(outer["max-width"]).toBe("240px");
+			expect(outer["max-width"]).toBe("var(--picker-wheel-max)");
 			expect(outer["aspect-ratio"]).toBe("1");
 			expect(outer.height).toBeUndefined();
 			// Room for the half of the 180° label that hangs off the square's
 			// left edge; without it the panel clipped the label to "80°".
-			expect(outer["margin-left"]).toBe("14px");
+			expect(outer["margin-left"]).toBe("var(--picker-label-overhang)");
 			expect(outer["flex-shrink"]).toBeUndefined();
 			const canvas = rule(".classicyColorPickerWheelCanvas");
 			expect(canvas.width).toBe("100%");

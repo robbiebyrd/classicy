@@ -132,7 +132,8 @@
 				"fontSize": 11,
 				"handleSize": 6,
 				"paletteMaxWidth": 220,
-				"indent": 12
+				"indent": 12,
+				"itemPaddingY": 2
 			},
 			"finder": {
 				"padding": 8,

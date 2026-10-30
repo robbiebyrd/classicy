@@ -51,10 +51,10 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	border: 1px dashed var(--color-error, #cc0000);
+	border: var(--window-border-size) dashed var(--color-error, #cc0000);
 	color: var(--color-error, #cc0000);
 	font-family: var(--ui-font);
-	font-size: 11px;
+	font-size: var(--hyper-card-font-size);
 	text-align: center;
 	box-sizing: border-box;
 	padding: 0.25em;
@@ -63,7 +63,7 @@
 .classicyHyperCardGroup {
 	width: 100%;
 	height: 100%;
-	border: 1px solid var(--color-system-05, #808080);
+	border: var(--window-border-size) solid var(--color-system-05, #808080);
 	padding: 0.25em;
 	box-sizing: border-box;
 }
@@ -177,56 +177,58 @@
 
 .classicyHyperCardEditorSelection {
 	position: absolute;
-	border: 1px dashed var(--color-black, #000);
+	border: var(--window-border-size) dashed var(--color-black, #000);
 	pointer-events: none;
 }
 
 .classicyHyperCardEditorHandle {
 	position: absolute;
-	width: 6px;
-	height: 6px;
+	width: var(--hyper-card-handle-size);
+	height: var(--hyper-card-handle-size);
 	background: var(--color-black, #000);
 	pointer-events: all;
 }
 
-.classicyHyperCardEditorHandle[data-handle="nw"] { left: -3px; top: -3px; cursor: nwse-resize; }
-.classicyHyperCardEditorHandle[data-handle="n"] { left: calc(50% - 3px); top: -3px; cursor: ns-resize; }
-.classicyHyperCardEditorHandle[data-handle="ne"] { right: -3px; top: -3px; cursor: nesw-resize; }
-.classicyHyperCardEditorHandle[data-handle="e"] { right: -3px; top: calc(50% - 3px); cursor: ew-resize; }
-.classicyHyperCardEditorHandle[data-handle="se"] { right: -3px; bottom: -3px; cursor: nwse-resize; }
-.classicyHyperCardEditorHandle[data-handle="s"] { left: calc(50% - 3px); bottom: -3px; cursor: ns-resize; }
-.classicyHyperCardEditorHandle[data-handle="sw"] { left: -3px; bottom: -3px; cursor: nesw-resize; }
-.classicyHyperCardEditorHandle[data-handle="w"] { left: -3px; top: calc(50% - 3px); cursor: ew-resize; }
+// Each handle is centered on its corner or edge midpoint: half its own size
+// hangs outside the selection.
+.classicyHyperCardEditorHandle[data-handle="nw"] { left: calc(var(--hyper-card-handle-size) / -2); top: calc(var(--hyper-card-handle-size) / -2); cursor: nwse-resize; }
+.classicyHyperCardEditorHandle[data-handle="n"] { left: calc(50% - var(--hyper-card-handle-size) / 2); top: calc(var(--hyper-card-handle-size) / -2); cursor: ns-resize; }
+.classicyHyperCardEditorHandle[data-handle="ne"] { right: calc(var(--hyper-card-handle-size) / -2); top: calc(var(--hyper-card-handle-size) / -2); cursor: nesw-resize; }
+.classicyHyperCardEditorHandle[data-handle="e"] { right: calc(var(--hyper-card-handle-size) / -2); top: calc(50% - var(--hyper-card-handle-size) / 2); cursor: ew-resize; }
+.classicyHyperCardEditorHandle[data-handle="se"] { right: calc(var(--hyper-card-handle-size) / -2); bottom: calc(var(--hyper-card-handle-size) / -2); cursor: nwse-resize; }
+.classicyHyperCardEditorHandle[data-handle="s"] { left: calc(50% - var(--hyper-card-handle-size) / 2); bottom: calc(var(--hyper-card-handle-size) / -2); cursor: ns-resize; }
+.classicyHyperCardEditorHandle[data-handle="sw"] { left: calc(var(--hyper-card-handle-size) / -2); bottom: calc(var(--hyper-card-handle-size) / -2); cursor: nesw-resize; }
+.classicyHyperCardEditorHandle[data-handle="w"] { left: calc(var(--hyper-card-handle-size) / -2); top: calc(50% - var(--hyper-card-handle-size) / 2); cursor: ew-resize; }
 
 .classicyHyperCardPalette {
 	display: flex;
 	flex-direction: column;
-	gap: 4px;
-	padding: 4px;
+	gap: var(--layout-item-gap);
+	padding: var(--layout-item-gap);
 }
 
 .classicyHyperCardPaletteTools {
 	display: flex;
-	gap: 4px;
+	gap: var(--layout-item-gap);
 }
 
 .classicyHyperCardPaletteEntry {
 	cursor: grab;
-	padding: 2px 4px;
+	padding: var(--hyper-card-item-padding-y) var(--layout-item-gap);
 	user-select: none;
 }
 
 .classicyHyperCardInspector {
 	display: flex;
 	flex-direction: column;
-	gap: 6px;
-	padding: 6px;
-	max-width: 220px;
+	gap: var(--window-padding-size);
+	padding: var(--window-padding-size);
+	max-width: var(--hyper-card-palette-max-width);
 }
 
 .classicyHyperCardInspectorRow {
 	display: flex;
-	gap: 4px;
+	gap: var(--layout-item-gap);
 	align-items: flex-end;
 }
 
@@ -235,26 +237,26 @@
 .classicyHyperCardScriptJson {
 	display: flex;
 	flex-direction: column;
-	gap: 6px;
-	padding: 6px;
+	gap: var(--window-padding-size);
+	padding: var(--window-padding-size);
 }
 
 .classicyHyperCardScriptTabs {
 	display: flex;
-	gap: 4px;
+	gap: var(--layout-item-gap);
 }
 
 .classicyHyperCardActionRow {
-	border: 1px solid var(--color-system-03, #ccc);
-	padding: 4px;
+	border: var(--window-border-size) solid var(--color-system-03, #ccc);
+	padding: var(--layout-item-gap);
 	display: flex;
 	flex-wrap: wrap;
-	gap: 4px;
+	gap: var(--layout-item-gap);
 	align-items: flex-end;
 }
 
 .classicyHyperCardActionNested {
-	margin-left: 12px;
+	margin-left: var(--hyper-card-indent);
 	width: 100%;
 }
 
@@ -263,5 +265,5 @@
 // rather than sitting unstyled.
 .classicyHyperCardActionAddSelect {
 	font: inherit;
-	padding: 2px 4px;
+	padding: var(--hyper-card-item-padding-y) var(--layout-item-gap);
 }
