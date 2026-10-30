@@ -1,1 +1,26 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12.01 12"><rect x="0" y="0" width="12.01" height="1" fill="currentColor"/><rect x="0" y="2" width="12.01" height="1" fill="currentColor"/><rect x="0" y="4" width="12.01" height="1" fill="currentColor"/><rect x="0" y="6" width="12.01" height="1" fill="currentColor"/><rect x="0" y="8" width="12.01" height="1" fill="currentColor"/><rect x="0" y="10" width="12.01" height="1" fill="currentColor"/></svg>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12.01 12">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #ef8c89;
+      }
+
+      .cls-2 {
+        fill: #f9dada;
+      }
+    </style>
+  </defs>
+  <path class="cls-1" d="M0,0h12.01v1H0V0Z"/>
+  <path class="cls-2" d="M0,1h12.01v1H0v-1Z"/>
+  <path class="cls-1" d="M0,2h12.01v1H0v-1Z"/>
+  <path class="cls-2" d="M0,3h12.01v1H0v-1Z"/>
+  <path class="cls-1" d="M0,4h12.01v1H0v-1Z"/>
+  <path class="cls-2" d="M0,5h12.01v1H0v-1Z"/>
+  <path class="cls-1" d="M0,6h12.01v1H0v-1Z"/>
+  <path class="cls-2" d="M0,7h12.01v1H0v-1Z"/>
+  <path class="cls-1" d="M0,8h12.01v1H0v-1Z"/>
+  <path class="cls-2" d="M0,9h12.01v1H0v-1Z"/>
+  <path class="cls-1" d="M0,10h12.01v1H0v-1Z"/>
+  <path class="cls-2" d="M0,11h12.01v1H0v-1Z"/>
+</svg>

@@ -5,17 +5,6 @@
 
 @mixin windowFrame {
   .classicyWindowFrame {
-    .classicyWindowTitleBar {
-      .classicyWindowTitle {
-        .classicyWindowTitleCenter {
-          @include mixins.platinum-title-bar-stripes(auto 100%);
-        }
-
-        .classicyWindowTitleLeft,
-        .classicyWindowTitleRight {
-          @include mixins.platinum-title-bar-stripes(auto 99.8%);
-        }
-      }
-    }
+    @include mixins.platinum-title-bar-stripes($side-size: auto 99.8%);
   }
 }

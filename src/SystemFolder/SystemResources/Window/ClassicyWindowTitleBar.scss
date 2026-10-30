@@ -152,6 +152,34 @@
       .classicyWindowTitleText {
         color: var(--color-black);
       }
+
+      // The bands' end boxes: zero-height, relatively positioned pseudo-
+      // elements at each end of the bands beside the title (the caps of an
+      // earlier title bar, whose art never had any height to paint). They
+      // draw nothing, but the package paints a layer on them (Platinum: an
+      // empty image) and the layer is part of the raster: without it Chromium
+      // blends the control boxes' luminosity dither one level differently.
+      .classicyWindowTitleLeft,
+      .classicyWindowTitleRight {
+        &:after {
+          position: relative;
+          top: -100%;
+          right: calc(var(--window-padding-size) * -1);
+          display: block;
+          float: right;
+          width: var(--window-padding-size);
+          content: " ";
+          background-repeat: no-repeat;
+        }
+
+        &:before {
+          position: relative;
+          left: calc((var(--window-padding-size) * -1) / 2);
+          display: block;
+          content: " ";
+          background-repeat: no-repeat;
+        }
+      }
     }
   }
 }

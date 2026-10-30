@@ -8,13 +8,15 @@ import {
 } from "@/__tests__/compiledCss";
 
 /**
- * The Platinum title-bar art (Part E 2.1): the pinstripes, the red stripes and
- * the utility windoid's texture are masked package art, not images baked into
- * the stylesheet. The element paints the light rows as its background color
- * and a `::before` paints the dark rows through the registered stripe mask
- * (`--classicy-art-window-stripes[-red]`); every `mask-*` longhand mirrors the
- * `background-*` longhand the old striped image had, so Platinum renders as
- * before.
+ * The Platinum title-bar art (Part E 2.1, rebuilt in E 6.1 under owner ruling
+ * E20): the pinstripes, the red stripes and the utility windoid's texture are
+ * registered package art (`--classicy-art-window-stripes[-red]`,
+ * `--classicy-art-window-utility-texture`), not images baked into the
+ * stylesheet. Each band draws its art as its own background image, with the
+ * `background` shorthand and sizes the bands had before Part E: masks, in any
+ * number of layers, blend the anti-aliased row boundaries of a band drawn at a
+ * fractional scale or position differently from the one image (up to 21
+ * levels in Chromium, 25 in Firefox), and E20 accepts no drift.
  *
  * The look lives in the Platinum package (ruling E4), so this compiles
  * `platinum.scss`, whose rules sit indented inside `@layer classicy.package`
@@ -50,139 +52,128 @@ const FRAME =
 const UTILITY =
 	".classicyWindow.classicyWindowUtility .classicyWindowTitleBar .classicyWindowTitle";
 
+/** Every stripe band of a title area. */
+const BANDS = [
+	".classicyWindowTitleCenter",
+	".classicyWindowTitleLeft",
+	".classicyWindowTitleRight",
+];
+
 describe("ClassicyWindow title-bar art (Platinum package)", () => {
-	it("draws the active stripes as a masked dark layer over a light ground", () => {
-		const el = rule(`${ACTIVE} .classicyWindowTitleCenter`);
-		expect(el["background-color"]).toBe("var(--platinum-stripe-light)");
-		const before = rule(`${ACTIVE} .classicyWindowTitleCenter::before`);
-		expect(before["mask-image"]).toBe("var(--classicy-art-window-stripes)");
-		expect(before["mask-size"]).toBe("auto 100%");
-		expect(before["background-color"]).toBe("var(--platinum-stripe-dark)");
-	});
-
-	it("keeps the 99.8% stripe scale on the side bands", () => {
-		expect(
-			rule(`${ACTIVE} .classicyWindowTitleLeft::before`)["mask-size"],
-		).toBe("auto 99.8%");
-		expect(
-			rule(`${ACTIVE} .classicyWindowTitleRight::before`)["mask-size"],
-		).toBe("auto 99.8%");
-	});
-
-	it("red windows use the red mask and colors", () => {
-		const el = rule(`${RED} .classicyWindowTitleCenter`);
-		expect(el["background-color"]).toBe("var(--platinum-stripe-red-light)");
-		const b = rule(`${RED} .classicyWindowTitleCenter::before`);
-		expect(b["mask-image"]).toBe("var(--classicy-art-window-stripes-red)");
-		expect(b["background-color"]).toBe("var(--platinum-stripe-red-dark)");
-		expect(b["mask-size"]).toBe("auto 100%");
-	});
-
-	// T1: the red and movable-alert side bands' `background:` shorthand reset
-	// the size to `auto` over the active rule's 99.8%, so their masks say so.
-	it("red and movable-alert side bands write mask-size auto over the active 99.8%", () => {
+	it("draws the active stripes as each band's image", () => {
+		const center = rule(`${ACTIVE} .classicyWindowTitleCenter`);
+		expect(center.background).toBe("var(--classicy-art-window-stripes)");
+		// The shorthand's own size (auto), as before Part E.
+		expect(center["background-size"]).toBeUndefined();
 		for (const band of [
-			`${RED} .classicyWindowTitleLeft::before`,
-			`${RED} .classicyWindowTitleRight::before`,
-			`${ALERT} .classicyWindowTitleLeft::before`,
-			`${ALERT} .classicyWindowTitleRight::before`,
+			".classicyWindowTitleLeft",
+			".classicyWindowTitleRight",
 		]) {
-			expect(rule(band)["mask-size"], band).toBe("auto");
-			expect(rule(band)["mask-image"], band).toBe(
+			const side = rule(`${ACTIVE} ${band}`);
+			expect(side.background, band).toBe("var(--classicy-art-window-stripes)");
+			expect(side["background-size"], band).toBe("auto 99.8%");
+		}
+	});
+
+	it("red windows and movable alerts draw the red stripes", () => {
+		for (const chain of [RED, ALERT]) {
+			const center = rule(`${chain} .classicyWindowTitleCenter`);
+			expect(center.background, chain).toBe(
 				"var(--classicy-art-window-stripes-red)",
 			);
+			expect(center["background-size"], chain).toBe("auto 100%");
+			// The shorthand resets the active side bands' 99.8% to auto.
+			for (const band of [
+				".classicyWindowTitleLeft",
+				".classicyWindowTitleRight",
+			]) {
+				const side = rule(`${chain} ${band}`);
+				expect(side.background, `${chain} ${band}`).toBe(
+					"var(--classicy-art-window-stripes-red)",
+				);
+				expect(side["background-size"], `${chain} ${band}`).toBeUndefined();
+			}
 		}
-		const center = rule(`${ALERT} .classicyWindowTitleCenter::before`);
-		expect(center["mask-size"]).toBe("auto 100%");
-		expect(center["background-color"]).toBe("var(--platinum-stripe-red-dark)");
-	});
-
-	it("every stripe layer mirrors the old image's repeat and position, over the whole band", () => {
-		for (const layer of [
-			`${ACTIVE} .classicyWindowTitleCenter::before`,
-			`${ACTIVE} .classicyWindowTitleLeft::before`,
-			`${RED} .classicyWindowTitleRight::before`,
-			`${ALERT} .classicyWindowTitleCenter::before`,
-			`${FRAME} .classicyWindowTitleLeft::before`,
-		]) {
-			const b = rule(layer);
-			expect(b.content, layer).toBe('""');
-			expect(b.position, layer).toBe("absolute");
-			expect(b.inset, layer).toBe("0");
-			expect(b["mask-repeat"], layer).toBe("repeat");
-			expect(b["mask-position"], layer).toBe("0 0");
-		}
-		for (const band of [
-			`${ACTIVE} .classicyWindowTitleCenter`,
-			`${ACTIVE} .classicyWindowTitleLeft`,
-			`${RED} .classicyWindowTitleCenter`,
-			`${ALERT} .classicyWindowTitleRight`,
-			`${FRAME} .classicyWindowTitleCenter`,
-		])
-			expect(rule(band).position, band).toBe("relative");
 	});
 
 	it("the window frame's title bar draws the focused window's stripes", () => {
-		expect(
-			rule(`${FRAME} .classicyWindowTitleCenter`)["background-color"],
-		).toBe("var(--platinum-stripe-light)");
-		const center = rule(`${FRAME} .classicyWindowTitleCenter::before`);
-		expect(center["mask-image"]).toBe("var(--classicy-art-window-stripes)");
-		expect(center["mask-size"]).toBe("auto 100%");
+		expect(rule(`${FRAME} .classicyWindowTitleCenter`).background).toBe(
+			"var(--classicy-art-window-stripes)",
+		);
 		for (const band of [
 			".classicyWindowTitleLeft",
 			".classicyWindowTitleRight",
 		])
-			expect(rule(`${FRAME} ${band}::before`)["mask-size"], band).toBe(
+			expect(rule(`${FRAME} ${band}`)["background-size"], band).toBe(
 				"auto 99.8%",
 			);
 	});
 
-	it("utility texture is two masked radial layers at 4px 3px", () => {
-		const s = rule(`${UTILITY} .classicyWindowTitleCenter::before`);
-		expect(s["mask-image"]).toBe("var(--classicy-art-window-utility-shade)");
-		expect(s["mask-size"]).toBe("4px 3px");
-		expect(s["background-color"]).toBe("var(--color-black)");
-		const h = rule(`${UTILITY} .classicyWindowTitleCenter::after`);
-		expect(h["mask-image"]).toBe(
-			"var(--classicy-art-window-utility-highlight)",
+	it("the utility texture is the center band's image, tiled 4px 3px", () => {
+		const center = rule(`${UTILITY} .classicyWindowTitleCenter`);
+		expect(center["background-image"]).toBe(
+			"var(--classicy-art-window-utility-texture)",
 		);
-		expect(h["mask-size"]).toBe("4px 3px");
-		expect(h["background-color"]).toBe("var(--color-white)");
-		expect(
-			rule(`${UTILITY} .classicyWindowTitleCenter`)["background-color"],
-		).toBe("var(--color-system-03)");
+		expect(center["background-repeat"]).toBe("repeat");
+		expect(center["background-size"]).toBe("4px 3px");
+		// T3: the windoid's side bands draw nothing, over the active stripes.
+		for (const band of [
+			".classicyWindowTitleLeft",
+			".classicyWindowTitleRight",
+		])
+			expect(rule(`${UTILITY} ${band}`).background, band).toBe("none");
 	});
 
-	// T2: an active windoid matches the active stripe rule too; the texture
-	// rule must set every property that rule's ::before sets.
-	it("the utility texture overrides every property of the active stripe layer", () => {
-		const stripe = rule(`${ACTIVE} .classicyWindowTitleCenter::before`);
-		const texture = rule(`${UTILITY} .classicyWindowTitleCenter::before`);
-		for (const prop of Object.keys(stripe))
-			expect(texture[prop], prop).toBeDefined();
+	// No band draws a layer of its own: no mask, no position, no stripe
+	// color. The bands beside a title keep the base sheet's zero-height end
+	// boxes (relatively positioned, as before Part E), and the package gives
+	// them an empty image layer: it paints nothing, but without it Chromium
+	// blends the control boxes' luminosity dither one level differently.
+	it("the bands carry no stripe layers, masks or stripe colors", () => {
+		for (const chain of [ACTIVE, RED, ALERT, FRAME, UTILITY])
+			for (const band of BANDS) {
+				let el: Record<string, string> = {};
+				try {
+					el = rule(`${chain} ${band}`);
+				} catch {
+					continue;
+				}
+				for (const prop of Object.keys(el))
+					expect(prop, `${chain} ${band}`).not.toMatch(/^mask/);
+				expect(el.position, `${chain} ${band}`).toBeUndefined();
+				for (const pseudo of [":before", ":after", "::before", "::after"]) {
+					if (band === ".classicyWindowTitleCenter" || chain === UTILITY) {
+						expect(
+							() => rule(`${chain} ${band}${pseudo}`),
+							`${chain} ${band}${pseudo}`,
+						).toThrow(/no rule/);
+						continue;
+					}
+					if (pseudo.startsWith("::")) continue;
+					expect(rule(`${chain} ${band}${pseudo}`), band + pseudo).toEqual({
+						"background-image": "linear-gradient(transparent, transparent)",
+					});
+				}
+			}
+		expect(css).not.toMatch(/--platinum-stripe-/);
 	});
 
-	// T3: the windoid's side bands draw nothing, over the active stripes.
-	it("the utility side bands drop the stripes", () => {
+	it("the base sheet keeps the zero-height end boxes of the bands beside a title", () => {
+		const base =
+			":where(.classicyWindow).active .classicyWindowTitleBar .classicyWindowTitle";
 		for (const band of [
 			".classicyWindowTitleLeft",
 			".classicyWindowTitleRight",
 		]) {
-			expect(rule(`${UTILITY} ${band}`).background, band).toBe("none");
-			expect(rule(`${UTILITY} ${band}::before`).content, band).toBe("none");
+			const after = baseRule(`${base} ${band}:after`);
+			expect(after.position, band).toBe("relative");
+			expect(after.float, band).toBe("right");
+			expect(after.content, band).toBe('" "');
+			const before = baseRule(`${base} ${band}:before`);
+			expect(before.position, band).toBe("relative");
+			expect(before.display, band).toBe("block");
+			expect(before.content, band).toBe('" "');
 		}
-	});
-
-	it("declares the stripe colors on the package root", () => {
-		const root = rules
-			.filter((r) => r.selectors.includes(P))
-			.map((r) => r.body)
-			.join("\n");
-		expect(root).toContain("--platinum-stripe-light: var(--color-white)");
-		expect(root).toContain("--platinum-stripe-dark: #787878");
-		expect(root).toContain("--platinum-stripe-red-light: #f9dada");
-		expect(root).toContain("--platinum-stripe-red-dark: #ef8c89");
 	});
 
 	it("no stylesheet embeds stripe art any more", () => {
@@ -203,14 +194,8 @@ describe("ClassicyWindow title-bar art (Platinum package)", () => {
 	});
 
 	// Ruling E13: the side-band caps measured 0px tall (Phase 0 gate), so they
-	// never painted; their rules and art are gone rather than masked.
+	// never painted; their rules and art are gone.
 	it("draws no title-bar caps", () => {
-		for (const band of [
-			`${ACTIVE} .classicyWindowTitleLeft::after`,
-			`${RED} .classicyWindowTitleRight::after`,
-			`${ALERT} .classicyWindowTitleLeft::after`,
-		])
-			expect(() => rule(band), band).toThrow(/no rule/);
 		for (const cap of ["left", "right", "left-red", "right-red"])
 			expect(
 				existsSync(`src/Appearance/Platinum/assets/art/title-bar-${cap}.svg`),
@@ -226,44 +211,43 @@ const CLOSE = `${BOX} .classicyWindowCloseBox`;
 const RESIZER = ".classicyWindow .classicyWindowResizer";
 
 /**
- * Part E 2.2: the control-box glyphs are masks over `--color-black`; the
- * grow-box grip and the control-box dither stay images (four and six grays,
- * no single-color mask), now read from the registered package art.
+ * Part E 2.2, E 6.1: the control-box glyphs, the grow-box grip and the
+ * control-box dither are images of the registered package art. The glyphs
+ * were masks over `--color-black` until E 6.1 (rulings E20, E24): with a
+ * masked glyph in the title bar, Chromium blended the boxes' luminosity
+ * dither one level off. The glyph art's `currentColor` draws black.
  */
 describe("ClassicyWindow control-box and grow-box art (Platinum package)", () => {
-	it("zoom and collapse glyphs are masks over --color-black", () => {
+	it("zoom and collapse glyphs are their boxes' images", () => {
 		const z = rule(`${ZOOM}:after`);
-		expect(z["mask-image"]).toBe("var(--classicy-art-zoom-glyph)");
-		expect(z["mask-position"]).toBe("top left");
-		expect(z["background-color"]).toBe("var(--color-black)");
+		expect(z["background-image"]).toBe("var(--classicy-art-zoom-glyph)");
+		expect(z["background-position"]).toBe("top left");
 		expect(baseRule(`${ZOOM}:after`).opacity).toBe("0.65");
-		expect(rule(`${COLLAPSE}:after`)["mask-image"]).toBe(
+		expect(rule(`${COLLAPSE}:after`)["background-image"]).toBe(
 			"var(--classicy-art-collapse-glyph)",
 		);
 	});
 
-	// T6: the depressable box's centered, contained, unrepeated glyph geometry
-	// moves to the mask longhands; the component rule moves it top left.
-	it("the glyph masks mirror the old image's repeat, size and position", () => {
+	// T6: the depressable box's centered, contained, unrepeated glyph geometry;
+	// the component rule moves it top left. No mask and no fill color.
+	it("the glyph images keep the old repeat, size and position", () => {
 		for (const box of [ZOOM, COLLAPSE]) {
 			const after = rule(`${box}:after`);
-			expect(after["mask-repeat"], box).toBe("no-repeat");
-			expect(after["mask-size"], box).toBe("contain");
-			expect(after["mask-position"], box).toBe("top left");
-			expect(after["background-color"], box).toBe("var(--color-black)");
-			expect(after["background-image"], box).toBeUndefined();
-			expect(after["background-position"], box).toBeUndefined();
-			expect(after["background-size"], box).toBeUndefined();
-			expect(after["background-repeat"], box).toBeUndefined();
+			expect(after["background-repeat"], box).toBe("no-repeat");
+			expect(after["background-size"], box).toBe("contain");
+			expect(after["background-position"], box).toBe("top left");
+			for (const prop of Object.keys(after))
+				expect(prop, box).not.toMatch(/^mask/);
+			expect(after["background-color"], box).toBeUndefined();
 		}
 		expect(baseRule(`${COLLAPSE}:after`).opacity).toBe("0.65");
 	});
 
-	// T6: the close box shares the depressable :after but draws no glyph; a
-	// background color there would paint a black square.
+	// The close box shares the depressable :after but draws no glyph.
 	it("the close box's glyph layer stays empty", () => {
 		const after = rule(`${CLOSE}:after`);
 		expect(after["background-color"]).toBeUndefined();
+		expect(after["background-image"]).toBeUndefined();
 		expect(after["mask-image"]).toBeUndefined();
 	});
 
