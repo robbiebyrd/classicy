@@ -14,6 +14,7 @@ import {
 } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
 import { useClassicyContextualMenu } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 import { defaultBalloonForKind } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconBalloons";
+import { takeClassicyDesktopIconKeyboardSelection } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconKeyboardSelection.internal";
 import { isAliasKind } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconKinds";
 import {
 	CLASSICY_DROP_FOLDER_ATTRIBUTE,
@@ -342,10 +343,12 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			// Selection the desktop makes from the keyboard (its arrow keys and
 			// type-ahead; ruling I-R14) reaches the icon only as store state, so
 			// the icon reports it here, after the commit, when it became
-			// selected or a multiple selection collapsed to it. A press or click
-			// on the icon has already reported its own change
-			// (selectReportedRef), and a change no key press made (a selection
-			// rectangle, a selection set in code) is not reported.
+			// selected or a multiple selection collapsed to it. The desktop
+			// marks the id it selects (ClassicyDesktopIconKeyboardSelection),
+			// and only a marked change is reported: a selection rectangle or a
+			// selection set in code carries no mark, whatever key was pressed
+			// last. A press or click on the icon has already reported its own
+			// change (selectReportedRef).
 			const selectionRef = useRef({ isSelected, isMultipleSelection });
 			const emitAppearance = appearance.emit;
 			useEffect(() => {
@@ -353,14 +356,20 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 				selectionRef.current = { isSelected, isMultipleSelection };
 				const reported = selectReportedRef.current;
 				selectReportedRef.current = false;
+				// Deselected mid-press (an arrow key while the mouse is down):
+				// the click ending the press re-selects the icon, a new change
+				// it must report.
+				if (previous.isSelected && !isSelected)
+					selectedOnPressRef.current = false;
 				const becameSelection =
 					isSelected &&
 					(!previous.isSelected ||
 						(previous.isMultipleSelection && !isMultipleSelection));
-				if (!becameSelection || reported) return;
-				const detail = withClassicyAppearanceInput();
-				if (detail.input === "keyboard") emitAppearance("select", detail);
-			}, [isSelected, isMultipleSelection, emitAppearance]);
+				if (!becameSelection) return;
+				const fromKeyboard = takeClassicyDesktopIconKeyboardSelection(appId);
+				if (fromKeyboard && !reported)
+					emitAppearance("select", { input: "keyboard" });
+			}, [appId, isSelected, isMultipleSelection, emitAppearance]);
 
 			const stopChangeIcon = () => {
 				// Bound to onMouseUp, so this runs on every release on the icon.

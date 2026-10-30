@@ -1903,9 +1903,11 @@ as a `ClassicyAppearance` error and not registered. A valid one has its CSS
 written to `<style id="classicy-appearance-<id>">` (§1, "Cascade layers") and
 is stored; re-registering an id replaces the package and its stylesheet in
 place. `unregisterClassicyAppearancePackage(id)` removes a package and its
-stylesheet (it returns whether one was registered); a store whose
+stylesheet (it returns whether one was removed); a store whose
 `packageId` still names it resolves as for any unregistered id until it
-switches. Read the registry with `getClassicyAppearancePackage(id)`,
+switches. The default package, `"platinum"`, is refused (a `ClassicyAppearance`
+warning, and `false`), since every unregistered id resolves to it; replace
+it by re-registering its id. Read the registry with `getClassicyAppearancePackage(id)`,
 `listClassicyAppearancePackages()` (registration order),
 `subscribeClassicyAppearancePackages(listener)`, or the hook
 `useClassicyAppearancePackages()`.
@@ -2190,10 +2192,14 @@ DesktopIcon and Icon:
   this icon (it becomes selected, or a multiple selection collapses to it),
   once per gesture: a press or click on the icon (`input` from that press),
   or a key press that selects it (the desktop's arrow keys and type-ahead,
-  `input: "keyboard"`), which the icon reports after the selection commits.
-  A click on the icon that already is the whole selection emits nothing, so
-  a double-click is `select, …, open`. A selection rectangle and a selection
-  set in code emit nothing; the `selected` state class is authoritative.
+  `input: "keyboard"`), which the icon reports after the selection commits:
+  the desktop marks the id it selects, and the icon reports only a marked
+  change, never inferring it from the last key. A click that re-selects an
+  icon an arrow key deselected mid-press reports again. A click on the icon
+  that already is the whole selection emits nothing, so a double-click is
+  `select, …, open`. A selection rectangle and a selection set in code emit
+  nothing, even right after a key press; the `selected` state class is
+  authoritative.
 - Icon `select { selected }` is emitted only by a click toggle. Selection
   set programmatically (after a positional or file drag) emits nothing; the
   `selected` state class is authoritative.

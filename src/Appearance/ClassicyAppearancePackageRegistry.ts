@@ -85,11 +85,22 @@ export function registerClassicyAppearancePackage(
 
 /**
  * Remove a registered package and its stylesheet. Returns whether one was
- * registered under `id`. A store whose `packageId` still names it resolves
- * as for any unregistered id (`getRegisteredClassicyAppearancePackageOrDefault`)
- * until it switches. Registering the package again appends it at the end.
+ * removed. A store whose `packageId` still names it resolves as for any
+ * unregistered id (`getRegisteredClassicyAppearancePackageOrDefault`) until
+ * it switches. Registering the package again appends it at the end. The
+ * default package (`CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID`) is refused with
+ * a warning, since every unregistered id resolves to it; replace it by
+ * re-registering its id instead.
  */
 export function unregisterClassicyAppearancePackage(id: string): boolean {
+	if (id === CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID) {
+		classicyLog(
+			"warn",
+			SUBSYSTEM,
+			`The default package "${id}" cannot be unregistered; register a package with its id to replace it.`,
+		);
+		return false;
+	}
 	if (!registry.delete(id)) return false;
 	injectClassicyAppearanceStyles(id, "");
 	publish();

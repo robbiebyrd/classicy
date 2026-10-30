@@ -1,5 +1,5 @@
 import { act, render } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	type ClassicyAppearancePackage,
 	registerClassicyAppearancePackage,
@@ -10,6 +10,19 @@ import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/
 import { ClassicyAppManagerProvider } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyDesktop } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktop";
+
+// jsdom plays no audio, so the full desktop's sound manager would log a
+// "Failed to load audio sprite" error for every Howl it builds. A silent Howl
+// keeps the run's output to real failures.
+vi.mock("howler", () => ({
+	Howl: class {
+		play = vi.fn();
+		stop = vi.fn();
+		volume = vi.fn();
+		unload = vi.fn();
+		playing = vi.fn().mockReturnValue(false);
+	},
+}));
 
 const irix: ClassicyAppearancePackage = {
 	id: "irix",

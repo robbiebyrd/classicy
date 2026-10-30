@@ -173,7 +173,22 @@ describe("ClassicyControlStrip appearance", () => {
 		expect(bottomOf()).toBe("");
 		expect(topInsetOf()).toBe("");
 		unmount();
-		// A stored position is the strip's own.
+		// A stored position is the strip's own: its bottom, and the menu
+		// bar's depth it measures on the desktop (20 px here).
+		const desktop = document.createElement("div");
+		const menuBar = document.createElement("div");
+		menuBar.className = "classicyDesktopMenuBar";
+		desktop.appendChild(menuBar);
+		document.body.appendChild(desktop);
+		vi.spyOn(HTMLElement.prototype, "offsetParent", "get").mockReturnValue(
+			desktop,
+		);
+		vi.spyOn(desktop, "getBoundingClientRect").mockReturnValue(
+			DOMRect.fromRect({ x: 0, y: 100, width: 800, height: 600 }),
+		);
+		vi.spyOn(menuBar, "getBoundingClientRect").mockReturnValue(
+			DOMRect.fromRect({ x: 0, y: 100, width: 800, height: 20 }),
+		);
 		act(() => {
 			dispatch({
 				type: "ClassicyDesktopControlStripSetPosition",
@@ -183,7 +198,8 @@ describe("ClassicyControlStrip appearance", () => {
 		});
 		renderStrip();
 		expect(bottomOf()).toBe("120px");
-		expect(topInsetOf()).not.toBe("888px");
+		expect(topInsetOf()).toBe("20px");
+		desktop.remove();
 	});
 
 	it("adds nothing when the package returns nothing", () => {

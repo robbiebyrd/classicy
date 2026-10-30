@@ -103,6 +103,67 @@ describe("ClassicyAppearanceProbe (Storybook)", () => {
 		unregisterClassicyAppearancePackage("storybook-probe");
 	});
 
+	it("two probes share one registration: the last unmount restores the earlier package", () => {
+		const platinum = getClassicyAppearancePackage(
+			"platinum",
+		) as ClassicyAppearancePackage;
+		const earlier: ClassicyAppearancePackage = {
+			...platinum,
+			id: "storybook-probe",
+			name: "Earlier",
+			css: "",
+			defaults: { ...platinum.defaults, package: "storybook-probe" },
+			presets: [],
+			hooks: undefined,
+		};
+		registerClassicyAppearancePackage(earlier);
+		const first = render(
+			<ClassicyAppearanceProbe>
+				<span />
+			</ClassicyAppearanceProbe>,
+		);
+		const second = render(
+			<ClassicyAppearanceProbe>
+				<span />
+			</ClassicyAppearanceProbe>,
+		);
+		expect(getClassicyAppearancePackage("storybook-probe")?.name).toBe(
+			"Storybook Probe",
+		);
+		first.unmount();
+		// The second probe is still mounted: its package and switch stay.
+		expect(getClassicyAppearancePackage("storybook-probe")?.name).toBe(
+			"Storybook Probe",
+		);
+		expect(packageId()).toBe("storybook-probe");
+		second.unmount();
+		expect(getClassicyAppearancePackage("storybook-probe")).toBe(earlier);
+		expect(packageId()).toBe("platinum");
+		unregisterClassicyAppearancePackage("storybook-probe");
+	});
+
+	it("two probes in one tree leave nothing registered once both unmount", () => {
+		const { unmount } = render(
+			<>
+				<ClassicyAppearanceProbe>
+					<span />
+				</ClassicyAppearanceProbe>
+				<ClassicyAppearanceProbe>
+					<span />
+				</ClassicyAppearanceProbe>
+			</>,
+		);
+		expect(getClassicyAppearancePackage("storybook-probe")?.name).toBe(
+			"Storybook Probe",
+		);
+		unmount();
+		expect(getClassicyAppearancePackage("storybook-probe")).toBeUndefined();
+		expect(
+			document.getElementById("classicy-appearance-storybook-probe"),
+		).toBeNull();
+		expect(packageId()).toBe("platinum");
+	});
+
 	it("activates on mount and restores platinum on unmount", () => {
 		const { unmount } = render(
 			<ClassicyAppearanceProbe>

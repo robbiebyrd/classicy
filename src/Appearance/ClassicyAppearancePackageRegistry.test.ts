@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
 import {
 	getClassicyAppearancePackage,
@@ -10,6 +10,7 @@ import {
 	unregisterClassicyAppearancePackage,
 } from "@/Appearance/ClassicyAppearancePackageRegistry";
 import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import * as ClassicyLog from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 const LAYOUT: ClassicyAppearancePackage["layout"] = {
 	window: { growBoxCorner: "bottom-right" },
@@ -105,5 +106,35 @@ describe("unregisterClassicyAppearancePackage", () => {
 		unsubscribe();
 		expect(notified).toBe(0);
 		expect(listClassicyAppearancePackages()).toEqual([platinum]);
+	});
+
+	it("refuses the default package: logs a warning, keeps it and its stylesheet", () => {
+		const log = vi
+			.spyOn(ClassicyLog, "classicyLog")
+			.mockImplementation(() => {});
+		registerClassicyAppearancePackage({
+			...platinum,
+			css: '@layer classicy.package { .classicyDesktop[data-classicy-appearance="platinum"] { color: red; } }',
+		});
+		let notified = 0;
+		const unsubscribe = subscribeClassicyAppearancePackages(() => {
+			notified++;
+		});
+		expect(unregisterClassicyAppearancePackage("platinum")).toBe(false);
+		unsubscribe();
+		expect(notified).toBe(0);
+		expect(getClassicyAppearancePackage("platinum")?.id).toBe("platinum");
+		expect(listClassicyAppearancePackages().map((pkg) => pkg.id)).toEqual([
+			"platinum",
+		]);
+		expect(
+			document.getElementById("classicy-appearance-platinum"),
+		).not.toBeNull();
+		expect(log).toHaveBeenCalledWith(
+			"warn",
+			"ClassicyAppearance",
+			expect.stringContaining('"platinum"'),
+		);
+		log.mockRestore();
 	});
 });

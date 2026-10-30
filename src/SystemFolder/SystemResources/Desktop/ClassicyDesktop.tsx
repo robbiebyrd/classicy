@@ -62,6 +62,7 @@ import {
 	type ClassicyControlStripProps,
 } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStrip";
 import { ClassicyDesktopIcon } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIcon";
+import { markClassicyDesktopIconKeyboardSelection } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconKeyboardSelection.internal";
 import {
 	type ArrowDirection,
 	nearestIconInDirection,
@@ -323,6 +324,16 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 			if (!isOnIcon && !isOnDesktop) return;
 
 			const arrowKeys = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
+			// Selects `iconId` and, when that changes the selection, marks it
+			// so the icon reports the change as a keyboard `select`.
+			const selectIconFromKeyboard = (iconId: string) => {
+				if (selectedIcons.length !== 1 || selectedIcons[0] !== iconId)
+					markClassicyDesktopIconKeyboardSelection(iconId);
+				desktopEventDispatch({
+					type: "ClassicyDesktopIconFocus",
+					iconId,
+				});
+			};
 
 			if (
 				(e.key === "Backspace" || e.key === "Delete") &&
@@ -341,10 +352,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 					e.key as ArrowDirection,
 				);
 				if (nextId) {
-					desktopEventDispatch({
-						type: "ClassicyDesktopIconFocus",
-						iconId: nextId,
-					});
+					selectIconFromKeyboard(nextId);
 					document.getElementById(`${nextId}.shortcut`)?.focus();
 				}
 			} else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
@@ -359,10 +367,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 				}, 800);
 				const matchId = typeaheadMatch(desktopIcons, typePrefixRef.current);
 				if (matchId) {
-					desktopEventDispatch({
-						type: "ClassicyDesktopIconFocus",
-						iconId: matchId,
-					});
+					selectIconFromKeyboard(matchId);
 					document.getElementById(`${matchId}.shortcut`)?.focus();
 				}
 			}

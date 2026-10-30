@@ -78,15 +78,54 @@ const PROBE_PACKAGE: ClassicyAppearancePackage = {
 const PROBE_NOTE =
 	'Rendered under the "storybook-probe" package: Platinum CSS is off (structure only — audit §8.2; the window control boxes, menu dividers and depressable ::after geometry live in Platinum\'s look mixins, Part B ruling R10, and collapse here), every root is outlined by decorate(), and every emitted event is logged in the Actions panel.';
 
+// Probes mounted in this realm, and what the first one found before it took
+// over: the probe registration and the store switch are shared, made by the
+// first mount and undone by the last unmount, so two probes in one page
+// neither drop each other's package nor leak it.
+let mountedProbes = 0;
+let restore: (() => void) | undefined;
+
+type AppManagerDispatch = ReturnType<typeof useAppManagerDispatch>;
+
+/** Registers the probe and switches to it; returns how to undo both. */
+const activateProbe = (dispatch: AppManagerDispatch): (() => void) => {
+	const previousPackage = getClassicyAppearancePackage(
+		STORYBOOK_PROBE_PACKAGE_ID,
+	);
+	registerClassicyAppearancePackage(PROBE_PACKAGE);
+	const previousTheme =
+		useAppManager.getState().System.Manager.Appearance.activeTheme;
+	dispatch({
+		type: "ClassicyDesktopChangeAppearancePackage",
+		packageId: STORYBOOK_PROBE_PACKAGE_ID,
+	});
+	return () => {
+		const appearance = useAppManager.getState().System.Manager.Appearance;
+		if (appearance.packageId === STORYBOOK_PROBE_PACKAGE_ID) {
+			dispatch({
+				type: "ClassicyDesktopChangeAppearancePackage",
+				packageId: PLATINUM_APPEARANCE_PACKAGE_ID,
+			});
+			if (previousTheme.package === PLATINUM_APPEARANCE_PACKAGE_ID)
+				dispatch({
+					type: "ClassicyDesktopChangeTheme",
+					activeTheme: previousTheme.id,
+				});
+		}
+		if (previousPackage) registerClassicyAppearancePackage(previousPackage);
+		else unregisterClassicyAppearancePackage(STORYBOOK_PROBE_PACKAGE_ID);
+	};
+};
+
 /**
- * Renders `children` under the probe package. On mount it registers
- * "storybook-probe", makes it the active package and renders `children` only
- * then, so their `mount` events are logged too. On unmount it switches back
- * to Platinum and the theme that was active before (unless something else
- * switched the package meanwhile), then unregisters the probe, or restores
- * the package registered under its id before, so a story opened next in the
- * same iframe, whose frame keeps the store and the registry, renders under
- * Platinum and lists no probe.
+ * Renders `children` under the probe package. The first probe to mount
+ * registers "storybook-probe", makes it the active package, and each probe
+ * renders `children` only then, so their `mount` events are logged too. When
+ * the last probe unmounts it switches back to Platinum and the theme that was
+ * active before (unless something else switched the package meanwhile), then
+ * unregisters the probe, or restores the package registered under its id
+ * before, so a story opened next in the same iframe, whose frame keeps the
+ * store and the registry, renders under Platinum and lists no probe.
  */
 export const ClassicyAppearanceProbe: FC<{ children?: ReactNode }> = ({
 	children,
@@ -95,32 +134,12 @@ export const ClassicyAppearanceProbe: FC<{ children?: ReactNode }> = ({
 	const [active, setActive] = useState(false);
 
 	useLayoutEffect(() => {
-		const previousPackage = getClassicyAppearancePackage(
-			STORYBOOK_PROBE_PACKAGE_ID,
-		);
-		registerClassicyAppearancePackage(PROBE_PACKAGE);
-		const previousTheme =
-			useAppManager.getState().System.Manager.Appearance.activeTheme;
-		dispatch({
-			type: "ClassicyDesktopChangeAppearancePackage",
-			packageId: STORYBOOK_PROBE_PACKAGE_ID,
-		});
+		if (mountedProbes++ === 0) restore = activateProbe(dispatch);
 		setActive(true);
 		return () => {
-			const appearance = useAppManager.getState().System.Manager.Appearance;
-			if (appearance.packageId === STORYBOOK_PROBE_PACKAGE_ID) {
-				dispatch({
-					type: "ClassicyDesktopChangeAppearancePackage",
-					packageId: PLATINUM_APPEARANCE_PACKAGE_ID,
-				});
-				if (previousTheme.package === PLATINUM_APPEARANCE_PACKAGE_ID)
-					dispatch({
-						type: "ClassicyDesktopChangeTheme",
-						activeTheme: previousTheme.id,
-					});
-			}
-			if (previousPackage) registerClassicyAppearancePackage(previousPackage);
-			else unregisterClassicyAppearancePackage(STORYBOOK_PROBE_PACKAGE_ID);
+			if (--mountedProbes > 0) return;
+			restore?.();
+			restore = undefined;
 		};
 	}, [dispatch]);
 
