@@ -25,7 +25,7 @@ const PLATINUM = "platinum";
  * sources) is the data module `pixelart/platinumPixelArt.ts`; both are spread
  * in here.
  *
- * Not registered (Platinum registers 34 of the 44 `ClassicySystemArtKey`s; the
+ * Not registered (Platinum registers 35 of the 44 `ClassicySystemArtKey`s; the
  * rest resolve to `undefined`): `titleBarCapLeft`, `titleBarCapRight`,
  * `titleBarCapLeftRed` and `titleBarCapRightRed` have no art, because the
  * Platinum title bar draws no caps (its side-band cap boxes were 0px tall, so
@@ -43,6 +43,13 @@ registerClassicySystemArt(PLATINUM, {
 	aliasBadge: ClassicyIcons.system.alias,
 	helpButton: ClassicyIcons.ui.helpButton,
 	aboutLogo: ClassicyIcons.classicy.logo,
+	// The halftones (program ruling G16): Part E owns only this art. `halftone`
+	// (from PLATINUM_SYSTEM_ART, the open-icon dot pattern) and `halftoneLarge`
+	// (the pre-boot screen's dither, the same file as the icon tree's
+	// `ui.halftoneLarge`) are published as `--classicy-art-halftone` and
+	// `--classicy-art-halftone-large`; the icon rules that read them are Part
+	// G's. Never a color-encoded data URI.
+	halftoneLarge: ClassicyIcons.ui.halftoneLarge,
 	...PLATINUM_SYSTEM_ART,
 	...PLATINUM_PIXEL_ART,
 	triangle: PLATINUM_SYSTEM_ART.submenuArrow,
