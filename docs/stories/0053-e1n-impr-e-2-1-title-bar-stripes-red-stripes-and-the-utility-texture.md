@@ -3,11 +3,18 @@ id: 0053-e1n
 title: 'E 2.1: Title-bar stripes, red stripes and the utility texture'
 purpose: Draw the window title-bar stripes, the red error stripes and the utility crosshatch from masked package art over theme colors instead of base64 images with baked hex.
 type: impr
-status: pending
+status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T20:23:54.842Z"
-updated: "2026-10-29T20:22:00.352Z"
+updated: "2026-10-30T00:22:22.032Z"
+started: "2026-10-30T00:22:14.648Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy
@@ -107,3 +114,5 @@ Caps: per the Phase 0 gate result `["0px","0px"]`, delete the `&:after`/`&:befor
 
 ## Work Log
 ### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
+
+### 2026-10-30T00:22:22.032Z - Started on feat/appearance-part-e-v2 (worktree part-e) at post-B base 813ee9101. The implementer brief is the part-e ledger task-2.1-brief.md; parity uses the shared post-B baseline at .playwright-mcp/parity/post-b/.

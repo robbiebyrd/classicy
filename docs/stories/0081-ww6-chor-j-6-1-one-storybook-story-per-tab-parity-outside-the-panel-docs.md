@@ -3,11 +3,18 @@ id: 0081-ww6
 title: 'J 6.1: One Storybook story per tab, parity outside the panel, docs'
 purpose: Add a Storybook story per Appearance Manager tab, prove every surface outside the panel is pixel-identical, document the new actions and the schema form, and run the final verification that closes the plan.
 type: chor
-status: pending
+status: in_progress
 priority: "2"
 effort: S
 created: "2026-10-28T20:44:05.904Z"
-updated: "2026-10-29T20:22:00.352Z"
+updated: "2026-10-30T00:22:24.845Z"
+started: "2026-10-30T00:22:16.952Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy
@@ -97,3 +104,5 @@ Example app: Packages tab shows Platinum checked; Options tab shows the Platinum
 
 ## Work Log
 ### 2026-10-29T20:22:00.352Z - Moved 2 open [MANUAL] acceptance criteria to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
+
+### 2026-10-30T00:22:24.845Z - Started on feat/appearance-part-j-v2 (worktree part-j) at post-B base 8ed7810d3, which includes the J-R16 resolve. The implementer brief is the part-j ledger task-6.1-brief.md; parity uses the shared post-B baseline at .playwright-mcp/parity/post-b/ in place of a part-local J 0 set.

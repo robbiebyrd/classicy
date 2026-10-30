@@ -3,11 +3,18 @@ id: 0012-3av
 title: 'G 1.2: Replace every literal color; token-driven halftone'
 purpose: Replace every literal color in Classicy's SCSS with a token or a tint/shade/alpha of one, and make the icon halftone a token-painted mask.
 type: impr
-status: pending
+status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T19:54:12.504Z"
-updated: "2026-10-29T20:14:15.844Z"
+updated: "2026-10-30T00:22:20.817Z"
+started: "2026-10-30T00:22:13.070Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy
@@ -119,3 +126,5 @@ Re-shoot `controls-icon--*`, `desktop-desktopicon--*`, `controls-controlgroup--*
 
 ## Work Log
 ### 2026-10-29T20:14:15.844Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
+
+### 2026-10-30T00:22:20.817Z - Started on feat/appearance-part-g-v2 (worktree part-g) at post-B base 8bbaa7288. The owner ruled the error title-bar pink as ruling G15 (2026-10-30): classicy-tint(--color-error, 80%) = #ffcccc. The implementer brief is the part-g ledger task-1.2-brief.md; parity uses the shared post-B baseline at .playwright-mcp/parity/post-b/.

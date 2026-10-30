@@ -6,7 +6,7 @@ status: in_progress
 priority: "2"
 effort: XL
 created: "2026-10-28T18:07:39.758Z"
-updated: "2026-10-28T23:31:30.980Z"
+updated: "2026-10-30T00:20:00.000Z"
 links:
   repo:
     local: ~/classicy
@@ -237,4 +237,4 @@ Named visual changes across the program (the only non-zero parity allowed): Part
 
 ## Open Questions
 
-- [ ] Error title-bar pink `#f7cecd` cannot be reached by any tint of `--color-error` (#ff0000 keeps R=255). Part G pins `classicy-tint("--color-error", 80%)` = `#ffcccc` and names the change (error-alert stories only). Alternative: a 29th color target `window.titleError` (schema + migration + Colors tab). Which? — owner
+- [x] Error title-bar pink `#f7cecd` cannot be reached by any tint of `--color-error` (#ff0000 keeps R=255). **Decided by the owner (2026-10-30):** Part G uses `classicy-tint("--color-error", 80%)` = `#ffcccc` as a named change on error-styled title bars only; no 29th color target (ruling G15).
