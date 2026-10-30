@@ -1,3 +1,7 @@
+import {
+	appearanceHooksParameters,
+	ClassicyAppearanceProbe,
+} from "@sb/ClassicyAppearanceProbe";
 import { desktopParameters, SB_ICON } from "@sb/helpers";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useEffect } from "react";
@@ -138,4 +142,22 @@ const AddIconWithContextMenu = () => {
  */
 export const WithContextMenu: Story = {
 	render: () => <AddIconWithContextMenu />,
+};
+
+/**
+ * The Appearance Package hook surface, under the Storybook probe package:
+ * every root `decorate()` reaches is outlined (green while pressed), and every
+ * event the component emits is logged in the Actions panel.
+ *
+ * The desktop draws the icon, so the desktop's own icons are decorated too.
+ *
+ * It renders a fixed tree and takes no args.
+ */
+export const AppearanceHooks: StoryObj<Record<string, never>> = {
+	render: () => (
+		<ClassicyAppearanceProbe>
+			<AddIcon />
+		</ClassicyAppearanceProbe>
+	),
+	parameters: appearanceHooksParameters("600px"),
 };

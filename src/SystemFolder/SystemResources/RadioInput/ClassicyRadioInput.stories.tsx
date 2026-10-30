@@ -1,4 +1,9 @@
+import {
+	appearanceHooksParameters,
+	ClassicyAppearanceProbe,
+} from "@sb/ClassicyAppearanceProbe";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { ComponentProps } from "react";
 import { fn } from "storybook/test";
 import { ClassicyRadioInput } from "./ClassicyRadioInput";
 
@@ -80,4 +85,19 @@ export const NonePreselected: Story = {
 			{ id: "fast-none", label: "Fast" },
 		],
 	},
+};
+
+/**
+ * The Appearance Package hook surface, under the Storybook probe package:
+ * every root `decorate()` reaches is outlined (green while pressed), and every
+ * event the component emits is logged in the Actions panel.
+ */
+export const AppearanceHooks: Story = {
+	args: Columns.args,
+	render: (args: ComponentProps<typeof ClassicyRadioInput>) => (
+		<ClassicyAppearanceProbe>
+			<ClassicyRadioInput {...args} />
+		</ClassicyAppearanceProbe>
+	),
+	parameters: appearanceHooksParameters(),
 };
