@@ -455,7 +455,9 @@ describe("platinum.scss (compiled)", () => {
 			).props["mask-size"],
 		).toBe("auto 100%");
 		expect(
-			rule(`${P} .classicyWindowFrameTitleBar::before`).props["mask-size"],
+			rule(
+				`${P} .classicyWindowFrame .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleCenter::before`,
+			).props["mask-size"],
 		).toBe("auto 100%");
 		// The control boxes' glyph masks sit top left, over the mixin's
 		// centering, and the utility boxes keep their smaller size and glyph

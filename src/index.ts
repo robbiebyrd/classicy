@@ -290,6 +290,7 @@ export * from "./SystemFolder/SystemResources/Window/ClassicyWindowContext";
 export * from "./SystemFolder/SystemResources/Window/ClassicyWindowFrame";
 export * from "./SystemFolder/SystemResources/Window/ClassicyWindowMenuBar";
 export * from "./SystemFolder/SystemResources/Window/ClassicyWindowResize";
+export * from "./SystemFolder/SystemResources/Window/ClassicyWindowTitleBar";
 export * from "./SystemFolder/WebViewer/WebViewer";
 export * from "./SystemFolder/WebViewer/WebViewerContext";
 export * from "./SystemFolder/WebViewer/WebViewerUtils";
