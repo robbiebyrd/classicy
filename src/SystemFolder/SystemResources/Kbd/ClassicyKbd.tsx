@@ -53,11 +53,11 @@ const ModifierGlyph = ({ name }: { name: ClassicyModifierName }) => (
  * a span per modifier, then the key. "Cmd+Shift+S" → [⇧, ⌘, "S"].
  */
 const shortcutParts = (shortcut: string): ReactNode[] => {
-	const { key } = parseKeyboardShortcut(shortcut);
-	const parts: ReactNode[] = keyboardShortcutModifiers(shortcut).map((name) => (
+	const parsed = parseKeyboardShortcut(shortcut);
+	const parts: ReactNode[] = keyboardShortcutModifiers(parsed).map((name) => (
 		<ModifierGlyph key={name} name={name} />
 	));
-	if (key) parts.push(key);
+	if (parsed.key) parts.push(parsed.key);
 	return parts;
 };
 
