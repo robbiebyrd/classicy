@@ -748,6 +748,70 @@ describe("useClassicyFileSystem Control Strip Modules overlay", () => {
 		}
 	});
 
+	it("keeps a static module file a display name would hide, across a switch and back (K-R7)", () => {
+		registerTestAppsPackage("test-fs-strip-static", {
+			"FsOwner.app": { name: "Owner Display" },
+		});
+		registerClassicyControlStripModule({
+			id: "fs-test-module",
+			appId: "FsOwner.app",
+			label: "Owned",
+			icon: "/owned.png",
+		});
+		const tree = drive();
+		(tree["Macintosh HD"]["System Folder"] as Record<string, unknown>)[
+			"Control Strip Modules"
+		] = {
+			_type: ClassicyFileSystemEntryFileType.Directory,
+			"Owner Display": {
+				_type: ClassicyFileSystemEntryFileType.TextFile,
+				_data: "mine",
+			},
+		};
+		vi.spyOn(console, "warn").mockImplementation(() => {});
+		const unmount = markClassicyAppMounted("FsOwner.app");
+		try {
+			const { result } = renderHook(
+				() => useClassicyFileSystem("test-strip-overlay-static"),
+				{
+					wrapper: wrapperFor({
+						defaultFileSystem: tree as unknown as ClassicyFileSystemTree,
+						mode: "exclusive",
+					}),
+				},
+			);
+			act(() => {
+				dispatch({
+					type: "ClassicyDesktopChangeAppearancePackage",
+					packageId: "test-fs-strip-static",
+				});
+			});
+			expect(result.current.resolve(`${folder}:Owner Display`)._data).toBe(
+				"mine",
+			);
+			expect(result.current.resolve(`${folder}:Owned`)._creator).toBe(
+				"FsOwner.app",
+			);
+
+			act(() => {
+				dispatch({
+					type: "ClassicyDesktopChangeAppearancePackage",
+					packageId: "platinum",
+				});
+			});
+			expect(result.current.resolve(`${folder}:Owner Display`)._data).toBe(
+				"mine",
+			);
+			expect(result.current.resolve(`${folder}:Owned`)._creator).toBe(
+				"FsOwner.app",
+			);
+		} finally {
+			act(() => unmount());
+			vi.restoreAllMocks();
+			unregisterClassicyAppearancePackage("test-fs-strip-static");
+		}
+	});
+
 	it("does not persist the overlay to localStorage", () => {
 		registerClassicyControlStripModule({
 			id: "fs-test-module",

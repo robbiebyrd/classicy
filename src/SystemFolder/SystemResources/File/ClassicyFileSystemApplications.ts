@@ -6,11 +6,14 @@ import {
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import type { ClassicyStoreSystemDesktopManagerIcon } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
 import {
+	resetClassicyDerivedEntryNameWarnings,
+	warnClassicyDerivedEntryNameFallback,
+} from "@/SystemFolder/SystemResources/File/ClassicyDerivedEntryNameWarnings.internal";
+import {
 	type ClassicyFileSystemEntry,
 	ClassicyFileSystemEntryFileType,
 	withoutDerivedEntries,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
-import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 export const APP_SHORTCUT_ICON_KIND = "app_shortcut";
 
@@ -21,14 +24,10 @@ export type ClassicyDerivedAppEntrySource = {
 	displayName: string;
 };
 
-// Every fallback already warned about, keyed on folder, display name and the
-// losing app id: the derived folders rebuild on every file-system change, so
-// a collision is reported once, not once per build (K-R3).
-const warnedDerivedAppEntryFallbacks = new Set<string>();
-
-/** Test helper: report every derived-folder name fallback again. */
+/** Test helper: report every derived-folder name fallback again
+ *  (Applications, Extensions and Control Strip Modules). */
 export const resetClassicyDerivedAppEntryNameWarnings = (): void => {
-	warnedDerivedAppEntryFallbacks.clear();
+	resetClassicyDerivedEntryNameWarnings();
 };
 
 /**
@@ -68,19 +67,14 @@ export const classicyDerivedAppEntryNames = (
 		}
 		const fallback = taken.has(name) ? `${name} (${appId})` : name;
 		taken.add(fallback);
-		const warning = `${folderName}\u0000${displayName}\u0000${appId}`;
-		if (!warnedDerivedAppEntryFallbacks.has(warning)) {
-			warnedDerivedAppEntryFallbacks.add(warning);
-			// Names the form the app is listed under: its own name, or the
-			// "<own name> (<id>)" suffix form.
-			const used = fallback === name ? "its own name" : `"${fallback}"`;
-			classicyLog(
-				"warn",
-				"ClassicyFileSystem",
-				`App display name unusable in ${folderName}; using ${used}`,
-				{ appId, name: displayName },
-			);
-		}
+		warnClassicyDerivedEntryNameFallback(
+			folderName,
+			displayName,
+			appId,
+			name,
+			fallback,
+			{ appId, name: displayName },
+		);
 		return fallback;
 	});
 };
