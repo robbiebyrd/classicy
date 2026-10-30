@@ -3,12 +3,13 @@ id: 0063-n9x
 title: 'F 4.1: computeClassicyWindowResize anchored on the corner opposite the grip'
 purpose: Replace the window's inline top-left-anchored resize formulas with a pure function that reads the declared grow-box corner and anchors the opposite corner, keeping today's bottom-right numbers exactly.
 type: feat
-status: in_progress
+status: complete
 priority: "2"
 effort: M
 created: "2026-10-28T20:30:41.718Z"
-updated: "2026-10-30T03:48:08.943Z"
+updated: "2026-10-30T03:51:44.469Z"
 started: "2026-10-30T02:18:30.774Z"
+completed: "2026-10-30T03:51:44.469Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -98,9 +99,9 @@ Re-shoot `desktop-window--*` → AE `0`. In Storybook `desktop-window--default`,
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Window/ClassicyWindowResize.test.ts
-- [ ] `computeClassicyWindowResize` passes the four-corner table; the bottom-right path reproduces today's numbers with `CLASSICY_WINDOW_RESIZE_FUDGE = 5`; a mirrored window's grip drag moves `style.left`.
-- [ ] The untouched `ClassicyWindow.resizeSize.test.tsx:211-243` cases still pass.
+- [x] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Window/ClassicyWindowResize.test.ts
+- [x] `computeClassicyWindowResize` passes the four-corner table; the bottom-right path reproduces today's numbers with `CLASSICY_WINDOW_RESIZE_FUDGE = 5`; a mirrored window's grip drag moves `style.left`.
+- [x] The untouched `ClassicyWindow.resizeSize.test.tsx:211-243` cases still pass.
 
 ## Files
 
@@ -118,3 +119,5 @@ Re-shoot `desktop-window--*` → AE `0`. In Storybook `desktop-window--default`,
 ### 2026-10-30T03:02:31.789Z - F 4.1 task review: Needs fixes. Bottom-right unchanged and the +43 drag confirmed as today's +5 fudge; Important: flipped corners ignore minimum size and the viewport floor (y>=30, x>=0), so the anchored edge drifts (reachable via F 7.1's mirrored package). Fixes (optional minimum/floor params on the pure function, React-path resizing gate, test comment) sent to the F 5.1 implementer to land as a separate commit.
 
 ### 2026-10-30T03:48:08.943Z - F 4.1 review fixes landed as d981bc173: flipped corners honor the minimum size and the viewport floor; React resize path gated on isResizingRef; test comment corrected. Window suites green, full suite 4059/4059, live drag +43 unchanged, flipped corners hold their anchored edge through release. Fix re-review dispatched.
+
+### 2026-10-30T03:51:30.198Z - Fix re-review APPROVED (d981bc173). Both Important fixes are correct, use the same minimum/floor sources as windowStyle and the release clamp, and keep bottom-right byte-identical; Window suite 176/176. Remaining minors (no-op rerender in a test, doc clause for an unreachable state, strip transient `resizing` from persisted state) folded into the F 6.1 worker's review-fix commit; docs carry to F 7.1.
