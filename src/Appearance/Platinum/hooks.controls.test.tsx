@@ -1,5 +1,6 @@
 import "@/Appearance/Platinum";
 import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { produce } from "immer";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen } from "@/__tests__/test-utils";
@@ -178,8 +179,9 @@ describe("Platinum control sounds through the appearance hooks", () => {
 			"src/SystemFolder/SystemResources/Assistant/ClassicyAssistant.tsx",
 		];
 		for (const file of sources)
-			expect(readFileSync(file, "utf8"), file).not.toMatch(
-				/sound: "Classicy(Button|InputRadio|Tab|Menu)/,
-			);
+			expect(
+				readFileSync(resolve(__dirname, "../../..", file), "utf8"),
+				file,
+			).not.toMatch(/sound: "Classicy(Button|InputRadio|Tab|Menu)/);
 	});
 });

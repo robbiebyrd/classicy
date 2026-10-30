@@ -216,14 +216,16 @@ const bevelButtonStates = (
  *
  * The seven HIG states are exposed as the shared bare state classes beside
  * the root (`pressed`, `checked`, `mixed`, `disabled`, and `open` while its
- * pop-up shows). Presses play the theme's click sounds and are reported to
- * analytics. A radio button only ever turns itself on: mutual exclusion is the
- * caller's job, by wiring a group's `on`/`onChangeFunc` to one shared value.
+ * pop-up shows). Presses play the click sounds (the appearance package's
+ * press/release hooks) and are reported to analytics. A radio button only ever
+ * turns itself on: mutual exclusion is the caller's job, by wiring a group's
+ * `on`/`onChangeFunc` to one shared value.
  *
  * Given `menuItems` (a Platinum menu, HIGOS8 Figure 2-15) or `popupContent`
  * (any other surface, e.g. `ClassicyPopUpSlider`, Figure 2-16), it opens that
  * surface in a fixed-position portal below or to the right of itself
- * (pp.32–33), flipping when there is no room, and plays the menu-open sound.
+ * (pp.32–33), flipping when there is no room, and plays the menu-open sound
+ * (the appearance package's open hook).
  * With the `click` trigger (default in `popup` mode) a quick click leaves the
  * menu open and a press held past `popupHoldDelayMs` is a press-drag-release
  * menu; with `hold` (default in other modes) a click keeps the button's own
