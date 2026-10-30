@@ -7,6 +7,10 @@ import { getClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePac
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { slugifyClassicyThemeName } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
 import {
+	classicyThemeMeasurementDefaults,
+	withDefaultThemeMetrics,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
+import {
 	CLASSICY_THEME_FILE_FORMAT,
 	CLASSICY_THEME_FILE_VERSION,
 	type ClassicyThemeFile,
@@ -76,8 +80,16 @@ const loadableClassicyThemeBackground = (value: string): string => {
 	return filename ? resolveWallpaper(filename) : value;
 };
 
-/** Serializes `theme` as a theme file (tab-indented JSON, trailing newline). */
-export const exportClassicyTheme = (theme: ClassicyTheme): string => {
+/**
+ * Serializes `theme` as a theme file (tab-indented JSON, trailing newline).
+ * The theme is completed first (H-R17): a stored theme carries only the
+ * package-family values it changed, and the file carries them all.
+ */
+export const exportClassicyTheme = (stored: ClassicyTheme): string => {
+	const theme = withDefaultThemeMetrics(
+		stored,
+		classicyThemeMeasurementDefaults(stored.package),
+	);
 	const portable: ClassicyTheme = {
 		...theme,
 		desktop: {
