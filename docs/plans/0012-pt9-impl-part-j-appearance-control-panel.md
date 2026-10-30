@@ -2,11 +2,12 @@
 id: 0012-pt9
 title: 'Part J: Appearance control panel'
 type: impl
-status: in_progress
+status: complete
 priority: "2"
 effort: L
 created: "2026-10-28T19:35:31.437Z"
-updated: "2026-10-30T03:30:37.823Z"
+updated: "2026-10-30T03:30:51.100Z"
+completed: "2026-10-30T03:30:51.100Z"
 tags: []
 milestone: ""
 due_date: ""
