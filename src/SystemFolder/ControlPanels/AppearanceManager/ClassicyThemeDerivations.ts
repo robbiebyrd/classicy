@@ -270,3 +270,28 @@ export const classicyThemeDerivations = (
 	Object.fromEntries(
 		CLASSICY_THEME_DERIVATIONS.map((d) => [d.cssVar, px3(d.compute(i))]),
 	);
+
+/**
+ * The variables `getThemeVars` derived before the named proportions existed
+ * (frames, bevels, the edit-field height, the classic icon sizes, …). With
+ * `CLASSICY_THEME_DERIVATIONS` they make up the reserved names: a package
+ * measurement that would make one is skipped by `classicyMeasurementVars`, so
+ * it can never silently shadow a derivation.
+ */
+export const CLASSICY_THEME_DERIVED_VARS: readonly string[] = [
+	"--window-scrollbar-arrow-size",
+	"--icon-small-size",
+	"--icon-size-regular",
+	"--button-height",
+	"--control-frame-width",
+	"--control-bevel-sm",
+	"--control-bevel-md",
+	"--control-bevel-lg",
+	"--button-default-ring",
+	"--control-row-height",
+	"--edit-field-height",
+	"--progress-height",
+	"--help-button-width",
+	"--help-button-height",
+	"--layout-focus-gap",
+];
