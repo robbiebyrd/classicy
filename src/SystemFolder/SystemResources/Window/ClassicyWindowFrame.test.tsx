@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { compileScss, scssRule } from "@/__tests__/compiledCss";
 import { render, screen } from "@/__tests__/test-utils";
 import { ClassicyWindowFrame } from "@/SystemFolder/SystemResources/Window/ClassicyWindowFrame";
 
@@ -64,6 +65,25 @@ describe("ClassicyWindowFrame", () => {
 		const root = container.querySelector(".classicyWindowFrame") as HTMLElement;
 		expect(root.style.getPropertyValue("--classicy-window-frame-width")).toBe(
 			"480px",
+		);
+	});
+
+	// Named change (a): the shared title bar sits inset as a window's does,
+	// but on whole pixels, so the body below moves by a whole number of
+	// pixels and rasters exactly as before, only lower.
+	it("insets the title bar by a whole-pixel frame ring and rules it off", () => {
+		const bar = scssRule(
+			compileScss(
+				"src/SystemFolder/SystemResources/Window/ClassicyWindowFrame.scss",
+			),
+			".classicyWindowFrame > .classicyWindowTitleBar",
+		);
+		expect(bar.padding).toBe(
+			"round(down, var(--window-padding-size) / 1.25, 1px)",
+		);
+		expect(bar["padding-bottom"]).toBe("var(--window-border-size)");
+		expect(bar["border-bottom"]).toBe(
+			"var(--window-border-size) solid var(--color-black)",
 		);
 	});
 });

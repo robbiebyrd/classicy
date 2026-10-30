@@ -17,9 +17,10 @@
   @include title-bar.classicy-window-title-bar-active;
 
   // Inset from the frame's border as a window's title bar is by the window's
-  // frame ring, and ruled off from the body (which has no border of its own).
+  // frame ring (rounded down to a whole pixel, so the body below stays on the
+  // pixel grid), and ruled off from the body (which has no border of its own).
   > .classicyWindowTitleBar {
-    padding: calc(var(--window-padding-size) / 1.25);
+    padding: round(down, calc(var(--window-padding-size) / 1.25), 1px);
     padding-bottom: var(--window-border-size);
     border-bottom: var(--window-border-size) solid var(--color-black);
   }
