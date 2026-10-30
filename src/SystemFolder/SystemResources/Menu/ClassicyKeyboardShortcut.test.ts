@@ -424,6 +424,13 @@ describe("the shared modifier table", () => {
 		expect(keyboardShortcutModifiers("F1")).toEqual([]);
 		expect(keyboardShortcutModifiers(undefined)).toEqual([]);
 	});
+
+	it("keyboardShortcutModifiers takes an already-parsed shortcut too", () => {
+		expect(
+			keyboardShortcutModifiers(parseKeyboardShortcut("Ctrl+Cmd+S")),
+		).toEqual(["control", "command"]);
+		expect(keyboardShortcutModifiers(parseKeyboardShortcut("F1"))).toEqual([]);
+	});
 });
 
 describe("keyboardShortcutParts", () => {
