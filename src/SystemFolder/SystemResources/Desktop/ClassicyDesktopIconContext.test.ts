@@ -8,6 +8,10 @@ import {
 	TEST_MIRROR_PACKAGE_ID,
 } from "@/__tests__/testMirrorPackage";
 import {
+	registerTestRenamePackage,
+	TEST_RENAME_PACKAGE_ID,
+} from "@/__tests__/testRenamePackage";
+import {
 	type ClassicyAppearancePackage,
 	getClassicyAppearancePackage,
 	registerClassicyAppearancePackage,
@@ -186,6 +190,89 @@ describe("ClassicyDesktopIconCleanup", () => {
 			[16, 64],
 			[16, 208],
 		]);
+	});
+
+	describe("sort by name", () => {
+		// "Tetris" sorts between "Television" and "TV", so the order tells
+		// which name the sort used.
+		const named = [
+			{ appId: "Zed.app", appName: "Zed", icon: "z.png", kind: "app_shortcut" },
+			{ appId: "TV.app", appName: "TV", icon: "tv.png", kind: "app_shortcut" },
+			{
+				appId: "Tetris.app",
+				appName: "Tetris",
+				icon: "t.png",
+				kind: "app_shortcut",
+			},
+			{
+				appId: "Scrapbook.app",
+				appName: "Scrapbook",
+				icon: "s.png",
+				kind: "app_shortcut",
+			},
+		];
+		const order = () =>
+			useAppManager
+				.getState()
+				.System.Manager.Desktop.icons.map((icon) => icon.appId);
+
+		it("ClassicyDesktopIconSort sorts app shortcuts by the package's name under test-rename", () => {
+			registerTestRenamePackage();
+			seedStore(TEST_RENAME_PACKAGE_ID, named);
+			dispatch({ type: "ClassicyDesktopIconSort", sortBy: "name" });
+			expect(order()).toEqual([
+				"Scrapbook.app",
+				"TV.app",
+				"Tetris.app",
+				"Zed.app",
+			]);
+			// "Television" after "Scrapbook" and before "Zed"; the record keeps
+			// the app's own name.
+			const tv = useAppManager
+				.getState()
+				.System.Manager.Desktop.icons.find((icon) => icon.appId === "TV.app");
+			expect(tv?.appName).toBe("TV");
+		});
+
+		it("sorts by the app's own name under Platinum", () => {
+			registerTestRenamePackage();
+			seedStore(PLATINUM_APPEARANCE_PACKAGE_ID, named);
+			dispatch({ type: "ClassicyDesktopIconSort", sortBy: "name" });
+			expect(order()).toEqual([
+				"Scrapbook.app",
+				"Tetris.app",
+				"TV.app",
+				"Zed.app",
+			]);
+		});
+
+		it("keeps a drive sharing an overridden app id under its own name", () => {
+			// Extend the fixture locally: test-rename also renames Finder.
+			registerTestRenamePackage();
+			const pkg = getClassicyAppearancePackage(
+				TEST_RENAME_PACKAGE_ID,
+			) as ClassicyAppearancePackage;
+			registerClassicyAppearancePackage({
+				...pkg,
+				apps: { ...pkg.apps, "Finder.app": { name: "Aardvark" } },
+			});
+			seedStore(TEST_RENAME_PACKAGE_ID, [
+				{
+					appId: "Finder.app",
+					appName: "Zip Disk",
+					icon: "d.png",
+					kind: "drive",
+				},
+				{
+					appId: "Disk2",
+					appName: "Macintosh HD",
+					icon: "d.png",
+					kind: "drive",
+				},
+			]);
+			dispatch({ type: "ClassicyDesktopIconSort", sortBy: "name" });
+			expect(order()).toEqual(["Disk2", "Finder.app"]);
+		});
 	});
 
 	it("keeps today's top-right locations under Platinum", () => {

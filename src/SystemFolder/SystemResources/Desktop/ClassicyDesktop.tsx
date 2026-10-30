@@ -49,6 +49,10 @@ import {
 } from "react";
 import { useActiveClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
 import {
+	classicyAppIdentityFrom,
+	useClassicyAppIdentityOverrides,
+} from "@/Appearance/ClassicyAppIdentity";
+import {
 	useClassicyAsset,
 	useClassicyAssetVars,
 } from "@/Appearance/ClassicyAssetRegistry";
@@ -88,6 +92,7 @@ import {
 	moveClassicyFileSystemItems,
 	moveClassicyItemsToTrash,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileMove";
+import { APP_SHORTCUT_ICON_KIND } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
 import { useClassicyFileSystemAccessor } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import {
@@ -187,6 +192,24 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	const desktopIcons = useMemo(
 		() => allDesktopIcons.filter((i) => !i.hidden),
 		[allDesktopIcons],
+	);
+	// Type-select matches the name each icon shows: an unlabeled app
+	// shortcut shows the active package's display name for its app.
+	const appIdentityOverrides = useClassicyAppIdentityOverrides();
+	const typeaheadIcons = useMemo(
+		() =>
+			desktopIcons.map((i) =>
+				i.kind === APP_SHORTCUT_ICON_KIND && !i.label
+					? {
+							...i,
+							label: classicyAppIdentityFrom(appIdentityOverrides, i.appId, {
+								name: i.appName,
+								icon: i.icon,
+							}).name,
+						}
+					: i,
+			),
+		[desktopIcons, appIdentityOverrides],
 	);
 	const selectedIcons = useAppManager(
 		(s) => s.System.Manager.Desktop.selectedIcons ?? [],
@@ -370,7 +393,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 					typePrefixRef.current = "";
 					typePrefixTimerRef.current = null;
 				}, 800);
-				const matchId = typeaheadMatch(desktopIcons, typePrefixRef.current);
+				const matchId = typeaheadMatch(typeaheadIcons, typePrefixRef.current);
 				if (matchId) {
 					selectIconFromKeyboard(matchId);
 					document.getElementById(`${matchId}.shortcut`)?.focus();
@@ -379,6 +402,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 		},
 		[
 			desktopIcons,
+			typeaheadIcons,
 			selectedIcons,
 			desktopEventDispatch,
 			trashSelectedDesktopItems,
