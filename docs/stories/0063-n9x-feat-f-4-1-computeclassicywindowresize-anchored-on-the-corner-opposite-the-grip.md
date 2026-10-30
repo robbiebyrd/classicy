@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T20:30:41.718Z"
-updated: "2026-10-30T02:18:30.774Z"
+updated: "2026-10-30T02:58:29.063Z"
 started: "2026-10-30T02:18:30.774Z"
 tags: []
 milestone: ""
@@ -112,3 +112,5 @@ Re-shoot `desktop-window--*` → AE `0`. In Storybook `desktop-window--default`,
 
 ## Work Log
 ### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
+
+### 2026-10-30T02:58:29.063Z - F 4.1 implemented on feat/appearance-part-f (b26e3b72c resize math anchored on the corner opposite the declared grow box; 72abc49cd pins every grow-box corner rule). 4044 tests pass; all 27 window/app/alert stories AE 0 against part-F/before. Live 40 px grip drag on desktop-window--default keeps left/top and grows by +43 at both BASE and HEAD (the existing +5 grip fudge), so Platinum behavior is unchanged. Task review dispatched.

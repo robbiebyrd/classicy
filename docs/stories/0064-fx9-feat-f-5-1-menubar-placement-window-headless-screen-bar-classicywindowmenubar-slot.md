@@ -3,11 +3,18 @@ id: 0064-fx9
 title: 'F 5.1: menuBar.placement = window: headless screen bar, ClassicyWindowMenuBar slot'
 purpose: 'Let a package declare menuBar.placement "window": the screen bar keeps its hooks but renders nothing, and each window renders its own appMenu in a new ClassicyWindowMenuBar slot under the title bar, with keyboard-shortcut dispatch unchanged.'
 type: feat
-status: pending
+status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T20:31:22.637Z"
-updated: "2026-10-29T20:22:00.352Z"
+updated: "2026-10-30T02:58:39.214Z"
+started: "2026-10-30T02:58:39.214Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy

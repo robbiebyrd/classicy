@@ -7,7 +7,7 @@ status: pending
 priority: "2"
 effort: XL
 created: "2026-10-29T20:12:05.516Z"
-updated: "2026-10-30T01:56:28.910Z"
+updated: "2026-10-30T02:58:46.536Z"
 tags:
   - vnv
   - manual
@@ -155,7 +155,6 @@ Run the 7 manual checks from 0075-uev, 0076-4sb, 0078-nc6, 0079-vn4, 0080-xy4, 0
 - [ ] [MANUAL] **0059-2t4 (F 0)**: `attributes.txt` records the grep hits for the six cluster parts, three control attributes and the alert role attribute (or notes which are missing).
 - [ ] [MANUAL] **0061-pic (F 2.1)**: `compare -metric AE` is `0` for every `desktop-menubar--*`, `desktop-menubar-extension--*`, `desktop-desktop--*` and `desktop-app--*` story.
 - [ ] [MANUAL] **0062-sxu (F 3.1)**: `compare -metric AE` is `0` for every `desktop-window--*` story.
-- [ ] [MANUAL] **0063-n9x (F 4.1)**: `compare -metric AE` is `0` for every `desktop-window--*` story and a 40 px grip drag in `desktop-window--default` keeps `left/top` and grows width/height by 40 (±1).
 - [ ] [MANUAL] **0064-fx9 (F 5.1)**: `compare -metric AE` is `0` for every `desktop-desktop--*`, `desktop-window--*` and `desktop-app--*` story.
 - [ ] [MANUAL] **0065-8mp (F 6.1)**: `compare -metric AE` is `0` for every `dialogs-alert--*`, `controls-disclosure--*`, `controls-tabs--*`, `desktop-desktop--*` and `desktop-desktopicon--*` story.
 - [ ] [MANUAL] **0066-874 (F 7.1)**: Every Playwright position expression in Step 5 records `true`, and `compare -metric AE` is `0` for every pre-existing story in `stories.txt`.
@@ -189,5 +188,6 @@ Run the 7 manual checks from 0075-uev, 0076-4sb, 0078-nc6, 0079-vn4, 0080-xy4, 0
 - [ ] [MANUAL] **0081-ww6 (J 6.1)**: Every J 0 screenshot except `app-appearance-*` compares AE 0 before vs after; all nine `system-appearancemanager--*` stories render without console errors.
 - [ ] [MANUAL] **0081-ww6 (J 6.1)**: AGENT-REFERENCE lists the new action, the metric family form, `ClassicySchemaForm` and the eight tabs; CLAUDE.md has the schema-form paragraph; plan 0000-aud (the audit) §9 Phase 8 carries a 'Done' line.
 - [ ] [MANUAL] Part I 3.2: in the example app with sound unmuted, hover through a menu and into a submenu. Each item plays one hover sound, exactly as before 3.2 (the extra hover dispatches that used to bubble to parent items, always refused by the sound manager, are gone).
+- [ ] [MANUAL] **0063-n9x (F 4.1)**: `compare -metric AE` is `0` for every `desktop-window--*` story, and a 40 px grip drag in `desktop-window--default` keeps `left/top` and grows width/height by the same amount as at the pre-4.1 base (the controller measured +43 at both), ±1.
 
 ## Work Log
