@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-30T14:45:18.135Z"
-updated: "2026-10-30T16:25:04.377Z"
+updated: "2026-10-30T16:47:37.515Z"
 started: "2026-10-30T15:15:36.055Z"
 tags: []
 milestone: ""
@@ -73,3 +73,5 @@ Per the plan, after Part E lands; pixel parity for Platinum (no package override
 ### 2026-10-30T16:20:55.797Z - K 1.2 implemented (75b4813ef resolveClassicyAppIdentity + useClassicyAppIdentity, Object.hasOwn lookups; d86c53849 K 1.1 review minors). 4822 tests; mutation checks prove the store-free, snapshot-cache and hasOwn tests discriminate. K 1.2 review and K 2.1 (literal action types, PDF Viewer fix) dispatched.
 
 ### 2026-10-30T16:25:04.377Z - K 1.2 task review APPROVED: resolution rules, live hooks under StrictMode (re-registration and package switches update a mounted component, no render loop) and the store-free guarantee (fails on direct and transitive store imports) all verified by probes. The duplicated active-package subscriber and four minors folded into the 2.1 worker's separate commit.
+
+### 2026-10-30T16:47:37.514Z - K 2.1 implemented (a896af93e literal action types for PDF Viewer, Movie Player, Picture Viewer, SimpleText; PDF Viewer's close now reaches its own reducer; generic paths pinned to the internal name; 91f1590f3 K 1.2 review items incl. one shared active-package subscriber replacing three copies). 4833 tests. K 2.1 review and K 2.2 dispatched.
