@@ -22,10 +22,19 @@
   }
 }
 
+// The clusters are flex items, placed by `order` from their
+// data-classicy-part (below), not by floats, so a package can rearrange the
+// bar with `order` alone. `align-items: flex-start` keeps each cluster at its
+// own height, as the floats did. The bar is itself a flex item of its
+// .classicyMenuWrapper; border-box makes `width: 100%` that wrapper's width,
+// padding included, which is what flex shrinking settled on before.
 .classicyDesktopMenu {
   z-index: 500;
-  display: inline-block;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
   width: 100%;
+  box-sizing: border-box;
   margin: 0;
   padding: 0 var(--window-control-size);
   list-style: none;
@@ -36,6 +45,9 @@
     calc(var(--window-border-size) * 2) calc(var(--window-border-size) * 2) 0 0 var(--color-black);
   -webkit-user-drag: none;
 
+  > * {
+    float: none;
+  }
 
   // Hide the child-menu triangle on top-level menu titles only (including
   // balloon-wrapped ones); items inside dropdowns keep the indicator from
@@ -52,8 +64,32 @@
   }
 }
 
+// Left to right: Apple, the app's menus, Help, then — pushed to the far end by
+// the extensions' auto margin — menu bar extensions, the clock and the App
+// Switcher. A top-level item with balloon help is wrapped in a
+// ClassicyBalloonHelp anchor, which is then the flex item: the `:has()` form
+// orders that wrapper by the part it wraps.
+$classicy-menu-bar-order: (
+  apple: 10,
+  app: 20,
+  help: 30,
+  extensions: 40,
+  clock: 50,
+  switcher: 60,
+);
+
+@each $part, $order in $classicy-menu-bar-order {
+  .classicyDesktopMenu > [data-classicy-part="#{$part}"],
+  .classicyDesktopMenu > :has(> [data-classicy-part="#{$part}"]) {
+    order: $order;
+
+    @if $part == extensions {
+      margin-left: auto;
+    }
+  }
+}
+
 .classicyDesktopMenuExtensions {
-  float: right;
   display: flex;
   align-items: center;
   height: 100%;
@@ -63,7 +99,6 @@
 }
 
 .classicyDesktopMenuAppSwitcher {
-  float: right;
   margin-right: 0;
   margin-left: 0;
   &:hover {
