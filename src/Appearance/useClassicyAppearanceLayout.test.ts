@@ -155,7 +155,7 @@ describe("useClassicyAppearanceLayout", () => {
 		expect(result.current).toBe(CLASSICY_DEFAULT_APPEARANCE_LAYOUT);
 	});
 
-	it("the hook follows the active package", () => {
+	it("follows ClassicyDesktopChangeAppearancePackage", () => {
 		registerMirror();
 		const { result } = renderHook(() => useClassicyAppearanceLayout());
 		expect(result.current.menuBar.placement).toBe("screen");

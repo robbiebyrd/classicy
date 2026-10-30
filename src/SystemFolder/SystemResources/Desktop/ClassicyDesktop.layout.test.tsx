@@ -4,9 +4,12 @@ import type { CSSProperties } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
 	type ClassicyAppearanceLayout,
+	type ClassicyAppearancePackage,
+	getClassicyAppearancePackage,
 	registerClassicyAppearancePackage,
 	resetClassicyAppearancePackagesForTests,
 } from "@/Appearance/ClassicyAppearancePackage";
+import { PLATINUM_APPEARANCE_PACKAGE_ID } from "@/Appearance/Platinum";
 import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { ClassicyAppManagerProvider } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext";
@@ -15,6 +18,13 @@ import {
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyDesktop } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktop";
+
+// Importing the Platinum module registered it; keep that object so every test
+// starts from the real Platinum registration (platinum.json's layout), not
+// from an empty registry's CLASSICY_DEFAULT_APPEARANCE_LAYOUT fallback.
+const platinum = getClassicyAppearancePackage(
+	PLATINUM_APPEARANCE_PACKAGE_ID,
+) as ClassicyAppearancePackage;
 
 const mirror: ClassicyAppearanceLayout = {
 	window: { growBoxCorner: "bottom-left" },
@@ -50,6 +60,7 @@ describe("ClassicyDesktop layout", () => {
 		localStorage.clear();
 		sessionStorage.clear();
 		resetClassicyAppearancePackagesForTests();
+		registerClassicyAppearancePackage(platinum);
 		useAppManager.setState(DefaultAppManagerState, true);
 	});
 
@@ -59,6 +70,14 @@ describe("ClassicyDesktop layout", () => {
 	});
 
 	it("publishes the layout on the desktop root", () => {
+		expect(platinum.layout).toEqual({
+			window: { growBoxCorner: "bottom-right" },
+			menuBar: { placement: "screen" },
+			desktop: { iconGridOrigin: "top-right" },
+		});
+		expect(getClassicyAppearancePackage(PLATINUM_APPEARANCE_PACKAGE_ID)).toBe(
+			platinum,
+		);
 		const { container } = renderDesktop();
 		const root = desktopRoot(container);
 		expect(root?.getAttribute("data-classicy-menu-bar")).toBe("screen");
@@ -95,6 +114,21 @@ describe("ClassicyDesktop layout", () => {
 		expect(
 			root?.style.getPropertyValue("--classicy-layout-icon-grid-origin"),
 		).toBe("top-left");
+	});
+
+	// R6: an unregistered packageId resolves to Platinum, and the layout
+	// attributes come from the same resolved package as the appearance id.
+	it("agrees with data-classicy-appearance for an unregistered packageId", () => {
+		useAppManager.setState((state) =>
+			produce(state, (draft) => {
+				draft.System.Manager.Appearance.packageId = "nope";
+			}),
+		);
+		const { container } = renderDesktop();
+		const root = desktopRoot(container);
+		expect(root?.getAttribute("data-classicy-appearance")).toBe("platinum");
+		expect(root?.getAttribute("data-classicy-menu-bar")).toBe("screen");
+		expect(root?.getAttribute("data-classicy-grow-box")).toBe("bottom-right");
 	});
 
 	// R18 / F-R1: the active package is Appearance.packageId; a theme
