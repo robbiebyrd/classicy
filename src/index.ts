@@ -23,7 +23,6 @@ export * from "./SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
 export * from "./SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 export * from "./SystemFolder/ControlPanels/AppManager/ClassicyStateMigrations";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
-export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceKeyGuards";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Colors";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Desktop";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Fonts";

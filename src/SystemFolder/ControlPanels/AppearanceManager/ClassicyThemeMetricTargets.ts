@@ -3,7 +3,7 @@ import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManag
 import {
 	isClassicyForbiddenKey,
 	isClassicyPlainObject,
-} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceKeyGuards";
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceKeyGuards.internal";
 import { CLASSICY_MEASUREMENT_NAME } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 
 /**
