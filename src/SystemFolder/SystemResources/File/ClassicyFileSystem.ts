@@ -135,8 +135,12 @@ export function resetClassicyFileSystemSharedTrees(): void {
 
 /**
  * `JSON.stringify` replacer for the persisted tree: drops every entry a
- * derived overlay generated (`_derived: true`). Metadata keys are never
- * entries, so they are kept as they are.
+ * derived overlay generated (`_derived: true`). A metadata key's own value
+ * is always kept, but `JSON.stringify` still runs the replacer on what is
+ * nested inside it, so a value tagged `_derived: true` under a non-`_` key
+ * there is dropped too (an object property omitted, an array element written
+ * as `null`). No metadata field holds such values today (`_data` is a
+ * string).
  */
 const omitDerivedEntries = (key: string, value: unknown): unknown =>
 	key !== "" &&
