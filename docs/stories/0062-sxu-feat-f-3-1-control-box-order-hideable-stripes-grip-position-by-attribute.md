@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: S
 created: "2026-10-28T20:30:04.823Z"
-updated: "2026-10-30T01:30:51.696Z"
+updated: "2026-10-30T02:18:22.007Z"
 started: "2026-10-30T01:30:49.894Z"
 tags: []
 milestone: ""
@@ -104,3 +104,5 @@ Inside the title-bar block (after `:251`): `[data-classicy-control="close"] { or
 ### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
 
 ### 2026-10-30T01:30:51.695Z - Started on feat/appearance-part-f at BASE a21c0fe8d (F 2.1), with F 2.1's task review running in parallel. The brief is the part-f ledger task-3.1-brief.md. F8: Part A already emits data-classicy-control. Edits stay tight because Part E concurrently rewrites the window title-bar art. Parity: port 6025 against .playwright-mcp/parity/part-F/before.
+
+### 2026-10-30T02:18:22.007Z - Implemented in bac781e8d, with ecd04c6d7 folding in the F 2.1 review minors (separate plain and :has() order rules, test-first; the "clock and extensions" comment). Both pushed. Gate: lint, tsc, 4038 tests (382 s, no timeouts), build:source with verify:dist. Window suite 159/159. Parity: 48/48 part-F stories at AE 0. Computed styles change only order on the control wrappers and the title. Forced Chromium: 47/67 identical, and the other 20 differ only in those order values. Firefox forced dumps were not run. Stale reconciliation lines are recorded in the report. The task review is in progress.

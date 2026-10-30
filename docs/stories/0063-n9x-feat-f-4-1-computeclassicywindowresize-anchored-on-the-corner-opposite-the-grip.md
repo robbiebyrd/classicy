@@ -3,11 +3,18 @@ id: 0063-n9x
 title: 'F 4.1: computeClassicyWindowResize anchored on the corner opposite the grip'
 purpose: Replace the window's inline top-left-anchored resize formulas with a pure function that reads the declared grow-box corner and anchors the opposite corner, keeping today's bottom-right numbers exactly.
 type: feat
-status: pending
+status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T20:30:41.718Z"
-updated: "2026-10-29T20:22:00.352Z"
+updated: "2026-10-30T02:18:30.774Z"
+started: "2026-10-30T02:18:30.774Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy
