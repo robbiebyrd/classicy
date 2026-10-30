@@ -1,5 +1,6 @@
 import { act, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { registerTestAppsPackage } from "@/__tests__/testAppsPackage";
 import {
 	registerTestRenamePackage,
 	TEST_RENAME_PACKAGE_ID,
@@ -185,6 +186,57 @@ describe("ClassicyDesktopMenuBar — app display identity", () => {
 		expect(entry?.eventData).toEqual({
 			app: { id: "TV.app", name: "TV", icon: TV_ICON },
 		});
+	});
+
+	it("shows a host app's Apple-menu entry under its display name when the focused app has no About", async () => {
+		render(
+			<>
+				<ClassicyDesktopMenuBar />
+				<TV />
+			</>,
+		);
+		await waitFor(() => expect(tvMenuItem()).not.toBeNull());
+		// Movie Player publishes no About: the Apple menu keeps its own items.
+		act(() =>
+			useAppManager.setState((s) => ({
+				System: {
+					...s.System,
+					Manager: {
+						...s.System.Manager,
+						Desktop: { ...s.System.Manager.Desktop, appMenu: [] },
+					},
+				},
+			})),
+		);
+		openAppleMenu();
+		expect(appleMenuFirstItem()?.id).not.toBe(
+			`${MoviePlayerAppInfo.id}_about_apple`,
+		);
+		expect(tvMenuItem()).toHaveTextContent("Television");
+	});
+
+	it("falls back to the package's name for Finder when no app is shown", () => {
+		registerTestAppsPackage("test-rename-finder", {
+			"Finder.app": { name: "Navigator" },
+		});
+		switchPackage("test-rename-finder");
+		// No app record at all: the switcher and the Apple menu's About fall
+		// back to Finder, by its display name.
+		act(() =>
+			useAppManager.setState((s) => ({
+				System: {
+					...s.System,
+					Manager: {
+						...s.System.Manager,
+						Applications: { ...s.System.Manager.Applications, apps: {} },
+					},
+				},
+			})),
+		);
+		render(<ClassicyDesktopMenuBar />);
+		expect(switcherTitle()).toBe("Navigator");
+		openAppleMenu();
+		expect(appleMenuFirstItem()).toHaveTextContent("About Navigator");
 	});
 
 	it("follows a switch back to Platinum", async () => {
