@@ -1,7 +1,6 @@
 // The Platinum menu look (from ClassicyMenu.scss): the menu frame of HIGOS8
 // Figure 6-15 on every menu, its dividers, and the submenu triangle.
 @use "../mixins";
-@use "../assets";
 
 @mixin menu {
   .classicyMenu {
@@ -30,9 +29,13 @@
     }
   }
 
+  // The submenu triangle: a mask painted black, at the box's right center.
   .classicyMenuItemChildMenuIndicator {
     &:after {
-      background-image: assets.$triangle;
+      background-color: var(--color-black);
+      mask-image: var(--classicy-art-submenu-arrow);
+      mask-repeat: no-repeat;
+      mask-position: right center;
     }
   }
 }

@@ -242,4 +242,25 @@ describe("window resizer / scroll bar alignment", () => {
 		expect(utility["--window-scrollbar-size"]).toBeDefined();
 		expect(px(utility["--window-scrollbar-size"])).toBeLessThan(gutter);
 	});
+
+	// Part E 2.2 (ruling E6): the grow box asks for the package's resize cursor
+	// in CSS, instead of ClassicyWindow setting the page's cursor on hover.
+	// Outside a desktop the variable is undefined, so it falls back (as the
+	// split view's dividers do) to an image that never loads, then a keyword.
+	it("asks for the package's horizontal resize cursor", () => {
+		expect(resizer.cursor).toBe(
+			'var(--classicy-cursor-resize-lr, url("data:,")) 8 8, nwse-resize',
+		);
+	});
+
+	// An active resize keeps the grabbing hand over the grow box.
+	it("keeps the grabbing cursor while resizing", () => {
+		// (The declaration carries a trailing comment, hence the prefix match.)
+		expect(
+			rule(".classicyWindowResizing .classicyWindowResizer").cursor,
+		).toMatch(/^grabbing\b/);
+		expect(
+			css.indexOf(".classicyWindowResizing .classicyWindowResizer {"),
+		).toBeGreaterThan(css.indexOf(".classicyWindow .classicyWindowResizer {"));
+	});
 });

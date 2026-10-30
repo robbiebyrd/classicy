@@ -19,9 +19,11 @@ const cssUrl = (src: string): string =>
  * default; a role with no registered cursor restores it too.
  * It is global, not scoped to an element — an element's own CSS `cursor`
  * still wins while hovered — so always reset it when the operation ends.
- * `ClassicyWindow` uses it over its resize edge, and `ClassicySplitView`
- * keeps the directional resize cursor through a divider drag even when the
- * pointer outruns the divider.
+ * `ClassicySplitView` uses it to keep the directional resize cursor through a
+ * divider drag even when the pointer outruns the divider. A cursor that only
+ * needs to show over one element belongs in that element's CSS instead, as
+ * `var(--classicy-cursor-<role>, url('data:,')) <x> <y>, <keyword>` (the
+ * window's grow box and the split view's dividers do this).
  *
  * ```tsx
  * const setCursor = useClassicyCursor();

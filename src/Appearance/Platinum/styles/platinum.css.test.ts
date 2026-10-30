@@ -216,10 +216,23 @@ describe("platinum.scss (compiled)", () => {
 			rule(`${P} .classicyWindow .classicyWindowResizer`).props[
 				"background-image"
 			],
-		).toMatch(/^url\(/);
+		).toBe("var(--classicy-art-window-grip)");
 		expect(flat).toContain(
 			`${P} :where(.classicyWindow).active .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleCenter {`,
 		);
+	});
+
+	// Part E 2.2: the submenu triangle is a mask over black; the pop-up double
+	// arrow is the indicator's own image (ruling E21), like the grow-box grip.
+	it("draws the menu and pop-up arrows from registered art", () => {
+		const triangle = rule(
+			`${P} .classicyMenuItemChildMenuIndicator:after`,
+		).props;
+		expect(triangle["mask-image"]).toBe("var(--classicy-art-submenu-arrow)");
+		expect(triangle["background-color"]).toBe("var(--color-black)");
+		expect(
+			rule(`${P} .classicyPopUpMenuIndicator`).props["background-image"],
+		).toBe("var(--classicy-art-popup-arrows)");
 	});
 
 	it("scopes the desktop scrollbars", () => {
@@ -392,8 +405,9 @@ describe("platinum.scss (compiled)", () => {
 		expect(
 			rule(`${P} .classicyWindowFrameTitleBar::before`).props["mask-size"],
 		).toBe("auto 100%");
-		// The control boxes' glyphs sit top left, over the mixin's centering,
-		// and the utility boxes keep their smaller size and glyph offset.
+		// The control boxes' glyph masks sit top left, over the mixin's
+		// centering, and the utility boxes keep their smaller size and glyph
+		// offset.
 		const bar = `${P} .classicyWindow .classicyWindowTitleBar`;
 		const glyphs = rule(
 			group(
@@ -404,7 +418,7 @@ describe("platinum.scss (compiled)", () => {
 		);
 		for (const box of ["CollapseBox", "ZoomBox"]) {
 			const own = rule(`${bar} .classicyWindow${box}:after`);
-			expect(own.props["background-position"]).toBe("top left");
+			expect(own.props["mask-position"]).toBe("top left");
 			expect(own.at).toBeGreaterThan(glyphs.at);
 		}
 		const utilityBox = `${P} .classicyWindowUtility .classicyWindowTitleBar .classicyWindowControlBox`;
@@ -950,21 +964,13 @@ describe("the moved Platinum mixin files", () => {
 			);
 	});
 
-	// The title-bar stripes and texture are registered art (Part E 2.1); the
-	// rest go as their consumers move to `--classicy-art-*`.
-	it("_assets.scss declares the Platinum art variables, and the root-properties mixin", () =>
-		expect(
-			[...read(`${STYLES}/_assets.scss`).matchAll(/^\$([\w-]+):/gm)].map(
-				([, name]) => name,
-			),
-		).toEqual([
-			"corner-dither",
-			"collapse",
-			"zoom",
-			"resizer",
-			"triangle",
-			"down-arrow",
-		]));
+	// Every piece of Platinum art is registered system art (Part E 2.1, 2.2),
+	// read through `--classicy-art-*`, so _assets.scss embeds none.
+	it("_assets.scss declares no art variables, only the root-properties mixin", () => {
+		const assets = read(`${STYLES}/_assets.scss`);
+		expect(assets).not.toMatch(/^\$[\w-]+:/m);
+		expect(assets).not.toMatch(/url\(/);
+	});
 
 	it("platinum-root-properties compiles to its pinned output", () =>
 		expect(
@@ -1119,7 +1125,7 @@ describe("the moved Platinum mixin files", () => {
 			  display: block;
 			  width: 100%;
 			  height: 100%;
-			  background-image: url("data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz48c3ZnIGlkPSJMYXllcl8xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3IDciPjxyZWN0IHdpZHRoPSI3IiBoZWlnaHQ9IjciIHN0eWxlPSJmaWxsOiMyMzFmMjA7IHN0cm9rZS13aWR0aDowcHg7Ii8+PHBvbHlnb24gcG9pbnRzPSIzIDAgMiAwIDIgMSAxIDEgMSAyIDAgMiAwIDMgMCA0IDEgNCAxIDMgMiAzIDIgMiAzIDIgMyAxIDQgMSA0IDAgMyAwIiBzdHlsZT0iZmlsbDojMmUyZTJlOyBzdHJva2Utd2lkdGg6MHB4OyIvPjxyZWN0IHg9IjYiIHk9IjYiIHdpZHRoPSIxIiBoZWlnaHQ9IjEiIHN0eWxlPSJmaWxsOiNmZmY7IHN0cm9rZS13aWR0aDowcHg7Ii8+PHBvbHlnb24gcG9pbnRzPSI1IDAgNCAwIDQgMSAzIDEgMyAyIDIgMiAyIDMgMSAzIDEgNCAwIDQgMCA1IDAgNiAxIDYgMSA1IDIgNSAyIDQgMyA0IDMgMyA0IDMgNCAyIDUgMiA1IDEgNiAxIDYgMCA1IDAiIHN0eWxlPSJmaWxsOiM1YzVjNWM7IHN0cm9rZS13aWR0aDowcHg7Ii8+PHBvbHlnb24gcG9pbnRzPSI2IDAgNiAxIDUgMSA1IDIgNCAyIDQgMyAzIDMgMyA0IDIgNCAyIDUgMSA1IDEgNiAwIDYgMCA3IDEgNyAyIDcgMiA2IDMgNiAzIDUgNCA1IDQgNCA1IDQgNSAzIDYgMyA2IDIgNyAyIDcgMSA3IDAgNiAwIiBzdHlsZT0iZmlsbDojODc4Nzg3OyBzdHJva2Utd2lkdGg6MHB4OyIvPjxwb2x5Z29uIHBvaW50cz0iNiAyIDYgMyA1IDMgNSA0IDQgNCA0IDUgMyA1IDMgNiAyIDYgMiA3IDMgNyA0IDcgNCA2IDUgNiA1IDUgNiA1IDYgNCA3IDQgNyAzIDcgMiA2IDIiIHN0eWxlPSJmaWxsOiNiMWIxYjE7IHN0cm9rZS13aWR0aDowcHg7Ii8+PHBvbHlnb24gcG9pbnRzPSI2IDQgNiA1IDUgNSA1IDYgNCA2IDQgNyA1IDcgNiA3IDYgNiA3IDYgNyA1IDcgNCA2IDQiIHN0eWxlPSJmaWxsOiNkOGQ4ZDc7IHN0cm9rZS13aWR0aDowcHg7Ii8+PC9zdmc+");
+			  background-image: var(--classicy-art-window-dither);
 			  background-repeat: no-repeat;
 			  background-size: cover;
 			  mix-blend-mode: luminosity;
@@ -1141,7 +1147,7 @@ describe("the moved Platinum mixin files", () => {
 			  display: block;
 			  width: 100%;
 			  height: 100%;
-			  background-image: url("data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz48c3ZnIGlkPSJMYXllcl8xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3IDciPjxyZWN0IHdpZHRoPSI3IiBoZWlnaHQ9IjciIHN0eWxlPSJmaWxsOiMyMzFmMjA7IHN0cm9rZS13aWR0aDowcHg7Ii8+PHBvbHlnb24gcG9pbnRzPSIzIDAgMiAwIDIgMSAxIDEgMSAyIDAgMiAwIDMgMCA0IDEgNCAxIDMgMiAzIDIgMiAzIDIgMyAxIDQgMSA0IDAgMyAwIiBzdHlsZT0iZmlsbDojMmUyZTJlOyBzdHJva2Utd2lkdGg6MHB4OyIvPjxyZWN0IHg9IjYiIHk9IjYiIHdpZHRoPSIxIiBoZWlnaHQ9IjEiIHN0eWxlPSJmaWxsOiNmZmY7IHN0cm9rZS13aWR0aDowcHg7Ii8+PHBvbHlnb24gcG9pbnRzPSI1IDAgNCAwIDQgMSAzIDEgMyAyIDIgMiAyIDMgMSAzIDEgNCAwIDQgMCA1IDAgNiAxIDYgMSA1IDIgNSAyIDQgMyA0IDMgMyA0IDMgNCAyIDUgMiA1IDEgNiAxIDYgMCA1IDAiIHN0eWxlPSJmaWxsOiM1YzVjNWM7IHN0cm9rZS13aWR0aDowcHg7Ii8+PHBvbHlnb24gcG9pbnRzPSI2IDAgNiAxIDUgMSA1IDIgNCAyIDQgMyAzIDMgMyA0IDIgNCAyIDUgMSA1IDEgNiAwIDYgMCA3IDEgNyAyIDcgMiA2IDMgNiAzIDUgNCA1IDQgNCA1IDQgNSAzIDYgMyA2IDIgNyAyIDcgMSA3IDAgNiAwIiBzdHlsZT0iZmlsbDojODc4Nzg3OyBzdHJva2Utd2lkdGg6MHB4OyIvPjxwb2x5Z29uIHBvaW50cz0iNiAyIDYgMyA1IDMgNSA0IDQgNCA0IDUgMyA1IDMgNiAyIDYgMiA3IDMgNyA0IDcgNCA2IDUgNiA1IDUgNiA1IDYgNCA3IDQgNyAzIDcgMiA2IDIiIHN0eWxlPSJmaWxsOiNiMWIxYjE7IHN0cm9rZS13aWR0aDowcHg7Ii8+PHBvbHlnb24gcG9pbnRzPSI2IDQgNiA1IDUgNSA1IDYgNCA2IDQgNyA1IDcgNiA3IDYgNiA3IDYgNyA1IDcgNCA2IDQiIHN0eWxlPSJmaWxsOiNkOGQ4ZDc7IHN0cm9rZS13aWR0aDowcHg7Ii8+PC9zdmc+");
+			  background-image: var(--classicy-art-window-dither);
 			  background-repeat: no-repeat;
 			  background-size: cover;
 			  mix-blend-mode: luminosity;
@@ -1162,9 +1168,9 @@ describe("the moved Platinum mixin files", () => {
 			  display: block;
 			  width: 100%;
 			  height: 100%;
-			  background-position: center center;
-			  background-repeat: no-repeat;
-			  background-size: contain;
+			  mask-position: center center;
+			  mask-repeat: no-repeat;
+			  mask-size: contain;
 			  content: " ";
 			}"
 		`));

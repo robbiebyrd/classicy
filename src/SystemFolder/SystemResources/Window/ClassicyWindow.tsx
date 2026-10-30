@@ -48,7 +48,6 @@ import {
 	classicyWindowPageTitle,
 } from "@/SystemFolder/SystemResources/Analytics/ClassicyAnalyticsPath";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
-import { useClassicyCursor } from "@/SystemFolder/SystemResources/Cursor/useClassicyCursor";
 
 export type ClassicyWindowPositionX = number | "left" | "center" | "right";
 export type ClassicyWindowPositionY = number | "top" | "center" | "bottom";
@@ -542,7 +541,6 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const [clickPosition, setClickPosition] = useState<[number, number]>([0, 0]);
 
 	const { track, page } = useClassicyAnalytics();
-	const setCursor = useClassicyCursor();
 	const analyticsArgs = useMemo(() => {
 		return {
 			appId,
@@ -1875,9 +1873,8 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 					role="presentation"
 					onMouseDown={startResizeWindow}
 					// stopChangeWindow is bound once, on the root classicyWindow
-					// element; mouseup here bubbles to it (see comment there).
-					onMouseEnter={() => setCursor("resizeLr")}
-					onMouseLeave={() => setCursor()}
+					// element; mouseup here bubbles to it (see comment there). Its
+					// resize cursor is CSS (ClassicyWindow.scss).
 				></div>
 			)}
 		</div>
