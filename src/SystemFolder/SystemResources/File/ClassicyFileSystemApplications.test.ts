@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import type { ClassicyStoreSystemDesktopManagerIcon } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
+import { CLASSICY_SEEDED_PLACEHOLDER } from "@/SystemFolder/SystemResources/File/ClassicyDerivedFolderPlaceholders.internal";
 import {
 	buildApplicationsFolder,
 	resetClassicyDerivedAppEntryNameWarnings,
@@ -10,6 +11,7 @@ import {
 	type ClassicyFileSystemEntry,
 	ClassicyFileSystemEntryFileType,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import { DefaultFSContent } from "@/SystemFolder/SystemResources/File/DefaultClassicyFileSystem";
 import {
 	type ClassicyLogEntry,
 	registerClassicyLogSink,
@@ -414,7 +416,7 @@ describe("withApplicationsFolder keeps static files, replacing only placeholders
 		expect(warnings()).toHaveLength(1);
 		expect(warnings()[0]).toMatchObject({
 			subsystem: "ClassicyFileSystem",
-			message: 'App display name unusable in Applications; using "TV (TV.app)"',
+			message: 'Name "TV" already taken in Applications; using "TV (TV.app)"',
 			details: [{ appId: "TV.app", name: "TV" }],
 		});
 	});
@@ -449,20 +451,28 @@ describe("withApplicationsFolder keeps static files, replacing only placeholders
 		expect(apps["TV (TV.app)"]._data).toBe("b");
 		expect(apps["TV (TV.app) 2"]._creator).toBe("TV.app");
 		expect(warnings()[0].message).toBe(
-			'App display name unusable in Applications; using "TV (TV.app) 2"',
+			'Name "TV" already taken in Applications; using "TV (TV.app) 2"',
 		);
 	});
 
-	it("lets a marked placeholder give way to its app", () => {
+	/** Platinum's marked stand-in, exactly as DefaultFSContent seeds it. */
+	const seededPlaceholder = () => ({
+		...legacyPlaceholder(),
+		_placeholder: true,
+	});
+
+	it("seeds DefaultFSContent's stand-ins as copies of the frozen placeholder", () => {
+		const applications = DefaultFSContent["Macintosh HD"].Applications;
+		for (const standIn of [applications.SimpleText, applications.Calculator]) {
+			expect({ ...standIn }).toEqual(seededPlaceholder());
+			expect(standIn).not.toBe(CLASSICY_SEEDED_PLACEHOLDER);
+		}
+		expect(Object.isFrozen(CLASSICY_SEEDED_PLACEHOLDER)).toBe(true);
+	});
+
+	it("lets a marked placeholder give way to its app while it is exactly as seeded", () => {
 		const apps = applicationsWith(
-			{
-				// Marked, a stand-in gives way whatever else it holds.
-				SimpleText: { ...legacyPlaceholder(), _data: "x", _placeholder: true },
-				Calculator: {
-					_type: ClassicyFileSystemEntryFileType.File,
-					_placeholder: true,
-				},
-			},
+			{ SimpleText: seededPlaceholder(), Calculator: seededPlaceholder() },
 			[
 				appIcon("SimpleText.app", "SimpleText"),
 				appIcon("Calculator.app", "Calculator"),
@@ -474,6 +484,85 @@ describe("withApplicationsFolder keeps static files, replacing only placeholders
 		expect(apps["SimpleText (SimpleText.app)"]).toBeUndefined();
 		expect(apps["Calculator (Calculator.app)"]).toBeUndefined();
 		expect(warnings()).toHaveLength(0);
+	});
+
+	// K-R11: once edited, a marked stand-in is the user's file.
+	it.each([
+		[
+			"saved content (SimpleText's setMetadata)",
+			{ _data: "my sums", _modifiedOn: "2026-10-30T00:00:00.000Z" },
+		],
+		["a modification date alone", { _modifiedOn: "2026-10-30T00:00:00.000Z" }],
+		["other contents alone", { _data: "my sums" }],
+		["an added key", { _label: "Red" }],
+		["another type", { _type: ClassicyFileSystemEntryFileType.TextFile }],
+	])("keeps a marked placeholder edited with %s", (_, change) => {
+		const apps = applicationsWith(
+			{ Calculator: { ...seededPlaceholder(), ...change } },
+			[appIcon("Calculator.app", "Calculator")],
+		);
+
+		expect(apps.Calculator._creator).toBeUndefined();
+		expect(apps["Calculator (Calculator.app)"]._creator).toBe("Calculator.app");
+	});
+
+	it("keeps a marked placeholder that has lost a seeded key", () => {
+		const { _mimeType, ...trimmed } = seededPlaceholder();
+		const apps = applicationsWith({ Calculator: trimmed }, [
+			appIcon("Calculator.app", "Calculator"),
+		]);
+
+		expect(apps.Calculator._creator).toBeUndefined();
+		expect(apps["Calculator (Calculator.app)"]._creator).toBe("Calculator.app");
+	});
+
+	it("keeps a marked entry of any other shape", () => {
+		const apps = applicationsWith(
+			{
+				Calculator: {
+					_type: ClassicyFileSystemEntryFileType.File,
+					_invisible: true,
+					_placeholder: true,
+				},
+			},
+			[appIcon("Calculator.app", "Calculator")],
+		);
+
+		expect(apps.Calculator._creator).toBeUndefined();
+		expect(apps["Calculator (Calculator.app)"]._creator).toBe("Calculator.app");
+	});
+
+	it("lets the seeded stand-in give way under any name it marks", () => {
+		const apps = applicationsWith({ Notes: seededPlaceholder() }, [
+			appIcon("Notes.app", "Notes"),
+		]);
+
+		expect(apps.Notes._creator).toBe("Notes.app");
+		expect(apps["Notes (Notes.app)"]).toBeUndefined();
+	});
+
+	it("keeps a stray non-entry child, listing the app beside it", () => {
+		const apps = applicationsWith({ TV: "stray" }, [appIcon("TV.app", "TV")]);
+
+		expect(apps.TV).toBe("stray");
+		expect(apps["TV (TV.app)"]._creator).toBe("TV.app");
+	});
+
+	it('reports a fallback once per form used, so a later "… 2" is reported too', () => {
+		const mine = (data: string) => ({
+			_type: ClassicyFileSystemEntryFileType.TextFile,
+			_data: data,
+		});
+		const icons = [appIcon("TV.app", "TV")];
+		applicationsWith({ TV: mine("a") }, icons);
+		applicationsWith({ TV: mine("a") }, icons);
+		applicationsWith({ TV: mine("a"), "TV (TV.app)": mine("b") }, icons);
+		applicationsWith({ TV: mine("a"), "TV (TV.app)": mine("b") }, icons);
+
+		expect(warnings().map((entry) => entry.message)).toEqual([
+			'Name "TV" already taken in Applications; using "TV (TV.app)"',
+			'Name "TV" already taken in Applications; using "TV (TV.app) 2"',
+		]);
 	});
 
 	it("lets the unmarked SimpleText and Calculator placeholders older builds stored give way", () => {

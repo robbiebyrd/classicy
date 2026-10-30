@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { CLASSICY_SEEDED_PLACEHOLDER } from "@/SystemFolder/SystemResources/File/ClassicyDerivedFolderPlaceholders.internal";
 import { resetClassicyDerivedAppEntryNameWarnings } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
 import {
 	buildControlStripModulesFolder,
@@ -223,7 +224,7 @@ describe("withControlStripModulesFolder reserves static names against display na
 		expect(warnings()).toHaveLength(1);
 		expect(warnings()[0]).toMatchObject({
 			message:
-				'App display name unusable in Control Strip Modules; using "Sound (classicy-sound)"',
+				'Name "Sound" already taken in Control Strip Modules; using "Sound (classicy-sound)"',
 			details: [
 				{ moduleId: "classicy-sound", appId: undefined, name: "Sound" },
 			],
@@ -256,16 +257,27 @@ describe("withControlStripModulesFolder reserves static names against display na
 		expect(folder["Sound (b) 2"]._icon).toBe("/b.png");
 	});
 
-	it("lets a marked placeholder give way to a module", () => {
+	const standIn = () => ({ ...CLASSICY_SEEDED_PLACEHOLDER });
+
+	it("lets a marked placeholder give way to a module while it is exactly as seeded", () => {
 		const folder = modulesFolder(
-			withControlStripModulesFolder(
-				treeWith({ Sound: { ...mine("a"), _placeholder: true } }),
-				[sound],
-			),
+			withControlStripModulesFolder(treeWith({ Sound: standIn() }), [sound]),
 		);
 
 		expect(folder.Sound._creator).toBe("ControlStrip");
 		expect(folder["Sound (classicy-sound)"]).toBeUndefined();
 		expect(warnings()).toHaveLength(0);
+	});
+
+	it("keeps a marked placeholder once edited (K-R11)", () => {
+		const folder = modulesFolder(
+			withControlStripModulesFolder(
+				treeWith({ Sound: { ...standIn(), _data: "edited" } }),
+				[sound],
+			),
+		);
+
+		expect(folder.Sound._data).toBe("edited");
+		expect(folder["Sound (classicy-sound)"]._creator).toBe("ControlStrip");
 	});
 });

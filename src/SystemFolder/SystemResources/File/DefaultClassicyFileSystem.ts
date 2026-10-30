@@ -1,5 +1,6 @@
 import "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import { CLASSICY_SEEDED_PLACEHOLDER } from "@/SystemFolder/SystemResources/File/ClassicyDerivedFolderPlaceholders.internal";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 
 // Platinum icons are registered by the ClassicyIcons import above
@@ -19,23 +20,12 @@ export const DefaultFSContent = {
 			_type: ClassicyFileSystemEntryFileType.Directory,
 			_icon: directoryIcon,
 			// Invisible stand-ins that give way to the real apps of the same
-			// name in the derived Applications folder (`_placeholder`). Trees
-			// stored before the marker are recognized by their exact shape
-			// (ClassicyDerivedFolderPlaceholders.internal.ts).
-			SimpleText: {
-				_type: ClassicyFileSystemEntryFileType.File,
-				_mimeType: "text/plain",
-				_data: "File Contents",
-				_invisible: true,
-				_placeholder: true,
-			},
-			Calculator: {
-				_type: ClassicyFileSystemEntryFileType.File,
-				_mimeType: "text/plain",
-				_data: "File Contents",
-				_invisible: true,
-				_placeholder: true,
-			},
+			// name in the derived Applications folder while untouched
+			// (`_placeholder`). Copies, so an edit to a live one never changes
+			// the frozen seed. Trees stored before the marker are recognized by
+			// their exact shape (ClassicyDerivedFolderPlaceholders.internal.ts).
+			SimpleText: { ...CLASSICY_SEEDED_PLACEHOLDER },
+			Calculator: { ...CLASSICY_SEEDED_PLACEHOLDER },
 		},
 		"System Folder": {
 			_type: ClassicyFileSystemEntryFileType.Directory,
