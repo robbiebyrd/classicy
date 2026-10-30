@@ -1,5 +1,10 @@
+import {
+	appearanceHooksParameters,
+	ClassicyAppearanceProbe,
+} from "@sb/ClassicyAppearanceProbe";
 import { desktopParameters, StoryApp } from "@sb/helpers";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { ComponentProps } from "react";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 import { ClassicyLink } from "./ClassicyLink";
 
@@ -99,4 +104,19 @@ export const OnTheDesktop: Story = {
 			</ClassicyWindow>
 		</StoryApp>
 	),
+};
+
+/**
+ * The Appearance Package hook surface, under the Storybook probe package:
+ * every root `decorate()` reaches is outlined (green while pressed), and every
+ * event the component emits is logged in the Actions panel.
+ */
+export const AppearanceHooks: Story = {
+	args: InDesktopViewer.args,
+	render: (args: ComponentProps<typeof ClassicyLink>) => (
+		<ClassicyAppearanceProbe>
+			<ClassicyLink {...args} />
+		</ClassicyAppearanceProbe>
+	),
+	parameters: appearanceHooksParameters(),
 };

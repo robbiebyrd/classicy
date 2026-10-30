@@ -1,3 +1,7 @@
+import {
+	appearanceHooksParameters,
+	ClassicyAppearanceProbe,
+} from "@sb/ClassicyAppearanceProbe";
 import { desktopParameters, StoryApp } from "@sb/helpers";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fn } from "storybook/test";
@@ -18,7 +22,12 @@ type Story = StoryObj<typeof meta>;
  * decide on.
  */
 export const Note: Story = {
-	render: () => (
+	render: () => <NoteAlertStory />,
+};
+
+/** The `Note` story's alert, also rendered by `AppearanceHooks`. */
+function NoteAlertStory() {
+	return (
 		<StoryApp id="storybook.app" name="Storybook">
 			<ClassicyAlert
 				id="alert-note"
@@ -29,8 +38,8 @@ export const Note: Story = {
 				onClose={fn()}
 			/>
 		</StoryApp>
-	),
-};
+	);
+}
 
 /**
  * A `caution` alert with explicit buttons: Cancel (`role: "cancel"`, fired by
@@ -170,4 +179,20 @@ export const CautionDefaultButtons: Story = {
 			/>
 		</StoryApp>
 	),
+};
+
+/**
+ * The Appearance Package hook surface, under the Storybook probe package:
+ * every root `decorate()` reaches is outlined (green while pressed), and every
+ * event the component emits is logged in the Actions panel.
+ *
+ * It renders a fixed tree and takes no args.
+ */
+export const AppearanceHooks: StoryObj<Record<string, never>> = {
+	render: () => (
+		<ClassicyAppearanceProbe>
+			<NoteAlertStory />
+		</ClassicyAppearanceProbe>
+	),
+	parameters: appearanceHooksParameters("600px"),
 };

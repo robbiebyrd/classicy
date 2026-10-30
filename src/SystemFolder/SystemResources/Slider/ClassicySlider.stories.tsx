@@ -1,3 +1,7 @@
+import {
+	appearanceHooksParameters,
+	ClassicyAppearanceProbe,
+} from "@sb/ClassicyAppearanceProbe";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { type ComponentProps, useEffect, useState } from "react";
 import { fn } from "storybook/test";
@@ -132,4 +136,19 @@ export const SnapToTicks: Story = {
 		snapToTicks: true,
 		tickLabels: ["Off", null, null, null, null, "Fast"],
 	},
+};
+
+/**
+ * The Appearance Package hook surface, under the Storybook probe package:
+ * every root `decorate()` reaches is outlined (green while pressed), and every
+ * event the component emits is logged in the Actions panel.
+ */
+export const AppearanceHooks: Story = {
+	args: Default.args,
+	render: (args: ComponentProps<typeof ClassicySlider>) => (
+		<ClassicyAppearanceProbe>
+			<LiveSlider {...args} />
+		</ClassicyAppearanceProbe>
+	),
+	parameters: appearanceHooksParameters(),
 };

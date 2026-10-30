@@ -1,3 +1,7 @@
+import {
+	appearanceHooksParameters,
+	ClassicyAppearanceProbe,
+} from "@sb/ClassicyAppearanceProbe";
 import { desktopParameters, StoryApp } from "@sb/helpers";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
@@ -64,7 +68,12 @@ export const CompactAssistantLayoutReference: Story = {
  * with the arrows or, with focus inside, the ← / → keys.
  */
 export const SetupAssistant: Story = {
-	render: () => (
+	render: () => <SetupAssistantStory />,
+};
+
+/** The `SetupAssistant` story's window, also rendered by `AppearanceHooks`. */
+function SetupAssistantStory() {
+	return (
 		<StoryApp id="storybook.app" name="Storybook">
 			<ClassicyWindow
 				id="setup"
@@ -119,8 +128,8 @@ export const SetupAssistant: Story = {
 				/>
 			</ClassicyWindow>
 		</StoryApp>
-	),
-};
+	);
+}
 
 const GatedAssistant = () => {
 	const [page, setPage] = useState(0);
@@ -169,4 +178,23 @@ const GatedAssistant = () => {
  */
 export const ControlledWithGate: Story = {
 	render: () => <GatedAssistant />,
+};
+
+/**
+ * The Appearance Package hook surface, under the Storybook probe package:
+ * every root `decorate()` reaches is outlined (green while pressed), and every
+ * event the component emits is logged in the Actions panel.
+ *
+ * Uses the paged `SetupAssistant`: the single-page layout reference has no
+ * page to change to.
+ *
+ * It renders a fixed tree and takes no args.
+ */
+export const AppearanceHooks: StoryObj<Record<string, never>> = {
+	render: () => (
+		<ClassicyAppearanceProbe>
+			<SetupAssistantStory />
+		</ClassicyAppearanceProbe>
+	),
+	parameters: appearanceHooksParameters("600px"),
 };

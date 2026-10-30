@@ -1,7 +1,12 @@
 import appleFolder from "@img/icons/system/folders/folder-apple.png";
 import fontsFolder from "@img/icons/system/folders/folder-fonts.png";
 import systemFolder from "@img/icons/system/folders/folder-system.png";
+import {
+	appearanceHooksParameters,
+	ClassicyAppearanceProbe,
+} from "@sb/ClassicyAppearanceProbe";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { ComponentProps } from "react";
 import { useState } from "react";
 import { ClassicyTree, type ClassicyTreeNode } from "./ClassicyTree";
 
@@ -169,4 +174,19 @@ const InteractiveTree = () => {
  */
 export const InteractiveSelection: Story = {
 	render: () => <InteractiveTree />,
+};
+
+/**
+ * The Appearance Package hook surface, under the Storybook probe package:
+ * every root `decorate()` reaches is outlined (green while pressed), and every
+ * event the component emits is logged in the Actions panel.
+ */
+export const AppearanceHooks: Story = {
+	args: Default.args,
+	render: (args: ComponentProps<typeof ClassicyTree>) => (
+		<ClassicyAppearanceProbe>
+			<ClassicyTree {...args} />
+		</ClassicyAppearanceProbe>
+	),
+	parameters: appearanceHooksParameters(),
 };

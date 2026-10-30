@@ -1,4 +1,9 @@
+import {
+	appearanceHooksParameters,
+	ClassicyAppearanceProbe,
+} from "@sb/ClassicyAppearanceProbe";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { ComponentProps } from "react";
 import { useState } from "react";
 import { ClassicyTriangle } from "@/SystemFolder/SystemResources/Triangle/ClassicyTriangle";
 import { ClassicyTable, type ClassicyTableColumn } from "./ClassicyTable";
@@ -154,4 +159,19 @@ const FolderTable = () => {
  */
 export const TreeRows: Story = {
 	render: () => <FolderTable />,
+};
+
+/**
+ * The Appearance Package hook surface, under the Storybook probe package:
+ * every root `decorate()` reaches is outlined (green while pressed), and every
+ * event the component emits is logged in the Actions panel.
+ */
+export const AppearanceHooks: Story = {
+	args: AboutThisComputer.args,
+	render: (args: ComponentProps<typeof ClassicyTable>) => (
+		<ClassicyAppearanceProbe>
+			<ClassicyTable {...args} />
+		</ClassicyAppearanceProbe>
+	),
+	parameters: appearanceHooksParameters(),
 };
