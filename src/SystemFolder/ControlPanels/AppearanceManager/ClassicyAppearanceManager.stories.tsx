@@ -311,9 +311,10 @@ const OptionsTabStory = () => {
 	const appearance = useAppearance();
 	const dispatch = useAppManagerDispatch();
 	// The story switches to Test Pack, whose two families render as two
-	// small groups of spinners (Platinum's six families would fill the tab). On unmount it switches
-	// back (if Test Pack is still active), so a non-desktop story opened next
-	// in this iframe, whose frame keeps the store, renders under Platinum.
+	// small groups of spinners (Platinum's six families would fill the
+	// tab). On unmount it switches back (if Test Pack is still active), so a
+	// non-desktop story opened next in this iframe, whose frame keeps the
+	// store, renders under Platinum.
 	useEffect(() => {
 		dispatch({
 			type: "ClassicyDesktopChangeAppearancePackage",

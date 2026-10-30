@@ -131,9 +131,10 @@ export const scanPixelLiterals = (
 /**
  * The ratchet: one message per breach, empty when `found` matches the
  * allowlist exactly. An entry must be a positive whole count: a `0` entry
- * (delete it instead) or any other value is reported as invalid. A file below its listed count asks for the list to be
- * tightened; a file above it (or unlisted with any literal) lists each of its
- * literals as `<file>:<line> <text>`.
+ * (delete it instead) or any other value is reported as invalid. A file
+ * below its listed count asks for the list to be tightened; a file above it
+ * (or unlisted with any literal) lists each of its literals as
+ * `<file>:<line> <text>`.
  */
 export const checkPixelLiteralAllowlist = (
 	found: Map<string, ClassicyPixelLiteral[]>,

@@ -186,10 +186,12 @@ describe("checkPixelLiteralAllowlist", () => {
 				"gone.scss": 0,
 				"b.scss": 1.5,
 				"c.scss": "2",
+				"d.scss": -1,
 			}),
 		).toEqual([
 			"invalid allowlist entry for b.scss: 1.5 (a count must be a positive whole number)",
 			'invalid allowlist entry for c.scss: "2" (a count must be a positive whole number)',
+			"invalid allowlist entry for d.scss: -1 (a count must be a positive whole number)",
 			"invalid allowlist entry for gone.scss: 0 (a file with no literals left must be removed from the list)",
 		]));
 
