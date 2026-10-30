@@ -45,7 +45,9 @@ const unquote = (selector: string) =>
  * never finds `.classicyDesktopMenuTime`). `expanded` output puts one selector
  * of a list per line and one declaration per line.
  */
-const rule = (selector: string): Record<string, string> => {
+const findRule = (
+	selector: string,
+): { selectors: string[]; declarations: Record<string, string> } => {
 	for (const match of css.matchAll(/^([^{}@\n][^{}]*?) \{\n([^{}]*?)\n\}/gm)) {
 		const selectors = match[1].split(",\n").map((s) => unquote(s.trim()));
 		if (!selectors.includes(unquote(selector))) continue;
@@ -58,10 +60,13 @@ const rule = (selector: string): Record<string, string> => {
 				.trim()
 				.replace(/;$/, "");
 		}
-		return declarations;
+		return { selectors, declarations };
 	}
 	throw new Error(`rule not found: ${selector}`);
 };
+
+const rule = (selector: string): Record<string, string> =>
+	findRule(selector).declarations;
 
 /** Replace the whole store with defaults plus the given mutations. */
 function setStore(mutate: (draft: ClassicyStore) => void): void {
@@ -123,6 +128,34 @@ describe("ClassicyDesktopMenuBar layout — styles", () => {
 				rule(`.classicyDesktopMenu > :has(> [data-classicy-part="${part}"])`)
 					.order,
 			).toBe(order);
+	});
+
+	// A browser without :has() drops a whole rule whose selector list contains
+	// it, so the plain order rule must stand alone, ahead of its :has() twin,
+	// or such a browser loses the order (and the extensions' auto margin) too.
+	it("keeps each plain order rule apart from its :has() twin", () => {
+		for (const part of [
+			"apple",
+			"app",
+			"help",
+			"extensions",
+			"clock",
+			"switcher",
+		]) {
+			const plain = findRule(
+				`.classicyDesktopMenu > [data-classicy-part="${part}"]`,
+			);
+			expect(plain.selectors.join(",")).not.toContain(":has(");
+			const twin = rule(
+				`.classicyDesktopMenu > :has(> [data-classicy-part="${part}"])`,
+			);
+			expect(twin).toEqual(plain.declarations);
+		}
+		expect(
+			rule('.classicyDesktopMenu > :has(> [data-classicy-part="extensions"])')[
+				"margin-left"
+			],
+		).toBe("auto");
 	});
 
 	// The deprecated Sound widget is no longer drawn in the bar, but its sheet

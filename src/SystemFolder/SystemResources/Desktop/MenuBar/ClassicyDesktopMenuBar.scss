@@ -68,7 +68,9 @@
 // the extensions' auto margin — menu bar extensions, the clock and the App
 // Switcher. A top-level item with balloon help is wrapped in a
 // ClassicyBalloonHelp anchor, which is then the flex item: the `:has()` form
-// orders that wrapper by the part it wraps.
+// orders that wrapper by the part it wraps. The two forms are separate rules,
+// plain first: a browser without :has() drops a whole rule whose selector list
+// contains it, and would lose the plain order with it.
 $classicy-menu-bar-order: (
   apple: 10,
   app: 20,
@@ -78,14 +80,21 @@ $classicy-menu-bar-order: (
   switcher: 60,
 );
 
-@each $part, $order in $classicy-menu-bar-order {
-  .classicyDesktopMenu > [data-classicy-part="#{$part}"],
-  .classicyDesktopMenu > :has(> [data-classicy-part="#{$part}"]) {
-    order: $order;
+@mixin classicy-menu-bar-slot($part, $order) {
+  order: $order;
 
-    @if $part == extensions {
-      margin-left: auto;
-    }
+  @if $part == extensions {
+    margin-left: auto;
+  }
+}
+
+@each $part, $order in $classicy-menu-bar-order {
+  .classicyDesktopMenu > [data-classicy-part="#{$part}"] {
+    @include classicy-menu-bar-slot($part, $order);
+  }
+
+  .classicyDesktopMenu > :has(> [data-classicy-part="#{$part}"]) {
+    @include classicy-menu-bar-slot($part, $order);
   }
 }
 

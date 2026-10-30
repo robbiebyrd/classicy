@@ -190,7 +190,7 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 			part: "switcher",
 			// The switcher's title follows the focused app, and it sits at the
 			// right end of the bar — so a name-length change would otherwise resize
-			// it and shove the sound/time widgets sideways. Reserve the widest open
+			// it and shove the clock and extensions sideways. Reserve the widest open
 			// app's width up front and the bar stays put.
 			titleWidthSamples: openApps.map((app) => app.name),
 			menuChildren: openApps.map((app) => ({
