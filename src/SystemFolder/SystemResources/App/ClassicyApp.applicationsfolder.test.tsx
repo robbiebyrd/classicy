@@ -129,19 +129,18 @@ describe("ClassicyApp icon visibility", () => {
 		expect(iconRemoveActions()).toHaveLength(0);
 	});
 
-	it("attaches normalized balloon help titled with the app name", () => {
+	it("stores a string balloon as content only, with no title", () => {
 		render(
 			<ClassicyApp
 				id="TV.app"
 				name="TV"
 				icon="/icons/tv.png"
-				desktopIconBalloonHelp="Watch TV."
+				desktopIconBalloonHelp="Hi"
 			/>,
 		);
-		expect(iconAddActions()[0].balloonHelp).toEqual({
-			title: "TV",
-			content: "Watch TV.",
-		});
+		// The title is resolved at render (the display name), never stored.
+		expect(iconAddActions()[0].balloonHelp).toEqual({ content: "Hi" });
+		expect(iconAddActions()[0].balloonHelp).not.toHaveProperty("title");
 	});
 
 	it("attaches no balloon for an app with neither prop nor manifest", () => {
@@ -149,7 +148,7 @@ describe("ClassicyApp icon visibility", () => {
 		expect(iconAddActions()[0].balloonHelp).toBeUndefined();
 	});
 
-	it("falls back to the registered manifest description when no prop is given", () => {
+	it("stores no balloon for a registered manifest description with no prop", () => {
 		registerApp({
 			id: "Described.app",
 			description: "Does described things.",
@@ -161,13 +160,11 @@ describe("ClassicyApp icon visibility", () => {
 				icon="/icons/described.png"
 			/>,
 		);
-		expect(iconAddActions()[0].balloonHelp).toEqual({
-			title: "Described",
-			content: "Does described things.",
-		});
+		// The manifest description is resolved at render, not copied in.
+		expect(iconAddActions()[0].balloonHelp).toBeUndefined();
 	});
 
-	it("lets an explicit prop win over the manifest description", () => {
+	it("stores an explicit prop's copy even when a manifest is registered", () => {
 		registerApp({
 			id: "Explicit.app",
 			description: "Manifest copy.",
@@ -181,7 +178,6 @@ describe("ClassicyApp icon visibility", () => {
 			/>,
 		);
 		expect(iconAddActions()[0].balloonHelp).toEqual({
-			title: "Explicit",
 			content: "Prop copy.",
 		});
 	});

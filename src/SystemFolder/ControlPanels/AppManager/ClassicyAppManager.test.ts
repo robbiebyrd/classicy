@@ -825,7 +825,7 @@ describe("loadApp", () => {
 		expect(app.name).toBe("Calculator");
 	});
 
-	it("is a no-op when the app is already registered", () => {
+	it("keeps an already-registered app's state, refreshing its name and icon", () => {
 		const ds = makeStore();
 		// Pre-register with open=true and custom name to verify state is not reset
 		ds.System.Manager.Applications.apps["Notes.app"] = {
@@ -848,8 +848,30 @@ describe("loadApp", () => {
 
 		const app = ds.System.Manager.Applications.apps["Notes.app"];
 		expect(app.open).toBe(true);
-		expect(app.name).toBe("Original Name");
+		expect(app.focused).toBe(true);
+		expect(app.data).toEqual({ custom: "value" });
+		// Name and icon are code-derived identity, refreshed on every load.
+		expect(app.name).toBe("New Name");
+		expect(app.icon).toBe("new-icon.png");
 		expect(countAppWindows(app)).toBe(1);
+	});
+});
+
+describe("ClassicyAppLoad — code-derived identity", () => {
+	it("refreshes the record's name and icon on every load", () => {
+		const ds = makeStore();
+		classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyAppLoad",
+			app: { id: "A.app", name: "A", icon: "a.png" },
+		});
+		classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyAppLoad",
+			app: { id: "A.app", name: "A2", icon: "b.png" },
+		});
+		expect(ds.System.Manager.Applications.apps["A.app"]).toMatchObject({
+			name: "A2",
+			icon: "b.png",
+		});
 	});
 });
 

@@ -23,14 +23,16 @@ export const defaultBalloonForKind = (
 
 /**
  * Widens the app-facing `string | ClassicyIconBalloonHelp` prop into the single
- * object form stored on the icon record, titling it with the app's name unless
- * the caller supplied a title.
+ * object form stored on the icon record, titling it with `defaultTitle` unless
+ * the caller supplied a title. With neither, the result has no `title` key:
+ * the icon titles it at render, with the name it displays.
  */
 export const normalizeIconBalloonHelp = (
 	value: string | ClassicyIconBalloonHelp | undefined,
-	defaultTitle: string,
+	defaultTitle?: string,
 ): ClassicyIconBalloonHelp | undefined => {
 	if (!value) return undefined;
-	if (typeof value === "string") return { title: defaultTitle, content: value };
-	return { ...value, title: value.title ?? defaultTitle };
+	const balloon = typeof value === "string" ? { content: value } : value;
+	const title = balloon.title ?? defaultTitle;
+	return title === undefined ? { ...balloon } : { ...balloon, title };
 };

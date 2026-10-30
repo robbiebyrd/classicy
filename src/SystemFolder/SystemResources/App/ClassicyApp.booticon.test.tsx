@@ -53,6 +53,7 @@ type BootIconEvent = {
 	id?: string;
 	icon?: string;
 	name?: string;
+	followsAppIcon?: boolean;
 };
 
 const paradeAddEvents = (): BootIconEvent[] =>
@@ -90,6 +91,7 @@ describe("ClassicyApp bootIcon prop", () => {
 				id: "Paint.app",
 				icon: "/icons/paint.png",
 				name: "Paint",
+				followsAppIcon: true,
 			},
 		]);
 	});
@@ -102,6 +104,7 @@ describe("ClassicyApp bootIcon prop", () => {
 				id: "Paint.app",
 				icon: "/icons/custom-ext.png",
 				name: "Paint",
+				followsAppIcon: false,
 			},
 		]);
 	});

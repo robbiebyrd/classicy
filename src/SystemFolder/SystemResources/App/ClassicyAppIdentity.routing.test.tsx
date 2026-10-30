@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	registerTestRenamePackage,
 	TEST_RENAME_PACKAGE_ID,
+	TEST_RENAMED_ICON,
 } from "@/__tests__/testRenamePackage";
 import {
 	type ClassicyAppearancePackage,
@@ -18,6 +19,7 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	dispatch,
+	sanitizeStateForPersistence,
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { MoviePlayer } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayer";
@@ -207,5 +209,69 @@ describe("app identity under a renaming package", () => {
 		).toEqual([
 			{ type: "ClassicyDesktopIconRemove", app: { id: "TV.app", name: "TV" } },
 		]);
+	});
+});
+
+describe("persisted identity under a renaming package", () => {
+	// Everything `test-rename` shows in place of the apps' own identity.
+	const DISPLAY_ONLY = [
+		"Media Player",
+		"Television",
+		"Plays movies and sound.",
+		TEST_RENAMED_ICON,
+	];
+
+	it("refreshes stale records from code and never stores display data", async () => {
+		// A record left by an earlier session, holding an older name and icon.
+		act(() => {
+			useAppManager.setState((state) =>
+				produce(state, (draft) => {
+					draft.System.Manager.Applications.apps["TV.app"] = {
+						id: "TV.app",
+						name: "Old TV",
+						icon: "/icons/old-tv.png",
+						windows: {},
+						open: false,
+						data: {},
+					};
+				}),
+			);
+		});
+
+		render(
+			<>
+				<MoviePlayer />
+				<ClassicyApp
+					id="TV.app"
+					name="TV"
+					icon={TV_ICON}
+					addSystemMenu
+					bootIcon
+					desktopIconBalloonHelp="Watch TV."
+				/>
+			</>,
+		);
+		await waitForRecords();
+		await waitFor(() =>
+			expect(
+				useAppManager
+					.getState()
+					.System.Manager.Boot.paradeIcons.some((p) => p.id === "TV.app"),
+			).toBe(true),
+		);
+
+		expect(apps()["TV.app"]).toMatchObject({ name: "TV", icon: TV_ICON });
+		expect(apps()[MoviePlayerAppInfo.id]).toMatchObject({
+			name: MoviePlayerAppInfo.name,
+			icon: MoviePlayerAppInfo.icon,
+		});
+
+		const state = useAppManager.getState();
+		const stored = JSON.stringify(state);
+		const persisted = JSON.stringify(sanitizeStateForPersistence(state));
+		for (const text of DISPLAY_ONLY) {
+			expect(stored).not.toContain(text);
+			expect(persisted).not.toContain(text);
+		}
 	});
 });
