@@ -45,7 +45,9 @@
 //    are checked together when either is named.
 //
 // 5. PACKAGE ASSETS MUST EMIT AS FILES. dist/assets/ holds exactly the 13
-//    Platinum .woff2 fonts plus the Platinum art (svg/png), and the ES bundle
+//    Platinum .woff2 fonts plus the Platinum art (svg/png): exactly the
+//    names in src/Appearance/Platinum/assets/art (classicyDistAssets.ts), so
+//    a file that goes missing or lingers fails by name. The ES bundle
 //    resolves them with `new URL("assets/...", import.meta.url)`. They ship
 //    exactly as authored: no .webp, only .woff2/.svg/.png references, and a
 //    shipped SVG byte-identical to its source.
@@ -87,6 +89,11 @@
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { argv, exit } from "node:process";
+import {
+	CLASSICY_ART_SOURCE_DIR,
+	compareClassicyArtNames,
+	isClassicyArtName,
+} from "./classicyDistAssets.ts";
 import {
 	findClassicyBuildScriptDeclarations,
 	findClassicyTestDeclarations,
@@ -249,20 +256,24 @@ for (const shim of ["fonts", "appearance-platinum"]) {
 if (!argv.slice(2).length) {
 	const assets = await readdir(join(DIST, "assets")).catch(() => []);
 	const fonts = assets.filter((f) => f.endsWith(".woff2"));
-	const art = assets.filter((f) => /\.(svg|png)$/.test(f));
+	const art = assets.filter(isClassicyArtName);
+	const { missing, extra } = compareClassicyArtNames(
+		await readdir(CLASSICY_ART_SOURCE_DIR),
+		assets,
+	);
 	if (fonts.length !== 13) {
 		failed = true;
 		console.error(
 			`${join(DIST, "assets")}: expected 13 .woff2 files, found ${fonts.length} -> check noInlineAppearanceAssetsPlugin in vite.config.ts.`,
 		);
-	} else if (art.length < 17) {
+	} else if (missing.length || extra.length) {
 		failed = true;
 		console.error(
-			`${join(DIST, "assets")}: expected at least 17 .svg/.png files from src/Appearance/Platinum/assets/art, found ${art.length}.`,
+			`${join(DIST, "assets")}: .svg/.png files differ from ${CLASSICY_ART_SOURCE_DIR}: missing ${missing.join(", ") || "none"}; extra ${extra.join(", ") || "none"} -> check noInlineAppearanceAssetsPlugin and assetFileNames in vite.config.ts.`,
 		);
 	} else {
 		console.log(
-			`${join(DIST, "assets")}: ${fonts.length} .woff2 font(s), ${art.length} .svg/.png file(s)`,
+			`${join(DIST, "assets")}: ${fonts.length} .woff2 font(s), ${art.length} .svg/.png file(s), exactly those in ${CLASSICY_ART_SOURCE_DIR}`,
 		);
 	}
 	// Package assets ship exactly as authored: the image plugin must not have
