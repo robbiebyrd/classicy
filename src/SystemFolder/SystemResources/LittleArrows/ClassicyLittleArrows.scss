@@ -9,11 +9,11 @@
   flex-direction: column;
   flex-shrink: 0;
   box-sizing: border-box;
-  width: calc(var(--window-control-size) * 1.25);
+  width: var(--control-glyph-size);
   border: var(--window-border-size) solid var(--color-black);
   box-shadow:
     calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 0 var(--color-system-05),
-    calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) 0 0 var(--color-system-04);
+    var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-04);
   background-color: var(--color-system-02);
 
   .classicyLittleArrowsButton {
@@ -74,7 +74,7 @@
   display: inline-flex;
   flex-direction: row;
   align-items: stretch;
-  gap: calc(var(--window-border-size) * 3);
+  gap: var(--control-bevel-md);
   width: fit-content;
 
   > .classicyLittleArrows {
@@ -100,6 +100,6 @@
 
   &:focus-within {
     background-color: var(--color-theme-04);
-    box-shadow: 0 0 0 calc(var(--window-border-size) * 2) var(--color-theme-04);
+    box-shadow: 0 0 0 var(--control-frame-width) var(--color-theme-04);
   }
 }

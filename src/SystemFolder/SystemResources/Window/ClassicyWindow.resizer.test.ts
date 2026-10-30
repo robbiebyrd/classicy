@@ -2,6 +2,10 @@ import path from "node:path";
 import * as sass from "sass";
 import { describe, expect, it } from "vitest";
 import platinumJson from "@/Appearance/Platinum/platinum.json";
+import {
+	getTheme,
+	getThemeVars,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 
 /**
  * Everything on the window's bottom line — the horizontal scroll bar, the grow
@@ -56,20 +60,15 @@ const rule = (selector: string): Record<string, string> => {
 const resizer = rule(".classicyWindow .classicyWindowResizer");
 const window_ = rule(".classicyWindow");
 
-// The default theme's window measurements, as ClassicyAppearanceManager emits
-// them onto the desktop root.
+// The default theme's window measurements, and every variable getThemeVars
+// emits onto the desktop root (the inputs and the derivations the stylesheet
+// reads, such as --window-frame-inset).
 const defaultTheme = platinumJson.presets.find(
 	(theme) => theme.id === "default",
 );
 if (!defaultTheme) throw new Error("platinum.json has no `default` preset");
 const measurements = defaultTheme.measurements.window;
-const vars: Record<string, string> = {
-	"--window-border-size": `${measurements.borderSize}px`,
-	"--window-control-size": `${measurements.controlSize}px`,
-	"--window-padding-size": `${measurements.paddingSize}px`,
-	"--window-scrollbar-size": `${measurements.scrollbarSize}px`,
-	"--window-frame-inset": window_["--window-frame-inset"],
-};
+const vars = getThemeVars(getTheme("default")) as Record<string, string>;
 
 /** Resolve var()/calc() the way a browser would, down to a number of pixels. */
 const px = (value: string): number => {

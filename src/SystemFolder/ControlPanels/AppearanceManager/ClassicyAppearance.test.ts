@@ -202,10 +202,10 @@ describe("getThemeVars", () => {
 			"--control-padding-narrow": "2px",
 			"--control-padding-loose": "4px",
 			"--control-padding-wide": "9px",
-			"--ui-font-size-small": "11.2px",
+			"--ui-font-size-small": "11.200000000000001px",
 			"--ui-font-size-caption": "10.5px",
-			"--ui-font-size-compact": "11.667px",
-			"--ui-font-size-mini": "9.333px",
+			"--ui-font-size-compact": "11.666666666666666px",
+			"--ui-font-size-mini": "9.333333333333334px",
 			"--ui-font-size-large": "21px",
 			"--tab-height": "19.2px",
 			"--tab-min-width": "48px",
@@ -241,7 +241,9 @@ describe("getThemeVars", () => {
 		expect(vars["--window-frame-inset"]).toBe("6.4px");
 		expect(vars["--window-zoom-margin"]).toBe("10px");
 		expect(vars["--window-resize-inset"]).toBe("7px");
-		expect(vars["--ui-font-size-small"]).toBe("9.6px");
+		// Font sizes are emitted unrounded (`unrounded`): 12 * 0.8 is
+		// 9.600000000000001 in JS, as in the calc() the readers replaced.
+		expect(vars["--ui-font-size-small"]).toBe(`${12 * 0.8}px`);
 		expect(vars["--ui-font-size-compact"]).toBe("10px");
 		expect(vars["--desktop-icon-cell"]).toBe("64px");
 		expect(vars["--desktop-icon-padding"]).toBe("8px");

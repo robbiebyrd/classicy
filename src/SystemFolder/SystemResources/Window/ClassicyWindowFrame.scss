@@ -13,15 +13,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: calc(var(--window-control-size) * 1.5);
+  height: var(--control-row-height);
   // The pinstripes are in the Platinum package.
   border-bottom: var(--window-border-size) solid var(--color-black);
 }
 
 .classicyWindowFrameTitleText {
-  padding: 0 calc(var(--window-padding-size) * 1.5);
+  padding: 0 var(--control-padding-wide);
   background: var(--color-system-03);
-  font-size: calc(var(--ui-font-size) * 0.865);
+  font-size: var(--window-header-font-size);
   font-weight: bold;
   white-space: nowrap;
 }

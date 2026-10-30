@@ -1,6 +1,6 @@
 // ── Thumb geometry ────────────────────────────────────────────────────────────
-$thumb-w:   calc(var(--window-control-size)*2);   // 1:1 aspect ratio with $thumb-h
-$thumb-h:   calc(var(--window-control-size)*1.75);   // rectangular body (0–62%) + downward triangle (62–100%)
+$thumb-w:   var(--slider-thumb-width);   // 1:1 aspect ratio with $thumb-h
+$thumb-h:   var(--slider-thumb-height);   // rectangular body (0–62%) + downward triangle (62–100%)
 $track-h:   calc(var(--window-padding-size));
 // Centers the tall thumb vertically on the track
 $thumb-margin-top: calc(($track-h - $thumb-h) / 2);  // −6.5 px
@@ -100,7 +100,7 @@ $thumb-margin-top: calc(($track-h - $thumb-h) / 2);  // −6.5 px
 
 .classicySliderValue {
   font-family: var(--ui-font);
-  font-size: calc(var(--ui-font-size) / 1.25);
+  font-size: var(--ui-font-size-small);
   text-align: center;
 }
 
@@ -267,7 +267,7 @@ $thumb-margin-top: calc(($track-h - $thumb-h) / 2);  // −6.5 px
   left: var(--classicy-tick-left);
   transform: translateX(-50%);
   font-family: var(--ui-font), sans-serif;
-  font-size: calc(var(--ui-font-size) / 1.25);
+  font-size: var(--ui-font-size-small);
   line-height: 1;
   white-space: nowrap;
   color: var(--color-black);

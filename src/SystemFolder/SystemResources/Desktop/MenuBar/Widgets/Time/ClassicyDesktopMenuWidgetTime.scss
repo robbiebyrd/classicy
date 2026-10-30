@@ -15,7 +15,7 @@
 }
 
 .classicyDesktopMenuTimeSeparatorLeft {
-  margin-left: calc(var(--window-border-size) * 2)
+  margin-left: var(--control-frame-width)
 }
 
 .textBlinker {

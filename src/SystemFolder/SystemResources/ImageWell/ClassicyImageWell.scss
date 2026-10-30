@@ -34,14 +34,14 @@
 
 // Selected: accent frame in the focus-ring color.
 :where(.classicyImageWell).selected {
-  outline: calc(var(--window-border-size) * 2) solid
+  outline: var(--control-frame-width) solid
     var(--color-outline);
   outline-offset: calc(var(--window-border-size) * -1);
 }
 
 // Active drag target highlight.
 .classicyImageWellDragOver {
-  outline: calc(var(--window-border-size) * 2) dashed
+  outline: var(--control-frame-width) dashed
     var(--color-outline);
   outline-offset: calc(var(--window-border-size) * -1);
 }

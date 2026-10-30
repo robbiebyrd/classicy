@@ -20,7 +20,7 @@
 }
 
 .classicyControlLabelSizeSmall {
-  font-size: calc(var(--ui-font-size) / 1.25);
+  font-size: var(--ui-font-size-small);
 }
 
 .classicyControlLabelSizeMedium {

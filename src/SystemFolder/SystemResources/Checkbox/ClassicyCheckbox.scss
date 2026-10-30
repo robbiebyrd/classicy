@@ -13,12 +13,12 @@
   &:checked {
     &:after {
       font-family: var(--ui-font), sans-serif;
-      font-size: calc(var(--ui-font-size) * 1);
-      line-height: calc(var(--ui-font-size) * 0.75);
+      font-size: var(--ui-font-size);
+      line-height: var(--ui-font-size-caption);
       display: flex;
       justify-content: center;
       content: '\2713';
-      text-shadow: var(--color-system-05) var(--window-border-size) var(--window-border-size) calc(var(--window-border-size) * 2);
+      text-shadow: var(--color-system-05) var(--window-border-size) var(--window-border-size) var(--control-frame-width);
     }
   }
 
@@ -32,7 +32,7 @@
 
   &:focus {
     border-radius: var(--window-border-size);
-    outline: var(--color-outline) solid calc(var(--window-border-size) * 2);
+    outline: var(--color-outline) solid var(--control-frame-width);
   }
 
   &:disabled,
@@ -62,10 +62,10 @@
 // order, so a mixed checkbox shows the dash whether or not it is also checked.
 .classicyCheckbox.mixed:after {
   font-family: var(--ui-font), sans-serif;
-  font-size: calc(var(--ui-font-size) * 1);
-  line-height: calc(var(--ui-font-size) * 0.75);
+  font-size: var(--ui-font-size);
+  line-height: var(--ui-font-size-caption);
   display: flex;
   justify-content: center;
   content: '-';
-  text-shadow: var(--color-system-05) var(--window-border-size) var(--window-border-size) calc(var(--window-border-size) * 2);
+  text-shadow: var(--color-system-05) var(--window-border-size) var(--window-border-size) var(--control-frame-width);
 }

@@ -85,15 +85,15 @@
 
 @mixin platinum-window-header-border-depressed {
   box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-03),
-    inset calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) var(--color-system-05),
-    calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) var(--color-system-06);
-  border-bottom: calc(var(--window-border-size) * 1) solid var(--color-black);
+    inset var(--window-border-size) var(--window-border-size) var(--color-system-05),
+    var(--window-border-size) var(--window-border-size) var(--color-system-06);
+  border-bottom: var(--window-border-size) solid var(--color-black);
   color: var(--color-black);
 }
 
 @mixin platinum-window-inner-box-shadow {
   box-shadow: calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05),
-  calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) var(--color-window-border-outset);
+  var(--window-border-size) var(--window-border-size) var(--color-window-border-outset);
 }
 
 @mixin platinum-window-inner-box-shadow-outer {
@@ -154,8 +154,8 @@
 @mixin platinum-window-undepressable {
   box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05),
   inset calc(var(--window-border-size) * -2) calc(var(--window-border-size) * -2) var(--color-system-04),
-  inset calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) var(--color-system-04),
-  inset calc(var(--window-border-size) * 2) calc(var(--window-border-size) * 2) var(--color-white);
+  inset var(--window-border-size) var(--window-border-size) var(--color-system-04),
+  inset var(--control-frame-width) var(--control-frame-width) var(--color-white);
   background-color: var(--color-system-02);
   border: var(--window-border-size) solid var(--color-black);
   border-radius: var(--window-padding-size);
@@ -166,8 +166,8 @@
   &:active {
     box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05),
     inset calc(var(--window-border-size) * -2) calc(var(--window-border-size) * -2) var(--color-system-06),
-    inset calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) var(--color-system-07),
-    inset calc(var(--window-border-size) * 2) calc(var(--window-border-size) * 2) var(--color-system-06);
+    inset var(--window-border-size) var(--window-border-size) var(--color-system-07),
+    inset var(--control-frame-width) var(--control-frame-width) var(--color-system-06);
     background-color: var(--color-system-05);
     color: var(--color-white);
   }
@@ -188,8 +188,8 @@
   border-radius: var(--window-padding-size);
   box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05),
   inset calc(var(--window-border-size) * -2) calc(var(--window-border-size) * -2) var(--color-system-06),
-  inset calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) var(--color-system-07),
-  inset calc(var(--window-border-size) * 2) calc(var(--window-border-size) * 2) var(--color-system-06);
+  inset var(--window-border-size) var(--window-border-size) var(--color-system-07),
+  inset var(--control-frame-width) var(--control-frame-width) var(--color-system-06);
   background-color: var(--color-system-05);
   color: var(--color-white);
 }
@@ -197,8 +197,8 @@
 @mixin platinum-depressable-default {
   @include platinum-window-depressable;
   box-shadow: 0 0 0 var(--window-border-size) var(--color-system-04),
-  0 0 0 calc(var(--window-border-size) * 2) var(--color-system-02),
-  0 0 0 calc(var(--window-border-size) * 3) var(--color-black),
+  0 0 0 var(--control-frame-width) var(--color-system-02),
+  0 0 0 var(--control-bevel-md) var(--color-black),
   inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 0 var(--color-system-05),
   inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-06);
 
@@ -210,10 +210,10 @@
 @mixin platinum-depressable-box-shadow-active {
   box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-07),
   inset calc(var(--window-border-size) * -2) calc(var(--window-border-size) * -2) var(--color-system-06),
-  inset calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) var(--color-system-07),
-  inset calc(var(--window-border-size) * 2) calc(var(--window-border-size) * 2) var(--color-system-06),
+  inset var(--window-border-size) var(--window-border-size) var(--color-system-07),
+  inset var(--control-frame-width) var(--control-frame-width) var(--color-system-06),
   0 0 0 var(--window-border-size) var(--color-system-04),
-  0 0 0 calc(var(--window-border-size) * 2) var(--color-black),
+  0 0 0 var(--control-frame-width) var(--color-black),
   inset calc(var(--window-border-size) * -2) calc(var(--window-border-size) * -2) 0 0 var(--color-system-05),
   inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-06);
 }

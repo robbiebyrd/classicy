@@ -14,14 +14,14 @@
   margin: 0;
   padding: 0;
   // box-shadow: inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-05),
-  //   calc(var(--window-border-size) * 2) calc(var(--window-border-size) * 2) 0 0 var(--color-black);
+  //   var(--control-frame-width) var(--control-frame-width) 0 0 var(--color-black);
 }
 
 .classicyMenu {
   position: absolute;
   display: flex;
   flex-direction: column;
-  min-width: calc(var(--window-control-size) * 15);
+  min-width: var(--menu-min-width);
   margin: 0;
   padding: var(--window-border-size);
   list-style: none;
@@ -42,7 +42,7 @@
   position: absolute;
   display: none;
   flex-direction: column;
-  min-width: calc(var(--window-control-size) * 15);
+  min-width: var(--menu-min-width);
   margin: 0 0 0 calc(var(--window-padding-size) * -1);
   padding: var(--window-border-size);
   list-style: none;
@@ -71,7 +71,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  min-width: calc(var(--window-control-size) * 15);
+  min-width: var(--menu-min-width);
   margin: 0;
   padding: var(--window-border-size);
   list-style: none;
@@ -88,7 +88,7 @@
   }
   display: none;
   flex-direction: column;
-  min-width: calc(var(--window-control-size) * 15);
+  min-width: var(--menu-min-width);
   margin: calc(var(--window-padding-size) * -4) calc(var(--window-padding-size) * -2);
   padding: var(--window-border-size);
   list-style: none;
@@ -117,9 +117,9 @@
   }
 
   img {
-    width: calc(var(--window-control-size) * 1.25);
-    height: calc(var(--window-control-size) * 1.25);
-    margin-right: calc(var(--window-control-size) * 0.5);
+    width: var(--menu-item-icon-size);
+    height: var(--menu-item-icon-size);
+    margin-right: var(--menu-item-icon-gap);
     user-select: none;
     -webkit-user-drag: none;
   }
@@ -150,8 +150,8 @@
   justify-content: center;
   // Reserve the same left gutter an item icon uses, so checked and unchecked
   // items in the same menu keep their titles aligned; the ✓ sits centered in it.
-  width: calc(var(--window-control-size) * 1.25);
-  margin-right: calc(var(--window-control-size) * 0.5);
+  width: var(--menu-item-icon-size);
+  margin-right: var(--menu-item-icon-gap);
   user-select: none;
 }
 
@@ -223,9 +223,9 @@
 // Nested under the item: beats `.classicyMenuItem kbd { padding: 0 }` and
 // `.classicyKbdInline { font-size: inherit }`.
 .classicyMenuItem .classicyMenuItemKeyboardShortcut {
-  font-size: calc(var(--ui-font-size) * 0.75);
+  font-size: var(--ui-font-size-caption);
   line-height: 1.75;
-  padding-right: calc(var(--window-padding-size) / 2);
+  padding-right: var(--control-padding);
 }
 
 .classicyMenuItemFlash {

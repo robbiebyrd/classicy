@@ -63,7 +63,7 @@
 .classicyDriveSetupListHead th {
 	position: sticky;
 	top: 0;
-	font-size: calc(var(--ui-font-size) * 0.8);
+	font-size: var(--ui-font-size-small);
 	font-weight: normal;
 	font-stretch: condensed;
 	padding: var(--window-padding-size);

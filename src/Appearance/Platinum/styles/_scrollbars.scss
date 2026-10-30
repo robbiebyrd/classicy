@@ -161,15 +161,15 @@ $sb-arrow-2x: calc(var(--window-scrollbar-arrow-size) * 2);
 
   &::-webkit-scrollbar-track:vertical {
     box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-06),
-    inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * 2) 0 var(--color-system-03),
-    inset calc(var(--window-border-size) * 2) 0 0 c.classicy-alpha("--color-black", 25%),
+    inset calc(var(--window-border-size) * -1) var(--control-frame-width) 0 var(--color-system-03),
+    inset var(--control-frame-width) 0 0 c.classicy-alpha("--color-black", 25%),
     inset calc(var(--window-border-size) * -2) 0 0 c.classicy-alpha("--color-white", 25%);
   }
 
   &::-webkit-scrollbar-track:horizontal {
     box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-06),
-    inset calc(var(--window-border-size) * 2) calc(var(--window-border-size) * -1) 0 var(--color-system-03),
-    inset calc(var(--window-border-size) * 2) 0 0 c.classicy-alpha("--color-black", 25%),
+    inset var(--control-frame-width) calc(var(--window-border-size) * -1) 0 var(--color-system-03),
+    inset var(--control-frame-width) 0 0 c.classicy-alpha("--color-black", 25%),
     inset calc(var(--window-border-size) * -2) 0 0 c.classicy-alpha("--color-white", 25%);
   }
 

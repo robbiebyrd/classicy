@@ -69,13 +69,12 @@ describe("ClassicyWindow.scss cascade", () => {
 			at(":where(.classicyWindow).collapsed"),
 		));
 
-	it("collapsed height is still control × 1.25 / × .5", () => {
+	it("collapsed height reads the theme derivations (control × 1.25 / × .5)", () => {
 		expect(rule(":where(.classicyWindow).collapsed").height).toBe(
-			"calc(var(--window-control-size) * 1.25)",
+			"var(--window-collapsed-height)",
 		);
-		// Sass writes the literal `.5` as `0.5`.
 		expect(rule(".classicyWindowUtility.collapsed").height).toBe(
-			"calc(var(--window-control-size) * 0.5)",
+			"var(--window-utility-collapsed-height)",
 		);
 	});
 
