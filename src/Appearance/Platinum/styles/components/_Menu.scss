@@ -31,13 +31,12 @@
     }
   }
 
-  // The submenu triangle: a mask painted black, at the box's right center.
+  // The submenu triangle: the registered art as the box's own image, placed
+  // by the base sheet (right center, no repeat). An image, not a mask
+  // (ruling E24): a mask drew the anti-aliased edge one level off in Firefox.
   .classicyMenuItemChildMenuIndicator {
     &:after {
-      background-color: var(--color-black);
-      mask-image: var(--classicy-art-submenu-arrow);
-      mask-repeat: no-repeat;
-      mask-position: right center;
+      background-image: var(--classicy-art-submenu-arrow);
     }
   }
 
