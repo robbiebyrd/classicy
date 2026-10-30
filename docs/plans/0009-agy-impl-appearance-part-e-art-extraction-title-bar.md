@@ -6,7 +6,7 @@ status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T19:22:06.942Z"
-updated: "2026-10-30T07:43:54.340Z"
+updated: "2026-10-30T08:36:57.960Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -51,7 +51,7 @@ progress:
   "6":
     status: pending
   "6.1":
-    status: pending
+    status: in_progress
 ---
 
 # Part E: Art extraction and title-bar unification

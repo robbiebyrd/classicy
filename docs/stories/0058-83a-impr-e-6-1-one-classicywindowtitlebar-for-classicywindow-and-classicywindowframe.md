@@ -3,11 +3,12 @@ id: 0058-83a
 title: 'E 6.1: One ClassicyWindowTitleBar for ClassicyWindow and ClassicyWindowFrame'
 purpose: Give ClassicyWindow and ClassicyWindowFrame one shared title-bar component and SCSS mixin so a package skins one thing, then close Part E with the full parity shoot, docs and build verification.
 type: impr
-status: pending
+status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T20:28:02.193Z"
-updated: "2026-10-30T05:44:23.281Z"
+updated: "2026-10-30T08:36:57.759Z"
+started: "2026-10-30T08:36:57.567Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -132,3 +133,5 @@ Re-shoot every id in `stories.txt` into `after/`; `for f in before/*.png; do pri
 
 ## Work Log
 ### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
+
+### 2026-10-30T08:36:57.759Z - Started on land/part-e (492dc8be8: Part E rebased onto the integration branch with I, J and F; gate 4631 tests). Scope: E24 first (submenu triangle as an image layer), one ClassicyWindowTitleBar keeping F's order group, menu-bar slot and I's emits, exact four-layer stripe parity per owner ruling E20, and the owned carry-forward (docs, E17, slider-thumb forced capture, probe note per E23, CLAUDE.md invariant 9).
