@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-30T14:45:18.135Z"
-updated: "2026-10-30T21:05:05.004Z"
+updated: "2026-10-30T21:33:47.213Z"
 started: "2026-10-30T15:15:36.055Z"
 tags: []
 milestone: ""
@@ -99,3 +99,5 @@ Per the plan, after Part E lands; pixel parity for Platinum (no package override
 ### 2026-10-30T20:35:23.420Z - K 3.x integrated and pushed (3b8767ebc): 3.3 cherry-picked (one test-file conflict plus a silent duplicate declaration, both resolved), carry-forward minors and K-R7 applied, 19 mutants all killed, 417 files / 4957 tests, 80/80 parity AE 0. K 4.1 integration (with K-R9) and story 0096-4hh (user-file data loss) running in parallel.
 
 ### 2026-10-30T21:05:05.004Z - K 4.1 integrated and pushed (acda16223): K-R9 (the window bar retitles only 'About <own name>'), HyperCard added to the About-title tests, a two-level nesting case; 9 mutants, 418 files / 4994 tests, 80/80 parity AE 0. K section 4 complete. K 5.1 (the Storybook 'renamed' proof and Playwright checks) started.
+
+### 2026-10-30T21:33:47.213Z - K 5.1 implemented (7764bb143): the Storybook 'renamed' package (Movie Player as Media Player, TV as Television) with 43/43 real-browser checks true (every surface, both localStorage keys after write+flush, live switch and back); persistence test mutation-proved; 420 files / 4999 tests; 80/80 Platinum parity AE 0. In review. Filed 0097-p8k: Storybook never loads Movie Player's reducer.
