@@ -9,15 +9,17 @@ import {
 
 /**
  * The Platinum menu and pop-up arrows (Part E 2.2) are registered package
- * art, not images baked into the stylesheet. The submenu triangle is a mask
- * (`--classicy-art-submenu-arrow`) painted in `--color-black`, its `mask-*`
- * longhands mirroring the `background-*` longhands the old image had.
+ * art, not images baked into the stylesheet. Both are image layers of that
+ * art, like the grow-box grip, and the base sheets keep the images' geometry:
  *
- * The pop-up double arrow (`--classicy-art-popup-arrows`) is an image layer on
- * the indicator, like the grow-box grip (ruling E21): a mask does not
- * reproduce the old raster at the ComboBox's tile size, and a mask on the
- * indicator itself would cut its border, corner radii and bevel down to the
- * arrow shape (blocker E-B2). The base sheet keeps the image's geometry.
+ * - The submenu triangle (`--classicy-art-submenu-arrow`) is the
+ *   `::after` box's image (ruling E24): as a mask it drew one 8-bit level off
+ *   on the triangle's anti-aliased edge in Firefox.
+ * - The pop-up double arrow (`--classicy-art-popup-arrows`) is the
+ *   indicator's image (ruling E21): a mask does not reproduce the old raster
+ *   at the ComboBox's tile size, and a mask on the indicator itself would cut
+ *   its border, corner radii and bevel down to the arrow shape (blocker
+ *   E-B2).
  *
  * The look lives in the Platinum package (ruling E4), so this compiles
  * `platinum.scss`, whose rules sit indented inside `@layer classicy.package`
@@ -43,13 +45,18 @@ const rules = parseCssRules(css);
 const rule = cssRuleLookup(rules, P);
 
 describe("menu and pop-up arrows (Platinum package)", () => {
-	it("the submenu triangle is a mask over --color-black at the right center", () => {
+	// Ruling E24: the `::after` box draws the registered art as its own image,
+	// placed by the base sheet's longhands; no mask and no fill color.
+	it("the submenu triangle is the indicator box's image, at the right center", () => {
 		const t = rule(".classicyMenuItemChildMenuIndicator:after");
-		expect(t["mask-image"]).toBe("var(--classicy-art-submenu-arrow)");
-		expect(t["mask-position"]).toBe("right center");
-		expect(t["mask-repeat"]).toBe("no-repeat");
-		expect(t["background-color"]).toBe("var(--color-black)");
-		expect(t["background-image"]).toBeUndefined();
+		expect(t["background-image"]).toBe("var(--classicy-art-submenu-arrow)");
+		expect(t["mask-image"]).toBeUndefined();
+		expect(t["mask-position"]).toBeUndefined();
+		expect(t["mask-repeat"]).toBeUndefined();
+		expect(t["background-color"]).toBeUndefined();
+		expect(menuCss).toMatch(
+			/\.classicyMenuItemChildMenuIndicator:after \{[^}]*background-repeat: no-repeat;[^}]*background-position: right center;/,
+		);
 	});
 
 	// Ruling E21: the indicator draws the registered art as its own image,
@@ -86,13 +93,5 @@ describe("menu and pop-up arrows (Platinum package)", () => {
 				readFileSync(`${PLATINUM}/components/${partial}.scss`, "utf8"),
 				partial,
 			).not.toMatch(/@use ['"]\.\.\/assets['"]|assets\.\$/);
-	});
-
-	// The menu's base sheet keeps only the triangle's box; its geometry is the
-	// mask's.
-	it("the menu base sheet no longer positions a triangle image", () => {
-		expect(menuCss).not.toMatch(
-			/\.classicyMenuItemChildMenuIndicator:after \{[^}]*background-(position|repeat)/,
-		);
 	});
 });
