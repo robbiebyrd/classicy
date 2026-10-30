@@ -126,6 +126,11 @@ registers it, and everything inside `ClassicyDesktop` looks as before.
   (`classicy/scss/layout`). `classicy/scss/themes.json` is gone: call
   `getAllThemes()`. `classicy/appearance/platinum` is kept for compatibility
   and registers nothing (importing `classicy` registers Platinum).
+- **`platinum-halftone` takes a token name.** The mixin now takes a color
+  token NAME (`@include mixins.platinum-halftone("--color-black")`, not a
+  color) and paints the dither on a `::before` child, which sets
+  `position: relative` on the element it is included in.
+  `platinum-encode-color` is removed.
 - **Fixed:** Firefox no longer shows a scroll bar under tab strips in the
   built library (the desktop's scroll-bar fallback used to beat the tab
   scroller's `scrollbar-width: none`).
