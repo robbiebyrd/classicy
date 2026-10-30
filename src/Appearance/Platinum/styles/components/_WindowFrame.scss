@@ -1,10 +1,15 @@
 // The Platinum window-frame look (from ClassicyWindowFrame.scss): the
-// pinstriped title bar. The size follows the shorthand, which resets it.
-@use "../assets";
+// pinstriped title bar. The stripe layer sits under the centered title, in
+// the title bar's own stacking context.
+@use "../mixins";
 
 @mixin windowFrame {
   .classicyWindowFrameTitleBar {
-    background: assets.$title-bar-center;
-    background-size: auto 100%;
+    isolation: isolate;
+    @include mixins.platinum-title-bar-stripes(auto 100%);
+
+    &::before {
+      z-index: -1;
+    }
   }
 }
