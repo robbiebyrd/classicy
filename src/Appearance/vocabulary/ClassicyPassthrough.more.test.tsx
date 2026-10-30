@@ -59,6 +59,7 @@ import { QuickTimeCaptionsOverlay } from "@/SystemFolder/SystemResources/QuickTi
 import { QuickTimeFullscreenButton } from "@/SystemFolder/SystemResources/QuickTime/QuickTimeFullscreenButton";
 import { QuickTimeVideoEmbed } from "@/SystemFolder/SystemResources/QuickTime/QuickTimeMovieEmbed";
 import { QuickTimePlayPauseButton } from "@/SystemFolder/SystemResources/QuickTime/QuickTimePlayPauseButton";
+import { ClassicyWindowMenuBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowMenuBar";
 
 /**
  * The passthrough rows for the exported components outside
@@ -215,6 +216,19 @@ const cases: Row[] = [
 			</>
 		),
 		".classicyDesktopMenuExtension",
+	],
+	[
+		"ClassicyWindowMenuBar",
+		() => (
+			<ClassicyWindowMenuBar
+				appId="Passthrough.app"
+				windowId="main"
+				menuItems={[{ id: "file", title: "File" }]}
+				className={HOST}
+				style={STYLE}
+			/>
+		),
+		".classicyWindowMenuBar",
 	],
 	[
 		"ClassicyBevelButtonPopup",

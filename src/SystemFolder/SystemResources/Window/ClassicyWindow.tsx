@@ -52,6 +52,7 @@ import {
 } from "@/SystemFolder/SystemResources/Analytics/ClassicyAnalyticsPath";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import { useClassicyCursor } from "@/SystemFolder/SystemResources/Cursor/useClassicyCursor";
+import { ClassicyWindowMenuBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowMenuBar";
 import {
 	type ClassicyWindowRect,
 	computeClassicyWindowResize,
@@ -1855,6 +1856,19 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 					</div>
 				)}
 			</div>
+			{/* menuBar.placement "window": the window draws its own menus
+			    under the title bar (the screen bar is headless). */}
+			{layout.menuBar.placement === "window" &&
+				appMenu &&
+				appMenu.length > 0 &&
+				windowType !== "utility" &&
+				!ws.collapsed && (
+					<ClassicyWindowMenuBar
+						appId={appId}
+						windowId={id}
+						menuItems={appMenu}
+					/>
+				)}
 			{header && !ws.collapsed && (
 				<div
 					className={classNames(

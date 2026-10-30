@@ -20,8 +20,9 @@ import {
 	useMemo,
 	useRef,
 } from "react";
-
+import type { ClassicyAppearanceLayout } from "@/Appearance/ClassicyAppearancePackage";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { CLASSICY_PART_ATTRIBUTE } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { APPLE_GUIDE_SHOW_TOPIC_EVENT } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideContext";
 import { ABOUT_BALLOON_HELP_TOPIC_ID } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideTopics";
@@ -34,6 +35,13 @@ export type ClassicyDesktopMenuBarProps = {
 	className?: string;
 	/** Inline style, merged onto the `<nav>` after the component's own. */
 	style?: CSSProperties;
+	/**
+	 * Where the menus are drawn: `"screen"` renders this bar; `"window"`
+	 * renders nothing, because each window draws its own menus in a
+	 * `ClassicyWindowMenuBar`. Defaults to the active Appearance Package's
+	 * `layout.menuBar.placement`.
+	 */
+	placement?: ClassicyAppearanceLayout["menuBar"]["placement"];
 };
 
 /**
@@ -132,20 +140,32 @@ const stripAboutItem = (
  * It also runs the app-wide keyboard-equivalent dispatcher: a chord fires the
  * matching item of the focused app's menus, then the system menus, then an
  * extension's global shortcut — whether or not a menu is open.
+ *
+ * When `placement` is `"window"` (a package's `layout.menuBar.placement`),
+ * the bar stays mounted and keeps dispatching and registering chords but
+ * renders nothing; each window shows its own menus in a
+ * `ClassicyWindowMenuBar`. The Apple, Help and App Switcher menus, the clock
+ * and menu bar extensions (which portal into this bar) are then not shown.
  */
 export const ClassicyDesktopMenuBar: FunctionalComponent<
 	ClassicyDesktopMenuBarProps
-> = ({ className, style }) => {
+> = ({ className, style, placement }) => {
 	return (
 		<ClassicyMenuProvider>
-			<ClassicyDesktopMenuBarContent className={className} style={style} />
+			<ClassicyDesktopMenuBarContent
+				className={className}
+				style={style}
+				placement={placement}
+			/>
 		</ClassicyMenuProvider>
 	);
 };
 
 const ClassicyDesktopMenuBarContent: FunctionalComponent<
 	ClassicyDesktopMenuBarProps
-> = ({ className, style }) => {
+> = ({ className, style, placement }) => {
+	const layout = useClassicyAppearanceLayout();
+	const resolvedPlacement = placement ?? layout.menuBar.placement;
 	const appleMenuIcon = useClassicyAsset("systemArt", "appleMenu") ?? "";
 	const apps = useAppManager((s) => s.System.Manager.Applications.apps);
 	const systemMenu = useAppManager((s) => s.System.Manager.Desktop.systemMenu);
@@ -365,6 +385,10 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 	// `useClassicyShortcutDispatcher` (above), which fires a matching item's
 	// action whether or not a menu is dropped down. No separate listener is
 	// needed here.
+
+	// Headless in window placement: every hook above has run, so chords still
+	// register and dispatch; only the bar itself is not drawn.
+	if (resolvedPlacement === "window") return null;
 
 	return (
 		<nav

@@ -1,0 +1,56 @@
+import classNames from "classnames";
+import type { CSSProperties, FC as FunctionalComponent } from "react";
+import { CLASSICY_PART_ATTRIBUTE } from "@/Appearance/vocabulary/ClassicyVocabulary";
+import {
+	ClassicyMenu,
+	type ClassicyMenuItem,
+} from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import { ClassicyMenuProvider } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuProvider";
+import "./ClassicyWindowMenuBar.scss";
+
+export type ClassicyWindowMenuBarProps = {
+	/** The owning app's id; with `windowId`, it keys the rendered menu. */
+	appId: string;
+	/** The window's id within its app. */
+	windowId: string;
+	/** The window's menus (its `appMenu`). */
+	menuItems: ClassicyMenuItem[];
+	/** Extra class names, merged onto the root after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root after the component's own. */
+	style?: CSSProperties;
+};
+
+/**
+ * A window's own menu bar, for Appearance Packages whose layout sets
+ * `menuBar.placement` to `"window"`: `ClassicyWindow` renders it directly
+ * under its title bar with the window's `appMenu`, and the screen menu bar
+ * renders nothing (it still dispatches keyboard equivalents). It reuses the
+ * screen bar's menu classes (`classicyDesktopMenu`), so its menus open,
+ * stick and close the same way, inside their own `ClassicyMenuProvider`. The
+ * bar's flex and `order` rules come from the screen bar's stylesheet, which
+ * loads with `ClassicyDesktopMenuBar` (the desktop always mounts it).
+ *
+ * Only the app's menus have a home here. The Apple, Help and App Switcher
+ * menus, the clock and menu bar extensions (`ClassicyMenuBarExtension`, which
+ * portals into the screen bar's extensions list) are not shown in window
+ * placement.
+ */
+export const ClassicyWindowMenuBar: FunctionalComponent<
+	ClassicyWindowMenuBarProps
+> = ({ appId, windowId, menuItems, className, style }) => (
+	<div
+		className={classNames("classicyWindowMenuBar", className)}
+		style={style}
+		{...{ [CLASSICY_PART_ATTRIBUTE.part]: "window-menu-bar" }}
+	>
+		<ClassicyMenuProvider>
+			<ClassicyMenu
+				name={`${appId}_${windowId}_menuBar`}
+				menuItems={menuItems}
+				navClass="classicyDesktopMenu classicyWindowMenu"
+				subNavClass="classicySubMenu"
+			/>
+		</ClassicyMenuProvider>
+	</div>
+);
