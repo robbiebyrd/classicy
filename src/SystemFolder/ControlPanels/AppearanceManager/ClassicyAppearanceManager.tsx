@@ -97,7 +97,7 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 	const editMenu = useClassicyEditMenu(APP_ID);
 	// Theme backgrounds are resolved to loadable URLs before they reach the
 	// store, so the current one drives the picker directly; only a
-	// colour-only theme needs a stand-in to select. Derived from the store on
+	// color-only theme needs a stand-in to select. Derived from the store on
 	// every render (never seeded into local state) so a theme switch or a
 	// background change from elsewhere is reflected immediately.
 	const bg =

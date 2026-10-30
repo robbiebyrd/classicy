@@ -1,6 +1,7 @@
 import "./ClassicyAppearanceManager.Colors.scss";
 import { useMemo } from "react";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { appearanceThemeEditNotice } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Metrics";
 import {
 	CLASSICY_THEME_COLOR_GROUPS,
 	CLASSICY_THEME_COLOR_TARGETS,
@@ -14,17 +15,17 @@ import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabe
 import type { TabIndividual } from "@/SystemFolder/SystemResources/Tabs/ClassicyTabs";
 
 interface ColorsTabProps {
-	/** The active theme, whose colours the swatches show. */
+	/** The active theme, whose colors the swatches show. */
 	theme: ClassicyTheme;
 	/** True when the active theme is a custom theme (edits apply in place);
 	 * false when it is a built-in (the first edit forks it into "Custom"). */
 	editingCustomTheme: boolean;
 	changeColor: (change: ClassicyThemeColorChange) => void;
-	/** App the colour-picker dialog windows register under. */
+	/** App the color-picker dialog windows register under. */
 	appId: string;
 }
 
-/** DOM id of the swatch for a colour target, e.g. `appearance_color_system_3`. */
+/** DOM id of the swatch for a color target, e.g. `appearance_color_system_3`. */
 export const appearanceColorPickerId = (
 	target: ClassicyThemeColorTarget,
 ): string =>
@@ -44,11 +45,11 @@ export const useColorsTab = ({
 			children: (
 				<div className={"classicyAppearanceManagerColors"}>
 					<ClassicyControlLabel
-						label={
-							editingCustomTheme
-								? `Editing the “${theme.name}” theme.`
-								: `Changing a color creates a Custom theme from “${theme.name}”.`
-						}
+						label={appearanceThemeEditNotice(
+							theme.name,
+							editingCustomTheme,
+							"a color",
+						)}
 					/>
 					<div className={"classicyAppearanceManagerColorsScroll"}>
 						{CLASSICY_THEME_COLOR_GROUPS.map((group) => (

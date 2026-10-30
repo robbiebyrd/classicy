@@ -182,7 +182,7 @@ describe("ClassicyDesktopImportTheme", () => {
 		["a non-object", "azul"],
 		["an empty object", {}],
 		[
-			"an out-of-range colour",
+			"an out-of-range color",
 			(() => {
 				const t = fileTheme();
 				t.color.select = 0x1000000;

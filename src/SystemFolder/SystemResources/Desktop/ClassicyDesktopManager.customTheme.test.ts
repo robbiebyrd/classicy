@@ -55,7 +55,7 @@ const builtIn = (ds: ClassicyStore, id: string) => {
 	return t;
 };
 
-describe("ClassicyDesktopChangeColor — every colour target", () => {
+describe("ClassicyDesktopChangeColor — every color target", () => {
 	it.each(
 		CLASSICY_THEME_COLOR_TARGETS.map((info) => [info.cssVar, info] as const),
 	)("sets %s", (cssVar, info) => {
@@ -72,7 +72,7 @@ describe("ClassicyDesktopChangeColor — every colour target", () => {
 		);
 	});
 
-	it("covers exactly the 28 colour variables getThemeVars emits", () => {
+	it("covers exactly the 28 color variables getThemeVars emits", () => {
 		const vars = Object.keys(getThemeVars(getTheme("default")));
 		const colorVars = vars.filter(
 			(v) => v.startsWith("--color-") || v === "--desktop-background-color",
@@ -109,12 +109,12 @@ describe("ClassicyDesktopChangeColor — every colour target", () => {
 
 describe("ClassicyDesktopChangeColor — payload validation", () => {
 	const invalid: [string, Record<string, unknown>][] = [
-		["non-integer colour", { colorKey: "black", color: 1.5 }],
-		["negative colour", { colorKey: "black", color: -1 }],
-		["colour above 0xFFFFFF", { colorKey: "black", color: 0x1000000 }],
-		["NaN colour", { colorKey: "black", color: Number.NaN }],
-		["string colour", { colorKey: "black", color: "#ffffff" }],
-		["missing colour", { colorKey: "black" }],
+		["non-integer color", { colorKey: "black", color: 1.5 }],
+		["negative color", { colorKey: "black", color: -1 }],
+		["color above 0xFFFFFF", { colorKey: "black", color: 0x1000000 }],
+		["NaN color", { colorKey: "black", color: Number.NaN }],
+		["string color", { colorKey: "black", color: "#ffffff" }],
+		["missing color", { colorKey: "black" }],
 		["unknown key", { colorKey: "purple", color: 0 }],
 		["missing key", { color: 0 }],
 		["palette without index", { colorKey: "system", color: 0 }],
@@ -133,7 +133,7 @@ describe("ClassicyDesktopChangeColor — payload validation", () => {
 		expect(JSON.stringify(appearance(ds))).toBe(before);
 	});
 
-	it("accepts the boundary colours 0 and 0xFFFFFF", () => {
+	it("accepts the boundary colors 0 and 0xFFFFFF", () => {
 		const ds = makeStore();
 		run(ds, {
 			type: "ClassicyDesktopChangeColor",
@@ -391,7 +391,7 @@ describe("Font and desktop edits fork too", () => {
 		expect(JSON.stringify(builtIn(ds, "default"))).toBe(stock);
 	});
 
-	it("a font edit after a colour edit lands in the same Custom theme", () => {
+	it("a font edit after a color edit lands in the same Custom theme", () => {
 		const ds = makeStore();
 		run(ds, {
 			type: "ClassicyDesktopChangeColor",
@@ -1005,6 +1005,29 @@ describe("ChangeTheme in a package whose ids collide with Platinum's", () => {
 		expect(a.activeTheme.id).toBe("indigo");
 		expect(a.activeTheme.package).toBe("irix");
 		expect(a.activeTheme.color.black).not.toBe(0x030303);
+	});
+});
+
+describe("ChangeAppearanceOption sound.pack and the active package (ruling 10)", () => {
+	it("refuses a pack that belongs to another package, with a warning and no fork", () => {
+		registerClassicySoundPack({
+			id: "irix-sounds",
+			name: "IRIX Sounds",
+			packageId: "irix",
+			src: ["https://example.com/irix.ogg"],
+			sprite: { ClassicyBeep: [0, 1] },
+		});
+		const warnings = captureWarnings();
+		const ds = makeStore();
+		const before = JSON.stringify(appearance(ds));
+		run(ds, {
+			type: "ClassicyDesktopChangeAppearanceOption",
+			path: "sound.pack",
+			value: "irix-sounds",
+		});
+		expect(JSON.stringify(appearance(ds))).toBe(before);
+		expect(warnings).toHaveLength(1);
+		expect(warnings[0].message).toContain("irix-sounds");
 	});
 });
 

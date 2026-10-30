@@ -1,5 +1,9 @@
 import { z } from "zod";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import {
+	isClassicyForbiddenKey,
+	isClassicyPlainObject,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceKeyGuards";
 import { ClassicyThemeSchema } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema";
 
 /**
@@ -10,10 +14,12 @@ import { ClassicyThemeSchema } from "@/SystemFolder/ControlPanels/AppearanceMana
  * The path and value are untrusted. A path is accepted only when every
  * segment is a plain identifier and none can reach an object's prototype; the
  * write then walks own properties only, never creates a key, and validates the
- * value against the written leaf's own sub-schema of `ClassicyThemeSchema`.
- * Only that leaf is checked, so a field that was already invalid (a relative
- * wallpaper set by `ClassicyDesktopChangeBackground`, say) never blocks an
- * unrelated write.
+ * value against the written field's own sub-schema of `ClassicyThemeSchema`.
+ * The field is whatever the path names: a scalar (`desktop.iconSize`), or an
+ * object or tuple (`color.window`, `sound.disabled`) that is replaced whole by
+ * the re-validated value, zod stripping any unknown keys. Only that field is
+ * checked, so a field that was already invalid (a relative wallpaper set by
+ * `ClassicyDesktopChangeBackground`, say) never blocks an unrelated write.
  *
  * Metrics are not options: `measurements.*` goes through
  * `ClassicyDesktopChangeMetric`, and a theme's identity (`id`, `name`,
@@ -22,12 +28,6 @@ import { ClassicyThemeSchema } from "@/SystemFolder/ControlPanels/AppearanceMana
 
 /** One path segment: a letter, then letters and digits. */
 export const CLASSICY_APPEARANCE_OPTION_SEGMENT = /^[A-Za-z][A-Za-z0-9]*$/;
-
-const FORBIDDEN_SEGMENTS: readonly string[] = [
-	"__proto__",
-	"constructor",
-	"prototype",
-];
 
 const RESERVED_ROOTS: readonly string[] = [
 	"id",
@@ -49,17 +49,10 @@ export const parseClassicyAppearanceOptionPath = (
 	if (segments.length < 2 || segments.length > 4) return undefined;
 	for (const segment of segments) {
 		if (!CLASSICY_APPEARANCE_OPTION_SEGMENT.test(segment)) return undefined;
-		if (FORBIDDEN_SEGMENTS.includes(segment)) return undefined;
+		if (isClassicyForbiddenKey(segment)) return undefined;
 	}
 	if (RESERVED_ROOTS.includes(segments[0])) return undefined;
 	return segments;
-};
-
-const isPlainObject = (value: unknown): value is Record<string, unknown> => {
-	if (typeof value !== "object" || value === null || Array.isArray(value))
-		return false;
-	const proto = Object.getPrototypeOf(value);
-	return proto === Object.prototype || proto === null;
 };
 
 /** The value at `path`, read through own properties of plain objects only;
@@ -70,7 +63,8 @@ export const getClassicyAppearanceOption = (
 ): unknown => {
 	let node: unknown = theme;
 	for (const segment of path) {
-		if (!isPlainObject(node) || !Object.hasOwn(node, segment)) return undefined;
+		if (!isClassicyPlainObject(node) || !Object.hasOwn(node, segment))
+			return undefined;
 		node = node[segment];
 	}
 	return node;
@@ -105,8 +99,8 @@ export type ClassicyAppearanceOptionResult =
 /**
  * Writes `value` at `path` in `theme` (mutated in place). Refused, with the
  * theme left unchanged, when the path does not parse (`path`), when it does
- * not name an existing leaf the schema declares (`missing` — no key is ever
- * created), or when the value fails that leaf's sub-schema (`schema`). The
+ * not name an existing field the schema declares (`missing` — no key is ever
+ * created), or when the value fails that field's sub-schema (`schema`). The
  * parsed value is what is stored, so a schema that normalizes (a trimmed
  * font stack) stores the normal form.
  */
@@ -118,9 +112,9 @@ export const applyClassicyAppearanceOption = (
 	const segments = parseClassicyAppearanceOptionPath(path);
 	if (!segments) return { ok: false, reason: "path" };
 
-	const leaf = segments[segments.length - 1];
+	const field = segments[segments.length - 1];
 	const parent = getClassicyAppearanceOption(theme, segments.slice(0, -1));
-	if (!isPlainObject(parent) || !Object.hasOwn(parent, leaf)) {
+	if (!isClassicyPlainObject(parent) || !Object.hasOwn(parent, field)) {
 		return { ok: false, reason: "missing" };
 	}
 	const schema = optionSchema(segments);
@@ -128,6 +122,6 @@ export const applyClassicyAppearanceOption = (
 
 	const parsed = schema.safeParse(value);
 	if (!parsed.success) return { ok: false, reason: "schema" };
-	parent[leaf] = parsed.data;
+	parent[field] = parsed.data;
 	return { ok: true };
 };

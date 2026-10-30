@@ -67,6 +67,28 @@ describe("usePackagesTab", () => {
 		expect(result.current.title).toBe("Packages");
 	});
 
+	it("names its radio group and says preset, not presets, for one", () => {
+		render(
+			<Host
+				packages={[
+					...listClassicyAppearancePackages(),
+					{
+						...testPack,
+						id: "one-pack",
+						name: "One Pack",
+						defaults: { ...testPack.defaults, package: "one-pack" },
+						presets: [{ ...testPack.defaults, package: "one-pack" }],
+					},
+				]}
+				activePackageId="platinum"
+			/>,
+		);
+		expect(
+			screen.getByRole("radiogroup", { name: "Appearance Package" }),
+		).toBeInTheDocument();
+		expect(screen.getByLabelText("One Pack (1 preset)")).not.toBeChecked();
+	});
+
 	it("lists every registered package with its preset count", () => {
 		render(
 			<Host

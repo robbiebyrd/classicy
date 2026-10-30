@@ -74,6 +74,7 @@ import type {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { dispatchToPlugin } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { listAppWindows } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
+import { getClassicySoundPack } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
 import type { ClassicyIconBalloonHelp } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
@@ -501,10 +502,33 @@ export const classicyDesktopEventHandler = (
 		}
 		// One theme value by dotted path (`sound.pack`, `desktop.iconSize`):
 		// the path is allowlisted and walked through own properties, and only
-		// the written leaf is validated, against its own sub-schema. A refused
-		// write changes nothing, so it never forks.
+		// the written field (a scalar, or an object or tuple replaced whole) is
+		// validated, against its own sub-schema. A refused write changes
+		// nothing, so it never forks.
 		case "ClassicyDesktopChangeAppearanceOption": {
 			if (!hasAppearanceOptionChange(action)) break;
+			// Ruling 10: a new sound pack must be shared (no `packageId`) or the
+			// active package's, as the Sound tab offers them (re-picking the
+			// current pack changes nothing either way).
+			if (
+				action.path === "sound.pack" &&
+				typeof action.value === "string" &&
+				action.value !== ds.System.Manager.Appearance.activeTheme.sound.pack
+			) {
+				const owner = getClassicySoundPack(action.value)?.packageId;
+				const activeId =
+					getRegisteredClassicyAppearancePackageOrDefault(
+						ds.System.Manager.Appearance.packageId,
+					)?.id ?? CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID;
+				if (owner !== undefined && owner !== activeId) {
+					classicyLog(
+						"warn",
+						"ClassicyDesktopManager",
+						`ClassicyDesktopChangeAppearanceOption rejected: sound pack "${action.value}" belongs to package "${owner}", not the active package ("${activeId}")`,
+					);
+					break;
+				}
+			}
 			editActiveClassicyTheme(ds.System.Manager.Appearance, (theme) => {
 				const r = applyClassicyAppearanceOption(
 					theme,

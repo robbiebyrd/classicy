@@ -1,5 +1,9 @@
 import type { ClassicyAppearanceKnobs } from "@/Appearance/ClassicyAppearancePackage";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import {
+	isClassicyForbiddenKey,
+	isClassicyPlainObject,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceKeyGuards";
 import { CLASSICY_MEASUREMENT_NAME } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 
 /**
@@ -352,13 +356,10 @@ const CORE_GROUP_IDS: readonly string[] = CLASSICY_THEME_METRIC_GROUPS.map(
 	(group) => group.id,
 );
 
-// Names CLASSICY_MEASUREMENT_NAME allows that still reach Object.prototype.
-const FORBIDDEN_NAMES: readonly string[] = ["constructor", "prototype"];
-
 const isKnobName = (value: unknown): value is string =>
 	typeof value === "string" &&
 	CLASSICY_MEASUREMENT_NAME.test(value) &&
-	!FORBIDDEN_NAMES.includes(value);
+	!isClassicyForbiddenKey(value);
 
 /**
  * Validates an untyped `{ family, key }` as a family-form target: both are
@@ -421,13 +422,6 @@ export const isValidThemeMetricFamily = (
 	);
 };
 
-const isPlainObject = (value: unknown): value is Record<string, unknown> => {
-	if (typeof value !== "object" || value === null || Array.isArray(value))
-		return false;
-	const proto = Object.getPrototypeOf(value);
-	return proto === Object.prototype || proto === null;
-};
-
 /** The family object a theme carries for `family`; `undefined` when absent
  * or not a plain object (tampered or legacy state). */
 const ownFamily = (
@@ -437,7 +431,7 @@ const ownFamily = (
 	const m = theme.measurements;
 	if (!Object.hasOwn(m, family)) return undefined;
 	const value: unknown = m[family];
-	return isPlainObject(value) ? value : undefined;
+	return isClassicyPlainObject(value) ? value : undefined;
 };
 
 /** Reads `measurements.<family>.<key>` through own properties; `NaN` when

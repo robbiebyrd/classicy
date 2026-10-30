@@ -35,7 +35,7 @@ describe("ClassicySchemaForm", () => {
 				onChange={vi.fn()}
 			/>,
 		);
-		for (const id of ["T_on", "T_speed", "T_mode", "T_name", "T_nested_depth"])
+		for (const id of ["T_on", "T_speed", "T_mode", "T_name", "T_nested.depth"])
 			expect(document.getElementById(id)).not.toBeNull();
 	});
 
@@ -64,7 +64,7 @@ describe("ClassicySchemaForm", () => {
 				onChange={onChange}
 			/>,
 		);
-		fireEvent.change(document.getElementById("T_nested_depth") as HTMLElement, {
+		fireEvent.change(document.getElementById("T_nested.depth") as HTMLElement, {
 			target: { value: "7" },
 		});
 		expect(onChange).toHaveBeenCalledWith(["nested", "depth"], 7);
@@ -180,7 +180,7 @@ describe("ClassicySchemaForm", () => {
 			/>,
 		);
 		expect(container.querySelector("[id^='U_list']")).toBeNull();
-		expect(document.getElementById("U_group_size")).toHaveValue(0);
+		expect(document.getElementById("U_group.size")).toHaveValue(0);
 		expect(screen.getByText("Group")).toBeInTheDocument();
 	});
 
@@ -194,8 +194,33 @@ describe("ClassicySchemaForm", () => {
 			"ScreenSaver_fish_fish",
 		);
 		expect(classicySchemaFieldId("T", ["nested", "depth"])).toBe(
-			"T_nested_depth",
+			"T_nested.depth",
 		);
+	});
+
+	it("never gives a key with an underscore or a dot the id of a nested field", () => {
+		const ids = [
+			classicySchemaFieldId("T", ["a_b"]),
+			classicySchemaFieldId("T", ["a", "b"]),
+			classicySchemaFieldId("T", ["a.b"]),
+			classicySchemaFieldId("T", ["a%2Eb"]),
+		];
+		expect(new Set(ids).size).toBe(ids.length);
+		// Top-level keys keep their plain ids (the Screen Saver's ids).
+		expect(ids[0]).toBe("T_a_b");
+		render(
+			<ClassicySchemaForm
+				schema={z.object({
+					a_b: z.number(),
+					a: z.object({ b: z.number() }),
+				})}
+				values={{ a_b: 1, a: { b: 2 } }}
+				idPrefix="T"
+				onChange={vi.fn()}
+			/>,
+		);
+		expect(document.getElementById(ids[0])).toHaveValue(1);
+		expect(document.getElementById(ids[1])).toHaveValue(2);
 	});
 
 	it("unwrapClassicySchemaField peels wrappers and keeps the outermost description", () => {

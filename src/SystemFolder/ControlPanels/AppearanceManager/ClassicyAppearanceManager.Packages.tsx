@@ -18,9 +18,16 @@ interface PackagesTabProps {
 export const appearancePackageInputId = (packageId: string): string =>
 	`appearance_package_${packageId}`;
 
+// "Platinum (21 presets)", "Irix (1 preset)".
+const presetCountLabel = (pkg: ClassicyAppearancePackage): string => {
+	const count = pkg.presets?.length ?? 0;
+	return `${pkg.name} (${count} ${count === 1 ? "preset" : "presets"})`;
+};
+
 /**
- * The Appearance Manager's Packages tab: one radio button per registered
- * Appearance Package, labeled with its name and preset count, and below them
+ * The Appearance Manager's Packages tab: a radio group titled "Appearance
+ * Package" with one button per registered Appearance Package, labeled with
+ * its name and preset count, and below them
  * each package's seven theme colors (`defaults.color.theme`) as a row of
  * swatches. Picking a package calls `changePackage` with its id.
  */
@@ -36,7 +43,7 @@ export const usePackagesTab = ({
 		() =>
 			packages.map((pkg) => ({
 				id: appearancePackageInputId(pkg.id),
-				label: `${pkg.name} (${pkg.presets?.length ?? 0} presets)`,
+				label: presetCountLabel(pkg),
 				checked: pkg.id === activePackageId,
 			})),
 		[packages, activePackageId],
@@ -51,8 +58,11 @@ export const usePackagesTab = ({
 			children: (
 				<div className={"classicyAppearanceManagerColorsScroll"}>
 					<div className={"classicyAppearanceManagerColorsGroup"}>
+						{/* Titled like Date & Time's radio groups; the title also
+						    names the radiogroup for assistive technology. */}
 						<ClassicyRadioInput
 							name="appearance_package"
+							label="Appearance Package"
 							inputs={inputs}
 							onClickFunc={(id) => {
 								const pkg = packages.find(

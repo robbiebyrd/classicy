@@ -24,7 +24,7 @@ export type ClassicySchemaFormProps = {
 	values: ClassicySchemaFormValues;
 	/** Called with the changed field's full path (`[...path, key]`) and its new value. */
 	onChange: (path: readonly string[], value: unknown) => void;
-	/** Prefix of every control's id: `<idPrefix>_<path…>_<key>`. */
+	/** Prefix of every control's id: `<idPrefix>_<key>`, nested fields `<idPrefix>_<path…>.<key>` (`classicySchemaFieldId`). */
 	idPrefix: string;
 	/** Path of this form inside an outer one; set by the recursion. Defaults to `[]`. */
 	path?: readonly string[];
