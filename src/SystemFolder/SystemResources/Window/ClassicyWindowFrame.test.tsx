@@ -25,7 +25,23 @@ describe("ClassicyWindowFrame", () => {
 				<span>body</span>
 			</ClassicyWindowFrame>,
 		);
-		expect(container.querySelector(".classicyWindowFrameTitleText")).toBeNull();
+		expect(container.querySelector(".classicyWindowTitleText")).toBeNull();
+	});
+
+	it("draws the shared title bar", () => {
+		const { container } = render(
+			<ClassicyWindowFrame title="Welcome">
+				<span>body</span>
+			</ClassicyWindowFrame>,
+		);
+		expect(
+			container.querySelector(".classicyWindowFrame > .classicyWindowTitleBar"),
+		).not.toBeNull();
+		expect(
+			container.querySelector(
+				".classicyWindowTitleBar .classicyWindowTitleText",
+			),
+		).toHaveTextContent("Welcome");
 	});
 
 	it("applies a custom className to the root", () => {

@@ -1,3 +1,5 @@
+@use "./ClassicyWindowTitleBar" as title-bar;
+
 .classicyWindowFrame {
   display: flex;
   flex-direction: column;
@@ -7,23 +9,20 @@
   background: var(--color-system-03);
   border: var(--window-border-size) solid var(--color-black);
   box-shadow: 2px 2px 0 var(--color-black);
-}
 
-.classicyWindowFrameTitleBar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: var(--control-row-height);
-  // The pinstripes are in the Platinum package.
-  border-bottom: var(--window-border-size) solid var(--color-black);
-}
+  // The window's title bar (ClassicyWindowTitleBar), always drawn focused: a
+  // frame has no focus, and its title reads black. The stripes are in the
+  // Appearance Package.
+  @include title-bar.classicy-window-title-bar;
+  @include title-bar.classicy-window-title-bar-active;
 
-.classicyWindowFrameTitleText {
-  padding: 0 var(--control-padding-wide);
-  background: var(--color-system-03);
-  font-size: var(--window-header-font-size);
-  font-weight: bold;
-  white-space: nowrap;
+  // Inset from the frame's border as a window's title bar is by the window's
+  // frame ring, and ruled off from the body (which has no border of its own).
+  > .classicyWindowTitleBar {
+    padding: calc(var(--window-padding-size) / 1.25);
+    padding-bottom: var(--window-border-size);
+    border-bottom: var(--window-border-size) solid var(--color-black);
+  }
 }
 
 .classicyWindowFrameBody {
