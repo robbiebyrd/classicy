@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T20:39:09.687Z"
-updated: "2026-10-30T20:16:00.441Z"
+updated: "2026-10-30T21:20:57.417Z"
 started: "2026-10-30T17:33:43.278Z"
 tags: []
 milestone: ""
@@ -159,3 +159,5 @@ Derivations, added to `getThemeVars` ONLY if absent (`grep -c '<name>' ClassicyA
 ### 2026-10-30T20:07:40.454Z - H 6.1 implemented (1abd8703b on h/6.1): the pixel allowlist is empty (43 bare + 45 fallback literals gone), 13 color fallbacks dropped (H-R14), a var() coverage test added, and the carry-forward items done (strip popup inset read once per opening, DriveSetupList half-gap, PopUpSlider drag fix). Parity AE 0 on 342 stories + 4 app shots; computed styles and forced states identical. Rulings: four deviations accepted; H-R26 makes POPUP_MENU_MAX_HEIGHT read the theme. In review.
 
 ### 2026-10-30T20:16:00.441Z - H 6.1 review: Needs fixes. (1) the pop-up height cap is still a hard-coded 300 in JS (H-R26); (2) the crash screen's new width variable never applies, because the Sad Mac renders outside the themed desktop (H-R27a). H-R25 holds: all 20 Metrics-tab metrics checked, 61/61 equal. Ruling H-R27 also derives the progress-bar stripe period, renames controlStripPopup to stripMenu, and makes Kbd/Link read their border role. Fix round running.
+
+### 2026-10-30T21:20:57.417Z - 6.1 review fixes (675afa3b9): the pop-up height cap reads the theme once per opening (H-R26; checked in a real browser at 200px); the crash-screen knob is dropped (H-R27a); the progress-bar stripe period is derived (b); the strip menu family is renamed stripMenu (c); Kbd/Link read the border role (d); coverage test tightened. 17 new tests failed first; parity AE 0 on 346 shots. Accepted; integrates with 6.2a after the 6.2a review.
