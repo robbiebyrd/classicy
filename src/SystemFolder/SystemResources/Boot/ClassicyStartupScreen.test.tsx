@@ -1,5 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, render, screen } from "@/__tests__/test-utils";
+import { registerTestAppsPackage } from "@/__tests__/testAppsPackage";
+import {
+	registerTestRenamePackage,
+	TEST_RENAME_PACKAGE_ID,
+	TEST_RENAMED_ICON,
+} from "@/__tests__/testRenamePackage";
+import { unregisterClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
+import { connectClassicyAssetPackageSource } from "@/Appearance/ClassicyAssetPackageSource.internal";
 import { registerClassicySystemArt } from "@/Appearance/ClassicyAssetRegistry";
 import { ClassicyStartupScreen } from "@/SystemFolder/SystemResources/Boot/ClassicyStartupScreen";
 import { resetStartupScreenSession } from "@/SystemFolder/SystemResources/Boot/ClassicyStartupScreenSession";
@@ -30,7 +38,12 @@ type MockApp = {
 	extension?: boolean;
 };
 
-type MockParadeIcon = { id: string; icon: string; name?: string };
+type MockParadeIcon = {
+	id: string;
+	icon: string;
+	name?: string;
+	followsAppIcon?: boolean;
+};
 
 const mockApps = vi.hoisted(() => ({
 	current: {} as Record<string, MockApp>,
@@ -54,6 +67,14 @@ vi.mock(
 			}),
 	}),
 );
+
+// The store is mocked, so nothing connects the active package id; stand in
+// for the store's connection (`Appearance.packageId`).
+const activePackage = { id: "platinum" };
+connectClassicyAssetPackageSource({
+	getId: () => activePackage.id,
+	subscribe: () => () => {},
+});
 
 describe("ClassicyStartupScreen", () => {
 	beforeEach(() => {
@@ -322,5 +343,85 @@ describe("ClassicyStartupScreen extension parade", () => {
 		const img = container.querySelector(".classicyStartupScreenExtensions img");
 		expect(img).toHaveAttribute("src", "/anon.png");
 		expect(img).toHaveAttribute("alt", "");
+	});
+});
+
+// Owner ruling 2: the parade shows the active package's names and icons. The
+// store keeps each entry's own identity; the override is resolved at render.
+describe("ClassicyStartupScreen parade under a renaming package", () => {
+	const LOCAL_PACKAGE_ID = "test-parade-rename";
+
+	beforeEach(() => {
+		sessionStorage.clear();
+		mockApps.current = {};
+		mockParadeIcons.current = [];
+		vi.useFakeTimers();
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+		activePackage.id = "platinum";
+		unregisterClassicyAppearancePackage(LOCAL_PACKAGE_ID);
+		unregisterClassicyAppearancePackage(TEST_RENAME_PACKAGE_ID);
+	});
+
+	const paradeImages = (container: HTMLElement) =>
+		Array.from(
+			container.querySelectorAll(".classicyStartupScreenExtensions img"),
+		);
+
+	it("titles an extension with its display name", () => {
+		registerTestAppsPackage(LOCAL_PACKAGE_ID, {
+			"X.app": { name: "Ex Display" },
+		});
+		activePackage.id = LOCAL_PACKAGE_ID;
+		mockApps.current = { "X.app": extApp("X.app", "Ex") };
+		const { container } = render(<ClassicyStartupScreen duration={1000} />);
+		act(() => {
+			vi.advanceTimersByTime(600);
+		});
+		const [img] = paradeImages(container);
+		expect(img).toHaveAttribute("title", "Ex Display");
+		expect(img).toHaveAttribute("alt", "Ex Display");
+		expect(img).toHaveAttribute("src", "/icons/X.app.png");
+	});
+
+	it("shows the package's icon for an entry that follows its app's icon", () => {
+		registerTestRenamePackage();
+		activePackage.id = TEST_RENAME_PACKAGE_ID;
+		mockParadeIcons.current = [
+			{
+				id: "MoviePlayer.app",
+				icon: "/movie-player.png",
+				name: "Movie Player",
+				followsAppIcon: true,
+			},
+		];
+		const { container } = render(<ClassicyStartupScreen duration={1000} />);
+		act(() => {
+			vi.advanceTimersByTime(600);
+		});
+		const [img] = paradeImages(container);
+		expect(img).toHaveAttribute("src", TEST_RENAMED_ICON);
+		expect(img).toHaveAttribute("title", "Media Player");
+	});
+
+	it("keeps an entry's own icon when it does not follow its app's icon", () => {
+		registerTestRenamePackage();
+		activePackage.id = TEST_RENAME_PACKAGE_ID;
+		mockParadeIcons.current = [
+			{
+				id: "MoviePlayer.app",
+				icon: "/own-boot-icon.png",
+				name: "Movie Player",
+			},
+		];
+		const { container } = render(<ClassicyStartupScreen duration={1000} />);
+		act(() => {
+			vi.advanceTimersByTime(600);
+		});
+		const [img] = paradeImages(container);
+		expect(img).toHaveAttribute("src", "/own-boot-icon.png");
+		expect(img).toHaveAttribute("title", "Media Player");
 	});
 });

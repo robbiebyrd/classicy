@@ -1,6 +1,8 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { registerTestAppsPackage } from "@/__tests__/testAppsPackage";
+import { unregisterClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	dispatch,
@@ -353,6 +355,66 @@ describe("useClassicyFileSystem Control Strip Modules overlay", () => {
 		);
 		act(() => unmount());
 		expect(result.current.resolve(`${folder}:Owned`)).toBeUndefined();
+	});
+
+	// K-D7: a module an app owns is filed under the app's display name; a
+	// module with no owner keeps its own label. Display names never persist.
+	it("names an app's module file by the app's display name", () => {
+		registerTestAppsPackage("test-fs-strip-rename", {
+			"FsOwner.app": { name: "Owner Display" },
+			"fs-test-plain": { name: "Not A Module Label" },
+		});
+		registerClassicyControlStripModule({
+			id: "fs-test-module",
+			appId: "FsOwner.app",
+			label: "Owned",
+			icon: "/owned.png",
+		});
+		registerClassicyControlStripModule({
+			id: "fs-test-plain",
+			label: "Plain",
+			icon: "/plain.png",
+		});
+		const unmount = markClassicyAppMounted("FsOwner.app");
+		try {
+			const { result } = renderHook(
+				() => useClassicyFileSystem("test-strip-overlay-rename"),
+				{
+					wrapper: wrapperFor({
+						defaultFileSystem: drive(),
+						mode: "exclusive",
+					}),
+				},
+			);
+			expect(result.current.resolve(`${folder}:Owned`)).toBeDefined();
+			act(() => {
+				dispatch({
+					type: "ClassicyDesktopChangeAppearancePackage",
+					packageId: "test-fs-strip-rename",
+				});
+			});
+			expect(result.current.resolve(`${folder}:Owner Display`)._creator).toBe(
+				"FsOwner.app",
+			);
+			expect(result.current.resolve(`${folder}:Owned`)).toBeUndefined();
+			expect(result.current.resolve(`${folder}:Plain`)).toBeDefined();
+			expect(localStorage.getItem("test-strip-overlay-rename")).not.toContain(
+				"Owner Display",
+			);
+
+			act(() => {
+				dispatch({
+					type: "ClassicyDesktopChangeAppearancePackage",
+					packageId: "platinum",
+				});
+			});
+			expect(result.current.resolve(`${folder}:Owned`)).toBeDefined();
+			expect(result.current.resolve(`${folder}:Owner Display`)).toBeUndefined();
+		} finally {
+			act(() => unmount());
+			unregisterClassicyControlStripModule("fs-test-plain");
+			unregisterClassicyAppearancePackage("test-fs-strip-rename");
+		}
 	});
 
 	it("does not persist the overlay to localStorage", () => {

@@ -1,9 +1,25 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render } from "@/__tests__/test-utils";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen } from "@/__tests__/test-utils";
+import {
+	registerTestRenamePackage,
+	TEST_RENAME_PACKAGE_ID,
+	TEST_RENAMED_ICON,
+} from "@/__tests__/testRenamePackage";
+import { unregisterClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
+import { connectClassicyAssetPackageSource } from "@/Appearance/ClassicyAssetPackageSource.internal";
 import { ClassicyAboutWindow } from "@/SystemFolder/SystemResources/AboutWindow/ClassicyAboutWindow";
 
 const mockDispatch = vi.hoisted(() => vi.fn());
 const mockPlayer = vi.hoisted(() => vi.fn());
+const mockTrack = vi.hoisted(() => vi.fn());
+
+// The store is mocked, so nothing connects the active package id; stand in
+// for the store's connection (`Appearance.packageId`).
+const activePackage = { id: "platinum" };
+connectClassicyAssetPackageSource({
+	getId: () => activePackage.id,
+	subscribe: () => () => {},
+});
 
 // Real ClassicyWindow is used; only its external hooks are mocked so the
 // modal renders (and portals to document.body) without a provider tree.
@@ -28,7 +44,7 @@ vi.mock(
 vi.mock(
 	"@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics",
 	() => ({
-		useClassicyAnalytics: () => ({ track: vi.fn(), page: vi.fn() }),
+		useClassicyAnalytics: () => ({ track: mockTrack, page: vi.fn() }),
 	}),
 );
 
@@ -98,5 +114,64 @@ describe("ClassicyAboutWindow default button + keyboard dismissal", () => {
 		const clickSpy = vi.spyOn(ok, "click");
 		fireEvent.keyDown(ok, { key: "Escape" });
 		expect(clickSpy).toHaveBeenCalled();
+	});
+});
+
+// Owner ruling 2: a package's `apps` override shows in the About box; the
+// analytics payload keeps the app's own identity (K-D5).
+describe("ClassicyAboutWindow under a renaming package", () => {
+	beforeEach(() => {
+		mockDispatch.mockClear();
+		mockTrack.mockClear();
+		registerTestRenamePackage();
+		activePackage.id = TEST_RENAME_PACKAGE_ID;
+	});
+
+	afterEach(() => {
+		activePackage.id = "platinum";
+		unregisterClassicyAppearancePackage(TEST_RENAME_PACKAGE_ID);
+	});
+
+	it("shows the package's name and icon, and tracks the app's own", () => {
+		render(
+			<ClassicyAboutWindow
+				appId="MoviePlayer.app"
+				appName="Movie Player"
+				appIcon="x.png"
+				hideFunc={() => {}}
+			/>,
+		);
+		expect(
+			screen.getByRole("heading", { name: "Media Player" }),
+		).toBeInTheDocument();
+		expect(screen.queryByText("Movie Player")).toBeNull();
+		expect(screen.getByAltText("About")).toHaveAttribute(
+			"src",
+			TEST_RENAMED_ICON,
+		);
+		expect(mockTrack).toHaveBeenCalledWith(
+			"open",
+			expect.objectContaining({
+				appId: "MoviePlayer.app",
+				appName: "Movie Player",
+				appIcon: "x.png",
+			}),
+		);
+	});
+
+	it("shows the app's own name and icon under Platinum", () => {
+		activePackage.id = "platinum";
+		render(
+			<ClassicyAboutWindow
+				appId="MoviePlayer.app"
+				appName="Movie Player"
+				appIcon="x.png"
+				hideFunc={() => {}}
+			/>,
+		);
+		expect(
+			screen.getByRole("heading", { name: "Movie Player" }),
+		).toBeInTheDocument();
+		expect(screen.getByAltText("About")).toHaveAttribute("src", "x.png");
 	});
 });
