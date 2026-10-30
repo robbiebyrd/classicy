@@ -142,110 +142,203 @@ export const scanPixelLiterals = (
 	return found;
 };
 
-// A factor: a unitless number, sign included, not the head of a length
-// (`2px`), a percentage, a decimal's next digits or a call.
-const FACTOR = /^-?(?:\d+(?:\.\d+)?|\.\d+)(?![\w.%(])/;
-// A number written before `*` (`2 * var(--x)`), read backward from the `*`.
-const LEADING_FACTOR = /(?<![\w.$-])-?(?:\d+(?:\.\d+)?|\.\d+)\s*$/;
-// What scales: a call or group holding a theme read (`var(`) or a Sass
-// variable (which may hold one), or a bare Sass variable.
+// The multiplier scanner reads a source as a flat run of terms, operators
+// and breaks, one parenthesis level at a time: a call, group or Sass
+// interpolation is one term, and its inside is scanned in turn.
+type MultiplierTerm = {
+	/** `number`: a unitless number; `operand`: something that scales. */
+	kind: "number" | "operand" | "other";
+	text: string;
+	value: number;
+};
+/** Terms joined by operators; `at` is the first operator's index. */
+type MultiplierChain = {
+	links: { op: "*" | "/" | null; term: MultiplierTerm }[];
+	at: number;
+};
+type MultiplierToken =
+	| { type: "term"; term: MultiplierTerm; start: number }
+	| { type: "op"; op: "*" | "/"; start: number }
+	| { type: "break" };
+
+// A number, sign included; what follows it decides whether it is unitless.
+const NUMBER = /^[+-]?(?:\d+(?:\.\d+)?|\.\d+)(?:e[+-]?\d+)?/i;
+// An identifier or function name: `var`, `math.cos`, `--x`, `-webkit-x`.
+const IDENTIFIER = /^(?:--|-?[A-Za-z_])[\w.-]*/;
+const SASS_VARIABLE = /^\$[\w-]+/;
+// What scales: a call, group or interpolation holding a theme read (`var(`)
+// or a Sass variable (which may hold one), or a bare Sass variable.
 const SCALES = /var\(|\$/;
 
-/** The index of the `(` matching the `)` at `close`, or -1. */
-const openingParen = (text: string, close: number): number => {
-	for (let depth = 0, i = close; i >= 0; i--) {
-		if (text[i] === ")") depth++;
-		else if (text[i] === "(" && --depth === 0) return i;
-	}
-	return -1;
-};
-
-/** The index of the `)` matching the `(` at `open`, or -1. */
-const closingParen = (text: string, open: number): number => {
+/** The index of the bracket closing the one at `open`, or the text's end. */
+const closingBracket = (text: string, open: number): number => {
+	const opening = text[open];
+	const closing = opening === "(" ? ")" : "}";
 	for (let depth = 0, i = open; i < text.length; i++) {
-		if (text[i] === "(") depth++;
-		else if (text[i] === ")" && --depth === 0) return i;
+		if (text[i] === opening) depth++;
+		else if (text[i] === closing && --depth === 0) return i;
 	}
-	return -1;
+	return text.length - 1;
 };
 
-/** The operand that ends at `end` (inclusive), when it scales, else null. */
-const operandEndingAt = (text: string, end: number): string | null => {
-	if (text[end] === ")") {
-		const open = openingParen(text, end);
-		if (open === -1) return null;
-		let start = open;
-		while (start > 0 && /[\w.-]/.test(text[start - 1])) start--;
-		const operand = text.slice(start, end + 1);
-		return SCALES.test(operand) ? operand : null;
+/** The index just past the quoted string opening at `start`. */
+const quotedEnd = (text: string, start: number): number => {
+	for (let i = start + 1; i < text.length; i++) {
+		if (text[i] === "\\") i++;
+		else if (text[i] === text[start] || text[i] === "\n") return i + 1;
 	}
-	const name = /\$[\w-]+$/.exec(text.slice(Math.max(0, end - 63), end + 1));
-	return name ? name[0] : null;
+	return text.length;
 };
-
-/** The operand that starts at `start`, when it scales, else null. */
-const operandStartingAt = (text: string, start: number): string | null => {
-	const name = /^(?:\$[\w-]+|[\w.-]*\()/.exec(text.slice(start, start + 64));
-	if (!name) return null;
-	if (name[0].startsWith("$")) return name[0];
-	const close = closingParen(text, start + name[0].length - 1);
-	if (close === -1) return null;
-	const operand = text.slice(start, close + 1);
-	return SCALES.test(operand) ? operand : null;
-};
-
-const isSignFlip = (factor: string): boolean => Number(factor) === -1;
 
 /**
- * The multipliers in one SCSS source: every theme read (or group holding one)
- * multiplied or divided by a bare number, and every bare number multiplying
- * one. Sign flips (`* -1`, `-1 *`, `/ -1`) are not multipliers (H-R7), nor are
- * factors with a unit (`$deg * 1deg`), ratios of two variables, or a number
- * scaling a number. A chain scales its operand once (`var(--r) / 3 * 2` is
- * one site). Comments and url() payloads are skipped, as for literals.
+ * Tokenizes `text[from, to)` into terms, operators and breaks, and scans the
+ * inside of each call, group and interpolation it meets the same way, adding
+ * every multiplier chain to `sites` as `[index of its first operator, text]`.
+ */
+const scanMultiplierLevel = (
+	text: string,
+	from: number,
+	to: number,
+	sites: [number, string][],
+): void => {
+	const tokens: MultiplierToken[] = [];
+	const term = (
+		kind: MultiplierTerm["kind"],
+		start: number,
+		end: number,
+		value = Number.NaN,
+	) =>
+		tokens.push({
+			type: "term",
+			term: { kind, text: text.slice(start, end), value },
+			start,
+		});
+	let i = from;
+	while (i < to) {
+		const c = text[i];
+		const rest = text.slice(i, Math.min(to, i + 256));
+		if (/\s/.test(c)) {
+			i++;
+		} else if (c === "*" || c === "/") {
+			tokens.push({ type: "op", op: c, start: i });
+			i++;
+		} else if (c === '"' || c === "'") {
+			const end = Math.min(to, quotedEnd(text, i));
+			term("other", i, end);
+			i = end;
+		} else if (c === "#" && text[i + 1] === "{") {
+			const close = Math.min(to - 1, closingBracket(text, i + 1));
+			const inner = text.slice(i + 2, close);
+			term(SCALES.test(inner) ? "operand" : "other", i, close + 1);
+			scanMultiplierLevel(text, i + 2, close, sites);
+			i = close + 1;
+		} else if (c === "$" && SASS_VARIABLE.test(rest)) {
+			const name = SASS_VARIABLE.exec(rest)?.[0] ?? c;
+			term("operand", i, i + name.length);
+			i += name.length;
+		} else if (
+			NUMBER.test(rest) &&
+			(i === from || !/[\w.$-]/.test(text[i - 1]))
+		) {
+			const number = NUMBER.exec(rest)?.[0] ?? c;
+			const unit = /^[A-Za-z%]+/.exec(text.slice(i + number.length, to));
+			if (unit) {
+				term("other", i, i + number.length + unit[0].length);
+				i += number.length + unit[0].length;
+			} else {
+				term("number", i, i + number.length, Number(number));
+				i += number.length;
+			}
+		} else if (c === "(" || IDENTIFIER.test(rest)) {
+			const name = c === "(" ? "" : (IDENTIFIER.exec(rest)?.[0] ?? "");
+			const open = i + name.length;
+			if (text[open] === "(") {
+				const close = Math.min(to - 1, closingBracket(text, open));
+				const whole = text.slice(i, close + 1);
+				term(SCALES.test(whole) ? "operand" : "other", i, close + 1);
+				scanMultiplierLevel(text, open + 1, close, sites);
+				i = close + 1;
+			} else {
+				term("other", i, open);
+				i = open;
+			}
+		} else {
+			tokens.push({ type: "break" });
+			i++;
+		}
+	}
+	// Chains: term (op term)*. A term right after a term, or a break, starts
+	// a new chain; a dangling operator is left out.
+	const chains: MultiplierChain[] = [];
+	let current: MultiplierChain | null = null;
+	let pending: { op: "*" | "/"; start: number } | null = null;
+	for (const token of tokens) {
+		if (token.type === "term" && current !== null && pending !== null) {
+			current.links.push({ op: pending.op, term: token.term });
+			if (current.at === -1) current.at = pending.start;
+			pending = null;
+		} else if (token.type === "term") {
+			current = { links: [{ op: null, term: token.term }], at: -1 };
+			chains.push(current);
+		} else if (token.type === "op" && current !== null && pending === null) {
+			pending = { op: token.op, start: token.start };
+		} else {
+			current = null;
+			pending = null;
+		}
+	}
+	for (const { links, at } of chains) {
+		const terms = links.map((link) => link.term);
+		if (!terms.some((t) => t.kind === "number")) continue;
+		if (!terms.some((t) => t.kind === "operand")) continue;
+		// The chain's factor: its numbers multiplied, or divided after a `/`.
+		const product = links.reduce(
+			(p, { op, term }) =>
+				term.kind !== "number"
+					? p
+					: op === "/"
+						? p / term.value
+						: p * term.value,
+			1,
+		);
+		if (Math.abs(Math.abs(product) - 1) < 1e-9) continue;
+		const shown = links
+			.map(({ op, term }) => {
+				const part = term.text.replace(/\s+/g, " ");
+				return op === null ? part : `${op} ${part}`;
+			})
+			.join(" ");
+		sites.push([at, shown]);
+	}
+};
+
+/**
+ * The multipliers in one SCSS source. A site is a chain of terms joined by
+ * `*` and `/` that holds something that scales (a theme read, a call, group
+ * or Sass interpolation holding one or a Sass variable, or a bare Sass
+ * variable) and at least one unitless number, unless the numbers multiply to
+ * +1 or -1: a sign flip (`* -1`, `-1 *`, `/ -1`) is not a multiplier (H-R7),
+ * but `* -1 / 2` is (H-R28a). Factors with a unit (`$deg * 1deg`), ratios of
+ * two variables and a number scaling a number are not sites. A chain is one
+ * site, reported whole (`var(--r) / 3 * 2`) at its first operator's line.
+ * Comments and url() payloads are skipped, as for literals.
  */
 export const scanMultipliersInSource = (
 	source: string,
 	file: string,
 ): ClassicyPixelLiteral[] => {
 	const text = blankClassicyScssUrlPayloads(blankClassicyScssComments(source));
-	const found: ClassicyPixelLiteral[] = [];
+	const sites: [number, string][] = [];
+	scanMultiplierLevel(text, 0, text.length, sites);
+	sites.sort(([a], [b]) => a - b);
 	let line = 1;
 	let counted = 0;
-	for (let i = 0; i < text.length; i++) {
-		const op = text[i];
-		if (op !== "*" && op !== "/") continue;
-		const before = text.slice(0, i).trimEnd();
-		const after = text.slice(i + 1);
-		const right = after.trimStart();
-		const rightAt = i + 1 + (after.length - right.length);
-		let site: string | null = null;
-		const factor = FACTOR.exec(right)?.[0];
-		const operand =
-			factor === undefined ? null : operandEndingAt(text, before.length - 1);
-		if (factor !== undefined && operand !== null) {
-			if (!isSignFlip(factor)) site = `${operand} ${op} ${factor}`;
-		} else if (op === "*") {
-			const lead = LEADING_FACTOR.exec(before);
-			const scaled = lead ? operandStartingAt(text, rightAt) : null;
-			const leading = lead?.[0].trim();
-			const chained = /[*/]\s*$/.test(before.slice(0, lead?.index ?? 0));
-			if (leading !== undefined && scaled !== null && !chained) {
-				if (!isSignFlip(leading)) site = `${leading} * ${scaled}`;
-			}
-		}
-		if (site === null) continue;
-		for (; counted < i; counted++) {
+	return sites.map(([at, site]) => {
+		for (; counted < at; counted++) {
 			if (text[counted] === "\n") line++;
 		}
-		found.push({
-			file,
-			line,
-			text: site.replace(/\s+/g, " "),
-			kind: "multiplier",
-		});
-	}
-	return found;
+		return { file, line, text: site, kind: "multiplier" };
+	});
 };
 
 /**

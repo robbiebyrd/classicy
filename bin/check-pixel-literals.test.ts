@@ -255,13 +255,53 @@ describe("scanMultipliersInSource", () => {
 			).map((found) => found.text),
 		).toEqual(["(var(--p) * -1) / 2", "2 * var(--q)", "($a - $b) / 2"]));
 
-	it("counts one site per scaled operand in a chain", () =>
+	it("counts one site per chain, reporting the whole chain", () =>
 		expect(
 			scanMultipliersInSource(
 				"a { padding: calc(var(--r) / 3 * 2) calc(var(--u) * 0.75 * 1.4 / 2); }",
 				"f.scss",
 			).map((found) => found.text),
-		).toEqual(["var(--r) / 3", "var(--u) * 0.75"]));
+		).toEqual(["var(--r) / 3 * 2", "var(--u) * 0.75 * 1.4 / 2"]));
+
+	// H-R28a: a chain's factors multiply; only a product of +1 or -1 needs no
+	// name.
+	it("multiplies a chain's factors: a sign flip then a factor is a multiplier", () =>
+		expect(
+			scanMultipliersInSource(
+				"a { left: calc(var(--x) * -1 / 2); top: calc(var(--x) * -1 * 2); right: calc(2 * 3 * var(--x)); bottom: calc(-1 * 2 * var(--x)); }",
+				"f.scss",
+			).map((found) => found.text),
+		).toEqual([
+			"var(--x) * -1 / 2",
+			"var(--x) * -1 * 2",
+			"2 * 3 * var(--x)",
+			"-1 * 2 * var(--x)",
+		]));
+
+	it("does not count a chain whose factors multiply to plus or minus one", () =>
+		expect(
+			scanMultipliersInSource(
+				"a { left: calc(var(--x) * -1); top: calc(var(--x) * 2 / 2); right: calc(var(--x) * -2 / 2); bottom: calc(var(--a) + var(--b) - var(--c)); }",
+				"f.scss",
+			),
+		).toEqual([]));
+
+	// H-R28a: a Sass interpolation holding a variable may hold a theme read
+	// (`$thumb-w: var(--slider-thumb-width)`), so it is an operand.
+	it("treats a Sass interpolation holding a variable as an operand", () =>
+		expect(
+			scanMultipliersInSource(
+				"$h: var(--h);\na { top: calc(#{$h} / 2); left: calc(2 * #{$h}); right: calc(#{$h} * -1); width: #{1 + 2}; height: calc(#{$h} + 1px); }",
+				"f.scss",
+			).map((found) => `${found.line} ${found.text}`),
+		).toEqual(["2 #{$h} / 2", "2 2 * #{$h}"]));
+
+	it("reads an explicit plus sign on a factor", () =>
+		expect(
+			scanMultipliersInSource("a { top: calc(var(--x) * +2); }", "f.scss").map(
+				(found) => found.text,
+			),
+		).toEqual(["var(--x) * +2"]));
 
 	// H-R7: a sign flip needs no name.
 	it("does not count sign flips", () =>

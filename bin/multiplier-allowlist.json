@@ -79,6 +79,10 @@
 		{
 			"count": 7,
 			"reason": "Pending H 6.2b: an H 6.1 file, whose sites are named on top of 6.1's pixel-literal purge (H-R9 split)."
+		},
+		{
+			"count": 4,
+			"reason": "Thumb-centering halves: the tick rail, tick labels and ghost thumb are inset by half the thumb's own size (#{$thumb-w} / 2, #{$thumb-h} / 2), so a value lands under the thumb's center; geometry, not a role (H-R21)."
 		}
 	],
 	"src/SystemFolder/SystemResources/Table/ClassicyTable.scss": [

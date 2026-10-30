@@ -3156,13 +3156,23 @@ bare number (`calc(var(--x) * 3)`, `var(--h) / -2`) is a proportion with no
 name, so stylesheets read a named derivation (above) or a knob instead. The
 pixel-literal gate's scanner also finds these sites
 (`scanMultipliersInSource`, `kind: "multiplier"`, in
-`bin/check-pixel-literals.ts`): every `var()` read, or a parenthesized group
-holding one or a Sass variable, multiplied or divided by a unitless number,
-and every unitless number multiplying one, in `src/**/*.scss` outside the
-screen savers and comments. It does not count sign flips (`* -1`, `-1 *`,
-`/ -1`), factors with a unit (`$deg * 1deg`), ratios of two variables, a
-number scaling a number, or a Sass-interpolated factor (`* #{$mult}`); a
-chain scales its operand once (`var(--r) / 3 * 2` is one site). Sums and
+`bin/check-pixel-literals.ts`), in `src/**/*.scss` outside the screen
+savers and comments. A site is a chain of terms joined by `*` and `/` that
+holds something that scales and at least one unitless number. What scales is
+a `var()` read; a call, parenthesized group or Sass interpolation (`#{…}`)
+holding one or a Sass variable; or a bare Sass variable. The chain's numbers
+are multiplied (divided after a `/`), and the chain is a site unless the
+product is +1 or -1 (H-R28a): `* -1` alone is a sign flip and needs no name
+(H-R7), but `var(--x) * -1 / 2` and `2 * 3 * var(--x)` are sites. A chain is
+one site, reported whole at its first operator's line (`var(--r) / 3 * 2`).
+Factors with a unit (`$deg * 1deg`), ratios of two variables, a number
+scaling a number and a variable scaling by a Sass-interpolated or Sass
+variable factor (`* #{$mult}`, `* $n`) are not sites. Not seen at all (none
+is live): `math.div(var(--x), 2)` and a parenthesized factor (`* (2)`).
+Flagged although not a product (none is live): a slash that CSS reads as a
+separator after a theme read, such as `font: var(--size)/1.2 …`,
+`grid-row: var(--a) / 3`, `aspect-ratio: var(--w) / 2` or the alpha in
+`rgb(var(--r) var(--g) var(--b) / 0.5)`. Sums and
 differences of named variables need no name either (H-R7), so a size less a
 border on each side is written `var(--x) - var(--window-border-size) -
 var(--window-border-size)`.
@@ -3172,7 +3182,9 @@ groups of `{ count, reason }`, each reason one line saying why the sites are
 geometry rather than a role. The same ratchet as the pixel list applies to a
 file's total: a new site fails `pnpm lint` (and the vitest gate) with
 `<file>:<line> <site>`, and a removed one asks for the count to be lowered
-(`tighten the multiplier allowlist for …`). The list is edited by hand, since
+(`tighten the multiplier allowlist for …`). The count is per file, not per
+group, so the reasons describe a file's kept sites but are not matched to
+them site by site. The list is edited by hand, since
 every group needs its reason; `node bin/check-pixel-literals.ts
 --list-multipliers` prints every site. Kept on purpose:
 
@@ -3192,6 +3204,9 @@ every group needs its reason; `node bin/check-pixel-literals.ts
   handle is pulled half its own size over the corner or edge it marks
   (H-R7); and the four `50% - hyper-card-handle-size / 2`: a side handle
   centered on its edge (H-R21).
+- `ClassicySlider.scss`, the four `#{$thumb-w} / 2` and `#{$thumb-h} / 2`:
+  the tick rail, tick labels and ghost thumb are inset by half the thumb's
+  own size, so a value lands under the thumb's center (H-R21).
 
 Until H 6.2b, the gate also holds 24 sites in the H 6.1 files, which 6.2b
 names on top of 6.1's pixel-literal purge: `_Window.scss` (4),
