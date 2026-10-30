@@ -63,13 +63,24 @@ describe("ClassicyWindow.scss arrangement", () => {
 		);
 	});
 
+	// Each corner rule moves only the axes its corner flips, so the other axis
+	// keeps the default (bottom-right) placement: whole-rule equality pins
+	// that bottom-left sets no top/bottom and top-right no left/right.
 	it("moves the grip by the desktop's grow-box attribute", () => {
-		const bl = rule(`[data-classicy-grow-box="bottom-left"] ${resizer}`);
-		expect(bl.left).toBe("var(--window-border-size)");
-		expect(bl.right).toBe("auto");
-		const tl = rule(`[data-classicy-grow-box="top-left"] ${resizer}`);
-		expect(tl.top).toBe("var(--window-border-size)");
-		expect(tl.bottom).toBe("auto");
+		expect(rule(`[data-classicy-grow-box="bottom-left"] ${resizer}`)).toEqual({
+			left: "var(--window-border-size)",
+			right: "auto",
+		});
+		expect(rule(`[data-classicy-grow-box="top-right"] ${resizer}`)).toEqual({
+			top: "var(--window-border-size)",
+			bottom: "auto",
+		});
+		expect(rule(`[data-classicy-grow-box="top-left"] ${resizer}`)).toEqual({
+			left: "var(--window-border-size)",
+			right: "auto",
+			top: "var(--window-border-size)",
+			bottom: "auto",
+		});
 	});
 
 	it("stripe spans can be hidden by a package", () => {
