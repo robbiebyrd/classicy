@@ -341,7 +341,11 @@ const FinderFolderWindow: FunctionalComponent<FinderFolderWindowProps> = ({
 const FinderFolderWindowMemo = memo(FinderFolderWindow);
 
 export const Finder = () => {
-	const appIcon = useClassicyAsset("icons", "system.mac") ?? "";
+	// Two icons on purpose (K-R1). The record's icon, which the App Switcher
+	// draws, is the Finder face, matching the store's default Finder record.
+	// The About box has always drawn the compact Mac.
+	const appIcon = useClassicyAsset("icons", "system.macos") ?? "";
+	const aboutIcon = useClassicyAsset("icons", "system.mac") ?? "";
 	const appName: string = "Finder";
 	const appId: string = "Finder.app";
 	const desktopEventDispatch = useAppManagerDispatch();
@@ -379,7 +383,7 @@ export const Finder = () => {
 	const { aboutMenuItem, aboutWindow } = useClassicyAboutMenu(
 		appId,
 		appName,
-		appIcon,
+		aboutIcon,
 	);
 
 	const prevOpenPathsRef = useRef<string[] | null>(null);
