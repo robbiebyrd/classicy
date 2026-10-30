@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
 	CLASSICY_DTS_EXCLUDE,
 	findClassicyBuildScriptDeclarations,
+	findClassicyJsonDeclarations,
 	findClassicyTestDeclarations,
 } from "./classicyDistTypes";
 
@@ -23,6 +24,9 @@ describe("CLASSICY_DTS_EXCLUDE", () => {
 
 	it("keeps the root build configs (vite.config.ts, vitest.config.ts) out of the declarations", () =>
 		expect(CLASSICY_DTS_EXCLUDE).toContain("*.config.ts"));
+
+	it("keeps imported JSON (package.json, theme and sound data) out of the declarations", () =>
+		expect(CLASSICY_DTS_EXCLUDE).toContain("**/*.json"));
 });
 
 describe("findClassicyTestDeclarations", () => {
@@ -96,6 +100,34 @@ describe("findClassicyBuildScriptDeclarations", () => {
 				"binary.d.ts",
 				"src/Theme/ClassicyTheme.config.d.ts",
 				"package.json.d.ts",
+			]),
+		).toEqual([]));
+});
+
+describe("findClassicyJsonDeclarations", () => {
+	it("finds declarations of imported JSON files and their maps", () =>
+		expect(
+			findClassicyJsonDeclarations([
+				"package.json.d.ts",
+				"package.json.d.ts.map",
+				"src/Appearance/Platinum/platinum.json.d.ts",
+				"assets\\sounds\\platinum\\platinum.json.d.ts",
+				"src/index.d.ts",
+			]),
+		).toEqual([
+			"package.json.d.ts",
+			"package.json.d.ts.map",
+			"src/Appearance/Platinum/platinum.json.d.ts",
+			"assets\\sounds\\platinum\\platinum.json.d.ts",
+		]));
+
+	it("passes the library's own declarations, even one named after JSON", () =>
+		expect(
+			findClassicyJsonDeclarations([
+				"src/index.d.ts",
+				"src/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFile.d.ts",
+				"src/json.d.ts",
+				"src/ClassicyJsonSchema.d.ts",
 			]),
 		).toEqual([]));
 });
