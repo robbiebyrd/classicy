@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { compileScss, scssRule } from "@/__tests__/compiledScss";
 import { ClassicyWindowMenuBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowMenuBar";
 
 describe("ClassicyWindowMenuBar", () => {
@@ -91,5 +92,44 @@ describe("ClassicyWindowMenuBar", () => {
 		fireEvent.click(screen.getByText("File b"));
 		expect(fileA).not.toHaveClass("open");
 		expect(fileB).toHaveClass("open");
+	});
+});
+
+// The bar's height and the contents' shrink are keyed twice: on the class
+// ClassicyWindow adds when it draws the bar, and on :has() for a bar placed
+// some other way. Each is a rule of its own, never a selector list, so a
+// browser that cannot parse :has() still applies the class rules.
+describe("ClassicyWindowMenuBar.scss", () => {
+	const css = compileScss(
+		"src/SystemFolder/SystemResources/Window/ClassicyWindowMenuBar.scss",
+	);
+	const height =
+		"var(--classicy-window-menu-bar-height, calc(var(--window-control-size) * 1.75))";
+
+	it.each([
+		".classicyWindow.classicyWindowWithMenuBar",
+		".classicyWindow:has(> .classicyWindowMenuBar)",
+	])("sizes the bar and shrinks the contents under %s", (root) => {
+		expect(scssRule(css, `${root} > .classicyWindowMenuBar`)).toEqual({
+			height,
+		});
+		expect(scssRule(css, `${root} .classicyWindowContents`).height).toContain(
+			height,
+		);
+		expect(
+			scssRule(css, `.classicyWindow${root} .classicyWindowContentsWithHeader`)
+				.height,
+		).toContain(height);
+	});
+
+	it("never lists the class and :has() forms in one selector", () => {
+		for (const match of css.matchAll(/^([^{}\n][^{}]*?) \{/gm)) {
+			const selector = match[1];
+			if (!selector.includes(",")) continue;
+			expect(
+				selector.includes(":has(") &&
+					selector.includes("classicyWindowWithMenuBar"),
+			).toBe(false);
+		}
 	});
 });

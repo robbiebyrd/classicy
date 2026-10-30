@@ -220,6 +220,28 @@ describe("ClassicyDesktop layout", () => {
 			expect(container.querySelector(".classicyDesktopMenuBar")).not.toBeNull();
 		});
 
+		// The window's own class keys the bar's height and the contents'
+		// shrink, so a browser without :has() still fits the window together.
+		it("marks a window that draws a menu bar with classicyWindowWithMenuBar", () => {
+			registerTestMirrorPackage();
+			openApp();
+			renderDesktopWithWindow();
+			const win = () => document.querySelector(".classicyWindow");
+			expect(win()).not.toHaveClass("classicyWindowWithMenuBar");
+			activate(TEST_MIRROR_PACKAGE_ID);
+			expect(win()).toHaveClass("classicyWindowWithMenuBar");
+			act(() =>
+				dispatch({
+					type: "ClassicyWindowCollapse",
+					app: { id: APP_ID },
+					window: { id: "main" },
+				}),
+			);
+			expect(win()).not.toHaveClass("classicyWindowWithMenuBar");
+			activate(PLATINUM_APPEARANCE_PACKAGE_ID);
+			expect(win()).not.toHaveClass("classicyWindowWithMenuBar");
+		});
+
 		// The slot's negative branches: utility windows, modals (Mac OS 8
 		// movable modals have no menu bar), collapsed windows and an empty
 		// appMenu get no bar.
@@ -234,6 +256,7 @@ describe("ClassicyDesktop layout", () => {
 			activate(TEST_MIRROR_PACKAGE_ID);
 			expect(document.querySelector(".classicyWindow")).not.toBeNull();
 			expect(document.querySelector(".classicyWindowMenuBar")).toBeNull();
+			expect(document.querySelector(".classicyWindowWithMenuBar")).toBeNull();
 		});
 
 		it("draws no window menu bar while the window is collapsed", () => {

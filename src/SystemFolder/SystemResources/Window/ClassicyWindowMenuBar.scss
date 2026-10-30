@@ -27,22 +27,40 @@
 // nowhere here, so an inherited value always reaches it.
 $_bar-height: var(--classicy-window-menu-bar-height, calc(var(--window-control-size) * 1.75));
 
-.classicyWindow:has(> .classicyWindowMenuBar) {
-  > .classicyWindowMenuBar {
-    height: $_bar-height;
+// The rules for a window root that holds a menu bar. `$root` is the window's
+// selector; `$doubled` repeats it with a leading `.classicyWindow`, which
+// lifts the header variant over ClassicyWindow.scss's own doubled rule.
+@mixin _with-menu-bar($root, $doubled) {
+  #{$root} {
+    > .classicyWindowMenuBar {
+      height: $_bar-height;
+    }
+
+    .classicyWindowContents {
+      height: calc(
+        100% - (var(--window-control-size) * 1) - var(--window-padding-size) * 1.5 -
+          #{$_bar-height}
+      );
+    }
   }
 
-  .classicyWindowContents {
+  #{$doubled} .classicyWindowContentsWithHeader {
     height: calc(
-      100% - (var(--window-control-size) * 1) - var(--window-padding-size) * 1.5 -
+      100% - (var(--window-control-size) * 3) - (var(--window-padding-size)) -
         #{$_bar-height}
     );
   }
 }
 
-.classicyWindow.classicyWindow:has(> .classicyWindowMenuBar) .classicyWindowContentsWithHeader {
-  height: calc(
-    100% - (var(--window-control-size) * 3) - (var(--window-padding-size)) -
-      #{$_bar-height}
-  );
-}
+// Keyed twice, in separate rules, never one selector list: a browser that
+// cannot parse :has() drops only the :has() rules. ClassicyWindow adds
+// classicyWindowWithMenuBar whenever it draws the bar; :has() also covers a
+// bar placed in a window some other way.
+@include _with-menu-bar(
+  ".classicyWindow.classicyWindowWithMenuBar",
+  ".classicyWindow.classicyWindow.classicyWindowWithMenuBar"
+);
+@include _with-menu-bar(
+  ".classicyWindow:has(> .classicyWindowMenuBar)",
+  ".classicyWindow.classicyWindow:has(> .classicyWindowMenuBar)"
+);

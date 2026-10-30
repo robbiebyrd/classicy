@@ -1714,6 +1714,18 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			? (document.getElementById("classicyDesktop") ?? document.body)
 			: null;
 
+	// menuBar.placement "window": the window draws its own menus under the
+	// title bar (the screen bar is headless). Utility windows and modals (Mac
+	// OS 8 movable modals have no menu bar) get none, nor does a collapsed
+	// window. The root's classicyWindowWithMenuBar keys the bar's height and
+	// the contents' shrink without :has().
+	const showsMenuBar =
+		layout.menuBar.placement === "window" &&
+		(appMenu?.length ?? 0) > 0 &&
+		windowType !== "utility" &&
+		!modal &&
+		!ws.collapsed;
+
 	const windowContent = !ws.closed && (
 		// biome-ignore lint/a11y/useKeyWithClickEvents: application container captures clicks for focus
 		<div
@@ -1751,6 +1763,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				modal && type === "error" ? "classicyWindowRed" : "",
 				scrollable ? "" : "classicyWindowNoScroll",
 				scrollable && !showScrollBars ? "classicyWindowScrollBarsHidden" : "",
+				showsMenuBar ? "classicyWindowWithMenuBar" : "",
 				className,
 			)}
 			onMouseMove={changeWindow}
@@ -1869,22 +1882,13 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 					</div>
 				)}
 			</div>
-			{/* menuBar.placement "window": the window draws its own menus
-			    under the title bar (the screen bar is headless). Utility
-			    windows and modals (Mac OS 8 movable modals have no menu
-			    bar) get none. */}
-			{layout.menuBar.placement === "window" &&
-				appMenu &&
-				appMenu.length > 0 &&
-				windowType !== "utility" &&
-				!modal &&
-				!ws.collapsed && (
-					<ClassicyWindowMenuBar
-						appId={appId}
-						windowId={id}
-						menuItems={appMenu}
-					/>
-				)}
+			{showsMenuBar && appMenu && (
+				<ClassicyWindowMenuBar
+					appId={appId}
+					windowId={id}
+					menuItems={appMenu}
+				/>
+			)}
 			{header && !ws.collapsed && (
 				<div
 					className={classNames(
