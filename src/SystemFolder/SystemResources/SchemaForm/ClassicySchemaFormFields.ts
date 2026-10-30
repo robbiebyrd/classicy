@@ -24,11 +24,22 @@ export const unwrapClassicySchemaField = (
 	return { schema, description };
 };
 
-/** The DOM id of a field: the prefix and every path segment, joined by `_`. */
+// A path segment with `%` and `.` percent-encoded, so `.` can only ever be
+// the separator between segments.
+const encodeSegment = (segment: string): string =>
+	segment.replaceAll("%", "%25").replaceAll(".", "%2E");
+
+/**
+ * The DOM id of a field: the prefix, `_`, then the path's segments joined by
+ * `.`, each with `%` and `.` percent-encoded. A top-level key keeps the plain
+ * `<idPrefix>_<key>` (`ScreenSaver_<saverId>_<key>`), and a key containing
+ * `_` or `.` can never take a nested field's id (`a_b` → `T_a_b`, `a.b` →
+ * `T_a.b`, a key `"a.b"` → `T_a%2Eb`).
+ */
 export const classicySchemaFieldId = (
 	idPrefix: string,
 	path: readonly string[],
-): string => [idPrefix, ...path].join("_");
+): string => `${idPrefix}_${path.map(encodeSegment).join(".")}`;
 
 /**
  * The label of a field: its `.describe()` text, else its key split on

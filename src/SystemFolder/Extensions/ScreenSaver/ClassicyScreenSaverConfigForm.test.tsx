@@ -150,7 +150,7 @@ describe("ClassicyScreenSaverConfigForm DOM", () => {
 		);
 		fireEvent.change(
 			document.getElementById(
-				"ScreenSaver_nested-test_trail_length",
+				"ScreenSaver_nested-test_trail.length",
 			) as HTMLElement,
 			{ target: { value: "5" } },
 		);

@@ -16,7 +16,7 @@ import type {
  * themes live in `Appearance.customThemes`, a separate list, because persisted
  * arrays REPLACE their defaults on load (`deepMergeReplacingArrays`): storing a
  * custom theme inside `availableThemes` would freeze the built-in list at
- * whatever shipped when the user first edited a colour.
+ * whatever shipped when the user first edited a color.
  *
  * The first edit made while a built-in theme is active forks it into its
  * package's "Custom" slot (`classicyCustomThemeSlotId`), overwriting any
@@ -232,7 +232,7 @@ export const slugifyClassicyThemeName = (name: string): string =>
  *   on the name is counted up from instead of stacking: "Azul 2" → "Azul 3").
  * - **Id**: `custom-<slug of the final name>` (`custom-theme` for a name with
  *   no letters or digits), with "-2", "-3", … appended on collision. The id in
- *   the file is ignored — it is untrusted, and honouring it could overwrite an
+ *   the file is ignored — it is untrusted, and honoring it could overwrite an
  *   existing custom theme or shadow a built-in. Never a package's Custom fork
  *   slot (`"custom"`, the theme's own package's, or any id in `reservedIds`):
  *   the next edit made on a built-in of that package overwrites the slot.

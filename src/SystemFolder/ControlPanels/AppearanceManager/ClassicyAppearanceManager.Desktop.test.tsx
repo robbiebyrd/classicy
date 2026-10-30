@@ -36,7 +36,7 @@ const patternsMenu = () => screen.getAllByRole("combobox")[0];
 
 const wallpaper = (label: string) => {
 	const found = ClassicyWallpapers.find((w) => w.label === label);
-	if (!found) throw new Error(`no wallpaper labelled ${label}`);
+	if (!found) throw new Error(`no wallpaper labeled ${label}`);
 	return found;
 };
 

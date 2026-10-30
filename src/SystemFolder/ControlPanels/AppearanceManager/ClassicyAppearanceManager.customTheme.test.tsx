@@ -18,7 +18,7 @@ import {
 import { ClassicyDesktop } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktop";
 
 // End to end through the real store: open the Appearance Manager on the
-// desktop, edit a colour on the Colors tab, and check the fork lands in the
+// desktop, edit a color on the Colors tab, and check the fork lands in the
 // theme list.
 const appearance = () => useAppManager.getState().System.Manager.Appearance;
 
@@ -136,7 +136,7 @@ describe("Appearance Manager — Colors tab and Custom theme", {
 		expect(gap).toHaveValue(builtInGap + 7);
 	});
 
-	it("shows 28 swatches carrying the active theme's colours", async () => {
+	it("shows 28 swatches carrying the active theme's colors", async () => {
 		const win = await openAppearanceManager();
 		showTab(win, "Colors");
 		const panel = within(win).getByRole("tabpanel");
@@ -148,7 +148,7 @@ describe("Appearance Manager — Colors tab and Custom theme", {
 		);
 	});
 
-	it("picking a colour forks Custom and lists it on the Themes tab", async () => {
+	it("picking a color forks Custom and lists it on the Themes tab", async () => {
 		const win = await openAppearanceManager();
 		showTab(win, "Colors");
 		fireEvent.click(

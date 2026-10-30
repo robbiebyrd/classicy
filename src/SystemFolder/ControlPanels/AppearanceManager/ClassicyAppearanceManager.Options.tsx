@@ -41,10 +41,14 @@ interface OptionsTabProps {
 // The knobs live under `theme.measurements`, so their ids say so.
 const ID_PREFIX = "appearance_option_measurements";
 
+// Each family is its own form, so its knobs are top-level keys under a
+// per-family prefix (family and key names are lower camel case, J-R20).
+const familyIdPrefix = (family: string): string => `${ID_PREFIX}_${family}`;
+
 /** DOM id of a knob's spinner, e.g. `appearance_option_measurements_controlStrip_cellHeight`. */
 export const appearanceOptionInputId = (
 	target: ClassicyThemeMetricFamilyTarget,
-): string => classicySchemaFieldId(ID_PREFIX, [target.family, target.key]);
+): string => classicySchemaFieldId(familyIdPrefix(target.family), [target.key]);
 
 type Knob = ClassicyAppearanceKnobs[string][string];
 type EditableKnob = { key: string; knob: Knob; min: number; max: number };
@@ -166,11 +170,10 @@ export const useOptionsTab = ({
 										<ClassicySchemaForm
 											schema={schema}
 											values={knobFamilyValues(theme, family, knobs)}
-											idPrefix={ID_PREFIX}
-											path={[family]}
-											onChange={(path, value) => {
+											idPrefix={familyIdPrefix(family)}
+											onChange={([key], value) => {
 												if (typeof value === "number")
-													changeMetric({ family, key: path[1] }, value);
+													changeMetric({ family, key }, value);
 											}}
 										/>
 									</ClassicyControlGroup>

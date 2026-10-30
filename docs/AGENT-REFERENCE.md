@@ -860,7 +860,7 @@ usable pre-boot): `title?`, `children` *, `className?`, `width?`.
 | `ClassicyControlGroup` | `children` *, `label?`, `title?` (`ReactNode`; overrides `label`), `backgroundColor?` (painted behind the title so it masks the frame line; match the surface the group sits on; default `var(--color-system-03)`), `variant? ("primary"\|"secondary")`, `checkboxTitle?`, `popUpMenuTitle?`, `columns?`, `layout? ("default"\|"form")` | fieldset-style group; title can be a checkbox or popup. `layout="form"` is the HIG two-column label/control grid (labels 5px from fields, rows 6px apart; give controls `labelPosition="left"`) |
 | `ClassicyControlGroupFormRow` | `children` *, `justify? ("start"\|"end")` | full-width row inside a `layout="form"` group for anything that is not a label/control pair (checkbox, push button, text); `end` puts a button at the group's lower right |
 | `ClassicyControlGroupStack` | `children` *, `className?` | column of group boxes 12px frame to frame (`--group-box-gap`); the content of a control panel that is a stack of groups |
-| `ClassicySchemaForm` | `schema` * (a zod object), `values` *, `onChange(path, value)` *, `idPrefix` *, `path?` | the rows of a `ClassicyControlGroup layout="form"`, derived from a zod object: number → spinner, boolean → checkbox, enum → pop-up menu, string → text field (label above), a nested object → a titled group on a full-width row laying out its own fields; other types render nothing. A field's label is its `.describe()` text, else the humanized key (`speedSeconds` → "Speed seconds", `classicySchemaFieldLabel`); control ids are `<idPrefix>_<path…>_<key>` (`classicySchemaFieldId`); `onChange` gets the field's full path. A number field reports its entry clamped to `.min()`/`.max()` (no `.min()`: 0, so a negative entry reports 0) and rounded for `.int()`; an empty or non-numeric entry reports nothing. Display gap (the shared spinner): an `.int()` field keeps showing the fraction typed, and an emptied field shows its minimum, until the next edit or a new value re-syncs it. No root of its own, so no `className`/`style`. The Screen Saver options and the Appearance Manager's Options tab use it |
+| `ClassicySchemaForm` | `schema` * (a zod object), `values` *, `onChange(path, value)` *, `idPrefix` *, `path?` | the rows of a `ClassicyControlGroup layout="form"`, derived from a zod object: number → spinner, boolean → checkbox, enum → pop-up menu, string → text field (label above), a nested object → a titled group on a full-width row laying out its own fields; other types render nothing. A field's label is its `.describe()` text, else the humanized key (`speedSeconds` → "Speed seconds", `classicySchemaFieldLabel`); control ids are `<idPrefix>_<key>` for a top-level key and `<idPrefix>_<path…>.<key>` for a nested one, each segment with `%` and `.` percent-encoded so a key such as `a_b` can never take a nested field's id (`classicySchemaFieldId`); `unwrapClassicySchemaField(field)` peels `.optional()`/`.default()`/`.nullable()`/`.readonly()` and returns `{ schema, description }`, the outermost `.describe()` text winning, which is how the form reads a field's kind and label; `onChange` gets the field's full path. A number field reports its entry clamped to `.min()`/`.max()` (no `.min()`: 0, so a negative entry reports 0) and rounded for `.int()`; an empty or non-numeric entry reports nothing. Display gap (the shared spinner): an `.int()` field keeps showing the fraction typed, and an emptied field shows its minimum, until the next edit or a new value re-syncs it. No root of its own, so no `className`/`style`. The Screen Saver options and the Appearance Manager's Options tab use it |
 | `ClassicyForm` | `onSubmitFunc?`, `layout? ("default"\|"dialog")`, children * | real `<form>`; always calls `preventDefault` (never navigates); make the confirming button `isDefault buttonType="submit"` so Enter submits |
 | `ClassicyFormButtonRow` | `children` * | HIG dialog button row: right-aligned, `--button-gap`, group-gap above |
 | `ClassicySeparator` | `orientation?` | |
@@ -1379,6 +1379,16 @@ bevel, border, gradient and piece of art moved into Platinum's own stylesheet
   `classicy.user` outrank `classicy.package` just as they outrank
   `classicy.base`, and resets in the reserved `classicy.base.host` sublayer
   still yield to both.
+- **Appearance Manager and Screen Saver behavior changes.** The Screen
+  Saver's schema-derived options form is now `ClassicySchemaForm` (§4.4), so
+  an undescribed field shows its humanized key ("Speed seconds") instead of
+  the raw key, and a number entry is clamped to the field's `.min()`/`.max()`
+  and rounded for `.int()`, with an implicit floor of 0 when there is no
+  `.min()` ("Screen savers", the two behavior changes). Custom themes are now
+  one slot per package: a non-Platinum theme persisted under the legacy
+  `"custom"` id (an import made before its package registered) is moved aside
+  to `custom-2` (or the next free number), keeping its name and data, the
+  first time a Platinum built-in forks (§8, "Custom themes and color edits").
 - **Fixed: Firefox and the tab strip's scroll bar.** In the shipped
   `dist/classicy.css` the tabs stylesheet came before the desktop's, so the
   desktop's Firefox scroll-bar fallback beat `.classicyTabScroller
@@ -1789,11 +1799,16 @@ dispatch({ type: 'ClassicyDesktopChangeAppearanceOption', path: 'sound.pack', va
 `path` is 2–4 segments matching `CLASSICY_APPEARANCE_OPTION_SEGMENT`
 (`/^[A-Za-z][A-Za-z0-9]*$/`), never `__proto__`/`constructor`/`prototype`, and
 never rooted at `id`, `name`, `package` or `measurements` (metrics go through
-`ClassicyDesktopChangeMetric`). It must name an existing leaf the theme schema
-declares — no key is ever created — and `value` is validated against that
-leaf's own `ClassicyThemeSchema` sub-schema only (an unrelated invalid field
-never blocks the write). Refusals (`path` | `missing` | `schema`) log a
-`ClassicyDesktopManager` warning and do not fork. Helpers in
+`ClassicyDesktopChangeMetric`). It must name an existing field the theme
+schema declares — no key is ever created — and `value` is validated against
+that field's own `ClassicyThemeSchema` sub-schema only (an unrelated invalid
+field never blocks the write). The field may be a scalar (`desktop.iconSize`)
+or an object or tuple (`color.window`, `sound.disabled`), which is replaced
+whole by the re-validated value (zod strips unknown keys). Refusals (`path` |
+`missing` | `schema`) log a `ClassicyDesktopManager` warning and do not fork.
+`sound.pack` is also refused, with the same warning, when the pack belongs to
+a package other than the active one (a pack's `packageId`; shared packs have
+none), the packs the Sound tab offers. Helpers in
 `ClassicyAppearanceOptions.ts`: `parseClassicyAppearanceOptionPath`,
 `getClassicyAppearanceOption`, `applyClassicyAppearanceOption`. Like every
 `ClassicyDesktop*` action, both are unreachable to untrusted (HyperCard)
@@ -2030,7 +2045,7 @@ edit on a built-in theme forks its package's Custom theme (above).
 | Tab | Hook (props) | What it shows and dispatches |
 |---|---|---|
 | Themes | `useThemesTab({ packageId, packageName, themesList, switchTheme, activeThemeId, smartScrolling, toggleSmartScrolling, doubleClickTitleToCollapse, toggleDoubleClickTitleToCollapse, saveTheme, loadThemeFile })` | "The current Appearance Package is <name>" (Platinum's icon only for `platinum`); the theme pop-up, `listClassicyPackageThemes` for the active package plus the active theme when it is not among them, so the pop-up is never blank (`ClassicyDesktopChangeTheme`); Save Theme… / Load Theme… (above); the scrolling and collapse checkboxes |
-| Packages | `usePackagesTab({ packages, activePackageId, changePackage })` | A `ClassicyRadioInput` (`name="appearance_package"`, input ids `appearancePackageInputId(id)` → `appearance_package_<id>`) listing every registered package as "<name> (<n> presets)", the active one on, and under it each package's seven `defaults.color.theme` swatches (`li[data-package-id]`, `aria-label` "<name> colors"); in the Colors tab's 210 px scroll region. Picking one dispatches `ClassicyDesktopChangeAppearancePackage { packageId }`, which keeps `customThemes` |
+| Packages | `usePackagesTab({ packages, activePackageId, changePackage })` | A `ClassicyRadioInput` (`name="appearance_package"`, input ids `appearancePackageInputId(id)` → `appearance_package_<id>`) titled "Appearance Package" (which names its `radiogroup`) and listing every registered package as "<name> (<n> presets)" ("(1 preset)" for one), the active one on, and under it each package's seven `defaults.color.theme` swatches (`li[data-package-id]`, `aria-label` "<name> colors"); in the Colors tab's 210 px scroll region. Picking one dispatches `ClassicyDesktopChangeAppearancePackage { packageId }`, which keeps `customThemes` |
 | Options | `useOptionsTab({ pkg, theme, editingCustomTheme, changeMetric })` | The active package's `knobs`: one group per family (humanized family name), one spinner per knob (its `label`), showing `measurements.<family>.<key>` or the knob's default when the theme lacks it; ids `appearanceOptionInputId({ family, key })` → `appearance_option_measurements_<family>_<key>`. Built with `ClassicySchemaForm`; entries are whole pixels clamped to `getThemeMetricFamilyBounds` and dispatched as `ClassicyDesktopChangeMetric { family, key, value }` (never `ChangeAppearanceOption`). Carries the fork notice ("Changing an option creates a Custom theme from “<name>”." / "Editing the “<name>” theme."). Knobs the reducer would refuse are left out: a family or key failing `isThemeMetricFamilyTarget` (a core group such as `window`, or a name that is not lower camel case) or bounds that are `undefined`; the left-out knobs are reported in one `ClassicyAppearance` warning per package. A package with no editable knob shows "The <name> package has no options." |
 | Desktop | `useDesktopTab({ bg, bgPosition, bgRepeat, bgSize, changeBackground, setBackgroundURL, alignBackground, repeatBackground, backgroundSize })` | The wallpaper picker (the wallpaper registry, §5), a picture URL field, and position, tiling and size (`ClassicyDesktopChangeBackground*`) |
 | Colors | `useColorsTab({ theme, editingCustomTheme, changeColor, appId })` | The 28 `CLASSICY_THEME_COLOR_TARGETS` swatches in groups (`appearanceColorPickerId(target)`), dispatching `ClassicyDesktopChangeColor`, with the fork notice |
@@ -2039,7 +2054,8 @@ edit on a built-in theme forks its package's Custom theme (above).
 | Sound | `useSoundTab({ soundPacks, soundPack, changeSoundPack, alertSound, changeAlertSound, alertVolume, changeAlertVolume, previewAlertVolume })` | The Sound Pack pop-up (`#soundPack`): `useClassicySoundPacks()` packs with no `packageId` or the active package's, plus the active theme's pack when another package owns it, written by `ClassicyDesktopChangeAppearanceOption { path: "sound.pack", value }`; Alert Sound and Alert Volume (§10) |
 
 `appearanceThemeEditNotice(themeName, editingCustomTheme, change)` returns
-the shared notice string (Metrics passes "a metric", Options "an option").
+the shared notice string (Colors passes "a color", Metrics "a metric",
+Options "an option").
 Testing note: `ClassicyTabs` keeps every panel mounted, so panel tests scope
 text queries to the visible `tabpanel`.
 
@@ -2351,8 +2367,11 @@ draws it:
   relied on the raw key should add `.describe("…")` to keep its exact text.
 - **Number entries are clamped.** A number field sends the value it shows:
   clamped to the field's `.min()`/`.max()` and rounded for `.int()` (typing
-  99 in Warp's 1–9 `layers` saves 9, where it used to send 99), and an
-  empty entry sends nothing.
+  99 in Warp's 3–9 `layers` saves 9, where it used to send 99), and an
+  empty entry sends nothing. A field with no `.min()` is floored at 0, the
+  spinner's own minimum: a `z.number()` meant to allow negatives now sends 0
+  for −5, where it used to send −5 (the spinner showed 0 either way). Give
+  such a field a custom `configComponent`.
 
 Commands (all trusted-dispatch; `Activate` is also scriptable from HyperCard
 stacks):

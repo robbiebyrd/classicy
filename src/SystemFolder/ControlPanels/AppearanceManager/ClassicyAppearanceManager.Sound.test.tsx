@@ -120,7 +120,7 @@ describe("useSoundTab — Sound Pack", () => {
 });
 
 describe("useSoundTab — Alert Volume", () => {
-	it("renders a labelled 0–100 slider at the stored level", () => {
+	it("renders a labeled 0–100 slider at the stored level", () => {
 		render(<Host {...baseProps()} alertVolume={35} />);
 		const slider = screen.getByRole("slider", { name: "Alert Volume" });
 		expect(slider).toHaveValue("35");

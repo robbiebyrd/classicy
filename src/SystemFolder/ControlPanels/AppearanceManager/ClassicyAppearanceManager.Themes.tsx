@@ -102,7 +102,7 @@ export const useThemesTab = ({
 						checked={smartScrolling}
 						onClickFunc={toggleSmartScrolling}
 					/>
-					{/* Its Options-tab neighbour: a title-bar double-click collapses
+					{/* Its Options-tab neighbor: a title-bar double-click collapses
 					    the window (WindowShade) when on. */}
 					<ClassicyCheckbox
 						id={"appearance_double_click_title_to_collapse"}

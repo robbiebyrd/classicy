@@ -230,8 +230,8 @@ export function hasFontSize(
 }
 
 /**
- * Action is a valid theme colour edit: `colorKey` names one of the 28 theme
- * colours (`index` 0–6 required for `system`/`theme`, absent otherwise) and
+ * Action is a valid theme color edit: `colorKey` names one of the 28 theme
+ * colors (`index` 0–6 required for `system`/`theme`, absent otherwise) and
  * `color` is a 24-bit RGB integer (0x000000–0xFFFFFF).
  */
 export function hasThemeColorChange(
@@ -318,7 +318,7 @@ export function hasPackageId(m: Msg): m is Msg & { packageId: string } {
 
 /**
  * Action has `theme: ClassicyTheme`, validated against `ClassicyThemeSchema`
- * (an imported theme is untrusted data: colours in range, safe CSS strings, a
+ * (an imported theme is untrusted data: colors in range, safe CSS strings, a
  * bundled-wallpaper or http(s) `backgroundImage`, a known sound theme).
  */
 export function hasImportableTheme(

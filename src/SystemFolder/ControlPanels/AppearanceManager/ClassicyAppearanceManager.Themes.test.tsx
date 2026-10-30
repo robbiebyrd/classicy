@@ -228,7 +228,7 @@ describe("listClassicyPackageThemes — a package's defaults (J-R22)", () => {
 	});
 });
 
-// #280: Smart Scrolling's neighbour on the Mac OS 8 Appearance Options tab.
+// #280: Smart Scrolling's neighbor on the Mac OS 8 Appearance Options tab.
 describe("useThemesTab — Double-click title bar to collapse", () => {
 	it("renders the checkbox checked when on", () => {
 		render(<Host doubleClickTitleToCollapse={true} />);
