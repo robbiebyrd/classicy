@@ -34,7 +34,7 @@
 		"build:watchsource": "nodemon --watch \"src/**\" --watch \"assets/**\" --ext \"tsx,ts,json,css,scss,png,jpg,svg\" --exec \"tsc -b && vite build\" --ignore \"example/**\" --ignore \"rt911/**\" --ignore \"src/index.ts\" --ignore \"src/index\\ *.ts\" ",
 		"test": "vitest run",
 		"test:watch": "vitest",
-		"lint": "biome check .",
+		"lint": "biome check . && node bin/check-pixel-literals.ts",
 		"lint:fix": "biome check --write .",
 		"storybook:typecheck": "tsc --noEmit -p storybook/tsconfig.json",
 		"preview": "pnpm --filter classicy-example dev",
