@@ -6,6 +6,10 @@ import {
 	getThemeVars,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
+	CLASSICY_THEME_DERIVATIONS,
+	CLASSICY_THEME_DERIVED_VARS,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeDerivations";
+import {
 	CLASSICY_DEFAULT_THEME_METRICS,
 	classicyMeasurementVars,
 	withDefaultThemeMetrics,
@@ -449,5 +453,58 @@ describe("classicyMeasurementVars — name collisions", () => {
 		expect(entries[0].subsystem).toBe("ClassicyAppearance");
 		expect(entries[0].message).toContain("menu.minWidth");
 		expect(entries[0].message).toContain("--menu-min-width");
+	});
+	// G13: every variable getThemeVars derives is reserved, so a package
+	// leaf that would make one (`help.buttonWidth` → `--help-button-width`) is
+	// skipped and the derivation stands. A name splits into a family (its
+	// first segment) and a camelCase key (the rest).
+	const leafFor = (name: string): [string, string] => {
+		const [family, ...rest] = name.slice(2).split("-");
+		const key = rest
+			.map((part, i) =>
+				i === 0 ? part : part[0].toUpperCase() + part.slice(1),
+			)
+			.join("");
+		return [family, key];
+	};
+	const expectReserved = (names: readonly string[]) => {
+		vi.spyOn(console, "warn").mockImplementation(() => {});
+		const theme = getTheme("default");
+		const expected = getThemeVars(theme) as Record<string, string>;
+		for (const name of names) {
+			const [family, key] = leafFor(name);
+			const measurements = {
+				...theme.measurements,
+				[family]: {
+					...(theme.measurements[family] as object | undefined),
+					[key]: 997,
+				},
+			} as ClassicyThemeMeasurements;
+			expect(classicyMeasurementVars(measurements), name).not.toHaveProperty(
+				name,
+			);
+			expect(
+				(getThemeVars({ ...theme, measurements }) as Record<string, string>)[
+					name
+				],
+				name,
+			).toBe(expected[name]);
+		}
+	};
+
+	it("reserves every pre-existing derived variable against package leaves", () => {
+		expect(CLASSICY_THEME_DERIVED_VARS).toHaveLength(15);
+		expectReserved(CLASSICY_THEME_DERIVED_VARS);
+	});
+
+	it("reserves every named derivation against package leaves", () => {
+		expectReserved(CLASSICY_THEME_DERIVATIONS.map((d) => d.cssVar));
+	});
+
+	it("lists only variables getThemeVars emits", () => {
+		const vars = getThemeVars(getTheme("default")) as Record<string, string>;
+		for (const name of CLASSICY_THEME_DERIVED_VARS) {
+			expect(vars, name).toHaveProperty(name);
+		}
 	});
 });
