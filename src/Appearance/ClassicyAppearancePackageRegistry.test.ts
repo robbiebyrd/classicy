@@ -1,9 +1,13 @@
 import { afterEach, describe, expect, it } from "vitest";
 import type { ClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
 import {
+	getClassicyAppearancePackage,
 	getRegisteredClassicyAppearancePackageOrDefault,
+	listClassicyAppearancePackages,
 	registerClassicyAppearancePackage,
 	resetClassicyAppearancePackagesForTests,
+	subscribeClassicyAppearancePackages,
+	unregisterClassicyAppearancePackage,
 } from "@/Appearance/ClassicyAppearancePackageRegistry";
 import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 
@@ -64,5 +68,42 @@ describe("getRegisteredClassicyAppearancePackageOrDefault", () => {
 		expect(getRegisteredClassicyAppearancePackageOrDefault("constructor")).toBe(
 			platinum,
 		);
+	});
+});
+
+describe("unregisterClassicyAppearancePackage", () => {
+	it("removes the package and its stylesheet, and notifies", () => {
+		registerClassicyAppearancePackage(platinum);
+		registerClassicyAppearancePackage({
+			...irix,
+			css: '@layer classicy.package { .classicyDesktop[data-classicy-appearance="irix"] { color: red; } }',
+		});
+		expect(document.getElementById("classicy-appearance-irix")).not.toBeNull();
+		let notified = 0;
+		const unsubscribe = subscribeClassicyAppearancePackages(() => {
+			notified++;
+		});
+		expect(unregisterClassicyAppearancePackage("irix")).toBe(true);
+		unsubscribe();
+		expect(notified).toBe(1);
+		expect(getClassicyAppearancePackage("irix")).toBeUndefined();
+		expect(listClassicyAppearancePackages()).toEqual([platinum]);
+		expect(document.getElementById("classicy-appearance-irix")).toBeNull();
+		// An unregistered id now resolves like any other: to the default.
+		expect(getRegisteredClassicyAppearancePackageOrDefault("irix")).toBe(
+			platinum,
+		);
+	});
+
+	it("returns false, and notifies nobody, for an id that is not registered", () => {
+		registerClassicyAppearancePackage(platinum);
+		let notified = 0;
+		const unsubscribe = subscribeClassicyAppearancePackages(() => {
+			notified++;
+		});
+		expect(unregisterClassicyAppearancePackage("irix")).toBe(false);
+		unsubscribe();
+		expect(notified).toBe(0);
+		expect(listClassicyAppearancePackages()).toEqual([platinum]);
 	});
 });

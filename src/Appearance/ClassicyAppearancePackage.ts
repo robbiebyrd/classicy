@@ -29,6 +29,7 @@ export {
 	registerClassicyAppearancePackage,
 	resetClassicyAppearancePackagesForTests,
 	subscribeClassicyAppearancePackages,
+	unregisterClassicyAppearancePackage,
 } from "./ClassicyAppearancePackageRegistry";
 
 /**

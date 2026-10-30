@@ -3,10 +3,14 @@ import { useLayoutEffect, useState } from "react";
 import { action } from "storybook/actions";
 import { CLASSICY_DEFAULT_APPEARANCE_LAYOUT } from "@/Appearance/ClassicyAppearanceDefaults";
 import {
+	CLASSICY_APPEARANCE_EVENTS,
 	type ClassicyAppearanceEvent,
 	type ClassicyAppearanceHandler,
 	type ClassicyAppearanceHooks,
+	type ClassicyAppearancePackage,
+	getClassicyAppearancePackage,
 	registerClassicyAppearancePackage,
+	unregisterClassicyAppearancePackage,
 } from "@/Appearance/ClassicyAppearancePackage";
 // Importing Platinum registers it, and with it the "platinum" sound pack that
 // the probe's default theme names (a package's defaults are validated).
@@ -27,39 +31,14 @@ import {
 // pressed: the press decoration, which release clears), and every event any
 // component emits is logged in the Actions panel as `<Component>.<event>`.
 // It has no look of its own, so Platinum's CSS is off under it. The
-// AppearanceHooks stories render through ClassicyAppearanceProbe.
+// AppearanceHooks stories render through ClassicyAppearanceProbe, which
+// registers the package only while it is mounted, so the Appearance
+// Manager's Packages tab never lists it in any other story.
 
 export const STORYBOOK_PROBE_PACKAGE_ID = "storybook-probe";
 
 const PROBE_CSS =
 	'@layer classicy.package { .classicyDesktop[data-classicy-appearance="storybook-probe"] .sbProbe { outline: 1px dashed #ff00ff; outline-offset: 1px; } .classicyDesktop[data-classicy-appearance="storybook-probe"] .sbProbePressed { outline-color: #00aa00; } }';
-
-const EVENTS = [
-	"mount",
-	"unmount",
-	"press",
-	"release",
-	"click",
-	"open",
-	"close",
-	"focus",
-	"blur",
-	"collapse",
-	"expand",
-	"zoom",
-	"select",
-	"change",
-	"dragStart",
-	"dragEnd",
-] as const satisfies readonly ClassicyAppearanceEvent[];
-
-// Fails to compile if ClassicyAppearanceEvent gains an event EVENTS lacks.
-type AssertTrue<T extends true> = T;
-type _EveryEventListed = AssertTrue<
-	[Exclude<ClassicyAppearanceEvent, (typeof EVENTS)[number]>] extends [never]
-		? true
-		: false
->;
 
 /** Logs the event; a press decorates (green), a release clears it. */
 const logEvent: ClassicyAppearanceHandler = (ctx) => {
@@ -70,7 +49,9 @@ const logEvent: ClassicyAppearanceHandler = (ctx) => {
 
 const everyEvent: Partial<
 	Record<ClassicyAppearanceEvent, ClassicyAppearanceHandler>
-> = Object.fromEntries(EVENTS.map((event) => [event, logEvent]));
+> = Object.fromEntries(
+	CLASSICY_APPEARANCE_EVENTS.map((event) => [event, logEvent]),
+);
 
 const probeHooks: ClassicyAppearanceHooks = {
 	decorate: (_component, state: Partial<Record<ClassicyState, boolean>>) => ({
@@ -83,7 +64,7 @@ const probeHooks: ClassicyAppearanceHooks = {
 	),
 };
 
-registerClassicyAppearancePackage({
+const PROBE_PACKAGE: ClassicyAppearancePackage = {
 	id: STORYBOOK_PROBE_PACKAGE_ID,
 	name: "Storybook Probe",
 	css: PROBE_CSS,
@@ -92,18 +73,20 @@ registerClassicyAppearancePackage({
 	// Platinum's arrangement.
 	layout: CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
 	hooks: probeHooks,
-});
+};
 
 const PROBE_NOTE =
 	'Rendered under the "storybook-probe" package: Platinum CSS is off (structure only — audit §8.2; the window control boxes, menu dividers and depressable ::after geometry live in Platinum\'s look mixins, Part B ruling R10, and collapse here), every root is outlined by decorate(), and every emitted event is logged in the Actions panel.';
 
 /**
- * Renders `children` under the probe package. On mount it makes
- * "storybook-probe" the active package and renders `children` only then, so
- * their `mount` events are logged too. On unmount it switches back to
- * Platinum and the theme that was active before (unless something else
- * switched the package meanwhile), so a story opened next in the same
- * iframe, whose frame keeps the store, renders under Platinum.
+ * Renders `children` under the probe package. On mount it registers
+ * "storybook-probe", makes it the active package and renders `children` only
+ * then, so their `mount` events are logged too. On unmount it switches back
+ * to Platinum and the theme that was active before (unless something else
+ * switched the package meanwhile), then unregisters the probe, or restores
+ * the package registered under its id before, so a story opened next in the
+ * same iframe, whose frame keeps the store and the registry, renders under
+ * Platinum and lists no probe.
  */
 export const ClassicyAppearanceProbe: FC<{ children?: ReactNode }> = ({
 	children,
@@ -112,6 +95,10 @@ export const ClassicyAppearanceProbe: FC<{ children?: ReactNode }> = ({
 	const [active, setActive] = useState(false);
 
 	useLayoutEffect(() => {
+		const previousPackage = getClassicyAppearancePackage(
+			STORYBOOK_PROBE_PACKAGE_ID,
+		);
+		registerClassicyAppearancePackage(PROBE_PACKAGE);
 		const previousTheme =
 			useAppManager.getState().System.Manager.Appearance.activeTheme;
 		dispatch({
@@ -121,16 +108,19 @@ export const ClassicyAppearanceProbe: FC<{ children?: ReactNode }> = ({
 		setActive(true);
 		return () => {
 			const appearance = useAppManager.getState().System.Manager.Appearance;
-			if (appearance.packageId !== STORYBOOK_PROBE_PACKAGE_ID) return;
-			dispatch({
-				type: "ClassicyDesktopChangeAppearancePackage",
-				packageId: PLATINUM_APPEARANCE_PACKAGE_ID,
-			});
-			if (previousTheme.package === PLATINUM_APPEARANCE_PACKAGE_ID)
+			if (appearance.packageId === STORYBOOK_PROBE_PACKAGE_ID) {
 				dispatch({
-					type: "ClassicyDesktopChangeTheme",
-					activeTheme: previousTheme.id,
+					type: "ClassicyDesktopChangeAppearancePackage",
+					packageId: PLATINUM_APPEARANCE_PACKAGE_ID,
 				});
+				if (previousTheme.package === PLATINUM_APPEARANCE_PACKAGE_ID)
+					dispatch({
+						type: "ClassicyDesktopChangeTheme",
+						activeTheme: previousTheme.id,
+					});
+			}
+			if (previousPackage) registerClassicyAppearancePackage(previousPackage);
+			else unregisterClassicyAppearancePackage(STORYBOOK_PROBE_PACKAGE_ID);
 		};
 	}, [dispatch]);
 

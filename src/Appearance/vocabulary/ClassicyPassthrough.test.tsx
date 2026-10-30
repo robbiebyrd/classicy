@@ -1087,9 +1087,12 @@ const decorationCases: [
 		() => <ClassicyFileInput id="f" style={STYLE} />,
 		sel(".classicyFileInputHolder"),
 	],
-	// The surfaces (task 2.3). Menu and Alert have no row: a consumer's style
-	// lands on the menu's wrapper and the alert's window, not on the list or
-	// the alert body the package decorates.
+	// The surfaces (task 2.3). Components whose decoration root is not their
+	// passthrough root have no row, since the two styles never meet:
+	// Checkbox, Slider, Input, Placard, ComboBox, a labeled RadioInput or
+	// ListBox (rows above are unlabeled), Menu (the wrapper, not the list)
+	// and Alert (its window, not the alert body). AGENT-REFERENCE §4.0.1
+	// lists them.
 	[
 		"ClassicyWindow",
 		() => (

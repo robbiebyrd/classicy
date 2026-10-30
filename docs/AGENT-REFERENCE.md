@@ -704,11 +704,24 @@ and icon states own:
   same key in a consumer `style`, as is any other inline key. On `ClassicyIcon`
   and `ClassicyDesktopIcon` a `left`/`top` in `style` overrides the drag
   position, so the icon stops following its drag.
-- The active Appearance Package's decoration (§8, "Package hooks") sits
-  between the two: its class follows the state classes and precedes the
-  component's modifiers and the consumer's `className`; its `style` follows
-  the component's own and loses to the consumer's; its `data-*` attributes
-  come before the component's own.
+- The active Appearance Package's decoration (§8, "Package hooks") lands on
+  the component's decoration root, the element that carries its state
+  classes. Where that is also the passthrough root, the decoration sits
+  between the two: its class follows the state classes and comes before the
+  consumer's `className` (class order has no effect on the cascade); its
+  `style` follows the component's own and loses to the consumer's; its
+  `data-*` attributes come before the component's own. Where the decoration
+  root is another element, the two never meet, so a consumer `style` cannot
+  override a package's: `ClassicyCheckbox` (decoration on
+  `input.classicyCheckbox`, passthrough on `.classicyCheckboxHolder`),
+  `ClassicySlider` (`input.classicySlider`; `.classicySliderTrackGroup`),
+  `ClassicyInput` (`input.classicyInput`; `.classicyInputHolder`),
+  `ClassicyPlacard` (`.classicyPlacard`; `.classicyPlacardHolder`),
+  `ClassicyComboBox` (`div.classicyComboBox`; `.classicyComboBoxWrapper`),
+  `ClassicyRadioInput` and `ClassicyListBox` while a label is shown (the
+  control; the label wrapper), `ClassicyMenu` (the list `<ul>`;
+  `.classicyMenuWrapper`) and `ClassicyAlert` (`div.classicyAlert`; its
+  window). The table in §8 names every decoration root.
 - With a label wrapper (`ClassicyMeter`, `ClassicyOutput`,
   `ClassicyProgressBar`, `ClassicyRadioInput`, `ClassicySlider`,
   `ClassicyListBox`), the props land on the wrapper when a label is shown and
@@ -1889,7 +1902,10 @@ scope. It validates the package against `ClassicyAppearancePackageSchema`
 as a `ClassicyAppearance` error and not registered. A valid one has its CSS
 written to `<style id="classicy-appearance-<id>">` (§1, "Cascade layers") and
 is stored; re-registering an id replaces the package and its stylesheet in
-place. Read the registry with `getClassicyAppearancePackage(id)`,
+place. `unregisterClassicyAppearancePackage(id)` removes a package and its
+stylesheet (it returns whether one was registered); a store whose
+`packageId` still names it resolves as for any unregistered id until it
+switches. Read the registry with `getClassicyAppearancePackage(id)`,
 `listClassicyAppearancePackages()` (registration order),
 `subscribeClassicyAppearancePackages(listener)`, or the hook
 `useClassicyAppearancePackages()`.
@@ -1978,6 +1994,11 @@ registerClassicyAppearancePackage({
 })
 ```
 
+`decorate` must be a pure function of `(component, state)`: its result is
+memoized on the component's state classes and the package, so anything else
+it reads (the active theme, the store, the time) goes stale until one of
+those changes.
+
 **The hook.** `useClassicyAppearance(component, state, ref?)` returns
 `{ className, style?, attrs, emit }`:
 
@@ -2001,8 +2022,9 @@ Platinum.
 
 **The 16 events.** `mount`, `unmount`, `press`, `release`, `click`, `open`,
 `close`, `focus`, `blur`, `collapse`, `expand`, `zoom`, `select`, `change`,
-`dragStart`, `dragEnd` (`ClassicyAppearanceEvent`). Which component emits
-which, with what `detail`, is in the table below.
+`dragStart`, `dragEnd` (`ClassicyAppearanceEvent`, derived from the frozen
+`CLASSICY_APPEARANCE_EVENTS` list). Which component emits which, with what
+`detail`, is in the table below.
 
 **Decorations.** A handler that returns a decoration (even `{}`) replaces the
 emitted one; returning nothing (`void`) keeps it. So `press` can return a
@@ -2026,19 +2048,24 @@ plays a sound leaves the decoration alone. Further:
 **Precedence on the root.** Components merge a decoration with their own
 attributes and the consumer's passthrough props (§4.0.1):
 
-- **className:** the root class, then the package's (in the state classes'
-  slot), then the component's modifier classes, then the consumer's
-  `className`. `MenuItem` keeps its old slot, after the item's own
+- **className:** the package's class directly follows the state classes
+  (the hook returns them together), and the consumer's `className` comes
+  last. The component's own modifier classes sit before or after that pair
+  depending on the component (a window's type class and the Slider's
+  `classicySliderHighlighted` come before it); class order has no effect on
+  the cascade. `MenuItem` keeps its old slot, after the item's own
   `className`.
 - **style:** the component's own, then the package's, then the consumer's
   `style`. For `ClassicyWindow`, `ClassicyIcon`, `ClassicyDesktopIcon` and
   `ClassicyControlStrip`, position, geometry and stacking stay the
-  component's: the window protects exactly `width`, `left`, `top` and
-  `height` and drops `zIndex`; a package's `transform`, `margin`, `right`,
-  `bottom`, `maxWidth` and the like do apply. The control strip's two position
-  custom properties (`--classicy-control-strip-bottom` and the edge offset)
-  are its own, but a package's inline `bottom`/`left` does apply and beats
-  the SCSS.
+  component's: the window protects exactly `width`, `height`, `left`,
+  `top`, `minWidth` and `minHeight` and drops `zIndex`; a package's
+  `transform`, `margin`, `right`, `bottom`, `maxWidth` and the like do apply.
+  The control strip's two position custom properties
+  (`--classicy-control-strip-bottom` and `--classicy-control-strip-top-inset`)
+  are its own: a package's style never sets them, in the default position
+  included (a consumer `style` still may), but a package's inline
+  `bottom`/`left` does apply and beats the SCSS.
 - **attrs:** the package's `data-*` first, so the component's own attributes
   always win.
 
@@ -2050,8 +2077,8 @@ the active sound pack apply as for any other sound. It works only inside a
 handler; called anywhere else it logs a `ClassicyAppearance` warning and does
 nothing.
 
-**`detail.input`.** `"pointer" | "keyboard"`: how the press behind the event
-was made. It is present only on events a component emits from both a pointer
+**`detail.input`.** `"pointer" | "keyboard"` (the `ClassicyAppearanceInput`
+type): how the press behind the event was made. It is present only on events a component emits from both a pointer
 path and a keyboard path, merged into the detail (or `{ input }` where the
 event has no other detail), so a package can react to one path only. Every
 user gesture with a keyboard path emits from it. Rules:
@@ -2060,9 +2087,14 @@ user gesture with a keyboard path emits from it. Rules:
 - A `change` produced by text entry (Input) or by file selection or drop
   (FileInput) never carries `input`. A context-menu paste or a text drop is
   still text entry.
-- It comes from the last press (pointer down, mouse down or key down; three
-  passive capture listeners on `document`, installed once per realm by the
-  hook). A `close` with no press behind it reports the latest press.
+- It comes from the last press or release: pointer down or up, mouse down
+  or up, or a key down other than a bare modifier (Shift, Control, Alt,
+  Meta, CapsLock and the like), through five passive capture listeners on
+  `document`, installed once per realm by the hook. So a key pressed while
+  the mouse is held does not make the release read as keyboard input, and a
+  Shift- or Control-click reads as pointer input. A `close` with no press
+  behind it reports the latest press. Handlers that only a pointer can reach
+  (Placard's mouse down and up, MenuItem's hover) pass `"pointer"` outright.
 
 **Events per component.** The decoration lands on the root listed. "States"
 are exactly the state classes the component already emitted; states shown on
@@ -2090,7 +2122,7 @@ inner elements (rows, tab buttons, items) stay there.
 | Alert | `div.classicyAlert` (the body inside the alert's window) | none | open (once per mount); close `{ buttonId, input }` (the button that dismissed it: click, Return, Escape, ⌘.) |
 | Menu | the menu's root `<ul>` (its classes come from `navClass`; a submenu is its own Menu) | none | open/close `{ itemId, input }` when its open submenu changes |
 | MenuItem | `li.classicyMenuItem` | disabled, open | press `{ itemId, input }` (a leaf chosen: click or Return), release `{ itemId, input }` (that leaf's flash ends), open `{ itemId, input }` (a submenu opened by click or Return), focus `{ itemId, input }`, blur `{ itemId, input }` |
-| DesktopIcon | `div.classicyDesktopIcon` | selected, open, dragging | select `{ input }`, open `{ input }` (double-click, Enter/Space), dragStart/dragEnd (pointer only) |
+| DesktopIcon | `div.classicyDesktopIcon` | selected, open, dragging | select `{ input }` (a press or click on the icon; the desktop's arrow keys and type-ahead), open `{ input }` (double-click, Enter/Space), dragStart/dragEnd (pointer only) |
 | Icon | `div.classicyIcon` | dragging, selected | select `{ selected }` (a click toggle), open `{ input }` (double-click, Enter/Space; only with an open action), dragStart/dragEnd (pointer only) |
 | ControlStrip | `div.classicyControlStrip` | collapsed, dragging | collapse/expand `{ input }` (tab or collapse box, click or keys, a drag on a collapsed tab); dragStart/dragEnd `{ kind: "resize" }` (tab drag) or `{ kind: "move" }` (Control-drag of the collapse box), pointer only |
 | Assistant | `div.classicyAssistant` | none | change `{ page, input }` (pager arrows, ←/→; not for a refused or no-op move) |
@@ -2154,10 +2186,14 @@ Menu and MenuItem:
 
 DesktopIcon and Icon:
 
-- DesktopIcon `select` is emitted when the selection changes (the icon
-  becomes selected, or a multiple selection collapses to it), once per
-  gesture. A click on the icon that already is the whole selection emits
-  nothing, so a double-click is `select, …, open`.
+- DesktopIcon `select` is emitted when a gesture changes the selection to
+  this icon (it becomes selected, or a multiple selection collapses to it),
+  once per gesture: a press or click on the icon (`input` from that press),
+  or a key press that selects it (the desktop's arrow keys and type-ahead,
+  `input: "keyboard"`), which the icon reports after the selection commits.
+  A click on the icon that already is the whole selection emits nothing, so
+  a double-click is `select, …, open`. A selection rectangle and a selection
+  set in code emit nothing; the `selected` state class is authoritative.
 - Icon `select { selected }` is emitted only by a click toggle. Selection
   set programmatically (after a positional or file drag) emits nothing; the
   `selected` state class is authoritative.
@@ -2169,7 +2205,10 @@ DesktopIcon and Icon:
 
 **Platinum's hooks.** `platinumAppearanceHooks`
 (`src/Appearance/Platinum/hooks.ts`, exported) holds Platinum's feedback
-sounds and its menu-item flash. They play for exactly the causes and inputs
+sounds and its menu-item flash. It is the very object Platinum registers, so
+it is deeply frozen and read-only to the type checker; a package that builds
+on it composes a new object:
+`on: { ...platinumAppearanceHooks.on, Button: { ...platinumAppearanceHooks.on?.Button, press } }`. They play for exactly the causes and inputs
 that played them before the sounds moved out of the components. Sprite names
 are `ClassicySoundSpriteId`s, so a misspelled sprite fails the type check.
 
@@ -2222,7 +2261,9 @@ Behavior that follows from the move:
 
 Storybook shows the hook surface: every wired component's
 **AppearanceHooks** story renders it under the `storybook-probe` package
-(`storybook/.storybook/ClassicyAppearanceProbe.tsx`). Platinum's CSS is off
+(`storybook/.storybook/ClassicyAppearanceProbe.tsx`), which the probe
+registers on mount and unregisters on unmount, so no other story (the
+Appearance Manager's Packages tab included) lists it. Platinum's CSS is off
 there, every decorated root is outlined, and every event is logged in the
 Actions panel. Under the probe the window control boxes, menu dividers and
 the depressable `::after` geometry collapse, because that structure still

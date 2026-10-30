@@ -1,7 +1,13 @@
 import "@/Appearance/Platinum";
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@/__tests__/test-utils";
-import { getClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
+import {
+	type ClassicyAppearancePackage,
+	getClassicyAppearancePackage,
+	listClassicyAppearancePackages,
+	registerClassicyAppearancePackage,
+	unregisterClassicyAppearancePackage,
+} from "@/Appearance/ClassicyAppearancePackage";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 // The root vitest config has no `@sb` alias, so the Storybook helper is
@@ -9,7 +15,7 @@ import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyBu
 import { ClassicyAppearanceProbe } from "../../storybook/.storybook/ClassicyAppearanceProbe";
 
 // The Storybook probe package (storybook/.storybook/ClassicyAppearanceProbe):
-// it registers at module scope, switches the store to itself while mounted,
+// it registers itself and switches the store to itself only while mounted,
 // outlines every decorated root and logs every event to the Actions panel.
 // `action` is replaced by a recorder, so "logs" can be asserted. The root
 // workspace has no `storybook` dependency: the probe's "storybook/actions"
@@ -47,10 +53,54 @@ const packageId = () =>
 	useAppManager.getState().System.Manager.Appearance.packageId;
 
 describe("ClassicyAppearanceProbe (Storybook)", () => {
-	it("registers the probe package", () => {
+	it("registers the probe package only while it is mounted", () => {
+		const ids = () => listClassicyAppearancePackages().map(({ id }) => id);
+		// Importing the probe registers nothing, so the Packages tab of any
+		// other story in the same iframe never lists it.
+		expect(ids()).not.toContain("storybook-probe");
+		const { unmount } = render(
+			<ClassicyAppearanceProbe>
+				<span />
+			</ClassicyAppearanceProbe>,
+		);
 		const probe = getClassicyAppearancePackage("storybook-probe");
-		expect(probe).toBeDefined();
 		expect(probe?.css.startsWith("@layer classicy.package")).toBe(true);
+		expect(
+			document.getElementById("classicy-appearance-storybook-probe"),
+		).not.toBeNull();
+		unmount();
+		expect(ids()).not.toContain("storybook-probe");
+		expect(
+			document.getElementById("classicy-appearance-storybook-probe"),
+		).toBeNull();
+		expect(ids()).toContain("platinum");
+	});
+
+	it("restores a package registered under its id before it mounted", () => {
+		const platinum = getClassicyAppearancePackage(
+			"platinum",
+		) as ClassicyAppearancePackage;
+		const earlier: ClassicyAppearancePackage = {
+			...platinum,
+			id: "storybook-probe",
+			name: "Earlier",
+			css: "",
+			defaults: { ...platinum.defaults, package: "storybook-probe" },
+			presets: [],
+			hooks: undefined,
+		};
+		registerClassicyAppearancePackage(earlier);
+		const { unmount } = render(
+			<ClassicyAppearanceProbe>
+				<span />
+			</ClassicyAppearanceProbe>,
+		);
+		expect(getClassicyAppearancePackage("storybook-probe")?.name).toBe(
+			"Storybook Probe",
+		);
+		unmount();
+		expect(getClassicyAppearancePackage("storybook-probe")).toBe(earlier);
+		unregisterClassicyAppearancePackage("storybook-probe");
 	});
 
 	it("activates on mount and restores platinum on unmount", () => {

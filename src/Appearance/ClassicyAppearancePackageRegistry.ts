@@ -83,6 +83,19 @@ export function registerClassicyAppearancePackage(
 	publish();
 }
 
+/**
+ * Remove a registered package and its stylesheet. Returns whether one was
+ * registered under `id`. A store whose `packageId` still names it resolves
+ * as for any unregistered id (`getRegisteredClassicyAppearancePackageOrDefault`)
+ * until it switches. Registering the package again appends it at the end.
+ */
+export function unregisterClassicyAppearancePackage(id: string): boolean {
+	if (!registry.delete(id)) return false;
+	injectClassicyAppearanceStyles(id, "");
+	publish();
+	return true;
+}
+
 export const getClassicyAppearancePackage = (
 	id: string,
 ): ClassicyAppearancePackage | undefined => registry.get(id);
