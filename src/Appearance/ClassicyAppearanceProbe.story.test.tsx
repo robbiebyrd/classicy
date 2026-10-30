@@ -13,13 +13,26 @@ import { ClassicyAppearanceProbe } from "../../storybook/.storybook/ClassicyAppe
 // outlines every decorated root and logs every event to the Actions panel.
 // `action` is replaced by a recorder, so "logs" can be asserted. The root
 // workspace has no `storybook` dependency: the probe's "storybook/actions"
-// resolves from storybook/node_modules, so the mock names that file (a bare
-// "storybook/actions" here would register an id the probe never imports).
-const { logged } = vi.hoisted(() => ({
-	logged: [] as { name: string; detail: unknown }[],
-}));
+// resolves from the storybook workspace, so the mock resolves the id from
+// there too (a bare "storybook/actions" here would register an id the probe
+// never imports). Resolving through the package's `exports` keeps the test
+// independent of storybook's dist layout.
+const { logged, actionsId } = await vi.hoisted(async () => {
+	const { createRequire } = await import("node:module");
+	const { resolve } = await import("node:path");
+	// jsdom rewrites import.meta.url to an http URL; import.meta.dirname is
+	// the file's directory on disk.
+	const storybookWorkspace = resolve(
+		import.meta.dirname,
+		"../../storybook/package.json",
+	);
+	return {
+		logged: [] as { name: string; detail: unknown }[],
+		actionsId: createRequire(storybookWorkspace).resolve("storybook/actions"),
+	};
+});
 
-vi.mock("../../storybook/node_modules/storybook/dist/actions/index.js", () => ({
+vi.mock(actionsId, () => ({
 	action: (name: string) => (detail: unknown) => {
 		logged.push({ name, detail });
 	},

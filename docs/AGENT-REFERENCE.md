@@ -2191,7 +2191,7 @@ are `ClassicySoundSpriteId`s, so a misspelled sprite fails the type check.
 Everything else is unmapped (silent): MenuItem `blur` (no pack has a blur
 sprite), the Menu list's own `open`/`close` (a submenu opened by hover was
 silent before too), Placard `click`/`open`/`close`, RadioInput `change`, and
-every other component's events. The flash class and its keyframes
+every event the table above does not list. The flash class and its keyframes
 (`classicyMenuItemFlashKeyframes`) are in Platinum's `_Menu.scss`, in
 `classicy.package`.
 
@@ -2217,7 +2217,10 @@ Storybook shows the hook surface: every wired component's
 **AppearanceHooks** story renders it under the `storybook-probe` package
 (`storybook/.storybook/ClassicyAppearanceProbe.tsx`). Platinum's CSS is off
 there, every decorated root is outlined, and every event is logged in the
-Actions panel.
+Actions panel. Under the probe the window control boxes, menu dividers and
+the depressable `::after` geometry collapse, because that structure still
+lives in Platinum's look mixins (Part B ruling R10; follow-up story
+0088-sz9).
 
 ### Theme files (save / load)
 
