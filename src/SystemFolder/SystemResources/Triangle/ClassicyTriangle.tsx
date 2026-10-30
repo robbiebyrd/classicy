@@ -24,8 +24,9 @@ type ClassicyTriangleProps = {
 	onToggle?: (open: boolean) => void;
 	/**
 	 * `true` wraps the triangle in a focusable `role="button"` with
-	 * `aria-expanded`; `false` renders the bare SVG, for a parent row that
-	 * handles the toggling itself. Defaults to `true`.
+	 * `aria-expanded`; `false` renders the bare SVG, `aria-hidden`, for a
+	 * parent row that handles the toggling and carries the name itself.
+	 * Defaults to `true`.
 	 */
 	interactive?: boolean;
 	/** Extra class names: on the button wrapper, or on the SVG when not interactive. */
@@ -100,6 +101,10 @@ export const ClassicyTriangle: FunctionalComponent<ClassicyTriangleProps> = ({
 				!interactive && className,
 			)}
 			style={interactive ? undefined : style}
+			// Non-interactive, it is a decorative marker inside a row that owns
+			// the interaction and the name: hidden, so its <title> never joins
+			// that row's accessible name.
+			aria-hidden={interactive ? undefined : true}
 		>
 			<title>Toggle</title>
 			<polygon

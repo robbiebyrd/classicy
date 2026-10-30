@@ -1,6 +1,5 @@
-import path from "node:path";
-import * as sass from "sass";
 import { describe, expect, it, vi } from "vitest";
+import { compileScss, scssRule } from "@/__tests__/compiledScss";
 import { render } from "@/__tests__/test-utils";
 import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
 
@@ -50,35 +49,11 @@ vi.mock(
 	() => ({}),
 );
 
-// vitest's root is the repo root, and jsdom leaves import.meta.url as a
-// non-file URL, so resolve from the project root.
-const css = sass.compile(
-	path.resolve(
-		process.cwd(),
-		"src/SystemFolder/SystemResources/Alert/ClassicyAlert.scss",
-	),
-	{ style: "expanded" },
-).css;
+const css = compileScss(
+	"src/SystemFolder/SystemResources/Alert/ClassicyAlert.scss",
+);
 
-const rule = (selector: string): Record<string, string> => {
-	const match = css.match(
-		new RegExp(
-			`^${selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} \\{\\n([^}]*)\\n\\}`,
-			"m",
-		),
-	);
-	if (!match) throw new Error(`rule not found: ${selector}`);
-	const declarations: Record<string, string> = {};
-	for (const line of match[1].split("\n")) {
-		const colon = line.indexOf(":");
-		if (colon === -1) continue;
-		declarations[line.slice(0, colon).trim()] = line
-			.slice(colon + 1)
-			.trim()
-			.replace(/;$/, "");
-	}
-	return declarations;
-};
+const rule = (selector: string) => scssRule(css, selector);
 
 describe("ClassicyAlert arrangement", () => {
 	it("gives every non-help button a data-classicy-role", () => {

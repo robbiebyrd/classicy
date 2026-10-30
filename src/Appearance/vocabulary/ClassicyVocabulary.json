@@ -13,6 +13,7 @@
 			"classicyLabelLeft",
 			"classicyLabelRight"
 		],
+		"Disclosure": ["classicyDisclosureLabelLeft"],
 		"FileBrowser": [
 			"classicyFileDragGhost",
 			"classicyFileDragging",
@@ -253,7 +254,7 @@
 			"WidgetSound"
 		],
 		"DesktopMenuBar": [],
-		"Disclosure": ["Header", "Inner", "InnerClose", "LabelLeft"],
+		"Disclosure": ["Header", "Inner", "InnerClose"],
 		"DriveSetupList": ["Grid", "Head", "Header", "Row", "Table"],
 		"FileBrowser": [
 			"Fill",
