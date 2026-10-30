@@ -252,6 +252,11 @@ describe("platinum.scss (compiled)", () => {
 		];
 		for (const [selector, content] of glyphs)
 			expect(rule(`${P} ${selector}`).props.content).toBe(content);
+		expect(
+			rule(
+				`${P} .classicyHyperCardPaletteEntry.selected .classicyHyperCardPaletteEntryMark::after`,
+			).props.content,
+		).toBe('" \\2713"');
 		expect([...css].every((ch) => ch.charCodeAt(0) < 0x80)).toBe(true);
 	});
 

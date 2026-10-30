@@ -303,6 +303,7 @@
 			"MissingPart",
 			"Palette",
 			"PaletteEntry",
+			"PaletteEntryMark",
 			"PaletteParts",
 			"PaletteTools",
 			"Part",
