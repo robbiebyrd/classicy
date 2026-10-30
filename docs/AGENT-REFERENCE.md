@@ -1037,6 +1037,16 @@ A `captionStyle`'s colors reach the cue as custom properties, not inline
 `.quickTimePlayerCaptions.quickTimePlayerCaptionsCustomStyle` in
 `QuickTimeCaptionsOverlay.scss`.
 
+That rule sits in `classicy.base`, so the end user's caption colors no
+longer carry inline precedence. Host CSS in `classicy.user`, or unlayered,
+overrides them: `.quickTimePlayerCaptions { color: yellow }` there wins over
+the viewer's chosen foreground. Caption colors are an accessibility
+preference, so a host should not restyle `.quickTimePlayerCaptions` color or
+background unless it means to override the viewer. To theme captions and
+still honor a `captionStyle`, select
+`.quickTimePlayerCaptions:not(.quickTimePlayerCaptionsCustomStyle)` (the
+class is set only when a `captionStyle` is passed).
+
 `QuickTimeVideoEmbed` also takes `options` (passed to `react-player` as its
 `config`) and the media callbacks `onReady` (ready to play), `onWaiting`
 (stalled, waiting for data) and `onPlaying` (playback started or resumed).
