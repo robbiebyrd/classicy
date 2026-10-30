@@ -21,17 +21,32 @@ export interface ParsedKeyboardShortcut {
 	key: string;
 }
 
-const MODIFIER_GLYPHS = {
+/**
+ * The one table of modifier glyphs (HIGOS8 Ch. 4): every place that draws a
+ * shortcut — `formatKeyboardShortcut`, `keyboardShortcutParts`,
+ * `keyboardShortcutFromEvent` and `ClassicyKbd` — reads it.
+ */
+export const CLASSICY_MODIFIER_GLYPHS = {
 	control: "⌃",
 	option: "⌥",
 	shift: "⇧",
 	command: "⌘",
 } as const;
 
-// Each modifier's recognized textual/glyph spellings. Order here is also the
-// canonical HIG display order (Control, Option, Shift, Command).
+/** A modifier key's name: `control`, `option`, `shift` or `command`. */
+export type ClassicyModifierName = keyof typeof CLASSICY_MODIFIER_GLYPHS;
+
+/** The canonical HIG display order of the modifiers: ⌃ ⌥ ⇧ ⌘. */
+export const CLASSICY_MODIFIER_ORDER: readonly ClassicyModifierName[] = [
+	"control",
+	"option",
+	"shift",
+	"command",
+];
+
+// Each modifier's recognized textual/glyph spellings, in canonical order.
 const MODIFIER_PATTERNS: ReadonlyArray<{
-	flag: keyof typeof MODIFIER_GLYPHS;
+	flag: ClassicyModifierName;
 	re: RegExp;
 }> = [
 	{ flag: "control", re: /⌃|\bcontrol\b|\bctrl\b/gi },
@@ -74,18 +89,31 @@ export const parseKeyboardShortcut = (
 	return result;
 };
 
+// The modifiers a parsed shortcut (or a held-key record) sets, in order.
+const setModifiers = (
+	held: Readonly<Record<ClassicyModifierName, boolean>>,
+): ClassicyModifierName[] =>
+	CLASSICY_MODIFIER_ORDER.filter((name) => held[name]);
+
+// A run of modifier glyphs, in canonical order: ["shift", "command"] -> "⇧⌘".
+const modifierGlyphs = (names: readonly ClassicyModifierName[]): string =>
+	names.map((name) => CLASSICY_MODIFIER_GLYPHS[name]).join("");
+
+/**
+ * The modifiers a shortcut sets, in canonical order:
+ * "Ctrl+Cmd+S" -> ["control", "command"], "F1" -> [].
+ */
+export const keyboardShortcutModifiers = (
+	raw: string | undefined,
+): ClassicyModifierName[] => setModifiers(parseKeyboardShortcut(raw));
+
 /**
  * Normalize a shortcut string to its platinum display form, e.g.
  * "Cmd+Shift+S" -> "⇧⌘S", "⌘N" -> "⌘N", "F1" -> "F1". Idempotent.
  */
 export const formatKeyboardShortcut = (raw: string | undefined): string => {
 	const p = parseKeyboardShortcut(raw);
-	const glyphs =
-		(p.control ? MODIFIER_GLYPHS.control : "") +
-		(p.option ? MODIFIER_GLYPHS.option : "") +
-		(p.shift ? MODIFIER_GLYPHS.shift : "") +
-		(p.command ? MODIFIER_GLYPHS.command : "");
-	return glyphs + p.key;
+	return modifierGlyphs(setModifiers(p)) + p.key;
 };
 
 /**
@@ -296,13 +324,10 @@ export const isFunctionKey = (key: string): boolean =>
 export const keyboardShortcutParts = (raw: string | undefined): string[] => {
 	const p = parseKeyboardShortcut(raw);
 	if (!p.key) return [];
-	const parts: string[] = [];
-	if (p.control) parts.push(MODIFIER_GLYPHS.control);
-	if (p.option) parts.push(MODIFIER_GLYPHS.option);
-	if (p.shift) parts.push(MODIFIER_GLYPHS.shift);
-	if (p.command) parts.push(MODIFIER_GLYPHS.command);
-	parts.push(p.key);
-	return parts;
+	return [
+		...setModifiers(p).map((name) => CLASSICY_MODIFIER_GLYPHS[name]),
+		p.key,
+	];
 };
 
 /** Is the host a Mac? See `keyboardShortcutFromEvent` for why it matters. */
@@ -336,13 +361,11 @@ export const keyboardShortcutFromEvent = (
 	if (key === "space") display = "Space";
 	else if (key.length === 1 || isFunctionKey(key)) display = key.toUpperCase();
 	else display = e.key;
-	const command = e.metaKey || (!mac && e.ctrlKey);
-	const control = mac && e.ctrlKey;
-	return (
-		(control ? MODIFIER_GLYPHS.control : "") +
-		(e.altKey ? MODIFIER_GLYPHS.option : "") +
-		(e.shiftKey ? MODIFIER_GLYPHS.shift : "") +
-		(command ? MODIFIER_GLYPHS.command : "") +
-		display
-	);
+	const held: Record<ClassicyModifierName, boolean> = {
+		control: mac && e.ctrlKey,
+		option: e.altKey,
+		shift: e.shiftKey,
+		command: e.metaKey || (!mac && e.ctrlKey),
+	};
+	return modifierGlyphs(setModifiers(held)) + display;
 };

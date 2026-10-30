@@ -72,11 +72,16 @@ describe("ClassicyPopUpMenu", () => {
 		expect(within(listbox).getAllByRole("option")).toHaveLength(3);
 		const current = within(listbox).getByRole("option", { name: "Banana" });
 		expect(current).toHaveAttribute("aria-selected", "true");
-		expect(current).toHaveTextContent("✓");
+		// The check is package look (`.classicyPopUpMenuCheck.checked::before`):
+		// the gutter carries the state class and no text.
+		const check = (option: HTMLElement) =>
+			option.querySelector(".classicyPopUpMenuCheck");
+		expect(check(current)).toHaveClass("checked");
+		expect(check(current)?.textContent).toBe("");
 		// Non-current items carry no checkmark.
 		expect(
-			within(listbox).getByRole("option", { name: "Apple" }),
-		).not.toHaveTextContent("✓");
+			check(within(listbox).getByRole("option", { name: "Apple" })),
+		).not.toHaveClass("checked");
 	});
 
 	it("selecting an option updates the value and fires onChangeFunc with target.value", async () => {
