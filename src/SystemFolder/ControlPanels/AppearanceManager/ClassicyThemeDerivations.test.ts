@@ -5,10 +5,15 @@ import platinumJson from "@/Appearance/Platinum/platinum.json";
 import type { ClassicyThemeMeasurements } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
 	CLASSICY_THEME_DERIVATIONS,
+	CLASSICY_THEME_DERIVED_VARS,
 	classicyThemeDerivations,
 	px3,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeDerivations";
-import { classicyMeasurementVars } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
+import {
+	CLASSICY_THEME_NON_MEASUREMENT_VARS,
+	classicyMeasurementVars,
+	isReservedClassicyThemeVar,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 
 describe("CLASSICY_THEME_DERIVATIONS", () => {
 	it("has 35 unique cssVars, each starting with --", () => {
@@ -27,16 +32,25 @@ describe("CLASSICY_THEME_DERIVATIONS", () => {
 		}
 	});
 
-	it("no derivation name is a measurement input the Platinum defaults emit", () => {
-		// Re-run when a package (Part H) adds measurement families.
+	it("no reserved name is a measurement input the Platinum defaults emit", () => {
+		// Re-run when a package (Part H) adds measurement families. Covers the
+		// named derivations, the earlier derived variables and the palette,
+		// font and desktop variables: a core input with a reserved name would
+		// be skipped by the walker, silently.
 		const inputs = Object.keys(
 			classicyMeasurementVars(
 				platinumJson.defaults.measurements as ClassicyThemeMeasurements,
 			),
 		);
 		expect(inputs.length).toBeGreaterThan(0);
-		const derived = CLASSICY_THEME_DERIVATIONS.map((d) => d.cssVar);
-		expect(derived.filter((name) => inputs.includes(name))).toEqual([]);
+		const reserved = [
+			...CLASSICY_THEME_DERIVATIONS.map((d) => d.cssVar),
+			...CLASSICY_THEME_DERIVED_VARS,
+			...CLASSICY_THEME_NON_MEASUREMENT_VARS,
+		];
+		expect(reserved.every(isReservedClassicyThemeVar)).toBe(true);
+		expect(reserved.filter((name) => inputs.includes(name))).toEqual([]);
+		expect(inputs.filter(isReservedClassicyThemeVar)).toEqual([]);
 	});
 
 	it("every file a doc names as a reader reads the variable", () => {

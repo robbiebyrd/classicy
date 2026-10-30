@@ -149,13 +149,92 @@ const kebab = (name: string): string =>
 // Collisions already reported, so a re-render never repeats a warning.
 const reportedCollisions = new Set<string>();
 
-// Every variable `getThemeVars` derives after the inputs (the earlier derived
-// variables and the named derivations): reserved, so a package measurement
-// never makes one only to be silently replaced.
-const RESERVED_DERIVATION_NAMES: ReadonlySet<string> = new Set([
+/**
+ * The variables `getThemeVars` sets from the theme's palette, typography and
+ * desktop: everything it emits that is neither a measurement input nor
+ * derived from one. They are set after the inputs, so they are reserved with
+ * the derived names (`isReservedClassicyThemeVar`): a package measurement
+ * that would make one (`desktop.iconSize` → `--desktop-icon-size`) could
+ * never take effect. A test fails when `getThemeVars` emits a variable that
+ * is in none of the reserved lists.
+ */
+export const CLASSICY_THEME_NON_MEASUREMENT_VARS: readonly string[] = [
+	"--color-black",
+	"--color-white",
+	"--color-alert",
+	"--color-error",
+	"--color-system-01",
+	"--color-system-02",
+	"--color-system-03",
+	"--color-system-04",
+	"--color-system-05",
+	"--color-system-06",
+	"--color-system-07",
+	"--color-theme-01",
+	"--color-theme-02",
+	"--color-theme-03",
+	"--color-theme-04",
+	"--color-theme-05",
+	"--color-theme-06",
+	"--color-theme-07",
+	"--color-window-border",
+	"--color-window-border-outset",
+	"--color-window-border-inset",
+	"--color-window-frame",
+	"--color-window-title",
+	"--color-window-document",
+	"--color-outline",
+	"--color-select",
+	"--color-highlight",
+	"--header-font",
+	"--header-font-size",
+	"--body-font",
+	"--body-font-size",
+	"--ui-font",
+	"--ui-font-size",
+	"--mono-font",
+	"--mono-font-size",
+	"--digital-font",
+	"--digital-font-size",
+	"--desktop-icon-size",
+	"--desktop-icon-font-size",
+	"--desktop-background-image",
+	"--desktop-background-color",
+	"--desktop-background-repeat",
+	"--desktop-background-position",
+	"--desktop-background-size",
+];
+
+// Every variable `getThemeVars` sets after the inputs (the palette, font and
+// desktop variables, the earlier derived variables and the named
+// derivations): reserved, so a package measurement never makes one only to be
+// silently replaced.
+const RESERVED_THEME_VARS: ReadonlySet<string> = new Set([
+	...CLASSICY_THEME_NON_MEASUREMENT_VARS,
 	...CLASSICY_THEME_DERIVED_VARS,
 	...CLASSICY_THEME_DERIVATIONS.map((d) => d.cssVar),
 ]);
+
+/**
+ * True when `getThemeVars` sets `name` itself, after the measurement inputs:
+ * a palette, font or desktop variable (`CLASSICY_THEME_NON_MEASUREMENT_VARS`),
+ * an earlier derived variable (`CLASSICY_THEME_DERIVED_VARS`) or a named
+ * derivation (`CLASSICY_THEME_DERIVATIONS`). A package measurement whose
+ * variable (`classicyMeasurementVarName`) is reserved is skipped by
+ * `classicyMeasurementVars`, and is not an editable knob
+ * (`isThemeMetricFamilyTarget`).
+ */
+export const isReservedClassicyThemeVar = (name: string): boolean =>
+	RESERVED_THEME_VARS.has(name);
+
+/**
+ * The CSS variable a measurement makes: `--<family>-<key>`, kebab-cased
+ * (`controlStrip`, `cellHeight` → `--control-strip-cell-height`).
+ */
+export const classicyMeasurementVarName = (
+	family: string,
+	key: string,
+): string => `--${kebab(family)}-${kebab(key)}`;
 
 const reportOnce = (collision: string, message: string): void => {
 	if (reportedCollisions.has(collision)) return;
@@ -177,10 +256,12 @@ const reportOnce = (collision: string, message: string): void => {
  *   and `window.titleBarHeight`). The first wins: the core families are
  *   walked first, so a core input always wins, then package families in key
  *   order. Each collision is logged once.
- * - A leaf whose variable is a derived one (`CLASSICY_THEME_DERIVED_VARS`,
- *   e.g. `help.buttonWidth` → `--help-button-width`, or a named derivation in
- *   `CLASSICY_THEME_DERIVATIONS`, e.g. `menu.minWidth` → `--menu-min-width`)
- *   is skipped, logged once: the derived names are reserved.
+ * - A leaf whose variable `getThemeVars` sets itself
+ *   (`isReservedClassicyThemeVar`: a derived one, e.g. `help.buttonWidth` →
+ *   `--help-button-width`; a named derivation, e.g. `menu.minWidth` →
+ *   `--menu-min-width`; or a palette, font or desktop variable, e.g.
+ *   `desktop.iconSize` → `--desktop-icon-size`) is skipped, logged once: those
+ *   names are reserved.
  *
  * The variables derived from the inputs (frames, bevels, `--button-height`,
  * …) stay in `getThemeVars`, and the named proportions in
@@ -210,12 +291,12 @@ export function classicyMeasurementVars(
 			if (typeof n !== "number" || !CLASSICY_MEASUREMENT_NAME.test(key)) {
 				continue;
 			}
-			const name = `--${kebab(family)}-${kebab(key)}`;
+			const name = classicyMeasurementVarName(family, key);
 			const source = `${family}.${key}`;
-			if (RESERVED_DERIVATION_NAMES.has(name)) {
+			if (isReservedClassicyThemeVar(name)) {
 				reportOnce(
 					`${name}|${source}`,
-					`Measurement ${source} makes ${name}, a reserved derived variable; the derivation is used.`,
+					`Measurement ${source} makes ${name}, a reserved theme variable; getThemeVars sets its own value.`,
 				);
 				continue;
 			}
