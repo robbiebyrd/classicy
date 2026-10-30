@@ -120,6 +120,16 @@ describe("the Platinum appearance package", () => {
 		}
 	});
 
+	// The merge order core five → Platinum → package relies on this: the
+	// core five in platinum.json are the constant's values.
+	it("its core five equal CLASSICY_DEFAULT_THEME_METRICS", () => {
+		const { window, control, button, groupBox, layout } =
+			platinumJson.defaults.measurements;
+		expect({ window, control, button, groupBox, layout }).toEqual(
+			CLASSICY_DEFAULT_THEME_METRICS,
+		);
+	});
+
 	it("every built-in theme is filled with the default's knob families", () => {
 		for (const theme of getAllThemes()) {
 			for (const [family, keys] of Object.entries(
