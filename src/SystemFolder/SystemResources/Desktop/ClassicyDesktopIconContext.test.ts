@@ -62,6 +62,17 @@ describe("classicyDesktopIconGridPosition", () => {
 		expect(
 			classicyDesktopIconGridPosition(64, 16, 1, 0, "bottom-left"),
 		).toEqual([16, 560]));
+
+	// F 7.1 review: a viewport shorter than 8 × padding + one cell (272 px
+	// here) still gets one row, and that row stays below the menu bar's band
+	// (y ≥ 4 × padding) instead of landing at y = -8.
+	it.each([
+		"bottom-right",
+		"bottom-left",
+	] as const)("keeps a %s row on screen in a short viewport", (origin) => {
+		setViewport(1024, 200);
+		expect(classicyDesktopIconGridPosition(64, 16, 1, 0, origin)[1]).toBe(64);
+	});
 });
 
 describe("ClassicyDesktopIconCleanup", () => {

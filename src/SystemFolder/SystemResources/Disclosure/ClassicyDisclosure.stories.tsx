@@ -1,4 +1,5 @@
-import { mirroredParameters, StoryWindow } from "@sb/helpers";
+import { StoryWindow } from "@sb/helpers";
+import { mirroredParameters } from "@sb/mirrored";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { ClassicyDisclosure } from "./ClassicyDisclosure";
 

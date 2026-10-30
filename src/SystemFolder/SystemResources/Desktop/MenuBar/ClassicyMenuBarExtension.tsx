@@ -44,7 +44,9 @@ export interface ClassicyMenuBarExtensionProps {
  * region, and renders nothing when that region is not in the document — as
  * under an Appearance Package whose `layout.menuBar.placement` is `"window"`,
  * which draws no screen bar. It looks the region up again whenever the
- * placement changes, so it reappears when the bar does. The item
+ * package layout's placement changes, so it reappears when the bar does; a
+ * bar forced to `placement="screen"` under a window-placement package is not
+ * re-queried. The item
  * is a real `<button>`, so Enter and Space activate it. With `menuItems`, a
  * click drops a Platinum menu below the item, which closes on a selection or a
  * click outside.

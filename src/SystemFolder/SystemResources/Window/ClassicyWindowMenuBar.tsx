@@ -44,8 +44,8 @@ export type ClassicyWindowMenuBarProps = {
  * portals into the screen bar's extensions list) are not shown in window
  * placement. Window geometry still reserves the screen bar's 30 px top band
  * (`menuBarHeight` and `windowViewportFloor` in `ClassicyWindow.tsx`), so a
- * window is never placed or dragged into it; Part G replaces those constants
- * with the theme's `--menu-bar-height`.
+ * window is never placed or dragged into it. The band's height is that
+ * constant, not the theme's `--menu-bar-height`.
  */
 export const ClassicyWindowMenuBar: FunctionalComponent<
 	ClassicyWindowMenuBarProps

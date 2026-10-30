@@ -1,4 +1,5 @@
-import { desktopParameters, mirroredParameters, StoryApp } from "@sb/helpers";
+import { desktopParameters, StoryApp } from "@sb/helpers";
+import { mirroredParameters } from "@sb/mirrored";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useRef } from "react";
 import { fn } from "storybook/test";

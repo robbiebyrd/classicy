@@ -1,4 +1,5 @@
-import { mirroredParameters, StoryWindow } from "@sb/helpers";
+import { StoryWindow } from "@sb/helpers";
+import { mirroredParameters } from "@sb/mirrored";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { ClassicyCheckbox } from "@/SystemFolder/SystemResources/Checkbox/ClassicyCheckbox";
 import { ClassicyInput } from "@/SystemFolder/SystemResources/Input/ClassicyInput";
