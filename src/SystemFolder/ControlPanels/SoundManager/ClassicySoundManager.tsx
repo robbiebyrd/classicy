@@ -1,6 +1,7 @@
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import "./ClassicySoundManager.scss";
 import { type FC as FunctionalComponent, useCallback, useMemo } from "react";
+import { useClassicyAppIdentity } from "@/Appearance/ClassicyAppIdentity";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	type ClassicySoundInfo,
@@ -37,6 +38,11 @@ export const ClassicySoundManager: FunctionalComponent = () => {
 	const playerState = useSound();
 	const player = useSoundDispatch();
 
+	// Display only: the app's id, record and Quit keep APP_NAME and appIcon.
+	const identity = useClassicyAppIdentity(APP_ID, {
+		name: APP_NAME,
+		icon: appIcon,
+	});
 	const { aboutMenuItem, aboutWindow } = useClassicyAboutMenu(
 		APP_ID,
 		APP_NAME,
@@ -95,7 +101,7 @@ export const ClassicySoundManager: FunctionalComponent = () => {
 			id: `${APP_ID}_file`,
 			title: "File",
 			menuChildren: [
-				{ ...aboutMenuItem, title: `About ${APP_NAME}` },
+				{ ...aboutMenuItem, title: `About ${identity.name}` },
 				{
 					...closeWindowMenuItemHelper(`${APP_ID}_close_window`, () =>
 						windowClose(WINDOW_ID, quitAppHelper(APP_ID, APP_NAME, appIcon)),
@@ -133,9 +139,9 @@ export const ClassicySoundManager: FunctionalComponent = () => {
 		>
 			<ClassicyWindow
 				id={WINDOW_ID}
-				title={APP_NAME}
+				title={identity.name}
 				appId={APP_ID}
-				icon={appIcon}
+				icon={identity.icon}
 				closable={true}
 				resizable={false}
 				zoomable={false}
