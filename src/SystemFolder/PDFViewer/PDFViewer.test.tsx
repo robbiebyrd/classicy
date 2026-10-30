@@ -32,19 +32,10 @@ const dispatched = vi.hoisted((): ActionMessage[] => []);
 vi.mock(
 	"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils",
 	async (importOriginal) => {
-		const actual =
-			await importOriginal<
-				typeof import("@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils")
-			>();
-		const recording: typeof actual.dispatch = (action, trust) => {
-			dispatched.push(action);
-			actual.dispatch(action, trust);
-		};
-		return {
-			...actual,
-			dispatch: recording,
-			useAppManagerDispatch: () => recording,
-		};
+		const { recordingAppManagerUtils } = await import(
+			"@/__tests__/recordingAppManagerUtils"
+		);
+		return recordingAppManagerUtils(await importOriginal(), dispatched);
 	},
 );
 
