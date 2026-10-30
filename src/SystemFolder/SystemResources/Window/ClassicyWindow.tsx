@@ -1007,7 +1007,8 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	docMoveHandlerRef.current = (e: globalThis.MouseEvent) => {
 		promoteDragIfNeeded(e.clientX, e.clientY);
 		if (!isDraggingRef.current && !isResizingRef.current) return;
-		// Skip when mouse is still inside the window — the React onMouseMove handler covers that.
+		// Skip when mouse is still inside the window — the React onMouseMove
+		// handler covers that, emits included, so each move reports once.
 		if (windowRef.current?.contains(e.target as Node)) return;
 
 		if (isResizingRef.current) {
@@ -1016,6 +1017,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		}
 
 		if (isDraggingRef.current) {
+			emit("change", { kind: "move" });
 			setMoving(true, [
 				e.clientX - clickPositionRef.current[0],
 				e.clientY - clickPositionRef.current[1],

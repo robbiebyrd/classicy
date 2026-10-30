@@ -1,7 +1,9 @@
 // Side-effect import: registers the Sound Control Strip module, which needs
 // this provider's context.
 import "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundControlStripModule";
-// Side-effect import: registers the Platinum sound pack (until Part B moves it).
+// Side-effect import: registers the Platinum sound pack, which lives with the
+// Platinum package's assets. The provider loads it for any sprite the active
+// pack lacks, so it must be registered whichever module loads first.
 import "@/Appearance/Platinum/assets/sounds/platinum";
 import {
 	type FC as FunctionalComponent,

@@ -267,6 +267,42 @@ describe("ClassicyWindow appearance", () => {
 		]);
 	});
 
+	// The document listener carries a drag while the pointer is outside the
+	// window; it reports each step as the window's own handler does.
+	it("emits change { kind: move } while the pointer is outside the window", () => {
+		renderWindow();
+		const title = part("classicyWindowTitle");
+		fireEvent.mouseDown(title, { clientX: 100, clientY: 60 });
+		fireEvent.mouseMove(document.body, { clientX: 140, clientY: 90 });
+		fireEvent.mouseMove(document.body, { clientX: 160, clientY: 100 });
+		fireEvent.mouseUp(document.body, { clientX: 160, clientY: 100 });
+		expect(
+			emitted().filter((e) =>
+				["dragStart", "change", "dragEnd"].includes(e.event),
+			),
+		).toEqual([
+			{ event: "dragStart", detail: { kind: "move" } },
+			{ event: "change", detail: { kind: "move" } },
+			{ event: "change", detail: { kind: "move" } },
+			{ event: "dragEnd", detail: { kind: "move" } },
+		]);
+	});
+
+	// A move over the window reaches both its own handler and, by bubbling,
+	// the document listener; only one of them reports it.
+	it("emits one change per move while the pointer is over the window", () => {
+		renderWindow();
+		const title = part("classicyWindowTitle");
+		fireEvent.mouseDown(title, { clientX: 100, clientY: 60 });
+		fireEvent.mouseMove(document.body, { clientX: 110, clientY: 60 });
+		const before = emitted().filter((e) => e.event === "change").length;
+		fireEvent.mouseMove(title, { clientX: 120, clientY: 64 });
+		expect(emitted().filter((e) => e.event === "change")).toHaveLength(
+			before + 1,
+		);
+		fireEvent.mouseUp(title, { clientX: 120, clientY: 64 });
+	});
+
 	it("emits no drag for a bare title-bar click", () => {
 		renderWindow();
 		click(part("classicyWindowTitle"), { clientX: 100, clientY: 60 });
