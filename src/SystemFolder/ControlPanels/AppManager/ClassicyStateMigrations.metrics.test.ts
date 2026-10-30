@@ -90,31 +90,30 @@ describe("migrateClassicyState — theme metrics", () => {
 	it("heals knob families from the package defaults", () => {
 		const migrated = migrateClassicyState(strippedState());
 		const appearance = migrated.System.Manager.Appearance;
+		const defaults = DefaultAppManagerState.System.Manager.Appearance;
+		const vars = (theme: ClassicyTheme | undefined) =>
+			theme && (getThemeVars(theme) as Record<string, string>);
+		// The stored shape: the core five only.
 		expect(appearance.activeTheme.measurements.pager).toBeUndefined();
-		expect(
-			(getThemeVars(appearance.activeTheme) as Record<string, string>)[
-				"--pager-cell-height"
-			],
-		).toBe("36px");
-		for (const theme of appearance.availableThemes ?? []) {
+		expect(appearance.customThemes?.[0]?.measurements.balloonHelp).toBe(
+			undefined,
+		);
+		// What a reader sees: every variable of the unstripped theme it
+		// came from, the knob families included.
+		expect(vars(appearance.activeTheme)).toEqual(vars(defaults.activeTheme));
+		expect(vars(appearance.activeTheme)?.["--pager-cell-height"]).toBe("36px");
+		(appearance.availableThemes ?? []).forEach((theme, i) => {
 			expect(Object.keys(theme.measurements), theme.id).toEqual(
 				Object.keys(CLASSICY_DEFAULT_THEME_METRICS),
 			);
-			expect(
-				(getThemeVars(theme) as Record<string, string>)[
-					"--control-strip-cell-height"
-				],
-				theme.id,
-			).toBe("22px");
-		}
-		const custom = appearance.customThemes?.[0];
-		expect(custom?.measurements.balloonHelp).toBeUndefined();
-		expect(
-			custom &&
-				(getThemeVars(custom) as Record<string, string>)[
-					"--balloon-help-tail-width"
-				],
-		).toBe("20px");
+			expect(vars(theme), theme.id).toEqual(
+				vars(defaults.availableThemes?.[i]),
+			);
+		});
+		// The custom theme is the active theme under another id and name.
+		expect(vars(appearance.customThemes?.[0])).toEqual(
+			vars(defaults.activeTheme),
+		);
 	});
 
 	it("a host package registered after the store loads gets its own knob value", () => {

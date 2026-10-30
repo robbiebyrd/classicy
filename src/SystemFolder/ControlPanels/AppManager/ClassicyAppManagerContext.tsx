@@ -17,6 +17,7 @@ import { mergeClassicyState } from "@/SystemFolder/ControlPanels/AppManager/Clas
 import {
 	useAppManager,
 	wasHydratedFromStorage,
+	withoutDefaultActiveThemeMeasurements,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicySoundManagerProvider } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerProvider";
 import { ClassicyAnalyticsPrefixContext } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
@@ -86,8 +87,13 @@ export const ClassicyAppManagerProvider: FunctionalComponent<
 	useEffect(() => {
 		if (seeded.current || !defaultState || wasHydratedFromStorage()) return;
 		seeded.current = true;
+		// Over the live state with its default knob families dropped, as the
+		// load path merges saved state: the merge is deep (H-R17).
 		useAppManager.setState((s) =>
-			mergeClassicyState(s as ClassicyStore, defaultState),
+			mergeClassicyState(
+				withoutDefaultActiveThemeMeasurements(s as ClassicyStore),
+				defaultState,
+			),
 		);
 	}, [defaultState]);
 
