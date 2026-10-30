@@ -50,6 +50,11 @@ import {
 	type ClassicyFileSystemTree,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { DefaultFSContent } from "@/SystemFolder/SystemResources/File/DefaultClassicyFileSystem";
+import {
+	type ClassicyLogEntry,
+	registerClassicyLogSink,
+	unregisterClassicyLogSink,
+} from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 // Side-effect imports: register the Movie Player and Finder reducers, as the
 // package barrel does in the real app.
 import "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerContext";
@@ -520,6 +525,205 @@ describe("useClassicyFileSystem derived folders by display name", () => {
 		expect(fs().resolve(MEDIA_PLAYER_PATH)._creator).toBe(
 			MoviePlayerAppInfo.id,
 		);
+	});
+});
+
+// Story 0096: a user's file in a derived folder is never replaced by an app
+// of the same name; only the seeded placeholders give way.
+describe("useClassicyFileSystem keeps user files in the derived folders", () => {
+	const platinum = getClassicyAppearancePackage(
+		PLATINUM_APPEARANCE_PACKAGE_ID,
+	) as ClassicyAppearancePackage;
+	const RENAMING_PACKAGE_ID = "test-0096-rename";
+	const STORAGE_KEY = "classicyStorage";
+	const APPLICATIONS = "Macintosh HD:Applications";
+	const EXTENSIONS = "Macintosh HD:System Folder:Extensions";
+	const SINK_ID = "derived-folder-user-files";
+	let entries: ClassicyLogEntry[];
+	const warnings = () => entries.filter((entry) => entry.level === "warn");
+
+	const resetToPlatinum = () => {
+		resetClassicyAppearancePackagesForTests();
+		registerClassicyAppearancePackage(platinum);
+		useAppManager.setState(DefaultAppManagerState, true);
+	};
+
+	const addAppIcon = (id: string, name: string) =>
+		act(() => {
+			dispatch({
+				type: "ClassicyDesktopIconAdd",
+				app: { id, name, icon: `/icons/${id}.png` },
+				kind: "app_shortcut",
+			});
+		});
+
+	const addExtension = (id: string, name: string) =>
+		act(() => {
+			dispatch({
+				type: "ClassicyAppLoad",
+				app: { id, name, icon: `/icons/${id}.png` },
+				extension: true,
+			});
+		});
+
+	const switchPackage = (packageId: string) =>
+		act(() =>
+			dispatch({ type: "ClassicyDesktopChangeAppearancePackage", packageId }),
+		);
+
+	/** Saves, then reloads: a new file-system epoch re-reads localStorage. */
+	const saveAndReload = (fs: () => ClassicyFileSystem) => {
+		fs().flushNow();
+		act(() => {
+			dispatch({ type: "ClassicyDesktopFileSystemVersionBump" });
+		});
+	};
+
+	const stored = () =>
+		JSON.parse(localStorage.getItem(STORAGE_KEY) as string)["Macintosh HD"];
+
+	beforeEach(() => {
+		// A previous case's debounced write would land on this case's storage.
+		flushClassicyFileSystemPendingForStorageKey(STORAGE_KEY);
+		localStorage.clear();
+		resetToPlatinum();
+		resetClassicyDerivedAppEntryNameWarnings();
+		registerTestAppsPackage(RENAMING_PACKAGE_ID, {
+			"TV.app": { name: "Television" },
+			"Clock.app": { name: "Timepiece" },
+		});
+		entries = [];
+		registerClassicyLogSink({
+			id: SINK_ID,
+			onLog: (entry) => entries.push(entry),
+		});
+		// The dev console mirror of the expected warnings; keep the output clean.
+		vi.spyOn(console, "warn").mockImplementation(() => {});
+	});
+
+	afterEach(() => {
+		unregisterClassicyLogSink(SINK_ID);
+		vi.restoreAllMocks();
+		resetToPlatinum();
+	});
+
+	it("keeps a user file named like an installed app across a rebuild, a save and a reload", () => {
+		const { result } = renderHook(() => useClassicyFileSystem());
+		const fs = () => result.current;
+		addAppIcon("TV.app", "TV");
+		addExtension("Clock.app", "Clock");
+		expect(fs().resolve(`${APPLICATIONS}:TV`)._creator).toBe("TV.app");
+		expect(fs().resolve(`${EXTENSIONS}:Clock`)._creator).toBe("Clock.app");
+
+		act(() => {
+			fs().writeFile(`${APPLICATIONS}:TV`, "my TV notes");
+			fs().writeFile(`${EXTENSIONS}:Clock`, "my clock notes");
+		});
+
+		const expectUserFilesKept = () => {
+			expect(fs().resolve(`${APPLICATIONS}:TV`)._data).toBe("my TV notes");
+			expect(fs().resolve(`${APPLICATIONS}:TV (TV.app)`)._creator).toBe(
+				"TV.app",
+			);
+			expect(fs().resolve(`${EXTENSIONS}:Clock`)._data).toBe("my clock notes");
+			expect(fs().resolve(`${EXTENSIONS}:Clock (Clock.app)`)._creator).toBe(
+				"Clock.app",
+			);
+		};
+		expectUserFilesKept();
+
+		saveAndReload(fs);
+		expect(stored().Applications.TV._data).toBe("my TV notes");
+		expect(stored()["System Folder"].Extensions.Clock._data).toBe(
+			"my clock notes",
+		);
+		expectUserFilesKept();
+
+		// One warning per folder, however many rebuilds ran.
+		expect(warnings().map((entry) => entry.message)).toEqual([
+			'App display name unusable in Applications; using "TV (TV.app)"',
+			'App display name unusable in Extensions; using "Clock (Clock.app)"',
+		]);
+	});
+
+	it("never loses a user file across a package switch and back", () => {
+		const { result } = renderHook(() => useClassicyFileSystem());
+		const fs = () => result.current;
+		addAppIcon("TV.app", "TV");
+		addExtension("Clock.app", "Clock");
+		act(() => {
+			fs().writeFile(`${APPLICATIONS}:TV`, "my TV notes");
+			fs().writeFile(`${EXTENSIONS}:Clock`, "my clock notes");
+		});
+
+		const expectUserFiles = () => {
+			expect(fs().resolve(`${APPLICATIONS}:TV`)._data).toBe("my TV notes");
+			expect(fs().resolve(`${EXTENSIONS}:Clock`)._data).toBe("my clock notes");
+			fs().flushNow();
+			expect(stored().Applications.TV._data).toBe("my TV notes");
+			expect(stored()["System Folder"].Extensions.Clock._data).toBe(
+				"my clock notes",
+			);
+		};
+		expectUserFiles();
+
+		// Renamed, the apps no longer collide with the user's files…
+		switchPackage(RENAMING_PACKAGE_ID);
+		expectUserFiles();
+		expect(fs().resolve(`${APPLICATIONS}:Television`)._creator).toBe("TV.app");
+		expect(fs().resolve(`${EXTENSIONS}:Timepiece`)._creator).toBe("Clock.app");
+		expect(fs().resolve(`${APPLICATIONS}:TV (TV.app)`)).toBeUndefined();
+
+		// …and back under their own names, they take the suffix form again.
+		switchPackage(PLATINUM_APPEARANCE_PACKAGE_ID);
+		expectUserFiles();
+		expect(fs().resolve(`${APPLICATIONS}:TV (TV.app)`)._creator).toBe("TV.app");
+		expect(fs().resolve(`${EXTENSIONS}:Clock (Clock.app)`)._creator).toBe(
+			"Clock.app",
+		);
+
+		saveAndReload(fs);
+		expectUserFiles();
+	});
+
+	it("marks Platinum's SimpleText and Calculator stand-ins as placeholders", () => {
+		const applications = DefaultFSContent["Macintosh HD"].Applications;
+		expect(applications.SimpleText._placeholder).toBe(true);
+		expect(applications.Calculator._placeholder).toBe(true);
+	});
+
+	it("hands the seeded SimpleText and Calculator placeholders to the real apps", () => {
+		const { result } = renderHook(() => useClassicyFileSystem());
+		addAppIcon("SimpleText.app", "SimpleText");
+		addAppIcon("Calculator.app", "Calculator");
+
+		const applications = result.current.resolve(APPLICATIONS);
+		expect(applications.SimpleText._creator).toBe("SimpleText.app");
+		expect(applications.Calculator._creator).toBe("Calculator.app");
+		expect(applications["SimpleText (SimpleText.app)"]).toBeUndefined();
+		expect(applications["Calculator (Calculator.app)"]).toBeUndefined();
+		expect(warnings()).toHaveLength(0);
+	});
+
+	it("hands the unmarked placeholders an older build stored to the real apps", () => {
+		// A returning visitor's tree, saved before placeholders were marked.
+		const tree = structuredClone(DefaultFSContent) as ClassicyFileSystemTree;
+		const legacy = tree["Macintosh HD"].Applications;
+		delete legacy.SimpleText._placeholder;
+		delete legacy.Calculator._placeholder;
+		localStorage.setItem(STORAGE_KEY, JSON.stringify(tree));
+
+		const { result } = renderHook(() => useClassicyFileSystem());
+		expect(stored().Applications.SimpleText._placeholder).toBeUndefined();
+		addAppIcon("SimpleText.app", "SimpleText");
+		addAppIcon("Calculator.app", "Calculator");
+
+		const applications = result.current.resolve(APPLICATIONS);
+		expect(applications.SimpleText._creator).toBe("SimpleText.app");
+		expect(applications.Calculator._creator).toBe("Calculator.app");
+		expect(applications["SimpleText (SimpleText.app)"]).toBeUndefined();
+		expect(applications["Calculator (Calculator.app)"]).toBeUndefined();
+		expect(warnings()).toHaveLength(0);
 	});
 });
 

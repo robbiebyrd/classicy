@@ -352,3 +352,168 @@ describe("buildApplicationsFolder display names", () => {
 		expect(apps["B/2"]).toBeUndefined();
 	});
 });
+
+// Story 0096: only placeholders give way to an app; a user's file never does.
+describe("withApplicationsFolder keeps static files, replacing only placeholders", () => {
+	const SINK_ID = "applications-folder-placeholders";
+	let entries: ClassicyLogEntry[];
+	const warnings = () => entries.filter((entry) => entry.level === "warn");
+
+	beforeEach(() => {
+		entries = [];
+		resetClassicyDerivedAppEntryNameWarnings();
+		registerClassicyLogSink({
+			id: SINK_ID,
+			onLog: (entry) => entries.push(entry),
+		});
+		// The dev console mirror of the expected warnings; keep the output clean.
+		vi.spyOn(console, "warn").mockImplementation(() => {});
+	});
+
+	afterEach(() => {
+		unregisterClassicyLogSink(SINK_ID);
+		vi.restoreAllMocks();
+	});
+
+	/** Platinum's seeded stand-in, exactly as builds before `_placeholder`
+	 *  stored it. */
+	const legacyPlaceholder = () => ({
+		_type: ClassicyFileSystemEntryFileType.File,
+		_mimeType: "text/plain",
+		_data: "File Contents",
+		_invisible: true,
+	});
+	const applicationsWith = (
+		statics: Record<string, unknown>,
+		icons: ClassicyStoreSystemDesktopManagerIcon[],
+	) =>
+		withApplicationsFolder(
+			{
+				_type: ClassicyFileSystemEntryFileType.Directory,
+				"Macintosh HD": {
+					_type: ClassicyFileSystemEntryFileType.Drive,
+					Applications: {
+						_type: ClassicyFileSystemEntryFileType.Directory,
+						...statics,
+					},
+				},
+			} as ClassicyFileSystemEntry,
+			icons,
+		)["Macintosh HD"].Applications;
+
+	it('keeps a user file named like an app, listing the app as "<own name> (<id>)"', () => {
+		const apps = applicationsWith(
+			{
+				TV: { _type: ClassicyFileSystemEntryFileType.TextFile, _data: "mine" },
+			},
+			[appIcon("TV.app", "TV")],
+		);
+
+		expect(apps.TV._data).toBe("mine");
+		expect(apps["TV (TV.app)"]._creator).toBe("TV.app");
+		expect(warnings()).toHaveLength(1);
+		expect(warnings()[0]).toMatchObject({
+			subsystem: "ClassicyFileSystem",
+			message: 'App display name unusable in Applications; using "TV (TV.app)"',
+			details: [{ appId: "TV.app", name: "TV" }],
+		});
+	});
+
+	it("suffixes both apps that share a user file's name", () => {
+		const apps = applicationsWith(
+			{
+				Twin: {
+					_type: ClassicyFileSystemEntryFileType.TextFile,
+					_data: "mine",
+				},
+			},
+			[appIcon("A.app", "Twin"), appIcon("B.app", "Twin")],
+		);
+
+		expect(apps.Twin._data).toBe("mine");
+		expect(apps["Twin (A.app)"]._creator).toBe("A.app");
+		expect(apps["Twin (B.app)"]._creator).toBe("B.app");
+		expect(warnings()).toHaveLength(2);
+	});
+
+	it('numbers the suffix form when a static file holds "<own name> (<id>)" too', () => {
+		const mine = (data: string) => ({
+			_type: ClassicyFileSystemEntryFileType.TextFile,
+			_data: data,
+		});
+		const apps = applicationsWith({ TV: mine("a"), "TV (TV.app)": mine("b") }, [
+			appIcon("TV.app", "TV"),
+		]);
+
+		expect(apps.TV._data).toBe("a");
+		expect(apps["TV (TV.app)"]._data).toBe("b");
+		expect(apps["TV (TV.app) 2"]._creator).toBe("TV.app");
+		expect(warnings()[0].message).toBe(
+			'App display name unusable in Applications; using "TV (TV.app) 2"',
+		);
+	});
+
+	it("lets a marked placeholder give way to its app", () => {
+		const apps = applicationsWith(
+			{
+				// Marked, a stand-in gives way whatever else it holds.
+				SimpleText: { ...legacyPlaceholder(), _data: "x", _placeholder: true },
+				Calculator: {
+					_type: ClassicyFileSystemEntryFileType.File,
+					_placeholder: true,
+				},
+			},
+			[
+				appIcon("SimpleText.app", "SimpleText"),
+				appIcon("Calculator.app", "Calculator"),
+			],
+		);
+
+		expect(apps.SimpleText._creator).toBe("SimpleText.app");
+		expect(apps.Calculator._creator).toBe("Calculator.app");
+		expect(apps["SimpleText (SimpleText.app)"]).toBeUndefined();
+		expect(apps["Calculator (Calculator.app)"]).toBeUndefined();
+		expect(warnings()).toHaveLength(0);
+	});
+
+	it("lets the unmarked SimpleText and Calculator placeholders older builds stored give way", () => {
+		const apps = applicationsWith(
+			{ SimpleText: legacyPlaceholder(), Calculator: legacyPlaceholder() },
+			[
+				appIcon("SimpleText.app", "SimpleText"),
+				appIcon("Calculator.app", "Calculator"),
+			],
+		);
+
+		expect(apps.SimpleText._creator).toBe("SimpleText.app");
+		expect(apps.Calculator._creator).toBe("Calculator.app");
+		expect(apps["SimpleText (SimpleText.app)"]).toBeUndefined();
+		expect(warnings()).toHaveLength(0);
+	});
+
+	it("keeps a placeholder-shaped file under any other name", () => {
+		const apps = applicationsWith({ Notes: legacyPlaceholder() }, [
+			appIcon("Notes.app", "Notes"),
+		]);
+
+		expect(apps.Notes._creator).toBeUndefined();
+		expect(apps.Notes._data).toBe("File Contents");
+		expect(apps["Notes (Notes.app)"]._creator).toBe("Notes.app");
+	});
+
+	it.each([
+		["a creation date", { _createdOn: "2026-10-30T00:00:00.000Z" }],
+		["other contents", { _data: "my notes" }],
+		["another type", { _type: ClassicyFileSystemEntryFileType.TextFile }],
+		["another MIME type", { _mimeType: "text/markdown" }],
+		["being visible", { _invisible: false }],
+	])("keeps a SimpleText file that differs from the old placeholder by %s", (_, change) => {
+		const apps = applicationsWith(
+			{ SimpleText: { ...legacyPlaceholder(), ...change } },
+			[appIcon("SimpleText.app", "SimpleText")],
+		);
+
+		expect(apps.SimpleText._creator).toBeUndefined();
+		expect(apps["SimpleText (SimpleText.app)"]._creator).toBe("SimpleText.app");
+	});
+});
