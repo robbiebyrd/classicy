@@ -54,6 +54,7 @@ import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/u
 import { useClassicyCursor } from "@/SystemFolder/SystemResources/Cursor/useClassicyCursor";
 import { ClassicyWindowMenuBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowMenuBar";
 import {
+	CLASSICY_WINDOW_RESIZE_FUDGE,
 	type ClassicyWindowRect,
 	computeClassicyWindowResize,
 } from "@/SystemFolder/SystemResources/Window/ClassicyWindowResize";
@@ -157,6 +158,11 @@ export function resolvePosition(
 	return [x, y];
 }
 
+// The lowest left/top a window may take: the screen's left edge and the menu
+// bar's underside. clampWindowPositionToViewport holds every window to it,
+// and a resize that moves the left or top edge stops there.
+const windowViewportFloor: [number, number] = [0, 30];
+
 /**
  * #248: clamp a window rect so it stays fully inside the viewport when it
  * fits; for a window larger than the viewport itself, only the top-left
@@ -168,14 +174,14 @@ export function clampWindowPositionToViewport(
 	position: [number, number],
 	windowSize: [number, number],
 ): [number, number] {
-	const menuBarHeight = 30;
+	const [minX, menuBarHeight] = windowViewportFloor;
 	const vw = typeof window !== "undefined" ? window.innerWidth : 800;
 	const vh = typeof window !== "undefined" ? window.innerHeight : 600;
 
-	const maxX = Math.max(0, vw - windowSize[0]);
+	const maxX = Math.max(minX, vw - windowSize[0]);
 	const maxY = Math.max(menuBarHeight, vh - windowSize[1]);
 
-	const x = Math.min(Math.max(position[0], 0), maxX);
+	const x = Math.min(Math.max(position[0], minX), maxX);
 	const y = Math.min(Math.max(position[1], menuBarHeight), maxY);
 
 	return [x, y];
@@ -1049,6 +1055,10 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			resizeRectRef.current,
 			[clientX, clientY],
 			chromeRef.current,
+			CLASSICY_WINDOW_RESIZE_FUDGE,
+			// The minimum windowStyle draws, so the moved edge stops there.
+			[resolvedMinimumSize[0], ws.collapsed ? 0 : resolvedMinimumSize[1]],
+			windowViewportFloor,
 		);
 		pendingSizeRef.current = size;
 		const el = windowRef.current;
@@ -1166,7 +1176,9 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			setActive(e);
 		}
 
-		if (ws.resizing) {
+		// Only a press in this mount resizes: a persisted `resizing` left over
+		// from a reload has no measured rect to anchor on.
+		if (ws.resizing && isResizingRef.current) {
 			applyResize(e.clientX, e.clientY);
 			emit("change", { kind: "resize" });
 		}

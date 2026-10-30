@@ -394,19 +394,35 @@ describe("ClassicyWindow resize with a mirrored grow box", () => {
 		if (platinum) registerClassicyAppearancePackage(platinum);
 	});
 
-	it("a bottom-left grow box moves the left edge while dragging", () => {
-		// No chrome applied: jsdom computes none, so chrome is [0, 0].
-		const { container } = render(
+	// The window under test: jsdom computes no chrome, so chrome is [0, 0].
+	const renderMirrored = (minimumSize: [number, number]) => {
+		const window = (
 			<ClassicyWindow
 				id="TestWindow"
 				appId="TestApp"
 				title="Test"
 				resizable
 				zoomable
+				minimumSize={minimumSize}
 			>
 				<p>content</p>
-			</ClassicyWindow>,
+			</ClassicyWindow>
 		);
+		const view = render(window);
+		return {
+			...view,
+			rerenderWindow: () => view.rerender(window),
+			windowEl: view.container.querySelector(".classicyWindow") as HTMLElement,
+			resizer: view.container.querySelector(
+				".classicyWindowResizer",
+			) as HTMLElement,
+		};
+	};
+
+	it("a bottom-left grow box moves the left edge while dragging", () => {
+		// No minimum, so the brief's numbers are the drawn ones (the default
+		// 300 px minimum would hold the window wider than 195px).
+		const { container, rerenderWindow } = renderMirrored([0, 0]);
 		const windowEl = container.querySelector(".classicyWindow") as HTMLElement;
 		const resizer = container.querySelector(
 			".classicyWindowResizer",
@@ -420,8 +436,8 @@ describe("ClassicyWindow resize with a mirrored grow box", () => {
 		expect(windowEl.style.left).toBe("105px");
 		expect(windowEl.style.top).toBe("100px");
 
-		// A second move, after the re-render the first one caused, still
-		// anchors the right edge.
+		// A second move, after a re-render, still anchors the right edge.
+		rerenderWindow();
 		fireEvent.mouseMove(windowEl, { clientX: 90, clientY: 270 });
 		expect(windowEl.style.width).toBe("215px");
 		expect(windowEl.style.height).toBe("175px");
@@ -433,5 +449,85 @@ describe("ClassicyWindow resize with a mirrored grow box", () => {
 		expect(windowEl.style.height).toBe("160px");
 		expect(windowEl.style.left).toBe("115px");
 		expect(windowEl.style.top).toBe("100px");
+	});
+
+	// F 4.1 review: the drawn width never goes under the minimum, so the left
+	// edge stops where the minimum width puts it and the right edge holds.
+	it("stops the left edge at the minimum width", () => {
+		const { windowEl, resizer } = renderMirrored([150, 0]);
+		mockWindow.resizing = true;
+		fireEvent.mouseDown(resizer, { clientX: 100, clientY: 250 });
+		fireEvent.mouseMove(windowEl, { clientX: 110, clientY: 260 });
+		expect(windowEl.style.left).toBe("105px");
+		fireEvent.mouseMove(windowEl, { clientX: 200, clientY: 260 });
+		expect(windowEl.style.width).toBe("105px");
+		expect(windowEl.style.left).toBe("150px");
+		fireEvent.mouseMove(windowEl, { clientX: 250, clientY: 260 });
+		expect(windowEl.style.width).toBe("55px");
+		expect(windowEl.style.left).toBe("150px");
+	});
+
+	// F 4.1 review: a flipped position never passes the floor
+	// clampWindowPositionToViewport holds the window to (x >= 0, y >= 30), so
+	// the release's re-clamp has nothing to move and the anchor stays put.
+	it("stops a left grip at the screen's left edge", () => {
+		const { windowEl, resizer } = renderMirrored([0, 0]);
+		mockWindow.resizing = true;
+		fireEvent.mouseDown(resizer, { clientX: 100, clientY: 250 });
+		fireEvent.mouseMove(windowEl, { clientX: 2, clientY: 260 });
+		expect(windowEl.style.left).toBe("0px");
+		expect(windowEl.style.width).toBe("300px");
+		fireEvent.mouseUp(windowEl);
+		expect(mockDispatch).toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: "ClassicyWindowResize",
+				size: [300, 165],
+			}),
+		);
+	});
+
+	it("stops a top grip at the menu bar", () => {
+		registerClassicyAppearancePackage({
+			id: "test-top",
+			name: "Top",
+			css: "",
+			defaults: {
+				...getTheme("default"),
+				id: "test-top-default",
+				package: "test-top",
+			},
+			layout: {
+				window: { growBoxCorner: "top-left" },
+				menuBar: { placement: "screen" },
+				desktop: { iconGridOrigin: "top-right" },
+			},
+		});
+		activePackage.id = "test-top";
+		const { windowEl, resizer } = renderMirrored([0, 0]);
+		mockWindow.resizing = true;
+		fireEvent.mouseDown(resizer, { clientX: 100, clientY: 100 });
+		fireEvent.mouseMove(windowEl, { clientX: 110, clientY: 10 });
+		expect(windowEl.style.top).toBe("30px");
+		expect(windowEl.style.height).toBe("220px");
+		expect(windowEl.style.left).toBe("105px");
+		expect(windowEl.style.width).toBe("195px");
+		fireEvent.mouseUp(windowEl);
+		expect(mockDispatch).toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: "ClassicyWindowResize",
+				size: [195, 220],
+			}),
+		);
+	});
+
+	// F 4.1 review minor: only a press in this mount resizes; a persisted
+	// `resizing: true` left over from a reload must not.
+	it("ignores a stale resizing flag with no press", () => {
+		mockWindow.resizing = true;
+		const { windowEl } = renderMirrored([0, 0]);
+		const { left, width } = windowEl.style;
+		fireEvent.mouseMove(windowEl, { clientX: 110, clientY: 260 });
+		expect(windowEl.style.left).toBe(left);
+		expect(windowEl.style.width).toBe(width);
 	});
 });
