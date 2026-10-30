@@ -205,6 +205,32 @@ describe("ClassicyDesktop layout", () => {
 			expect(container.querySelector(".classicyDesktopMenuBar")).toBeNull();
 		});
 
+		// G17: the screen bar is headless under window placement, so its band
+		// is 0 on the root; the layout's override follows the theme's 30px,
+		// and a host style still beats both.
+		it("zeroes --menu-bar-height on the root under window placement", () => {
+			registerTestMirrorPackage();
+			const { container } = renderDesktop();
+			const height = () =>
+				desktopRoot(container)?.style.getPropertyValue("--menu-bar-height");
+			expect(height()).toBe("30px");
+			activate(TEST_MIRROR_PACKAGE_ID);
+			expect(height()).toBe("0px");
+			activate(PLATINUM_APPEARANCE_PACKAGE_ID);
+			expect(height()).toBe("30px");
+		});
+
+		it("lets the host's style override --menu-bar-height under window placement", () => {
+			registerTestMirrorPackage();
+			const { container } = renderDesktop({
+				"--menu-bar-height": "42px",
+			} as CSSProperties);
+			activate(TEST_MIRROR_PACKAGE_ID);
+			expect(
+				desktopRoot(container)?.style.getPropertyValue("--menu-bar-height"),
+			).toBe("42px");
+		});
+
 		it("renders each window's menus in the window, and back on the screen bar", () => {
 			registerTestMirrorPackage();
 			openApp();

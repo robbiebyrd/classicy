@@ -46,7 +46,7 @@ export const classicyDefaultThemeVarPx = (name: string): number => {
  * A theme variable's computed value in px, read from `el`, else
  * `#classicyDesktop` (where the theme variables are set), else the document
  * root. Any finite value of 0 or more is returned as is: `0px` is a real
- * value (window mode's `--menu-bar-height`), not "unset". Anything else —
+ * value (window placement's `--menu-bar-height`), not "unset". Anything else —
  * the variable unset (jsdom and pre-mount reads see "", which parses to
  * NaN), a negative value, or a non-length value — yields `fallback`, which
  * defaults to the default theme's value; so does a call with no `document`.

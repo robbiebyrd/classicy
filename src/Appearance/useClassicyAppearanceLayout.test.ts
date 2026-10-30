@@ -12,6 +12,7 @@ import {
 } from "@/Appearance/ClassicyAppearancePackage";
 import {
 	CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
+	classicyLayoutThemeVars,
 	classicyLayoutVars,
 	getClassicyAppearanceLayout,
 	useClassicyAppearanceLayout,
@@ -202,4 +203,16 @@ describe("classicyLayoutVars", () => {
 			"--classicy-layout-menu-bar-placement": "window",
 			"--classicy-layout-icon-grid-origin": "top-left",
 		}));
+});
+
+describe("classicyLayoutThemeVars", () => {
+	it("zeroes --menu-bar-height under window placement", () =>
+		expect(classicyLayoutThemeVars(MIRROR)).toEqual({
+			"--menu-bar-height": "0px",
+		}));
+
+	it("overrides nothing under screen placement", () =>
+		expect(classicyLayoutThemeVars(CLASSICY_DEFAULT_APPEARANCE_LAYOUT)).toEqual(
+			{},
+		));
 });

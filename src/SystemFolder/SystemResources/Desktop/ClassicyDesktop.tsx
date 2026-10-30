@@ -53,6 +53,7 @@ import {
 	useClassicyAssetVars,
 } from "@/Appearance/ClassicyAssetRegistry";
 import {
+	classicyLayoutThemeVars,
 	classicyLayoutVars,
 	useClassicyAppearanceLayout,
 } from "@/Appearance/useClassicyAppearanceLayout";
@@ -592,9 +593,17 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	const appearancePackageId = useActiveClassicyAppearancePackage().id;
 	// The active package's arrangement (resolved from Appearance.packageId,
 	// never activeTheme.package), as root attributes and variables beside the
-	// theme's; getThemeVars only sees the theme.
+	// theme's; getThemeVars only sees the theme. classicyLayoutThemeVars
+	// overrides the theme variables the layout changes (window placement's
+	// 0px `--menu-bar-height`), so it is spread after the theme's.
 	const layout = useClassicyAppearanceLayout();
-	const layoutVars = useMemo(() => classicyLayoutVars(layout), [layout]);
+	const layoutVars = useMemo(
+		() => ({
+			...classicyLayoutVars(layout),
+			...classicyLayoutThemeVars(layout),
+		}),
+		[layout],
+	);
 	const rootStyle = useMemo(
 		() =>
 			({

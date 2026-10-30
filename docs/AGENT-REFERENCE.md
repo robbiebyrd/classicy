@@ -2343,6 +2343,14 @@ are on the desktop root only: a component rendered outside a
 `ClassicyDesktop` (a Storybook Controls story's frame, say) sees neither, so
 `[data-classicy-grow-box="…"] .classicyWindow …` rules do not reach it.
 
+The layout also overrides one theme variable on the root.
+`classicyLayoutThemeVars(layout)` returns `{ "--menu-bar-height": "0px" }`
+under `menuBar.placement: "window"` (the screen bar is headless, so it has
+no band) and `{}` under `screen`. `ClassicyDesktop` spreads it after the
+theme's variables, so it wins over the theme's 30 px, and before the host's
+`style`, which still wins over both. Window geometry reads that value
+(`windowViewportFloor`, below).
+
 **Parts a package may `order`:**
 
 | Surface | Flex items (base `order`) | Notes |
@@ -2375,9 +2383,12 @@ window bar and are not shown. A `ClassicyMenuBarExtension` renders nothing
 while the placement is `window` and reappears in the screen bar's new
 extensions region when it returns to `screen`. It follows the package
 layout only: a bar forced to `placement="screen"` under a window-placement
-package is not re-queried. Window geometry still reserves the screen bar's
-band at the top: the theme's live `--menu-bar-height` (30 px under
-Platinum), the same in either placement.
+package is not re-queried. The headless screen bar reserves no band: in
+window placement `ClassicyDesktop` sets `--menu-bar-height: 0px` on its root
+(`classicyLayoutThemeVars(layout)`, spread after the theme's variables and
+before the host's `style`, which still wins), so windows are placed, zoomed,
+dragged and resized up to the screen's top edge. In screen placement the
+band is the theme's `--menu-bar-height` (30 px under Platinum).
 
 `ClassicyDesktopMenuBar`'s `placement` prop affects only that bar; windows
 follow the package layout, never the prop. `placement="window"` under
@@ -2405,8 +2416,9 @@ axis whose grow box moves the left or top edge:
   take; past it the size shrinks so the edge stops at the floor.
   `ClassicyWindow` passes its viewport floor, `windowViewportFloor`
   (`[0, menuBarHeight]`: the screen's left edge and the menu bar's
-  underside, where `menuBarHeight` is the theme's live `--menu-bar-height`,
-  30 px under Platinum, read once per theme). It is module-private to
+  underside, where `menuBarHeight` is the desktop root's live
+  `--menu-bar-height`, 30 px under Platinum and 0 under window placement,
+  read once per theme and menu-bar placement). It is module-private to
   `ClassicyWindow.tsx` and shared there with `clampWindowPositionToViewport`,
   which re-applies it after every move and resize, so a theme whose menu bar
   is not 30 px still releases a top-edge resize exactly where it stopped.
@@ -2776,9 +2788,14 @@ variable itself:
 | `--ui-font-size` | `--ui-font-size-small`, `--ui-font-size-caption`, `--ui-font-size-compact`, `--ui-font-size-mini`, `--ui-font-size-large`, `--window-header-font-size` |
 | `--desktop-icon-size` / `--desktop-icon-font-size` | `--desktop-icon-padding`, `--desktop-icon-cell` / `--desktop-icon-label-pad` |
 
-JS geometry reads the live variables on the desktop root (below), so
-overriding `--menu-bar-height`, `--window-zoom-margin` or
-`--window-resize-inset` in `ClassicyDesktop`'s `style` moves windows too. Desktop Clean Up does not: it reads the theme.
+JS geometry reads the variables the window inherits from its desktop root
+(below), so overriding `--menu-bar-height`, `--window-zoom-margin` or
+`--window-resize-inset` in `ClassicyDesktop`'s `style` moves windows too.
+`--window-zoom-margin` and `--window-resize-inset` are read at each zoom and
+resize gesture, so an override takes effect live; `--menu-bar-height` is read
+when a window mounts and again on a theme or menu-bar placement change, so an
+override made later reaches mounted windows at the next such change. Desktop
+Clean Up does not follow any of them: it reads the theme.
 
 **Color helpers.** Stylesheets never hold a literal color. They use a
 `--color-*` token, or a variant of one from
@@ -2813,7 +2830,7 @@ the variable instead of hard-coding the number:
 
 - **What it reads.** The computed value of `name` on `el`, else
   `#classicyDesktop`, else `<html>`. A finite value of 0 or more is returned:
-  `0px` is a real value (for example a host's `--menu-bar-height: 0px`).
+  `0px` is a real value (window placement's `--menu-bar-height`).
 - **Fallback.** Anything else, or no DOM, returns `fallback`. It defaults to
   `classicyDefaultThemeVarPx(name)`, the default (Platinum) theme's value,
   computed once. That throws, after logging, for a name `getThemeVars` does
@@ -2821,8 +2838,10 @@ the variable instead of hard-coding the number:
 - **Cost.** Each call forces a style read. Read once per gesture, theme or
   layout pass, never per render or `mousemove`, and never from a reducer:
   reducers compute from `getThemeVars(theme)`.
-- **Readers.** `ClassicyWindow` reads `--menu-bar-height` (once per active
-  theme; also its viewport floor, `windowViewportFloor`),
+- **Readers.** `ClassicyWindow` passes its own element as `el`, so it reads
+  the desktop it is in (custom properties inherit) even with several desktops
+  on a page. It reads `--menu-bar-height` (once per active theme and
+  menu-bar placement; also its viewport floor, `windowViewportFloor`),
   `--window-zoom-margin` (zoom) and `--window-resize-inset` (once per resize
   gesture; the `fudge` it passes to `computeClassicyWindowResize`). Balloon help reads `--window-control-size`.
 - **The desktop-icon grid** has two forms, both returning

@@ -42,11 +42,10 @@ export type ClassicyWindowMenuBarProps = {
  * Only the app's menus have a home here. The Apple, Help and App Switcher
  * menus, the clock and menu bar extensions (`ClassicyMenuBarExtension`, which
  * portals into the screen bar's extensions list) are not shown in window
- * placement. Window geometry still reserves the screen bar's top band
- * (`windowViewportFloor` in `ClassicyWindow.tsx`), so a window is never
- * placed, zoomed, dragged or resized into it. The band's height is the
- * theme's live `--menu-bar-height` (30 px under Platinum), whatever the
- * placement.
+ * placement. The headless screen bar reserves no band: the desktop root's
+ * `--menu-bar-height` is `0px` in this placement (`classicyLayoutThemeVars`),
+ * so window geometry (`windowViewportFloor` in `ClassicyWindow.tsx`) lets a
+ * window be placed, zoomed, dragged or resized up to the screen's top edge.
  */
 export const ClassicyWindowMenuBar: FunctionalComponent<
 	ClassicyWindowMenuBarProps

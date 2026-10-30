@@ -401,7 +401,11 @@ describe("ClassicyWindow resize with a mirrored grow box", () => {
 				<p>content</p>
 			</ClassicyWindow>
 		);
-		const view = render(ui());
+		// Inside the desktop when one is mounted: the window reads theme
+		// variables from its own element, which inherits them.
+		const view = render(ui(), {
+			container: document.getElementById("classicyDesktop") ?? undefined,
+		});
 		return {
 			...view,
 			rerenderWindow: () => view.rerender(ui()),

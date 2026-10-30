@@ -28,11 +28,14 @@ import {
 	useState,
 } from "react";
 import { createPortal } from "react-dom";
-
+import type { ClassicyAppearanceLayout } from "@/Appearance/ClassicyAppearancePackage";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
-import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
+import {
+	classicyLayoutThemeVars,
+	useClassicyAppearanceLayout,
+} from "@/Appearance/useClassicyAppearanceLayout";
 import {
 	CLASSICY_PART_ATTRIBUTE,
 	classicyStateClasses,
@@ -68,7 +71,8 @@ export type ClassicyWindowPositionY = number | "top" | "center" | "bottom";
 export type ClassicyWindowSizeDimension = number | `${number}%`;
 
 // The lowest left/top a window may take: the screen's left edge and the menu
-// bar's underside, `menuBarHeight` (the theme's live `--menu-bar-height`).
+// bar's underside, `menuBarHeight` (the desktop root's live `--menu-bar-height`:
+// the theme's, or 0 under window placement).
 // clampWindowPositionToViewport holds every window to it, a resize that moves
 // the left or top edge stops there, and resolveSize, resolvePosition and the
 // zoom's standard state keep the menu bar's band (its y) out of the room they
@@ -78,9 +82,6 @@ const windowViewportFloor = (menuBarHeight: number): [number, number] => [
 	menuBarHeight,
 ];
 
-// `menuBarHeight` defaults to a live read of `--menu-bar-height`; a caller on a
-// render path passes the value it already read, so no render forces a style
-// read (ClassicyWindow reads it once per theme).
 // The geometry prop defaults, module-level so they keep one identity: an
 // array literal in the props destructuring is a new array every render, which
 // re-ran the resolveSize/resolvePosition memos on every render — a forced
@@ -99,19 +100,27 @@ const DEFAULT_MINIMUM_SIZE: [
 	ClassicyWindowSizeDimension,
 ] = [300, 0];
 
-// The theme's own --menu-bar-height, or undefined (the reader's default-theme
-// fallback) with no theme. It seeds the window's height before the desktop
-// has applied the theme's variables, i.e. on the boot render.
+// The --menu-bar-height the desktop root carries for `theme` under `layout`
+// (the theme's, then the layout's override: 0 under window placement), or
+// undefined (the reader's default-theme fallback) with no theme. It seeds the
+// window's height before the desktop has applied the variables, i.e. on the
+// boot render.
 const themeMenuBarHeight = (
 	theme: ClassicyTheme | undefined,
+	layout: ClassicyAppearanceLayout,
 ): number | undefined => {
 	if (!theme) return undefined;
-	const value = Number.parseFloat(
-		(getThemeVars(theme) as Record<string, string>)["--menu-bar-height"],
-	);
+	const vars: Record<string, string> = {
+		...(getThemeVars(theme) as Record<string, string>),
+		...classicyLayoutThemeVars(layout),
+	};
+	const value = Number.parseFloat(vars["--menu-bar-height"]);
 	return Number.isFinite(value) ? value : undefined;
 };
 
+// `menuBarHeight` defaults to a live read of `--menu-bar-height`; a caller on a
+// render path passes the value it already read, so no render forces a style
+// read (ClassicyWindow reads it once per theme and menu-bar placement).
 export function resolveSize(
 	size: [ClassicyWindowSizeDimension, ClassicyWindowSizeDimension],
 	menuBarHeight: number = readClassicyThemeVar("--menu-bar-height"),
@@ -588,33 +597,44 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const player = useSoundDispatch();
 	const { showContextMenu } = useClassicyContextualMenu();
 
-	// `--menu-bar-height`, read once per theme instead of on every render: a
-	// drag re-renders on each mousemove, and a read there forces a style
-	// recalc per move. Read in a layout effect, after the commit that applies
-	// a new theme's variables to #classicyDesktop (a read during render would
-	// still see the old theme's). Both reads fall back to the ACTIVE theme's
-	// value, not the default theme's: on the boot render no desktop carries
-	// the variables yet, and the window registers (ClassicyWindowOpen) with
-	// the geometry of that first render. The theme is the whole key:
-	// getThemeVars sees only the theme, and the layout's menu-bar placement
-	// does not change the variable (window placement still reserves the
-	// screen bar's band). This value is also the viewport floor
+	const windowRef = useRef<HTMLDivElement | null>(null);
+	const layout = useClassicyAppearanceLayout();
+
+	// `--menu-bar-height`, read once per theme and menu-bar placement instead
+	// of on every render: a drag re-renders on each mousemove, and a read
+	// there forces a style recalc per move. Read in a layout effect, after the
+	// commit that applies new variables to the desktop root (a read during
+	// render would still see the old ones), from the window's own element,
+	// which inherits them from the desktop it is in. Both reads fall back to
+	// the ACTIVE theme's and layout's value, not the default theme's: on the
+	// boot render no desktop carries the variables yet, and the window
+	// registers (ClassicyWindowOpen) with the geometry of that first render.
+	// The key is the theme and the placement: the desktop root spreads
+	// getThemeVars(theme), then the layout's override (window placement
+	// leaves the screen bar headless, so its band is 0; see
+	// classicyLayoutThemeVars). This value is also the viewport floor
 	// (`windowViewportFloor`) a flipped-corner resize stops at, so the resize
 	// and the release clamp always agree.
 	const activeTheme = useAppManager(
 		(state) => state.System.Manager.Appearance?.activeTheme,
 	);
 	const [menuBarHeight, setMenuBarHeight] = useState(() =>
-		readClassicyThemeVar("--menu-bar-height", themeMenuBarHeight(activeTheme)),
+		readClassicyThemeVar(
+			"--menu-bar-height",
+			themeMenuBarHeight(activeTheme, layout),
+		),
 	);
+	const menuBarPlacement = layout.menuBar.placement;
+	// biome-ignore lint/correctness/useExhaustiveDependencies: keyed on the placement, not the whole layout: only the placement changes --menu-bar-height
 	useLayoutEffect(() => {
 		setMenuBarHeight(
 			readClassicyThemeVar(
 				"--menu-bar-height",
-				themeMenuBarHeight(activeTheme),
+				themeMenuBarHeight(activeTheme, layout),
+				windowRef.current,
 			),
 		);
-	}, [activeTheme]);
+	}, [activeTheme, menuBarPlacement]);
 
 	const resolvedSize = useMemo(
 		() => resolveSize(initialSize, menuBarHeight),
@@ -672,7 +692,6 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		zoomable,
 	]);
 
-	const windowRef = useRef<HTMLDivElement | null>(null);
 	const contentsRef = useRef<HTMLDivElement | null>(null);
 	const pendingSizeRef = useRef<[number, number] | null>(null);
 	const isDraggingRef = useRef(false);
@@ -694,7 +713,6 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		bottom: 0,
 	});
 	const chromeRef = useRef<[number, number]>([0, 0]);
-	const layout = useClassicyAppearanceLayout();
 	// `--window-resize-inset`, read once when a resize gesture starts
 	// (startResizeWindow); null until the first gesture.
 	const resizeInsetRef = useRef<number | null>(null);
@@ -1141,7 +1159,12 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			resizeRectRef.current,
 			[clientX, clientY],
 			chromeRef.current,
-			resizeInsetRef.current ?? readClassicyThemeVar("--window-resize-inset"),
+			resizeInsetRef.current ??
+				readClassicyThemeVar(
+					"--window-resize-inset",
+					undefined,
+					windowRef.current,
+				),
 			// The minimum windowStyle draws, so the moved edge stops there.
 			[resolvedMinimumSize[0], ws.collapsed ? 0 : resolvedMinimumSize[1]],
 			windowViewportFloor(menuBarHeight),
@@ -1175,7 +1198,11 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			: [0, 0];
 		// Read once per gesture: the mousemove handlers use the ref, so a
 		// drag never forces a style read per move.
-		resizeInsetRef.current = readClassicyThemeVar("--window-resize-inset");
+		resizeInsetRef.current = readClassicyThemeVar(
+			"--window-resize-inset",
+			undefined,
+			windowRef.current,
+		);
 		isResizingRef.current = true;
 		desktopEventDispatch({
 			type: "ClassicyWindowPosition",
@@ -1494,7 +1521,11 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		position: [number, number];
 		size: [number, number];
 	} => {
-		const margin = readClassicyThemeVar("--window-zoom-margin");
+		const margin = readClassicyThemeVar(
+			"--window-zoom-margin",
+			undefined,
+			windowRef.current,
+		);
 		const desktop =
 			typeof document !== "undefined"
 				? document.getElementById("classicyDesktop")

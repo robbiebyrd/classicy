@@ -132,6 +132,9 @@ const renderWindow = (
 			{ id: "TestWindow", appId: "TestApp", title: "Test", ...props },
 			createElement("p", null, "content"),
 		),
+		// Inside the desktop when one is mounted: the window reads theme
+		// variables from its own element, which inherits them.
+		{ container: document.getElementById("classicyDesktop") ?? undefined },
 	);
 
 beforeEach(() => {

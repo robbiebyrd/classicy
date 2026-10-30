@@ -65,3 +65,16 @@ export const classicyLayoutVars = (
 	"--classicy-layout-menu-bar-placement": layout.menuBar.placement,
 	"--classicy-layout-icon-grid-origin": layout.desktop.iconGridOrigin,
 });
+
+/**
+ * The theme variables the layout overrides, for the desktop root, spread
+ * after `getThemeVars` (which only sees the theme) and before the host's
+ * `style`, which still wins. Window placement leaves the screen menu bar
+ * headless, so its band, `--menu-bar-height`, is `0px` there; screen
+ * placement overrides nothing. Kept apart from `classicyLayoutVars`, whose
+ * variables are the layout's own keywords.
+ */
+export const classicyLayoutThemeVars = (
+	layout: ClassicyAppearanceLayout,
+): Record<string, string> =>
+	layout.menuBar.placement === "window" ? { "--menu-bar-height": "0px" } : {};

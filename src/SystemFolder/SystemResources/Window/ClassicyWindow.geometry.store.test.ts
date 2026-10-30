@@ -5,15 +5,34 @@
 // re-render nor `ws.resizing` ever happens there.)
 // jsdom's getComputedStyle reports inline custom properties set with
 // `style.setProperty`; no getComputedStyle stub is needed.
-import { createElement } from "react";
+import { createElement, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, fireEvent, render } from "@/__tests__/test-utils";
+import { act, cleanup, fireEvent, render } from "@/__tests__/test-utils";
+import {
+	type ClassicyAppearanceLayout,
+	getClassicyAppearancePackage,
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+} from "@/Appearance/ClassicyAppearancePackage";
+import { PLATINUM_APPEARANCE_PACKAGE_ID } from "@/Appearance/Platinum";
+import {
+	classicyLayoutThemeVars,
+	classicyLayoutVars,
+	useClassicyAppearanceLayout,
+} from "@/Appearance/useClassicyAppearanceLayout";
+import {
+	getTheme,
+	getThemeVars,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
 import {
 	type ClassicyStoreSystemApp,
 	DefaultAppManagerState,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
-import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import {
+	dispatch,
+	useAppManager,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { getAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
@@ -116,6 +135,8 @@ afterEach(() => {
 	vi.restoreAllMocks();
 });
 
+// Rendered inside the desktop: the window reads theme variables from its own
+// element, which inherits them from the desktop root.
 const renderWindow = () =>
 	render(
 		createElement(
@@ -129,6 +150,7 @@ const renderWindow = () =>
 			},
 			createElement("p", null, "content"),
 		),
+		{ container: document.getElementById("classicyDesktop") as HTMLElement },
 	);
 
 describe("ClassicyWindow geometry on the store-driven hot path", () => {
@@ -235,5 +257,212 @@ describe("ClassicyWindow geometry on the store-driven hot path", () => {
 		expect(root.style.height).toBe("262px");
 		expect(reads("--window-resize-inset")).toBe(1);
 		fireEvent.mouseUp(root, { clientX: 505, clientY: 365 });
+	});
+});
+
+// G17: under menuBar.placement "window" the screen bar is headless, so its
+// band is 0 and windows, zoom and the resize floor may use the full height.
+describe("ClassicyWindow geometry under the menu-bar placement (G17)", () => {
+	const platinum = getClassicyAppearancePackage(PLATINUM_APPEARANCE_PACKAGE_ID);
+	const placementPackage = (
+		id: string,
+		placement: ClassicyAppearanceLayout["menuBar"]["placement"],
+	) => ({
+		id,
+		name: id,
+		css: "",
+		defaults: { ...getTheme("default"), id: `${id}-default`, package: id },
+		layout: {
+			window: { growBoxCorner: "bottom-right" as const },
+			menuBar: { placement },
+			desktop: { iconGridOrigin: "top-right" as const },
+		},
+	});
+
+	// The desktop root's variable spread, as ClassicyDesktop builds it: the
+	// theme's, then the layout's.
+	function Desktop({ children }: { children: ReactNode }) {
+		const theme = useAppManager(
+			(state) => state.System.Manager.Appearance.activeTheme,
+		);
+		const layout = useClassicyAppearanceLayout();
+		return createElement(
+			"div",
+			{
+				id: "classicyDesktop",
+				style: {
+					...getThemeVars(theme),
+					...classicyLayoutVars(layout),
+					...classicyLayoutThemeVars(layout),
+				},
+			},
+			children,
+		);
+	}
+
+	const renderInDesktop = () =>
+		render(
+			createElement(
+				Desktop,
+				null,
+				createElement(
+					ClassicyWindow,
+					{
+						id: "win",
+						appId: APP,
+						title: "Geometry",
+						resizable: true,
+						initialPosition: [110, 110],
+					},
+					createElement("p", null, "content"),
+				),
+			),
+		);
+
+	const activate = (packageId: string) =>
+		act(() =>
+			dispatch({ type: "ClassicyDesktopChangeAppearancePackage", packageId }),
+		);
+
+	const clickZoom = () =>
+		fireEvent.click(
+			document.querySelector(".classicyWindowZoomBox") as HTMLElement,
+		);
+
+	beforeEach(() => {
+		// The harness's bare desktop carries no theme; these tests mount their own.
+		document.getElementById("classicyDesktop")?.remove();
+	});
+
+	afterEach(() => {
+		// Unmount before the harness removes #classicyDesktop: here it is the
+		// stand-in desktop React rendered.
+		cleanup();
+		resetClassicyAppearancePackagesForTests();
+		if (platinum) registerClassicyAppearancePackage(platinum);
+	});
+
+	it("zooms to the screen's top after a switch to a window-placement package", () => {
+		registerClassicyAppearancePackage(
+			placementPackage("test-window", "window"),
+		);
+		renderInDesktop();
+		activate("test-window");
+		clickZoom();
+		expect(storedWindow()?.position).toEqual([8, 8]);
+	});
+
+	it("follows a layout-only change of the placement", () => {
+		registerClassicyAppearancePackage(
+			placementPackage("test-window", "window"),
+		);
+		renderInDesktop();
+		activate("test-window");
+		clickZoom();
+		expect(storedWindow()?.position).toEqual([8, 8]);
+		clickZoom();
+		// The same package re-registered with the screen bar: activeTheme does
+		// not change, only the layout does.
+		act(() =>
+			registerClassicyAppearancePackage(
+				placementPackage("test-window", "screen"),
+			),
+		);
+		clickZoom();
+		expect(storedWindow()?.position).toEqual([8, 38]);
+	});
+
+	it("registers a boot-render window at the screen's top under window placement", () => {
+		registerClassicyAppearancePackage(
+			placementPackage("test-window", "window"),
+		);
+		activate("test-window");
+		// No desktop: the window seeds from the active theme and layout. The x
+		// is numeric because ClassicyWindowOpen treats exactly [0, 0] as "no
+		// position" and cascades it to [30, 30].
+		render(
+			createElement(
+				ClassicyWindow,
+				{
+					id: "win",
+					appId: APP,
+					title: "Geometry",
+					initialPosition: [110, "top"],
+				},
+				createElement("p", null, "content"),
+			),
+		);
+		expect(storedWindow()?.position).toEqual([110, 0]);
+	});
+});
+
+// M4: on a page with several desktops (Storybook Docs), a window reads the
+// theme variables of the desktop it is in, not the first #classicyDesktop.
+describe("ClassicyWindow reads its own desktop's variables", () => {
+	it("zooms by the margin and menu bar of the desktop it is in", () => {
+		const other = document.getElementById("classicyDesktop") as HTMLElement;
+		other.style.setProperty("--window-zoom-margin", "20px");
+		other.style.setProperty("--menu-bar-height", "50px");
+		const own = document.createElement("div");
+		own.id = "classicyDesktop";
+		own.style.setProperty("--window-zoom-margin", "4px");
+		own.style.setProperty("--menu-bar-height", "12px");
+		document.body.append(own);
+		try {
+			render(
+				createElement(
+					ClassicyWindow,
+					{
+						id: "win",
+						appId: APP,
+						title: "Geometry",
+						initialPosition: [110, 110],
+					},
+					createElement("p", null, "content"),
+				),
+				{ container: own },
+			);
+			fireEvent.click(
+				document.querySelector(".classicyWindowZoomBox") as HTMLElement,
+			);
+			expect(storedWindow()?.position).toEqual([4, 16]);
+		} finally {
+			own.remove();
+		}
+	});
+
+	it("adds the resize inset of the desktop it is in", () => {
+		const own = document.createElement("div");
+		own.id = "classicyDesktop";
+		own.style.setProperty("--window-resize-inset", "3px");
+		document.body.append(own);
+		try {
+			const { container } = render(
+				createElement(
+					ClassicyWindow,
+					{
+						id: "win",
+						appId: APP,
+						title: "Geometry",
+						resizable: true,
+						initialPosition: [110, 110],
+					},
+					createElement("p", null, "content"),
+				),
+				{ container: own },
+			);
+			const root = container.querySelector(".classicyWindow") as HTMLElement;
+			fireEvent.mouseDown(
+				container.querySelector(".classicyWindowResizer") as HTMLElement,
+				{ clientX: 460, clientY: 310 },
+			);
+			fireEvent.mouseMove(root, { clientX: 505, clientY: 365 });
+			// |110 − 505| + 3 and |110 − 365| + 3, not the first desktop's 7.
+			expect(root.style.width).toBe("398px");
+			expect(root.style.height).toBe("258px");
+			fireEvent.mouseUp(root, { clientX: 505, clientY: 365 });
+		} finally {
+			own.remove();
+		}
 	});
 });
