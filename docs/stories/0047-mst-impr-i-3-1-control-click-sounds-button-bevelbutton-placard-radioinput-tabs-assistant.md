@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T20:18:59.762Z"
-updated: "2026-10-30T00:22:23.333Z"
+updated: "2026-10-30T01:12:10.923Z"
 started: "2026-10-30T00:22:15.861Z"
 tags: []
 milestone: ""
@@ -114,3 +114,5 @@ hooks.ts: `export const platinumAppearanceHooks: ClassicyAppearanceHooks = { on:
 ### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
 
 ### 2026-10-30T00:22:23.333Z - Started on feat/appearance-part-i-v2 (worktree part-i) at post-B base 24896dc30, where I's fallback package is replaced by B's CLASSICY_FALLBACK_APPEARANCE_PACKAGE. The implementer brief is the part-i ledger task-3.1-brief.md.
+
+### 2026-10-30T01:12:10.922Z - Implemented at ba5235cc6 (pushed). Gate: lint, tsc, 4236/4236 tests (651 s, no timeouts), build:source with verify:dist. RED→GREEN 10/10. In the example app every sprite plays as before, with no [ClassicyAppearance] warning. Parity: 56/56 affected stories at AE 0 with identical computed dumps against post-B (port 6023). Out of brief: the ClassicySoundPacks.test.ts sprite scan now also reads hooks.ts, and the hooks module was added to the load-order test. Ruling I-R17 settles the Tabs arrow/Home/End question: those keys keep today's ClickUp-only behavior. The task review is in progress.

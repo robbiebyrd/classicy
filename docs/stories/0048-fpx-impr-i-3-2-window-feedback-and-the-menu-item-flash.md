@@ -3,11 +3,18 @@ id: 0048-fpx
 title: 'I 3.2: Window feedback and the menu-item flash'
 purpose: Move the window feedback sounds and the menu-item flash (class, keyframes and click sound) out of component code into Platinum hooks and the Platinum _Menu partial, keeping the item action exactly-once.
 type: impr
-status: pending
+status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T20:19:44.230Z"
-updated: "2026-10-29T20:22:00.352Z"
+updated: "2026-10-30T01:12:19.716Z"
+started: "2026-10-30T01:12:18.062Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy
@@ -104,3 +111,5 @@ Re-shoot desktop-window*, desktop-menu*, desktop-menubar*, dialogs-alert*, contr
 
 ## Work Log
 ### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
+
+### 2026-10-30T01:12:19.716Z - Started on feat/appearance-part-i-v2 at BASE ba5235cc6 (I 3.1), with I 3.1's task review running in parallel. Any review fixes are folded in or land after. The brief is the part-i ledger task-3.2-brief.md, which includes I-R14..I-R17 and the I 2.3 carry-forwards (own-target flash guard test, dead spacer branch). Parity: port 6023 against the post-B baseline.
