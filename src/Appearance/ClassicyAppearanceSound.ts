@@ -15,7 +15,9 @@ const dispatches: Dispatch<ClassicySoundAction>[] = [];
 /**
  * Runs `fn` with `dispatch` as the target of `playClassicyAppearanceSound`,
  * restoring the previous target afterwards (even when `fn` throws), and
- * returns `fn`'s result. Runs nest.
+ * returns `fn`'s result. Runs nest. `useClassicyAppearance` calls it around
+ * every handler; hosts and packages never need it.
+ * @internal
  */
 export function runWithClassicyAppearanceSoundDispatch<T>(
 	dispatch: Dispatch<ClassicySoundAction>,

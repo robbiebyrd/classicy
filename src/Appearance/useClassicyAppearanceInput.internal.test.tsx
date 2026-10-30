@@ -8,7 +8,7 @@ import {
 	withClassicyAppearanceInput,
 } from "@/Appearance/useClassicyAppearanceInput.internal";
 
-const TRACKED = ["pointerdown", "mousedown", "keydown"];
+const TRACKED = ["pointerdown", "mousedown", "pointerup", "mouseup", "keydown"];
 
 /** A control wired like the real ones: it calls only useClassicyAppearance. */
 const Control = ({ seen }: { seen?: unknown[] }) => {
@@ -61,7 +61,33 @@ describe("useClassicyAppearanceInput", () => {
 		});
 	});
 
-	it("adds its three listeners exactly once, however often controls mount", () => {
+	it("reads a release made after a key press as pointer input", () => {
+		render(<Control />);
+		fireEvent.mouseDown(document.body);
+		fireEvent.keyDown(document.body, { key: "a" });
+		expect(withClassicyAppearanceInput()).toEqual({ input: "keyboard" });
+		fireEvent.mouseUp(document.body);
+		expect(withClassicyAppearanceInput()).toEqual({ input: "pointer" });
+		fireEvent.keyDown(document.body, { key: "a" });
+		fireEvent.pointerUp(document.body);
+		expect(withClassicyAppearanceInput()).toEqual({ input: "pointer" });
+	});
+
+	it("ignores bare modifier keys", () => {
+		render(<Control />);
+		fireEvent.mouseDown(document.body);
+		for (const key of ["Shift", "Control", "Alt", "Meta", "CapsLock"]) {
+			fireEvent.keyDown(document.body, { key });
+			expect(withClassicyAppearanceInput(), key).toEqual({ input: "pointer" });
+		}
+		fireEvent.mouseUp(document.body);
+		expect(withClassicyAppearanceInput()).toEqual({ input: "pointer" });
+		// A modified key is still a key press.
+		fireEvent.keyDown(document.body, { key: "a", metaKey: true });
+		expect(withClassicyAppearanceInput()).toEqual({ input: "keyboard" });
+	});
+
+	it("adds its five listeners exactly once, however often controls mount", () => {
 		const add = vi.spyOn(document, "addEventListener");
 		const first = render(<Control />);
 		render(<Control />);
@@ -78,6 +104,8 @@ describe("useClassicyAppearanceInput", () => {
 		expect(tracked.map(([type, , options]) => [type, options])).toEqual([
 			["pointerdown", { capture: true, passive: true }],
 			["mousedown", { capture: true, passive: true }],
+			["pointerup", { capture: true, passive: true }],
+			["mouseup", { capture: true, passive: true }],
 			["keydown", { capture: true, passive: true }],
 		]);
 	});

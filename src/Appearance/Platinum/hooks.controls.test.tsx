@@ -169,6 +169,21 @@ describe("Platinum control sounds through the appearance hooks", () => {
 		expect(soundSpy).not.toHaveBeenCalled();
 	});
 
+	it("a placard still clicks up when a key is pressed while the mouse is held", () => {
+		render(<ClassicyPlacard onClick={() => {}}>Items</ClassicyPlacard>);
+		const placard = screen.getByRole("button", { name: "Items" });
+		for (const key of ["Meta", "a"]) {
+			soundSpy.mockReset();
+			fireEvent.mouseDown(placard);
+			fireEvent.keyDown(placard, { key });
+			fireEvent.mouseUp(placard);
+			expect(played(), key).toEqual([
+				"ClassicyButtonClickDown",
+				"ClassicyButtonClickUp",
+			]);
+		}
+	});
+
 	it("the component source no longer dispatches the sprite", () => {
 		const sources = [
 			"src/SystemFolder/SystemResources/Button/ClassicyButton.tsx",

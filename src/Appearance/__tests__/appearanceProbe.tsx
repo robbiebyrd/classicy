@@ -2,6 +2,7 @@ import { act } from "@testing-library/react";
 import { produce } from "immer";
 import { CLASSICY_DEFAULT_APPEARANCE_LAYOUT } from "@/Appearance/ClassicyAppearanceDefaults";
 import {
+	CLASSICY_APPEARANCE_EVENTS,
 	type ClassicyAppearanceEvent,
 	type ClassicyAppearanceHandler,
 	type ClassicyAppearanceHooks,
@@ -22,34 +23,6 @@ import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyA
 // (`probe-<Component>` and `data-probe-state`) and records every event every
 // component emits. Not shipped (src/Appearance/__tests__ is outside the
 // barrels and package.json `files`).
-
-const EVENTS = [
-	"mount",
-	"unmount",
-	"press",
-	"release",
-	"click",
-	"open",
-	"close",
-	"focus",
-	"blur",
-	"collapse",
-	"expand",
-	"zoom",
-	"select",
-	"change",
-	"dragStart",
-	"dragEnd",
-] as const satisfies readonly ClassicyAppearanceEvent[];
-
-// Fails to compile if ClassicyAppearanceEvent gains an event EVENTS lacks.
-const everyEvent: Exclude<
-	ClassicyAppearanceEvent,
-	(typeof EVENTS)[number]
-> extends never
-	? true
-	: never = true;
-void everyEvent;
 
 export type ClassicyAppearanceProbeEvent = {
 	component: ClassicyComponentName;
@@ -93,7 +66,7 @@ export function installClassicyAppearanceProbe(options?: {
 		const handlers: Partial<
 			Record<ClassicyAppearanceEvent, ClassicyAppearanceHandler>
 		> = {};
-		for (const event of EVENTS) {
+		for (const event of CLASSICY_APPEARANCE_EVENTS) {
 			handlers[event] = (ctx) => {
 				events.push({ component, event, detail: ctx.detail });
 				return options?.on?.[event]?.(ctx);

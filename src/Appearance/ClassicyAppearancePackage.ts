@@ -56,24 +56,39 @@ export type ClassicyAppearanceKnobs = Record<
 	Record<string, { label: string; min: number; max: number; default: number }>
 >;
 
+/**
+ * Every event a component may emit to a package (`ClassicyAppearanceEvent`),
+ * in the contract's order. Frozen.
+ */
+export const CLASSICY_APPEARANCE_EVENTS = Object.freeze([
+	"mount",
+	"unmount",
+	"press",
+	"release",
+	"click",
+	"open",
+	"close",
+	"focus",
+	"blur",
+	"collapse",
+	"expand",
+	"zoom",
+	"select",
+	"change",
+	"dragStart",
+	"dragEnd",
+] as const);
+
 /** A component lifecycle or interaction moment a package may react to. */
 export type ClassicyAppearanceEvent =
-	| "mount"
-	| "unmount"
-	| "press"
-	| "release"
-	| "click"
-	| "open"
-	| "close"
-	| "focus"
-	| "blur"
-	| "collapse"
-	| "expand"
-	| "zoom"
-	| "select"
-	| "change"
-	| "dragStart"
-	| "dragEnd";
+	(typeof CLASSICY_APPEARANCE_EVENTS)[number];
+
+/**
+ * How the user drove an event that a component emits from both a pointer
+ * path and a keyboard path: `detail.input` (ruling I-R14). A package uses it
+ * to tell, say, a mouse press on a tab from an arrow key landing on it.
+ */
+export type ClassicyAppearanceInput = "pointer" | "keyboard";
 
 /** What a package hook adds to a component's root element. */
 export type ClassicyAppearanceDecoration = {
@@ -97,6 +112,13 @@ export type ClassicyAppearanceHandler = (
 ) => ClassicyAppearanceDecoration | void;
 
 export type ClassicyAppearanceHooks = {
+	/**
+	 * What the package adds to a component's root for its state. It must be a
+	 * pure function of `(component, state)`: its result is memoized on the
+	 * component's state classes and the package, so anything else it reads
+	 * (the active theme, the store, the time) goes stale until one of those
+	 * changes.
+	 */
 	decorate?: (
 		component: ClassicyComponentName,
 		state: Partial<Record<ClassicyState, boolean>>,

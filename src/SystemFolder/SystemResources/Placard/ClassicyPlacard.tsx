@@ -180,13 +180,15 @@ export const ClassicyPlacard: FunctionalComponent<ClassicyPlacardProps> = ({
 					onClick={handleClick}
 					onKeyDown={handleKeyDown}
 					onKeyUp={handleKeyUp}
+					// Pointer-only by construction: a key pressed while the mouse
+					// is held must not make the release read as keyboard input.
 					onMouseDown={() => {
 						setPressed(true);
-						appearance.emit("press", withClassicyAppearanceInput());
+						appearance.emit("press", { input: "pointer" });
 					}}
 					onMouseUp={() => {
 						setPressed(false);
-						appearance.emit("release", withClassicyAppearanceInput());
+						appearance.emit("release", { input: "pointer" });
 					}}
 					onMouseLeave={() => setPressed(false)}
 				>

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { dispatchAnimationEnd } from "@/__tests__/animationEnd";
-import { fireEvent, render, waitFor } from "@/__tests__/test-utils";
+import { act, fireEvent, render } from "@/__tests__/test-utils";
 import { installClassicyAppearanceProbe } from "@/Appearance/__tests__/appearanceProbe";
 import type { ClassicyComponentName } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { ClassicyMenu } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
@@ -19,6 +19,7 @@ beforeEach(() => {
 
 afterEach(() => {
 	probe.uninstall();
+	vi.useRealTimers();
 });
 
 /** The events `component` emitted, without mount and unmount. */
@@ -34,7 +35,14 @@ const emitted = (component: ClassicyComponentName) =>
 
 const item = (id: string) => document.getElementById(id) as HTMLElement;
 
+// The flash tests run on fake timers: an action runs one animation frame
+// after the flash ends, and the fallback ends it at 400 ms.
+const FRAME_MS = 20;
 const FLASH_FALLBACK_PASSED_MS = 500;
+const advance = (ms: number) =>
+	act(() => {
+		vi.advanceTimersByTime(ms);
+	});
 
 const ITEMS = [
 	{ id: "save", title: "Save", onClickFunc: () => {} },
@@ -72,7 +80,8 @@ describe("ClassicyMenu appearance", () => {
 		expect(item("off").getAttribute("data-probe-state")).toBe("disabled");
 	});
 
-	it("emits release on the flash's own animationend, once, before and after the fallback", async () => {
+	it("emits release on the flash's own animationend, once, before and after the fallback", () => {
+		vi.useFakeTimers();
 		const onClickFunc = vi.fn();
 		renderMenu(onClickFunc);
 		// A flash-named animationend on an item that is not flashing is not
@@ -90,11 +99,12 @@ describe("ClassicyMenu appearance", () => {
 			{ event: "press", detail: { itemId: "save", input: "pointer" } },
 			{ event: "release", detail: { itemId: "save", input: "pointer" } },
 		]);
-		await waitFor(() => expect(onClickFunc).toHaveBeenCalledTimes(1));
+		// The action runs on the next animation frame.
+		expect(onClickFunc).not.toHaveBeenCalled();
+		advance(FRAME_MS);
+		expect(onClickFunc).toHaveBeenCalledTimes(1);
 		// The fallback's moment passes: still one release, one action.
-		await new Promise((resolve) =>
-			setTimeout(resolve, FLASH_FALLBACK_PASSED_MS),
-		);
+		advance(FLASH_FALLBACK_PASSED_MS);
 		expect(emitted("MenuItem")).toEqual([
 			{ event: "press", detail: { itemId: "save", input: "pointer" } },
 			{ event: "release", detail: { itemId: "save", input: "pointer" } },
@@ -105,7 +115,8 @@ describe("ClassicyMenu appearance", () => {
 	// The own-target guard on its own: the item IS flashing, so only the
 	// `e.target === e.currentTarget` check stops an animation that ends on one
 	// of its own children (here its title) from ending the flash.
-	it("ignores a flash-named animationend from the flashing item's own child", async () => {
+	it("ignores a flash-named animationend from the flashing item's own child", () => {
+		vi.useFakeTimers();
 		const onClickFunc = vi.fn();
 		renderMenu(onClickFunc);
 		fireEvent.mouseDown(item("save"));
@@ -116,7 +127,8 @@ describe("ClassicyMenu appearance", () => {
 		]);
 		expect(onClickFunc).not.toHaveBeenCalled();
 		// The fallback still ends it, once.
-		await waitFor(() => expect(onClickFunc).toHaveBeenCalledTimes(1));
+		advance(FLASH_FALLBACK_PASSED_MS);
+		expect(onClickFunc).toHaveBeenCalledTimes(1);
 		expect(
 			emitted("MenuItem").filter((e) => e.event === "release"),
 		).toHaveLength(1);
@@ -126,7 +138,8 @@ describe("ClassicyMenu appearance", () => {
 	// a package whose MenuItem `press` returns nothing (this probe's), a chosen
 	// leaf gets no flash class, and its action still runs once, through the
 	// 400 ms fallback.
-	it("adds no flash class of its own when the package's press decorates nothing", async () => {
+	it("adds no flash class of its own when the package's press decorates nothing", () => {
+		vi.useFakeTimers();
 		const onClickFunc = vi.fn();
 		renderMenu(onClickFunc);
 		fireEvent.mouseDown(item("save"));
@@ -136,15 +149,15 @@ describe("ClassicyMenu appearance", () => {
 		]);
 		expect(item("save")).not.toHaveClass("classicyMenuItemFlash");
 		expect(onClickFunc).not.toHaveBeenCalled();
-		await waitFor(() => expect(onClickFunc).toHaveBeenCalledTimes(1));
+		advance(FLASH_FALLBACK_PASSED_MS);
+		expect(onClickFunc).toHaveBeenCalledTimes(1);
 		expect(item("save")).not.toHaveClass("classicyMenuItemFlash");
-		await new Promise((resolve) =>
-			setTimeout(resolve, FLASH_FALLBACK_PASSED_MS),
-		);
+		advance(FLASH_FALLBACK_PASSED_MS);
 		expect(onClickFunc).toHaveBeenCalledTimes(1);
 	});
 
-	it("emits one release, for the child only, when a submenu leaf's flash ends", async () => {
+	it("emits one release, for the child only, when a submenu leaf's flash ends", () => {
+		vi.useFakeTimers();
 		const parentAction = vi.fn();
 		const childAction = vi.fn();
 		render(
@@ -170,10 +183,9 @@ describe("ClassicyMenu appearance", () => {
 		fireEvent.click(item("child"));
 		// The child's flash ends; animationend bubbles through the parent <li>.
 		dispatchAnimationEnd(item("child"));
-		await waitFor(() => expect(childAction).toHaveBeenCalledTimes(1));
-		await new Promise((resolve) =>
-			setTimeout(resolve, FLASH_FALLBACK_PASSED_MS),
-		);
+		advance(FRAME_MS);
+		expect(childAction).toHaveBeenCalledTimes(1);
+		advance(FLASH_FALLBACK_PASSED_MS);
 		expect(
 			emitted("MenuItem").filter(
 				(e) => e.event === "press" || e.event === "release",

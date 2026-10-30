@@ -1,17 +1,14 @@
-/**
- * How the user drove an appearance event that a component emits from both a
- * pointer path and a keyboard path: `detail.input` (ruling I-R14). A package
- * uses it to tell, say, a mouse press on a tab from an arrow key landing on
- * it.
- */
-export type ClassicyAppearanceInput = "pointer" | "keyboard";
+import type { ClassicyAppearanceInput } from "./ClassicyAppearancePackage";
 
-// The modality of the most recent press anywhere in the global `document`.
-// Capture listeners on the document run before any component handler, so an
-// emit made while handling a press, or right after it (a passive close
-// effect, a native change event), sees that press. A modifier held for a
-// click is pressed before the pointer goes down, so a Shift- or Ctrl-click
-// still reads "pointer".
+export type { ClassicyAppearanceInput };
+
+// The modality of the most recent press or release anywhere in the global
+// `document`. Capture listeners on the document run before any component
+// handler, so an emit made while handling a press or a release, or right
+// after it (a passive close effect, a native change event), sees it. A bare
+// modifier key (Shift, Control, Alt, Meta, CapsLock, …) is not a press: one
+// pressed while the mouse is held, or for a Shift- or Ctrl-click, leaves the
+// pointer's reading alone, and the release reads "pointer" either way.
 //
 // Installed once per JavaScript realm and bound to that realm's global
 // `document`: a control portaled into another same-realm document (an
@@ -22,19 +19,40 @@ let installed = false;
 const markPointer = () => {
 	lastInput = "pointer";
 };
-const markKeyboard = () => {
+// `KeyboardEvent.key` values of keys that only modify another press.
+const MODIFIER_KEYS = new Set([
+	"Alt",
+	"AltGraph",
+	"CapsLock",
+	"Control",
+	"Fn",
+	"FnLock",
+	"Hyper",
+	"Meta",
+	"NumLock",
+	"OS",
+	"ScrollLock",
+	"Shift",
+	"Super",
+	"Symbol",
+	"SymbolLock",
+]);
+const markKeyboard = (event: Event) => {
+	if (MODIFIER_KEYS.has((event as KeyboardEvent).key)) return;
 	lastInput = "keyboard";
 };
 
 const LISTENER_OPTIONS = { capture: true, passive: true } as const;
-const LISTENERS: [string, () => void][] = [
+const LISTENERS: [string, (event: Event) => void][] = [
 	["pointerdown", markPointer],
 	["mousedown", markPointer],
+	["pointerup", markPointer],
+	["mouseup", markPointer],
 	["keydown", markKeyboard],
 ];
 
 /**
- * Starts tracking the press modality: three passive capture listeners on the
+ * Starts tracking the press modality: five passive capture listeners on the
  * global `document`, added once per realm and never removed.
  * `useClassicyAppearance` calls it from an effect, so every wired control
  * installs it on mount, before anyone can press it, and none can forget it.

@@ -4,7 +4,10 @@ import type {
 	ClassicyAppearanceEvent,
 } from "@/Appearance/ClassicyAppearancePackage";
 import { getClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackageRegistry";
-import { runWithClassicyAppearanceSoundDispatch } from "@/Appearance/ClassicyAppearanceSound";
+import {
+	playClassicyAppearanceSound,
+	runWithClassicyAppearanceSoundDispatch,
+} from "@/Appearance/ClassicyAppearanceSound";
 import { platinumAppearanceHooks } from "@/Appearance/Platinum/hooks";
 import type { ClassicyComponentName } from "@/Appearance/vocabulary/ClassicyVocabulary";
 
@@ -249,6 +252,38 @@ describe("platinumAppearanceHooks", () => {
 		]);
 		// The submenu list's own open and close stay silent: the item plays it.
 		expect(platinumAppearanceHooks.on?.Menu).toBeUndefined();
+	});
+
+	it("is frozen, so no importer can change what Platinum plays", () => {
+		// What a package author "extending Platinum" might try, past the types.
+		const hooks = platinumAppearanceHooks as unknown as {
+			on: Record<string, Record<string, unknown>>;
+			decorate?: unknown;
+		};
+		const replacement = () => {
+			playClassicyAppearanceSound("ClassicyMenuOpen");
+		};
+		expect(() => {
+			hooks.on.Button.press = replacement;
+		}).toThrow(TypeError);
+		expect(() => {
+			hooks.on.Placard = { press: replacement };
+		}).toThrow(TypeError);
+		expect(() => {
+			hooks.on = {};
+		}).toThrow(TypeError);
+		expect(() => {
+			hooks.decorate = () => ({ className: "x" });
+		}).toThrow(TypeError);
+		expect(Object.isFrozen(platinumAppearanceHooks)).toBe(true);
+		expect(Object.isFrozen(platinumAppearanceHooks.on)).toBe(true);
+		for (const map of Object.values(platinumAppearanceHooks.on ?? {}))
+			expect(Object.isFrozen(map)).toBe(true);
+		// Platinum still plays its own sprite.
+		expect(run("Button", "press").calls).toEqual([
+			{ type: "ClassicySoundPlay", sound: "ClassicyButtonClickDown" },
+		]);
+		expect(platinumAppearanceHooks.decorate).toBeUndefined();
 	});
 
 	it("is the Platinum package's hooks, and the library barrel exports it", async () => {

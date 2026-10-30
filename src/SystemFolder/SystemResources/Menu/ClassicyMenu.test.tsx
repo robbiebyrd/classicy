@@ -1,8 +1,14 @@
 // The flash class comes from Platinum's MenuItem press hook.
 import "@/Appearance/Platinum";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { dispatchAnimationEnd } from "@/__tests__/animationEnd";
-import { fireEvent, render, screen, waitFor } from "@/__tests__/test-utils";
+import {
+	act,
+	fireEvent,
+	render,
+	screen,
+	waitFor,
+} from "@/__tests__/test-utils";
 
 vi.mock(
 	"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils",
@@ -31,6 +37,10 @@ const basicItems = [
 	{ id: "item-1", title: "File" },
 	{ id: "item-2", title: "Edit" },
 ];
+
+afterEach(() => {
+	vi.useRealTimers();
+});
 
 describe("ClassicyMenu", () => {
 	it("renders menu items with their titles", () => {
@@ -319,7 +329,8 @@ describe("ClassicyMenu — titleWidthSamples (reserved title width)", () => {
 	// fires first must win exactly once. The real event (dispatchAnimationEnd;
 	// `fireEvent.animationEnd` never reaches React under jsdom) runs the event
 	// path first, and the fallback's moment then passes.
-	it("runs a leaf item's action exactly once when animationend also fires", async () => {
+	it("runs a leaf item's action exactly once when animationend also fires", () => {
+		vi.useFakeTimers();
 		const onClickFunc = vi.fn();
 		render(
 			<ClassicyMenu
@@ -333,11 +344,14 @@ describe("ClassicyMenu — titleWidthSamples (reserved title width)", () => {
 		dispatchAnimationEnd(item);
 		// The event, not the 400 ms fallback, ended the flash.
 		expect(item).not.toHaveClass("classicyMenuItemFlash");
-		await waitFor(() => expect(onClickFunc).toHaveBeenCalledTimes(1), {
-			timeout: 2000,
+		act(() => {
+			vi.advanceTimersByTime(20);
 		});
-		// Give the fallback timer a chance to (not) fire a second time.
-		await new Promise((resolve) => setTimeout(resolve, 600));
+		expect(onClickFunc).toHaveBeenCalledTimes(1);
+		// Let the fallback's moment pass: it must not fire a second time.
+		act(() => {
+			vi.advanceTimersByTime(600);
+		});
 		expect(onClickFunc).toHaveBeenCalledTimes(1);
 	});
 });

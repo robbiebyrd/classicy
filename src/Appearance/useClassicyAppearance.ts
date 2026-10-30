@@ -18,7 +18,7 @@ import type {
 } from "./ClassicyAppearancePackage";
 import {
 	CLASSICY_FALLBACK_APPEARANCE_PACKAGE,
-	getClassicyAppearancePackage,
+	getRegisteredClassicyAppearancePackageOrDefault,
 	subscribeClassicyAppearancePackages,
 } from "./ClassicyAppearancePackageRegistry";
 import { runWithClassicyAppearanceSoundDispatch } from "./ClassicyAppearanceSound";
@@ -26,6 +26,7 @@ import {
 	getActiveClassicyAppearancePackageId,
 	subscribeClassicyAssets,
 } from "./ClassicyAssetRegistry";
+import { reportedDroppedAttributes } from "./useClassicyAppearance.internal";
 import { installClassicyAppearanceInput } from "./useClassicyAppearanceInput.internal";
 import {
 	type ClassicyComponentName,
@@ -52,28 +53,20 @@ const subscribeActivePackage = (onChange: () => void): (() => void) => {
 	};
 };
 
-// Stable: the registry stores package objects as registered.
+// Stable: the registry stores package objects as registered. Resolved by the
+// one rule every reader uses (resolveClassicyAppearancePackage, the
+// reducers): the registered id, else the registered default, else the
+// fallback.
 const getActivePackage = (): ClassicyAppearancePackage =>
-	getClassicyAppearancePackage(getActiveClassicyAppearancePackageId()) ??
-	CLASSICY_FALLBACK_APPEARANCE_PACKAGE;
+	getRegisteredClassicyAppearancePackageOrDefault(
+		getActiveClassicyAppearancePackageId(),
+	) ?? CLASSICY_FALLBACK_APPEARANCE_PACKAGE;
 
 // A package may add data attributes, never others (`id`, `role`, `aria-*`)
 // nor Classicy's own part attributes (`data-classicy-*`). Case-insensitive:
 // HTML lowercases attribute names, so "data-Classicy-part" would land as
 // "data-classicy-part".
 const PACKAGE_ATTRIBUTE = /^data-(?!classicy-)/i;
-
-// Dropped attributes are reported once per package and key, in development.
-const reportedDroppedAttributes = new Set<string>();
-
-/**
- * Test helper: forget which dropped attributes were already reported, so a
- * test can assert the once-per-package-and-key warning from a clean slate.
- * @internal
- */
-export const resetClassicyAppearanceAttributeWarningsForTests = (): void => {
-	reportedDroppedAttributes.clear();
-};
 
 const packageAttributes = (
 	packageId: string,
@@ -133,6 +126,8 @@ type EmittedDecoration = {
  * - Package code never breaks the component: a handler or `decorate()` that
  *   throws is logged as an error (subsystem "ClassicyAppearance") and counts
  *   as returning nothing.
+ * - `decorate()` runs again only when the state classes or the package
+ *   change, so it must depend on `(component, state)` alone.
  * - `mount` is emitted once after the first commit and `unmount` on unmount.
  *   React has detached refs by then, so an `unmount` handler sees
  *   `element: null`. In development StrictMode React runs that effect twice,
@@ -166,10 +161,16 @@ export function useClassicyAppearance<E extends HTMLElement = HTMLElement>(
 	const emittedDecoration =
 		emitted?.packageId === pkg.id ? emitted.decoration : undefined;
 
+	// What `emit` reads, updated after each commit rather than during render,
+	// so a render React discards never reaches a handler. Declared first, so
+	// it is current for the component's own layout-effect emits (effects run
+	// in declaration order) as well as for its event handlers.
 	const packageRef = useRef(pkg);
-	packageRef.current = pkg;
 	const stateRef = useRef(state);
-	stateRef.current = state;
+	useLayoutEffect(() => {
+		packageRef.current = pkg;
+		stateRef.current = state;
+	});
 	// Tracks unmount rather than mount, so a decoration returned before the
 	// passive mount effect (a layout-effect emit) still applies. Kept in a
 	// layout effect declared here, ahead of the component's own layout
@@ -217,7 +218,9 @@ export function useClassicyAppearance<E extends HTMLElement = HTMLElement>(
 		[component, soundDispatch, ref],
 	);
 	const emitRef = useRef(emit);
-	emitRef.current = emit;
+	useLayoutEffect(() => {
+		emitRef.current = emit;
+	});
 
 	// Every wired control installs the press-modality tracker that
 	// `detail.input` reads (once per realm), so none can forget it.

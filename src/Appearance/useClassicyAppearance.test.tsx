@@ -11,10 +11,8 @@ import {
 	resetClassicyAppearancePackagesForTests,
 } from "@/Appearance/ClassicyAppearancePackage";
 import { playClassicyAppearanceSound } from "@/Appearance/ClassicyAppearanceSound";
-import {
-	resetClassicyAppearanceAttributeWarningsForTests,
-	useClassicyAppearance,
-} from "@/Appearance/useClassicyAppearance";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import { resetClassicyAppearanceAttributeWarningsForTests } from "@/Appearance/useClassicyAppearance.internal";
 import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import {
