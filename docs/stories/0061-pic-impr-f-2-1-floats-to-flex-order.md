@@ -3,12 +3,13 @@ id: 0061-pic
 title: 'F 2.1: Floats to flex + order'
 purpose: Lay the menu bar out as a flex row whose six clusters are placed by order on their data-classicy-part attribute, so a package can rearrange it without touching DOM order or fighting floats.
 type: impr
-status: in_progress
+status: complete
 priority: "2"
 effort: M
 created: "2026-10-28T20:29:34.870Z"
-updated: "2026-10-30T01:30:39.858Z"
+updated: "2026-10-30T01:35:07.469Z"
 started: "2026-10-30T00:28:04.107Z"
+completed: "2026-10-30T01:35:07.469Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -87,9 +88,9 @@ If `attributes.txt` (Phase 0) shows a part attribute on a descendant rather than
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: git grep -n 'float: right' src/SystemFolder/SystemResources/Desktop/MenuBar  # expect no output
-- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar.layout.test.tsx
-- [ ] The six clusters are direct flex children of `.classicyDesktopMenu` with `order` 10/20/30/40/50/60 and `extensions` carries `margin-left: auto`.
+- [x] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar.layout.test.tsx
+- [x] The six clusters are direct flex children of `.classicyDesktopMenu` with `order` 10/20/30/40/50/60 and `extensions` carries `margin-left: auto`.
+- [x] VERIFY: git grep -n 'float: right' -- 'src/SystemFolder/SystemResources/Desktop/MenuBar/*.scss' 'src/SystemFolder/SystemResources/Desktop/MenuBar/**/*.scss'  # expect no output (the layout test's own not.toMatch(/float: right/) assertion is excluded)
 
 ## Files
 
@@ -104,3 +105,5 @@ If `attributes.txt` (Phase 0) shows a part attribute on a descendant rather than
 ### 2026-10-30T00:28:05.735Z - Started on feat/appearance-part-f (worktree part-f) at BASE f95309251 (F 1.1 approved). The brief is the part-f ledger task-2.1-brief.md. The first commit is test-only: the F 1.1 review's minor carry-forwards. Parity: port 6025 against the shared post-B baseline.
 
 ### 2026-10-30T01:30:39.858Z - Implemented at a21c0fe8d (pushed), after bcb76c862 (the test-only F 1.1 carry-forwards). RED: 3 style tests; GREEN 7/7. Gate: lint, tsc, 4033 tests (566 s, no timeouts), build:source with verify:dist; the float: right grep is empty. Parity: 48/48 desktop-* stories at AE 0 against post-B. The 9 menu-bar, desktop and app stories in Firefox are at AE 0 against a same-worktree before set. Menu-bar boxes are byte-identical in Chromium and Firefox, and computed changes are only display, order, float and flex-item sizing. Deviations: also removed float: right from the deprecated Sound widget, which is not drawn; kept box-sizing: border-box, because the reconciliation's F4 shift claim was wrong. A balloon-wrapped top-level menu stretching wide predates F and is carried forward. The task review is in progress.
+
+### 2026-10-30T01:35:05.098Z - Review APPROVED at a21c0fe8d (no Critical or Important findings): the flex conversion keeps every box, the F3 balloon :has() fix is pinned, the carry-forward is complete, and the F4 box-sizing rebuttal is sound. The controller re-ran the VERIFY tests (7/7) and the SCSS-only float grep, which is empty. The float criterion was narrowed to SCSS because the plain grep matched only the layout test's own not.toMatch(/float: right/) assertion. Minor 1 (split each :has() selector list from its plain rule, so a browser without :has() keeps the order rules) and minor 3 (stale comment) are folded into F 3.1 as a separate commit. Minor 2 (the deprecated Sound widget's float fallback) goes to the F 7.1 docs.
