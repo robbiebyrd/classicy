@@ -39,8 +39,13 @@ export function appSwitcherAppsFrom(
 		});
 }
 
-/** The id prefix of an app's Apple-menu entry (`ClassicyDesktopAppMenuAdd`). */
-const SYSTEM_MENU_APP_PREFIX = "system_menu_";
+/**
+ * The id prefix of an app's Apple-menu entry: `ClassicyDesktopAppMenuAdd`
+ * ids it `system_menu_<appId>`, and `ClassicyDesktopAppMenuRemove` and the
+ * display resolution below find it by the same prefix. Persisted
+ * `systemMenu` entries carry it, so its value never changes.
+ */
+export const CLASSICY_SYSTEM_MENU_APP_PREFIX = "system_menu_";
 
 /**
  * The Apple-menu items with each app entry (`system_menu_<appId>`) shown by
@@ -56,11 +61,11 @@ export const withClassicyAppIdentityMenuItems = (
 	if (!items) return items;
 	let changed = false;
 	const resolved = items.map((item) => {
-		if (!item.id.startsWith(SYSTEM_MENU_APP_PREFIX)) return item;
+		if (!item.id.startsWith(CLASSICY_SYSTEM_MENU_APP_PREFIX)) return item;
 		const fallback = { name: item.title ?? "", icon: item.image ?? "" };
 		const identity = classicyAppIdentityFrom(
 			overrides,
-			item.id.slice(SYSTEM_MENU_APP_PREFIX.length),
+			item.id.slice(CLASSICY_SYSTEM_MENU_APP_PREFIX.length),
 			fallback,
 		);
 		// A description-only override changes nothing a menu item shows.

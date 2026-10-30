@@ -76,6 +76,7 @@ import { dispatchToPlugin } from "@/SystemFolder/ControlPanels/AppManager/Classi
 import { listAppWindows } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { getClassicySoundPack } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
 import type { ClassicyIconBalloonHelp } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
+import { CLASSICY_SYSTEM_MENU_APP_PREFIX } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { readShortcutDisposition } from "@/SystemFolder/SystemResources/Shortcut/ClassicyShortcut";
@@ -251,7 +252,7 @@ export const classicyDesktopEventHandler = (
 		case "ClassicyDesktopAppMenuAdd": {
 			if (!hasDesktopAppRef(action)) break;
 			const menuItem = {
-				id: `system_menu_${action.app.id}`,
+				id: `${CLASSICY_SYSTEM_MENU_APP_PREFIX}${action.app.id}`,
 				title: action.app.name,
 				image: action.app.icon,
 				event: "ClassicyAppOpen",
@@ -278,7 +279,8 @@ export const classicyDesktopEventHandler = (
 		case "ClassicyDesktopAppMenuRemove": {
 			if (!hasApp(action)) break;
 			const exists = ds.System.Manager.Desktop.systemMenu.findIndex(
-				(i) => i && i.id === `system_menu_${action.app.id}`,
+				(i) =>
+					i && i.id === `${CLASSICY_SYSTEM_MENU_APP_PREFIX}${action.app.id}`,
 			);
 			if (exists >= 0) {
 				ds.System.Manager.Desktop.systemMenu.splice(exists, 1);

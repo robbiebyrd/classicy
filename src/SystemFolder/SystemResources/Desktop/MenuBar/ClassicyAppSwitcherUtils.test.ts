@@ -3,6 +3,7 @@ import { CLASSICY_NO_APP_IDENTITY_OVERRIDES } from "@/Appearance/ClassicyAppIden
 import type { ClassicyStoreSystemApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	appSwitcherAppsFrom,
+	CLASSICY_SYSTEM_MENU_APP_PREFIX,
 	withClassicyAppIdentityMenuItems,
 } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
@@ -81,6 +82,12 @@ describe("appSwitcherAppsFrom — display identity", () => {
 			{ "B.app": { icon: "/icons/bee.png" } },
 		);
 		expect(entry).toMatchObject({ name: "B", icon: "/icons/bee.png" });
+	});
+});
+
+describe("CLASSICY_SYSTEM_MENU_APP_PREFIX", () => {
+	it("keeps the id format persisted Apple-menu entries carry", () => {
+		expect(CLASSICY_SYSTEM_MENU_APP_PREFIX).toBe("system_menu_");
 	});
 });
 
