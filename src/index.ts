@@ -280,6 +280,7 @@ export * from "./SystemFolder/SystemResources/Utils/withoutZIndex";
 export * from "./SystemFolder/SystemResources/Window/ClassicyWindow";
 export * from "./SystemFolder/SystemResources/Window/ClassicyWindowContext";
 export * from "./SystemFolder/SystemResources/Window/ClassicyWindowFrame";
+export * from "./SystemFolder/SystemResources/Window/ClassicyWindowResize";
 export * from "./SystemFolder/WebViewer/WebViewer";
 export * from "./SystemFolder/WebViewer/WebViewerContext";
 export * from "./SystemFolder/WebViewer/WebViewerUtils";
