@@ -3,11 +3,18 @@ id: 0050-ryq
 title: 'I 5: Final verification'
 purpose: Run the full gate for Part I and prove every pre-existing Storybook story is pixel-identical after the hook wiring and the feedback moves.
 type: chor
-status: pending
+status: in_progress
 priority: "2"
 effort: S
 created: "2026-10-28T20:20:53.774Z"
-updated: "2026-10-29T20:22:00.352Z"
+updated: "2026-10-30T03:06:50.303Z"
+started: "2026-10-30T03:06:50.303Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy

@@ -3,12 +3,13 @@ id: 0049-cdo
 title: 'I 4.1: Probe package and one AppearanceHooks story per wired component'
 purpose: Give every wired component a Storybook story that renders under a probe package which decorates roots and logs events, and document the hook surface.
 type: feat
-status: in_progress
+status: complete
 priority: "2"
 effort: M
 created: "2026-10-28T20:20:35.567Z"
-updated: "2026-10-30T01:52:29.710Z"
+updated: "2026-10-30T03:06:28.590Z"
 started: "2026-10-30T01:52:29.710Z"
+completed: "2026-10-30T03:06:28.590Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -104,9 +105,9 @@ docs/AGENT-REFERENCE.md: under the Appearance Packages subsection add `useClassi
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm exec vitest run src/Appearance/ClassicyAppearanceProbe.story.test.tsx && pnpm build:storybook
-- [ ] Each of the 23 wired component story files exports an `AppearanceHooks` story rendering under the storybook-probe package, with the probe activated on mount and platinum restored on unmount.
-- [ ] AGENT-REFERENCE.md and CLAUDE.md document useClassicyAppearance, the 16 events, the decoration precedence and D23 semantics, playClassicyAppearanceSound and the Platinum hooks table.
+- [x] VERIFY: pnpm exec vitest run src/Appearance/ClassicyAppearanceProbe.story.test.tsx && pnpm build:storybook
+- [x] Each of the 23 wired component story files exports an `AppearanceHooks` story rendering under the storybook-probe package, with the probe activated on mount and platinum restored on unmount.
+- [x] AGENT-REFERENCE.md and CLAUDE.md document useClassicyAppearance, the 16 events, the decoration precedence and D23 semantics, playClassicyAppearanceSound and the Platinum hooks table.
 
 ## Files
 
@@ -140,3 +141,7 @@ docs/AGENT-REFERENCE.md: under the Appearance Packages subsection add `useClassi
 
 ## Work Log
 ### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
+
+### 2026-10-30T02:59:46.897Z - I 4.1 implemented on feat/appearance-part-i-v2 (bbafc04f4 I 3.2 review minors; 333a5182e AppearanceHooks stories under a probe package, hook docs). Full gate green: 363 files / 4252 tests, build:source + verify:dist + build:storybook. All 302 baseline stories AE 0; 23 new stories shot for the record. Task review dispatched.
+
+### 2026-10-30T03:06:25.644Z - Task review APPROVED (no Critical/Important). Hook tables verified against every emit call site; all 2.3 corrected docs rows landed; probe isolation sound. Minors (mock path resolution, docs 'unmapped' sentence and R10 collapse clause, I-R17 ledger wording) folded into I 5. R10 follow-up filed as 0088-sz9.

@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T20:30:41.718Z"
-updated: "2026-10-30T02:58:29.063Z"
+updated: "2026-10-30T03:02:31.789Z"
 started: "2026-10-30T02:18:30.774Z"
 tags: []
 milestone: ""
@@ -114,3 +114,5 @@ Re-shoot `desktop-window--*` → AE `0`. In Storybook `desktop-window--default`,
 ### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
 
 ### 2026-10-30T02:58:29.063Z - F 4.1 implemented on feat/appearance-part-f (b26e3b72c resize math anchored on the corner opposite the declared grow box; 72abc49cd pins every grow-box corner rule). 4044 tests pass; all 27 window/app/alert stories AE 0 against part-F/before. Live 40 px grip drag on desktop-window--default keeps left/top and grows by +43 at both BASE and HEAD (the existing +5 grip fudge), so Platinum behavior is unchanged. Task review dispatched.
+
+### 2026-10-30T03:02:31.789Z - F 4.1 task review: Needs fixes. Bottom-right unchanged and the +43 drag confirmed as today's +5 fudge; Important: flipped corners ignore minimum size and the viewport floor (y>=30, x>=0), so the anchored edge drifts (reachable via F 7.1's mirrored package). Fixes (optional minimum/floor params on the pure function, React-path resizing gate, test comment) sent to the F 5.1 implementer to land as a separate commit.
