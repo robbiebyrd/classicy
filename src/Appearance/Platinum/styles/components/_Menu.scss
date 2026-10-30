@@ -1,5 +1,6 @@
 // The Platinum menu look (from ClassicyMenu.scss): the menu frame of HIGOS8
-// Figure 6-15 on every menu, its dividers, and the submenu triangle.
+// Figure 6-15 on every menu, its dividers, the submenu triangle, and the
+// flash of a chosen item.
 @use "../mixins";
 @use "../assets";
 
@@ -33,6 +34,49 @@
   .classicyMenuItemChildMenuIndicator {
     &:after {
       background-image: assets.$triangle;
+    }
+  }
+
+  // The flash of a chosen item (from ClassicyMenu.scss), applied by the
+  // MenuItem press hook (hooks.ts) and cleared by its release. Its
+  // animationend runs the item's action.
+  .classicyMenuItemFlash {
+    -webkit-animation-name: classicyMenuItemFlashKeyframes;
+    animation-name: classicyMenuItemFlashKeyframes;
+    animation-duration: .25s;
+    animation-iteration-count: 1;
+    animation-timing-function: steps(1, end) ;
+  }
+
+  @keyframes classicyMenuItemFlashKeyframes {
+    0% {
+      background-color: var(--color-theme-04);
+      color: var(--color-white);
+    }
+
+    20% {
+      background-color: var(--color-system-02);
+      color: var(--color-black);
+    }
+
+    40% {
+      background-color: var(--color-theme-04);
+      color: var(--color-white);
+    }
+
+    60% {
+      background-color: var(--color-system-02);
+      color: var(--color-black);
+    }
+
+    80% {
+      background-color: var(--color-theme-04);
+      color: var(--color-white);
+    }
+
+    100% {
+      background-color: var(--color-system-02);
+      color: var(--color-black);
     }
   }
 }

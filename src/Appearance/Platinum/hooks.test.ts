@@ -141,6 +141,116 @@ describe("platinumAppearanceHooks", () => {
 		]);
 	});
 
+	it("maps window events to sprites", () => {
+		const rows: [ClassicyAppearanceEvent, unknown, string][] = [
+			["focus", undefined, "ClassicyWindowFocus"],
+			["collapse", undefined, "ClassicyWindowCollapse"],
+			["expand", undefined, "ClassicyWindowExpand"],
+			["close", undefined, "ClassicyWindowClose"],
+			["dragStart", undefined, "ClassicyWindowMoveIdle"],
+			["zoom", { zoomed: true }, "ClassicyWindowZoomMaximize"],
+			["zoom", { zoomed: false }, "ClassicyWindowZoomMinimize"],
+			["change", { kind: "move" }, "ClassicyWindowMoveMoving"],
+		];
+		for (const [e, detail, sound] of rows) {
+			const { result, calls } = run("Window", e, detail);
+			expect(result, `Window.${e}`).toBeUndefined();
+			expect(calls, `Window.${e}`).toEqual([
+				{ type: "ClassicySoundPlay", sound },
+			]);
+		}
+		expect(run("Window", "change", { kind: "resize" }).calls).toEqual([]);
+		expect(run("Window", "dragEnd").calls).toEqual([
+			{ type: "ClassicySoundPlayInterrupt", sound: "ClassicyWindowMoveStop" },
+		]);
+	});
+
+	// I-R16 and I-R17: each window sound keeps the cause and input that play
+	// it today.
+	it("plays window sounds for the same causes and inputs as before", () => {
+		// A resize start plays no idle (its zoom-minimize comes from the zoom
+		// event); a move start does.
+		expect(run("Window", "dragStart", { kind: "resize" }).calls).toEqual([]);
+		expect(run("Window", "dragStart", { kind: "move" }).calls).toEqual([
+			{ type: "ClassicySoundPlay", sound: "ClassicyWindowMoveIdle" },
+		]);
+		// Both drag kinds stop with the interrupting MoveStop.
+		for (const kind of ["move", "resize"])
+			expect(run("Window", "dragEnd", { kind }).calls).toEqual([
+				{
+					type: "ClassicySoundPlayInterrupt",
+					sound: "ClassicyWindowMoveStop",
+				},
+			]);
+		// The zoom sprite follows `zoomed` whatever the cause, as the zoom
+		// box, a collapse and a resize start all play it today.
+		for (const cause of ["zoom", "collapse", "resize"]) {
+			expect(
+				run("Window", "zoom", { zoomed: false, cause, input: "pointer" }).calls,
+			).toEqual([
+				{ type: "ClassicySoundPlay", sound: "ClassicyWindowZoomMinimize" },
+			]);
+		}
+		// Keyboard and pointer alike: the close box by Return or Space, a
+		// modal's Escape, and focus from either input.
+		for (const input of ["pointer", "keyboard"]) {
+			expect(run("Window", "close", { input }).calls).toEqual([
+				{ type: "ClassicySoundPlay", sound: "ClassicyWindowClose" },
+			]);
+			expect(run("Window", "focus", { input }).calls).toEqual([
+				{ type: "ClassicySoundPlay", sound: "ClassicyWindowFocus" },
+			]);
+		}
+		// Option-click collapses every window with one sound.
+		expect(
+			run("Window", "collapse", { all: true, input: "pointer" }).calls,
+		).toEqual([{ type: "ClassicySoundPlay", sound: "ClassicyWindowCollapse" }]);
+	});
+
+	it("a menu item press plays the click and returns the flash decoration", () => {
+		const { result, calls } = run("MenuItem", "press", {
+			itemId: "save",
+			input: "pointer",
+		});
+		expect(calls).toEqual([
+			{ type: "ClassicySoundPlay", sound: "ClassicyMenuItemClick" },
+		]);
+		expect(result).toEqual({ className: "classicyMenuItemFlash" });
+	});
+
+	it("a menu item release clears the flash", () => {
+		const { result, calls } = run("MenuItem", "release", { itemId: "save" });
+		expect(result).toEqual({});
+		expect(calls).toEqual([]);
+	});
+
+	it("maps the menu item's open and focus, and nothing for blur", () => {
+		expect(run("MenuItem", "open", { itemId: "more" }).calls).toEqual([
+			{ type: "ClassicySoundPlay", sound: "ClassicyMenuOpen" },
+		]);
+		expect(run("MenuItem", "focus", { itemId: "save" }).calls).toEqual([
+			{ type: "ClassicySoundPlay", sound: "ClassicyMenuItemHover" },
+		]);
+		// Ruling 6: no pack has a blur sprite, and a blur is silent today.
+		expect(
+			Object.keys(platinumAppearanceHooks.on?.MenuItem ?? {}).sort(),
+		).toEqual(["focus", "open", "press", "release"]);
+		expect(
+			Object.keys(platinumAppearanceHooks.on?.Window ?? {}).sort(),
+		).toEqual([
+			"change",
+			"close",
+			"collapse",
+			"dragEnd",
+			"dragStart",
+			"expand",
+			"focus",
+			"zoom",
+		]);
+		// The submenu list's own open and close stay silent: the item plays it.
+		expect(platinumAppearanceHooks.on?.Menu).toBeUndefined();
+	});
+
 	it("is the Platinum package's hooks, and the library barrel exports it", async () => {
 		await import("@/Appearance/Platinum");
 		expect(getClassicyAppearancePackage("platinum")?.hooks).toBe(
