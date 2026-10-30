@@ -236,8 +236,10 @@ describe("platinum.scss (compiled)", () => {
 	});
 
 	// Part E 5.1: the text glyphs are package look, drawn as `::before`
-	// content on the state or variant class. Escapes, so the CSS stays ASCII:
-	// no `@charset` (or BOM) ahead of the layer block.
+	// content on the state or variant class. Escapes, so the Sass output stays
+	// ASCII: no `@charset` (or BOM) ahead of the layer block. This guards the
+	// Sass stage only; the shipped dist/*.css files are guarded by verify:dist
+	// invariant 9 (bin/classicyDistCharset.ts).
 	it("draws the menu, pop-up, bevel, placard and file-input glyphs as content", () => {
 		const glyphs: [string, string][] = [
 			[".classicyMenuItemCheck.checked::before", '"\\2713"'],

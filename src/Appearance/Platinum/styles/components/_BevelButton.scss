@@ -8,7 +8,8 @@
 @mixin bevelButton {
   // The pop-up arrow: a font glyph pointing where the surface opens (right
   // for horizontal, down for vertical), as an escape kept by `string.unquote`
-  // so the package CSS stays ASCII. Base sizes the arrow box (small, large).
+  // so the Sass output stays ASCII (the build keeps dist ASCII; verify:dist
+  // invariant 9). Base sizes the arrow box (small, large).
   .classicyBevelButtonArrowHorizontal::before {
     content: string.unquote('"\\25B8"'); // ▸
   }

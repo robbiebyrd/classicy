@@ -25,8 +25,8 @@
   }
 
   // The HIG checkmark against the current selection, a font glyph in the
-  // fixed check gutter (an escape kept by `string.unquote`, so the package CSS
-  // stays ASCII).
+  // fixed check gutter (an escape kept by `string.unquote`, so the Sass output
+  // stays ASCII; the build keeps dist ASCII, verify:dist invariant 9).
   .classicyPopUpMenuCheck.checked::before {
     content: string.unquote('"\\2713"'); // ✓
   }

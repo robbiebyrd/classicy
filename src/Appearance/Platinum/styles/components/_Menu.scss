@@ -85,8 +85,9 @@
   }
 
   // The check and mixed-state dash in an item's check gutter (HIGOS8 Ch. 4).
-  // Font glyphs, as escapes kept by `string.unquote`, so the package CSS
-  // stays ASCII (Sass decodes a quoted escape and prepends `@charset`). The
+  // Font glyphs, as escapes kept by `string.unquote`, so the Sass output
+  // stays ASCII (Sass decodes a quoted escape and prepends `@charset`; the
+  // build keeps dist ASCII, verify:dist invariant 9). The
   // gutter is an inline-flex box, so each glyph is centered in it as the text
   // was.
   .classicyMenuItemCheck.checked::before {

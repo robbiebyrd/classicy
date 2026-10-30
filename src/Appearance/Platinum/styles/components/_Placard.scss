@@ -4,8 +4,8 @@
 @use "../mixins";
 
 @mixin placard {
-  // A font glyph, as an escape kept by `string.unquote` so the package CSS
-  // stays ASCII.
+  // A font glyph, as an escape kept by `string.unquote` so the Sass output
+  // stays ASCII (the build keeps dist ASCII; verify:dist invariant 9).
   .classicyPlacardArrow::before {
     content: string.unquote('"\\25BE"'); // ▾
   }

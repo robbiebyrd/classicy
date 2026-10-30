@@ -24,6 +24,10 @@ const config: StorybookConfig = {
 			// rewrites glob-imported asset URLs (ClassicyIcons) against this base,
 			// so component icons resolve correctly under the preview sub-path.
 			base: process.env.STORYBOOK_BASE || config.base,
+			// Storybook does not load the root vite.config.ts, so the library
+			// build's charset is repeated here: stories exercise the same escaped
+			// glyph CSS that dist ships (verify:dist invariant 9).
+			esbuild: { charset: "ascii" },
 			assetsInclude: [
 				"**/*.ogg",
 				"**/*.m4a",

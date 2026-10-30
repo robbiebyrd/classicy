@@ -212,6 +212,17 @@ export default defineConfig({
 	define: {
 		"process.env.NODE_ENV": JSON.stringify("production"),
 	},
+	// Escape non-ASCII characters in everything esbuild minifies: every
+	// stylesheet, injected or linked, and the strings of both bundles (regex
+	// literals, and the comments the ES bundle keeps, stay as written). Vite's
+	// default (`"utf8"`) writes
+	// the package's `content: "\2713"` glyphs raw, and strict-CSP hosts link
+	// dist/classicy-<id>.css themselves: a file with no `@charset`, served
+	// without an HTTP charset, takes a non-UTF-8 page's encoding and draws
+	// "âœ“". The injected and the linked package CSS come from the same
+	// minified string, so they stay byte-identical (verify:dist invariants 7
+	// and 9).
+	esbuild: { charset: "ascii" },
 	base: "./",
 	assetsInclude: [
 		"**/*.ogg",
