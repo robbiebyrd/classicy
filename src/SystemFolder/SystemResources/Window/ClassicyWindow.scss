@@ -42,6 +42,26 @@
     text-align: center;
     column-gap: calc(var(--window-border-size) * 4);
 
+    // Arrangement: the title bar's flex items in explicit order. The DOM order
+    // already matches, so these change no pixels; an Appearance Package
+    // reorders the parts by overriding the numbers. The control wrappers
+    // (.classicyWindowControlBox) carry data-classicy-control.
+    [data-classicy-control="close"] {
+      order: 10;
+    }
+
+    .classicyWindowTitle {
+      order: 20;
+    }
+
+    [data-classicy-control="zoom"] {
+      order: 30;
+    }
+
+    [data-classicy-control="collapse"] {
+      order: 40;
+    }
+
     .classicyWindowIcon {
       max-width: calc(var(--window-control-size) * 2);
       max-height: calc(var(--window-control-size) * 1.25);
@@ -204,6 +224,27 @@
       // No inset highlight: a white bevel here reads as a 1px white seam between
       // the grow box and the scroll bars. The grip's grey must meet the bars'
       // black borders directly (matches Mac OS 8's grow box).
+    }
+
+    // Arrangement: the grip follows the active package's grow-box corner,
+    // published on the desktop root as data-classicy-grow-box (bottom-right,
+    // the default, is the rule above). The ::before edges stay drawn for the
+    // bottom-right corner; a package that moves the grip restyles them.
+    [data-classicy-grow-box="bottom-left"] & {
+      left: var(--window-border-size);
+      right: auto;
+    }
+
+    [data-classicy-grow-box="top-right"] & {
+      top: var(--window-border-size);
+      bottom: auto;
+    }
+
+    [data-classicy-grow-box="top-left"] & {
+      left: var(--window-border-size);
+      right: auto;
+      top: var(--window-border-size);
+      bottom: auto;
     }
   }
 
