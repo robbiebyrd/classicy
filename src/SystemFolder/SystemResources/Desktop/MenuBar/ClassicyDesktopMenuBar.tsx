@@ -188,7 +188,7 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 			title: focusedApp?.name || "Finder",
 			className: "classicyDesktopMenuAppSwitcher",
 			part: "switcher",
-			// The switcher's title follows the focused app, and it floats at the
+			// The switcher's title follows the focused app, and it sits at the
 			// right end of the bar — so a name-length change would otherwise resize
 			// it and shove the sound/time widgets sideways. Reserve the widest open
 			// app's width up front and the bar stays put.
@@ -309,8 +309,10 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 		if (strippedAppMenu) {
 			items.push(...strippedAppMenu.map((item) => ({ ...item, part: "app" })));
 		}
-		// Help is the rightmost standard menu; the App Switcher floats to the far
-		// right of the bar (8.5+ construct) and is kept last in the data.
+		// Help is the rightmost standard menu; the App Switcher sits at the far
+		// right of the bar (8.5+ construct) and is kept last in the data. Where
+		// each one lands is set by its `part` (order via data-classicy-part; see
+		// ClassicyDesktopMenuBar.scss), not by its place in this list.
 		items.push(helpMenuItem);
 		items.push(appSwitcherMenuMenuItem);
 		return items;
@@ -378,8 +380,9 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 			>
 				{/* Sound lives on the Control Strip (ClassicyDesktop mounts it). */}
 				<ClassicyDesktopMenuWidgetTime />
-				{/* Portal target for app Menu Bar Extensions. Rendered last so its
-				    float:right lands it to the LEFT of the Time widget. */}
+				{/* Portal target for app Menu Bar Extensions. Order via
+				    data-classicy-part; see ClassicyDesktopMenuBar.scss: it lands
+				    left of the clock and pushes the right cluster to the end. */}
 				<ul
 					id={"classicyDesktopMenuExtensions"}
 					className={"classicyDesktopMenuExtensions"}
