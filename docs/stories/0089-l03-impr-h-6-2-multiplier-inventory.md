@@ -7,7 +7,7 @@ status: ready
 priority: "2"
 effort: L
 created: "2026-10-30T12:16:47.737Z"
-updated: "2026-10-30T19:59:21.020Z"
+updated: "2026-10-30T21:09:10.933Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -80,3 +80,5 @@ AGENT-REFERENCE §8 replaces the inventory with the kept-on-purpose list and doc
 ### 2026-10-30T17:33:02.291Z - H 6.2 started in two passes: 6.2a (the multiplier gate, the seeded allowlist, and sites outside H 6.1's 27 files, plus E's ClassicyWindowTitleBar.scss) runs in parallel with H 6.1 in worktree part-h-62; 6.2b converts the sites in those 27 files after 6.1 integrates. Base: land/part-h d6aed9d95 (H rebased onto the landed Part E, pushed as feat/appearance-part-h-v2).
 
 ### 2026-10-30T19:59:21.020Z - H 6.2a implemented (9a98dfb74 on h/6.2a): the multiplier gate with a reasoned allowlist (178 live sites seeded, more than G's 88 grep count); 123 sites named with 31 derivations and 31 knobs; 55 sites left (31 kept on purpose, 24 in 6.1's files for 6.2b). Parity AE 0 on 342 stories + 4 app shots. Ruling H-R25: sites multiplying a user-editable metric must stay proportional (derivations, not knobs), so the Metrics tab keeps scaling; fix round running.
+
+### 2026-10-30T21:09:10.933Z - H 6.2a H-R25 fix (08a84dc11): all 31 knobs had replaced multiples of user-editable metrics, so all 31 are now derivations under the same variable names (no SCSS change). A new metric-scaling test sets each metric through its real action and fails against the knob version. Parity AE 0 on 346 shots, computed styles 342/342, forced states 67/67. All 24 sites left for 6.2b multiply editable metrics, so they become derivations too. In review.
