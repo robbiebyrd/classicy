@@ -261,11 +261,16 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			// not stored on the icon record, so revised text ships with the
 			// library rather than staying frozen in localStorage, and they follow
 			// the active package.
+			// The text under the icon, which also titles its balloon: an empty
+			// label falls back to the name too. (Only an app shortcut's name can
+			// differ from `appName`, and only kinds that are not one get stock
+			// copy.)
+			const shownName = label || identity.name;
 			const effectiveBalloonHelp = balloonHelp
-				? { ...balloonHelp, title: balloonHelp.title ?? label ?? identity.name }
+				? { ...balloonHelp, title: balloonHelp.title ?? shownName }
 				: identity.description
-					? { title: label ?? identity.name, content: identity.description }
-					: defaultBalloonForKind(kind, label ?? appName);
+					? { title: shownName, content: identity.description }
+					: defaultBalloonForKind(kind, shownName);
 			const { handlers: balloonHandlers, balloon } = useClassicyBalloonHelp(
 				iconRef,
 				effectiveBalloonHelp,
@@ -596,7 +601,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 							</div>
 						)}
 					</div>
-					<p>{label ? label : identity.name}</p>
+					<p>{shownName}</p>
 					{balloon}
 				</div>
 			);

@@ -155,9 +155,10 @@ const getKindPriority = (kind: string): number =>
 
 /**
  * Sorts the desktop's icons in place, by name or by kind then name. The name
- * is the one the icon shows for its app: an app shortcut takes `packageId`'s
- * display name (store-free, read from the draft's `packageId`); every other
- * kind, drives sharing `Finder.app` included, its own `appName`.
+ * is the app's display name: an app shortcut takes `packageId`'s override
+ * (store-free, read from the draft's `packageId`); every other kind, drives
+ * sharing `Finder.app` included, its own `appName`. A user label is not
+ * considered.
  */
 const sortDesktopIcons = (
 	icons: ClassicyStoreSystemDesktopManagerIcon[],

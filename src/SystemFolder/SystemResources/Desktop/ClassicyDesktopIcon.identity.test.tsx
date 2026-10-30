@@ -60,11 +60,19 @@ vi.mock("howler", () => ({
 	},
 }));
 
+// Every analytics event, recorded: GA keeps the app's own name (K-D5).
+const tracked = vi.hoisted((): [string, Record<string, unknown>][] => []);
+
 vi.mock(
 	"@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics",
 	async (importOriginal) => ({
 		...(await importOriginal<object>()),
-		useClassicyAnalytics: () => ({ track: () => {}, page: () => {} }),
+		useClassicyAnalytics: () => ({
+			track: (event: string, payload: Record<string, unknown>) => {
+				tracked.push([event, payload]);
+			},
+			page: () => {},
+		}),
 	}),
 );
 
@@ -93,6 +101,7 @@ beforeEach(() => {
 	localStorage.clear();
 	resetToPlatinum();
 	dispatched.length = 0;
+	tracked.length = 0;
 	registerTestRenamePackage();
 	switchPackage(TEST_RENAME_PACKAGE_ID);
 });
@@ -140,6 +149,13 @@ describe("test-rename", () => {
 		expect(image(MoviePlayerAppInfo.id)).toHaveAttribute(
 			"src",
 			TEST_RENAMED_ICON,
+		);
+		// The selected and open shading masks the art that is drawn.
+		const mask = iconRoot(MoviePlayerAppInfo.id).querySelector<HTMLElement>(
+			".classicyDesktopIconMaskOuter",
+		);
+		expect(mask?.style.getPropertyValue("--classicy-icon-mask")).toBe(
+			`url(${TEST_RENAMED_ICON})`,
 		);
 	});
 
@@ -210,6 +226,33 @@ describe("test-rename", () => {
 		expect((open?.app as { name: string; icon: string }).icon).toBe(TV_ICON);
 	});
 
+	it("analytics carry the app's own name and icon", () => {
+		render(
+			<ClassicyDesktopIcon
+				appId="TV.app"
+				appName="TV"
+				icon={TV_ICON}
+				kind="app_shortcut"
+			/>,
+		);
+		expect(label("TV.app")).toBe("Television");
+		fireEvent.mouseDown(iconRoot("TV.app"));
+		fireEvent.mouseUp(iconRoot("TV.app"));
+		fireEvent.click(iconRoot("TV.app"));
+		fireEvent.doubleClick(iconRoot("TV.app"));
+		const events = tracked.map(([event]) => event);
+		expect(events).toContain("move");
+		expect(events).toContain("open");
+		for (const [, payload] of tracked) {
+			expect(payload).toMatchObject({
+				type: "ClassicyDesktopIcon",
+				appId: "TV.app",
+				appName: "TV",
+				icon: TV_ICON,
+			});
+		}
+	});
+
 	describe("balloon", () => {
 		const balloonTitle = () =>
 			document.querySelector(".classicyBalloonHelpTitle")?.textContent;
@@ -247,6 +290,43 @@ describe("test-rename", () => {
 				await screen.findByText(description as string, {}, { timeout: 2000 }),
 			).toBeInTheDocument();
 			expect(balloonTitle()).toBe(MoviePlayerAppInfo.name);
+		});
+
+		it("titles a balloon with the display name when the label is empty", async () => {
+			const { unmount } = render(
+				<ClassicyDesktopIcon
+					appId="TV.app"
+					appName="TV"
+					icon={TV_ICON}
+					label=""
+					kind="app_shortcut"
+					balloonHelp={{ content: "Watch TV.", delay: 0 }}
+				/>,
+			);
+			expect(label("TV.app")).toBe("Television");
+			fireEvent.mouseEnter(iconRoot("TV.app"));
+			expect(await screen.findByText("Watch TV.")).toBeInTheDocument();
+			expect(balloonTitle()).toBe("Television");
+			unmount();
+
+			render(
+				<ClassicyDesktopIcon
+					appId={MoviePlayerAppInfo.id}
+					appName={MoviePlayerAppInfo.name}
+					icon={MoviePlayerAppInfo.icon}
+					label=""
+					kind="app_shortcut"
+				/>,
+			);
+			fireEvent.mouseEnter(iconRoot(MoviePlayerAppInfo.id));
+			expect(
+				await screen.findByText(
+					"Plays movies and sound.",
+					{},
+					{ timeout: 2000 },
+				),
+			).toBeInTheDocument();
+			expect(balloonTitle()).toBe("Media Player");
 		});
 
 		it("titles a stored untitled balloon with the display name", async () => {
@@ -302,14 +382,25 @@ describe("test-rename", () => {
 			noLaunch: true,
 		});
 
-		it("matches the package's name", () => {
+		const drive = {
+			appId: "Finder.app",
+			appName: "Macintosh HD",
+			icon: "/hd.png",
+			kind: "drive",
+			noLaunch: true,
+		};
+
+		/** Seeds the desktop's icons, renders the desktop and types `text`. */
+		const typeOnDesktop = (
+			icons: (typeof drive & { label?: string })[],
+			text: string,
+		) => {
 			act(() => {
 				useAppManager.setState((state) =>
 					produce(state, (draft) => {
-						draft.System.Manager.Desktop.icons = [
-							icon("Scrapbook.app", "Scrapbook"),
-							icon("TV.app", "TV"),
-						];
+						draft.System.Manager.Desktop.icons = icons.map((i) => ({
+							...i,
+						}));
 					}),
 				);
 			});
@@ -318,10 +409,30 @@ describe("test-rename", () => {
 					<ClassicyDesktop controlStrip={false} />
 				</ClassicyAppManagerProvider>,
 			);
-			const scrapbook = iconRoot("Scrapbook.app");
-			for (const key of ["T", "e", "l"]) fireEvent.keyDown(scrapbook, { key });
+			const target = iconRoot(icons[0].appId);
+			for (const key of text) fireEvent.keyDown(target, { key });
+			return useAppManager.getState().System.Manager.Desktop.selectedIcons;
+		};
+
+		/** Extends the fixture locally: test-rename also renames Finder. */
+		const renameFinder = () => {
+			const renamed = getClassicyAppearancePackage(
+				TEST_RENAME_PACKAGE_ID,
+			) as ClassicyAppearancePackage;
+			act(() =>
+				registerClassicyAppearancePackage({
+					...renamed,
+					apps: { ...renamed.apps, "Finder.app": { name: "Explorer" } },
+				}),
+			);
+		};
+
+		it("matches the package's name", () => {
 			expect(
-				useAppManager.getState().System.Manager.Desktop.selectedIcons,
+				typeOnDesktop(
+					[icon("Scrapbook.app", "Scrapbook"), icon("TV.app", "TV")],
+					"Tel",
+				),
 			).toEqual(["TV.app"]);
 			// The record keeps the app's own name.
 			expect(
@@ -330,6 +441,32 @@ describe("test-rename", () => {
 					.System.Manager.Desktop.icons.find((i) => i.appId === "TV.app")
 					?.appName,
 			).toBe("TV");
+		});
+
+		it("matches a user label, not the package's name", () => {
+			expect(
+				typeOnDesktop(
+					[
+						icon("Scrapbook.app", "Scrapbook"),
+						{ ...icon("TV.app", "TV"), label: "My Telly" },
+					],
+					"My",
+				),
+			).toEqual(["TV.app"]);
+		});
+
+		it("matches a drive sharing Finder.app by its own name", () => {
+			renameFinder();
+			expect(
+				typeOnDesktop([drive, icon("Scrapbook.app", "Scrapbook")], "Mac"),
+			).toEqual(["Finder.app"]);
+		});
+
+		it("never matches a drive by Finder.app's override", () => {
+			renameFinder();
+			expect(
+				typeOnDesktop([drive, icon("Scrapbook.app", "Scrapbook")], "Exp"),
+			).not.toContain("Finder.app");
 		});
 	});
 });
