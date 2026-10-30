@@ -191,3 +191,54 @@ describe("classicyKnobsToSchema", () => {
 		});
 	});
 });
+
+describe("ClassicyAppearancePackageSchema apps", () => {
+	const valid = platinumShaped();
+
+	it("accepts per-app overrides", () => {
+		expect(
+			ClassicyAppearancePackageSchema.safeParse({
+				...valid,
+				apps: {
+					"MoviePlayer.app": {
+						name: "Media Player",
+						icon: "data:image/png;base64,AA==",
+					},
+				},
+			}).success,
+		).toBe(true);
+	});
+
+	it.each([
+		["_x"],
+		["A:B"],
+		[" Pad"],
+		[""],
+		["x".repeat(65)],
+	])("refuses the name %j", (name) => {
+		expect(
+			ClassicyAppearancePackageSchema.safeParse({
+				...valid,
+				apps: { "A.app": { name } },
+			}).success,
+		).toBe(false);
+	});
+
+	it("refuses a script icon, unknown keys and forbidden ids", () => {
+		for (const apps of [
+			{ "A.app": { icon: "javascript:alert(1)" } },
+			{ "A.app": { label: "x" } },
+			JSON.parse('{"__proto__": {"name": "X"}}'),
+		]) {
+			expect(
+				ClassicyAppearancePackageSchema.safeParse({ ...valid, apps }).success,
+			).toBe(false);
+		}
+	});
+
+	it("describes the field", () => {
+		expect(ClassicyAppearancePackageSchema.shape.apps.description).toMatch(
+			/app id/,
+		);
+	});
+});

@@ -5,6 +5,7 @@ import type {
 	ClassicyAssetKind,
 	ClassicyAssetTree,
 } from "@/Appearance/ClassicyAssetRegistry";
+import type { ClassicyAssetSource } from "@/Appearance/ClassicyAssetSource";
 import type {
 	ClassicyComponentName,
 	ClassicyState,
@@ -132,6 +133,17 @@ export type ClassicyAppearanceHooks = {
 	>;
 };
 
+/** A package's display override for one app (by app id). Display only:
+ *  the app's id, action types, routing and saved state never change. */
+export type ClassicyAppIdentityOverride = {
+	/** Shown wherever the app's name is shown. */
+	name?: string;
+	/** Shown wherever the app's icon is shown. */
+	icon?: ClassicyAssetSource;
+	/** Balloon-help copy for the app's desktop icon when the app supplies none. */
+	description?: string;
+};
+
 /**
  * An Appearance Package: a complete look (CSS, default theme, presets,
  * arrangement, assets, sounds, behavior hooks) that the desktop can switch
@@ -160,6 +172,8 @@ export type ClassicyAppearancePackage = {
 	assets?: Partial<Record<ClassicyAssetKind, ClassicyAssetTree>>;
 	/** Descriptive: the package's sound packs, registered through the sound pack registry. */
 	sounds?: ClassicySoundPack[];
+	/** Per-app display overrides keyed by app id (`"MoviePlayer.app"`); read with `useClassicyAppIdentity`. */
+	apps?: Readonly<Record<string, ClassicyAppIdentityOverride>>;
 	hooks?: ClassicyAppearanceHooks;
 };
 

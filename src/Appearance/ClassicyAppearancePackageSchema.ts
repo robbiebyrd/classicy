@@ -7,6 +7,7 @@ import type {
 	ClassicyAppearanceKnobs,
 	ClassicyAppearanceLayout,
 	ClassicyAppearancePackage,
+	ClassicyAppIdentityOverride,
 } from "./ClassicyAppearancePackage";
 
 /** The three arrangement groups; every group is required. */
@@ -70,6 +71,87 @@ const knob = z
 		error: "must satisfy min <= default <= max",
 	});
 
+// Keys that would reach Object.prototype through a plain-object lookup. The
+// registry stores the package object as given, not the parsed one, so these
+// are refused rather than stripped.
+const FORBIDDEN_KEYS: ReadonlySet<string> = new Set([
+	"__proto__",
+	"constructor",
+	"prototype",
+]);
+const FORBIDDEN_KEY_ERROR = "must not be __proto__, constructor or prototype";
+
+const appIdKey = z
+	.string()
+	.min(1)
+	.max(128)
+	.refine((id) => !FORBIDDEN_KEYS.has(id), { error: FORBIDDEN_KEY_ERROR })
+	.describe('An app id, as passed to `ClassicyApp` (`"MoviePlayer.app"`).');
+
+// The derived Applications and Extensions folders key their entries by the
+// display name, so it must be usable as a file-system name: no leading `_`
+// (metadata keys) and no `:` (the path separator). Refinements, never
+// `.trim()`: the registry keeps the original object, so nothing may be
+// transformed.
+const DISPLAY_NAME_ERROR =
+	"must be a display name usable as a file name (no leading _, no :)";
+const displayName = z
+	.string()
+	.min(1, { error: DISPLAY_NAME_ERROR })
+	.max(64, { error: DISPLAY_NAME_ERROR })
+	.refine(
+		(name) =>
+			name === name.trim() &&
+			!name.startsWith("_") &&
+			!name.includes(":") &&
+			!FORBIDDEN_KEYS.has(name),
+		{ error: DISPLAY_NAME_ERROR },
+	);
+
+/** One app's display override in a package's `apps`. Unknown keys are refused. */
+export const ClassicyAppIdentityOverrideSchema = z
+	.strictObject({
+		name: displayName
+			.optional()
+			.describe("Shown wherever the app's name is shown, in place of its own."),
+		icon: z
+			.string()
+			.refine(isClassicyAssetSource, {
+				error: "must be an asset source (a URL or a data: URI)",
+			})
+			.optional()
+			.describe("Shown wherever the app's icon is shown, in place of its own."),
+		description: z
+			.string()
+			.min(1)
+			.max(512)
+			.refine((text) => text === text.trim(), {
+				error: "must not start or end with whitespace",
+			})
+			.optional()
+			.describe(
+				"Balloon-help copy for the app's desktop icon when the app supplies none.",
+			),
+	})
+	.describe(
+		"A package's display override for one app. Display only: the app's id, action types, routing and saved state never change.",
+	) satisfies z.ZodType<ClassicyAppIdentityOverride>;
+
+const appsRecord = z.record(appIdKey, ClassicyAppIdentityOverrideSchema);
+
+// zod's record skips an own `__proto__` key without an issue (it is never
+// copied into the parsed output), and the registry keeps the object as
+// given, so the raw input's keys are checked before the record parses it.
+const appsWithoutForbiddenKeys = z.custom<z.input<typeof appsRecord>>(
+	(value) =>
+		typeof value !== "object" ||
+		value === null ||
+		!Reflect.ownKeys(value).some(
+			(key) => typeof key === "string" && FORBIDDEN_KEYS.has(key),
+		),
+	{ error: `app ids ${FORBIDDEN_KEY_ERROR}` },
+);
+
 /**
  * Everything in a `ClassicyAppearancePackage` but `css`, `options` and
  * `hooks` (code and compiled CSS, which no schema can vouch for). Unknown
@@ -85,6 +167,12 @@ export const ClassicyAppearancePackageSchema = z
 		layout: ClassicyAppearanceLayoutSchema,
 		assets: z.partialRecord(z.enum(ASSET_KINDS), assetTree).optional(),
 		sounds: z.array(ClassicySoundPackSchema).optional(),
+		apps: appsWithoutForbiddenKeys
+			.pipe(appsRecord)
+			.optional()
+			.describe(
+				"Per-app display overrides keyed by app id (\"MoviePlayer.app\"): a name, icon or balloon description shown in place of the app's own. Display only; the app's id, action types and saved state keep its own identity.",
+			),
 	})
 	// The defaults are the theme a switch to this package activates; one that
 	// names another package would make ChangeAppearancePackage re-clone it on
