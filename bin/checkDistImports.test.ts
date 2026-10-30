@@ -204,3 +204,26 @@ describe.each([
 		);
 	});
 });
+
+// Invariant 9: a linked stylesheet is ASCII only, or opens with
+// `@charset "UTF-8";`, so a host page that is not UTF-8 decodes it right.
+describe("check-dist-imports.mjs invariant 9: stylesheet charset (named files)", () => {
+	const FILE = join("fx", "glyphs.css");
+
+	it.each([
+		["an ASCII stylesheet", '.a::before{content:"\\2713"}'],
+		[
+			"a UTF-8 stylesheet with @charset",
+			'@charset "UTF-8";.a::before{content:"✓"}',
+		],
+	])("passes %s", (_name, css) =>
+		expect(check({}, { [FILE]: css })).toEqual({ status: 0, stderr: "" }));
+
+	it("fails raw UTF-8 with no @charset", () => {
+		const { status, stderr } = check({}, { [FILE]: '.a::before{content:"✓"}' });
+		expect(status).toBe(1);
+		expect(stderr.trim()).toMatch(
+			new RegExp(`^${FILE.replace(".", "\\.")}: non-ASCII byte at offset 20`),
+		);
+	});
+});
