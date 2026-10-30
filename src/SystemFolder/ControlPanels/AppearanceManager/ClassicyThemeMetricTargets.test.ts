@@ -165,6 +165,26 @@ describe("the metric family form", () => {
 		).toBe(true);
 	});
 
+	// H-R16: no knob may emit into the palette's --color- names.
+	it("refuses a knob whose variable takes the --color- prefix", () => {
+		for (const [family, key] of [
+			["colorPicker", "wheelMax"],
+			["color", "accent"],
+			["colorBox", "lipHeight"],
+		]) {
+			expect(
+				isThemeMetricFamilyTarget({ family, key }),
+				`${family}.${key}`,
+			).toBe(false);
+		}
+		expect(
+			isThemeMetricFamilyTarget({ family: "colorful", key: "stripeWidth" }),
+		).toBe(true);
+		expect(
+			isThemeMetricFamilyTarget({ family: "picker", key: "wheelMax" }),
+		).toBe(true);
+	});
+
 	it("family form get/set round-trips an existing knob", () => {
 		const theme = withStrip();
 		const target = { family: "controlStrip", key: "cellHeight" };

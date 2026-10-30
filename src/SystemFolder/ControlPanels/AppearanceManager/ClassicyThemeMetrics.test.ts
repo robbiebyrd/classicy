@@ -151,7 +151,7 @@ const PLATINUM_KNOB_FAMILIES = [
 	"hyperCard",
 	"finder",
 	"appleGuide",
-	"colorPicker",
+	"picker",
 	"dialog",
 	"controlPanel",
 	"progressBar",

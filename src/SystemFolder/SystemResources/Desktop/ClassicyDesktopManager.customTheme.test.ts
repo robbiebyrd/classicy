@@ -19,7 +19,6 @@ import {
 	CLASSICY_THEME_COLOR_TARGETS,
 	getThemeColor,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorTargets";
-import { classicyMeasurementVars } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import {
 	CLASSICY_THEME_METRIC_TARGETS,
 	getThemeMetric,
@@ -75,13 +74,10 @@ describe("ClassicyDesktopChangeColor — every color target", () => {
 
 	it("covers exactly the 28 color variables getThemeVars emits", () => {
 		const vars = Object.keys(getThemeVars(getTheme("default")));
-		// Measurement inputs are not colors, though Platinum's colorPicker
-		// knobs (`--color-picker-*`, H 2.1) share the prefix.
-		const inputs = classicyMeasurementVars(getTheme("default").measurements);
+		// No measurement may emit a --color- name (H-R16), so the prefix
+		// alone finds the palette.
 		const colorVars = vars.filter(
-			(v) =>
-				!(v in inputs) &&
-				(v.startsWith("--color-") || v === "--desktop-background-color"),
+			(v) => v.startsWith("--color-") || v === "--desktop-background-color",
 		);
 		expect(colorVars).toHaveLength(28);
 		expect(CLASSICY_THEME_COLOR_TARGETS.map((t) => t.cssVar).sort()).toEqual(
