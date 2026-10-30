@@ -3,11 +3,18 @@ id: 0049-cdo
 title: 'I 4.1: Probe package and one AppearanceHooks story per wired component'
 purpose: Give every wired component a Storybook story that renders under a probe package which decorates roots and logs events, and document the hook surface.
 type: feat
-status: pending
+status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T20:20:35.567Z"
-updated: "2026-10-29T20:22:00.352Z"
+updated: "2026-10-30T01:52:29.710Z"
+started: "2026-10-30T01:52:29.710Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy

@@ -3,11 +3,18 @@ id: 0014-2b5
 title: 'G 2.2: Rewrite the SCSS readers'
 purpose: Replace the simple `calc(var(--x) * N)` multipliers across ~45 stylesheets with the named derivations, leaving an enumerated one-off list for part H.
 type: impr
-status: pending
+status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T19:56:33.172Z"
-updated: "2026-10-29T20:14:15.844Z"
+updated: "2026-10-30T01:53:24.028Z"
+started: "2026-10-30T01:53:24.028Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy

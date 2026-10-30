@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T20:19:44.230Z"
-updated: "2026-10-30T01:12:19.716Z"
+updated: "2026-10-30T01:52:07.695Z"
 started: "2026-10-30T01:12:18.062Z"
 tags: []
 milestone: ""
@@ -113,3 +113,5 @@ Re-shoot desktop-window*, desktop-menu*, desktop-menubar*, dialogs-alert*, contr
 ### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
 
 ### 2026-10-30T01:12:19.716Z - Started on feat/appearance-part-i-v2 at BASE ba5235cc6 (I 3.1), with I 3.1's task review running in parallel. Any review fixes are folded in or land after. The brief is the part-i ledger task-3.2-brief.md, which includes I-R14..I-R17 and the I 2.3 carry-forwards (own-target flash guard test, dead spacer branch). Parity: port 6023 against the post-B baseline.
+
+### 2026-10-30T01:52:07.695Z - Implemented at 574c30e5d (pushed). eb5db5529 moves the window sounds and the menu-item flash into the hooks; 574c30e5d folds in the I 3.1 review minors. RED: 7/185. Gate: lint, tsc, 4248 tests (627 s, no timeouts), build:source with verify:dist. Parity: 37 window, menu, menubar, alert and contextual-menu stories at AE 0 with identical computed styles, and 26 forced Chromium cases identical. A live check shows the flash class is removed on animationend at about 310 ms, before the 400 ms fallback. Deviations: Window.dragStart stays silent on a resize start (I-R17); MenuItem.blur is unmapped; a stale ClassicyIcons mock was removed; the any-name animationend test dispatches a real webkitAnimationEnd. Concern for review: submenu hovers no longer bubble extra hover dispatches to the parent item. The task review is in progress.

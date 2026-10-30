@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T19:54:12.504Z"
-updated: "2026-10-30T00:22:20.817Z"
+updated: "2026-10-30T01:53:15.551Z"
 started: "2026-10-30T00:22:13.070Z"
 tags: []
 milestone: ""
@@ -128,3 +128,5 @@ Re-shoot `controls-icon--*`, `desktop-desktopicon--*`, `controls-controlgroup--*
 ### 2026-10-29T20:14:15.844Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
 
 ### 2026-10-30T00:22:20.817Z - Started on feat/appearance-part-g-v2 (worktree part-g) at post-B base 8bbaa7288. The owner ruled the error title-bar pink as ruling G15 (2026-10-30): classicy-tint(--color-error, 80%) = #ffcccc. The implementer brief is the part-g ledger task-1.2-brief.md; parity uses the shared post-B baseline at .playwright-mcp/parity/post-b/.
+
+### 2026-10-30T01:53:15.551Z - Implemented at 6f6838d76 (pushed). RED→GREEN on 11 tests. Gate: lint, tsc, 4086 tests (no timeouts), build:source with verify:dist. 22 real literal sites became tokens, tints, shades or alphas. Parity: 294/302 at AE 0; the 8 that differ (7 dialogs-alert--*, desktop-window--fixed-modal) differ only inside the title-bar band, #f7cecd → #ffcccc, the G15 named change. Forced: Chromium 52/67 identical, with the other 15 being the title-bar color or a format-only QuickTime readback; Firefox 6/6. Ruling G16 settles the halftone scope: G provides the token-painted ::before fallback reading --classicy-art-halftone, and E 3.1 owns the art. platinum-encode-color is removed, which is a host-facing breaking change noted in the migration table. The task review is in progress.
