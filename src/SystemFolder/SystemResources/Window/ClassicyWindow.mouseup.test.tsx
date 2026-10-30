@@ -73,10 +73,6 @@ vi.mock(
 	}),
 );
 
-vi.mock("@/SystemFolder/SystemResources/Cursor/useClassicyCursor", () => ({
-	useClassicyCursor: () => vi.fn(),
-}));
-
 vi.mock(
 	"@/SystemFolder/SystemResources/Window/ClassicyWindow.scss",
 	() => ({}),

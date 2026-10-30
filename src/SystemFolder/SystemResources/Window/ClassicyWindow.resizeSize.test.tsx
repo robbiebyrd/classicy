@@ -87,10 +87,6 @@ vi.mock(
 	}),
 );
 
-vi.mock("@/SystemFolder/SystemResources/Cursor/useClassicyCursor", () => ({
-	useClassicyCursor: () => vi.fn(),
-}));
-
 vi.mock("@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons", () => ({
 	ClassicyIcons: { system: { files: { file: "file.png" } } },
 }));

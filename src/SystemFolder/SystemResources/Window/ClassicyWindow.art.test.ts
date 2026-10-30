@@ -23,21 +23,28 @@ const P = ".classicyDesktop[data-classicy-appearance=platinum]";
 // One selector list per line, unindented.
 const flat = css.replace(/,\s*\n\s*/g, ", ").replace(/\n\s+/g, "\n");
 
-/** Every rule as its selector list and its declaration block. */
-const rules = [...flat.matchAll(/\n([^\n{}@][^\n{}]*) \{\n([^}]*)\}/g)].map(
-	([, selectors, body]) => ({
-		selectors: selectors.split(", "),
-		body,
-	}),
-);
+/** Every rule of a flattened stylesheet as its selector list and its block. */
+const parseRules = (source: string) =>
+	[...source.matchAll(/\n([^\n{}@][^\n{}]*) \{\n([^}]*)\}/g)].map(
+		([, selectors, body]) => ({
+			selectors: selectors.split(", "),
+			body,
+		}),
+	);
+
+const rules = parseRules(flat);
 
 /**
- * The declarations of every rule whose selector list names
- * `${P} ${selector}`, merged in source order (a later rule's value wins, as
- * it does in the cascade between equal selectors).
+ * The declarations of every rule whose selector list names `full`, merged in
+ * source order (a later rule's value wins, as it does in the cascade between
+ * equal selectors).
  */
-const rule = (selector: string): Record<string, string> => {
-	const matched = rules.filter((r) => r.selectors.includes(`${P} ${selector}`));
+const declarations = (
+	from: ReturnType<typeof parseRules>,
+	full: string,
+	selector: string,
+): Record<string, string> => {
+	const matched = from.filter((r) => r.selectors.includes(full));
 	if (matched.length === 0) throw new Error(`no rule for ${selector}`);
 	const props: Record<string, string> = {};
 	for (const { body } of matched)
@@ -51,6 +58,21 @@ const rule = (selector: string): Record<string, string> => {
 		}
 	return props;
 };
+
+/** The merged declarations for `${P} ${selector}` in the package. */
+const rule = (selector: string): Record<string, string> =>
+	declarations(rules, `${P} ${selector}`, selector);
+
+// The base (structure-only) window sheet, for the geometry the art keeps.
+const baseRules = parseRules(
+	`\n${compile("src/SystemFolder/SystemResources/Window/ClassicyWindow.scss").css}`
+		.replace(/,\s*\n\s*/g, ", ")
+		.replace(/\n\s+/g, "\n"),
+);
+
+/** The merged declarations for `selector` in the base window sheet. */
+const baseRule = (selector: string): Record<string, string> =>
+	declarations(baseRules, selector, selector);
 
 const ACTIVE =
 	":where(.classicyWindow).active .classicyWindowTitleBar .classicyWindowTitle";
@@ -224,5 +246,96 @@ describe("ClassicyWindow title-bar art (Platinum package)", () => {
 				existsSync(`src/Appearance/Platinum/assets/art/title-bar-${cap}.svg`),
 				cap,
 			).toBe(false);
+	});
+});
+
+const BOX = ".classicyWindow .classicyWindowTitleBar";
+const ZOOM = `${BOX} .classicyWindowZoomBox`;
+const COLLAPSE = `${BOX} .classicyWindowCollapseBox`;
+const CLOSE = `${BOX} .classicyWindowCloseBox`;
+const RESIZER = ".classicyWindow .classicyWindowResizer";
+
+/**
+ * Part E 2.2: the control-box glyphs are masks over `--color-black`; the
+ * grow-box grip and the control-box dither stay images (four and six grays,
+ * no single-color mask), now read from the registered package art.
+ */
+describe("ClassicyWindow control-box and grow-box art (Platinum package)", () => {
+	it("zoom and collapse glyphs are masks over --color-black", () => {
+		const z = rule(`${ZOOM}:after`);
+		expect(z["mask-image"]).toBe("var(--classicy-art-zoom-glyph)");
+		expect(z["mask-position"]).toBe("top left");
+		expect(z["background-color"]).toBe("var(--color-black)");
+		expect(baseRule(`${ZOOM}:after`).opacity).toBe("0.65");
+		expect(rule(`${COLLAPSE}:after`)["mask-image"]).toBe(
+			"var(--classicy-art-collapse-glyph)",
+		);
+	});
+
+	// T6: the depressable box's centered, contained, unrepeated glyph geometry
+	// moves to the mask longhands; the component rule moves it top left.
+	it("the glyph masks mirror the old image's repeat, size and position", () => {
+		for (const box of [ZOOM, COLLAPSE]) {
+			const after = rule(`${box}:after`);
+			expect(after["mask-repeat"], box).toBe("no-repeat");
+			expect(after["mask-size"], box).toBe("contain");
+			expect(after["mask-position"], box).toBe("top left");
+			expect(after["background-color"], box).toBe("var(--color-black)");
+			expect(after["background-image"], box).toBeUndefined();
+			expect(after["background-position"], box).toBeUndefined();
+			expect(after["background-size"], box).toBeUndefined();
+			expect(after["background-repeat"], box).toBeUndefined();
+		}
+		expect(baseRule(`${COLLAPSE}:after`).opacity).toBe("0.65");
+	});
+
+	// T6: the close box shares the depressable :after but draws no glyph; a
+	// background color there would paint a black square.
+	it("the close box's glyph layer stays empty", () => {
+		const after = rule(`${CLOSE}:after`);
+		expect(after["background-color"]).toBeUndefined();
+		expect(after["mask-image"]).toBeUndefined();
+	});
+
+	it("grip and dither are package images with unchanged geometry", () => {
+		const g = rule(RESIZER);
+		expect(g["background-image"]).toBe("var(--classicy-art-window-grip)");
+		expect(baseRule(RESIZER)["background-size"]).toBe(
+			"calc(var(--window-control-size) - var(--window-border-size) * 2)",
+		);
+		expect(baseRule(RESIZER)["background-repeat"]).toBe("no-repeat");
+		expect(baseRule(RESIZER)["background-position"]).toBe("center");
+		for (const box of [ZOOM, COLLAPSE, CLOSE]) {
+			const d = rule(`${box}:before`);
+			expect(d["background-image"], box).toBe(
+				"var(--classicy-art-window-dither)",
+			);
+			expect(d["background-repeat"], box).toBe("no-repeat");
+			expect(d["background-size"], box).toBe("cover");
+			expect(d["mix-blend-mode"], box).toBe("luminosity");
+			expect(d.opacity, box).toBe("0.25");
+		}
+	});
+
+	// P5: an inactive window's grow box drops the grip over the image.
+	it("the dimmed grow box still drops the grip", () => {
+		expect(
+			rule(".classicyWindow .classicyWindowResizerDimmed")["background-image"],
+		).toBe("none");
+	});
+
+	it("no glyph, grip or dither art is embedded in the stylesheet", () => {
+		const artRules = rules.filter((r) =>
+			r.selectors.some((s) =>
+				/classicyWindow(ZoomBox|CollapseBox|CloseBox|Resizer)/.test(s),
+			),
+		);
+		expect(artRules.length).toBeGreaterThan(0);
+		for (const r of artRules)
+			expect(r.body, r.selectors[0]).not.toMatch(/data:image|url\(/);
+		for (const file of ["components/_Window.scss", "_mixins.scss"])
+			expect(readFileSync(`${PLATINUM}/${file}`, "utf8"), file).not.toMatch(
+				/@use ['"](\.\.\/)?assets['"]|assets\.\$/,
+			);
 	});
 });
