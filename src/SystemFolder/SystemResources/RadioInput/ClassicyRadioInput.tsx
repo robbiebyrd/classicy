@@ -1,4 +1,3 @@
-import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import {
 	ClassicyControlLabel,
 	type ClassicyControlLabelSize,
@@ -81,13 +80,14 @@ const initialRadioCheck = (list: ClassicyRadioInputValueProps[]): string =>
  * on, as the HIG requires: if no entry is `checked` the first one starts on.
  * Radio buttons choose a setting; they never start an action.
  *
- * Clicking a button or its label turns it on, plays the radio click sounds,
- * reports to analytics and calls `onClickFunc` with that entry's `id`. The
- * selection is held internally and re-derived from `inputs` whenever a new
- * array is passed: keep `inputs` stable (memoised) or rebuild it with the
- * current `checked` flags, since a fresh inline array on every parent render
- * resets the user's choice. For button-shaped radios (a palette or toolbar)
- * use `ClassicyBevelButton mode="radio"`.
+ * Clicking a button or its label turns it on, plays the radio click sounds (the
+ * appearance package's press/release hooks), reports to analytics and calls
+ * `onClickFunc` with that entry's `id`. The selection is held internally and
+ * re-derived from `inputs` whenever a new array is passed: keep `inputs` stable
+ * (memoized) or rebuild it with the current `checked` flags, since a fresh
+ * inline array on every parent render resets the user's choice. For
+ * button-shaped radios (a palette or toolbar) use
+ * `ClassicyBevelButton mode="radio"`.
  *
  * ```tsx
  * <ClassicyRadioInput
@@ -119,7 +119,6 @@ export const ClassicyRadioInput: FunctionalComponent<
 	useEffect(() => {
 		setCheck(initialRadioCheck(inputs));
 	}, [inputs]);
-	const player = useSoundDispatch();
 	const groupRef = useRef<HTMLDivElement>(null);
 	// The group carries no state class of its own: `checked` and `disabled`
 	// live on each item's wrapper.
@@ -202,18 +201,10 @@ export const ClassicyRadioInput: FunctionalComponent<
 										itemId: item.id,
 										...analyticsArgs,
 									});
-									player({
-										type: "ClassicySoundPlay",
-										sound: "ClassicyInputRadioClickDown",
-									});
 								}}
 								onMouseUp={() => {
 									if (itemDisabled) return;
 									appearance.emit("release", { itemId: item.id });
-									player({
-										type: "ClassicySoundPlay",
-										sound: "ClassicyInputRadioClickUp",
-									});
 								}}
 							/>
 						</div>
@@ -229,18 +220,10 @@ export const ClassicyRadioInput: FunctionalComponent<
 									itemId: item.id,
 									...analyticsArgs,
 								});
-								player({
-									type: "ClassicySoundPlay",
-									sound: "ClassicyInputRadioClickDown",
-								});
 							}}
 							onMouseUp={() => {
 								if (itemDisabled) return;
 								appearance.emit("release", { itemId: item.id });
-								player({
-									type: "ClassicySoundPlay",
-									sound: "ClassicyInputRadioClickUp",
-								});
 							}}
 						/>
 					</div>
