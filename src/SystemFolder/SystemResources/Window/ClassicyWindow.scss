@@ -273,6 +273,18 @@
       top: var(--window-border-size);
       bottom: auto;
     }
+
+    // The registered resize art is a symmetric left-right arrow and serves
+    // every corner, but the keyword fallback above points along the
+    // bottom-right/top-left diagonal; the other two corners fall back to their
+    // own. :where() keeps the base rule's specificity, so the resizing rule
+    // below (later, equal weight) still shows the grabbing hand.
+    :where([data-classicy-grow-box="bottom-left"]) &,
+    :where([data-classicy-grow-box="top-right"]) & {
+      cursor:
+        var(--classicy-cursor-resize-lr, url('data:,')) 8 8,
+        nesw-resize;
+    }
   }
 
   .classicyWindowContents {

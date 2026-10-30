@@ -1,6 +1,7 @@
 import path from "node:path";
 import * as sass from "sass";
 import { describe, expect, it } from "vitest";
+import { cssDeclarations, parseCssRules } from "@/__tests__/compiledCss";
 import platinumJson from "@/Appearance/Platinum/platinum.json";
 
 /**
@@ -250,6 +251,30 @@ describe("window resizer / scroll bar alignment", () => {
 	it("asks for the package's horizontal resize cursor", () => {
 		expect(resizer.cursor).toBe(
 			'var(--classicy-cursor-resize-lr, url("data:,")) 8 8, nwse-resize',
+		);
+	});
+
+	// Part F moves the grow box to the package's corner (data-classicy-grow-box
+	// on the desktop root). The registered art is a symmetric left-right arrow,
+	// so it serves every corner; only the keyword fallback must turn to the
+	// other diagonal where the grip sits bottom-left or top-right.
+	it.each([
+		["bottom-left", "nesw-resize"],
+		["top-right", "nesw-resize"],
+	])("falls back to the %s corner's own diagonal (%s)", (corner, keyword) => {
+		const rules = parseCssRules(css);
+		const selector = `:where([data-classicy-grow-box=${corner}]) .classicyWindow .classicyWindowResizer`;
+		expect(cssDeclarations(rules, selector)).toEqual({
+			cursor: `var(--classicy-cursor-resize-lr, url("data:,")) 8 8, ${keyword}`,
+		});
+		// Same specificity as the base rule, and after it, so it wins there; and
+		// before the resizing rule, so a resize still shows the grabbing hand.
+		const at = (s: string) => rules.findIndex((r) => r.selectors.includes(s));
+		expect(at(selector)).toBeGreaterThan(
+			at(".classicyWindow .classicyWindowResizer"),
+		);
+		expect(at(selector)).toBeLessThan(
+			at(".classicyWindowResizing .classicyWindowResizer"),
 		);
 	});
 
