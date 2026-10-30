@@ -1,3 +1,5 @@
+@use "../../../Appearance/vocabulary/color" as c;
+
 /* src/SystemFolder/SystemResources/FileInput/ClassicyFileInput.scss */
 
 .classicyFileInputHolder {
@@ -27,7 +29,7 @@
 :where(.classicyFileInputMessage).error {
   font-family: var(--ui-font), sans-serif;
   font-size: var(--ui-font-size);
-  color: #c00;
+  color: c.classicy-shade("--color-error", 20%);
 }
 
 .classicyFileInputList {
