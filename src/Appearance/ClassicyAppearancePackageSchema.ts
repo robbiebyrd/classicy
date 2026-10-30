@@ -90,21 +90,27 @@ const appIdKey = z
 
 // The derived Applications and Extensions folders key their entries by the
 // display name, so it must be usable as a file-system name: no leading `_`
-// (metadata keys), no `:` (the path separator) and no control character (C0,
-// DEL, C1) or line/paragraph separator (U+2028, U+2029). Refinements, never
+// (metadata keys), no `:` (the path separator), no control character (C0,
+// DEL, C1) or line/paragraph separator (U+2028, U+2029), and no bidi control
+// (U+202A–U+202E, U+2066–U+2069) or invisible character (U+200B, U+FEFF),
+// which could make a label read as another app's. Refinements, never
 // `.trim()`: the registry keeps the original object, so nothing may be
 // transformed. The length checks keep zod's own messages, which name the
 // bound.
 const DISPLAY_NAME_ERROR =
 	"must be a display name usable as a file name (no leading _, no :)";
-const hasControlCharacter = (text: string): boolean => {
+const hasUnsafeCharacter = (text: string): boolean => {
 	for (let i = 0; i < text.length; i++) {
 		const code = text.charCodeAt(i);
 		if (
 			code <= 0x1f ||
 			(code >= 0x7f && code <= 0x9f) ||
 			code === 0x2028 ||
-			code === 0x2029
+			code === 0x2029 ||
+			(code >= 0x202a && code <= 0x202e) ||
+			(code >= 0x2066 && code <= 0x2069) ||
+			code === 0x200b ||
+			code === 0xfeff
 		) {
 			return true;
 		}
@@ -120,7 +126,7 @@ const displayName = z
 			name === name.trim() &&
 			!name.startsWith("_") &&
 			!name.includes(":") &&
-			!hasControlCharacter(name) &&
+			!hasUnsafeCharacter(name) &&
 			!FORBIDDEN_KEYS.has(name),
 		{ error: DISPLAY_NAME_ERROR },
 	);

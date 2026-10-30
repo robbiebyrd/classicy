@@ -291,6 +291,12 @@ describe("ClassicyAppearancePackageSchema apps", () => {
 		["A\u009fB"],
 		["A\u2028B"],
 		["A\u2029B"],
+		["A\u202aB"],
+		["A\u202eB"],
+		["A\u2066B"],
+		["A\u2069B"],
+		["A\u200bB"],
+		["A\ufeffB"],
 		["prototype"],
 	])("refuses the name %j", (name) => {
 		expect(appsIssues({ "A.app": { name } })[0]?.path).toEqual([
@@ -305,6 +311,7 @@ describe("ClassicyAppearancePackageSchema apps", () => {
 		["x".repeat(64)],
 		["Media Player"],
 		["Caf\u00e9"],
+		["A\u2010B"],
 	])("accepts the name %j", (name) => {
 		expect(appsIssues({ "A.app": { name } })).toEqual([]);
 	});

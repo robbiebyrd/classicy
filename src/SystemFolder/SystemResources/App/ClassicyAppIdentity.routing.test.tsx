@@ -38,19 +38,36 @@ const dispatched = vi.hoisted((): ActionMessage[] => []);
 vi.mock(
 	"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils",
 	async (importOriginal) => {
+		const { recordingAppManagerUtils } = await import(
+			"@/__tests__/recordingAppManagerUtils"
+		);
+		return recordingAppManagerUtils(await importOriginal(), dispatched);
+	},
+);
+
+// The action types Finder hands straight to the generic app handler. Finder's
+// OpenFile builds its type inside the reducer and calls
+// `classicyAppEventHandler` directly, so the dispatch recorder never sees it;
+// the generic handler routes on `app.id` alone, so a display-name type would
+// open the file just the same. Only the type it received can tell. (The
+// kernel's own calls use its local binding and are not recorded.)
+const appHandlerTypes = vi.hoisted((): string[] => []);
+
+vi.mock(
+	"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager",
+	async (importOriginal) => {
 		const actual =
 			await importOriginal<
-				typeof import("@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils")
+				typeof import("@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager")
 			>();
-		const recording: typeof actual.dispatch = (action, trust) => {
-			dispatched.push(action);
-			actual.dispatch(action, trust);
+		const classicyAppEventHandler: typeof actual.classicyAppEventHandler = (
+			ds,
+			action,
+		) => {
+			appHandlerTypes.push(action.type);
+			return actual.classicyAppEventHandler(ds, action);
 		};
-		return {
-			...actual,
-			dispatch: recording,
-			useAppManagerDispatch: () => recording,
-		};
+		return { ...actual, classicyAppEventHandler };
 	},
 );
 
@@ -171,6 +188,7 @@ describe("app identity under a renaming package", () => {
 		);
 
 		const path = "Macintosh HD:Documents:Notes.txt";
+		appHandlerTypes.length = 0;
 		act(() =>
 			dispatch({
 				type: "ClassicyAppFinderOpenFile",
@@ -179,10 +197,45 @@ describe("app identity under a renaming package", () => {
 			}),
 		);
 
-		// The generic OpenFile handler, reached with `ClassicyAppTVOpenFile`:
-		// the record's internal name, never the package's "Television".
+		// Finder handed the generic handler `ClassicyAppTVOpenFile`, built from
+		// the record's internal name, while the package shows "Television"; and
+		// the file reached TV's queue.
+		expect(appHandlerTypes.filter((type) => type.endsWith("OpenFile"))).toEqual(
+			["ClassicyAppTVOpenFile"],
+		);
 		expect(apps()["TV.app"].data?.openFiles).toEqual([path]);
 		expect(apps()["TV.app"].open).toBe(true);
+	});
+
+	it("closes a host app's file window with its internal-name action type", async () => {
+		const { container } = render(<TV />);
+		await waitFor(() => expect(apps()["TV.app"]).toBeDefined());
+
+		const path = "Macintosh HD:Documents:Notes.txt";
+		act(() => {
+			useAppManager.setState((state) =>
+				produce(state, (draft) => {
+					const app = draft.System.Manager.Applications.apps["TV.app"];
+					app.open = true;
+					app.data = { openFiles: [path] };
+				}),
+			);
+		});
+
+		const closeBox = await waitFor(() => {
+			const box = container.querySelector(".classicyWindowCloseBox");
+			expect(box).not.toBeNull();
+			return box as Element;
+		});
+		dispatched.length = 0;
+		fireEvent.click(closeBox);
+
+		// `ClassicyApp`'s generic file window: `ClassicyApp${name}CloseFile`
+		// with the internal "TV", never the package's "Television".
+		expect(dispatched.filter((a) => a.type.endsWith("CloseFile"))).toEqual([
+			{ type: "ClassicyAppTVCloseFile", app: { id: "TV.app" }, path },
+		]);
+		expect(apps()["TV.app"].data?.openFiles).toEqual([]);
 	});
 
 	it("removes the host app's icon record by its internal name", async () => {
