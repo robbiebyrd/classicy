@@ -639,9 +639,9 @@ describe("platinum.scss (compiled)", () => {
 			expect(thumb["clip-path"]).toBe(
 				"polygon(9% 2%, 92% 2%, 92% 56.6%, 50% 95%, 9% 56.6%)",
 			);
-			// The grip strikes resolve from the partial's own depth.
+			// The grip strikes are the registered package art (E 3.1).
 			expect(thumb.background).toContain(
-				'url("../../../../../assets/img/ui/slider-strikes.svg") center 30%',
+				"var(--classicy-art-slider-strikes) center 30%",
 			);
 			for (const pseudo of [
 				"::-webkit-slider-thumb",
@@ -1626,7 +1626,7 @@ describe("the moved Platinum mixin files", () => {
 		).toMatchInlineSnapshot(`
 			".x {
 			  clip-path: polygon(9% 2%, 92% 2%, 92% 56.6%, 50% 95%, 9% 56.6%);
-			  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 21 21'%3E%3Cpolygon points='0,0 21,0 21,13.02 10.5,21 0,13.02' fill='none' stroke='black' stroke-width='4'/%3E%3C/svg%3E") 0 0/100% 100% no-repeat, url("../../../../../assets/img/ui/slider-strikes.svg") center 30%/45% 35% no-repeat, linear-gradient(to bottom, var(--color-system-01), var(--color-system-04));
+			  background: var(--classicy-art-slider-thumb) 0 0/100% 100% no-repeat, var(--classicy-art-slider-strikes) center 30%/45% 35% no-repeat, linear-gradient(to bottom, var(--color-system-01), var(--color-system-04));
 			}"
 		`));
 });

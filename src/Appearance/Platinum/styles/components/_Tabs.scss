@@ -1,3 +1,19 @@
+// The Platinum tab look kept in the package: the tab outline and the tab
+// strip's hidden scroll bar.
+//
+// The outline is the registered system art `tabOutline` (Platinum:
+// assets/art/tab-outline.svg), drawn as the wrapper's background image over
+// its fill; the base sheet keeps the image's size and repeat. The art draws
+// only the three visible sides (left diagonal, top, right diagonal) as a 2 px
+// centered stroke; the wrapper's clip-path crops its outer half, leaving a
+// 1 px line. It stretches to fill the wrapper (`preserveAspectRatio="none"`,
+// `100% 100%`), and its stroke is non-scaling, so the line stays 1 px at every
+// tab size. Its `currentColor` stroke draws black in an image.
+//
+// An image, not a mask (as ruling E21 drew the pop-up arrows): a black
+// `::before` masked by the same art differs from the old raster by up to 5
+// levels along the outline, while the same art as an image is exact.
+//
 // The tab strip's scroll bar, hidden over the Platinum desktop's.
 // ClassicyTabs.scss hides it (the arrow tabs are its scroll affordance) and
 // keeps doing so outside a Platinum desktop; inside one, the desktop
@@ -8,6 +24,10 @@
 // partial after the desktop's.
 
 @mixin tabs {
+  .classicyTabButtonWrapper {
+    background-image: var(--classicy-art-tab-outline);
+  }
+
   .classicyTabScroller {
     scrollbar-width: none;
   }
