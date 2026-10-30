@@ -90,7 +90,7 @@ export interface HCActionPath {
 // Runtime mirror of the HCActionPath branch union. The union is compile-time
 // only; every current caller builds paths in the editor UI, but this guard
 // keeps a future caller that parses paths from stack data (untrusted) from
-// turning the bracket assignments below into a prototype-pollution sink.
+// turning the bracket lookups below into a prototype-pollution sink.
 const isHCBranch = (branch: string): branch is "then" | "else" | "body" =>
 	branch === "then" || branch === "else" || branch === "body";
 
@@ -128,9 +128,24 @@ export function withListAt(
 		];
 	}
 	const last = path.hops[path.hops.length - 1];
-	if (!isHCBranch(last.branch)) return clone;
-	(list[last.index] as unknown as Record<string, HCAction[]>)[last.branch] =
-		next;
+	const target = list[last.index] as unknown as Partial<
+		Record<"then" | "else" | "body", HCAction[]>
+	>;
+	// Write through a named property, never a computed key, so a branch read
+	// from untrusted stack data can't reach Object.prototype.
+	switch (last.branch) {
+		case "then":
+			target.then = next;
+			break;
+		case "else":
+			target.else = next;
+			break;
+		case "body":
+			target.body = next;
+			break;
+		default:
+			return clone;
+	}
 	return clone;
 }
 

@@ -118,7 +118,7 @@ describe("findClassicyPackageCssProblems (check-dist invariant 7)", () => {
 		for (const literal of [
 			js(PACKAGE),
 			js(`${CLASSICY_LAYER_ORDER}\n${PACKAGE}`),
-			`'${PACKAGE.replace(/"/g, '\\"')}'`,
+			`'${PACKAGE.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}'`,
 			`\`${PACKAGE}\``,
 		])
 			expect(
@@ -514,7 +514,7 @@ describe("classicyPackageStylesheets", () => {
 			]),
 		).toThrow(
 			new RegExp(
-				`${name.replace(/\./g, "\\.")}\\.scss\\?inline.*lowercase kebab-case`,
+				`${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\.scss\\?inline.*lowercase kebab-case`,
 			),
 		));
 
