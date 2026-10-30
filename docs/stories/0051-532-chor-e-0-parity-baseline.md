@@ -3,12 +3,13 @@ id: 0051-532
 title: 'E 0: Parity baseline'
 purpose: Capture before-screenshots of every surface Part E touches and measure whether the title-bar stripe caps ever paint, so the art extraction can be proven pixel-identical and the cap decision is made on evidence.
 type: chor
-status: in_progress
+status: complete
 priority: "2"
 effort: S
 created: "2026-10-28T20:22:13.756Z"
-updated: "2026-10-30T00:24:15.818Z"
+updated: "2026-10-30T00:37:03.502Z"
 started: "2026-10-30T00:24:15.818Z"
+completed: "2026-10-30T00:37:03.502Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -71,7 +72,7 @@ The screenshots live under the gitignored `.playwright-mcp/`; nothing is committ
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: ls .playwright-mcp/parity/part-E/before | wc -l  # equals wc -l stories.txt; cat caps.txt
+- [x] VERIFY: ls .playwright-mcp/parity/part-E/before | wc -l  # equals wc -l stories.txt; cat caps.txt
 
 ## Files
 
@@ -81,3 +82,5 @@ The screenshots live under the gitignored `.playwright-mcp/`; nothing is committ
 
 ## Work Log
 ### 2026-10-29T20:22:00.352Z - Moved 2 open [MANUAL] acceptance criteria to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
+
+### 2026-10-30T00:36:49.673Z - Done: .playwright-mcp/parity/part-E/ (122 stories) is a title-filtered subset of the shared post-B baseline (29a15c243), with the PNGs hard-linked. 122 = 122. caps.txt = ["0px","0px"], read from post-b's desktop-window--default computed dump: both cap pseudos have content " " and zero height, so 2.1 deletes the caps. The active window class is the bare `.active` state class, not `.classicyWindowActive` as Step 3's selector says. The E 2.1 implementer was told.

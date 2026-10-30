@@ -3,12 +3,13 @@ id: 0042-pbp
 title: 'I 0: Parity baseline'
 purpose: Capture before-screenshots of every Storybook story so Part I's hook wiring and feedback moves can be proven pixel-identical for Platinum.
 type: chor
-status: in_progress
+status: complete
 priority: "2"
 effort: S
 created: "2026-10-28T20:15:36.352Z"
-updated: "2026-10-30T00:24:14.913Z"
+updated: "2026-10-30T00:37:01.327Z"
 started: "2026-10-30T00:24:14.913Z"
+completed: "2026-10-30T00:37:01.327Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -67,8 +68,8 @@ Playwright: each `iframe.html?id=<id>&viewMode=story` at 1024×768, networkidle 
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: test "$(ls .playwright-mcp/parity/part-i/before | wc -l)" -eq "$(wc -l < .playwright-mcp/parity/part-i/stories.txt)"
-- [ ] stories.txt lists every story id from Storybook's index.json (the full set).
+- [x] VERIFY: test "$(ls .playwright-mcp/parity/part-i/before | wc -l)" -eq "$(wc -l < .playwright-mcp/parity/part-i/stories.txt)"
+- [x] stories.txt lists every story id from Storybook's index.json (the full set).
 
 ## Files
 
@@ -77,3 +78,5 @@ Playwright: each `iframe.html?id=<id>&viewMode=story` at 1024×768, networkidle 
 
 ## Work Log
 ### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
+
+### 2026-10-30T00:36:47.308Z - Done: .playwright-mcp/parity/part-i/ holds the full set: 302 ids, identical to the story entries in the shared post-B baseline's Storybook index.json (commit 29a15c243). The PNGs are hard-linked from post-b/before. 302 PNGs = 302 lines.

@@ -6,7 +6,7 @@ status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T19:26:28.560Z"
-updated: "2026-10-30T00:28:06.996Z"
+updated: "2026-10-30T00:37:29.019Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -25,7 +25,7 @@ links:
     - ["0000-aud", "included"]
 progress:
   "0":
-    status: pending
+    status: complete
   "1":
     status: pending
   "1.1":

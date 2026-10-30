@@ -3,12 +3,13 @@ id: 0060-ez9
 title: 'F 1.1: useClassicyAppearanceLayout, getThemeVars layout variables, desktop root attributes'
 purpose: 'Give JS and CSS one reader for the active package''s layout declarations: a hook and getter, three --classicy-layout-* variables from getThemeVars, and two attributes on the desktop root.'
 type: feat
-status: in_progress
+status: complete
 priority: "2"
 effort: M
 created: "2026-10-28T20:29:01.741Z"
-updated: "2026-10-30T00:27:28.352Z"
+updated: "2026-10-30T00:37:13.903Z"
 started: "2026-10-29T23:18:40.166Z"
+completed: "2026-10-30T00:37:13.903Z"
 tags: []
 milestone: ""
 due_date: ""

@@ -3,12 +3,13 @@ id: 0059-2t4
 title: 'F 0: Parity baseline'
 purpose: Capture before-screenshots of every surface Part F rearranges and confirm Part A's part attributes are in place, so the arrangement slots can be proven pixel-identical for Platinum.
 type: chor
-status: in_progress
+status: complete
 priority: "2"
 effort: S
 created: "2026-10-28T20:28:20.890Z"
-updated: "2026-10-30T00:24:16.692Z"
+updated: "2026-10-30T00:37:06.400Z"
 started: "2026-10-30T00:24:16.692Z"
+completed: "2026-10-30T00:37:06.400Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -71,7 +72,7 @@ Everything lives under the gitignored `.playwright-mcp/`; nothing is committed.
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: ls .playwright-mcp/parity/part-F/before | wc -l  # equals wc -l stories.txt
+- [x] VERIFY: ls .playwright-mcp/parity/part-F/before | wc -l  # equals wc -l stories.txt
 
 ## Files
 
@@ -81,3 +82,5 @@ Everything lives under the gitignored `.playwright-mcp/`; nothing is committed.
 
 ## Work Log
 ### 2026-10-29T20:22:00.352Z - Moved 2 open [MANUAL] acceptance criteria to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
+
+### 2026-10-30T00:36:51.752Z - Done: .playwright-mcp/parity/part-F/ (48 stories) is a title-filtered subset of the shared post-B baseline (29a15c243, F-R3), with the PNGs hard-linked. 48 = 48. attributes.txt: the literal greps match only doc comments, because the attributes are written through the CLASSICY_PART_ATTRIBUTE constant. The appended emission greps show all six cluster parts (apple, app, help, switcher and extensions in ClassicyDesktopMenuBar.tsx; clock in the Time widget), the three control values in ClassicyWindow.tsx and the alert role in ClassicyAlert.tsx. The live example's menu bar showed all six.

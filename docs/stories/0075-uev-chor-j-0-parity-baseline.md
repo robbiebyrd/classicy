@@ -3,12 +3,13 @@ id: 0075-uev
 title: 'J 0: Parity baseline'
 purpose: Capture before-screenshots of the Screen Saver control panel, the controls the Appearance panel reuses and the Appearance panel itself, so Part J can prove nothing outside the panel changed.
 type: chor
-status: in_progress
+status: complete
 priority: "2"
 effort: S
 created: "2026-10-28T20:39:58.702Z"
-updated: "2026-10-30T00:24:17.406Z"
+updated: "2026-10-30T00:37:09.224Z"
 started: "2026-10-30T00:24:17.406Z"
+completed: "2026-10-30T00:37:09.224Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -71,8 +72,8 @@ Example app (`pnpm preview`): open the Screen Saver control panel with the Flyin
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: `ls .playwright-mcp/parity/part-J/before/*.png | wc -l` equals stories.txt lines + 6
-- [ ] VERIFY: grep -c useClassicyAppearancePackages src/Appearance/ClassicyAppearancePackage.ts; grep -c useClassicyAssetTree src/Appearance/ClassicyAssetRegistry.ts; grep -c useClassicySoundPacks src/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks.ts  # each >= 1
+- [x] VERIFY: `ls .playwright-mcp/parity/part-J/before/*.png | wc -l` equals stories.txt lines + 6
+- [x] VERIFY: grep -c useClassicyAppearancePackages src/Appearance/ClassicyAppearancePackage.ts; grep -c useClassicyAssetTree src/Appearance/ClassicyAssetRegistry.ts; grep -c useClassicySoundPacks src/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks.ts  # each >= 1
 
 ## Files
 
@@ -81,3 +82,5 @@ Example app (`pnpm preview`): open the Screen Saver control panel with the Flyin
 
 ## Work Log
 ### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
+
+### 2026-10-30T00:36:54.101Z - Done at the pre-J post-B commit 29a15c243. The gate greps give 2, 1 and 1. part-J/ holds 79 story ids, a title-filtered subset of the shared post-B baseline with hard-linked PNGs, plus 6 example-app shots from that commit (Node 24, port 5310): app-screensaver-panel (Flying Toasters options) and app-appearance-{themes,desktop,colors,fonts,sound} (5 tabs at that commit). 85 PNGs = 79 + 6. The menu-bar clock drifted and its colon blinks, so scripts/shoot-app.cjs pins the clock and pauses the blink; two runs compared at AE 0 on all six. J 6.1's after shots must use the same script, and its implementer was told.

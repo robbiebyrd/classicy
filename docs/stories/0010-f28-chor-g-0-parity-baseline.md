@@ -3,12 +3,13 @@ id: 0010-f28
 title: 'G 0: Parity baseline'
 purpose: Capture the before-screenshots of every Controls, Desktop and Dialogs story (and the error alert's title-bar color) so Part G's color and derivation rewrites can be proven pixel-identical apart from the one named change.
 type: chor
-status: in_progress
+status: complete
 priority: "2"
 effort: S
 created: "2026-10-28T19:52:56.298Z"
-updated: "2026-10-30T00:24:14.041Z"
+updated: "2026-10-30T00:36:58.280Z"
 started: "2026-10-30T00:24:14.041Z"
+completed: "2026-10-30T00:36:58.280Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -66,8 +67,10 @@ Verify the PNG count equals the stories.txt line count. On `dialogs-alert--stop`
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: ls .playwright-mcp/parity/part-G/before/*.png | wc -l  # equals the stories.txt line count
-- [ ] No repo file changed and nothing was committed.
+- [x] VERIFY: ls .playwright-mcp/parity/part-G/before/*.png | wc -l  # equals the stories.txt line count
+- [x] No repo file changed and nothing was committed.
 
 ## Work Log
 ### 2026-10-29T20:14:15.844Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
+
+### 2026-10-30T00:36:45.734Z - Done: .playwright-mcp/parity/part-G/ (280 stories, every Controls/Desktop/Dialogs id) is a title-filtered subset of the shared post-B baseline (commit 29a15c243, same capture settings), with the PNGs hard-linked. 280 PNGs = 280 lines. error-titlebar.txt records rgb(247, 206, 205) on dialogs-alert--stop (from post-b's computed dump), the value G15's named change replaces. Nothing in the repo changed and nothing was committed.
