@@ -2,11 +2,12 @@
 id: 0006-dy6
 title: 'Part I: Package events and display participation'
 type: impl
-status: in_progress
+status: complete
 priority: "2"
 effort: L
 created: "2026-10-28T19:07:51.618Z"
-updated: "2026-10-30T03:47:42.583Z"
+updated: "2026-10-30T05:43:01.943Z"
+completed: "2026-10-30T05:43:01.943Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -26,11 +27,11 @@ progress:
   "0":
     status: complete
   "1":
-    status: pending
+    status: complete
   "1.1":
     status: complete
   "2":
-    status: pending
+    status: complete
   "2.1":
     status: complete
   "2.2":
@@ -38,13 +39,13 @@ progress:
   "2.3":
     status: complete
   "3":
-    status: pending
+    status: complete
   "3.1":
     status: complete
   "3.2":
     status: complete
   "4":
-    status: pending
+    status: complete
   "4.1":
     status: complete
   "5":

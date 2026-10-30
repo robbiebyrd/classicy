@@ -3,11 +3,18 @@ id: 0057-yxq
 title: 'E 5.1: Unicode glyphs to CSS content, one modifier table, crayon and caption colors as custom properties'
 purpose: Move every Unicode UI glyph out of JSX into Platinum CSS content, share one modifier-glyph table between Kbd and the shortcut helpers with one span per modifier, and lift the crayon, color-wheel and caption literal colors into custom properties.
 type: impr
-status: pending
+status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T20:27:13.259Z"
-updated: "2026-10-29T20:22:00.352Z"
+updated: "2026-10-30T05:38:00.547Z"
+started: "2026-10-30T05:38:00.547Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy

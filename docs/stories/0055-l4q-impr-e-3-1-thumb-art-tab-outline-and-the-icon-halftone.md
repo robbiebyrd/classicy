@@ -3,12 +3,13 @@ id: 0055-l4q
 title: 'E 3.1: Thumb art, tab outline and the icon halftone'
 purpose: Point the slider thumb layers, the tab outline and the icon halftone at registered package art and delete the compile-time encode-color/theme-halftone helpers.
 type: impr
-status: in_progress
+status: complete
 priority: "2"
 effort: M
 created: "2026-10-28T20:25:11.193Z"
-updated: "2026-10-30T04:24:12.130Z"
+updated: "2026-10-30T05:44:39.424Z"
 started: "2026-10-30T04:24:07.441Z"
+completed: "2026-10-30T05:44:39.424Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -102,9 +103,10 @@ Both icon rules become `mask-image: var(--classicy-icon-mask), var(--classicy-ar
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: git grep -n 'data:image/svg\|theme-halftone\|encode-color' src --include='*.scss'  # expect no output
-- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Slider/ClassicySlider.art.test.ts src/SystemFolder/SystemResources/Tabs/ClassicyTabs.art.test.ts src/SystemFolder/SystemResources/Icon/ClassicyIcon.art.test.ts
-- [ ] Slider thumb layers keep their positions and sizes and read `--classicy-art-slider-*`; the tab outline is a `z-index: -1` masked `::before`; both icon masks intersect `--classicy-art-halftone` at `7%` over `--color-black`.
+- [x] VERIFY: git grep -n -E 'data:image/svg|assets/img/ui/slider-strikes' -- 'src/*.scss' ':!src/Appearance/Platinum/styles/_mixins.scss'  # prints nothing; and: test ! -e assets/img/ui/slider-strikes.svg
+- [x] Every WebKit and Firefox thumb layer list reads --classicy-art-slider-thumb|-thumb-rect|-strikes as image layers with unchanged order, position, size and repeat; the tab outline is the wrapper's background-image var(--classicy-art-tab-outline) in the Platinum tabs mixin (E22); Platinum registers halftone and halftoneLarge and the desktop root publishes --classicy-art-halftone and --classicy-art-halftone-large (G16); the 26 slider, tabs, icon, desktop-icon and desktop stories are AE 0. The icon halftone readers and the theme-halftone/encode-color removal moved to E 6.1 (0058-83a) under G16.
+- [x] VERIFY: pnpm exec vitest run --maxWorkers=3 src/SystemFolder/SystemResources/Slider/ClassicySlider.art.test.ts src/SystemFolder/SystemResources/Tabs/ClassicyTabs.art.test.ts src/Appearance/Platinum/assets/platinumAssets.test.ts src/Appearance/Platinum/styles/platinum.css.test.ts
+
 
 ## Files
 
@@ -121,3 +123,7 @@ Both icon rules become `mask-image: var(--classicy-icon-mask), var(--classicy-ar
 ### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
 
 ### 2026-10-30T04:24:12.130Z - Started on feat/appearance-part-e-v2 (BASE 5a2fbe724). Scope narrowed by ruling G16: E 3.1 registers the halftone art only; the halftone readers and the platinum-halftone/encode-color deletion belong to G 1.2 (its own branch). The halftone parts of the acceptance criteria are verified once both E and G have landed.
+
+### 2026-10-30T05:37:48.818Z - E 3.1 implemented (50cf3ea0d; plus 172a637c0, the E 2.2 review's shared test helper). Ruling E22: tab outline drawn as an image layer (the masked ::before drifted up to 5 levels on all 6 tab stories). Halftone art registered only (G16); readers stay with G. 4086 tests; 302/302 AE 0; forced-state diffs are only art source URLs. Task review dispatched.
+
+### 2026-10-30T05:44:37.114Z - Task review APPROVED. Criteria rewritten to E 3.1's own share (verified by the controller: grep empty, slider-strikes.svg removed, 4 files / 144 tests pass); the halftone-reader criterion moved to E 6.1 (0058-83a) under G16. Carried to E 6.1: Chromium ::-webkit-slider-thumb forced capture, AGENT-REFERENCE art count (21 -> 35) and doc rows, E17 cross-origin check including an open icon.

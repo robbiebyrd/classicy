@@ -7,7 +7,7 @@ status: pending
 priority: "2"
 effort: L
 created: "2026-10-28T20:28:02.193Z"
-updated: "2026-10-30T02:10:27.199Z"
+updated: "2026-10-30T05:44:23.281Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -114,6 +114,7 @@ Re-shoot every id in `stories.txt` into `after/`; `for f in before/*.png; do pri
 - [ ] `ClassicyWindow` and `ClassicyWindowFrame` both render `ClassicyWindowTitleBar`; the `.titlebar`, `.hig`, `.utility`, `.collapse`, `.beforeclose` and `.resizeSize` window suites pass unedited; `data-classicy-control` attributes are present.
 - [ ] `docs/AGENT-REFERENCE.md` and `CLAUDE.md` document `ClassicyWindowTitleBar`, the Platinum art keys, the `art` prop and the modifier table.
 - [ ] OWNER ruling E20: the title-bar stripe bands reach exact parity (AE 0, or at most 2 levels under named change (c)) on every band: titled sides, title-less center, red center, WindowFrame and windoid. Use four masked layers per band (or whatever structure the measurements prove exact) to remove E 2.1's interim drift (center 21, red 14, frame 13). Part E does not land until this holds.
+- [ ] (Deferred from E 3.1 under G16; checked on the integration branch once both E and G have landed.) The _Icon.scss/_DesktopIcon.scss halftone is G's ::before masked by var(--classicy-art-halftone...) at 7% over --color-black; icon and desktop-icon stories are AE 0 on the merged tree; git grep -n -E 'data:image/svg|theme-halftone|encode-color' -- 'src/*.scss' prints nothing (drop G's built-in data: fallback in _mixins.scss, since Platinum always publishes the variable where package CSS applies, or exclude it explicitly here).
 
 ## Files
 
