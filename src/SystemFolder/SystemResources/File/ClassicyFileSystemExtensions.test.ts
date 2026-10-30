@@ -246,3 +246,105 @@ describe("buildExtensionsFolder display names", () => {
 		expect(extensions.B._creator).toBe("B.app");
 	});
 });
+
+// Story 0096: only placeholders give way to an extension; a user's file never
+// does.
+describe("withExtensionsFolder keeps static files, replacing only placeholders", () => {
+	const SINK_ID = "extensions-folder-placeholders";
+	let entries: ClassicyLogEntry[];
+	const warnings = () => entries.filter((entry) => entry.level === "warn");
+
+	beforeEach(() => {
+		entries = [];
+		resetClassicyDerivedAppEntryNameWarnings();
+		registerClassicyLogSink({
+			id: SINK_ID,
+			onLog: (entry) => entries.push(entry),
+		});
+		// The dev console mirror of the expected warnings; keep the output clean.
+		vi.spyOn(console, "warn").mockImplementation(() => {});
+	});
+
+	afterEach(() => {
+		unregisterClassicyLogSink(SINK_ID);
+		vi.restoreAllMocks();
+	});
+
+	const extensionsWith = (
+		statics: Record<string, unknown>,
+		apps: ClassicyStoreSystemApp[],
+	) =>
+		withExtensionsFolder(
+			{
+				"Macintosh HD": {
+					_type: ClassicyFileSystemEntryFileType.Drive,
+					"System Folder": {
+						_type: ClassicyFileSystemEntryFileType.Directory,
+						Extensions: {
+							_type: ClassicyFileSystemEntryFileType.Directory,
+							...statics,
+						},
+					},
+				},
+			} as unknown as ClassicyFileSystemEntry,
+			apps,
+		)["Macintosh HD"]["System Folder"].Extensions;
+
+	it('keeps a user file named like an extension, listing it as "<own name> (<id>)"', () => {
+		const extensions = extensionsWith(
+			{
+				Clock: {
+					_type: ClassicyFileSystemEntryFileType.TextFile,
+					_data: "mine",
+				},
+			},
+			[app("Clock.app", "Clock")],
+		);
+
+		expect(extensions.Clock._data).toBe("mine");
+		expect(extensions["Clock (Clock.app)"]._creator).toBe("Clock.app");
+		expect(warnings()).toHaveLength(1);
+		expect(warnings()[0]).toMatchObject({
+			subsystem: "ClassicyFileSystem",
+			message:
+				'App display name unusable in Extensions; using "Clock (Clock.app)"',
+			details: [{ appId: "Clock.app", name: "Clock" }],
+		});
+	});
+
+	it("lets a marked placeholder give way to its extension", () => {
+		const extensions = extensionsWith(
+			{
+				Clock: {
+					_type: ClassicyFileSystemEntryFileType.File,
+					_invisible: true,
+					_placeholder: true,
+				},
+			},
+			[app("Clock.app", "Clock")],
+		);
+
+		expect(extensions.Clock._creator).toBe("Clock.app");
+		expect(extensions["Clock (Clock.app)"]).toBeUndefined();
+		expect(warnings()).toHaveLength(0);
+	});
+
+	it("recognizes the unmarked old placeholders in Applications only", () => {
+		const extensions = extensionsWith(
+			{
+				SimpleText: {
+					_type: ClassicyFileSystemEntryFileType.File,
+					_mimeType: "text/plain",
+					_data: "File Contents",
+					_invisible: true,
+				},
+			},
+			[app("SimpleText.app", "SimpleText")],
+		);
+
+		expect(extensions.SimpleText._creator).toBeUndefined();
+		expect(extensions["SimpleText (SimpleText.app)"]._creator).toBe(
+			"SimpleText.app",
+		);
+	});
+});

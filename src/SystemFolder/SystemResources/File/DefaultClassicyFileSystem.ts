@@ -18,17 +18,23 @@ export const DefaultFSContent = {
 		Applications: {
 			_type: ClassicyFileSystemEntryFileType.Directory,
 			_icon: directoryIcon,
+			// Invisible stand-ins that give way to the real apps of the same
+			// name in the derived Applications folder (`_placeholder`). Trees
+			// stored before the marker are recognized by their exact shape
+			// (ClassicyDerivedFolderPlaceholders.internal.ts).
 			SimpleText: {
 				_type: ClassicyFileSystemEntryFileType.File,
 				_mimeType: "text/plain",
 				_data: "File Contents",
 				_invisible: true,
+				_placeholder: true,
 			},
 			Calculator: {
 				_type: ClassicyFileSystemEntryFileType.File,
 				_mimeType: "text/plain",
 				_data: "File Contents",
 				_invisible: true,
+				_placeholder: true,
 			},
 		},
 		"System Folder": {

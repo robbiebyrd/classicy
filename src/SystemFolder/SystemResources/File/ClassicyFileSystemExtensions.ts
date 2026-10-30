@@ -5,6 +5,7 @@ import {
 } from "@/Appearance/ClassicyAppIdentity";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import type { ClassicyStoreSystemApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { classicyDerivedFolderReservedNames } from "@/SystemFolder/SystemResources/File/ClassicyDerivedFolderPlaceholders.internal";
 import { classicyDerivedAppEntryNames } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
 import {
 	type ClassicyFileSystemEntry,
@@ -23,8 +24,8 @@ const SYSTEM_FOLDER_NAME = "System Folder";
  *
  * Like the Applications folder, entries are keyed by display name under
  * `overrides` and drawn with the display icon, with `_creator` the app id, and
- * `reservedNames` (the folder's static entries) are kept free of display
- * names (see `classicyDerivedAppEntryNames`).
+ * no extension takes one of `reservedNames` (the folder's static entries)
+ * (see `classicyDerivedAppEntryNames`).
  */
 export const buildExtensionsFolder = (
 	apps: ClassicyStoreSystemApp[],
@@ -72,9 +73,9 @@ export const buildExtensionsFolder = (
 /**
  * Returns a copy of the tree with the derived Extensions folder merged into
  * "System Folder" on its first drive (creating the folder when a custom tree
- * lacks one). Static Extensions children are kept: a display name never
- * takes one's name, though an extension shown under its own name still
- * replaces a static child of that name. Entries from an earlier build whose
+ * lacks one). Static Extensions children, a user's files among them, are
+ * kept: no extension takes one's name, and only a `_placeholder` entry gives
+ * way to the extension of its name. Entries from an earlier build whose
  * extension is gone are dropped. The input tree is not mutated, and a tree with no drive — or
  * with nothing to add or drop — passes through unchanged. `overrides` and
  * `separator` go to `buildExtensionsFolder`.
@@ -110,7 +111,7 @@ export const withExtensionsFolder = (
 								apps,
 								overrides,
 								separator,
-								Object.keys(kept ?? {}).filter((key) => !key.startsWith("_")),
+								classicyDerivedFolderReservedNames(kept),
 							),
 						}
 					: (kept as ClassicyFileSystemEntry),

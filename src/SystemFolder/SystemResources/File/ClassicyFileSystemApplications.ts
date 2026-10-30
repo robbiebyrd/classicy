@@ -10,6 +10,10 @@ import {
 	warnClassicyDerivedEntryNameFallback,
 } from "@/SystemFolder/SystemResources/File/ClassicyDerivedEntryNameWarnings.internal";
 import {
+	classicyDerivedFolderReservedNames,
+	classicyFreeDerivedEntryName,
+} from "@/SystemFolder/SystemResources/File/ClassicyDerivedFolderPlaceholders.internal";
+import {
 	type ClassicyFileSystemEntry,
 	ClassicyFileSystemEntryFileType,
 	withoutDerivedEntries,
@@ -33,17 +37,18 @@ export const resetClassicyDerivedAppEntryNameWarnings = (): void => {
 /**
  * The keys a derived folder (Applications, Extensions) gives its apps, in
  * `sources` order, so that no app drops out of the folder and no static
- * entry is overwritten by a display name (K-D3, K-R4):
+ * entry is overwritten (K-D3, K-R4, story 0096):
  *
- * - `reservedNames` (the folder's static entries) and the own names of apps
- *   shown under their own name are taken before any display name is placed.
- * - An app shown under its own name keeps it, as before display names (two
- *   such apps sharing a name stay last-wins, and one still replaces a static
- *   entry of that name).
+ * - `reservedNames` (the folder's static entries, placeholders aside) and the
+ *   own names of apps shown under their own name are taken before any
+ *   display name is placed.
+ * - An app shown under its own name keeps it unless a static entry holds it
+ *   (two such apps sharing a name stay last-wins).
  * - A display name is placed when it is free, holds no `separator` and does
  *   not start with `_` (metadata keys). Otherwise the app falls back to its
  *   own name, or to "<own name> (<id>)" when that is taken too, the form the
- *   Control Strip Modules folder uses; each fallback warns once.
+ *   Control Strip Modules folder uses (numbered when a static entry holds
+ *   even that); each fallback warns once.
  */
 export const classicyDerivedAppEntryNames = (
 	folderName: string,
@@ -51,12 +56,13 @@ export const classicyDerivedAppEntryNames = (
 	reservedNames: Iterable<string>,
 	separator: string,
 ): string[] => {
-	const taken = new Set(reservedNames);
+	const reserved = new Set(reservedNames);
+	const taken = new Set(reserved);
 	for (const source of sources) {
 		if (source.displayName === source.name) taken.add(source.name);
 	}
 	return sources.map(({ appId, name, displayName }) => {
-		if (displayName === name) return name;
+		if (displayName === name && !reserved.has(name)) return name;
 		const usable =
 			!taken.has(displayName) &&
 			!(separator !== "" && displayName.includes(separator)) &&
@@ -65,7 +71,11 @@ export const classicyDerivedAppEntryNames = (
 			taken.add(displayName);
 			return displayName;
 		}
-		const fallback = taken.has(name) ? `${name} (${appId})` : name;
+		const fallback = taken.has(name)
+			? classicyFreeDerivedEntryName(`${name} (${appId})`, (candidate) =>
+					taken.has(candidate),
+				)
+			: name;
 		taken.add(fallback);
 		warnClassicyDerivedEntryNameFallback(
 			folderName,
@@ -78,13 +88,6 @@ export const classicyDerivedAppEntryNames = (
 		return fallback;
 	});
 };
-
-/** The names of a folder's static entries (metadata keys aside), which a
- *  display name may not take. */
-const staticEntryNames = (
-	folder: ClassicyFileSystemEntry | undefined,
-): string[] =>
-	folder ? Object.keys(folder).filter((key) => !key.startsWith("_")) : [];
 
 /** An icon belongs in the derived Applications folder when it is an app
  *  shortcut that has not opted out. Undefined `inApplications` means opted in,
@@ -104,8 +107,8 @@ const isApplicationsEntry = (
  * Each entry is keyed by the app's display name under `overrides` (the active
  * Appearance Package's `apps`) and drawn with its display icon; `_creator`
  * stays the app id, which is what opens it. Entries are named in icon order,
- * with `reservedNames` (the folder's static entries) kept free of display
- * names (see `classicyDerivedAppEntryNames`).
+ * and no app takes one of `reservedNames` (the folder's static entries) (see
+ * `classicyDerivedAppEntryNames`).
  */
 export const buildApplicationsFolder = (
 	icons: ClassicyStoreSystemDesktopManagerIcon[],
@@ -152,9 +155,10 @@ export const buildApplicationsFolder = (
 
 /**
  * Returns a copy of the tree with the derived Applications folder merged into
- * its first drive. Consumer-provided static Applications children are kept: a
- * display name never takes one's name, though an app shown under its own name
- * still replaces a static child of that name. Entries from an earlier build
+ * its first drive. Static Applications children, a user's files among them,
+ * are kept: no app takes one's name. Only a placeholder (`_placeholder`, or
+ * the unmarked SimpleText and Calculator stand-ins older builds stored) gives
+ * way to the app of its name. Entries from an earlier build
  * whose app is gone are dropped. The input tree is not mutated, and a tree
  * with no drive — or with nothing to add or drop — passes through unchanged.
  * `overrides` and `separator` go to `buildApplicationsFolder`.
@@ -185,7 +189,9 @@ export const withApplicationsFolder = (
 							icons,
 							overrides,
 							separator,
-							staticEntryNames(kept),
+							classicyDerivedFolderReservedNames(kept, {
+								legacyApplicationsPlaceholders: true,
+							}),
 						),
 					}
 				: (kept as ClassicyFileSystemEntry),

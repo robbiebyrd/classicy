@@ -209,14 +209,63 @@ describe("withControlStripModulesFolder reserves static names against display na
 		expect(warnings()).toHaveLength(1);
 	});
 
-	it("still lets a module shown under its own label replace a static file of that name", () => {
+	// Story 0096: a module shown under its own label never replaces a static
+	// file either; only a placeholder gives way.
+	it('keeps a static file named like a module\'s own label, listing the module as "<label> (<id>)"', () => {
 		const folder = modulesFolder(
 			withControlStripModulesFolder(treeWith({ Sound: mine("a") }), [
 				{ ...sound, label: "Sound" },
 			]),
 		);
 
+		expect(folder.Sound._data).toBe("a");
+		expect(folder["Sound (classicy-sound)"]._creator).toBe("ControlStrip");
+		expect(warnings()).toHaveLength(1);
+		expect(warnings()[0]).toMatchObject({
+			message:
+				'App display name unusable in Control Strip Modules; using "Sound (classicy-sound)"',
+			details: [
+				{ moduleId: "classicy-sound", appId: undefined, name: "Sound" },
+			],
+		});
+	});
+
+	it("numbers the suffix form when a static file holds it too", () => {
+		const folder = modulesFolder(
+			withControlStripModulesFolder(
+				treeWith({ Sound: mine("a"), "Sound (classicy-sound)": mine("b") }),
+				[sound],
+			),
+		);
+
+		expect(folder.Sound._data).toBe("a");
+		expect(folder["Sound (classicy-sound)"]._data).toBe("b");
+		expect(folder["Sound (classicy-sound) 2"]._creator).toBe("ControlStrip");
+	});
+
+	it("numbers the id suffix of a same-named module when a static file holds it", () => {
+		const folder = modulesFolder(
+			withControlStripModulesFolder(treeWith({ "Sound (b)": mine("b") }), [
+				{ id: "a", name: "Sound", icon: "/a.png" },
+				{ id: "b", name: "Sound", icon: "/b.png" },
+			]),
+		);
+
 		expect(folder.Sound._creator).toBe("ControlStrip");
+		expect(folder["Sound (b)"]._data).toBe("b");
+		expect(folder["Sound (b) 2"]._icon).toBe("/b.png");
+	});
+
+	it("lets a marked placeholder give way to a module", () => {
+		const folder = modulesFolder(
+			withControlStripModulesFolder(
+				treeWith({ Sound: { ...mine("a"), _placeholder: true } }),
+				[sound],
+			),
+		);
+
+		expect(folder.Sound._creator).toBe("ControlStrip");
+		expect(folder["Sound (classicy-sound)"]).toBeUndefined();
 		expect(warnings()).toHaveLength(0);
 	});
 });
