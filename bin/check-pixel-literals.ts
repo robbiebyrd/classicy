@@ -34,35 +34,47 @@ export type ClassicyPixelLiteral = {
 	kind: "bare" | "fallback";
 };
 
-// A pixel length not preceded by an identifier character, a digit's dot or a
-// hyphen-joined name, so `.x10px` and `$a-3px` never match.
-const PIXEL_LITERAL = /(?<![\w.-])-?\d+(\.\d+)?px/g;
-const ZERO = /^-?0+(\.0+)?px$/;
+// A pixel length as CSS writes it (`4px`, `1.5px`, `.5px`, `1e3px`, any
+// case) not preceded by an identifier character, a digit's dot or a
+// hyphen-joined name, so `.x10px` and `$a-3px` never match; a minus right
+// after another length's unit starts a literal of its own (`10px-3px`).
+const PIXEL_LITERAL =
+	/(?:(?<![\w.-])|(?<=\dpx))-?(?:\d+(?:\.\d+)?|\.\d+)(?:e[+-]?\d+)?px/gi;
+const ZERO = /^-?(?:0+(?:\.0+)?|\.0+)(?:e[+-]?\d+)?px$/i;
 const INFINITY = /\binfinity\s*\*\s*1px/gi;
 const PRELUDE = /^@(media|container)\b/;
 const SAVERS = "src/SystemFolder/Extensions/ScreenSaver/savers/";
 
-const blank = (text: string): string => " ".repeat(text.length);
+// Spaces for every character but a newline, so line numbers survive.
+const blank = (text: string): string => text.replace(/[^\n]/g, " ");
 
 /**
- * Whether the literal at `index` sits after the comma of its own enclosing
- * `var(--x, …)`. A parenthesis stack, so a var() that closed earlier on the
- * line (`px-rect(var(--c), 1px)`) does not make what follows a fallback.
+ * A parenthesis stack over `text`, advanced in order: `isFallbackAt(index)`
+ * says whether the literal at `index` sits after the comma of its own
+ * enclosing `var(--x, …)`. A var() that closed earlier
+ * (`px-rect(var(--c), 1px)`) does not make what follows a fallback, and a
+ * fallback may start on a later line than its var() (`var(--a,\n 4px)`).
+ * Indexes must not decrease between calls.
  */
-const isFallback = (line: string, index: number): boolean => {
+const fallbackTracker = (text: string) => {
 	const stack: { isVar: boolean; afterComma: boolean }[] = [];
-	for (let i = 0; i < index; i++) {
-		const c = line[i];
-		if (c === "(") {
-			const isVar = /(?:^|[^\w-])var$/i.test(line.slice(Math.max(0, i - 4), i));
-			stack.push({ isVar, afterComma: false });
-		} else if (c === ")") {
-			stack.pop();
-		} else if (c === "," && stack.length > 0) {
-			stack[stack.length - 1].afterComma = true;
+	let at = 0;
+	return (index: number): boolean => {
+		for (; at < index; at++) {
+			const c = text[at];
+			if (c === "(") {
+				const isVar = /(?:^|[^\w-])var$/i.test(
+					text.slice(Math.max(0, at - 4), at),
+				);
+				stack.push({ isVar, afterComma: false });
+			} else if (c === ")") {
+				stack.pop();
+			} else if (c === "," && stack.length > 0) {
+				stack[stack.length - 1].afterComma = true;
+			}
 		}
-	}
-	return stack.some((frame) => frame.isVar && frame.afterComma);
+		return stack.some((frame) => frame.isVar && frame.afterComma);
+	};
 };
 
 /** The pixel literals in one SCSS source; `file` is relative to the root. */
@@ -70,22 +82,29 @@ export const scanPixelLiteralsInSource = (
 	source: string,
 	file: string,
 ): ClassicyPixelLiteral[] => {
-	const found: ClassicyPixelLiteral[] = [];
-	blankClassicyScssUrlPayloads(blankClassicyScssComments(source))
+	// Prelude lines (their parentheses included) and `infinity * 1px` are
+	// blanked like comments, so lines and columns still point into the file.
+	const text = blankClassicyScssUrlPayloads(blankClassicyScssComments(source))
 		.split("\n")
-		.forEach((raw, index) => {
-			if (PRELUDE.test(raw.trim())) return;
-			const line = raw.replace(INFINITY, blank);
-			for (const match of line.matchAll(PIXEL_LITERAL)) {
-				if (ZERO.test(match[0])) continue;
-				found.push({
-					file,
-					line: index + 1,
-					text: match[0],
-					kind: isFallback(line, match.index) ? "fallback" : "bare",
-				});
-			}
+		.map((line) => (PRELUDE.test(line.trim()) ? blank(line) : line))
+		.join("\n")
+		.replace(INFINITY, blank);
+	const isFallbackAt = fallbackTracker(text);
+	const found: ClassicyPixelLiteral[] = [];
+	let line = 1;
+	let counted = 0;
+	for (const match of text.matchAll(PIXEL_LITERAL)) {
+		for (; counted < match.index; counted++) {
+			if (text[counted] === "\n") line++;
+		}
+		if (ZERO.test(match[0])) continue;
+		found.push({
+			file,
+			line,
+			text: match[0],
+			kind: isFallbackAt(match.index) ? "fallback" : "bare",
 		});
+	}
 	return found;
 };
 
@@ -111,20 +130,31 @@ export const scanPixelLiterals = (
 
 /**
  * The ratchet: one message per breach, empty when `found` matches the
- * allowlist exactly. A file below its listed count asks for the list to be
+ * allowlist exactly. An entry must be a positive whole count: a `0` entry
+ * (delete it instead) or any other value is reported as invalid. A file below its listed count asks for the list to be
  * tightened; a file above it (or unlisted with any literal) lists each of its
  * literals as `<file>:<line> <text>`.
  */
 export const checkPixelLiteralAllowlist = (
 	found: Map<string, ClassicyPixelLiteral[]>,
-	allowlist: Record<string, number>,
+	allowlist: Readonly<Record<string, unknown>>,
 ): string[] => {
 	const files = [
 		...new Set([...found.keys(), ...Object.keys(allowlist)]),
 	].sort();
 	return files.flatMap((file) => {
 		const literals = found.get(file) ?? [];
-		const listed = allowlist[file] ?? 0;
+		const listed = Object.hasOwn(allowlist, file) ? allowlist[file] : 0;
+		if (listed === 0 && Object.hasOwn(allowlist, file)) {
+			return [
+				`invalid allowlist entry for ${file}: 0 (a file with no literals left must be removed from the list)`,
+			];
+		}
+		if (typeof listed !== "number" || !Number.isInteger(listed) || listed < 0) {
+			return [
+				`invalid allowlist entry for ${file}: ${JSON.stringify(listed)} (a count must be a positive whole number)`,
+			];
+		}
 		if (literals.length < listed) {
 			return [
 				`tighten the allowlist for ${file}: ${literals.length} < ${listed}`,
@@ -159,7 +189,7 @@ function main(): void {
 		);
 		return;
 	}
-	const allowlist: Record<string, number> = JSON.parse(
+	const allowlist: Record<string, unknown> = JSON.parse(
 		readFileSync(allowlistPath, "utf8"),
 	);
 	const messages = checkPixelLiteralAllowlist(found, allowlist);
