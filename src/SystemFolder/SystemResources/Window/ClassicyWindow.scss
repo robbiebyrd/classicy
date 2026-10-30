@@ -1,3 +1,4 @@
+@use "../../../Appearance/vocabulary/color" as c;
 @use "../../../Appearance/vocabulary/layout";
 
 // #208: Zoom geometry is computed in JS (standard-state vs user-state and the
@@ -562,7 +563,7 @@
   z-index: 99999;
 
   .classicyWindowTitleBar {
-    background-color: #f7cecd;
+    background-color: c.classicy-tint("--color-error", 80%);
   }
 }
 

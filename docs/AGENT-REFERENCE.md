@@ -1354,8 +1354,8 @@ bevel, border, gradient and piece of art moved into Platinum's own stylesheet
   | `appearance.platinumWindowControlBox`, `platinumWindowControlBoxBorder`, `platinumWindowControlBoxDepressable` | `mixins.platinum-window-control-box`, `platinum-window-control-box-border`, `platinum-window-control-box-depressable` |
   | `appearance.platinumWindowUndepressable`, `platinumWindowDepressable`, `platinumWindowDepressed` | `mixins.platinum-window-undepressable`, `platinum-window-depressable`, `platinum-window-depressed` |
   | `appearance.platinumDepressableDefault`, `platinumDepressableBoxShadowActive` | `mixins.platinum-depressable-default`, `platinum-depressable-box-shadow-active` |
-  | `appearance.theme-halftone($color, $size)` | `mixins.platinum-halftone($color, $size)` |
-  | `appearance.encode-color($string)` | `mixins.platinum-encode-color($string)` |
+  | `appearance.theme-halftone($color, $size)` | `mixins.platinum-halftone($token, $size)`: `$token` is a color custom-property name (`"--color-black"`), not a color, and the dots are painted on the element's `::before` (the element gets `position: relative`) |
+  | `appearance.encode-color($string)` | Nothing: removed, since `platinum-halftone` no longer bakes a color into its data URI |
   | `appearance.px-rect(…)` | `layout.classicy-px-rect(…)` (`@use 'classicy/scss/layout'`) |
   | `appearance.no-select` | `layout.classicy-no-select` |
   | `scrollbars.scrollbars`, `scrollbars-split-arrows`, `scrollbars-inactive`, `scrollbars-themed` | `scrollbars.platinum-scrollbars`, `platinum-scrollbars-split-arrows`, `platinum-scrollbars-inactive`, `platinum-scrollbars-themed` |
