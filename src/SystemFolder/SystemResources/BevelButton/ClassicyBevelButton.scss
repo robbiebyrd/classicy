@@ -7,11 +7,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: calc(var(--window-padding-size) / 2);
+  gap: var(--control-padding);
 
   min-width: var(--window-control-size, 12px);
   min-height: var(--window-control-size, 12px);
-  padding: calc(var(--window-padding-size) / 2) var(--window-padding-size);
+  padding: var(--control-padding) var(--window-padding-size);
 
   font-family: var(--ui-font), sans-serif;
   font-size: var(--ui-font-size);
@@ -30,7 +30,7 @@
     inset calc(var(--bevel-w) * -1) calc(var(--bevel-w) * -1) 0 0 var(--color-system-05);
 
   &:focus-visible {
-    outline: var(--color-outline) solid calc(var(--window-border-size) * 2);
+    outline: var(--color-outline) solid var(--control-frame-width);
     outline-offset: var(--window-border-size);
   }
 
@@ -52,7 +52,7 @@
   // icon centred in the box. Sized to match .classicyButtonShapeSquare so
   // square bevel buttons line up with square ClassicyButtons in a palette.
   &.classicyBevelButtonSquare {
-    width: calc(var(--window-control-size) * 4);
+    width: var(--button-square-width);
     aspect-ratio: 1 / 1;
   }
 
@@ -120,13 +120,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-left: calc(var(--window-padding-size) / 2);
+  margin-left: var(--control-padding);
   line-height: 1;
   pointer-events: none;
 }
 
 .classicyBevelButtonArrowSmall {
-  font-size: calc(var(--ui-font-size) / 1.5);
+  font-size: var(--ui-font-size-mini);
 }
 
 .classicyBevelButtonArrowLarge {

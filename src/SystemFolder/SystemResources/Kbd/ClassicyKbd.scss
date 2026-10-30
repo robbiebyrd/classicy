@@ -14,7 +14,7 @@
 .classicyKbdKeycaps {
   display: inline-flex;
   align-items: center;
-  gap: calc(var(--window-padding-size) / 2);
+  gap: var(--control-padding);
 }
 
 .classicyKbdKeycap {
@@ -24,9 +24,9 @@
   box-sizing: border-box;
   min-width: var(--control-height);
   height: var(--control-height);
-  padding: 0 calc(var(--window-padding-size) / 2);
+  padding: 0 var(--control-padding);
   font-family: var(--ui-font);
-  font-size: calc(var(--ui-font-size) * 0.75);
+  font-size: var(--ui-font-size-caption);
   color: var(--color-black);
   background: var(--color-system-02);
   border-top: var(--control-bevel-sm) solid var(--color-system-01);

@@ -47,6 +47,6 @@
   }
 
   .classicyButtonSmall {
-    border-radius: calc(var(--window-padding-size)/2);
+    border-radius: var(--control-padding);
   }
 }

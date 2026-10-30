@@ -50,12 +50,12 @@
 .classicyMeterRow {
   display: flex;
   align-items: center;
-  gap: calc(var(--window-padding-size) / 2);
+  gap: var(--control-padding);
 }
 
 .classicyMeterValue {
   font-family: var(--ui-font);
-  font-size: calc(var(--ui-font-size) * 0.75);
+  font-size: var(--ui-font-size-caption);
   color: var(--color-black);
   min-width: 2em;
   text-align: right;

@@ -28,6 +28,14 @@ export type ClassicyThemeDerivation = {
 	formula: string;
 	doc: string;
 	compute: (i: ClassicyThemeDerivationInputs) => number;
+	/**
+	 * Emit the computed value unrounded (`intToPx`) instead of through `px3`.
+	 * Set on the font sizes: the stylesheets they replaced computed
+	 * `calc(var(--ui-font-size) / 1.5)` at full precision, and a rounded
+	 * `9.333px` moves the computed `font-size` (`9.33333px`) that the
+	 * Platinum parity baseline pins.
+	 */
+	unrounded?: true;
 };
 
 const control = (i: ClassicyThemeDerivationInputs): number =>
@@ -41,7 +49,8 @@ const ui = (i: ClassicyThemeDerivationInputs): number => i.typography.uiSize;
 /**
  * The Platinum proportions every stylesheet and the window geometry share,
  * named once so a theme that changes an input moves them all. `getThemeVars`
- * emits each as `cssVar` (rounded by `px3`), after the measurement inputs, so
+ * emits each as `cssVar` (rounded by `px3`, except the `unrounded` font
+ * sizes), after the measurement inputs, so
  * the names are reserved: a package measurement that would make one is
  * skipped by `classicyMeasurementVars`.
  *
@@ -86,6 +95,7 @@ export const CLASSICY_THEME_DERIVATIONS: readonly ClassicyThemeDerivation[] = [
 		formula: "typography.uiSize * 0.865",
 		doc: "Window title text size, slightly smaller than the UI font (ClassicyWindow.scss, ClassicyWindowFrame.scss).",
 		compute: (i) => ui(i) * 0.865,
+		unrounded: true,
 	},
 	{
 		cssVar: "--window-title-stripe-height",
@@ -188,30 +198,35 @@ export const CLASSICY_THEME_DERIVATIONS: readonly ClassicyThemeDerivation[] = [
 		formula: "typography.uiSize * 0.8",
 		doc: "Small UI text, such as labels and table cells (ClassicyControlGroup.scss, ClassicyTable.scss, ClassicyPopUpMenu.scss).",
 		compute: (i) => ui(i) * 0.8,
+		unrounded: true,
 	},
 	{
 		cssVar: "--ui-font-size-caption",
 		formula: "typography.uiSize * 0.75",
 		doc: "Caption text, such as menu keyboard equivalents and meter labels (ClassicyMenu.scss, ClassicyKbd.scss, ClassicyMeter.scss).",
 		compute: (i) => ui(i) * 0.75,
+		unrounded: true,
 	},
 	{
 		cssVar: "--ui-font-size-compact",
 		formula: "typography.uiSize * 10 / 12",
 		doc: "Compact text for tab titles and placards (ClassicyTabs.scss, ClassicyPlacard.scss).",
 		compute: (i) => (ui(i) * 10) / 12,
+		unrounded: true,
 	},
 	{
 		cssVar: "--ui-font-size-mini",
 		formula: "typography.uiSize / 1.5",
 		doc: "Mini text inside small buttons (ClassicyButton.scss, ClassicyBevelButton.scss, ClassicyButtonToolbar.scss).",
 		compute: (i) => ui(i) / 1.5,
+		unrounded: true,
 	},
 	{
 		cssVar: "--ui-font-size-large",
 		formula: "typography.uiSize * 1.5",
 		doc: "Large text for the large tab style (ClassicyTabs.scss).",
 		compute: (i) => ui(i) * 1.5,
+		unrounded: true,
 	},
 	{
 		cssVar: "--tab-height",
@@ -263,12 +278,18 @@ export const CLASSICY_THEME_DERIVATIONS: readonly ClassicyThemeDerivation[] = [
 	},
 ];
 
-/** Every named derivation for `i`, as `cssVar` → `px3` string. */
+/**
+ * Every named derivation for `i`, as `cssVar` → pixel string: `px3`-rounded,
+ * or unrounded for the `unrounded` font sizes.
+ */
 export const classicyThemeDerivations = (
 	i: ClassicyThemeDerivationInputs,
 ): Record<string, string> =>
 	Object.fromEntries(
-		CLASSICY_THEME_DERIVATIONS.map((d) => [d.cssVar, px3(d.compute(i))]),
+		CLASSICY_THEME_DERIVATIONS.map((d) => {
+			const value = d.compute(i);
+			return [d.cssVar, d.unrounded ? intToPx(value) : px3(value)];
+		}),
 	);
 
 /**
