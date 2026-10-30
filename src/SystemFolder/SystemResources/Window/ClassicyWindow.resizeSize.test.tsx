@@ -19,6 +19,7 @@ import { connectClassicyAssetPackageSource } from "@/Appearance/ClassicyAssetPac
 import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
 	ClassicyWindow,
+	clampWindowPositionToViewport,
 	classicyWindowContentSize,
 } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
@@ -510,6 +511,66 @@ describe("ClassicyWindow resize with a mirrored grow box", () => {
 				size: [195, 220],
 			}),
 		);
+	});
+
+	// A theme whose menu bar is not 30 px: the resize floor and the release
+	// clamp both read the live `--menu-bar-height`, so a top grip stops where
+	// clampWindowPositionToViewport would put the window anyway and the
+	// anchored bottom edge does not drift on release. The live
+	// `--window-resize-inset` is the resize's fudge.
+	it("a top grip and the release clamp agree on a 42 px menu bar", () => {
+		registerClassicyAppearancePackage({
+			id: "test-top",
+			name: "Top",
+			css: "",
+			defaults: {
+				...getTheme("default"),
+				id: "test-top-default",
+				package: "test-top",
+			},
+			layout: {
+				window: { growBoxCorner: "top-left" },
+				menuBar: { placement: "screen" },
+				desktop: { iconGridOrigin: "top-right" },
+			},
+		});
+		activePackage.id = "test-top";
+		const desktop = document.createElement("div");
+		desktop.id = "classicyDesktop";
+		desktop.style.setProperty("--menu-bar-height", "42px");
+		desktop.style.setProperty("--window-resize-inset", "9px");
+		document.body.append(desktop);
+		try {
+			const { windowEl, resizer } = renderMirrored([0, 0]);
+			mockWindow.resizing = true;
+			fireEvent.mouseDown(resizer, { clientX: 100, clientY: 100 });
+			fireEvent.mouseMove(windowEl, { clientX: 110, clientY: 10 });
+			// Width: 300 − 110 + 9 = 199, so left = 300 − 199 = 101. Height: the
+			// top edge stops at the 42 px floor, so 250 − 42 = 208.
+			expect(windowEl.style.top).toBe("42px");
+			expect(windowEl.style.height).toBe("208px");
+			expect(windowEl.style.left).toBe("101px");
+			expect(windowEl.style.width).toBe("199px");
+			fireEvent.mouseUp(windowEl);
+			expect(mockDispatch).toHaveBeenCalledWith(
+				expect.objectContaining({
+					type: "ClassicyWindowResize",
+					size: [199, 208],
+				}),
+			);
+			// The release clamp reads the same floor: it leaves the resized
+			// window where the gesture put it ...
+			expect(clampWindowPositionToViewport([101, 42], [199, 208])).toEqual([
+				101, 42,
+			]);
+			// ... where a fixed 30 px floor would have let the top edge reach 30
+			// and the clamp then pushed the window down 12 px, off its anchor.
+			expect(clampWindowPositionToViewport([101, 30], [199, 220])).toEqual([
+				101, 42,
+			]);
+		} finally {
+			desktop.remove();
+		}
 	});
 
 	// F 4.1 review minor: only a press in this mount resizes; a persisted

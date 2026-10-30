@@ -595,8 +595,12 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	// still see the old theme's). Both reads fall back to the ACTIVE theme's
 	// value, not the default theme's: on the boot render no desktop carries
 	// the variables yet, and the window registers (ClassicyWindowOpen) with
-	// the geometry of that first render. Part F adds the layout's menu-bar
-	// placement to this seed as well as to the effect key.
+	// the geometry of that first render. The theme is the whole key:
+	// getThemeVars sees only the theme, and the layout's menu-bar placement
+	// does not change the variable (window placement still reserves the
+	// screen bar's band). This value is also the viewport floor
+	// (`windowViewportFloor`) a flipped-corner resize stops at, so the resize
+	// and the release clamp always agree.
 	const activeTheme = useAppManager(
 		(state) => state.System.Manager.Appearance?.activeTheme,
 	);

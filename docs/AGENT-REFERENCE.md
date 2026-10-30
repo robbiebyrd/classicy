@@ -2376,7 +2376,8 @@ while the placement is `window` and reappears in the screen bar's new
 extensions region when it returns to `screen`. It follows the package
 layout only: a bar forced to `placement="screen"` under a window-placement
 package is not re-queried. Window geometry still reserves the screen bar's
-30 px band at the top.
+band at the top: the theme's live `--menu-bar-height` (30 px under
+Platinum), the same in either placement.
 
 `ClassicyDesktopMenuBar`'s `placement` prop affects only that bar; windows
 follow the package layout, never the prop. `placement="window"` under
@@ -2390,8 +2391,8 @@ minimum?, floor?)`** → `{ size: [w, h], position: [left, top] }`. Pure; the
 size and position for a resize drag whose grow box is in `corner`. The
 corner opposite the grow box is the anchor: the size is the pointer's
 distance from it plus `fudge` (default 5, which keeps the grow box under the
-pointer; `ClassicyWindow` passes the same value), and the position keeps the
-anchor fixed.
+pointer; `ClassicyWindow` passes the live `--window-resize-inset`, 5 px under
+Platinum, read once per gesture), and the position keeps the anchor fixed.
 `rect` is the window's bounding rect when the drag started (left, top,
 right, bottom) and `chrome` its frame padding plus border, which the rect
 includes and the applied size does not. Two optional limits apply only on an
@@ -2402,11 +2403,13 @@ axis whose grow box moves the left or top edge:
   the returned size stays raw.
 - `floor` (`[x, y]`, default `[0, 0]`): the lowest left/top the window may
   take; past it the size shrinks so the edge stops at the floor.
-  `ClassicyWindow` passes its viewport floor, `windowViewportFloor` (`[0,
-  30]`: the screen's left edge and the menu bar's underside), a constant
-  module-private to `ClassicyWindow.tsx` and shared there with
-  `clampWindowPositionToViewport`, which re-applies it after every move and
-  resize.
+  `ClassicyWindow` passes its viewport floor, `windowViewportFloor`
+  (`[0, menuBarHeight]`: the screen's left edge and the menu bar's
+  underside, where `menuBarHeight` is the theme's live `--menu-bar-height`,
+  30 px under Platinum, read once per theme). It is module-private to
+  `ClassicyWindow.tsx` and shared there with `clampWindowPositionToViewport`,
+  which re-applies it after every move and resize, so a theme whose menu bar
+  is not 30 px still releases a top-edge resize exactly where it stopped.
 
 `bottom-right` moves no edge, ignores both limits, and gives the numbers
 Classicy always used. `ClassicyWindow` writes `size` as the window's width
@@ -2417,15 +2420,20 @@ Types: `ClassicyWindowRect` is the `rect` argument (`{ left, top, right,
 bottom }`, viewport pixels, frame included); `ClassicyWindowResizeResult` is
 the return value (`{ size, position }`, both `[number, number]`).
 
-**Icon grid.** Clean Up walks the grid one grid step (icon cell plus
-padding) at a time (`iconSize × 2 + iconSize / 4` on both axes), down each
+**Icon grid.** Clean Up walks the grid one grid step at a time: the icon
+cell plus its padding (`cell + padding` from `classicyDesktopIconMetrics`,
+computed from the theme as `--desktop-icon-cell` and `--desktop-icon-padding`
+are: `iconSize × 2 + iconSize / 4`, on both axes), down each
 column from the origin's edge, then to the next column. Every counted column
 fits the viewport, and a bottom origin also keeps its last row clear of the
 menu bar, so no cleaned-up icon lands off-screen. In a viewport too short
 for even one row below that band, a bottom origin's one row is clamped to
 the top origins' first-row height (`4 × padding`).
-`classicyDesktopIconGridPosition(iconSize, padding, col, row, origin?)` is
-the grid-position-to-location function; `origin` defaults to
+`classicyDesktopIconGridPosition(metrics, col, row, origin?)` is the
+grid-position-to-location function. `metrics` is a
+`ClassicyDesktopIconMetrics` (`{ size, padding, cell }`, below under
+"Reading a metric from JS"; `cell` excludes the padding, and the step is
+`cell + padding`); `origin` defaults to
 `CLASSICY_DEFAULT_APPEARANCE_LAYOUT.desktop.iconGridOrigin`.
 
 **A package that rearranges.** The Storybook-only `mirrored` package
@@ -2460,7 +2468,8 @@ one preview iframe across sidebar navigation, so a story visited after a
   triangle. A non-interactive `ClassicyTriangle`'s `<svg>` is
   `aria-hidden`, so the header's accessible name is its label alone in both
   positions (it was "More info Toggle" or "Toggle More info").
-- Clean Up counts columns by the icon cell, not `iconSize + padding`, so on a
+- Clean Up counts columns by the grid step (icon cell plus padding), not
+  `iconSize + padding`, so on a
   desktop with more icons than fit the icons wrap to the first column
   instead of running off-screen.
 
@@ -2804,7 +2813,7 @@ the variable instead of hard-coding the number:
 
 - **What it reads.** The computed value of `name` on `el`, else
   `#classicyDesktop`, else `<html>`. A finite value of 0 or more is returned:
-  `0px` is a real value (window mode's `--menu-bar-height`).
+  `0px` is a real value (for example a host's `--menu-bar-height: 0px`).
 - **Fallback.** Anything else, or no DOM, returns `fallback`. It defaults to
   `classicyDefaultThemeVarPx(name)`, the default (Platinum) theme's value,
   computed once. That throws, after logging, for a name `getThemeVars` does
@@ -2813,8 +2822,9 @@ the variable instead of hard-coding the number:
   layout pass, never per render or `mousemove`, and never from a reducer:
   reducers compute from `getThemeVars(theme)`.
 - **Readers.** `ClassicyWindow` reads `--menu-bar-height` (once per active
-  theme), `--window-zoom-margin` (zoom) and `--window-resize-inset` (once per
-  resize gesture). Balloon help reads `--window-control-size`.
+  theme; also its viewport floor, `windowViewportFloor`),
+  `--window-zoom-margin` (zoom) and `--window-resize-inset` (once per resize
+  gesture; the `fudge` it passes to `computeClassicyWindowResize`). Balloon help reads `--window-control-size`.
 - **The desktop-icon grid** has two forms, both returning
   `ClassicyDesktopIconMetrics { size, padding, cell }`:
   - `classicyDesktopIconMetrics(theme)` is pure, from the theme. Desktop
@@ -2827,12 +2837,12 @@ the variable instead of hard-coding the number:
   Finder's icons but not desktop Clean Up. Resize the desktop grid with the
   theme's `desktop.iconSize`.
 
-**Multipliers still in SCSS (Part H inventory).** 85 simple multipliers are
+**Multipliers still in SCSS (Part H inventory).** 86 simple multipliers are
 left. Each is a formula no named derivation covers, or a site kept on
 purpose; Part H names or removes them. Count them with:
 
 ```sh
-grep -rnoE 'calc\(\s*var\(--[a-z0-9-]+\)\s*[*/]\s*[0-9.]+(\s*/\s*[0-9.]+)?\s*\)' src --include=*.scss | grep -v Extensions/ScreenSaver | wc -l   # 85
+grep -rnoE 'calc\(\s*var\(--[a-z0-9-]+\)\s*[*/]\s*[0-9.]+(\s*/\s*[0-9.]+)?\s*\)' src --include=*.scss | grep -v Extensions/ScreenSaver | wc -l   # 86
 ```
 
 By file (under `src/`) and formula; "×n" means n sites:
@@ -2866,6 +2876,7 @@ By file (under `src/`) and formula; "×n" means n sites:
 | `SystemFolder/SystemResources/TimePicker/ClassicyTimePicker.scss` | `ui-font-size × 4` |
 | `SystemFolder/SystemResources/Window/ClassicyWindow.scss` | `window-scrollbar-size / 4` |
 | `SystemFolder/SystemResources/Window/ClassicyWindowFrame.scss` | `window-padding-size × 2` |
+| `SystemFolder/SystemResources/Window/ClassicyWindowMenuBar.scss` | `window-control-size × 1.75` (the window menu bar's default height) |
 
 Kept on purpose:
 
@@ -2878,7 +2889,7 @@ Kept on purpose:
   local arrow size, from its local scroll-bar size.
 - `_scrollbars.scss`, the three arrow forms: Platinum glyph geometry.
 
-Three of the 85 sit inside `//` comments: `ClassicyIcon.scss` and
+Three of the 86 sit inside `//` comments: `ClassicyIcon.scss` and
 `ClassicyDesktopIcon.scss` `desktop-icon-size × 4`, and
 `QuickTimeMovieEmbed.scss` `window-control-size × 0.825`. The grep does not
 count negative forms (`* -1`, `* -2`), multi-term `calc()`s, or the Button
