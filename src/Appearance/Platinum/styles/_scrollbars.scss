@@ -297,7 +297,7 @@ $sb-arrow-2x: calc(var(--window-scrollbar-arrow-size) * 2);
                     transparent 0,
                     transparent 87.5%,
                     var(--color-theme-05) 0
-    ) 50%/7px 8px no-repeat,
+    ) 50%/var(--scrollbar-arrow-glyph-width) var(--scrollbar-arrow-glyph-height) no-repeat,
     linear-gradient(
                     var(--color-theme-01) 12.5%,
                     transparent 0,
@@ -313,7 +313,7 @@ $sb-arrow-2x: calc(var(--window-scrollbar-arrow-size) * 2);
                     var(--color-theme-01) 0,
                     var(--color-theme-01) 87.5%,
                     transparent 0
-    ) 49%/7px 8px no-repeat,
+    ) 49%/var(--scrollbar-arrow-glyph-width) var(--scrollbar-arrow-glyph-height) no-repeat,
     var(--color-theme-03);
   }
 
@@ -334,7 +334,7 @@ $sb-arrow-2x: calc(var(--window-scrollbar-arrow-size) * 2);
                     transparent 0,
                     transparent 87.5%,
                     var(--color-theme-05) 0
-    ) 50%/8px 7px no-repeat,
+    ) 50%/var(--scrollbar-arrow-glyph-height) var(--scrollbar-arrow-glyph-width) no-repeat,
     linear-gradient(
                     90deg,
                     var(--color-theme-01) 12.5%,
@@ -351,7 +351,7 @@ $sb-arrow-2x: calc(var(--window-scrollbar-arrow-size) * 2);
                     var(--color-theme-01) 0,
                     var(--color-theme-01) 87.5%,
                     transparent 0
-    ) center 49%/8px 7px no-repeat,
+    ) center 49%/var(--scrollbar-arrow-glyph-height) var(--scrollbar-arrow-glyph-width) no-repeat,
     var(--color-theme-03);
   }
 }
