@@ -296,6 +296,11 @@ describe("ClassicyAppearancePackageSchema apps", () => {
 		["A\u2066B"],
 		["A\u2069B"],
 		["A\u200bB"],
+		["A\u200eB"],
+		["A\u200fB"],
+		["A\u061cB"],
+		["A\u2060B"],
+		["A\u00adB"],
 		["A\ufeffB"],
 		["prototype"],
 	])("refuses the name %j", (name) => {
@@ -311,7 +316,20 @@ describe("ClassicyAppearancePackageSchema apps", () => {
 		["x".repeat(64)],
 		["Media Player"],
 		["Caf\u00e9"],
+		// Just outside each refused code point or range.
+		["A\u00acB"],
+		["A\u00aeB"],
+		["A\u061bB"],
+		["A\u061dB"],
+		["A\u200cB"],
+		["A\u200dB"],
 		["A\u2010B"],
+		["A\u202fB"],
+		["A\u205fB"],
+		["A\u2061B"],
+		["A\u2065B"],
+		["A\u206aB"],
+		["\u{1F468}\u200d\u{1F469}\u200d\u{1F467}"],
 	])("accepts the name %j", (name) => {
 		expect(appsIssues({ "A.app": { name } })).toEqual([]);
 	});
