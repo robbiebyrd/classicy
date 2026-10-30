@@ -3,12 +3,13 @@ id: 0047-mst
 title: 'I 3.1: Control click sounds: Button, BevelButton, Placard, RadioInput, Tabs, Assistant'
 purpose: Move the control click sounds out of component code into src/Appearance/Platinum/hooks.ts, proving through the hook that every sprite still plays.
 type: impr
-status: in_progress
+status: complete
 priority: "2"
 effort: M
 created: "2026-10-28T20:18:59.762Z"
-updated: "2026-10-30T01:12:10.923Z"
+updated: "2026-10-30T01:16:23.933Z"
 started: "2026-10-30T00:22:15.861Z"
+completed: "2026-10-30T01:16:23.933Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -91,9 +92,9 @@ hooks.ts: `export const platinumAppearanceHooks: ClassicyAppearanceHooks = { on:
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm exec vitest run src/Appearance/Platinum/hooks.test.ts src/Appearance/Platinum/hooks.controls.test.tsx
-- [ ] platinumAppearanceHooks maps Button/BevelButton/Placard/RadioInput/Tabs/Assistant events to their sprites and is registered as the Platinum package's hooks; the six component files dispatch no feedback sprite (regex /sound: "Classicy(Button|InputRadio|Tab|Menu)/ absent) while the error beep stays.
-- [ ] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
+- [x] VERIFY: pnpm exec vitest run src/Appearance/Platinum/hooks.test.ts src/Appearance/Platinum/hooks.controls.test.tsx
+- [x] platinumAppearanceHooks maps Button/BevelButton/Placard/RadioInput/Tabs/Assistant events to their sprites and is registered as the Platinum package's hooks; the six component files dispatch no feedback sprite (regex /sound: "Classicy(Button|InputRadio|Tab|Menu)/ absent) while the error beep stays.
+- [x] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
 
 ## Files
 
@@ -116,3 +117,5 @@ hooks.ts: `export const platinumAppearanceHooks: ClassicyAppearanceHooks = { on:
 ### 2026-10-30T00:22:23.333Z - Started on feat/appearance-part-i-v2 (worktree part-i) at post-B base 24896dc30, where I's fallback package is replaced by B's CLASSICY_FALLBACK_APPEARANCE_PACKAGE. The implementer brief is the part-i ledger task-3.1-brief.md.
 
 ### 2026-10-30T01:12:10.922Z - Implemented at ba5235cc6 (pushed). Gate: lint, tsc, 4236/4236 tests (651 s, no timeouts), build:source with verify:dist. RED→GREEN 10/10. In the example app every sprite plays as before, with no [ClassicyAppearance] warning. Parity: 56/56 affected stories at AE 0 with identical computed dumps against post-B (port 6023). Out of brief: the ClassicySoundPacks.test.ts sprite scan now also reads hooks.ts, and the hooks module was added to the load-order test. Ruling I-R17 settles the Tabs arrow/Home/End question: those keys keep today's ClickUp-only behavior. The task review is in progress.
+
+### 2026-10-30T01:16:21.233Z - Review APPROVED at ba5235cc6, with no Critical or Important findings. The per-input sound map matches emit by emit against the removed dispatches, there is no double-play, the error beep stays, the hooks table is registered once, and the sound-pack test edit tightens the guard. The controller re-ran the VERIFY tests: the 10 I 3.1 tests pass (the 5 failures in that run are I 3.2's uncommitted RED rows). The full gate was 4236/4236, reported by the implementer and accepted by the review. Minors: the stale doc comments and the cwd-relative readFileSync are folded into I 3.2; the Placard release muted by a mid-hold keydown is carried to the whole-branch review; the Tabs scroll-arrow component test is coverage only.
