@@ -8,6 +8,12 @@
 // it on the square's edge — all in percentages, so the ring follows the wheel
 // at any size. The inset is a proportion of the full-size square (20 of 240,
 // unitless), so it holds whatever size a theme gives the wheel.
+//
+// $cp-wheel-max must equal Platinum's measurements.picker.wheelMax (the
+// --picker-wheel-max the square's max-width reads): Sass cannot read a CSS
+// variable, and CSS cannot divide one length by another for a unitless
+// ratio, so the reference size is written twice. A test
+// (ClassicyColorPickerDialog.styles.test.ts) fails when the two drift.
 $cp-wheel-max: 240;
 $cp-wheel-inset: math.div(20, $cp-wheel-max) * 100%;
 $cp-wheel-degree-marks: 0, 60, 120, 180, 240, 300;

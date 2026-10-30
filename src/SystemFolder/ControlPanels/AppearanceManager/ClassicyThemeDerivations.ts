@@ -274,14 +274,20 @@ export const CLASSICY_THEME_DERIVATIONS: readonly ClassicyThemeDerivation[] = [
 	{
 		cssVar: "--focus-ring-width",
 		formula: "window.borderSize",
-		doc: "Width of the keyboard focus outline drawn inside a control (ClassicyControlStrip.scss).",
+		doc: "Width of the keyboard focus outline drawn inside a control (ClassicyControlStrip.scss, ClassicyColorPicker.scss).",
 		compute: (i) => border(i),
 	},
 	{
 		cssVar: "--focus-ring-inset",
 		formula: "window.borderSize * 3",
-		doc: "How far the keyboard focus outline sits inside a control's edge, clear of its frame and bevel (ClassicyControlStrip.scss).",
+		doc: "How far the keyboard focus outline sits inside a control's edge, clear of its frame and bevel (ClassicyControlStrip.scss, ClassicyColorPicker.scss).",
 		compute: (i) => border(i) * 3,
+	},
+	{
+		cssVar: "--layout-item-gap-half",
+		formula: "layout.itemGap / 2",
+		doc: "Half the item gap: the vertical padding of a compact list row, such as HyperCard's palette entries and add-action pop-up (HyperCard.scss). One role, one name (H-R19).",
+		compute: (i) => i.measurements.layout.itemGap / 2,
 	},
 ];
 

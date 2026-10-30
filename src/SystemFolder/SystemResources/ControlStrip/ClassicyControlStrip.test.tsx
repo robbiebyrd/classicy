@@ -329,6 +329,51 @@ describe("ClassicyControlStrip (HIGOS8 Figure 6-15)", () => {
 		expect(modules.scrollLeft).toBe(42);
 	});
 
+	// With nothing measured and no variable set anywhere (jsdom before the
+	// desktop's theme), the step is the default theme's: 30 + 1.
+	it("falls back to the default theme's module step", () => {
+		vi.spyOn(HTMLElement.prototype, "scrollWidth", "get").mockReturnValue(300);
+		vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(100);
+		vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(0);
+		register(...testModules());
+		renderStrip();
+		fireEvent.click(
+			screen.getByRole("button", { name: "Scroll Control Strip right" }),
+		);
+		const modules = document.querySelector(
+			".classicyControlStripModules",
+		) as HTMLElement;
+		expect(modules.scrollLeft).toBe(31);
+	});
+
+	// G14/H-R12: a drag reads the step once, on the press; its mousemoves
+	// reuse it and never force a style read.
+	it("reads the module step once per drag, not per mousemove", () => {
+		vi.spyOn(HTMLElement.prototype, "scrollWidth", "get").mockReturnValue(300);
+		vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(100);
+		vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(0);
+		const reads = vi.spyOn(CSSStyleDeclaration.prototype, "getPropertyValue");
+		const stepReads = () =>
+			reads.mock.calls.filter(
+				([name]) => name === "--control-strip-module-width",
+			).length;
+		register(...testModules());
+		renderStrip();
+		const viewport = document.querySelector(
+			".classicyControlStripModules",
+		) as HTMLElement;
+		reads.mockClear();
+		fireEvent.mouseDown(tab(), { button: 0, clientX: 200 });
+		expect(stepReads()).toBe(1);
+		fireEvent.mouseMove(document, { clientX: 160 });
+		fireEvent.mouseMove(document, { clientX: 140 });
+		fireEvent.mouseMove(document, { clientX: 120 });
+		fireEvent.mouseUp(document);
+		expect(stepReads()).toBe(1);
+		// 100 - 80 = 20 px snaps up to one 31 px step.
+		expect(viewport.style.width).toBe("31px");
+	});
+
 	it("reads no pixel literal", () => {
 		expect(
 			scanPixelLiteralsInSource(

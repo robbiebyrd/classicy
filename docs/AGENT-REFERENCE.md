@@ -2928,8 +2928,9 @@ full precision, and a rounded `9.333px` moves the computed `font-size`
 | `--desktop-icon-padding` | `iconSize / 4` | 12 | ClassicyDesktopIconContext.tsx, ClassicyFileBrowserUtils.ts |
 | `--desktop-icon-cell` | `iconSize × 2` | 96 | ClassicyDesktopIcon.scss, ClassicyDesktopIconContext.tsx, ClassicyFileBrowserUtils.ts |
 | `--desktop-icon-label-pad` | `iconFontSize / 4` | 3 | ClassicyDesktopIcon.scss, ClassicyIcon.scss |
-| `--focus-ring-width` | `borderSize` | 1 | ClassicyControlStrip.scss |
-| `--focus-ring-inset` | `borderSize × 3` | 3 | ClassicyControlStrip.scss |
+| `--focus-ring-width` | `borderSize` | 1 | ClassicyColorPicker.scss, ClassicyControlStrip.scss |
+| `--focus-ring-inset` | `borderSize × 3` | 3 | ClassicyColorPicker.scss, ClassicyControlStrip.scss |
+| `--layout-item-gap-half` | `itemGap / 2` | 2 | HyperCard.scss |
 
 The table's types and one helper are public:
 
@@ -2956,7 +2957,7 @@ sets itself could never take effect. Those variables are reserved
 
 - the palette, font and desktop variables (`CLASSICY_THEME_NON_MEASUREMENT_VARS`, 44 names);
 - the derived metrics above (`CLASSICY_THEME_DERIVED_VARS`, 15 names);
-- the named derivations (`CLASSICY_THEME_DERIVATIONS`, 37 names);
+- the named derivations (`CLASSICY_THEME_DERIVATIONS`, 38 names);
 - every `--classicy-*` name. That prefix is Classicy's own: the desktop root
   sets `--classicy-layout-*` after the theme's variables, and
   `--classicy-art-*` and `--classicy-cursor-*` are read with fallbacks a
@@ -2992,6 +2993,7 @@ variable itself:
 | `--control-height` | `--button-height`, `--edit-field-height`, `--help-button-width`, `--help-button-height` |
 | `--ui-font-size` | `--ui-font-size-small`, `--ui-font-size-caption`, `--ui-font-size-compact`, `--ui-font-size-mini`, `--ui-font-size-large`, `--window-header-font-size` |
 | `--desktop-icon-size` / `--desktop-icon-font-size` | `--desktop-icon-padding`, `--desktop-icon-cell` / `--desktop-icon-label-pad` |
+| `--layout-item-gap` | `--layout-item-gap-half` |
 
 JS geometry reads the variables the window inherits from its desktop root
 (below), so overriding `--menu-bar-height`, `--window-zoom-margin` or
@@ -3075,13 +3077,13 @@ the variable instead of hard-coding the number:
   Finder's icons but not desktop Clean Up. Resize the desktop grid with the
   theme's `desktop.iconSize`.
 
-**Multipliers still in SCSS (Part H inventory).** 86 simple multipliers are
+**Multipliers still in SCSS (Part H inventory).** 88 simple multipliers are
 left. Each is a proportion no named derivation means (some share a named
 derivation's formula, but not its role), or a site kept on purpose; Part H
 names or removes them. Count them with:
 
 ```sh
-grep -rnoE 'calc\(\s*var\(--[a-z0-9-]+\)\s*[*/]\s*[0-9.]+(\s*/\s*[0-9.]+)?\s*\)' src --include=*.scss | grep -v Extensions/ScreenSaver | wc -l   # 86
+grep -rnoE 'calc\(\s*var\(--[a-z0-9-]+\)\s*[*/]\s*[0-9.]+(\s*/\s*[0-9.]+)?\s*\)' src --include=*.scss | grep -v Extensions/ScreenSaver | wc -l   # 88
 ```
 
 By file (under `src/`) and formula; "×n" means n sites:
@@ -3090,6 +3092,7 @@ By file (under `src/`) and formula; "×n" means n sites:
 |---|---|
 | `Appearance/Platinum/styles/_scrollbars.scss` | `window-scrollbar-arrow-size / 2`; `window-scrollbar-arrow-size × 1.5`; `window-scrollbar-arrow-size × 2` |
 | `Appearance/Platinum/styles/components/_Button.scss` | `button-default-ring / 3` |
+| `Appearance/Platinum/styles/components/_ControlStrip.scss` | `control-strip-bevel-width × 2` ×2 |
 | `Appearance/Platinum/styles/components/_Slider.scss` | `window-border-size × 1.5` |
 | `SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Colors.scss` | `layout-item-gap / 2` |
 | `SystemFolder/ControlPanels/DriveSetup/DriveSetupList.scss` | `window-control-size × 8` |
@@ -3127,8 +3130,13 @@ Kept on purpose:
 - `ClassicyWindow.scss`, `window-scrollbar-size / 4`: the utility window's
   local arrow size, from its local scroll-bar size.
 - `_scrollbars.scss`, the three arrow forms: Platinum glyph geometry.
+- `_ControlStrip.scss`, the two `control-strip-bevel-width × 2`: positions on
+  the Control Strip art's bevel-pixel grid (H-R7), not theme proportions. The
+  same partial has six more multiples of the one bevel knob (`100% -
+  bevel-width × 2`, `× 3`, `× 4`) that the grep does not count, being
+  multi-term.
 
-Three of the 86 sit inside `//` comments: `ClassicyIcon.scss` and
+Three of the 88 sit inside `//` comments: `ClassicyIcon.scss` and
 `ClassicyDesktopIcon.scss` `desktop-icon-size × 4`, and
 `QuickTimeMovieEmbed.scss` `window-control-size × 0.825`. The grep does not
 count negative forms (`* -1`, `* -2`), multi-term `calc()`s, or the Button
