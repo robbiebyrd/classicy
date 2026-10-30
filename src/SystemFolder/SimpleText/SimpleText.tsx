@@ -29,6 +29,10 @@ import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWi
 
 const appName = "SimpleText";
 const appId = SIMPLE_TEXT_APP_ID;
+// SimpleText registers no reducer, so these reach the kernel's generic
+// OpenFile/CloseFile handler. Literals, never built from the app's name.
+const OPEN_FILE = "ClassicyAppSimpleTextOpenFile";
+const CLOSE_FILE = "ClassicyAppSimpleTextCloseFile";
 // SimpleText edits plain text and styled (Markdown) text; the two map to the
 // same underlying string, distinguished only by which editor renders it.
 type SimpleTextFileType =
@@ -178,7 +182,7 @@ export const SimpleText = () => {
 					selection.entry.meta?.classicyPath ?? selection.entry.id,
 				);
 				desktopEventDispatch({
-					type: `ClassicyApp${appName}OpenFile`,
+					type: OPEN_FILE,
 					app: { id: appId },
 					path,
 				});
@@ -246,7 +250,7 @@ export const SimpleText = () => {
 			desktopEventDispatch({ type: "ClassicyDesktopFileSystemVersionBump" });
 
 			desktopEventDispatch({
-				type: `ClassicyApp${appName}OpenFile`,
+				type: OPEN_FILE,
 				app: { id: appId },
 				path: fullPath,
 			});
@@ -265,7 +269,7 @@ export const SimpleText = () => {
 	const closePathDoc = useCallback(
 		(path: string) => {
 			desktopEventDispatch({
-				type: `ClassicyApp${appName}CloseFile`,
+				type: CLOSE_FILE,
 				app: { id: appId },
 				path,
 			});
@@ -354,7 +358,7 @@ export const SimpleText = () => {
 				} else {
 					const { path } = doc.target;
 					closeWindow(doc.windowId, {
-						type: `ClassicyApp${appName}CloseFile`,
+						type: CLOSE_FILE,
 						app: { id: appId },
 						path,
 					});

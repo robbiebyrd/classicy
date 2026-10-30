@@ -34,6 +34,10 @@ import {
 	type MoviePlayerOpenFile,
 } from "./MoviePlayerUtils";
 
+/** Handled by the Movie Player reducer (`MoviePlayerContext.tsx`). A literal,
+ *  never built from the app's name. */
+const CLOSE_FILE = "ClassicyAppMoviePlayerCloseFile";
+
 type ResolvedMovieDocument = {
 	key: string;
 	path?: string;
@@ -178,7 +182,7 @@ export const MoviePlayer: FunctionalComponent = () => {
 	const closeFile = useCallback(
 		(path: string) => {
 			desktopEventDispatch({
-				type: `ClassicyApp${appName.replace(/\s+/g, "")}CloseFile`,
+				type: CLOSE_FILE,
 				app: { id: appId },
 				path,
 			});
@@ -206,7 +210,7 @@ export const MoviePlayer: FunctionalComponent = () => {
 		(doc: ResolvedMovieDocument) =>
 			doc.path
 				? {
-						type: "ClassicyAppMoviePlayerCloseFile",
+						type: CLOSE_FILE,
 						app: { id: appId },
 						path: doc.path,
 					}
