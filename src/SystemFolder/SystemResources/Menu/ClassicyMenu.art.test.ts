@@ -1,6 +1,11 @@
 import { readFileSync } from "node:fs";
 import { compile } from "sass";
 import { describe, expect, it } from "vitest";
+import {
+	cssRuleLookup,
+	PLATINUM_ROOT,
+	parseCssRules,
+} from "@/__tests__/compiledCss";
 
 /**
  * The Platinum menu and pop-up arrows (Part E 2.2) are registered package
@@ -28,38 +33,14 @@ const popUpCss = compile(
 	"src/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu.scss",
 ).css;
 
-const P = ".classicyDesktop[data-classicy-appearance=platinum]";
-// One selector list per line, unindented.
-const flat = (source: string) =>
-	`\n${source}`.replace(/,\s*\n\s*/g, ", ").replace(/\n\s+/g, "\n");
-
-/** Every rule of a flattened stylesheet as its selector list and its block. */
-const parseRules = (source: string) =>
-	[...flat(source).matchAll(/\n([^\n{}@][^\n{}]*) \{\n([^}]*)\}/g)].map(
-		([, selectors, body]) => ({ selectors: selectors.split(", "), body }),
-	);
-
-const rules = parseRules(css);
+const P = PLATINUM_ROOT;
+const rules = parseCssRules(css);
 
 /**
  * The declarations of every package rule whose selector list names
  * `${P} ${selector}`, merged in source order.
  */
-const rule = (selector: string): Record<string, string> => {
-	const matched = rules.filter((r) => r.selectors.includes(`${P} ${selector}`));
-	if (matched.length === 0) throw new Error(`no rule for ${selector}`);
-	const props: Record<string, string> = {};
-	for (const { body } of matched)
-		for (const line of body.split(";\n")) {
-			const colon = line.indexOf(":");
-			if (colon > 0)
-				props[line.slice(0, colon).trim()] = line
-					.slice(colon + 1)
-					.trim()
-					.replace(/;$/, "");
-		}
-	return props;
-};
+const rule = cssRuleLookup(rules, P);
 
 describe("menu and pop-up arrows (Platinum package)", () => {
 	it("the submenu triangle is a mask over --color-black at the right center", () => {
