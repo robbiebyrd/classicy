@@ -34,7 +34,8 @@ export type ClassicyWindowMenuBarProps = {
  * still dispatches keyboard equivalents). It reuses the screen bar's menu
  * classes (`classicyDesktopMenu`) inside its own `ClassicyMenuProvider`: its
  * menus open and stick as the screen bar's do, and close on a selection, a
- * re-click of the open title or a mouse-down anywhere outside the bar. The
+ * re-click of the open title, a mouse-down anywhere outside the bar or the
+ * provider's 15 s idle timeout. The
  * bar's flex and `order` rules come from the screen bar's stylesheet, which
  * loads with `ClassicyDesktopMenuBar` (the desktop always mounts it).
  *
