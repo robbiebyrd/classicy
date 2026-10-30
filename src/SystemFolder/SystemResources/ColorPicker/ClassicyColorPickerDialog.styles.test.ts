@@ -1,6 +1,8 @@
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import * as sass from "sass";
 import { describe, expect, it } from "vitest";
+import platinumJson from "@/Appearance/Platinum/platinum.json";
 
 /**
  * The window's contents box is a plain block, so the dialog body's `flex: 1`
@@ -107,6 +109,25 @@ describe("ClassicyColorPickerDialog layout", () => {
 			expect(
 				rule(".classicyColorPickerWheelField label")["min-width"],
 			).toBeUndefined();
+		});
+
+		// The wheel inset's ratio is Sass math over $cp-wheel-max, which must be
+		// the same reference size the square's max-width reads from Platinum's
+		// picker.wheelMax: Sass cannot read the CSS variable, so the pair is
+		// written twice and pinned here.
+		it("computes the wheel inset over Platinum's own wheel size", () => {
+			const source = readFileSync(
+				path.resolve(
+					process.cwd(),
+					"src/SystemFolder/SystemResources/ColorPicker/ClassicyColorPicker.scss",
+				),
+				"utf8",
+			);
+			const sassMax = source.match(/^\$cp-wheel-max:\s*([0-9.]+);/m);
+			expect(sassMax).not.toBeNull();
+			expect(Number(sassMax?.[1])).toBe(
+				platinumJson.defaults.measurements.picker.wheelMax,
+			);
 		});
 
 		it("keeps the preview strip inside the dialog's width", () => {
