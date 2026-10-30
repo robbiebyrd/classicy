@@ -368,24 +368,29 @@ describe("platinum.scss (compiled)", () => {
 			).props["mask-size"],
 		).toBe("4px 3px");
 		const active = `${P} :where(.classicyWindow).active .classicyWindowTitleBar .classicyWindowTitle`;
-		// The windoid's side bands drop the active stripes, after them.
-		expect(
-			rule(
-				group(
-					utility,
-					".classicyWindowTitleLeft::before",
-					".classicyWindowTitleRight::before",
-				),
-			).at,
-		).toBeLessThan(
-			rule(
-				group(
-					active,
-					".classicyWindowTitleLeft::before",
-					".classicyWindowTitleRight::before",
-				),
-			).at,
-		);
+		// The windoid's side bands drop the active stripes. Specificity decides,
+		// not source order (the utility group comes first): it outranks the
+		// active group, (0,7,1) against (0,6,1) with the root prefix.
+		// (ids, classes/attributes/pseudo-classes, types/pseudo-elements);
+		// `:where()` counts nothing.
+		const specificity = (selector: string) => {
+			const s = selector.replace(/:where\([^)]*\)/g, "");
+			return [
+				(s.match(/#[\w-]+/g) ?? []).length,
+				(s.match(/\.[\w-]+|\[[^\]]*\]|(?<!:):(?!:)[\w-]+/g) ?? []).length,
+				(s.match(/::[\w-]+|(?:^|[\s>+~])[a-z][\w-]*/gi) ?? []).length,
+			];
+		};
+		// (Both groups are asserted present above and below.)
+		for (const band of [
+			".classicyWindowTitleLeft",
+			".classicyWindowTitleRight",
+		]) {
+			expect(specificity(`${utility} ${band}::before`), band).toEqual([
+				0, 7, 1,
+			]);
+			expect(specificity(`${active} ${band}::before`), band).toEqual([0, 6, 1]);
+		}
 		expect(
 			rule(
 				group(
