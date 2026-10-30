@@ -11,7 +11,8 @@ export const CONTROL_STRIP_MODULES_FOLDER_NAME = "Control Strip Modules";
 /** One installed Control Strip module, as the file system lists it. */
 export type ClassicyControlStripModuleFile = {
 	id: string;
-	/** File name: the module's label. */
+	/** File name: the module's label, or its owning app's display name
+	 *  (`classicyControlStripModuleLabel`). */
 	name: string;
 	/** Finder icon (32 px). */
 	icon: string;

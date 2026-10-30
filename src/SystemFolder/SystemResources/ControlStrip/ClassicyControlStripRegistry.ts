@@ -1,4 +1,8 @@
 import { type ComponentType, useSyncExternalStore } from "react";
+import {
+	type ClassicyAppIdentityOverrides,
+	classicyAppIdentityFrom,
+} from "@/Appearance/ClassicyAppIdentity";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
@@ -24,7 +28,12 @@ export type ClassicyControlStripModuleDefinition = {
 	 * as long as it is registered.
 	 */
 	appId?: string;
-	/** Accessible name ("Sound"), also the module's name in the Control Strip control panel. */
+	/**
+	 * Accessible name ("Sound"), also the module's name in the Control Strip
+	 * control panel and its file's name in Control Strip Modules. For a module
+	 * with an `appId`, an Appearance Package that renames that app shows the
+	 * app's display name instead (`classicyControlStripModuleLabel`).
+	 */
 	label: string;
 	/** Module icon, drawn at 16 px; a hook form may change it with state. */
 	icon: string | (() => string);
@@ -243,6 +252,24 @@ export function arrangeClassicyControlStripModules<
 		)
 		.map(({ r }) => r);
 }
+
+/**
+ * The name a module is shown by: in the strip, in the Control Strip control
+ * panel and in Control Strip Modules. A module an app owns (`appId`) shows
+ * that app's display name when the active package's `overrides` rename it;
+ * otherwise, and for a module with no owner, its own `label`. Display only:
+ * nothing stores it. `overrides` is `useClassicyAppIdentityOverrides()`.
+ */
+export const classicyControlStripModuleLabel = (
+	module: Pick<ClassicyControlStripModuleDefinition, "label" | "appId">,
+	overrides: ClassicyAppIdentityOverrides,
+): string =>
+	module.appId === undefined
+		? module.label
+		: classicyAppIdentityFrom(overrides, module.appId, {
+				name: module.label,
+				icon: "",
+			}).name;
 
 /**
  * The menu item that opens a module's control panel — HIGOS8 p.125: a module

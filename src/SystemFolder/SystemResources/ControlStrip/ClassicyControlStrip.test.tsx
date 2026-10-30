@@ -7,13 +7,19 @@ import {
 	screen,
 	waitFor,
 } from "@/__tests__/test-utils";
+import { registerTestAppsPackage } from "@/__tests__/testAppsPackage";
+import { unregisterClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
-import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import {
+	type ActionMessage,
+	DefaultAppManagerState,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	dispatch,
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { CONTROL_STRIP_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/ControlStripManager/ClassicyControlStripManagerManifest";
+import { SCREEN_SAVER_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/ScreenSaverManager/ClassicyScreenSaverManagerManifest";
 import { SCREEN_SAVER_APP_ID } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverContext";
 import { markClassicyAppMounted } from "@/SystemFolder/SystemResources/App/ClassicyMountedApps";
 import { ClassicyContextualMenuProvider } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
@@ -32,6 +38,19 @@ import {
 // The built-in modules register when their owners' modules load.
 import "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundControlStripModule";
 import "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverControlStripModule";
+
+// Every action the strip and its modules dispatch, passed through to the
+// real store.
+const dispatched = vi.hoisted((): ActionMessage[] => []);
+vi.mock(
+	"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils",
+	async (importOriginal) => {
+		const { recordingAppManagerUtils } = await import(
+			"@/__tests__/recordingAppManagerUtils"
+		);
+		return recordingAppManagerUtils(await importOriginal(), dispatched);
+	},
+);
 
 const sound = vi.hoisted(() => ({
 	state: { disabled: [] as string[], volume: 100 as number | undefined },
@@ -648,6 +667,110 @@ describe("Control Strip persisted state", () => {
 		completeMenuItemFlash("control-strip-hide");
 		await waitFor(() => expect(storedStrip()?.visible).toBe(false));
 		expect(screen.queryByRole("toolbar", { name: "Control Strip" })).toBeNull();
+	});
+});
+
+// Owner ruling 2 and K-D7: the strip shows the active package's app names —
+// in its "Open … Control Panel" items and as the label of a module an app
+// owns — while the actions it dispatches keep each app's own identity.
+describe("Control Strip under a renaming package", () => {
+	const PACKAGE_ID = "test-strip-rename";
+	let unmountApps: (() => void)[] = [];
+
+	beforeEach(() => {
+		dispatched.length = 0;
+		registerTestAppsPackage(PACKAGE_ID, {
+			[CONTROL_STRIP_MANAGER_APP_ID]: { name: "Strip" },
+			[SCREEN_SAVER_MANAGER_APP_ID]: { name: "Savers" },
+			[SCREEN_SAVER_APP_ID]: { name: "After Dark" },
+			"Owner.app": { name: "Owner Display" },
+			plain: { name: "Not A Module Label" },
+		});
+		dispatch({
+			type: "ClassicyDesktopChangeAppearancePackage",
+			packageId: PACKAGE_ID,
+		});
+	});
+
+	afterEach(() => {
+		for (const unmount of unmountApps) unmount();
+		unmountApps = [];
+		unregisterClassicyAppearancePackage(PACKAGE_ID);
+	});
+
+	const appOpens = () =>
+		dispatched.filter((action) => action.type === "ClassicyAppOpen");
+
+	it("offers the renamed panel and opens it by its own identity", async () => {
+		register(...testModules());
+		renderWithProviders(
+			<ClassicyContextualMenuProvider>
+				<ClassicyControlStrip disabledModules={BUILT_INS} />
+			</ClassicyContextualMenuProvider>,
+		);
+		fireEvent.contextMenu(tab(), { clientX: 10, clientY: 10 });
+		expect(
+			screen.queryByRole("menuitem", {
+				name: "Open Control Strip Control Panel",
+			}),
+		).toBeNull();
+		fireEvent.click(
+			screen.getByRole("menuitem", { name: "Open Strip Control Panel" }),
+		);
+		completeMenuItemFlash("control-strip-open-control-panel");
+		await waitFor(() => expect(appOpens()).toHaveLength(1));
+		expect(appOpens()[0]).toMatchObject({
+			app: { id: CONTROL_STRIP_MANAGER_APP_ID, name: "Control Strip" },
+		});
+	});
+
+	it("titles Screen Saver's panel item with the panel's display name", async () => {
+		dispatch({
+			type: "ClassicyAppOpen",
+			app: { id: SCREEN_SAVER_APP_ID, name: "Screen Saver", icon: "" },
+		});
+		unmountApps.push(markClassicyAppMounted(SCREEN_SAVER_APP_ID));
+		dispatched.length = 0;
+		renderWithProviders(<ClassicyControlStrip />);
+		click(screen.getByRole("button", { name: "After Dark" }));
+		fireEvent.click(
+			screen.getByRole("menuitem", { name: "Open Savers Control Panel" }),
+		);
+		completeMenuItemFlash(`open-${SCREEN_SAVER_MANAGER_APP_ID}`);
+		await waitFor(() => expect(appOpens()).toHaveLength(1));
+		expect(appOpens()[0]).toMatchObject({
+			app: {
+				id: SCREEN_SAVER_MANAGER_APP_ID,
+				name: "Screen Saver",
+				icon: ClassicyIcons.system.extensions.screensaver,
+			},
+		});
+	});
+
+	it("labels an app's module with the app's display name, and only those", () => {
+		register(
+			{ id: "owned", appId: "Owner.app", label: "Owned", icon: "o.png" },
+			{ id: "plain", label: "Plain", icon: "p.png" },
+		);
+		unmountApps.push(markClassicyAppMounted("Owner.app"));
+		renderStrip();
+		expect(moduleNames()).toEqual(["Owner Display", "Plain"]);
+	});
+
+	it("labels an app's module with its own label under Platinum", () => {
+		dispatch({
+			type: "ClassicyDesktopChangeAppearancePackage",
+			packageId: "platinum",
+		});
+		register({
+			id: "owned",
+			appId: "Owner.app",
+			label: "Owned",
+			icon: "o.png",
+		});
+		unmountApps.push(markClassicyAppMounted("Owner.app"));
+		renderStrip();
+		expect(moduleNames()).toEqual(["Owned"]);
 	});
 });
 

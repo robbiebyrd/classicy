@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useClassicyAppIdentityOverrides } from "@/Appearance/ClassicyAppIdentity";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	useAppManager,
@@ -24,6 +25,8 @@ import { ClassicyCheckbox } from "@/SystemFolder/SystemResources/Checkbox/Classi
 import { ClassicyControlGroup } from "@/SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup";
 import {
 	arrangeClassicyControlStripModules,
+	type ClassicyControlStripModuleDefinition,
+	classicyControlStripModuleLabel,
 	useClassicyControlStripDisabledModules,
 	useClassicyControlStripRegistrations,
 } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripRegistry";
@@ -60,6 +63,10 @@ export function ClassicyControlStripManager() {
 	const registrations = useClassicyControlStripRegistrations();
 	const mountedApps = useClassicyMountedApps();
 	const disabledModules = useClassicyControlStripDisabledModules();
+	// K-D7: a module an app owns is listed under the app's display name.
+	const appIdentityOverrides = useClassicyAppIdentityOverrides();
+	const moduleLabel = (module: ClassicyControlStripModuleDefinition) =>
+		classicyControlStripModuleLabel(module, appIdentityOverrides);
 
 	const visible = stored?.visible ?? true;
 	const hiddenModules = stored?.hiddenModules ?? [];
@@ -163,8 +170,8 @@ export function ClassicyControlStripManager() {
 									options={modules.map((m) => ({
 										value: m.id,
 										label: hiddenModules.includes(m.id)
-											? `${m.label} (Hidden)`
-											: m.label,
+											? `${moduleLabel(m)} (Hidden)`
+											: moduleLabel(m),
 										icon: typeof m.icon === "string" ? m.icon : m.fileIcon,
 									}))}
 									selected={selected ? [selected.id] : []}
@@ -176,7 +183,7 @@ export function ClassicyControlStripManager() {
 										// when the selection changes.
 										key={selected.id}
 										id="ControlStripManager_moduleShown"
-										label={`Show “${selected.label}” in the Control Strip`}
+										label={`Show “${moduleLabel(selected)}” in the Control Strip`}
 										checked={!selectedHidden}
 										onClickFunc={(checked) =>
 											dispatch({

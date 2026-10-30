@@ -6,6 +6,7 @@ import {
 	useEffect,
 	useRef,
 } from "react";
+import { useClassicyAppIdentity } from "@/Appearance/ClassicyAppIdentity";
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
@@ -16,9 +17,11 @@ import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWi
 export type ClassicyAboutWindowProps = {
 	/** Id of the owning app. The box registers as window `${appId}_about`. */
 	appId: string;
-	/** App name, shown as the box's heading. */
+	/** The app's own name, shown as the box's heading; an Appearance Package's
+	 *  `apps` override is shown instead. */
 	appName: string;
-	/** App icon (URL or data URI), shown above the name. */
+	/** The app's own icon (URL or data URI), shown above the name; an
+	 *  Appearance Package's `apps` override is shown instead. */
 	appIcon: string;
 	/** Called when OK is clicked, or Return / Escape pressed — unmount the box
 	 *  here (e.g. clear the flag that renders it). */
@@ -52,6 +55,11 @@ export const ClassicyAboutWindow: FunctionalComponent<
 	ClassicyAboutWindowProps
 > = ({ appId, appName, appIcon, hideFunc, appMenu, className, style }) => {
 	const { track } = useClassicyAnalytics();
+	// Display only: analytics below keep the app's own name and icon (K-D5).
+	const identity = useClassicyAppIdentity(appId, {
+		name: appName,
+		icon: appIcon,
+	});
 	const desktopEventDispatch = useAppManagerDispatch();
 	const contentRef = useRef<HTMLDivElement | null>(null);
 	const okButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -101,8 +109,8 @@ export const ClassicyAboutWindow: FunctionalComponent<
 			appMenu={appMenu}
 		>
 			<div ref={contentRef} className={"aboutWindow"}>
-				<img src={appIcon} alt="About" />
-				<h1>{appName}</h1>
+				<img src={identity.icon} alt="About" />
+				<h1>{identity.name}</h1>
 				<h5>Not Copyright &copy; 1997 Apple Computer, Inc.</h5>
 				<ClassicyButton
 					ref={okButtonRef}

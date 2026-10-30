@@ -11,6 +11,10 @@ import {
 	useRef,
 	useState,
 } from "react";
+import {
+	useClassicyAppIdentity,
+	useClassicyAppIdentityOverrides,
+} from "@/Appearance/ClassicyAppIdentity";
 import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
@@ -28,6 +32,7 @@ import { useClassicyContextualMenu } from "@/SystemFolder/SystemResources/Contex
 import {
 	arrangeClassicyControlStripModules,
 	type ClassicyControlStripModuleDefinition,
+	classicyControlStripModuleLabel,
 	setClassicyControlStripDisabledModules,
 	useClassicyControlStripRegistrations,
 } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripRegistry";
@@ -143,6 +148,7 @@ export const computeClassicyControlStripPosition = ({
 const ClassicyControlStripModuleButton: FunctionalComponent<{
 	module: ClassicyControlStripModuleDefinition;
 }> = ({ module }) => {
+	const overrides = useClassicyAppIdentityOverrides();
 	// Function forms are hooks; a definition never switches form without a new
 	// revision, which remounts this component (see the key below).
 	const icon = typeof module.icon === "function" ? module.icon() : module.icon;
@@ -151,12 +157,14 @@ const ClassicyControlStripModuleButton: FunctionalComponent<{
 			? module.menuItems()
 			: module.menuItems;
 	const Content = module.content;
+	// K-D7: a module an app owns shows the app's display name.
+	const label = classicyControlStripModuleLabel(module, overrides);
 	return (
 		<ClassicyBevelButton
 			mode="popup"
 			className="classicyControlStripModule"
 			icon={icon}
-			aria-label={module.label}
+			aria-label={label}
 			popupDirection="horizontal"
 			popupPlacement="below"
 			// Figure 6-15's menus start at the module's edge; Figure 2-16's
@@ -234,6 +242,11 @@ export const ClassicyControlStrip: FunctionalComponent<
 	const registrations = useClassicyControlStripRegistrations();
 	const mountedApps = useClassicyMountedApps();
 	const { showContextMenu } = useClassicyContextualMenu();
+	// Display only: opening the panel still names it by its own identity.
+	const panel = useClassicyAppIdentity(CONTROL_STRIP_MANAGER_APP_ID, {
+		name: CONTROL_STRIP_MANAGER_APP_NAME,
+		icon: "",
+	});
 
 	const hiddenModules = stored?.hiddenModules ?? [];
 	const shown = arrangeClassicyControlStripModules(registrations, {
@@ -514,7 +527,7 @@ export const ClassicyControlStrip: FunctionalComponent<
 				{
 					// HIGOS8 p.125: the strip's own control panel is a command away.
 					id: "control-strip-open-control-panel",
-					title: `Open ${CONTROL_STRIP_MANAGER_APP_NAME} Control Panel`,
+					title: `Open ${panel.name} Control Panel`,
 					onClickFunc: () =>
 						dispatch({
 							type: "ClassicyAppOpen",

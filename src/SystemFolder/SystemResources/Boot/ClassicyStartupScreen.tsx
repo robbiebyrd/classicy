@@ -7,6 +7,10 @@ import {
 	useMemo,
 	useState,
 } from "react";
+import {
+	classicyAppIdentityFrom,
+	useClassicyAppIdentityOverrides,
+} from "@/Appearance/ClassicyAppIdentity";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
@@ -72,25 +76,38 @@ export const ClassicyStartupScreen: FunctionalComponent<
 	const paradeIcons = useAppManager(
 		(state) => state.System.Manager.Boot.paradeIcons,
 	);
+	// The active package's `apps` overrides, resolved here at render: the
+	// store keeps each entry's own name and icon.
+	const overrides = useClassicyAppIdentityOverrides();
 	// Injected parade icons lead, then extension apps — both in registration
 	// order. Keys are prefixed so a manual icon id can never collide with an
-	// app id.
+	// app id. An injected entry is named by its id's display name; it takes
+	// the package's icon only when it shows its app's own (`followsAppIcon`).
 	const paradeEntries = useMemo(
 		() => [
-			...paradeIcons.map((entry) => ({
-				key: `parade:${entry.id}`,
-				icon: entry.icon,
-				name: entry.name ?? "",
-			})),
+			...paradeIcons.map((entry) => {
+				const identity = classicyAppIdentityFrom(overrides, entry.id, {
+					name: entry.name ?? "",
+					icon: entry.icon,
+				});
+				return {
+					key: `parade:${entry.id}`,
+					icon: entry.followsAppIcon ? identity.icon : entry.icon,
+					name: identity.name,
+				};
+			}),
 			...Object.values(apps)
 				.filter((app) => app.extension)
-				.map((app) => ({
-					key: `ext:${app.id}`,
-					icon: app.icon,
-					name: app.name,
-				})),
+				.map((app) => {
+					const identity = classicyAppIdentityFrom(overrides, app.id, app);
+					return {
+						key: `ext:${app.id}`,
+						icon: identity.icon,
+						name: identity.name,
+					};
+				}),
 		],
-		[paradeIcons, apps],
+		[paradeIcons, apps, overrides],
 	);
 
 	// Mac OS 7-style parade: with N icons, icon i appears once elapsed time

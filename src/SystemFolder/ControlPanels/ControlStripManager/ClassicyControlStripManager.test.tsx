@@ -1,5 +1,7 @@
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { registerTestAppsPackage } from "@/__tests__/testAppsPackage";
+import { unregisterClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	dispatch,
@@ -8,6 +10,7 @@ import {
 import { getAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { ClassicyControlStripManager } from "@/SystemFolder/ControlPanels/ControlStripManager/ClassicyControlStripManager";
 import { CONTROL_STRIP_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/ControlStripManager/ClassicyControlStripManagerManifest";
+import { markClassicyAppMounted } from "@/SystemFolder/SystemResources/App/ClassicyMountedApps";
 import {
 	CLASSICY_CONTROL_STRIP_MODULE_IDS,
 	registerClassicyControlStripModule,
@@ -111,5 +114,52 @@ describe("ClassicyControlStripManager", () => {
 		);
 		expect(strip()?.moduleOrder).toEqual([]);
 		expect(optionLabels()).toEqual(["Alpha", "Beta", "Gamma"]);
+	});
+});
+
+// K-D7: a module an app owns is listed under the app's display name; a
+// module with no owner keeps its own label.
+describe("ClassicyControlStripManager under a renaming package", () => {
+	const PACKAGE_ID = "test-strip-panel-rename";
+	let unmountOwner = () => {};
+
+	beforeEach(() => {
+		registerTestAppsPackage(PACKAGE_ID, {
+			"PanelOwner.app": { name: "Owner Display" },
+			"cp-beta": { name: "Not A Module Label" },
+		});
+		dispatch({
+			type: "ClassicyDesktopChangeAppearancePackage",
+			packageId: PACKAGE_ID,
+		});
+		registerClassicyControlStripModule({
+			id: "cp-owned",
+			appId: "PanelOwner.app",
+			label: "Owned",
+			icon: "cp-owned.png",
+		});
+		unmountOwner = markClassicyAppMounted("PanelOwner.app");
+	});
+
+	afterEach(() => {
+		unmountOwner();
+		unregisterClassicyControlStripModule("cp-owned");
+		unregisterClassicyAppearancePackage(PACKAGE_ID);
+	});
+
+	it("lists an app's module by the app's display name", () => {
+		renderOpen();
+		expect(optionLabels()).toEqual(["Alpha", "Beta", "Gamma", "Owner Display"]);
+	});
+
+	it("names the module by its display name when it is selected and hidden", () => {
+		renderOpen();
+		act(() => screen.getByRole("option", { name: /Owner Display/ }).click());
+		const shown = screen.getByRole("checkbox", {
+			name: "Show “Owner Display” in the Control Strip",
+		});
+		act(() => shown.click());
+		expect(strip()?.hiddenModules).toEqual(["cp-owned"]);
+		expect(optionLabels()).toContain("Owner Display (Hidden)");
 	});
 });

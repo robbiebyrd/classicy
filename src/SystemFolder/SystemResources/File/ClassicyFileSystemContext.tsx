@@ -6,6 +6,7 @@ import {
 	useMemo,
 	useSyncExternalStore,
 } from "react";
+import { useClassicyAppIdentityOverrides } from "@/Appearance/ClassicyAppIdentity";
 import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	dispatch,
@@ -14,6 +15,7 @@ import {
 import { useClassicyMountedApps } from "@/SystemFolder/SystemResources/App/ClassicyMountedApps";
 import {
 	arrangeClassicyControlStripModules,
+	classicyControlStripModuleLabel,
 	useClassicyControlStripRegistrations,
 } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripRegistry";
 import {
@@ -124,13 +126,16 @@ export function useClassicyFileSystem(
 	// mounted-app set, both runtime-only, so the derived folder follows them.
 	const registrations = useClassicyControlStripRegistrations();
 	const mountedApps = useClassicyMountedApps();
+	// A module an app owns is filed under the app's display name (K-D7), so a
+	// package switch that renames it changes the key and rebuilds the folder.
+	const appIdentityOverrides = useClassicyAppIdentityOverrides();
 	// Serialized so an unrelated app mounting (which changes mountedApps)
 	// doesn't rebuild the file system.
 	const controlStripModulesKey = JSON.stringify(
 		arrangeClassicyControlStripModules(registrations, { mountedApps }).map(
 			({ definition }): ClassicyControlStripModuleFile => ({
 				id: definition.id,
-				name: definition.label,
+				name: classicyControlStripModuleLabel(definition, appIdentityOverrides),
 				icon:
 					definition.fileIcon ??
 					resolveClassicyAsset("icons", "system.controlStrip.moduleFile") ??
