@@ -21,29 +21,29 @@
   // bottom edge (system-05) stands in for the capture's #969696 rule under the
   // title.
   box-sizing: border-box;
-  height: 42px;
-  padding: 0 12px;
+  height: var(--apple-guide-header-height);
+  padding: 0 var(--apple-guide-header-padding-x);
   // The reference sets the header in the same bold serif as the body copy,
   // not the UI face.
   font-family: var(--body-font), serif;
-  font-size: 13px;
+  font-size: var(--apple-guide-header-font-size);
   background: var(--color-system-01);
 }
 
 .appleGuideWindow .classicyAssistantBody {
   // The reference sets help copy in a serif face, unlike the UI chrome.
   font-family: var(--body-font), serif;
-  font-size: 14px;
+  font-size: var(--apple-guide-body-font-size);
   line-height: 1.45;
-  padding: 12px 20px;
+  padding: var(--apple-guide-body-padding-y) var(--apple-guide-body-padding-x);
 
   p {
-    margin: 0 0 12px;
+    margin: 0 0 var(--apple-guide-paragraph-gap);
   }
 
   ul {
-    margin: 0 0 12px;
-    padding-left: 18px;
+    margin: 0 0 var(--apple-guide-paragraph-gap);
+    padding-left: var(--apple-guide-list-indent);
     list-style: disc;
   }
 
@@ -56,7 +56,7 @@
   }
 
   li {
-    margin-bottom: 2px;
+    margin-bottom: var(--apple-guide-list-item-gap);
   }
 
   // `.appleGuideEnd` (the "- End -" marker) carries no rule of its own: the
@@ -67,8 +67,8 @@
 
 .appleGuideWindow .classicyAssistantFooter {
   box-sizing: border-box;
-  height: 48px;
-  padding: 0 10px;
+  height: var(--apple-guide-footer-height);
+  padding: 0 var(--apple-guide-footer-padding-x);
   background: var(--color-system-02);
   // Tell the pager which band it sits on, so the disabled arrows' punch-out is
   // painted in the footer color and reads as a hole rather than a light blob.
