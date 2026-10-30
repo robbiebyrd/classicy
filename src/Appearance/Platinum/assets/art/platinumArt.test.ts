@@ -17,8 +17,9 @@ const read = (file: string): string =>
  * Art that is not a mask. The title-bar stripes and the windoid texture are
  * images in their original colors (owner ruling E20: a mask cannot blend
  * their row boundaries as the one image does); the grip, dither and strikes
- * stay images (their grays are the art), as do the QuickTime controller's
- * two-tone thumbs; the arrow cursor is a cursor. (The
+ * stay images (their grays are the art), as do the zoom glyph (its `#231f20`)
+ * and the QuickTime controller's two-tone thumbs; the arrow cursor is a
+ * cursor. (The
  * four title-bar cap SVGs are gone: the Phase 0 cap measurement found them
  * never drawn, Ruling E13.)
  */
@@ -29,6 +30,7 @@ const NOT_MASKS = [
 	"resizer.svg",
 	"corner-dither.svg",
 	"slider-strikes.svg",
+	"zoom.svg",
 	"cursor-arrow.svg",
 	"quicktime-thumb-slider.svg",
 	"quicktime-volume-slider.svg",
@@ -124,6 +126,19 @@ describe("Platinum window, menu, slider and tab art", () => {
 		expect(rows(r)).toEqual(
 			Array.from({ length: 12 }, (_, y) => [y, y % 2 ? "cls-2" : "cls-1"]),
 		);
+	});
+
+	// The zoom glyph is an image (E 6.1), so it keeps the Illustrator rich black
+	// it was always drawn in: a `currentColor` fill would draw it pure black, a
+	// visible change confined to the zoom box (the retired named change (b)).
+	it("pins the zoom glyph's #231f20", () => {
+		const z = read("zoom.svg");
+		expect(z).toContain('viewBox="0 0 10 10"');
+		const fills = [...z.matchAll(/<rect\b[^>]*>/g)].map(
+			([rect]) => /fill:\s*(#[0-9a-f]+)/i.exec(rect)?.[1],
+		);
+		expect(fills).toEqual(["#231f20", "#231f20"]);
+		expect(z).not.toMatch(/currentColor/);
 	});
 
 	// The windoid texture: two radial gradients over the frame gray, in a

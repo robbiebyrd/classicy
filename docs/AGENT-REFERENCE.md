@@ -1526,7 +1526,7 @@ root as `--classicy-art-<kebab-key>` (pixel art excepted: its
 | `windowStripes`, `windowStripesRed` | the title-bar pinstripes, gray and red, in their own colors: each stripe band's `background` image (`platinum-title-bar-stripes` in `_mixins.scss`) |
 | `windowUtilityTexture` | the windoid's title-bar texture, tiled 4px × 3px on its center band |
 | `windowGrip`, `windowDither` | the grow-box grip and the control boxes' luminosity dither (images) |
-| `zoomGlyph`, `collapseGlyph` | the control-box glyphs, their boxes' `::after` images (`currentColor` draws black) |
+| `zoomGlyph`, `collapseGlyph` | the control-box glyphs, their boxes' `::after` images (the zoom glyph in its own `#231f20`; the collapse glyph's `currentColor` draws black) |
 | `submenuArrow`, `popupArrows` (and their aliases `triangle`, `downArrow`) | the submenu triangle (`::after` image) and the pop-up double arrow (the indicator's image) |
 | `sliderThumb`, `sliderThumbRect`, `sliderStrikes` | the slider thumb's image layers |
 | `tabOutline` | the tab wrapper's image |
