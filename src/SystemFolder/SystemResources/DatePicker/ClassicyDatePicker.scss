@@ -12,7 +12,7 @@
   width: auto;
   border: var(--window-border-size) solid var(--color-black);
   box-shadow: calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 0 var(--color-system-05),
-  calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) 0 0 var(--color-system-04);
+  var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-04);
   display: flex;
   align-items: baseline;
   flex-direction: row;
@@ -24,7 +24,7 @@
     font-family: var(--ui-font), sans-serif;
     box-shadow: none;
     height: 100%;
-    margin-right: calc(var(--window-padding-size) /2);
+    margin-right: var(--control-padding);
     text-align: right;
     border: none;
     outline: none;

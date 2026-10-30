@@ -3,6 +3,7 @@ import platinumJson from "@/Appearance/Platinum/platinum.json";
 import type { ClassicyThemeMeasurements } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
 	CLASSICY_THEME_DERIVATIONS,
+	classicyThemeDerivations,
 	px3,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeDerivations";
 import { classicyMeasurementVars } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
@@ -42,5 +43,42 @@ describe("px3", () => {
 		expect(px3(14 * 0.865)).toBe("12.11px");
 		expect(px3((14 * 10) / 12)).toBe("11.667px");
 		expect(px3(12)).toBe("12px");
+	});
+});
+
+describe("classicyThemeDerivations", () => {
+	const inputs = {
+		measurements: platinumJson.defaults
+			.measurements as ClassicyThemeMeasurements,
+		typography: { uiSize: 14 },
+		desktop: { iconSize: 48, iconFontSize: 12 },
+	};
+
+	it("emits the font sizes unrounded, as the calc() they replaced computed", () => {
+		const vars = classicyThemeDerivations(inputs);
+		expect(vars["--ui-font-size-compact"]).toBe(`${(14 * 10) / 12}px`);
+		expect(vars["--ui-font-size-mini"]).toBe(`${14 / 1.5}px`);
+		const unrounded = CLASSICY_THEME_DERIVATIONS.filter((d) => d.unrounded).map(
+			(d) => d.cssVar,
+		);
+		expect(unrounded).toEqual([
+			"--window-header-font-size",
+			"--ui-font-size-small",
+			"--ui-font-size-caption",
+			"--ui-font-size-compact",
+			"--ui-font-size-mini",
+			"--ui-font-size-large",
+		]);
+	});
+
+	it("rounds every other derivation to three decimals", () => {
+		const vars = classicyThemeDerivations({
+			...inputs,
+			measurements: {
+				...inputs.measurements,
+				window: { ...inputs.measurements.window, paddingSize: 7 },
+			},
+		});
+		expect(vars["--control-padding-narrow"]).toBe("2.333px");
 	});
 });

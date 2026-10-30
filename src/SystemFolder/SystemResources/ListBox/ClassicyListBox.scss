@@ -20,9 +20,9 @@
   display: flex;
   align-items: center;
   box-sizing: border-box;
-  gap: calc(var(--window-padding-size) / 2);
+  gap: var(--control-padding);
   height: var(--classicy-listbox-row-height);
-  padding: 0 calc(var(--window-padding-size) / 1.5);
+  padding: 0 var(--control-padding-loose);
   font-family: var(--ui-font);
   font-size: var(--ui-font-size);
   color: var(--color-black);

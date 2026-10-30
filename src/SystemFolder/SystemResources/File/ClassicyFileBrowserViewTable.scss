@@ -97,7 +97,7 @@
   cursor: pointer;
 
   svg {
-    height: calc(var(--window-control-size) * 1.25);
+    height: var(--control-glyph-size);
   }
 }
 

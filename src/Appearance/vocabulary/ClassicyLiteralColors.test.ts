@@ -107,7 +107,7 @@ describe("literal colors are theme tokens (G 1.2)", () => {
 			".x::-webkit-scrollbar-track:horizontal",
 		])
 			expect(rule(scrollbarsFixture, track)["box-shadow"], track).toMatch(
-				/inset calc\(var\(--window-border-size\) \* 2\) 0 0 color-mix\(in srgb, var\(--color-black\) 25%, transparent\), inset calc\(var\(--window-border-size\) \* -2\) 0 0 color-mix\(in srgb, var\(--color-white\) 25%, transparent\)$/,
+				/inset var\(--control-frame-width\) 0 0 color-mix\(in srgb, var\(--color-black\) 25%, transparent\), inset calc\(var\(--window-border-size\) \* -2\) 0 0 color-mix\(in srgb, var\(--color-white\) 25%, transparent\)$/,
 			);
 	});
 

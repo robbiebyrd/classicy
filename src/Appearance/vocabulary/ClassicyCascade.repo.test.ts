@@ -91,7 +91,7 @@ describe("rules that replaced !important", () => {
 			rule(css, ".classicyMenuItem .classicyMenuItemKeyboardShortcut")[
 				"font-size"
 			],
-		).toBe("calc(var(--ui-font-size) * 0.75)");
+		).toBe("var(--ui-font-size-caption)");
 		expect(
 			rule(css, ".classicyMenuItem.disabled:hover")["background-color"],
 		).toBe("transparent");
@@ -124,7 +124,7 @@ describe("rules that replaced !important", () => {
 		const css = compile("SystemResources/PopUpMenu/ClassicyPopUpMenu.scss");
 		expect(
 			rule(css, ".classicyPopUpMenu.classicyPopUpMenuSizeMini").width,
-		).toBe("calc(var(--window-control-size) * 1.3125)");
+		).toBe("var(--popup-mini-size)");
 	});
 
 	it("disabled checkboxes and default radio buttons keep their borders", () => {

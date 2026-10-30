@@ -82,8 +82,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: calc(var(--window-control-size) * 1.25);
-  height: calc(var(--window-control-size) * 1.25);
+  width: var(--control-glyph-size);
+  height: var(--control-glyph-size);
   color: var(--color-theme-04);
 
   .classicyProgressChasingArrowsSpinner {
