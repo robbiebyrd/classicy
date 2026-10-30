@@ -2,11 +2,12 @@
 id: 0009-agy
 title: 'Part E: Art extraction and title-bar unification'
 type: impl
-status: in_progress
+status: complete
 priority: "2"
 effort: L
 created: "2026-10-28T19:22:06.942Z"
-updated: "2026-10-30T08:36:57.960Z"
+updated: "2026-10-30T15:14:16.273Z"
+completed: "2026-10-30T15:14:16.273Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -27,7 +28,7 @@ progress:
   "0":
     status: complete
   "1":
-    status: pending
+    status: complete
   "1.1":
     status: complete
   "2":
@@ -41,7 +42,7 @@ progress:
   "3.1":
     status: complete
   "4":
-    status: pending
+    status: complete
   "4.1":
     status: complete
   "5":
@@ -49,9 +50,9 @@ progress:
   "5.1":
     status: complete
   "6":
-    status: pending
+    status: complete
   "6.1":
-    status: in_progress
+    status: complete
 ---
 
 # Part E: Art extraction and title-bar unification

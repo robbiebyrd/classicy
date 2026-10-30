@@ -3,12 +3,13 @@ id: 0058-83a
 title: 'E 6.1: One ClassicyWindowTitleBar for ClassicyWindow and ClassicyWindowFrame'
 purpose: Give ClassicyWindow and ClassicyWindowFrame one shared title-bar component and SCSS mixin so a package skins one thing, then close Part E with the full parity shoot, docs and build verification.
 type: impr
-status: in_progress
+status: complete
 priority: "2"
 effort: L
 created: "2026-10-28T20:28:02.193Z"
-updated: "2026-10-30T12:41:35.425Z"
+updated: "2026-10-30T15:14:09.286Z"
 started: "2026-10-30T08:36:57.567Z"
+completed: "2026-10-30T15:14:09.286Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -110,12 +111,12 @@ Re-shoot every id in `stories.txt` into `after/`; `for f in before/*.png; do pri
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Window && grep -c 'data:image/svg' dist/classicy.css  # 0 after pnpm build:source
-- [ ] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test && pnpm build:source
-- [ ] `ClassicyWindow` and `ClassicyWindowFrame` both render `ClassicyWindowTitleBar`; the `.titlebar`, `.hig`, `.utility`, `.collapse`, `.beforeclose` and `.resizeSize` window suites pass unedited; `data-classicy-control` attributes are present.
-- [ ] `docs/AGENT-REFERENCE.md` and `CLAUDE.md` document `ClassicyWindowTitleBar`, the Platinum art keys, the `art` prop and the modifier table.
-- [ ] OWNER ruling E20: the title-bar stripe bands reach exact parity (AE 0, or at most 2 levels under named change (c)) on every band: titled sides, title-less center, red center, WindowFrame and windoid. Use four masked layers per band (or whatever structure the measurements prove exact) to remove E 2.1's interim drift (center 21, red 14, frame 13). Part E does not land until this holds.
-- [ ] (Deferred from E 3.1 under G16; checked on the integration branch once both E and G have landed.) The _Icon.scss/_DesktopIcon.scss halftone is G's ::before masked by var(--classicy-art-halftone...) at 7% over --color-black; icon and desktop-icon stories are AE 0 on the merged tree; git grep -n -E 'data:image/svg|theme-halftone|encode-color' -- 'src/*.scss' prints nothing (drop G's built-in data: fallback in _mixins.scss, since Platinum always publishes the variable where package CSS applies, or exclude it explicitly here).
+- [x] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Window && grep -c 'data:image/svg' dist/classicy.css  # 0 after pnpm build:source
+- [x] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test && pnpm build:source
+- [x] `ClassicyWindow` and `ClassicyWindowFrame` both render `ClassicyWindowTitleBar`; the `.titlebar`, `.hig`, `.utility`, `.collapse`, `.beforeclose` and `.resizeSize` window suites pass unedited; `data-classicy-control` attributes are present.
+- [x] `docs/AGENT-REFERENCE.md` and `CLAUDE.md` document `ClassicyWindowTitleBar`, the Platinum art keys, the `art` prop and the modifier table.
+- [x] OWNER ruling E20: the title-bar stripe bands reach exact parity (AE 0, or at most 2 levels under named change (c)) on every band: titled sides, title-less center, red center, WindowFrame and windoid. Use four masked layers per band (or whatever structure the measurements prove exact) to remove E 2.1's interim drift (center 21, red 14, frame 13). Part E does not land until this holds.
+- [x] (Deferred from E 3.1 under G16; checked on the integration branch once both E and G have landed.) The _Icon.scss/_DesktopIcon.scss halftone is G's ::before masked by var(--classicy-art-halftone...) at 7% over --color-black; icon and desktop-icon stories are AE 0 on the merged tree; git grep -n -E 'data:image/svg|theme-halftone|encode-color' -- 'src/*.scss' prints nothing (drop G's built-in data: fallback in _mixins.scss, since Platinum always publishes the variable where package CSS applies, or exclude it explicitly here).
 
 ## Files
 
@@ -139,3 +140,5 @@ Re-shoot every id in `stories.txt` into `after/`; `for f in before/*.png; do pri
 ### 2026-10-30T11:34:00.417Z - E 6.1 implemented on land/part-e (a3b94f076): E24 submenu triangle as image layer; one ClassicyWindowTitleBar; exact title-bar stripes as image layers (E20; no mask was exact: 1 level Chromium / 25 Firefox); window frame body on the pixel grid; docs. 4634 tests. Parity vs the no-E tip: 280/342 AE 0, the rest only named changes (a) and (b) and the probe-note text; Firefox 139 surfaces likewise. Ruling E25 recorded (art key union 39, 34 registered; stripes do not follow theme White). Now rebasing onto the landed G (halftone fallback drop per recipe), then the whole-branch final review.
 
 ### 2026-10-30T12:41:35.425Z - Part E rebased onto the landed G (0914f4cde, pushed as land/part-e-v3): G's halftone data: fallback dropped, the deferred criterion's grep is empty, icon stories AE 0; G15 pink kept under the rebuilt title bar. Gate 4745 tests; parity matches E 6.1 story for story (only named changes a/b, E23, probe note). Whole-branch final reviews (core + SCSS/art/docs) dispatched.
+
+### 2026-10-30T15:14:09.045Z - Part E landed on feat/AppearancePackages at 04b75ac19 after the whole-branch final reviews (core + SCSS/art/docs) and the fix rounds. Controller verification on the landed tip: Window suites 248/248, build:source exit 0, dist/classicy.css has 0 data:image/svg, the deferred halftone grep is empty and the halftone is G's ::before masked by --classicy-art-halftone. Exact stripe parity per E20 (named change (c) never needed); named change (b) retired; only (a) remains.
