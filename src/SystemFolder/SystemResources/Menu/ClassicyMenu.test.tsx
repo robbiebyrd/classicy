@@ -1,13 +1,8 @@
 // The flash class comes from Platinum's MenuItem press hook.
 import "@/Appearance/Platinum";
 import { describe, expect, it, vi } from "vitest";
-import {
-	act,
-	fireEvent,
-	render,
-	screen,
-	waitFor,
-} from "@/__tests__/test-utils";
+import { dispatchAnimationEnd } from "@/__tests__/animationEnd";
+import { fireEvent, render, screen, waitFor } from "@/__tests__/test-utils";
 
 vi.mock(
 	"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils",
@@ -321,10 +316,9 @@ describe("ClassicyMenu — titleWidthSamples (reserved title width)", () => {
 	});
 
 	// The fallback timer and `animationend` both call finishFlash; whichever
-	// fires first must win exactly once. jsdom has no `AnimationEvent`, so React
-	// listens for "webkitAnimationEnd" and `fireEvent.animationEnd` never reaches
-	// the handler: dispatch the real, bubbling event React hears, so the event
-	// path runs first and the fallback's moment then passes.
+	// fires first must win exactly once. The real event (dispatchAnimationEnd;
+	// `fireEvent.animationEnd` never reaches React under jsdom) runs the event
+	// path first, and the fallback's moment then passes.
 	it("runs a leaf item's action exactly once when animationend also fires", async () => {
 		const onClickFunc = vi.fn();
 		render(
@@ -336,16 +330,7 @@ describe("ClassicyMenu — titleWidthSamples (reserved title width)", () => {
 		const item = screen.getByRole("menuitem");
 		fireEvent.click(item);
 		expect(item).toHaveClass("classicyMenuItemFlash");
-		const animationEnd = new Event("webkitAnimationEnd", {
-			bubbles: true,
-			cancelable: true,
-		});
-		Object.defineProperty(animationEnd, "animationName", {
-			value: "classicyMenuItemFlashKeyframes",
-		});
-		act(() => {
-			item.dispatchEvent(animationEnd);
-		});
+		dispatchAnimationEnd(item);
 		// The event, not the 400 ms fallback, ended the flash.
 		expect(item).not.toHaveClass("classicyMenuItemFlash");
 		await waitFor(() => expect(onClickFunc).toHaveBeenCalledTimes(1), {

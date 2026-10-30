@@ -2,13 +2,8 @@ import "@/Appearance/Platinum";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import {
-	act,
-	fireEvent,
-	render,
-	screen,
-	waitFor,
-} from "@/__tests__/test-utils";
+import { dispatchAnimationEnd } from "@/__tests__/animationEnd";
+import { fireEvent, render, screen, waitFor } from "@/__tests__/test-utils";
 import { windowsRecord } from "@/__tests__/windowsRecord";
 import { ClassicyMenu } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
@@ -101,20 +96,6 @@ const renderLeaf = (onClickFunc: () => void) =>
 		/>,
 	);
 
-// jsdom has no `AnimationEvent`, so React hears an animation's end as
-// "webkitAnimationEnd" and `fireEvent.animationEnd` never reaches the
-// handler: dispatch the real, bubbling event, as a browser would.
-const animationEnd = (el: Element, animationName: string) => {
-	const event = new Event("webkitAnimationEnd", {
-		bubbles: true,
-		cancelable: true,
-	});
-	Object.defineProperty(event, "animationName", { value: animationName });
-	act(() => {
-		el.dispatchEvent(event);
-	});
-};
-
 const source = (path: string) =>
 	readFileSync(resolve(__dirname, "../..", path), "utf8");
 
@@ -154,7 +135,7 @@ describe("Platinum window and menu feedback through the appearance hooks", () =>
 		renderLeaf(onClickFunc);
 		const li = screen.getByRole("menuitem");
 		fireEvent.click(li);
-		animationEnd(li, "somethingElse");
+		dispatchAnimationEnd(li, "somethingElse");
 		// The event, not the 400 ms fallback, ended the flash.
 		expect(li.classList.contains("classicyMenuItemFlash")).toBe(false);
 		await waitFor(() => expect(onClickFunc).toHaveBeenCalledTimes(1));
@@ -185,6 +166,8 @@ describe("Platinum window and menu feedback through the appearance hooks", () =>
 		expect(menuSource).not.toMatch(
 			/"ClassicyMenu(Open|ItemClick|ItemHover|ItemBlur)"/,
 		);
+		// The flash class is the package's alone, in code and comments.
+		expect(menuSource).not.toContain("classicyMenuItemFlash");
 		expect(
 			source("SystemFolder/SystemResources/Menu/ClassicyMenu.scss"),
 		).not.toContain("classicyMenuItemFlash");
