@@ -4,7 +4,11 @@ import {
 	isClassicyForbiddenKey,
 	isClassicyPlainObject,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceKeyGuards.internal";
-import { CLASSICY_MEASUREMENT_NAME } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
+import {
+	CLASSICY_MEASUREMENT_NAME,
+	classicyMeasurementVarName,
+	isReservedClassicyThemeVar,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 
 /**
  * Every theme metric a user can edit, addressed by a flat, typed target. This
@@ -364,16 +368,22 @@ const isKnobName = (value: unknown): value is string =>
 /**
  * Validates an untyped `{ family, key }` as a family-form target: both are
  * measurement names (`CLASSICY_MEASUREMENT_NAME`), neither is `constructor`
- * or `prototype`, and `family` is not one of the five core groups (those are
- * edited by `metricKey`). Whether a package declares the knob is checked
- * against its knobs (`isValidThemeMetricFamily`).
+ * or `prototype`, `family` is not one of the five core groups (those are
+ * edited by `metricKey`), and the variable the pair makes is not one
+ * `getThemeVars` sets itself (`isReservedClassicyThemeVar`: `menu.minWidth`
+ * would make the derivation `--menu-min-width`, which the walker skips, so
+ * the edit could never take effect). Whether a package declares the knob is
+ * checked against its knobs (`isValidThemeMetricFamily`).
  */
 export const isThemeMetricFamilyTarget = (
 	value: Readonly<Record<string, unknown>>,
 ): value is ClassicyThemeMetricFamilyTarget =>
 	isKnobName(value.family) &&
 	isKnobName(value.key) &&
-	!CORE_GROUP_IDS.includes(value.family);
+	!CORE_GROUP_IDS.includes(value.family) &&
+	!isReservedClassicyThemeVar(
+		classicyMeasurementVarName(value.family, value.key),
+	);
 
 /** The knob `knobs` declares for a target, read through own properties only. */
 export const getThemeMetricFamilyKnob = (
