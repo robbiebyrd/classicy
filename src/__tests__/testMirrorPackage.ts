@@ -11,7 +11,7 @@ export const TEST_MIRROR_PACKAGE_ID = "test-mirror";
  * Every arrangement flipped from Platinum's: grow box bottom-left, menus in
  * each window, desktop icons laid out from the top left.
  */
-export const TEST_MIRROR_LAYOUT: ClassicyAppearanceLayout = {
+const TEST_MIRROR_LAYOUT: ClassicyAppearanceLayout = {
 	window: { growBoxCorner: "bottom-left" },
 	menuBar: { placement: "window" },
 	desktop: { iconGridOrigin: "top-left" },

@@ -1,4 +1,4 @@
-import { act, render } from "@testing-library/react";
+import { act, fireEvent, render } from "@testing-library/react";
 import { produce } from "immer";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -431,5 +431,24 @@ describe("ClassicyDesktopMenuBar — App Switcher width stability", () => {
 		expect(
 			switcher?.querySelector(":scope > p .classicyMenuItemTitleSample"),
 		).toBeNull();
+	});
+});
+
+describe("ClassicyDesktopMenuBar — sticky menus close on an outside mouse-down", () => {
+	beforeEach(() => {
+		useAppManager.setState(DefaultAppManagerState, true);
+	});
+
+	it("keeps an open menu through a mouse-down on the bar, and closes it on one outside", () => {
+		render(<ClassicyDesktopMenuBar />);
+		const apple = document.querySelector<HTMLElement>(
+			'[data-classicy-part="apple"]',
+		) as HTMLElement;
+		fireEvent.click(apple.querySelector("p") ?? apple);
+		expect(apple).toHaveClass("open");
+		fireEvent.mouseDown(apple);
+		expect(apple).toHaveClass("open");
+		fireEvent.mouseDown(document.body);
+		expect(apple).not.toHaveClass("open");
 	});
 });
