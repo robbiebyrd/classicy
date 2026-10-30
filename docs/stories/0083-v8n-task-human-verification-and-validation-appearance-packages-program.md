@@ -7,7 +7,7 @@ status: pending
 priority: "2"
 effort: XL
 created: "2026-10-29T20:12:05.516Z"
-updated: "2026-10-30T06:51:31.471Z"
+updated: "2026-10-30T14:56:47.625Z"
 tags:
   - vnv
   - manual
@@ -146,11 +146,9 @@ Run the 7 manual checks from 0075-uev, 0076-4sb, 0078-nc6, 0079-vn4, 0080-xy4, 0
 - [ ] [MANUAL] **0051-532 (E 0)**: `stories.txt` lists every story under the twenty title prefixes named in Step 1 and `before/` holds one 1024×768 PNG per id.
 - [ ] [MANUAL] **0051-532 (E 0)**: `caps.txt` records the two pseudo-element heights measured on `desktop-window--default`.
 - [ ] [MANUAL] **0053-e1n (E 2.1)**: `compare -metric AE` is `0` for every `desktop-window--*`, `dialogs-alert--*` and `desktop-windowframe--*` story against `before/`.
-- [ ] [MANUAL] **0054-b5i (E 2.2)**: `compare -metric AE` is `0` for every re-shot story except zoomable windows, whose only differing pixels lie inside the 12×12 zoom box (named change (b)).
 - [ ] [MANUAL] **0055-l4q (E 3.1)**: `compare -metric AE` is `0` for every `controls-slider--*`, `controls-tabs--*`, `controls-icon--*`, `desktop-desktopicon--*` and `desktop-desktop--*` story.
 - [ ] [MANUAL] **0056-mdl (E 4.1)**: `compare -metric AE` is `0` for every `desktop-controlstrip--*`, `controls-popupslider--*` and `system-pixelart--*` story.
 - [ ] [MANUAL] **0057-yxq (E 5.1)**: `compare -metric AE` is `0` for every re-shot menu, pop-up, combo-box, bevel-button, placard, file-input, kbd and color-picker story.
-- [ ] [MANUAL] **0058-83a (E 6.1)**: Parity: AE `0` for every story in `stories.txt` except the three named changes — WindowFrame title-bar band (a), zoom box (b), title-less stripe band at `-fuzz 1%` (c) — each confined to its stated region.
 - [ ] [MANUAL] **0059-2t4 (F 0)**: `stories.txt` lists every story under the nine title prefixes and `before/` holds one 1024×768 PNG per id.
 - [ ] [MANUAL] **0059-2t4 (F 0)**: `attributes.txt` records the grep hits for the six cluster parts, three control attributes and the alert role attribute (or notes which are missing).
 - [ ] [MANUAL] **0061-pic (F 2.1)**: `compare -metric AE` is `0` for every `desktop-menubar--*`, `desktop-menubar-extension--*`, `desktop-desktop--*` and `desktop-app--*` story.
@@ -162,6 +160,7 @@ Run the 7 manual checks from 0075-uev, 0076-4sb, 0078-nc6, 0079-vn4, 0080-xy4, 0
 - [ ] [MANUAL] **0012-3av (G 1.2)**: Icon, DesktopIcon and ControlGroup stories compare AE 0; only error-styled alert stories differ, and only inside the title bar.
 - [ ] [MANUAL] **0014-2b5 (G 2.2)**: Window, Menu, MenuBar, PopUpMenu, Tabs, Button and Placard stories compare AE 0 against the G 0 baseline.
 - [ ] [MANUAL] **0017-ih7 (G 4)**: Every parity story compares AE 0 except the named error-alert title bars, whose diff is confined to the title bar (compare loop over .playwright-mcp/parity/part-G).
+- [ ] [MANUAL] **0017-ih7 (G 4)**: In the example app `--menu-bar-height` resolves to `30px`, a zoomed window lands at [8, 38], and the Apple menu is 180 px wide, with no console errors.
 - [ ] [MANUAL] **0067-opx (H 0)**: Every before-screenshot shows the surface fully rendered (no blank frames, no loading state).
 - [ ] [MANUAL] **0068-02e (H 1.1)**: The seeded allowlist lists only SCSS files under `src/` (none under `savers/`), and the ControlStrip entry is 88.
 - [ ] [MANUAL] **0069-fiu (H 2.1)**: `platinum.json` carries all 21 knob families on `defaults.measurements` and on every preset, and the Platinum `options` schema lists each family with `.describe()` labels.
@@ -188,6 +187,7 @@ Run the 7 manual checks from 0075-uev, 0076-4sb, 0078-nc6, 0079-vn4, 0080-xy4, 0
 - [ ] [MANUAL] **0081-ww6 (J 6.1)**: AGENT-REFERENCE lists the new action, the metric family form, `ClassicySchemaForm` and the eight tabs; CLAUDE.md has the schema-form paragraph; plan 0000-aud (the audit) §9 Phase 8 carries a 'Done' line.
 - [ ] [MANUAL] Part I 3.2: in the example app with sound unmuted, hover through a menu and into a submenu. Each item plays one hover sound, exactly as before 3.2 (the extra hover dispatches that used to bubble to parent items, always refused by the sound manager, are gone).
 - [ ] [MANUAL] **0063-n9x (F 4.1)**: `compare -metric AE` is `0` for every `desktop-window--*` story, and a 40 px grip drag in `desktop-window--default` keeps `left/top` and grows width/height by the same amount as at the pre-4.1 base (the controller measured +43 at both), ±1.
-- [ ] [MANUAL] **0017-ih7 (G 4)**: In the example app `--menu-bar-height` resolves to `30px`, a zoomed window lands at [8, 38], a contextual menu is 180 px wide and the menu-bar dropdowns keep their 20vw minimum width (unchanged by G), with no console errors.
+- [ ] [MANUAL] **0054-b5i (E 2.2)**: `compare -metric AE` is `0` for every re-shot story (the zoom-box named change (b) was retired at Part E's landing: the zoom glyph keeps its original art).
+- [ ] [MANUAL] **0058-83a (E 6.1)**: Parity: AE `0` for every story in `stories.txt` except named change (a), the WindowFrame title-bar band, confined to that band (owner ruling E20 replaced change (c) with exact stripe parity; change (b) was retired).
 
 ## Work Log

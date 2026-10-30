@@ -221,7 +221,7 @@ Critical path: A → B → {E, F, H, I, J}. Two people: one takes A then B; the 
 
 Unit (vitest/jsdom) per part for every exported function and reducer case; style tests that assert emitted CSS variables; Storybook + Playwright + ImageMagick screenshot parity per part (Platinum pixel-identical unless the part names a change); `pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test` before every commit (CI runs the same three). Parts that add registries test the `useSyncExternalStore` path with a render that re-registers.
 
-Named visual changes across the program (the only non-zero parity allowed): Part E — `ClassicyWindowFrame` adopts the 19 px window title bar; zoom glyph `#231f20` → `--color-black`; ≤2-level anti-aliasing tolerance on the stripe band. Part G — the error title-bar pink (see Open Questions).
+Named visual changes across the program (the only non-zero parity allowed): Part E — `ClassicyWindowFrame` adopts the 19 px window title bar. (The planned zoom-glyph `#231f20` → `--color-black` change and the stripe-band tolerance were both retired: owner ruling E20 required exact stripe parity, and the zoom glyph keeps its original `#231f20` art as an image layer, so neither differs.) Part G — the error title-bar pink (see Open Questions).
 
 ## Scope
 
