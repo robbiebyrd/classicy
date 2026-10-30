@@ -5,8 +5,18 @@
 // must be tightened, more means a new literal), and an unlisted file none.
 // The list only shrinks, and ends empty.
 //
-//   node bin/check-pixel-literals.ts                    check; exit 1 on any message
-//   node bin/check-pixel-literals.ts --write-allowlist  reseed the list from src
+// The multiplier gate (Part H 6.2, H-R6) is its sibling: a theme variable
+// scaled by a bare number (`calc(var(--x) * 3)`, `var(--h) / -2`) is a
+// proportion with no name, so it becomes a named derivation or a knob. The
+// sites that stay are geometry, not a role (H-R7, H-R21), and
+// bin/multiplier-allowlist.json holds them per file as groups of
+// `{ count, reason }`, each reason one line saying why. The same ratchet
+// applies to a file's total; the list is edited by hand, since every group
+// needs its reason.
+//
+//   node bin/check-pixel-literals.ts                    check both; exit 1 on any message
+//   node bin/check-pixel-literals.ts --write-allowlist  reseed the pixel list from src
+//   node bin/check-pixel-literals.ts --list-multipliers print every multiplier site
 //
 // Exempt: `0px`, `calc(infinity * 1px)`, `@media`/`@container` prelude lines,
 // comments, url() payloads, and the screen savers (ported After Dark art).
@@ -30,8 +40,12 @@ export type ClassicyPixelLiteral = {
 	line: number;
 	/** The literal as written, sign included (`-3px`). */
 	text: string;
-	/** `fallback`: after the comma of its own `var(--x, …)`. */
-	kind: "bare" | "fallback";
+	/**
+	 * `fallback`: after the comma of its own `var(--x, …)`. `multiplier`: a
+	 * theme variable scaled by a bare number (`scanMultipliersInSource`);
+	 * `text` is then the operand, operator and factor (`var(--x) * 3`).
+	 */
+	kind: "bare" | "fallback" | "multiplier";
 };
 
 // A pixel length as CSS writes it (`4px`, `1.5px`, `.5px`, `1e3px`, any
@@ -128,6 +142,185 @@ export const scanPixelLiterals = (
 	return found;
 };
 
+// A factor: a unitless number, sign included, not the head of a length
+// (`2px`), a percentage, a decimal's next digits or a call.
+const FACTOR = /^-?(?:\d+(?:\.\d+)?|\.\d+)(?![\w.%(])/;
+// A number written before `*` (`2 * var(--x)`), read backward from the `*`.
+const LEADING_FACTOR = /(?<![\w.$-])-?(?:\d+(?:\.\d+)?|\.\d+)\s*$/;
+// What scales: a call or group holding a theme read (`var(`) or a Sass
+// variable (which may hold one), or a bare Sass variable.
+const SCALES = /var\(|\$/;
+
+/** The index of the `(` matching the `)` at `close`, or -1. */
+const openingParen = (text: string, close: number): number => {
+	for (let depth = 0, i = close; i >= 0; i--) {
+		if (text[i] === ")") depth++;
+		else if (text[i] === "(" && --depth === 0) return i;
+	}
+	return -1;
+};
+
+/** The index of the `)` matching the `(` at `open`, or -1. */
+const closingParen = (text: string, open: number): number => {
+	for (let depth = 0, i = open; i < text.length; i++) {
+		if (text[i] === "(") depth++;
+		else if (text[i] === ")" && --depth === 0) return i;
+	}
+	return -1;
+};
+
+/** The operand that ends at `end` (inclusive), when it scales, else null. */
+const operandEndingAt = (text: string, end: number): string | null => {
+	if (text[end] === ")") {
+		const open = openingParen(text, end);
+		if (open === -1) return null;
+		let start = open;
+		while (start > 0 && /[\w.-]/.test(text[start - 1])) start--;
+		const operand = text.slice(start, end + 1);
+		return SCALES.test(operand) ? operand : null;
+	}
+	const name = /\$[\w-]+$/.exec(text.slice(Math.max(0, end - 63), end + 1));
+	return name ? name[0] : null;
+};
+
+/** The operand that starts at `start`, when it scales, else null. */
+const operandStartingAt = (text: string, start: number): string | null => {
+	const name = /^(?:\$[\w-]+|[\w.-]*\()/.exec(text.slice(start, start + 64));
+	if (!name) return null;
+	if (name[0].startsWith("$")) return name[0];
+	const close = closingParen(text, start + name[0].length - 1);
+	if (close === -1) return null;
+	const operand = text.slice(start, close + 1);
+	return SCALES.test(operand) ? operand : null;
+};
+
+const isSignFlip = (factor: string): boolean => Number(factor) === -1;
+
+/**
+ * The multipliers in one SCSS source: every theme read (or group holding one)
+ * multiplied or divided by a bare number, and every bare number multiplying
+ * one. Sign flips (`* -1`, `-1 *`, `/ -1`) are not multipliers (H-R7), nor are
+ * factors with a unit (`$deg * 1deg`), ratios of two variables, or a number
+ * scaling a number. A chain scales its operand once (`var(--r) / 3 * 2` is
+ * one site). Comments and url() payloads are skipped, as for literals.
+ */
+export const scanMultipliersInSource = (
+	source: string,
+	file: string,
+): ClassicyPixelLiteral[] => {
+	const text = blankClassicyScssUrlPayloads(blankClassicyScssComments(source));
+	const found: ClassicyPixelLiteral[] = [];
+	let line = 1;
+	let counted = 0;
+	for (let i = 0; i < text.length; i++) {
+		const op = text[i];
+		if (op !== "*" && op !== "/") continue;
+		const before = text.slice(0, i).trimEnd();
+		const after = text.slice(i + 1);
+		const right = after.trimStart();
+		const rightAt = i + 1 + (after.length - right.length);
+		let site: string | null = null;
+		const factor = FACTOR.exec(right)?.[0];
+		const operand =
+			factor === undefined ? null : operandEndingAt(text, before.length - 1);
+		if (factor !== undefined && operand !== null) {
+			if (!isSignFlip(factor)) site = `${operand} ${op} ${factor}`;
+		} else if (op === "*") {
+			const lead = LEADING_FACTOR.exec(before);
+			const scaled = lead ? operandStartingAt(text, rightAt) : null;
+			const leading = lead?.[0].trim();
+			const chained = /[*/]\s*$/.test(before.slice(0, lead?.index ?? 0));
+			if (leading !== undefined && scaled !== null && !chained) {
+				if (!isSignFlip(leading)) site = `${leading} * ${scaled}`;
+			}
+		}
+		if (site === null) continue;
+		for (; counted < i; counted++) {
+			if (text[counted] === "\n") line++;
+		}
+		found.push({
+			file,
+			line,
+			text: site.replace(/\s+/g, " "),
+			kind: "multiplier",
+		});
+	}
+	return found;
+};
+
+/**
+ * Every multiplier in `<root>/src/**\/*.scss`, keyed by repo-relative path
+ * (sorted), skipping the screen savers. Files without one are absent.
+ */
+export const scanMultipliers = (
+	root: string,
+): Map<string, ClassicyPixelLiteral[]> => {
+	const found = new Map<string, ClassicyPixelLiteral[]>();
+	for (const full of listClassicyScssFiles(join(root, "src"))) {
+		const file = relative(root, full).split(sep).join("/");
+		if (file.startsWith(SAVERS)) continue;
+		const sites = scanMultipliersInSource(readFileSync(full, "utf8"), file);
+		if (sites.length > 0) found.set(file, sites);
+	}
+	return found;
+};
+
+/** One kept group in bin/multiplier-allowlist.json. */
+export type ClassicyMultiplierAllowance = { count: number; reason: string };
+
+const isAllowance = (group: unknown): group is ClassicyMultiplierAllowance => {
+	if (typeof group !== "object" || group === null) return false;
+	const { count, reason } = group as Record<string, unknown>;
+	return (
+		typeof count === "number" &&
+		Number.isInteger(count) &&
+		count > 0 &&
+		typeof reason === "string" &&
+		reason.trim() !== "" &&
+		!reason.includes("\n")
+	);
+};
+
+/**
+ * The multiplier ratchet: as `checkPixelLiteralAllowlist`, over a file's
+ * total, where each entry is a non-empty list of `{ count, reason }` groups
+ * and every reason is one non-blank line.
+ */
+export const checkMultiplierAllowlist = (
+	found: Map<string, ClassicyPixelLiteral[]>,
+	allowlist: Readonly<Record<string, unknown>>,
+): string[] => {
+	const files = [
+		...new Set([...found.keys(), ...Object.keys(allowlist)]),
+	].sort();
+	return files.flatMap((file) => {
+		const sites = found.get(file) ?? [];
+		let listed = 0;
+		if (Object.hasOwn(allowlist, file)) {
+			const groups = allowlist[file];
+			if (
+				!Array.isArray(groups) ||
+				groups.length === 0 ||
+				!groups.every(isAllowance)
+			) {
+				return [
+					`invalid multiplier allowlist entry for ${file}: each group needs a whole count of 1 or more and a one-line reason`,
+				];
+			}
+			listed = groups.reduce((sum, group) => sum + group.count, 0);
+		}
+		if (sites.length < listed) {
+			return [
+				`tighten the multiplier allowlist for ${file}: ${sites.length} < ${listed}`,
+			];
+		}
+		if (sites.length > listed) {
+			return sites.map((site) => `${file}:${site.line} ${site.text}`);
+		}
+		return [];
+	});
+};
+
 /**
  * The ratchet: one message per breach, empty when `found` matches the
  * allowlist exactly. An entry must be a positive whole count: a `0` entry
@@ -175,6 +368,14 @@ function main(): void {
 	// does not depend on the working directory.
 	const root = fileURLToPath(new URL("..", import.meta.url));
 	const allowlistPath = join(root, "bin", "pixel-literal-allowlist.json");
+	if (process.argv.includes("--list-multipliers")) {
+		for (const sites of scanMultipliers(root).values()) {
+			for (const site of sites) {
+				process.stdout.write(`${site.file}:${site.line} ${site.text}\n`);
+			}
+		}
+		return;
+	}
 	const found = scanPixelLiterals(root);
 	if (process.argv.includes("--write-allowlist")) {
 		const literals = [...found.values()].flat();
@@ -199,8 +400,22 @@ function main(): void {
 		process.stderr.write(
 			"pixel literals out of step with bin/pixel-literal-allowlist.json: read a theme variable instead of a new literal, and lower a file's count when you remove one\n",
 		);
-		process.exit(1);
 	}
+	const multiplierMessages = checkMultiplierAllowlist(
+		scanMultipliers(root),
+		JSON.parse(
+			readFileSync(join(root, "bin", "multiplier-allowlist.json"), "utf8"),
+		),
+	);
+	for (const message of multiplierMessages) {
+		process.stdout.write(`${message}\n`);
+	}
+	if (multiplierMessages.length > 0) {
+		process.stderr.write(
+			"multipliers out of step with bin/multiplier-allowlist.json: name the proportion (a derivation or a knob) instead of scaling a theme variable by a bare number, and lower a file's count when you remove one\n",
+		);
+	}
+	if (messages.length > 0 || multiplierMessages.length > 0) process.exit(1);
 }
 
 if (

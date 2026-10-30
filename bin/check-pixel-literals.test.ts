@@ -2,7 +2,10 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
 	type ClassicyPixelLiteral,
+	checkMultiplierAllowlist,
 	checkPixelLiteralAllowlist,
+	scanMultipliers,
+	scanMultipliersInSource,
 	scanPixelLiterals,
 	scanPixelLiteralsInSource,
 } from "./check-pixel-literals.ts";
@@ -215,6 +218,149 @@ describe("scanPixelLiterals", () => {
 			checkPixelLiteralAllowlist(
 				scanPixelLiterals(process.cwd()),
 				JSON.parse(readFileSync("bin/pixel-literal-allowlist.json", "utf8")),
+			),
+		).toEqual([]));
+});
+
+// H 6.2 (H-R6): a theme variable scaled by an unnamed number is a proportion
+// with no name. Sites are held by their own ratchet, whose every entry says
+// why its sites are geometry rather than a role.
+describe("scanMultipliersInSource", () => {
+	it("the scanner reports kind multiplier", () =>
+		expect(
+			scanMultipliersInSource("a { width: calc(var(--x) * 3); }", "f.scss"),
+		).toEqual([
+			{ file: "f.scss", line: 1, text: "var(--x) * 3", kind: "multiplier" },
+		]));
+
+	it("finds divisions, negative factors and multi-term sites", () =>
+		expect(
+			scanMultipliersInSource(
+				"a {\n  left: calc(var(--h) / -2);\n  top: calc(50% - var(--h) / 2);\n  width: calc(100% - var(--b)*4 - var(--p));\n  margin: calc(var(--p) * .75) calc(var(--p) * -0.25);\n}",
+				"f.scss",
+			).map((found) => `${found.line} ${found.text}`),
+		).toEqual([
+			"2 var(--h) / -2",
+			"3 var(--h) / 2",
+			"4 var(--b) * 4",
+			"5 var(--p) * .75",
+			"5 var(--p) * -0.25",
+		]));
+
+	it("finds a parenthesized group and a number written first", () =>
+		expect(
+			scanMultipliersInSource(
+				"a { left: calc((var(--p) * -1) / 2); top: calc(2 * var(--q)); right: calc(($a - $b) / 2); }",
+				"f.scss",
+			).map((found) => found.text),
+		).toEqual(["(var(--p) * -1) / 2", "2 * var(--q)", "($a - $b) / 2"]));
+
+	it("counts one site per scaled operand in a chain", () =>
+		expect(
+			scanMultipliersInSource(
+				"a { padding: calc(var(--r) / 3 * 2) calc(var(--u) * 0.75 * 1.4 / 2); }",
+				"f.scss",
+			).map((found) => found.text),
+		).toEqual(["var(--r) / 3", "var(--u) * 0.75"]));
+
+	// H-R7: a sign flip needs no name.
+	it("does not count sign flips", () =>
+		expect(
+			scanMultipliersInSource(
+				"a { top: calc(var(--x) * -1); left: calc(-1 * var(--y)); right: calc((var(--a) + var(--b)) * -1); bottom: calc(var(--z) / -1); }",
+				"f.scss",
+			),
+		).toEqual([]));
+
+	it("ignores comments, units, ratios of variables and non-theme arithmetic", () =>
+		expect(
+			scanMultipliersInSource(
+				"// calc(var(--a) * 4)\n/* var(--b) / 2 */\na { left: 50% + 50% * math.cos($deg * 1deg); width: calc(100% / var(--cols) * var(--aspect)); grid-area: 1 / 2; font: 12px/1.5 x; height: calc(infinity * 1px); }\n:not(.x) * { top: 1px; }",
+				"f.scss",
+			),
+		).toEqual([]));
+});
+
+describe("checkMultiplierAllowlist", () => {
+	const reason = "geometry: why these sites need no name";
+
+	it("ratchet: one unnamed calc(var(--x) * 3) fails", () =>
+		expect(
+			checkMultiplierAllowlist(
+				new Map([
+					[
+						"f.scss",
+						scanMultipliersInSource(
+							"a { width: calc(var(--x) * 3); }",
+							"f.scss",
+						),
+					],
+				]),
+				{},
+			),
+		).toEqual(["f.scss:1 var(--x) * 3"]));
+
+	it("ratchet: an exact count with reasons passes, fewer must be tightened", () => {
+		const found = new Map([
+			[
+				"f.scss",
+				scanMultipliersInSource(
+					"a { width: calc(var(--x) * 3); top: calc(var(--y) / -2); }",
+					"f.scss",
+				),
+			],
+		]);
+		expect(
+			checkMultiplierAllowlist(found, {
+				"f.scss": [
+					{ count: 1, reason },
+					{ count: 1, reason },
+				],
+			}),
+		).toEqual([]);
+		expect(
+			checkMultiplierAllowlist(found, { "f.scss": [{ count: 3, reason }] }),
+		).toEqual(["tighten the multiplier allowlist for f.scss: 2 < 3"]);
+		expect(
+			checkMultiplierAllowlist(new Map(), {
+				"gone.scss": [{ count: 1, reason }],
+			}),
+		).toEqual(["tighten the multiplier allowlist for gone.scss: 0 < 1"]);
+	});
+
+	it("the allowlist's every entry carries a reason", () =>
+		expect(
+			checkMultiplierAllowlist(new Map(), {
+				"a.scss": [{ count: 1 }],
+				"b.scss": [{ count: 1, reason: "  " }],
+				"c.scss": [{ count: 1, reason: "two\nlines" }],
+				"d.scss": [{ count: 0, reason }],
+				"e.scss": 2,
+				"f.scss": [],
+			}),
+		).toEqual([
+			"invalid multiplier allowlist entry for a.scss: each group needs a whole count of 1 or more and a one-line reason",
+			"invalid multiplier allowlist entry for b.scss: each group needs a whole count of 1 or more and a one-line reason",
+			"invalid multiplier allowlist entry for c.scss: each group needs a whole count of 1 or more and a one-line reason",
+			"invalid multiplier allowlist entry for d.scss: each group needs a whole count of 1 or more and a one-line reason",
+			"invalid multiplier allowlist entry for e.scss: each group needs a whole count of 1 or more and a one-line reason",
+			"invalid multiplier allowlist entry for f.scss: each group needs a whole count of 1 or more and a one-line reason",
+		]));
+});
+
+describe("scanMultipliers", () => {
+	it("scanMultipliers skips savers", () =>
+		expect(
+			[...scanMultipliers(process.cwd()).keys()].some((f) =>
+				f.includes("/savers/"),
+			),
+		).toBe(false));
+
+	it("the repository's SCSS matches bin/multiplier-allowlist.json", () =>
+		expect(
+			checkMultiplierAllowlist(
+				scanMultipliers(process.cwd()),
+				JSON.parse(readFileSync("bin/multiplier-allowlist.json", "utf8")),
 			),
 		).toEqual([]));
 });
