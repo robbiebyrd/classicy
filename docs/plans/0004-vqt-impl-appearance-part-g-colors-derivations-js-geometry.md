@@ -2,11 +2,12 @@
 id: 0004-vqt
 title: 'Part G: Colors, derivations and JS geometry'
 type: impl
-status: in_progress
+status: complete
 priority: "2"
 effort: L
 created: "2026-10-28T18:58:37.718Z"
-updated: "2026-10-30T04:31:11.593Z"
+updated: "2026-10-30T11:03:26.162Z"
+completed: "2026-10-30T11:03:26.162Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -43,7 +44,7 @@ progress:
   "3.2":
     status: complete
   "4":
-    status: in_progress
+    status: complete
 ---
 
 # Part G: Colors, derivations and JS geometry

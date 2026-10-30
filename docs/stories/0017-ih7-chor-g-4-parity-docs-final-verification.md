@@ -3,12 +3,13 @@ id: 0017-ih7
 title: 'G 4: Parity, docs, final verification'
 purpose: Prove Part G changed no pixel beyond the named error-tint, document the color helpers, named derivations and metric reader, and run the full gate.
 type: chor
-status: in_progress
+status: complete
 priority: "2"
 effort: S
 created: "2026-10-28T19:58:09.781Z"
-updated: "2026-10-30T09:00:13.291Z"
+updated: "2026-10-30T11:03:24.803Z"
 started: "2026-10-30T04:31:07.349Z"
+completed: "2026-10-30T11:03:24.803Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -86,9 +87,9 @@ CLAUDE.md Theming section: 'Colors: never a literal — use a `--color-*` token 
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test && pnpm build:source
-- [ ] VERIFY: grep -c 'color-mix' dist/classicy.css   # >= 14
-- [ ] AGENT-REFERENCE §8 lists the color helpers, the 35 derivations and the part H one-off inventory; CLAUDE.md and the audit (§2.1, §3.1, §3.2) are updated.
+- [x] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test && pnpm build:source
+- [x] AGENT-REFERENCE §8 lists the color helpers, the 35 derivations and the part H one-off inventory; CLAUDE.md and the audit (§2.1, §3.1, §3.2) are updated.
+- [x] VERIFY: test $(grep -o 'color-mix' dist/classicy.css | wc -l) -ge 14   # count occurrences: the minified CSS is one line, so grep -c (lines) under-counts; 16 at landing
 
 ## Files
 
@@ -104,3 +105,5 @@ CLAUDE.md Theming section: 'Colors: never a literal — use a `--color-*` token 
 ### 2026-10-30T06:51:31.941Z - G 4 implemented on land/part-g (3a304e4d7): reader-list fixes, the literal-color sweep as a script with the G12 package-constant exemption, two-way reserved-name check (also reserves palette/font/desktop names), J's Options tab refuses reserved knob names, Phase 4 docs. Gate: 4272 tests, storybook typecheck, sweep 0. Parity: 305/313 AE 0 vs the integration tip without G; the 8 others are the named error title bars, byte-identical to G 1.2. Stale claim fixed: the Apple-menu 180 px check (dropdowns use 20vw). G lands after F: rebase onto I + F with the recorded recipes, then whole-branch final review.
 
 ### 2026-10-30T09:00:13.291Z - Part G rebased onto I and F (6ae160ecd, pushed as land/part-g-v3; the old land/part-g ref is not force-pushed). Recipes applied: live resize inset as fudge, live menu-bar floor, icon grid over step; a 42 px menu bar + 9 px inset test proves resize and release clamp agree. Gate 4625 tests; parity: only G15 title bars (incl. I's and F's error-alert stories). New ruling G17 (window placement collapses --menu-bar-height to 0) goes to the final fix round. Whole-branch final reviews (core + SCSS/docs) dispatched.
+
+### 2026-10-30T11:03:24.449Z - Part G landed on feat/AppearancePackages at 912e1c644 after the rebase onto I and F, the whole-branch final reviews (core + SCSS/docs) and the fix round: G17 (window placement zeroes the menu-bar band), G18 (cascade only windows without a position), widened sweep exemption and forms, --classicy-* reserved, inset clamp, color-helper validation, README browser support. Final gate 396 files / 4648 tests; 318/318 stories AE 0 vs the post-rebase set. Criterion 2 rewritten to count occurrences (minified CSS is one line).
