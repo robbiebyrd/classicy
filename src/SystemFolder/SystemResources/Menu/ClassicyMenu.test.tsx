@@ -1,3 +1,5 @@
+// The flash class comes from Platinum's MenuItem press hook.
+import "@/Appearance/Platinum";
 import { describe, expect, it, vi } from "vitest";
 import {
 	act,

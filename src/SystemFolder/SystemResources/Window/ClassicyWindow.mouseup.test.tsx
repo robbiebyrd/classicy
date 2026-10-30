@@ -5,6 +5,9 @@
 // than one binding and fired the handler twice -- duplicate "halt" analytics,
 // duplicate sound-stop, and duplicate move/resize/focus dispatches per click.
 // The fix keeps exactly one binding, on the outermost (root) element.
+// The window sounds come from Platinum's hooks (which also registers the
+// real icon tree, so ClassicyIcons is not mocked).
+import "@/Appearance/Platinum";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render } from "@/__tests__/test-utils";
 import { windowsRecord } from "@/__tests__/windowsRecord";
@@ -71,10 +74,6 @@ vi.mock(
 
 vi.mock("@/SystemFolder/SystemResources/Cursor/useClassicyCursor", () => ({
 	useClassicyCursor: () => vi.fn(),
-}));
-
-vi.mock("@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons", () => ({
-	ClassicyIcons: { system: { files: { file: "file.png" } } },
 }));
 
 vi.mock(
