@@ -103,7 +103,7 @@
   z-index: 500;
   top: 0;
   right: 0;
-  width: 15px;
+  width: var(--table-resizer-width);
   height: 100%;
   cursor: col-resize;
 }

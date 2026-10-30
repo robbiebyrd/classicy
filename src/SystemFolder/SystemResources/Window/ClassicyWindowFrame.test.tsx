@@ -78,7 +78,7 @@ describe("ClassicyWindowFrame", () => {
 			),
 			".classicyWindowFrame > .classicyWindowTitleBar",
 		);
-		expect(bar.padding).toBe("round(down, var(--window-frame-inset), 1px)");
+		expect(bar.padding).toBe("var(--window-frame-inset-whole)");
 		expect(bar["padding-bottom"]).toBe("var(--window-border-size)");
 		expect(bar["border-bottom"]).toBe(
 			"var(--window-border-size) solid var(--color-black)",

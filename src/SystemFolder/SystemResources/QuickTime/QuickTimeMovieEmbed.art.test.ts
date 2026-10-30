@@ -133,7 +133,8 @@ describe("QuickTime controller and caption look", () => {
 		).toEqual({
 			color: "var(--color-theme-01)",
 			"background-color": "var(--color-system-07)",
-			"text-shadow": "0px 0 3px var(--color-theme-05)",
+			"text-shadow":
+				"0 0 var(--quick-time-caption-shadow-blur) var(--color-theme-05)",
 			filter: "saturate(500%) contrast(2)",
 		});
 		expect(

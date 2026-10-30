@@ -87,6 +87,10 @@ export const ClassicyPopUpSlider: FunctionalComponent<
 }) => {
 	const sliderRef = useRef<HTMLDivElement>(null);
 	const dragCleanupRef = useRef<(() => void) | null>(null);
+	// The value a drag last reported (set on the press). A drag's handlers
+	// outlive the render they were made in, so they compare against this, not
+	// the press-time `current`: dragging away and back is reported both ways.
+	const dragValueRef = useRef(0);
 	const range = max - min || 1;
 	const current = clamp(value, min, max);
 	// How far below the upper cap the thumb's top sits.
@@ -103,7 +107,9 @@ export const ClassicyPopUpSlider: FunctionalComponent<
 			clientY - el.getBoundingClientRect().top - THUMB_HEIGHT / 2 - trackTop;
 		const travelled = TRAVEL - clamp(drop, 0, TRAVEL);
 		const next = snap(min + (travelled / TRAVEL) * range);
-		if (next !== current) onChange(next);
+		if (next === dragValueRef.current) return;
+		dragValueRef.current = next;
+		onChange(next);
 	};
 
 	useEffect(() => () => dragCleanupRef.current?.(), []);
@@ -117,6 +123,7 @@ export const ClassicyPopUpSlider: FunctionalComponent<
 			undefined,
 			sliderRef.current,
 		);
+		dragValueRef.current = current;
 		setFromPointer(e.clientY, trackTop);
 		const onMove = (ev: globalThis.MouseEvent) =>
 			setFromPointer(ev.clientY, trackTop);

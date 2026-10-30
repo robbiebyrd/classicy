@@ -65,24 +65,36 @@ const LITERAL = new RegExp(
 );
 
 // A span that holds a literal on purpose, blanked before LITERAL is tested so
-// the rest of its line is still checked: a `var(--x, <fallback>)` (one level
-// of nested parentheses, so `rgba()` and `var()` fallbacks too). Art in a
-// url() or a quoted data URI is blanked with the comments, by
-// classicyScssSource.ts (shared with the pixel-literal gate).
+// the rest of its line is still checked: the fallback of a `--classicy-*`
+// instance variable, which a component or host may leave unset,
+// `var(--classicy-x, <fallback>)` (one level of nested parentheses, so
+// `rgba()` and `var()` fallbacks too). A theme variable's fallback is not
+// exempt (H-R14): `getThemeVars` always sets it on the desktop root, so a
+// literal there is dead code. Art in a url() or a quoted data URI is blanked
+// with the comments, by classicyScssSource.ts (shared with the pixel-literal
+// gate).
 const VAR_FALLBACK =
-	/var\(--[a-z0-9-]+\s*,[^()]*(?:\([^()]*(?:\([^()]*\)[^()]*)*\)[^()]*)*\)/gi;
+	/var\(--classicy-[a-z0-9-]+\s*,[^()]*(?:\([^()]*(?:\([^()]*\)[^()]*)*\)[^()]*)*\)/gi;
 
 // Files that hold colors as data: the color helpers' own definitions (their
-// white/black mix targets) and the screen savers (ported After Dark art).
+// white/black mix targets) and the screen savers (ported After Dark art; the
+// overlay's own sheet, beside them, is chrome and is swept).
 const EXEMPT_FILE =
-	/^src\/Appearance\/vocabulary\/_color\.scss$|Extensions\/ScreenSaver\//;
+	/^src\/Appearance\/vocabulary\/_color\.scss$|Extensions\/ScreenSaver\/savers\//;
 
-// Declarations that hold colors as art, by file. The color picker's crayon
-// box is drawn as a physical object, not chrome: the dark cardboard interior
-// and its bevel, the gray front lip and its edge. Its RGB/CMYK slider tracks
-// run from black or white to each channel's pure color, which no theme token
-// means. Every other line of the file is swept.
+// Declarations that hold a literal color on purpose, by file. The crash
+// screen's black is its only color outside the theme. The color picker's
+// crayon box is drawn as a physical object, not chrome: the dark cardboard
+// interior and its bevel, the gray front lip and its edge. Its RGB/CMYK
+// slider tracks run from black or white to each channel's pure color, which
+// no theme token means. Every other line of these files is swept.
 const EXEMPT_DECLARATIONS: Readonly<Record<string, readonly RegExp[]>> = {
+	// The Sad Mac replaces the whole desktop, so it renders outside the
+	// element that carries the theme's variables, and its black comes from
+	// the fallback.
+	"src/SystemFolder/SystemResources/CrashScreen/ClassicyCrashScreen.scss": [
+		/background: var\(--color-black, black\);/,
+	],
 	"src/SystemFolder/SystemResources/ColorPicker/ClassicyColorPicker.scss": [
 		/background: #0e0906;/,
 		/\binset .* rgba\(255, 255, 255, 0\.06\),/,

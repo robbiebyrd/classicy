@@ -12,8 +12,8 @@
   }
 
   &:focus-visible {
-    outline: 1px dotted var(--color-outline);
-    outline-offset: 1px;
+    outline: var(--focus-ring-width) dotted var(--color-outline);
+    outline-offset: var(--focus-ring-width);
   }
 }
 

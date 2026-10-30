@@ -107,8 +107,8 @@ describe("ClassicyHelpButton geometry (HIGOS8 p.86)", () => {
 
 	it("is sized by the theme's help-button metrics", () => {
 		const box = rule(".classicyBevelButton.classicyHelpButton");
-		expect(box.width).toBe("var(--help-button-width, 20px)");
-		expect(box.height).toBe("var(--help-button-height, 21px)");
+		expect(box.width).toBe("var(--help-button-width)");
+		expect(box.height).toBe("var(--help-button-height)");
 		expect(box["box-sizing"]).toBe("border-box");
 		expect(box.padding).toBe("0");
 		expect(box["min-width"]).toBe("0");
@@ -119,8 +119,9 @@ describe("ClassicyHelpButton geometry (HIGOS8 p.86)", () => {
 		const glyph = rule(
 			".classicyBevelButton.classicyHelpButton .classicyBevelButtonIcon",
 		);
-		expect(glyph.width).toBe("14px");
-		expect(glyph.height).toBe("14px");
+		// helpButton.glyphSize (platinum.json): the glyph art's native 14 px.
+		expect(glyph.width).toBe("var(--help-button-glyph-size)");
+		expect(glyph.height).toBe("var(--help-button-glyph-size)");
 		expect(glyph["image-rendering"]).toBe("pixelated");
 	});
 });

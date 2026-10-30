@@ -35,7 +35,7 @@ $thumb-margin-top: calc(($track-h - $thumb-h) / 2);  // −6.5 px
   // Grooved cylinder track
   &::-webkit-slider-runnable-track {
     height: $track-h;
-    border-radius: 999px;
+    border-radius: calc(infinity * 1px);
     border: var(--window-border-size) solid var(--color-window-border);
     background: linear-gradient(
       to bottom,
@@ -51,7 +51,7 @@ $thumb-margin-top: calc(($track-h - $thumb-h) / 2);  // −6.5 px
 
   &::-moz-range-track {
     height: $track-h;
-    border-radius: 999px;
+    border-radius: calc(infinity * 1px);
     border: var(--window-border-size) solid var(--color-window-border);
     background: linear-gradient(
       to bottom,

@@ -374,6 +374,65 @@ describe("ClassicyControlStrip (HIGOS8 Figure 6-15)", () => {
 		expect(viewport.style.width).toBe("31px");
 	});
 
+	// H 6.1 (from the H 3.1 review): a module's surface overlaps the strip
+	// (Figure 6-15's 3 px) and meets the module's left separator by the
+	// theme's variables, read from the module once per press, not by pixels
+	// in the script.
+	it("places a module's menu by the theme's overlap and separator, read once per press", () => {
+		vi.spyOn(
+			HTMLButtonElement.prototype,
+			"getBoundingClientRect",
+		).mockReturnValue({
+			top: 700,
+			bottom: 722,
+			left: 50,
+			right: 80,
+			width: 30,
+			height: 22,
+			x: 50,
+			y: 700,
+			toJSON: () => ({}),
+		} as DOMRect);
+		// The menu measures 100 x 100, so it has no room below and opens above.
+		vi.spyOn(HTMLDivElement.prototype, "getBoundingClientRect").mockReturnValue(
+			{
+				top: 0,
+				bottom: 100,
+				left: 0,
+				right: 100,
+				width: 100,
+				height: 100,
+				x: 0,
+				y: 0,
+				toJSON: () => ({}),
+			} as DOMRect,
+		);
+		const reads = vi.spyOn(CSSStyleDeclaration.prototype, "getPropertyValue");
+		const overlapReads = () =>
+			reads.mock.calls.filter(
+				([name]) => name === "--control-strip-popup-overlap",
+			).length;
+		register(...testModules());
+		renderWithProviders(
+			<div
+				style={
+					{
+						"--control-strip-popup-overlap": "5px",
+						"--control-strip-border-width": "2px",
+					} as CSSProperties
+				}
+			>
+				<ClassicyControlStrip disabledModules={BUILT_INS} />
+			</div>,
+		);
+		reads.mockClear();
+		click(screen.getByRole("button", { name: "File Sharing" }));
+		const menu = screen.getByRole("menu");
+		expect(menu.style.left).toBe("48px"); // onto the 2 px separator
+		expect(menu.style.top).toBe("605px"); // 700 + 5 overlap - 100 tall
+		expect(overlapReads()).toBe(1);
+	});
+
 	it("reads no pixel literal", () => {
 		expect(
 			scanPixelLiteralsInSource(

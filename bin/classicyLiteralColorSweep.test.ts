@@ -76,13 +76,29 @@ describe("classicyLiteralColorHits", () => {
 			hits(
 				"src/SystemFolder/X/X.scss",
 				[
-					".a { color: var(--x, #fff); }",
-					".b { color: var(--x, #fff); background: #000; }",
-					".c { color: var(--x, rgba(0, 0, 0, 0.5)); }",
-					".d { color: var(--x, var(--y, red)); border-color: gray; }",
+					".a { color: var(--classicy-x, #fff); }",
+					".b { color: var(--classicy-x, #fff); background: #000; }",
+					".c { color: var(--classicy-x, rgba(0, 0, 0, 0.5)); }",
+					".d { color: var(--classicy-x, var(--classicy-y, red)); border-color: gray; }",
 				].join("\n"),
 			),
 		).toEqual([2, 4]));
+
+	// H-R14 (H 6.1): a theme variable is always set on the desktop root, so a
+	// literal fallback on one is dead code, and no longer exempt. Only a
+	// `--classicy-*` instance variable, which a component may leave unset,
+	// keeps a literal fallback.
+	it("flags a literal fallback on a theme variable", () =>
+		expect(
+			hits(
+				"src/SystemFolder/X/X.scss",
+				[
+					".a { color: var(--color-black, #000); }",
+					".b { color: var(--color-white, white); }",
+					".c { color: var(--classicy-x, #000); }",
+				].join("\n"),
+			),
+		).toEqual([1, 2]));
 
 	it("skips comments, keyword and hex fallbacks, data URIs and white-space", () =>
 		expect(
@@ -94,8 +110,8 @@ describe("classicyLiteralColorHits", () => {
 					"/* Otherwise white in Chrome */",
 					"/* a block",
 					"   comment, still white */",
-					".a { color: var(--color-black, black); }",
-					".b { color: var(--color-alert, #f00); }",
+					".a { color: var(--classicy-black, black); }",
+					".b { color: var(--classicy-alert, #f00); }",
 					".c { background: url(\"data:image/svg+xml,<svg fill='%23000'/>\"); }",
 					".d { white-space: nowrap; }",
 				].join("\n"),
@@ -125,8 +141,32 @@ describe("classicyLiteralColorHits", () => {
 		const line = ".a { color: #123456; }";
 		expect(hits("src/Appearance/vocabulary/_color.scss", line)).toEqual([]);
 		expect(
-			hits("src/SystemFolder/Extensions/ScreenSaver/x/X.scss", line),
+			hits("src/SystemFolder/Extensions/ScreenSaver/savers/X/X.scss", line),
 		).toEqual([]);
+		// The overlay's own sheet is chrome, not ported art (H 6.1).
+		expect(
+			hits(
+				"src/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaver.scss",
+				line,
+			),
+		).toEqual([1]);
+	});
+
+	// The Sad Mac replaces the whole desktop, so it renders outside the
+	// element that carries the theme's variables: its black is a fallback
+	// that is actually used, and the only theme-variable fallback exempt.
+	it("exempts only the crash screen's own fallback", () => {
+		const crash =
+			"src/SystemFolder/SystemResources/CrashScreen/ClassicyCrashScreen.scss";
+		expect(
+			hits(
+				crash,
+				[
+					"  background: var(--color-black, black);",
+					"  color: var(--color-white, white);",
+				].join("\n"),
+			),
+		).toEqual([2]);
 	});
 
 	it("exempts only the color picker's art declarations", () => {

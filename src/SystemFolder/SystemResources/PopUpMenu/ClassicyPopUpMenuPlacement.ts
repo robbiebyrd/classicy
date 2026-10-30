@@ -22,9 +22,9 @@
 export const POPUP_MENU_VIEWPORT_MARGIN = 4;
 
 /**
- * Design cap on menu height — mirrors `max-height` in ClassicyPopUpMenu.scss,
- * which governs the single measuring pass before this policy is applied. Keep
- * the two in sync.
+ * Design cap on menu height — mirrors `max-height` in ClassicyPopUpMenu.scss
+ * (Platinum's `menu.popUpMaxHeight` measurement), which governs the single
+ * measuring pass before this policy is applied. Keep the two in sync.
  */
 export const POPUP_MENU_MAX_HEIGHT = 300;
 

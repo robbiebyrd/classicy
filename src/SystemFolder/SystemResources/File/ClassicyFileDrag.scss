@@ -25,8 +25,8 @@ body.classicyFileDragging * {
 // The folder under the pointer: a window's contents get a frame, a folder
 // icon or list row is darkened, as in the Mac OS 8 Finder.
 .classicyFileDropTarget {
-  outline: 2px solid var(--color-black);
-  outline-offset: -2px;
+  outline: var(--control-frame-width) solid var(--color-black);
+  outline-offset: calc(var(--control-frame-width) * -1);
 }
 
 // A window's contents are covered by the list or icons, which would paint
@@ -39,7 +39,7 @@ body.classicyFileDragging * {
     position: absolute;
     inset: 0;
     z-index: 10;
-    border: 2px solid var(--color-black);
+    border: var(--control-frame-width) solid var(--color-black);
     pointer-events: none;
   }
 }

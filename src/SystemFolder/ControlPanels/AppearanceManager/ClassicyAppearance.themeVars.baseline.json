@@ -105,6 +105,7 @@
 		"--control-panel-list-max-height": "180px",
 		"--control-panel-colors-scroll-max-height": "210px",
 		"--progress-bar-stripe-period": "40px",
+		"--progress-bar-stripe-width": "10px",
 		"--utility-title-bar-texture-width": "4px",
 		"--utility-title-bar-texture-height": "3px",
 		"--crash-screen-art-width": "245px",
@@ -113,6 +114,7 @@
 		"--quick-time-caption-shadow-blur": "3px",
 		"--menu-pop-up-max-height": "300px",
 		"--table-resizer-width": "15px",
+		"--control-strip-popup-overlap": "3px",
 		"--color-black": "#000000",
 		"--color-white": "#ffffff",
 		"--color-alert": "#ffff00",
@@ -209,7 +211,10 @@
 		"--desktop-icon-label-pad": "3px",
 		"--focus-ring-width": "1px",
 		"--focus-ring-inset": "3px",
-		"--layout-item-gap-half": "2px"
+		"--layout-item-gap-half": "2px",
+		"--control-corner-radius": "2px",
+		"--window-shadow-offset": "2px",
+		"--window-frame-inset-whole": "4px"
 	},
 	"azul": {
 		"--window-border-size": "1px",
@@ -317,6 +322,7 @@
 		"--control-panel-list-max-height": "180px",
 		"--control-panel-colors-scroll-max-height": "210px",
 		"--progress-bar-stripe-period": "40px",
+		"--progress-bar-stripe-width": "10px",
 		"--utility-title-bar-texture-width": "4px",
 		"--utility-title-bar-texture-height": "3px",
 		"--crash-screen-art-width": "245px",
@@ -325,6 +331,7 @@
 		"--quick-time-caption-shadow-blur": "3px",
 		"--menu-pop-up-max-height": "300px",
 		"--table-resizer-width": "15px",
+		"--control-strip-popup-overlap": "3px",
 		"--color-black": "#000000",
 		"--color-white": "#ffffff",
 		"--color-alert": "#ffff00",
@@ -421,7 +428,10 @@
 		"--desktop-icon-label-pad": "3px",
 		"--focus-ring-width": "1px",
 		"--focus-ring-inset": "3px",
-		"--layout-item-gap-half": "2px"
+		"--layout-item-gap-half": "2px",
+		"--control-corner-radius": "2px",
+		"--window-shadow-offset": "2px",
+		"--window-frame-inset-whole": "4px"
 	},
 	"bondi": {
 		"--window-border-size": "1px",
@@ -529,6 +539,7 @@
 		"--control-panel-list-max-height": "180px",
 		"--control-panel-colors-scroll-max-height": "210px",
 		"--progress-bar-stripe-period": "40px",
+		"--progress-bar-stripe-width": "10px",
 		"--utility-title-bar-texture-width": "4px",
 		"--utility-title-bar-texture-height": "3px",
 		"--crash-screen-art-width": "245px",
@@ -537,6 +548,7 @@
 		"--quick-time-caption-shadow-blur": "3px",
 		"--menu-pop-up-max-height": "300px",
 		"--table-resizer-width": "15px",
+		"--control-strip-popup-overlap": "3px",
 		"--color-black": "#000000",
 		"--color-white": "#ffffff",
 		"--color-alert": "#ffff00",
@@ -633,7 +645,10 @@
 		"--desktop-icon-label-pad": "3px",
 		"--focus-ring-width": "1px",
 		"--focus-ring-inset": "3px",
-		"--layout-item-gap-half": "2px"
+		"--layout-item-gap-half": "2px",
+		"--control-corner-radius": "2px",
+		"--window-shadow-offset": "2px",
+		"--window-frame-inset-whole": "4px"
 	},
 	"copper": {
 		"--window-border-size": "1px",
@@ -741,6 +756,7 @@
 		"--control-panel-list-max-height": "180px",
 		"--control-panel-colors-scroll-max-height": "210px",
 		"--progress-bar-stripe-period": "40px",
+		"--progress-bar-stripe-width": "10px",
 		"--utility-title-bar-texture-width": "4px",
 		"--utility-title-bar-texture-height": "3px",
 		"--crash-screen-art-width": "245px",
@@ -749,6 +765,7 @@
 		"--quick-time-caption-shadow-blur": "3px",
 		"--menu-pop-up-max-height": "300px",
 		"--table-resizer-width": "15px",
+		"--control-strip-popup-overlap": "3px",
 		"--color-black": "#000000",
 		"--color-white": "#ffffff",
 		"--color-alert": "#ffff00",
@@ -845,7 +862,10 @@
 		"--desktop-icon-label-pad": "3px",
 		"--focus-ring-width": "1px",
 		"--focus-ring-inset": "3px",
-		"--layout-item-gap-half": "2px"
+		"--layout-item-gap-half": "2px",
+		"--control-corner-radius": "2px",
+		"--window-shadow-offset": "2px",
+		"--window-frame-inset-whole": "4px"
 	},
 	"crimson": {
 		"--window-border-size": "1px",
@@ -953,6 +973,7 @@
 		"--control-panel-list-max-height": "180px",
 		"--control-panel-colors-scroll-max-height": "210px",
 		"--progress-bar-stripe-period": "40px",
+		"--progress-bar-stripe-width": "10px",
 		"--utility-title-bar-texture-width": "4px",
 		"--utility-title-bar-texture-height": "3px",
 		"--crash-screen-art-width": "245px",
@@ -961,6 +982,7 @@
 		"--quick-time-caption-shadow-blur": "3px",
 		"--menu-pop-up-max-height": "300px",
 		"--table-resizer-width": "15px",
+		"--control-strip-popup-overlap": "3px",
 		"--color-black": "#000000",
 		"--color-white": "#ffffff",
 		"--color-alert": "#ffff00",
@@ -1057,7 +1079,10 @@
 		"--desktop-icon-label-pad": "3px",
 		"--focus-ring-width": "1px",
 		"--focus-ring-inset": "3px",
-		"--layout-item-gap-half": "2px"
+		"--layout-item-gap-half": "2px",
+		"--control-corner-radius": "2px",
+		"--window-shadow-offset": "2px",
+		"--window-frame-inset-whole": "4px"
 	},
 	"emerald": {
 		"--window-border-size": "1px",
@@ -1165,6 +1190,7 @@
 		"--control-panel-list-max-height": "180px",
 		"--control-panel-colors-scroll-max-height": "210px",
 		"--progress-bar-stripe-period": "40px",
+		"--progress-bar-stripe-width": "10px",
 		"--utility-title-bar-texture-width": "4px",
 		"--utility-title-bar-texture-height": "3px",
 		"--crash-screen-art-width": "245px",
@@ -1173,6 +1199,7 @@
 		"--quick-time-caption-shadow-blur": "3px",
 		"--menu-pop-up-max-height": "300px",
 		"--table-resizer-width": "15px",
+		"--control-strip-popup-overlap": "3px",
 		"--color-black": "#000000",
 		"--color-white": "#ffffff",
 		"--color-alert": "#ffff00",
@@ -1269,7 +1296,10 @@
 		"--desktop-icon-label-pad": "3px",
 		"--focus-ring-width": "1px",
 		"--focus-ring-inset": "3px",
-		"--layout-item-gap-half": "2px"
+		"--layout-item-gap-half": "2px",
+		"--control-corner-radius": "2px",
+		"--window-shadow-offset": "2px",
+		"--window-frame-inset-whole": "4px"
 	},
 	"frenchBlue": {
 		"--window-border-size": "1px",
@@ -1377,6 +1407,7 @@
 		"--control-panel-list-max-height": "180px",
 		"--control-panel-colors-scroll-max-height": "210px",
 		"--progress-bar-stripe-period": "40px",
+		"--progress-bar-stripe-width": "10px",
 		"--utility-title-bar-texture-width": "4px",
 		"--utility-title-bar-texture-height": "3px",
 		"--crash-screen-art-width": "245px",
@@ -1385,6 +1416,7 @@
 		"--quick-time-caption-shadow-blur": "3px",
 		"--menu-pop-up-max-height": "300px",
 		"--table-resizer-width": "15px",
+		"--control-strip-popup-overlap": "3px",
 		"--color-black": "#000000",
 		"--color-white": "#ffffff",
 		"--color-alert": "#ffff00",
@@ -1481,7 +1513,10 @@
 		"--desktop-icon-label-pad": "3px",
 		"--focus-ring-width": "1px",
 		"--focus-ring-inset": "3px",
-		"--layout-item-gap-half": "2px"
+		"--layout-item-gap-half": "2px",
+		"--control-corner-radius": "2px",
+		"--window-shadow-offset": "2px",
+		"--window-frame-inset-whole": "4px"
 	},
 	"gold": {
 		"--window-border-size": "1px",
@@ -1589,6 +1624,7 @@
 		"--control-panel-list-max-height": "180px",
 		"--control-panel-colors-scroll-max-height": "210px",
 		"--progress-bar-stripe-period": "40px",
+		"--progress-bar-stripe-width": "10px",
 		"--utility-title-bar-texture-width": "4px",
 		"--utility-title-bar-texture-height": "3px",
 		"--crash-screen-art-width": "245px",
@@ -1597,6 +1633,7 @@
 		"--quick-time-caption-shadow-blur": "3px",
 		"--menu-pop-up-max-height": "300px",
 		"--table-resizer-width": "15px",
+		"--control-strip-popup-overlap": "3px",
 		"--color-black": "#000000",
 		"--color-white": "#ffffff",
 		"--color-alert": "#ffff00",
@@ -1693,7 +1730,10 @@
 		"--desktop-icon-label-pad": "3px",
 		"--focus-ring-width": "1px",
 		"--focus-ring-inset": "3px",
-		"--layout-item-gap-half": "2px"
+		"--layout-item-gap-half": "2px",
+		"--control-corner-radius": "2px",
+		"--window-shadow-offset": "2px",
+		"--window-frame-inset-whole": "4px"
 	},
 	"ivy": {
 		"--window-border-size": "1px",
@@ -1801,6 +1841,7 @@
 		"--control-panel-list-max-height": "180px",
 		"--control-panel-colors-scroll-max-height": "210px",
 		"--progress-bar-stripe-period": "40px",
+		"--progress-bar-stripe-width": "10px",
 		"--utility-title-bar-texture-width": "4px",
 		"--utility-title-bar-texture-height": "3px",
 		"--crash-screen-art-width": "245px",
@@ -1809,6 +1850,7 @@
 		"--quick-time-caption-shadow-blur": "3px",
 		"--menu-pop-up-max-height": "300px",
 		"--table-resizer-width": "15px",
+		"--control-strip-popup-overlap": "3px",
 		"--color-black": "#000000",
 		"--color-white": "#ffffff",
 		"--color-alert": "#ffff00",
@@ -1905,7 +1947,10 @@
 		"--desktop-icon-label-pad": "3px",
 		"--focus-ring-width": "1px",
 		"--focus-ring-inset": "3px",
-		"--layout-item-gap-half": "2px"
+		"--layout-item-gap-half": "2px",
+		"--control-corner-radius": "2px",
+		"--window-shadow-offset": "2px",
+		"--window-frame-inset-whole": "4px"
 	},
 	"lavender": {
 		"--window-border-size": "1px",
@@ -2013,6 +2058,7 @@
 		"--control-panel-list-max-height": "180px",
 		"--control-panel-colors-scroll-max-height": "210px",
 		"--progress-bar-stripe-period": "40px",
+		"--progress-bar-stripe-width": "10px",
 		"--utility-title-bar-texture-width": "4px",
 		"--utility-title-bar-texture-height": "3px",
 		"--crash-screen-art-width": "245px",
@@ -2021,6 +2067,7 @@
 		"--quick-time-caption-shadow-blur": "3px",
 		"--menu-pop-up-max-height": "300px",
 		"--table-resizer-width": "15px",
+		"--control-strip-popup-overlap": "3px",
 		"--color-black": "#000000",
 		"--color-white": "#ffffff",
 		"--color-alert": "#ffff00",
@@ -2117,7 +2164,10 @@
 		"--desktop-icon-label-pad": "3px",
 		"--focus-ring-width": "1px",
 		"--focus-ring-inset": "3px",
-		"--layout-item-gap-half": "2px"
+		"--layout-item-gap-half": "2px",
+		"--control-corner-radius": "2px",
+		"--window-shadow-offset": "2px",
+		"--window-frame-inset-whole": "4px"
 	},
 	"pistachio": {
 		"--window-border-size": "1px",
@@ -2225,6 +2275,7 @@
 		"--control-panel-list-max-height": "180px",
 		"--control-panel-colors-scroll-max-height": "210px",
 		"--progress-bar-stripe-period": "40px",
+		"--progress-bar-stripe-width": "10px",
 		"--utility-title-bar-texture-width": "4px",
 		"--utility-title-bar-texture-height": "3px",
 		"--crash-screen-art-width": "245px",
@@ -2233,6 +2284,7 @@
 		"--quick-time-caption-shadow-blur": "3px",
 		"--menu-pop-up-max-height": "300px",
 		"--table-resizer-width": "15px",
+		"--control-strip-popup-overlap": "3px",
 		"--color-black": "#000000",
 		"--color-white": "#ffffff",
 		"--color-alert": "#ffff00",
@@ -2329,7 +2381,10 @@
 		"--desktop-icon-label-pad": "3px",
 		"--focus-ring-width": "1px",
 		"--focus-ring-inset": "3px",
-		"--layout-item-gap-half": "2px"
+		"--layout-item-gap-half": "2px",
+		"--control-corner-radius": "2px",
+		"--window-shadow-offset": "2px",
+		"--window-frame-inset-whole": "4px"
 	},
 	"magenta": {
 		"--window-border-size": "1px",
@@ -2437,6 +2492,7 @@
 		"--control-panel-list-max-height": "180px",
 		"--control-panel-colors-scroll-max-height": "210px",
 		"--progress-bar-stripe-period": "40px",
+		"--progress-bar-stripe-width": "10px",
 		"--utility-title-bar-texture-width": "4px",
 		"--utility-title-bar-texture-height": "3px",
 		"--crash-screen-art-width": "245px",
@@ -2445,6 +2501,7 @@
 		"--quick-time-caption-shadow-blur": "3px",
 		"--menu-pop-up-max-height": "300px",
 		"--table-resizer-width": "15px",
+		"--control-strip-popup-overlap": "3px",
 		"--color-black": "#000000",
 		"--color-white": "#ffffff",
 		"--color-alert": "#ffff00",
@@ -2541,7 +2598,10 @@
 		"--desktop-icon-label-pad": "3px",
 		"--focus-ring-width": "1px",
 		"--focus-ring-inset": "3px",
-		"--layout-item-gap-half": "2px"
+		"--layout-item-gap-half": "2px",
+		"--control-corner-radius": "2px",
+		"--window-shadow-offset": "2px",
+		"--window-frame-inset-whole": "4px"
 	},
 	"nutmeg": {
 		"--window-border-size": "1px",
@@ -2649,6 +2709,7 @@
 		"--control-panel-list-max-height": "180px",
 		"--control-panel-colors-scroll-max-height": "210px",
 		"--progress-bar-stripe-period": "40px",
+		"--progress-bar-stripe-width": "10px",
 		"--utility-title-bar-texture-width": "4px",
 		"--utility-title-bar-texture-height": "3px",
 		"--crash-screen-art-width": "245px",
@@ -2657,6 +2718,7 @@
 		"--quick-time-caption-shadow-blur": "3px",
 		"--menu-pop-up-max-height": "300px",
 		"--table-resizer-width": "15px",
+		"--control-strip-popup-overlap": "3px",
 		"--color-black": "#000000",
 		"--color-white": "#ffffff",
 		"--color-alert": "#ffff00",
@@ -2753,7 +2815,10 @@
 		"--desktop-icon-label-pad": "3px",
 		"--focus-ring-width": "1px",
 		"--focus-ring-inset": "3px",
-		"--layout-item-gap-half": "2px"
+		"--layout-item-gap-half": "2px",
+		"--control-corner-radius": "2px",
+		"--window-shadow-offset": "2px",
+		"--window-frame-inset-whole": "4px"
 	},
 	"poppy": {
 		"--window-border-size": "1px",
@@ -2861,6 +2926,7 @@
 		"--control-panel-list-max-height": "180px",
 		"--control-panel-colors-scroll-max-height": "210px",
 		"--progress-bar-stripe-period": "40px",
+		"--progress-bar-stripe-width": "10px",
 		"--utility-title-bar-texture-width": "4px",
 		"--utility-title-bar-texture-height": "3px",
 		"--crash-screen-art-width": "245px",
@@ -2869,6 +2935,7 @@
 		"--quick-time-caption-shadow-blur": "3px",
 		"--menu-pop-up-max-height": "300px",
 		"--table-resizer-width": "15px",
+		"--control-strip-popup-overlap": "3px",
 		"--color-black": "#000000",
 		"--color-white": "#ffffff",
 		"--color-alert": "#ffff00",
@@ -2965,7 +3032,10 @@
 		"--desktop-icon-label-pad": "3px",
 		"--focus-ring-width": "1px",
 		"--focus-ring-inset": "3px",
-		"--layout-item-gap-half": "2px"
+		"--layout-item-gap-half": "2px",
+		"--control-corner-radius": "2px",
+		"--window-shadow-offset": "2px",
+		"--window-frame-inset-whole": "4px"
 	},
 	"plum": {
 		"--window-border-size": "1px",
@@ -3073,6 +3143,7 @@
 		"--control-panel-list-max-height": "180px",
 		"--control-panel-colors-scroll-max-height": "210px",
 		"--progress-bar-stripe-period": "40px",
+		"--progress-bar-stripe-width": "10px",
 		"--utility-title-bar-texture-width": "4px",
 		"--utility-title-bar-texture-height": "3px",
 		"--crash-screen-art-width": "245px",
@@ -3081,6 +3152,7 @@
 		"--quick-time-caption-shadow-blur": "3px",
 		"--menu-pop-up-max-height": "300px",
 		"--table-resizer-width": "15px",
+		"--control-strip-popup-overlap": "3px",
 		"--color-black": "#000000",
 		"--color-white": "#ffffff",
 		"--color-alert": "#ffff00",
@@ -3177,7 +3249,10 @@
 		"--desktop-icon-label-pad": "3px",
 		"--focus-ring-width": "1px",
 		"--focus-ring-inset": "3px",
-		"--layout-item-gap-half": "2px"
+		"--layout-item-gap-half": "2px",
+		"--control-corner-radius": "2px",
+		"--window-shadow-offset": "2px",
+		"--window-frame-inset-whole": "4px"
 	},
 	"rose": {
 		"--window-border-size": "1px",
@@ -3285,6 +3360,7 @@
 		"--control-panel-list-max-height": "180px",
 		"--control-panel-colors-scroll-max-height": "210px",
 		"--progress-bar-stripe-period": "40px",
+		"--progress-bar-stripe-width": "10px",
 		"--utility-title-bar-texture-width": "4px",
 		"--utility-title-bar-texture-height": "3px",
 		"--crash-screen-art-width": "245px",
@@ -3293,6 +3369,7 @@
 		"--quick-time-caption-shadow-blur": "3px",
 		"--menu-pop-up-max-height": "300px",
 		"--table-resizer-width": "15px",
+		"--control-strip-popup-overlap": "3px",
 		"--color-black": "#000000",
 		"--color-white": "#ffffff",
 		"--color-alert": "#ffff00",
@@ -3389,7 +3466,10 @@
 		"--desktop-icon-label-pad": "3px",
 		"--focus-ring-width": "1px",
 		"--focus-ring-inset": "3px",
-		"--layout-item-gap-half": "2px"
+		"--layout-item-gap-half": "2px",
+		"--control-corner-radius": "2px",
+		"--window-shadow-offset": "2px",
+		"--window-frame-inset-whole": "4px"
 	},
 	"sapphire": {
 		"--window-border-size": "1px",
@@ -3497,6 +3577,7 @@
 		"--control-panel-list-max-height": "180px",
 		"--control-panel-colors-scroll-max-height": "210px",
 		"--progress-bar-stripe-period": "40px",
+		"--progress-bar-stripe-width": "10px",
 		"--utility-title-bar-texture-width": "4px",
 		"--utility-title-bar-texture-height": "3px",
 		"--crash-screen-art-width": "245px",
@@ -3505,6 +3586,7 @@
 		"--quick-time-caption-shadow-blur": "3px",
 		"--menu-pop-up-max-height": "300px",
 		"--table-resizer-width": "15px",
+		"--control-strip-popup-overlap": "3px",
 		"--color-black": "#000000",
 		"--color-white": "#ffffff",
 		"--color-alert": "#ffff00",
@@ -3601,7 +3683,10 @@
 		"--desktop-icon-label-pad": "3px",
 		"--focus-ring-width": "1px",
 		"--focus-ring-inset": "3px",
-		"--layout-item-gap-half": "2px"
+		"--layout-item-gap-half": "2px",
+		"--control-corner-radius": "2px",
+		"--window-shadow-offset": "2px",
+		"--window-frame-inset-whole": "4px"
 	},
 	"silver": {
 		"--window-border-size": "1px",
@@ -3709,6 +3794,7 @@
 		"--control-panel-list-max-height": "180px",
 		"--control-panel-colors-scroll-max-height": "210px",
 		"--progress-bar-stripe-period": "40px",
+		"--progress-bar-stripe-width": "10px",
 		"--utility-title-bar-texture-width": "4px",
 		"--utility-title-bar-texture-height": "3px",
 		"--crash-screen-art-width": "245px",
@@ -3717,6 +3803,7 @@
 		"--quick-time-caption-shadow-blur": "3px",
 		"--menu-pop-up-max-height": "300px",
 		"--table-resizer-width": "15px",
+		"--control-strip-popup-overlap": "3px",
 		"--color-black": "#000000",
 		"--color-white": "#ffffff",
 		"--color-alert": "#ffff00",
@@ -3813,7 +3900,10 @@
 		"--desktop-icon-label-pad": "3px",
 		"--focus-ring-width": "1px",
 		"--focus-ring-inset": "3px",
-		"--layout-item-gap-half": "2px"
+		"--layout-item-gap-half": "2px",
+		"--control-corner-radius": "2px",
+		"--window-shadow-offset": "2px",
+		"--window-frame-inset-whole": "4px"
 	},
 	"teal": {
 		"--window-border-size": "1px",
@@ -3921,6 +4011,7 @@
 		"--control-panel-list-max-height": "180px",
 		"--control-panel-colors-scroll-max-height": "210px",
 		"--progress-bar-stripe-period": "40px",
+		"--progress-bar-stripe-width": "10px",
 		"--utility-title-bar-texture-width": "4px",
 		"--utility-title-bar-texture-height": "3px",
 		"--crash-screen-art-width": "245px",
@@ -3929,6 +4020,7 @@
 		"--quick-time-caption-shadow-blur": "3px",
 		"--menu-pop-up-max-height": "300px",
 		"--table-resizer-width": "15px",
+		"--control-strip-popup-overlap": "3px",
 		"--color-black": "#000000",
 		"--color-white": "#ffffff",
 		"--color-alert": "#ffff00",
@@ -4025,7 +4117,10 @@
 		"--desktop-icon-label-pad": "3px",
 		"--focus-ring-width": "1px",
 		"--focus-ring-inset": "3px",
-		"--layout-item-gap-half": "2px"
+		"--layout-item-gap-half": "2px",
+		"--control-corner-radius": "2px",
+		"--window-shadow-offset": "2px",
+		"--window-frame-inset-whole": "4px"
 	},
 	"turquoise": {
 		"--window-border-size": "1px",
@@ -4133,6 +4228,7 @@
 		"--control-panel-list-max-height": "180px",
 		"--control-panel-colors-scroll-max-height": "210px",
 		"--progress-bar-stripe-period": "40px",
+		"--progress-bar-stripe-width": "10px",
 		"--utility-title-bar-texture-width": "4px",
 		"--utility-title-bar-texture-height": "3px",
 		"--crash-screen-art-width": "245px",
@@ -4141,6 +4237,7 @@
 		"--quick-time-caption-shadow-blur": "3px",
 		"--menu-pop-up-max-height": "300px",
 		"--table-resizer-width": "15px",
+		"--control-strip-popup-overlap": "3px",
 		"--color-black": "#000000",
 		"--color-white": "#ffffff",
 		"--color-alert": "#ffff00",
@@ -4237,7 +4334,10 @@
 		"--desktop-icon-label-pad": "3px",
 		"--focus-ring-width": "1px",
 		"--focus-ring-inset": "3px",
-		"--layout-item-gap-half": "2px"
+		"--layout-item-gap-half": "2px",
+		"--control-corner-radius": "2px",
+		"--window-shadow-offset": "2px",
+		"--window-frame-inset-whole": "4px"
 	},
 	"sunny": {
 		"--window-border-size": "1px",
@@ -4345,6 +4445,7 @@
 		"--control-panel-list-max-height": "180px",
 		"--control-panel-colors-scroll-max-height": "210px",
 		"--progress-bar-stripe-period": "40px",
+		"--progress-bar-stripe-width": "10px",
 		"--utility-title-bar-texture-width": "4px",
 		"--utility-title-bar-texture-height": "3px",
 		"--crash-screen-art-width": "245px",
@@ -4353,6 +4454,7 @@
 		"--quick-time-caption-shadow-blur": "3px",
 		"--menu-pop-up-max-height": "300px",
 		"--table-resizer-width": "15px",
+		"--control-strip-popup-overlap": "3px",
 		"--color-black": "#000000",
 		"--color-white": "#ffffff",
 		"--color-alert": "#ffff00",
@@ -4449,6 +4551,9 @@
 		"--desktop-icon-label-pad": "3px",
 		"--focus-ring-width": "1px",
 		"--focus-ring-inset": "3px",
-		"--layout-item-gap-half": "2px"
+		"--layout-item-gap-half": "2px",
+		"--control-corner-radius": "2px",
+		"--window-shadow-offset": "2px",
+		"--window-frame-inset-whole": "4px"
 	}
 }

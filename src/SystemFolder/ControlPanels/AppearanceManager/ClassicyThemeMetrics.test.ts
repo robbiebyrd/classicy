@@ -140,7 +140,9 @@ describe("classicyMeasurementVars", () => {
 });
 
 // The families Platinum adds beside the core five, in platinum.json order
-// (H 2.1, with H-B1's pager.fontSize and H-R11's utilityTitleBar).
+// (H 2.1, with H-B1's pager.fontSize and H-R11's utilityTitleBar; H 6.1's
+// controlStripPopup holds the module surface's overlap, read by the strip's
+// script).
 const PLATINUM_KNOB_FAMILIES = [
 	"controlStrip",
 	"menuFrame",
@@ -162,6 +164,7 @@ const PLATINUM_KNOB_FAMILIES = [
 	"quickTime",
 	"menu",
 	"table",
+	"controlStripPopup",
 ];
 
 // A package shaped like Storybook's Test Pack: a partial controlStrip (one
@@ -407,7 +410,10 @@ describe("withDefaultThemeMetrics with package defaults", () => {
 				classicyMeasurementVarName("controlStrip", key),
 			);
 		}
-		expect(strip).toHaveLength(15);
+		// Platinum's 14, the pack's own tabWidth, and Platinum's
+		// controlStripPopup.overlap, which shares the prefix.
+		expect(strip).toHaveLength(16);
+		expect(vars["--control-strip-popup-overlap"]).toBe("3px");
 		expect(vars["--control-strip-cell-height"]).toBe("30px");
 		expect(vars["--control-strip-tab-width"]).toBe("12px");
 		expect(vars["--control-strip-module-width"]).toBe("30px");

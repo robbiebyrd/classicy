@@ -70,7 +70,7 @@ export const CLASSICY_THEME_DERIVATIONS: readonly ClassicyThemeDerivation[] = [
 	{
 		cssVar: "--window-frame-inset",
 		formula: "window.paddingSize / 1.25",
-		doc: "Inset of the window content from its outer frame (ClassicyWindow.scss, ClassicyWindowFrame.scss).",
+		doc: "Inset of the window content from its outer frame (ClassicyWindow.scss; a window frame reads it rounded down, --window-frame-inset-whole).",
 		compute: (i) => padding(i) / 1.25,
 	},
 	{
@@ -274,7 +274,7 @@ export const CLASSICY_THEME_DERIVATIONS: readonly ClassicyThemeDerivation[] = [
 	{
 		cssVar: "--focus-ring-width",
 		formula: "window.borderSize",
-		doc: "Width of the keyboard focus outline drawn inside a control (ClassicyControlStrip.scss, ClassicyColorPicker.scss, ClassicyPopUpSlider.scss).",
+		doc: "Width of the keyboard focus outline drawn inside a control, and of the outlines that share its weight: a link's focus ring and its offset, a key cap's outline (ClassicyControlStrip.scss, ClassicyColorPicker.scss, ClassicyPopUpSlider.scss, ClassicyLink.scss, ClassicyKbd.scss).",
 		compute: (i) => border(i),
 	},
 	{
@@ -286,8 +286,26 @@ export const CLASSICY_THEME_DERIVATIONS: readonly ClassicyThemeDerivation[] = [
 	{
 		cssVar: "--layout-item-gap-half",
 		formula: "layout.itemGap / 2",
-		doc: "Half the item gap: the vertical padding of a compact list row, such as HyperCard's palette entries and add-action pop-up (HyperCard.scss). One role, one name (H-R19).",
+		doc: "Half the item gap: the vertical padding of a compact list row, such as HyperCard's palette entries and add-action pop-up and Drive Setup's list cells (HyperCard.scss, DriveSetupList.scss). One role, one name (H-R19).",
 		compute: (i) => i.measurements.layout.itemGap / 2,
+	},
+	{
+		cssVar: "--control-corner-radius",
+		formula: "window.borderSize * 2",
+		doc: "Corner radius of a small rounded control, such as a keyboard key cap (ClassicyKbd.scss).",
+		compute: (i) => border(i) * 2,
+	},
+	{
+		cssVar: "--window-shadow-offset",
+		formula: "window.borderSize * 2",
+		doc: "How far a window frame's hard drop shadow falls right and down (ClassicyWindowFrame.scss).",
+		compute: (i) => border(i) * 2,
+	},
+	{
+		cssVar: "--window-frame-inset-whole",
+		formula: "floor(window.paddingSize / 1.25)",
+		doc: "The window frame inset rounded down to a whole pixel: how far a window frame's title bar sits inside the frame's border, so the frame's body stays on the pixel grid (ClassicyWindowFrame.scss).",
+		compute: (i) => Math.floor(padding(i) / 1.25),
 	},
 ];
 

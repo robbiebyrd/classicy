@@ -145,9 +145,13 @@ type ClassicyBevelButtonProps = PropsWithChildren<{
 	/**
 	 * Pixels to move each edge of the rect the surface is placed against, inward
 	 * positive. The Control Strip uses it so a module's surface overlaps the
-	 * strip and meets the module's separator, as in Figure 6-15.
+	 * strip and meets the module's separator, as in Figure 6-15. A function is
+	 * called with the button each time the surface opens, so an inset can be
+	 * read from the theme's variables once per opening, never per render.
 	 */
-	popupAnchorInset?: Partial<ClassicyBevelPopupRect>;
+	popupAnchorInset?:
+		| Partial<ClassicyBevelPopupRect>
+		| ((button: HTMLElement) => Partial<ClassicyBevelPopupRect>);
 	/**
 	 * The menu this button reveals (HIGOS8 Figure 2-15). Items take the full
 	 * `ClassicyMenuItem` shape, so `checked` marks the current choice.
@@ -344,14 +348,19 @@ export const ClassicyBevelButton: FunctionalComponent<
 	}, []);
 
 	const openPopup = (byKeyboard: boolean) => {
-		const rect = buttonRef.current?.getBoundingClientRect();
-		if (!rect) return;
+		const button = buttonRef.current;
+		const rect = button?.getBoundingClientRect();
+		if (!button || !rect) return;
+		const inset =
+			typeof popupAnchorInset === "function"
+				? popupAnchorInset(button)
+				: popupAnchorInset;
 		setFocusFirstItem(byKeyboard);
 		setPopupAnchor({
-			top: rect.top + (popupAnchorInset?.top ?? 0),
-			bottom: rect.bottom - (popupAnchorInset?.bottom ?? 0),
-			left: rect.left + (popupAnchorInset?.left ?? 0),
-			right: rect.right - (popupAnchorInset?.right ?? 0),
+			top: rect.top + (inset?.top ?? 0),
+			bottom: rect.bottom - (inset?.bottom ?? 0),
+			left: rect.left + (inset?.left ?? 0),
+			right: rect.right - (inset?.right ?? 0),
 		});
 		appearance.emit("open", withClassicyAppearanceInput({ trigger }));
 		track("open", { type: "ClassicyBevelButton", mode, trigger });

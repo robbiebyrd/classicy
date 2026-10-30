@@ -2,15 +2,15 @@
 // The bevel width sets the apparent height; it is exposed as a local custom
 // property (--bevel-w) so every state can scale its highlight/shadow to match.
 .classicyBevelButton {
-  --bevel-w: var(--control-bevel-md, 3px);
+  --bevel-w: var(--control-bevel-md);
 
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--control-padding);
 
-  min-width: var(--window-control-size, 12px);
-  min-height: var(--window-control-size, 12px);
+  min-width: var(--window-control-size);
+  min-height: var(--window-control-size);
   padding: var(--control-padding) var(--window-padding-size);
 
   font-family: var(--ui-font), sans-serif;
@@ -36,13 +36,13 @@
 
   // --- Bevel widths: small 2px / medium 3px / large 4px (via HIG tokens) ---
   &.classicyBevelButtonBevelSmall {
-    --bevel-w: var(--control-bevel-sm, 2px);
+    --bevel-w: var(--control-bevel-sm);
   }
   &.classicyBevelButtonBevelMedium {
-    --bevel-w: var(--control-bevel-md, 3px);
+    --bevel-w: var(--control-bevel-md);
   }
   &.classicyBevelButtonBevelLarge {
-    --bevel-w: var(--control-bevel-lg, 4px);
+    --bevel-w: var(--control-bevel-lg);
   }
 
   // --- Square (icon) buttons ---

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import platinumJson from "@/Appearance/Platinum/platinum.json";
 import {
 	classicyPopUpMenuPlacement,
 	POPUP_MENU_MAX_HEIGHT,
@@ -119,4 +120,13 @@ describe("classicyPopUpMenuPlacement — aligned (selected item over the button)
 		expect(placement.scrollTop).toBe(0);
 		expect((placement.top ?? 0) + placement.maxHeight).toBeLessThanOrEqual(800);
 	});
+});
+
+// The stylesheet's measuring-pass cap reads Platinum's menu.popUpMaxHeight
+// (H 6.1); the placement policy's cap must stay the same number.
+describe("POPUP_MENU_MAX_HEIGHT", () => {
+	it("equals Platinum's menu.popUpMaxHeight measurement", () =>
+		expect(POPUP_MENU_MAX_HEIGHT).toBe(
+			platinumJson.defaults.measurements.menu.popUpMaxHeight,
+		));
 });
