@@ -157,4 +157,43 @@ describe("ClassicyWindowTitleBar", () => {
 		);
 		expect(onCollapse).toHaveBeenCalledTimes(1);
 	});
+
+	it("names the control boxes for assistive technology", () => {
+		const { getByRole } = render(
+			<ClassicyWindowTitleBar
+				title="T"
+				onClose={vi.fn()}
+				onZoom={vi.fn()}
+				onCollapse={vi.fn()}
+			/>,
+		);
+		expect(getByRole("button", { name: "Close" })).toHaveClass(
+			"classicyWindowCloseBox",
+		);
+		expect(getByRole("button", { name: "Zoom" })).toHaveClass(
+			"classicyWindowZoomBox",
+		);
+		expect(getByRole("button", { name: "Collapse" })).toHaveClass(
+			"classicyWindowCollapseBox",
+		);
+	});
+
+	// The props are typed `() => void`: a host handler with an optional first
+	// parameter (`applyZoom(toZoom?: boolean)`) must not receive the click event.
+	it("calls onClose and onZoom with no arguments, by click and by key", () => {
+		const onClose = vi.fn();
+		const onZoom = vi.fn();
+		const { container } = render(
+			<ClassicyWindowTitleBar title="T" onClose={onClose} onZoom={onZoom} />,
+		);
+		const close = container.querySelector(".classicyWindowCloseBox");
+		const zoom = container.querySelector(".classicyWindowZoomBox");
+		if (!close || !zoom) throw new Error("control boxes not rendered");
+		fireEvent.click(close);
+		fireEvent.keyDown(close, { key: "Enter" });
+		fireEvent.click(zoom);
+		fireEvent.keyDown(zoom, { key: " " });
+		expect(onClose.mock.calls).toEqual([[], []]);
+		expect(onZoom.mock.calls).toEqual([[], []]);
+	});
 });

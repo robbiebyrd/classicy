@@ -872,7 +872,7 @@ dispatches nothing; `ClassicyWindow` passes its own handlers in. It merges
 | `icon` / `hideIcon` | `string` / `boolean` | the proxy icon before the title (document variant) |
 | `variant` | `"document" \| "utility"` | default `"document"` (side bands around the title); `"utility"` draws the windoid's center band and no title text |
 | `modal` | `boolean` | adds `classicyWindowTitleBarModal`; never a zoom box |
-| `onClose` / `onZoom` | `() => void` | each draws its box (a `data-classicy-control` wrapper) and is called by a click, Enter or Space |
+| `onClose` / `onZoom` | `() => void` | each draws its box (a `data-classicy-control` wrapper) and is called, with no arguments, by a click, Enter or Space |
 | `onCollapse` | `(e: MouseEvent<HTMLDivElement>) => void` | draws the collapse box; called by its click |
 | `onCollapseKey` | `() => void` | Enter or Space on the collapse box; without it those keys click the box |
 | `onTitleMouseDown` / `onTitleDoubleClick` | handlers | on the title area, the drag handle |
@@ -882,8 +882,11 @@ The structure is two SCSS mixins in `Window/ClassicyWindowTitleBar.scss`
 (`classicy-window-title-bar`, `classicy-window-title-bar-active`) that
 `ClassicyWindow.scss` and `ClassicyWindowFrame.scss` include under their own
 roots, so the title bar's selectors are `.classicyWindow .classicyWindowTitleBar …`
-or `.classicyWindowFrame .classicyWindowTitleBar …`. Platinum draws the
-stripes with `platinum-title-bar-stripes` (§5, "System art").
+or `.classicyWindowFrame .classicyWindowTitleBar …`. Rendered on its own,
+outside a `ClassicyWindow` or `ClassicyWindowFrame`, the title bar is
+unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
+"System art"). The control boxes are `role="button"` elements named
+`"Close"`, `"Zoom"` and `"Collapse"` (`aria-label`).
 
 ### 4.2 Buttons & toggles
 

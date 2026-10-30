@@ -125,10 +125,8 @@ describe("ClassicyWindow title-bar art (Platinum package)", () => {
 	});
 
 	// No band draws a layer of its own: no mask, no position, no stripe
-	// color. The bands beside a title keep the base sheet's zero-height end
-	// boxes (relatively positioned, as before Part E), and the package gives
-	// them an empty image layer: it paints nothing, but without it Chromium
-	// blends the control boxes' luminosity dither one level differently.
+	// color, and the title-less center band and the windoid's bands have no
+	// pseudo-element at all.
 	it("the bands carry no stripe layers, masks or stripe colors", () => {
 		for (const chain of [ACTIVE, RED, ALERT, FRAME, UTILITY])
 			for (const band of BANDS) {
@@ -141,23 +139,39 @@ describe("ClassicyWindow title-bar art (Platinum package)", () => {
 				for (const prop of Object.keys(el))
 					expect(prop, `${chain} ${band}`).not.toMatch(/^mask/);
 				expect(el.position, `${chain} ${band}`).toBeUndefined();
-				for (const pseudo of [":before", ":after", "::before", "::after"]) {
-					if (band === ".classicyWindowTitleCenter" || chain === UTILITY) {
-						expect(
-							() => rule(`${chain} ${band}${pseudo}`),
-							`${chain} ${band}${pseudo}`,
-						).toThrow(/no rule/);
-						continue;
-					}
-					if (pseudo.startsWith("::")) continue;
-					expect(rule(`${chain} ${band}${pseudo}`), band + pseudo).toEqual({
-						"background-image": "linear-gradient(transparent, transparent)",
-					});
-				}
+				if (band !== ".classicyWindowTitleCenter" && chain !== UTILITY)
+					continue;
+				for (const pseudo of [":before", ":after", "::before", "::after"])
+					expect(
+						() => rule(`${chain} ${band}${pseudo}`),
+						`${chain} ${band}${pseudo}`,
+					).toThrow(/no rule/);
 			}
 		expect(css).not.toMatch(/--platinum-stripe-/);
 	});
 
+	// The bands beside a title keep the base sheet's zero-height end boxes
+	// (below), and the package gives each an empty image layer. It paints
+	// nothing, but it is part of the raster: without it Chromium blends the
+	// control boxes' luminosity dither one level differently, so deleting the
+	// "useless" gradient breaks pixel parity (ruling E25).
+	it("keeps the empty end-box layer Chromium needs to blend the control-box dither exactly (E25)", () => {
+		for (const chain of [ACTIVE, RED, ALERT, FRAME])
+			for (const band of [
+				".classicyWindowTitleLeft",
+				".classicyWindowTitleRight",
+			])
+				for (const pseudo of [":before", ":after"])
+					expect(
+						rule(`${chain} ${band}${pseudo}`),
+						`${chain} ${band}${pseudo}`,
+					).toEqual({
+						"background-image": "linear-gradient(transparent, transparent)",
+					});
+	});
+
+	// The end boxes' whole pre-E structure is load-bearing for E25's raster
+	// (see the comment in ClassicyWindowTitleBar.scss), offsets included.
 	it("the base sheet keeps the zero-height end boxes of the bands beside a title", () => {
 		const base =
 			":where(.classicyWindow).active .classicyWindowTitleBar .classicyWindowTitle";
@@ -165,14 +179,23 @@ describe("ClassicyWindow title-bar art (Platinum package)", () => {
 			".classicyWindowTitleLeft",
 			".classicyWindowTitleRight",
 		]) {
-			const after = baseRule(`${base} ${band}:after`);
-			expect(after.position, band).toBe("relative");
-			expect(after.float, band).toBe("right");
-			expect(after.content, band).toBe('" "');
-			const before = baseRule(`${base} ${band}:before`);
-			expect(before.position, band).toBe("relative");
-			expect(before.display, band).toBe("block");
-			expect(before.content, band).toBe('" "');
+			expect(baseRule(`${base} ${band}:after`), band).toEqual({
+				position: "relative",
+				top: "-100%",
+				right: "calc(var(--window-padding-size) * -1)",
+				display: "block",
+				float: "right",
+				width: "var(--window-padding-size)",
+				content: '" "',
+				"background-repeat": "no-repeat",
+			});
+			expect(baseRule(`${base} ${band}:before`), band).toEqual({
+				position: "relative",
+				left: "calc(var(--window-padding-size) * -1 / 2)",
+				display: "block",
+				content: '" "',
+				"background-repeat": "no-repeat",
+			});
 		}
 	});
 

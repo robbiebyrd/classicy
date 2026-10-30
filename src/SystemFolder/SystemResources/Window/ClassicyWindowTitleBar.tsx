@@ -21,9 +21,12 @@ export type ClassicyWindowTitleBarProps = {
 	variant?: "document" | "utility";
 	/** A modal dialog's bar: adds `classicyWindowTitleBarModal`, never a zoom box. */
 	modal?: boolean;
-	/** Draws the close box and is called by its click, Enter or Space. */
+	/** Draws the close box and is called, with no arguments, by its click, Enter or Space. */
 	onClose?: () => void;
-	/** Draws the zoom box (not on a modal bar) and is called by its click, Enter or Space. */
+	/**
+	 * Draws the zoom box (not on a modal bar) and is called, with no
+	 * arguments, by its click, Enter or Space.
+	 */
 	onZoom?: () => void;
 	/** Draws the collapse box and is called by its click. */
 	onCollapse?: (e: MouseEvent<HTMLDivElement>) => void;
@@ -52,7 +55,12 @@ const isPressKey = (e: KeyboardEvent<HTMLDivElement>) =>
  * title bar for both chromes.
  *
  * Presentational: it reads no store and dispatches nothing; the window owns
- * the behavior and passes it in.
+ * the behavior and passes it in. The boxes are buttons named "Close", "Zoom"
+ * and "Collapse".
+ *
+ * Its styles exist only under a `.classicyWindow` or `.classicyWindowFrame`
+ * root (`ClassicyWindowTitleBar.scss` is included by those two sheets), so
+ * rendered on its own it is unstyled: mount it inside one of those chromes.
  *
  * ```tsx
  * <ClassicyWindowTitleBar title="Untitled" onClose={close} onZoom={zoom} />
@@ -92,8 +100,9 @@ export const ClassicyWindowTitleBar: FunctionalComponent<
 				<div
 					className={"classicyWindowCloseBox"}
 					role="button"
+					aria-label="Close"
 					tabIndex={0}
-					onClick={onClose}
+					onClick={() => onClose()}
 					onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
 						if (isPressKey(e)) onClose();
 					}}
@@ -135,8 +144,9 @@ export const ClassicyWindowTitleBar: FunctionalComponent<
 				<div
 					className={"classicyWindowZoomBox"}
 					role="button"
+					aria-label="Zoom"
 					tabIndex={0}
-					onClick={onZoom}
+					onClick={() => onZoom()}
 					onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
 						if (isPressKey(e)) onZoom();
 					}}
@@ -152,6 +162,7 @@ export const ClassicyWindowTitleBar: FunctionalComponent<
 				<div
 					className={"classicyWindowCollapseBox"}
 					role="button"
+					aria-label="Collapse"
 					tabIndex={0}
 					onClick={onCollapse}
 					onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
