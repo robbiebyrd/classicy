@@ -45,6 +45,34 @@ describe("src/Appearance/vocabulary/_color.scss", () => {
 			),
 		).toThrow(/custom-property name/));
 
+	it.each([
+		["a unitless amount", "0.5"],
+		["a length", "5px"],
+		["a negative percentage", "-10%"],
+		["a percentage over 100", "120%"],
+	])("rejects %s as the percentage", (_name, pct) => {
+		for (const helper of [
+			"classicy-tint",
+			"classicy-shade",
+			"classicy-alpha",
+		]) {
+			expect(
+				() =>
+					compile(
+						`@use "color" as c; .t { a: c.${helper}("--color-black", ${pct}); }`,
+					),
+				`${helper} ${pct}`,
+			).toThrow(/percentage from 0% to 100%/);
+		}
+	});
+
+	it("accepts 0% and 100%", () =>
+		expect(
+			compile(
+				`@use "color" as c; .t { a: c.classicy-alpha("--color-black", 0%); b: c.classicy-tint("--color-black", 100%); }`,
+			),
+		).toContain("color-mix(in srgb, var(--color-black) 0%, transparent)"));
+
 	it("emits no CSS of its own", () =>
 		expect(compile(`@use "color";`)).toBe(""));
 

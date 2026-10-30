@@ -1213,6 +1213,7 @@ describe("the moved Platinum mixin files", () => {
 		).toMatchInlineSnapshot(`
 			".x {
 			  position: relative;
+			  isolation: isolate;
 			}
 			.x::before {
 			  content: "";

@@ -16,6 +16,12 @@ A UI framework using native CSS/JS replications of the Mac OS 8 interface compon
 
 ## Using Classicy in a Vite app
 
+**Browser support:** Chrome/Edge 120+, Safari 16.2+, Firefox 113+. Theme
+colors are mixed in CSS with `color-mix()` (Safari 16.2, Firefox 113), and
+icons are drawn with unprefixed `mask-image` and mask compositing (Chrome
+120); in an older browser those declarations are dropped, so tints, overlays
+and icon art go missing.
+
 Importing `classicy` injects its stylesheet; its fonts and art are files in
 `dist/assets/`. **Breaking change for Vite consumers:** Vite's dev server
 pre-bundles dependencies into `node_modules/.vite/deps/`, which breaks those
@@ -129,7 +135,8 @@ registers it, and everything inside `ClassicyDesktop` looks as before.
 - **`platinum-halftone` takes a token name.** The mixin now takes a color
   token NAME (`@include mixins.platinum-halftone("--color-black")`, not a
   color) and paints the dither on a `::before` child, which sets
-  `position: relative` on the element it is included in.
+  `position: relative` and `isolation: isolate` on the element it is
+  included in.
   `platinum-encode-color` is removed.
 - **Fixed:** Firefox no longer shows a scroll bar under tab strips in the
   built library (the desktop's scroll-bar fallback used to beat the tab

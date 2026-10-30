@@ -10,7 +10,9 @@
 //   // → color-mix(in srgb, var(--color-error), white 80%)
 //
 // `$token` is the full custom-property name as a string ("--color-system-01");
-// `$pct` is a Sass percentage (80%).
+// `$pct` is a Sass percentage from 0% to 100% (80%); anything else fails
+// the compile (`classicy-percentage`).
+@use "sass:math";
 @use "sass:meta";
 @use "sass:string";
 
@@ -23,17 +25,26 @@
   @return $token;
 }
 
+// Returns `$pct` if it is a percentage from 0% to 100%, else fails the
+// compile: `0.5` or `120%` would emit an invalid `color-mix`.
+@function classicy-percentage($pct) {
+  @if meta.type-of($pct) != number or math.unit($pct) != "%" or $pct < 0% or $pct > 100% {
+    @error "classicy color helpers take a percentage from 0% to 100%, got #{$pct}";
+  }
+  @return $pct;
+}
+
 // `$token` mixed toward white by `$pct` (a lighter tint).
 @function classicy-tint($token, $pct) {
-  @return color-mix(in srgb, var(#{classicy-token($token)}), white #{$pct});
+  @return color-mix(in srgb, var(#{classicy-token($token)}), white #{classicy-percentage($pct)});
 }
 
 // `$token` mixed toward black by `$pct` (a darker shade).
 @function classicy-shade($token, $pct) {
-  @return color-mix(in srgb, var(#{classicy-token($token)}), black #{$pct});
+  @return color-mix(in srgb, var(#{classicy-token($token)}), black #{classicy-percentage($pct)});
 }
 
 // `$token` at `$pct` opacity.
 @function classicy-alpha($token, $pct) {
-  @return color-mix(in srgb, var(#{classicy-token($token)}) #{$pct}, transparent);
+  @return color-mix(in srgb, var(#{classicy-token($token)}) #{classicy-percentage($pct)}, transparent);
 }

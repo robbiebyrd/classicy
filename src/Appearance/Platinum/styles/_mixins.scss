@@ -223,9 +223,13 @@
 // `mask-image` (the icon shape) clips the pseudo-element as it clipped the
 // former background image. The pattern is the registered `halftone` system
 // art (`--classicy-art-halftone`) when a package publishes one, else the
-// built-in dots below (a mask, so their fill is only coverage).
+// built-in dots below (a mask, so their fill is only coverage). The host
+// isolates a stacking context, so the `z-index: -1` dots paint above its own
+// background on any element, not only on a masked icon (whose `mask-image`
+// already makes one).
 @mixin platinum-halftone($token: "--color-black", $size: 5%) {
   position: relative;
+  isolation: isolate;
 
   &::before {
     content: "";

@@ -29,6 +29,13 @@ reference only names.
 npm install classicy react react-dom zustand immer @tanstack/react-table react-player
 ```
 
+Browser support: Chrome/Edge 120+, Safari 16.2+, Firefox 113+. Theme color
+variants are `color-mix()` (Safari 16.2, Firefox 113) and icons use
+unprefixed `mask-image` with mask compositing (Chrome 120). In an older
+engine those declarations are invalid at computed-value time, so the property
+is unset: error title bars lose their tint, icon drag and selection overlays
+go transparent.
+
 Every export comes from the package root (a flat barrel). Importing it also
 installs the stylesheet: the bundle injects `classicy.css` as a
 `<style id="classicy-styles">` at the top of `<head>` on first import (once; not
@@ -2828,7 +2835,9 @@ follows the active theme:
 | `classicy-alpha($token, $pct)` | `color-mix(in srgb, var($token) $pct, transparent)` | `classicy-alpha("--color-black", 50%)` → black at 50% (icon drag overlays) |
 
 A token that is not a string starting with `--` (`"color-error"`, or a Sass
-color such as `red`) fails the compile (`classicy-token`).
+color such as `red`) fails the compile (`classicy-token`), and so does a
+`$pct` that is not a percentage from 0% to 100% (`0.5`, `5px`, `120%`;
+`classicy-percentage`).
 
 `node bin/classicyLiteralColorSweep.ts` prints every literal color left in
 `src/**/*.scss` and exits 1 when there is one. The same check is exported as
@@ -2886,8 +2895,9 @@ the variable instead of hard-coding the number:
   theme's `desktop.iconSize`.
 
 **Multipliers still in SCSS (Part H inventory).** 86 simple multipliers are
-left. Each is a formula no named derivation covers, or a site kept on
-purpose; Part H names or removes them. Count them with:
+left. Each is a proportion no named derivation means (some share a named
+derivation's formula, but not its role), or a site kept on purpose; Part H
+names or removes them. Count them with:
 
 ```sh
 grep -rnoE 'calc\(\s*var\(--[a-z0-9-]+\)\s*[*/]\s*[0-9.]+(\s*/\s*[0-9.]+)?\s*\)' src --include=*.scss | grep -v Extensions/ScreenSaver | wc -l   # 86

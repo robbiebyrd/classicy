@@ -205,7 +205,7 @@ the real Platinum proportions, e.g.:
 
 Each is a hidden design constant. (**Done (part G):** the real proportions
 are 35 named derivations emitted by `getThemeVars`, `CLASSICY_THEME_DERIVATIONS`;
-85 one-off multipliers are left for part H, listed in `docs/AGENT-REFERENCE.md` §8.)
+86 one-off multipliers are left for part H, listed in `docs/AGENT-REFERENCE.md` §8.)
 Title-bar height is defined **twice and
 inconsistently**: `control * 1.5` = 18px (`ClassicyWindow.scss:244`) vs
 `--hig-titlebar-height` = 19px (`:600`).
