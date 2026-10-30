@@ -1,0 +1,262 @@
+{
+	"src/Appearance/Platinum/styles/_mixins.scss": [
+		{
+			"count": 10,
+			"reason": "Seed: H 6.2a names these sites (a derivation, a knob or an equivalent rewrite) in its next commit."
+		}
+	],
+	"src/Appearance/Platinum/styles/_scrollbars.scss": [
+		{
+			"count": 3,
+			"reason": "Platinum's scroll-bar arrow glyph geometry: the half, 1.5x and 2x of the arrow stripe unit (--window-scrollbar-arrow-size) are pixel positions in the glyph art, not theme proportions (Part G, kept on purpose)."
+		},
+		{
+			"count": 2,
+			"reason": "Seed: H 6.2a names these sites (a derivation, a knob or an equivalent rewrite) in its next commit."
+		}
+	],
+	"src/Appearance/Platinum/styles/components/_Button.scss": [
+		{
+			"count": 2,
+			"reason": "Seed: H 6.2a names these sites (a derivation, a knob or an equivalent rewrite) in its next commit."
+		}
+	],
+	"src/Appearance/Platinum/styles/components/_ControlStrip.scss": [
+		{
+			"count": 8,
+			"reason": "Pixel-grid multiples of the one bevel knob (--control-strip-bevel-width x 2, x 3, x 4) inside classicy-px-rect: coordinates on the Control Strip art's bevel-pixel grid, not theme proportions (H-R7)."
+		}
+	],
+	"src/Appearance/Platinum/styles/components/_Slider.scss": [
+		{
+			"count": 1,
+			"reason": "Seed: H 6.2a names these sites (a derivation, a knob or an equivalent rewrite) in its next commit."
+		}
+	],
+	"src/Appearance/Platinum/styles/components/_Window.scss": [
+		{
+			"count": 4,
+			"reason": "Pending H 6.2b: an H 6.1 file, whose sites are named on top of 6.1's pixel-literal purge (H-R9 split)."
+		}
+	],
+	"src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Colors.scss": [
+		{
+			"count": 1,
+			"reason": "Pending H 6.2b: an H 6.1 file, whose sites are named on top of 6.1's pixel-literal purge (H-R9 split)."
+		}
+	],
+	"src/SystemFolder/ControlPanels/DriveSetup/DriveSetupList.scss": [
+		{
+			"count": 1,
+			"reason": "Pending H 6.2b: an H 6.1 file, whose sites are named on top of 6.1's pixel-literal purge (H-R9 split)."
+		}
+	],
+	"src/SystemFolder/Finder/FinderAboutThisComputer.scss": [
+		{
+			"count": 4,
+			"reason": "Seed: H 6.2a names these sites (a derivation, a knob or an equivalent rewrite) in its next commit."
+		}
+	],
+	"src/SystemFolder/HyperCard/HyperCard.scss": [
+		{
+			"count": 12,
+			"reason": "Handle-centering halves: an editor selection handle is pulled half its own size (--hyper-card-handle-size / -2) over the corner or edge it marks; geometry, not a role (H-R7)."
+		},
+		{
+			"count": 4,
+			"reason": "Edge midpoints: a side handle sits at 50% minus half its own size (--hyper-card-handle-size / 2), centered on the edge it marks; geometry, not a role (H-R21)."
+		}
+	],
+	"src/SystemFolder/SystemResources/Assistant/ClassicyAssistant.scss": [
+		{
+			"count": 5,
+			"reason": "Seed: H 6.2a names these sites (a derivation, a knob or an equivalent rewrite) in its next commit."
+		}
+	],
+	"src/SystemFolder/SystemResources/BalloonHelp/ClassicyBalloonHelp.scss": [
+		{
+			"count": 1,
+			"reason": "Seed: H 6.2a names these sites (a derivation, a knob or an equivalent rewrite) in its next commit."
+		}
+	],
+	"src/SystemFolder/SystemResources/Boot/ClassicyStartupScreen.scss": [
+		{
+			"count": 5,
+			"reason": "Pending H 6.2b: an H 6.1 file, whose sites are named on top of 6.1's pixel-literal purge (H-R9 split)."
+		}
+	],
+	"src/SystemFolder/SystemResources/Button/ClassicyButton.scss": [
+		{
+			"count": 1,
+			"reason": "Seed: H 6.2a names these sites (a derivation, a knob or an equivalent rewrite) in its next commit."
+		}
+	],
+	"src/SystemFolder/SystemResources/ButtonToolbar/ClassicyButtonToolbar.scss": [
+		{
+			"count": 1,
+			"reason": "Seed: H 6.2a names these sites (a derivation, a knob or an equivalent rewrite) in its next commit."
+		}
+	],
+	"src/SystemFolder/SystemResources/Checkbox/ClassicyCheckbox.scss": [
+		{
+			"count": 2,
+			"reason": "Seed: H 6.2a names these sites (a derivation, a knob or an equivalent rewrite) in its next commit."
+		}
+	],
+	"src/SystemFolder/SystemResources/ColorPicker/ClassicyColorPicker.scss": [
+		{
+			"count": 6,
+			"reason": "Seed: H 6.2a names these sites (a derivation, a knob or an equivalent rewrite) in its next commit."
+		}
+	],
+	"src/SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup.scss": [
+		{
+			"count": 1,
+			"reason": "Pending H 6.2b: an H 6.1 file, whose sites are named on top of 6.1's pixel-literal purge (H-R9 split)."
+		}
+	],
+	"src/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel.scss": [
+		{
+			"count": 5,
+			"reason": "Seed: H 6.2a names these sites (a derivation, a knob or an equivalent rewrite) in its next commit."
+		}
+	],
+	"src/SystemFolder/SystemResources/DatePicker/ClassicyDatePicker.scss": [
+		{
+			"count": 2,
+			"reason": "Seed: H 6.2a names these sites (a derivation, a knob or an equivalent rewrite) in its next commit."
+		}
+	],
+	"src/SystemFolder/SystemResources/Desktop/ClassicyDesktopIcon.scss": [
+		{
+			"count": 1,
+			"reason": "The alias badge is a quarter of the icon (--desktop-icon-size / 4, measured off Mac OS 8), not the grid padding --desktop-icon-padding (Part G, kept on purpose)."
+		},
+		{
+			"count": 3,
+			"reason": "Seed: H 6.2a names these sites (a derivation, a knob or an equivalent rewrite) in its next commit."
+		}
+	],
+	"src/SystemFolder/SystemResources/File/ClassicyFileBrowserViewTable.scss": [
+		{
+			"count": 3,
+			"reason": "Seed: H 6.2a names these sites (a derivation, a knob or an equivalent rewrite) in its next commit."
+		}
+	],
+	"src/SystemFolder/SystemResources/Icon/ClassicyIcon.scss": [
+		{
+			"count": 2,
+			"reason": "The icon box is twice --desktop-icon-size, which the size prop sets per icon; the root's --desktop-icon-cell would not follow it (Part G, kept on purpose)."
+		},
+		{
+			"count": 2,
+			"reason": "Seed: H 6.2a names these sites (a derivation, a knob or an equivalent rewrite) in its next commit."
+		}
+	],
+	"src/SystemFolder/SystemResources/KeyboardEquivalent/ClassicyKeyboardEquivalent.scss": [
+		{
+			"count": 2,
+			"reason": "Pending H 6.2b: an H 6.1 file, whose sites are named on top of 6.1's pixel-literal purge (H-R9 split)."
+		}
+	],
+	"src/SystemFolder/SystemResources/Menu/ClassicyMenu.scss": [
+		{
+			"count": 5,
+			"reason": "Seed: H 6.2a names these sites (a derivation, a knob or an equivalent rewrite) in its next commit."
+		}
+	],
+	"src/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu.scss": [
+		{
+			"count": 1,
+			"reason": "Pending H 6.2b: an H 6.1 file, whose sites are named on top of 6.1's pixel-literal purge (H-R9 split)."
+		}
+	],
+	"src/SystemFolder/SystemResources/QuickTime/QuickTimeMovieEmbed.scss": [
+		{
+			"count": 17,
+			"reason": "Seed: H 6.2a names these sites (a derivation, a knob or an equivalent rewrite) in its next commit."
+		}
+	],
+	"src/SystemFolder/SystemResources/RadioInput/ClassicyRadioInput.scss": [
+		{
+			"count": 6,
+			"reason": "Seed: H 6.2a names these sites (a derivation, a knob or an equivalent rewrite) in its next commit."
+		}
+	],
+	"src/SystemFolder/SystemResources/RichTextEditor/ClassicyRichTextEditor.scss": [
+		{
+			"count": 1,
+			"reason": "Seed: H 6.2a names these sites (a derivation, a knob or an equivalent rewrite) in its next commit."
+		}
+	],
+	"src/SystemFolder/SystemResources/Slider/ClassicySlider.scss": [
+		{
+			"count": 7,
+			"reason": "Pending H 6.2b: an H 6.1 file, whose sites are named on top of 6.1's pixel-literal purge (H-R9 split)."
+		}
+	],
+	"src/SystemFolder/SystemResources/SplitView/ClassicySplitView.scss": [
+		{
+			"count": 1,
+			"reason": "Seed: H 6.2a names these sites (a derivation, a knob or an equivalent rewrite) in its next commit."
+		}
+	],
+	"src/SystemFolder/SystemResources/Table/ClassicyTable.scss": [
+		{
+			"count": 1,
+			"reason": "Pending H 6.2b: an H 6.1 file, whose sites are named on top of 6.1's pixel-literal purge (H-R9 split)."
+		}
+	],
+	"src/SystemFolder/SystemResources/Tabs/ClassicyTabs.scss": [
+		{
+			"count": 16,
+			"reason": "Seed: H 6.2a names these sites (a derivation, a knob or an equivalent rewrite) in its next commit."
+		}
+	],
+	"src/SystemFolder/SystemResources/TextEditor/ClassicyTextEditor.scss": [
+		{
+			"count": 3,
+			"reason": "Seed: H 6.2a names these sites (a derivation, a knob or an equivalent rewrite) in its next commit."
+		}
+	],
+	"src/SystemFolder/SystemResources/TimePicker/ClassicyTimePicker.scss": [
+		{
+			"count": 2,
+			"reason": "Seed: H 6.2a names these sites (a derivation, a knob or an equivalent rewrite) in its next commit."
+		}
+	],
+	"src/SystemFolder/SystemResources/Triangle/ClassicyTriangle.scss": [
+		{
+			"count": 1,
+			"reason": "Seed: H 6.2a names these sites (a derivation, a knob or an equivalent rewrite) in its next commit."
+		}
+	],
+	"src/SystemFolder/SystemResources/Window/ClassicyWindow.scss": [
+		{
+			"count": 1,
+			"reason": "The utility window's local arrow unit, a quarter of its own local --window-scrollbar-size, as the theme's --window-scrollbar-arrow-size is of the root's (Part G, kept on purpose)."
+		},
+		{
+			"count": 16,
+			"reason": "Seed: H 6.2a names these sites (a derivation, a knob or an equivalent rewrite) in its next commit."
+		}
+	],
+	"src/SystemFolder/SystemResources/Window/ClassicyWindowFrame.scss": [
+		{
+			"count": 1,
+			"reason": "Pending H 6.2b: an H 6.1 file, whose sites are named on top of 6.1's pixel-literal purge (H-R9 split)."
+		}
+	],
+	"src/SystemFolder/SystemResources/Window/ClassicyWindowMenuBar.scss": [
+		{
+			"count": 4,
+			"reason": "Seed: H 6.2a names these sites (a derivation, a knob or an equivalent rewrite) in its next commit."
+		}
+	],
+	"src/SystemFolder/SystemResources/Window/ClassicyWindowTitleBar.scss": [
+		{
+			"count": 1,
+			"reason": "Seed: H 6.2a names these sites (a derivation, a knob or an equivalent rewrite) in its next commit."
+		}
+	]
+}
