@@ -2,11 +2,17 @@
 id: 0011-v9t
 title: 'Part H: Pixel-literal purge'
 type: impl
-status: pending
+status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T19:31:45.820Z"
-updated: "2026-10-28T19:38:39.595Z"
+updated: "2026-10-30T11:04:38.683Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy
@@ -19,7 +25,7 @@ links:
     - ["0000-aud", "included"]
 progress:
   "0":
-    status: pending
+    status: in_progress
   "1":
     status: pending
   "1.1":

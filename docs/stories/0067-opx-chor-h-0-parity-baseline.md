@@ -3,11 +3,18 @@ id: 0067-opx
 title: 'H 0: Parity baseline'
 purpose: Capture before-screenshots of every Storybook story and example-app screen that Part H's pixel-literal purge touches, so each later section can prove Platinum pixel-identical.
 type: chor
-status: pending
+status: in_progress
 priority: "2"
 effort: S
 created: "2026-10-28T20:34:27.417Z"
-updated: "2026-10-29T20:22:00.352Z"
+updated: "2026-10-30T11:04:39.062Z"
+started: "2026-10-30T11:04:37.984Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy
@@ -73,3 +80,5 @@ HyperCard, Finder About This Computer, Finder Preferences and Drive Setup have n
 
 ## Work Log
 ### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
+
+### 2026-10-30T11:04:39.062Z - Started: Part H worktree cut from the integration branch at 7b59cf4a5 (A-D, F, G, I, J and tooling landed; E pending). Reconciliation of the H plan against the landed parts plus the H 0 parity baseline (port 6026) dispatched.
