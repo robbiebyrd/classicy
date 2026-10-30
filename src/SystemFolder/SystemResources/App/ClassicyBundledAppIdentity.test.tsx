@@ -1,14 +1,21 @@
-import { act, cleanup, render } from "@testing-library/react";
+import { act, cleanup, fireEvent, render } from "@testing-library/react";
 import type { FC } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { registerTestAppsPackage } from "@/__tests__/testAppsPackage";
-import { unregisterClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
+import {
+	type ClassicyAppIdentityOverride,
+	registerClassicyAppearancePackage,
+	unregisterClassicyAppearancePackage,
+} from "@/Appearance/ClassicyAppearancePackage";
 import { PLATINUM_APPEARANCE_PACKAGE_ID } from "@/Appearance/Platinum";
+import { CLASSICY_DEFAULT_APPEARANCE_LAYOUT } from "@/Appearance/useClassicyAppearanceLayout";
+import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { ClassicyAppearanceManager } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager";
 import { APPEARANCE_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManagerManifest";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	dispatch,
+	sanitizeStateForPersistence,
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { getAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
@@ -28,7 +35,9 @@ import { SOUND_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/SoundManager/
 import { HyperCard } from "@/SystemFolder/HyperCard/HyperCard";
 import { HyperCardDialog } from "@/SystemFolder/HyperCard/HyperCardDialog";
 import { HyperCardAppInfo } from "@/SystemFolder/HyperCard/HyperCardUtils";
+import { ClassicyDesktopMenuBar } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import { ClassicyWindowMenuBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowMenuBar";
 
 // The control panels play feedback sounds; no sound provider is mounted here.
 vi.mock(
@@ -41,6 +50,9 @@ vi.mock(
 );
 
 const PACKAGE_ID = "test-bundled-identity";
+
+/** The same overrides, with each window drawing its own menu bar. */
+const WINDOW_MENUS_PACKAGE_ID = "test-bundled-identity-window-menus";
 
 /** The display icon the fixture gives `appId`. */
 const displayIcon = (appId: string) => `/test-bundled-identity/${appId}.png`;
@@ -111,7 +123,15 @@ const fileMenuItem = (appId: string, windowId: string, itemId: string) => {
 	return file?.menuChildren?.find((c) => c.id === `${appId}_${itemId}`);
 };
 
-/** The File menu's About title. */
+/**
+ * The persisted form of the store. It must hold no display name or icon:
+ * menus are stored under the app's own name, and the bars title the About
+ * item where they draw it (K-R8).
+ */
+const persisted = () =>
+	JSON.stringify(sanitizeStateForPersistence(useAppManager.getState()));
+
+/** The File menu's About title, as stored. */
 const aboutTitle = (appId: string, windowId: string) =>
 	fileMenuItem(appId, windowId, "about")?.title;
 
@@ -119,17 +139,38 @@ const aboutTitle = (appId: string, windowId: string) =>
 const quitApp = (appId: string, windowId: string) =>
 	(fileMenuItem(appId, windowId, "quit")?.eventData as { app?: unknown })?.app;
 
+const OVERRIDES: Record<string, ClassicyAppIdentityOverride> =
+	Object.fromEntries(
+		[...PANELS.map(([id]) => id), HyperCardAppInfo.id].map((id) => [
+			id,
+			{ name: displayName(id), icon: displayIcon(id) },
+		]),
+	);
+
+/** Registers (or replaces) the window-menus fixture with `apps`. */
+const registerWindowMenusPackage = (
+	apps: Record<string, ClassicyAppIdentityOverride>,
+) =>
+	registerClassicyAppearancePackage({
+		id: WINDOW_MENUS_PACKAGE_ID,
+		name: WINDOW_MENUS_PACKAGE_ID,
+		css: "",
+		defaults: {
+			...getTheme("default"),
+			id: `${WINDOW_MENUS_PACKAGE_ID}-default`,
+			package: WINDOW_MENUS_PACKAGE_ID,
+		},
+		layout: {
+			...CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
+			menuBar: { placement: "window" },
+		},
+		apps,
+	});
+
 beforeEach(() => {
 	useAppManager.setState(structuredClone(DefaultAppManagerState), true);
-	registerTestAppsPackage(
-		PACKAGE_ID,
-		Object.fromEntries(
-			[...PANELS.map(([id]) => id), HyperCardAppInfo.id].map((id) => [
-				id,
-				{ name: displayName(id), icon: displayIcon(id) },
-			]),
-		),
-	);
+	registerTestAppsPackage(PACKAGE_ID, OVERRIDES);
+	registerWindowMenusPackage(OVERRIDES);
 	switchTo(PACKAGE_ID);
 });
 
@@ -137,12 +178,13 @@ afterEach(() => {
 	cleanup();
 	switchTo(PLATINUM_APPEARANCE_PACKAGE_ID);
 	unregisterClassicyAppearancePackage(PACKAGE_ID);
+	unregisterClassicyAppearancePackage(WINDOW_MENUS_PACKAGE_ID);
 });
 
 describe("bundled control panels follow the package's app identity", () => {
 	it.each(
 		PANELS,
-	)("%s titles its window, proxy icon and About item with the display identity", (appId, appName, Panel, windowId) => {
+	)("%s titles its window and proxy icon with the display identity and stores none of it", (appId, appName, Panel, windowId) => {
 		act(() =>
 			dispatch({
 				type: "ClassicyAppOpen",
@@ -155,9 +197,12 @@ describe("bundled control panels follow the package's app identity", () => {
 			title: displayName(appId),
 			icon: displayIcon(appId),
 		});
-		expect(aboutTitle(appId, windowId)).toBe(`About ${displayName(appId)}`);
-		// Internal identity: the record and Quit keep the app's own name and
-		// icon (the record's icon is the one the panel passes ClassicyApp).
+		// Internal identity: the stored menu (K-R8), the record and Quit keep
+		// the app's own name and icon (the record's icon is the one the panel
+		// passes ClassicyApp), so nothing display-derived is persisted.
+		expect(aboutTitle(appId, windowId)).toBe(`About ${appName}`);
+		expect(persisted()).not.toContain(displayName(appId));
+		expect(persisted()).not.toContain(displayIcon(appId));
 		expect(apps()[appId].name).toBe(appName);
 		expect(quitApp(appId, windowId)).toEqual({
 			id: appId,
@@ -176,7 +221,7 @@ describe("bundled control panels follow the package's app identity", () => {
 });
 
 describe("HyperCard follows the package's app identity", () => {
-	it("titles its no-stack window and About item with the display name", () => {
+	it("titles its no-stack window with the display name and stores none of it", () => {
 		act(() =>
 			dispatch({
 				type: "ClassicyAppOpen",
@@ -191,8 +236,10 @@ describe("HyperCard follows the package's app identity", () => {
 
 		expect(titleBar(container).title).toBe(displayName(HyperCardAppInfo.id));
 		expect(aboutTitle(HyperCardAppInfo.id, "hypercard_main")).toBe(
-			`About ${displayName(HyperCardAppInfo.id)}`,
+			`About ${HyperCardAppInfo.name}`,
 		);
+		expect(persisted()).not.toContain(displayName(HyperCardAppInfo.id));
+		expect(persisted()).not.toContain(displayIcon(HyperCardAppInfo.id));
 		expect(apps()[HyperCardAppInfo.id].name).toBe(HyperCardAppInfo.name);
 		expect(quitApp(HyperCardAppInfo.id, "hypercard_main")).toEqual({
 			id: HyperCardAppInfo.id,
@@ -236,5 +283,92 @@ describe("HyperCard follows the package's app identity", () => {
 		);
 		switchTo(PLATINUM_APPEARANCE_PACKAGE_ID);
 		expect(dialogTitle()).toBe(HyperCardAppInfo.name);
+	});
+});
+
+describe("the menu bars title a renamed panel's About item (K-R8)", () => {
+	const open = (appId: string, appName: string) =>
+		act(() =>
+			dispatch({
+				type: "ClassicyAppOpen",
+				app: { id: appId, name: appName, icon: "" },
+			}),
+		);
+
+	it.each(
+		PANELS,
+	)("%s: the screen bar's Apple menu shows About <display name>", (appId, appName, Panel) => {
+		open(appId, appName);
+		render(
+			<>
+				<ClassicyDesktopMenuBar />
+				<Panel />
+			</>,
+		);
+		const apple = document.querySelector<HTMLElement>(
+			'[data-classicy-part="apple"]',
+		) as HTMLElement;
+		fireEvent.click(apple.querySelector("p") ?? apple);
+		const about = document.getElementById(`${appId}_about_apple`);
+		expect(about).toHaveTextContent(`About ${displayName(appId)}`);
+		expect(persisted()).not.toContain(displayName(appId));
+	});
+
+	it.each(
+		PANELS,
+	)("%s: the window's own menu bar shows About <display name>", (appId, appName, Panel, windowId) => {
+		switchTo(WINDOW_MENUS_PACKAGE_ID);
+		open(appId, appName);
+		const { container } = render(<Panel />);
+		const bar = container.querySelector(".classicyWindowMenuBar");
+		expect(bar).not.toBeNull();
+		const file = Array.from((bar as HTMLElement).querySelectorAll("li")).find(
+			(li) => li.querySelector(":scope > p")?.textContent === "File",
+		);
+		fireEvent.click(file?.querySelector(":scope > p") as HTMLElement);
+		const about = document.getElementById(`${appId}_about`);
+		expect(about).toHaveTextContent(`About ${displayName(appId)}`);
+		// Stored under the app's own name.
+		expect(aboutTitle(appId, windowId)).toBe(`About ${appName}`);
+		expect(persisted()).not.toContain(displayName(appId));
+
+		// Live: the package dropping its override retitles the drawn item.
+		act(() => registerWindowMenusPackage({}));
+		expect(document.getElementById(`${appId}_about`)).toHaveTextContent(
+			`About ${appName}`,
+		);
+	});
+});
+
+describe("ClassicyWindowMenuBar titles the About item at render (K-R8)", () => {
+	it("follows a package switch with the same stored menu", () => {
+		// One menu array for every render: only the package changes.
+		const menuItems: ClassicyMenuItem[] = [
+			{
+				id: `${DRIVE_SETUP_APP_ID}_file`,
+				title: "File",
+				menuChildren: [
+					{ id: `${DRIVE_SETUP_APP_ID}_about`, title: "About Drive Setup" },
+				],
+			},
+		];
+		render(
+			<ClassicyWindowMenuBar
+				appId={DRIVE_SETUP_APP_ID}
+				windowId="DriveSetup_1"
+				menuItems={menuItems}
+			/>,
+		);
+		const about = () => document.getElementById(`${DRIVE_SETUP_APP_ID}_about`);
+		fireEvent.click(
+			document.querySelector(".classicyWindowMenuBar li > p") as HTMLElement,
+		);
+		expect(about()).toHaveTextContent(
+			`About ${displayName(DRIVE_SETUP_APP_ID)}`,
+		);
+
+		switchTo(PLATINUM_APPEARANCE_PACKAGE_ID);
+		expect(about()).toHaveTextContent("About Drive Setup");
+		expect(menuItems[0].menuChildren?.[0].title).toBe("About Drive Setup");
 	});
 });
