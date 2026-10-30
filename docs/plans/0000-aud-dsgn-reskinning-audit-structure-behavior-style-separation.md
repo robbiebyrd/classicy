@@ -150,6 +150,14 @@ and proportion do not.
 Intentional and fine: ColorPicker crayon/track colors (data), `var(--x, #hex)`
 fallbacks in HyperCard and DriveSetup.
 
+**Done (part G).** Every row above is now a theme token, or a
+`classicy-tint`/`-shade`/`-alpha` of one (`src/Appearance/vocabulary/_color.scss`).
+The error pink is `classicy-tint("--color-error", 80%)` = `#ffcccc`, the one
+named visual change (G15). The halftone is painted from a token on the icon
+mask's `::before` (G16; Part E owns its art). `bin/classicyLiteralColorSweep.ts`,
+run by a test, keeps the SCSS free of literals; an Appearance Package's private
+`--<package>-*:` constants are exempt.
+
 **Tokens no theme supplies** (fallback always wins): `--color-theme-hover`
 (`SR/Placard/ClassicyPlacard.scss:109`), `--color-theme-selection`
 (`SR/ImageWell/ClassicyImageWell.scss:41,48`), `--color-theme-1` (typo for
@@ -195,7 +203,10 @@ the real Platinum proportions, e.g.:
 - `--ui-font-size * 0.865 / 0.75 / 0.8 / 0.65 / 10⁄12 / 0.8571 / 1.8571`
 - `--window-padding-size / 1.25 / 1.5 / 3 / 4`
 
-Each is a hidden design constant. Title-bar height is defined **twice and
+Each is a hidden design constant. (**Done (part G):** the real proportions
+are 35 named derivations emitted by `getThemeVars`, `CLASSICY_THEME_DERIVATIONS`;
+85 one-off multipliers are left for part H, listed in `docs/AGENT-REFERENCE.md` §8.)
+Title-bar height is defined **twice and
 inconsistently**: `control * 1.5` = 18px (`ClassicyWindow.scss:244`) vs
 `--hig-titlebar-height` = 19px (`:600`).
 
@@ -262,12 +273,12 @@ so every installed package's CSS ships and is scoped by a root attribute.
 
 | Line | Assumption | Source |
 |---|---|---|
-| 57, 120, 160, 1316 | `menuBarHeight = 30` (four copies) | hard-coded |
+| 57, 120, 160, 1316 | `menuBarHeight = 30` (four copies) | read from CSS (part G): `--menu-bar-height` via `readClassicyThemeVar`, once per active theme |
 | 41 | 4px drag threshold | hard-coded |
-| 958-959, 1098-1099 | `+ 5` chrome fudge in resize width | hard-coded |
-| 1316-1317 | zoom `margin = 8` | hard-coded |
+| 958-959, 1098-1099 | `+ 5` chrome fudge in resize width | read from CSS (part G): `--window-resize-inset`, once per resize gesture |
+| 1316-1317 | zoom `margin = 8` | read from CSS (part G): `--window-zoom-margin` |
 | 1371-1386 | zoom-to-fit queries `.classicyWindowContentsInner` by class | class-coupled |
-| 1492-1499 | skips resize while collapsed because CSS forces ~24px | implicit CSS knowledge |
+| 1492-1499 | skips resize while collapsed because CSS forces ~24px | named (part G): CSS forces `--window-collapsed-height` (15px; 6px for a utility window), which the comment cites; the skip itself needs no number |
 | 101-114 | chrome size via `getComputedStyle` padding+border | **good pattern** |
 | 596-599 vs 684-689 | initial centering uses content-box, re-centering uses outer rect | inconsistent |
 
@@ -285,6 +296,11 @@ title-bar classes.
   `SR/File/ClassicyFileBrowser.tsx:232` read `activeTheme.desktop.iconSize` for
   grid lattice math (legitimate: layout needs the number, but it bypasses the
   CSS var and will diverge if a pack sets icon size another way).
+  **Read from CSS (part G):** render and handler code reads
+  `--desktop-icon-size`/`-padding`/`-cell` (`readClassicyDesktopIconMetrics`);
+  desktop Clean Up runs in the reducer, so it derives the same numbers from
+  the theme (`classicyDesktopIconMetrics`) and does not see a host's inline
+  override.
 
 #### 3.3 Inline styles from JS (62 sites)
 

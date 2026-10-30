@@ -138,6 +138,24 @@ registers it, and everything inside `ClassicyDesktop` looks as before.
 The full mixin table and the package API are in `docs/AGENT-REFERENCE.md`
 §5, "Migrating to Appearance Packages", and §8, "Appearance Packages".
 
+**Changed: sizes and colors derive from the theme.**
+
+- **Overriding an input no longer rescales the derived sizes.** Stylesheets
+  read named sizes that `getThemeVars` computes from the theme
+  (`--menu-min-width`, `--popup-height`, `--ui-font-size-small`, …) instead
+  of `calc(var(--window-control-size) * N)`. A host that overrides an input
+  such as `--window-control-size` on the desktop now changes only that
+  variable. Change the theme's measurement instead, or override the derived
+  variable itself (`docs/AGENT-REFERENCE.md` §8, "Overriding sizes from a
+  host").
+- **Error title bars are `#ffcccc`**, `classicy-tint("--color-error", 80%)`,
+  instead of `#f7cecd`, so they follow a theme's error color. New SCSS
+  helpers `classicy-tint`, `classicy-shade` and `classicy-alpha` are at
+  `classicy/scss/color`.
+- **A package knob that would make a variable Classicy sets itself**
+  (`menu.minWidth` → `--menu-min-width`) is skipped with a warning and left
+  out of the Options tab.
+
 ## Building and running on localhost
 
 This project uses [pnpm](https://pnpm.io/) (enable it with `corepack enable`). First install dependencies:

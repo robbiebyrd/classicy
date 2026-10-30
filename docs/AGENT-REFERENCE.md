@@ -200,7 +200,7 @@ Package `exports` map:
 | `classicy/dist/classicy-platinum.css` | The Platinum package's stylesheet, which the package injects; link it after `classicy.css`, only under a strict CSP |
 | `classicy/fonts` | Deprecated no-op kept so existing `import 'classicy/fonts'` lines keep resolving |
 | `classicy/dist/*` | Anything in dist; the fonts ship as `dist/assets/*.woff2` |
-| `classicy/scss/*` | Raw SCSS partials (the Classicy vocabulary: states, layout helpers, classicy-package): `classicy/scss/vocabulary` (`$classicy-states`, `classicy-state()`; §4.0.1), `classicy/scss/layout` (`classicy-px-rect()`, `classicy-no-select`), `classicy/scss/package` (`classicy-package($id)`, §8) |
+| `classicy/scss/*` | Raw SCSS partials (the Classicy vocabulary: states, layout helpers, classicy-package): `classicy/scss/vocabulary` (`$classicy-states`, `classicy-state()`; §4.0.1), `classicy/scss/layout` (`classicy-px-rect()`, `classicy-no-select`), `classicy/scss/package` (`classicy-package($id)`, §8), `classicy/scss/color` (`classicy-tint()`, `classicy-shade()`, `classicy-alpha()`; §8, "Color helpers") |
 | `classicy/appearance/platinum` | Kept for compatibility; registers nothing. Importing `classicy` registers the Platinum package, so you never need this specifier |
 | `classicy/appearance/platinum/scss/*` | Platinum's SCSS partials for host `@use`: `mixins` (the `platinum-*` mixins), `scrollbars` (`platinum-scrollbars*`), `assets` (the `$` art variables). The package stylesheet itself (`platinum.scss` and its `components/` partials) is not for host compilation: it ships compiled, injected by the bundle and as `dist/classicy-platinum.css`, and one of its `url()`s points at an asset outside the published files |
 
@@ -2667,6 +2667,222 @@ theme that changes an input gets them for free (never stored in JSON):
 | `--help-button-width` / `-height` | `control.height` / `control.height + borderSize` | 20 / 21 |
 | `--layout-focus-gap` | `paddingSize` (preferred gap when focus rings show) | 6 |
 | `--window-scrollbar-arrow-size` | `scrollbarSize / 4` | 4.25 |
+
+**Named derivations** are the Platinum proportions the stylesheets and the
+window geometry share, named once (`CLASSICY_THEME_DERIVATIONS`,
+`ClassicyThemeDerivations.ts`: each entry has `cssVar`, `formula`, `doc` and
+`compute`). `getThemeVars` emits them last, after every other variable, so a
+theme that changes an input moves them all. Values are rounded to three
+decimals (`px3`), except the six font sizes, which are emitted **unrounded**
+(`unrounded: true`): `--window-header-font-size` and
+`--ui-font-size-small`/`-caption`/`-compact`/`-mini`/`-large`. They replaced
+`calc(var(--ui-font-size) / 1.5)` and the like, which the browser computed at
+full precision, and a rounded `9.333px` moves the computed `font-size`
+(`9.33333px`). So a 14 px UI font gives `--ui-font-size-small: 11.200000000000001px`
+(JS `14 * 0.8`). In the formulas, `controlSize`, `paddingSize` and
+`borderSize` are `measurements.window.*`, `uiSize` is
+`typography.uiSize`, and `iconSize`/`iconFontSize` are `desktop.*`:
+
+| Variable | Formula | Platinum (px) | Read by |
+|---|---|---|---|
+| `--window-collapsed-height` | `controlSize × 1.25` | 15 | ClassicyWindow.scss |
+| `--window-utility-collapsed-height` | `controlSize × 0.5` | 6 | ClassicyWindow.scss |
+| `--window-frame-inset` | `paddingSize / 1.25` | 4.8 | ClassicyWindow.scss |
+| `--window-zoom-margin` | `paddingSize + borderSize × 2` | 8 | ClassicyWindow.tsx |
+| `--window-resize-inset` | `paddingSize - borderSize` | 5 | ClassicyWindow.tsx |
+| `--window-header-font-size` | `uiSize × 0.865` | 12.11 (unrounded) | ClassicyWindow.scss, ClassicyWindowFrame.scss |
+| `--window-title-stripe-height` | `controlSize × 1.25` | 15 | ClassicyWindow.scss |
+| `--menu-bar-height` | `controlSize × 2.5` | 30 | ClassicyWindow.tsx |
+| `--menu-min-width` | `controlSize × 15` | 180 | ClassicyMenu.scss |
+| `--menu-item-icon-size` | `controlSize × 1.25` | 15 | ClassicyMenu.scss |
+| `--menu-item-icon-gap` | `controlSize × 0.5` | 6 | ClassicyMenu.scss |
+| `--popup-height` | `controlSize × 2.125` | 25.5 | ClassicyPopUpMenu.scss |
+| `--popup-mini-size` | `controlSize × 1.3125` | 15.75 | ClassicyPopUpMenu.scss |
+| `--popup-arrow-width` | `controlSize × 1.75` | 21 | ClassicyPopUpMenu.scss |
+| `--control-glyph-size` | `controlSize × 1.25` | 15 | ClassicyAssistant.scss, ClassicyFileBrowserViewTable.scss, ClassicyLittleArrows.scss, ClassicyProgressBar.scss, QuickTimeMovieEmbed.scss |
+| `--control-square-size` | `controlSize × 2` | 24 | ClassicyButton.scss, ClassicyButtonToolbar.scss, ClassicySpinner.scss, ClassicyTabs.scss, ClassicyWindow.scss |
+| `--button-square-width` | `controlSize × 4` | 48 | ClassicyBevelButton.scss, ClassicyButton.scss |
+| `--control-padding` | `paddingSize × 0.5` | 3 | ClassicyAssistant.scss, ClassicyBevelButton.scss, ClassicyButton.scss, ClassicyButtonToolbar.scss, ClassicyDatePicker.scss, ClassicyFileInput.scss, ClassicyFileOpenDialog.scss, ClassicyKbd.scss, ClassicyListBox.scss, ClassicyMenu.scss, ClassicyMeter.scss, ClassicyOutput.scss, ClassicyPlacard.scss, ClassicyPopUpMenu.scss, ClassicySeparator.scss, ClassicySpinner.scss, ClassicyTabs.scss, ClassicyTree.scss, ClassicyWindow.scss, QuickTimeMovieEmbed.scss, _Button.scss |
+| `--control-padding-tight` | `paddingSize / 4` | 1.5 | ClassicyButtonToolbar.scss, ClassicyWindow.scss, _Window.scss |
+| `--control-padding-narrow` | `paddingSize / 3` | 2 | ClassicyButtonToolbar.scss, ClassicyPlacard.scss, ClassicyPopUpMenu.scss, ClassicyTabs.scss |
+| `--control-padding-loose` | `paddingSize / 1.5` | 4 | ClassicyButtonToolbar.scss, ClassicyListBox.scss, ClassicyPlacard.scss, ClassicyPopUpMenu.scss, ClassicyTabs.scss |
+| `--control-padding-wide` | `paddingSize × 1.5` | 9 | ClassicyPopUpMenu.scss, ClassicyStartupScreen.scss, ClassicyTabs.scss, ClassicyWindowFrame.scss |
+| `--ui-font-size-small` | `uiSize × 0.8` | 11.200000000000001 (unrounded) | ClassicyColorPicker.scss, ClassicyControlGroup.scss, ClassicyControlLabel.scss, ClassicyPopUpMenu.scss, ClassicySlider.scss, ClassicyTable.scss, ClassicyTextEditor.scss, DriveSetupList.scss |
+| `--ui-font-size-caption` | `uiSize × 0.75` | 10.5 (unrounded) | ClassicyCheckbox.scss, ClassicyControlGroup.scss, ClassicyKbd.scss, ClassicyMenu.scss, ClassicyMeter.scss |
+| `--ui-font-size-compact` | `uiSize × 10 / 12` | 11.666666666666666 (unrounded) | ClassicyButtonToolbar.scss, ClassicyPlacard.scss, ClassicyTabs.scss |
+| `--ui-font-size-mini` | `uiSize / 1.5` | 9.333333333333334 (unrounded) | ClassicyBevelButton.scss, ClassicyButton.scss, ClassicyButtonToolbar.scss, ClassicyPlacard.scss |
+| `--ui-font-size-large` | `uiSize × 1.5` | 21 (unrounded) | ClassicyTabs.scss |
+| `--tab-height` | `controlSize × 4 / 2.5` | 19.2 | ClassicyTabs.scss |
+| `--tab-min-width` | `controlSize × 4` | 48 | ClassicyTabs.scss |
+| `--tab-min-width-large` | `controlSize × 9` | 108 | ClassicyTabs.scss |
+| `--slider-thumb-width` | `controlSize × 2` | 24 | ClassicySlider.scss |
+| `--slider-thumb-height` | `controlSize × 1.75` | 21 | ClassicySlider.scss |
+| `--desktop-icon-padding` | `iconSize / 4` | 12 | ClassicyDesktopIconContext.tsx, ClassicyFileBrowserUtils.ts |
+| `--desktop-icon-cell` | `iconSize × 2` | 96 | ClassicyDesktopIcon.scss, ClassicyDesktopIconContext.tsx, ClassicyFileBrowserUtils.ts |
+| `--desktop-icon-label-pad` | `iconFontSize / 4` | 3 | ClassicyDesktopIcon.scss, ClassicyIcon.scss |
+
+Equal formulas are separate names on purpose (the 1.25× collapsed height,
+title stripe, menu icon and control glyph; the 2× square control and slider
+thumb; the 1.75× pop-up arrow and slider thumb; the 4× square button and
+tab): each has its own reason, and a package may want them apart. The
+contract's `--menu-item-height` is not emitted, because no stylesheet reads a
+menu row height.
+
+**Reserved names.** `getThemeVars` spreads the measurement inputs first and
+sets everything else after them, so a package measurement whose variable it
+sets itself could never take effect. Those variables are reserved
+(`isReservedClassicyThemeVar(name)`, `ClassicyThemeMetrics.ts`):
+
+- the palette, font and desktop variables (`CLASSICY_THEME_NON_MEASUREMENT_VARS`, 44 names);
+- the derived metrics above (`CLASSICY_THEME_DERIVED_VARS`, 15 names);
+- the named derivations (`CLASSICY_THEME_DERIVATIONS`, 35 names).
+
+`classicyMeasurementVars` skips a leaf whose variable
+(`classicyMeasurementVarName(family, key)`) is reserved and logs one
+`ClassicyAppearance` warning (`menu.minWidth` → `--menu-min-width`;
+`desktop.iconSize` → `--desktop-icon-size`). `isThemeMetricFamilyTarget`
+refuses the pair as well, so `ClassicyDesktopChangeMetric` rejects it and the
+Options tab leaves such a knob out. Tests fail when `getThemeVars` emits a
+variable in none of the three lists, and when a core input takes a reserved
+name.
+
+**Overriding sizes from a host.** The derived metrics and named derivations
+are values `getThemeVars` computes from the theme and sets inline on the
+desktop root, not `calc()`s in the stylesheets. Overriding an *input*
+variable (`--window-control-size: 16px` in `ClassicyDesktop`'s `style`, or in
+host CSS on an element inside the desktop) changes that variable and the one-off `calc()`s
+still left (below), but it **no longer rescales the derived sizes**:
+`--menu-min-width` stays 180px. To rescale everything, change the theme
+(`measurements.window.controlSize` in a theme file, or
+`ClassicyDesktopChangeMetric`). To change one size, override the derived
+variable itself:
+
+| Input variable | Derived variables to override |
+|---|---|
+| `--window-control-size` | `--window-collapsed-height`, `--window-utility-collapsed-height`, `--window-title-stripe-height`, `--menu-bar-height`, `--menu-min-width`, `--menu-item-icon-size`, `--menu-item-icon-gap`, `--popup-height`, `--popup-mini-size`, `--popup-arrow-width`, `--control-glyph-size`, `--control-square-size`, `--button-square-width`, `--tab-height`, `--tab-min-width`, `--tab-min-width-large`, `--slider-thumb-width`, `--slider-thumb-height`, `--control-row-height`, `--progress-height` |
+| `--window-padding-size` | `--control-padding`, `--control-padding-tight`, `--control-padding-narrow`, `--control-padding-loose`, `--control-padding-wide`, `--window-frame-inset`, `--window-zoom-margin`, `--window-resize-inset`, `--layout-focus-gap` |
+| `--window-border-size` | `--control-frame-width`, `--control-bevel-sm`, `--control-bevel-md`, `--control-bevel-lg`, `--button-default-ring`, `--edit-field-height`, `--help-button-height` (and `--window-zoom-margin`, `--window-resize-inset`) |
+| `--window-scrollbar-size` | `--window-scrollbar-arrow-size` |
+| `--control-height` | `--button-height`, `--edit-field-height`, `--help-button-width`, `--help-button-height` |
+| `--ui-font-size` | `--ui-font-size-small`, `--ui-font-size-caption`, `--ui-font-size-compact`, `--ui-font-size-mini`, `--ui-font-size-large`, `--window-header-font-size` |
+| `--desktop-icon-size` / `--desktop-icon-font-size` | `--desktop-icon-padding`, `--desktop-icon-cell` / `--desktop-icon-label-pad` |
+
+JS geometry reads the live variables on the desktop root (below), so
+overriding `--menu-bar-height`, `--window-zoom-margin` or
+`--window-resize-inset` in `ClassicyDesktop`'s `style` moves windows too. Desktop Clean Up does not: it reads the theme.
+
+**Color helpers.** Stylesheets never hold a literal color. They use a
+`--color-*` token, or a variant of one from
+`src/Appearance/vocabulary/_color.scss` (`@use "classicy/scss/color" as c;`
+in host SCSS). Each helper takes the token's custom-property **name** as a
+string, and a Sass percentage. It expands to `color-mix`, so the variant
+follows the active theme:
+
+| Helper | Expands to | Example (Platinum) |
+|---|---|---|
+| `classicy-tint($token, $pct)` | `color-mix(in srgb, var($token), white $pct)` | `classicy-tint("--color-error", 80%)` → `#ffcccc` (error title bars) |
+| `classicy-shade($token, $pct)` | `color-mix(in srgb, var($token), black $pct)` | `classicy-shade("--color-error", 20%)` → `#cc0000` (FileInput error text) |
+| `classicy-alpha($token, $pct)` | `color-mix(in srgb, var($token) $pct, transparent)` | `classicy-alpha("--color-black", 50%)` → black at 50% (icon drag overlays) |
+
+A token that is not a string starting with `--` (`"color-error"`, or a Sass
+color such as `red`) fails the compile (`classicy-token`).
+
+`node bin/classicyLiteralColorSweep.ts` prints every literal color left in
+`src/**/*.scss` and exits 1 when there is one. The same check is exported as
+`findClassicyLiteralColors`, and a test runs it. It skips:
+
+- comments;
+- `var(--x, #hex|white|black)` fallbacks, data URIs and `white-space`;
+- the helpers' own definitions, the screen savers and the color picker;
+- an Appearance Package's private constants: a `--<package>-*:` declaration
+  under `src/Appearance/<Package>/`, such as `--platinum-stripe-dark: #787878`
+  (the package id is the folder name, lowercased).
+
+**Reading a metric from JS.** Code that needs a theme size in pixels reads
+the variable instead of hard-coding the number:
+`readClassicyThemeVar(name, fallback?, el?)` (`ClassicyThemeMetricReader.ts`).
+
+- **What it reads.** The computed value of `name` on `el`, else
+  `#classicyDesktop`, else `<html>`. A finite value of 0 or more is returned:
+  `0px` is a real value (window mode's `--menu-bar-height`).
+- **Fallback.** Anything else, or no DOM, returns `fallback`. It defaults to
+  `classicyDefaultThemeVarPx(name)`, the default (Platinum) theme's value,
+  computed once. That throws, after logging, for a name `getThemeVars` does
+  not emit, so pass an explicit fallback for a package-only variable.
+- **Cost.** Each call forces a style read. Read once per gesture, theme or
+  layout pass, never per render or `mousemove`, and never from a reducer:
+  reducers compute from `getThemeVars(theme)`.
+- **Readers.** `ClassicyWindow` reads `--menu-bar-height` (once per active
+  theme), `--window-zoom-margin` (zoom) and `--window-resize-inset` (once per
+  resize gesture). Balloon help reads `--window-control-size`.
+- **The desktop-icon grid** has two forms, both returning
+  `ClassicyDesktopIconMetrics { size, padding, cell }`:
+  - `classicyDesktopIconMetrics(theme)` is pure, from the theme. Desktop
+    Clean Up uses it, inside the reducer.
+  - `readClassicyDesktopIconMetrics(theme, el?)` reads the live
+    `--desktop-icon-size`/`-padding`/`-cell`, each falling back to the theme.
+    Finder's icon and list views use it.
+
+  So a host's inline `--desktop-icon-*` override on the desktop moves
+  Finder's icons but not desktop Clean Up. Resize the desktop grid with the
+  theme's `desktop.iconSize`.
+
+**Multipliers still in SCSS (Part H inventory).** 85 simple multipliers are
+left. Each is a formula no named derivation covers, or a site kept on
+purpose; Part H names or removes them. Count them with:
+
+```sh
+grep -rnoE 'calc\(\s*var\(--[a-z0-9-]+\)\s*[*/]\s*[0-9.]+(\s*/\s*[0-9.]+)?\s*\)' src --include=*.scss | grep -v Extensions/ScreenSaver | wc -l   # 85
+```
+
+By file (under `src/`) and formula; "×n" means n sites:
+
+| File | Formulas left |
+|---|---|
+| `Appearance/Platinum/styles/_scrollbars.scss` | `window-scrollbar-arrow-size / 2`; `window-scrollbar-arrow-size × 1.5`; `window-scrollbar-arrow-size × 2` |
+| `Appearance/Platinum/styles/components/_Button.scss` | `button-default-ring / 3` |
+| `Appearance/Platinum/styles/components/_Slider.scss` | `window-border-size × 1.5` |
+| `SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Colors.scss` | `layout-item-gap / 2` |
+| `SystemFolder/ControlPanels/DriveSetup/DriveSetupList.scss` | `window-control-size × 8` |
+| `SystemFolder/Finder/FinderAboutThisComputer.scss` | `ui-font-size × 0.8571`; `ui-font-size × 1.8571`; `ui-font-size × 1.0714`; `ui-font-size × 0.7857` |
+| `SystemFolder/SystemResources/Assistant/ClassicyAssistant.scss` | `window-control-size × 0.5`; `window-control-size × 1.75` ×2; `window-control-size × 2.5` ×2 |
+| `SystemFolder/SystemResources/BalloonHelp/ClassicyBalloonHelp.scss` | `ui-font-size × 0.85` |
+| `SystemFolder/SystemResources/Boot/ClassicyStartupScreen.scss` | `window-padding-size × 3`; `window-padding-size × 6`; `window-padding-size × 8`; `window-padding-size × 2` ×2 |
+| `SystemFolder/SystemResources/ButtonToolbar/ClassicyButtonToolbar.scss` | `window-control-size × 3` |
+| `SystemFolder/SystemResources/Checkbox/ClassicyCheckbox.scss` | `ui-font-size × 1.25`; `ui-font-size × 0.65` |
+| `SystemFolder/SystemResources/ColorPicker/ClassicyColorPicker.scss` | `window-control-size × 2.5` ×2; `window-padding-size × 2` ×2 |
+| `SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel.scss` | `ui-font-size × 2`; `window-control-size / 2` ×4 |
+| `SystemFolder/SystemResources/Desktop/ClassicyDesktopIcon.scss` | `desktop-icon-font-size / 2`; `desktop-icon-size × 4`; `desktop-icon-size / 4` |
+| `SystemFolder/SystemResources/File/ClassicyFileBrowserViewTable.scss` | `desktop-icon-size / 16` ×2 |
+| `SystemFolder/SystemResources/Icon/ClassicyIcon.scss` | `desktop-icon-size × 2` ×2; `desktop-icon-size × 4` |
+| `SystemFolder/SystemResources/Menu/ClassicyMenu.scss` | `window-padding-size × 1.25` |
+| `SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu.scss` | `ui-font-size × 2` |
+| `SystemFolder/SystemResources/QuickTime/QuickTimeMovieEmbed.scss` | `ui-font-size × 0.85`; `window-control-size × 0.875` ×2; `window-control-size × 5`; `window-control-size × 1.75`; `window-control-size × 0.825`; `window-control-size × 0.25`; `window-padding-size × 0.75`; `window-control-size × 0.75` |
+| `SystemFolder/SystemResources/RadioInput/ClassicyRadioInput.scss` | `window-control-size / 2` ×2; `window-control-size / 3`; `window-control-size / 2.5`; `window-control-size / 4`; `window-control-size / 8` |
+| `SystemFolder/SystemResources/Slider/ClassicySlider.scss` | `window-control-size × 8`; `window-padding-size × 0.75` ×2; `ui-font-size × 1.2` |
+| `SystemFolder/SystemResources/Table/ClassicyTable.scss` | `ui-font-size × 0.5` |
+| `SystemFolder/SystemResources/Tabs/ClassicyTabs.scss` | `window-control-size / 3`; `window-padding-size × 2` ×3; `window-padding-size × 3` ×2; `window-control-size × 7`; `window-control-size × 3` ×2; `window-control-size / 2`; `window-control-size × 0.75` ×2; `window-control-size / 2.25`; `window-padding-size × 0.75`; `window-padding-size × 4` ×2 |
+| `SystemFolder/SystemResources/TextEditor/ClassicyTextEditor.scss` | `ui-font-size × 2`; `window-control-size × 3` |
+| `SystemFolder/SystemResources/TimePicker/ClassicyTimePicker.scss` | `ui-font-size × 4` |
+| `SystemFolder/SystemResources/Window/ClassicyWindow.scss` | `window-scrollbar-size / 4` |
+| `SystemFolder/SystemResources/Window/ClassicyWindowFrame.scss` | `window-padding-size × 2` |
+
+Kept on purpose:
+
+- `ClassicyIcon.scss`, the two `desktop-icon-size × 2`: the `size` prop sets
+  `--desktop-icon-size` per icon, and the root's `--desktop-icon-cell` would
+  not follow it.
+- `ClassicyDesktopIcon.scss`, `desktop-icon-size / 4`: the alias badge is a
+  quarter of the icon, which is not the grid padding.
+- `ClassicyWindow.scss`, `window-scrollbar-size / 4`: the utility window's
+  local arrow size, from its local scroll-bar size.
+- `_scrollbars.scss`, the three arrow forms: Platinum glyph geometry.
+
+Three of the 85 sit inside `//` comments: `ClassicyIcon.scss` and
+`ClassicyDesktopIcon.scss` `desktop-icon-size × 4`, and
+`QuickTimeMovieEmbed.scss` `window-control-size × 0.825`. The grep does not
+count negative forms (`* -1`, `* -2`), multi-term `calc()`s, or the Button
+margin variants a Sass loop generates.
 
 There are no `--hig-*` variables (removed 2026-10-27, no aliases).
 
