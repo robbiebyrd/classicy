@@ -239,13 +239,13 @@ describe("ClassicyColorPickerCrayon — package colors", () => {
 			'polygon[points="18,1 5,28 18,28"]',
 		) as SVGElement;
 		expect(facet.style.getPropertyValue("fill")).toBe(
-			"var(--classicy-color-picker-crayon-facet-light)",
+			"var(--classicy-color-picker-crayon-facet-light, transparent)",
 		);
 		const tip = container.querySelector(
 			'polygon[points="18,1 5,28 31,28"]',
 		) as SVGElement;
 		expect(tip.style.getPropertyValue("stroke")).toBe(
-			"var(--classicy-color-picker-crayon-outline)",
+			"var(--classicy-color-picker-crayon-outline, transparent)",
 		);
 		expect(container.innerHTML).not.toMatch(/rgba\(/);
 	});
