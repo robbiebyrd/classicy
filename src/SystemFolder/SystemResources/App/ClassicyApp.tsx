@@ -37,7 +37,9 @@ export interface ClassicyAppProps {
 	/** Unique app id; the `.app` suffix is convention (`"TV.app"`). Keys
 	 *  `System.Manager.Applications.apps[id]`. */
 	id: string;
-	/** Display name: desktop icon label, App Switcher and About menu entries. */
+	/** Internal name and default display name. Keys
+	 *  `ClassicyApp${name}OpenFile`/`CloseFile`; an Appearance Package may show
+	 *  another name (`apps`), never changing this one. */
 	name: string;
 	/** App icon (URL or data URI), used for the desktop icon and menus. */
 	icon: string;
@@ -128,6 +130,9 @@ export interface ClassicyAppProps {
 export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 	id,
 	icon,
+	// The app's internal name: action types (`ClassicyApp${name}CloseFile`),
+	// Finder's OpenFile routing and every store record use it; a package's
+	// display name never replaces it.
 	name,
 	addSystemMenu,
 	showDesktopIcon,

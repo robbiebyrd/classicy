@@ -36,6 +36,10 @@ import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/
 import { useResolvedMediaSource } from "@/SystemFolder/SystemResources/File/useResolvedMediaSource";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
+/** Handled by the Picture Viewer reducer (`PictureViewerContext.tsx`). A
+ *  literal, never built from the app's name. */
+const CLOSE_FILE = "ClassicyAppPictureViewerCloseFile";
+
 type ResolvedPictureDocument = {
 	key: string;
 	path?: string;
@@ -140,7 +144,7 @@ export const QuickTimePictureViewer: FunctionalComponent = () => {
 	const closeFile = useCallback(
 		(path: string) => {
 			desktopEventDispatch({
-				type: `ClassicyApp${appName.replace(/\s+/g, "")}CloseFile`,
+				type: CLOSE_FILE,
 				app: { id: appId },
 				path,
 			});
@@ -168,7 +172,7 @@ export const QuickTimePictureViewer: FunctionalComponent = () => {
 		(doc: ResolvedPictureDocument) =>
 			doc.path
 				? {
-						type: "ClassicyAppPictureViewerCloseFile",
+						type: CLOSE_FILE,
 						app: { id: appId },
 						path: doc.path,
 					}

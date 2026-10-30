@@ -23,6 +23,11 @@ import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWi
 
 const { name: appName, id: appId } = PDFViewerAppInfo;
 
+/** Handled by classicyPDFViewerEventHandler (`PDFViewerContext.tsx`). A
+ *  literal, never built from the app's name: a display name is not an action
+ *  type, and "PDF Viewer" carries a space. */
+const CLOSE_FILE = "ClassicyAppPDFViewerCloseFile";
+
 export const PDFViewer: FunctionalComponent = () => {
 	const appIcon = useClassicyAsset("icons", "system.files.document") ?? "";
 	const desktopEventDispatch = useAppManagerDispatch();
@@ -38,7 +43,7 @@ export const PDFViewer: FunctionalComponent = () => {
 	const closeFile = useCallback(
 		(path: string) => {
 			desktopEventDispatch({
-				type: `ClassicyApp${appName}CloseFile`,
+				type: CLOSE_FILE,
 				app: { id: appId },
 				path,
 			});
@@ -61,7 +66,7 @@ export const PDFViewer: FunctionalComponent = () => {
 				menuChildren: [
 					closeWindowMenuItemHelper(`${windowId}_close_window`, () =>
 						closeWindow(windowId, {
-							type: `ClassicyApp${appName}CloseFile`,
+							type: CLOSE_FILE,
 							app: { id: appId },
 							path,
 						}),
@@ -69,7 +74,7 @@ export const PDFViewer: FunctionalComponent = () => {
 					closeAllWindowsMenuItemHelper(`${appId}_close_all_windows`, () => {
 						for (const p of openFiles) {
 							closeWindow(`${appId}_file_${p}`, {
-								type: `ClassicyApp${appName}CloseFile`,
+								type: CLOSE_FILE,
 								app: { id: appId },
 								path: p,
 							});
