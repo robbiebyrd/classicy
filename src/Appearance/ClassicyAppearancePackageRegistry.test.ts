@@ -138,3 +138,24 @@ describe("unregisterClassicyAppearancePackage", () => {
 		log.mockRestore();
 	});
 });
+
+describe("registerClassicyAppearancePackage", () => {
+	it("logs and does not register a package with invalid apps", () => {
+		const log = vi
+			.spyOn(ClassicyLog, "classicyLog")
+			.mockImplementation(() => {});
+		registerClassicyAppearancePackage({
+			...irix,
+			css: '@layer classicy.package { .classicyDesktop[data-classicy-appearance="irix"] { color: red; } }',
+			apps: { "A.app": { name: "_x" } },
+		});
+		expect(getClassicyAppearancePackage("irix")).toBeUndefined();
+		expect(document.getElementById("classicy-appearance-irix")).toBeNull();
+		expect(log).toHaveBeenCalledWith(
+			"error",
+			"ClassicyAppearance",
+			expect.stringContaining("apps.A.app.name"),
+		);
+		log.mockRestore();
+	});
+});
