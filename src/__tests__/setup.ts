@@ -37,6 +37,28 @@ class MemoryStorage implements Storage {
 	}
 }
 
+// jsdom has no media playback: HTMLMediaElement's load(), play() and pause()
+// report "Not implemented" to the console on every call (play() then returns
+// undefined, not a Promise). Replace just those three with silent no-ops, play()
+// resolving as a browser's does once playback starts, so the run's output keeps
+// only real errors. Each stays a writable, configurable prototype method, so a
+// test can still vi.spyOn / mock it. Node-environment test files have no
+// HTMLMediaElement and are left alone.
+if (typeof HTMLMediaElement !== "undefined") {
+	const stubs: Pick<HTMLMediaElement, "load" | "pause" | "play"> = {
+		load: () => {},
+		pause: () => {},
+		play: () => Promise.resolve(),
+	};
+	for (const [method, value] of Object.entries(stubs)) {
+		Object.defineProperty(HTMLMediaElement.prototype, method, {
+			value,
+			configurable: true,
+			writable: true,
+		});
+	}
+}
+
 beforeEach(() => {
 	Object.defineProperty(globalThis, "localStorage", {
 		value: new MemoryStorage(),
