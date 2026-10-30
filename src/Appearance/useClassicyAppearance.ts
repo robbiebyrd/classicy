@@ -11,6 +11,7 @@ import {
 } from "react";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
+import { subscribeClassicyActiveAppearancePackage } from "./ClassicyActiveAppearancePackage.internal";
 import type {
 	ClassicyAppearanceDecoration,
 	ClassicyAppearanceEvent,
@@ -19,13 +20,9 @@ import type {
 import {
 	CLASSICY_FALLBACK_APPEARANCE_PACKAGE,
 	getRegisteredClassicyAppearancePackageOrDefault,
-	subscribeClassicyAppearancePackages,
 } from "./ClassicyAppearancePackageRegistry";
 import { runWithClassicyAppearanceSoundDispatch } from "./ClassicyAppearanceSound";
-import {
-	getActiveClassicyAppearancePackageId,
-	subscribeClassicyAssets,
-} from "./ClassicyAssetRegistry";
+import { getActiveClassicyAppearancePackageId } from "./ClassicyAssetRegistry";
 import { reportedDroppedAttributes } from "./useClassicyAppearance.internal";
 import { installClassicyAppearanceInput } from "./useClassicyAppearanceInput.internal";
 import {
@@ -43,15 +40,9 @@ const SUBSYSTEM = "ClassicyAppearance";
 // fires on (re)registration. This module never
 // imports the app manager's store (useClassicyAppearance.storeFree.test.ts),
 // so wiring it into a component adds no store read and no store import; a
-// store that never connects its source resolves to Platinum.
-const subscribeActivePackage = (onChange: () => void): (() => void) => {
-	const unsubscribeAssets = subscribeClassicyAssets(onChange);
-	const unsubscribePackages = subscribeClassicyAppearancePackages(onChange);
-	return () => {
-		unsubscribeAssets();
-		unsubscribePackages();
-	};
-};
+// store that never connects its source resolves to Platinum. The subscriber
+// is the one every live package hook shares
+// (ClassicyActiveAppearancePackage.internal.ts).
 
 // Stable: the registry stores package objects as registered. Resolved by the
 // one rule every reader uses (resolveClassicyAppearancePackage, the
@@ -148,7 +139,7 @@ export function useClassicyAppearance<E extends HTMLElement = HTMLElement>(
 	emit: (event: ClassicyAppearanceEvent, detail?: unknown) => void;
 } {
 	const pkg = useSyncExternalStore(
-		subscribeActivePackage,
+		subscribeClassicyActiveAppearancePackage,
 		getActivePackage,
 		getActivePackage,
 	);

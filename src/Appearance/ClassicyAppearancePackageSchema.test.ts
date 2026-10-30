@@ -209,21 +209,6 @@ describe("ClassicyAppearancePackageSchema apps", () => {
 		).toBe(true);
 	});
 
-	it.each([
-		["_x"],
-		["A:B"],
-		[" Pad"],
-		[""],
-		["x".repeat(65)],
-	])("refuses the name %j", (name) => {
-		expect(
-			ClassicyAppearancePackageSchema.safeParse({
-				...valid,
-				apps: { "A.app": { name } },
-			}).success,
-		).toBe(false);
-	});
-
 	it("refuses a script icon, unknown keys and forbidden ids", () => {
 		for (const apps of [
 			{ "A.app": { icon: "javascript:alert(1)" } },
@@ -291,12 +276,21 @@ describe("ClassicyAppearancePackageSchema apps", () => {
 	});
 
 	it.each([
+		["_x"],
+		["A:B"],
+		[" Pad"],
+		[""],
+		["x".repeat(65)],
 		["Pad "],
 		["Pad\t"],
 		["A\nB"],
 		["A\u0000B"],
 		["A\u001fB"],
 		["A\u007fB"],
+		["A\u0080B"],
+		["A\u009fB"],
+		["A\u2028B"],
+		["A\u2029B"],
 		["prototype"],
 	])("refuses the name %j", (name) => {
 		expect(appsIssues({ "A.app": { name } })[0]?.path).toEqual([
@@ -310,6 +304,7 @@ describe("ClassicyAppearancePackageSchema apps", () => {
 		["a_x"],
 		["x".repeat(64)],
 		["Media Player"],
+		["Caf\u00e9"],
 	])("accepts the name %j", (name) => {
 		expect(appsIssues({ "A.app": { name } })).toEqual([]);
 	});

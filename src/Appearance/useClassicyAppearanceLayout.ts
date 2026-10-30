@@ -1,12 +1,9 @@
 import { useSyncExternalStore } from "react";
+import { subscribeClassicyActiveAppearancePackage } from "./ClassicyActiveAppearancePackage.internal";
 import { CLASSICY_DEFAULT_APPEARANCE_LAYOUT } from "./ClassicyAppearanceDefaults";
 import type { ClassicyAppearanceLayout } from "./ClassicyAppearancePackage";
-import {
-	getRegisteredClassicyAppearancePackageOrDefault,
-	subscribeClassicyAppearancePackages,
-} from "./ClassicyAppearancePackageRegistry";
+import { getRegisteredClassicyAppearancePackageOrDefault } from "./ClassicyAppearancePackageRegistry";
 import { getClassicyAssetPackageSource } from "./ClassicyAssetPackageSource.internal";
-import { subscribeClassicyAssets } from "./ClassicyAssetRegistry";
 
 export { CLASSICY_DEFAULT_APPEARANCE_LAYOUT } from "./ClassicyAppearanceDefaults";
 
@@ -34,24 +31,16 @@ export const getClassicyAppearanceLayout = (
 		packageId ?? getClassicyAssetPackageSource()?.getId(),
 	)?.layout ?? CLASSICY_DEFAULT_APPEARANCE_LAYOUT;
 
-// The asset registry follows the active package id (and the store's
-// connection, whenever it happens); the package registry covers a package
-// re-registered under the active id with a new layout.
-const subscribeActiveLayout = (onChange: () => void): (() => void) => {
-	const unsubscribeAssets = subscribeClassicyAssets(onChange);
-	const unsubscribePackages = subscribeClassicyAppearancePackages(onChange);
-	return () => {
-		unsubscribeAssets();
-		unsubscribePackages();
-	};
-};
-
 const getActiveLayout = (): ClassicyAppearanceLayout =>
 	getClassicyAppearanceLayout();
 
 /** The active package's layout; re-renders when the package changes. */
 export const useClassicyAppearanceLayout = (): ClassicyAppearanceLayout =>
-	useSyncExternalStore(subscribeActiveLayout, getActiveLayout, getActiveLayout);
+	useSyncExternalStore(
+		subscribeClassicyActiveAppearancePackage,
+		getActiveLayout,
+		getActiveLayout,
+	);
 
 /**
  * The layout as CSS custom properties with bare keyword values, for the
