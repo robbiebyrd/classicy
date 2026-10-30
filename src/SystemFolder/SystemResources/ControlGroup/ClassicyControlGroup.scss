@@ -1,3 +1,5 @@
+@use "../../../Appearance/vocabulary/color" as c;
+
 // Half the legend's line box: the part of a title that overhangs above the
 // frame. A labeled group reserves it above its border; a stack subtracts it
 // so the HIG frame-to-frame distance holds.
@@ -25,7 +27,7 @@ $legend-overhang: calc(var(--ui-font-size) * 0.75 * 1.4 / 2);
 // keyword paints exactly that light/dark pair; the width is pinned to the HIG
 // 2px frame token shared with list boxes, edit-text frames and image wells.
 .classicyControlGroupFieldsetPrimary {
-  border: var(--control-frame-width) groove rgb(239, 239, 239);
+  border: var(--control-frame-width) groove c.classicy-tint("--color-system-01", 6%);
 }
 
 // Secondary group box: a single 1px line, no etch.

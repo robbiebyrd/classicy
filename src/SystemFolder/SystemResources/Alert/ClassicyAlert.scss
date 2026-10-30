@@ -1,3 +1,5 @@
+@use "../../../Appearance/vocabulary/color" as c;
+
 .classicyAlert {
   display: flex;
   flex-direction: column;
@@ -83,6 +85,6 @@
 // in the Platinum package.
 .classicyWindow:has(.classicyAlertMovable) {
   .classicyWindowTitleBar {
-    background-color: #f7cecd;
+    background-color: c.classicy-tint("--color-error", 80%);
   }
 }

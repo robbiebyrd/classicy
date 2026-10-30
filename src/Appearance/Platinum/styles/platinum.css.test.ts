@@ -583,12 +583,14 @@ describe("platinum.scss (compiled)", () => {
 
 		it("scopes the icon halftones", () => {
 			for (const mask of [".classicyDesktopIconMask", ".classicyIconMask"]) {
-				const props = rule(`${P} ${mask}`).props;
-				expect(props["background-image"], mask).toMatch(
-					/^url\(['"]data:image\/svg\+xml,/,
+				expect(rule(`${P} ${mask}`).props.position, mask).toBe("relative");
+				const props = rule(`${P} ${mask}::before`).props;
+				expect(props["background-color"], mask).toBe("var(--color-black)");
+				expect(props["mask-image"], mask).toMatch(
+					/^var\(--classicy-art-halftone, url\(['"]data:image\/svg\+xml,/,
 				);
-				expect(props["background-repeat"], mask).toBe("repeat");
-				expect(props["background-size"], mask).toBe("7%");
+				expect(props["mask-repeat"], mask).toBe("repeat");
+				expect(props["mask-size"], mask).toBe("7%");
 			}
 		});
 
@@ -849,7 +851,7 @@ describe("the moved Platinum mixin files", () => {
 			...read(`${STYLES}/${file}`).matchAll(/@(mixin|function)\s+([\w-]+)/g),
 		].map(([, kind, name]) => `${kind} ${name}`);
 
-	it("declare only the renamed mixins and function", () => {
+	it("declare only the renamed mixins", () => {
 		expect(declared("_mixins.scss")).toEqual([
 			"mixin platinum-menu-frame",
 			"mixin platinum-menu-divider",
@@ -869,7 +871,6 @@ describe("the moved Platinum mixin files", () => {
 			"mixin platinum-window-depressed",
 			"mixin platinum-depressable-default",
 			"mixin platinum-depressable-box-shadow-active",
-			"function platinum-encode-color",
 			"mixin platinum-halftone",
 		]);
 		expect(declared("_scrollbars.scss")).toEqual([
@@ -1187,13 +1188,35 @@ describe("the moved Platinum mixin files", () => {
 		`));
 
 	it("platinum-halftone compiles to its pinned output", () =>
-		expect(mixin("platinum-halftone", "(#c0c0c0, 10%)")).toMatchInlineSnapshot(`
+		expect(
+			mixin("platinum-halftone", '("--color-system-05", 10%)'),
+		).toMatchInlineSnapshot(`
 			".x {
-			  background-image: url('data:image/svg+xml,<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 2.8 2.8" xml:space="preserve"><path fill="%23C0C0C0" d="M1,1.2H0.5C0.3,1.2,0.2,1.2,0.2,1V0.5c0-0.1,0.1-0.2,0.2-0.2H1c0.1,0,0.2,0.1,0.2,0.2V1C1.2,1.2,1.2,1.2,1,1.2z"/><path fill="%23C0C0C0" d="M2.3,2.5H1.7c-0.1,0-0.2-0.1-0.2-0.2V1.7c0-0.1,0.1-0.2,0.2-0.2h0.6c0.1,0,0.2,0.1,0.2,0.2v0.6C2.5,2.4,2.4,2.5,2.3,2.5z"/></svg>');
-			  background-repeat: repeat;
-			  background-size: 10%;
+			  position: relative;
+			}
+			.x::before {
+			  content: "";
+			  position: absolute;
+			  inset: 0;
+			  z-index: -1;
+			  pointer-events: none;
+			  background-color: var(--color-system-05);
+			  mask-image: var(--classicy-art-halftone, url('data:image/svg+xml,<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 2.8 2.8" xml:space="preserve"><path fill="black" d="M1,1.2H0.5C0.3,1.2,0.2,1.2,0.2,1V0.5c0-0.1,0.1-0.2,0.2-0.2H1c0.1,0,0.2,0.1,0.2,0.2V1C1.2,1.2,1.2,1.2,1,1.2z"/><path fill="black" d="M2.3,2.5H1.7c-0.1,0-0.2-0.1-0.2-0.2V1.7c0-0.1,0.1-0.2,0.2-0.2h0.6c0.1,0,0.2,0.1,0.2,0.2v0.6C2.5,2.4,2.4,2.5,2.3,2.5z"/></svg>'));
+			  mask-repeat: repeat;
+			  mask-size: 10%;
 			}"
 		`));
+
+	it("platinum-halftone defaults to --color-black at 5%", () => {
+		const css = mixin("platinum-halftone");
+		expect(css).toContain("background-color: var(--color-black);");
+		expect(css).toContain("mask-size: 5%;");
+	});
+
+	it("platinum-halftone takes a custom-property name, not a color", () =>
+		expect(() => mixin("platinum-halftone", "(#000000, 7%)")).toThrow(
+			/custom-property name/,
+		));
 
 	it("platinum-scrollbar-glyph-up compiles to its pinned output", () =>
 		expect(
@@ -1316,10 +1339,10 @@ describe("the moved Platinum mixin files", () => {
 			  border: var(--window-border-size) solid var(--color-black);
 			}
 			.x::-webkit-scrollbar-track:vertical {
-			  box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-06), inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * 2) 0 var(--color-system-03), inset calc(var(--window-border-size) * 2) 0 0 rgba(0, 0, 0, 0.25), inset calc(var(--window-border-size) * -2) 0 0 rgba(255, 255, 255, 0.25);
+			  box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-06), inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * 2) 0 var(--color-system-03), inset calc(var(--window-border-size) * 2) 0 0 color-mix(in srgb, var(--color-black) 25%, transparent), inset calc(var(--window-border-size) * -2) 0 0 color-mix(in srgb, var(--color-white) 25%, transparent);
 			}
 			.x::-webkit-scrollbar-track:horizontal {
-			  box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-06), inset calc(var(--window-border-size) * 2) calc(var(--window-border-size) * -1) 0 var(--color-system-03), inset calc(var(--window-border-size) * 2) 0 0 rgba(0, 0, 0, 0.25), inset calc(var(--window-border-size) * -2) 0 0 rgba(255, 255, 255, 0.25);
+			  box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-06), inset calc(var(--window-border-size) * 2) calc(var(--window-border-size) * -1) 0 var(--color-system-03), inset calc(var(--window-border-size) * 2) 0 0 color-mix(in srgb, var(--color-black) 25%, transparent), inset calc(var(--window-border-size) * -2) 0 0 color-mix(in srgb, var(--color-white) 25%, transparent);
 			}
 			.x::-webkit-scrollbar-corner {
 			  border-top: var(--window-border-size) solid var(--color-black);
@@ -1466,13 +1489,4 @@ describe("the moved Platinum mixin files", () => {
 			  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 21 21'%3E%3Cpolygon points='0,0 21,0 21,13.02 10.5,21 0,13.02' fill='none' stroke='black' stroke-width='4'/%3E%3C/svg%3E") 0 0/100% 100% no-repeat, url("../../../../../assets/img/ui/slider-strikes.svg") center 30%/45% 35% no-repeat, linear-gradient(to bottom, var(--color-system-01), var(--color-system-04));
 			}"
 		`));
-
-	// The value 4.1 pinned against the original encode-color.
-	it("platinum-encode-color percent-encodes a color for a data URI", () =>
-		expect(
-			compileString(
-				`@use "${STYLES}/mixins" as m;\n.x { content: m.platinum-encode-color(#336699); }`,
-				LOAD,
-			).css,
-		).toBe('.x {\n  content: "%23336699";\n}'));
 });

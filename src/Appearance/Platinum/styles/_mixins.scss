@@ -2,9 +2,8 @@
 // appearance module, renamed platinum-*), included by the package's component
 // partials inside classicy-package("platinum"). The layout helpers they use
 // (classicy-px-rect, classicy-no-select) live in ../../vocabulary/_layout.scss.
-@use 'sass:color';
-@use 'sass:string';
 @use 'sass:list';
+@use '../../vocabulary/color' as c;
 @use '../../vocabulary/layout';
 @use 'assets';
 
@@ -219,16 +218,24 @@
   inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-06);
 }
 
-@function platinum-encode-color($string) {
-  $hex: string.slice(color.ie-hex-str($string), 4);
-  $string: string.unquote('#{$hex}');
-  $string: '%23' + $string;
-  @return $string;
-}
+// The halftone dither, painted with the color token `$token` through the dot
+// pattern on a `::before` under the element's content. The element's own
+// `mask-image` (the icon shape) clips the pseudo-element as it clipped the
+// former background image. The pattern is the registered `halftone` system
+// art (`--classicy-art-halftone`) when a package publishes one, else the
+// built-in dots below (a mask, so their fill is only coverage).
+@mixin platinum-halftone($token: "--color-black", $size: 5%) {
+  position: relative;
 
-@mixin platinum-halftone($thisColor, $size: 5%) {
-  $thisColor: platinum-encode-color($thisColor);
-  background-image: url('data:image/svg+xml,<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 2.8 2.8" xml:space="preserve"><path fill="' + $thisColor + '" d="M1,1.2H0.5C0.3,1.2,0.2,1.2,0.2,1V0.5c0-0.1,0.1-0.2,0.2-0.2H1c0.1,0,0.2,0.1,0.2,0.2V1C1.2,1.2,1.2,1.2,1,1.2z"/><path fill="' + $thisColor + '" d="M2.3,2.5H1.7c-0.1,0-0.2-0.1-0.2-0.2V1.7c0-0.1,0.1-0.2,0.2-0.2h0.6c0.1,0,0.2,0.1,0.2,0.2v0.6C2.5,2.4,2.4,2.5,2.3,2.5z"/></svg>');
-  background-repeat: repeat;
-  background-size: $size;
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-color: var(#{c.classicy-token($token)});
+    mask-image: var(--classicy-art-halftone, url('data:image/svg+xml,<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 2.8 2.8" xml:space="preserve"><path fill="black" d="M1,1.2H0.5C0.3,1.2,0.2,1.2,0.2,1V0.5c0-0.1,0.1-0.2,0.2-0.2H1c0.1,0,0.2,0.1,0.2,0.2V1C1.2,1.2,1.2,1.2,1,1.2z"/><path fill="black" d="M2.3,2.5H1.7c-0.1,0-0.2-0.1-0.2-0.2V1.7c0-0.1,0.1-0.2,0.2-0.2h0.6c0.1,0,0.2,0.1,0.2,0.2v0.6C2.5,2.4,2.4,2.5,2.3,2.5z"/></svg>'));
+    mask-repeat: repeat;
+    mask-size: $size;
+  }
 }
