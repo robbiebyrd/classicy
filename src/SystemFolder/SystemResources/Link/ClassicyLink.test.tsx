@@ -58,8 +58,22 @@ describe("ClassicyLink", () => {
 
 	it("leaves modifier-clicks to the browser", () => {
 		render(<ClassicyLink href="https://example.com">Docs</ClassicyLink>);
-		fireEvent.click(screen.getByText("Docs"), { metaKey: true });
-		fireEvent.click(screen.getByText("Docs"), { ctrlKey: true });
+		// The browser's own handling is a navigation, which jsdom cannot do. A
+		// document listener (after React's root listener) records whether the
+		// link left the default alone, then cancels the navigation itself.
+		const leftToBrowser: boolean[] = [];
+		const stopNavigation = (e: MouseEvent) => {
+			leftToBrowser.push(!e.defaultPrevented);
+			e.preventDefault();
+		};
+		document.addEventListener("click", stopNavigation);
+		try {
+			fireEvent.click(screen.getByText("Docs"), { metaKey: true });
+			fireEvent.click(screen.getByText("Docs"), { ctrlKey: true });
+		} finally {
+			document.removeEventListener("click", stopNavigation);
+		}
+		expect(leftToBrowser).toEqual([true, true]);
 		expect(dispatchMock).not.toHaveBeenCalled();
 	});
 

@@ -59,6 +59,19 @@ if (typeof HTMLMediaElement !== "undefined") {
 	}
 }
 
+// Likewise jsdom has no 2D canvas without the optional `canvas` package:
+// getContext() reports "Not implemented" and returns null. Return null
+// silently, the same result, so code that falls back without a context still
+// takes that path. Writable and configurable, so a test can assign or spy on
+// it to supply a context of its own.
+if (typeof HTMLCanvasElement !== "undefined") {
+	Object.defineProperty(HTMLCanvasElement.prototype, "getContext", {
+		value: () => null,
+		configurable: true,
+		writable: true,
+	});
+}
+
 beforeEach(() => {
 	Object.defineProperty(globalThis, "localStorage", {
 		value: new MemoryStorage(),
