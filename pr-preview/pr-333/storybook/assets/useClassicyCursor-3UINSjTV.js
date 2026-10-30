@@ -1,1 +1,0 @@
-import{r as o,aq as e}from"./iframe-DtAF_g9_.js";const u=s=>/[\s'"()\\]/.test(s)?`url("${s.replace(/["\\]/g,"\\$&")}")`:`url(${s})`,a=()=>o.useCallback(r=>{if(!r){document.body.style.cursor="";return}const t=e("cursors",r);document.body.style.cursor=t?`${u(t)}, auto`:""},[]);export{a as u};
