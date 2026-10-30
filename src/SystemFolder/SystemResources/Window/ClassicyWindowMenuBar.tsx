@@ -2,9 +2,12 @@ import classNames from "classnames";
 import {
 	type CSSProperties,
 	type FC as FunctionalComponent,
+	useMemo,
 	useRef,
 } from "react";
+import { useClassicyAppIdentityOverrides } from "@/Appearance/ClassicyAppIdentity";
 import { CLASSICY_PART_ATTRIBUTE } from "@/Appearance/vocabulary/ClassicyVocabulary";
+import { withClassicyAppIdentityAboutItem } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
 import {
 	ClassicyMenu,
 	type ClassicyMenuItem,
@@ -67,6 +70,13 @@ const ClassicyWindowMenuBarContent: FunctionalComponent<
 > = ({ appId, windowId, menuItems, className, style }) => {
 	const rootRef = useRef<HTMLDivElement>(null);
 	useClassicyMenuCloseOnOutsideMouseDown(rootRef);
+	// The app's About item is stored under the app's own name (K-R8); it is
+	// titled with the active package's display name here, where it is drawn.
+	const overrides = useClassicyAppIdentityOverrides();
+	const items = useMemo(
+		() => withClassicyAppIdentityAboutItem(menuItems, appId, overrides) ?? [],
+		[menuItems, appId, overrides],
+	);
 	return (
 		<div
 			ref={rootRef}
@@ -76,7 +86,7 @@ const ClassicyWindowMenuBarContent: FunctionalComponent<
 		>
 			<ClassicyMenu
 				name={`${appId}_${windowId}_menuBar`}
-				menuItems={menuItems}
+				menuItems={items}
 				navClass="classicyDesktopMenu classicyWindowMenu"
 				subNavClass="classicySubMenu"
 			/>

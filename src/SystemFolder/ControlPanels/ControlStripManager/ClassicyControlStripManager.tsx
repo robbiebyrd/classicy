@@ -53,7 +53,8 @@ export function ClassicyControlStripManager() {
 	const appIcon =
 		useClassicyAsset("icons", "controlPanels.controlStripManager.app") ?? "";
 
-	// Display only: the app's id, record and Quit keep APP_NAME and appIcon.
+	// Display only: the app's id, record, stored menus and Quit keep APP_NAME
+	// and appIcon; the menu bars title the About item at render (K-R8).
 	const identity = useClassicyAppIdentity(APP_ID, {
 		name: APP_NAME,
 		icon: appIcon,
@@ -134,7 +135,7 @@ export function ClassicyControlStripManager() {
 						id: `${APP_ID}_file`,
 						title: "File",
 						menuChildren: [
-							{ ...aboutMenuItem, title: `About ${identity.name}` },
+							{ ...aboutMenuItem, title: `About ${APP_NAME}` },
 							{
 								...closeWindowMenuItemHelper(`${APP_ID}_close_window`, () =>
 									windowClose(

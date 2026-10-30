@@ -4,6 +4,7 @@ import type { ClassicyStoreSystemApp } from "@/SystemFolder/ControlPanels/AppMan
 import {
 	appSwitcherAppsFrom,
 	CLASSICY_SYSTEM_MENU_APP_PREFIX,
+	withClassicyAppIdentityAboutItem,
 	withClassicyAppIdentityMenuItems,
 } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
@@ -168,5 +169,78 @@ describe("withClassicyAppIdentityMenuItems", () => {
 		expect(
 			withClassicyAppIdentityMenuItems(undefined, { "B.app": { name: "Bee" } }),
 		).toBeUndefined();
+	});
+});
+
+describe("withClassicyAppIdentityAboutItem (K-R8)", () => {
+	const onClickFunc = () => {};
+	const menu = (): ClassicyMenuItem[] => [
+		{
+			id: "A.app_file",
+			title: "File",
+			menuChildren: [
+				{ id: "A.app_about", title: "About A", onClickFunc },
+				{ id: "spacer" },
+				{ id: "A.app_quit", title: "Quit" },
+			],
+		},
+		{
+			id: "A.app_help",
+			title: "Help",
+			// Another app's About, and a stray "About" title: never matched.
+			menuChildren: [
+				{ id: "B.app_about", title: "About B" },
+				{ id: "A.app_topic", title: "About" },
+			],
+		},
+	];
+
+	it("titles the app's own About item, found by id at any depth", () => {
+		const input = menu();
+		const result = withClassicyAppIdentityAboutItem(input, "A.app", {
+			"A.app": { name: "Ay" },
+		});
+		expect(result?.[0].menuChildren?.[0]).toEqual({
+			id: "A.app_about",
+			title: "About Ay",
+			onClickFunc,
+		});
+		// Other items, and the input itself, are untouched.
+		expect(result?.[0].menuChildren?.slice(1)).toEqual(
+			input[0].menuChildren?.slice(1),
+		);
+		expect(result?.[1]).toBe(input[1]);
+		expect(input[0].menuChildren?.[0].title).toBe("About A");
+	});
+
+	it("returns the input itself when nothing renames the app", () => {
+		const input = menu();
+		for (const overrides of [
+			CLASSICY_NO_APP_IDENTITY_OVERRIDES,
+			{ "A.app": { icon: "/icons/ay.png" } },
+			{ "B.app": { name: "Bee" } },
+			{ constructor: { name: "Proto" } },
+		]) {
+			expect(withClassicyAppIdentityAboutItem(input, "A.app", overrides)).toBe(
+				input,
+			);
+		}
+		expect(withClassicyAppIdentityAboutItem(input, "constructor", {})).toBe(
+			input,
+		);
+		expect(
+			withClassicyAppIdentityAboutItem(undefined, "A.app", {
+				"A.app": { name: "Ay" },
+			}),
+		).toBeUndefined();
+	});
+
+	it("returns the input itself when the title already matches", () => {
+		const input = menu();
+		expect(
+			withClassicyAppIdentityAboutItem(input, "A.app", {
+				"A.app": { name: "A" },
+			}),
+		).toBe(input);
 	});
 });

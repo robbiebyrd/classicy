@@ -119,7 +119,8 @@ function makeBlankStack(): HCStack {
 
 export const HyperCard: FunctionalComponent = () => {
 	const appIcon = useClassicyAsset("icons", "system.files.application") ?? "";
-	// Display only: the app's id, record and Quit keep appName and appIcon.
+	// Display only: the app's id, record, stored menus and Quit keep appName
+	// and appIcon; the menu bars title the About item at render (K-R8).
 	const identity = useClassicyAppIdentity(appId, {
 		name: appName,
 		icon: appIcon,
@@ -659,7 +660,7 @@ export const HyperCard: FunctionalComponent = () => {
 				id: "file",
 				title: "File",
 				menuChildren: [
-					{ ...aboutMenuItem, title: `About ${identity.name}` },
+					{ ...aboutMenuItem, title: `About ${appName}` },
 					{ id: "spacer" },
 					{
 						id: "new_stack",
@@ -966,7 +967,6 @@ export const HyperCard: FunctionalComponent = () => {
 		infoClosed,
 		dispatch,
 		aboutMenuItem,
-		identity.name,
 		handleQuit,
 		appIcon,
 	]);
