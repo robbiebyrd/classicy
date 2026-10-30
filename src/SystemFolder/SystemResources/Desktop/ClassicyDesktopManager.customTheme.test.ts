@@ -6,6 +6,7 @@ import {
 	resetClassicyAppearancePackagesForTests,
 } from "@/Appearance/ClassicyAppearancePackage";
 import {
+	type ClassicyTheme,
 	getTheme,
 	getThemeVars,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
@@ -22,6 +23,7 @@ import {
 	CLASSICY_THEME_METRIC_TARGETS,
 	getThemeMetric,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricTargets";
+import { resolveWallpaper } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 import { isUntrustedActionAllowed } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionTrust";
 import {
 	type ActionMessage,
@@ -711,7 +713,7 @@ describe("ClassicyDesktopChangeMetric family form", () => {
 	it("resolves an unregistered packageId to the registered default package", () => {
 		// The same rule as resolveClassicyAppearancePackage (R6/R16): a
 		// persisted id whose package is gone falls back to Platinum, so the
-		// reducer accepts exactly the knobs the panel shows.
+		// reducer and the panel agree on the active package's knobs.
 		registerClassicyAppearancePackage({
 			...knobPackage,
 			id: "platinum",
@@ -915,6 +917,94 @@ describe("themes across Appearance Packages", () => {
 		expect(a.customThemes?.[1].color.select).toBe(0x123456);
 		expect(a.customThemes?.[1].color.white).not.toBe(0xfefefe);
 		expect(a.customThemes?.[0].color.black).toBe(0x010101);
+	});
+});
+
+describe("ChangeTheme in a package whose ids collide with Platinum's", () => {
+	const layout: ClassicyAppearancePackage["layout"] = {
+		window: { growBoxCorner: "bottom-right" },
+		menuBar: { placement: "screen" },
+		desktop: { iconGridOrigin: "top-right" },
+	};
+	const irixTheme = (id: string, name: string): ClassicyTheme => ({
+		...structuredClone(getTheme("default")),
+		id,
+		name,
+		package: "irix",
+	});
+	const switchTo = (ds: ClassicyStore, packageId: string) =>
+		run(ds, { type: "ClassicyDesktopChangeAppearancePackage", packageId });
+
+	it("J-R19: ChangeTheme to a colliding preset id activates the active package's theme, and an edit forks into its Custom slot", () => {
+		registerClassicyAppearancePackage({
+			id: "irix",
+			name: "IRIX",
+			css: "",
+			defaults: irixTheme("indigo", "Indigo"),
+			presets: [irixTheme("indigo", "Indigo"), irixTheme("default", "Default")],
+			layout,
+		});
+		const ds = makeStore();
+		switchTo(ds, "irix");
+		run(ds, { type: "ClassicyDesktopChangeTheme", activeTheme: "default" });
+		let a = appearance(ds);
+		expect(a.activeTheme.id).toBe("default");
+		expect(a.activeTheme.package).toBe("irix");
+		run(ds, {
+			type: "ClassicyDesktopChangeColor",
+			colorKey: "black",
+			color: 0x020202,
+		});
+		a = appearance(ds);
+		expect(a.activeTheme.id).toBe("custom-irix");
+		expect(a.activeTheme.package).toBe("irix");
+		expect(a.customThemes?.map((t) => t.id)).toEqual(["custom-irix"]);
+	});
+
+	it("J-R21: ChangeTheme resolves a preset's bundled wallpaper filename to its asset URL", () => {
+		const filenamePreset = irixTheme("dusk", "Dusk");
+		filenamePreset.desktop.backgroundImage = "azul_dark.png";
+		registerClassicyAppearancePackage({
+			id: "irix",
+			name: "IRIX",
+			css: "",
+			defaults: irixTheme("indigo", "Indigo"),
+			presets: [irixTheme("indigo", "Indigo"), filenamePreset],
+			layout,
+		});
+		const ds = makeStore();
+		switchTo(ds, "irix");
+		run(ds, { type: "ClassicyDesktopChangeTheme", activeTheme: "dusk" });
+		const image = appearance(ds).activeTheme.desktop.backgroundImage;
+		expect(image).not.toBe("azul_dark.png");
+		expect(image).toBe(resolveWallpaper("azul_dark.png"));
+		// The registered preset is left as passed.
+		expect(filenamePreset.desktop.backgroundImage).toBe("azul_dark.png");
+	});
+
+	it("J-R22: a package's defaults are selectable when no preset has their id", () => {
+		registerClassicyAppearancePackage({
+			id: "irix",
+			name: "IRIX",
+			css: "",
+			defaults: irixTheme("indigo", "Indigo"),
+			layout,
+		});
+		const ds = makeStore();
+		switchTo(ds, "irix");
+		expect(appearance(ds).activeTheme.id).toBe("indigo");
+		// Away (a fork) and back.
+		run(ds, {
+			type: "ClassicyDesktopChangeColor",
+			colorKey: "black",
+			color: 0x030303,
+		});
+		expect(appearance(ds).activeTheme.id).toBe("custom-irix");
+		run(ds, { type: "ClassicyDesktopChangeTheme", activeTheme: "indigo" });
+		const a = appearance(ds);
+		expect(a.activeTheme.id).toBe("indigo");
+		expect(a.activeTheme.package).toBe("irix");
+		expect(a.activeTheme.color.black).not.toBe(0x030303);
 	});
 });
 

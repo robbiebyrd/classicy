@@ -58,23 +58,42 @@ export const listClassicyThemes = (
 ];
 
 /**
+ * A package's own built-in themes: its `defaults` first, unless a preset has
+ * their id, then its presets (J-R22: `presets` is optional, and the defaults
+ * are always selectable).
+ */
+export const listClassicyPackageBuiltInThemes = (
+	pkg: Pick<ClassicyAppearancePackage, "presets"> &
+		Partial<Pick<ClassicyAppearancePackage, "defaults">>,
+): ClassicyTheme[] => {
+	const presets = pkg.presets ?? [];
+	const { defaults } = pkg;
+	return defaults && !presets.some((t) => t.id === defaults.id)
+		? [defaults, ...presets]
+		: [...presets];
+};
+
+/**
  * The theme list for one Appearance Package, as the Appearance Manager shows
- * it: the package's presets and the host-loaded built-ins
- * (`availableThemes`, `ClassicyDesktopLoadThemes`) of that package, once per
- * id in preset order (a loaded theme replaces the preset it shares an id
- * with, since `ClassicyDesktopChangeTheme` finds it first), then the custom
- * themes of that package.
+ * it: the package's built-ins (`listClassicyPackageBuiltInThemes`: its
+ * defaults, unless a preset has their id, and its presets) and the host-loaded
+ * built-ins (`availableThemes`, `ClassicyDesktopLoadThemes`) of that package,
+ * once per id in that order (a loaded theme replaces the built-in it shares
+ * an id with, since `ClassicyDesktopChangeTheme` finds it first), then the
+ * custom themes of that package.
  */
 export const listClassicyPackageThemes = (
 	appearance: Pick<
 		ClassicyStoreSystemAppearanceManager,
 		"availableThemes" | "customThemes"
 	>,
-	pkg: Pick<ClassicyAppearancePackage, "id" | "presets">,
+	pkg: Pick<ClassicyAppearancePackage, "id" | "presets"> &
+		Partial<Pick<ClassicyAppearancePackage, "defaults">>,
 ): ClassicyTheme[] => {
 	const ofPackage = (t: ClassicyTheme) => themePackageId(t) === pkg.id;
 	const builtIns = new Map<string, ClassicyTheme>();
-	for (const preset of pkg.presets ?? []) builtIns.set(preset.id, preset);
+	for (const theme of listClassicyPackageBuiltInThemes(pkg))
+		builtIns.set(theme.id, theme);
 	for (const loaded of (appearance.availableThemes ?? []).filter(ofPackage))
 		builtIns.set(loaded.id, loaded);
 	return [
@@ -84,8 +103,12 @@ export const listClassicyPackageThemes = (
 };
 
 /**
- * Looks a theme id up among the built-ins, then `presets` (the active
- * package's), then the custom themes.
+ * Looks a theme id up, in `ClassicyDesktopChangeTheme`'s order (J-R19). With
+ * `pkg`, the active package: its host-loaded `availableThemes`, then its
+ * built-ins (`listClassicyPackageBuiltInThemes`), then the custom themes, and
+ * last the other packages' `availableThemes`. So an id shared with another
+ * package's built-in (`default`, say) finds the active package's own theme.
+ * Without `pkg`: `availableThemes`, then the custom themes.
  */
 export const findClassicyTheme = (
 	appearance: Pick<
@@ -93,11 +116,20 @@ export const findClassicyTheme = (
 		"availableThemes" | "customThemes"
 	>,
 	themeId: string,
-	presets: readonly ClassicyTheme[] = [],
-): ClassicyTheme | undefined =>
-	appearance.availableThemes?.find((t) => t.id === themeId) ??
-	presets.find((t) => t.id === themeId) ??
-	appearance.customThemes?.find((t) => t.id === themeId);
+	pkg?: Pick<ClassicyAppearancePackage, "id" | "presets"> &
+		Partial<Pick<ClassicyAppearancePackage, "defaults">>,
+): ClassicyTheme | undefined => {
+	const byId = (t: ClassicyTheme) => t.id === themeId;
+	const loaded = appearance.availableThemes ?? [];
+	const customs = appearance.customThemes ?? [];
+	if (!pkg) return loaded.find(byId) ?? customs.find(byId);
+	return (
+		loaded.find((t) => byId(t) && themePackageId(t) === pkg.id) ??
+		listClassicyPackageBuiltInThemes(pkg).find(byId) ??
+		customs.find(byId) ??
+		loaded.find(byId)
+	);
+};
 
 /** True when the active theme is one of the user's custom themes (so edits
  * modify it in place rather than forking). */
@@ -144,17 +176,18 @@ export const editActiveClassicyTheme = (
 			// share a namespace). Move it aside under the next free numbered
 			// id, keeping its name and data; it is never the active theme
 			// here, since a built-in is. The id avoids what an import's does:
-			// every theme, the moved theme's own package's presets (which
+			// every theme, the moved theme's own package's built-ins (which
 			// ChangeTheme would find first) and every registered package's
 			// Custom slot. Both lookups are store-free (J-R16).
-			const ownPresets =
+			const ownBuiltIns = listClassicyPackageBuiltInThemes(
 				getRegisteredClassicyAppearancePackageOrDefault(
 					themePackageId(customs[slot]),
-				)?.presets ?? [];
+				) ?? {},
+			);
 			const ids = new Set([
 				...customs.map((t) => t.id),
 				...(appearance.availableThemes ?? []).map((t) => t.id),
-				...ownPresets.map((t) => t.id),
+				...ownBuiltIns.map((t) => t.id),
 				...listClassicyAppearancePackages().map((pkg) =>
 					classicyCustomThemeSlotId(pkg.id),
 				),

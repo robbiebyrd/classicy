@@ -11,6 +11,7 @@ import {
 	type ClassicyThemeMetricFamilyTarget,
 	getThemeMetricFamily,
 	getThemeMetricFamilyBounds,
+	isThemeMetricFamilyTarget,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricTargets";
 import { ClassicyControlGroup } from "@/SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup";
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
@@ -63,9 +64,10 @@ const knobFamilySchema = (
 		),
 	);
 
-// Knobs already warned about, so a knob that can never be edited is reported
-// once, not on every render or remount of the tab.
-const warnedKnobs = new Set<string>();
+// Packages already warned about (with the knobs they were warned about), so
+// knobs that can never be edited are reported once per package, not on every
+// render or remount of the tab.
+const warnedPackages = new Set<string>();
 
 // The theme's value for each knob, or the knob's default when the theme
 // predates it (the reducer creates the key on the first edit).
@@ -88,9 +90,11 @@ const knobFamilyValues = (
  * the knob's label. Edits go to `changeMetric` as `{ family, key }` and a
  * whole-pixel value clamped to the knob's bounds. Above them sits the
  * Metrics tab's notice: the first edit on a built-in theme forks "Custom".
- * A knob whose declared range does not meet 0–512 cannot be edited, so it is
- * left out and reported once (J-R18). A package without editable knobs says
- * so instead.
+ * A knob the reducer would refuse is left out: one whose family or key fails
+ * `isThemeMetricFamilyTarget` (a core group such as `window`, or a name that
+ * is not lower camel case, J-R20) or whose declared range does not meet
+ * 0–512 (J-R18). The left-out knobs are reported in one warning per package.
+ * A package without editable knobs says so instead.
  */
 export const useOptionsTab = ({
 	pkg,
@@ -104,9 +108,13 @@ export const useOptionsTab = ({
 			([family, keys]) => {
 				const knobs: EditableKnob[] = [];
 				for (const [key, knob] of Object.entries(keys)) {
+					if (!isThemeMetricFamilyTarget({ family, key })) {
+						skipped.push(`"${family}.${key}" (not a package measurement name)`);
+						continue;
+					}
 					const bounds = getThemeMetricFamilyBounds(knob);
 					if (bounds) knobs.push({ key, knob, ...bounds });
-					else skipped.push(`${family}.${key}`);
+					else skipped.push(`"${family}.${key}" (range outside 0–512)`);
 				}
 				return knobs.length === 0
 					? []
@@ -117,16 +125,15 @@ export const useOptionsTab = ({
 	}, [pkg.knobs]);
 
 	useEffect(() => {
-		for (const knob of skipped) {
-			const id = `${pkg.id}:${knob}`;
-			if (warnedKnobs.has(id)) continue;
-			warnedKnobs.add(id);
-			classicyLog(
-				"warn",
-				"ClassicyAppearance",
-				`Package "${pkg.id}" knob "${knob}" is not editable: its range does not meet 0–512, so the Options tab leaves it out`,
-			);
-		}
+		if (skipped.length === 0) return;
+		const id = `${pkg.id}:${skipped.join(",")}`;
+		if (warnedPackages.has(id)) return;
+		warnedPackages.add(id);
+		classicyLog(
+			"warn",
+			"ClassicyAppearance",
+			`Package "${pkg.id}" has knobs the Options tab cannot edit, so it leaves them out: ${skipped.join(", ")}`,
+		);
 	}, [pkg.id, skipped]);
 
 	return useMemo(

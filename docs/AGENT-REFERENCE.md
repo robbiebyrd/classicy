@@ -370,7 +370,7 @@ Common built-in actions:
 | `ClassicyAppClose` | `{ app: { id } }` | Close an app |
 | `ClassicyAppFocus` | `{ app: { id } }` | Focus an app |
 | `ClassicyWindowFocus` | `{ app: { id }, window: { id } }` | Focus a window |
-| `ClassicyDesktopChangeTheme` | `{ activeTheme: "<themeId>" }` | Switch theme (built-ins, then the active package's presets, then custom themes) |
+| `ClassicyDesktopChangeTheme` | `{ activeTheme: "<themeId>" }` | Switch theme (the active package's loaded built-ins, then its defaults and presets, then custom themes, then other packages' built-ins) |
 | `ClassicyDesktopChangeAppearancePackage` | `{ packageId: string }` | Switch the active Appearance Package (`System.Manager.Appearance.packageId`, persisted, default `"platinum"`); activates a copy of the package's default theme unless the active theme already belongs to it (`theme.package`). An unregistered id is a logged no-op; untrusted dispatches never reach it (`ClassicyDesktop*` floor) |
 | `ClassicyDesktopChangeColor` | `{ colorKey, index?, color }` | Set one theme color (forks a built-in into "Custom"; see §8) |
 | `ClassicyDesktopChangeMetric` | `{ metricKey, value }` or `{ family, key, value }` | Set one core layout metric, or one knob of the active package (forks a built-in into "Custom"; see §8) |
@@ -1674,12 +1674,19 @@ are never mutated. Every theme edit — `ClassicyDesktopChangeColor`,
 - **Edits while a custom theme is active** modify it in place (the active copy
   and its `customThemes` entry stay in sync).
 - An edit that changes nothing (same value, unknown font slot) does not fork.
-- `ClassicyDesktopChangeTheme` looks the id up in `availableThemes`, then the
-  active package's `presets` (the registered package for `packageId`, else the
-  default), then `customThemes`, and activates a copy, so switching to a
-  built-in and back to the Custom theme restores the edits. It never changes
-  `packageId`: it can activate another package's `availableThemes` entry,
-  which the Appearance Manager never offers. `ClassicyDesktopLoadThemes`
+- `ClassicyDesktopChangeTheme` looks the id up in the active package's
+  `availableThemes` entries (the registered package for `packageId`, else
+  the default), then that package's own themes (its `defaults`, unless a
+  preset has their id, and its `presets`), then `customThemes`, and last the
+  other packages' `availableThemes` entries. So a preset whose id another
+  package's built-in also uses (`default`, say) activates the active
+  package's own theme, and the next edit forks into that package's Custom
+  slot. It activates a copy, so switching to a built-in and back to the
+  Custom theme restores the edits; a package's own theme is completed the
+  way a package switch completes its defaults (missing metric groups filled
+  in, a bundled wallpaper filename resolved to its asset URL). It never
+  changes `packageId`: it can activate another package's `availableThemes`
+  entry, which the Appearance Manager never offers. `ClassicyDesktopLoadThemes`
   leaves `customThemes` alone.
 
 `customThemes` is persisted separately from `availableThemes` because persisted
@@ -1687,11 +1694,14 @@ arrays replace their defaults on load — a custom entry inside
 `availableThemes` would freeze the built-in list. State saved before custom
 themes existed loads with `customThemes: []`. Read helpers:
 `listClassicyThemes(appearance)` (built-ins then customs),
+`listClassicyPackageBuiltInThemes(pkg)` (a package's own themes: its
+`defaults` first unless a preset has their id, then its `presets`),
 `listClassicyPackageThemes(appearance, pkg)` (the theme menu's list for one
-package: its presets and its host-loaded `availableThemes`, once per id with a
-loaded theme replacing the preset it shares an id with, then its custom
-themes), `findClassicyTheme(appearance, id, presets?)` (ChangeTheme's order
-above; `presets` are the active package's), `isCustomThemeActive(appearance)`
+package: its own themes and its host-loaded `availableThemes`, once per id
+with a loaded theme replacing the built-in it shares an id with, then its
+custom themes), `findClassicyTheme(appearance, id, pkg?)` (ChangeTheme's
+order above, `pkg` being the active package; without it, `availableThemes`
+then `customThemes`), `isCustomThemeActive(appearance)`
 and `classicyCustomThemeSlotId(packageId)`.
 
 `ClassicyDesktopChangeColor` addresses one of the 28 color variables:
@@ -1756,8 +1766,10 @@ as `resolveClassicyAppearancePackage` resolves it (the registered package for
 package" below). `value` must be within the knob's bounds,
 `getThemeMetricFamilyBounds(knob)`: its declared `min`–`max` intersected with
 0–512, or `undefined` when the two do not meet — such a knob is not editable
-at all (the reducer refuses every value; the Options tab leaves it out and
-logs one `ClassicyAppearance` warning naming the package, family and key). A
+at all (the reducer refuses every value; the Options tab leaves it out). The
+Options tab also leaves out a knob whose family or key fails
+`isThemeMetricFamilyTarget`, which the reducer refuses too, and logs one
+`ClassicyAppearance` warning per package naming every knob it left out. A
 declared knob the theme does not carry yet is created; a family the theme
 carries as something other than an object is left alone. Undeclared knobs,
 out-of-range values and unwritable families are refused with a
@@ -1885,8 +1897,8 @@ from `ClassicyAppearancePackageRegistry.ts`: the same chain without the
 fallback, which `resolveClassicyAppearancePackage` adds
 (`resolveClassicyAppearancePackage` is built on it). The desktop reducer reads
 the active package through it for the family form's knobs, ChangeTheme's
-presets and ImportTheme's reserved ids, so the reducer accepts exactly what
-the Appearance Manager shows; `theme.package` is provenance only (which
+search and ImportTheme's reserved ids, so the reducer and the Appearance
+Manager agree on the active package; `theme.package` is provenance only (which
 package's Custom slot a fork lands in, which themes a package lists). The desktop root carries the **resolved** id as
 `data-classicy-appearance`, so CSS and JS agree while a persisted id's package
 has not registered yet; the attribute follows when it does.
@@ -1987,7 +1999,7 @@ Identity rules (`assignImportedClassicyThemeIdentity`):
 
 - The file's `id` is ignored. The id is `custom-<slug of the name>`
   (`custom-theme` if the slug is empty), with `-2`, `-3`, … on collision with
-  any built-in, custom or active-package preset id — and never a Custom fork
+  any built-in, custom or active-package theme id (its defaults and presets) — and never a Custom fork
   slot the next edit on a built-in would overwrite: `"custom"`, the theme's
   own package's slot, or any id in `reservedIds` (ImportTheme passes every
   registered package's `classicyCustomThemeSlotId`). So an import can never
@@ -2017,9 +2029,9 @@ edit on a built-in theme forks its package's Custom theme (above).
 
 | Tab | Hook (props) | What it shows and dispatches |
 |---|---|---|
-| Themes | `useThemesTab({ packageId, packageName, themesList, switchTheme, activeThemeId, smartScrolling, toggleSmartScrolling, doubleClickTitleToCollapse, toggleDoubleClickTitleToCollapse, saveTheme, loadThemeFile })` | "The current Appearance Package is <name>" (Platinum's icon only for `platinum`); the theme pop-up, `listClassicyPackageThemes` for the active package (`ClassicyDesktopChangeTheme`); Save Theme… / Load Theme… (above); the scrolling and collapse checkboxes |
+| Themes | `useThemesTab({ packageId, packageName, themesList, switchTheme, activeThemeId, smartScrolling, toggleSmartScrolling, doubleClickTitleToCollapse, toggleDoubleClickTitleToCollapse, saveTheme, loadThemeFile })` | "The current Appearance Package is <name>" (Platinum's icon only for `platinum`); the theme pop-up, `listClassicyPackageThemes` for the active package plus the active theme when it is not among them, so the pop-up is never blank (`ClassicyDesktopChangeTheme`); Save Theme… / Load Theme… (above); the scrolling and collapse checkboxes |
 | Packages | `usePackagesTab({ packages, activePackageId, changePackage })` | A `ClassicyRadioInput` (`name="appearance_package"`, input ids `appearancePackageInputId(id)` → `appearance_package_<id>`) listing every registered package as "<name> (<n> presets)", the active one on, and under it each package's seven `defaults.color.theme` swatches (`li[data-package-id]`, `aria-label` "<name> colors"); in the Colors tab's 210 px scroll region. Picking one dispatches `ClassicyDesktopChangeAppearancePackage { packageId }`, which keeps `customThemes` |
-| Options | `useOptionsTab({ pkg, theme, editingCustomTheme, changeMetric })` | The active package's `knobs`: one group per family (humanized family name), one spinner per knob (its `label`), showing `measurements.<family>.<key>` or the knob's default when the theme lacks it; ids `appearanceOptionInputId({ family, key })` → `appearance_option_measurements_<family>_<key>`. Built with `ClassicySchemaForm`; entries are whole pixels clamped to `getThemeMetricFamilyBounds` and dispatched as `ClassicyDesktopChangeMetric { family, key, value }` (never `ChangeAppearanceOption`). Carries the fork notice ("Changing an option creates a Custom theme from “<name>”." / "Editing the “<name>” theme."). Knobs whose bounds are `undefined` are left out; a package with no editable knob shows "The <name> package has no options." |
+| Options | `useOptionsTab({ pkg, theme, editingCustomTheme, changeMetric })` | The active package's `knobs`: one group per family (humanized family name), one spinner per knob (its `label`), showing `measurements.<family>.<key>` or the knob's default when the theme lacks it; ids `appearanceOptionInputId({ family, key })` → `appearance_option_measurements_<family>_<key>`. Built with `ClassicySchemaForm`; entries are whole pixels clamped to `getThemeMetricFamilyBounds` and dispatched as `ClassicyDesktopChangeMetric { family, key, value }` (never `ChangeAppearanceOption`). Carries the fork notice ("Changing an option creates a Custom theme from “<name>”." / "Editing the “<name>” theme."). Knobs the reducer would refuse are left out: a family or key failing `isThemeMetricFamilyTarget` (a core group such as `window`, or a name that is not lower camel case) or bounds that are `undefined`; the left-out knobs are reported in one `ClassicyAppearance` warning per package. A package with no editable knob shows "The <name> package has no options." |
 | Desktop | `useDesktopTab({ bg, bgPosition, bgRepeat, bgSize, changeBackground, setBackgroundURL, alignBackground, repeatBackground, backgroundSize })` | The wallpaper picker (the wallpaper registry, §5), a picture URL field, and position, tiling and size (`ClassicyDesktopChangeBackground*`) |
 | Colors | `useColorsTab({ theme, editingCustomTheme, changeColor, appId })` | The 28 `CLASSICY_THEME_COLOR_TARGETS` swatches in groups (`appearanceColorPickerId(target)`), dispatching `ClassicyDesktopChangeColor`, with the fork notice |
 | Fonts | `useFontsTab({ typography, changeFont, changeFontSize })` | A family pop-up (the font registry, §5) and a size per typography slot (`ClassicyDesktopChangeFont`, `ClassicyDesktopChangeFontSize`) |

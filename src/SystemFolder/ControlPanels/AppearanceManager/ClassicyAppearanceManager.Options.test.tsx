@@ -374,6 +374,54 @@ describe("useOptionsTab", () => {
 		});
 	});
 
+	describe("a knob the reducer would refuse by name (J-R20)", () => {
+		const warnings: ClassicyLogEntry[] = [];
+		beforeEach(() => {
+			warnings.length = 0;
+			vi.spyOn(console, "warn").mockImplementation(() => {});
+			registerClassicyLogSink({
+				id: "options-tab-names-test",
+				onLog: (entry) => {
+					if (entry.level === "warn") warnings.push(entry);
+				},
+			});
+		});
+		afterEach(() => {
+			unregisterClassicyLogSink("options-tab-names-test");
+			vi.restoreAllMocks();
+		});
+
+		it("leaves out a core-group knob and a kebab-case family, warning once per package", () => {
+			const k: ClassicyAppearanceKnobs = {
+				controlStrip: knobs.controlStrip,
+				window: {
+					shadowSize: { label: "Shadow size", min: 0, max: 8, default: 2 },
+				},
+				"control-strip": {
+					gap: { label: "Gap", min: 0, max: 8, default: 2 },
+				},
+			};
+			const pkg = {
+				...testPack,
+				id: "named-pack",
+				knobs: k,
+				options: classicyKnobsToSchema(k),
+			};
+			const { rerender } = render(<Host pkg={pkg} />);
+			rerender(<Host pkg={pkg} editingCustomTheme />);
+			expect(screen.queryByLabelText("Shadow size")).toBeNull();
+			expect(screen.queryByLabelText("Gap")).toBeNull();
+			expect(field("window", "shadowSize")).toBeNull();
+			expect(field("control-strip", "gap")).toBeNull();
+			expect(field("controlStrip", "cellHeight")).not.toBeNull();
+			const named = warnings.filter((w) => w.message.includes("named-pack"));
+			expect(named).toHaveLength(1);
+			expect(named[0].subsystem).toBe("ClassicyAppearance");
+			expect(named[0].message).toContain("window.shadowSize");
+			expect(named[0].message).toContain("control-strip.gap");
+		});
+	});
+
 	it("says so when the package has no options", () => {
 		render(
 			<Host pkg={{ ...testPack, knobs: undefined, options: undefined }} />,

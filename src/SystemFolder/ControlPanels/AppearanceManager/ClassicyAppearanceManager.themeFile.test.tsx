@@ -138,6 +138,24 @@ registerClassicyAppearancePackage({
 		desktop: { iconGridOrigin: "top-right" },
 	},
 });
+// A package with defaults only (no presets), whose defaults' id collides
+// with Platinum's "default" (J-R19, J-R22).
+registerClassicyAppearancePackage({
+	id: "solo-pack",
+	name: "Solo Pack",
+	css: "",
+	defaults: {
+		...structuredClone(getTheme("default")),
+		id: "default",
+		name: "Solo Default",
+		package: "solo-pack",
+	},
+	layout: {
+		window: { growBoxCorner: "bottom-right" },
+		menuBar: { placement: "screen" },
+		desktop: { iconGridOrigin: "top-right" },
+	},
+});
 // Complete sprite sheets, so the sound manager has nothing to fall back on.
 const everySprite = Object.fromEntries(
 	CLASSICY_SOUND_SPRITE_IDS.map((id, i) => [
@@ -354,6 +372,64 @@ describe("Appearance Manager — saving and loading theme files", {
 			expect(appearance().activeTheme.id).toBe("tp-two");
 		});
 		expect(appearance().activeTheme.package).toBe("test-pack");
+	});
+
+	it("lists a defaults-only package's default, switches away and back (J-R22)", async () => {
+		act(() => {
+			dispatch({
+				type: "ClassicyDesktopChangeAppearancePackage",
+				packageId: "solo-pack",
+			});
+		});
+		const win = await openAppearanceManager();
+		const menu = within(win).getByRole("combobox", { name: "Selected Theme" });
+		expect(menu).toHaveTextContent("Solo Default");
+		expect(themeMenuOptions(win)).toEqual(["Solo Default"]);
+		// Re-picking the current theme closes the menu and changes nothing.
+		fireEvent.click(
+			within(screen.getByRole("listbox")).getByRole("option", {
+				name: "Solo Default",
+			}),
+		);
+
+		act(() => {
+			dispatch({
+				type: "ClassicyDesktopChangeColor",
+				colorKey: "black",
+				color: 0x040404,
+			});
+		});
+		await waitFor(() => {
+			expect(menu).toHaveTextContent("Custom");
+		});
+		expect(themeMenuOptions(win)).toEqual(["Solo Default", "Custom"]);
+		fireEvent.click(
+			within(screen.getByRole("listbox")).getByRole("option", {
+				name: "Solo Default",
+			}),
+		);
+		await waitFor(() => {
+			expect(appearance().activeTheme.name).toBe("Solo Default");
+		});
+		expect(appearance().activeTheme.package).toBe("solo-pack");
+		expect(menu).toHaveTextContent("Solo Default");
+	});
+
+	it("shows the active theme in the pop-up when it is not in the package's list", async () => {
+		useAppManager.setState((state) => {
+			const a = state.System.Manager.Appearance;
+			a.packageId = "test-pack";
+			a.activeTheme = { ...getTheme("azul"), package: "platinum" };
+			return state;
+		});
+		const win = await openAppearanceManager();
+		const menu = within(win).getByRole("combobox", { name: "Selected Theme" });
+		expect(menu).toHaveTextContent(getTheme("azul").name);
+		expect(themeMenuOptions(win)).toEqual([
+			"TP One",
+			"TP Two",
+			getTheme("azul").name,
+		]);
 	});
 
 	it("loading a theme of another installed package switches to that package first", async () => {
