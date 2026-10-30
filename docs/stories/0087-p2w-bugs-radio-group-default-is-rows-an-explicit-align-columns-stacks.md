@@ -3,12 +3,13 @@ id: 0087-p2w
 title: Radio group default is rows; an explicit align="columns" stacks
 purpose: Make ClassicyRadioInput's default and its align prop work as documented, without changing how any existing radio group looks.
 type: bugs
-status: in_progress
+status: complete
 priority: "3"
 effort: XS
 created: "2026-10-30T01:49:48.719Z"
-updated: "2026-10-30T03:10:52.788Z"
+updated: "2026-10-30T04:10:13.935Z"
 started: "2026-10-30T01:50:14.508Z"
+completed: "2026-10-30T04:10:13.935Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -52,8 +53,8 @@ Change the `align` default to `"rows"`, and move `.classicyRadioInputGroupColumn
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/RadioInput
-- [ ] Every existing radio group renders identically (AE 0 on controls-radioinput--* and the post-b stories that contain radio groups), and an explicit align="columns" stacks.
+- [x] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/RadioInput
+- [x] Every existing radio group renders identically (AE 0 on controls-radioinput--* and the post-b stories that contain radio groups), and an explicit align="columns" stacks.
 
 ## Files
 

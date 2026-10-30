@@ -3,12 +3,13 @@ id: 0086-u2p
 title: Storybook type-check clean and in CI; dist/types excludes the root configs
 purpose: Make every story type-check under a strict Storybook tsconfig, run that check in CI, and stop the package shipping declarations for vite.config.ts and vitest.config.ts.
 type: chor
-status: in_progress
+status: complete
 priority: "2"
 effort: S
 created: "2026-10-30T01:47:52.512Z"
-updated: "2026-10-30T03:10:51.297Z"
+updated: "2026-10-30T04:10:11.812Z"
 started: "2026-10-30T01:50:13.770Z"
+completed: "2026-10-30T04:10:11.812Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -65,9 +66,9 @@ Add a `storybook:typecheck` script and run it in `.github/workflows/ci.yml` besi
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: npx tsc --noEmit -p storybook/tsconfig.json  # exit 0, no errors
-- [ ] VERIFY: pnpm build:source && test -z "$(ls dist/types/*.config.d.ts 2>/dev/null)"
-- [ ] CI runs the Storybook type-check, and CLAUDE.md lists it.
+- [x] VERIFY: npx tsc --noEmit -p storybook/tsconfig.json  # exit 0, no errors
+- [x] VERIFY: pnpm build:source && test -z "$(ls dist/types/*.config.d.ts 2>/dev/null)"
+- [x] CI runs the Storybook type-check, and CLAUDE.md lists it.
 
 ## Files
 
