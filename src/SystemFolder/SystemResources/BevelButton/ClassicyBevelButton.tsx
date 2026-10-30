@@ -59,7 +59,10 @@ export type ClassicyBevelPopupTrigger = "click" | "hold";
  */
 const DEFAULT_HOLD_DELAY_MS = 500;
 
-const MENU_ITEM_SELECTOR = 'li[role="menuitem"]:not(.disabled)';
+// Plain and checkable items alike (ClassicyMenu renders a checkable item as
+// a menuitemcheckbox).
+const MENU_ITEM_SELECTOR =
+	'li:is([role="menuitem"],[role="menuitemcheckbox"]):not(.disabled)';
 
 type ClassicyBevelButtonProps = PropsWithChildren<{
 	/**

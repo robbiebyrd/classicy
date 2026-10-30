@@ -70,10 +70,40 @@ describe("ClassicyMenu — check glyphs", () => {
 			/>,
 		);
 		expect(
-			screen.getByRole("menuitem", { name: "Save As ⇧⌘S" }),
+			screen.getByRole("menuitemcheckbox", { name: "Save As ⇧⌘S" }),
 		).toBeInTheDocument();
-		expect(screen.getByRole("menuitem", { name: "Mixed" })).toBeInTheDocument();
+		expect(
+			screen.getByRole("menuitemcheckbox", { name: "Mixed" }),
+		).toBeInTheDocument();
 		for (const check of document.querySelectorAll(".classicyMenuItemCheck"))
 			expect(check).toHaveAttribute("aria-hidden", "true");
+	});
+
+	// The glyph belongs to the package, so the checked state must not depend
+	// on it: a checkable item is a menuitemcheckbox whose aria-checked carries
+	// the state (ARIA 1.2 allows "mixed" there, not on menuitemradio).
+	it("exposes the checked state as menuitemcheckbox with aria-checked", () => {
+		render(
+			<ClassicyMenu
+				name="test-menu"
+				menuItems={[
+					{ id: "on", title: "On", checked: true },
+					{ id: "mixed", title: "Mixed", checked: "mixed" },
+					{ id: "off", title: "Off", checked: false },
+					{ id: "plain", title: "Plain" },
+				]}
+			/>,
+		);
+		expect(
+			screen.getByRole("menuitemcheckbox", { name: "On" }),
+		).toHaveAttribute("aria-checked", "true");
+		expect(
+			screen.getByRole("menuitemcheckbox", { name: "Mixed" }),
+		).toHaveAttribute("aria-checked", "mixed");
+		expect(
+			screen.getByRole("menuitemcheckbox", { name: "Off" }),
+		).toHaveAttribute("aria-checked", "false");
+		const plain = screen.getByRole("menuitem", { name: "Plain" });
+		expect(plain).not.toHaveAttribute("aria-checked");
 	});
 });

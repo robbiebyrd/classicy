@@ -28,7 +28,10 @@ import { ClassicyMenuProvider } from "@/SystemFolder/SystemResources/Menu/Classi
 const PANEL_FOCUS_SELECTOR =
 	'[tabindex]:not([tabindex="-1"]), input, button, select, textarea';
 
-const MENU_ITEM_SELECTOR = 'li[role="menuitem"]:not(.disabled)';
+// Plain and checkable items alike (ClassicyMenu renders a checkable item as
+// a menuitemcheckbox).
+const MENU_ITEM_SELECTOR =
+	'li:is([role="menuitem"],[role="menuitemcheckbox"]):not(.disabled)';
 
 type ClassicyBevelButtonPopupProps = {
 	/** DOM id of the surface; the button points `aria-controls` at it. */
