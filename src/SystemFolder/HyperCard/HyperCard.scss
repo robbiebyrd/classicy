@@ -214,7 +214,7 @@
 
 .classicyHyperCardPaletteEntry {
 	cursor: grab;
-	padding: var(--hyper-card-item-padding-y) var(--layout-item-gap);
+	padding: var(--layout-item-gap-half) var(--layout-item-gap);
 	user-select: none;
 }
 
@@ -265,5 +265,5 @@
 // rather than sitting unstyled.
 .classicyHyperCardActionAddSelect {
 	font: inherit;
-	padding: var(--hyper-card-item-padding-y) var(--layout-item-gap);
+	padding: var(--layout-item-gap-half) var(--layout-item-gap);
 }

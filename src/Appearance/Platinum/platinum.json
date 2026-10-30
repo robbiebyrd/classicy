@@ -132,8 +132,7 @@
 				"fontSize": 11,
 				"handleSize": 6,
 				"paletteMaxWidth": 220,
-				"indent": 12,
-				"itemPaddingY": 2
+				"indent": 12
 			},
 			"finder": {
 				"padding": 8,
@@ -161,7 +160,6 @@
 			},
 			"picker": {
 				"wheelMax": 240,
-				"wheelInset": 20,
 				"labelOverhang": 14,
 				"modeListWidth": 90,
 				"itemPaddingY": 3,

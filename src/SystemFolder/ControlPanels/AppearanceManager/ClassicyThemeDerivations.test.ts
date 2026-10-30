@@ -16,10 +16,10 @@ import {
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 
 describe("CLASSICY_THEME_DERIVATIONS", () => {
-	it("has 37 unique cssVars, each starting with --", () => {
+	it("has 38 unique cssVars, each starting with --", () => {
 		const names = CLASSICY_THEME_DERIVATIONS.map((d) => d.cssVar);
-		expect(names).toHaveLength(37);
-		expect(new Set(names).size).toBe(37);
+		expect(names).toHaveLength(38);
+		expect(new Set(names).size).toBe(38);
 		for (const name of names) {
 			expect(name.startsWith("--"), name).toBe(true);
 		}

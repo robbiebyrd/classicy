@@ -28,8 +28,10 @@ import {
 // the 35 named derivations (`CLASSICY_THEME_DERIVATIONS`) appended to each
 // theme when they were added, Platinum's 95 knob variables (H 2.1) after
 // them, H 5.1's hyperCard.itemPaddingY among them, and H 3.1's two
-// focus-ring derivations (H-R5) appended at the end (every earlier key and
-// value unchanged each time).
+// focus-ring derivations (H-R5) appended at the end; at integration H-R19
+// replaced that knob with the --layout-item-gap-half derivation, appended
+// last, and the unread picker.wheelInset knob was dropped (every other key
+// and value unchanged each time).
 // Regenerate it only for an intended change to the emitted variables, by
 // running getThemeVars over getAllThemes() in a throwaway vitest file:
 //   writeFileSync("src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.themeVars.baseline.json",
@@ -39,8 +41,10 @@ import {
 import themeVarsBaseline from "./ClassicyAppearance.themeVars.baseline.json";
 
 // Platinum's knob leaves beside the core five (H 2.1: 94 planned keys plus
-// H-B1's pager.fontSize; H 5.1: hyperCard.itemPaddingY).
-const PLATINUM_KNOB_COUNT = 96;
+// H-B1's pager.fontSize; H 5.1's hyperCard.itemPaddingY came and went,
+// replaced by the --layout-item-gap-half derivation under H-R19; the unread
+// picker.wheelInset was dropped).
+const PLATINUM_KNOB_COUNT = 94;
 
 describe("getAllThemes", () => {
 	it("returns an array", () => {
@@ -271,9 +275,10 @@ describe("getThemeVars", () => {
 			"--desktop-icon-label-pad": "3px",
 			"--focus-ring-width": "1px",
 			"--focus-ring-inset": "3px",
+			"--layout-item-gap-half": "2px",
 		};
 		for (const [k, v] of Object.entries(expected)) expect(vars[k], k).toBe(v);
-		expect(Object.keys(expected)).toHaveLength(37);
+		expect(Object.keys(expected)).toHaveLength(38);
 	});
 
 	it("derives from the inputs, not constants", () => {
@@ -344,6 +349,31 @@ describe("getThemeVars", () => {
 		) as Record<string, string>;
 		expect(thick["--focus-ring-width"]).toBe("2px");
 		expect(thick["--focus-ring-inset"]).toBe("6px");
+	});
+
+	// H-R19: half the item gap is one role with one name, read by HyperCard's
+	// compact rows (and Drive Setup's list in H 6.1), not a family knob.
+	it("emits half the item gap as --layout-item-gap-half", () => {
+		for (const theme of getAllThemes()) {
+			const vars = getThemeVars(theme) as Record<string, string>;
+			expect(vars["--layout-item-gap-half"], theme.id).toBe("2px");
+		}
+		const wide = getThemeVars(
+			withDefaultThemeMetrics({
+				...getTheme("default"),
+				measurements: {
+					...CLASSICY_DEFAULT_THEME_METRICS,
+					layout: { ...CLASSICY_DEFAULT_THEME_METRICS.layout, itemGap: 7 },
+				},
+			}),
+		) as Record<string, string>;
+		expect(wide["--layout-item-gap-half"]).toBe("3.5px");
+		expect(
+			Object.keys(getThemeVars(getTheme("default"))).filter(
+				(k) =>
+					k === "--hyper-card-item-padding-y" || k === "--picker-wheel-inset",
+			),
+		).toEqual([]);
 	});
 
 	// Owner decision D12 (docs/theming-audit.md §7): the --hig-* names are gone
@@ -417,7 +447,7 @@ describe("classicyMeasurementVars", () => {
 
 	it("ignores families and keys that are not camelCase names", () => {
 		// Over the core five, so the count is the 20 core inputs plus the one
-		// valid leaf (Platinum's own families would add their 95 knobs).
+		// valid leaf (Platinum's own families would add PLATINUM_KNOB_COUNT).
 		const vars = classicyMeasurementVars({
 			...CLASSICY_DEFAULT_THEME_METRICS,
 			"x:0;color:red": { cellHeight: 1 },
