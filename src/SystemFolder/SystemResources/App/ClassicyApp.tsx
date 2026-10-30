@@ -9,7 +9,6 @@ import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
-import { getAppManifest } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
 import {
 	getAppWindow,
 	listAppWindows,
@@ -172,18 +171,15 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 	const drawDesktopIcon = showDesktopIcon ?? !noDesktopIcon;
 	const listInApplications =
 		showInApplicationsFolder ?? inApplicationsFolder ?? true;
-	// An explicit prop wins; otherwise the app's registered manifest
-	// description supplies the balloon. Resolved at render, not stored copy:
-	// manifests register at module import, before anything mounts, and revised
-	// description text ships with the app rather than staying frozen in a
-	// persisted icon record.
+	// Only an explicit prop is stored on the icon record, untitled unless the
+	// app gave a title. The icon resolves the rest at render: the title from
+	// the name it displays, and, with no prop, the registered manifest
+	// description (or a package's `description` override). Stored copy would
+	// stay frozen in a persisted record and could never follow a package.
 	// Serialized so the effect's dependency list is stable across renders that
 	// pass an inline object literal.
 	const balloonHelpKey = JSON.stringify(
-		normalizeIconBalloonHelp(
-			desktopIconBalloonHelp ?? getAppManifest(id)?.description,
-			name,
-		) ?? null,
+		normalizeIconBalloonHelp(desktopIconBalloonHelp, undefined) ?? null,
 	);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: contextMenu is intentionally omitted to prevent re-firing with inline menu literals
@@ -254,6 +250,7 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 				id,
 				icon: typeof bootIcon === "string" ? bootIcon : icon,
 				name,
+				followsAppIcon: bootIcon === true,
 			});
 		}
 	}, [
