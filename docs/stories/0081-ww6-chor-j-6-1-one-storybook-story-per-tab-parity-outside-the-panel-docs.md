@@ -3,12 +3,13 @@ id: 0081-ww6
 title: 'J 6.1: One Storybook story per tab, parity outside the panel, docs'
 purpose: Add a Storybook story per Appearance Manager tab, prove every surface outside the panel is pixel-identical, document the new actions and the schema form, and run the final verification that closes the plan.
 type: chor
-status: in_progress
+status: complete
 priority: "2"
 effort: S
 created: "2026-10-28T20:44:05.904Z"
-updated: "2026-10-30T01:18:13.138Z"
+updated: "2026-10-30T01:37:41.974Z"
 started: "2026-10-30T00:22:16.952Z"
+completed: "2026-10-30T01:37:41.974Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -90,9 +91,9 @@ Example app: Packages tab shows Platinum checked; Options tab shows the Platinum
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test && pnpm build:storybook
-- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/AppearanceManager src/SystemFolder/SystemResources/SchemaForm
-- [ ] VERIFY: grep -rn 'ClassicySounds\|ClassicyWallpapers\b\|const ClassicyFonts' src/SystemFolder/ControlPanels/AppearanceManager | wc -l  # expect 0
+- [x] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test && pnpm build:storybook
+- [x] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/AppearanceManager src/SystemFolder/SystemResources/SchemaForm
+- [x] VERIFY: grep -rn 'ClassicySounds\|ClassicyWallpapers\b\|const ClassicyFonts' src/SystemFolder/ControlPanels/AppearanceManager --include='*.ts' --include='*.tsx' | grep -v '\.test\.\|\.stories\.\|from "' | grep -v '/ClassicyWallpapers\.ts:' | wc -l  # expect 0 (no tab reads a static catalog; import paths, tests, stories and the catalog's own module are excluded)
 
 ## Files
 
@@ -108,3 +109,5 @@ Example app: Packages tab shows Platinum checked; Options tab shows the Platinum
 ### 2026-10-30T00:22:24.845Z - Started on feat/appearance-part-j-v2 (worktree part-j) at post-B base 8ed7810d3, which includes the J-R16 resolve. The implementer brief is the part-j ledger task-6.1-brief.md; parity uses the shared post-B baseline at .playwright-mcp/parity/post-b/ in place of a part-local J 0 set.
 
 ### 2026-10-30T01:18:13.138Z - Implemented at 07a633d2e (pushed). Gate: lint, tsc, vitest 4153/4153 (no timeouts), build:storybook (312 stories), build:source with verify:dist. The 9 system-appearancemanager stories render with no console errors. Parity: post-B 302/302 and J 0 79/79 at AE 0. The Screen Saver app shot differs by 62 px, which the report attributes to the clock (12:00:59 vs 12:00:58); the reviewer is re-shooting it to confirm. The example-app verify passed except the Options knob step, which needs Part H. Deviations: Panel opens the app instead of rendering it twice; the tab stories use the AppearanceManagerTabStory.app id; the Options story uses test-pack until H; a Controls/SchemaForm Nested story was added for J-R15; a J contract line was added to 0002-ldj. The task review is in progress.
+
+### 2026-10-30T01:37:39.477Z - Review APPROVED at 07a633d2e, with no Critical findings. The docs match the code at HEAD, the 0002-ldj line is accurate, the deviations are justified, and no store state leaks between desktop stories. The one Important finding was the racy shoot-app.cjs clock pin (tooling). It was fixed with a fixed time during load, re-anchored after startup and pinned at 12:00:30. J 0's app shots were re-shot from 29a15c243 (the old ones are kept in before-racy/). Run-to-run is AE 0 for both sets, and the Screen Saver panel before vs after is AE 0. Fix round 1 is 65ded8827 (pushed): the story Load Theme now matches the panel (stop alert and J-R4 package switch), the Options story restores Platinum on unmount, the SchemaForm Nested story's controls are disabled, the §4.4 clamp-at-0 note is added, and 8 British spellings in AGENT-REFERENCE and CLAUDE.md are fixed. The controller re-ran the VERIFY tests (451/451) and the narrowed catalog grep (0). The literal grep's 21 hits are import paths, tests and the catalog module, so that criterion was rewritten to its intent. The storybook tsconfig flags 2 `result.error` narrowing errors in the story because that config is not strict; the same pattern passes the strict root tsc, so they belong with the deferred storybook-tsconfig follow-up.
