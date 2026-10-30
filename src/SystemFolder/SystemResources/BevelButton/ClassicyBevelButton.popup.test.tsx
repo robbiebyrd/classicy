@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { dispatchAnimationEnd } from "@/__tests__/animationEnd";
 import {
 	fireEvent,
 	render,
@@ -24,18 +25,9 @@ vi.mock(
 );
 
 // ClassicyMenu runs a leaf item's action only once its click-flash animation
-// ends. jsdom has no AnimationEvent, so React listens for the prefixed event;
-// see ClassicyDesktopMenuBar.help.test.tsx for the full explanation.
-const completeMenuItemFlash = (id: string) => {
-	const event = new Event("webkitAnimationEnd", {
-		bubbles: true,
-		cancelable: true,
-	});
-	Object.defineProperty(event, "animationName", {
-		value: "classicyMenuItemFlashKeyframes",
-	});
-	document.getElementById(id)?.dispatchEvent(event);
-};
+// ends.
+const completeMenuItemFlash = (id: string) =>
+	dispatchAnimationEnd(document.getElementById(id));
 
 const lassoItems = (onPick: (id: string) => void): ClassicyMenuItem[] => [
 	{

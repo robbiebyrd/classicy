@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, fireEvent, render, waitFor } from "@/__tests__/test-utils";
+import { dispatchAnimationEnd } from "@/__tests__/animationEnd";
+import { fireEvent, render, waitFor } from "@/__tests__/test-utils";
 import { installClassicyAppearanceProbe } from "@/Appearance/__tests__/appearanceProbe";
 import type { ClassicyComponentName } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { ClassicyMenu } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
@@ -32,22 +33,6 @@ const emitted = (component: ClassicyComponentName) =>
 		.map(({ event, detail }) => ({ event, detail }));
 
 const item = (id: string) => document.getElementById(id) as HTMLElement;
-
-// jsdom has no `AnimationEvent`, so React listens for the flash's end as
-// "webkitAnimationEnd"; `fireEvent.animationEnd` never reaches it. Dispatch
-// the real, bubbling event React does hear, as a browser would.
-const endFlash = (el: HTMLElement) => {
-	const event = new Event("webkitAnimationEnd", {
-		bubbles: true,
-		cancelable: true,
-	});
-	Object.defineProperty(event, "animationName", {
-		value: "classicyMenuItemFlashKeyframes",
-	});
-	act(() => {
-		el.dispatchEvent(event);
-	});
-};
 
 const FLASH_FALLBACK_PASSED_MS = 500;
 
@@ -92,7 +77,7 @@ describe("ClassicyMenu appearance", () => {
 		renderMenu(onClickFunc);
 		// A flash-named animationend on an item that is not flashing is not
 		// the end of its flash: no release, no action.
-		endFlash(item("save"));
+		dispatchAnimationEnd(item("save"));
 		expect(emitted("MenuItem")).toEqual([]);
 		fireEvent.mouseDown(item("save"));
 		fireEvent.click(item("save"));
@@ -100,7 +85,7 @@ describe("ClassicyMenu appearance", () => {
 			{ event: "press", detail: { itemId: "save", input: "pointer" } },
 		]);
 		// The flash ends: release now, well before the 400 ms fallback.
-		endFlash(item("save"));
+		dispatchAnimationEnd(item("save"));
 		expect(emitted("MenuItem")).toEqual([
 			{ event: "press", detail: { itemId: "save", input: "pointer" } },
 			{ event: "release", detail: { itemId: "save", input: "pointer" } },
@@ -125,7 +110,7 @@ describe("ClassicyMenu appearance", () => {
 		renderMenu(onClickFunc);
 		fireEvent.mouseDown(item("save"));
 		fireEvent.click(item("save"));
-		endFlash(item("save").querySelector("p") as HTMLElement);
+		dispatchAnimationEnd(item("save").querySelector("p") as HTMLElement);
 		expect(emitted("MenuItem")).toEqual([
 			{ event: "press", detail: { itemId: "save", input: "pointer" } },
 		]);
@@ -135,6 +120,28 @@ describe("ClassicyMenu appearance", () => {
 		expect(
 			emitted("MenuItem").filter((e) => e.event === "release"),
 		).toHaveLength(1);
+	});
+
+	// The flash is the package's press decoration, never the item's own: under
+	// a package whose MenuItem `press` returns nothing (this probe's), a chosen
+	// leaf gets no flash class, and its action still runs once, through the
+	// 400 ms fallback.
+	it("adds no flash class of its own when the package's press decorates nothing", async () => {
+		const onClickFunc = vi.fn();
+		renderMenu(onClickFunc);
+		fireEvent.mouseDown(item("save"));
+		fireEvent.click(item("save"));
+		expect(emitted("MenuItem")).toEqual([
+			{ event: "press", detail: { itemId: "save", input: "pointer" } },
+		]);
+		expect(item("save")).not.toHaveClass("classicyMenuItemFlash");
+		expect(onClickFunc).not.toHaveBeenCalled();
+		await waitFor(() => expect(onClickFunc).toHaveBeenCalledTimes(1));
+		expect(item("save")).not.toHaveClass("classicyMenuItemFlash");
+		await new Promise((resolve) =>
+			setTimeout(resolve, FLASH_FALLBACK_PASSED_MS),
+		);
+		expect(onClickFunc).toHaveBeenCalledTimes(1);
 	});
 
 	it("emits one release, for the child only, when a submenu leaf's flash ends", async () => {
@@ -162,7 +169,7 @@ describe("ClassicyMenu appearance", () => {
 		fireEvent.mouseDown(item("child"));
 		fireEvent.click(item("child"));
 		// The child's flash ends; animationend bubbles through the parent <li>.
-		endFlash(item("child"));
+		dispatchAnimationEnd(item("child"));
 		await waitFor(() => expect(childAction).toHaveBeenCalledTimes(1));
 		await new Promise((resolve) =>
 			setTimeout(resolve, FLASH_FALLBACK_PASSED_MS),

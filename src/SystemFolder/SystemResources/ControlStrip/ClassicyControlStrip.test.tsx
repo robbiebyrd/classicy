@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { dispatchAnimationEnd } from "@/__tests__/animationEnd";
 import {
 	act,
 	fireEvent,
@@ -45,19 +46,9 @@ vi.mock(
 	}),
 );
 
-// ClassicyMenu runs a chosen item once its flash animation ends; jsdom has no
-// AnimationEvent, so React listens for the prefixed event (see
-// ClassicyDesktopMenuBar.help.test.tsx).
-const completeMenuItemFlash = (id: string) => {
-	const event = new Event("webkitAnimationEnd", {
-		bubbles: true,
-		cancelable: true,
-	});
-	Object.defineProperty(event, "animationName", {
-		value: "classicyMenuItemFlashKeyframes",
-	});
-	document.getElementById(id)?.dispatchEvent(event);
-};
+// ClassicyMenu runs a chosen item once its flash animation ends.
+const completeMenuItemFlash = (id: string) =>
+	dispatchAnimationEnd(document.getElementById(id));
 
 /** A mouse click: press and release on one element, then its click. */
 const click = (el: Element) => {
