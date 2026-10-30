@@ -272,7 +272,7 @@ describe("platinum.scss (compiled)", () => {
 			`${P} .classicyContextSubMenu .classicySeparatorHorizontal {`,
 		);
 		expect(rule(`${P} .classicySubMenu`).props.border).toBe(
-			"1px solid var(--color-black)",
+			"var(--menu-frame-border-width) solid var(--color-black)",
 		);
 	});
 
@@ -821,7 +821,9 @@ describe("platinum.scss (compiled)", () => {
 			const panel = rules(
 				".classicyBevelButtonPopup.classicyBevelButtonPopupPanel",
 			);
-			expect(panel.props.border).toBe("1px solid var(--color-black)");
+			expect(panel.props.border).toBe(
+				"var(--menu-frame-border-width) solid var(--color-black)",
+			);
 			expect(panel.props.background).toBe("var(--color-system-03)");
 			expect(panel.props["box-shadow"]).toBe(
 				"inset 1px 1px 0 0 var(--color-white)",
@@ -1037,9 +1039,9 @@ describe("the moved Platinum mixin files", () => {
 	it("platinum-menu-frame compiles to its pinned output", () =>
 		expect(mixin("platinum-menu-frame")).toMatchInlineSnapshot(`
 			".x {
-			  border: 1px solid var(--color-black);
+			  border: var(--menu-frame-border-width) solid var(--color-black);
 			  box-shadow: none;
-			  background: linear-gradient(var(--color-white), var(--color-white)) 0 0/calc(100% - 1px) 1px no-repeat, linear-gradient(var(--color-white), var(--color-white)) 0 0/1px calc(100% - 1px) no-repeat, linear-gradient(var(--color-system-04), var(--color-system-04)) 100% 1px/1px calc(100% - 1px) no-repeat, linear-gradient(var(--color-system-04), var(--color-system-04)) 1px 100%/calc(100% - 1px) 1px no-repeat, var(--color-system-02);
+			  background: linear-gradient(var(--color-white), var(--color-white)) 0 0/calc(100% - var(--menu-frame-bevel-width)) var(--menu-frame-bevel-width) no-repeat, linear-gradient(var(--color-white), var(--color-white)) 0 0/var(--menu-frame-bevel-width) calc(100% - var(--menu-frame-bevel-width)) no-repeat, linear-gradient(var(--color-system-04), var(--color-system-04)) 100% var(--menu-frame-bevel-width)/var(--menu-frame-bevel-width) calc(100% - var(--menu-frame-bevel-width)) no-repeat, linear-gradient(var(--color-system-04), var(--color-system-04)) var(--menu-frame-bevel-width) 100%/calc(100% - var(--menu-frame-bevel-width)) var(--menu-frame-bevel-width) no-repeat, var(--color-system-02);
 			}
 			.x::before, .x::after {
 			  content: "";
@@ -1048,16 +1050,16 @@ describe("the moved Platinum mixin files", () => {
 			  pointer-events: none;
 			}
 			.x::after {
-			  top: 1px;
-			  right: -2px;
-			  bottom: -2px;
-			  width: 1px;
+			  top: var(--menu-frame-shadow-start);
+			  right: calc(var(--menu-frame-shadow-offset) * -1);
+			  bottom: calc(var(--menu-frame-shadow-offset) * -1);
+			  width: var(--menu-frame-shadow-width);
 			}
 			.x::before {
-			  left: 1px;
-			  right: -2px;
-			  bottom: -2px;
-			  height: 1px;
+			  left: var(--menu-frame-shadow-start);
+			  right: calc(var(--menu-frame-shadow-offset) * -1);
+			  bottom: calc(var(--menu-frame-shadow-offset) * -1);
+			  height: var(--menu-frame-shadow-width);
 			}"
 		`));
 
@@ -1577,10 +1579,10 @@ describe("the moved Platinum mixin files", () => {
 			  box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-02), inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 var(--color-theme-04);
 			}
 			.x::-webkit-scrollbar-thumb:vertical {
-			  background: linear-gradient(transparent 12.5%, var(--color-theme-05) 0, var(--color-theme-05) 25%, transparent 0, transparent 37.5%, var(--color-theme-05) 0, var(--color-theme-05) 50%, transparent 0, transparent 62.5%, var(--color-theme-05) 0, var(--color-theme-05) 75%, transparent 0, transparent 87.5%, var(--color-theme-05) 0) 50%/7px 8px no-repeat, linear-gradient(var(--color-theme-01) 12.5%, transparent 0, transparent 25%, var(--color-theme-01) 0, var(--color-theme-01) 37.5%, transparent 0, transparent 50%, var(--color-theme-01) 0, var(--color-theme-01) 62.5%, transparent 0, transparent 75%, var(--color-theme-01) 0, var(--color-theme-01) 87.5%, transparent 0) 49%/7px 8px no-repeat, var(--color-theme-03);
+			  background: linear-gradient(transparent 12.5%, var(--color-theme-05) 0, var(--color-theme-05) 25%, transparent 0, transparent 37.5%, var(--color-theme-05) 0, var(--color-theme-05) 50%, transparent 0, transparent 62.5%, var(--color-theme-05) 0, var(--color-theme-05) 75%, transparent 0, transparent 87.5%, var(--color-theme-05) 0) 50%/var(--scrollbar-arrow-glyph-width) var(--scrollbar-arrow-glyph-height) no-repeat, linear-gradient(var(--color-theme-01) 12.5%, transparent 0, transparent 25%, var(--color-theme-01) 0, var(--color-theme-01) 37.5%, transparent 0, transparent 50%, var(--color-theme-01) 0, var(--color-theme-01) 62.5%, transparent 0, transparent 75%, var(--color-theme-01) 0, var(--color-theme-01) 87.5%, transparent 0) 49%/var(--scrollbar-arrow-glyph-width) var(--scrollbar-arrow-glyph-height) no-repeat, var(--color-theme-03);
 			}
 			.x::-webkit-scrollbar-thumb:horizontal {
-			  background: linear-gradient(90deg, transparent 12.5%, var(--color-theme-05) 0, var(--color-theme-05) 25%, transparent 0, transparent 37.5%, var(--color-theme-05) 0, var(--color-theme-05) 50%, transparent 0, transparent 62.5%, var(--color-theme-05) 0, var(--color-theme-05) 75%, transparent 0, transparent 87.5%, var(--color-theme-05) 0) 50%/8px 7px no-repeat, linear-gradient(90deg, var(--color-theme-01) 12.5%, transparent 0, transparent 25%, var(--color-theme-01) 0, var(--color-theme-01) 37.5%, transparent 0, transparent 50%, var(--color-theme-01) 0, var(--color-theme-01) 62.5%, transparent 0, transparent 75%, var(--color-theme-01) 0, var(--color-theme-01) 87.5%, transparent 0) center 49%/8px 7px no-repeat, var(--color-theme-03);
+			  background: linear-gradient(90deg, transparent 12.5%, var(--color-theme-05) 0, var(--color-theme-05) 25%, transparent 0, transparent 37.5%, var(--color-theme-05) 0, var(--color-theme-05) 50%, transparent 0, transparent 62.5%, var(--color-theme-05) 0, var(--color-theme-05) 75%, transparent 0, transparent 87.5%, var(--color-theme-05) 0) 50%/var(--scrollbar-arrow-glyph-height) var(--scrollbar-arrow-glyph-width) no-repeat, linear-gradient(90deg, var(--color-theme-01) 12.5%, transparent 0, transparent 25%, var(--color-theme-01) 0, var(--color-theme-01) 37.5%, transparent 0, transparent 50%, var(--color-theme-01) 0, var(--color-theme-01) 62.5%, transparent 0, transparent 75%, var(--color-theme-01) 0, var(--color-theme-01) 87.5%, transparent 0) center 49%/var(--scrollbar-arrow-glyph-height) var(--scrollbar-arrow-glyph-width) no-repeat, var(--color-theme-03);
 			}"
 		`));
 
