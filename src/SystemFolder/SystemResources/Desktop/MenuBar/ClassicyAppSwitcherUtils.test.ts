@@ -172,7 +172,7 @@ describe("withClassicyAppIdentityMenuItems", () => {
 	});
 });
 
-describe("withClassicyAppIdentityAboutItem (K-R8)", () => {
+describe("withClassicyAppIdentityAboutItem (K-R8, K-R9)", () => {
 	const onClickFunc = () => {};
 	const menu = (): ClassicyMenuItem[] => [
 		{
@@ -194,12 +194,16 @@ describe("withClassicyAppIdentityAboutItem (K-R8)", () => {
 			],
 		},
 	];
+	const RENAMED = { "A.app": { name: "Ay" } };
 
 	it("titles the app's own About item, found by id at any depth", () => {
 		const input = menu();
-		const result = withClassicyAppIdentityAboutItem(input, "A.app", {
-			"A.app": { name: "Ay" },
-		});
+		const result = withClassicyAppIdentityAboutItem(
+			input,
+			"A.app",
+			"A",
+			RENAMED,
+		);
 		expect(result?.[0].menuChildren?.[0]).toEqual({
 			id: "A.app_about",
 			title: "About Ay",
@@ -213,6 +217,64 @@ describe("withClassicyAppIdentityAboutItem (K-R8)", () => {
 		expect(input[0].menuChildren?.[0].title).toBe("About A");
 	});
 
+	// K 4.1 review m3: "any depth" means deeper than one submenu level.
+	it("titles the About item inside a submenu of a menu", () => {
+		const input: ClassicyMenuItem[] = [
+			{
+				id: "A.app_file",
+				title: "File",
+				menuChildren: [
+					{ id: "A.app_new", title: "New" },
+					{
+						id: "A.app_info",
+						title: "Info",
+						menuChildren: [
+							{ id: "A.app_credits", title: "Credits" },
+							{ id: "A.app_about", title: "About A", onClickFunc },
+						],
+					},
+				],
+			},
+		];
+		const result = withClassicyAppIdentityAboutItem(
+			input,
+			"A.app",
+			"A",
+			RENAMED,
+		);
+		const info = result?.[0].menuChildren?.[1];
+		expect(info?.menuChildren?.[1]).toEqual({
+			id: "A.app_about",
+			title: "About Ay",
+			onClickFunc,
+		});
+		// Only the path to the item is copied.
+		expect(result?.[0].menuChildren?.[0]).toBe(input[0].menuChildren?.[0]);
+		expect(info?.menuChildren?.[0]).toBe(
+			input[0].menuChildren?.[1].menuChildren?.[0],
+		);
+		expect(input[0].menuChildren?.[1].menuChildren?.[1].title).toBe("About A");
+	});
+
+	// K-R9: only the internal name's form is retitled; the wording an app
+	// chose otherwise stays as stored.
+	it.each([
+		["a plain About", "About"],
+		["a custom title", "About A…"],
+		["another app's name", "About B"],
+	])("leaves %s as stored", (_label, title) => {
+		const input: ClassicyMenuItem[] = [
+			{
+				id: "A.app_file",
+				title: "File",
+				menuChildren: [{ id: "A.app_about", title, onClickFunc }],
+			},
+		];
+		expect(withClassicyAppIdentityAboutItem(input, "A.app", "A", RENAMED)).toBe(
+			input,
+		);
+	});
+
 	it("returns the input itself when nothing renames the app", () => {
 		const input = menu();
 		for (const overrides of [
@@ -221,24 +283,31 @@ describe("withClassicyAppIdentityAboutItem (K-R8)", () => {
 			{ "B.app": { name: "Bee" } },
 			{ constructor: { name: "Proto" } },
 		]) {
-			expect(withClassicyAppIdentityAboutItem(input, "A.app", overrides)).toBe(
-				input,
-			);
+			expect(
+				withClassicyAppIdentityAboutItem(input, "A.app", "A", overrides),
+			).toBe(input);
 		}
-		expect(withClassicyAppIdentityAboutItem(input, "constructor", {})).toBe(
-			input,
-		);
 		expect(
-			withClassicyAppIdentityAboutItem(undefined, "A.app", {
-				"A.app": { name: "Ay" },
-			}),
+			withClassicyAppIdentityAboutItem(input, "constructor", "A", {}),
+		).toBe(input);
+		expect(
+			withClassicyAppIdentityAboutItem(undefined, "A.app", "A", RENAMED),
 		).toBeUndefined();
 	});
 
-	it("returns the input itself when the title already matches", () => {
+	it("returns the input itself when the app's own name is unknown", () => {
+		const input = menu();
+		for (const appName of [undefined, ""]) {
+			expect(
+				withClassicyAppIdentityAboutItem(input, "A.app", appName, RENAMED),
+			).toBe(input);
+		}
+	});
+
+	it("returns the input itself when the display name is the app's own", () => {
 		const input = menu();
 		expect(
-			withClassicyAppIdentityAboutItem(input, "A.app", {
+			withClassicyAppIdentityAboutItem(input, "A.app", "A", {
 				"A.app": { name: "A" },
 			}),
 		).toBe(input);

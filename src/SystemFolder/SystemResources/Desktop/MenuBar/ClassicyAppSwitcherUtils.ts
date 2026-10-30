@@ -83,30 +83,35 @@ export const withClassicyAppIdentityMenuItems = (
 
 /**
  * `items` with `appId`'s own About item (id `${appId}_about`, at any depth)
- * titled "About <display name>" when `overrides` renames the app. The item
- * is found by its id, never by its title. Display only: an app stores its
- * About item under its own name (ruling K-R8), and the bar that draws it
- * resolves the title here. The item keeps its id and handlers. With no name
- * override, or no such item, `items` itself is returned.
+ * retitled "About <display name>" when `overrides` renames the app. The item
+ * is found by its id, never by its title, and is retitled only when its
+ * title is "About <appName>", the form an app stores under its own name
+ * (ruling K-R8): a plain "About" or any other wording the app chose stays as
+ * stored (ruling K-R9). Display only — the bar that draws the item resolves
+ * its title here. The item keeps its id and handlers, and only the path to it
+ * is copied. With no name override, no known `appName`, or no such item,
+ * `items` itself is returned.
  */
 export const withClassicyAppIdentityAboutItem = (
 	items: ClassicyMenuItem[] | undefined,
 	appId: string,
+	appName: string | undefined,
 	overrides: ClassicyAppIdentityOverrides,
 ): ClassicyMenuItem[] | undefined => {
-	if (!items) return items;
+	if (!items || !appName) return items;
 	const { name } = classicyAppIdentityFrom(overrides, appId, {
-		name: "",
+		name: appName,
 		icon: "",
 	});
-	if (name === "") return items;
+	if (name === appName) return items;
 	const aboutId = `${appId}_about`;
+	const storedTitle = `About ${appName}`;
 	const title = `About ${name}`;
 	const retitle = (list: ClassicyMenuItem[]): ClassicyMenuItem[] => {
 		let changed = false;
 		const resolved = list.map((item) => {
 			if (item.id === aboutId) {
-				if (item.title === title) return item;
+				if (item.title !== storedTitle) return item;
 				changed = true;
 				return { ...item, title };
 			}
