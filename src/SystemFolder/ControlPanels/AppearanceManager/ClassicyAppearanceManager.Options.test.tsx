@@ -531,7 +531,7 @@ describe("Appearance Manager — Packages and Options tabs", {
 		).toBeInTheDocument();
 
 		showTab(win, "Packages");
-		fireEvent.click(visiblePanel(win).getByLabelText("Test Pack (0 presets)"));
+		fireEvent.click(visiblePanel(win).getByLabelText("Test Pack (1 theme)"));
 		await waitFor(() => {
 			expect(appearance().packageId).toBe("test-pack");
 		});

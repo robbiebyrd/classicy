@@ -67,7 +67,7 @@ describe("usePackagesTab", () => {
 		expect(result.current.title).toBe("Packages");
 	});
 
-	it("names its radio group and says preset, not presets, for one", () => {
+	it("names its radio group and says theme, not themes, for one", () => {
 		render(
 			<Host
 				packages={[
@@ -86,18 +86,20 @@ describe("usePackagesTab", () => {
 		expect(
 			screen.getByRole("radiogroup", { name: "Appearance Package" }),
 		).toBeInTheDocument();
-		expect(screen.getByLabelText("One Pack (1 preset)")).not.toBeChecked();
+		expect(screen.getByLabelText("One Pack (1 theme)")).not.toBeChecked();
 	});
 
-	it("lists every registered package with its preset count", () => {
+	it("lists every registered package with its theme count", () => {
 		render(
 			<Host
 				packages={listClassicyAppearancePackages()}
 				activePackageId="platinum"
 			/>,
 		);
-		expect(screen.getByLabelText("Platinum (21 presets)")).toBeChecked();
-		expect(screen.getByLabelText("Test Pack (0 presets)")).not.toBeChecked();
+		// Platinum's defaults share a preset's id, so they count once.
+		expect(screen.getByLabelText("Platinum (21 themes)")).toBeChecked();
+		// Test Pack has no presets: its defaults are its one selectable theme.
+		expect(screen.getByLabelText("Test Pack (1 theme)")).not.toBeChecked();
 	});
 
 	it("dispatches changePackage with the package id", () => {
@@ -109,7 +111,7 @@ describe("usePackagesTab", () => {
 				changePackage={changePackage}
 			/>,
 		);
-		fireEvent.click(screen.getByLabelText("Test Pack (0 presets)"));
+		fireEvent.click(screen.getByLabelText("Test Pack (1 theme)"));
 		expect(changePackage).toHaveBeenCalledWith("test-pack");
 	});
 
@@ -141,8 +143,8 @@ describe("usePackagesTab", () => {
 			<Host packages={packages} activePackageId="platinum" />,
 		);
 		rerender(<Host packages={packages} activePackageId="test-pack" />);
-		expect(screen.getByLabelText("Test Pack (0 presets)")).toBeChecked();
-		expect(screen.getByLabelText("Platinum (21 presets)")).not.toBeChecked();
+		expect(screen.getByLabelText("Test Pack (1 theme)")).toBeChecked();
+		expect(screen.getByLabelText("Platinum (21 themes)")).not.toBeChecked();
 	});
 
 	it("appearancePackageInputId names each radio button", () => {
@@ -156,7 +158,7 @@ describe("usePackagesTab", () => {
 			"appearance_package_test-pack",
 		);
 		expect(document.getElementById(appearancePackageInputId("test-pack"))).toBe(
-			screen.getByLabelText("Test Pack (0 presets)"),
+			screen.getByLabelText("Test Pack (1 theme)"),
 		);
 	});
 
@@ -168,7 +170,7 @@ describe("usePackagesTab", () => {
 			/>,
 		);
 		const scroll = screen
-			.getByLabelText("Platinum (21 presets)")
+			.getByLabelText("Platinum (21 themes)")
 			.closest(".classicyAppearanceManagerColorsScroll");
 		expect(scroll).not.toBeNull();
 		expect(

@@ -2,6 +2,7 @@ import "./ClassicyAppearanceManager.Colors.scss";
 import { useMemo } from "react";
 import type { ClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
 import { intToHex } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyColors";
+import { listClassicyPackageBuiltInThemes } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
 import { ClassicyRadioInput } from "@/SystemFolder/SystemResources/RadioInput/ClassicyRadioInput";
 import type { TabIndividual } from "@/SystemFolder/SystemResources/Tabs/ClassicyTabs";
 
@@ -18,16 +19,18 @@ interface PackagesTabProps {
 export const appearancePackageInputId = (packageId: string): string =>
 	`appearance_package_${packageId}`;
 
-// "Platinum (21 presets)", "Irix (1 preset)".
-const presetCountLabel = (pkg: ClassicyAppearancePackage): string => {
-	const count = pkg.presets?.length ?? 0;
-	return `${pkg.name} (${count} ${count === 1 ? "preset" : "presets"})`;
+// "Platinum (21 themes)", "Irix (1 theme)": the package's selectable
+// built-ins (`listClassicyPackageBuiltInThemes`), so a defaults-only package
+// counts its defaults.
+const themeCountLabel = (pkg: ClassicyAppearancePackage): string => {
+	const count = listClassicyPackageBuiltInThemes(pkg).length;
+	return `${pkg.name} (${count} ${count === 1 ? "theme" : "themes"})`;
 };
 
 /**
  * The Appearance Manager's Packages tab: a radio group titled "Appearance
  * Package" with one button per registered Appearance Package, labeled with
- * its name and preset count, and below them
+ * its name and built-in theme count, and below them
  * each package's seven theme colors (`defaults.color.theme`) as a row of
  * swatches. Picking a package calls `changePackage` with its id.
  */
@@ -43,7 +46,7 @@ export const usePackagesTab = ({
 		() =>
 			packages.map((pkg) => ({
 				id: appearancePackageInputId(pkg.id),
-				label: presetCountLabel(pkg),
+				label: themeCountLabel(pkg),
 				checked: pkg.id === activePackageId,
 			})),
 		[packages, activePackageId],

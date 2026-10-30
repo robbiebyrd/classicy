@@ -526,7 +526,7 @@ export const Themes: Story = {
 };
 
 /**
- * Packages: every registered Appearance Package with its preset count, and
+ * Packages: every registered Appearance Package with its built-in theme count, and
  * each package's seven theme colors. Picking one dispatches
  * `ClassicyDesktopChangeAppearancePackage { packageId }`, which keeps the
  * user's custom themes. Test Pack is registered by this story file.

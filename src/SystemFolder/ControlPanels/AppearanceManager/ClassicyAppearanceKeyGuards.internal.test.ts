@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
 	CLASSICY_FORBIDDEN_KEYS,
 	isClassicyPlainObject,
-} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceKeyGuards";
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceKeyGuards.internal";
 import { parseClassicyAppearanceOptionPath } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceOptions";
 import { isThemeMetricFamilyTarget } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricTargets";
 
@@ -15,6 +15,10 @@ describe("ClassicyAppearanceKeyGuards", () => {
 			"constructor",
 			"prototype",
 		]);
+	});
+
+	it("freezes the denylist, so no importer can splice the guard away", () => {
+		expect(Object.isFrozen(CLASSICY_FORBIDDEN_KEYS)).toBe(true);
 	});
 
 	it("accepts only plain objects", () => {

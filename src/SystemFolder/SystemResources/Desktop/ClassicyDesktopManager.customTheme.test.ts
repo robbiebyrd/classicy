@@ -1029,6 +1029,70 @@ describe("ChangeAppearanceOption sound.pack and the active package (ruling 10)",
 		expect(warnings).toHaveLength(1);
 		expect(warnings[0].message).toContain("irix-sounds");
 	});
+
+	it("re-picking the current pack, though another package owns it, neither warns nor forks", () => {
+		registerClassicySoundPack({
+			id: "beos-sounds",
+			name: "BeOS Sounds",
+			packageId: "beos",
+			src: ["https://example.com/beos.ogg"],
+			sprite: { ClassicyBeep: [0, 1] },
+		});
+		const warnings = captureWarnings();
+		const ds = makeStore();
+		// A theme loaded with a foreign pack already names it.
+		appearance(ds).activeTheme.sound.pack = "beos-sounds";
+		const before = JSON.stringify(appearance(ds));
+		run(ds, {
+			type: "ClassicyDesktopChangeAppearanceOption",
+			path: "sound.pack",
+			value: "beos-sounds",
+		});
+		expect(JSON.stringify(appearance(ds))).toBe(before);
+		expect(appearance(ds).activeTheme.id).toBe("default");
+		expect(warnings).toHaveLength(0);
+	});
+
+	it("accepts a pack the active package owns", () => {
+		registerClassicyAppearancePackage({
+			id: "nextstep",
+			name: "NeXTSTEP",
+			css: "",
+			defaults: {
+				...structuredClone(getTheme("default")),
+				id: "nextstep-gray",
+				name: "Gray",
+				package: "nextstep",
+			},
+			layout: {
+				window: { growBoxCorner: "bottom-right" },
+				menuBar: { placement: "screen" },
+				desktop: { iconGridOrigin: "top-right" },
+			},
+		});
+		registerClassicySoundPack({
+			id: "nextstep-sounds",
+			name: "NeXTSTEP Sounds",
+			packageId: "nextstep",
+			src: ["https://example.com/nextstep.ogg"],
+			sprite: { ClassicyBeep: [0, 1] },
+		});
+		const warnings = captureWarnings();
+		const ds = makeStore();
+		run(ds, {
+			type: "ClassicyDesktopChangeAppearancePackage",
+			packageId: "nextstep",
+		});
+		run(ds, {
+			type: "ClassicyDesktopChangeAppearanceOption",
+			path: "sound.pack",
+			value: "nextstep-sounds",
+		});
+		const a = appearance(ds);
+		expect(a.activeTheme.sound.pack).toBe("nextstep-sounds");
+		expect(a.activeTheme.id).toBe("custom-nextstep");
+		expect(warnings).toHaveLength(0);
+	});
 });
 
 describe("ClassicyDesktopLoadThemes normalizes metrics", () => {
