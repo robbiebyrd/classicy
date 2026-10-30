@@ -2,11 +2,11 @@
 id: 0013-l9f
 title: 'Part K: App identity overrides (packages rename and re-icon apps)'
 type: impl
-status: pending
+status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-30T15:03:17.932Z"
-updated: "2026-10-30T15:04:04.324Z"
+updated: "2026-10-30T15:15:34.891Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -25,11 +25,11 @@ links:
     - ["0009-agy", "depends"]
 progress:
   "0":
-    status: pending
+    status: in_progress
   "1":
     status: pending
   "1.1":
-    status: pending
+    status: in_progress
   "1.2":
     status: pending
   "2":
