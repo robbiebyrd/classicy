@@ -30,8 +30,10 @@ import {
 // them, H 5.1's hyperCard.itemPaddingY among them, and H 3.1's two
 // focus-ring derivations (H-R5) appended at the end; at integration H-R19
 // replaced that knob with the --layout-item-gap-half derivation, appended
-// last, and the unread picker.wheelInset knob was dropped (every other key
-// and value unchanged each time).
+// last, and the unread picker.wheelInset knob was dropped; at H 4.1's
+// integration menuFrame.shadowOffset became shadowGap (H-R24), the scrollbar
+// grip knobs were renamed thumbGrip* (H-R20) and balloonHelp.tailWidth was
+// dropped (H-R22) (every other key and value unchanged each time).
 // Regenerate it only for an intended change to the emitted variables, by
 // running getThemeVars over getAllThemes() in a throwaway vitest file:
 //   writeFileSync("src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.themeVars.baseline.json",
@@ -43,8 +45,9 @@ import themeVarsBaseline from "./ClassicyAppearance.themeVars.baseline.json";
 // Platinum's knob leaves beside the core five (H 2.1: 94 planned keys plus
 // H-B1's pager.fontSize; H 5.1's hyperCard.itemPaddingY came and went,
 // replaced by the --layout-item-gap-half derivation under H-R19; the unread
-// picker.wheelInset was dropped).
-const PLATINUM_KNOB_COUNT = 94;
+// picker.wheelInset was dropped; balloonHelp.tailWidth was dropped under
+// H-R22).
+const PLATINUM_KNOB_COUNT = 93;
 
 describe("getAllThemes", () => {
 	it("returns an array", () => {
@@ -194,11 +197,15 @@ describe("getThemeVars", () => {
 	it("emits every Platinum knob family", () => {
 		const vars = getThemeVars(getTheme("default")) as Record<string, string>;
 		expect(vars["--control-strip-cell-height"]).toBe("22px");
-		expect(vars["--menu-frame-shadow-offset"]).toBe("2px");
+		expect(vars["--menu-frame-shadow-gap"]).toBe("0px");
+		expect(vars["--menu-frame-shadow-offset"]).toBeUndefined();
 		expect(vars["--pager-arrow-width"]).toBe("42px");
-		expect(vars["--balloon-help-tail-width"]).toBe("20px");
+		expect(vars["--balloon-help-tail-offset"]).toBe("12px");
+		expect(vars["--balloon-help-tail-width"]).toBeUndefined();
 		expect(vars["--pop-up-slider-height"]).toBe("73px");
-		expect(vars["--scrollbar-arrow-glyph-width"]).toBe("7px");
+		expect(vars["--scrollbar-thumb-grip-width"]).toBe("7px");
+		expect(vars["--scrollbar-thumb-grip-height"]).toBe("8px");
+		expect(vars["--scrollbar-arrow-glyph-width"]).toBeUndefined();
 		expect(vars["--hyper-card-handle-size"]).toBe("6px");
 		expect(vars["--dialog-alert-min-width"]).toBe("280px");
 		// H-B1 and H-R11.

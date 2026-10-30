@@ -6,11 +6,7 @@ import { scanPixelLiteralsInSource } from "../../../../bin/check-pixel-literals.
 // The pixel-matched surfaces read their knob families (measurements.<family>,
 // platinum.json) instead of pixel literals: the Platinum menu frame
 // (menuFrame), the scroll bar thumb's grip tile (scrollbar) and the pop-up
-// slider (popUpSlider).
-//
-// The pop-up slider's focus ring keeps its `1px` / `-1px` until H 3.1's
-// `--focus-ring-width` derivation is in the same tree; those two are the
-// only literals it may still hold.
+// slider (popUpSlider, its focus ring reading --focus-ring-width).
 const ROOT = resolve(__dirname, "../../../..");
 
 describe("pixel-matched surfaces", () => {
@@ -19,7 +15,7 @@ describe("pixel-matched surfaces", () => {
 		["src/Appearance/Platinum/styles/_scrollbars.scss", []],
 		[
 			"src/SystemFolder/SystemResources/PopUpSlider/ClassicyPopUpSlider.scss",
-			["1px", "-1px"],
+			[],
 		],
 	])("%s: no bare literal", (file, allowed) =>
 		expect(

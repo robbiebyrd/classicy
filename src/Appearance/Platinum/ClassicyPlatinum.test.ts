@@ -194,6 +194,36 @@ describe("the Platinum appearance package", () => {
 		}
 	});
 
+	// H-R22, H-R23, H-R24 and the label ruling: knobs size one thing each
+	// and never misalign fixed art.
+	it("keeps the knobs over fixed art inside what the art allows", () => {
+		const { knobs } = platinumJson;
+		// The balloon tail is a 20 × 14 drawing: it is centered by layout, and
+		// its offset is the drawing's height less a 0–2 px junction overlap.
+		expect(knobs.balloonHelp).not.toHaveProperty("tailWidth");
+		expect(knobs.balloonHelp.tailOffset).toMatchObject({ min: 12, max: 14 });
+		// The pop-up slider's thumb follows trackTop (the JS reads it); its
+		// horizontal placement against the track drawing is fixed.
+		expect(knobs.popUpSlider.trackLeft).toMatchObject({ min: 4, max: 4 });
+		expect(knobs.popUpSlider.thumbLeft).toMatchObject({ min: 1, max: 1 });
+		// The menu shadow sits outside the border by a gap, not a raw offset.
+		expect(knobs.menuFrame).not.toHaveProperty("shadowOffset");
+		expect(knobs.menuFrame.shadowGap).toMatchObject({ default: 0, min: 0 });
+	});
+
+	it("labels the knobs for what they size", () => {
+		const { knobs } = platinumJson;
+		expect(knobs.scrollbar).toEqual({
+			thumbGripWidth: expect.objectContaining({
+				label: "Thumb grip width (across the bar)",
+			}),
+			thumbGripHeight: expect.objectContaining({
+				label: "Thumb grip height (along the bar)",
+			}),
+		});
+		expect(knobs.pager.cellHeight.label).toBe("Row height");
+	});
+
 	it("getAllThemes() comes from the package presets with resolved wallpapers", () => {
 		const all = getAllThemes();
 		expect(all.map((t) => t.id)).toEqual(PRESET_IDS);

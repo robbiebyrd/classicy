@@ -574,9 +574,10 @@ describe("Appearance Manager — Packages and Options tabs", {
 		// Platinum declares knobs for its six contract families (H-R4).
 		showTab(win, "Options");
 		expect(visiblePanel(win).getByLabelText("Module width")).toHaveValue(30);
-		expect(visiblePanel(win).getByLabelText("Arrow glyph width")).toHaveValue(
-			7,
-		);
+		expect(
+			visiblePanel(win).getByLabelText("Thumb grip width (across the bar)"),
+		).toHaveValue(7);
+		expect(visiblePanel(win).getByLabelText("Row height")).toHaveValue(36);
 		expect(visiblePanel(win).queryByLabelText("Tab width")).toBeNull();
 
 		showTab(win, "Packages");
