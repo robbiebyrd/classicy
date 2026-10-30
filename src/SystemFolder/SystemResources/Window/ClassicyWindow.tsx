@@ -54,19 +54,26 @@ import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/u
 import { useClassicyCursor } from "@/SystemFolder/SystemResources/Cursor/useClassicyCursor";
 import { ClassicyWindowMenuBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowMenuBar";
 import {
-	CLASSICY_WINDOW_RESIZE_FUDGE,
 	type ClassicyWindowRect,
 	computeClassicyWindowResize,
 } from "@/SystemFolder/SystemResources/Window/ClassicyWindowResize";
+import { CLASSICY_WINDOW_RESIZE_FUDGE } from "@/SystemFolder/SystemResources/Window/ClassicyWindowResize.internal";
 
 export type ClassicyWindowPositionX = number | "left" | "center" | "right";
 export type ClassicyWindowPositionY = number | "top" | "center" | "bottom";
 export type ClassicyWindowSizeDimension = number | `${number}%`;
 
+// The lowest left/top a window may take: the screen's left edge and the menu
+// bar's underside. clampWindowPositionToViewport holds every window to it, a
+// resize that moves the left or top edge stops there, and resolveSize,
+// resolvePosition and the zoom's standard state keep the menu bar's band (its
+// y) out of the room they give a window.
+const windowViewportFloor: [number, number] = [0, 30];
+
 export function resolveSize(
 	size: [ClassicyWindowSizeDimension, ClassicyWindowSizeDimension],
 ): [number, number] {
-	const menuBarHeight = 30;
+	const menuBarHeight = windowViewportFloor[1];
 	const desktop =
 		typeof document !== "undefined"
 			? document.getElementById("classicyDesktop")
@@ -129,7 +136,7 @@ export function resolvePosition(
 	pos: [ClassicyWindowPositionX, ClassicyWindowPositionY],
 	windowSize: [number, number],
 ): [number, number] {
-	const menuBarHeight = 30;
+	const menuBarHeight = windowViewportFloor[1];
 	const vw = typeof window !== "undefined" ? window.innerWidth : 800;
 	const vh = typeof window !== "undefined" ? window.innerHeight : 600;
 
@@ -157,11 +164,6 @@ export function resolvePosition(
 
 	return [x, y];
 }
-
-// The lowest left/top a window may take: the screen's left edge and the menu
-// bar's underside. clampWindowPositionToViewport holds every window to it,
-// and a resize that moves the left or top edge stops there.
-const windowViewportFloor: [number, number] = [0, 30];
 
 /**
  * #248: clamp a window rect so it stays fully inside the viewport when it
@@ -1406,7 +1408,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		position: [number, number];
 		size: [number, number];
 	} => {
-		const menuBarHeight = 30;
+		const menuBarHeight = windowViewportFloor[1];
 		const margin = 8;
 		const desktop =
 			typeof document !== "undefined"

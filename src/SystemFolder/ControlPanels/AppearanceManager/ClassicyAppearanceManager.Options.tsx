@@ -96,8 +96,8 @@ const knobFamilyValues = (
  * Metrics tab's notice: the first edit on a built-in theme forks "Custom".
  * A knob the reducer would refuse is left out: one whose family or key fails
  * `isThemeMetricFamilyTarget` (a core group such as `window`, or a name that
- * is not lower camel case, J-R20) or whose declared range does not meet
- * 0–512 (J-R18). The left-out knobs are reported in one warning per package.
+ * is not lower camel case) or whose declared range does not meet 0–512.
+ * The left-out knobs are reported in one warning per package.
  * A package without editable knobs says so instead.
  */
 export const useOptionsTab = ({

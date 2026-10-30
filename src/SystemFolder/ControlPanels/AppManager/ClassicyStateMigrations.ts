@@ -35,11 +35,11 @@ import { normalizeClassicyAppWindows } from "@/SystemFolder/ControlPanels/AppMan
  *   themes (`withDefaultThemeMetrics`). Built-ins matter: `availableThemes`
  *   is persisted and replaces the defaults wholesale, so without this the
  *   first theme switch after an upgrade would clone a metric-less theme.
- * - 2.2: theme `sound.name` renamed to `sound.pack` (plan 0002-ldj Part D)
- *   on the active, built-in and custom themes (`migrateThemeSoundPack`).
- * - 2.3: Appearance.packageId and theme.package default to "platinum"
- *   (plan 0002-ldj Part B) on the Appearance slice and the active, built-in
- *   and custom themes (`migrateAppearancePackage`).
+ * - 2.2: theme `sound.name` renamed to `sound.pack` on the active, built-in
+ *   and custom themes (`migrateThemeSoundPack`).
+ * - 2.3: Appearance.packageId and theme.package default to "platinum" on the
+ *   Appearance slice and the active, built-in and custom themes
+ *   (`migrateAppearancePackage`).
  * - Every window's gesture flags (`resizing`, `dragging`, `moving`) are
  *   dropped (`stripWindowGestureFlags`). They belong to a gesture in
  *   progress, which a load ends; `sanitizeStateForPersistence` drops them on

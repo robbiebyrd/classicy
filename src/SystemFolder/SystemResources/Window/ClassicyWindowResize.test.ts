@@ -1,9 +1,10 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
-	CLASSICY_WINDOW_RESIZE_FUDGE,
 	type ClassicyWindowRect,
 	computeClassicyWindowResize,
 } from "@/SystemFolder/SystemResources/Window/ClassicyWindowResize";
+import { CLASSICY_WINDOW_RESIZE_FUDGE } from "@/SystemFolder/SystemResources/Window/ClassicyWindowResize.internal";
 
 // Each corner's pointer is that corner of the rect plus (10, 10).
 const rect: ClassicyWindowRect = {
@@ -33,6 +34,27 @@ describe("computeClassicyWindowResize", () => {
 		).toEqual({ size: [195, 145], position: [95, 75] }));
 	it("the fudge is 5 until Part G measures it", () =>
 		expect(CLASSICY_WINDOW_RESIZE_FUDGE).toBe(5));
+	// The fudge is internal: the library barrel exports the function and its
+	// types, never the constant, so a measured value can replace it.
+	it("keeps the fudge out of the library barrel", () => {
+		const barrel = readFileSync("src/index.ts", "utf8");
+		expect(barrel).toContain(
+			'export * from "./SystemFolder/SystemResources/Window/ClassicyWindowResize";',
+		);
+		expect(barrel).not.toContain("ClassicyWindowResize.internal");
+	});
+	it("defaults the fudge to the internal constant", () =>
+		expect(
+			computeClassicyWindowResize("bottom-right", rect, [310, 260], chrome),
+		).toEqual(
+			computeClassicyWindowResize(
+				"bottom-right",
+				rect,
+				[310, 260],
+				chrome,
+				CLASSICY_WINDOW_RESIZE_FUDGE,
+			),
+		));
 
 	// F 4.1 review: CSS draws at least the minimum size, so a flipped axis
 	// positions from the drawn size; the returned size stays raw.

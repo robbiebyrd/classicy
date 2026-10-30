@@ -86,7 +86,7 @@ export type ClassicyAppearanceEvent =
 
 /**
  * How the user drove an event that a component emits from both a pointer
- * path and a keyboard path: `detail.input` (ruling I-R14). A package uses it
+ * path and a keyboard path: `detail.input`. A package uses it
  * to tell, say, a mouse press on a tab from an arrow key landing on it.
  */
 export type ClassicyAppearanceInput = "pointer" | "keyboard";

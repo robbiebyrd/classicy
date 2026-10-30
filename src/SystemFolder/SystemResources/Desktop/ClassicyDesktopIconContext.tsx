@@ -1,3 +1,4 @@
+import { CLASSICY_DEFAULT_APPEARANCE_LAYOUT } from "@/Appearance/ClassicyAppearanceDefaults";
 import type { ClassicyAppearanceLayout } from "@/Appearance/ClassicyAppearancePackage";
 import { getClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
@@ -28,7 +29,7 @@ import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/Class
 /**
  * The clean-up grid's column and row counts. Both step by one icon cell
  * (`iconSize * 2 + iconPadding`, the step `classicyDesktopIconGridPosition`
- * places by), so every counted column fits the viewport (F-R5). A bottom
+ * places by), so every counted column fits the viewport. A bottom
  * origin also reserves the menu bar's band at the top (`8 * iconPadding`:
  * the top origins' `4 * iconPadding` lead, plus the bottom origins' own), so
  * its last row never lands under the menu bar. Some row must exist, so a
@@ -61,7 +62,8 @@ export const classicyDesktopIconGridPosition = (
 	iconPadding: number,
 	col: number,
 	row: number,
-	origin: ClassicyAppearanceLayout["desktop"]["iconGridOrigin"] = "top-right",
+	origin: ClassicyAppearanceLayout["desktop"]["iconGridOrigin"] = CLASSICY_DEFAULT_APPEARANCE_LAYOUT
+		.desktop.iconGridOrigin,
 ): [number, number] => {
 	const cell = iconSize * 2 + iconPadding;
 	return [
@@ -117,7 +119,8 @@ const sortDesktopIcons = (
 const cleanupDesktopIcons = (
 	theme: ClassicyTheme,
 	icons: ClassicyStoreSystemDesktopManagerIcon[],
-	origin: ClassicyAppearanceLayout["desktop"]["iconGridOrigin"] = "top-right",
+	origin: ClassicyAppearanceLayout["desktop"]["iconGridOrigin"] = CLASSICY_DEFAULT_APPEARANCE_LAYOUT
+		.desktop.iconGridOrigin,
 ) => {
 	const newDesktopIcons: ClassicyStoreSystemDesktopManagerIcon[] = [];
 	let startX: number = 1;

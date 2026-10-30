@@ -11,6 +11,7 @@ import {
 	resetClassicyAppearancePackagesForTests,
 } from "@/Appearance/ClassicyAppearancePackage";
 import { PLATINUM_APPEARANCE_PACKAGE_ID } from "@/Appearance/Platinum";
+import { CLASSICY_DEFAULT_APPEARANCE_LAYOUT } from "@/Appearance/useClassicyAppearanceLayout";
 import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
@@ -50,6 +51,17 @@ describe("classicyDesktopIconGridPosition", () => {
 
 	it("top-right reproduces today's formula", () =>
 		expect(classicyDesktopIconGridPosition(64, 16, 1, 0)).toEqual([880, 64]));
+	// The default origin is the default layout's, so the two cannot drift.
+	it("defaults the origin to the default layout's", () =>
+		expect(classicyDesktopIconGridPosition(64, 16, 2, 3)).toEqual(
+			classicyDesktopIconGridPosition(
+				64,
+				16,
+				2,
+				3,
+				CLASSICY_DEFAULT_APPEARANCE_LAYOUT.desktop.iconGridOrigin,
+			),
+		));
 	it("top-left fills from the left edge", () =>
 		expect(classicyDesktopIconGridPosition(64, 16, 1, 0, "top-left")).toEqual([
 			16, 64,

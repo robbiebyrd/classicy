@@ -1,13 +1,11 @@
 import type { ClassicyAppearanceLayout } from "@/Appearance/ClassicyAppearancePackage";
+import { CLASSICY_WINDOW_RESIZE_FUDGE } from "@/SystemFolder/SystemResources/Window/ClassicyWindowResize.internal";
 
 /**
- * Added to the pointer's distance from the anchored corner, so the grow box
- * stays under the pointer (today's `+ 5`; Part G replaces it with a measured
- * value).
+ * A window's bounding rect in viewport pixels (frame padding and border
+ * included), as captured when the resize gesture starts: the `rect` argument
+ * of `computeClassicyWindowResize`.
  */
-export const CLASSICY_WINDOW_RESIZE_FUDGE = 5;
-
-/** A window's bounding rect, as captured when the resize gesture starts. */
 export type ClassicyWindowRect = {
 	left: number;
 	top: number;
@@ -15,6 +13,7 @@ export type ClassicyWindowRect = {
 	bottom: number;
 };
 
+/** What `computeClassicyWindowResize` returns for one pointer position. */
 export type ClassicyWindowResizeResult = {
 	/** The new content-box size, applied as the window's inline width/height. */
 	size: [number, number];
@@ -25,7 +24,8 @@ export type ClassicyWindowResizeResult = {
 /**
  * The size and position for a resize drag whose grow box sits in `corner`.
  * The corner opposite the grow box is the anchor: the size is the pointer's
- * distance from it plus `fudge`, and the position keeps it fixed. `rect` is
+ * distance from it plus `fudge` (default 5, which keeps the grow box under
+ * the pointer), and the position keeps it fixed. `rect` is
  * the window's bounding rect at the start of the gesture and `chrome` its
  * frame padding plus border (`classicyWindowChromeSize`), which the rect
  * includes but the applied size does not.

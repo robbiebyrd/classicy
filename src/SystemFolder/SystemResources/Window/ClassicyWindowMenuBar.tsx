@@ -43,9 +43,9 @@ export type ClassicyWindowMenuBarProps = {
  * menus, the clock and menu bar extensions (`ClassicyMenuBarExtension`, which
  * portals into the screen bar's extensions list) are not shown in window
  * placement. Window geometry still reserves the screen bar's 30 px top band
- * (`menuBarHeight` and `windowViewportFloor` in `ClassicyWindow.tsx`), so a
- * window is never placed or dragged into it. The band's height is that
- * constant, not the theme's `--menu-bar-height`.
+ * (`windowViewportFloor` in `ClassicyWindow.tsx`), so a window is never
+ * placed, zoomed or dragged into it. The band's height is that constant, not
+ * the theme's `--menu-bar-height`.
  */
 export const ClassicyWindowMenuBar: FunctionalComponent<
 	ClassicyWindowMenuBarProps

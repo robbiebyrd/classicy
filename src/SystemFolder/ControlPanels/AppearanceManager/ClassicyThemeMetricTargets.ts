@@ -389,7 +389,7 @@ export const getThemeMetricFamilyKnob = (
 
 /**
  * The values a knob accepts: its own inclusive `min`–`max` intersected with
- * the theme schema's 0–512 (J-R18). `undefined` when they do not meet (a
+ * the theme schema's 0–512. `undefined` when they do not meet (a
  * knob declared wholly outside 0–512), so the knob is not editable at all:
  * the reducer refuses every value and the Options tab leaves it out. The
  * single source for both.

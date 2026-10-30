@@ -59,8 +59,8 @@ export const listClassicyThemes = (
 
 /**
  * A package's own built-in themes: its `defaults` first, unless a preset has
- * their id, then its presets (J-R22: `presets` is optional, and the defaults
- * are always selectable).
+ * their id, then its presets (`presets` is optional, and the defaults are
+ * always selectable).
  */
 export const listClassicyPackageBuiltInThemes = (
 	pkg: Pick<ClassicyAppearancePackage, "presets"> &
@@ -103,7 +103,7 @@ export const listClassicyPackageThemes = (
 };
 
 /**
- * Looks a theme id up, in `ClassicyDesktopChangeTheme`'s order (J-R19). With
+ * Looks a theme id up, in `ClassicyDesktopChangeTheme`'s order. With
  * `pkg`, the active package: its host-loaded `availableThemes`, then its
  * built-ins (`listClassicyPackageBuiltInThemes`), then the custom themes, and
  * last the other packages' `availableThemes`. So an id shared with another
