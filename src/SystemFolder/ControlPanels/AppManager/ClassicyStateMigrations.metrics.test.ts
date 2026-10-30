@@ -76,6 +76,23 @@ describe("migrateClassicyState — theme metrics", () => {
 		).toBe("4px");
 	});
 
+	it("heals knob families from the package defaults", () => {
+		const migrated = migrateClassicyState(strippedState());
+		const appearance = migrated.System.Manager.Appearance;
+		expect(appearance.activeTheme.measurements.pager.cellHeight).toBe(36);
+		expect(
+			(getThemeVars(appearance.activeTheme) as Record<string, string>)[
+				"--pager-cell-height"
+			],
+		).toBe("36px");
+		for (const theme of appearance.availableThemes ?? []) {
+			expect(theme.measurements.controlStrip.cellHeight, theme.id).toBe(22);
+		}
+		expect(
+			appearance.customThemes?.[0]?.measurements.balloonHelp.tailWidth,
+		).toBe(20);
+	});
+
 	it("returns the same object when themes are complete", () => {
 		expect(migrateClassicyState(DefaultAppManagerState)).toBe(
 			DefaultAppManagerState,

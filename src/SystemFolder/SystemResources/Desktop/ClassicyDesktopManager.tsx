@@ -24,6 +24,7 @@ import {
 import { setThemeColor } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorTargets";
 import { readClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFile";
 import {
+	classicyThemeMeasurementDefaults,
 	withDefaultThemeMetrics,
 	withDefaultThemeMetricsList,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
@@ -232,7 +233,10 @@ const activatableClassicyPackageTheme = (
 	pkg: ClassicyAppearancePackage,
 	packageTheme: ClassicyTheme,
 ): ClassicyTheme => {
-	const theme = withDefaultThemeMetrics(cloneClassicyTheme(packageTheme));
+	const theme = withDefaultThemeMetrics(
+		cloneClassicyTheme(packageTheme),
+		classicyThemeMeasurementDefaults(pkg.id),
+	);
 	return {
 		...theme,
 		package: pkg.id,
@@ -632,6 +636,7 @@ export const classicyDesktopEventHandler = (
 				withDefaultThemePackageList(
 					withDefaultThemeMetricsList(
 						action.availableThemes as ClassicyTheme[],
+						(theme) => classicyThemeMeasurementDefaults(theme.package),
 					),
 				);
 			break;

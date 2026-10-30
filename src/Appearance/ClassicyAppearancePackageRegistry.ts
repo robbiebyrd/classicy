@@ -2,6 +2,7 @@ import {
 	getAllThemes,
 	getTheme,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { setClassicyPackageMeasurementsLookup } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMeasurementSource.internal";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import {
 	CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
@@ -123,6 +124,14 @@ export const getRegisteredClassicyAppearancePackageOrDefault = (
 ): ClassicyAppearancePackage | undefined =>
 	(id === undefined ? undefined : registry.get(id)) ??
 	registry.get(CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID);
+
+// `classicyThemeMeasurementDefaults` fills a theme's missing measurements
+// from its package's defaults; the registry hands it the lookup (see
+// ClassicyThemeMeasurementSource.internal.ts for why it is not imported).
+setClassicyPackageMeasurementsLookup(
+	(id) =>
+		getRegisteredClassicyAppearancePackageOrDefault(id)?.defaults.measurements,
+);
 
 /** Registered packages, in registration order. */
 export const listClassicyAppearancePackages = (): ClassicyAppearancePackage[] =>
