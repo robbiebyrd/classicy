@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: M
 created: "2026-10-28T20:23:54.842Z"
-updated: "2026-10-30T00:22:22.032Z"
+updated: "2026-10-30T01:55:52.698Z"
 started: "2026-10-30T00:22:14.648Z"
 tags: []
 milestone: ""
@@ -116,3 +116,5 @@ Caps: per the Phase 0 gate result `["0px","0px"]`, delete the `&:after`/`&:befor
 ### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
 
 ### 2026-10-30T00:22:22.032Z - Started on feat/appearance-part-e-v2 (worktree part-e) at post-B base 813ee9101. The implementer brief is the part-e ledger task-2.1-brief.md; parity uses the shared post-B baseline at .playwright-mcp/parity/post-b/.
+
+### 2026-10-30T01:55:52.698Z - First pass da6c3a721 (pushed). Gate green: 4063 tests, build:source with verify:dist. Cap pseudos measured 0px, so the caps were deleted. Parity: 245/302 at AE 0. The 57 others differ only inside title-bar stripe bands, with no row moved: 1 level on the titled side bands and the windoid, but up to 14 (red) and 21 levels on the 1.25× title-less centers and 13 on the 1.5× WindowFrame, against named change (c)'s limit of ≤2. Cause: the opaque light ground blocks the bleed-through of the background that the old SVG had at fractional boundary pixels. Ruling E19 sends it back: two masked layers (light rows and dark rows) over the normal background, with no opaque ground. If it still exceeds 2 levels, the owner decides.

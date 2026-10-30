@@ -3,12 +3,13 @@ id: 0048-fpx
 title: 'I 3.2: Window feedback and the menu-item flash'
 purpose: Move the window feedback sounds and the menu-item flash (class, keyframes and click sound) out of component code into Platinum hooks and the Platinum _Menu partial, keeping the item action exactly-once.
 type: impr
-status: in_progress
+status: complete
 priority: "2"
 effort: M
 created: "2026-10-28T20:19:44.230Z"
-updated: "2026-10-30T01:52:07.695Z"
+updated: "2026-10-30T01:56:40.845Z"
 started: "2026-10-30T01:12:18.062Z"
+completed: "2026-10-30T01:56:40.845Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -90,10 +91,10 @@ Re-shoot desktop-window*, desktop-menu*, desktop-menubar*, dialogs-alert*, contr
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm exec vitest run src/Appearance/Platinum src/SystemFolder/SystemResources/Menu
-- [ ] platinumAppearanceHooks holds the Window and MenuItem entries (flash decoration on press, {} on release); ClassicyWindow.tsx dispatches no window feedback sprite and ClassicyMenu.tsx no menu sprite or flash class; the flash CSS lives in the Platinum _Menu partial; error beeps remain.
-- [ ] A menu item's action runs exactly once for animationend of any name, the 400 ms fallback timer, or both.
-- [ ] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
+- [x] VERIFY: pnpm exec vitest run src/Appearance/Platinum src/SystemFolder/SystemResources/Menu
+- [x] platinumAppearanceHooks holds the Window and MenuItem entries (flash decoration on press, {} on release); ClassicyWindow.tsx dispatches no window feedback sprite and ClassicyMenu.tsx no menu sprite or flash class; the flash CSS lives in the Platinum _Menu partial; error beeps remain.
+- [x] A menu item's action runs exactly once for animationend of any name, the 400 ms fallback timer, or both.
+- [x] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
 
 ## Files
 
@@ -115,3 +116,5 @@ Re-shoot desktop-window*, desktop-menu*, desktop-menubar*, dialogs-alert*, contr
 ### 2026-10-30T01:12:19.716Z - Started on feat/appearance-part-i-v2 at BASE ba5235cc6 (I 3.1), with I 3.1's task review running in parallel. Any review fixes are folded in or land after. The brief is the part-i ledger task-3.2-brief.md, which includes I-R14..I-R17 and the I 2.3 carry-forwards (own-target flash guard test, dead spacer branch). Parity: port 6023 against the post-B baseline.
 
 ### 2026-10-30T01:52:07.695Z - Implemented at 574c30e5d (pushed). eb5db5529 moves the window sounds and the menu-item flash into the hooks; 574c30e5d folds in the I 3.1 review minors. RED: 7/185. Gate: lint, tsc, 4248 tests (627 s, no timeouts), build:source with verify:dist. Parity: 37 window, menu, menubar, alert and contextual-menu stories at AE 0 with identical computed styles, and 26 forced Chromium cases identical. A live check shows the flash class is removed on animationend at about 310 ms, before the 400 ms fallback. Deviations: Window.dragStart stays silent on a resize start (I-R17); MenuItem.blur is unmapped; a stale ClassicyIcons mock was removed; the any-name animationend test dispatches a real webkitAnimationEnd. Concern for review: submenu hovers no longer bubble extra hover dispatches to the parent item. The task review is in progress.
+
+### 2026-10-30T01:56:38.084Z - Review APPROVED at 574c30e5d, with no Critical or Important findings. The window sounds map one-to-one onto the base player() sites, the only silent emits are the two resize ones, and the error beeps stay. finishFlash keeps the action exactly-once, and the any-name and own-target tests are real (they fail without the code they pin). Both I 2.3 carry-forwards and both folded I 3.1 minors are done. The VERIFY tests and the full gate (4248) come from the implementer's runs, checked by the reviewer against the logs. Minors 1-3 (a shared webkitAnimationEnd helper, a test pinning that the flash class comes only from the package, comment wording) are folded into I 4.1. The hover-sound ear check is added to V&V 0083-v8n. The 82 jsdom HTMLMediaElement "Not implemented" lines in every run are being stubbed out in the shared test setup on fix/tooling-typecheck (story 0086-u2p).

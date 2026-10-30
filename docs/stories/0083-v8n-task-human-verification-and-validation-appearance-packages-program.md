@@ -7,7 +7,7 @@ status: pending
 priority: "2"
 effort: XL
 created: "2026-10-29T20:12:05.516Z"
-updated: "2026-10-29T20:12:05.516Z"
+updated: "2026-10-30T01:56:28.910Z"
 tags:
   - vnv
   - manual
@@ -188,5 +188,6 @@ Run the 7 manual checks from 0075-uev, 0076-4sb, 0078-nc6, 0079-vn4, 0080-xy4, 0
 - [ ] [MANUAL] **0080-xy4 (J 5.1)**: In the example app the Sound tab lists Platinum as the sound pack and Load Theme… with a file whose `package` is `irix` shows the stop alert without changing the theme.
 - [ ] [MANUAL] **0081-ww6 (J 6.1)**: Every J 0 screenshot except `app-appearance-*` compares AE 0 before vs after; all nine `system-appearancemanager--*` stories render without console errors.
 - [ ] [MANUAL] **0081-ww6 (J 6.1)**: AGENT-REFERENCE lists the new action, the metric family form, `ClassicySchemaForm` and the eight tabs; CLAUDE.md has the schema-form paragraph; plan 0000-aud (the audit) §9 Phase 8 carries a 'Done' line.
+- [ ] [MANUAL] Part I 3.2: in the example app with sound unmuted, hover through a menu and into a submenu. Each item plays one hover sound, exactly as before 3.2 (the extra hover dispatches that used to bubble to parent items, always refused by the sound manager, are gone).
 
 ## Work Log
