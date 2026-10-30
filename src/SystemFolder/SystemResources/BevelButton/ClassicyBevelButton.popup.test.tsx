@@ -74,7 +74,8 @@ describe("ClassicyBevelButton pop-up menu (HIGOS8 p.32)", () => {
 		// The button reads as pressed while its menu is down.
 		expect(button).toHaveClass("open", "pressed");
 		expect(button).not.toHaveAttribute("data-state");
-		const shrink = screen.getByRole("menuitem", { name: "Shrink" });
+		const shrink = screen.getByRole("menuitemcheckbox", { name: "Shrink" });
+		expect(shrink).toHaveAttribute("aria-checked", "true");
 		// The ✓ is package CSS on `.classicyMenuItemCheck.checked::before`.
 		expect(shrink.querySelector(".classicyMenuItemCheck")).toHaveClass(
 			"checked",
@@ -216,7 +217,9 @@ describe("ClassicyBevelButton pop-up menu (HIGOS8 p.32)", () => {
 		button.focus();
 		// Enter/Space produce a click with no pointer behind it (detail 0).
 		fireEvent.click(button, { detail: 0 });
-		const [shrink, noShrink] = screen.getAllByRole("menuitem");
+		// Both items are checkable, so they are menuitemcheckbox items, and
+		// keyboard navigation must still reach them.
+		const [shrink, noShrink] = screen.getAllByRole("menuitemcheckbox");
 		expect(shrink).toHaveFocus();
 		fireEvent.keyDown(shrink, { key: "ArrowDown" });
 		expect(noShrink).toHaveFocus();

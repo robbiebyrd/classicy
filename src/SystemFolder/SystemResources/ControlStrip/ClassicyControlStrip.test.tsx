@@ -393,7 +393,12 @@ describe("built-in control strip modules", () => {
 				name: "Open Screen Saver Control Panel",
 			}),
 		).toBeInTheDocument();
-		fireEvent.click(screen.getByRole("menuitem", { name: "Screen Saver On" }));
+		// A checked choice: the menu exposes it as a checked menuitemcheckbox.
+		const enabledItem = screen.getByRole("menuitemcheckbox", {
+			name: "Screen Saver On",
+		});
+		expect(enabledItem).toHaveAttribute("aria-checked", "true");
+		fireEvent.click(enabledItem);
 		completeMenuItemFlash("screen-saver-enabled");
 		await waitFor(() =>
 			expect(
