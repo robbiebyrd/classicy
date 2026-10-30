@@ -38,7 +38,11 @@ export type ClassicyWindowResizeResult = {
  * - `minimum` is the window's minimum content size, which CSS draws however
  *   small the size; the position comes from the drawn size, so the edge stops
  *   at the minimum. The returned size stays raw. The minimum wins when both
- *   bind.
+ *   bind. No real press reaches that state: both bind only when
+ *   `anchor − (minimum + chrome) < floor`, so a window drawn at least its
+ *   minimum would have to start the gesture with its edge already past the
+ *   floor, and the release clamp forbids such a press rect. If it is ever
+ *   reached, the release clamp still moves the window onto the floor.
  * Bottom-right moves no edge, so it ignores both and its numbers are today's.
  */
 export const computeClassicyWindowResize = (

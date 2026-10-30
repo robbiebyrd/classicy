@@ -234,9 +234,16 @@ export function sanitizeStateForPersistence(
 		draft.System.Manager.Keyboard = { app: {}, system: [], global: {} };
 		// "Closed this session" is what makes a re-registering window a reopen
 		// that takes focus; after a reload no window has been closed yet.
+		// `resizing`, `dragging` and `moving` belong to a gesture in progress;
+		// a reload ends it, and a stale flag would keep the window acting as
+		// if dragged (preventDefault on mousemove, the resizing class) until
+		// its first click.
 		for (const app of Object.values(draft.System.Manager.Applications.apps)) {
 			for (const w of Object.values(app.windows ?? {})) {
 				delete w.closedThisSession;
+				delete w.resizing;
+				delete w.dragging;
+				delete w.moving;
 			}
 		}
 	});
