@@ -18,6 +18,7 @@ import {
 import { createPortal } from "react-dom";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import {
 	ClassicyControlLabel,
@@ -35,8 +36,6 @@ import {
 	type ClassicyPopUpMenuPlacementResult,
 	classicyPopUpMenuPlacement,
 } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenuPlacement";
-
-const CHECKMARK = "✓";
 
 /**
  * How typing narrows the suggestions: by label prefix, by label substring, or
@@ -494,9 +493,13 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 										}
 									}}
 								>
-									<span className="classicyPopUpMenuCheck" aria-hidden={true}>
-										{isSelected ? CHECKMARK : ""}
-									</span>
+									<span
+										className={classNames(
+											"classicyPopUpMenuCheck",
+											classicyStateClasses({ checked: isSelected }),
+										)}
+										aria-hidden={true}
+									/>
 									{o.icon && (
 										<img
 											className="classicyPopUpMenuListItemIcon"

@@ -46,9 +46,47 @@ describe("QuickTimeCaptionsOverlay", () => {
 			true,
 		);
 		expect(cue.style.fontSize).toBe("150%");
-		// Browser normalizes rgba with alpha=1 to rgb format
-		expect(cue.style.color).toBe("rgb(255, 255, 255)");
-		expect(cue.style.backgroundColor).toBe("rgba(0, 0, 0, 0.8)");
+		// The colors are composed by QuickTimeCaptionsOverlay.scss from the
+		// custom properties, not inline.
+		expect(cue.style.getPropertyValue("--classicy-caption-fg")).toBe(
+			"255, 255, 255",
+		);
+		expect(cue.style.getPropertyValue("--classicy-caption-fg-alpha")).toBe("1");
+		expect(cue.style.getPropertyValue("--classicy-caption-bg")).toBe("0, 0, 0");
+		expect(cue.style.getPropertyValue("--classicy-caption-bg-alpha")).toBe(
+			"0.8",
+		);
+	});
+
+	it("publishes caption colors as custom properties", () => {
+		const { container } = render(
+			<QuickTimeCaptionsOverlay
+				text="Styled cue"
+				captionStyle={{
+					color: 0xff0000,
+					colorOpacity: 0.5,
+					bgColor: 0,
+					bgOpacity: 0.25,
+					size: 100,
+					font: "ui",
+				}}
+			/>,
+		);
+		const cue = container.querySelector(
+			".quickTimePlayerCaptions",
+		) as HTMLElement;
+		expect(cue.style.getPropertyValue("--classicy-caption-fg")).toBe(
+			"255, 0, 0",
+		);
+		expect(cue.style.getPropertyValue("--classicy-caption-fg-alpha")).toBe(
+			"0.5",
+		);
+		expect(cue.style.getPropertyValue("--classicy-caption-bg")).toBe("0, 0, 0");
+		expect(cue.style.getPropertyValue("--classicy-caption-bg-alpha")).toBe(
+			"0.25",
+		);
+		expect(cue.style.color).toBe("");
+		expect(cue.style.backgroundColor).toBe("");
 	});
 });
 

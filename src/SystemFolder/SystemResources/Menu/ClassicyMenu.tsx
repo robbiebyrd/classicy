@@ -19,7 +19,10 @@ import {
 	type ClassicyAppearanceInput,
 	withClassicyAppearanceInput,
 } from "@/Appearance/useClassicyAppearanceInput.internal";
-import { CLASSICY_PART_ATTRIBUTE } from "@/Appearance/vocabulary/ClassicyVocabulary";
+import {
+	CLASSICY_PART_ATTRIBUTE,
+	classicyStateClasses,
+} from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import {
@@ -477,9 +480,16 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 		>
 			<p>
 				{menuItem.checked !== undefined ? (
-					<span className={"classicyMenuItemCheck"} aria-hidden={"true"}>
-						{menuItem.checked === "mixed" ? "–" : menuItem.checked ? "✓" : ""}
-					</span>
+					<span
+						className={classNames(
+							"classicyMenuItemCheck",
+							classicyStateClasses({
+								checked: menuItem.checked === true,
+								mixed: menuItem.checked === "mixed",
+							}),
+						)}
+						aria-hidden={"true"}
+					/>
 				) : menuItem.image ? (
 					<img src={menuItem.image} alt={menuItem.title} />
 				) : menuItem.icon ? (

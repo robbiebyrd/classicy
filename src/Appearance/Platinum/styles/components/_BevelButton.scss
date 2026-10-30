@@ -1,9 +1,22 @@
-// The Platinum bevel button pop-up panel look (from ClassicyBevelButton.scss):
-// the menu frame around a non-menu surface, then the panel's own face and
-// inner highlight, which override the frame's background and shadow.
+// The Platinum bevel button look (from ClassicyBevelButton.scss): the pop-up
+// arrow glyphs, then the pop-up panel — the menu frame around a non-menu
+// surface, then the panel's own face and inner highlight, which override the
+// frame's background and shadow.
+@use "sass:string";
 @use "../mixins";
 
 @mixin bevelButton {
+  // The pop-up arrow: a font glyph pointing where the surface opens (right
+  // for horizontal, down for vertical), as an escape kept by `string.unquote`
+  // so the package CSS stays ASCII. Base sizes the arrow box (small, large).
+  .classicyBevelButtonArrowHorizontal::before {
+    content: string.unquote('"\\25B8"'); // ▸
+  }
+
+  .classicyBevelButtonArrowVertical::before {
+    content: string.unquote('"\\25BE"'); // ▾
+  }
+
   .classicyBevelButtonPopup.classicyBevelButtonPopupPanel {
     @include mixins.platinum-menu-frame;
     background: var(--color-system-03);

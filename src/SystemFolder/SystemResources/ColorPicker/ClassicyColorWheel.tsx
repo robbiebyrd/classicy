@@ -81,9 +81,15 @@ export const ClassicyColorWheel: FC<ClassicyColorWheelProps> = ({
 		const cy = radius + r * Math.sin(rad);
 		const ARM = 7;
 
+		// The crosshair color is the Appearance Package's (declared on its root).
+		const crosshair =
+			getComputedStyle(canvas)
+				.getPropertyValue("--classicy-color-picker-crosshair")
+				.trim() || "#ffffff";
+
 		ctx.save();
 		ctx.globalCompositeOperation = "difference";
-		ctx.strokeStyle = "#ffffff";
+		ctx.strokeStyle = crosshair;
 		ctx.lineWidth = 1.5;
 		ctx.beginPath();
 		ctx.moveTo(cx - ARM, cy);

@@ -26,6 +26,7 @@
 @use "components/Desktop";
 @use "components/Tabs";
 @use "components/DesktopIcon";
+@use "components/FileInput";
 @use "components/Meter";
 @use "components/Output";
 @use "components/Placard";
@@ -56,6 +57,7 @@
   // the tab scroller re-asserts its hidden scroll bar after the desktop's.
   @include Tabs.tabs;
   @include DesktopIcon.desktopIcon;
+  @include FileInput.fileInput;
   @include Meter.meter;
   @include Output.output;
   @include Placard.placard;

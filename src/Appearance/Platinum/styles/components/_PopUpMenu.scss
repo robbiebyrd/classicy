@@ -1,6 +1,8 @@
 // The Platinum pop-up menu look (from ClassicyPopUpMenu.scss): the raised
-// control and its double-arrow indicator. The disabled fill follows the
+// control, its double-arrow indicator, and the checkmark against the current
+// item of the open menu (ComboBox shares it). The disabled fill follows the
 // undepressable face it overrides.
+@use "sass:string";
 @use "../mixins";
 
 @mixin popUpMenu {
@@ -20,5 +22,12 @@
   // geometry.
   .classicyPopUpMenuIndicator {
     background-image: var(--classicy-art-popup-arrows);
+  }
+
+  // The HIG checkmark against the current selection, a font glyph in the
+  // fixed check gutter (an escape kept by `string.unquote`, so the package CSS
+  // stays ASCII).
+  .classicyPopUpMenuCheck.checked::before {
+    content: string.unquote('"\\2713"'); // ✓
   }
 }
